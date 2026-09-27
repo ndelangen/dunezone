@@ -36,6 +36,7 @@ import {
   getRulebookRegionOrder,
   isRulebookCollectionBlock,
   rulebookAssetExplainerTargetSchema,
+  rulebookBlockKindLabels,
   rulebookBlockKinds,
   rulebookDraftEntitySchemas,
   rulebookLayoutCatalogue,
@@ -53,6 +54,8 @@ import type {
 import { RULEBOOK_EDITION_ARTIFACT_KINDS } from '@shared/rulebooks/editionArtifacts';
 import type { RulebookEditionArtifactKind } from '@shared/rulebooks/editionArtifacts';
 import { rulebookNameSchema } from '@shared/rulebooks/metadata';
+import { projectRulebookDraftRenderPage } from '@shared/rulebooks/projectRenderDocument';
+import type { RulebookResolvedAssetsById, RulebookResolvedFactionsById } from '@shared/rulebooks/projectRenderDocument';
 import { collectRulebookReferenceIds } from '@shared/rulebooks/references';
 import { getRulebookSize } from '@shared/rulebooks/settings';
 import type { RulebookSettings } from '@shared/rulebooks/settings';
@@ -101,11 +104,6 @@ import {
 import type { RulebookEditorPageData, RulebookMetadata } from '@db/rulebooks';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
 import { FactionPicker } from '@app/pickers/FactionPicker';
-import { projectRulebookDraftRenderPage } from '@app/print/rulebook/projectRulebookRenderDocument';
-import type {
-  RulebookResolvedAssetsById,
-  RulebookResolvedFactionsById,
-} from '@app/print/rulebook/projectRulebookRenderDocument';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 import { RulebookPageRenderer } from '@game/rulebook/RulebookRenderer';
@@ -127,7 +125,7 @@ import {
   verticalRectCenter,
 } from './rulebookBlockPlacement';
 import type { BlockPlacement, VerticalRect } from './rulebookBlockPlacement';
-import { rulebookControlRegionEditors } from './rulebookControlRegionEditors';
+import { CoverEdit, CoverFooterEdit } from './rulebookControlRegionEditors';
 import {
   collisionPointerY,
   collisionsWithPointerY,
@@ -331,22 +329,6 @@ function openingRailDragMemory(lastValidPlacement: BlockPlacement | null = null)
 const pageLayoutLabels = Object.fromEntries(
   rulebookLayoutCatalogue.map((layout) => [layout.id, layout.label])
 ) as Record<RulebookPageLayoutId, string>;
-
-const blockKindLabels = {
-  text: 'Text',
-  'section-heading': 'Section heading',
-  list: 'List',
-  callout: 'Callout',
-  'question-answer': 'Question and answer',
-  'referenced-illustration': 'Referenced illustration',
-  'illustrated-inventory': 'Illustrated inventory',
-  'card-entry': 'Card entry',
-  'card-group': 'Card group',
-  'asset-explainer': 'AssetExplainer',
-  'faction-introduction': 'Faction introduction',
-  'reference-table': 'Reference table',
-  credits: 'Credits',
-} satisfies Record<RulebookBlockKind, string>;
 
 const restrictDragToVerticalAxis: Modifier = ({ transform }) => ({
   ...transform,
@@ -633,8 +615,8 @@ function blockWarningLabel(page: RulebookPageDraft, block: RulebookBlockDraft) {
   );
   const position = sameKind.findIndex((candidate) => candidate.id === block.id);
   return sameKind.length > 1 && position >= 0
-    ? `${blockKindLabels[block.kind]} ${position + 1}`
-    : blockKindLabels[block.kind];
+    ? `${rulebookBlockKindLabels[block.kind]} ${position + 1}`
+    : rulebookBlockKindLabels[block.kind];
 }
 
 function findBlockPlacement(page: RulebookPageDraft, blockId: string): BlockPlacement | null {
@@ -676,17 +658,6 @@ function blockDropStatus(
   );
   if (!block || !source || !region || region.kind !== 'block') {
     return { allowed: false, reason: 'The placement no longer exists.' };
-  }
-  if (!(region.acceptedBlockKinds as readonly RulebookBlockKind[]).includes(block.kind)) {
-    return {
-      allowed: false,
-      reason: `${region.label} does not accept ${blockKindLabels[block.kind]} Blocks.`,
-    };
-  }
-  const currentCount = blockOrders(page)[targetRegionKey]?.length ?? 0;
-  const countWithoutDraggedBlock = currentCount - (source.regionKey === targetRegionKey ? 1 : 0);
-  if (region.cardinality.maximum !== null && countWithoutDraggedBlock >= region.cardinality.maximum) {
-    return { allowed: false, reason: `${region.label} is full.` };
   }
   return { allowed: true, reason: `${region.label} accepts this Block.` };
 }
@@ -1128,7 +1099,7 @@ function AddMenu<Value extends string>({
               ? arrangementLabels[value]
               : value in pageLayoutLabels
                 ? pageLayoutLabels[value as RulebookPageLayoutId]
-                : blockKindLabels[value as RulebookBlockKind]}
+                : rulebookBlockKindLabels[value as RulebookBlockKind]}
           </Menu.Item>
         ))}
       </Menu.Dropdown>
@@ -1306,16 +1277,14 @@ function controlRegionPanel(
   factionsById: RulebookResolvedFactionsById
 ) {
   if (page.layoutId === 'cover' && regionKey === 'cover') {
-    const Edit = rulebookControlRegionEditors.cover.cover;
     return (
-      <Edit
+      <CoverEdit
         value={page.controlValues.cover}
         onChange={(cover) => replacePage({ ...page, controlValues: { ...page.controlValues, cover } })}
       />
     );
   }
   if (page.layoutId === 'cover' && regionKey === 'footer') {
-    const Edit = rulebookControlRegionEditors.cover.footer;
     const footer = getRulebookCoverFooter(page.controlValues);
     const update = (value: typeof footer) =>
       replacePage({
@@ -1323,7 +1292,7 @@ function controlRegionPanel(
         controlValues: { ...canonicalRulebookCoverControlValues(page.controlValues), footer: value },
       });
     return (
-      <Edit
+      <CoverFooterEdit
         value={footer}
         onChange={update}
         footerFactionControls={
@@ -1503,14 +1472,7 @@ function RulebookWorkspace({
     window.location.hash = editorHash(page.id, 'details');
   };
 
-  const firstAvailableRegion = (kind: RulebookBlockKind) =>
-    layout.regions.find((region) => {
-      if (region.kind !== 'block' || !(region.acceptedBlockKinds as readonly RulebookBlockKind[]).includes(kind)) {
-        return false;
-      }
-      const count = blockOrders(page)[region.key]?.length ?? 0;
-      return region.cardinality.maximum === null || count < region.cardinality.maximum;
-    });
+  const firstAvailableRegion = () => layout.regions.find((region) => region.kind === 'block');
 
   const addBlock = (regionKey: RulebookBlockRegionKey, kind: RulebookBlockKind) => {
     const blockId = createRulebookLocalId(Object.keys(page.blocksById));
@@ -1715,13 +1677,9 @@ function RulebookWorkspace({
         key: region.key,
         label: region.label,
         icon: rulebookRegionIcon(region.key, iconArrangement),
-        acceptedBlockKinds: region.acceptedBlockKinds,
-        minimum: region.cardinality.minimum,
-        maximum: region.cardinality.maximum,
         blocks: ids.flatMap((id) => projectedPage.blocksById[id] ?? []),
         collapsed: collapsedRegionKeys.has(collapseKey),
         containsActiveBlock: active.kind === 'block' && ids.includes(active.blockId),
-        canAddBlock: region.cardinality.maximum === null || ids.length < region.cardinality.maximum,
       },
     ];
   });
@@ -1776,7 +1734,7 @@ function RulebookWorkspace({
         value={{
           anchor: page.anchor,
           title: page.title,
-          ...('showHeading' in page ? { showHeading: page.showHeading } : {}),
+          showHeading: page.showHeading,
         }}
         diagnostics={{
           anchor: pageDiagnostic('anchor'),
@@ -1821,7 +1779,8 @@ function RulebookWorkspace({
       </Stack>
     );
 
-  const availableBlockKinds = rulebookBlockKinds.filter((kind) => firstAvailableRegion(kind));
+  /* A Cover has no Block region, so it offers no Block to add; every interior layout takes the whole catalogue. */
+  const availableBlockKinds = firstAvailableRegion() ? rulebookBlockKinds : [];
   const onWorkspaceKeyDown = (event: KeyboardEvent<HTMLElement>) => {
     if (event.target !== event.currentTarget || (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight')) {
       return;
@@ -1966,7 +1925,7 @@ function RulebookWorkspace({
                     values={availableBlockKinds}
                     icon={rulebookBlockIcon}
                     onPick={(kind) => {
-                      const region = firstAvailableRegion(kind);
+                      const region = firstAvailableRegion();
                       if (region?.kind === 'block') {
                         addBlock(region.key, kind);
                       }
@@ -1977,7 +1936,7 @@ function RulebookWorkspace({
               <NestedTabs.ContentPanel aria-label={`${page.title} editor`}>
                 {activeClippedBlock ? (
                   <Stack gap="lg">
-                    <Alert color="yellow" title={`${blockKindLabels[activeClippedBlock.kind]} is clipped`}>
+                    <Alert color="yellow" title={`${rulebookBlockKindLabels[activeClippedBlock.kind]} is clipped`}>
                       <Stack gap="xs">
                         <Text size="sm">
                           Part of this Block will not be visible in the published Rulebook. Shorten the Block to show
@@ -2258,13 +2217,10 @@ function reviewPlacementContainers(
     ];
   }
   return getRulebookLayout(page.layoutId).regions.flatMap((region) => {
-    if (region.kind !== 'block' || !(region.acceptedBlockKinds as readonly RulebookBlockKind[]).includes(block.kind)) {
+    if (region.kind !== 'block') {
       return [];
     }
     const ids = blockOrders(page)[region.key] ?? [];
-    if (ids.filter((id) => id !== target.blockId).length >= (region.cardinality.maximum ?? Infinity)) {
-      return [];
-    }
     return [{ container: { kind: 'block-region', pageId: page.id, regionKey: region.key }, ids }];
   });
 }
@@ -2589,23 +2545,9 @@ function RulebookEditorSession({
   onReferencesChange: (references: DraftReferences) => void;
 }) {
   const { rulesetSlug } = Route.useParams();
-  const [manager] = useState(() => {
-    const saved = { revision: String(data.draft.revision), contents: data.draft.contents };
-    return createRulebookEditorStateManager({
-      baseline: saved,
-      latest: saved,
-      resolutionLedger: [],
-      patch: {
-        schemaVersion: 1,
-        baselineRevision: saved.revision,
-        creates: [],
-        deletes: [],
-        sets: [],
-        placements: [],
-        restorations: [],
-      },
-    });
-  });
+  const [manager] = useState(() =>
+    createRulebookEditorStateManager({ revision: String(data.draft.revision), contents: data.draft.contents })
+  );
   const [view, sendView] = useReducer(editorViewReducer, {
     result: manager.result,
     fit: 'height',

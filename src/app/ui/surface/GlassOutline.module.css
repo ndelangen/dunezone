@@ -1,0 +1,36 @@
+.definitions {
+  position: absolute;
+}
+
+.geometryShadow,
+.geometryContour {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.geometryShadow {
+  z-index: 0;
+  fill: #000;
+}
+
+.glassSurface {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  background: var(--glass-outline-fill);
+  /* The kit Surface blurs by the same amount, so a joined pane and a plain one read as one material. */
+  backdrop-filter: blur(8px);
+}
+
+.geometryContour {
+  z-index: 2;
+  fill: none;
+  stroke: var(--panel-border);
+  stroke-width: 1;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}

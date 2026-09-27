@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { draftingRuntime } from './native-drafting.fixture.mjs';
-import { admitPlayer, eventually, sendCommand, syncView } from './native-runtime.fixture.mjs';
+import { accepted, admitPlayer, eventually, seat, syncView } from './native-runtime.fixture.mjs';
 
 describe('Faction conversations in the game database', () => {
   let peer, runtime;
@@ -15,18 +15,6 @@ describe('Faction conversations in the game database', () => {
     await peer?.close();
   });
   const admit = (suffix) => admitPlayer(peer, runtime, suffix);
-  async function accepted(player, action) {
-    const { reply } = await sendCommand(player, action);
-    expect(reply.type, JSON.stringify(reply)).not.toBe('rejected');
-    return syncView(player);
-  }
-  async function seat(player, approver, target) {
-    const requested = await accepted(player, { kind: 'seat-request', ...(target ? { seat: target } : {}) });
-    await accepted(approver, {
-      kind: 'seat-approve',
-      requestId: requested.snapshot.controls.seatRequests.find((entry) => entry.own).id,
-    });
-  }
   async function setup() {
     const a = await admit('a');
     const b = await admit('b');
@@ -44,8 +32,6 @@ describe('Faction conversations in the game database', () => {
         seat: view.viewer.viewerSeat,
       });
     }
-    a.send({ type: 'sync', conversations: true });
-    b.send({ type: 'sync', conversations: true });
     const view = await syncView(a);
     expect(view.snapshot.stage).toBe('setup');
     const faction = (playerView) =>
@@ -74,7 +60,6 @@ describe('Faction conversations in the game database', () => {
     expect((await send(drafting, 'atreides', 'harkonnen')).type).toBe('rejected');
     const { a, b, aId, bId } = await setup();
     const observer = await admit('observer');
-    const oldClient = await admit('a');
     const first = await send(a, aId, bId, 'Private plans', 'one-message');
     expect(first.type).toBe('conversation-message');
     expect((await send(a, aId, bId, 'Private plans', 'one-message')).message).toEqual(first.message);
@@ -90,7 +75,6 @@ describe('Faction conversations in the game database', () => {
     expect(earlier.more).toBe(false);
     expect(earlier.entries[0]).toEqual(first.message);
     expect(JSON.stringify(await syncView(b))).not.toContain('Private plans');
-    expect(oldClient.messages.filter((entry) => entry.type.startsWith('conversation'))).toEqual([]);
     expect(observer.messages.filter((entry) => entry.type.startsWith('conversation'))).toEqual([]);
     expect((await page(observer, aId, bId)).type).toBe('rejected');
     expect((await page(a, bId, aId)).type).toBe('rejected');
@@ -101,6 +85,23 @@ describe('Faction conversations in the game database', () => {
     expect((await page(await admit('b'), bId, aId)).entries).toEqual(recent.entries);
     expect((await page(await admit('b'), bId, aId, recent.entries[0].sequence)).entries).toEqual(earlier.entries);
     expect(await runtime.exec('SELECT COUNT(*) AS count FROM conversation_messages')).toEqual([{ count: 54 }]);
+  });
+
+  it('delivers conversation messages to a tab that admits and syncs without asking for them', async () => {
+    const { a, aId, bId } = await setup();
+    const tab = await admit('b');
+    await syncView(tab);
+    const sent = await send(a, aId, bId, 'Plans for every tab', 'every-tab');
+    /* The room answers in order, so a view asked for after the send arrives behind anything the send pushed. */
+    await syncView(tab);
+    expect(tab.messages.find((entry) => entry.type === 'conversation-message')).toEqual({
+      type: 'conversation-message',
+      factionId: bId,
+      peerId: aId,
+      message: sent.message,
+      serverNow: expect.any(Number),
+    });
+    expect(tab.messages.findLast((entry) => entry.type === 'conversations')).toMatchObject({ factionId: bId });
   });
 
   it('revokes former owners before retry lookup and gives replacements the full faction conversation', async () => {

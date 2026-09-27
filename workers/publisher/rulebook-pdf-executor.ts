@@ -1,17 +1,17 @@
-import type { AssignedRulebookPdfJob } from '../../src/shared/rulebooks/pdfPublication';
+import type { AssignedRulebookArtifactJob } from '../../src/shared/rulebooks/editionArtifactWork';
 import { TargetRenderError } from './browser';
 import type { PublisherBrowserSession } from './browser';
 import { publicationWorkBudget } from './config';
 import type { PublisherConfig } from './config';
 import type { ConvexPublisherClient } from './convex';
+import { putImmutableRulebookArtifact } from './rulebook-artifact-r2';
+import type { RulebookArtifactBucket } from './rulebook-artifact-r2';
 import { composeRulebookPdf, RulebookPdfGenerationError } from './rulebook-pdf';
 import { stageRulebookPdfCapture, removeRulebookPdfCapture } from './rulebook-pdf-capture';
 import type { RulebookPdfCaptureBucket } from './rulebook-pdf-capture';
-import { putImmutableRulebookPdf } from './rulebook-pdf-r2';
-import type { RulebookPdfBucket } from './rulebook-pdf-r2';
 
 type BrowserSession = Pick<PublisherBrowserSession, 'captureRulebookPdfBatch' | 'close' | 'sessionId'>;
-type RulebookPdfClient = Pick<ConvexPublisherClient, 'completeRulebookPdf' | 'failRulebookPdf'>;
+type RulebookPdfClient = Pick<ConvexPublisherClient, 'completeRulebookArtifact' | 'failRulebookArtifact'>;
 
 export type RulebookPdfExecution = {
   assigned: number;
@@ -31,9 +31,9 @@ export type RulebookPdfExecution = {
 /** Captures each frozen Edition in bounded Page batches and publishes only the validated composition. */
 export async function executeRulebookPdfWork(
   config: PublisherConfig,
-  items: AssignedRulebookPdfJob[],
+  items: AssignedRulebookArtifactJob<'pdf'>[],
   dependencies: {
-    bucket: RulebookPdfCaptureBucket & RulebookPdfBucket;
+    bucket: RulebookPdfCaptureBucket & RulebookArtifactBucket;
     client: RulebookPdfClient;
     openBrowser: () => Promise<BrowserSession>;
     rendererIdentity: string;
@@ -105,11 +105,21 @@ export async function executeRulebookPdfWork(
           break;
         }
         const bytes = await composeRulebookPdf(item, captured);
-        const stored = await putImmutableRulebookPdf(dependencies.bucket, item, bytes, dependencies.rendererIdentity);
+        const stored = await putImmutableRulebookArtifact(
+          dependencies.bucket,
+          'pdf',
+          item,
+          bytes,
+          dependencies.rendererIdentity
+        );
         if (!stored.created) {
           result.reused += 1;
         }
-        const status = await dependencies.client.completeRulebookPdf(item.artifactId, budget.requestDeadline());
+        const status = await dependencies.client.completeRulebookArtifact(
+          'pdf',
+          item.artifactId,
+          budget.requestDeadline()
+        );
         if (status === 'ready') {
           result.completed += 1;
         } else {
@@ -120,7 +130,12 @@ export async function executeRulebookPdfWork(
         if (!(error instanceof TargetRenderError) && !(error instanceof RulebookPdfGenerationError)) {
           throw error;
         }
-        const status = await dependencies.client.failRulebookPdf(item.artifactId, error, budget.requestDeadline());
+        const status = await dependencies.client.failRulebookArtifact(
+          'pdf',
+          item.artifactId,
+          error,
+          budget.requestDeadline()
+        );
         if (status === 'failed') {
           result.failed += 1;
         } else {

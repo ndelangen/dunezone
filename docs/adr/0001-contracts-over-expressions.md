@@ -39,10 +39,14 @@ in for interface tests. The test suite's churn (the architecture test changed
      *absence* of a dependency, and absence has no type to hang off. The
      lint boundary in `.oxlintrc.json` covers `src/app/ui`; it does not
      cover `src/game`.
-   - `src/app/ui/layout/containerQueries.test.ts`: no layout stylesheet uses a
-     `@media` query, since a Layout lays out by the room it is given. The
-     guarantee is again the absence of a spelling across a directory, and
-     `PageLayout` is the one exemption the suite encodes.
+   - `scripts/assert-breakpoints.mjs` (`bun run check:breakpoints`): a
+     width `@media` query in a stylesheet appears only in the window chrome
+     and only on the breakpoint ladder, since everything inside a page lays
+     out by the room it is given. The guarantee is again a spelling across
+     the tree, and the chrome stylesheets, `PageLayout` among them, are the
+     exemptions it encodes. Until part (b) of #1321 lands, a named list of
+     page stylesheets keeps the width queries each asks today, and only
+     those. Media conditions written in TypeScript are outside the scan.
 
    A scan that could have been a validator, a type, or a lint rule is still a
    defect. Adding a fourth entry here should feel expensive.

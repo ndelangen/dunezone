@@ -6,6 +6,8 @@ import { tableSeatCountSchema } from './schema';
 export const PLAY_FIXTURE_KEY = 'hosted-demo';
 export const PLAY_TICKET_TTL_MS = 30_000;
 export const PLAY_PENDING_TIMEOUT_MS = 5000;
+/** The longest wait between reconnects while every new ticket keeps expiring before the Worker redeems it. */
+export const PLAY_TICKET_RETRY_MAX_MS = 30_000;
 /*
  * The reactive subscription is the prompt path for revocation. The uncached lease bounds a stalled
  * subscription over a live transport; the lease must exceed the renewal cadence plus the request
@@ -21,14 +23,11 @@ export const PLAY_PROVISION_TIMEOUT_MS = 60_000;
 export const PLAY_CONFIRMATION_RETRY_MS = 2000;
 export const PLAY_CONFIRMATION_RECOVERY_MS = 30_000;
 export const PLAY_AUTHORIZATION_BATCH_SIZE = 64;
-
-export const PLAY_REDEEM_TICKET_FUNCTION = 'playAdmission:redeemTicket';
-export const PLAY_WATCH_AUTHORIZATIONS_FUNCTION = 'playAdmission:watchAuthorizations';
-export const PLAY_RECONCILE_ACCOUNTS_FUNCTION = 'playAdmission:reconcileAccounts';
-export const PLAY_ACK_ACCOUNT_DELETION_FUNCTION = 'playAdmission:ackAccountDeletion';
-export const PLAY_VALIDATE_PROVISIONING_FUNCTION = 'playProvisioning:validateProvisioning';
-export const PLAY_CONFIRM_PROVISIONING_FUNCTION = 'playProvisioning:confirmProvisioning';
-export const PLAY_FAIL_PROVISIONING_FUNCTION = 'playProvisioning:failProvisioning';
+/**
+ * The longest name a game receives for a Player.
+ * Convex cuts a longer profile name to it before the game Worker sees it.
+ */
+export const PLAY_DISPLAY_NAME_MAX_LENGTH = 256;
 
 const identifierSchema = z.string().min(1).max(128);
 const playCredentialSchema = z.string().regex(/^[0-9a-f]{64}$/);
@@ -57,7 +56,7 @@ export const playGameProvisionSchema = z.object({
   minimumPlayers: playMinimumPlayersSchema,
   creator: z.object({
     userId: identifierSchema,
-    displayName: z.string().max(256),
+    displayName: z.string().max(PLAY_DISPLAY_NAME_MAX_LENGTH),
     /* The creator's public avatar, a delivery URL or null; the draft ledger draws players by it. */
     avatarUrl: z.string().max(2048).nullable().optional(),
   }),
@@ -75,7 +74,8 @@ export const playConfirmationSchema = z.object({ ok: z.boolean() });
 
 export const playIssueTicketRequestSchema = z.strictObject({ gameId: identifierSchema });
 export const playTicketResultSchema = z.union([
-  z.object({ ok: z.literal(true), ticket: playCredentialSchema, expiresAt: timestampSchema }),
+  /* A duration rather than a deadline, so the browser measures it on its monotonic clock and never compares it with its own wall clock. */
+  z.object({ ok: z.literal(true), ticket: playCredentialSchema, expiresInMs: z.number().int().nonnegative() }),
   z.object({
     ok: z.literal(false),
     reason: z.enum(['not_authorized', 'unavailable', 'rate_limited']),
@@ -87,14 +87,18 @@ export const playRedeemTicketRequestSchema = z.strictObject({
   ticket: playCredentialSchema,
 });
 export const playRedeemTicketResultSchema = z.union([
-  refusedSchema,
+  /*
+   * `expired` covers a ticket that lapsed, was already redeemed or is unknown: a new ticket answers each, so the browser
+   * asks for one. `refused` is final.
+   */
+  z.object({ ok: z.literal(false), reason: z.enum(['expired', 'refused']) }),
   z.object({
     ok: z.literal(true),
     registrationId: identifierSchema,
     userId: identifierSchema,
     sessionId: identifierSchema,
     authExpiresAt: timestampSchema,
-    displayName: z.string().max(256),
+    displayName: z.string().max(PLAY_DISPLAY_NAME_MAX_LENGTH),
     avatarUrl: z.string().max(2048).nullable().optional(),
   }),
 ]);

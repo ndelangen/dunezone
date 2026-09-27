@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { draftingRuntime } from './native-drafting.fixture.mjs';
-import { admitPlayer, eventually, sendCommand, syncView } from './native-runtime.fixture.mjs';
+import { accepted, admitPlayer, eventually, seat, syncView } from './native-runtime.fixture.mjs';
 
 const LATEST = Number.MAX_SAFE_INTEGER;
 
@@ -16,17 +16,6 @@ describe('The retained public log', { timeout: 20_000 }, () => {
     await peer?.close();
   });
   const admit = (suffix) => admitPlayer(peer, runtime, suffix);
-  async function accepted(connection, action, id) {
-    const sent = await sendCommand(connection, action, id);
-    expect(sent.reply.type, JSON.stringify(sent.reply)).not.toBe('rejected');
-    return (await syncView(connection)).snapshot;
-  }
-  async function seat(player, approver, target) {
-    const next = await accepted(player, { kind: 'seat-request', ...(target ? { seat: target } : {}) });
-    const request = next.controls.seatRequests.find((entry) => entry.own);
-    await accepted(approver, { kind: 'seat-approve', requestId: request.id });
-    return request.id;
-  }
   async function page(connection, tab, before = LATEST) {
     const start = connection.messages.length;
     connection.send({ type: 'log-history', tab, before });
@@ -88,11 +77,23 @@ describe('The retained public log', { timeout: 20_000 }, () => {
     ]);
   });
 
+  it('keeps filing entries after the room restarts cold', async () => {
+    await admit('a');
+    await runtime.restart();
+    const a = await admit('a');
+    await accepted(a, { kind: 'seat-depart' });
+    expect(texts(await page(a, 'game'))).toEqual(['The game was discarded: no players remain.']);
+    expect(texts(await page(a, 'audit'))).toEqual([
+      'Synthetic A left seat 1.',
+      'Synthetic A created the game and took seat 1.',
+    ]);
+  });
+
   it('files one entry for a command however often its id is retried', async () => {
     const a = await admit('a');
     const b = await admit('b');
     const next = await accepted(b, { kind: 'seat-request' });
-    const request = next.controls.seatRequests.find((entry) => entry.own);
+    const request = next.snapshot.controls.seatRequests.find((entry) => entry.own);
     const view = await syncView(a);
     const message = {
       type: 'command',
@@ -120,11 +121,11 @@ describe('The retained public log', { timeout: 20_000 }, () => {
     await seat(c, a);
     const seatOfC = (await syncView(c)).viewer.viewerSeat;
     const seatOfB = (await syncView(b)).viewer.viewerSeat;
-    const failing = (await accepted(a, { kind: 'removal-start', seat: seatOfB })).removalVotes.find(
+    const failing = (await accepted(a, { kind: 'removal-start', seat: seatOfB })).snapshot.removalVotes.find(
       (vote) => vote.target.seat === seatOfB
     );
     await accepted(c, { kind: 'removal-ballot', voteId: failing.id, choice: 'keep' });
-    const vote = (await accepted(a, { kind: 'removal-start', seat: seatOfC })).removalVotes.find(
+    const vote = (await accepted(a, { kind: 'removal-start', seat: seatOfC })).snapshot.removalVotes.find(
       (entry) => entry.target.seat === seatOfC
     );
     await accepted(b, { kind: 'removal-ballot', voteId: vote.id, choice: 'remove' });
@@ -175,57 +176,6 @@ describe('The retained public log', { timeout: 20_000 }, () => {
     ]);
     expect(second.more).toBe(false);
     expect((await page(a, 'audit')).entries.map((entry) => entry.class)).toEqual(['seat']);
-  });
-
-  it('rebuilds the log of a game from before it, once, from the tables its producers kept', async () => {
-    const a = await admit('a');
-    const b = await admit('b');
-    await seat(b, a);
-    await runtime.exec('DELETE FROM public_log');
-    await runtime.exec("UPDATE metadata SET data=json_remove(data,'$.publicLog') WHERE id=1");
-    await runtime.exec('INSERT INTO spice_transfers VALUES(?,?,?)', [
-      7,
-      'user-b',
-      JSON.stringify({
-        revision: 7,
-        kind: 'supply',
-        actor: 'Synthetic B',
-        amount: 8,
-        source: 'supply',
-        destination: 'table',
-      }),
-    ]);
-    await runtime.exec('INSERT INTO battle_results VALUES(?,?)', [
-      9,
-      JSON.stringify({
-        id: 'battle-1',
-        anchor: [0, 0, 0],
-        territory: 'never shown',
-        factions: ['atreides', 'harkonnen'],
-        plans: [],
-        outcome: 'right',
-        revision: 9,
-      }),
-    ]);
-    for (let round = 0; round < 2; round++) {
-      /* The second round unstamps the room again, so the rebuild itself runs twice and its keys must hold. */
-      await runtime.exec("UPDATE metadata SET data=json_remove(data,'$.publicLog') WHERE id=1");
-      await runtime.restart();
-      const reader = await admit('c');
-      const game = await page(reader, 'game');
-      expect(texts(game)).toEqual(['harkonnen defeated atreides.', 'Synthetic B supplied 8 spice to the table.']);
-      expect(game.entries.map((entry) => [entry.context, entry.at])).toEqual([
-        ['Drafting', null],
-        ['Drafting', null],
-      ]);
-      const audit = await page(reader, 'audit');
-      expect(texts(audit)).toEqual([
-        'Synthetic B took seat 2, approved by Synthetic A.',
-        'Synthetic A created the game and took seat 1.',
-      ]);
-      expect(audit.entries.every((entry) => typeof entry.at === 'number' && entry.context === '')).toBe(true);
-    }
-    expect((await runtime.exec('SELECT COUNT(*) AS count FROM public_log'))[0].count).toBe(4);
   });
 
   describe('in a game that reaches play', () => {
@@ -298,7 +248,7 @@ describe('The retained public log', { timeout: 20_000 }, () => {
       expect(texts(await page(other, 'game'))[0]).toBe('Atreides revealed its prediction: Harkonnen, turn 4.');
       let playing = null;
       for (let guard = 0; guard < 6 && !playing; guard++) {
-        const snapshot = await next(owner);
+        const { snapshot } = await next(owner);
         if (snapshot.stage === 'setup' && snapshot.controls.ready.length === 0) {
           await accepted(owner, { kind: 'ready', ready: true });
           await accepted(other, { kind: 'ready', ready: true });
@@ -308,7 +258,7 @@ describe('The retained public log', { timeout: 20_000 }, () => {
         }
       }
       if (!playing) {
-        const snapshot = await next(owner);
+        const { snapshot } = await next(owner);
         playing = snapshot.stage === 'play' ? snapshot : null;
       }
       expect(playing?.stage).toBe('play');

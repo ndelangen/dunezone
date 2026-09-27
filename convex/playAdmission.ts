@@ -32,6 +32,7 @@ import {
   playSessionAuthorization,
   mayEnterGame,
 } from './lib/playAuthorization';
+import { playerSummary } from './lib/playerSummary';
 import { playRateLimiter, playTicketQuota } from './lib/playRateLimits';
 
 export const getFixture = query({
@@ -73,7 +74,8 @@ export const issueTicket = mutation({
       return { ok: false as const, reason: 'not_authorized' as const };
     }
     const ticket = playCredential();
-    const expiresAt = Math.min(Date.now() + PLAY_TICKET_TTL_MS, session.authExpiresAt);
+    const now = Date.now();
+    const expiresAt = Math.min(now + PLAY_TICKET_TTL_MS, session.authExpiresAt);
     const ticketId = await ctx.db.insert('play_tickets', {
       digest: await playCredentialDigest(ticket),
       game_id: game._id,
@@ -83,7 +85,7 @@ export const issueTicket = mutation({
       consumed: false,
     });
     await ctx.scheduler.runAt(expiresAt, internal.playAdmission.expireTicket, { ticketId });
-    return { ok: true as const, ticket, expiresAt };
+    return { ok: true as const, ticket, expiresInMs: expiresAt - now };
   },
 });
 
@@ -161,10 +163,11 @@ async function consumeTicket(
     userId: ticket.user_id,
     sessionId: ticket.session_id,
     authExpiresAt: authorization.authExpiresAt,
-    displayName: profile?.username?.slice(0, 256) || 'Player',
-    avatarUrl: profile ? (profile.avatar?.url ?? profile.avatar_url) : null,
+    ...playerSummary(profile),
   };
 }
+
+const refusedRedemption = { ok: false, reason: 'refused' } as const;
 
 export const redeemTicket = mutation({
   args: zodToConvex(playRedeemTicketRequestSchema),
@@ -172,22 +175,22 @@ export const redeemTicket = mutation({
   handler: async (ctx, input) => {
     const request = await authenticatedPlayRequest(ctx, input, playRedeemTicketRequestSchema);
     if (request?.game.state !== 'ready') {
-      return { ok: false as const };
+      return refusedRedemption;
     }
     const { game, args } = request;
     if (!(await playRateLimiter.limit(ctx, 'playRedeemPerGame', { key: game._id })).ok) {
-      return { ok: false as const };
+      return refusedRedemption;
     }
     const ticket = await findRedeemableTicket(ctx, game._id, args.ticket);
     if (!ticket) {
-      return { ok: false as const };
+      return { ok: false as const, reason: 'expired' as const };
     }
     const authorization = await playSessionAuthorization(ctx, ticket.user_id, ticket.session_id);
     if (!authorization.allowed || Date.now() >= authorization.authExpiresAt) {
-      return { ok: false as const };
+      return refusedRedemption;
     }
     if (!(await mayEnterGame(ctx, game, ticket.user_id))) {
-      return { ok: false as const };
+      return refusedRedemption;
     }
     return await consumeTicket(ctx, ticket, authorization);
   },

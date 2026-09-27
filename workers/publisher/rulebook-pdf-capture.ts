@@ -1,14 +1,11 @@
+import type { AssignedRulebookArtifactJob } from '../../src/shared/rulebooks/editionArtifactWork';
 import {
   planRulebookPdfBatches,
   RULEBOOK_PDF_CAPTURE_TTL_MS,
   rulebookPdfCaptureBundleSchema,
   rulebookPdfCaptureSnapshotSchema,
 } from '../../src/shared/rulebooks/pdfPublication';
-import type {
-  AssignedRulebookPdfJob,
-  RulebookPdfCaptureBundle,
-  RulebookPdfCaptureSnapshot,
-} from '../../src/shared/rulebooks/pdfPublication';
+import type { RulebookPdfCaptureBundle, RulebookPdfCaptureSnapshot } from '../../src/shared/rulebooks/pdfPublication';
 import { RulebookPdfGenerationError } from './rulebook-pdf';
 
 const CAPTURE_TOKEN_PATTERN = /^[0-9a-f]{64}$/;
@@ -32,7 +29,7 @@ async function payloadHash(payload: RulebookPdfCaptureSnapshot['payload']) {
 
 /** Builds every batch from one in-memory render document before the Browser opens. */
 async function buildRulebookPdfCaptureBundle(
-  job: AssignedRulebookPdfJob,
+  job: AssignedRulebookArtifactJob<'pdf'>,
   now: number
 ): Promise<RulebookPdfCaptureBundle> {
   const planned = planRulebookPdfBatches(
@@ -67,7 +64,7 @@ async function buildRulebookPdfCaptureBundle(
 /** Stores a private short-lived capture bundle under a random credential. */
 export async function stageRulebookPdfCapture(
   bucket: RulebookPdfCaptureBucket,
-  job: AssignedRulebookPdfJob,
+  job: AssignedRulebookArtifactJob<'pdf'>,
   now: number
 ): Promise<{ token: string; bundle: RulebookPdfCaptureBundle }> {
   const bundle = await buildRulebookPdfCaptureBundle(job, now);

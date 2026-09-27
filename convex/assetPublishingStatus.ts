@@ -1,10 +1,13 @@
+import type { z } from 'zod';
+
+import type { assetCaptureStatusSchema } from '../src/shared/asset-publishing/captureStatus';
 import { publishedHref } from '../src/shared/asset-publishing/publicationTargets';
 import type { PublicationAssetType } from '../src/shared/asset-publishing/publicationTargets';
-import type { Doc, Id } from './_generated/dataModel';
+import type { Doc } from './_generated/dataModel';
 import type { QueryCtx } from './types';
 
 export type PublicAssetPublishingStatus = 'current';
-export type PublicAssetCaptureStatus = 'scheduled' | 'in_progress';
+export type PublicAssetCaptureStatus = z.infer<typeof assetCaptureStatusSchema>;
 
 export type PublicAssetPublishingStatusProjection = {
   status: PublicAssetPublishingStatus | null;
@@ -63,21 +66,23 @@ export async function publicationStatusFor(
     throw new Error(`Publication invariant violated: duplicate ${assetType} assets`);
   }
 
-  const captureStatus: PublicAssetCaptureStatus | null = jobs.some((job) => job.status === 'in_progress')
-    ? 'in_progress'
-    : jobs.some((job) => job.status === 'pending')
-      ? 'scheduled'
-      : null;
-
   return {
     ...projectPublicAssetPublishingStatus(assetType, assets[0] ?? null),
-    captureStatus,
+    captureStatus: captureStatusOf(jobs),
   };
 }
 
-export async function factionSheetPublishingStatus(
-  ctx: Pick<QueryCtx, 'db'>,
-  factionId: Id<'factions'>
-): Promise<PublicAssetPublishingStatusProjection> {
-  return await publicationStatusFor(ctx, 'faction_sheet', factionId);
+/** Live work outranks a failure, because a running or waiting capture may still replace the publication the failed one could not. */
+function captureStatusOf(jobs: Pick<Doc<'publication_jobs'>, 'status'>[]): PublicAssetCaptureStatus | null {
+  const has = (status: Doc<'publication_jobs'>['status']) => jobs.some((job) => job.status === status);
+  switch (true) {
+    case has('in_progress'):
+      return 'in_progress';
+    case has('pending'):
+      return 'scheduled';
+    case has('error'):
+      return 'error';
+    default:
+      return null;
+  }
 }

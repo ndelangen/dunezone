@@ -1,7 +1,16 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
+import { TICKET_EXPIRED_CLOSE_CODE } from '../../src/shared/play/protocol.ts';
 import { spiceSupplySlot } from '../../src/shared/play/spiceSupply.ts';
-import { createPeer, createRuntime, eventually, openGame, provision, syncView } from './native-runtime.fixture.mjs';
+import {
+  createPeer,
+  createRuntime,
+  eventually,
+  isFullView,
+  openGame,
+  provision,
+  syncView,
+} from './native-runtime.fixture.mjs';
 
 describe('GameRoom native SQLite and admission boundaries', () => {
   let peer;
@@ -58,9 +67,30 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     expect(logs[0].message).not.toContain('c'.repeat(64));
   });
 
+  it('refuses a seated player who asks to change how the table is enforced', async () => {
+    expect((await provision(runtime)).status).toBe(200);
+    const { connection } = await admit();
+    connection.send({
+      type: 'command',
+      commandId: 'owner-only',
+      action: { kind: 'enforcement', policy: 'strict' },
+      expectedRevision: 0,
+    });
+    const answer = await eventually(
+      () =>
+        connection.messages.find(
+          (message) => message.status === 'denied' || message.completedCommandId === 'owner-only'
+        ),
+      'an answer to the enforcement command'
+    );
+    expect(answer).toMatchObject({ type: 'admission', status: 'denied' });
+    const { view } = await admit();
+    expect(view.snapshot.revision).toBe(0);
+  });
+
   it('persists the fixed spice stack, moved stacks, returns and turn boundaries with idempotent receipts', async () => {
     expect((await provision(runtime)).status).toBe(200);
-    const { connection, view } = await admit();
+    const { connection } = await admit();
     connection.send({ type: 'command', commandId: 'phase-start', action: { kind: 'phase' }, expectedRevision: 0 });
     await connection.message('view', (message) => message.completedCommandId === 'phase-start');
     const spawnTen = {
@@ -78,7 +108,7 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     });
     const firstSpawn = await connection.message('view', (message) => message.completedCommandId === 'spawn-ten');
     const spawned = await connection.message('view', (message) => message.completedCommandId === 'spawn-two');
-    expect(firstSpawn.snapshot.table.events[0].message).toBe(`${view.viewer.displayName} spawned 10 spice.`);
+    expect(firstSpawn.snapshot.table.events[0].message).toBe('Harkonnen spawned 10 spice.');
     const firstStack = firstSpawn.snapshot.table.pieces.find((piece) => piece.stackKey === 'spice');
     const stacks = spawned.snapshot.table.pieces.filter((piece) => piece.stackKey === 'spice');
     expect(stacks).toHaveLength(1);
@@ -87,7 +117,7 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     expect(stacks[0].items.slice(0, 10)).toEqual(firstStack.items);
     expect(stacks[0].items).toHaveLength(12);
     expect(new Set(stacks[0].items.map((item) => item.id)).size).toBe(12);
-    expect(spawned.snapshot.table.events[0].message).toBe(`${view.viewer.displayName} spawned 2 spice.`);
+    expect(spawned.snapshot.table.events[0].message).toBe('Harkonnen spawned 2 spice.');
     connection.messages.length = 0;
     connection.send(spawnTen);
     const repeatedSpawn = await connection.message('view', (message) => message.completedCommandId === 'spawn-ten');
@@ -174,9 +204,7 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     const returned = await connection.message('view', (message) => message.completedCommandId === 'delete-spice');
     expect(returned.snapshot.table.pieces.find((piece) => piece.id === movedStack.id).items).toHaveLength(11);
     expect(returned.snapshot.table.pieces.find((piece) => piece.id === newStack.id)).toEqual(newStack);
-    expect(returned.snapshot.table.events[0].message).toBe(
-      `${view.viewer.displayName} returned 1 spice to the supply.`
-    );
+    expect(returned.snapshot.table.events[0].message).toBe('Harkonnen returned 1 spice to the supply.');
     connection.messages.length = 0;
     connection.send(returnSpice);
     expect(
@@ -362,6 +390,22 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     expect((await restored.message('history', (message) => message.step === 10)).snapshot).toEqual(backward.snapshot);
   }, 15_000);
 
+  it('closes on an expired ticket so the browser asks for another, while a refused player stays denied', async () => {
+    expect((await provision(runtime)).status).toBe(200);
+    peer.redemptionRefusal = 'expired';
+    const expired = await openGame(runtime);
+    expired.send({ type: 'admit', ticket: 'c'.repeat(64) });
+    await eventually(() => expired.closed, 'expired ticket close');
+    expect(expired.closeCode).toBe(TICKET_EXPIRED_CLOSE_CODE);
+    expect(expired.messages).toEqual([]);
+    peer.redemptionRefusal = 'refused';
+    const refused = await openGame(runtime);
+    refused.send({ type: 'admit', ticket: 'd'.repeat(64) });
+    await eventually(() => refused.closed, 'refused ticket close');
+    expect(refused.closeCode).toBe(4401);
+    expect(refused.messages).toEqual([{ type: 'admission', status: 'denied' }]);
+  });
+
   it('closes a redeemed socket that never obtained fresh authorization', async () => {
     expect((await provision(runtime)).status).toBe(200);
     const connection = await openGame(runtime);
@@ -406,10 +450,7 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     first.connection.send({ type: 'metrics' });
     await first.connection.message('metrics');
     first.connection.send({ type: 'pointer', seq: 0, position: [0, 0, 0] });
-    await first.connection.message(
-      'activity',
-      (message) => message.carries.length === 1 && message.pointers.length === 1
-    );
+    await first.connection.message('view', (message) => message.carries.length === 1 && message.pointers.length === 1);
     expect(first.connection.messages.slice(beforeMessages).some((message) => message.type === 'admission')).toBe(false);
     const held = peer.requests.at(-1);
     held.release(peer.result(held.args));
@@ -450,11 +491,98 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     second.socket.close();
     await peer.query(({ query }) => query.args[0].registrationIds.length === 1);
     first.connection.send({ type: 'pointer', seq: 0, position: [2, 0, 0] });
-    const afterLeave = await first.connection.message('activity', (message) =>
+    const afterLeave = await first.connection.message('view', (message) =>
       message.pointers.some((pointer) => pointer.position[0] === 2)
     );
     expect(afterLeave.carries).toHaveLength(1);
     expect(first.connection.messages.slice(beforeMessages).some((message) => message.type === 'admission')).toBe(false);
+  });
+
+  /** A second registration at the table, whose socket shows what the holder's messages send to other viewers. */
+  async function admitWatcher() {
+    peer.registrationId = 'registration-b';
+    peer.watchMode = 'allow';
+    const connection = await openGame(runtime);
+    connection.send({ type: 'admit', ticket: 'd'.repeat(64) });
+    const view = await connection.message('view');
+    return { connection, view };
+  }
+
+  async function metrics(connection) {
+    const before = connection.messages.length;
+    connection.send({ type: 'metrics' });
+    await eventually(
+      () => connection.messages.slice(before).find((message) => message.type === 'metrics'),
+      'metrics reply'
+    );
+  }
+
+  /** The room frames the watcher receives while the holder sends, including one the Worker defers by its 50 ms activity timer. */
+  async function framesDuring(holder, watcher, message) {
+    const before = watcher.messages.length;
+    holder.send(message);
+    await metrics(holder);
+    await new Promise((resolve) => setTimeout(resolve, 250));
+    await metrics(watcher);
+    return watcher.messages.slice(before).filter((frame) => frame.type === 'view' || frame.type === 'update');
+  }
+
+  it('renews a held carry without a frame to other viewers, and the renewals keep it past 8 s', async () => {
+    expect((await provision(runtime)).status).toBe(200);
+    const { connection: holder } = await admit();
+    holder.send({
+      type: 'begin',
+      carryId: 'held',
+      sourcePieceId: 'harkonnen-force-stack',
+      expectedVersion: 0,
+      pickup: 'top',
+    });
+    await holder.message('carry');
+    const { connection: watcher, view } = await admitWatcher();
+    const [begun] = view.carries;
+    for (const offset of [4000, 8000, 12_000]) {
+      await runtime.clock(offset);
+      expect(await framesDuring(holder, watcher, { type: 'renew', carryId: 'held' })).toEqual([]);
+    }
+    const [renewed] = (await syncView(watcher)).carries;
+    expect(renewed.id).toBe('held');
+    expect(renewed.expiresAt).toBeGreaterThanOrEqual(begun.expiresAt + 12_000);
+  });
+
+  it('ends a carry 8 s after its holder goes silent, and tells the other viewers', async () => {
+    expect((await provision(runtime)).status).toBe(200);
+    const { connection: holder } = await admit();
+    const { connection: watcher } = await admitWatcher();
+    holder.send({
+      type: 'begin',
+      carryId: 'held',
+      sourcePieceId: 'harkonnen-force-stack',
+      expectedVersion: 0,
+      pickup: 'top',
+    });
+    await holder.message('carry');
+    await runtime.clock(7000);
+    expect((await syncView(watcher)).carries.map((carry) => carry.id)).toEqual(['held']);
+    await runtime.clock(8001);
+    await watcher.message('update', (message) => message.activity.removedCarries.includes('held'));
+  });
+
+  it('keeps a still pointer alive without a frame to other viewers, while a moved pointer still goes out', async () => {
+    expect((await provision(runtime)).status).toBe(200);
+    const { connection: holder } = await admit();
+    const { connection: watcher } = await admitWatcher();
+    holder.send({ type: 'pointer', seq: 0, position: [1, 0.38, 0] });
+    const [shown] = (await watcher.message('view', (message) => message.pointers.length === 1)).pointers;
+    await runtime.clock(2000);
+    expect(await framesDuring(holder, watcher, { type: 'pointer', seq: 1, position: [1, 0.38, 0] })).toEqual([]);
+    await runtime.clock(4000);
+    const [kept] = (await syncView(watcher)).pointers;
+    expect(kept.position).toEqual([1, 0.38, 0]);
+    expect(kept.updatedAt).toBeGreaterThanOrEqual(shown.updatedAt + 2000);
+    holder.send({ type: 'pointer', seq: 2, position: [2, 0.38, 0] });
+    await watcher.message('update', (message) =>
+      message.activity.pointerMoves.some((pointer) => pointer.position[0] === 2)
+    );
   });
 
   it('re-authorizes the surviving player within seconds when one push denies two connections', async () => {
@@ -475,10 +603,7 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     await eventually(() => tabs.every((tab) => tab.closed), 'denied tabs');
     const remaining = await peer.query(({ query }) => query.args[0].registrationIds.length === 1);
     peer.answer(remaining);
-    await eventually(
-      () => first.connection.messages.slice(beforeDenial).some((message) => message.type === 'view'),
-      'survivor re-authorized'
-    );
+    await eventually(() => first.connection.messages.slice(beforeDenial).some(isFullView), 'survivor re-authorized');
     expect(first.connection.closed).toBe(false);
   });
 
@@ -495,7 +620,7 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     connection.send(begin);
     await connection.message('carry');
     connection.send({ type: 'cancel', carryId: begin.carryId });
-    await connection.message('activity', (message) => message.carries.length === 0);
+    await connection.message('view', (message) => message.sequence > view.sequence && message.carries.length === 0);
 
     const beforeSuspension = connection.messages.length;
     const previous = await peer.query();
@@ -510,7 +635,10 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     expect(connection.closed).toBe(false);
     const current = await peer.query(({ query }) => query.args[0].generation !== previous.query.args[0].generation);
     peer.answer(current);
-    const recovered = await connection.message('view', (message) => message !== view);
+    const recovered = await eventually(
+      () => connection.messages.slice(beforeSuspension).find(isFullView),
+      'view after recovery'
+    );
     expect(recovered.epoch).toBe(view.epoch);
     expect(recovered.carries).toEqual([]);
 
@@ -692,10 +820,7 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     });
     await first.connection.message('carry');
     first.connection.send({ type: 'pointer', seq: 0, position: [0, 0, 0] });
-    await first.connection.message(
-      'activity',
-      (message) => message.carries.length === 1 && message.pointers.length === 1
-    );
+    await first.connection.message('view', (message) => message.carries.length === 1 && message.pointers.length === 1);
 
     const previousGeneration = peer.latestQuery().query.args[0].generation;
     await runtime.restart();
@@ -720,7 +845,7 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     expect(afterMetrics.receiptCount).toBe(beforeMetrics.receiptCount);
     expect(afterMetrics.historySteps).toBe(beforeMetrics.historySteps);
     restored.send({ type: 'history', step: 1 });
-    expect(await restored.message('history')).toEqual(beforeHistory);
+    expect(await restored.message('history')).toEqual({ ...beforeHistory, serverNow: expect.any(Number) });
 
     const warmGeneration = current.query.args[0].generation;
     await runtime.restart();

@@ -30,4 +30,11 @@ describe('faction save and publishing feedback', () => {
       'Saved. A new faction sheet capture is scheduled. The current PDF remains available.'
     );
   });
+
+  test('reads a failed replacement capture as the publication it leaves in place', () => {
+    expect(factionAssetPublishingCopy('current', 'idle', 'error')).toBe('Public assets are current.');
+    expect(factionAssetPublishingCopy('current', 'saved', 'error')).toBe(
+      'Saved. Publication scheduled. Public assets are current.'
+    );
+  });
 });

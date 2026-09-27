@@ -48,12 +48,12 @@ describe('Retired catalogue queue settlement', () => {
     const { t, discarded, supported } = await queuedPairFixture();
     /* One artifact is picked per round, so the settled one spends the first round and the neighbour is handed out on the next. */
     const html = [
-      ...(await t.mutation(internal.rulebookHtmlPublication.takeHtmlWork, {})),
-      ...(await t.mutation(internal.rulebookHtmlPublication.takeHtmlWork, {})),
+      ...(await t.mutation(internal.rulebookEditionArtifactWork.take, { artifactKind: 'html' })),
+      ...(await t.mutation(internal.rulebookEditionArtifactWork.take, { artifactKind: 'html' })),
     ];
     const pdf = [
-      ...(await t.mutation(internal.rulebookPdfPublication.takePdfWork, {})),
-      ...(await t.mutation(internal.rulebookPdfPublication.takePdfWork, {})),
+      ...(await t.mutation(internal.rulebookEditionArtifactWork.take, { artifactKind: 'pdf' })),
+      ...(await t.mutation(internal.rulebookEditionArtifactWork.take, { artifactKind: 'pdf' })),
     ];
     expect(html.map((work) => work.rulebookId)).toEqual([supported.rulebook._id]);
     expect(pdf.map((work) => work.rulebookId)).toEqual([supported.rulebook._id]);

@@ -5,12 +5,13 @@ import type { NormalizedFormattedText } from '../formattedText';
 import {
   assetExplainerBlockSchema,
   assetExplainerItemSchema,
+  duplicateValues,
   rulebookAnchorSchema,
   rulebookCoverFooterSchema,
   rulebookLayoutCatalogue,
   rulebookPageV1Schema,
 } from './contents';
-import type { RulebookBlockKind, RulebookBlockRegionDefinition, RulebookPageV1 } from './contents';
+import type { EditableValue, RulebookBlockKind, RulebookBlockRegionDefinition, RulebookPageV1 } from './contents';
 import { rulebookCoverImageSchema } from './coverImage';
 import { rulebookResolvedFactionSchema } from './references';
 import { DEFAULT_RULEBOOK_SETTINGS, rulebookSettingsSchema } from './settings';
@@ -179,7 +180,11 @@ const renderBlockSchemas = {
   }),
 } satisfies Record<RulebookBlockKind, z.ZodType>;
 
-const renderBlockSchema = z.discriminatedUnion('kind', [
+/*
+ * A region parses against this union, not against the catalogue, so a kind added to `rulebookBlockKinds` and to the editor but missing here would save and then fail publication in silence: `rulebookRenderDocumentForEdition` swallows the parse error.
+ * `renderDocument.test.ts` holds the two lists to each other.
+ */
+export const renderBlockSchema = z.discriminatedUnion('kind', [
   renderBlockSchemas.text,
   renderBlockSchemas['section-heading'],
   renderBlockSchemas.list,
@@ -202,7 +207,7 @@ type RenderControlValues<Layout extends RulebookLayout> = Layout['id'] extends '
   : Extract<RulebookPageV1, { layoutId: Layout['id'] }>['controlValues'];
 type RenderRegion<Definition extends RulebookBlockRegionDefinition> = {
   key: Definition['key'];
-  blocks: Array<Extract<RenderBlock, { kind: Definition['acceptedBlockKinds'][number] }>>;
+  blocks: RenderBlock[];
 };
 type RenderRegions<Regions extends readonly unknown[]> = Regions extends readonly [infer Region, ...infer Rest]
   ? Region extends RulebookBlockRegionDefinition
@@ -217,39 +222,15 @@ type RenderPage<Layout extends RulebookLayout = RulebookLayout> = Layout extends
       layoutId: Layout['id'];
       controlValues: RenderControlValues<Layout>;
       regions: RenderRegions<Layout['regions']>;
-    } & (Layout extends { supportedSizes: readonly string[] } ? { showHeading: boolean } : {})
+      showHeading: boolean;
+    }
   : never;
 
-type EditableValue<Value> = Value extends NormalizedFormattedText
-  ? string
-  : Value extends readonly []
-    ? []
-    : Value extends readonly [infer First, ...infer Rest]
-      ? [EditableValue<First>, ...EditableValue<Rest>]
-      : Value extends readonly (infer Item)[]
-        ? EditableValue<Item>[]
-        : Value extends object
-          ? { [Key in keyof Value]: EditableValue<Value[Key]> }
-          : Value;
-
-function acceptedRenderBlockSchema(acceptedKinds: readonly RulebookBlockKind[]) {
-  const schemas = acceptedKinds.map((kind) => renderBlockSchemas[kind]);
-  const [first, second, ...rest] = schemas;
-  if (!first) {
-    throw new Error('A Rulebook Block region must accept at least one Block kind');
-  }
-  return second ? z.union([first, second, ...rest]) : first;
-}
-
 function renderRegionSchema<const Definition extends RulebookBlockRegionDefinition>(definition: Definition) {
-  let blocks = z.array(acceptedRenderBlockSchema(definition.acceptedBlockKinds)).min(definition.cardinality.minimum);
-  if (definition.cardinality.maximum !== null) {
-    blocks = blocks.max(definition.cardinality.maximum);
-  }
-  return z.strictObject({ key: z.literal(definition.key), blocks }) as unknown as z.ZodType<
-    RenderRegion<Definition>,
-    EditableValue<RenderRegion<Definition>>
-  >;
+  return z.strictObject({
+    key: z.literal(definition.key),
+    blocks: z.array(renderBlockSchema),
+  }) as unknown as z.ZodType<RenderRegion<Definition>, EditableValue<RenderRegion<Definition>>>;
 }
 
 function renderControlValuesSchema<const Layout extends RulebookLayout>(layout: Layout) {
@@ -283,7 +264,7 @@ function renderPageSchema<const Layout extends RulebookLayout>(layout: Layout) {
     id: renderLocalIdSchema,
     anchor: rulebookAnchorSchema,
     title: z.string(),
-    ...('supportedSizes' in layout ? { showHeading: z.boolean().default(true) } : {}),
+    showHeading: z.boolean().default(true),
     layoutId: z.literal(layout.id),
     controlValues: renderControlValuesSchema(layout),
     regions: renderRegionsSchema(layout),
@@ -305,18 +286,6 @@ const rulebookRenderDocumentV1BaseSchema = z.strictObject({
   pageOrder: z.array(renderLocalIdSchema),
   pagesById: z.record(renderLocalIdSchema, rulebookRenderPageV1Schema),
 });
-
-function duplicateValues(values: readonly string[]): readonly string[] {
-  const seen = new Set<string>();
-  const duplicates = new Set<string>();
-  for (const value of values) {
-    if (seen.has(value)) {
-      duplicates.add(value);
-    }
-    seen.add(value);
-  }
-  return [...duplicates];
-}
 
 type RenderDocumentInput = z.infer<typeof rulebookRenderDocumentV1BaseSchema>;
 type RenderPageInput = RenderDocumentInput['pagesById'][string];

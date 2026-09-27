@@ -77,14 +77,20 @@ async function publishedCoverFixture(overrides: Partial<CoverControls> = {}) {
 }
 
 async function completeInitialPublication(f: Awaited<ReturnType<typeof fixture>>) {
-  const htmlWork = await f.t.mutation(internal.rulebookHtmlPublication.takeHtmlWork, {});
+  const htmlWork = await f.t.mutation(internal.rulebookEditionArtifactWork.take, { artifactKind: 'html' });
   expect(htmlWork).toHaveLength(1);
   expect(htmlWork[0]).toMatchObject({ editionNumber: 1 });
-  await f.t.mutation(internal.rulebookHtmlPublication.completeHtmlWork, { artifactId: htmlWork[0]!.artifactId });
-  const pdfWork = await f.t.mutation(internal.rulebookPdfPublication.takePdfWork, {});
+  await f.t.mutation(internal.rulebookEditionArtifactWork.complete, {
+    artifactKind: 'html',
+    artifactId: htmlWork[0]!.artifactId,
+  });
+  const pdfWork = await f.t.mutation(internal.rulebookEditionArtifactWork.take, { artifactKind: 'pdf' });
   expect(pdfWork).toHaveLength(1);
   expect(pdfWork[0]).toMatchObject({ editionNumber: 1 });
-  await f.t.mutation(internal.rulebookPdfPublication.completePdfWork, { artifactId: pdfWork[0]!.artifactId });
+  await f.t.mutation(internal.rulebookEditionArtifactWork.complete, {
+    artifactKind: 'pdf',
+    artifactId: pdfWork[0]!.artifactId,
+  });
 }
 
 afterEach(() => {
@@ -109,8 +115,8 @@ describe('Rulebook cover image staging', () => {
 
     await completeInitialPublication(f);
     const work = [
-      ...(await f.t.mutation(internal.rulebookHtmlPublication.takeHtmlWork, {})),
-      ...(await f.t.mutation(internal.rulebookPdfPublication.takePdfWork, {})),
+      ...(await f.t.mutation(internal.rulebookEditionArtifactWork.take, { artifactKind: 'html' })),
+      ...(await f.t.mutation(internal.rulebookEditionArtifactWork.take, { artifactKind: 'pdf' })),
     ];
     expect(work).toHaveLength(2);
     for (const item of work) {
@@ -160,8 +166,8 @@ describe('Rulebook cover image staging', () => {
       },
     });
     await completeInitialPublication(f);
-    const htmlWork = await f.t.mutation(internal.rulebookHtmlPublication.takeHtmlWork, {});
-    const pdfWork = await f.t.mutation(internal.rulebookPdfPublication.takePdfWork, {});
+    const htmlWork = await f.t.mutation(internal.rulebookEditionArtifactWork.take, { artifactKind: 'html' });
+    const pdfWork = await f.t.mutation(internal.rulebookEditionArtifactWork.take, { artifactKind: 'pdf' });
     for (const work of [htmlWork, pdfWork]) {
       const publication = work.find((item) => item.editionNumber === 2)!;
       expect(publication).toBeDefined();

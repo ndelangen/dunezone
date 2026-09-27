@@ -1,41 +1,44 @@
-import { PerspectiveCamera, Vector3 } from 'three';
-import { describe, expect, test } from 'vitest';
-
-import type { Vector3Tuple } from './model';
-import { PHASE_DISC_COLOR } from './phaseSymbolLayout';
-import {
-  cameraPoseFor,
-  MAP_VIEW_BOTTOM_LIMIT,
-  MAP_VIEW_HORIZONTAL_LIMIT,
-  MAP_VIEW_TOP_LIMIT,
-  TABLE_CAMERA_FIELD_OF_VIEW,
-} from './playView';
+import type { Vector3Tuple } from '@shared/play/model';
 import {
   BOARD_RADIUS,
   BOARD_RIM_RADIUS,
   BOARD_RIM_SURFACE_Y,
   BOARD_SURFACE_Y,
   TABLE_VISIBLE_RADIUS,
-} from './tableGeometry';
-import { mapViewFramingPoints, TRACKER_SCALLOP_BORDER } from './tablePlateGeometry';
-import { PLAYER_RING_RADIUS, PLAYER_STATION_RADIUS, tableSeatAngles, TABLE_SEAT_COUNTS } from './tableSettings';
-import type { TableSeatCount } from './tableSettings';
+} from '@shared/play/tableGeometry';
+import {
+  PLAYER_RING_RADIUS,
+  PLAYER_STATION_RADIUS,
+  tableSeatAngles,
+  TABLE_SEAT_COUNTS,
+} from '@shared/play/tableSettings';
+import type { TableSeatCount } from '@shared/play/tableSettings';
 import {
   PHASE_TRACKER_SCALE,
   PHASE_TRACKER_RADIUS,
-  SPICE_DISC_COLOR,
   TRACKER_ARC_CENTER_ANGLE,
   TRACKER_ARC_MAX_SPAN,
   TRACKER_ARC_RADIUS,
   TRACKER_EDGE_GAP,
-  TRACKER_DISC_ACTIVE_COLOR,
   TRACKER_DISC_CONTENT_Y,
   trackerArcSlots,
-  trackerDiscColor,
   TURN_TRACKER_SCALE,
   TURN_TRACKER_RADIUS,
-} from './tableTrackers';
-import type { TrackerArcSlot } from './tableTrackers';
+} from '@shared/play/tableTrackers';
+import type { TrackerArcSlot } from '@shared/play/tableTrackers';
+import { Vector3 } from 'three';
+import { describe, expect, test } from 'vitest';
+
+import { PHASE_DISC_COLOR } from './phaseSymbolLayout';
+import {
+  cameraPoseFor,
+  MAP_VIEW_BOTTOM_LIMIT,
+  MAP_VIEW_HORIZONTAL_LIMIT,
+  MAP_VIEW_TOP_LIMIT,
+  tableCamera,
+} from './playView';
+import { mapViewFramingPoints, TRACKER_SCALLOP_BORDER } from './tablePlateGeometry';
+import { SPICE_DISC_COLOR, TRACKER_DISC_ACTIVE_COLOR, trackerDiscColor } from './tableTrackers';
 
 function distance(left: readonly [number, number, number], right: readonly [number, number, number]): number {
   return Math.hypot(left[0] - right[0], left[2] - right[2]);
@@ -149,11 +152,7 @@ describe('table trackers', () => {
     (seatCount, phaseCount, aspectRatio) => {
       const slots = trackerArcSlots(phaseCount);
       const pose = cameraPoseFor('map', aspectRatio, mapViewFramingPoints(slots, seatCount));
-      const camera = new PerspectiveCamera(TABLE_CAMERA_FIELD_OF_VIEW, aspectRatio, 0.1, 100);
-      camera.position.set(...pose.position);
-      camera.lookAt(...pose.target);
-      camera.updateMatrixWorld();
-      camera.updateProjectionMatrix();
+      const camera = tableCamera(pose, aspectRatio);
 
       independentlySampledMapBoundary(slots, seatCount).forEach((point) => {
         const projected = new Vector3(...point).project(camera);

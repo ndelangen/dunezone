@@ -63,6 +63,8 @@ jobs:
         run: bun run check:css-orphans
       - name: Check every CSS custom property read resolves
         run: bun run check:css-vars
+      - name: Check width media queries sit in the window chrome, on the ladder
+        run: bun run check:breakpoints
       - name: Check every e2e spec is assigned to one shard
         run: bun run check:e2e-shards
       - name: Check the src/app top-level layout
@@ -299,7 +301,8 @@ jobs:
       - uses: ./.github/actions/setup
       - uses: ./.github/actions/generated-images
       - name: Verify actual Auth and same-origin game Worker integration
-        run: bun --no-env-file scripts/verify-hosted-play-stack.ts
+        # The generated-images step above already wrote the image and vector output.
+        run: bun --no-env-file scripts/verify-hosted-play-stack.ts --skip-generate
       - name: Retain hosted game integration evidence
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -308,6 +311,7 @@ jobs:
           path: |
             test-results/hosted-play/verification.log
             test-results/hosted-play/worker.log
+            test-results/hosted-play/wrangler.log
           if-no-files-found: ignore
           retention-days: 14
 

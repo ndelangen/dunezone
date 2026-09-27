@@ -1,5 +1,6 @@
 import { Box, Menu } from '@mantine/core';
 import preview from '@sb/preview';
+import { finishTransitions } from '@sb/storyWaits';
 import type { RulebookBlockDraft, RulebookBlockRegionKey } from '@shared/rulebooks/contents';
 import { AddAction } from '@ui/control/ListLengthActions';
 import { NestedTabs } from '@ui/surface';
@@ -163,16 +164,6 @@ function blockDropStatus(
   if (!source || !block || !target) {
     return { allowed: false, reason: 'The Block placement no longer exists.' };
   }
-  if (!target.acceptedBlockKinds.includes(block.kind)) {
-    return {
-      allowed: false,
-      reason: `${target.label} does not accept ${block.kind} Blocks.`,
-    };
-  }
-  const countWithoutActive = target.blocks.length - (source.key === target.key ? 1 : 0);
-  if (target.maximum !== null && countWithoutActive >= target.maximum) {
-    return { allowed: false, reason: `${target.label} is full.` };
-  }
   return { allowed: true, reason: `${target.label} accepts this Block.` };
 }
 
@@ -180,12 +171,10 @@ function PageDetailsStory({
   initialValue,
   initialRegions,
   diagnostics,
-  width = 'min(64rem, calc(100vw - 2rem))',
 }: Readonly<{
   initialValue: RulebookPageDetailsValue;
   initialRegions: readonly RulebookPageDetailsBlockRegion[];
   diagnostics?: RulebookPageDetailsDiagnostics;
-  width?: string;
 }>) {
   const [value, setValue] = useState(initialValue);
   const [canonicalRegions, setCanonicalRegions] = useState(initialRegions);
@@ -195,7 +184,7 @@ function PageDetailsStory({
   > | null>(null);
   const regions = dragPreview ? moveBlock(canonicalRegions, dragPreview) : canonicalRegions;
   return (
-    <Box w={width}>
+    <Box w="min(64rem, calc(100vw - 2rem))">
       <NestedTabs activePath={['page-a', 'details']} ariaLabel="Rulebook editor navigation">
         <NestedTabs.Level label="Pages">
           <NestedTabs.Item
@@ -315,35 +304,23 @@ const populatedRulesRegions: readonly RulebookPageDetailsBlockRegion[] = [
   {
     key: 'column1',
     label: 'Rules',
-    acceptedBlockKinds: ['text', 'section-heading'],
-    minimum: 0,
-    maximum: 6,
     blocks: [movement, terrainSequence, stormTiming, retreatSequence],
     collapsed: false,
     containsActiveBlock: false,
-    canAddBlock: true,
   },
   {
     key: 'column2',
     label: 'Examples',
-    acceptedBlockKinds: ['text', 'list', 'referenced-illustration'],
-    minimum: 0,
-    maximum: 6,
     blocks: [exampleList, stormFigure, retreatExamples],
     collapsed: false,
     containsActiveBlock: false,
-    canAddBlock: true,
   },
   {
     key: 'rail',
     label: 'Figures',
-    acceptedBlockKinds: ['referenced-illustration'],
-    minimum: 0,
-    maximum: 3,
     blocks: [terrainFigure, retreatFigure],
     collapsed: false,
     containsActiveBlock: false,
-    canAddBlock: true,
   },
 ];
 
@@ -355,7 +332,10 @@ const meta = preview.meta({
 
 export const PopulatedRulesPage = meta.story({
   render: () => (
-    <PageDetailsStory initialValue={{ title: 'Movement', anchor: 'movement' }} initialRegions={populatedRulesRegions} />
+    <PageDetailsStory
+      initialValue={{ title: 'Movement', anchor: 'movement', showHeading: true }}
+      initialRegions={populatedRulesRegions}
+    />
   ),
   play: async ({ canvasElement }) => {
     onPageChange.mockClear();
@@ -367,12 +347,13 @@ export const PopulatedRulesPage = meta.story({
     const anchor = canvas.getByRole('textbox', { name: 'Anchor' });
     await expect(canvas.getAllByRole('textbox').slice(0, 2)).toEqual([anchor, title]);
     await expect(anchor.parentElement?.querySelector('svg')).not.toBeNull();
-    await expect(canvas.getAllByRole('img', { name: 'Help' })).toHaveLength(2);
+    await expect(canvas.getAllByRole('img', { name: 'Help' })).toHaveLength(3);
     await userEvent.clear(title);
     await userEvent.type(title, 'Advanced movement');
     await expect(onPageChange).toHaveBeenLastCalledWith({
       title: 'Advanced movement',
       anchor: 'movement',
+      showHeading: true,
     });
     anchor.focus();
     await expect(anchor).toHaveFocus();
@@ -400,7 +381,7 @@ export const PopulatedRulesPage = meta.story({
     await expect(onNavigateBlock).toHaveBeenCalledWith('MVVE');
     await userEvent.click(canvas.getByRole('button', { name: 'Add a Block to Rules' }));
     const page = within(canvasElement.ownerDocument.body);
-    await waitFor(() => expect(page.getByRole('menuitem', { name: 'Text' })).toBeVisible());
+    await waitFor(() => expect(finishTransitions(page.getByRole('menuitem', { name: 'Text' }))).toBeVisible());
     await userEvent.click(page.getByRole('menuitem', { name: 'Text' }));
     await expect(onAddBlock).toHaveBeenCalledWith('column1', 'text');
     await userEvent.click(canvas.getByRole('button', { name: 'Collapse Examples' }));
@@ -423,29 +404,22 @@ export const EmptyVisualReference = meta.story({
       initialValue={{
         title: 'Markers and tokens',
         anchor: 'markers-and-tokens',
+        showHeading: true,
       }}
       initialRegions={[
         {
           key: 'rail',
           label: 'Figures',
-          acceptedBlockKinds: ['referenced-illustration'],
-          minimum: 0,
-          maximum: 2,
           blocks: [],
           collapsed: false,
           containsActiveBlock: false,
-          canAddBlock: true,
         },
         {
           key: 'content',
           label: 'Notes',
-          acceptedBlockKinds: ['text', 'list'],
-          minimum: 0,
-          maximum: 4,
           blocks: [],
           collapsed: false,
           containsActiveBlock: false,
-          canAddBlock: true,
         },
       ]}
     />
@@ -453,45 +427,35 @@ export const EmptyVisualReference = meta.story({
   play: async ({ canvasElement }) => {
     const canvas = pageDetailsCanvas(canvasElement);
     await expect(canvas.getAllByText('No Blocks in this region.')).toHaveLength(2);
-    await expect(canvas.getByRole('button', { name: 'Add a Block to Figures' })).toBeEnabled();
+    await expect(canvas.getByLabelText('Figures')).toHaveTextContent('0 Blocks');
   },
 });
 
-export const BoundedAndCollapsedRegions = meta.story({
+export const CollapsedRegions = meta.story({
   render: () => (
     <PageDetailsStory
-      initialValue={{ title: 'Movement', anchor: 'movement' }}
+      initialValue={{ title: 'Movement', anchor: 'movement', showHeading: true }}
       initialRegions={[
         {
           key: 'column1',
           label: 'Rules',
-          acceptedBlockKinds: ['text', 'section-heading'],
-          minimum: 0,
-          maximum: 2,
           blocks: [movement, stormTiming],
           collapsed: false,
           containsActiveBlock: false,
-          canAddBlock: false,
-          diagnostic: 'Rules has reached its two-Block limit.',
         },
         {
           key: 'column2',
           label: 'Examples',
-          acceptedBlockKinds: ['text', 'list', 'referenced-illustration'],
-          minimum: 0,
-          maximum: 3,
           blocks: [exampleList, stormFigure],
           collapsed: true,
           containsActiveBlock: false,
-          canAddBlock: true,
         },
       ]}
     />
   ),
   play: async ({ canvasElement }) => {
     const canvas = pageDetailsCanvas(canvasElement);
-    await expect(canvas.getByRole('button', { name: 'Add a Block to Rules' })).toBeDisabled();
-    await expect(canvas.getByText('Rules has reached its two-Block limit.')).toBeVisible();
+    await expect(canvas.getByLabelText('Examples')).toHaveAccessibleDescription('2 Blocks');
     await expect(
       canvas.queryByRole('button', {
         name: 'Edit Confirm that the destination is adjacent.',
@@ -509,29 +473,21 @@ export const BoundedAndCollapsedRegions = meta.story({
 export const DragBetweenCompatibleRegions = meta.story({
   render: () => (
     <PageDetailsStory
-      initialValue={{ title: 'Movement', anchor: 'movement' }}
+      initialValue={{ title: 'Movement', anchor: 'movement', showHeading: true }}
       initialRegions={[
         {
           key: 'column1',
           label: 'Rules',
-          acceptedBlockKinds: ['text', 'section-heading'],
-          minimum: 0,
-          maximum: 6,
           blocks: [stormTiming],
           collapsed: false,
           containsActiveBlock: false,
-          canAddBlock: true,
         },
         {
           key: 'column2',
           label: 'Examples',
-          acceptedBlockKinds: ['text', 'list', 'referenced-illustration'],
-          minimum: 0,
-          maximum: 3,
           blocks: [],
           collapsed: false,
           containsActiveBlock: false,
-          canAddBlock: true,
         },
       ]}
     />
@@ -554,18 +510,14 @@ export const DragBetweenCompatibleRegions = meta.story({
 export const SameRegionDragCommitsOnDrop = meta.story({
   render: () => (
     <PageDetailsStory
-      initialValue={{ title: 'Movement', anchor: 'movement' }}
+      initialValue={{ title: 'Movement', anchor: 'movement', showHeading: true }}
       initialRegions={[
         {
           key: 'column1',
           label: 'Rules',
-          acceptedBlockKinds: ['text', 'section-heading'],
-          minimum: 0,
-          maximum: 6,
           blocks: [movement, terrainSequence, retreatSequence],
           collapsed: false,
           containsActiveBlock: false,
-          canAddBlock: true,
         },
       ]}
     />
@@ -576,6 +528,13 @@ export const SameRegionDragCommitsOnDrop = meta.story({
     const row = canvas.getByRole('button', { name: 'Edit Movement sequence' });
     row.focus();
     await userEvent.keyboard('[Space][ArrowDown]');
+    const sourceRow = row.closest<HTMLElement>('li');
+    const dragPreview = canvasElement.ownerDocument.querySelector<HTMLElement>('[data-block-drag-preview]');
+    await expect(sourceRow).not.toBeNull();
+    await expect(dragPreview).not.toBeNull();
+    await expect(
+      Math.abs(dragPreview!.getBoundingClientRect().width - sourceRow!.getBoundingClientRect().width)
+    ).toBeLessThan(1);
     await expect(onBlockDrag.mock.calls.filter(([event]) => event.kind === 'commit')).toHaveLength(0);
     await userEvent.keyboard('[Space]');
     await expect(onBlockDrag.mock.calls.filter(([event]) => event.kind === 'commit')).toEqual([
@@ -590,73 +549,10 @@ export const SameRegionDragCommitsOnDrop = meta.story({
   },
 });
 
-export const IncompatibleAndFullDragPresentation = meta.story({
-  render: () => (
-    <PageDetailsStory
-      initialValue={{ title: 'Movement', anchor: 'movement' }}
-      initialRegions={[
-        {
-          key: 'column1',
-          label: 'Rules',
-          acceptedBlockKinds: ['text', 'section-heading'],
-          minimum: 0,
-          maximum: 6,
-          blocks: [stormTiming],
-          collapsed: false,
-          containsActiveBlock: false,
-          canAddBlock: true,
-        },
-        {
-          key: 'rail',
-          label: 'Figures',
-          acceptedBlockKinds: ['referenced-illustration'],
-          minimum: 0,
-          maximum: 2,
-          blocks: [stormFigure],
-          collapsed: false,
-          containsActiveBlock: false,
-          canAddBlock: true,
-        },
-        {
-          key: 'column2',
-          label: 'Full examples',
-          acceptedBlockKinds: ['text'],
-          minimum: 1,
-          maximum: 1,
-          blocks: [{ ...stormTiming, id: 'FULL' }],
-          collapsed: false,
-          containsActiveBlock: false,
-          canAddBlock: false,
-        },
-      ]}
-    />
-  ),
-  play: async ({ canvasElement }) => {
-    const canvas = pageDetailsCanvas(canvasElement);
-    const handle = within(canvas.getByLabelText('Rules')).getByRole('button', {
-      name: 'Edit The storm closes the boundary between its two sectors.',
-    });
-    handle.focus();
-    await userEvent.keyboard('[Space]');
-    const sourceRow = handle.closest<HTMLElement>('li');
-    const preview = canvasElement.ownerDocument.querySelector<HTMLElement>('[data-block-drag-preview]');
-    await expect(sourceRow).not.toBeNull();
-    await expect(preview).not.toBeNull();
-    await expect(
-      Math.abs(preview!.getBoundingClientRect().width - sourceRow!.getBoundingClientRect().width)
-    ).toBeLessThan(1);
-    await expect(canvas.getByLabelText('Figures')).toHaveAttribute('data-drop-eligibility', 'incompatible');
-    await expect(canvas.getByLabelText('Full examples')).toHaveAttribute('data-drop-eligibility', 'incompatible');
-    await expect(canvas.getByLabelText('Full examples')).toHaveAccessibleDescription(
-      'Accepts Text. 1 of 1 Block. Minimum 1.'
-    );
-  },
-});
-
 export const InvalidCommonValues = meta.story({
   render: () => (
     <PageDetailsStory
-      initialValue={{ title: '', anchor: 'Movement section' }}
+      initialValue={{ title: '', anchor: 'Movement section', showHeading: true }}
       diagnostics={{
         title: 'Enter a Page title.',
         anchor: 'Use lowercase letters, numbers, and single hyphens.',
@@ -669,27 +565,6 @@ export const InvalidCommonValues = meta.story({
     await expect(canvas.getByRole('textbox', { name: 'Title' })).toHaveAttribute('aria-invalid', 'true');
     await expect(canvas.getByRole('textbox', { name: 'Anchor' })).toHaveAttribute('aria-invalid', 'true');
     await expect(canvas.getByText('Enter a Page title.')).toBeVisible();
-  },
-});
-
-export const NarrowContainer = meta.story({
-  render: () => (
-    <PageDetailsStory
-      initialValue={{ title: 'Movement', anchor: 'movement' }}
-      initialRegions={populatedRulesRegions}
-      width="28rem"
-    />
-  ),
-  play: async ({ canvasElement }) => {
-    const canvas = pageDetailsCanvas(canvasElement);
-    const rules = within(canvas.getByLabelText('Rules'));
-    const help = await rules.findByRole('img', { name: 'Rules details' });
-    await expect(help).toBeVisible();
-    await userEvent.hover(help);
-    const page = within(canvasElement.ownerDocument.body);
-    await waitFor(() =>
-      expect(page.getByRole('tooltip')).toHaveTextContent('Accepts Text, Section heading. 4 of 6 Blocks.')
-    );
   },
 });
 

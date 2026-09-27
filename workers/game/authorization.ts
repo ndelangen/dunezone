@@ -1,13 +1,12 @@
 import { ConvexClient, ConvexHttpClient } from 'convex/browser';
 import type { ConnectionState } from 'convex/browser';
-import { makeFunctionReference } from 'convex/server';
 
+import { api } from '../../convex/_generated/api';
 import {
   PLAY_AUTH_LEASE_MS,
   PLAY_AUTH_RECOVERY_MS,
   PLAY_AUTH_RENEWAL_MS,
   PLAY_REQUEST_TIMEOUT_MS,
-  PLAY_WATCH_AUTHORIZATIONS_FUNCTION,
   playWatchAuthorizationsResultSchema,
 } from '../../src/shared/play/admission';
 import type { playWatchAuthorizationsRequestSchema } from '../../src/shared/play/admission';
@@ -52,7 +51,7 @@ type ValidationRequest = AuthorizationObservation & {
 };
 /** Production values come from the shared constants; tests pass shorter lifetimes. */
 type WatchDurations = { leaseMs: number; renewalMs: number };
-const watch = makeFunctionReference<'query'>(PLAY_WATCH_AUTHORIZATIONS_FUNCTION);
+const watch = api.playAdmission.watchAuthorizations;
 
 function samePrincipal(left: Principal, right: Pick<AuthorizationValue, 'userId' | 'sessionId'>) {
   return left.userId === right.userId && left.sessionId === right.sessionId;

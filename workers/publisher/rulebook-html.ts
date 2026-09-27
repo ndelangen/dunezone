@@ -6,7 +6,7 @@ import { renderRulebookHtmlDocument, rulebookRendererCss } from 'rulebook-html-r
 import copperplate from '../../public/font/copperplategothic-bold.woff2';
 import trebuchet from '../../public/font/trebuchet.woff2';
 import { rulebookLatestHtmlPath } from '../../src/shared/rulebooks/editionArtifacts';
-import type { AssignedRulebookHtmlJob } from '../../src/shared/rulebooks/htmlPublication';
+import type { AssignedRulebookArtifactJob } from '../../src/shared/rulebooks/editionArtifactWork';
 
 const RULEBOOK_HTML_MAX_BYTES = 4_000_000;
 
@@ -57,7 +57,7 @@ body{box-sizing:border-box;margin:0;padding:1.5rem}
 @media print{html{background:#fff}body{padding:0}}`;
 }
 
-function renderHtml(job: AssignedRulebookHtmlJob, publicBaseUrl: string, assets: RulebookHtmlAssets) {
+function renderHtml(job: AssignedRulebookArtifactJob<'html'>, publicBaseUrl: string, assets: RulebookHtmlAssets) {
   const canonicalHref = new URL(rulebookLatestHtmlPath(job.rulebookId), publicBaseUrl).toString();
   return renderRulebookHtmlDocument({
     canonicalHref,
@@ -104,7 +104,7 @@ function generationError(error: unknown) {
 
 /** Renders the existing pure Rulebook renderer into one self-contained, zero-JavaScript document. */
 export function generateRulebookHtml(
-  job: AssignedRulebookHtmlJob,
+  job: AssignedRulebookArtifactJob<'html'>,
   publicBaseUrl: string,
   assets: RulebookHtmlAssets = runtimeAssets
 ): Uint8Array {

@@ -1,9 +1,10 @@
-import { Anchor, Button, Group, Image, List, NumberInput, Select, Stack, Text } from '@mantine/core';
+import { Anchor, Button, Group, List, NumberInput, Select, Stack, Text } from '@mantine/core';
 import { emptyPublicControls } from '@shared/play/inventory';
 import type { SpawnSelection } from '@shared/play/inventory';
 import { phaseAt, tableProgressFor } from '@shared/play/phases';
 import { rosterSeat, SPECTATOR_SEAT } from '@shared/play/schema';
-import { setupMapVisible, setupReadyRequired, setupStep } from '@shared/play/setup';
+import { phaseGate, setupMapVisible, setupStep } from '@shared/play/setup';
+import { DEFAULT_TABLE_SEAT_COUNT } from '@shared/play/tableSettings';
 import { Link } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
 import { Section } from '@ui/block/Section';
@@ -14,10 +15,8 @@ import type { ReactNode } from 'react';
 
 import { requestPlayTicket } from '@db/play';
 
-import { darkSchemeIslandAttributes } from '../DarkSchemeIsland';
 import { GameTable } from '../GameTable';
 import { usePointerSession } from '../PointerSessionContext';
-import { DEFAULT_TABLE_SEAT_COUNT } from '../tableSettings';
 import { TabletopContext, useTableKeyboard } from '../TabletopContext';
 import type { TabletopContextValue } from '../TabletopContext';
 import { TableWait } from '../TableWait';
@@ -26,6 +25,7 @@ import { OfflineConversations } from './Conversation';
 import { DraftingHeader, DraftingNotice, DraftingOverlay, DraftingPanel, DraftingReadiness } from './Drafting';
 import { GameRuntimeContext } from './gameRuntime';
 import { LogEntries } from './Log';
+import { PieceArtwork } from './PieceArtwork';
 import { PresenceContext } from './PresenceContext';
 import { PlayerPanel, RemovalDecisionBar } from './RemovalVotes';
 import { GameMenu, SeatRequests } from './SeatRequests';
@@ -33,6 +33,7 @@ import { SwappingReadiness } from './Swapping';
 import { SwapScene } from './SwapScene';
 import { TableSession } from './TableSession';
 import type { TableProjection } from './TableSession';
+import { ServerClockContext } from './useServerNow';
 import '../dune-play.css';
 
 const SETUP_TOPICS = { traitors: 'leaders', forces: 'troops', prediction: 'fate' } as const satisfies Record<
@@ -71,8 +72,6 @@ function useTableCommands(client: TableSession, table: TableProjection) {
       beginGesture: client.beginGesture,
       updateGesture: client.updateGesture,
       finishGesture: client.finishGesture,
-      stageSelectedToZone: client.stageSelectedToZone,
-      commitDraft: client.commitDraft,
       cancelDraft: client.cancelDraft,
       splitSelected: client.splitSelected,
       stackSelected: client.stackSelected,
@@ -83,8 +82,6 @@ function useTableCommands(client: TableSession, table: TableProjection) {
       toggleLockSelected: client.toggleLockSelected,
       moveStormBy: client.moveStormBy,
       spawnSpice: client.spawnSpice,
-      setEnforcement: client.setEnforcement,
-      reset: client.reset,
     }),
     [client, table]
   );
@@ -178,12 +175,8 @@ function ConnectionControls({ client, table, error }: ConnectionControlsProps) {
 function PhaseNavigation({ client, table }: Pick<ConnectionControlsProps, 'client' | 'table'>) {
   const controls = table.snapshot.controls ?? emptyPublicControls();
   const cooling = table.phaseCooling;
-  const allReady = controls.seats.length > 0 && controls.seats.every((seat) => controls.ready.includes(seat));
   const setup = table.snapshot.stage === 'setup' ? table.snapshot.setup : undefined;
-  const step = setup && setupStep(setup);
-  const needsReady = setup ? setupReadyRequired(setup) : phaseAt(table.snapshot.phase).id === 'mentat-pause';
-  const full = !setup || table.snapshot.roster?.seats.every((seat) => controls.seats.includes(seat.id));
-  const gated = needsReady ? !allReady || !full : step?.kind === 'prediction' && !table.snapshot.predictions?.[step.id];
+  const { needsReady, refusal } = phaseGate({ ...table.snapshot, ready: controls.ready, seats: controls.seats });
   const ready = controls.ready.includes(table.viewer.viewerSeat);
   /* Readiness is a phase control, so it sits with Previous and Next in the header rather than on a
      tab; the count stays short so the toolbar keeps to one row at desktop widths. */
@@ -210,7 +203,10 @@ function PhaseNavigation({ client, table }: Pick<ConnectionControlsProps, 'clien
       >
         Previous phase
       </Button>
-      <Button disabled={!table.canInteract || cooling || gated} onClick={() => client.command({ kind: 'phase' })}>
+      <Button
+        disabled={!table.canInteract || cooling || refusal !== null}
+        onClick={() => client.command({ kind: 'phase' })}
+      >
         Next phase
       </Button>
     </Group>
@@ -288,7 +284,6 @@ function PredictionInput({ client, table, stepId }: SetupControlProps & { stepId
         value={choice.factionId}
         onChange={(factionId) => change({ factionId })}
         disabled={!table.canInteract}
-        attributes={{ dropdown: darkSchemeIslandAttributes }}
       />
       <NumberInput
         label="Predicted turn"
@@ -468,7 +463,6 @@ function SharedInventory({ client, table }: Pick<ConnectionControlsProps, 'clien
             <Select
               label="Catalogue asset"
               searchable
-              attributes={{ dropdown: darkSchemeIslandAttributes }}
               placeholder="Choose a deck, bundle or token"
               data={entries.map((entry) => ({ value: `${entry.type}/${entry.slug}`, label: entry.name }))}
               value={picker.selection ? `${picker.selection.type}/${picker.selection.slug}` : null}
@@ -515,12 +509,12 @@ function SharedInventory({ client, table }: Pick<ConnectionControlsProps, 'clien
                   pointerSession.carry(event.nativeEvent, piece.id, event.shiftKey ? 'top' : 'whole');
                 }}
               >
-                <Image
-                  src={piece.items.at(-1)?.artwork?.[piece.kind === 'card' ? 'back' : 'front']}
-                  alt={piece.label}
-                  h={96}
-                  w={72}
-                  fit="contain"
+                <PieceArtwork
+                  piece={piece}
+                  src={piece.items.at(-1)?.artwork?.[piece.kind === 'card' ? 'back' : 'front'] ?? null}
+                  name={piece.label}
+                  width={72}
+                  height={96}
                 />
               </Button>
               <Text size="sm">
@@ -536,11 +530,7 @@ function SharedInventory({ client, table }: Pick<ConnectionControlsProps, 'clien
             </Text>
             <Group gap="xs">
               <Button
-                disabled={
-                  !table.canInteract ||
-                  request.requesterSeat === null ||
-                  request.requesterSeat === table.viewer.viewerSeat
-                }
+                disabled={!table.canInteract || request.requesterSeat === table.viewer.viewerSeat}
                 onClick={() => client.command({ kind: 'spawn-approve', requestId: request.id })}
               >
                 Approve
@@ -669,29 +659,26 @@ function ConnectedTable({
   const removalVotes = table.snapshot.removalVotes ?? [];
   const selectedPlayer =
     removalVotes.find((vote) => vote.id === playerSelection.vote)?.target.seat ?? playerSelection.seat;
-  /* A real game before play shows its stage where a playing table shows its turn and phase. */
   const stage = table.snapshot.stage;
-  const stageLabel = stage && stage !== 'play' ? stage.charAt(0).toUpperCase() + stage.slice(1) : undefined;
+  /* The fixture has no stage and plays like a game in play. */
+  const inPlay = stage === undefined || stage === 'play';
   return (
     <TabletopContext.Provider value={value}>
       <PresenceContext.Provider value={presence}>
         {/* A boxless wrapper carries the connection state the browser verification waits on, whichever tab is open. */}
         <div data-connection="authorized" data-revision={table.liveRevision} style={{ display: 'contents' }}>
           <GameTable
-            phaseControlsOnly={Boolean(stage)}
             seatCount={table.snapshot.roster?.seatCount ?? DEFAULT_TABLE_SEAT_COUNT}
             tableProgress={progress}
-            stageLabel={stageLabel}
-            trading={stage === 'swapping'}
-            setup={stage === 'setup'}
+            stage={stage}
             mapVisible={setupMapVisible(table.snapshot.setup)}
             toolbarControl={
-              !stageLabel || (stage === 'setup' && table.snapshot.setup) ? (
+              inPlay || (stage === 'setup' && table.snapshot.setup) ? (
                 <PhaseNavigation client={client} table={table} />
               ) : undefined
             }
             onSelectTurn={client.selectTurn}
-            showStormControls={!stageLabel && progress.activePhaseId === 'storm'}
+            showStormControls={inPlay && progress.activePhaseId === 'storm'}
             sceneContent={
               stage === 'swapping' || stage === 'setup' ? (
                 <>
@@ -758,7 +745,7 @@ function ConnectedTable({
               ) : undefined
             }
             panelTabs={[
-              ...(stageLabel && stage !== 'setup'
+              ...(!inPlay && stage !== 'setup'
                 ? []
                 : [
                     ...(table.snapshot.setup
@@ -789,7 +776,7 @@ function ConnectedTable({
                           },
                         ]
                       : []),
-                    ...((!stage || stage === 'play') && (table.snapshot.battle || progress.activePhaseId === 'battle')
+                    ...(inPlay && (table.snapshot.battle || progress.activePhaseId === 'battle')
                       ? [
                           {
                             key: 'battle',
@@ -848,7 +835,7 @@ function ConnectedTable({
                 : []),
             ]}
             tableControls={
-              stageLabel ? undefined : (
+              inPlay ? (
                 <>
                   <PhaseControls table={table} />
                   {stage === 'play' && table.snapshot.setup && table.snapshot.phase === 0 && (
@@ -872,7 +859,7 @@ function ConnectedTable({
                     <ConnectionControls client={client} table={table} error={error} />
                   )}
                 </>
-              )
+              ) : undefined
             }
           />
         </div>
@@ -899,5 +886,9 @@ export default function HostedTable({ gameId, exitControl }: Readonly<{ gameId: 
       </TableWait>
     );
   }
-  return <ConnectedTable client={client} table={view.table} error={view.error} />;
+  return (
+    <ServerClockContext.Provider value={view.table.serverNow}>
+      <ConnectedTable client={client} table={view.table} error={view.error} />
+    </ServerClockContext.Provider>
+  );
 }

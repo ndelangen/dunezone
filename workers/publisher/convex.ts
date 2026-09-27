@@ -9,22 +9,17 @@ import type {
   RulebookAnnotatedIllustrationIdentity,
   RulebookAnnotatedIllustrationResolution,
 } from '../../src/shared/rulebooks/annotatedIllustration';
-import type { RulebookHtmlRoute, RulebookPdfRoute } from '../../src/shared/rulebooks/editionArtifacts';
+import type { RulebookEditionArtifactKind } from '../../src/shared/rulebooks/editionArtifacts';
 import {
-  resolveRulebookHtmlDeliveryResponseSchema,
-  rulebookHtmlWorkOutcomeSchema,
-  takeRulebookHtmlWorkResponseSchema,
-} from '../../src/shared/rulebooks/htmlPublication';
+  resolveRulebookArtifactDeliveryResponseSchema,
+  rulebookArtifactWorkOutcomeSchema,
+  takeRulebookArtifactWorkResponseSchemas,
+} from '../../src/shared/rulebooks/editionArtifactWork';
 import type {
-  AssignedRulebookHtmlJob,
-  RulebookHtmlDeliveryResolution,
-} from '../../src/shared/rulebooks/htmlPublication';
-import {
-  resolveRulebookPdfDeliveryResponseSchema,
-  rulebookPdfWorkOutcomeSchema,
-  takeRulebookPdfWorkResponseSchema,
-} from '../../src/shared/rulebooks/pdfPublication';
-import type { AssignedRulebookPdfJob, RulebookPdfDeliveryResolution } from '../../src/shared/rulebooks/pdfPublication';
+  AssignedRulebookArtifactJob,
+  RulebookArtifactDeliveryResolution,
+  RulebookArtifactRoute,
+} from '../../src/shared/rulebooks/editionArtifactWork';
 
 export type { AssignedPublicationJob, TakeWorkResult } from '../../src/shared/asset-publishing/publication';
 
@@ -109,74 +104,55 @@ export class ConvexPublisherClient {
     );
   }
 
-  async takeRulebookHtmlWork(deadlineAt?: number): Promise<AssignedRulebookHtmlJob[]> {
-    const response = await this.postExecutor('rulebook-html/take-work', { schemaVersion: 1 }, deadlineAt, 8_000_000);
-    return takeRulebookHtmlWorkResponseSchema.parse(response).items;
+  async takeRulebookArtifactWork<K extends RulebookEditionArtifactKind>(
+    artifactKind: K,
+    deadlineAt?: number
+  ): Promise<AssignedRulebookArtifactJob<K>[]> {
+    const response = await this.postExecutor(
+      `rulebook-${artifactKind}/take-work`,
+      { schemaVersion: 1 },
+      deadlineAt,
+      8_000_000
+    );
+    return takeRulebookArtifactWorkResponseSchemas[artifactKind].parse(response).items;
   }
 
-  async completeRulebookHtml(artifactId: string, deadlineAt?: number): Promise<'ready' | 'failed' | 'missing'> {
+  async completeRulebookArtifact(
+    artifactKind: RulebookEditionArtifactKind,
+    artifactId: string,
+    deadlineAt?: number
+  ): Promise<'ready' | 'failed' | 'missing'> {
     const response = await this.postExecutor(
-      'rulebook-html/complete-work',
+      `rulebook-${artifactKind}/complete-work`,
       { schemaVersion: 1, artifactId },
       deadlineAt
     );
-    return rulebookHtmlWorkOutcomeSchema.parse(response).status;
+    return rulebookArtifactWorkOutcomeSchema.parse(response).status;
   }
 
-  async failRulebookHtml(
+  async failRulebookArtifact(
+    artifactKind: RulebookEditionArtifactKind,
     artifactId: string,
     error: unknown,
     deadlineAt?: number
   ): Promise<'ready' | 'failed' | 'missing'> {
     const response = await this.postExecutor(
-      'rulebook-html/fail-work',
+      `rulebook-${artifactKind}/fail-work`,
       { schemaVersion: 1, artifactId, error: truncatedError(error) },
       deadlineAt
     );
-    return rulebookHtmlWorkOutcomeSchema.parse(response).status;
+    return rulebookArtifactWorkOutcomeSchema.parse(response).status;
   }
 
-  async resolveRulebookHtmlDelivery(route: RulebookHtmlRoute): Promise<RulebookHtmlDeliveryResolution> {
-    const response = await this.postExecutor('rulebook-html/resolve-delivery', {
+  async resolveRulebookArtifactDelivery<K extends RulebookEditionArtifactKind>(
+    artifactKind: K,
+    route: RulebookArtifactRoute<K>
+  ): Promise<RulebookArtifactDeliveryResolution> {
+    const response = await this.postExecutor(`rulebook-${artifactKind}/resolve-delivery`, {
       schemaVersion: 1,
       ...route,
     });
-    return resolveRulebookHtmlDeliveryResponseSchema.parse(response);
-  }
-
-  async takeRulebookPdfWork(deadlineAt?: number): Promise<AssignedRulebookPdfJob[]> {
-    const response = await this.postExecutor('rulebook-pdf/take-work', { schemaVersion: 1 }, deadlineAt, 8_000_000);
-    return takeRulebookPdfWorkResponseSchema.parse(response).items;
-  }
-
-  async completeRulebookPdf(artifactId: string, deadlineAt?: number): Promise<'ready' | 'failed' | 'missing'> {
-    const response = await this.postExecutor(
-      'rulebook-pdf/complete-work',
-      { schemaVersion: 1, artifactId },
-      deadlineAt
-    );
-    return rulebookPdfWorkOutcomeSchema.parse(response).status;
-  }
-
-  async failRulebookPdf(
-    artifactId: string,
-    error: unknown,
-    deadlineAt?: number
-  ): Promise<'ready' | 'failed' | 'missing'> {
-    const response = await this.postExecutor(
-      'rulebook-pdf/fail-work',
-      { schemaVersion: 1, artifactId, error: truncatedError(error) },
-      deadlineAt
-    );
-    return rulebookPdfWorkOutcomeSchema.parse(response).status;
-  }
-
-  async resolveRulebookPdfDelivery(route: RulebookPdfRoute): Promise<RulebookPdfDeliveryResolution> {
-    const response = await this.postExecutor('rulebook-pdf/resolve-delivery', {
-      schemaVersion: 1,
-      ...route,
-    });
-    return resolveRulebookPdfDeliveryResponseSchema.parse(response);
+    return resolveRulebookArtifactDeliveryResponseSchema.parse(response);
   }
 
   private async postExecutor(

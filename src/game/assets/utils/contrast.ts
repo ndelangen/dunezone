@@ -4,8 +4,13 @@ export function isLight(color: string) {
     b = 0;
 
   if (color.match(/^rgb/)) {
-    //@ts-expect-error (todo)
-    [r, b, b] = color.match(/^rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*(\d+(?:\.\d+)?))?\)$/);
+    /* An rgb string the pattern cannot read keeps every channel at 0, so it reads as dark. */
+    const channels = color.match(/^rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*(\d+(?:\.\d+)?))?\)$/);
+    if (channels) {
+      r = Number(channels[1]);
+      g = Number(channels[2]);
+      b = Number(channels[3]);
+    }
   } else {
     const out = +`0x${color.slice(1).replace(color.length < 5 ? /./g : '', '$&$&')}`;
     r = out >> 16;

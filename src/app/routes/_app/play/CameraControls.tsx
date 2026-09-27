@@ -1,15 +1,13 @@
 import { OrbitControls } from '@react-three/drei/webgpu';
 import { useFrame, useThree } from '@react-three/fiber/webgpu';
-import { useEffect, useLayoutEffect, useRef } from 'react';
+import type { Vector3Tuple } from '@shared/play/model';
+import { useLayoutEffect, useRef } from 'react';
 import type { ComponentRef } from 'react';
 import { Fog, Vector3 } from 'three';
 import type { Camera } from 'three';
 
-import type { Vector3Tuple } from './model';
 import { cameraFogRange, cameraPoseFor, cameraViewTransitionProgress, mapViewTopLimitForViewport } from './playView';
 import type { CameraViewCommand } from './playView';
-
-export type SceneMode = 'tactical' | 'seated' | 'sandbox';
 
 const CAMERA_POSE_EPSILON_SQUARED = 0.000001;
 
@@ -36,60 +34,6 @@ export function CameraRelativeFog() {
   });
 
   return null;
-}
-
-export function CameraControls({
-  mode,
-  enabled,
-  target,
-  cameraView,
-  mapFramingPoints,
-  onControlSessionChange,
-}: {
-  mode: SceneMode;
-  enabled: boolean;
-  target: Vector3Tuple;
-  cameraView: CameraViewCommand;
-  mapFramingPoints: readonly Vector3Tuple[];
-  onControlSessionChange(active: boolean): void;
-}) {
-  if (mode === 'tactical') {
-    return (
-      <OrbitControls
-        makeDefault
-        enabled={enabled}
-        enableRotate={false}
-        enablePan
-        minZoom={52}
-        maxZoom={95}
-        target={target}
-      />
-    );
-  }
-
-  if (mode === 'seated') {
-    return (
-      <SeatedCameraControls
-        enabled={enabled}
-        command={cameraView}
-        mapFramingPoints={mapFramingPoints}
-        onControlSessionChange={onControlSessionChange}
-      />
-    );
-  }
-
-  return (
-    <OrbitControls
-      makeDefault
-      enabled={enabled}
-      enablePan
-      minDistance={6}
-      maxDistance={15}
-      minPolarAngle={0.3}
-      maxPolarAngle={1.34}
-      target={target}
-    />
-  );
 }
 
 type CameraDestination = Pick<CameraTransition, 'commandKey' | 'signature' | 'toPosition' | 'toTarget'>;
@@ -190,10 +134,9 @@ type SeatedCameraProps = {
   command: CameraViewCommand;
   enabled: boolean;
   mapFramingPoints: readonly Vector3Tuple[];
-  onControlSessionChange(active: boolean): void;
 };
 
-function useSeatedCameraTransition({ command, enabled, mapFramingPoints, onControlSessionChange }: SeatedCameraProps) {
+function useSeatedCameraTransition({ command, enabled, mapFramingPoints }: SeatedCameraProps) {
   const controlsRef = useRef<SeatedOrbitControls>(null);
   const playback = useRef<CameraPlayback>({ appliedCommand: null, appliedCommandKey: null, transition: null });
   const { camera, invalidate, renderer, size } = useThree();
@@ -238,29 +181,11 @@ function useSeatedCameraTransition({ command, enabled, mapFramingPoints, onContr
     size.height,
   ]);
 
-  useEffect(() => () => onControlSessionChange(false), [onControlSessionChange]);
-
-  return {
-    controlsRef,
-    onStart: () => {
-      const activeTransition = playback.current.transition;
-      const controls = controlsRef.current;
-      if (activeTransition && controls) {
-        playback.current.appliedCommand = activeTransition.signature;
-        playback.current.appliedCommandKey = activeTransition.commandKey;
-        playback.current.transition = null;
-      }
-      onControlSessionChange(true);
-    },
-    onEnd: () => {
-      controlsRef.current?.saveState();
-      onControlSessionChange(false);
-    },
-  };
+  return controlsRef;
 }
 
-function SeatedCameraControls(props: SeatedCameraProps) {
-  const { controlsRef, onStart, onEnd } = useSeatedCameraTransition(props);
+export function CameraControls(props: SeatedCameraProps) {
+  const controlsRef = useSeatedCameraTransition(props);
 
   return (
     <OrbitControls
@@ -277,8 +202,6 @@ function SeatedCameraControls(props: SeatedCameraProps) {
       maxPolarAngle={1.08}
       minAzimuthAngle={-0.72}
       maxAzimuthAngle={0.72}
-      onStart={onStart}
-      onEnd={onEnd}
     />
   );
 }

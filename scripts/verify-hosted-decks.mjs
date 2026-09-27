@@ -3,16 +3,8 @@ import assert from 'node:assert/strict';
 import { stackTopHeight } from '../src/shared/play/tableGeometry.ts';
 
 /** Real deck menus and shortcuts against the isolated authority, with distinct private recipients. */
-export async function verifyDecks({ peer, signIn, enter, focus, openTab, point, capture, until, passed }) {
-  const a = await peer('player-a');
-  await signIn(a);
-  await enter(a);
-  const b = await peer('player-b');
-  await signIn(b);
-  await enter(b);
-  const observer = await peer('observer');
-  await signIn(observer);
-  await enter(observer);
+export async function verifyDecks({ seated, focus, openTab, point, capture, until, passed }) {
+  const { a, b, observer } = await seated();
   const deck = (who) => who.view().snapshot.table.pieces.find((piece) => piece.id === 'treachery-deck');
   const hands = (who) => who.view().snapshot.hand ?? [];
   await focus(a, 'map');

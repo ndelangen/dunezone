@@ -21,7 +21,6 @@ import { removalActionSchema, removalVoteSchema } from './removal';
 import {
   draftMoveSchema as draftSchema,
   durableTableSchema as tableSchema,
-  enforcementPolicySchema as policy,
   tableCountSchema as count,
   tableSeatSchema as seat,
   tableIdSchema as id,
@@ -89,6 +88,24 @@ const pointerSchema = publicIdentitySchema.extend({ position, updatedAt: count, 
 export type PublicCarry = z.infer<typeof carrySchema>;
 export type PublicPointer = z.infer<typeof pointerSchema>;
 
+const tableActionSchema = z.discriminatedUnion('kind', [
+  z.strictObject({ kind: z.literal('split'), pieceId: id, count: z.number().int().min(1).max(100) }),
+  z.strictObject({ kind: z.literal('stack'), pieceId: id }),
+  z.strictObject({ kind: z.literal('flip'), pieceId: id }),
+  z.strictObject({ kind: z.literal('lock'), pieceId: id }),
+  z.strictObject({ kind: z.literal('rotate'), pieceId: id, direction }),
+  z.strictObject({ kind: z.literal('storm'), direction }),
+  z.strictObject({ kind: z.literal('phase'), direction: direction.optional() }),
+  z.strictObject({ kind: z.literal('turn'), turn: count.min(1) }),
+  z.strictObject({ kind: z.literal('spice-spawn'), count: z.number().int().min(1).max(10) }),
+  z.strictObject({ kind: z.literal('reset') }),
+]);
+export type TableAction = z.infer<typeof tableActionSchema>;
+const deckActionSchema = z.discriminatedUnion('kind', [
+  z.strictObject({ kind: z.literal('deck-draw'), pieceId: id, recipient: id.optional() }),
+  z.strictObject({ kind: z.literal('deck-shuffle'), pieceId: id }),
+]);
+export type DeckAction = z.infer<typeof deckActionSchema>;
 const pieceActionSchema = z.discriminatedUnion('kind', [
   ...battleActionSchema.options,
   ...bankActionSchema.options,
@@ -98,19 +115,8 @@ const pieceActionSchema = z.discriminatedUnion('kind', [
   ...draftActionSchema.options,
   ...swapActionSchema.options,
   ...setupActionSchema.options,
-  z.strictObject({ kind: z.literal('split'), pieceId: id, count: z.number().int().min(1).max(100) }),
-  z.strictObject({ kind: z.literal('deck-draw'), pieceId: id, recipient: id.optional() }),
-  z.strictObject({ kind: z.literal('deck-shuffle'), pieceId: id }),
-  z.strictObject({ kind: z.literal('stack'), pieceId: id }),
-  z.strictObject({ kind: z.literal('flip'), pieceId: id }),
-  z.strictObject({ kind: z.literal('lock'), pieceId: id }),
-  z.strictObject({ kind: z.literal('rotate'), pieceId: id, direction }),
-  z.strictObject({ kind: z.literal('storm'), direction }),
-  z.strictObject({ kind: z.literal('enforcement'), policy }),
-  z.strictObject({ kind: z.literal('phase'), direction: direction.optional() }),
-  z.strictObject({ kind: z.literal('turn'), turn: count.min(1) }),
-  z.strictObject({ kind: z.literal('spice-spawn'), count: z.number().int().min(1).max(10) }),
-  z.strictObject({ kind: z.literal('reset') }),
+  ...tableActionSchema.options,
+  ...deckActionSchema.options,
 ]);
 export type PieceAction = z.infer<typeof pieceActionSchema>;
 export const clientMessageSchema = z.discriminatedUnion('type', [
@@ -123,11 +129,7 @@ export const clientMessageSchema = z.discriminatedUnion('type', [
     text: conversationTextSchema,
   }),
   z.strictObject({ type: z.literal('conversation-read'), requestId: id, factionId: id, peerId: id, through: count }),
-  z.strictObject({
-    type: z.literal('admit'),
-    ticket: z.string().regex(/^[a-f0-9]{64}$/),
-    updates: z.literal(2).optional(),
-  }),
+  z.strictObject({ type: z.literal('admit'), ticket: z.string().regex(/^[a-f0-9]{64}$/) }),
   z.strictObject({
     type: z.literal('begin'),
     carryId: id,
@@ -146,37 +148,23 @@ export const clientMessageSchema = z.discriminatedUnion('type', [
   z.strictObject({ type: z.literal('history'), step: count }),
   z.strictObject({ type: z.literal('spice-history'), before: count }),
   z.strictObject({ type: z.literal('log-history'), tab: logTabSchema, before: count }),
-  /* Kept one release for tabs still running the bundle that read votes this way; delete once no deployed bundle sends it. */
-  z.strictObject({ type: z.literal('removal-history'), before: count }),
   z.strictObject({ type: z.literal('metrics') }),
-  z.strictObject({
-    type: z.literal('sync'),
-    conversations: z.literal(true).optional(),
-    pieceMoves: z.literal(true).optional(),
-  }),
+  z.strictObject({ type: z.literal('sync') }),
 ]);
 export type ClientMessage = z.infer<typeof clientMessageSchema>;
+/* The keys a change carries whole; revision, phase, table and versions have change fields of their own. */
+const snapshotStateSchema = gameSnapshotSchema.omit({ revision: true, phase: true, table: true, versions: true });
+export const snapshotStateKeys = snapshotStateSchema.keyof().options;
+type SnapshotStateShape = typeof snapshotStateSchema.shape;
+/* Absent means unchanged; null means the key has no value in the next frame. */
+const stateChangeShape = Object.fromEntries(
+  snapshotStateKeys.map((key) => [key, snapshotStateSchema.shape[key].nullable().optional()])
+) as { [Key in keyof SnapshotStateShape]: z.ZodOptional<z.ZodNullable<SnapshotStateShape[Key]>> };
 const snapshotChangeSchema = z.object({
   baseRevision: count,
   revision: count,
   phase: count,
-  roster: roster.optional(),
-  stage: playStageSchema.optional(),
-  /* Null when the draft ended with this change; absent when it did not change. */
-  draft: draftStateSchema.nullable().optional(),
-  swapping: swappingStateSchema.optional(),
-  setup: setupStateSchema.optional(),
-  predictions: predictionsSchema.optional(),
-  removalVotes: z.array(removalVoteSchema).optional(),
-  controls: publicControlsSchema.optional(),
-  bank: factionBankSchema.optional(),
-  battle: publicBattleSchema.nullable().optional(),
-  battlePlan: battlePlanSchema.nullable().optional(),
-  hand: z.array(pieceSchema).optional(),
-  factionArtwork: factionArtworkSchema.optional(),
-  combatFaces: z.record(z.string(), z.array(combatFaceSchema)).optional(),
-  battleResults: z.array(battleResultSchema).optional(),
-  spiceTransfers: z.array(spiceTransferSchema).optional(),
+  ...stateChangeShape,
   table: tableSchema.omit({ pieces: true }).partial(),
   pieces: z.array(pieceSchema),
   pieceMoves: z
@@ -227,8 +215,6 @@ export const serverMessageSchema = z.discriminatedUnion('type', [
     entries: z.array(logEntrySchema),
     more: z.boolean(),
   }),
-  /* The empty answer an older bundle's Audit read receives during the release that retires it. */
-  z.object({ type: z.literal('removal-history'), before: count, entries: z.array(z.never()), more: z.literal(false) }),
   z.object({
     type: z.literal('spice-history'),
     before: count,
@@ -246,11 +232,8 @@ export const serverMessageSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('carry'), carryId: id, draft: draftSchema }),
   z.object({
     type: z.literal('view'),
-    conversations: z.literal(true).optional(),
     phaseCooldownMs: count.optional(),
     battleCountdownMs: count.optional(),
-    updates: z.literal(2).optional(),
-    pieceMoves: z.literal(true).optional(),
     sequence: count.optional(),
     viewer: viewerSchema,
     epoch: id,
@@ -259,7 +242,6 @@ export const serverMessageSchema = z.discriminatedUnion('type', [
     pointers: z.array(pointerSchema),
     completedCommandId: id.optional(),
   }),
-  z.object({ type: z.literal('activity'), epoch: id, carries: z.array(carrySchema), pointers: z.array(pointerSchema) }),
   z.object({
     type: z.literal('update'),
     phaseCooldownMs: count.optional(),
@@ -286,6 +268,17 @@ export const serverMessageSchema = z.discriminatedUnion('type', [
   }),
 ]);
 export type ServerMessage = z.infer<typeof serverMessageSchema>;
+/**
+ * The code the Worker closes a socket with when its ticket lapsed or was already redeemed before admission.
+ * Unlike a refusal it is not final: the browser requests a new ticket and reconnects.
+ */
+export const TICKET_EXPIRED_CLOSE_CODE = 4410;
+/**
+ * The Worker's wall clock at send, stamped on every frame but `admission`.
+ * It sits beside the message rather than in it: an update copies its base view, so a stamp inside the view would go stale.
+ */
+export const serverClockSchema = z.object({ serverNow: count });
+export type ServerClock = z.infer<typeof serverClockSchema>;
 export function tableForViewer(snapshot: GameSnapshot, viewerSeat: Viewer['viewerSeat']): TableState {
   return {
     ...snapshot.table,

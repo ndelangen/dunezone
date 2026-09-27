@@ -273,7 +273,15 @@ export const NarrowContainer = meta.story({
   ),
 });
 
-function SingleLevelFixture({ initialPath }: { initialPath: NestedTabsPath }) {
+function SingleLevelFixture({
+  initialPath,
+  padding,
+  children = <PanelFixture />,
+}: {
+  initialPath: NestedTabsPath;
+  padding?: boolean;
+  children?: ReactNode;
+}) {
   const [activePath, setActivePath] = useState<NestedTabsPath>(initialPath);
   const navigate = (path: NestedTabsPath) => setActivePath(path);
   return (
@@ -313,8 +321,8 @@ function SingleLevelFixture({ initialPath }: { initialPath: NestedTabsPath }) {
           }}
         />
       </NestedTabs.Level>
-      <NestedTabs.ContentPanel aria-label="Section content">
-        <PanelFixture />
+      <NestedTabs.ContentPanel aria-label="Section content" padding={padding}>
+        {children}
       </NestedTabs.ContentPanel>
     </NestedTabs>
   );
@@ -339,9 +347,48 @@ export const SingleLevel = meta.story({
     /* The panel starts where the rail ends and runs to the host's edge: no empty second column between or after. */
     await expect(Math.round(panel.left)).toBe(Math.round(rail.right));
     await expect(Math.round(panel.right)).toBe(Math.round(host.right));
+    /* By default the panel insets its content by the inset it publishes to flush content. */
+    const panelStyle = getComputedStyle(canvas.getByRole('region', { name: 'Section content' }));
+    await expect(parseFloat(panelStyle.paddingInlineStart)).toBeGreaterThan(0);
+    await expect(panelStyle.paddingInlineStart).toBe(panelStyle.getPropertyValue('--nested-tabs-panel-inset'));
     await userEvent.click(canvas.getByRole('link', { name: 'Section C' }));
     await expect(canvas.getByRole('link', { name: 'Section C' })).toHaveAttribute('aria-current', 'page');
     await expect(canvas.getByRole('link', { name: 'Section B' })).toHaveAttribute('data-path-state', 'inactive');
+  },
+});
+
+/**
+ * `padding={false}`: divided rows run to the panel's sides, and each row pads its own ends with the panel's inset.
+ * The rows' contents line up with a padded panel's, and only the dividers reach further.
+ */
+export const FlushContentPanel = meta.story({
+  render: () => (
+    <main className={styles.stage}>
+      <SingleLevelFixture initialPath={[ROOT_TWO]} padding={false}>
+        <ul className={styles.flushRows}>
+          {[1, 2, 3, 4].map((row) => (
+            <li key={row} className={styles.flushRow}>
+              <SurfaceFiller height={32} />
+            </li>
+          ))}
+        </ul>
+      </SingleLevelFixture>
+    </main>
+  ),
+  play: async ({ canvasElement }) => {
+    const panelElement = within(canvasElement).getByRole('region', { name: 'Section content' });
+    const panel = panelElement.getBoundingClientRect();
+    const inset = parseFloat(getComputedStyle(panelElement).getPropertyValue('--nested-tabs-panel-inset'));
+    await expect(inset).toBeGreaterThan(0);
+    for (const row of within(panelElement).getAllByRole('listitem')) {
+      const edge = row.getBoundingClientRect();
+      const content = row.firstElementChild!.getBoundingClientRect();
+      /* The divider meets both sides of the panel, and the row's content keeps the padded panel's inset. */
+      await expect(Math.round(edge.left)).toBe(Math.round(panel.left));
+      await expect(Math.round(edge.right)).toBe(Math.round(panel.right));
+      await expect(Math.round(content.left)).toBe(Math.round(panel.left + inset));
+      await expect(Math.round(content.right)).toBe(Math.round(panel.right - inset));
+    }
   },
 });
 

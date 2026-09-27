@@ -1,16 +1,14 @@
 import { randomInt } from 'node:crypto';
 
-import { nextSnapshot } from '../../src/shared/play/commands';
+import { accepted, nextSnapshot } from '../../src/shared/play/commands';
 import { emptyDraft, isBanned } from '../../src/shared/play/drafting';
 import type { DraftAction, DraftFaction, DraftState } from '../../src/shared/play/drafting';
 import { emptyPublicControls } from '../../src/shared/play/inventory';
-import type { TableEvent, TableState } from '../../src/shared/play/model';
-import { seatLabel } from '../../src/shared/play/participation';
+import { seatSubject } from '../../src/shared/play/participation';
 import { tableForViewer } from '../../src/shared/play/protocol';
 import type { Viewer } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
 import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
-import { appendEvent, eventId } from '../../src/shared/play/tableState';
 import type { StoredSnapshot } from './state';
 
 /*
@@ -22,33 +20,20 @@ import type { StoredSnapshot } from './state';
 /** Unbiased picks from the platform's random source, in the shape the shared dealing helpers take. */
 export const unbiased = (n: number) => randomInt(n);
 
-/** What `draft_history` keeps about an event that names a player, so a scrubbed name means a rebuilt event. */
-export type DraftRecord = {
-  eventId: string;
-  kind: 'draft-pick' | 'draft-unpick' | 'draft-ban' | 'draft-unban' | 'draft-ready' | 'draft-withdraw' | 'assignment';
-  factionName: string | null;
-  seat: string;
-  position: number | null;
-};
+type ListChange = 'draft-pick' | 'draft-unpick' | 'draft-ban' | 'draft-unban';
 
-/** The one player-facing message for each draft event, rebuilt from its row when a name is scrubbed. */
-export function draftMessage(name: string, record: Omit<DraftRecord, 'eventId'>): string {
-  const faction = record.factionName ?? '';
-  switch (record.kind) {
+/** A draft event names the seat that made the change, never its player. */
+function listMessage(seat: string, kind: ListChange, faction: string): string {
+  const subject = seatSubject(seat);
+  switch (kind) {
     case 'draft-pick':
-      return `${name} drafted ${faction}.`;
+      return `${subject} drafted ${faction}.`;
     case 'draft-unpick':
-      return `${name} removed ${faction} from the draft.`;
+      return `${subject} removed ${faction} from the draft.`;
     case 'draft-ban':
-      return `${name} banned ${faction}.`;
+      return `${subject} banned ${faction}.`;
     case 'draft-unban':
-      return `${name} lifted the ban on ${faction}.`;
-    case 'draft-ready':
-      return `${name} is ready to be dealt.`;
-    case 'draft-withdraw':
-      return `${name} withdrew readiness.`;
-    case 'assignment':
-      return `${name} plays ${faction} from ${seatLabel(record.seat)} at station ${(record.position ?? 0) + 1}.`;
+      return `${subject} lifted the ban on ${faction}.`;
   }
 }
 
@@ -60,26 +45,18 @@ function factionNamed(draft: DraftState, factionId: string): DraftFaction {
   return faction;
 }
 
-type Applied = { snapshot: StoredSnapshot; record: DraftRecord };
-
 function withEvent(
   snapshot: StoredSnapshot,
   viewer: Viewer,
   draft: DraftState,
-  kind: 'draft-pick' | 'draft-unpick' | 'draft-ban' | 'draft-unban',
+  kind: ListChange,
   faction: DraftFaction
-): Applied {
-  const table: TableState = tableForViewer(snapshot, SPECTATOR_SEAT);
-  const id = eventId(table.nextEventNumber);
-  const record = { kind, factionName: faction.name, position: null };
-  const message = draftMessage(viewer.displayName, { ...record, seat: viewer.viewerSeat });
-  const event: TableEvent = { id, command: kind, message, status: 'accepted' };
-  const next = nextSnapshot(snapshot, { ...table, ...appendEvent(table, event) });
+): StoredSnapshot {
+  const table = tableForViewer(snapshot, SPECTATOR_SEAT);
+  const message = listMessage(viewer.viewerSeat, kind, faction.name);
+  const next = nextSnapshot(snapshot, accepted(table, kind, message));
   const controls = snapshot.controls ?? emptyPublicControls();
-  return {
-    snapshot: { ...next, draft, controls: { ...controls, ready: [] } },
-    record: { ...record, eventId: id, seat: viewer.viewerSeat },
-  };
+  return { ...next, draft, controls: { ...controls, ready: [] } };
 }
 
 /** Everyone's readiness clears with the change that invalidates it; a failed attempt's reason goes with it. */
@@ -93,7 +70,7 @@ export function applyDraftAction(
   action: DraftAction,
   seated: readonly string[],
   minimum: number
-): Applied {
+): StoredSnapshot {
   if (snapshot.stage !== 'drafting') {
     throw new GameRejection('Drafting has ended for this game.');
   }
@@ -152,23 +129,9 @@ export function applyDraftAction(
     case 'draft-ready': {
       const ready = draft.ready.filter((candidate) => candidate !== seat);
       const next = { ...draft, ready: action.ready ? [...ready, seat] : ready, failure: null };
-      const table: TableState = tableForViewer(snapshot, SPECTATOR_SEAT);
-      const id = eventId(table.nextEventNumber);
-      const record = {
-        kind: action.ready ? ('draft-ready' as const) : ('draft-withdraw' as const),
-        factionName: null,
-        position: null,
-      };
-      const event: TableEvent = {
-        id,
-        command: action.kind,
-        message: draftMessage(viewer.displayName, { ...record, seat }),
-        status: 'accepted',
-      };
-      return {
-        snapshot: { ...nextSnapshot(snapshot, { ...table, ...appendEvent(table, event) }), draft: next },
-        record: { ...record, eventId: id, seat },
-      };
+      const table = tableForViewer(snapshot, SPECTATOR_SEAT);
+      const message = `${seatSubject(seat)} ${action.ready ? 'is ready to be dealt' : 'withdrew readiness'}.`;
+      return { ...nextSnapshot(snapshot, accepted(table, action.kind, message)), draft: next };
     }
   }
 }
@@ -191,25 +154,16 @@ export function draftWithCatalogue(draft: DraftState, factions: DraftFaction[], 
 /** The events that record a public assignment, one per seat and one for the count, newest first in the table. */
 export function assignmentEvents(
   snapshot: StoredSnapshot,
-  dealt: readonly { seat: string; name: string; factionName: string; position: number }[]
-): Applied['snapshot'] & { records: DraftRecord[] } {
-  let table: TableState = tableForViewer(snapshot, SPECTATOR_SEAT);
-  const records: DraftRecord[] = [];
-  const record = (message: string) => {
-    const id = eventId(table.nextEventNumber);
-    const event: TableEvent = { id, command: 'assignment', message, status: 'accepted' };
-    table = { ...table, ...appendEvent(table, event) };
-    return id;
-  };
+  dealt: readonly { seat: string; factionName: string; position: number }[]
+): StoredSnapshot {
+  let table = tableForViewer(snapshot, SPECTATOR_SEAT);
   for (const entry of dealt) {
-    const row = {
-      kind: 'assignment' as const,
-      factionName: entry.factionName,
-      seat: entry.seat,
-      position: entry.position,
-    };
-    records.push({ ...row, eventId: record(draftMessage(entry.name, row)) });
+    table = accepted(
+      table,
+      'assignment',
+      `${seatSubject(entry.seat)} plays ${entry.factionName} at station ${entry.position + 1}.`
+    );
   }
-  record(`Seats dealt: ${dealt.length} players, trading opens.`);
-  return { ...nextSnapshot(snapshot, table), records };
+  table = accepted(table, 'assignment', `Seats dealt: ${dealt.length} players, trading opens.`);
+  return nextSnapshot(snapshot, table);
 }

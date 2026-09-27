@@ -58,8 +58,8 @@ describe('Rulebook Edition artifact compatibility', () => {
       name: 'Sized publication manual',
       source: { kind: 'starter', settings },
     });
-    const [html] = await t.mutation(internal.rulebookHtmlPublication.takeHtmlWork, {});
-    const [pdf] = await t.mutation(internal.rulebookPdfPublication.takePdfWork, {});
+    const [html] = await t.mutation(internal.rulebookEditionArtifactWork.take, { artifactKind: 'html' });
+    const [pdf] = await t.mutation(internal.rulebookEditionArtifactWork.take, { artifactKind: 'pdf' });
     const jobs = await t.run(async (ctx) => ctx.db.query('publication_jobs').collect());
     expect(html?.document.settings).toEqual(settings);
     expect(pdf?.document.settings).toEqual(settings);
@@ -94,8 +94,8 @@ describe('Rulebook Edition artifact compatibility', () => {
     await replaceStoredContents(t, created.edition._id, historicalContents);
     await clearFirstPageJobs(t);
 
-    const [html] = await t.mutation(internal.rulebookHtmlPublication.takeHtmlWork, {});
-    const [pdf] = await t.mutation(internal.rulebookPdfPublication.takePdfWork, {});
+    const [html] = await t.mutation(internal.rulebookEditionArtifactWork.take, { artifactKind: 'html' });
+    const [pdf] = await t.mutation(internal.rulebookEditionArtifactWork.take, { artifactKind: 'pdf' });
     await owner.mutation(api.rulebooks.retryFirstPagePreview, { rulebook_id: created.rulebook._id });
     const jobs = await t.run(async (ctx) => ctx.db.query('publication_jobs').collect());
 

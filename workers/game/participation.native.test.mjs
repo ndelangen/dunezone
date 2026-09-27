@@ -2,12 +2,15 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { cardPage, deckPage, slot } from './native-catalogue.fixture.mjs';
 import {
+  accepted,
   admitPlayer,
   createPeer,
   createRuntime,
   eventually,
   provision,
+  seat,
   sendCommand,
+  storedEventMessages,
   syncView,
 } from './native-runtime.fixture.mjs';
 
@@ -56,23 +59,7 @@ describe('Explicit participation on a real game', () => {
       }),
     });
 
-  /** Sends one command that must be accepted and returns the sender's fresh view afterwards. */
-  async function accepted(connection, action) {
-    const { reply } = await sendCommand(connection, action);
-    expect(reply.type, JSON.stringify(reply)).not.toBe('rejected');
-    return syncView(connection);
-  }
   const rejected = async (connection, action) => (await sendCommand(connection, action)).reply.message;
-
-  /** Seats a spectator through a request one player approves, and returns the requester's view afterwards. */
-  async function seat(requester, approver, seatId) {
-    const requested = await accepted(
-      requester,
-      seatId ? { kind: 'seat-request', seat: seatId } : { kind: 'seat-request' }
-    );
-    await accepted(approver, { kind: 'seat-approve', requestId: pendingRequest(requested).id });
-    return syncView(requester);
-  }
 
   it('seats a watching visitor only through a request one current player approves, in server order', async () => {
     const a = await admit('a');
@@ -111,9 +98,11 @@ describe('Explicit participation on a real game', () => {
     expect(seated.snapshot.controls.seats.sort()).toEqual(['seat-1', 'seat-2']);
     expect(seated.snapshot.controls.seatRequests).toEqual([]);
     expect(events(seated).slice(0, 2)).toEqual([
-      'Synthetic B takes seat 2, approved by Synthetic A.',
-      'Synthetic B asks for a seat.',
+      'Seat 2 is taken, approved by seat 1.',
+      'A spectator asks for a seat.',
     ]);
+    /* Table events name seats, so no stored event, current or retained, carries a player's name. */
+    expect((await storedEventMessages(runtime)).filter((message) => message.includes('Synthetic'))).toEqual([]);
     /* A second approval of the same request fails with the current state instead of seating anyone twice. */
     expect(await rejected(a, { kind: 'seat-approve', requestId: 'seat-request-1' })).toBe(
       'That seat request has already been resolved.'
@@ -215,6 +204,7 @@ describe('Explicit participation on a real game', () => {
     expect(pendingRequest(await syncView(c)).own).toBe(true);
     expect(pendingRequest(await syncView(a)).own).toBeUndefined();
     expect((await accepted(c, { kind: 'seat-withdraw' })).snapshot.controls.seatRequests).toEqual([]);
+    expect((await storedEventMessages(runtime)).filter((message) => message.includes('Synthetic'))).toEqual([]);
 
     const left = await accepted(returning, { kind: 'seat-depart' });
     expect(left.snapshot.roster.seats).toEqual([{ id: 'seat-1', position: 0, faction: null }]);
@@ -228,10 +218,7 @@ describe('Explicit participation on a real game', () => {
     expect(discarded.snapshot.stage).toBe('discarded');
     expect(discarded.snapshot.controls.seats).toEqual([]);
     expect(discarded.snapshot.controls.seatRequests).toEqual([]);
-    expect(events(discarded).slice(0, 2)).toEqual([
-      'The game was discarded: no players remain.',
-      'Synthetic A left seat 1.',
-    ]);
+    expect(events(discarded).slice(0, 2)).toEqual(['The game was discarded: no players remain.', 'Seat 1 is vacated.']);
     expect(await rejected(c, { kind: 'seat-request' })).toBe('This game was discarded.');
     expect(await rejected(a, { kind: 'seat-approve', requestId: request.id })).toBe('This game was discarded.');
     await eventually(() => peer.summaries.at(-1)?.summary.stage === 'discarded', 'discarded summary');
@@ -245,7 +232,7 @@ describe('Explicit participation on a real game', () => {
     await accepted(b, { kind: 'seat-request' });
     expect((await deleteAccount('user-b')).status).toBe(200);
     expect((await syncView(a)).snapshot.controls.seatRequests).toEqual([]);
-    expect(events(await syncView(a))[0]).toBe('[deleted user] asks for a seat.');
+    expect(events(await syncView(a))[0]).toBe('A spectator asks for a seat.');
 
     const c = await admit('c');
     const observer = await admit('d');
@@ -255,10 +242,7 @@ describe('Explicit participation on a real game', () => {
     const afterC = await syncView(observer);
     expect(afterC.snapshot.controls.seats).toEqual(['seat-1']);
     expect(afterC.snapshot.roster.seats.map((seat) => seat.id)).toEqual(['seat-1']);
-    expect(events(afterC).slice(0, 2)).toEqual([
-      '[deleted user] left seat 2.',
-      '[deleted user] takes seat 2, approved by Synthetic A.',
-    ]);
+    expect(events(afterC).slice(0, 2)).toEqual(['Seat 2 is vacated.', 'Seat 2 is taken, approved by seat 1.']);
     expect(
       await runtime.exec("SELECT user_id, display_name, cause FROM seat_history WHERE seat='seat-2' ORDER BY id")
     ).toEqual([
@@ -269,10 +253,7 @@ describe('Explicit participation on a real game', () => {
     expect((await deleteAccount('user-a')).status).toBe(200);
     const afterA = await syncView(observer);
     expect(afterA.snapshot.stage).toBe('discarded');
-    expect(events(afterA).slice(0, 2)).toEqual([
-      'The game was discarded: no players remain.',
-      '[deleted user] left seat 1.',
-    ]);
+    expect(events(afterA).slice(0, 2)).toEqual(['The game was discarded: no players remain.', 'Seat 1 is vacated.']);
     expect(JSON.stringify(afterA)).not.toContain('Synthetic A');
     expect(JSON.stringify(await runtime.exec('SELECT data FROM history'))).not.toContain('Synthetic C');
     await runtime.restart();

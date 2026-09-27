@@ -27,7 +27,7 @@ export const RENDERER_RUNTIME_CLOSURE_PATHS = [
   'workers/publisher/index.ts',
   'workers/publisher/rulebook-html.ts',
   'workers/publisher/rulebook-html-executor.ts',
-  'workers/publisher/rulebook-html-r2.ts',
+  'workers/publisher/rulebook-artifact-r2.ts',
   'workers/publisher/renderer-contract.ts',
   'workers/publisher/pdf-inspection.ts',
   'workers/publisher/pdf-recompress.ts',

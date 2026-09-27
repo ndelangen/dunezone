@@ -28,6 +28,7 @@ import {
 } from './lib/assetBacks';
 import { assertKnownAssetType, assetDisplayName } from './lib/assetInput';
 import { listCardbackPresets, presetFromKey } from './lib/cardbackPresets';
+import type { CardbackPresetMemo } from './lib/cardbackPresets';
 import {
   loadAssetAccessBundle,
   requireAssetSoftDelete,
@@ -82,17 +83,25 @@ function nameOf(row: Doc<'assets'>): string {
  */
 type DeckBackPresentation = { deckBacks: Map<Id<'assets'>, Doc<'assets'> | null> };
 
+/**
+ * Reads shared across the rows of one query, so a caller reading hundreds of rows pays per owner and per Cardback preset rather than per row.
+ * Unlike `DeckBackPresentation` these change what an entry costs and never what it says, so `getPage` passes `presets` too.
+ */
+type ListEntryMemos = {
+  owners?: Map<Id<'users'>, Awaited<ReturnType<typeof profileSummary>>>;
+  presets?: CardbackPresetMemo;
+};
+
 async function toListEntry(
   ctx: QueryCtx,
   row: Doc<'assets'>,
-  /* One owner holds many assets on a page, so a caller reading hundreds of rows passes a memo and pays per owner rather than per row. */
-  owners?: Map<Id<'users'>, Awaited<ReturnType<typeof profileSummary>>>,
+  { owners, presets = new Map() }: ListEntryMemos = {},
   presentation?: DeckBackPresentation
 ) {
   if (owners && !owners.has(row.owner_id)) {
     owners.set(row.owner_id, await profileSummary(ctx, row.owner_id));
   }
-  const appearance = await presentedAppearance(ctx, row, presentation?.deckBacks ?? new Map());
+  const appearance = await presentedAppearance(ctx, row, presentation?.deckBacks ?? new Map(), presets);
   return {
     id: row._id,
     type: row.type,
@@ -119,7 +128,8 @@ async function toListEntry(
 async function presentedAppearance(
   ctx: QueryCtx,
   row: Doc<'assets'>,
-  deckBacks: Map<Id<'assets'>, Doc<'assets'> | null>
+  deckBacks: Map<Id<'assets'>, Doc<'assets'> | null>,
+  presets: CardbackPresetMemo
 ) {
   const href = isPublicationAssetType(row.type) ? publishedHref(row.type, row._id, row.updated_at) : null;
   if (row.type !== 'deck') {
@@ -127,7 +137,7 @@ async function presentedAppearance(
   }
   const cardback = deckCardbackOf(row.data);
   if (cardback?.mode === 'preset') {
-    const preset = await presetFromKey(ctx, cardback.key);
+    const preset = await presetFromKey(ctx, cardback.key, presets);
     return { data: { ...row.data, cardback: preset?.cardback ?? null }, href: preset?.href ?? null };
   }
   if (!cardback || cardback.mode !== 'reference') {
@@ -180,9 +190,10 @@ export const cataloguePage = query({
     /* Sequential like the other list readers, so the memos fill before the rows that would hit them. */
     const deckBacks = new Map<Id<'assets'>, Doc<'assets'> | null>();
     const owners = new Map<Id<'users'>, Awaited<ReturnType<typeof profileSummary>>>();
+    const presets: CardbackPresetMemo = new Map();
     const recent = [];
     for (const row of rows) {
-      recent.push(await toListEntry(ctx, row, owners, { deckBacks }));
+      recent.push(await toListEntry(ctx, row, { owners, presets }, { deckBacks }));
     }
     return { recent };
   },
@@ -206,9 +217,10 @@ export const listByTypes = query({
     /* Sequential rather than Promise.all, so the memos fill before the rows that would hit them. */
     const owners = new Map<Id<'users'>, Awaited<ReturnType<typeof profileSummary>>>();
     const deckBacks = new Map<Id<'assets'>, Doc<'assets'> | null>();
+    const presets: CardbackPresetMemo = new Map();
     const entries = [];
     for (const row of rows) {
-      entries.push(await toListEntry(ctx, row, owners, { deckBacks }));
+      entries.push(await toListEntry(ctx, row, { owners, presets }, { deckBacks }));
     }
     return entries;
   },
@@ -286,7 +298,7 @@ export const getPage = query({
       /**
        * The authored back's own publication, which is a second artifact under a face-qualified id rather than a second field on the first.
        * Null when the type has no second face, or when the back is a reference and therefore publishes nothing of its own.
-       * A sidecar rather than a widening of `assetPublishingValidator`, because that validator is shared with the faction and ruleset pages, which have exactly one publication each and gain nothing from learning about faces.
+       * A sidecar rather than a widening of `assetPublishingValidator`, because that validator also types the faction page's publication, which is a single one and gains nothing from learning about faces.
        */
       backPublishing: v.union(assetPublishingValidator, v.null()),
       /**
@@ -298,27 +310,27 @@ export const getPage = query({
     })
   ),
   handler: async (ctx, args) => {
-    const holders = await ctx.db
-      .query('assets')
-      .withIndex('by_slug', (q) => q.eq('slug', args.slug))
-      .take(50);
-    const row = holders.find((candidate) => candidate.type === args.type && !candidate.is_deleted);
+    const row = await liveAsset(ctx, args.type, args.slug);
     if (!row) {
       return null;
     }
     const access = await loadAssetAccessBundle(ctx, { kind: 'asset', row });
     const back = TOKEN_TYPES.has(row.type) ? await tokenBackFor(ctx, row._id, row.data) : null;
     const backDeckRow = await referencedCardbackDeck(ctx, row);
+    /* The entry, the preset list and the resolved back all ask for presets; one memo reads each once. */
+    const presets: CardbackPresetMemo = new Map();
     return {
-      asset: await toListEntry(ctx, row),
-      cardbackPresets: row.type === 'deck' ? await listCardbackPresets(ctx) : [],
+      asset: await toListEntry(ctx, row, { presets }),
+      cardbackPresets: row.type === 'deck' ? await listCardbackPresets(ctx, presets) : [],
       viewerAccess: access.viewerAccess,
       assignableGroups: access.assignableGroups,
       backToken: back ? await toListEntry(ctx, back) : null,
       backDeck: backDeckRow ? await toListEntry(ctx, backDeckRow) : null,
       ...(CONTAINER_KINDS[row.type]
-        ? await membersOf(ctx, row._id, CONTAINER_KINDS[row.type]!.kind).then((m) => ({
-            members: m.entries,
+        ? await membersOf(ctx, row._id, CONTAINER_KINDS[row.type]!.kind).then(async (m) => ({
+            members: await Promise.all(
+              m.entries.map(async ({ row: member, count }) => ({ member: await toListEntry(ctx, member), count }))
+            ),
             membersTruncated: m.truncated,
           }))
         : { members: [], membersTruncated: false }),
@@ -327,10 +339,19 @@ export const getPage = query({
       linkingRulesets: await rulesetsSlotting(ctx, row._id),
       assetPublishing: isPublicationAssetType(row.type) ? await publicationStatusFor(ctx, row.type, row._id) : null,
       backPublishing: await backFacePublication(ctx, row),
-      resolvedBack: await resolveBackHref(ctx, row),
+      resolvedBack: await resolveBackHref(ctx, row, presets),
     };
   },
 });
+
+/** The live asset at one address; a soft-deleted asset keeps its slug reserved and reads as absent. */
+export async function liveAsset(ctx: QueryCtx, type: string, slug: string) {
+  const holders = await ctx.db
+    .query('assets')
+    .withIndex('by_slug', (q) => q.eq('slug', slug))
+    .take(50);
+  return holders.find((candidate) => candidate.type === type && !candidate.is_deleted) ?? null;
+}
 
 /**
  * Slugs are unique per Asset type (see CONTEXT.md): the slug's job is URL identity and URLs are `/assets/{type}/{slug}`.
@@ -559,7 +580,7 @@ const DECK_CARD = 'deck-card';
 const BUNDLE_TOKEN = 'bundle-token';
 
 /** Which kind a container's membership rows carry, and therefore what it is allowed to hold. */
-const CONTAINER_KINDS: Record<string, { kind: string; holds: (type: string) => boolean; noun: string }> = {
+export const CONTAINER_KINDS: Record<string, { kind: string; holds: (type: string) => boolean; noun: string }> = {
   deck: { kind: DECK_CARD, holds: (type) => type.startsWith('card-'), noun: 'cards' },
   bundle: { kind: BUNDLE_TOKEN, holds: (type) => TOKEN_TYPES.has(type), noun: 'tokens' },
 };
@@ -573,7 +594,7 @@ const TOKEN_TYPES = TOKEN_ASSET_TYPES;
  * `assets_back_modes_v1` has rewritten every row.
  * Filters a soft-deleted target at read time rather than cascading on delete, the rule «Deck→card reference mechanism and deletion semantics» set for every kind in this table.
  */
-async function tokenBackFor(ctx: QueryCtx, assetId: Id<'assets'>, data: unknown) {
+export async function tokenBackFor(ctx: QueryCtx, assetId: Id<'assets'>, data: unknown) {
   const back = tokenBackOf(data);
   const targetId =
     back?.mode === 'reference' && typeof back.asset_id === 'string'
@@ -594,7 +615,7 @@ async function tokenBackFor(ctx: QueryCtx, assetId: Id<'assets'>, data: unknown)
  * Qualification is `authoredDeckCardback`, the same judgement the browse presentation and the resolver apply, so the page cannot call a deck referenced that a tile would call dangling.
  * No legacy fallthrough: deck references never had a relation-row era.
  */
-async function referencedCardbackDeck(ctx: QueryCtx, row: Doc<'assets'>) {
+export async function referencedCardbackDeck(ctx: QueryCtx, row: Doc<'assets'>) {
   if (row.type !== 'deck') {
     return null;
   }
@@ -669,10 +690,11 @@ export const setMemberCount = mutation({
 const DECK_CARD_LIMIT = 500;
 
 /**
- * A deck's cards with their counts, soft-deleted members filtered out at read time.
+ * A container's member rows with their counts, soft-deleted members filtered out at read time.
+ * The asset page and Play's capture read the same members and project them differently.
  * Editor-scoped: the bulk, many-decks-at-once read the detail and browse pages want is «Build the relation read paths for the asset detail page», which this deliberately does not pre-empt.
  */
-async function membersOf(ctx: QueryCtx, containerId: Id<'assets'>, kind: string) {
+export async function membersOf(ctx: QueryCtx, containerId: Id<'assets'>, kind: string) {
   const relations = await ctx.db
     .query('asset_relations')
     .withIndex('by_from_kind', (q) => q.eq('from_asset_id', containerId).eq('kind', kind))
@@ -683,7 +705,7 @@ async function membersOf(ctx: QueryCtx, containerId: Id<'assets'>, kind: string)
   for (const relation of page) {
     const member = await ctx.db.get('assets', relation.to_asset_id);
     if (member && !member.is_deleted) {
-      entries.push({ member: await toListEntry(ctx, member), count: relation.count });
+      entries.push({ row: member, count: relation.count });
     }
   }
   return { entries, truncated };
@@ -840,12 +862,13 @@ export const browsePage = query({
     /* One deck backs many of the cards on a page, and one owner holds many of the assets, so each row is read once and reused across the whole grid. */
     const decks = new Map<Id<'assets'>, Doc<'assets'> | null>();
     const owners = new Map<Id<'users'>, Awaited<ReturnType<typeof profileSummary>>>();
+    const presets: CardbackPresetMemo = new Map();
     const entries: Infer<typeof assetBrowseEntryValidator>[] = [];
     for (const row of page) {
       /* No cache across rows here, unlike `decks`: two bundles sharing a token is the exception, where a deck shared across a page of cards is the rule. */
       const members = previewKind ? await memberPreviews(ctx, row._id, previewKind) : [];
       entries.push({
-        ...(await toListEntry(ctx, row, owners, { deckBacks: decks })),
+        ...(await toListEntry(ctx, row, { owners, presets }, { deckBacks: decks })),
         members,
       });
     }

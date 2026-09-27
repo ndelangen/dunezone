@@ -2,21 +2,10 @@ import { Fragment } from 'react';
 import type { ReactNode } from 'react';
 
 import { parseFormattedText } from '../../../shared/formattedText';
-
-type ParsedBlocks = ReturnType<typeof parseFormattedText>['blocks'];
-type InlineNodeOf<TBlock> = TBlock extends {
-  children: readonly (infer TNode)[];
-}
-  ? TNode
-  : TBlock extends {
-        items: readonly { children: readonly (infer TNode)[] }[];
-      }
-    ? TNode
-    : never;
-type InlineNode = InlineNodeOf<ParsedBlocks[number]>;
+import type { FormattedTextInlineNode } from '../../../shared/formattedText';
 
 function renderInline(
-  nodes: readonly InlineNode[],
+  nodes: readonly FormattedTextInlineNode[],
   keyPrefix: string,
   lineBreak: 'break' | 'space' = 'break'
 ): ReactNode[] {

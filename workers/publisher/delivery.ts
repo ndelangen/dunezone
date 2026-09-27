@@ -352,8 +352,8 @@ type DeliveryDependencies = {
   componentClient?: Pick<ConvexPublisherClient, 'resolveComponentDelivery'>;
   cache?: PublicAssetCache;
   publicBaseUrl?: string;
-  rulebookHtmlClient?: Pick<ConvexPublisherClient, 'resolveRulebookHtmlDelivery'>;
-  rulebookPdfClient?: Pick<ConvexPublisherClient, 'resolveRulebookPdfDelivery'>;
+  rulebookHtmlClient?: Pick<ConvexPublisherClient, 'resolveRulebookArtifactDelivery'>;
+  rulebookPdfClient?: Pick<ConvexPublisherClient, 'resolveRulebookArtifactDelivery'>;
 };
 
 type DeliveryFailure = {

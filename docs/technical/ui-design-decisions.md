@@ -93,14 +93,18 @@ later the panel spoke four vocabularies (a raw `.button`, a Mantine `Button`, th
 and a kit `Card` on a pane of its own), and the kit `Section` an earlier one had tried rendered its
 title at 1.3:1 because the shell pinned none of the tokens it reads. So the line is drawn at what the kit
 has no concern for. Play's own set is the 3D scene and the labels it projects, the overlays on the
-table, the phase symbol and status, the dock below the table with its resizer, and the table-view
-picker; `dune-play.css` carries those rules and nothing else. The panel on the dock is the kit's
-`NestedTabs`, in the accepted shape of the play prototype, and its tabs hold `Section`, `Eyebrow`,
-Mantine controls and the rest of the kit, on the dark-scheme island the shell declares with
-`data-scheme-dark` (`tokens.css` gives that subtree the dark block in both page schemes, and a nested
-provider re-emits Mantine's root-scoped scheme variables under it; a floating pane that portals out
-of the shell carries the island's attributes itself, and a stylesheet keyed on
-`html[data-mantine-color-scheme]` does not follow the island). The dock paints the ground; the tabs
+table, the phase symbol and status, the dock below the table, and the table-view picker;
+`dune-play.css` carries those rules and nothing else. The separators between the table and the dock
+and between the dock's two panes are the kit's `SplitPanels`, so both have its one shape, and the
+shell sets the split's colour properties to the dock's sand and amber. The panel on the dock is
+the kit's `NestedTabs`, in the accepted shape of the play prototype, and its tabs
+hold `Section`, `Eyebrow`, Mantine controls and the rest of the kit, on the dark-scheme island the
+shell declares with `data-scheme-dark` (`tokens.css` gives that subtree the dark block in both page
+schemes, and a nested provider re-emits Mantine's root-scoped scheme variables under it; a
+stylesheet keyed on `html[data-mantine-color-scheme]` does not follow the island). A Select, Menu or
+Combobox dropdown portals out of the shell, so the provider gives every Popover dropdown it renders
+the island's attributes. A tooltip's colours key on an ancestor, so the provider portals its
+tooltips into a child of `body` that carries those attributes. The dock paints the ground; the tabs
 bring the kit's pane, and nothing inside a tab brings a pane of its own. The island resolves the
 glass, input and overlay tokens the kit's panes read to neutral values, as the paper island resolves
 its own in `tokens.css`: the app's twilight glass casts blue over the table's warm ground.
@@ -113,10 +117,10 @@ component under the taxonomy; a delivery ticket names what it builds with; and t
 review checks that line before the merge.
 
 *Guarded in part: `check:css-orphans` reads route stylesheets, and the `PanelSchemeIsland` story in
-[`hosted.route.stories.tsx`](../../src/app/routes/_app/play/hosted.route.stories.tsx) holds the
-island. The vocabulary on the panel, the parts ledger and the built-with line are convention,
-checked in review; the ledger and the line are proposed for the play map's Notes on
-[#1007](https://github.com/ndelangen/dunezone/issues/1007#issuecomment-5666664413).*
+[`playing.stories.tsx`](../../src/app/routes/_app/play/playing.stories.tsx) holds the island and
+a piece menu and a tooltip opened on it. The vocabulary on the panel, the parts ledger and the
+built-with line are convention, checked in review; the ledger and the line are proposed for the play
+map's Notes on [#1007](https://github.com/ndelangen/dunezone/issues/1007#issuecomment-5666664413).*
 
 ## Layout and spacing
 
@@ -126,8 +130,8 @@ Spacing was written seven ways across 56 distinct values, so no two panes agreed
 a phone. There is now one scale with five steps, `xs sm md lg xl`, defined in
 [`tokens.css`](../../src/app/styles/tokens.css) as `--space-xs` through `--space-xl` and bound to
 Mantine's spacing keys in [`theme.ts`](../../src/app/ui/theme.ts). CSS writes `var(--space-md)`; TSX
-writes `gap="md"`. Both resolve to the same number, and both shrink at 48em and 62em because the
-token shrinks, not because the call site asked.
+writes `gap="md"`. Both resolve to the same number, and both shrink below 62rem and again below 48rem
+because the token shrinks, not because the call site asked.
 
 Reach for a step by what the gap separates, not by how it looks: `xs` inside a control, `sm` between
 items in a list, `md` between blocks in a section, `lg` for a pane's own inset, `xl` between the
@@ -139,29 +143,49 @@ names that reason as its own custom property in terms of the scale. Never write 
 spacing property: a number with no step behind it cannot shrink, cannot match the pane beside it, and
 will not be found by anyone changing the rhythm later.
 
-The scale is already responsive, so most components need no query at all. When one does, the question
-has a single test: **does this measurement change when the window changes, or when this box
-changes?** A pane's inset is a window decision, because a pane in a narrow sidebar on a wide screen
-has to read like the panels beside it, not like a phone; use `@media`. A widget's internal
-arrangement, where the widget can be mounted in a rail or a full-width panel, is a box decision; use
-`@container`. `SectionedSurface` is the worked example: its row inset was keyed on
-`@container (max-width: 34rem)`, which fired for a 24rem sidebar column on a 1160px desktop and
-rendered an 8px inset beside a panel with 20px padding. The measurement was about the reader's window
-and the query asked the box.
-
-The tell that a query has the frame wrong is its threshold. A real container query is derived from
-the widths it protects and says so. A viewport number copied into a `@container` condition is a
-window decision wearing the wrong at-rule. There are exactly two breakpoints, 48em and 62em, written
-literally because `var()` does not resolve inside a media condition and this repo has no postcss
-preset that would let it. They are Mantine's `sm` and `md`, so responsive props agree with
-stylesheets without a second definition. A third breakpoint is a decision about the whole app and
-belongs here in writing, not in one stylesheet.
+The scale is already responsive, so most components need no query at all. A pane's inset is a
+window decision, because a pane in a narrow sidebar on a wide screen has to read like the panels
+beside it, not like a phone, and a step of the scale already follows the window. `SectionedSurface`
+is the worked example: its row inset was keyed on `@container (max-width: 34rem)`, which fired for a
+24rem sidebar column on a 1160px desktop and rendered an 8px inset beside a panel with 20px padding.
+The measurement was about the reader's window and the query asked the box.
 
 *Partly enforced: the scale's reach through props is structural, because Mantine resolves `gap="md"`
 to `var(--mantine-spacing-md)` and `theme.ts` points that at `--space-md`, so a named-step prop
 cannot opt out. A numeric prop such as `gap={4}` is baked by Mantine and does not follow the scale.
-Nothing yet catches a raw length in a spacing property or a third breakpoint; both are convention.
-Canonical here.*
+Nothing yet catches a raw length in a spacing property; that is convention. Canonical here.*
+
+### Breakpoints are one ladder, and only the window asks the window
+
+There are three breakpoints: 30rem, 48rem and 62rem. 48rem and 62rem are Mantine's `sm` and `md`, so
+a responsive prop and a stylesheet agree without a second definition, and 30rem is the phone step.
+They are written literally, in rem, because `var()` resolves in neither a media nor a container
+condition. A fourth step is a decision about the whole app and belongs here in writing, not in one
+stylesheet.
+
+A step belongs to its wider side. A query reads strictly below it, `width < 48rem`, or from it up,
+`width >= 48rem`, never `max-width: 48rem`, and a container query on the ladder is written the same
+way. Mantine's responsive props switch at the step itself, and so do the spacing scale and the
+window chrome, so at exactly 768px they agree on tablet mode. The pending page stylesheets still
+read `max-width` and keep their narrow rules at the step until they move to `@container`.
+
+Everything inside a page responds with `@container`: kit components, Blocks, Layouts, widgets and
+route compositions. The same component can sit in a rail and in a full-width panel on one screen,
+and only its container knows which. The window's answer is already in the spacing scale, so a
+component that needs a query of its own asks its box. `@media` belongs to the window's own frame: the
+shell chrome (`AppHeader`, `AppRoot`, `SiteNavigation`, `page.css`), `PageLayout`, the play route's
+fullscreen frame in `dune-play.css`, and the spacing tokens in `tokens.css`, all on the ladder.
+
+A container query sits on the ladder too, unless its threshold is derived from its own content, such
+as two 14rem columns and a gap, and a comment next to it says so. A viewport number copied into a
+`@container` condition is a window decision wearing the wrong at-rule.
+
+*Media queries enforced by `check:breakpoints`
+([`assert-breakpoints.mjs`](../../scripts/assert-breakpoints.mjs)): a width query outside the window
+chrome, off the ladder, or in a form other than `width < step` or `width >= step`, fails. The page
+stylesheets still on `@media` sit on its named pending list, each held to the queries it asks today,
+until they move to `@container`. Media conditions written in TypeScript and container queries are
+checked in review. Canonical here.*
 
 ### Layouts own spacing and lay out through named slots
 
@@ -176,11 +200,10 @@ respond by **container query, not media query**, so they lay out by the room the
 *Exemption:* `PageLayout` uses `@media`. It is the shell's page frame, sized against the viewport in
 concert with `AppHeader`, genuinely viewport-scoped rather than a container.
 
-*Container-query half enforced by
-[`containerQueries.test.ts`](../../src/app/ui/layout/containerQueries.test.ts) (`PageLayout` excepted
-by name); the rest convention. Canonical in [`AGENTS.md`](../../AGENTS.md). The layouts themselves are
-whatever [`src/app/ui/layout`](../../src/app/ui/layout) holds; a roster written here would go stale
-the first time one is added.*
+*Container-query half enforced by `check:breakpoints`, which refuses a width `@media` in every
+Layout stylesheet but `PageLayout`'s; the rest convention. Canonical in [`AGENTS.md`](../../AGENTS.md).
+The layouts themselves are whatever [`src/app/ui/layout`](../../src/app/ui/layout) holds; a roster
+written here would go stale the first time one is added.*
 
 ### Floating UI is small and single-layer
 
@@ -211,12 +234,14 @@ page needs, often all of `Header`/`Toolbar`/`Content`, though a page may omit th
 `Content` alone, which marks it compact. Route parents are outlet-only, and `AppRoot` owns only
 persistent chrome and document effects.
 
-`PageLayout height="viewport"` is the opt-in frame for a bounded workspace. It keeps the real
-navigation and sizes the header around its contents, hides the footer, and gives the remaining
-viewport height to the toolbar and content. Content scrolls inside that height. A workspace that
-divides the content into its own panes uses a full-height child with `min-height: 0` and owns those
-panes' scrolling. `Content width="viewport"` remains a separate width choice. Ordinary pages retain
-document scrolling and the existing header and footer sizing.
+`PageLayout height="fullscreen"` is the frame for a table workspace. It removes the shell chrome,
+keeps the header in the accessibility tree but hides it visually, and gives the content the whole
+viewport, so the document never scrolls. A table route mounts it from its first render, before its
+data answers, so the frame does not change under the reader between the wait and the settled table
+([#1260](https://github.com/ndelangen/dunezone/issues/1260)). A workspace that divides the content
+into its own panes uses a full-height child with `min-height: 0` and owns those panes' scrolling.
+`Content width="viewport"` remains a separate width choice. Every other page keeps the default
+`document` height, with document scrolling and the shell's band and footer.
 
 *Enforced by
 [`PageLayout.architecture.test.ts`](../../src/app/ui/layout/PageLayout.architecture.test.ts) (every
@@ -382,6 +407,22 @@ shares, so those come from the mapping rather than from a local import.
 *Convention. The mapping is the code in [`TopicIcon.tsx`](../../src/app/ui/content/TopicIcon.tsx). A
 one-off topic may keep a local icon until it recurs; renderer-owned game visuals stay isolated and
 don't consume `TopicIcon`.*
+
+### A published image arrives through `PublishedImage`
+
+A publication drawn as a plain `<img>` pops in over whatever stands behind it, and a fallback drawn
+underneath reads as "no artwork here" until the image contradicts it. So a published image in the
+app goes through `PublishedImage`: a faint glass slot at the image's exact size while it loads, a
+develop out of a blur when it lands, top-down in reading order, and a matte missing state with a
+glyph that never looks like loading. An image already decoded appears at once, and reduced motion
+turns the arrival into a short fade. A caller hands it the URL, the aspect and the outline; a caller
+with its own stand-in for no publication at all, such as `FactionCard`'s cheap disc, draws that
+itself and hands over only real URLs.
+
+*Convention. The component is [`PublishedImage`](../../src/app/ui/content/PublishedImage.tsx).
+Renderers and publisher captures draw their own images, since they stay isolated from the app kit.
+Play's panel thumbnails in the shared inventory, the hand and the battle plan go through it; the 3D
+table draws its textures directly, and a piece's face stays plain sand until its texture lands.*
 
 ## Styling and renderers
 

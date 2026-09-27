@@ -75,7 +75,7 @@ function MastheadFan({ cards }: { cards: AssetListEntry[] }) {
                 transformOrigin: '50% 130%',
               }}
             >
-              <AssetFace image={card.previewHref ?? null} type={card.type} data={card.data} name={card.name} />
+              <AssetFace href={card.previewHref} type={card.type} data={card.data} name={card.name} />
             </div>
           );
         })}
@@ -113,7 +113,7 @@ function MiniFan({ entries }: { entries: AssetListEntry[] }) {
             transform: `translate(${i * FAN_OVERLAP}px, ${Math.abs(i - mid) * 3}px) rotate(${(i - mid) * 4 + (JITTER_ROT[i % JITTER_ROT.length] ?? 0)}deg)`,
           }}
         >
-          <AssetFace image={entry.previewHref ?? null} type={entry.type} data={entry.data} name={entry.name} />
+          <AssetFace href={entry.previewHref} type={entry.type} data={entry.data} name={entry.name} />
         </div>
       ))}
     </div>
@@ -130,7 +130,7 @@ function DeckPile({ entries }: { entries: AssetListEntry[] }) {
           key={n}
           style={{ ...PILE_CELL, width: 'max(1px, calc(100% - 6px))', transform: `translate(${n * 2}px, ${n * 4}px)` }}
         >
-          <AssetFace image={top.previewHref ?? null} type={top.type} data={top.data} name={top.name} />
+          <AssetFace href={top.previewHref} type={top.type} data={top.data} name={top.name} />
         </div>
       ))}
     </div>
@@ -197,7 +197,7 @@ function TokenStack({ entries, fill }: { entries: AssetListEntry[]; fill: boolea
               transform: straight ? undefined : `rotate(${placement.rot}deg)`,
             }}
           >
-            <AssetFace image={entry.previewHref ?? null} type={entry.type} data={entry.data} name={entry.name} />
+            <AssetFace href={entry.previewHref} type={entry.type} data={entry.data} name={entry.name} />
           </div>
         );
       })}

@@ -1,15 +1,15 @@
-import { AspectRatio, Center, Image, Tooltip } from '@mantine/core';
+import { AspectRatio, Center, Tooltip } from '@mantine/core';
 import { getRulebookSize } from '@shared/rulebooks/settings';
 import type { RulebookSize } from '@shared/rulebooks/settings';
-import { useState } from 'react';
 
+import { PublishedImage } from './PublishedImage';
 import styles from './RulebookPreview.module.css';
 import { TopicIcon } from './TopicIcon';
 
 export type RulebookPreviewStatus = 'scheduled' | 'in_progress' | 'failed' | null;
 
-function unavailableLabel(name: string, status: RulebookPreviewStatus, failed: boolean) {
-  if (failed || status === 'failed') {
+function unavailableLabel(name: string, status: RulebookPreviewStatus) {
+  if (status === 'failed') {
     return `First-page preview failed for ${name}`;
   }
   if (status === 'scheduled' || status === 'in_progress') {
@@ -30,27 +30,25 @@ export function RulebookPreview({
   imageUrl?: string | null;
   status?: RulebookPreviewStatus;
 }) {
-  const [failedUrl, setFailedUrl] = useState<string | null>(null);
   const dimensions = getRulebookSize(size);
-  const available = imageUrl && imageUrl !== failedUrl;
-  const placeholderLabel = unavailableLabel(name, status, Boolean(imageUrl && imageUrl === failedUrl));
+  if (imageUrl) {
+    return (
+      <PublishedImage
+        src={imageUrl}
+        name={`First page of ${name}`}
+        aspect={dimensions.heightMm / dimensions.widthMm}
+        radius="var(--mantine-radius-md)"
+      />
+    );
+  }
+  const placeholderLabel = unavailableLabel(name, status);
   return (
     <AspectRatio ratio={dimensions.widthMm / dimensions.heightMm} className={styles.preview}>
-      {available ? (
-        <Image
-          src={imageUrl}
-          alt={`First page of ${name}`}
-          fit="contain"
-          loading="lazy"
-          onError={() => setFailedUrl(imageUrl)}
-        />
-      ) : (
-        <Tooltip label={placeholderLabel}>
-          <Center className={styles.placeholder} role="img" aria-label={placeholderLabel}>
-            <TopicIcon topic="rules" size={28} />
-          </Center>
-        </Tooltip>
-      )}
+      <Tooltip label={placeholderLabel}>
+        <Center className={styles.placeholder} role="img" aria-label={placeholderLabel}>
+          <TopicIcon topic="rules" size={28} />
+        </Center>
+      </Tooltip>
     </AspectRatio>
   );
 }

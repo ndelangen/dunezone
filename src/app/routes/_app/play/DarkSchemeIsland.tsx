@@ -4,18 +4,24 @@ import {
   defaultCssVariablesResolver,
   MantineProvider,
   mergeMantineTheme,
+  mergeThemeOverrides,
 } from '@mantine/core';
 import type { MantineColorSchemeManager } from '@mantine/core';
 import { appContentTheme } from '@ui/theme';
 import type { ReactNode } from 'react';
+import { useLayoutEffect, useMemo, useState } from 'react';
 
 const ISLAND_SELECTOR = '[data-scheme-dark]';
 
 /**
- * The attributes that put an element on the island.
- * The shell carries them, and so must any floating pane that portals out of it (a Select dropdown lands under `body`), or that pane paints in the page scheme over the dark panel.
+ * The attributes that put an element on the island, carried by the island's root elements.
+ * A floating pane portals out of the root to `body`, so the island's provider hands these to every Popover dropdown it renders, which covers Select, Menu and Combobox.
  */
 export const darkSchemeIslandAttributes = { 'data-scheme-dark': '', 'data-mantine-color-scheme': 'dark' } as const;
+
+const islandTheme = mergeThemeOverrides(appContentTheme, {
+  components: { Popover: { defaultProps: { attributes: { dropdown: darkSchemeIslandAttributes } } } },
+});
 
 /* Inert: Mantine reads it on mount, but the island's scheme is forced and the page's own provider
    owns the document, so nothing here is ever stored or observed. */
@@ -29,11 +35,22 @@ const islandSchemeManager: MantineColorSchemeManager = {
 
 const noRootElement = () => undefined;
 
+/* A Tooltip wrapping its target drops `attributes`, and tooltip colours key on an ancestor's scheme, so an island
+   tooltip portals into this element instead: a child of `body` that carries the island's attributes, where no
+   island `overflow` or `transform` can clip it or become its containing block. */
+function createTooltipHost() {
+  const host = document.createElement('div');
+  for (const [name, value] of Object.entries(darkSchemeIslandAttributes)) {
+    host.setAttribute(name, value);
+  }
+  return host;
+}
+
 /* What Mantine's own provider would emit for this selector, computed once: its `<style>` rebuilds
    the whole variable sheet on every render of the provider, and the table re-renders on every
    table update. The dark values apply through the `data-mantine-color-scheme` the island carries. */
 const islandVariables =
-  convertCssVariables(defaultCssVariablesResolver(mergeMantineTheme(DEFAULT_THEME, appContentTheme)), ISLAND_SELECTOR) +
+  convertCssVariables(defaultCssVariablesResolver(mergeMantineTheme(DEFAULT_THEME, islandTheme)), ISLAND_SELECTOR) +
   `${ISLAND_SELECTOR}{--mantine-color-scheme:dark;}`;
 
 /**
@@ -45,9 +62,21 @@ const islandVariables =
  * nothing on the play route reads them.
  */
 export function DarkSchemeIsland({ children }: { children: ReactNode }) {
+  const [tooltipHost] = useState(createTooltipHost);
+  useLayoutEffect(() => {
+    document.body.append(tooltipHost);
+    return () => tooltipHost.remove();
+  }, [tooltipHost]);
+  const theme = useMemo(
+    () =>
+      mergeThemeOverrides(islandTheme, {
+        components: { Tooltip: { defaultProps: { portalProps: { target: tooltipHost } } } },
+      }),
+    [tooltipHost]
+  );
   return (
     <MantineProvider
-      theme={appContentTheme}
+      theme={theme}
       forceColorScheme="dark"
       colorSchemeManager={islandSchemeManager}
       getRootElement={noRootElement}

@@ -3,22 +3,26 @@ import { v } from 'convex/values';
 
 import { factionMemberPublicationId } from '../src/shared/asset-publishing/componentPublication';
 import type { PublicationAssetType } from '../src/shared/asset-publishing/publicationTargets';
-import { publishedHref } from '../src/shared/asset-publishing/publicationTargets';
+import { isPublicationAssetType, publishedHref } from '../src/shared/asset-publishing/publicationTargets';
 import { CanonicalFactionStoredSchema } from '../src/shared/factions/schema';
-import { factionDefinitionSchema, rulesetSupplySchema } from '../src/shared/play/capture';
+import { assetSupplySchema, factionDefinitionSchema, rulesetSupplySchema } from '../src/shared/play/capture';
 import { playDraftableFactionsSchema } from '../src/shared/play/drafting';
+import type { Doc } from './_generated/dataModel';
 import type { QueryCtx } from './_generated/server';
 import { query } from './_generated/server';
-import { presetFor } from './lib/cardbackPresets';
+import { publicationStatusFor } from './assetPublishingStatus';
+import { CONTAINER_KINDS, liveAsset, membersOf, referencedCardbackDeck, tokenBackFor } from './assets';
+import { resolveBackHref, TOKEN_ASSET_TYPES } from './lib/assetBacks';
+import { assetDisplayName } from './lib/assetInput';
+import type { CardbackPresetMemo } from './lib/cardbackPresets';
 import { listRulesetAssetSlots } from './lib/rulesetSlots';
 
 /*
- * What Play reads of the catalogue when a game captures it.
- * Both reads are public and viewer-free, the way the asset page reads the game Worker already uses
- * are: they project rows and publications the catalogue already exposes, and decide nothing about
- * readiness.
- * The game contract (`src/shared/play/capture.ts`) owns both answer shapes and the capture records
- * built from them; the wire validators derive from it.
+ * What Play reads of the catalogue when a game captures it or drafts from it.
+ * Every read is public and viewer-free: it projects rows and publications the catalogue already
+ * exposes, and decides nothing about readiness.
+ * The game contract (`src/shared/play/capture.ts` and `drafting.ts`) owns every answer shape and
+ * the records built from them; the wire validators derive from it.
  */
 
 /**
@@ -76,7 +80,10 @@ export const factionDefinition = query({
       faction: { id: row._id, slug: row.slug, name: parsed.success ? parsed.data.name : '' },
       data: parsed.success ? parsed.data : null,
       token: await publishedFace(ctx, 'faction-token', row._id),
-      cardbacks: { traitor: (await presetFor(ctx, 'traitor')).href, alliance: (await presetFor(ctx, 'alliance')).href },
+      cardbacks: {
+        traitor: await publishedFace(ctx, 'cardback-preset', 'traitor'),
+        alliance: await publishedFace(ctx, 'cardback-preset', 'alliance'),
+      },
       leaders,
     };
   },
@@ -121,5 +128,50 @@ export const draftableFactions = query({
       });
     }
     return { factions };
+  },
+});
+
+function supplyEntry(row: Doc<'assets'>) {
+  return { id: row._id, type: row.type, slug: row.slug, name: assetDisplayName(row), data: row.data };
+}
+
+/** One asset's faces as the asset page resolves them, with the rows its back is authored on. */
+async function suppliedAsset(ctx: QueryCtx, row: Doc<'assets'>, presets: CardbackPresetMemo) {
+  const backToken = TOKEN_ASSET_TYPES.has(row.type) ? await tokenBackFor(ctx, row._id, row.data) : null;
+  const backDeck = await referencedCardbackDeck(ctx, row);
+  const back = await resolveBackHref(ctx, row, presets);
+  return {
+    asset: supplyEntry(row),
+    front: isPublicationAssetType(row.type)
+      ? (await publicationStatusFor(ctx, row.type, row._id)).publicationHref
+      : null,
+    back: back?.href ?? null,
+    backMode: back?.mode ?? null,
+    backToken: backToken && supplyEntry(backToken),
+    backDeck: backDeck && supplyEntry(backDeck),
+  };
+}
+
+/**
+ * One card, token, deck or bundle as a game captures it, every member's faces included, in one read.
+ * A soft-deleted or unknown asset reads as absent, and a soft-deleted member is left out, as the asset page leaves it out.
+ */
+export const assetSupply = query({
+  args: { type: v.string(), slug: v.string() },
+  returns: v.union(v.null(), zodToConvex(assetSupplySchema)),
+  handler: async (ctx, args) => {
+    const row = await liveAsset(ctx, args.type, args.slug);
+    if (!row) {
+      return null;
+    }
+    const presets: CardbackPresetMemo = new Map();
+    const container = CONTAINER_KINDS[row.type];
+    const { entries, truncated } = container
+      ? await membersOf(ctx, row._id, container.kind)
+      : { entries: [], truncated: false };
+    const members = await Promise.all(
+      entries.map(async ({ row: member, count }) => ({ ...(await suppliedAsset(ctx, member, presets)), count }))
+    );
+    return { ...(await suppliedAsset(ctx, row, presets)), members, membersTruncated: truncated };
   },
 });

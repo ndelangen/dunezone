@@ -24,7 +24,7 @@ export class GameRoom extends ProductionGameRoom {
       return Response.json(this.ctx.storage.sql.exec(statement, ...(params as SqlStorageValue[])).toArray());
     }
     if (new URL(request.url).pathname === '/native-test/capture' && request.method === 'POST') {
-      /* Drives the capture seams creation and assignment will call, on the isolated fixture only. */
+      /* Drives the capture seams provisioning and assignment call, on the isolated fixture only. */
       const body = (await request.json()) as {
         kind: 'ruleset' | 'faction';
         id: string;

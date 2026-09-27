@@ -34,9 +34,41 @@ export const factionDefinitionSchema = z.object({
   faction: sourceSchema,
   data: CanonicalFactionStoredSchema.nullable(),
   token: z.string().nullable(),
-  cardbacks: z.object({ traitor: z.string().nullable(), alliance: z.string().nullable() }).optional(),
+  cardbacks: z.object({ traitor: z.string().nullable(), alliance: z.string().nullable() }),
   leaders: z.array(z.object({ memberId: identitySchema, front: z.string().nullable() })),
 });
+
+/** A catalogue row as a capture reads it: its identity and its stored data, which the capture validates per type. */
+const supplyEntrySchema = z.object({
+  id: z.string(),
+  type: z.string(),
+  slug: z.string(),
+  name: z.string(),
+  data: z.unknown(),
+});
+
+/**
+ * One asset with the faces a capture draws: its published front, its resolved back and the rows that back is authored on.
+ * A face the catalogue has not published reads as null.
+ */
+const suppliedAssetSchema = z.object({
+  asset: supplyEntrySchema,
+  front: z.string().nullable(),
+  back: z.string().nullable(),
+  backMode: z.enum(['custom', 'same', 'reference', 'authored-cardback', 'preset', 'dangling']).nullable(),
+  backToken: supplyEntrySchema.nullable(),
+  backDeck: supplyEntrySchema.nullable(),
+});
+
+/**
+ * What the catalogue answers when a game captures a card, token, deck or bundle: the asset and every member with its count, in one read.
+ * A truncated member list cannot be captured.
+ */
+export const assetSupplySchema = suppliedAssetSchema.extend({
+  members: z.array(suppliedAssetSchema.extend({ count: z.number().int().positive().max(100) })),
+  membersTruncated: z.boolean(),
+});
+export type AssetSupply = z.infer<typeof assetSupplySchema>;
 
 /** A live publication reference, or null while the catalogue has no usable image for the face. */
 const faceSchema = z.string().url().nullable();

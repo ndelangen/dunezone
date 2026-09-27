@@ -7,20 +7,7 @@ import type { RulebookRenderDocumentV1 } from './renderDocument';
 export const RULEBOOK_PDF_BATCH_SIZE = 3;
 const RULEBOOK_PDF_MAX_BATCHES = 256;
 export const RULEBOOK_PDF_MAX_BYTES = 8_000_000;
-export const RULEBOOK_PDF_MAX_PICKUP = 1;
 export const RULEBOOK_PDF_CAPTURE_TTL_MS = 360_000;
-
-const assignedRulebookPdfJobSchema = z.strictObject({
-  artifactId: z.string().min(1),
-  editionId: z.string().min(1),
-  rulebookId: z.string().min(1),
-  editionNumber: z.number().int().positive(),
-  editionCreatedAt: z.iso.datetime(),
-  rulebookName: z.string().min(1),
-  document: rulebookRenderDocumentV1Schema,
-});
-
-export type AssignedRulebookPdfJob = z.infer<typeof assignedRulebookPdfJobSchema>;
 
 const rulebookPdfCaptureBatchSchema = z.strictObject({
   schemaVersion: z.literal(1),
@@ -86,45 +73,3 @@ export function planRulebookPdfBatches(
   }
   return batches;
 }
-
-export const takeRulebookPdfWorkRequestSchema = z.strictObject({
-  schemaVersion: z.literal(1),
-});
-
-export const takeRulebookPdfWorkResponseSchema = z.strictObject({
-  ok: z.literal(true),
-  schemaVersion: z.literal(1),
-  items: z.array(assignedRulebookPdfJobSchema).max(RULEBOOK_PDF_MAX_PICKUP),
-});
-
-export const completeRulebookPdfWorkRequestSchema = z.strictObject({
-  schemaVersion: z.literal(1),
-  artifactId: z.string().min(1).max(128),
-});
-
-export const failRulebookPdfWorkRequestSchema = completeRulebookPdfWorkRequestSchema.extend({
-  error: z.string().trim().min(1).max(2000),
-});
-
-export const rulebookPdfWorkOutcomeSchema = z.strictObject({
-  ok: z.literal(true),
-  status: z.enum(['ready', 'failed', 'missing']),
-});
-
-export const resolveRulebookPdfDeliveryRequestSchema = z.strictObject({
-  schemaVersion: z.literal(1),
-  rulebookId: z.string().min(1),
-  editionNumber: z.number().int().positive(),
-});
-
-export const resolveRulebookPdfDeliveryResponseSchema = z.discriminatedUnion('status', [
-  z.strictObject({ ok: z.literal(true), status: z.literal('missing') }),
-  z.strictObject({
-    ok: z.literal(true),
-    status: z.literal('found'),
-    editionNumber: z.number().int().positive(),
-    key: z.string().min(1),
-  }),
-]);
-
-export type RulebookPdfDeliveryResolution = z.infer<typeof resolveRulebookPdfDeliveryResponseSchema>;

@@ -22,12 +22,8 @@ export const publicControlsSchema = z.object({
   requests: z.array(
     z.object({
       id: tableIdSchema,
-      /*
-       * The requester is named by seat, never by user id: only the viewer's own id leaves the server.
-       * A snapshot persisted before this field existed reads as an unknown requester, which nobody
-       * may approve; it can only be dismissed.
-       */
-      requesterSeat: tableSeatSchema.nullable().catch(null),
+      /* The requester is named by seat, never by user id: only the viewer's own id leaves the server. */
+      requesterSeat: tableSeatSchema,
       requesterName: z.string(),
       contents: spawnContentsSchema,
     })
@@ -50,3 +46,7 @@ export const publicActionSchema = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('spawn-dismiss'), requestId: tableIdSchema }),
 ]);
 export type PublicAction = z.infer<typeof publicActionSchema>;
+const kinds: ReadonlySet<string> = new Set(publicActionSchema.options.map((option) => option.shape.kind.value));
+export function isPublicAction(action: { kind: string }): action is PublicAction {
+  return kinds.has(action.kind);
+}

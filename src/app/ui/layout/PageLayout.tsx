@@ -14,7 +14,7 @@ export type PageHeaderSize = 'default' | 'compact' | 'hero';
 /** How much horizontal room the page content may claim. */
 type PageContentWidth = 'default' | 'viewport';
 
-type PageLayoutProps = PropsWithChildren<{ height?: 'document' | 'viewport' | 'fullscreen' }>;
+type PageLayoutProps = PropsWithChildren<{ height?: 'document' | 'fullscreen' }>;
 
 const InsidePageHeader = createContext(false);
 
@@ -49,8 +49,7 @@ function Content(_: PropsWithChildren<{ width?: PageContentWidth }>): null {
  * Slots: `Header` (omit it to mark the page intentionally compact;
  * `size="compact"` shrinks the band, and `size="hero"` declares a page whose title takes the display treatment), `Toolbar`, and
  * `Content` (`width="viewport"` lets the content use the viewport between the shell gutters).
- * `height="viewport"` bounds the shell to the viewport, sizes the header around its content, and scrolls the content instead of the document.
- * The footer is hidden in that mode.
+ * The default `height="document"` keeps the shell's band and footer and scrolls the document.
  * `height="fullscreen"` removes the shell chrome and gives the content the whole viewport.
  * The header remains accessible but visually hidden;
  * the child owns any scrolling.

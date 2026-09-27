@@ -115,11 +115,17 @@ describe('Rulebook live faction and Cover references', () => {
       leftFactionId: references.factionId,
       rightFactionId,
     };
-    for (const work of await t.mutation(internal.rulebookHtmlPublication.takeHtmlWork, {})) {
-      await t.mutation(internal.rulebookHtmlPublication.completeHtmlWork, { artifactId: work.artifactId });
+    for (const work of await t.mutation(internal.rulebookEditionArtifactWork.take, { artifactKind: 'html' })) {
+      await t.mutation(internal.rulebookEditionArtifactWork.complete, {
+        artifactKind: 'html',
+        artifactId: work.artifactId,
+      });
     }
-    for (const work of await t.mutation(internal.rulebookPdfPublication.takePdfWork, {})) {
-      await t.mutation(internal.rulebookPdfPublication.completePdfWork, { artifactId: work.artifactId });
+    for (const work of await t.mutation(internal.rulebookEditionArtifactWork.take, { artifactKind: 'pdf' })) {
+      await t.mutation(internal.rulebookEditionArtifactWork.complete, {
+        artifactKind: 'pdf',
+        artifactId: work.artifactId,
+      });
     }
     await publishReferences(fixture);
     const changedBackground = { ...assetPublishingFaction.background, influence: 0.3 };
@@ -142,8 +148,8 @@ describe('Rulebook live faction and Cover references', () => {
       [rightFactionId]: liveRight,
     });
     const work = [
-      ...(await t.mutation(internal.rulebookHtmlPublication.takeHtmlWork, {})),
-      ...(await t.mutation(internal.rulebookPdfPublication.takePdfWork, {})),
+      ...(await t.mutation(internal.rulebookEditionArtifactWork.take, { artifactKind: 'html' })),
+      ...(await t.mutation(internal.rulebookEditionArtifactWork.take, { artifactKind: 'pdf' })),
     ];
     expect(work).toHaveLength(2);
     for (const item of work) {
@@ -205,18 +211,24 @@ describe('Rulebook live faction and Cover references', () => {
         },
       },
     });
-    for (const work of await t.mutation(internal.rulebookHtmlPublication.takeHtmlWork, {})) {
-      await t.mutation(internal.rulebookHtmlPublication.completeHtmlWork, { artifactId: work.artifactId });
+    for (const work of await t.mutation(internal.rulebookEditionArtifactWork.take, { artifactKind: 'html' })) {
+      await t.mutation(internal.rulebookEditionArtifactWork.complete, {
+        artifactKind: 'html',
+        artifactId: work.artifactId,
+      });
     }
-    for (const work of await t.mutation(internal.rulebookPdfPublication.takePdfWork, {})) {
-      await t.mutation(internal.rulebookPdfPublication.completePdfWork, { artifactId: work.artifactId });
+    for (const work of await t.mutation(internal.rulebookEditionArtifactWork.take, { artifactKind: 'pdf' })) {
+      await t.mutation(internal.rulebookEditionArtifactWork.complete, {
+        artifactKind: 'pdf',
+        artifactId: work.artifactId,
+      });
     }
     await publishReferences(fixture);
     const reader = await t.query(api.rulebooks.readerPage, locator);
     expect(reader?.edition.contents).toEqual(fixture.contents);
     const [html, pdf] = await Promise.all([
-      t.mutation(internal.rulebookHtmlPublication.takeHtmlWork, {}),
-      t.mutation(internal.rulebookPdfPublication.takePdfWork, {}),
+      t.mutation(internal.rulebookEditionArtifactWork.take, { artifactKind: 'html' }),
+      t.mutation(internal.rulebookEditionArtifactWork.take, { artifactKind: 'pdf' }),
     ]);
     for (const document of [
       html.find((work) => work.editionNumber === 2)?.document,

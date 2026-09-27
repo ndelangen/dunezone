@@ -1,4 +1,5 @@
 import { initialSnapshot } from '@shared/play/commands';
+import { TICKET_EXPIRED_CLOSE_CODE } from '@shared/play/protocol';
 import { frameChange } from '@shared/play/updates';
 import type { RoomView } from '@shared/play/updates';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
@@ -10,7 +11,6 @@ const initial = (): RoomView => ({
   type: 'view',
   viewer: { connectionId: 'one', userId: 'user', viewerSeat: 'harkonnen', displayName: 'Player', color: '#fff' },
   epoch: 'epoch',
-  updates: 2,
   sequence: 1,
   snapshot: initialSnapshot(),
   carries: [],
@@ -30,7 +30,7 @@ afterEach(() => {
 async function subscribed(gameId = 'game') {
   const subscription = new GameSubscription(
     gameId,
-    async () => ({ ok: true, ticket: 'a'.repeat(64), expiresAt: Date.now() + 30_000 }),
+    async () => ({ ok: true, ticket: 'a'.repeat(64), expiresInMs: 30_000 }),
     runtime
   );
   const listener = vi.fn();
@@ -125,37 +125,29 @@ test('disconnect forgets the old baseline, rejects its late messages and accepts
   expect(subscription.ready).toBe(true);
 });
 
-test('opts into saved movement patches only after support is advertised and negotiates again on reconnect', async () => {
+test('applies a saved movement patch that the admission never asked for', async () => {
   const { subscription, socket, view } = await subscribed();
-  expect(socket.sent.filter((message) => message.type === 'sync')).toEqual([]);
-  socket.deliver({ ...view, pieceMoves: true });
-  expect(socket.sent.filter((message) => message.type === 'sync')).toEqual([{ type: 'sync', pieceMoves: true }]);
-  const baseline = { ...view, pieceMoves: true as const, sequence: 2 };
-  socket.deliver(baseline);
-  expect(socket.sent.filter((message) => message.type === 'sync')).toHaveLength(1);
-  const next = structuredClone(baseline);
+  expect(socket.sent).toEqual([{ type: 'admit', ticket: 'a'.repeat(64) }]);
+  const next = structuredClone(view);
   next.snapshot.revision++;
   next.snapshot.table.pieces[0].position = [2, 0, 2];
-  socket.deliver({
-    type: 'update',
+  const update = {
+    type: 'update' as const,
     epoch: view.epoch,
-    baseSequence: 2,
-    sequence: 3,
-    ...frameChange(baseline, next, true),
-  });
+    baseSequence: 1,
+    sequence: 2,
+    ...frameChange(view, next),
+  };
+  expect(update.snapshot?.pieceMoves).toHaveLength(1);
+  socket.deliver(update);
   expect(subscription.getSnapshot()?.snapshot).toEqual(next.snapshot);
-  socket.close(1006);
-  await vi.advanceTimersByTimeAsync(1000);
-  const reconnected = Socket.instances.at(-1)!;
-  reconnected.open();
-  reconnected.deliver({ ...view, epoch: 'reconnected', pieceMoves: true });
-  expect(reconnected.sent.filter((message) => message.type === 'sync')).toEqual([{ type: 'sync', pieceMoves: true }]);
+  expect(socket.sent).toHaveLength(1);
 });
 
 test('a suspended admission reads as the connection opening until the table has shown once, and as a pause after', async () => {
   const subscription = new GameSubscription(
     'game',
-    async () => ({ ok: true, ticket: 'a'.repeat(64), expiresAt: Date.now() + 30_000 }),
+    async () => ({ ok: true, ticket: 'a'.repeat(64), expiresInMs: 30_000 }),
     runtime
   );
   const listener = vi.fn();
@@ -173,4 +165,82 @@ test('a suspended admission reads as the connection opening until the table has 
     type: 'connection',
     error: 'Checking the connection. Table actions are paused.',
   });
+});
+
+test('an expired ticket reconnects with a new one, waiting longer each time until a view, and a denial stops', async () => {
+  let issued = 0;
+  const requestTicket = vi.fn(async () => ({
+    ok: true as const,
+    ticket: String(++issued).repeat(64),
+    expiresInMs: 30_000,
+  }));
+  const subscription = new GameSubscription('game', requestTicket, runtime);
+  stops.push(subscription.subscribe(vi.fn()));
+  await vi.advanceTimersByTimeAsync(0);
+  const opened = () => {
+    const socket = Socket.instances.at(-1)!;
+    socket.open();
+    return socket;
+  };
+  const expire = async (socket: Socket, wait: number) => {
+    socket.close(TICKET_EXPIRED_CLOSE_CODE);
+    expect(subscription.status).toBe('suspended');
+    const requested = requestTicket.mock.calls.length;
+    await vi.advanceTimersByTimeAsync(wait - 1);
+    expect(requestTicket).toHaveBeenCalledTimes(requested);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(requestTicket).toHaveBeenCalledTimes(requested + 1);
+  };
+  await expire(opened(), 1000);
+  await expire(opened(), 2000);
+  await expire(opened(), 4000);
+  const admitted = opened();
+  expect(admitted.sent).toEqual([{ type: 'admit', ticket: '4'.repeat(64) }]);
+  admitted.deliver(initial());
+  expect(subscription.status).toBe('authorized');
+  await expire(admitted, 1000);
+  const denied = opened();
+  denied.deliver({ type: 'admission', status: 'denied' });
+  denied.close(4401);
+  await vi.advanceTimersByTimeAsync(60_000);
+  expect(subscription.status).toBe('denied');
+  expect(requestTicket).toHaveBeenCalledTimes(5);
+});
+
+test('a ticket that lapses before or while the socket opens waits in the same backoff as one the Worker turned away', async () => {
+  let now = 0;
+  let requestTakes = 30_000;
+  const requestTicket = vi.fn(async () => {
+    now += requestTakes;
+    return { ok: true as const, ticket: 'a'.repeat(64), expiresInMs: 30_000 };
+  });
+  const subscription = new GameSubscription('game', requestTicket, { ...runtime, monotonicNow: () => now });
+  stops.push(subscription.subscribe(vi.fn()));
+  await vi.advanceTimersByTimeAsync(0);
+  const reconnectsAfter = async (wait: number) => {
+    expect(subscription.status).toBe('suspended');
+    const requested = requestTicket.mock.calls.length;
+    await vi.advanceTimersByTimeAsync(wait - 1);
+    expect(requestTicket).toHaveBeenCalledTimes(requested);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(requestTicket).toHaveBeenCalledTimes(requested + 1);
+  };
+  expect(Socket.instances).toEqual([]);
+  requestTakes = 0;
+  await reconnectsAfter(1000);
+  const lapsedWhileOpening = Socket.instances.at(-1)!;
+  /* A browser fires the close event later, with the code of the close frame it receives back, which need not be the one it sent. */
+  lapsedWhileOpening.close = () => {
+    lapsedWhileOpening.readyState = 3;
+    setTimeout(() => lapsedWhileOpening.onclose?.({ code: 1000 }));
+  };
+  now += 30_000;
+  lapsedWhileOpening.open();
+  expect(lapsedWhileOpening.sent).toEqual([]);
+  expect(lapsedWhileOpening.readyState).toBe(3);
+  await reconnectsAfter(2000);
+  const turnedAway = Socket.instances.at(-1)!;
+  turnedAway.open();
+  turnedAway.close(TICKET_EXPIRED_CLOSE_CODE);
+  await reconnectsAfter(4000);
 });

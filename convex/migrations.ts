@@ -609,7 +609,7 @@ export const groups_soft_delete_verify_v1 = migrations.define({
  * Puts the About key on every Asset that predates it (wayfinder #521).
  *
  * `assets.data` is `v.any()`, so no Convex validator gates this and `migrations:narrow-check` cannot see it: this migration is the only thing that makes the key true, and `assets_about_verify_v1` is the only thing that proves it.
- * Narrowing ahead of both is a silent break, because every strict read of a row without the key fails: `AssetFace` falls back to a neutral face across the landing, browse and picker surfaces, the edit organs route to the schema-drift dead end, and `readJobForRender` throws on a stale publication job.
+ * Narrowing ahead of both is a silent break, because every strict read of a row without the key fails: the edit organs route to the schema-drift dead end, and `readJobForRender` throws on a stale publication job.
  *
  * Empty, never generated prose.
  * An asset with nothing to explain is the normal case.

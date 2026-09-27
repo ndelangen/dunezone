@@ -1,5 +1,5 @@
-import { PLAY_PENDING_TIMEOUT_MS, PLAY_REQUEST_TIMEOUT_MS } from '@shared/play/admission';
-import { serverMessageSchema } from '@shared/play/protocol';
+import { PLAY_PENDING_TIMEOUT_MS, PLAY_REQUEST_TIMEOUT_MS, PLAY_TICKET_RETRY_MAX_MS } from '@shared/play/admission';
+import { serverClockSchema, serverMessageSchema, TICKET_EXPIRED_CLOSE_CODE } from '@shared/play/protocol';
 import type { ClientMessage, ServerMessage } from '@shared/play/protocol';
 import { applyRoomUpdate } from '@shared/play/updates';
 import type { RoomView } from '@shared/play/updates';
@@ -10,7 +10,6 @@ import { browserGameRuntime } from './gameRuntime';
 import type { GameRuntime, GameSocket } from './gameRuntime';
 
 type TicketResult = Awaited<ReturnType<typeof requestPlayTicket>>;
-type GrantedTicket = Extract<TicketResult, { ok: true }>;
 type TicketAttempt = { readonly generation: number; timer?: ReturnType<typeof setTimeout> };
 type Status = 'connecting' | 'authorized' | 'suspended' | 'denied';
 
@@ -44,6 +43,10 @@ export class GameSubscription {
   private wireView: RoomView | null = null;
   private resyncing = false;
   private connectionStatus: Status = 'connecting';
+  /* Server time less monotonic time, the largest since this attempt connected: transit delay only ever makes a frame's reading smaller. */
+  private serverOffset = Number.NEGATIVE_INFINITY;
+  /* Tickets that expired since the table last showed; each one doubles the wait before the next. */
+  private expiredTickets = 0;
 
   constructor(
     private readonly gameId: string,
@@ -60,6 +63,9 @@ export class GameSubscription {
   }
 
   getSnapshot = () => this.current;
+
+  /** The Worker's clock, advanced on the monotonic clock since its newest frame; a view has always set it before a snapshot exists. */
+  serverNow = () => this.runtime.monotonicNow() + this.serverOffset;
 
   subscribe(listener: (event: GameSubscriptionEvent) => void) {
     this.listener = listener;
@@ -88,6 +94,7 @@ export class GameSubscription {
     this.wireView = null;
     this.resyncing = false;
     this.connectionStatus = 'suspended';
+    this.expiredTickets = 0;
   }
 
   send(message: Exclude<ClientMessage, { type: 'admit' | 'sync' }>): boolean {
@@ -121,6 +128,11 @@ export class GameSubscription {
     this.reconnectTimer = setTimeout(() => void this.open(), delay);
   }
 
+  private renewExpiredTicket() {
+    this.changeStatus('suspended');
+    this.scheduleReconnect(Math.min(1000 * 2 ** this.expiredTickets++, PLAY_TICKET_RETRY_MAX_MS));
+  }
+
   private async open() {
     if (!this.listener) {
       return;
@@ -128,7 +140,10 @@ export class GameSubscription {
     const attempt: TicketAttempt = { generation: ++this.generation };
     this.ticketAttempt = attempt;
     this.sawView = false;
+    this.serverOffset = Number.NEGATIVE_INFINITY;
     this.changeStatus('connecting');
+    /* The ticket's lifetime starts somewhere inside the request, so measuring from before it can only end early. */
+    const requestedAt = this.runtime.monotonicNow();
     const result = await this.acquireTicket(attempt);
     if (!this.isCurrentAttempt(attempt) || !result) {
       return;
@@ -143,13 +158,13 @@ export class GameSubscription {
       this.scheduleReconnect(Math.max(1000, result.retryAfterMs ?? 1000));
       return;
     }
-    if (result.expiresAt <= this.runtime.now()) {
-      this.changeStatus('suspended');
-      this.scheduleReconnect();
+    const expiresAt = requestedAt + result.expiresInMs;
+    if (expiresAt <= this.runtime.monotonicNow()) {
+      this.renewExpiredTicket();
       return;
     }
     try {
-      this.openSocket(result);
+      this.openSocket(result.ticket, expiresAt);
     } catch {
       this.changeStatus('suspended', 'The table could not connect. Reconnecting...');
       this.scheduleReconnect();
@@ -179,20 +194,23 @@ export class GameSubscription {
     }
   }
 
-  private openSocket(result: GrantedTicket) {
+  private openSocket(issued: string, expiresAt: number) {
     const socket = this.runtime.openSocket(this.gameId);
     this.socket = socket;
-    let ticket = result.ticket;
+    let ticket = issued;
     socket.onopen = () => {
       if (!this.isCurrentSocket(socket)) {
         return;
       }
-      if (result.expiresAt <= this.runtime.now()) {
+      /* Detached before closing: the close event reports whatever code the Worker answers with, so the expiry renews the ticket here. */
+      if (expiresAt <= this.runtime.monotonicNow()) {
         ticket = '';
+        this.socket = null;
         socket.close();
+        this.renewExpiredTicket();
         return;
       }
-      socket.send(JSON.stringify({ type: 'admit', ticket, updates: 2 }));
+      socket.send(JSON.stringify({ type: 'admit', ticket }));
       ticket = '';
     };
     socket.onmessage = (event) => this.receiveSocketMessage(socket, event.data);
@@ -204,9 +222,14 @@ export class GameSubscription {
       this.socket = null;
       clearTimeout(this.admissionTimer);
       /* A refusal already supplied its reason; closing must not erase it. */
-      if (this.status !== 'denied') {
-        this.changeStatus(event.code === 4401 ? 'denied' : 'suspended');
+      if (this.status === 'denied') {
+        return;
       }
+      if (event.code === TICKET_EXPIRED_CLOSE_CODE) {
+        this.renewExpiredTicket();
+        return;
+      }
+      this.changeStatus(event.code === 4401 ? 'denied' : 'suspended');
       this.scheduleReconnect(event.code === 4413 ? 5000 : 1000);
     };
     socket.onerror = () => {
@@ -218,12 +241,17 @@ export class GameSubscription {
   }
 
   private receiveSocketMessage(socket: GameSocket, data: string) {
+    const receivedAt = this.runtime.monotonicNow();
     if (!this.isCurrentSocket(socket) || this.status === 'denied') {
       return;
     }
     let message: ServerMessage;
     try {
-      message = serverMessageSchema.parse(JSON.parse(data));
+      const frame: unknown = JSON.parse(data);
+      message = serverMessageSchema.parse(frame);
+      if (message.type !== 'admission') {
+        this.serverOffset = Math.max(this.serverOffset, serverClockSchema.parse(frame).serverNow - receivedAt);
+      }
     } catch {
       this.changeStatus('denied', 'This table needs a newer version of the page. Refresh to continue.');
       socket.close();
@@ -261,14 +289,6 @@ export class GameSubscription {
       this.receiveUpdate(message);
       return;
     }
-    if (message.type === 'activity' && this.wireView) {
-      this.acceptView({
-        ...this.wireView,
-        epoch: message.epoch,
-        carries: message.carries,
-        pointers: message.pointers,
-      });
-    }
     this.listener?.(message);
   }
 
@@ -286,20 +306,11 @@ export class GameSubscription {
 
   private receiveView(message: RoomView) {
     this.sawView = true;
+    this.expiredTickets = 0;
     const previous = this.acceptView(message);
     this.resyncing = false;
     this.connectionStatus = 'authorized';
     clearTimeout(this.admissionTimer);
-    /* An older Worker rejects unknown request fields, so opt in only after its full view advertises support. */
-    if ((message.pieceMoves && !previous?.pieceMoves) || (message.conversations && !previous?.conversations)) {
-      this.socket?.send(
-        JSON.stringify({
-          type: 'sync',
-          ...(message.pieceMoves ? { pieceMoves: true } : {}),
-          ...(message.conversations ? { conversations: true } : {}),
-        })
-      );
-    }
     this.listener?.({ ...this.current!, snapshotChanged: true, previous });
   }
 

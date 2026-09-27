@@ -1,4 +1,4 @@
-import { DEFAULT_TABLE_SEAT_COUNT, isTableSeatCount } from './tableSettings';
+import { DEFAULT_TABLE_SEAT_COUNT, isTableSeatCount } from '@shared/play/tableSettings';
 
 export function playSearch(search: Record<string, unknown>) {
   const requested = Number(search.seats);

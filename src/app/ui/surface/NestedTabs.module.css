@@ -50,56 +50,18 @@
 }
 
 .surfaceLayer {
+  --glass-outline-fill: var(--nested-tabs-level-two-bg);
+
   position: absolute;
   z-index: 1;
   inset: 0;
-  display: block;
-  overflow: visible;
   pointer-events: none;
 }
 
 .surfaceLayer[data-nested-tabs-surface="panel"] {
+  --glass-outline-fill: var(--nested-tabs-panel-bg);
+
   z-index: 2;
-}
-
-.definitions {
-  position: absolute;
-}
-
-.geometryShadow,
-.geometryContour {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  overflow: visible;
-  pointer-events: none;
-}
-
-.geometryShadow {
-  z-index: 0;
-  fill: #000;
-}
-
-.glassSurface {
-  position: absolute;
-  z-index: 1;
-  inset: 0;
-  background: var(--nested-tabs-level-two-bg);
-  backdrop-filter: blur(var(--glass-blur-md));
-}
-
-.surfaceLayer[data-nested-tabs-surface="panel"] .glassSurface {
-  background: var(--nested-tabs-panel-bg);
-}
-
-.geometryContour {
-  z-index: 2;
-  fill: none;
-  stroke: var(--panel-border);
-  stroke-width: 1;
-  stroke-linejoin: round;
-  vector-effect: non-scaling-stroke;
 }
 
 .level {
@@ -327,13 +289,27 @@
   place-items: center;
 }
 
+/* Registered as a length so a reader deeper in the panel gets the panel's resolved inset, not 2cqi of a nearer container. */
+@property --nested-tabs-panel-inset {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 0px;
+}
+
 .contentPanel {
+  --nested-tabs-panel-inset: clamp(var(--space-sm), 2cqi, var(--space-md));
+
   position: relative;
   z-index: 4;
   min-width: 0;
-  padding: clamp(var(--space-sm), 2cqi, var(--space-md));
+  padding: var(--nested-tabs-panel-inset);
   overflow: visible;
   background: transparent;
+}
+
+/* Flush: content runs to the panel's inline edges and takes the inset back where it wants it. */
+.contentPanelFlush {
+  padding-inline: 0;
 }
 
 @container nested-tabs (max-width: 34rem) {
@@ -357,7 +333,7 @@
   }
 
   .contentPanel {
-    padding: var(--space-xs);
+    --nested-tabs-panel-inset: var(--space-xs);
   }
 }
 

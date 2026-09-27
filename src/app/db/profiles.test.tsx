@@ -90,11 +90,11 @@ describe('the session tri-state', () => {
     expect(result.current).toEqual({ kind: 'signed-out' });
   });
 
-  test('a session with a profile hands that profile through', () => {
-    mocks.useQuery.mockReturnValue({ userId: 'user-1', profile });
+  test('a session with a profile hands that profile and its Administrator flag through', () => {
+    mocks.useQuery.mockReturnValue({ userId: 'user-1', profile, isAdmin: true });
 
     const { result } = renderHook(() => useSessionViewer());
 
-    expect(result.current).toEqual({ kind: 'profile', profile });
+    expect(result.current).toEqual({ kind: 'profile', profile, isAdmin: true });
   });
 });

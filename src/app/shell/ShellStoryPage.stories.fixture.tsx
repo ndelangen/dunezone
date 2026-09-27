@@ -32,20 +32,15 @@ export function ShellPageBackdrop({ children }: { children: ReactNode }) {
  * Which slots are filled is the only variable that matters to the shell;
  * it is what sets the band's height.
  */
-function ShellStoryPage({ headerSize, height }: { headerSize?: 'default' | 'compact'; height?: 'viewport' }) {
+function ShellStoryPage({ headerSize }: { headerSize?: 'default' | 'compact' }) {
   return (
-    <PageLayout height={height}>
+    <PageLayout>
       {headerSize && (
         <PageLayout.Header size={headerSize}>
           <LayoutSlotPlaceholder name="header slot" tone="header" minHeight={0} />
         </PageLayout.Header>
       )}
-      {height === 'viewport' && (
-        <PageLayout.Toolbar>
-          <LayoutSlotPlaceholder name="toolbar slot" tone="toolbar" minHeight={64} />
-        </PageLayout.Toolbar>
-      )}
-      <PageLayout.Content width={height === 'viewport' ? 'viewport' : undefined}>
+      <PageLayout.Content>
         <LayoutSlotPlaceholder name="children slot" tone="primary" minHeight={1400} />
       </PageLayout.Content>
     </PageLayout>
@@ -84,7 +79,6 @@ export const shellPageOptions = {
   'header + headerSize="default"': <ShellStoryPage headerSize="default" />,
   'header + headerSize="compact"': <ShellStoryPage headerSize="compact" />,
   'no header prop': <ShellStoryPage />,
-  'viewport height': <ShellStoryPage headerSize="compact" height="viewport" />,
 } satisfies Record<string, ReactNode>;
 
 export type ShellPageOption = keyof typeof shellPageOptions;

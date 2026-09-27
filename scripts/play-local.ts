@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
 
 import { nodeExecutable } from './node-executable';
@@ -15,6 +16,7 @@ const { values } = parseArgs({
     'game-convex-url': { type: 'string' },
     port: { type: 'string', default: '8787' },
     'skip-build': { type: 'boolean', default: false },
+    'skip-generate': { type: 'boolean', default: false },
   },
 });
 
@@ -62,8 +64,18 @@ async function command(args: string[]) {
 }
 
 if (!values['skip-build']) {
-  await command(['run', 'generate:images']);
-  await command(['run', 'generate:vectors']);
+  if (values['skip-generate']) {
+    const generated = ['public/image', 'public/vector', 'src/game/data/assetMap.generated.ts'];
+    const missing = generated.filter((relative) => !existsSync(path.join(root, relative)));
+    if (missing.length > 0) {
+      throw new Error(
+        `--skip-generate needs generate:images and generate:vectors output; missing ${missing.join(', ')}.`
+      );
+    }
+  } else {
+    await command(['run', 'generate:images']);
+    await command(['run', 'generate:vectors']);
+  }
   await command(['run', 'generate:objs']);
   await command(['run', 'publisher:assets']);
 }
@@ -134,6 +146,9 @@ console.log(`Local state/configuration: ${runtime}. Removed when this runner sto
 const child = spawn(
   node,
   [
+    /* Wrangler passes Node's flags on to the process that runs workerd, where this records how workerd exits. */
+    '--import',
+    pathToFileURL(path.join(root, 'scripts/workerd-exit-record.mjs')).href,
     path.join(root, 'node_modules/wrangler/bin/wrangler.js'),
     'dev',
     '--local',

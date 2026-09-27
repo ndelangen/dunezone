@@ -22,7 +22,7 @@ export type NormalizedFormattedText = string & {
   readonly [normalizedFormattedTextBrand]: true;
 };
 
-type FormattedTextInlineNode =
+export type FormattedTextInlineNode =
   | { readonly kind: 'text'; readonly value: string }
   | { readonly kind: 'line-break' }
   | {

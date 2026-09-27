@@ -3,7 +3,12 @@ import { ASSET_TYPES, isAssetType } from '@shared/assets/types';
 
 import type { AssetListEntry } from '@app/db/assets';
 import { AssetFace } from '@app/widgets/asset-face/AssetFace';
-import type { AssetFaceSide } from '@app/widgets/asset-face/AssetFace';
+
+/**
+ * Which face of a token a row previews.
+ * `back` shows the row's `authoredBackHref`, which only a custom back has, so any other row draws the neutral face.
+ */
+export type AssetFaceSide = 'front' | 'back';
 
 /** Wide enough to tell two treachery cards apart at a glance, narrow enough that eight rows still fit a popover. */
 const PREVIEW_WIDTH = 44;
@@ -26,11 +31,10 @@ function AssetPickerPreview({ entry, side }: { entry: AssetListEntry; side?: Ass
   return (
     <Box aria-hidden w={PREVIEW_WIDTH} miw={PREVIEW_WIDTH} style={{ display: 'grid', placeItems: 'center' }}>
       <AssetFace
-        image={(side === 'back' ? entry.authoredBackHref : entry.previewHref) ?? null}
+        href={side === 'back' ? entry.authoredBackHref : entry.previewHref}
         type={entry.type}
         data={entry.data}
         name={entry.name}
-        side={side}
       />
     </Box>
   );

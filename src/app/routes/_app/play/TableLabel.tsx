@@ -1,9 +1,10 @@
 /* @jsxImportSource ./three-jsx */
+
+import type { Vector3Tuple } from '@shared/play/model';
 import { useEffect, useMemo, useState } from 'react';
 import { CanvasTexture, LinearFilter, SRGBColorSpace } from 'three';
 
 import tableLabelFontUrl from './assets/desdemona-black-regular.woff?url';
-import type { Vector3Tuple } from './model';
 
 type TableLabelProps = {
   children: string;

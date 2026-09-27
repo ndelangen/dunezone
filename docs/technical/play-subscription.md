@@ -21,8 +21,8 @@ restored. A patch gap on a still-open connection requests a full view and pauses
 it does not create a second admission or erase a valid command receipt.
 
 The server still derives the viewer's seat from the authenticated identity and filters private
-information before computing patches. This refactor changes neither the wire protocol nor the
-existing patch granularity. Finer patches require measurement and a separate delivery.
+information before computing patches. Saved piece moves arrive as their own smaller patch (see
+Subscription patches).
 
 `gameRuntime` supplies browser sockets, clocks and page visibility. Route stories provide a runtime
 through `GameRuntimeContext`, and tests pass one directly. Each table owns its dependency; neither
@@ -32,3 +32,18 @@ continue to consume the session through the existing table and presence contexts
 The session suites retain command ordering, carry, privacy and playback coverage. The subscription
 suite exercises patch assembly, resynchronization, independent subscriptions and reconnect epochs.
 The isolated hosted browser flows verify the real socket, admission and table integration.
+
+## Subscription patches
+
+The Worker projects a player's visible state before computing patches. Motion omits an unchanged
+snapshot, including when viewer-specific controls have been copied without changing their contents.
+Private commits still advance the shared revision for every recipient, so the next command can name
+the current revision without exposing the private change.
+
+Every socket takes patches from its first full view. Neither `admit` nor `sync` carries an option.
+
+A saved piece move carries its id, position, orientation, zone and flip revision. A null flip
+revision removes the optional counter. Items and artwork stay in the client's existing piece. New
+pieces and changes to any other piece field use full replacements, including removing an inventory
+or battle-overlay marker. Sequence or definition gaps request a full view; reconnect still discards
+unfinished local gestures and starts from current server state.

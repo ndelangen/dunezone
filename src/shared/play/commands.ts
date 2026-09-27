@@ -1,7 +1,7 @@
-import { freshTableState, nearestZone, pieceCount, viewerCanControl } from './model';
+import { freshTableState, nearestZone, pieceCount } from './model';
 import type { TablePiece, TableState } from './model';
 import { phaseAt, phaseForTurn, stepPhase, tableProgressFor } from './phases';
-import type { DurableTable, GameSnapshot, PieceAction } from './protocol';
+import type { DurableTable, GameSnapshot, TableAction } from './protocol';
 import { GameRejection } from './rejection';
 import { createSpiceStack, isSpicePiece } from './spiceSupply';
 import { restingPositionAt, stackPreviewPositionFor } from './tableGeometry';
@@ -9,8 +9,6 @@ import { isCollisionFreePosition, nearestCollisionFreePosition } from './tablePh
 import {
   appendEvent,
   applyDraftToState,
-  assistedControlWarning,
-  assistedStackWarning,
   compatibleStackTarget,
   eventId,
   flipPieceInState,
@@ -24,10 +22,10 @@ function durableTable(table: TableState): DurableTable {
     viewerFaction: _faction,
     selectedPieceId: _selection,
     draftMove: _draft,
+    phase: _phase,
     ...durable
   } = table;
-  /* Old clients validate this literal. Hosted phase state comes only from snapshot.phase. */
-  return { ...durable, phase: 'Harkonnen shipment' };
+  return durable;
 }
 
 export function initialSnapshot(): GameSnapshot {
@@ -61,15 +59,11 @@ export function nextSnapshot<Snapshot extends GameSnapshot>(
   return { ...previous, revision, table: durableTable(table), versions, phase };
 }
 
-function accepted(state: TableState, command: string, message: string, warning: string | null = null): TableState {
+/** The table with one accepted event appended, numbered from the table's own event counter. */
+export function accepted(state: TableState, command: string, message: string): TableState {
   return {
     ...state,
-    ...appendEvent(state, {
-      id: eventId(state.nextEventNumber),
-      command,
-      message,
-      status: warning ? 'accepted-with-warning' : 'accepted',
-    }),
+    ...appendEvent(state, { id: eventId(state.nextEventNumber), command, message, status: 'accepted' }),
   };
 }
 
@@ -85,63 +79,47 @@ export function requireAccepted(before: TableState, after: TableState): TableSta
 
 function applyTableAction(
   state: TableState,
-  action: Exclude<PieceAction, { pieceId: string }>,
+  action: Exclude<TableAction, { pieceId: string }>,
   phase: number,
   actorName: string
 ): TableState {
-  if (action.kind === 'reset') {
-    return freshTableState();
+  switch (action.kind) {
+    case 'reset':
+      return freshTableState();
+    case 'storm':
+      return requireAccepted(state, moveStormInState(state, action.direction));
+    case 'phase': {
+      const next = stepPhase(phase, action.direction);
+      const current = phaseAt(next);
+      return accepted(
+        { ...state, phase: current.label },
+        action.direction === -1 ? 'phase.previous' : 'phase.advance',
+        `Turn ${tableProgressFor(next).turn}: ${current.label}.`
+      );
+    }
+    case 'turn': {
+      const next = phaseForTurn(phase, action.turn);
+      return accepted(state, 'turn.select', `Turn ${action.turn}: ${phaseAt(next).label}.`);
+    }
+    case 'spice-spawn':
+      return spawnSpiceInState(state, action.count, actorName);
   }
-  if (action.kind === 'storm') {
-    return requireAccepted(state, moveStormInState(state, action.direction));
-  }
-  if (action.kind === 'phase') {
-    const next = stepPhase(phase, action.direction);
-    const current = phaseAt(next);
-    return accepted(
-      { ...state, phase: current.label },
-      action.direction === -1 ? 'phase.previous' : 'phase.advance',
-      `Turn ${tableProgressFor(next).turn}: ${current.label}.`
-    );
-  }
-  if (action.kind === 'turn') {
-    const next = phaseForTurn(phase, action.turn);
-    return accepted(state, 'turn.select', `Turn ${action.turn}: ${phaseAt(next).label}.`);
-  }
-  if (action.kind === 'spice-spawn') {
-    return spawnSpiceInState(state, action.count, actorName);
-  }
-  if (action.kind === 'enforcement') {
-    return accepted(
-      { ...state, enforcement: action.policy },
-      'enforcement.change',
-      `Enforcement changed to ${action.policy}.`
-    );
-  }
-  throw new GameRejection('This action requires the hosted game.');
 }
 
-function actionablePiece(state: TableState, action: Extract<PieceAction, { pieceId: string }>): TablePiece {
+function actionablePiece(state: TableState, action: Extract<TableAction, { pieceId: string }>): TablePiece {
   const piece = state.pieces.find((candidate) => candidate.id === action.pieceId);
   if (!piece || pieceCount(piece) === 0) {
     throw new GameRejection('That piece is no longer available.');
   }
-  assertPieceControl(state, piece, action);
-  return piece;
-}
-
-function assertPieceControl(state: TableState, piece: TablePiece, action: PieceAction) {
-  if (state.enforcement === 'strict' && !viewerCanControl(state, piece)) {
-    throw new GameRejection(`Another seat controls ${piece.label}.`);
-  }
   if (piece.locked && action.kind !== 'lock') {
     throw new GameRejection(`${piece.label} is locked.`);
   }
+  return piece;
 }
 
 export function applyPieceAction(
   state: TableState,
-  action: PieceAction,
+  action: TableAction,
   phase: number,
   actorName = 'A player'
 ): TableState {
@@ -150,12 +128,6 @@ export function applyPieceAction(
   }
   const piece = actionablePiece(state, action);
   switch (action.kind) {
-    case 'deck-draw':
-    case 'deck-shuffle':
-    case 'hand-take':
-    case 'hand-play':
-    case 'bank-collect':
-      throw new GameRejection('This action requires the hosted game.');
     case 'flip':
       return requireAccepted(state, flipPieceInState(state, piece.id));
     case 'lock':
@@ -202,7 +174,6 @@ export function spawnSpiceInState(state: TableState, count: number, actorName = 
 }
 
 function lockPiece(state: TableState, piece: TablePiece): TableState {
-  const warning = assistedControlWarning(state, piece);
   const locked = !piece.locked;
   return accepted(
     {
@@ -210,13 +181,11 @@ function lockPiece(state: TableState, piece: TablePiece): TableState {
       pieces: state.pieces.map((candidate) => (candidate.id === piece.id ? { ...piece, locked } : candidate)),
     },
     'piece.lock',
-    `${piece.label} ${locked ? 'locked' : 'unlocked'}.`,
-    warning
+    `${piece.label} ${locked ? 'locked' : 'unlocked'}.`
   );
 }
 
 function rotatePiece(state: TableState, piece: TablePiece, direction: -1 | 1): TableState {
-  const warning = assistedControlWarning(state, piece);
   const orientation = piece.orientation + (direction * Math.PI) / 12;
   const rotated = {
     ...piece,
@@ -235,8 +204,7 @@ function rotatePiece(state: TableState, piece: TablePiece, direction: -1 | 1): T
   return accepted(
     { ...state, pieces: state.pieces.map((candidate) => (candidate.id === piece.id ? rotated : candidate)) },
     'piece.rotate',
-    `${piece.label} rotated ${direction > 0 ? 'clockwise' : 'counterclockwise'} by 15 degrees.`,
-    warning
+    `${piece.label} rotated ${direction > 0 ? 'clockwise' : 'counterclockwise'} by 15 degrees.`
   );
 }
 
@@ -259,7 +227,6 @@ function stackPiece(state: TableState, piece: TablePiece): TableState {
       orientation: piece.orientation,
       targetZoneId: target.zoneId,
       targetPieceId: target.id,
-      warning: assistedStackWarning(state, piece, target),
     })
   );
 }
@@ -313,7 +280,6 @@ function splitPiece(state: TableState, piece: TablePiece, requestedCount: number
   return accepted(
     { ...state, pieces: splitPlacement(state, piece, count) },
     piece.kind === 'card' ? 'deck.draw' : 'stack.split',
-    splitDescription(piece, count),
-    assistedControlWarning(state, piece)
+    splitDescription(piece, count)
   );
 }

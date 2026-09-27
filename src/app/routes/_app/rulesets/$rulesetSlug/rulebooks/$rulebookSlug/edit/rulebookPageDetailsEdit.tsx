@@ -26,7 +26,8 @@ import {
   useSortable,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { Box, Menu, Switch, Stack, Text, TextInput, Tooltip, UnstyledButton, VisuallyHidden } from '@mantine/core';
+import { Menu, Switch, Stack, Text, TextInput, UnstyledButton } from '@mantine/core';
+import { rulebookBlockKindLabels, rulebookBlockKinds } from '@shared/rulebooks/contents';
 import type {
   RulebookBlockDraft,
   RulebookBlockKind,
@@ -37,8 +38,8 @@ import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { IconAction } from '@ui/control/IconAction';
 import { AddAction } from '@ui/control/ListLengthActions';
-import { ChevronDown, ChevronRight, CircleHelp, Link2, Minus } from 'lucide-react';
-import { useLayoutEffect, useReducer, useRef, useState } from 'react';
+import { ChevronDown, ChevronRight, Link2, Minus } from 'lucide-react';
+import { useReducer, useRef } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 
 import { blockInsertionIndex, blockSlotInsertionIndex, verticalRectCenter } from './rulebookBlockPlacement';
@@ -52,9 +53,7 @@ import {
 import { rulebookBlockIcon, rulebookRegionIcon } from './rulebookEditorIcons';
 import styles from './rulebookPageDetailsEdit.module.css';
 
-export type RulebookPageDetailsValue = Readonly<
-  Pick<RulebookPageDraft, 'title' | 'anchor'> & { showHeading?: boolean }
->;
+export type RulebookPageDetailsValue = Readonly<Pick<RulebookPageDraft, 'title' | 'anchor' | 'showHeading'>>;
 
 export type RulebookPageDetailsDiagnostics = Readonly<{
   title?: string;
@@ -65,14 +64,9 @@ export type RulebookPageDetailsBlockRegion = Readonly<{
   key: RulebookBlockRegionKey;
   label: string;
   icon?: ReactNode;
-  acceptedBlockKinds: readonly RulebookBlockKind[];
-  minimum: number;
-  maximum: number | null;
   blocks: readonly RulebookBlockDraft[];
   collapsed: boolean;
   containsActiveBlock: boolean;
-  canAddBlock: boolean;
-  diagnostic?: string;
 }>;
 
 export type RulebookPageDetailsDropStatus = Readonly<{
@@ -173,22 +167,6 @@ type BlockDragData =
       side: 'before' | 'after';
     }>;
 
-const blockKindLabels = {
-  text: 'Text',
-  'section-heading': 'Section heading',
-  list: 'List',
-  callout: 'Callout',
-  'question-answer': 'Question and answer',
-  'referenced-illustration': 'Referenced illustration',
-  'illustrated-inventory': 'Illustrated inventory',
-  'card-entry': 'Card entry',
-  'card-group': 'Card group',
-  'asset-explainer': 'AssetExplainer',
-  'faction-introduction': 'Faction introduction',
-  'reference-table': 'Reference table',
-  credits: 'Credits',
-} satisfies Record<RulebookBlockKind, string>;
-
 const restrictDragToVerticalAxis: Modifier = ({ transform }) => ({
   ...transform,
   x: 0,
@@ -200,71 +178,6 @@ function blockDragId(blockId: string) {
 
 function blockSlotId(blockId: string, side: 'before' | 'after') {
   return `page-details:slot:${blockId}:${side}`;
-}
-
-function ResponsiveRegionDescription({ id, label, text }: { id: string; label: string; text: string }) {
-  const containerRef = useRef<HTMLSpanElement>(null);
-  const measurementRef = useRef<HTMLSpanElement>(null);
-  const [usesHelp, setUsesHelp] = useState(false);
-
-  useLayoutEffect(() => {
-    const container = containerRef.current;
-    const measurement = measurementRef.current;
-    if (!container || !measurement) {
-      return;
-    }
-
-    const update = () => setUsesHelp(measurement.getBoundingClientRect().width > container.clientWidth);
-    update();
-
-    if (typeof ResizeObserver === 'undefined') {
-      return;
-    }
-    const observer = new ResizeObserver(update);
-    observer.observe(container);
-    observer.observe(measurement);
-    return () => observer.disconnect();
-  }, [text]);
-
-  return (
-    <span ref={containerRef} className={styles.regionDescription}>
-      <VisuallyHidden id={id}>{text}</VisuallyHidden>
-      <Text
-        component="span"
-        size="xs"
-        c="dimmed"
-        aria-hidden
-        hidden={usesHelp}
-        className={styles.regionDescriptionText}
-      >
-        {text}
-      </Text>
-      <span ref={measurementRef} aria-hidden className={styles.regionDescriptionMeasurement}>
-        {text}
-      </span>
-      {usesHelp ? (
-        <Tooltip
-          label={text}
-          multiline
-          maw={360}
-          position="top-start"
-          withArrow
-          events={{ hover: true, focus: true, touch: true }}
-        >
-          <Box
-            component="span"
-            role="img"
-            aria-label={`${label} details`}
-            aria-describedby={id}
-            tabIndex={0}
-            className={styles.regionHelp}
-          >
-            <CircleHelp size={14} aria-hidden />
-          </Box>
-        </Tooltip>
-      ) : null}
-    </span>
-  );
 }
 
 function regionDropId(regionKey: RulebookBlockRegionKey) {
@@ -347,20 +260,7 @@ export function rulebookBlockLabel(block: RulebookBlockDraft) {
       return firstGroup.heading;
     }
   }
-  return `${blockKindLabels[block.kind]} Block`;
-}
-
-function acceptedKindsLabel(kinds: readonly RulebookBlockKind[]) {
-  return kinds.map((kind) => blockKindLabels[kind]).join(', ');
-}
-
-function capacityLabel(region: RulebookPageDetailsBlockRegion) {
-  const blockCountLabel = (count: number) => `${count} Block${count === 1 ? '' : 's'}`;
-  const minimum = region.minimum > 0 ? ` Minimum ${region.minimum}.` : '';
-  if (region.maximum === null) {
-    return `${blockCountLabel(region.blocks.length)}.${minimum}`;
-  }
-  return `${region.blocks.length} of ${blockCountLabel(region.maximum)}.${minimum}`;
+  return `${rulebookBlockKindLabels[block.kind]} Block`;
 }
 
 const pageDetailsCollision: CollisionDetection = (args) => {
@@ -567,14 +467,15 @@ function BlockRegionSummary({
     disabled: activeBlockId === null,
   });
   const contentId = `page-details-region-${region.key}`;
-  const description = `Accepts ${acceptedKindsLabel(region.acceptedBlockKinds)}. ${capacityLabel(region)}`;
+  /* A collapsed region hides its list, so the count is the only thing that says what the region holds. */
+  const blockCount = `${region.blocks.length} Block${region.blocks.length === 1 ? '' : 's'}`;
 
   return (
     <section
       ref={droppable.setNodeRef}
       className={styles.region}
       aria-label={region.label}
-      aria-describedby={`${contentId}-description`}
+      aria-describedby={`${contentId}-count`}
       data-contains-active-block={region.containsActiveBlock || undefined}
       data-drop-eligibility={activeBlockId ? (dropEnabled ? 'compatible' : 'incompatible') : undefined}
     >
@@ -584,7 +485,9 @@ function BlockRegionSummary({
           <Text component="span" fw={700} className={styles.regionTitle}>
             {region.label}
           </Text>
-          <ResponsiveRegionDescription id={`${contentId}-description`} label={region.label} text={description} />
+          <Text id={`${contentId}-count`} component="span" size="xs" c="dimmed" className={styles.regionCount}>
+            {blockCount}
+          </Text>
           {activeBlockId && dropStatus && !dropStatus.allowed ? (
             <Text component="span" size="xs" className={styles.visuallyHidden} aria-live="polite">
               {dropStatus.reason}
@@ -619,29 +522,23 @@ function BlockRegionSummary({
           />
           <Menu position="bottom-end" withArrow>
             <Menu.Target>
-              <AddAction label={`Add a Block to ${region.label}`} disabled={!region.canAddBlock} />
+              <AddAction label={`Add a Block to ${region.label}`} />
             </Menu.Target>
             <Menu.Dropdown>
               <Menu.Label>Block type</Menu.Label>
-              {region.acceptedBlockKinds.map((kind) => (
+              {rulebookBlockKinds.map((kind) => (
                 <Menu.Item
                   key={kind}
                   leftSection={rulebookBlockIcon(kind)}
                   onClick={() => onAddBlock(region.key, kind)}
                 >
-                  {blockKindLabels[kind]}
+                  {rulebookBlockKindLabels[kind]}
                 </Menu.Item>
               ))}
             </Menu.Dropdown>
           </Menu>
         </div>
       </div>
-      {region.diagnostic ? (
-        <Text component="div" size="xs" c="red" className={styles.regionDiagnostic}>
-          {region.diagnostic}
-        </Text>
-      ) : null}
-
       <SortableContext
         items={region.blocks.map((block) => blockDragId(block.id))}
         strategy={verticalListSortingStrategy}
@@ -901,19 +798,17 @@ export function PageDetailsEdit({
                 />
               }
             />
-            {value.showHeading !== undefined ? (
-              <ControlBlock
-                title="Page heading"
-                description="Show the Page title on the printed page. The title remains available for navigation when hidden."
-                input={
-                  <Switch
-                    aria-label="Show page heading"
-                    checked={value.showHeading}
-                    onChange={(event) => onChange({ ...value, showHeading: event.currentTarget.checked })}
-                  />
-                }
-              />
-            ) : null}
+            <ControlBlock
+              title="Page heading"
+              description="Show the Page title on the printed page. The title remains available for navigation when hidden."
+              input={
+                <Switch
+                  aria-label="Show page heading"
+                  checked={value.showHeading}
+                  onChange={(event) => onChange({ ...value, showHeading: event.currentTarget.checked })}
+                />
+              }
+            />
           </>
         )}
       </Stack>

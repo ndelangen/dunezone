@@ -1,4 +1,4 @@
-import { gestureBlockReason, nearestZone, pieceCount, viewerCanControl, zoneById } from './model';
+import { gestureBlockReason, nearestZone, pieceCount, zoneById } from './model';
 import type { DraftMove, TableEvent, TableItem, TablePiece, TableState, Vector3Tuple } from './model';
 import { isSpicePiece, isSpiceSupplyPosition } from './spiceSupply';
 import { moveStormCounterclockwise } from './stormSector';
@@ -172,23 +172,6 @@ export function rejection(state: TableState, command: string, message: string): 
   };
 }
 
-export function moveConstraintMessage(
-  state: TableState,
-  piece: TablePiece,
-  targetZoneId: string | null
-): string | null {
-  if (!viewerCanControl(state, piece)) {
-    return `Another seat controls ${piece.label}.`;
-  }
-  if (targetZoneId !== null && targetZoneId === piece.zoneId) {
-    return null;
-  }
-  if (isHarkonnenShipmentForce(state, piece) && targetZoneId !== 'arrakeen') {
-    return 'The current shipment only permits Harkonnen forces to Arrakeen.';
-  }
-  return null;
-}
-
 function isHarkonnenShipmentForce(state: TableState, piece: TablePiece): boolean {
   const isHarkonnenForce = piece.owner === 'harkonnen' && piece.kind === 'force';
   return state.phase === 'Harkonnen shipment' && isHarkonnenForce;
@@ -199,39 +182,10 @@ function isShipment(state: TableState, piece: TablePiece, targetZoneId: string |
   return isHarkonnenShipmentForce(state, piece) && entersArrakeen;
 }
 
-export function assistedMoveWarning(state: TableState, piece: TablePiece, targetZoneId: string | null): string | null {
-  if (state.enforcement !== 'assisted') {
-    return null;
-  }
-  const message = moveConstraintMessage(state, piece, targetZoneId);
-  return message ? `${message} Committing records an assisted-play override.` : null;
-}
-
-export function assistedControlWarning(state: TableState, piece: TablePiece): string | null {
-  if (state.enforcement !== 'assisted' || viewerCanControl(state, piece)) {
-    return null;
-  }
-  return `Another seat controls ${piece.label}. This action records an assisted-play override.`;
-}
-
-export function assistedStackWarning(state: TableState, source: TablePiece, target: TablePiece): string | null {
-  const moveWarning = assistedMoveWarning(state, source, target.zoneId);
-  if (moveWarning) {
-    return moveWarning;
-  }
-  if (state.enforcement === 'assisted' && !viewerCanControl(state, target)) {
-    return `Another seat controls ${target.label}. Committing records an assisted-play override.`;
-  }
-  return null;
-}
-
 type StackTargetOptions = { draft?: DraftMove | null; includeNearby?: boolean };
 
-function stackCandidateIsAvailable(state: TableState, source: TablePiece, candidate: TablePiece): boolean {
+function stackCandidateIsAvailable(source: TablePiece, candidate: TablePiece): boolean {
   if (candidate.id === source.id || candidate.locked) {
-    return false;
-  }
-  if (state.enforcement === 'strict' && !viewerCanControl(state, candidate)) {
     return false;
   }
   return candidate.items.length > 0 && piecesCanStack(source, candidate);
@@ -257,7 +211,7 @@ function availableStackCandidates(state: TableState, source: TablePiece, draft: 
       ...candidate,
       items: draft ? remainingItemsFor(candidate, draft) : candidate.items,
     }))
-    .filter((candidate) => !candidate.inventory && stackCandidateIsAvailable(state, source, candidate));
+    .filter((candidate) => !candidate.inventory && stackCandidateIsAvailable(source, candidate));
 }
 
 export function compatibleStackTarget(
@@ -297,7 +251,6 @@ export function projectCarryAtPosition(state: TableState, draft: DraftMove, posi
       position: [...position],
       targetZoneId: null,
       targetPieceId: null,
-      warning: null,
     };
   }
   const placementAnchor = placementAnchorAtPosition(piece, position);
@@ -311,7 +264,6 @@ export function projectCarryAtPosition(state: TableState, draft: DraftMove, posi
       position: [...position],
       targetZoneId: targetPiece.zoneId,
       targetPieceId: targetPiece.id,
-      warning: assistedStackWarning(state, projectedPiece, targetPiece),
     };
   }
   if (placementAnchor) {
@@ -321,7 +273,6 @@ export function projectCarryAtPosition(state: TableState, draft: DraftMove, posi
       position: [placementAnchor.position[0], position[1], placementAnchor.position[2]],
       targetZoneId: null,
       targetPieceId: null,
-      warning: assistedMoveWarning(state, projectedPiece, null),
     };
   }
   const targetZoneId = nearestZone(position)?.id ?? null;
@@ -331,7 +282,6 @@ export function projectCarryAtPosition(state: TableState, draft: DraftMove, posi
     position: [...position],
     targetZoneId,
     targetPieceId: null,
-    warning: assistedMoveWarning(state, piece, targetZoneId),
   };
 }
 
@@ -358,7 +308,6 @@ function settleMoveAtPosition(
       orientation: placementAnchor.orientation,
       targetZoneId: null,
       targetPieceId: null,
-      warning: assistedMoveWarning(state, anchoredPiece, null),
     };
   }
   const clampedPosition = clampPositionToTable(piece, restingPositionAt(position, piece));
@@ -374,7 +323,6 @@ function settleMoveAtPosition(
     position: restingPosition,
     targetZoneId,
     targetPieceId: null,
-    warning: assistedMoveWarning(state, piece, targetZoneId),
   };
 }
 
@@ -428,17 +376,16 @@ export function flipPieceInState(state: TableState, pieceId?: string): TableStat
   if (!isFlippablePiece(piece)) {
     return state;
   }
-  const blockedReason = gestureBlockReason(state, piece);
+  const blockedReason = gestureBlockReason(piece);
   if (blockedReason) {
     return rejection(state, 'piece.flip', blockedReason);
   }
-  const warning = assistedControlWarning(state, piece);
   const items = [...piece.items].reverse().map((item) => ({ ...item, faceUp: !item.faceUp }));
   const event: TableEvent = {
     id: eventId(state.nextEventNumber),
     command: 'piece.flip',
     message: `${piece.label} flipped ${items.at(-1)?.faceUp ? 'face up' : 'face down'}.`,
-    status: warning ? 'accepted-with-warning' : 'accepted',
+    status: 'accepted',
   };
   return {
     ...state,
@@ -536,7 +483,7 @@ function withdrawalConstraintMessage(state: TableState, draft: DraftMove): strin
     if (!available) {
       return 'One of the held items is no longer available.';
     }
-    const blocked = gestureBlockReason(state, available.source);
+    const blocked = gestureBlockReason(available.source);
     if (blocked) {
       return blocked;
     }
@@ -546,29 +493,6 @@ function withdrawalConstraintMessage(state: TableState, draft: DraftMove): strin
     available.items.pop();
   }
   return null;
-}
-
-function withdrawalMoveConstraintMessage(state: TableState, draft: DraftMove): string | null {
-  const sourceIds = new Set(draft.withdrawals.map((withdrawal) => withdrawal.sourcePieceId));
-  for (const sourceId of sourceIds) {
-    const source = state.pieces.find((piece) => piece.id === sourceId);
-    if (!source) {
-      return 'One of the held stacks is no longer available.';
-    }
-    const message = moveConstraintMessage(state, source, draft.targetZoneId);
-    if (message) {
-      return message;
-    }
-  }
-  return null;
-}
-
-function assistedWithdrawalWarning(state: TableState, draft: DraftMove): string | null {
-  if (state.enforcement !== 'assisted') {
-    return null;
-  }
-  const message = withdrawalMoveConstraintMessage(state, draft);
-  return message ? `${message} Committing records an assisted-play override.` : null;
 }
 
 function piecesWithoutWithdrawals(state: TableState, draft: DraftMove): TablePiece[] {
@@ -628,23 +552,6 @@ function resolveDraftApplication(current: TableState, draft: DraftMove): DraftRe
   return draft.operation === 'move' ? settleDraftApplication(application) : application;
 }
 
-function strictDraftConstraint(
-  current: TableState,
-  piece: TablePiece,
-  draft: DraftMove,
-  fallback: string
-): string | null {
-  if (current.enforcement !== 'strict') {
-    return null;
-  }
-  const moveConstraint = moveConstraintMessage(current, piece, draft.targetZoneId);
-  const withdrawalConstraint = withdrawalMoveConstraintMessage(current, draft);
-  if (!moveConstraint && !withdrawalConstraint) {
-    return null;
-  }
-  return moveConstraint ?? withdrawalConstraint ?? fallback;
-}
-
 function mergeTargetIsStable(piece: TablePiece, draft: DraftMove, target: TablePiece): boolean {
   if (target.locked || target.items.length === 0) {
     return false;
@@ -673,7 +580,7 @@ function piecesWithoutHeld(current: TableState, draft: DraftMove, piece: TablePi
   return pieces.filter((candidate) => candidate.id !== piece.id);
 }
 
-function mergeEventFor(application: DraftApplication, target: TablePiece, warning: string | null): TableEvent {
+function mergeEventFor(application: DraftApplication, target: TablePiece): TableEvent {
   const { current, piece } = application;
   const count = pieceCount(piece);
   const units =
@@ -684,7 +591,7 @@ function mergeEventFor(application: DraftApplication, target: TablePiece, warnin
     id: eventId(current.nextEventNumber),
     command: isShipment(current, piece, target.zoneId) ? 'ship.forces' : 'stack.merge',
     message: `${count} ${unit} ${placement} ${target.label}.`,
-    status: warning ? 'accepted-with-warning' : 'accepted',
+    status: 'accepted',
   };
 }
 
@@ -703,15 +610,6 @@ function applyMerge(application: DraftApplication): TableState {
   if (!target) {
     return rejection(rejectedBase, 'stack.merge', 'That stack target moved or is no longer available.');
   }
-  if (current.enforcement === 'strict' && !viewerCanControl(current, target)) {
-    return rejection(rejectedBase, 'stack.merge', `Another seat controls ${target.label}.`);
-  }
-  const liveTargetDraft = { ...draft, targetZoneId: target.zoneId };
-  const constraint = strictDraftConstraint(current, piece, liveTargetDraft, 'That merge is not permitted.');
-  if (constraint) {
-    return rejection(rejectedBase, 'stack.merge', constraint);
-  }
-  const warning = assistedStackWarning(current, piece, target) ?? assistedWithdrawalWarning(current, liveTargetDraft);
   const basePieces = piecesWithoutHeld(current, draft, piece);
   const baseTarget = basePieces.find((candidate) => candidate.id === target.id);
   if (!baseTarget) {
@@ -722,7 +620,7 @@ function applyMerge(application: DraftApplication): TableState {
     pieces: mergeHeldItems(basePieces, baseTarget, piece),
     selectedPieceId: baseTarget.id,
     draftMove: null,
-    ...appendEvent(current, mergeEventFor(application, target, warning)),
+    ...appendEvent(current, mergeEventFor(application, target)),
   };
 }
 
@@ -747,13 +645,12 @@ function piecesAfterMove(current: TableState, draft: DraftMove, movedPiece: Tabl
 
 function applyMove(application: DraftApplication): TableState {
   const { current, draft, piece } = application;
-  const warning = assistedMoveWarning(current, piece, draft.targetZoneId) ?? assistedWithdrawalWarning(current, draft);
   const destination = zoneById(draft.targetZoneId)?.label ?? 'a free table position';
   const event: TableEvent = {
     id: eventId(current.nextEventNumber),
     command: moveCommandFor(application),
     message: `${piece.label} moved to ${destination}.`,
-    status: warning ? 'accepted-with-warning' : 'accepted',
+    status: 'accepted',
   };
   const movedPiece: TablePiece = {
     ...piece,
@@ -806,22 +703,15 @@ export function applyDraftToState(current: TableState, requestedDraft: DraftMove
   if ('rejected' in application) {
     return application.rejected;
   }
-  const { draft, piece, rejectedBase } = application;
-  const constraint = strictDraftConstraint(current, piece, draft, 'That move is not permitted.');
-  if (constraint) {
-    return rejection(rejectedBase, 'piece.move', constraint);
-  }
+  const { draft } = application;
   return draft.operation === 'merge' && draft.targetPieceId ? applyMerge(application) : applyMove(application);
 }
 
-function additionalTargetMatches(state: TableState, held: TablePiece, target: TablePiece, draft: DraftMove): boolean {
+function additionalTargetMatches(held: TablePiece, target: TablePiece, draft: DraftMove): boolean {
   if (target.zoneId !== draft.targetZoneId || target.locked) {
     return false;
   }
-  if (!piecesCanStack(held, target)) {
-    return false;
-  }
-  return state.enforcement !== 'strict' || viewerCanControl(state, target);
+  return piecesCanStack(held, target);
 }
 
 function additionalTargetFor(state: TableState, draft: DraftMove): TablePiece | null {
@@ -834,7 +724,7 @@ function additionalTargetFor(state: TableState, draft: DraftMove): TablePiece | 
   if (liveTarget?.id !== target.id) {
     return null;
   }
-  return additionalTargetMatches(state, heldPiece, target, draft) ? target : null;
+  return additionalTargetMatches(heldPiece, target, draft) ? target : null;
 }
 
 export function draftWithAdditionalTop(state: TableState, draft: DraftMove): DraftMove | null {
@@ -862,8 +752,7 @@ export function canTakeAdditionalFromDraft(state: TableState, draft: DraftMove):
     draft.pickedUpItemIds.length === 1 &&
     heldPiece !== null &&
     !heldPiece.locked &&
-    withdrawalConstraintMessage(state, draft) === null &&
-    (state.enforcement !== 'strict' || viewerCanControl(state, heldPiece))
+    withdrawalConstraintMessage(state, draft) === null
   );
 }
 
@@ -895,6 +784,5 @@ export function draftForGesture(piece: TablePiece, pickup: 'top' | 'whole'): Dra
     orientation: piece.orientation,
     targetZoneId: piece.zoneId,
     targetPieceId: null,
-    warning: null,
   };
 }

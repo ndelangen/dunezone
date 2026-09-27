@@ -130,11 +130,17 @@ describe('Rulebook Card guide persistence and publication', () => {
         [assetIds[1]!]: { name: 'Maula Pistol', type: 'card-treachery' },
       },
     });
-    for (const work of await t.mutation(internal.rulebookHtmlPublication.takeHtmlWork, {})) {
-      await t.mutation(internal.rulebookHtmlPublication.completeHtmlWork, { artifactId: work.artifactId });
+    for (const work of await t.mutation(internal.rulebookEditionArtifactWork.take, { artifactKind: 'html' })) {
+      await t.mutation(internal.rulebookEditionArtifactWork.complete, {
+        artifactKind: 'html',
+        artifactId: work.artifactId,
+      });
     }
-    for (const work of await t.mutation(internal.rulebookPdfPublication.takePdfWork, {})) {
-      await t.mutation(internal.rulebookPdfPublication.completePdfWork, { artifactId: work.artifactId });
+    for (const work of await t.mutation(internal.rulebookEditionArtifactWork.take, { artifactKind: 'pdf' })) {
+      await t.mutation(internal.rulebookEditionArtifactWork.complete, {
+        artifactKind: 'pdf',
+        artifactId: work.artifactId,
+      });
     }
     await publish(fixture);
     const reader = await t.query(api.rulebooks.readerPage, locator);
@@ -143,8 +149,8 @@ describe('Rulebook Card guide persistence and publication', () => {
     }
     expect(reader.edition.contents).toEqual(contents);
     const [html, pdf] = await Promise.all([
-      t.mutation(internal.rulebookHtmlPublication.takeHtmlWork, {}),
-      t.mutation(internal.rulebookPdfPublication.takePdfWork, {}),
+      t.mutation(internal.rulebookEditionArtifactWork.take, { artifactKind: 'html' }),
+      t.mutation(internal.rulebookEditionArtifactWork.take, { artifactKind: 'pdf' }),
     ]);
     const documents = [
       projectRulebookRenderDocument(reader.edition.contents, reader.assetsById, reader.edition.settings),
