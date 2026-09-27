@@ -200,8 +200,8 @@ proves one rule; these prove the rules still hold when one game passes through a
 
 - Two accounts go from creation through drafting, the deal, trading, setup and play to a declared
   result and Continue playing. On the way the directory refuses writes twice and the alarm delivers
-  the owed summary, a withdrawal's reply is lost and its retry debits once, a player reconnects,
-  and the room restarts cold in play and again while finished.
+  the owed summary, the socket drops right after a withdrawal and its identical retries debit once,
+  a player reconnects, and the room restarts cold in play and again while finished.
 - Eighteen accounts are each dealt a distinct faction, station and bank, finish as an alliance,
   restart cold and continue at Mentat pause. A spectator holds no bank and cannot end the game.
 - In a running game a player leaves and a spectator takes the seat with its faction and bank. The

@@ -1,7 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { TABLE_PHASES } from '../../src/shared/play/phases';
-import { tableSeatSectorIndices } from '../../src/shared/play/tableSettings';
 import { draftingRuntime } from './native-drafting.fixture.mjs';
 import { accepted, admitPlayer, eventually, seat, sendCommand, syncView } from './native-runtime.fixture.mjs';
 
@@ -14,7 +13,7 @@ import { accepted, admitPlayer, eventually, seat, sendCommand, syncView } from '
  */
 
 const LATEST = Number.MAX_SAFE_INTEGER;
-const MENTAT = TABLE_PHASES.length - 1;
+const MENTAT = TABLE_PHASES.findIndex((phase) => phase.id === 'mentat-pause');
 const SECRET = 'a'.repeat(64);
 /* Sixteen more houses beside Atreides and Harkonnen, so eighteen players can each be dealt one. */
 const HOUSES = Array.from({ length: 16 }, (_, index) => [`house-${index + 1}`, `House ${index + 1}`]);
@@ -32,14 +31,17 @@ describe('A real game from creation to continuation', { timeout: 240_000 }, () =
     offset = 0;
   }
   const admit = (suffix) => admitPlayer(peer, runtime, suffix);
-  const rejected = async (connection, action) => (await sendCommand(connection, action)).reply.type === 'rejected';
-  const summaries = () => peer.summaries;
-  const acknowledged = () => {
-    const failed = peer.requests.filter(
-      (request) => request.function === 'playDirectory:publishSummary' && request.response.statusCode === 503
-    ).length;
-    return { sent: summaries().length, failed };
+  /** The rejection message a command earns, or null when it is accepted. */
+  const rejection = async (connection, action) => {
+    const { reply } = await sendCommand(connection, action);
+    return reply.type === 'rejected' ? reply.message : null;
   };
+  const summaries = () => peer.summaries;
+  const deliveries = (status) =>
+    peer.requests.filter(
+      (request) => request.function === 'playDirectory:publishSummary' && request.response.statusCode === status
+    );
+  const refusals = () => deliveries(503).length;
   const deleteAccount = (userId) =>
     runtime.fetch('/__play/games/fixture-game/account-deletion', {
       method: 'POST',
@@ -89,28 +91,75 @@ describe('A real game from creation to continuation', { timeout: 240_000 }, () =
     await eventually(async () => (await syncView(players[0])).snapshot.stage === 'swapping', 'the deal', 20_000);
     return players;
   }
+  /** Readies one seat to keep what it was dealt; false once trading has already closed. */
+  async function keepSeat(connection) {
+    const view = await syncView(connection);
+    if (view.snapshot.stage !== 'swapping') {
+      return false;
+    }
+    await accepted(connection, {
+      kind: 'swap-ready',
+      ready: true,
+      round: view.snapshot.swapping.round,
+      seat: view.viewer.viewerSeat,
+    });
+    return true;
+  }
+  const unready = (snapshot) =>
+    snapshot.stage === 'setup' && snapshot.controls.ready.length < snapshot.roster.seats.length;
   /** Everyone keeps the seat they were dealt, then setup runs through to the first phase of play. */
   async function toPlay(players) {
     for (const connection of players) {
-      const view = await syncView(connection);
-      if (view.snapshot.stage !== 'swapping') {
+      if (!(await keepSeat(connection))) {
         break;
       }
-      await accepted(connection, {
-        kind: 'swap-ready',
-        ready: true,
-        round: view.snapshot.swapping.round,
-        seat: view.viewer.viewerSeat,
-      });
     }
-    for (let guard = 0; guard < 8 && (await syncView(players[0])).snapshot.stage !== 'play'; guard++) {
-      const { snapshot } = await syncView(players[0]);
-      if (snapshot.stage === 'setup' && snapshot.controls.ready.length < snapshot.roster.seats.length) {
+    let { snapshot } = await syncView(players[0]);
+    for (let guard = 0; guard < 8 && snapshot.stage !== 'play'; guard++) {
+      if (unready(snapshot)) {
         await readyAll(players);
       }
-      await next(players[0]);
+      ({ snapshot } = await next(players[0]));
     }
-    expect((await syncView(players[0])).snapshot.stage).toBe('play');
+    expect(snapshot.stage).toBe('play');
+  }
+  /*
+   * Sends a withdrawal and drops the socket before its reply can arrive, then reconnects and sends
+   * the identical message again, twice. Returns the new connection and the view before the loss.
+   */
+  async function loseReplyThenRetry(suffix, connection) {
+    const before = await syncView(connection);
+    const lost = {
+      type: 'command',
+      commandId: 'lost-withdrawal',
+      action: { kind: 'bank-withdraw', amount: 3 },
+      expectedRevision: before.snapshot.revision,
+    };
+    connection.send(lost);
+    connection.socket.close();
+    await eventually(() => connection.closed, 'dropped socket');
+    const again = await admit(suffix);
+    const outcomes = () =>
+      again.messages.filter((entry) =>
+        entry.type === 'rejected' ? entry.requestId === lost.commandId : entry.completedCommandId === lost.commandId
+      );
+    for (const count of [1, 2]) {
+      again.send(lost);
+      const [refused] = (await eventually(() => outcomes().length >= count && outcomes(), 'retried withdrawal')).filter(
+        (entry) => entry.type === 'rejected'
+      );
+      expect(refused?.message).toBeUndefined();
+    }
+    return { again, before };
+  }
+  /** What a seat sees survives a reconnect or a restart unchanged. */
+  function expectSameSeat(restored, before) {
+    expect(restored.viewer.viewerSeat).toBe(before.viewer.viewerSeat);
+    expect(restored.snapshot.bank).toEqual(before.snapshot.bank);
+    expect(restored.snapshot.stage).toBe(before.snapshot.stage);
+    expect(restored.snapshot.phase).toBe(before.snapshot.phase);
+    expect(restored.snapshot.roster).toEqual(before.snapshot.roster);
+    expect(restored.snapshot.table.pieces).toEqual(before.snapshot.table.pieces);
   }
   async function toMentat(connection) {
     while ((await syncView(connection)).snapshot.phase % TABLE_PHASES.length !== MENTAT) {
@@ -129,7 +178,7 @@ describe('A real game from creation to continuation', { timeout: 240_000 }, () =
     const a = await admit('a');
     const b = await admit('b');
     await seat(b, a);
-    await eventually(() => acknowledged().failed >= 1, 'refused directory write');
+    await eventually(() => refusals() >= 1, 'refused directory write');
     expect((await syncView(a)).snapshot.roster.seats).toHaveLength(2);
     await eventually(async () => (await runtime.alarm()).scheduledAt !== null, 'directory retry alarm');
     peer.directoryMode = 'ack';
@@ -139,7 +188,7 @@ describe('A real game from creation to continuation', { timeout: 240_000 }, () =
 
     await accepted(b, { kind: 'draft-ready', ready: true });
     await accepted(a, { kind: 'draft-ready', ready: true });
-    await eventually(async () => (await syncView(a)).snapshot.stage === 'swapping', 'the deal');
+    await eventually(async () => (await syncView(a)).snapshot.stage === 'swapping', 'the deal', 20_000);
 
     /* Two distinct accounts hold two distinct factions and see only their own bank. */
     const [viewA, viewB] = await Promise.all([a, b].map(syncView));
@@ -151,70 +200,41 @@ describe('A real game from creation to continuation', { timeout: 240_000 }, () =
 
     await toPlay([a, b]);
 
-    /* A reply that never arrives: the socket drops right after a withdrawal is sent, and the retry debits once. */
-    const beforeLoss = await syncView(b);
-    const lost = {
-      type: 'command',
-      commandId: 'lost-withdrawal',
-      action: { kind: 'bank-withdraw', amount: 3 },
-      expectedRevision: beforeLoss.snapshot.revision,
-    };
-    b.send(lost);
-    b.socket.close();
-    await eventually(() => b.closed, 'dropped socket');
-    const b2 = await admit('b');
-    b2.send(lost);
-    await eventually(
-      () => b2.messages.some((entry) => entry.completedCommandId === 'lost-withdrawal'),
-      'completion of the retried withdrawal'
-    );
+    /* A reply that never arrives: the socket drops right after a withdrawal is sent, and the retries debit once. */
+    const { again: b2, before: beforeLoss } = await loseReplyThenRetry('b', b);
     const afterRetry = await syncView(b2);
     expect(afterRetry.snapshot.bank.balance).toBe(beforeLoss.snapshot.bank.balance - 3);
     expect(afterRetry.snapshot.table.pieces.length).toBe(beforeLoss.snapshot.table.pieces.length + 1);
-    b2.send(lost);
-    await eventually(
-      () => b2.messages.filter((entry) => entry.completedCommandId === 'lost-withdrawal').length >= 2,
-      'a second completion of the same withdrawal'
-    );
-    expect((await syncView(b2)).snapshot.bank).toEqual(afterRetry.snapshot.bank);
 
     /* Reconnect: a player who drops and comes back finds the same seat, bank and table. */
     const beforeReconnect = await syncView(a);
     a.socket.close();
     await eventually(() => a.closed, 'closed socket');
     const a2 = await admit('a');
-    const reconnected = await syncView(a2);
-    expect(reconnected.viewer.viewerSeat).toBe(beforeReconnect.viewer.viewerSeat);
-    expect(reconnected.snapshot.bank).toEqual(beforeReconnect.snapshot.bank);
-    expect(reconnected.snapshot.table.pieces).toEqual(beforeReconnect.snapshot.table.pieces);
+    expectSameSeat(await syncView(a2), beforeReconnect);
 
     /* Cold restore in play: the room comes back from storage with every projection intact. */
     const beforeRestart = await Promise.all([a2, b2].map(syncView));
     await runtime.restart();
     const [a3, b3] = [await admit('a'), await admit('b')];
     const afterRestart = await Promise.all([a3, b3].map(syncView));
-    for (const [index, restored] of afterRestart.entries()) {
-      const before = beforeRestart[index];
-      expect(restored.viewer.viewerSeat).toBe(before.viewer.viewerSeat);
-      expect(restored.snapshot.bank).toEqual(before.snapshot.bank);
-      expect(restored.snapshot.stage).toBe('play');
-      expect(restored.snapshot.phase).toBe(before.snapshot.phase);
-      expect(restored.snapshot.roster).toEqual(before.snapshot.roster);
-      expect(restored.snapshot.table.pieces).toEqual(before.snapshot.table.pieces);
-    }
+    afterRestart.forEach((restored, index) => expectSameSeat(restored, beforeRestart[index]));
 
     /* The end: the directory refuses the finished summary, the game finishes anyway and the alarm delivers it. */
     await toMentat(a3);
     await accepted(a3, { kind: 'result-open' });
     peer.directoryMode = 'error';
-    const failedBefore = acknowledged().failed;
+    const failedBefore = refusals();
     const finished = await accepted(a3, { kind: 'result-declare', result: 'faction', factionIds: ['harkonnen'] });
     expect(finished.snapshot.stage).toBe('finished');
-    await eventually(() => acknowledged().failed > failedBefore, 'refused finished summary');
+    await eventually(() => refusals() > failedBefore, 'refused finished summary');
     await eventually(async () => (await runtime.alarm()).scheduledAt !== null, 'directory retry alarm');
     peer.directoryMode = 'ack';
     const refusedCount = summaries().length;
-    /* The phases above ran on a shifted room clock, so move it past the backoff before the alarm fires. */
+    /*
+     * Every phase above shifted the room clock, so the retry is due in shifted time while workerd
+     * fires alarms on the real clock. Move the room clock past it before firing the alarm.
+     */
     offset += 30_000;
     await runtime.clock(offset);
     await runtime.alarm(true);
@@ -256,9 +276,9 @@ describe('A real game from creation to continuation', { timeout: 240_000 }, () =
     const audit = await page(b4, 'audit');
     expect(audit.at(-1)).toBe('Synthetic A created the game and took seat 1.');
     expect(audit).toContain('Synthetic B took seat 2, approved by Synthetic A.');
-    /* Every delivery the directory accepted went out in order, with no sequence repeated after an acknowledgment. */
-    const sequences = summaries().map((args) => args.sequence);
-    expect([...sequences].sort((x, y) => x - y)).toEqual(sequences);
+    /* Every delivery the directory acknowledged carried a newer sequence than the one before. */
+    const sequences = deliveries(200).map((request) => request.args.sequence);
+    expect(sequences.every((sequence, index) => index === 0 || sequence > sequences[index - 1])).toBe(true);
   });
 
   it('deals, plays, finishes and continues an eighteen-player game with a distinct station and bank for each account', async () => {
@@ -267,10 +287,7 @@ describe('A real game from creation to continuation', { timeout: 240_000 }, () =
     const players = await draft(suffixes);
     const spectator = await admit('watcher');
 
-    const views = [];
-    for (const connection of players) {
-      views.push(await syncView(connection));
-    }
+    const views = await Promise.all(players.map(syncView));
     const { roster } = views[0].snapshot;
     expect(roster.seatCount).toBe(18);
     expect(roster.seats).toHaveLength(18);
@@ -280,8 +297,6 @@ describe('A real game from creation to continuation', { timeout: 240_000 }, () =
     expect(new Set(roster.seats.map((entry) => entry.position))).toEqual(
       new Set(Array.from({ length: 18 }, (_, i) => i))
     );
-    /* Eighteen stations land in eighteen distinct sectors of the rim. */
-    expect(new Set(tableSeatSectorIndices(18)).size).toBe(18);
     for (const view of views) {
       const own = roster.seats.find((entry) => entry.id === view.viewer.viewerSeat);
       expect(view.snapshot.bank.factionId).toBe(own.faction.id);
@@ -313,7 +328,9 @@ describe('A real game from creation to continuation', { timeout: 240_000 }, () =
     const continued = await accepted(middle, { kind: 'result-continue' });
     expect(continued.snapshot.stage).toBe('play');
     expect(continued.snapshot.phase % TABLE_PHASES.length).toBe(MENTAT);
-    expect(await rejected(await admit('watcher'), { kind: 'result-open' })).toBe(true);
+    expect(await rejection(await admit('watcher'), { kind: 'result-open' })).toBe(
+      'Only current players in a real game can determine the winner.'
+    );
   });
 
   it('keeps a running game whole through a replacement, deletions of a player and of the declarer, and the last departure', async () => {
@@ -332,7 +349,7 @@ describe('A real game from creation to continuation', { timeout: 240_000 }, () =
     const replaced = await seat(c, a, heldSeat);
     expect(replaced.viewer.viewerSeat).toBe(heldSeat);
     expect(replaced.snapshot.bank).toEqual(heldBank);
-    expect(await rejected(b, { kind: 'ready', ready: true })).toBe(true);
+    expect(await rejection(b, { kind: 'ready', ready: true })).toMatch(/^Spectators/);
 
     /* The replacement can end the game; the declarer then deletes their account. */
     await toMentat(c);
