@@ -1,0 +1,131 @@
+# Diagnostic for #1343: why the local Worker's Wrangler exits 1 after an empty `✘ [ERROR]`.
+# It lives only on norbert/1343-diag-wrangler-exit, whose draft PR is closed unmerged,
+# so it never becomes a required check.
+name: Wrangler exit diagnostic
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: wrangler-exit-diagnostic-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # The catalogue shard (public-controls and battles) hit the exit in 7 of about 50 jobs across runs 36317056421 and 36348764216.
+  flows:
+    if: github.head_ref == 'norbert/1343-diag-wrangler-exit'
+    name: catalogue ${{ matrix.repeat }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      # Six at a time, so other PRs' CI keeps the rest of the concurrent runners.
+      max-parallel: 6
+      matrix:
+        repeat: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+      - uses: ./.github/actions/generated-images
+      - uses: ./.github/actions/playwright-chromium
+        with:
+          with-deps: "false"
+      - name: Record the runner CPU and start vmstat
+        run: |
+          out=test-results/hosted-play
+          mkdir -p "$out"
+          {
+            lscpu
+            echo "nproc: $(nproc)"
+            free -m
+          } | tee "$out/lscpu.txt"
+          nohup vmstat -n -t 2 > "$out/vmstat.log" 2>&1 &
+          echo $! > "$RUNNER_TEMP/samplers.pid"
+      - name: Select full Chromium in new headless mode
+        run: |
+          chromium_path="$(bun -e 'import { chromium } from "playwright"; console.log(chromium.executablePath())')"
+          test -x "$chromium_path"
+          "$chromium_path" --version | tee test-results/hosted-play/chromium-version.txt
+          echo "CHROMIUM=$chromium_path" >> "$GITHUB_ENV"
+      - name: Run public-controls and battles
+        run: bun --no-env-file scripts/verify-hosted-play-stack.ts --skip-generate --browser-only --flow public-controls --flow battles --browser "$CHROMIUM"
+      - name: Summarise the Worker's error records
+        if: always()
+        run: |
+          xargs kill < "$RUNNER_TEMP/samplers.pid" 2>/dev/null || true
+          {
+            echo "### catalogue ${{ matrix.repeat }}: $(lscpu | sed -n 's/^Model name: *//p'), $(nproc) CPUs"
+            echo '```'
+            grep -a '\[wrangler dev-error\]\|Wrangler exited\|exited with' test-results/hosted-play/worker.log | cut -c1-600 || echo "no Worker error record"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Retain hosted flow evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: wrangler-exit-catalogue-${{ matrix.repeat }}
+          path: test-results/hosted-play/**
+          if-no-files-found: warn
+          retention-days: 7
+
+  # Bursts of concurrent GETs separated by idle gaps swept across kj's 5 s keep-alive window; locally this killed Wrangler within a minute.
+  sweep:
+    if: github.head_ref == 'norbert/1343-diag-wrangler-exit'
+    name: sweep ${{ matrix.repeat }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      max-parallel: 6
+      matrix:
+        repeat: [1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+      - uses: ./.github/actions/generated-images
+      - name: Sweep idle gaps against the local Worker
+        run: |
+          out=test-results/wrangler-sweep
+          mkdir -p "$out"
+          lscpu | sed -n 's/^Model name: *//p' | tee "$out/cpu.txt"
+          # Nothing listens on the Convex ports; the sweep only requests static assets.
+          WRANGLER_LOG_PATH="$out/wrangler.log" bun --no-env-file scripts/play-local.ts --convex-url http://127.0.0.1:18801 --convex-site-url http://127.0.0.1:18802 --port 18787 --skip-generate > "$out/worker.log" 2>&1 &
+          worker=$!
+          for attempt in $(seq 1 150); do
+            if grep -q 'Ready on' "$out/worker.log"; then
+              break
+            fi
+            if ! kill -0 "$worker" 2>/dev/null; then
+              break
+            fi
+            sleep 2
+          done
+          set +e
+          node scripts/diag-wrangler-sweep.mjs http://127.0.0.1:18787 24 3.5 6.5 0.1 2 | tee "$out/sweep.log"
+          status=${PIPESTATUS[0]}
+          kill "$worker" 2>/dev/null
+          wait "$worker"
+          echo "play-local exit: $?"
+          {
+            echo "### sweep ${{ matrix.repeat }}: $(cat "$out/cpu.txt"), sweep exit $status"
+            echo '```'
+            tail -3 "$out/sweep.log"
+            grep -a '\[wrangler dev-error\]\|Wrangler exited' "$out/worker.log" | cut -c1-600 || echo "no Worker error record"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit "$status"
+      - name: Retain sweep evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: wrangler-exit-sweep-${{ matrix.repeat }}
+          path: test-results/wrangler-sweep/**
+          if-no-files-found: warn
+          retention-days: 7

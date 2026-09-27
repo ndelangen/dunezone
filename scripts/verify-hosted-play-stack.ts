@@ -394,7 +394,7 @@ try {
       `The local Worker exited with ${signal ? `signal ${signal}` : `code ${code}`} ${seconds} s after launch. Its workerd lines from ${workerLog}:`
     );
     for (const line of readFileSync(workerLog, 'utf8').split('\n')) {
-      if (line.includes('[workerd ')) {
+      if (line.includes('[workerd ') || line.includes('[wrangler dev-error]')) {
         console.error(line);
       }
     }

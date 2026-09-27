@@ -149,6 +149,8 @@ const child = spawn(
     /* Wrangler passes Node's flags on to the process that runs workerd, where this records how workerd exits. */
     '--import',
     pathToFileURL(path.join(root, 'scripts/workerd-exit-record.mjs')).href,
+    '--import',
+    pathToFileURL(path.join(root, 'scripts/wrangler-error-record.mjs')).href,
     path.join(root, 'node_modules/wrangler/bin/wrangler.js'),
     'dev',
     '--local',
