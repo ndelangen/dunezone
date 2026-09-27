@@ -2,7 +2,7 @@ import preview from '@sb/preview';
 import { StatusMark } from '@ui/content/StatusMark';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { FileText, History, MessageCircleWarning } from 'lucide-react';
-import { expect, userEvent, within } from 'storybook/test';
+import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { AuthoringToolbar } from './AuthoringToolbar';
 
@@ -73,7 +73,9 @@ export const EveryStatus = meta.story({
     for (const wording of EVERY_STATUS_WORDING) {
       const mark = statuses.getByRole('img', { name: wording });
       await userEvent.hover(mark);
-      await expect(page.findByRole('tooltip', { name: wording })).resolves.toBeVisible();
+      const tooltip = await page.findByRole('tooltip', { name: wording });
+      /* The tooltip mounts transparent and fades in, so visibility is waited for rather than read once. */
+      await waitFor(() => expect(tooltip).toBeVisible());
       await userEvent.unhover(mark);
     }
     await expect(page.getByRole('button', { name: 'Save faction' })).toBeDisabled();
