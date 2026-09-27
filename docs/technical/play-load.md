@@ -1,6 +1,6 @@
 # Local and hosted multiplayer load runs
 
-This work's status, its spending limit and the approval each hosted batch needs are on
+The status of the load work, its spending limit and each hosted batch's approval are on
 [Prepare bounded hosted runs for the full multiplayer matrix](https://github.com/ndelangen/dunezone/issues/1164).
 
 ## Run a bounded probe
@@ -48,7 +48,7 @@ on the disposable backend. It refuses a live fixture and cannot run against prod
 The baseline keeps six pieces, 17 items and the original two player seats. Its smoke adds one
 observer and one secondary player tab. It is not the expanded audience.
 
-Both expanded arrangements seat the `players`, `observers` and `secondaryTabs` of `loadWorkload.json`.
+Both expanded arrangements admit the audience in `loadWorkload.json`: its `players`, `observers` and `secondaryTabs`.
 The runner asserts distinct users and seats, observer roles and shared seats for secondary tabs.
 Their 750 item identities are the same. The stacked arrangement has 294 pieces; the separated
 arrangement has 750. The synthetic pieces occupy a dense area of the table, with a clear position
