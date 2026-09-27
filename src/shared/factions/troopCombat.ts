@@ -3,8 +3,8 @@ import type { z } from 'zod';
 import type { TroopCombat } from './schema';
 
 type CombatValues = z.infer<typeof TroopCombat>;
-type AuthoredFace = { name: string; capable?: boolean; combat?: CombatValues };
-type AuthoredTroop<Face extends AuthoredFace> = Face & { back?: Face };
+export type AuthoredFace = { name: string; capable?: boolean; combat?: CombatValues };
+export type AuthoredTroop<Face extends AuthoredFace> = Face & { back?: Face };
 
 type TroopSide = 'front' | 'back';
 
@@ -30,6 +30,14 @@ function troopFaceId(troopIndex: number, side: TroopSide): string {
   return `troop-${troopIndex}-${side}`;
 }
 
+/* An editor draft can hold one strength while the author is still entering the other; that face has no values yet. */
+function complete(combat: CombatValues | undefined): Required<CombatValues> | null {
+  if (typeof combat?.strength !== 'number' || typeof combat.fundedStrength !== 'number') {
+    return null;
+  }
+  return { ...combat, fundingCost: combat.fundingCost ?? 1 };
+}
+
 function resolve<Face extends AuthoredFace>(face: Face, troopIndex: number, side: TroopSide): TroopFaceCombat<Face> {
   return {
     id: troopFaceId(troopIndex, side),
@@ -37,7 +45,7 @@ function resolve<Face extends AuthoredFace>(face: Face, troopIndex: number, side
     side,
     face,
     capable: face.capable ?? true,
-    combat: face.combat ? { ...face.combat, fundingCost: face.combat.fundingCost ?? 1 } : null,
+    combat: complete(face.combat),
   };
 }
 

@@ -72,6 +72,11 @@ const Troop = z.strictObject({
   planet: z.string().optional(),
 });
 
+/** A troop as a game table draws it: its artwork alone, since a face's combat values reach the plans on their own path. */
+export const TroopArtwork = Troop.omit({ capable: true, combat: true }).extend({
+  back: TroopSide.omit({ capable: true, combat: true }).optional(),
+});
+
 export const GRADIENT = z.discriminatedUnion('type', [
   z.strictObject({
     type: z.literal('linear'),

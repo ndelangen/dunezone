@@ -95,7 +95,13 @@ export const AuthorsTroopCombatValues = meta.story({
 
     await userEvent.clear(strength);
     await userEvent.type(strength, '-0.75');
+    await userEvent.tab();
     await expect(strength).toHaveValue('-0.75');
+
+    const funded = canvas.getByRole('textbox', { name: 'Funded strength' });
+    await userEvent.clear(funded);
+    await userEvent.type(funded, '1.5{Enter}');
+    await expect(funded).toHaveValue('1.5');
 
     const capable = canvas.getByRole('switch', { name: 'Fights in battle' });
     await userEvent.click(capable);

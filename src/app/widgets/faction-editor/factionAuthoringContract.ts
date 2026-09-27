@@ -121,13 +121,15 @@ export function factionAuthoringWarnings(faction: Faction): FactionAuthoringWarn
   for (const face of troopCombatFaces(faction.troops).filter(lacksCombatValues)) {
     const back = face.side === 'back';
     const index = face.troopIndex;
+    /* A half-entered pair points at the strength still missing; the save refuses it until both are there. */
+    const input = typeof face.face.combat?.strength === 'number' ? 'fundedStrength' : 'strength';
     warnings.push(
       warning(
         `troops[${index}]${back ? '.back' : ''}.combat`,
         'forces',
         `Troop ${index + 1}`,
         back ? 'back-side combat values' : 'combat values',
-        `troop-${index}${back ? '-back' : ''}-strength`
+        `troop-${index}${back ? '-back' : ''}-${input}`
       )
     );
   }

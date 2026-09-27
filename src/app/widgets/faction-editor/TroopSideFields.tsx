@@ -1,9 +1,10 @@
 import { Box, ColorInput, NumberInput, SimpleGrid, Stack, Switch, TextInput } from '@mantine/core';
+import type { NumberInputProps } from '@mantine/core';
 import { TROOP, TROOP_MODIFIER } from '@shared/assetIds';
 import { AssetSelect } from '@ui/control/AssetSelect';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 import type { Faction } from '@db/factions';
 
@@ -73,9 +74,55 @@ function StarModifierSelect({
   );
 }
 
-/** The number a combat input holds, or undefined while it is empty or mid-entry. */
-function enteredNumber(value: number | string): number | undefined {
-  return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
+/** The value typed text commits: a number, undefined for an emptied field, or null for text that is not a usable value. */
+function committedNumber(text: string | number, whole: boolean): number | undefined | null {
+  if (text === '') {
+    return undefined;
+  }
+  const value = typeof text === 'number' ? text : Number(text);
+  if (!Number.isFinite(value)) {
+    return null;
+  }
+  return whole && !(Number.isSafeInteger(value) && value >= 0) ? null : value;
+}
+
+/*
+ * Mantine reports text like `1.` or `-` as a string while the author is still typing a fraction.
+ * The draft keeps that text local and commits one complete value on blur or Enter, as the battle planner's inputs do.
+ */
+function CombatNumberInput({
+  value,
+  whole,
+  onCommit,
+  ...props
+}: Omit<NumberInputProps, 'value' | 'onChange' | 'onBlur'> & {
+  value: number | undefined;
+  whole: boolean;
+  onCommit: (value: number | undefined) => void;
+}) {
+  const [draft, setDraft] = useState<string | number | null>(null);
+  return (
+    <NumberInput
+      {...props}
+      min={whole ? 0 : undefined}
+      allowDecimal={!whole}
+      allowNegative={!whole}
+      value={draft ?? value ?? ''}
+      onChange={setDraft}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter') {
+          event.currentTarget.blur();
+        }
+      }}
+      onBlur={() => {
+        const next = draft === null ? null : committedNumber(draft, whole);
+        if (next !== null && next !== value) {
+          onCommit(next);
+        }
+        setDraft(null);
+      }}
+    />
+  );
 }
 
 /*
@@ -146,19 +193,17 @@ function TroopCombatFields({
                         title={label}
                         description={description}
                         input={
-                          <NumberInput
+                          <CombatNumberInput
                             id={`${idBase}-${key}`}
                             aria-label={label}
                             placeholder={whole ? '1' : 'Not set'}
-                            min={whole ? 0 : undefined}
                             step={whole ? 1 : 0.5}
-                            allowDecimal={!whole}
-                            allowNegative={!whole}
-                            value={combat.state.value?.[key] ?? ''}
-                            onBlur={combat.handleBlur}
-                            onChange={(value) =>
-                              combat.handleChange(nextTroopCombat(combat.state.value, key, enteredNumber(value)))
-                            }
+                            whole={whole}
+                            value={combat.state.value?.[key]}
+                            onCommit={(value) => {
+                              combat.handleChange(nextTroopCombat(combat.state.value, key, value));
+                              combat.handleBlur();
+                            }}
                           />
                         }
                       />

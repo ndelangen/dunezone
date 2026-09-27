@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import type { AuthoredFace, AuthoredTroop } from '../factions/troopCombat';
 import { troopCombatFaces } from '../factions/troopCombat';
 import {
   storedPieceSchema,
@@ -101,21 +102,15 @@ export function fixtureCombatFaces(factionId: string): CombatFace[] {
   ];
 }
 
-type CapturedFace = {
-  name: string;
-  image: string;
-  capable?: boolean;
-  combat?: { strength: number; fundedStrength: number; fundingCost?: number };
-};
-type CapturedTroop = CapturedFace & { back?: CapturedFace };
+type CapturedFace = AuthoredFace & { image: string };
 
 /**
  * The combat faces a captured faction definition supplies to its battle plans: every face that can fight and has authored values.
  * A noncombatant face has no section, and a face missing its values stays out rather than borrowing any, which the capture's verdict names.
  */
-export function capturedCombatFaces(troops: readonly CapturedTroop[]): CombatFace[] {
+export function capturedCombatFaces(troops: readonly AuthoredTroop<CapturedFace>[]): CombatFace[] {
   return troopCombatFaces(troops).flatMap(({ id, face, capable, combat }) =>
-    capable && combat ? [{ id, name: face.name, capable, ...combat, image: face.image }] : []
+    capable && combat ? [{ id, name: face.name, capable: true, ...combat, image: face.image }] : []
   );
 }
 

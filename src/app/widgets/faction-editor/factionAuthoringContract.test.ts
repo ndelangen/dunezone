@@ -309,6 +309,8 @@ describe('faction authoring contract', () => {
         back: { name: 'Noncombatant', image, description: 'Noncombatant', capable: false },
       },
       { name: 'Inherits', image, description: 'Inherits', count: 1, capable: false },
+      /* A half-entered pair, as the editor holds it while the author types the other strength. */
+      { name: 'Half', image, description: 'Half', count: 1, combat: { strength: 2 } as never },
     ];
 
     const combat = factionAuthoringWarnings(faction).filter((warning) => warning.path.endsWith('.combat'));
@@ -325,7 +327,9 @@ describe('faction authoring contract', () => {
         missing: 'back-side combat values',
         targetId: 'troop-0-back-strength',
       }),
+      expect.objectContaining({ path: 'troops[3].combat', targetId: 'troop-3-fundedStrength' }),
     ]);
+    faction.troops.pop();
     expect(FactionInputSchema.safeParse(faction).success).toBe(true);
   });
 

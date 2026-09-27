@@ -124,6 +124,8 @@ function DraggablePiece({ piece, client, style }: { piece: TablePiece; client?: 
 /** Play owns piece visibility and pointer sessions; the asset owns the wheel artwork. */
 function BattleWheel({ plan, factionId, client, active, artwork }: WheelProps) {
   const leader = plan.pieces.find((piece) => piece.id === plan.leaderId);
+  const retained = artwork?.[factionId];
+  const retainedFaces = retained && new Map(troopCombatFaces(retained.troops).map((entry) => [entry.id, entry.face]));
   return (
     <BattleWheelAsset
       state="revealed"
@@ -137,10 +139,9 @@ function BattleWheel({ plan, factionId, client, active, artwork }: WheelProps) {
         .filter((face) => face.capable)
         .flatMap((face) => {
           const troop = plan.troops.find((entry) => entry.faceId === face.id);
-          const retained = artwork?.[factionId];
-          const authored = retained && troopCombatFaces(retained.troops).find((entry) => entry.id === face.id)?.face;
+          const authored = retainedFaces?.get(face.id);
           /* Real games never borrow a fixture house's troop artwork; a captured face is found by its identity, not its name. */
-          if (retained && !authored) {
+          if (retainedFaces && !authored) {
             return [];
           }
           return [
