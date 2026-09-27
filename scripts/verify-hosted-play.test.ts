@@ -24,10 +24,6 @@ beforeAll(async () => {
   }
   port = address.port;
   directory = mkdtempSync(path.join(tmpdir(), 'dunezone-play-protocol-guard-'));
-  writeFileSync(
-    path.join(directory, 'local.env'),
-    `CONVEX_SELF_HOSTED_URL=http://127.0.0.1:${port}\nCONVEX_SELF_HOSTED_ADMIN_KEY=isolated-test-key\n`
-  );
 });
 beforeEach(() => {
   requests = 0;
@@ -37,20 +33,30 @@ afterAll(async () => {
   rmSync(directory, { recursive: true, force: true });
 });
 
-/* The launcher runs the protocol verifier unbundled under Node, so the test does too. */
+/*
+ * The launcher runs the protocol verifier unbundled under Node, so the test does too.
+ * PORT stands for the counting backend's port.
+ */
 test.each([
-  ['a default port', () => 'http://127.0.0.1/'],
-  ['a fragment', () => `http://127.0.0.1:${port}/#fragment`],
-  ['a password', () => `http://:password@127.0.0.1:${port}/`],
-])('the protocol verifier refuses an origin with %s before any network call', async (_, origin) => {
+  ['--origin', 'a default port', 'http://127.0.0.1:PORT', 'http://127.0.0.1/'],
+  ['--origin', 'a fragment', 'http://127.0.0.1:PORT', 'http://127.0.0.1:PORT/#fragment'],
+  ['--origin', 'a password', 'http://127.0.0.1:PORT', 'http://:password@127.0.0.1:PORT/'],
+  /* A password rather than a fragment, because parseEnv drops an unquoted # and the rest of the line. */
+  ['CONVEX_SELF_HOSTED_URL', 'a password', 'http://:password@127.0.0.1:PORT/', 'http://127.0.0.1:PORT'],
+])('the protocol verifier refuses %s with %s before any network call', async (label, _, selfHosted, origin) => {
+  const envFile = path.join(directory, 'local.env');
+  writeFileSync(
+    envFile,
+    `CONVEX_SELF_HOSTED_URL=${selfHosted.replace('PORT', String(port))}\nCONVEX_SELF_HOSTED_ADMIN_KEY=isolated-test-key\n`
+  );
   const verifier = spawn(
     process.execPath,
     [
       path.resolve('scripts/verify-hosted-play.mjs'),
       '--env-file',
-      path.join(directory, 'local.env'),
+      envFile,
       '--origin',
-      origin(),
+      origin.replace('PORT', String(port)),
     ],
     { timeout: 10_000 }
   );
@@ -58,8 +64,9 @@ test.each([
   verifier.stderr.on('data', (chunk) => {
     stderr += chunk;
   });
-  const [code] = await once(verifier, 'exit');
+  /* 'close' rather than 'exit', because 'close' waits for stderr to drain. */
+  const [code] = await once(verifier, 'close');
   expect(code).toBe(1);
-  expect(stderr).toContain('--origin must be an explicit http://127.0.0.1:PORT origin.');
+  expect(stderr).toContain(`${label} must be an explicit http://127.0.0.1:PORT origin.`);
   expect(requests).toBe(0);
 });
