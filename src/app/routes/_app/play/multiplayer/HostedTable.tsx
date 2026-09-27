@@ -23,6 +23,7 @@ import { TableWait } from '../TableWait';
 import { BattleControls, BattleScene, HandControls } from './BattleControls';
 import { OfflineConversations } from './Conversation';
 import { DraftingHeader, DraftingNotice, DraftingOverlay, DraftingPanel, DraftingReadiness } from './Drafting';
+import { DetermineWinner, ResultDecisionBar } from './GameResult';
 import { GameRuntimeContext } from './gameRuntime';
 import { LogEntries } from './Log';
 import { PieceArtwork } from './PieceArtwork';
@@ -691,6 +692,7 @@ function ConnectedTable({
             }
             decisionBar={
               <Stack data-decision-bar gap="xs">
+                <ResultDecisionBar client={client} table={table} />
                 <RemovalDecisionBar
                   votes={removalVotes}
                   onOpen={(vote) => selectPlayer({ seat: vote.target.seat, vote: vote.id, tab: 'public' })}
@@ -849,6 +851,7 @@ function ConnectedTable({
                   )}
                   {stage === 'play' ? (
                     <>
+                      <DetermineWinner client={client} table={table} />
                       <PlaybackControls client={client} table={table} />
                       {error && <FormError title="From the table">{error}</FormError>}
                       {(table.snapshot.battle || progress.activePhaseId === 'battle') && (

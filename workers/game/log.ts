@@ -3,8 +3,8 @@ import { LOG_CLASS_TABS, LOG_PAGE_SIZE } from '../../src/shared/play/log';
 import type { LogClass, LogEntry, LogTab } from '../../src/shared/play/log';
 import { seatLabel } from '../../src/shared/play/participation';
 import { phaseAt, TABLE_PHASES, tableProgressFor } from '../../src/shared/play/phases';
-import { describeResult } from '../../src/shared/play/result';
 import type { ClientMessage, Viewer } from '../../src/shared/play/protocol';
+import { describeResult } from '../../src/shared/play/result';
 import { setupStep } from '../../src/shared/play/setup';
 import type { StoredSnapshot } from './state';
 
@@ -292,7 +292,9 @@ function resultEntries(
       case 'result-cancel':
         return '{0} stopped determining the winner.';
       case 'result-declare':
-        return next.result ? `{0} declared the result: ${describeResult(next.result.kind, next.result.factionIds.map(faction))}.` : undefined;
+        return next.result
+          ? `{0} declared the result: ${describeResult(next.result.kind, next.result.factionIds.map(faction))}.`
+          : undefined;
       case 'result-continue':
         return '{0} continued the game.';
       default:

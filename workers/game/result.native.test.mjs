@@ -40,7 +40,9 @@ describe('Determine winner and Continue playing', { timeout: 60_000 }, () => {
   const factionOf = (view) =>
     view.snapshot.roster.seats.find((entry) => entry.id === view.viewer.viewerSeat).faction.id;
   const deliveries = () =>
-    peer.requests.filter((request) => request.function === 'playDirectory:publishSummary').map((request) => request.args);
+    peer.requests
+      .filter((request) => request.function === 'playDirectory:publishSummary')
+      .map((request) => request.args);
   async function next(connection, direction = 1) {
     offset += 8001;
     await runtime.clock(offset);
