@@ -1,4 +1,4 @@
-import { Alert, Box, Button, Group, Radio, Select, Stack, Text, TextInput } from '@mantine/core';
+import { Alert, Box, Button, Group, Radio, Select, Stack, Text, TextInput, Tooltip } from '@mantine/core';
 import { rulebookNameKey, rulebookNameSchema } from '@shared/rulebooks/metadata';
 import type { RulebookRenderPageV1 } from '@shared/rulebooks/renderDocument';
 import {
@@ -316,16 +316,24 @@ function CreateRulebookForm({ page }: { page: RulebookCreationPageData }) {
           data={page.rulebooks.map((book) => ({ value: book._id, label: book.name }))}
           renderOption={({ option }) => {
             const rulebook = page.rulebooks.find((book) => book._id === option.value);
+            /*
+             * At 32 px, PublishedImage's missing state has no room to print the name, so the tile names its Rulebook
+             * on hover. PublishedImage does not report a failed load to its caller, so a loaded page carries the
+             * tooltip as well. A capture on its way or failed is left out: its placeholder has a tooltip of its own.
+             */
+            const captureTooltip = !rulebook?.first_page_image_url && rulebook?.first_page_capture_status != null;
             return (
               <Group gap="sm" wrap="nowrap">
-                <Box w={32} miw={32} aria-hidden>
-                  <RulebookPreview
-                    name={option.label}
-                    size={rulebook?.settings.size}
-                    imageUrl={rulebook?.first_page_image_url}
-                    status={rulebook?.first_page_capture_status}
-                  />
-                </Box>
+                <Tooltip label={option.label} disabled={captureTooltip}>
+                  <Box w={32} miw={32} aria-hidden>
+                    <RulebookPreview
+                      name={option.label}
+                      size={rulebook?.settings.size}
+                      imageUrl={rulebook?.first_page_image_url}
+                      status={rulebook?.first_page_capture_status}
+                    />
+                  </Box>
+                </Tooltip>
                 <Text size="sm" style={{ overflowWrap: 'anywhere' }}>
                   {option.label}
                 </Text>

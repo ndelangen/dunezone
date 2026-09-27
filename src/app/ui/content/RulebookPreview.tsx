@@ -8,17 +8,21 @@ import { TopicIcon } from './TopicIcon';
 
 export type RulebookPreviewStatus = 'scheduled' | 'in_progress' | 'failed' | null;
 
-function unavailableLabel(name: string, status: RulebookPreviewStatus) {
-  if (status === 'failed') {
-    return `First-page preview failed for ${name}`;
+function captureLabel(name: string, status: NonNullable<RulebookPreviewStatus>) {
+  switch (status) {
+    case 'failed':
+      return `First-page preview failed for ${name}`;
+    case 'scheduled':
+    case 'in_progress':
+      return `First-page preview preparing for ${name}`;
   }
-  if (status === 'scheduled' || status === 'in_progress') {
-    return `First-page preview preparing for ${name}`;
-  }
-  return `First-page preview unavailable for ${name}`;
 }
 
-/** A published first page, or its publication state, at the Rulebook's physical proportions. */
+/**
+ * A published first page, or its capture state, at the Rulebook's physical proportions.
+ * A capture on its way or failed draws the rules icon with a tooltip that says so.
+ * With neither a page nor a capture, it draws `PublishedImage`'s missing state.
+ */
 export function RulebookPreview({
   name,
   size = 'a4',
@@ -31,17 +35,17 @@ export function RulebookPreview({
   status?: RulebookPreviewStatus;
 }) {
   const dimensions = getRulebookSize(size);
-  if (imageUrl) {
+  if (imageUrl || status === null) {
     return (
       <PublishedImage
-        src={imageUrl}
+        src={imageUrl || null}
         name={`First page of ${name}`}
         aspect={dimensions.heightMm / dimensions.widthMm}
         radius="var(--mantine-radius-md)"
       />
     );
   }
-  const placeholderLabel = unavailableLabel(name, status);
+  const placeholderLabel = captureLabel(name, status);
   return (
     <AspectRatio ratio={dimensions.widthMm / dimensions.heightMm} className={styles.preview}>
       <Tooltip label={placeholderLabel}>

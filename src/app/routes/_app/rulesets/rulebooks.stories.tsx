@@ -308,7 +308,7 @@ export const Owner = meta.story({
     const list = await page.findByRole('list', { name: 'Rulebooks' }, { timeout: 30_000 });
     expect(within(list).getAllByRole('listitem')).toHaveLength(2);
     expect(within(list).queryByText('Deleted Rulebook')).toBeNull();
-    expect(within(list).getAllByRole('img', { name: /First-page preview unavailable/ })).toHaveLength(2);
+    expect(within(list).getAllByRole('img', { name: /^First page of .+: preview unavailable$/ })).toHaveLength(2);
     const editions = within(list).getAllByRole('img', { name: 'Edition 1' });
     expect(editions).toHaveLength(2);
     for (const edition of editions) {
@@ -600,6 +600,12 @@ export const Clone = meta.story({
     await userEvent.click(page.getByRole('combobox', { name: 'Rulebook to copy' }));
     const rules = await page.findByRole('option', { name: 'Rules' });
     expect(page.queryByRole('option', { name: 'Deleted Rulebook' })).toBeNull();
+    /* The 32 px tile is too narrow for the missing state to print the name, so it names the Rulebook on hover. */
+    const tile = within(rules).getByRole('img', { name: 'First page of Rules: preview unavailable', hidden: true });
+    await userEvent.hover(tile);
+    await waitFor(() => expect(page.getByRole('tooltip')).toHaveTextContent(/^Rules$/));
+    await userEvent.unhover(tile);
+    await waitFor(() => expect(page.queryByRole('tooltip')).toBeNull());
     await userEvent.click(rules);
     await userEvent.type(page.getByRole('textbox', { name: 'Rulebook name' }), 'Copied rules');
     await userEvent.click(page.getByRole('button', { name: 'Create Rulebook' }));
@@ -621,7 +627,16 @@ export const CloneWithPublishedPreviews = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     await userEvent.click(await page.findByRole('radio', { name: 'Saved Rulebook' }, { timeout: 30_000 }));
     await userEvent.click(page.getByRole('combobox', { name: 'Rulebook to copy' }));
-    expect(await page.findByRole('option', { name: 'Rules' })).toBeVisible();
+    const rules = await page.findByRole('option', { name: 'Rules' });
+    expect(rules).toBeVisible();
+    /* Storybook serves nothing under /published, so the page fails to load, and the missing tile names its Rulebook on hover. */
+    const tile = await within(rules).findByRole(
+      'img',
+      { name: 'First page of Rules: preview unavailable', hidden: true },
+      { timeout: 30_000 }
+    );
+    await userEvent.hover(tile);
+    await waitFor(() => expect(page.getByRole('tooltip')).toHaveTextContent(/^Rules$/));
   },
 });
 
