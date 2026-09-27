@@ -8,7 +8,7 @@ import { TABLE_SEAT_COUNTS } from './tableSettings';
  * One seated player acts each time;
  * nobody votes or confirms.
  */
-export const gameResultKindSchema = z.enum(['faction', 'alliance', 'none']);
+const gameResultKindSchema = z.enum(['faction', 'alliance', 'none']);
 export type GameResultKind = z.infer<typeof gameResultKindSchema>;
 
 const factionIdsSchema = z.array(tableIdentitySchema).max(TABLE_SEAT_COUNTS[TABLE_SEAT_COUNTS.length - 1]!);
@@ -18,7 +18,6 @@ const actorSchema = z.object({ seat: tableIdentitySchema, name: z.string().max(1
 
 /** The open sequence: every panel shows who is determining the winner. */
 export const gameEndingSchema = z.object({ by: actorSchema, startedAt: tableCountSchema });
-export type GameEnding = z.infer<typeof gameEndingSchema>;
 
 /** The declared result while the game is finished. */
 export const gameResultSchema = z.object({
