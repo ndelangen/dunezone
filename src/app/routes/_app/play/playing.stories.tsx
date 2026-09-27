@@ -230,6 +230,11 @@ export const RemovalRejected = meta.story({
 });
 
 export const ConversationHistory = meta.story({
+  /*
+   * Reduced motion drops the shell's entrance iris, whose clip-path hides the history's end marker from the read observer until the iris has drawn open.
+   * A runner that draws few frames can keep the iris closed past the read wait's bound (#1304).
+   */
+  globals: { motion: 'reduce' },
   beforeEach: install(() =>
     productTransport('seat-2', playingSnapshot(), { conversationMessages: conversationMessages() })
   ),
