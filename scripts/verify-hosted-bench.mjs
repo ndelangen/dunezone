@@ -135,6 +135,28 @@ export async function verifyBench({ peer, signIn, enter, focus, openTab, point, 
     );
   }
   log('screenshots 1440x1000', shots);
+  /* The same captures in other orders, to tell a clip's own cost from waiting on the frame the previous capture left. */
+  const clip = (half) => ({ x: Math.round(center.x) - half, y: Math.round(center.y) - half, width: half * 2, height: half * 2 });
+  const sequence = [];
+  for (const [label, options] of [
+    ['clip28', { clip: clip(14) }],
+    ['clip28', { clip: clip(14) }],
+    ['clip48', { clip: clip(24) }],
+    ['clip48', { clip: clip(24) }],
+    ['clip28', { clip: clip(14) }],
+    ['full', {}],
+    ['full', {}],
+    ['clip28', { clip: clip(14) }],
+    ['clip48', { clip: clip(24) }],
+    ['clip28 animations disabled', { clip: clip(14), animations: 'disabled' }],
+    ['clip28 caret initial', { clip: clip(14), caret: 'initial' }],
+    ['clip28 caret initial', { clip: clip(14), caret: 'initial' }],
+    ['full caret initial', { caret: 'initial' }],
+    ['clip48 caret initial', { clip: clip(24), caret: 'initial' }],
+  ]) {
+    sequence.push([label, await timed(() => a.page.screenshot(options))]);
+  }
+  log('screenshot sequence 1440x1000', sequence);
 
   for (const viewport of [
     { width: 900, height: 1000 },
@@ -171,6 +193,98 @@ export async function verifyBench({ peer, signIn, enter, focus, openTab, point, 
     'frames 1440x1000, player B idle',
     await a.page.evaluate(benchInPage, { frames: 6, warmup: 2, presented: 6, variants: ['samples 0'] })
   );
+
+  /*
+   * How many scene frames one player's pointer or carry costs the other table page: each page counts its renderer's
+   * frames, and a test ends once the other page has drawn nothing for three seconds.
+   */
+  for (const who of [a, b]) {
+    await who.page.evaluate(() => {
+      const renderer = window.__duneBench.get().renderer;
+      if (!renderer.__benchCounted) {
+        const render = renderer.render.bind(renderer);
+        window.__renders = 0;
+        renderer.render = (...args) => {
+          window.__renders++;
+          return render(...args);
+        };
+        renderer.__benchCounted = true;
+      }
+    });
+  }
+  await b.page.evaluate(installBench);
+  const renders = (who) => who.page.evaluate(() => window.__renders);
+  const settle = async (who, started, quietMs = 3000, limitMs = 90_000) => {
+    let last = await renders(who);
+    let lastChange = Date.now();
+    while (Date.now() - started < limitMs) {
+      await delay(200);
+      const count = await renders(who);
+      if (count !== last) {
+        last = count;
+        lastChange = Date.now();
+      } else if (Date.now() - lastChange >= quietMs) {
+        break;
+      }
+    }
+    return { frames: last, busyMs: lastChange - started };
+  };
+  const reset = () => Promise.all([a, b].map((who) => who.page.evaluate(() => (window.__renders = 0))));
+  const first = await point(a, [0, 0.38, 1], 'map');
+  const second = await point(a, [1, 0.38, 1], 'map');
+  await a.page.mouse.move(first.x, first.y);
+  await settle(b, Date.now());
+  await reset();
+  {
+    const started = Date.now();
+    const idle = await settle(b, started, 10_000, 10_000);
+    log('remote frames', { test: 'nothing happens for 10 s', playerB: idle, playerA: await renders(a) });
+  }
+  const pointerTest = async (label, move) => {
+    await reset();
+    const started = Date.now();
+    await move();
+    const moved = Date.now() - started;
+    const other = await settle(b, started);
+    log('remote frames', { test: label, moveMs: moved, playerB: other, playerA: await renders(a) });
+  };
+  await pointerTest('player A moves the pointer one table unit in one step', () => a.page.mouse.move(second.x, second.y));
+  await pointerTest('player A moves the pointer one table unit in 12 steps', () =>
+    a.page.mouse.move(first.x, first.y, { steps: 12 })
+  );
+  await b.page.evaluate(applyVariant, 'samples 0');
+  await settle(b, Date.now());
+  await pointerTest('the same single step, player B without MSAA', () => a.page.mouse.move(second.x, second.y));
+  await b.page.evaluate(applyVariant, 'samples 0 + pixel ratio 0.75');
+  await settle(b, Date.now());
+  await pointerTest('the same single step, player B without MSAA at pixel ratio 0.75', () =>
+    a.page.mouse.move(first.x, first.y)
+  );
+  await b.page.evaluate(undoVariant);
+  await settle(b, Date.now());
+  {
+    const force = a.view().snapshot.table.pieces.find((value) => value.id === 'harkonnen-force-stack');
+    const start = await point(a, force.position.map((value, index) => (index === 1 ? value + 0.12 : value)), 'map');
+    const target = await point(a, [0, 0.38, 1.6], 'map');
+    await a.page.mouse.move(10, 10);
+    await settle(b, Date.now());
+    await reset();
+    const started = Date.now();
+    await a.page.mouse.move(start.x, start.y);
+    await a.page.mouse.down();
+    try {
+      await delay(350);
+      await a.page.mouse.move(target.x, target.y, { steps: 12 });
+      const carried = await settle(b, started);
+      log('remote frames', { test: 'player A picks up the force stack and carries it in 12 steps', playerB: carried, playerA: await renders(a) });
+    } finally {
+      await a.page.keyboard.press('Escape');
+      await a.page.mouse.up();
+    }
+    await reset();
+    const cancelled = await settle(b, Date.now());
+    log('remote frames', { test: 'player A cancels the carry', playerB: cancelled, playerA: await renders(a) });
+  }
   await b.page.evaluate(() => {
     const state = window.__duneBench.get();
     const stopAt = performance.now() + 90_000;

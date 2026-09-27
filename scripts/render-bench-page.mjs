@@ -172,6 +172,11 @@ export function installBench() {
       () => setSamples(0),
       () => setPixelRatio(0.75)
     ),
+    'samples 0 + RGBA8 + pixel ratio 0.75': combine(
+      () => setSamples(0),
+      () => setOutputBufferType(T.UnsignedByteType),
+      () => setPixelRatio(0.75)
+    ),
     'samples 0 + pixel ratio 0.5': combine(
       () => setSamples(0),
       () => setPixelRatio(0.5)
