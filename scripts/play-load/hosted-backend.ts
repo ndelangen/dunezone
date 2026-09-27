@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { copyFile, mkdir, readFile, symlink, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, symlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 import { hostedTargetSchema } from '../../src/shared/play/loadTarget.ts';
@@ -9,35 +9,42 @@ import { privateOutputDirectory } from './hosted-paths.ts';
 
 const root = path.resolve(import.meta.dirname, '../..');
 
-function guardSource(target: HostedLoadTarget) {
-  return `import { hostedLoadIdentity, hostedTargetSchema, requireHostedRun as requireRun } from '../../src/shared/play/loadTarget';
-import type { Value } from 'convex/values';
+/** The modules the copy writes in place of production's: the synthetic-backend seam bound to the target, and no crons. */
+function generatedSources(target: HostedLoadTarget) {
+  return {
+    'convex/lib/playSynthetic.ts': `import type { Value } from 'convex/values';
+
+import { hostedLoadIdentity, hostedTargetSchema, requireHostedRun } from '../../src/shared/play/loadTarget';
+import type { MutationCtx } from '../_generated/server';
 
 const target = hostedTargetSchema.parse(${JSON.stringify(target)});
 
-export function requireHostedRun() {
-  return requireRun(target, process.env);
+export function requireSyntheticBackend() {
+  requireHostedRun(target, process.env);
 }
 
 export function isSyntheticBackend() {
   try {
-    requireHostedRun();
+    requireSyntheticBackend();
     return true;
   } catch {
     return false;
   }
 }
 
-export function loadIdentity(params: Record<string, Value | undefined>) {
+export function syntheticIdentity(params: Record<string, Value | undefined>) {
   return hostedLoadIdentity(target, process.env, params);
 }
-`;
-}
 
-async function replaceOnce(filename: string, before: string, after: string) {
-  const source = await readFile(filename, 'utf8');
-  assert.equal(source.split(before).length, 2, `Isolated backend source changed: ${path.basename(filename)}.`);
-  await writeFile(filename, source.replace(before, after));
+/* One live game at a time: a retired cell's game stays as a record, and the next cell creates its own. */
+export async function limitLiveGames(ctx: MutationCtx) {
+  if (await ctx.db.query('play_games').filter((q) => q.neq(q.field('state'), 'expired')).first()) {
+    throw new Error('The hosted load backend already has a live game.');
+  }
+}
+`,
+    'convex/crons.ts': "import { cronJobs } from 'convex/server';\nexport default cronJobs();\n",
+  };
 }
 
 /** Copies tracked backend/shared sources only. Environment files and production credentials never enter the copy. */
@@ -62,38 +69,10 @@ export async function prepareHostedBackend(requested: string, supplied: unknown)
     await copyFile(path.join(root, file), path.join(directory, file));
   }
   await symlink(path.join(root, 'node_modules'), path.join(directory, 'node_modules'));
-  await writeFile(path.join(directory, 'convex/lib/playHostedGuard.ts'), guardSource(target));
-  await writeFile(
-    path.join(directory, 'convex/lib/playSynthetic.ts'),
-    "export { isSyntheticBackend, requireHostedRun as requireSyntheticBackend } from './playHostedGuard';\n"
-  );
-  const auth = path.join(directory, 'convex/auth.ts');
-  await replaceOnce(
-    auth,
-    'import { applicationTriggers }',
-    "import { loadIdentity } from './lib/playHostedGuard';\nimport { applicationTriggers }"
-  );
-  await replaceOnce(auth, 'providers.push(Password);', 'providers.push(Password({ profile: loadIdentity }));');
-  /* One live game at a time: a retired cell's game stays as a record, and the next cell creates its own. */
-  await replaceOnce(
-    path.join(directory, 'convex/playTesting.ts'),
-    '    if (args.useHostedRoute) {',
-    "    if (await ctx.db.query('play_games').filter((q) => q.neq(q.field('state'), 'expired')).first()) { throw new Error('The hosted load backend already has a live game.'); }\n    if (args.useHostedRoute) {"
-  );
-  await writeFile(
-    path.join(directory, 'convex/crons.ts'),
-    "import { cronJobs } from 'convex/server';\nexport default cronJobs();\n"
-  );
-  const changed = [
-    'convex/lib/playHostedGuard.ts',
-    'convex/lib/playSynthetic.ts',
-    'convex/auth.ts',
-    'convex/playTesting.ts',
-    'convex/crons.ts',
-  ];
-  const sources = Object.fromEntries(
-    await Promise.all(changed.map(async (file) => [file, await readFile(path.join(directory, file), 'utf8')]))
-  );
+  const sources = generatedSources(target);
+  for (const [file, source] of Object.entries(sources)) {
+    await writeFile(path.join(directory, file), source);
+  }
   await writeFile(path.join(directory, 'load-source.json'), JSON.stringify({ target, revision, sources }, null, 2));
   return { directory, target, revision };
 }
