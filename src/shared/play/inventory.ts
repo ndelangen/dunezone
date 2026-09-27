@@ -22,12 +22,8 @@ export const publicControlsSchema = z.object({
   requests: z.array(
     z.object({
       id: tableIdSchema,
-      /*
-       * The requester is named by seat, never by user id: only the viewer's own id leaves the server.
-       * A snapshot persisted before this field existed reads as an unknown requester, which nobody
-       * may approve; it can only be dismissed.
-       */
-      requesterSeat: tableSeatSchema.nullable().catch(null),
+      /* The requester is named by seat, never by user id: only the viewer's own id leaves the server. */
+      requesterSeat: tableSeatSchema,
       requesterName: z.string(),
       contents: spawnContentsSchema,
     })

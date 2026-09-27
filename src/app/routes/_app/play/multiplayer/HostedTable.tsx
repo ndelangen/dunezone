@@ -530,11 +530,7 @@ function SharedInventory({ client, table }: Pick<ConnectionControlsProps, 'clien
             </Text>
             <Group gap="xs">
               <Button
-                disabled={
-                  !table.canInteract ||
-                  request.requesterSeat === null ||
-                  request.requesterSeat === table.viewer.viewerSeat
-                }
+                disabled={!table.canInteract || request.requesterSeat === table.viewer.viewerSeat}
                 onClick={() => client.command({ kind: 'spawn-approve', requestId: request.id })}
               >
                 Approve
