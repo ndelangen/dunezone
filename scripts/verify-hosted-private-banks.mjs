@@ -208,6 +208,15 @@ export async function verifyPrivateBanks(toolkit) {
     await openTab(tab, 'Spice');
     await b.page.getByRole('region', { name: 'Faction bank' }).waitFor();
     await tab.page.getByRole('region', { name: 'Faction bank' }).waitFor();
+    /* The other two leave the camera and the panel where a freshly mounted table would not put them (#1418). */
+    const others = [a, observer];
+    for (const who of others) {
+      await focus(who, 'bottom');
+      await openTab(who, 'Log');
+    }
+    const tables = await Promise.all(others.map((who) => who.page.locator('.dune-play-shell canvas').elementHandle()));
+    const signedOutFrom = [b.rawMessages.length, tab.rawMessages.length];
+    const othersFrom = others.map((who) => who.rawMessages.length);
     const accountPage = await b.context.newPage();
     await accountPage.goto(`${origin}/play`, { waitUntil: 'domcontentloaded' });
     await accountPage.getByRole('heading', { name: 'Game lobby' }).waitFor();
@@ -228,6 +237,35 @@ export async function verifyPrivateBanks(toolkit) {
     await supplyShortcut(a, '2');
     await until(() => spices(a).length === 1, 'Post-sign-out supply did not commit.');
     assert.deepEqual([b.rawMessages.length, tab.rawMessages.length], counts);
-    passed('Real sign-out removes the bank in every tab and fences subsequent private and public fanout');
+    await converged([a, observer]);
+    for (const [index, who] of others.entries()) {
+      const paused = who.rawMessages.slice(othersFrom[index]).filter((message) => message.type === 'admission');
+      assert.deepEqual(paused, [], `The sign-out paused ${who.label}.`);
+      assert.equal(
+        await tables[index].evaluate((canvas) => canvas.isConnected),
+        true,
+        `${who.label}'s table remounted.`
+      );
+      assert.equal(
+        await who.page.locator('[data-nested-tabs-item][aria-label="Log"][aria-current="true"]').count(),
+        1,
+        `${who.label} lost the Log tab.`
+      );
+    }
+    /* Player A's own press above moved A's camera; the observer's stays where it was put. */
+    assert.equal(
+      await observer.page.locator('.dune-play-shell').evaluate((shell) => shell.dataset.tableView),
+      'bottom'
+    );
+    /* When B's pages close their own sockets before the Worker refuses them, the room never checks accounts and this run proves less. */
+    const workerRefusedSignOut = [b, tab].some((who, index) =>
+      who.rawMessages
+        .slice(signedOutFrom[index])
+        .some((message) => message.type === 'admission' && message.status === 'denied')
+    );
+    passed(
+      'Real sign-out removes the bank in every tab and fences subsequent private and public fanout; the other players keep their table, camera and panel',
+      { workerRefusedSignOut }
+    );
   }
 }
