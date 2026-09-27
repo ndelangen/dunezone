@@ -12,6 +12,7 @@ import { PerspectiveCamera, Vector3 } from 'three';
 import {
   cameraPoseFor,
   mapViewTopLimitForViewport,
+  PHASE_VIEWS,
   TABLE_CAMERA_FIELD_OF_VIEW,
 } from '../src/app/routes/_app/play/playView.ts';
 import { mapViewFramingPoints } from '../src/app/routes/_app/play/tablePlateGeometry.ts';
@@ -314,17 +315,15 @@ async function openTab(who, name) {
     await who.page.locator(`[data-nested-tabs-item][aria-label="${name}"][aria-current="true"]`).waitFor();
   }
 }
+const shownView = (who) => who.page.locator('.dune-play-shell').evaluate((element) => element.dataset.tableView);
 async function focus(who, view) {
   await who.page.getByRole('button', { name: new RegExp(`^Focus on ${view}`) }).click();
-  await until(
-    () =>
-      who.page
-        .locator('.dune-play-shell')
-        .evaluate((element) => element.dataset.tableView)
-        .then((value) => value === view),
-    'View selection failed.'
-  );
+  await until(async () => (await shownView(who)) === view, 'View selection failed.');
   await delay(400);
+}
+/** The view picker's button for the view the active phase recommends, which its dot marks; `pressed` while the camera shows it. */
+function recommendedViewButton(who, view, pressed) {
+  return who.page.getByRole('button', { name: `Focus on ${view}, recommended for this phase`, exact: true, pressed });
 }
 async function point(who, position, view = 'left') {
   const bounds = await who.page.locator('.dune-play-shell canvas').boundingBox();
@@ -659,8 +658,18 @@ async function sharedPhaseFlow(a, b) {
   );
   const target = [-1.5, 0.38, 1.4];
   const targetPoint = await point(b, target, 'map');
-  const recipientPoint = await point(a, target, 'map');
+  /* The next phase recommends a view other than the map (#1389). At the phase change the idle recipient's
+     camera moves there, and the carrying player's camera waits for the drop, so the recipient samples the
+     held token in both views, each against its own empty board. */
+  const nextView = PHASE_VIEWS[phaseAt(a.view().snapshot.phase + 1).id];
+  assert.notEqual(nextView, 'map', 'The phase after Storm must recommend a view other than the map.');
+  await focus(a, nextView);
   await a.page.mouse.move(10, 10);
+  const nextViewPoint = await point(a, target, nextView);
+  const nextViewBaseline = await redPixels(a, nextViewPoint);
+  await focus(a, 'map');
+  await a.page.mouse.move(10, 10);
+  const recipientPoint = await point(a, target, 'map');
   const baseline = await redPixels(a, recipientPoint);
   await b.page.mouse.move(start.x, start.y);
   await b.page.mouse.down();
@@ -682,13 +691,18 @@ async function sharedPhaseFlow(a, b) {
     assert.ok(
       a.messages.findLast((message) => message.type === 'activity')?.carries.some((value) => value.id === carry.id)
     );
+    await recommendedViewButton(a, nextView, true).waitFor();
+    await recommendedViewButton(b, nextView, false).waitFor();
+    assert.equal(await shownView(b), 'map');
     await until(
-      async () => (await redPixels(a, recipientPoint)) > baseline + 40,
+      async () => (await redPixels(a, nextViewPoint)) > nextViewBaseline + 40,
       'The held token disappeared when the phase changed.'
     );
     assert.equal(await a.page.getByRole('heading', { name: 'Storm sector', exact: true }).count(), 0);
     await capture(a, 'after-phase-change-during-remote-carry');
-    passed("A shared phase change updates instructions and controls without cancelling another player's visible drag");
+    passed(
+      "A shared phase change moves the idle player's camera to the marked recommended view without cancelling another player's visible drag"
+    );
   } finally {
     await b.page.mouse.up();
   }
@@ -697,7 +711,10 @@ async function sharedPhaseFlow(a, b) {
   await revision(b, expectedRevision);
   assert.notDeepEqual(piece(b, id).position, source.position);
   assert.deepEqual({ ...a.view().snapshot, bank: undefined }, { ...b.view().snapshot, bank: undefined });
-  passed('The player can finish and save the same held-token drop after the phase change');
+  await recommendedViewButton(b, nextView, true).waitFor();
+  passed(
+    'The player can finish and save the same held-token drop after the phase change, and their camera then moves to the recommended view'
+  );
 
   await phaseStep(a, b, -1);
   assert.equal(await a.page.getByRole('button', { name: 'Previous phase', exact: true }).isDisabled(), true);
@@ -931,7 +948,7 @@ async function verifyRegular() {
   for (const view of ['left', 'right', 'bottom', 'map']) {
     await focus(a, view);
   }
-  assert.equal(await b.page.locator('.dune-play-shell').evaluate((element) => element.dataset.tableView), 'map');
+  assert.equal(await shownView(b), 'map');
   await headerStructure(a);
   await capture(a, 'after-hosted-map-1440x1000');
   await a.page.setViewportSize({ width: 900, height: 1000 });
@@ -1101,6 +1118,8 @@ async function verifyRegular() {
     throw new Error('The leaving player has no game socket.');
   }
   assert.equal(leavingSocket.closed, false);
+  /* The Next phase press above moves this player's camera to the new phase's view; waiting for that move keeps it from landing after the map is chosen. */
+  await recommendedViewButton(b, PHASE_VIEWS[phaseAt(b.view().snapshot.phase).id], true).waitFor();
   await focus(b, 'map');
   const leavingConnectionId = b.view().viewer.connectionId;
   const exitPointer = await point(b, [0, 0.38, 1.5], 'map');
