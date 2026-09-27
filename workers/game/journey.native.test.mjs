@@ -107,13 +107,16 @@ describe('A real game from creation to continuation', { timeout: 240_000 }, () =
   }
   const unready = (snapshot) =>
     snapshot.stage === 'setup' && snapshot.controls.ready.length < snapshot.roster.seats.length;
-  /** Everyone keeps the seat they were dealt, then setup runs through to the first phase of play. */
-  async function toPlay(players) {
+  /** Every seat keeps what it was dealt, until trading closes. */
+  async function keepSeats(players) {
     for (const connection of players) {
       if (!(await keepSeat(connection))) {
-        break;
+        return;
       }
     }
+  }
+  /** Setup runs through to the first phase of play, readying every seat whenever it waits for them. */
+  async function throughSetup(players) {
     let { snapshot } = await syncView(players[0]);
     for (let guard = 0; guard < 8 && snapshot.stage !== 'play'; guard++) {
       if (unready(snapshot)) {
@@ -122,6 +125,10 @@ describe('A real game from creation to continuation', { timeout: 240_000 }, () =
       ({ snapshot } = await next(players[0]));
     }
     expect(snapshot.stage).toBe('play');
+  }
+  async function toPlay(players) {
+    await keepSeats(players);
+    await throughSetup(players);
   }
   /*
    * Sends a withdrawal and drops the socket before its reply can arrive, then reconnects and sends
