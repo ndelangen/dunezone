@@ -6,6 +6,7 @@ import { tableForViewer } from '../../src/shared/play/protocol';
 import type { DeckAction } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
 import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
+import { labelForCount } from '../../src/shared/play/tableState';
 import type { StoredSnapshot } from './state';
 
 /** Keep physical card identities and history intact while retiring their observable handles. */
@@ -76,7 +77,8 @@ function drawCard(snapshot: StoredSnapshot, deck: StoredPiece, recipient: string
       if (piece.id !== deck.id) {
         return [piece];
       }
-      return remaining.length ? [{ ...deck, items: remaining }] : [];
+      /* A deal changes the deck's own cards, so what is left takes the name its back gives it, as after a split. */
+      return remaining.length ? [{ ...deck, label: labelForCount(deck, remaining.length), items: remaining }] : [];
     }),
     inventories: {
       ...snapshot.factionInventories,
