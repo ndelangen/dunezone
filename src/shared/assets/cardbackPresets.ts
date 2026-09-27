@@ -55,7 +55,7 @@ export const INITIAL_CARDBACK_PRESETS = INITIAL_DESIGNS.map(
  * A preset's fixed label, the word its initial design prints across the back.
  * An Administrator's edit to the printed word does not change it.
  */
-export function cardbackPresetLabel(key: CardbackPresetKey): string {
+export function cardbackPresetLabel(key: CardbackPresetKey) {
   return INITIAL_CARDBACK_PRESETS.find((preset) => preset.key === key)!.label;
 }
 

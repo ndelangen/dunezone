@@ -52,7 +52,7 @@ function definitionsOf({ asset, backToken, backDeck }: Omit<SuppliedMember, 'cou
  * An authored back, the deck's own or the one it references, gives the name printed on it.
  * The supply's definitions were parsed when it arrived, so reading them again cannot fail.
  */
-function deckBackName({ backMode, asset, backDeck }: AssetSupply): string | undefined {
+function deckBackName({ backMode, asset, backDeck }: AssetSupply) {
   const cardback = (data: unknown) => DeckAssetInput.parse(data).cardback;
   const printed = (data: unknown) => authoredCardback(cardback(data))?.name.trim() || undefined;
   switch (backMode) {
