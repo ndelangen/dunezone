@@ -1,6 +1,12 @@
 import { z } from 'zod';
 
-import { tableCountSchema as count, tableIdSchema as id, tablePieceSchema, tablePositionSchema } from './schema';
+import {
+  storedPieceSchema,
+  tableCountSchema as count,
+  tableIdSchema as id,
+  tablePieceSchema,
+  tablePositionSchema,
+} from './schema';
 
 export const BATTLE_COUNTDOWN_MS = 5000;
 const battleSideSchema = z.union([z.literal(0), z.literal(1)]);
@@ -29,8 +35,10 @@ export const battlePlanSchema = battlePlanInputSchema.extend({
   pieces: z.array(tablePieceSchema),
   faces: z.array(combatFaceSchema),
 });
+export const storedBattlePlanSchema = battlePlanSchema.extend({ pieces: z.array(storedPieceSchema) });
 export type BattlePlanInput = z.infer<typeof battlePlanInputSchema>;
 export type BattlePlan = z.infer<typeof battlePlanSchema>;
+export type StoredBattlePlan = z.infer<typeof storedBattlePlanSchema>;
 const publicSideSchema = z.object({ factionId: id, ready: z.boolean(), choice: battleOutcomeSchema.nullable() });
 const battleBase = {
   id,
@@ -52,6 +60,9 @@ export const battleResultSchema = z.object({
   plans: z.tuple([battlePlanSchema, battlePlanSchema]),
   outcome: battleOutcomeSchema,
   revision: count,
+});
+export const storedBattleResultSchema = battleResultSchema.extend({
+  plans: z.tuple([storedBattlePlanSchema, storedBattlePlanSchema]),
 });
 export type PublicBattle = z.infer<typeof publicBattleSchema>;
 export const battleActionSchema = z.discriminatedUnion('kind', [
@@ -89,7 +100,7 @@ export function fixtureCombatFaces(factionId: string): CombatFace[] {
   ];
 }
 
-export function emptyBattlePlan(faces: CombatFace[]): BattlePlan {
+export function emptyBattlePlan(faces: CombatFace[]): StoredBattlePlan {
   return {
     mode: 'max',
     troops: [],

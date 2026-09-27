@@ -1,8 +1,8 @@
 import { emptyBattlePlan, BATTLE_COUNTDOWN_MS } from '../../src/shared/play/battle';
-import type { BattleAction, BattlePlan, BattlePlanInput, CombatFace } from '../../src/shared/play/battle';
+import type { BattleAction, BattlePlanInput, CombatFace, StoredBattlePlan } from '../../src/shared/play/battle';
 import { isBattleLeader } from '../../src/shared/play/battle';
 import { nextSnapshot } from '../../src/shared/play/commands';
-import type { TablePiece } from '../../src/shared/play/model';
+import type { StoredPiece } from '../../src/shared/play/model';
 import { phaseAt } from '../../src/shared/play/phases';
 import { tableForViewer } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
@@ -73,7 +73,7 @@ function fundMaxTroops(
   troops: BattlePlanInput['troops'],
   faces: Map<string, CombatFace>,
   spice: number,
-  before: BattlePlan
+  before: StoredBattlePlan
 ) {
   const states = allocations(troops, faces, spice);
   if (!states.has(spice)) {
@@ -103,7 +103,7 @@ function declaredStrength(troops: BattlePlanInput['troops'], faces: Map<string, 
   return strength;
 }
 
-function fundedPlan(input: BattlePlanInput, before: BattlePlan) {
+function fundedPlan(input: BattlePlanInput, before: StoredBattlePlan) {
   const faces = new Map(before.faces.filter((face) => face.capable).map((face) => [face.id, face]));
   const troops = input.mode !== before.mode ? [] : input.troops.map((troop) => ({ ...troop }));
   if (
@@ -122,7 +122,7 @@ function fundedPlan(input: BattlePlanInput, before: BattlePlan) {
   return { ...input, troops, spice, strength, faces: before.faces };
 }
 
-function selectedPlanPieces(plan: BattlePlanInput, available: TablePiece[]) {
+function selectedPlanPieces(plan: BattlePlanInput, available: StoredPiece[]) {
   const ids = [...(plan.leaderId ? [plan.leaderId] : []), ...plan.cardIds];
   if (new Set(ids).size !== ids.length) {
     return refuse('A piece can only be committed once.');
@@ -135,12 +135,12 @@ function selectedPlanPieces(plan: BattlePlanInput, available: TablePiece[]) {
   }
   return pieces;
 }
-function validateCardSlots(pieces: TablePiece[], plan: BattlePlanInput) {
+function validateCardSlots(pieces: StoredPiece[], plan: BattlePlanInput) {
   if (pieces.some((piece) => plan.cardIds.includes(piece.id) && piece.kind !== 'card')) {
     return refuse('Choose cards for the card slots.');
   }
 }
-function validateLeaderSlot(pieces: TablePiece[], plan: BattlePlanInput) {
+function validateLeaderSlot(pieces: StoredPiece[], plan: BattlePlanInput) {
   if (!plan.leaderId) {
     return;
   }
@@ -149,7 +149,7 @@ function validateLeaderSlot(pieces: TablePiece[], plan: BattlePlanInput) {
     return refuse('Choose a leader token for the leader slot.');
   }
 }
-function reservedBalance({ snapshot, factionId }: BattleActor, before: BattlePlan, plan: BattlePlanInput) {
+function reservedBalance({ snapshot, factionId }: BattleActor, before: StoredBattlePlan, plan: BattlePlanInput) {
   const balance = sum(snapshot.factionBanks[factionId] ?? 0, before.spice) - plan.spice;
   if (balance < 0) {
     return refuse('There is not enough banked spice for this plan.');
@@ -197,7 +197,7 @@ function cancelBattle(snapshot: StoredSnapshot, battle: StoredBattle) {
   return commit(snapshot, { battleState: null, factionBanks, factionInventories });
 }
 
-function canTakeIntoHand(piece: TablePiece | undefined): piece is TablePiece {
+function canTakeIntoHand(piece: StoredPiece | undefined): piece is StoredPiece {
   if (!piece) {
     return false;
   }
@@ -321,7 +321,7 @@ function setReady(
   return commit(snapshot, { battleState: battle });
 }
 
-function settleOverlayPiece(piece: TablePiece, battle: StoredBattle, placed: TablePiece[]) {
+function settleOverlayPiece(piece: StoredPiece, battle: StoredBattle, placed: StoredPiece[]) {
   if (piece.battleOverlay !== battle.id) {
     return piece;
   }
@@ -339,7 +339,7 @@ function resolveBattle(snapshot: StoredSnapshot, battle: StoredBattle, outcome: 
     anchor: battle.anchor,
     territory: battle.territory,
     factions: [battle.sides[0]!.factionId, battle.sides[1]!.factionId] as [string, string],
-    plans: battle.plans as [BattlePlan, BattlePlan],
+    plans: battle.plans as [StoredBattlePlan, StoredBattlePlan],
     outcome,
     revision: snapshot.revision + 1,
   };

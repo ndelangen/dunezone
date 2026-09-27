@@ -68,26 +68,25 @@ export function rosterSeat(roster: TableRoster | undefined, seatId: string) {
   return roster?.seats.find((seat) => seat.id === seatId);
 }
 
-export const tablePieceSchema = z.object({
+/* A card's or token's artwork as the game captured it. */
+const artworkSchema = z.object({
+  front: z.string().url().optional(),
+  back: z.string().url(),
+  /* The word printed across this card's back, captured with it. */
+  backName: z.string().min(1).optional(),
+  name: z.string().optional(),
+  type: z.string(),
+});
+const storedItemSchema = z.object({ id: tableIdSchema, faceUp: z.boolean(), artwork: artworkSchema.optional() });
+
+/** A piece as the game Worker stores it: every item with artwork carries its type. */
+export const storedPieceSchema = z.object({
   id: tableIdSchema,
   label: z.string(),
   owner: tableOwnerSchema,
   color: z.string(),
   accent: z.string(),
-  items: z.array(
-    z.object({
-      id: tableIdSchema,
-      faceUp: z.boolean(),
-      artwork: z
-        .object({
-          front: z.string().url().optional(),
-          back: z.string().url(),
-          name: z.string().optional(),
-          type: z.string(),
-        })
-        .optional(),
-    })
-  ),
+  items: z.array(storedItemSchema),
   inventory: z.literal('shared').optional(),
   battleOverlay: tableIdSchema.optional(),
   stackKey: z.string().nullable(),
@@ -100,6 +99,23 @@ export const tablePieceSchema = z.object({
   zoneId: z.string().nullable(),
   locked: z.boolean(),
   kind: z.enum(['force', 'marker', 'card']),
+});
+
+/*
+ * A card the viewer may not see, as it reaches that viewer: its back and the word printed on it, and nothing else.
+ * Its front, name and type stay with the Worker, since cards of different types can share one back.
+ */
+const concealedArtworkSchema = z.strictObject({
+  back: artworkSchema.shape.back,
+  backName: artworkSchema.shape.backName,
+  front: z.never().optional(),
+  name: z.never().optional(),
+  type: z.never().optional(),
+});
+
+/** A piece as a viewer receives it and the table logic reads it: a card the viewer may not see carries only its back and the word on it. */
+export const tablePieceSchema = storedPieceSchema.extend({
+  items: z.array(storedItemSchema.extend({ artwork: z.union([artworkSchema, concealedArtworkSchema]).optional() })),
 });
 
 export const draftMoveSchema = z.object({
@@ -129,3 +145,4 @@ export const durableTableSchema = z.object({
   events: z.array(tableEventSchema),
   nextEventNumber: tableCountSchema,
 });
+export const storedTableSchema = durableTableSchema.extend({ pieces: z.array(storedPieceSchema) });

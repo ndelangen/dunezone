@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 import { CanonicalFactionStoredSchema, HistoricalFactionPublicationSchema } from '../factions/schema';
 import { RULESET_ASSET_SLOT_ORDER } from '../rulesets/assetSlots';
-import { spawnContentsSchema, spawnSelectionSchema } from './inventory';
+import { spawnSelectionSchema, storedSpawnContentsSchema } from './inventory';
 import { tableCountSchema } from './schema';
 import { setupDeclarationSchema } from './setup';
 
@@ -87,7 +87,7 @@ export type CaptureReadiness = z.infer<typeof captureReadinessSchema>;
  * One referenced deck, bundle or token as the game keeps it: the captured contents, or the reason the capture refused it.
  * A refused reference is kept by name so the verdict can be read back without the catalogue.
  */
-const slotCaptureSchema = z.object({ asset: slotAssetSchema, contents: spawnContentsSchema.nullable() });
+const slotCaptureSchema = z.object({ asset: slotAssetSchema, contents: storedSpawnContentsSchema.nullable() });
 export type SlotCapture = z.infer<typeof slotCaptureSchema>;
 
 export const rulesetCaptureSchema = z.object({

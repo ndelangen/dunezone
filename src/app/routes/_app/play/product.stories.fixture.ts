@@ -134,7 +134,7 @@ function capture({ slug, data, token, leaders }: (typeof factions)[number]): Fac
   };
 }
 
-/* A face-down card reaches a viewer as its back and type under an opaque id, as `RoomProjection` projects it, so no story holds a concealed identity. */
+/* A face-down card reaches a viewer as its back and the word printed on it under an opaque id, as `RoomProjection` projects it, so no story holds a concealed identity. */
 function projected(piece: TablePiece, { id }: SupplyDependencies): TablePiece {
   return {
     ...piece,
@@ -144,7 +144,14 @@ function projected(piece: TablePiece, { id }: SupplyDependencies): TablePiece {
         : {
             id: id(),
             faceUp: false,
-            ...(entry.artwork ? { artwork: { back: entry.artwork.back, type: entry.artwork.type } } : {}),
+            ...(entry.artwork
+              ? {
+                  artwork: {
+                    back: entry.artwork.back,
+                    ...(entry.artwork.backName ? { backName: entry.artwork.backName } : {}),
+                  },
+                }
+              : {}),
           }
     ),
   };
@@ -263,7 +270,8 @@ export function preparedSnapshot(viewerSeat = 'seat-2'): GameSnapshot {
             imageHref(`/play-fixtures/product/${faction.slug}-traitor-${index}.jpg`),
             imageHref('/play-fixtures/product/traitor-back.jpg'),
             'card-traitor',
-            true
+            true,
+            'Traitor'
           ),
         ],
       }))
@@ -316,7 +324,7 @@ export function playingSnapshot(viewerSeat = 'seat-2'): GameSnapshot {
         items: cards.map((_name, index) => ({
           id: `treachery-${index}`,
           faceUp: false,
-          artwork: { back: cardBack(), type: 'card-treachery' },
+          artwork: { back: cardBack(), backName: 'Treachery' },
         })),
       },
       [6.3, 0, 0]
@@ -331,7 +339,8 @@ export function playingSnapshot(viewerSeat = 'seat-2'): GameSnapshot {
             imageHref('/play-fixtures/dreamrules/snooper.jpg'),
             cardBack(),
             'card-treachery',
-            true
+            true,
+            'Treachery'
           ),
         ],
       },

@@ -29,10 +29,11 @@ export const Available = meta.story({
   },
 });
 
+/** With no published page and no capture on its way or failed, the preview draws the shared missing state. */
 export const Unavailable = meta.story({
   args: { imageUrl: null },
   play: async ({ canvas }) => {
-    expect(canvas.getByRole('img', { name: 'First-page preview unavailable for Movement' })).toBeVisible();
+    expect(canvas.getByRole('img', { name: 'First page of Movement: preview unavailable' })).toBeVisible();
   },
 });
 
