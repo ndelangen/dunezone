@@ -72,7 +72,7 @@ function DeclareBar({ client, table }: Props) {
     <DecisionBar
       eyebrow="Determine winner"
       title="Declare the result"
-      context="Every player sees that you are determining the winner. Predictions are not revealed for anyone; declaring finishes the game."
+      context="Every player sees that you are determining the winner, and anyone holding a prediction is reminded to reveal it. Declaring finishes the game."
       readiness={
         <Stack gap="sm">
           <SegmentedControl
