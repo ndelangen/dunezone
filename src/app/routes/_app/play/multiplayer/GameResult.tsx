@@ -1,7 +1,7 @@
 import { Button, Group, MultiSelect, SegmentedControl, Select, Stack } from '@mantine/core';
 import { phaseAt } from '@shared/play/phases';
 import { describeResult, resultFactionCountFits } from '@shared/play/result';
-import type { GameResultKind } from '@shared/play/result';
+import type { GameResult, GameResultKind } from '@shared/play/result';
 import { rosterSeat, SPECTATOR_SEAT } from '@shared/play/schema';
 import { useReducer } from 'react';
 
@@ -128,55 +128,80 @@ function DeclareBar({ client, table }: Props) {
  */
 export function ResultDecisionBar({ client, table }: Props) {
   const { ending, result, stage } = table.snapshot;
-  const seated = table.viewer.viewerSeat !== SPECTATOR_SEAT;
-  const stepId = seated ? unrevealedPrediction(table) : undefined;
-  const reveal = stepId && <RevealButton client={client} table={table} stepId={stepId} />;
   if (stage === 'play' && ending) {
-    if (seated && ending.by.seat === table.viewer.viewerSeat) {
-      return <DeclareBar client={client} table={table} />;
-    }
-    return (
-      <DecisionBar
-        eyebrow="Determine winner"
-        title={`${ending.by.name} is determining the winner`}
-        context={
-          stepId
-            ? 'You hold a locked prediction. Reveal it now if it should count; the result does not wait for it.'
-            : 'Anyone holding a locked prediction can reveal it now.'
-        }
-        action={reveal}
-      />
+    return ending.by.seat === table.viewer.viewerSeat ? (
+      <DeclareBar client={client} table={table} />
+    ) : (
+      <DeterminingBar client={client} table={table} name={ending.by.name} />
     );
   }
   if (stage === 'finished' && result) {
-    return (
-      <DecisionBar
-        eyebrow="Finished"
-        title={describeResult(
-          result.kind,
-          result.factionIds.map((id) => factionName(table, id))
-        )}
-        context={`Declared by ${result.by.name}. ${seated ? 'Any player can continue the game from Mentat pause of this turn.' : 'The table stays as it was.'}`}
-        action={
-          seated && (
-            <Group gap="xs">
-              {reveal}
-              <Button disabled={!table.canInteract} onClick={() => client.command({ kind: 'result-continue' })}>
-                Continue playing
-              </Button>
-            </Group>
-          )
-        }
-      />
-    );
+    return <FinishedBar client={client} table={table} result={result} />;
   }
   return null;
 }
 
+/** The viewer's own unrevealed prediction as a Reveal prediction button; spectators hold none. */
+function ownReveal({ client, table }: Props) {
+  const stepId = seated(table) ? unrevealedPrediction(table) : undefined;
+  return stepId ? <RevealButton client={client} table={table} stepId={stepId} /> : undefined;
+}
+
+function seated(table: TableProjection) {
+  return table.viewer.viewerSeat !== SPECTATOR_SEAT;
+}
+
+/* Every other panel while one player determines the winner: the reveal reminder, never a block. */
+function DeterminingBar({ client, table, name }: Props & Readonly<{ name: string }>) {
+  const reveal = ownReveal({ client, table });
+  return (
+    <DecisionBar
+      eyebrow="Determine winner"
+      title={`${name} is determining the winner`}
+      context={
+        reveal
+          ? 'You hold a locked prediction. Reveal it now if it should count; the result does not wait for it.'
+          : 'Anyone holding a locked prediction can reveal it now.'
+      }
+      action={reveal}
+    />
+  );
+}
+
+function FinishedBar({ client, table, result }: Props & Readonly<{ result: GameResult }>) {
+  const player = seated(table);
+  return (
+    <DecisionBar
+      eyebrow="Finished"
+      title={describeResult(
+        result.kind,
+        result.factionIds.map((id) => factionName(table, id))
+      )}
+      context={`Declared by ${result.by.name}. ${player ? 'Any player can continue the game from Mentat pause of this turn.' : 'The table stays as it was.'}`}
+      action={
+        player && (
+          <Group gap="xs">
+            {ownReveal({ client, table })}
+            <Button disabled={!table.canInteract} onClick={() => client.command({ kind: 'result-continue' })}>
+              Continue playing
+            </Button>
+          </Group>
+        )
+      }
+    />
+  );
+}
+
+/** Any seated player may open the sequence during Mentat pause of play while nobody else has. */
+function canDetermine(table: TableProjection) {
+  const { stage, phase, ending } = table.snapshot;
+  const mentat = stage === 'play' && phaseAt(phase).id === 'mentat-pause';
+  return mentat && !ending && seated(table);
+}
+
 /** The plain Mentat pause control that opens the end-of-game sequence for every player. */
 export function DetermineWinner({ client, table }: Props) {
-  const mentat = table.snapshot.stage === 'play' && phaseAt(table.snapshot.phase).id === 'mentat-pause';
-  if (!mentat || table.snapshot.ending || table.viewer.viewerSeat === SPECTATOR_SEAT) {
+  if (!canDetermine(table)) {
     return null;
   }
   return (
