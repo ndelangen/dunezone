@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { draftingRuntime } from './native-drafting.fixture.mjs';
-import { admitPlayer, eventually, sendCommand, syncView } from './native-runtime.fixture.mjs';
+import { accepted, admitPlayer, eventually, seat, sendCommand, syncView } from './native-runtime.fixture.mjs';
 
 describe('Real-game setup progression', () => {
   let peer, runtime, offset;
@@ -18,16 +18,6 @@ describe('Real-game setup progression', () => {
   });
   const admit = (suffix) => admitPlayer(peer, runtime, suffix);
   const stored = async () => JSON.parse((await runtime.exec('SELECT data FROM current_state'))[0].data);
-  async function accepted(connection, action, id) {
-    const result = await sendCommand(connection, action, id);
-    expect(result.reply.type, JSON.stringify(result.reply)).not.toBe('rejected');
-    return (await syncView(connection)).snapshot;
-  }
-  async function seat(connection, approver, target) {
-    const snapshot = await accepted(connection, { kind: 'seat-request', ...(target ? { seat: target } : {}) });
-    const request = snapshot.controls.seatRequests.find((entry) => entry.own);
-    await accepted(approver, { kind: 'seat-approve', requestId: request.id });
-  }
   async function enter(prediction = false) {
     if (prediction) {
       await runtime.exec(
@@ -122,7 +112,7 @@ describe('Real-game setup progression', () => {
       'rejected'
     );
     await next(replacement);
-    const revealed = await accepted(replacement, { kind: 'prediction-reveal', stepId: action.stepId });
+    const { snapshot: revealed } = await accepted(replacement, { kind: 'prediction-reveal', stepId: action.stepId });
     expect(revealed.predictions[action.stepId].revealedAt).not.toBeNull();
     expect((await syncView(observer)).snapshot.predictions[action.stepId].choice).toEqual(choice);
     await runtime.restart();
@@ -147,10 +137,10 @@ describe('Real-game setup progression', () => {
       pickup: 'whole',
     });
     await a.message('carry');
-    const ready = await allReady(a, b);
+    const { snapshot: ready } = await allReady(a, b);
     expect(ready.setup.index).toBe(0);
     expect(ready.stage).toBe('setup');
-    const moved = await accepted(b, { kind: 'phase' });
+    const { snapshot: moved } = await accepted(b, { kind: 'phase' });
     expect(moved.setup.steps[moved.setup.index].kind).toBe('forces');
     expect(moved.controls.ready).toEqual([]);
     const held = (await syncView(a)).carries;
@@ -173,7 +163,7 @@ describe('Real-game setup progression', () => {
     expect(gathered[0].position[2]).toBe(7.5);
     expect(gathered[0].items.map((item) => item.id).sort()).toEqual(physical.sort());
     expect((await syncView(a)).snapshot.hand).toEqual(hand);
-    const previous = await next(b, -1);
+    const { snapshot: previous } = await next(b, -1);
     expect(previous.setup.mapRevealed).toBe(true);
     expect((await syncView(a)).snapshot.controls.ready).toEqual([]);
     expect((await stored()).table.pieces).toEqual(after.table.pieces);
@@ -296,13 +286,13 @@ describe('Real-game setup progression', () => {
     const before = await history();
     await accepted(a, { kind: 'ready', ready: false });
     expect(await history()).toEqual(before);
-    const ready = await accepted(a, { kind: 'ready', ready: true });
+    const { snapshot: ready } = await accepted(a, { kind: 'ready', ready: true });
     const changed = await history();
     expect(changed).toHaveLength(before.length + 1);
     expect(changed.at(-1).revision).toBe(ready.revision);
     await accepted(a, { kind: 'ready', ready: true }, 'ready-again');
     expect(await history()).toEqual(changed);
-    const unready = await accepted(a, { kind: 'ready', ready: false });
+    const { snapshot: unready } = await accepted(a, { kind: 'ready', ready: false });
     expect((await history()).at(-1).revision).toBe(unready.revision);
     await accepted(a, { kind: 'traitors-gather' });
     const gathered = await history();
@@ -333,11 +323,11 @@ describe('Real-game setup progression', () => {
     a.socket.close();
     const reconnected = await admit('a');
     expect((await syncView(reconnected)).snapshot.controls.ready).toHaveLength(2);
-    const playing = await next(reconnected);
+    const { snapshot: playing } = await next(reconnected);
     expect(playing.stage).toBe('play');
     expect(playing.phase).toBe(0);
     expect(playing.controls.ready).toEqual([]);
-    const randomized = await accepted(c, { kind: 'storm-random' });
+    const { snapshot: randomized } = await accepted(c, { kind: 'storm-random' });
     expect(randomized.table.stormSectorIndex).toBeGreaterThanOrEqual(0);
     expect(randomized.table.stormSectorIndex).toBeLessThan(18);
     await next(c);

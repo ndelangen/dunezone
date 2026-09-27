@@ -1081,7 +1081,11 @@ export class GameRoom extends DurableObject<GameEnv> {
     if (result) {
       this.send(socket, result);
     }
-    this.broadcastActivity(this.session.revision !== revision);
+    const committed = this.session.revision !== revision;
+    /* A renew moves only the carry's expiresAt, which no page acts on, so no frame goes out for it. */
+    if (message.type !== 'renew' || committed) {
+      this.broadcastActivity(committed);
+    }
   }
 
   private moveActivity(connection: Connection, message: Extract<ClientMessage, { type: 'pointer' | 'pose' }>) {
@@ -1092,7 +1096,10 @@ export class GameRoom extends DurableObject<GameEnv> {
         return;
       }
       connection.pointerSeq = message.seq;
-      this.session.pointer(viewer, message.position, Date.now(), message.seq);
+      /* A resend at the same position moves only updatedAt, which no page acts on, so no frame goes out for it. */
+      if (!this.session.pointer(viewer, message.position, Date.now(), message.seq)) {
+        return;
+      }
     } else if (!this.session.pose(viewer, message)) {
       return;
     }

@@ -2,7 +2,7 @@ import { randomInt } from 'node:crypto';
 
 import type { BankAction } from '../../src/shared/play/banks';
 import { isBattleAction } from '../../src/shared/play/battle';
-import { applyPieceAction, nextSnapshot, requireAccepted } from '../../src/shared/play/commands';
+import { accepted, applyPieceAction, nextSnapshot, requireAccepted } from '../../src/shared/play/commands';
 import type { DraftAction } from '../../src/shared/play/drafting';
 import { emptyPublicControls, isPublicAction } from '../../src/shared/play/inventory';
 import type { PublicAction, PublicControls, SpawnContents } from '../../src/shared/play/inventory';
@@ -26,15 +26,13 @@ import type {
 import { GameRejection } from '../../src/shared/play/rejection';
 import type { RemovalAction } from '../../src/shared/play/removal';
 import { rosterSeat, SPECTATOR_SEAT } from '../../src/shared/play/schema';
-import { isSetupAction } from '../../src/shared/play/setup';
+import { isSetupAction, phaseGate } from '../../src/shared/play/setup';
 import { createSpiceStack, isSpicePiece } from '../../src/shared/play/spiceSupply';
 import type { SwapAction } from '../../src/shared/play/swapping';
 import { restingPositionAt } from '../../src/shared/play/tableGeometry';
 import { nearestCollisionFreePosition } from '../../src/shared/play/tablePhysics';
 import { PLAYER_RING_RADIUS, tableSeatAngles } from '../../src/shared/play/tableSettings';
 import {
-  appendEvent,
-  eventId,
   applyDraftToState,
   draftForGesture,
   draftWithAdditionalTop,
@@ -447,15 +445,7 @@ export class Room {
       action.kind === 'bank-withdraw'
         ? this.withdrawSpice(table, balance, action.amount, identity.viewerSeat)
         : this.collectSpice(table, balance, action.pieceId);
-    const next = nextSnapshot(this.snapshot, {
-      ...change.table,
-      ...appendEvent(table, {
-        id: eventId(table.nextEventNumber),
-        command: action.kind,
-        message: `${factionId} ${change.message}`,
-        status: 'accepted',
-      }),
-    });
+    const next = nextSnapshot(this.snapshot, accepted(change.table, action.kind, `${factionId} ${change.message}`));
     return { ...next, factionBanks: { ...this.snapshot.factionBanks, [factionId]: change.balance } };
   }
 
@@ -514,12 +504,17 @@ export class Room {
     if (phase !== this.snapshot.phase && now < controls.phaseChangedAt + PHASE_CHANGE_COOLDOWN_MS) {
       throw new GameRejection('Wait eight seconds between phase changes.');
     }
-    if (
-      phase > this.snapshot.phase &&
-      phaseAt(this.snapshot.phase).id === 'mentat-pause' &&
-      !this.seatedPlayers().every((seat) => controls.ready.includes(seat))
-    ) {
-      throw new GameRejection('Every seated player must be ready before advancing.');
+    if (phase <= this.snapshot.phase) {
+      return;
+    }
+    const { refusal } = phaseGate({
+      ...this.snapshot,
+      ready: controls.ready,
+      seats: this.seatedPlayers(),
+      predictions: this.snapshot.privatePredictions,
+    });
+    if (refusal) {
+      throw new GameRejection(refusal);
     }
   }
 
@@ -543,16 +538,7 @@ export class Room {
       default:
         message = this.resolveSpawn(identity, action, controls, table);
     }
-    const next = nextSnapshot(this.snapshot, {
-      ...table,
-      ...appendEvent(table, {
-        id: eventId(table.nextEventNumber),
-        command: action.kind,
-        message,
-        status: 'accepted',
-      }),
-    });
-    return { ...next, controls };
+    return { ...nextSnapshot(this.snapshot, accepted(table, action.kind, message)), controls };
   }
 
   private setReadiness(identity: Identity, ready: boolean, controls: PublicControls): string {
@@ -741,21 +727,32 @@ export class Room {
     this.carry(identity, id).lastSeen = now;
   }
 
+  /**
+   * Returns whether the pointer appeared, moved, changed identity or went away.
+   * A resend at the same position refreshes `updatedAt` for the sweep and returns false.
+   */
   pointer(identity: Identity, position: Vector3Tuple | null, now = Date.now(), sourceSeq?: number) {
     this.player(identity);
     if (position === null) {
-      this.pointers.delete(identity.connectionId);
-    } else {
-      this.pointers.set(identity.connectionId, {
-        connectionId: identity.connectionId,
-        viewerSeat: identity.viewerSeat,
-        displayName: identity.displayName,
-        color: identity.color,
-        position,
-        updatedAt: now,
-        ...(sourceSeq === undefined ? {} : { sourceSeq }),
-      });
+      return this.pointers.delete(identity.connectionId);
     }
+    const previous = this.pointers.get(identity.connectionId);
+    const changed =
+      !previous ||
+      previous.viewerSeat !== identity.viewerSeat ||
+      previous.displayName !== identity.displayName ||
+      previous.color !== identity.color ||
+      previous.position.some((value, index) => value !== position[index]);
+    this.pointers.set(identity.connectionId, {
+      connectionId: identity.connectionId,
+      viewerSeat: identity.viewerSeat,
+      displayName: identity.displayName,
+      color: identity.color,
+      position,
+      updatedAt: now,
+      ...(sourceSeq === undefined ? {} : { sourceSeq }),
+    });
+    return changed;
   }
 
   clearActivity(connectionId: string) {

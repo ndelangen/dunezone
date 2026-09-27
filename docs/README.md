@@ -321,7 +321,7 @@ catalog used by game schemas.
 ## Detailed documentation
 
 - [Architecture](./architecture.md) - Request flow, structure, tsconfig paths
-- [Hosted table](./technical/play-hosted.md) - Seats, connections, real games from drafting to battles, and verification
+- [Hosted table](./technical/play-hosted.md) - Scope, connection lifetime, provisioning and verification, with a ticket pointer per game mechanic
 - [Hosted Play subscription](./technical/play-subscription.md) - Received views, local interactions and reconnect ownership
 - [Play pointer sessions](./technical/play-pointer-session.md) - Pointer capture, drag thresholds and cancellation ownership
 - [Local multiplayer load preparation](./technical/play-load.md) - Bounded local probes, the workload fixture and hosted batch preparation
