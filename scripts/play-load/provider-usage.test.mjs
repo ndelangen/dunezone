@@ -41,7 +41,7 @@ const schema = {
       { name: 'cpuTime', type: scalar('uint64'), args: [] },
       { name: 'rowsRead', type: scalar('uint64'), args: [] },
     ]),
-    object('PeriodicMax', [{ name: 'activeWebsocketConnections', type: scalar('uint64'), args: [] }]),
+    object('PeriodicMax', [{ name: 'activeWebsocketConnections', type: scalar('uint16'), args: [] }]),
     object('PeriodicAvg', [{ name: 'sampleInterval', type: scalar('float64'), args: [] }]),
     input('PeriodicFilter', ['namespaceId', 'datetimeMinute_geq', 'datetimeMinute_leq', 'date_geq', 'date_leq']),
     object('AccountdurableObjectsSqlStorageGroups', [aggregate('max', 'StorageMax')]),
@@ -66,14 +66,14 @@ const data = {
   durableObjectsSubrequestsAdaptiveGroups: [{ sum: { requests: 7 } }],
 };
 
-function fakeFetch(queries) {
+function fakeFetch(queries, introspected = schema) {
   return async (url, init) => {
     const { query } = JSON.parse(init.body);
     queries.push(query);
     expect(url).toBe('https://api.cloudflare.com/client/v4/graphql');
     expect(init.headers.Authorization).toBe('Bearer token-1');
     const body = query.includes('__schema')
-      ? { data: { __schema: schema } }
+      ? { data: { __schema: introspected } }
       : { data: { viewer: { accounts: [data] } } };
     return { status: 200, json: async () => body };
   };
@@ -151,6 +151,19 @@ test('datasets are discovered from the schema and queried by namespace inside th
     sum: { requests: 7 },
   });
   expect(usage.durableObjectsInvocationsAdaptiveGroups.skipped).toContain('scriptName');
+});
+
+test('discovery finds the account type through any filterable dataset when periodic groups are absent', async () => {
+  const partial = {
+    types: schema.types.map((type) =>
+      type.name === 'account'
+        ? { ...type, fields: type.fields.filter((field) => field.name !== 'durableObjectsPeriodicGroups') }
+        : type
+    ),
+  };
+  const datasets = await discoverDatasets(fakeFetch([], partial), 'token-1');
+  expect(datasets).not.toHaveProperty('durableObjectsPeriodicGroups');
+  expect(datasets.durableObjectsStorageGroups.aggregates).toEqual({ max: ['storedBytes'] });
 });
 
 test('a capture keeps the report window exact and takes the Convex month share from a baseline', async () => {
