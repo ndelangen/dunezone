@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
+import { PLAY_DIRECTORY_RETRY_MS } from '../../src/shared/play/directory';
 import { TABLE_PHASES } from '../../src/shared/play/phases';
 import { cardPage, deckPage, slot } from './native-catalogue.fixture.mjs';
 import {
@@ -104,19 +105,31 @@ describe('A real game keeps the directory current', () => {
     const first = await runtime.alarm();
     expect(first.scheduledAt).toBeGreaterThan(first.observedAt);
     expect(first.scheduledAt).toBeLessThanOrEqual(first.observedAt + 2000);
-    /* The alarm fires with nobody connected; the second attempt is acknowledged. */
+    /*
+     * The one alarm also serves battle and trading deadlines.
+     * One that fires before the retry is due sends nothing and keeps the retry armed.
+     */
     peer.directoryMode = 'ack';
+    await runtime.clock(-PLAY_DIRECTORY_RETRY_MS);
+    await runtime.alarm(true);
+    await eventually(async () => (await runtime.alarm()).scheduledAt === first.scheduledAt, 'retry kept armed');
+    expect(summaries()).toEqual([1]);
+    /* The retry falls due and the alarm fires with nobody connected; the second attempt is acknowledged. */
+    await runtime.clock(PLAY_DIRECTORY_RETRY_MS);
     await runtime.alarm(true);
     await eventually(() => summaries().length === 2, 'delivery from the alarm');
     expect(peer.summaries.at(-1)).toMatchObject({ sequence: 1, summary: { stage: 'drafting' } });
     await eventually(async () => (await runtime.alarm()).scheduledAt === null, 'settled alarm');
+    await runtime.clock(0);
 
-    /* A failure with the alarm still far off, then a restart: the woken room delivers at once. */
+    /* A failure, then a restart: the woken room still owes the summary and delivers it once the retry falls due. */
     peer.directoryMode = 'error';
     expect((await deleteCreator('evt-delete-3')).status).toBe(200);
     await eventually(() => deliveries().length === 3, 'failed roster delivery');
     peer.directoryMode = 'ack';
     await runtime.restart();
+    await runtime.clock(PLAY_DIRECTORY_RETRY_MS);
+    await runtime.alarm(true);
     await eventually(() => summaries().length === 4, 'delivery after restart');
     expect(peer.summaries.at(-1)).toMatchObject({ sequence: 2, summary: { seats: [] } });
   });
