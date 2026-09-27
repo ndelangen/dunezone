@@ -2,13 +2,14 @@
  * The hosted browser flows the launcher runs against one stack, each on a fresh game.
  * It stays free of side effects, because the browser driver parses arguments and launches Chromium on import.
  */
+/* Diagnostic (#1343, not for merge): twice the budgets, so a slow host's whole duration is measured. */
 export const browserFlows = {
   /* The regular flow steps through every phase behind the eight-second cooldown (#1139)
      and readies both players at each Mentat pause, which puts it past five minutes. */
-  regular: { timeoutMs: 600_000, separateBrowsers: false, keepsFrames: false, needsCatalogue: false },
-  'public-controls': { timeoutMs: 300_000, separateBrowsers: false, keepsFrames: false, needsCatalogue: true },
+  regular: { timeoutMs: 1_200_000, separateBrowsers: false, keepsFrames: false, needsCatalogue: false },
+  'public-controls': { timeoutMs: 600_000, separateBrowsers: false, keepsFrames: false, needsCatalogue: true },
   'private-banks': { timeoutMs: 300_000, separateBrowsers: true, keepsFrames: true, needsCatalogue: false },
-  battles: { timeoutMs: 300_000, separateBrowsers: true, keepsFrames: true, needsCatalogue: true },
+  battles: { timeoutMs: 600_000, separateBrowsers: true, keepsFrames: true, needsCatalogue: true },
   decks: { timeoutMs: 300_000, separateBrowsers: true, keepsFrames: true, needsCatalogue: false },
   /* Diagnostic (#1343, not for merge): per-setting frame timing on the runner's SwiftShader. */
   bench: { timeoutMs: 1_800_000, separateBrowsers: false, keepsFrames: false, needsCatalogue: false },

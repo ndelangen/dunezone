@@ -1,5 +1,6 @@
-# Diagnostic for #1343: what each rendering setting of the Play table costs per frame on the CI runner's SwiftShader,
-# measured in the verifier's own Chromium (full Chromium, new headless, --use-angle=swiftshader) against the hosted stack.
+# Diagnostic for #1343: the regular and catalogue shards with the verifier's pages rendering the table
+# without MSAA ("samples0"), and also at pixel ratio 0.75 ("samples0-dpr075"), beside an unchanged arm ("none"),
+# with twice the flow budgets so a slow host's whole duration is measured.
 # It lives only on norbert/1343-render-bench, whose draft PR is closed unmerged, so it never becomes a required check.
 name: Render bench
 
@@ -14,17 +15,42 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  bench:
+  plan:
     if: github.head_ref == 'norbert/1343-render-bench'
-    name: bench ${{ matrix.repeat }}
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 5
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+    steps:
+      - id: plan
+        # Interleaved so each arm meets the same mix of runner hosts.
+        run: |
+          entries=''
+          for repeat in 1 2; do
+            for shard in regular catalogue; do
+              for render in samples0 samples0-dpr075; do
+                entries+="${entries:+,}{\"shard\":\"$shard\",\"render\":\"$render\",\"repeat\":$repeat}"
+              done
+            done
+          done
+          for shard in regular catalogue; do
+            entries+=",{\"shard\":\"$shard\",\"render\":\"none\",\"repeat\":1}"
+          done
+          echo "matrix=[$entries]" >> "$GITHUB_OUTPUT"
+
+  flows:
+    needs: plan
+    name: ${{ matrix.render }} ${{ matrix.shard }} ${{ matrix.repeat }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
     strategy:
       fail-fast: false
-      # Three at a time, so other PRs' CI keeps the rest of the concurrent runners.
-      max-parallel: 3
+      # Four at a time, so other PRs' CI keeps the rest of the concurrent runners.
+      max-parallel: 4
       matrix:
-        repeat: [1, 2, 3, 4]
+        include: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    env:
+      FLOWS_RENDER: ${{ matrix.render }}
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
@@ -44,35 +70,36 @@ jobs:
             echo "nproc: $(nproc)"
             free -m
           } | tee "$out/lscpu.txt"
-          nohup vmstat -n -t 2 > "$out/vmstat.log" 2>&1 &
-          echo $! > "$RUNNER_TEMP/samplers.pid"
           nohup bash -c 'while :; do echo "@ $(date -u +%s.%N)"; cat /proc/loadavg; top -b -H -n 2 -d 1 -w 250 -o %CPU | awk "/^top -/{f++} f==2" | sed -n "1,30p"; sleep 3; done' \
             > "$out/threads.log" 2>&1 &
-          echo $! >> "$RUNNER_TEMP/samplers.pid"
+          echo $! > "$RUNNER_TEMP/samplers.pid"
       - name: Select full Chromium in new headless mode
         run: |
           chromium_path="$(bun -e 'import { chromium } from "playwright"; console.log(chromium.executablePath())')"
           test -x "$chromium_path"
           "$chromium_path" --version | tee test-results/hosted-play/chromium-version.txt
           echo "CHROMIUM=$chromium_path" >> "$GITHUB_ENV"
-      - name: Run the bench flow
-        run: bun --no-env-file scripts/verify-hosted-play-stack.ts --skip-generate --browser-only --flow bench --browser "$CHROMIUM"
+      - name: Run the regular flow
+        if: matrix.shard == 'regular'
+        run: bun --no-env-file scripts/verify-hosted-play-stack.ts --skip-generate --browser-only --flow regular --browser "$CHROMIUM"
+      - name: Run public-controls and battles
+        if: matrix.shard == 'catalogue'
+        run: bun --no-env-file scripts/verify-hosted-play-stack.ts --skip-generate --browser-only --flow public-controls --flow battles --browser "$CHROMIUM"
       - name: Summarise
         if: always()
         run: |
           xargs kill < "$RUNNER_TEMP/samplers.pid" 2>/dev/null || true
           {
-            echo "### bench ${{ matrix.repeat }}: $(lscpu | sed -n 's/^Model name: *//p'), $(nproc) CPUs"
+            echo "### ${{ matrix.render }} ${{ matrix.shard }} ${{ matrix.repeat }}: $(lscpu | sed -n 's/^Model name: *//p'), $(nproc) CPUs"
             echo '```'
-            cat test-results/hosted-play/diagnostic-timing.jsonl 2>/dev/null || true
-            grep -h '^BENCH frames' test-results/hosted-play/bench.log 2>/dev/null | cut -c1-2000 || echo "no bench output"
+            cat test-results/hosted-play/diagnostic-timing.jsonl 2>/dev/null || echo "no timing recorded"
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
-      - name: Retain bench evidence
+      - name: Retain flow evidence
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: render-bench-v2-${{ matrix.repeat }}
+          name: render-flows-${{ matrix.render }}-${{ matrix.shard }}-${{ matrix.repeat }}
           path: test-results/hosted-play/**
           if-no-files-found: warn
           retention-days: 14

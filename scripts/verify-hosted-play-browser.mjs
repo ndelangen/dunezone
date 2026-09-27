@@ -180,6 +180,7 @@ function passed(name, detail = {}) {
 const chromiumArgs = process.platform === 'linux' ? ['--use-angle=swiftshader'] : [];
 const browser = await chromium.launch({ headless: true, executablePath: values.browser, args: chromiumArgs });
 /* Without `--browser`, `headless: true` launches Playwright's headless shell rather than its full Chromium. */
+report.render = process.env.FLOWS_RENDER ?? 'none';
 report.chromium = {
   executable: values.browser ?? 'chromium-headless-shell',
   version: browser.version(),
@@ -218,6 +219,39 @@ async function peer(label, context) {
     );
   }
   const page = await context.newPage();
+  /*
+   * Diagnostic (#1343, not for merge): FLOWS_RENDER lowers the table's rendering on every page through the bench hook,
+   * again on each table the page mounts: "samples0" drops MSAA, "dpr075" caps the renderer's pixel ratio at 0.75.
+   */
+  if (process.env.FLOWS_RENDER && process.env.FLOWS_RENDER !== 'none') {
+    await page.addInitScript((mode) => {
+      const apply = () => {
+        const renderer = window.__duneBench?.get().renderer;
+        if (!renderer || renderer.__flowsRender) {
+          return;
+        }
+        renderer.__flowsRender = true;
+        if (mode.includes('samples0')) {
+          renderer._samples = 0;
+          for (const target of renderer._frameBufferTargets.values()) {
+            target.dispose();
+          }
+          renderer._frameBufferTargets.clear();
+        }
+        if (mode.includes('dpr075')) {
+          const setPixelRatio = renderer.setPixelRatio.bind(renderer);
+          renderer.setPixelRatio = (value) => setPixelRatio(Math.min(value, 0.75));
+          setPixelRatio(0.75);
+        }
+        window.__duneBench.get().invalidate();
+      };
+      setInterval(() => {
+        try {
+          apply();
+        } catch {}
+      }, 100);
+    }, process.env.FLOWS_RENDER);
+  }
   const state = {
     label,
     page,

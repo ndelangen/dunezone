@@ -1,7 +1,17 @@
 import { spawn, spawnSync } from 'node:child_process';
 import type { ChildProcess } from 'node:child_process';
 import { createHash, generateKeyPairSync, randomBytes } from 'node:crypto';
-import { chmodSync, closeSync, mkdirSync, mkdtempSync, openSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  appendFileSync,
+  chmodSync,
+  closeSync,
+  mkdirSync,
+  mkdtempSync,
+  openSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -86,7 +96,8 @@ const evidence = path.join(
 );
 mkdirSync(evidence, { recursive: true });
 const environment: NodeJS.ProcessEnv = Object.fromEntries(
-  ['PATH', 'HOME', 'TMPDIR', 'LANG', 'SSL_CERT_FILE', 'CI'].flatMap((name) =>
+  /* Diagnostic (#1343, not for merge): FLOWS_RENDER picks the verifier's rendering arm. */
+  ['PATH', 'HOME', 'TMPDIR', 'LANG', 'SSL_CERT_FILE', 'CI', 'FLOWS_RENDER'].flatMap((name) =>
     process.env[name] ? [[name, process.env[name]]] : []
   )
 );
@@ -469,6 +480,7 @@ try {
     const failed: BrowserFlow[] = [];
     let gameId: string | undefined;
     for (const flow of flows) {
+      const provisionStart = Date.now();
       try {
         gameId = await freshBrowserGame(convex, gameId);
       } catch (error) {
@@ -476,6 +488,7 @@ try {
         failed.push(flow);
         continue;
       }
+      const checkStart = Date.now();
       const passed = await verify(
         {
           command: process.execPath,
@@ -497,6 +510,11 @@ try {
           logPath: path.join(evidence, `${flow}.log`),
         },
         browserFlows[flow].timeoutMs
+      );
+      /* Diagnostic (#1343, not for merge): one JSON line per flow, read back from the CI artifact. */
+      appendFileSync(
+        path.join(evidence, 'diagnostic-timing.jsonl'),
+        `${JSON.stringify({ stage: 'flow', flow, render: process.env.FLOWS_RENDER ?? 'none', provisionMs: checkStart - provisionStart, checkMs: Date.now() - checkStart, passed })}\n`
       );
       if (!passed) {
         failed.push(flow);
