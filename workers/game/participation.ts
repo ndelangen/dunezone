@@ -1,6 +1,6 @@
 import { accepted, nextSnapshot } from '../../src/shared/play/commands';
 import { emptyPublicControls } from '../../src/shared/play/inventory';
-import type { PublicControls } from '../../src/shared/play/inventory';
+import type { StoredControls } from '../../src/shared/play/inventory';
 import type { TableEvent } from '../../src/shared/play/model';
 import { PLAY_ROSTER_LIMIT, seatLabel, seatSubject } from '../../src/shared/play/participation';
 import type { SeatAction, SeatRequest } from '../../src/shared/play/participation';
@@ -33,7 +33,7 @@ export type SeatPlan = { apply: () => StoredSnapshot };
 /** What a seat change is judged against and works on: the stored state, its controls to rewrite, the seating and the clock. */
 type SeatChange = {
   snapshot: StoredSnapshot;
-  controls: PublicControls;
+  controls: StoredControls;
   roster: TableRoster;
   now: number;
 };
