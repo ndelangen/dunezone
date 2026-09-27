@@ -455,6 +455,7 @@ export const isFullView = (message) => message.type === 'view' && !applied.has(m
 /**
  * Opens a socket that records every frame it receives.
  * After each update it also records the view that update produces on the one before it, with the update's clock readings, as the page holds it.
+ * An update that does not apply to the view before it goes to `unapplied` instead.
  * A test then waits for a table state whichever frame carried it.
  */
 export async function openGame(runtime) {
@@ -465,7 +466,7 @@ export async function openGame(runtime) {
     throw new Error(`Socket refused: ${response.status}`);
   }
   const socket = response.webSocket;
-  const connection = { socket, messages: [], closed: false, closeCode: null };
+  const connection = { socket, messages: [], unapplied: [], closed: false, closeCode: null };
   let current = null;
   socket.addEventListener('message', (event) => {
     const message = JSON.parse(event.data);
@@ -479,6 +480,8 @@ export async function openGame(runtime) {
       if (current) {
         applied.add(current);
         connection.messages.push(current);
+      } else {
+        connection.unapplied.push(message);
       }
     }
   });

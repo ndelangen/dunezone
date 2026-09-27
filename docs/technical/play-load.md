@@ -218,8 +218,8 @@ exclude TCP/IP headers, retransmissions and browser connections. The original ap
 counter remains the stop budget and counts decompressed message sizes. Compression savings must
 come from those measured stream bytes, not from assuming a ratio for JSON.
 
-`motionForwarded` counts accepted source updates. `activityDeliveries` counts actual activity
-message sends, while the protocol recipients independently count messages and bytes. Socket send
+`motionForwarded` counts accepted source updates. `activityDeliveries` counts sent updates that
+carry no snapshot, while the protocol recipients independently count messages and bytes. Socket send
 counts alone do not prove recipient delivery. Local process CPU totals and resident memory are
 recorded around motion; they include the local runtime processes and do not substitute for hosted
 billing or isolate-level profiling.

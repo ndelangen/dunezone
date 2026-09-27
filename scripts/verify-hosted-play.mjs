@@ -187,6 +187,10 @@ try {
   assert.deepEqual(aView.snapshot.bank, { factionId: 'harkonnen', balance: 0 });
   assert.deepEqual(bView.snapshot.bank, { factionId: 'atreides', balance: 0 });
   assert.equal(Object.hasOwn(cView.snapshot, 'bank'), false);
+  const cUpdate = c.messages.find(
+    (message) => message.type === 'update' && message.snapshot?.revision === revision + 1
+  );
+  assert.equal(Object.hasOwn(cUpdate.snapshot, 'bank'), false);
   passed('Contested commands commit once and all viewers receive the same durable revision');
   const beforeObserver = cView.snapshot.revision;
   c.send({ type: 'command', commandId: 'observer-write', action: { kind: 'reset' }, expectedRevision: beforeObserver });
