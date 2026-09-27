@@ -54,8 +54,8 @@ describe('Authored troop combat values in a real game', { timeout: 120_000 }, ()
     await runtime.clock(offset);
     return accepted(connection, { kind: 'phase', direction: 1 });
   }
-  /** Drafts, deals and trades with two accounts, then runs setup through to the first phase of play. */
-  async function toPlay() {
+  /** Seats two accounts and readies the draft until the deal assigns their factions. */
+  async function deal() {
     const a = await admit('a');
     const b = await admit('b');
     await seat(b, a);
@@ -63,35 +63,54 @@ describe('Authored troop combat values in a real game', { timeout: 120_000 }, ()
       await accepted(connection, { kind: 'draft-ready', ready: true });
     }
     await eventually(async () => (await syncView(a)).snapshot.stage === 'swapping', 'the deal', 20_000);
-    /* The catalogue loses both factions after assignment; the game plays from what it retained. */
-    peer.factions.clear();
-    for (const connection of [a, b]) {
-      const view = await syncView(connection);
-      if (view.snapshot.stage === 'swapping') {
-        await accepted(connection, {
-          kind: 'swap-ready',
-          ready: true,
-          round: view.snapshot.swapping.round,
-          seat: view.viewer.viewerSeat,
-        });
-      }
+    return [a, b];
+  }
+  /** Readies one seat to keep what it was dealt, while trading is still open. */
+  async function keepSeat(connection) {
+    const view = await syncView(connection);
+    if (view.snapshot.stage !== 'swapping') {
+      return;
     }
-    let { snapshot } = await syncView(a);
+    await accepted(connection, {
+      kind: 'swap-ready',
+      ready: true,
+      round: view.snapshot.swapping.round,
+      seat: view.viewer.viewerSeat,
+    });
+  }
+  async function readyAll(players) {
+    for (const connection of players) {
+      await accepted(connection, { kind: 'ready', ready: true });
+    }
+  }
+  const waitsForReadiness = (snapshot) =>
+    snapshot.stage === 'setup' && snapshot.controls.ready.length < snapshot.roster.seats.length;
+  /** Runs setup through to the first phase of play, readying every seat whenever it waits for them. */
+  async function throughSetup(players) {
+    let { snapshot } = await syncView(players[0]);
     for (let guard = 0; guard < 8 && snapshot.stage !== 'play'; guard++) {
-      if (snapshot.stage === 'setup' && snapshot.controls.ready.length < snapshot.roster.seats.length) {
-        for (const connection of [a, b]) {
-          await accepted(connection, { kind: 'ready', ready: true });
-        }
+      if (waitsForReadiness(snapshot)) {
+        await readyAll(players);
       }
-      ({ snapshot } = await next(a));
+      ({ snapshot } = await next(players[0]));
     }
     expect(snapshot.stage).toBe('play');
-    while ((await syncView(a)).snapshot.phase % TABLE_PHASES.length !== BATTLE) {
-      await next(a);
+  }
+  /** Deals, trades and sets up a real game, then advances to the Battle phase; returns each faction's connection. */
+  async function toBattle() {
+    const players = await deal();
+    /* The catalogue loses both factions after assignment; the game plays from what it retained. */
+    peer.factions.clear();
+    for (const connection of players) {
+      await keepSeat(connection);
     }
-    const views = await Promise.all([a, b].map(syncView));
+    await throughSetup(players);
+    while ((await syncView(players[0])).snapshot.phase % TABLE_PHASES.length !== BATTLE) {
+      await next(players[0]);
+    }
+    const views = await Promise.all(players.map(syncView));
     const harkonnen = views.findIndex((view) => view.snapshot.bank.factionId === 'harkonnen');
-    return { harkonnen: [a, b][harkonnen], atreides: [a, b][1 - harkonnen] };
+    return { harkonnen: players[harkonnen], atreides: players[1 - harkonnen] };
   }
 
   it('supplies both authored faces, omits noncombatant and unauthored faces, and funds the retained values', async () => {
@@ -102,7 +121,7 @@ describe('Authored troop combat values in a real game', { timeout: 120_000 }, ()
       ...harkonnenSource,
       data: { ...harkonnenSource.data, troops: AUTHORED_TROOPS },
     });
-    const { harkonnen, atreides } = await toPlay();
+    const { harkonnen, atreides } = await toBattle();
 
     const { factions } = await runtime.captures();
     const problems = Object.fromEntries(
