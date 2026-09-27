@@ -1,14 +1,7 @@
-# Local multiplayer load preparation
+# Local and hosted multiplayer load runs
 
-[Prepare bounded hosted runs for the full multiplayer matrix](https://github.com/ndelangen/dunezone/issues/1164)
-tracks this work, ahead of [Verify multiplayer capacity with the corrected measurement matrix](https://github.com/ndelangen/dunezone/issues/1165).
-The [agreed workload](https://github.com/ndelangen/dunezone/issues/1022#issuecomment-5599029811)
-is the acceptance contract. The spending cap is zero euros.
-
-This runner prepares local protocol measurements. It does not establish hosted latency or complete
-the measurement ticket. Hosted testing requires a verified isolated origin, Worker and Durable
-Object namespace, and synthetic Convex/Auth backend that fit the spending cap, and an approved
-cell for every hosted run.
+The status of the load work, its spending limit and each hosted batch's approval are on
+[Prepare bounded hosted runs for the full multiplayer matrix](https://github.com/ndelangen/dunezone/issues/1164).
 
 ## Run a bounded probe
 
@@ -39,14 +32,8 @@ and recipient delivery use the existing application path. The stack runs the pro
 lease and 90 second renewal cadence, so a load run's `watchAuthorizations` and `reconcileAccounts`
 traffic is about 0.7 calls a minute per function per connected room.
 
-The coordinator runs under Node 22 or later, not bun. It reads each connection's TCP socket from
-the `ws` upgrade event, and the wire-byte totals and the extension it records come from there.
-Bun's `ws` shim fires no upgrade event, so under bun the runner would record no transport and
-both would stay blank. Node's type stripping resolves no extensionless TypeScript import, and the
-shared modules the runner reaches use them, so the stack bundles `scripts/play-load/run.mjs` with
-esbuild before it starts anything else. `scripts/play-load/bundle.ts` writes the bundle beside the
-runner, git ignores it, each report carries the bundle's digest as `coordinatorSha256`, and
-`bundle.test.mjs` loads the bundle under Node in the unit suite.
+The stack runs the coordinator under Node 22 or later from the bundle that
+[`scripts/play-load/bundle.ts`](../../scripts/play-load/bundle.ts) writes.
 
 The runner accepts explicit `http://127.0.0.1:PORT` origins by default. The separate hosted preparation path below requires a private run file and a deployment-scoped key.
 Synthetic fixture creation and provisioning also enforce the isolated-backend guard. A supplied
@@ -61,7 +48,8 @@ on the disposable backend. It refuses a live fixture and cannot run against prod
 The baseline keeps six pieces, 17 items and the original two player seats. Its smoke adds one
 observer and one secondary player tab. It is not the expanded audience.
 
-Both expanded arrangements have 18 distinct seated accounts, 20 observers and six secondary tabs.
+Both expanded arrangements take their audience from `players`, `observers` and `secondaryTabs` in
+`loadWorkload.json`.
 The runner asserts distinct users and seats, observer roles and shared seats for secondary tabs.
 Their 750 item identities are the same. The stacked arrangement has 294 pieces; the separated
 arrangement has 750. The synthetic pieces occupy a dense area of the table, with a clear position
@@ -238,20 +226,6 @@ its duration follows the object's active time. The per-cell sizing and the batch
 remaining account allowances, not just the advertised monthly totals. Convex usage is separate. See
 [Workers pricing](https://developers.cloudflare.com/workers/platform/pricing/) and
 [Durable Objects pricing](https://developers.cloudflare.com/durable-objects/platform/pricing/).
-
-## Remaining preparation
-
-Before the measurement ticket can run, the work still needs:
-
-- An approved batch of cells under the zero-euro cap, checked against the remaining included
-  allowances, and a fresh isolated environment for it. The local runner's controls and smoke
-  evidence do not establish hosted behavior.
-- Handler, serialization, storage and authorization measurements beyond current delivery counters
-  and local process totals.
-- Review, full required checks, deployment verification where applicable, and linked evidence.
-
-Private mechanics, real catalogue content and final device support remain the separate public
-release requirements already named by the workload decision.
 
 ## Limits in an isolated game room
 

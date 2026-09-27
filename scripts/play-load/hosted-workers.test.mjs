@@ -9,21 +9,15 @@ import { Miniflare, convertV4MiniflareOptions } from 'miniflare';
 import { test } from 'vitest';
 
 import { prepareHostedWorkers } from './hosted-workers.mjs';
+import { syntheticHostedTarget } from './synthetic-target.ts';
 
 test('an uploaded game activates through bindings and retains its stop after restart', async () => {
   const root = path.resolve(import.meta.dirname, '../..');
   const base = await mkdtemp(path.join(tmpdir(), 'play-activation-'));
   try {
-    const target = {
-      project: 'norbert-de-langen:dunezone-play-load',
-      reference: 'dev/native',
-      backendName: 'isolated-load-1105',
-      backendOrigin: 'https://isolated-load-1105.eu-west-1.convex.cloud',
-      applicationOrigin: 'https://dunezone-play-load-native.ndelangen.workers.dev',
-      gameWorker: 'dunezone-game-load-native',
-      namespaceId: '1'.repeat(32),
-      sourceRevision: execFileSync('/usr/bin/git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim(),
-    };
+    const target = syntheticHostedTarget(
+      execFileSync('/usr/bin/git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim()
+    );
     const run = { runId: 'a'.repeat(32), startsAt: Date.now(), expiresAt: Date.now() + 600_000 };
     const cell = {
       profile: 'stacked',
