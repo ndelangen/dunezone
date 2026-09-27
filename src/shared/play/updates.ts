@@ -6,6 +6,7 @@ import type {
   ServerMessage,
   SnapshotChange,
 } from './protocol';
+import { gameSnapshotSchema, snapshotStateKeys } from './protocol';
 
 export type RoomFrame = Pick<Extract<ServerMessage, { type: 'view' }>, 'epoch' | 'snapshot' | 'carries' | 'pointers'>;
 export type RoomView = Extract<ServerMessage, { type: 'view' }>;
@@ -42,7 +43,7 @@ function pieceDefinition(piece: GameSnapshot['table']['pieces'][number]) {
   return Object.fromEntries(Object.entries(definition).filter(([, value]) => value !== undefined));
 }
 
-function snapshotChange(base: GameSnapshot, next: GameSnapshot, compactMoves: boolean): SnapshotChange | undefined {
+function snapshotChange(base: GameSnapshot, next: GameSnapshot): SnapshotChange | undefined {
   if (same(base, next)) {
     return;
   }
@@ -57,33 +58,24 @@ function snapshotChange(base: GameSnapshot, next: GameSnapshot, compactMoves: bo
     if (same(previous, piece)) {
       continue;
     }
-    if (compactMoves && previous && same(pieceDefinition(previous), pieceDefinition(piece))) {
+    if (previous && same(pieceDefinition(previous), pieceDefinition(piece))) {
       const { id, position, orientation, zoneId } = piece;
       pieceMoves.push({ id, position, orientation, zoneId, flipRevision: piece.flipRevision ?? null });
     } else {
       pieces.push(piece);
     }
   }
+  const state: Record<string, unknown> = {};
+  for (const key of snapshotStateKeys) {
+    if (!same(base[key], next[key])) {
+      state[key] = next[key] ?? null;
+    }
+  }
   return {
     baseRevision: base.revision,
     revision: next.revision,
     phase: next.phase,
-    ...(same(base.roster, next.roster) ? {} : { roster: next.roster }),
-    ...(same(base.swapping, next.swapping) ? {} : { swapping: next.swapping }),
-    ...(same(base.setup, next.setup) ? {} : { setup: next.setup }),
-    ...(same(base.predictions, next.predictions) ? {} : { predictions: next.predictions }),
-    ...(same(base.removalVotes, next.removalVotes) ? {} : { removalVotes: next.removalVotes }),
-    ...(same(base.stage, next.stage) ? {} : { stage: next.stage }),
-    ...(same(base.draft, next.draft) ? {} : { draft: next.draft ?? null }),
-    ...(same(base.controls, next.controls) ? {} : { controls: next.controls }),
-    ...(same(base.battle, next.battle) ? {} : { battle: next.battle }),
-    ...(same(base.battlePlan, next.battlePlan) ? {} : { battlePlan: next.battlePlan }),
-    ...(same(base.hand, next.hand) ? {} : { hand: next.hand }),
-    ...(same(base.factionArtwork, next.factionArtwork) ? {} : { factionArtwork: next.factionArtwork }),
-    ...(same(base.combatFaces, next.combatFaces) ? {} : { combatFaces: next.combatFaces }),
-    ...(same(base.battleResults, next.battleResults) ? {} : { battleResults: next.battleResults }),
-    ...(same(base.bank, next.bank) ? {} : { bank: next.bank }),
-    ...(same(base.spiceTransfers, next.spiceTransfers) ? {} : { spiceTransfers: next.spiceTransfers }),
+    ...(state as Pick<SnapshotChange, (typeof snapshotStateKeys)[number]>),
     table: Object.fromEntries(
       Object.entries(metadata).filter(([key, value]) => !same(base.table[key as keyof typeof metadata], value))
     ),
@@ -157,13 +149,9 @@ function pointerChanges(base: PublicPointer[], next: PublicPointer[]) {
 }
 
 /** Each frame has already been filtered for its recipient before any change is computed. */
-export function frameChange(
-  base: RoomFrame,
-  next: RoomFrame,
-  compactMoves = false
-): Pick<Update, 'snapshot' | 'activity'> {
+export function frameChange(base: RoomFrame, next: RoomFrame): Pick<Update, 'snapshot' | 'activity'> {
   return {
-    snapshot: snapshotChange(base.snapshot, next.snapshot, compactMoves),
+    snapshot: snapshotChange(base.snapshot, next.snapshot),
     activity: { ...carryChanges(base.carries, next.carries), ...pointerChanges(base.pointers, next.pointers) },
   };
 }
@@ -209,10 +197,8 @@ function applyPieces(base: GameSnapshot['table']['pieces'], change: SnapshotChan
   return order.map((id) => pieces.get(id)!);
 }
 
-/** Absent means unchanged; null means the draft ended. */
-function draftAfter(base: GameSnapshot['draft'], change: SnapshotChange['draft']): GameSnapshot['draft'] {
-  return change === undefined ? base : (change ?? undefined);
-}
+/* A key whose snapshot schema admits null keeps it, as the fresh view sends it; any other key is deleted. */
+const keepsNull = new Set(snapshotStateKeys.filter((key) => gameSnapshotSchema.shape[key].safeParse(null).success));
 
 function applySnapshot(base: GameSnapshot, change: SnapshotChange): GameSnapshot | null {
   if (base.revision !== change.baseRevision || change.revision < change.baseRevision) {
@@ -226,29 +212,23 @@ function applySnapshot(base: GameSnapshot, change: SnapshotChange): GameSnapshot
   for (const id of change.removedVersions) {
     delete versions[id];
   }
+  const state: Record<string, unknown> = { ...base };
+  for (const key of snapshotStateKeys) {
+    const value = change[key];
+    switch (true) {
+      case value === undefined:
+        break;
+      case value === null && !keepsNull.has(key):
+        delete state[key];
+        break;
+      default:
+        state[key] = value;
+    }
+  }
   return {
+    ...(state as GameSnapshot),
     revision: change.revision,
     phase: change.phase,
-    ...((change.roster ?? base.roster) ? { roster: change.roster ?? base.roster } : {}),
-    ...((change.swapping ?? base.swapping) ? { swapping: change.swapping ?? base.swapping } : {}),
-    ...((change.setup ?? base.setup) ? { setup: change.setup ?? base.setup } : {}),
-    ...((change.predictions ?? base.predictions) ? { predictions: change.predictions ?? base.predictions } : {}),
-    ...((change.removalVotes ?? base.removalVotes) ? { removalVotes: change.removalVotes ?? base.removalVotes } : {}),
-    ...((change.stage ?? base.stage) ? { stage: change.stage ?? base.stage } : {}),
-    ...(draftAfter(base.draft, change.draft) ? { draft: draftAfter(base.draft, change.draft) } : {}),
-    controls: change.controls ?? base.controls,
-    battle: change.battle === undefined ? base.battle : change.battle,
-    battlePlan: change.battlePlan === undefined ? base.battlePlan : change.battlePlan,
-    hand: change.hand ?? base.hand,
-    ...((change.factionArtwork ?? base.factionArtwork)
-      ? { factionArtwork: change.factionArtwork ?? base.factionArtwork }
-      : {}),
-    combatFaces: change.combatFaces ?? base.combatFaces,
-    battleResults: change.battleResults ?? base.battleResults,
-    ...((change.bank ?? base.bank) ? { bank: change.bank ?? base.bank } : {}),
-    ...((change.spiceTransfers ?? base.spiceTransfers)
-      ? { spiceTransfers: change.spiceTransfers ?? base.spiceTransfers }
-      : {}),
     versions,
     table: { ...base.table, ...change.table, pieces },
   };

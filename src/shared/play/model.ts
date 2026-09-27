@@ -43,8 +43,8 @@ export type Affordance = {
   targetZoneIds?: string[];
 };
 
-export type TableState = Omit<z.infer<typeof durableTableSchema>, 'phase'> & {
-  phase: z.infer<typeof durableTableSchema>['phase'] | (typeof TABLE_PHASES)[number]['label'];
+export type TableState = z.infer<typeof durableTableSchema> & {
+  phase: 'Harkonnen shipment' | (typeof TABLE_PHASES)[number]['label'];
   viewerSeat: z.infer<typeof tableSeatSchema>;
   /* The faction the viewer's seat carries, or null for a spectator or an unassigned seat. */
   viewerFaction: string | null;

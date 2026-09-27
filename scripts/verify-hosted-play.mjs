@@ -72,6 +72,7 @@ async function open(gameId, ticket) {
     send(value) {
       socket.send(JSON.stringify(value));
     },
+    /* The latest full view: updates after it are not applied here, so a read of current state asks with `fresh`. */
     view() {
       return messages.findLast((message) => message.type === 'view');
     },
@@ -98,13 +99,19 @@ async function connect(gameId, user) {
   assert.ok(peer.view(), `Admission refused with ${peer.closeCode}.`);
   return peer;
 }
+/** Asks the Worker for a full view and returns it. */
+async function fresh(peer) {
+  const before = peer.messages.length;
+  peer.send({ type: 'sync' });
+  return until(() => peer.messages.slice(before).find((message) => message.type === 'view'), 'No fresh view.');
+}
 async function command(peer, action) {
   await until(
     () => peer.messages.findLast((message) => message.type === 'view' || message.type === 'admission')?.type === 'view',
     'Table did not regain authorization.'
   );
   const commandId = randomUUID();
-  peer.send({ type: 'command', commandId, action, expectedRevision: peer.view().snapshot.revision });
+  peer.send({ type: 'command', commandId, action, expectedRevision: (await fresh(peer)).snapshot.revision });
   await until(
     () => peer.messages.find((message) => message.completedCommandId === commandId || message.requestId === commandId),
     'Command not acknowledged.'
@@ -155,7 +162,7 @@ try {
   assert.equal(b.view().viewer.viewerSeat, 'atreides');
   assert.equal(c.view().viewer.viewerSeat, 'neutral');
   passed('Independent non-admin Auth sessions receive server-assigned seats and an observer view');
-  const revision = b.view().snapshot.revision;
+  const revision = (await fresh(b)).snapshot.revision;
   const ca = randomUUID(),
     cb = randomUUID();
   a.send({ type: 'command', commandId: ca, action: { kind: 'storm', direction: 1 }, expectedRevision: revision });
@@ -167,28 +174,39 @@ try {
       ),
     'Contested revision was not rejected.'
   );
-  await until(() => [a, b, c].every((peer) => peer.view().snapshot.revision === revision + 1), 'Browsers diverged.');
-  assert.deepEqual({ ...a.view().snapshot, bank: undefined }, { ...b.view().snapshot, bank: undefined });
-  assert.deepEqual(a.view().snapshot.bank, { factionId: 'harkonnen', balance: 0 });
-  assert.deepEqual(b.view().snapshot.bank, { factionId: 'atreides', balance: 0 });
-  assert.equal(Object.hasOwn(c.view().snapshot, 'bank'), false);
+  await until(
+    () =>
+      [a, b, c].every((peer) =>
+        peer.messages.some((message) => message.type === 'update' && message.snapshot?.revision === revision + 1)
+      ),
+    'Browsers diverged.'
+  );
+  const [aView, bView, cView] = await Promise.all([a, b, c].map(fresh));
+  assert.equal(aView.snapshot.revision, revision + 1);
+  assert.deepEqual({ ...aView.snapshot, bank: undefined }, { ...bView.snapshot, bank: undefined });
+  assert.deepEqual(aView.snapshot.bank, { factionId: 'harkonnen', balance: 0 });
+  assert.deepEqual(bView.snapshot.bank, { factionId: 'atreides', balance: 0 });
+  assert.equal(Object.hasOwn(cView.snapshot, 'bank'), false);
+  const cUpdate = c.messages.find(
+    (message) => message.type === 'update' && message.snapshot?.revision === revision + 1
+  );
+  assert.equal(Object.hasOwn(cUpdate.snapshot, 'bank'), false);
   passed('Contested commands commit once and all viewers receive the same durable revision');
-  const beforeObserver = c.view().snapshot.revision;
+  const beforeObserver = cView.snapshot.revision;
   c.send({ type: 'command', commandId: 'observer-write', action: { kind: 'reset' }, expectedRevision: beforeObserver });
   await until(
     () => c.messages.some((message) => message.requestId === 'observer-write'),
     'Observer command did not reject.'
   );
-  assert.equal(c.view().snapshot.revision, beforeObserver);
+  assert.equal((await fresh(c)).snapshot.revision, beforeObserver);
   await command(a, { kind: 'phase' });
   c.send({ type: 'history', step: 1 });
   const history = await until(() => c.messages.find((message) => message.type === 'history'), 'History unavailable.');
-  assert.deepEqual(history.snapshot, c.view().snapshot);
+  assert.deepEqual(history.snapshot, (await fresh(c)).snapshot);
   assert.equal(Object.hasOwn(history.snapshot, 'bank'), false);
   passed('Observers cannot mutate; authenticated phase playback reproduces the boundary');
-  const originalItems = a
-    .view()
-    .snapshot.table.pieces.flatMap((piece) => piece.items.map((item) => item.id))
+  const originalItems = (await fresh(a)).snapshot.table.pieces
+    .flatMap((piece) => piece.items.map((item) => item.id))
     .sort();
   a.send({
     type: 'begin',
@@ -220,8 +238,10 @@ try {
     () =>
       c.messages.some(
         (message) =>
-          message.type === 'activity' &&
-          message.pointers.some((pointer) => pointer.connectionId === a.view().viewer.connectionId)
+          message.type === 'update' &&
+          [...message.activity.pointers, ...message.activity.pointerMoves].some(
+            (pointer) => pointer.connectionId === a.view().viewer.connectionId
+          )
       ),
     'Observer did not receive public motion.'
   );
@@ -234,12 +254,10 @@ try {
   };
   a.send(drop);
   await until(() => a.messages.some((message) => message.completedCommandId === drop.commandId), 'Drop not committed.');
-  const dropRevision = a.view().snapshot.revision;
+  const dropped = await fresh(a);
+  const dropRevision = dropped.snapshot.revision;
   assert.deepEqual(
-    a
-      .view()
-      .snapshot.table.pieces.flatMap((piece) => piece.items.map((item) => item.id))
-      .sort(),
+    dropped.snapshot.table.pieces.flatMap((piece) => piece.items.map((item) => item.id)).sort(),
     originalItems
   );
   const replayPeer = await connect(fixture.gameId, alice);

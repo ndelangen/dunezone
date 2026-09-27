@@ -2,7 +2,7 @@ import { accepted, nextSnapshot } from '../../src/shared/play/commands';
 import { emptyPublicControls } from '../../src/shared/play/inventory';
 import type { PublicControls } from '../../src/shared/play/inventory';
 import type { TableEvent } from '../../src/shared/play/model';
-import { PLAY_ROSTER_LIMIT, seatLabel } from '../../src/shared/play/participation';
+import { PLAY_ROSTER_LIMIT, seatLabel, seatSubject } from '../../src/shared/play/participation';
 import type { SeatAction, SeatRequest } from '../../src/shared/play/participation';
 import { tableForViewer } from '../../src/shared/play/protocol';
 import type { Viewer } from '../../src/shared/play/protocol';
@@ -25,8 +25,6 @@ type RequestRow = {
   resolved_at: number | null;
   approver_id: string | null;
   approver_name: string | null;
-  event_id: string;
-  resolved_event_id: string | null;
 };
 
 /** A validated seat command: `apply` runs inside the commit transaction and returns the stored result. */
@@ -42,14 +40,14 @@ type SeatChange = {
 /** A seat command has an actor; a deletion has none. */
 type SeatCommand = SeatChange & { viewer: Viewer };
 
-/** The one player-facing message for each participation event, rebuilt from its row when a name is scrubbed. */
-export const seatMessages = {
-  requested: (name: string, seat: string | null) => `${name} asks for ${seat ? seatLabel(seat) : 'a seat'}.`,
-  withdrew: (name: string) => `${name} withdrew the seat request.`,
-  joined: (name: string, seat: string, approver: string | null) =>
-    `${name} takes ${seatLabel(seat)}${approver ? `, approved by ${approver}` : ''}.`,
-  vacated: (name: string, seat: string) => `${name} left ${seatLabel(seat)}.`,
-  removed: (name: string, seat: string) => `${name} was removed from ${seatLabel(seat)}.`,
+/** The one message for each participation event, naming the seat and never a player, so a deletion leaves it as written. */
+const seatMessages = {
+  requested: (seat: string | null) => `A spectator asks for ${seat ? seatLabel(seat) : 'a seat'}.`,
+  withdrew: () => 'A spectator withdraws a seat request.',
+  joined: (seat: string, approverSeat: string) =>
+    `${seatSubject(seat)} is taken, approved by ${seatLabel(approverSeat)}.`,
+  vacated: (seat: string) => `${seatSubject(seat)} is vacated.`,
+  removed: (seat: string) => `${seatSubject(seat)} is vacated by a removal vote.`,
   discarded: () => 'The game was discarded: no players remain.',
 };
 
@@ -66,7 +64,7 @@ export class Participation {
     private readonly actors: ActorDirectory
   ) {
     storage.sql.exec(
-      'CREATE TABLE IF NOT EXISTS seat_requests (request_id TEXT PRIMARY KEY, user_id TEXT, display_name TEXT NOT NULL, seat TEXT, state TEXT NOT NULL, created_at INTEGER NOT NULL, resolved_at INTEGER, approver_id TEXT, approver_name TEXT, event_id TEXT NOT NULL, resolved_event_id TEXT)'
+      'CREATE TABLE IF NOT EXISTS seat_requests (request_id TEXT PRIMARY KEY, user_id TEXT, display_name TEXT NOT NULL, seat TEXT, state TEXT NOT NULL, created_at INTEGER NOT NULL, resolved_at INTEGER, approver_id TEXT, approver_name TEXT)'
     );
   }
 
@@ -108,17 +106,16 @@ export class Participation {
     }
     const target = this.requestedSeat(change, seat);
     const requestId = `seat-request-${snapshot.revision + 1}`;
-    const event = this.event(snapshot, 'seat-request', seatMessages.requested(viewer.displayName, target));
+    const event = this.event(snapshot, 'seat-request', seatMessages.requested(target));
     return {
       apply: () => {
         this.storage.sql.exec(
-          "INSERT INTO seat_requests (request_id, user_id, display_name, seat, state, created_at, event_id) VALUES(?,?,?,?,'pending',?,?)",
+          "INSERT INTO seat_requests (request_id, user_id, display_name, seat, state, created_at) VALUES(?,?,?,?,'pending',?)",
           requestId,
           viewer.userId,
           viewer.displayName,
           target,
-          now,
-          event.id
+          now
         );
         controls.seatRequests.push({ id: requestId, requesterName: viewer.displayName, seat: target });
         return this.next(change, event);
@@ -145,10 +142,10 @@ export class Participation {
     if (!requestId) {
       throw new GameRejection('You have no seat request to withdraw.');
     }
-    const event = this.event(snapshot, 'seat-withdraw', seatMessages.withdrew(viewer.displayName));
+    const event = this.event(snapshot, 'seat-withdraw', seatMessages.withdrew());
     return {
       apply: () => {
-        this.resolve(requestId, 'withdrawn', now, event.id);
+        this.resolve(requestId, 'withdrawn', now);
         controls.seatRequests = controls.seatRequests.filter((request) => request.id !== requestId);
         return this.next(change, event);
       },
@@ -172,11 +169,7 @@ export class Participation {
       throw new GameRejection('That player already holds a seat.');
     }
     const granted = this.grantedSeat(change, request.seat);
-    const event = this.event(
-      snapshot,
-      'seat-approve',
-      seatMessages.joined(request.display_name, granted.id, viewer.displayName)
-    );
+    const event = this.event(snapshot, 'seat-approve', seatMessages.joined(granted.id, viewer.viewerSeat));
     return {
       apply: () => {
         if (granted.position !== undefined) {
@@ -191,11 +184,10 @@ export class Participation {
           eventId: event.id,
         });
         this.storage.sql.exec(
-          "UPDATE seat_requests SET state='approved', resolved_at=?, approver_id=?, approver_name=?, resolved_event_id=? WHERE request_id=?",
+          "UPDATE seat_requests SET state='approved', resolved_at=?, approver_id=?, approver_name=? WHERE request_id=?",
           now,
           viewer.userId,
           viewer.displayName,
-          event.id,
           requestId
         );
         controls.seatRequests = controls.seatRequests.filter((pending) => pending.id !== requestId);
@@ -223,7 +215,7 @@ export class Participation {
       throw new GameRejection('You hold no seat to leave.');
     }
     const seat = viewer.viewerSeat;
-    const event = this.event(snapshot, 'seat-depart', seatMessages.vacated(viewer.displayName, seat));
+    const event = this.event(snapshot, 'seat-depart', seatMessages.vacated(seat));
     return {
       apply: () => {
         this.actors.vacate(viewer.userId, { cause: 'departure', eventId: event.id });
@@ -238,14 +230,13 @@ export class Participation {
     if (!seat || seat === SPECTATOR_SEAT) {
       throw new GameRejection('That player no longer holds a seat.');
     }
-    const name = this.actors.holderOf(seat)!.displayName;
     const change = {
       snapshot,
       controls: structuredClone(snapshot.controls ?? emptyPublicControls()),
       roster: this.actors.roster(snapshot.roster!.seatCount),
       now,
     };
-    const event = this.event(snapshot, 'seat-depart', seatMessages.removed(name, seat));
+    const event = this.event(snapshot, 'seat-depart', seatMessages.removed(seat));
     this.actors.vacate(userId, { cause: 'removal', eventId: event.id });
     return this.settle(change, seat, event);
   }
@@ -263,14 +254,14 @@ export class Participation {
     const change = { ...command, controls: structuredClone(snapshot.controls ?? emptyPublicControls()) };
     const requestId = this.pendingRequestId(userId);
     if (requestId) {
-      this.resolve(requestId, 'closed', now, null);
+      this.resolve(requestId, 'closed', now);
       change.controls.seatRequests = change.controls.seatRequests.filter((request) => request.id !== requestId);
     }
     if (!oldSeat || oldSeat === SPECTATOR_SEAT || !snapshot.stage) {
       return { ...snapshot, controls: change.controls };
     }
     /* The directory already wrote the vacated row against this event id. */
-    const event = this.event(snapshot, 'seat-depart', seatMessages.vacated('[deleted user]', oldSeat));
+    const event = this.event(snapshot, 'seat-depart', seatMessages.vacated(oldSeat));
     return this.settle(change, oldSeat, event);
   }
 
@@ -291,7 +282,7 @@ export class Participation {
     let next = this.next(change, event);
     if (this.actors.seated().length === 0) {
       for (const pending of controls.seatRequests) {
-        this.resolve(pending.id, 'closed', now, null);
+        this.resolve(pending.id, 'closed', now);
       }
       controls.seatRequests = [];
       const discarded = this.event(next, 'stage', seatMessages.discarded());
@@ -300,18 +291,17 @@ export class Participation {
     return next;
   }
 
-  /** Every request row that names a deleted user, so the scrub can rebuild the events they wrote. */
+  /** Every request row that names a deleted user reads `[deleted user]` instead. */
   scrubNames(userId: string) {
     this.storage.sql.exec("UPDATE seat_requests SET display_name='[deleted user]' WHERE user_id=?", userId);
     this.storage.sql.exec("UPDATE seat_requests SET approver_name='[deleted user]' WHERE approver_id=?", userId);
   }
 
-  private resolve(requestId: string, state: RequestRow['state'], now: number, eventId: string | null) {
+  private resolve(requestId: string, state: RequestRow['state'], now: number) {
     this.storage.sql.exec(
-      "UPDATE seat_requests SET state=?, resolved_at=?, resolved_event_id=? WHERE request_id=? AND state='pending'",
+      "UPDATE seat_requests SET state=?, resolved_at=? WHERE request_id=? AND state='pending'",
       state,
       now,
-      eventId,
       requestId
     );
   }
@@ -341,7 +331,7 @@ export class Participation {
     return { id: `seat-${this.actors.highestSeatNumber() + 1}`, position };
   }
 
-  /** The id is minted before the event is appended, because the ledger and seat history rows name it first. */
+  /** The id is minted before the event is appended, because the seat history rows name it first. */
   private event(snapshot: StoredSnapshot, command: string, message: string) {
     return { id: eventId(snapshot.table.nextEventNumber), command, message };
   }
