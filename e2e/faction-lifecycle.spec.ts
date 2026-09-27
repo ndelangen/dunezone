@@ -93,7 +93,9 @@ test('owner can author a faction through its complete lifecycle', async ({ page 
     const factionName = page.getByRole('textbox', { name: 'Faction name' });
     await factionName.fill('');
     await expect(page.getByRole('button', { name: 'Save faction' })).toBeDisabled();
-    await expect(page.getByText('Add a faction name before saving; it determines the faction URL.')).toBeVisible();
+    await expect(
+      page.getByText('A faction name is required before saving because it determines the faction URL.')
+    ).toBeVisible();
     await factionName.fill(factionAName);
 
     /* No toggle anymore: the token proof always rides the identity rail (wayfinder #473). */
