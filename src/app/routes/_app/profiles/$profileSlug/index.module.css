@@ -122,7 +122,16 @@
   color: inherit;
 }
 
-@container (width < 48rem) {
+/*
+ * The columns stack only where main can no longer hold two faction cards at their small size beside
+ * the sidebar. The sidebar takes its 21rem before main gets any room. Below 44rem of the page the list
+ * shows two cards with a 0.75rem gap, and the column gap is 0.75rem at this width. A card's small size
+ * is 10rem, the width FactionCard's ContentStress story renders it at, and main's other blocks need
+ * less than two of them: 21rem + 0.75rem + 2 × 10rem + 0.75rem = 42.5rem.
+ * The avatar takes its 56px where the columns stack, as on main. Beside the sidebar it fills
+ * PageIdentity's media column, which steps with the title at 48rem of the page.
+ */
+@container (width < 42.5rem) {
   .contentColumns {
     grid-template-areas:
       "sidebar"
