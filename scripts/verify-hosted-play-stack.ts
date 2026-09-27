@@ -368,6 +368,9 @@ try {
   }
   convex(['deploy', '--yes']);
   console.log(`Synthetic Auth backend ready at ${backendUrl}; same-origin publisher ${origin}.`);
+  /* Wrangler's own debug log goes to ~/.config/.wrangler/logs by default, outside the evidence the artifact keeps. */
+  const wranglerLog = path.join(evidence, 'wrangler.log');
+  rmSync(wranglerLog, { force: true });
   const worker = start({
     command: process.execPath,
     args: [
@@ -382,6 +385,7 @@ try {
       ...(values['skip-build'] ? ['--skip-build'] : []),
       ...(values['skip-generate'] ? ['--skip-generate'] : []),
     ],
+    env: { ...environment, WRANGLER_LOG_PATH: wranglerLog },
     logPath: path.join(evidence, 'worker.log'),
   });
   await ready(`${origin}/__play/health`, worker, 300_000);

@@ -168,8 +168,9 @@ already restored the images and written the vectors. The job verifies the checks
 native Convex backend release, creates a fresh database, configures real local Auth, builds the app,
 then runs `scripts/verify-hosted-play.mjs` through both actual Workers.
 No hosted deployment credentials or production snapshots are used. Its generated private keys,
-admin key, SQLite database and local Worker persistence are removed on exit; only the Worker and
-verification logs are retained as artifacts. The same command runs locally on supported platforms.
+admin key, SQLite database and local Worker persistence are removed on exit; only the Worker output,
+Wrangler's own log for that Worker and the verification log are retained as artifacts. The same
+command runs locally on supported platforms.
 For a protocol-only local rehearsal, `--backend-binary` can select an existing native executable and
 `--skip-build` can reuse the publisher bundle; that shortcut does not verify the bundle's frontend backend URL.
 
@@ -193,10 +194,12 @@ installed browser. Each browser flow has its own timeout, ten minutes for the re
 for each named flow; protocol verification has three. All use the same stack cleanup.
 
 Reports and screenshots remain in `test-results/hosted-play/browser/<flow>-<timestamp>/`, with each
-report path printed on completion. Each flow's output remains in `test-results/hosted-play/<flow>.log`
-and Worker output in `test-results/hosted-play/worker.log`. Local account credentials and the backend
-environment file stay inside the private temporary runtime and are removed with its database and keys
-on exit. This mode uses only the new local backend, with no hosted data or deployment credentials.
+report path printed on completion. Each flow's output remains in `test-results/hosted-play/<flow>.log`,
+Worker output in `test-results/hosted-play/worker.log`, and Wrangler's own log for that Worker in
+`test-results/hosted-play/wrangler.log` instead of `~/.config/.wrangler/logs`. Local account
+credentials and the backend environment file stay inside the private temporary runtime and are
+removed with its database and keys on exit. This mode uses only the new local backend, with no
+hosted data or deployment credentials.
 
 ## Environment variables
 
