@@ -127,6 +127,7 @@ test('disconnect forgets the old baseline, rejects its late messages and accepts
 
 test('applies a saved movement patch that the admission never asked for', async () => {
   const { subscription, socket, view } = await subscribed();
+  expect(socket.sent).toEqual([{ type: 'admit', ticket: 'a'.repeat(64) }]);
   const next = structuredClone(view);
   next.snapshot.revision++;
   next.snapshot.table.pieces[0].position = [2, 0, 2];
@@ -140,7 +141,7 @@ test('applies a saved movement patch that the admission never asked for', async 
   expect(update.snapshot?.pieceMoves).toHaveLength(1);
   socket.deliver(update);
   expect(subscription.getSnapshot()?.snapshot).toEqual(next.snapshot);
-  expect(socket.sent).toEqual([{ type: 'admit', ticket: 'a'.repeat(64) }]);
+  expect(socket.sent).toHaveLength(1);
 });
 
 test('a suspended admission reads as the connection opening until the table has shown once, and as a pause after', async () => {

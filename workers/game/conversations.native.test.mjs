@@ -92,14 +92,16 @@ describe('Faction conversations in the game database', () => {
     const tab = await admit('b');
     await syncView(tab);
     const sent = await send(a, aId, bId, 'Plans for every tab', 'every-tab');
-    expect(await tab.message('conversation-message', (entry) => entry.message.requestId === 'every-tab')).toMatchObject(
-      {
-        factionId: bId,
-        peerId: aId,
-        message: sent.message,
-      }
-    );
-    expect(await tab.message('conversations')).toMatchObject({ factionId: bId });
+    /* The room answers in order, so a view asked for after the send arrives behind anything the send pushed. */
+    await syncView(tab);
+    expect(tab.messages.find((entry) => entry.type === 'conversation-message')).toEqual({
+      type: 'conversation-message',
+      factionId: bId,
+      peerId: aId,
+      message: sent.message,
+      serverNow: expect.any(Number),
+    });
+    expect(tab.messages.findLast((entry) => entry.type === 'conversations')).toMatchObject({ factionId: bId });
   });
 
   it('revokes former owners before retry lookup and gives replacements the full faction conversation', async () => {
