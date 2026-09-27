@@ -85,10 +85,10 @@ test('hosted preflight rejects the wrong credential scope before network access 
     )
   );
   vi.stubGlobal('fetch', fetch);
-  vi.stubEnv('CONVEX_DEPLOY_KEY', 'prod:isolated-load-1105|test');
+  vi.stubEnv('CONVEX_DEPLOY_KEY', `prod:${target.backendName}|test`);
   await expect(openHostedSession(filename, values)).rejects.toThrow('isolated development');
   expect(fetch).not.toHaveBeenCalled();
-  vi.stubEnv('CONVEX_DEPLOY_KEY', 'dev:isolated-load-1105|test');
+  vi.stubEnv('CONVEX_DEPLOY_KEY', `dev:${target.backendName}|test`);
   for (const [change, message] of [
     [{ profile: 'separated' }, 'different profile'],
     [{ case: 'probe' }, 'different case'],

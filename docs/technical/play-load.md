@@ -32,7 +32,7 @@ and recipient delivery use the existing application path. The stack runs the pro
 lease and 90 second renewal cadence, so a load run's `watchAuthorizations` and `reconcileAccounts`
 traffic is about 0.7 calls a minute per function per connected room.
 
-The stack runs the coordinator under Node from the bundle that
+The stack runs the coordinator under Node 22 or later from the bundle that
 [`scripts/play-load/bundle.ts`](../../scripts/play-load/bundle.ts) writes.
 
 The runner accepts explicit `http://127.0.0.1:PORT` origins by default. The separate hosted preparation path below requires a private run file and a deployment-scoped key.
@@ -48,7 +48,8 @@ on the disposable backend. It refuses a live fixture and cannot run against prod
 The baseline keeps six pieces, 17 items and the original two player seats. Its smoke adds one
 observer and one secondary player tab. It is not the expanded audience.
 
-Both expanded arrangements admit the audience in `loadWorkload.json`: its `players`, `observers` and `secondaryTabs`.
+Both expanded arrangements take their audience from `players`, `observers` and `secondaryTabs` in
+`loadWorkload.json`.
 The runner asserts distinct users and seats, observer roles and shared seats for secondary tabs.
 Their 750 item identities are the same. The stacked arrangement has 294 pieces; the separated
 arrangement has 750. The synthetic pieces occupy a dense area of the table, with a clear position
