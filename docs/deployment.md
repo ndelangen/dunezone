@@ -162,17 +162,21 @@ publisher asset build; use it only when that build already has the same local ba
 `--skip-generate` still builds but reuses the image and vector output already in the checkout, and
 refuses to start when that output is missing; the OBJ pieces are always regenerated.
 
-The `hosted_play` CI job runs `bun --no-env-file scripts/verify-hosted-play-stack.ts --skip-generate`.
+The `hosted_play` CI job runs `bun --no-env-file scripts/verify-hosted-play-stack.ts --skip-generate
+--flow private-banks --flow decks`, with `--browser` naming Playwright's full Chromium.
 The launcher passes `--skip-generate` to the runner, because the job's generated-images step has
 already restored the images and written the vectors. The job verifies the checksum of the pinned
 native Convex backend release, creates a fresh database, configures real local Auth, builds the app,
-then runs `scripts/verify-hosted-play.mjs` through both actual Workers.
+then runs `scripts/verify-hosted-play.mjs` through both actual Workers. The protocol verifier creates
+and provisions a synthetic game of its own. The two browser flows then run on the same stack, each
+on a fresh canonical fixture. A failure in any of them fails the job.
 No hosted deployment credentials or production snapshots are used. Its generated private keys,
-admin key, SQLite database and local Worker persistence are removed on exit; only the Worker output,
-Wrangler's own log for that Worker and the verification log are retained as artifacts. The same
-command runs locally on supported platforms.
-For a protocol-only local rehearsal, `--backend-binary` can select an existing native executable and
-`--skip-build` can reuse the publisher bundle; that shortcut does not verify the bundle's frontend backend URL.
+admin key, SQLite database and local Worker persistence are removed on exit. The artifact keeps the
+verification log, each flow's log and browser report, the Worker output and Wrangler's own log for
+that Worker. The same command runs locally on supported platforms.
+For a protocol-only local rehearsal, leave out `--flow`. `--backend-binary` can then select an existing
+native executable and `--skip-build` can reuse the publisher bundle; that shortcut does not verify the
+bundle's frontend backend URL.
 
 Run the headless browser proof against a fresh synthetic backend with:
 
@@ -180,18 +184,20 @@ Run the headless browser proof against a fresh synthetic backend with:
 bun --no-env-file scripts/verify-hosted-play-stack.ts --browser-only --flow all
 ```
 
-This mode builds the app and starts the stack once, then runs each selected browser flow in turn.
-Before each flow it retires the previous flow's game and provisions a fresh canonical fixture through
-the local Workers, so every flow's new synthetic accounts receive the fixture's player seats. It runs
-`scripts/verify-hosted-play-browser.mjs` instead of the protocol verifier. `--flow` repeats, `all`
-selects every flow in [`scripts/verify-hosted-flows.ts`](../scripts/verify-hosted-flows.ts), and
-without it only the regular flow runs; the named flows are described under
-[Verification](./technical/play-hosted.md#verification). A failed flow does not stop the rest, and
-the run fails at the end naming each failed flow. It rebuilds the frontend for this run's backend URL;
-`--skip-build` is rejected. `--backend-binary` can still select an existing native backend executable,
-and `--browser /absolute/path/to/chromium` can select a Chromium executable instead of Playwright's
-installed browser. Each browser flow has its own timeout, ten minutes for the regular flow and five
-for each named flow; protocol verification has three. All use the same stack cleanup.
+The launcher builds the app and starts the stack once. Without `--browser-only` it runs the protocol
+verifier first. It then runs each selected browser flow in turn through
+`scripts/verify-hosted-play-browser.mjs`. Before each flow it retires the previous flow's game and
+provisions a fresh canonical fixture through the local Workers, so every flow's new synthetic accounts
+receive the fixture's player seats. `--flow` repeats, `all` selects every flow in
+[`scripts/verify-hosted-flows.ts`](../scripts/verify-hosted-flows.ts), and `--browser-only` without it
+runs only the regular flow; the named flows are described under
+[Verification](./technical/play-hosted.md#verification). A failure does not stop the flows after it,
+and the run fails at the end naming each failed verifier. A run with browser flows rebuilds the
+frontend for this run's backend URL, so it rejects `--skip-build`. `--backend-binary` can still select
+an existing native backend executable, and `--browser /absolute/path/to/chromium` can select a
+Chromium executable instead of Playwright's installed browser. Each browser flow has its own timeout,
+ten minutes for the regular flow and five for each named flow; protocol verification has three. All
+use the same stack cleanup.
 
 Reports and screenshots remain in `test-results/hosted-play/browser/<flow>-<timestamp>/`, with each
 report path printed on completion. Each flow's output remains in `test-results/hosted-play/<flow>.log`,

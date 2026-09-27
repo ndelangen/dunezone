@@ -300,18 +300,28 @@ jobs:
           persist-credentials: false
       - uses: ./.github/actions/setup
       - uses: ./.github/actions/generated-images
-      - name: Verify actual Auth and same-origin game Worker integration
+      - uses: ./.github/actions/playwright-chromium
+        with:
+          # The ubuntu-24.04 runner image already ships Chromium's shared libraries.
+          with-deps: "false"
+      - name: Verify actual Auth, same-origin game Worker integration, private banks and decks
         # The generated-images step above already wrote the image and vector output.
-        run: bun --no-env-file scripts/verify-hosted-play-stack.ts --skip-generate
+        # One stack: the protocol verifier runs on its own synthetic game, then each flow on a fresh fixture.
+        # The flows run in full Chromium's new headless mode, the browser their budgets were measured in (#1343),
+        # not Playwright's headless shell.
+        run: |
+          chromium="$(bun -e 'import { chromium } from "playwright"; console.log(chromium.executablePath())')"
+          test -x "$chromium"
+          bun --no-env-file scripts/verify-hosted-play-stack.ts --skip-generate --flow private-banks --flow decks --browser "$chromium"
       - name: Retain hosted game integration evidence
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: hosted-play-evidence-${{ github.run_id }}
+          # The verification, Worker and Wrangler logs, one log per flow, and each flow's report, captures and frames.
           path: |
-            test-results/hosted-play/verification.log
-            test-results/hosted-play/worker.log
-            test-results/hosted-play/wrangler.log
+            test-results/hosted-play/*.log
+            test-results/hosted-play/browser/
           if-no-files-found: ignore
           retention-days: 14
 
