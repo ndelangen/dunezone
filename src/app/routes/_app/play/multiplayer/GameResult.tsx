@@ -50,6 +50,13 @@ function RevealButton({ client, table, stepId }: Props & Readonly<{ stepId: stri
 
 type Choice = { kind: GameResultKind; faction: string | null; alliance: string[] };
 
+function chosenFactions(choice: Choice): string[] {
+  if (choice.kind === 'alliance') {
+    return choice.alliance;
+  }
+  return choice.kind === 'faction' && choice.faction ? [choice.faction] : [];
+}
+
 /* The declaring player's bar: one faction, an alliance of factions or no winner, then Declare. */
 function DeclareBar({ client, table }: Props) {
   const [choice, change] = useReducer((state: Choice, patch: Partial<Choice>) => ({ ...state, ...patch }), {
@@ -57,14 +64,7 @@ function DeclareBar({ client, table }: Props) {
     faction: null,
     alliance: [],
   });
-  const factionIds =
-    choice.kind === 'faction'
-      ? choice.faction
-        ? [choice.faction]
-        : []
-      : choice.kind === 'alliance'
-        ? choice.alliance
-        : [];
+  const factionIds = chosenFactions(choice);
   const valid = resultFactionCountFits(choice.kind, factionIds.length);
   const options = factionOptions(table);
   const stepId = unrevealedPrediction(table);
@@ -145,13 +145,18 @@ export function ResultDecisionBar({ client, table }: Props) {
   return null;
 }
 
+/** The viewer's own unrevealed prediction; spectators hold none. */
+function ownUnrevealed(table: TableProjection) {
+  return seated(table) ? unrevealedPrediction(table) : undefined;
+}
+
 function seated(table: TableProjection) {
   return table.viewer.viewerSeat !== SPECTATOR_SEAT;
 }
 
 /* Every other panel while one player determines the winner: the reveal reminder, never a block. */
 function DeterminingBar({ client, table, name }: Props & Readonly<{ name: string }>) {
-  const stepId = seated(table) ? unrevealedPrediction(table) : undefined;
+  const stepId = ownUnrevealed(table);
   const reveal = stepId && <RevealButton client={client} table={table} stepId={stepId} />;
   return (
     <DecisionBar
@@ -169,7 +174,7 @@ function DeterminingBar({ client, table, name }: Props & Readonly<{ name: string
 
 function FinishedBar({ client, table, result }: Props & Readonly<{ result: GameResult }>) {
   const player = seated(table);
-  const stepId = player ? unrevealedPrediction(table) : undefined;
+  const stepId = ownUnrevealed(table);
   return (
     <DecisionBar
       eyebrow="Finished"
