@@ -284,6 +284,9 @@ export class Room {
 
   /* Phase, battle and catalogue controls belong to play; setup opens only physical handling. */
   private assertPlaying() {
+    if (this.snapshot.stage === 'finished') {
+      throw new GameRejection('The game is finished. Continue playing to change the table.');
+    }
     if (this.snapshot.stage && this.snapshot.stage !== 'play') {
       throw new GameRejection('The game has not started playing yet.');
     }

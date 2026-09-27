@@ -107,8 +107,6 @@ function draftStamp(seated: readonly string[], draft: NonNullable<StoredSnapshot
 }
 
 const CREATOR_SEAT = 'seat-1';
-/* The directory's declarer after that account's deletion; the lobby never shows a declarer. */
-const DELETED_DECLARER = 'deleted-user';
 
 /** Owns game state and its durable transitions; the host owns connections and delivery. */
 export class GameSession {
@@ -196,8 +194,8 @@ export class GameSession {
 
   /** The stored seating rides on every snapshot the room holds, as the current occupancy already does. */
   private withRoster<Snapshot extends StoredSnapshot>(snapshot: Snapshot): Snapshot {
-    const seated = new Set(this.actors.seated().map((occupant) => occupant.userId));
-    return { ...settleEnding(snapshot, seated), roster: this.actors.roster(this.seatCount()) } as Snapshot;
+    const settled = settleEnding(snapshot, () => new Set(this.actors.seated().map((occupant) => occupant.userId)));
+    return { ...settled, roster: this.actors.roster(this.seatCount()) };
   }
 
   /** A drafting roster that outgrew its stations fixes a larger count, inside the caller's transaction. */
@@ -382,7 +380,7 @@ export class GameSession {
           ? {
               kind: snapshot.result.kind,
               factions: snapshot.result.factionIds.map((id) => ({ id, name: factionName(id) })),
-              declaredBy: snapshot.result.by.userId ?? DELETED_DECLARER,
+              declaredBy: snapshot.result.by.userId,
               declaredAt: snapshot.result.declaredAt,
             }
           : null,
