@@ -5,9 +5,9 @@ import type { SupplyDependencies } from '@shared/play/setupSupply';
 import { factionSupply, item, piece, place } from '@shared/play/setupSupply';
 import { OTHER_DECK_POSITION } from '@shared/play/tableFurnitureLayout';
 import { BOARD_RADIUS, restingPositionAt } from '@shared/play/tableGeometry';
-import { labelForCount } from '@shared/play/tableState';
 import type { TableSeatCount } from '@shared/play/tableSettings';
 import { tableSeatAngles } from '@shared/play/tableSettings';
+import { labelForCount } from '@shared/play/tableState';
 import board from '@shared/rulebooks/boards/arrakis.json';
 
 import type { StorybookDatabase } from '@db/storybook';
