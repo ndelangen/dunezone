@@ -1,4 +1,5 @@
 import preview from '@sb/preview';
+import { finishTransitions } from '@sb/storyWaits';
 import { expect, waitFor, within } from 'storybook/test';
 
 import { SiteNavigation } from './SiteNavigation';
@@ -71,7 +72,9 @@ export const OverflowMenuOpen = meta.story({
     const more = await waitFor(() => canvas.getByRole('button', { name: /More/ }));
     more.click();
     await waitFor(async () => {
-      await expect(within(document.body).getByRole('menuitem', { name: 'Marketplace' })).toBeVisible();
+      await expect(
+        finishTransitions(within(document.body).getByRole('menuitem', { name: 'Marketplace' }))
+      ).toBeVisible();
     });
   },
 });
