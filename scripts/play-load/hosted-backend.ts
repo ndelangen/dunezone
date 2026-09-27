@@ -19,6 +19,15 @@ export function requireHostedRun() {
   return requireRun(target, process.env);
 }
 
+export function isSyntheticBackend() {
+  try {
+    requireHostedRun();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function loadIdentity(params: Record<string, Value | undefined>) {
   return hostedLoadIdentity(target, process.env, params);
 }
@@ -56,7 +65,7 @@ export async function prepareHostedBackend(requested: string, supplied: unknown)
   await writeFile(path.join(directory, 'convex/lib/playHostedGuard.ts'), guardSource(target));
   await writeFile(
     path.join(directory, 'convex/lib/playSynthetic.ts'),
-    "export { requireHostedRun as requireSyntheticBackend } from './playHostedGuard';\n"
+    "export { isSyntheticBackend, requireHostedRun as requireSyntheticBackend } from './playHostedGuard';\n"
   );
   const auth = path.join(directory, 'convex/auth.ts');
   await replaceOnce(
