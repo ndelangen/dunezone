@@ -3,7 +3,9 @@ import type { TablePiece } from '@shared/play/model';
 import type { GameSnapshot, Viewer } from '@shared/play/protocol';
 import type { SupplyDependencies } from '@shared/play/setupSupply';
 import { factionSupply, item, piece, place } from '@shared/play/setupSupply';
+import { OTHER_DECK_POSITION } from '@shared/play/tableFurnitureLayout';
 import { BOARD_RADIUS, restingPositionAt } from '@shared/play/tableGeometry';
+import { labelForCount } from '@shared/play/tableState';
 import type { TableSeatCount } from '@shared/play/tableSettings';
 import { tableSeatAngles } from '@shared/play/tableSettings';
 import board from '@shared/rulebooks/boards/arrakis.json';
@@ -255,9 +257,10 @@ export function preparedSnapshot(viewerSeat = 'seat-2'): GameSnapshot {
     const selected = leaders.slice(offset, offset + keptCounts[viewer]!);
     snapshot.hand!.push(
       ...selected.map(({ faction, leader, index }, selectedIndex) => ({
+        /* The Traitors were dealt, and a deal names every card it hands out "Card", whatever its face. */
         ...piece(
           `kept-traitor-${selectedIndex}`,
-          leader.name,
+          'Card',
           factions[viewer]!.slug,
           factions[viewer]!.data.themeColor,
           'card',
@@ -278,14 +281,16 @@ export function preparedSnapshot(viewerSeat = 'seat-2'): GameSnapshot {
     );
   }
   const decks = snapshot.table.pieces.filter((entry) => entry.kind === 'card');
+  const items = decks.flatMap((entry) => entry.items).slice(keptCounts.reduce((sum, count) => sum + count, 0));
+  /* The gather combines the six Traitor decks, which changes their cards, so the pile takes the name its back gives it. */
   const remaining = {
     ...decks[0]!,
     id: 'remaining-traitors',
-    label: 'Unchosen Traitors',
+    label: labelForCount(decks[0]!, items.length),
     orientation: 0,
-    items: decks.flatMap((entry) => entry.items).slice(keptCounts.reduce((sum, count) => sum + count, 0)),
+    items,
   };
-  remaining.position = restingPositionAt([0, 0, 7.5], remaining);
+  remaining.position = restingPositionAt(OTHER_DECK_POSITION, remaining);
   snapshot.table.pieces = [...snapshot.table.pieces.filter((entry) => entry.kind !== 'card'), remaining];
   placeStartingForces(snapshot);
   snapshot.setup!.index = 1;
@@ -317,21 +322,22 @@ export function playingSnapshot(viewerSeat = 'seat-2'): GameSnapshot {
     'snooper',
     'snooper',
   ];
+  const deck = {
+    ...piece('treachery-deck', 'Treachery deck', 'shared', '#ad8a45', 'card', 'cards:treachery'),
+    items: cards.map((_name, index) => ({
+      id: `treachery-${index}`,
+      faceUp: false,
+      artwork: { back: cardBack(), backName: 'Treachery' },
+    })),
+  };
+  /* A Snooper was drawn off the deck and turned face up. The draw changed both stacks' cards, so each takes the name its back gives it, as a split names them. */
   snapshot.table.pieces.push(
+    place({ ...deck, label: labelForCount(deck, deck.items.length) }, [6.3, 0, 0]),
     place(
       {
-        ...piece('treachery-deck', 'Treachery deck', 'shared', '#ad8a45', 'card', 'cards:treachery'),
-        items: cards.map((_name, index) => ({
-          id: `treachery-${index}`,
-          faceUp: false,
-          artwork: { back: cardBack(), backName: 'Treachery' },
-        })),
-      },
-      [6.3, 0, 0]
-    ),
-    place(
-      {
-        ...piece('treachery-card-loose', 'Snooper', 'shared', '#ad8a45', 'card', 'cards:treachery'),
+        ...deck,
+        id: 'treachery-card-loose',
+        label: labelForCount(deck, 1, true),
         items: [
           item(
             'treachery-loose',
