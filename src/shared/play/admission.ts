@@ -6,6 +6,8 @@ import { tableSeatCountSchema } from './schema';
 export const PLAY_FIXTURE_KEY = 'hosted-demo';
 export const PLAY_TICKET_TTL_MS = 30_000;
 export const PLAY_PENDING_TIMEOUT_MS = 5000;
+/** The longest wait between reconnects while every new ticket keeps expiring before the Worker redeems it. */
+export const PLAY_TICKET_RETRY_MAX_MS = 30_000;
 /*
  * The reactive subscription is the prompt path for revocation. The uncached lease bounds a stalled
  * subscription over a live transport; the lease must exceed the renewal cadence plus the request
@@ -85,7 +87,11 @@ export const playRedeemTicketRequestSchema = z.strictObject({
   ticket: playCredentialSchema,
 });
 export const playRedeemTicketResultSchema = z.union([
-  refusedSchema,
+  /*
+   * `expired` covers a ticket that lapsed, was already redeemed or is unknown: a new ticket answers each, so the browser
+   * asks for one. `refused` is final.
+   */
+  z.object({ ok: z.literal(false), reason: z.enum(['expired', 'refused']) }),
   z.object({
     ok: z.literal(true),
     registrationId: identifierSchema,

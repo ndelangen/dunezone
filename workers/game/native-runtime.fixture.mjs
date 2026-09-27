@@ -154,7 +154,8 @@ function answerPeerRequest(peer, record) {
       record.release({ ok: true });
       break;
     case 'playAdmission:redeemTicket':
-      record.release(redeemedIdentity(peer));
+      /* A test that sets `peer.redemptionRefusal` has Convex refuse the ticket with that reason instead of redeeming it. */
+      record.release(peer.redemptionRefusal ? { ok: false, reason: peer.redemptionRefusal } : redeemedIdentity(peer));
       break;
     case 'playAdmission:reconcileAccounts':
       record.release({
@@ -203,6 +204,7 @@ export async function createPeer() {
     watchMode: 'manual',
     expiresAt: () => Date.now() + 60_000,
     registrationId: 'registration-a',
+    redemptionRefusal: null,
     provisionExpiresAt: Date.now() + 60_000,
     confirmed: false,
     holdFirstConfirmation: false,
@@ -450,10 +452,11 @@ export async function openGame(runtime) {
     throw new Error(`Socket refused: ${response.status}`);
   }
   const socket = response.webSocket;
-  const connection = { socket, messages: [], closed: false };
+  const connection = { socket, messages: [], closed: false, closeCode: null };
   socket.addEventListener('message', (event) => connection.messages.push(JSON.parse(event.data)));
-  socket.addEventListener('close', () => {
+  socket.addEventListener('close', (event) => {
     connection.closed = true;
+    connection.closeCode = event.code;
   });
   socket.accept();
   connection.send = (message) => socket.send(JSON.stringify(message));
