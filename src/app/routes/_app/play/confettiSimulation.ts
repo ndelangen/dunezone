@@ -53,6 +53,16 @@ export type ConfettiSupport = Readonly<{
 
 type Stream = { angles: readonly number[]; elapsed: number; owed: number };
 
+/** A point on the table, seen from above. */
+export type TablePoint = Readonly<{ x: number; z: number }>;
+/** One step of the simulation: how long it lasts, and what the discs can land on. */
+export type ConfettiFrame = Readonly<{ seconds: number; supports?: readonly ConfettiSupport[] }>;
+/** A stream to start: the table angles of its slots, and how far into it the viewer arrives. */
+type StreamStart = Readonly<{ angles: readonly number[]; elapsed?: number }>;
+type Cell = Readonly<{ column: number; row: number }>;
+/* One disc's offsets into the position (and velocity, spin) arrays and into the rotation array. */
+type Disc = { index: number; p: number; q: number };
+
 /** A small seeded generator, so a test sees the same stream twice. */
 function seededRandom(seed: number) {
   let state = seed >>> 0;
@@ -69,20 +79,22 @@ function randomSeed(): number {
   return crypto.getRandomValues(new Uint32Array(1))[0]!;
 }
 
-function gridIndex(column: number, row: number): number | null {
+function gridIndex({ column, row }: Cell): number | null {
   const inside = column >= 0 && row >= 0 && column < GRID_SIZE && row < GRID_SIZE;
   return inside ? row * GRID_SIZE + column : null;
 }
 
-function gridCoordinates(x: number, z: number): [column: number, row: number] {
-  return [Math.floor((x + GRID_HALF) / GRID_CELL), Math.floor((z + GRID_HALF) / GRID_CELL)];
+function gridCell({ x, z }: TablePoint): Cell {
+  return { column: Math.floor((x + GRID_HALF) / GRID_CELL), row: Math.floor((z + GRID_HALF) / GRID_CELL) };
 }
 
 /* A support catches a disc only over its footprint, and only when the disc came down onto it rather than drifting in from the side. */
-function catches(support: ConfettiSupport, x: number, z: number, fromY: number): boolean {
-  const dx = x - support.x;
-  const dz = z - support.z;
-  return fromY >= support.top && dx * dx + dz * dz <= support.reach * support.reach && support.contains(x, z);
+function catches(support: ConfettiSupport, point: TablePoint, fromY: number): boolean {
+  const dx = point.x - support.x;
+  const dz = point.z - support.z;
+  return (
+    fromY >= support.top && dx * dx + dz * dz <= support.reach * support.reach && support.contains(point.x, point.z)
+  );
 }
 
 export class ConfettiField {
@@ -106,8 +118,9 @@ export class ConfettiField {
   private streams: Stream[] = [];
   private piles = new Float32Array(GRID_SIZE * GRID_SIZE);
   private random: () => number;
+  private disc: Disc = { index: 0, p: 0, q: 0 };
 
-  constructor(capacity = CONFETTI_CAPACITY, seed = randomSeed()) {
+  constructor({ capacity = CONFETTI_CAPACITY, seed = randomSeed() }: { capacity?: number; seed?: number } = {}) {
     this.capacity = capacity;
     this.position = new Float32Array(capacity * 3);
     this.velocity = new Float32Array(capacity * 3);
@@ -120,7 +133,7 @@ export class ConfettiField {
   }
 
   /** Starts a stream from the slots at these table angles, `elapsed` seconds into it for a viewer who arrives late. */
-  launch(angles: readonly number[], elapsed = 0) {
+  launch({ angles, elapsed = 0 }: StreamStart) {
     if (angles.length > 0 && elapsed < CONFETTI_STREAM_SECONDS) {
       this.streams.push({ angles, elapsed: Math.max(0, elapsed), owed: 0 });
     }
@@ -171,24 +184,29 @@ export class ConfettiField {
   }
 
   /** Advances by a frame of real time: the streams keep that time, and the physics follows in short steps. */
-  step(seconds: number, supports: readonly ConfettiSupport[] = []) {
-    this.emit(seconds);
-    const moving = Math.min(seconds, MAX_EMIT_STEP);
+  step(frame: ConfettiFrame) {
+    this.emit(frame);
+    const moving = Math.min(frame.seconds, MAX_EMIT_STEP);
     const steps = Math.ceil(moving / MAX_PHYSICS_STEP);
+    const physics = { seconds: moving / steps, supports: frame.supports ?? [] };
     for (let step = 0; step < steps; step++) {
-      this.moveAll(moving / steps, supports);
+      this.moveAll(physics);
     }
   }
 
-  private moveAll(seconds: number, supports: readonly ConfettiSupport[]) {
+  private moveAll(frame: Required<ConfettiFrame>) {
+    const disc = this.disc;
     for (let index = 0; index < this.count; index++) {
       if (this.state[index] === AIRBORNE) {
-        this.move(index, seconds, supports);
+        disc.index = index;
+        disc.p = index * 3;
+        disc.q = index * 4;
+        this.move(disc, frame);
       }
     }
   }
 
-  private emit(seconds: number) {
+  private emit({ seconds }: ConfettiFrame) {
     for (const stream of this.streams) {
       const remaining = CONFETTI_STREAM_SECONDS - stream.elapsed;
       stream.elapsed += seconds;
@@ -231,26 +249,25 @@ export class ConfettiField {
     this.spawned = true;
   }
 
-  private move(index: number, seconds: number, supports: readonly ConfettiSupport[]) {
-    const p = index * 3;
+  private move(disc: Disc, frame: Required<ConfettiFrame>) {
+    const { index, p } = disc;
     const fromY = this.position[p + 1]!;
-    this.fly(p, seconds);
-    this.turn(index, seconds);
+    this.fly(disc, frame);
+    this.turn(disc, frame);
     this.changed.add(index);
-    const x = this.position[p]!;
-    const z = this.position[p + 2]!;
-    if (this.position[p + 1]! < LOST_BELOW_Y || Math.hypot(x, z) > LOST_BEYOND_RADIUS) {
+    const point = { x: this.position[p]!, z: this.position[p + 2]! };
+    if (this.position[p + 1]! < LOST_BELOW_Y || Math.hypot(point.x, point.z) > LOST_BEYOND_RADIUS) {
       this.state[index] = FREE;
       this.airborne--;
       return;
     }
-    const floor = this.supportAt(x, z, supports, fromY);
-    if (floor !== null && this.touches(p, floor)) {
-      this.land(index, floor);
+    const floor = this.supportAt(point, frame.supports, fromY);
+    if (floor !== null && this.touches(disc, floor)) {
+      this.land(disc, floor);
     }
   }
 
-  private fly(p: number, seconds: number) {
+  private fly({ p }: Disc, { seconds }: ConfettiFrame) {
     const velocity = this.velocity;
     velocity[p + 1] -= GRAVITY * seconds;
     const horizontal = Math.exp(-HORIZONTAL_DRAG * seconds);
@@ -265,14 +282,14 @@ export class ConfettiField {
     }
   }
 
-  private touches(p: number, floor: number): boolean {
+  private touches({ p }: Disc, floor: number): boolean {
     return this.velocity[p + 1]! <= 0 && this.position[p + 1]! <= floor + DISC_THICKNESS / 2;
   }
 
-  private land(index: number, floor: number) {
-    const p = index * 3;
+  private land(disc: Disc, floor: number) {
+    const { index, p } = disc;
     if (-this.velocity[p + 1]! <= BOUNCE_SPEED || this.bounces[index]! >= MAX_BOUNCES) {
-      this.settle(index, floor);
+      this.settle(disc, floor);
       return;
     }
     this.bounces[index] = this.bounces[index]! + 1;
@@ -285,9 +302,7 @@ export class ConfettiField {
     }
   }
 
-  private turn(index: number, seconds: number) {
-    const p = index * 3;
-    const q = index * 4;
+  private turn({ p, q }: Disc, { seconds }: ConfettiFrame) {
     const rotation = this.rotation;
     const [ax, ay, az] = [this.spin[p]! * seconds, this.spin[p + 1]! * seconds, this.spin[p + 2]! * seconds];
     const [x, y, z, w] = [rotation[q]!, rotation[q + 1]!, rotation[q + 2]!, rotation[q + 3]!];
@@ -300,8 +315,7 @@ export class ConfettiField {
     rotation.set([nx / length, ny / length, nz / length, nw / length], q);
   }
 
-  private settle(index: number, floor: number) {
-    const p = index * 3;
+  private settle({ index, p, q }: Disc, floor: number) {
     this.position[p + 1] = floor + DISC_THICKNESS / 2;
     this.velocity.fill(0, p, p + 3);
     this.spin.fill(0, p, p + 3);
@@ -311,24 +325,24 @@ export class ConfettiField {
     const [sx, cx] = [Math.sin(tilt / 2), Math.cos(tilt / 2)];
     const [sy, cy] = [Math.sin(yaw / 2), Math.cos(yaw / 2)];
     /* The yaw applied after the tilt: q = yaw · tilt. */
-    this.rotation.set([cy * sx, sy * cx, -sy * sx, cy * cx], index * 4);
+    this.rotation.set([cy * sx, sy * cx, -sy * sx, cy * cx], q);
     this.state[index] = SETTLED;
     this.airborne--;
-    this.deposit(this.position[p]!, this.position[p + 2]!);
+    this.deposit({ x: this.position[p]!, z: this.position[p + 2]! });
   }
 
   /** Where a disc over this point comes to rest, or null where there is nothing under it. */
-  supportAt(x: number, z: number, supports: readonly ConfettiSupport[] = [], fromY = Infinity): number | null {
-    if (Math.hypot(x, z) > TABLE_VISIBLE_RADIUS) {
+  supportAt(point: TablePoint, supports: readonly ConfettiSupport[] = [], fromY = Infinity): number | null {
+    if (Math.hypot(point.x, point.z) > TABLE_VISIBLE_RADIUS) {
       return null;
     }
-    let base = surfaceHeightAt([x, 0, z]);
+    let base = surfaceHeightAt([point.x, 0, point.z]);
     for (const support of supports) {
-      if (support.top > base && catches(support, x, z, fromY)) {
+      if (support.top > base && catches(support, point, fromY)) {
         base = support.top;
       }
     }
-    const cell = gridIndex(...gridCoordinates(x, z));
+    const cell = gridIndex(gridCell(point));
     return base + (cell === null ? 0 : this.piles[cell]!);
   }
 
@@ -336,16 +350,16 @@ export class ConfettiField {
    * A settled disc adds its thickness to its cell, and lifts its neighbours to just below that, so piles slope instead of forming towers.
    * The pile is kept as depth above whatever is underneath, so once a piece moves away later foil lands on the board rather than at the piece's old height.
    */
-  private deposit(x: number, z: number) {
-    const [column, row] = gridCoordinates(x, z);
-    const centre = gridIndex(column, row);
+  private deposit(point: TablePoint) {
+    const { column, row } = gridCell(point);
+    const centre = gridIndex({ column, row });
     if (centre === null) {
       return;
     }
     const depth = this.piles[centre]! + DISC_THICKNESS;
     this.piles[centre] = depth;
     for (const [dx, dz] of NEIGHBOURS) {
-      const cell = gridIndex(column + dx, row + dz);
+      const cell = gridIndex({ column: column + dx, row: row + dz });
       if (cell !== null) {
         this.piles[cell] = Math.max(this.piles[cell]!, depth - DISC_THICKNESS * 1.5);
       }

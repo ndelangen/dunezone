@@ -66,6 +66,38 @@ function createDiscMesh(capacity: number): InstancedMesh {
   return mesh;
 }
 
+type Scratch = { matrix: Matrix4; position: Vector3; rotation: Quaternion; scale: Vector3 };
+
+/* Redraws the discs that moved; only the discs in use go to the GPU, and their colours only when new ones appeared. */
+function drawDiscs({
+  field,
+  mesh,
+  palette,
+  scratch,
+}: Readonly<{ field: ConfettiField; mesh: InstancedMesh; palette: readonly Color[]; scratch: Scratch }>) {
+  const recolor = field.takeSpawned();
+  const { matrix, position, rotation, scale } = scratch;
+  for (const index of field.takeChanged()) {
+    position.fromArray(field.position, index * 3);
+    rotation.fromArray(field.rotation, index * 4);
+    scale.setScalar(field.isVisible(index) ? 1 : 0);
+    matrix.compose(position, rotation, scale);
+    mesh.setMatrixAt(index, matrix);
+    if (recolor) {
+      mesh.setColorAt(index, palette[field.color[index]!]!);
+    }
+  }
+  mesh.count = field.count;
+  mesh.instanceMatrix.clearUpdateRanges();
+  mesh.instanceMatrix.addUpdateRange(0, field.count * 16);
+  mesh.instanceMatrix.needsUpdate = true;
+  if (recolor && mesh.instanceColor) {
+    mesh.instanceColor.clearUpdateRanges();
+    mesh.instanceColor.addUpdateRange(0, field.count * 3);
+    mesh.instanceColor.needsUpdate = true;
+  }
+}
+
 /**
  * The Foil cannons celebration drawn on the table: one instanced disc per piece of foil.
  * Settled discs stay where they landed, including on a piece that later moves.
@@ -100,7 +132,7 @@ export function FoilConfetti({ launch }: Props) {
       return;
     }
     fired.current = launch.id;
-    field.launch(launch.angles, launch.elapsed);
+    field.launch(launch);
     invalidate();
   }, [field, invalidate, launch]);
 
@@ -116,29 +148,8 @@ export function FoilConfetti({ launch }: Props) {
     if (supports.current.from !== pieces.current) {
       supports.current = { from: pieces.current, list: pieceSupports(pieces.current) };
     }
-    field.step(delta, supports.current.list);
-    const recolor = field.takeSpawned();
-    const { matrix, position, rotation, scale } = scratch;
-    for (const index of field.takeChanged()) {
-      position.fromArray(field.position, index * 3);
-      rotation.fromArray(field.rotation, index * 4);
-      scale.setScalar(field.isVisible(index) ? 1 : 0);
-      matrix.compose(position, rotation, scale);
-      mesh.setMatrixAt(index, matrix);
-      if (recolor) {
-        mesh.setColorAt(index, palette[field.color[index]!]!);
-      }
-    }
-    mesh.count = field.count;
-    /* Only the discs in use go to the GPU, and their colours only when new ones appeared. */
-    mesh.instanceMatrix.clearUpdateRanges();
-    mesh.instanceMatrix.addUpdateRange(0, field.count * 16);
-    mesh.instanceMatrix.needsUpdate = true;
-    if (recolor && mesh.instanceColor) {
-      mesh.instanceColor.clearUpdateRanges();
-      mesh.instanceColor.addUpdateRange(0, field.count * 3);
-      mesh.instanceColor.needsUpdate = true;
-    }
+    field.step({ seconds: delta, supports: supports.current.list });
+    drawDiscs({ field, mesh, palette, scratch });
     invalidate();
   });
 
