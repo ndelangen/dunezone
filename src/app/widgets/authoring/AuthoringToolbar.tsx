@@ -43,7 +43,8 @@ export interface AuthoringCopy {
   /** The status details' text while the name is blank; explain that the name determines the URL. */
   nameBlankMessage: string;
   /**
-   * Live state a reader cannot get anywhere else on the page, such as where a publication has got to.
+   * Live state, such as where a publication has got to.
+   * It is visually hidden with the other status details until #1423 shows statuses as icons, and a screen reader announces it.
    * Optional, and omitted by every asset editor: theirs were standing explanations of what saving does, which is not status and which Norbert struck out on 2026-08-20.
    * The faction editor keeps one because `factionAuthoringStatusMessage` reports real capture progress.
    */
@@ -61,7 +62,8 @@ export interface AuthoringToolbarActions {
  *
  * It carries no warning count and no standing explanation of what saving does.
  * `ValidationHeader` is open whenever any warning exists and names the fields, so a count here repeated it less usefully, and a sentence that never changes is not status (Norbert, 2026-08-20).
- * The status details, which are the last-published time, the status or name-blank message and `context`, are rendered but hidden at every width, because the toolbar stays one line (Norbert, 2026-09-27).
+ * The status details, which are the last-published time, the status or name-blank message and `context`, are visually hidden at every width, because the toolbar stays one line (Norbert, 2026-09-27).
+ * A screen reader still reads them, and the status line stays a live region.
  * The page owns all data and wording;
  * the toolbar owns the arrangement.
  */
