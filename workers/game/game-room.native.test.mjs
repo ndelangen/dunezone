@@ -646,6 +646,48 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     expect(first.closed).toBe(false);
   });
 
+  it('admits a tab and applies a held command while two sign-outs in a row are still being checked', async () => {
+    expect((await provision(runtime)).status).toBe(200);
+    const { first, tabs } = await admitPlayerAndTwoTabs();
+    peer.registrationId = 'registration-c';
+    peer.watchMode = 'allow';
+    const third = await openGame(runtime);
+    third.send({ type: 'admit', ticket: 'f'.repeat(64) });
+    await third.message('view');
+    peer.watchMode = 'manual';
+    const { revision } = (await syncView(first)).snapshot;
+    peer.reconcileMode = 'hold';
+    const beforeDenial = first.messages.length;
+    const checksBefore = peer.accountChecks().length;
+    await signOut(tabs, 'registration-b', ['registration-a', 'registration-b', 'registration-c']);
+    await eventually(() => peer.accountChecks().length > checksBefore, 'the account check after the first sign-out');
+    first.send({ type: 'command', commandId: 'during-check', action: { kind: 'phase' }, expectedRevision: revision });
+    /* The second sign-out lands while the first one's check is still out, so that pass no longer counts. */
+    await signOut([third], 'registration-c', ['registration-a', 'registration-c']);
+    peer.registrationId = 'registration-d';
+    const late = await openGame(runtime);
+    late.send({ type: 'admit', ticket: '1'.repeat(64) });
+    await eventually(
+      () =>
+        peer.requests.some(
+          (record) => record.function === 'playAdmission:redeemTicket' && record.args.ticket === '1'.repeat(64)
+        ),
+      'the late tab redeeming its ticket'
+    );
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    expect(first.messages.slice(beforeDenial)).toEqual([]);
+    peer.releaseAccounts();
+    await eventually(
+      () => late.closed || peer.latestQuery()?.query.args[0].registrationIds.includes('registration-d'),
+      'the late tab admitted or refused'
+    );
+    expect(late.closed).toBe(false);
+    peer.answer(peer.latestQuery());
+    await late.message('view');
+    await first.message('view', (message) => message.completedCommandId === 'during-check');
+    expect(first.messages.slice(beforeDenial).filter(pausedOrReset)).toEqual([]);
+  });
+
   it('pauses the other player as before when the account check after a sign-out fails', async () => {
     expect((await provision(runtime)).status).toBe(200);
     const { first, tabs } = await admitPlayerAndTwoTabs();

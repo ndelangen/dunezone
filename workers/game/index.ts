@@ -559,18 +559,10 @@ export class GameRoom extends DurableObject<GameEnv> {
     if (this.reconcilePromise) {
       return this.reconcilePromise;
     }
-    const metadata = this.metadata!;
-    const epoch = this.reconcileEpoch;
-    const requestStartedAt = Date.now();
-    this.nextReconcileAt = requestStartedAt + PLAY_AUTH_RENEWAL_MS;
-    this.reconcilePromise = this.reconcileDirectory(metadata, epoch, requestStartedAt);
+    this.reconcilePromise = this.reconcileDirectory(this.metadata!);
     try {
       await this.reconcilePromise;
       this.reconcileFailures = 0;
-      if (epoch !== this.reconcileEpoch) {
-        /* A denial landed while this pass ran; the next sweep reconciles again instead of waiting a cadence. */
-        this.nextReconcileAt = Date.now();
-      }
     } catch (error) {
       this.diagnostics.report('account-reconciliation', error);
       this.reconciled = false;
@@ -590,23 +582,33 @@ export class GameRoom extends DurableObject<GameEnv> {
     return this.reconciled && Date.now() < this.reconcileUntil;
   }
 
-  private async reconcileDirectory(metadata: Metadata, epoch: number, requestStartedAt: number) {
-    let cursor = '';
+  /*
+   * Passes over every retained account until one pass ran with no denial or deletion landing during it; only that pass restores the lease.
+   * A stale pass is followed at once by the next, so whoever waits on the reconciliation, an admission included, gets a current answer.
+   */
+  private async reconcileDirectory(metadata: Metadata) {
     while (true) {
-      const actors = this.session.actorBatch(cursor);
-      if (!actors.length) {
-        break;
+      const epoch = this.reconcileEpoch;
+      const requestStartedAt = Date.now();
+      this.nextReconcileAt = requestStartedAt + PLAY_AUTH_RENEWAL_MS;
+      let cursor = '';
+      while (true) {
+        const actors = this.session.actorBatch(cursor);
+        if (!actors.length) {
+          break;
+        }
+        const accounts = await this.accountBatch(
+          metadata,
+          actors.map((actor) => actor.user_id)
+        );
+        this.applyAccountReconciliation(accounts);
+        cursor = actors.at(-1)!.user_id;
       }
-      const accounts = await this.accountBatch(
-        metadata,
-        actors.map((actor) => actor.user_id)
-      );
-      this.applyAccountReconciliation(accounts);
-      cursor = actors.at(-1)!.user_id;
-    }
-    if (epoch === this.reconcileEpoch) {
-      this.reconciled = true;
-      this.reconcileUntil = requestStartedAt + PLAY_AUTH_LEASE_MS;
+      if (epoch === this.reconcileEpoch) {
+        this.reconciled = true;
+        this.reconcileUntil = requestStartedAt + PLAY_AUTH_LEASE_MS;
+        return;
+      }
     }
   }
 

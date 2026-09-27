@@ -143,7 +143,8 @@ then meet the same check as any other. When the lease returns, each held connect
 changed since the last frame it received, so another player's sign-out leaves its table as it was.
 A failed reconciliation or a lapsed lease suspends held connections like every other. One watch
 result that denies several connections, such as every tab of a signed-out session, starts one
-reconciliation.
+reconciliation, and a pass that a later denial or deletion made stale is followed at once by the
+next, so an admission waiting on it is not refused for the stale pass.
 
 ## Provisioning and transport
 
