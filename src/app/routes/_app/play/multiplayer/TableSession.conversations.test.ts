@@ -34,10 +34,9 @@ const snapshot: GameSnapshot = {
   },
 };
 const socket = () => Socket.instances.at(-1)!;
-function authorize(identity = viewer, supported = true) {
+function authorize(identity = viewer) {
   socket().deliver({
     type: 'view',
-    ...(supported ? { conversations: true } : {}),
     viewer: identity,
     epoch: 'epoch',
     snapshot,
@@ -166,14 +165,6 @@ test('clears private history immediately on a live seat change and an identity s
   authorize({ ...viewer, viewerSeat: 'neutral' });
   expect(client.getSnapshot().conversations.context).toBeNull();
   expect(client.getSnapshot().conversations.pending).toEqual([]);
-});
-
-test('negotiates support without sending new messages to an older Worker', async () => {
-  const client = await connect();
-  expect(socket().sent).toContainEqual({ type: 'sync', conversations: true });
-  authorize(viewer, false);
-  expect(client.getSnapshot().conversations.context).toBeNull();
-  expect(client.conversations.submit({ peerId: 'two', text: 'A plan' })).toBe(false);
 });
 
 test('a forward wall-clock jump leaves a sent message and a history load waiting', async () => {

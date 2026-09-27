@@ -399,9 +399,6 @@ export class TableSession {
       case 'carry':
         this.receiveCarry(message);
         break;
-      case 'activity':
-        this.receiveRoomUpdate(message);
-        break;
       case 'metrics':
         break;
     }
@@ -437,14 +434,14 @@ export class TableSession {
       draft: { ...message.draft, position: current.position, orientation: current.orientation },
     };
   }
-  private receiveRoomUpdate(message: Extract<GameSubscriptionEvent, { type: 'view' | 'activity' }>) {
+  private receiveRoomUpdate(message: Extract<GameSubscriptionEvent, { type: 'view' }>) {
     this.replaceActivity(message);
-    if (message.type === 'view' && message.snapshotChanged) {
+    if (message.snapshotChanged) {
       this.receiveView(message);
     }
     this.reconcileCarry();
   }
-  private replaceActivity(message: Extract<GameSubscriptionEvent, { type: 'view' | 'activity' }>) {
+  private replaceActivity(message: Extract<GameSubscriptionEvent, { type: 'view' }>) {
     if (this.epoch && message.epoch !== this.epoch) {
       if (this.carry) {
         this.error = 'The room resumed. Pick up the piece again to continue.';
@@ -456,10 +453,7 @@ export class TableSession {
     this.pointers = message.pointers;
   }
   private receiveView(message: Extract<GameSubscriptionEvent, { type: 'view' }>) {
-    this.conversations.authority(
-      message.conversations ? message.snapshot : { ...message.snapshot, stage: undefined },
-      message.viewer
-    );
+    this.conversations.authority(message.snapshot, message.viewer);
     if (
       message.previous?.snapshot.bank?.factionId !== message.snapshot.bank?.factionId ||
       message.previous?.viewer.viewerSeat !== message.viewer.viewerSeat

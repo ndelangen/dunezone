@@ -5,7 +5,9 @@ import { convexTest } from 'convex-test';
 import { describe, expect, test } from 'vitest';
 
 import { factionMemberPublicationId } from '../src/shared/asset-publishing/componentPublication';
+import { publishedHref } from '../src/shared/asset-publishing/publicationTargets';
 import { publishingDeckCardback } from '../src/shared/assets/fixtures/publishingDeckCardback';
+import { publishingTreacheryCard } from '../src/shared/assets/fixtures/publishingTreacheryCard';
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
 import { api } from './_generated/api';
 import schema from './schema';
@@ -147,5 +149,58 @@ describe('the catalogue reads Play captures from', () => {
     ]);
     expect(await t.query(api.playCatalogue.rulesetSupply, { rulesetId: deletedRulesetId })).toBeNull();
     expect(await t.query(api.playCatalogue.rulesetSupply, { rulesetId: 'not-an-id' })).toBeNull();
+  });
+
+  test('a deck reads in one query with its cardback and each live member front, which is null until published', async () => {
+    const t = convexTest(schema, modules);
+    const { deckId, publishedId } = await t.run(async (ctx) => {
+      const owner = await ctx.db.insert('users', { email: 'curator@example.invalid' });
+      const stamp = new Date().toISOString();
+      const asset = (type: string, slug: string, data: unknown, is_deleted = false) =>
+        ctx.db.insert('assets', {
+          owner_id: owner,
+          type,
+          data,
+          slug,
+          created_at: stamp,
+          updated_at: stamp,
+          is_deleted,
+          group_id: null,
+        });
+      const deckId = await asset('deck', 'house', { name: 'House', about: '', cardback: publishingDeckCardback });
+      const cards = [
+        { id: await asset('card-treachery', 'published', publishingTreacheryCard), count: 2 },
+        { id: await asset('card-treachery', 'unpublished', publishingTreacheryCard), count: 1 },
+        { id: await asset('card-treachery', 'deleted', publishingTreacheryCard, true), count: 3 },
+      ];
+      for (const card of cards) {
+        await ctx.db.insert('asset_relations', {
+          from_asset_id: deckId,
+          to_asset_id: card.id,
+          kind: 'deck-card',
+          count: card.count,
+        });
+      }
+      for (const [asset_type, asset_id] of [
+        ['deck', deckId],
+        ['card-treachery', cards[0]!.id],
+      ] as const) {
+        await ctx.db.insert('publication_assets', { asset_type, asset_id, cache_token: 'v1', published_at: 10 });
+      }
+      return { deckId, publishedId: cards[0]!.id };
+    });
+
+    const supply = await t.query(api.playCatalogue.assetSupply, { type: 'deck', slug: 'house' });
+    expect(supply).toMatchObject({
+      asset: { id: deckId, type: 'deck', slug: 'house' },
+      back: publishedHref('deck', deckId, 'v1'),
+      backMode: 'authored-cardback',
+      membersTruncated: false,
+    });
+    expect(supply?.members.map(({ asset, count, front }) => [asset.slug, count, front])).toEqual([
+      ['published', 2, publishedHref('card-treachery', publishedId, 'v1')],
+      ['unpublished', 1, null],
+    ]);
+    expect(await t.query(api.playCatalogue.assetSupply, { type: 'deck', slug: 'missing' })).toBeNull();
   });
 });
