@@ -161,7 +161,6 @@ function PendingMessage({
         {entry.request.text}
       </Text>
       <PendingStatus entry={entry} retry={retry} />
-      {entry.error && <Text size="xs">{entry.error}</Text>}
     </Stack>
   );
 }
@@ -201,20 +200,16 @@ function HistoryStatus({
   if (!page) {
     return null;
   }
+  const loading = page.load.state === 'loading';
   return (
     <>
       {page.more && (
-        <Button variant="subtle" loading={Boolean(page.loading)} onClick={() => load(page.entries[0]!.sequence)}>
+        <Button variant="subtle" loading={loading} onClick={() => load(page.entries[0]!.sequence)}>
           Earlier messages
         </Button>
       )}
-      {page.loading && (
-        <Text size="sm" role="status">
-          Loading messages...
-        </Text>
-      )}
-      {page.error && <HistoryError error={page.error} retry={() => load()} />}
-      {!page.loading && !page.entries.length && (
+      <HistoryLoad load={page.load} retry={() => load()} />
+      {!loading && !page.entries.length && (
         <Text size="sm" c="dimmed">
           No messages yet.
         </Text>
@@ -291,16 +286,28 @@ function PendingStatus({
   entry,
   retry,
 }: Readonly<{ entry: ConversationView['pending'][number]; retry: (requestId: string) => void }>) {
-  return (
-    <Group gap="sm">
-      <Badge variant="default">{entry.status}</Badge>
-      {entry.status === 'Failed' && (
-        <Button variant="subtle" size="compact-sm" onClick={() => retry(entry.request.requestId)}>
-          Retry
-        </Button>
-      )}
-    </Group>
-  );
+  const { delivery, request } = entry;
+  switch (delivery.state) {
+    case 'unsent':
+    case 'sent':
+      return (
+        <Group gap="sm">
+          <Badge variant="default">Pending</Badge>
+        </Group>
+      );
+    case 'failed':
+      return (
+        <>
+          <Group gap="sm">
+            <Badge variant="default">Failed</Badge>
+            <Button variant="subtle" size="compact-sm" onClick={() => retry(request.requestId)}>
+              Retry
+            </Button>
+          </Group>
+          <Text size="xs">{delivery.error}</Text>
+        </>
+      );
+  }
 }
 
 function ComposerSubmit({ disabled }: Readonly<{ disabled: boolean }>) {
@@ -311,13 +318,27 @@ function ComposerSubmit({ disabled }: Readonly<{ disabled: boolean }>) {
   );
 }
 
-function HistoryError({ error, retry }: Readonly<{ error: string; retry: () => void }>) {
-  return (
-    <>
-      <Text size="sm">{error}</Text>
-      <Button variant="default" onClick={retry}>
-        Retry history
-      </Button>
-    </>
-  );
+function HistoryLoad({
+  load,
+  retry,
+}: Readonly<{ load: ConversationView['pages'][string]['load']; retry: () => void }>) {
+  switch (load.state) {
+    case 'idle':
+      return null;
+    case 'loading':
+      return (
+        <Text size="sm" role="status">
+          Loading messages...
+        </Text>
+      );
+    case 'failed':
+      return (
+        <>
+          <Text size="sm">{load.error}</Text>
+          <Button variant="default" onClick={retry}>
+            Retry history
+          </Button>
+        </>
+      );
+  }
 }
