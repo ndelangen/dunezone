@@ -368,7 +368,7 @@ try {
   }
   convex(['deploy', '--yes']);
   console.log(`Synthetic Auth backend ready at ${backendUrl}; same-origin publisher ${origin}.`);
-  /* Wrangler's own debug log goes to ~/.config/.wrangler/logs by default, outside the evidence the artifact keeps. */
+  /* Wrangler's own debug log goes to its global log directory by default, outside the evidence the artifact keeps. */
   const wranglerLog = path.join(evidence, 'wrangler.log');
   rmSync(wranglerLog, { force: true });
   const worker = start({

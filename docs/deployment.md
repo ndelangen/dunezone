@@ -196,7 +196,7 @@ for each named flow; protocol verification has three. All use the same stack cle
 Reports and screenshots remain in `test-results/hosted-play/browser/<flow>-<timestamp>/`, with each
 report path printed on completion. Each flow's output remains in `test-results/hosted-play/<flow>.log`,
 Worker output in `test-results/hosted-play/worker.log`, and Wrangler's own log for that Worker in
-`test-results/hosted-play/wrangler.log` instead of `~/.config/.wrangler/logs`. Local account
+`test-results/hosted-play/wrangler.log` instead of Wrangler's global log directory. Local account
 credentials and the backend environment file stay inside the private temporary runtime and are
 removed with its database and keys on exit. This mode uses only the new local backend, with no
 hosted data or deployment credentials.

@@ -257,8 +257,10 @@ and retains their credentials for later runs. Other network origins are blocked.
 of Playwright's installed Chromium. On Linux it adds `--use-angle=swiftshader`: headless Chromium
 there draws WebGL on SwiftShader and composites in software, which reads each WebGL frame back on
 the page's main thread, and the switch moves compositing onto SwiftShader too. Other platforms
-launch with Chromium's own choice. The report's `chromium` field records the version and the added
-switches. `--flow` names one flow and defaults to `regular`. Each run writes screenshots and a
+launch with no added switch. Without `--browser`, Playwright launches its headless shell, which takes
+the same readback path on macOS as on Linux; full Chromium on macOS draws on Metal. The report's
+`chromium` field records the executable, the version and the added switches. `--flow` names one flow
+and defaults to `regular`. Each run writes screenshots and a
 compact report without credentials. A flow that retains synthetic received
 game frames writes them to `<flow>-frames.json`. The internal `playTesting:retireFixture` control can retire an
 old fixture on an isolated backend before provisioning a new one; it does not erase game data.

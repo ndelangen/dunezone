@@ -170,14 +170,19 @@ function passed(name, detail = {}) {
   console.log(`PASS ${name}`);
 }
 /*
- * On Linux, headless Chromium draws WebGL on SwiftShader and composites in software. Each WebGL frame
- * is then read back on the page's main thread, which held the page's timers seconds late on CI (#1343).
+ * On Linux, headless Chromium draws WebGL on SwiftShader and composites in software.
+ * Each WebGL frame is then read back on the page's main thread, which held the page's timers seconds late on CI (#1343).
  * `--use-angle=swiftshader` keeps WebGL on SwiftShader and composites there too.
- * Other platforms keep Chromium's own choice.
+ * Local macOS runs launch unchanged until #1322 decides, although Playwright's default headless shell reads back there too.
  */
 const chromiumArgs = process.platform === 'linux' ? ['--use-angle=swiftshader'] : [];
 const browser = await chromium.launch({ headless: true, executablePath: values.browser, args: chromiumArgs });
-report.chromium = { version: browser.version(), args: chromiumArgs };
+/* Without `--browser`, `headless: true` launches Playwright's headless shell rather than its full Chromium. */
+report.chromium = {
+  executable: values.browser ?? 'chromium-headless-shell',
+  version: browser.version(),
+  args: chromiumArgs,
+};
 console.log(`CHROMIUM ${JSON.stringify(report.chromium)}`);
 const otherBrowsers = [];
 const peers = [];
@@ -946,12 +951,15 @@ async function verifyRegular() {
   assert.equal(a.view().viewer.viewerSeat, 'harkonnen');
   assert.equal(b.view().viewer.viewerSeat, 'atreides');
   assert.notEqual(a.view().viewer.userId, b.view().viewer.userId);
-  /* Player B's seat reaches player A in a later frame at the same revision, so the views are compared once it has. */
+  /*
+   * Player B's seat reaches player A in a later frame at the same revision, so the views are compared once it has.
+   * If it never does, the wait ends quietly and the comparison fails with the full diff.
+   */
   const seatB = b.view().viewer.viewerSeat;
   await until(() => {
     const { seats, players } = a.view().snapshot.controls;
     return seats.includes(seatB) && players.some((player) => player.seat === seatB);
-  }, "Player A's view did not list player B's seat.");
+  }, "Player A's view did not list player B's seat.").catch(() => {});
   assert.deepEqual({ ...a.view().snapshot, bank: undefined }, { ...b.view().snapshot, bank: undefined });
   const initialItems = a
     .view()
