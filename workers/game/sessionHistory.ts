@@ -137,8 +137,7 @@ export class SessionHistory {
     if (restoredStep !== step) {
       throw new Error('History is incomplete.');
     }
-    /* A patch row written before the seat-named requester replays the old key; the parse strips it. */
-    return this.spiceLedger.project(this.actors.publicSnapshot(storedSnapshotSchema.parse(snapshot)));
+    return this.spiceLedger.project(this.actors.publicSnapshot(snapshot));
   }
 
   private restorePatch(snapshot: StoredSnapshot, row: HistoryRow): StoredSnapshot {
