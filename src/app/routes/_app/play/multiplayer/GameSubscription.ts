@@ -210,7 +210,7 @@ export class GameSubscription {
         this.renewExpiredTicket();
         return;
       }
-      socket.send(JSON.stringify({ type: 'admit', ticket, updates: 2 }));
+      socket.send(JSON.stringify({ type: 'admit', ticket }));
       ticket = '';
     };
     socket.onmessage = (event) => this.receiveSocketMessage(socket, event.data);
@@ -289,14 +289,6 @@ export class GameSubscription {
       this.receiveUpdate(message);
       return;
     }
-    if (message.type === 'activity' && this.wireView) {
-      this.acceptView({
-        ...this.wireView,
-        epoch: message.epoch,
-        carries: message.carries,
-        pointers: message.pointers,
-      });
-    }
     this.listener?.(message);
   }
 
@@ -319,16 +311,6 @@ export class GameSubscription {
     this.resyncing = false;
     this.connectionStatus = 'authorized';
     clearTimeout(this.admissionTimer);
-    /* An older Worker rejects unknown request fields, so opt in only after its full view advertises support. */
-    if ((message.pieceMoves && !previous?.pieceMoves) || (message.conversations && !previous?.conversations)) {
-      this.socket?.send(
-        JSON.stringify({
-          type: 'sync',
-          ...(message.pieceMoves ? { pieceMoves: true } : {}),
-          ...(message.conversations ? { conversations: true } : {}),
-        })
-      );
-    }
     this.listener?.({ ...this.current!, snapshotChanged: true, previous });
   }
 

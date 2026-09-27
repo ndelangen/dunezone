@@ -43,7 +43,7 @@ function pieceDefinition(piece: GameSnapshot['table']['pieces'][number]) {
   return Object.fromEntries(Object.entries(definition).filter(([, value]) => value !== undefined));
 }
 
-function snapshotChange(base: GameSnapshot, next: GameSnapshot, compactMoves: boolean): SnapshotChange | undefined {
+function snapshotChange(base: GameSnapshot, next: GameSnapshot): SnapshotChange | undefined {
   if (same(base, next)) {
     return;
   }
@@ -58,7 +58,7 @@ function snapshotChange(base: GameSnapshot, next: GameSnapshot, compactMoves: bo
     if (same(previous, piece)) {
       continue;
     }
-    if (compactMoves && previous && same(pieceDefinition(previous), pieceDefinition(piece))) {
+    if (previous && same(pieceDefinition(previous), pieceDefinition(piece))) {
       const { id, position, orientation, zoneId } = piece;
       pieceMoves.push({ id, position, orientation, zoneId, flipRevision: piece.flipRevision ?? null });
     } else {
@@ -149,13 +149,9 @@ function pointerChanges(base: PublicPointer[], next: PublicPointer[]) {
 }
 
 /** Each frame has already been filtered for its recipient before any change is computed. */
-export function frameChange(
-  base: RoomFrame,
-  next: RoomFrame,
-  compactMoves = false
-): Pick<Update, 'snapshot' | 'activity'> {
+export function frameChange(base: RoomFrame, next: RoomFrame): Pick<Update, 'snapshot' | 'activity'> {
   return {
-    snapshot: snapshotChange(base.snapshot, next.snapshot, compactMoves),
+    snapshot: snapshotChange(base.snapshot, next.snapshot),
     activity: { ...carryChanges(base.carries, next.carries), ...pointerChanges(base.pointers, next.pointers) },
   };
 }
