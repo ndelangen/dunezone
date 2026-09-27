@@ -173,11 +173,13 @@ component that needs a query of its own asks its box. `@media` belongs to the wi
 shell chrome (`AppHeader`, `AppRoot`, `SiteNavigation`, `page.css`), `PageLayout`, the play route's
 fullscreen frame in `dune-play.css`, and the spacing tokens in `tokens.css`, all on the ladder.
 
-An unnamed `@container` asks the nearest container. On a document page the outermost one is the
-frame `AppHeader` declares around the band and the page, as wide as the page between the shell's
-gutters, so a page composition that asks it moves with the page and needs no container of its own. A component that
-lays out its own children by its own width, such as `FactionList`'s columns, declares a named
-container on its root, so it answers the same in a side column, a full-width page and a story.
+An unnamed `@container` asks the nearest container. On a document page that is the frame
+`AppHeader` declares around the band and the page, as wide as the page between the shell's gutters,
+or a Layout's container when one sits between, as `TriptychLayout`'s does on the home page. A page
+composition needs no container of its own. A component that lays out its own children by width
+names the container it asks, so a container inserted above it cannot move it: `FactionList`
+declares `faction-list` on its root and answers the same in a side column, a full-width page and a
+story, and the faction editor's sections ask `ConnectedTabs`' `connected-tabs-panel`.
 
 A container query sits on the ladder too, unless its threshold is derived from its own content, such
 as two 14rem columns and a gap, and a comment next to it says so. A viewport number copied into a

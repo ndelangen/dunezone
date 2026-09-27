@@ -27,8 +27,9 @@ function FactionAuthoringFixture() {
     onSaved: () => undefined,
   });
 
+  // The Box stands in for the frame `AppHeader` declares in the app, the container the toolbar's queries ask.
   return (
-    <Box w="min(78rem, calc(100vw - 2rem))" p="md">
+    <Box w="min(78rem, calc(100vw - 2rem))" p="md" style={{ containerType: 'inline-size' }}>
       <Stack gap="clamp(var(--space-sm), 3vw, var(--space-xl))">
         <AuthoringToolbar
           status={{

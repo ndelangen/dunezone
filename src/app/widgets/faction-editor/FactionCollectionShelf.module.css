@@ -42,7 +42,7 @@
   white-space: nowrap;
 }
 
-@container (width < 30rem) {
+@container connected-tabs-panel (width < 30rem) {
   .shelf {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
