@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, realpath, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
@@ -26,7 +26,10 @@ test('the generated backend provisions only inside its isolated run window', asy
   try {
     const backend = path.join(directory, 'backend');
     await prepareHostedBackend(backend, target);
-    /* The copy replaces whole modules and records them, so the code under load is otherwise production source. */
+    /*
+     * The record and the files below are the copy's output, not the generator's source.
+     * The copy replaces whole modules and records them, so the code under load is otherwise production source.
+     */
     const generated = ['convex/crons.ts', 'convex/lib/playSynthetic.ts'];
     const { sources } = JSON.parse(await readFile(path.join(backend, 'load-source.json'), 'utf8'));
     assert.deepEqual(Object.keys(sources).sort(), generated);
@@ -37,27 +40,12 @@ test('the generated backend provisions only inside its isolated run window', asy
     for (const file of tracked) {
       assert.ok((await readFile(path.join(backend, file))).equals(await readFile(path.join(root, file))), file);
     }
-    /* Bundle the real consumers so changes to their guard imports cannot silently break the generated backend. */
-    for (const consumer of ['convex/playProvisioning.ts', 'convex/auth.ts', 'convex/playTesting.ts']) {
-      await build({
-        entryPoints: [path.join(backend, consumer)],
-        bundle: true,
-        platform: 'browser',
-        format: 'esm',
-        write: false,
-        logLevel: 'silent',
-      });
-    }
-    const guard = await build({
-      entryPoints: [path.join(backend, 'convex/lib/playSynthetic.ts')],
-      bundle: true,
-      platform: 'node',
-      format: 'cjs',
-      write: false,
-    });
-    const module = { exports: {} };
-    new Function('module', 'exports', guard.outputFiles[0].text)(module, module.exports);
-    const { isSyntheticBackend, requireSyntheticBackend, syntheticIdentity } = module.exports;
+    /* Loading playProvisioning.ts fails if the copy stops exporting a name it imports from the seam. */
+    await load(backend, 'convex/playProvisioning.ts');
+    const { isSyntheticBackend, requireSyntheticBackend, syntheticIdentity } = await load(
+      backend,
+      'convex/lib/playSynthetic.ts'
+    );
     const runId = 'a'.repeat(32);
     const account = { email: `load-0-${runId}@example.invalid`, password: 'p'.repeat(32), flow: 'signIn' };
     vi.stubEnv('CONVEX_CLOUD_URL', target.backendOrigin);
@@ -69,6 +57,27 @@ test('the generated backend provisions only inside its isolated run window', asy
     assert.doesNotThrow(() => requireSyntheticBackend());
     assert.deepEqual(syntheticIdentity(account), { email: account.email });
     assert.throws(() => syntheticIdentity({ ...account, email: 'player@example.invalid' }), /fixed synthetic/);
+    /*
+     * Run the copy's consumers the way Convex Auth and Convex call them, so one that stops passing the seam fails here.
+     * The stub hands convexAuth's config back as auth.ts's `auth` export.
+     * Convex Auth calls a provider given as a function and takes authorize from its options (provider_utils.js:56, :73).
+     */
+    const { auth } = await load(backend, 'convex/auth.ts', {
+      '@convex-dev/auth/server': 'export const convexAuth = (config) => ({ auth: config });',
+    });
+    const password = auth.providers
+      .map((provider) => (typeof provider === 'function' ? provider() : provider))
+      .find((provider) => provider.options?.id === 'password');
+    await assert.rejects(
+      password.options.authorize({ ...account, email: 'player@example.invalid' }, {}),
+      /fixed synthetic/
+    );
+    const { createFixture } = await load(backend, 'convex/playTesting.ts', {
+      './functions': 'export const internalMutation = (definition) => definition;',
+    });
+    /* Every query on this ctx finds a live game. */
+    const games = { filter: () => games, withIndex: () => games, first: async () => ({ state: 'ready' }) };
+    await assert.rejects(createFixture.handler({ db: { query: () => games } }, {}), /already has a live game/);
     for (const [key, value] of [
       ['CONVEX_CLOUD_URL', 'https://exuberant-finch-263.convex.cloud'],
       ['SITE_URL', 'https://dune.zone'],
@@ -89,3 +98,33 @@ test('the generated backend provisions only inside its isolated run window', asy
     await rm(directory, { recursive: true, force: true });
   }
 });
+
+/** Bundles one of the copy's modules and runs it, with the named imports of that module alone replaced by stubs. */
+async function load(backend, file, stubs = {}) {
+  /* esbuild reports the importer by its real path, and on macOS the temporary directory sits under the /var symlink. */
+  const entry = await realpath(path.join(backend, file));
+  const bundle = await build({
+    entryPoints: [entry],
+    bundle: true,
+    platform: 'browser',
+    format: 'cjs',
+    write: false,
+    logLevel: 'silent',
+    plugins: [
+      {
+        name: 'stubs',
+        setup(build) {
+          build.onResolve({ filter: /./ }, (args) =>
+            args.importer === entry && Object.hasOwn(stubs, args.path)
+              ? { path: args.path, namespace: 'stub' }
+              : undefined
+          );
+          build.onLoad({ filter: /./, namespace: 'stub' }, (args) => ({ contents: stubs[args.path] }));
+        },
+      },
+    ],
+  });
+  const module = { exports: {} };
+  new Function('module', 'exports', bundle.outputFiles[0].text)(module, module.exports);
+  return module.exports;
+}
