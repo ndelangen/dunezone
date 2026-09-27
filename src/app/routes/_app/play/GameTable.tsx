@@ -2,6 +2,7 @@ import { Button, Group, Stack, Text } from '@mantine/core';
 import { pieceCount } from '@shared/play/model';
 import type { TablePiece } from '@shared/play/model';
 import { TABLE_PHASES } from '@shared/play/phases';
+import type { GameSnapshot } from '@shared/play/protocol';
 import { TABLE_SECTOR_COUNT } from '@shared/play/tableSettings';
 import type { TableSeatCount } from '@shared/play/tableSettings';
 import { Section } from '@ui/block/Section';
@@ -20,7 +21,6 @@ import {
   paneLimits,
 } from './controlPanelLayout';
 import { DarkSchemeIsland, darkSchemeIslandAttributes } from './DarkSchemeIsland';
-import { interactionSurfacePolicy } from './interactionPolicy';
 import { usePresence } from './multiplayer/PresenceContext';
 import {
   PHASE_DISC_COLOR,
@@ -95,7 +95,6 @@ type GameTableProps = {
   panelTabs?: readonly PanelTab[];
   /** Sections the host adds to the Table tab, above the fixture's trackers. */
   tableControls?: ReactNode;
-  phaseControlsOnly?: boolean;
   /** The important decision of the moment, above the panel's tabs: a seat request, a vote, a result. */
   decisionBar?: ReactNode;
   /** The game menu in the toolbar, present in every stage: what a player can do about their own seat. Previous and Next stay rightmost. */
@@ -105,10 +104,8 @@ type GameTableProps = {
   seatCount: TableSeatCount;
   phaseViewRequest?: PhaseViewRequest | null;
   tableProgress?: TableProgress;
-  /* A stage word for the header while the game is not in play; the turn and phase read only in play. */
-  stageLabel?: string;
-  trading?: boolean;
-  setup?: boolean;
+  /* Absent on the fixture, which has no lifecycle. */
+  stage?: GameSnapshot['stage'];
   mapVisible?: boolean;
   /* The header's centre during a stage that says more than its word: the drafting counts and status. */
   stageStatus?: ReactNode;
@@ -268,6 +265,38 @@ function TableViewPicker({
   );
 }
 
+type StageFrame = Readonly<{
+  /** The header's word in place of the turn and phase. */
+  word?: string;
+  /** The last tab: the fixture's full Table tab, or play's Phase tab with help-only storm controls. */
+  tableTab?: 'Table' | 'Phase';
+}>;
+
+/**
+ * What a Stage changes in the header and the panel.
+ * The fixture has no Stage and keeps its full Table tab.
+ * Play keeps the turn and phase in the header and names that tab Phase.
+ * Every other stage shows its word in the header and brings its own tabs.
+ */
+function stageFrame(stage: GameSnapshot['stage']): StageFrame {
+  switch (stage) {
+    case undefined:
+      return { tableTab: 'Table' };
+    case 'play':
+      return { tableTab: 'Phase' };
+    case 'drafting':
+      return { word: 'Drafting' };
+    case 'swapping':
+      return { word: 'Swapping' };
+    case 'setup':
+      return { word: 'Setup' };
+    case 'finished':
+      return { word: 'Finished' };
+    case 'discarded':
+      return { word: 'Discarded' };
+  }
+}
+
 /**
  * The controls panel in the accepted shape (#1147): one rail of tabs beside the content they open.
  * The host's tabs come first;
@@ -277,46 +306,38 @@ function TableViewPicker({
 function TableControlsPanel({
   panelTabs = [],
   tableControls,
-  phaseControlsOnly,
   showStormControls,
   turn,
   onSelectTurn,
-  stageLabel,
+  word,
+  tableTab: tableTabLabel,
   panelContent,
 }: Readonly<
-  Pick<
-    GameTableProps,
-    | 'panelTabs'
-    | 'tableControls'
-    | 'phaseControlsOnly'
-    | 'showStormControls'
-    | 'onSelectTurn'
-    | 'stageLabel'
-    | 'panelContent'
-  > & {
-    turn: number;
-  }
+  Pick<GameTableProps, 'panelTabs' | 'tableControls' | 'showStormControls' | 'onSelectTurn' | 'panelContent'> &
+    StageFrame & {
+      turn: number;
+    }
 >) {
   const tableTab: PanelTab = {
     key: 'table',
-    label: phaseControlsOnly ? 'Phase' : 'Table',
+    label: tableTabLabel ?? 'Table',
     topic: 'controls',
     content: (
       <>
         {tableControls}
-        {!phaseControlsOnly && !stageLabel && <TrackerControls turn={turn} onSelectTurn={onSelectTurn} />}
-        {!phaseControlsOnly && <SelectedPieceControl />}
-        {showStormControls && <StormControls helpOnly={phaseControlsOnly} />}
+        {tableTabLabel === 'Table' && <TrackerControls turn={turn} onSelectTurn={onSelectTurn} />}
+        {tableTabLabel === 'Table' && <SelectedPieceControl />}
+        {showStormControls && <StormControls helpOnly={tableTabLabel === 'Phase'} />}
       </>
     ),
   };
   const tabs: readonly PanelTab[] = panelContent
     ? [
         /* The stage panel is the drafting panel, whose row dividers meet the pane's sides. */
-        { key: 'stage', label: stageLabel ?? 'Game', topic: 'controls', content: panelContent, padding: false },
+        { key: 'stage', label: word ?? 'Game', topic: 'controls', content: panelContent, padding: false },
         ...panelTabs,
       ]
-    : [...panelTabs, ...(!stageLabel || (stageLabel === 'Setup' && !phaseControlsOnly) ? [tableTab] : [])];
+    : [...panelTabs, ...(tableTabLabel ? [tableTab] : [])];
   const [path, setPath] = useReducer((_: string[], next: string[]) => next, [tabs[0]?.key ?? tableTab.key]);
   const active = tabs.find((tab) => tab.key === path[0]) ?? tabs[0] ?? tableTab;
   const subtab = active.subtabs?.find((tab) => tab.key === path[1]) ?? active.subtabs?.[0];
@@ -324,7 +345,7 @@ function TableControlsPanel({
     return <div className="seated-stage-panel">{panelContent}</div>;
   }
   /* Before play there is nothing to step, select or place, and each earlier stage brings its own accepted panel with its delivery; until then the decision bar stands alone. */
-  if (stageLabel && panelTabs.length === 0) {
+  if (tabs.length === 0) {
     return null;
   }
   return (
@@ -469,12 +490,10 @@ export function GameTable({
   sceneContent,
   panelTabs,
   tableControls,
-  phaseControlsOnly,
   decisionBar,
   gameMenu,
   stageStatus,
-  trading,
-  setup,
+  stage,
   mapVisible,
   stageOverlay,
   panelContent,
@@ -484,7 +503,6 @@ export function GameTable({
   seatCount,
   phaseViewRequest,
   tableProgress: providedProgress,
-  stageLabel,
   onSelectTurn: selectSharedTurn,
 }: GameTableProps) {
   const [pointerSession] = useState(() => new PointerSession());
@@ -501,7 +519,8 @@ export function GameTable({
         : null
       : phaseViewRequest;
   const [viewState, dispatchView] = useReducer(reduceTableView, createTableViewState(resolvedPhaseViewRequest));
-  const surfacePolicy = interactionSurfacePolicy(true, gestureActivePieceId, viewState.interactionActive);
+  const overlaysInert = viewState.interactionActive || gestureActivePieceId !== null;
+  const frame = stageFrame(stage);
   const cameraView = useMemo<CameraViewCommand>(
     () => ({
       view: viewState.activeView,
@@ -539,18 +558,18 @@ export function GameTable({
           <div
             className="dune-play-shell dune-play-shell--seated"
             {...darkSchemeIslandAttributes}
-            data-board-gesture-active={surfacePolicy.overlaysInert}
+            data-board-gesture-active={overlaysInert}
             data-table-view={viewState.activeView}
             data-show-counts={showCounts}
           >
             {/* The header sits outside the split, in the shell's own stacking, so it paints above the dock where the dock's floor grows up over the scene. It comes before the split so its controls lead the reading and Tab order. */}
-            <header className="seated-header" inert={surfacePolicy.overlaysInert}>
+            <header className="seated-header" inert={overlaysInert}>
               <div className="seated-brand">
                 <img className="seated-brand__logo" src="/web/logo.svg" alt="Dune" />
               </div>
 
               <div className="seated-phase-status" aria-live="polite">
-                {activePhase?.symbol && !stageLabel ? (
+                {activePhase?.symbol && !frame.word ? (
                   <svg className="seated-phase-status__symbol" viewBox="0 0 100 100" aria-hidden="true">
                     <defs>
                       <clipPath id={phaseSymbolClipId}>
@@ -579,9 +598,9 @@ export function GameTable({
                   </svg>
                 ) : null}
                 {stageStatus ??
-                  (stageLabel ? (
+                  (frame.word ? (
                     <div className="seated-phase-status__copy">
-                      <strong>{stageLabel}</strong>
+                      <strong>{frame.word}</strong>
                     </div>
                   ) : (
                     <div className="seated-phase-status__copy">
@@ -619,9 +638,8 @@ export function GameTable({
                   onSceneReady={handleSceneReady}
                   onInteractionActiveChange={handleInteractionActiveChange}
                   seatCount={seatCount}
-                  tableProgress={trading ? undefined : tableProgress}
-                  trading={trading}
-                  setup={setup}
+                  tableProgress={tableProgress}
+                  stage={stage}
                   mapVisible={mapVisible}
                   onSelectTurn={onSelectTurn}
                 >
@@ -629,21 +647,21 @@ export function GameTable({
                 </TabletopScene>
 
                 {stageOverlay && (
-                  <div className="seated-stage-overlay" inert={surfacePolicy.overlaysInert}>
+                  <div className="seated-stage-overlay" inert={overlaysInert}>
                     {stageOverlay}
                   </div>
                 )}
               </SplitPanels.First>
               <SplitPanels.Second>
-                <div className="seated-controls-panel" inert={surfacePolicy.overlaysInert}>
+                <div className="seated-controls-panel" inert={overlaysInert}>
                   {decisionBar}
                   <PanelPanes secondary={playerPanel}>
                     <TableControlsPanel
                       panelTabs={panelTabs}
                       tableControls={tableControls}
-                      phaseControlsOnly={phaseControlsOnly}
                       panelContent={panelContent}
-                      stageLabel={stageLabel}
+                      word={frame.word}
+                      tableTab={frame.tableTab}
                       showStormControls={showStormControls}
                       turn={tableProgress.turn}
                       onSelectTurn={onSelectTurn}
