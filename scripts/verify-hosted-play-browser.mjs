@@ -170,7 +170,9 @@ function passed(name, detail = {}) {
   report.checks.push({ name, ...detail });
   console.log(`PASS ${name}`);
 }
-const browser = await chromium.launch({ headless: true, executablePath: values.browser });
+/* Diagnostic (#1343, not for merge): an experiment arm passes extra Chromium switches through FLOWS_CHROMIUM_ARGS. */
+const extraArgs = process.env.FLOWS_CHROMIUM_ARGS ? process.env.FLOWS_CHROMIUM_ARGS.split(' ').filter(Boolean) : [];
+const browser = await chromium.launch({ headless: true, executablePath: values.browser, args: extraArgs });
 const otherBrowsers = [];
 const peers = [];
 /*
@@ -335,7 +337,7 @@ async function peer(label, context) {
   if (!context) {
     let owner = browser;
     if (flow.separateBrowsers && label === 'player-b') {
-      owner = await chromium.launch({ headless: true, executablePath: values.browser });
+      owner = await chromium.launch({ headless: true, executablePath: values.browser, args: extraArgs });
       otherBrowsers.push(owner);
       await startTrace('browser-2', owner);
     }

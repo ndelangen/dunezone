@@ -22,21 +22,21 @@ jobs:
       matrix: ${{ steps.plan.outputs.matrix }}
     steps:
       - id: plan
-        # Four trace jobs go first, then the three shards interleave within each of twenty repeats,
-        # so every wave mixes shards across the runner CPU classes.
+        # Second pass, after the twenty-repeat run 36305597932: the swangle arm launches Chromium with
+        # --use-angle=swiftshader, which turns GPU compositing on, so a WebGL frame is no longer read back
+        # into a software compositor frame. One trace job, then the three shards five times each.
         run: |
-          entries='{"shard":"catalogue","repeat":1,"trace":true},{"shard":"regular","repeat":1,"trace":true}'
-          entries+=',{"shard":"protocol","repeat":1,"trace":true},{"shard":"catalogue","repeat":2,"trace":true}'
-          for repeat in $(seq 1 20); do
+          entries='{"shard":"catalogue","repeat":1,"trace":true,"arm":"swangle"}'
+          for repeat in $(seq 1 5); do
             for shard in regular catalogue protocol; do
-              entries+=",{\"shard\":\"$shard\",\"repeat\":$repeat,\"trace\":false}"
+              entries+=",{\"shard\":\"$shard\",\"repeat\":$repeat,\"trace\":false,\"arm\":\"swangle\"}"
             done
           done
           echo "matrix=[$entries]" >> "$GITHUB_OUTPUT"
 
   flows:
     needs: plan
-    name: ${{ matrix.trace && 'trace ' || '' }}${{ matrix.shard }} ${{ matrix.repeat }}
+    name: ${{ matrix.arm && format('{0} ', matrix.arm) || '' }}${{ matrix.trace && 'trace ' || '' }}${{ matrix.shard }} ${{ matrix.repeat }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
     strategy:
@@ -47,6 +47,7 @@ jobs:
         include: ${{ fromJSON(needs.plan.outputs.matrix) }}
     env:
       FLOWS_TRACE: ${{ matrix.trace && '1' || '' }}
+      FLOWS_CHROMIUM_ARGS: ${{ matrix.arm == 'swangle' && '--use-angle=swiftshader' || '' }}
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
@@ -81,6 +82,12 @@ jobs:
           test -x "$chromium_path"
           "$chromium_path" --version | tee test-results/hosted-play/chromium-version.txt
           echo "CHROMIUM=$chromium_path" >> "$GITHUB_ENV"
+      - name: Record the GPU feature status with and without the arm's switches
+        run: |
+          bun .github/diagnostic/gpu-status.mjs "$CHROMIUM" test-results/hosted-play/gpu-status-default.json || true
+          if [ -n "$FLOWS_CHROMIUM_ARGS" ]; then
+            bun .github/diagnostic/gpu-status.mjs "$CHROMIUM" test-results/hosted-play/gpu-status-arm.json $FLOWS_CHROMIUM_ARGS || true
+          fi
       - name: Run the regular flow
         if: matrix.shard == 'regular'
         run: bun --no-env-file scripts/verify-hosted-play-stack.ts --skip-generate --browser-only --flow regular --browser "$CHROMIUM"
@@ -101,7 +108,7 @@ jobs:
         run: |
           xargs kill < "$RUNNER_TEMP/samplers.pid" 2>/dev/null || true
           {
-            echo "### ${{ matrix.trace && 'trace ' || '' }}${{ matrix.shard }} ${{ matrix.repeat }}: $(lscpu | sed -n 's/^Model name: *//p'), $(nproc) CPUs"
+            echo "### ${{ matrix.arm }} ${{ matrix.trace && 'trace ' || '' }}${{ matrix.shard }} ${{ matrix.repeat }}: $(lscpu | sed -n 's/^Model name: *//p'), $(nproc) CPUs"
             echo '```'
             cat test-results/hosted-play/diagnostic-timing.jsonl 2>/dev/null || echo "no timing recorded"
             for report in test-results/hosted-play/browser/*/report.json; do
@@ -116,7 +123,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: remeasure-${{ matrix.trace && 'trace-' || '' }}${{ matrix.shard }}-${{ matrix.repeat }}
+          name: remeasure-${{ matrix.arm && format('{0}-', matrix.arm) || '' }}${{ matrix.trace && 'trace-' || '' }}${{ matrix.shard }}-${{ matrix.repeat }}
           path: test-results/hosted-play/**
           if-no-files-found: warn
           retention-days: 14

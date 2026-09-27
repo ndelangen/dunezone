@@ -105,7 +105,7 @@ function diagnostic(entry: Record<string, unknown>) {
 /* Diagnostic (#1343, not for merge): trace jobs pass FLOWS_TRACE through and get twice the budget. */
 const traceBudget = process.env.FLOWS_TRACE === '1' ? 2 : 1;
 const environment: NodeJS.ProcessEnv = Object.fromEntries(
-  ['PATH', 'HOME', 'TMPDIR', 'LANG', 'SSL_CERT_FILE', 'CI', 'FLOWS_TRACE'].flatMap((name) =>
+  ['PATH', 'HOME', 'TMPDIR', 'LANG', 'SSL_CERT_FILE', 'CI', 'FLOWS_TRACE', 'FLOWS_CHROMIUM_ARGS'].flatMap((name) =>
     process.env[name] ? [[name, process.env[name]]] : []
   )
 );
