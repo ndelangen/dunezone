@@ -3,7 +3,7 @@ import { publishingTokenFace } from '../../src/shared/assets/fixtures/publishing
 import { publishingTreacheryCard } from '../../src/shared/assets/fixtures/publishingTreacheryCard';
 import { assetSupplySchema } from '../../src/shared/play/capture';
 
-/* Catalogue supplies as the native peer serves them, parsed through the game contract: a card, deck, token and bundle. */
+/* Catalogue supplies as the native peer serves them, parsed through the game contract: a card, a deck on each kind of back, a token and a bundle. */
 
 const blank = { members: [], membersTruncated: false, backToken: null, backDeck: null };
 
@@ -25,6 +25,37 @@ export function deckPage(id, cards, count = 2) {
     front: null,
     back: `/published/decks/${id}/cardback.jpg`,
     backMode: 'authored-cardback',
+  });
+}
+
+/** A deck on a Cardback preset, whose publication the catalogue serves with that publish's cache token. */
+export function presetDeckPage(id, cards, key, count = 2) {
+  return assetSupplySchema.parse({
+    ...blank,
+    asset: { id, type: 'deck', slug: id, name: id, data: { name: id, about: '', cardback: { mode: 'preset', key } } },
+    members: cards.map((card) => ({ ...card, count })),
+    front: null,
+    back: `/published/cardback-presets/${key}/cardback.jpg?v=${key}-1`,
+    backMode: 'preset',
+  });
+}
+
+/** A deck wearing another deck's authored Cardback by reference. */
+export function referencingDeckPage(id, cards, target, count = 2) {
+  return assetSupplySchema.parse({
+    ...blank,
+    asset: {
+      id,
+      type: 'deck',
+      slug: id,
+      name: id,
+      data: { name: id, about: '', cardback: { mode: 'reference', asset_id: target.asset.id } },
+    },
+    members: cards.map((card) => ({ ...card, count })),
+    front: null,
+    back: target.back,
+    backMode: 'reference',
+    backDeck: target.asset,
   });
 }
 

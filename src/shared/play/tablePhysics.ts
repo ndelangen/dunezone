@@ -145,21 +145,30 @@ export function piecesOverlapAt(
   return boxOverlapsBox(aBox, { footprint: bFootprint, center: bCenter, orientation: b.orientation });
 }
 
+/**
+ * Forces and markers stack by their key.
+ * Cards with one back belong together, whichever deck they were spawned from, and cards with different backs never do.
+ * That is what lets two factions' Traitor decks combine and keeps Traitor and Treachery cards apart.
+ * A back is its publication address and the word printed on it.
+ * Only cards with no back at all fall back to the key.
+ */
 export function piecesCanStack(a: TablePiece, b: TablePiece): boolean {
   if (a.kind !== b.kind) {
     return false;
   }
-  if (a.stackKey !== null && a.stackKey === b.stackKey) {
-    return true;
+  const sameKey = a.stackKey !== null && a.stackKey === b.stackKey;
+  if (a.kind !== 'card') {
+    return sameKey;
   }
-  /* Separate faction decks with the same back can be combined by the normal table gesture. */
-  const back = a.items[0]?.artwork?.back;
+  const items = [...a.items, ...b.items];
+  if (items.every((item) => !item.artwork)) {
+    return sameKey;
+  }
+  const back = a.items[0]?.artwork;
   return (
-    a.kind === 'card' &&
-    !!back &&
-    a.items.every((item) => item.artwork?.back === back) &&
+    a.items.length > 0 &&
     b.items.length > 0 &&
-    b.items.every((item) => item.artwork?.back === back)
+    items.every((item) => item.artwork?.back === back?.back && item.artwork?.backName === back?.backName)
   );
 }
 

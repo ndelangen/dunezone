@@ -16,22 +16,27 @@ export function eventId(number: number): string {
   return `evt-${String(number).padStart(3, '0')}`;
 }
 
-export function ownerLabel(piece: TablePiece): string {
+function ownerLabel(piece: TablePiece): string {
   if (piece.owner === 'bene-gesserit') {
     return 'Bene Gesserit';
   }
   return piece.owner.charAt(0).toUpperCase() + piece.owner.slice(1);
 }
 
+/**
+ * The name a stack takes when its own items change.
+ * A card stack is named by the word printed on its back, and cards without one read as Treachery.
+ */
 export function labelForCount(piece: TablePiece, count: number, held = false): string {
   if (isSpicePiece(piece)) {
     return 'Spice';
   }
   if (piece.kind === 'card') {
+    const word = piece.items[0]?.artwork?.backName ?? 'Treachery';
     if (count === 1) {
-      return 'Treachery card';
+      return `${word} card`;
     }
-    return held ? 'Treachery cards' : 'Treachery deck';
+    return held ? `${word} cards` : `${word} deck`;
   }
   if (piece.kind === 'force') {
     return count === 1 ? `${ownerLabel(piece)} force` : `${ownerLabel(piece)} forces`;
@@ -135,11 +140,12 @@ function remainingRenderedPiece(piece: TablePiece, draft: DraftMove, heldPiece: 
   if (piece.id === draft.pieceId) {
     return [heldPiece];
   }
+  const withdrawn = withdrawnIdsFor(draft, piece.id).size > 0;
   const items = remainingItemsFor(piece, draft);
   if (items.length) {
-    return [{ ...piece, label: labelForCount(piece, items.length), items }];
+    return [withdrawn ? { ...piece, label: labelForCount(piece, items.length), items } : piece];
   }
-  return withdrawnIdsFor(draft, piece.id).size ? [{ ...piece, items: [] }] : [];
+  return withdrawn ? [{ ...piece, items: [] }] : [];
 }
 
 export function renderedPiecesFor(state: TableState): TablePiece[] {
@@ -495,10 +501,15 @@ function withdrawalConstraintMessage(state: TableState, draft: DraftMove): strin
   return null;
 }
 
+/** Only a stack that lost items is renamed; every other stack keeps the name it has. */
 function piecesWithoutWithdrawals(state: TableState, draft: DraftMove): TablePiece[] {
   return state.pieces.flatMap((piece) => {
+    const withdrawn = withdrawnIdsFor(draft, piece.id).size > 0;
     const items = remainingItemsFor(piece, draft);
-    return items.length ? [{ ...piece, label: labelForCount(piece, items.length), items }] : [];
+    if (!items.length) {
+      return [];
+    }
+    return [withdrawn ? { ...piece, label: labelForCount(piece, items.length), items } : piece];
   });
 }
 
