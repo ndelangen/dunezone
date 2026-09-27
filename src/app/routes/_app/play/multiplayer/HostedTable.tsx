@@ -15,6 +15,7 @@ import type { ReactNode } from 'react';
 
 import { requestPlayTicket } from '@db/play';
 
+import { FoilConfetti } from '../FoilConfetti';
 import { GameTable } from '../GameTable';
 import { usePointerSession } from '../PointerSessionContext';
 import { TabletopContext, useTableKeyboard } from '../TabletopContext';
@@ -29,6 +30,7 @@ import { LogEntries } from './Log';
 import { PieceArtwork } from './PieceArtwork';
 import { PresenceContext } from './PresenceContext';
 import { PlayerPanel, RemovalDecisionBar } from './RemovalVotes';
+import { useResultCelebration } from './resultCelebration';
 import { GameMenu, SeatRequests } from './SeatRequests';
 import { SwappingReadiness } from './Swapping';
 import { SwapScene } from './SwapScene';
@@ -648,6 +650,7 @@ function ConnectedTable({
     [canInteract, client, table]
   );
   const progress = tableProgressFor(table.snapshot.phase);
+  const celebration = useResultCelebration(table);
   /* Giving up a seat starts in the game menu and is confirmed in the decision bar, so the two share one flag. */
   const [leaving, setLeaving] = useState(false);
   const [playerSelection, selectPlayer] = useReducer(
@@ -689,7 +692,10 @@ function ConnectedTable({
                   {stage === 'setup' && <BattleScene client={client} table={table} />}
                 </>
               ) : (
-                <BattleScene client={client} table={table} />
+                <>
+                  <BattleScene client={client} table={table} />
+                  <FoilConfetti launch={celebration.launch} clearRevision={celebration.clearRevision} />
+                </>
               )
             }
             decisionBar={
@@ -716,7 +722,13 @@ function ConnectedTable({
                 {stage === 'drafting' && <DraftingNotice client={client} table={table} />}
               </Stack>
             }
-            gameMenu={<GameMenu table={table} onLeave={() => setLeaving(true)} />}
+            gameMenu={
+              <GameMenu
+                table={table}
+                onLeave={() => setLeaving(true)}
+                onClearConfetti={celebration.hasConfetti ? celebration.clear : undefined}
+              />
+            }
             stageStatus={
               stage === 'drafting' ? (
                 <DraftingHeader table={table} />
