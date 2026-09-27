@@ -19,6 +19,7 @@ import { interactions } from './interactions.mjs';
 import { distribution, measurements } from './measurements.mjs';
 import { runMotionSchedule } from './motion.mjs';
 import { runActionSchedule } from './pacing.mjs';
+import { runnerProfiles } from './profiles.ts';
 import { sizeUpdate, updateLedger } from './redundancy.mjs';
 import { slowLink } from './slow-link.mjs';
 import { createTrace } from './trace.mjs';
@@ -47,7 +48,7 @@ const { values } = parseArgs({
     'hosted-run': { type: 'string' },
   },
 });
-assert.ok(['baseline', 'stacked', 'separated'].includes(values.profile));
+assert.ok(runnerProfiles.includes(values.profile));
 assert.ok(loadCaseSchema.options.includes(values.case));
 assert.ok(values.origin && values['report-dir']);
 assert.ok(['on', 'off'].includes(values.compression));
