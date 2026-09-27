@@ -26,7 +26,7 @@ import {
   TURN_TRACKER_RADIUS,
 } from '@shared/play/tableTrackers';
 import type { TrackerArcSlot } from '@shared/play/tableTrackers';
-import { PerspectiveCamera, Vector3 } from 'three';
+import { Vector3 } from 'three';
 import { describe, expect, test } from 'vitest';
 
 import { PHASE_DISC_COLOR } from './phaseSymbolLayout';
@@ -35,7 +35,7 @@ import {
   MAP_VIEW_BOTTOM_LIMIT,
   MAP_VIEW_HORIZONTAL_LIMIT,
   MAP_VIEW_TOP_LIMIT,
-  TABLE_CAMERA_FIELD_OF_VIEW,
+  tableCamera,
 } from './playView';
 import { mapViewFramingPoints, TRACKER_SCALLOP_BORDER } from './tablePlateGeometry';
 import { SPICE_DISC_COLOR, TRACKER_DISC_ACTIVE_COLOR, trackerDiscColor } from './tableTrackers';
@@ -152,11 +152,7 @@ describe('table trackers', () => {
     (seatCount, phaseCount, aspectRatio) => {
       const slots = trackerArcSlots(phaseCount);
       const pose = cameraPoseFor('map', aspectRatio, mapViewFramingPoints(slots, seatCount));
-      const camera = new PerspectiveCamera(TABLE_CAMERA_FIELD_OF_VIEW, aspectRatio, 0.1, 100);
-      camera.position.set(...pose.position);
-      camera.lookAt(...pose.target);
-      camera.updateMatrixWorld();
-      camera.updateProjectionMatrix();
+      const camera = tableCamera(pose, aspectRatio);
 
       independentlySampledMapBoundary(slots, seatCount).forEach((point) => {
         const projected = new Vector3(...point).project(camera);

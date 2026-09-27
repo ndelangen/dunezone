@@ -1,4 +1,5 @@
 import type { Vector3Tuple } from '@shared/play/model';
+import { PerspectiveCamera } from 'three';
 
 import { mapViewFramingPoints } from './tablePlateGeometry';
 
@@ -52,6 +53,8 @@ export type CameraFogRange = Readonly<{
 
 export const CAMERA_VIEW_TRANSITION_MS = 300;
 export const TABLE_CAMERA_FIELD_OF_VIEW = 42;
+export const TABLE_CAMERA_NEAR = 0.1;
+export const TABLE_CAMERA_FAR = 100;
 export const MAP_VIEW_HORIZONTAL_LIMIT = 0.92;
 export const MAP_VIEW_TOP_LIMIT = 0.68;
 export const MAP_VIEW_BOTTOM_LIMIT = 0.9;
@@ -156,6 +159,15 @@ export function cameraPoseFor(
       target[2] + CAMERA_OFFSET[2] * cameraScale,
     ],
   };
+}
+
+/** The table camera at a pose, with its matrices current for projecting and raycasting. */
+export function tableCamera(pose: CameraPose, aspectRatio: number): PerspectiveCamera {
+  const camera = new PerspectiveCamera(TABLE_CAMERA_FIELD_OF_VIEW, aspectRatio, TABLE_CAMERA_NEAR, TABLE_CAMERA_FAR);
+  camera.position.set(...pose.position);
+  camera.lookAt(...pose.target);
+  camera.updateMatrixWorld();
+  return camera;
 }
 
 export function cameraViewTransitionProgress(elapsedMs: number): number {

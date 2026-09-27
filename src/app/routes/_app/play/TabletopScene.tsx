@@ -90,7 +90,7 @@ import { BOARD_RIM_DEPTH, createBoardRimShape } from './boardRimGeometry';
 import { CameraControls, CameraRelativeFog } from './CameraControls';
 import { usePresence } from './multiplayer/PresenceContext';
 import { PhaseSymbol } from './PhaseSymbol';
-import { cameraPoseFor, TABLE_CAMERA_FIELD_OF_VIEW } from './playView';
+import { cameraPoseFor, TABLE_CAMERA_FAR, TABLE_CAMERA_FIELD_OF_VIEW, TABLE_CAMERA_NEAR } from './playView';
 import type { CameraViewCommand } from './playView';
 import { usePointerSession } from './PointerSessionContext';
 import { isPublicTablePoint, ScenePresence, useTablePose } from './ScenePresence';
@@ -1153,8 +1153,8 @@ export function TabletopScene({
     () => ({
       position: cameraPoseFor('map', 1, mapFramingPoints).position,
       fov: TABLE_CAMERA_FIELD_OF_VIEW,
-      near: 0.1,
-      far: 100,
+      near: TABLE_CAMERA_NEAR,
+      far: TABLE_CAMERA_FAR,
     }),
     [mapFramingPoints]
   );
