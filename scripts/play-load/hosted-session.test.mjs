@@ -5,6 +5,7 @@ import path from 'node:path';
 import { afterEach, expect, test, vi } from 'vitest';
 
 import { openHostedSession } from './hosted-session.mjs';
+import { syntheticHostedTarget } from './synthetic-target.ts';
 
 let directory;
 afterEach(async () => {
@@ -19,16 +20,7 @@ afterEach(async () => {
 test('hosted preflight rejects the wrong credential scope before network access and verifies cleanup', async () => {
   directory = await mkdtemp(path.join(tmpdir(), 'hosted-session-'));
   const filename = path.join(directory, 'run.json');
-  const target = {
-    project: 'norbert-de-langen:dunezone-play-load',
-    reference: 'dev/native',
-    backendName: 'isolated-load-1105',
-    backendOrigin: 'https://isolated-load-1105.eu-west-1.convex.cloud',
-    applicationOrigin: 'https://dunezone-play-load-native.ndelangen.workers.dev',
-    gameWorker: 'dunezone-game-load-native',
-    namespaceId: '1'.repeat(32),
-    sourceRevision: '2'.repeat(40),
-  };
+  const target = syntheticHostedTarget('2'.repeat(40));
   const startsAt = Date.now();
   const run = {
     runId: '3'.repeat(32),

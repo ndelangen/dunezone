@@ -9,9 +9,12 @@ import { parseArgs } from 'node:util';
 
 import sharp from 'sharp';
 
+import { loadCaseSchema } from '../src/shared/play/loadTarget';
 import { nodeExecutable } from './node-executable';
 import { bundleRunner } from './play-load/bundle';
 import { prepareHostedBackend } from './play-load/hosted-backend';
+import { runnerProfiles } from './play-load/profiles';
+import { syntheticHostedTarget } from './play-load/synthetic-target';
 import { browserFlows, isBrowserFlow } from './verify-hosted-flows';
 import type { BrowserFlow } from './verify-hosted-flows';
 
@@ -35,10 +38,8 @@ const { values } = parseArgs({
     'skip-generate': { type: 'boolean', default: false },
   },
 });
-if (
-  values['load-profile'] &&
-  (!['baseline', 'stacked', 'separated'].includes(values['load-profile']) || values['browser-only'])
-) {
+const loadProfile = runnerProfiles.find((candidate) => candidate === values['load-profile']);
+if (values['load-profile'] && (!loadProfile || values['browser-only'])) {
   throw new Error('Choose one load profile and run browser verification separately.');
 }
 if (values['browser-only'] && values['skip-build']) {
@@ -64,13 +65,10 @@ for (const name of values.flow ?? ['regular']) {
 if (values.browser && !values['browser-only']) {
   throw new Error('--browser requires --browser-only.');
 }
-const loadCase = ['probe', 'peak', 'reconnect', 'trace', 'multitab', 'steady', 'slow', 'browser'].find(
-  (candidate) => candidate === values['load-case']
-);
+const loadCase = loadCaseSchema.options.find((candidate) => candidate === values['load-case']);
 if (!loadCase) {
   throw new Error('Choose a supported load case.');
 }
-const loadProfile = ['baseline', 'stacked', 'separated'].find((candidate) => candidate === values['load-profile']);
 if (values['load-cpu'] && !loadProfile) {
   throw new Error('--load-cpu requires an isolated load profile.');
 }
@@ -297,16 +295,9 @@ try {
   const siteUrl = `http://127.0.0.1:${sitePort}`;
   const origin = `http://127.0.0.1:${appPort}`;
   const hostedTarget = values['load-hosted-backend']
-    ? {
-        project: 'norbert-de-langen:dunezone-play-load',
-        reference: 'dev/native',
-        backendName: 'isolated-load-1105',
-        backendOrigin: 'https://isolated-load-1105.eu-west-1.convex.cloud',
-        applicationOrigin: 'https://dunezone-play-load-native.ndelangen.workers.dev',
-        gameWorker: 'dunezone-game-load-native',
-        namespaceId: '1'.repeat(32),
-        sourceRevision: run({ command: '/usr/bin/git', args: ['rev-parse', 'HEAD'], label: 'Source revision' }).trim(),
-      }
+    ? syntheticHostedTarget(
+        run({ command: '/usr/bin/git', args: ['rev-parse', 'HEAD'], label: 'Source revision' }).trim()
+      )
     : null;
   const backendSource = hostedTarget ? path.join(runtime, 'backend-source') : root;
   if (hostedTarget) {

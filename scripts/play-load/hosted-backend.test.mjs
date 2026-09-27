@@ -8,19 +8,13 @@ import { build } from 'esbuild';
 import { test, vi } from 'vitest';
 
 import { prepareHostedBackend } from './hosted-backend';
+import { syntheticHostedTarget } from './synthetic-target.ts';
 
 test('the generated backend provisions only inside its isolated run window', async () => {
   const directory = await mkdtemp(path.join(tmpdir(), 'play-backend-'));
-  const target = {
-    project: 'norbert-de-langen:dunezone-play-load',
-    reference: 'dev/native',
-    backendName: 'isolated-load-1105',
-    backendOrigin: 'https://isolated-load-1105.eu-west-1.convex.cloud',
-    applicationOrigin: 'https://dunezone-play-load-native.ndelangen.workers.dev',
-    gameWorker: 'dunezone-game-load-native',
-    namespaceId: '1'.repeat(32),
-    sourceRevision: execFileSync('/usr/bin/git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(),
-  };
+  const target = syntheticHostedTarget(
+    execFileSync('/usr/bin/git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim()
+  );
   try {
     const backend = path.join(directory, 'backend');
     await prepareHostedBackend(backend, target);
