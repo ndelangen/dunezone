@@ -124,7 +124,6 @@ const tableEventSchema = z.object({
 });
 
 export const durableTableSchema = z.object({
-  phase: z.literal('Harkonnen shipment'),
   stormSectorIndex: tableCountSchema,
   pieces: z.array(tablePieceSchema),
   events: z.array(tableEventSchema),

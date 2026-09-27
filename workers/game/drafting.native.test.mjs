@@ -11,6 +11,7 @@ import {
   seat,
   sendCommand,
   stage,
+  storedEventMessages,
   syncView,
 } from './native-runtime.fixture.mjs';
 
@@ -60,7 +61,7 @@ describe('Drafting and public assignment on a real game', () => {
     view = await accepted(b, { kind: 'draft-unban', factionId: 'atreides' });
     /* Lifting the last ban restores no pick. */
     expect(view.snapshot.draft.picks).toEqual({ 'seat-1': [] });
-    expect(view.snapshot.table.events[0].message).toBe('Synthetic B lifted the ban on Atreides.');
+    expect(view.snapshot.table.events[0].message).toBe('Seat 2 lifted the ban on Atreides.');
     expect(await stage(a)).toBe('drafting');
   });
 
@@ -168,27 +169,15 @@ describe('Drafting and public assignment on a real game', () => {
     expect((await syncView(restored)).snapshot.roster.seatCount).toBe(2);
   });
 
-  it('rebuilds the draft and assignment events of a deleted account through restore', async () => {
+  it('names seats in the draft and assignment events it stores, and scrubs a deleted creator from the game record', async () => {
     const { a } = await readyPair();
     await eventually(async () => (await stage(a)) === 'swapping', 'public assignment');
-    expect((await deleteAccount('user-b')).status).toBe(200);
-    const scrubbed = events(await syncView(a));
-    expect(scrubbed).toContain('[deleted user] drafted Harkonnen.');
+    const dealt = events(await syncView(a));
+    expect(dealt).toContain('Seat 1 drafted Atreides.');
+    expect(dealt).toContain('Seat 2 is ready to be dealt.');
     /* The pool is dealt at random, so seat 2 plays either faction. */
-    expect(
-      scrubbed.some((message) =>
-        /^\[deleted user\] plays (Atreides|Harkonnen) from seat 2 at station \d\.$/.test(message)
-      )
-    ).toBe(true);
-    expect(scrubbed).toContain('Synthetic A drafted Atreides.');
-    expect(scrubbed.some((message) => message.includes('Synthetic B'))).toBe(false);
-    expect(await runtime.exec("SELECT user_id, display_name FROM draft_history WHERE seat='seat-2'")).toEqual(
-      Array(3).fill({ user_id: null, display_name: '[deleted user]' })
-    );
-    await runtime.restart();
-    const restored = events(await syncView(await admit('a')));
-    expect(restored.some((message) => message.includes('Synthetic B'))).toBe(false);
-    expect(restored).toContain('[deleted user] drafted Harkonnen.');
+    expect(dealt.some((message) => /^Seat 2 plays (Atreides|Harkonnen) at station \d\.$/.test(message))).toBe(true);
+    expect((await storedEventMessages(runtime)).filter((message) => message.includes('Synthetic'))).toEqual([]);
     /* The creator's deletion scrubs the recorded creator, avatar included. */
     expect((await deleteAccount('user-a')).status).toBe(200);
     expect(

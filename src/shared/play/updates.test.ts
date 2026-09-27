@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { assetPublishingFaction } from '../factions/fixtures/assetPublishingFaction';
+import { emptyBattlePlan, fixtureCombatFaces } from './battle';
 import { initialSnapshot, nextSnapshot } from './commands';
 import { emptyPublicControls } from './inventory';
 import { serverMessageSchema, tableForViewer } from './protocol';
@@ -11,7 +12,6 @@ const base = (): RoomView => ({
   type: 'view',
   epoch: 'epoch',
   sequence: 1,
-  updates: 2,
   viewer: { userId: 'user', connectionId: 'connection', viewerSeat: 'harkonnen', displayName: 'One', color: '#000' },
   snapshot: initialSnapshot(),
   carries: [],
@@ -24,6 +24,13 @@ const encode = (before: RoomView, after: RoomView) => ({
   sequence: 2,
   ...frameChange(before, after),
 });
+const sent = (before: RoomView, after: RoomView) => {
+  const message = serverMessageSchema.parse(JSON.parse(JSON.stringify(encode(before, after))));
+  if (message.type !== 'update') {
+    throw new Error('Expected an update.');
+  }
+  return message;
+};
 
 describe('game transport reconstruction', () => {
   it('delivers retained faction artwork at setup and preserves it through later piece updates', () => {
@@ -70,6 +77,33 @@ describe('game transport reconstruction', () => {
     expect(applyRoomUpdate(before, encode(before, advanced))?.snapshot.revision).toBe(1);
   });
 
+  it('drops a key the server removed', () => {
+    const before = base();
+    before.snapshot.controls = emptyPublicControls();
+    const after = structuredClone(before);
+    after.snapshot.revision++;
+    delete after.snapshot.controls;
+    expect(applyRoomUpdate(before, sent(before, after))?.snapshot).toEqual(after.snapshot);
+  });
+
+  it('keeps null for a battle that ended, as the fresh view carries it', () => {
+    const before = base();
+    before.snapshot.battlePlan = emptyBattlePlan(fixtureCombatFaces('harkonnen'));
+    before.snapshot.battle = {
+      id: 'battle',
+      anchor: [0, 0, 0],
+      territory: 'Marked territory',
+      stage: 'preparing',
+      deadline: null,
+      sides: [{ factionId: 'harkonnen', ready: false, choice: null }, null],
+    };
+    const after = structuredClone(before);
+    after.snapshot.revision++;
+    after.snapshot.battle = null;
+    after.snapshot.battlePlan = null;
+    expect(applyRoomUpdate(before, sent(before, after))?.snapshot).toEqual(after.snapshot);
+  });
+
   it('preserves reordered, added and removed pieces, versions and table metadata', () => {
     const before = base();
     const table = tableForViewer(before.snapshot, 'harkonnen');
@@ -95,7 +129,7 @@ describe('game transport reconstruction', () => {
     const removed = after.snapshot.table.pieces.pop()!;
     after.snapshot.table.pieces.reverse();
     after.snapshot.table.pieces.push({ ...removed, id: 'added' });
-    const update = serverMessageSchema.parse({ ...encode(before, after), ...frameChange(before, after, true) });
+    const update = serverMessageSchema.parse(encode(before, after));
     expect(update.type).toBe('update');
     if (update.type !== 'update') {
       throw new Error('Expected an update.');
@@ -113,8 +147,6 @@ describe('game transport reconstruction', () => {
       expect.arrayContaining([before.snapshot.table.pieces[1].id, before.snapshot.table.pieces[2].id, 'added'])
     );
     expect(applyRoomUpdate(before, update)?.snapshot).toEqual(after.snapshot);
-    expect(applyRoomUpdate(before, encode(before, after))?.snapshot).toEqual(after.snapshot);
-    expect(encode(before, after).snapshot?.pieceMoves).toBeUndefined();
   });
 
   it('requests a fresh view when a saved movement has no piece definition', () => {
