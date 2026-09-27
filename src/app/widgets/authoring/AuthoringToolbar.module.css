@@ -1,25 +1,9 @@
+/* The toolbar answers to its own width: whether the status marks fold and Save shrinks depends on the room the bar has, not the window. */
 .sticky {
   position: sticky;
   top: 0.75rem;
   z-index: 10;
-}
-
-.leading {
-  min-width: 0;
-}
-
-.status {
-  min-width: 0;
-}
-
-.statusDetails {
-  min-width: 0;
-}
-
-.statusDetails p {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  container: authoring-toolbar / inline-size;
 }
 
 .actions {
@@ -27,13 +11,26 @@
 }
 
 .auxiliarySlot,
-.destructiveSlot {
+.destructiveSlot,
+.saveButton {
   display: contents;
 }
 
-@media (max-width: 70em) {
-  .statusDetails {
+.foldedStatus,
+.saveIcon {
+  display: none;
+}
+
+/* Below 30rem a mark per status and a worded Save no longer fit beside the actions on one line. */
+@container authoring-toolbar (width < 30rem) {
+  .statuses,
+  .saveButton {
     display: none;
+  }
+
+  .foldedStatus,
+  .saveIcon {
+    display: contents;
   }
 }
 

@@ -4,34 +4,40 @@ import { expect, userEvent, within } from 'storybook/test';
 
 import { db, storybookViewer } from '@db/storybook';
 
+import { expectToolbarStatusesOnOneLine } from '../../authoringToolbarPlay';
 import { pageStoryMeta } from '../../storybookConfig';
+
 const meta = preview.meta({
   ...pageStoryMeta,
   title: 'Assets/Card-back presets',
   args: { path: '/assets/__presets' },
 });
+
+/* The administrator who may edit presets, with the stock presets published once. */
+const administratorDatabase = db((baseline) => {
+  baseline.users.find((user) => user.$key === storybookViewer.subjectKey)!.isAdmin = true;
+  baseline.cardback_presets = INITIAL_CARDBACK_PRESETS.map(({ key, cardback }) => ({
+    key,
+    cardback,
+    revision: 1,
+    updated_at: 0,
+  }));
+  const settings = baseline.admin_settings[0];
+  if (settings) {
+    settings.renderer_revisions['cardback-preset'] = 1;
+  } else {
+    baseline.admin_settings.push({
+      key: 'publication',
+      publication_pickup_enabled: false,
+      renderer_revisions: { 'cardback-preset': 1 },
+      updated_at: 0,
+    });
+  }
+});
+
 export const Administrator = meta.story({
   parameters: {
-    database: db((baseline) => {
-      baseline.users.find((user) => user.$key === storybookViewer.subjectKey)!.isAdmin = true;
-      baseline.cardback_presets = INITIAL_CARDBACK_PRESETS.map(({ key, cardback }) => ({
-        key,
-        cardback,
-        revision: 1,
-        updated_at: 0,
-      }));
-      const settings = baseline.admin_settings[0];
-      if (settings) {
-        settings.renderer_revisions['cardback-preset'] = 1;
-      } else {
-        baseline.admin_settings.push({
-          key: 'publication',
-          publication_pickup_enabled: false,
-          renderer_revisions: { 'cardback-preset': 1 },
-          updated_at: 0,
-        });
-      }
-    }),
+    database: administratorDatabase,
   },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
@@ -79,4 +85,36 @@ export const NotAdministrator = meta.story({
       page.findByRole('heading', { name: 'Administrator access required' }, { timeout: 30_000 })
     ).resolves.toBeVisible();
   },
+});
+
+/** The preset editor's toolbar on one line at a phone, tablet, laptop and desktop width (#1423), stating only its save state at rest. */
+export const ToolbarAt360 = meta.story({
+  parameters: { database: administratorDatabase },
+  globals: { viewport: { value: 'appMobileNarrow' } },
+  play: async ({ canvasElement }) =>
+    await expectToolbarStatusesOnOneLine(canvasElement, { statuses: ['No unsaved changes'], folded: true }),
+});
+export const ToolbarAt390 = meta.story({
+  parameters: { database: administratorDatabase },
+  globals: { viewport: { value: 'appMobile' } },
+  play: async ({ canvasElement }) =>
+    await expectToolbarStatusesOnOneLine(canvasElement, { statuses: ['No unsaved changes'], folded: true }),
+});
+export const ToolbarAt768 = meta.story({
+  parameters: { database: administratorDatabase },
+  globals: { viewport: { value: 'appTablet' } },
+  play: async ({ canvasElement }) =>
+    await expectToolbarStatusesOnOneLine(canvasElement, { statuses: ['No unsaved changes'], folded: false }),
+});
+export const ToolbarAt1100 = meta.story({
+  parameters: { database: administratorDatabase },
+  globals: { viewport: { value: 'appLaptop' } },
+  play: async ({ canvasElement }) =>
+    await expectToolbarStatusesOnOneLine(canvasElement, { statuses: ['No unsaved changes'], folded: false }),
+});
+export const ToolbarAt1440 = meta.story({
+  parameters: { database: administratorDatabase },
+  globals: { viewport: { value: 'appLarge' } },
+  play: async ({ canvasElement }) =>
+    await expectToolbarStatusesOnOneLine(canvasElement, { statuses: ['No unsaved changes'], folded: false }),
 });

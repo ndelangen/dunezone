@@ -172,6 +172,28 @@ export default definePreview({
             height: '844px',
           },
         },
+        /* The narrowest phone the authoring toolbar is held to, beside the tablet and laptop widths it is also checked at. */
+        appMobileNarrow: {
+          name: 'App mobile narrow',
+          styles: {
+            width: '360px',
+            height: '800px',
+          },
+        },
+        appTablet: {
+          name: 'App tablet',
+          styles: {
+            width: '768px',
+            height: '1024px',
+          },
+        },
+        appLaptop: {
+          name: 'App laptop',
+          styles: {
+            width: '1100px',
+            height: '900px',
+          },
+        },
       },
     },
   },

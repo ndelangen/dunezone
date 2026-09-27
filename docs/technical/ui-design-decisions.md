@@ -326,8 +326,8 @@ The language, each word earned by usage the survey found rather than invented:
 | `caution` | warns without failing | any |
 | `brand` | ownership | any |
 | `selected` | currently chosen among alternatives | any |
-| `pending` | waiting to start | `StatusBadge` |
-| `progress` | running | `StatusBadge` |
+| `pending` | waiting to start | `StatusBadge`, `StatusMark` |
+| `progress` | running | `StatusBadge`, `StatusMark` |
 | `muted` | recedes behind the content it names | `Eyebrow` |
 | `accent` | ties the label to the brand | `Eyebrow` |
 | `inverse` | legible on dark artwork | `Eyebrow` |
@@ -365,6 +365,17 @@ icon would be ambiguous, label it.
 *Convention. The kit carries it: `IconAction` for icon-only actions and `CallToAction` for the
 forward-moving primary. Which variant each takes is the section above; this one is about how many
 and how labelled. (`StatusBadge`'s scale is for state, not actions.)*
+
+### A bar states its statuses as glyphs and stays one line
+
+A toolbar that runs out of room drops or iconifies; it never wraps. A second line of prose reads as
+clutter, and wording that repeats what the page already shows is noise (Norbert, #1423). Each status
+is a glyph whose tooltip and accessible name carry the full wording, reachable by hover, keyboard and
+touch. Where even the glyphs do not fit, they fold into one glyph whose tooltip lists them all.
+
+*Convention. The kit carries it: [`StatusMark`](../../src/app/ui/content/StatusMark.tsx) states one
+status, and `StatusMarkList` lists several inside the tooltip of the mark that stands in for them.
+`AuthoringToolbar` folds its marks, and turns Save into an icon, below 30rem of its own width.*
 
 ### Destructive actions are held, not asked twice
 

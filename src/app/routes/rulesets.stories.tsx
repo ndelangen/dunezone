@@ -1,6 +1,7 @@
 import preview from '@sb/preview';
 import { expect, within } from 'storybook/test';
 
+import { expectToolbarStatusesOnOneLine } from './authoringToolbarPlay';
 import { pageStoryMeta } from './storybookConfig';
 
 const meta = preview.meta({
@@ -37,4 +38,37 @@ export const Question = meta.story({
 export const RulebookEditor = meta.story({
   args: { path: '/rulesets/classicrules/rulebooks/player-aid/edit' },
   globals: { viewport: { value: 'appAuthoringWide' } },
+});
+
+/** The ruleset editor's toolbar on one line at a phone, tablet, laptop and desktop width (#1423), stating only its save state at rest. */
+
+export const EditToolbarAt360 = meta.story({
+  args: { path: '/rulesets/classicrules/edit' },
+  globals: { viewport: { value: 'appMobileNarrow' } },
+  play: async ({ canvasElement }) =>
+    await expectToolbarStatusesOnOneLine(canvasElement, { statuses: ['No unsaved changes'], folded: true }),
+});
+export const EditToolbarAt390 = meta.story({
+  args: { path: '/rulesets/classicrules/edit' },
+  globals: { viewport: { value: 'appMobile' } },
+  play: async ({ canvasElement }) =>
+    await expectToolbarStatusesOnOneLine(canvasElement, { statuses: ['No unsaved changes'], folded: true }),
+});
+export const EditToolbarAt768 = meta.story({
+  args: { path: '/rulesets/classicrules/edit' },
+  globals: { viewport: { value: 'appTablet' } },
+  play: async ({ canvasElement }) =>
+    await expectToolbarStatusesOnOneLine(canvasElement, { statuses: ['No unsaved changes'], folded: false }),
+});
+export const EditToolbarAt1100 = meta.story({
+  args: { path: '/rulesets/classicrules/edit' },
+  globals: { viewport: { value: 'appLaptop' } },
+  play: async ({ canvasElement }) =>
+    await expectToolbarStatusesOnOneLine(canvasElement, { statuses: ['No unsaved changes'], folded: false }),
+});
+export const EditToolbarAt1440 = meta.story({
+  args: { path: '/rulesets/classicrules/edit' },
+  globals: { viewport: { value: 'appLarge' } },
+  play: async ({ canvasElement }) =>
+    await expectToolbarStatusesOnOneLine(canvasElement, { statuses: ['No unsaved changes'], folded: false }),
 });

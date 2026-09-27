@@ -3,6 +3,7 @@ import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { db, refText, SEED_REF_TOKEN } from '@db/storybook';
 
+import { expectToolbarStatusesOnOneLine } from './authoringToolbarPlay';
 import {
   craftLinearAngle,
   currentLayerMode,
@@ -274,4 +275,46 @@ export const CreateLoadClosesTheValidationBand = meta.story({
     await userEvent.click(await page.findByRole('button', { name: 'Load faction' }, { timeout: 30_000 }));
     await waitFor(() => expect(body.querySelector('[data-page-layout-header-size]')).toBeNull(), { timeout: 30_000 });
   },
+});
+
+/**
+ * The faction editor's toolbar at a phone, tablet, laptop and desktop width, on one line at each (#1423).
+ * The seeded faction states three things at rest: nothing unsaved, no publication yet, and its Group.
+ * From the tablet width up each is its own glyph beside Back, and on a phone they fold into one glyph whose description lists all three.
+ */
+const FACTION_EDIT_STATUSES = [
+  'No unsaved changes',
+  'The public asset will be available soon.',
+  'Group access: Arrakeen Rules Council',
+];
+
+export const EditToolbarAt360 = meta.story({
+  args: { path: '/factions/house-atreides/edit' },
+  globals: { viewport: { value: 'appMobileNarrow' } },
+  play: async ({ canvasElement }) =>
+    await expectToolbarStatusesOnOneLine(canvasElement, { statuses: FACTION_EDIT_STATUSES, folded: true }),
+});
+export const EditToolbarAt390 = meta.story({
+  args: { path: '/factions/house-atreides/edit' },
+  globals: { viewport: { value: 'appMobile' } },
+  play: async ({ canvasElement }) =>
+    await expectToolbarStatusesOnOneLine(canvasElement, { statuses: FACTION_EDIT_STATUSES, folded: true }),
+});
+export const EditToolbarAt768 = meta.story({
+  args: { path: '/factions/house-atreides/edit' },
+  globals: { viewport: { value: 'appTablet' } },
+  play: async ({ canvasElement }) =>
+    await expectToolbarStatusesOnOneLine(canvasElement, { statuses: FACTION_EDIT_STATUSES, folded: false }),
+});
+export const EditToolbarAt1100 = meta.story({
+  args: { path: '/factions/house-atreides/edit' },
+  globals: { viewport: { value: 'appLaptop' } },
+  play: async ({ canvasElement }) =>
+    await expectToolbarStatusesOnOneLine(canvasElement, { statuses: FACTION_EDIT_STATUSES, folded: false }),
+});
+export const EditToolbarAt1440 = meta.story({
+  args: { path: '/factions/house-atreides/edit' },
+  globals: { viewport: { value: 'appLarge' } },
+  play: async ({ canvasElement }) =>
+    await expectToolbarStatusesOnOneLine(canvasElement, { statuses: FACTION_EDIT_STATUSES, folded: false }),
 });
