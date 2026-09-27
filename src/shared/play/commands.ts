@@ -20,6 +20,7 @@ function durableTable(table: TableState): DurableTable {
   const {
     viewerSeat: _viewer,
     viewerFaction: _faction,
+    factionNames: _names,
     selectedPieceId: _selection,
     draftMove: _draft,
     phase: _phase,
@@ -239,7 +240,7 @@ function remainingPieces(state: TableState, piece: TablePiece, remaining: TableP
     if (!remaining.length) {
       return [];
     }
-    return [{ ...candidate, items: remaining, label: labelForCount(candidate, remaining.length) }];
+    return [{ ...candidate, items: remaining, label: labelForCount(candidate, remaining.length, state.factionNames) }];
   });
 }
 
@@ -249,7 +250,7 @@ function splitPlacement(state: TableState, piece: TablePiece, count: number) {
   const split: TablePiece = {
     ...piece,
     id: `split-${state.nextEventNumber}`,
-    label: labelForCount(piece, count, true),
+    label: labelForCount(piece, count, state.factionNames, true),
     items: piece.items.slice(-count),
     position: [piece.position[0] + offsetX, piece.position[1], piece.position[2] + offsetZ],
   };
