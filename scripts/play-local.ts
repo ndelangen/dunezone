@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
 
 import { nodeExecutable } from './node-executable';
@@ -145,6 +146,9 @@ console.log(`Local state/configuration: ${runtime}. Removed when this runner sto
 const child = spawn(
   node,
   [
+    /* Wrangler passes Node's flags on to the process that runs workerd, where this records how workerd exits. */
+    '--import',
+    pathToFileURL(path.join(root, 'scripts/workerd-exit-record.mjs')).href,
     path.join(root, 'node_modules/wrangler/bin/wrangler.js'),
     'dev',
     '--local',
