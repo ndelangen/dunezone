@@ -1,4 +1,5 @@
 import type { Vector3Tuple } from '@shared/play/model';
+import type { TablePhaseId } from '@shared/play/phases';
 import { PerspectiveCamera } from 'three';
 
 import { mapViewFramingPoints } from './tablePlateGeometry';
@@ -12,15 +13,25 @@ export const TABLE_VIEW_OPTIONS = [
 
 export type TableView = (typeof TABLE_VIEW_OPTIONS)[number]['id'];
 
-export type PhaseViewRequest = Readonly<{
-  id: string;
-  view: TableView;
-}>;
+/** The view each phase recommends: the camera moves there when the phase begins, and the view picker marks it. */
+export const PHASE_VIEWS: Record<TablePhaseId, TableView> = {
+  storm: 'map',
+  'spice-blow': 'right',
+  'choam-charity': 'bottom',
+  bidding: 'left',
+  revival: 'bottom',
+  'shipment-and-movement': 'map',
+  battle: 'map',
+  'spice-collection': 'map',
+  'mentat-pause': 'bottom',
+};
 
 export type CameraViewCommand = Readonly<{
   view: TableView;
   revision: number;
 }>;
+
+type PendingView = Readonly<{ view: TableView; source: 'player' | 'phase' }>;
 
 export type TableViewState = Readonly<{
   activeView: TableView;
@@ -28,16 +39,16 @@ export type TableViewState = Readonly<{
   interactionActive: boolean;
   /* Whether the renderer is ready to draw: the shell opens through its iris only once there is a table to see. */
   sceneReady: boolean;
-  pendingView: TableView | null;
-  pendingPhaseRequestId: string | null;
-  handledPhaseRequestId: string | null;
+  /* A view asked for during an interaction, applied when it ends. */
+  pendingView: PendingView | null;
+  /* The active phase the camera last answered, so only a change of phase moves it. */
+  phase: TablePhaseId | null;
 }>;
 
 export type TableViewEvent =
   | Readonly<{ type: 'view.selected'; view: TableView }>
   | Readonly<{ type: 'view.reset' }>
-  | Readonly<{ type: 'phase.requested'; request: PhaseViewRequest }>
-  | Readonly<{ type: 'phase.cleared' }>
+  | Readonly<{ type: 'phase.changed'; phase: TablePhaseId | null }>
   | Readonly<{ type: 'interaction.changed'; active: boolean }>
   | Readonly<{ type: 'scene.ready' }>;
 
@@ -186,45 +197,39 @@ export function cameraFogRange(position: Vector3Tuple): CameraFogRange {
   };
 }
 
-export function createTableViewState(phaseRequest: PhaseViewRequest | null = null): TableViewState {
+/** The view state for a table opened during `phase`: the camera starts on the map, and the first move waits for the next phase. */
+export function createTableViewState(phase: TablePhaseId | null = null): TableViewState {
   return {
-    activeView: phaseRequest?.view ?? 'map',
+    activeView: 'map',
     cameraRevision: 0,
     interactionActive: false,
     sceneReady: false,
     pendingView: null,
-    pendingPhaseRequestId: null,
-    handledPhaseRequestId: phaseRequest?.id ?? null,
+    phase,
   };
 }
 
-function requestView(state: TableViewState, view: TableView, phaseRequestId: string | null = null): TableViewState {
+function requestView(state: TableViewState, pendingView: PendingView): TableViewState {
   if (state.interactionActive) {
-    return {
-      ...state,
-      pendingView: view,
-      pendingPhaseRequestId: phaseRequestId,
-    };
+    return { ...state, pendingView };
   }
   return {
     ...state,
-    activeView: view,
+    activeView: pendingView.view,
     cameraRevision: state.cameraRevision + 1,
     pendingView: null,
-    pendingPhaseRequestId: null,
   };
 }
 
-function clearPhaseRequest(state: TableViewState): TableViewState {
-  if (state.pendingPhaseRequestId === null && state.handledPhaseRequestId === null) {
+function changePhase(state: TableViewState, phase: TablePhaseId | null): TableViewState {
+  if (phase === state.phase) {
     return state;
   }
-  return {
-    ...state,
-    pendingView: state.pendingPhaseRequestId === null ? state.pendingView : null,
-    pendingPhaseRequestId: null,
-    handledPhaseRequestId: null,
-  };
+  if (phase === null) {
+    /* A phase view still waiting on an interaction is obsolete once no phase is active; a player's choice still applies. */
+    return { ...state, phase, pendingView: state.pendingView?.source === 'phase' ? null : state.pendingView };
+  }
+  return requestView({ ...state, phase }, { view: PHASE_VIEWS[phase], source: 'phase' });
 }
 
 function changeInteraction(state: TableViewState, active: boolean): TableViewState {
@@ -239,23 +244,16 @@ function changeInteraction(state: TableViewState, active: boolean): TableViewSta
 }
 
 export function reduceTableView(state: TableViewState, event: TableViewEvent): TableViewState {
-  if (event.type === 'view.selected') {
-    return requestView(state, event.view);
+  switch (event.type) {
+    case 'view.selected':
+      return requestView(state, { view: event.view, source: 'player' });
+    case 'view.reset':
+      return requestView(state, { view: state.activeView, source: 'player' });
+    case 'phase.changed':
+      return changePhase(state, event.phase);
+    case 'interaction.changed':
+      return changeInteraction(state, event.active);
+    case 'scene.ready':
+      return state.sceneReady ? state : { ...state, sceneReady: true };
   }
-  if (event.type === 'view.reset') {
-    return requestView(state, state.activeView);
-  }
-  if (event.type === 'phase.requested') {
-    if (event.request.id === state.handledPhaseRequestId) {
-      return state;
-    }
-    return requestView({ ...state, handledPhaseRequestId: event.request.id }, event.request.view, event.request.id);
-  }
-  if (event.type === 'phase.cleared') {
-    return clearPhaseRequest(state);
-  }
-  if (event.type === 'scene.ready') {
-    return state.sceneReady ? state : { ...state, sceneReady: true };
-  }
-  return changeInteraction(state, event.active);
 }

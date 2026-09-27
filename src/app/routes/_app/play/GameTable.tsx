@@ -29,8 +29,8 @@ import {
   PHASE_RING_OUTER_RADIUS,
   PHASE_SYMBOL_MAX_RADIUS,
 } from './phaseSymbolLayout';
-import { createTableViewState, reduceTableView, TABLE_VIEW_OPTIONS } from './playView';
-import type { CameraViewCommand, PhaseViewRequest, TableView } from './playView';
+import { createTableViewState, PHASE_VIEWS, reduceTableView, TABLE_VIEW_OPTIONS } from './playView';
+import type { CameraViewCommand, TableView } from './playView';
 import { PointerSession } from './PointerSession';
 import { PointerSessionContext } from './PointerSessionContext';
 import { useTabletop } from './TabletopContext';
@@ -42,41 +42,11 @@ import { TableWait } from './TableWait';
 /* How long the shell waits for the renderer before opening anyway. */
 const SCENE_READY_FALLBACK_MS = 1500;
 
-type LocalTablePhase = TableProgress['phases'][number] & {
-  preferredView: TableView;
-};
-
-const DEFAULT_PHASE_VIEWS: Record<(typeof TABLE_PHASES)[number]['id'], TableView> = {
-  storm: 'map',
-  'spice-blow': 'right',
-  'choam-charity': 'bottom',
-  bidding: 'left',
-  revival: 'bottom',
-  'shipment-and-movement': 'map',
-  battle: 'map',
-  'spice-collection': 'map',
-  'mentat-pause': 'bottom',
-};
-
-const DEFAULT_TABLE_PHASES: readonly LocalTablePhase[] = TABLE_PHASES.map((phase) => ({
-  ...phase,
-  preferredView: DEFAULT_PHASE_VIEWS[phase.id],
-}));
-
 const DEFAULT_TABLE_PROGRESS: TableProgress = {
   turn: 1,
-  phases: DEFAULT_TABLE_PHASES,
+  phases: TABLE_PHASES,
   activePhaseId: 'shipment-and-movement',
 };
-
-const defaultActivePhase = DEFAULT_TABLE_PHASES.find((phase) => phase.id === DEFAULT_TABLE_PROGRESS.activePhaseId);
-
-const DEFAULT_PHASE_VIEW_REQUEST: PhaseViewRequest | null = defaultActivePhase
-  ? {
-      id: `turn-${DEFAULT_TABLE_PROGRESS.turn}:${defaultActivePhase.id}`,
-      view: defaultActivePhase.preferredView,
-    }
-  : null;
 
 /** One tab of the controls panel: what it is called, its glyph from the topic map, and what it shows. */
 type PanelTab = Readonly<{
@@ -102,7 +72,6 @@ type GameTableProps = {
   toolbarControl?: ReactNode;
   showStormControls?: boolean;
   seatCount: TableSeatCount;
-  phaseViewRequest?: PhaseViewRequest | null;
   tableProgress?: TableProgress;
   /* Absent on the fixture, which has no lifecycle. */
   stage?: GameSnapshot['stage'];
@@ -501,7 +470,6 @@ export function GameTable({
   toolbarControl,
   showStormControls = true,
   seatCount,
-  phaseViewRequest,
   tableProgress: providedProgress,
   onSelectTurn: selectSharedTurn,
 }: GameTableProps) {
@@ -512,15 +480,15 @@ export function GameTable({
   const { gestureActivePieceId } = useTabletop();
   const phaseSymbolClipId = useId();
   const showCounts = useStackCounts();
-  const resolvedPhaseViewRequest =
-    phaseViewRequest === undefined
-      ? providedProgress === undefined
-        ? DEFAULT_PHASE_VIEW_REQUEST
-        : null
-      : phaseViewRequest;
-  const [viewState, dispatchView] = useReducer(reduceTableView, createTableViewState(resolvedPhaseViewRequest));
-  const overlaysInert = viewState.interactionActive || gestureActivePieceId !== null;
   const frame = stageFrame(stage);
+  /* The camera follows the phase while the header names one: in play, and on the fixture. */
+  const viewPhase = frame.word ? null : tableProgress.activePhaseId;
+  const [viewState, dispatchView] = useReducer(reduceTableView, viewPhase, createTableViewState);
+  if (viewState.phase !== viewPhase) {
+    /* The phase changed since the last render; the reducer answers it before this render commits. */
+    dispatchView({ type: 'phase.changed', phase: viewPhase });
+  }
+  const overlaysInert = viewState.interactionActive || gestureActivePieceId !== null;
   const cameraView = useMemo<CameraViewCommand>(
     () => ({
       view: viewState.activeView,
@@ -530,14 +498,6 @@ export function GameTable({
   );
   const activePhaseIndex = tableProgress.phases.findIndex((phase) => phase.id === tableProgress.activePhaseId);
   const activePhase = tableProgress.phases[activePhaseIndex];
-
-  useEffect(() => {
-    if (resolvedPhaseViewRequest) {
-      dispatchView({ type: 'phase.requested', request: resolvedPhaseViewRequest });
-    } else {
-      dispatchView({ type: 'phase.cleared' });
-    }
-  }, [resolvedPhaseViewRequest]);
 
   const handleInteractionActiveChange = useCallback((active: boolean) => {
     dispatchView({ type: 'interaction.changed', active });
@@ -613,7 +573,7 @@ export function GameTable({
               <div className="seated-toolbar">
                 <TableViewPicker
                   activeView={viewState.activeView}
-                  preferredView={resolvedPhaseViewRequest?.view}
+                  preferredView={viewPhase === null ? undefined : PHASE_VIEWS[viewPhase]}
                   onSelect={(view) => dispatchView({ type: 'view.selected', view })}
                 />
                 {gameMenu}
