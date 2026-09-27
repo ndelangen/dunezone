@@ -54,6 +54,8 @@ type Connection = {
   authorizationRound?: number;
   sessionId?: string;
   announced: 'pending' | 'authorized' | 'suspended';
+  /* Counts the `suspended` frames the room sent. The page discards its unanswered requests on each one, so a message that arrived before the latest is dropped. */
+  suspensions: number;
   everAuthorized: boolean;
   pointerSeq: number;
   tokens: number;
@@ -431,6 +433,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       admitting: false,
       capturing: false,
       announced: 'pending',
+      suspensions: 0,
       everAuthorized: false,
       pointerSeq: -1,
       tokens: 120,
@@ -860,6 +863,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     }
     if (connection.announced !== 'suspended') {
       connection.announced = 'suspended';
+      connection.suspensions++;
       this.session.clearActivity(connection.connectionId);
       this.sendAdmission(socket, 'suspended');
       return connection.everAuthorized ? 'activity' : undefined;
@@ -888,15 +892,8 @@ export class GameRoom extends DurableObject<GameEnv> {
     if (this.reconcileViewers()) {
       this.broadcastActivity();
     }
-    /* A held connection's message waits for the fence, then meets the same check as any other. */
-    for (
-      let fence = this.fenceFor(socket, connection);
-      fence && !this.authorized(socket);
-      fence = this.fenceFor(socket, connection)
-    ) {
-      await fence.released;
-    }
-    if (!this.authorized(socket)) {
+    const suspensions = connection.suspensions;
+    if (!(await this.outlastFence(socket, connection, suspensions))) {
       this.authorizationChanged();
       return;
     }
@@ -904,15 +901,33 @@ export class GameRoom extends DurableObject<GameEnv> {
     try {
       this.advanceDeadlines();
       if (message.type === 'catalogue') {
-        await this.capture(connection, () => this.readCatalogue(socket, message));
+        await this.capture(connection, () => this.readCatalogue(socket, connection, message, suspensions));
       } else if (message.type === 'command' && message.action.kind === 'spawn-request') {
-        await this.capture(connection, () => this.requestSpawn(socket, connection, message));
+        await this.capture(connection, () => this.requestSpawn(socket, connection, message, suspensions));
       } else {
         this.dispatch(socket, connection, message);
       }
     } catch (error) {
+      /* A capture that failed while a fence held its connection is refused once the fence lifts. */
+      await this.outlastFence(socket, connection, suspensions);
       this.rejectMessage(socket, connection, message, error);
     }
+  }
+
+  /*
+   * A held connection's message, and a catalogue capture it started, wait here for the fence to lift, then meet the same check as any other.
+   * Resolves to whether the connection may still act on a message that arrived after `suspensions` pauses.
+   * A pause since then drops the message, even when the connection was admitted again, because the page discarded its unanswered requests on the pause.
+   */
+  private async outlastFence(socket: WebSocket, connection: Connection, suspensions: number) {
+    for (
+      let fence = this.fenceFor(socket, connection);
+      fence && !this.authorized(socket);
+      fence = this.fenceFor(socket, connection)
+    ) {
+      await fence.released;
+    }
+    return this.authorized(socket) && connection.suspensions === suspensions;
   }
 
   /** Only a seated player may drive catalogue reads, and only one at a time per connection. */
@@ -931,20 +946,25 @@ export class GameRoom extends DurableObject<GameEnv> {
     }
   }
 
-  private async readCatalogue(socket: WebSocket, message: Extract<ClientMessage, { type: 'catalogue' }>) {
+  private async readCatalogue(
+    socket: WebSocket,
+    connection: Connection,
+    message: Extract<ClientMessage, { type: 'catalogue' }>,
+    suspensions: number
+  ) {
     const catalogue = new GameCatalogue(this.env.CONVEX_URL, this.env.APPLICATION_ORIGIN);
     try {
       const result = message.selection
         ? { contents: this.session.projectContents(await catalogue.capture(message.selection)) }
         : { entries: await catalogue.list() };
-      if (this.authorized(socket)) {
+      if (await this.outlastFence(socket, connection, suspensions)) {
         this.send(socket, { type: 'catalogue', requestId: message.requestId, ...result });
       }
     } catch (error) {
       if (!(error instanceof GameRejection)) {
         throw error;
       }
-      if (this.authorized(socket)) {
+      if (await this.outlastFence(socket, connection, suspensions)) {
         this.send(socket, { type: 'catalogue', requestId: message.requestId, contents: null, error: error.message });
       }
     }
@@ -953,7 +973,8 @@ export class GameRoom extends DurableObject<GameEnv> {
   private async requestSpawn(
     socket: WebSocket,
     connection: Connection,
-    message: Extract<ClientMessage, { type: 'command' }>
+    message: Extract<ClientMessage, { type: 'command' }>,
+    suspensions: number
   ) {
     if (message.action.kind !== 'spawn-request') {
       return;
@@ -963,8 +984,10 @@ export class GameRoom extends DurableObject<GameEnv> {
       return;
     }
     const contents = await new GameCatalogue(this.env.CONVEX_URL, this.env.APPLICATION_ORIGIN).capture(message.action);
-    /* Catalogue I/O yields. Commit rechecks authorization, the roster and the receipt afterward. */
-    this.commit(socket, connection, message, contents);
+    /* Catalogue I/O yields, so the request waits out a fence like a new message. Commit rechecks authorization, the roster and the receipt afterward. */
+    if (await this.outlastFence(socket, connection, suspensions)) {
+      this.commit(socket, connection, message, contents);
+    }
   }
 
   private readMessage(
