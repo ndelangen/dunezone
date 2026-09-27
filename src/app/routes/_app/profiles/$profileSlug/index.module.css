@@ -122,7 +122,7 @@
   color: inherit;
 }
 
-@media (max-width: 800px) {
+@container (width < 48rem) {
   .contentColumns {
     grid-template-areas:
       "sidebar"

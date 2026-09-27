@@ -14,7 +14,17 @@ import { shield as shieldSize } from '@game/data/sizes';
 import { FactionSheetPagePreview, factionDraftForRenderer } from './FactionSheetPagePreview';
 import styles from './FactionSheetReview.module.css';
 
-const DESKTOP_REVIEW_MEDIA = '(min-width: 48em)';
+/** The narrowest stage the review opens on: the step below which the stylesheet hides the panel. */
+const REVIEW_MIN_STAGE_REM = 48;
+
+/** Reads the stage the way the stylesheet's container query does, in the root font size its `rem` resolves against. */
+function stageFitsReview(stage: HTMLElement | null): boolean {
+  if (!stage) {
+    return false;
+  }
+  const rootFontSize = Number.parseFloat(getComputedStyle(document.documentElement).fontSize);
+  return stage.clientWidth >= REVIEW_MIN_STAGE_REM * rootFontSize;
+}
 
 /**
  * The shield at whatever width the review pane gives it.
@@ -195,7 +205,7 @@ export const FactionSheetReview = forwardRef<
 
   const openReview = useCallback(
     (trigger?: HTMLElement | null) => {
-      if (!window.matchMedia(DESKTOP_REVIEW_MEDIA).matches) {
+      if (!stageFitsReview(stageRef.current)) {
         return;
       }
       reviewTriggerRef.current = trigger ?? null;
@@ -215,14 +225,17 @@ export const FactionSheetReview = forwardRef<
   useImperativeHandle(ref, () => ({ open: openReview }), [openReview]);
 
   useEffect(() => {
-    const media = window.matchMedia(DESKTOP_REVIEW_MEDIA);
-    const onMediaChange = (event: MediaQueryListEvent) => {
-      if (!event.matches) {
+    const stage = stageRef.current;
+    if (!stage || typeof ResizeObserver === 'undefined') {
+      return;
+    }
+    const observer = new ResizeObserver(() => {
+      if (!stageFitsReview(stage)) {
         setReviewOpen(false);
       }
-    };
-    media.addEventListener('change', onMediaChange);
-    return () => media.removeEventListener('change', onMediaChange);
+    });
+    observer.observe(stage);
+    return () => observer.disconnect();
   }, []);
 
   useEffect(() => {

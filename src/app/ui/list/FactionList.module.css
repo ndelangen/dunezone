@@ -1,16 +1,21 @@
+/* The column count answers to the list's own width, so a list in a side column packs as tightly as one across the page. */
+.list {
+  container: faction-list / inline-size;
+}
+
 .grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: var(--space-md);
 }
 
-@media (max-width: 62em) {
+@container faction-list (width < 62rem) {
   .grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
-@media (max-width: 48em) {
+@container faction-list (width < 48rem) {
   .grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: var(--space-sm);

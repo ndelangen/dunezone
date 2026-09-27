@@ -5,7 +5,7 @@
   align-items: start;
 }
 
-@media (max-width: 62em) {
+@container (width < 62rem) {
   .twoColumnGrid {
     grid-template-columns: minmax(0, 1fr);
   }

@@ -1,4 +1,6 @@
+/* The stage is the box the review asks: the stylesheet hides the panel below 48rem of it, and the component will not open one there. */
 .stage {
+  container: faction-review-stage / inline-size;
   --review-duration: 520ms;
   --review-enter-ease: cubic-bezier(0.22, 1, 0.36, 1);
   --review-exit-ease: cubic-bezier(0.4, 0, 0.2, 1);
@@ -263,7 +265,7 @@
   }
 }
 
-@media (max-width: 47.99em) {
+@container faction-review-stage (width < 48rem) {
   .reviewPanel,
   .editorCloseTarget {
     display: none;

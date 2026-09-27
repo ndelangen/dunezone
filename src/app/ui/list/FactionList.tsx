@@ -14,16 +14,18 @@ export type FactionListProps = {
  *
  * A List.
  * Callers hand it the entries;
- * this owns only the rhythm between them: the column count per breakpoint and the gap.
+ * this owns only the rhythm between them: the column count for its own width and the gap.
  * The tiles are self-framed, so this must sit in a `Section`, never on a `Card`'s pane.
  * Callers own the empty case.
  */
 export function FactionList({ factions, selectedRulesetSlug, className }: FactionListProps) {
   return (
-    <div className={[styles.grid, className].filter(Boolean).join(' ')}>
-      {factions.map((faction) => (
-        <FactionCard key={faction._id} faction={faction} selectedRulesetSlug={selectedRulesetSlug} />
-      ))}
+    <div className={[styles.list, className].filter(Boolean).join(' ')}>
+      <div className={styles.grid}>
+        {factions.map((faction) => (
+          <FactionCard key={faction._id} faction={faction} selectedRulesetSlug={selectedRulesetSlug} />
+        ))}
+      </div>
     </div>
   );
 }

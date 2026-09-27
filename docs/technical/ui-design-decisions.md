@@ -164,8 +164,7 @@ stylesheet.
 A step belongs to its wider side. A query reads strictly below it, `width < 48rem`, or from it up,
 `width >= 48rem`, never `max-width: 48rem`, and a container query on the ladder is written the same
 way. Mantine's responsive props switch at the step itself, and so do the spacing scale and the
-window chrome, so at exactly 768px they agree on tablet mode. The pending page stylesheets still
-read `max-width` and keep their narrow rules at the step until they move to `@container`.
+window chrome, so at exactly 768px they agree on tablet mode.
 
 Everything inside a page responds with `@container`: kit components, Blocks, Layouts, widgets and
 route compositions. The same component can sit in a rail and in a full-width panel on one screen,
@@ -174,16 +173,20 @@ component that needs a query of its own asks its box. `@media` belongs to the wi
 shell chrome (`AppHeader`, `AppRoot`, `SiteNavigation`, `page.css`), `PageLayout`, the play route's
 fullscreen frame in `dune-play.css`, and the spacing tokens in `tokens.css`, all on the ladder.
 
+An unnamed `@container` asks the nearest container. On a document page the outermost one is the
+frame `AppHeader` declares around the band and the page, as wide as the page between the shell's
+gutters, so a page composition that asks it moves with the page and needs no container of its own. A component that
+lays out its own children by its own width, such as `FactionList`'s columns, declares a named
+container on its root, so it answers the same in a side column, a full-width page and a story.
+
 A container query sits on the ladder too, unless its threshold is derived from its own content, such
 as two 14rem columns and a gap, and a comment next to it says so. A viewport number copied into a
 `@container` condition is a window decision wearing the wrong at-rule.
 
 *Media queries enforced by `check:breakpoints`
 ([`assert-breakpoints.mjs`](../../scripts/assert-breakpoints.mjs)): a width query outside the window
-chrome, off the ladder, or in a form other than `width < step` or `width >= step`, fails. The page
-stylesheets still on `@media` sit on its named pending list, each held to the queries it asks today,
-until they move to `@container`. Media conditions written in TypeScript and container queries are
-checked in review. Canonical here.*
+chrome, off the ladder, or in a form other than `width < step` or `width >= step`, fails. Media
+conditions written in TypeScript and container queries are checked in review. Canonical here.*
 
 ### Layouts own spacing and lay out through named slots
 
