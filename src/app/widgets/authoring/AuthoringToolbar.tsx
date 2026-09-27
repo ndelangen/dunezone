@@ -40,7 +40,7 @@ export interface AuthoringStatus {
 export interface AuthoringCopy {
   /** The save button's label, e.g. "Save faction". */
   saveLabel: string;
-  /** Shown while the name is blank; explain that the name determines the URL. */
+  /** The status details' text while the name is blank; explain that the name determines the URL. */
   nameBlankMessage: string;
   /**
    * Live state a reader cannot get anywhere else on the page, such as where a publication has got to.
@@ -61,6 +61,7 @@ export interface AuthoringToolbarActions {
  *
  * It carries no warning count and no standing explanation of what saving does.
  * `ValidationHeader` is open whenever any warning exists and names the fields, so a count here repeated it less usefully, and a sentence that never changes is not status (Norbert, 2026-08-20).
+ * The status details, which are the last-published time, the status or name-blank message and `context`, are rendered but hidden at every width, because the toolbar stays one line (Norbert, 2026-09-27).
  * The page owns all data and wording;
  * the toolbar owns the arrangement.
  */

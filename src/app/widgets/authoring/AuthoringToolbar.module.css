@@ -12,14 +12,15 @@
   min-width: 0;
 }
 
+/*
+ * Hidden at every width, so the toolbar stays one line (Norbert, 2026-09-27). The message and the
+ * context sit in a row below the badge, so they are a second line at every container width, the
+ * widest page included, and an empty row still adds the stack's gap. The last-published time shares
+ * the badge's line, but only the faction editor passes one, and a threshold for it would write that
+ * editor's controls into this widget. #1423 is to show these statuses as icons with tooltips.
+ */
 .statusDetails {
-  min-width: 0;
-}
-
-.statusDetails p {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  display: none;
 }
 
 .actions {
@@ -29,12 +30,6 @@
 .auxiliarySlot,
 .destructiveSlot {
   display: contents;
-}
-
-@container (width < 62rem) {
-  .statusDetails {
-    display: none;
-  }
 }
 
 /* FactionSheetReview opens only on a stage at least 45rem wide, room for its editor strip and the
