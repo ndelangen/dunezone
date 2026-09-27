@@ -138,6 +138,15 @@ async function readLimitedBody(body: ReadableStream<Uint8Array>): Promise<string
   }
 }
 
+/** A promise the room resolves by hand, once, for handlers that wait on an event. */
+function latch() {
+  let release = () => {};
+  const released = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  return { released, release };
+}
+
 export class GameRoom extends DurableObject<GameEnv> {
   private assigning = false;
   private draftChangedDuringAttempt = false;
@@ -156,6 +165,12 @@ export class GameRoom extends DurableObject<GameEnv> {
   private nextReconcileAt = 0;
   private reconcileFailures = 0;
   private reconcileEpoch = 0;
+  /*
+   * Open from a watch denial until the account reconciliation started after it settles.
+   * The missing lease already holds back every game frame and command meanwhile.
+   * A connection whose own grant stands is held rather than suspended: it is not told, it keeps its carry and pointer, and its messages wait here.
+   */
+  private fence: ReturnType<typeof latch> | undefined;
   private motionReceived = 0;
   private motionForwarded = 0;
   private activityDeliveries = 0;
@@ -712,11 +727,13 @@ export class GameRoom extends DurableObject<GameEnv> {
   }
 
   private authorized(socket: WebSocket): boolean {
+    return this.hasAccountLease() && this.granted(socket);
+  }
+
+  /** The connection's own admission: its watch grant and, once admitted, its seat. The room's account lease is checked apart. */
+  private granted(socket: WebSocket): boolean {
     const connection = this.connections.get(socket);
-    if (!connection?.viewer || !connection.registrationId) {
-      return false;
-    }
-    if (connection.authorizationRound === undefined || !this.hasAccountLease()) {
+    if (!connection?.viewer || !connection.registrationId || connection.authorizationRound === undefined) {
       return false;
     }
     const allowed =
@@ -751,20 +768,44 @@ export class GameRoom extends DurableObject<GameEnv> {
     return this.session.revision !== revision;
   }
 
+  /** The fence an admitted connection waits behind while its own grant stands, if one is open. */
+  private fenceFor(socket: WebSocket, connection: Connection) {
+    return connection.announced === 'authorized' && this.granted(socket) ? this.fence : undefined;
+  }
+
+  /** Lifts the fence once its reconciliation restored the lease, failed or outlasted the lease, and reports whether held connections resume. */
+  private settleFence() {
+    const fence = this.fence;
+    if (!fence || (!this.reconciled && Date.now() < this.reconcileUntil)) {
+      return false;
+    }
+    this.fence = undefined;
+    fence.release();
+    return this.hasAccountLease();
+  }
+
   private authorizationChanged() {
+    const resumed = this.settleFence();
     const revision = this.session.revision;
     this.reconcileViewers();
     const admitted = new Set<WebSocket>();
     let activityChanged = false;
+    let denied = false;
     for (const [socket, connection] of this.connections) {
       const change = this.updateConnectionAuthorization(socket, connection);
       if (change === 'admitted') {
         admitted.add(socket);
       }
-      activityChanged ||= change === 'activity';
+      denied ||= change === 'denied';
+      activityChanged ||= change === 'activity' || change === 'denied';
+    }
+    /* One push can deny several connections, such as every tab of a signed-out session; one reconciliation started after all of them covers them all. */
+    if (denied) {
+      this.refreshAccounts();
     }
     this.reconcileViewers();
-    if (admitted.size) {
+    /* A held connection missed every frame of the fence; its update is computed against the last frame it received. */
+    if (admitted.size || resumed) {
       for (const [socket, connection] of this.connections) {
         if (!connection.viewer || !this.authorized(socket)) {
           continue;
@@ -789,9 +830,9 @@ export class GameRoom extends DurableObject<GameEnv> {
     if (status === 'denied') {
       this.reconciled = false;
       this.reconcileEpoch++;
+      this.fence ??= latch();
       this.deny(socket, false);
-      this.refreshAccounts();
-      return 'activity';
+      return 'denied';
     }
     if (this.authorized(socket)) {
       if (connection.announced === 'authorized') {
@@ -811,6 +852,9 @@ export class GameRoom extends DurableObject<GameEnv> {
       connection.announced = 'authorized';
       connection.everAuthorized = true;
       return 'admitted';
+    }
+    if (this.fenceFor(socket, connection)) {
+      return;
     }
     if (connection.announced !== 'suspended') {
       connection.announced = 'suspended';
@@ -841,6 +885,14 @@ export class GameRoom extends DurableObject<GameEnv> {
     }
     if (this.reconcileViewers()) {
       this.broadcastActivity();
+    }
+    /* A held connection's message waits for the fence, then meets the same check as any other. */
+    for (
+      let fence = this.fenceFor(socket, connection);
+      fence && !this.authorized(socket);
+      fence = this.fenceFor(socket, connection)
+    ) {
+      await fence.released;
     }
     if (!this.authorized(socket)) {
       this.authorizationChanged();
@@ -1367,6 +1419,9 @@ export class GameRoom extends DurableObject<GameEnv> {
     }
     this.sweepTimer = undefined;
     this.reconciled = false;
+    /* No connection is left to hold; a message still waiting finds its socket gone. */
+    this.fence?.release();
+    this.fence = undefined;
     return closed;
   }
 

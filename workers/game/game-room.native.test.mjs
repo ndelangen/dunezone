@@ -585,9 +585,9 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     );
   });
 
-  it('re-authorizes the surviving player within seconds when one push denies two connections', async () => {
-    expect((await provision(runtime)).status).toBe(200);
-    const first = await admit();
+  /** Admits player A, then player B in two tabs of one Auth session, and leaves the watch for the test to answer. */
+  async function admitPlayerAndTwoTabs() {
+    const { connection: first } = await admit();
     peer.registrationId = 'registration-b';
     peer.watchMode = 'allow';
     const tabs = [];
@@ -598,13 +598,69 @@ describe('GameRoom native SQLite and admission boundaries', () => {
       tabs.push(tab);
     }
     peer.watchMode = 'manual';
-    const beforeDenial = first.connection.messages.length;
-    peer.answer(await peer.query(), (registrationId) => registrationId === 'registration-a');
-    await eventually(() => tabs.every((tab) => tab.closed), 'denied tabs');
-    const remaining = await peer.query(({ query }) => query.args[0].registrationIds.length === 1);
-    peer.answer(remaining);
-    await eventually(() => first.connection.messages.slice(beforeDenial).some(isFullView), 'survivor re-authorized');
-    expect(first.connection.closed).toBe(false);
+    return { first, tabs };
+  }
+
+  /** One watch push that denies every connection of `registrationId`, as a sign-out does, answered on the batch `watched` names. */
+  async function signOut(tabs, registrationId, watched) {
+    const current = await peer.query(({ query }) => query.args[0].registrationIds.join() === watched.join());
+    peer.answer(current, (candidate) => candidate !== registrationId);
+    await eventually(() => tabs.every((tab) => tab.closed), 'signed-out tabs');
+  }
+
+  const pausedOrReset = (message) => message.type === 'admission' || isFullView(message);
+
+  it('holds the other player through a sign-out that denies two tabs, then sends them what changed', async () => {
+    expect((await provision(runtime)).status).toBe(200);
+    const { first, tabs } = await admitPlayerAndTwoTabs();
+    first.send({
+      type: 'begin',
+      carryId: 'held-through',
+      sourcePieceId: 'harkonnen-force-stack',
+      expectedVersion: 0,
+      pickup: 'top',
+    });
+    await first.message('carry');
+    const signedOut = (await tabs[0].message('view')).viewer.connectionId;
+    tabs[0].send({ type: 'pointer', seq: 0, position: [1, 0.38, 0] });
+    await first.message('view', (message) => message.pointers.some((pointer) => pointer.connectionId === signedOut));
+    peer.reconcileMode = 'hold';
+    const beforeDenial = first.messages.length;
+    const checksBefore = peer.accountChecks().length;
+    await signOut(tabs, 'registration-b', ['registration-a', 'registration-b']);
+    await eventually(() => peer.accountChecks().length > checksBefore, 'the account check after the sign-out');
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+    /* The room sends the other player nothing while it checks accounts, not even a pause. */
+    expect(first.messages.slice(beforeDenial)).toEqual([]);
+    peer.releaseAccounts();
+    const resumed = await eventually(
+      () => first.messages.slice(beforeDenial).find((message) => message.type === 'view'),
+      'the frame after the check'
+    );
+    expect(resumed.pointers.map((pointer) => pointer.connectionId)).not.toContain(signedOut);
+    expect(resumed.carries.map((carry) => carry.id)).toEqual(['held-through']);
+    expect(first.messages.slice(beforeDenial).filter(pausedOrReset)).toEqual([]);
+    expect(first.unapplied).toEqual([]);
+    /* One push denied both tabs, and one pass over the accounts covered it. */
+    expect(peer.accountChecks().slice(checksBefore)).toHaveLength(1);
+    expect(first.closed).toBe(false);
+  });
+
+  it('pauses the other player as before when the account check after a sign-out fails', async () => {
+    expect((await provision(runtime)).status).toBe(200);
+    const { first, tabs } = await admitPlayerAndTwoTabs();
+    peer.reconcileMode = 'error';
+    const beforeDenial = first.messages.length;
+    await signOut(tabs, 'registration-b', ['registration-a', 'registration-b']);
+    const [pause] = await eventually(() => {
+      const since = first.messages.slice(beforeDenial);
+      return since.length && since;
+    }, 'the pause after the failed check');
+    /* A check that cannot finish releases no frame; the player is paused as before. */
+    expect(pause).toEqual({ type: 'admission', status: 'suspended' });
+    peer.reconcileMode = 'answer';
+    await eventually(() => first.messages.slice(beforeDenial).some(isFullView), 'a full view once the check succeeds');
+    expect(first.closed).toBe(false);
   });
 
   it('retains carry replay history when authorization suspends and recovers on the same socket', async () => {
