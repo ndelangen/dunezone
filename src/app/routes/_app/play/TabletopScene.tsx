@@ -4,7 +4,7 @@ import { Html, Shadow, useTexture } from '@react-three/drei/webgpu';
 import { Canvas, useFrame, useThree } from '@react-three/fiber/webgpu';
 import type { ThreeEvent } from '@react-three/fiber/webgpu';
 import { gestureBlockReason, pieceCount, topItemFaceUp } from '@shared/play/model';
-import type { TablePiece, Vector3Tuple } from '@shared/play/model';
+import type { TablePiece, TableState, Vector3Tuple } from '@shared/play/model';
 import { CARD_LAYER_STAGGER, stackLayerItemIndex } from '@shared/play/pieceFlip';
 import type { GameSnapshot } from '@shared/play/protocol';
 import { isSpicePiece, SPICE_LAYER_HEIGHT, SPICE_LAYER_PITCH, SPICE_TOKEN_RADIUS } from '@shared/play/spice';
@@ -950,24 +950,40 @@ function PieceLock({ piece }: { piece: TablePiece }) {
   return piece.kind === 'force' ? <group scale={0.5}>{lock}</group> : lock;
 }
 
+/* The faction that owns a piece, by its display name; a shared piece, or an owner the roster does not name, has none. */
+function pieceOwnerName(piece: TablePiece, factionNames: TableState['factionNames']) {
+  return piece.owner === 'shared' ? undefined : factionNames[piece.owner];
+}
+
 function PieceBadge({
   piece,
+  owner,
   selected,
   labelRef,
   badgeRef,
-}: { piece: TablePiece; selected: boolean } & Pick<ReturnType<typeof usePieceFlipAnimation>, 'labelRef' | 'badgeRef'>) {
+}: { piece: TablePiece; owner: string | undefined; selected: boolean } & Pick<
+  ReturnType<typeof usePieceFlipAnimation>,
+  'labelRef' | 'badgeRef'
+>) {
   return (
     <group ref={labelRef} position={[0, pieceLabelHeight(piece), 0]}>
       <Html center zIndexRange={[5, 0]} style={{ pointerEvents: 'none' }}>
-        <span
-          ref={badgeRef}
-          className={`scene-piece-count ${selected ? 'scene-piece-count--selected' : ''}`}
-          data-piece-id={piece.id}
-          data-face-up={topItemFaceUp(piece)}
-          data-flip-revision={piece.flipRevision ?? 0}
-          data-flipping="false"
-        >
-          {pieceCount(piece)}
+        {/* The tag is as large as the count, so the count sits where it always has; the name hangs above it while Control is held. */}
+        <span className="scene-piece-tag">
+          <span className="scene-piece-name">
+            <span className="scene-piece-name__label">{piece.label}</span>
+            {owner ? <span className="scene-piece-name__owner">{owner}</span> : null}
+          </span>
+          <span
+            ref={badgeRef}
+            className={`scene-piece-count ${selected ? 'scene-piece-count--selected' : ''}`}
+            data-piece-id={piece.id}
+            data-face-up={topItemFaceUp(piece)}
+            data-flip-revision={piece.flipRevision ?? 0}
+            data-flipping="false"
+          >
+            {pieceCount(piece)}
+          </span>
         </span>
       </Html>
     </group>
@@ -1041,7 +1057,13 @@ function TablePieceMesh(props: TablePieceMeshProps) {
             </group>
           </group>
           <PieceLock piece={piece} />
-          <PieceBadge piece={piece} selected={selected} labelRef={labelRef} badgeRef={badgeRef} />
+          <PieceBadge
+            piece={piece}
+            owner={pieceOwnerName(piece, state.factionNames)}
+            selected={selected}
+            labelRef={labelRef}
+            badgeRef={badgeRef}
+          />
         </>
       ) : null}
     </group>
