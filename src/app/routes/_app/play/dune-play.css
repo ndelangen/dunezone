@@ -92,33 +92,11 @@ html[data-motion="reduce"] .dune-play-stage .dune-play-shell {
   user-select: none;
 }
 
-:where(.dune-play-shell) .scene-zone-label,
 :where(.dune-play-shell) .scene-piece-count {
   display: inline-block;
   pointer-events: none;
   user-select: none;
   white-space: nowrap;
-}
-
-:where(.dune-play-shell) .scene-zone-label {
-  padding: 0.24rem 0.38rem;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: 999px;
-  color: rgba(255, 247, 229, 0.72);
-  background: rgba(29, 18, 11, 0.72);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.22);
-  font-size: 0.49rem;
-  font-weight: 850;
-  letter-spacing: 0.11em;
-}
-
-:where(.dune-play-shell) .scene-zone-label--active {
-  color: #21140d;
-  border-color: #ffd894;
-  background: #ffd894;
-}
-
-:where(.dune-play-shell) .scene-piece-count {
   visibility: hidden;
   min-width: 1.6rem;
   padding: 0.24rem 0.38rem;

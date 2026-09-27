@@ -72,8 +72,6 @@ function useTableCommands(client: TableSession, table: TableProjection) {
       beginGesture: client.beginGesture,
       updateGesture: client.updateGesture,
       finishGesture: client.finishGesture,
-      stageSelectedToZone: client.stageSelectedToZone,
-      commitDraft: client.commitDraft,
       cancelDraft: client.cancelDraft,
       splitSelected: client.splitSelected,
       stackSelected: client.stackSelected,
@@ -84,7 +82,6 @@ function useTableCommands(client: TableSession, table: TableProjection) {
       toggleLockSelected: client.toggleLockSelected,
       moveStormBy: client.moveStormBy,
       spawnSpice: client.spawnSpice,
-      reset: client.reset,
     }),
     [client, table]
   );
@@ -662,29 +659,26 @@ function ConnectedTable({
   const removalVotes = table.snapshot.removalVotes ?? [];
   const selectedPlayer =
     removalVotes.find((vote) => vote.id === playerSelection.vote)?.target.seat ?? playerSelection.seat;
-  /* A real game before play shows its stage where a playing table shows its turn and phase. */
   const stage = table.snapshot.stage;
-  const stageLabel = stage && stage !== 'play' ? stage.charAt(0).toUpperCase() + stage.slice(1) : undefined;
+  /* The fixture has no stage and plays like a game in play. */
+  const inPlay = stage === undefined || stage === 'play';
   return (
     <TabletopContext.Provider value={value}>
       <PresenceContext.Provider value={presence}>
         {/* A boxless wrapper carries the connection state the browser verification waits on, whichever tab is open. */}
         <div data-connection="authorized" data-revision={table.liveRevision} style={{ display: 'contents' }}>
           <GameTable
-            phaseControlsOnly={Boolean(stage)}
             seatCount={table.snapshot.roster?.seatCount ?? DEFAULT_TABLE_SEAT_COUNT}
             tableProgress={progress}
-            stageLabel={stageLabel}
-            trading={stage === 'swapping'}
-            setup={stage === 'setup'}
+            stage={stage}
             mapVisible={setupMapVisible(table.snapshot.setup)}
             toolbarControl={
-              !stageLabel || (stage === 'setup' && table.snapshot.setup) ? (
+              inPlay || (stage === 'setup' && table.snapshot.setup) ? (
                 <PhaseNavigation client={client} table={table} />
               ) : undefined
             }
             onSelectTurn={client.selectTurn}
-            showStormControls={!stageLabel && progress.activePhaseId === 'storm'}
+            showStormControls={inPlay && progress.activePhaseId === 'storm'}
             sceneContent={
               stage === 'swapping' || stage === 'setup' ? (
                 <>
@@ -751,7 +745,7 @@ function ConnectedTable({
               ) : undefined
             }
             panelTabs={[
-              ...(stageLabel && stage !== 'setup'
+              ...(!inPlay && stage !== 'setup'
                 ? []
                 : [
                     ...(table.snapshot.setup
@@ -782,7 +776,7 @@ function ConnectedTable({
                           },
                         ]
                       : []),
-                    ...((!stage || stage === 'play') && (table.snapshot.battle || progress.activePhaseId === 'battle')
+                    ...(inPlay && (table.snapshot.battle || progress.activePhaseId === 'battle')
                       ? [
                           {
                             key: 'battle',
@@ -841,7 +835,7 @@ function ConnectedTable({
                 : []),
             ]}
             tableControls={
-              stageLabel ? undefined : (
+              inPlay ? (
                 <>
                   <PhaseControls table={table} />
                   {stage === 'play' && table.snapshot.setup && table.snapshot.phase === 0 && (
@@ -865,7 +859,7 @@ function ConnectedTable({
                     <ConnectionControls client={client} table={table} error={error} />
                   )}
                 </>
-              )
+              ) : undefined
             }
           />
         </div>

@@ -20,11 +20,11 @@ import {
   TABLE_VISIBLE_RADIUS,
 } from '@shared/play/tableGeometry';
 import { trackerArcSlots } from '@shared/play/tableTrackers';
-import { ExtrudeGeometry, Mesh, MeshBasicMaterial, PerspectiveCamera, Raycaster, Vector3 } from 'three';
+import { ExtrudeGeometry, Mesh, MeshBasicMaterial, Raycaster, Vector3 } from 'three';
 import { acceleratedRaycast, MeshBVH } from 'three-mesh-bvh';
 import { describe, expect, test } from 'vitest';
 
-import { cameraPoseFor } from './playView';
+import { cameraPoseFor, tableCamera } from './playView';
 import {
   createTablePlateShape,
   createTablePlateLayers,
@@ -192,12 +192,7 @@ describe('table furniture', () => {
   test('frames every side shelf and card well in each supported layout', () => {
     for (const aspectRatio of [1, 0.75, 390 / 844]) {
       for (const side of ['left', 'right'] as const) {
-        const pose = cameraPoseFor(side, aspectRatio);
-        const camera = new PerspectiveCamera(42, aspectRatio, 0.1, 100);
-        camera.position.set(...pose.position);
-        camera.lookAt(...pose.target);
-        camera.updateMatrixWorld();
-        camera.updateProjectionMatrix();
+        const camera = tableCamera(cameraPoseFor(side, aspectRatio), aspectRatio);
         const shelf = sideShelfPosition(side);
         const points = [
           ...cardBaySlotPositions(side).flatMap(([x, y, z]) =>
@@ -235,12 +230,7 @@ describe('table furniture', () => {
 
   test('frames the complete Tanks shelf in each supported layout', () => {
     for (const aspectRatio of [1, 0.75, 390 / 844]) {
-      const pose = cameraPoseFor('bottom', aspectRatio);
-      const camera = new PerspectiveCamera(42, aspectRatio, 0.1, 100);
-      camera.position.set(...pose.position);
-      camera.lookAt(...pose.target);
-      camera.updateMatrixWorld();
-      camera.updateProjectionMatrix();
+      const camera = tableCamera(cameraPoseFor('bottom', aspectRatio), aspectRatio);
 
       for (const xDirection of [-1, 1]) {
         for (const zDirection of [-1, 1]) {

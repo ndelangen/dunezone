@@ -355,7 +355,7 @@ describe('hosted table admission', () => {
     client.moveStormBy(1);
     client.updateGesture([1, 0.38, 1]);
     client.rotateSelected(1);
-    client.commitDraft();
+    client.finishGesture([1, 0.38, 1]);
     client.publishPointer([2, 0.38, 2]);
     await vi.advanceTimersByTimeAsync(1000);
     expect(socket().sent).toHaveLength(messages);

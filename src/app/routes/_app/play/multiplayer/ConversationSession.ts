@@ -5,15 +5,17 @@ import { rosterSeat } from '@shared/play/schema';
 
 type Request = Extract<ClientMessage, { type: 'conversation-send' | 'conversation-history' | 'conversation-read' }>;
 type Context = { userId: string; factionId: string; peers: { id: string; name: string }[] };
-type PendingView = {
-  request: Extract<Request, { type: 'conversation-send' }>;
-  status: 'Pending' | 'Failed';
-  error?: string;
-};
-type PageView = { entries: ConversationMessage[]; more: boolean; loading?: string; error?: string };
-/* The send and request times are monotonic readings, so they stay off the view where a component could compare them with a wall clock. */
-type Pending = PendingView & { sentAt?: number };
-type Page = PageView & { requestedAt?: number };
+type Delivery = { state: 'unsent' } | { state: 'sent'; at: number } | { state: 'failed'; error: string };
+type Load =
+  | { state: 'idle' }
+  | { state: 'loading'; requestId: string; at: number }
+  | { state: 'failed'; error: string };
+type Pending = { request: Extract<Request, { type: 'conversation-send' }>; delivery: Delivery };
+type Page = { entries: ConversationMessage[]; more: boolean; load: Load };
+/* Each `at` is a monotonic reading, so it stays off the view where a component could compare it with a wall clock. */
+type Unclocked<State> = State extends unknown ? Omit<State, 'at'> : never;
+type PendingView = Omit<Pending, 'delivery'> & { delivery: Unclocked<Delivery> };
+type PageView = Omit<Page, 'load'> & { load: Unclocked<Load> };
 export type ConversationView = {
   context: Context | null;
   online: boolean;
@@ -71,7 +73,9 @@ export class ConversationSession {
     this.pages = {};
     this.summaries = [];
     this.reads.clear();
-    this.pending = this.pending.map((entry) => ({ ...entry, sentAt: undefined }));
+    this.pending = this.pending.map((entry): Pending =>
+      entry.delivery.state === 'sent' ? { ...entry, delivery: { state: 'unsent' } } : entry
+    );
     if (denied) {
       this.clear();
     }
@@ -124,19 +128,21 @@ export class ConversationSession {
 
   private receiveRejection(message: Extract<ServerMessage, { type: 'rejected' }>) {
     const outgoing = this.pending.some((entry) => entry.request.requestId === message.requestId);
-    const page = Object.entries(this.pages).find(([, value]) => value.loading === message.requestId);
+    const page = Object.entries(this.pages).find(
+      ([, { load }]) => load.state === 'loading' && load.requestId === message.requestId
+    );
     const read = this.reads.delete(message.requestId);
     const matched = outgoing || page || read;
     if (!matched) {
       return false;
     }
-    this.pending = this.pending.map((entry) =>
+    this.pending = this.pending.map((entry): Pending =>
       entry.request.requestId === message.requestId
-        ? { ...entry, status: 'Failed', error: message.message, sentAt: undefined }
+        ? { ...entry, delivery: { state: 'failed', error: message.message } }
         : entry
     );
     if (page) {
-      this.pages = { ...this.pages, [page[0]]: { ...page[1], loading: undefined, error: message.message } };
+      this.pages = { ...this.pages, [page[0]]: { ...page[1], load: { state: 'failed', error: message.message } } };
     }
     this.changed();
     return true;
@@ -153,12 +159,12 @@ export class ConversationSession {
 
   private receiveHistory(message: Extract<ServerMessage, { type: 'conversation-history' }>) {
     const page = this.pages[message.peerId];
-    if (page?.loading !== message.requestId) {
+    if (page?.load.state !== 'loading' || page.load.requestId !== message.requestId) {
       return;
     }
     this.pages = {
       ...this.pages,
-      [message.peerId]: { entries: merge(page.entries, message.entries), more: message.more },
+      [message.peerId]: { entries: merge(page.entries, message.entries), more: message.more, load: { state: 'idle' } },
     };
   }
 
@@ -179,7 +185,7 @@ export class ConversationSession {
     if (!this.context || !this.online) {
       return;
     }
-    if (this.pages[peerId]?.loading) {
+    if (this.pages[peerId]?.load.state === 'loading') {
       return;
     }
     const requestId = crypto.randomUUID();
@@ -188,14 +194,13 @@ export class ConversationSession {
       [peerId]: {
         entries: this.pages[peerId]?.entries ?? [],
         more: false,
-        loading: requestId,
-        requestedAt: this.monotonicNow(),
+        load: { state: 'loading', requestId, at: this.monotonicNow() },
       },
     };
     if (!this.send({ type: 'conversation-history', requestId, factionId: this.context.factionId, peerId, before })) {
       this.pages = {
         ...this.pages,
-        [peerId]: { ...this.pages[peerId]!, loading: undefined, error: 'History could not load. Try again.' },
+        [peerId]: { ...this.pages[peerId]!, load: { state: 'failed', error: 'History could not load. Try again.' } },
       };
     }
     this.changed();
@@ -219,7 +224,7 @@ export class ConversationSession {
           peerId,
           text: parsed.data,
         },
-        status: 'Pending',
+        delivery: { state: 'unsent' },
       },
     ];
     this.flush();
@@ -228,10 +233,8 @@ export class ConversationSession {
   };
 
   retry = (requestId: string) => {
-    this.pending = this.pending.map((entry) =>
-      entry.request.requestId === requestId
-        ? { ...entry, status: 'Pending', error: undefined, sentAt: undefined }
-        : entry
+    this.pending = this.pending.map((entry): Pending =>
+      entry.request.requestId === requestId ? { ...entry, delivery: { state: 'unsent' } } : entry
     );
     this.flush();
     this.changed();
@@ -266,10 +269,10 @@ export class ConversationSession {
 
   tick() {
     for (const [peerId, page] of Object.entries(this.pages)) {
-      if (page.loading && this.expired(page.requestedAt)) {
+      if (page.load.state === 'loading' && this.expired(page.load.at)) {
         this.pages = {
           ...this.pages,
-          [peerId]: { ...page, loading: undefined, error: 'History could not load. Try again.' },
+          [peerId]: { ...page, load: { state: 'failed', error: 'History could not load. Try again.' } },
         };
         this.changed();
       }
@@ -278,18 +281,19 @@ export class ConversationSession {
   }
 
   private expirePending() {
-    if (this.pending.some((entry) => this.expired(entry.sentAt))) {
-      this.pending = this.pending.map((entry) =>
-        this.expired(entry.sentAt)
-          ? { ...entry, status: 'Failed', sentAt: undefined, error: 'No save confirmation received. Retry safely.' }
+    const overdue = ({ delivery }: Pending) => delivery.state === 'sent' && this.expired(delivery.at);
+    if (this.pending.some(overdue)) {
+      this.pending = this.pending.map((entry): Pending =>
+        overdue(entry)
+          ? { ...entry, delivery: { state: 'failed', error: 'No save confirmation received. Retry safely.' } }
           : entry
       );
       this.changed();
     }
   }
 
-  private expired(sentAt: number | undefined) {
-    return sentAt !== undefined && this.monotonicNow() - sentAt >= 15_000;
+  private expired(at: number) {
+    return this.monotonicNow() - at >= 15_000;
   }
 
   private flush() {
@@ -299,10 +303,10 @@ export class ConversationSession {
     this.pending = this.pending.map((entry) => this.sendPending(entry));
   }
   private sendPending(entry: Pending): Pending {
-    if (entry.status !== 'Pending' || entry.sentAt !== undefined) {
+    if (entry.delivery.state !== 'unsent') {
       return entry;
     }
-    return this.send(entry.request) ? { ...entry, sentAt: this.monotonicNow() } : entry;
+    return this.send(entry.request) ? { ...entry, delivery: { state: 'sent', at: this.monotonicNow() } } : entry;
   }
 }
 

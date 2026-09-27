@@ -4,11 +4,11 @@ import type { GameSnapshot } from '@shared/play/protocol';
 import { DEFAULT_TABLE_SEAT_COUNT } from '@shared/play/tableSettings';
 import { trackerArcSlots } from '@shared/play/tableTrackers';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
-import { PerspectiveCamera, Vector3 } from 'three';
+import { Vector3 } from 'three';
 
 import { STORYBOOK_NOW } from '@db/storybook';
 
-import { cameraPoseFor, mapViewTopLimitForViewport, TABLE_CAMERA_FIELD_OF_VIEW } from './playView';
+import { cameraPoseFor, mapViewTopLimitForViewport, tableCamera } from './playView';
 import { productTransport, playingSnapshot as initialSnapshot, SIX, factions } from './product.stories.fixture';
 import { mapViewFramingPoints } from './tablePlateGeometry';
 
@@ -176,12 +176,7 @@ export function mapViewPoint(document: Document, point: readonly [number, number
     mapViewFramingPoints(trackerArcSlots(TABLE_PHASES.length), DEFAULT_TABLE_SEAT_COUNT),
     mapViewTopLimitForViewport(sceneBounds.height, headerHeight)
   );
-  const camera = new PerspectiveCamera(TABLE_CAMERA_FIELD_OF_VIEW, aspectRatio, 0.1, 100);
-  camera.position.set(...pose.position);
-  camera.lookAt(...pose.target);
-  camera.updateProjectionMatrix();
-  camera.updateMatrixWorld();
-  const projected = new Vector3(...point).project(camera);
+  const projected = new Vector3(...point).project(tableCamera(pose, aspectRatio));
   return [
     sceneBounds.left + ((projected.x + 1) * sceneBounds.width) / 2,
     sceneBounds.top + ((1 - projected.y) * sceneBounds.height) / 2,

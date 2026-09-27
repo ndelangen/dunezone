@@ -1,3 +1,5 @@
+import { describe, expect, test } from 'vitest';
+
 import {
   DEFAULT_STORM_SECTOR_INDEX,
   moveStormCounterclockwise,
@@ -10,24 +12,15 @@ import {
   STORM_MARKER_TANGENTIAL_WIDTH,
   STORM_MARKER_VISIBLE_BASE_FRACTION,
   STORM_SECTOR_ANGLE,
-  STORM_SECTOR_FILL_OPACITY,
-  STORM_SECTOR_OUTLINE_OPACITY,
   STORM_TRANSITION_MS,
   stormRotationForSector,
   stormTransitionProgress,
-} from '@shared/play/stormSector';
-import { BOARD_RADIUS, BOARD_RIM_RADIUS, TABLE_VISIBLE_RADIUS } from '@shared/play/tableGeometry';
-import { TABLE_SECTOR_COUNT } from '@shared/play/tableSettings';
-import { describe, expect, test } from 'vitest';
+} from './stormSector';
+import { BOARD_RADIUS, BOARD_RIM_RADIUS, TABLE_VISIBLE_RADIUS } from './tableGeometry';
+import { TABLE_SECTOR_COUNT } from './tableSettings';
 
 describe('storm sector', () => {
-  test('uses a visible glass tint and restrained outline', () => {
-    expect(STORM_SECTOR_FILL_OPACITY).toBe(0.28);
-    expect(STORM_SECTOR_OUTLINE_OPACITY).toBe(0.3);
-  });
-
   test('preserves the former marker position as sector 6', () => {
-    expect(DEFAULT_STORM_SECTOR_INDEX).toBe(5);
     expect(-stormRotationForSector(DEFAULT_STORM_SECTOR_INDEX)).toBeCloseTo((110 * Math.PI) / 180, 8);
   });
 

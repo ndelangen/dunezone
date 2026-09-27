@@ -1,7 +1,8 @@
-import { affordancesFor, freshTableState } from '@shared/play/model';
-import type { TablePiece, TableState } from '@shared/play/model';
-import { draftForGesture, flipPieceInState, renderedPiecesFor } from '@shared/play/tableState';
 import { describe, expect, test } from 'vitest';
+
+import { affordancesFor, freshTableState } from './model';
+import type { TablePiece, TableState } from './model';
+import { draftForGesture, flipPieceInState, renderedPiecesFor } from './tableState';
 
 function pieceFor(state: TableState, pieceId: string): TablePiece {
   const piece = state.pieces.find((candidate) => candidate.id === pieceId);
