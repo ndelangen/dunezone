@@ -614,8 +614,6 @@ export function GameTable({
             >
               <SplitPanels.First>
                 <TabletopScene
-                  mode="seated"
-                  interaction="drag"
                   className="scene scene--immersive"
                   cameraView={cameraView}
                   onSceneReady={handleSceneReady}

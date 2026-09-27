@@ -3,8 +3,8 @@ import { Button, Menu } from '@mantine/core';
 import { Html, Shadow, useTexture } from '@react-three/drei/webgpu';
 import { Canvas, useFrame, useThree } from '@react-three/fiber/webgpu';
 import type { ThreeEvent } from '@react-three/fiber/webgpu';
-import { gestureBlockReason, pieceCount, topItemFaceUp, zoneById, ZONES } from '@shared/play/model';
-import type { TablePiece, Vector3Tuple, Zone } from '@shared/play/model';
+import { gestureBlockReason, pieceCount, topItemFaceUp } from '@shared/play/model';
+import type { TablePiece, Vector3Tuple } from '@shared/play/model';
 import { CARD_LAYER_STAGGER, stackLayerItemIndex } from '@shared/play/pieceFlip';
 import { isSpicePiece, SPICE_LAYER_HEIGHT, SPICE_LAYER_PITCH, SPICE_TOKEN_RADIUS } from '@shared/play/spice';
 import {
@@ -45,10 +45,7 @@ import {
   MARKER_CONE_RADIUS,
   MARKER_TOP_RADIUS,
   pieceLabelHeight,
-  RESERVE_PAD_DEPTH,
-  RESERVE_PAD_WIDTH,
   stackTopHeight,
-  surfaceHeightAt,
   visibleLayerCount,
 } from '@shared/play/tableGeometry';
 import {
@@ -90,7 +87,6 @@ import arrakisMapUrl from './assets/arrakis-map.png?url';
 import stormMarkerUrl from './assets/storm-marker.png?url';
 import { BOARD_RIM_DEPTH, createBoardRimShape } from './boardRimGeometry';
 import { CameraControls, CameraRelativeFog } from './CameraControls';
-import type { SceneMode } from './CameraControls';
 import { usePresence } from './multiplayer/PresenceContext';
 import { PhaseSymbol } from './PhaseSymbol';
 import { cameraPoseFor, TABLE_CAMERA_FIELD_OF_VIEW } from './playView';
@@ -114,11 +110,8 @@ useTexture.preload(stormMarkerUrl);
 
 type TabletopSceneProps = {
   children?: ReactNode;
-  mode: SceneMode;
-  interaction: 'select' | 'drag' | 'hybrid';
   className?: string;
   cameraView?: CameraViewCommand;
-  focusZoneId?: string | null;
   onInteractionActiveChange?(active: boolean): void;
   seatCount?: TableSeatCount;
   tableProgress?: TableProgress;
@@ -130,7 +123,6 @@ type TabletopSceneProps = {
   mapVisible?: boolean;
 };
 
-const SURFACE_DECAL_OFFSET = 0.001;
 const BOARD_RIM_COLOR = '#15263b';
 const BOARD_RIM_DIVIDER_COLOR = '#050505';
 const BOARD_RIM_DIVIDER_OVERLAP = 0.002;
@@ -507,74 +499,6 @@ function BoardSurface({
   );
 }
 
-function zonePadAppearance(zone: Zone, selectable: boolean, hovered: boolean) {
-  const isReserve = zone.kind === 'reserve';
-  const padSurfaceY = isReserve ? BOARD_RIM_SURFACE_Y : surfaceHeightAt(zone.position);
-  return {
-    isReserve,
-    decalY: padSurfaceY + SURFACE_DECAL_OFFSET - zone.position[1],
-    emissiveIntensity: selectable ? (hovered ? 0.65 : 0.24) : 0,
-    opacity: isReserve ? 0.54 : selectable ? 0.5 : 0.24,
-    labelZ: isReserve ? 0.77 : zone.radius * 0.6,
-  };
-}
-
-function ZonePad({ zone, selectable }: { zone: Zone; selectable: boolean }) {
-  const { stageSelectedToZone } = useTabletop();
-  const { renderer } = useThree();
-  const [hovered, setHovered] = useState(false);
-  const { isReserve, decalY, emissiveIntensity, opacity, labelZ } = zonePadAppearance(zone, selectable, hovered);
-
-  return (
-    <group position={zone.position}>
-      <mesh
-        key={`${zone.kind}:${zone.radius}`}
-        receiveShadow
-        position={[0, decalY, 0]}
-        rotation={[-Math.PI / 2, 0, 0]}
-        onClick={(event) => {
-          if (selectable) {
-            event.stopPropagation();
-            stageSelectedToZone(zone.id);
-          }
-        }}
-        onPointerEnter={(event) => {
-          event.stopPropagation();
-          setHovered(true);
-          renderer.domElement.style.cursor = selectable ? 'pointer' : 'default';
-        }}
-        onPointerLeave={() => {
-          setHovered(false);
-          renderer.domElement.style.cursor = 'default';
-        }}
-      >
-        {isReserve ? (
-          <planeGeometry args={[RESERVE_PAD_WIDTH, RESERVE_PAD_DEPTH]} />
-        ) : (
-          <circleGeometry args={[zone.radius, 64]} />
-        )}
-        <meshStandardMaterial
-          color={zone.tone}
-          emissive={selectable ? zone.tone : '#000000'}
-          emissiveIntensity={emissiveIntensity}
-          transparent
-          opacity={opacity}
-          roughness={0.8}
-        />
-      </mesh>
-      {selectable ? (
-        <mesh position={[0, decalY + SURFACE_DECAL_OFFSET, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-          <ringGeometry args={[zone.radius + 0.04, zone.radius + 0.09, 64]} />
-          <meshBasicMaterial color="#ffd894" transparent opacity={hovered ? 0.95 : 0.64} />
-        </mesh>
-      ) : null}
-      <Html center position={[0, 0.42, labelZ]} zIndexRange={[4, 0]} style={{ pointerEvents: 'none' }}>
-        <span className={`scene-zone-label ${selectable ? 'scene-zone-label--active' : ''}`}>{zone.shortLabel}</span>
-      </Html>
-    </group>
-  );
-}
-
 function stackLayerFaceUp(piece: TablePiece, index: number, shownLayers: number) {
   const itemIndex = stackLayerItemIndex(piece.items.length, shownLayers, index, piece.flipRevision);
   return piece.items[itemIndex]?.faceUp ?? true;
@@ -838,7 +762,6 @@ function SpiceLayers({ piece }: { piece: TablePiece }) {
 
 type TablePieceMeshProps = {
   piece: TablePiece;
-  interaction: 'select' | 'drag' | 'hybrid';
 };
 
 function usePieceCarryState(piece: TablePiece) {
@@ -915,27 +838,22 @@ function useScenePointerSession(onActiveChange: (active: boolean) => void) {
   );
 }
 
-function pieceHoverCursor(
-  interaction: TabletopSceneProps['interaction'],
-  canInteract: boolean,
-  interactionBlocked: boolean,
-  gestureBlocked: boolean
-) {
+function pieceHoverCursor(canInteract: boolean, interactionBlocked: boolean, gestureBlocked: boolean) {
   if (interactionBlocked) {
     return canInteract ? 'not-allowed' : 'default';
   }
-  return interaction === 'select' ? 'pointer' : gestureBlocked ? 'not-allowed' : 'grab';
+  return gestureBlocked ? 'not-allowed' : 'grab';
 }
 
 const PieceMenuContext = createContext<((pieceId: string, x: number, y: number) => void) | null>(null);
 
-function usePiecePointerEvents({ piece, interaction }: TablePieceMeshProps, interactionBlocked: boolean) {
+function usePiecePointerEvents({ piece }: TablePieceMeshProps, interactionBlocked: boolean) {
   const { state, selectPiece, setHoveredPiece } = useTabletop();
   const openPieceMenu = useContext(PieceMenuContext);
   const { canInteract } = usePresence();
   const { renderer } = useThree();
   const pointerSession = usePointerSession();
-  const gestureBlocked = interaction !== 'select' ? gestureBlockReason(piece) : null;
+  const gestureBlocked = gestureBlockReason(piece);
 
   return {
     onContextMenu: (event: ThreeEvent<MouseEvent>) => {
@@ -956,14 +874,14 @@ function usePiecePointerEvents({ piece, interaction }: TablePieceMeshProps, inte
         return;
       }
       selectPiece(piece.id);
-      if (interaction === 'select' || gestureBlocked) {
+      if (gestureBlocked) {
         return;
       }
       pointerSession.press(event.nativeEvent, piece.id);
     },
     onPointerEnter: (event: ThreeEvent<PointerEvent>) => {
       event.stopPropagation();
-      const cursor = pieceHoverCursor(interaction, canInteract, interactionBlocked, Boolean(gestureBlocked));
+      const cursor = pieceHoverCursor(canInteract, interactionBlocked, Boolean(gestureBlocked));
       if (interactionBlocked) {
         renderer.domElement.style.cursor = cursor;
         return;
@@ -1131,25 +1049,19 @@ function TablePieceMesh(props: TablePieceMeshProps) {
   );
 }
 
-function useReportedInteractionSession(onInteractionActiveChange: TabletopSceneProps['onInteractionActiveChange']) {
-  const [active, setActive] = useState(false);
-  const onChange = useCallback(
+function useSceneInteractions(onInteractionActiveChange: TabletopSceneProps['onInteractionActiveChange']) {
+  const { gestureActivePieceId } = useTabletop();
+  const [pointerActive, setPointerActive] = useState(false);
+  const onPointerSessionChange = useCallback(
     (nextActive: boolean) => {
-      setActive(nextActive);
+      setPointerActive(nextActive);
       if (nextActive) {
         onInteractionActiveChange?.(true);
       }
     },
     [onInteractionActiveChange]
   );
-  return { active, onChange };
-}
-
-function useSceneInteractions(onInteractionActiveChange: TabletopSceneProps['onInteractionActiveChange']) {
-  const { gestureActivePieceId } = useTabletop();
-  const pointer = useReportedInteractionSession(onInteractionActiveChange);
-  const orbit = useReportedInteractionSession(onInteractionActiveChange);
-  const sceneInteractionActive = pointer.active || orbit.active || gestureActivePieceId !== null;
+  const sceneInteractionActive = pointerActive || gestureActivePieceId !== null;
 
   useEffect(() => {
     onInteractionActiveChange?.(sceneInteractionActive);
@@ -1157,17 +1069,13 @@ function useSceneInteractions(onInteractionActiveChange: TabletopSceneProps['onI
   useEffect(() => () => onInteractionActiveChange?.(false), [onInteractionActiveChange]);
 
   return {
-    controlsEnabled: !gestureActivePieceId && !pointer.active,
-    onPointerSessionChange: pointer.onChange,
-    onOrbitSessionChange: orbit.onChange,
+    controlsEnabled: !gestureActivePieceId && !pointerActive,
+    onPointerSessionChange,
   };
 }
 
 function SceneContents({
-  mode,
-  interaction,
   cameraView = DEFAULT_CAMERA_VIEW,
-  focusZoneId,
   onInteractionActiveChange,
   seatCount = DEFAULT_TABLE_SEAT_COUNT,
   tableProgress,
@@ -1179,10 +1087,7 @@ function SceneContents({
   mapVisible,
 }: Pick<
   TabletopSceneProps,
-  | 'mode'
-  | 'interaction'
   | 'cameraView'
-  | 'focusZoneId'
   | 'onInteractionActiveChange'
   | 'seatCount'
   | 'tableProgress'
@@ -1194,18 +1099,13 @@ function SceneContents({
   trackerSlots: readonly TrackerArcSlot[];
   mapFramingPoints: readonly Vector3Tuple[];
 }) {
-  const { state, affordances, renderedPieces, selectPiece } = useTabletop();
-  const { controlsEnabled, onPointerSessionChange, onOrbitSessionChange } =
-    useSceneInteractions(onInteractionActiveChange);
+  const { state, renderedPieces, selectPiece } = useTabletop();
+  const { controlsEnabled, onPointerSessionChange } = useSceneInteractions(onInteractionActiveChange);
   useScenePointerSession(onPointerSessionChange);
-  const moveAffordance = affordances.find((affordance) => affordance.commandType === 'piece.move');
-  const targetZoneIds = new Set(moveAffordance?.targetZoneIds ?? []);
-  const focusZone = zoneById(focusZoneId ?? null);
-  const cameraTarget: Vector3Tuple = focusZone ? [focusZone.position[0], 0.1, focusZone.position[2]] : [0, 0.1, 0];
 
   return (
     <>
-      <color attach="background" args={[mode === 'seated' ? '#130d0a' : '#1b120d']} />
+      <color attach="background" args={['#130d0a']} />
       <fog attach="fog" args={['#130d0a', 10, 22]} />
       <CameraRelativeFog />
       <ScenePresence />
@@ -1223,34 +1123,21 @@ function SceneContents({
           trackerSlots={trackerSlots}
           onSelectTurn={onSelectTurn}
         />
-        {interaction !== 'drag'
-          ? ZONES.map((zone) => <ZonePad key={zone.id} zone={zone} selectable={targetZoneIds.has(zone.id)} />)
-          : null}
         {renderedPieces
           .filter((piece) => !piece.battleOverlay)
           .map((piece) => (
-            <TablePieceMesh key={piece.id} piece={piece} interaction={interaction} />
+            <TablePieceMesh key={piece.id} piece={piece} />
           ))}
       </group>
-      <CameraControls
-        mode={mode}
-        enabled={controlsEnabled}
-        target={cameraTarget}
-        cameraView={cameraView}
-        mapFramingPoints={mapFramingPoints}
-        onControlSessionChange={onOrbitSessionChange}
-      />
+      <CameraControls enabled={controlsEnabled} command={cameraView} mapFramingPoints={mapFramingPoints} />
     </>
   );
 }
 
 export function TabletopScene({
   children,
-  mode,
-  interaction,
   className,
   cameraView = DEFAULT_CAMERA_VIEW,
-  focusZoneId = null,
   onInteractionActiveChange,
   seatCount = DEFAULT_TABLE_SEAT_COUNT,
   tableProgress,
@@ -1265,10 +1152,6 @@ export function TabletopScene({
   const menuPiece = state.pieces.find((piece) => piece.id === pieceMenu?.pieceId);
   const deckAvailable =
     !!deckControls && !!menuPiece && !menuPiece.locked && !menuPiece.inventory && menuPiece.items.length > 0;
-  const orthographic = mode === 'tactical';
-  const focusZone = zoneById(focusZoneId);
-  const focusX = focusZone?.position[0] ?? 0;
-  const focusZ = focusZone?.position[2] ?? 0;
   const phaseCount = tableProgress?.phases.length ?? null;
   const trackerSlots = useMemo(() => {
     const slots = phaseCount === null ? [] : trackerArcSlots(phaseCount);
@@ -1276,29 +1159,18 @@ export function TabletopScene({
   }, [phaseCount, setup]);
   const mapFramingPoints = useMemo(() => mapViewFramingPoints(trackerSlots, seatCount), [seatCount, trackerSlots]);
   const camera = useMemo(
-    () =>
-      orthographic
-        ? { position: [0, 10, 0.01] as Vector3Tuple, zoom: 66, near: 0.1, far: 100 }
-        : mode === 'seated'
-          ? {
-              position: cameraPoseFor('map', 1, mapFramingPoints).position,
-              fov: TABLE_CAMERA_FIELD_OF_VIEW,
-              near: 0.1,
-              far: 100,
-            }
-          : {
-              position: [focusX + 7.6, 9.4, focusZ + 7.6] as Vector3Tuple,
-              fov: 45,
-              near: 0.1,
-              far: 100,
-            },
-    [focusX, focusZ, mapFramingPoints, mode, orthographic]
+    () => ({
+      position: cameraPoseFor('map', 1, mapFramingPoints).position,
+      fov: TABLE_CAMERA_FIELD_OF_VIEW,
+      near: 0.1,
+      far: 100,
+    }),
+    [mapFramingPoints]
   );
 
   return (
     <div
       className={className}
-      data-scene-mode={mode}
       onContextMenu={(event) => {
         event.preventDefault();
         if (state.draftMove) {
@@ -1386,8 +1258,6 @@ export function TabletopScene({
         value={deckControls || bankControls ? (pieceId, x, y) => setPieceMenu({ pieceId, x, y }) : null}
       >
         <Canvas
-          key={`${mode}-${focusZoneId ?? 'table'}`}
-          orthographic={orthographic}
           camera={camera}
           dpr={[1, 1.75]}
           frameloop="demand"
@@ -1401,13 +1271,10 @@ export function TabletopScene({
         >
           {children}
           <SceneContents
-            mode={mode}
             trading={trading}
             setup={setup}
             mapVisible={mapVisible}
-            interaction={interaction}
             cameraView={cameraView}
-            focusZoneId={focusZoneId}
             onInteractionActiveChange={onInteractionActiveChange}
             seatCount={seatCount}
             tableProgress={tableProgress}
