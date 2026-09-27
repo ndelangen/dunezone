@@ -46,12 +46,17 @@ describe('ConfettiField', () => {
     const field = new ConfettiField(100, 3);
     expect(field.supportAt(0, 0)).toBeCloseTo(BOARD_SURFACE_Y);
     const piece = {
+      x: 0,
+      z: 0,
+      reach: 0.3,
       top: 0.5,
       contains: (x: number, z: number) => Math.hypot(x, z) < 0.3,
     };
     expect(field.supportAt(0.1, 0, [piece])).toBe(0.5);
     expect(field.supportAt(1, 0, [piece])).toBeCloseTo(BOARD_SURFACE_Y);
     expect(field.supportAt(20, 0)).toBeNull();
+    /* A disc that drifts in low, beside the piece, stays on the board instead of jumping onto its top. */
+    expect(field.supportAt(0.1, 0, [piece], 0.2)).toBeCloseTo(BOARD_SURFACE_Y);
 
     const angles = tableSeatAngles(4);
     const piles = new ConfettiField(20_000, 4);
@@ -75,6 +80,17 @@ describe('ConfettiField', () => {
     run(field, 1);
     expect(field.count).toBe(0);
     expect(field.supportAt(0, 0)).toBeCloseTo(BOARD_SURFACE_Y);
+  });
+
+  it('keeps the stream on real time when frames are slow', () => {
+    const field = new ConfettiField(10_000, 7);
+    field.launch([0]);
+    for (let step = 0; step < CONFETTI_STREAM_SECONDS * 10; step++) {
+      field.step(0.1);
+    }
+    expect(field.count).toBeGreaterThanOrEqual(80 * CONFETTI_STREAM_SECONDS - 2);
+    field.step(0.1);
+    expect(field.count).toBeLessThanOrEqual(80 * CONFETTI_STREAM_SECONDS);
   });
 
   it('reuses the oldest discs once full', () => {

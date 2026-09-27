@@ -686,17 +686,17 @@ function ConnectedTable({
             onSelectTurn={client.selectTurn}
             showStormControls={inPlay && progress.activePhaseId === 'storm'}
             sceneContent={
-              stage === 'swapping' || stage === 'setup' ? (
-                <>
-                  <SwapScene snapshot={table.snapshot} />
-                  {stage === 'setup' && <BattleScene client={client} table={table} />}
-                </>
-              ) : (
-                <>
+              <>
+                {stage === 'swapping' || stage === 'setup' ? (
+                  <>
+                    <SwapScene snapshot={table.snapshot} />
+                    {stage === 'setup' && <BattleScene client={client} table={table} />}
+                  </>
+                ) : (
                   <BattleScene client={client} table={table} />
-                  <FoilConfetti launch={celebration.launch} clearRevision={celebration.clearRevision} />
-                </>
-              )
+                )}
+                {celebration.mounted && <FoilConfetti launch={celebration.launch} />}
+              </>
             }
             decisionBar={
               <Stack data-decision-bar gap="xs">
