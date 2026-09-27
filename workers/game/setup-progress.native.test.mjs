@@ -145,15 +145,15 @@ describe('Real-game setup progression', () => {
     expect(moved.controls.ready).toEqual([]);
     const held = (await syncView(a)).carries;
     expect(JSON.stringify(held)).toContain('held-traitors');
-    const legacy = await admit('legacy');
-    const received = legacy.messages.length;
+    const watcher = await admit('watcher');
+    const received = watcher.messages.length;
     a.send({ type: 'cancel', carryId: 'held-traitors' });
     await eventually(
       () =>
-        legacy.messages
+        watcher.messages
           .slice(received)
           .some((entry) => entry.type === 'view' && entry.snapshot.revision > moved.revision),
-      'cleanup broadcast to legacy viewer'
+      'cleanup broadcast to another viewer'
     );
     await eventually(async () => (await stored()).pendingTraitors.length === 0, 'deferred cleanup');
     const after = await stored();
@@ -239,7 +239,7 @@ describe('Real-game setup progression', () => {
     expect(restored.carries).toEqual([]);
   });
 
-  it('delivers deferred cleanup to legacy viewers after a rejected drop releases its carry', async () => {
+  it('delivers deferred cleanup to other viewers after a rejected drop releases its carry', async () => {
     const [a, b] = await enter();
     await accepted(a, { kind: 'ready', ready: false }, 'used-before-drop');
     const view = await syncView(a);
@@ -256,7 +256,7 @@ describe('Real-game setup progression', () => {
     await accepted(b, { kind: 'phase' });
     const pending = await stored();
     expect(pending.pendingTraitors.length).toBeGreaterThan(0);
-    const observer = await admit('legacy');
+    const observer = await admit('watcher');
     const received = observer.messages.length;
     a.send({
       type: 'drop',
@@ -271,7 +271,7 @@ describe('Real-game setup progression', () => {
         observer.messages
           .slice(received)
           .find((message) => message.type === 'view' && message.snapshot.revision > pending.revision),
-      'rejected-drop cleanup reaches legacy viewer'
+      'rejected-drop cleanup reaches another viewer'
     );
     const saved = await stored();
     expect(saved.pendingTraitors).toEqual([]);

@@ -129,11 +129,7 @@ export const clientMessageSchema = z.discriminatedUnion('type', [
     text: conversationTextSchema,
   }),
   z.strictObject({ type: z.literal('conversation-read'), requestId: id, factionId: id, peerId: id, through: count }),
-  z.strictObject({
-    type: z.literal('admit'),
-    ticket: z.string().regex(/^[a-f0-9]{64}$/),
-    updates: z.literal(2).optional(),
-  }),
+  z.strictObject({ type: z.literal('admit'), ticket: z.string().regex(/^[a-f0-9]{64}$/) }),
   z.strictObject({
     type: z.literal('begin'),
     carryId: id,
@@ -153,11 +149,7 @@ export const clientMessageSchema = z.discriminatedUnion('type', [
   z.strictObject({ type: z.literal('spice-history'), before: count }),
   z.strictObject({ type: z.literal('log-history'), tab: logTabSchema, before: count }),
   z.strictObject({ type: z.literal('metrics') }),
-  z.strictObject({
-    type: z.literal('sync'),
-    conversations: z.literal(true).optional(),
-    pieceMoves: z.literal(true).optional(),
-  }),
+  z.strictObject({ type: z.literal('sync') }),
 ]);
 export type ClientMessage = z.infer<typeof clientMessageSchema>;
 /* The keys a change carries whole; revision, phase, table and versions have change fields of their own. */
@@ -240,11 +232,8 @@ export const serverMessageSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('carry'), carryId: id, draft: draftSchema }),
   z.object({
     type: z.literal('view'),
-    conversations: z.literal(true).optional(),
     phaseCooldownMs: count.optional(),
     battleCountdownMs: count.optional(),
-    updates: z.literal(2).optional(),
-    pieceMoves: z.literal(true).optional(),
     sequence: count.optional(),
     viewer: viewerSchema,
     epoch: id,
@@ -253,7 +242,6 @@ export const serverMessageSchema = z.discriminatedUnion('type', [
     pointers: z.array(pointerSchema),
     completedCommandId: id.optional(),
   }),
-  z.object({ type: z.literal('activity'), epoch: id, carries: z.array(carrySchema), pointers: z.array(pointerSchema) }),
   z.object({
     type: z.literal('update'),
     phaseCooldownMs: count.optional(),

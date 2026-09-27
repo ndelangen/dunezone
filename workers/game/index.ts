@@ -47,7 +47,6 @@ type Connection = {
   admitting: boolean;
   /* One catalogue capture per connection at a time; each capture is a Convex query. */
   capturing: boolean;
-  conversations?: boolean;
   viewer?: Viewer;
   /* The player's public avatar as their admission carried it; the actor directory keeps it. */
   avatarUrl?: string | null;
@@ -774,16 +773,11 @@ export class GameRoom extends DurableObject<GameEnv> {
           /* A resumed connection leaves suspension only after receiving a full view. */
           this.sendView(socket, connection);
         } else {
-          this.send(
-            socket,
-            this.delivery.update(socket, connection.viewer, this.session.roomFrame(connection.viewer), {
-              committed: true,
-            })
-          );
+          this.send(socket, this.delivery.update(socket, connection.viewer, this.session.roomFrame(connection.viewer)));
         }
       }
     } else if (activityChanged || this.session.revision !== revision) {
-      this.broadcastActivity(this.session.revision !== revision);
+      this.broadcastActivity();
     }
   }
 
@@ -842,14 +836,11 @@ export class GameRoom extends DurableObject<GameEnv> {
       return;
     }
     if (message.type === 'admit') {
-      if (message.updates === 2) {
-        this.delivery.enable(socket);
-      }
       await this.admit(socket, connection, message.ticket);
       return;
     }
     if (this.reconcileViewers()) {
-      this.broadcastActivity(true);
+      this.broadcastActivity();
     }
     if (!this.authorized(socket)) {
       this.authorizationChanged();
@@ -955,14 +946,11 @@ export class GameRoom extends DurableObject<GameEnv> {
   ) {
     switch (message.type) {
       case 'sync':
-        connection.conversations ||= message.conversations;
-        this.delivery.enable(socket, message.pieceMoves);
         this.sendView(socket, connection);
         return;
       case 'conversation-history':
       case 'conversation-send':
       case 'conversation-read':
-        connection.conversations = true;
         this.handleConversation(socket, connection.viewer!, message);
         return;
       case 'log-history':
@@ -1023,7 +1011,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     const faction = request.factionId;
     /* Only current endpoint owners receive the saved message, including the sender's other connections. */
     for (const [peer, identity] of this.connections) {
-      if (!identity.viewer || !identity.conversations || !this.authorized(peer)) {
+      if (!identity.viewer || !this.authorized(peer)) {
         continue;
       }
       const own = this.session.conversationFaction(identity.viewer);
@@ -1040,7 +1028,7 @@ export class GameRoom extends DurableObject<GameEnv> {
   }
 
   private sendConversations(socket: WebSocket, viewer: Viewer) {
-    if (!this.session.ready || !this.connections.get(socket)?.conversations || !this.authorized(socket)) {
+    if (!this.session.ready || !this.authorized(socket)) {
       return;
     }
     const message = this.session.conversationSummaries(viewer);
@@ -1084,7 +1072,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     const committed = this.session.revision !== revision;
     /* A renew moves only the carry's expiresAt, which no page acts on, so no frame goes out for it. */
     if (message.type !== 'renew' || committed) {
-      this.broadcastActivity(committed);
+      this.broadcastActivity();
     }
   }
 
@@ -1105,8 +1093,8 @@ export class GameRoom extends DurableObject<GameEnv> {
     }
     this.motionForwarded++;
     this.activityTimer ??= setTimeout(() => {
-      const committed = this.reconcileViewers();
-      this.broadcastActivity(committed);
+      this.reconcileViewers();
+      this.broadcastActivity();
     }, 50);
   }
 
@@ -1114,14 +1102,13 @@ export class GameRoom extends DurableObject<GameEnv> {
     if (!(error instanceof GameRejection)) {
       this.diagnostics.report('message', error);
     }
-    const revision = this.session.revision;
     if (
       message.type === 'drop' &&
       error instanceof GameRejection &&
       this.session.cancelRejectedDrop(connection.viewer!, message.carryId)
     ) {
       this.reconcileViewers();
-      this.broadcastActivity(this.session.revision !== revision);
+      this.broadcastActivity();
     }
     this.send(socket, {
       type: 'rejected',
@@ -1136,7 +1123,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     contents?: SpawnContents
   ) {
     if (this.reconcileViewers()) {
-      this.broadcastActivity(true);
+      this.broadcastActivity();
     }
     if (!this.authorized(socket)) {
       return;
@@ -1265,10 +1252,12 @@ export class GameRoom extends DurableObject<GameEnv> {
       if (identity.viewer && this.authorized(peer)) {
         this.send(
           peer,
-          this.delivery.update(peer, identity.viewer, this.session.roomFrame(identity.viewer), {
-            committed: true,
-            completedCommandId: identity.connectionId === connection.connectionId ? message.commandId : undefined,
-          })
+          this.delivery.update(
+            peer,
+            identity.viewer,
+            this.session.roomFrame(identity.viewer),
+            identity.connectionId === connection.connectionId ? message.commandId : undefined
+          )
         );
       }
     }
@@ -1286,7 +1275,6 @@ export class GameRoom extends DurableObject<GameEnv> {
         message.type === 'view' || message.type === 'update'
           ? {
               ...message,
-              ...(message.type === 'view' ? { conversations: true } : {}),
               phaseCooldownMs,
               battleCountdownMs,
               ...clock,
@@ -1298,7 +1286,7 @@ export class GameRoom extends DurableObject<GameEnv> {
         this.sendConversations(socket, this.connections.get(socket)!.viewer!);
       }
       this.messagesSent++;
-      if (message.type === 'activity' || (message.type === 'update' && !message.snapshot)) {
+      if (message.type === 'update' && !message.snapshot) {
         this.activityDeliveries++;
       }
       this.bytesSent += new TextEncoder().encode(data).byteLength;
@@ -1332,17 +1320,14 @@ export class GameRoom extends DurableObject<GameEnv> {
     this.activityTimer = undefined;
   }
 
-  private broadcastActivity(committed = false) {
+  private broadcastActivity() {
     this.clearActivityTimer();
     if (!this.session.ready || !this.connections.size) {
       return;
     }
     for (const [socket, connection] of this.connections) {
       if (connection.viewer && this.authorized(socket)) {
-        this.send(
-          socket,
-          this.delivery.update(socket, connection.viewer, this.session.roomFrame(connection.viewer), { committed })
-        );
+        this.send(socket, this.delivery.update(socket, connection.viewer, this.session.roomFrame(connection.viewer)));
       }
     }
   }
@@ -1359,7 +1344,6 @@ export class GameRoom extends DurableObject<GameEnv> {
       return;
     }
     this.connections.delete(socket);
-    const revision = this.session.revision;
     this.session.disconnect(connection.connectionId);
     if (connection.registrationId && !this.registeredSessions().has(connection.registrationId)) {
       this.authorization?.remove(connection.registrationId);
@@ -1369,7 +1353,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     }
     if (broadcast) {
       this.reconcileViewers();
-      this.broadcastActivity(this.session.revision !== revision);
+      this.broadcastActivity();
     }
   }
 
@@ -1412,11 +1396,10 @@ export class GameRoom extends DurableObject<GameEnv> {
     if (!this.session.ready) {
       return;
     }
-    const revision = this.session.revision;
     const swept = this.session.sweep();
     const reconciled = this.reconcileViewers();
     if (swept || reconciled) {
-      this.broadcastActivity(this.session.revision !== revision);
+      this.broadcastActivity();
     }
   }
 

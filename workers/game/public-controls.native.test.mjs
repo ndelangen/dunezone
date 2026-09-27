@@ -393,10 +393,10 @@ describe('Hosted readiness and shared inventory through native commands', () => 
     });
     const carrying = await b.message('carry', (message) => message.carryId === 'inventory-top');
     expect(carrying.draft.pickedUpItemIds).toEqual([stack.items.at(-1).id]);
-    const activity = await observer.message('activity', (message) =>
+    const carried = await observer.message('view', (message) =>
       message.carries.some((carry) => carry.id === 'inventory-top')
     );
-    hidden(activity.carries.find((carry) => carry.id === 'inventory-top').held);
+    hidden(carried.carries.find((carry) => carry.id === 'inventory-top').held);
     b.send({ type: 'drop', commandId: 'drop-top', carryId: 'inventory-top', position: [0, 0.38, 0], orientation: 0 });
     state = (await b.message('view', (message) => message.completedCommandId === 'drop-top')).snapshot;
     expect(state.table.pieces.find((piece) => piece.id === stack.id).items).toHaveLength(3);
