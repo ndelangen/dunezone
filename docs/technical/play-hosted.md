@@ -82,7 +82,11 @@ re-provisioning. The local demo at `/play/demo` keeps its placeholder; it has no
 2. The browser opens the same-origin game socket and sends that ticket in its first message.
    Tickets stay in memory, never in a URL. Convex client tokens never reach the game Worker.
 3. The Worker redeems the ticket using that game's server-only secret. Admission still waits for
-   both a fresh reactive authorization result and an uncached HTTP validation lease.
+   both a fresh reactive authorization result and an uncached HTTP validation lease. A ticket
+   that lapsed or was already redeemed closes the socket with code 4410 and no refusal; the
+   browser requests a new ticket and reconnects, with the same wait as a ticket it finds lapsed
+   before sending it. That wait doubles from 1 second up to `PLAY_TICKET_RETRY_MAX_MS`, and a view
+   resets it. A refused session, account or game stays denied.
 4. Every command and outgoing game message checks authorization, session expiry and both the
    session and account-reconciliation leases. Timer delays cannot extend these deadlines.
 5. Logout, expiry or a known authorization failure stops game traffic. Reconnection requires a

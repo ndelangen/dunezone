@@ -74,7 +74,7 @@ export const OpensStill = meta.story({
 export const TableControls = meta.story({
   beforeEach: install(() => productTransport()),
   play: async ({ canvasElement }) => {
-    const { page, shell } = await tablePage(canvasElement);
+    const { page, shell, document } = await tablePage(canvasElement);
     const viewButtons = within(page.getByRole('group', { name: 'Table view' }));
 
     for (const view of ['left', 'right', 'bottom', 'map']) {
@@ -84,7 +84,19 @@ export const TableControls = meta.story({
       expect(shell).toHaveAttribute('data-table-view', view);
     }
 
+    /* The header's controls lead the Tab order: Tab from the page start reaches the header before the separator. */
     const divider = page.getByRole('separator', { name: 'Resize controls panel' });
+    const header = shell.querySelector('header')!;
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+    let focused: Element | null = null;
+    for (let press = 0; press < 50 && focused !== divider && !header.contains(focused); press++) {
+      await userEvent.tab();
+      focused = document.activeElement;
+    }
+    expect(header.contains(focused), `Tab reaches ${focused?.outerHTML.slice(0, 80)} first`).toBe(true);
+
     divider.focus();
     await userEvent.keyboard('{Home}');
     expect(divider.getAttribute('aria-valuenow')).toBe(divider.getAttribute('aria-valuemin'));
@@ -111,5 +123,37 @@ export const TableControls = meta.story({
       expect(counter).not.toBeVisible();
     }
     await userEvent.keyboard('{/Alt}');
+  },
+});
+
+/**
+ * On a short window the dock keeps its floor by growing up over the scene, to above the header's lower edge.
+ * The header still paints above it there, so every control in it takes the pointer at its top, middle and bottom.
+ */
+export const ShortWindow = meta.story({
+  /* Still, so no iris clips the corners the controls sit in. */
+  globals: { viewport: { value: 'appShort' }, motion: 'reduce' },
+  beforeEach: install(() => productTransport()),
+  play: async ({ canvasElement }) => {
+    const { shell, document } = await tablePage(canvasElement);
+    await waitFor(() => expect(shell.parentElement).toHaveAttribute('data-scene-ready', 'true'), { timeout: 5000 });
+    const header = shell.querySelector('header')!;
+    const dock = shell.querySelector('.seated-controls-panel')!;
+    expect(dock.getBoundingClientRect().top).toBeLessThan(header.getBoundingClientRect().bottom);
+    const picker = within(header).getByRole('group', { name: 'Table view' });
+    const controls = [
+      ...within(picker).getAllByRole('button'),
+      ...within(header).getAllByRole('button', { name: /^(Game menu|Previous phase|Next phase)$/ }),
+    ];
+    for (const control of controls) {
+      const box = control.getBoundingClientRect();
+      for (const y of [box.top + 2, box.top + box.height / 2, box.bottom - 2]) {
+        const hit = document.elementFromPoint(box.left + box.width / 2, y);
+        expect(
+          control.contains(hit),
+          `${control.textContent} at ${Math.round(y)} hits ${hit?.outerHTML.slice(0, 80)}`
+        ).toBe(true);
+      }
+    }
   },
 });

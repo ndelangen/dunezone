@@ -523,6 +523,16 @@ describe('server-owned tabletop carries', () => {
     expect(room.command(alice, { kind: 'flip', pieceId: 'treachery-deck' }, 1, 1520).revision).toBe(2);
   });
 
+  test('reports a pointer change only when viewers would see one', () => {
+    const room = new Room(initialSnapshot(), undefined, seated);
+    expect(room.pointer(alice, [0, 0.38, 0], 1000)).toBe(true);
+    expect(room.pointer(alice, [0, 0.38, 0], 2000)).toBe(false);
+    expect(room.pointer({ ...alice, displayName: 'alicia' }, [0, 0.38, 0], 2100)).toBe(true);
+    expect(room.pointer({ ...alice, displayName: 'alicia' }, [1, 0.38, 0], 2200)).toBe(true);
+    expect(room.pointer(alice, null)).toBe(true);
+    expect(room.pointer(alice, null)).toBe(false);
+  });
+
   test('projects pointer identity without connection bookkeeping', () => {
     const room = new Room(initialSnapshot(), undefined, seated);
     const connection = { ...alice, pointerSeq: 7, tokens: 99, refilledAt: 1000 };
