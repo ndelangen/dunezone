@@ -16,6 +16,10 @@ export async function verifyPublicControls({
   until,
   passed,
   origin,
+  diagnostic,
+  heldSteps,
+  mark,
+  pollLoop,
 }) {
   const a = await peer('player-a');
   await signIn(a);
@@ -24,12 +28,21 @@ export async function verifyPublicControls({
   const requests = (who) => who.view().snapshot.controls.requests;
   async function facePixels(who, piece, face) {
     const center = await point(who, [piece.position[0], piece.position[1] + 0.05, piece.position[2]], 'map');
-    const png = await who.page.screenshot();
-    const { data, info } = await sharp(png)
-      .extract({ left: Math.round(center.x) - 12, top: Math.round(center.y) - 12, width: 24, height: 24 })
-      .removeAlpha()
-      .raw()
-      .toBuffer({ resolveWithObject: true });
+    /* Diagnostic (#1343, not for merge): --diag-clip-polls captures only the 24x24 window, with the same rounding. */
+    const { data, info } = diagnostic.clipPolls
+      ? await sharp(
+          await who.page.screenshot({
+            clip: { x: Math.round(center.x) - 12, y: Math.round(center.y) - 12, width: 24, height: 24 },
+          })
+        )
+          .removeAlpha()
+          .raw()
+          .toBuffer({ resolveWithObject: true })
+      : await sharp(await who.page.screenshot())
+          .extract({ left: Math.round(center.x) - 12, top: Math.round(center.y) - 12, width: 24, height: 24 })
+          .removeAlpha()
+          .raw()
+          .toBuffer({ resolveWithObject: true });
     const expected =
       face === 'back'
         ? { channel: 2, contrastChannel: 0, ratio: 1.2, minimum: 40 }
@@ -153,8 +166,10 @@ export async function verifyPublicControls({
       'Inventory drag did not begin.'
     );
     const destination = await point(a, [0, 0.38, 0], 'map');
-    await a.page.mouse.move(destination.x, destination.y, { steps: 12 });
+    mark('drag:start', { native: false, steps: heldSteps(12) });
+    await a.page.mouse.move(destination.x, destination.y, { steps: heldSteps(12) });
     await a.page.mouse.up();
+    mark('drag:end', { native: false, steps: heldSteps(12) });
     await until(
       () => a.view().snapshot.table.pieces.some((piece) => piece.id === token.id && !piece.inventory),
       'Inventory drop did not reach the board.'
@@ -165,13 +180,23 @@ export async function verifyPublicControls({
       () => b.view().snapshot.revision === a.view().snapshot.revision,
       'Drop did not reach the other player.'
     );
-    await until(() => facePixels(a, dropped(), 'back'), 'The published blue back did not render on the board.');
+    await pollLoop(
+      'face-back',
+      () => facePixels(a, dropped(), 'back'),
+      (seen) => seen,
+      'The published blue back did not render on the board.'
+    );
     await a.page.keyboard.press('f');
     await until(
       () => dropped().items.every((item) => item.faceUp === true),
       'Ordinary flip did not turn the spawned piece face up.'
     );
-    await until(() => facePixels(a, dropped(), 'front'), 'The published red front did not render after flipping.');
+    await pollLoop(
+      'face-front',
+      () => facePixels(a, dropped(), 'front'),
+      (seen) => seen,
+      'The published red front did not render after flipping.'
+    );
     await capture(a, 'after-inventory-drag-and-flip');
     passed(
       'Inventory drag uses the ordinary carry boundary, lands face down for both players, and can be flipped manually'
@@ -228,7 +253,7 @@ export async function verifyPublicControls({
       'Ready and withdrawal are separate from Next; readiness survives Mentat reconnect, last-ready enables explicit advance, and revisiting clears readiness without undoing pieces'
     );
     passed(
-      'The eight-second phase cooldown disables both header buttons for every viewer; observers cannot Ready, request, approve, dismiss or drag inventory'
+      `The ${diagnostic.phaseCooldownMs / 1000}-second phase cooldown disables both header buttons for every viewer; observers cannot Ready, request, approve, dismiss or drag inventory`
     );
   }
 }

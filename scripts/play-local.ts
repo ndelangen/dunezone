@@ -17,6 +17,8 @@ const { values } = parseArgs({
     port: { type: 'string', default: '8787' },
     'skip-build': { type: 'boolean', default: false },
     'skip-generate': { type: 'boolean', default: false },
+    /* Diagnostic (#1343, not for merge): a shorter phase cooldown for the isolated verifier stack. */
+    'phase-cooldown-ms': { type: 'string' },
   },
 });
 
@@ -129,7 +131,12 @@ publisher.r2_buckets = publisher.r2_buckets.map((binding: { binding: string }) =
 Object.assign(game, local, {
   name: gameName,
   main: path.join(root, 'workers/game/index.ts'),
-  vars: { CONVEX_URL: gameConvexUrl, APPLICATION_ORIGIN: origin, GIT_SHA: 'local-isolated' },
+  vars: {
+    CONVEX_URL: gameConvexUrl,
+    APPLICATION_ORIGIN: origin,
+    GIT_SHA: 'local-isolated',
+    ...(values['phase-cooldown-ms'] ? { DIAGNOSTIC_PHASE_COOLDOWN_MS: values['phase-cooldown-ms'] } : {}),
+  },
 });
 const publisherConfig = path.join(runtime, 'publisher.json');
 const gameConfig = path.join(runtime, 'game.json');

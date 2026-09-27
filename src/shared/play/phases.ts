@@ -94,3 +94,22 @@ export function phaseForTurn(index: number, turn: number): number {
 }
 
 export const PHASE_CHANGE_COOLDOWN_MS = 8000;
+
+/*
+ * Diagnostic (#1343, not for merge): the isolated verifier stack may shorten the cooldown the Worker enforces.
+ * Only the game Worker sets it, from a var that play-local writes and wrangler.jsonc never carries.
+ */
+let phaseChangeCooldown = PHASE_CHANGE_COOLDOWN_MS;
+export function phaseChangeCooldownMs(): number {
+  return phaseChangeCooldown;
+}
+export function configurePhaseChangeCooldown(value: string | undefined) {
+  if (value === undefined) {
+    return;
+  }
+  const milliseconds = Number(value);
+  if (!Number.isSafeInteger(milliseconds) || milliseconds < 1000 || milliseconds > PHASE_CHANGE_COOLDOWN_MS) {
+    throw new Error('The diagnostic phase cooldown must be an integer from 1000 to 8000 ms.');
+  }
+  phaseChangeCooldown = milliseconds;
+}

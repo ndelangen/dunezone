@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { randomBytes } from 'node:crypto';
+import { appendFileSync } from 'node:fs';
 import { lstat, mkdir, readFile, realpath, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -44,6 +45,10 @@ const { values } = parseArgs({
     'report-dir': { type: 'string' },
     browser: { type: 'string' },
     flow: { type: 'string', default: 'regular' },
+    /* Diagnostic (#1343, not for merge): lever switches the launcher passes through. */
+    'diag-carry-steps': { type: 'string' },
+    'phase-cooldown-ms': { type: 'string' },
+    'diag-clip-polls': { type: 'boolean', default: false },
   },
 });
 for (const name of ['env-file', 'origin', 'credentials-file', 'report-dir']) {
@@ -153,6 +158,42 @@ const report = {
   pageErrors: [],
   consoleErrors: [],
 };
+/*
+ * Diagnostic (#1343, not for merge): the lever switches under measurement, and timing marks
+ * streamed to marks.jsonl so a run the launcher kills keeps them.
+ */
+const diagnostic = {
+  carrySteps: values['diag-carry-steps'] ? Number(values['diag-carry-steps']) : null,
+  phaseCooldownMs: values['phase-cooldown-ms'] ? Number(values['phase-cooldown-ms']) : PHASE_CHANGE_COOLDOWN_MS,
+  clipPolls: values['diag-clip-polls'],
+  poseCaps: {},
+};
+assert.ok(
+  diagnostic.carrySteps === null || (Number.isSafeInteger(diagnostic.carrySteps) && diagnostic.carrySteps >= 2),
+  '--diag-carry-steps must be an integer of at least 2.'
+);
+assert.ok(Number.isSafeInteger(diagnostic.phaseCooldownMs), '--phase-cooldown-ms must be an integer.');
+report.diagnostic = diagnostic;
+function mark(label, detail = {}) {
+  try {
+    appendFileSync(new URL('marks.jsonl', directory), `${JSON.stringify({ t: Date.now(), label, ...detail })}\n`);
+  } catch {}
+}
+/** The step count for a mouse move while a piece is held: the diagnostic lever's count, or the flow's own. */
+const heldSteps = (steps) => diagnostic.carrySteps ?? steps;
+/** Polls `count` until `accept` holds, recording how many polls and how long the loop took. */
+async function pollLoop(label, count, accept, description) {
+  const started = Date.now();
+  let polls = 0;
+  let last;
+  await until(async () => {
+    polls++;
+    last = await count();
+    return accept(last);
+  }, description);
+  mark('poll', { name: label, polls, ms: Date.now() - started, last });
+  return last;
+}
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 async function until(predicate, description, timeout = 15_000) {
   const deadline = Date.now() + timeout;
@@ -167,6 +208,7 @@ async function until(predicate, description, timeout = 15_000) {
 }
 function passed(name, detail = {}) {
   report.checks.push({ name, ...detail });
+  mark('pass', { name });
   console.log(`PASS ${name}`);
 }
 /*
@@ -216,6 +258,34 @@ async function peer(label, context) {
     );
   }
   const page = await context.newPage();
+  /* Diagnostic (#1343, not for merge): each page's animation frame times, streamed to frames-<label>.jsonl. */
+  const framesFile = new URL(`frames-${label}.jsonl`, directory);
+  await page.exposeBinding('__diagnosticFrames', (_source, entry) => {
+    try {
+      appendFileSync(framesFile, `${JSON.stringify(entry)}\n`);
+    } catch {}
+  });
+  await page.addInitScript(() => {
+    if (window.top !== window) {
+      return;
+    }
+    const frames = [];
+    let last = -1;
+    const request = window.requestAnimationFrame.bind(window);
+    window.requestAnimationFrame = (callback) =>
+      request((time) => {
+        if (time !== last) {
+          last = time;
+          frames.push(Math.round(performance.timeOrigin + time));
+        }
+        callback(time);
+      });
+    setInterval(() => {
+      if (typeof window.__diagnosticFrames === 'function') {
+        window.__diagnosticFrames({ at: Date.now(), path: location.pathname, frames: frames.splice(0) });
+      }
+    }, 2000);
+  });
   const state = {
     label,
     page,
@@ -290,6 +360,11 @@ async function enter(who) {
   await until(() => who.view(), 'The UI did not receive an authorized snapshot.');
   assert.equal(who.sent[0].type, 'admit');
   assert.equal(who.sent[0].ticketLength, 64);
+  /* Diagnostic (#1343, not for merge): the pose smoothing cap this build carries. */
+  diagnostic.poseCaps[who.label] = await Promise.race([
+    who.page.evaluate(() => window.__diagnosticPoseCap ?? null).catch(() => 'error'),
+    delay(2000).then(() => 'timeout'),
+  ]);
 }
 /** Signs in and enters player-a, player-b and the observer, in that order. */
 async function seated() {
@@ -307,12 +382,15 @@ async function seated() {
 const button = (who, name) => who.page.getByRole('button', { name, exact: true });
 /** Clicks an exact-named button once it is enabled and waits for this peer's view to pass the revision it held. */
 async function act(who, name) {
+  mark('act:start', { who: who.label, name, phase: who.view()?.snapshot.phase });
   await until(() => button(who, name).isEnabled(), `${name} did not become enabled.`, 20_000);
+  mark('act:enabled', { who: who.label, name });
   /* Read after the control is enabled: a commit that enabled it has then reached this view,
      so the next revision is this click's and not that one arriving late. */
   const before = who.view().snapshot.revision;
   await button(who, name).click();
   await until(() => who.view().snapshot.revision > before, `${name} did not commit.`);
+  mark('act:committed', { who: who.label, name });
 }
 async function converged(peers) {
   await until(
@@ -518,15 +596,19 @@ async function redPixels(who, center) {
 }
 
 async function visibleActivity(sender, recipient, name) {
+  mark('activity:start', { name });
   await focus(sender, 'map');
   await focus(recipient, 'map');
   const savedRevision = sender.view().snapshot.revision;
   const first = await point(sender, [0, 0.38, 1], 'map');
   const second = await point(sender, [1, 0.38, 1], 'map');
+  mark('cursor:move', { name, leg: 1 });
   await sender.page.mouse.move(first.x, first.y);
   const firstCursor = await cursorAt(recipient, sender, [0, 0.38, 1]);
+  mark('cursor:seen', { name, leg: 1 });
   await sender.page.mouse.move(second.x, second.y, { steps: 8 });
   const secondCursor = await cursorAt(recipient, sender, [1, 0.38, 1]);
+  mark('cursor:seen', { name, leg: 2 });
   assert.ok(Math.hypot(secondCursor.x - firstCursor.x, secondCursor.y - firstCursor.y) > 30);
   await capture(recipient, `${name}-cursor`);
   passed(`${name}: the recipient sees the other player's cursor moving`);
@@ -553,16 +635,21 @@ async function visibleActivity(sender, recipient, name) {
   const sentBefore = sender.sent.length;
   await sender.page.mouse.move(start.x, start.y);
   await sender.page.mouse.down();
+  mark('carry:down', { name });
   try {
     await delay(350);
     for (const [index, destination] of destinations.entries()) {
-      await sender.page.mouse.move(destination.senderPoint.x, destination.senderPoint.y, { steps: 12 });
+      mark('carry:leg', { name, leg: index + 1 });
+      await sender.page.mouse.move(destination.senderPoint.x, destination.senderPoint.y, { steps: heldSteps(12) });
+      mark('carry:moved', { name, leg: index + 1 });
       await until(
         () => sender.sent.slice(sentBefore).some((message) => message.type === 'begin' && message.sourcePieceId === id),
         `${name}: the native drag did not pick up the force stack.`
       );
-      await until(
-        async () => (await redPixels(recipient, destination.recipientPoint)) > destination.baseline + 40,
+      await pollLoop(
+        `${name}:red-${index + 1}`,
+        () => redPixels(recipient, destination.recipientPoint),
+        (count) => count > destination.baseline + 40,
         `${name}: the recipient did not render the held red token at destination ${index + 1}.`
       );
       if (index > 0) {
@@ -572,12 +659,14 @@ async function visibleActivity(sender, recipient, name) {
           `${name}: the previous destination retained a duplicate token.`
         );
       }
+      mark('carry:seen', { name, leg: index + 1 });
       await capture(recipient, `${name}-carry-${index + 1}`);
     }
   } finally {
     await sender.page.keyboard.press('Escape');
     await sender.page.mouse.up();
   }
+  mark('carry:released', { name });
   await until(
     () => recipient.messages.findLast((message) => message.type === 'activity')?.carries.length === 0,
     `${name}: cancellation left a remote carry.`
@@ -588,6 +677,7 @@ async function visibleActivity(sender, recipient, name) {
       `${name}: the cancelled token remained visible at a dragged location.`
     );
   }
+  mark('carry:cleared', { name });
   assert.equal(sender.view().snapshot.revision, savedRevision);
   assert.equal(recipient.view().snapshot.revision, savedRevision);
   passed(`${name}: held token moves visibly before drop and cancellation restores the saved table`);
@@ -644,14 +734,17 @@ async function phaseStep(sender, recipient, direction = 1) {
     await readyBeforeAdvance(sender, recipient);
   }
   const before = sender.view().snapshot;
+  mark('phase:click', { phase: before.phase, direction });
   await sender.page
     .getByRole('button', {
       name: direction === 1 ? 'Next phase' : 'Previous phase',
       exact: true,
     })
     .click();
+  mark('phase:clicked', { phase: before.phase, direction });
   await revision(sender, before.revision + 1);
   await revision(recipient, before.revision + 1);
+  mark('phase:committed', { phase: before.phase + direction });
   assert.equal(sender.view().snapshot.phase, before.phase + direction);
   assert.deepEqual({ ...sender.view().snapshot, bank: undefined }, { ...recipient.view().snapshot, bank: undefined });
   assert.deepEqual(sender.view().snapshot.table.pieces, before.table.pieces);
@@ -706,9 +799,12 @@ async function sharedPhaseFlow(a, b) {
   const baseline = await redPixels(a, recipientPoint);
   await b.page.mouse.move(start.x, start.y);
   await b.page.mouse.down();
+  mark('carry:down', { name: 'phase-carry' });
   try {
     await delay(350);
-    await b.page.mouse.move(targetPoint.x, targetPoint.y, { steps: 12 });
+    mark('carry:leg', { name: 'phase-carry', leg: 1 });
+    await b.page.mouse.move(targetPoint.x, targetPoint.y, { steps: heldSteps(12) });
+    mark('carry:moved', { name: 'phase-carry', leg: 1 });
     const carry = await until(
       () =>
         a.messages
@@ -716,10 +812,13 @@ async function sharedPhaseFlow(a, b) {
           ?.carries.find((value) => value.reservedIds.includes(id)),
       'The other player did not receive the held token before a phase change.'
     );
-    await until(
-      async () => (await redPixels(a, recipientPoint)) > baseline + 40,
+    await pollLoop(
+      'phase-carry:red',
+      () => redPixels(a, recipientPoint),
+      (count) => count > baseline + 40,
       'The held token was not visible before a phase change.'
     );
+    mark('carry:seen', { name: 'phase-carry', leg: 1 });
     await phaseStep(a, b);
     assert.ok(
       a.messages.findLast((message) => message.type === 'activity')?.carries.some((value) => value.id === carry.id)
@@ -768,7 +867,7 @@ async function sharedPhaseFlow(a, b) {
 /* Next and Previous stay disabled for the cooldown after a phase change (#1139). */
 async function phaseCooldownEnded(who) {
   await until(
-    () => Date.now() >= (who.view().snapshot.controls?.phaseChangedAt ?? 0) + PHASE_CHANGE_COOLDOWN_MS,
+    () => Date.now() >= (who.view().snapshot.controls?.phaseChangedAt ?? 0) + diagnostic.phaseCooldownMs,
     'Phase cooldown did not end.'
   );
 }
@@ -779,9 +878,11 @@ async function sharedTurnChange(sender, recipient, turn, interact) {
   }
   await phaseCooldownEnded(sender);
   const before = sender.view().snapshot;
+  mark('turn:click', { phase: before.phase, turn });
   await interact();
   await revision(sender, before.revision + 1);
   await revision(recipient, before.revision + 1);
+  mark('turn:committed', { turn });
   const expectedPhase = phaseForTurn(before.phase, turn);
   assert.equal(sender.view().snapshot.phase, expectedPhase);
   assert.deepEqual({ ...sender.view().snapshot, bank: undefined }, { ...recipient.view().snapshot, bank: undefined });
@@ -793,7 +894,33 @@ async function sharedTurnChange(sender, recipient, turn, interact) {
 
 async function goldPixels(png, center) {
   const clip = { left: Math.round(center.x) - 14, top: Math.round(center.y) - 14, width: 28, height: 28 };
-  const { data, info } = await sharp(png).extract(clip).removeAlpha().raw().toBuffer({ resolveWithObject: true });
+  return countGold(await sharp(png).extract(clip).removeAlpha().raw().toBuffer({ resolveWithObject: true }));
+}
+
+/*
+ * Diagnostic (#1343, not for merge): with --diag-clip-polls a poll captures only the 28x28 window,
+ * with the same rounding as the full-page extract. Otherwise it captures the full page as main does.
+ */
+async function goldPoll(who, center) {
+  if (!diagnostic.clipPolls) {
+    return goldPixels(await who.page.screenshot(), center);
+  }
+  const clip = { x: Math.round(center.x) - 14, y: Math.round(center.y) - 14, width: 28, height: 28 };
+  const png = await who.page.screenshot({ clip });
+  return countGold(await sharp(png).removeAlpha().raw().toBuffer({ resolveWithObject: true }));
+}
+
+/* Diagnostic (#1343, not for merge): after a clipped loop, the same window counted from a full-page capture. */
+async function goldCrossCheck(who, center, name, clipped) {
+  if (!diagnostic.clipPolls) {
+    return;
+  }
+  const started = Date.now();
+  const full = await goldPixels(await who.page.screenshot(), center);
+  mark('poll-check', { name, clipped, full, ms: Date.now() - started });
+}
+
+function countGold({ data, info }) {
   let count = 0;
   for (let offset = 0; offset < data.length; offset += info.channels) {
     const [red, green, blue] = data.subarray(offset, offset + 3);
@@ -805,6 +932,7 @@ async function goldPixels(png, center) {
 }
 
 async function sharedSpiceRoundTrip(sender, recipient, count, interact, name) {
+  mark('spice:start', { name });
   await sender.page.mouse.move(10, 10);
   await recipient.page.mouse.move(10, 10);
   const before = sender.view().snapshot;
@@ -834,11 +962,15 @@ async function sharedSpiceRoundTrip(sender, recipient, count, interact, name) {
   );
   await sender.page.mouse.move(10, 10);
   await recipient.page.mouse.move(10, 10);
+  mark('spice:spawned', { name });
   for (const { who, center, baseline } of samples) {
-    await until(
-      async () => (await goldPixels(await who.page.screenshot(), center)) > baseline + 12,
+    const last = await pollLoop(
+      `${name}:gold-appear-${who.label}`,
+      () => goldPoll(who, center),
+      (value) => value > baseline + 12,
       `${name}: ${who.label} did not render the new spice stack.`
     );
+    await goldCrossCheck(who, center, `${name}:gold-appear-${who.label}`, last);
     await capture(who, `${name}-${who.label}-spawned`);
   }
   passed(`${name}: both players receive and render ${count} shared spice`);
@@ -853,9 +985,12 @@ async function sharedSpiceRoundTrip(sender, recipient, count, interact, name) {
   const sentBefore = recipient.sent.length;
   await recipient.page.mouse.move(start.x, start.y);
   await recipient.page.mouse.down();
+  mark('carry:down', { name });
   try {
     await delay(350);
-    await recipient.page.mouse.move(destination.x, destination.y, { steps: 12 });
+    mark('carry:leg', { name, leg: 1 });
+    await recipient.page.mouse.move(destination.x, destination.y, { steps: heldSteps(12) });
+    mark('carry:moved', { name, leg: 1 });
     await until(
       () =>
         recipient.sent
@@ -873,8 +1008,10 @@ async function sharedSpiceRoundTrip(sender, recipient, count, interact, name) {
   } finally {
     await recipient.page.mouse.up();
   }
+  mark('carry:released', { name });
   await revision(sender, before.revision + 2);
   await revision(recipient, before.revision + 2);
+  mark('carry:committed', { name });
   assert.deepEqual({ ...sender.view().snapshot, bank: undefined }, { ...recipient.view().snapshot, bank: undefined });
   assert.deepEqual(sender.view().snapshot.table.pieces, before.table.pieces);
   assert.equal(sender.view().snapshot.phase, before.phase);
@@ -886,11 +1023,15 @@ async function sharedSpiceRoundTrip(sender, recipient, count, interact, name) {
   await sender.page.mouse.move(10, 10);
   await recipient.page.mouse.move(10, 10);
   for (const { who, center, baseline } of samples) {
-    await until(
-      async () => (await goldPixels(await who.page.screenshot(), center)) <= baseline + 6,
+    const last = await pollLoop(
+      `${name}:gold-gone-${who.label}`,
+      () => goldPoll(who, center),
+      (value) => value <= baseline + 6,
       `${name}: ${who.label} retained the deleted spice stack.`
     );
+    await goldCrossCheck(who, center, `${name}:gold-gone-${who.label}`, last);
   }
+  mark('spice:gone', { name });
   await capture(sender, `${name}-returned-to-supply`);
   passed(`${name}: the other player drags the full stack onto the supply and both players see it removed`);
 }
@@ -1001,8 +1142,11 @@ async function verifyRegular() {
   const before = a.view().snapshot.revision;
   await a.page.mouse.move(start.x, start.y);
   await a.page.mouse.down();
+  mark('carry:down', { name: 'mesh' });
   await delay(350);
-  await a.page.mouse.move(start.x + 35, start.y - 15, { steps: 8 });
+  mark('carry:leg', { name: 'mesh', leg: 1 });
+  await a.page.mouse.move(start.x + 35, start.y - 15, { steps: heldSteps(8) });
+  mark('carry:moved', { name: 'mesh', leg: 1 });
   const begin = await until(
     () => a.sent.findLast((message) => message.type === 'begin'),
     'Canvas drag did not begin a carry.'
@@ -1017,23 +1161,29 @@ async function verifyRegular() {
   );
   assert.equal(a.view().snapshot.revision, before);
   assert.equal(b.view().snapshot.revision, before);
+  mark('carry:seen', { name: 'mesh', leg: 1 });
   await a.page.keyboard.press('Escape');
   await a.page.mouse.up();
   await until(
     () => b.messages.findLast((message) => message.type === 'activity')?.carries.length === 0,
     'Cancel did not clear remote carry.'
   );
+  mark('carry:cleared', { name: 'mesh' });
   assert.equal(a.view().snapshot.revision, before);
   passed('Native mesh carry reaches the other browser and Escape cancels without a durable write');
 
   await a.page.mouse.move(start.x, start.y);
   await a.page.mouse.down();
+  mark('carry:down', { name: 'drop' });
   await delay(350);
-  await a.page.mouse.move(start.x + 70, start.y - 40, { steps: 12 });
+  mark('carry:leg', { name: 'drop', leg: 1 });
+  await a.page.mouse.move(start.x + 70, start.y - 40, { steps: heldSteps(12) });
+  mark('carry:moved', { name: 'drop', leg: 1 });
   await delay(100);
   await a.page.mouse.up();
   await revision(a, before + 1);
   await revision(b, before + 1);
+  mark('carry:committed', { name: 'drop' });
   assert.deepEqual({ ...a.view().snapshot, bank: undefined }, { ...b.view().snapshot, bank: undefined });
   assert.deepEqual(
     a
@@ -1216,8 +1366,15 @@ try {
     until,
     passed,
     origin,
+    /* Diagnostic (#1343, not for merge). */
+    diagnostic,
+    heldSteps,
+    mark,
+    pollLoop,
   };
+  mark('flow:start', { flow: values.flow });
   await flows[values.flow](toolkit);
+  mark('flow:end', { flow: values.flow });
   assert.deepEqual(report.pageErrors, []);
   assert.deepEqual(blockedNetwork, []);
 } catch (error) {
@@ -1271,6 +1428,23 @@ try {
   }));
   report.consoleErrors = report.consoleErrors.length;
   report.blockedNetworkRequests = blockedNetwork.length;
+  for (const who of peers) {
+    if (typeof diagnostic.poseCaps[who.label] !== 'number') {
+      diagnostic.poseCaps[who.label] = await Promise.race([
+        who.page.evaluate(() => window.__diagnosticPoseCap ?? null).catch(() => 'error'),
+        delay(2000).then(() => 'timeout'),
+      ]);
+    }
+  }
+  /* Diagnostic (#1343, not for merge): the cooldown the Worker actually reported, so a knob that did not apply shows. */
+  diagnostic.maxPhaseCooldownMs = Math.max(
+    0,
+    ...peers.flatMap((who) =>
+      who.rawMessages.flatMap((message) =>
+        typeof message.phaseCooldownMs === 'number' ? [message.phaseCooldownMs] : []
+      )
+    )
+  );
   for (const instance of otherBrowsers) {
     await instance.close();
   }

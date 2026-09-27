@@ -33,6 +33,16 @@ export function isPublicTablePoint(canvas: HTMLCanvasElement, x: number, y: numb
   return true;
 }
 
+/*
+ * Diagnostic (#1343, not for merge): the longest frame the remote pose smoothing counts.
+ * Main caps it at 0.05 s, so on a slow frame each step closes about 70 % of the gap.
+ * A build with VITE_DIAG_POSE_CAP raises it, so a slow frame closes nearly all of it.
+ */
+const POSE_DELTA_CAP = Number(import.meta.env.VITE_DIAG_POSE_CAP) || 0.05;
+if (typeof window !== 'undefined') {
+  (window as { __diagnosticPoseCap?: number }).__diagnosticPoseCap = POSE_DELTA_CAP;
+}
+
 type TablePose = { position: Vector3; orientation: number };
 type PoseSmoothing = { active: boolean; wasRemote: boolean };
 
@@ -56,7 +66,7 @@ function advanceTablePose(group: Group, target: TablePose, delta: number): boole
     snapTablePose(group, target);
     return false;
   }
-  const amount = 1 - Math.exp(-24 * Math.min(delta, 0.05));
+  const amount = 1 - Math.exp(-24 * Math.min(delta, POSE_DELTA_CAP));
   group.position.lerp(target.position, amount);
   group.rotation.y += rotationDelta * amount;
   return true;

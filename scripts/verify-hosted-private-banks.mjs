@@ -21,6 +21,8 @@ export async function verifyPrivateBanks(toolkit) {
     until,
     passed,
     origin,
+    heldSteps,
+    mark,
   } = toolkit;
   const { a, b, observer } = await seated();
   assert.notEqual(a.context.browser(), b.context.browser());
@@ -125,9 +127,11 @@ export async function verifyPrivateBanks(toolkit) {
     await a.page.mouse.move(start.x, start.y);
     await a.page.mouse.down();
     await a.page.waitForTimeout(350);
-    await a.page.mouse.move(target.x, target.y, { steps: 12 });
+    mark('drag:start', { native: false, steps: heldSteps(12) });
+    await a.page.mouse.move(target.x, target.y, { steps: heldSteps(12) });
     await a.page.mouse.up();
     await until(() => spices(a).length === 0, 'Dropping spice on the supply disc did not dispose of it.');
+    mark('drag:end', { native: false, steps: heldSteps(12) });
     assert.equal(a.view().snapshot.bank.balance, 0);
     assert.equal(b.view().snapshot.bank.balance, 4);
     await until(() => observer.view().snapshot.spiceTransfers[0].kind === 'disposal', 'Disposal was not public.');

@@ -1,7 +1,17 @@
 import { spawn, spawnSync } from 'node:child_process';
 import type { ChildProcess } from 'node:child_process';
 import { createHash, generateKeyPairSync, randomBytes } from 'node:crypto';
-import { chmodSync, closeSync, mkdirSync, mkdtempSync, openSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  appendFileSync,
+  chmodSync,
+  closeSync,
+  mkdirSync,
+  mkdtempSync,
+  openSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -33,8 +43,22 @@ const { values } = parseArgs({
     browser: { type: 'string' },
     'skip-build': { type: 'boolean', default: false },
     'skip-generate': { type: 'boolean', default: false },
+    /* Diagnostic (#1343, not for merge): the speed levers under measurement, each off unless passed. */
+    'phase-cooldown-ms': { type: 'string' },
+    'diag-carry-steps': { type: 'string' },
+    'diag-clip-polls': { type: 'boolean', default: false },
+    'overlap-build': { type: 'boolean', default: false },
+    'with-protocol': { type: 'boolean', default: false },
+    'diag-budget-scale': { type: 'string', default: '1' },
   },
 });
+const budgetScale = Number(values['diag-budget-scale']);
+if (!(budgetScale >= 1 && budgetScale <= 3)) {
+  throw new Error('--diag-budget-scale must be from 1 to 3.');
+}
+if (values['with-protocol'] && !values['browser-only']) {
+  throw new Error('--with-protocol runs the protocol verifier before --browser-only flows.');
+}
 if (
   values['load-profile'] &&
   (!['baseline', 'stacked', 'separated'].includes(values['load-profile']) || values['browser-only'])
@@ -85,8 +109,27 @@ const evidence = path.join(
     : 'test-results/hosted-play'
 );
 mkdirSync(evidence, { recursive: true });
+/* Diagnostic (#1343, not for merge): one JSON line per timed stage, read back from the CI artifact. */
+const diagnosticStart = Date.now();
+function diagnostic(entry: Record<string, unknown>) {
+  const line = JSON.stringify({ mode: values['browser-only'] ? 'browser' : 'protocol', ...entry });
+  appendFileSync(path.join(evidence, 'diagnostic-timing.jsonl'), `${line}\n`);
+  console.log(`DIAGNOSTIC ${line}`);
+}
+diagnostic({
+  stage: 'config',
+  flows: values.flow ?? [],
+  withProtocol: values['with-protocol'],
+  overlapBuild: values['overlap-build'],
+  phaseCooldownMs: values['phase-cooldown-ms'] ?? null,
+  carrySteps: values['diag-carry-steps'] ?? null,
+  clipPolls: values['diag-clip-polls'],
+  poseCap: process.env.VITE_DIAG_POSE_CAP ?? null,
+  budgetScale,
+});
+/* VITE_DIAG_POSE_CAP is the diagnostic build switch for the pose smoothing lever. */
 const environment: NodeJS.ProcessEnv = Object.fromEntries(
-  ['PATH', 'HOME', 'TMPDIR', 'LANG', 'SSL_CERT_FILE', 'CI'].flatMap((name) =>
+  ['PATH', 'HOME', 'TMPDIR', 'LANG', 'SSL_CERT_FILE', 'CI', 'VITE_DIAG_POSE_CAP'].flatMap((name) =>
     process.env[name] ? [[name, process.env[name]]] : []
   )
 );
@@ -287,7 +330,8 @@ process.once('SIGTERM', interrupt);
 try {
   /* A broken shared import fails here, before any backend or Worker starts. */
   const runnerBundle = loadProfile ? await bundleRunner() : undefined;
-  const binary = backendBinary();
+  /* Diagnostic (#1343, not for merge): --overlap-build starts the app build before the backend download and setup. */
+  const earlyBinary = values['overlap-build'] ? undefined : backendBinary();
   const ports = new Set<number>();
   while (ports.size < 3) {
     ports.add(await freePort());
@@ -296,6 +340,50 @@ try {
   const backendUrl = `http://127.0.0.1:${backendPort}`;
   const siteUrl = `http://127.0.0.1:${sitePort}`;
   const origin = `http://127.0.0.1:${appPort}`;
+  /* Wrangler's own debug log goes to its global log directory by default, outside the evidence the artifact keeps. */
+  const wranglerLog = path.join(evidence, 'wrangler.log');
+  const workerLog = path.join(evidence, 'worker.log');
+  const startWorker = () => {
+    rmSync(wranglerLog, { force: true });
+    diagnostic({ stage: 'worker-start', elapsedMs: Date.now() - diagnosticStart });
+    const child = start({
+      command: process.execPath,
+      args: [
+        '--no-env-file',
+        path.join(root, 'scripts/play-local.ts'),
+        '--convex-url',
+        backendUrl,
+        '--convex-site-url',
+        siteUrl,
+        '--port',
+        String(appPort),
+        ...(values['skip-build'] ? ['--skip-build'] : []),
+        ...(values['skip-generate'] ? ['--skip-generate'] : []),
+        ...(values['phase-cooldown-ms'] ? ['--phase-cooldown-ms', values['phase-cooldown-ms']] : []),
+      ],
+      env: { ...environment, WRANGLER_LOG_PATH: wranglerLog },
+      logPath: workerLog,
+    });
+    /* `scripts/workerd-exit-record.mjs` writes workerd's own exit into the Worker's log; this repeats it where the run's output is read. */
+    child.once('exit', (code, signal) => {
+      if (stopping) {
+        return;
+      }
+      const seconds = Math.round((Date.now() - launchedAt) / 1000);
+      diagnostic({ stage: 'worker-exit', code, signal, elapsedMs: Date.now() - diagnosticStart });
+      console.error(
+        `The local Worker exited with ${signal ? `signal ${signal}` : `code ${code}`} ${seconds} s after launch. Its workerd lines from ${workerLog}:`
+      );
+      for (const line of readFileSync(workerLog, 'utf8').split('\n')) {
+        if (line.includes('[workerd ')) {
+          console.error(line);
+        }
+      }
+    });
+    return child;
+  };
+  const earlyWorker = values['overlap-build'] ? startWorker() : undefined;
+  const binary = earlyBinary ?? backendBinary();
   const hostedTarget = values['load-hosted-backend']
     ? {
         project: 'norbert-de-langen:dunezone-play-load',
@@ -352,6 +440,7 @@ try {
     logPath: path.join(runtime, 'backend.log'),
   });
   await ready(`${backendUrl}/version`, backend, 30_000);
+  diagnostic({ stage: 'backend-ready', elapsedMs: Date.now() - diagnosticStart });
   const localEnv = { ...environment, CONVEX_SELF_HOSTED_URL: backendUrl, CONVEX_SELF_HOSTED_ADMIN_KEY: adminKey };
   const convex = (args: string[]) => {
     return run({
@@ -371,44 +460,11 @@ try {
     environment.PLAY_LOAD_LOCAL_ACCOUNT_SUFFIX = runId;
   }
   convex(['deploy', '--yes']);
+  diagnostic({ stage: 'deployed', elapsedMs: Date.now() - diagnosticStart });
   console.log(`Synthetic Auth backend ready at ${backendUrl}; same-origin publisher ${origin}.`);
-  /* Wrangler's own debug log goes to its global log directory by default, outside the evidence the artifact keeps. */
-  const wranglerLog = path.join(evidence, 'wrangler.log');
-  rmSync(wranglerLog, { force: true });
-  const workerLog = path.join(evidence, 'worker.log');
-  const worker = start({
-    command: process.execPath,
-    args: [
-      '--no-env-file',
-      path.join(root, 'scripts/play-local.ts'),
-      '--convex-url',
-      backendUrl,
-      '--convex-site-url',
-      siteUrl,
-      '--port',
-      String(appPort),
-      ...(values['skip-build'] ? ['--skip-build'] : []),
-      ...(values['skip-generate'] ? ['--skip-generate'] : []),
-    ],
-    env: { ...environment, WRANGLER_LOG_PATH: wranglerLog },
-    logPath: workerLog,
-  });
-  /* `scripts/workerd-exit-record.mjs` writes workerd's own exit into the Worker's log; this repeats it where the run's output is read. */
-  worker.once('exit', (code, signal) => {
-    if (stopping) {
-      return;
-    }
-    const seconds = Math.round((Date.now() - launchedAt) / 1000);
-    console.error(
-      `The local Worker exited with ${signal ? `signal ${signal}` : `code ${code}`} ${seconds} s after launch. Its workerd lines from ${workerLog}:`
-    );
-    for (const line of readFileSync(workerLog, 'utf8').split('\n')) {
-      if (line.includes('[workerd ')) {
-        console.error(line);
-      }
-    }
-  });
+  const worker = earlyWorker ?? startWorker();
   await ready(`${origin}/__play/health`, worker, 300_000);
+  diagnostic({ stage: 'boot', elapsedMs: Date.now() - diagnosticStart });
   const browserOnly = values['browser-only'];
   if (browserOnly && flows.some((flow) => browserFlows[flow].needsCatalogue)) {
     const publications = JSON.parse(convex(['run', 'playTesting:seedPublicCatalogue', '{}'])) as {
@@ -466,16 +522,46 @@ try {
   }
   if (browserOnly) {
     const reportDirectory = path.join(evidence, 'browser');
-    const failed: BrowserFlow[] = [];
+    const failed: (BrowserFlow | 'protocol')[] = [];
+    /*
+     * Diagnostic (#1343, not for merge): --with-protocol runs the protocol verifier on this boot first.
+     * It makes its own synthetic fixture, so it cannot collide with the canonical fixture the browser flows provision.
+     */
+    if (values['with-protocol']) {
+      const verificationLog = path.join(evidence, 'verification.log');
+      const checkStart = Date.now();
+      const passed = await verify(
+        {
+          env: environment,
+          command: node,
+          args: [path.join(root, 'scripts/verify-hosted-play.mjs'), '--env-file', envFile, '--origin', origin],
+          logPath: verificationLog,
+        },
+        180_000 * budgetScale
+      );
+      diagnostic({ stage: 'flow', flow: 'protocol', checkMs: Date.now() - checkStart, passed });
+      if (!passed) {
+        failed.push('protocol');
+      }
+    }
     let gameId: string | undefined;
     for (const flow of flows) {
+      const provisionStart = Date.now();
       try {
         gameId = await freshBrowserGame(convex, gameId);
       } catch (error) {
         console.error(`${flow} got no fresh game: ${error instanceof Error ? error.message : String(error)}`);
+        diagnostic({
+          stage: 'flow',
+          flow,
+          provisionMs: Date.now() - provisionStart,
+          passed: false,
+          provisioned: false,
+        });
         failed.push(flow);
         continue;
       }
+      const checkStart = Date.now();
       const passed = await verify(
         {
           command: process.execPath,
@@ -493,11 +579,21 @@ try {
             '--flow',
             flow,
             ...(values.browser ? ['--browser', values.browser] : []),
+            ...(values['diag-carry-steps'] ? ['--diag-carry-steps', values['diag-carry-steps']] : []),
+            ...(values['phase-cooldown-ms'] ? ['--phase-cooldown-ms', values['phase-cooldown-ms']] : []),
+            ...(values['diag-clip-polls'] ? ['--diag-clip-polls'] : []),
           ],
           logPath: path.join(evidence, `${flow}.log`),
         },
-        browserFlows[flow].timeoutMs
+        browserFlows[flow].timeoutMs * budgetScale
       );
+      diagnostic({
+        stage: 'flow',
+        flow,
+        provisionMs: checkStart - provisionStart,
+        checkMs: Date.now() - checkStart,
+        passed,
+      });
       if (!passed) {
         failed.push(flow);
       }
@@ -508,7 +604,8 @@ try {
     }
   } else {
     const verificationLog = path.join(evidence, 'verification.log');
-    let verificationTimeout = 180_000;
+    const checkStart = Date.now();
+    let verificationTimeout = 180_000 * budgetScale;
     if (loadProfile) {
       verificationTimeout = loadCase === 'steady' ? 540_000 : 300_000;
     }
@@ -548,6 +645,7 @@ try {
       },
       verificationTimeout
     );
+    diagnostic({ stage: 'flow', flow: 'protocol', checkMs: Date.now() - checkStart, passed });
     if (!passed) {
       throw new Error(`Hosted protocol verification failed; see ${verificationLog}.`);
     }
@@ -578,6 +676,7 @@ try {
   }
 } finally {
   stopping = true;
+  diagnostic({ stage: 'total', elapsedMs: Date.now() - diagnosticStart });
   for (const child of [...children].reverse()) {
     child.kill('SIGTERM');
     const timeout = setTimeout(() => child.kill('SIGKILL'), 10_000);

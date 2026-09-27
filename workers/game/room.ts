@@ -12,7 +12,7 @@ import { gestureBlockReason } from '../../src/shared/play/model';
 import type { DraftMove, TablePiece, TableState, Vector3Tuple } from '../../src/shared/play/model';
 import { seatSubject } from '../../src/shared/play/participation';
 import type { SeatAction } from '../../src/shared/play/participation';
-import { PHASE_CHANGE_COOLDOWN_MS, phaseAt, phaseForTurn, stepPhase } from '../../src/shared/play/phases';
+import { phaseAt, phaseChangeCooldownMs, phaseForTurn, stepPhase } from '../../src/shared/play/phases';
 import { PIECE_FLIP_DURATION_MS } from '../../src/shared/play/pieceFlip';
 import { carryPieceId, tableForViewer } from '../../src/shared/play/protocol';
 import type {
@@ -502,7 +502,7 @@ export class Room {
     }
     const phase = this.nextPhase(action);
     const controls = this.snapshot.controls ?? emptyPublicControls();
-    if (phase !== this.snapshot.phase && now < controls.phaseChangedAt + PHASE_CHANGE_COOLDOWN_MS) {
+    if (phase !== this.snapshot.phase && now < controls.phaseChangedAt + phaseChangeCooldownMs()) {
       throw new GameRejection('Wait eight seconds between phase changes.');
     }
     if (phase <= this.snapshot.phase) {

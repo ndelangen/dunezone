@@ -4,7 +4,7 @@ import type { FactionCapture } from '../../src/shared/play/capture';
 import { accepted, nextSnapshot } from '../../src/shared/play/commands';
 import { emptyPublicControls } from '../../src/shared/play/inventory';
 import type { TablePiece } from '../../src/shared/play/model';
-import { PHASE_CHANGE_COOLDOWN_MS } from '../../src/shared/play/phases';
+import { phaseChangeCooldownMs } from '../../src/shared/play/phases';
 import { tableForViewer } from '../../src/shared/play/protocol';
 import type { PieceAction } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
@@ -198,7 +198,7 @@ function revealPrediction(snapshot: StoredSnapshot, stepId: string, context: Con
 
 function requirePhaseTiming(snapshot: StoredSnapshot, direction: -1 | 1, now: number) {
   const controls = setupControls(snapshot);
-  if (now < controls.phaseChangedAt + PHASE_CHANGE_COOLDOWN_MS) {
+  if (now < controls.phaseChangedAt + phaseChangeCooldownMs()) {
     throw new GameRejection('Wait eight seconds between phase changes.');
   }
   if (direction < 0 && snapshot.setup!.index === 0) {

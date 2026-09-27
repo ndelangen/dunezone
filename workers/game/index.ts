@@ -25,7 +25,7 @@ import {
 import type { DraftFaction } from '../../src/shared/play/drafting';
 import { isDraftAction } from '../../src/shared/play/drafting';
 import type { SpawnContents } from '../../src/shared/play/inventory';
-import { PHASE_CHANGE_COOLDOWN_MS } from '../../src/shared/play/phases';
+import { configurePhaseChangeCooldown, phaseChangeCooldownMs } from '../../src/shared/play/phases';
 import type { ClientMessage, ServerClock, ServerMessage, Viewer } from '../../src/shared/play/protocol';
 import { TICKET_EXPIRED_CLOSE_CODE, clientMessageSchema } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
@@ -167,6 +167,12 @@ export class GameRoom extends DurableObject<GameEnv> {
   }
   constructor(ctx: DurableObjectState, env: GameEnv) {
     super(ctx, env);
+    /* Diagnostic (#1343, not for merge): honoured only in the isolated local runtime play-local configures. */
+    const diagnosticCooldown = (env as { DIAGNOSTIC_PHASE_COOLDOWN_MS?: string }).DIAGNOSTIC_PHASE_COOLDOWN_MS;
+    if (diagnosticCooldown !== undefined && String(env.GIT_SHA) !== 'local-isolated') {
+      throw new Error('A diagnostic phase cooldown is refused outside the isolated local runtime.');
+    }
+    configurePhaseChangeCooldown(diagnosticCooldown);
     this.diagnostics = new GameDiagnostics(ctx.id.toString(), env.GIT_SHA);
     this.session = new GameSession(ctx.storage);
     if (this.metadata) {
@@ -1269,7 +1275,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     }
     try {
       const clock: ServerClock = { serverNow: Date.now() };
-      const phaseCooldownMs = Math.max(0, this.session.phaseChangedAt + PHASE_CHANGE_COOLDOWN_MS - clock.serverNow);
+      const phaseCooldownMs = Math.max(0, this.session.phaseChangedAt + phaseChangeCooldownMs() - clock.serverNow);
       const battleCountdownMs = Math.max(0, this.session.battleDeadline - clock.serverNow);
       const data = JSON.stringify(
         message.type === 'view' || message.type === 'update'
