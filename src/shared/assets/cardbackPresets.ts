@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import { assetCaptureStatusSchema } from '../asset-publishing/captureStatus';
 import { cardbackPresetKeySchema } from './cardbackPresetKeys';
+import type { CardbackPresetKey } from './cardbackPresetKeys';
 import { CardBack } from './schema';
 
 /** Initial authored designs. Persisted edits replace these values; existing decks are never matched by appearance. */
@@ -49,6 +50,14 @@ export const INITIAL_CARDBACK_PRESETS = INITIAL_DESIGNS.map(
     },
   })
 );
+
+/**
+ * A preset's fixed label, the word its initial design prints across the back.
+ * An Administrator's edit to the printed word does not change it.
+ */
+export function cardbackPresetLabel(key: CardbackPresetKey): string {
+  return INITIAL_CARDBACK_PRESETS.find((preset) => preset.key === key)!.label;
+}
 
 export const cardbackPresetSchema = z.object({
   key: cardbackPresetKeySchema,

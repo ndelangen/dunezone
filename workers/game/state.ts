@@ -9,7 +9,7 @@ import {
   battleResultSchema,
 } from '../../src/shared/play/battle';
 import type { SpawnContents } from '../../src/shared/play/inventory';
-import type { DraftMove, TablePiece } from '../../src/shared/play/model';
+import type { DraftMove, TableItem, TablePiece } from '../../src/shared/play/model';
 import { gameSnapshotSchema } from '../../src/shared/play/protocol';
 import type { GameSnapshot, PublicCarry, PieceAction } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
@@ -67,6 +67,11 @@ export function internalAction<Action extends PieceAction>(snapshot: StoredSnaps
   return action;
 }
 
+/** A hidden card as a viewer receives it: its back, the word printed on that back and its type, never its front. */
+function concealed({ back, backName, type }: NonNullable<TableItem['artwork']>) {
+  return { back, backName, type };
+}
+
 /** Every delivery uses this projection before serialization or delta computation. */
 export class RoomProjection {
   private readonly snapshots = new WeakMap<StoredSnapshot, Map<string | undefined, GameSnapshot>>();
@@ -103,9 +108,7 @@ export class RoomProjection {
           return {
             id: this.cardId(item.id, handles),
             faceUp: !hidden,
-            ...(item.artwork
-              ? { artwork: hidden ? { back: item.artwork.back, type: item.artwork.type } : item.artwork }
-              : {}),
+            ...(item.artwork ? { artwork: hidden ? concealed(item.artwork) : item.artwork } : {}),
           };
         }),
       };

@@ -1,8 +1,25 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
+import { piecesCanStack } from '../../src/shared/play/tablePhysics';
 import { cardPage, tokenPage } from './native-catalogue.fixture.mjs';
 import { dealt, draftingRuntime } from './native-drafting.fixture.mjs';
 import { accepted, admitPlayer, eventually, seat, sendCommand, syncView } from './native-runtime.fixture.mjs';
+
+async function ready(connection, commandId) {
+  const view = await syncView(connection);
+  const message = {
+    type: 'command',
+    commandId,
+    expectedRevision: view.snapshot.revision,
+    action: { kind: 'swap-ready', ready: true, round: view.snapshot.swapping.round, seat: view.viewer.viewerSeat },
+  };
+  connection.socket.send(JSON.stringify(message));
+  await eventually(
+    () => connection.messages.some((entry) => entry.completedCommandId === commandId),
+    'readiness committed'
+  );
+  return message;
+}
 
 describe('Retained supply at setup entry', () => {
   let peer, runtime;
@@ -25,21 +42,6 @@ describe('Retained supply at setup entry', () => {
     await peer?.close();
   });
   const admit = (suffix) => admitPlayer(peer, runtime, suffix);
-  async function ready(connection, commandId) {
-    const view = await syncView(connection);
-    const message = {
-      type: 'command',
-      commandId,
-      expectedRevision: view.snapshot.revision,
-      action: { kind: 'swap-ready', ready: true, round: view.snapshot.swapping.round, seat: view.viewer.viewerSeat },
-    };
-    connection.socket.send(JSON.stringify(message));
-    await eventually(
-      () => connection.messages.some((entry) => entry.completedCommandId === commandId),
-      'readiness committed'
-    );
-    return message;
-  }
   const stored = async () => JSON.parse((await runtime.exec('SELECT data FROM current_state'))[0].data);
 
   it('supplies retained pieces and starting spice once despite source deletion, command replay and cold restore', async () => {
@@ -154,5 +156,51 @@ describe('Retained supply at setup entry', () => {
     await runtime.exec('DROP TRIGGER refuse_receipt');
     await ready(b, 'final-ready');
     expect((await syncView(b)).snapshot.stage).toBe('setup');
+  });
+});
+
+describe('Traitor backs at setup entry', () => {
+  let peer, runtime;
+  afterEach(async () => {
+    await runtime?.close();
+    await peer?.close();
+  });
+
+  /* Deals a two-player game whose factions the catalogue serves with these Traitor backs, readies the first player and sends the second player's final readiness. */
+  async function enterSetup(atreides, harkonnen) {
+    ({ peer, runtime } = await draftingRuntime());
+    for (const [id, traitor] of [
+      ['atreides', atreides],
+      ['harkonnen', harkonnen],
+    ]) {
+      const faction = peer.factions.get(id);
+      peer.factions.set(id, { ...faction, cardbacks: { ...faction.cardbacks, traitor } });
+    }
+    const [a, b] = await dealt(peer, runtime);
+    await ready(a, 'ready-a');
+    const view = await syncView(b);
+    return sendCommand(b, {
+      kind: 'swap-ready',
+      ready: true,
+      round: view.snapshot.swapping.round,
+      seat: view.viewer.viewerSeat,
+    });
+  }
+
+  it('Traitor captures taken either side of a republish still reach setup', async () => {
+    const { reply } = await enterSetup(
+      '/published/cardback-presets/traitor/cardback.jpg?v=traitor-1',
+      '/published/cardback-presets/traitor/cardback.jpg?v=traitor-2'
+    );
+    expect(reply.type).not.toBe('rejected');
+    const { table } = JSON.parse((await runtime.exec('SELECT data FROM current_state'))[0].data);
+    const decks = table.pieces.filter((piece) => piece.stackKey === 'cards:traitor');
+    expect(decks.map((deck) => deck.label)).toEqual(['Traitor cards', 'Traitor cards']);
+    expect(piecesCanStack(decks[0], decks[1])).toBe(true);
+  });
+
+  it("setup refuses a table where one faction's Traitor deck has a back and another's has none", async () => {
+    const { reply } = await enterSetup('/published/cardback-presets/traitor/cardback.jpg?v=traitor-1', null);
+    expect(reply).toMatchObject({ type: 'rejected', message: 'The retained traitor decks need a shared back.' });
   });
 });

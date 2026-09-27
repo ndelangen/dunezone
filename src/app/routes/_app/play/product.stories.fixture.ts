@@ -144,7 +144,9 @@ function projected(piece: TablePiece, { id }: SupplyDependencies): TablePiece {
         : {
             id: id(),
             faceUp: false,
-            ...(entry.artwork ? { artwork: { back: entry.artwork.back, type: entry.artwork.type } } : {}),
+            ...(entry.artwork
+              ? { artwork: { back: entry.artwork.back, backName: entry.artwork.backName, type: entry.artwork.type } }
+              : {}),
           }
     ),
   };
@@ -263,7 +265,8 @@ export function preparedSnapshot(viewerSeat = 'seat-2'): GameSnapshot {
             imageHref(`/play-fixtures/product/${faction.slug}-traitor-${index}.jpg`),
             imageHref('/play-fixtures/product/traitor-back.jpg'),
             'card-traitor',
-            true
+            true,
+            'Traitor'
           ),
         ],
       }))
@@ -316,7 +319,7 @@ export function playingSnapshot(viewerSeat = 'seat-2'): GameSnapshot {
         items: cards.map((_name, index) => ({
           id: `treachery-${index}`,
           faceUp: false,
-          artwork: { back: cardBack(), type: 'card-treachery' },
+          artwork: { back: cardBack(), backName: 'Treachery', type: 'card-treachery' },
         })),
       },
       [6.3, 0, 0]
@@ -331,7 +334,8 @@ export function playingSnapshot(viewerSeat = 'seat-2'): GameSnapshot {
             imageHref('/play-fixtures/dreamrules/snooper.jpg'),
             cardBack(),
             'card-treachery',
-            true
+            true,
+            'Treachery'
           ),
         ],
       },

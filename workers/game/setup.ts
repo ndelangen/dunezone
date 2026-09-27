@@ -53,7 +53,8 @@ export class SetupSupply {
       }
       return { capture, angle: angles[seat.position]! };
     });
-    const backs = new Set(factions.map(({ capture }) => capture.components.traitors.back).filter(Boolean));
+    /* A Traitor deck with no back stacks with nothing that has one, so a missing back counts as a different back. */
+    const backs = new Set(factions.map(({ capture }) => capture.components.traitors.back));
     if (backs.size > 1) {
       throw new GameRejection('The retained traitor decks need a shared back.');
     }

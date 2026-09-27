@@ -1,6 +1,8 @@
 import { z } from 'zod';
 
 import { api } from '../../convex/_generated/api';
+import { cardbackPresetLabel } from '../../src/shared/assets/cardbackPresets';
+import { authoredCardback, DeckAssetInput } from '../../src/shared/assets/schema';
 import { parseAssetDataForWrite } from '../../src/shared/assets/validation';
 import { IdentifiedFactionStoredSchema } from '../../src/shared/factions/schema';
 import type {
@@ -43,6 +45,30 @@ type SlotAsset = RulesetSupply['slots'][number]['asset'];
 function definitionsOf({ asset, backToken, backDeck }: Omit<SuppliedMember, 'count'>) {
   return [asset, backToken, backDeck].filter((entry) => entry !== null);
 }
+
+/**
+ * The word printed across a deck's back, read from the definition that back is authored on.
+ * A preset gives its fixed label.
+ * An authored back, the deck's own or the one it references, gives the name printed on it.
+ * The supply's definitions were parsed when it arrived, so reading them again cannot fail.
+ */
+function deckBackName({ backMode, asset, backDeck }: AssetSupply): string | undefined {
+  const cardback = (data: unknown) => DeckAssetInput.parse(data).cardback;
+  const printed = (data: unknown) => authoredCardback(cardback(data))?.name.trim() || undefined;
+  switch (backMode) {
+    case 'preset': {
+      const preset = cardback(asset.data);
+      return 'key' in preset ? cardbackPresetLabel(preset.key) : undefined;
+    }
+    case 'authored-cardback':
+      return printed(asset.data);
+    case 'reference':
+      return backDeck ? printed(backDeck.data) : undefined;
+    default:
+      return undefined;
+  }
+}
+
 /** The decks a ruleset must fill before a game can start; every other slot is optional. */
 const REQUIRED_DECKS: Partial<Record<RulesetAssetSlot, string>> = {
   treachery: `A ruleset needs a non-empty ${RULESET_ASSET_SLOTS.treachery.label.toLowerCase()}.`,
@@ -95,6 +121,10 @@ export class GameCatalogue {
     }
   }
 
+  /**
+   * A publication's address, without the cache token the catalogue serves it with.
+   * The path always serves the current file, and every publish mints a new token, so the address is what names one back for the whole game.
+   */
   private image(href: string | null | undefined): string {
     if (!href) {
       throw new GameRejection('Publish every member and back before requesting this asset.');
@@ -103,7 +133,7 @@ export class GameCatalogue {
     if (url.origin !== this.applicationOrigin || !url.pathname.startsWith('/published/')) {
       throw new GameRejection('This asset has an invalid publication reference.');
     }
-    return url.href;
+    return `${url.origin}${url.pathname}`;
   }
 
   async capture(selection: SpawnSelection): Promise<SpawnContents> {
@@ -113,9 +143,10 @@ export class GameCatalogue {
     if (!members.length) {
       throw new GameRejection('Add playable members before requesting this asset.');
     }
+    const backName = selection.type === 'deck' ? deckBackName(root) : undefined;
     const pieces: TablePiece[] = [];
     for (const member of members) {
-      pieces.push(this.captureMember(root, selection.type, member, pieces.length));
+      pieces.push(this.captureMember(root, selection.type, member, pieces.length, backName));
       definitions.push(...definitionsOf(member));
     }
     if (selection.type === 'deck') {
@@ -133,7 +164,13 @@ export class GameCatalogue {
     });
   }
 
-  private captureMember(root: AssetSupply, type: SpawnSelection['type'], member: SuppliedMember, index: number) {
+  private captureMember(
+    root: AssetSupply,
+    type: SpawnSelection['type'],
+    member: SuppliedMember,
+    index: number,
+    backName: string | undefined
+  ) {
     const { asset, count } = member;
     const isDeck = type === 'deck';
     if (isDeck ? !asset.type.startsWith('card-') : !asset.type.startsWith('token-')) {
@@ -156,7 +193,7 @@ export class GameCatalogue {
       items: Array.from({ length: count }, (_, itemIndex) => ({
         id: `member-${index}-${itemIndex}`,
         faceUp: true,
-        artwork: { front, back, name: asset.name, type: asset.type },
+        artwork: { front, back, ...(backName ? { backName } : {}), name: asset.name, type: asset.type },
       })),
       stackKey: stack.stackKey,
       position: [-25, 0, -25],

@@ -1,3 +1,4 @@
+import { cardbackPresetLabel } from '../assets/cardbackPresets';
 import type { FactionCapture } from './capture';
 import type { TablePiece, Vector3Tuple } from './model';
 import { factionSupplyLayout } from './setupLayout';
@@ -37,19 +38,20 @@ export function piece(
   };
 }
 
-/** One physical item; without a back it carries no artwork at all. */
+/** One physical item, with the word printed on its back when it has one; without a back it carries no artwork at all. */
 export function item(
   id: string,
   name: string,
   front: string | null,
   back: string | null,
   type: string,
-  faceUp: boolean
+  faceUp: boolean,
+  backName?: string
 ): Item {
   return {
     id,
     faceUp,
-    ...(back ? { artwork: { ...(front ? { front } : {}), back, name, type } } : {}),
+    ...(back ? { artwork: { ...(front ? { front } : {}), back, ...(backName ? { backName } : {}), name, type } } : {}),
   };
 }
 
@@ -86,14 +88,22 @@ export function factionSupply(capture: FactionCapture, angle: number, { id, shuf
   if (components.alliance.front && components.alliance.back) {
     const alliance = piece(id(), `${faction.name} alliance`, faction.id, color, 'card', `alliance:${faction.id}`);
     alliance.items = [
-      item(id(), alliance.label, components.alliance.front, components.alliance.back, 'card-alliance', true),
+      item(
+        id(),
+        alliance.label,
+        components.alliance.front,
+        components.alliance.back,
+        'card-alliance',
+        true,
+        cardbackPresetLabel('alliance')
+      ),
     ];
     hand.push(alliance);
   }
   const deck = piece(id(), 'Traitor cards', 'shared', '#d5ba8c', 'card', 'cards:traitor');
   deck.items = shuffle(
     components.traitors.cards.map((card) =>
-      item(id(), card.name, card.front, components.traitors.back, 'card-traitor', false)
+      item(id(), card.name, card.front, components.traitors.back, 'card-traitor', false, cardbackPresetLabel('traitor'))
     )
   );
   const traitors = deck.items.length ? [place(deck, layout.traitors.position, layout.traitors.orientation)] : [];

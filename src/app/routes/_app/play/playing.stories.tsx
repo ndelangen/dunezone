@@ -899,7 +899,7 @@ export const HiddenDeckBacks = meta.story({
         {
           id: 'opaque-card',
           faceUp: false,
-          artwork: { back: cardBack(), type: 'card-treachery' },
+          artwork: { back: cardBack(), backName: 'Treachery', type: 'card-treachery' },
         },
       ],
     };
