@@ -218,6 +218,7 @@ describe('real games are created and entered by Administrators only', () => {
     const credentials = { gameId: created.gameId, secret: game.secret };
     expect(await t.mutation(api.playAdmission.redeemTicket, { ...credentials, ticket: issued.ticket })).toEqual({
       ok: false,
+      reason: 'refused',
     });
     await t.run(async (ctx) => await ctx.db.patch(adminId, { isAdmin: true }));
     const again = await admin.mutation(api.playAdmission.issueTicket, { gameId: created.gameId });

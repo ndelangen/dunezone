@@ -289,6 +289,11 @@ export const serverMessageSchema = z.discriminatedUnion('type', [
 ]);
 export type ServerMessage = z.infer<typeof serverMessageSchema>;
 /**
+ * The code the Worker closes a socket with when its ticket lapsed or was already redeemed before admission.
+ * Unlike a refusal it is not final: the browser requests a new ticket and reconnects.
+ */
+export const TICKET_EXPIRED_CLOSE_CODE = 4410;
+/**
  * The Worker's wall clock at send, stamped on every frame but `admission`.
  * It sits beside the message rather than in it: an update copies its base view, so a stamp inside the view would go stale.
  */
