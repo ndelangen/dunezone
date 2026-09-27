@@ -48,6 +48,7 @@ test('revision stamps advance legacy versions while preserving unchanged pieces'
 describe('card decks', () => {
   const TRAITOR_BACK = 'https://table.test/published/cardback-presets/traitor/cardback.jpg';
   const SUPPLIES_BACK = 'https://table.test/published/decks/supplies/cardback.jpg';
+  const DREAMRULES_BACK = 'https://table.test/published/decks/dreamrules-treachery-deck/cardback.jpg';
   let next = 0;
   const dependencies: SupplyDependencies = { id: () => `supply-${next++}`, shuffle: (items) => items };
 
@@ -174,7 +175,7 @@ describe('card decks', () => {
     const fresh = freshTableState();
     const traitors = traitorDeck('atreides', 0);
     const drawer = {
-      ...spawnedDeck('drawer', 'deck:dreamrules', SUPPLIES_BACK, 'Supplies!', [-25, 0, -25]),
+      ...spawnedDeck('drawer', 'deck:dreamrules', DREAMRULES_BACK, 'Treachery', [-25, 0, -25]),
       label: 'Dreamrules Treachery Deck',
       inventory: 'shared' as const,
     };
