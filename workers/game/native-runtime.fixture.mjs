@@ -525,6 +525,12 @@ export async function seat(newcomer, approver, target) {
 
 export const stage = async (connection) => (await syncView(connection)).snapshot.stage;
 
+/** Every table event message the room stores, in its current state and in each retained history row. */
+export async function storedEventMessages(runtime) {
+  const rows = await runtime.exec('SELECT data FROM current_state UNION ALL SELECT data FROM history');
+  return rows.flatMap((row) => [...row.data.matchAll(/"message":"((?:[^"\\]|\\.)*)"/g)].map((match) => match[1]));
+}
+
 export function provision(runtime) {
   return runtime.fetch(`/__play/games/${gameId}/provision`, {
     method: 'POST',

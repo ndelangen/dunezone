@@ -28,8 +28,4 @@ export function initializeSessionStorage(sql: SqlStorage) {
   sql.exec(
     'CREATE TABLE IF NOT EXISTS seats (seat TEXT PRIMARY KEY, position INTEGER NOT NULL UNIQUE, faction_id TEXT UNIQUE, faction_name TEXT, faction_color TEXT)'
   );
-  /* Server-side only: which account each draft or assignment event names, so a deletion can rebuild the event. */
-  sql.exec(
-    'CREATE TABLE IF NOT EXISTS draft_history (id INTEGER PRIMARY KEY, event_id TEXT NOT NULL, user_id TEXT, display_name TEXT NOT NULL, kind TEXT NOT NULL, faction_name TEXT, seat TEXT NOT NULL, position INTEGER)'
-  );
 }

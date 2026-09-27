@@ -78,7 +78,7 @@ describe('A real game provisions from its ruleset', () => {
     }
     expect(view.snapshot.table.events.map((event) => event.message)).toEqual([
       'Table ready. Drafting.',
-      'Synthetic A holds seat 1.',
+      'Seat 1 is taken by the creator.',
     ]);
 
     await runtime.restart();
