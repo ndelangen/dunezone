@@ -7,7 +7,21 @@ import { TRACKER_DISC_TOP_Y } from '../src/shared/play/tableTrackers.ts';
 
 /** Manual bank transfers through the isolated hosted app, with raw recipient frames retained as evidence. */
 export async function verifyPrivateBanks(toolkit) {
-  const { peer, enter, seated, button, converged, focus, openTab, point, capture, until, passed, origin } = toolkit;
+  const {
+    peer,
+    enter,
+    seated,
+    button,
+    converged,
+    focus,
+    openTab,
+    point,
+    supplyShortcut,
+    capture,
+    until,
+    passed,
+    origin,
+  } = toolkit;
   const { a, b, observer } = await seated();
   assert.notEqual(a.context.browser(), b.context.browser());
   assert.notEqual(a.view().viewer.userId, b.view().viewer.userId);
@@ -52,17 +66,6 @@ export async function verifyPrivateBanks(toolkit) {
   await verifyDisposal();
   const tab = await verifyReconnect();
   await verifySignOut(tab);
-
-  async function supplyShortcut(who, key) {
-    const supply = await point(who, [slot.position[0], TRACKER_DISC_TOP_Y + 0.015, slot.position[2]], 'map');
-    await who.page.getByRole('button', { name: /^Focus on map/ }).focus();
-    await who.page.mouse.move(supply.x, supply.y);
-    await until(
-      () => who.page.locator('.dune-play-shell canvas').evaluate((canvas) => canvas.style.cursor === 'pointer'),
-      `The spice disc did not respond to hover before pressing ${key}.`
-    );
-    await who.page.keyboard.press(key);
-  }
 
   async function verifyTransfers() {
     await focus(a, 'map');

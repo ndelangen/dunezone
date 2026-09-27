@@ -359,6 +359,25 @@ async function point(who, position, view = 'left') {
     y: bounds.y + ((1 - projected.y) * bounds.height) / 2,
   };
 }
+/**
+ * Hovers the spice supply disc in the map view until the canvas shows the disc's pointer cursor, then presses `key`.
+ * The scene hit-tests the pointer only when it moves, so a move that reaches a table still mounting never hovers the disc.
+ * A player's table remounts when the Worker re-admits them, which happens to the others after one player signs out (#1343).
+ * So every poll moves onto the disc again, alternating by one pixel so that each move changes the position.
+ */
+async function supplyShortcut(who, key) {
+  const slot = spiceSupplySlot();
+  const canvas = who.page.locator('.dune-play-shell canvas');
+  await who.page.getByRole('button', { name: /^Focus on map/ }).focus();
+  let nudge = 0;
+  await until(async () => {
+    const supply = await point(who, [slot.position[0], TRACKER_DISC_TOP_Y + 0.015, slot.position[2]], 'map');
+    nudge = 1 - nudge;
+    await who.page.mouse.move(supply.x + nudge, supply.y);
+    return canvas.evaluate((element) => element.style.cursor === 'pointer');
+  }, `The spice disc did not respond to hover before pressing ${key}.`);
+  await who.page.keyboard.press(key);
+}
 const piece = (who, id) => {
   const result = who.view().snapshot.table.pieces.find((value) => value.id === id);
   assert.ok(result, `Missing ${id}`);
@@ -920,23 +939,7 @@ async function sharedTrackerFlow(a, b) {
     ['0', 10],
     ['2', 2],
   ]) {
-    await sharedSpiceRoundTrip(
-      b,
-      a,
-      count,
-      async () => {
-        const supply = spiceSupplySlot();
-        const center = await point(b, [supply.position[0], TRACKER_DISC_TOP_Y + 0.015, supply.position[2]], 'map');
-        await b.page.getByRole('button', { name: /^Focus on map/ }).focus();
-        await b.page.mouse.move(center.x, center.y);
-        await until(
-          () => b.page.locator('.dune-play-shell canvas').evaluate((canvas) => canvas.style.cursor === 'pointer'),
-          `The spice disc did not respond to hover before pressing ${key}.`
-        );
-        await b.page.keyboard.press(key);
-      },
-      `spice-key-${key}`
-    );
+    await sharedSpiceRoundTrip(b, a, count, () => supplyShortcut(b, key), `spice-key-${key}`);
   }
 }
 
@@ -1208,6 +1211,7 @@ try {
     focus,
     openTab,
     point,
+    supplyShortcut,
     capture,
     until,
     passed,
