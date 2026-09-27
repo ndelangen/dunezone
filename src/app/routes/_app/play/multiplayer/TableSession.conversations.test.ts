@@ -92,6 +92,20 @@ test('queues offline, retries a lost acknowledgment with the same ID, and calls 
   expect(sent().at(-1)).toEqual(failed.request);
 });
 
+test('a rejected message stays Failed with its reason across a reconnect and is not resent', async () => {
+  const client = await connect();
+  client.conversations.submit({ peerId: 'two', text: 'A plan' });
+  socket().deliver({ type: 'rejected', requestId: sent()[0]!.requestId, message: 'Conversations are closed.' });
+  socket().close();
+  await vi.advanceTimersByTimeAsync(15_000);
+  socket().open();
+  authorize();
+  await vi.advanceTimersByTimeAsync(15_000);
+  expect(sent()).toHaveLength(0);
+  const [failed] = client.getSnapshot().conversations.pending;
+  expect(failed).toMatchObject({ status: 'Failed', error: 'Conversations are closed.' });
+});
+
 test.each(['neutral', 'seat-2'])(
   'discards old private history and queued sends when reconnect assigns %s',
   async (viewerSeat) => {
