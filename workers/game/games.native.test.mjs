@@ -29,7 +29,7 @@ describe('A real game provisions from its ruleset', () => {
   it('reports the catalogue refusal to the directory without initializing a game', async () => {
     peer.provisional = false;
     const card = cardPage('unpublished');
-    card.assetPublishing = null;
+    card.front = null;
     const treachery = deckPage('treachery-deck', [card]);
     const spice = deckPage('spice-deck', [card]);
     seedRuleset([card, treachery, spice], [slot('treachery', treachery), slot('spice', spice)]);

@@ -93,7 +93,7 @@ function answerPeerRequest(peer, record) {
     case 'assets:listByTypes':
       record.release([...peer.catalogue.values()].map((page) => page.asset));
       break;
-    case 'assets:getPage':
+    case 'playCatalogue:assetSupply':
       if (peer.catalogueMode !== 'hold') {
         record.release(peer.catalogue.get(`${record.args.type}/${record.args.slug}`) ?? null);
       }

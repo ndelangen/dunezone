@@ -45,7 +45,7 @@ type Connection = {
   connectionId: string;
   openedAt: number;
   admitting: boolean;
-  /* One catalogue capture per connection at a time; a capture is up to hundreds of sequential Convex queries. */
+  /* One catalogue capture per connection at a time; each capture is a Convex query. */
   capturing: boolean;
   conversations?: boolean;
   viewer?: Viewer;
