@@ -1,4 +1,5 @@
 import preview from '@sb/preview';
+import { finishTransitions } from '@sb/storyWaits';
 import { rulebookContentsV1Schema, rulebookLocalIdAlphabet } from '@shared/rulebooks/contents';
 import { rulebookEditionArtifactPath } from '@shared/rulebooks/editionArtifacts';
 import { createRulebookEditorialStarterContents, createRulebookStarterContents } from '@shared/rulebooks/fixtures';
@@ -801,11 +802,12 @@ export const PublishConfirmation = meta.story({
     const trigger = await page.findByRole('button', { name: 'Publish' }, { timeout: 30_000 });
     await userEvent.click(trigger);
     /* Two waits, because the pane arrives in two steps: the dropdown mounts a frame after the trigger
-       reports itself expanded, so an eager `getByRole` throws, and it then fades in over 150ms, so a
-       visibility assertion that does not retry reads `opacity: 0`. Both use the editor's mount budget
-       because opening frames can be delayed under load. */
+       reports itself expanded, so an eager `getByRole` throws, and it sits at `opacity: 0` until the
+       next frame starts its 150ms fade. The visibility wait retries through that frame and then
+       finishes the fade, so it does not wait for the frames that draw it. Both use the editor's mount
+       budget because opening frames can be delayed under load. */
     const confirmation = await page.findByRole('dialog', { name: 'Publish Edition 2?' }, { timeout: 30_000 });
-    await waitFor(() => expect(confirmation).toBeVisible(), { timeout: 30_000 });
+    await waitFor(() => expect(finishTransitions(confirmation)).toBeVisible(), { timeout: 30_000 });
     /* The confirmation hangs off the control that opens it rather than floating free of it. */
     expect(trigger).toHaveAttribute('aria-haspopup', 'dialog');
     expect(trigger).toHaveAttribute('aria-expanded', 'true');
@@ -822,7 +824,7 @@ export const PublishedEdition = meta.story({
     await userEvent.click(trigger);
     /* The confirmation mounts and fades in after the trigger opens it, with the same mount budget as the editor. */
     const confirmation = await page.findByRole('dialog', { name: 'Publish Edition 2?' }, { timeout: 30_000 });
-    await waitFor(() => expect(confirmation).toBeVisible(), { timeout: 30_000 });
+    await waitFor(() => expect(finishTransitions(confirmation)).toBeVisible(), { timeout: 30_000 });
     await userEvent.click(within(confirmation).getByRole('button', { name: 'Publish Edition 2' }));
     await waitFor(() => expect(page.getByText('Edition 2')).toBeVisible());
     expect(
