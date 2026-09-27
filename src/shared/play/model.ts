@@ -52,7 +52,7 @@ export type TableState = Omit<z.infer<typeof durableTableSchema>, 'phase'> & {
   draftMove: DraftMove | null;
 };
 
-export const ZONES: Zone[] = [
+const ZONES: Zone[] = [
   {
     id: 'arrakeen',
     label: 'Arrakeen',
@@ -253,17 +253,6 @@ export function nearestZone(position: Vector3Tuple): Zone | null {
   }
 
   return nearest?.zone ?? null;
-}
-
-export function dropPositionFor(zone: Zone, piece: TablePiece): Vector3Tuple {
-  // Preserve the leading UTF-16 unit used to place existing piece IDs.
-  const seed = [...piece.id].reduce((sum, character) => sum + character.charCodeAt(0), 0);
-  const angle = ((seed % 12) / 12) * Math.PI * 2;
-  const distance = zone.kind === 'reserve' ? 0.12 : 0.27;
-  return restingPositionAt(
-    [zone.position[0] + Math.cos(angle) * distance, 0, zone.position[2] + Math.sin(angle) * distance],
-    piece
-  );
 }
 
 function moveAffordance(state: TableState, piece: TablePiece): Affordance {

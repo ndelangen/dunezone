@@ -72,8 +72,6 @@ function useTableCommands(client: TableSession, table: TableProjection) {
       beginGesture: client.beginGesture,
       updateGesture: client.updateGesture,
       finishGesture: client.finishGesture,
-      stageSelectedToZone: client.stageSelectedToZone,
-      commitDraft: client.commitDraft,
       cancelDraft: client.cancelDraft,
       splitSelected: client.splitSelected,
       stackSelected: client.stackSelected,
@@ -84,7 +82,6 @@ function useTableCommands(client: TableSession, table: TableProjection) {
       toggleLockSelected: client.toggleLockSelected,
       moveStormBy: client.moveStormBy,
       spawnSpice: client.spawnSpice,
-      reset: client.reset,
     }),
     [client, table]
   );

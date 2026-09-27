@@ -1,7 +1,7 @@
 import type { BattlePlanInput } from '@shared/play/battle';
 import type { SpawnSelection } from '@shared/play/inventory';
 import type { LogTab } from '@shared/play/log';
-import { affordancesFor, dropPositionFor, gestureBlockReason, zoneById } from '@shared/play/model';
+import { affordancesFor, gestureBlockReason } from '@shared/play/model';
 import type { DraftMove, TablePiece, TableState, Vector3Tuple } from '@shared/play/model';
 import { isSeatAction } from '@shared/play/participation';
 import { carryPieceId, tableForViewer } from '@shared/play/protocol';
@@ -871,7 +871,6 @@ export class TableSession {
   moveStormBy = (direction: -1 | 1 = 1) => this.command({ kind: 'storm', direction });
   selectTurn = (turn: number) => this.command({ kind: 'turn', turn });
   spawnSpice = (count: number) => this.command({ kind: 'spice-spawn', count });
-  reset = () => this.command({ kind: 'reset' });
   finishPieceFlip = (pieceId: string, revision: number) => {
     if (this.flipping.get(pieceId) !== revision) {
       return;
@@ -879,23 +878,6 @@ export class TableSession {
     this.flipping = new Map(this.flipping);
     this.flipping.delete(pieceId);
     this.emit();
-  };
-  stageSelectedToZone = (zoneId: string) => {
-    if (!this.canAct()) {
-      return;
-    }
-    const piece = this.snapshot.table.pieces.find((candidate) => candidate.id === this.selectedId);
-    const zone = zoneById(zoneId);
-    if (!piece || !zone) {
-      return;
-    }
-    this.beginGesture(piece.id, 'whole');
-    this.finishGesture(dropPositionFor(zone, piece));
-  };
-  commitDraft = () => {
-    if (this.carry) {
-      this.finishGesture(this.carry.draft.position);
-    }
   };
   renderedPositionFor = (piece: TablePiece): Vector3Tuple => piece.position;
   renderedOrientationFor = (piece: TablePiece) => piece.orientation;
