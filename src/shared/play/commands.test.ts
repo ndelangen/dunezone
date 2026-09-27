@@ -9,7 +9,7 @@ import { tableForViewer } from './protocol';
 import { factionSupply, piece, place } from './setupSupply';
 import type { SupplyDependencies } from './setupSupply';
 import { stackPreviewPositionFor } from './tableGeometry';
-import { applyDraftToState, draftForGesture } from './tableState';
+import { applyDraftToState, draftForGesture, renderedPiecesFor } from './tableState';
 
 test('snapshots discard version entries when a split removes its source', () => {
   const previous = initialSnapshot();
@@ -49,6 +49,7 @@ describe('card decks', () => {
   const TRAITOR_BACK = 'https://table.test/published/cardback-presets/traitor/cardback.jpg';
   const SUPPLIES_BACK = 'https://table.test/published/decks/supplies/cardback.jpg';
   const DREAMRULES_BACK = 'https://table.test/published/decks/dreamrules-treachery-deck/cardback.jpg';
+  const SUPPLIES = { back: SUPPLIES_BACK, backName: 'Supplies!' };
   let next = 0;
   const dependencies: SupplyDependencies = { id: () => `supply-${next++}`, shuffle: (items) => items };
 
@@ -78,15 +79,20 @@ describe('card decks', () => {
     return factionSupply(capture, angle, dependencies).traitors[0]!;
   }
 
-  /* A deck spawned on the table from the catalogue: its own name and stack key, its cards on one back. */
-  function spawnedDeck(id: string, stackKey: string, back: string, backName: string, position: Vector3Tuple) {
+  /* A deck spawned on the table from the catalogue: its own name and stack key, its cards on one back, or on none. */
+  function spawnedDeck(
+    id: string,
+    stackKey: string,
+    back: { back: string; backName: string } | null,
+    position: Vector3Tuple
+  ) {
     return place(
       {
         ...piece(id, `${id} cache`, 'shared', '#d5ba8c', 'card', stackKey),
         items: [0, 1].map((index) => ({
           id: `${id}-${index}`,
           faceUp: false,
-          artwork: { back, backName, type: 'card-treachery' },
+          ...(back ? { artwork: { ...back, type: 'card-treachery' } } : {}),
         })),
       },
       position
@@ -140,10 +146,7 @@ describe('card decks', () => {
   ])("two decks spawned on one back combine and take that back's word, dropped %s", (_order, from, onto) => {
     const table = {
       ...freshTableState(),
-      pieces: [
-        spawnedDeck('a', 'deck:a', SUPPLIES_BACK, 'Supplies!', [-3, 0, 6]),
-        spawnedDeck('b', 'deck:b', SUPPLIES_BACK, 'Supplies!', [3, 0, 6]),
-      ],
+      pieces: [spawnedDeck('a', 'deck:a', SUPPLIES, [-3, 0, 6]), spawnedDeck('b', 'deck:b', SUPPLIES, [3, 0, 6])],
     };
 
     const combined = dropOnto(table, from, onto);
@@ -154,15 +157,16 @@ describe('card decks', () => {
   });
 
   test.each([
-    ['a different back address', 'https://table.test/published/decks/no-field/cardback.jpg', 'Supplies!'],
-    ['the same address with a different printed word', SUPPLIES_BACK, 'Treachery'],
-  ])('cards whose backs differ stay apart even under one stack key: %s', (_case, back, backName) => {
+    [
+      'a different back address',
+      { back: 'https://table.test/published/decks/no-field/cardback.jpg', backName: 'Supplies!' },
+    ],
+    ['the same address with a different printed word', { back: SUPPLIES_BACK, backName: 'Treachery' }],
+    ['one stack with no back at all', null],
+  ])('cards whose backs differ stay apart even under one stack key: %s', (_case, back) => {
     const table = {
       ...freshTableState(),
-      pieces: [
-        spawnedDeck('a', 'deck:a', SUPPLIES_BACK, 'Supplies!', [-3, 0, 6]),
-        spawnedDeck('b', 'deck:a', back, backName, [3, 0, 6]),
-      ],
+      pieces: [spawnedDeck('a', 'deck:a', SUPPLIES, [-3, 0, 6]), spawnedDeck('b', 'deck:a', back, [3, 0, 6])],
     };
 
     const dropped = dropOnto(table, 'a', 'b');
@@ -175,7 +179,7 @@ describe('card decks', () => {
     const fresh = freshTableState();
     const traitors = traitorDeck('atreides', 0);
     const drawer = {
-      ...spawnedDeck('drawer', 'deck:dreamrules', DREAMRULES_BACK, 'Treachery', [-25, 0, -25]),
+      ...spawnedDeck('drawer', 'deck:dreamrules', { back: DREAMRULES_BACK, backName: 'Treachery' }, [-25, 0, -25]),
       label: 'Dreamrules Treachery Deck',
       inventory: 'shared' as const,
     };
@@ -183,8 +187,10 @@ describe('card decks', () => {
     const deck = pieceById(table, 'treachery-deck')!;
     const peel = draftForGesture(deck, 'top')!;
 
+    const carrying = renderedPiecesFor({ ...table, draftMove: peel });
     const dropped = applyDraftToState(table, { ...peel, position: [deck.position[0] + 2, 0, deck.position[2]] });
 
+    expect(carrying.find((candidate) => candidate.id === traitors.id)?.label).toBe('Traitor cards');
     expect(dropped.events[0]?.status).toBe('accepted');
     expect(pieceById(dropped, traitors.id)?.label).toBe('Traitor cards');
     expect(pieceById(dropped, drawer.id)?.label).toBe('Dreamrules Treachery Deck');
