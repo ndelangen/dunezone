@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
@@ -8,6 +8,8 @@ import { build } from 'esbuild';
 import { test, vi } from 'vitest';
 
 import { prepareHostedBackend } from './hosted-backend';
+
+const root = path.resolve(import.meta.dirname, '../..');
 
 test('the generated backend provisions only inside its isolated run window', async () => {
   const directory = await mkdtemp(path.join(tmpdir(), 'play-backend-'));
@@ -24,15 +26,28 @@ test('the generated backend provisions only inside its isolated run window', asy
   try {
     const backend = path.join(directory, 'backend');
     await prepareHostedBackend(backend, target);
-    /* Bundle the real consumer so changes to its guard imports cannot silently break the generated backend. */
-    await build({
-      entryPoints: [path.join(backend, 'convex/playProvisioning.ts')],
-      bundle: true,
-      platform: 'browser',
-      format: 'esm',
-      write: false,
-      logLevel: 'silent',
-    });
+    /* The copy replaces whole modules and records them, so the code under load is otherwise production source. */
+    const generated = ['convex/crons.ts', 'convex/lib/playSynthetic.ts'];
+    const { sources } = JSON.parse(await readFile(path.join(backend, 'load-source.json'), 'utf8'));
+    assert.deepEqual(Object.keys(sources).sort(), generated);
+    const tracked = execFileSync('/usr/bin/git', ['ls-files', '-z', 'convex', 'src/shared'], { cwd: root })
+      .toString()
+      .split('\0')
+      .filter((file) => file && !generated.includes(file));
+    for (const file of tracked) {
+      assert.ok((await readFile(path.join(backend, file))).equals(await readFile(path.join(root, file))), file);
+    }
+    /* Bundle the real consumers so changes to their guard imports cannot silently break the generated backend. */
+    for (const consumer of ['convex/playProvisioning.ts', 'convex/auth.ts', 'convex/playTesting.ts']) {
+      await build({
+        entryPoints: [path.join(backend, consumer)],
+        bundle: true,
+        platform: 'browser',
+        format: 'esm',
+        write: false,
+        logLevel: 'silent',
+      });
+    }
     const guard = await build({
       entryPoints: [path.join(backend, 'convex/lib/playSynthetic.ts')],
       bundle: true,
@@ -42,29 +57,31 @@ test('the generated backend provisions only inside its isolated run window', asy
     });
     const module = { exports: {} };
     new Function('module', 'exports', guard.outputFiles[0].text)(module, module.exports);
-    const { isSyntheticBackend, requireSyntheticBackend } = module.exports;
+    const { isSyntheticBackend, requireSyntheticBackend, syntheticIdentity } = module.exports;
+    const runId = 'a'.repeat(32);
+    const account = { email: `load-0-${runId}@example.invalid`, password: 'p'.repeat(32), flow: 'signIn' };
     vi.stubEnv('CONVEX_CLOUD_URL', target.backendOrigin);
     vi.stubEnv('SITE_URL', target.applicationOrigin);
     vi.stubEnv('IS_TEST', 'true');
     vi.stubEnv('E2E_LOCAL_AUTH', 'true');
-    vi.stubEnv(
-      'PLAY_LOAD_RUN',
-      JSON.stringify({ runId: 'a'.repeat(32), startsAt: Date.now() - 1000, expiresAt: Date.now() + 60_000 })
-    );
+    vi.stubEnv('PLAY_LOAD_RUN', JSON.stringify({ runId, startsAt: Date.now() - 1000, expiresAt: Date.now() + 60_000 }));
     assert.equal(isSyntheticBackend(), true);
     assert.doesNotThrow(() => requireSyntheticBackend());
+    assert.deepEqual(syntheticIdentity(account), { email: account.email });
+    assert.throws(() => syntheticIdentity({ ...account, email: 'player@example.invalid' }), /fixed synthetic/);
     for (const [key, value] of [
       ['CONVEX_CLOUD_URL', 'https://exuberant-finch-263.convex.cloud'],
       ['SITE_URL', 'https://dune.zone'],
       ['IS_TEST', 'false'],
       ['E2E_LOCAL_AUTH', 'false'],
-      ['PLAY_LOAD_RUN', JSON.stringify({ runId: 'a'.repeat(32), startsAt: 1, expiresAt: 600_001 })],
+      ['PLAY_LOAD_RUN', JSON.stringify({ runId, startsAt: 1, expiresAt: 600_001 })],
       ['PLAY_LOAD_RUN', 'invalid'],
     ]) {
       const previous = process.env[key];
       vi.stubEnv(key, value);
       assert.equal(isSyntheticBackend(), false, key);
       assert.throws(() => requireSyntheticBackend(), undefined, key);
+      assert.throws(() => syntheticIdentity(account), undefined, key);
       vi.stubEnv(key, previous);
     }
   } finally {

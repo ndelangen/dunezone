@@ -554,7 +554,8 @@ try {
   }
   if (hostedTarget) {
     /* The runner retired its game, so the copied backend takes a new one and refuses a second while that one is live. */
-    const fixtureArguments = JSON.stringify({ loadProfile });
+    /* Baseline runs without a load profile, so createFixture gets none, as in the runner's own call. */
+    const fixtureArguments = JSON.stringify(loadProfile === 'baseline' ? {} : { loadProfile });
     const next = JSON.parse(convex(['run', 'playTesting:createFixture', fixtureArguments])) as { gameId: string };
     const refused = spawnSync(
       node,

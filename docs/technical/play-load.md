@@ -365,12 +365,14 @@ bun --no-env-file scripts/prepare-hosted-play.mjs backend \
   --target /PRIVATE_TEMP/target.json --directory /PRIVATE_TEMP/backend
 ```
 
-The copy contains tracked Convex and shared code, with five changes recorded in `load-source.json`:
-its synthetic guard binds the selected backend and application origin; Password Auth accepts only
-38 fixed synthetic emails during the run; fixture creation refuses a second live game; and its cron
-registry is empty. Real hashing, sessions, JWTs, admission, authorization and commands remain in use.
-No environment files or data are copied. Production source retains its loopback-only synthetic guard.
-The additional guard and resource-ledger work must be included in the reported test overhead.
+The copy contains tracked Convex and shared code with two generated modules, both recorded in
+`load-source.json`. Its `convex/lib/playSynthetic.ts` binds the synthetic guard to the selected
+backend and application origin, lets Password Auth accept only 38 fixed synthetic emails during the
+run, and makes fixture creation refuse a second live game. Its `convex/crons.ts` registers no cron.
+Every other file is production source. Real hashing, sessions, JWTs, admission, authorization and
+commands remain in use. No environment files or data are copied. Production source retains its
+loopback-only synthetic guard. The additional guard and resource-ledger work must be included in
+the reported test overhead.
 
 Mint a development deploy key using the full explicit project and deployment reference in a
 sanitized environment. Save it to a private file and check its `dev:<backendName>|` prefix without
