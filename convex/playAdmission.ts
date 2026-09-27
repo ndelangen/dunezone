@@ -167,28 +167,30 @@ async function consumeTicket(
   };
 }
 
+const refusedRedemption = { ok: false, reason: 'refused' } as const;
+
 export const redeemTicket = mutation({
   args: zodToConvex(playRedeemTicketRequestSchema),
   returns: zodToConvex(playRedeemTicketResultSchema),
   handler: async (ctx, input) => {
     const request = await authenticatedPlayRequest(ctx, input, playRedeemTicketRequestSchema);
     if (request?.game.state !== 'ready') {
-      return { ok: false as const };
+      return refusedRedemption;
     }
     const { game, args } = request;
     if (!(await playRateLimiter.limit(ctx, 'playRedeemPerGame', { key: game._id })).ok) {
-      return { ok: false as const };
+      return refusedRedemption;
     }
     const ticket = await findRedeemableTicket(ctx, game._id, args.ticket);
     if (!ticket) {
-      return { ok: false as const };
+      return { ok: false as const, reason: 'expired' as const };
     }
     const authorization = await playSessionAuthorization(ctx, ticket.user_id, ticket.session_id);
     if (!authorization.allowed || Date.now() >= authorization.authExpiresAt) {
-      return { ok: false as const };
+      return refusedRedemption;
     }
     if (!(await mayEnterGame(ctx, game, ticket.user_id))) {
-      return { ok: false as const };
+      return refusedRedemption;
     }
     return await consumeTicket(ctx, ticket, authorization);
   },
