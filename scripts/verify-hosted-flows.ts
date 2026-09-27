@@ -10,6 +10,8 @@ export const browserFlows = {
   'private-banks': { timeoutMs: 300_000, separateBrowsers: true, keepsFrames: true, needsCatalogue: false },
   battles: { timeoutMs: 300_000, separateBrowsers: true, keepsFrames: true, needsCatalogue: true },
   decks: { timeoutMs: 300_000, separateBrowsers: true, keepsFrames: true, needsCatalogue: false },
+  /* Diagnostic (#1343, not for merge): per-setting frame timing on the runner's SwiftShader. */
+  bench: { timeoutMs: 1_800_000, separateBrowsers: false, keepsFrames: false, needsCatalogue: false },
 } satisfies Record<
   string,
   {

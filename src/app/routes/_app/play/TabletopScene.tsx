@@ -80,6 +80,13 @@ import {
   SRGBColorSpace,
   TextureLoader,
   Vector2,
+  ACESFilmicToneMapping,
+  HalfFloatType,
+  LinearSRGBColorSpace,
+  MeshBasicMaterial,
+  MeshLambertMaterial,
+  NoToneMapping,
+  UnsignedByteType,
 } from 'three';
 
 import { useMotionAllowed } from '@app/styles/motion';
@@ -1073,6 +1080,28 @@ function useSceneInteractions(onInteractionActiveChange: TabletopSceneProps['onI
   };
 }
 
+/* Diagnostic (#1343, not for merge): hands the verifier the renderer, scene and camera so it can time frames per setting. */
+function RenderBenchHook() {
+  const get = useThree((state) => state.get);
+  useEffect(() => {
+    const target = window as unknown as { __duneBench?: unknown };
+    target.__duneBench = {
+      get,
+      three: {
+        ACESFilmicToneMapping,
+        HalfFloatType,
+        LinearSRGBColorSpace,
+        MeshBasicMaterial,
+        MeshLambertMaterial,
+        NoToneMapping,
+        SRGBColorSpace,
+        UnsignedByteType,
+      },
+    };
+  }, [get]);
+  return null;
+}
+
 function SceneContents({
   cameraView = DEFAULT_CAMERA_VIEW,
   onInteractionActiveChange,
@@ -1096,6 +1125,7 @@ function SceneContents({
 
   return (
     <>
+      <RenderBenchHook />
       <color attach="background" args={['#130d0a']} />
       <fog attach="fog" args={['#130d0a', 10, 22]} />
       <CameraRelativeFog />

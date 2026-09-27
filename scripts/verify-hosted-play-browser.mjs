@@ -31,6 +31,7 @@ import { DEFAULT_TABLE_SEAT_COUNT } from '../src/shared/play/tableSettings.ts';
 import { trackerArcSlots, TRACKER_DISC_TOP_Y } from '../src/shared/play/tableTrackers.ts';
 import { applyRoomUpdate } from '../src/shared/play/updates.ts';
 import { verifyBattles } from './verify-hosted-battles.mjs';
+import { verifyBench } from './verify-hosted-bench.mjs';
 import { verifyDecks } from './verify-hosted-decks.mjs';
 import { browserFlows, isBrowserFlow } from './verify-hosted-flows.ts';
 import { verifyPrivateBanks } from './verify-hosted-private-banks.mjs';
@@ -57,6 +58,7 @@ const flows = {
   'private-banks': verifyPrivateBanks,
   battles: verifyBattles,
   decks: verifyDecks,
+  bench: verifyBench,
 };
 assert.deepEqual(
   new Set(Object.keys(flows)),
