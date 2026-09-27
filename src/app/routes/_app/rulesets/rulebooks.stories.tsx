@@ -365,8 +365,8 @@ export const Owner = meta.story({
 });
 
 /*
- * The card wiring, not the rendered image: Storybook serves nothing under /published, so each preview falls to its
- * placeholder once the request fails.
+ * The card wiring, not the rendered image: Storybook serves nothing under /published, so each preview falls to the
+ * missing state once the request fails.
  * `RulebookPreview.stories.tsx` covers the loaded image, every publication state, and replacement after a failure.
  */
 export const PublishedPreviews = meta.story({
@@ -637,6 +637,38 @@ export const CloneWithPublishedPreviews = meta.story({
     );
     await userEvent.hover(tile);
     await waitFor(() => expect(page.getByRole('tooltip')).toHaveTextContent(/^Rules$/));
+  },
+});
+
+/**
+ * A failed capture's placeholder names the Rulebook in a tooltip of its own, so the chooser leaves its tooltip off that tile.
+ * Hovering it opens one tooltip, not two.
+ */
+export const CloneFailedPreview = meta.story({
+  args: { path: '/rulesets/classicrules/rulebooks/create' },
+  parameters: {
+    database: db((baseline) => {
+      withFailedRulebookPreview(baseline);
+      replaceWithFinalContents(baseline);
+      return baseline;
+    }),
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await userEvent.click(await page.findByRole('radio', { name: 'Saved Rulebook' }, { timeout: 30_000 }));
+    await userEvent.click(page.getByRole('combobox', { name: 'Rulebook to copy' }));
+    const rules = await page.findByRole('option', { name: 'Rules' });
+    const tile = await within(rules).findByRole(
+      'img',
+      { name: 'First-page preview failed for Rules', hidden: true },
+      { timeout: 30_000 }
+    );
+    await userEvent.hover(tile);
+    await waitFor(() =>
+      expect(page.getAllByRole('tooltip').map((tooltip) => tooltip.textContent)).toEqual([
+        'First-page preview failed for Rules',
+      ])
+    );
   },
 });
 

@@ -319,12 +319,14 @@ function CreateRulebookForm({ page }: { page: RulebookCreationPageData }) {
             /*
              * At 32 px, PublishedImage's missing state has no room to print the name, so the tile names its Rulebook
              * on hover. PublishedImage does not report a failed load to its caller, so a loaded page carries the
-             * tooltip as well. A capture on its way or failed is left out: its placeholder has a tooltip of its own.
+             * tooltip as well. With no page, a capture on its way or failed is left out: its placeholder has a
+             * tooltip of its own.
              */
-            const captureTooltip = !rulebook?.first_page_image_url && rulebook?.first_page_capture_status != null;
+            const placeholderHasTooltip =
+              !rulebook?.first_page_image_url && rulebook?.first_page_capture_status != null;
             return (
               <Group gap="sm" wrap="nowrap">
-                <Tooltip label={option.label} disabled={captureTooltip}>
+                <Tooltip label={option.label} disabled={placeholderHasTooltip}>
                   <Box w={32} miw={32} aria-hidden>
                     <RulebookPreview
                       name={option.label}

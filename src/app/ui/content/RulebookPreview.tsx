@@ -20,7 +20,7 @@ function captureLabel(name: string, status: NonNullable<RulebookPreviewStatus>) 
 
 /**
  * A published first page, or its capture state, at the Rulebook's physical proportions.
- * A capture on its way or failed draws the rules icon with a tooltip that says so.
+ * With no page, a capture on its way or failed draws the rules icon with a tooltip that says so.
  * With neither a page nor a capture, it draws `PublishedImage`'s missing state.
  */
 export function RulebookPreview({
