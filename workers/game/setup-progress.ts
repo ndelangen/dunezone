@@ -13,6 +13,7 @@ import { phaseGate, setupStep, setupReadyRequired } from '../../src/shared/play/
 import type { SetupState } from '../../src/shared/play/setup';
 import { OTHER_DECK_POSITION } from '../../src/shared/play/tableFurnitureLayout';
 import { restingPositionAt } from '../../src/shared/play/tableGeometry';
+import { labelForCount } from '../../src/shared/play/tableState';
 import type { StoredSnapshot } from './state';
 
 export function initialSetup(captures: FactionCapture[]): SetupState {
@@ -310,14 +311,16 @@ function parkTraitors(table: StoredPiece[], candidates: StoredPiece[]) {
     return null;
   }
   const ids = new Set(candidates.map((piece) => piece.id));
+  const items = candidates.flatMap((piece) => piece.items);
   const deck = {
     ...candidates[0],
-    label: 'Traitor deck',
+    /* Combining stacks changes their cards, so the gathered stack takes the name its back gives it; a lone stack only moves, so it keeps its own. */
+    label: candidates.length === 1 ? candidates[0].label : labelForCount(candidates[0], items.length),
     owner: 'shared',
     locked: false,
     orientation: 0,
     zoneId: null,
-    items: candidates.flatMap((piece) => piece.items),
+    items,
   };
   deck.position = restingPositionAt(OTHER_DECK_POSITION, deck);
   return [...table.filter((piece) => !ids.has(piece.id)), deck];
