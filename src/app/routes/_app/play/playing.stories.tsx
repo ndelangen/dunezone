@@ -770,7 +770,7 @@ async function openPieceMenu(document: Document, piece: TablePiece) {
         scene.dispatchEvent(new PointerEvent('pointerup', { ...press, buttons: 0 }));
       }
       const menu = page.getByRole('menu');
-      expect(menu).toBeVisible();
+      expect(finishTransitions(menu)).toBeVisible();
       return menu;
     },
     { timeout: 30_000 }
