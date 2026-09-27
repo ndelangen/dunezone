@@ -18,9 +18,10 @@ The scheduled publisher has one simple execution model:
 
 There is no Renderer selection, rollout state machine, deployment pause, or rollback
 procedure. Fixes ship as new forward deployments. The game Worker deploys before the application
-Worker, and the two move together: a page asks for compact updates on its `admit` message, which
-a game Worker from before that release refuses as a denial, so the game Worker is never rolled
-back or redeployed to an older release on its own.
+Worker, and the two move together. Until Play's public launch a change to Play's wire ships in one
+release without compatibility for the other side, so a page and a game Worker from different releases
+can refuse each other's messages. The game Worker is therefore never rolled back or redeployed to an
+older release on its own.
 
 Cloudflare Workers is the only frontend host. The checked-in Worker configuration
 attaches the exact Custom Domain `dune.zone`; Cloudflare manages its DNS record and

@@ -60,9 +60,11 @@ export function phaseAt(index: number) {
 }
 
 export function tableProgressFor(index: number) {
+  /* Widened from the tuple so TableProgress, derived from this return, accepts a phases array built elsewhere, as the local demo does. */
+  const phases: readonly (typeof TABLE_PHASES)[number][] = TABLE_PHASES;
   return {
     turn: Math.floor(index / TABLE_PHASES.length) + 1,
-    phases: TABLE_PHASES,
+    phases,
     activePhaseId: phaseAt(index).id,
   };
 }

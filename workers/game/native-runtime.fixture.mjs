@@ -9,6 +9,8 @@ import { build } from 'esbuild';
 import { Miniflare, convertV4MiniflareOptions } from 'miniflare';
 import { WebSocketServer } from 'ws';
 
+import { applyRoomUpdate } from '../../src/shared/play/updates.ts';
+
 const directory = dirname(fileURLToPath(import.meta.url));
 const repository = join(directory, '../..');
 const gameId = 'fixture-game';
@@ -93,7 +95,7 @@ function answerPeerRequest(peer, record) {
     case 'assets:listByTypes':
       record.release([...peer.catalogue.values()].map((page) => page.asset));
       break;
-    case 'assets:getPage':
+    case 'playCatalogue:assetSupply':
       if (peer.catalogueMode !== 'hold') {
         record.release(peer.catalogue.get(`${record.args.type}/${record.args.slug}`) ?? null);
       }
@@ -444,6 +446,18 @@ export async function createRuntime(peer, kind = 'probe', bindings = {}) {
   };
 }
 
+/* Views a connection assembled from an update, as the page applies it; every other view came whole from the Worker. */
+const applied = new WeakSet();
+
+/** Whether a message is a full view the Worker sent, not one assembled from an update. */
+export const isFullView = (message) => message.type === 'view' && !applied.has(message);
+
+/**
+ * Opens a socket that records every frame it receives.
+ * After each update it also records the view that update produces on the one before it, with the update's clock readings, as the page holds it.
+ * An update that does not apply to the view before it goes to `unapplied` instead.
+ * A test then waits for a table state whichever frame carried it.
+ */
 export async function openGame(runtime) {
   const response = await runtime.fetch(`/__play/games/${gameId}/socket`, {
     headers: { Origin: 'http://table.test', Upgrade: 'websocket' },
@@ -452,8 +466,25 @@ export async function openGame(runtime) {
     throw new Error(`Socket refused: ${response.status}`);
   }
   const socket = response.webSocket;
-  const connection = { socket, messages: [], closed: false, closeCode: null };
-  socket.addEventListener('message', (event) => connection.messages.push(JSON.parse(event.data)));
+  const connection = { socket, messages: [], unapplied: [], closed: false, closeCode: null };
+  let current = null;
+  socket.addEventListener('message', (event) => {
+    const message = JSON.parse(event.data);
+    connection.messages.push(message);
+    if (message.type === 'view') {
+      current = message;
+    } else if (message.type === 'update') {
+      const view = applyRoomUpdate(current ?? undefined, message);
+      const { phaseCooldownMs, battleCountdownMs, serverNow } = message;
+      current = view && { ...view, phaseCooldownMs, battleCountdownMs, serverNow };
+      if (current) {
+        applied.add(current);
+        connection.messages.push(current);
+      } else {
+        connection.unapplied.push(message);
+      }
+    }
+  });
   socket.addEventListener('close', (event) => {
     connection.closed = true;
     connection.closeCode = event.code;
@@ -478,7 +509,7 @@ export async function admitPlayer(peer, runtime, suffix) {
 export async function syncView(connection) {
   const before = connection.messages.length;
   connection.send({ type: 'sync' });
-  return eventually(() => connection.messages.slice(before).find((message) => message.type === 'view'), 'fresh view');
+  return eventually(() => connection.messages.slice(before).find(isFullView), 'fresh view');
 }
 
 /** Sends one command against the current revision and returns it with its rejection or completion. */
@@ -524,6 +555,12 @@ export async function seat(newcomer, approver, target) {
 }
 
 export const stage = async (connection) => (await syncView(connection)).snapshot.stage;
+
+/** Every table event message the room stores, in its current state and in each retained history row. */
+export async function storedEventMessages(runtime) {
+  const rows = await runtime.exec('SELECT data FROM current_state UNION ALL SELECT data FROM history');
+  return rows.flatMap((row) => [...row.data.matchAll(/"message":"((?:[^"\\]|\\.)*)"/g)].map((match) => match[1]));
+}
 
 export function provision(runtime) {
   return runtime.fetch(`/__play/games/${gameId}/provision`, {
