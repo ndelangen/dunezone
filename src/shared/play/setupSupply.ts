@@ -1,9 +1,10 @@
+import { cardbackPresetLabel } from '../assets/cardbackPresets';
 import type { FactionCapture } from './capture';
-import type { TablePiece, Vector3Tuple } from './model';
+import type { StoredPiece, TablePiece, Vector3Tuple } from './model';
 import { factionSupplyLayout } from './setupLayout';
 import { restingPositionAt } from './tableGeometry';
 
-type Item = TablePiece['items'][number];
+type Item = StoredPiece['items'][number];
 
 /**
  * What a supply build takes from its caller: a fresh identity per piece and item, and the order a dealt deck is shuffled into.
@@ -18,9 +19,9 @@ export function piece(
   label: string,
   owner: string,
   color: string,
-  kind: TablePiece['kind'],
+  kind: StoredPiece['kind'],
   stackKey: string
-): TablePiece {
+): StoredPiece {
   return {
     id,
     label,
@@ -37,24 +38,25 @@ export function piece(
   };
 }
 
-/** One physical item; without a back it carries no artwork at all. */
+/** One physical item, with the word printed on its back when it has one; without a back it carries no artwork at all. */
 export function item(
   id: string,
   name: string,
   front: string | null,
   back: string | null,
   type: string,
-  faceUp: boolean
+  faceUp: boolean,
+  backName?: string
 ): Item {
   return {
     id,
     faceUp,
-    ...(back ? { artwork: { ...(front ? { front } : {}), back, name, type } } : {}),
+    ...(back ? { artwork: { ...(front ? { front } : {}), back, ...(backName ? { backName } : {}), name, type } } : {}),
   };
 }
 
 /** The piece resting on the table at `position`, out of any inventory. */
-export function place(piece: TablePiece, position: Vector3Tuple, orientation = 0): TablePiece {
+export function place<Piece extends TablePiece>(piece: Piece, position: Vector3Tuple, orientation = 0): Piece {
   return {
     ...piece,
     inventory: undefined,
@@ -86,14 +88,22 @@ export function factionSupply(capture: FactionCapture, angle: number, { id, shuf
   if (components.alliance.front && components.alliance.back) {
     const alliance = piece(id(), `${faction.name} alliance`, faction.id, color, 'card', `alliance:${faction.id}`);
     alliance.items = [
-      item(id(), alliance.label, components.alliance.front, components.alliance.back, 'card-alliance', true),
+      item(
+        id(),
+        alliance.label,
+        components.alliance.front,
+        components.alliance.back,
+        'card-alliance',
+        true,
+        cardbackPresetLabel('alliance')
+      ),
     ];
     hand.push(alliance);
   }
   const deck = piece(id(), 'Traitor cards', 'shared', '#d5ba8c', 'card', 'cards:traitor');
   deck.items = shuffle(
     components.traitors.cards.map((card) =>
-      item(id(), card.name, card.front, components.traitors.back, 'card-traitor', false)
+      item(id(), card.name, card.front, components.traitors.back, 'card-traitor', false, cardbackPresetLabel('traitor'))
     )
   );
   const traitors = deck.items.length ? [place(deck, layout.traitors.position, layout.traitors.orientation)] : [];
