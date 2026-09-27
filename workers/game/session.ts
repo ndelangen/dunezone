@@ -41,7 +41,7 @@ import type { SeatPlan } from './participation';
 import { ownRequests, Participation } from './participation';
 import { PublicActions } from './publicActions';
 import { RemovalVotes } from './removal';
-import { applyResult, scrubResult, settleEnding } from './result';
+import { applyResult, settleEnding } from './result';
 import { Room } from './room';
 import type { HistoryRow } from './sessionHistory';
 import { SessionHistory } from './sessionHistory';
@@ -368,7 +368,9 @@ export class GameSession {
   private directorySummary(snapshot: StoredSnapshot, now: number, metadata = this.metadata!): PlayDirectorySummary {
     const stage = snapshot.stage ?? 'play';
     const seatCount = this.metadata ? this.seatCount() : metadata.seatCount!;
-    const factions = new Map(this.actors.roster(seatCount).seats.map((seat) => [seat.id, seat.faction]));
+    const seats = this.actors.roster(seatCount).seats;
+    const factions = new Map(seats.map((seat) => [seat.id, seat.faction]));
+    const factionName = (id: string) => seats.find((seat) => seat.faction?.id === id)?.faction?.name ?? id;
     return {
       stage,
       seatCount,
@@ -379,7 +381,7 @@ export class GameSession {
         stage === 'finished' && snapshot.result
           ? {
               kind: snapshot.result.kind,
-              factionIds: snapshot.result.factionIds,
+              factions: snapshot.result.factionIds.map((id) => ({ id, name: factionName(id) })),
               declaredBy: snapshot.result.by.userId ?? DELETED_DECLARER,
               declaredAt: snapshot.result.declaredAt,
             }
@@ -433,10 +435,9 @@ export class GameSession {
       this.actors.delete(userId, eventId, vacatedEventId);
       this.spiceLedger.deleteActor(userId);
       if (!stored) {
-        this.scrubStoredResult(userId);
         return;
       }
-      const scrubbed = scrubResult(this.storedSnapshot(), userId);
+      const scrubbed = this.storedSnapshot();
       const departed = this.participation.afterDeletion(userId, oldSeat, {
         snapshot: scrubbed,
         roster: this.actors.roster(this.seatCount()),
@@ -472,15 +473,6 @@ export class GameSession {
     if (committed) {
       this.room!.accept(committed.snapshot);
       this.history.accept(this.history.steps, committed.boundary);
-    }
-  }
-
-  /* A room that is not open still retains the declarer's name in its stored state. */
-  private scrubStoredResult(userId: string) {
-    const row = this.storage.sql.exec<{ data: string }>('SELECT data FROM current_state WHERE id=1').toArray()[0];
-    if (row) {
-      const scrubbed = scrubResult(storedSnapshotSchema.parse(JSON.parse(row.data)), userId);
-      this.storage.sql.exec('UPDATE current_state SET data=? WHERE id=1', JSON.stringify(scrubbed));
     }
   }
 
@@ -717,8 +709,12 @@ export class GameSession {
       throw new GameRejection('The table changed. Try the action again.');
     }
     const next = this.withRoster(applyResult(room.snapshot, viewer, message.action, Date.now()));
-    this.persistCommit({ key, viewer, message, next });
+    const history = this.history.entry(message, room.snapshot, next);
+    this.persistCommit({ key, viewer, message, next, history });
     room.accept(next);
+    if (history) {
+      this.history.accept(history.step, next);
+    }
   }
 
   private commitSeat(viewer: Viewer, message: CommandMessage & { action: Parameters<Participation['plan']>[0] }) {

@@ -128,6 +128,10 @@ function DeclareBar({ client, table }: Props) {
  */
 export function ResultDecisionBar({ client, table }: Props) {
   const { ending, result, stage } = table.snapshot;
+  /* Playback shows an earlier table; the live decision is not offered from it. */
+  if (table.playback) {
+    return null;
+  }
   if (stage === 'play' && ending) {
     return ending.by.seat === table.viewer.viewerSeat ? (
       <DeclareBar client={client} table={table} />
@@ -141,19 +145,14 @@ export function ResultDecisionBar({ client, table }: Props) {
   return null;
 }
 
-/** The viewer's own unrevealed prediction as a Reveal prediction button; spectators hold none. */
-function ownReveal({ client, table }: Props) {
-  const stepId = seated(table) ? unrevealedPrediction(table) : undefined;
-  return stepId ? <RevealButton client={client} table={table} stepId={stepId} /> : undefined;
-}
-
 function seated(table: TableProjection) {
   return table.viewer.viewerSeat !== SPECTATOR_SEAT;
 }
 
 /* Every other panel while one player determines the winner: the reveal reminder, never a block. */
 function DeterminingBar({ client, table, name }: Props & Readonly<{ name: string }>) {
-  const reveal = ownReveal({ client, table });
+  const stepId = seated(table) ? unrevealedPrediction(table) : undefined;
+  const reveal = stepId && <RevealButton client={client} table={table} stepId={stepId} />;
   return (
     <DecisionBar
       eyebrow="Determine winner"
@@ -170,6 +169,7 @@ function DeterminingBar({ client, table, name }: Props & Readonly<{ name: string
 
 function FinishedBar({ client, table, result }: Props & Readonly<{ result: GameResult }>) {
   const player = seated(table);
+  const stepId = player ? unrevealedPrediction(table) : undefined;
   return (
     <DecisionBar
       eyebrow="Finished"
@@ -181,7 +181,7 @@ function FinishedBar({ client, table, result }: Props & Readonly<{ result: GameR
       action={
         player && (
           <Group gap="xs">
-            {ownReveal({ client, table })}
+            {stepId && <RevealButton client={client} table={table} stepId={stepId} />}
             <Button disabled={!table.canInteract} onClick={() => client.command({ kind: 'result-continue' })}>
               Continue playing
             </Button>

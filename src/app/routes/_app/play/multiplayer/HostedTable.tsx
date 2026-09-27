@@ -663,6 +663,8 @@ function ConnectedTable({
   const stage = table.snapshot.stage;
   /* The fixture has no stage and plays like a game in play. */
   const inPlay = stage === undefined || stage === 'play';
+  /* A finished game keeps its panels and playback; only the phase controls stop. */
+  const tabled = inPlay || stage === 'finished';
   return (
     <TabletopContext.Provider value={value}>
       <PresenceContext.Provider value={presence}>
@@ -747,7 +749,7 @@ function ConnectedTable({
               ) : undefined
             }
             panelTabs={[
-              ...(!inPlay && stage !== 'setup'
+              ...(!tabled && stage !== 'setup'
                 ? []
                 : [
                     ...(table.snapshot.setup
@@ -837,7 +839,7 @@ function ConnectedTable({
                 : []),
             ]}
             tableControls={
-              inPlay ? (
+              tabled ? (
                 <>
                   <PhaseControls table={table} />
                   {stage === 'play' && table.snapshot.setup && table.snapshot.phase === 0 && (
@@ -849,12 +851,12 @@ function ConnectedTable({
                       Place storm randomly
                     </Button>
                   )}
-                  {stage === 'play' ? (
+                  {stage === 'play' || stage === 'finished' ? (
                     <>
                       <DetermineWinner client={client} table={table} />
                       <PlaybackControls client={client} table={table} />
                       {error && <FormError title="From the table">{error}</FormError>}
-                      {(table.snapshot.battle || progress.activePhaseId === 'battle') && (
+                      {stage === 'play' && (table.snapshot.battle || progress.activePhaseId === 'battle') && (
                         <BattleControls client={client} table={table} />
                       )}
                     </>

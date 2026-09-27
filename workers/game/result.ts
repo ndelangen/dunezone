@@ -8,9 +8,6 @@ import type { ResultAction } from '../../src/shared/play/result';
 import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
 import type { StoredSnapshot } from './state';
 
-/** The one name retained state shows for a deleted account. */
-const DELETED_USER = '[deleted user]';
-
 /*
  * Determine winner, its declaration and Continue playing. Each is one seated player's act and
  * changes nothing on the table: the phase, pieces, banks, hands and predictions stay as they are,
@@ -68,9 +65,12 @@ function resume(snapshot: StoredSnapshot) {
 /** One winner, an alliance of two or more, or none; each named once and each seated at this table. */
 function requireFittingFactions(snapshot: StoredSnapshot, action: Declaration) {
   const seated = new Set(snapshot.roster?.seats.flatMap((seat) => (seat.faction ? [seat.faction.id] : [])));
-  const distinct = new Set(action.factionIds).size === action.factionIds.length;
-  const known = action.factionIds.every((id) => seated.has(id));
-  if (!distinct || !known || !resultFactionCountFits(action.result, action.factionIds.length)) {
+  const checks = [
+    new Set(action.factionIds).size === action.factionIds.length,
+    action.factionIds.every((id) => seated.has(id)),
+    resultFactionCountFits(action.result, action.factionIds.length),
+  ];
+  if (checks.includes(false)) {
     throw new GameRejection('Choose one winning faction, an alliance of two or more, or no winner.');
   }
 }
@@ -83,13 +83,6 @@ export function settleEnding(snapshot: StoredSnapshot, seatedUserIds: ReadonlySe
   }
   const holds = ending.by.userId !== null && seatedUserIds.has(ending.by.userId);
   return holds && inMentat(snapshot) ? snapshot : { ...snapshot, ending: null };
-}
-
-/** The retained result and any open sequence name `[deleted user]` once that account is deleted. */
-export function scrubResult(snapshot: StoredSnapshot, userId: string): StoredSnapshot {
-  const scrub = <Acted extends { by: { userId: string | null } }>(acted: Acted | null) =>
-    acted && acted.by.userId === userId ? { ...acted, by: { ...acted.by, userId: null, name: DELETED_USER } } : acted;
-  return { ...snapshot, ending: scrub(snapshot.ending), result: scrub(snapshot.result) };
 }
 
 function inMentat(snapshot: StoredSnapshot) {

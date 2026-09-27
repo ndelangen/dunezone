@@ -105,6 +105,10 @@ export const Finished = meta.story({
     expect(within(bar).getByText(new RegExp(`Declared by ${SIX[0]!.name}`))).toBeVisible();
     await userEvent.click(within(bar).getByRole('button', { name: 'Continue playing' }));
     expect(lastCommand()?.action).toEqual({ kind: 'result-continue' });
+    /* A finished table keeps its panels, so its players can still replay how the game went. */
+    await openTab(page, 'Phase');
+    expect(await page.findByRole('button', { name: 'Replay from start' })).toBeVisible();
+    expect(page.queryByRole('button', { name: 'Determine winner' })).toBeNull();
   },
 });
 

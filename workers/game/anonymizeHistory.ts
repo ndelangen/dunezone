@@ -9,7 +9,7 @@ type Attribution = ReturnType<typeof deletedAttribution>;
  * Bump it when the scrub learns to repair more, and every room repairs once more at its next cold start.
  * A bump is also the remedy after a rollback to a release older than the deletion-time scrub handled a deletion, since a stamped room does not repair on its own.
  */
-export const HISTORY_REPAIR_VERSION = 2;
+export const HISTORY_REPAIR_VERSION = 3;
 
 /** Scrub retained attribution before deleting the receipts that identify its author. */
 export function anonymizeHistory(storage: DurableObjectStorage, userId: string | null) {
@@ -71,12 +71,32 @@ function deletedAttribution(storage: DurableObjectStorage, userId: string | null
       .toArray()
       .map((row) => row.request_id)
   );
-  return { revisions, retainedRevisions, requests, seatRequests, creatorDeleted };
+  /* Determine winner and its result name the acting account; every deleted account is covered, not only this one. */
+  const accounts = new Set(
+    storage.sql
+      .exec<{ user_id: string }>('SELECT user_id FROM actors WHERE user_id=? OR deleted=1', userId)
+      .toArray()
+      .map((row) => row.user_id)
+  );
+  return { revisions, retainedRevisions, requests, seatRequests, creatorDeleted, accounts };
+}
+
+/** An act retained with its account, as storage keeps Determine winner and the declared result. */
+type Acted = { by: { userId?: string | null; name: string } };
+
+function scrubActed<Value extends Acted | null | undefined>(acted: Value, attribution: Attribution): Value {
+  const userId = acted?.by.userId;
+  if (!acted || !userId || !attribution.accounts.has(userId)) {
+    return acted;
+  }
+  return { ...acted, by: { ...acted.by, userId: null, name: '[deleted user]' } };
 }
 
 function scrubSnapshot(snapshot: GameSnapshot, attribution: Attribution): GameSnapshot {
   return {
     ...snapshot,
+    ...(snapshot.ending && { ending: scrubActed(snapshot.ending as Acted & typeof snapshot.ending, attribution) }),
+    ...(snapshot.result && { result: scrubActed(snapshot.result as Acted & typeof snapshot.result, attribution) }),
     ...(snapshot.controls && {
       controls: {
         ...snapshot.controls,

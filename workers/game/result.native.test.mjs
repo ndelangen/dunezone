@@ -193,7 +193,10 @@ describe('Determine winner and Continue playing', { timeout: 60_000 }, () => {
     );
     expect(finished.summary.result).toMatchObject({
       kind: 'alliance',
-      factionIds: ['harkonnen', 'atreides'],
+      factions: [
+        { id: 'harkonnen', name: expect.any(String) },
+        { id: 'atreides', name: expect.any(String) },
+      ],
       declaredBy: userId,
     });
     await accepted(other, { kind: 'result-continue' });
@@ -206,7 +209,7 @@ describe('Determine winner and Continue playing', { timeout: 60_000 }, () => {
   });
 
   it('names a deleted declarer as a deleted user in the result and its history', async () => {
-    const { owner, observer } = await inPlay();
+    const { owner, other, observer } = await inPlay();
     await toMentat(owner);
     const { userId } = (await accepted(owner, { kind: 'result-open' })).viewer;
     await accepted(owner, { kind: 'result-declare', result: 'none', factionIds: [] });
@@ -228,6 +231,26 @@ describe('Determine winner and Continue playing', { timeout: 60_000 }, () => {
     expect((await page(observer)).map((entry) => entry.text)).toContain(
       '[deleted user] declared the result: No winner.'
     );
+    /* Playback of the finished table, once the game continues, names the deleted declarer too. */
+    await accepted(other, { kind: 'result-continue' });
+    const playback = async (step) => {
+      const start = observer.messages.length;
+      observer.send({ type: 'history', step });
+      return eventually(
+        () => observer.messages.slice(start).find((message) => message.type === 'history'),
+        `history step ${step}`
+      );
+    };
+    const { lastStep } = await playback(0);
+    const declared = [];
+    for (let step = 0; step <= lastStep; step += 1) {
+      const { snapshot } = await playback(step);
+      if (snapshot.result) {
+        declared.push(snapshot.result.by.name);
+      }
+    }
+    expect(declared.length).toBeGreaterThan(0);
+    expect(new Set(declared)).toEqual(new Set(['[deleted user]']));
   });
 
   it('closes an open sequence when the phase moves on', async () => {
