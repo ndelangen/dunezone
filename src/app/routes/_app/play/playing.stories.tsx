@@ -229,6 +229,7 @@ export const RemovalRejected = meta.story({
 });
 
 export const ConversationHistory = meta.story({
+  globals: { motion: 'reduce' },
   beforeEach: install(() =>
     productTransport('seat-2', playingSnapshot(), { conversationMessages: conversationMessages() })
   ),
