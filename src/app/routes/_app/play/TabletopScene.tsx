@@ -6,6 +6,7 @@ import type { ThreeEvent } from '@react-three/fiber/webgpu';
 import { gestureBlockReason, pieceCount, topItemFaceUp } from '@shared/play/model';
 import type { TablePiece, Vector3Tuple } from '@shared/play/model';
 import { CARD_LAYER_STAGGER, stackLayerItemIndex } from '@shared/play/pieceFlip';
+import type { GameSnapshot } from '@shared/play/protocol';
 import { isSpicePiece, SPICE_LAYER_HEIGHT, SPICE_LAYER_PITCH, SPICE_TOKEN_RADIUS } from '@shared/play/spice';
 import {
   nearestStormRotation,
@@ -118,8 +119,8 @@ type TabletopSceneProps = {
   onSelectTurn?(turn: number): void;
   /* Called when the renderer is ready to draw, the moment there is a table to open the shell onto. */
   onSceneReady?(): void;
-  trading?: boolean;
-  setup?: boolean;
+  /* Absent on the fixture, which has no lifecycle. */
+  stage?: GameSnapshot['stage'];
   mapVisible?: boolean;
 };
 
@@ -439,8 +440,7 @@ function BoardMap({ animate = false }: { animate?: boolean }) {
 function BoardSurface({
   seatCount,
   stormSectorIndex,
-  trading,
-  setup,
+  stage,
   mapVisible,
   tableProgress,
   trackerSlots,
@@ -448,8 +448,7 @@ function BoardSurface({
 }: {
   seatCount: TableSeatCount;
   stormSectorIndex: number;
-  trading?: boolean;
-  setup?: boolean;
+  stage: TabletopSceneProps['stage'];
   mapVisible?: boolean;
   tableProgress?: TableProgress;
   trackerSlots: readonly TrackerArcSlot[];
@@ -463,8 +462,8 @@ function BoardSurface({
           rim, the furniture and the pieces stay on screen and the map fills in, instead of the route's
           placeholder replacing a table the visitor has already seen. */}
       <Suspense fallback={null}>
-        {(!setup || mapVisible) && <BoardMap animate={setup} />}
-        {!trading && !setup && <StormSectorHighlight sectorIndex={stormSectorIndex} />}
+        {(stage !== 'setup' || mapVisible) && <BoardMap animate={stage === 'setup'} />}
+        {stage !== 'swapping' && stage !== 'setup' && <StormSectorHighlight sectorIndex={stormSectorIndex} />}
       </Suspense>
       <mesh position={[0, BOARD_SURFACE_Y + 0.005, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <circleGeometry args={[BOARD_RADIUS, 128]} />
@@ -1082,19 +1081,11 @@ function SceneContents({
   trackerSlots,
   mapFramingPoints,
   onSelectTurn,
-  trading,
-  setup,
+  stage,
   mapVisible,
 }: Pick<
   TabletopSceneProps,
-  | 'cameraView'
-  | 'onInteractionActiveChange'
-  | 'seatCount'
-  | 'tableProgress'
-  | 'onSelectTurn'
-  | 'trading'
-  | 'setup'
-  | 'mapVisible'
+  'cameraView' | 'onInteractionActiveChange' | 'seatCount' | 'tableProgress' | 'onSelectTurn' | 'stage' | 'mapVisible'
 > & {
   trackerSlots: readonly TrackerArcSlot[];
   mapFramingPoints: readonly Vector3Tuple[];
@@ -1116,8 +1107,7 @@ function SceneContents({
         <BoardSurface
           seatCount={seatCount}
           stormSectorIndex={state.stormSectorIndex}
-          trading={trading}
-          setup={setup}
+          stage={stage}
           mapVisible={mapVisible}
           tableProgress={tableProgress}
           trackerSlots={trackerSlots}
@@ -1140,11 +1130,10 @@ export function TabletopScene({
   cameraView = DEFAULT_CAMERA_VIEW,
   onInteractionActiveChange,
   seatCount = DEFAULT_TABLE_SEAT_COUNT,
-  tableProgress,
+  tableProgress: providedProgress,
   onSelectTurn,
   onSceneReady,
-  trading,
-  setup,
+  stage,
   mapVisible,
 }: TabletopSceneProps) {
   const { takeAdditionalFromTarget, state, deckControls, bankControls } = useTabletop();
@@ -1152,11 +1141,13 @@ export function TabletopScene({
   const menuPiece = state.pieces.find((piece) => piece.id === pieceMenu?.pieceId);
   const deckAvailable =
     !!deckControls && !!menuPiece && !menuPiece.locked && !menuPiece.inventory && menuPiece.items.length > 0;
+  /* Swapping keeps the board clear of trackers, and setup shows only the spice ones. */
+  const tableProgress = stage === 'swapping' ? undefined : providedProgress;
   const phaseCount = tableProgress?.phases.length ?? null;
   const trackerSlots = useMemo(() => {
     const slots = phaseCount === null ? [] : trackerArcSlots(phaseCount);
-    return setup ? slots.filter((slot) => slot.kind === 'spice') : slots;
-  }, [phaseCount, setup]);
+    return stage === 'setup' ? slots.filter((slot) => slot.kind === 'spice') : slots;
+  }, [phaseCount, stage]);
   const mapFramingPoints = useMemo(() => mapViewFramingPoints(trackerSlots, seatCount), [seatCount, trackerSlots]);
   const camera = useMemo(
     () => ({
@@ -1271,8 +1262,7 @@ export function TabletopScene({
         >
           {children}
           <SceneContents
-            trading={trading}
-            setup={setup}
+            stage={stage}
             mapVisible={mapVisible}
             cameraView={cameraView}
             onInteractionActiveChange={onInteractionActiveChange}
