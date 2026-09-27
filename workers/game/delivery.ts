@@ -5,35 +5,25 @@ import type { RoomFrame, RoomView } from '../../src/shared/play/updates';
 type Delivered = { frame: RoomFrame; sequence: number; viewerSeat: Viewer['viewerSeat'] };
 
 /**
- * Per-connection baselines advance only for authorized sends;
- * old tabs retain full messages.
- * A socket takes compact updates from its first view when its admit message asks for them, or from the `sync` an older tab sends after the view that advertised them.
+ * Per-connection baselines advance only for authorized sends.
+ * Each frame after a socket's first view is a compact update against the last frame it received, unless the epoch, the viewer's seat or the bank's faction changed, which takes a full view.
  */
 export class RoomDelivery {
-  private readonly compact = new WeakSet<WebSocket>();
-  private readonly pieceMoves = new WeakSet<WebSocket>();
   private readonly delivered = new WeakMap<WebSocket, Delivered>();
-  private readonly changes = new WeakMap<RoomFrame, WeakMap<RoomFrame, Map<boolean, ReturnType<typeof frameChange>>>>();
-
-  enable(socket: WebSocket, pieceMoves = false) {
-    this.compact.add(socket);
-    if (pieceMoves) {
-      this.pieceMoves.add(socket);
-    }
-  }
+  private readonly changes = new WeakMap<RoomFrame, WeakMap<RoomFrame, ReturnType<typeof frameChange>>>();
 
   view(socket: WebSocket, viewer: Viewer, frame: RoomFrame, completedCommandId?: string): RoomView {
     const sequence = (this.delivered.get(socket)?.sequence ?? 0) + 1;
     this.delivered.set(socket, { frame, sequence, viewerSeat: viewer.viewerSeat });
-    return { type: 'view', updates: 2, pieceMoves: true, sequence, viewer, ...frame, completedCommandId };
+    return { type: 'view', sequence, viewer, ...frame, completedCommandId };
   }
 
   update(
     socket: WebSocket,
     viewer: Viewer,
     frame: RoomFrame,
-    { committed, completedCommandId }: { committed: boolean; completedCommandId?: string }
-  ): Extract<ServerMessage, { type: 'view' | 'activity' | 'update' }> {
+    completedCommandId?: string
+  ): Extract<ServerMessage, { type: 'view' | 'update' }> {
     const base = this.delivered.get(socket);
     if (
       !base ||
@@ -43,26 +33,15 @@ export class RoomDelivery {
     ) {
       return this.view(socket, viewer, frame, completedCommandId);
     }
-    if (!this.compact.has(socket)) {
-      return committed
-        ? this.view(socket, viewer, frame, completedCommandId)
-        : { type: 'activity', epoch: frame.epoch, carries: frame.carries, pointers: frame.pointers };
-    }
     let byBase = this.changes.get(frame);
     if (!byBase) {
       byBase = new WeakMap();
       this.changes.set(frame, byBase);
     }
-    let byCapability = byBase.get(base.frame);
-    if (!byCapability) {
-      byCapability = new Map();
-      byBase.set(base.frame, byCapability);
-    }
-    const pieceMoves = this.pieceMoves.has(socket);
-    let change = byCapability.get(pieceMoves);
+    let change = byBase.get(base.frame);
     if (!change) {
-      change = frameChange(base.frame, frame, pieceMoves);
-      byCapability.set(pieceMoves, change);
+      change = frameChange(base.frame, frame);
+      byBase.set(base.frame, change);
     }
     const sequence = base.sequence + 1;
     this.delivered.set(socket, { frame, sequence, viewerSeat: viewer.viewerSeat });

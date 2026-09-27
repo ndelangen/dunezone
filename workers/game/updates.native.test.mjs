@@ -6,6 +6,7 @@ import {
   createPeer,
   createRuntime,
   eventually,
+  isFullView,
   openGame,
   provision,
   syncView,
@@ -34,11 +35,11 @@ it('coalesces a burst to the latest pointer while preserving an immediate commit
   for (let seq = 0; seq < pointerCount; seq++) {
     connection.send({ type: 'pointer', seq, position: [seq, 0, 0] });
   }
-  await connection.message('activity', (message) => message.pointers[0]?.sourceSeq === pointerCount - 1);
+  await connection.message('view', (message) => message.pointers[0]?.sourceSeq === pointerCount - 1);
   const windows = Math.max(1, Math.ceil((performance.now() - startedAt) / 50));
   /* Allow one scheduling boundary, while still requiring the burst to coalesce. */
   const maximum = Math.min(pointerCount - 1, windows + 1);
-  expect(connection.messages.filter((message) => message.type === 'activity').length).toBeLessThanOrEqual(maximum);
+  expect(connection.messages.filter((message) => message.type === 'update').length).toBeLessThanOrEqual(maximum);
   connection.send({ type: 'command', commandId: 'turn', expectedRevision: 0, action: { kind: 'turn', turn: 2 } });
   expect((await connection.message('view', (message) => message.completedCommandId === 'turn')).snapshot.revision).toBe(
     1
@@ -47,7 +48,7 @@ it('coalesces a burst to the latest pointer while preserving an immediate commit
 
 it('stamps its clock on every frame but admission', async () => {
   const connection = await openGame(runtime);
-  connection.send({ type: 'admit', ticket: 'c'.repeat(64), updates: 2 });
+  connection.send({ type: 'admit', ticket: 'c'.repeat(64) });
   await connection.message('view');
   connection.send({ type: 'command', commandId: 'turn', expectedRevision: 0, action: { kind: 'turn', turn: 2 } });
   await connection.message('update', (message) => message.completedCommandId === 'turn');
@@ -61,28 +62,26 @@ it('stamps its clock on every frame but admission', async () => {
   }
 });
 
-it('negotiates compact updates and supplies a full snapshot on resync', async () => {
+it('supplies a full snapshot on resync between compact updates', async () => {
   const connection = await openGame(runtime);
   connection.send({ type: 'admit', ticket: 'c'.repeat(64) });
   const initial = await connection.message('view');
-  expect(initial.updates).toBe(2);
-  connection.send({ type: 'sync' });
-  await connection.message('view', (message) => message.sequence > initial.sequence);
+  expect((await syncView(connection)).sequence).toBeGreaterThan(initial.sequence);
   connection.send({ type: 'command', commandId: 'turn', expectedRevision: 0, action: { kind: 'turn', turn: 2 } });
   const update = await connection.message('update', (message) => message.completedCommandId === 'turn');
   expect(update.snapshot.baseRevision).toBe(0);
   expect(update.snapshot.revision).toBe(1);
   expect(JSON.stringify(update).length).toBeLessThan(JSON.stringify(initial).length / 2);
-  connection.send({ type: 'sync' });
-  const restored = await connection.message('view', (message) => message.snapshot.revision === 1);
+  const restored = await syncView(connection);
+  expect(restored.snapshot.revision).toBe(1);
   expect(restored.sequence).toBeGreaterThan(update.sequence);
   expect(restored.snapshot.table.pieces).toEqual(initial.snapshot.table.pieces);
   expect(await eventually(() => !connection.closed, 'open connection')).toBe(true);
 });
 
-it('an admission that asks for compact updates takes one full view before its first patch', async () => {
+it('an admission takes one full view before its first patch', async () => {
   const connection = await openGame(runtime);
-  connection.send({ type: 'admit', ticket: 'c'.repeat(64), updates: 2 });
+  connection.send({ type: 'admit', ticket: 'c'.repeat(64) });
   const initial = await connection.message('view');
   connection.send({ type: 'command', commandId: 'turn', expectedRevision: 0, action: { kind: 'turn', turn: 2 } });
   const result = await eventually(
@@ -91,7 +90,7 @@ it('an admission that asks for compact updates takes one full view before its fi
   );
   expect(result.type).toBe('update');
   expect(result.baseSequence).toBe(initial.sequence);
-  expect(connection.messages.filter((message) => message.type === 'view')).toHaveLength(1);
+  expect(connection.messages.filter(isFullView)).toHaveLength(1);
 });
 
 /* A joining socket has no baseline, so its full view is guarded by the suspended-socket case below, not here. */
@@ -176,51 +175,32 @@ it('keeps motion free of unchanged snapshots and still sends saved changes', asy
   expect(view.pointers).toEqual(fresh.pointers);
 });
 
-it('sends saved movement patches only to clients that opt in and preserves legacy views', async () => {
-  const modern = await admitPlayer(peer, runtime, 'a');
-  const compact = await admitPlayer(peer, runtime, 'b');
-  const legacy = await admitPlayer(peer, runtime, 'c');
-  await syncView(modern);
-  const beforeOptIn = modern.messages.length;
-  modern.send({ type: 'sync', pieceMoves: true });
-  const baseline = await eventually(
-    () => modern.messages.slice(beforeOptIn).find((message) => message.type === 'view'),
-    'opt-in view'
-  );
-  expect(baseline.pieceMoves).toBe(true);
-  const oldBaseline = await syncView(compact);
+it('patches saved movement for a socket that admits and syncs without asking for it', async () => {
+  const mover = await admitPlayer(peer, runtime, 'a');
+  const watcher = await admitPlayer(peer, runtime, 'b');
+  const baseline = await syncView(watcher);
   const pieceId = 'harkonnen-force-loose';
-  modern.send({
+  mover.send({
     type: 'begin',
-    carryId: 'compact-move',
+    carryId: 'saved-move',
     sourcePieceId: pieceId,
     expectedVersion: baseline.snapshot.versions[pieceId],
     pickup: 'whole',
   });
-  await modern.message('carry');
-  const carry = await modern.message('update', (message) => message.activity.carries.length > 0);
-  const oldCarry = await compact.message('update', (message) => message.activity.carries.length > 0);
-  modern.send({
+  await mover.message('carry');
+  mover.send({
     type: 'drop',
-    commandId: 'compact-drop',
-    carryId: 'compact-move',
+    commandId: 'saved-move',
+    carryId: 'saved-move',
     position: [-4, 0.14, 0],
     orientation: 90,
   });
-  const moved = await modern.message('update', (message) => message.completedCommandId === 'compact-drop');
-  const oldMoved = await compact.message('update', (message) => message.snapshot?.revision === 1);
-  const oldView = await legacy.message('view', (message) => message.snapshot.revision === 1);
+  const revision = baseline.snapshot.revision + 1;
+  const moved = await watcher.message('update', (message) => message.snapshot?.revision === revision);
   expect(moved.snapshot.pieces).toEqual([]);
-  expect(moved.snapshot.pieceMoves).toHaveLength(1);
-  expect(oldMoved.snapshot.pieceMoves).toBeUndefined();
-  expect(oldMoved.snapshot.pieces).toHaveLength(1);
-  const modernResult = applyRoomUpdate(applyRoomUpdate(baseline, carry), moved);
-  const oldResult = applyRoomUpdate(applyRoomUpdate(oldBaseline, oldCarry), oldMoved);
-  expect(modernResult.snapshot.table).toEqual(oldResult.snapshot.table);
-  expect(modernResult.snapshot.table).toEqual(oldView.snapshot.table);
-  const restored = await syncView(modern);
-  expect(modernResult.snapshot).toEqual(restored.snapshot);
-  expect(modernResult.carries).toEqual(restored.carries);
+  expect(moved.snapshot.pieceMoves.map((move) => move.id)).toEqual([pieceId]);
+  const patched = await watcher.message('view', (message) => message.snapshot.revision === revision);
+  expect(patched.snapshot).toEqual((await syncView(watcher)).snapshot);
 });
 
 it('moves projected cards and replaces revealed artwork without retaining it after concealment or reconnect', async () => {
@@ -238,14 +218,7 @@ it('moves projected cards and replaces revealed artwork without retaining it aft
   await runtime.restart();
   const players = [];
   for (const suffix of ['a', 'b', 'c']) {
-    const connection = await admitPlayer(peer, runtime, suffix);
-    const before = connection.messages.length;
-    connection.send({ type: 'sync', pieceMoves: true });
-    await eventually(
-      () => connection.messages.slice(before).find((message) => message.type === 'view'),
-      'negotiated card view'
-    );
-    players.push(connection);
+    players.push(await admitPlayer(peer, runtime, suffix));
   }
   let views = await Promise.all(players.map(syncView));
   const hidden = (message) => {
@@ -316,7 +289,6 @@ it('moves projected cards and replaces revealed artwork without retaining it aft
   }
   players[2].socket.close();
   const reconnected = await admitPlayer(peer, runtime, 'c');
-  reconnected.send({ type: 'sync', pieceMoves: true });
   const restored = await syncView(reconnected);
   expect(restored.snapshot.table).toEqual(views[2].snapshot.table);
   hidden(restored);

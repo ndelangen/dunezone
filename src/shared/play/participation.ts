@@ -47,3 +47,9 @@ export function seatLabel(seatId: string): string {
   const number = /^seat-(\d+)$/.exec(seatId)?.[1];
   return number ? `seat ${Number(number)}` : seatId;
 }
+
+/** The seat's label at the start of a sentence, as table events name the seat and never its player. */
+export function seatSubject(seatId: string): string {
+  const label = seatLabel(seatId);
+  return `${label.charAt(0).toUpperCase()}${label.slice(1)}`;
+}
