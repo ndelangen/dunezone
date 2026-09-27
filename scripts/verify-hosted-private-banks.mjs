@@ -208,11 +208,11 @@ export async function verifyPrivateBanks(toolkit) {
     await openTab(tab, 'Spice');
     await b.page.getByRole('region', { name: 'Faction bank' }).waitFor();
     await tab.page.getByRole('region', { name: 'Faction bank' }).waitFor();
-    /* The other two leave the camera and the panel where a freshly mounted table would not put them (#1418). */
+    /* The other two leave the camera and the panel where a freshly mounted table would not put them: Spice is never the first tab (#1418). */
     const others = [a, observer];
     for (const who of others) {
       await focus(who, 'bottom');
-      await openTab(who, 'Log');
+      await openTab(who, 'Spice');
     }
     const tables = await Promise.all(others.map((who) => who.page.locator('.dune-play-shell canvas').elementHandle()));
     const signedOutFrom = [b.rawMessages.length, tab.rawMessages.length];
@@ -247,9 +247,9 @@ export async function verifyPrivateBanks(toolkit) {
         `${who.label}'s table remounted.`
       );
       assert.equal(
-        await who.page.locator('[data-nested-tabs-item][aria-label="Log"][aria-current="true"]').count(),
+        await who.page.locator('[data-nested-tabs-item][aria-label="Spice"][aria-current="true"]').count(),
         1,
-        `${who.label} lost the Log tab.`
+        `${who.label} lost the Spice tab.`
       );
     }
     /* Player A's own press above moved A's camera; the observer's stays where it was put. */
