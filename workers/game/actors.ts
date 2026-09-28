@@ -324,7 +324,8 @@ export class ActorDirectory {
 
   /**
    * Resolves admitted connections from current occupancy without creating or updating an actor.
-   * One read serves every connection, since a room re-resolves all of them for each message it handles.
+   * One read serves every connection, since a room re-resolves all of them for each message it handles; it reads
+   * only the connected users, never everyone the room has admitted.
    */
   currentViewers(connections: readonly Pick<Viewer, 'connectionId' | 'userId'>[]): (Viewer | undefined)[] {
     if (!connections.length) {
@@ -333,7 +334,8 @@ export class ActorDirectory {
     const occupants = new Map(
       this.storage.sql
         .exec<Pick<Actor, 'user_id' | 'seat' | 'display_name'> & Pick<Seat, 'faction_color'>>(
-          'SELECT actors.user_id, actors.seat, actors.display_name, seats.faction_color FROM actors LEFT JOIN seats ON seats.seat=actors.seat WHERE actors.deleted=0'
+          'SELECT actors.user_id, actors.seat, actors.display_name, seats.faction_color FROM actors LEFT JOIN seats ON seats.seat=actors.seat WHERE actors.deleted=0 AND actors.user_id IN (SELECT value FROM json_each(?))',
+          JSON.stringify([...new Set(connections.map(({ userId }) => userId))])
         )
         .toArray()
         .map((row) => [row.user_id, row])
