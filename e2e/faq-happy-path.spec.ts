@@ -32,7 +32,8 @@ test('FAQ happy path: ask, answer, accept, profile activity', async ({ page, new
   await test.step('asker accepts the answer through the live subscription', async () => {
     await expect(page.getByText(answerText)).toBeVisible();
     await page.getByRole('button', { name: 'Mark as accepted answer' }).click();
-    await expect(page.getByText('Accepted answer')).toBeVisible();
+    /* Exact, so the wait reads the badge and not the tooltip of the "Unmark accepted answer" button under the pointer. */
+    await expect(page.getByText('Accepted answer', { exact: true })).toBeVisible();
   });
 
   await test.step('the answer and its acceptance appear on the answerer profile', async () => {

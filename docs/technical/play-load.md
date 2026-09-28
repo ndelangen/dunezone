@@ -1,14 +1,7 @@
-# Local multiplayer load preparation
+# Local and hosted multiplayer load runs
 
-[Prepare bounded hosted runs for the full multiplayer matrix](https://github.com/ndelangen/dunezone/issues/1164)
-tracks this work, ahead of [Verify multiplayer capacity with the corrected measurement matrix](https://github.com/ndelangen/dunezone/issues/1165).
-The [agreed workload](https://github.com/ndelangen/dunezone/issues/1022#issuecomment-5599029811)
-is the acceptance contract. The spending cap is zero euros.
-
-This runner prepares local protocol measurements. It does not establish hosted latency or complete
-the measurement ticket. Hosted testing requires a verified isolated origin, Worker and Durable
-Object namespace, and synthetic Convex/Auth backend that fit the spending cap, and an approved
-cell for every hosted run.
+The status of the load work, its spending limit and each hosted batch's approval are on
+[Prepare bounded hosted runs for the full multiplayer matrix](https://github.com/ndelangen/dunezone/issues/1164).
 
 ## Run a bounded probe
 
@@ -39,21 +32,15 @@ and recipient delivery use the existing application path. The stack runs the pro
 lease and 90 second renewal cadence, so a load run's `watchAuthorizations` and `reconcileAccounts`
 traffic is about 0.7 calls a minute per function per connected room.
 
-The coordinator runs under Node 22 or later, not bun. It reads each connection's TCP socket from
-the `ws` upgrade event, and the wire-byte totals and the extension it records come from there.
-Bun's `ws` shim fires no upgrade event, so under bun the runner would record no transport and
-both would stay blank. Node's type stripping resolves no extensionless TypeScript import, and the
-shared modules the runner reaches use them, so the stack bundles `scripts/play-load/run.mjs` with
-esbuild before it starts anything else. `scripts/play-load/bundle.ts` writes the bundle beside the
-runner, git ignores it, each report carries the bundle's digest as `coordinatorSha256`, and
-`bundle.test.mjs` loads the bundle under Node in the unit suite.
+The stack runs the coordinator under Node 22 or later from the bundle that
+[`scripts/play-load/bundle.ts`](../../scripts/play-load/bundle.ts) writes.
 
 The runner accepts explicit `http://127.0.0.1:PORT` origins by default. The separate hosted preparation path below requires a private run file and a deployment-scoped key.
 Synthetic fixture creation and provisioning also enforce the isolated-backend guard. A supplied
 profile is server-selected provisioning metadata, never a browser-supplied seat or authority claim.
-The browser case uses the ordinary hosted page and its directory query. A guarded internal test
-control may create the canonical fixture key only while no pending or ready game holds that route
-on the disposable backend. It refuses a live fixture and cannot run against production.
+The browser case opens the provisioned fixture at the ordinary game address, `/play/<gameId>`, and
+reads its access through the same game query every page uses. Fixture creation is a guarded
+internal test control that refuses a second live game on the hosted load backend and cannot run against production.
 
 ## Fixture and workload
 
@@ -61,7 +48,8 @@ on the disposable backend. It refuses a live fixture and cannot run against prod
 The baseline keeps six pieces, 17 items and the original two player seats. Its smoke adds one
 observer and one secondary player tab. It is not the expanded audience.
 
-Both expanded arrangements have 18 distinct seated accounts, 20 observers and six secondary tabs.
+Both expanded arrangements take their audience from `players`, `observers` and `secondaryTabs` in
+`loadWorkload.json`.
 The runner asserts distinct users and seats, observer roles and shared seats for secondary tabs.
 Their 750 item identities are the same. The stacked arrangement has 294 pieces; the separated
 arrangement has 750. The synthetic pieces occupy a dense area of the table, with a clear position
@@ -239,20 +227,6 @@ remaining account allowances, not just the advertised monthly totals. Convex usa
 [Workers pricing](https://developers.cloudflare.com/workers/platform/pricing/) and
 [Durable Objects pricing](https://developers.cloudflare.com/durable-objects/platform/pricing/).
 
-## Remaining preparation
-
-Before the measurement ticket can run, the work still needs:
-
-- An approved batch of cells under the zero-euro cap, checked against the remaining included
-  allowances, and a fresh isolated environment for it. The local runner's controls and smoke
-  evidence do not establish hosted behavior.
-- Handler, serialization, storage and authorization measurements beyond current delivery counters
-  and local process totals.
-- Review, full required checks, deployment verification where applicable, and linked evidence.
-
-Private mechanics, real catalogue content and final device support remain the separate public
-release requirements already named by the workload decision.
-
 ## Limits in an isolated game room
 
 `workers/game/load-limits.fixture.ts` supplies a separate test entry around the real `GameRoom`.
@@ -365,12 +339,14 @@ bun --no-env-file scripts/prepare-hosted-play.mjs backend \
   --target /PRIVATE_TEMP/target.json --directory /PRIVATE_TEMP/backend
 ```
 
-The copy contains tracked Convex and shared code, with five changes recorded in `load-source.json`:
-its synthetic guard binds the selected backend and application origin; Password Auth accepts only
-38 fixed synthetic emails during the run; fixture creation refuses a second live game; and its cron
-registry is empty. Real hashing, sessions, JWTs, admission, authorization and commands remain in use.
-No environment files or data are copied. Production source retains its loopback-only synthetic guard.
-The additional guard and resource-ledger work must be included in the reported test overhead.
+The copy contains tracked Convex and shared code with two generated modules, both recorded in
+`load-source.json`. Its `convex/lib/playSynthetic.ts` binds the synthetic guard to the selected
+backend and application origin, lets Password Auth accept only 38 fixed synthetic emails during the
+run, and makes fixture creation refuse a second live game. Its `convex/crons.ts` registers no cron.
+Every other file is production source. Real hashing, sessions, JWTs, admission, authorization and
+commands remain in use. No environment files or data are copied. Production source retains its
+loopback-only synthetic guard. The additional guard and resource-ledger work must be included in
+the reported test overhead.
 
 Mint a development deploy key using the full explicit project and deployment reference in a
 sanitized environment. Save it to a private file and check its `dev:<backendName>|` prefix without
@@ -411,8 +387,8 @@ Then run the cells one at a time. For each cell:
 2. If an earlier cell's game is still `ready` because its coordinator did not reach cleanup, retire
    it now with `playTesting:retireFixture` under this window. The copied backend refuses a second
    live game.
-3. Create exactly one fixture through `playTesting:createFixture` with the cell's profile, adding
-   `useHostedRoute: true` for the browser cell only.
+3. Create exactly one fixture through `playTesting:createFixture` with the cell's profile. The
+   browser cell opens that game at `/play/<gameId>`, as every other cell's players address it.
 4. Regenerate into a fresh private directory using the returned game ID, this window and this
    cell. The generated `activation.json` is mode 0600 and contains the `LOAD_ACTIVATION` secret
    binding with the cell's ceilings. Publish it to each already-uploaded Worker with

@@ -5,7 +5,7 @@ import { accepted, nextSnapshot } from '../../src/shared/play/commands';
 import { emptyPublicControls } from '../../src/shared/play/inventory';
 import type { StoredPiece } from '../../src/shared/play/model';
 import { PHASE_CHANGE_COOLDOWN_MS } from '../../src/shared/play/phases';
-import { tableForViewer } from '../../src/shared/play/protocol';
+import { rosterFactionNames, tableForViewer } from '../../src/shared/play/protocol';
 import type { PieceAction } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
 import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
@@ -13,6 +13,7 @@ import { phaseGate, setupStep, setupReadyRequired } from '../../src/shared/play/
 import type { SetupState } from '../../src/shared/play/setup';
 import { OTHER_DECK_POSITION } from '../../src/shared/play/tableFurnitureLayout';
 import { restingPositionAt } from '../../src/shared/play/tableGeometry';
+import { labelForCount } from '../../src/shared/play/tableState';
 import type { StoredSnapshot } from './state';
 
 export function initialSetup(captures: FactionCapture[]): SetupState {
@@ -282,7 +283,7 @@ export function gatherTraitors(snapshot: StoredSnapshot, reserved: ReadonlySet<s
   }
   const { candidates, held } = pendingTraitors(snapshot.table.pieces, pending, reserved);
   const remaining = held ? [...pending] : [];
-  const pieces = parkTraitors(snapshot.table.pieces, candidates);
+  const pieces = parkTraitors(snapshot, candidates);
   if (!pieces && JSON.stringify(remaining) === JSON.stringify(snapshot.pendingTraitors)) {
     return snapshot;
   }
@@ -305,22 +306,27 @@ function parkedTraitors(candidates: StoredPiece[]) {
   );
 }
 
-function parkTraitors(table: StoredPiece[], candidates: StoredPiece[]) {
+function parkTraitors(snapshot: StoredSnapshot, candidates: StoredPiece[]) {
   if (!candidates.length || parkedTraitors(candidates)) {
     return null;
   }
   const ids = new Set(candidates.map((piece) => piece.id));
+  const items = candidates.flatMap((piece) => piece.items);
   const deck = {
     ...candidates[0],
-    label: 'Traitor deck',
+    /* Combining stacks changes their cards, so the gathered stack takes the name its back gives it; a lone stack only moves, so it keeps its own. */
+    label:
+      candidates.length === 1
+        ? candidates[0].label
+        : labelForCount(candidates[0], items.length, rosterFactionNames(snapshot.roster)),
     owner: 'shared',
     locked: false,
     orientation: 0,
     zoneId: null,
-    items: candidates.flatMap((piece) => piece.items),
+    items,
   };
   deck.position = restingPositionAt(OTHER_DECK_POSITION, deck);
-  return [...table.filter((piece) => !ids.has(piece.id)), deck];
+  return [...snapshot.table.pieces.filter((piece) => !ids.has(piece.id)), deck];
 }
 
 function pendingTraitors(table: StoredPiece[], pending: ReadonlySet<string>, reserved: ReadonlySet<string>) {

@@ -5,7 +5,8 @@ import { stackTopHeight } from '../src/shared/play/tableGeometry.ts';
 
 /** Two signed-in players exercise the real battle controls on a disposable Worker. */
 export async function verifyBattles(toolkit) {
-  const { seated, button, converged, focus, openTab, point, capture, until, passed } = toolkit;
+  const { seated, treacheryDeck, button, converged, focus, openTab, point, carrySteps, capture, until, passed } =
+    toolkit;
   const { a, b, observer } = await seated();
   assert.notEqual(a.view().viewer.userId, b.view().viewer.userId);
   assert.notEqual(a.context.browser(), b.context.browser());
@@ -38,7 +39,8 @@ export async function verifyBattles(toolkit) {
         'Piece carry did not start.'
       );
     }
-    await who.page.mouse.move(end.x, end.y, { steps: 25 });
+    /* A native HTML drag keeps 25 steps; the two-step move was measured on pointer carries only. */
+    await who.page.mouse.move(end.x, end.y, { steps: nativeDrag ? 25 : carrySteps });
     await who.page.mouse.up();
   }
   await drag(a, button(a, 'Drag Recovery token onto the table'), [-1.5, 0.38, 1.5]);
@@ -46,14 +48,16 @@ export async function verifyBattles(toolkit) {
     () => a.view().snapshot.table.pieces.some((piece) => piece.id === token.id && !piece.inventory),
     'Leader token did not leave shared inventory.'
   );
-  await openTab(a, 'Table');
-  await act(a, 'Spawn 7 spice');
+  /* Setup credited the faction's starting spice; the funding case counts from it. */
+  const startingSpice = a.view().snapshot.bank.balance;
+  await focus(a, 'map');
+  await toolkit.supplyShortcut(a, '7');
   await until(() => a.view().snapshot.table.pieces.some(isSpicePiece), 'Spice did not spawn.');
   const spice = a.view().snapshot.table.pieces.find(isSpicePiece);
   const at = await point(a, [spice.position[0], spice.position[1] + stackTopHeight(spice), spice.position[2]], 'map');
   await a.page.mouse.click(at.x, at.y, { button: 'right' });
   await a.page.getByRole('menuitem', { name: 'Take into bank', exact: true }).click();
-  await until(() => a.view().snapshot.bank.balance === 7, 'Manual collection did not fund the bank.');
+  await until(() => a.view().snapshot.bank.balance === startingSpice + 7, 'Manual collection did not fund the bank.');
   while (a.view().snapshot.phase !== 6) {
     await act(a, 'Next phase');
   }
@@ -82,8 +86,24 @@ export async function verifyBattles(toolkit) {
     }
     return received;
   }
+  /** Draws the treachery deck's top card into the player's hand through the deck menu. */
+  async function draw(who) {
+    await focus(who, 'map');
+    const deck = who.view().snapshot.table.pieces.find((piece) => piece.id === treacheryDeck(who));
+    const at = await point(who, [deck.position[0], deck.position[1] + stackTopHeight(deck), deck.position[2]], 'map');
+    const previousHand = new Set(who.view().snapshot.hand.map((entry) => entry.id));
+    await who.page.mouse.click(at.x, at.y, { button: 'right' });
+    await who.page.getByRole('menuitem', { name: 'Draw a card', exact: true }).click();
+    await until(
+      () => who.view().snapshot.hand.length === previousHand.size + 1,
+      'The drawn card did not reach the hand.'
+    );
+    await who.page.keyboard.press('Escape');
+    await openTab(who, 'Battle');
+    return who.view().snapshot.hand.find((entry) => !previousHand.has(entry.id));
+  }
   await take(a, token.id);
-  const battleCard = await take(a, 'treachery-card-loose');
+  const battleCard = await draw(a);
   const target = await point(a, [0.95, 0.18, -3.05], 'map');
   const marker = button(a, 'Drag battle marker onto territory');
   const bounds = await marker.boundingBox();
@@ -100,7 +120,8 @@ export async function verifyBattles(toolkit) {
     'Combatants did not receive private plans.'
   );
   assert.equal(observer.view().snapshot.battlePlan, null);
-  await verifyFunding({ a, b, observer, token, until, capture });
+  const cardName = battleCard.items[0].artwork.name;
+  await verifyFunding({ a, b, observer, token, cardName, startingSpice, until, capture });
   await act(a, 'Ready for battle');
   await act(b, 'Ready for battle');
   await until(() => a.view().snapshot.battle.stage === 'countdown', 'Both Ready did not start countdown.');
@@ -115,7 +136,7 @@ export async function verifyBattles(toolkit) {
     15_000
   );
   await capture(a, 'after-battle-reveal');
-  assert.equal(a.view().snapshot.bank.balance, 4);
+  assert.equal(a.view().snapshot.bank.balance, startingSpice + 4);
   await drag(
     a,
     a.page
@@ -131,7 +152,7 @@ export async function verifyBattles(toolkit) {
     a,
     a.page
       .locator('[data-battle-stage="revealed"]')
-      .getByRole('button', { name: 'Drag Treachery card onto table', exact: true }),
+      .getByRole('button', { name: `Drag ${cardName} onto table`, exact: true }),
     [1.6, 0.38, 1.8]
   );
   await until(
@@ -160,7 +181,7 @@ export async function verifyBattles(toolkit) {
   await drag(a, button(a, 'Drag battle marker onto territory'), [0, 0.18, 0]);
   await until(() => a.view().snapshot.battle, 'Cancellation example did not start.');
   await act(a, 'Claim left side');
-  await commitCard({ who: a, name: 'Treachery card', until });
+  await commitCard({ who: a, name: cardName, until });
   await act(a, 'Ready for battle');
   await act(b, 'Cancel battle');
   await until(
@@ -170,13 +191,13 @@ export async function verifyBattles(toolkit) {
         .snapshot.hand.some((piece) => piece.id === returnedCard.id && piece.items[0].id === returnedCard.items[0].id),
     'Cancellation did not restore the card.'
   );
-  assert.equal(a.view().snapshot.bank.balance, 4);
+  assert.equal(a.view().snapshot.bank.balance, startingSpice + 4);
   await capture(a, 'after-battle-cancellation');
   passed('A seated noncombatant cancels preparation and restores the private card without a public result');
   await focus(a, 'map');
 }
 
-async function verifyFunding({ a, b, observer, token, until, capture }) {
+async function verifyFunding({ a, b, observer, token, cardName, startingSpice, until, capture }) {
   /* One physical troop type renders as the single Troops field since the accepted workbench landed. */
   const count = a.page.getByRole('textbox', { name: 'Troops', exact: true });
   await count.click();
@@ -187,16 +208,16 @@ async function verifyFunding({ a, b, observer, token, until, capture }) {
   await a.page.getByRole('textbox', { name: 'Committed spice', exact: true }).fill('5');
   await a.page.getByRole('textbox', { name: 'Committed spice', exact: true }).press('Enter');
   await until(() => a.view().snapshot.battlePlan?.spice === 5, 'Five spice did not reserve.');
-  assert.equal(a.view().snapshot.bank.balance, 2);
+  assert.equal(a.view().snapshot.bank.balance, startingSpice + 2);
   await count.fill('3');
   await count.press('Enter');
   await until(() => a.view().snapshot.battlePlan?.spice === 3, 'Troop declaration did not save.');
   assert.equal(a.view().snapshot.battlePlan.troops[0].dialed, 3);
-  assert.equal(a.view().snapshot.bank.balance, 4);
+  assert.equal(a.view().snapshot.bank.balance, startingSpice + 4);
   await a.page.getByRole('combobox', { name: 'Leader', exact: true }).click();
   await a.page.getByRole('option', { name: 'Recovery token', exact: true }).click();
   await until(() => a.view().snapshot.battlePlan.leaderId === token.id, 'Leader did not commit.');
-  await commitCard({ who: a, name: 'Treachery card', until });
+  await commitCard({ who: a, name: cardName, until });
   assert.equal(b.view().snapshot.battle.revealed, undefined);
   await a.page.getByRole('separator', { name: 'Resize controls panel' }).press('End');
   await a.page.getByRole('heading', { name: 'Battle', exact: true }).scrollIntoViewIfNeeded();

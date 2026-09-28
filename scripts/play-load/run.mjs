@@ -11,6 +11,7 @@ import WebSocket from 'ws';
 
 import { loadCaseSchema } from '../../src/shared/play/loadTarget.ts';
 import { applyRoomUpdate } from '../../src/shared/play/updates.ts';
+import { loopbackOrigin } from '../lib/isolated-stack.ts';
 import { browsers } from './browsers.mjs';
 import { cpuProfile } from './cpu.mjs';
 import { captureSource, prepareDirectory } from './files.mjs';
@@ -19,6 +20,7 @@ import { interactions } from './interactions.mjs';
 import { distribution, measurements } from './measurements.mjs';
 import { runMotionSchedule } from './motion.mjs';
 import { runActionSchedule } from './pacing.mjs';
+import { runnerProfiles } from './profiles.ts';
 import { sizeUpdate, updateLedger } from './redundancy.mjs';
 import { slowLink } from './slow-link.mjs';
 import { createTrace } from './trace.mjs';
@@ -47,7 +49,7 @@ const { values } = parseArgs({
     'hosted-run': { type: 'string' },
   },
 });
-assert.ok(['baseline', 'stacked', 'separated'].includes(values.profile));
+assert.ok(runnerProfiles.includes(values.profile));
 assert.ok(loadCaseSchema.options.includes(values.case));
 assert.ok(values.origin && values['report-dir']);
 assert.ok(['on', 'off'].includes(values.compression));
@@ -58,12 +60,11 @@ const local = {
 };
 const hosted = values['hosted-run'] ? await openHostedSession(values['hosted-run'], values) : null;
 assert.ok(hosted || (local.CONVEX_SELF_HOSTED_URL && local.CONVEX_SELF_HOSTED_ADMIN_KEY));
-const origin = new URL(values.origin);
-const backend = new URL(hosted?.target.backendOrigin ?? local.CONVEX_SELF_HOSTED_URL);
-for (const url of hosted ? [] : [origin, backend]) {
-  assert.equal(url.href, `http://127.0.0.1:${url.port}/`, 'Only explicit isolated loopback origins are accepted.');
-  assert.ok(url.port);
-}
+/* A hosted run's origins come from the target record that the session validated; a local run takes loopback only. */
+const origin = new URL(hosted ? values.origin : loopbackOrigin(values.origin, '--origin'));
+const backend = new URL(
+  hosted ? hosted.target.backendOrigin : loopbackOrigin(local.CONVEX_SELF_HOSTED_URL, 'CONVEX_SELF_HOSTED_URL')
+);
 const directory = await prepareDirectory(values['report-dir']);
 const source = await captureSource(directory);
 const manifestText = await readFile(new URL('../../src/shared/play/loadWorkload.json', import.meta.url), 'utf8');
@@ -546,6 +547,8 @@ try {
     browserRun = await browsers({
       origin: origin.origin,
       backend: backend.origin,
+      /* The game is provisioned after the browser starts; the page opens it by its own address. */
+      gameId: () => game.gameId,
       directory,
       stopping: () => stopping,
       onMessage: apply,
@@ -563,10 +566,10 @@ try {
   }
   game =
     hosted?.game ??
-    (await admin.mutation(anyApi.playTesting.createFixture, {
-      ...(values.profile === 'baseline' ? {} : { loadProfile: values.profile }),
-      ...(browserRun ? { useHostedRoute: true } : {}),
-    }));
+    (await admin.mutation(
+      anyApi.playTesting.createFixture,
+      values.profile === 'baseline' ? {} : { loadProfile: values.profile }
+    ));
   const provision = await fetch(`${origin.origin}/__play/games/${game.gameId}/provision`, {
     method: 'POST',
     signal: AbortSignal.any([operations.signal, AbortSignal.timeout(30_000)]),

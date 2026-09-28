@@ -15,6 +15,7 @@ import type { ReactNode } from 'react';
 
 import { requestPlayTicket } from '@db/play';
 
+import { FoilConfetti } from '../FoilConfetti';
 import { GameTable } from '../GameTable';
 import { usePointerSession } from '../PointerSessionContext';
 import { TabletopContext, useTableKeyboard } from '../TabletopContext';
@@ -23,11 +24,13 @@ import { TableWait } from '../TableWait';
 import { BattleControls, BattleScene, HandControls } from './BattleControls';
 import { OfflineConversations } from './Conversation';
 import { DraftingHeader, DraftingNotice, DraftingOverlay, DraftingPanel, DraftingReadiness } from './Drafting';
+import { DetermineWinner, ResultDecisionBar } from './GameResult';
 import { GameRuntimeContext } from './gameRuntime';
 import { LogEntries } from './Log';
 import { PieceArtwork } from './PieceArtwork';
 import { PresenceContext } from './PresenceContext';
 import { PlayerPanel, RemovalDecisionBar } from './RemovalVotes';
+import { useResultCelebration } from './resultCelebration';
 import { GameMenu, SeatRequests } from './SeatRequests';
 import { SwappingReadiness } from './Swapping';
 import { SwapScene } from './SwapScene';
@@ -221,9 +224,9 @@ function PhaseControls({ table }: Pick<ConnectionControlsProps, 'table'>) {
       eyebrow={table.playback ? 'Playback phase' : 'Shared phase'}
       title={phase.label}
       description={
-        table.snapshot.stage
-          ? `${phase.instructions} Previous changes the tracker only. Pieces and storm position stay as they are.`
-          : phase.instructions
+        table.snapshot.stage === 'finished' || !table.snapshot.stage
+          ? phase.instructions
+          : `${phase.instructions} Previous changes the tracker only. Pieces and storm position stay as they are.`
       }
     >
       {!table.snapshot.stage && (
@@ -647,6 +650,7 @@ function ConnectedTable({
     [canInteract, client, table]
   );
   const progress = tableProgressFor(table.snapshot.phase);
+  const celebration = useResultCelebration(table);
   /* Giving up a seat starts in the game menu and is confirmed in the decision bar, so the two share one flag. */
   const [leaving, setLeaving] = useState(false);
   const [playerSelection, selectPlayer] = useReducer(
@@ -662,6 +666,8 @@ function ConnectedTable({
   const stage = table.snapshot.stage;
   /* The fixture has no stage and plays like a game in play. */
   const inPlay = stage === undefined || stage === 'play';
+  /* A finished game keeps its panels and playback; only the phase controls stop. */
+  const tabled = inPlay || stage === 'finished';
   return (
     <TabletopContext.Provider value={value}>
       <PresenceContext.Provider value={presence}>
@@ -680,17 +686,21 @@ function ConnectedTable({
             onSelectTurn={client.selectTurn}
             showStormControls={inPlay && progress.activePhaseId === 'storm'}
             sceneContent={
-              stage === 'swapping' || stage === 'setup' ? (
-                <>
-                  <SwapScene snapshot={table.snapshot} />
-                  {stage === 'setup' && <BattleScene client={client} table={table} />}
-                </>
-              ) : (
-                <BattleScene client={client} table={table} />
-              )
+              <>
+                {stage === 'swapping' || stage === 'setup' ? (
+                  <>
+                    <SwapScene snapshot={table.snapshot} />
+                    {stage === 'setup' && <BattleScene client={client} table={table} />}
+                  </>
+                ) : (
+                  <BattleScene client={client} table={table} />
+                )}
+                {celebration.mounted && <FoilConfetti launch={celebration.launch} />}
+              </>
             }
             decisionBar={
               <Stack data-decision-bar gap="xs">
+                <ResultDecisionBar client={client} table={table} />
                 <RemovalDecisionBar
                   votes={removalVotes}
                   onOpen={(vote) => selectPlayer({ seat: vote.target.seat, vote: vote.id, tab: 'public' })}
@@ -712,7 +722,13 @@ function ConnectedTable({
                 {stage === 'drafting' && <DraftingNotice client={client} table={table} />}
               </Stack>
             }
-            gameMenu={<GameMenu table={table} onLeave={() => setLeaving(true)} />}
+            gameMenu={
+              <GameMenu
+                table={table}
+                onLeave={() => setLeaving(true)}
+                onClearConfetti={celebration.hasConfetti ? celebration.clear : undefined}
+              />
+            }
             stageStatus={
               stage === 'drafting' ? (
                 <DraftingHeader table={table} />
@@ -745,7 +761,7 @@ function ConnectedTable({
               ) : undefined
             }
             panelTabs={[
-              ...(!inPlay && stage !== 'setup'
+              ...(!tabled && stage !== 'setup'
                 ? []
                 : [
                     ...(table.snapshot.setup
@@ -835,7 +851,7 @@ function ConnectedTable({
                 : []),
             ]}
             tableControls={
-              inPlay ? (
+              tabled ? (
                 <>
                   <PhaseControls table={table} />
                   {stage === 'play' && table.snapshot.setup && table.snapshot.phase === 0 && (
@@ -847,11 +863,12 @@ function ConnectedTable({
                       Place storm randomly
                     </Button>
                   )}
-                  {stage === 'play' ? (
+                  {stage === 'play' || stage === 'finished' ? (
                     <>
+                      <DetermineWinner client={client} table={table} />
                       <PlaybackControls client={client} table={table} />
                       {error && <FormError title="From the table">{error}</FormError>}
-                      {(table.snapshot.battle || progress.activePhaseId === 'battle') && (
+                      {stage === 'play' && (table.snapshot.battle || progress.activePhaseId === 'battle') && (
                         <BattleControls client={client} table={table} />
                       )}
                     </>

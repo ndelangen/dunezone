@@ -3,7 +3,8 @@
     "e2e/rulebook-editor-route.spec.ts",
     "e2e/account-deletion.spec.ts",
     "e2e/profile-edit.spec.ts",
-    "e2e/page-header-transition.spec.ts"
+    "e2e/page-header-transition.spec.ts",
+    "e2e/play-retired-pages.spec.ts"
   ],
   "factions": [
     "e2e/faction-lifecycle.spec.ts",

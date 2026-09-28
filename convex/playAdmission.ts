@@ -35,6 +35,7 @@ import {
 import { playerSummary } from './lib/playerSummary';
 import { playRateLimiter, playTicketQuota } from './lib/playRateLimits';
 
+/** No current page reads this; it stays public so a bundle deployed before the hosted route's retirement still gets an answer. */
 export const getFixture = query({
   args: {},
   returns: zodToConvex(playFixtureSchema),
