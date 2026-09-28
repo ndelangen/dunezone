@@ -225,6 +225,8 @@ function DeckEditSession({
   });
 
   const save = () => {
+    /* A pickless save stops before the write, so it clears the previous write's failure itself rather than showing it beside its own. */
+    updateAsset.reset();
     /* A pickless reference is blocked here with words, rather than letting the strict stored union answer with a Zod error. */
     dispatch({ kind: 'remember', update: { pickBlocked: pickless } });
     if (pickless) {

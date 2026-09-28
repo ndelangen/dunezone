@@ -5,8 +5,6 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { parseArgs, parseEnv } from 'node:util';
 
-import { ConvexHttpClient } from 'convex/browser';
-import { anyApi } from 'convex/server';
 import { chromium } from 'playwright';
 import sharp from 'sharp';
 import { PerspectiveCamera, Vector3 } from 'three';
@@ -133,10 +131,6 @@ for (const filename of [environmentPath, credentialsPath]) {
     'Private files must stay outside the report directory.'
   );
 }
-assert.ok(environment.CONVEX_SELF_HOSTED_ADMIN_KEY, 'The isolated backend admin key is required.');
-/* Grants the synthetic accounts the Administrator flag real games require; it cannot sign anyone in. */
-const admin = new ConvexHttpClient(backend);
-admin.setAdminAuth(environment.CONVEX_SELF_HOSTED_ADMIN_KEY);
 let credentials = {};
 try {
   credentials = JSON.parse(await readFile(credentialsPath, 'utf8'));
@@ -299,15 +293,6 @@ async function signIn(who) {
 /** The id of the real game this flow creates; every account after the creator enters it. */
 let gameId;
 const SPECTATOR = 'neutral';
-/** Makes a signed-in synthetic account an Administrator, which real games require until their public release. */
-async function administrator(who) {
-  const token = await who.page.evaluate(
-    () => Object.entries(localStorage).find(([key]) => key.startsWith('__convexAuthJWT'))?.[1]
-  );
-  assert.ok(token, 'The signed-in page holds no Convex Auth token.');
-  const [userId] = JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString('utf8')).sub.split('|');
-  await admin.mutation(anyApi.playTesting.setAdministrator, { userId, enabled: true });
-}
 /** Waits for an admitted connection and the table it projects; before play the stage replaces the table view. */
 async function admitted(who) {
   await who.page.locator('[data-connection="authorized"]').waitFor();
@@ -336,11 +321,10 @@ async function enter(who) {
   await who.page.goto(`${origin}/play/${gameId}`, { waitUntil: 'domcontentloaded' });
   await admitted(who);
 }
-/** A signed-in Administrator: the only kind of account a real game admits. */
+/** A signed-in synthetic account without the Administrator flag: real games admit every signed-in player. */
 async function account(label) {
   const who = await peer(label);
   await signIn(who);
-  await administrator(who);
   return who;
 }
 /** A spectator asks for a seat and a seated player approves it, through the seat bar. */
@@ -1124,12 +1108,12 @@ async function verifyRegular() {
   );
   const visitor = await peer('visitor');
   await signIn(visitor);
-  await visitor.page.goto(`${origin}/play/${gameId}`, { waitUntil: 'domcontentloaded' });
+  await visitor.page.goto(`${origin}/play/not-a-game`, { waitUntil: 'domcontentloaded' });
   await visitor.page.getByText('This game is not available', { exact: true }).waitFor();
   assert.equal(await visitor.page.locator('canvas').count(), 0);
   assert.equal(visitor.sockets.length, 0);
   await visitor.page.close();
-  passed('A signed-in account without the Administrator flag finds the real game unavailable and opens no socket');
+  passed('A signed-in account finds an unknown game id unavailable and opens no socket');
   for (const view of ['left', 'right', 'bottom', 'map']) {
     await focus(a, view);
   }
