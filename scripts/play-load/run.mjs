@@ -10,11 +10,13 @@ import { anyApi } from 'convex/server';
 import WebSocket from 'ws';
 
 import { loadCaseSchema } from '../../src/shared/play/loadTarget.ts';
+import { KEEPALIVE_INTERVAL_MS, KEEPALIVE_PING, KEEPALIVE_PONG } from '../../src/shared/play/protocol.ts';
 import { applyRoomUpdate } from '../../src/shared/play/updates.ts';
 import { loopbackOrigin } from '../lib/isolated-stack.ts';
 import { browsers } from './browsers.mjs';
 import { cpuProfile } from './cpu.mjs';
 import { captureSource, prepareDirectory } from './files.mjs';
+import { hostLoad, measureIdle } from './host-load.mjs';
 import { openHostedSession } from './hosted-session.mjs';
 import { interactions } from './interactions.mjs';
 import { distribution, measurements } from './measurements.mjs';
@@ -22,6 +24,7 @@ import { runMotionSchedule } from './motion.mjs';
 import { runActionSchedule } from './pacing.mjs';
 import { runnerProfiles } from './profiles.ts';
 import { sizeUpdate, updateLedger } from './redundancy.mjs';
+import { roomTiming } from './room-timing.mjs';
 import { slowLink } from './slow-link.mjs';
 import { createTrace } from './trace.mjs';
 
@@ -161,6 +164,7 @@ const report = {
   bytes: { sent: 0, received: 0 },
   sentMessages: 0,
   deliveries: 0,
+  keepalives: 0,
   compression: values.compression,
   resyncs: 0,
   transmittedMotion: 0,
@@ -169,6 +173,7 @@ const report = {
   admissionAttempts: [],
   reconnects: [],
   rejections: [],
+  signupRetries: [],
   checks: [],
 };
 const peers = [];
@@ -189,6 +194,8 @@ let actionWork;
 let samplePhase = 'preparation';
 /* The highest revision any saved command was confirmed at; recipients converge on it, not on one recipient's view. */
 let confirmedRevision = 0;
+/* Every saved command sent, joined at the end with when the room began handling it. */
+const commandSends = [];
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 function stop(reason) {
   if (stopping) {
@@ -206,6 +213,15 @@ const hardStop = setTimeout(() => stop('wall-budget'), report.bounds.wallSeconds
 const interrupted = () => stop('operator-stop');
 process.once('SIGINT', interrupted);
 process.once('SIGTERM', interrupted);
+/*
+ * A machine already busy before the run starves the coordinator and its browsers, which reads like a stalled room.
+ * Adding timeOrigin to a host or delivery reading gives the wall clock the room's own readings use.
+ */
+report.host = { timeOrigin: performance.timeOrigin, idleBefore: await measureIdle() };
+if (report.host.idleBefore !== null && report.host.idleBefore < 0.5) {
+  console.warn(`Only ${Math.round(report.host.idleBefore * 100)}% of this machine's CPU was idle before the run.`);
+}
+const hostWatch = hostLoad();
 function accountBytes(direction, bytes) {
   report.bytes[direction] += bytes;
   if (report.bytes.sent + report.bytes.received >= report.bounds.maxApplicationBytes) {
@@ -238,14 +254,25 @@ async function user(index) {
   const suffix = hosted?.run.runId ?? process.env.PLAY_LOAD_LOCAL_ACCOUNT_SUFFIX ?? randomBytes(6).toString('hex');
   const email = `load-${index}-${suffix}@example.invalid`;
   const password = randomBytes(24).toString('hex');
-  const result = await client.action(anyApi.auth.signIn, {
-    provider: 'password',
-    params: {
-      flow: 'signUp',
-      email,
-      password,
-    },
-  });
+  let result;
+  /*
+   * One hosted signup outlasted the client's 15 s timeout on 28 September and failed the peak cell during setup.
+   * A signup whose answer was lost may still have created the account, so the retries alternate signing in and signing up.
+   */
+  for (let attempt = 0; !result; attempt++) {
+    try {
+      result = await client.action(anyApi.auth.signIn, {
+        provider: 'password',
+        params: { flow: attempt % 2 ? 'signIn' : 'signUp', email, password },
+      });
+    } catch (error) {
+      report.signupRetries.push({ index, attempt, message: String(error?.message ?? error).slice(0, 200) });
+      if (stopping || attempt === 3) {
+        throw error;
+      }
+      await delay(1000);
+    }
+  }
   assert.ok(result.tokens?.token);
   client.setAuth(result.tokens.token);
   return { client, index, email, password };
@@ -330,8 +357,12 @@ function apply(peer, packet) {
 }
 function receivePacket(peer, raw) {
   accountBytes('received', raw.byteLength);
-  report.deliveries++;
   peer.receivedBytes = (peer.receivedBytes ?? 0) + raw.byteLength;
+  /* The room answers a keepalive without waking, so the answer is traffic but not a delivery. */
+  if (raw.byteLength === KEEPALIVE_PONG.length && raw.toString() === KEEPALIVE_PONG) {
+    return;
+  }
+  report.deliveries++;
   if (stopping) {
     return;
   }
@@ -416,8 +447,18 @@ async function openSocket(peer, issued) {
   });
   socket.on('error', () => {});
   socket.on('message', (raw) => receivePacket(peer, raw));
+  /* Like the page, every open socket sends a keepalive, since the edge closes a socket idle for 100 s with 1006. */
+  const keepalive = setInterval(() => {
+    if (!stopping && socket.readyState === WebSocket.OPEN) {
+      socket.send(KEEPALIVE_PING);
+      report.keepalives++;
+      accountBytes('sent', KEEPALIVE_PING.length);
+      peer.sentBytes = (peer.sentBytes ?? 0) + KEEPALIVE_PING.length;
+    }
+  }, KEEPALIVE_INTERVAL_MS).unref();
   /* The room's close code says why a socket went away: 4413 is its message rate limit, 1012 a restart. */
   socket.once('close', (code, reason) => {
+    clearInterval(keepalive);
     (peer.closes ??= []).push({ atMs: performance.now(), code, reason: reason.toString().slice(0, 120), stopping });
   });
   await new Promise((resolve) => {
@@ -495,8 +536,17 @@ async function record(peer, message, operation, sample = beginInteraction(peer, 
   try {
     peer.responses.delete(message.commandId);
     sample.commandSentAt = performance.now();
+    const sent = {
+      peer,
+      commandId: message.commandId,
+      operation,
+      phase: sample.phase,
+      sentAt: performance.timeOrigin + sample.commandSentAt,
+    };
+    commandSends.push(sent);
     assert.ok(send(peer, message), 'The saved command was stopped before dispatch.');
     const result = await until(() => peer.responses.get(message.commandId), `Command ${message.commandId} timed out.`);
+    sent.answeredAt = performance.timeOrigin + performance.now();
     if (result.type === 'rejected') {
       const error = new Error(result.message);
       failInteraction(sample, error, true);
@@ -516,6 +566,31 @@ async function record(peer, message, operation, sample = beginInteraction(peer, 
     failInteraction(sample, error);
     throw error;
   }
+}
+/**
+ * Asks each peer that sent saved commands for the room's handling times, so a slow command shows which leg was slow.
+ * The peers are asked together under one short deadline, and a peer that does not answer only loses its own commands.
+ */
+async function collectRoomTiming() {
+  const senders = [...new Set(commandSends.map((sent) => sent.peer))];
+  const replies = await Promise.allSettled(
+    senders.map(async (peer) => {
+      peer.responses.delete('metrics');
+      assert.ok(send(peer, { type: 'metrics' }), `Peer ${peer.index} could not ask for room timing.`);
+      return until(() => peer.responses.get('metrics'), `Peer ${peer.index} room timing timed out.`, 5000);
+    })
+  );
+  const answered = replies.flatMap((reply) => (reply.status === 'fulfilled' ? [reply.value] : []));
+  report.roomTiming = {
+    ...roomTiming(
+      commandSends.map((sent) => ({ ...sent, peer: sent.peer.index })),
+      answered.map((metrics) => metrics.commands ?? [])
+    ),
+    /* Late sweeps and dropped motion are room-wide, so any one answer carries them. */
+    stalls: answered[0]?.stalls ?? null,
+    motionDropped: answered[0]?.motionDropped ?? null,
+    errors: replies.flatMap((reply) => (reply.status === 'rejected' ? [reply.reason.message] : [])),
+  };
 }
 async function durable(peer, action, operation = action.kind, sample) {
   return record(
@@ -573,11 +648,13 @@ try {
       directory,
       stopping: () => stopping,
       onMessage: apply,
-      onBytes: (peer, direction, size) => {
+      onBytes: (peer, direction, size, keepalive) => {
         accountBytes(direction, size);
         const key = direction === 'sent' ? 'sentBytes' : 'receivedBytes';
         peer[key] = (peer[key] ?? 0) + size;
-        if (direction === 'received') {
+        if (keepalive) {
+          report.keepalives += direction === 'sent' ? 1 : 0;
+        } else if (direction === 'received') {
           report.deliveries++;
         } else {
           report.sentMessages++;
@@ -951,7 +1028,13 @@ try {
     }
   }
   if (!stopping) {
-    report.serverAfter = await request(first, { type: 'metrics' }, 'metrics');
+    await collectRoomTiming();
+    const {
+      commands: _commands,
+      stalls: _stalls,
+      ...serverAfter
+    } = await request(first, { type: 'metrics' }, 'metrics');
+    report.serverAfter = serverAfter;
     await until(
       () => interactionTiming.outstanding().length === 0,
       'Saved interactions did not reach every recipient.',
@@ -967,6 +1050,10 @@ try {
 } catch (error) {
   report.status = stopping ? 'incomplete' : 'failed';
   report.error = error.message;
+  /* A failed run is when the room's side matters most, so its handling times are read while the sockets are still open. */
+  if (!stopping && !report.roomTiming) {
+    await collectRoomTiming();
+  }
 } finally {
   const finalStopReason = stopReason ?? (report.status === 'failed' ? 'failed' : 'completed');
   stop('cleanup');
@@ -1132,6 +1219,7 @@ try {
     limitation:
       'Protocol connections only. TCP stream bytes include the HTTP upgrade and WebSocket framing and compression, but exclude TCP/IP headers, retransmissions and browser connections.',
   };
+  report.host = { ...report.host, ...hostWatch.finish() };
   report.finishedAt = new Date().toISOString();
   await writeFile(path.join(directory, 'report.json'), JSON.stringify(report, null, 2));
   console.log(

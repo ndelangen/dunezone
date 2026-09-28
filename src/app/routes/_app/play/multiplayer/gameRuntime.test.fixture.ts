@@ -1,4 +1,4 @@
-import { clientMessageSchema } from '@shared/play/protocol';
+import { clientMessageSchema, KEEPALIVE_PING } from '@shared/play/protocol';
 import type { ClientMessage, ServerMessage } from '@shared/play/protocol';
 
 import type { GameRuntime, GameSocket } from './gameRuntime';
@@ -9,6 +9,7 @@ export class Socket {
   readyState: GameSocket['readyState'] = 0;
   bufferedAmount = 0;
   sent: ClientMessage[] = [];
+  keepalives = 0;
   onopen: (() => void) | null = null;
   onmessage: ((event: { data: string }) => void) | null = null;
   onclose: ((event: { code: number }) => void) | null = null;
@@ -24,6 +25,10 @@ export class Socket {
   }
 
   send(data: string) {
+    if (data === KEEPALIVE_PING) {
+      this.keepalives++;
+      return;
+    }
     this.sent.push(clientMessageSchema.parse(JSON.parse(data)));
   }
 

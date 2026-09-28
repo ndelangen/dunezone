@@ -46,6 +46,11 @@ function snapTablePose(group: Group, target: TablePose) {
   group.rotation.y = target.orientation;
 }
 
+/* A frame counts for its real length up to this cap, so a pose settles in about 0.2 s down to 4 fps.
+   One 0.25 s frame already covers 99.75% of the gap, so the cap no longer changes what a player sees.
+   The scheduler's `computeRootDelta`, not this cap, limits the first frame after an idle table. */
+const POSE_SMOOTHING_MAX_FRAME_SECONDS = 0.25;
+
 function advanceTablePose(group: Group, target: TablePose, delta: number): boolean {
   const rotationDelta = Math.atan2(
     Math.sin(target.orientation - group.rotation.y),
@@ -56,7 +61,7 @@ function advanceTablePose(group: Group, target: TablePose, delta: number): boole
     snapTablePose(group, target);
     return false;
   }
-  const amount = 1 - Math.exp(-24 * Math.min(delta, 0.05));
+  const amount = 1 - Math.exp(-24 * Math.min(delta, POSE_SMOOTHING_MAX_FRAME_SECONDS));
   group.position.lerp(target.position, amount);
   group.rotation.y += rotationDelta * amount;
   return true;

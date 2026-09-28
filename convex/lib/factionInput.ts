@@ -1,5 +1,7 @@
-import { ensureFactionMemberIds, factionMembersHaveIds } from '../../src/shared/factions/memberIdentity';
+import { ensureFactionComponentIds } from '../../src/shared/factions/componentIdentity';
+import { factionMembersHaveIds } from '../../src/shared/factions/memberIdentity';
 import { CanonicalFactionStoredSchema, FactionInputSchema } from '../../src/shared/factions/schema';
+import { factionTroopsHaveIds } from '../../src/shared/factions/troopIdentity';
 
 export function parseStoredFactionForRead(input: unknown) {
   return CanonicalFactionStoredSchema.parse(input);
@@ -30,6 +32,9 @@ export function factionInputForWrite(input: unknown, previous?: unknown) {
     ) {
       throw new Error('Reload this page before saving. This faction now uses persistent member identities.');
     }
+    if (stored.troops.some((troop) => troop.troopId !== undefined) && !factionTroopsHaveIds(data)) {
+      throw new Error('Reload this page before saving. This faction now uses persistent troop identities.');
+    }
   }
-  return ensureFactionMemberIds(data);
+  return ensureFactionComponentIds(data);
 }

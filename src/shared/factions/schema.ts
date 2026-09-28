@@ -3,7 +3,9 @@ import { z } from 'zod';
 import { ALL, BACKGROUND, GENERIC, LEADERS, LOGO, PLANET, TEXTURE, TROOP, TROOP_MODIFIER } from '../assetIds';
 import { marksOnlyFormattedTextSchema, proseFormattedTextSchema } from '../formattedText';
 import { extraPhasesSchema } from './extraPhases';
+import { factionExtrasSchema, storedFactionExtrasSchema } from './extras';
 import { assertUniqueFactionMemberIds, FactionMemberIdSchema } from './memberIdentity';
+import { assertUniqueFactionTroopIds, FactionTroopIdSchema } from './troopIdentity';
 
 const STRENGTH = z.union([z.number().int(), z.string().length(1)]);
 const OFFSET = z.tuple([z.number(), z.number()]);
@@ -60,6 +62,7 @@ const TroopSide = z.strictObject({
 });
 
 const Troop = z.strictObject({
+  troopId: FactionTroopIdSchema.optional(),
   image: TROOP,
   name: z.string(),
   description: z.string(),
@@ -158,16 +161,12 @@ const factionBaseShape = {
     alliance: RULE.omit({ karama: true, title: true }).required(),
   }),
 
-  /** Extra game assets, used by TTS */
-  extras: z
-    .array(
-      z.strictObject({
-        name: z.string(),
-        description: z.string().optional(),
-        items: z.array(z.strictObject({ url: URL, description: z.string().optional() })),
-      })
-    )
-    .optional(),
+  /**
+   * Catalogue decks, bundles and tokens this faction supplies at setup (#1226);
+   * a missing field reads as `[]`.
+   * Reads drop the retired TTS link lists until `faction_extras_references_v1` is verified everywhere.
+   */
+  extras: storedFactionExtrasSchema.optional(),
 
   /** Phases this faction adds to setup or every turn (#1138); a missing field reads as `[]`. */
   extraPhases: extraPhasesSchema.optional(),
@@ -211,25 +210,28 @@ const factionAuthoringShape = {
     fate: AuthoringRule.omit({ karama: true }),
     alliance: AuthoringRule.omit({ karama: true, title: true }).required(),
   }),
-  extras: z
-    .array(
-      z.strictObject({
-        name: z.string(),
-        description: proseFormattedTextSchema.optional(),
-        items: z.array(z.strictObject({ url: URL, description: proseFormattedTextSchema.optional() })),
-      })
-    )
-    .optional(),
+  extras: factionExtrasSchema.optional(),
 };
 
-/** Rejects unknown keys (e.g. `slug` must live on the Convex row, not in `data`). */
-export const FactionInputSchema = z.strictObject(factionAuthoringShape).superRefine((data, ctx) => {
+type ComponentRoster = Parameters<typeof assertUniqueFactionMemberIds>[0] &
+  Parameters<typeof assertUniqueFactionTroopIds>[0];
+
+/** Leader and troop identities are each unique within their faction (#1227). */
+function refineUniqueComponentIds(data: ComponentRoster, ctx: z.RefinementCtx) {
   try {
     assertUniqueFactionMemberIds(data);
   } catch {
     ctx.addIssue({ code: 'custom', message: 'Faction member IDs must be unique within the faction.' });
   }
-});
+  try {
+    assertUniqueFactionTroopIds(data);
+  } catch {
+    ctx.addIssue({ code: 'custom', message: 'Faction troop IDs must be unique within the faction.' });
+  }
+}
+
+/** Rejects unknown keys (e.g. `slug` must live on the Convex row, not in `data`). */
+export const FactionInputSchema = z.strictObject(factionAuthoringShape).superRefine(refineUniqueComponentIds);
 
 /**
  * Canonical storage is intentionally wider than current authoring semantics: historical rows with a blank name must remain readable while the UI requires a name for all new canonical writes.
@@ -250,13 +252,7 @@ export const HistoricalFactionPublicationSchema = z.strictObject({
 });
 
 /** Complete canonical data also requires unique member identities across the roster. */
-export const IdentifiedFactionStoredSchema = CanonicalFactionStoredSchema.superRefine((data, ctx) => {
-  try {
-    assertUniqueFactionMemberIds(data);
-  } catch {
-    ctx.addIssue({ code: 'custom', message: 'Faction member IDs must be unique within the faction.' });
-  }
-});
+export const IdentifiedFactionStoredSchema = CanonicalFactionStoredSchema.superRefine(refineUniqueComponentIds);
 
 /**
  * Client read-path variants: tolerate unknown top-level fields so additive server changes never break stale tabs;

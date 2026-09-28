@@ -4,12 +4,12 @@ import { api } from '../../convex/_generated/api';
 import { cardbackPresetLabel } from '../../src/shared/assets/cardbackPresets';
 import { authoredCardback, DeckAssetInput } from '../../src/shared/assets/schema';
 import { parseAssetDataForWrite } from '../../src/shared/assets/validation';
+import { phaseDeclarationSchema } from '../../src/shared/factions/extraPhases';
 import { IdentifiedFactionStoredSchema } from '../../src/shared/factions/schema';
 import { lacksCombatValues, troopCombatFaces } from '../../src/shared/factions/troopCombat';
 import type {
   AssetSupply,
   CaptureProblem,
-  ExtraReference,
   FactionCapture,
   RulesetCapture,
   RulesetSupply,
@@ -307,22 +307,32 @@ export class GameCatalogue {
    * One faction as the game will retain it at public assignment: its stored definition, the faces its generated components have, and every Extra it references, each supplied once.
    * Faces the catalogue does not publish yet stay null and are named in the verdict, so the isolated development path can proceed on provisional content while a real game is refused.
    */
-  async captureFaction(
-    factionId: string,
-    extras: readonly ExtraReference[] = [],
-    now = Date.now()
-  ): Promise<FactionCapture> {
+  async captureFaction(factionId: string, now = Date.now()): Promise<FactionCapture> {
     const raw = await gameHttpClient(this.convexUrl).query(api.playCatalogue.factionDefinition, { factionId });
     const source = factionDefinitionSchema.nullable().parse(raw);
     if (!source) {
       throw new GameRejection('This faction is not available.');
     }
-    const parsed = IdentifiedFactionStoredSchema.safeParse(source.data);
+    const { declarations, data } = splitPhaseDeclarations(source.data);
+    const parsed = IdentifiedFactionStoredSchema.safeParse(data);
     if (!parsed.success) {
       throw new GameRejection('This faction has an incomplete definition.');
     }
-    const definition = parsed.data;
     const problems: CaptureProblem[] = [];
+    /* Each declaration is judged alone: an invalid one is a readiness problem naming it, the valid ones are captured (#1138). */
+    const extraPhases = declarations.flatMap((declaration, index) => {
+      const checked = phaseDeclarationSchema.safeParse(declaration);
+      if (checked.success) {
+        return [checked.data];
+      }
+      const title = (declaration as { title?: unknown } | null)?.title;
+      problems.push({
+        subject: `phase ${typeof title === 'string' && title.trim() ? title.trim() : index + 1}`,
+        reason: checked.error.issues[0]?.message ?? 'This phase declaration is invalid.',
+      });
+      return [];
+    });
+    const definition = declarations.length ? { ...parsed.data, extraPhases } : parsed.data;
     const token = { front: this.publishedFace(source.token, 'faction token', problems), back: null };
     if (!token.front) {
       problems.push({ subject: 'faction token', reason: 'The faction token has no published face.' });
@@ -345,7 +355,7 @@ export class GameCatalogue {
     });
     const troops = definition.troops.map((troop) => {
       problems.push({ subject: `troop ${troop.name}`, reason: 'Troop faces are not generated yet.' });
-      return { name: troop.name, count: troop.count, front: null, back: null };
+      return { troopId: troop.troopId, name: troop.name, count: troop.count, front: null, back: null };
     });
     for (const face of troopCombatFaces(definition.troops).filter(lacksCombatValues)) {
       problems.push({
@@ -356,7 +366,7 @@ export class GameCatalogue {
     problems.push({ subject: 'alliance card', reason: 'The alliance card is not generated yet.' });
     problems.push({ subject: 'traitor deck', reason: 'Traitor cards are not generated yet.' });
     const captured: SlotCapture[] = [];
-    for (const extra of extras) {
+    for (const extra of definition.extras ?? []) {
       captured.push(await this.captureSlot('extra', extra, problems));
     }
     return factionCaptureSchema.parse({
@@ -380,4 +390,13 @@ export class GameCatalogue {
       readiness: readiness(problems),
     });
   }
+}
+
+/** The stored faction with its phase declarations set aside, so one invalid declaration cannot refuse the whole definition. */
+function splitPhaseDeclarations(data: unknown): { declarations: unknown[]; data: unknown } {
+  if (!data || typeof data !== 'object' || !('extraPhases' in data)) {
+    return { declarations: [], data };
+  }
+  const { extraPhases, ...rest } = data as { extraPhases: unknown };
+  return { declarations: Array.isArray(extraPhases) ? extraPhases : [], data: rest };
 }

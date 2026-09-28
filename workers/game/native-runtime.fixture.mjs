@@ -9,6 +9,7 @@ import { build } from 'esbuild';
 import { Miniflare, convertV4MiniflareOptions } from 'miniflare';
 import { WebSocketServer } from 'ws';
 
+import { KEEPALIVE_PING, KEEPALIVE_PONG } from '../../src/shared/play/protocol.ts';
 import { applyRoomUpdate } from '../../src/shared/play/updates.ts';
 
 const directory = dirname(fileURLToPath(import.meta.url));
@@ -381,27 +382,30 @@ export async function createRuntime(peer, kind = 'probe', bindings = {}) {
     write: false,
     external: ['cloudflare:workers', 'node:*'],
   });
-  const options = convertV4MiniflareOptions({
-    handleStructuredLogs: (log) => logs.push(log),
-    rootPath: repository,
-    resourcePersistencePath: persistence,
-    modules: true,
-    script: built.outputFiles[0].text,
-    compatibilityDate: '2026-08-11',
-    compatibilityFlags: ['nodejs_compat'],
-    durableObjects:
-      kind === 'probe'
-        ? { PROBE: { className: 'AuthorizationProbe', useSQLite: true } }
-        : { GAME_ROOMS: { className: 'GameRoom', useSQLite: true } },
-    bindings: {
-      PEER_URL: peer.url,
-      CONVEX_URL: peer.url,
-      APPLICATION_ORIGIN: origin,
-      GIT_SHA: 'native-test',
-      CF_VERSION_METADATA: { id: 'native-test', tag: 'native-test' },
-      ...bindings,
-    },
-  });
+  const configure = (overrides = {}) =>
+    convertV4MiniflareOptions({
+      handleStructuredLogs: (log) => logs.push(log),
+      rootPath: repository,
+      resourcePersistencePath: persistence,
+      modules: true,
+      script: built.outputFiles[0].text,
+      compatibilityDate: '2026-08-11',
+      compatibilityFlags: ['nodejs_compat'],
+      durableObjects:
+        kind === 'probe'
+          ? { PROBE: { className: 'AuthorizationProbe', useSQLite: true } }
+          : { GAME_ROOMS: { className: 'GameRoom', useSQLite: true } },
+      bindings: {
+        PEER_URL: peer.url,
+        CONVEX_URL: peer.url,
+        APPLICATION_ORIGIN: origin,
+        GIT_SHA: 'native-test',
+        CF_VERSION_METADATA: { id: 'native-test', tag: 'native-test' },
+        ...bindings,
+        ...overrides,
+      },
+    });
+  let options = configure();
   let instance = new Miniflare(options);
   await instance.ready;
   return {
@@ -435,13 +439,13 @@ export async function createRuntime(peer, kind = 'probe', bindings = {}) {
       const room = namespace.get(namespace.idFromName(gameId));
       await room.fetch('https://native-test/native-test/fail-storage', { method: 'POST' });
     },
-    async capture(kind, id, { extras = [], provisional = false } = {}) {
+    async capture(kind, id, { provisional = false } = {}) {
       const namespace = await instance.getDurableObjectNamespace('GAME_ROOMS');
       const room = namespace.get(namespace.idFromName(gameId));
       const response = await room.fetch('https://native-test/native-test/capture', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ kind, id, extras, provisional }),
+        body: JSON.stringify({ kind, id, provisional }),
       });
       return response.json();
     },
@@ -468,9 +472,18 @@ export async function createRuntime(peer, kind = 'probe', bindings = {}) {
       const response = await room.fetch('https://native-test/native-test/alarm', { method: advance ? 'POST' : 'GET' });
       return response.json();
     },
-    async restart() {
+    /** Restarts the runtime, as a new Worker version does, optionally with changed bindings. */
+    async restart(overrides) {
       await instance.dispose();
+      if (overrides) {
+        options = configure(overrides);
+      }
       instance = new Miniflare(options);
+    },
+    /** Fetches a path from the room object with any name, as a Worker version routing another game would. */
+    async object(name, path) {
+      const namespace = await instance.getDurableObjectNamespace('GAME_ROOMS');
+      return namespace.get(namespace.idFromName(name)).fetch(`https://native-test${path}`);
     },
     /**
      * Runs one statement against the room's SQLite file with the runtime down.
@@ -517,9 +530,14 @@ export async function openGame(runtime) {
     throw new Error(`Socket refused: ${response.status}`);
   }
   const socket = response.webSocket;
-  const connection = { socket, messages: [], unapplied: [], closed: false, closeCode: null };
+  const connection = { socket, messages: [], unapplied: [], keepalives: 0, closed: false, closeCode: null };
   let current = null;
   socket.addEventListener('message', (event) => {
+    if (event.data === KEEPALIVE_PONG) {
+      connection.keepalives++;
+      wake();
+      return;
+    }
     const message = JSON.parse(event.data);
     connection.messages.push(message);
     if (message.type === 'view') {
@@ -544,6 +562,7 @@ export async function openGame(runtime) {
   });
   socket.accept();
   connection.send = (message) => socket.send(JSON.stringify(message));
+  connection.keepalive = () => socket.send(KEEPALIVE_PING);
   connection.message = (type, predicate = () => true) =>
     eventually(() => connection.messages.find((message) => message.type === type && predicate(message)), type);
   return connection;

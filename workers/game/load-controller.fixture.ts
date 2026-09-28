@@ -51,7 +51,7 @@ export class ControlledLoadRoom extends BoundedLoadRoom {
 
   override async fetch(request: Request): Promise<Response> {
     const operation = controllerOperation(request, this.env, this.configuration, this.controlSecret);
-    if (!operation) {
+    if (!operation || this.foreign) {
       return super.fetch(request);
     }
     if (operation === 'stop') {

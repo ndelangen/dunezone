@@ -1,6 +1,7 @@
 import { freshTableState, nearestZone, pieceCount } from './model';
 import type { TablePiece, TableState } from './model';
-import { phaseAt, phaseForTurn, stepPhase, tableProgressFor } from './phases';
+import { phaseAt, phaseForTurn, STANDARD_PHASES, stepPhase, tableProgressFor } from './phases';
+import type { PhaseEntry } from './phases';
 import type { DurableTable, GameSnapshot, TableAction } from './protocol';
 import { GameRejection } from './rejection';
 import { createSpiceStack, isSpicePiece } from './spiceSupply';
@@ -82,25 +83,33 @@ function applyTableAction(
   state: TableState,
   action: Exclude<TableAction, { pieceId: string }>,
   phase: number,
-  actorName: string
+  actorName: string,
+  phases: readonly PhaseEntry[]
 ): TableState {
   switch (action.kind) {
     case 'reset':
       return freshTableState();
     case 'storm':
+      /*
+       * This guard is what keeps faction phase ordering stable within a turn (#1138): storm order is read live from the marker,
+       * so the marker may move only in Storm, and every phase after it that turn sees the new order.
+       */
+      if (phaseAt(phase, phases).id !== 'storm') {
+        throw new GameRejection('The storm moves only during the Storm phase.');
+      }
       return requireAccepted(state, moveStormInState(state, action.direction));
     case 'phase': {
       const next = stepPhase(phase, action.direction);
-      const current = phaseAt(next);
+      const current = phaseAt(next, phases);
       return accepted(
         { ...state, phase: current.label },
         action.direction === -1 ? 'phase.previous' : 'phase.advance',
-        `Turn ${tableProgressFor(next).turn}: ${current.label}.`
+        `Turn ${tableProgressFor(next, phases).turn}: ${current.label}.`
       );
     }
     case 'turn': {
-      const next = phaseForTurn(phase, action.turn);
-      return accepted(state, 'turn.select', `Turn ${action.turn}: ${phaseAt(next).label}.`);
+      const next = phaseForTurn(phase, action.turn, phases.length);
+      return accepted(state, 'turn.select', `Turn ${action.turn}: ${phaseAt(next, phases).label}.`);
     }
     case 'spice-spawn':
       return spawnSpiceInState(state, action.count, actorName);
@@ -122,10 +131,11 @@ export function applyPieceAction(
   state: TableState,
   action: TableAction,
   phase: number,
-  actorName = 'A player'
+  actorName = 'A player',
+  phases: readonly PhaseEntry[] = STANDARD_PHASES
 ): TableState {
   if (!('pieceId' in action)) {
-    return applyTableAction(state, action, phase, actorName);
+    return applyTableAction(state, action, phase, actorName, phases);
   }
   const piece = actionablePiece(state, action);
   switch (action.kind) {

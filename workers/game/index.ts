@@ -16,7 +16,6 @@ import {
   playReconcileAccountsResultSchema,
   playRedeemTicketResultSchema,
 } from '../../src/shared/play/admission';
-import type { ExtraReference } from '../../src/shared/play/capture';
 import {
   PLAY_DIRECTORY_RETRY_CEILING_MS,
   PLAY_DIRECTORY_RETRY_MS,
@@ -26,7 +25,12 @@ import type { DraftFaction } from '../../src/shared/play/drafting';
 import { isDraftAction } from '../../src/shared/play/drafting';
 import type { StoredSpawnContents } from '../../src/shared/play/inventory';
 import type { ClientMessage, ServerClock, ServerMessage, Viewer } from '../../src/shared/play/protocol';
-import { TICKET_EXPIRED_CLOSE_CODE, clientMessageSchema } from '../../src/shared/play/protocol';
+import {
+  KEEPALIVE_PING,
+  KEEPALIVE_PONG,
+  TICKET_EXPIRED_CLOSE_CODE,
+  clientMessageSchema,
+} from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
 import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
 import { SPECTATOR_COLOR } from './actors';
@@ -59,6 +63,7 @@ type Connection = {
   everAuthorized: boolean;
   pointerSeq: number;
   tokens: number;
+  motionTokens: number;
   refilledAt: number;
 };
 type TicketAdmission = Extract<ReturnType<typeof playRedeemTicketResultSchema.parse>, { ok: true }>;
@@ -68,6 +73,15 @@ class ExpiredTicket extends GameRejection {}
 
 const json = (body: unknown, status = 200) => Response.json(body, { status, headers: { 'Cache-Control': 'no-store' } });
 const refused = () => json({ error: 'Request refused.' }, 403);
+/* Above a steady load cell's 720 saved commands, so a cell's metrics request still finds its first. */
+const COMMAND_TIMINGS = 1024;
+/** Each connection's message buckets hold this many messages and refill at this rate. */
+const RATE_BURST = 120;
+const RATE_PER_SECOND = 60;
+const SWEEP_MS = 1000;
+/** A sweep this late counts as a stall, and the room keeps the most recent ones. */
+const STALL_MS = 250;
+const STALLS = 64;
 function isApplicationSocket(request: Request, applicationOrigin: string): boolean {
   return (
     request.headers.get('Origin') === applicationOrigin && request.headers.get('Upgrade')?.toLowerCase() === 'websocket'
@@ -175,15 +189,26 @@ export class GameRoom extends DurableObject<GameEnv> {
   private fence: ReturnType<typeof latch> | undefined;
   private motionReceived = 0;
   private motionForwarded = 0;
+  private motionDropped = 0;
   private activityDeliveries = 0;
   private messagesSent = 0;
   private bytesSent = 0;
+  /*
+   * When this object began handling each recent saved command, by its own clock, for the load runner's metrics request.
+   * A Worker's clock stands still while code runs, so only when handling began is meaningful, not how long it took.
+   * A spawn request is timed after its catalogue read, so its entry includes that read.
+   */
+  private readonly commandTimings: { userId: string; commandId: string; handledAt: number; durableAt?: number }[] = [];
+  /* Recent sweeps that ran late by more than STALL_MS: a busy room fires its timers late, while a held output does not. */
+  private readonly stalls: { at: number; lateMs: number }[] = [];
+  private sweptAt: number | undefined;
   private readonly session: GameSession;
   private get metadata() {
     return this.session.info;
   }
   constructor(ctx: DurableObjectState, env: GameEnv) {
     super(ctx, env);
+    this.ctx.setWebSocketAutoResponse(new WebSocketRequestResponsePair(KEEPALIVE_PING, KEEPALIVE_PONG));
     this.diagnostics = new GameDiagnostics(ctx.id.toString(), env.GIT_SHA);
     this.session = new GameSession(ctx.storage);
     if (this.metadata) {
@@ -243,19 +268,12 @@ export class GameRoom extends DurableObject<GameEnv> {
     return this.session.retainRuleset(capture, options);
   }
 
-  protected async retainFactionCapture(
-    factionId: string,
-    extras: readonly ExtraReference[] = [],
-    options: { provisional?: boolean } = {}
-  ) {
+  protected async retainFactionCapture(factionId: string, options: { provisional?: boolean } = {}) {
     const existing = this.session.retainedFaction(factionId);
     if (existing) {
       return existing;
     }
-    const capture = await new GameCatalogue(this.env.CONVEX_URL, this.env.APPLICATION_ORIGIN).captureFaction(
-      factionId,
-      extras
-    );
+    const capture = await new GameCatalogue(this.env.CONVEX_URL, this.env.APPLICATION_ORIGIN).captureFaction(factionId);
     return this.session.retainFaction(capture, options);
   }
 
@@ -443,7 +461,8 @@ export class GameRoom extends DurableObject<GameEnv> {
       suspensions: 0,
       everAuthorized: false,
       pointerSeq: -1,
-      tokens: 120,
+      tokens: RATE_BURST,
+      motionTokens: RATE_BURST,
       refilledAt: Date.now(),
     });
     this.ensureSweep();
@@ -817,6 +836,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     this.reconcileViewers();
     /* A held connection missed every frame of the fence; its update is computed against the last frame it received. */
     if (admitted.size || resumed) {
+      const frameFor = this.framePass();
       for (const [socket, connection] of this.connections) {
         if (!connection.viewer || !this.authorized(socket)) {
           continue;
@@ -825,7 +845,7 @@ export class GameRoom extends DurableObject<GameEnv> {
           /* A resumed connection leaves suspension only after receiving a full view. */
           this.sendView(socket, connection);
         } else {
-          this.send(socket, this.delivery.update(socket, connection.viewer, this.session.roomFrame(connection.viewer)));
+          this.send(socket, this.delivery.update(socket, connection.viewer, frameFor(connection.viewer)));
         }
       }
     } else if (activityChanged || this.session.revision !== revision) {
@@ -1005,21 +1025,42 @@ export class GameRoom extends DurableObject<GameEnv> {
       this.deny(socket);
       return;
     }
-    const now = Date.now();
-    connection.tokens = Math.min(120, connection.tokens + (Math.max(0, now - connection.refilledAt) * 60) / 1000);
-    connection.refilledAt = now;
-    if (connection.tokens < 1) {
-      this.disconnect(socket);
-      socket.close(4413, 'Too many requests.');
-      return;
-    }
-    connection.tokens--;
+    let message: ClientMessage;
     try {
-      return clientMessageSchema.parse(JSON.parse(input));
+      message = clientMessageSchema.parse(JSON.parse(input));
     } catch {
       this.deny(socket);
       return;
     }
+    const now = Date.now();
+    const refill = (tokens: number) =>
+      Math.min(RATE_BURST, tokens + (Math.max(0, now - connection.refilledAt) * RATE_PER_SECOND) / 1000);
+    connection.tokens = refill(connection.tokens);
+    connection.motionTokens = refill(connection.motionTokens);
+    connection.refilledAt = now;
+    /*
+     * The refill follows the room's clock, which stands still while the room runs code, so a busy room can see a steady mover's frames as a burst.
+     * Pointer and pose frames draw on their own bucket. When it runs dry they are dropped, since the next frame supersedes them, and only a second bucket's worth of dropped motion closes the socket.
+     */
+    if (message.type === 'pointer' || message.type === 'pose') {
+      connection.motionTokens--;
+      if (connection.motionTokens >= 0) {
+        return message;
+      }
+      if (connection.motionTokens > -RATE_BURST) {
+        this.motionDropped++;
+        return;
+      }
+    } else if (connection.tokens >= 1) {
+      connection.tokens--;
+      return message;
+    }
+    this.refuseRate(socket);
+  }
+
+  private refuseRate(socket: WebSocket) {
+    this.disconnect(socket);
+    socket.close(4413, 'Too many requests.');
   }
 
   private dispatch(
@@ -1125,6 +1166,7 @@ export class GameRoom extends DurableObject<GameEnv> {
   }
 
   private sendMetrics(socket: WebSocket) {
+    const userId = this.connections.get(socket)?.viewer?.userId;
     this.send(socket, {
       type: 'metrics',
       revision: this.session.revision,
@@ -1132,9 +1174,14 @@ export class GameRoom extends DurableObject<GameEnv> {
       receiptCount: this.session.receiptCount,
       motionReceived: this.motionReceived,
       motionForwarded: this.motionForwarded,
+      motionDropped: this.motionDropped,
       activityDeliveries: this.activityDeliveries,
       messagesSent: this.messagesSent,
       bytesSent: this.bytesSent,
+      commands: this.commandTimings
+        .filter((timing) => timing.userId === userId)
+        .map(({ commandId, handledAt, durableAt }) => ({ commandId, handledAt, durableAt })),
+      stalls: this.stalls,
     });
   }
   private publishActivity(
@@ -1205,6 +1252,15 @@ export class GameRoom extends DurableObject<GameEnv> {
     message: Extract<ClientMessage, { type: 'command' | 'drop' }>,
     contents?: StoredSpawnContents
   ) {
+    const timing: (typeof this.commandTimings)[number] = {
+      userId: connection.viewer!.userId,
+      commandId: message.commandId,
+      handledAt: Date.now(),
+    };
+    this.commandTimings.push(timing);
+    if (this.commandTimings.length > COMMAND_TIMINGS) {
+      this.commandTimings.shift();
+    }
     if (this.reconcileViewers()) {
       this.broadcastActivity();
     }
@@ -1229,6 +1285,15 @@ export class GameRoom extends DurableObject<GameEnv> {
     this.ctx.waitUntil(this.scheduleAlarm().catch((error) => this.diagnostics.report('battle-alarm', error)));
     this.reconcileViewers();
     this.broadcastCommittedView(connection, message);
+    /* Frames sent after a write leave the room once the write is durable, so the confirmation's arrival bounds how long they were held. */
+    this.ctx.waitUntil(
+      this.ctx.storage
+        .sync()
+        .then(() => {
+          timing.durableAt = Date.now();
+        })
+        .catch((error) => this.diagnostics.report('storage-sync', error))
+    );
   }
 
   private async draftableFactions(rulesetId: string): Promise<DraftFaction[] | null> {
@@ -1301,7 +1366,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     this.assigning = true;
     try {
       for (const faction of prepared.factions) {
-        await this.retainFactionCapture(faction, [], { provisional: this.metadata?.provisional === true });
+        await this.retainFactionCapture(faction, { provisional: this.metadata?.provisional === true });
       }
       if (this.session.completeAssignment(prepared)) {
         this.deliverDirectorySoon();
@@ -1331,6 +1396,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     message: Extract<ClientMessage, { type: 'command' | 'drop' }>
   ) {
     this.clearActivityTimer();
+    const frameFor = this.framePass();
     for (const [peer, identity] of this.connections) {
       if (identity.viewer && this.authorized(peer)) {
         this.send(
@@ -1338,7 +1404,7 @@ export class GameRoom extends DurableObject<GameEnv> {
           this.delivery.update(
             peer,
             identity.viewer,
-            this.session.roomFrame(identity.viewer),
+            frameFor(identity.viewer),
             identity.connectionId === connection.connectionId ? message.commandId : undefined
           )
         );
@@ -1408,11 +1474,18 @@ export class GameRoom extends DurableObject<GameEnv> {
     if (!this.session.ready || !this.connections.size) {
       return;
     }
+    const frameFor = this.framePass();
     for (const [socket, connection] of this.connections) {
       if (connection.viewer && this.authorized(socket)) {
-        this.send(socket, this.delivery.update(socket, connection.viewer, this.session.roomFrame(connection.viewer)));
+        this.send(socket, this.delivery.update(socket, connection.viewer, frameFor(connection.viewer)));
       }
     }
+  }
+
+  /** One pass's frames, built on first use so a pass that sends nothing reads no room state. */
+  private framePass() {
+    let frames: ReturnType<GameSession['roomFrames']> | undefined;
+    return (viewer: Viewer) => (frames ??= this.session.roomFrames())(viewer);
   }
 
   private deny(socket: WebSocket, broadcast = true) {
@@ -1449,6 +1522,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       clearInterval(this.sweepTimer);
     }
     this.sweepTimer = undefined;
+    this.sweptAt = undefined;
     this.reconciled = false;
     /* No connection is left to hold; a message still waiting finds its socket gone. */
     this.fence?.release();
@@ -1466,7 +1540,22 @@ export class GameRoom extends DurableObject<GameEnv> {
   }
 
   private ensureSweep() {
-    this.sweepTimer ??= setInterval(() => this.sweepConnections(), 1000);
+    this.sweepTimer ??= setInterval(() => {
+      this.noteStall();
+      this.sweepConnections();
+    }, SWEEP_MS);
+  }
+
+  private noteStall() {
+    const now = Date.now();
+    const lateMs = this.sweptAt === undefined ? 0 : now - this.sweptAt - SWEEP_MS;
+    this.sweptAt = now;
+    if (lateMs > STALL_MS) {
+      this.stalls.push({ at: now, lateMs });
+      if (this.stalls.length > STALLS) {
+        this.stalls.shift();
+      }
+    }
   }
 
   private expirePendingConnections() {

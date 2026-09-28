@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { assertUniqueIds, createComponentId, uniqueIdAllocator } from './componentIds';
+
 export const FactionMemberIdSchema = z.uuid();
 
 type FactionMember = { memberId?: string };
@@ -9,47 +11,30 @@ type IdentifiedRoster<T extends FactionRoster> = Omit<T, 'hero' | 'leaders'> & {
   leaders: Array<T['leaders'][number] & { memberId: string }>;
 };
 
-/** These UUIDs identify members; they are not credentials. Convex supplies deterministic randomness during mutation retries. */
-export function createFactionMemberId(): string {
-  return '10000000-1000-4000-8000-100000000000'.replace(/[018]/g, (digit) =>
-    (Number(digit) ^ (Math.floor(Math.random() * 16) >> (Number(digit) / 4))).toString(16)
-  );
-}
+export const createFactionMemberId = createComponentId;
 
 export function factionMembersHaveIds(data: FactionRoster): boolean {
   return [data.hero, ...data.leaders].every((member) => member.memberId !== undefined);
 }
 
 export function assertUniqueFactionMemberIds(data: FactionRoster): void {
-  const seen = new Set<string>();
-  for (const member of [data.hero, ...data.leaders]) {
-    if (member.memberId === undefined) {
-      continue;
-    }
-    if (seen.has(member.memberId)) {
-      throw new Error('Faction member IDs must be unique within the faction.');
-    }
-    seen.add(member.memberId);
-  }
+  assertUniqueIds(
+    [data.hero, ...data.leaders].map((member) => member.memberId),
+    'Faction member IDs must be unique within the faction.'
+  );
 }
 
 /** Assign missing identities once, preserving identified imports and same-source round trips. */
 export function ensureFactionMemberIds<T extends FactionRoster>(data: T): IdentifiedRoster<T> {
   assertUniqueFactionMemberIds(data);
-  const seen = new Set([data.hero, ...data.leaders].flatMap((member) => (member.memberId ? [member.memberId] : [])));
-  function identify<Member extends FactionMember>(member: Member): Member & { memberId: string } {
-    if (member.memberId) {
-      return { ...member, memberId: member.memberId };
-    }
-    for (let attempt = 0; attempt < 128; attempt += 1) {
-      const memberId = createFactionMemberId();
-      if (!seen.has(memberId)) {
-        seen.add(memberId);
-        return { ...member, memberId };
-      }
-    }
-    throw new Error('Could not allocate a unique faction member identity.');
-  }
+  const allocate = uniqueIdAllocator(
+    [data.hero, ...data.leaders].map((member) => member.memberId),
+    'Could not allocate a unique faction member identity.'
+  );
+  const identify = <Member extends FactionMember>(member: Member): Member & { memberId: string } => ({
+    ...member,
+    memberId: member.memberId || allocate(),
+  });
   return { ...data, hero: identify(data.hero), leaders: data.leaders.map(identify) };
 }
 

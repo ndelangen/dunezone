@@ -3,6 +3,7 @@ import { expect, test } from 'vitest';
 import { assetPublishingFaction } from '../../src/shared/factions/fixtures/assetPublishingFaction';
 import { initialSnapshot } from '../../src/shared/play/commands';
 import { freshTableState } from '../../src/shared/play/model';
+import { composeTurn } from '../../src/shared/play/phases';
 import { factionSupply, piece, place } from '../../src/shared/play/setupSupply';
 import { stackPreviewPositionFor } from '../../src/shared/play/tableGeometry';
 import { applyDraftToState } from '../../src/shared/play/tableState';
@@ -97,4 +98,32 @@ test('a stored card keeps its type, so a snapshot holding a card without one doe
     storedSnapshotSchema.safeParse(holding({ back: TRAITOR_BACK, backName: 'Traitor', type: 'card-traitor' })).success
   ).toBe(true);
   expect(storedSnapshotSchema.safeParse(holding({ back: TRAITOR_BACK, backName: 'Traitor' })).success).toBe(false);
+});
+
+test("the composed turn reaches every viewer, so hosted headers and trackers follow the factions' phases", () => {
+  const phases = composeTurn(
+    [
+      {
+        factionId: 'guild',
+        declarations: [
+          {
+            id: 'negotiations',
+            type: 'instruction',
+            title: 'Guild negotiations',
+            symbol: '/vector/icon/fate.svg',
+            before: 'bidding',
+            priority: 10,
+            allPlayersMustBeReady: false,
+          },
+        ],
+      },
+    ],
+    ['guild']
+  );
+  const stored = storedSnapshotSchema.parse({ ...initialSnapshot(), phases });
+  const projection = new RoomProjection('secret');
+
+  expect(projection.snapshot(stored).phases).toEqual(phases);
+  expect(projection.snapshot(stored, 'guild').phases).toEqual(phases);
+  expect(projection.snapshot(storedSnapshotSchema.parse(initialSnapshot())).phases).toBeUndefined();
 });
