@@ -1166,8 +1166,7 @@ const migrationFactionTroopsSchema = z.looseObject({
 
 /**
  * Adds troop identities (#1227) without changing authored fields or the faction's edit timestamp.
- * Deliberately absent from migration-guards.json in the release that widens the schema: deploy migrates before the game and publisher Workers ship, and their previous strict schemas refuse `troopId`.
- * The next release lists it, once every reader accepts the field.
+ * Listed in migration-guards.json one release after the schema widened (#1482): deploy migrates before the game and publisher Workers ship, so every reader had to accept `troopId` first.
  */
 export const faction_troop_ids_v1 = migrations.define({
   table: 'factions',
