@@ -61,6 +61,7 @@ test('browser image measurements retain the cache while pages, workers and popup
   const directory = await mkdtemp(path.join(tmpdir(), 'load-browser-'));
   let imageRequests = 0;
   let forbiddenRequests = 0;
+  const pages = new Set();
   const application = createServer((request, response) => {
     if (request.url === '/pixel.svg') {
       imageRequests++;
@@ -69,6 +70,7 @@ test('browser image measurements retain the cache while pages, workers and popup
       return;
     }
     response.setHeader('Content-Type', 'text/html');
+    pages.add(request.url);
     if (request.url === '/auth/login') {
       response.end(`<label>Email<input></label><label>Password<input type="password"></label>
         <button data-testid="local-auth-submit" onclick="document.body.innerHTML = '<h1>You&amp;apos;re signed in</h1>'">Sign in</button>`);
@@ -95,6 +97,7 @@ test('browser image measurements retain the cache while pages, workers and popup
   const started = browsers({
     origin,
     backend: origin,
+    gameId: () => 'game-one',
     directory,
     onMessage() {},
     onBytes() {},
@@ -111,6 +114,7 @@ test('browser image measurements retain the cache while pages, workers and popup
   const peer = { index: 0, role: 'observer', user: { email: 'load@example.invalid', password: 'test-password' } };
   await run.connect(peer);
   expect(imageRequests).toBe(1);
+  expect(pages.has('/play/game-one')).toBe(true);
   const [cold, warm] = peer.browserReport.imageLoads.map((load) =>
     load.entries.find((entry) => entry.path === '/pixel.svg')
   );

@@ -125,8 +125,10 @@ The publisher forwards the reserved `/__play` namespace only when the request or
 `preview_urls` are disabled and whose route list is empty. Unknown reserved paths never become
 SPA documents. The game Worker accepts only `/__play/health` and
 `/__play/games/:gameId/socket|provision|account-deletion`; it validates methods, origin and admission
-at that boundary. The public `/play/demo` remains local-only. Hosted gameplay requires a signed-in
-session and a fresh first-message connection ticket.
+at that boundary. Hosted gameplay requires a signed-in session and a fresh first-message connection
+ticket. Players open games at `/play/<gameId>`; the retired `/play/hosted` and `/play/demo` pages
+are ordinary application paths with no route, and the release counts as retiring them only once
+production no longer serves the pages.
 
 Before calling the game binding, the publisher applies `PLAY_INGRESS_RATE_LIMIT` (namespace
 `10960001`): 120 requests per ten seconds per trusted `CF-Connecting-IP`, with separate counters
@@ -181,8 +183,8 @@ bun --no-env-file scripts/verify-hosted-play-stack.ts --browser-only --flow all
 ```
 
 This mode builds the app and starts the stack once, then runs each selected browser flow in turn.
-Before each flow it retires the previous flow's game and provisions a fresh canonical fixture through
-the local Workers, so every flow's new synthetic accounts receive the fixture's player seats. It runs
+Before the flows it seeds a synthetic ruleset (`playTesting:seedRealGameCatalogue`) and installs its
+publication bytes; each flow signs in fresh Administrator accounts and creates its own real game. It runs
 `scripts/verify-hosted-play-browser.mjs` instead of the protocol verifier. `--flow` repeats, `all`
 selects every flow in [`scripts/verify-hosted-flows.ts`](../scripts/verify-hosted-flows.ts), and
 without it only the regular flow runs; the named flows are described under
