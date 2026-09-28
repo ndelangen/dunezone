@@ -9,7 +9,8 @@ is the specification. The live issue records review, deployment and verification
 
 Players reach a game only at `/play/<gameId>`: `/play` is the lobby, and an Administrator creates a
 real game at `/play/create`. The retired `/play/hosted` and `/play/demo` pages
-([#1296](https://github.com/ndelangen/dunezone/issues/1296)) no longer exist in the application;
+([#1296](https://github.com/ndelangen/dunezone/issues/1296)) no longer exist in the application,
+and their old addresses redirect to the lobby;
 the public `playAdmission:getFixture` query stays so a bundle deployed before their removal still
 gets an answer. The fixture game this document describes remains the Worker's native test and load
 fixture: the first two distinct admitted users occupy its Harkonnen and Atreides seats, and later

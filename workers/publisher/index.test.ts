@@ -161,7 +161,7 @@ describe('publisher Worker Publication flow', () => {
     expect(currentEnv.ASSETS.fetch).not.toHaveBeenCalled();
   });
 
-  /* The retired /play/demo and /play/hosted pages stay application paths: the router answers them with its not-found page. */
+  /* The retired /play/demo and /play/hosted pages stay application paths: the game route redirects them to the lobby. */
   test.each(['/play', '/play/create', '/play/demo', '/play/hosted', '/__playground'])(
     'keeps %s in the application',
     async (pathname) => {
