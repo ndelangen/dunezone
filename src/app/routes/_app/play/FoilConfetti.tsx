@@ -1,5 +1,6 @@
 /* @jsxImportSource ./three-jsx */
 import { useFrame, useThree } from '@react-three/fiber/webgpu';
+import { pieceCount } from '@shared/play/model';
 import type { TablePiece } from '@shared/play/model';
 import {
   CARD_FOOTPRINT_HALF_X,
@@ -41,9 +42,10 @@ function ignoreRaycast() {
   /* Confetti is decoration: it never takes a pointer from the table. */
 }
 
+/* An emptied piece draws nothing, so foil falls through where it stood. */
 function pieceSupports(pieces: readonly TablePiece[]): ConfettiSupport[] {
   return pieces
-    .filter((piece) => !piece.battleOverlay && !piece.inventory)
+    .filter((piece) => !piece.battleOverlay && !piece.inventory && pieceCount(piece) > 0)
     .map((piece) => ({
       x: piece.position[0],
       z: piece.position[2],

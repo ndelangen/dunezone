@@ -225,10 +225,14 @@ export class ConfettiField {
     const index = this.next;
     this.next = (this.next + 1) % this.capacity;
     this.count = Math.max(this.count, index + 1);
+    const p = index * 3;
     if (this.state[index] !== AIRBORNE) {
       this.airborne++;
     }
-    const p = index * 3;
+    /* A reused disc leaves the pile it lay in, or the pile would keep growing past the foil drawn in it. */
+    if (this.state[index] === SETTLED) {
+      this.withdraw({ x: this.position[p]!, z: this.position[p + 2]! });
+    }
     /* The cannon's mouth sits just inside the slot, aimed across the board with some spread. */
     this.position[p] = Math.cos(angle) * (PLAYER_RING_RADIUS - 0.1);
     this.position[p + 1] = BOARD_RIM_SURFACE_Y + 0.08;
@@ -363,6 +367,14 @@ export class ConfettiField {
       if (cell !== null) {
         this.piles[cell] = Math.max(this.piles[cell]!, depth - DISC_THICKNESS * 1.5);
       }
+    }
+  }
+
+  /* Takes a disc's thickness back out of its cell; the slope it lent its neighbours stays, as a pile's does. */
+  private withdraw(point: TablePoint) {
+    const cell = gridIndex(gridCell(point));
+    if (cell !== null) {
+      this.piles[cell] = Math.max(0, this.piles[cell]! - DISC_THICKNESS);
     }
   }
 }

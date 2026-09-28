@@ -100,6 +100,21 @@ describe('ConfettiField', () => {
     run(field, 3);
     expect(field.count).toBe(100);
   });
+
+  it('takes a reused disc back out of its pile', () => {
+    const field = new ConfettiField({ capacity: 1, seed: 8 });
+    /* A stream with one disc left to fire, so the only slot settles before anything reuses it. */
+    const oneDisc = { angles: [0], elapsed: CONFETTI_STREAM_SECONDS - 0.015 };
+    field.launch(oneDisc);
+    run(field, 6);
+    expect(field.settled).toBe(1);
+    const landed = { x: field.position[0]!, z: field.position[2]! };
+    const bare = field.supportAt(landed)! - DISC_THICKNESS;
+    field.launch(oneDisc);
+    field.step({ seconds: FRAME });
+    expect(field.airborne).toBe(1);
+    expect(field.supportAt(landed)).toBeCloseTo(bare, 6);
+  });
 });
 
 function highestSettled(field: ConfettiField) {
