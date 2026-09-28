@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 
 import { phaseAt } from '../src/shared/play/phases.ts';
+import { describeResult } from '../src/shared/play/result.ts';
 
 /**
  * A real game played to a declared result and continued, through ordinary browser controls.
@@ -9,7 +10,6 @@ import { phaseAt } from '../src/shared/play/phases.ts';
  */
 export async function verifyResults({
   seated,
-  enter,
   factionOf,
   spectator,
   button,
@@ -20,13 +20,14 @@ export async function verifyResults({
   until,
   passed,
   origin,
+  currentGameId,
 }) {
   const { a, b, observer } = await seated();
   const everyone = [a, b, observer];
   const stage = (who) => who.view().snapshot.stage;
   const bar = (who) => who.page.locator('[data-decision-bar]');
   const winner = factionOf(a);
-  const gameId = new URL(a.page.url()).pathname.split('/').at(-1);
+  const gameId = currentGameId();
 
   for (const who of everyone) {
     await openTab(who, 'Phase');
@@ -65,12 +66,10 @@ export async function verifyResults({
   const result = a.view().snapshot.result;
   assert.equal(result.kind, 'faction');
   assert.deepEqual(result.factionIds, [winner.id]);
-  const title = `${winner.name} won`;
+  const title = describeResult('faction', [winner.name]);
   for (const who of everyone) {
     await bar(who).getByText(title, { exact: true }).waitFor();
-    await bar(who)
-      .getByText(new RegExp(`^Declared by ${name}\\.`, 'u'))
-      .waitFor();
+    await bar(who).getByText(`Declared by ${name}.`).waitFor();
   }
   await bar(a).getByRole('button', { name: 'Continue playing', exact: true }).waitFor();
   await bar(b).getByRole('button', { name: 'Continue playing', exact: true }).waitFor();
@@ -83,22 +82,21 @@ export async function verifyResults({
   passed('Declaring a faction finishes the game for every panel; players may continue and the spectator may not');
 
   /* A reload re-admits into the finished game from the room's stored state, not from anything the page kept. */
-  const sockets = b.sockets.length;
+  const reloadedFrom = b.view().viewer.connectionId;
   await b.page.reload({ waitUntil: 'domcontentloaded' });
-  await until(() => b.sockets.length > sockets, 'The reload opened no new game socket.');
+  await until(() => b.view().viewer.connectionId !== reloadedFrom, 'The reload did not get a fresh connection.');
   await b.page.locator('[data-connection="authorized"]').waitFor();
-  await until(() => stage(b) === 'finished', 'The reloaded page did not receive the finished game.');
+  assert.equal(stage(b), 'finished');
   await bar(b).getByText(title, { exact: true }).waitFor();
   /* The reloaded panel opens on its default tab, so the Phase tab is chosen again for the checks after Continue playing. */
   await openTab(b, 'Phase');
   passed('A reloaded player re-enters the finished game with its declared result');
 
   const pastEntry = (page) =>
-    page
-      .getByRole('region', { name: 'Past', exact: true })
-      .getByRole('link', { name: new RegExp(`winner ${winner.name}`, 'u') });
+    page.getByRole('region', { name: 'Past', exact: true }).getByRole('link', { name: `winner ${winner.name}` });
   const ongoingEntry = (page) =>
     page.getByRole('region', { name: 'Ongoing', exact: true }).locator(`a[href$="/play/${gameId}"]`);
+  const observerLeft = observer.view().viewer.connectionId;
   await observer.page.goto(`${origin}/play`, { waitUntil: 'domcontentloaded' });
   await observer.page.getByRole('heading', { name: 'Game lobby' }).waitFor();
   await pastEntry(observer.page).waitFor({ timeout: 20_000 });
@@ -120,8 +118,15 @@ export async function verifyResults({
 
   await ongoingEntry(observer.page).waitFor({ timeout: 20_000 });
   assert.equal(await pastEntry(observer.page).count(), 0);
-  await enter(observer);
+  /* The observer still holds the finished game's frames, so its return waits for a fresh connection before reading the stage. */
+  await observer.page.goto(`${origin}/play/${gameId}`, { waitUntil: 'domcontentloaded' });
+  await until(
+    () => observer.view().viewer.connectionId !== observerLeft,
+    'The observer did not get a fresh connection.'
+  );
+  await observer.page.locator('[data-connection="authorized"]').waitFor();
   assert.equal(stage(observer), 'play');
+  await observer.page.getByRole('group', { name: 'Table view' }).waitFor();
   await capture(observer, 'after-continue-1440x1000');
   passed('The continued game moves back to Ongoing in the lobby and opens in play');
 }

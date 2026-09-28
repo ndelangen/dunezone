@@ -1385,6 +1385,8 @@ try {
     playReady,
     depart,
     spectator: SPECTATOR,
+    /* Read when a flow needs it: the game only exists once the flow has created it. */
+    currentGameId: () => gameId,
     factionOf,
     treacheryDeck,
     button,
