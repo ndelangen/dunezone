@@ -16,10 +16,3 @@ html[data-faction-sheet]::after {
   content: none;
   display: none;
 }
-
-@media (max-width: 900px) {
-  html[data-faction-sheet]::after {
-    content: none;
-    display: none;
-  }
-}

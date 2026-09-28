@@ -40,7 +40,7 @@
   font-size: clamp(2.8rem, 6.7vw, 5.8rem);
 }
 
-@media (max-width: 43.75em) {
+@container (width < 48rem) {
   :global([data-page-layout-header-size="hero"]) :where(.title) {
     font-size: clamp(2.4rem, 12vw, 4.5rem);
   }

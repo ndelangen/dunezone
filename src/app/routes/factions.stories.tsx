@@ -21,6 +21,17 @@ const meta = preview.meta({
 });
 
 export const Catalogue = meta.story({ args: { path: '/factions' } });
+
+/**
+ * On a phone the faction list shows two columns and each card its compact caption.
+ * The list reads its own width and the card its own, so neither needs the page.
+ * This story shows them in the catalogue's phone layout.
+ */
+export const CatalogueMobile = meta.story({
+  args: { path: '/factions' },
+  globals: { viewport: { value: 'appMobile' } },
+});
+
 export const Detail = meta.story({ args: { path: '/factions/house-atreides' } });
 export const Create = meta.story({ args: { path: '/factions/create' } });
 export const Edit = meta.story({ args: { path: '/factions/house-atreides/edit' } });

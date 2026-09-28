@@ -25,7 +25,7 @@
   overflow-wrap: anywhere;
 }
 
-@media (max-width: 48em) {
+@container (width < 48rem) {
   .media {
     flex-basis: 4.75rem;
     width: 4.75rem;
@@ -36,7 +36,7 @@
   }
 }
 
-@media (max-width: 30em) {
+@container (width < 30rem) {
   .band {
     padding-inline: 0;
   }

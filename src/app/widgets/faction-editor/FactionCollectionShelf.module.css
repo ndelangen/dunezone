@@ -42,13 +42,17 @@
   white-space: nowrap;
 }
 
-@media (max-width: 48em) {
+/*
+ * An item is its 2.25rem drag handle and a label that may truncate, so it needs 7rem. Three items and
+ * two 0.5rem gaps need 22rem of the panel, two items and one gap 14.5rem.
+ */
+@container connected-tabs-panel (width < 22rem) {
   .shelf {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
-@media (max-width: 30em) {
+@container connected-tabs-panel (width < 14.5rem) {
   .shelf {
     grid-template-columns: minmax(0, 1fr);
   }

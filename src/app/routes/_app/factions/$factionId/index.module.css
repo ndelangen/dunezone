@@ -74,7 +74,7 @@
   aspect-ratio: 1;
 }
 
-@media (max-width: 62em) {
+@container (width < 62rem) {
   .horizontalLane {
     margin-inline: calc(-1 * var(--app-shell-inline-gutter));
     -webkit-mask-image: none;
@@ -83,11 +83,8 @@
   }
 }
 
-@media (max-width: 48em) {
+@container (width < 48rem) {
   .loreHeroToken {
     width: min(100%, 12rem);
   }
-}
-
-@media (max-width: 30em) {
 }
