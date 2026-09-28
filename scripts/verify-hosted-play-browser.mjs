@@ -34,6 +34,7 @@ import { verifyDecks } from './verify-hosted-decks.mjs';
 import { browserFlows, isBrowserFlow } from './verify-hosted-flows.ts';
 import { verifyPrivateBanks } from './verify-hosted-private-banks.mjs';
 import { verifyPublicControls } from './verify-hosted-public-controls.mjs';
+import { parseExpectedRenderer, rendererMismatch, rendererReport, runningChromium } from './verify-hosted-renderer.ts';
 import { verifyResults } from './verify-hosted-results.mjs';
 
 const { values } = parseArgs({
@@ -45,12 +46,14 @@ const { values } = parseArgs({
     browser: { type: 'string' },
     flow: { type: 'string', default: 'regular' },
     'ruleset-id': { type: 'string' },
+    'expect-renderer': { type: 'string' },
   },
 });
 for (const name of ['env-file', 'origin', 'credentials-file', 'report-dir', 'ruleset-id']) {
   assert.ok(values[name], `--${name} is required.`);
 }
 assert.ok(isBrowserFlow(values.flow), `--flow must be one of ${Object.keys(browserFlows).join(', ')}.`);
+const expectedRenderer = parseExpectedRenderer(values['expect-renderer']);
 const flow = browserFlows[values.flow];
 const flows = {
   regular: verifyRegular,
@@ -154,6 +157,7 @@ const report = {
   captures: [],
   pageErrors: [],
   consoleErrors: [],
+  ...(expectedRenderer ? { expectedRenderer } : {}),
 };
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 async function until(predicate, description, timeout = 15_000) {
@@ -184,13 +188,79 @@ const CARRY_STEPS = 2;
  */
 const chromiumArgs = process.platform === 'linux' ? ['--use-angle=swiftshader'] : [];
 const browser = await chromium.launch({ headless: true, executablePath: values.browser, args: chromiumArgs });
-/* Without `--browser`, `headless: true` launches Playwright's headless shell rather than its full Chromium. */
-report.chromium = {
-  executable: values.browser ?? 'chromium-headless-shell',
-  version: browser.version(),
-  args: chromiumArgs,
-};
+/*
+ * Without `--browser`, `headless: true` launches Playwright's headless shell rather than its full Chromium.
+ * The running browser reports which of the two it is and its executable; `args` are the switches this script adds.
+ * `SystemInfo.getInfo` waits for the GPU process's feature info, and Chromium 151 ends the browser process when that takes more than 30 s on macOS and Linux, so a browser that closes here without a message points at the GPU process.
+ */
+const devtools = await browser.newBrowserCDPSession();
+const [{ product }, { commandLine }] = await Promise.all([
+  devtools.send('Browser.getVersion'),
+  devtools.send('SystemInfo.getInfo'),
+]);
+await devtools.detach();
+report.chromium = { ...runningChromium(product, commandLine), version: browser.version(), args: chromiumArgs };
 console.log(`CHROMIUM ${JSON.stringify(report.chromium)}`);
+/*
+ * three.js announces each renderer it constructs to a `__THREE_DEVTOOLS__` event target when the page defines one, the hook its browser devtools use.
+ * This init script defines one that keeps each announced renderer by its canvas, so `recordRenderer` can ask the table's renderer which backend it initialised.
+ * No app code reads the hook and three.js only dispatches events to it, so the table draws as it does without it.
+ */
+function observeRenderers() {
+  const renderers = new WeakMap();
+  const hook = new EventTarget();
+  hook.addEventListener('observe', (event) => {
+    if (event.detail?.isRenderer) {
+      renderers.set(event.detail.domElement, event.detail);
+    }
+  });
+  Object.assign(window, { __THREE_DEVTOOLS__: hook, hostedPlayRenderers: renderers });
+}
+/** Runs in the page: the backend the table canvas's renderer initialised, or why it cannot name one yet. */
+function readTableRenderer(canvas) {
+  const renderer = window.hostedPlayRenderers?.get(canvas);
+  if (!renderer) {
+    return { unidentified: 'three.js announced no renderer for the table canvas' };
+  }
+  if (!renderer.initialized) {
+    return { unidentified: 'the table renderer did not finish initialising' };
+  }
+  const { backend } = renderer;
+  if (backend.isWebGPUBackend) {
+    const info = backend.device?.adapterInfo;
+    return { backend: 'webgpu', adapter: { vendor: info?.vendor ?? '', architecture: info?.architecture ?? '' } };
+  }
+  if (backend.isWebGLBackend) {
+    const debug = backend.gl.getExtension('WEBGL_debug_renderer_info');
+    return {
+      backend: 'webgl2',
+      glRenderer: backend.gl.getParameter(debug ? debug.UNMASKED_RENDERER_WEBGL : backend.gl.RENDERER),
+    };
+  }
+  return { unidentified: 'the table renderer has neither a WebGPU nor a WebGL2 backend' };
+}
+function holdToExpectedRenderer() {
+  const mismatch = rendererMismatch(expectedRenderer, report.renderer);
+  if (mismatch) {
+    throw new Error(mismatch);
+  }
+}
+/**
+ * Records the backend of the first table this flow opens and holds it to `--expect-renderer`.
+ * The renderer initialises asynchronously and can still be doing so when the shell opens, so this reads until it names a backend or 15 s pass.
+ */
+async function recordRenderer(who) {
+  const canvas = who.page.locator('.dune-play-shell canvas');
+  const deadline = Date.now() + 15_000;
+  let observation = await canvas.evaluate(readTableRenderer);
+  while ('unidentified' in observation && Date.now() < deadline) {
+    await delay(100);
+    observation = await canvas.evaluate(readTableRenderer);
+  }
+  report.renderer = { ...rendererReport(observation), label: who.label };
+  console.log(`RENDERER ${JSON.stringify(report.renderer)}`);
+  holdToExpectedRenderer();
+}
 const otherBrowsers = [];
 const peers = [];
 async function peer(label, context) {
@@ -207,6 +277,7 @@ async function peer(label, context) {
       reducedMotion: 'reduce',
       serviceWorkers: 'block',
     });
+    await context.addInitScript(observeRenderers);
     await context.route(
       (url) => !allowedOrigins.has(url.origin),
       async (route) => {
@@ -301,6 +372,9 @@ async function admitted(who) {
   assert.equal(who.sent[0].ticketLength, 64);
   if (who.view().snapshot.stage === 'play') {
     await who.page.getByRole('group', { name: 'Table view' }).waitFor();
+  }
+  if (!report.renderer) {
+    await recordRenderer(who);
   }
 }
 /** Creates the flow's real game through the lobby's Create page, which seats its creator first. */
@@ -1404,6 +1478,8 @@ try {
     origin,
   };
   await flows[values.flow](toolkit);
+  /* A flow that never opens a table records no renderer, which an expected renderer refuses. */
+  holdToExpectedRenderer();
   assert.deepEqual(report.pageErrors, []);
   assert.deepEqual(blockedNetwork, []);
 } catch (error) {
