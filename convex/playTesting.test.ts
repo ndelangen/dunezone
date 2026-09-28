@@ -1,6 +1,7 @@
 /// <reference types="vite/client" />
 // @vitest-environment edge-runtime
 
+import aggregateTest from '@convex-dev/aggregate/test';
 import { convexTest } from 'convex-test';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
@@ -52,6 +53,37 @@ describe('isolated Play test controls', () => {
     await expect(
       t.mutation(internal.playTesting.shortenSession, { sessionId, kind: 'total', expiresInMs: 0 })
     ).rejects.toThrow('isolated loopback');
+    await expect(t.mutation(internal.playTesting.seedRealGameCatalogue, {})).rejects.toThrow('isolated loopback');
+  });
+
+  test('seeds a real-game ruleset with both decks and two factions, distinct from an earlier seed', async () => {
+    const { t } = await fixture();
+    /* Inserting catalogue rows updates the statistics aggregate. */
+    aggregateTest.register(t, 'statistics');
+    aggregateTest.register(t, 'profileActivity');
+    const first = await t.mutation(internal.playTesting.seedRealGameCatalogue, {});
+    const second = await t.mutation(internal.playTesting.seedRealGameCatalogue, {});
+    /* Two decks with three cards each, and a token per faction. */
+    expect(first.publications).toHaveLength(10);
+    const seeded = await t.run(async (ctx) => {
+      const slots = await ctx.db
+        .query('ruleset_asset_slots')
+        .filter((q) => q.eq(q.field('ruleset_id'), first.rulesetId))
+        .collect();
+      const factions = await ctx.db
+        .query('ruleset_factions')
+        .filter((q) => q.eq(q.field('ruleset_id'), first.rulesetId))
+        .collect();
+      const rulesets = await Promise.all([ctx.db.get(first.rulesetId), ctx.db.get(second.rulesetId)]);
+      return {
+        slots: slots.map((slot) => slot.slot).sort(),
+        factions: factions.length,
+        slugs: rulesets.map((r) => r?.slug),
+      };
+    });
+    expect(seeded.slots).toEqual(['spice', 'treachery']);
+    expect(seeded.factions).toBe(2);
+    expect(new Set(seeded.slugs).size).toBe(2);
   });
 
   test('changes only the requested synthetic account flag', async () => {
