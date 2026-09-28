@@ -15,8 +15,10 @@ import { FactionSheetView } from '@app/print/sheet/FactionSheetView';
 import { AssetRenderModeProvider } from '@game/assets/assetRenderMode';
 import { CardBack } from '@game/assets/card/Back';
 import { SpiceCard } from '@game/assets/card/Spice';
+import { AllianceCard } from '@game/assets/faction/alliance/Alliance';
 import { LeaderToken } from '@game/assets/faction/leader/Leader';
 import { Token as FactionToken } from '@game/assets/faction/token/Token';
+import { TraitorCard } from '@game/assets/faction/traitor/Traitor';
 import { TroopToken } from '@game/assets/faction/troop/Troop';
 import { CustomToken } from '@game/assets/token/Custom';
 import { RectangleToken } from '@game/assets/token/Rectangle';
@@ -118,6 +120,26 @@ function captureSubject(snapshot: PublisherCaptureSnapshot): CaptureSubject {
                 hue={snapshot.payload.hue}
                 striped={snapshot.payload.striped}
               />
+            </AssetRenderModeProvider>
+          </CaptureFrame>
+        ),
+      };
+    case 'faction-traitor':
+      return {
+        node: (
+          <CaptureFrame assetType={snapshot.assetType}>
+            <AssetRenderModeProvider mode="print">
+              <TraitorCard {...snapshot.payload} />
+            </AssetRenderModeProvider>
+          </CaptureFrame>
+        ),
+      };
+    case 'faction-alliance':
+      return {
+        node: (
+          <CaptureFrame assetType={snapshot.assetType}>
+            <AssetRenderModeProvider mode="print">
+              <AllianceCard {...snapshot.payload} />
             </AssetRenderModeProvider>
           </CaptureFrame>
         ),

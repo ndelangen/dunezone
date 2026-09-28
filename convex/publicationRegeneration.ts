@@ -17,7 +17,7 @@ import {
   enqueueFactionLeaderPublications,
   enqueueFactionSheetPublication,
   enqueueFactionTokenPublication,
-  enqueueFactionTroopPublications,
+  enqueueFactionFacePublications,
 } from './lib/publication';
 import { enqueueRulebookFirstPagePublication } from './lib/rulebookPublication';
 import type { MutationCtx } from './types';
@@ -123,7 +123,11 @@ async function scanPage(ctx: MutationCtx, assetType: string, cursor: string | nu
     case 'faction-leader':
       return await scanFactions(ctx, cursor, 1, enqueueFactionLeaderPublications);
     case 'faction-troop':
-      return await scanFactions(ctx, cursor, REGENERATION_BATCH_SIZE, enqueueFactionTroopPublications);
+    case 'faction-traitor':
+    case 'faction-alliance':
+      return await scanFactions(ctx, cursor, REGENERATION_BATCH_SIZE, (ctx, faction) =>
+        enqueueFactionFacePublications(ctx, assetType, faction)
+      );
     case FACTION_SHEET_ASSET_TYPE:
       return await scanFactions(ctx, cursor, REGENERATION_BATCH_SIZE, async (ctx, faction) => {
         await enqueueFactionSheetPublication(ctx, faction);

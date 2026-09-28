@@ -23,6 +23,8 @@ export const PUBLICATION_ASSET_TYPES = [
   'faction-leader',
   'faction-token',
   'faction-troop',
+  'faction-traitor',
+  'faction-alliance',
   'card-treachery',
   'card-spice',
   'deck',
@@ -127,6 +129,22 @@ export const PUBLICATION_TARGETS: Record<PublicationAssetType, PublicationTarget
     downloadFilename: 'faction-troop.jpg',
     capture: { output: 'image', widthPx: 600, heightPx: 600, jpegQuality: 88, maxBytes: 2_000_000 },
     faces: ['back'],
+  },
+  /* One supporting leader's traitor card front, under `{factionId}.{memberId}` like its Leader (#1228). */
+  'faction-traitor': {
+    collection: 'traitor-cards',
+    file: 'card.jpg',
+    contentType: 'image/jpeg',
+    downloadFilename: 'traitor-card.jpg',
+    capture: { output: 'image', widthPx: 900, heightPx: 1263, jpegQuality: 88, maxBytes: 2_000_000 },
+  },
+  /* A faction's alliance card front, under the bare faction id (#1228). */
+  'faction-alliance': {
+    collection: 'alliance-cards',
+    file: 'card.jpg',
+    contentType: 'image/jpeg',
+    downloadFilename: 'alliance-card.jpg',
+    capture: { output: 'image', widthPx: 900, heightPx: 1263, jpegQuality: 88, maxBytes: 2_000_000 },
   },
   'faction-leader': {
     collection: 'leaders',
@@ -239,7 +257,7 @@ function isPublicIdForType(assetType: PublicationAssetType, assetId: string): bo
   if (assetType === 'cardback-preset') {
     return cardbackPresetKeySchema.safeParse(assetId).success;
   }
-  if (assetType === 'faction-leader') {
+  if (assetType === 'faction-leader' || assetType === 'faction-traitor') {
     return parseFactionMemberPublicationId(assetId) !== null;
   }
   if (assetType === 'faction-troop') {

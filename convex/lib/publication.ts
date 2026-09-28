@@ -5,9 +5,14 @@ import {
   FACTION_LEADER_ASSET_TYPE,
 } from '../../src/shared/asset-publishing/componentPublication';
 import {
+  FACTION_ALLIANCE_ASSET_TYPE,
+  FACTION_TRAITOR_ASSET_TYPE,
+  factionAllianceAssetData,
+  factionTraitorPublications,
+} from '../../src/shared/asset-publishing/factionCardPublication';
+import {
   FACTION_TROOP_ASSET_TYPE,
   factionTroopPublications,
-  parseFactionTroopPublicationId,
 } from '../../src/shared/asset-publishing/factionTroopPublication';
 import {
   DECK_ASSET_TYPE,
@@ -295,31 +300,65 @@ export async function publicationSettings(ctx: PublicationReadCtx) {
   return settings[0] ?? null;
 }
 
+/** Faction faces that publish as plain images, each keyed by a publication id that starts with its faction id. */
+const FACTION_FACE_PUBLICATIONS = {
+  [FACTION_TROOP_ASSET_TYPE]: factionTroopPublications,
+  [FACTION_TRAITOR_ASSET_TYPE]: factionTraitorPublications,
+  [FACTION_ALLIANCE_ASSET_TYPE]: (factionId: string, data: unknown) => {
+    const alliance = factionAllianceAssetData(data);
+    return new Map(alliance ? [[factionId, alliance]] : []);
+  },
+} satisfies Record<string, (factionId: string, data: unknown) => Map<string, unknown>>;
+export type FactionFaceAssetType = keyof typeof FACTION_FACE_PUBLICATIONS;
+
+function factionFacePublications(assetType: FactionFaceAssetType, factionId: string, data: unknown) {
+  return (FACTION_FACE_PUBLICATIONS[assetType] as (factionId: string, data: unknown) => Map<string, unknown>)(
+    factionId,
+    data
+  );
+}
+
+export function isFactionFaceAssetType(assetType: string): assetType is FactionFaceAssetType {
+  return Object.hasOwn(FACTION_FACE_PUBLICATIONS, assetType);
+}
+
 /**
- * Enqueues each troop face whose artwork changed, and removes pending work for faces the roster no longer has, such as a deleted troop or a back that is no longer authored.
- * Waits for activation like the token, since the publisher that draws troops deploys after Convex.
+ * Enqueues each face of this type whose drawn data changed, and removes pending work for faces the faction no longer draws, such as a deleted troop or leader.
+ * Waits for activation like the token, since the publisher that draws the type deploys after Convex.
  * Activation's scan is the backfill.
  */
-export async function enqueueFactionTroopPublications(
+export async function enqueueFactionFacePublications(
   ctx: MutationCtx,
+  assetType: FactionFaceAssetType,
   faction: { _id: Id<'factions'>; data: unknown },
   previousData?: unknown
 ): Promise<number> {
-  if (!(await publicationSettings(ctx))?.renderer_revisions[FACTION_TROOP_ASSET_TYPE]) {
+  if (!(await publicationSettings(ctx))?.renderer_revisions[assetType]) {
     return 0;
   }
-  const current = factionTroopPublications(faction._id, faction.data);
-  const previous = factionTroopPublications(faction._id, previousData);
+  const current = factionFacePublications(assetType, faction._id, faction.data);
+  const previous = factionFacePublications(assetType, faction._id, previousData);
   const changed = [...current].filter(
     ([assetId, assetData]) => JSON.stringify(previous.get(assetId)) !== JSON.stringify(assetData)
   );
   for (const [assetId, assetData] of changed) {
-    await enqueuePublicationJob(ctx, { assetType: FACTION_TROOP_ASSET_TYPE, assetId, assetData });
+    await enqueuePublicationJob(ctx, { assetType, assetId, assetData });
   }
   for (const assetId of [...previous.keys()].filter((assetId) => !current.has(assetId))) {
-    await supersedePendingPublication(ctx, FACTION_TROOP_ASSET_TYPE, assetId);
+    await supersedePendingPublication(ctx, assetType, assetId);
   }
   return changed.length;
+}
+
+/** Every plain faction face type, enqueued after a faction is created or saved. */
+export async function enqueueFactionFaces(
+  ctx: MutationCtx,
+  faction: { _id: Id<'factions'>; data: unknown },
+  previousData?: unknown
+) {
+  for (const assetType of Object.keys(FACTION_FACE_PUBLICATIONS) as FactionFaceAssetType[]) {
+    await enqueueFactionFacePublications(ctx, assetType, faction, previousData);
+  }
 }
 
 /** Enqueues changed complete Leaders and removes pending work for members removed from the roster. */
@@ -384,24 +423,23 @@ export async function currentFactionLeaderData(ctx: PublicationReadCtx, assetId:
   return factionLeaderAssetData(faction._id, faction.data, identity.memberId);
 }
 
-/** A troop face is readable while its faction is live and its roster still draws that face. */
-export async function currentFactionTroopData(ctx: PublicationReadCtx, assetId: string) {
-  const identity = parseFactionTroopPublicationId(assetId);
-  const factionId = identity ? ctx.db.normalizeId('factions', identity.factionId) : null;
+/** A plain faction face is readable while its faction is live and still draws that face. */
+async function currentFactionFaceData(ctx: PublicationReadCtx, assetType: FactionFaceAssetType, assetId: string) {
+  const factionId = ctx.db.normalizeId('factions', assetId.split('.')[0] ?? '');
   const faction = factionId ? await ctx.db.get(factionId) : null;
   if (!faction || faction.is_deleted) {
     return null;
   }
-  return factionTroopPublications(faction._id, faction.data).get(assetId) ?? null;
+  return factionFacePublications(assetType, faction._id, faction.data).get(assetId) ?? null;
 }
 
-/** The current payload for a per-member face, or `undefined` for types whose publication does not follow a faction roster. */
+/** The current payload for a face that follows a faction's roster, or `undefined` for types whose publication does not. */
 export async function currentFactionComponentData(ctx: PublicationReadCtx, assetType: string, assetId: string) {
   if (assetType === FACTION_LEADER_ASSET_TYPE) {
     return currentFactionLeaderData(ctx, assetId);
   }
-  if (assetType === FACTION_TROOP_ASSET_TYPE) {
-    return currentFactionTroopData(ctx, assetId);
+  if (isFactionFaceAssetType(assetType)) {
+    return currentFactionFaceData(ctx, assetType, assetId);
   }
   return undefined;
 }

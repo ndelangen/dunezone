@@ -378,8 +378,19 @@ export class GameCatalogue {
         reason: 'This troop face can fight but has no authored combat values.',
       });
     }
-    problems.push({ subject: 'alliance card', reason: 'The alliance card is not generated yet.' });
-    problems.push({ subject: 'traitor deck', reason: 'Traitor cards are not generated yet.' });
+    const allianceFront = this.publishedFace(source.alliance ?? null, 'alliance card', problems);
+    if (!allianceFront) {
+      problems.push({ subject: 'alliance card', reason: 'The alliance card has no published face.' });
+    }
+    const traitorCards = definition.leaders.map((leader) => {
+      const subject = `traitor ${leader.name}`;
+      const published = source.traitors?.find((entry) => entry.memberId === leader.memberId)?.front ?? null;
+      const front = this.publishedFace(published, subject, problems);
+      if (!front) {
+        problems.push({ subject, reason: 'This traitor card has no published face.' });
+      }
+      return { memberId: leader.memberId, name: leader.name, front };
+    });
     const captured: SlotCapture[] = [];
     for (const extra of definition.extras ?? []) {
       captured.push(await this.captureSlot('extra', extra, problems));
@@ -393,12 +404,12 @@ export class GameCatalogue {
         leaders,
         troops,
         alliance: {
-          front: null,
+          front: allianceFront,
           back: this.publishedFace(source.cardbacks.alliance, 'alliance back', problems),
         },
         traitors: {
           back: this.publishedFace(source.cardbacks.traitor, 'traitor back', problems),
-          cards: definition.leaders.map((leader) => ({ memberId: leader.memberId, name: leader.name, front: null })),
+          cards: traitorCards,
         },
       },
       extras: captured,

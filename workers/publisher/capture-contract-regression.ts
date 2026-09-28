@@ -85,6 +85,25 @@ const troopSnapshot = envelope('faction-troop', {
   striped: true,
   background: assetPublishingFaction.background,
 });
+/* A traitor front and the alliance front, drawn from the shared faction fixture (#1228). */
+const [traitorLeader] = assetPublishingFaction.leaders;
+invariant(traitorLeader, 'Traitor capture fixture must have a supporting leader');
+const traitorSnapshot = envelope('faction-traitor', {
+  name: traitorLeader.name,
+  strength: traitorLeader.strength,
+  image: traitorLeader.image,
+  logo: assetPublishingFaction.logo,
+  background: assetPublishingFaction.background,
+  owner: assetPublishingFaction.name,
+});
+const allianceSnapshot = envelope('faction-alliance', {
+  title: assetPublishingFaction.name,
+  text: assetPublishingFaction.rules.alliance.text,
+  logo: assetPublishingFaction.logo,
+  background: assetPublishingFaction.background,
+  troop: assetPublishingFaction.troops[0]!.image,
+  decals: assetPublishingFaction.decals,
+});
 const deckSnapshot = envelope('deck', {
   assetId: 'k17publisherContractDeck',
   slug: 'publisher-contract-deck',
@@ -484,6 +503,8 @@ try {
   await checkPublisherImageCapture(browser, 'token-disc', tokenSnapshot, 'round token face');
   await checkPublisherImageCapture(browser, 'token-enhance', rectangleSnapshot, 'rectangle token back');
   await checkPublisherImageCapture(browser, 'faction-troop', troopSnapshot, 'troop back');
+  await checkPublisherImageCapture(browser, 'faction-traitor', traitorSnapshot, 'traitor front');
+  await checkPublisherImageCapture(browser, 'faction-alliance', allianceSnapshot, 'alliance front');
   const firstRulebookCapture = await checkPublisherImageCapture(
     browser,
     'rulebook-first-page',
