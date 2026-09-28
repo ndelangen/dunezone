@@ -313,3 +313,38 @@ export const EditDiscTokenResetDiscardsTheKeptFace = meta.story({
     );
   },
 });
+
+/* The spice card pages, the second live card type. */
+export const SpiceCards = meta.story({ args: { path: '/assets/card-spice' } });
+export const SpiceCard = meta.story({ args: { path: '/assets/card-spice/arsunt' } });
+export const CreateSpiceCard = meta.story({ args: { path: '/assets/card-spice/create' } });
+export const EditSpiceCard = meta.story({ args: { path: '/assets/card-spice/arsunt/edit' } });
+
+/**
+ * A spice card saves through the same create flow and lands on its own editor.
+ * The territory is picked first so the saved card carries a complete face, and the empty body is saved as the renderer's standard sentence.
+ */
+export const CreateSpiceCardSaves = meta.story({
+  args: { path: '/assets/card-spice/create' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const name = await page.findByRole('textbox', { name: 'Name' }, { timeout: 30_000 });
+    await userEvent.type(name, 'Storybook Basin');
+    await userEvent.click(page.getByRole('tab', { name: 'Map' }));
+    await userEvent.type(page.getByRole('combobox', { name: 'Highlighted territories' }), 'Basin');
+    await userEvent.click(await page.findByRole('option', { name: 'Imperial Basin' }));
+    await userEvent.click(page.getByRole('button', { name: 'Save card' }));
+    await expect(page.findByRole('button', { name: 'Delete card' }, { timeout: 30_000 })).resolves.toBeVisible();
+  },
+});
+
+/** The spice card editor opens on a stored card, its fields reading the stored values. */
+export const EditSpiceCardReadsTheStoredCard = meta.story({
+  args: { path: '/assets/card-spice/arsunt/edit' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByRole('textbox', { name: 'Type' }, { timeout: 30_000 })).resolves.toHaveValue('Spice blow');
+    await userEvent.click(page.getByRole('tab', { name: 'Body' }));
+    await expect(page.findByRole('textbox', { name: 'Amount' })).resolves.toHaveValue('6');
+  },
+});
