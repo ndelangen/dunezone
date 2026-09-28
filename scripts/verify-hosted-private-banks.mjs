@@ -137,6 +137,8 @@ export async function verifyPrivateBanks(toolkit) {
     await a.page.mouse.move(target.x, target.y, { steps: carrySteps });
     await a.page.mouse.up();
     await until(() => spices(a).length === 0, 'Dropping spice on the supply disc did not dispose of it.');
+    /* B's unchanged bank counts only once B's view holds the disposal (#1481). */
+    await converged([a, b, observer]);
     assert.equal(a.view().snapshot.bank.balance, startingSpice);
     assert.equal(b.view().snapshot.bank.balance, startingSpice + 4);
     await until(() => observer.view().snapshot.spiceTransfers[0].kind === 'disposal', 'Disposal was not public.');

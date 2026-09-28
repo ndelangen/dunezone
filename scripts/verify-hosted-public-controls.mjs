@@ -31,6 +31,7 @@ export async function verifyPublicControls({
   await enter(b);
   await seatThrough(a, b);
   await playReady([a, b], []);
+  const departed = b.view().viewer.viewerSeat;
   await depart(b);
   const inventory = (who) => who.view().snapshot.table.pieces.filter((piece) => piece.inventory === 'shared');
   const requests = (who) => who.view().snapshot.controls.requests;
@@ -71,6 +72,11 @@ export async function verifyPublicControls({
 
   async function verifySolePlayer() {
     assert.notEqual(a.view().viewer.viewerSeat, spectator);
+    /* `depart` waits for B's own view; A's copy of the departure is another frame on another socket (#1481). */
+    await until(
+      () => !a.view().snapshot.controls.seats.includes(departed),
+      "Player B's departure did not reach player A's roster."
+    );
     assert.deepEqual(a.view().snapshot.controls.seats, [a.view().viewer.viewerSeat]);
     assert.equal(inventory(a).length, 0);
     const original = structuredClone(a.view().snapshot.table.pieces);
