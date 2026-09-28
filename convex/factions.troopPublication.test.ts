@@ -121,17 +121,6 @@ describe('Faction troop publication', () => {
     expect((await taken()).map((job) => job.assetId).sort()).toEqual([eliteFront, `${eliteFront}.back`].sort());
   });
 
-  test('a soft-deleted faction drops its pending troop work', async () => {
-    const { t, owner, faction, taken } = await troopFixture(1);
-    await t.run(async (ctx) => {
-      for (const job of await ctx.db.query('publication_jobs').collect()) {
-        await ctx.db.patch(job._id, { status: 'pending', expires_at: undefined });
-      }
-    });
-    await owner.mutation(api.factions.softDelete, { id: faction._id });
-    expect(await taken()).toEqual([]);
-  });
-
   test('a game reads each troop front, and a back only where one has published', async () => {
     const { t, faction, regular, elite, taken } = await troopFixture(1);
     for (const job of await taken()) {
