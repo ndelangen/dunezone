@@ -12,9 +12,31 @@ import { ensureFactionMemberIds } from '../src/shared/factions/memberIdentity';
 import { CanonicalFactionStoredSchema, FactionInputSchema } from '../src/shared/factions/schema';
 import type { FactionInput } from '../src/shared/factions/schema';
 import { api } from './_generated/api';
+import type { Id } from './_generated/dataModel';
 import schema from './schema';
 
 const modules = import.meta.glob('./**/*.ts');
+
+/** Catalogue rows an Extra can name; the save only checks that a live asset of that type holds the slug. */
+async function seedExtraAssets(t: ReturnType<typeof convexTest>, ownerId: Id<'users'>, assets: [string, string][]) {
+  const now = '2026-09-28T12:00:00.000Z';
+  return await t.run(async (ctx) =>
+    Promise.all(
+      assets.map(([type, slug]) =>
+        ctx.db.insert('assets', {
+          owner_id: ownerId,
+          type,
+          slug,
+          data: {},
+          created_at: now,
+          updated_at: now,
+          is_deleted: false,
+          group_id: null,
+        })
+      )
+    )
+  );
+}
 
 function representativeFullFieldFaction(): FactionInput {
   const input = {
@@ -144,16 +166,8 @@ function representativeFullFieldFaction(): FactionInput {
       },
     },
     extras: [
-      {
-        name: 'Existing TTS content',
-        description: 'Not owned by the faction editor.',
-        items: [
-          {
-            url: 'https://example.com/existing-item.png',
-            description: 'Must survive every authoring round trip.',
-          },
-        ],
-      },
+      { type: 'deck', slug: 'proof-omens' },
+      { type: 'token-disc', slug: 'proof-sandworm' },
     ],
     extraPhases: [
       {
@@ -258,6 +272,10 @@ describe('faction authoring full-field round trip', () => {
     aggregateTest.register(t, 'profileActivity');
     aggregateTest.register(t, 'profileDiscovery');
     const userId = await t.run(async (ctx) => await ctx.db.insert('users', { name: 'Faction authoring proof user' }));
+    await seedExtraAssets(t, userId, [
+      ['deck', 'proof-omens'],
+      ['token-disc', 'proof-sandworm'],
+    ]);
     await t.run(
       async (ctx) =>
         await ctx.db.insert('profiles', {
@@ -401,5 +419,64 @@ describe('faction authoring full-field round trip', () => {
         },
       },
     });
+  });
+
+  test('an added Extra must name a live catalogue asset, and one already listed survives its removal', async () => {
+    const t = convexTest(schema, modules);
+    aggregateTest.register(t, 'statistics');
+    aggregateTest.register(t, 'profileActivity');
+    aggregateTest.register(t, 'profileDiscovery');
+    const userId = await t.run(async (ctx) => await ctx.db.insert('users', { name: 'Faction extras proof user' }));
+    const [deckId] = await seedExtraAssets(t, userId, [
+      ['deck', 'extras-omens'],
+      ['bundle', 'extras-spice'],
+    ]);
+    const asUser = t.withIdentity({ subject: userId });
+    const base = { ...structuredClone(assetPublishingFaction), name: 'Extras Proof' };
+
+    await expect(
+      asUser.mutation(api.factions.create, {
+        data: { ...base, extras: [{ type: 'token-disc', slug: 'extras-omens' }] },
+        group_id: null,
+      })
+    ).rejects.toThrow(/The Extra token-disc\/extras-omens is not in the catalogue/);
+
+    const created = await asUser.mutation(api.factions.create, {
+      data: { ...base, extras: [{ type: 'deck', slug: 'extras-omens' }] },
+      group_id: null,
+    });
+    await t.run(async (ctx) => ctx.db.patch(deckId!, { is_deleted: true }));
+
+    const updated = await asUser.mutation(api.factions.update, {
+      id: created._id,
+      data: {
+        ...created.data,
+        name: 'Extras Proof Renamed',
+        extras: [...created.data.extras!, { type: 'bundle', slug: 'extras-spice' }],
+      },
+    });
+    expect(updated.data.extras).toEqual([
+      { type: 'deck', slug: 'extras-omens' },
+      { type: 'bundle', slug: 'extras-spice' },
+    ]);
+    await expect(
+      asUser.mutation(api.factions.update, {
+        id: created._id,
+        data: { ...updated.data, extras: [{ type: 'deck', slug: 'extras-missing' }] },
+      })
+    ).rejects.toThrow(/The Extra deck\/extras-missing is not in the catalogue/);
+
+    /* Before the retirement migration reaches a row, a stored link list must not hide the references beside it. */
+    await t.run(async (ctx) => {
+      const row = await ctx.db.get('factions', created._id);
+      await ctx.db.patch(created._id, {
+        data: { ...row!.data, extras: [{ name: 'TTS', items: [] }, ...updated.data.extras!] },
+      });
+    });
+    const renamed = await asUser.mutation(api.factions.update, {
+      id: created._id,
+      data: { ...updated.data, name: 'Extras Proof Again' },
+    });
+    expect(renamed.data.extras).toEqual(updated.data.extras);
   });
 });

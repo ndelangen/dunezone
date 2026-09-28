@@ -1,8 +1,11 @@
 import { ConvexError, v } from 'convex/values';
 
+import { factionExtraKey, storedFactionExtrasSchema } from '../src/shared/factions/extras';
+import type { FactionExtra } from '../src/shared/factions/extras';
 import type { Doc, Id } from './_generated/dataModel';
 import { query } from './_generated/server';
 import { publicationStatusFor } from './assetPublishingStatus';
+import { liveAsset } from './assets';
 import { mutation } from './functions';
 import { isActiveProfile } from './lib/accountLifecycle';
 import {
@@ -284,6 +287,36 @@ export const listByGroup = query({
   },
 });
 
+/**
+ * The Extras a stored faction already lists;
+ * retired link lists read as absent, and anything else unreadable counts as none, so it cannot excuse a new reference.
+ */
+function savedFactionExtras(data: unknown): FactionExtra[] {
+  const parsed = storedFactionExtrasSchema.safeParse((data as { extras?: unknown } | null)?.extras ?? []);
+  return parsed.success ? parsed.data : [];
+}
+
+/**
+ * Each Extra the author adds must name a live catalogue asset of its type.
+ * One the faction already listed is kept even after its asset is removed, so unrelated edits still save;
+ * Play names it as not ready until the author fixes or removes it.
+ */
+async function assertAddedFactionExtrasExist(
+  ctx: MutationCtx,
+  extras: readonly FactionExtra[] | undefined,
+  saved: readonly FactionExtra[]
+) {
+  const kept = new Set(saved.map(factionExtraKey));
+  const added = (extras ?? []).filter((extra) => !kept.has(factionExtraKey(extra)));
+  const assets = await Promise.all(added.map((extra) => liveAsset(ctx, extra.type, extra.slug)));
+  const missing = added.find((_, index) => !assets[index]);
+  if (missing) {
+    throw new ConvexError(
+      `The Extra ${factionExtraKey(missing)} is not in the catalogue. Choose it again or remove it.`
+    );
+  }
+}
+
 export const create = mutation({
   args: {
     data: v.any(),
@@ -294,6 +327,7 @@ export const create = mutation({
     const groupAssignment = await resolveGroupAssignmentForCreation(ctx, userId, args.group_id);
 
     const data = factionInputForWrite(args.data);
+    await assertAddedFactionExtrasExist(ctx, data.extras, []);
     const slug = slugify(data.name);
     await assertFactionSlugAvailable(ctx, slug);
 
@@ -329,6 +363,7 @@ export const update = mutation({
     });
     const access = await requireFactionUpdate(ctx, args.id, data);
     const identifiedData = factionInputForWrite(data, access.subject.data);
+    await assertAddedFactionExtrasExist(ctx, data.extras, savedFactionExtras(access.subject.data));
     const slug = slugify(data.name);
     await assertFactionSlugAvailable(ctx, slug, args.id);
 

@@ -4,7 +4,7 @@ import { phaseDeclarationSchema } from '../factions/extraPhases';
 import type { PhaseDeclaration } from '../factions/extraPhases';
 import { CanonicalFactionStoredSchema, HistoricalFactionPublicationSchema } from '../factions/schema';
 import { RULESET_ASSET_SLOT_ORDER } from '../rulesets/assetSlots';
-import { spawnSelectionSchema, storedSpawnContentsSchema } from './inventory';
+import { storedSpawnContentsSchema } from './inventory';
 import { tableCountSchema } from './schema';
 
 /*
@@ -165,10 +165,6 @@ export function capturedDeclarations(capture: FactionCapture): PhaseDeclaration[
     return parsed.success ? [parsed.data] : [];
   });
 }
-
-/** A catalogue reference an Extra names: the same selection the shared inventory spawns from. */
-const extraReferenceSchema = spawnSelectionSchema;
-export type ExtraReference = z.infer<typeof extraReferenceSchema>;
 
 export function readiness(problems: CaptureProblem[]): CaptureReadiness {
   return { ready: problems.length === 0, problems };

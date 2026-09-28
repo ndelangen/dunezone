@@ -30,11 +30,14 @@ describe('Retained supply at setup entry', () => {
     ));
     const extra = tokenPage('shared-extra');
     peer.catalogue.set('token-disc/shared-extra', extra);
+    /* Both factions declare the same Extra; each must get its own copy. */
     for (const id of ['atreides', 'harkonnen']) {
-      await runtime.capture('faction', id, {
-        extras: [{ type: 'token-disc', slug: 'shared-extra' }],
-        provisional: true,
+      const entry = peer.factions.get(id);
+      peer.factions.set(id, {
+        ...entry,
+        data: { ...entry.data, extras: [{ type: 'token-disc', slug: 'shared-extra' }] },
       });
+      await runtime.capture('faction', id, { provisional: true });
     }
   });
   afterEach(async () => {
