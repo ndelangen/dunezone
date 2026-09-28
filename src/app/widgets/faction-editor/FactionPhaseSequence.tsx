@@ -113,10 +113,10 @@ function SequenceList({
       <ol className={styles.list} aria-label={label}>
         {groups.flatMap(({ placed, step }) => [
           ...placed.map(renderRow),
-          /* This faction's rows here could tie with another faction's at the same priority; the table orders those by the storm. */
+          /* This faction's rows here could tie with another faction's at the same priority; the table orders those by the storm. The hint is a note, not a step, so it stays out of the list's item count. */
           ...(placed.length > 0
             ? [
-                <li key={`${step.key}-ties`} className={styles.tieHint}>
+                <li key={`${step.key}-ties`} className={styles.tieHint} role="none">
                   <Text size="xs" c="dimmed">
                     Another faction&apos;s phase here at the same priority goes in storm order.
                   </Text>
@@ -142,7 +142,7 @@ export function FactionPhaseSequence({ rows, selectedIndex }: { rows: readonly u
           </Text>
         ) : null}
         {omitted.length > 0 ? (
-          <Text size="sm" c="red" role="status">
+          <Text size="sm" c="var(--color-caution)">
             Left out until fixed:{' '}
             {omitted.map((index) => phaseRowLabel(rows[index] as Partial<PhaseDeclaration>, index)).join(', ')}.
           </Text>

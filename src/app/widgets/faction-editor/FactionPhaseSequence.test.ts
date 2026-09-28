@@ -43,4 +43,16 @@ describe('phaseSequence', () => {
     expect(labels(turnGroups)).not.toContain('Phase broken');
     expect(omitted).toEqual([1]);
   });
+
+  it('leaves out a second row that repeats an id, keeping the first', () => {
+    const { turnGroups, omitted } = phaseSequence([row('same', 'storm'), row('same', 'bidding', { title: 'Copy' })]);
+    expect(labels(turnGroups)[0]).toBe('Phase same');
+    expect(labels(turnGroups)).not.toContain('Copy');
+    expect(omitted).toEqual([1]);
+  });
+
+  it('orders setup declarations by priority before list order', () => {
+    const { setupGroups } = phaseSequence([row('second', 'traitors', { priority: 20 }), row('first', 'traitors')]);
+    expect(labels(setupGroups)).toEqual(['Phase first', 'Phase second', 'Traitors', 'Starting forces']);
+  });
 });

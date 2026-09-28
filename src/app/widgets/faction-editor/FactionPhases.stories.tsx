@@ -123,12 +123,19 @@ export const SequenceSetupAndTurn = meta.story({
   play: async ({ canvasElement }) => {
     await openPhases(canvasElement);
     const tie = "Another faction's phase here at the same priority goes in storm order.";
-    await expect(sequenceRows(canvasElement, 'Setup')).toEqual(['Traitors', 'Desert omen', tie, 'Starting forces']);
+    await expect(sequenceRows(canvasElement, 'Setup')).toEqual(['Traitors', 'Desert omen', 'Starting forces']);
     await expect(sequenceRows(canvasElement, 'Each turn').slice(2, 5)).toEqual([
       'CHOAM charity',
       'Guild negotiations',
-      tie,
+      'Bidding',
     ]);
+    /* The hint shows under each placed group but is a note, not a counted step. */
+    await expect(within(canvasElement).getAllByText(tie)).toHaveLength(2);
+    /* The shelf's selected phase is the one marked in the sequence. */
+    const sequence = within(within(canvasElement).getByRole('region', { name: 'Phase sequence' }));
+    const setup = within(sequence.getByRole('list', { name: 'Setup' }));
+    await expect(setup.getByText('Desert omen').closest('li')).toHaveAttribute('aria-current', 'true');
+    await expect(setup.getByText('Traitors').closest('li')).not.toHaveAttribute('aria-current');
   },
 });
 
@@ -154,7 +161,7 @@ export const SequenceFollowsPlacement = meta.story({
     await userEvent.click(await within(document.body).findByRole('option', { name: 'Before Revival' }));
 
     await waitFor(() => expect(sequenceRows(canvasElement, 'Each turn').indexOf('Guild negotiations')).toBe(4));
-    await expect(sequenceRows(canvasElement, 'Each turn')[6]).toBe('Revival');
+    await expect(sequenceRows(canvasElement, 'Each turn')[5]).toBe('Revival');
   },
 });
 

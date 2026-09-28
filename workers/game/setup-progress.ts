@@ -21,12 +21,16 @@ import { restingPositionAt } from '../../src/shared/play/tableGeometry';
 import { labelForCount } from '../../src/shared/play/tableState';
 import type { StoredSnapshot } from './state';
 
+function setupTargetSymbol(id: (typeof SETUP_PHASE_TARGETS)[number]['id']) {
+  return SETUP_PHASE_TARGETS.find((target) => target.id === id)!.symbol;
+}
+
 const TRAITORS_STEP = {
   id: 'traitors',
   kind: 'traitors',
   title: 'Traitor selection',
   instructions: 'Combine, shuffle and deal traitor cards. Return unwanted cards to the table, then confirm Ready.',
-  symbol: SETUP_PHASE_TARGETS[0].symbol,
+  symbol: setupTargetSymbol('traitors'),
   allPlayersMustBeReady: true,
 } as const;
 
@@ -36,7 +40,7 @@ const FORCES_STEP = {
   title: 'Starting forces',
   instructions:
     'Place your starting forces using your faction instructions. When every player is prepared, Ready enables Next into Turn 1 Storm.',
-  symbol: SETUP_PHASE_TARGETS[1].symbol,
+  symbol: setupTargetSymbol('forces'),
   allPlayersMustBeReady: true,
 } as const;
 
