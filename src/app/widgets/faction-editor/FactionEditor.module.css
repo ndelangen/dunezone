@@ -181,6 +181,16 @@
   background: #fffdf1;
 }
 
+/* Paper like the rules excerpts, with their inset and word breaking but not their height: the phase
+   sequence follows it. */
+.phaseProof {
+  padding: var(--space-lg);
+  overflow-wrap: anywhere;
+  border: 1px solid var(--mantine-color-default-border);
+  border-radius: var(--mantine-radius-default);
+  background: #fffdf1;
+}
+
 .previewEmpty {
   display: grid;
   min-height: 15rem;
@@ -222,10 +232,12 @@
 
 /*
  * Below 38rem, the 23rem form beside the 15rem column, the column is narrower than 15rem, down to
- * the 7rem thumbnail, so the rules excerpts take a smaller inset and smaller headings to fit it.
+ * the 7rem thumbnail, so the rules excerpts and the phase card take a smaller inset and smaller
+ * headings to fit it.
  */
 @container faction-review-stage (width < 38rem) {
-  .rulesProof {
+  .rulesProof,
+  .phaseProof {
     padding: var(--space-xs);
   }
 
