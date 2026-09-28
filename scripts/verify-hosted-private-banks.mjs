@@ -41,7 +41,7 @@ export async function verifyPrivateBanks(toolkit) {
     await converged([a, b, observer]);
   }
   async function stackPoint(who, stack) {
-    return point(who, [stack.position[0], stack.position[1] + stackTopHeight(stack), stack.position[2]], 'map');
+    return point(who, [stack.position[0], stack.position[1] + stackTopHeight(stack), stack.position[2]]);
   }
   async function collect(who, stack) {
     await focus(who, 'map');
@@ -130,7 +130,7 @@ export async function verifyPrivateBanks(toolkit) {
   async function verifyDisposal() {
     await focus(a, 'map');
     const start = await stackPoint(a, spices(a)[0]);
-    const target = await point(a, [slot.position[0], TRACKER_DISC_TOP_Y + 0.015, slot.position[2]], 'map');
+    const target = await point(a, [slot.position[0], TRACKER_DISC_TOP_Y + 0.015, slot.position[2]]);
     await a.page.mouse.move(start.x, start.y);
     await a.page.mouse.down();
     await a.page.waitForTimeout(350);

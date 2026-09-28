@@ -1,21 +1,14 @@
 import assert from 'node:assert/strict';
 import { randomBytes } from 'node:crypto';
-import { lstat, mkdir, readFile, realpath, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, realpath, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { parseArgs, parseEnv } from 'node:util';
 
-import { chromium } from 'playwright';
+import { chromium, errors } from 'playwright';
 import sharp from 'sharp';
-import { PerspectiveCamera, Vector3 } from 'three';
 
-import {
-  cameraPoseFor,
-  mapViewTopLimitForViewport,
-  PHASE_VIEWS,
-  TABLE_CAMERA_FIELD_OF_VIEW,
-} from '../src/app/routes/_app/play/playView.ts';
-import { mapViewFramingPoints } from '../src/app/routes/_app/play/tablePlateGeometry.ts';
+import { PHASE_VIEWS } from '../src/app/routes/_app/play/playView.ts';
 import { turnTrackerLayout } from '../src/app/routes/_app/play/turnTrackerGeometry.ts';
 import { phaseAt, phaseForTurn, TABLE_PHASES, tableProgressFor } from '../src/shared/play/phases.ts';
 import { KEEPALIVE_PING, KEEPALIVE_PONG } from '../src/shared/play/protocol.ts';
@@ -24,6 +17,8 @@ import { spiceSupplySlot } from '../src/shared/play/spiceSupply.ts';
 import { stackTopHeight } from '../src/shared/play/tableGeometry.ts';
 import { trackerArcSlots, TRACKER_DISC_TOP_Y } from '../src/shared/play/tableTrackers.ts';
 import { applyRoomUpdate } from '../src/shared/play/updates.ts';
+import { loopbackOrigin } from './lib/isolated-stack.ts';
+import { privateInputFile } from './play-load/hosted-paths.ts';
 import { verifyBattles } from './verify-hosted-battles.mjs';
 import { verifyDecks } from './verify-hosted-decks.mjs';
 import { browserFlows, isBrowserFlow } from './verify-hosted-flows.ts';
@@ -63,46 +58,6 @@ assert.deepEqual(
   new Set(Object.keys(browserFlows)),
   'Every registered flow needs a driver.'
 );
-function localOrigin(value, label) {
-  const url = new URL(value);
-  assert.ok(
-    url.protocol === 'http:' &&
-      url.hostname === '127.0.0.1' &&
-      url.port &&
-      url.pathname === '/' &&
-      !url.search &&
-      !url.hash &&
-      !url.username &&
-      !url.password,
-    `${label} must be an explicit http://127.0.0.1:PORT origin.`
-  );
-  return url.origin;
-}
-async function privateFile(filename, allowMissing = false) {
-  assert.ok(path.isAbsolute(filename), 'Private files need an absolute path.');
-  assert.ok(!filename.split(path.sep).includes('..'), 'Private file paths must not contain parent traversal.');
-  const parentPath = path.dirname(filename);
-  const parent = await lstat(parentPath);
-  assert.ok(parent.isDirectory() && (parent.mode & 0o077) === 0, 'Private files need a private parent directory.');
-  const canonicalParent = await realpath(parentPath);
-  const canonicalFile = path.resolve(canonicalParent, path.basename(filename));
-  assert.ok(
-    canonicalFile.startsWith(`${canonicalParent}${path.sep}`),
-    'Private files must stay in their parent directory.'
-  );
-  try {
-    const entry = await lstat(canonicalFile);
-    assert.ok(
-      entry.isFile() && (entry.mode & 0o077) === 0,
-      'Private files must not be symlinks or readable by others.'
-    );
-  } catch (error) {
-    if (!(allowMissing && error.code === 'ENOENT')) {
-      throw error;
-    }
-  }
-  return canonicalFile;
-}
 async function canonicalDirectory(directory) {
   try {
     return await realpath(directory);
@@ -114,12 +69,13 @@ async function canonicalDirectory(directory) {
     return path.join(parent, path.basename(directory));
   }
 }
-const origin = localOrigin(values.origin, '--origin');
-const environmentPath = await privateFile(values['env-file']);
+const origin = loopbackOrigin(values.origin, '--origin');
+const environmentPath = await privateInputFile(values['env-file']);
 const environment = parseEnv(await readFile(environmentPath, 'utf8'));
-const backend = localOrigin(environment.CONVEX_SELF_HOSTED_URL, 'CONVEX_SELF_HOSTED_URL');
+const backend = loopbackOrigin(environment.CONVEX_SELF_HOSTED_URL, 'CONVEX_SELF_HOSTED_URL');
 assert.notEqual(origin, backend, 'The publisher and Convex backend need separate ports.');
-const credentialsPath = await privateFile(values['credentials-file'], true);
+/* The script writes the flow's synthetic accounts back here, about 130 bytes each, far inside the input file's 8 KiB cap. */
+const credentialsPath = await privateInputFile(values['credentials-file'], { allowMissing: true });
 assert.ok(path.isAbsolute(values['report-dir']), '--report-dir needs an absolute path.');
 const outputDirectory = await canonicalDirectory(path.resolve(values['report-dir']));
 for (const filename of [environmentPath, credentialsPath]) {
@@ -668,25 +624,23 @@ async function focus(who, view) {
 function recommendedViewButton(who, view, pressed) {
   return who.page.getByRole('button', { name: `Focus on ${view}, recommended for this phase`, exact: true, pressed });
 }
-async function point(who, position, view = 'left') {
-  const bounds = await who.page.locator('.dune-play-shell canvas').boundingBox();
-  assert.ok(bounds);
-  const header = await who.page.locator('.seated-header').boundingBox();
-  const pose = cameraPoseFor(
-    view,
-    bounds.width / bounds.height,
-    mapViewFramingPoints(trackerArcSlots(TABLE_PHASES.length), who.view().snapshot.roster.seatCount),
-    mapViewTopLimitForViewport(bounds.height, header?.height ?? 0)
-  );
-  const camera = new PerspectiveCamera(TABLE_CAMERA_FIELD_OF_VIEW, bounds.width / bounds.height, 0.1, 100);
-  camera.position.set(...pose.position);
-  camera.lookAt(...pose.target);
-  camera.updateMatrixWorld();
-  const projected = new Vector3(...position).project(camera);
-  return {
-    x: bounds.x + ((projected.x + 1) * bounds.width) / 2,
-    y: bounds.y + ((1 - projected.y) * bounds.height) / 2,
-  };
+/**
+ * The page coordinates of a table position, projected through the camera the page renders.
+ * The table installs `window.__duneTable` after its canvas mounts, and again after a remount, so each projection waits for it.
+ */
+async function point(who, position) {
+  const installed = await who.page
+    .waitForFunction(() => window.__duneTable !== undefined, undefined, { timeout: 15_000 })
+    .catch((error) => {
+      if (!(error instanceof errors.TimeoutError)) {
+        throw error;
+      }
+      throw new Error(
+        `${who.label}'s table installed no window.__duneTable within 15 s; the verifier needs a build with VITE_E2E_LOCAL_AUTH=true.`
+      );
+    });
+  await installed.dispose();
+  return who.page.evaluate((value) => window.__duneTable.worldToScreen(value), position);
 }
 /**
  * Hovers the spice supply disc in the map view until the canvas shows the disc's pointer cursor, then presses `key`.
@@ -700,7 +654,7 @@ async function supplyShortcut(who, key) {
   await who.page.getByRole('button', { name: /^Focus on map/ }).focus();
   let nudge = 0;
   await until(async () => {
-    const supply = await point(who, [slot.position[0], TRACKER_DISC_TOP_Y + 0.015, slot.position[2]], 'map');
+    const supply = await point(who, [slot.position[0], TRACKER_DISC_TOP_Y + 0.015, slot.position[2]]);
     nudge = 1 - nudge;
     await who.page.mouse.move(supply.x + nudge, supply.y);
     return canvas.evaluate((element) => element.style.cursor === 'pointer');
@@ -791,7 +745,7 @@ async function cursorBounds(recipient, sender) {
 async function rejectTransparentCursor(recipient, sender) {
   /* Refresh the cursor after the carry checks, which can outlast its three-second expiry. */
   const position = [0, 0.38, 1];
-  const destination = await point(sender, position, 'map');
+  const destination = await point(sender, position);
   await sender.page.mouse.move(destination.x, destination.y);
   await cursorAt(recipient, sender, position);
   const hand = remoteCursor(recipient, sender);
@@ -845,7 +799,7 @@ async function rejectTransparentCursor(recipient, sender) {
 }
 
 async function cursorAt(recipient, sender, position) {
-  const expected = await point(recipient, position, 'map');
+  const expected = await point(recipient, position);
   return until(async () => {
     const bounds = await cursorBounds(recipient, sender);
     return Math.abs(bounds.x - expected.x) < 16 && Math.abs(bounds.y - expected.y) < 16 && bounds;
@@ -886,8 +840,8 @@ async function visibleActivity(sender, recipient, name) {
   await focus(sender, 'map');
   await focus(recipient, 'map');
   const savedRevision = sender.view().snapshot.revision;
-  const first = await point(sender, [0, 0.38, 1], 'map');
-  const second = await point(sender, [1, 0.38, 1], 'map');
+  const first = await point(sender, [0, 0.38, 1]);
+  const second = await point(sender, [1, 0.38, 1]);
   await sender.page.mouse.move(first.x, first.y);
   const firstCursor = await cursorAt(recipient, sender, [0, 0.38, 1]);
   await sender.page.mouse.move(second.x, second.y, { steps: 8 });
@@ -900,8 +854,7 @@ async function visibleActivity(sender, recipient, name) {
   const source = piece(sender, id);
   const start = await point(
     sender,
-    source.position.map((value, index) => (index === 1 ? value + 0.12 : value)),
-    'map'
+    source.position.map((value, index) => (index === 1 ? value + 0.12 : value))
   );
   const targets = [
     [0, 0.38, 1.6],
@@ -910,8 +863,8 @@ async function visibleActivity(sender, recipient, name) {
   await sender.page.mouse.move(10, 10);
   const destinations = [];
   for (const position of targets) {
-    const senderPoint = await point(sender, position, 'map');
-    const recipientPoint = await point(recipient, position, 'map');
+    const senderPoint = await point(sender, position);
+    const recipientPoint = await point(recipient, position);
     destinations.push({ senderPoint, recipientPoint, baseline: await redPixels(recipient, sender, recipientPoint) });
   }
   await capture(recipient, `${name}-before-carry`);
@@ -1063,11 +1016,10 @@ async function sharedPhaseFlow(a, b) {
   const beforeCarry = a.view().snapshot.revision;
   const start = await point(
     b,
-    source.position.map((value, index) => (index === 1 ? value + 0.12 : value)),
-    'map'
+    source.position.map((value, index) => (index === 1 ? value + 0.12 : value))
   );
   const target = [-1.5, 0.38, 1.4];
-  const targetPoint = await point(b, target, 'map');
+  const targetPoint = await point(b, target);
   /* The next phase recommends a view other than the map (#1389). At the phase change the idle recipient's
      camera moves there, and the carrying player's camera waits for the drop, so the recipient samples the
      held token in both views, each against its own empty board. */
@@ -1075,11 +1027,11 @@ async function sharedPhaseFlow(a, b) {
   assert.notEqual(nextView, 'map', 'The phase after Storm must recommend a view other than the map.');
   await focus(a, nextView);
   await a.page.mouse.move(10, 10);
-  const nextViewPoint = await point(a, target, nextView);
+  const nextViewPoint = await point(a, target);
   const nextViewBaseline = await redPixels(a, b, nextViewPoint);
   await focus(a, 'map');
   await a.page.mouse.move(10, 10);
-  const recipientPoint = await point(a, target, 'map');
+  const recipientPoint = await point(a, target);
   const baseline = await redPixels(a, b, recipientPoint);
   await b.page.mouse.move(start.x, start.y);
   await b.page.mouse.down();
@@ -1202,7 +1154,7 @@ async function sharedSpiceRoundTrip(sender, recipient, count, interact, name) {
   const visibleTop = [stack.position[0], stack.position[1] + stackTopHeight(stack), stack.position[2]];
   const samples = await Promise.all(
     [sender, recipient].map(async (who, index) => {
-      const center = await point(who, visibleTop, 'map');
+      const center = await point(who, visibleTop);
       return { who, center, baseline: await goldPixels(baselines[index], center) };
     })
   );
@@ -1217,13 +1169,9 @@ async function sharedSpiceRoundTrip(sender, recipient, count, interact, name) {
   }
   passed(`${name}: both players receive and render ${count} shared spice`);
 
-  const start = await point(recipient, visibleTop, 'map');
+  const start = await point(recipient, visibleTop);
   const supply = spiceSupplySlot();
-  const destination = await point(
-    recipient,
-    [supply.position[0], TRACKER_DISC_TOP_Y + 0.015, supply.position[2]],
-    'map'
-  );
+  const destination = await point(recipient, [supply.position[0], TRACKER_DISC_TOP_Y + 0.015, supply.position[2]]);
   const sentBefore = recipient.sent.length;
   await recipient.page.mouse.move(start.x, start.y);
   await recipient.page.mouse.down();
@@ -1277,11 +1225,11 @@ async function selectTurn(who, current, turn) {
     (value) => value.turn === turn
   );
   assert.ok(sector, `Turn ${turn} must be selectable on the wheel at turn ${current}.`);
-  const wheelPoint = await point(
-    who,
-    [turnSlot.position[0] + sector.position[0], TRACKER_DISC_TOP_Y + 0.045, turnSlot.position[2] + sector.position[2]],
-    'map'
-  );
+  const wheelPoint = await point(who, [
+    turnSlot.position[0] + sector.position[0],
+    TRACKER_DISC_TOP_Y + 0.045,
+    turnSlot.position[2] + sector.position[2],
+  ]);
   await who.page.mouse.click(wheelPoint.x, wheelPoint.y);
 }
 
@@ -1569,7 +1517,7 @@ async function verifyRegular() {
   await recommendedViewButton(b, PHASE_VIEWS[phaseAt(b.view().snapshot.phase).id], true).waitFor();
   await focus(b, 'map');
   const leavingConnectionId = b.view().viewer.connectionId;
-  const exitPointer = await point(b, [0, 0.38, 1.5], 'map');
+  const exitPointer = await point(b, [0, 0.38, 1.5]);
   const beforeExitPointer = observer.messages.length;
   await b.page.mouse.move(exitPointer.x, exitPointer.y);
   await until(
