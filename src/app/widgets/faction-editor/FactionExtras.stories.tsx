@@ -83,7 +83,10 @@ export const AddFromCatalogue = meta.story({
     const canvas = await openExtras(canvasElement);
     await userEvent.click(canvas.getByRole('button', { name: 'Add Extra' }));
     const body = within(canvasElement.ownerDocument.body);
-    await expect(await body.findByRole('option', { name: /Atreides Tokens/ }, { timeout: 30_000 })).toBeVisible();
+    /* The picker fades in, so its option is in the document a moment before it is visible. */
+    await waitFor(() => expect(body.getByRole('option', { name: /Atreides Tokens/ })).toBeVisible(), {
+      timeout: 30_000,
+    });
     await expect(body.queryByRole('option', { name: /House Treachery/ })).toBeNull();
     await userEvent.click(body.getByRole('option', { name: /Atreides Tokens/ }));
     await waitFor(() => expect(listedSlugs(canvasElement)).toEqual(['house-treachery', 'atreides-tokens']));
