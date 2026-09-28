@@ -333,11 +333,16 @@ export class GameCatalogue {
       return [];
     });
     const definition = declarations.length ? { ...parsed.data, extraPhases } : parsed.data;
-    const token = { front: this.publishedFace(source.token, 'faction token', problems), back: null };
+    const token = {
+      front: this.publishedFace(source.token, 'faction token', problems),
+      back: this.publishedFace(source.tokenBack ?? null, 'faction token', problems),
+    };
     if (!token.front) {
       problems.push({ subject: 'faction token', reason: 'The faction token has no published face.' });
     }
-    problems.push({ subject: 'faction token', reason: 'The faction token back is not generated yet.' });
+    if (!token.back) {
+      problems.push({ subject: 'faction token', reason: 'The faction token back has no published face.' });
+    }
     const leaders = definition.leaders.map((leader) => {
       const subject = `leader ${leader.name}`;
       const published = source.leaders.find((entry) => entry.memberId === leader.memberId)?.front ?? null;

@@ -287,6 +287,7 @@ describe('Catalogue capture and retention through the isolated fixture', () => {
       faction: { id: 'faction-one', slug: 'atreides', name: assetPublishingFaction.name },
       data,
       token: '/published/faction-tokens/faction-one/token.jpg',
+      tokenBack: '/published/faction-tokens/faction-one.back/token.jpg',
       cardbacks: {
         traitor: '/published/cardback-presets/traitor/cardback.jpg?v=traitor-1',
         alliance: '/published/cardback-presets/alliance/cardback.jpg?v=alliance-1',
@@ -301,7 +302,7 @@ describe('Catalogue capture and retention through the isolated fixture', () => {
 
     expect(await runtime.capture('faction', 'faction-one')).toEqual({
       ok: false,
-      message: 'This faction Atreides is not ready: faction token, The faction token back is not generated yet.',
+      message: 'This faction Atreides is not ready: leader Dr. Yueh, This leader has no published face.',
     });
     expect((await runtime.captures()).factions).toEqual([]);
 
@@ -310,7 +311,7 @@ describe('Catalogue capture and retention through the isolated fixture', () => {
     expect(record.definition).toEqual(data);
     expect(record.components.token).toEqual({
       front: 'http://table.test/published/faction-tokens/faction-one/token.jpg',
-      back: null,
+      back: 'http://table.test/published/faction-tokens/faction-one.back/token.jpg',
     });
     expect(record.components.leaders.map((leader) => leader.memberId)).toEqual(
       leaders.map((leader) => leader.memberId)
@@ -334,7 +335,6 @@ describe('Catalogue capture and retention through the isolated fixture', () => {
     expect(await tablePieces()).toBe(pieces);
     expect(peerFunctions(before)).toEqual(new Set(['playCatalogue:factionDefinition', 'playCatalogue:assetSupply']));
     expect(record.readiness.problems.map((problem) => problem.subject)).toEqual([
-      'faction token',
       `leader ${leaders[0].name}`,
       ...assetPublishingFaction.troops.map((troop) => `troop ${troop.name}`),
       /* The shared fixture predates combat authoring, so each of its fighting faces is named again for its values. */
@@ -369,6 +369,7 @@ describe('Catalogue capture and retention through the isolated fixture', () => {
       faction: { id: 'faction-one', slug: 'atreides', name: assetPublishingFaction.name },
       data,
       token: '/published/faction-tokens/faction-one/token.jpg',
+      tokenBack: '/published/faction-tokens/faction-one.back/token.jpg',
       cardbacks: { traitor: null, alliance: null },
       leaders: [],
     });
@@ -391,6 +392,7 @@ describe('Catalogue capture and retention through the isolated fixture', () => {
       faction: { id: 'faction-two', slug: 'partial', name: '' },
       data: null,
       token: null,
+      tokenBack: null,
       cardbacks: { traitor: null, alliance: null },
       leaders: [],
     });

@@ -64,8 +64,8 @@ describe('isolated Play test controls', () => {
     aggregateTest.register(t, 'profileActivity');
     const first = await t.mutation(internal.playTesting.seedRealGameCatalogue, {});
     const second = await t.mutation(internal.playTesting.seedRealGameCatalogue, {});
-    /* Two decks with three cards each, and a token per faction. */
-    expect(first.publications).toHaveLength(10);
+    /* Two decks with three cards each, and both token faces per faction. */
+    expect(first.publications).toHaveLength(12);
     const seeded = await t.run(async (ctx) => {
       const slots = await ctx.db
         .query('ruleset_asset_slots')

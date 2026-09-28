@@ -36,6 +36,8 @@ export const factionDefinitionSchema = z.object({
   /* Phase declarations are widened here: the capture judges each one alone, so one invalid row names itself rather than refusing the faction (#1138). */
   data: CanonicalFactionStoredSchema.extend({ extraPhases: z.array(z.unknown()).optional() }).nullable(),
   token: z.string().nullable(),
+  /* The reversible token's blocked face (#1228); the leaders' shared back is the token's front. Optional so a game Worker still reads a Convex that predates it. */
+  tokenBack: z.string().nullish(),
   cardbacks: z.object({ traitor: z.string().nullable(), alliance: z.string().nullable() }),
   leaders: z.array(z.object({ memberId: identitySchema, front: z.string().nullable() })),
 });

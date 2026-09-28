@@ -3,7 +3,11 @@ import { v } from 'convex/values';
 
 import { factionMemberPublicationId } from '../src/shared/asset-publishing/componentPublication';
 import type { PublicationAssetType } from '../src/shared/asset-publishing/publicationTargets';
-import { isPublicationAssetType, publishedHref } from '../src/shared/asset-publishing/publicationTargets';
+import {
+  isPublicationAssetType,
+  publicationFaceId,
+  publishedHref,
+} from '../src/shared/asset-publishing/publicationTargets';
 import { CanonicalFactionStoredSchema } from '../src/shared/factions/schema';
 import { assetSupplySchema, factionDefinitionSchema, rulesetSupplySchema } from '../src/shared/play/capture';
 import { playDraftableFactionsSchema } from '../src/shared/play/drafting';
@@ -80,6 +84,7 @@ export const factionDefinition = query({
       faction: { id: row._id, slug: row.slug, name: parsed.success ? parsed.data.name : '' },
       data: parsed.success ? parsed.data : null,
       token: await publishedFace(ctx, 'faction-token', row._id),
+      tokenBack: await publishedFace(ctx, 'faction-token', publicationFaceId(row._id, 'back')),
       cardbacks: {
         traitor: await publishedFace(ctx, 'cardback-preset', 'traitor'),
         alliance: await publishedFace(ctx, 'cardback-preset', 'alliance'),
@@ -124,7 +129,10 @@ export const draftableFactions = query({
         background: parsed.data.background,
         color: parsed.data.themeColor,
         linked: linked.has(row._id),
-        published: (await publishedFace(ctx, 'faction-token', row._id)) !== null,
+        /* A game needs both faces of the reversible token, so a faction is draftable only once both are published. */
+        published:
+          (await publishedFace(ctx, 'faction-token', row._id)) !== null &&
+          (await publishedFace(ctx, 'faction-token', publicationFaceId(row._id, 'back'))) !== null,
       });
     }
     return { factions };

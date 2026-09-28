@@ -110,13 +110,24 @@ export async function enqueuePublicationJob(
   });
 }
 
+/**
+ * The revision whose Worker and capture page draw the blocked `.back` face.
+ * A floor rather than the checked-in number: later revisions keep drawing it.
+ */
+export const FACTION_TOKEN_BACK_REVISION = 2;
+
+/**
+ * Both faces of the reversible faction token read only the logo and background, so one comparison decides both.
+ * The `.back` face waits for the revision that can draw it: deploy moves Convex before the Workers, and activation, which runs after them, is also the backfill.
+ */
 export async function enqueueFactionTokenPublication(
   ctx: MutationCtx,
   faction: { _id: Id<'factions'>; data: unknown },
   previousData?: unknown
 ) {
   /* Activation backfills existing factions after the Worker supports token captures. */
-  if (!(await publicationSettings(ctx))?.renderer_revisions['faction-token']) {
+  const revision = (await publicationSettings(ctx))?.renderer_revisions['faction-token'];
+  if (!revision) {
     return null;
   }
   const payload = factionTokenAssetDataSchema.strip().parse(faction.data);
@@ -126,11 +137,19 @@ export async function enqueueFactionTokenPublication(
   ) {
     return null;
   }
-  return enqueuePublicationJob(ctx, {
+  const front = await enqueuePublicationJob(ctx, {
     assetType: 'faction-token',
     assetId: faction._id,
     assetData: payload,
   });
+  if (revision >= FACTION_TOKEN_BACK_REVISION) {
+    await enqueuePublicationJob(ctx, {
+      assetType: 'faction-token',
+      assetId: publicationFaceId(faction._id, 'back'),
+      assetData: { ...payload, blocked: true },
+    });
+  }
+  return front;
 }
 
 export async function enqueueFactionSheetPublication(
