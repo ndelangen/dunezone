@@ -279,12 +279,19 @@ export const TICKET_EXPIRED_CLOSE_CODE = 4410;
  */
 export const serverClockSchema = z.object({ serverNow: count });
 export type ServerClock = z.infer<typeof serverClockSchema>;
+/** Each seated faction's display name by its id, as the roster fixed it. */
+export function rosterFactionNames(roster: GameSnapshot['roster']): TableState['factionNames'] {
+  return Object.fromEntries(
+    roster?.seats.flatMap(({ faction }) => (faction ? [[faction.id, faction.name]] : [])) ?? []
+  );
+}
 export function tableForViewer(snapshot: GameSnapshot, viewerSeat: Viewer['viewerSeat']): TableState {
   return {
     ...snapshot.table,
     phase: phaseAt(snapshot.phase).label,
     viewerSeat,
     viewerFaction: rosterSeat(snapshot.roster, viewerSeat)?.faction?.id ?? null,
+    factionNames: rosterFactionNames(snapshot.roster),
     selectedPieceId: null,
     draftMove: null,
   };

@@ -1,5 +1,5 @@
 import preview from '@sb/preview';
-import { finishTransitions } from '@sb/storyWaits';
+import { advanceFrame, finishTransitions } from '@sb/storyWaits';
 import type { LogEntry } from '@shared/play/log';
 import type { TablePiece } from '@shared/play/model';
 import { TABLE_PHASES } from '@shared/play/phases';
@@ -838,9 +838,11 @@ export const ControlsNarrow = meta.story({
     await openTab(page, 'Spice');
     await settled(() => expect(page.getByLabelText('Banked spice')).toBeVisible());
     await userEvent.hover(page.getByRole('button', { name: 'Help: Faction bank' }));
-    await waitFor(() =>
-      expect(finishTransitions(page.getByText(/^Faction bank\. Only you see this balance\./))).toBeVisible()
-    );
+    /* The tooltip's label mounts only from inside an animation-frame callback, so each poll runs the waiting frames itself (https://github.com/ndelangen/dunezone/issues/1422). */
+    await waitFor(() => {
+      advanceFrame();
+      expect(finishTransitions(page.getByText(/^Faction bank\. Only you see this balance\./))).toBeVisible();
+    });
     await userEvent.unhover(page.getByRole('button', { name: 'Help: Faction bank' }));
     expect(page.getByRole('button', { name: 'Withdraw spice' })).toBeDisabled();
     expect(page.queryByRole('button', { name: 'Take into bank' })).toBeNull();
