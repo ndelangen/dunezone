@@ -46,6 +46,9 @@ function snapTablePose(group: Group, target: TablePose) {
   group.rotation.y = target.orientation;
 }
 
+/* A frame counts for its real length up to this cap, so a pose settles in the same wall-clock time down to 4 fps, and a longer stall still counts as the cap. */
+const POSE_SMOOTHING_MAX_FRAME_SECONDS = 0.25;
+
 function advanceTablePose(group: Group, target: TablePose, delta: number): boolean {
   const rotationDelta = Math.atan2(
     Math.sin(target.orientation - group.rotation.y),
@@ -56,7 +59,7 @@ function advanceTablePose(group: Group, target: TablePose, delta: number): boole
     snapTablePose(group, target);
     return false;
   }
-  const amount = 1 - Math.exp(-24 * Math.min(delta, 0.05));
+  const amount = 1 - Math.exp(-24 * Math.min(delta, POSE_SMOOTHING_MAX_FRAME_SECONDS));
   group.position.lerp(target.position, amount);
   group.rotation.y += rotationDelta * amount;
   return true;
