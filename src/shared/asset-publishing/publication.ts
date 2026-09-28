@@ -10,7 +10,13 @@ import type { PublicationAssetType } from './publicationTargets';
 import { PUBLICATION_ASSET_TYPES } from './publicationTargets';
 
 export const FACTION_SHEET_ASSET_TYPE = 'faction_sheet' as const;
-export const factionTokenAssetDataSchema = HistoricalFactionPublicationSchema.pick({ logo: true, background: true });
+/** The token's `.back` face draws the same artwork with the blocked symbol, so its payload is the front's plus that flag. */
+export const factionTokenAssetDataSchema = HistoricalFactionPublicationSchema.pick({
+  logo: true,
+  background: true,
+}).extend({
+  blocked: z.literal(true).optional(),
+});
 
 export const TREACHERY_CARD_ASSET_TYPE = 'card-treachery' as const;
 export const SPICE_CARD_ASSET_TYPE = 'card-spice' as const;

@@ -37,17 +37,20 @@ async function seed(ctx: MutationCtx) {
   await faction('Retired', 'retired', { deleted: true });
   await ctx.db.insert('ruleset_factions', { ruleset_id: ruleset, faction_id: linked });
   await ctx.db.insert('ruleset_factions', { ruleset_id: ruleset, faction_id: broken });
-  await ctx.db.insert('publication_assets', {
-    asset_type: 'faction-token',
-    asset_id: linked,
-    cache_token: 'abc',
-    published_at: 1,
-  });
+  /* Fremen has only the front, and a game needs both faces of the reversible token. */
+  for (const assetId of [linked, `${linked}.back`, other]) {
+    await ctx.db.insert('publication_assets', {
+      asset_type: 'faction-token',
+      asset_id: assetId,
+      cache_token: 'abc',
+      published_at: 1,
+    });
+  }
   return { ruleset, linked, other };
 }
 
 describe('the draft reads the catalogue', () => {
-  test('lists every live faction that parses, with its ruleset link and whether its token is published', async () => {
+  test('lists every live faction that parses, with its ruleset link and whether both token faces are published', async () => {
     const t = convexTest(schema, modules);
     const { ruleset, linked, other } = await t.run(seed);
     const { factions } = await t.query(api.playCatalogue.draftableFactions, { rulesetId: ruleset });

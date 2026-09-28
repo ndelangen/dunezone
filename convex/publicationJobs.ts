@@ -15,7 +15,12 @@ import { isPublicationAssetType, PUBLICATION_ASSET_TYPES } from '../src/shared/a
 import type { Doc } from './_generated/dataModel';
 import { internalQuery } from './_generated/server';
 import { internalMutation } from './functions';
-import { currentFactionLeaderData, publicationJobsForAsset, publicationSettings } from './lib/publication';
+import {
+  currentFactionLeaderData,
+  FACTION_TOKEN_BACK_REVISION,
+  publicationJobsForAsset,
+  publicationSettings,
+} from './lib/publication';
 import { rulebookForArtifactDelivery } from './lib/rulebookEditionArtifacts';
 import type { MutationCtx, QueryCtx } from './types';
 
@@ -110,6 +115,18 @@ export const takeWork = internalMutation({
     for (const job of pending) {
       /* The new Worker deploys before activation makes this type eligible for pickup. */
       if (job.asset_type === 'faction-leader' && !settings?.renderer_revisions['faction-leader']) {
+        continue;
+      }
+      /*
+       * A publisher rolled back below the blocked face would reject its payload, so its `.back` jobs are dropped rather than held, which would let them fill the pickup window.
+       * Activating the revision that draws the face again rescans every faction, and that re-enqueues them.
+       */
+      if (
+        job.asset_type === 'faction-token' &&
+        job.asset_id.endsWith('.back') &&
+        (settings?.renderer_revisions['faction-token'] ?? 0) < FACTION_TOKEN_BACK_REVISION
+      ) {
+        await ctx.db.delete(job._id);
         continue;
       }
       if (job.asset_type === 'faction-leader') {

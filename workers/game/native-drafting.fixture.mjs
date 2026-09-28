@@ -33,6 +33,7 @@ export function definition(id, name) {
     faction: { id, slug: id, name },
     data: { ...assetPublishingFaction, name },
     token: `/published/faction-tokens/${id}/token.jpg`,
+    tokenBack: `/published/faction-tokens/${id}.back/token.jpg`,
     cardbacks: { traitor: null, alliance: null },
     leaders: assetPublishingFaction.leaders.map((leader) => ({
       memberId: leader.memberId,
