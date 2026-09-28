@@ -5,6 +5,11 @@ import {
   FACTION_LEADER_ASSET_TYPE,
 } from '../../src/shared/asset-publishing/componentPublication';
 import {
+  FACTION_TROOP_ASSET_TYPE,
+  factionTroopPublications,
+  parseFactionTroopPublicationId,
+} from '../../src/shared/asset-publishing/factionTroopPublication';
+import {
   DECK_ASSET_TYPE,
   RECTANGLE_TOKEN_ASSET_TYPE,
   FACTION_SHEET_ASSET_TYPE,
@@ -290,6 +295,33 @@ export async function publicationSettings(ctx: PublicationReadCtx) {
   return settings[0] ?? null;
 }
 
+/**
+ * Enqueues each troop face whose artwork changed, and removes pending work for faces the roster no longer has, such as a deleted troop or a back that is no longer authored.
+ * Waits for activation like the token, since the publisher that draws troops deploys after Convex.
+ * Activation's scan is the backfill.
+ */
+export async function enqueueFactionTroopPublications(
+  ctx: MutationCtx,
+  faction: { _id: Id<'factions'>; data: unknown },
+  previousData?: unknown
+): Promise<number> {
+  if (!(await publicationSettings(ctx))?.renderer_revisions[FACTION_TROOP_ASSET_TYPE]) {
+    return 0;
+  }
+  const current = factionTroopPublications(faction._id, faction.data);
+  const previous = factionTroopPublications(faction._id, previousData);
+  const changed = [...current].filter(
+    ([assetId, assetData]) => JSON.stringify(previous.get(assetId)) !== JSON.stringify(assetData)
+  );
+  for (const [assetId, assetData] of changed) {
+    await enqueuePublicationJob(ctx, { assetType: FACTION_TROOP_ASSET_TYPE, assetId, assetData });
+  }
+  for (const assetId of [...previous.keys()].filter((assetId) => !current.has(assetId))) {
+    await supersedePendingPublication(ctx, FACTION_TROOP_ASSET_TYPE, assetId);
+  }
+  return changed.length;
+}
+
 /** Enqueues changed complete Leaders and removes pending work for members removed from the roster. */
 export async function enqueueFactionLeaderPublications(
   ctx: MutationCtx,
@@ -350,4 +382,26 @@ export async function currentFactionLeaderData(ctx: PublicationReadCtx, assetId:
     return null;
   }
   return factionLeaderAssetData(faction._id, faction.data, identity.memberId);
+}
+
+/** A troop face is readable while its faction is live and its roster still draws that face. */
+export async function currentFactionTroopData(ctx: PublicationReadCtx, assetId: string) {
+  const identity = parseFactionTroopPublicationId(assetId);
+  const factionId = identity ? ctx.db.normalizeId('factions', identity.factionId) : null;
+  const faction = factionId ? await ctx.db.get(factionId) : null;
+  if (!faction || faction.is_deleted) {
+    return null;
+  }
+  return factionTroopPublications(faction._id, faction.data).get(assetId) ?? null;
+}
+
+/** The current payload for a per-member face, or `undefined` for types whose publication does not follow a faction roster. */
+export async function currentFactionComponentData(ctx: PublicationReadCtx, assetType: string, assetId: string) {
+  if (assetType === FACTION_LEADER_ASSET_TYPE) {
+    return currentFactionLeaderData(ctx, assetId);
+  }
+  if (assetType === FACTION_TROOP_ASSET_TYPE) {
+    return currentFactionTroopData(ctx, assetId);
+  }
+  return undefined;
 }

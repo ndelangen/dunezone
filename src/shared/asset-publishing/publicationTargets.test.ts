@@ -17,12 +17,31 @@ describe('publication targets', () => {
       const assetId =
         assetType === 'cardback-preset'
           ? 'traitor'
-          : assetType === 'faction-leader'
+          : assetType === 'faction-leader' || assetType === 'faction-troop'
             ? `${factionId}.10000000-1000-4000-8000-100000000001`
             : factionId;
       const path = publishedPath(assetType, assetId);
       expect(path).toBe(`/published/${publishedR2Key(assetType, assetId)}`);
       expect(matchPublishedPath(path)).toEqual({ assetType, assetId });
+    }
+  });
+
+  test('a troop publishes its front under its identity and its authored back beside it, and nothing looser', () => {
+    const troopId = '20000000-2000-4000-8000-200000000002';
+    expect(publishedPath('faction-troop', `${factionId}.${troopId}`)).toBe(
+      `/published/faction-troops/${factionId}.${troopId}/troop.jpg`
+    );
+    expect(matchPublishedPath(`/published/faction-troops/${factionId}.${troopId}.back/troop.jpg`)).toEqual({
+      assetType: 'faction-troop',
+      assetId: `${factionId}.${troopId}.back`,
+    });
+    for (const assetId of [
+      factionId,
+      `${factionId}.${troopId}.front`,
+      `${factionId}.not-a-troop`,
+      `${factionId}.${troopId}.back.back`,
+    ]) {
+      expect(matchPublishedPath(`/published/faction-troops/${assetId}/troop.jpg`)).toBeNull();
     }
   });
 
