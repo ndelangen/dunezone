@@ -6,7 +6,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Faction, FactionEntry } from '@db/factions';
 import { emptyBackgroundModeMemory } from '@app/widgets/background-composer/BackgroundComposer';
 
-import { factionAuthoringWarnings } from './factionAuthoringContract';
+import { factionAuthoringWarnings, invalidPhaseRowCount } from './factionAuthoringContract';
 import { createFactionAuthoringSession } from './factionAuthoringSession';
 
 export type FactionAuthoringPersistence = {
@@ -16,6 +16,16 @@ export type FactionAuthoringPersistence = {
   hasSaved: boolean;
   reset: () => void;
 };
+
+/* The toolbar's words for the rows that hold Save; each row names its own problem inline in the Phases chapter. */
+function invalidPhasesMessage(count: number): string | undefined {
+  if (count === 0) {
+    return undefined;
+  }
+  return count === 1
+    ? 'A faction phase is incomplete. Finish it in Phases before saving.'
+    : `${count} faction phases are incomplete. Finish them in Phases before saving.`;
+}
 
 export function useFactionAuthoring({
   sessionKey,
@@ -106,6 +116,7 @@ export function useFactionAuthoring({
   const editing = useStore(form.store, (state) => ({
     isDirty: state.isDirty,
     isNameBlank: state.values.name.trim().length === 0,
+    invalid: invalidPhasesMessage(invalidPhaseRowCount(state.values)),
     warnings: factionAuthoringWarnings(state.values),
   }));
 

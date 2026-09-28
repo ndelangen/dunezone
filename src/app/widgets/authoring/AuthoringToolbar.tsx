@@ -42,6 +42,8 @@ export interface AuthoringStatus {
   isDirty: boolean;
   isNameBlank: boolean;
   saveState: AuthoringSaveState;
+  /** Stated while the draft holds a value the shared schema refuses, such as an incomplete faction phase; it holds Save like a blank name. */
+  invalid?: string;
 }
 
 /** The words only the page knows: what it saves, and why a blank name blocks it. */
@@ -93,22 +95,27 @@ export function AuthoringToolbar({
   destructiveActions?: ReactNode;
   centerIndicator?: ReactNode;
 }) {
-  const { isDirty, isNameBlank, saveState } = status;
+  const { isDirty, isNameBlank, saveState, invalid } = status;
   const { onSave, onReset, onBack } = actions;
   const save = saveStatus(saveState, isDirty);
   const name: ToolbarStatus | null = isNameBlank
     ? { tone: 'negative', icon: <TopicIcon topic="identity" size={STATUS_GLYPH_SIZE} />, label: copy.nameBlankMessage }
     : null;
-  /* The folded mark wears what stands between the reader and a save: a failure first, then a blank name. */
-  const lead = name && saveState !== 'error' ? name : save;
+  const refused: ToolbarStatus | null = invalid
+    ? { tone: 'negative', icon: <CircleAlert size={STATUS_GLYPH_SIZE} aria-hidden />, label: invalid }
+    : null;
+  /* The folded mark wears what stands between the reader and a save: a failure first, then a blank name, then a refused value. */
+  const blocker = name ?? refused;
+  const lead = blocker && saveState !== 'error' ? blocker : save;
   const statuses = (
     <>
       <StatusMark {...save} />
       {name ? <StatusMark {...name} /> : null}
+      {refused ? <StatusMark {...refused} /> : null}
       {context}
     </>
   );
-  const saveDisabled = isNameBlank || saveState === 'saving';
+  const saveDisabled = isNameBlank || Boolean(invalid) || saveState === 'saving';
 
   return (
     <div className={styles.sticky}>
