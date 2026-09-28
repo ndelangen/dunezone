@@ -37,7 +37,8 @@ function draftReducer(state: Draft, event: DraftEvent): Draft {
 }
 
 const REFUSALS = {
-  not_authorized: 'Sign in again to create a game.',
+  not_authorized: 'Your account cannot create a game while signed out, suspended or deleted.',
+  rate_limited: 'You have created several games recently. Try again later.',
   unavailable: 'That ruleset cannot start a game right now.',
 } as const;
 

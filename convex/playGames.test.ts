@@ -197,6 +197,16 @@ describe('real games are created and entered by any signed-in player, Administra
     expect(await admin.query(api.playGames.getGame, { gameId: created.gameId })).toEqual({ status: 'unavailable' });
   });
 
+  test('creation is budgeted per account', async () => {
+    const { admin, member, rulesets } = await world();
+    const request = { rulesetId: rulesets.ready, minimumPlayers: 4 as const };
+    for (let index = 0; index < 3; index++) {
+      expect(await member.mutation(api.playGames.createGame, request)).toMatchObject({ ok: true });
+    }
+    expect(await member.mutation(api.playGames.createGame, request)).toEqual({ ok: false, reason: 'rate_limited' });
+    expect(await admin.mutation(api.playGames.createGame, request)).toMatchObject({ ok: true });
+  });
+
   test('admission to a real game ignores the Administrator flag at every step', async () => {
     const { t, admin, member, adminId, rulesets } = await world();
     const created = await admin.mutation(api.playGames.createGame, { rulesetId: rulesets.ready, minimumPlayers: 6 });

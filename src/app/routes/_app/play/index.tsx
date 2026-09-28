@@ -90,17 +90,15 @@ function PlayLobby() {
                 <Section title="Past" description="Finished games with their declared result.">
                   <GameList entries={lobby.past} empty="No game has finished yet." />
                 </Section>
+                <Anchor component={Link} to="/play/create">
+                  Create a game
+                </Anchor>
               </>
             ) : (
               <Text c="dimmed">
                 {lobby === undefined ? 'Loading games.' : 'Ongoing and past games appear here once you sign in.'}
               </Text>
             )}
-            {lobby?.status === 'ready' ? (
-              <Anchor component={Link} to="/play/create">
-                Create a game
-              </Anchor>
-            ) : null}
           </Stack>
         </Surface>
       </PageLayout.Content>

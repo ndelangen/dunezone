@@ -12,6 +12,7 @@ import type { QueryCtx } from './_generated/server';
 import { mutation } from './functions';
 import { currentPlaySession, isRealGame } from './lib/playAuthorization';
 import { createPendingGame } from './lib/playProvisioningSchedule';
+import { playRateLimiter } from './lib/playRateLimits';
 
 /*
  * Real games: any active signed-in player may create and enter one. The lobby is unlisted rather
@@ -115,6 +116,9 @@ export const createGame = mutation({
     if (!ruleset || ruleset.is_deleted || (await rulesetObjection(ctx, ruleset._id)) !== null) {
       return { ok: false as const, reason: 'unavailable' as const };
     }
+    if (!(await playRateLimiter.limit(ctx, 'playCreatePerAccount', { key: session.userId })).ok) {
+      return { ok: false as const, reason: 'rate_limited' as const };
+    }
     const gameId = await createPendingGame(ctx, {
       ruleset_id: ruleset._id,
       minimum_players: args.minimumPlayers,
@@ -124,11 +128,7 @@ export const createGame = mutation({
   },
 });
 
-/**
- * What a game page learns before it opens a socket.
- * A game the viewer may not enter reads as not found whether it exists or not, so a guessed id learns nothing;
- * the fixture keeps its signed-in access.
- */
+/** What a game page learns before it opens a socket: any signed-in player may enter any game, and an unknown id reads as not found. */
 export const getGame = query({
   args: { gameId: v.string() },
   returns: zodToConvex(playGameAccessSchema),

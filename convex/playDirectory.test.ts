@@ -116,7 +116,7 @@ async function world() {
   };
 }
 
-describe('the directory keeps the newest published summary and lists it to Administrators', () => {
+describe('the directory keeps the newest published summary and lists it to every signed-in player', () => {
   test('a later sequence replaces, an older or repeated one is acknowledged without effect, a wrong secret is refused', async () => {
     const { t, admin, ids, game, publish, summary } = await world();
     expect(await publish(1, summary([ids.admin]), 'f'.repeat(64))).toEqual({ ok: false });
