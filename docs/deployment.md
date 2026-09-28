@@ -162,18 +162,16 @@ publisher asset build; use it only when that build already has the same local ba
 `--skip-generate` still builds but reuses the image and vector output already in the checkout, and
 refuses to start when that output is missing; the OBJ pieces are always regenerated.
 
-The `hosted_play` CI job runs `bun --no-env-file scripts/verify-hosted-play-stack.ts --skip-generate
---flow private-banks --flow decks`, with `--browser` naming Playwright's full Chromium.
+The `hosted_play` CI job runs `bun --no-env-file scripts/verify-hosted-play-stack.ts --skip-generate`.
 The launcher passes `--skip-generate` to the runner, because the job's generated-images step has
 already restored the images and written the vectors. The job verifies the checksum of the pinned
 native Convex backend release, creates a fresh database, configures real local Auth, builds the app,
-then runs `scripts/verify-hosted-play.mjs` through both actual Workers. The protocol verifier creates
-and provisions a synthetic game of its own. The browser flows then run on the same stack, each
-on a fresh canonical fixture. A failure in any of them fails the job.
+then runs `scripts/verify-hosted-play.mjs` through both actual Workers. It passes no `--flow`, so the
+protocol verifier runs alone on that stack.
 No hosted deployment credentials or production snapshots are used. Its generated private keys,
-admin key, SQLite database and local Worker persistence are removed on exit. The artifact keeps the
-verification log, each flow's log and browser report, the Worker output and Wrangler's own log for
-that Worker. The same command runs locally on supported platforms.
+admin key, SQLite database and local Worker persistence are removed on exit; only the Worker output,
+Wrangler's own log for that Worker and the verification log are retained as artifacts. The same
+command runs locally on supported platforms.
 For a protocol-only local rehearsal, leave out `--flow`. `--backend-binary` can then select an existing
 native executable and `--skip-build` can reuse the publisher bundle; that shortcut does not verify the
 bundle's frontend backend URL.

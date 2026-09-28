@@ -41,7 +41,7 @@ describe('game deployment contract', () => {
     const workflow = readFileSync('.github/workflows/reusable-verify.yml', 'utf8');
     const job = workflow.slice(workflow.indexOf('\n  hosted_play:'), workflow.indexOf('\n  tool_e2e:'));
     expect(job).toContain('bun --no-env-file scripts/verify-hosted-play-stack.ts');
-    expect(job).toContain('test-results/hosted-play/*.log');
+    expect(job).toContain('test-results/hosted-play/verification.log');
     expect(job).not.toContain('secrets.');
     expect(job).not.toContain('.env');
     expect(job).not.toContain('admin-key');
