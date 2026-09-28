@@ -1,10 +1,14 @@
 /*
  * The column count answers to the list's own width, on the ladder, and a card fills its cell with no
  * width of its own. Two columns below the phone step, 30rem, three from it. From the tablet step,
- * 48rem, the row takes as many columns of 12.5rem as fit and shares what is left between them, so a
- * card stays near 200px. Three 12.5rem columns and two 1rem gaps need 39.5rem, so from 48rem the
- * count never drops below three. The track repeats with auto-fill, which keeps the empty columns, so
- * a short list keeps its card size instead of stretching one card across the row.
+ * 48rem, the row takes as many columns as fit at 11.5rem or wider and shares what is left between
+ * them. 11.5rem is the smallest a card gets there, not its size: a card grows until one more column
+ * fits, so from 48rem it is 184 to 250px wide, around the 200px the rule aims for. Four 11.5rem
+ * columns and three 1rem gaps need 49rem, so the count is three at 48rem, and it never drops below
+ * three there. FactionCard takes its compact caption below the same 11.5rem, so a card in this row
+ * always has the regular one; the two numbers move together. The track repeats with auto-fill, which
+ * keeps the empty columns, so a short list keeps its card size instead of stretching one card across
+ * the row.
  */
 .list {
   container: faction-list / inline-size;
@@ -12,7 +16,7 @@
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(12.5rem, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(11.5rem, 1fr));
   gap: var(--space-md);
 }
 

@@ -175,11 +175,13 @@
 }
 
 /*
- * The regular caption is sized for a card as wide as the 12.5rem column a faction list aims for, so a
- * narrower card takes the compact one, as in a narrow two- or three-column list or the faction
- * editor's phone preview. A card in a list's auto-fill row is never narrower than 12.5rem.
+ * The regular caption is sized for a card at least as wide as FactionList's smallest auto-fill
+ * column, 11.5rem, so a narrower card takes the compact one, as in a narrow two- or three-column list
+ * or the faction editor's phone preview. This threshold is copied from that column floor, not derived
+ * from the caption, and the two move together: a card in a list's auto-fill row is never narrower
+ * than the floor, so it always has the regular caption.
  */
-@container faction-card (width < 12.5rem) {
+@container faction-card (width < 11.5rem) {
   .card:hover .hero {
     transform: translateY(-2px) scale(1.015);
   }

@@ -1,4 +1,5 @@
 import preview from '@sb/preview';
+import { expectFactionColumns } from '@ui/list/factionListPlay';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { db } from '@db/storybook';
@@ -35,6 +36,20 @@ export const Detail = meta.story({
     for (const citation of citations) {
       expect(citation.querySelector('img')).not.toBeNull();
     }
+  },
+});
+/**
+ * On a tablet the faction list sits beside the sidebar and is narrower than 30rem, so it shows two columns, though the window is at the tablet step.
+ * The list counts its columns from its own width.
+ * A list that asked the window would show one column here.
+ */
+export const DetailTablet = meta.story({
+  args: { path: '/profiles/storybook-viewer' },
+  globals: { viewport: { value: 'appTablet' } },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const factions = await page.findByRole('region', { name: 'Factions created' }, { timeout: 30_000 });
+    await expectFactionColumns(factions, 2);
   },
 });
 export const Settings = meta.story({

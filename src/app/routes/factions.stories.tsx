@@ -24,7 +24,8 @@ export const Catalogue = meta.story({ args: { path: '/factions' } });
 
 /**
  * On a phone the faction list shows two columns and each card its compact caption.
- * Both ask the page frame, which a page story has and a component story does not.
+ * The list reads its own width and the card its own, so neither needs the page.
+ * This story shows them in the catalogue's phone layout.
  */
 export const CatalogueMobile = meta.story({
   args: { path: '/factions' },

@@ -27,7 +27,7 @@ function FactionAuthoringFixture() {
     onSaved: () => undefined,
   });
 
-  // The Box stands in for the page frame `AppHeader` declares in the app, the container the toolbar and the faction card ask.
+  // The Box stands in for the page frame `AppHeader` declares in the app, the container the toolbar's review action asks.
   return (
     <Box w="min(78rem, calc(100vw - 2rem))" p="md" style={{ container: 'page-frame / inline-size' }}>
       <Stack gap="clamp(var(--space-sm), 3vw, var(--space-xl))">

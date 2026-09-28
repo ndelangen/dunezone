@@ -188,8 +188,8 @@ component that asks `page-frame` shows its widest layout there.
 
 A faction list is sized by its column count, not by its card width. `FactionList` declares
 `faction-list` and takes its count from its own width: two columns below 30rem, three from 30rem,
-and from 48rem as many columns of about 200px as fit. A card fills its column and sets no width, and
-below 12.5rem of its own width it takes the compact caption.
+and from 48rem as many as fit at 11.5rem or wider, which keeps a card around 200px. A card fills its
+column and sets no width, and below the same 11.5rem of its own width it takes the compact caption.
 
 A container query sits on the ladder too, unless its threshold is derived from its own content, such
 as two 14rem columns and a gap, and a comment next to it says so. A viewport number copied into a
