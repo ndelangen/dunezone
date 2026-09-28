@@ -593,8 +593,11 @@ export const FactionPhase = meta.story({
     await openTab(page, 'Phase');
     await waitForPhase(() => expect(page.getByRole('button', { name: 'Help: Guild negotiations' })).toBeVisible());
     await userEvent.hover(page.getByRole('button', { name: 'Help: Guild negotiations' }));
+    /* The tooltip fades in, so its text is the stable check; the header already shows the phase. */
     await waitFor(() =>
-      expect(page.getByText(/Guild negotiations\. Agree any shipment deals before the auction opens\./)).toBeVisible()
+      expect(page.getByRole('tooltip')).toHaveTextContent(
+        'Guild negotiations. Agree any shipment deals before the auction opens.'
+      )
     );
     const header = canvasElement.ownerDocument.querySelector('.seated-header') as HTMLElement;
     expect(within(header).getByText('Guild negotiations')).toBeVisible();
