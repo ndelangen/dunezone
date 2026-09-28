@@ -45,14 +45,48 @@ export function finishTransitions<T extends Element>(element: T) {
   return element;
 }
 
+/* Callbacks the page asked a frame for that no frame has run yet, by request id. */
+const waitingFrames = new Map<number, FrameRequestCallback>();
+const nativeCancelFrame = window.cancelAnimationFrame.bind(window);
+
+/**
+ * Runs the animation-frame callbacks waiting now, as the next drawn frame would.
+ * A Mantine tooltip, menu or popover renders its content only from inside such a callback, so on a page that draws no frames the content never reaches the DOM and `finishTransitions` has no element to finish.
+ * Call it inside a polling wait: each poll moves the page on by one frame, and a callback requested during this call waits for the next poll or a real frame, whichever comes first.
+ * It runs every waiting callback, the table scene's render loop included, and each callback runs once.
+ * A callback that throws is reported as a frame would report it, and the rest still run.
+ */
+export function advanceFrame() {
+  const time = performance.now();
+  const due = [...waitingFrames];
+  waitingFrames.clear();
+  for (const [id, callback] of due) {
+    nativeCancelFrame(id);
+    try {
+      callback(time);
+    } catch (error) {
+      reportError(error);
+    }
+  }
+}
+
 function recordFrameLag() {
   const originalRequest = window.requestAnimationFrame.bind(window);
   window.requestAnimationFrame = (callback: FrameRequestCallback): number => {
     const requestedAt = performance.now();
-    return originalRequest((time) => {
+    const id = originalRequest((time) => {
+      if (!waitingFrames.delete(id)) {
+        return;
+      }
       longestFrameLagMs = Math.max(longestFrameLagMs, performance.now() - requestedAt);
       callback(time);
     });
+    waitingFrames.set(id, callback);
+    return id;
+  };
+  window.cancelAnimationFrame = (id: number) => {
+    waitingFrames.delete(id);
+    nativeCancelFrame(id);
   };
 }
 
