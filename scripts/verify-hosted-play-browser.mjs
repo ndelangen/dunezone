@@ -170,6 +170,11 @@ function passed(name, detail = {}) {
   console.log(`PASS ${name}`);
 }
 /*
+ * Mouse steps for moving a held piece over the canvas: the piece passes the midpoint, then reaches the destination.
+ * Each step can send a carry frame that every page renders, and 8 to 25 steps per move cost up to three minutes a flow on CI (#1343).
+ */
+const CARRY_STEPS = 2;
+/*
  * On Linux, headless Chromium draws WebGL on SwiftShader and composites in software.
  * Each WebGL frame is then read back on the page's main thread, which held the page's timers seconds late on CI (#1343).
  * `--use-angle=swiftshader` keeps WebGL on SwiftShader and composites there too.
@@ -556,7 +561,7 @@ async function visibleActivity(sender, recipient, name) {
   try {
     await delay(350);
     for (const [index, destination] of destinations.entries()) {
-      await sender.page.mouse.move(destination.senderPoint.x, destination.senderPoint.y, { steps: 12 });
+      await sender.page.mouse.move(destination.senderPoint.x, destination.senderPoint.y, { steps: CARRY_STEPS });
       await until(
         () => sender.sent.slice(sentBefore).some((message) => message.type === 'begin' && message.sourcePieceId === id),
         `${name}: the native drag did not pick up the force stack.`
@@ -708,7 +713,7 @@ async function sharedPhaseFlow(a, b) {
   await b.page.mouse.down();
   try {
     await delay(350);
-    await b.page.mouse.move(targetPoint.x, targetPoint.y, { steps: 12 });
+    await b.page.mouse.move(targetPoint.x, targetPoint.y, { steps: CARRY_STEPS });
     const carry = await until(
       () =>
         a.messages
@@ -855,7 +860,7 @@ async function sharedSpiceRoundTrip(sender, recipient, count, interact, name) {
   await recipient.page.mouse.down();
   try {
     await delay(350);
-    await recipient.page.mouse.move(destination.x, destination.y, { steps: 12 });
+    await recipient.page.mouse.move(destination.x, destination.y, { steps: CARRY_STEPS });
     await until(
       () =>
         recipient.sent
@@ -1002,7 +1007,7 @@ async function verifyRegular() {
   await a.page.mouse.move(start.x, start.y);
   await a.page.mouse.down();
   await delay(350);
-  await a.page.mouse.move(start.x + 35, start.y - 15, { steps: 8 });
+  await a.page.mouse.move(start.x + 35, start.y - 15, { steps: CARRY_STEPS });
   const begin = await until(
     () => a.sent.findLast((message) => message.type === 'begin'),
     'Canvas drag did not begin a carry.'
@@ -1029,7 +1034,7 @@ async function verifyRegular() {
   await a.page.mouse.move(start.x, start.y);
   await a.page.mouse.down();
   await delay(350);
-  await a.page.mouse.move(start.x + 70, start.y - 40, { steps: 12 });
+  await a.page.mouse.move(start.x + 70, start.y - 40, { steps: CARRY_STEPS });
   await delay(100);
   await a.page.mouse.up();
   await revision(a, before + 1);
@@ -1227,6 +1232,7 @@ try {
     openTab,
     point,
     supplyShortcut,
+    carrySteps: CARRY_STEPS,
     capture,
     until,
     passed,

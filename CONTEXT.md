@@ -279,7 +279,7 @@ Convex's record that a Play game exists and what the lobby may show of it: its s
 _Avoid_: Game list database, index
 
 **Stage**:
-Where a Real game is in its life: drafting, swapping, setup, play, finished or discarded. The delivered table controls belong to play; earlier stages refuse them. A phase is a step inside play, never a Stage.
+Where a Real game is in its life: drafting, swapping, setup, play, finished or discarded. The delivered table controls belong to play; earlier stages refuse them, and a finished game leaves the table as it was, with only a locked prediction's reveal still open. A seated player enters finished by Determine winner during Mentat pause and its declaration; Continue playing returns to play at the same turn. A phase is a step inside play, never a Stage.
 _Avoid_: Status, state, mode
 
 **Faction Extra**:

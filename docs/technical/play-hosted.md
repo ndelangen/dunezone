@@ -209,6 +209,33 @@ down on the table, and a dealt hand surviving the recipient's reconnect. It uses
 signed-in browser processes and a spectator, and it retains received game frames in
 `decks-frames.json`.
 
+### Real-game journeys
+
+`workers/game/journey.native.test.mjs` takes whole real games through the native workerd runtime,
+each on its own miniflare store with synthetic accounts and catalogue. Every other native suite
+proves one rule; these prove the rules still hold when one game passes through all of them.
+
+- Two accounts go from creation through drafting, the deal, trading, setup and play to a declared
+  result and Continue playing. On the way the directory refuses writes twice and the alarm delivers
+  the owed summary, the socket drops right after a withdrawal and its identical retries debit once,
+  a player reconnects, and the room restarts cold in play and again while finished.
+- Eighteen accounts are each dealt a distinct faction, station and bank, finish as an alliance,
+  restart cold and continue at Mentat pause. A spectator holds no bank and cannot end the game.
+- In a running game a player leaves and a spectator takes the seat with its faction and bank. The
+  replacement declares a result and then deletes their account. The result, log and stored history
+  name `[deleted user]` through a restart, and the last departure discards the game.
+
+The browser flows above run on the hosted fixture, whose seats are fixed. No browser flow creates a
+real game yet, so the lobby's Create, Past and result layouts are covered by Storybook and the
+native journeys, not by a signed-in browser run.
+
+A real game still depends on final authored content. The catalogue capture refuses every faction
+until its token back, troop faces, alliance card and traitor cards are generated
+(`workers/game/catalogue.ts`). Only an isolated backend, which marks its content provisional, can
+deal a faction today. The journeys therefore run on provisional synthetic content: one-card decks
+and factions that share one published fixture's faces. They say nothing about capacity or about the
+actual catalogue.
+
 Real games are exercised on isolated backends only: the seam tests run on convex-test, the native
 suite on miniflare, the browser flows on a disposable synthetic backend with fresh test
 credentials. Nothing clones a production deployment and no production row is edited by hand; a

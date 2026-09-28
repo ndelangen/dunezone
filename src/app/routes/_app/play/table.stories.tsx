@@ -7,7 +7,7 @@ import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { gameMeta, install, lastCommand, session } from './game.stories.fixture';
 import { mapViewPoint, openTab } from './playing.stories.fixture';
-import { playingSnapshot, productTransport } from './product.stories.fixture';
+import { factions, playingSnapshot, productTransport } from './product.stories.fixture';
 
 const meta = preview.meta({
   ...gameMeta,
@@ -128,6 +128,56 @@ export const TableControls = meta.story({
       expect(counter).not.toBeVisible();
     }
     await userEvent.keyboard('{/Alt}');
+  },
+});
+
+/* Holding Control names every piece and its owning faction; a shared piece shows its name alone, and letting go clears the names. */
+export const PieceNames = meta.story({
+  beforeEach: install(() => productTransport()),
+  play: async ({ canvasElement }) => {
+    const { shell, document } = await tablePage(canvasElement);
+    /* One keyboard, so a key pressed while another is held carries both modifiers. */
+    const user = userEvent.setup();
+    const nameOf = (pieceId: string) => {
+      const name = document
+        .querySelector(`[data-piece-id="${pieceId}"]`)
+        ?.parentElement?.querySelector('.scene-piece-name');
+      if (!(name instanceof HTMLElement)) {
+        throw new Error(`${pieceId} carries no name.`);
+      }
+      return name;
+    };
+    const troopId = 'starting-0-arrakeen';
+    const troop = playingSnapshot().table.pieces.find((entry) => entry.id === troopId)!;
+    const troopName = nameOf(troopId);
+    const deckName = nameOf('treachery-deck');
+    const counters = Array.from(shell.querySelectorAll<HTMLElement>('.scene-piece-count'));
+
+    expect(troopName).not.toBeVisible();
+    await user.keyboard('{Control>}');
+    expect(shell).toHaveAttribute('data-show-names', 'true');
+    expect(shell).toHaveAttribute('data-show-counts', 'false');
+    expect(troopName).toBeVisible();
+    expect(within(troopName).getByText(troop.label)).toBeVisible();
+    expect(within(troopName).getByText(factions[0]!.data.name)).toBeVisible();
+    expect(deckName).toBeVisible();
+    expect(deckName.querySelector('.scene-piece-name__owner')).toBeNull();
+    /* Control shows names only: the counts wait for Alt, and holding both shows both. */
+    for (const counter of counters) {
+      expect(counter).not.toBeVisible();
+    }
+    await user.keyboard('{Alt>}');
+    expect(shell).toHaveAttribute('data-show-counts', 'true');
+    expect(troopName).toBeVisible();
+    expect(counters[0]).toBeVisible();
+    await user.keyboard('{/Alt}');
+    expect(counters[0]).not.toBeVisible();
+    expect(troopName).toBeVisible();
+
+    await user.keyboard('{/Control}');
+    expect(shell).toHaveAttribute('data-show-names', 'false');
+    expect(troopName).not.toBeVisible();
+    expect(deckName).not.toBeVisible();
   },
 });
 

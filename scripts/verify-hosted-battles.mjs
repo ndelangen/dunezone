@@ -5,7 +5,7 @@ import { stackTopHeight } from '../src/shared/play/tableGeometry.ts';
 
 /** Two signed-in players exercise the real battle controls on a disposable Worker. */
 export async function verifyBattles(toolkit) {
-  const { seated, button, converged, focus, openTab, point, capture, until, passed } = toolkit;
+  const { seated, button, converged, focus, openTab, point, carrySteps, capture, until, passed } = toolkit;
   const { a, b, observer } = await seated();
   assert.notEqual(a.view().viewer.userId, b.view().viewer.userId);
   assert.notEqual(a.context.browser(), b.context.browser());
@@ -38,7 +38,8 @@ export async function verifyBattles(toolkit) {
         'Piece carry did not start.'
       );
     }
-    await who.page.mouse.move(end.x, end.y, { steps: 25 });
+    /* A native HTML drag keeps 25 steps; the two-step move was measured on pointer carries only. */
+    await who.page.mouse.move(end.x, end.y, { steps: nativeDrag ? 25 : carrySteps });
     await who.page.mouse.up();
   }
   await drag(a, button(a, 'Drag Recovery token onto the table'), [-1.5, 0.38, 1.5]);
