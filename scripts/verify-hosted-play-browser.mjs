@@ -1213,7 +1213,10 @@ async function verifyRegular() {
   /* A real game's first checkpoints are its stages before play, shown with the playback bar; stepping reaches Turn 1. */
   let checkpoint = 0;
   while ((await button(b, 'Phase').count()) === 0) {
-    await b.page.getByRole('button', { name: 'Later phase' }).click();
+    const later = b.page.getByRole('button', { name: 'Later phase' });
+    /* The last checkpoint disables the button; a click there would wait out Playwright's timeout instead of saying why. */
+    assert.ok(await later.isEnabled(), `Playback ran out of checkpoints at ${checkpoint} before reaching play.`);
+    await later.click();
     checkpoint += 1;
     await b.page.getByText(new RegExp(`Playback checkpoint ${checkpoint} of`, 'u')).waitFor();
   }

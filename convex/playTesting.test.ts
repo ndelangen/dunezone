@@ -68,11 +68,11 @@ describe('isolated Play test controls', () => {
     const seeded = await t.run(async (ctx) => {
       const slots = await ctx.db
         .query('ruleset_asset_slots')
-        .filter((q) => q.eq(q.field('ruleset_id'), first.rulesetId))
+        .withIndex('by_ruleset', (q) => q.eq('ruleset_id', first.rulesetId))
         .collect();
       const factions = await ctx.db
         .query('ruleset_factions')
-        .filter((q) => q.eq(q.field('ruleset_id'), first.rulesetId))
+        .withIndex('by_ruleset', (q) => q.eq('ruleset_id', first.rulesetId))
         .collect();
       const rulesets = await Promise.all([ctx.db.get(first.rulesetId), ctx.db.get(second.rulesetId)]);
       return {
