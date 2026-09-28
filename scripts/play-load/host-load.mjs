@@ -81,8 +81,7 @@ export function hostLoad({
         stalls,
         droppedStalls: dropped,
         cpuIdle: distribution(idle),
-        limitation:
-          'The coordinator process and the machine it runs on. Stalls are ticks over 250 ms late; CPU idle is the share of all cores, sampled once a second. Browsers run in their own processes and only show here through the machine share.',
+        limitation: `The coordinator process and the machine it runs on. Stalls are ${tickMs} ms ticks over ${stallMs} ms late; event-loop delay includes its 10 ms sampling interval, so an idle process reads about 10 ms; CPU idle is the share of all cores, sampled every ${(tickMs * sampleEvery) / 1000} s. Browsers run in their own processes and only show here through the machine share.`,
       };
     },
   };

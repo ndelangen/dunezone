@@ -108,9 +108,10 @@ with 4413 as it did in that run's peak cell.
 `host` covers the other side. `idleBefore` is the share of the machine's CPU that was idle in the
 second before the run, and the runner warns when it is under half. `stalls` lists the moments the
 coordinator's own 100 ms tick ran more than 250 ms late, by the same clock as every send and
-receive, and `eventLoopDelayMs` and `cpuIdle` summarize the whole run. A delivery stall that lines
-up with a host stall was the client's; one that lines up with a room stall or a long `durableMs`
-was the room's. Start a hosted run on a machine that is mostly idle.
+receive, and `eventLoopDelayMs` and `cpuIdle` summarize the whole run. An idle process reads about
+10 ms of event-loop delay, which is its sampling interval. `timeOrigin` turns those readings into
+wall-clock time, the clock the room's `stalls` use. A delivery stall that lines up with a host
+stall was the client's; one that lines up with a room stall or a long `durableMs` was the room's. Start a hosted run on a machine that is mostly idle.
 
 Every protocol socket sends the page's keepalive frame every 30 s, as the page does. The room
 answers it without waking, so it counts as traffic in `keepalives` and the byte totals but not as

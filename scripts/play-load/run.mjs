@@ -208,17 +208,20 @@ function stop(reason) {
     peer.socket?.terminate();
   }
 }
-/* A machine already busy before the run starves the coordinator and its browsers, which reads like a stalled room. */
-report.host = { idleBefore: await measureIdle() };
-if (report.host.idleBefore !== null && report.host.idleBefore < 0.5) {
-  console.warn(`Only ${Math.round(report.host.idleBefore * 100)}% of this machine's CPU was idle before the run.`);
-}
-const hostWatch = hostLoad();
 hosted?.assertWindow(report.bounds.wallSeconds);
 const hardStop = setTimeout(() => stop('wall-budget'), report.bounds.wallSeconds * 1000);
 const interrupted = () => stop('operator-stop');
 process.once('SIGINT', interrupted);
 process.once('SIGTERM', interrupted);
+/*
+ * A machine already busy before the run starves the coordinator and its browsers, which reads like a stalled room.
+ * Adding timeOrigin to a host or delivery reading gives the wall clock the room's own readings use.
+ */
+report.host = { timeOrigin: performance.timeOrigin, idleBefore: await measureIdle() };
+if (report.host.idleBefore !== null && report.host.idleBefore < 0.5) {
+  console.warn(`Only ${Math.round(report.host.idleBefore * 100)}% of this machine's CPU was idle before the run.`);
+}
+const hostWatch = hostLoad();
 function accountBytes(direction, bytes) {
   report.bytes[direction] += bytes;
   if (report.bytes.sent + report.bytes.received >= report.bounds.maxApplicationBytes) {
