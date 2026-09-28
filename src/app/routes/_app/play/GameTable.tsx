@@ -10,7 +10,7 @@ import { TopicIcon } from '@ui/content/TopicIcon';
 import type { TopicIconTopic } from '@ui/content/TopicIcon';
 import { SplitPanels } from '@ui/layout/SplitPanels';
 import { NestedTabs } from '@ui/surface/NestedTabs';
-import { useCallback, useEffect, useId, useMemo, useReducer, useState } from 'react';
+import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useReducer, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 
 import {
@@ -33,6 +33,10 @@ import { createTableViewState, PHASE_VIEWS, reduceTableView, TABLE_VIEW_OPTIONS 
 import type { CameraViewCommand, TableView } from './playView';
 import { PointerSession } from './PointerSession';
 import { PointerSessionContext } from './PointerSessionContext';
+import { TableKeyboard } from './TableKeyboard';
+import { TableKeyboardContext } from './TableKeyboardContext';
+import { digitSourceFor, TableKeyboardVariantContext, useTableKeyboardVariantSearch } from './tableKeyboardPrototype';
+import type { TableKeyboardVariant } from './tableKeyboardPrototype';
 import { useTabletop } from './TabletopContext';
 import type { TabletopContextValue } from './TabletopContext';
 import { TabletopScene } from './TabletopScene';
@@ -459,6 +463,24 @@ function useHeldOverlays() {
   return held;
 }
 
+/*
+ * Hands the keyboard owner the live table on every render and binds it to the window once.
+ * PROTOTYPE, #1323 F29: variant A leaves it unbound, so main's hook and the disc's own listener answer instead.
+ */
+function useKeyboardOwner(keyboard: TableKeyboard, variant: TableKeyboardVariant) {
+  const table = useTabletop();
+  const { canInteract } = usePresence();
+  const controls = { ...table, canInteract, digits: digitSourceFor(variant) };
+  const live = useRef(controls);
+  useLayoutEffect(() => {
+    live.current = controls;
+  });
+  useLayoutEffect(
+    () => (variant === 'a' ? undefined : keyboard.bind({ events: window, read: () => live.current })),
+    [keyboard, variant]
+  );
+}
+
 function controlsPanelValueText(percent: number) {
   return `${Math.round(percent)}% of the window for controls`;
 }
@@ -482,6 +504,9 @@ export function GameTable({
   onSelectTurn: selectSharedTurn,
 }: GameTableProps) {
   const [pointerSession] = useState(() => new PointerSession());
+  const [tableKeyboard] = useState(() => new TableKeyboard());
+  const keyboardVariant = useTableKeyboardVariantSearch();
+  useKeyboardOwner(tableKeyboard, keyboardVariant);
   const [localTurn, setLocalTurn] = useState(DEFAULT_TABLE_PROGRESS.turn);
   const tableProgress = providedProgress ?? { ...DEFAULT_TABLE_PROGRESS, turn: localTurn };
   const onSelectTurn = selectSharedTurn ?? setLocalTurn;
@@ -521,129 +546,133 @@ export function GameTable({
 
   return (
     <PointerSessionContext value={pointerSession}>
-      <DarkSchemeIsland>
-        {/* The stage stacks the waiting frame under the shell until the renderer is ready; then the frame goes and the shell opens through its iris. */}
-        <div className="dune-play-stage" data-scene-ready={viewState.sceneReady}>
-          {viewState.sceneReady ? null : <TableWait status="Opening the table..." />}
-          <div
-            className="dune-play-shell dune-play-shell--seated"
-            {...darkSchemeIslandAttributes}
-            data-board-gesture-active={overlaysInert}
-            data-table-view={viewState.activeView}
-            data-show-counts={heldOverlays.counts}
-            data-show-names={heldOverlays.names}
-          >
-            {/* The header sits outside the split, in the shell's own stacking, so it paints above the dock where the dock's floor grows up over the scene. It comes before the split so its controls lead the reading and Tab order. */}
-            <header className="seated-header" inert={overlaysInert}>
-              <div className="seated-brand">
-                <img className="seated-brand__logo" src="/web/logo.svg" alt="Dune" />
-              </div>
-
-              <div className="seated-phase-status" aria-live="polite">
-                {activePhase?.symbol && !frame.word ? (
-                  <svg className="seated-phase-status__symbol" viewBox="0 0 100 100" aria-hidden="true">
-                    <defs>
-                      <clipPath id={phaseSymbolClipId}>
-                        <circle cx="50" cy="50" r={50 * PHASE_SYMBOL_MAX_RADIUS} />
-                      </clipPath>
-                    </defs>
-                    <circle cx="50" cy="50" r="50" fill={PHASE_DISC_COLOR} />
-                    <circle
-                      cx="50"
-                      cy="50"
-                      r={25 * (PHASE_RING_OUTER_RADIUS + PHASE_RING_INNER_RADIUS)}
-                      fill="none"
-                      stroke={PHASE_INK_COLOR}
-                      strokeWidth={50 * (PHASE_RING_OUTER_RADIUS - PHASE_RING_INNER_RADIUS)}
-                    />
-                    <g clipPath={`url(#${phaseSymbolClipId})`}>
-                      <use
-                        href={`${activePhase.symbol}#root`}
-                        x={50 * (1 - PHASE_SYMBOL_MAX_RADIUS)}
-                        y={50 * (1 - PHASE_SYMBOL_MAX_RADIUS)}
-                        width={100 * PHASE_SYMBOL_MAX_RADIUS}
-                        height={100 * PHASE_SYMBOL_MAX_RADIUS}
-                        fill={PHASE_INK_COLOR}
-                      />
-                    </g>
-                  </svg>
-                ) : null}
-                {stageStatus ??
-                  (frame.word ? (
-                    <div className="seated-phase-status__copy">
-                      <strong>{frame.word}</strong>
-                    </div>
-                  ) : (
-                    <div className="seated-phase-status__copy">
-                      <span>Turn {tableProgress.turn}</span>
-                      <strong>{activePhase?.label ?? 'No active phase'}</strong>
-                    </div>
-                  ))}
-              </div>
-
-              <div className="seated-toolbar">
-                <TableViewPicker
-                  activeView={viewState.activeView}
-                  preferredView={viewPhase === null ? undefined : PHASE_VIEWS[viewPhase]}
-                  onSelect={(view) => dispatchView({ type: 'view.selected', view })}
-                />
-                {gameMenu}
-                {toolbarControl}
-              </div>
-            </header>
-
-            <SplitPanels
-              orientation="horizontal"
-              primary="second"
-              defaultSize={DEFAULT_CONTROLS_PANEL_PERCENT}
-              limits={controlsPanelLimits}
-              step={KEYBOARD_STEP_PERCENT}
-              pageStep={KEYBOARD_PAGE_STEP_PERCENT}
-              label="Resize controls panel"
-              valueText={controlsPanelValueText}
-            >
-              <SplitPanels.First>
-                <TabletopScene
-                  className="scene scene--immersive"
-                  cameraView={cameraView}
-                  onSceneReady={handleSceneReady}
-                  onInteractionActiveChange={handleInteractionActiveChange}
-                  seatCount={seatCount}
-                  tableProgress={tableProgress}
-                  stage={stage}
-                  mapVisible={mapVisible}
-                  onSelectTurn={onSelectTurn}
-                >
-                  {sceneContent}
-                </TabletopScene>
-
-                {stageOverlay && (
-                  <div className="seated-stage-overlay" inert={overlaysInert}>
-                    {stageOverlay}
+      <TableKeyboardContext value={tableKeyboard}>
+        <TableKeyboardVariantContext value={keyboardVariant}>
+          <DarkSchemeIsland>
+            {/* The stage stacks the waiting frame under the shell until the renderer is ready; then the frame goes and the shell opens through its iris. */}
+            <div className="dune-play-stage" data-scene-ready={viewState.sceneReady}>
+              {viewState.sceneReady ? null : <TableWait status="Opening the table..." />}
+              <div
+                className="dune-play-shell dune-play-shell--seated"
+                {...darkSchemeIslandAttributes}
+                data-board-gesture-active={overlaysInert}
+                data-table-view={viewState.activeView}
+                data-show-counts={heldOverlays.counts}
+                data-show-names={heldOverlays.names}
+              >
+                {/* The header sits outside the split, in the shell's own stacking, so it paints above the dock where the dock's floor grows up over the scene. It comes before the split so its controls lead the reading and Tab order. */}
+                <header className="seated-header" inert={overlaysInert}>
+                  <div className="seated-brand">
+                    <img className="seated-brand__logo" src="/web/logo.svg" alt="Dune" />
                   </div>
-                )}
-              </SplitPanels.First>
-              <SplitPanels.Second>
-                <div className="seated-controls-panel" inert={overlaysInert}>
-                  {decisionBar}
-                  <PanelPanes secondary={playerPanel}>
-                    <TableControlsPanel
-                      panelTabs={panelTabs}
-                      tableControls={tableControls}
-                      panelContent={panelContent}
-                      word={frame.word}
-                      tableTab={frame.tableTab}
-                      showStormControls={showStormControls}
-                      turn={tableProgress.turn}
-                      onSelectTurn={onSelectTurn}
+
+                  <div className="seated-phase-status" aria-live="polite">
+                    {activePhase?.symbol && !frame.word ? (
+                      <svg className="seated-phase-status__symbol" viewBox="0 0 100 100" aria-hidden="true">
+                        <defs>
+                          <clipPath id={phaseSymbolClipId}>
+                            <circle cx="50" cy="50" r={50 * PHASE_SYMBOL_MAX_RADIUS} />
+                          </clipPath>
+                        </defs>
+                        <circle cx="50" cy="50" r="50" fill={PHASE_DISC_COLOR} />
+                        <circle
+                          cx="50"
+                          cy="50"
+                          r={25 * (PHASE_RING_OUTER_RADIUS + PHASE_RING_INNER_RADIUS)}
+                          fill="none"
+                          stroke={PHASE_INK_COLOR}
+                          strokeWidth={50 * (PHASE_RING_OUTER_RADIUS - PHASE_RING_INNER_RADIUS)}
+                        />
+                        <g clipPath={`url(#${phaseSymbolClipId})`}>
+                          <use
+                            href={`${activePhase.symbol}#root`}
+                            x={50 * (1 - PHASE_SYMBOL_MAX_RADIUS)}
+                            y={50 * (1 - PHASE_SYMBOL_MAX_RADIUS)}
+                            width={100 * PHASE_SYMBOL_MAX_RADIUS}
+                            height={100 * PHASE_SYMBOL_MAX_RADIUS}
+                            fill={PHASE_INK_COLOR}
+                          />
+                        </g>
+                      </svg>
+                    ) : null}
+                    {stageStatus ??
+                      (frame.word ? (
+                        <div className="seated-phase-status__copy">
+                          <strong>{frame.word}</strong>
+                        </div>
+                      ) : (
+                        <div className="seated-phase-status__copy">
+                          <span>Turn {tableProgress.turn}</span>
+                          <strong>{activePhase?.label ?? 'No active phase'}</strong>
+                        </div>
+                      ))}
+                  </div>
+
+                  <div className="seated-toolbar">
+                    <TableViewPicker
+                      activeView={viewState.activeView}
+                      preferredView={viewPhase === null ? undefined : PHASE_VIEWS[viewPhase]}
+                      onSelect={(view) => dispatchView({ type: 'view.selected', view })}
                     />
-                  </PanelPanes>
-                </div>
-              </SplitPanels.Second>
-            </SplitPanels>
-          </div>
-        </div>
-      </DarkSchemeIsland>
+                    {gameMenu}
+                    {toolbarControl}
+                  </div>
+                </header>
+
+                <SplitPanels
+                  orientation="horizontal"
+                  primary="second"
+                  defaultSize={DEFAULT_CONTROLS_PANEL_PERCENT}
+                  limits={controlsPanelLimits}
+                  step={KEYBOARD_STEP_PERCENT}
+                  pageStep={KEYBOARD_PAGE_STEP_PERCENT}
+                  label="Resize controls panel"
+                  valueText={controlsPanelValueText}
+                >
+                  <SplitPanels.First>
+                    <TabletopScene
+                      className="scene scene--immersive"
+                      cameraView={cameraView}
+                      onSceneReady={handleSceneReady}
+                      onInteractionActiveChange={handleInteractionActiveChange}
+                      seatCount={seatCount}
+                      tableProgress={tableProgress}
+                      stage={stage}
+                      mapVisible={mapVisible}
+                      onSelectTurn={onSelectTurn}
+                    >
+                      {sceneContent}
+                    </TabletopScene>
+
+                    {stageOverlay && (
+                      <div className="seated-stage-overlay" inert={overlaysInert}>
+                        {stageOverlay}
+                      </div>
+                    )}
+                  </SplitPanels.First>
+                  <SplitPanels.Second>
+                    <div className="seated-controls-panel" inert={overlaysInert}>
+                      {decisionBar}
+                      <PanelPanes secondary={playerPanel}>
+                        <TableControlsPanel
+                          panelTabs={panelTabs}
+                          tableControls={tableControls}
+                          panelContent={panelContent}
+                          word={frame.word}
+                          tableTab={frame.tableTab}
+                          showStormControls={showStormControls}
+                          turn={tableProgress.turn}
+                          onSelectTurn={onSelectTurn}
+                        />
+                      </PanelPanes>
+                    </div>
+                  </SplitPanels.Second>
+                </SplitPanels>
+              </div>
+            </div>
+          </DarkSchemeIsland>
+        </TableKeyboardVariantContext>
+      </TableKeyboardContext>
     </PointerSessionContext>
   );
 }

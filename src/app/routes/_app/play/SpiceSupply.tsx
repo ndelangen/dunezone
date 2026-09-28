@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 
 import { usePresence } from './multiplayer/PresenceContext';
 import { PhaseSymbol } from './PhaseSymbol';
+import { useTableKeyboard } from './TableKeyboardContext';
+import { useTableKeyboardVariant } from './tableKeyboardPrototype';
 import { useTabletop } from './TabletopContext';
 import { SPICE_DISC_COLOR } from './tableTrackers';
 
@@ -36,6 +38,9 @@ function createSpiceKeyHandler(spawnSpice: (count: number) => void) {
 export function SpiceSupply({ radius }: Readonly<{ radius: number }>) {
   const { spawnSpice, setHoveredPiece, state } = useTabletop();
   const { canInteract } = usePresence();
+  const keyboard = useTableKeyboard();
+  /* PROTOTYPE, #1323 F29: only variant A keeps the disc's own listener; B and C tell the keyboard owner about the hover. */
+  const variant = useTableKeyboardVariant();
   const { renderer } = useThree();
   const [hovered, setHovered] = useState(false);
   const enabled = canInteract && !state.draftMove;
@@ -46,13 +51,20 @@ export function SpiceSupply({ radius }: Readonly<{ radius: number }>) {
     }
     const canvas = renderer.domElement;
     canvas.style.cursor = 'pointer';
-    const keyDown = createSpiceKeyHandler(spawnSpice);
-    window.addEventListener('keydown', keyDown, true);
+    const keyDown = variant === 'a' ? createSpiceKeyHandler(spawnSpice) : null;
+    if (keyDown) {
+      window.addEventListener('keydown', keyDown, true);
+    }
     return () => {
-      window.removeEventListener('keydown', keyDown, true);
+      if (keyDown) {
+        window.removeEventListener('keydown', keyDown, true);
+      }
       canvas.style.cursor = 'default';
     };
-  }, [enabled, hovered, renderer, spawnSpice]);
+  }, [enabled, hovered, renderer, spawnSpice, variant]);
+
+  /* A disc that unmounts under the pointer hears no leave, so it lets go of the hover itself. */
+  useEffect(() => () => keyboard.hoverSupply(false), [keyboard]);
 
   return (
     <group>
@@ -63,8 +75,12 @@ export function SpiceSupply({ radius }: Readonly<{ radius: number }>) {
         onPointerEnter={() => {
           setHovered(true);
           setHoveredPiece(null);
+          keyboard.hoverSupply(true);
         }}
-        onPointerLeave={() => setHovered(false)}
+        onPointerLeave={() => {
+          setHovered(false);
+          keyboard.hoverSupply(false);
+        }}
         onClick={(event) => event.stopPropagation()}
       >
         <circleGeometry args={[radius, 96]} />

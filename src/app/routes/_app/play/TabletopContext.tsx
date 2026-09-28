@@ -483,23 +483,30 @@ function keyboardPieceId({ state, hoveredPieceId }: TableKeyboardControls) {
   return state.draftMove?.pieceId ?? hoveredPieceId ?? state.selectedPieceId ?? undefined;
 }
 
-export function useTableKeyboard({
-  deckControls,
-  flipSelected,
-  hoveredPieceId,
-  rotateSelected,
-  splitSelected,
-  stackSelected,
-  state,
-  takeAdditionalFromTarget,
-  toggleLockSelected,
-}: TableKeyboardControls) {
+/* PROTOTYPE, #1323 F29: main's table hook, answering only while variant A is picked. */
+export function useLegacyTableKeyboard(
+  {
+    deckControls,
+    flipSelected,
+    hoveredPieceId,
+    rotateSelected,
+    splitSelected,
+    stackSelected,
+    state,
+    takeAdditionalFromTarget,
+    toggleLockSelected,
+  }: TableKeyboardControls,
+  enabled = true
+) {
   const numberKeyTimer = useRef<number | null>(null);
   const numberKeyOwner = useRef<string | null>(null);
 
   useEffect(() => () => clearNumberKeyDraw(numberKeyTimer, numberKeyOwner), []);
 
   useEffect(() => {
+    if (!enabled) {
+      return;
+    }
     const controls = {
       deckControls,
       flipSelected,
@@ -528,6 +535,7 @@ export function useTableKeyboard({
       window.removeEventListener('blur', onBlur);
     };
   }, [
+    enabled,
     deckControls,
     flipSelected,
     hoveredPieceId,
@@ -738,7 +746,7 @@ export function TabletopProvider({ children }: { children: ReactNode }) {
     [setState]
   );
 
-  useTableKeyboard({
+  useLegacyTableKeyboard({
     flipSelected,
     hoveredPieceId,
     rotateSelected,

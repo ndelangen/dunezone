@@ -18,7 +18,8 @@ import { requestPlayTicket } from '@db/play';
 import { FoilConfetti } from '../FoilConfetti';
 import { GameTable } from '../GameTable';
 import { usePointerSession } from '../PointerSessionContext';
-import { TabletopContext, useTableKeyboard } from '../TabletopContext';
+import { useTableKeyboardVariantSearch } from '../tableKeyboardPrototype';
+import { TabletopContext, useLegacyTableKeyboard } from '../TabletopContext';
 import type { TabletopContextValue } from '../TabletopContext';
 import { TableWait } from '../TableWait';
 import { BattleControls, BattleScene, HandControls } from './BattleControls';
@@ -90,7 +91,9 @@ function useTableCommands(client: TableSession, table: TableProjection) {
     }),
     [client, table]
   );
-  useTableKeyboard(value);
+  /* PROTOTYPE, #1323 F29: main's hook answers only in variant A; B and C hand the keys to GameTable's keyboard owner. */
+  const variant = useTableKeyboardVariantSearch();
+  useLegacyTableKeyboard(value, variant === 'a');
   return value;
 }
 

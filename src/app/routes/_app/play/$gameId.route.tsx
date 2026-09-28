@@ -10,6 +10,8 @@ import { lazy, Suspense } from 'react';
 import { useGameAccess } from '@db/play';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
+import { isTableKeyboardVariant, TableKeyboardVariantBar } from './tableKeyboardPrototype';
+import type { TableKeyboardVariant } from './tableKeyboardPrototype';
 import { TableWait } from './TableWait';
 
 const loadHostedTable = () => import('./multiplayer/HostedTable');
@@ -22,6 +24,9 @@ const HostedTable = lazy(loadHostedTable);
 const RETIRED_PAGES: ReadonlySet<string> = new Set(['demo', 'hosted']);
 
 export const Route = createFileRoute('/_app/play/$gameId')({
+  /* PROTOTYPE, #1323 F29: `?variant=a|b|c` picks who answers the number keys over the spice disc. */
+  validateSearch: (params: Record<string, unknown>): { variant?: TableKeyboardVariant } =>
+    isTableKeyboardVariant(params?.variant) ? { variant: params.variant } : {},
   beforeLoad: ({ params }) => {
     if (RETIRED_PAGES.has(params.gameId)) {
       throw redirect({ to: '/play', replace: true });
@@ -103,6 +108,7 @@ function GamePage() {
                 <HostedTable key={data.gameId} gameId={data.gameId} exitControl={exit} />
               </Suspense>
             </ClientOnly>
+            <TableKeyboardVariantBar />
           </PageLayout.Content>
         </PageLayout>
       );
