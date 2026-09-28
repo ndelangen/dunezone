@@ -181,8 +181,9 @@ ingress limits, Worker identity, deployment order and local infrastructure.
 
 ## Verification
 
-Run `bun --no-env-file scripts/verify-hosted-play-stack.ts --browser-only --flow all` before merging
-a change that reaches Play's client, shared contracts or the game Worker. It boots one stack and
+Every browser flow runs on each pull request in the `hosted_play` shards that `ci_ok` requires, as the
+[deployment contract](../deployment.md#hosted-gameplay) describes. Locally,
+`bun --no-env-file scripts/verify-hosted-play-stack.ts --browser-only --flow all` boots one stack and
 runs every browser flow against it, each on a fresh game with fresh accounts. `--flow` repeats to
 select flows by name. A failed flow does not stop the ones after it, and the run fails at the end.
 Only the public-controls flow, which checks the phase cooldown, plays at the real cooldown. The

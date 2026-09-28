@@ -350,13 +350,17 @@ jobs:
         # writes a report, failed after its last check. Renderer and Chromium come from the report:
         # the renderer kind its first table drew with, and the Chromium build that ran it.
         # always(), because a job that reaches timeout-minutes reads as cancelled.
+        # The summary never changes the shard's result: a failed flow lookup writes its own row and
+        # fails only this step, as does a report jq cannot read.
         if: always()
+        continue-on-error: true
         env:
           SHARD: ${{ matrix.shard }}
           PROTOCOL_VERIFIER: ${{ matrix.protocol-verifier }}
         run: |
           out=test-results/hosted-play
-          read -r -a flows <<< "$(bun -e 'import { flowsInShard } from "./scripts/verify-hosted-flows.ts"; console.log(flowsInShard(process.argv[1]).join(" "))' "$SHARD")"
+          flow_list="$(bun -e 'import { flowsInShard } from "./scripts/verify-hosted-flows.ts"; console.log(flowsInShard(process.argv[1]).join(" "))' "$SHARD")" || flow_list=''
+          read -r -a flows <<< "$flow_list"
           {
             echo "### hosted_play ${SHARD}"
             echo
@@ -370,6 +374,9 @@ jobs:
               else
                 echo '| protocol verifier | did not run | | | | see the run step |'
               fi
+            fi
+            if [ "${#flows[@]}" -eq 0 ]; then
+              echo "| ${SHARD} flows | not listed | | | | the flow lookup in this step failed |"
             fi
             for flow in "${flows[@]}"; do
               if [ ! -f "$out/$flow.log" ]; then
@@ -390,6 +397,7 @@ jobs:
                 "| \(.flow) | \(if .failure then "fail" else "pass" end) | \((.finishedAt | seconds) - (.startedAt | seconds)) | \(.renderer.kind // "not read") | \(.chromium.build // "") | \(.failure.afterCheck // "" | gsub("\\|"; "/")) |"' "$report"
             done
           } >> "$GITHUB_STEP_SUMMARY"
+          test "${#flows[@]}" -gt 0
       - name: Retain hosted game integration evidence
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

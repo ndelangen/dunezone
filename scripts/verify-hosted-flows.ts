@@ -71,7 +71,7 @@ export const browserFlows = {
     checksPhaseCooldown: boolean;
     /**
      * The `hosted_play` CI shard that runs the flow, which the launcher's `--shard` selects.
-     * The flows that need the catalogue share `catalogue`, so only that shard seeds it.
+     * A shard seeds the public catalogue when one of its flows needs it, so the flows that need it share `catalogue`.
      */
     shard: 'regular' | 'catalogue' | 'protocol';
   }
