@@ -152,6 +152,7 @@ const report = {
   captures: [],
   pageErrors: [],
   consoleErrors: [],
+  signInRetries: [],
   ...(expectedRenderer ? { expectedRenderer } : {}),
 };
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -364,8 +365,23 @@ async function signIn(who) {
   await who.page.goto(`${origin}/auth/login`, { waitUntil: 'domcontentloaded' });
   await who.page.getByLabel('Email', { exact: true }).fill(credentials[who.label].email);
   await who.page.getByLabel('Password', { exact: true }).fill(credentials[who.label].password);
-  await who.page.getByTestId('local-auth-submit').click();
-  await who.page.getByRole('heading', { name: "You're signed in" }).waitFor();
+  const signedIn = who.page.getByRole('heading', { name: "You're signed in" });
+  /* A loaded local backend can end Convex Auth's createAccount at its 1 s limit (#1493); the aborted mutation
+     leaves no account, so one resubmit repeats the same sign-in-then-sign-up a player would. */
+  const timedOut = who.page.getByRole('alert').filter({ hasText: 'Function execution timed out' });
+  for (let attempt = 0; ; attempt++) {
+    await who.page.getByTestId('local-auth-submit').click();
+    /* Submitting clears the previous attempt's alert; waiting for that keeps it from answering this one. */
+    await timedOut.waitFor({ state: 'hidden' });
+    await signedIn.or(timedOut).first().waitFor();
+    if (await signedIn.isVisible()) {
+      return;
+    }
+    if (attempt === 1) {
+      throw new Error(`Sign-in for ${who.label} timed out on the backend twice.`);
+    }
+    report.signInRetries.push({ label: who.label, message: (await timedOut.first().textContent())?.slice(0, 200) });
+  }
 }
 /** The id of the real game this flow creates; every account after the creator enters it. */
 let gameId;
@@ -1534,17 +1550,23 @@ try {
     finalRevision: who.view()?.snapshot.revision,
     viewerSeat: who.view()?.viewer.viewerSeat,
   }));
-  report.pageErrors = report.pageErrors.length;
-  report.consoleErrorMessages = report.consoleErrors.map(({ label, message }) => ({
-    label,
-    message: message.replace(/\b[a-f0-9]{64}\b/giu, '[redacted]'),
-  }));
-  report.consoleErrors = report.consoleErrors.length;
-  report.blockedNetworkRequests = blockedNetwork.length;
-  for (const instance of otherBrowsers) {
-    await instance.close();
+  /* Pages keep logging until their browser closes (#1258), so the listeners' arrays are read only after that. */
+  for (const instance of [...otherBrowsers, browser]) {
+    try {
+      await instance.close();
+    } catch (error) {
+      /* A teardown error is recorded, but it neither replaces the flow's own result nor stops the report. */
+      report.teardownErrors = [...(report.teardownErrors ?? []), String(error?.message ?? error).slice(0, 200)];
+      console.error(`Browser teardown failed: ${report.teardownErrors.at(-1)}`);
+    }
   }
-  await browser.close();
+  const redacted = (entries) =>
+    entries.map(({ label, message }) => ({ label, message: message.replace(/\b[a-f0-9]{64}\b/giu, '[redacted]') }));
+  report.pageErrorCount = report.pageErrors.length;
+  report.pageErrors = redacted(report.pageErrors);
+  report.consoleErrorCount = report.consoleErrors.length;
+  report.consoleErrors = redacted(report.consoleErrors);
+  report.blockedNetworkRequests = blockedNetwork.length;
   if (flow.keepsFrames) {
     await writeFile(
       new URL(`${values.flow}-frames.json`, directory),
