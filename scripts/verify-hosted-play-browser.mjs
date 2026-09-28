@@ -589,61 +589,61 @@ async function focus(who, view) {
 function recommendedViewButton(who, view, pressed) {
   return who.page.getByRole('button', { name: `Focus on ${view}, recommended for this phase`, exact: true, pressed });
 }
+/** Waits for the table to install `window.__duneTable`, which it does after its canvas mounts and again after a remount. */
+async function tableInstalled(who) {
+  const installed = await who.page
+    .waitForFunction(() => window.__duneTable !== undefined, undefined, { timeout: 15_000 })
+    .catch((error) => {
+      if (!(error instanceof errors.TimeoutError)) {
+        throw error;
+      }
+      throw new Error(
+        `${who.label}'s table installed no window.__duneTable within 15 s; the verifier needs a build with VITE_E2E_LOCAL_AUTH=true.`
+      );
+    });
+  await installed.dispose();
+}
 /**
- * The page coordinates of a table position, projected through the camera the page renders.
- * The table installs `window.__duneTable` after its canvas mounts, and again after a remount, so each projection waits for it.
- * The camera eases to a newly focused view over several frames, and a software renderer draws them slowly, so a projection counts only once three reads, each two frames apart, agree.
- * A table that remounts during the wait uninstalls `window.__duneTable`, so the projection waits for it again.
+ * In the page: the projection once three reads, each two frames apart, agree;
+ * `remounted` when the table uninstalled `window.__duneTable` meanwhile;
+ * `null` when the camera kept moving until `timeoutMs`.
+ * The camera eases to a newly focused view over several frames, and a software renderer draws them slowly.
+ */
+async function settledProjection({ value, timeoutMs }) {
+  const deadline = performance.now() + timeoutMs;
+  const read = () => window.__duneTable?.worldToScreen(value);
+  const agree = (a, b) => Math.abs(a.x - b.x) < 0.5 && Math.abs(a.y - b.y) < 0.5;
+  let previous = read();
+  let agreeing = 0;
+  while (previous && agreeing < 2 && performance.now() < deadline) {
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    const current = read();
+    agreeing = current && agree(current, previous) ? agreeing + 1 : 0;
+    previous = current;
+  }
+  if (!previous) {
+    return 'remounted';
+  }
+  return agreeing === 2 ? previous : null;
+}
+/**
+ * The page coordinates of a table position, projected through the camera the page renders once that camera has settled.
+ * A table that remounts during the wait is waited for again, up to three times.
  */
 async function point(who, position) {
-  for (let attempt = 1; ; attempt += 1) {
-    const installed = await who.page
-      .waitForFunction(() => window.__duneTable !== undefined, undefined, { timeout: 15_000 })
-      .catch((error) => {
-        if (!(error instanceof errors.TimeoutError)) {
-          throw error;
-        }
-        throw new Error(
-          `${who.label}'s table installed no window.__duneTable within 15 s; the verifier needs a build with VITE_E2E_LOCAL_AUTH=true.`
-        );
-      });
-    await installed.dispose();
-    const settled = await who.page.evaluate(
-      async ({ value, timeoutMs }) => {
-        const deadline = performance.now() + timeoutMs;
-        const read = () => window.__duneTable?.worldToScreen(value);
-        let previous = read();
-        let agreeing = 0;
-        while (previous && performance.now() < deadline) {
-          await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-          const current = read();
-          if (!current) {
-            return 'remounted';
-          }
-          agreeing =
-            Math.abs(current.x - previous.x) < 0.5 && Math.abs(current.y - previous.y) < 0.5 ? agreeing + 1 : 0;
-          if (agreeing === 2) {
-            return current;
-          }
-          previous = current;
-        }
-        return previous ? null : 'remounted';
-      },
-      { value: position, timeoutMs: 10_000 }
-    );
-    if (settled === 'remounted') {
-      if (attempt === 3) {
-        throw new Error(`${who.label}'s table remounted during three projections in a row.`);
-      }
-      continue;
-    }
-    if (!settled) {
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    await tableInstalled(who);
+    const settled = await who.page.evaluate(settledProjection, { value: position, timeoutMs: 10_000 });
+    if (settled === null) {
       throw new Error(
         `${who.label}'s camera did not settle within 10 s, so the table position has no stable page point.`
       );
     }
-    return settled;
+    if (settled !== 'remounted') {
+      return settled;
+    }
   }
+  throw new Error(`${who.label}'s table remounted during three projections in a row.`);
 }
 /**
  * Hovers the spice supply disc in the map view until the canvas shows the disc's pointer cursor, then presses `key`.
