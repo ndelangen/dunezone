@@ -237,17 +237,16 @@ function observeConnectionStatus() {
     }
   };
   Object.assign(window, { hostedPlayConnection: changes });
-  document.addEventListener('DOMContentLoaded', () => {
-    observer = new MutationObserver(record);
-    observer.observe(document.body, {
-      subtree: true,
-      childList: true,
-      characterData: true,
-      attributes: true,
-      attributeFilter: ['data-connection'],
-    });
-    record();
+  /* The document exists before any page script runs, so no change during the first load is missed. */
+  observer = new MutationObserver(record);
+  observer.observe(document, {
+    subtree: true,
+    childList: true,
+    characterData: true,
+    attributes: true,
+    attributeFilter: ['data-connection'],
   });
+  record();
 }
 /** Runs in the page: the backend the table canvas's renderer initialised, or why it cannot name one yet. */
 function readTableRenderer(canvas) {
