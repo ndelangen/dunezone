@@ -86,6 +86,10 @@ function table(client: TableSession) {
   return result;
 }
 
+function renderedPiece(client: TableSession, pieceId: string) {
+  return table(client).renderedPieces.find((piece) => piece.id === pieceId);
+}
+
 function command() {
   const result = [...socket().sent].reverse().find((message) => message.type === 'command');
   if (!result) {
@@ -629,7 +633,8 @@ describe('hosted table interaction', () => {
     const { client, source, carried } = await grantedWholeCarry();
     socket().deliver(carried);
     client.updateGesture([0, 0.38, 0]);
-    const heldPosition = client.renderedPositionFor(source);
+    const heldPosition = renderedPiece(client, source.id)?.position;
+    expect(heldPosition).not.toEqual(source.position);
     client.command({ kind: 'phase' });
     const forward = command();
     expect(forward.action).toEqual({ kind: 'phase' });
@@ -640,7 +645,7 @@ describe('hosted table interaction', () => {
     socket().deliver({ ...carried, snapshot: { ...carried.snapshot, phase: 1, revision: 1 } });
     expect(table(client).state.phase).toBe('Spice blow');
     expect(table(client).gestureActivePieceId).toBe(source.id);
-    expect(client.renderedPositionFor(source)).toEqual(heldPosition);
+    expect(renderedPiece(client, source.id)?.position).toEqual(heldPosition);
 
     client.command({ kind: 'phase', direction: -1 });
     expect(command().action).toEqual({ kind: 'phase', direction: -1 });
@@ -651,6 +656,53 @@ describe('hosted table interaction', () => {
 
     client.finishGesture([0, 0.38, 0]);
     expect(socket().sent.at(-1)).toMatchObject({ type: 'drop', carryId: carried.carries[0].id });
+  });
+
+  test('the piece menu offers bank and deck actions only to a viewer who can act, and not a piece another player holds', async () => {
+    const client = await connected();
+    const harkonnen = { id: 'harkonnen', name: 'Harkonnen', color: '#ed927c' };
+    const snapshot: GameSnapshot = {
+      ...initialSnapshot(),
+      bank: { factionId: 'harkonnen', balance: 20 },
+      roster: {
+        seatCount: 6,
+        seats: [
+          { id: 'harkonnen', position: 0, faction: harkonnen },
+          { id: 'open', position: 1, faction: null },
+        ],
+      },
+    };
+    const held = snapshot.table.pieces[0];
+    socket().deliver(
+      view({
+        snapshot,
+        carries: [
+          {
+            ...viewer,
+            connectionId: 'other',
+            id: 'other-carry',
+            held,
+            withdrawnCounts: { [held.id]: held.items.length },
+            reservedIds: [held.id],
+            expiresAt: Date.now() + 8000,
+          },
+        ],
+      })
+    );
+    const { bankControls, deckControls } = table(client);
+    expect(deckControls?.recipients).toEqual([harkonnen]);
+    deckControls?.draw('treachery-deck', 'harkonnen');
+    expect(command().action).toEqual({ kind: 'deck-draw', pieceId: 'treachery-deck', recipient: 'harkonnen' });
+    deckControls?.shuffle('treachery-deck');
+    expect(command().action).toEqual({ kind: 'deck-shuffle', pieceId: 'treachery-deck' });
+    expect(bankControls?.canCollect(held.id)).toBe(false);
+    expect(bankControls?.canCollect('treachery-card-loose')).toBe(true);
+    bankControls?.collect('treachery-card-loose');
+    expect(command().action).toEqual({ kind: 'bank-collect', pieceId: 'treachery-card-loose' });
+
+    authorize(snapshot, { ...viewer, viewerSeat: 'neutral' });
+    expect(table(client).bankControls).toBeUndefined();
+    expect(table(client).deckControls).toBeUndefined();
   });
 
   test('a rejected phase correction does not cancel the active carry', async () => {
