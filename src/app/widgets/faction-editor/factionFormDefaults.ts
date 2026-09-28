@@ -1,4 +1,5 @@
 import { DECAL, LEADERS, TROOP } from '@shared/assetIds';
+import { DEFAULT_PHASE_PRIORITY } from '@shared/factions/extraPhases';
 import { createFactionMemberId } from '@shared/factions/memberIdentity';
 
 import type { Faction } from '@db/factions';
@@ -126,4 +127,19 @@ export function defaultPlanet(): NonNullable<Faction['planet']>[number] {
     name: '',
     description: '',
   };
+}
+
+/**
+ * A fresh phase row: its id is generated here and never shown.
+ * Title, symbol and placement start blank on purpose, since only the author can choose them;
+ * the shared schema names each one inline and holds Save until they are chosen.
+ */
+export function defaultPhaseDeclaration(): NonNullable<Faction['extraPhases']>[number] {
+  return {
+    id: createFactionMemberId(),
+    type: 'instruction',
+    title: '',
+    priority: DEFAULT_PHASE_PRIORITY,
+    allPlayersMustBeReady: false,
+  } as NonNullable<Faction['extraPhases']>[number];
 }

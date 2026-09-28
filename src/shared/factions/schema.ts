@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import { ALL, BACKGROUND, GENERIC, LEADERS, LOGO, PLANET, TEXTURE, TROOP, TROOP_MODIFIER } from '../assetIds';
 import { marksOnlyFormattedTextSchema, proseFormattedTextSchema } from '../formattedText';
+import { extraPhasesSchema } from './extraPhases';
 import { assertUniqueFactionMemberIds, FactionMemberIdSchema } from './memberIdentity';
 
 const STRENGTH = z.union([z.number().int(), z.string().length(1)]);
@@ -167,6 +168,9 @@ const factionBaseShape = {
       })
     )
     .optional(),
+
+  /** Phases this faction adds to setup or every turn (#1138); a missing field reads as `[]`. */
+  extraPhases: extraPhasesSchema.optional(),
 };
 
 const factionShape = {

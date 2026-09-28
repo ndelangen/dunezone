@@ -7,7 +7,7 @@ import { FormattedTextSource, InlineFormattedTextSource } from '@ui/content/Form
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { CanvasScale } from '@ui/layout/CanvasScale';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
-import { Globe2, Swords } from 'lucide-react';
+import { Globe2, ListOrdered, Swords } from 'lucide-react';
 import { forwardRef, useImperativeHandle, useState } from 'react';
 
 import type { Faction, FactionCatalogueEntry } from '@db/factions';
@@ -20,7 +20,7 @@ import { TroopToken } from '@game/assets/faction/troop/Troop';
 import { BackgroundRenderer } from '@game/assets/utils/BackgroundRenderer';
 import { card as CARD_SIZE } from '@game/data/sizes';
 
-import { factionAuthoringChapters } from './factionAuthoringContract';
+import { factionAuthoringChapters, invalidPhaseRowCount } from './factionAuthoringContract';
 import type { FactionAuthoringChapterId, FactionAuthoringWarning } from './factionAuthoringContract';
 import styles from './FactionEditor.module.css';
 import { FactionFormSectionAdvantages } from './FactionFormSectionAdvantages';
@@ -31,6 +31,7 @@ import { FactionFormSectionHero } from './FactionFormSectionHero';
 import { FactionFormSectionIdentity } from './FactionFormSectionIdentity';
 import type { FactionIdentityNameField } from './FactionFormSectionIdentity';
 import { FactionFormSectionLeaders } from './FactionFormSectionLeaders';
+import { FactionFormSectionPhases, phaseRowLabel } from './FactionFormSectionPhases';
 import { FactionFormSectionPlanets } from './FactionFormSectionPlanets';
 import { FactionFormSectionRules } from './FactionFormSectionRules';
 import { FactionFormSectionTroops } from './FactionFormSectionTroops';
@@ -43,7 +44,7 @@ export interface FactionFormFieldsHandle {
 }
 
 const chapterIcons: Record<
-  Exclude<FactionAuthoringChapterId, 'identity' | 'forces' | 'worlds' | 'complexity'>,
+  Exclude<FactionAuthoringChapterId, 'identity' | 'forces' | 'worlds' | 'phases' | 'complexity'>,
   Parameters<typeof TopicIcon>[0]['topic']
 > = {
   hero: 'hero',
@@ -63,6 +64,9 @@ function ChapterIcon({ chapter, form }: { chapter: FactionAuthoringChapterId; fo
   }
   if (chapter === 'worlds') {
     return <Globe2 size={21} aria-hidden />;
+  }
+  if (chapter === 'phases') {
+    return <ListOrdered size={21} aria-hidden />;
   }
   if (chapter === 'complexity') {
     /* This tab's icon is live: the tier glyph of the current effective rating. */
@@ -157,6 +161,7 @@ function ArtifactProof({
     world: number;
     troop: number;
     advantage: number;
+    phase: number;
   };
   troopSide: Record<number, 'front' | 'back'>;
 }) {
@@ -346,6 +351,27 @@ function ArtifactProof({
           ) : (
             <PreviewEmpty>No faction advantages yet.</PreviewEmpty>
           );
+        } else if (activeChapter === 'phases') {
+          const phases = faction.extraPhases ?? [];
+          const phaseIndex = Math.min(selectedItem.phase, phases.length - 1);
+          const selectedPhase = phases[phaseIndex];
+          title = 'Faction phase';
+          artifact = selectedPhase ? (
+            /* The phase as a player meets it: its symbol, title and instructions. Where it falls in the sequence is the deferred preview's job (#1467). */
+            <Box className={styles.rulesProof} p="lg">
+              {selectedPhase.symbol ? (
+                <Image src={resolve(selectedPhase.symbol)} alt="" w={64} h={64} fit="contain" mb="sm" />
+              ) : null}
+              <Text ff="serif" fw={800} tt="uppercase">
+                {phaseRowLabel(selectedPhase, phaseIndex)}
+              </Text>
+              <Text ff="serif" size="sm" style={{ whiteSpace: 'pre-wrap' }}>
+                {selectedPhase.instructions?.trim() || 'No instructions yet.'}
+              </Text>
+            </Box>
+          ) : (
+            <PreviewEmpty>No faction phases yet.</PreviewEmpty>
+          );
         } else if (activeChapter === 'complexity') {
           title = 'Faction card';
           /* The catalogue card carries the rating natively; `inert` keeps the proof's link out of
@@ -398,6 +424,11 @@ function ArtifactProof({
   );
 }
 
+/* Only the Phases chapter has rows the schema can refuse while the draft is open. */
+function refusedRowCount(chapter: FactionAuthoringChapterId, faction: Faction): number {
+  return chapter === 'phases' ? invalidPhaseRowCount(faction) : 0;
+}
+
 export const FactionFormFields = forwardRef<
   FactionFormFieldsHandle,
   {
@@ -434,6 +465,7 @@ export const FactionFormFields = forwardRef<
     world: 0,
     troop: 0,
     advantage: 0,
+    phase: 0,
   });
   const [troopSideByIndex, setTroopSideByIndex] = useState<Record<number, 'front' | 'back'>>({});
   const forChapter = (chapter: FactionAuthoringChapterId) => warnings.filter((warning) => warning.chapter === chapter);
@@ -496,6 +528,13 @@ export const FactionFormFields = forwardRef<
           onSelectedIndexChange={(advantage) => setSelectedItem((current) => ({ ...current, advantage }))}
         />
       ) : null}
+      {chapter === 'phases' ? (
+        <FactionFormSectionPhases
+          form={form}
+          selectedIndex={selectedItem.phase}
+          onSelectedIndexChange={(phase) => setSelectedItem((current) => ({ ...current, phase }))}
+        />
+      ) : null}
       {chapter === 'complexity' ? (
         <FactionFormSectionComplexity
           form={form}
@@ -512,12 +551,22 @@ export const FactionFormFields = forwardRef<
       value: chapter.id,
       label: chapter.label,
       icon: <ChapterIcon chapter={chapter.id} form={form} />,
-      indicator:
-        chapterWarnings.length > 0 ? (
-          <Badge circle size="sm" color="yellow">
-            {chapterWarnings.length}
-          </Badge>
-        ) : undefined,
+      indicator: (
+        /* Refused rows hold Save, so their count is red and outranks the chapter's advisory warnings, which are yellow. */
+        <form.Subscribe selector={(state) => refusedRowCount(chapter.id, state.values)}>
+          {(refused) =>
+            refused > 0 ? (
+              <Badge circle size="sm" color="red">
+                {refused}
+              </Badge>
+            ) : chapterWarnings.length > 0 ? (
+              <Badge circle size="sm" color="yellow">
+                {chapterWarnings.length}
+              </Badge>
+            ) : null
+          }
+        </form.Subscribe>
+      ),
       panel: <Stack gap="lg">{chapterEditor(chapter.id)}</Stack>,
     };
   });
