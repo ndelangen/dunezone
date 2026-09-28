@@ -4,7 +4,7 @@ import type { FactionCapture } from '../../src/shared/play/capture';
 import { accepted, nextSnapshot } from '../../src/shared/play/commands';
 import { emptyPublicControls } from '../../src/shared/play/inventory';
 import type { StoredPiece } from '../../src/shared/play/model';
-import { PHASE_CHANGE_COOLDOWN_MS } from '../../src/shared/play/phases';
+import { requirePhaseCooldownElapsed } from '../../src/shared/play/phases';
 import { rosterFactionNames, tableForViewer } from '../../src/shared/play/protocol';
 import type { PieceAction } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
@@ -73,7 +73,15 @@ function setupControls(snapshot: StoredSnapshot) {
   return snapshot.controls ?? emptyPublicControls();
 }
 
-type Context = { factionId: string; seat: string; seats: string[]; reserved: ReadonlySet<string>; now: number };
+type Context = {
+  factionId: string;
+  seat: string;
+  seats: string[];
+  reserved: ReadonlySet<string>;
+  now: number;
+  /* The game's phase cooldown, which a synthetic backend may have shortened. */
+  phaseCooldownMs: number;
+};
 
 /** The room supplies current seat authority; the caller commits the result with its receipt and history. */
 export function setupCommand(snapshot: StoredSnapshot, action: PieceAction, context: Context): StoredSnapshot {
@@ -197,11 +205,8 @@ function revealPrediction(snapshot: StoredSnapshot, stepId: string, context: Con
   );
 }
 
-function requirePhaseTiming(snapshot: StoredSnapshot, direction: -1 | 1, now: number) {
-  const controls = setupControls(snapshot);
-  if (now < controls.phaseChangedAt + PHASE_CHANGE_COOLDOWN_MS) {
-    throw new GameRejection('Wait eight seconds between phase changes.');
-  }
+function requirePhaseTiming(snapshot: StoredSnapshot, direction: -1 | 1, context: Context) {
+  requirePhaseCooldownElapsed(setupControls(snapshot).phaseChangedAt, context.phaseCooldownMs, context.now);
   if (direction < 0 && snapshot.setup!.index === 0) {
     throw new GameRejection('This is the first setup phase.');
   }
@@ -239,7 +244,7 @@ function nextSetupVisit(setup: SetupState, direction: -1 | 1) {
 }
 
 function advanceSetup(snapshot: StoredSnapshot, direction: -1 | 1, context: Context) {
-  requirePhaseTiming(snapshot, direction, context.now);
+  requirePhaseTiming(snapshot, direction, context);
   const controls = setupControls(snapshot);
   if (direction > 0) {
     const { refusal } = phaseGate({

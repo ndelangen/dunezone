@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 
 import sharp from 'sharp';
 
+import { PHASE_CHANGE_COOLDOWN_MS } from '../src/shared/play/phases.ts';
+
 /** Real browser actions against the disposable Password backend and game Worker. */
 export async function verifyPublicControls({
   account,
@@ -189,6 +191,11 @@ export async function verifyPublicControls({
   async function verifyReadiness() {
     while (a.view().snapshot.phase < 8) {
       await act(a, 'Next phase');
+      /* The launcher provisions this flow's game with the real cooldown, which the change's frame states. */
+      assert.ok(
+        a.phaseCooldown.ms > PHASE_CHANGE_COOLDOWN_MS / 2,
+        `The phase change stated a ${a.phaseCooldown.ms} ms cooldown instead of the real ${PHASE_CHANGE_COOLDOWN_MS} ms.`
+      );
       const phase = a.view().snapshot.phase;
       await until(() => b.view().snapshot.phase === phase, 'Phase did not reach the other player.');
       for (const who of [a, b, observer]) {
@@ -236,7 +243,7 @@ export async function verifyPublicControls({
       'Ready and withdrawal are separate from Next; readiness survives Mentat reconnect, last-ready enables explicit advance, and revisiting clears readiness without undoing pieces'
     );
     passed(
-      'The eight-second phase cooldown disables both header buttons for every viewer; observers cannot Ready, request, approve, dismiss or drag inventory'
+      `The ${PHASE_CHANGE_COOLDOWN_MS / 1000}-second phase cooldown disables both header buttons for every viewer; observers cannot Ready, request, approve, dismiss or drag inventory`
     );
   }
 }
