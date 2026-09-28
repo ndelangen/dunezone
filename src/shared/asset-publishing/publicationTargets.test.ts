@@ -17,7 +17,7 @@ describe('publication targets', () => {
       const assetId =
         assetType === 'cardback-preset'
           ? 'traitor'
-          : assetType === 'faction-leader' || assetType === 'faction-troop'
+          : assetType === 'faction-leader' || assetType === 'faction-troop' || assetType === 'faction-traitor'
             ? `${factionId}.10000000-1000-4000-8000-100000000001`
             : factionId;
       const path = publishedPath(assetType, assetId);
@@ -42,6 +42,22 @@ describe('publication targets', () => {
       `${factionId}.${troopId}.back.back`,
     ]) {
       expect(matchPublishedPath(`/published/faction-troops/${assetId}/troop.jpg`)).toBeNull();
+    }
+  });
+
+  test('a traitor front publishes under its leader identity, and the alliance front under the bare faction id', () => {
+    const memberId = '10000000-1000-4000-8000-100000000001';
+    expect(publishedPath('faction-traitor', `${factionId}.${memberId}`)).toBe(
+      `/published/traitor-cards/${factionId}.${memberId}/card.jpg`
+    );
+    expect(publishedPath('faction-alliance', factionId)).toBe(`/published/alliance-cards/${factionId}/card.jpg`);
+    for (const path of [
+      `/published/traitor-cards/${factionId}/card.jpg`,
+      `/published/traitor-cards/${factionId}.${memberId}.back/card.jpg`,
+      `/published/alliance-cards/${factionId}.back/card.jpg`,
+      `/published/alliance-cards/${factionId}.${memberId}/card.jpg`,
+    ]) {
+      expect(matchPublishedPath(path)).toBeNull();
     }
   });
 

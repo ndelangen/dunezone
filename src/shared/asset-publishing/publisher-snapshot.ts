@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import { rulebookPdfCaptureSnapshotSchema } from '../rulebooks/pdfPublication';
 import { factionLeaderAssetDataSchema } from './componentPublication';
+import { factionAllianceAssetDataSchema, factionTraitorAssetDataSchema } from './factionCardPublication';
 import { factionTroopAssetDataSchema } from './factionTroopPublication';
 import {
   DECK_ASSET_TYPE,
@@ -23,6 +24,19 @@ import {
 
 const payloadHashSchema = z.string().regex(/^[0-9a-f]{64}$/);
 
+/** One asset type's envelope: its payload schema under its type, with the hash of what was rendered. */
+function captureSnapshot<const AssetType extends string, Payload extends z.ZodType>(
+  assetType: AssetType,
+  payload: Payload
+) {
+  return z.strictObject({
+    ok: z.literal(true),
+    assetType: z.literal(assetType),
+    payload,
+    payloadHash: payloadHashSchema,
+  });
+}
+
 /**
  * Shared exact contract for the protected Convex producer and Browser capture consumer.
  *
@@ -32,42 +46,14 @@ const payloadHashSchema = z.string().regex(/^[0-9a-f]{64}$/);
  * The union is what lets the capture page dispatch: it fetches this once, before it renders anything, so the type is known by the time there is a subject to draw.
  */
 export const publisherCaptureSnapshotSchema = z.discriminatedUnion('assetType', [
-  z.strictObject({
-    ok: z.literal(true),
-    assetType: z.literal('faction-token'),
-    payload: factionTokenAssetDataSchema,
-    payloadHash: payloadHashSchema,
-  }),
-  z.strictObject({
-    ok: z.literal(true),
-    assetType: z.literal('faction-troop'),
-    payload: factionTroopAssetDataSchema,
-    payloadHash: payloadHashSchema,
-  }),
-  z.strictObject({
-    ok: z.literal(true),
-    assetType: z.literal('faction-leader'),
-    payload: factionLeaderAssetDataSchema,
-    payloadHash: payloadHashSchema,
-  }),
-  z.strictObject({
-    ok: z.literal(true),
-    assetType: z.literal(FACTION_SHEET_ASSET_TYPE),
-    payload: factionSheetAssetDataSchema,
-    payloadHash: payloadHashSchema,
-  }),
-  z.strictObject({
-    ok: z.literal(true),
-    assetType: z.literal(TREACHERY_CARD_ASSET_TYPE),
-    payload: treacheryCardAssetDataSchema,
-    payloadHash: payloadHashSchema,
-  }),
-  z.strictObject({
-    ok: z.literal(true),
-    assetType: z.literal(SPICE_CARD_ASSET_TYPE),
-    payload: spiceCardAssetDataSchema,
-    payloadHash: payloadHashSchema,
-  }),
+  captureSnapshot('faction-token', factionTokenAssetDataSchema),
+  captureSnapshot('faction-troop', factionTroopAssetDataSchema),
+  captureSnapshot('faction-traitor', factionTraitorAssetDataSchema),
+  captureSnapshot('faction-alliance', factionAllianceAssetDataSchema),
+  captureSnapshot('faction-leader', factionLeaderAssetDataSchema),
+  captureSnapshot(FACTION_SHEET_ASSET_TYPE, factionSheetAssetDataSchema),
+  captureSnapshot(TREACHERY_CARD_ASSET_TYPE, treacheryCardAssetDataSchema),
+  captureSnapshot(SPICE_CARD_ASSET_TYPE, spiceCardAssetDataSchema),
   z.strictObject({
     ok: z.literal(true),
     assetType: z.enum([DECK_ASSET_TYPE, 'cardback-preset']),
@@ -83,18 +69,8 @@ export const publisherCaptureSnapshotSchema = z.discriminatedUnion('assetType', 
       payloadHash: payloadHashSchema,
     })
   ),
-  z.strictObject({
-    ok: z.literal(true),
-    assetType: z.literal(RECTANGLE_TOKEN_ASSET_TYPE),
-    payload: rectangleTokenFaceAssetDataSchema,
-    payloadHash: payloadHashSchema,
-  }),
-  z.strictObject({
-    ok: z.literal(true),
-    assetType: z.literal(RULEBOOK_FIRST_PAGE_ASSET_TYPE),
-    payload: rulebookFirstPageAssetDataSchema,
-    payloadHash: payloadHashSchema,
-  }),
+  captureSnapshot(RECTANGLE_TOKEN_ASSET_TYPE, rectangleTokenFaceAssetDataSchema),
+  captureSnapshot(RULEBOOK_FIRST_PAGE_ASSET_TYPE, rulebookFirstPageAssetDataSchema),
   rulebookPdfCaptureSnapshotSchema,
 ]);
 

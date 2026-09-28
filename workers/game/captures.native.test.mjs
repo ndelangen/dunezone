@@ -310,6 +310,12 @@ describe('Catalogue capture and retention through the isolated fixture', () => {
         { troopId: regularId, front: `/published/faction-troops/faction-one.${regularId}/troop.jpg`, back: null },
         { troopId: eliteId, front: `/published/faction-troops/faction-one.${eliteId}/troop.jpg`, back: null },
       ],
+      /* Every traitor front but the last has published, and the alliance front has too. */
+      traitors: leaders.map((leader, index) => ({
+        memberId: leader.memberId,
+        front: index === leaders.length - 1 ? null : `/published/traitor-cards/faction-one.${leader.memberId}/card.jpg`,
+      })),
+      alliance: '/published/alliance-cards/faction-one/card.jpg?v=alliance-front-1',
     });
     const pieces = await tablePieces();
     const before = peer.requests.length;
@@ -346,7 +352,17 @@ describe('Catalogue capture and retention through the isolated fixture', () => {
         back: null,
       },
     ]);
-    expect(record.components.traitors.cards).toHaveLength(leaders.length);
+    expect(record.components.traitors.cards).toEqual(
+      leaders.map((leader, index) => ({
+        memberId: leader.memberId,
+        name: leader.name,
+        front:
+          index === leaders.length - 1
+            ? null
+            : `http://table.test/published/traitor-cards/faction-one.${leader.memberId}/card.jpg`,
+      }))
+    );
+    expect(record.components.alliance.front).toBe('http://table.test/published/alliance-cards/faction-one/card.jpg');
     /* A back is its publication address: the cache token of the publish that was current at capture is dropped. */
     expect(record.components.traitors.back).toBe('http://table.test/published/cardback-presets/traitor/cardback.jpg');
     expect(record.components.alliance.back).toBe('http://table.test/published/cardback-presets/alliance/cardback.jpg');
@@ -364,8 +380,7 @@ describe('Catalogue capture and retention through the isolated fixture', () => {
       'troop Regular troop',
       'troop Elite troop',
       'troop Elite side back',
-      'alliance card',
-      'traitor deck',
+      `traitor ${leaders.at(-1).name}`,
       'extra: missing',
     ]);
 

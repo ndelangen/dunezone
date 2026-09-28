@@ -6,6 +6,7 @@ import { rulebookRenderPageV1Schema } from '../rulebooks/renderDocument';
 import { DEFAULT_RULEBOOK_SETTINGS, rulebookSettingsSchema } from '../rulebooks/settings';
 import { componentGeometrySchema } from './componentGeometry';
 import { factionLeaderAssetDataSchema } from './componentPublication';
+import { factionAllianceAssetDataSchema, factionTraitorAssetDataSchema } from './factionCardPublication';
 import { factionTroopAssetDataSchema } from './factionTroopPublication';
 import type { PublicationAssetType } from './publicationTargets';
 import { PUBLICATION_ASSET_TYPES } from './publicationTargets';
@@ -128,6 +129,8 @@ const PUBLICATION_ASSET_DATA_SCHEMAS = {
   'faction-leader': factionLeaderAssetDataSchema,
   'faction-token': factionTokenAssetDataSchema,
   'faction-troop': factionTroopAssetDataSchema,
+  'faction-traitor': factionTraitorAssetDataSchema,
+  'faction-alliance': factionAllianceAssetDataSchema,
   [TREACHERY_CARD_ASSET_TYPE]: treacheryCardAssetDataSchema,
   [SPICE_CARD_ASSET_TYPE]: spiceCardAssetDataSchema,
   [DECK_ASSET_TYPE]: deckCardbackAssetDataSchema,
