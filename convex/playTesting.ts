@@ -168,8 +168,9 @@ export const seedRealGameCatalogue = internalMutation({
       about: 'A disposable ruleset for isolated browser verification.',
       image_cover: null,
     });
-    /* Asset slugs resolve a capture, so each seed's rows stay distinct from an earlier seed's on the same backend. */
+    /* Slugs resolve a capture and a ruleset page, so each seed's rows stay distinct from an earlier seed's on the same backend. */
     const suffix = rulesetId.slice(-8);
+    await ctx.db.patch(rulesetId, { slug: `synthetic-ruleset-${suffix}` });
     for (const slot of ['treachery', 'spice'] as const) {
       const deckId = await ctx.db.insert('assets', {
         ...row,

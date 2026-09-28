@@ -245,7 +245,7 @@ The browser flows play real games. The stack seeds a synthetic ruleset
 publication bytes, and passes its id to each flow. Every flow signs in synthetic Administrators,
 creates a game at `/play/create`, seats the second player through a seat request and its approval,
 and plays through drafting and setup before its own checks. Against a running
-[local stack](../deployment.md#hosted-gameplay), seed that ruleset and use a build with local
+[local stack](../deployment.md#hosted-gameplay), seed that ruleset once and use a build with local
 Password sign-in enabled:
 
 ```sh

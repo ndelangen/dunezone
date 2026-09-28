@@ -40,7 +40,7 @@ Synthetic fixture creation and provisioning also enforce the isolated-backend gu
 profile is server-selected provisioning metadata, never a browser-supplied seat or authority claim.
 The browser case opens the provisioned fixture at the ordinary game address, `/play/<gameId>`, and
 reads its access through the same game query every page uses. Fixture creation is a guarded
-internal test control that refuses a second live game and cannot run against production.
+internal test control that refuses a second live game on the hosted load backend and cannot run against production.
 
 ## Fixture and workload
 

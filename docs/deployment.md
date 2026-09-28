@@ -183,8 +183,8 @@ bun --no-env-file scripts/verify-hosted-play-stack.ts --browser-only --flow all
 ```
 
 This mode builds the app and starts the stack once, then runs each selected browser flow in turn.
-Before each flow it retires the previous flow's game and provisions a fresh canonical fixture through
-the local Workers, so every flow's new synthetic accounts receive the fixture's player seats. It runs
+Before the flows it seeds a synthetic ruleset (`playTesting:seedRealGameCatalogue`) and installs its
+publication bytes; each flow signs in fresh Administrator accounts and creates its own real game. It runs
 `scripts/verify-hosted-play-browser.mjs` instead of the protocol verifier. `--flow` repeats, `all`
 selects every flow in [`scripts/verify-hosted-flows.ts`](../scripts/verify-hosted-flows.ts), and
 without it only the regular flow runs; the named flows are described under

@@ -490,7 +490,6 @@ function treacheryDeck(who) {
   assert.ok(deck, 'Setup supplied no treachery deck.');
   return deck.id;
 }
-/** The first seat's reserve of troops, which setup supplied as one stack. */
 /** The seeded Harkonnen troop reserve: the carry checks look for its red token on screen. */
 function troopStack(who) {
   const faction = who.view().snapshot.roster.seats.find((seat) => seat.faction?.name === 'Harkonnen')?.faction;
@@ -716,23 +715,19 @@ async function visibleActivity(sender, recipient, name) {
 
 const displayedPhaseSymbols = new Set();
 const servedPhaseSymbols = new Set();
-async function displayedPhase(who, index) {
+async function displayedPhase(who, index, { held = false } = {}) {
   const phase = phaseAt(index);
   const controls = who.page;
   await openTab(who, 'Phase');
   /*
-   * A real game keeps the phase's name and instructions in its help tooltip. While a board gesture is held the
-   * panel refuses the pointer, so only the named help control is checked then.
+   * A real game keeps the phase's name and instructions in its help tooltip. While this player holds a board
+   * gesture the panel refuses the pointer, and hovering would move the held piece, so only the named help control
+   * is checked then.
    */
   /* The phase's own section leads the panel; the Battle phase adds a battle section of the same name below it. */
   const help = controls.getByRole('button', { name: `Help: ${phase.label}`, exact: true }).first();
   await help.waitFor();
-  if (
-    await help.hover({ trial: true, timeout: 2000 }).then(
-      () => true,
-      () => false
-    )
-  ) {
+  if (!held) {
     await help.hover();
     await controls.getByRole('tooltip').filter({ hasText: phase.instructions }).waitFor();
     await who.page.mouse.move(0, 0);
@@ -776,7 +771,7 @@ async function readyBeforeAdvance(sender, recipient) {
   }
 }
 
-async function phaseStep(sender, recipient, direction = 1) {
+async function phaseStep(sender, recipient, direction = 1, { recipientHeld = false } = {}) {
   if (direction === 1) {
     await readyBeforeAdvance(sender, recipient);
   }
@@ -794,7 +789,7 @@ async function phaseStep(sender, recipient, direction = 1) {
   assert.deepEqual(sender.view().snapshot.table.pieces, before.table.pieces);
   assert.equal(sender.view().snapshot.table.stormSectorIndex, before.table.stormSectorIndex);
   await displayedPhase(sender, before.phase + direction);
-  await displayedPhase(recipient, before.phase + direction);
+  await displayedPhase(recipient, before.phase + direction, { held: recipientHeld });
 }
 
 async function sharedPhaseFlow(a, b) {
@@ -857,7 +852,7 @@ async function sharedPhaseFlow(a, b) {
       async () => (await redPixels(a, recipientPoint)) > baseline + 40,
       'The held token was not visible before a phase change.'
     );
-    await phaseStep(a, b);
+    await phaseStep(a, b, 1, { recipientHeld: true });
     assert.ok(
       a.messages.findLast((message) => message.type === 'activity')?.carries.some((value) => value.id === carry.id)
     );
@@ -1078,9 +1073,9 @@ async function sharedTrackerFlow(a, b) {
   }
 }
 
-/** Setup dealt each player's leaders into a private hand; everything but the bank and the hand is the same for both players. */
+/** Setup dealt each player's leaders into a private hand; everything but the bank, the hand and a battle plan is the same for both players. */
 function samePublicView(a, b) {
-  const shared = (who) => ({ ...who.view().snapshot, bank: undefined, hand: undefined });
+  const shared = (who) => ({ ...who.view().snapshot, bank: undefined, hand: undefined, battlePlan: undefined });
   assert.deepEqual(shared(a), shared(b));
   const handIds = (who) => new Set((who.view().snapshot.hand ?? []).map((piece) => piece.id));
   assert.ok(handIds(a).size > 0 && handIds(b).size > 0, 'Setup did not deal private hands.');

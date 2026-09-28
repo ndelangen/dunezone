@@ -290,22 +290,17 @@ function barFor(
 }
 
 /**
- * The seat bar for the viewer's role, above the panel, on a real game only;
- * the fixture seats its players itself.
- * Before play the bar is the only place a rejection can show;
- * in play the Table tab already shows it.
- */
-/**
  * Playback of a stage before play, whose frame has no Phase tab to hold the playback controls.
  * The bar steps through the checkpoints and returns to the live table, as the Phase tab does in play.
  */
-function PlaybackBar({ client, table }: BarProps) {
+function PlaybackBar({ client, table, error }: BarProps & Readonly<{ error: string | null }>) {
   const { playback, historyPending } = table;
   if (!playback) {
     return null;
   }
   return (
     <div className={styles.dock} data-decision-bar="">
+      {error && <FormError title="From the table">{error}</FormError>}
       <DecisionBar
         eyebrow="Playback"
         title={`Playback checkpoint ${playback.step} of ${playback.lastStep}`}
@@ -336,6 +331,12 @@ function PlaybackBar({ client, table }: BarProps) {
   );
 }
 
+/**
+ * The seat bar for the viewer's role, above the panel, on a real game only;
+ * the fixture seats its players itself.
+ * Before play the bar is the only place a rejection can show;
+ * in play the Table tab already shows it.
+ */
 export function SeatRequests({
   client,
   table,
@@ -349,7 +350,7 @@ export function SeatRequests({
   }
   if (table.playback) {
     /* In play the Phase tab carries playback; any earlier stage's frame has no such tab. */
-    return table.snapshot.stage === 'play' ? null : <PlaybackBar client={client} table={table} />;
+    return table.snapshot.stage === 'play' ? null : <PlaybackBar client={client} table={table} error={error} />;
   }
   return (
     <div className={styles.dock} data-decision-bar="">
