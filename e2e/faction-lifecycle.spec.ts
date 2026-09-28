@@ -70,7 +70,7 @@ test('owner can author a faction through its complete lifecycle', async ({ page 
     await loadFactionDraft(page, factionBName);
 
     await expect(page.getByRole('textbox', { name: 'Faction name' })).toHaveValue(factionBName);
-    await expect(page.getByText('Unsaved changes', { exact: true })).toBeVisible();
+    await expect(page.getByRole('img', { name: 'Unsaved changes', exact: true })).toBeVisible();
 
     await page.getByRole('button', { name: 'Reset unsaved edits' }).click();
     await expect(page.getByRole('textbox', { name: 'Faction name' })).toHaveValue(factionAName);
@@ -93,7 +93,9 @@ test('owner can author a faction through its complete lifecycle', async ({ page 
     const factionName = page.getByRole('textbox', { name: 'Faction name' });
     await factionName.fill('');
     await expect(page.getByRole('button', { name: 'Save faction' })).toBeDisabled();
-    await expect(page.getByText('Add a faction name before saving; it determines the faction URL.')).toBeVisible();
+    await expect(
+      page.getByRole('img', { name: 'Add a faction name before saving; it determines the faction URL.', exact: true })
+    ).toBeVisible();
     await factionName.fill(factionAName);
 
     /* No toggle anymore: the token proof always rides the identity rail (wayfinder #473). */
@@ -134,7 +136,7 @@ test('owner can author a faction through its complete lifecycle', async ({ page 
   await test.step('saving the loaded draft mutates A and leaves B unchanged', async () => {
     await page.getByRole('button', { name: 'Save faction' }).click();
     await expect(page).toHaveURL(new RegExp(`/factions/${factionAName.toLowerCase()}/edit$`));
-    await expect(page.getByText('Saved', { exact: true })).toBeVisible();
+    await expect(page.getByRole('img', { name: 'Saved', exact: true })).toBeVisible();
 
     /*
      * Without a reload: the editor must keep showing the just-saved draft, not

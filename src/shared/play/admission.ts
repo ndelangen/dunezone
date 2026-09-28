@@ -167,12 +167,12 @@ export const playCreateGameRequestSchema = z.strictObject({
 });
 export const playCreateGameResultSchema = z.union([
   z.object({ ok: z.literal(true), gameId: identifierSchema }),
-  z.object({ ok: z.literal(false), reason: z.enum(['not_authorized', 'unavailable']) }),
+  z.object({ ok: z.literal(false), reason: z.enum(['not_authorized', 'unavailable', 'rate_limited']) }),
 ]);
 
 /*
  * What a game page learns before it opens a socket.
- * A game the viewer may not see reads as not found, whether it exists or not; a pending game is
+ * An id that names no game reads as not found; a pending game is
  * preparing and an expired one unavailable, neither a lifecycle stage.
  */
 export const playGameAccessSchema = z.union([

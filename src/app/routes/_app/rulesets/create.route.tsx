@@ -7,10 +7,12 @@ import { LoginGate } from '@ui/block/LoginGate';
 import { PageTitle } from '@ui/block/PageTitle';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
 import { RULESET_ABOUT_HELP, rulesetAboutCount } from '@ui/content/rulesetAboutHint';
+import { StatusMark } from '@ui/content/StatusMark';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { FORMATTED_TEXT_SYNTAX_HELP, FormattedTextInput } from '@ui/control/FormattedTextInput';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
+import { MessageCircleWarning } from 'lucide-react';
 import { useReducer } from 'react';
 
 import { useSessionViewer } from '@db/profiles';
@@ -94,7 +96,6 @@ function CreateRulesetForm() {
           copy={{
             saveLabel: 'Create ruleset',
             nameBlankMessage: 'Add a ruleset name before creating; it determines the ruleset URL.',
-            statusMessage: createRuleset.error?.message,
           }}
           actions={{
             onSave: submit,
@@ -104,6 +105,15 @@ function CreateRulesetForm() {
             }),
             onBack: () => navigate({ to: '/rulesets' }),
           }}
+          context={
+            createRuleset.error ? (
+              <StatusMark
+                tone="negative"
+                icon={<MessageCircleWarning size={16} aria-hidden />}
+                label={createRuleset.error.message}
+              />
+            ) : null
+          }
         />
       </PageLayout.Toolbar>
       <PageLayout.Content>

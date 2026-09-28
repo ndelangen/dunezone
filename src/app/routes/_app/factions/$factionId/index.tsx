@@ -515,7 +515,7 @@ function FactionDetailPage() {
             >
               <Stack gap="sm">
                 <Text size="sm" c="dimmed">
-                  {factionAssetPublishingCopy(assetPublishing.status, 'idle', assetPublishing.captureStatus)}
+                  {factionAssetPublishingCopy(assetPublishing.status, assetPublishing.captureStatus)}
                 </Text>
                 <Anchor
                   fw={600}

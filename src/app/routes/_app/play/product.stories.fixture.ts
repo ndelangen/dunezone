@@ -39,16 +39,12 @@ export function productDatabase(baseline: StorybookDatabase) {
 
 export const parameters = (
   state: 'pending' | 'ready' | 'expired',
-  isAdmin = true,
   reason?: string,
   minimumPlayers: TableSeatCount = 6
 ) => ({
   identity: { ...storybookViewer, sessionKey: 'game-session' },
   database: db((baseline) => {
     productDatabase(baseline);
-    for (const user of baseline.users) {
-      user.isAdmin = isAdmin;
-    }
     baseline.authSessions.push({
       $key: 'game-session',
       userId: ref(storybookViewer.subjectKey),
