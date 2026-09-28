@@ -62,7 +62,7 @@ test.each([
   [
     'webgl2-swiftshader',
     rendererReport({ unidentified: 'the table renderer did not finish initialising' }),
-    '--expect-renderer is webgl2-swiftshader, but the Play table rendered with unidentified (the table renderer did not finish initialising).',
+    "--expect-renderer is webgl2-swiftshader, but the Play table's renderer was not identified: the table renderer did not finish initialising.",
   ],
   ['webgpu', undefined, '--expect-renderer is webgpu, but the flow opened no Play table, so no renderer was recorded.'],
 ] as const)('a table held to %s fails naming what it rendered with', (expected, renderer, message) => {

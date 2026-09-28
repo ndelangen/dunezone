@@ -196,9 +196,8 @@ an existing native backend executable, and `--browser /absolute/path/to/chromium
 Chromium executable instead of Playwright's installed browser. `--expect-renderer` passes each flow
 the renderer its first table must use (`webgpu`, `webgl2-swiftshader` or `webgl2-other`); a flow whose
 table rendered with another fails there, naming both, and without the option no renderer is enforced.
-Each browser flow has its own timeout,
-ten minutes for the regular flow and five for each named flow; protocol verification has three. All
-use the same stack cleanup.
+Each browser flow has its own timeout, ten minutes for the regular flow and five for each named flow;
+protocol verification has three. All use the same stack cleanup.
 
 Reports and screenshots remain in `test-results/hosted-play/browser/<flow>-<timestamp>/`, with each
 report path printed on completion. Each flow's output remains in `test-results/hosted-play/<flow>.log`,

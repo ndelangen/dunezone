@@ -283,8 +283,8 @@ opens, read through three.js's devtools hook: `webgpu` with the adapter's vendor
 or WebGL2 with the unmasked GL renderer string, as `webgl2-swiftshader` when that string names
 SwiftShader and `webgl2-other` when it does not. `--expect-renderer` takes one of those three and
 fails the flow at that table, naming both, when the table rendered with another; without it no
-renderer is enforced. `--flow` names one flow and defaults to `regular`. Each run writes screenshots and a
-compact report without credentials. A flow that retains synthetic received
+renderer is enforced. `--flow` names one flow and defaults to `regular`. Each run writes screenshots
+and a compact report without credentials. A flow that retains synthetic received
 game frames writes them to `<flow>-frames.json`. The internal `playTesting:retireFixture` control can retire an
 old fixture on an isolated backend before provisioning a new one; it does not erase game data.
 

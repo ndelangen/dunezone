@@ -43,32 +43,26 @@ export function rendererReport(observation: TableRendererObservation) {
   }
 }
 
-type RendererReport = ReturnType<typeof rendererReport>;
-
-function rendererDetail(renderer: RendererReport): string {
-  switch (renderer.kind) {
-    case 'unidentified':
-      return renderer.reason;
-    case 'webgpu':
-      return `adapter ${renderer.adapter.vendor} ${renderer.adapter.architecture}`;
-    case 'webgl2-swiftshader':
-    case 'webgl2-other':
-      return renderer.glRenderer;
-  }
-}
-
 /** Why the recorded renderer fails `--expect-renderer`, naming both; undefined when it matches or no renderer is expected. */
 export function rendererMismatch(
   expected: RendererKind | undefined,
-  renderer: RendererReport | undefined
+  renderer: ReturnType<typeof rendererReport> | undefined
 ): string | undefined {
   if (expected === undefined || renderer?.kind === expected) {
     return undefined;
   }
-  if (renderer === undefined) {
-    return `--expect-renderer is ${expected}, but the flow opened no Play table, so no renderer was recorded.`;
+  const refusal = `--expect-renderer is ${expected}, but`;
+  switch (renderer?.kind) {
+    case undefined:
+      return `${refusal} the flow opened no Play table, so no renderer was recorded.`;
+    case 'unidentified':
+      return `${refusal} the Play table's renderer was not identified: ${renderer.reason}.`;
+    case 'webgpu':
+      return `${refusal} the Play table rendered with webgpu (adapter ${renderer.adapter.vendor} ${renderer.adapter.architecture}).`;
+    case 'webgl2-swiftshader':
+    case 'webgl2-other':
+      return `${refusal} the Play table rendered with ${renderer.kind} (${renderer.glRenderer}).`;
   }
-  return `--expect-renderer is ${expected}, but the Play table rendered with ${renderer.kind} (${rendererDetail(renderer)}).`;
 }
 
 /**
