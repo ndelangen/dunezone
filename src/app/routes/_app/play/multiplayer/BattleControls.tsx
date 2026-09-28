@@ -18,6 +18,7 @@ import { useEffect, useReducer, useState } from 'react';
 import type { Camera } from 'three';
 import { Plane, Raycaster, Vector2, Vector3 } from 'three';
 
+import { useMotionAllowed } from '@app/styles/motion';
 import { CardBack } from '@game/assets/card/Back';
 import { BattleWheel as BattleWheelAsset } from '@game/assets/generic/BattleWheel';
 import { backgroundPresets } from '@game/data/backgrounds';
@@ -121,14 +122,16 @@ function DraggablePiece({ piece, client, style }: { piece: TablePiece; client?: 
     </Button>
   );
 }
-/** Play owns piece visibility and pointer sessions; the asset owns the wheel artwork. */
+/** Play owns piece visibility, pointer sessions and the Motion verdict; the asset owns the wheel artwork. */
 function BattleWheel({ plan, factionId, client, active, artwork }: WheelProps) {
   const leader = plan.pieces.find((piece) => piece.id === plan.leaderId);
+  const motion = useMotionAllowed();
   const retained = artwork?.[factionId];
   const retainedFaces = retained && new Map(troopCombatFaces(retained.troops).map((entry) => [entry.id, entry.face]));
   return (
     <BattleWheelAsset
       state="revealed"
+      motion={motion}
       className={styles.wheel}
       label={`${factionId} plan, troop strength ${plan.strength}, ${plan.spice} spice`}
       background={factionArtwork(factionId, artwork).background}
@@ -674,6 +677,7 @@ function SideContents({
   active,
 }: ActiveProps & { index: 0 | 1; active: Set<string> }) {
   const side = battle.sides[index];
+  const motion = useMotionAllowed();
   if (battle.revealed) {
     return (
       <BattleWheel
@@ -689,6 +693,7 @@ function SideContents({
     return (
       <BattleWheelAsset
         state="unrevealed"
+        motion={motion}
         label={`${side.factionId}, ${index === 0 ? 'left side, aggressor' : 'right side'}, ${side.ready ? 'Ready' : 'Preparing'}`}
         artwork={factionArtwork(side.factionId, table.snapshot.factionArtwork)}
         ready={side.ready}
