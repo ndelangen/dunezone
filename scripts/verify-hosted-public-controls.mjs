@@ -61,7 +61,7 @@ export async function verifyPublicControls({
   const inventory = (who) => who.view().snapshot.table.pieces.filter((piece) => piece.inventory === 'shared');
   const requests = (who) => who.view().snapshot.controls.requests;
   async function facePixels(who, piece, face) {
-    const center = await point(who, [piece.position[0], piece.position[1] + 0.05, piece.position[2]], 'map');
+    const center = await point(who, [piece.position[0], piece.position[1] + 0.05, piece.position[2]]);
     const png = await who.page.screenshot();
     const { data, info } = await sharp(png)
       .extract({ left: Math.round(center.x) - 12, top: Math.round(center.y) - 12, width: 24, height: 24 })
@@ -193,7 +193,7 @@ export async function verifyPublicControls({
       () => a.sent.some((message) => message.type === 'begin' && message.sourcePieceId === token.id),
       'Inventory drag did not begin.'
     );
-    const destination = await point(a, [0, 0.38, 0], 'map');
+    const destination = await point(a, [0, 0.38, 0]);
     await a.page.mouse.move(destination.x, destination.y, { steps: carrySteps });
     await a.page.mouse.up();
     await until(

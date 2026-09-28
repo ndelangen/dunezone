@@ -24,7 +24,7 @@ export async function verifyDecks({
   const original = deck(a).items.map((item) => item.id);
   const size = original.length;
   const piece = deck(a);
-  const hit = await point(a, [piece.position[0], piece.position[1] + stackTopHeight(piece), piece.position[2]], 'map');
+  const hit = await point(a, [piece.position[0], piece.position[1] + stackTopHeight(piece), piece.position[2]]);
   await a.page.mouse.click(hit.x, hit.y, { button: 'right' });
   const menu = a.page.getByRole('menu', { name: 'Deck actions' });
   await menu.waitFor();
@@ -55,7 +55,7 @@ export async function verifyDecks({
   await control.scrollIntoViewIfNeeded();
   const bounds = await control.boundingBox();
   assert.ok(bounds);
-  const landing = await point(a, [0, 0.38, 0], 'map');
+  const landing = await point(a, [0, 0.38, 0]);
   await a.page.mouse.move(bounds.x + bounds.width / 2, bounds.y + 12);
   await a.page.mouse.down();
   await a.page.mouse.move(landing.x, landing.y, { steps: 25 });

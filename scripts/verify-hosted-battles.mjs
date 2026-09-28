@@ -27,7 +27,7 @@ export async function verifyBattles(toolkit) {
     await locator.scrollIntoViewIfNeeded();
     const box = await locator.boundingBox();
     assert.ok(box);
-    const end = await point(who, destination, 'map');
+    const end = await point(who, destination);
     /* The card fan leaves the upper edge exposed above its wheel. */
     await who.page.mouse.move(box.x + box.width / 2, box.y + Math.min(12, box.height / 2));
     const nativeDrag = (await locator.getAttribute('draggable')) === 'true';
@@ -54,7 +54,7 @@ export async function verifyBattles(toolkit) {
   await toolkit.supplyShortcut(a, '7');
   await until(() => a.view().snapshot.table.pieces.some(isSpicePiece), 'Spice did not spawn.');
   const spice = a.view().snapshot.table.pieces.find(isSpicePiece);
-  const at = await point(a, [spice.position[0], spice.position[1] + stackTopHeight(spice), spice.position[2]], 'map');
+  const at = await point(a, [spice.position[0], spice.position[1] + stackTopHeight(spice), spice.position[2]]);
   await a.page.mouse.click(at.x, at.y, { button: 'right' });
   await a.page.getByRole('menuitem', { name: 'Take into bank', exact: true }).click();
   await until(() => a.view().snapshot.bank.balance === startingSpice + 7, 'Manual collection did not fund the bank.');
@@ -68,7 +68,7 @@ export async function verifyBattles(toolkit) {
   async function take(who, id) {
     await focus(who, 'map');
     const piece = who.view().snapshot.table.pieces.find((piece) => piece.id === id);
-    const at = await point(who, [piece.position[0], piece.position[1] + 0.05, piece.position[2]], 'map');
+    const at = await point(who, [piece.position[0], piece.position[1] + 0.05, piece.position[2]]);
     await who.page.mouse.click(at.x, at.y);
     await openTab(who, 'Battle');
     const previousHand = new Set(who.view().snapshot.hand.map((entry) => entry.id));
@@ -90,7 +90,7 @@ export async function verifyBattles(toolkit) {
   async function draw(who) {
     await focus(who, 'map');
     const deck = who.view().snapshot.table.pieces.find((piece) => piece.id === treacheryDeck(who));
-    const at = await point(who, [deck.position[0], deck.position[1] + stackTopHeight(deck), deck.position[2]], 'map');
+    const at = await point(who, [deck.position[0], deck.position[1] + stackTopHeight(deck), deck.position[2]]);
     const previousHand = new Set(who.view().snapshot.hand.map((entry) => entry.id));
     await who.page.mouse.click(at.x, at.y, { button: 'right' });
     await who.page.getByRole('menuitem', { name: 'Draw a card', exact: true }).click();
@@ -104,7 +104,7 @@ export async function verifyBattles(toolkit) {
   }
   await take(a, token.id);
   const battleCard = await draw(a);
-  const target = await point(a, [0.95, 0.18, -3.05], 'map');
+  const target = await point(a, [0.95, 0.18, -3.05]);
   const marker = button(a, 'Drag battle marker onto territory');
   const bounds = await marker.boundingBox();
   assert.ok(bounds);

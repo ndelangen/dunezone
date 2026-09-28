@@ -305,21 +305,26 @@ id to each flow. Every flow signs in synthetic accounts without the Administrato
 game at `/play/create`, seats the second player through a seat request and its approval, and plays
 through drafting and setup before its own checks. Against a running
 [local stack](../deployment.md#hosted-gameplay), seed that ruleset once and use a build with local
-Password sign-in enabled:
+Password sign-in enabled (`VITE_E2E_LOCAL_AUTH=true`). That build also installs
+`window.__duneTable`, and the script projects table positions through the camera it exposes.
+Create a mode-0700 directory under the operating system temporary directory, reported by
+`node -p "require('node:os').tmpdir()"`. In the command below, `/PRIVATE_TEMP` means that private
+directory; it must be replaced with its absolute path:
 
 ```sh
 bun --no-env-file scripts/verify-hosted-play-browser.mjs \
   --origin http://127.0.0.1:8787 \
-  --env-file /absolute/private/local.env \
-  --credentials-file /absolute/private/browser-accounts.json \
+  --env-file /PRIVATE_TEMP/local.env \
+  --credentials-file /PRIVATE_TEMP/browser-accounts.json \
   --report-dir /absolute/proof-output \
   --flow regular \
   --ruleset-id <rulesetId>
 ```
 
 The environment file must contain the loopback `CONVEX_SELF_HOSTED_URL`. Private files need mode
-0600 in a mode-0700 directory, outside the report directory. The script creates synthetic accounts
-and retains their credentials for later runs. Other network origins are blocked. It runs headless;
+0600 and at most 8 KiB, and the report directory must not contain them. The script creates
+synthetic accounts and retains their credentials for later runs. Other network origins are
+blocked. It runs headless;
 `--browser /absolute/browser-executable` selects a local Chromium-compatible executable instead
 of Playwright's installed Chromium. On Linux it adds `--use-angle=swiftshader`: headless Chromium
 there draws WebGL on SwiftShader and composites in software, which reads each WebGL frame back on
