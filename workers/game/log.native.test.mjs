@@ -185,15 +185,18 @@ describe('The retained public log', { timeout: 20_000 }, () => {
         await runtime.capture('faction', id, { provisional: true });
       }
       await runtime.exec(
-        "UPDATE captures SET data=json_set(data,'$.setupPhases',json(?)) WHERE kind='faction' AND source_id='atreides'",
+        "UPDATE captures SET data=json_set(data,'$.definition.extraPhases',json(?)) WHERE kind='faction' AND source_id='atreides'",
         [
           JSON.stringify([
             {
               id: 'winner',
-              name: 'prediction',
+              type: 'prediction',
               title: 'Predict victory',
               instructions: 'Choose the winner and turn.',
               symbol: '/vector/icon/traitor.svg',
+              before: 'traitors',
+              priority: 10,
+              allPlayersMustBeReady: false,
             },
           ]),
         ]

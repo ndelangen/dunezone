@@ -127,7 +127,7 @@ function PhaseBehaviourFields({
             <Select
               id={`phase-${index}-type`}
               label="Type"
-              description="Prediction uses the built-in prediction controls."
+              description="Prediction uses the built-in prediction controls and goes before a setup step."
               allowDeselect={false}
               data={typeOptions}
               value={field.state.value ?? null}

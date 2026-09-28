@@ -83,11 +83,52 @@ function arcRadiusFor(radii: readonly number[]): number {
   return upper;
 }
 
+/* The standard turn's nine phases fix the arc: the spice supply and turn discs never move, whatever a game adds (#1138). */
+const STANDARD_PHASE_COUNT = 9;
+
+/**
+ * The tracker arc: the spice supply, the turn disc, then one disc per phase of the turn.
+ * The layout of the standard nine is fixed.
+ * A composed turn keeps the spice supply and turn discs where they are, and refits its phase discs evenly into the span the standard nine cover, shrinking them only when they would otherwise touch.
+ */
 export function trackerArcSlots(phaseCount: number): TrackerArcSlot[] {
   if (!Number.isInteger(phaseCount) || phaseCount < 0) {
     throw new RangeError('Phase count must be a non-negative integer.');
   }
+  const standard = standardArcSlots(STANDARD_PHASE_COUNT);
+  if (phaseCount === STANDARD_PHASE_COUNT) {
+    return standard;
+  }
+  const pinned = standard.slice(0, 2);
+  const phaseSlots = standard.slice(2);
+  const { arcRadius } = pinned[0]!;
+  const first = phaseSlots[0]!;
+  const last = phaseSlots[phaseSlots.length - 1]!;
+  const direction = Math.sign(last.angle - first.angle) || 1;
+  const halfExtent = angularHalfExtent(PHASE_TRACKER_RADIUS, arcRadius);
+  const start = first.angle - direction * halfExtent;
+  const span = Math.abs(last.angle - first.angle) + 2 * halfExtent;
+  const pitch = phaseCount > 0 ? span / phaseCount : 0;
+  const halfChord = arcRadius * Math.sin(pitch / 2);
+  /* A very long turn gives up the edge gap before a disc could shrink to nothing. */
+  const radius = Math.min(PHASE_TRACKER_RADIUS, Math.max(halfChord - TRACKER_EDGE_GAP / 2, halfChord * 0.8));
+  return [
+    ...pinned,
+    ...Array.from({ length: phaseCount }, (_, phaseIndex): TrackerArcSlot => {
+      const angle = start + direction * pitch * (phaseIndex + 0.5);
+      return {
+        kind: 'phase',
+        phaseIndex,
+        arcRadius,
+        radius,
+        angle,
+        position: [Math.cos(angle) * arcRadius, TABLE_SURFACE_Y, Math.sin(angle) * arcRadius],
+      };
+    }),
+  ];
+}
 
+function standardArcSlots(phaseCount: number): TrackerArcSlot[] {
   const radii = [
     PHASE_TRACKER_RADIUS,
     TURN_TRACKER_RADIUS,
