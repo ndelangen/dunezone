@@ -40,7 +40,7 @@ function remoteHandTransport() {
         viewerSeat: 'seat-4',
         displayName: player.name,
         color: seat.faction.color,
-        position: [1.4, CARRIED_BASE_Y, 1.1],
+        position: [-1.3, CARRIED_BASE_Y, 1.7],
         updatedAt: STORYBOOK_NOW,
       },
     ],
@@ -57,7 +57,8 @@ async function holdLabels({ canvasElement }: { canvasElement: HTMLElement }) {
       const canvas = document.querySelector('.dune-play-shell canvas');
       expect(canvas?.getBoundingClientRect().height).toBeGreaterThan(100);
       expect(document.querySelector('[data-piece-id="treachery-deck"]')).toHaveTextContent('10');
-      expect(document.querySelector('.remote-hand')).toHaveTextContent(SIX[3]!.name);
+      const scene = document.querySelector<HTMLElement>('.dune-play-shell .scene');
+      expect(scene && within(scene).getByText(SIX[3]!.name)).toBeVisible();
       expect(
         Array.from(document.fonts).some(
           (font) => font.family.replaceAll('"', '') === 'Dune Play Table Label' && font.status === 'loaded'
