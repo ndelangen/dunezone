@@ -1,6 +1,6 @@
 import { spawn, spawnSync } from 'node:child_process';
 import type { ChildProcess } from 'node:child_process';
-import { createHash, generateKeyPairSync, randomBytes } from 'node:crypto';
+import { generateKeyPairSync, randomBytes } from 'node:crypto';
 import { chmodSync, closeSync, mkdirSync, mkdtempSync, openSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
@@ -15,6 +15,7 @@ import { bundleRunner } from './play-load/bundle';
 import { prepareHostedBackend } from './play-load/hosted-backend';
 import { runnerProfiles } from './play-load/profiles';
 import { syntheticHostedTarget } from './play-load/synthetic-target';
+import { backendCacheDirectory, cachedBackendArchive, spawnFailure } from './verify-hosted-backend-cache';
 import { browserFlows, isBrowserFlow } from './verify-hosted-flows';
 import type { BrowserFlow } from './verify-hosted-flows';
 import { parseExpectedRenderer } from './verify-hosted-renderer';
@@ -117,16 +118,17 @@ async function freePort(): Promise<number> {
 
 type Invocation = { command: string; args: string[]; env?: NodeJS.ProcessEnv; cwd?: string };
 
-function run(invocation: Invocation & { label: string }): string {
+function run(invocation: Invocation & { label: string; timeoutMs?: number }): string {
+  const timeoutMs = invocation.timeoutMs ?? 120_000;
   const result = spawnSync(invocation.command, invocation.args, {
     cwd: invocation.cwd ?? root,
     env: invocation.env ?? environment,
     encoding: 'utf8',
-    timeout: 120_000,
+    timeout: timeoutMs,
     maxBuffer: 16 * 1024 * 1024,
   });
   if (result.error || result.status !== 0) {
-    throw new Error(`${invocation.label} failed (${result.status ?? 'process error'}).`);
+    throw new Error(spawnFailure(invocation.label, result, timeoutMs));
   }
   return result.stdout;
 }
@@ -209,30 +211,31 @@ function backendBinary(): string {
   if (!artifact) {
     throw new Error('This platform needs an explicit --backend-binary.');
   }
-  const archive = path.join(runtime, 'backend.zip');
   const url = `https://github.com/get-convex/convex-backend/releases/download/precompiled-2026-08-10-c0cb7ae/${artifact.filename}`;
-  run({
-    command: '/usr/bin/curl',
-    args: [
-      '--fail',
-      '--location',
-      '--silent',
-      '--show-error',
-      '--max-time',
-      '90',
-      '--retry',
-      '2',
-      '--retry-max-time',
-      '110',
-      '--output',
-      archive,
-      url,
-    ],
-    label: 'Pinned backend download',
+  /* The verified archive is kept across runs, so only a machine's first run downloads it; that one download gets room for a slow link. */
+  const archive = cachedBackendArchive({
+    directory: backendCacheDirectory(),
+    digest: artifact.digest,
+    download: (target) =>
+      run({
+        command: '/usr/bin/curl',
+        args: [
+          '--fail',
+          '--location',
+          '--silent',
+          '--show-error',
+          '--max-time',
+          '240',
+          '--retry',
+          '1',
+          '--output',
+          target,
+          url,
+        ],
+        label: 'Pinned backend download',
+        timeoutMs: 540_000,
+      }),
   });
-  if (createHash('sha256').update(readFileSync(archive)).digest('hex') !== artifact.digest) {
-    throw new Error('Pinned backend archive checksum differs.');
-  }
   run({ command: '/usr/bin/unzip', args: ['-q', archive, '-d', runtime], label: 'Pinned backend extraction' });
   const binary = path.join(runtime, 'convex-local-backend');
   chmodSync(binary, 0o700);
