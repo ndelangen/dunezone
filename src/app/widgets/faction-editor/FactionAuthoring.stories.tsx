@@ -47,7 +47,7 @@ function FactionAuthoringFixture() {
           }}
           review={{ label: 'Review faction sheet', onOpen: (trigger) => viewRef.current?.openReview(trigger) }}
           centerIndicator={<FactionComplexityIndicator form={authoring.form} />}
-          context={<FactionPublicationStatus saveState={authoring.persistence.saveState} />}
+          context={<FactionPublicationStatus />}
         />
         <FactionEditor
           ref={viewRef}

@@ -315,12 +315,12 @@ export const EditDiscTokenResetDiscardsTheKeptFace = meta.story({
   },
 });
 
+const DECK_EDIT_STATUSES = ['No unsaved changes', 'Group access: Arrakeen Rules Council'];
+
 /**
  * The deck editor's toolbar on one line at a phone, tablet, laptop and desktop width (#1423).
  * The deck carries the most actions of any asset editor, since it adds card creation to the group and delete actions every edit page has.
  */
-const DECK_EDIT_STATUSES = ['No unsaved changes', 'Group access: Arrakeen Rules Council'];
-
 export const EditDeckToolbarAt360 = meta.story({
   args: { path: '/assets/deck/house-treachery/edit' },
   globals: { viewport: { value: 'appMobileNarrow' } },

@@ -368,14 +368,17 @@ and how labelled. (`StatusBadge`'s scale is for state, not actions.)*
 
 ### A bar states its statuses as glyphs and stays one line
 
-A toolbar that runs out of room drops or iconifies; it never wraps. A second line of prose reads as
-clutter, and wording that repeats what the page already shows is noise (Norbert, #1423). Each status
-is a glyph whose tooltip and accessible name carry the full wording, reachable by hover, keyboard and
-touch. Where even the glyphs do not fit, they fold into one glyph whose tooltip lists them all.
+A toolbar that runs out of room drops or iconifies; it never wraps. Status stated as prose made the
+authoring toolbar noisy and wordy, and Norbert asked for icons with tooltips instead (#1423). Each
+status is a glyph whose tooltip and accessible name carry the full wording, reachable by hover,
+keyboard and touch. Where even the glyphs do not fit, they fold into one glyph whose tooltip lists
+them all.
 
 *Convention. The kit carries it: [`StatusMark`](../../src/app/ui/content/StatusMark.tsx) states one
 status, and `StatusMarkList` lists several inside the tooltip of the mark that stands in for them.
-`AuthoringToolbar` folds its marks, and turns Save into an icon, below 30rem of its own width.*
+`AuthoringToolbar` folds its marks, and turns Save into an icon, below 32rem of its own width, the
+room its widest caller needs. It also lists its statuses in a live region, because a screen reader
+does not announce a glyph whose name changes.*
 
 ### Destructive actions are held, not asked twice
 

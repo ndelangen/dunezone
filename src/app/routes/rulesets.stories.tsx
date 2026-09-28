@@ -41,7 +41,6 @@ export const RulebookEditor = meta.story({
 });
 
 /** The ruleset editor's toolbar on one line at a phone, tablet, laptop and desktop width (#1423), stating only its save state at rest. */
-
 export const EditToolbarAt360 = meta.story({
   args: { path: '/rulesets/classicrules/edit' },
   globals: { viewport: { value: 'appMobileNarrow' } },

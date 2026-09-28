@@ -63,6 +63,7 @@ export const Clean = meta.story({
 /**
  * Every status the faction editor can show at once, each its own glyph beside Back.
  * A glyph's accessible name is its full wording, and hovering it shows the same words.
+ * The words also sit in a live region, which is what a screen reader announces when a status changes.
  */
 export const EveryStatus = meta.story({
   args: everyStatus,
@@ -78,12 +79,16 @@ export const EveryStatus = meta.story({
       await waitFor(() => expect(tooltip).toBeVisible());
       await userEvent.unhover(mark);
     }
+    const live = page.getByRole('status');
+    for (const wording of EVERY_STATUS_WORDING) {
+      await expect(live).toHaveTextContent(wording);
+    }
     await expect(page.getByRole('button', { name: 'Save faction' })).toBeDisabled();
   },
 });
 
 /**
- * Below 30rem of toolbar the glyphs fold into one, wearing the status that blocks a save, and Save becomes an icon.
+ * Below 32rem of toolbar the glyphs fold into one, wearing the status that blocks a save, and Save becomes an icon.
  * The folded glyph's tooltip and its accessible description both list every status.
  */
 export const EveryStatusFolded = meta.story({
@@ -129,7 +134,7 @@ export const PublishedAndCurrent = meta.story({
     context: (
       <StatusMark
         icon={<FileText size={16} aria-hidden />}
-        label="Saved. Publication scheduled. Public assets are current. Last published Aug 4, 2026, 6:30 PM"
+        label="Public assets are current. Last published Aug 4, 2026, 6:30 PM"
       />
     ),
   },

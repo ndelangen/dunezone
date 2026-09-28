@@ -1,5 +1,4 @@
-import { factionAuthoringStatusMessage } from '@ui/content/assetPublishingStatus';
-import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
+import { factionAssetPublishingCopy } from '@ui/content/assetPublishingStatus';
 import { StatusMark } from '@ui/content/StatusMark';
 import type { StatusMarkProps } from '@ui/content/StatusMark';
 import { FileText, History, ImageOff, RefreshCw } from 'lucide-react';
@@ -33,22 +32,23 @@ function publicationGlyph(
 /**
  * Where the faction's public sheet has got to, as one of the authoring toolbar's status marks.
  *
- * The faction routes own the projection and the save state.
- * This owns the glyph that says whether a capture is scheduled, running or done, and the words `factionAuthoringStatusMessage` has always written for the toolbar, with the last publication's time after them.
+ * The faction routes own the projection.
+ * This owns the glyph that says whether a capture is scheduled, running or done, and the words the faction page states for its files, with the last publication's time after them.
+ * It leaves the save cycle to the toolbar's own save mark, so after a failed save this still says where the publication is.
  * The faction editors keep this status where the asset editors dropped theirs, because it reports real capture progress.
  */
 export function FactionPublicationStatus({
-  saveState,
   publication,
 }: {
-  saveState: AuthoringSaveState;
   /** Absent before the faction's first save, which is the create page. */
   publication?: PublicAssetPublishingStatusProjection;
 }) {
-  const message = factionAuthoringStatusMessage(saveState, publication);
+  const words = publication
+    ? factionAssetPublishingCopy(publication.status, publication.captureStatus)
+    : 'Saving this faction schedules its public assets.';
   const label =
     publication?.lastPublishedAt == null
-      ? message
-      : `${message} Last published ${formatPublishedAt(publication.lastPublishedAt)}`;
+      ? words
+      : `${words} Last published ${formatPublishedAt(publication.lastPublishedAt)}`;
   return <StatusMark {...publicationGlyph(publication)} label={label} />;
 }

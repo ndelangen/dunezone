@@ -194,6 +194,14 @@ export default definePreview({
             height: '900px',
           },
         },
+        /* The narrowest window at which the authoring toolbar keeps a glyph per status: its 32rem fold, plus the 40px the page puts around the toolbar at this width. */
+        appAuthoringToolbarUnfolded: {
+          name: 'Authoring toolbar unfolded',
+          styles: {
+            width: '552px',
+            height: '900px',
+          },
+        },
       },
     },
   },

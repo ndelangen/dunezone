@@ -21,8 +21,12 @@
   display: none;
 }
 
-/* Below 30rem a mark per status and a worded Save no longer fit beside the actions on one line. */
-@container authoring-toolbar (width < 30rem) {
+/*
+ * Off the ladder because the threshold comes from the widest row a caller puts in the bar: the faction editor with its name cleared.
+ * Back, four marks, the complexity ring and five actions ending in a worded Save need about 31.9rem of toolbar.
+ * Any narrower, the ring leaves its slot, and from about 30.4rem down it covers the mark and the action beside it.
+ */
+@container authoring-toolbar (width < 32rem) {
   .statuses,
   .saveButton {
     display: none;

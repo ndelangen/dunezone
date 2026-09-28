@@ -212,7 +212,7 @@ function FactionEditPage() {
           }
           context={
             <>
-              <FactionPublicationStatus saveState={authoring.persistence.saveState} publication={assetPublishing} />
+              <FactionPublicationStatus publication={assetPublishing} />
               {assignedGroup ? (
                 <StatusMark
                   icon={<TopicIcon topic="groups" size={16} />}

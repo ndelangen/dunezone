@@ -1,4 +1,4 @@
-import { Button, Group, Loader } from '@mantine/core';
+import { Button, Group, Loader, VisuallyHidden } from '@mantine/core';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
 import { StatusMark, StatusMarkList } from '@ui/content/StatusMark';
 import type { StatusMarkProps } from '@ui/content/StatusMark';
@@ -64,7 +64,8 @@ export interface AuthoringToolbarActions {
  * Every status is a `StatusMark`, a glyph whose tooltip and accessible name carry the words, so the bar stays one line at every width instead of growing a line of prose (Norbert, #1423).
  * The toolbar states the save state and a blank name itself.
  * A page adds its own statuses as further marks in `context`, such as where a publication has got to or which Group has access.
- * Below 30rem of toolbar the marks fold into one, whose tooltip lists them all, and Save becomes an icon.
+ * Below 32rem of toolbar the marks fold into one, whose tooltip lists them all, and Save becomes an icon.
+ * The same statuses are also words in a live region, so a screen reader hears each one as it changes, such as Saving and then Saved after Save.
  *
  * It carries no warning count and no standing explanation of what saving does.
  * `ValidationHeader` is open whenever any warning exists and names the fields, so a count here repeated it less usefully, and a sentence that never changes is not status (Norbert, 2026-08-20).
@@ -111,6 +112,10 @@ export function AuthoringToolbar({
 
   return (
     <div className={styles.sticky}>
+      {/* A mark is an image, and a screen reader does not announce an image whose name changes, so the words live here too. Not atomic: only the status that changed is read. */}
+      <VisuallyHidden role="status" aria-atomic={false}>
+        <StatusMarkList>{statuses}</StatusMarkList>
+      </VisuallyHidden>
       <Toolbar>
         <Toolbar.Left>
           <Group gap="sm" wrap="nowrap">

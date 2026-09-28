@@ -105,7 +105,7 @@ function CreateFactionPage() {
           }
           context={
             <>
-              <FactionPublicationStatus saveState={authoring.persistence.saveState} />
+              <FactionPublicationStatus />
               <StatusMark
                 icon={<TopicIcon topic="groups" size={16} />}
                 label="Group assignment becomes available after the first save."

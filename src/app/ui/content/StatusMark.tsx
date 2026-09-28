@@ -1,4 +1,4 @@
-import { Box, Stack, Tooltip, VisuallyHidden } from '@mantine/core';
+import { Box, Stack, Tooltip } from '@mantine/core';
 import clsx from 'clsx';
 import { createContext, useContext, useId } from 'react';
 import type { ReactNode } from 'react';
@@ -52,7 +52,12 @@ export function StatusMark({ tone = 'neutral', icon, label, tooltip }: StatusMar
 
   return (
     <>
-      {tooltip ? <VisuallyHidden id={descriptionId}>{tooltip}</VisuallyHidden> : null}
+      {/* Hidden, not visually hidden: the words are the mark's description, so browsing the page reads them with the mark rather than a second time as text. */}
+      {tooltip ? (
+        <div hidden id={descriptionId}>
+          {tooltip}
+        </div>
+      ) : null}
       {/* Below the glyph, since a status bar sits at the top of what it describes and a tooltip above it would cover the navigation. */}
       <Tooltip
         label={tooltip ?? label}
