@@ -121,10 +121,6 @@ const environmentPath = await privateFile(values['env-file']);
 const environment = parseEnv(await readFile(environmentPath, 'utf8'));
 const backend = localOrigin(environment.CONVEX_SELF_HOSTED_URL, 'CONVEX_SELF_HOSTED_URL');
 assert.notEqual(origin, backend, 'The publisher and Convex backend need separate ports.');
-assert.ok(environment.CONVEX_SELF_HOSTED_ADMIN_KEY, 'The isolated backend admin key is required.');
-/* Grants the synthetic accounts the Administrator flag real games require; it cannot sign anyone in. */
-const admin = new ConvexHttpClient(backend);
-admin.setAdminAuth(environment.CONVEX_SELF_HOSTED_ADMIN_KEY);
 const credentialsPath = await privateFile(values['credentials-file'], true);
 assert.ok(path.isAbsolute(values['report-dir']), '--report-dir needs an absolute path.');
 const outputDirectory = await canonicalDirectory(path.resolve(values['report-dir']));
@@ -135,6 +131,10 @@ for (const filename of [environmentPath, credentialsPath]) {
     'Private files must stay outside the report directory.'
   );
 }
+assert.ok(environment.CONVEX_SELF_HOSTED_ADMIN_KEY, 'The isolated backend admin key is required.');
+/* Grants the synthetic accounts the Administrator flag real games require; it cannot sign anyone in. */
+const admin = new ConvexHttpClient(backend);
+admin.setAdminAuth(environment.CONVEX_SELF_HOSTED_ADMIN_KEY);
 let credentials = {};
 try {
   credentials = JSON.parse(await readFile(credentialsPath, 'utf8'));
