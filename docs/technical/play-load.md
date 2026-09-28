@@ -94,6 +94,17 @@ separate its own work from the path back. Its readings also wander: in the secon
 slow cell, `toRoomMs` spanned 1.2 s while most round trips took 150 to 300 ms. One command's split
 is therefore a hint rather than a measurement.
 
+Two readings in `roomTiming` separate the room's own causes. `durableMs` runs from handling to the
+moment the room saw the command's storage write confirmed, both by its own clock. Frames the room
+sends after a write leave only once the write is durable, so a long `durableMs` means the answer
+was held. `stalls` lists the recent moments the room's one-second sweep ran more than 250 ms late,
+which happens when the room is busy running code. In the third 28 September run, every recipient's
+motion stopped for about 2 s at once while the coordinator stayed on schedule, and nothing recorded
+which of the two held it. `motionDropped` counts pointer and pose frames the room dropped because
+their sender's motion bucket was empty. Motion has its own bucket so that a busy room, whose clock
+stalls and then sees a steady mover's frames as a burst, drops frames instead of closing the socket
+with 4413 as it did in that run's peak cell.
+
 Every protocol socket sends the page's keepalive frame every 30 s, as the page does. The room
 answers it without waking, so it counts as traffic in `keepalives` and the byte totals but not as
 a delivery or against the room's message ceiling. Without it, Cloudflare closes a socket that

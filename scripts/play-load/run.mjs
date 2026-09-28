@@ -567,15 +567,18 @@ async function collectRoomTiming() {
     senders.map(async (peer) => {
       peer.responses.delete('metrics');
       assert.ok(send(peer, { type: 'metrics' }), `Peer ${peer.index} could not ask for room timing.`);
-      return (await until(() => peer.responses.get('metrics'), `Peer ${peer.index} room timing timed out.`, 5000))
-        .commands;
+      return until(() => peer.responses.get('metrics'), `Peer ${peer.index} room timing timed out.`, 5000);
     })
   );
+  const answered = replies.flatMap((reply) => (reply.status === 'fulfilled' ? [reply.value] : []));
   report.roomTiming = {
     ...roomTiming(
       commandSends.map((sent) => ({ ...sent, peer: sent.peer.index })),
-      replies.flatMap((reply) => (reply.status === 'fulfilled' ? [reply.value ?? []] : []))
+      answered.map((metrics) => metrics.commands ?? [])
     ),
+    /* Late sweeps and dropped motion are room-wide, so any one answer carries them. */
+    stalls: answered[0]?.stalls ?? null,
+    motionDropped: answered[0]?.motionDropped ?? null,
     errors: replies.flatMap((reply) => (reply.status === 'rejected' ? [reply.reason.message] : [])),
   };
 }
@@ -1016,7 +1019,11 @@ try {
   }
   if (!stopping) {
     await collectRoomTiming();
-    const { commands: _commands, ...serverAfter } = await request(first, { type: 'metrics' }, 'metrics');
+    const {
+      commands: _commands,
+      stalls: _stalls,
+      ...serverAfter
+    } = await request(first, { type: 'metrics' }, 'metrics');
     report.serverAfter = serverAfter;
     await until(
       () => interactionTiming.outstanding().length === 0,

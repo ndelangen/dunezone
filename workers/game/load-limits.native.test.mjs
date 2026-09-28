@@ -123,6 +123,38 @@ describe('isolated load limits in native workerd', () => {
     expect((await runtime.loadControl()).stopped).toBe('incomingBytes-budget');
   });
 
+  it('leaves a room that another activation names without a budget, so its own activation still starts it', async () => {
+    await start();
+    const foreign = await runtime.object('another-game', '/__play/games/another-game/socket');
+    expect(foreign.status).toBe(503);
+    expect((await provision(runtime)).status).toBe(200);
+    expect((await runtime.loadControl()).stopped).toBe(null);
+  });
+
+  it('stops a room whose budget another activation recorded, and the controller can still read and stop it', async () => {
+    await start();
+    expect((await provision(runtime)).status).toBe(200);
+    const startsAt = Date.now();
+    await runtime.restart({
+      LOAD_LIMITS: JSON.stringify({
+        gameId: 'fixture-game',
+        startsAt,
+        expiresAt: startsAt + 120_000,
+        messages: 25_000,
+        incomingBytes: 8 * 1024 * 1024,
+        requests: 1000,
+        connections: 44,
+      }),
+    });
+    const path = '/__play/games/fixture-game/load-control';
+    const headers = { Authorization: `Bearer ${'d'.repeat(64)}` };
+    const status = await runtime.fetch(path, { headers });
+    expect(status.status).toBe(200);
+    expect((await status.json()).stopped).toBe('replaced-budget');
+    const stopped = await (await runtime.fetch(path, { method: 'DELETE', headers })).json();
+    expect(Object.values(stopped.rows).every((count) => count === 0)).toBe(true);
+  });
+
   it('retains the HTTP request budget across a restart', async () => {
     await start({ requests: 2 });
     expect((await provision(runtime)).status).toBe(200);
