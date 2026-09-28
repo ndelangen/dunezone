@@ -148,6 +148,8 @@ describe('Faction conversations in the game database', () => {
         .at(-1)
         .entries.find((entry) => entry.peerId === aId).unread
     ).toBe(0);
+    /* A view that a asks for after the read arrives behind anything the read pushed to a. */
+    await syncView(a);
     expect(a.messages.slice(offset).filter((entry) => entry.type.startsWith('conversation'))).toEqual([]);
     expect((await request(b, { type: 'conversation-read', factionId: bId, peerId: aId, through: 999_999 })).type).toBe(
       'rejected'
