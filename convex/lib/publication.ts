@@ -158,7 +158,7 @@ export async function enqueueFactionSheetPublication(
  *
  * Known and accepted for cards: `about` lives inside `data` and reaches no face, so an About-only edit schedules a capture that produces byte-identical output and refreshes the client-facing cache buster (wayfinder #521). The delivery cache remains keyed by pathname and revalidated against the current R2 ETag.
  * The fix, if that ever costs enough to matter, is to compare `data` minus `about` here rather than enqueueing unconditionally.
- * Not done now, because a treachery card has one publication and About edits are rare.
+ * Not done now, because each treachery or spice card has one publication and About edits are rare.
  * Decks do not have the problem: their payload is the Cardback alone, so a rename or an About edit still enqueues but cannot change what the capture draws.
  */
 export async function enqueueAssetPublication(

@@ -139,16 +139,16 @@ async function publish(ctx: MutationCtx, assetType: PublicationAssetType, assetI
   return { key: publishedR2Key(assetType, assetId), href: publishedHref(assetType, assetId, 'local-fixture'), face };
 }
 
-/*
- * Authored values the browser funding case needs: five troops cost five spice, three troops cost three.
- * The Harkonnen colour is a saturated red so the carry checks can find its troop tokens by their pixels.
- */
 /** Each required deck holds members of its own card type, so the seed exercises both card renderers and publications. */
 const SYNTHETIC_DECK_MEMBERS = {
   treachery: { type: 'card-treachery', data: publishingTreacheryCard },
   spice: { type: 'card-spice', data: publishingSpiceCard },
 } as const;
 
+/*
+ * Authored values the browser funding case needs: five troops cost five spice, three troops cost three.
+ * The Harkonnen colour is a saturated red so the carry checks can find its troop tokens by their pixels.
+ */
 const SYNTHETIC_TROOP_COMBAT = { strength: 0.5, fundedStrength: 1, fundingCost: 1 };
 const SYNTHETIC_FACTIONS = [
   { slug: 'synthetic-harkonnen', name: 'Harkonnen', color: '#b3261e' },

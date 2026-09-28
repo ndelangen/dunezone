@@ -6,6 +6,7 @@ import { CanvasScale } from '@ui/layout/CanvasScale';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
 import { Map as MapIcon, ScrollText } from 'lucide-react';
+import { useReducer } from 'react';
 import type { ReactNode } from 'react';
 import type { z } from 'zod';
 
@@ -51,6 +52,7 @@ const HIGHLIGHT_LABELS: Partial<Record<SpiceHighlight, string>> = {
   tueks: "Tuek's Sietch",
   tabr: 'Sietch Tabr',
   polar: 'Polar Sink',
+  habbanya: 'Habbanya Sietch',
 };
 
 function highlightLabel(highlight: SpiceHighlight): string {
@@ -147,6 +149,8 @@ function MapFields({ draft, patch }: { draft: SpiceDraft; patch: Patch }) {
 
 /* The card's body: the amount in the corner and the text above it. */
 function BodyFields({ draft, patch }: { draft: SpiceDraft; patch: Patch }) {
+  /* An amount left empty or below one is not kept, so leaving the field remounts it on the amount the card still holds. */
+  const [amountField, resetAmountField] = useReducer((count: number) => count + 1, 0);
   return (
     <Stack gap="md">
       <ControlBlock
@@ -154,6 +158,7 @@ function BodyFields({ draft, patch }: { draft: SpiceDraft; patch: Patch }) {
         description="The spice this card adds, shown in its corner."
         input={
           <NumberInput
+            key={amountField}
             aria-label="Amount"
             min={1}
             step={1}
@@ -165,6 +170,7 @@ function BodyFields({ draft, patch }: { draft: SpiceDraft; patch: Patch }) {
                 patch({ amount: value });
               }
             }}
+            onBlur={resetAmountField}
           />
         }
       />
@@ -177,7 +183,7 @@ function BodyFields({ draft, patch }: { draft: SpiceDraft; patch: Patch }) {
             autosize
             minRows={3}
             value={draft.text ?? ''}
-            onChange={(text) => patch({ text })}
+            onChange={(text) => patch({ text: text || undefined })}
           />
         }
       />
