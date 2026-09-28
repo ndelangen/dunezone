@@ -34,6 +34,7 @@ function FactionAuthoringFixture() {
           status={{
             isDirty: authoring.editing.isDirty,
             isNameBlank: authoring.editing.isNameBlank,
+            invalid: authoring.editing.invalid,
             saveState: authoring.persistence.saveState,
           }}
           copy={{
