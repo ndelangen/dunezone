@@ -276,8 +276,14 @@ there draws WebGL on SwiftShader and composites in software, which reads each We
 the page's main thread, and the switch moves compositing onto SwiftShader too. Other platforms
 launch with no added switch. Without `--browser`, Playwright launches its headless shell, which takes
 the same readback path on macOS as on Linux; full Chromium on macOS draws on Metal. The report's
-`chromium` field records the executable, the version and the added switches. `--flow` names one flow
-and defaults to `regular`. Each run writes screenshots and a
+`chromium` field records what the running browser reports about itself: its build (`headless-shell`
+or `full`), the executable path from its command line and its version, with the switches the script
+added. Its `renderer` field records the backend three.js initialised for the first table the flow
+opens, read through three.js's devtools hook: `webgpu` with the adapter's vendor and architecture,
+or WebGL2 with the unmasked GL renderer string, as `webgl2-swiftshader` when that string names
+SwiftShader and `webgl2-other` when it does not. `--expect-renderer` takes one of those three and
+fails the flow at that table, naming both, when the table rendered with another; without it no
+renderer is enforced. `--flow` names one flow and defaults to `regular`. Each run writes screenshots and a
 compact report without credentials. A flow that retains synthetic received
 game frames writes them to `<flow>-frames.json`. The internal `playTesting:retireFixture` control can retire an
 old fixture on an isolated backend before provisioning a new one; it does not erase game data.

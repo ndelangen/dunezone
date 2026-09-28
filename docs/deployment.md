@@ -193,7 +193,10 @@ runs only the regular flow; the named flows are described under
 after it, and the run fails at the end naming each failed verifier. A run with browser flows rebuilds the
 frontend for this run's backend URL, so it rejects `--skip-build`. `--backend-binary` can still select
 an existing native backend executable, and `--browser /absolute/path/to/chromium` can select a
-Chromium executable instead of Playwright's installed browser. Each browser flow has its own timeout,
+Chromium executable instead of Playwright's installed browser. `--expect-renderer` passes each flow
+the renderer its first table must use (`webgpu`, `webgl2-swiftshader` or `webgl2-other`); a flow whose
+table rendered with another fails there, naming both, and without the option no renderer is enforced.
+Each browser flow has its own timeout,
 ten minutes for the regular flow and five for each named flow; protocol verification has three. All
 use the same stack cleanup.
 

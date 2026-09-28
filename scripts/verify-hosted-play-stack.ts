@@ -17,6 +17,7 @@ import { runnerProfiles } from './play-load/profiles';
 import { syntheticHostedTarget } from './play-load/synthetic-target';
 import { browserFlows, isBrowserFlow } from './verify-hosted-flows';
 import type { BrowserFlow } from './verify-hosted-flows';
+import { parseExpectedRenderer } from './verify-hosted-renderer';
 
 const root = path.resolve(import.meta.dirname, '..');
 const node = nodeExecutable();
@@ -34,6 +35,7 @@ const { values } = parseArgs({
     flow: { type: 'string', multiple: true },
     'browser-only': { type: 'boolean', default: false },
     browser: { type: 'string' },
+    'expect-renderer': { type: 'string' },
     'skip-build': { type: 'boolean', default: false },
     'skip-generate': { type: 'boolean', default: false },
   },
@@ -62,6 +64,11 @@ if (flows.length > 0 && values['skip-build']) {
 }
 if (values.browser && flows.length === 0) {
   throw new Error('--browser requires a browser flow.');
+}
+/* Each flow's driver holds the first table it opens to this renderer and fails there; without it nothing is enforced. */
+const expectedRenderer = parseExpectedRenderer(values['expect-renderer']);
+if (expectedRenderer && flows.length === 0) {
+  throw new Error('--expect-renderer requires a browser flow.');
 }
 const loadCase = loadCaseSchema.options.find((candidate) => candidate === values['load-case']);
 if (!loadCase) {
@@ -528,6 +535,7 @@ try {
           '--flow',
           flow,
           ...(values.browser ? ['--browser', values.browser] : []),
+          ...(expectedRenderer ? ['--expect-renderer', expectedRenderer] : []),
         ],
         logPath: path.join(evidence, `${flow}.log`),
       },
