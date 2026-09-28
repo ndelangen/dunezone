@@ -2,8 +2,13 @@ import { request as httpRequest } from 'node:http';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
+import { PLAY_CONFIRMATION_RETRY_MS, PLAY_REQUEST_TIMEOUT_MS } from '../../src/shared/play/admission.ts';
 import { createPeer, createRuntime, eventually, openGame, provision } from './native-runtime.fixture.mjs';
 
+/*
+ * A case that turns on a deadline moves the room's test clock past it, which fires the room's timers on the way.
+ * No case waits for a deadline on the real clock.
+ */
 describe('isolated load limits in native workerd', () => {
   let peer;
   let runtime;
@@ -16,18 +21,18 @@ describe('isolated load limits in native workerd', () => {
   });
   async function start(overrides = {}) {
     const startsAt = Date.now();
-    runtime = await createRuntime(peer, 'load', {
-      LOAD_LIMITS: JSON.stringify({
-        gameId: 'fixture-game',
-        startsAt,
-        expiresAt: startsAt + 60_000,
-        messages: 25_000,
-        incomingBytes: 8 * 1024 * 1024,
-        requests: 1000,
-        connections: 44,
-        ...overrides,
-      }),
-    });
+    const limits = {
+      gameId: 'fixture-game',
+      startsAt,
+      expiresAt: startsAt + 60_000,
+      messages: 25_000,
+      incomingBytes: 8 * 1024 * 1024,
+      requests: 1000,
+      connections: 44,
+      ...overrides,
+    };
+    runtime = await createRuntime(peer, 'load', { LOAD_LIMITS: JSON.stringify(limits) });
+    return limits;
   }
   async function admit() {
     const connection = await openGame(runtime);
@@ -95,9 +100,11 @@ describe('isolated load limits in native workerd', () => {
     }, 'cleanup');
     expect(state).toMatchObject({ stopped: 'messages-budget', messages: 3, gameRows: 0, historyRows: 0, alarm: null });
     const requests = peer.requests.length;
-    await new Promise((resolve) => setTimeout(resolve, 3300));
-    expect(peer.requests).toHaveLength(requests);
+    /* A timer the stopped room still held would fire as its clock passes it, and reach the peer or arm an alarm. */
+    await runtime.clock(3300);
+    expect((await runtime.loadControl()).alarm).toBe(null);
     expect((await provision(runtime)).status).toBe(410);
+    expect(peer.requests).toHaveLength(requests);
   });
 
   it('does not refund unused message reservations when the runtime restarts', async () => {
@@ -133,10 +140,11 @@ describe('isolated load limits in native workerd', () => {
   });
 
   it('expires without another client message and stays stopped after a restart', async () => {
-    await start({ expiresAt: Date.now() + 4000 });
+    const { expiresAt } = await start();
     expect((await provision(runtime)).status).toBe(200);
     const connection = await admit();
-    await eventually(() => connection.closed, 'expiry disconnect', 6000);
+    await runtime.clock(expiresAt - Date.now());
+    await eventually(() => connection.closed, 'expiry disconnect');
     const stopped = await (
       await runtime.fetch('/__play/games/fixture-game/load-control', {
         method: 'DELETE',
@@ -150,12 +158,34 @@ describe('isolated load limits in native workerd', () => {
     expect((await runtime.loadControl()).alarm).toBe(null);
   });
 
-  it('cleans up after an in-flight confirmation fails without leaving its retry alarm', async () => {
+  /*
+   * Provisions while the peer holds the confirmation, then starts an operator stop, which waits for the confirmation to settle.
+   * The room's clock runs ahead, so the retry alarm the confirmation armed falls after the case on the real clock and fires only when a case forces it.
+   */
+  async function stopWhileConfirming() {
     await start();
+    const offset = 30_000;
+    const { now } = await runtime.clock(offset);
     peer.holdFirstConfirmation = true;
     const pending = provision(runtime);
     await eventually(() => peer.confirmationRequests === 1, 'held confirmation');
-    expect(await runtime.loadControl(true)).toMatchObject({
+    const { alarm } = await runtime.loadControl();
+    expect(alarm).toBeGreaterThanOrEqual(now + PLAY_CONFIRMATION_RETRY_MS);
+    expect(alarm).toBeLessThanOrEqual(Date.now() + offset + PLAY_CONFIRMATION_RETRY_MS);
+    const stopped = runtime.loadControl(true);
+    await eventually(async () => (await runtime.loadControl()).stopped === 'operator-stop', 'stop in progress');
+    /* The peer fails the held confirmation instead of the room giving up on it after the request timeout. */
+    const fail = () => {
+      const held = peer.requests.find((record) => record.function === 'playProvisioning:confirmProvisioning');
+      held.response.writeHead(503).end('Confirmation unavailable');
+    };
+    return { pending, stopped, fail };
+  }
+
+  it('cleans up after an in-flight confirmation fails without leaving its retry alarm', async () => {
+    const { pending, stopped, fail } = await stopWhileConfirming();
+    fail();
+    expect(await stopped).toMatchObject({
       stopped: 'operator-stop',
       gameRows: 0,
       historyRows: 0,
@@ -165,6 +195,21 @@ describe('isolated load limits in native workerd', () => {
     await runtime.restart();
     expect((await runtime.loadControl()).alarm).toBe(null);
     expect((await provision(runtime)).status).toBe(410);
+  });
+
+  it('leaves no alarm when the retry alarm fires while the stop waits for the confirmation', async () => {
+    const { pending, stopped, fail } = await stopWhileConfirming();
+    await runtime.alarm(true);
+    await eventually(async () => (await runtime.loadControl()).alarm === null, 'retry alarm fired');
+    /* The provisioning request then ends in a stopped room with no alarm, and must not arm the run's deadline again. */
+    fail();
+    expect(await stopped).toMatchObject({
+      stopped: 'operator-stop',
+      gameRows: 0,
+      historyRows: 0,
+      alarm: null,
+    });
+    await pending;
   });
 
   it('refuses an oversized HTTP body before forwarding it', async () => {
@@ -187,15 +232,22 @@ describe('isolated load limits in native workerd', () => {
   ])(
     'returns $status for an incomplete upload with $duration ms until expiry',
     async ({ duration, status, reason }) => {
-      await start({ expiresAt: Date.now() + duration });
+      const { expiresAt } = await start({ expiresAt: Date.now() + 10 * 60_000 });
       expect((await provision(runtime)).status).toBe(200);
       const address = await runtime.url();
+      /* The upload reaches the room `duration` before expiry on its clock, however long the way there took. */
+      const arrival = expiresAt - duration;
       const request = httpRequest({
         hostname: address.hostname,
         port: address.port,
         path: '/__play/games/fixture-game/account-deletion',
         method: 'POST',
-        headers: { Host: 'table.test', 'Content-Type': 'application/json', 'Transfer-Encoding': 'chunked' },
+        headers: {
+          Host: 'table.test',
+          'Content-Type': 'application/json',
+          'Transfer-Encoding': 'chunked',
+          'X-Native-Test-Now': String(arrival),
+        },
       });
       const result = new Promise((resolve, reject) => {
         request.once('response', (response) => {
@@ -207,6 +259,8 @@ describe('isolated load limits in native workerd', () => {
       request.write('{');
       try {
         await eventually(async () => (await runtime.loadControl()).requests === 2, 'streaming request reaches room');
+        /* The request timeout passes on the room's clock, and expiry with it when that comes first. */
+        await runtime.clock(arrival + PLAY_REQUEST_TIMEOUT_MS - Date.now());
         expect(await result).toBe(status);
         expect(await runtime.loadControl(true)).toMatchObject({
           stopped: reason,
