@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { loadProfileSchema } from './loadProfile';
+import { PHASE_CHANGE_COOLDOWN_MS } from './phases';
 import { tableSeatCountSchema } from './schema';
 
 export const PLAY_FIXTURE_KEY = 'hosted-demo';
@@ -61,7 +62,15 @@ export const playGameProvisionSchema = z.object({
     avatarUrl: z.string().max(2048).nullable().optional(),
   }),
 });
-const validatedAttemptSchema = playPendingProvisionSchema.omit({ secret: true }).extend({ ok: z.literal(true) });
+/*
+ * A synthetic backend's phase cooldown for the games it provisions, from its `PLAY_TEST_PHASE_COOLDOWN_MS`.
+ * It can only shorten the real cooldown, and the game Worker accepts it only in the isolated local runtime.
+ */
+export const playTestPhaseCooldownSchema = z.number().int().min(0).max(PHASE_CHANGE_COOLDOWN_MS);
+const validatedAttemptSchema = playPendingProvisionSchema.omit({ secret: true }).extend({
+  ok: z.literal(true),
+  testPhaseCooldownMs: playTestPhaseCooldownSchema.optional(),
+});
 /* A validated attempt is a fixture or a real game; a row that is neither is refused, never provisioned as a fixture. */
 export const playProvisioningValidationSchema = z.union([
   refusedSchema,

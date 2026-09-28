@@ -6,6 +6,7 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
 
+import { LOCAL_ISOLATED_GIT_SHA } from '../workers/game/localRuntime';
 import { loopbackOrigin } from './lib/isolated-stack';
 import { nodeExecutable } from './node-executable';
 
@@ -105,7 +106,7 @@ Object.assign(publisher, local, {
     CONVEX_CLOUD_BASE_URL: convexUrl,
     CONVEX_EXECUTOR_BASE_URL: `${convexSiteUrl}/asset-publishing/executor`,
     CONVEX_RENDER_URL: `${convexSiteUrl}/asset-publishing/render`,
-    GIT_SHA: 'local-isolated',
+    GIT_SHA: LOCAL_ISOLATED_GIT_SHA,
     ASSET_PUBLISHER_EXECUTOR_SECRET: 'isolated-local-executor-not-for-deployment',
   },
 });
@@ -118,7 +119,7 @@ publisher.r2_buckets = publisher.r2_buckets.map((binding: { binding: string }) =
 Object.assign(game, local, {
   name: gameName,
   main: path.join(root, 'workers/game/index.ts'),
-  vars: { CONVEX_URL: gameConvexUrl, APPLICATION_ORIGIN: origin, GIT_SHA: 'local-isolated' },
+  vars: { CONVEX_URL: gameConvexUrl, APPLICATION_ORIGIN: origin, GIT_SHA: LOCAL_ISOLATED_GIT_SHA },
 });
 const publisherConfig = path.join(runtime, 'publisher.json');
 const gameConfig = path.join(runtime, 'game.json');

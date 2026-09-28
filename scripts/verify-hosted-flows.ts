@@ -3,15 +3,22 @@
  * It stays free of side effects, because the browser driver parses arguments and launches Chromium on import.
  */
 export const browserFlows = {
-  /* The regular flow steps through every phase behind the eight-second cooldown (#1139)
-     and readies both players at each Mentat pause, which puts it past five minutes. */
-  regular: { timeoutMs: 600_000, separateBrowsers: false, keepsFrames: false, needsCatalogue: false, shard: 'regular' },
+  /* The regular flow steps through every phase and readies both players at each Mentat pause, so it has the longest budget. */
+  regular: {
+    timeoutMs: 600_000,
+    separateBrowsers: false,
+    keepsFrames: false,
+    needsCatalogue: false,
+    checksPhaseCooldown: false,
+    shard: 'regular',
+  },
   /* Every other flow first plays a real game through drafting and setup, which takes a few minutes on its own. */
   'public-controls': {
     timeoutMs: 480_000,
     separateBrowsers: false,
     keepsFrames: false,
     needsCatalogue: true,
+    checksPhaseCooldown: true,
     shard: 'catalogue',
   },
   'private-banks': {
@@ -19,16 +26,32 @@ export const browserFlows = {
     separateBrowsers: true,
     keepsFrames: true,
     needsCatalogue: false,
+    checksPhaseCooldown: false,
     shard: 'protocol',
   },
-  battles: { timeoutMs: 480_000, separateBrowsers: true, keepsFrames: true, needsCatalogue: true, shard: 'catalogue' },
-  decks: { timeoutMs: 480_000, separateBrowsers: true, keepsFrames: true, needsCatalogue: false, shard: 'protocol' },
-  /* Steps to Mentat pause behind the phase cooldown, then declares, reloads and continues. */
+  battles: {
+    timeoutMs: 480_000,
+    separateBrowsers: true,
+    keepsFrames: true,
+    needsCatalogue: true,
+    checksPhaseCooldown: false,
+    shard: 'catalogue',
+  },
+  decks: {
+    timeoutMs: 480_000,
+    separateBrowsers: true,
+    keepsFrames: true,
+    needsCatalogue: false,
+    checksPhaseCooldown: false,
+    shard: 'protocol',
+  },
+  /* Steps to Mentat pause, then declares, reloads and continues. */
   results: {
     timeoutMs: 480_000,
     separateBrowsers: false,
     keepsFrames: false,
     needsCatalogue: false,
+    checksPhaseCooldown: false,
     shard: 'protocol',
   },
 } satisfies Record<
@@ -41,6 +64,11 @@ export const browserFlows = {
     keepsFrames: boolean;
     /** The flow selects the seeded public catalogue's token by exact name, so the stack seeds it once. */
     needsCatalogue: boolean;
+    /**
+     * The flow checks the phase cooldown, so its games keep the real one.
+     * The launcher provisions every other flow's games with no cooldown.
+     */
+    checksPhaseCooldown: boolean;
     /**
      * The `hosted_play` CI shard that runs the flow, which the launcher's `--shard` selects.
      * The flows that need the catalogue share `catalogue`, so only that shard seeds it.
