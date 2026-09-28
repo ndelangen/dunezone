@@ -168,9 +168,11 @@ The `hosted_play` CI job runs `bun --no-env-file scripts/verify-hosted-play-stac
 in three shards, each on its own runner with its own stack, and `ci_ok` requires all three through
 `verify`. Each flow in [`scripts/verify-hosted-flows.ts`](../scripts/verify-hosted-flows.ts) names
 its shard, and each shard runs `--shard <name>`: `regular` runs the regular flow, `catalogue`
-public-controls and battles, and `protocol` private-banks and decks. The `regular` and `catalogue`
-shards add `--browser-only`; in the `protocol` shard the protocol verifier runs first on the same stack.
-Each shard passes `--browser` with Playwright's full Chromium rather than its headless shell.
+public-controls and battles, and `protocol` private-banks, decks and results. The `regular` and
+`catalogue` shards add `--browser-only`; in the `protocol` shard the protocol verifier runs first on
+the same stack. Each shard passes `--browser` with Playwright's full Chromium rather than its headless
+shell, and `--expect-renderer webgl2-swiftshader`, the renderer that browser draws with on the Linux
+runner.
 The launcher passes `--skip-generate` to the runner, because the job's generated-images step has
 already restored the images and written the vectors. Each shard verifies the checksum of the pinned
 native Convex backend release, creates a fresh database, configures real local Auth, builds the app,
@@ -178,7 +180,8 @@ then runs its verifiers through both actual Workers.
 No hosted deployment credentials or production snapshots are used. Its generated private keys,
 admin key, SQLite database and local Worker persistence are removed on exit. Each shard keeps its
 logs and browser reports as its own artifact for 14 days. Its step summary has a row for each of its
-flows, a flow that never started included, and one for the protocol verifier where it runs.
+flows, a flow that never started included, and one for the protocol verifier where it runs. A flow's
+row gives its result, seconds, renderer kind and Chromium build from its report.
 The same command runs locally on supported platforms.
 For a protocol-only local rehearsal, leave out `--flow`. `--backend-binary` can then select an existing
 native executable and `--skip-build` can reuse the publisher bundle; that shortcut does not verify the
