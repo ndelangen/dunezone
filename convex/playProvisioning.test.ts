@@ -124,6 +124,22 @@ describe('Play provisioning', () => {
     expect(await t.mutation(api.playProvisioning.confirmProvisioning, credentials)).toEqual({ ok: false });
   });
 
+  test('only a synthetic backend provisions the test phase cooldown its environment sets', async () => {
+    const { t, credentials } = await fixture();
+    vi.stubEnv('PLAY_TEST_PHASE_COOLDOWN_MS', '0');
+    expect(await t.mutation(api.playProvisioning.validateProvisioning, credentials)).not.toHaveProperty(
+      'testPhaseCooldownMs'
+    );
+    vi.stubEnv('IS_TEST', 'true');
+    vi.stubEnv('E2E_LOCAL_AUTH', 'true');
+    vi.stubEnv('CONVEX_CLOUD_URL', 'http://127.0.0.1:3210');
+    vi.stubEnv('SITE_URL', 'http://127.0.0.1:8787');
+    expect(await t.mutation(api.playProvisioning.validateProvisioning, credentials)).toMatchObject({
+      ok: true,
+      testPhaseCooldownMs: 0,
+    });
+  });
+
   test('wrong game, secret and attempt have one refusal shape', async () => {
     const { t, credentials } = await fixture();
     for (const request of [

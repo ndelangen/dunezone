@@ -179,7 +179,8 @@ export class RoomProjection {
     }
     let projected = audiences.get(factionId);
     if (!projected) {
-      const { revision, table, versions, phase, roster, stage, draft, swapping, controls, spiceTransfers } = snapshot;
+      const { revision, table, versions, phase, phases, roster, stage, draft, swapping, controls, spiceTransfers } =
+        snapshot;
       const battle = snapshot.battleState;
       const ownSide = battle?.sides.findIndex((side) => side?.factionId === factionId) ?? -1;
       const plan = (plan: NonNullable<typeof battle>['plans'][number], revealId?: string) => {
@@ -271,6 +272,7 @@ export class RoomProjection {
           Object.entries(versions).map(([id, version]) => [snapshot.pieceHandles[id] ?? id, version])
         ),
         phase,
+        ...(phases ? { phases } : {}),
         ...(roster ? { roster } : {}),
         ...(stage ? { stage } : {}),
         ...(draft ? { draft } : {}),

@@ -2,7 +2,8 @@ import preview from '@sb/preview';
 import { advanceFrame, finishTransitions } from '@sb/storyWaits';
 import type { LogEntry } from '@shared/play/log';
 import type { TablePiece } from '@shared/play/model';
-import { TABLE_PHASES } from '@shared/play/phases';
+import { composeTurn, PHASE_CHANGE_COOLDOWN_MS, TABLE_PHASES } from '@shared/play/phases';
+import type { GameSnapshot } from '@shared/play/protocol';
 import { SPECTATOR_SEAT } from '@shared/play/schema';
 import { item, piece } from '@shared/play/setupSupply';
 import { stackTopHeight } from '@shared/play/tableGeometry';
@@ -552,6 +553,71 @@ export const MentatReadiness = meta.story({
   },
 });
 
+/* A seated faction declares a phase before Bidding (#1138): the turn gains one entry, and the header, help and tracker follow it. */
+function factionPhaseSnapshot(allPlayersMustBeReady: boolean): GameSnapshot {
+  const snapshot = initialSnapshot();
+  const factionId = snapshot.roster!.seats[1]!.faction!.id;
+  const phases = composeTurn(
+    [
+      {
+        factionId,
+        declarations: [
+          {
+            id: 'negotiations',
+            type: 'instruction',
+            title: 'Guild negotiations',
+            symbol: '/vector/icon/fate.svg',
+            before: 'bidding',
+            priority: 10,
+            allPlayersMustBeReady,
+            instructions: 'Agree any shipment deals before the auction opens.',
+          },
+        ],
+      },
+    ],
+    [factionId]
+  );
+  return {
+    ...snapshot,
+    phases,
+    phase: phases.findIndex((entry) => entry.kind === 'faction'),
+    controls: { ...snapshot.controls!, seats: SIX.map((player) => player.seat), ready: [] },
+  };
+}
+
+export const FactionPhase = meta.story({
+  beforeEach: install(() => productTransport('seat-2', factionPhaseSnapshot(false))),
+  play: async ({ canvasElement }) => {
+    const { page, waitForPhase } = phaseControls(canvasElement);
+    await waitForPhase(() => expect(page.getByRole('button', { name: 'Phase' })).toBeVisible());
+    await openTab(page, 'Phase');
+    await waitForPhase(() => expect(page.getByRole('button', { name: 'Help: Guild negotiations' })).toBeVisible());
+    await userEvent.hover(page.getByRole('button', { name: 'Help: Guild negotiations' }));
+    /* The tooltip fades in, so its text is the stable check; the header already shows the phase. */
+    await waitFor(() =>
+      expect(page.getByRole('tooltip')).toHaveTextContent(
+        'Guild negotiations. Agree any shipment deals before the auction opens.'
+      )
+    );
+    const header = canvasElement.ownerDocument.querySelector('.seated-header') as HTMLElement;
+    expect(within(header).getByText('Guild negotiations')).toBeVisible();
+    expect(header.querySelector('use')).toHaveAttribute('href', '/vector/icon/fate.svg#root');
+    expect(page.queryByRole('button', { name: /^Ready$/ })).toBeNull();
+    expect(page.getByRole('button', { name: 'Next phase' })).toBeEnabled();
+  },
+});
+
+export const FactionPhaseReadiness = meta.story({
+  beforeEach: install(() => productTransport('seat-2', factionPhaseSnapshot(true))),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await waitFor(() => expect(page.getByRole('button', { name: /^Ready$/ })).toBeVisible(), { timeout: 30_000 });
+    const header = canvasElement.ownerDocument.querySelector('.seated-header') as HTMLElement;
+    expect(within(header).getByText('Guild negotiations')).toBeVisible();
+    expect(page.getByRole('button', { name: 'Next phase' })).toBeDisabled();
+  },
+});
+
 export const PhaseCooldown = meta.story({
   beforeEach: install(() => productTransport('seat-2')),
   play: async ({ canvasElement }) => {
@@ -567,7 +633,7 @@ export const PhaseCooldown = meta.story({
           phaseChangedAt: STORYBOOK_NOW - 3_600_000,
         },
       }),
-      phaseCooldownMs: 8000,
+      phaseCooldownMs: PHASE_CHANGE_COOLDOWN_MS,
     });
     await waitFor(() => expect(page.getByRole('button', { name: 'Next phase' })).toBeDisabled());
     expect(page.getByRole('button', { name: 'Previous phase' })).toBeDisabled();

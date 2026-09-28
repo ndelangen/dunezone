@@ -1,6 +1,5 @@
 import type { z } from 'zod';
 
-import type { TABLE_PHASES } from './phases';
 import type {
   draftMoveSchema,
   durableTableSchema,
@@ -46,7 +45,8 @@ export type Affordance = {
 };
 
 export type TableState = z.infer<typeof durableTableSchema> & {
-  phase: 'Harkonnen shipment' | (typeof TABLE_PHASES)[number]['label'];
+  /* The active phase's label; a composed turn can name a faction's own phase (#1138). */
+  phase: string;
   viewerSeat: z.infer<typeof tableSeatSchema>;
   /* The faction the viewer's seat carries, or null for a spectator or an unassigned seat. */
   viewerFaction: string | null;

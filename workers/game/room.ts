@@ -12,7 +12,14 @@ import { gestureBlockReason } from '../../src/shared/play/model';
 import type { DraftMove, TablePiece, TableState, Vector3Tuple } from '../../src/shared/play/model';
 import { seatSubject } from '../../src/shared/play/participation';
 import type { SeatAction } from '../../src/shared/play/participation';
-import { PHASE_CHANGE_COOLDOWN_MS, phaseAt, phaseForTurn, stepPhase } from '../../src/shared/play/phases';
+import {
+  PHASE_CHANGE_COOLDOWN_MS,
+  phaseAt,
+  phaseForTurn,
+  requirePhaseCooldownElapsed,
+  STANDARD_PHASES,
+  stepPhase,
+} from '../../src/shared/play/phases';
 import { PIECE_FLIP_DURATION_MS } from '../../src/shared/play/pieceFlip';
 import { carryPieceId, tableForViewer } from '../../src/shared/play/protocol';
 import type {
@@ -77,9 +84,15 @@ export class Room {
     private readonly seatedPlayers: () => Identity['viewerSeat'][],
     private readonly factionFor: (userId: string) => string | undefined = () => undefined,
     /** The catalogue deck the fixture deals on reset; a room adopts one after the fact when its catalogue answers late. */
-    public fixtureDeck?: StoredSpawnContents
+    public fixtureDeck?: StoredSpawnContents,
+    private readonly phaseCooldownMs = PHASE_CHANGE_COOLDOWN_MS
   ) {
     this.snapshot = storedSnapshotSchema.parse(snapshot);
+  }
+
+  /** When the current phase's cooldown ends on the Worker's clock. */
+  get phaseCooldownEndsAt() {
+    return (this.snapshot.controls?.phaseChangedAt ?? 0) + this.phaseCooldownMs;
   }
 
   private player(identity: Identity) {
@@ -348,6 +361,7 @@ export class Room {
         seats: this.seatedPlayers(),
         reserved: new Set(this.reservations.keys()),
         now,
+        phaseCooldownMs: this.phaseCooldownMs,
       });
     }
     if (action.kind === 'deck-draw' || action.kind === 'deck-shuffle') {
@@ -434,12 +448,18 @@ export class Room {
   /** A reset rebuilds the fixture's table: the load fixture from its profile, the hosted one with its dealt deck. */
   private nextTable(guarded: TableState, action: TableAction, identity: Identity): TableState {
     if (action.kind !== 'reset') {
-      return applyPieceAction(guarded, action, this.snapshot.phase, seatSubject(identity.viewerSeat));
+      return applyPieceAction(guarded, action, this.snapshot.phase, seatSubject(identity.viewerSeat), this.phases());
     }
     if (this.loadProfile) {
       return tableForViewer(loadSnapshot(this.loadProfile), identity.viewerSeat);
     }
-    const fresh = applyPieceAction(guarded, action, this.snapshot.phase, seatSubject(identity.viewerSeat));
+    const fresh = applyPieceAction(
+      guarded,
+      action,
+      this.snapshot.phase,
+      seatSubject(identity.viewerSeat),
+      this.phases()
+    );
     return this.fixtureDeck ? dealFixtureDeck(fresh, this.fixtureDeck) : fresh;
   }
 
@@ -510,8 +530,8 @@ export class Room {
     }
     const phase = this.nextPhase(action);
     const controls = this.snapshot.controls ?? emptyPublicControls();
-    if (phase !== this.snapshot.phase && now < controls.phaseChangedAt + PHASE_CHANGE_COOLDOWN_MS) {
-      throw new GameRejection('Wait eight seconds between phase changes.');
+    if (phase !== this.snapshot.phase) {
+      requirePhaseCooldownElapsed(controls.phaseChangedAt, this.phaseCooldownMs, now);
     }
     if (phase <= this.snapshot.phase) {
       return;
@@ -551,8 +571,8 @@ export class Room {
   }
 
   private setReadiness(identity: Identity, ready: boolean, controls: StoredControls): string {
-    if (phaseAt(this.snapshot.phase).id !== 'mentat-pause') {
-      throw new GameRejection('Ready applies only during Mentat pause.');
+    if (!phaseAt(this.snapshot.phase, this.phases()).allPlayersMustBeReady) {
+      throw new GameRejection('Ready applies only during a phase where everyone must be ready, such as Mentat pause.');
     }
     controls.ready = controls.ready.filter((seat) => seat !== identity.viewerSeat);
     if (ready) {
@@ -655,9 +675,14 @@ export class Room {
       return 0;
     }
     if (action.kind === 'turn') {
-      return phaseForTurn(this.snapshot.phase, action.turn);
+      return phaseForTurn(this.snapshot.phase, action.turn, this.phases().length);
     }
     return action.kind === 'phase' ? stepPhase(this.snapshot.phase, action.direction) : this.snapshot.phase;
+  }
+
+  /** The turn this game plays: its composed list, or the standard nine on a fixture. */
+  private phases() {
+    return this.snapshot.phases ?? STANDARD_PHASES;
   }
 
   private restoreReservationLocks(raw: TableState, guardedNext: TableState): TableState {

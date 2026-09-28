@@ -3,16 +3,51 @@
  * It stays free of side effects, because the browser driver parses arguments and launches Chromium on import.
  */
 export const browserFlows = {
-  /* The regular flow steps through every phase behind the eight-second cooldown (#1139)
-     and readies both players at each Mentat pause, which puts it past five minutes. */
-  regular: { timeoutMs: 600_000, separateBrowsers: false, keepsFrames: false, needsCatalogue: false },
+  /* The regular flow steps through every phase and readies both players at each Mentat pause, so it has the longest budget. */
+  regular: {
+    timeoutMs: 600_000,
+    separateBrowsers: false,
+    keepsFrames: false,
+    needsCatalogue: false,
+    checksPhaseCooldown: false,
+  },
   /* Every other flow first plays a real game through drafting and setup, which takes a few minutes on its own. */
-  'public-controls': { timeoutMs: 480_000, separateBrowsers: false, keepsFrames: false, needsCatalogue: true },
-  'private-banks': { timeoutMs: 480_000, separateBrowsers: true, keepsFrames: true, needsCatalogue: false },
-  battles: { timeoutMs: 480_000, separateBrowsers: true, keepsFrames: true, needsCatalogue: true },
-  decks: { timeoutMs: 480_000, separateBrowsers: true, keepsFrames: true, needsCatalogue: false },
-  /* Steps to Mentat pause behind the phase cooldown, then declares, reloads and continues. */
-  results: { timeoutMs: 480_000, separateBrowsers: false, keepsFrames: false, needsCatalogue: false },
+  'public-controls': {
+    timeoutMs: 480_000,
+    separateBrowsers: false,
+    keepsFrames: false,
+    needsCatalogue: true,
+    checksPhaseCooldown: true,
+  },
+  'private-banks': {
+    timeoutMs: 480_000,
+    separateBrowsers: true,
+    keepsFrames: true,
+    needsCatalogue: false,
+    checksPhaseCooldown: false,
+  },
+  battles: {
+    timeoutMs: 480_000,
+    separateBrowsers: true,
+    keepsFrames: true,
+    needsCatalogue: true,
+    checksPhaseCooldown: false,
+  },
+  decks: {
+    timeoutMs: 480_000,
+    separateBrowsers: true,
+    keepsFrames: true,
+    needsCatalogue: false,
+    checksPhaseCooldown: false,
+  },
+  /* Steps to Mentat pause, then declares, reloads and continues. */
+  results: {
+    timeoutMs: 480_000,
+    separateBrowsers: false,
+    keepsFrames: false,
+    needsCatalogue: false,
+    checksPhaseCooldown: false,
+  },
 } satisfies Record<
   string,
   {
@@ -23,6 +58,11 @@ export const browserFlows = {
     keepsFrames: boolean;
     /** The flow selects the seeded public catalogue's token by exact name, so the stack seeds it once. */
     needsCatalogue: boolean;
+    /**
+     * The flow checks the phase cooldown, so its games keep the real one.
+     * The launcher provisions every other flow's games with no cooldown.
+     */
+    checksPhaseCooldown: boolean;
   }
 >;
 

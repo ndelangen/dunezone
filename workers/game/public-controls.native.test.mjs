@@ -5,6 +5,7 @@ import { publishingRectangleTokenFace } from '../../src/shared/assets/fixtures/p
 import { publishingTokenFace } from '../../src/shared/assets/fixtures/publishingTokenFace';
 import { publishingTreacheryCard } from '../../src/shared/assets/fixtures/publishingTreacheryCard';
 import { assetSupplySchema } from '../../src/shared/play/capture';
+import { PHASE_CHANGE_COOLDOWN_MS } from '../../src/shared/play/phases';
 import { spiceSupplySlot } from '../../src/shared/play/spiceSupply';
 import {
   admitPlayer,
@@ -93,7 +94,7 @@ describe('Hosted readiness and shared inventory through native commands', () => 
     return reply.snapshot;
   }
   async function waitPhase() {
-    offset += 8001;
+    offset += PHASE_CHANGE_COOLDOWN_MS + 1;
     await runtime.clock(offset);
   }
 
@@ -101,13 +102,13 @@ describe('Hosted readiness and shared inventory through native commands', () => 
     const a = await admit('a');
     const b = await admit('b');
     const observer = await admit('c');
-    await act(a, { kind: 'ready', ready: true }, 'only during Mentat');
+    await act(a, { kind: 'ready', ready: true }, 'such as Mentat pause');
     for (let index = 0; index < 8; index++) {
       await waitPhase();
       await act(a, { kind: 'phase' });
       const phaseView = a.messages.findLast((message) => message.type === 'view');
       expect(phaseView.phaseCooldownMs).toBeGreaterThan(0);
-      expect(phaseView.phaseCooldownMs).toBeLessThanOrEqual(8000);
+      expect(phaseView.phaseCooldownMs).toBeLessThanOrEqual(PHASE_CHANGE_COOLDOWN_MS);
     }
     await waitPhase();
     await act(a, { kind: 'phase' }, 'Every seated player');
@@ -131,9 +132,9 @@ describe('Hosted readiness and shared inventory through native commands', () => 
     state = await act(b, { kind: 'phase' });
     expect(state.phase).toBe(9);
     expect(state.controls.ready).toEqual([]);
-    await act(reconnected, { kind: 'phase' }, 'eight seconds');
-    await act(b, { kind: 'phase', direction: -1 }, 'eight seconds');
-    await act(b, { kind: 'turn', turn: 3 }, 'eight seconds');
+    await act(reconnected, { kind: 'phase' }, 'between phase changes');
+    await act(b, { kind: 'phase', direction: -1 }, 'between phase changes');
+    await act(b, { kind: 'turn', turn: 3 }, 'between phase changes');
     await waitPhase();
     state = await act(b, { kind: 'phase', direction: -1 });
     expect(state.phase).toBe(8);

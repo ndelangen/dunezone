@@ -268,7 +268,7 @@ function playFromHand(
 }
 
 function startBattle(snapshot: StoredSnapshot, action: Extract<BattleAction, { kind: 'battle-start' }>) {
-  if (snapshot.battleState || phaseAt(snapshot.phase).id !== 'battle') {
+  if (snapshot.battleState || phaseAt(snapshot.phase, snapshot.phases).id !== 'battle') {
     return refuse('Start a battle during the Battle phase when no battle is active.');
   }
   if (Math.hypot(action.anchor[0], action.anchor[2]) > BOARD_RADIUS) {

@@ -17,7 +17,7 @@ export const SETUP_PHASE_TARGETS = [
   { id: 'forces', label: 'Starting forces' },
 ] as const;
 
-type SetupPhaseTarget = (typeof SETUP_PHASE_TARGETS)[number]['id'];
+export type SetupPhaseTarget = (typeof SETUP_PHASE_TARGETS)[number]['id'];
 export type PhaseTarget = SetupPhaseTarget | TablePhaseId;
 
 /** Every place a declaration may go: the setup steps, then the nine turn phases, which run it every turn. */
@@ -51,34 +51,45 @@ function capitalized(value: unknown): string {
 
 const PRIORITY_MESSAGE = 'Priority must be a whole number.';
 
-export const phaseDeclarationSchema = z.strictObject({
-  /* Generated when a row is added; kept to table-id characters so Play can build setup step ids from it. */
-  id: z.string().regex(/^[a-zA-Z0-9_-]{1,64}$/),
-  type: z.enum(PHASE_TYPES, {
-    error: (issue) =>
-      issue.input === undefined ? 'Choose a phase type.' : `"${String(issue.input)}" is not a phase type.`,
-  }),
-  title: z
-    .string({ error: 'Give the phase a title.' })
-    .refine((title) => title.trim().length > 0, { error: 'Give the phase a title.' })
-    .refine((title) => title.length <= 160, { error: 'Keep the title to 160 characters.' }),
-  /* One icon vector: the same reference serves the control UI and the tracker disc. */
-  symbol: z.enum(ICON.options, { error: 'Choose a symbol.' }),
-  before: z.enum(PHASE_TARGETS, {
-    error: (issue) =>
-      issue.input === undefined || issue.input === ''
-        ? 'Choose where the phase goes.'
-        : `${capitalized(issue.input)} is not a phase you can place before.`,
-  }),
-  priority: z
-    .number({ error: PRIORITY_MESSAGE })
-    .int({ error: PRIORITY_MESSAGE })
-    .min(-1000, { error: 'Priority must be between -1000 and 1000.' })
-    .max(1000, { error: 'Priority must be between -1000 and 1000.' })
-    .default(DEFAULT_PHASE_PRIORITY),
-  allPlayersMustBeReady: z.boolean().default(false),
-  instructions: z.string().max(8000, { error: 'Keep the instructions to 8000 characters.' }).optional(),
-});
+export const phaseDeclarationSchema = z
+  .strictObject({
+    /* Generated when a row is added; kept to table-id characters so Play can build setup step ids from it. */
+    id: z.string().regex(/^[a-zA-Z0-9_-]{1,64}$/),
+    type: z.enum(PHASE_TYPES, {
+      error: (issue) =>
+        issue.input === undefined ? 'Choose a phase type.' : `"${String(issue.input)}" is not a phase type.`,
+    }),
+    title: z
+      .string({ error: 'Give the phase a title.' })
+      .refine((title) => title.trim().length > 0, { error: 'Give the phase a title.' })
+      .refine((title) => title.length <= 160, { error: 'Keep the title to 160 characters.' }),
+    /* One icon vector: the same reference serves the control UI and the tracker disc. */
+    symbol: z.enum(ICON.options, { error: 'Choose a symbol.' }),
+    before: z.enum(PHASE_TARGETS, {
+      error: (issue) =>
+        issue.input === undefined || issue.input === ''
+          ? 'Choose where the phase goes.'
+          : `${capitalized(issue.input)} is not a phase you can place before.`,
+    }),
+    priority: z
+      .number({ error: PRIORITY_MESSAGE })
+      .int({ error: PRIORITY_MESSAGE })
+      .min(-1000, { error: 'Priority must be between -1000 and 1000.' })
+      .max(1000, { error: 'Priority must be between -1000 and 1000.' })
+      .default(DEFAULT_PHASE_PRIORITY),
+    allPlayersMustBeReady: z.boolean().default(false),
+    instructions: z.string().max(8000, { error: 'Keep the instructions to 8000 characters.' }).optional(),
+  })
+  .superRefine((declaration, ctx) => {
+    /* The built-in prediction locks once and reveals at the end, so it belongs to setup; a turn phase would repeat it. */
+    if (declaration.type === 'prediction' && !SETUP_PHASE_TARGETS.some((target) => target.id === declaration.before)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['before'],
+        message: 'A prediction runs once, so place it before a setup step.',
+      });
+    }
+  });
 
 export type PhaseDeclaration = z.infer<typeof phaseDeclarationSchema>;
 

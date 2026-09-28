@@ -1,5 +1,6 @@
-import { factionCaptureSchema, rulesetCaptureSchema } from '../../src/shared/play/capture';
+import { capturedDeclarations, factionCaptureSchema, rulesetCaptureSchema } from '../../src/shared/play/capture';
 import type { FactionCapture, RulesetCapture } from '../../src/shared/play/capture';
+import type { FactionPhaseDeclarations } from '../../src/shared/play/phases';
 import { GameRejection } from '../../src/shared/play/rejection';
 
 type Row = { data: string };
@@ -10,6 +11,9 @@ type Row = { data: string };
  * A retry reads the first record back, so source edits, deletion and repeated attempts cannot reach a game that has already captured.
  */
 export class CaptureStore {
+  /* Captures never change once retained, so their declarations are read once and dropped only when another faction arrives. */
+  private declarations: FactionPhaseDeclarations[] | undefined;
+
   constructor(private readonly storage: DurableObjectStorage) {
     storage.sql.exec(
       'CREATE TABLE IF NOT EXISTS captures (kind TEXT NOT NULL, source_id TEXT NOT NULL, data TEXT NOT NULL, captured_at INTEGER NOT NULL, PRIMARY KEY (kind, source_id))'
@@ -26,6 +30,15 @@ export class CaptureStore {
       .exec<Row>("SELECT data FROM captures WHERE kind='faction' AND source_id=?", factionId)
       .toArray()[0];
     return row ? factionCaptureSchema.parse(JSON.parse(row.data)) : undefined;
+  }
+
+  /** Every retained faction's valid phase declarations, in the author's list order (#1138). */
+  phaseDeclarations(): FactionPhaseDeclarations[] {
+    this.declarations ??= this.factions().map((capture) => ({
+      factionId: capture.faction.id,
+      declarations: capturedDeclarations(capture),
+    }));
+    return this.declarations;
   }
 
   factions(): FactionCapture[] {
@@ -62,6 +75,7 @@ export class CaptureStore {
       return existing;
     }
     this.insert('faction', capture.faction.id, capture, capture.capturedAt);
+    this.declarations = undefined;
     return capture;
   }
 

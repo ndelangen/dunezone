@@ -77,8 +77,9 @@ const MAP_FRAMING_CASES = TABLE_SEAT_COUNTS.flatMap((seatCount) =>
 
 describe('table trackers', () => {
   test.each(Array.from({ length: 31 }, (_, index) => index))(
-    'centers the spice supply, turn tracker and %i phase trackers above the board',
+    'pins the spice supply and turn tracker and fits %i phase trackers in the standard arc',
     (phaseCount) => {
+      const standard = trackerArcSlots(9);
       const slots = trackerArcSlots(phaseCount);
       const arcRadius = slots[0].arcRadius;
       const lowerBound = Math.min(...slots.map((slot) => slot.angle - Math.asin(slot.radius / arcRadius)));
@@ -89,16 +90,29 @@ describe('table trackers', () => {
       expect(slots[1].kind).toBe('turn');
       expect(slots[0].phaseIndex).toBeNull();
       expect(slots[1].phaseIndex).toBeNull();
-      expect(slots[0].position[0]).toBeLessThan(slots[1].position[0]);
+      /* A composed turn never moves the spice supply or the turn disc (#1138). */
+      expect(slots.slice(0, 2)).toEqual(standard.slice(0, 2));
       expect(slots.slice(2).map((slot) => slot.phaseIndex)).toEqual(
         Array.from({ length: phaseCount }, (_, index) => index)
       );
-      expect((lowerBound + upperBound) / 2).toBeCloseTo(TRACKER_ARC_CENTER_ANGLE);
       expect(upperBound - lowerBound).toBeLessThanOrEqual(TRACKER_ARC_MAX_SPAN + 1e-10);
       expect(lowerBound).toBeGreaterThan(-Math.PI);
       expect(upperBound).toBeLessThan(0);
     }
   );
+
+  test('centers the standard nine-phase arc above the board', () => {
+    const slots = trackerArcSlots(9);
+    const arcRadius = slots[0].arcRadius;
+    const lowerBound = Math.min(...slots.map((slot) => slot.angle - Math.asin(slot.radius / arcRadius)));
+    const upperBound = Math.max(...slots.map((slot) => slot.angle + Math.asin(slot.radius / arcRadius)));
+    expect((lowerBound + upperBound) / 2).toBeCloseTo(TRACKER_ARC_CENTER_ANGLE);
+    slots.slice(1).forEach((slot, index) => {
+      expect(distance(slots[index].position, slot.position)).toBeCloseTo(
+        slots[index].radius + TRACKER_EDGE_GAP + slot.radius
+      );
+    });
+  });
 
   test.each(Array.from({ length: 31 }, (_, index) => index))('keeps the %i-phase arc separated', (phaseCount) => {
     const slots = trackerArcSlots(phaseCount);
@@ -106,11 +120,10 @@ describe('table trackers', () => {
     slots.forEach((slot) => {
       expect(Math.hypot(slot.position[0], slot.position[2])).toBeCloseTo(slot.arcRadius);
       expect(slot.arcRadius).toBeGreaterThanOrEqual(TRACKER_ARC_RADIUS);
+      expect(slot.radius).toBeGreaterThan(0);
     });
     slots.slice(1).forEach((slot, index) => {
-      const previous = slots[index];
-      expect(distance(previous.position, slot.position)).toBeCloseTo(previous.radius + TRACKER_EDGE_GAP + slot.radius);
-      expect(slot.angle).toBeGreaterThan(previous.angle);
+      expect(slot.angle).toBeGreaterThan(slots[index].angle);
     });
     slots.forEach((slot, index) => {
       slots.slice(index + 1).forEach((other) => {
@@ -178,6 +191,11 @@ describe('table trackers', () => {
     expect(PHASE_TRACKER_RADIUS).toBe(0.26);
     expect(TURN_TRACKER_RADIUS).toBe(0.76);
     expect(TRACKER_EDGE_GAP).toBe(0.045);
+  });
+
+  test('keeps every disc of a very long turn a positive size', () => {
+    const slots = trackerArcSlots(200);
+    expect(slots.slice(2).every((slot) => slot.radius > 0)).toBe(true);
   });
 
   test('highlights one phase and keeps the spice supply muted', () => {

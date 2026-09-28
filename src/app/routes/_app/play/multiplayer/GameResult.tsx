@@ -199,8 +199,8 @@ function FinishedBar({ client, table, result }: Props & Readonly<{ result: GameR
 
 /** Any seated player may open the sequence during Mentat pause of play while nobody else has. */
 function canDetermine(table: TableProjection) {
-  const { stage, phase, ending } = table.snapshot;
-  const mentat = stage === 'play' && phaseAt(phase).id === 'mentat-pause';
+  const { stage, phase, phases, ending } = table.snapshot;
+  const mentat = stage === 'play' && phaseAt(phase, phases).id === 'mentat-pause';
   return mentat && !ending && seated(table);
 }
 

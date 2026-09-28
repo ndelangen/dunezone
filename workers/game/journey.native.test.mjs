@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { TABLE_PHASES } from '../../src/shared/play/phases';
+import { PHASE_CHANGE_COOLDOWN_MS, TABLE_PHASES } from '../../src/shared/play/phases';
 import { draftingRuntime } from './native-drafting.fixture.mjs';
 import {
   accepted,
@@ -76,7 +76,7 @@ describe('A real game from creation to continuation', { timeout: 240_000 }, () =
     return result.entries.map((entry) => entry.text);
   }
   async function next(connection) {
-    offset += 8001;
+    offset += PHASE_CHANGE_COOLDOWN_MS + 1;
     await runtime.clock(offset);
     return accepted(connection, { kind: 'phase', direction: 1 });
   }

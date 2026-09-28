@@ -1,7 +1,7 @@
 import { Button, Group, Stack, Text } from '@mantine/core';
 import { pieceCount } from '@shared/play/model';
 import type { TablePiece } from '@shared/play/model';
-import { TABLE_PHASES } from '@shared/play/phases';
+import { STANDARD_PHASES, standardPhaseOf } from '@shared/play/phases';
 import type { GameSnapshot } from '@shared/play/protocol';
 import { TABLE_SECTOR_COUNT } from '@shared/play/tableSettings';
 import type { TableSeatCount } from '@shared/play/tableSettings';
@@ -44,7 +44,7 @@ const SCENE_READY_FALLBACK_MS = 1500;
 
 const DEFAULT_TABLE_PROGRESS: TableProgress = {
   turn: 1,
-  phases: TABLE_PHASES,
+  phases: STANDARD_PHASES,
   activePhaseId: 'shipment-and-movement',
 };
 
@@ -490,7 +490,9 @@ export function GameTable({
   const heldOverlays = useHeldOverlays();
   const frame = stageFrame(stage);
   /* The camera follows the phase while the header names one: in play, and on the fixture. */
-  const viewPhase = frame.word ? null : tableProgress.activePhaseId;
+  /* A faction phase takes the camera view of the standard phase it precedes (#1138). */
+  const activeEntry = tableProgress.phases.find((entry) => entry.id === tableProgress.activePhaseId);
+  const viewPhase = frame.word || !activeEntry ? null : standardPhaseOf(activeEntry);
   const [viewState, dispatchView] = useReducer(reduceTableView, viewPhase, createTableViewState);
   if (viewState.phase !== viewPhase) {
     /* The phase changed since the last render; the reducer answers it before this render commits. */
