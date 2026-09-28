@@ -36,6 +36,7 @@ import { verifyDecks } from './verify-hosted-decks.mjs';
 import { browserFlows, isBrowserFlow } from './verify-hosted-flows.ts';
 import { verifyPrivateBanks } from './verify-hosted-private-banks.mjs';
 import { verifyPublicControls } from './verify-hosted-public-controls.mjs';
+import { verifyResults } from './verify-hosted-results.mjs';
 
 const { values } = parseArgs({
   options: {
@@ -59,6 +60,7 @@ const flows = {
   'private-banks': verifyPrivateBanks,
   battles: verifyBattles,
   decks: verifyDecks,
+  results: verifyResults,
 };
 assert.deepEqual(
   new Set(Object.keys(flows)),
@@ -1383,6 +1385,8 @@ try {
     playReady,
     depart,
     spectator: SPECTATOR,
+    /* Read when a flow needs it: the game only exists once the flow has created it. */
+    currentGameId: () => gameId,
     factionOf,
     treacheryDeck,
     button,
