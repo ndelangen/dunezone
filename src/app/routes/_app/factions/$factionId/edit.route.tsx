@@ -1,4 +1,4 @@
-import { Alert, Stack } from '@mantine/core';
+import { Alert, Box, SegmentedControl, Stack, Text } from '@mantine/core';
 import { isRouteNoticeCode } from '@shared/routeNotices';
 import type { RouteNoticeCode } from '@shared/routeNotices';
 import type { ErrorComponentProps } from '@tanstack/react-router';
@@ -32,13 +32,80 @@ import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 import { useFactionNameField } from '../factionNameField';
 
+/*
+ * PROTOTYPE, #1398. Throwaway, on prototype/1398-phone-phase-sequence, which never merges.
+ * `?variant=a|b|c` picks how the Phases chapter's sequence sits in the phone thumbnail, the 7rem preview column below a 30rem stage.
+ * A is #1398 as it is: the sequence keeps its wide layout inside the thumbnail.
+ * B gives the sequence the phase card's narrow step below a 38rem stage: the xs inset, small symbols, labels that wrap, and one short storm-order note at the end.
+ * C hides the sequence while the column is the 7rem thumbnail and shows it again once the column widens, from a 30rem stage.
+ * The styles live in FactionPhaseSequence.module.css, keyed on the attribute below, and no choice is stored.
+ */
+const PHASE_SEQUENCE_VARIANTS = [
+  { key: 'a', name: 'A: as #1398 is now' },
+  { key: 'b', name: 'B: narrow step, wrapped labels, one note' },
+  { key: 'c', name: 'C: thumbnail shows the phase card only' },
+] as const;
+
+type PhaseSequenceVariant = (typeof PHASE_SEQUENCE_VARIANTS)[number]['key'];
+
+function isPhaseSequenceVariant(value: unknown): value is PhaseSequenceVariant {
+  return PHASE_SEQUENCE_VARIANTS.some((variant) => variant.key === value);
+}
+
+/* PROTOTYPE, #1398: the floating bar that flips `?variant=` in place. */
+function PhaseSequenceVariantBar({
+  current,
+  onChange,
+}: {
+  current: PhaseSequenceVariant;
+  onChange: (variant: PhaseSequenceVariant) => void;
+}) {
+  if (import.meta.env.PROD) {
+    return null;
+  }
+  const active = PHASE_SEQUENCE_VARIANTS.find((variant) => variant.key === current);
+  return (
+    <Box
+      component="nav"
+      aria-label="Prototype variants for #1398"
+      style={{
+        position: 'fixed',
+        bottom: 16,
+        left: '50%',
+        zIndex: 1000,
+        display: 'flex',
+        flexWrap: 'wrap',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        maxWidth: 'calc(100vw - 24px)',
+        padding: '6px 12px',
+        borderRadius: 999,
+        background: '#101014',
+        boxShadow: '0 8px 24px rgb(0 0 0 / 45%)',
+        color: '#fff',
+        transform: 'translateX(-50%)',
+      }}
+    >
+      <Text size="xs" fw={700}>
+        #1398 phone phase sequence
+      </Text>
+      <SegmentedControl
+        size="xs"
+        value={current}
+        onChange={(value) => onChange(isPhaseSequenceVariant(value) ? value : 'a')}
+        data={PHASE_SEQUENCE_VARIANTS.map((variant) => ({ value: variant.key, label: variant.key.toUpperCase() }))}
+      />
+      <Text size="xs">{active?.name}</Text>
+    </Box>
+  );
+}
+
 export const Route = createFileRoute('/_app/factions/$factionId/edit')({
-  validateSearch: (params: Record<string, unknown>): { notice?: RouteNoticeCode } => {
-    if (isRouteNoticeCode(params?.notice)) {
-      return { notice: params.notice };
-    }
-    return {};
-  },
+  validateSearch: (params: Record<string, unknown>): { notice?: RouteNoticeCode; variant?: PhaseSequenceVariant } => ({
+    ...(isRouteNoticeCode(params?.notice) ? { notice: params.notice } : {}),
+    ...(isPhaseSequenceVariant(params?.variant) ? { variant: params.variant } : {}),
+  }),
   loader: async ({ params }) => await loadFaction(params.factionId),
   errorComponent: FactionEditError,
   component: FactionEditPage,
@@ -65,6 +132,7 @@ function FactionEditError({ error }: ErrorComponentProps) {
 function FactionEditPage() {
   const { factionId } = Route.useParams();
   const search = Route.useSearch();
+  const phaseSequenceVariant = search.variant ?? 'a';
   const loaderData = Route.useLoaderData();
   const navigate = useNavigate();
   const viewRef = useRef<FactionAuthoringViewHandle | null>(null);
@@ -253,21 +321,30 @@ function FactionEditPage() {
               {deleteFaction.error.message}
             </Alert>
           ) : null}
-          <FactionEditor
-            nameField={nameField}
-            key={faction._id}
-            ref={viewRef}
-            form={authoring.form}
-            errors={authoring.persistence.errors}
-            isNameBlank={authoring.editing.isNameBlank}
-            warnings={allWarnings}
-            onSettle={validationHeader.settle}
-            backgroundModeMemory={authoring.backgroundModeMemory}
-            onBackgroundModeMemoryChange={authoring.setBackgroundModeMemory}
-            retainedManualComplexity={authoring.retainedManualComplexity}
-            onRetainedManualComplexityChange={authoring.setRetainedManualComplexity}
-          />
+          {/* PROTOTYPE, #1398: `display: contents` keeps the Stack's layout while the sequence styles read the variant. */}
+          <div data-phase-sequence-variant={phaseSequenceVariant} style={{ display: 'contents' }}>
+            <FactionEditor
+              nameField={nameField}
+              key={faction._id}
+              ref={viewRef}
+              form={authoring.form}
+              errors={authoring.persistence.errors}
+              isNameBlank={authoring.editing.isNameBlank}
+              warnings={allWarnings}
+              onSettle={validationHeader.settle}
+              backgroundModeMemory={authoring.backgroundModeMemory}
+              onBackgroundModeMemoryChange={authoring.setBackgroundModeMemory}
+              retainedManualComplexity={authoring.retainedManualComplexity}
+              onRetainedManualComplexityChange={authoring.setRetainedManualComplexity}
+            />
+          </div>
         </Stack>
+        <PhaseSequenceVariantBar
+          current={phaseSequenceVariant}
+          onChange={(variant) =>
+            void navigate({ to: '.', search: (previous) => ({ ...previous, variant }), replace: true })
+          }
+        />
       </PageLayout.Content>
     </PageLayout>
   );

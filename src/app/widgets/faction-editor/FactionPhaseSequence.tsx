@@ -98,8 +98,8 @@ function SequenceList({
         data-selected={selected || undefined}
         aria-current={selected || undefined}
       >
-        <Image src={resolve(row.symbol)} alt="" w={20} h={20} fit="contain" />
-        <Text size="sm" fw={row.kind === 'faction' ? 700 : 400} truncate>
+        <Image className={styles.symbol} src={resolve(row.symbol)} alt="" w={20} h={20} fit="contain" />
+        <Text className={styles.label} size="sm" fw={row.kind === 'faction' ? 700 : 400} truncate>
           {row.label}
         </Text>
       </li>
@@ -149,6 +149,12 @@ export function FactionPhaseSequence({ rows, selectedIndex }: { rows: readonly u
         ) : null}
         <SequenceList label="Setup" groups={setupGroups} selectedIndex={selectedIndex} />
         <SequenceList label="Each turn" groups={turnGroups} selectedIndex={selectedIndex} />
+        {/* PROTOTYPE, #1398, variant B: the storm-order note once, under both lists, in place of one per group. Hidden unless the variant's narrow step applies. */}
+        {[...setupGroups, ...turnGroups].some((group) => group.placed.length > 0) ? (
+          <Text className={styles.tieFootnote} size="xs" c="dimmed">
+            Ties with other factions go in storm order.
+          </Text>
+        ) : null}
       </Stack>
     </Box>
   );

@@ -37,3 +37,64 @@
 .tieHint {
   padding: 0 var(--space-xs) 2px calc(var(--space-xs) + 3px);
 }
+
+/*
+ * PROTOTYPE, #1398. Throwaway, on prototype/1398-phone-phase-sequence, which never merges.
+ * The edit route sets `data-phase-sequence-variant` from `?variant=a|b|c`; A is the rules above, unchanged.
+ */
+.tieFootnote {
+  display: none;
+}
+
+/*
+ * B: below a 38rem stage, the step where the phase card takes the xs inset and small heading, the
+ * sequence takes the same inset, 14px symbols and extra-small labels that wrap instead of
+ * truncating, and one storm-order note at the end replaces the note under each group.
+ */
+@container faction-review-stage (width < 38rem) {
+  :global([data-phase-sequence-variant="b"]) .sequence {
+    padding: var(--space-xs);
+  }
+
+  :global([data-phase-sequence-variant="b"]) .sequence > :global(.mantine-Stack-root) {
+    gap: var(--space-sm);
+  }
+
+  :global([data-phase-sequence-variant="b"]) .row {
+    align-items: flex-start;
+    gap: 4px;
+    padding: 1px 2px;
+    border-left-width: 2px;
+  }
+
+  :global([data-phase-sequence-variant="b"]) .symbol {
+    flex: none;
+    width: 14px !important;
+    height: 14px !important;
+    margin-top: 2px;
+  }
+
+  :global([data-phase-sequence-variant="b"]) .label {
+    overflow: visible;
+    font-size: var(--mantine-font-size-xs) !important;
+    line-height: 1.3;
+    white-space: normal;
+    text-overflow: clip;
+    overflow-wrap: break-word;
+  }
+
+  :global([data-phase-sequence-variant="b"]) .tieHint {
+    display: none;
+  }
+
+  :global([data-phase-sequence-variant="b"]) .tieFootnote {
+    display: block;
+  }
+}
+
+/* C: the 7rem phone thumbnail shows the phase card alone; from a 30rem stage the column widens and the sequence returns as in A. */
+@container faction-review-stage (width < 30rem) {
+  :global([data-phase-sequence-variant="c"]) .sequence {
+    display: none;
+  }
+}
