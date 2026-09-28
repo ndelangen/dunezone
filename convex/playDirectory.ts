@@ -12,7 +12,7 @@ import { query } from './_generated/server';
 import type { QueryCtx } from './_generated/server';
 import { mutation } from './functions';
 import { isActiveProfile } from './lib/accountLifecycle';
-import { authenticatedPlayRequest, currentPlaySession, isAdministrator, isRealGame } from './lib/playAuthorization';
+import { authenticatedPlayRequest, currentPlaySession, isRealGame } from './lib/playAuthorization';
 
 /*
  * The directory: what the lobby may know about each game. The game Worker publishes a summary
@@ -22,7 +22,7 @@ import { authenticatedPlayRequest, currentPlaySession, isAdministrator, isRealGa
  */
 
 const ONGOING_STAGES = ['drafting', 'swapping', 'setup', 'play'] as const;
-/* Per stage, in creation order, before the sort by activity: enough for an Administrator-only directory today. */
+/* Per stage, in creation order, before the sort by activity: enough for an unlisted beta directory today. */
 const LOBBY_LIMIT = 100;
 
 export const publishSummary = mutation({
@@ -104,8 +104,7 @@ async function gamesInStage(ctx: QueryCtx, stage: PlayDirectorySummary['stage'])
 
 /**
  * The lobby's ongoing and past lists.
- * Real games are Administrator-only, so everyone else sees no listing.
- * The ready listing also says whether the viewer may create a game.
+ * Any active signed-in player sees every listed game.
  */
 export const listGames = query({
   args: {},
@@ -114,10 +113,6 @@ export const listGames = query({
     const session = await currentPlaySession(ctx);
     if (!session) {
       return { status: 'sign_in_required' as const };
-    }
-    const isAdmin = await isAdministrator(ctx, session.userId);
-    if (!isAdmin) {
-      return { status: 'not_authorized' as const };
     }
     const listed = async (stages: readonly PlayDirectorySummary['stage'][]) => {
       const rows = (await Promise.all(stages.map((stage) => gamesInStage(ctx, stage)))).flat();
@@ -132,7 +127,6 @@ export const listGames = query({
     };
     return {
       status: 'ready' as const,
-      canCreate: isAdmin,
       ongoing: await listed(ONGOING_STAGES),
       past: await listed(['finished']),
     };

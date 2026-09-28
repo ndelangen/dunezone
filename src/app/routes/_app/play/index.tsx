@@ -13,7 +13,8 @@ import { useLobbyGames } from '@db/play';
 
 /*
  * The lobby lists what the directory holds and nothing more; it never loads the 3D runtime.
- * Real games are Administrator-only while that gate stands, so everyone else reads an empty lobby.
+ * Any signed-in player sees every listed game. Nothing in the app links here: the lobby stays unlisted
+ * (and noindex) until the public-release decision.
  */
 export const Route = createFileRoute('/_app/play/')({
   head: () => ({ meta: [{ title: 'Game lobby | Dune Zone' }, { name: 'robots', content: 'noindex' }] }),
@@ -92,10 +93,10 @@ function PlayLobby() {
               </>
             ) : (
               <Text c="dimmed">
-                {lobby === undefined ? 'Loading games.' : 'Ongoing and past games appear here once you may enter them.'}
+                {lobby === undefined ? 'Loading games.' : 'Ongoing and past games appear here once you sign in.'}
               </Text>
             )}
-            {lobby?.status === 'ready' && lobby.canCreate ? (
+            {lobby?.status === 'ready' ? (
               <Anchor component={Link} to="/play/create">
                 Create a game
               </Anchor>

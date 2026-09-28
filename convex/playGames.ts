@@ -10,12 +10,12 @@ import type { Doc, Id } from './_generated/dataModel';
 import { query } from './_generated/server';
 import type { QueryCtx } from './_generated/server';
 import { mutation } from './functions';
-import { currentPlaySession, isAdministrator, isRealGame, mayEnterGame } from './lib/playAuthorization';
+import { currentPlaySession, isRealGame } from './lib/playAuthorization';
 import { createPendingGame } from './lib/playProvisioningSchedule';
 
 /*
- * Real games: Administrator-only creation and access until the public-release decision changes
- * that.
+ * Real games: any active signed-in player may create and enter one. The lobby is unlisted rather
+ * than gated: nothing in the app links to /play until the public-release decision (#1094).
  * Convex holds the directory record and its credentials; the game Worker owns everything the game
  * does from provisioning on.
  */
@@ -64,22 +64,13 @@ async function requiredDeck(ctx: QueryCtx, rulesetId: Id<'rulesets'>, slot: 'tre
 
 const RULESET_CHOICE_LIMIT = 200;
 
-async function creationAccess(ctx: QueryCtx) {
-  const session = await currentPlaySession(ctx);
-  if (!session) {
-    return 'unauthenticated' as const;
-  }
-  return (await isAdministrator(ctx, session.userId)) ? ('admin' as const) : ('not_authorized' as const);
-}
-
-/** The rulesets an Administrator may start a game with, each with the directory's objection when it has one. */
+/** The rulesets a signed-in player may start a game with, each with the directory's objection when it has one. */
 export const creatable = query({
   args: {},
   returns: v.union(
     v.object({ access: v.literal('unauthenticated') }),
-    v.object({ access: v.literal('not_authorized') }),
     v.object({
-      access: v.literal('admin'),
+      access: v.literal('allowed'),
       rulesets: v.array(
         v.object({
           id: v.id('rulesets'),
@@ -91,9 +82,8 @@ export const creatable = query({
     })
   ),
   handler: async (ctx) => {
-    const access = await creationAccess(ctx);
-    if (access !== 'admin') {
-      return { access };
+    if (!(await currentPlaySession(ctx))) {
+      return { access: 'unauthenticated' as const };
     }
     const rows = await ctx.db
       .query('rulesets')
@@ -103,7 +93,7 @@ export const creatable = query({
     for (const row of rows) {
       rulesets.push({ id: row._id, slug: row.slug, name: row.name, objection: await rulesetObjection(ctx, row._id) });
     }
-    return { access: 'admin' as const, rulesets };
+    return { access: 'allowed' as const, rulesets };
   },
 });
 
@@ -117,7 +107,7 @@ export const createGame = mutation({
   returns: zodToConvex(playCreateGameResultSchema),
   handler: async (ctx, args) => {
     const session = await currentPlaySession(ctx);
-    if (!session || !(await isAdministrator(ctx, session.userId))) {
+    if (!session) {
       return { ok: false as const, reason: 'not_authorized' as const };
     }
     const rulesetId = ctx.db.normalizeId('rulesets', args.rulesetId);
@@ -149,7 +139,7 @@ export const getGame = query({
     }
     const id = ctx.db.normalizeId('play_games', args.gameId);
     const game = id ? await ctx.db.get(id) : null;
-    if (!game || !(await mayEnterGame(ctx, game, session.userId))) {
+    if (!game) {
       return { status: 'not_found' as const };
     }
     return await gameAccess(ctx, game);

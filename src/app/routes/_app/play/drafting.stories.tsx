@@ -45,7 +45,7 @@ export const WaitingForPlayers = meta.story({
 
 /* The maximum table keeps all eighteen stations visible while six players wait for the remaining seats. */
 export const EighteenSeats = meta.story({
-  parameters: parameters('ready', true, undefined, 18),
+  parameters: parameters('ready', undefined, 18),
   beforeEach: install(() => productTransport('seat-2', draftingSnapshot(SIX, 18))),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);

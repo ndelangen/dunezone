@@ -6,12 +6,13 @@ import { db, ref, storybookViewer } from '@db/storybook';
 import { pageStoryMeta } from '../../storybookConfig';
 import { productDatabase } from './product.stories.fixture';
 
-const signedIn = (isAdmin: boolean) => ({
+/* No account carries the Administrator flag: creation is open to every signed-in player. */
+const signedIn = {
   identity: { ...storybookViewer, sessionKey: 'create-session' },
   database: db((baseline) => {
     productDatabase(baseline);
     for (const user of baseline.users) {
-      user.isAdmin = isAdmin;
+      user.isAdmin = false;
     }
     baseline.authSessions.push({
       $key: 'create-session',
@@ -20,7 +21,7 @@ const signedIn = (isAdmin: boolean) => ({
     });
     baseline.authRefreshTokens.push({ sessionId: ref('create-session'), expirationTime: 4_102_444_800_000 });
   }),
-});
+};
 
 const meta = preview.meta({
   ...pageStoryMeta,
@@ -43,18 +44,9 @@ export const SignedOut = meta.story({
   },
 });
 
-export const Member = meta.story({
-  parameters: signedIn(false),
-  play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    await expect(page.findByText('You cannot create a game yet', {}, { timeout: 30_000 })).resolves.toBeVisible();
-    expect(page.queryByRole('button', { name: 'Create game' })).toBeNull();
-  },
-});
-
 /** The baseline ruleset links a treachery deck and no spice deck, so the directory objects and creation stays disabled. */
-export const Administrator = meta.story({
-  parameters: signedIn(true),
+export const Member = meta.story({
+  parameters: signedIn,
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     const create = await page.findByRole('button', { name: 'Create game' }, { timeout: 30_000 });

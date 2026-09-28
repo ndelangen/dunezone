@@ -5,7 +5,6 @@ import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
 import { LoadPending } from '@ui/block/LoadPending';
 import { LoginGate } from '@ui/block/LoginGate';
-import { NotAvailable } from '@ui/block/NotAvailable';
 import { PageTitle } from '@ui/block/PageTitle';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
@@ -38,7 +37,7 @@ function draftReducer(state: Draft, event: DraftEvent): Draft {
 }
 
 const REFUSALS = {
-  not_authorized: 'Your account may not create a game.',
+  not_authorized: 'Sign in again to create a game.',
   unavailable: 'That ruleset cannot start a game right now.',
 } as const;
 
@@ -57,15 +56,7 @@ function CreateGamePage() {
           <LoginGate action="create a game" />
         </PageMessage>
       );
-    case 'not_authorized':
-      return (
-        <PageMessage size="compact" title={TITLE}>
-          <NotAvailable title="You cannot create a game yet">
-            Creating a game is limited to Administrators while real games are being delivered.
-          </NotAvailable>
-        </PageMessage>
-      );
-    case 'admin':
+    case 'allowed':
       return <CreateGameForm rulesets={data.rulesets} />;
   }
 }
