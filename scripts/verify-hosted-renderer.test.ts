@@ -101,11 +101,18 @@ test.each([
   [['--browser-only', '--expect-renderer', 'webgl2'], '--expect-renderer must be one of'],
   [['--expect-renderer', 'webgpu'], '--expect-renderer requires a browser flow.'],
 ])('the launcher refuses %j before it boots a stack', (args, message) => {
-  const result = spawnSync('bun', ['--no-env-file', path.resolve('scripts/verify-hosted-play-stack.ts'), ...args], {
-    encoding: 'utf8',
-    timeout: 10_000,
-  });
+  /* A relative --backend-binary stops the launcher before it starts anything, so a refusal that regressed fails here without booting a stack. */
+  const result = spawnSync(
+    'bun',
+    [
+      '--no-env-file',
+      path.resolve('scripts/verify-hosted-play-stack.ts'),
+      ...args,
+      '--backend-binary',
+      'convex-local-backend',
+    ],
+    { encoding: 'utf8', timeout: 10_000 }
+  );
   expect(result.status).toBe(1);
   expect(result.stderr).toContain(message);
-  expect(result.stdout).not.toContain('Synthetic Auth backend ready');
 });
