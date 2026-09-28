@@ -14,7 +14,7 @@ async function cardFixture(active: boolean) {
     ctx.db.insert('admin_settings', {
       key: 'publication',
       publication_pickup_enabled: true,
-      renderer_revisions: active ? { 'faction-traitor': 1, 'faction-alliance': 1 } : {},
+      renderer_revisions: active ? { 'faction-traitor': 1, 'faction-alliance': 1, 'faction-troop': 1 } : {},
       updated_at: 1,
     })
   );
@@ -126,14 +126,18 @@ describe('Faction card publication', () => {
     expect(definition?.alliance).toBe(`/published/alliance-cards/${faction._id}/card.jpg?v=card-1`);
   });
 
-  test('a soft-deleted faction drops its pending card work', async () => {
-    const { t, owner, faction, taken } = await cardFixture(true);
+  test('a soft-deleted faction drops its pending troop and card work', async () => {
+    const { t, owner, faction } = await cardFixture(true);
     await t.run(async (ctx) => {
       for (const job of await ctx.db.query('publication_jobs').collect()) {
         await ctx.db.patch(job._id, { status: 'pending', expires_at: undefined });
       }
     });
     await owner.mutation(api.factions.softDelete, { id: faction._id });
-    expect(await taken()).toEqual([]);
+    expect(
+      (await t.mutation(internal.publicationJobs.takeWork, {})).items.filter((item) =>
+        [...CARD_TYPES, 'faction-troop'].includes(item.assetType)
+      )
+    ).toEqual([]);
   });
 });

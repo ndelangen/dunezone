@@ -109,6 +109,17 @@ function tokenTarget(shape: string, widthPx: number, heightPx: number): Publicat
   };
 }
 
+/* Every card draws at the card renderer's own 900x1263, from `@game/data/sizes`. */
+function cardTarget(collection: string, file: string, downloadFilename: string): PublicationTarget {
+  return {
+    collection,
+    file,
+    contentType: 'image/jpeg',
+    downloadFilename,
+    capture: { output: 'image', widthPx: 900, heightPx: 1263, jpegQuality: 88, maxBytes: 2_000_000 },
+  };
+}
+
 const defaultRulebookSize = getRulebookSize(DEFAULT_RULEBOOK_SETTINGS.size);
 
 export const PUBLICATION_TARGETS: Record<PublicationAssetType, PublicationTarget> = {
@@ -131,21 +142,9 @@ export const PUBLICATION_TARGETS: Record<PublicationAssetType, PublicationTarget
     faces: ['back'],
   },
   /* One supporting leader's traitor card front, under `{factionId}.{memberId}` like its Leader (#1228). */
-  'faction-traitor': {
-    collection: 'traitor-cards',
-    file: 'card.jpg',
-    contentType: 'image/jpeg',
-    downloadFilename: 'traitor-card.jpg',
-    capture: { output: 'image', widthPx: 900, heightPx: 1263, jpegQuality: 88, maxBytes: 2_000_000 },
-  },
+  'faction-traitor': cardTarget('traitor-cards', 'card.jpg', 'traitor-card.jpg'),
   /* A faction's alliance card front, under the bare faction id (#1228). */
-  'faction-alliance': {
-    collection: 'alliance-cards',
-    file: 'card.jpg',
-    contentType: 'image/jpeg',
-    downloadFilename: 'alliance-card.jpg',
-    capture: { output: 'image', widthPx: 900, heightPx: 1263, jpegQuality: 88, maxBytes: 2_000_000 },
-  },
+  'faction-alliance': cardTarget('alliance-cards', 'card.jpg', 'alliance-card.jpg'),
   'faction-leader': {
     collection: 'leaders',
     file: 'leader.jpg',
@@ -161,39 +160,15 @@ export const PUBLICATION_TARGETS: Record<PublicationAssetType, PublicationTarget
     capture: { output: 'pdf' },
   },
   /* 900x1263 is the treachery renderer's own size, from `@game/data/sizes`. */
-  'card-treachery': {
-    collection: 'cards',
-    file: 'card.jpg',
-    contentType: 'image/jpeg',
-    downloadFilename: 'treachery-card.jpg',
-    capture: { output: 'image', widthPx: 900, heightPx: 1263, jpegQuality: 88, maxBytes: 2_000_000 },
-  },
+  'card-treachery': cardTarget('cards', 'card.jpg', 'treachery-card.jpg'),
   /* A spice card draws at the same 900x1263 card size, under its own collection so the two card types never share an address. */
-  'card-spice': {
-    collection: 'spice-cards',
-    file: 'card.jpg',
-    contentType: 'image/jpeg',
-    downloadFilename: 'spice-card.jpg',
-    capture: { output: 'image', widthPx: 900, heightPx: 1263, jpegQuality: 88, maxBytes: 2_000_000 },
-  },
+  'card-spice': cardTarget('spice-cards', 'card.jpg', 'spice-card.jpg'),
   /*
    * A deck publishes its Cardback and nothing else (wayfinder #495), so the row is a card in every dimension that matters.
    * `CardBack` is the card renderer at the card's own size, and the quality number was measured on that renderer's output.
    */
-  deck: {
-    collection: 'decks',
-    file: 'cardback.jpg',
-    contentType: 'image/jpeg',
-    downloadFilename: 'deck-cardback.jpg',
-    capture: { output: 'image', widthPx: 900, heightPx: 1263, jpegQuality: 88, maxBytes: 2_000_000 },
-  },
-  'cardback-preset': {
-    collection: 'cardback-presets',
-    file: 'cardback.jpg',
-    contentType: 'image/jpeg',
-    downloadFilename: 'cardback-preset.jpg',
-    capture: { output: 'image', widthPx: 900, heightPx: 1263, jpegQuality: 88, maxBytes: 2_000_000 },
-  },
+  deck: cardTarget('decks', 'cardback.jpg', 'deck-cardback.jpg'),
+  'cardback-preset': cardTarget('cardback-presets', 'cardback.jpg', 'cardback-preset.jpg'),
   /* The default image geometry uses A4; each capture resolves its Edition Size below. */
   'rulebook-first-page': {
     collection: 'rulebooks',
