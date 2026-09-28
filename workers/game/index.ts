@@ -16,7 +16,6 @@ import {
   playReconcileAccountsResultSchema,
   playRedeemTicketResultSchema,
 } from '../../src/shared/play/admission';
-import type { ExtraReference } from '../../src/shared/play/capture';
 import {
   PLAY_DIRECTORY_RETRY_CEILING_MS,
   PLAY_DIRECTORY_RETRY_MS,
@@ -26,7 +25,12 @@ import type { DraftFaction } from '../../src/shared/play/drafting';
 import { isDraftAction } from '../../src/shared/play/drafting';
 import type { StoredSpawnContents } from '../../src/shared/play/inventory';
 import type { ClientMessage, ServerClock, ServerMessage, Viewer } from '../../src/shared/play/protocol';
-import { TICKET_EXPIRED_CLOSE_CODE, clientMessageSchema } from '../../src/shared/play/protocol';
+import {
+  KEEPALIVE_PING,
+  KEEPALIVE_PONG,
+  TICKET_EXPIRED_CLOSE_CODE,
+  clientMessageSchema,
+} from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
 import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
 import { SPECTATOR_COLOR } from './actors';
@@ -68,6 +72,8 @@ class ExpiredTicket extends GameRejection {}
 
 const json = (body: unknown, status = 200) => Response.json(body, { status, headers: { 'Cache-Control': 'no-store' } });
 const refused = () => json({ error: 'Request refused.' }, 403);
+/* Above a steady load cell's 720 saved commands, so a cell's metrics request still finds its first. */
+const COMMAND_TIMINGS = 1024;
 function isApplicationSocket(request: Request, applicationOrigin: string): boolean {
   return (
     request.headers.get('Origin') === applicationOrigin && request.headers.get('Upgrade')?.toLowerCase() === 'websocket'
@@ -178,12 +184,19 @@ export class GameRoom extends DurableObject<GameEnv> {
   private activityDeliveries = 0;
   private messagesSent = 0;
   private bytesSent = 0;
+  /*
+   * When this object began handling each recent saved command, by its own clock, for the load runner's metrics request.
+   * A Worker's clock stands still while code runs, so only when handling began is meaningful, not how long it took.
+   * A spawn request is timed after its catalogue read, so its entry includes that read.
+   */
+  private readonly commandTimings: { userId: string; commandId: string; handledAt: number }[] = [];
   private readonly session: GameSession;
   private get metadata() {
     return this.session.info;
   }
   constructor(ctx: DurableObjectState, env: GameEnv) {
     super(ctx, env);
+    this.ctx.setWebSocketAutoResponse(new WebSocketRequestResponsePair(KEEPALIVE_PING, KEEPALIVE_PONG));
     this.diagnostics = new GameDiagnostics(ctx.id.toString(), env.GIT_SHA);
     this.session = new GameSession(ctx.storage);
     if (this.metadata) {
@@ -243,19 +256,12 @@ export class GameRoom extends DurableObject<GameEnv> {
     return this.session.retainRuleset(capture, options);
   }
 
-  protected async retainFactionCapture(
-    factionId: string,
-    extras: readonly ExtraReference[] = [],
-    options: { provisional?: boolean } = {}
-  ) {
+  protected async retainFactionCapture(factionId: string, options: { provisional?: boolean } = {}) {
     const existing = this.session.retainedFaction(factionId);
     if (existing) {
       return existing;
     }
-    const capture = await new GameCatalogue(this.env.CONVEX_URL, this.env.APPLICATION_ORIGIN).captureFaction(
-      factionId,
-      extras
-    );
+    const capture = await new GameCatalogue(this.env.CONVEX_URL, this.env.APPLICATION_ORIGIN).captureFaction(factionId);
     return this.session.retainFaction(capture, options);
   }
 
@@ -1125,6 +1131,7 @@ export class GameRoom extends DurableObject<GameEnv> {
   }
 
   private sendMetrics(socket: WebSocket) {
+    const userId = this.connections.get(socket)?.viewer?.userId;
     this.send(socket, {
       type: 'metrics',
       revision: this.session.revision,
@@ -1135,6 +1142,9 @@ export class GameRoom extends DurableObject<GameEnv> {
       activityDeliveries: this.activityDeliveries,
       messagesSent: this.messagesSent,
       bytesSent: this.bytesSent,
+      commands: this.commandTimings
+        .filter((timing) => timing.userId === userId)
+        .map(({ commandId, handledAt }) => ({ commandId, handledAt })),
     });
   }
   private publishActivity(
@@ -1205,6 +1215,14 @@ export class GameRoom extends DurableObject<GameEnv> {
     message: Extract<ClientMessage, { type: 'command' | 'drop' }>,
     contents?: StoredSpawnContents
   ) {
+    this.commandTimings.push({
+      userId: connection.viewer!.userId,
+      commandId: message.commandId,
+      handledAt: Date.now(),
+    });
+    if (this.commandTimings.length > COMMAND_TIMINGS) {
+      this.commandTimings.shift();
+    }
     if (this.reconcileViewers()) {
       this.broadcastActivity();
     }
@@ -1301,7 +1319,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     this.assigning = true;
     try {
       for (const faction of prepared.factions) {
-        await this.retainFactionCapture(faction, [], { provisional: this.metadata?.provisional === true });
+        await this.retainFactionCapture(faction, { provisional: this.metadata?.provisional === true });
       }
       if (this.session.completeAssignment(prepared)) {
         this.deliverDirectorySoon();

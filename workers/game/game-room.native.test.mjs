@@ -52,6 +52,17 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     return { connection, view };
   }
 
+  it('answers a keepalive without treating it as a message', async () => {
+    expect((await provision(runtime)).status).toBe(200);
+    const { connection } = await admit();
+    connection.keepalive();
+    await eventually(() => connection.keepalives === 1, 'keepalive answer');
+    connection.send({ type: 'metrics' });
+    const metrics = await connection.message('metrics');
+    expect(connection.closed).toBe(false);
+    expect(metrics.commands).toEqual([]);
+  });
+
   it('keeps normal play and expected refusals quiet, but reports a repeated storage failure once', async () => {
     expect((await provision(runtime)).status).toBe(200);
     const { connection } = await admit();
@@ -226,10 +237,17 @@ describe('GameRoom native SQLite and admission boundaries', () => {
       (await connection.message('view', (message) => message.completedCommandId === 'delete-spice')).snapshot
     ).toEqual(returned.snapshot);
     await runtime.clock(turnAt + PHASE_CHANGE_COOLDOWN_MS + 1);
+    const boundarySentAt = Date.now() + turnAt + PHASE_CHANGE_COOLDOWN_MS + 1;
     connection.send({ type: 'command', commandId: 'save-boundary', action: { kind: 'phase' }, expectedRevision: 7 });
     const boundary = await connection.message('view', (message) => message.completedCommandId === 'save-boundary');
+    const boundaryAnsweredAt = Date.now() + turnAt + PHASE_CHANGE_COOLDOWN_MS + 1;
     connection.send({ type: 'metrics' });
-    expect(await connection.message('metrics')).toMatchObject({ revision: 8, receiptCount: 8, historySteps: 3 });
+    const metrics = await connection.message('metrics');
+    expect(metrics).toMatchObject({ revision: 8, receiptCount: 8, historySteps: 3 });
+    /* The room reports when it began handling the requester's command, by its own clock, which the test offsets. */
+    expect(metrics.commands.at(-1).commandId).toBe('save-boundary');
+    expect(metrics.commands.at(-1).handledAt).toBeGreaterThanOrEqual(boundarySentAt);
+    expect(metrics.commands.at(-1).handledAt).toBeLessThanOrEqual(boundaryAnsweredAt);
 
     await runtime.restart();
     peer.watchMode = 'allow';

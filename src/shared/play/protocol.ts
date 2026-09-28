@@ -287,6 +287,8 @@ export const serverMessageSchema = z.discriminatedUnion('type', [
     activityDeliveries: count.optional(),
     messagesSent: count,
     bytesSent: count,
+    /* The requester's own recent saved commands, with when the room began handling each by its clock. */
+    commands: z.array(z.object({ commandId: id, handledAt: count })).optional(),
   }),
 ]);
 export type ServerMessage = z.infer<typeof serverMessageSchema>;
@@ -295,6 +297,13 @@ export type ServerMessage = z.infer<typeof serverMessageSchema>;
  * Unlike a refusal it is not final: the browser requests a new ticket and reconnects.
  */
 export const TICKET_EXPIRED_CLOSE_CODE = 4410;
+/*
+ * Cloudflare closes a WebSocket that carries nothing for 100 seconds, so every client sends this frame while its socket is open.
+ * The room answers it without waking, and a client ignores the answer.
+ */
+export const KEEPALIVE_PING = 'ping';
+export const KEEPALIVE_PONG = 'pong';
+export const KEEPALIVE_INTERVAL_MS = 30_000;
 /**
  * The Worker's wall clock at send, stamped on every frame but `admission`.
  * It sits beside the message rather than in it: an update copies its base view, so a stamp inside the view would go stale.

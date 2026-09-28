@@ -8,6 +8,7 @@ import { publishingSpiceCard } from '../src/shared/assets/fixtures/publishingSpi
 import { publishingTokenFace } from '../src/shared/assets/fixtures/publishingTokenFace';
 import { publishingTreacheryCard } from '../src/shared/assets/fixtures/publishingTreacheryCard';
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
+import { ensureFactionTroopIds } from '../src/shared/factions/troopIdentity';
 import { PLAY_FIXTURE_KEY } from '../src/shared/play/admission';
 import { loadProfileSchema } from '../src/shared/play/loadProfile';
 import type { Id } from './_generated/dataModel';
@@ -208,7 +209,7 @@ export const seedRealGameCatalogue = internalMutation({
       const factionId = await ctx.db.insert('factions', {
         ...row,
         slug: `${faction.slug}-${suffix}`,
-        data: {
+        data: ensureFactionTroopIds({
           ...assetPublishingFaction,
           name: faction.name,
           themeColor: faction.color,
@@ -217,7 +218,7 @@ export const seedRealGameCatalogue = internalMutation({
             name: 'Troops',
             combat: SYNTHETIC_TROOP_COMBAT,
           })),
-        },
+        }),
       });
       await ctx.db.insert('ruleset_factions', { ruleset_id: rulesetId, faction_id: factionId });
       publications.push(await publish(ctx, 'faction-token', factionId, 'front'));

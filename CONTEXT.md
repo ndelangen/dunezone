@@ -159,7 +159,7 @@ The presentational grouping of Asset types that arranges the assets landing page
 **About**:
 Entity-level prose explaining a thing, shown in an "About" section on its detail page; an empty one shows the section with a nothing-written-yet line rather than hiding it, so the field reads as present-but-blank instead of missing. Plain text, never markdown. An Asset carries one inside `data`, with no length floor, because an Asset with nothing to explain is the normal case; a Ruleset carries one with a 50-character floor, because a Ruleset without one is useless.
 
-_Not_: **description**, which names a label on a sub-component inside `factions.data`: a troop's, a planet's, an extras link's. The two live at different levels, and only one of them is prose a reader chooses to read.
+_Not_: **description**, which names a label on a sub-component inside `factions.data`: a troop's or a planet's. The two live at different levels, and only one of them is prose a reader chooses to read.
 
 **Token backside**:
 The reverse face every token has. It is either authored as part of the token itself, or it is another existing token serving as the back, a reference, never a copy. A token with a referenced backside publishes only its own front face; the back resolves to the referenced token's publication.
@@ -286,6 +286,6 @@ Where a Real game is in its life: drafting, swapping, setup, play, finished or d
 _Avoid_: Status, state, mode
 
 **Faction Extra**:
-A catalogue reference a faction declares for setup supply: a deck, a token bundle or a single token, supplied once per faction with the container's member counts. Missing or empty Extras mean none. Distinct from the legacy `extras` links a faction sheet lists for Tabletop Simulator, which supply nothing.
+A catalogue reference a faction declares for setup supply: a deck, a token bundle or a single token, supplied once per faction with the container's member counts. Stored in the faction's `extras` as a type and slug, each listed once; missing or empty Extras mean none. It replaced the unused Tabletop Simulator link lists that field once held (#1226).
 _Avoid_: Extra asset, add-on
 

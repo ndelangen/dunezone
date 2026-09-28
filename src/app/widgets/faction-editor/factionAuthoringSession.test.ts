@@ -96,17 +96,27 @@ describe('faction authoring session', () => {
     expect(formResets.at(-1)?.values.name).toBe('Saved once');
   });
 
-  test('a save after loading a draft preserves stored extras from the loaded source', async () => {
+  test('a save keeps the Extras the author chose', async () => {
     const { session, savedEntries } = makeHarness();
-    const extras = [{ name: 'Tokens', items: [] }];
-    const withExtras = { ...structuredClone(assetPublishingFaction), extras };
-    session.loadDraft(withExtras);
+    const extras = [{ type: 'bundle' as const, slug: 'spice-tokens' }];
 
-    await session.persistDraft({ ...structuredClone(assetPublishingFaction), name: 'Edited' });
+    await session.persistDraft({ ...structuredClone(assetPublishingFaction), name: 'Edited', extras });
 
     expect(savedEntries).toHaveLength(1);
     const savedData = savedEntries[0]?.data as { extras?: unknown } | undefined;
     expect(savedData?.extras).toEqual(extras);
+  });
+
+  test('a save refuses the same Extra listed twice', async () => {
+    const { session, savedEntries } = makeHarness();
+    const extras = [
+      { type: 'deck' as const, slug: 'omens' },
+      { type: 'deck' as const, slug: 'omens' },
+    ];
+
+    await session.persistDraft({ ...structuredClone(assetPublishingFaction), extras });
+
+    expect(savedEntries).toHaveLength(0);
   });
 
   test('switching source replaces both baselines without saving the previous draft', () => {

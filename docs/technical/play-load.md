@@ -83,6 +83,25 @@ trace operation. Coordinator lateness and a previous failed interaction have the
 Recipient application does not hold this command slot: slow recipients are correlated independently.
 The complete schedule and its outcome remain in `actionScheduleSlots` and `actions.schedule`.
 
+`roomTiming` splits each saved command at the moment the room began handling it. The room keeps
+that moment, by its own clock, for its last 1,024 saved commands, and the metrics request returns
+the requester's own. The runner reads them at the end of the run, including a failed one, while
+its sockets are open. `toRoomMs` runs from the coordinator's send to that moment and `fromRoomMs`
+from it to the coordinator receiving the answer, so it holds the room's own work and the path
+back. Both include the unknown offset between the two clocks, so a slow command is read against
+the median of its leg. A Worker's clock stands still while its code runs, so the room cannot
+separate its own work from the path back. Its readings also wander: in the second 28 September
+slow cell, `toRoomMs` spanned 1.2 s while most round trips took 150 to 300 ms. One command's split
+is therefore a hint rather than a measurement.
+
+Every protocol socket sends the page's keepalive frame every 30 s, as the page does. The room
+answers it without waking, so it counts as traffic in `keepalives` and the byte totals but not as
+a delivery or against the room's message ceiling. Without it, Cloudflare closes a socket that
+carries nothing for 100 s with code 1006. That ended the second 28 September browser cell, whose
+early connections sat idle while the browsers signed in. A signup that fails or times out is
+retried up to three times, alternating signing in and signing up, and each failure is kept in
+`signupRetries`.
+
 `trace` runs two complete action cycles without background motion, checks item conservation and
 compares every recipient's public durable snapshot once each holds the last confirmed revision. Private bank projections are not expected
 to match across factions. `multitab` checks each secondary tab and its primary

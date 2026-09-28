@@ -11,10 +11,10 @@ import type { TablePhaseId } from '../play/phases';
  * `phases.ts` is the only Play module this file reads, so the editor and Convex never pull setup code in.
  */
 
-/** The two setup steps a declaration can precede; a setup target runs the phase once. */
+/** The two setup steps a declaration can precede; a setup target runs the phase once. The symbol is the one Play shows for the step. */
 export const SETUP_PHASE_TARGETS = [
-  { id: 'traitors', label: 'Traitors' },
-  { id: 'forces', label: 'Starting forces' },
+  { id: 'traitors', label: 'Traitors', symbol: '/vector/icon/traitor.svg' },
+  { id: 'forces', label: 'Starting forces', symbol: '/vector/icon/shipment_disc.svg' },
 ] as const;
 
 export type SetupPhaseTarget = (typeof SETUP_PHASE_TARGETS)[number]['id'];
