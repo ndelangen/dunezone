@@ -554,11 +554,14 @@ function treacheryDeck(who) {
   assert.ok(deck, 'Setup supplied no treachery deck.');
   return deck.id;
 }
-/** The seeded Harkonnen troop reserve: the carry checks look for its red token on screen. */
+/**
+ * The seeded Harkonnen troop reserve: the carry checks look for its red token on screen.
+ * Stacks are keyed by persistent troop identity (#1227), and setup lays them out in troop order, so the first is the first troop.
+ */
 function troopStack(who) {
   const faction = who.view().snapshot.roster.seats.find((seat) => seat.faction?.name === 'Harkonnen')?.faction;
   assert.ok(faction, 'No seat holds the red Harkonnen faction.');
-  const stack = who.view().snapshot.table.pieces.find((value) => value.stackKey === `troops:${faction.id}:0`);
+  const stack = who.view().snapshot.table.pieces.find((value) => value.stackKey?.startsWith(`troops:${faction.id}:`));
   assert.ok(stack, 'The Harkonnen seat has no troop reserve on the table.');
   return stack.id;
 }
