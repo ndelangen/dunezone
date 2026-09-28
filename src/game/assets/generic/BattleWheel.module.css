@@ -300,13 +300,25 @@
   }
 }
 
+/* The caller's Motion verdict sits on the wheel in the same three states as the site's `html[data-motion]`.
+   `reduce` stills both animations, `ok` plays them over the OS hint, and a wheel without a verdict
+   follows the hint alone. */
+.wheel[data-motion="reduce"] .readinessRing,
+.wheel[data-motion="reduce"] .revealed {
+  animation: none;
+}
+
+.wheel[data-motion="reduce"] .readinessRing[data-ready="false"] {
+  stroke-dasharray: 12 8;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .readinessRing,
-  .revealed {
+  .wheel:not([data-motion="ok"]) .readinessRing,
+  .wheel:not([data-motion="ok"]) .revealed {
     animation: none;
   }
 
-  .readinessRing[data-ready="false"] {
+  .wheel:not([data-motion="ok"]) .readinessRing[data-ready="false"] {
     stroke-dasharray: 12 8;
   }
 }
