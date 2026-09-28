@@ -7,8 +7,8 @@ import { describe, expect, test } from 'vitest';
 
 import { PLANET, TROOP_MODIFIER } from '../src/shared/assetIds';
 import { recalculateFactionComplexity } from '../src/shared/factions/complexity';
+import { ensureFactionComponentIds } from '../src/shared/factions/componentIdentity';
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
-import { ensureFactionMemberIds } from '../src/shared/factions/memberIdentity';
 import { CanonicalFactionStoredSchema, FactionInputSchema } from '../src/shared/factions/schema';
 import type { FactionInput } from '../src/shared/factions/schema';
 import { api } from './_generated/api';
@@ -191,7 +191,7 @@ function representativeFullFieldFaction(): FactionInput {
       },
     ],
   };
-  return ensureFactionMemberIds(FactionInputSchema.parse(recalculateFactionComplexity(input)));
+  return ensureFactionComponentIds(FactionInputSchema.parse(recalculateFactionComplexity(input)));
 }
 
 describe('faction authoring full-field round trip', () => {

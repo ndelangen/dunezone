@@ -10,6 +10,12 @@ import {
   FactionMemberIdSchema,
   factionMembersHaveIds,
 } from '../src/shared/factions/memberIdentity';
+import {
+  assertUniqueFactionTroopIds,
+  ensureFactionTroopIds,
+  factionTroopsHaveIds,
+  FactionTroopIdSchema,
+} from '../src/shared/factions/troopIdentity';
 import { DEFAULT_FAQ_TAG } from '../src/shared/faq/tags';
 import { normalizeFormattedText } from '../src/shared/formattedText';
 import { components, internal } from './_generated/api';
@@ -90,6 +96,8 @@ const MIGRATION_IDS: Record<string, MigrationRef> = {
   rulebook_edition_contents_verify_v1: internal.migrations.rulebook_edition_contents_verify_v1,
   faction_extras_references_v1: internal.migrations.faction_extras_references_v1,
   faction_extras_references_verify_v1: internal.migrations.faction_extras_references_verify_v1,
+  faction_troop_ids_v1: internal.migrations.faction_troop_ids_v1,
+  faction_troop_ids_verify_v1: internal.migrations.faction_troop_ids_verify_v1,
 };
 
 type MigrationId = keyof typeof MIGRATION_IDS;
@@ -1148,5 +1156,40 @@ export const faction_extras_references_verify_v1 = migrations.define({
     if (extras !== undefined && !factionExtrasSchema.safeParse(extras).success) {
       throw new Error(`Faction ${row._id} still has Extras that are not catalogue references`);
     }
+  },
+});
+
+/* Like the member migration, validate only the troops this migration changes and keep every other field as stored. */
+const migrationFactionTroopsSchema = z.looseObject({
+  troops: z.array(z.looseObject({ troopId: FactionTroopIdSchema.optional() })),
+});
+
+/**
+ * Adds troop identities (#1227) without changing authored fields or the faction's edit timestamp.
+ * Deliberately absent from migration-guards.json in the release that widens the schema: deploy migrates before the game and publisher Workers ship, and their previous strict schemas refuse `troopId`.
+ * The next release lists it, once every reader accepts the field.
+ */
+export const faction_troop_ids_v1 = migrations.define({
+  table: 'factions',
+  batchSize: 50,
+  migrateOne: async (_ctx, row) => {
+    const data = migrationFactionTroopsSchema.parse(row.data);
+    if (factionTroopsHaveIds(data)) {
+      return;
+    }
+    return { data: ensureFactionTroopIds(data) };
+  },
+});
+
+/** Every stored faction, including deleted sources, must carry unique troop identities before the optional field narrows. */
+export const faction_troop_ids_verify_v1 = migrations.define({
+  table: 'factions',
+  batchSize: 50,
+  migrateOne: async (_ctx, row) => {
+    const parsed = migrationFactionTroopsSchema.safeParse(row.data);
+    if (!parsed.success || !factionTroopsHaveIds(parsed.data)) {
+      throw new Error(`Faction ${row._id} has missing troop identities.`);
+    }
+    assertUniqueFactionTroopIds(parsed.data);
   },
 });

@@ -5,6 +5,7 @@ import { marksOnlyFormattedTextSchema, proseFormattedTextSchema } from '../forma
 import { extraPhasesSchema } from './extraPhases';
 import { factionExtrasSchema, storedFactionExtrasSchema } from './extras';
 import { assertUniqueFactionMemberIds, FactionMemberIdSchema } from './memberIdentity';
+import { assertUniqueFactionTroopIds, FactionTroopIdSchema } from './troopIdentity';
 
 const STRENGTH = z.union([z.number().int(), z.string().length(1)]);
 const OFFSET = z.tuple([z.number(), z.number()]);
@@ -61,6 +62,7 @@ const TroopSide = z.strictObject({
 });
 
 const Troop = z.strictObject({
+  troopId: FactionTroopIdSchema.optional(),
   image: TROOP,
   name: z.string(),
   description: z.string(),
@@ -211,14 +213,25 @@ const factionAuthoringShape = {
   extras: factionExtrasSchema.optional(),
 };
 
-/** Rejects unknown keys (e.g. `slug` must live on the Convex row, not in `data`). */
-export const FactionInputSchema = z.strictObject(factionAuthoringShape).superRefine((data, ctx) => {
+type ComponentRoster = Parameters<typeof assertUniqueFactionMemberIds>[0] &
+  Parameters<typeof assertUniqueFactionTroopIds>[0];
+
+/** Leader and troop identities are each unique within their faction (#1227). */
+function refineUniqueComponentIds(data: ComponentRoster, ctx: z.RefinementCtx) {
   try {
     assertUniqueFactionMemberIds(data);
   } catch {
     ctx.addIssue({ code: 'custom', message: 'Faction member IDs must be unique within the faction.' });
   }
-});
+  try {
+    assertUniqueFactionTroopIds(data);
+  } catch {
+    ctx.addIssue({ code: 'custom', message: 'Faction troop IDs must be unique within the faction.' });
+  }
+}
+
+/** Rejects unknown keys (e.g. `slug` must live on the Convex row, not in `data`). */
+export const FactionInputSchema = z.strictObject(factionAuthoringShape).superRefine(refineUniqueComponentIds);
 
 /**
  * Canonical storage is intentionally wider than current authoring semantics: historical rows with a blank name must remain readable while the UI requires a name for all new canonical writes.
@@ -239,13 +252,7 @@ export const HistoricalFactionPublicationSchema = z.strictObject({
 });
 
 /** Complete canonical data also requires unique member identities across the roster. */
-export const IdentifiedFactionStoredSchema = CanonicalFactionStoredSchema.superRefine((data, ctx) => {
-  try {
-    assertUniqueFactionMemberIds(data);
-  } catch {
-    ctx.addIssue({ code: 'custom', message: 'Faction member IDs must be unique within the faction.' });
-  }
-});
+export const IdentifiedFactionStoredSchema = CanonicalFactionStoredSchema.superRefine(refineUniqueComponentIds);
 
 /**
  * Client read-path variants: tolerate unknown top-level fields so additive server changes never break stale tabs;
