@@ -486,6 +486,8 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     second.send({ type: 'admit', ticket: 'd'.repeat(64) });
     const joined = await second.message('view');
     expect(joined.carries).toHaveLength(1);
+    /* A view the first connection asks for arrives behind anything the join sent it. */
+    await syncView(first.connection);
     expect(first.connection.messages.slice(beforeMessages).some((message) => message.type === 'admission')).toBe(false);
     peer.watchMode = 'manual';
     peer.httpMode = 'hold';

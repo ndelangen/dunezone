@@ -895,11 +895,13 @@ export const HiddenDeckBacks = meta.story({
       id: 'hidden-inventory-deck',
       label: 'Treachery deck',
       inventory: 'shared' as const,
+      /* The key a catalogue spawn carries, not the one the backless placeholder cards share. */
+      stackKey: 'deck:dreamrules-treachery-deck',
       items: [
         {
           id: 'opaque-card',
           faceUp: false,
-          artwork: { back: cardBack(), type: 'card-treachery' },
+          artwork: { back: cardBack(), backName: 'Treachery' },
         },
       ],
     };

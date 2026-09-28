@@ -1,6 +1,6 @@
 import { fixtureCombatFaces } from '../../src/shared/play/battle';
 import { initialSnapshot } from '../../src/shared/play/commands';
-import type { SpawnContents, SpawnSelection } from '../../src/shared/play/inventory';
+import type { SpawnSelection, StoredSpawnContents } from '../../src/shared/play/inventory';
 import { LOAD_SEATS, loadSnapshot } from '../../src/shared/play/loadFixture';
 import type { LoadProfile } from '../../src/shared/play/loadFixture';
 import type { TablePiece } from '../../src/shared/play/model';
@@ -59,7 +59,10 @@ const FIXTURE_LOOSE_CARD_PIECE = 'treachery-card-loose';
  * published faces and the deck's back. A deck that is not one card stack of at least two cards
  * (one for the deck, one for the loose card), or a table without the fixture pieces, is left as it is.
  */
-export function dealFixtureDeck<Table extends { pieces: TablePiece[] }>(table: Table, deck: SpawnContents): Table {
+export function dealFixtureDeck<Table extends { pieces: TablePiece[] }>(
+  table: Table,
+  deck: StoredSpawnContents
+): Table {
   const cards = deck.pieces.length === 1 && deck.pieces[0]!.kind === 'card' ? deck.pieces[0]!.items : [];
   if (cards.length < 2 || !table.pieces.some((piece) => piece.id === FIXTURE_DECK_PIECE)) {
     return table;
@@ -82,7 +85,11 @@ export function dealFixtureDeck<Table extends { pieces: TablePiece[] }>(table: T
 }
 
 /** A fixture's first snapshot: its pieces, its seating and an empty bank for each seated house. */
-export function fixtureSnapshot(roster: TableRoster, loadProfile?: LoadProfile, deck?: SpawnContents): StoredSnapshot {
+export function fixtureSnapshot(
+  roster: TableRoster,
+  loadProfile?: LoadProfile,
+  deck?: StoredSpawnContents
+): StoredSnapshot {
   const snapshot = storedSnapshotSchema.parse(loadProfile ? loadSnapshot(loadProfile) : initialSnapshot());
   return seedFactionState(
     deck && !loadProfile ? { ...snapshot, table: dealFixtureDeck(snapshot.table, deck) } : snapshot,

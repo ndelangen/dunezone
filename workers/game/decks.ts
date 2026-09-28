@@ -1,11 +1,12 @@
 import { randomInt, randomUUID } from 'node:crypto';
 
 import { accepted, nextSnapshot } from '../../src/shared/play/commands';
-import type { TablePiece } from '../../src/shared/play/model';
+import type { StoredPiece, TablePiece } from '../../src/shared/play/model';
 import { tableForViewer } from '../../src/shared/play/protocol';
 import type { DeckAction } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
 import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
+import { labelForCount } from '../../src/shared/play/tableState';
 import type { StoredSnapshot } from './state';
 
 /** Keep physical card identities and history intact while retiring their observable handles. */
@@ -26,14 +27,14 @@ export function concealCards(snapshot: StoredSnapshot, pieces: TablePiece[], ret
 }
 
 type DeckTransition = {
-  pieces: TablePiece[];
+  pieces: StoredPiece[];
   inventories: StoredSnapshot['factionInventories'];
-  concealed: TablePiece[];
+  concealed: StoredPiece[];
   message: string;
 };
 
 /** Initial supply and later shuffles both sever the public catalogue order. */
-export function shuffledCards(source: TablePiece['items']): TablePiece['items'] {
+export function shuffledCards(source: StoredPiece['items']): StoredPiece['items'] {
   const items = source.map((item) => ({ ...item, faceUp: false }));
   for (let index = items.length - 1; index > 0; index--) {
     const other = randomInt(index + 1);
@@ -42,7 +43,7 @@ export function shuffledCards(source: TablePiece['items']): TablePiece['items'] 
   return items;
 }
 
-function shuffleDeck(snapshot: StoredSnapshot, deck: TablePiece): DeckTransition {
+function shuffleDeck(snapshot: StoredSnapshot, deck: StoredPiece): DeckTransition {
   if (deck.items.length < 2) {
     throw new GameRejection('A shuffle needs at least two cards.');
   }
@@ -56,7 +57,7 @@ function shuffleDeck(snapshot: StoredSnapshot, deck: TablePiece): DeckTransition
   };
 }
 
-function drawCard(snapshot: StoredSnapshot, deck: TablePiece, recipient: string): DeckTransition {
+function drawCard(snapshot: StoredSnapshot, deck: StoredPiece, recipient: string): DeckTransition {
   const faction = snapshot.roster?.seats.find((seat) => seat.faction?.id === recipient)?.faction;
   if (!faction) {
     throw new GameRejection('That faction has no seat at this table.');
@@ -76,7 +77,8 @@ function drawCard(snapshot: StoredSnapshot, deck: TablePiece, recipient: string)
       if (piece.id !== deck.id) {
         return [piece];
       }
-      return remaining.length ? [{ ...deck, items: remaining }] : [];
+      /* A deal changes the deck's own cards, so what is left takes the name its back gives it, as after a split. */
+      return remaining.length ? [{ ...deck, label: labelForCount(deck, remaining.length), items: remaining }] : [];
     }),
     inventories: {
       ...snapshot.factionInventories,
@@ -87,7 +89,7 @@ function drawCard(snapshot: StoredSnapshot, deck: TablePiece, recipient: string)
   };
 }
 
-function requireDeck(snapshot: StoredSnapshot, pieceId: string): TablePiece {
+function requireDeck(snapshot: StoredSnapshot, pieceId: string): StoredPiece {
   const deck = snapshot.table.pieces.find((piece) => piece.id === pieceId);
   if (!deck || deck.kind !== 'card') {
     throw new GameRejection('Choose a deck on the table.');
