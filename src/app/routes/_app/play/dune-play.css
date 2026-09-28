@@ -447,11 +447,20 @@ html[data-motion="reduce"] .dune-play-stage .dune-play-shell {
   }
 }
 
+/* The shell's transitions and smooth scrolling follow the site's Motion setting, like the iris above: off always stills them, on keeps them whatever the OS asks. */
+html[data-motion="reduce"] :where(.dune-play-shell),
+html[data-motion="reduce"] :where(.dune-play-shell) *,
+html[data-motion="reduce"] :where(.dune-play-shell) *::before,
+html[data-motion="reduce"] :where(.dune-play-shell) *::after {
+  scroll-behavior: auto !important;
+  transition-duration: 0.01ms !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  :where(.dune-play-shell),
-  :where(.dune-play-shell) *,
-  :where(.dune-play-shell) *::before,
-  :where(.dune-play-shell) *::after {
+  html:not([data-motion="ok"]) :where(.dune-play-shell),
+  html:not([data-motion="ok"]) :where(.dune-play-shell) *,
+  html:not([data-motion="ok"]) :where(.dune-play-shell) *::before,
+  html:not([data-motion="ok"]) :where(.dune-play-shell) *::after {
     scroll-behavior: auto !important;
     transition-duration: 0.01ms !important;
   }
