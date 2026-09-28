@@ -1166,19 +1166,16 @@ const migrationFactionTroopsSchema = z.looseObject({
 
 /**
  * Adds troop identities (#1227) without changing authored fields or the faction's edit timestamp.
- * Deliberately absent from migration-guards.json in the release that widens the schema: deploy migrates before the game and publisher Workers ship, and their previous strict schemas refuse `troopId`.
- * The next release lists it, once every reader accepts the field.
+ * Listed in migration-guards.json one release after the schema widened (#1482): deploy migrates before the game and publisher Workers ship, so every reader had to accept `troopId` first.
  */
 export const faction_troop_ids_v1 = migrations.define({
   table: 'factions',
   batchSize: 50,
-  migrateOne: async (_ctx, row) => {
-    const data = migrationFactionTroopsSchema.parse(row.data);
-    if (factionTroopsHaveIds(data)) {
-      return;
-    }
-    return { data: ensureFactionTroopIds(data) };
-  },
+  migrateOne: async (_ctx, row) =>
+    namingFaction(row._id, () => {
+      const data = migrationFactionTroopsSchema.parse(row.data);
+      return factionTroopsHaveIds(data) ? undefined : { data: ensureFactionTroopIds(data) };
+    }),
 });
 
 /** Every stored faction, including deleted sources, must carry unique troop identities before the optional field narrows. */
@@ -1190,6 +1187,17 @@ export const faction_troop_ids_verify_v1 = migrations.define({
     if (!parsed.success || !factionTroopsHaveIds(parsed.data)) {
       throw new Error(`Faction ${row._id} has missing troop identities.`);
     }
-    assertUniqueFactionTroopIds(parsed.data);
+    namingFaction(row._id, () => assertUniqueFactionTroopIds(parsed.data));
   },
 });
+
+/** A deploy that stops on one faction names the row, so the failure can be found. */
+function namingFaction<T>(factionId: string, run: () => T): T {
+  try {
+    return run();
+  } catch (error) {
+    throw new Error(`Faction ${factionId}: ${error instanceof Error ? error.message : String(error)}`, {
+      cause: error,
+    });
+  }
+}
