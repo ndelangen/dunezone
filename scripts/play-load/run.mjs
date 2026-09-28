@@ -686,7 +686,7 @@ try {
       step: async (slot) => {
         const useTrace = trace && values.case !== 'peak';
         /*
-         * Without the trace one flip follows three rotations, so the piece's flips are at least four dispatches (2 s) apart.
+         * Without the trace one action in every four is a flip, so the piece's flips are at least four dispatches (2 s) apart.
          * The room refuses a flip within 520 ms of the last one by its own clock, and on 28 September a hosted room refused one sent a second after the last.
          */
         const operation = useTrace
@@ -740,7 +740,13 @@ try {
     assert.ok(trace, 'The complete synthetic trace needs an expanded profile.');
     const started = performance.now();
     await scheduleActions(started, (trace.operations.length * 2 * 1000) / manifest.durableActionsPerSecond);
-    /* The actor's confirmation can arrive before the first recipient's update, so its view is read once every recipient holds the last confirmed revision. */
+    /*
+     * The actor's confirmation can arrive before the first recipient's update, so its view is read once every recipient holds the last confirmed revision.
+     * A failed step can leave the room past that revision, so the run ends here with that step's failure.
+     */
+    if (report.actions.schedule.failed) {
+      throw new Error(report.actions.schedule.failed);
+    }
     await until(
       () => peers.every((peer) => peer.view.snapshot.revision === confirmedRevision),
       'Trace recipients did not converge.'

@@ -71,7 +71,7 @@ cycling a move, rotation, flip, token split, merge, deck draw and return of the 
 return keeps repeated cycles supplied. Preparation moves two action stacks into clear space; the
 separated profile first merges two loose items of each kind through normal carry commands. The
 initial fixture counts are checked before this setup. Baseline and peak runs retain rotation and
-flip as their durable work: three rotations, then one flip of the same piece. The room refuses a
+flip as their durable work, one flip in every four actions on the same piece. The room refuses a
 flip within 520 ms of the previous one by its own clock, so flips are at least two seconds apart.
 The peak keeps its full 18 carries without adding a nineteenth carry
 for a saved move. Scheduled intents, dispatches, accepted commands, rejections, failures and skipped slots are distinct.
