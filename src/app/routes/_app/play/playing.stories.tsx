@@ -385,8 +385,8 @@ export const Connecting = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     const status = await page.findByText('Connecting to the hosted table...', {}, { timeout: 30_000 });
-    /* The status line eases in from transparent, so visibility is read once the ease has run. */
-    await waitFor(() => expect(status).toBeVisible());
+    /* The status line eases in from transparent through a keyframe animation, so the wait finishes it and reads the settled style instead of waiting on drawn frames (https://github.com/ndelangen/dunezone/issues/1413). */
+    await waitFor(() => expect(finishTransitions(status)).toBeVisible());
     const frame = status.closest('[data-connection]');
     expect(frame).toHaveAttribute('data-connection', 'connecting');
     expect(page.getByRole('link', { name: 'Back to lobby' })).toBeVisible();
