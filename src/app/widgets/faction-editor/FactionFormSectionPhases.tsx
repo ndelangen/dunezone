@@ -241,10 +241,10 @@ export function FactionFormSectionPhases({
                     if (currentSelectedIndex >= lastIndex) {
                       selectIndex(Math.max(0, lastIndex - 1));
                     }
-                    field.handleChange(phases.slice(0, -1));
+                    field.removeValue(lastIndex);
                   }}
                   onAdd={() => {
-                    field.handleChange([...phases, defaultPhaseDeclaration()]);
+                    field.pushValue(defaultPhaseDeclaration());
                     selectIndex(count);
                   }}
                 />

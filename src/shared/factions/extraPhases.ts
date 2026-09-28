@@ -52,7 +52,8 @@ function capitalized(value: unknown): string {
 const PRIORITY_MESSAGE = 'Priority must be a whole number.';
 
 export const phaseDeclarationSchema = z.strictObject({
-  id: z.string().min(1),
+  /* Generated when a row is added; kept to table-id characters so Play can build setup step ids from it. */
+  id: z.string().regex(/^[a-zA-Z0-9_-]{1,64}$/),
   type: z.enum(PHASE_TYPES, {
     error: (issue) =>
       issue.input === undefined ? 'Choose a phase type.' : `"${String(issue.input)}" is not a phase type.`,

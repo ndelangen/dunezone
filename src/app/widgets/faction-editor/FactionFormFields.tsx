@@ -424,6 +424,11 @@ function ArtifactProof({
   );
 }
 
+/* Only the Phases chapter has rows the schema can refuse while the draft is open. */
+function refusedRowCount(chapter: FactionAuthoringChapterId, faction: Faction): number {
+  return chapter === 'phases' ? invalidPhaseRowCount(faction) : 0;
+}
+
 export const FactionFormFields = forwardRef<
   FactionFormFieldsHandle,
   {
@@ -546,23 +551,22 @@ export const FactionFormFields = forwardRef<
       value: chapter.id,
       label: chapter.label,
       icon: <ChapterIcon chapter={chapter.id} form={form} />,
-      indicator:
-        chapter.id === 'phases' ? (
-          /* Refused rows hold Save, so this count is red where the advisory warnings are yellow. */
-          <form.Subscribe selector={(state) => invalidPhaseRowCount(state.values)}>
-            {(invalid) =>
-              invalid > 0 ? (
-                <Badge circle size="sm" color="red">
-                  {invalid}
-                </Badge>
-              ) : null
-            }
-          </form.Subscribe>
-        ) : chapterWarnings.length > 0 ? (
-          <Badge circle size="sm" color="yellow">
-            {chapterWarnings.length}
-          </Badge>
-        ) : undefined,
+      indicator: (
+        /* Refused rows hold Save, so their count is red and outranks the chapter's advisory warnings, which are yellow. */
+        <form.Subscribe selector={(state) => refusedRowCount(chapter.id, state.values)}>
+          {(refused) =>
+            refused > 0 ? (
+              <Badge circle size="sm" color="red">
+                {refused}
+              </Badge>
+            ) : chapterWarnings.length > 0 ? (
+              <Badge circle size="sm" color="yellow">
+                {chapterWarnings.length}
+              </Badge>
+            ) : null
+          }
+        </form.Subscribe>
+      ),
       panel: <Stack gap="lg">{chapterEditor(chapter.id)}</Stack>,
     };
   });
