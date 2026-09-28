@@ -1,5 +1,3 @@
-import { lacksCombatValues, troopCombatFaces } from '@shared/factions/troopCombat';
-
 import type { Faction } from '@db/factions';
 
 export const factionAuthoringChapters = [
@@ -118,21 +116,6 @@ export function factionAuthoringWarnings(faction: Faction): FactionAuthoringWarn
       );
     }
   });
-  for (const face of troopCombatFaces(faction.troops).filter(lacksCombatValues)) {
-    const back = face.side === 'back';
-    const index = face.troopIndex;
-    /* A half-entered pair points at the strength still missing; the save refuses it until both are there. */
-    const input = typeof face.face.combat?.strength === 'number' ? 'fundedStrength' : 'strength';
-    warnings.push(
-      warning(
-        `troops[${index}]${back ? '.back' : ''}.combat`,
-        'forces',
-        `Troop ${index + 1}`,
-        back ? 'back-side combat values' : 'combat values',
-        `troop-${index}${back ? '-back' : ''}-${input}`
-      )
-    );
-  }
   faction.planet?.forEach((planet, index) => {
     const source = `Planet ${index + 1}`;
     if (isBlank(planet.name)) {

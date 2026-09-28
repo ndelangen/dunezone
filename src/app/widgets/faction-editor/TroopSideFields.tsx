@@ -1,6 +1,7 @@
-import { Box, ColorInput, NumberInput, SimpleGrid, Stack, Switch, TextInput } from '@mantine/core';
+import { Box, ColorInput, NumberInput, SimpleGrid, Stack, Switch, Text, TextInput } from '@mantine/core';
 import type { NumberInputProps } from '@mantine/core';
 import { TROOP, TROOP_MODIFIER } from '@shared/assetIds';
+import { completeCombat } from '@shared/factions/troopCombat';
 import { AssetSelect } from '@ui/control/AssetSelect';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
@@ -184,32 +185,39 @@ function TroopCombatFields({
           {capable.state.value !== false ? (
             <form.Field name={combatField}>
               {(combat) => (
-                <SimpleGrid cols={{ base: 1, sm: 3 }}>
-                  {inputs.map(({ key, title, description, whole }) => {
-                    const label = isBack ? `Back-side ${title.toLowerCase()}` : title;
-                    return (
-                      <ControlBlock
-                        key={key}
-                        title={label}
-                        description={description}
-                        input={
-                          <CombatNumberInput
-                            id={`${idBase}-${key}`}
-                            aria-label={label}
-                            placeholder={whole ? '1' : 'Not set'}
-                            step={whole ? 1 : 0.5}
-                            whole={whole}
-                            value={combat.state.value?.[key]}
-                            onCommit={(value) => {
-                              combat.handleChange(nextTroopCombat(combat.state.value, key, value));
-                              combat.handleBlur();
-                            }}
-                          />
-                        }
-                      />
-                    );
-                  })}
-                </SimpleGrid>
+                <Stack gap="xs">
+                  <SimpleGrid cols={{ base: 1, sm: 3 }}>
+                    {inputs.map(({ key, title, description, whole }) => {
+                      const label = isBack ? `Back-side ${title.toLowerCase()}` : title;
+                      return (
+                        <ControlBlock
+                          key={key}
+                          title={label}
+                          description={description}
+                          input={
+                            <CombatNumberInput
+                              id={`${idBase}-${key}`}
+                              aria-label={label}
+                              placeholder={whole ? '1' : 'Not set'}
+                              step={whole ? 1 : 0.5}
+                              whole={whole}
+                              value={combat.state.value?.[key]}
+                              onCommit={(value) => {
+                                combat.handleChange(nextTroopCombat(combat.state.value, key, value));
+                                combat.handleBlur();
+                              }}
+                            />
+                          }
+                        />
+                      );
+                    })}
+                  </SimpleGrid>
+                  {completeCombat(combat.state.value) === null ? (
+                    <Text id={`${idBase}-combat-warning`} c="var(--color-caution)" size="xs" role="status">
+                      Enter both strengths to use this side in battle. Until then a game leaves it out of battle plans.
+                    </Text>
+                  ) : null}
+                </Stack>
               )}
             </form.Field>
           ) : null}

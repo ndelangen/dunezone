@@ -112,6 +112,11 @@ export const AuthorsTroopCombatValues = meta.story({
     await userEvent.click(canvas.getByRole('radio', { name: 'Back side' }));
     await expect(canvas.getByRole('textbox', { name: 'Back-side funded strength' })).toHaveValue('-0.5');
     await expect(canvas.getByRole('textbox', { name: 'Back-side funding cost' })).toHaveValue('0');
+    const backStrength = canvas.getByRole('textbox', { name: 'Back-side strength' });
+    await expect(canvas.queryByText(/Enter both strengths/)).toBeNull();
+    await userEvent.clear(backStrength);
+    await userEvent.tab();
+    await expect(canvas.getByText(/Enter both strengths/)).toHaveAttribute('role', 'status');
   },
 });
 

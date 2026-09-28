@@ -295,41 +295,14 @@ describe('faction authoring contract', () => {
     expect(FactionInputSchema.safeParse(faction).success).toBe(true);
   });
 
-  it('names every face that can fight without authored combat values, and keeps them savable', () => {
+  it('keeps faces without combat values savable and out of the header', () => {
     const faction = structuredClone(defaultFaction);
     const image = faction.troops[0].image;
     faction.troops = [
       { name: 'Unset', image, description: 'Unset', count: 1, back: { name: 'Back', image, description: 'Back' } },
-      {
-        name: 'Set',
-        image,
-        description: 'Set',
-        count: 1,
-        combat: { strength: -0.5, fundedStrength: 1.25, fundingCost: 0 },
-        back: { name: 'Noncombatant', image, description: 'Noncombatant', capable: false },
-      },
-      { name: 'Inherits', image, description: 'Inherits', count: 1, capable: false },
-      /* A half-entered pair, as the editor holds it while the author types the other strength. */
-      { name: 'Half', image, description: 'Half', count: 1, combat: { strength: 2 } as never },
     ];
 
-    const combat = factionAuthoringWarnings(faction).filter((warning) => warning.path.endsWith('.combat'));
-
-    expect(combat).toEqual([
-      expect.objectContaining({
-        path: 'troops[0].combat',
-        chapter: 'forces',
-        missing: 'combat values',
-        targetId: 'troop-0-strength',
-      }),
-      expect.objectContaining({
-        path: 'troops[0].back.combat',
-        missing: 'back-side combat values',
-        targetId: 'troop-0-back-strength',
-      }),
-      expect.objectContaining({ path: 'troops[3].combat', targetId: 'troop-3-fundedStrength' }),
-    ]);
-    faction.troops.pop();
+    expect(factionAuthoringWarnings(faction).filter((warning) => warning.path.includes('combat'))).toEqual([]);
     expect(FactionInputSchema.safeParse(faction).success).toBe(true);
   });
 
