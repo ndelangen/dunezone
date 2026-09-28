@@ -1,5 +1,12 @@
 import { PLAY_PENDING_TIMEOUT_MS, PLAY_REQUEST_TIMEOUT_MS, PLAY_TICKET_RETRY_MAX_MS } from '@shared/play/admission';
-import { serverClockSchema, serverMessageSchema, TICKET_EXPIRED_CLOSE_CODE } from '@shared/play/protocol';
+import {
+  KEEPALIVE_INTERVAL_MS,
+  KEEPALIVE_PING,
+  KEEPALIVE_PONG,
+  serverClockSchema,
+  serverMessageSchema,
+  TICKET_EXPIRED_CLOSE_CODE,
+} from '@shared/play/protocol';
 import type { ClientMessage, ServerMessage } from '@shared/play/protocol';
 import { applyRoomUpdate } from '@shared/play/updates';
 import type { RoomView } from '@shared/play/updates';
@@ -35,6 +42,7 @@ export class GameSubscription {
   private listener: ((event: GameSubscriptionEvent) => void) | null = null;
   private reconnectTimer: ReturnType<typeof setTimeout> | undefined;
   private admissionTimer: ReturnType<typeof setTimeout> | undefined;
+  private keepaliveTimer: ReturnType<typeof setInterval> | undefined;
   private ticketAttempt: TicketAttempt | undefined;
   private generation = 0;
   private current: RoomView | null = null;
@@ -85,6 +93,7 @@ export class GameSubscription {
     ++this.generation;
     clearTimeout(this.reconnectTimer);
     clearTimeout(this.admissionTimer);
+    clearInterval(this.keepaliveTimer);
     clearTimeout(this.ticketAttempt?.timer);
     this.ticketAttempt = undefined;
     const socket = this.socket;
@@ -212,6 +221,12 @@ export class GameSubscription {
       }
       socket.send(JSON.stringify({ type: 'admit', ticket }));
       ticket = '';
+      clearInterval(this.keepaliveTimer);
+      this.keepaliveTimer = setInterval(() => {
+        if (this.isCurrentSocket(socket) && socket.readyState === 1) {
+          socket.send(KEEPALIVE_PING);
+        }
+      }, KEEPALIVE_INTERVAL_MS);
     };
     socket.onmessage = (event) => this.receiveSocketMessage(socket, event.data);
     socket.onclose = (event) => {
@@ -221,6 +236,7 @@ export class GameSubscription {
       ticket = '';
       this.socket = null;
       clearTimeout(this.admissionTimer);
+      clearInterval(this.keepaliveTimer);
       /* A refusal already supplied its reason; closing must not erase it. */
       if (this.status === 'denied') {
         return;
@@ -242,7 +258,7 @@ export class GameSubscription {
 
   private receiveSocketMessage(socket: GameSocket, data: string) {
     const receivedAt = this.runtime.monotonicNow();
-    if (!this.isCurrentSocket(socket) || this.status === 'denied') {
+    if (!this.isCurrentSocket(socket) || this.status === 'denied' || data === KEEPALIVE_PONG) {
       return;
     }
     let message: ServerMessage;

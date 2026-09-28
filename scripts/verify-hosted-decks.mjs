@@ -3,7 +3,18 @@ import assert from 'node:assert/strict';
 import { stackTopHeight } from '../src/shared/play/tableGeometry.ts';
 
 /** Real deck menus and shortcuts against the isolated authority, with distinct private recipients. */
-export async function verifyDecks({ seated, factionOf, treacheryDeck, focus, openTab, point, capture, until, passed }) {
+export async function verifyDecks({
+  seated,
+  factionOf,
+  treacheryDeck,
+  converged,
+  focus,
+  openTab,
+  point,
+  capture,
+  until,
+  passed,
+}) {
   const { a, b, observer } = await seated();
   const deckId = treacheryDeck(a);
   const deck = (who) => who.view().snapshot.table.pieces.find((piece) => piece.id === deckId);
@@ -22,6 +33,8 @@ export async function verifyDecks({ seated, factionOf, treacheryDeck, focus, ope
   assert.equal(await menu.isVisible(), true);
   await menu.getByRole('menuitem', { name: `Deal 1 to ${factionOf(b).name}`, exact: true }).click();
   await until(() => hands(b).length === 1 && deck(b).items.length === size - 2, 'Deal did not reach the recipient.');
+  /* The observer's empty hand counts only once its view holds the deal (#1481). */
+  await converged([a, b, observer]);
   assert.equal(hands(a).length, 1);
   assert.equal(hands(observer).length, 0);
   assert.equal(await menu.isVisible(), true);

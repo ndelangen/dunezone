@@ -18,6 +18,7 @@ import {
 import { mapViewFramingPoints } from '../src/app/routes/_app/play/tablePlateGeometry.ts';
 import { turnTrackerLayout } from '../src/app/routes/_app/play/turnTrackerGeometry.ts';
 import { phaseAt, phaseForTurn, TABLE_PHASES, tableProgressFor } from '../src/shared/play/phases.ts';
+import { KEEPALIVE_PING, KEEPALIVE_PONG } from '../src/shared/play/protocol.ts';
 import { isSpicePiece } from '../src/shared/play/spice.ts';
 import { spiceSupplySlot } from '../src/shared/play/spiceSupply.ts';
 import { stackTopHeight } from '../src/shared/play/tableGeometry.ts';
@@ -318,10 +319,16 @@ async function peer(label, context) {
       connection.closed = true;
     });
     socket.on('framesent', (frame) => {
+      if (frame.payload.toString() === KEEPALIVE_PING) {
+        return;
+      }
       const message = JSON.parse(frame.payload.toString());
       state.sent.push(message.type === 'admit' ? { type: 'admit', ticketLength: message.ticket.length } : message);
     });
     socket.on('framereceived', (frame) => {
+      if (frame.payload.toString() === KEEPALIVE_PONG) {
+        return;
+      }
       const message = JSON.parse(frame.payload.toString());
       if (typeof message.phaseCooldownMs === 'number') {
         state.phaseCooldown = { ms: message.phaseCooldownMs, receivedAt: Date.now() };
@@ -439,6 +446,8 @@ async function playReady(players, audience) {
   }
   await until(() => stage() === 'setup', 'Trading did not close into setup.', 30_000);
   while (stage() === 'setup') {
+    /* Next clears readiness, and a player whose view has not yet reached that step would read its old Ready and skip it (#1481). */
+    await converged(players);
     for (const who of players) {
       if (!who.view().snapshot.controls.ready.includes(who.view().viewer.viewerSeat)) {
         await act(who, 'Ready');
@@ -554,11 +563,14 @@ function treacheryDeck(who) {
   assert.ok(deck, 'Setup supplied no treachery deck.');
   return deck.id;
 }
-/** The seeded Harkonnen troop reserve: the carry checks look for its red token on screen. */
+/**
+ * The seeded Harkonnen troop reserve: the carry checks look for its red token on screen.
+ * Stacks are keyed by persistent troop identity (#1227), and setup lays them out in troop order, so the first is the first troop.
+ */
 function troopStack(who) {
   const faction = who.view().snapshot.roster.seats.find((seat) => seat.faction?.name === 'Harkonnen')?.faction;
   assert.ok(faction, 'No seat holds the red Harkonnen faction.');
-  const stack = who.view().snapshot.table.pieces.find((value) => value.stackKey === `troops:${faction.id}:0`);
+  const stack = who.view().snapshot.table.pieces.find((value) => value.stackKey?.startsWith(`troops:${faction.id}:`));
   assert.ok(stack, 'The Harkonnen seat has no troop reserve on the table.');
   return stack.id;
 }

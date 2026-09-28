@@ -16,7 +16,6 @@ import {
   playReconcileAccountsResultSchema,
   playRedeemTicketResultSchema,
 } from '../../src/shared/play/admission';
-import type { ExtraReference } from '../../src/shared/play/capture';
 import {
   PLAY_DIRECTORY_RETRY_CEILING_MS,
   PLAY_DIRECTORY_RETRY_MS,
@@ -26,7 +25,12 @@ import type { DraftFaction } from '../../src/shared/play/drafting';
 import { isDraftAction } from '../../src/shared/play/drafting';
 import type { StoredSpawnContents } from '../../src/shared/play/inventory';
 import type { ClientMessage, ServerClock, ServerMessage, Viewer } from '../../src/shared/play/protocol';
-import { TICKET_EXPIRED_CLOSE_CODE, clientMessageSchema } from '../../src/shared/play/protocol';
+import {
+  KEEPALIVE_PING,
+  KEEPALIVE_PONG,
+  TICKET_EXPIRED_CLOSE_CODE,
+  clientMessageSchema,
+} from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
 import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
 import { SPECTATOR_COLOR } from './actors';
@@ -192,6 +196,7 @@ export class GameRoom extends DurableObject<GameEnv> {
   }
   constructor(ctx: DurableObjectState, env: GameEnv) {
     super(ctx, env);
+    this.ctx.setWebSocketAutoResponse(new WebSocketRequestResponsePair(KEEPALIVE_PING, KEEPALIVE_PONG));
     this.diagnostics = new GameDiagnostics(ctx.id.toString(), env.GIT_SHA);
     this.session = new GameSession(ctx.storage);
     if (this.metadata) {
@@ -251,19 +256,12 @@ export class GameRoom extends DurableObject<GameEnv> {
     return this.session.retainRuleset(capture, options);
   }
 
-  protected async retainFactionCapture(
-    factionId: string,
-    extras: readonly ExtraReference[] = [],
-    options: { provisional?: boolean } = {}
-  ) {
+  protected async retainFactionCapture(factionId: string, options: { provisional?: boolean } = {}) {
     const existing = this.session.retainedFaction(factionId);
     if (existing) {
       return existing;
     }
-    const capture = await new GameCatalogue(this.env.CONVEX_URL, this.env.APPLICATION_ORIGIN).captureFaction(
-      factionId,
-      extras
-    );
+    const capture = await new GameCatalogue(this.env.CONVEX_URL, this.env.APPLICATION_ORIGIN).captureFaction(factionId);
     return this.session.retainFaction(capture, options);
   }
 
@@ -1321,7 +1319,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     this.assigning = true;
     try {
       for (const faction of prepared.factions) {
-        await this.retainFactionCapture(faction, [], { provisional: this.metadata?.provisional === true });
+        await this.retainFactionCapture(faction, { provisional: this.metadata?.provisional === true });
       }
       if (this.session.completeAssignment(prepared)) {
         this.deliverDirectorySoon();

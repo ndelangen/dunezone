@@ -9,6 +9,7 @@ import { build } from 'esbuild';
 import { Miniflare, convertV4MiniflareOptions } from 'miniflare';
 import { WebSocketServer } from 'ws';
 
+import { KEEPALIVE_PING, KEEPALIVE_PONG } from '../../src/shared/play/protocol.ts';
 import { applyRoomUpdate } from '../../src/shared/play/updates.ts';
 
 const directory = dirname(fileURLToPath(import.meta.url));
@@ -435,13 +436,13 @@ export async function createRuntime(peer, kind = 'probe', bindings = {}) {
       const room = namespace.get(namespace.idFromName(gameId));
       await room.fetch('https://native-test/native-test/fail-storage', { method: 'POST' });
     },
-    async capture(kind, id, { extras = [], provisional = false } = {}) {
+    async capture(kind, id, { provisional = false } = {}) {
       const namespace = await instance.getDurableObjectNamespace('GAME_ROOMS');
       const room = namespace.get(namespace.idFromName(gameId));
       const response = await room.fetch('https://native-test/native-test/capture', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ kind, id, extras, provisional }),
+        body: JSON.stringify({ kind, id, provisional }),
       });
       return response.json();
     },
@@ -517,9 +518,14 @@ export async function openGame(runtime) {
     throw new Error(`Socket refused: ${response.status}`);
   }
   const socket = response.webSocket;
-  const connection = { socket, messages: [], unapplied: [], closed: false, closeCode: null };
+  const connection = { socket, messages: [], unapplied: [], keepalives: 0, closed: false, closeCode: null };
   let current = null;
   socket.addEventListener('message', (event) => {
+    if (event.data === KEEPALIVE_PONG) {
+      connection.keepalives++;
+      wake();
+      return;
+    }
     const message = JSON.parse(event.data);
     connection.messages.push(message);
     if (message.type === 'view') {
@@ -544,6 +550,7 @@ export async function openGame(runtime) {
   });
   socket.accept();
   connection.send = (message) => socket.send(JSON.stringify(message));
+  connection.keepalive = () => socket.send(KEEPALIVE_PING);
   connection.message = (type, predicate = () => true) =>
     eventually(() => connection.messages.find((message) => message.type === type && predicate(message)), type);
   return connection;

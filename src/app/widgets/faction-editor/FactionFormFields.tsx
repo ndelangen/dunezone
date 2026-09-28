@@ -7,7 +7,7 @@ import { FormattedTextSource, InlineFormattedTextSource } from '@ui/content/Form
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { CanvasScale } from '@ui/layout/CanvasScale';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
-import { Globe2, ListOrdered, Swords } from 'lucide-react';
+import { Globe2, ListOrdered, PackagePlus, Swords } from 'lucide-react';
 import { forwardRef, useImperativeHandle, useState } from 'react';
 
 import type { Faction, FactionCatalogueEntry } from '@db/factions';
@@ -27,6 +27,7 @@ import { FactionFormSectionAdvantages } from './FactionFormSectionAdvantages';
 import { FactionFormSectionAlliance } from './FactionFormSectionAlliance';
 import { FactionFormSectionBackground } from './FactionFormSectionBackground';
 import { FactionFormSectionComplexity } from './FactionFormSectionComplexity';
+import { FactionExtrasProof, FactionFormSectionExtras } from './FactionFormSectionExtras';
 import { FactionFormSectionHero } from './FactionFormSectionHero';
 import { FactionFormSectionIdentity } from './FactionFormSectionIdentity';
 import type { FactionIdentityNameField } from './FactionFormSectionIdentity';
@@ -45,7 +46,7 @@ export interface FactionFormFieldsHandle {
 }
 
 const chapterIcons: Record<
-  Exclude<FactionAuthoringChapterId, 'identity' | 'forces' | 'worlds' | 'phases' | 'complexity'>,
+  Exclude<FactionAuthoringChapterId, 'identity' | 'forces' | 'worlds' | 'phases' | 'extras' | 'complexity'>,
   Parameters<typeof TopicIcon>[0]['topic']
 > = {
   hero: 'hero',
@@ -68,6 +69,9 @@ function ChapterIcon({ chapter, form }: { chapter: FactionAuthoringChapterId; fo
   }
   if (chapter === 'phases') {
     return <ListOrdered size={21} aria-hidden />;
+  }
+  if (chapter === 'extras') {
+    return <PackagePlus size={21} aria-hidden />;
   }
   if (chapter === 'complexity') {
     /* This tab's icon is live: the tier glyph of the current effective rating. */
@@ -377,6 +381,9 @@ function ArtifactProof({
               <FactionPhaseSequence rows={phases} selectedIndex={phaseIndex} />
             </>
           );
+        } else if (activeChapter === 'extras') {
+          title = 'Faction Extras';
+          artifact = <FactionExtrasProof extras={faction.extras ?? []} />;
         } else if (activeChapter === 'complexity') {
           title = 'Faction card';
           /* The catalogue card carries the rating natively; `inert` keeps the proof's link out of
@@ -540,6 +547,7 @@ export const FactionFormFields = forwardRef<
           onSelectedIndexChange={(phase) => setSelectedItem((current) => ({ ...current, phase }))}
         />
       ) : null}
+      {chapter === 'extras' ? <FactionFormSectionExtras form={form} /> : null}
       {chapter === 'complexity' ? (
         <FactionFormSectionComplexity
           form={form}
