@@ -39,20 +39,15 @@ const { values } = parseArgs({
   },
 });
 const loadProfile = runnerProfiles.find((candidate) => candidate === values['load-profile']);
-if (values['load-profile'] && (!loadProfile || values['browser-only'])) {
+if (values['load-profile'] && (!loadProfile || values['browser-only'] || values.flow)) {
   throw new Error('Choose one load profile and run browser verification separately.');
-}
-if (values['browser-only'] && values['skip-build']) {
-  throw new Error("--browser-only requires a fresh frontend build for this run's backend URL.");
 }
 if (values['load-profile'] && values['load-case'] === 'browser' && values['skip-build']) {
   throw new Error('Browser load probes need a fresh build for their disposable backend.');
 }
-if (values.flow && !values['browser-only']) {
-  throw new Error('--flow requires --browser-only.');
-}
+/* Without --browser-only the protocol verifier runs first, and any --flow runs after it on the same stack. */
 const flows: BrowserFlow[] = [];
-for (const name of values.flow ?? ['regular']) {
+for (const name of values.flow ?? (values['browser-only'] ? ['regular'] : [])) {
   if (name !== 'all' && !isBrowserFlow(name)) {
     throw new Error(`--flow must be all or one of ${Object.keys(browserFlows).join(', ')}.`);
   }
@@ -62,8 +57,11 @@ for (const name of values.flow ?? ['regular']) {
     }
   }
 }
-if (values.browser && !values['browser-only']) {
-  throw new Error('--browser requires --browser-only.');
+if (flows.length > 0 && values['skip-build']) {
+  throw new Error("Browser flows require a fresh frontend build for this run's backend URL.");
+}
+if (values.browser && flows.length === 0) {
+  throw new Error('--browser requires a browser flow.');
 }
 const loadCase = loadCaseSchema.options.find((candidate) => candidate === values['load-case']);
 if (!loadCase) {
@@ -400,8 +398,56 @@ try {
     }
   });
   await ready(`${origin}/__play/health`, worker, 300_000);
-  const browserOnly = values['browser-only'];
-  if (browserOnly && flows.some((flow) => browserFlows[flow].needsCatalogue)) {
+  /* Each verifier that failed. A failed verifier does not stop the ones after it, and the run fails at the end. */
+  const failed: string[] = [];
+  if (!values['browser-only']) {
+    const verificationLog = path.join(evidence, 'verification.log');
+    let verificationTimeout = 180_000;
+    if (loadProfile) {
+      verificationTimeout = loadCase === 'steady' ? 540_000 : 300_000;
+    }
+    /* The protocol verifier creates and provisions its own synthetic game, apart from the fixture the browser flows take. */
+    const passed = await verify(
+      {
+        env: loadProfile
+          ? { ...environment, CONVEX_SELF_HOSTED_URL: backendUrl, CONVEX_SELF_HOSTED_ADMIN_KEY: adminKey }
+          : environment,
+        command: node,
+        args: [
+          loadProfile ? runnerBundle! : path.join(root, 'scripts/verify-hosted-play.mjs'),
+          ...(loadProfile ? [] : ['--env-file', envFile]),
+          '--origin',
+          origin,
+          ...(values['load-profile']
+            ? [
+                '--profile',
+                values['load-profile'],
+                '--compression',
+                values['load-compression'],
+                ...(values['load-cpu'] ? ['--profile-cpu'] : []),
+                '--case',
+                values['load-case']!,
+                '--report-dir',
+                evidence,
+                '--worker-pid',
+                String(worker.pid),
+                '--backend-pid',
+                String(backend.pid),
+                ...(values['load-max-bytes'] ? ['--max-bytes', values['load-max-bytes']] : []),
+                ...(values['load-seed'] ? ['--seed', values['load-seed']] : []),
+                ...(values['load-repetition'] ? ['--repetition', values['load-repetition']] : []),
+              ]
+            : []),
+        ],
+        logPath: verificationLog,
+      },
+      verificationTimeout
+    );
+    if (!passed) {
+      failed.push('protocol verification');
+    }
+  }
+  if (flows.some((flow) => browserFlows[flow].needsCatalogue)) {
     const publications = JSON.parse(convex(['run', 'playTesting:seedPublicCatalogue', '{}'])) as {
       key: string;
       href: string;
@@ -455,93 +501,47 @@ try {
       }
     }
   }
-  if (browserOnly) {
-    const reportDirectory = path.join(evidence, 'browser');
-    const failed: BrowserFlow[] = [];
-    let gameId: string | undefined;
-    for (const flow of flows) {
-      try {
-        gameId = await freshBrowserGame(convex, gameId);
-      } catch (error) {
-        console.error(`${flow} got no fresh game: ${error instanceof Error ? error.message : String(error)}`);
-        failed.push(flow);
-        continue;
-      }
-      const passed = await verify(
-        {
-          command: process.execPath,
-          args: [
-            '--no-env-file',
-            path.join(root, 'scripts/verify-hosted-play-browser.mjs'),
-            '--env-file',
-            envFile,
-            '--origin',
-            origin,
-            '--credentials-file',
-            path.join(runtime, `${flow}-credentials.json`),
-            '--report-dir',
-            reportDirectory,
-            '--flow',
-            flow,
-            ...(values.browser ? ['--browser', values.browser] : []),
-          ],
-          logPath: path.join(evidence, `${flow}.log`),
-        },
-        browserFlows[flow].timeoutMs
-      );
-      if (!passed) {
-        failed.push(flow);
-      }
-    }
-    console.log(`Browser reports and captures remain in ${reportDirectory}.`);
-    if (failed.length > 0) {
-      throw new Error(`Hosted browser flows failed: ${failed.join(', ')}; see their logs in ${evidence}.`);
-    }
-  } else {
-    const verificationLog = path.join(evidence, 'verification.log');
-    let verificationTimeout = 180_000;
-    if (loadProfile) {
-      verificationTimeout = loadCase === 'steady' ? 540_000 : 300_000;
+  const reportDirectory = path.join(evidence, 'browser');
+  let gameId: string | undefined;
+  for (const flow of flows) {
+    try {
+      gameId = await freshBrowserGame(convex, gameId);
+    } catch (error) {
+      console.error(`${flow} got no fresh game: ${error instanceof Error ? error.message : String(error)}`);
+      failed.push(flow);
+      continue;
     }
     const passed = await verify(
       {
-        env: loadProfile
-          ? { ...environment, CONVEX_SELF_HOSTED_URL: backendUrl, CONVEX_SELF_HOSTED_ADMIN_KEY: adminKey }
-          : environment,
-        command: node,
+        command: process.execPath,
         args: [
-          loadProfile ? runnerBundle! : path.join(root, 'scripts/verify-hosted-play.mjs'),
-          ...(loadProfile ? [] : ['--env-file', envFile]),
+          '--no-env-file',
+          path.join(root, 'scripts/verify-hosted-play-browser.mjs'),
+          '--env-file',
+          envFile,
           '--origin',
           origin,
-          ...(values['load-profile']
-            ? [
-                '--profile',
-                values['load-profile'],
-                '--compression',
-                values['load-compression'],
-                ...(values['load-cpu'] ? ['--profile-cpu'] : []),
-                '--case',
-                values['load-case']!,
-                '--report-dir',
-                evidence,
-                '--worker-pid',
-                String(worker.pid),
-                '--backend-pid',
-                String(backend.pid),
-                ...(values['load-max-bytes'] ? ['--max-bytes', values['load-max-bytes']] : []),
-                ...(values['load-seed'] ? ['--seed', values['load-seed']] : []),
-                ...(values['load-repetition'] ? ['--repetition', values['load-repetition']] : []),
-              ]
-            : []),
+          '--credentials-file',
+          path.join(runtime, `${flow}-credentials.json`),
+          '--report-dir',
+          reportDirectory,
+          '--flow',
+          flow,
+          ...(values.browser ? ['--browser', values.browser] : []),
         ],
-        logPath: verificationLog,
+        logPath: path.join(evidence, `${flow}.log`),
       },
-      verificationTimeout
+      browserFlows[flow].timeoutMs
     );
     if (!passed) {
-      throw new Error(`Hosted protocol verification failed; see ${verificationLog}.`);
+      failed.push(flow);
     }
+  }
+  if (flows.length > 0) {
+    console.log(`Browser reports and captures remain in ${reportDirectory}.`);
+  }
+  if (failed.length > 0) {
+    throw new Error(`Hosted verification failed: ${failed.join(', ')}; see their logs in ${evidence}.`);
   }
   if (hostedTarget) {
     /* The runner retired its game, so the copied backend takes a new one and refuses a second while that one is live. */
