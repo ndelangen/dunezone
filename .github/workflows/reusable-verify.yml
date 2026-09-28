@@ -338,7 +338,8 @@ jobs:
           read -r -a flows <<< "$FLOWS"
           bun --no-env-file scripts/verify-hosted-play-stack.ts --skip-generate "${flows[@]}" --browser "$CHROMIUM"
       - name: Summarise each flow
-        # A flow the launcher stopped at its budget writes no report.
+        # A flow the launcher stops at its budget still writes a report, failed after its last check.
+        # A driver that dies before writing one gets a row that points at its log.
         if: ${{ !cancelled() }}
         env:
           SHARD: ${{ matrix.shard }}
