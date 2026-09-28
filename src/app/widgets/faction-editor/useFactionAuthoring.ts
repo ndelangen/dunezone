@@ -1,4 +1,4 @@
-import { ensureFactionMemberIds } from '@shared/factions/memberIdentity';
+import { ensureFactionComponentIds } from '@shared/factions/componentIdentity';
 import { useForm, useStore } from '@tanstack/react-form';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -40,7 +40,7 @@ export function useFactionAuthoring({
 }) {
   const sessionKeyRef = useRef(sessionKey);
   const initialBaselineRef = useRef<Faction>(undefined);
-  initialBaselineRef.current ??= ensureFactionMemberIds(structuredClone(initialData));
+  initialBaselineRef.current ??= ensureFactionComponentIds(structuredClone(initialData));
   const [errors, setErrors] = useState<string[]>([]);
   /*
    * The background composer's colour-mode memory. It belongs to the draft, and the composer cannot see

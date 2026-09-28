@@ -24,7 +24,7 @@ export type TroopFaceCombat<Face extends AuthoredFace = AuthoredFace> = {
 
 /**
  * A face's identity within one faction definition.
- * The position is the identity the game's troop stacks already use (`troops:<faction>:<index>`), and a retained game reads a frozen definition, so catalogue edits and reorders never reach the face a plan names.
+ * The position indexes the frozen definition a retained game reads, so catalogue edits and reorders never reach the face a plan names.
  */
 function troopFaceId(troopIndex: number, side: TroopSide): string {
   return `troop-${troopIndex}-${side}`;

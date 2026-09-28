@@ -127,6 +127,8 @@ const factionComponentsSchema = z.object({
   ),
   troops: z.array(
     z.object({
+      /** Absent in captures taken before troop identities (#1227). */
+      troopId: identitySchema.optional(),
       name: z.string().max(160),
       count: z.number().int().positive(),
       front: faceSchema,

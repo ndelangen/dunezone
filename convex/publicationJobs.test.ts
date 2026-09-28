@@ -6,13 +6,13 @@ import { convexTest } from 'convex-test';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
 import { takeWorkResultSchema } from '../src/shared/asset-publishing/publication';
+import { ensureFactionComponentIds } from '../src/shared/factions/componentIdentity';
 import { assetPublishingFaction as legacyFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
-import { ensureFactionMemberIds } from '../src/shared/factions/memberIdentity';
 import { api, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import schema from './schema';
 
-const assetPublishingFaction = ensureFactionMemberIds(legacyFaction);
+const assetPublishingFaction = ensureFactionComponentIds(legacyFaction);
 
 const modules = import.meta.glob('./**/*.ts');
 const CACHE_TOKEN = `v1.${'a'.repeat(22)}.${'b'.repeat(43)}`;
