@@ -79,6 +79,12 @@ const rectangleSnapshot = envelope('token-enhance', {
   slug: 'publisher-contract-rectangle',
   face: publishingRectangleTokenFace,
 });
+/* A troop's authored back, drawn from its side's artwork on the faction background (#1228). */
+const troopSnapshot = envelope('faction-troop', {
+  image: '/vector/troop/fremen.svg',
+  striped: true,
+  background: assetPublishingFaction.background,
+});
 const deckSnapshot = envelope('deck', {
   assetId: 'k17publisherContractDeck',
   slug: 'publisher-contract-deck',
@@ -477,6 +483,7 @@ try {
   );
   await checkPublisherImageCapture(browser, 'token-disc', tokenSnapshot, 'round token face');
   await checkPublisherImageCapture(browser, 'token-enhance', rectangleSnapshot, 'rectangle token back');
+  await checkPublisherImageCapture(browser, 'faction-troop', troopSnapshot, 'troop back');
   const firstRulebookCapture = await checkPublisherImageCapture(
     browser,
     'rulebook-first-page',

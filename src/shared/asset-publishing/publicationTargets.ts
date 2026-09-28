@@ -2,6 +2,7 @@ import { cardbackPresetKeySchema } from '../assets/cardbackPresetKeys';
 import type { RulebookSize } from '../rulebooks/settings';
 import { DEFAULT_RULEBOOK_SETTINGS, getRulebookSize } from '../rulebooks/settings';
 import { parseFactionMemberPublicationId } from './componentPublication';
+import { parseFactionTroopPublicationId } from './factionTroopPublication';
 
 /**
  * What each publishable asset type produces, and where it lives.
@@ -21,6 +22,7 @@ export const PUBLICATION_ASSET_TYPES = [
   'faction_sheet',
   'faction-leader',
   'faction-token',
+  'faction-troop',
   'card-treachery',
   'card-spice',
   'deck',
@@ -115,6 +117,15 @@ export const PUBLICATION_TARGETS: Record<PublicationAssetType, PublicationTarget
     downloadFilename: 'faction-token.jpg',
     capture: { output: 'image', widthPx: 600, heightPx: 600, jpegQuality: 88, maxBytes: 2_000_000 },
     /* The reversible faction token's blocked side (#1228). */
+    faces: ['back'],
+  },
+  /* One troop type's side; `{factionId}.{troopId}` is the front and `.back` the authored back (#1228). */
+  'faction-troop': {
+    collection: 'faction-troops',
+    file: 'troop.jpg',
+    contentType: 'image/jpeg',
+    downloadFilename: 'faction-troop.jpg',
+    capture: { output: 'image', widthPx: 600, heightPx: 600, jpegQuality: 88, maxBytes: 2_000_000 },
     faces: ['back'],
   },
   'faction-leader': {
@@ -230,6 +241,9 @@ function isPublicIdForType(assetType: PublicationAssetType, assetId: string): bo
   }
   if (assetType === 'faction-leader') {
     return parseFactionMemberPublicationId(assetId) !== null;
+  }
+  if (assetType === 'faction-troop') {
+    return parseFactionTroopPublicationId(assetId) !== null;
   }
   if (
     PUBLIC_ASSET_ID_PATTERN.test(assetId) ||

@@ -915,6 +915,10 @@ export class GameRoom extends DurableObject<GameEnv> {
       await this.admit(socket, connection, message.ticket);
       return;
     }
+    if (message.type === 'pointer' || message.type === 'pose') {
+      this.receiveMotion(socket, connection, message);
+      return;
+    }
     if (this.reconcileViewers()) {
       this.broadcastActivity();
     }
@@ -936,6 +940,25 @@ export class GameRoom extends DurableObject<GameEnv> {
     } catch (error) {
       /* A capture that failed while a fence held its connection is refused once the fence lifts. */
       await this.outlastFence(socket, connection, suspensions);
+      this.rejectMessage(socket, connection, message, error);
+    }
+  }
+
+  /*
+   * Motion arrives at up to 40 frames a second per mover, so it skips the per-message upkeep a command needs.
+   * Seats, expired carries and deadlines are settled by the 50 ms activity pass and the one-second sweep, and a frame from a held or refused connection is dropped, since the next one supersedes it.
+   */
+  private receiveMotion(
+    socket: WebSocket,
+    connection: Connection,
+    message: Extract<ClientMessage, { type: 'pointer' | 'pose' }>
+  ) {
+    if (!this.session.ready || !this.authorized(socket)) {
+      return;
+    }
+    try {
+      this.moveActivity(connection, message);
+    } catch (error) {
       this.rejectMessage(socket, connection, message, error);
     }
   }
