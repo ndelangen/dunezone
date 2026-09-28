@@ -67,6 +67,8 @@ class ExpiredTicket extends GameRejection {}
 
 const json = (body: unknown, status = 200) => Response.json(body, { status, headers: { 'Cache-Control': 'no-store' } });
 const refused = () => json({ error: 'Request refused.' }, 403);
+/* Above a steady load cell's 720 saved commands, so a cell's metrics request still finds its first. */
+const COMMAND_TIMINGS = 1024;
 function isApplicationSocket(request: Request, applicationOrigin: string): boolean {
   return (
     request.headers.get('Origin') === applicationOrigin && request.headers.get('Upgrade')?.toLowerCase() === 'websocket'
@@ -177,6 +179,12 @@ export class GameRoom extends DurableObject<GameEnv> {
   private activityDeliveries = 0;
   private messagesSent = 0;
   private bytesSent = 0;
+  /*
+   * When this object began handling each recent saved command, by its own clock, for the load runner's metrics request.
+   * A Worker's clock stands still while code runs, so only when handling began is meaningful, not how long it took.
+   * A spawn request is timed after its catalogue read, so its entry includes that read.
+   */
+  private readonly commandTimings: { userId: string; commandId: string; handledAt: number }[] = [];
   private readonly session: GameSession;
   private get metadata() {
     return this.session.info;
@@ -1117,6 +1125,7 @@ export class GameRoom extends DurableObject<GameEnv> {
   }
 
   private sendMetrics(socket: WebSocket) {
+    const userId = this.connections.get(socket)?.viewer?.userId;
     this.send(socket, {
       type: 'metrics',
       revision: this.session.revision,
@@ -1127,6 +1136,9 @@ export class GameRoom extends DurableObject<GameEnv> {
       activityDeliveries: this.activityDeliveries,
       messagesSent: this.messagesSent,
       bytesSent: this.bytesSent,
+      commands: this.commandTimings
+        .filter((timing) => timing.userId === userId)
+        .map(({ commandId, handledAt }) => ({ commandId, handledAt })),
     });
   }
   private publishActivity(
@@ -1197,6 +1209,14 @@ export class GameRoom extends DurableObject<GameEnv> {
     message: Extract<ClientMessage, { type: 'command' | 'drop' }>,
     contents?: StoredSpawnContents
   ) {
+    this.commandTimings.push({
+      userId: connection.viewer!.userId,
+      commandId: message.commandId,
+      handledAt: Date.now(),
+    });
+    if (this.commandTimings.length > COMMAND_TIMINGS) {
+      this.commandTimings.shift();
+    }
     if (this.reconcileViewers()) {
       this.broadcastActivity();
     }
