@@ -145,7 +145,11 @@ const report = {
     measuredSeconds,
     maxApplicationBytes: maxBytes,
     finalObservationMs: 5000,
-    wallSeconds: Math.max(240, warmupSeconds + measuredSeconds + 120),
+    /*
+     * The wall bound includes signing up and admitting every connection, which took about 105 s on the 28 September hosted cells.
+     * Each browser then signs in and loads the table twice, and the hosted browser cell reached motion 226 s in, so it gets three more minutes.
+     */
+    wallSeconds: Math.max(240, warmupSeconds + measuredSeconds + 120) + (values.case === 'browser' ? 180 : 0),
   },
   limitations: [
     hosted
@@ -183,6 +187,8 @@ let browserRun;
 let cpu;
 let actionWork;
 let samplePhase = 'preparation';
+/* The highest revision any saved command was confirmed at; recipients converge on it, not on one recipient's view. */
+let confirmedRevision = 0;
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 function stop(reason) {
   if (stopping) {
@@ -497,6 +503,7 @@ async function record(peer, message, operation, sample = beginInteraction(peer, 
       throw error;
     }
     interactionTiming.confirm(sample, result.snapshot.revision);
+    confirmedRevision = Math.max(confirmedRevision, result.snapshot.revision);
     sample.status = 'accepted';
     report.actions.accepted++;
     report.actions.byOperation[operation].accepted++;
@@ -678,9 +685,13 @@ try {
       onSlot: (slot) => report.actionScheduleSlots.push(slot),
       step: async (slot) => {
         const useTrace = trace && values.case !== 'peak';
+        /*
+         * Without the trace one action in every four is a flip, so the piece's flips are at least four dispatches (2 s) apart.
+         * The room refuses a flip within 520 ms of the last one by its own clock, and on 28 September a hosted room refused one sent a second after the last.
+         */
         const operation = useTrace
           ? trace.operations[nextStep % trace.operations.length]
-          : nextStep % 2
+          : nextStep % 4 === 1
             ? 'flip'
             : 'rotate';
         const peer = useTrace ? actionPeer : first;
@@ -729,11 +740,18 @@ try {
     assert.ok(trace, 'The complete synthetic trace needs an expanded profile.');
     const started = performance.now();
     await scheduleActions(started, (trace.operations.length * 2 * 1000) / manifest.durableActionsPerSecond);
-    const final = first.view.snapshot;
+    /*
+     * The actor's confirmation can arrive before the first recipient's update, so its view is read once every recipient holds the last confirmed revision.
+     * A failed step can leave the room past that revision, so the run ends here with that step's failure.
+     */
+    if (report.actions.schedule.failed) {
+      throw new Error(report.actions.schedule.failed);
+    }
     await until(
-      () => peers.every((peer) => peer.view.snapshot.revision === final.revision),
+      () => peers.every((peer) => peer.view.snapshot.revision === confirmedRevision),
       'Trace recipients did not converge.'
     );
+    const final = first.view.snapshot;
     for (const peer of peers) {
       assert.deepEqual(publicFixtureSnapshot(peer.view.snapshot), publicFixtureSnapshot(final));
     }
