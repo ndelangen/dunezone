@@ -9,6 +9,7 @@ import { build } from 'esbuild';
 import { Miniflare, convertV4MiniflareOptions } from 'miniflare';
 import { WebSocketServer } from 'ws';
 
+import { KEEPALIVE_PING, KEEPALIVE_PONG } from '../../src/shared/play/protocol.ts';
 import { applyRoomUpdate } from '../../src/shared/play/updates.ts';
 
 const directory = dirname(fileURLToPath(import.meta.url));
@@ -517,9 +518,14 @@ export async function openGame(runtime) {
     throw new Error(`Socket refused: ${response.status}`);
   }
   const socket = response.webSocket;
-  const connection = { socket, messages: [], unapplied: [], closed: false, closeCode: null };
+  const connection = { socket, messages: [], unapplied: [], keepalives: 0, closed: false, closeCode: null };
   let current = null;
   socket.addEventListener('message', (event) => {
+    if (event.data === KEEPALIVE_PONG) {
+      connection.keepalives++;
+      wake();
+      return;
+    }
     const message = JSON.parse(event.data);
     connection.messages.push(message);
     if (message.type === 'view') {
@@ -544,6 +550,7 @@ export async function openGame(runtime) {
   });
   socket.accept();
   connection.send = (message) => socket.send(JSON.stringify(message));
+  connection.keepalive = () => socket.send(KEEPALIVE_PING);
   connection.message = (type, predicate = () => true) =>
     eventually(() => connection.messages.find((message) => message.type === type && predicate(message)), type);
   return connection;

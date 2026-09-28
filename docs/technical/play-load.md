@@ -90,7 +90,17 @@ its sockets are open. `toRoomMs` runs from the coordinator's send to that moment
 from it to the coordinator receiving the answer, so it holds the room's own work and the path
 back. Both include the unknown offset between the two clocks, so a slow command is read against
 the median of its leg. A Worker's clock stands still while its code runs, so the room cannot
-separate its own work from the path back.
+separate its own work from the path back. Its readings also wander: in the second 28 September
+slow cell, `toRoomMs` spanned 1.2 s while most round trips took 150 to 300 ms. One command's split
+is therefore a hint rather than a measurement.
+
+Every protocol socket sends the page's keepalive frame every 30 s, as the page does. The room
+answers it without waking, so it counts as traffic in `keepalives` and the byte totals but not as
+a delivery or against the room's message ceiling. Without it, Cloudflare closes a socket that
+carries nothing for 100 s with code 1006. That ended the second 28 September browser cell, whose
+early connections sat idle while the browsers signed in. A signup that fails or times out is
+retried up to three times, alternating signing in and signing up, and each failure is kept in
+`signupRetries`.
 
 `trace` runs two complete action cycles without background motion, checks item conservation and
 compares every recipient's public durable snapshot once each holds the last confirmed revision. Private bank projections are not expected

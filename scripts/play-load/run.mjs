@@ -10,6 +10,7 @@ import { anyApi } from 'convex/server';
 import WebSocket from 'ws';
 
 import { loadCaseSchema } from '../../src/shared/play/loadTarget.ts';
+import { KEEPALIVE_INTERVAL_MS, KEEPALIVE_PING, KEEPALIVE_PONG } from '../../src/shared/play/protocol.ts';
 import { applyRoomUpdate } from '../../src/shared/play/updates.ts';
 import { loopbackOrigin } from '../lib/isolated-stack.ts';
 import { browsers } from './browsers.mjs';
@@ -162,6 +163,7 @@ const report = {
   bytes: { sent: 0, received: 0 },
   sentMessages: 0,
   deliveries: 0,
+  keepalives: 0,
   compression: values.compression,
   resyncs: 0,
   transmittedMotion: 0,
@@ -170,6 +172,7 @@ const report = {
   admissionAttempts: [],
   reconnects: [],
   rejections: [],
+  signupRetries: [],
   checks: [],
 };
 const peers = [];
@@ -241,14 +244,25 @@ async function user(index) {
   const suffix = hosted?.run.runId ?? process.env.PLAY_LOAD_LOCAL_ACCOUNT_SUFFIX ?? randomBytes(6).toString('hex');
   const email = `load-${index}-${suffix}@example.invalid`;
   const password = randomBytes(24).toString('hex');
-  const result = await client.action(anyApi.auth.signIn, {
-    provider: 'password',
-    params: {
-      flow: 'signUp',
-      email,
-      password,
-    },
-  });
+  let result;
+  /*
+   * One hosted signup outlasted the client's 15 s timeout on 28 September and failed the peak cell during setup.
+   * A signup whose answer was lost may still have created the account, so the retries alternate signing in and signing up.
+   */
+  for (let attempt = 0; !result; attempt++) {
+    try {
+      result = await client.action(anyApi.auth.signIn, {
+        provider: 'password',
+        params: { flow: attempt % 2 ? 'signIn' : 'signUp', email, password },
+      });
+    } catch (error) {
+      report.signupRetries.push({ index, attempt, message: error.message.slice(0, 200) });
+      if (stopping || attempt === 3) {
+        throw error;
+      }
+      await delay(1000);
+    }
+  }
   assert.ok(result.tokens?.token);
   client.setAuth(result.tokens.token);
   return { client, index, email, password };
@@ -333,8 +347,12 @@ function apply(peer, packet) {
 }
 function receivePacket(peer, raw) {
   accountBytes('received', raw.byteLength);
-  report.deliveries++;
   peer.receivedBytes = (peer.receivedBytes ?? 0) + raw.byteLength;
+  /* The room answers a keepalive without waking, so the answer is traffic but not a delivery. */
+  if (raw.byteLength === KEEPALIVE_PONG.length && raw.toString() === KEEPALIVE_PONG) {
+    return;
+  }
+  report.deliveries++;
   if (stopping) {
     return;
   }
@@ -419,8 +437,18 @@ async function openSocket(peer, issued) {
   });
   socket.on('error', () => {});
   socket.on('message', (raw) => receivePacket(peer, raw));
+  /* Like the page, every open socket sends a keepalive, since the edge closes a socket idle for 100 s with 1006. */
+  const keepalive = setInterval(() => {
+    if (!stopping && socket.readyState === WebSocket.OPEN) {
+      socket.send(KEEPALIVE_PING);
+      report.keepalives++;
+      accountBytes('sent', KEEPALIVE_PING.length);
+      peer.sentBytes = (peer.sentBytes ?? 0) + KEEPALIVE_PING.length;
+    }
+  }, KEEPALIVE_INTERVAL_MS).unref();
   /* The room's close code says why a socket went away: 4413 is its message rate limit, 1012 a restart. */
   socket.once('close', (code, reason) => {
+    clearInterval(keepalive);
     (peer.closes ??= []).push({ atMs: performance.now(), code, reason: reason.toString().slice(0, 120), stopping });
   });
   await new Promise((resolve) => {
@@ -607,11 +635,13 @@ try {
       directory,
       stopping: () => stopping,
       onMessage: apply,
-      onBytes: (peer, direction, size) => {
+      onBytes: (peer, direction, size, keepalive) => {
         accountBytes(direction, size);
         const key = direction === 'sent' ? 'sentBytes' : 'receivedBytes';
         peer[key] = (peer[key] ?? 0) + size;
-        if (direction === 'received') {
+        if (keepalive) {
+          report.keepalives += direction === 'sent' ? 1 : 0;
+        } else if (direction === 'received') {
           report.deliveries++;
         } else {
           report.sentMessages++;
