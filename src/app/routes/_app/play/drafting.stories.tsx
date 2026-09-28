@@ -1,4 +1,5 @@
 import preview from '@sb/preview';
+import { waitForFrame } from '@sb/storyWaits';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { draftingSnapshot, storyPlayer } from './drafting.stories.fixture';
@@ -78,7 +79,7 @@ export const ChoosingFactions = meta.story({
       { timeout: 30_000 }
     );
     await userEvent.hover(page.getByLabelText('Draft pool details'));
-    await expect(page.findByRole('tooltip')).resolves.toHaveTextContent('a random 6 of them will be dealt');
+    await waitForFrame(() => expect(page.getByRole('tooltip')).toHaveTextContent('a random 6 of them will be dealt'));
     await userEvent.unhover(page.getByLabelText('Draft pool details'));
     const list = () => within(page.getByRole('list', { name: 'Factions' }));
     await waitFor(

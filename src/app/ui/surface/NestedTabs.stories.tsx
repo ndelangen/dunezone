@@ -1,4 +1,5 @@
 import preview from '@sb/preview';
+import { waitForFrame } from '@sb/storyWaits';
 import { NestedTabs } from '@ui/surface';
 import type { NestedTabsPath } from '@ui/surface';
 import {
@@ -171,9 +172,9 @@ export const NestedItemActive = meta.story({
       await expect(getComputedStyle(items as HTMLElement).overflowX).toBe('hidden');
     }
     await userEvent.hover(rootItemB);
-    await waitFor(() => expect(storyDocument.getByRole('tooltip')).toHaveTextContent('Root item B'));
+    await waitForFrame(() => expect(storyDocument.getByRole('tooltip')).toHaveTextContent('Root item B'));
     levels[0]?.querySelector(':scope > ul')?.dispatchEvent(new Event('scroll'));
-    await waitFor(() => expect(storyDocument.queryByRole('tooltip')).not.toBeInTheDocument());
+    await waitForFrame(() => expect(storyDocument.queryByRole('tooltip')).not.toBeInTheDocument());
     await new Promise<void>((resolve) => window.setTimeout(resolve, 700));
     await expect(storyDocument.queryByRole('tooltip')).not.toBeInTheDocument();
   },
