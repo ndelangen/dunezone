@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
+import { PLAY_DIRECTORY_RETRY_MS } from '../../src/shared/play/directory';
 import { TABLE_PHASES } from '../../src/shared/play/phases';
 import { cardPage, deckPage, slot } from './native-catalogue.fixture.mjs';
 import {
@@ -97,26 +98,50 @@ describe('A real game keeps the directory current', () => {
   });
 
   it('retries a failed delivery from the alarm with nobody connected, and a woken room delivers what it owes', async () => {
+    /*
+     * Workerd fires an alarm at its time on the real clock.
+     * The room's clock runs a minute ahead whenever a delivery fails, so the room's own retry alarm falls after the test ends and only the alarms the test forces reach the room.
+     */
+    const ahead = 60_000;
+    /* The provisioning window must outlive the jump. */
+    peer.provisionExpiresAt = Date.now() + 600_000;
+    const { now: provisioningFrom } = await runtime.clock(ahead);
     peer.directoryMode = 'error';
     expect((await provision(runtime)).status).toBe(200);
     await eventually(() => deliveries().length === 1, 'failed opening delivery');
     await eventually(async () => (await runtime.alarm()).scheduledAt !== null, 'retry alarm');
     const first = await runtime.alarm();
+    /* The failure came between the two clock readings, and the retry waits the backoff after it. */
     expect(first.scheduledAt).toBeGreaterThan(first.observedAt);
+    expect(first.scheduledAt).toBeGreaterThanOrEqual(provisioningFrom + 2000);
     expect(first.scheduledAt).toBeLessThanOrEqual(first.observedAt + 2000);
-    /* The alarm fires with nobody connected; the second attempt is acknowledged. */
+    /*
+     * The one alarm also serves battle and trading deadlines.
+     * One that fires before the retry is due, here with the room back on the real clock, sends nothing and keeps the retry armed.
+     */
     peer.directoryMode = 'ack';
+    await runtime.clock(0);
+    await runtime.alarm(true);
+    await eventually(async () => (await runtime.alarm()).scheduledAt === first.scheduledAt, 'retry kept armed');
+    expect(summaries()).toEqual([1]);
+    /* The retry falls due and the alarm fires with nobody connected; the second attempt is acknowledged. */
+    await runtime.clock(ahead + PLAY_DIRECTORY_RETRY_MS);
     await runtime.alarm(true);
     await eventually(() => summaries().length === 2, 'delivery from the alarm');
     expect(peer.summaries.at(-1)).toMatchObject({ sequence: 1, summary: { stage: 'drafting' } });
     await eventually(async () => (await runtime.alarm()).scheduledAt === null, 'settled alarm');
 
-    /* A failure with the alarm still far off, then a restart: the woken room delivers at once. */
+    /* A failure arms the retry, then a restart: the woken room still owes the summary and delivers it once the retry falls due. */
+    await runtime.clock(ahead);
     peer.directoryMode = 'error';
     expect((await deleteCreator('evt-delete-3')).status).toBe(200);
     await eventually(() => deliveries().length === 3, 'failed roster delivery');
+    /* Read before the restart: any request after it constructs the room, and the room's startup delivery arms the alarm again. */
+    await eventually(async () => (await runtime.alarm()).scheduledAt !== null, 'roster retry alarm');
     peer.directoryMode = 'ack';
     await runtime.restart();
+    await runtime.clock(ahead + PLAY_DIRECTORY_RETRY_MS);
+    await runtime.alarm(true);
     await eventually(() => summaries().length === 4, 'delivery after restart');
     expect(peer.summaries.at(-1)).toMatchObject({ sequence: 2, summary: { seats: [] } });
   });

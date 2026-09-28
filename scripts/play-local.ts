@@ -6,6 +6,7 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
 
+import { loopbackOrigin } from './lib/isolated-stack';
 import { nodeExecutable } from './node-executable';
 
 const root = path.resolve(import.meta.dirname, '..');
@@ -19,18 +20,6 @@ const { values } = parseArgs({
     'skip-generate': { type: 'boolean', default: false },
   },
 });
-
-function loopbackOrigin(value: string | undefined, label: string): string {
-  if (!value) {
-    throw new Error(`${label} is required; only an isolated local backend is supported.`);
-  }
-  const url = new URL(value);
-  const explicitLoopback = new URL(`http://127.0.0.1:${url.port}`);
-  if (!url.port || url.href !== explicitLoopback.href) {
-    throw new Error(`${label} must be an explicit http://127.0.0.1:PORT origin.`);
-  }
-  return url.origin;
-}
 
 const convexUrl = loopbackOrigin(values['convex-url'], '--convex-url');
 const convexSiteUrl = loopbackOrigin(values['convex-site-url'], '--convex-site-url');
