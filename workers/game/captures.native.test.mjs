@@ -8,6 +8,7 @@ import {
   presetDeckPage,
   referencingDeckPage,
   slot,
+  spiceCardPage,
   tokenPage,
 } from './native-catalogue.fixture.mjs';
 import { createPeer, createRuntime, provision } from './native-runtime.fixture.mjs';
@@ -206,6 +207,69 @@ describe('Catalogue capture and retention through the isolated fixture', () => {
     expect(record.decks.treachery.contents.pieces[0].items[0].artwork.front).toBe(
       'http://table.test/published/cards/older/card.jpg'
     );
+  });
+
+  it('captures a spice deck of published spice cards with their own fronts and the deck back', async () => {
+    const treacheryCard = cardPage('lasgun');
+    const [arsunt, brokenLand] = [spiceCardPage('arsunt'), spiceCardPage('broken-land')];
+    const treachery = deckPage('treachery-deck', [treacheryCard]);
+    const spice = deckPage('spice-deck', [arsunt, brokenLand], 3);
+    seed(treacheryCard, arsunt, brokenLand, treachery, spice);
+    peer.rulesets.set('ruleset-one', {
+      ruleset: { id: 'ruleset-one', slug: 'classic', name: 'Classic' },
+      slots: [slot('treachery', treachery), slot('spice', spice)],
+    });
+
+    const { ok, record } = await runtime.capture('ruleset', 'ruleset-one');
+    expect(ok).toBe(true);
+    expect(record.readiness).toEqual({ ready: true, problems: [] });
+    expect(record.decks.spice.contents.members).toEqual([
+      { assetId: 'arsunt', count: 3 },
+      { assetId: 'broken-land', count: 3 },
+    ]);
+    const items = record.decks.spice.contents.pieces[0].items;
+    expect(items).toHaveLength(6);
+    expect(items[0].artwork).toMatchObject({
+      front: 'http://table.test/published/spice-cards/arsunt/card.jpg',
+      back: 'http://table.test/published/decks/spice-deck/cardback.jpg',
+      name: 'arsunt',
+      type: 'card-spice',
+    });
+    expect(items[5].artwork.front).toBe('http://table.test/published/spice-cards/broken-land/card.jpg');
+    expect(record.decks.spice.contents.definitions.map(({ type }) => type).sort()).toEqual([
+      'card-spice',
+      'card-spice',
+      'deck',
+    ]);
+  });
+
+  it('refuses a spice deck when one member is unpublished or incomplete among published ones', async () => {
+    const treacheryCard = cardPage('lasgun');
+    const published = spiceCardPage('arsunt');
+    const unpublished = { ...spiceCardPage('broken-land'), front: null };
+    const incomplete = spiceCardPage('cielago-north');
+    incomplete.asset.data = { ...incomplete.asset.data, amount: undefined };
+    const treachery = deckPage('treachery-deck', [treacheryCard]);
+    const missing = deckPage('spice-deck', [published, unpublished]);
+    seed(treacheryCard, published, unpublished, treachery, missing);
+    peer.rulesets.set('ruleset-one', {
+      ruleset: { id: 'ruleset-one', slug: 'classic', name: 'Classic' },
+      slots: [slot('treachery', treachery), slot('spice', missing)],
+    });
+    expect(await runtime.capture('ruleset', 'ruleset-one')).toEqual({
+      ok: false,
+      message:
+        'This ruleset is not ready: spice: spice-deck, Publish every member and back before requesting this asset.',
+    });
+    expect((await runtime.captures()).ruleset).toBeNull();
+
+    const broken = deckPage('spice-deck', [published, incomplete]);
+    seed(incomplete, broken);
+    expect(await runtime.capture('ruleset', 'ruleset-one')).toEqual({
+      ok: false,
+      message: 'This ruleset is not ready: spice: spice-deck, This asset has an incomplete definition.',
+    });
+    expect((await runtime.captures()).ruleset).toBeNull();
   });
 
   it('captures a faction with its published faces and its Extras once, and keeps the first record', async () => {

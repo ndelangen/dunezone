@@ -224,7 +224,7 @@ export function useAssetNameField<Chapter extends string>({
   name: string;
   onName: (name: string) => void;
   currentSlug?: string;
-  /** The validation header group the warning joins, Identity everywhere but the treachery card, whose name lives in Head. */
+  /** The validation header group the warning joins, Identity everywhere but the two cards, whose names live in Head. */
   source: string;
   chapter: Chapter;
   /** Whether this viewer may rename the asset, which only its owner may (#605). A create page states `true`: its viewer is the owner-to-be. */

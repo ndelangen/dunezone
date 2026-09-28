@@ -1,9 +1,10 @@
 import { publishingDeckCardback } from '../../src/shared/assets/fixtures/publishingDeckCardback';
+import { publishingSpiceCard } from '../../src/shared/assets/fixtures/publishingSpiceCard';
 import { publishingTokenFace } from '../../src/shared/assets/fixtures/publishingTokenFace';
 import { publishingTreacheryCard } from '../../src/shared/assets/fixtures/publishingTreacheryCard';
 import { assetSupplySchema } from '../../src/shared/play/capture';
 
-/* Catalogue supplies as the native peer serves them, parsed through the game contract: a card, a deck on each kind of back, a token and a bundle. */
+/* Catalogue supplies as the native peer serves them, parsed through the game contract: a card of each type, a deck on each kind of back, a token and a bundle. */
 
 const blank = { members: [], membersTruncated: false, backToken: null, backDeck: null };
 
@@ -12,6 +13,16 @@ export function cardPage(id) {
     ...blank,
     asset: { id, type: 'card-treachery', slug: id, name: id, data: publishingTreacheryCard },
     front: `/published/cards/${id}/card.jpg`,
+    back: null,
+    backMode: null,
+  });
+}
+
+export function spiceCardPage(id) {
+  return assetSupplySchema.parse({
+    ...blank,
+    asset: { id, type: 'card-spice', slug: id, name: id, data: { ...publishingSpiceCard, name: id } },
+    front: `/published/spice-cards/${id}/card.jpg`,
     back: null,
     backMode: null,
   });

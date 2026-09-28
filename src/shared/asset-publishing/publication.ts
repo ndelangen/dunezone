@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { CardBack, RectangleTokenFace, TokenFace, TreacheryAsset } from '../assets/schema';
+import { CardBack, RectangleTokenFace, SpiceAsset, TokenFace, TreacheryAsset } from '../assets/schema';
 import { FactionRowSlugSchema, HistoricalFactionPublicationSchema } from '../factions/schema';
 import { rulebookRenderPageV1Schema } from '../rulebooks/renderDocument';
 import { DEFAULT_RULEBOOK_SETTINGS, rulebookSettingsSchema } from '../rulebooks/settings';
@@ -13,6 +13,7 @@ export const FACTION_SHEET_ASSET_TYPE = 'faction_sheet' as const;
 export const factionTokenAssetDataSchema = HistoricalFactionPublicationSchema.pick({ logo: true, background: true });
 
 export const TREACHERY_CARD_ASSET_TYPE = 'card-treachery' as const;
+export const SPICE_CARD_ASSET_TYPE = 'card-spice' as const;
 export const DECK_ASSET_TYPE = 'deck' as const;
 export const RULEBOOK_FIRST_PAGE_ASSET_TYPE = 'rulebook-first-page' as const;
 /** The three shapes whose face is a symbol in a fixed slot. The rectangle is a token too, and a different face model. */
@@ -60,6 +61,13 @@ export const treacheryCardAssetDataSchema = z.strictObject({
   assetId: z.string().min(1),
   slug: z.string().min(1),
   card: TreacheryAsset,
+});
+
+/** The same envelope for a spice card, whose stored shape is the renderer's props plus its About. */
+export const spiceCardAssetDataSchema = z.strictObject({
+  assetId: z.string().min(1),
+  slug: z.string().min(1),
+  card: SpiceAsset,
 });
 
 /**
@@ -113,6 +121,7 @@ const PUBLICATION_ASSET_DATA_SCHEMAS = {
   'faction-leader': factionLeaderAssetDataSchema,
   'faction-token': factionTokenAssetDataSchema,
   [TREACHERY_CARD_ASSET_TYPE]: treacheryCardAssetDataSchema,
+  [SPICE_CARD_ASSET_TYPE]: spiceCardAssetDataSchema,
   [DECK_ASSET_TYPE]: deckCardbackAssetDataSchema,
   'cardback-preset': deckCardbackAssetDataSchema,
   'token-disc': tokenFaceAssetDataSchema,
