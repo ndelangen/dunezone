@@ -362,7 +362,8 @@ export const DeckShortcutsEndOffTheTable = meta.story({
 
 /**
  * A tap on the table still reaches the table's own click handlers although the touch leaves the canvas after every tap.
- * Tapping the deck selects it, so L locks it; tapping the empty board then clears the selection, so L sends nothing.
+ * Tapping the deck selects it, so L locks it.
+ * Tapping the empty board then clears the selection, so L sends nothing.
  */
 export const TapOnTheBoardClearsTheSelection = meta.story({
   beforeEach: install(() => productTransport()),
