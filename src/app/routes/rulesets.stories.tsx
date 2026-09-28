@@ -77,7 +77,7 @@ export const EditToolbarAt1440 = meta.story({
 /**
  * The ruleset editor states only the latest save's failure, in the form and in the toolbar (CodeRabbit on #1435).
  * The first save fails at the update, because another ruleset already has the name.
- * The second stops earlier, at the cover, because Storybook refuses every Convex action.
+ * The second stops earlier, at the cover, because Storybook's Convex mock rejects every action.
  * The update's failure from the first save must not stay on the page beside the cover's.
  */
 export const EditShowsOnlyTheLatestSaveFailure = meta.story({
