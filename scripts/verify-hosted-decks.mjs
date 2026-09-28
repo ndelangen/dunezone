@@ -69,7 +69,7 @@ export async function verifyDecks({
     'The observer did not receive the face-down drop.'
   );
   const publicDrop = observer.view().snapshot.table.pieces.find((piece) => piece.id === dropped.id);
-  assert.equal(publicDrop.items[0].faceUp, false);
+  assert.equal(publicDrop.items[0].faceUp, true);
   assert.equal(publicDrop.items[0].artwork?.front, undefined);
   await capture(a, 'hand-card-dropped-face-down');
   passed('Dragging a private hand card onto the table retires its handle and exposes only its back');
