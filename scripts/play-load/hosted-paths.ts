@@ -23,9 +23,21 @@ async function privatePath(requested: string) {
   return filename;
 }
 
-export async function privateInputFile(requested: string) {
+/**
+ * Returns the canonical path of a private regular file in the temporary directory, refusing a symlink, a file others can read and one over 8 KiB.
+ * With `allowMissing`, a file that does not exist yet passes, for an input the caller writes back later, such as the browser verifier's synthetic accounts.
+ */
+export async function privateInputFile(requested: string, { allowMissing = false } = {}) {
   const filename = await privatePath(requested);
-  const file = await lstat(filename);
+  const file = await lstat(filename).catch((error: unknown) => {
+    if (allowMissing && error instanceof Error && 'code' in error && error.code === 'ENOENT') {
+      return null;
+    }
+    throw error;
+  });
+  if (!file) {
+    return filename;
+  }
   assert.ok(file.isFile() && (file.mode & 0o077) === 0, 'Hosted input files must be private regular files.');
   assert.ok(file.size <= 8192, 'The hosted input file is too large.');
   return filename;
