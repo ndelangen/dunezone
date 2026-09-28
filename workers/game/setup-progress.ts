@@ -66,7 +66,7 @@ export function initialSetup(
   });
   return {
     steps: [
-      ...placed.traitors.map(step),
+      ...placed.traitors.map((placement, index) => step(placement, index)),
       TRAITORS_STEP,
       ...placed.forces.map((placement, index) => step(placement, placed.traitors.length + index)),
       FORCES_STEP,
