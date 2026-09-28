@@ -256,7 +256,7 @@ function send(peer, message) {
   assert.equal(
     peer.socket.readyState,
     WebSocket.OPEN,
-    `Peer ${peer.index} sent on a socket in readyState ${peer.socket.readyState}; its close code is in perClient.closes.`
+    `Peer ${peer.index} sent on a socket in readyState ${peer.socket.readyState}; perClient.closes has its close code once the close completes.`
   );
   peer.socket.send(text);
   report.sentMessages++;

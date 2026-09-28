@@ -36,13 +36,13 @@ async function controllerState(response) {
   return JSON.parse(Buffer.concat(chunks).toString());
 }
 
-async function request(session, method) {
+async function request(session, method, timeoutMs = 15_000) {
   const { target, game, controlSecret } = session;
   return fetch(`${target.applicationOrigin}/__play/games/${game.gameId}/load-control`, {
     method,
     headers: { Authorization: `Bearer ${controlSecret}` },
     redirect: 'error',
-    signal: AbortSignal.timeout(15_000),
+    signal: AbortSignal.timeout(timeoutMs),
   });
 }
 
@@ -73,16 +73,22 @@ async function control(session, method) {
  * holds the previous activation or none: it answers 404 (another game's paths) or 410 (parked). The 22 September
  * browser cell failed on exactly that, one read after a passing one. So the coordinator waits until consecutive
  * reads all reach this cell's activation, and only a read that reaches it is held to the attestation.
+ * The wait ends early enough to leave the fixture's one-minute provisioning lease `leaseMarginMs` for provisioning.
  */
-export const ACTIVATION_SETTLE = { reads: 3, intervalMs: 1000, timeoutMs: 20_000 };
+export const ACTIVATION_SETTLE = { reads: 3, intervalMs: 1000, timeoutMs: 20_000, leaseMarginMs: 20_000 };
 
 async function settledActivation(session, settle) {
-  const deadline = Date.now() + settle.timeoutMs;
+  const deadline = Math.min(Date.now() + settle.timeoutMs, session.game.expiresAt - settle.leaseMarginMs);
   const seen = [];
   let agreeing = 0;
   let state;
   while (agreeing < settle.reads) {
-    const response = await request(session, 'GET');
+    const remaining = deadline - Date.now();
+    assert.ok(
+      remaining > 0,
+      `The activation did not settle before the fixture's provisioning lease needed the rest of its time: ${agreeing} of ${settle.reads} consecutive controller reads reached this cell; the last reads that did not answered ${seen.slice(-5).join(', ') || 'nothing'}.`
+    );
+    const response = await request(session, 'GET', Math.min(15_000, remaining));
     let body = null;
     if (response.status === 200) {
       body = await controllerState(response);
@@ -97,10 +103,6 @@ async function settledActivation(session, settle) {
       agreeing = 0;
     }
     if (agreeing < settle.reads) {
-      assert.ok(
-        Date.now() + settle.intervalMs < deadline,
-        `The activation did not settle: ${settle.reads} consecutive controller reads never reached this cell (${seen.slice(-5).join(', ') || 'none refused'}).`
-      );
       await new Promise((resolve) => setTimeout(resolve, settle.intervalMs));
     }
   }

@@ -401,8 +401,10 @@ Then run the cells one at a time. For each cell:
    extend or silently retry it. Publishing the activation creates a new Worker version, and for a
    few seconds a request can still reach a version holding the previous activation (HTTP 404, since
    the paths name another game) or none (HTTP 410). The coordinator therefore reads the controller
-   until three consecutive reads, a second apart, reach this cell's game, for at most 20 seconds,
-   and records the reads that did not as `placement.unsettledActivationReads`. One passing
+   until three consecutive reads, a second apart, reach this cell's game, for at most 20 seconds
+   and never within the last 20 seconds of the fixture's provisioning lease, and records the reads
+   that did not as `placement.unsettledActivationReads`. A read that reaches this game is held to
+   the full attestation at once; only reads that reached another activation or none are repeated. One passing
    operator readback is not proof that every request sees the activation: the 22 September browser
    cell failed on a 404 one read after a passing one.
 6. After the coordinator exits, read the controller once more: stopped, no alarm, zero game rows.

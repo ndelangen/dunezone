@@ -5,9 +5,9 @@ import path from 'node:path';
 import { afterEach, expect, test, vi } from 'vitest';
 
 import { openHostedSession } from './hosted-session.mjs';
-
-const quickSettle = { reads: 3, intervalMs: 1, timeoutMs: 1000 };
 import { syntheticHostedTarget } from './synthetic-target.ts';
+
+const quickSettle = { reads: 3, intervalMs: 1, timeoutMs: 1000, leaseMarginMs: 20_000 };
 
 let directory;
 afterEach(async () => {
@@ -185,8 +185,24 @@ test('the coordinator waits until consecutive controller reads reach this cellâ€
   expect(session.initial.unsettledReads).toEqual(['404', '410', '200 for game previous-game']);
 
   fetch.mockImplementation(() => Promise.resolve(new Response('Not found.', { status: 404 })));
-  await expect(openHostedSession(filename, values, quickSettle)).rejects.toThrow('The activation did not settle');
+  await expect(openHostedSession(filename, values, quickSettle)).rejects.toThrow('0 of 3 consecutive controller reads');
   /* A read that reaches this game is still held to the attestation, however many reads preceded it. */
+  fetch.mockClear();
   fetch.mockImplementation(() => Promise.resolve(Response.json({ gameId: game.gameId, gitSha: 'other' })));
-  await expect(openHostedSession(filename, values, quickSettle)).rejects.toThrow();
+  await expect(openHostedSession(filename, values, quickSettle)).rejects.toThrow("'other'");
+  expect(fetch).toHaveBeenCalledTimes(1);
+  /* The wait never eats into the fixture's provisioning lease. */
+  fetch.mockClear();
+  await writeFile(
+    filename,
+    JSON.stringify({
+      target,
+      run,
+      game: { ...game, expiresAt: Date.now() + 20_000 },
+      cell,
+      controlSecret: '6'.repeat(64),
+    })
+  );
+  await expect(openHostedSession(filename, values, quickSettle)).rejects.toThrow('provisioning lease');
+  expect(fetch).not.toHaveBeenCalled();
 });
