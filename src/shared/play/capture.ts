@@ -40,6 +40,10 @@ export const factionDefinitionSchema = z.object({
   tokenBack: z.string().nullish(),
   cardbacks: z.object({ traitor: z.string().nullable(), alliance: z.string().nullable() }),
   leaders: z.array(z.object({ memberId: identitySchema, front: z.string().nullable() })),
+  /* Each identified troop's published sides (#1228); `back` is read only where the troop authors one. Optional so a game Worker still reads a Convex that predates it. */
+  troops: z
+    .array(z.object({ troopId: identitySchema, front: z.string().nullable(), back: z.string().nullable() }))
+    .optional(),
 });
 
 /** A catalogue row as a capture reads it: its identity and its stored data, which the capture validates per type. */

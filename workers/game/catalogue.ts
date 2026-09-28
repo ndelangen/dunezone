@@ -359,8 +359,18 @@ export class GameCatalogue {
       };
     });
     const troops = definition.troops.map((troop) => {
-      problems.push({ subject: `troop ${troop.name}`, reason: 'Troop faces are not generated yet.' });
-      return { troopId: troop.troopId, name: troop.name, count: troop.count, front: null, back: null };
+      const subject = `troop ${troop.name}`;
+      const published = source.troops?.find((entry) => entry.troopId === troop.troopId);
+      const front = this.publishedFace(published?.front ?? null, subject, problems);
+      if (!front) {
+        problems.push({ subject, reason: 'This troop has no published face.' });
+      }
+      /* A troop without an authored back shows its front on both sides. */
+      const back = troop.back ? this.publishedFace(published?.back ?? null, subject, problems) : front;
+      if (troop.back && !back) {
+        problems.push({ subject, reason: 'This troop back has no published face.' });
+      }
+      return { troopId: troop.troopId, name: troop.name, count: troop.count, front, back };
     });
     for (const face of troopCombatFaces(definition.troops).filter(lacksCombatValues)) {
       problems.push({
