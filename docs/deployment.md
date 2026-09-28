@@ -182,7 +182,8 @@ No hosted deployment credentials or production snapshots are used. Its generated
 admin key, SQLite database and local Worker persistence are removed on exit. Each shard keeps its
 logs and browser reports as its own artifact for 14 days. Its step summary has a row for each of its
 flows, a flow that never started included, and one for the protocol verifier where it runs. A flow's
-row gives its result, seconds, renderer kind and Chromium build from its report.
+row gives its result, seconds, renderer kind and Chromium build from its report. The same table is
+printed in the job log.
 The same command runs locally on supported platforms.
 For a protocol-only local rehearsal, leave out `--flow`. `--backend-binary` can then select an existing
 native executable and `--skip-build` can reuse the publisher bundle; that shortcut does not verify the

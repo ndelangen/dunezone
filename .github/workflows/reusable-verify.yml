@@ -352,12 +352,15 @@ jobs:
         # always(), because a job that reaches timeout-minutes reads as cancelled.
         # The summary never changes the shard's result: a failed flow lookup writes its own row and
         # fails only this step, as does a report jq cannot read.
+        # The table also goes to the job log, so a shard's rows can be read without the run page.
         if: always()
         continue-on-error: true
         env:
           SHARD: ${{ matrix.shard }}
           PROTOCOL_VERIFIER: ${{ matrix.protocol-verifier }}
         run: |
+          # pipefail keeps a jq failure inside the table failing this step through tee.
+          set -o pipefail
           out=test-results/hosted-play
           flow_list="$(bun -e 'import { flowsInShard } from "./scripts/verify-hosted-flows.ts"; console.log(flowsInShard(process.argv[1]).join(" "))' "$SHARD")" || flow_list=''
           read -r -a flows <<< "$flow_list"
@@ -396,7 +399,7 @@ jobs:
               jq -r 'def seconds: sub("\\.[0-9]+Z$"; "Z") | fromdate;
                 "| \(.flow) | \(if .failure then "fail" else "pass" end) | \((.finishedAt | seconds) - (.startedAt | seconds)) | \(.renderer.kind // "not read") | \(.chromium.build // "") | \(.failure.afterCheck // "" | gsub("\\|"; "/")) |"' "$report"
             done
-          } >> "$GITHUB_STEP_SUMMARY"
+          } | tee -a "$GITHUB_STEP_SUMMARY"
           test "${#flows[@]}" -gt 0
       - name: Retain hosted game integration evidence
         if: always()
