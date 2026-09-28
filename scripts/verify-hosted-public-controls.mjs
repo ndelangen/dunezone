@@ -235,7 +235,8 @@ export async function verifyPublicControls({
       await until(() => b.view().snapshot.phase === phase, 'Phase did not reach the other player.');
       /*
        * Each page notes the turn and phase its header named whenever both buttons were disabled.
-       * From phase 1 on, a seated player's Previous is disabled only while the cooldown runs, so a note naming the new phase is that phase's cooldown and not the one before it.
+       * From phase 1 on, a seated player's Previous is disabled only while the cooldown runs or while this page cannot act, as during a suspension, a re-admission or playback.
+       * A note naming the new phase is therefore that phase's cooldown or a loss of interaction during that phase, and never the cooldown of the phase before it.
        */
       const shown = `Turn ${tableProgressFor(phase, phases).turn} ${phaseAt(phase, phases).label}`;
       for (const who of viewers) {
