@@ -141,6 +141,7 @@ const runDirectory = path.join(outputDirectory, `${values.flow}-${Date.now()}`);
 const directory = pathToFileURL(runDirectory + path.sep);
 const allowedOrigins = new Set([origin, backend]);
 const allowedSocketOrigins = new Set([...allowedOrigins].map((value) => value.replace('http:', 'ws:')));
+const backendSocketOrigin = backend.replace('http:', 'ws:');
 const blockedNetwork = [];
 await mkdir(directory, { recursive: true });
 const report = {
@@ -211,6 +212,36 @@ function observeRenderers() {
   });
   Object.assign(window, { __THREE_DEVTOOLS__: hook, hostedPlayRenderers: renderers });
 }
+/**
+ * Runs in every page before its scripts: keeps each change of the table's connection state and status line, so a flow stuck before the table (#1378) shows whether the page looped through reconnects or never left its first attempt.
+ * The status line is the page's own text, and the list keeps the newest 60 changes.
+ */
+function observeConnectionStatus() {
+  const changes = [];
+  let last = '';
+  const record = () => {
+    const wait = document.querySelector('[data-connection]');
+    const connection = wait?.getAttribute('data-connection') ?? null;
+    const status = wait?.querySelector('[role="status"]')?.textContent ?? null;
+    const key = `${connection}|${status}`;
+    if (key !== last) {
+      last = key;
+      changes.push({ at: Math.round(performance.timeOrigin + performance.now()), connection, status });
+      changes.splice(0, Math.max(0, changes.length - 60));
+    }
+  };
+  Object.assign(window, { hostedPlayConnection: changes });
+  document.addEventListener('DOMContentLoaded', () => {
+    new MutationObserver(record).observe(document.body, {
+      subtree: true,
+      childList: true,
+      characterData: true,
+      attributes: true,
+      attributeFilter: ['data-connection'],
+    });
+    record();
+  });
+}
 /** Runs in the page: the backend the table canvas's renderer initialised, or why it cannot name one yet. */
 function readTableRenderer(canvas) {
   const renderer = window.hostedPlayRenderers?.get(canvas);
@@ -273,6 +304,7 @@ async function peer(label, context) {
       serviceWorkers: 'block',
     });
     await context.addInitScript(observeRenderers);
+    await context.addInitScript(observeConnectionStatus);
     await context.route(
       (url) => !allowedOrigins.has(url.origin),
       async (route) => {
@@ -297,6 +329,8 @@ async function peer(label, context) {
     rawMessages: [],
     sent: [],
     sockets: [],
+    /* The page's Convex sync sockets and its ticket mutations on them, by time only: a ticket is a credential and never recorded. */
+    admission: { convexSockets: [], tickets: [], authErrors: 0 },
     view: () => state.messages.findLast((message) => message.type === 'view'),
     /* The phase cooldown the Worker stated in its latest view or update, and when that frame arrived. */
     phaseCooldown: { ms: 0, receivedAt: 0 },
@@ -309,6 +343,10 @@ async function peer(label, context) {
     }
   });
   page.on('websocket', (socket) => {
+    if (socket.url().startsWith(backendSocketOrigin)) {
+      observeAdmission(state, socket);
+      return;
+    }
     if (!socket.url().includes('/__play/games/')) {
       return;
     }
@@ -350,6 +388,70 @@ async function peer(label, context) {
     });
   });
   return state;
+}
+/** Records when each Convex sync socket opened and closed, and when each ticket mutation went out and was answered. */
+function observeAdmission(state, socket) {
+  const connection = { openedAt: Date.now(), closedAt: null };
+  state.admission.convexSockets.push(connection);
+  socket.on('close', () => {
+    connection.closedAt = Date.now();
+  });
+  socket.on('framesent', (frame) => {
+    const message = parseFrame(frame.payload);
+    if (message?.type === 'Mutation' && (message.udfPath ?? '').endsWith('issueTicket')) {
+      state.admission.tickets.push({
+        requestId: message.requestId,
+        sentAt: Date.now(),
+        answeredAt: null,
+        success: null,
+      });
+    }
+  });
+  socket.on('framereceived', (frame) => {
+    const message = parseFrame(frame.payload);
+    if (message?.type === 'AuthError') {
+      state.admission.authErrors += 1;
+    }
+    const ticket =
+      message?.type === 'MutationResponse' &&
+      state.admission.tickets.find((entry) => entry.requestId === message.requestId && entry.answeredAt === null);
+    if (ticket) {
+      ticket.answeredAt = Date.now();
+      /* A refusal is an ok:false result, so the mutation's own success says only whether the backend ran it. */
+      ticket.success = message.success === true;
+    }
+  });
+}
+function parseFrame(payload) {
+  try {
+    return JSON.parse(payload.toString());
+  } catch {
+    return null;
+  }
+}
+/** What a peer's page and sockets say about its admission, for a failure report: times are milliseconds after the report started. */
+async function admissionTrace(who) {
+  const start = Date.parse(report.startedAt);
+  const since = (time) => (time === null ? null : time - start);
+  const statuses = await Promise.race([
+    who.page.evaluate(() => window.hostedPlayConnection ?? []),
+    delay(5000).then(() => []),
+  ]).catch(() => []);
+  return {
+    label: who.label,
+    gameSockets: who.sockets.length,
+    convexSockets: who.admission.convexSockets.map((entry) => ({
+      openedAt: since(entry.openedAt),
+      closedAt: since(entry.closedAt),
+    })),
+    tickets: who.admission.tickets.map((entry) => ({
+      sentAt: since(entry.sentAt),
+      answeredAt: since(entry.answeredAt),
+      success: entry.success,
+    })),
+    authErrors: who.admission.authErrors,
+    statuses: statuses.map((entry) => ({ ...entry, at: since(entry.at) })),
+  };
 }
 async function signIn(who) {
   credentials[who.label] ??= {
@@ -1510,7 +1612,9 @@ try {
     afterCheck: report.checks.at(-1)?.name ?? 'Startup',
     ...(frame ? { at: frame } : {}),
   };
+  report.failure.admission = [];
   for (const who of peers) {
+    report.failure.admission.push(await admissionTrace(who));
     try {
       await capture(who, `failure-${who.label}`);
     } catch {}
