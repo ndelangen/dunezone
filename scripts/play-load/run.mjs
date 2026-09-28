@@ -16,6 +16,7 @@ import { loopbackOrigin } from '../lib/isolated-stack.ts';
 import { browsers } from './browsers.mjs';
 import { cpuProfile } from './cpu.mjs';
 import { captureSource, prepareDirectory } from './files.mjs';
+import { hostLoad, measureIdle } from './host-load.mjs';
 import { openHostedSession } from './hosted-session.mjs';
 import { interactions } from './interactions.mjs';
 import { distribution, measurements } from './measurements.mjs';
@@ -207,6 +208,12 @@ function stop(reason) {
     peer.socket?.terminate();
   }
 }
+/* A machine already busy before the run starves the coordinator and its browsers, which reads like a stalled room. */
+report.host = { idleBefore: await measureIdle() };
+if (report.host.idleBefore !== null && report.host.idleBefore < 0.5) {
+  console.warn(`Only ${Math.round(report.host.idleBefore * 100)}% of this machine's CPU was idle before the run.`);
+}
+const hostWatch = hostLoad();
 hosted?.assertWindow(report.bounds.wallSeconds);
 const hardStop = setTimeout(() => stop('wall-budget'), report.bounds.wallSeconds * 1000);
 const interrupted = () => stop('operator-stop');
@@ -1209,6 +1216,7 @@ try {
     limitation:
       'Protocol connections only. TCP stream bytes include the HTTP upgrade and WebSocket framing and compression, but exclude TCP/IP headers, retransmissions and browser connections.',
   };
+  report.host = { ...report.host, ...hostWatch.finish() };
   report.finishedAt = new Date().toISOString();
   await writeFile(path.join(directory, 'report.json'), JSON.stringify(report, null, 2));
   console.log(
