@@ -14,6 +14,7 @@ import { resolvePublicationCapture } from '../../src/shared/asset-publishing/pub
 import { INITIAL_CARDBACK_PRESETS } from '../../src/shared/assets/cardbackPresets';
 import { publishingDeckCardback } from '../../src/shared/assets/fixtures/publishingDeckCardback';
 import { publishingRectangleTokenFace } from '../../src/shared/assets/fixtures/publishingRectangleTokenFace';
+import { publishingSpiceCard } from '../../src/shared/assets/fixtures/publishingSpiceCard';
 import { publishingTokenFace } from '../../src/shared/assets/fixtures/publishingTokenFace';
 import { publishingTreacheryCard } from '../../src/shared/assets/fixtures/publishingTreacheryCard';
 import { assetPublishingFaction } from '../../src/shared/factions/fixtures/assetPublishingFaction';
@@ -61,6 +62,11 @@ const cardSnapshot = envelope('card-treachery', {
   assetId: 'k17publisherContractCard',
   slug: 'publisher-contract-card',
   card: publishingTreacheryCard,
+});
+const spiceSnapshot = envelope('card-spice', {
+  assetId: 'k17publisherContractSpice',
+  slug: 'publisher-contract-spice',
+  card: publishingSpiceCard,
 });
 const tokenSnapshot = envelope('token-disc', {
   assetId: 'k17publisherContractToken',
@@ -369,7 +375,14 @@ async function checkRulebookEditionPdf(browser: Browser, settings: RulebookSetti
  */
 async function checkPublisherImageCapture(
   browser: Browser,
-  assetType: 'card-treachery' | 'deck' | 'cardback-preset' | 'token-disc' | 'token-enhance' | 'rulebook-first-page',
+  assetType:
+    | 'card-treachery'
+    | 'card-spice'
+    | 'deck'
+    | 'cardback-preset'
+    | 'token-disc'
+    | 'token-enhance'
+    | 'rulebook-first-page',
   snapshot: ReturnType<typeof envelope>,
   label: string,
   size?: RulebookSize
@@ -450,6 +463,7 @@ try {
     }
   }
   await checkPublisherImageCapture(browser, 'card-treachery', cardSnapshot, 'card');
+  await checkPublisherImageCapture(browser, 'card-spice', spiceSnapshot, 'spice card');
   await checkPublisherImageCapture(browser, 'deck', deckSnapshot, 'deck cardback');
   await checkPublisherImageCapture(
     browser,
