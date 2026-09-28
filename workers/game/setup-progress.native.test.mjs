@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
+import { PHASE_CHANGE_COOLDOWN_MS } from '../../src/shared/play/phases';
 import { draftingRuntime } from './native-drafting.fixture.mjs';
 import { accepted, admitPlayer, eventually, seat, sendCommand, syncView } from './native-runtime.fixture.mjs';
 
@@ -57,7 +58,7 @@ describe('Real-game setup progression', () => {
     return [a, b];
   }
   async function next(connection, direction = 1) {
-    offset += 8001;
+    offset += PHASE_CHANGE_COOLDOWN_MS + 1;
     await runtime.clock(offset);
     return accepted(connection, { kind: 'phase', direction });
   }
@@ -315,7 +316,7 @@ describe('Real-game setup progression', () => {
     expect(before.stage).toBe('setup');
     const oldSeat = (await syncView(b)).viewer.viewerSeat;
     await accepted(b, { kind: 'seat-depart' });
-    offset += 8001;
+    offset += PHASE_CHANGE_COOLDOWN_MS + 1;
     await runtime.clock(offset);
     expect((await sendCommand(a, { kind: 'phase' })).reply.type).toBe('rejected');
     const c = await admit('c');

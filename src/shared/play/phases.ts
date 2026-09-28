@@ -210,4 +210,12 @@ export function phaseForTurn(index: number, turn: number, phaseCount: number = S
   return next;
 }
 
-export const PHASE_CHANGE_COOLDOWN_MS = 8000;
+export const PHASE_CHANGE_COOLDOWN_MS = 2000;
+
+/** Refuses a phase change before the game's cooldown has run since the last one, naming that cooldown. */
+export function requirePhaseCooldownElapsed(phaseChangedAt: number, cooldownMs: number, now: number) {
+  if (now < phaseChangedAt + cooldownMs) {
+    const seconds = cooldownMs / 1000;
+    throw new GameRejection(`Wait ${seconds} ${seconds === 1 ? 'second' : 'seconds'} between phase changes.`);
+  }
+}

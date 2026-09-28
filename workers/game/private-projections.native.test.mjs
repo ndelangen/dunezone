@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
+import { PHASE_CHANGE_COOLDOWN_MS } from '../../src/shared/play/phases';
 import { spiceSupplySlot } from '../../src/shared/play/spiceSupply';
 import {
   admitPlayer,
@@ -232,7 +233,7 @@ describe('Faction privacy through native delivery', () => {
     expect((await command(b, { kind: 'spice-spawn', count: 4 })).reply.type).not.toBe('rejected');
     const physical = (await sync(a)).snapshot.table.pieces;
     for (let phase = 0; phase < 9; phase++) {
-      await runtime.clock(phase * 8001);
+      await runtime.clock(phase * (PHASE_CHANGE_COOLDOWN_MS + 1));
       if (phase === 8) {
         await command(a, { kind: 'ready', ready: true });
         await command(b, { kind: 'ready', ready: true });
@@ -241,7 +242,7 @@ describe('Faction privacy through native delivery', () => {
     }
     expect((await sync(a)).snapshot).toMatchObject({ phase: 9, bank: { balance: 37 }, table: { pieces: physical } });
     expect((await sync(b)).snapshot.bank.balance).toBe(83);
-    await runtime.clock(9 * 8001);
+    await runtime.clock(9 * (PHASE_CHANGE_COOLDOWN_MS + 1));
     await command(b, { kind: 'phase', direction: -1 });
     expect((await sync(a)).snapshot.table.pieces).toEqual(physical);
     await runtime.restart();

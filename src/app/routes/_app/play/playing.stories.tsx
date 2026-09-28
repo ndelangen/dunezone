@@ -2,7 +2,7 @@ import preview from '@sb/preview';
 import { advanceFrame, finishTransitions } from '@sb/storyWaits';
 import type { LogEntry } from '@shared/play/log';
 import type { TablePiece } from '@shared/play/model';
-import { composeTurn, TABLE_PHASES } from '@shared/play/phases';
+import { composeTurn, PHASE_CHANGE_COOLDOWN_MS, TABLE_PHASES } from '@shared/play/phases';
 import type { GameSnapshot } from '@shared/play/protocol';
 import { SPECTATOR_SEAT } from '@shared/play/schema';
 import { item, piece } from '@shared/play/setupSupply';
@@ -633,7 +633,7 @@ export const PhaseCooldown = meta.story({
           phaseChangedAt: STORYBOOK_NOW - 3_600_000,
         },
       }),
-      phaseCooldownMs: 8000,
+      phaseCooldownMs: PHASE_CHANGE_COOLDOWN_MS,
     });
     await waitFor(() => expect(page.getByRole('button', { name: 'Next phase' })).toBeDisabled());
     expect(page.getByRole('button', { name: 'Previous phase' })).toBeDisabled();

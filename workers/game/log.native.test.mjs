@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
+import { PHASE_CHANGE_COOLDOWN_MS } from '../../src/shared/play/phases';
 import { draftingRuntime } from './native-drafting.fixture.mjs';
 import { accepted, admitPlayer, eventually, seat, syncView } from './native-runtime.fixture.mjs';
 
@@ -202,7 +203,7 @@ describe('The retained public log', { timeout: 20_000 }, () => {
       );
     });
     async function next(connection, direction = 1) {
-      offset += 8001;
+      offset += PHASE_CHANGE_COOLDOWN_MS + 1;
       await runtime.clock(offset);
       return accepted(connection, { kind: 'phase', direction });
     }

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { TABLE_PHASES } from '../../src/shared/play/phases';
+import { PHASE_CHANGE_COOLDOWN_MS, TABLE_PHASES } from '../../src/shared/play/phases';
 import { draftingRuntime } from './native-drafting.fixture.mjs';
 import { accepted, admitPlayer, eventually, seat, sendCommand, syncView } from './native-runtime.fixture.mjs';
 
@@ -47,7 +47,7 @@ describe('Determine winner and Continue playing', { timeout: 60_000 }, () => {
       .filter((request) => request.function === 'playDirectory:publishSummary')
       .map((request) => request.args);
   async function next(connection, direction = 1) {
-    offset += 8001;
+    offset += PHASE_CHANGE_COOLDOWN_MS + 1;
     await runtime.clock(offset);
     return accepted(connection, { kind: 'phase', direction });
   }

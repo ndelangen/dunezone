@@ -87,6 +87,8 @@ export type Metadata = {
   game?: z.infer<typeof playGameProvisionSchema>;
   /* An isolated backend may deal provisional catalogue content; a real game refuses unready factions. */
   provisional?: boolean;
+  /* The shorter phase cooldown a synthetic backend provisioned in the isolated local stack; absent means the real one. */
+  testPhaseCooldownMs?: number;
   /* The scrub release this room's history is repaired to: stamped at creation, or committed with a startup repair. */
   historyRepair?: number;
   /* The catalogue deck the hosted fixture deals as its treachery cards; absent until the catalogue answers. */
@@ -240,7 +242,8 @@ export class GameSession {
       this.metadata?.loadProfile,
       () => this.actors.seats(),
       (userId) => this.actors.factionFor(userId),
-      this.metadata?.fixtureDeck
+      this.metadata?.fixtureDeck,
+      this.metadata?.testPhaseCooldownMs
     );
   }
 
@@ -907,8 +910,8 @@ export class GameSession {
   get receiptCount() {
     return this.storage.sql.exec<{ count: number }>('SELECT COUNT(*) AS count FROM receipts').one().count;
   }
-  get phaseChangedAt() {
-    return this.room?.snapshot.controls?.phaseChangedAt ?? 0;
+  get phaseCooldownEndsAt() {
+    return this.room?.phaseCooldownEndsAt ?? 0;
   }
   get battleDeadline() {
     return this.room?.snapshot.battleState?.deadline ?? 0;

@@ -16,6 +16,7 @@ import {
   PHASE_CHANGE_COOLDOWN_MS,
   phaseAt,
   phaseForTurn,
+  requirePhaseCooldownElapsed,
   STANDARD_PHASES,
   stepPhase,
 } from '../../src/shared/play/phases';
@@ -83,9 +84,15 @@ export class Room {
     private readonly seatedPlayers: () => Identity['viewerSeat'][],
     private readonly factionFor: (userId: string) => string | undefined = () => undefined,
     /** The catalogue deck the fixture deals on reset; a room adopts one after the fact when its catalogue answers late. */
-    public fixtureDeck?: StoredSpawnContents
+    public fixtureDeck?: StoredSpawnContents,
+    private readonly phaseCooldownMs = PHASE_CHANGE_COOLDOWN_MS
   ) {
     this.snapshot = storedSnapshotSchema.parse(snapshot);
+  }
+
+  /** When the current phase's cooldown ends on the Worker's clock. */
+  get phaseCooldownEndsAt() {
+    return (this.snapshot.controls?.phaseChangedAt ?? 0) + this.phaseCooldownMs;
   }
 
   private player(identity: Identity) {
@@ -354,6 +361,7 @@ export class Room {
         seats: this.seatedPlayers(),
         reserved: new Set(this.reservations.keys()),
         now,
+        phaseCooldownMs: this.phaseCooldownMs,
       });
     }
     if (action.kind === 'deck-draw' || action.kind === 'deck-shuffle') {
@@ -522,8 +530,8 @@ export class Room {
     }
     const phase = this.nextPhase(action);
     const controls = this.snapshot.controls ?? emptyPublicControls();
-    if (phase !== this.snapshot.phase && now < controls.phaseChangedAt + PHASE_CHANGE_COOLDOWN_MS) {
-      throw new GameRejection('Wait eight seconds between phase changes.');
+    if (phase !== this.snapshot.phase) {
+      requirePhaseCooldownElapsed(controls.phaseChangedAt, this.phaseCooldownMs, now);
     }
     if (phase <= this.snapshot.phase) {
       return;
