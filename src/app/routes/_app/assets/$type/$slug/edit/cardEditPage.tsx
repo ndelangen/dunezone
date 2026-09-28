@@ -32,7 +32,7 @@ type CardType = 'card-treachery' | 'card-spice';
 type CardAsset = NonNullable<AssetPageData>['asset'];
 
 /** What the editor toolbar needs to know about the viewer: what they may do, and which Groups they could hand the card to. */
-export type CardEditAccess = {
+type CardEditAccess = {
   viewerAccess: NonNullable<AssetPageData>['viewerAccess'];
   assignableGroups: NonNullable<AssetPageData>['assignableGroups'];
 };
