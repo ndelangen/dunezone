@@ -11,12 +11,14 @@ export async function verifyPrivateBanks(toolkit) {
     peer,
     enter,
     seated,
+    factionOf,
     button,
     converged,
     focus,
     openTab,
     point,
     supplyShortcut,
+    carrySteps,
     capture,
     until,
     passed,
@@ -25,8 +27,12 @@ export async function verifyPrivateBanks(toolkit) {
   const { a, b, observer } = await seated();
   assert.notEqual(a.context.browser(), b.context.browser());
   assert.notEqual(a.view().viewer.userId, b.view().viewer.userId);
-  assert.deepEqual(a.view().snapshot.bank, { factionId: 'harkonnen', balance: 0 });
-  assert.deepEqual(b.view().snapshot.bank, { factionId: 'atreides', balance: 0 });
+  /* Setup credits each faction's authored starting spice; every balance below counts from it. */
+  const [factionA, factionB] = [factionOf(a).id, factionOf(b).id];
+  const startingSpice = a.view().snapshot.bank.balance;
+  assert.ok(startingSpice > 0);
+  assert.deepEqual(a.view().snapshot.bank, { factionId: factionA, balance: startingSpice });
+  assert.deepEqual(b.view().snapshot.bank, { factionId: factionB, balance: startingSpice });
   assert.equal(Object.hasOwn(observer.view().snapshot, 'bank'), false);
   const spices = (who) => who.view().snapshot.table.pieces.filter(isSpicePiece);
   async function act(who, name) {
@@ -72,18 +78,20 @@ export async function verifyPrivateBanks(toolkit) {
     await capture(a, 'after-hosted-map-1440x1000');
     await openTab(a, 'Spice');
     await openTab(observer, 'Spice');
+    /* No more than the bank holds can be withdrawn. */
+    await a.page.getByRole('textbox', { name: 'Spice to withdraw' }).fill(String(startingSpice + 1));
     assert.equal(await button(a, 'Withdraw spice').isDisabled(), true);
     assert.equal(await observer.page.getByRole('region', { name: 'Faction bank' }).count(), 0);
     await supplyShortcut(a, '7');
     await until(() => spices(a).length === 1, 'Supply did not create spice.');
     await collect(a, spices(a)[0]);
-    assert.equal(a.view().snapshot.bank.balance, 7);
-    assert.equal(b.view().snapshot.bank.balance, 0);
+    assert.equal(a.view().snapshot.bank.balance, startingSpice + 7);
+    assert.equal(b.view().snapshot.bank.balance, startingSpice);
     await withdraw(a, 7);
-    assert.equal(a.view().snapshot.bank.balance, 0);
+    assert.equal(a.view().snapshot.bank.balance, startingSpice);
     assert.equal(spices(a)[0].items.length, 7);
     await collect(b, spices(b)[0]);
-    assert.equal(b.view().snapshot.bank.balance, 7);
+    assert.equal(b.view().snapshot.bank.balance, startingSpice + 7);
     await openTab(b, 'Spice');
     await b.page.getByRole('separator', { name: 'Resize controls panel' }).press('End');
     await b.page.getByRole('region', { name: 'Faction bank' }).scrollIntoViewIfNeeded();
@@ -100,21 +108,22 @@ export async function verifyPrivateBanks(toolkit) {
 
   async function verifyTurnBoundaries() {
     const physical = structuredClone(spices(b));
-    for (let phase = 1; phase <= 8; phase++) {
+    while (a.view().snapshot.phase < 8) {
+      const phase = a.view().snapshot.phase;
       await act(a, 'Next phase');
-      assert.equal(a.view().snapshot.phase, phase);
+      assert.equal(a.view().snapshot.phase, phase + 1);
     }
     await act(a, 'Ready');
     await act(b, 'Ready');
     await act(a, 'Next phase');
     assert.equal(a.view().snapshot.phase, 9);
     assert.deepEqual(spices(a), physical);
-    assert.equal(b.view().snapshot.bank.balance, 4);
+    assert.equal(b.view().snapshot.bank.balance, startingSpice + 4);
     await act(b, 'Previous phase');
     assert.deepEqual(spices(b), physical);
-    assert.equal(b.view().snapshot.bank.balance, 4);
+    assert.equal(b.view().snapshot.bank.balance, startingSpice + 4);
     passed(
-      'Two distinct accounts in two browser processes manually collect and withdraw full balances; turn end and revisit leave physical spice and both banks unchanged'
+      'Two distinct accounts in two browser processes manually collect and withdraw spice from their starting balances; turn end and revisit leave physical spice and both banks unchanged'
     );
   }
 
@@ -125,11 +134,11 @@ export async function verifyPrivateBanks(toolkit) {
     await a.page.mouse.move(start.x, start.y);
     await a.page.mouse.down();
     await a.page.waitForTimeout(350);
-    await a.page.mouse.move(target.x, target.y, { steps: 12 });
+    await a.page.mouse.move(target.x, target.y, { steps: carrySteps });
     await a.page.mouse.up();
     await until(() => spices(a).length === 0, 'Dropping spice on the supply disc did not dispose of it.');
-    assert.equal(a.view().snapshot.bank.balance, 0);
-    assert.equal(b.view().snapshot.bank.balance, 4);
+    assert.equal(a.view().snapshot.bank.balance, startingSpice);
+    assert.equal(b.view().snapshot.bank.balance, startingSpice + 4);
     await until(() => observer.view().snapshot.spiceTransfers[0].kind === 'disposal', 'Disposal was not public.');
     assert.equal(observer.view().snapshot.spiceTransfers[0].amount, 3);
     await openTab(observer, 'Spice');
@@ -147,23 +156,23 @@ export async function verifyPrivateBanks(toolkit) {
     /* Playwright does not report every socket close after its owning document is replaced. */
     previousDocumentSocket.documentReplaced = true;
     await enter(b);
-    assert.deepEqual(b.view().snapshot.bank, { factionId: 'atreides', balance: 4 });
+    assert.deepEqual(b.view().snapshot.bank, { factionId: factionB, balance: startingSpice + 4 });
     const tab = await peer('player-b-tab', b.context);
     await enter(tab);
     assert.deepEqual(tab.view().snapshot.bank, b.view().snapshot.bank);
-    await openTab(tab, 'Table');
+    await openTab(tab, 'Phase');
     await button(tab, 'Replay from start').click();
     await until(() => tab.rawMessages.some((message) => message.type === 'history'), 'Private history did not arrive.');
-    await openTab(observer, 'Table');
+    await openTab(observer, 'Phase');
     await button(observer, 'Replay from start').click();
     await until(
       () => observer.rawMessages.some((message) => message.type === 'history'),
       'Observer history did not arrive.'
     );
     for (const [who, factionId] of [
-      [a, 'harkonnen'],
-      [b, 'atreides'],
-      [tab, 'atreides'],
+      [a, factionA],
+      [b, factionB],
+      [tab, factionB],
       [observer, undefined],
     ]) {
       inspectFrames(who, factionId);
@@ -171,7 +180,7 @@ export async function verifyPrivateBanks(toolkit) {
         who.sockets
           .at(-1)
           .url.replace(/^ws/, 'http')
-          .replace(/socket$/, 'private/atreides')
+          .replace(/socket$/, `private/${factionB}`)
       );
       assert.equal(denied.status(), 403);
       assert.deepEqual(await denied.json(), { error: 'Request refused.' });
@@ -179,6 +188,12 @@ export async function verifyPrivateBanks(toolkit) {
     passed(
       'Raw snapshots, compact deltas and historical frames contain only the recipient faction bank; observer and guessed HTTP paths expose no bank; reconnect and a second tab restore the current bank'
     );
+    /* A real game's history starts at drafting, which has no Spice tab; its playback bar returns a viewer to the live table.
+       The sign-out step opens the Spice tab on both viewers that replayed here, so both go back. */
+    for (const who of [tab, observer]) {
+      await who.page.getByRole('button', { name: 'Return to live' }).click();
+      await button(who, 'Spice').waitFor({ state: 'attached' });
+    }
     return tab;
   }
 

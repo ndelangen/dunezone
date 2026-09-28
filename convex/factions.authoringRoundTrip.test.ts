@@ -105,12 +105,14 @@ function representativeFullFieldFaction(): FactionInput {
         striped: true,
         count: 12,
         planet: 'Curated Prime',
+        combat: { strength: -0.5, fundedStrength: 1.25, fundingCost: 0 },
         back: {
           image: assetPublishingFaction.troops[0].image,
           name: 'Reversible Guard Elite',
           description: 'Reverse-side troop rules.',
           star: TROOP_MODIFIER.options[1] ?? TROOP_MODIFIER.options[0],
           striped: false,
+          capable: false,
         },
       },
       {
@@ -151,6 +153,27 @@ function representativeFullFieldFaction(): FactionInput {
             description: 'Must survive every authoring round trip.',
           },
         ],
+      },
+    ],
+    extraPhases: [
+      {
+        id: 'proof-setup-phase',
+        type: 'prediction',
+        title: 'Proof prediction',
+        symbol: '/vector/icon/fate.svg',
+        before: 'traitors',
+        priority: 10,
+        allPlayersMustBeReady: false,
+        instructions: 'Predict the winner and the turn.',
+      },
+      {
+        id: 'proof-turn-phase',
+        type: 'instruction',
+        title: 'Proof turn phase',
+        symbol: '/vector/icon/bidding_standalone.svg',
+        before: 'bidding',
+        priority: -2,
+        allPlayersMustBeReady: true,
       },
     ],
   };
@@ -204,6 +227,29 @@ describe('faction authoring full-field round trip', () => {
       },
     });
     expect(groupedUpdated.data.complexity).toEqual({ calculated: 0.456, manual: 0.5 });
+
+    /* The editor's shared phase schema is the save's too: a row the editor would hold is refused here. */
+    const phase = {
+      id: 'refused',
+      type: 'instruction',
+      title: 'Refused phase',
+      symbol: '/vector/icon/fate.svg',
+      before: 'karama',
+      priority: 10,
+      allPlayersMustBeReady: false,
+    };
+    await expect(
+      asUser.mutation(api.factions.update, {
+        id: groupedCreated._id,
+        data: { ...groupedUpdated.data, extraPhases: [phase] },
+      })
+    ).rejects.toThrow(/extraPhases\.0\.before: Karama is not a phase you can place before/);
+    await expect(
+      asUser.mutation(api.factions.update, {
+        id: groupedCreated._id,
+        data: { ...groupedUpdated.data, extraPhases: [{ ...phase, before: 'bidding', priority: 2.5 }] },
+      })
+    ).rejects.toThrow(/Priority must be a whole number/);
   });
 
   test('creates, schedules, reloads, edits, and shares every admitted field without loss', async () => {

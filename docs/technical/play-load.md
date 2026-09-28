@@ -38,9 +38,9 @@ The stack runs the coordinator under Node 22 or later from the bundle that
 The runner accepts explicit `http://127.0.0.1:PORT` origins by default. The separate hosted preparation path below requires a private run file and a deployment-scoped key.
 Synthetic fixture creation and provisioning also enforce the isolated-backend guard. A supplied
 profile is server-selected provisioning metadata, never a browser-supplied seat or authority claim.
-The browser case uses the ordinary hosted page and its directory query. A guarded internal test
-control may create the canonical fixture key only while no pending or ready game holds that route
-on the disposable backend. It refuses a live fixture and cannot run against production.
+The browser case opens the provisioned fixture at the ordinary game address, `/play/<gameId>`, and
+reads its access through the same game query every page uses. Fixture creation is a guarded
+internal test control that refuses a second live game on the hosted load backend and cannot run against production.
 
 ## Fixture and workload
 
@@ -387,8 +387,8 @@ Then run the cells one at a time. For each cell:
 2. If an earlier cell's game is still `ready` because its coordinator did not reach cleanup, retire
    it now with `playTesting:retireFixture` under this window. The copied backend refuses a second
    live game.
-3. Create exactly one fixture through `playTesting:createFixture` with the cell's profile, adding
-   `useHostedRoute: true` for the browser cell only.
+3. Create exactly one fixture through `playTesting:createFixture` with the cell's profile. The
+   browser cell opens that game at `/play/<gameId>`, as every other cell's players address it.
 4. Regenerate into a fresh private directory using the returned game ID, this window and this
    cell. The generated `activation.json` is mode 0600 and contains the `LOAD_ACTIVATION` secret
    binding with the cell's ceilings. Publish it to each already-uploaded Worker with
@@ -398,7 +398,15 @@ Then run the cells one at a time. For each cell:
 5. Write the private run file `{ target, run, game, cell, controlSecret }` (mode 0600);
    `game` is the complete pending-provision response. Start the coordinator before the fixture's
    original one-minute lease expires. An expired lease is a failed preparation attempt; do not
-   extend or silently retry it.
+   extend or silently retry it. Publishing the activation creates a new Worker version, and for a
+   few seconds a request can still reach a version holding the previous activation (HTTP 404, since
+   the paths name another game) or none (HTTP 410). The coordinator therefore reads the controller
+   until three consecutive reads, a second apart, reach this cell's game, for at most 20 seconds
+   and never within the last 20 seconds of the fixture's provisioning lease, and records the reads
+   that did not as `placement.unsettledActivationReads`. A read that reaches this game is held to
+   the full attestation at once; only reads that reached another activation or none are repeated. One passing
+   operator readback is not proof that every request sees the activation: the 22 September browser
+   cell failed on a 404 one read after a passing one.
 6. After the coordinator exits, read the controller once more: stopped, no alarm, zero game rows.
    Only then start the next cell.
 7. Capture the providers' counters for the cell beside its report:

@@ -1,5 +1,5 @@
 import { Button } from '@mantine/core';
-import { ClientOnly, createFileRoute, Link } from '@tanstack/react-router';
+import { ClientOnly, createFileRoute, Link, redirect } from '@tanstack/react-router';
 import { LoadPending } from '@ui/block/LoadPending';
 import { LoginGate } from '@ui/block/LoginGate';
 import { NotAvailable } from '@ui/block/NotAvailable';
@@ -15,7 +15,18 @@ import { TableWait } from './TableWait';
 const loadHostedTable = () => import('./multiplayer/HostedTable');
 const HostedTable = lazy(loadHostedTable);
 
+/*
+ * The retired Demo and Hosted pages (#1296) lived at these addresses. Old links and bookmarks land in the
+ * lobby rather than on a game page that asks to sign in for a game that never existed.
+ */
+const RETIRED_PAGES: ReadonlySet<string> = new Set(['demo', 'hosted']);
+
 export const Route = createFileRoute('/_app/play/$gameId')({
+  beforeLoad: ({ params }) => {
+    if (RETIRED_PAGES.has(params.gameId)) {
+      throw redirect({ to: '/play', replace: true });
+    }
+  },
   /* Starts the table bundle with the route, and on an intent preload, so the frame never waits for it after the directory answers. */
   loader: () => {
     void loadHostedTable();

@@ -24,7 +24,7 @@ export const SignedOut = meta.story({
       page.findByRole('heading', { name: 'Game lobby', level: 1 }, { timeout: 30_000 })
     ).resolves.toBeVisible();
     await expect(
-      page.findByText('Ongoing and past games appear here once you may enter them.', {}, { timeout: 30_000 })
+      page.findByText('Ongoing and past games appear here once you sign in.', {}, { timeout: 30_000 })
     ).resolves.toBeVisible();
     expect(page.getByRole('link', { name: 'Login' })).toBeVisible();
     expect(page.queryByRole('group', { name: 'Table view' })).toBeNull();
@@ -32,8 +32,8 @@ export const SignedOut = meta.story({
   },
 });
 
-/** An Administrator sees the directory: one game drafting with their seat, one finished with its result. */
-export const Administrator = meta.story({
+/** A signed-in player sees the directory: one game drafting with their seat, one finished with its result. */
+export const SignedIn = meta.story({
   parameters: {
     identity: { ...storybookViewer, sessionKey: 'lobby-session' },
     database: db((baseline) => {
@@ -101,7 +101,7 @@ export const Administrator = meta.story({
           lastActivityAt: 1_789_913_600_000,
           result: {
             kind: 'faction',
-            factionIds: ['house-atreides'],
+            factions: [{ id: 'house-atreides', name: 'House Atreides' }],
             declaredBy: 'story-user',
             declaredAt: 1_789_913_600_000,
           },

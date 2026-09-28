@@ -7,14 +7,12 @@ import { FactionSheetView } from '@app/print/sheet/FactionSheetView';
 import styles from './FactionSheetPagePreview.module.css';
 
 /**
- * The faction name is the editor's sole blocking field.
- * Keep all other current draft values live while representing a temporarily blank name invisibly.
+ * The draft as the renderers parse it: a blank name is the editor's one blocking field they must still accept, so it is represented invisibly.
+ * Phase declarations are left out entirely: no printed artifact shows them, and a half-filled row would otherwise refuse the whole parse.
  */
 export function factionDraftForRenderer(faction: Faction): Faction {
-  if (faction.name.trim().length > 0) {
-    return faction;
-  }
-  return { ...faction, name: '\u200B' };
+  const { extraPhases: _phases, ...printed } = faction;
+  return printed.name.trim().length > 0 ? printed : { ...printed, name: '\u200B' };
 }
 
 function preparePreviewDocument(document: Document) {

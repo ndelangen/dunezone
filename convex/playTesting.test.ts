@@ -1,11 +1,13 @@
 /// <reference types="vite/client" />
 // @vitest-environment edge-runtime
 
+import aggregateTest from '@convex-dev/aggregate/test';
 import { convexTest } from 'convex-test';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
+import { parseAssetDataForWrite } from '../src/shared/assets/validation';
 import { PLAY_FIXTURE_KEY } from '../src/shared/play/admission';
-import { internal } from './_generated/api';
+import { api, internal } from './_generated/api';
 import schema from './schema';
 
 const modules = import.meta.glob('./**/*.ts');
@@ -52,6 +54,60 @@ describe('isolated Play test controls', () => {
     await expect(
       t.mutation(internal.playTesting.shortenSession, { sessionId, kind: 'total', expiresInMs: 0 })
     ).rejects.toThrow('isolated loopback');
+    await expect(t.mutation(internal.playTesting.seedRealGameCatalogue, {})).rejects.toThrow('isolated loopback');
+  });
+
+  test('seeds a real-game ruleset with both decks and two factions, distinct from an earlier seed', async () => {
+    const { t } = await fixture();
+    /* Inserting catalogue rows updates the statistics aggregate. */
+    aggregateTest.register(t, 'statistics');
+    aggregateTest.register(t, 'profileActivity');
+    const first = await t.mutation(internal.playTesting.seedRealGameCatalogue, {});
+    const second = await t.mutation(internal.playTesting.seedRealGameCatalogue, {});
+    /* Two decks with three cards each, and a token per faction. */
+    expect(first.publications).toHaveLength(10);
+    const seeded = await t.run(async (ctx) => {
+      const slots = await ctx.db
+        .query('ruleset_asset_slots')
+        .withIndex('by_ruleset', (q) => q.eq('ruleset_id', first.rulesetId))
+        .collect();
+      const factions = await ctx.db
+        .query('ruleset_factions')
+        .withIndex('by_ruleset', (q) => q.eq('ruleset_id', first.rulesetId))
+        .collect();
+      const rulesets = await Promise.all([ctx.db.get(first.rulesetId), ctx.db.get(second.rulesetId)]);
+      return {
+        slots: slots.map((slot) => slot.slot).sort(),
+        factions: factions.length,
+        slugs: rulesets.map((r) => r?.slug),
+      };
+    });
+    expect(seeded.slots).toEqual(['spice', 'treachery']);
+    expect(seeded.factions).toBe(2);
+    expect(new Set(seeded.slugs).size).toBe(2);
+  });
+
+  test('fills each required deck with complete, published cards of its own type', async () => {
+    const { t } = await fixture();
+    aggregateTest.register(t, 'statistics');
+    aggregateTest.register(t, 'profileActivity');
+    const { rulesetId, publications } = await t.mutation(internal.playTesting.seedRealGameCatalogue, {});
+    const supply = await t.query(api.playCatalogue.rulesetSupply, { rulesetId });
+    const decks = Object.fromEntries((supply?.slots ?? []).map(({ slot, asset }) => [slot, asset.slug]));
+    for (const [slot, type, collection] of [
+      ['treachery', 'card-treachery', 'cards'],
+      ['spice', 'card-spice', 'spice-cards'],
+    ] as const) {
+      const deck = await t.query(api.playCatalogue.assetSupply, { type: 'deck', slug: decks[slot]! });
+      expect(deck?.members).toHaveLength(3);
+      for (const member of deck?.members ?? []) {
+        expect(member.asset.type).toBe(type);
+        expect(() => parseAssetDataForWrite(member.asset.type, member.asset.data)).not.toThrow();
+        expect(member.front).toMatch(new RegExp(`^/published/${collection}/${member.asset.id}/card\\.jpg`));
+        expect(member.count).toBe(2);
+      }
+    }
+    expect(publications.filter(({ href }) => href.startsWith('/published/spice-cards/'))).toHaveLength(3);
   });
 
   test('changes only the requested synthetic account flag', async () => {
