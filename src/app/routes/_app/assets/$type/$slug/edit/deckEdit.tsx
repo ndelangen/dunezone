@@ -1,4 +1,4 @@
-import { Alert, Popover } from '@mantine/core';
+import { Alert, Menu, Popover } from '@mantine/core';
 import { DeckAsset } from '@shared/assets/schema';
 import { ASSET_TYPE_KEYS, ASSET_TYPES } from '@shared/assets/types';
 import { useNavigate } from '@tanstack/react-router';
@@ -47,6 +47,9 @@ import {
  * Planned types are included deliberately, since `AssetPicker` can only offer assets that exist and a type with none contributes nothing.
  */
 const CARD_TYPES = ASSET_TYPE_KEYS.filter((type) => ASSET_TYPES[type].category === 'cards');
+
+/* The card types that can be created today, offered by the toolbar's create action so a deck of any live card type can be filled from here. */
+const CREATABLE_CARD_TYPES = CARD_TYPES.filter((type) => ASSET_TYPES[type].status === 'live');
 
 export function DeckEditPage({ slug, loaderData }: { slug: string; loaderData: AssetPageData }) {
   const query = useAssetPage('deck', slug, { initialData: loaderData });
@@ -225,6 +228,8 @@ function DeckEditSession({
   });
 
   const save = () => {
+    /* A pickless save stops before the write, so it clears the previous write's failure itself rather than showing it beside its own. */
+    updateAsset.reset();
     /* A pickless reference is blocked here with words, rather than letting the strict stored union answer with a Zod error. */
     dispatch({ kind: 'remember', update: { pickBlocked: pickless } });
     if (pickless) {
@@ -269,20 +274,34 @@ function DeckEditSession({
                * `FilePlus2` rather than a plain plus: every other toolbar's plus creates one of the things the page
                * lists, and this one creates something else entirely.
                */}
-              <IconAction
-                label="Create a new card"
-                tooltip={
-                  isDirty
-                    ? 'Save your deck first, since creating a card leaves this page'
-                    : 'Create a new card, then come back and add it'
-                }
-                emphasis="standard"
-                intent="neutral"
-                size="lg"
-                disabled={isDirty}
-                onClick={() => void navigate({ to: '/assets/$type/create', params: { type: 'card-treachery' } })}
-                icon={<FilePlus2 size={17} aria-hidden />}
-              />
+              <Menu position="bottom-end" shadow="md" withinPortal disabled={isDirty}>
+                <Menu.Target>
+                  <IconAction
+                    label="Create a new card"
+                    tooltip={
+                      isDirty
+                        ? 'Save your deck first, since creating a card leaves this page'
+                        : 'Create a new card, then come back and add it'
+                    }
+                    emphasis="standard"
+                    intent="neutral"
+                    size="lg"
+                    disabled={isDirty}
+                    icon={<FilePlus2 size={17} aria-hidden />}
+                  />
+                </Menu.Target>
+                {/* One entry per live card type, so the choice grows with the registry rather than with this file. */}
+                <Menu.Dropdown>
+                  {CREATABLE_CARD_TYPES.map((type) => (
+                    <Menu.Item
+                      key={type}
+                      onClick={() => void navigate({ to: '/assets/$type/create', params: { type } })}
+                    >
+                      {`${ASSET_TYPES[type].shortLabel} card`}
+                    </Menu.Item>
+                  ))}
+                </Menu.Dropdown>
+              </Menu>
               {groupActions.auxiliaryActions}
             </>
           }

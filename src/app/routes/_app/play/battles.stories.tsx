@@ -140,8 +140,20 @@ export const BattleOneClaimed = meta.story({
   },
 });
 
+/**
+ * Every element in the wheels whose computed animation name is set.
+ * The name stays after the reveal has finished, where `getAnimations` would come back empty, so a still wheel cannot pass for one that turned in before the check ran.
+ */
+function animatedIn(wheels: readonly HTMLElement[]) {
+  return wheels
+    .flatMap((wheel) => [wheel, ...wheel.querySelectorAll('*')])
+    .filter((element) => getComputedStyle(element).animationName !== 'none');
+}
+
+const readiness = install(() => productTransport('neutral', battleStory('preparing', true)));
+
 export const BattleReadiness = meta.story({
-  beforeEach: install(() => productTransport('neutral', battleStory('preparing', true))),
+  beforeEach: readiness,
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await settled(() =>
@@ -157,6 +169,23 @@ export const BattleReadiness = meta.story({
     expect(getComputedStyle(readyRing).stroke).not.toBe(getComputedStyle(preparingRing).stroke);
     expect(getComputedStyle(readyRing).animationName).toBe('none');
     expect(page.getByRole('button', { name: 'Cancel battle' })).toBeDisabled();
+  },
+});
+
+/** The site's Motion setting reaches the wheels: the preparing side's ring holds still and dashed instead of pulsing. */
+export const BattleReadinessStill = meta.story({
+  globals: { motion: 'reduce' },
+  beforeEach: readiness,
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const preparing = await page.findByRole(
+      'img',
+      { name: 'house-harkonnen, left side, aggressor, Preparing' },
+      { timeout: 30_000 }
+    );
+    const ready = page.getByRole('img', { name: 'house-atreides, right side, Ready' });
+    expect(animatedIn([preparing, ready])).toEqual([]);
+    expect(getComputedStyle(preparing.querySelector('svg[data-ready]')!).strokeDasharray).not.toBe('none');
   },
 });
 
@@ -306,16 +335,18 @@ export const BattleObserver = meta.story({
   },
 });
 
+const revealedPieces = install(() => {
+  const snapshot = battleStory('revealed');
+  const battle = snapshot.battle!;
+  const card = snapshot.table.pieces.find((piece) => piece.id === 'treachery-card-loose')!;
+  card.battleOverlay = battle.id;
+  battle.revealed![0].pieces = [card];
+  battle.revealed![0].cardIds = [card.id];
+  return productTransport('seat-2', snapshot);
+});
+
 export const BattleRevealedPieces = meta.story({
-  beforeEach: install(() => {
-    const snapshot = battleStory('revealed');
-    const battle = snapshot.battle!;
-    const card = snapshot.table.pieces.find((piece) => piece.id === 'treachery-card-loose')!;
-    card.battleOverlay = battle.id;
-    battle.revealed![0].pieces = [card];
-    battle.revealed![0].cardIds = [card.id];
-    return productTransport('seat-2', snapshot);
-  }),
+  beforeEach: revealedPieces,
   play: async ({ canvasElement }) => {
     await waitFor(
       () => {
@@ -327,6 +358,21 @@ export const BattleRevealedPieces = meta.story({
       },
       { timeout: 30_000 }
     );
+  },
+});
+
+/** The site's Motion setting reaches the wheels: both plans show at once, with no turn. */
+export const BattleRevealedPiecesStill = meta.story({
+  globals: { motion: 'reduce' },
+  beforeEach: revealedPieces,
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const plans = /^house-(harkonnen|atreides) plan,/;
+    await settled(() => expect(page.getAllByLabelText(plans)).toHaveLength(2));
+    expect(animatedIn(page.getAllByLabelText(plans))).toEqual([]);
+    for (const plan of page.getAllByLabelText(plans)) {
+      expect(within(plan).getByText('Force')).toBeVisible();
+    }
   },
 });
 

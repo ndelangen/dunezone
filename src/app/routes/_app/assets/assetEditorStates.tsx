@@ -2,6 +2,8 @@ import { Alert, Group, Text } from '@mantine/core';
 import { ASSET_TYPES, isAssetType } from '@shared/assets/types';
 import { useNavigate } from '@tanstack/react-router';
 import { NotAvailable } from '@ui/block/NotAvailable';
+import { StatusMark } from '@ui/content/StatusMark';
+import { TopicIcon } from '@ui/content/TopicIcon';
 import { AssignOptions, AssignPopover } from '@ui/control/AssignPopover';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { IconAction } from '@ui/control/IconAction';
@@ -191,9 +193,7 @@ export function useAssetGroupActions({
   return {
     auxiliaryActions,
     context: assignedGroup ? (
-      <Text size="xs" c="dimmed">
-        Group access: <strong>{assignedGroup.name}</strong>
-      </Text>
+      <StatusMark icon={<TopicIcon topic="groups" size={16} />} label={`Group access: ${assignedGroup.name}`} />
     ) : null,
     error: setAssetGroup.error ? (
       <Alert color="red" variant="light" role="alert" title="Could not change group">
@@ -224,7 +224,7 @@ export function useAssetNameField<Chapter extends string>({
   name: string;
   onName: (name: string) => void;
   currentSlug?: string;
-  /** The validation header group the warning joins, Identity everywhere but the treachery card, whose name lives in Head. */
+  /** The validation header group the warning joins, Identity everywhere but the two cards, whose names live in Head. */
   source: string;
   chapter: Chapter;
   /** Whether this viewer may rename the asset, which only its owner may (#605). A create page states `true`: its viewer is the owner-to-be. */

@@ -5,8 +5,6 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { parseArgs, parseEnv } from 'node:util';
 
-import { ConvexHttpClient } from 'convex/browser';
-import { anyApi } from 'convex/server';
 import { chromium } from 'playwright';
 import sharp from 'sharp';
 import { PerspectiveCamera, Vector3 } from 'three';
@@ -136,10 +134,6 @@ for (const filename of [environmentPath, credentialsPath]) {
     'Private files must stay outside the report directory.'
   );
 }
-assert.ok(environment.CONVEX_SELF_HOSTED_ADMIN_KEY, 'The isolated backend admin key is required.');
-/* Grants the synthetic accounts the Administrator flag real games require; it cannot sign anyone in. */
-const admin = new ConvexHttpClient(backend);
-admin.setAdminAuth(environment.CONVEX_SELF_HOSTED_ADMIN_KEY);
 let credentials = {};
 try {
   credentials = JSON.parse(await readFile(credentialsPath, 'utf8'));
@@ -370,15 +364,6 @@ async function signIn(who) {
 /** The id of the real game this flow creates; every account after the creator enters it. */
 let gameId;
 const SPECTATOR = 'neutral';
-/** Makes a signed-in synthetic account an Administrator, which real games require until their public release. */
-async function administrator(who) {
-  const token = await who.page.evaluate(
-    () => Object.entries(localStorage).find(([key]) => key.startsWith('__convexAuthJWT'))?.[1]
-  );
-  assert.ok(token, 'The signed-in page holds no Convex Auth token.');
-  const [userId] = JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString('utf8')).sub.split('|');
-  await admin.mutation(anyApi.playTesting.setAdministrator, { userId, enabled: true });
-}
 /** Waits for an admitted connection and the table it projects; before play the stage replaces the table view. */
 async function admitted(who) {
   await who.page.locator('[data-connection="authorized"]').waitFor();
@@ -410,11 +395,10 @@ async function enter(who) {
   await who.page.goto(`${origin}/play/${gameId}`, { waitUntil: 'domcontentloaded' });
   await admitted(who);
 }
-/** A signed-in Administrator: the only kind of account a real game admits. */
+/** A signed-in synthetic account without the Administrator flag: real games admit every signed-in player. */
 async function account(label) {
   const who = await peer(label);
   await signIn(who);
-  await administrator(who);
   return who;
 }
 /** A spectator asks for a seat and a seated player approves it, through the seat bar. */
@@ -705,9 +689,26 @@ async function cursorAt(recipient, sender, position) {
   }, 'The visible remote cursor did not reach the expected board position.');
 }
 
-async function redPixels(who, center) {
+const HIDDEN_CURSOR = 'data-verifier-hidden-cursor';
+/**
+ * Counts saturated red pixels in the 48 px box around `center` on the recipient's page, with the sender's drawn cursor hidden.
+ * The hand and name label take the sender's faction colour, so for the red Harkonnen seat they would count as a red token.
+ * A cursor still drawn at an earlier point would then raise a baseline, and a hand could stand in for a held token (#1461).
+ * Only the screenshot hides them: the page and its captures still show the cursor.
+ */
+async function redPixels(recipient, sender, center) {
+  await remoteCursor(recipient, sender)
+    .locator('..')
+    .evaluateAll((elements, attribute) => {
+      for (const element of elements) {
+        element.setAttribute(attribute, '');
+      }
+    }, HIDDEN_CURSOR);
   const clip = { x: Math.round(center.x) - 24, y: Math.round(center.y) - 24, width: 48, height: 48 };
-  const png = await who.page.screenshot({ clip });
+  const png = await recipient.page.screenshot({
+    clip,
+    style: `[${HIDDEN_CURSOR}] { visibility: hidden !important; }`,
+  });
   const { data, info } = await sharp(png).removeAlpha().raw().toBuffer({ resolveWithObject: true });
   let count = 0;
   for (let offset = 0; offset < data.length; offset += info.channels) {
@@ -748,7 +749,7 @@ async function visibleActivity(sender, recipient, name) {
   for (const position of targets) {
     const senderPoint = await point(sender, position, 'map');
     const recipientPoint = await point(recipient, position, 'map');
-    destinations.push({ senderPoint, recipientPoint, baseline: await redPixels(recipient, recipientPoint) });
+    destinations.push({ senderPoint, recipientPoint, baseline: await redPixels(recipient, sender, recipientPoint) });
   }
   await capture(recipient, `${name}-before-carry`);
   const sentBefore = sender.sent.length;
@@ -763,13 +764,13 @@ async function visibleActivity(sender, recipient, name) {
         `${name}: the native drag did not pick up the force stack.`
       );
       await until(
-        async () => (await redPixels(recipient, destination.recipientPoint)) > destination.baseline + 40,
+        async () => (await redPixels(recipient, sender, destination.recipientPoint)) > destination.baseline + 40,
         `${name}: the recipient did not render the held red token at destination ${index + 1}.`
       );
       if (index > 0) {
         const previous = destinations[index - 1];
         await until(
-          async () => (await redPixels(recipient, previous.recipientPoint)) <= previous.baseline + 10,
+          async () => (await redPixels(recipient, sender, previous.recipientPoint)) <= previous.baseline + 10,
           `${name}: the previous destination retained a duplicate token.`
         );
       }
@@ -785,7 +786,7 @@ async function visibleActivity(sender, recipient, name) {
   );
   for (const destination of destinations) {
     await until(
-      async () => (await redPixels(recipient, destination.recipientPoint)) <= destination.baseline + 10,
+      async () => (await redPixels(recipient, sender, destination.recipientPoint)) <= destination.baseline + 10,
       `${name}: the cancelled token remained visible at a dragged location.`
     );
   }
@@ -912,11 +913,11 @@ async function sharedPhaseFlow(a, b) {
   await focus(a, nextView);
   await a.page.mouse.move(10, 10);
   const nextViewPoint = await point(a, target, nextView);
-  const nextViewBaseline = await redPixels(a, nextViewPoint);
+  const nextViewBaseline = await redPixels(a, b, nextViewPoint);
   await focus(a, 'map');
   await a.page.mouse.move(10, 10);
   const recipientPoint = await point(a, target, 'map');
-  const baseline = await redPixels(a, recipientPoint);
+  const baseline = await redPixels(a, b, recipientPoint);
   await b.page.mouse.move(start.x, start.y);
   await b.page.mouse.down();
   try {
@@ -930,7 +931,7 @@ async function sharedPhaseFlow(a, b) {
       'The other player did not receive the held token before a phase change.'
     );
     await until(
-      async () => (await redPixels(a, recipientPoint)) > baseline + 40,
+      async () => (await redPixels(a, b, recipientPoint)) > baseline + 40,
       'The held token was not visible before a phase change.'
     );
     await phaseStep(a, b, 1, { recipientHeld: true });
@@ -941,7 +942,7 @@ async function sharedPhaseFlow(a, b) {
     await recommendedViewButton(b, nextView, false).waitFor();
     assert.equal(await shownView(b), 'map');
     await until(
-      async () => (await redPixels(a, nextViewPoint)) > nextViewBaseline + 40,
+      async () => (await redPixels(a, b, nextViewPoint)) > nextViewBaseline + 40,
       'The held token disappeared when the phase changed.'
     );
     assert.equal(await a.page.getByRole('heading', { name: 'Storm sector', exact: true }).count(), 0);
@@ -1198,12 +1199,12 @@ async function verifyRegular() {
   );
   const visitor = await peer('visitor');
   await signIn(visitor);
-  await visitor.page.goto(`${origin}/play/${gameId}`, { waitUntil: 'domcontentloaded' });
+  await visitor.page.goto(`${origin}/play/not-a-game`, { waitUntil: 'domcontentloaded' });
   await visitor.page.getByText('This game is not available', { exact: true }).waitFor();
   assert.equal(await visitor.page.locator('canvas').count(), 0);
   assert.equal(visitor.sockets.length, 0);
   await visitor.page.close();
-  passed('A signed-in account without the Administrator flag finds the real game unavailable and opens no socket');
+  passed('A signed-in account finds an unknown game id unavailable and opens no socket');
   for (const view of ['left', 'right', 'bottom', 'map']) {
     await focus(a, view);
   }

@@ -36,16 +36,18 @@ async function controllerState(response) {
   return JSON.parse(Buffer.concat(chunks).toString());
 }
 
-async function control(session, method) {
+async function request(session, method, timeoutMs = 15_000) {
   const { target, game, controlSecret } = session;
-  const response = await fetch(`${target.applicationOrigin}/__play/games/${game.gameId}/load-control`, {
+  return fetch(`${target.applicationOrigin}/__play/games/${game.gameId}/load-control`, {
     method,
     headers: { Authorization: `Bearer ${controlSecret}` },
     redirect: 'error',
-    signal: AbortSignal.timeout(15_000),
+    signal: AbortSignal.timeout(timeoutMs),
   });
-  assert.equal(response.status, 200, 'The isolated load controller refused the request.');
-  const state = await controllerState(response);
+}
+
+function attest(session, state, response) {
+  const { target, game } = session;
   assert.equal(state.gameId, game.gameId);
   assert.equal(state.gitSha, target.sourceRevision);
   assert.equal(state.backendOrigin, target.backendOrigin);
@@ -58,6 +60,53 @@ async function control(session, method) {
   );
   assert.deepEqual(state.cell, identity(session.cell), 'The room was activated for a different cell.');
   return { ...state, edgeColo: response.headers.get('cf-ray')?.split('-')[1] ?? null };
+}
+
+async function control(session, method) {
+  const response = await request(session, method);
+  assert.equal(response.status, 200, 'The isolated load controller refused the request.');
+  return attest(session, await controllerState(response), response);
+}
+
+/*
+ * Publishing an activation creates a new Worker version, and for a few seconds a request can still reach one that
+ * holds the previous activation or none: it answers 404 (another game's paths) or 410 (parked). The 22 September
+ * browser cell failed on exactly that, one read after a passing one. So the coordinator waits until consecutive
+ * reads all reach this cell's activation, and only a read that reaches it is held to the attestation.
+ * The wait ends early enough to leave the fixture's one-minute provisioning lease `leaseMarginMs` for provisioning.
+ */
+const ACTIVATION_SETTLE = { reads: 3, intervalMs: 1000, timeoutMs: 20_000, leaseMarginMs: 20_000 };
+
+async function settledActivation(session, settle) {
+  const deadline = Math.min(Date.now() + settle.timeoutMs, session.game.expiresAt - settle.leaseMarginMs);
+  const seen = [];
+  let agreeing = 0;
+  let state;
+  while (agreeing < settle.reads) {
+    const remaining = deadline - Date.now();
+    assert.ok(
+      remaining > 0,
+      `The activation did not settle before the fixture's provisioning lease needed the rest of its time: ${agreeing} of ${settle.reads} consecutive controller reads reached this cell; the last reads that did not answered ${seen.slice(-5).join(', ') || 'nothing'}.`
+    );
+    const response = await request(session, 'GET', Math.min(15_000, remaining));
+    let body = null;
+    if (response.status === 200) {
+      body = await controllerState(response);
+    } else {
+      await response.body?.cancel();
+    }
+    if (body?.gameId === session.game.gameId) {
+      state = attest(session, body, response);
+      agreeing++;
+    } else {
+      seen.push(response.status === 200 ? `200 for game ${body?.gameId}` : String(response.status));
+      agreeing = 0;
+    }
+    if (agreeing < settle.reads) {
+      await new Promise((resolve) => setTimeout(resolve, settle.intervalMs));
+    }
+  }
+  return { ...state, unsettledReads: seen };
 }
 
 /**
@@ -77,7 +126,7 @@ function assertCell(cell, values) {
 }
 
 /** The coordinator needs a private run file and a deploy key minted for the explicit isolated deployment. */
-export async function openHostedSession(filename, values) {
+export async function openHostedSession(filename, values, settle = ACTIVATION_SETTLE) {
   const input = await privateInputFile(filename);
   const session = sessionSchema.parse(JSON.parse(await readFile(input, 'utf8')));
   const key = process.env.CONVEX_DEPLOY_KEY ?? '';
@@ -92,7 +141,7 @@ export async function openHostedSession(filename, values) {
     Date.now() >= session.run.startsAt && Date.now() + 120_000 < session.run.expiresAt,
     'The hosted run needs at least two minutes remaining.'
   );
-  const initial = await control(session, 'GET');
+  const initial = await settledActivation(session, settle);
   assert.equal(initial.stopped, null, 'A stopped hosted run cannot be reused.');
   return {
     ...session,

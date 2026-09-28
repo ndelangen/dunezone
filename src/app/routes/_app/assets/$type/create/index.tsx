@@ -5,6 +5,7 @@ import { NoEditorYet } from '../../assetEditorStates';
 import { BundleCreatePage } from './bundleCreate';
 import { DeckCreatePage } from './deckCreate';
 import { RectangleCreatePage } from './rectangleCreate';
+import { SpiceCreatePage } from './spiceCreate';
 import { TokenCreatePage } from './tokenCreate';
 import { TreacheryCreatePage } from './treacheryCreate';
 
@@ -31,6 +32,8 @@ function CreateAssetPage() {
   switch (type) {
     case 'card-treachery':
       return <TreacheryCreatePage />;
+    case 'card-spice':
+      return <SpiceCreatePage />;
     /* One editor for all three shapes: shape is the type, and only the proof's clip differs. */
     case 'token-disc':
     case 'token-tech':

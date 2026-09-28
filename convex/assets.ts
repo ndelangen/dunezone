@@ -293,7 +293,7 @@ export const getPage = query({
        * Empty for every type a ruleset cannot slot, which is everything but decks and bundles.
        */
       linkingRulesets: v.array(rulesetSlotReferenceValidator),
-      /** Null for a type that publishes nothing, which today is every type but `card-treachery`. */
+      /** Null for a type that publishes nothing, which today is a bundle and every planned type. */
       assetPublishing: v.union(assetPublishingValidator, v.null()),
       /**
        * The authored back's own publication, which is a second artifact under a face-qualified id rather than a second field on the first.

@@ -1,13 +1,12 @@
 import { z } from 'zod';
 
-import { ALL } from '../assetIds';
+import { ALL, BACKGROUND, TEXTURE } from '../assetIds';
 import { Background, Decal } from '../factions/schema';
 import { proseFormattedTextSchema } from '../formattedText';
 import { cardbackPresetKeySchema } from './cardbackPresetKeys';
 
 const OFFSET = z.tuple([z.number(), z.number()]);
 const SCALE = z.number().min(0).max(1);
-const URL = z.string().url();
 
 /**
  * Off-face prose explaining rule details the face cannot or should not carry.
@@ -30,8 +29,7 @@ export { Decal };
 
 /**
  * The spice-card renderer's props.
- * No `about`, and deliberately so: `card-spice` is a planned Asset type with no `parseAssetDataForWrite` branch, so nothing can store one.
- * It gains the field when its editor does, at which point it also gains a stored superset the way `TreacheryAsset` did.
+ * No `about`, and deliberately so: `SpiceCard` draws exactly these fields, and the stored superset is `SpiceAsset` below, the same split `Treachery` and `TreacheryAsset` make.
  */
 export const Spice = z.strictObject({
   name: z.string(),
@@ -98,7 +96,8 @@ export const Spice = z.strictObject({
   overlays: z
     .array(
       z.strictObject({
-        image: URL,
+        /* The publisher renders every saved face in a browser, so an overlay names a bundled image, never an address the author chooses. */
+        image: z.union([TEXTURE, BACKGROUND, ALL]),
         offset: OFFSET,
         scale: SCALE,
       })
@@ -132,6 +131,14 @@ export const Treachery = z.strictObject({
  * treachery was the odd one out.
  */
 export const TreacheryAsset = Treachery.extend({
+  about: About,
+});
+
+/**
+ * A stored spice card, which is its rendered face plus the About that never reaches it.
+ * `overlays` stays optional and outside the editor, so a stored card that carries some keeps them through every save.
+ */
+export const SpiceAsset = Spice.extend({
   about: About,
 });
 
@@ -343,6 +350,19 @@ export const RectangleTokenAsset = z.strictObject({
 export const TreacheryAssetInput = TreacheryAsset.extend({
   about: FormattedAbout,
   text: proseFormattedTextSchema,
+});
+
+/**
+ * An empty body is legal and means the renderer's own sentence, built from the name and the amount.
+ * Authored text is normalized the way a treachery card's body is.
+ */
+export const SpiceAssetInput = SpiceAsset.extend({
+  about: FormattedAbout,
+  text: proseFormattedTextSchema.optional(),
+  /* The publisher renders every saved face in a browser, so an overlay may only name a bundled image, never an address the author chooses. */
+  overlays: z
+    .array(z.strictObject({ image: z.union([TEXTURE, BACKGROUND, ALL]), offset: OFFSET, scale: SCALE }))
+    .optional(),
 });
 
 export const DeckAssetInput = DeckAsset.extend({ about: FormattedAbout });

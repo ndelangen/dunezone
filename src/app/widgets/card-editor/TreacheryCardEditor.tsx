@@ -27,7 +27,7 @@ import { backgroundPresets } from '@game/data/backgrounds';
 import type { TreacheryAsset } from '@game/data/objects';
 import { card as CARD_SIZE } from '@game/data/sizes';
 
-import styles from './TreacheryCardEditor.module.css';
+import styles from './CardEditor.module.css';
 
 /* The icon draws from the same full vector pool the decals do, the schema's ALL union, not just the icon set. */
 const iconOptions = decalAssetOptions.map((value) => ({ value, label: decalAssetOptionToLabel(value) }));

@@ -116,7 +116,7 @@ async function world() {
   };
 }
 
-describe('the directory keeps the newest published summary and lists it to Administrators', () => {
+describe('the directory keeps the newest published summary and lists it to every signed-in player', () => {
   test('a later sequence replaces, an older or repeated one is acknowledged without effect, a wrong secret is refused', async () => {
     const { t, admin, ids, game, publish, summary } = await world();
     expect(await publish(1, summary([ids.admin]), 'f'.repeat(64))).toEqual({ ok: false });
@@ -157,10 +157,13 @@ describe('the directory keeps the newest published summary and lists it to Admin
     const { t, admin, member, ids, game, publish, summary } = await world();
     await publish(1, summary([ids.admin, ids.gone]));
     expect(await t.query(api.playDirectory.listGames, {})).toEqual({ status: 'sign_in_required' });
-    expect(await member.query(api.playDirectory.listGames, {})).toEqual({ status: 'not_authorized' });
+    /* A player without the Administrator flag reads the same listing. */
+    expect(await member.query(api.playDirectory.listGames, {})).toMatchObject({
+      status: 'ready',
+      ongoing: [{ seatsFilled: 1, players: [{ displayName: 'Administrator' }] }],
+    });
     const listed = await admin.query(api.playDirectory.listGames, {});
     expect(listed).toMatchObject({
-      canCreate: true,
       ongoing: [{ seatsFilled: 1, players: [{ displayName: 'Administrator' }] }],
     });
     const result = {

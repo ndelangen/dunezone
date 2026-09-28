@@ -200,11 +200,7 @@ function BundleEditSession({
           copy={{
             saveLabel: 'Save bundle',
             nameBlankMessage: 'Add a bundle name before saving; it determines the bundle URL.',
-            /*
-             * A bundle publishes nothing, so this says what does happen rather than leaving a publication line that
-             * would never fill in. `AuthoringToolbar` already omits its "Last published" line when there is no
-             * timestamp, so nothing here has to suppress it.
-             */
+            /* A bundle publishes nothing, so this page adds no publication status to the toolbar. */
           }}
           actions={{
             onSave: save,

@@ -100,12 +100,18 @@ async function placement() {
       clientCountry: fields.loc ?? null,
       edgeColo: fields.colo ?? null,
       controllerEdgeColo: hosted.initial.edgeColo,
+      unsettledActivationReads: hosted.initial.unsettledReads,
       http: fields.http ?? null,
       tls: fields.tls ?? null,
       limitation,
     };
   } catch (error) {
-    return { error: error.message, controllerEdgeColo: hosted.initial.edgeColo, limitation };
+    return {
+      error: error.message,
+      controllerEdgeColo: hosted.initial.edgeColo,
+      unsettledActivationReads: hosted.initial.unsettledReads,
+      limitation,
+    };
   }
 }
 const warmupSeconds = values.case === 'steady' ? manifest.warmupSeconds : 0;
@@ -247,7 +253,11 @@ function send(peer, message) {
     stop('byte-budget');
     return false;
   }
-  assert.equal(peer.socket.readyState, WebSocket.OPEN);
+  assert.equal(
+    peer.socket.readyState,
+    WebSocket.OPEN,
+    `Peer ${peer.index} sent on a socket in readyState ${peer.socket.readyState}; perClient.closes has its close code once the close completes.`
+  );
   peer.socket.send(text);
   report.sentMessages++;
   accountBytes('sent', Buffer.byteLength(text));
@@ -400,6 +410,10 @@ async function openSocket(peer, issued) {
   });
   socket.on('error', () => {});
   socket.on('message', (raw) => receivePacket(peer, raw));
+  /* The room's close code says why a socket went away: 4413 is its message rate limit, 1012 a restart. */
+  socket.once('close', (code, reason) => {
+    (peer.closes ??= []).push({ atMs: performance.now(), code, reason: reason.toString().slice(0, 120), stopping });
+  });
   await new Promise((resolve) => {
     socket.once('open', resolve);
     socket.once('error', resolve);
@@ -1033,6 +1047,7 @@ try {
     sentBytes: p.sentBytes ?? 0,
     receivedBytes: p.receivedBytes ?? 0,
     messagesByType: p.messagesByType ?? {},
+    closes: p.closes ?? [],
     transport: (p.transports ?? []).map(({ socket, extensions }) => ({
       extensions,
       receivedBytes: socket.bytesRead,

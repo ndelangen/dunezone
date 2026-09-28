@@ -172,6 +172,36 @@ export default definePreview({
             height: '844px',
           },
         },
+        /* The narrowest phone the authoring toolbar is held to, beside the tablet and laptop widths it is also checked at. */
+        appMobileNarrow: {
+          name: 'App mobile narrow',
+          styles: {
+            width: '360px',
+            height: '800px',
+          },
+        },
+        appTablet: {
+          name: 'App tablet',
+          styles: {
+            width: '768px',
+            height: '1024px',
+          },
+        },
+        appLaptop: {
+          name: 'App laptop',
+          styles: {
+            width: '1100px',
+            height: '900px',
+          },
+        },
+        /* The narrowest window at which the authoring toolbar keeps a glyph per status: its 32rem fold, plus the 40px the page puts around the toolbar at this width. */
+        appAuthoringToolbarUnfolded: {
+          name: 'Authoring toolbar unfolded',
+          styles: {
+            width: '552px',
+            height: '900px',
+          },
+        },
       },
     },
   },

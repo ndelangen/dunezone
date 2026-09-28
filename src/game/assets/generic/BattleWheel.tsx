@@ -23,7 +23,16 @@ type Revealed = {
   leader?: ReactNode;
 };
 
-type Props = { label: string; className?: string } & (
+type Props = {
+  label: string;
+  className?: string;
+  /**
+   * The host's Motion verdict: `false` holds the reveal and the readiness pulse still, and `true` plays them even when the operating system asks for reduced motion.
+   * Left out, the operating system's hint decides alone.
+   * The caller passes it because `src/game` may not reach into the app, where the site's setting lives.
+   */
+  motion?: boolean;
+} & (
   | Revealed
   | {
       state: 'unrevealed';
@@ -38,6 +47,7 @@ export function BattleWheel(props: Props) {
     <div
       className={[styles.wheel, props.className].filter(Boolean).join(' ')}
       data-state={props.state}
+      data-motion={props.motion === undefined ? undefined : props.motion ? 'ok' : 'reduce'}
       role={props.state === 'unrevealed' ? 'img' : undefined}
       aria-label={props.label}
     >

@@ -982,18 +982,21 @@ export class GameSession {
     });
     return viewer;
   }
-  refreshViewer(viewer: Viewer) {
-    const current = this.actors.currentViewer(viewer.connectionId, viewer.userId);
-    if (current?.viewerSeat !== viewer.viewerSeat) {
-      this.clearActivity(viewer.connectionId);
-      if (this.room) {
-        const controls = this.room.snapshot.controls ?? emptyPublicControls();
-        this.room.snapshot = this.withRoster({
-          ...this.room.snapshot,
-          controls: { ...controls, seats: this.actors.seats() },
-        });
+  /** A connection whose seat changed loses its activity, and the roster is read again. */
+  refreshViewers(viewers: readonly Viewer[]) {
+    const current = this.actors.currentViewers(viewers);
+    viewers.forEach((viewer, index) => {
+      if (current[index]?.viewerSeat !== viewer.viewerSeat) {
+        this.clearActivity(viewer.connectionId);
+        if (this.room) {
+          const controls = this.room.snapshot.controls ?? emptyPublicControls();
+          this.room.snapshot = this.withRoster({
+            ...this.room.snapshot,
+            controls: { ...controls, seats: this.actors.seats() },
+          });
+        }
       }
-    }
+    });
     return current;
   }
   logPage(...args: Parameters<PublicLog['page']>) {

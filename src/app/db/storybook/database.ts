@@ -4,6 +4,7 @@ import type { Doc, TableNames } from '../../../../convex/_generated/dataModel';
 import schema from '../../../../convex/schema';
 import { publishingDeckCardback } from '../../../shared/assets/fixtures/publishingDeckCardback';
 import { publishingRectangleTokenFace } from '../../../shared/assets/fixtures/publishingRectangleTokenFace';
+import { publishingSpiceCard } from '../../../shared/assets/fixtures/publishingSpiceCard';
 import { publishingTokenFace } from '../../../shared/assets/fixtures/publishingTokenFace';
 import { publishingTreacheryCard } from '../../../shared/assets/fixtures/publishingTreacheryCard';
 import { parseAssetDataForWrite } from '../../../shared/assets/validation';
@@ -102,6 +103,7 @@ function baselineDatabase(): StorybookDatabase {
   baseline.ruleset_factions.push({ ruleset_id: ref(RULESET_KEY), faction_id: ref(FACTION_KEY) });
 
   const treachery = asset({ type: 'card-treachery', data: publishingTreacheryCard });
+  const spice = asset({ type: 'card-spice', data: publishingSpiceCard });
   const deck = asset({
     type: 'deck',
     data: {
@@ -131,7 +133,7 @@ function baselineDatabase(): StorybookDatabase {
       band: { background: publishingRectangleTokenFace.background, label: 'ATREIDES' },
     },
   });
-  baseline.assets.push(treachery, deck, disc, enhance, bundle);
+  baseline.assets.push(treachery, spice, deck, disc, enhance, bundle);
   baseline.asset_relations.push(
     { from_asset_id: ref(deck.$key!), to_asset_id: ref(treachery.$key!), kind: 'deck-card', count: 3 },
     { from_asset_id: ref(bundle.$key!), to_asset_id: ref(disc.$key!), kind: 'bundle-token', count: 1 },

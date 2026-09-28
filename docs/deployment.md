@@ -188,7 +188,7 @@ The launcher builds the app and starts the stack once. Without `--browser-only` 
 verifier first. It then runs each selected browser flow in turn through
 `scripts/verify-hosted-play-browser.mjs`. Before the flows it seeds a synthetic ruleset
 (`playTesting:seedRealGameCatalogue`) and installs its publication bytes; each flow signs in fresh
-Administrator accounts and creates its own real game. `--flow` repeats, `all` selects every flow in
+accounts, none of them Administrators, and creates its own real game. `--flow` repeats, `all` selects every flow in
 [`scripts/verify-hosted-flows.ts`](../scripts/verify-hosted-flows.ts), and `--browser-only` without it
 runs only the regular flow; the named flows are described under
 [Verification](./technical/play-hosted.md#verification). A failed verifier does not stop the flows
