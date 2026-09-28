@@ -1,4 +1,4 @@
-import { configure, prettyDOM } from 'storybook/test';
+import { configure, prettyDOM, waitFor } from 'storybook/test';
 
 /*
  * Every story wait (findBy*, waitFor) runs against Testing Library's asyncUtilTimeout, a wall clock.
@@ -45,8 +45,8 @@ export function finishTransitions<T extends Element>(element: T) {
   return element;
 }
 
-/* Callbacks the page asked a frame for that no frame has run yet, by request id. */
-const waitingFrames = new Map<number, FrameRequestCallback>();
+/* Callbacks the page asked a frame for that no frame has run yet, by request id, with when each was asked for. */
+const waitingFrames = new Map<number, { callback: FrameRequestCallback; requestedAt: number }>();
 const nativeCancelFrame = window.cancelAnimationFrame.bind(window);
 
 /**
@@ -62,18 +62,41 @@ export function advanceFrame() {
   /* The ids are copied so a callback requested during this call waits, and each is looked up again before it runs, since a drawn frame skips one that an earlier callback cancelled. */
   const due = [...waitingFrames.keys()];
   for (const id of due) {
-    const callback = waitingFrames.get(id);
-    if (!callback) {
+    const waiting = waitingFrames.get(id);
+    if (!waiting) {
       continue;
     }
     waitingFrames.delete(id);
     nativeCancelFrame(id);
     try {
-      callback(time);
+      waiting.callback(time);
     } catch (error) {
       reportError(error);
     }
   }
+}
+
+/**
+ * A polling wait that runs the waiting animation-frame callbacks before each check, for an element that enters the DOM or its accessibility tree only from inside such a callback: a Mantine tooltip, menu or popover.
+ * On a page that draws no frames for the whole bound, a plain wait fails although the element is one frame away (https://github.com/ndelangen/dunezone/issues/1443).
+ */
+export function waitForFrame<T>(check: () => T | Promise<T>, options?: Parameters<typeof waitFor>[1]) {
+  return waitFor(() => {
+    advanceFrame();
+    return check();
+  }, options);
+}
+
+/** The line a failed query adds after naming the element: the latest frame that ran, and the oldest one asked for that has not. */
+function frameLagLine() {
+  let oldest = Number.POSITIVE_INFINITY;
+  for (const { requestedAt } of waitingFrames.values()) {
+    oldest = Math.min(oldest, requestedAt);
+  }
+  const waiting = Number.isFinite(oldest)
+    ? `The oldest frame still waiting was asked for ${Math.round(performance.now() - oldest)} ms ago.`
+    : 'No frame was waiting.';
+  return `${LAG_LINE} ${Math.round(longestFrameLagMs)} ms. ${waiting}`;
 }
 
 function recordFrameLag() {
@@ -87,7 +110,7 @@ function recordFrameLag() {
       longestFrameLagMs = Math.max(longestFrameLagMs, performance.now() - requestedAt);
       callback(time);
     });
-    waitingFrames.set(id, callback);
+    waitingFrames.set(id, { callback, requestedAt });
     return id;
   };
   window.cancelAnimationFrame = (id: number) => {
@@ -116,11 +139,7 @@ function storyElementError(message: string | null, container: Element | Document
   /* A waitFor timeout wraps the query's own error, which already carries the lag line and the dump. */
   const text = message?.includes(LAG_LINE)
     ? message
-    : [
-        message,
-        `${LAG_LINE} ${Math.round(longestFrameLagMs)} ms.`,
-        `Ignored nodes: comments, script, style, Storybook wrappers\n${storyDom(container)}`,
-      ]
+    : [message, frameLagLine(), `Ignored nodes: comments, script, style, Storybook wrappers\n${storyDom(container)}`]
         .filter(Boolean)
         .join('\n\n');
   const error = new Error(text);

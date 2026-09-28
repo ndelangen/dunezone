@@ -1,5 +1,5 @@
 import preview from '@sb/preview';
-import { finishTransitions } from '@sb/storyWaits';
+import { finishTransitions, waitForFrame } from '@sb/storyWaits';
 import { rulebookContentsV1Schema, rulebookLocalIdAlphabet } from '@shared/rulebooks/contents';
 import { rulebookEditionArtifactPath } from '@shared/rulebooks/editionArtifacts';
 import { createRulebookEditorialStarterContents, createRulebookStarterContents } from '@shared/rulebooks/fixtures';
@@ -333,17 +333,17 @@ export const Owner = meta.story({
       '/rulesets/classicrules/rulebooks/book-1'
     );
     await userEvent.hover(page.getByRole('link', { name: 'Add Rulebook' }));
-    await waitFor(() => expect(page.getByRole('tooltip')).toHaveTextContent('Add Rulebook'));
+    await waitForFrame(() => expect(page.getByRole('tooltip')).toHaveTextContent('Add Rulebook'));
     await userEvent.unhover(page.getByRole('link', { name: 'Add Rulebook' }));
     await waitFor(() => expect(page.queryByRole('tooltip')).toBeNull());
     await userEvent.hover(editions[0]!);
-    await waitFor(() => expect(page.getByRole('tooltip')).toHaveTextContent('Edition 1'));
+    await waitForFrame(() => expect(page.getByRole('tooltip')).toHaveTextContent('Edition 1'));
     await userEvent.unhover(editions[0]!);
     await waitFor(() => expect(page.queryByRole('tooltip')).toBeNull());
     const actions = within(list).getByRole('button', { name: 'Actions for Rules' });
     expect(actions.closest('a')).toBeNull();
     await userEvent.hover(actions);
-    await waitFor(() => expect(page.getByRole('tooltip')).toHaveTextContent('Actions for Rules'));
+    await waitForFrame(() => expect(page.getByRole('tooltip')).toHaveTextContent('Actions for Rules'));
     await userEvent.unhover(actions);
     await waitFor(() => expect(page.queryByRole('tooltip')).toBeNull());
     await userEvent.click(actions);
@@ -603,7 +603,7 @@ export const Clone = meta.story({
     /* The 32 px tile is too narrow for the missing state to print the name, so it names the Rulebook on hover. */
     const tile = within(rules).getByRole('img', { name: 'First page of Rules: preview unavailable', hidden: true });
     await userEvent.hover(tile);
-    await waitFor(() => expect(page.getByRole('tooltip')).toHaveTextContent(/^Rules$/));
+    await waitForFrame(() => expect(page.getByRole('tooltip')).toHaveTextContent(/^Rules$/));
     await userEvent.unhover(tile);
     await waitFor(() => expect(page.queryByRole('tooltip')).toBeNull());
     await userEvent.click(rules);
@@ -636,7 +636,7 @@ export const CloneWithPublishedPreviews = meta.story({
       { timeout: 30_000 }
     );
     await userEvent.hover(tile);
-    await waitFor(() => expect(page.getByRole('tooltip')).toHaveTextContent(/^Rules$/));
+    await waitForFrame(() => expect(page.getByRole('tooltip')).toHaveTextContent(/^Rules$/));
   },
 });
 
@@ -664,7 +664,7 @@ export const CloneFailedPreview = meta.story({
       { timeout: 30_000 }
     );
     await userEvent.hover(tile);
-    await waitFor(() =>
+    await waitForFrame(() =>
       expect(page.getAllByRole('tooltip').map((tooltip) => tooltip.textContent)).toEqual([
         'First-page preview failed for Rules',
       ])
@@ -787,8 +787,10 @@ export const ClippedAuthorWarning = meta.story({
     /* Changing the open Page replaces the header's measurement report, so use its current warning. */
     const warning = page.getByRole('button', { name: 'Page 1 / Referenced illustration: is clipped' });
     await userEvent.hover(warning);
-    await expect(page.findByRole('tooltip')).resolves.toHaveTextContent(
-      'Part of this Block will not be visible in the published Rulebook.'
+    await waitForFrame(() =>
+      expect(page.getByRole('tooltip')).toHaveTextContent(
+        'Part of this Block will not be visible in the published Rulebook.'
+      )
     );
     await userEvent.click(warning);
     await waitFor(() => expect(canvasElement.ownerDocument.defaultView?.location.hash).toBe('#CHAP/HERA'));
