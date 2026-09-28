@@ -1,6 +1,7 @@
 import type { FactionCapture } from '@shared/play/capture';
 import type { TablePiece } from '@shared/play/model';
 import type { GameSnapshot, Viewer } from '@shared/play/protocol';
+import { rosterFactionNames } from '@shared/play/protocol';
 import type { SupplyDependencies } from '@shared/play/setupSupply';
 import { factionSupply, item, piece, place } from '@shared/play/setupSupply';
 import { OTHER_DECK_POSITION } from '@shared/play/tableFurnitureLayout';
@@ -286,7 +287,7 @@ export function preparedSnapshot(viewerSeat = 'seat-2'): GameSnapshot {
   const remaining = {
     ...decks[0]!,
     id: 'remaining-traitors',
-    label: labelForCount(decks[0]!, items.length),
+    label: labelForCount(decks[0]!, items.length, rosterFactionNames(snapshot.roster)),
     orientation: 0,
     items,
   };
@@ -330,14 +331,15 @@ export function playingSnapshot(viewerSeat = 'seat-2'): GameSnapshot {
       artwork: { back: cardBack(), backName: 'Treachery' },
     })),
   };
+  const factionNames = rosterFactionNames(snapshot.roster);
   /* A Snooper was drawn off the deck and turned face up. The draw changed both stacks' cards, so each takes the name its back gives it, as a split names them. */
   snapshot.table.pieces.push(
-    place({ ...deck, label: labelForCount(deck, deck.items.length) }, [6.3, 0, 0]),
+    place({ ...deck, label: labelForCount(deck, deck.items.length, factionNames) }, [6.3, 0, 0]),
     place(
       {
         ...deck,
         id: 'treachery-card-loose',
-        label: labelForCount(deck, 1, true),
+        label: labelForCount(deck, 1, factionNames, true),
         items: [
           item(
             'treachery-loose',

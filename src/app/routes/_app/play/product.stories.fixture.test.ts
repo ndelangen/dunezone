@@ -1,5 +1,6 @@
 /* @vitest-environment jsdom */
 
+import { rosterFactionNames } from '@shared/play/protocol';
 import { labelForCount } from '@shared/play/tableState';
 import { describe, expect, test, vi } from 'vitest';
 
@@ -14,9 +15,12 @@ describe('Play story fixture labels', () => {
     ['prepared', preparedSnapshot],
     ['playing', playingSnapshot],
   ])('the %s table names each card stack by its back', (_state, snapshot) => {
-    const stacks = snapshot().table.pieces.filter((piece) => piece.kind === 'card');
+    const { table, roster } = snapshot();
+    const stacks = table.pieces.filter((piece) => piece.kind === 'card');
     expect(stacks).not.toHaveLength(0);
-    expect(stacks.map((piece) => piece.label)).toEqual(stacks.map((piece) => labelForCount(piece, piece.items.length)));
+    expect(stacks.map((piece) => piece.label)).toEqual(
+      stacks.map((piece) => labelForCount(piece, piece.items.length, rosterFactionNames(roster)))
+    );
   });
 
   test('a kept Traitor carries the name the deal gives it', () => {
