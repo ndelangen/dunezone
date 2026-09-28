@@ -168,11 +168,11 @@ test('draft edits stay live and diagnostics block Save', async ({ page }) => {
   await title.fill('Advanced movement');
   await expect(page.getByRole('article', { name: 'Rulebook page: Advanced movement' })).toBeVisible();
   await anchor.fill('advanced-movement');
-  await expect(page.getByText('Local changes')).toBeVisible();
+  await expect(page.getByText('Local changes', { exact: true })).toBeVisible();
   await expect(save).toBeEnabled();
   await save.click();
   await expect(page.getByRole('button', { name: 'Saved' })).toBeDisabled();
-  await expect(page.getByText('Saved draft')).toBeVisible();
+  await expect(page.getByText('Saved draft', { exact: true })).toBeVisible();
 });
 
 test('Block edits and invalid local text update the safe rendered preview', async ({ page }) => {
@@ -336,7 +336,7 @@ test('rail cross-region dragging previews placement without settling the Block b
         )
     )
     .toEqual(expectedColumn2Order);
-  await expect(page.getByText('Saved draft')).toBeVisible();
+  await expect(page.getByText('Saved draft', { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Save' })).toBeDisabled();
 
   const expectedAdvancedColumn2Order = [
@@ -382,7 +382,7 @@ test('rail cross-region dragging previews placement without settling the Block b
       )
     )
     .toEqual(expectedAdvancedColumn2Order);
-  await expect(page.getByText('Saved draft')).toBeVisible();
+  await expect(page.getByText('Saved draft', { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Save' })).toBeDisabled();
 
   await page.keyboard.press('Escape');
@@ -393,7 +393,7 @@ test('rail cross-region dragging previews placement without settling the Block b
       name: 'The storm closes the boundary between its two sectors.',
     })
   ).toBeVisible();
-  await expect(page.getByText('Saved draft')).toBeVisible();
+  await expect(page.getByText('Saved draft', { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Save' })).toBeDisabled();
 
   await dragToVerticalRatio(text, illustration, page, 0.15, false);
@@ -407,7 +407,7 @@ test('rail cross-region dragging previews placement without settling the Block b
   await expect
     .poll(() => column2.getByRole('link').evaluateAll((links) => links.map((link) => link.getAttribute('aria-label'))))
     .toEqual(expectedColumn2Order);
-  await expect(page.getByText('Local changes')).toBeVisible();
+  await expect(page.getByText('Local changes', { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Save' })).toBeEnabled();
 });
 
@@ -449,7 +449,7 @@ test('Page-details cross-region preview stays transient until drop', async ({ pa
   }
   expect(await detailColumn2Order()).toEqual(expectedColumn2Order);
   expect(await railColumn2Order()).toEqual(expectedColumn2Order);
-  await expect(page.getByText('Saved draft')).toBeVisible();
+  await expect(page.getByText('Saved draft', { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Save' })).toBeDisabled();
 
   const expectedAdvancedColumn2Order = [
@@ -463,7 +463,7 @@ test('Page-details cross-region preview stays transient until drop', async ({ pa
   await expect
     .poll(() => renderedAriaLabelOrder(column2.getByRole('list').getByRole('button'), 'Edit '))
     .toEqual(expectedAdvancedColumn2Order);
-  await expect(page.getByText('Saved draft')).toBeVisible();
+  await expect(page.getByText('Saved draft', { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Save' })).toBeDisabled();
 
   await page.keyboard.press('Escape');
@@ -473,18 +473,18 @@ test('Page-details cross-region preview stays transient until drop', async ({ pa
       name: 'Edit The storm closes the boundary between its two sectors.',
     })
   ).toBeVisible();
-  await expect(page.getByText('Saved draft')).toBeVisible();
+  await expect(page.getByText('Saved draft', { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Save' })).toBeDisabled();
 
   await page.reload();
-  await expect(page.getByText('Saved draft')).toBeVisible();
+  await expect(page.getByText('Saved draft', { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Save' })).toBeDisabled();
 
   await dragToVerticalRatio(text, illustration, page, 0.15, false);
   await page.mouse.up();
   await expect.poll(detailColumn2Order).toEqual(expectedColumn2Order);
   await expect.poll(railColumn2Order).toEqual(expectedColumn2Order);
-  await expect(page.getByText('Local changes')).toBeVisible();
+  await expect(page.getByText('Local changes', { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Save' })).toBeEnabled();
 });
 
