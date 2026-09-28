@@ -75,7 +75,7 @@ async function control(session, method) {
  * reads all reach this cell's activation, and only a read that reaches it is held to the attestation.
  * The wait ends early enough to leave the fixture's one-minute provisioning lease `leaseMarginMs` for provisioning.
  */
-export const ACTIVATION_SETTLE = { reads: 3, intervalMs: 1000, timeoutMs: 20_000, leaseMarginMs: 20_000 };
+const ACTIVATION_SETTLE = { reads: 3, intervalMs: 1000, timeoutMs: 20_000, leaseMarginMs: 20_000 };
 
 async function settledActivation(session, settle) {
   const deadline = Math.min(Date.now() + settle.timeoutMs, session.game.expiresAt - settle.leaseMarginMs);
