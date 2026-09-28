@@ -6,8 +6,8 @@ import {
 } from '../../src/shared/asset-publishing/componentPublication';
 import {
   FACTION_TROOP_ASSET_TYPE,
-  factionTroopFaces,
-  factionTroopPublicationId,
+  factionTroopPublications,
+  parseFactionTroopPublicationId,
 } from '../../src/shared/asset-publishing/factionTroopPublication';
 import {
   DECK_ASSET_TYPE,
@@ -308,29 +308,18 @@ export async function enqueueFactionTroopPublications(
   if (!(await publicationSettings(ctx))?.renderer_revisions[FACTION_TROOP_ASSET_TYPE]) {
     return 0;
   }
-  const faceIds = (data: unknown) =>
-    new Map(
-      factionTroopFaces(data).flatMap(({ troopId, front, back }) => {
-        const id = factionTroopPublicationId(faction._id, troopId);
-        return [[id, front] as const, ...(back ? [[publicationFaceId(id, 'back'), back] as const] : [])];
-      })
-    );
-  const current = faceIds(faction.data);
-  const previous = previousData === undefined ? new Map() : faceIds(previousData);
-  let enqueued = 0;
-  for (const [assetId, assetData] of current) {
-    if (JSON.stringify(previous.get(assetId)) === JSON.stringify(assetData)) {
-      continue;
-    }
+  const current = factionTroopPublications(faction._id, faction.data);
+  const previous = factionTroopPublications(faction._id, previousData);
+  const changed = [...current].filter(
+    ([assetId, assetData]) => JSON.stringify(previous.get(assetId)) !== JSON.stringify(assetData)
+  );
+  for (const [assetId, assetData] of changed) {
     await enqueuePublicationJob(ctx, { assetType: FACTION_TROOP_ASSET_TYPE, assetId, assetData });
-    enqueued += 1;
   }
-  for (const assetId of previous.keys()) {
-    if (!current.has(assetId)) {
-      await supersedePendingPublication(ctx, FACTION_TROOP_ASSET_TYPE, assetId);
-    }
+  for (const assetId of [...previous.keys()].filter((assetId) => !current.has(assetId))) {
+    await supersedePendingPublication(ctx, FACTION_TROOP_ASSET_TYPE, assetId);
   }
-  return enqueued;
+  return changed.length;
 }
 
 /** Enqueues changed complete Leaders and removes pending work for members removed from the roster. */
@@ -393,4 +382,26 @@ export async function currentFactionLeaderData(ctx: PublicationReadCtx, assetId:
     return null;
   }
   return factionLeaderAssetData(faction._id, faction.data, identity.memberId);
+}
+
+/** A troop face is readable while its faction is live and its roster still draws that face. */
+export async function currentFactionTroopData(ctx: PublicationReadCtx, assetId: string) {
+  const identity = parseFactionTroopPublicationId(assetId);
+  const factionId = identity ? ctx.db.normalizeId('factions', identity.factionId) : null;
+  const faction = factionId ? await ctx.db.get(factionId) : null;
+  if (!faction || faction.is_deleted) {
+    return null;
+  }
+  return factionTroopPublications(faction._id, faction.data).get(assetId) ?? null;
+}
+
+/** The current payload for a per-member face, or `undefined` for types whose publication does not follow a faction roster. */
+export async function currentFactionComponentData(ctx: PublicationReadCtx, assetType: string, assetId: string) {
+  if (assetType === FACTION_LEADER_ASSET_TYPE) {
+    return currentFactionLeaderData(ctx, assetId);
+  }
+  if (assetType === FACTION_TROOP_ASSET_TYPE) {
+    return currentFactionTroopData(ctx, assetId);
+  }
+  return undefined;
 }

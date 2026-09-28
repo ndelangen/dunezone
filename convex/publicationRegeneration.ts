@@ -9,6 +9,7 @@ import {
   TREACHERY_CARD_ASSET_TYPE,
 } from '../src/shared/asset-publishing/publication';
 import { internal } from './_generated/api';
+import type { Doc } from './_generated/dataModel';
 import { internalMutation } from './functions';
 import { publishCardbackPresets } from './lib/cardbackPresets';
 import {
@@ -37,45 +38,20 @@ function scanResult(
   };
 }
 
-async function scanFactionPublications(
+/** One page of live factions whose publications `enqueue` counts; a Leader page holds one faction, since each member is a job. */
+async function scanFactions(
   ctx: MutationCtx,
   cursor: string | null,
-  assetType: 'faction-token' | 'faction_sheet'
+  numItems: number,
+  enqueue: (ctx: MutationCtx, faction: Doc<'factions'>) => Promise<number>
 ) {
   const page = await ctx.db
     .query('factions')
     .withIndex('by_deleted', (q) => q.eq('is_deleted', false))
-    .paginate({ cursor, numItems: REGENERATION_BATCH_SIZE });
-  for (const faction of page.page) {
-    if (assetType === 'faction-token') {
-      await enqueueFactionTokenPublication(ctx, faction);
-    } else {
-      await enqueueFactionSheetPublication(ctx, faction);
-    }
-  }
-  return scanResult(page, page.page.length);
-}
-
-async function scanFactionLeaders(ctx: MutationCtx, cursor: string | null) {
-  const page = await ctx.db
-    .query('factions')
-    .withIndex('by_deleted', (q) => q.eq('is_deleted', false))
-    .paginate({ cursor, numItems: 1 });
+    .paginate({ cursor, numItems });
   let enqueued = 0;
   for (const faction of page.page) {
-    enqueued += await enqueueFactionLeaderPublications(ctx, faction);
-  }
-  return scanResult(page, enqueued);
-}
-
-async function scanFactionTroops(ctx: MutationCtx, cursor: string | null) {
-  const page = await ctx.db
-    .query('factions')
-    .withIndex('by_deleted', (q) => q.eq('is_deleted', false))
-    .paginate({ cursor, numItems: REGENERATION_BATCH_SIZE });
-  let enqueued = 0;
-  for (const faction of page.page) {
-    enqueued += await enqueueFactionTroopPublications(ctx, faction);
+    enqueued += await enqueue(ctx, faction);
   }
   return scanResult(page, enqueued);
 }
@@ -140,13 +116,19 @@ async function scanPage(ctx: MutationCtx, assetType: string, cursor: string | nu
       await publishCardbackPresets(ctx);
       return { scanned: 4, enqueued: 4, isDone: true, continueCursor: '' };
     case 'faction-token':
-      return await scanFactionPublications(ctx, cursor, 'faction-token');
+      return await scanFactions(ctx, cursor, REGENERATION_BATCH_SIZE, async (ctx, faction) => {
+        await enqueueFactionTokenPublication(ctx, faction);
+        return 1;
+      });
     case 'faction-leader':
-      return await scanFactionLeaders(ctx, cursor);
+      return await scanFactions(ctx, cursor, 1, enqueueFactionLeaderPublications);
     case 'faction-troop':
-      return await scanFactionTroops(ctx, cursor);
+      return await scanFactions(ctx, cursor, REGENERATION_BATCH_SIZE, enqueueFactionTroopPublications);
     case FACTION_SHEET_ASSET_TYPE:
-      return await scanFactionPublications(ctx, cursor, FACTION_SHEET_ASSET_TYPE);
+      return await scanFactions(ctx, cursor, REGENERATION_BATCH_SIZE, async (ctx, faction) => {
+        await enqueueFactionSheetPublication(ctx, faction);
+        return 1;
+      });
     /*
      * Both asset types scan identically, because the branch reads `assetType` rather than a literal and every publishable Asset lives in one table under its own type.
      * A new publishable Asset type joins this list rather than copying the body.

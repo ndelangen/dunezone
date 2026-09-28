@@ -81,18 +81,20 @@ export const factionDefinition = query({
         front: await publishedFace(ctx, 'faction-leader', factionMemberPublicationId(row._id, leader.memberId)),
       });
     }
-    const troops = [];
-    for (const troop of parsed.success ? parsed.data.troops : []) {
-      if (!troop.troopId) {
-        continue;
-      }
-      const id = factionTroopPublicationId(row._id, troop.troopId);
-      troops.push({
-        troopId: troop.troopId,
-        front: await publishedFace(ctx, 'faction-troop', id),
-        back: await publishedFace(ctx, 'faction-troop', publicationFaceId(id, 'back')),
-      });
-    }
+    const troops = await Promise.all(
+      (parsed.success ? parsed.data.troops : []).flatMap(({ troopId }) => {
+        if (!troopId) {
+          return [];
+        }
+        const id = factionTroopPublicationId(row._id, troopId);
+        return [
+          Promise.all([
+            publishedFace(ctx, 'faction-troop', id),
+            publishedFace(ctx, 'faction-troop', publicationFaceId(id, 'back')),
+          ]).then(([front, back]) => ({ troopId, front, back })),
+        ];
+      })
+    );
     return {
       faction: { id: row._id, slug: row.slug, name: parsed.success ? parsed.data.name : '' },
       data: parsed.success ? parsed.data : null,

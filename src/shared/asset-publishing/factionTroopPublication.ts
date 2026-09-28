@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import { HistoricalFactionPublicationSchema, TroopArtwork } from '../factions/schema';
 import { FactionTroopIdSchema } from '../factions/troopIdentity';
+import { factionIdSchema } from './componentPublication';
 
 export const FACTION_TROOP_ASSET_TYPE = 'faction-troop' as const;
 
@@ -11,7 +12,7 @@ export const FACTION_TROOP_ASSET_TYPE = 'faction-troop' as const;
  * a troop without one shows its front on both sides.
  */
 const factionTroopPublicationIdentitySchema = z.strictObject({
-  factionId: z.string().regex(/^[0-9a-z]{16,64}$/),
+  factionId: factionIdSchema,
   troopId: FactionTroopIdSchema,
 });
 
@@ -22,12 +23,9 @@ export function factionTroopPublicationId(factionId: string, troopId: string): s
 
 /** Reverses `factionTroopPublicationId`, with or without the `.back` face. */
 export function parseFactionTroopPublicationId(value: string) {
-  const [factionId, troopId, face, ...rest] = value.split('.');
-  if (rest.length || (face !== undefined && face !== 'back')) {
-    return null;
-  }
+  const [, factionId, troopId, back] = /^([^.]+)\.([^.]+)(\.back)?$/.exec(value) ?? [];
   const result = factionTroopPublicationIdentitySchema.safeParse({ factionId, troopId });
-  return result.success ? { ...result.data, face: face === 'back' ? ('back' as const) : null } : null;
+  return result.success ? { ...result.data, face: back ? ('back' as const) : null } : null;
 }
 
 /** Only what the troop renderer draws belongs in the capture identity: one side's artwork on the faction background. */
@@ -41,7 +39,7 @@ export const factionTroopAssetDataSchema = z.strictObject({
 export type FactionTroopAssetData = z.infer<typeof factionTroopAssetDataSchema>;
 
 /** Each identified troop's faces as the renderer draws them; the back is present only when the troop authors one. */
-export function factionTroopFaces(data: unknown) {
+function factionTroopFaces(data: unknown) {
   const faction = HistoricalFactionPublicationSchema.safeParse(data);
   if (!faction.success) {
     return [];
@@ -57,5 +55,20 @@ export function factionTroopFaces(data: unknown) {
     });
   return faction.data.troops.flatMap((troop) =>
     troop.troopId ? [{ troopId: troop.troopId, front: face(troop), back: troop.back ? face(troop.back) : null }] : []
+  );
+}
+
+/** Every face a faction's troops publish, keyed by the publication id each lives under. */
+export function factionTroopPublications(factionId: string, data: unknown): Map<string, FactionTroopAssetData> {
+  return new Map(
+    factionTroopFaces(data).flatMap(({ troopId, front, back }) => {
+      const id = factionTroopPublicationId(factionId, troopId);
+      return back
+        ? [
+            [id, front],
+            [`${id}.back`, back],
+          ]
+        : [[id, front]];
+    })
   );
 }

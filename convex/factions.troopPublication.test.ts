@@ -16,34 +16,28 @@ async function troopFixture(revision: number | undefined) {
   const { t, owner } = await rulebookFixture();
   const data = structuredClone(assetPublishingFaction);
   data.troops = [data.troops[0]!, { ...data.troops[0]!, name: 'Elite troop', count: 3, back }];
-  await t.run(async (ctx) => {
-    await ctx.db.insert('admin_settings', {
+  const settingsId = await t.run(async (ctx) =>
+    ctx.db.insert('admin_settings', {
       key: 'publication',
       publication_pickup_enabled: true,
       renderer_revisions: revision === undefined ? {} : { 'faction-troop': revision },
       updated_at: 1,
-    });
-  });
+    })
+  );
   const faction = await owner.mutation(api.factions.create, { data, group_id: null });
   const [regular, elite] = faction.data.troops.map((troop) => troop.troopId!);
   const taken = async () =>
     (await t.mutation(internal.publicationJobs.takeWork, {})).items.filter(
       (item) => item.assetType === 'faction-troop'
     );
-  return { t, owner, faction, regular: regular!, elite: elite!, taken };
+  return { t, owner, settingsId, faction, regular: regular!, elite: elite!, taken };
 }
 
 describe('Faction troop publication', () => {
   test('activation publishes each troop front, and the back only where one is authored', async () => {
-    const { t, faction, regular, elite, taken } = await troopFixture(undefined);
+    const { t, settingsId, faction, regular, elite, taken } = await troopFixture(undefined);
     expect(await taken()).toEqual([]);
-    await t.run(async (ctx) => {
-      const settings = await ctx.db
-        .query('admin_settings')
-        .withIndex('by_key', (q) => q.eq('key', 'publication'))
-        .unique();
-      await ctx.db.patch(settings!._id, { renderer_revisions: { 'faction-troop': 1 } });
-    });
+    await t.run(async (ctx) => ctx.db.patch(settingsId, { renderer_revisions: { 'faction-troop': 1 } }));
     await t.mutation(internal.publicationRegeneration.scan, {
       assetType: 'faction-troop',
       cursor: null,
@@ -62,9 +56,11 @@ describe('Faction troop publication', () => {
   });
 
   test('only a changed side enqueues, and a dropped back or troop loses its pending work', async () => {
-    const { t, owner, faction, regular, elite, taken } = await troopFixture(1);
+    const { t, owner, faction, elite, taken } = await troopFixture(1);
     const stored = async () => (await t.run(async (ctx) => ctx.db.get(faction._id)))!.data as typeof faction.data;
-    expect(await taken()).toHaveLength(3);
+    for (const job of await taken()) {
+      await t.mutation(internal.publicationJobs.completeJob, { jobId: job.jobId, cacheToken: 'troop-1' });
+    }
 
     const [first, second] = faction.data.troops;
     await owner.mutation(api.factions.update, {
@@ -95,7 +91,45 @@ describe('Faction troop publication', () => {
     const { back: _dropped, ...eliteOnly } = edited.troops[1]!;
     await owner.mutation(api.factions.update, { id: faction._id, data: { ...edited, troops: [eliteOnly] } });
     expect(await taken()).toEqual([]);
-    expect(regular).not.toBe(elite);
+  });
+
+  test('dropping one troop leaves a sibling pending, and a troop removed mid-capture never publishes', async () => {
+    const { t, owner, faction, regular, elite, taken } = await troopFixture(1);
+    const eliteFront = `${faction._id}.${elite}`;
+    const [inFlight] = (await taken()).filter((job) => job.assetId === `${faction._id}.${regular}`);
+    await t.run(async (ctx) => {
+      for (const job of await ctx.db.query('publication_jobs').collect()) {
+        if (job.asset_id !== inFlight!.assetId && job.status === 'in_progress') {
+          await ctx.db.patch(job._id, { status: 'pending', expires_at: undefined });
+        }
+      }
+    });
+
+    const [, second] = faction.data.troops;
+    await owner.mutation(api.factions.update, {
+      id: faction._id,
+      data: { ...faction.data, troops: [{ ...second!, image: '/vector/troop/harkonnen.svg' }] },
+    });
+    expect(
+      await t.mutation(internal.publicationJobs.completeJob, { jobId: inFlight!.jobId, cacheToken: 'orphan' })
+    ).toEqual({
+      status: 'missing',
+    });
+    expect(await t.query(api.playCatalogue.factionDefinition, { factionId: faction._id })).toMatchObject({
+      troops: [{ troopId: elite, front: null }],
+    });
+    expect((await taken()).map((job) => job.assetId).sort()).toEqual([eliteFront, `${eliteFront}.back`].sort());
+  });
+
+  test('a soft-deleted faction drops its pending troop work', async () => {
+    const { t, owner, faction, taken } = await troopFixture(1);
+    await t.run(async (ctx) => {
+      for (const job of await ctx.db.query('publication_jobs').collect()) {
+        await ctx.db.patch(job._id, { status: 'pending', expires_at: undefined });
+      }
+    });
+    await owner.mutation(api.factions.softDelete, { id: faction._id });
+    expect(await taken()).toEqual([]);
   });
 
   test('a game reads each troop front, and a back only where one has published', async () => {
