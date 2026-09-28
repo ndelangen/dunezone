@@ -6,6 +6,7 @@ import { ConvexError } from 'convex/values';
 import { describe, expect, test } from 'vitest';
 
 import { publicationFaceId } from '../src/shared/asset-publishing/publicationTargets';
+import { publishingSpiceCard } from '../src/shared/assets/fixtures/publishingSpiceCard';
 import { api } from './_generated/api';
 import schema from './schema';
 
@@ -533,6 +534,33 @@ describe('asset publication', () => {
     );
     expect(afterUpdate).toHaveLength(1);
     expect(afterUpdate[0]?.asset_data).toMatchObject({ slug: 'hunter-seeker' });
+  });
+
+  test('saving a spice card schedules its publication under its own type, and an incomplete one is refused', async () => {
+    const t = convexTest(schema, modules);
+    const ownerId = await t.run(async (ctx) => await ctx.db.insert('users', { name: 'Spice owner' }));
+    const owner = t.withIdentity({ subject: ownerId });
+    const created = await owner.mutation(api.assets.create, { type: 'card-spice', data: publishingSpiceCard });
+    expect(created.slug).toBe('arsunt');
+
+    const jobs = await t.run(
+      async (ctx) =>
+        await ctx.db
+          .query('publication_jobs')
+          .withIndex('by_asset_type_and_asset_id', (q) => q.eq('asset_type', 'card-spice').eq('asset_id', created.id))
+          .collect()
+    );
+    expect(jobs).toHaveLength(1);
+    expect(jobs[0]?.asset_data).toEqual({ assetId: created.id, slug: 'arsunt', card: publishingSpiceCard });
+
+    const page = await t.query(api.assets.getPage, { type: 'card-spice', slug: 'arsunt' });
+    expect(page?.asset.data).toEqual(publishingSpiceCard);
+    expect(page?.assetPublishing).not.toBeNull();
+
+    const { amount: _amount, ...withoutAmount } = publishingSpiceCard;
+    await expect(
+      owner.mutation(api.assets.create, { type: 'card-spice', data: { ...withoutAmount, name: 'Broken Land' } })
+    ).rejects.toThrow();
   });
 
   test('saving a deck schedules its Cardback, and the payload is the Cardback alone', async () => {
