@@ -68,7 +68,7 @@ export type TabletopContextValue = Pick<
     | 'updateGesture'
   >;
 
-export const TabletopContext = createContext<TabletopContextValue | null>(null);
+const TabletopContext = createContext<TabletopContextValue | null>(null);
 
 function selectPieceInState(current: TableState, pieceId: string | null): TableState {
   return {
@@ -489,7 +489,7 @@ function keyboardPieceId({ state, hoveredPieceId }: TableKeyboardControls) {
   return state.draftMove?.pieceId ?? hoveredPieceId ?? state.selectedPieceId ?? undefined;
 }
 
-export function useTableKeyboard({
+function useTableKeyboard({
   deckControls,
   flipSelected,
   hoveredPieceId,
