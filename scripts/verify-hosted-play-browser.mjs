@@ -446,6 +446,8 @@ async function playReady(players, audience) {
   }
   await until(() => stage() === 'setup', 'Trading did not close into setup.', 30_000);
   while (stage() === 'setup') {
+    /* Next clears readiness, and a player whose view has not yet reached that step would read its old Ready and skip it (#1481). */
+    await converged(players);
     for (const who of players) {
       if (!who.view().snapshot.controls.ready.includes(who.view().viewer.viewerSeat)) {
         await act(who, 'Ready');

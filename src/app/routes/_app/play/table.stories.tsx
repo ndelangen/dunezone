@@ -62,13 +62,21 @@ export const OpensThroughAnIris = meta.story({
   },
 });
 
-/* The motion verdict keeps the shell open and still, before and after the renderer is ready. */
+/*
+ * The motion verdict keeps the shell open and still, before and after the renderer is ready.
+ * It also stills the shell's transitions and smooth scrolling, whatever the OS hint says.
+ */
 export const OpensStill = meta.story({
   beforeEach: install(() => productTransport()),
   globals: { motion: 'reduce' },
   play: async ({ canvasElement }) => {
     const { shell, document } = await tablePage(canvasElement);
     const view = document.defaultView!;
+    const picker = within(shell).getByRole('group', { name: 'Table view' });
+    for (const element of [shell, within(picker).getAllByRole('button')[0]!]) {
+      expect(Number.parseFloat(view.getComputedStyle(element).transitionDuration)).toBeLessThan(0.001);
+      expect(view.getComputedStyle(element).scrollBehavior).toBe('auto');
+    }
     expect(view.getComputedStyle(shell).clipPath).toBe('none');
     await waitFor(() => expect(shell.parentElement).toHaveAttribute('data-scene-ready', 'true'), { timeout: 5000 });
     expect(view.getComputedStyle(shell).animationName).toBe('none');
