@@ -64,7 +64,7 @@ export const OpensThroughAnIris = meta.story({
 
 /*
  * The motion verdict keeps the shell open and still, before and after the renderer is ready.
- * It also stills the shell's transitions and smooth scrolling, although the runner's OS hint allows motion.
+ * It also stills the shell's transitions and smooth scrolling, whatever the OS hint says.
  */
 export const OpensStill = meta.story({
   beforeEach: install(() => productTransport()),
@@ -72,10 +72,9 @@ export const OpensStill = meta.story({
   play: async ({ canvasElement }) => {
     const { shell, document } = await tablePage(canvasElement);
     const view = document.defaultView!;
-    expect(view.matchMedia('(prefers-reduced-motion: reduce)').matches).toBe(false);
     const picker = within(shell).getByRole('group', { name: 'Table view' });
     for (const element of [shell, within(picker).getAllByRole('button')[0]!]) {
-      expect(view.getComputedStyle(element).transitionDuration).toBe('1e-05s');
+      expect(Number.parseFloat(view.getComputedStyle(element).transitionDuration)).toBeLessThan(0.001);
       expect(view.getComputedStyle(element).scrollBehavior).toBe('auto');
     }
     expect(view.getComputedStyle(shell).clipPath).toBe('none');

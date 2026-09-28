@@ -64,6 +64,7 @@ import {
   Suspense,
   useCallback,
   useEffect,
+  useId,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -1209,6 +1210,7 @@ export function TabletopScene({
   const [pieceMenu, setPieceMenu] = useState<{ pieceId: string; x: number; y: number } | null>(null);
   const menuPiece = state.pieces.find((piece) => piece.id === pieceMenu?.pieceId);
   const pieceMenuName = isSpicePiece(menuPiece) ? 'Spice actions' : 'Deck actions';
+  const pieceMenuLabelId = useId();
   const deckAvailable =
     !!deckControls && !!menuPiece && !menuPiece.locked && !menuPiece.inventory && menuPiece.items.length > 0;
   /* Swapping keeps the board clear of trackers, and setup shows only the spice ones. */
@@ -1265,10 +1267,8 @@ export function TabletopScene({
         withinPortal
         position="bottom-start"
       >
-        {/* Mantine names the dropdown by its target, so the anchor carries the menu's name for that reference to find. */}
         <Menu.Target>
           <span
-            aria-label={pieceMenuName}
             style={{
               position: 'fixed',
               left: pieceMenu?.x ?? 0,
@@ -1279,7 +1279,11 @@ export function TabletopScene({
             }}
           />
         </Menu.Target>
-        <Menu.Dropdown aria-label={pieceMenuName}>
+        {/* Mantine names the dropdown by its target, here an empty anchor, so the menu points its name at its own hidden label instead. */}
+        <Menu.Dropdown aria-labelledby={pieceMenuLabelId}>
+          <span id={pieceMenuLabelId} hidden>
+            {pieceMenuName}
+          </span>
           {isSpicePiece(menuPiece) ? (
             <Menu.Item
               disabled={!bankControls || menuPiece.locked || !bankControls.canCollect(menuPiece.id)}

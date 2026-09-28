@@ -18,7 +18,7 @@ export function useDeckShuffleAnimation(piece: TablePiece, interrupted: boolean)
       started.current = !interrupted && motionAllowed ? performance.now() : null;
       previous.current = revision;
     }
-    if (interrupted) {
+    if (interrupted || !motionAllowed) {
       started.current = null;
     }
     if (started.current === null) {

@@ -839,8 +839,9 @@ async function openPieceMenu(document: Document, piece: TablePiece, name: string
         scene.dispatchEvent(new PointerEvent('contextmenu', { ...press, buttons: 2 }));
         scene.dispatchEvent(new PointerEvent('pointerup', { ...press, buttons: 0 }));
       }
-      const menu = page.getByRole('menu', { name });
+      const menu = page.getByRole('menu');
       expect(finishTransitions(menu)).toBeVisible();
+      expect(menu).toHaveAccessibleName(name);
       return menu;
     },
     { timeout: 30_000 }
