@@ -1,13 +1,10 @@
-import { Box, Stack } from '@mantine/core';
 import preview from '@sb/preview';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import type { Faction } from '@db/factions';
-import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
 
-import { factionEntry, representativeFaction } from './FactionAuthoringStoryFixtures';
-import { FactionEditor } from './FactionEditor';
-import { useFactionAuthoring } from './useFactionAuthoring';
+import { representativeFaction } from './FactionAuthoringStoryFixtures';
+import { FactionEditorHarness } from './FactionEditorHarness.stories.fixture';
 
 type Phase = NonNullable<Faction['extraPhases']>[number];
 
@@ -32,48 +29,7 @@ function factionWith(phases: unknown[] | undefined): Faction {
 
 /* The toolbar sits above the editor so a story shows Save held by a refused row. */
 function FactionPhasesFixture({ faction }: { faction: Faction }) {
-  const authoring = useFactionAuthoring({
-    sessionKey: 'storybook-faction-phases',
-    initialData: faction,
-    persistence: {
-      save: async (draft) => factionEntry(draft),
-      isPending: false,
-      error: null,
-      hasSaved: false,
-      reset: () => undefined,
-    },
-    onSaved: () => undefined,
-  });
-
-  return (
-    <Box w="min(78rem, calc(100vw - 2rem))" p="md">
-      <Stack gap="md">
-        <AuthoringToolbar
-          status={{
-            isDirty: authoring.editing.isDirty,
-            isNameBlank: authoring.editing.isNameBlank,
-            invalid: authoring.editing.invalid,
-            saveState: authoring.persistence.saveState,
-          }}
-          copy={{
-            saveLabel: 'Save faction',
-            nameBlankMessage: 'Add a faction name before saving; it determines the faction URL.',
-          }}
-          actions={{ onSave: authoring.actions.submit, onReset: authoring.actions.reset, onBack: () => undefined }}
-        />
-        <FactionEditor
-          form={authoring.form}
-          errors={authoring.persistence.errors}
-          isNameBlank={authoring.editing.isNameBlank}
-          warnings={authoring.editing.warnings}
-          backgroundModeMemory={authoring.backgroundModeMemory}
-          onBackgroundModeMemoryChange={authoring.setBackgroundModeMemory}
-          retainedManualComplexity={authoring.retainedManualComplexity}
-          onRetainedManualComplexityChange={authoring.setRetainedManualComplexity}
-        />
-      </Stack>
-    </Box>
-  );
+  return <FactionEditorHarness faction={faction} sessionKey="storybook-faction-phases" />;
 }
 
 /* The read-only rundown beside the list, as a list of its row texts per section. */

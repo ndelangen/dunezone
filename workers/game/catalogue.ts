@@ -10,7 +10,6 @@ import { lacksCombatValues, troopCombatFaces } from '../../src/shared/factions/t
 import type {
   AssetSupply,
   CaptureProblem,
-  ExtraReference,
   FactionCapture,
   RulesetCapture,
   RulesetSupply,
@@ -308,11 +307,7 @@ export class GameCatalogue {
    * One faction as the game will retain it at public assignment: its stored definition, the faces its generated components have, and every Extra it references, each supplied once.
    * Faces the catalogue does not publish yet stay null and are named in the verdict, so the isolated development path can proceed on provisional content while a real game is refused.
    */
-  async captureFaction(
-    factionId: string,
-    extras: readonly ExtraReference[] = [],
-    now = Date.now()
-  ): Promise<FactionCapture> {
+  async captureFaction(factionId: string, now = Date.now()): Promise<FactionCapture> {
     const raw = await gameHttpClient(this.convexUrl).query(api.playCatalogue.factionDefinition, { factionId });
     const source = factionDefinitionSchema.nullable().parse(raw);
     if (!source) {
@@ -371,7 +366,7 @@ export class GameCatalogue {
     problems.push({ subject: 'alliance card', reason: 'The alliance card is not generated yet.' });
     problems.push({ subject: 'traitor deck', reason: 'Traitor cards are not generated yet.' });
     const captured: SlotCapture[] = [];
-    for (const extra of extras) {
+    for (const extra of definition.extras ?? []) {
       captured.push(await this.captureSlot('extra', extra, problems));
     }
     return factionCaptureSchema.parse({

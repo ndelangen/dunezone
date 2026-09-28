@@ -435,13 +435,13 @@ export async function createRuntime(peer, kind = 'probe', bindings = {}) {
       const room = namespace.get(namespace.idFromName(gameId));
       await room.fetch('https://native-test/native-test/fail-storage', { method: 'POST' });
     },
-    async capture(kind, id, { extras = [], provisional = false } = {}) {
+    async capture(kind, id, { provisional = false } = {}) {
       const namespace = await instance.getDurableObjectNamespace('GAME_ROOMS');
       const room = namespace.get(namespace.idFromName(gameId));
       const response = await room.fetch('https://native-test/native-test/capture', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ kind, id, extras, provisional }),
+        body: JSON.stringify({ kind, id, provisional }),
       });
       return response.json();
     },

@@ -301,3 +301,17 @@ html[data-motion="reduce"] .flipCard {
     transition: none;
   }
 }
+
+/* The Extras chapter's listed references: a plain list, not bullets. */
+.extrasList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* The Extras chapter's artifact: the same paper card the phase proof uses. */
+.extrasProof {
+  border: 1px solid var(--mantine-color-default-border);
+  border-radius: var(--mantine-radius-default);
+  background: #fffdf1;
+}
