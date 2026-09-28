@@ -33,11 +33,13 @@ export function representativeFaction(): Faction {
     striped: true,
     count: 20,
     planet: 'Meridian Prime',
+    combat: { strength: 1, fundedStrength: 2 },
     back: {
       image: faction.troops[0].image,
       name: 'Meridian elite',
       description: 'The reverse side of the same physical supply.',
       striped: false,
+      combat: { strength: 1.5, fundedStrength: -0.5, fundingCost: 0 },
     },
   };
   faction.planet = [
@@ -70,6 +72,7 @@ export function incompleteFaction(): Faction {
   faction.hero.name = '';
   faction.rules.alliance.text = '';
   faction.troops[0].description = '';
+  faction.troops[0].combat = undefined;
   return faction;
 }
 

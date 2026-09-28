@@ -4,8 +4,12 @@ import sharp from 'sharp';
 
 /** Real browser actions against the disposable Password backend and game Worker. */
 export async function verifyPublicControls({
-  peer,
-  signIn,
+  account,
+  createGame,
+  seatThrough,
+  playReady,
+  depart,
+  spectator,
   enter,
   button,
   act,
@@ -18,9 +22,14 @@ export async function verifyPublicControls({
   passed,
   origin,
 }) {
-  const a = await peer('player-a');
-  await signIn(a);
-  await enter(a);
+  /* Player B plays to Turn 1 and then gives up the seat, so player A holds the table alone until B asks for it back. */
+  const a = await account('player-a');
+  await createGame(a);
+  const b = await account('player-b');
+  await enter(b);
+  await seatThrough(a, b);
+  await playReady([a, b], []);
+  await depart(b);
   const inventory = (who) => who.view().snapshot.table.pieces.filter((piece) => piece.inventory === 'shared');
   const requests = (who) => who.view().snapshot.controls.requests;
   async function facePixels(who, piece, face) {
@@ -54,12 +63,13 @@ export async function verifyPublicControls({
     await who.page.getByRole('option', { name: 'Recovery token', exact: true }).click();
   }
   await verifySolePlayer();
-  const { b, observer } = await verifyRequests();
+  const { observer } = await verifyRequests();
   await verifyInventoryDrag();
   await verifyReadiness();
 
   async function verifySolePlayer() {
-    assert.equal(a.view().viewer.viewerSeat, 'harkonnen');
+    assert.notEqual(a.view().viewer.viewerSeat, spectator);
+    assert.deepEqual(a.view().snapshot.controls.seats, [a.view().viewer.viewerSeat]);
     assert.equal(inventory(a).length, 0);
     const original = structuredClone(a.view().snapshot.table.pieces);
     await focus(a, 'map');
@@ -88,19 +98,16 @@ export async function verifyPublicControls({
     await button(a, 'Drag Recovery token onto the table').scrollIntoViewIfNeeded();
     await capture(a, 'after-sole-player-inventory');
     passed(
-      'Fresh Worker starts with an empty inventory and one seated player spawns directly without changing existing pieces'
+      'A real game starts play with an empty inventory, and its one remaining seated player spawns directly without changing existing pieces'
     );
   }
 
   async function verifyRequests() {
-    const b = await peer('player-b');
-    await signIn(b);
-    await enter(b);
-    const observer = await peer('observer');
-    await signIn(observer);
+    await seatThrough(a, b);
+    const observer = await account('observer');
     await enter(observer);
-    assert.equal(b.view().viewer.viewerSeat, 'atreides');
-    assert.equal(observer.view().viewer.viewerSeat, 'neutral');
+    assert.notEqual(b.view().viewer.viewerSeat, spectator);
+    assert.equal(observer.view().viewer.viewerSeat, spectator);
     assert.notEqual(a.view().viewer.userId, b.view().viewer.userId);
     await until(() => a.view().snapshot.controls.seats.length === 2, 'Joining did not update the roster.');
     await choose(a);
@@ -136,7 +143,7 @@ export async function verifyPublicControls({
     await button(a, 'Close catalogue').click();
     passed('Any seated player can dismiss a request without spawning its contents');
 
-    return { b, observer };
+    return { observer };
   }
 
   async function verifyInventoryDrag() {
@@ -180,9 +187,9 @@ export async function verifyPublicControls({
   }
 
   async function verifyReadiness() {
-    for (let phase = 1; phase <= 8; phase++) {
+    while (a.view().snapshot.phase < 8) {
       await act(a, 'Next phase');
-      assert.equal(a.view().snapshot.phase, phase);
+      const phase = a.view().snapshot.phase;
       await until(() => b.view().snapshot.phase === phase, 'Phase did not reach the other player.');
       for (const who of [a, b, observer]) {
         /* A received frame can precede the render that disables the controls. */
@@ -207,7 +214,7 @@ export async function verifyPublicControls({
     await until(() => button(b, 'Next phase').isEnabled(), 'Last ready did not enable Next.', 20_000);
     await enter(a);
     assert.equal(a.view().snapshot.phase, 8);
-    assert.ok(a.view().snapshot.controls.ready.includes('harkonnen'));
+    assert.ok(a.view().snapshot.controls.ready.includes(a.view().viewer.viewerSeat));
     assert.deepEqual(a.view().snapshot.table.pieces, saved.table.pieces);
     assert.equal(await button(observer, 'Ready').isDisabled(), true);
     await a.page.getByRole('separator', { name: 'Resize controls panel' }).press('End');

@@ -6,10 +6,11 @@ export const browserFlows = {
   /* The regular flow steps through every phase behind the eight-second cooldown (#1139)
      and readies both players at each Mentat pause, which puts it past five minutes. */
   regular: { timeoutMs: 600_000, separateBrowsers: false, keepsFrames: false, needsCatalogue: false },
-  'public-controls': { timeoutMs: 300_000, separateBrowsers: false, keepsFrames: false, needsCatalogue: true },
-  'private-banks': { timeoutMs: 300_000, separateBrowsers: true, keepsFrames: true, needsCatalogue: false },
-  battles: { timeoutMs: 300_000, separateBrowsers: true, keepsFrames: true, needsCatalogue: true },
-  decks: { timeoutMs: 300_000, separateBrowsers: true, keepsFrames: true, needsCatalogue: false },
+  /* Every other flow first plays a real game through drafting and setup, which takes a few minutes on its own. */
+  'public-controls': { timeoutMs: 480_000, separateBrowsers: false, keepsFrames: false, needsCatalogue: true },
+  'private-banks': { timeoutMs: 480_000, separateBrowsers: true, keepsFrames: true, needsCatalogue: false },
+  battles: { timeoutMs: 480_000, separateBrowsers: true, keepsFrames: true, needsCatalogue: true },
+  decks: { timeoutMs: 480_000, separateBrowsers: true, keepsFrames: true, needsCatalogue: false },
 } satisfies Record<
   string,
   {

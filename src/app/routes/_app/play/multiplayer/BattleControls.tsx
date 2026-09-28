@@ -2,6 +2,7 @@ import { Button, Group, Image, NumberInput, SegmentedControl, Select, Stack, Tex
 import type { NumberInputProps } from '@mantine/core';
 import { Html } from '@react-three/drei/webgpu';
 import { useFrame, useThree } from '@react-three/fiber/webgpu';
+import { troopCombatFaces } from '@shared/factions/troopCombat';
 import { isBattleLeader } from '@shared/play/battle';
 import type { BattlePlan, BattlePlanInput, CombatFace, PublicBattle } from '@shared/play/battle';
 import type { TablePiece, Vector3Tuple } from '@shared/play/model';
@@ -125,6 +126,8 @@ function DraggablePiece({ piece, client, style }: { piece: TablePiece; client?: 
 function BattleWheel({ plan, factionId, client, active, artwork }: WheelProps) {
   const leader = plan.pieces.find((piece) => piece.id === plan.leaderId);
   const motion = useMotionAllowed();
+  const retained = artwork?.[factionId];
+  const retainedFaces = retained && new Map(troopCombatFaces(retained.troops).map((entry) => [entry.id, entry.face]));
   return (
     <BattleWheelAsset
       state="revealed"
@@ -139,12 +142,9 @@ function BattleWheel({ plan, factionId, client, active, artwork }: WheelProps) {
         .filter((face) => face.capable)
         .flatMap((face) => {
           const troop = plan.troops.find((entry) => entry.faceId === face.id);
-          const retained = artwork?.[factionId];
-          const authored = retained?.troops
-            .flatMap((entry) => [entry, ...(entry.back ? [entry.back] : [])])
-            .find((entry) => entry.name === face.name);
-          /* Real games never borrow a fixture house's troop artwork. Combat authoring supplies the named faces. */
-          if (retained && !authored) {
+          const authored = retainedFaces?.get(face.id);
+          /* Real games never borrow a fixture house's troop artwork; a captured face is found by its identity, not its name. */
+          if (retainedFaces && !authored) {
             return [];
           }
           return [

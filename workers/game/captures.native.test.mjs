@@ -271,6 +271,8 @@ describe('Catalogue capture and retention through the isolated fixture', () => {
       'faction token',
       `leader ${leaders[0].name}`,
       ...assetPublishingFaction.troops.map((troop) => `troop ${troop.name}`),
+      /* The shared fixture predates combat authoring, so each of its fighting faces is named again for its values. */
+      ...assetPublishingFaction.troops.map((troop) => `troop ${troop.name}`),
       'alliance card',
       'traitor deck',
       'extra: missing',

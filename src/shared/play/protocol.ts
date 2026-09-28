@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { HistoricalFactionPublicationSchema } from '../factions/schema';
+import { HistoricalFactionPublicationSchema, TroopArtwork } from '../factions/schema';
 import { playStageSchema } from './admission';
 import { bankActionSchema, factionBankSchema, spiceTransferSchema } from './banks';
 import {
@@ -36,7 +36,7 @@ import { swapActionSchema, swappingStateSchema } from './swapping';
 
 const factionArtworkSchema = z.record(
   z.string(),
-  HistoricalFactionPublicationSchema.pick({ background: true, logo: true, troops: true })
+  HistoricalFactionPublicationSchema.pick({ background: true, logo: true }).extend({ troops: z.array(TroopArtwork) })
 );
 
 const direction = z.union([z.literal(-1), z.literal(1)]);

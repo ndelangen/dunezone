@@ -1,3 +1,4 @@
+import { capturedCombatFaces } from '../../src/shared/play/battle';
 import type { FactionCapture, RulesetCapture, SlotCapture } from '../../src/shared/play/capture';
 import { accepted, nextSnapshot } from '../../src/shared/play/commands';
 import type { StoredPiece, Vector3Tuple } from '../../src/shared/play/model';
@@ -120,12 +121,21 @@ function supplyInventory(next: StoredSnapshot, capture: FactionCapture, hand: St
     [id]: {
       background: capture.definition.background,
       logo: capture.definition.logo,
-      troops: capture.definition.troops,
+      troops: capture.definition.troops.map(({ back, ...front }) => ({
+        ...troopArtwork(front),
+        ...(back ? { back: troopArtwork(back) } : {}),
+      })),
     },
   };
   next.factionBanks[id] = capture.definition.rules.spiceCount;
-  /* Combat authoring has its own delivery. Missing authored strengths must not become fixture values. */
-  next.combatFaces[id] = [];
+  /* Faces missing authored values stay out; they never become fixture values, and the capture's verdict names them. */
+  next.combatFaces[id] = capturedCombatFaces(capture.definition.troops);
+}
+
+/* Artwork is public and drawn by every client; a face's combat values reach the plans through `combatFaces` alone. */
+function troopArtwork<Face extends { capable?: boolean; combat?: unknown }>(face: Face) {
+  const { capable: _capable, combat: _combat, ...artwork } = face;
+  return artwork;
 }
 
 /** Every occurrence gets independent physical identities while its retained artwork and stack compatibility survive. */

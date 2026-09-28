@@ -294,4 +294,29 @@ describe('faction authoring contract', () => {
     ).toBe(true);
     expect(FactionInputSchema.safeParse(faction).success).toBe(true);
   });
+
+  it('keeps faces without combat values savable and out of the header', () => {
+    const faction = structuredClone(defaultFaction);
+    const image = faction.troops[0].image;
+    faction.troops = [
+      { name: 'Unset', image, description: 'Unset', count: 1, back: { name: 'Back', image, description: 'Back' } },
+    ];
+
+    expect(factionAuthoringWarnings(faction).filter((warning) => warning.path.includes('combat'))).toEqual([]);
+    expect(FactionInputSchema.safeParse(faction).success).toBe(true);
+  });
+
+  it('refuses a face with only one strength or a fractional or negative funding cost', () => {
+    const faction = structuredClone(defaultFaction);
+    const refused = [
+      { strength: 1 },
+      { strength: 1, fundedStrength: 2, fundingCost: 0.5 },
+      { strength: 1, fundedStrength: 2, fundingCost: -1 },
+      { strength: Number.POSITIVE_INFINITY, fundedStrength: 2 },
+    ];
+    for (const combat of refused) {
+      faction.troops[0].combat = combat as never;
+      expect(FactionInputSchema.safeParse(faction).success).toBe(false);
+    }
+  });
 });
