@@ -433,7 +433,8 @@ function useHeldOverlays() {
           ? current
           : { counts: event.altKey, names: event.ctrlKey }
       );
-    const clear = () => setHeld({ counts: false, names: false });
+    const clear = () =>
+      setHeld((current) => (current.counts || current.names ? { counts: false, names: false } : current));
     const visibilityChanged = () => {
       if (document.hidden) {
         clear();

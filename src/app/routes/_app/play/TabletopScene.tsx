@@ -950,9 +950,10 @@ function PieceLock({ piece }: { piece: TablePiece }) {
   return piece.kind === 'force' ? <group scale={0.5}>{lock}</group> : lock;
 }
 
-/* The faction that owns a piece, by its display name; a shared piece, or an owner the roster does not name, has none. */
+/* The faction that owns a piece, by its display name; a shared piece, or an owner the roster does not name, has none. A label that already carries the name ('Atreides forces', 'Atreides alliance') names it once. */
 function pieceOwnerName(piece: TablePiece, factionNames: TableState['factionNames']) {
-  return piece.owner === 'shared' ? undefined : factionNames[piece.owner];
+  const owner = piece.owner === 'shared' ? undefined : factionNames[piece.owner];
+  return owner && !piece.label.includes(owner) ? owner : undefined;
 }
 
 function PieceBadge({
