@@ -800,8 +800,7 @@ export const PanelSchemeIsland = meta.story({
     expect(light[0]).toBe(paintedColor(island, view.getComputedStyle(island).getPropertyValue('--color-text').trim()));
     const deck = initialSnapshot().table.pieces.find((piece) => piece.id === 'treachery-deck')!;
     const glass = paintedColor(island, view.getComputedStyle(island).getPropertyValue('--glass-overlay').trim());
-    const menu = await openPieceMenu(canvasElement.ownerDocument, deck);
-    expect(menu).toHaveAttribute('aria-label', 'Deck actions');
+    const menu = await openPieceMenu(canvasElement.ownerDocument, deck, 'Deck actions');
     expect(view.getComputedStyle(menu).backgroundColor).toBe(glass);
     await userEvent.keyboard('{Escape}');
     await waitFor(() => expect(page.queryByRole('menu')).toBeNull());
@@ -822,9 +821,9 @@ export const PanelSchemeIsland = meta.story({
  * The right-click is a pointerdown and then a `contextmenu` PointerEvent with the same pointer id, because the scene fires a click on an object only when the pointerdown with that id hit it;
  * user-event's `[MouseRight]` sends its `contextmenu` without a pointer id, and no menu opens.
  * The events go to the canvas `mapViewPoint` projects against, the document's first.
- * The menu is found by role alone: Mantine labels it by its empty anchor, which hides its `aria-label` from the name lookup.
+ * The menu is found by the name a screen reader announces.
  */
-async function openPieceMenu(document: Document, piece: TablePiece) {
+async function openPieceMenu(document: Document, piece: TablePiece, name: string) {
   const page = within(document.body);
   const [clientX, clientY] = mapViewPoint(document, [
     piece.position[0],
@@ -840,7 +839,7 @@ async function openPieceMenu(document: Document, piece: TablePiece) {
         scene.dispatchEvent(new PointerEvent('contextmenu', { ...press, buttons: 2 }));
         scene.dispatchEvent(new PointerEvent('pointerup', { ...press, buttons: 0 }));
       }
-      const menu = page.getByRole('menu');
+      const menu = page.getByRole('menu', { name });
       expect(finishTransitions(menu)).toBeVisible();
       return menu;
     },

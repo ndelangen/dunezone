@@ -1208,6 +1208,7 @@ export function TabletopScene({
   const { takeAdditionalFromTarget, state, deckControls, bankControls } = useTabletop();
   const [pieceMenu, setPieceMenu] = useState<{ pieceId: string; x: number; y: number } | null>(null);
   const menuPiece = state.pieces.find((piece) => piece.id === pieceMenu?.pieceId);
+  const pieceMenuName = isSpicePiece(menuPiece) ? 'Spice actions' : 'Deck actions';
   const deckAvailable =
     !!deckControls && !!menuPiece && !menuPiece.locked && !menuPiece.inventory && menuPiece.items.length > 0;
   /* Swapping keeps the board clear of trackers, and setup shows only the spice ones. */
@@ -1264,8 +1265,10 @@ export function TabletopScene({
         withinPortal
         position="bottom-start"
       >
+        {/* Mantine names the dropdown by its target, so the anchor carries the menu's name for that reference to find. */}
         <Menu.Target>
           <span
+            aria-label={pieceMenuName}
             style={{
               position: 'fixed',
               left: pieceMenu?.x ?? 0,
@@ -1276,7 +1279,7 @@ export function TabletopScene({
             }}
           />
         </Menu.Target>
-        <Menu.Dropdown aria-label={isSpicePiece(menuPiece) ? 'Spice actions' : 'Deck actions'}>
+        <Menu.Dropdown aria-label={pieceMenuName}>
           {isSpicePiece(menuPiece) ? (
             <Menu.Item
               disabled={!bankControls || menuPiece.locked || !bankControls.canCollect(menuPiece.id)}
