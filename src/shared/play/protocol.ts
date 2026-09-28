@@ -270,6 +270,8 @@ export const serverMessageSchema = z.discriminatedUnion('type', [
     activityDeliveries: count.optional(),
     messagesSent: count,
     bytesSent: count,
+    /* The requester's own recent saved commands, with when the room began handling each by its clock. */
+    commands: z.array(z.object({ commandId: id, handledAt: count })).optional(),
   }),
 ]);
 export type ServerMessage = z.infer<typeof serverMessageSchema>;

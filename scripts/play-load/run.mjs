@@ -22,6 +22,7 @@ import { runMotionSchedule } from './motion.mjs';
 import { runActionSchedule } from './pacing.mjs';
 import { runnerProfiles } from './profiles.ts';
 import { sizeUpdate, updateLedger } from './redundancy.mjs';
+import { roomTiming } from './room-timing.mjs';
 import { slowLink } from './slow-link.mjs';
 import { createTrace } from './trace.mjs';
 
@@ -189,6 +190,8 @@ let actionWork;
 let samplePhase = 'preparation';
 /* The highest revision any saved command was confirmed at; recipients converge on it, not on one recipient's view. */
 let confirmedRevision = 0;
+/* Every saved command sent, joined at the end with when the room began handling it. */
+const commandSends = [];
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 function stop(reason) {
   if (stopping) {
@@ -495,8 +498,17 @@ async function record(peer, message, operation, sample = beginInteraction(peer, 
   try {
     peer.responses.delete(message.commandId);
     sample.commandSentAt = performance.now();
+    const sent = {
+      peer,
+      commandId: message.commandId,
+      operation,
+      phase: sample.phase,
+      sentAt: performance.timeOrigin + sample.commandSentAt,
+    };
+    commandSends.push(sent);
     assert.ok(send(peer, message), 'The saved command was stopped before dispatch.');
     const result = await until(() => peer.responses.get(message.commandId), `Command ${message.commandId} timed out.`);
+    sent.answeredAt = performance.timeOrigin + performance.now();
     if (result.type === 'rejected') {
       const error = new Error(result.message);
       failInteraction(sample, error, true);
@@ -516,6 +528,20 @@ async function record(peer, message, operation, sample = beginInteraction(peer, 
     failInteraction(sample, error);
     throw error;
   }
+}
+/** Asks each peer that sent saved commands for the room's handling times, so a slow command shows which leg was slow. */
+async function collectRoomTiming() {
+  const handled = new Map();
+  for (const peer of new Set(commandSends.map((sent) => sent.peer))) {
+    const metrics = await request(peer, { type: 'metrics' }, 'metrics');
+    for (const command of metrics.commands ?? []) {
+      handled.set(command.commandId, command.handledAt);
+    }
+  }
+  report.roomTiming = roomTiming(
+    commandSends.map((sent) => ({ ...sent, peer: sent.peer.index })),
+    handled
+  );
 }
 async function durable(peer, action, operation = action.kind, sample) {
   return record(
@@ -951,6 +977,7 @@ try {
     }
   }
   if (!stopping) {
+    await collectRoomTiming();
     report.serverAfter = await request(first, { type: 'metrics' }, 'metrics');
     await until(
       () => interactionTiming.outstanding().length === 0,
@@ -967,6 +994,12 @@ try {
 } catch (error) {
   report.status = stopping ? 'incomplete' : 'failed';
   report.error = error.message;
+  /* A failed run is when the room's side matters most, so its handling times are read while the sockets are still open. */
+  if (!stopping && !report.roomTiming) {
+    await collectRoomTiming().catch((timingError) => {
+      report.roomTiming = { error: timingError.message };
+    });
+  }
 } finally {
   const finalStopReason = stopReason ?? (report.status === 'failed' ? 'failed' : 'completed');
   stop('cleanup');
