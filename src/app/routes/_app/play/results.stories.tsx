@@ -3,6 +3,8 @@ import type { GameSnapshot } from '@shared/play/protocol';
 import { SPECTATOR_SEAT } from '@shared/play/schema';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
+import { STORYBOOK_NOW } from '@db/storybook';
+
 import { gameMeta, install, lastCommand } from './game.stories.fixture';
 import { openTab } from './playing.stories.fixture';
 import { playingSnapshot, productTransport, SIX } from './product.stories.fixture';
@@ -33,14 +35,14 @@ function mentatSnapshot(viewerSeat: string, { prediction = false } = {}): GameSn
   return snapshot;
 }
 
-function finishedSnapshot(viewerSeat: string): GameSnapshot {
+function finishedSnapshot(viewerSeat: string, declaredAt = 1): GameSnapshot {
   const snapshot = mentatSnapshot(viewerSeat);
   snapshot.stage = 'finished';
   snapshot.result = {
     kind: 'alliance',
     factionIds: [factionOf(snapshot, 0).id, factionOf(snapshot, 2).id],
     by: { seat: 'seat-1', name: SIX[0]!.name },
-    declaredAt: 1,
+    declaredAt,
   };
   return snapshot;
 }
@@ -120,5 +122,40 @@ export const FinishedSpectator = meta.story({
     const bar = title.closest('section')!;
     expect(within(bar).getByText(/The table stays as it was/)).toBeVisible();
     expect(within(bar).queryByRole('button', { name: 'Continue playing' })).toBeNull();
+  },
+});
+
+/* A result declared just now: the allied winners' slots fire their foil across the table. */
+export const Celebration = meta.story({
+  beforeEach: install(() => productTransport('seat-2', finishedSnapshot('seat-2', STORYBOOK_NOW))),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await page.findByText(/won as an alliance/, {}, { timeout: 30_000 });
+  },
+});
+
+/* The game menu stops the stream and clears the table for this viewer, then has nothing left to clear. */
+export const ClearingCelebration = meta.story({
+  beforeEach: install(() => productTransport('seat-2', finishedSnapshot('seat-2', STORYBOOK_NOW))),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await page.findByText(/won as an alliance/, {}, { timeout: 30_000 });
+    await userEvent.click(page.getByRole('button', { name: 'Game menu' }));
+    await userEvent.click(await page.findByRole('menuitem', { name: 'Clear confetti' }));
+    await userEvent.click(page.getByRole('button', { name: 'Game menu' }));
+    await page.findByRole('menuitem', { name: 'Give up your seat' });
+    expect(page.queryByRole('menuitem', { name: 'Clear confetti' })).toBeNull();
+  },
+});
+
+/* A result declared long ago celebrates nothing, so there is nothing to clear. */
+export const FinishedWithoutCelebration = meta.story({
+  beforeEach: install(() => productTransport('seat-2', finishedSnapshot('seat-2'))),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await page.findByText(/won as an alliance/, {}, { timeout: 30_000 });
+    await userEvent.click(page.getByRole('button', { name: 'Game menu' }));
+    await page.findByRole('menuitem', { name: 'Give up your seat' });
+    expect(page.queryByRole('menuitem', { name: 'Clear confetti' })).toBeNull();
   },
 });

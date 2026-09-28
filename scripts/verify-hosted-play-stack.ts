@@ -259,24 +259,66 @@ function configureAuth(convex: (args: string[]) => void, origin: string) {
   convex(['env', 'set', 'JWKS', '--from-file', jwksPath]);
 }
 
-/** Retires the previous flow's game and provisions a fresh canonical fixture through the local Workers. */
-async function freshBrowserGame(convex: (args: string[]) => string, previous: string | undefined): Promise<string> {
-  if (previous) {
-    convex(['run', 'playTesting:retireFixture', JSON.stringify({ gameId: previous })]);
+type Publication = { key: string; href: string; face: string };
+
+/** A flat local publication face: red for a front, blue for a back, as the pixel checks expect. */
+async function render(file: string, face: string) {
+  const color = face === 'back' ? '#253e5a' : '#8F2C1C';
+  await sharp(
+    Buffer.from(
+      `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600"><rect width="600" height="600" fill="${color}"/><circle cx="300" cy="300" r="265" fill="none" stroke="#ead9bb" stroke-width="16"/><text x="300" y="290" text-anchor="middle" fill="#ead9bb" font-size="54" font-family="sans-serif">RECOVERY</text><text x="300" y="370" text-anchor="middle" fill="#ead9bb" font-size="44" font-family="sans-serif">${face.toUpperCase()}</text></svg>`
+    )
+  )
+    .jpeg()
+    .toFile(file);
+}
+
+/** Installs local bytes for each seeded publication in the isolated Worker's bucket, and checks the publisher serves them. */
+async function installPublications(publications: Publication[], workerOutput: string, origin: string) {
+  const workerRuntime = /Local state\/configuration: (.+)\. Removed/.exec(workerOutput)?.[1];
+  if (!workerRuntime) {
+    throw new Error('The isolated Worker storage path is missing.');
   }
-  const deadline = Date.now() + 60_000;
-  while (Date.now() < deadline) {
-    const fixture = JSON.parse(convex(['run', 'playProvisioning:beginFixtureProvision', '{}'])) as {
-      gameId: string;
-      state: 'ready' | 'pending';
-    };
-    if (fixture.state === 'ready') {
-      console.log('Canonical browser fixture provisioned through the local Workers.');
-      return fixture.gameId;
+  const config = path.join(workerRuntime, 'publisher.json');
+  const settings = JSON.parse(readFileSync(config, 'utf8'));
+  const bucket = settings.r2_buckets.find((entry: { binding: string }) => entry.binding === 'ASSET_BUCKET');
+  if (!bucket || bucket.remote !== false) {
+    throw new Error('The publication bucket must be local.');
+  }
+  /* One image per face, rendered once and uploaded for every publication of that face. */
+  const rendered = new Set<string>();
+  for (const publication of publications) {
+    const file = path.join(runtime, `${publication.face}.jpg`);
+    if (!rendered.has(publication.face)) {
+      rendered.add(publication.face);
+      await render(file, publication.face);
     }
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    run({
+      command: node,
+      args: [
+        path.join(root, 'node_modules/wrangler/bin/wrangler.js'),
+        'r2',
+        'object',
+        'put',
+        `${bucket.bucket_name}/${publication.key}`,
+        '--local',
+        '--persist-to',
+        path.join(workerRuntime, 'state'),
+        '--config',
+        config,
+        '--file',
+        file,
+        '--content-type',
+        'image/jpeg',
+      ],
+      env: environment,
+      label: 'Local publication fixture',
+    });
+    const response = await fetch(`${origin}${publication.href}`);
+    if (!response.ok) {
+      throw new Error(`Local publication returned ${response.status}.`);
+    }
   }
-  throw new Error('The local browser fixture did not finish provisioning within one minute.');
 }
 
 const interrupt = () => {
@@ -413,7 +455,7 @@ try {
     if (loadProfile) {
       verificationTimeout = loadCase === 'steady' ? 540_000 : 300_000;
     }
-    /* The protocol verifier creates and provisions its own synthetic game, apart from the fixture the browser flows take. */
+    /* The protocol verifier creates and provisions its own synthetic game, apart from the real games the browser flows create. */
     const passed = await verify(
       {
         env: loadProfile
@@ -454,98 +496,49 @@ try {
       failed.push('protocol verification');
     }
   }
-  if (flows.some((flow) => browserFlows[flow].needsCatalogue)) {
-    const publications = JSON.parse(convex(['run', 'playTesting:seedPublicCatalogue', '{}'])) as {
-      key: string;
-      href: string;
-      face: string;
-    }[];
-    const workerOutput = readFileSync(workerLog, 'utf8');
-    const workerRuntime = /Local state\/configuration: (.+)\. Removed/.exec(workerOutput)?.[1];
-    if (!workerRuntime) {
-      throw new Error('The isolated Worker storage path is missing.');
+  if (flows.length > 0) {
+    /* Every flow creates its own real game on this ruleset; the Recovery token is the catalogue some flows request. */
+    const seeded = JSON.parse(convex(['run', 'playTesting:seedRealGameCatalogue', '{}'])) as {
+      rulesetId: string;
+      publications: Publication[];
+    };
+    const { rulesetId } = seeded;
+    const publications = [...seeded.publications];
+    if (flows.some((flow) => browserFlows[flow].needsCatalogue)) {
+      publications.push(...(JSON.parse(convex(['run', 'playTesting:seedPublicCatalogue', '{}'])) as Publication[]));
     }
-    const config = path.join(workerRuntime, 'publisher.json');
-    const settings = JSON.parse(readFileSync(config, 'utf8'));
-    const bucket = settings.r2_buckets.find((entry: { binding: string }) => entry.binding === 'ASSET_BUCKET');
-    if (!bucket || bucket.remote !== false) {
-      throw new Error('The publication bucket must be local.');
-    }
-    for (const publication of publications) {
-      const file = path.join(runtime, `${publication.face}.jpg`);
-      const color = publication.face === 'front' ? '#8F2C1C' : '#253e5a';
-      await sharp(
-        Buffer.from(
-          `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600"><rect width="600" height="600" fill="${color}"/><circle cx="300" cy="300" r="265" fill="none" stroke="#ead9bb" stroke-width="16"/><text x="300" y="290" text-anchor="middle" fill="#ead9bb" font-size="54" font-family="sans-serif">RECOVERY</text><text x="300" y="370" text-anchor="middle" fill="#ead9bb" font-size="44" font-family="sans-serif">${publication.face.toUpperCase()}</text></svg>`
-        )
-      )
-        .jpeg()
-        .toFile(file);
-      run({
-        command: node,
-        args: [
-          path.join(root, 'node_modules/wrangler/bin/wrangler.js'),
-          'r2',
-          'object',
-          'put',
-          `${bucket.bucket_name}/${publication.key}`,
-          '--local',
-          '--persist-to',
-          path.join(workerRuntime, 'state'),
-          '--config',
-          config,
-          '--file',
-          file,
-          '--content-type',
-          'image/jpeg',
-        ],
-        env: environment,
-        label: 'Local publication fixture',
-      });
-      const response = await fetch(`${origin}${publication.href}`);
-      if (!response.ok) {
-        throw new Error(`Local publication returned ${response.status}.`);
+    await installPublications(publications, readFileSync(workerLog, 'utf8'), origin);
+    const reportDirectory = path.join(evidence, 'browser');
+    for (const flow of flows) {
+      const passed = await verify(
+        {
+          command: process.execPath,
+          args: [
+            '--no-env-file',
+            path.join(root, 'scripts/verify-hosted-play-browser.mjs'),
+            '--env-file',
+            envFile,
+            '--origin',
+            origin,
+            '--credentials-file',
+            path.join(runtime, `${flow}-credentials.json`),
+            '--report-dir',
+            reportDirectory,
+            '--flow',
+            flow,
+            '--ruleset-id',
+            rulesetId,
+            ...(values.browser ? ['--browser', values.browser] : []),
+            ...(expectedRenderer ? ['--expect-renderer', expectedRenderer] : []),
+          ],
+          logPath: path.join(evidence, `${flow}.log`),
+        },
+        browserFlows[flow].timeoutMs
+      );
+      if (!passed) {
+        failed.push(flow);
       }
     }
-  }
-  const reportDirectory = path.join(evidence, 'browser');
-  let gameId: string | undefined;
-  for (const flow of flows) {
-    try {
-      gameId = await freshBrowserGame(convex, gameId);
-    } catch (error) {
-      console.error(`${flow} got no fresh game: ${error instanceof Error ? error.message : String(error)}`);
-      failed.push(flow);
-      continue;
-    }
-    const passed = await verify(
-      {
-        command: process.execPath,
-        args: [
-          '--no-env-file',
-          path.join(root, 'scripts/verify-hosted-play-browser.mjs'),
-          '--env-file',
-          envFile,
-          '--origin',
-          origin,
-          '--credentials-file',
-          path.join(runtime, `${flow}-credentials.json`),
-          '--report-dir',
-          reportDirectory,
-          '--flow',
-          flow,
-          ...(values.browser ? ['--browser', values.browser] : []),
-          ...(expectedRenderer ? ['--expect-renderer', expectedRenderer] : []),
-        ],
-        logPath: path.join(evidence, `${flow}.log`),
-      },
-      browserFlows[flow].timeoutMs
-    );
-    if (!passed) {
-      failed.push(flow);
-    }
-  }
-  if (flows.length > 0) {
     console.log(`Browser reports and captures remain in ${reportDirectory}.`);
   }
   if (failed.length > 0) {

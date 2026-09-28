@@ -3,22 +3,25 @@ import assert from 'node:assert/strict';
 import { stackTopHeight } from '../src/shared/play/tableGeometry.ts';
 
 /** Real deck menus and shortcuts against the isolated authority, with distinct private recipients. */
-export async function verifyDecks({ seated, focus, openTab, point, capture, until, passed }) {
+export async function verifyDecks({ seated, factionOf, treacheryDeck, focus, openTab, point, capture, until, passed }) {
   const { a, b, observer } = await seated();
-  const deck = (who) => who.view().snapshot.table.pieces.find((piece) => piece.id === 'treachery-deck');
-  const hands = (who) => who.view().snapshot.hand ?? [];
+  const deckId = treacheryDeck(a);
+  const deck = (who) => who.view().snapshot.table.pieces.find((piece) => piece.id === deckId);
+  /* Setup dealt each player's leaders into the same private inventory; only cards count here. */
+  const hands = (who) => (who.view().snapshot.hand ?? []).filter((piece) => piece.kind === 'card');
   await focus(a, 'map');
   const original = deck(a).items.map((item) => item.id);
+  const size = original.length;
   const piece = deck(a);
   const hit = await point(a, [piece.position[0], piece.position[1] + stackTopHeight(piece), piece.position[2]], 'map');
   await a.page.mouse.click(hit.x, hit.y, { button: 'right' });
   const menu = a.page.getByRole('menu', { name: 'Deck actions' });
   await menu.waitFor();
   await menu.getByRole('menuitem', { name: 'Draw a card', exact: true }).click();
-  await until(() => hands(a).length === 1 && deck(a).items.length === 3, 'Draw did not move exactly one card.');
+  await until(() => hands(a).length === 1 && deck(a).items.length === size - 1, 'Draw did not move exactly one card.');
   assert.equal(await menu.isVisible(), true);
-  await menu.getByRole('menuitem', { name: 'Deal 1 to Atreides', exact: true }).click();
-  await until(() => hands(b).length === 1 && deck(b).items.length === 2, 'Deal did not reach the recipient.');
+  await menu.getByRole('menuitem', { name: `Deal 1 to ${factionOf(b).name}`, exact: true }).click();
+  await until(() => hands(b).length === 1 && deck(b).items.length === size - 2, 'Deal did not reach the recipient.');
   assert.equal(hands(a).length, 1);
   assert.equal(hands(observer).length, 0);
   assert.equal(await menu.isVisible(), true);
@@ -31,11 +34,11 @@ export async function verifyDecks({ seated, focus, openTab, point, capture, unti
   assert.ok(deck(a).items.every((item) => !original.includes(item.id)));
   await until(() => deck(b).shuffleRevision === deck(a).shuffleRevision, 'Shuffle did not reach the other player.');
   await openTab(a, 'Hand');
-  await a.page.getByRole('button', { name: /^Drag .* from hand$/ }).waitFor();
-  await capture(a, 'private-hand-after-draw');
   const handCard = hands(a)[0];
+  const control = a.page.getByRole('button', { name: `Drag ${handCard.items[0].artwork.name} from hand`, exact: true });
+  await control.waitFor();
+  await capture(a, 'private-hand-after-draw');
   const beforeDrop = new Set(a.view().snapshot.table.pieces.map((piece) => piece.id));
-  const control = a.page.getByRole('button', { name: /^Drag .* from hand$/ });
   await control.scrollIntoViewIfNeeded();
   const bounds = await control.boundingBox();
   assert.ok(bounds);

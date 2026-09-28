@@ -105,12 +105,14 @@ function representativeFullFieldFaction(): FactionInput {
         striped: true,
         count: 12,
         planet: 'Curated Prime',
+        combat: { strength: -0.5, fundedStrength: 1.25, fundingCost: 0 },
         back: {
           image: assetPublishingFaction.troops[0].image,
           name: 'Reversible Guard Elite',
           description: 'Reverse-side troop rules.',
           star: TROOP_MODIFIER.options[1] ?? TROOP_MODIFIER.options[0],
           striped: false,
+          capable: false,
         },
       },
       {
