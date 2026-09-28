@@ -31,6 +31,7 @@ const PROVIDED_ELSEWHERE = [
   ['--pile-slot', 'the pile layout, via inline style'],
   ['--document-editor-', 'DocumentEditorLayout, via setProperty'],
   ['--editor-plane-width', 'the faction editor plane, via setProperty'],
+  ['--hand-color', 'the remote hand in ScenePresence, via inline style'],
 ];
 
 const definitionsRoot = process.env.CSS_VAR_DEFINITIONS_ROOT ?? 'src';

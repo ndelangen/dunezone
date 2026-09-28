@@ -10,6 +10,8 @@ import { lazy, Suspense } from 'react';
 import { useGameAccess } from '@db/play';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
+import { isPlaySpacingVariant } from './spacingPrototype';
+import type { PlaySpacingVariant } from './spacingPrototype';
 import { TableWait } from './TableWait';
 
 const loadHostedTable = () => import('./multiplayer/HostedTable');
@@ -22,6 +24,9 @@ const HostedTable = lazy(loadHostedTable);
 const RETIRED_PAGES: ReadonlySet<string> = new Set(['demo', 'hosted']);
 
 export const Route = createFileRoute('/_app/play/$gameId')({
+  /* PROTOTYPE, #1321 F55: `?variant=a|b|c` picks the seated header's spacing. */
+  validateSearch: (params: Record<string, unknown>): { variant?: PlaySpacingVariant } =>
+    isPlaySpacingVariant(params?.variant) ? { variant: params.variant } : {},
   beforeLoad: ({ params }) => {
     if (RETIRED_PAGES.has(params.gameId)) {
       throw redirect({ to: '/play', replace: true });

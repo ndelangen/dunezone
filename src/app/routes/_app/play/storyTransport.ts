@@ -2,7 +2,7 @@ import { LOG_PAGE_SIZE } from '@shared/play/log';
 import type { LogEntry, LogTab } from '@shared/play/log';
 import { isSeatAction } from '@shared/play/participation';
 import { clientMessageSchema, KEEPALIVE_PING } from '@shared/play/protocol';
-import type { ClientMessage, GameSnapshot, ServerMessage, Viewer } from '@shared/play/protocol';
+import type { ClientMessage, GameSnapshot, PublicPointer, ServerMessage, Viewer } from '@shared/play/protocol';
 import { isSwapAction } from '@shared/play/swapping';
 
 import { STORYBOOK_NOW } from '@db/storybook';
@@ -19,12 +19,15 @@ export function storyTransport(
     holdLogHistory = false,
     logEntries = {},
     conversationMessages = [],
+    pointers = [],
   }: {
     holdView?: boolean;
     holdLogHistory?: boolean;
     /* Newest first, as the table answers; a page is cut at the requested cursor. */
     logEntries?: Partial<Record<LogTab, LogEntry[]>>;
     conversationMessages?: Extract<ServerMessage, { type: 'conversation-history' }>['entries'];
+    /* PROTOTYPE, #1321 F55: other players' hands over the table, as every view carries them. */
+    pointers?: PublicPointer[];
   } = {}
 ) {
   const messages: ClientMessage[] = [];
@@ -44,7 +47,7 @@ export function storyTransport(
       epoch: 'story-epoch',
       snapshot: next,
       carries: [],
-      pointers: [],
+      pointers,
       completedCommandId,
       battleCountdownMs: next.battle?.stage === 'countdown' ? 5000 : 0,
     };

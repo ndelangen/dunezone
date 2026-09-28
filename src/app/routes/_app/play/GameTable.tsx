@@ -33,6 +33,7 @@ import { createTableViewState, PHASE_VIEWS, reduceTableView, TABLE_VIEW_OPTIONS 
 import type { CameraViewCommand, TableView } from './playView';
 import { PointerSession } from './PointerSession';
 import { PointerSessionContext } from './PointerSessionContext';
+import { PlaySpacingVariantBar, usePlaySpacingVariant } from './spacingPrototype';
 import { useTabletop } from './TabletopContext';
 import type { TabletopContextValue } from './TabletopContext';
 import { TabletopScene } from './TabletopScene';
@@ -487,6 +488,8 @@ export function GameTable({
   const onSelectTurn = selectSharedTurn ?? setLocalTurn;
   const { gestureActivePieceId } = useTabletop();
   const phaseSymbolClipId = useId();
+  /* PROTOTYPE, #1321 F55. */
+  const spacingVariant = usePlaySpacingVariant();
   const heldOverlays = useHeldOverlays();
   const frame = stageFrame(stage);
   /* The camera follows the phase while the header names one: in play, and on the fixture. */
@@ -532,7 +535,9 @@ export function GameTable({
             data-table-view={viewState.activeView}
             data-show-counts={heldOverlays.counts}
             data-show-names={heldOverlays.names}
+            data-spacing-variant={spacingVariant}
           >
+            <PlaySpacingVariantBar />
             {/* The header sits outside the split, in the shell's own stacking, so it paints above the dock where the dock's floor grows up over the scene. It comes before the split so its controls lead the reading and Tab order. */}
             <header className="seated-header" inert={overlaysInert}>
               <div className="seated-brand">
