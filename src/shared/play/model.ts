@@ -1,5 +1,6 @@
 import type { z } from 'zod';
 
+import { phaseAt } from './phases';
 import type {
   draftMoveSchema,
   durableTableSchema,
@@ -41,7 +42,6 @@ export type Affordance = {
     | 'piece.lock';
   label: string;
   description: string;
-  targetZoneIds?: string[];
 };
 
 export type TableState = z.infer<typeof durableTableSchema> & {
@@ -210,13 +210,16 @@ export function gestureBlockReason(piece: TablePiece): string | null {
   return null;
 }
 
+/* A fresh table opens on the standard turn's first phase. */
+const OPENING_PHASE = phaseAt(0).label;
+
 export function freshTableState(): TableState {
   /* The local demo seats one viewer at a seat named after the house it plays. */
   return {
     viewerSeat: 'harkonnen',
     viewerFaction: 'harkonnen',
     factionNames: { harkonnen: 'Harkonnen', atreides: 'Atreides', 'bene-gesserit': 'Bene Gesserit' },
-    phase: 'Harkonnen shipment',
+    phase: OPENING_PHASE,
     stormSectorIndex: DEFAULT_STORM_SECTOR_INDEX,
     pieces: INITIAL_PIECES.map((piece) => ({
       ...piece,
@@ -230,7 +233,7 @@ export function freshTableState(): TableState {
       {
         id: 'evt-001',
         command: 'window.open',
-        message: 'Harkonnen may ship forces to Arrakeen.',
+        message: `Table ready. Turn 1: ${OPENING_PHASE}.`,
         status: 'accepted',
       },
     ],
@@ -258,18 +261,6 @@ export function nearestZone(position: Vector3Tuple): Zone | null {
   }
 
   return nearest?.zone ?? null;
-}
-
-function moveAffordance(state: TableState, piece: TablePiece): Affordance {
-  const isHarkonnenShipmentForce =
-    state.phase === 'Harkonnen shipment' && piece.owner === 'harkonnen' && piece.kind === 'force';
-  return {
-    id: 'move',
-    commandType: 'piece.move',
-    label: isHarkonnenShipmentForce ? 'Ship forces' : 'Move piece',
-    description: 'Stage a move, inspect its target, then commit it.',
-    targetZoneIds: ZONES.filter((zone) => zone.id !== piece.zoneId).map((zone) => zone.id),
-  };
 }
 
 function splitAffordance(piece: TablePiece): Affordance {
@@ -332,7 +323,12 @@ export function affordancesFor(state: TableState): Affordance[] {
     return [lockAffordance(piece)];
   }
   return [
-    moveAffordance(state, piece),
+    {
+      id: 'move',
+      commandType: 'piece.move',
+      label: 'Move piece',
+      description: 'Stage a move, inspect its target, then commit it.',
+    },
     ...(pieceCount(piece) > 1 ? [splitAffordance(piece)] : []),
     ...(piece.stackKey ? [mergeAffordance(piece)] : []),
     {

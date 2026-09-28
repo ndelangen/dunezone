@@ -1,7 +1,7 @@
 import { Button, Group, Stack, Text } from '@mantine/core';
 import { pieceCount } from '@shared/play/model';
 import type { TablePiece } from '@shared/play/model';
-import { STANDARD_PHASES, standardPhaseOf } from '@shared/play/phases';
+import { standardPhaseOf } from '@shared/play/phases';
 import type { GameSnapshot } from '@shared/play/protocol';
 import { TABLE_SECTOR_COUNT } from '@shared/play/tableSettings';
 import type { TableSeatCount } from '@shared/play/tableSettings';
@@ -42,12 +42,6 @@ import { TableWait } from './TableWait';
 /* How long the shell waits for the renderer before opening anyway. */
 const SCENE_READY_FALLBACK_MS = 1500;
 
-const DEFAULT_TABLE_PROGRESS: TableProgress = {
-  turn: 1,
-  phases: STANDARD_PHASES,
-  activePhaseId: 'shipment-and-movement',
-};
-
 /** One tab of the controls panel: what it is called, its glyph from the topic map, and what it shows. */
 type PanelTab = Readonly<{
   key: string;
@@ -70,9 +64,9 @@ type GameTableProps = {
   /** The game menu in the toolbar, present in every stage: what a player can do about their own seat. Previous and Next stay rightmost. */
   gameMenu?: ReactNode;
   toolbarControl?: ReactNode;
-  showStormControls?: boolean;
+  showStormControls: boolean;
   seatCount: TableSeatCount;
-  tableProgress?: TableProgress;
+  tableProgress: TableProgress;
   /* Absent on the fixture, which has no lifecycle. */
   stage?: GameSnapshot['stage'];
   mapVisible?: boolean;
@@ -83,7 +77,7 @@ type GameTableProps = {
   /* A stage's own panel in place of the tabs, under the decision bar: the drafting panel. Its tab's pane is flush, so the content insets itself with --nested-tabs-panel-inset. */
   panelContent?: ReactNode;
   playerPanel?: ReactNode;
-  onSelectTurn?(turn: number): void;
+  onSelectTurn(turn: number): void;
 };
 
 function flippableSelection(piece: TablePiece | null) {
@@ -380,7 +374,7 @@ function PanelPanes({ children, secondary }: Readonly<{ children: ReactNode; sec
   );
 }
 
-function TrackerControls({ turn, onSelectTurn }: Readonly<{ turn: number; onSelectTurn?: (turn: number) => void }>) {
+function TrackerControls({ turn, onSelectTurn }: Readonly<{ turn: number; onSelectTurn: (turn: number) => void }>) {
   const { spawnSpice, state } = useTabletop();
   const { canInteract } = usePresence();
   return (
@@ -391,10 +385,10 @@ function TrackerControls({ turn, onSelectTurn }: Readonly<{ turn: number; onSele
         description="Select a number on the turn wheel. This changes the turn only, without moving pieces or changing the phase."
       >
         <Group gap="sm">
-          <Button variant="default" disabled={!canInteract || turn <= 1} onClick={() => onSelectTurn?.(turn - 1)}>
+          <Button variant="default" disabled={!canInteract || turn <= 1} onClick={() => onSelectTurn(turn - 1)}>
             Previous turn
           </Button>
-          <Button variant="default" disabled={!canInteract} onClick={() => onSelectTurn?.(turn + 1)}>
+          <Button variant="default" disabled={!canInteract} onClick={() => onSelectTurn(turn + 1)}>
             Next turn
           </Button>
         </Group>
@@ -476,15 +470,12 @@ export function GameTable({
   panelContent,
   playerPanel,
   toolbarControl,
-  showStormControls = true,
+  showStormControls,
   seatCount,
-  tableProgress: providedProgress,
-  onSelectTurn: selectSharedTurn,
+  tableProgress,
+  onSelectTurn,
 }: GameTableProps) {
   const [pointerSession] = useState(() => new PointerSession());
-  const [localTurn, setLocalTurn] = useState(DEFAULT_TABLE_PROGRESS.turn);
-  const tableProgress = providedProgress ?? { ...DEFAULT_TABLE_PROGRESS, turn: localTurn };
-  const onSelectTurn = selectSharedTurn ?? setLocalTurn;
   const { gestureActivePieceId } = useTabletop();
   const phaseSymbolClipId = useId();
   const heldOverlays = useHeldOverlays();
