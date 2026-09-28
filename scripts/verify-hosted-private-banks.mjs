@@ -188,7 +188,8 @@ export async function verifyPrivateBanks(toolkit) {
     passed(
       'Raw snapshots, compact deltas and historical frames contain only the recipient faction bank; observer and guessed HTTP paths expose no bank; reconnect and a second tab restore the current bank'
     );
-    /* A real game's history starts at drafting, whose playback bar returns each replaying page to the live table. */
+    /* A real game's history starts at drafting, which has no Spice tab; its playback bar returns a viewer to the live table.
+       The sign-out step opens the Spice tab on both viewers that replayed here, so both go back. */
     for (const who of [tab, observer]) {
       await who.page.getByRole('button', { name: 'Return to live' }).click();
       await button(who, 'Spice').waitFor({ state: 'attached' });

@@ -1,13 +1,12 @@
 import { z } from 'zod';
 
-import { ALL } from '../assetIds';
+import { ALL, BACKGROUND, TEXTURE } from '../assetIds';
 import { Background, Decal } from '../factions/schema';
 import { proseFormattedTextSchema } from '../formattedText';
 import { cardbackPresetKeySchema } from './cardbackPresetKeys';
 
 const OFFSET = z.tuple([z.number(), z.number()]);
 const SCALE = z.number().min(0).max(1);
-const URL = z.string().url();
 
 /**
  * Off-face prose explaining rule details the face cannot or should not carry.
@@ -97,7 +96,8 @@ export const Spice = z.strictObject({
   overlays: z
     .array(
       z.strictObject({
-        image: URL,
+        /* The publisher renders every saved face in a browser, so an overlay names a bundled image, never an address the author chooses. */
+        image: z.union([TEXTURE, BACKGROUND, ALL]),
         offset: OFFSET,
         scale: SCALE,
       })
@@ -359,6 +359,10 @@ export const TreacheryAssetInput = TreacheryAsset.extend({
 export const SpiceAssetInput = SpiceAsset.extend({
   about: FormattedAbout,
   text: proseFormattedTextSchema.optional(),
+  /* The publisher renders every saved face in a browser, so an overlay may only name a bundled image, never an address the author chooses. */
+  overlays: z
+    .array(z.strictObject({ image: z.union([TEXTURE, BACKGROUND, ALL]), offset: OFFSET, scale: SCALE }))
+    .optional(),
 });
 
 export const DeckAssetInput = DeckAsset.extend({ about: FormattedAbout });

@@ -563,6 +563,30 @@ describe('asset publication', () => {
     ).rejects.toThrow();
   });
 
+  test('a spice card overlay may name a bundled image but not an outside address', async () => {
+    const t = convexTest(schema, modules);
+    const ownerId = await t.run(async (ctx) => await ctx.db.insert('users', { name: 'Spice owner' }));
+    const owner = t.withIdentity({ subject: ownerId });
+    const overlay = { offset: [20, 16] as [number, number], scale: 0.5 };
+
+    await expect(
+      owner.mutation(api.assets.create, {
+        type: 'card-spice',
+        data: {
+          ...publishingSpiceCard,
+          name: 'Red Chasm',
+          overlays: [{ ...overlay, image: 'http://169.254.169.254/x.png' }],
+        },
+      })
+    ).rejects.toThrow();
+
+    const created = await owner.mutation(api.assets.create, {
+      type: 'card-spice',
+      data: { ...publishingSpiceCard, name: 'Old Gap', overlays: [{ ...overlay, image: '/image/texture/052.jpg' }] },
+    });
+    expect(created.slug).toBe('old-gap');
+  });
+
   test('saving a deck schedules its Cardback, and the payload is the Cardback alone', async () => {
     const t = convexTest(schema, modules);
     const ownerId = await t.run(async (ctx) => await ctx.db.insert('users', { name: 'Deck owner' }));
