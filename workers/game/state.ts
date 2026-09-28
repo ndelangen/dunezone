@@ -14,6 +14,7 @@ import type { DraftMove, TableItem, TablePiece } from '../../src/shared/play/mod
 import { gameSnapshotSchema } from '../../src/shared/play/protocol';
 import type { GameSnapshot, PublicCarry, PieceAction } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
+import { gameEndingSchema, gameResultSchema } from '../../src/shared/play/result';
 import { storedPieceSchema, storedTableSchema, tableCountSchema, tableIdSchema } from '../../src/shared/play/schema';
 import { predictionSchema, predictionChoiceSchema } from '../../src/shared/play/setup';
 
@@ -22,10 +23,15 @@ const storedBattleSchema = publicBattleSchema.omit({ revealed: true }).extend({
 });
 export type StoredBattle = z.infer<typeof storedBattleSchema>;
 
+const storedActorSchema = gameResultSchema.shape.by.extend({ userId: tableIdSchema.nullable() });
+
 /** Storage owns the complete bank collection; transport owns only a projected bank. */
 export const storedSnapshotSchema = gameSnapshotSchema
-  .omit({ bank: true, battle: true, battlePlan: true, hand: true, predictions: true })
+  .omit({ bank: true, battle: true, battlePlan: true, hand: true, predictions: true, ending: true, result: true })
   .extend({
+    /* The acting account stays in storage for authorization, the directory and deletion; the wire carries seat and name. */
+    ending: gameEndingSchema.extend({ by: storedActorSchema }).nullable().default(null),
+    result: gameResultSchema.extend({ by: storedActorSchema }).nullable().default(null),
     /* Every stored piece keeps its whole artwork, type included; only a viewer's copy of a hidden card leaves any of it out. */
     table: storedTableSchema,
     controls: storedControlsSchema.optional(),
@@ -274,10 +280,16 @@ export class RoomProjection {
           requests: controls.requests.map((request) => ({ ...request, contents: this.contents(request.contents) })),
         },
         ...(spiceTransfers ? { spiceTransfers } : {}),
+        ...(snapshot.ending ? { ending: { ...snapshot.ending, by: publicActor(snapshot.ending.by) } } : {}),
+        ...(snapshot.result ? { result: { ...snapshot.result, by: publicActor(snapshot.result.by) } } : {}),
         ...(factionId ? { bank: { factionId, balance: snapshot.factionBanks[factionId] ?? 0 } } : {}),
       };
       audiences.set(factionId, projected);
     }
     return projected;
   }
+}
+
+function publicActor({ seat, name }: { seat: string; name: string }) {
+  return { seat, name };
 }

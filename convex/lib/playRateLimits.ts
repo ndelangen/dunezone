@@ -1,4 +1,4 @@
-import { MINUTE, RateLimiter } from '@convex-dev/rate-limiter';
+import { HOUR, MINUTE, RateLimiter } from '@convex-dev/rate-limiter';
 
 import { components } from '../_generated/api';
 import type { MutationCtx } from '../_generated/server';
@@ -8,6 +8,8 @@ export const playRateLimiter = new RateLimiter(components.rateLimiter, {
   playTicketGlobal: { kind: 'token bucket', rate: 600, period: MINUTE, capacity: 100 },
   playRedeemPerGame: { kind: 'token bucket', rate: 600, period: MINUTE, capacity: 100 },
   playProvisionValidation: { kind: 'token bucket', rate: 60, period: MINUTE, capacity: 20 },
+  /* Creation is open to every signed-in player, so each game row and its provisioning are budgeted per account. */
+  playCreatePerAccount: { kind: 'token bucket', rate: 10, period: HOUR, capacity: 3 },
 });
 
 export async function playTicketQuota(ctx: MutationCtx, userId: string) {

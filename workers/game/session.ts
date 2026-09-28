@@ -21,6 +21,7 @@ import { isSeatAction, seatSubject } from '../../src/shared/play/participation';
 import type { ClientMessage, GameSnapshot, ServerMessage, Viewer } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
 import { isRemovalAction } from '../../src/shared/play/removal';
+import { isResultAction } from '../../src/shared/play/result';
 import type { TableRoster } from '../../src/shared/play/schema';
 import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
 import { isSwapAction, openSwapping } from '../../src/shared/play/swapping';
@@ -40,6 +41,7 @@ import type { SeatPlan } from './participation';
 import { ownRequests, Participation } from './participation';
 import { PublicActions } from './publicActions';
 import { RemovalVotes } from './removal';
+import { applyResult, settleEnding } from './result';
 import { Room } from './room';
 import type { HistoryRow } from './sessionHistory';
 import { SessionHistory } from './sessionHistory';
@@ -192,7 +194,8 @@ export class GameSession {
 
   /** The stored seating rides on every snapshot the room holds, as the current occupancy already does. */
   private withRoster<Snapshot extends StoredSnapshot>(snapshot: Snapshot): Snapshot {
-    return { ...snapshot, roster: this.actors.roster(this.seatCount()) };
+    const settled = settleEnding(snapshot, () => new Set(this.actors.seated().map((occupant) => occupant.userId)));
+    return { ...settled, roster: this.actors.roster(this.seatCount()) };
   }
 
   /** A drafting roster that outgrew its stations fixes a larger count, inside the caller's transaction. */
@@ -363,14 +366,24 @@ export class GameSession {
   private directorySummary(snapshot: StoredSnapshot, now: number, metadata = this.metadata!): PlayDirectorySummary {
     const stage = snapshot.stage ?? 'play';
     const seatCount = this.metadata ? this.seatCount() : metadata.seatCount!;
-    const factions = new Map(this.actors.roster(seatCount).seats.map((seat) => [seat.id, seat.faction]));
+    const seats = this.actors.roster(seatCount).seats;
+    const factions = new Map(seats.map((seat) => [seat.id, seat.faction]));
+    const factionName = (id: string) => seats.find((seat) => seat.faction?.id === id)?.faction?.name ?? id;
     return {
       stage,
       seatCount,
       seats: this.actors.seated().map(({ seat, userId }) => ({ seat, userId, faction: factions.get(seat) ?? null })),
       phase: stage === 'play' ? snapshot.phase : null,
       lastActivityAt: now,
-      result: null,
+      result:
+        stage === 'finished' && snapshot.result
+          ? {
+              kind: snapshot.result.kind,
+              factions: snapshot.result.factionIds.map((id) => ({ id, name: factionName(id) })),
+              declaredBy: snapshot.result.by.userId,
+              declaredAt: snapshot.result.declaredAt,
+            }
+          : null,
     };
   }
 
@@ -619,6 +632,9 @@ export class GameSession {
     if (isRemovalAction(action)) {
       return this.commitRemoval(viewer, { ...message, action });
     }
+    if (isResultAction(action)) {
+      return this.commitResult(viewer, { ...message, action });
+    }
     if (isSeatAction(action)) {
       return this.commitSeat(viewer, { ...message, action });
     }
@@ -681,6 +697,22 @@ export class GameSession {
     });
     this.reloadMetadata();
     room.accept(next);
+  }
+
+  /* Determine winner, its declaration and Continue playing commit with their log rows and the summary the lobby is owed. */
+  private commitResult(viewer: Viewer, message: CommandMessage & { action: Parameters<typeof applyResult>[2] }) {
+    const room = this.room!;
+    const key = `${viewer.userId}:${message.commandId}`;
+    if (message.expectedRevision !== room.snapshot.revision) {
+      throw new GameRejection('The table changed. Try the action again.');
+    }
+    const next = this.withRoster(applyResult(room.snapshot, viewer, message.action, Date.now()));
+    const history = this.history.entry(message, room.snapshot, next);
+    this.persistCommit({ key, viewer, message, next, history });
+    room.accept(next);
+    if (history) {
+      this.history.accept(history.step, next);
+    }
   }
 
   private commitSeat(viewer: Viewer, message: CommandMessage & { action: Parameters<Participation['plan']>[0] }) {
@@ -950,18 +982,21 @@ export class GameSession {
     });
     return viewer;
   }
-  refreshViewer(viewer: Viewer) {
-    const current = this.actors.currentViewer(viewer.connectionId, viewer.userId);
-    if (current?.viewerSeat !== viewer.viewerSeat) {
-      this.clearActivity(viewer.connectionId);
-      if (this.room) {
-        const controls = this.room.snapshot.controls ?? emptyPublicControls();
-        this.room.snapshot = this.withRoster({
-          ...this.room.snapshot,
-          controls: { ...controls, seats: this.actors.seats() },
-        });
+  /** A connection whose seat changed loses its activity, and the roster is read again. */
+  refreshViewers(viewers: readonly Viewer[]) {
+    const current = this.actors.currentViewers(viewers);
+    viewers.forEach((viewer, index) => {
+      if (current[index]?.viewerSeat !== viewer.viewerSeat) {
+        this.clearActivity(viewer.connectionId);
+        if (this.room) {
+          const controls = this.room.snapshot.controls ?? emptyPublicControls();
+          this.room.snapshot = this.withRoster({
+            ...this.room.snapshot,
+            controls: { ...controls, seats: this.actors.seats() },
+          });
+        }
       }
-    }
+    });
     return current;
   }
   logPage(...args: Parameters<PublicLog['page']>) {

@@ -9,8 +9,10 @@ const meta = preview.meta({
   title: 'Play/Create',
 });
 
-export const NotForMembers = meta.story({
-  parameters: parameters('ready', false),
+/** An id that names no game reads as not available, like any id the directory cannot find. */
+export const UnknownGame = meta.story({
+  args: { path: '/play/not-a-game' },
+  parameters: parameters('ready'),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await expect(page.findByText('This game is not available', {}, { timeout: 30_000 })).resolves.toBeVisible();
@@ -31,7 +33,6 @@ export const Preparing = meta.story({
 export const CatalogueRefused = meta.story({
   parameters: parameters(
     'expired',
-    true,
     'This ruleset is not ready: spice: Spice deck, Publish every member and back before requesting this asset.'
   ),
   play: async ({ canvasElement }) => {

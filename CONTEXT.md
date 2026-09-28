@@ -132,6 +132,9 @@ One member of a faction's ordered supporting-leader roster. A faction may have z
 **Troop count**:
 The number of physical tokens supplied for one faction troop type. A reversible troop token has one Troop count shared by its front and back faces.
 
+**Combat values**:
+What one troop face contributes to a battle plan: its strength, its funded strength and its funding cost in spice. Strengths may be fractional or negative; the funding cost is a whole number, zero or more, and one when left out. A separate flag says whether the face fights at all, and an authored face without it does. A troop with no authored back plays both sides as its front; an authored back keeps its own flag and values. A face that fights but has no Combat values is a gap the editor warns about and a game's capture names; nothing reads it as zero.
+
 **Starting spice**:
 The amount of spice a faction begins the game with. Starting spice is a structured setup value, distinct from the faction's free-form starting instructions.
 
@@ -264,7 +267,7 @@ The automatic deal that ends drafting once the roster meets the minimum, every P
 _Avoid_: Reveal, roll, start
 
 **Real game**:
-A Play game created by an Administrator on one fixed ruleset, as opposed to the hosted fixture. Until the public-release decision widens access, only Administrators create and enter Real games.
+A Play game created by a signed-in Player on one fixed ruleset, as opposed to the hosted fixture. Every signed-in Player may create and enter Real games; until the public-release decision, the lobby is unlisted rather than gated.
 _Avoid_: Custom game, user game
 
 **Conversation**:
@@ -279,7 +282,7 @@ Convex's record that a Play game exists and what the lobby may show of it: its s
 _Avoid_: Game list database, index
 
 **Stage**:
-Where a Real game is in its life: drafting, swapping, setup, play, finished or discarded. The delivered table controls belong to play; earlier stages refuse them. A phase is a step inside play, never a Stage.
+Where a Real game is in its life: drafting, swapping, setup, play, finished or discarded. The delivered table controls belong to play; earlier stages refuse them, and a finished game leaves the table as it was, with only a locked prediction's reveal still open. A seated player enters finished by Determine winner during Mentat pause and its declaration; Continue playing returns to play at the same turn. A phase is a step inside play, never a Stage.
 _Avoid_: Status, state, mode
 
 **Faction Extra**:

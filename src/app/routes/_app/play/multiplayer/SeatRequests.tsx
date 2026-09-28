@@ -21,7 +21,7 @@ import type { TableProjection, TableSession } from './TableSession';
  * it in the game menu. Nothing is added to the table, and the bar says nothing once a game is
  * discarded except that it was.
  */
-function DecisionBar({
+export function DecisionBar({
   eyebrow,
   title,
   context,
@@ -189,11 +189,15 @@ function LeavingBar({ client, table, onStay }: BarProps & Readonly<{ onStay: () 
 
 /**
  * The game menu in the header toolbar, in every stage, left of the phase controls that stay rightmost.
- * Its one item today gives up the viewer's seat;
- * the confirmation happens in the decision bar, never in a modal.
- * A spectator has no seat to give up.
+ * It gives up the viewer's seat, with the confirmation in the decision bar, never in a modal;
+ * a spectator has no seat to give up.
+ * While a result's confetti is on the table it also stops and clears it, for this viewer alone.
  */
-export function GameMenu({ table, onLeave }: Readonly<{ table: TableProjection; onLeave: () => void }>) {
+export function GameMenu({
+  table,
+  onLeave,
+  onClearConfetti,
+}: Readonly<{ table: TableProjection; onLeave: () => void; onClearConfetti?: () => void }>) {
   /* The fixture has no lifecycle, so a seat there is not one to give up; the table would refuse the departure. */
   const seated =
     table.viewer.viewerSeat !== SPECTATOR_SEAT &&
@@ -211,6 +215,7 @@ export function GameMenu({ table, onLeave }: Readonly<{ table: TableProjection; 
         />
       </Menu.Target>
       <Menu.Dropdown>
+        {onClearConfetti && <Menu.Item onClick={onClearConfetti}>Clear confetti</Menu.Item>}
         <Menu.Item color="red" disabled={!seated} onClick={onLeave}>
           Give up your seat
         </Menu.Item>
@@ -222,7 +227,9 @@ export function GameMenu({ table, onLeave }: Readonly<{ table: TableProjection; 
 function PlayerBar({ client, table, readiness }: BarProps) {
   const controls = table.snapshot.controls ?? emptyPublicControls();
   const request = controls.seatRequests[0];
-  if (!request && table.snapshot.removalVotes?.length && !readiness) {
+  /* A removal vote or the end of the game has its own bar; "nobody is asking" would only add noise beside it. */
+  const otherBar = table.snapshot.removalVotes?.length || table.snapshot.ending || table.snapshot.result;
+  if (!request && otherBar && !readiness) {
     return null;
   }
   if (!request) {
@@ -290,6 +297,48 @@ function barFor(
 }
 
 /**
+ * Playback of a stage before play, whose frame has no Phase tab to hold the playback controls.
+ * The bar steps through the checkpoints and returns to the live table, as the Phase tab does in play.
+ */
+function PlaybackBar({ client, table, error }: BarProps & Readonly<{ error: string | null }>) {
+  const { playback, historyPending } = table;
+  if (!playback) {
+    return null;
+  }
+  return (
+    <div className={styles.dock} data-decision-bar="">
+      {error && <FormError title="From the table">{error}</FormError>}
+      <DecisionBar
+        eyebrow="Playback"
+        title={`Playback checkpoint ${playback.step} of ${playback.lastStep}`}
+        context="Table actions are paused while you look back at the game."
+        action={
+          <Group gap="xs" wrap="nowrap" role="group" aria-label="Phase playback">
+            <Button
+              variant="default"
+              disabled={historyPending || playback.step === 0}
+              onClick={() => client.requestHistory(playback.step - 1)}
+            >
+              Earlier phase
+            </Button>
+            <Button
+              variant="default"
+              disabled={historyPending || playback.step === playback.lastStep}
+              onClick={() => client.requestHistory(playback.step + 1)}
+            >
+              Later phase
+            </Button>
+            <Button variant="default" onClick={client.resumeLive}>
+              Return to live
+            </Button>
+          </Group>
+        }
+      />
+    </div>
+  );
+}
+
+/**
  * The seat bar for the viewer's role, above the panel, on a real game only;
  * the fixture seats its players itself.
  * Before play the bar is the only place a rejection can show;
@@ -303,8 +352,12 @@ export function SeatRequests({
   onStay,
   readiness,
 }: BarProps & Readonly<{ error: string | null; leaving: boolean; onStay: () => void }>) {
-  if (!table.snapshot.stage || table.playback) {
+  if (!table.snapshot.stage) {
     return null;
+  }
+  if (table.playback) {
+    /* In play the Phase tab carries playback; any earlier stage's frame has no such tab. */
+    return table.snapshot.stage === 'play' ? null : <PlaybackBar client={client} table={table} error={error} />;
   }
   return (
     <div className={styles.dock} data-decision-bar="">

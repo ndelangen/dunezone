@@ -2,7 +2,7 @@ import { randomInt, randomUUID } from 'node:crypto';
 
 import { accepted, nextSnapshot } from '../../src/shared/play/commands';
 import type { StoredPiece, TablePiece } from '../../src/shared/play/model';
-import { tableForViewer } from '../../src/shared/play/protocol';
+import { rosterFactionNames, tableForViewer } from '../../src/shared/play/protocol';
 import type { DeckAction } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
 import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
@@ -78,7 +78,15 @@ function drawCard(snapshot: StoredSnapshot, deck: StoredPiece, recipient: string
         return [piece];
       }
       /* A deal changes the deck's own cards, so what is left takes the name its back gives it, as after a split. */
-      return remaining.length ? [{ ...deck, label: labelForCount(deck, remaining.length), items: remaining }] : [];
+      return remaining.length
+        ? [
+            {
+              ...deck,
+              label: labelForCount(deck, remaining.length, rosterFactionNames(snapshot.roster)),
+              items: remaining,
+            },
+          ]
+        : [];
     }),
     inventories: {
       ...snapshot.factionInventories,

@@ -77,7 +77,7 @@ async function signIn(page, origin, user) {
   await page.getByRole('heading', { name: "You're signed in" }).waitFor();
 }
 
-async function measureImages(context, page, origin, report) {
+async function measureImages(context, page, origin, gameId, report) {
   const cdp = await context.newCDPSession(page);
   await cdp.send('Network.enable');
   for (const cached of [false, true]) {
@@ -85,7 +85,7 @@ async function measureImages(context, page, origin, report) {
     if (!cached) {
       await cdp.send('Network.clearBrowserCache');
     }
-    await page.goto(`${origin}/play/hosted`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`${origin}/play/${gameId}`, { waitUntil: 'domcontentloaded' });
     await page.locator('[data-connection="authorized"]').waitFor();
     await page.waitForTimeout(1000);
     report.imageLoads.push({
@@ -167,7 +167,7 @@ async function originGuard(origins) {
  * Browser instrumentation observes the real page's message handler after it applies each projection.
  * The browser can resolve only the two allowed hosts, and every request to another origin is blocked and recorded.
  */
-export async function browsers({ origin, backend, onMessage, onBytes, stopping, directory }) {
+export async function browsers({ origin, backend, gameId, onMessage, onBytes, stopping, directory }) {
   const resolvable = [...new Set([origin, backend].map((value) => new URL(value).hostname))];
   const resolverRules = ['MAP * ~NOTFOUND', ...resolvable.map((host) => `EXCLUDE ${host}`)].join(', ');
   const guard = await originGuard([origin, backend]);
@@ -239,7 +239,7 @@ export async function browsers({ origin, backend, onMessage, onBytes, stopping, 
       await context.addInitScript(observeFrames);
       await context.addInitScript(observeMessages);
       await signIn(page, origin, peer.user);
-      await measureImages(context, page, origin, report);
+      await measureImages(context, page, origin, gameId(), report);
       await page.screenshot({ path: `${directory}/browser-${peer.index}.png` });
       report.memoryBefore = await page.evaluate(() =>
         performance.memory

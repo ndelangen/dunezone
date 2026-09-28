@@ -34,6 +34,8 @@ function run(
       options.credentialsFile ?? path.join(directory, 'accounts.json'),
       '--report-dir',
       options.reportDirectory ?? path.join(directory, 'reports'),
+      '--ruleset-id',
+      'synthetic-ruleset',
     ],
     { encoding: 'utf8', timeout: 10_000 }
   );

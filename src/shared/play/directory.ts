@@ -27,11 +27,18 @@ const summarySeatSchema = z.object({
   faction: z.object({ id: identifierSchema, name: z.string().max(160), color: z.string().max(32) }).nullable(),
 });
 
-/** The declared result while a game is finished; absent otherwise. */
+/**
+ * The declared result while a game is finished;
+ * absent otherwise.
+ * Each winning faction carries its name, since its seat may be empty by the time the lobby reads it.
+ */
 const playResultSchema = z.object({
   kind: z.enum(['faction', 'alliance', 'none']),
-  factionIds: z.array(identifierSchema).max(TABLE_SEAT_COUNTS[TABLE_SEAT_COUNTS.length - 1]!),
-  declaredBy: identifierSchema,
+  factions: z
+    .array(z.object({ id: identifierSchema, name: z.string().max(160) }))
+    .max(TABLE_SEAT_COUNTS[TABLE_SEAT_COUNTS.length - 1]!),
+  /* Null once the declaring account is deleted. */
+  declaredBy: identifierSchema.nullable(),
   declaredAt: timestampSchema,
 });
 
@@ -69,16 +76,13 @@ export const playLobbyEntrySchema = z.object({
   players: z.array(z.object({ displayName: z.string(), faction: z.string().nullable() })),
   phase: z.number().int().nonnegative().nullable(),
   lastActivityAt: timestampSchema,
-  /* The declared result with its factions named from the summary's seats; no user id reaches the lobby. */
+  /* The declared result with its factions named; no user id reaches the lobby. */
   result: z.object({ kind: playResultSchema.shape.kind, factions: z.array(z.string()) }).nullable(),
 });
 export const playLobbySchema = z.union([
   z.object({ status: z.literal('sign_in_required') }),
-  z.object({ status: z.literal('not_authorized') }),
   z.object({
     status: z.literal('ready'),
-    /* Creating shares the listing's gate today but is its own permission, so the lobby reads this rather than the status. */
-    canCreate: z.boolean(),
     ongoing: z.array(playLobbyEntrySchema),
     past: z.array(playLobbyEntrySchema),
   }),

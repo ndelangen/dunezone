@@ -7,12 +7,17 @@ is the specification. The live issue records review, deployment and verification
 
 ## Scope and ownership
 
-`/play/hosted` is unlinked and requires an active signed-in account. The first two distinct admitted
-users occupy the fixture's Harkonnen and Atreides seats. Later users are spectators. A user's other tabs
-share their seat but have independent connections and carries. These are fixture seats, not the
-future seat-request, draft or faction assignment workflow. Seated players draw and are dealt private
-hands here; faction messages are not available. `/play/demo` stays public and local-only; `/play`
-remains reserved for the lobby.
+Players reach a game only at `/play/<gameId>`: `/play` is the lobby, and any signed-in player creates a
+real game at `/play/create`. Nothing in the application links to `/play` and the lobby is `noindex`:
+real games are an unlisted beta, shared privately, until the public-release decision
+([#1094](https://github.com/ndelangen/dunezone/issues/1094)). The retired `/play/hosted` and `/play/demo` pages
+([#1296](https://github.com/ndelangen/dunezone/issues/1296)) no longer exist in the application,
+and their old addresses redirect to the lobby;
+the public `playAdmission:getFixture` query stays so a bundle deployed before their removal still
+gets an answer. The fixture game this document describes remains the Worker's native test and load
+fixture: the first two distinct admitted users occupy its Harkonnen and Atreides seats, and later
+users are spectators. A user's other tabs share their seat but have independent connections and
+carries.
 
 Convex stores the fixture directory record, provisioning status, server-only game secrets, ticket hashes, session
 registrations and account-deletion delivery records. It does not store table actions or seats.
@@ -73,7 +78,7 @@ without the deck) leaves the placeholder cards in place; the room asks again at 
 read while the deck is absent. The captured pieces are retained with the room's metadata: a reset
 deals them again, reshuffled, and a room provisioned before the deck existed adopts it on wake,
 asynchronously, so a reset after the adoption brings the real cards to a running fixture without
-re-provisioning. The local demo at `/play/demo` keeps its placeholder; it has no backend.
+re-provisioning.
 
 ## Connection lifetime
 
@@ -134,11 +139,28 @@ Account deletion has a durable Convex notification with acknowledgment after the
 The room also reconciles all retained accounts in bounded batches before sending game data and
 while connected. A disconnected account can therefore lose its seat without reconnecting first.
 
+A watch result does not say why it denied a registration, and a sign-out and an account deletion
+look alike to the room. So any denial withdraws the room's account lease until a reconciliation
+started after the denial has checked every retained account. Meanwhile the room sends no game data
+and applies no command. A connection whose own grant still stands is held rather than suspended: it
+is not told about the wait, the room does not clear its carry and pointer, and its messages wait and
+then meet the same check as any other. A catalogue read or spawn request whose catalogue call
+returns during the wait is held the same way and answered once the wait ends. A message whose
+connection was suspended after it arrived is dropped, even if the connection was admitted again
+since, because the page discards its unanswered requests on a pause. That includes a catalogue read
+or spawn request whose connection was suspended during its catalogue call. When the lease returns,
+each held connection is sent what changed since the last frame it received, so another player's
+sign-out leaves its table as it was. A failed reconciliation or a lapsed lease suspends held
+connections like every other. One watch result that denies several connections, such as every tab of
+a signed-out session, starts one reconciliation, and a pass that a later denial or deletion made
+stale is followed at once by the next, so an admission waiting on it is not refused for the stale
+pass.
+
 ## Provisioning and transport
 
 An operator invokes `playProvisioning:beginFixtureProvision` once after deployment. This internal
 mutation creates the Stage B singleton and schedules its provisioning request. A real game is
-provisioned when an Administrator creates it (`playGames.createGame`). The directory hides pending fixtures.
+provisioned when a signed-in player creates it (`playGames.createGame`). The directory hides pending fixtures.
 
 The game Worker checks the supplied game secret and attempt with the fixed trusted Convex backend
 before creating state. Unknown, duplicate, expired and invalid requests get the same generic
@@ -192,6 +214,39 @@ down on the table, and a dealt hand surviving the recipient's reconnect. It uses
 signed-in browser processes and a spectator, and it retains received game frames in
 `decks-frames.json`.
 
+Run `bun --no-env-file scripts/verify-hosted-play-stack.ts --browser-only --flow results` for the end
+of a real game. Two players step to Mentat pause, one opens Determine winner and declares a faction,
+and a spectator watches. It checks each panel's decision bar, a reload into the finished game, the
+lobby's Past entry with its winner, and Continue playing back to Mentat pause and the Ongoing list.
+
+### Real-game journeys
+
+`workers/game/journey.native.test.mjs` takes whole real games through the native workerd runtime,
+each on its own miniflare store with synthetic accounts and catalogue. Every other native suite
+proves one rule; these prove the rules still hold when one game passes through all of them.
+
+- Two accounts go from creation through drafting, the deal, trading, setup and play to a declared
+  result and Continue playing. On the way the directory refuses writes twice and the alarm delivers
+  the owed summary, the socket drops right after a withdrawal and its identical retries debit once,
+  a player reconnects, and the room restarts cold in play and again while finished.
+- Eighteen accounts are each dealt a distinct faction, station and bank, finish as an alliance,
+  restart cold and continue at Mentat pause. A spectator holds no bank and cannot end the game.
+- In a running game a player leaves and a spectator takes the seat with its faction and bank. The
+  replacement declares a result and then deletes their account. The result, log and stored history
+  name `[deleted user]` through a restart, and the last departure discards the game.
+
+Every browser flow above creates its own real game at `/play/create` and plays it through drafting
+and setup. The `results` flow also finishes and continues one, so the lobby's Create and Past
+listings and the result bars are covered by a signed-in browser run as well as by Storybook and
+the native journeys.
+
+A real game still depends on final authored content. The catalogue capture refuses every faction
+until its token back, troop faces, alliance card and traitor cards are generated
+(`workers/game/catalogue.ts`). Only an isolated backend, which marks its content provisional, can
+deal a faction today. The journeys therefore run on provisional synthetic content: one-card decks
+and factions that share one published fixture's faces. They say nothing about capacity or about the
+actual catalogue.
+
 Real games are exercised on isolated backends only: the seam tests run on convex-test, the native
 suite on miniflare, the browser flows on a disposable synthetic backend with fresh test
 credentials. Nothing clones a production deployment and no production row is edited by hand; a
@@ -238,8 +293,13 @@ spectator rejection, contested mutations, transient activity, receipt replay, ph
 single-use tickets, multi-tab logout, inactivity/total expiry, and account-deletion vacancy.
 Retained logs contain check results and payload counters, not credentials.
 
-Against a running [local stack](../deployment.md#hosted-gameplay), use a fresh canonical fixture
-and a build with local Password sign-in enabled:
+The browser flows play real games. The stack seeds a synthetic ruleset
+(`playTesting:seedRealGameCatalogue`) with both required decks and two factions, installs its
+publication bytes, and passes its id to each flow. Every flow signs in synthetic accounts without the Administrator flag,
+creates a game at `/play/create`, seats the second player through a seat request and its approval,
+and plays through drafting and setup before its own checks. Against a running
+[local stack](../deployment.md#hosted-gameplay), seed that ruleset once and use a build with local
+Password sign-in enabled:
 
 ```sh
 bun --no-env-file scripts/verify-hosted-play-browser.mjs \
@@ -247,7 +307,8 @@ bun --no-env-file scripts/verify-hosted-play-browser.mjs \
   --env-file /absolute/private/local.env \
   --credentials-file /absolute/private/browser-accounts.json \
   --report-dir /absolute/proof-output \
-  --flow regular
+  --flow regular \
+  --ruleset-id <rulesetId>
 ```
 
 The environment file must contain the loopback `CONVEX_SELF_HOSTED_URL`. Private files need mode
@@ -262,11 +323,9 @@ the same readback path on macOS as on Linux; full Chromium on macOS draws on Met
 `chromium` field records the executable, the version and the added switches. `--flow` names one flow
 and defaults to `regular`. Each run writes screenshots and a
 compact report without credentials. A flow that retains synthetic received
-game frames writes them to `<flow>-frames.json`. The internal `playTesting:retireFixture` control can retire an
-old fixture on an isolated backend before provisioning a new one; it does not erase game data.
+game frames writes them to `<flow>-frames.json`.
 
 Browser proof supplements these tests with native pointer gestures, independent camera views,
-playback, reload, logout and route exit. The PR records the matching demo and hosted screenshots
-and sanitized reports. Payload and fanout counters establish a small fixture baseline only.
+playback, reload, logout and route exit. The PR records the screenshots and sanitized reports. Payload and fanout counters establish a small fixture baseline only.
 [Define multiplayer load targets and verification](https://github.com/ndelangen/dunezone/issues/1022)
 owns capacity targets and load testing; it does not block this environment's first deployment.

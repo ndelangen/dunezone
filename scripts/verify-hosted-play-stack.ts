@@ -39,20 +39,15 @@ const { values } = parseArgs({
   },
 });
 const loadProfile = runnerProfiles.find((candidate) => candidate === values['load-profile']);
-if (values['load-profile'] && (!loadProfile || values['browser-only'])) {
+if (values['load-profile'] && (!loadProfile || values['browser-only'] || values.flow)) {
   throw new Error('Choose one load profile and run browser verification separately.');
-}
-if (values['browser-only'] && values['skip-build']) {
-  throw new Error("--browser-only requires a fresh frontend build for this run's backend URL.");
 }
 if (values['load-profile'] && values['load-case'] === 'browser' && values['skip-build']) {
   throw new Error('Browser load probes need a fresh build for their disposable backend.');
 }
-if (values.flow && !values['browser-only']) {
-  throw new Error('--flow requires --browser-only.');
-}
+/* Without --browser-only the protocol verifier runs first, and any --flow runs after it on the same stack. */
 const flows: BrowserFlow[] = [];
-for (const name of values.flow ?? ['regular']) {
+for (const name of values.flow ?? (values['browser-only'] ? ['regular'] : [])) {
   if (name !== 'all' && !isBrowserFlow(name)) {
     throw new Error(`--flow must be all or one of ${Object.keys(browserFlows).join(', ')}.`);
   }
@@ -62,8 +57,11 @@ for (const name of values.flow ?? ['regular']) {
     }
   }
 }
-if (values.browser && !values['browser-only']) {
-  throw new Error('--browser requires --browser-only.');
+if (flows.length > 0 && values['skip-build']) {
+  throw new Error("Browser flows require a fresh frontend build for this run's backend URL.");
+}
+if (values.browser && flows.length === 0) {
+  throw new Error('--browser requires a browser flow.');
 }
 const loadCase = loadCaseSchema.options.find((candidate) => candidate === values['load-case']);
 if (!loadCase) {
@@ -254,24 +252,66 @@ function configureAuth(convex: (args: string[]) => void, origin: string) {
   convex(['env', 'set', 'JWKS', '--from-file', jwksPath]);
 }
 
-/** Retires the previous flow's game and provisions a fresh canonical fixture through the local Workers. */
-async function freshBrowserGame(convex: (args: string[]) => string, previous: string | undefined): Promise<string> {
-  if (previous) {
-    convex(['run', 'playTesting:retireFixture', JSON.stringify({ gameId: previous })]);
+type Publication = { key: string; href: string; face: string };
+
+/** A flat local publication face: red for a front, blue for a back, as the pixel checks expect. */
+async function render(file: string, face: string) {
+  const color = face === 'back' ? '#253e5a' : '#8F2C1C';
+  await sharp(
+    Buffer.from(
+      `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600"><rect width="600" height="600" fill="${color}"/><circle cx="300" cy="300" r="265" fill="none" stroke="#ead9bb" stroke-width="16"/><text x="300" y="290" text-anchor="middle" fill="#ead9bb" font-size="54" font-family="sans-serif">RECOVERY</text><text x="300" y="370" text-anchor="middle" fill="#ead9bb" font-size="44" font-family="sans-serif">${face.toUpperCase()}</text></svg>`
+    )
+  )
+    .jpeg()
+    .toFile(file);
+}
+
+/** Installs local bytes for each seeded publication in the isolated Worker's bucket, and checks the publisher serves them. */
+async function installPublications(publications: Publication[], workerOutput: string, origin: string) {
+  const workerRuntime = /Local state\/configuration: (.+)\. Removed/.exec(workerOutput)?.[1];
+  if (!workerRuntime) {
+    throw new Error('The isolated Worker storage path is missing.');
   }
-  const deadline = Date.now() + 60_000;
-  while (Date.now() < deadline) {
-    const fixture = JSON.parse(convex(['run', 'playProvisioning:beginFixtureProvision', '{}'])) as {
-      gameId: string;
-      state: 'ready' | 'pending';
-    };
-    if (fixture.state === 'ready') {
-      console.log('Canonical browser fixture provisioned through the local Workers.');
-      return fixture.gameId;
+  const config = path.join(workerRuntime, 'publisher.json');
+  const settings = JSON.parse(readFileSync(config, 'utf8'));
+  const bucket = settings.r2_buckets.find((entry: { binding: string }) => entry.binding === 'ASSET_BUCKET');
+  if (!bucket || bucket.remote !== false) {
+    throw new Error('The publication bucket must be local.');
+  }
+  /* One image per face, rendered once and uploaded for every publication of that face. */
+  const rendered = new Set<string>();
+  for (const publication of publications) {
+    const file = path.join(runtime, `${publication.face}.jpg`);
+    if (!rendered.has(publication.face)) {
+      rendered.add(publication.face);
+      await render(file, publication.face);
     }
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    run({
+      command: node,
+      args: [
+        path.join(root, 'node_modules/wrangler/bin/wrangler.js'),
+        'r2',
+        'object',
+        'put',
+        `${bucket.bucket_name}/${publication.key}`,
+        '--local',
+        '--persist-to',
+        path.join(workerRuntime, 'state'),
+        '--config',
+        config,
+        '--file',
+        file,
+        '--content-type',
+        'image/jpeg',
+      ],
+      env: environment,
+      label: 'Local publication fixture',
+    });
+    const response = await fetch(`${origin}${publication.href}`);
+    if (!response.ok) {
+      throw new Error(`Local publication returned ${response.status}.`);
+    }
   }
-  throw new Error('The local browser fixture did not finish provisioning within one minute.');
 }
 
 const interrupt = () => {
@@ -400,109 +440,15 @@ try {
     }
   });
   await ready(`${origin}/__play/health`, worker, 300_000);
-  const browserOnly = values['browser-only'];
-  if (browserOnly && flows.some((flow) => browserFlows[flow].needsCatalogue)) {
-    const publications = JSON.parse(convex(['run', 'playTesting:seedPublicCatalogue', '{}'])) as {
-      key: string;
-      href: string;
-      face: string;
-    }[];
-    const workerOutput = readFileSync(workerLog, 'utf8');
-    const workerRuntime = /Local state\/configuration: (.+)\. Removed/.exec(workerOutput)?.[1];
-    if (!workerRuntime) {
-      throw new Error('The isolated Worker storage path is missing.');
-    }
-    const config = path.join(workerRuntime, 'publisher.json');
-    const settings = JSON.parse(readFileSync(config, 'utf8'));
-    const bucket = settings.r2_buckets.find((entry: { binding: string }) => entry.binding === 'ASSET_BUCKET');
-    if (!bucket || bucket.remote !== false) {
-      throw new Error('The publication bucket must be local.');
-    }
-    for (const publication of publications) {
-      const file = path.join(runtime, `${publication.face}.jpg`);
-      const color = publication.face === 'front' ? '#8F2C1C' : '#253e5a';
-      await sharp(
-        Buffer.from(
-          `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600"><rect width="600" height="600" fill="${color}"/><circle cx="300" cy="300" r="265" fill="none" stroke="#ead9bb" stroke-width="16"/><text x="300" y="290" text-anchor="middle" fill="#ead9bb" font-size="54" font-family="sans-serif">RECOVERY</text><text x="300" y="370" text-anchor="middle" fill="#ead9bb" font-size="44" font-family="sans-serif">${publication.face.toUpperCase()}</text></svg>`
-        )
-      )
-        .jpeg()
-        .toFile(file);
-      run({
-        command: node,
-        args: [
-          path.join(root, 'node_modules/wrangler/bin/wrangler.js'),
-          'r2',
-          'object',
-          'put',
-          `${bucket.bucket_name}/${publication.key}`,
-          '--local',
-          '--persist-to',
-          path.join(workerRuntime, 'state'),
-          '--config',
-          config,
-          '--file',
-          file,
-          '--content-type',
-          'image/jpeg',
-        ],
-        env: environment,
-        label: 'Local publication fixture',
-      });
-      const response = await fetch(`${origin}${publication.href}`);
-      if (!response.ok) {
-        throw new Error(`Local publication returned ${response.status}.`);
-      }
-    }
-  }
-  if (browserOnly) {
-    const reportDirectory = path.join(evidence, 'browser');
-    const failed: BrowserFlow[] = [];
-    let gameId: string | undefined;
-    for (const flow of flows) {
-      try {
-        gameId = await freshBrowserGame(convex, gameId);
-      } catch (error) {
-        console.error(`${flow} got no fresh game: ${error instanceof Error ? error.message : String(error)}`);
-        failed.push(flow);
-        continue;
-      }
-      const passed = await verify(
-        {
-          command: process.execPath,
-          args: [
-            '--no-env-file',
-            path.join(root, 'scripts/verify-hosted-play-browser.mjs'),
-            '--env-file',
-            envFile,
-            '--origin',
-            origin,
-            '--credentials-file',
-            path.join(runtime, `${flow}-credentials.json`),
-            '--report-dir',
-            reportDirectory,
-            '--flow',
-            flow,
-            ...(values.browser ? ['--browser', values.browser] : []),
-          ],
-          logPath: path.join(evidence, `${flow}.log`),
-        },
-        browserFlows[flow].timeoutMs
-      );
-      if (!passed) {
-        failed.push(flow);
-      }
-    }
-    console.log(`Browser reports and captures remain in ${reportDirectory}.`);
-    if (failed.length > 0) {
-      throw new Error(`Hosted browser flows failed: ${failed.join(', ')}; see their logs in ${evidence}.`);
-    }
-  } else {
+  /* Each verifier that failed. A failed verifier does not stop the ones after it, and the run fails at the end. */
+  const failed: string[] = [];
+  if (!values['browser-only']) {
     const verificationLog = path.join(evidence, 'verification.log');
     let verificationTimeout = 180_000;
     if (loadProfile) {
       verificationTimeout = loadCase === 'steady' ? 540_000 : 300_000;
     }
+    /* The protocol verifier creates and provisions its own synthetic game, apart from the real games the browser flows create. */
     const passed = await verify(
       {
         env: loadProfile
@@ -540,8 +486,55 @@ try {
       verificationTimeout
     );
     if (!passed) {
-      throw new Error(`Hosted protocol verification failed; see ${verificationLog}.`);
+      failed.push('protocol verification');
     }
+  }
+  if (flows.length > 0) {
+    /* Every flow creates its own real game on this ruleset; the Recovery token is the catalogue some flows request. */
+    const seeded = JSON.parse(convex(['run', 'playTesting:seedRealGameCatalogue', '{}'])) as {
+      rulesetId: string;
+      publications: Publication[];
+    };
+    const { rulesetId } = seeded;
+    const publications = [...seeded.publications];
+    if (flows.some((flow) => browserFlows[flow].needsCatalogue)) {
+      publications.push(...(JSON.parse(convex(['run', 'playTesting:seedPublicCatalogue', '{}'])) as Publication[]));
+    }
+    await installPublications(publications, readFileSync(workerLog, 'utf8'), origin);
+    const reportDirectory = path.join(evidence, 'browser');
+    for (const flow of flows) {
+      const passed = await verify(
+        {
+          command: process.execPath,
+          args: [
+            '--no-env-file',
+            path.join(root, 'scripts/verify-hosted-play-browser.mjs'),
+            '--env-file',
+            envFile,
+            '--origin',
+            origin,
+            '--credentials-file',
+            path.join(runtime, `${flow}-credentials.json`),
+            '--report-dir',
+            reportDirectory,
+            '--flow',
+            flow,
+            '--ruleset-id',
+            rulesetId,
+            ...(values.browser ? ['--browser', values.browser] : []),
+          ],
+          logPath: path.join(evidence, `${flow}.log`),
+        },
+        browserFlows[flow].timeoutMs
+      );
+      if (!passed) {
+        failed.push(flow);
+      }
+    }
+    console.log(`Browser reports and captures remain in ${reportDirectory}.`);
+  }
+  if (failed.length > 0) {
+    throw new Error(`Hosted verification failed: ${failed.join(', ')}; see their logs in ${evidence}.`);
   }
   if (hostedTarget) {
     /* The runner retired its game, so the copied backend takes a new one and refuses a second while that one is live. */

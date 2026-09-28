@@ -1,11 +1,13 @@
 import preview from '@sb/preview';
 import { TABLE_PHASES } from '@shared/play/phases';
+import { spiceSupplySlot } from '@shared/play/spiceSupply';
 import { stackTopHeight } from '@shared/play/tableGeometry';
+import { TRACKER_DISC_TOP_Y } from '@shared/play/tableTrackers';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
-import { gameMeta, install, session } from './game.stories.fixture';
-import { mapViewPoint } from './playing.stories.fixture';
-import { playingSnapshot, productTransport } from './product.stories.fixture';
+import { gameMeta, install, lastCommand, session } from './game.stories.fixture';
+import { mapViewPoint, openTab } from './playing.stories.fixture';
+import { factions, playingSnapshot, productTransport } from './product.stories.fixture';
 
 const meta = preview.meta({
   ...gameMeta,
@@ -129,6 +131,56 @@ export const TableControls = meta.story({
   },
 });
 
+/* Holding Control names every piece and its owning faction; a shared piece shows its name alone, and letting go clears the names. */
+export const PieceNames = meta.story({
+  beforeEach: install(() => productTransport()),
+  play: async ({ canvasElement }) => {
+    const { shell, document } = await tablePage(canvasElement);
+    /* One keyboard, so a key pressed while another is held carries both modifiers. */
+    const user = userEvent.setup();
+    const nameOf = (pieceId: string) => {
+      const name = document
+        .querySelector(`[data-piece-id="${pieceId}"]`)
+        ?.parentElement?.querySelector('.scene-piece-name');
+      if (!(name instanceof HTMLElement)) {
+        throw new Error(`${pieceId} carries no name.`);
+      }
+      return name;
+    };
+    const troopId = 'starting-0-arrakeen';
+    const troop = playingSnapshot().table.pieces.find((entry) => entry.id === troopId)!;
+    const troopName = nameOf(troopId);
+    const deckName = nameOf('treachery-deck');
+    const counters = Array.from(shell.querySelectorAll<HTMLElement>('.scene-piece-count'));
+
+    expect(troopName).not.toBeVisible();
+    await user.keyboard('{Control>}');
+    expect(shell).toHaveAttribute('data-show-names', 'true');
+    expect(shell).toHaveAttribute('data-show-counts', 'false');
+    expect(troopName).toBeVisible();
+    expect(within(troopName).getByText(troop.label)).toBeVisible();
+    expect(within(troopName).getByText(factions[0]!.data.name)).toBeVisible();
+    expect(deckName).toBeVisible();
+    expect(deckName.querySelector('.scene-piece-name__owner')).toBeNull();
+    /* Control shows names only: the counts wait for Alt, and holding both shows both. */
+    for (const counter of counters) {
+      expect(counter).not.toBeVisible();
+    }
+    await user.keyboard('{Alt>}');
+    expect(shell).toHaveAttribute('data-show-counts', 'true');
+    expect(troopName).toBeVisible();
+    expect(counters[0]).toBeVisible();
+    await user.keyboard('{/Alt}');
+    expect(counters[0]).not.toBeVisible();
+    expect(troopName).toBeVisible();
+
+    await user.keyboard('{/Control}');
+    expect(shell).toHaveAttribute('data-show-names', 'false');
+    expect(troopName).not.toBeVisible();
+    expect(deckName).not.toBeVisible();
+  },
+});
+
 /**
  * On a short window the dock keeps its floor by growing up over the scene, to above the header's lower edge.
  * The header still paints above it there, so every control in it takes the pointer at its top, middle and bottom.
@@ -223,5 +275,89 @@ export const PhaseViewWaitsForTheDrop = meta.story({
 
     scene.dispatchEvent(new PointerEvent('pointerup', { ...pointer, clientX: clientX + 24, buttons: 0 }));
     await waitFor(() => expect(shell).toHaveAttribute('data-table-view', 'right'));
+  },
+});
+
+/**
+ * The spice supply disc answers the number keys again when the pointer leaves the canvas from the disc and comes straight back onto it.
+ * The pointer leaves for the view picker and returns with no move over the rest of the table.
+ */
+export const SpiceDiscAnswersOnReturn = meta.story({
+  beforeEach: install(() => productTransport()),
+  play: async ({ canvasElement }) => {
+    const { page, document } = await tablePage(canvasElement);
+    const slot = spiceSupplySlot();
+    const [clientX, clientY] = mapViewPoint(document, [slot.position[0], TRACKER_DISC_TOP_Y + 0.015, slot.position[2]]);
+    const scene = document.querySelector('canvas')!;
+    const pointer = { bubbles: true, cancelable: true, pointerId: 1, pointerType: 'mouse', clientX, clientY };
+    await waitFor(
+      () => {
+        scene.dispatchEvent(new PointerEvent('pointermove', pointer));
+        expect(scene.style.cursor).toBe('pointer');
+      },
+      { timeout: 30_000 }
+    );
+
+    leaveTheCanvas(page, scene, pointer);
+    await waitFor(() => expect(scene.style.cursor).toBe('default'));
+
+    scene.dispatchEvent(new PointerEvent('pointermove', { ...pointer, clientX: clientX + 1 }));
+    await waitFor(() => expect(scene.style.cursor).toBe('pointer'));
+    await userEvent.keyboard('2');
+    await waitFor(() =>
+      expect(lastCommand()).toMatchObject({ type: 'command', action: { kind: 'spice-spawn', count: 2 } })
+    );
+  },
+});
+
+/** The pointer moves to the view picker, so a pointerleave reaches the canvas and each ancestor that does not contain the picker. */
+function leaveTheCanvas(page: ReturnType<typeof within>, scene: HTMLCanvasElement, pointer: PointerEventInit) {
+  const picker = page.getByRole('group', { name: 'Table view' });
+  for (let left: Element | null = scene; left && !left.contains(picker); left = left.parentElement) {
+    left.dispatchEvent(new PointerEvent('pointerleave', { ...pointer, bubbles: false }));
+  }
+}
+
+/**
+ * A canvas leave ends the disc's hover while the viewer cannot act, too.
+ * The pointer rests on the disc when playback starts and leaves the canvas during playback, so after Return to live the number keys send nothing until the pointer is back on the disc.
+ */
+export const SpiceDiscForgetsAPlaybackHover = meta.story({
+  beforeEach: install(() => productTransport()),
+  play: async ({ canvasElement }) => {
+    const { page, document } = await tablePage(canvasElement);
+    await openTab(page, 'Phase');
+    const slot = spiceSupplySlot();
+    const [clientX, clientY] = mapViewPoint(document, [slot.position[0], TRACKER_DISC_TOP_Y + 0.015, slot.position[2]]);
+    const scene = document.querySelector('canvas')!;
+    const pointer = { bubbles: true, cancelable: true, pointerId: 1, pointerType: 'mouse', clientX, clientY };
+    await waitFor(
+      () => {
+        scene.dispatchEvent(new PointerEvent('pointermove', pointer));
+        expect(scene.style.cursor).toBe('pointer');
+      },
+      { timeout: 30_000 }
+    );
+
+    await userEvent.click(page.getByRole('button', { name: 'Replay from start' }));
+    session.transport.deliver({ type: 'history', step: 0, lastStep: 1, snapshot: playingSnapshot() });
+    await waitFor(() => {
+      expect(page.getByRole('button', { name: 'Earlier phase' })).toBeVisible();
+      expect(scene.style.cursor).toBe('default');
+    });
+    leaveTheCanvas(page, scene, pointer);
+
+    await userEvent.click(page.getByRole('button', { name: 'Return to live' }));
+    await waitFor(() => expect(page.getByRole('button', { name: 'Replay from start' })).toBeEnabled());
+    await userEvent.keyboard('3');
+    expect(scene.style.cursor).toBe('default');
+    expect(session.transport.messages.some((message) => message.type === 'command')).toBe(false);
+
+    scene.dispatchEvent(new PointerEvent('pointermove', { ...pointer, clientX: clientX + 1 }));
+    await waitFor(() => expect(scene.style.cursor).toBe('pointer'));
+    await userEvent.keyboard('3');
+    await waitFor(() =>
+      expect(lastCommand()).toMatchObject({ type: 'command', action: { kind: 'spice-spawn', count: 3 } })
+    );
   },
 });

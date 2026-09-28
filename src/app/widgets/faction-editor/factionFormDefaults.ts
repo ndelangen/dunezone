@@ -1,4 +1,5 @@
 import { DECAL, LEADERS, TROOP } from '@shared/assetIds';
+import { DEFAULT_PHASE_PRIORITY } from '@shared/factions/extraPhases';
 import { createFactionMemberId } from '@shared/factions/memberIdentity';
 
 import type { Faction } from '@db/factions';
@@ -87,7 +88,29 @@ export function createTroopBackFromFront(
     description: front.description,
     star: front.star,
     striped: front.striped === true ? undefined : true,
+    /* Until now the reverse inherited these, so the new back starts from them rather than from nothing. */
+    capable: front.capable,
+    combat: front.combat ? { ...front.combat } : undefined,
   };
+}
+
+type TroopCombat = NonNullable<Faction['troops'][number]['combat']>;
+
+/**
+ * One combat value entered or cleared on a troop face;
+ * clearing the last one removes the face's combat values.
+ * A face with only one strength is kept as the author left it, so saving names the missing one rather than inventing it.
+ */
+export function nextTroopCombat(
+  current: Faction['troops'][number]['combat'],
+  key: keyof TroopCombat,
+  value: number | undefined
+): Faction['troops'][number]['combat'] {
+  const next: Partial<TroopCombat> = { ...current, [key]: value };
+  if (value === undefined) {
+    delete next[key];
+  }
+  return Object.keys(next).length ? (next as TroopCombat) : undefined;
 }
 
 export function defaultAdvantage(): Faction['rules']['advantages'][number] {
@@ -104,4 +127,19 @@ export function defaultPlanet(): NonNullable<Faction['planet']>[number] {
     name: '',
     description: '',
   };
+}
+
+/**
+ * A fresh phase row: its id is generated here and never shown.
+ * Title, symbol and placement start blank on purpose, since only the author can choose them;
+ * the shared schema names each one inline and holds Save until they are chosen.
+ */
+export function defaultPhaseDeclaration(): NonNullable<Faction['extraPhases']>[number] {
+  return {
+    id: createFactionMemberId(),
+    type: 'instruction',
+    title: '',
+    priority: DEFAULT_PHASE_PRIORITY,
+    allPlayersMustBeReady: false,
+  } as NonNullable<Faction['extraPhases']>[number];
 }

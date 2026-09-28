@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { HistoricalFactionPublicationSchema } from '../factions/schema';
+import { HistoricalFactionPublicationSchema, TroopArtwork } from '../factions/schema';
 import { playStageSchema } from './admission';
 import { bankActionSchema, factionBankSchema, spiceTransferSchema } from './banks';
 import {
@@ -18,6 +18,7 @@ import type { TableState } from './model';
 import { seatActionSchema } from './participation';
 import { phaseAt } from './phases';
 import { removalActionSchema, removalVoteSchema } from './removal';
+import { gameEndingSchema, gameResultSchema, resultActionSchema } from './result';
 import {
   draftMoveSchema as draftSchema,
   durableTableSchema as tableSchema,
@@ -35,7 +36,7 @@ import { swapActionSchema, swappingStateSchema } from './swapping';
 
 const factionArtworkSchema = z.record(
   z.string(),
-  HistoricalFactionPublicationSchema.pick({ background: true, logo: true, troops: true })
+  HistoricalFactionPublicationSchema.pick({ background: true, logo: true }).extend({ troops: z.array(TroopArtwork) })
 );
 
 const direction = z.union([z.literal(-1), z.literal(1)]);
@@ -55,6 +56,9 @@ export const gameSnapshotSchema = z.object({
   setup: setupStateSchema.optional(),
   predictions: predictionsSchema.optional(),
   removalVotes: z.array(removalVoteSchema).optional(),
+  /* Who is determining the winner during Mentat pause, then the declared result once finished. */
+  ending: gameEndingSchema.nullable().optional(),
+  result: gameResultSchema.nullable().optional(),
   controls: publicControlsSchema.optional(),
   bank: factionBankSchema.optional(),
   battle: publicBattleSchema.nullable().optional(),
@@ -112,6 +116,7 @@ const pieceActionSchema = z.discriminatedUnion('kind', [
   ...publicActionSchema.options,
   ...seatActionSchema.options,
   ...removalActionSchema.options,
+  ...resultActionSchema.options,
   ...draftActionSchema.options,
   ...swapActionSchema.options,
   ...setupActionSchema.options,
@@ -279,12 +284,19 @@ export const TICKET_EXPIRED_CLOSE_CODE = 4410;
  */
 export const serverClockSchema = z.object({ serverNow: count });
 export type ServerClock = z.infer<typeof serverClockSchema>;
+/** Each seated faction's display name by its id, as the roster fixed it. */
+export function rosterFactionNames(roster: GameSnapshot['roster']): TableState['factionNames'] {
+  return Object.fromEntries(
+    roster?.seats.flatMap(({ faction }) => (faction ? [[faction.id, faction.name]] : [])) ?? []
+  );
+}
 export function tableForViewer(snapshot: GameSnapshot, viewerSeat: Viewer['viewerSeat']): TableState {
   return {
     ...snapshot.table,
     phase: phaseAt(snapshot.phase).label,
     viewerSeat,
     viewerFaction: rosterSeat(snapshot.roster, viewerSeat)?.faction?.id ?? null,
+    factionNames: rosterFactionNames(snapshot.roster),
     selectedPieceId: null,
     draftMove: null,
   };

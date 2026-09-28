@@ -36,7 +36,8 @@ export default defineSchema({
    * Server-only provisioning credentials.
    * Public reads project safe directory fields explicitly.
    * A fixture carries `fixture_key`;
-   * a real game carries its ruleset, minimum count and creator instead, and is Administrator-only until the public-release decision changes that.
+   * a real game carries its ruleset, minimum count and creator instead.
+   * Any signed-in player may create and enter a real game.
    */
   play_games: defineTable({
     fixture_key: v.optional(v.string()),

@@ -76,6 +76,11 @@ function minimumFootprintRadius(position: Vector3Tuple, piece: PieceFootprint): 
   return Math.hypot(distanceX, distanceZ);
 }
 
+/** Whether a point on the table, relative to the piece's centre, lies over the piece's footprint. */
+export function pieceFootprintContains(offset: Vector3Tuple, piece: PieceFootprint): boolean {
+  return minimumFootprintRadius(offset, piece) === 0;
+}
+
 export function supportHeightAt(position: Vector3Tuple, piece: PieceFootprint): number {
   return surfaceHeightAt([minimumFootprintRadius(position, piece), 0, 0]);
 }

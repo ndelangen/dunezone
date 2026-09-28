@@ -27,13 +27,17 @@ export function resetFrameLag() {
 /**
  * A Mantine tooltip, menu or popover fades in on a CSS opacity transition, and Chromium holds the computed opacity at 0 until it draws the frames that advance it.
  * On a runner whose frames arrive seconds late, a visibility wait can reach the bound above while the pane's inline opacity is already 1 (https://github.com/ndelangen/dunezone/issues/1303).
- * Wrap the element a visibility wait checks: this finishes the CSS transitions on it and on its ancestors, so `toBeVisible` reads the values they are heading to without waiting for another frame.
- * Keyframe animations are left alone, and an element whose settled style is hidden still fails.
+ * A keyframe entrance such as the battle wheel's `reveal` starts at opacity 0 and waits on drawn frames the same way (https://github.com/ndelangen/dunezone/issues/1422).
+ * Wrap the element a visibility wait checks: this finishes the CSS transitions and finite CSS animations on it and on its ancestors, so `toBeVisible` reads the values they are heading to without waiting for another frame.
+ * An infinite animation has no end to finish at and is left alone, and an element whose settled style is hidden still fails.
  */
 export function finishTransitions<T extends Element>(element: T) {
   for (let node: Element | null = element; node; node = node.parentElement) {
     for (const animation of node.getAnimations()) {
-      if (animation instanceof CSSTransition) {
+      if (
+        animation instanceof CSSTransition ||
+        (animation instanceof CSSAnimation && Number.isFinite(animation.effect?.getComputedTiming().endTime))
+      ) {
         animation.finish();
       }
     }
@@ -41,14 +45,54 @@ export function finishTransitions<T extends Element>(element: T) {
   return element;
 }
 
+/* Callbacks the page asked a frame for that no frame has run yet, by request id. */
+const waitingFrames = new Map<number, FrameRequestCallback>();
+const nativeCancelFrame = window.cancelAnimationFrame.bind(window);
+
+/**
+ * Runs the animation-frame callbacks waiting now, as the next drawn frame would.
+ * A Mantine tooltip, menu or popover renders its content only from inside such a callback, so on a page that draws no frames the content never reaches the DOM and `finishTransitions` has no element to finish.
+ * Call it inside a polling wait: each poll moves the page on by one frame, and a callback requested during this call waits for the next poll or a real frame, whichever comes first.
+ * It runs every waiting callback, not only the one a wait needs, and each callback runs once.
+ * A callback that an earlier one cancels during this call does not run.
+ * A callback that throws is reported as a frame would report it, and the rest still run.
+ */
+export function advanceFrame() {
+  const time = performance.now();
+  /* The ids are copied so a callback requested during this call waits, and each is looked up again before it runs, since a drawn frame skips one that an earlier callback cancelled. */
+  const due = [...waitingFrames.keys()];
+  for (const id of due) {
+    const callback = waitingFrames.get(id);
+    if (!callback) {
+      continue;
+    }
+    waitingFrames.delete(id);
+    nativeCancelFrame(id);
+    try {
+      callback(time);
+    } catch (error) {
+      reportError(error);
+    }
+  }
+}
+
 function recordFrameLag() {
   const originalRequest = window.requestAnimationFrame.bind(window);
   window.requestAnimationFrame = (callback: FrameRequestCallback): number => {
     const requestedAt = performance.now();
-    return originalRequest((time) => {
+    const id = originalRequest((time) => {
+      if (!waitingFrames.delete(id)) {
+        return;
+      }
       longestFrameLagMs = Math.max(longestFrameLagMs, performance.now() - requestedAt);
       callback(time);
     });
+    waitingFrames.set(id, callback);
+    return id;
+  };
+  window.cancelAnimationFrame = (id: number) => {
+    waitingFrames.delete(id);
+    nativeCancelFrame(id);
   };
 }
 

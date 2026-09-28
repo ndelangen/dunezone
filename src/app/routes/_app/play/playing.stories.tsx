@@ -1,5 +1,5 @@
 import preview from '@sb/preview';
-import { finishTransitions } from '@sb/storyWaits';
+import { advanceFrame, finishTransitions } from '@sb/storyWaits';
 import type { LogEntry } from '@shared/play/log';
 import type { TablePiece } from '@shared/play/model';
 import { TABLE_PHASES } from '@shared/play/phases';
@@ -385,8 +385,8 @@ export const Connecting = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     const status = await page.findByText('Connecting to the hosted table...', {}, { timeout: 30_000 });
-    /* The status line eases in from transparent, so visibility is read once the ease has run. */
-    await waitFor(() => expect(status).toBeVisible());
+    /* The status line eases in from transparent through a keyframe animation, so the wait finishes it and reads the settled style instead of waiting on drawn frames (https://github.com/ndelangen/dunezone/issues/1413). */
+    await waitFor(() => expect(finishTransitions(status)).toBeVisible());
     const frame = status.closest('[data-connection]');
     expect(frame).toHaveAttribute('data-connection', 'connecting');
     expect(page.getByRole('link', { name: 'Back to lobby' })).toBeVisible();
@@ -838,9 +838,11 @@ export const ControlsNarrow = meta.story({
     await openTab(page, 'Spice');
     await settled(() => expect(page.getByLabelText('Banked spice')).toBeVisible());
     await userEvent.hover(page.getByRole('button', { name: 'Help: Faction bank' }));
-    await waitFor(() =>
-      expect(finishTransitions(page.getByText(/^Faction bank\. Only you see this balance\./))).toBeVisible()
-    );
+    /* The tooltip's label mounts only from inside an animation-frame callback, so each poll runs the waiting frames itself (https://github.com/ndelangen/dunezone/issues/1422). */
+    await waitFor(() => {
+      advanceFrame();
+      expect(finishTransitions(page.getByText(/^Faction bank\. Only you see this balance\./))).toBeVisible();
+    });
     await userEvent.unhover(page.getByRole('button', { name: 'Help: Faction bank' }));
     expect(page.getByRole('button', { name: 'Withdraw spice' })).toBeDisabled();
     expect(page.queryByRole('button', { name: 'Take into bank' })).toBeNull();

@@ -16,18 +16,17 @@ export function eventId(number: number): string {
   return `evt-${String(number).padStart(3, '0')}`;
 }
 
-function ownerLabel(piece: TablePiece): string {
-  if (piece.owner === 'bene-gesserit') {
-    return 'Bene Gesserit';
-  }
-  return piece.owner.charAt(0).toUpperCase() + piece.owner.slice(1);
-}
-
 /**
  * The name a stack takes when its own items change.
  * A card stack is named by the word printed on its back, and cards without one read as Treachery.
+ * A force stack is named by its owner: the faction's display name, or Shared for a piece no faction owns.
  */
-export function labelForCount(piece: TablePiece, count: number, held = false): string {
+export function labelForCount(
+  piece: TablePiece,
+  count: number,
+  factionNames: TableState['factionNames'],
+  held = false
+): string {
   if (isSpicePiece(piece)) {
     return 'Spice';
   }
@@ -39,7 +38,10 @@ export function labelForCount(piece: TablePiece, count: number, held = false): s
     return held ? `${word} cards` : `${word} deck`;
   }
   if (piece.kind === 'force') {
-    return count === 1 ? `${ownerLabel(piece)} force` : `${ownerLabel(piece)} forces`;
+    const owner = piece.owner === 'shared' ? 'Shared' : factionNames[piece.owner];
+    /* Every faction that owns a piece has a seat, so a missing name reads as plain forces rather than an id. */
+    const [one, many] = owner ? [`${owner} force`, `${owner} forces`] : ['Force', 'Forces'];
+    return count === 1 ? one : many;
   }
   return piece.label;
 }
@@ -127,7 +129,7 @@ export function heldPieceFor(state: TableState, draft: DraftMove): TablePiece | 
     id: draft.pieceId,
     inventory: undefined,
     battleOverlay: undefined,
-    label: labelForCount(source, items.length, true),
+    label: labelForCount(source, items.length, state.factionNames, true),
     items: source.inventory ? items.map((item) => ({ ...item, faceUp: false })) : items,
     position: [...draft.position],
     orientation: draft.orientation,
@@ -136,14 +138,19 @@ export function heldPieceFor(state: TableState, draft: DraftMove): TablePiece | 
   };
 }
 
-function remainingRenderedPiece(piece: TablePiece, draft: DraftMove, heldPiece: TablePiece): TablePiece[] {
+function remainingRenderedPiece(
+  state: TableState,
+  piece: TablePiece,
+  draft: DraftMove,
+  heldPiece: TablePiece
+): TablePiece[] {
   if (piece.id === draft.pieceId) {
     return [heldPiece];
   }
   const withdrawn = withdrawnIdsFor(draft, piece.id).size > 0;
   const items = remainingItemsFor(piece, draft);
   if (items.length) {
-    return [withdrawn ? { ...piece, label: labelForCount(piece, items.length), items } : piece];
+    return [withdrawn ? { ...piece, label: labelForCount(piece, items.length, state.factionNames), items } : piece];
   }
   return withdrawn ? [{ ...piece, items: [] }] : [];
 }
@@ -158,7 +165,7 @@ export function renderedPiecesFor(state: TableState): TablePiece[] {
     return state.pieces.filter((piece) => !piece.inventory || piece.id === draft?.pieceId);
   }
   const canonicalHeld = state.pieces.some((piece) => piece.id === draft.pieceId);
-  const remainingPieces = state.pieces.flatMap((piece) => remainingRenderedPiece(piece, draft, heldPiece));
+  const remainingPieces = state.pieces.flatMap((piece) => remainingRenderedPiece(state, piece, draft, heldPiece));
   return (canonicalHeld ? remainingPieces : [...remainingPieces, heldPiece]).filter(
     (piece) => !piece.inventory || piece.id === draft.pieceId
   );
@@ -509,7 +516,7 @@ function piecesWithoutWithdrawals(state: TableState, draft: DraftMove): TablePie
     if (!items.length) {
       return [];
     }
-    return [withdrawn ? { ...piece, label: labelForCount(piece, items.length), items } : piece];
+    return [withdrawn ? { ...piece, label: labelForCount(piece, items.length, state.factionNames), items } : piece];
   });
 }
 
@@ -606,11 +613,21 @@ function mergeEventFor(application: DraftApplication, target: TablePiece): Table
   };
 }
 
-function mergeHeldItems(basePieces: TablePiece[], target: TablePiece, piece: TablePiece): TablePiece[] {
+function mergeHeldItems(
+  current: TableState,
+  basePieces: TablePiece[],
+  target: TablePiece,
+  piece: TablePiece
+): TablePiece[] {
   const items = [...target.items, ...piece.items];
   return basePieces.map((candidate) =>
     candidate.id === target.id
-      ? { ...candidate, label: labelForCount(candidate, items.length), items, battleOverlay: undefined }
+      ? {
+          ...candidate,
+          label: labelForCount(candidate, items.length, current.factionNames),
+          items,
+          battleOverlay: undefined,
+        }
       : candidate
   );
 }
@@ -628,7 +645,7 @@ function applyMerge(application: DraftApplication): TableState {
   }
   return {
     ...current,
-    pieces: mergeHeldItems(basePieces, baseTarget, piece),
+    pieces: mergeHeldItems(current, basePieces, baseTarget, piece),
     selectedPieceId: baseTarget.id,
     draftMove: null,
     ...appendEvent(current, mergeEventFor(application, target)),
