@@ -136,7 +136,7 @@ export function FactionPhaseSequence({ rows, selectedIndex }: { rows: readonly u
   const hasPlacedRows = [...setupGroups, ...turnGroups].some((group) => group.placed.length > 0);
   return (
     <Box component="section" className={styles.sequence} aria-label="Phase sequence">
-      <Stack className={styles.sections} gap="md">
+      <Stack gap="md">
         {rows.length === 0 ? (
           <Text size="sm" c="dimmed">
             This faction adds no phases, so the game runs the standard setup and turn.

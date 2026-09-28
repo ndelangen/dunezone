@@ -51,17 +51,16 @@
 /*
  * Below a 38rem stage the preview column narrows from 15rem towards the 7rem phone thumbnail, and
  * the phase card above takes the xs inset. The sequence takes the same step: the xs inset, 14px
- * symbols, and extra-small labels that wrap whole instead of truncating, hyphenating a word longer
- * than the line. One storm-order note at the end replaces the note under each group, which would
- * otherwise wrap to several lines apiece.
+ * symbols, and extra-small labels that wrap instead of truncating. A word longer than the line
+ * breaks too. With `hyphens: auto` Chromium hyphenates such a word only when it starts lowercase, so
+ * the first word of a label and every word of a title-case one break with no hyphen, through
+ * `overflow-wrap: anywhere`. `break-word` would leave the label's min-content width at the whole
+ * word, and the word would run past the row. One storm-order note at the end replaces the note
+ * under each group, which would otherwise wrap to several lines apiece.
  */
 @container faction-review-stage (width < 38rem) {
   .sequence {
     padding: var(--space-xs);
-  }
-
-  .sections {
-    gap: var(--space-sm);
   }
 
   .row {

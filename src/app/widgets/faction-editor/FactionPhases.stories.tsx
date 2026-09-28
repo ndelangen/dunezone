@@ -120,11 +120,16 @@ export const SequenceOnPhone = meta.story({
     await openPhasesFromPicker(canvasElement);
     const sequence = await within(canvasElement).findByRole('region', { name: 'Phase sequence' });
     const paper = sequence.getBoundingClientRect();
-    /* The labels a reader cannot read whole: cut short by an ellipsis, or running past the sequence's paper. */
+    /* The labels a reader cannot read whole: cut short across by an ellipsis or down by a line clamp, or running past the sequence's paper. */
     const clipped = within(sequence)
       .getAllByRole('listitem')
       .map((item) => within(item).getByText(item.textContent ?? ''))
-      .filter((label) => label.scrollWidth > label.clientWidth || label.getBoundingClientRect().right > paper.right)
+      .filter(
+        (label) =>
+          label.scrollWidth > label.clientWidth ||
+          label.scrollHeight > label.clientHeight ||
+          label.getBoundingClientRect().right > paper.right
+      )
       .map((label) => label.textContent);
     await expect(clipped).toEqual([]);
     await expect(visibleStormNotes(canvasElement)).toEqual(['Ties with other factions go in storm order.']);
