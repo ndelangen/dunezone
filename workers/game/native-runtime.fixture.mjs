@@ -22,6 +22,17 @@ const stamp = (number) => {
   return bytes.toString('base64');
 };
 
+/*
+ * The waits in progress.
+ * A game socket frame ends each one early, so a wait for a reply reads again as the reply arrives instead of on its next tick.
+ */
+const waiting = new Set();
+function wake() {
+  for (const done of waiting) {
+    done();
+  }
+}
+
 export async function eventually(read, label, timeout = 5000) {
   const deadline = Date.now() + timeout;
   do {
@@ -29,7 +40,15 @@ export async function eventually(read, label, timeout = 5000) {
     if (value) {
       return value;
     }
-    await new Promise((resolve) => setTimeout(resolve, 15));
+    await new Promise((resolve) => {
+      const done = () => {
+        clearTimeout(timer);
+        waiting.delete(done);
+        resolve();
+      };
+      const timer = setTimeout(done, 15);
+      waiting.add(done);
+    });
   } while (Date.now() < deadline);
   throw new Error(`Timed out waiting for ${label}`);
 }
@@ -87,6 +106,18 @@ function redeemedIdentity(peer) {
     sessionId: `session-${suffix}`,
     authExpiresAt: peer.expiresAt(),
     displayName: `Synthetic ${suffix.toUpperCase()}`,
+  };
+}
+
+/* Every account is active unless a test lists it in `peer.deletedAccounts`, which reads as a confirmed deletion. */
+function accountStates(peer, record) {
+  return {
+    ok: true,
+    accounts: record.args.userIds.map((userId) =>
+      peer.deletedAccounts.has(userId)
+        ? { userId, state: 'deletion_pending', deletionOperationId: `operation-${userId}` }
+        : { userId, state: 'active', deletionOperationId: null }
+    ),
   };
 }
 
@@ -160,10 +191,13 @@ function answerPeerRequest(peer, record) {
       record.release(peer.redemptionRefusal ? { ok: false, reason: peer.redemptionRefusal } : redeemedIdentity(peer));
       break;
     case 'playAdmission:reconcileAccounts':
-      record.release({
-        ok: true,
-        accounts: record.args.userIds.map((userId) => ({ userId, state: 'active', deletionOperationId: null })),
-      });
+      /* The room's account check: `hold` keeps it open until `peer.releaseAccounts()` answers it, `error` fails it. */
+      if (peer.reconcileMode === 'error') {
+        record.response.writeHead(500);
+        record.response.end('Accounts unavailable');
+      } else if (peer.reconcileMode !== 'hold') {
+        record.release(accountStates(peer, record));
+      }
       break;
     case 'playAdmission:ackAccountDeletion':
       record.release(null);
@@ -198,6 +232,8 @@ export async function createPeer() {
     game: null,
     provisional: true,
     directoryMode: 'ack',
+    reconcileMode: 'answer',
+    deletedAccounts: new Set(),
     summaries: [],
     connections: [],
     requests: [],
@@ -222,6 +258,16 @@ export async function createPeer() {
     );
     connection.version = next;
   }
+  peer.accountChecks = () => peer.requests.filter((record) => record.function === 'playAdmission:reconcileAccounts');
+  /* Answers every account check that `hold` kept open, and every later one at once. */
+  peer.releaseAccounts = () => {
+    peer.reconcileMode = 'answer';
+    for (const record of peer.accountChecks()) {
+      if (!record.response.writableEnded) {
+        record.release(accountStates(peer, record));
+      }
+    }
+  };
   /* `allowed` may be a predicate on the registration id, so one result can deny one registration only. */
   peer.result = (args, allowed = true, expiresAt = peer.expiresAt()) => ({
     ok: true,
@@ -484,10 +530,12 @@ export async function openGame(runtime) {
         connection.unapplied.push(message);
       }
     }
+    wake();
   });
   socket.addEventListener('close', (event) => {
     connection.closed = true;
     connection.closeCode = event.code;
+    wake();
   });
   socket.accept();
   connection.send = (message) => socket.send(JSON.stringify(message));
