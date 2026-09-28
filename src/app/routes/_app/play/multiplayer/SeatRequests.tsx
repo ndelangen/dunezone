@@ -295,6 +295,47 @@ function barFor(
  * Before play the bar is the only place a rejection can show;
  * in play the Table tab already shows it.
  */
+/**
+ * Playback of a stage before play, whose frame has no Phase tab to hold the playback controls.
+ * The bar steps through the checkpoints and returns to the live table, as the Phase tab does in play.
+ */
+function PlaybackBar({ client, table }: BarProps) {
+  const { playback, historyPending } = table;
+  if (!playback) {
+    return null;
+  }
+  return (
+    <div className={styles.dock} data-decision-bar="">
+      <DecisionBar
+        eyebrow="Playback"
+        title={`Playback checkpoint ${playback.step} of ${playback.lastStep}`}
+        context="Table actions are paused while you look back at the game."
+        action={
+          <Group gap="xs" wrap="nowrap" role="group" aria-label="Phase playback">
+            <Button
+              variant="default"
+              disabled={historyPending || playback.step === 0}
+              onClick={() => client.requestHistory(playback.step - 1)}
+            >
+              Earlier phase
+            </Button>
+            <Button
+              variant="default"
+              disabled={historyPending || playback.step === playback.lastStep}
+              onClick={() => client.requestHistory(playback.step + 1)}
+            >
+              Later phase
+            </Button>
+            <Button variant="default" onClick={client.resumeLive}>
+              Return to live
+            </Button>
+          </Group>
+        }
+      />
+    </div>
+  );
+}
+
 export function SeatRequests({
   client,
   table,
@@ -303,8 +344,12 @@ export function SeatRequests({
   onStay,
   readiness,
 }: BarProps & Readonly<{ error: string | null; leaving: boolean; onStay: () => void }>) {
-  if (!table.snapshot.stage || table.playback) {
+  if (!table.snapshot.stage) {
     return null;
+  }
+  if (table.playback) {
+    /* In play the Phase tab carries playback; any earlier stage's frame has no such tab. */
+    return table.snapshot.stage === 'play' ? null : <PlaybackBar client={client} table={table} />;
   }
   return (
     <div className={styles.dock} data-decision-bar="">

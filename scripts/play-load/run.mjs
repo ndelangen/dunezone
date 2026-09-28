@@ -547,6 +547,8 @@ try {
     browserRun = await browsers({
       origin: origin.origin,
       backend: backend.origin,
+      /* The game is provisioned after the browser starts; the page opens it by its own address. */
+      gameId: () => game.gameId,
       directory,
       stopping: () => stopping,
       onMessage: apply,
@@ -564,10 +566,10 @@ try {
   }
   game =
     hosted?.game ??
-    (await admin.mutation(anyApi.playTesting.createFixture, {
-      ...(values.profile === 'baseline' ? {} : { loadProfile: values.profile }),
-      ...(browserRun ? { useHostedRoute: true } : {}),
-    }));
+    (await admin.mutation(
+      anyApi.playTesting.createFixture,
+      values.profile === 'baseline' ? {} : { loadProfile: values.profile }
+    ));
   const provision = await fetch(`${origin.origin}/__play/games/${game.gameId}/provision`, {
     method: 'POST',
     signal: AbortSignal.any([operations.signal, AbortSignal.timeout(30_000)]),

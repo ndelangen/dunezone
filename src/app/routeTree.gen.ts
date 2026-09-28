@@ -29,8 +29,6 @@ import { Route as AppGroupsCreateRouteRouteImport } from './routes/_app/groups/c
 import { Route as AppPlayIndexRouteImport } from './routes/_app/play/index'
 import { Route as AppPlayGameIdRouteRouteImport } from './routes/_app/play/$gameId.route'
 import { Route as AppPlayCreateRouteRouteImport } from './routes/_app/play/create.route'
-import { Route as AppPlayDemoRouteRouteImport } from './routes/_app/play/demo.route'
-import { Route as AppPlayHostedRouteRouteImport } from './routes/_app/play/hosted.route'
 import { Route as AppPrivacyIndexRouteImport } from './routes/_app/privacy/index'
 import { Route as AppProfilesIndexRouteImport } from './routes/_app/profiles/index'
 import { Route as AppRulesetsIndexRouteImport } from './routes/_app/rulesets/index'
@@ -153,16 +151,6 @@ const AppPlayGameIdRouteRoute = AppPlayGameIdRouteRouteImport.update({
 const AppPlayCreateRouteRoute = AppPlayCreateRouteRouteImport.update({
   id: '/create',
   path: '/create',
-  getParentRoute: () => AppPlayRouteRoute,
-} as any)
-const AppPlayDemoRouteRoute = AppPlayDemoRouteRouteImport.update({
-  id: '/demo',
-  path: '/demo',
-  getParentRoute: () => AppPlayRouteRoute,
-} as any)
-const AppPlayHostedRouteRoute = AppPlayHostedRouteRouteImport.update({
-  id: '/hosted',
-  path: '/hosted',
   getParentRoute: () => AppPlayRouteRoute,
 } as any)
 const AppPrivacyIndexRoute = AppPrivacyIndexRouteImport.update({
@@ -318,8 +306,6 @@ export interface FileRoutesByFullPath {
   '/groups/create': typeof AppGroupsCreateRouteRoute
   '/play/$gameId': typeof AppPlayGameIdRouteRoute
   '/play/create': typeof AppPlayCreateRouteRoute
-  '/play/demo': typeof AppPlayDemoRouteRoute
-  '/play/hosted': typeof AppPlayHostedRouteRoute
   '/rulesets/create': typeof AppRulesetsCreateRouteRoute
   '/preview/sheet/$factionSlug': typeof PreviewSheetFactionSlugRouteRoute
   '/assets/': typeof AppAssetsIndexRoute
@@ -364,8 +350,6 @@ export interface FileRoutesByTo {
   '/groups/create': typeof AppGroupsCreateRouteRoute
   '/play/$gameId': typeof AppPlayGameIdRouteRoute
   '/play/create': typeof AppPlayCreateRouteRoute
-  '/play/demo': typeof AppPlayDemoRouteRoute
-  '/play/hosted': typeof AppPlayHostedRouteRoute
   '/rulesets/create': typeof AppRulesetsCreateRouteRoute
   '/preview/sheet/$factionSlug': typeof PreviewSheetFactionSlugRouteRoute
   '/assets': typeof AppAssetsIndexRoute
@@ -413,8 +397,6 @@ export interface FileRoutesById {
   '/_app/groups/create': typeof AppGroupsCreateRouteRoute
   '/_app/play/$gameId': typeof AppPlayGameIdRouteRoute
   '/_app/play/create': typeof AppPlayCreateRouteRoute
-  '/_app/play/demo': typeof AppPlayDemoRouteRoute
-  '/_app/play/hosted': typeof AppPlayHostedRouteRoute
   '/_app/rulesets/create': typeof AppRulesetsCreateRouteRoute
   '/preview/sheet/$factionSlug': typeof PreviewSheetFactionSlugRouteRoute
   '/_app/assets/': typeof AppAssetsIndexRoute
@@ -462,8 +444,6 @@ export interface FileRouteTypes {
     | '/groups/create'
     | '/play/$gameId'
     | '/play/create'
-    | '/play/demo'
-    | '/play/hosted'
     | '/rulesets/create'
     | '/preview/sheet/$factionSlug'
     | '/assets/'
@@ -508,8 +488,6 @@ export interface FileRouteTypes {
     | '/groups/create'
     | '/play/$gameId'
     | '/play/create'
-    | '/play/demo'
-    | '/play/hosted'
     | '/rulesets/create'
     | '/preview/sheet/$factionSlug'
     | '/assets'
@@ -556,8 +534,6 @@ export interface FileRouteTypes {
     | '/_app/groups/create'
     | '/_app/play/$gameId'
     | '/_app/play/create'
-    | '/_app/play/demo'
-    | '/_app/play/hosted'
     | '/_app/rulesets/create'
     | '/preview/sheet/$factionSlug'
     | '/_app/assets/'
@@ -737,20 +713,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppPlayCreateRouteRouteImport
       parentRoute: typeof AppPlayRouteRoute
     }
-    '/_app/play/demo': {
-      id: '/_app/play/demo'
-      path: '/demo'
-      fullPath: '/play/demo'
-      preLoaderRoute: typeof AppPlayDemoRouteRouteImport
-      parentRoute: typeof AppPlayRouteRoute
-    }
-    '/_app/play/hosted': {
-      id: '/_app/play/hosted'
-      path: '/hosted'
-      fullPath: '/play/hosted'
-      preLoaderRoute: typeof AppPlayHostedRouteRouteImport
-      parentRoute: typeof AppPlayRouteRoute
-    }
     '/_app/privacy/': {
       id: '/_app/privacy/'
       path: '/privacy'
@@ -925,16 +887,12 @@ declare module '@tanstack/react-router' {
 interface AppPlayRouteRouteChildren {
   AppPlayGameIdRouteRoute: typeof AppPlayGameIdRouteRoute
   AppPlayCreateRouteRoute: typeof AppPlayCreateRouteRoute
-  AppPlayDemoRouteRoute: typeof AppPlayDemoRouteRoute
-  AppPlayHostedRouteRoute: typeof AppPlayHostedRouteRoute
   AppPlayIndexRoute: typeof AppPlayIndexRoute
 }
 
 const AppPlayRouteRouteChildren: AppPlayRouteRouteChildren = {
   AppPlayGameIdRouteRoute: AppPlayGameIdRouteRoute,
   AppPlayCreateRouteRoute: AppPlayCreateRouteRoute,
-  AppPlayDemoRouteRoute: AppPlayDemoRouteRoute,
-  AppPlayHostedRouteRoute: AppPlayHostedRouteRoute,
   AppPlayIndexRoute: AppPlayIndexRoute,
 }
 

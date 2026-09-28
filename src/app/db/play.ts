@@ -13,10 +13,6 @@ export type CreatableRuleset = Extract<
   { access: 'admin' }
 >['rulesets'][number];
 
-export function useHostedFixture() {
-  return toLiveQueryResult(useQuery(api.playAdmission.getFixture, {}));
-}
-
 /** What a game page learns before it opens a socket: whether the viewer may enter and whether the table is ready. */
 export function useGameAccess(gameId: string) {
   return toLiveQueryResult(useQuery(api.playGames.getGame, { gameId }));

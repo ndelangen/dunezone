@@ -5,6 +5,8 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { parseArgs, parseEnv } from 'node:util';
 
+import { ConvexHttpClient } from 'convex/browser';
+import { anyApi } from 'convex/server';
 import { chromium } from 'playwright';
 import sharp from 'sharp';
 import { PerspectiveCamera, Vector3 } from 'three';
@@ -27,7 +29,6 @@ import {
 import { isSpicePiece } from '../src/shared/play/spice.ts';
 import { spiceSupplySlot } from '../src/shared/play/spiceSupply.ts';
 import { stackTopHeight } from '../src/shared/play/tableGeometry.ts';
-import { DEFAULT_TABLE_SEAT_COUNT } from '../src/shared/play/tableSettings.ts';
 import { trackerArcSlots, TRACKER_DISC_TOP_Y } from '../src/shared/play/tableTrackers.ts';
 import { applyRoomUpdate } from '../src/shared/play/updates.ts';
 import { verifyBattles } from './verify-hosted-battles.mjs';
@@ -44,9 +45,10 @@ const { values } = parseArgs({
     'report-dir': { type: 'string' },
     browser: { type: 'string' },
     flow: { type: 'string', default: 'regular' },
+    'ruleset-id': { type: 'string' },
   },
 });
-for (const name of ['env-file', 'origin', 'credentials-file', 'report-dir']) {
+for (const name of ['env-file', 'origin', 'credentials-file', 'report-dir', 'ruleset-id']) {
   assert.ok(values[name], `--${name} is required.`);
 }
 assert.ok(isBrowserFlow(values.flow), `--flow must be one of ${Object.keys(browserFlows).join(', ')}.`);
@@ -119,6 +121,10 @@ const environmentPath = await privateFile(values['env-file']);
 const environment = parseEnv(await readFile(environmentPath, 'utf8'));
 const backend = localOrigin(environment.CONVEX_SELF_HOSTED_URL, 'CONVEX_SELF_HOSTED_URL');
 assert.notEqual(origin, backend, 'The publisher and Convex backend need separate ports.');
+assert.ok(environment.CONVEX_SELF_HOSTED_ADMIN_KEY, 'The isolated backend admin key is required.');
+/* Grants the synthetic accounts the Administrator flag real games require; it cannot sign anyone in. */
+const admin = new ConvexHttpClient(backend);
+admin.setAdminAuth(environment.CONVEX_SELF_HOSTED_ADMIN_KEY);
 const credentialsPath = await privateFile(values['credentials-file'], true);
 assert.ok(path.isAbsolute(values['report-dir']), '--report-dir needs an absolute path.');
 const outputDirectory = await canonicalDirectory(path.resolve(values['report-dir']));
@@ -283,25 +289,115 @@ async function signIn(who) {
   await who.page.getByTestId('local-auth-submit').click();
   await who.page.getByRole('heading', { name: "You're signed in" }).waitFor();
 }
-async function enter(who) {
-  await who.page.goto(`${origin}/play/hosted?role=alice`, { waitUntil: 'domcontentloaded' });
+/** The id of the real game this flow creates; every account after the creator enters it. */
+let gameId;
+const SPECTATOR = 'neutral';
+/** Makes a signed-in synthetic account an Administrator, which real games require until their public release. */
+async function administrator(who) {
+  const token = await who.page.evaluate(
+    () => Object.entries(localStorage).find(([key]) => key.startsWith('__convexAuthJWT'))?.[1]
+  );
+  assert.ok(token, 'The signed-in page holds no Convex Auth token.');
+  const [userId] = JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString('utf8')).sub.split('|');
+  await admin.mutation(anyApi.playTesting.setAdministrator, { userId, enabled: true });
+}
+/** Waits for an admitted connection and the table it projects; before play the stage replaces the table view. */
+async function admitted(who) {
   await who.page.locator('[data-connection="authorized"]').waitFor();
-  await who.page.getByRole('group', { name: 'Table view' }).waitFor();
   await until(() => who.view(), 'The UI did not receive an authorized snapshot.');
   assert.equal(who.sent[0].type, 'admit');
   assert.equal(who.sent[0].ticketLength, 64);
+  if (who.view().snapshot.stage === 'play') {
+    await who.page.getByRole('group', { name: 'Table view' }).waitFor();
+  }
 }
-/** Signs in and enters player-a, player-b and the observer, in that order. */
+/** Creates the flow's real game through the lobby's Create page, which seats its creator first. */
+async function createGame(who) {
+  await who.page.goto(`${origin}/play/create`, { waitUntil: 'domcontentloaded' });
+  await who.page.getByRole('combobox', { name: 'Ruleset', exact: true }).click();
+  /* The seeded ruleset, by the id the launcher passed rather than by its name. */
+  await who.page.locator(`[role="option"][value="${values['ruleset-id']}"]`).click();
+  await who.page.getByRole('textbox', { name: 'Minimum players', exact: true }).fill('2');
+  await who.page.getByRole('button', { name: 'Create game', exact: true }).click();
+  await who.page.waitForURL((url) => /^\/play\/(?!create$)[^/]+$/u.test(url.pathname));
+  gameId = new URL(who.page.url()).pathname.split('/').at(-1);
+  await admitted(who);
+  assert.notEqual(who.view().viewer.viewerSeat, SPECTATOR);
+}
+async function enter(who) {
+  assert.ok(gameId, 'No real game was created yet.');
+  await who.page.goto(`${origin}/play/${gameId}`, { waitUntil: 'domcontentloaded' });
+  await admitted(who);
+}
+/** A signed-in Administrator: the only kind of account a real game admits. */
+async function account(label) {
+  const who = await peer(label);
+  await signIn(who);
+  await administrator(who);
+  return who;
+}
+/** A spectator asks for a seat and a seated player approves it, through the seat bar. */
+async function seatThrough(approver, who) {
+  /* Drafting asks for any seat; later a spectator asks for the open seat by name. */
+  const request = who.page.getByRole('button', { name: /^Request (a seat|seat \d+)/u });
+  await until(() => request.isEnabled(), 'The seat request did not become available.', 20_000);
+  const before = who.view().snapshot.revision;
+  await request.click();
+  await until(() => who.view().snapshot.revision > before, 'The seat request did not commit.');
+  await act(approver, 'Approve');
+  await until(() => who.view().viewer.viewerSeat !== SPECTATOR, 'The approved request did not seat its player.');
+}
+/** A seated player gives up the seat through the game menu; the seat stays open with its faction. */
+async function depart(who) {
+  await who.page.getByRole('button', { name: 'Game menu', exact: true }).click();
+  await who.page.getByRole('menuitem', { name: 'Give up your seat', exact: true }).click();
+  await act(who, 'Leave');
+  await until(() => who.view().viewer.viewerSeat === SPECTATOR, 'The departure did not release the seat.');
+}
+/** Seat indices do not name factions: each player's faction is the one public assignment dealt to their seat. */
+function factionOf(who) {
+  const seat = who.view().snapshot.roster.seats.find((entry) => entry.id === who.view().viewer.viewerSeat);
+  assert.ok(seat?.faction, `${who.label} holds no faction.`);
+  return seat.faction;
+}
+/**
+ * Takes the two players through drafting, the deal, trading and setup with ordinary controls, then waits for play.
+ * Nothing patches the game: every step is a command the table accepts from its players.
+ */
+async function playReady(players, audience) {
+  const stage = () => players[0].view().snapshot.stage;
+  for (const who of players) {
+    await act(who, 'Ready');
+  }
+  await until(() => stage() === 'swapping', 'The deal did not assign factions.', 30_000);
+  for (const who of players) {
+    await act(who, 'Ready to start');
+  }
+  await until(() => stage() === 'setup', 'Trading did not close into setup.', 30_000);
+  while (stage() === 'setup') {
+    for (const who of players) {
+      if (!who.view().snapshot.controls.ready.includes(who.view().viewer.viewerSeat)) {
+        await act(who, 'Ready');
+      }
+    }
+    await act(players[0], 'Next phase');
+  }
+  assert.equal(stage(), 'play');
+  for (const who of [...players, ...audience]) {
+    await who.page.getByRole('group', { name: 'Table view' }).waitFor();
+  }
+  await converged([...players, ...audience]);
+}
+/** Creates a real game for player-a, seats player-b through a request, admits the observer and plays to Turn 1. */
 async function seated() {
-  const seat = async (label) => {
-    const who = await peer(label);
-    await signIn(who);
-    await enter(who);
-    return who;
-  };
-  const a = await seat('player-a');
-  const b = await seat('player-b');
-  const observer = await seat('observer');
+  const a = await account('player-a');
+  await createGame(a);
+  const b = await account('player-b');
+  await enter(b);
+  await seatThrough(a, b);
+  const observer = await account('observer');
+  await enter(observer);
+  await playReady([a, b], [observer]);
   return { a, b, observer };
 }
 const button = (who, name) => who.page.getByRole('button', { name, exact: true });
@@ -323,6 +419,14 @@ async function converged(peers) {
 /** Opens one tab of the controls panel unless it is already the current one. */
 async function openTab(who, name) {
   const tab = button(who, name);
+  await tab.waitFor({ state: 'attached' }).catch((error) => {
+    throw new Error(`${who.label} has no ${name} tab: ${error.message}`);
+  });
+  /* A real game's seat bar sits above the panel, whose default height then pushes the lower tabs below the window. */
+  const box = await tab.boundingBox();
+  if (!box || box.y + box.height > who.page.viewportSize().height) {
+    await who.page.getByRole('separator', { name: 'Resize controls panel' }).press('End');
+  }
   await tab.waitFor();
   if ((await tab.getAttribute('aria-current')) !== 'true') {
     await tab.click();
@@ -346,7 +450,7 @@ async function point(who, position, view = 'left') {
   const pose = cameraPoseFor(
     view,
     bounds.width / bounds.height,
-    mapViewFramingPoints(trackerArcSlots(TABLE_PHASES.length), DEFAULT_TABLE_SEAT_COUNT),
+    mapViewFramingPoints(trackerArcSlots(TABLE_PHASES.length), who.view().snapshot.roster.seatCount),
     mapViewTopLimitForViewport(bounds.height, header?.height ?? 0)
   );
   const camera = new PerspectiveCamera(TABLE_CAMERA_FIELD_OF_VIEW, bounds.width / bounds.height, 0.1, 100);
@@ -377,6 +481,23 @@ async function supplyShortcut(who, key) {
     return canvas.evaluate((element) => element.style.cursor === 'pointer');
   }, `The spice disc did not respond to hover before pressing ${key}.`);
   await who.page.keyboard.press(key);
+}
+/** The ruleset's treachery deck: setup lays each slotted deck out as one stack, the treachery deck on the left of the map. */
+function treacheryDeck(who) {
+  const deck = who
+    .view()
+    .snapshot.table.pieces.find((value) => value.stackKey?.startsWith('deck:') && value.position[0] < 0);
+  assert.ok(deck, 'Setup supplied no treachery deck.');
+  return deck.id;
+}
+/** The first seat's reserve of troops, which setup supplied as one stack. */
+/** The seeded Harkonnen troop reserve: the carry checks look for its red token on screen. */
+function troopStack(who) {
+  const faction = who.view().snapshot.roster.seats.find((seat) => seat.faction?.name === 'Harkonnen')?.faction;
+  assert.ok(faction, 'No seat holds the red Harkonnen faction.');
+  const stack = who.view().snapshot.table.pieces.find((value) => value.stackKey === `troops:${faction.id}:0`);
+  assert.ok(stack, 'The Harkonnen seat has no troop reserve on the table.');
+  return stack.id;
 }
 const piece = (who, id) => {
   const result = who.view().snapshot.table.pieces.find((value) => value.id === id);
@@ -531,7 +652,7 @@ async function visibleActivity(sender, recipient, name) {
   await capture(recipient, `${name}-cursor`);
   passed(`${name}: the recipient sees the other player's cursor moving`);
 
-  const id = 'harkonnen-force-stack';
+  const id = troopStack(sender);
   const source = piece(sender, id);
   const start = await point(
     sender,
@@ -598,8 +719,24 @@ const servedPhaseSymbols = new Set();
 async function displayedPhase(who, index) {
   const phase = phaseAt(index);
   const controls = who.page;
-  await openTab(who, 'Table');
-  await controls.getByText(phase.instructions, { exact: true }).waitFor();
+  await openTab(who, 'Phase');
+  /*
+   * A real game keeps the phase's name and instructions in its help tooltip. While a board gesture is held the
+   * panel refuses the pointer, so only the named help control is checked then.
+   */
+  /* The phase's own section leads the panel; the Battle phase adds a battle section of the same name below it. */
+  const help = controls.getByRole('button', { name: `Help: ${phase.label}`, exact: true }).first();
+  await help.waitFor();
+  if (
+    await help.hover({ trial: true, timeout: 2000 }).then(
+      () => true,
+      () => false
+    )
+  ) {
+    await help.hover();
+    await controls.getByRole('tooltip').filter({ hasText: phase.instructions }).waitFor();
+    await who.page.mouse.move(0, 0);
+  }
   const header = who.page.locator('.seated-header');
   await header.getByText(`Turn ${tableProgressFor(index).turn}`, { exact: true }).waitFor();
   await header.getByText(phase.label, { exact: true }).waitFor();
@@ -653,7 +790,7 @@ async function phaseStep(sender, recipient, direction = 1) {
   await revision(sender, before.revision + 1);
   await revision(recipient, before.revision + 1);
   assert.equal(sender.view().snapshot.phase, before.phase + direction);
-  assert.deepEqual({ ...sender.view().snapshot, bank: undefined }, { ...recipient.view().snapshot, bank: undefined });
+  samePublicView(sender, recipient);
   assert.deepEqual(sender.view().snapshot.table.pieces, before.table.pieces);
   assert.equal(sender.view().snapshot.table.stormSectorIndex, before.table.stormSectorIndex);
   await displayedPhase(sender, before.phase + direction);
@@ -663,10 +800,10 @@ async function phaseStep(sender, recipient, direction = 1) {
 async function sharedPhaseFlow(a, b) {
   await focus(a, 'map');
   await focus(b, 'map');
-  /* Both players open the Table tab now: the panel is inert while a board gesture is held, so a
+  /* Both players open the Phase tab now: the panel is inert while a board gesture is held, so a
      later tab click during the remote-carry step would be refused. */
-  await openTab(a, 'Table');
-  await openTab(b, 'Table');
+  await openTab(a, 'Phase');
+  await openTab(b, 'Phase');
   await displayedPhase(a, 0);
   assert.equal(await a.page.getByRole('button', { name: 'Previous phase', exact: true }).isDisabled(), true);
   await a.page.getByRole('heading', { name: 'Storm sector', exact: true }).waitFor();
@@ -678,10 +815,10 @@ async function sharedPhaseFlow(a, b) {
   await revision(b, beforeStorm.revision + 1);
   assert.equal(a.view().snapshot.phase, beforeStorm.phase);
   assert.notEqual(a.view().snapshot.table.stormSectorIndex, beforeStorm.table.stormSectorIndex);
-  assert.deepEqual({ ...a.view().snapshot, bank: undefined }, { ...b.view().snapshot, bank: undefined });
+  samePublicView(a, b);
   passed('Storm movement is shared separately from phase and turn changes');
 
-  const id = 'harkonnen-force-stack';
+  const id = troopStack(b);
   const source = piece(b, id);
   const beforeCarry = a.view().snapshot.revision;
   const start = await point(
@@ -743,7 +880,7 @@ async function sharedPhaseFlow(a, b) {
   await revision(a, expectedRevision);
   await revision(b, expectedRevision);
   assert.notDeepEqual(piece(b, id).position, source.position);
-  assert.deepEqual({ ...a.view().snapshot, bank: undefined }, { ...b.view().snapshot, bank: undefined });
+  samePublicView(a, b);
   await recommendedViewButton(b, nextView, true).waitFor();
   passed(
     'The player can finish and save the same held-token drop after the phase change, and their camera then moves to the recommended view'
@@ -784,7 +921,7 @@ async function sharedTurnChange(sender, recipient, turn, interact) {
   await revision(recipient, before.revision + 1);
   const expectedPhase = phaseForTurn(before.phase, turn);
   assert.equal(sender.view().snapshot.phase, expectedPhase);
-  assert.deepEqual({ ...sender.view().snapshot, bank: undefined }, { ...recipient.view().snapshot, bank: undefined });
+  samePublicView(sender, recipient);
   assert.deepEqual(sender.view().snapshot.table.pieces, before.table.pieces);
   assert.equal(sender.view().snapshot.table.stormSectorIndex, before.table.stormSectorIndex);
   await displayedPhase(sender, expectedPhase);
@@ -819,7 +956,7 @@ async function sharedSpiceRoundTrip(sender, recipient, count, interact, name) {
   assert.ok(isSpicePiece(stack));
   assert.equal(stack.items.length, count);
   assert.equal(sender.view().snapshot.phase, before.phase);
-  assert.deepEqual({ ...sender.view().snapshot, bank: undefined }, { ...recipient.view().snapshot, bank: undefined });
+  samePublicView(sender, recipient);
   assert.deepEqual(
     sender.view().snapshot.table.pieces.filter((value) => value.id !== stack.id),
     before.table.pieces
@@ -875,7 +1012,7 @@ async function sharedSpiceRoundTrip(sender, recipient, count, interact, name) {
   }
   await revision(sender, before.revision + 2);
   await revision(recipient, before.revision + 2);
-  assert.deepEqual({ ...sender.view().snapshot, bank: undefined }, { ...recipient.view().snapshot, bank: undefined });
+  samePublicView(sender, recipient);
   assert.deepEqual(sender.view().snapshot.table.pieces, before.table.pieces);
   assert.equal(sender.view().snapshot.phase, before.phase);
   assert.equal(sender.view().snapshot.table.stormSectorIndex, before.table.stormSectorIndex);
@@ -895,46 +1032,44 @@ async function sharedSpiceRoundTrip(sender, recipient, count, interact, name) {
   passed(`${name}: the other player drags the full stack onto the supply and both players see it removed`);
 }
 
+/** Clicks the turn wheel's sector for `turn`, which the wheel shows around the current one. */
+async function selectTurn(who, current, turn) {
+  const turnSlot = trackerArcSlots(TABLE_PHASES.length).find((slot) => slot.kind === 'turn');
+  assert.ok(turnSlot, 'The shared layout must include the turn disc.');
+  const sector = turnTrackerLayout({ radius: turnSlot.radius, turn: current }).sectors.find(
+    (value) => value.turn === turn
+  );
+  assert.ok(sector, `Turn ${turn} must be selectable on the wheel at turn ${current}.`);
+  const wheelPoint = await point(
+    who,
+    [turnSlot.position[0] + sector.position[0], TRACKER_DISC_TOP_Y + 0.045, turnSlot.position[2] + sector.position[2]],
+    'map'
+  );
+  await who.page.mouse.click(wheelPoint.x, wheelPoint.y);
+}
+
 async function sharedTrackerFlow(a, b) {
   const originalPhase = a.view().snapshot.phase;
   const originalTurn = tableProgressFor(originalPhase).turn;
   await focus(a, 'map');
   await focus(b, 'map');
-  await openTab(a, 'Table');
-  await sharedTurnChange(a, b, originalTurn + 1, () =>
-    a.page.getByRole('button', { name: 'Next turn', exact: true }).click()
-  );
+  await sharedTurnChange(a, b, originalTurn + 1, () => selectTurn(a, originalTurn, originalTurn + 1));
   await capture(a, 'after-next-turn-player-a');
   await capture(b, 'after-next-turn-player-b');
-  passed('Next turn updates both visible headers while preserving phase, pieces and storm position');
+  passed(
+    'Selecting the next turn on the wheel updates both visible headers while preserving phase, pieces and storm position'
+  );
 
   await focus(a, 'map');
   await focus(b, 'map');
-  const turnSlot = trackerArcSlots(TABLE_PHASES.length).find((slot) => slot.kind === 'turn');
-  assert.ok(turnSlot, 'The shared layout must include the turn disc.');
-  const sector = turnTrackerLayout({ radius: turnSlot.radius, turn: originalTurn + 1 }).sectors.find(
-    (value) => value.turn === originalTurn
-  );
-  assert.ok(sector, 'The original turn must remain selectable on the wheel.');
-  const wheelPoint = await point(
-    b,
-    [turnSlot.position[0] + sector.position[0], TRACKER_DISC_TOP_Y + 0.045, turnSlot.position[2] + sector.position[2]],
-    'map'
-  );
-  await sharedTurnChange(b, a, originalTurn, () => b.page.mouse.click(wheelPoint.x, wheelPoint.y));
+  await sharedTurnChange(b, a, originalTurn, () => selectTurn(b, originalTurn + 1, originalTurn));
   assert.equal(a.view().snapshot.phase, originalPhase);
   await capture(a, 'after-turn-wheel-selection');
   passed('The other player selects the original turn on the real wheel and both headers follow');
 
   await focus(a, 'map');
   await focus(b, 'map');
-  await sharedSpiceRoundTrip(
-    a,
-    b,
-    3,
-    () => a.page.getByRole('button', { name: 'Spawn 3 spice', exact: true }).click(),
-    'spice-button-3'
-  );
+  await sharedSpiceRoundTrip(a, b, 3, () => supplyShortcut(a, '3'), 'spice-key-3');
   for (const [key, count] of [
     ['0', 10],
     ['2', 2],
@@ -943,16 +1078,27 @@ async function sharedTrackerFlow(a, b) {
   }
 }
 
+/** Setup dealt each player's leaders into a private hand; everything but the bank and the hand is the same for both players. */
+function samePublicView(a, b) {
+  const shared = (who) => ({ ...who.view().snapshot, bank: undefined, hand: undefined });
+  assert.deepEqual(shared(a), shared(b));
+  const handIds = (who) => new Set((who.view().snapshot.hand ?? []).map((piece) => piece.id));
+  assert.ok(handIds(a).size > 0 && handIds(b).size > 0, 'Setup did not deal private hands.');
+  assert.ok(![...handIds(a)].some((id) => handIds(b).has(id)), 'A private hand reached the other player.');
+}
+
 /** The regular flow, for the broad tabletop interactions the named flows leave out. */
 async function verifyRegular() {
-  const a = await peer('player-a');
-  await signIn(a);
-  await enter(a);
-  const b = await peer('player-b');
-  await signIn(b);
+  const a = await account('player-a');
+  await createGame(a);
+  const b = await account('player-b');
   await enter(b);
-  assert.equal(a.view().viewer.viewerSeat, 'harkonnen');
-  assert.equal(b.view().viewer.viewerSeat, 'atreides');
+  await seatThrough(a, b);
+  await playReady([a, b], []);
+  assert.notEqual(a.view().viewer.viewerSeat, SPECTATOR);
+  assert.notEqual(b.view().viewer.viewerSeat, SPECTATOR);
+  assert.notEqual(a.view().viewer.viewerSeat, b.view().viewer.viewerSeat);
+  assert.notEqual(factionOf(a).id, factionOf(b).id);
   assert.notEqual(a.view().viewer.userId, b.view().viewer.userId);
   /*
    * Player B's seat reaches player A in a later frame at the same revision, so the views are compared once it has.
@@ -963,14 +1109,25 @@ async function verifyRegular() {
     const { seats, players } = a.view().snapshot.controls;
     return seats.includes(seatB) && players.some((player) => player.seat === seatB);
   }, "Player A's view did not list player B's seat.").catch(() => {});
-  assert.deepEqual({ ...a.view().snapshot, bank: undefined }, { ...b.view().snapshot, bank: undefined });
+  samePublicView(a, b);
   const initialItems = a
     .view()
     .snapshot.table.pieces.flatMap((value) => value.items.map((item) => item.id))
     .sort();
-  passed('Independent real Password sessions receive server-owned fixture seats and identical snapshots', {
-    seats: [a.view().viewer.viewerSeat, b.view().viewer.viewerSeat],
-  });
+  passed(
+    'Independent real Password sessions create a real game, take approved seats and receive identical public snapshots with disjoint private hands',
+    {
+      seats: [a.view().viewer.viewerSeat, b.view().viewer.viewerSeat],
+    }
+  );
+  const visitor = await peer('visitor');
+  await signIn(visitor);
+  await visitor.page.goto(`${origin}/play/${gameId}`, { waitUntil: 'domcontentloaded' });
+  await visitor.page.getByText('This game is not available', { exact: true }).waitFor();
+  assert.equal(await visitor.page.locator('canvas').count(), 0);
+  assert.equal(visitor.sockets.length, 0);
+  await visitor.page.close();
+  passed('A signed-in account without the Administrator flag finds the real game unavailable and opens no socket');
   for (const view of ['left', 'right', 'bottom', 'map']) {
     await focus(a, view);
   }
@@ -993,7 +1150,7 @@ async function verifyRegular() {
   await focus(a, 'left');
   await focus(b, 'left');
 
-  const id = 'harkonnen-force-stack';
+  const id = troopStack(a);
   const start = await point(
     a,
     piece(a, id).position.map((value, index) => (index === 1 ? value + 0.12 : value))
@@ -1034,7 +1191,7 @@ async function verifyRegular() {
   await a.page.mouse.up();
   await revision(a, before + 1);
   await revision(b, before + 1);
-  assert.deepEqual({ ...a.view().snapshot, bank: undefined }, { ...b.view().snapshot, bank: undefined });
+  samePublicView(a, b);
   assert.deepEqual(
     a
       .view()
@@ -1050,9 +1207,17 @@ async function verifyRegular() {
      is declared before the other player enters read-only playback, where Ready is disabled. */
   await readyBeforeAdvance(a, b);
   const beforePlayback = a.view().snapshot.revision;
-  await openTab(b, 'Table');
+  await openTab(b, 'Phase');
   await b.page.getByRole('button', { name: 'Replay from start' }).click();
   await b.page.getByText(/Playback checkpoint 0 of/).waitFor();
+  /* A real game's first checkpoints are its stages before play, shown with the playback bar; stepping reaches Turn 1. */
+  let checkpoint = 0;
+  while ((await button(b, 'Phase').count()) === 0) {
+    await b.page.getByRole('button', { name: 'Later phase' }).click();
+    checkpoint += 1;
+    await b.page.getByText(new RegExp(`Playback checkpoint ${checkpoint} of`, 'u')).waitFor();
+  }
+  assert.ok(checkpoint > 0);
   assert.equal(await b.page.getByRole('button', { name: 'Next phase', exact: true }).isDisabled(), true);
   assert.equal(await b.page.getByRole('button', { name: 'Previous phase', exact: true }).isDisabled(), true);
   await displayedPhase(b, 0);
@@ -1062,7 +1227,7 @@ async function verifyRegular() {
   await displayedPhase(a, TABLE_PHASES.length);
   await displayedPhase(b, 0);
   await b.page.getByRole('button', { name: 'Later phase' }).click();
-  await b.page.getByText(/Playback checkpoint 1 of/).waitFor();
+  await b.page.getByText(new RegExp(`Playback checkpoint ${checkpoint + 1} of`, 'u')).waitFor();
   await b.page.getByRole('button', { name: 'Return to live' }).click();
   /* The live table's cooldown (#1139) can still be running; the controls refresh on its next tick. */
   await until(
@@ -1071,7 +1236,9 @@ async function verifyRegular() {
     20_000
   );
   await displayedPhase(b, TABLE_PHASES.length);
-  passed('Real phase checkpoint playback is read-only and returns to the current live table');
+  passed(
+    'Real phase checkpoint playback steps from drafting into play, is read-only and returns to the current live table'
+  );
 
   const connectionId = b.view().viewer.connectionId;
   const oldDocumentSockets = [...b.sockets];
@@ -1081,7 +1248,7 @@ async function verifyRegular() {
   }
   await until(() => b.view().viewer.connectionId !== connectionId, 'Reload did not get a fresh connection.');
   await b.page.locator('[data-connection="authorized"]').waitFor();
-  assert.equal(b.view().viewer.viewerSeat, 'atreides');
+  assert.equal(b.view().viewer.viewerSeat, seatB);
   assert.equal(b.view().snapshot.revision, beforePlayback + 1);
   assert.equal(b.view().snapshot.phase, TABLE_PHASES.length);
   await displayedPhase(b, TABLE_PHASES.length);
@@ -1090,10 +1257,9 @@ async function verifyRegular() {
   await visibleActivity(b, a, 'reloaded-player-b-to-player-a');
   await visibleActivity(a, b, 'player-a-to-reloaded-player-b');
 
-  const observer = await peer('observer');
-  await signIn(observer);
+  const observer = await account('observer');
   await enter(observer);
-  assert.equal(observer.view().viewer.viewerSeat, 'neutral');
+  assert.equal(observer.view().viewer.viewerSeat, SPECTATOR);
   assert.equal(await observer.page.getByRole('button', { name: 'Next phase', exact: true }).isDisabled(), true);
   assert.equal(await observer.page.getByRole('button', { name: 'Previous phase', exact: true }).isDisabled(), true);
   await displayedPhase(observer, TABLE_PHASES.length);
@@ -1175,36 +1341,32 @@ async function verifyRegular() {
   ]);
   leavingSocket.documentReplaced = true;
   await b.page.getByRole('heading', { name: 'Game lobby' }).waitFor();
-  const receivedOnExit = b.messages.length;
-  const socketCount = b.sockets.length;
-  await b.page.goto(`${origin}/play/demo?seats=6`, { waitUntil: 'domcontentloaded' });
-  await b.page.getByRole('group', { name: 'Table view' }).waitFor();
-  await focus(b, 'map');
-  await headerStructure(b);
-  await capture(b, 'after-demo-map-1440x1000');
-  await b.page.setViewportSize({ width: 900, height: 1000 });
-  await focus(b, 'map');
-  await headerStructure(b);
-  await capture(b, 'after-demo-map-900x1000');
-  assert.equal(b.sockets.length, socketCount);
-  assert.equal(b.messages.length, receivedOnExit);
-  passed('Lobby exit removes public presence before pointer expiry and the public demo stays local');
+  passed('Lobby exit removes public presence before pointer expiry');
 }
 
 try {
   const unsigned = await peer('unsigned');
-  await unsigned.page.goto(`${origin}/play/hosted?role=alice`, { waitUntil: 'domcontentloaded' });
-  await unsigned.page.getByText('Sign in to join the hosted table.', { exact: true }).waitFor();
+  /* The directory asks for sign-in before it looks the game up, so any address stands for every game. */
+  await unsigned.page.goto(`${origin}/play/${randomBytes(16).toString('hex')}`, { waitUntil: 'domcontentloaded' });
+  await unsigned.page.getByText(/to open a game\.$/u).waitFor();
   assert.equal(await unsigned.page.locator('canvas').count(), 0);
   assert.equal(unsigned.sockets.length, 0);
-  await capture(unsigned, 'after-unsigned-hosted-1440x1000');
-  passed('Unsigned direct entry and forged role query receive no table or game socket');
+  await capture(unsigned, 'after-unsigned-game-1440x1000');
+  passed('Unsigned direct entry to a game address receives no table or game socket');
 
   const toolkit = {
     peer,
     signIn,
     enter,
     seated,
+    account,
+    createGame,
+    seatThrough,
+    playReady,
+    depart,
+    spectator: SPECTATOR,
+    factionOf,
+    treacheryDeck,
     button,
     act,
     converged,
