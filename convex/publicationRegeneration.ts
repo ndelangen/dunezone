@@ -5,6 +5,7 @@ import {
   FACTION_SHEET_ASSET_TYPE,
   RECTANGLE_TOKEN_ASSET_TYPE,
   RULEBOOK_FIRST_PAGE_ASSET_TYPE,
+  SPICE_CARD_ASSET_TYPE,
   TREACHERY_CARD_ASSET_TYPE,
 } from '../src/shared/asset-publishing/publication';
 import { internal } from './_generated/api';
@@ -136,6 +137,7 @@ async function scanPage(ctx: MutationCtx, assetType: string, cursor: string | nu
      * A new publishable Asset type joins this list rather than copying the body.
      */
     case TREACHERY_CARD_ASSET_TYPE:
+    case SPICE_CARD_ASSET_TYPE:
     case DECK_ASSET_TYPE:
     case 'token-disc':
     case 'token-tech':
