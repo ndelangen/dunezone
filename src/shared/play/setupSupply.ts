@@ -74,7 +74,8 @@ export function factionSupply(capture: FactionCapture, angle: number, { id, shuf
   const color = definition.themeColor;
   const layout = factionSupplyLayout(angle, components.troops.length);
   const reserves = components.troops.map((troop, index) => {
-    const stack = piece(id(), troop.name, faction.id, color, 'force', `troops:${faction.id}:${index}`);
+    const stackKey = `troops:${faction.id}:${troop.troopId ?? index}`;
+    const stack = piece(id(), troop.name, faction.id, color, 'force', stackKey);
     stack.items = Array.from({ length: troop.count }, () =>
       item(id(), troop.name, troop.front, troop.back, 'troop', true)
     );

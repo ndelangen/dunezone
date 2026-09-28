@@ -1,4 +1,4 @@
-import { ensureFactionMemberIds } from '@shared/factions/memberIdentity';
+import { ensureFactionComponentIds } from '@shared/factions/componentIdentity';
 import { FactionInputSchema } from '@shared/factions/schema';
 
 import type { Faction, FactionEntry } from '@db/factions';
@@ -74,7 +74,7 @@ export function createFactionAuthoringSession({
     },
 
     loadDraft(draft: Faction): void {
-      const next = ensureFactionMemberIds(structuredClone(draft));
+      const next = ensureFactionComponentIds(structuredClone(draft));
       form.reset(next, { keepDefaultValues: true });
       form.markLoadedDraftDirty();
       persistence.reset();
@@ -90,7 +90,7 @@ export function createFactionAuthoringSession({
 
     /** Intentional change to another faction source; never silently saves the previous draft. */
     switchSource(nextInitialData: Faction): void {
-      const next = ensureFactionMemberIds(structuredClone(nextInitialData));
+      const next = ensureFactionComponentIds(structuredClone(nextInitialData));
       savedBaseline = next;
       form.reset(next);
       persistence.reset();

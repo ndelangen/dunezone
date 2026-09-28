@@ -187,6 +187,10 @@ export const factionAuthoringCoverage: Readonly<Record<string, CoverageEntry>> =
     state: 'preserved',
     owner: 'Persistent faction member identity assigned on creation and import',
   }),
+  ...coverage(['troops[].troopId'], {
+    state: 'preserved',
+    owner: 'Persistent troop identity assigned on creation and import (#1227)',
+  }),
   ...coverage(['name', 'logo', 'themeColor', 'colors[]'], {
     state: 'control',
     chapter: 'identity',
