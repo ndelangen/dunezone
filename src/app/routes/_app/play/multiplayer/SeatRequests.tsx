@@ -189,11 +189,15 @@ function LeavingBar({ client, table, onStay }: BarProps & Readonly<{ onStay: () 
 
 /**
  * The game menu in the header toolbar, in every stage, left of the phase controls that stay rightmost.
- * Its one item today gives up the viewer's seat;
- * the confirmation happens in the decision bar, never in a modal.
- * A spectator has no seat to give up.
+ * It gives up the viewer's seat, with the confirmation in the decision bar, never in a modal;
+ * a spectator has no seat to give up.
+ * While a result's confetti is on the table it also stops and clears it, for this viewer alone.
  */
-export function GameMenu({ table, onLeave }: Readonly<{ table: TableProjection; onLeave: () => void }>) {
+export function GameMenu({
+  table,
+  onLeave,
+  onClearConfetti,
+}: Readonly<{ table: TableProjection; onLeave: () => void; onClearConfetti?: () => void }>) {
   /* The fixture has no lifecycle, so a seat there is not one to give up; the table would refuse the departure. */
   const seated =
     table.viewer.viewerSeat !== SPECTATOR_SEAT &&
@@ -211,6 +215,7 @@ export function GameMenu({ table, onLeave }: Readonly<{ table: TableProjection; 
         />
       </Menu.Target>
       <Menu.Dropdown>
+        {onClearConfetti && <Menu.Item onClick={onClearConfetti}>Clear confetti</Menu.Item>}
         <Menu.Item color="red" disabled={!seated} onClick={onLeave}>
           Give up your seat
         </Menu.Item>
