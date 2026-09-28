@@ -19,7 +19,8 @@ export type HistoryRow = {
 
 type CommitMessage = Extract<ClientMessage, { type: 'drop' | 'command' }>;
 type RowInput = Pick<HistoryRow, 'kind' | 'data' | 'step' | 'base_revision'>;
-const boundaryActions = new Set(['phase', 'turn']);
+/* Declaring a result and continuing past it are playback steps, as phase and turn changes are. */
+const boundaryActions = new Set(['phase', 'turn', 'result-declare', 'result-continue']);
 const setupActions = new Set(['ready', 'phase']);
 
 function requiresCheckpoint(

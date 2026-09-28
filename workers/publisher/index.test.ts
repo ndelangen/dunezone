@@ -161,14 +161,18 @@ describe('publisher Worker Publication flow', () => {
     expect(currentEnv.ASSETS.fetch).not.toHaveBeenCalled();
   });
 
-  test.each(['/play', '/play/demo', '/__playground'])('keeps %s in the application', async (pathname) => {
-    const currentEnv = publisherEnv();
-    const response = await publisherWorker.fetch(new Request(`https://dune.zone${pathname}`), currentEnv, {
-      waitUntil: vi.fn(),
-    } as unknown as ExecutionContext);
-    await expect(response.text()).resolves.toBe('<html>spa shell</html>');
-    expect(currentEnv.GAME_SERVICE.fetch).not.toHaveBeenCalled();
-  });
+  /* The retired /play/demo and /play/hosted pages stay application paths: the router answers them with its not-found page. */
+  test.each(['/play', '/play/create', '/play/demo', '/play/hosted', '/__playground'])(
+    'keeps %s in the application',
+    async (pathname) => {
+      const currentEnv = publisherEnv();
+      const response = await publisherWorker.fetch(new Request(`https://dune.zone${pathname}`), currentEnv, {
+        waitUntil: vi.fn(),
+      } as unknown as ExecutionContext);
+      await expect(response.text()).resolves.toBe('<html>spa shell</html>');
+      expect(currentEnv.GAME_SERVICE.fetch).not.toHaveBeenCalled();
+    }
+  );
 
   test('owns reserved namespaces without Static Assets fallthrough', async () => {
     const currentEnv = publisherEnv();

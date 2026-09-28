@@ -1,13 +1,16 @@
-import { Box, ColorInput, SimpleGrid, Stack, Switch, TextInput } from '@mantine/core';
+import { Box, ColorInput, NumberInput, SimpleGrid, Stack, Switch, Text, TextInput } from '@mantine/core';
+import type { NumberInputProps } from '@mantine/core';
 import { TROOP, TROOP_MODIFIER } from '@shared/assetIds';
+import { completeCombat } from '@shared/factions/troopCombat';
 import { AssetSelect } from '@ui/control/AssetSelect';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 import type { Faction } from '@db/factions';
 
 import { assetOptionToPreviewSrc, troopOptionToLabel, troopStarOptionToLabel } from './factionFormAssetUtils';
+import { nextTroopCombat } from './factionFormDefaults';
 import type { FactionFormApi } from './factionFormTypes';
 
 const troopImageOptions = TROOP.options.map((value) => ({
@@ -69,6 +72,158 @@ function StarModifierSelect({
       value={legacyRed ? null : (value ?? null)}
       onChange={(next) => onChange(next ? (next as NonNullable<StarValue>) : undefined)}
     />
+  );
+}
+
+/** The value typed text commits: a number, undefined for an emptied field, or null for text that is not a usable value. */
+function committedNumber(text: string | number, whole: boolean): number | undefined | null {
+  if (text === '') {
+    return undefined;
+  }
+  const value = typeof text === 'number' ? text : Number(text);
+  if (!Number.isFinite(value)) {
+    return null;
+  }
+  return whole && !(Number.isSafeInteger(value) && value >= 0) ? null : value;
+}
+
+/*
+ * Mantine reports text like `1.` or `-` as a string while the author is still typing a fraction.
+ * The draft keeps that text local and commits one complete value on blur or Enter, as the battle planner's inputs do.
+ */
+function CombatNumberInput({
+  value,
+  whole,
+  onCommit,
+  ...props
+}: Omit<NumberInputProps, 'value' | 'onChange' | 'onBlur'> & {
+  value: number | undefined;
+  whole: boolean;
+  onCommit: (value: number | undefined) => void;
+}) {
+  const [draft, setDraft] = useState<string | number | null>(null);
+  return (
+    <NumberInput
+      {...props}
+      min={whole ? 0 : undefined}
+      allowDecimal={!whole}
+      allowNegative={!whole}
+      value={draft ?? value ?? ''}
+      onChange={setDraft}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter') {
+          event.currentTarget.blur();
+        }
+      }}
+      onBlur={() => {
+        const next = draft === null ? null : committedNumber(draft, whole);
+        if (next !== null && next !== value) {
+          onCommit(next);
+        }
+        setDraft(null);
+      }}
+    />
+  );
+}
+
+/*
+ * A face's battle eligibility and the values a battle plan reads from it (#1062).
+ * Empty strengths stay empty: the authoring warning and a game's capture name the gap instead of reading it as zero.
+ */
+function TroopCombatFields({
+  form,
+  troopIndex: i,
+  side,
+  idBase,
+}: {
+  form: FactionFormApi;
+  troopIndex: number;
+  side: 'front' | 'back';
+  idBase: string;
+}) {
+  const isBack = side === 'back';
+  const capableField = isBack ? (`troops[${i}].back.capable` as const) : (`troops[${i}].capable` as const);
+  const combatField = isBack ? (`troops[${i}].back.combat` as const) : (`troops[${i}].combat` as const);
+  const inputs = [
+    {
+      key: 'strength',
+      title: 'Strength',
+      description: 'What one undialed troop adds. May be fractional or negative.',
+      whole: false,
+    },
+    {
+      key: 'fundedStrength',
+      title: 'Funded strength',
+      description: 'What one dialed troop adds instead. May be fractional or negative.',
+      whole: false,
+    },
+    {
+      key: 'fundingCost',
+      title: 'Funding cost',
+      description: 'Spice to dial one troop; one when left empty, and zero is free.',
+      whole: true,
+    },
+  ] as const;
+
+  return (
+    <form.Field name={capableField}>
+      {(capable) => (
+        <Stack gap="md">
+          <ControlBlock
+            title={isBack ? 'Back side fights in battle' : 'Fights in battle'}
+            description="Off keeps this side out of the battle planner, whatever its strengths."
+            input={
+              <Switch
+                id={`${idBase}-capable`}
+                aria-label={isBack ? 'Back side fights in battle' : 'Fights in battle'}
+                checked={capable.state.value !== false}
+                onBlur={capable.handleBlur}
+                onChange={(event) => capable.handleChange(event.currentTarget.checked ? undefined : false)}
+              />
+            }
+          />
+          {capable.state.value !== false ? (
+            <form.Field name={combatField}>
+              {(combat) => (
+                <Stack gap="xs">
+                  <SimpleGrid cols={{ base: 1, sm: 3 }}>
+                    {inputs.map(({ key, title, description, whole }) => {
+                      const label = isBack ? `Back-side ${title.toLowerCase()}` : title;
+                      return (
+                        <ControlBlock
+                          key={key}
+                          title={label}
+                          description={description}
+                          input={
+                            <CombatNumberInput
+                              id={`${idBase}-${key}`}
+                              aria-label={label}
+                              placeholder={whole ? '1' : 'Not set'}
+                              step={whole ? 1 : 0.5}
+                              whole={whole}
+                              value={combat.state.value?.[key]}
+                              onCommit={(value) => {
+                                combat.handleChange(nextTroopCombat(combat.state.value, key, value));
+                                combat.handleBlur();
+                              }}
+                            />
+                          }
+                        />
+                      );
+                    })}
+                  </SimpleGrid>
+                  {completeCombat(combat.state.value) === null ? (
+                    <Text id={`${idBase}-combat-warning`} c="var(--color-caution)" size="xs" role="status">
+                      Enter both strengths to use this side in battle. Until then a game leaves it out of battle plans.
+                    </Text>
+                  ) : null}
+                </Stack>
+              )}
+            </form.Field>
+          ) : null}
+        </Stack>
+      )}
+    </form.Field>
   );
 }
 
@@ -246,6 +401,8 @@ export function TroopSideFields({
           </form.Field>
         </Box>
       </SimpleGrid>
+
+      <TroopCombatFields form={form} troopIndex={i} side={side} idBase={idBase} />
     </Stack>
   );
 }

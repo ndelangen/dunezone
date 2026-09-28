@@ -125,8 +125,10 @@ The publisher forwards the reserved `/__play` namespace only when the request or
 `preview_urls` are disabled and whose route list is empty. Unknown reserved paths never become
 SPA documents. The game Worker accepts only `/__play/health` and
 `/__play/games/:gameId/socket|provision|account-deletion`; it validates methods, origin and admission
-at that boundary. The public `/play/demo` remains local-only. Hosted gameplay requires a signed-in
-session and a fresh first-message connection ticket.
+at that boundary. Hosted gameplay requires a signed-in session and a fresh first-message connection
+ticket. Players open games at `/play/<gameId>`; the retired `/play/hosted` and `/play/demo` pages
+are ordinary application paths with no route, and the release counts as retiring them only once
+production no longer serves the pages.
 
 Before calling the game binding, the publisher applies `PLAY_INGRESS_RATE_LIMIT` (namespace
 `10960001`): 120 requests per ten seconds per trusted `CF-Connecting-IP`, with separate counters
@@ -184,9 +186,9 @@ bun --no-env-file scripts/verify-hosted-play-stack.ts --browser-only --flow all
 
 The launcher builds the app and starts the stack once. Without `--browser-only` it runs the protocol
 verifier first. It then runs each selected browser flow in turn through
-`scripts/verify-hosted-play-browser.mjs`. Before each flow it retires the previous flow's game and
-provisions a fresh canonical fixture through the local Workers, so every flow's new synthetic accounts
-receive the fixture's player seats. `--flow` repeats, `all` selects every flow in
+`scripts/verify-hosted-play-browser.mjs`. Before the flows it seeds a synthetic ruleset
+(`playTesting:seedRealGameCatalogue`) and installs its publication bytes; each flow signs in fresh
+Administrator accounts and creates its own real game. `--flow` repeats, `all` selects every flow in
 [`scripts/verify-hosted-flows.ts`](../scripts/verify-hosted-flows.ts), and `--browser-only` without it
 runs only the regular flow; the named flows are described under
 [Verification](./technical/play-hosted.md#verification). A failed verifier does not stop the flows
@@ -194,7 +196,7 @@ after it, and the run fails at the end naming each failed verifier. A run with b
 frontend for this run's backend URL, so it rejects `--skip-build`. `--backend-binary` can still select
 an existing native backend executable, and `--browser /absolute/path/to/chromium` can select a
 Chromium executable instead of Playwright's installed browser. Each browser flow has its own timeout,
-ten minutes for the regular flow and five for each named flow; protocol verification has three. All
+ten minutes for the regular flow and eight for each named flow; protocol verification has three. All
 use the same stack cleanup.
 
 Reports and screenshots remain in `test-results/hosted-play/browser/<flow>-<timestamp>/`, with each

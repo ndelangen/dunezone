@@ -5,6 +5,7 @@ import { cardbackPresetLabel } from '../../src/shared/assets/cardbackPresets';
 import { authoredCardback, DeckAssetInput } from '../../src/shared/assets/schema';
 import { parseAssetDataForWrite } from '../../src/shared/assets/validation';
 import { IdentifiedFactionStoredSchema } from '../../src/shared/factions/schema';
+import { lacksCombatValues, troopCombatFaces } from '../../src/shared/factions/troopCombat';
 import type {
   AssetSupply,
   CaptureProblem,
@@ -346,6 +347,12 @@ export class GameCatalogue {
       problems.push({ subject: `troop ${troop.name}`, reason: 'Troop faces are not generated yet.' });
       return { name: troop.name, count: troop.count, front: null, back: null };
     });
+    for (const face of troopCombatFaces(definition.troops).filter(lacksCombatValues)) {
+      problems.push({
+        subject: `troop ${face.face.name}${face.side === 'back' ? ' back' : ''}`,
+        reason: 'This troop face can fight but has no authored combat values.',
+      });
+    }
     problems.push({ subject: 'alliance card', reason: 'The alliance card is not generated yet.' });
     problems.push({ subject: 'traitor deck', reason: 'Traitor cards are not generated yet.' });
     const captured: SlotCapture[] = [];
