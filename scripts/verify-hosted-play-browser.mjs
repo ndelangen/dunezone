@@ -18,6 +18,7 @@ import {
 import { mapViewFramingPoints } from '../src/app/routes/_app/play/tablePlateGeometry.ts';
 import { turnTrackerLayout } from '../src/app/routes/_app/play/turnTrackerGeometry.ts';
 import { phaseAt, phaseForTurn, TABLE_PHASES, tableProgressFor } from '../src/shared/play/phases.ts';
+import { KEEPALIVE_PING, KEEPALIVE_PONG } from '../src/shared/play/protocol.ts';
 import { isSpicePiece } from '../src/shared/play/spice.ts';
 import { spiceSupplySlot } from '../src/shared/play/spiceSupply.ts';
 import { stackTopHeight } from '../src/shared/play/tableGeometry.ts';
@@ -318,10 +319,16 @@ async function peer(label, context) {
       connection.closed = true;
     });
     socket.on('framesent', (frame) => {
+      if (frame.payload.toString() === KEEPALIVE_PING) {
+        return;
+      }
       const message = JSON.parse(frame.payload.toString());
       state.sent.push(message.type === 'admit' ? { type: 'admit', ticketLength: message.ticket.length } : message);
     });
     socket.on('framereceived', (frame) => {
+      if (frame.payload.toString() === KEEPALIVE_PONG) {
+        return;
+      }
       const message = JSON.parse(frame.payload.toString());
       if (typeof message.phaseCooldownMs === 'number') {
         state.phaseCooldown = { ms: message.phaseCooldownMs, receivedAt: Date.now() };

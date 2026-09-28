@@ -25,7 +25,12 @@ import type { DraftFaction } from '../../src/shared/play/drafting';
 import { isDraftAction } from '../../src/shared/play/drafting';
 import type { StoredSpawnContents } from '../../src/shared/play/inventory';
 import type { ClientMessage, ServerClock, ServerMessage, Viewer } from '../../src/shared/play/protocol';
-import { TICKET_EXPIRED_CLOSE_CODE, clientMessageSchema } from '../../src/shared/play/protocol';
+import {
+  KEEPALIVE_PING,
+  KEEPALIVE_PONG,
+  TICKET_EXPIRED_CLOSE_CODE,
+  clientMessageSchema,
+} from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
 import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
 import { SPECTATOR_COLOR } from './actors';
@@ -191,6 +196,7 @@ export class GameRoom extends DurableObject<GameEnv> {
   }
   constructor(ctx: DurableObjectState, env: GameEnv) {
     super(ctx, env);
+    this.ctx.setWebSocketAutoResponse(new WebSocketRequestResponsePair(KEEPALIVE_PING, KEEPALIVE_PONG));
     this.diagnostics = new GameDiagnostics(ctx.id.toString(), env.GIT_SHA);
     this.session = new GameSession(ctx.storage);
     if (this.metadata) {

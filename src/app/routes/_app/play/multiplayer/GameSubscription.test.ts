@@ -1,5 +1,5 @@
 import { initialSnapshot } from '@shared/play/commands';
-import { TICKET_EXPIRED_CLOSE_CODE } from '@shared/play/protocol';
+import { KEEPALIVE_INTERVAL_MS, KEEPALIVE_PONG, TICKET_EXPIRED_CLOSE_CODE } from '@shared/play/protocol';
 import { frameChange } from '@shared/play/updates';
 import type { RoomView } from '@shared/play/updates';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
@@ -243,4 +243,18 @@ test('a ticket that lapses before or while the socket opens waits in the same ba
   turnedAway.open();
   turnedAway.close(TICKET_EXPIRED_CLOSE_CODE);
   await reconnectsAfter(4000);
+});
+
+test('an open socket sends a keepalive on an interval, ignores the answer and stops once it closes', async () => {
+  const { subscription, socket } = await subscribed();
+  await vi.advanceTimersByTimeAsync(KEEPALIVE_INTERVAL_MS - 1);
+  expect(socket.keepalives).toBe(0);
+  await vi.advanceTimersByTimeAsync(1);
+  expect(socket.keepalives).toBe(1);
+  socket.onmessage?.({ data: KEEPALIVE_PONG });
+  expect(subscription.status).toBe('authorized');
+  expect(subscription.ready).toBe(true);
+  socket.close(1006);
+  await vi.advanceTimersByTimeAsync(KEEPALIVE_INTERVAL_MS * 2);
+  expect(socket.keepalives).toBe(1);
 });
