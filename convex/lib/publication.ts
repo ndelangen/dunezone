@@ -5,6 +5,11 @@ import {
   FACTION_LEADER_ASSET_TYPE,
 } from '../../src/shared/asset-publishing/componentPublication';
 import {
+  FACTION_TROOP_ASSET_TYPE,
+  factionTroopFaces,
+  factionTroopPublicationId,
+} from '../../src/shared/asset-publishing/factionTroopPublication';
+import {
   DECK_ASSET_TYPE,
   RECTANGLE_TOKEN_ASSET_TYPE,
   FACTION_SHEET_ASSET_TYPE,
@@ -288,6 +293,44 @@ export async function publicationSettings(ctx: PublicationReadCtx) {
     throw new Error('Publication invariant violated: duplicate admin settings');
   }
   return settings[0] ?? null;
+}
+
+/**
+ * Enqueues each troop face whose artwork changed, and removes pending work for faces the roster no longer has, such as a deleted troop or a back that is no longer authored.
+ * Waits for activation like the token, since the publisher that draws troops deploys after Convex.
+ * Activation's scan is the backfill.
+ */
+export async function enqueueFactionTroopPublications(
+  ctx: MutationCtx,
+  faction: { _id: Id<'factions'>; data: unknown },
+  previousData?: unknown
+): Promise<number> {
+  if (!(await publicationSettings(ctx))?.renderer_revisions[FACTION_TROOP_ASSET_TYPE]) {
+    return 0;
+  }
+  const faceIds = (data: unknown) =>
+    new Map(
+      factionTroopFaces(data).flatMap(({ troopId, front, back }) => {
+        const id = factionTroopPublicationId(faction._id, troopId);
+        return [[id, front] as const, ...(back ? [[publicationFaceId(id, 'back'), back] as const] : [])];
+      })
+    );
+  const current = faceIds(faction.data);
+  const previous = previousData === undefined ? new Map() : faceIds(previousData);
+  let enqueued = 0;
+  for (const [assetId, assetData] of current) {
+    if (JSON.stringify(previous.get(assetId)) === JSON.stringify(assetData)) {
+      continue;
+    }
+    await enqueuePublicationJob(ctx, { assetType: FACTION_TROOP_ASSET_TYPE, assetId, assetData });
+    enqueued += 1;
+  }
+  for (const assetId of previous.keys()) {
+    if (!current.has(assetId)) {
+      await supersedePendingPublication(ctx, FACTION_TROOP_ASSET_TYPE, assetId);
+    }
+  }
+  return enqueued;
 }
 
 /** Enqueues changed complete Leaders and removes pending work for members removed from the roster. */

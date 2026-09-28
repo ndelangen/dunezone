@@ -2,6 +2,7 @@ import { zodToConvex } from 'convex-helpers/server/zod4';
 import { v } from 'convex/values';
 
 import { factionMemberPublicationId } from '../src/shared/asset-publishing/componentPublication';
+import { factionTroopPublicationId } from '../src/shared/asset-publishing/factionTroopPublication';
 import type { PublicationAssetType } from '../src/shared/asset-publishing/publicationTargets';
 import {
   isPublicationAssetType,
@@ -80,6 +81,18 @@ export const factionDefinition = query({
         front: await publishedFace(ctx, 'faction-leader', factionMemberPublicationId(row._id, leader.memberId)),
       });
     }
+    const troops = [];
+    for (const troop of parsed.success ? parsed.data.troops : []) {
+      if (!troop.troopId) {
+        continue;
+      }
+      const id = factionTroopPublicationId(row._id, troop.troopId);
+      troops.push({
+        troopId: troop.troopId,
+        front: await publishedFace(ctx, 'faction-troop', id),
+        back: await publishedFace(ctx, 'faction-troop', publicationFaceId(id, 'back')),
+      });
+    }
     return {
       faction: { id: row._id, slug: row.slug, name: parsed.success ? parsed.data.name : '' },
       data: parsed.success ? parsed.data : null,
@@ -90,6 +103,7 @@ export const factionDefinition = query({
         alliance: await publishedFace(ctx, 'cardback-preset', 'alliance'),
       },
       leaders,
+      troops,
     };
   },
 });

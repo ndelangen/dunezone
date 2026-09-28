@@ -17,6 +17,7 @@ import { CardBack } from '@game/assets/card/Back';
 import { SpiceCard } from '@game/assets/card/Spice';
 import { LeaderToken } from '@game/assets/faction/leader/Leader';
 import { Token as FactionToken } from '@game/assets/faction/token/Token';
+import { TroopToken } from '@game/assets/faction/troop/Troop';
 import { CustomToken } from '@game/assets/token/Custom';
 import { RectangleToken } from '@game/assets/token/Rectangle';
 import { TreacheryCard } from '@game/assets/treachery/Treachery';
@@ -101,6 +102,22 @@ function captureSubject(snapshot: PublisherCaptureSnapshot): CaptureSubject {
           <CaptureFrame assetType={snapshot.assetType}>
             <AssetRenderModeProvider mode="print">
               <FactionToken {...snapshot.payload} />
+            </AssetRenderModeProvider>
+          </CaptureFrame>
+        ),
+      };
+    case 'faction-troop':
+      return {
+        node: (
+          <CaptureFrame assetType={snapshot.assetType}>
+            <AssetRenderModeProvider mode="print">
+              <TroopToken
+                image={snapshot.payload.image}
+                background={snapshot.payload.background}
+                star={snapshot.payload.star}
+                hue={snapshot.payload.hue}
+                striped={snapshot.payload.striped}
+              />
             </AssetRenderModeProvider>
           </CaptureFrame>
         ),

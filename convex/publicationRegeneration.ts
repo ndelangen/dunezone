@@ -16,6 +16,7 @@ import {
   enqueueFactionLeaderPublications,
   enqueueFactionSheetPublication,
   enqueueFactionTokenPublication,
+  enqueueFactionTroopPublications,
 } from './lib/publication';
 import { enqueueRulebookFirstPagePublication } from './lib/rulebookPublication';
 import type { MutationCtx } from './types';
@@ -63,6 +64,18 @@ async function scanFactionLeaders(ctx: MutationCtx, cursor: string | null) {
   let enqueued = 0;
   for (const faction of page.page) {
     enqueued += await enqueueFactionLeaderPublications(ctx, faction);
+  }
+  return scanResult(page, enqueued);
+}
+
+async function scanFactionTroops(ctx: MutationCtx, cursor: string | null) {
+  const page = await ctx.db
+    .query('factions')
+    .withIndex('by_deleted', (q) => q.eq('is_deleted', false))
+    .paginate({ cursor, numItems: REGENERATION_BATCH_SIZE });
+  let enqueued = 0;
+  for (const faction of page.page) {
+    enqueued += await enqueueFactionTroopPublications(ctx, faction);
   }
   return scanResult(page, enqueued);
 }
@@ -130,6 +143,8 @@ async function scanPage(ctx: MutationCtx, assetType: string, cursor: string | nu
       return await scanFactionPublications(ctx, cursor, 'faction-token');
     case 'faction-leader':
       return await scanFactionLeaders(ctx, cursor);
+    case 'faction-troop':
+      return await scanFactionTroops(ctx, cursor);
     case FACTION_SHEET_ASSET_TYPE:
       return await scanFactionPublications(ctx, cursor, FACTION_SHEET_ASSET_TYPE);
     /*

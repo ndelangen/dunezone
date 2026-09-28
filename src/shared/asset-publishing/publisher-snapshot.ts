@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import { rulebookPdfCaptureSnapshotSchema } from '../rulebooks/pdfPublication';
 import { factionLeaderAssetDataSchema } from './componentPublication';
+import { factionTroopAssetDataSchema } from './factionTroopPublication';
 import {
   DECK_ASSET_TYPE,
   deckCardbackAssetDataSchema,
@@ -35,6 +36,12 @@ export const publisherCaptureSnapshotSchema = z.discriminatedUnion('assetType', 
     ok: z.literal(true),
     assetType: z.literal('faction-token'),
     payload: factionTokenAssetDataSchema,
+    payloadHash: payloadHashSchema,
+  }),
+  z.strictObject({
+    ok: z.literal(true),
+    assetType: z.literal('faction-troop'),
+    payload: factionTroopAssetDataSchema,
     payloadHash: payloadHashSchema,
   }),
   z.strictObject({
