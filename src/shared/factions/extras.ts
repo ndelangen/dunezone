@@ -33,3 +33,18 @@ export const factionExtrasSchema = z.array(factionExtraSchema).superRefine((extr
     seen.add(key);
   });
 });
+
+/**
+ * The retired TTS link lists (`{name, items}`) that `extras` held before #1226.
+ * Retained Play games and frozen publications can still carry them, so reads drop them rather than fail;
+ * `faction_extras_references_v1` removes them from faction rows.
+ */
+export function isLegacyFactionExtra(value: unknown): boolean {
+  return typeof value === 'object' && value !== null && 'items' in value && !('slug' in value);
+}
+
+/** Stored-data reader for the compatibility window: legacy link lists read as absent, anything else must be a reference. */
+export const storedFactionExtrasSchema = z.preprocess(
+  (value) => (Array.isArray(value) ? value.filter((entry) => !isLegacyFactionExtra(entry)) : value),
+  factionExtrasSchema
+);

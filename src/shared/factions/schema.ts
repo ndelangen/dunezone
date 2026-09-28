@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { ALL, BACKGROUND, GENERIC, LEADERS, LOGO, PLANET, TEXTURE, TROOP, TROOP_MODIFIER } from '../assetIds';
 import { marksOnlyFormattedTextSchema, proseFormattedTextSchema } from '../formattedText';
 import { extraPhasesSchema } from './extraPhases';
-import { factionExtrasSchema } from './extras';
+import { factionExtrasSchema, storedFactionExtrasSchema } from './extras';
 import { assertUniqueFactionMemberIds, FactionMemberIdSchema } from './memberIdentity';
 
 const STRENGTH = z.union([z.number().int(), z.string().length(1)]);
@@ -159,8 +159,12 @@ const factionBaseShape = {
     alliance: RULE.omit({ karama: true, title: true }).required(),
   }),
 
-  /** Catalogue decks, bundles and tokens this faction supplies at setup (#1226); a missing field reads as `[]`. */
-  extras: factionExtrasSchema.optional(),
+  /**
+   * Catalogue decks, bundles and tokens this faction supplies at setup (#1226);
+   * a missing field reads as `[]`.
+   * Reads drop the retired TTS link lists until `faction_extras_references_v1` is verified everywhere.
+   */
+  extras: storedFactionExtrasSchema.optional(),
 
   /** Phases this faction adds to setup or every turn (#1138); a missing field reads as `[]`. */
   extraPhases: extraPhasesSchema.optional(),
