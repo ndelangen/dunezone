@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, test } from 'vitest';
 
 import { readGameConfig, validateGameDeployContract, validateGameHealth } from './game-deployment-contract';
+import { browserFlows } from './verify-hosted-flows';
 
 const SHA = 'a'.repeat(40);
 const environment = {
@@ -45,6 +46,13 @@ describe('game deployment contract', () => {
     expect(job).not.toContain('secrets.');
     expect(job).not.toContain('.env');
     expect(job).not.toContain('admin-key');
+  });
+
+  test('gives every shard a hosted browser flow names its own hosted_play job', () => {
+    const workflow = readFileSync('.github/workflows/reusable-verify.yml', 'utf8');
+    const job = workflow.slice(workflow.indexOf('\n  hosted_play:'), workflow.indexOf('\n  tool_e2e:'));
+    const shards = [...job.matchAll(/^ +- shard: (\S+)$/gm)].map(([, shard]) => shard);
+    expect(new Set(shards)).toEqual(new Set(Object.values(browserFlows).map(({ shard }) => shard)));
   });
 
   test('health proves the exact bound deployment without cached or alternate-origin responses', () => {

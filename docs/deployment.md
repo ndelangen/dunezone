@@ -164,9 +164,10 @@ refuses to start when that output is missing; the OBJ pieces are always regenera
 
 The `hosted_play` CI job runs `bun --no-env-file scripts/verify-hosted-play-stack.ts --skip-generate`
 in three shards, each on its own runner with its own stack, and `ci_ok` requires all three through
-`verify`. The `regular` shard runs `--browser-only --flow regular`, the `catalogue` shard
-`--browser-only --flow public-controls --flow battles`, and the `protocol` shard
-`--flow private-banks --flow decks`, where the protocol verifier runs first on the same stack.
+`verify`. Each flow in [`scripts/verify-hosted-flows.ts`](../scripts/verify-hosted-flows.ts) names
+its shard, and each shard runs `--shard <name>`: `regular` runs the regular flow, `catalogue`
+public-controls and battles, and `protocol` private-banks and decks. The `regular` and `catalogue`
+shards add `--browser-only`; in the `protocol` shard the protocol verifier runs first on the same stack.
 Each shard passes `--browser` with Playwright's full Chromium rather than its headless shell.
 The launcher passes `--skip-generate` to the runner, because the job's generated-images step has
 already restored the images and written the vectors. Each shard verifies the checksum of the pinned
@@ -174,7 +175,8 @@ native Convex backend release, creates a fresh database, configures real local A
 then runs its verifiers through both actual Workers.
 No hosted deployment credentials or production snapshots are used. Its generated private keys,
 admin key, SQLite database and local Worker persistence are removed on exit. Each shard keeps its
-logs and browser reports as its own artifact for 14 days and writes one step-summary row per flow.
+logs and browser reports as its own artifact for 14 days. Its step summary has a row for each of its
+flows, a flow that never started included, and one for the protocol verifier where it runs.
 The same command runs locally on supported platforms.
 For a protocol-only local rehearsal, leave out `--flow`. `--backend-binary` can then select an existing
 native executable and `--skip-build` can reuse the publisher bundle; that shortcut does not verify the
@@ -191,7 +193,8 @@ verifier first. It then runs each selected browser flow in turn through
 `scripts/verify-hosted-play-browser.mjs`. Before each flow it retires the previous flow's game and
 provisions a fresh canonical fixture through the local Workers, so every flow's new synthetic accounts
 receive the fixture's player seats. `--flow` repeats, `all` selects every flow in
-[`scripts/verify-hosted-flows.ts`](../scripts/verify-hosted-flows.ts), and `--browser-only` without it
+[`scripts/verify-hosted-flows.ts`](../scripts/verify-hosted-flows.ts), `--shard <name>` selects the
+flows that file assigns to one CI shard in place of `--flow`, and `--browser-only` without either
 runs only the regular flow; the named flows are described under
 [Verification](./technical/play-hosted.md#verification). A failed verifier does not stop the flows
 after it, and the run fails at the end naming each failed verifier. A run with browser flows rebuilds the

@@ -296,22 +296,23 @@ jobs:
     runs-on: ubuntu-latest
     # Above the launcher's own budgets, so a slow flow ends with its name and its evidence, not a
     # cancelled job. The protocol shard's budgets add up to 15 minutes: 180 s for the protocol
-    # verifier, and 60 s to provision a game plus 300 s for each of its two flows. With a 46 s boot
-    # and about 35 s of setup that comes near 16.5 minutes.
+    # verifier, then for each of its two flows up to 60 s to provision a game and a 300 s budget.
+    # With a 46 s boot and about 35 s of setup that comes near 16.5 minutes.
     timeout-minutes: 20
     strategy:
       fail-fast: false
-      # Each shard boots one stack and runs its flows on it, each on a fresh game (#1322).
-      # public-controls and battles share a shard because only they need the seeded public catalogue.
+      # Each shard boots one stack and runs its flows on it, each on a fresh game (#1322). Each flow
+      # names its shard in scripts/verify-hosted-flows.ts, and --shard selects them.
+      # scripts/game-deployment-contract.test.ts fails when a shard named there has no entry here.
       matrix:
         include:
           - shard: regular
-            flows: --browser-only --flow regular
+            protocol-verifier: false
           - shard: catalogue
-            flows: --browser-only --flow public-controls --flow battles
-          # Without --browser-only the protocol verifier runs first, then these flows on the same boot.
+            protocol-verifier: false
+          # The protocol verifier runs first, then the shard's flows on the same boot.
           - shard: protocol
-            flows: --flow private-banks --flow decks
+            protocol-verifier: true
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
@@ -333,35 +334,45 @@ jobs:
       - name: Run the ${{ matrix.shard }} shard
         # The generated-images step above already wrote the image and vector output.
         env:
-          FLOWS: ${{ matrix.flows }}
+          SHARD: ${{ matrix.shard }}
+          PROTOCOL_VERIFIER: ${{ matrix.protocol-verifier }}
         run: |
-          read -r -a flows <<< "$FLOWS"
-          bun --no-env-file scripts/verify-hosted-play-stack.ts --skip-generate "${flows[@]}" --browser "$CHROMIUM"
+          browser_only=(--browser-only)
+          if [ "$PROTOCOL_VERIFIER" = true ]; then
+            browser_only=()
+          fi
+          bun --no-env-file scripts/verify-hosted-play-stack.ts --skip-generate --shard "$SHARD" "${browser_only[@]}" --browser "$CHROMIUM"
       - name: Summarise each flow
-        # A flow the launcher stops at its budget still writes a report, failed after its last check.
-        # A driver that dies before writing one gets a row that points at its log.
-        if: ${{ !cancelled() }}
+        # One row for each of the shard's flows, and one for the protocol verifier where it runs, even
+        # when the run stopped before reaching them. A flow the launcher stops at its budget still
+        # writes a report, failed after its last check. always(), because a job that reaches
+        # timeout-minutes reads as cancelled.
+        if: always()
         env:
           SHARD: ${{ matrix.shard }}
+          PROTOCOL_VERIFIER: ${{ matrix.protocol-verifier }}
         run: |
           out=test-results/hosted-play
+          read -r -a flows <<< "$(bun -e 'import { flowsInShard } from "./scripts/verify-hosted-flows.ts"; console.log(flowsInShard(process.argv[1]).join(" "))' "$SHARD")"
           {
             echo "### hosted_play ${SHARD}"
             echo
             echo '| Flow | Result | Seconds | Failed after |'
             echo '| --- | --- | --- | --- |'
-            if [ -f "$out/verification.log" ]; then
-              if grep -q '"status": "passed"' "$out/verification.log"; then
+            if [ "$PROTOCOL_VERIFIER" = true ]; then
+              if grep -qs '"status": "passed"' "$out/verification.log"; then
                 echo '| protocol verifier | pass | | |'
-              else
+              elif [ -f "$out/verification.log" ]; then
                 echo '| protocol verifier | fail | | see verification.log |'
+              else
+                echo '| protocol verifier | did not run | | see the run step |'
               fi
             fi
-            for log in "$out"/*.log; do
-              flow="$(basename "$log" .log)"
-              case "$flow" in
-                '*' | verification | worker | wrangler) continue ;;
-              esac
+            for flow in "${flows[@]}"; do
+              if [ ! -f "$out/$flow.log" ]; then
+                echo "| $flow | did not run | | see the run step |"
+                continue
+              fi
               report=''
               for candidate in "$out/browser/$flow"-*/report.json; do
                 if [ -f "$candidate" ]; then

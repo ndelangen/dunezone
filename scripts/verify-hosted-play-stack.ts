@@ -15,7 +15,7 @@ import { bundleRunner } from './play-load/bundle';
 import { prepareHostedBackend } from './play-load/hosted-backend';
 import { runnerProfiles } from './play-load/profiles';
 import { syntheticHostedTarget } from './play-load/synthetic-target';
-import { browserFlows, isBrowserFlow } from './verify-hosted-flows';
+import { browserFlows, flowsInShard, isBrowserFlow } from './verify-hosted-flows';
 import type { BrowserFlow } from './verify-hosted-flows';
 
 const root = path.resolve(import.meta.dirname, '..');
@@ -32,6 +32,7 @@ const { values } = parseArgs({
     'load-seed': { type: 'string' },
     'load-repetition': { type: 'string' },
     flow: { type: 'string', multiple: true },
+    shard: { type: 'string' },
     'browser-only': { type: 'boolean', default: false },
     browser: { type: 'string' },
     'skip-build': { type: 'boolean', default: false },
@@ -39,15 +40,24 @@ const { values } = parseArgs({
   },
 });
 const loadProfile = runnerProfiles.find((candidate) => candidate === values['load-profile']);
-if (values['load-profile'] && (!loadProfile || values['browser-only'] || values.flow)) {
+if (values['load-profile'] && (!loadProfile || values['browser-only'] || values.flow || values.shard)) {
   throw new Error('Choose one load profile and run browser verification separately.');
 }
 if (values['load-profile'] && values['load-case'] === 'browser' && values['skip-build']) {
   throw new Error('Browser load probes need a fresh build for their disposable backend.');
 }
-/* Without --browser-only the protocol verifier runs first, and any --flow runs after it on the same stack. */
+if (values.shard !== undefined && values.flow) {
+  throw new Error('Choose --shard or --flow, not both.');
+}
+/* --shard selects the flows that verify-hosted-flows.ts assigns to one hosted_play CI shard. */
+const shardFlows = values.shard === undefined ? undefined : flowsInShard(values.shard);
+if (shardFlows?.length === 0) {
+  const shards = new Set(Object.values(browserFlows).map(({ shard }) => shard));
+  throw new Error(`--shard must be one of ${[...shards].join(', ')}.`);
+}
+/* Without --browser-only the protocol verifier runs first, and the selected flows run after it on the same stack. */
 const flows: BrowserFlow[] = [];
-for (const name of values.flow ?? (values['browser-only'] ? ['regular'] : [])) {
+for (const name of shardFlows ?? values.flow ?? (values['browser-only'] ? ['regular'] : [])) {
   if (name !== 'all' && !isBrowserFlow(name)) {
     throw new Error(`--flow must be all or one of ${Object.keys(browserFlows).join(', ')}.`);
   }
