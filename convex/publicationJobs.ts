@@ -117,12 +117,16 @@ export const takeWork = internalMutation({
       if (job.asset_type === 'faction-leader' && !settings?.renderer_revisions['faction-leader']) {
         continue;
       }
-      /* A publisher rolled back below the blocked face would reject its payload, so `.back` jobs wait for the revision that draws it. */
+      /*
+       * A publisher rolled back below the blocked face would reject its payload, so its `.back` jobs are dropped rather than held, which would let them fill the pickup window.
+       * Activating the revision that draws the face again rescans every faction, and that re-enqueues them.
+       */
       if (
         job.asset_type === 'faction-token' &&
         job.asset_id.endsWith('.back') &&
         (settings?.renderer_revisions['faction-token'] ?? 0) < FACTION_TOKEN_BACK_REVISION
       ) {
+        await ctx.db.delete(job._id);
         continue;
       }
       if (job.asset_type === 'faction-leader') {

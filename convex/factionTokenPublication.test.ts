@@ -111,7 +111,7 @@ describe('Faction token publication', () => {
     ).toEqual([factionId, `${factionId}.back`].sort());
   });
 
-  test('a revision rolled back below the blocked face holds its `.back` jobs and still hands out the front', async () => {
+  test('a revision rolled back below the blocked face drops its `.back` jobs, and reactivation re-enqueues them', async () => {
     const { t, owner } = await rulebookFixture();
     const faction = await owner.mutation(api.factions.create, {
       data: structuredClone(assetPublishingFaction),
@@ -138,6 +138,13 @@ describe('Faction token publication', () => {
         .map((item) => item.assetId);
     expect(await taken()).toEqual([faction._id]);
     await t.run(async (ctx) => ctx.db.patch(settingsId, { renderer_revisions: { 'faction-token': 2 } }));
-    expect(await taken()).toEqual([`${faction._id}.back`]);
+    expect(await taken()).toEqual([]);
+    await t.mutation(internal.publicationRegeneration.scan, {
+      assetType: 'faction-token',
+      cursor: null,
+      scanned: 0,
+      enqueued: 0,
+    });
+    expect(await taken()).toContain(`${faction._id}.back`);
   });
 });
