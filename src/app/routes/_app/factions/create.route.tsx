@@ -1,8 +1,8 @@
-import { Text } from '@mantine/core';
 import type { RouteNoticeCode } from '@shared/routeNotices';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { LoginGate } from '@ui/block/LoginGate';
-import { factionAuthoringStatusMessage } from '@ui/content/assetPublishingStatus';
+import { StatusMark } from '@ui/content/StatusMark';
+import { TopicIcon } from '@ui/content/TopicIcon';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { useRef } from 'react';
 
@@ -15,6 +15,7 @@ import { FactionComplexityIndicator } from '@app/widgets/faction-editor/FactionC
 import { FactionEditor } from '@app/widgets/faction-editor/FactionEditor';
 import type { FactionAuthoringViewHandle } from '@app/widgets/faction-editor/FactionEditor';
 import { FactionLoadPopover } from '@app/widgets/faction-editor/FactionLoadPopover';
+import { FactionPublicationStatus } from '@app/widgets/faction-editor/FactionPublicationStatus';
 import { useFactionAuthoring } from '@app/widgets/faction-editor/useFactionAuthoring';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
@@ -88,7 +89,6 @@ function CreateFactionPage() {
           copy={{
             saveLabel: 'Save faction',
             nameBlankMessage: 'Add a faction name before saving; it determines the faction URL.',
-            statusMessage: factionAuthoringStatusMessage(authoring.persistence.saveState),
           }}
           actions={{
             onSave: authoring.actions.submit,
@@ -104,9 +104,13 @@ function CreateFactionPage() {
             />
           }
           context={
-            <Text size="xs" c="dimmed">
-              Group assignment becomes available after the first save.
-            </Text>
+            <>
+              <FactionPublicationStatus />
+              <StatusMark
+                icon={<TopicIcon topic="groups" size={16} />}
+                label="Group assignment becomes available after the first save."
+              />
+            </>
           }
         />
       </PageLayout.Toolbar>

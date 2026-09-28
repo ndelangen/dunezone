@@ -85,6 +85,7 @@ async function world() {
     t,
     rulesets: seeded.rulesets,
     adminId: seeded.admin.userId,
+    memberId: seeded.member.userId,
     admin: t.withIdentity({ subject: seeded.admin.subject }),
     member: t.withIdentity({ subject: seeded.member.subject }),
   };
@@ -94,8 +95,8 @@ async function ready(t: ReturnType<typeof setup>, gameId: Id<'play_games'>) {
   await t.run(async (ctx) => await ctx.db.patch(gameId, { state: 'ready', confirmed_at: Date.now() }));
 }
 
-describe('real games are created and entered by Administrators only', () => {
-  test('only an Administrator can read the catalogue refusal for an unprepared game', async () => {
+describe('real games are created and entered by any signed-in player, Administrator or not', () => {
+  test('any signed-in player reads the catalogue refusal for an unprepared game', async () => {
     const { t, admin, member, rulesets } = await world();
     const created = await admin.mutation(api.playGames.createGame, { rulesetId: rulesets.ready, minimumPlayers: 4 });
     if (!created.ok) {
@@ -114,17 +115,17 @@ describe('real games are created and entered by Administrators only', () => {
       reason,
     });
     expect(await admin.query(api.playGames.getGame, { gameId })).toEqual({ status: 'unavailable', reason });
-    expect(await member.query(api.playGames.getGame, { gameId })).toEqual({ status: 'not_found' });
+    expect(await member.query(api.playGames.getGame, { gameId })).toEqual({ status: 'unavailable', reason });
     expect(await t.query(api.playGames.getGame, { gameId })).toEqual({ status: 'sign_in_required' });
   });
 
-  test('creatable rulesets read for an Administrator with each deck objection, and nothing for anyone else', async () => {
+  test('creatable rulesets read for any signed-in player with each deck objection, and nothing signed out', async () => {
     const { t, admin, member, rulesets } = await world();
     expect(await t.query(api.playGames.creatable, {})).toEqual({ access: 'unauthenticated' });
-    expect(await member.query(api.playGames.creatable, {})).toEqual({ access: 'not_authorized' });
-    const listing = await admin.query(api.playGames.creatable, {});
-    expect(listing.access).toBe('admin');
-    if (listing.access !== 'admin') {
+    expect(await member.query(api.playGames.creatable, {})).toEqual(await admin.query(api.playGames.creatable, {}));
+    const listing = await member.query(api.playGames.creatable, {});
+    expect(listing.access).toBe('allowed');
+    if (listing.access !== 'allowed') {
       throw new Error('unreachable');
     }
     expect(listing.rulesets.map(({ id, objection }) => [id, objection])).toEqual([
@@ -134,18 +135,17 @@ describe('real games are created and entered by Administrators only', () => {
     ]);
   });
 
-  test('creation records the ruleset, minimum and creator on a pending game that only Administrators can watch', async () => {
-    const { t, admin, member, adminId, rulesets } = await world();
+  test('creation records the ruleset, minimum and creator on a pending game any signed-in player can watch', async () => {
+    const { t, admin, member, memberId, rulesets } = await world();
     const request = { rulesetId: rulesets.ready, minimumPlayers: 4 as const };
     expect(await t.mutation(api.playGames.createGame, request)).toEqual({ ok: false, reason: 'not_authorized' });
-    expect(await member.mutation(api.playGames.createGame, request)).toEqual({ ok: false, reason: 'not_authorized' });
     for (const rulesetId of [rulesets.emptySpice, rulesets.unlinked, rulesets.deleted]) {
-      expect(await admin.mutation(api.playGames.createGame, { ...request, rulesetId })).toEqual({
+      expect(await member.mutation(api.playGames.createGame, { ...request, rulesetId })).toEqual({
         ok: false,
         reason: 'unavailable',
       });
     }
-    const created = await admin.mutation(api.playGames.createGame, request);
+    const created = await member.mutation(api.playGames.createGame, request);
     expect(created.ok).toBe(true);
     if (!created.ok) {
       throw new Error('unreachable');
@@ -155,7 +155,7 @@ describe('real games are created and entered by Administrators only', () => {
       state: 'pending',
       ruleset_id: rulesets.ready,
       minimum_players: 4,
-      creator_id: adminId,
+      creator_id: memberId,
     });
     expect(game?.fixture_key).toBeUndefined();
     /* The Worker learns the game's shape when it validates the provisioning attempt; the secret never leaves Convex. */
@@ -166,7 +166,7 @@ describe('real games are created and entered by Administrators only', () => {
     });
     expect(validation).toMatchObject({
       ok: true,
-      game: { rulesetId: rulesets.ready, minimumPlayers: 4, creator: { userId: adminId } },
+      game: { rulesetId: rulesets.ready, minimumPlayers: 4, creator: { userId: memberId } },
     });
     expect(validation).not.toHaveProperty('fixtureKey');
     expect(validation).not.toHaveProperty('provisional');
@@ -179,11 +179,11 @@ describe('real games are created and entered by Administrators only', () => {
         attemptId: game!.attempt_id,
       })
     ).toEqual({ ok: false });
-    await t.run(async (ctx) => await ctx.db.patch(created.gameId, { creator_id: adminId }));
+    await t.run(async (ctx) => await ctx.db.patch(created.gameId, { creator_id: memberId }));
 
     expect(await t.query(api.playGames.getGame, { gameId: created.gameId })).toEqual({ status: 'sign_in_required' });
-    expect(await member.query(api.playGames.getGame, { gameId: created.gameId })).toEqual({ status: 'not_found' });
-    expect(await admin.query(api.playGames.getGame, { gameId: 'not-a-game' })).toEqual({ status: 'not_found' });
+    expect(await member.query(api.playGames.getGame, { gameId: 'not-a-game' })).toEqual({ status: 'not_found' });
+    expect(await member.query(api.playGames.getGame, { gameId: created.gameId })).toEqual({ status: 'preparing' });
     expect(await admin.query(api.playGames.getGame, { gameId: created.gameId })).toEqual({ status: 'preparing' });
     await ready(t, created.gameId);
     expect(await admin.query(api.playGames.getGame, { gameId: created.gameId })).toEqual({
@@ -197,7 +197,17 @@ describe('real games are created and entered by Administrators only', () => {
     expect(await admin.query(api.playGames.getGame, { gameId: created.gameId })).toEqual({ status: 'unavailable' });
   });
 
-  test('admission to a real game follows the Administrator gate at every step', async () => {
+  test('creation is budgeted per account', async () => {
+    const { admin, member, rulesets } = await world();
+    const request = { rulesetId: rulesets.ready, minimumPlayers: 4 as const };
+    for (let index = 0; index < 3; index++) {
+      expect(await member.mutation(api.playGames.createGame, request)).toMatchObject({ ok: true });
+    }
+    expect(await member.mutation(api.playGames.createGame, request)).toEqual({ ok: false, reason: 'rate_limited' });
+    expect(await admin.mutation(api.playGames.createGame, request)).toMatchObject({ ok: true });
+  });
+
+  test('admission to a real game ignores the Administrator flag at every step', async () => {
     const { t, admin, member, adminId, rulesets } = await world();
     const created = await admin.mutation(api.playGames.createGame, { rulesetId: rulesets.ready, minimumPlayers: 6 });
     if (!created.ok) {
@@ -205,27 +215,17 @@ describe('real games are created and entered by Administrators only', () => {
     }
     await ready(t, created.gameId);
     const game = (await t.run(async (ctx) => await ctx.db.get(created.gameId)))!;
-    expect(await member.mutation(api.playAdmission.issueTicket, { gameId: created.gameId })).toEqual({
-      ok: false,
-      reason: 'not_authorized',
+    expect(await member.mutation(api.playAdmission.issueTicket, { gameId: created.gameId })).toMatchObject({
+      ok: true,
     });
     const issued = await admin.mutation(api.playAdmission.issueTicket, { gameId: created.gameId });
     if (!issued.ok) {
       throw new Error('Ticket issuance refused');
     }
-    /* Administrator status lost between issuing and redeeming refuses the redemption. */
+    /* Losing Administrator status between issuing and redeeming changes nothing. */
     await t.run(async (ctx) => await ctx.db.patch(adminId, { isAdmin: false }));
     const credentials = { gameId: created.gameId, secret: game.secret };
-    expect(await t.mutation(api.playAdmission.redeemTicket, { ...credentials, ticket: issued.ticket })).toEqual({
-      ok: false,
-      reason: 'refused',
-    });
-    await t.run(async (ctx) => await ctx.db.patch(adminId, { isAdmin: true }));
-    const again = await admin.mutation(api.playAdmission.issueTicket, { gameId: created.gameId });
-    if (!again.ok) {
-      throw new Error('Ticket issuance refused');
-    }
-    const admission = await t.mutation(api.playAdmission.redeemTicket, { ...credentials, ticket: again.ticket });
+    const admission = await t.mutation(api.playAdmission.redeemTicket, { ...credentials, ticket: issued.ticket });
     if (!admission.ok) {
       throw new Error('Admission refused');
     }
@@ -236,9 +236,8 @@ describe('real games are created and entered by Administrators only', () => {
         registrationIds: [admission.registrationId],
       });
     expect(await watch()).toMatchObject({ ok: true, entries: [{ allowed: true }] });
-    /* Unlike the fixture, a real game revokes a player who stops being an Administrator. */
-    await t.run(async (ctx) => await ctx.db.patch(adminId, { isAdmin: false }));
-    expect(await watch()).toMatchObject({ ok: true, entries: [{ allowed: false }] });
+    await t.run(async (ctx) => await ctx.db.patch(adminId, { isAdmin: true }));
+    expect(await watch()).toMatchObject({ ok: true, entries: [{ allowed: true }] });
   });
 
   test('provisioning and admission name a player from their profile within the display-name cap', async () => {

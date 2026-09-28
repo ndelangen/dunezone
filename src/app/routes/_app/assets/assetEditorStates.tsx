@@ -2,6 +2,8 @@ import { Alert, Group, Text } from '@mantine/core';
 import { ASSET_TYPES, isAssetType } from '@shared/assets/types';
 import { useNavigate } from '@tanstack/react-router';
 import { NotAvailable } from '@ui/block/NotAvailable';
+import { StatusMark } from '@ui/content/StatusMark';
+import { TopicIcon } from '@ui/content/TopicIcon';
 import { AssignOptions, AssignPopover } from '@ui/control/AssignPopover';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { IconAction } from '@ui/control/IconAction';
@@ -191,9 +193,7 @@ export function useAssetGroupActions({
   return {
     auxiliaryActions,
     context: assignedGroup ? (
-      <Text size="xs" c="dimmed">
-        Group access: <strong>{assignedGroup.name}</strong>
-      </Text>
+      <StatusMark icon={<TopicIcon topic="groups" size={16} />} label={`Group access: ${assignedGroup.name}`} />
     ) : null,
     error: setAssetGroup.error ? (
       <Alert color="red" variant="light" role="alert" title="Could not change group">
