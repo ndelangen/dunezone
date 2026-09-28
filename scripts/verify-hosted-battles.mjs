@@ -121,7 +121,7 @@ export async function verifyBattles(toolkit) {
   );
   assert.equal(observer.view().snapshot.battlePlan, null);
   const cardName = battleCard.items[0].artwork.name;
-  await verifyFunding({ a, b, observer, token, cardName, startingSpice, until, capture });
+  await verifyFunding({ a, b, observer, token, cardName, startingSpice, until, converged, capture });
   await act(a, 'Ready for battle');
   await act(b, 'Ready for battle');
   await until(() => a.view().snapshot.battle.stage === 'countdown', 'Both Ready did not start countdown.');
@@ -197,7 +197,7 @@ export async function verifyBattles(toolkit) {
   await focus(a, 'map');
 }
 
-async function verifyFunding({ a, b, observer, token, cardName, startingSpice, until, capture }) {
+async function verifyFunding({ a, b, observer, token, cardName, startingSpice, until, converged, capture }) {
   /* One physical troop type renders as the single Troops field since the accepted workbench landed. */
   const count = a.page.getByRole('textbox', { name: 'Troops', exact: true });
   await count.click();
@@ -218,6 +218,8 @@ async function verifyFunding({ a, b, observer, token, cardName, startingSpice, u
   await a.page.getByRole('option', { name: 'Recovery token', exact: true }).click();
   await until(() => a.view().snapshot.battlePlan.leaderId === token.id, 'Leader did not commit.');
   await commitCard({ who: a, name: cardName, until });
+  /* B's view is read once it holds A's commit; before then it would show no reveal whatever the commit sent (#1481). */
+  await converged([a, b]);
   assert.equal(b.view().snapshot.battle.revealed, undefined);
   await a.page.getByRole('separator', { name: 'Resize controls panel' }).press('End');
   await a.page.getByRole('heading', { name: 'Battle', exact: true }).scrollIntoViewIfNeeded();
