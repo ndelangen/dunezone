@@ -293,7 +293,9 @@ jobs:
 
   hosted_play:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # The launcher's own limits (Worker start, protocol verifier, each flow and its fixture) add up to
+    # about 20 minutes, so a stuck run ends with the launcher's summary and evidence, not a cancelled job.
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
