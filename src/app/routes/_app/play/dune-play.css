@@ -92,6 +92,46 @@ html[data-motion="reduce"] .dune-play-stage .dune-play-shell {
   user-select: none;
 }
 
+/* A piece's projected tag: its count, with its name hung above so the count keeps its place. */
+:where(.dune-play-shell) .scene-piece-tag {
+  position: relative;
+  display: inline-block;
+}
+
+:where(.dune-play-shell) .scene-piece-name {
+  position: absolute;
+  bottom: calc(100% + 0.2rem);
+  left: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  translate: -50% 0;
+  pointer-events: none;
+  user-select: none;
+  white-space: nowrap;
+  visibility: hidden;
+  padding: 0.2rem 0.45rem;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 0.4rem;
+  color: #fff4df;
+  background: rgba(24, 14, 9, 0.9);
+  box-shadow: 0 5px 14px rgba(0, 0, 0, 0.28);
+  font-size: 0.65rem;
+  font-weight: 800;
+  line-height: 1.2;
+  text-align: center;
+}
+
+:where(.dune-play-shell) .scene-piece-name__owner {
+  color: #f6c879;
+  font-size: 0.58rem;
+  font-weight: 700;
+}
+
+:where(.dune-play-shell)[data-show-names="true"] .scene-piece-name {
+  visibility: visible;
+}
+
 :where(.dune-play-shell) .scene-piece-count {
   display: inline-block;
   pointer-events: none;

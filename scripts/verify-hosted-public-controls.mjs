@@ -16,6 +16,7 @@ export async function verifyPublicControls({
   focus,
   openTab,
   point,
+  carrySteps,
   capture,
   until,
   passed,
@@ -160,7 +161,7 @@ export async function verifyPublicControls({
       'Inventory drag did not begin.'
     );
     const destination = await point(a, [0, 0.38, 0], 'map');
-    await a.page.mouse.move(destination.x, destination.y, { steps: 12 });
+    await a.page.mouse.move(destination.x, destination.y, { steps: carrySteps });
     await a.page.mouse.up();
     await until(
       () => a.view().snapshot.table.pieces.some((piece) => piece.id === token.id && !piece.inventory),

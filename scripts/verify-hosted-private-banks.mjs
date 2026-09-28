@@ -18,6 +18,7 @@ export async function verifyPrivateBanks(toolkit) {
     openTab,
     point,
     supplyShortcut,
+    carrySteps,
     capture,
     until,
     passed,
@@ -133,7 +134,7 @@ export async function verifyPrivateBanks(toolkit) {
     await a.page.mouse.move(start.x, start.y);
     await a.page.mouse.down();
     await a.page.waitForTimeout(350);
-    await a.page.mouse.move(target.x, target.y, { steps: 12 });
+    await a.page.mouse.move(target.x, target.y, { steps: carrySteps });
     await a.page.mouse.up();
     await until(() => spices(a).length === 0, 'Dropping spice on the supply disc did not dispose of it.');
     assert.equal(a.view().snapshot.bank.balance, startingSpice);
