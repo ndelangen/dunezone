@@ -310,6 +310,56 @@ export const SpiceDiscAnswersOnReturn = meta.story({
   },
 });
 
+/**
+ * A deck hovered when the pointer leaves the canvas, or when the window loses focus, stops answering its shuffle key.
+ * The key acts again once the pointer is back over the deck.
+ */
+export const DeckShortcutsEndOffTheTable = meta.story({
+  beforeEach: install(() => productTransport()),
+  play: async ({ canvasElement }) => {
+    const { page, document } = await tablePage(canvasElement);
+    const deck = playingSnapshot().table.pieces.find((piece) => piece.id === 'treachery-deck')!;
+    const [clientX, clientY] = mapViewPoint(document, [
+      deck.position[0],
+      deck.position[1] + stackTopHeight(deck),
+      deck.position[2],
+    ]);
+    const scene = document.querySelector('canvas')!;
+    const pointer = { bubbles: true, cancelable: true, pointerId: 1, pointerType: 'mouse', clientX, clientY };
+    const hoverTheDeck = (offset: number) =>
+      waitFor(
+        () => {
+          scene.dispatchEvent(new PointerEvent('pointermove', { ...pointer, clientX: clientX + offset }));
+          expect(scene.style.cursor).toBe('grab');
+        },
+        { timeout: 30_000 }
+      );
+    const commands = () => session.transport.messages.filter((message) => message.type === 'command').length;
+
+    await hoverTheDeck(0);
+    leaveTheCanvas(page, scene, pointer);
+    await waitFor(() => expect(scene.style.cursor).toBe('default'));
+    const before = commands();
+    await userEvent.keyboard('r');
+    expect(commands()).toBe(before);
+
+    await hoverTheDeck(1);
+    document.defaultView!.dispatchEvent(new FocusEvent('blur'));
+    await waitFor(() => expect(scene.style.cursor).toBe('default'));
+    await userEvent.keyboard('r');
+    expect(commands()).toBe(before);
+
+    await hoverTheDeck(2);
+    await userEvent.keyboard('r');
+    await waitFor(() =>
+      expect(lastCommand()).toMatchObject({
+        type: 'command',
+        action: { kind: 'deck-shuffle', pieceId: 'treachery-deck' },
+      })
+    );
+  },
+});
+
 /** The pointer moves to the view picker, so a pointerleave reaches the canvas and each ancestor that does not contain the picker. */
 function leaveTheCanvas(page: ReturnType<typeof within>, scene: HTMLCanvasElement, pointer: PointerEventInit) {
   const picker = page.getByRole('group', { name: 'Table view' });

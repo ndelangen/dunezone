@@ -837,6 +837,42 @@ function useScenePointerSession(onActiveChange: (active: boolean) => void) {
   );
 }
 
+/**
+ * Ends every hover when the pointer leaves the canvas, the window loses focus or the page hides, so no hover-armed shortcut acts off the table.
+ * R3F's own canvas `pointerleave` clears only pointer id 0, and a Chromium mouse is id 1, so its hover would outlive the leave.
+ * Its `onPointerCancel` handler forgets the given pointer and fires the real leave handlers, and the next move over an object enters it afresh.
+ */
+function useCanvasHoverReset() {
+  const events = useThree((state) => state.events);
+  const internal = useThree((state) => state.internal);
+  useEffect(() => {
+    const target = events.connected as EventTarget | undefined;
+    const cancel = events.handlers?.onPointerCancel;
+    if (!target || !cancel) {
+      return;
+    }
+    const leave = (event: Event) => cancel(event);
+    const cancelAll = () => {
+      for (const pointerId of internal.pointerMap.keys()) {
+        cancel(new PointerEvent('pointercancel', { pointerId }));
+      }
+    };
+    const hidden = () => {
+      if (document.visibilityState === 'hidden') {
+        cancelAll();
+      }
+    };
+    target.addEventListener('pointerleave', leave);
+    window.addEventListener('blur', cancelAll);
+    document.addEventListener('visibilitychange', hidden);
+    return () => {
+      target.removeEventListener('pointerleave', leave);
+      window.removeEventListener('blur', cancelAll);
+      document.removeEventListener('visibilitychange', hidden);
+    };
+  }, [events.connected, events.handlers, internal]);
+}
+
 function pieceHoverCursor(canInteract: boolean, interactionBlocked: boolean, gestureBlocked: boolean) {
   if (interactionBlocked) {
     return canInteract ? 'not-allowed' : 'default';
@@ -1116,6 +1152,7 @@ function SceneContents({
   const { state, renderedPieces, selectPiece } = useTabletop();
   const { controlsEnabled, onPointerSessionChange } = useSceneInteractions(onInteractionActiveChange);
   useScenePointerSession(onPointerSessionChange);
+  useCanvasHoverReset();
 
   return (
     <>
