@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 
 import { defaultFaction } from './defaultFaction';
-import { factionAuthoringCoverage, factionAuthoringWarnings, preserveFactionExtras } from './factionAuthoringContract';
+import { factionAuthoringCoverage, factionAuthoringWarnings } from './factionAuthoringContract';
 
 function schemaLeafPaths(schema: z.ZodType, prefix = ''): string[] {
   if (schema instanceof z.ZodOptional || schema instanceof z.ZodNullable || schema instanceof z.ZodDefault) {
@@ -50,22 +50,17 @@ describe('faction authoring contract', () => {
     ];
     baseline.troops[0].planet = 'Planet Test';
     baseline.extras = [
-      {
-        name: 'Existing extra',
-        items: [{ url: 'https://example.com/extra.png' }],
-      },
+      { type: 'deck', slug: 'omens' },
+      { type: 'token-disc', slug: 'sandworm' },
     ];
 
-    const submitted = preserveFactionExtras(
-      {
-        ...structuredClone(baseline),
-        rules: {
-          ...structuredClone(baseline.rules),
-          alliance: { text: '' },
-        },
+    const submitted = {
+      ...structuredClone(baseline),
+      rules: {
+        ...structuredClone(baseline.rules),
+        alliance: { text: '' },
       },
-      baseline
-    );
+    };
     const parsed = FactionInputSchema.parse(submitted);
 
     expect(parsed.planet).toEqual(baseline.planet);
@@ -130,7 +125,7 @@ describe('faction authoring contract', () => {
       ],
     };
 
-    const parsed = FactionInputSchema.parse(preserveFactionExtras(structuredClone(faction), faction));
+    const parsed = FactionInputSchema.parse(structuredClone(faction));
 
     expect(parsed.troops).toEqual(faction.troops);
     expect(parsed.troops[0].back).toEqual(faction.troops[0].back);
@@ -173,7 +168,7 @@ describe('faction authoring contract', () => {
       },
     ];
 
-    const parsed = FactionInputSchema.parse(preserveFactionExtras(structuredClone(faction), faction));
+    const parsed = FactionInputSchema.parse(structuredClone(faction));
 
     expect(parsed.hero).toEqual(faction.hero);
     expect(parsed.leaders).toEqual(faction.leaders);

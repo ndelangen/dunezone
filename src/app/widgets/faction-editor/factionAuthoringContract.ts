@@ -16,6 +16,7 @@ export const factionAuthoringChapters = [
   { id: 'rules', label: 'Rules' },
   { id: 'advantages', label: 'Advantages' },
   { id: 'phases', label: 'Phases' },
+  { id: 'extras', label: 'Extras' },
   { id: 'complexity', label: 'Complexity' },
 ] as const;
 
@@ -162,17 +163,6 @@ export function invalidPhaseRowCount(faction: Faction): number {
   return (faction.extraPhases ?? []).filter((row) => Object.keys(phaseDeclarationProblems(row)).length > 0).length;
 }
 
-/** The editor never owns extras while their domain model is unsettled. */
-export function preserveFactionExtras(values: Faction, baseline: Faction): Faction {
-  const next = structuredClone(values);
-  if (baseline.extras === undefined) {
-    delete next.extras;
-  } else {
-    next.extras = structuredClone(baseline.extras);
-  }
-  return next;
-}
-
 type FactionAuthoringCoverageState = 'control' | 'derived' | 'preserved';
 
 type CoverageEntry = {
@@ -306,8 +296,5 @@ export const factionAuthoringCoverage: Readonly<Record<string, CoverageEntry>> =
     state: 'derived',
     owner: 'Shared faction-complexity calculation at the create and update boundary',
   }),
-  ...coverage(['extras[].name', 'extras[].description', 'extras[].items[].url', 'extras[].items[].description'], {
-    state: 'preserved',
-    owner: 'Intentional extras exception in the faction authoring contract',
-  }),
+  ...coverage(['extras[].type', 'extras[].slug'], { state: 'control', chapter: 'extras' }),
 };

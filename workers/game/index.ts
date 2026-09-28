@@ -16,7 +16,6 @@ import {
   playReconcileAccountsResultSchema,
   playRedeemTicketResultSchema,
 } from '../../src/shared/play/admission';
-import type { ExtraReference } from '../../src/shared/play/capture';
 import {
   PLAY_DIRECTORY_RETRY_CEILING_MS,
   PLAY_DIRECTORY_RETRY_MS,
@@ -243,19 +242,12 @@ export class GameRoom extends DurableObject<GameEnv> {
     return this.session.retainRuleset(capture, options);
   }
 
-  protected async retainFactionCapture(
-    factionId: string,
-    extras: readonly ExtraReference[] = [],
-    options: { provisional?: boolean } = {}
-  ) {
+  protected async retainFactionCapture(factionId: string, options: { provisional?: boolean } = {}) {
     const existing = this.session.retainedFaction(factionId);
     if (existing) {
       return existing;
     }
-    const capture = await new GameCatalogue(this.env.CONVEX_URL, this.env.APPLICATION_ORIGIN).captureFaction(
-      factionId,
-      extras
-    );
+    const capture = await new GameCatalogue(this.env.CONVEX_URL, this.env.APPLICATION_ORIGIN).captureFaction(factionId);
     return this.session.retainFaction(capture, options);
   }
 
@@ -1301,7 +1293,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     this.assigning = true;
     try {
       for (const faction of prepared.factions) {
-        await this.retainFactionCapture(faction, [], { provisional: this.metadata?.provisional === true });
+        await this.retainFactionCapture(faction, { provisional: this.metadata?.provisional === true });
       }
       if (this.session.completeAssignment(prepared)) {
         this.deliverDirectorySoon();

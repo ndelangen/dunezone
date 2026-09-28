@@ -3,8 +3,6 @@ import { FactionInputSchema } from '@shared/factions/schema';
 
 import type { Faction, FactionEntry } from '@db/factions';
 
-import { preserveFactionExtras } from './factionAuthoringContract';
-
 /** The two form operations the session needs; the React form adapter satisfies this. */
 export type FactionFormPort = {
   reset: (values: Faction, options?: { keepDefaultValues?: boolean }) => void;
@@ -27,7 +25,7 @@ function formatZodIssues(error: { issues: readonly { path: PropertyKey[]; messag
 
 /**
  * Faction authoring session: a framework-free machine owning the baselines (saved canonical vs.
- * loaded draft source), extras preservation, canonical validation, save lifecycle, and source switching.
+ * loaded draft), canonical validation, save lifecycle, and source switching.
  * React hosts only the rendering-bound form;
  * the session drives it through `FactionFormPort`.
  * Testable in plain vitest with fake ports (ADR-0002).
@@ -46,7 +44,6 @@ export function createFactionAuthoringSession({
   onErrors: (errors: string[]) => void;
 }) {
   let savedBaseline = structuredClone(initialData);
-  let draftSource = savedBaseline;
 
   return {
     /** The values `reset` returns to; replaced by the canonical result of each successful save. */
@@ -55,7 +52,7 @@ export function createFactionAuthoringSession({
     },
 
     async persistDraft(value: Faction): Promise<void> {
-      const parsed = FactionInputSchema.safeParse(preserveFactionExtras(value, draftSource));
+      const parsed = FactionInputSchema.safeParse(value);
       if (!parsed.success) {
         onErrors([formatZodIssues(parsed.error)]);
         return;
@@ -72,14 +69,12 @@ export function createFactionAuthoringSession({
 
       const canonical = structuredClone(entry.data);
       savedBaseline = canonical;
-      draftSource = canonical;
       form.reset(canonical);
       onSaved(entry);
     },
 
     loadDraft(draft: Faction): void {
       const next = ensureFactionMemberIds(structuredClone(draft));
-      draftSource = next;
       form.reset(next, { keepDefaultValues: true });
       form.markLoadedDraftDirty();
       persistence.reset();
@@ -88,7 +83,6 @@ export function createFactionAuthoringSession({
 
     reset(): void {
       const baseline = structuredClone(savedBaseline);
-      draftSource = baseline;
       form.reset(baseline);
       persistence.reset();
       onErrors([]);
@@ -98,7 +92,6 @@ export function createFactionAuthoringSession({
     switchSource(nextInitialData: Faction): void {
       const next = ensureFactionMemberIds(structuredClone(nextInitialData));
       savedBaseline = next;
-      draftSource = next;
       form.reset(next);
       persistence.reset();
       onErrors([]);
