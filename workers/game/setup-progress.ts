@@ -53,9 +53,9 @@ export function initialSetup(
     .filter((capture) => seated.has(capture.faction.id))
     .map((capture) => ({ factionId: capture.faction.id, declarations: capturedDeclarations(capture) }));
   const placed = composeSetup(factions, stormOrder(stormSectorIndex, roster));
-  const step = ({ factionId, declaration }: SetupPlacement) => ({
-    /* A setup step id is a table id, which has no colon; the turn's entries use `${factionId}:${id}`. */
-    id: `${factionId}_${declaration.id}`,
+  const step = ({ factionId, declaration }: SetupPlacement, index: number) => ({
+    /* Numbered by place rather than joined from the faction and declaration ids, which may both hold the joining character and so collide. */
+    id: `faction-step-${index}`,
     kind: declaration.type,
     factionId,
     title: declaration.title,
@@ -65,7 +65,12 @@ export function initialSetup(
     allPlayersMustBeReady: declaration.type === 'prediction' ? false : declaration.allPlayersMustBeReady,
   });
   return {
-    steps: [...placed.traitors.map(step), TRAITORS_STEP, ...placed.forces.map(step), FORCES_STEP],
+    steps: [
+      ...placed.traitors.map(step),
+      TRAITORS_STEP,
+      ...placed.forces.map((placement, index) => step(placement, placed.traitors.length + index)),
+      FORCES_STEP,
+    ],
     index: 0,
     visit: 1,
     mapRevealed: false,
