@@ -98,8 +98,8 @@ function SequenceList({
         data-selected={selected || undefined}
         aria-current={selected || undefined}
       >
-        <Image src={resolve(row.symbol)} alt="" w={20} h={20} fit="contain" />
-        <Text size="sm" fw={row.kind === 'faction' ? 700 : 400} truncate>
+        <Image className={styles.symbol} src={resolve(row.symbol)} alt="" fit="contain" />
+        <Text className={styles.label} size="sm" fw={row.kind === 'faction' ? 700 : 400} truncate>
           {row.label}
         </Text>
       </li>
@@ -133,9 +133,10 @@ function SequenceList({
 /** A read-only view of where this faction's phases fall: setup, then one turn, each with its symbol. */
 export function FactionPhaseSequence({ rows, selectedIndex }: { rows: readonly unknown[]; selectedIndex: number }) {
   const { setupGroups, turnGroups, omitted } = phaseSequence(rows);
+  const hasPlacedRows = [...setupGroups, ...turnGroups].some((group) => group.placed.length > 0);
   return (
     <Box component="section" className={styles.sequence} aria-label="Phase sequence">
-      <Stack gap="md">
+      <Stack className={styles.sections} gap="md">
         {rows.length === 0 ? (
           <Text size="sm" c="dimmed">
             This faction adds no phases, so the game runs the standard setup and turn.
@@ -149,6 +150,12 @@ export function FactionPhaseSequence({ rows, selectedIndex }: { rows: readonly u
         ) : null}
         <SequenceList label="Setup" groups={setupGroups} selectedIndex={selectedIndex} />
         <SequenceList label="Each turn" groups={turnGroups} selectedIndex={selectedIndex} />
+        {/* The storm-order hint once for the whole sequence, which the stylesheet shows in place of the per-group hints when the preview column is narrow. */}
+        {hasPlacedRows ? (
+          <Text className={styles.stormNote} size="xs" c="dimmed">
+            Ties with other factions go in storm order.
+          </Text>
+        ) : null}
       </Stack>
     </Box>
   );
