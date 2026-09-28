@@ -127,8 +127,8 @@ SPA documents. The game Worker accepts only `/__play/health` and
 `/__play/games/:gameId/socket|provision|account-deletion`; it validates methods, origin and admission
 at that boundary. Hosted gameplay requires a signed-in session and a fresh first-message connection
 ticket. Players open games at `/play/<gameId>`; the retired `/play/hosted` and `/play/demo` pages
-are ordinary application paths with no route, and the release counts as retiring them only once
-production no longer serves the pages.
+are ordinary application paths that the game route redirects to the lobby, and the release counts as
+retiring them only once production no longer serves the pages.
 
 Before calling the game binding, the publisher applies `PLAY_INGRESS_RATE_LIMIT` (namespace
 `10960001`): 120 requests per ten seconds per trusted `CF-Connecting-IP`, with separate counters
