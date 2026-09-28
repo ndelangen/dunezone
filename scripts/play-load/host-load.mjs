@@ -3,23 +3,13 @@ import { monitorEventLoopDelay } from 'node:perf_hooks';
 
 import { distribution } from './measurements.mjs';
 
+const spent = (times) => Object.values(times).reduce((sum, value) => sum + value, 0);
+
 /** The share of CPU time all cores spent idle between two `os.cpus()` readings. */
 export function idleShare(before, after) {
-  let idle = 0;
-  let total = 0;
-  for (const [index, core] of after.entries()) {
-    const previous = before[index]?.times;
-    if (!previous) {
-      continue;
-    }
-    for (const [kind, value] of Object.entries(core.times)) {
-      const spent = value - previous[kind];
-      total += spent;
-      if (kind === 'idle') {
-        idle += spent;
-      }
-    }
-  }
+  const cores = after.map((core, index) => [before[index]?.times, core.times]).filter(([previous]) => previous);
+  const idle = cores.reduce((sum, [previous, current]) => sum + current.idle - previous.idle, 0);
+  const total = cores.reduce((sum, [previous, current]) => sum + spent(current) - spent(previous), 0);
   return total > 0 ? idle / total : null;
 }
 
@@ -53,23 +43,29 @@ export function hostLoad({
   const timer = setInterval(() => {
     tick(now());
   }, tickMs).unref();
+  function recordStall(at, lateMs) {
+    if (stalls.length < limit) {
+      stalls.push({ atMs: Math.round(at), lateMs: Math.round(lateMs) });
+    } else {
+      dropped++;
+    }
+  }
+  function sampleIdle() {
+    const next = cpus();
+    const share = idleShare(reading, next);
+    reading = next;
+    if (share !== null) {
+      idle.push(share);
+    }
+  }
   function tick(at) {
     const lateMs = at - last - tickMs;
     last = at;
     if (lateMs > stallMs) {
-      if (stalls.length < limit) {
-        stalls.push({ atMs: Math.round(at), lateMs: Math.round(lateMs) });
-      } else {
-        dropped++;
-      }
+      recordStall(at, lateMs);
     }
     if (++ticks % sampleEvery === 0) {
-      const next = cpus();
-      const share = idleShare(reading, next);
-      reading = next;
-      if (share !== null) {
-        idle.push(share);
-      }
+      sampleIdle();
     }
   }
   return {
