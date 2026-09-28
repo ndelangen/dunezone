@@ -383,7 +383,7 @@ Then run the cells one at a time. For each cell:
 
 1. Set the backend's `PLAY_LOAD_RUN` to a fresh window: a random 32-hex-character `runId`,
    `startsAt` and `expiresAt` at most twenty minutes apart, long enough for the case's wall bound
-   (480 seconds for `steady`, 240 seconds otherwise) plus setup. Synthetic account emails are
+   (480 seconds for `steady`, 420 for `browser`, 240 otherwise) plus setup. Synthetic account emails are
    `load-<0..37>-<runId>@example.invalid`; passwords contain 32 to 128 characters. Each cell signs
    up its own accounts.
 2. If an earlier cell's game is still `ready` because its coordinator did not reach cleanup, retire

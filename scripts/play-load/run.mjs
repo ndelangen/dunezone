@@ -145,7 +145,11 @@ const report = {
     measuredSeconds,
     maxApplicationBytes: maxBytes,
     finalObservationMs: 5000,
-    wallSeconds: Math.max(240, warmupSeconds + measuredSeconds + 120),
+    /*
+     * The wall bound includes signing up and admitting every connection, which took about 105 s on the 28 September hosted cells.
+     * Each browser then signs in and loads the table twice, and the hosted browser cell reached motion 226 s in, so it gets three more minutes.
+     */
+    wallSeconds: Math.max(240, warmupSeconds + measuredSeconds + 120) + (values.case === 'browser' ? 180 : 0),
   },
   limitations: [
     hosted
