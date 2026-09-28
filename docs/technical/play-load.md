@@ -398,7 +398,15 @@ Then run the cells one at a time. For each cell:
 5. Write the private run file `{ target, run, game, cell, controlSecret }` (mode 0600);
    `game` is the complete pending-provision response. Start the coordinator before the fixture's
    original one-minute lease expires. An expired lease is a failed preparation attempt; do not
-   extend or silently retry it.
+   extend or silently retry it. Publishing the activation creates a new Worker version, and for a
+   few seconds a request can still reach a version holding the previous activation (HTTP 404, since
+   the paths name another game) or none (HTTP 410). The coordinator therefore reads the controller
+   until three consecutive reads, a second apart, reach this cell's game, for at most 20 seconds
+   and never within the last 20 seconds of the fixture's provisioning lease, and records the reads
+   that did not as `placement.unsettledActivationReads`. A read that reaches this game is held to
+   the full attestation at once; only reads that reached another activation or none are repeated. One passing
+   operator readback is not proof that every request sees the activation: the 22 September browser
+   cell failed on a 404 one read after a passing one.
 6. After the coordinator exits, read the controller once more: stopped, no alarm, zero game rows.
    Only then start the next cell.
 7. Capture the providers' counters for the cell beside its report:

@@ -267,7 +267,7 @@ The automatic deal that ends drafting once the roster meets the minimum, every P
 _Avoid_: Reveal, roll, start
 
 **Real game**:
-A Play game created by an Administrator on one fixed ruleset, as opposed to the hosted fixture. Until the public-release decision widens access, only Administrators create and enter Real games.
+A Play game created by a signed-in Player on one fixed ruleset, as opposed to the hosted fixture. Every signed-in Player may create and enter Real games; until the public-release decision, the lobby is unlisted rather than gated.
 _Avoid_: Custom game, user game
 
 **Conversation**:

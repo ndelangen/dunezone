@@ -127,8 +127,8 @@ SPA documents. The game Worker accepts only `/__play/health` and
 `/__play/games/:gameId/socket|provision|account-deletion`; it validates methods, origin and admission
 at that boundary. Hosted gameplay requires a signed-in session and a fresh first-message connection
 ticket. Players open games at `/play/<gameId>`; the retired `/play/hosted` and `/play/demo` pages
-are ordinary application paths with no route, and the release counts as retiring them only once
-production no longer serves the pages.
+are ordinary application paths that the game route redirects to the lobby, and the release counts as
+retiring them only once production no longer serves the pages.
 
 Before calling the game binding, the publisher applies `PLAY_INGRESS_RATE_LIMIT` (namespace
 `10960001`): 120 requests per ten seconds per trusted `CF-Connecting-IP`, with separate counters
@@ -188,7 +188,7 @@ The launcher builds the app and starts the stack once. Without `--browser-only` 
 verifier first. It then runs each selected browser flow in turn through
 `scripts/verify-hosted-play-browser.mjs`. Before the flows it seeds a synthetic ruleset
 (`playTesting:seedRealGameCatalogue`) and installs its publication bytes; each flow signs in fresh
-Administrator accounts and creates its own real game. `--flow` repeats, `all` selects every flow in
+accounts, none of them Administrators, and creates its own real game. `--flow` repeats, `all` selects every flow in
 [`scripts/verify-hosted-flows.ts`](../scripts/verify-hosted-flows.ts), and `--browser-only` without it
 runs only the regular flow; the named flows are described under
 [Verification](./technical/play-hosted.md#verification). A failed verifier does not stop the flows

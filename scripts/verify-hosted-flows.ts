@@ -11,6 +11,8 @@ export const browserFlows = {
   'private-banks': { timeoutMs: 480_000, separateBrowsers: true, keepsFrames: true, needsCatalogue: false },
   battles: { timeoutMs: 480_000, separateBrowsers: true, keepsFrames: true, needsCatalogue: true },
   decks: { timeoutMs: 480_000, separateBrowsers: true, keepsFrames: true, needsCatalogue: false },
+  /* Steps to Mentat pause behind the phase cooldown, then declares, reloads and continues. */
+  results: { timeoutMs: 480_000, separateBrowsers: false, keepsFrames: false, needsCatalogue: false },
 } satisfies Record<
   string,
   {

@@ -1,4 +1,4 @@
-import { Alert, Stack, Text } from '@mantine/core';
+import { Alert, Stack } from '@mantine/core';
 import { isRouteNoticeCode } from '@shared/routeNotices';
 import type { RouteNoticeCode } from '@shared/routeNotices';
 import type { ErrorComponentProps } from '@tanstack/react-router';
@@ -7,7 +7,8 @@ import { LoadError } from '@ui/block/LoadError';
 import { LoadPending } from '@ui/block/LoadPending';
 import { LoginGate } from '@ui/block/LoginGate';
 import { NotAvailable } from '@ui/block/NotAvailable';
-import { factionAuthoringStatusMessage } from '@ui/content/assetPublishingStatus';
+import { StatusMark } from '@ui/content/StatusMark';
+import { TopicIcon } from '@ui/content/TopicIcon';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -25,6 +26,7 @@ import { FactionEditor } from '@app/widgets/faction-editor/FactionEditor';
 import type { FactionAuthoringViewHandle } from '@app/widgets/faction-editor/FactionEditor';
 import { FactionGroupPopover } from '@app/widgets/faction-editor/FactionGroupPopover';
 import { FactionLoadPopover } from '@app/widgets/faction-editor/FactionLoadPopover';
+import { FactionPublicationStatus } from '@app/widgets/faction-editor/FactionPublicationStatus';
 import { useFactionAuthoring } from '@app/widgets/faction-editor/useFactionAuthoring';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
@@ -159,13 +161,12 @@ function FactionEditPage() {
           status={{
             isDirty: authoring.editing.isDirty,
             isNameBlank: authoring.editing.isNameBlank,
+            invalid: authoring.editing.invalid,
             saveState: authoring.persistence.saveState,
-            lastPublishedAt: assetPublishing?.lastPublishedAt,
           }}
           copy={{
             saveLabel: 'Save faction',
             nameBlankMessage: 'Add a faction name before saving; it determines the faction URL.',
-            statusMessage: factionAuthoringStatusMessage(authoring.persistence.saveState, assetPublishing),
           }}
           actions={{
             onSave: authoring.actions.submit,
@@ -211,11 +212,15 @@ function FactionEditPage() {
             </>
           }
           context={
-            assignedGroup ? (
-              <Text size="xs" c="dimmed">
-                Group access: <strong>{assignedGroup.name}</strong>
-              </Text>
-            ) : null
+            <>
+              <FactionPublicationStatus publication={assetPublishing} />
+              {assignedGroup ? (
+                <StatusMark
+                  icon={<TopicIcon topic="groups" size={16} />}
+                  label={`Group access: ${assignedGroup.name}`}
+                />
+              ) : null}
+            </>
           }
           destructiveActions={
             canDelete ? (

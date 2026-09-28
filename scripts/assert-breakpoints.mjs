@@ -55,7 +55,7 @@ const PENDING_CONTAINER_MIGRATION = new Map([
   ['app/ui/list/FactionList.module.css', ['(max-width: 62em)', '(max-width: 48em)']],
   ['app/ui/surface/NestedTabs.stories.module.css', ['(max-width: 34rem)']],
   ['app/ui/surface/Spotlight.module.css', ['(max-width: 30em)']],
-  ['app/widgets/authoring/AuthoringToolbar.module.css', ['(max-width: 70em)', '(max-width: 47.99em)']],
+  ['app/widgets/authoring/AuthoringToolbar.module.css', ['(max-width: 47.99em)']],
   ['app/widgets/faction-editor/FactionCollectionShelf.module.css', ['(max-width: 48em)', '(max-width: 30em)']],
   [
     'app/widgets/faction-editor/FactionEditor.module.css',

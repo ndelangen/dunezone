@@ -7,9 +7,12 @@ is the specification. The live issue records review, deployment and verification
 
 ## Scope and ownership
 
-Players reach a game only at `/play/<gameId>`: `/play` is the lobby, and an Administrator creates a
-real game at `/play/create`. The retired `/play/hosted` and `/play/demo` pages
-([#1296](https://github.com/ndelangen/dunezone/issues/1296)) no longer exist in the application;
+Players reach a game only at `/play/<gameId>`: `/play` is the lobby, and any signed-in player creates a
+real game at `/play/create`. Nothing in the application links to `/play` and the lobby is `noindex`:
+real games are an unlisted beta, shared privately, until the public-release decision
+([#1094](https://github.com/ndelangen/dunezone/issues/1094)). The retired `/play/hosted` and `/play/demo` pages
+([#1296](https://github.com/ndelangen/dunezone/issues/1296)) no longer exist in the application,
+and their old addresses redirect to the lobby;
 the public `playAdmission:getFixture` query stays so a bundle deployed before their removal still
 gets an answer. The fixture game this document describes remains the Worker's native test and load
 fixture: the first two distinct admitted users occupy its Harkonnen and Atreides seats, and later
@@ -157,7 +160,7 @@ pass.
 
 An operator invokes `playProvisioning:beginFixtureProvision` once after deployment. This internal
 mutation creates the Stage B singleton and schedules its provisioning request. A real game is
-provisioned when an Administrator creates it (`playGames.createGame`). The directory hides pending fixtures.
+provisioned when a signed-in player creates it (`playGames.createGame`). The directory hides pending fixtures.
 
 The game Worker checks the supplied game secret and attempt with the fixed trusted Convex backend
 before creating state. Unknown, duplicate, expired and invalid requests get the same generic
@@ -211,6 +214,11 @@ down on the table, and a dealt hand surviving the recipient's reconnect. It uses
 signed-in browser processes and a spectator, and it retains received game frames in
 `decks-frames.json`.
 
+Run `bun --no-env-file scripts/verify-hosted-play-stack.ts --browser-only --flow results` for the end
+of a real game. Two players step to Mentat pause, one opens Determine winner and declares a faction,
+and a spectator watches. It checks each panel's decision bar, a reload into the finished game, the
+lobby's Past entry with its winner, and Continue playing back to Mentat pause and the Ongoing list.
+
 ### Real-game journeys
 
 `workers/game/journey.native.test.mjs` takes whole real games through the native workerd runtime,
@@ -227,9 +235,10 @@ proves one rule; these prove the rules still hold when one game passes through a
   replacement declares a result and then deletes their account. The result, log and stored history
   name `[deleted user]` through a restart, and the last departure discards the game.
 
-The browser flows above run on the hosted fixture, whose seats are fixed. No browser flow creates a
-real game yet, so the lobby's Create, Past and result layouts are covered by Storybook and the
-native journeys, not by a signed-in browser run.
+Every browser flow above creates its own real game at `/play/create` and plays it through drafting
+and setup. The `results` flow also finishes and continues one, so the lobby's Create and Past
+listings and the result bars are covered by a signed-in browser run as well as by Storybook and
+the native journeys.
 
 A real game still depends on final authored content. The catalogue capture refuses every faction
 until its token back, troop faces, alliance card and traitor cards are generated
@@ -285,10 +294,11 @@ single-use tickets, multi-tab logout, inactivity/total expiry, and account-delet
 Retained logs contain check results and payload counters, not credentials.
 
 The browser flows play real games. The stack seeds a synthetic ruleset
-(`playTesting:seedRealGameCatalogue`) with both required decks and two factions, installs its
-publication bytes, and passes its id to each flow. Every flow signs in synthetic Administrators,
-creates a game at `/play/create`, seats the second player through a seat request and its approval,
-and plays through drafting and setup before its own checks. Against a running
+(`playTesting:seedRealGameCatalogue`) with both required decks, a treachery deck of treachery cards
+and a spice deck of spice cards, and two factions, installs its publication bytes, and passes its
+id to each flow. Every flow signs in synthetic accounts without the Administrator flag, creates a
+game at `/play/create`, seats the second player through a seat request and its approval, and plays
+through drafting and setup before its own checks. Against a running
 [local stack](../deployment.md#hosted-gameplay), seed that ruleset once and use a build with local
 Password sign-in enabled:
 
