@@ -33,7 +33,7 @@ export const LongTitle = meta.story({
   args: { title: 'The Combined Honored Matres and Bene Gesserit Reverend Mother Council' },
 });
 
-/** The narrow end of the range: the artwork shrinks and the title truncates sooner. */
+/** The narrow end of the range: the title truncates sooner. */
 export const InANarrowColumn = meta.story({
   globals: { viewport: { value: 'contentNarrow' } },
 });

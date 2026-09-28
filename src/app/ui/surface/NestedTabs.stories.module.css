@@ -19,9 +19,3 @@
 .flushRow + .flushRow {
   border-block-start: 1px solid var(--mantine-color-default-border);
 }
-
-@media (max-width: 34rem) {
-  .stage {
-    padding: var(--space-md);
-  }
-}

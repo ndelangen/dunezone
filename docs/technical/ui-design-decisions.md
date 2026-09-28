@@ -166,8 +166,7 @@ stylesheet.
 A step belongs to its wider side. A query reads strictly below it, `width < 48rem`, or from it up,
 `width >= 48rem`, never `max-width: 48rem`, and a container query on the ladder is written the same
 way. Mantine's responsive props switch at the step itself, and so do the spacing scale and the
-window chrome, so at exactly 768px they agree on tablet mode. The pending page stylesheets still
-read `max-width` and keep their narrow rules at the step until they move to `@container`.
+window chrome, so at exactly 768px they agree on tablet mode.
 
 Everything inside a page responds with `@container`: kit components, Blocks, Layouts, widgets and
 route compositions. The same component can sit in a rail and in a full-width panel on one screen,
@@ -176,16 +175,30 @@ component that needs a query of its own asks its box. `@media` belongs to the wi
 shell chrome (`AppHeader`, `AppRoot`, `SiteNavigation`, `page.css`), `PageLayout`, the play route's
 fullscreen frame in `dune-play.css`, and the spacing tokens in `tokens.css`, all on the ladder.
 
+An unnamed `@container` asks the nearest container. On a document page that is the frame `AppHeader`
+declares around the band and the page, named `page-frame`, as wide as the page between the shell's
+gutters, or a Layout's container when one sits between, as `TriptychLayout`'s does on the home page.
+A page composition needs no container of its own. A component that lays out its own children by
+width names the container it asks, so a container inserted above it cannot move it. When that layout
+is the page's rhythm it asks `page-frame`, as `AuthoringToolbar`'s review action does, because the
+review's stage spans the page the toolbar sits above. When it is the room it is given it asks that
+room: the faction editor's workbench asks `faction-review-stage`, the review's stage that spans the
+editor, and its sections ask `ConnectedTabs`' `connected-tabs-panel`. A story has no page, so a
+component that asks `page-frame` shows its widest layout there.
+
+A faction list is sized by its column count, not by its card width. `FactionList` declares
+`faction-list` and takes its count from its own width: two columns below 30rem, three from 30rem,
+and from 48rem as many as fit at 11.5rem or wider, which keeps a card around 200px. A card fills its
+column and sets no width, and below the same 11.5rem of its own width it takes the compact caption.
+
 A container query sits on the ladder too, unless its threshold is derived from its own content, such
 as two 14rem columns and a gap, and a comment next to it says so. A viewport number copied into a
 `@container` condition is a window decision wearing the wrong at-rule.
 
 *Media queries enforced by `check:breakpoints`
 ([`assert-breakpoints.mjs`](../../scripts/assert-breakpoints.mjs)): a width query outside the window
-chrome, off the ladder, or in a form other than `width < step` or `width >= step`, fails. The page
-stylesheets still on `@media` sit on its named pending list, each held to the queries it asks today,
-until they move to `@container`. Media conditions written in TypeScript and container queries are
-checked in review. Canonical here.*
+chrome, off the ladder, or in a form other than `width < step` or `width >= step`, fails. Media
+conditions written in TypeScript and container queries are checked in review. Canonical here.*
 
 ### Layouts own spacing and lay out through named slots
 

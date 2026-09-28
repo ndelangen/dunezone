@@ -166,22 +166,25 @@ test('owner can author a faction through its complete lifecycle', async ({ page 
     await expect(page.getByRole('textbox', { name: 'Faction leader name' })).toHaveValue('');
   });
 
-  await test.step('the same saved faction becomes a preview-free mobile editor', async () => {
+  await test.step('the same saved faction keeps its preview beside a compact mobile editor', async () => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto(factionAEditUrl);
 
     /* Wait for the saved draft before interpreting absent controls on the arriving SPA shell. */
     await expect(page.getByRole('textbox', { name: 'Faction name' })).toHaveValue(factionAName, { timeout: 30_000 });
     await expect(page.getByRole('button', { name: 'Review faction sheet', includeHidden: true })).toBeHidden();
-    await expect(
-      page.getByRole('region', {
-        name: 'Background composite live preview',
-        includeHidden: true,
-      })
-    ).toBeHidden();
-    await expect(page.getByRole('combobox', { name: 'Faction editor sections' })).toContainText(
-      'Identity & Appearance'
-    );
+
+    /* The section tabs collapse to the picker so the preview can stay beside the form. */
+    const sections = page.getByRole('combobox', { name: 'Faction editor sections' });
+    await expect(sections).toContainText('Identity & Appearance');
+    const preview = page.getByRole('region', { name: 'Background composite live preview' });
+    await expect(preview).toBeVisible();
+    const sectionsBounds = await sections.boundingBox();
+    const previewBounds = await preview.boundingBox();
+    expect(sectionsBounds).not.toBeNull();
+    expect(previewBounds).not.toBeNull();
+    expect(previewBounds?.x ?? 0).toBeGreaterThanOrEqual((sectionsBounds?.x ?? 0) + (sectionsBounds?.width ?? 0));
+
     await page.getByRole('button', { name: 'Next section' }).click();
     await expect(page.getByRole('textbox', { name: 'Faction leader name' })).toHaveValue(importedLeaderName);
   });

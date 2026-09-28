@@ -44,7 +44,7 @@
   display: none;
 }
 
-@media (max-width: 48em) {
+@container (width < 48rem) {
   .catalogueHeader {
     gap: var(--space-sm);
   }

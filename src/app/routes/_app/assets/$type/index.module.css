@@ -47,7 +47,7 @@
  * Side by side the search box is down to about 110px on a phone, which is unusable.
  * The faction overview has the same defect and it is not this page's to fix, so this stacks rather than inheriting it.
  */
-@media (max-width: 30em) {
+@container (width < 30rem) {
   .joinedFilters {
     flex-wrap: wrap;
   }

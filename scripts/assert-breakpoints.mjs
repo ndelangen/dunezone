@@ -7,7 +7,6 @@
  * Only the window chrome below sizes against the viewport, and it uses the same three steps.
  * A step belongs to its wider side, so the chrome writes it in range syntax as `width < step` or `width >= step`.
  * `max-width: step` puts a window exactly at the step on the narrower side, and `min-width: step`, though it lands on the same side, is a second spelling of `width >= step`, so both fail.
- * The pending list below holds the page-level queries that predate the rule, each exactly as its file asks it today.
  * A width feature counts in every spelling a media condition allows: `width`, `min-width`, `max-width`, the `device-` forms, range syntax such as `(30rem <= width < 62rem)`, and the boolean `(width)`.
  * Other media conditions, such as `prefers-reduced-motion` or `print`, pass anywhere.
  * `@container` conditions are not read: a container threshold may be derived from its own content, which only a reviewer can judge.
@@ -30,38 +29,6 @@ const WINDOW_CHROME = new Map([
   ['app/styles/tokens.css', 'the responsive spacing scale'],
   ['app/ui/layout/PageLayout.module.css', 'the page frame, sized with the artwork band'],
   ['app/routes/_app/play/dune-play.css', 'the play route, which fills the window'],
-]);
-
-/*
- * Page-level width queries that predate the ladder, each still to move to `@container` or onto a step.
- * Each file is held to the preludes it asks today, so a new or changed width query in it fails like one anywhere else.
- * Part (b) of the breakpoint decision on #1321 empties this list, and a listed prelude its file no longer asks fails, so an entry cannot outlive its query.
- */
-const PENDING_CONTAINER_MIGRATION = new Map([
-  ['app/print/sheet/sheet-page.css', ['(max-width: 900px)']],
-  ['app/routes/_app/assets/$type/index.module.css', ['(max-width: 30em)']],
-  [
-    'app/routes/_app/factions/$factionId/index.module.css',
-    ['(max-width: 62em)', '(max-width: 48em)', '(max-width: 30em)'],
-  ],
-  ['app/routes/_app/factions/index.module.css', ['(max-width: 48em)']],
-  ['app/routes/_app/future-plans/index.module.css', ['(max-width: 40.625em)']],
-  ['app/routes/_app/groups/$groupSlug/index.module.css', ['(max-width: 62em)']],
-  ['app/routes/_app/index.module.css', ['(max-width: 43.75em)', '(max-width: 61.25em)']],
-  ['app/routes/_app/profiles/$profileSlug/index.module.css', ['(max-width: 800px)']],
-  ['app/ui/block/FactionCard.module.css', ['(max-width: 48em)']],
-  ['app/ui/block/PageIdentity.module.css', ['(max-width: 48em)', '(max-width: 30em)']],
-  ['app/ui/block/PageTitle.module.css', ['(max-width: 43.75em)']],
-  ['app/ui/list/FactionList.module.css', ['(max-width: 62em)', '(max-width: 48em)']],
-  ['app/ui/surface/NestedTabs.stories.module.css', ['(max-width: 34rem)']],
-  ['app/ui/surface/Spotlight.module.css', ['(max-width: 30em)']],
-  ['app/widgets/authoring/AuthoringToolbar.module.css', ['(max-width: 47.99em)']],
-  ['app/widgets/faction-editor/FactionCollectionShelf.module.css', ['(max-width: 48em)', '(max-width: 30em)']],
-  [
-    'app/widgets/faction-editor/FactionEditor.module.css',
-    ['(max-width: 74em)', '(max-width: 62em)', '(max-width: 48em)'],
-  ],
-  ['app/widgets/faction-editor/FactionSheetReview.module.css', ['(max-width: 47.99em)']],
 ]);
 
 const root = process.env.BREAKPOINTS_ROOT ?? 'src';
@@ -156,17 +123,9 @@ function widthQueries(text) {
 
 const failures = [];
 const queriesByFile = new Map(stylesheets.map((path) => [path, widthQueries(readFileSync(join(root, path), 'utf8'))]));
-/** The pending preludes each file no longer asks, filled in as its queries are matched. */
-const unasked = new Map(PENDING_CONTAINER_MIGRATION);
 
 for (const [path, queries] of queriesByFile) {
-  const pending = [...(PENDING_CONTAINER_MIGRATION.get(path) ?? [])];
   for (const { line, prelude, comparisons } of queries) {
-    const held = pending.indexOf(prelude);
-    if (held !== -1) {
-      pending.splice(held, 1);
-      continue;
-    }
     if (!WINDOW_CHROME.has(path)) {
       failures.push(`${path}:${line} @media ${prelude}: a width query outside the window chrome`);
       continue;
@@ -185,22 +144,11 @@ for (const [path, queries] of queriesByFile) {
       );
     }
   }
-  if (unasked.has(path)) {
-    unasked.set(path, pending);
-  }
 }
 
 for (const path of WINDOW_CHROME.keys()) {
   if (!queriesByFile.has(path)) {
     failures.push(`${path}: listed as window chrome, but no such stylesheet exists`);
-  }
-}
-
-for (const [path, preludes] of unasked) {
-  for (const prelude of preludes) {
-    failures.push(
-      `${path}: listed as pending migration at @media ${prelude}, but the file no longer asks it; remove the prelude, and the entry once it is empty`
-    );
   }
 }
 
@@ -219,5 +167,5 @@ if (failures.length > 0) {
 }
 
 console.log(
-  `Breakpoint check passed: ${stylesheets.length} stylesheets under ${root}, width queries only in the window chrome and on ${LADDER.join(', ')} with each step on its wider side, apart from the ${PENDING_CONTAINER_MIGRATION.size} stylesheets pending migration.`
+  `Breakpoint check passed: ${stylesheets.length} stylesheets under ${root}, width queries only in the window chrome and on ${LADDER.join(', ')} with each step on its wider side.`
 );

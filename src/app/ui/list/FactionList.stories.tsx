@@ -4,6 +4,7 @@ import { assetPublishingFaction } from '@shared/factions/fixtures/assetPublishin
 import type { FactionCatalogueEntry } from '@db/factions';
 
 import { FactionList } from './FactionList';
+import { expectFactionColumns } from './factionListPlay';
 
 function entry(
   id: string,
@@ -41,14 +42,32 @@ const meta = preview.meta({
   argTypes: { className: { control: false } },
 });
 
-/** The grid's rhythm is all this owns; the tiles frame themselves. */
+/**
+ * The grid's rhythm is all this owns, and the tiles frame themselves.
+ * From the tablet step the row takes as many columns as fit at 11.5rem or wider, which keeps a card around 200px: five across a laptop window.
+ * A laptop window rather than a desktop one, because at 1200px the canvas's 1rem padding leaves a 1168px list and five columns, and the test run renders no padding, so its 1200px list shows six.
+ */
 export const Default = meta.story({
-  globals: { viewport: { value: 'appDesktop' } },
+  globals: { viewport: { value: 'appLaptop' } },
+  play: async ({ canvasElement }) => {
+    await expectFactionColumns(canvasElement, 5);
+  },
 });
 
-/** Two columns at the narrowest step, keyed on the viewport rather than the container. */
+/** A list as wide as a tablet's page is three columns across, however wide that makes each card. */
+export const Tablet = meta.story({
+  globals: { viewport: { value: 'appTablet' } },
+  play: async ({ canvasElement }) => {
+    await expectFactionColumns(canvasElement, 3);
+  },
+});
+
+/** A list as wide as a phone's page is two columns across. */
 export const Mobile = meta.story({
   globals: { viewport: { value: 'appMobile' } },
+  play: async ({ canvasElement }) => {
+    await expectFactionColumns(canvasElement, 2);
+  },
 });
 
 /**

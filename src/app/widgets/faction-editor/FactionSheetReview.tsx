@@ -14,7 +14,17 @@ import { shield as shieldSize } from '@game/data/sizes';
 import { FactionSheetPagePreview, factionDraftForRenderer } from './FactionSheetPagePreview';
 import styles from './FactionSheetReview.module.css';
 
-const DESKTOP_REVIEW_MEDIA = '(min-width: 48em)';
+/** The narrowest stage the review opens on, the 9rem editor strip beside the sheet spread's 36rem; below it the stylesheet hides the panel. */
+const REVIEW_MIN_STAGE_REM = 45;
+
+/** Reads the stage the way the stylesheet's container query does, in the root font size its `rem` resolves against. */
+function stageFitsReview(stage: HTMLElement | null): boolean {
+  if (!stage) {
+    return false;
+  }
+  const rootFontSize = Number.parseFloat(getComputedStyle(document.documentElement).fontSize);
+  return stage.clientWidth >= REVIEW_MIN_STAGE_REM * rootFontSize;
+}
 
 /**
  * The shield at whatever width the review pane gives it.
@@ -195,7 +205,7 @@ export const FactionSheetReview = forwardRef<
 
   const openReview = useCallback(
     (trigger?: HTMLElement | null) => {
-      if (!window.matchMedia(DESKTOP_REVIEW_MEDIA).matches) {
+      if (!stageFitsReview(stageRef.current)) {
         return;
       }
       reviewTriggerRef.current = trigger ?? null;
@@ -215,17 +225,6 @@ export const FactionSheetReview = forwardRef<
   useImperativeHandle(ref, () => ({ open: openReview }), [openReview]);
 
   useEffect(() => {
-    const media = window.matchMedia(DESKTOP_REVIEW_MEDIA);
-    const onMediaChange = (event: MediaQueryListEvent) => {
-      if (!event.matches) {
-        setReviewOpen(false);
-      }
-    };
-    media.addEventListener('change', onMediaChange);
-    return () => media.removeEventListener('change', onMediaChange);
-  }, []);
-
-  useEffect(() => {
     if (!reviewOpen) {
       return;
     }
@@ -236,7 +235,21 @@ export const FactionSheetReview = forwardRef<
       }
     };
     window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
+    // A stage that narrows below the review's width closes the review as its close button does, so focus goes back to the trigger when the trigger can take it.
+    const stage = stageRef.current;
+    let observer: ResizeObserver | undefined;
+    if (stage && typeof ResizeObserver !== 'undefined') {
+      observer = new ResizeObserver(() => {
+        if (!stageFitsReview(stage)) {
+          closeReview();
+        }
+      });
+      observer.observe(stage);
+    }
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      observer?.disconnect();
+    };
   }, [closeReview, reviewOpen]);
 
   useEffect(
