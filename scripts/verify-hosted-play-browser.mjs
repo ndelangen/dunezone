@@ -592,6 +592,7 @@ function recommendedViewButton(who, view, pressed) {
 /**
  * The page coordinates of a table position, projected through the camera the page renders.
  * The table installs `window.__duneTable` after its canvas mounts, and again after a remount, so each projection waits for it.
+ * The camera eases to a newly focused view over several frames, and a software renderer draws them slowly, so a projection counts only once two reads two frames apart agree.
  */
 async function point(who, position) {
   const installed = await who.page
@@ -605,7 +606,28 @@ async function point(who, position) {
       );
     });
   await installed.dispose();
-  return who.page.evaluate((value) => window.__duneTable.worldToScreen(value), position);
+  const settled = await who.page.evaluate(
+    async ({ value, timeoutMs }) => {
+      const deadline = performance.now() + timeoutMs;
+      let previous = window.__duneTable.worldToScreen(value);
+      while (performance.now() < deadline) {
+        await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+        const current = window.__duneTable.worldToScreen(value);
+        if (Math.abs(current.x - previous.x) < 0.5 && Math.abs(current.y - previous.y) < 0.5) {
+          return current;
+        }
+        previous = current;
+      }
+      return null;
+    },
+    { value: position, timeoutMs: 10_000 }
+  );
+  if (!settled) {
+    throw new Error(
+      `${who.label}'s camera did not settle within 10 s, so the table position has no stable page point.`
+    );
+  }
+  return settled;
 }
 /**
  * Hovers the spice supply disc in the map view until the canvas shows the disc's pointer cursor, then presses `key`.
