@@ -1,5 +1,5 @@
 import type { ServerMessage, Viewer } from '../../src/shared/play/protocol';
-import { frameChange } from '../../src/shared/play/updates';
+import { frameChanges } from '../../src/shared/play/updates';
 import type { RoomFrame, RoomView } from '../../src/shared/play/updates';
 
 type Delivered = { frame: RoomFrame; sequence: number; viewerSeat: Viewer['viewerSeat'] };
@@ -10,7 +10,7 @@ type Delivered = { frame: RoomFrame; sequence: number; viewerSeat: Viewer['viewe
  */
 export class RoomDelivery {
   private readonly delivered = new WeakMap<WebSocket, Delivered>();
-  private readonly changes = new WeakMap<RoomFrame, WeakMap<RoomFrame, ReturnType<typeof frameChange>>>();
+  private readonly change = frameChanges();
 
   view(socket: WebSocket, viewer: Viewer, frame: RoomFrame, completedCommandId?: string): RoomView {
     const sequence = (this.delivered.get(socket)?.sequence ?? 0) + 1;
@@ -33,16 +33,7 @@ export class RoomDelivery {
     ) {
       return this.view(socket, viewer, frame, completedCommandId);
     }
-    let byBase = this.changes.get(frame);
-    if (!byBase) {
-      byBase = new WeakMap();
-      this.changes.set(frame, byBase);
-    }
-    let change = byBase.get(base.frame);
-    if (!change) {
-      change = frameChange(base.frame, frame);
-      byBase.set(base.frame, change);
-    }
+    const change = this.change(base.frame, frame);
     const sequence = base.sequence + 1;
     this.delivered.set(socket, { frame, sequence, viewerSeat: viewer.viewerSeat });
     return { type: 'update', epoch: frame.epoch, baseSequence: base.sequence, sequence, ...change, completedCommandId };

@@ -284,11 +284,18 @@ export const serverMessageSchema = z.discriminatedUnion('type', [
     receiptCount: count,
     motionReceived: count,
     motionForwarded: count,
+    /* Pointer and pose frames dropped because their sender's motion bucket was empty. */
+    motionDropped: count.optional(),
     activityDeliveries: count.optional(),
     messagesSent: count,
     bytesSent: count,
-    /* The requester's own recent saved commands, with when the room began handling each by its clock. */
-    commands: z.array(z.object({ commandId: id, handledAt: count })).optional(),
+    /*
+     * The requester's own recent saved commands, with when the room began handling each by its clock
+     * and when the storage write it made was confirmed durable.
+     */
+    commands: z.array(z.object({ commandId: id, handledAt: count, durableAt: count.optional() })).optional(),
+    /* Recent moments the room's one-second sweep ran late, by the room's clock. */
+    stalls: z.array(z.object({ at: count, lateMs: count })).optional(),
   }),
 ]);
 export type ServerMessage = z.infer<typeof serverMessageSchema>;

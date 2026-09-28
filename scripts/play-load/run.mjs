@@ -16,6 +16,7 @@ import { loopbackOrigin } from '../lib/isolated-stack.ts';
 import { browsers } from './browsers.mjs';
 import { cpuProfile } from './cpu.mjs';
 import { captureSource, prepareDirectory } from './files.mjs';
+import { hostLoad, measureIdle } from './host-load.mjs';
 import { openHostedSession } from './hosted-session.mjs';
 import { interactions } from './interactions.mjs';
 import { distribution, measurements } from './measurements.mjs';
@@ -212,6 +213,15 @@ const hardStop = setTimeout(() => stop('wall-budget'), report.bounds.wallSeconds
 const interrupted = () => stop('operator-stop');
 process.once('SIGINT', interrupted);
 process.once('SIGTERM', interrupted);
+/*
+ * A machine already busy before the run starves the coordinator and its browsers, which reads like a stalled room.
+ * Adding timeOrigin to a host or delivery reading gives the wall clock the room's own readings use.
+ */
+report.host = { timeOrigin: performance.timeOrigin, idleBefore: await measureIdle() };
+if (report.host.idleBefore !== null && report.host.idleBefore < 0.5) {
+  console.warn(`Only ${Math.round(report.host.idleBefore * 100)}% of this machine's CPU was idle before the run.`);
+}
+const hostWatch = hostLoad();
 function accountBytes(direction, bytes) {
   report.bytes[direction] += bytes;
   if (report.bytes.sent + report.bytes.received >= report.bounds.maxApplicationBytes) {
@@ -567,15 +577,18 @@ async function collectRoomTiming() {
     senders.map(async (peer) => {
       peer.responses.delete('metrics');
       assert.ok(send(peer, { type: 'metrics' }), `Peer ${peer.index} could not ask for room timing.`);
-      return (await until(() => peer.responses.get('metrics'), `Peer ${peer.index} room timing timed out.`, 5000))
-        .commands;
+      return until(() => peer.responses.get('metrics'), `Peer ${peer.index} room timing timed out.`, 5000);
     })
   );
+  const answered = replies.flatMap((reply) => (reply.status === 'fulfilled' ? [reply.value] : []));
   report.roomTiming = {
     ...roomTiming(
       commandSends.map((sent) => ({ ...sent, peer: sent.peer.index })),
-      replies.flatMap((reply) => (reply.status === 'fulfilled' ? [reply.value ?? []] : []))
+      answered.map((metrics) => metrics.commands ?? [])
     ),
+    /* Late sweeps and dropped motion are room-wide, so any one answer carries them. */
+    stalls: answered[0]?.stalls ?? null,
+    motionDropped: answered[0]?.motionDropped ?? null,
     errors: replies.flatMap((reply) => (reply.status === 'rejected' ? [reply.reason.message] : [])),
   };
 }
@@ -1016,7 +1029,11 @@ try {
   }
   if (!stopping) {
     await collectRoomTiming();
-    const { commands: _commands, ...serverAfter } = await request(first, { type: 'metrics' }, 'metrics');
+    const {
+      commands: _commands,
+      stalls: _stalls,
+      ...serverAfter
+    } = await request(first, { type: 'metrics' }, 'metrics');
     report.serverAfter = serverAfter;
     await until(
       () => interactionTiming.outstanding().length === 0,
@@ -1202,6 +1219,7 @@ try {
     limitation:
       'Protocol connections only. TCP stream bytes include the HTTP upgrade and WebSocket framing and compression, but exclude TCP/IP headers, retransmissions and browser connections.',
   };
+  report.host = { ...report.host, ...hostWatch.finish() };
   report.finishedAt = new Date().toISOString();
   await writeFile(path.join(directory, 'report.json'), JSON.stringify(report, null, 2));
   console.log(
