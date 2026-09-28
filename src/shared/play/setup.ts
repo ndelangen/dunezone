@@ -4,22 +4,17 @@ import { phaseAt } from './phases';
 import type { GameSnapshot } from './protocol';
 import { tableCountSchema, tableIdSchema } from './schema';
 
-/** Retained built-in declarations; authoring defaults and custom phase composition have their own delivery. */
-export const setupDeclarationSchema = z.object({
-  id: tableIdSchema,
-  name: z.literal('prediction'),
-  title: z.string().min(1).max(160),
-  instructions: z.string().max(8000),
-  symbol: z.string().min(1).max(2048),
-});
 const setupStepSchema = z.object({
   id: tableIdSchema,
-  kind: z.enum(['prediction', 'traitors', 'forces']),
+  kind: z.enum(['prediction', 'instruction', 'traitors', 'forces']),
   factionId: tableIdSchema.optional(),
   title: z.string(),
   instructions: z.string(),
   symbol: z.string(),
+  /* Traitors and forces set it, prediction clears it (its lock gates instead), an instruction step takes its declaration's; absent on steps stored before it existed. */
+  allPlayersMustBeReady: z.boolean().optional(),
 });
+type SetupStep = z.infer<typeof setupStepSchema>;
 export const setupStateSchema = z.object({
   steps: z.array(setupStepSchema).min(2),
   index: tableCountSchema,
@@ -57,11 +52,16 @@ export function setupMapVisible(setup?: SetupState) {
   return setup !== undefined && (setup.mapRevealed || setupStep(setup)?.kind === 'forces');
 }
 
-export function setupReadyRequired(setup: SetupState) {
-  return setupStep(setup)?.kind !== 'prediction';
+function stepNeedsReady(step: SetupStep) {
+  return step.allPlayersMustBeReady ?? step.kind !== 'prediction';
 }
 
-type PhaseGateInput = Pick<GameSnapshot, 'stage' | 'setup' | 'phase' | 'roster' | 'predictions'> & {
+export function setupReadyRequired(setup: SetupState) {
+  const step = setupStep(setup);
+  return step !== undefined && stepNeedsReady(step);
+}
+
+type PhaseGateInput = Pick<GameSnapshot, 'stage' | 'setup' | 'phase' | 'phases' | 'roster' | 'predictions'> & {
   ready: readonly string[];
   seats: readonly string[];
 };
@@ -71,18 +71,22 @@ type PhaseGateInput = Pick<GameSnapshot, 'stage' | 'setup' | 'phase' | 'roster' 
  * The Worker passes its private predictions and a view its public ones.
  * The gate reads only whether the current step holds one.
  */
-export function phaseGate({ stage, setup, phase, roster, ready, seats, predictions }: PhaseGateInput) {
+export function phaseGate({ stage, setup, phase, phases, roster, ready, seats, predictions }: PhaseGateInput) {
   const allReady = seats.length > 0 && seats.every((seat) => ready.includes(seat));
   if (stage !== 'setup' || !setup) {
-    const needsReady = phaseAt(phase).id === 'mentat-pause';
+    const needsReady = phaseAt(phase, phases).allPlayersMustBeReady;
     return {
       needsReady,
       refusal: needsReady && !allReady ? 'Every seated player must be ready before advancing.' : null,
     };
   }
-  if (!setupReadyRequired(setup)) {
-    const locked = Boolean(predictions?.[setupStep(setup).id]);
+  const step = setupStep(setup);
+  if (step?.kind === 'prediction') {
+    const locked = Boolean(predictions?.[step.id]);
     return { needsReady: false, refusal: locked ? null : 'Lock the required prediction before advancing.' };
+  }
+  if (!setupReadyRequired(setup)) {
+    return { needsReady: false, refusal: null };
   }
   const full = roster?.seats.every((seat) => seats.includes(seat.id));
   return {

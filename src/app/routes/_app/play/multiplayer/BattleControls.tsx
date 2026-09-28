@@ -6,7 +6,7 @@ import { troopCombatFaces } from '@shared/factions/troopCombat';
 import { isBattleLeader } from '@shared/play/battle';
 import type { BattlePlan, BattlePlanInput, CombatFace, PublicBattle } from '@shared/play/battle';
 import type { TablePiece, Vector3Tuple } from '@shared/play/model';
-import { phaseAt, TABLE_PHASES } from '@shared/play/phases';
+import { phaseAt, STANDARD_PHASES } from '@shared/play/phases';
 import { trackerArcSlots } from '@shared/play/tableTrackers';
 import { Section } from '@ui/block/Section';
 import { TopicIcon } from '@ui/content/TopicIcon';
@@ -589,10 +589,12 @@ function useInventoryDrop({ client, table }: Props) {
   }, [camera, renderer, client, table.canInteract]);
 }
 function BattleMarker({ table }: Props) {
-  if (phaseAt(table.snapshot.phase).id !== 'battle') {
+  const phases = table.snapshot.phases ?? STANDARD_PHASES;
+  if (phaseAt(table.snapshot.phase, phases).id !== 'battle') {
     return null;
   }
-  const slot = trackerArcSlots(TABLE_PHASES.length).find((entry) => entry.phaseIndex === 6)!;
+  const battleIndex = phases.findIndex((entry) => entry.id === 'battle');
+  const slot = trackerArcSlots(phases.length).find((entry) => entry.phaseIndex === battleIndex)!;
   return (
     <Html position={[slot.position[0], slot.position[1] + 0.1, slot.position[2] + 0.55]} center>
       <DarkSchemeIsland>

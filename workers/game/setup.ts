@@ -105,7 +105,11 @@ function suppliedSnapshot(
     {
       ...nextSnapshot(next, accepted(table, 'setup-supply', message)),
       stage: 'setup',
-      setup: initialSetup(factions.map(({ capture }) => capture)),
+      setup: initialSetup(
+        factions.map(({ capture }) => capture),
+        next.roster,
+        table.stormSectorIndex
+      ),
       controls: { ...next.controls!, ready: [] },
     },
     table.pieces,

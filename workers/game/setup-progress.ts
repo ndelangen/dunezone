@@ -1,59 +1,81 @@
 import { randomInt } from 'node:crypto';
 
+import { capturedDeclarations } from '../../src/shared/play/capture';
 import type { FactionCapture } from '../../src/shared/play/capture';
 import { accepted, nextSnapshot } from '../../src/shared/play/commands';
 import { emptyPublicControls } from '../../src/shared/play/inventory';
 import type { StoredPiece } from '../../src/shared/play/model';
-import { PHASE_CHANGE_COOLDOWN_MS } from '../../src/shared/play/phases';
+import { composeSetup, PHASE_CHANGE_COOLDOWN_MS, phaseAt, tableProgressFor } from '../../src/shared/play/phases';
+import type { SetupPlacement } from '../../src/shared/play/phases';
 import { rosterFactionNames, tableForViewer } from '../../src/shared/play/protocol';
 import type { PieceAction } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
 import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
+import type { TableRoster } from '../../src/shared/play/schema';
 import { phaseGate, setupStep, setupReadyRequired } from '../../src/shared/play/setup';
 import type { SetupState } from '../../src/shared/play/setup';
+import { stormOrder } from '../../src/shared/play/stormSector';
 import { OTHER_DECK_POSITION } from '../../src/shared/play/tableFurnitureLayout';
 import { restingPositionAt } from '../../src/shared/play/tableGeometry';
 import { labelForCount } from '../../src/shared/play/tableState';
 import type { StoredSnapshot } from './state';
 
-export function initialSetup(captures: FactionCapture[]): SetupState {
+const TRAITORS_STEP = {
+  id: 'traitors',
+  kind: 'traitors',
+  title: 'Traitor selection',
+  instructions: 'Combine, shuffle and deal traitor cards. Return unwanted cards to the table, then confirm Ready.',
+  symbol: '/vector/icon/traitor.svg',
+  allPlayersMustBeReady: true,
+} as const;
+
+const FORCES_STEP = {
+  id: 'forces',
+  kind: 'forces',
+  title: 'Starting forces',
+  instructions:
+    'Place your starting forces using your faction instructions. When every player is prepared, Ready enables Next into Turn 1 Storm.',
+  symbol: '/vector/icon/shipment_disc.svg',
+  allPlayersMustBeReady: true,
+} as const;
+
+/**
+ * Setup is `[before traitors] + traitors + [before forces] + forces`, composed once from the seated factions' declarations (#1138).
+ * Storm order reads the marker where setup finds it, its default sector, since the storm cannot move before Turn 1 Storm.
+ */
+export function initialSetup(
+  captures: FactionCapture[],
+  roster: TableRoster | undefined,
+  stormSectorIndex: number
+): SetupState {
+  const seated = new Set(roster?.seats.flatMap((seat) => (seat.faction ? [seat.faction.id] : [])) ?? []);
+  const factions = captures
+    .filter((capture) => seated.has(capture.faction.id))
+    .map((capture) => ({ factionId: capture.faction.id, declarations: capturedDeclarations(capture) }));
+  const placed = composeSetup(factions, stormOrder(stormSectorIndex, roster));
+  const step = ({ factionId, declaration }: SetupPlacement) => ({
+    /* A setup step id is a table id, which has no colon; the turn's entries use `${factionId}:${id}`. */
+    id: `${factionId}_${declaration.id}`,
+    kind: declaration.type,
+    factionId,
+    title: declaration.title,
+    instructions: declaration.instructions ?? '',
+    symbol: declaration.symbol,
+    /* Prediction gates on its lock, never on readiness. */
+    allPlayersMustBeReady: declaration.type === 'prediction' ? false : declaration.allPlayersMustBeReady,
+  });
   return {
-    steps: [
-      ...captures.flatMap((capture, factionIndex) =>
-        (capture.setupPhases ?? []).map((declaration, index) => ({
-          id: `prediction-${factionIndex}-${index}`,
-          kind: declaration.name,
-          factionId: capture.faction.id,
-          title: declaration.title,
-          instructions: declaration.instructions,
-          symbol: declaration.symbol,
-        }))
-      ),
-      {
-        id: 'traitors',
-        kind: 'traitors',
-        title: 'Traitor selection',
-        instructions:
-          'Combine, shuffle and deal traitor cards. Return unwanted cards to the table, then confirm Ready.',
-        symbol: '/vector/icon/traitor.svg',
-      },
-      {
-        id: 'forces',
-        kind: 'forces',
-        title: 'Starting forces',
-        instructions:
-          'Place your starting forces using your faction instructions. When every player is prepared, Ready enables Next into Turn 1 Storm.',
-        symbol: '/vector/icon/shipment_disc.svg',
-      },
-    ],
+    steps: [...placed.traitors.map(step), TRAITORS_STEP, ...placed.forces.map(step), FORCES_STEP],
     index: 0,
     visit: 1,
     mapRevealed: false,
     completed: [],
-    instructions: captures.map((capture) => ({
-      factionId: capture.faction.id,
-      text: capture.definition.rules.startText,
-    })),
+    instructions: captures
+      .filter((capture) => seated.has(capture.faction.id))
+      .map((capture) => ({
+        factionId: capture.faction.id,
+        text: capture.definition.rules.startText,
+      })),
   };
 }
 
@@ -104,7 +126,9 @@ function requireSetup(snapshot: StoredSnapshot) {
 }
 
 function randomStorm(snapshot: StoredSnapshot) {
-  if (snapshot.stage !== 'play' || snapshot.phase !== 0) {
+  /* Keyed on the composed turn, since a faction phase placed before Storm can take index 0. */
+  const { turn, activePhaseId } = tableProgressFor(snapshot.phase, snapshot.phases);
+  if (snapshot.stage !== 'play' || turn !== 1 || activePhaseId !== 'storm') {
     throw new GameRejection('Random storm placement is available only in Turn 1 Storm.');
   }
   return event(
@@ -263,7 +287,7 @@ function advanceSetup(snapshot: StoredSnapshot, direction: -1 | 1, context: Cont
       controls: { ...controls, ready: [], seats: context.seats, phaseChangedAt: context.now },
     },
     'setup-phase',
-    finished ? 'Setup complete. Turn 1: Storm.' : `Setup: ${setupStep(setup).title}.`
+    finished ? `Setup complete. Turn 1: ${phaseAt(0, snapshot.phases).label}.` : `Setup: ${setupStep(setup).title}.`
   );
 }
 

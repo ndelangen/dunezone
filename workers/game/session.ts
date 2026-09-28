@@ -18,12 +18,15 @@ import type { StoredSpawnContents } from '../../src/shared/play/inventory';
 import { emptyPublicControls } from '../../src/shared/play/inventory';
 import type { LoadProfile } from '../../src/shared/play/loadFixture';
 import { isSeatAction, seatSubject } from '../../src/shared/play/participation';
+import { composeTurn, lobbyPhaseIndex } from '../../src/shared/play/phases';
+import type { PhaseEntry } from '../../src/shared/play/phases';
 import type { ClientMessage, GameSnapshot, ServerMessage, Viewer } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
 import { isRemovalAction } from '../../src/shared/play/removal';
 import { isResultAction } from '../../src/shared/play/result';
 import type { TableRoster } from '../../src/shared/play/schema';
 import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
+import { stormOrder } from '../../src/shared/play/stormSector';
 import { isSwapAction, openSwapping } from '../../src/shared/play/swapping';
 import { isTableSeatCount } from '../../src/shared/play/tableSettings';
 import { eventId as tableEventId } from '../../src/shared/play/tableState';
@@ -195,7 +198,24 @@ export class GameSession {
   /** The stored seating rides on every snapshot the room holds, as the current occupancy already does. */
   private withRoster<Snapshot extends StoredSnapshot>(snapshot: Snapshot): Snapshot {
     const settled = settleEnding(snapshot, () => new Set(this.actors.seated().map((occupant) => occupant.userId)));
-    return { ...settled, roster: this.actors.roster(this.seatCount()) };
+    const roster = this.actors.roster(this.seatCount());
+    return { ...settled, roster, phases: this.composedTurn(roster, settled.table.stormSectorIndex) };
+  }
+
+  /**
+   * The turn a real game plays once its factions are captured: the seated factions' declarations around the standard phases, ordered by the marker as it stands (#1138).
+   * Recomposed with every snapshot the room accepts, so a storm move reorders the entries after Storm and nothing stores an order.
+   * A game whose seated factions declare nothing (a fixture, one still drafting, or plain factions) plays the standard turn and carries no list.
+   */
+  private composedTurn(roster: TableRoster, stormSectorIndex: number): PhaseEntry[] | undefined {
+    const seated = new Set(roster.seats.flatMap((seat) => (seat.faction ? [seat.faction.id] : [])));
+    const factions = this.captures
+      .phaseDeclarations()
+      .filter((entry) => seated.has(entry.factionId) && entry.declarations.length > 0);
+    if (!factions.length) {
+      return undefined;
+    }
+    return composeTurn(factions, stormOrder(stormSectorIndex, roster));
   }
 
   /** A drafting roster that outgrew its stations fixes a larger count, inside the caller's transaction. */
@@ -302,7 +322,7 @@ export class GameSession {
     }
     const next = {
       ...room.snapshot,
-      setup: initialSetup(this.captures.factions()),
+      setup: initialSetup(this.captures.factions(), room.snapshot.roster, room.snapshot.table.stormSectorIndex),
       controls: { ...(room.snapshot.controls ?? emptyPublicControls()), ready: [] },
     };
     this.storage.sql.exec('UPDATE current_state SET data=? WHERE id=1', JSON.stringify(next));
@@ -373,7 +393,8 @@ export class GameSession {
       stage,
       seatCount,
       seats: this.actors.seated().map(({ seat, userId }) => ({ seat, userId, faction: factions.get(seat) ?? null })),
-      phase: stage === 'play' ? snapshot.phase : null,
+      /* The lobby reads a standard-turn index, so a composed turn reports its turn and the standard phase it is at or before. */
+      phase: stage === 'play' ? lobbyPhaseIndex(snapshot.phase, snapshot.phases) : null,
       lastActivityAt: now,
       result:
         stage === 'finished' && snapshot.result
@@ -920,7 +941,7 @@ export class GameSession {
     return this.storage.transactionSync(() => this.captures.retainRuleset(capture));
   }
   retainFaction(capture: Parameters<CaptureStore['retainFaction']>[0], options: { provisional?: boolean }) {
-    this.requireReady('faction', capture.readiness, options);
+    this.requireReady(`faction ${capture.faction.name}`, capture.readiness, options);
     return this.storage.transactionSync(() => this.captures.retainFaction(capture));
   }
   pendingDirectory() {
