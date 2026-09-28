@@ -35,8 +35,8 @@ Worker's own builder in `src/shared/play/setupSupply.ts`, run over six captures 
 `factions.json`, so reserves, leaders and Traitor decks carry the labels a real game deals. A
 stack whose cards change later, the gathered Traitor pile or the Treachery deck and the card drawn
 from it, takes its name from the table's own `labelForCount`, and a kept Traitor carries the name a
-deal gives it. Each story changes only the state needed for its scenario and passes the projected view through the
-existing game transport seam.
+deal gives it. Each story changes only the state needed for its scenario and passes the projected
+view through the existing game transport seam.
 The scripted transport records commands and supplies specified replies. It does not execute game
 rules. The real route and browser-local Convex handlers still own page behavior.
 
