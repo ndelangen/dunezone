@@ -1,25 +1,28 @@
 /*
- * The column count is the page's rhythm, not the list's: it asks the page frame, so a list in a
- * side column shows the same count as one across the page, with smaller cards. The four- and
- * three-column steps keep the cards of a list across the page, as on the catalogue, at 14rem or
- * wider: four cards and three 1rem gaps need 59rem, three cards and two gaps 44rem. Below 44rem the
- * two columns share whatever the page has, so on a phone the cards go below 14rem. The card sets no
- * width of its own, so a list in a narrower column, as on the profile, goes below 14rem at the same
- * count.
+ * The column count answers to the list's own width, on the ladder, and a card fills its cell with no
+ * width of its own. Two columns below the phone step, 30rem, three from it. From the tablet step,
+ * 48rem, the row takes as many columns of 12.5rem as fit and shares what is left between them, so a
+ * card stays near 200px. Three 12.5rem columns and two 1rem gaps need 39.5rem, so from 48rem the
+ * count never drops below three. The track repeats with auto-fill, which keeps the empty columns, so
+ * a short list keeps its card size instead of stretching one card across the row.
  */
+.list {
+  container: faction-list / inline-size;
+}
+
 .grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(12.5rem, 1fr));
   gap: var(--space-md);
 }
 
-@container page-frame (width < 59rem) {
+@container faction-list (width < 48rem) {
   .grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
-@container page-frame (width < 44rem) {
+@container faction-list (width < 30rem) {
   .grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: var(--space-sm);

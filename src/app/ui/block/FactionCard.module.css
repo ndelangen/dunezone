@@ -1,6 +1,8 @@
+/* The card's own width picks its caption, so the card reads the same in a list, a rail or a preview. */
 .root {
   position: relative;
   min-width: 0;
+  container: faction-card / inline-size;
 }
 
 /*
@@ -173,10 +175,11 @@
 }
 
 /*
- * The compact caption belongs to a card in a two-up row, so it follows the page's rhythm too: it asks
- * the page frame at the list's two-column step, 44rem.
+ * The regular caption is sized for a card as wide as the 12.5rem column a faction list aims for, so a
+ * narrower card takes the compact one, as in a narrow two- or three-column list or the faction
+ * editor's phone preview. A card in a list's auto-fill row is never narrower than 12.5rem.
  */
-@container page-frame (width < 44rem) {
+@container faction-card (width < 12.5rem) {
   .card:hover .hero {
     transform: translateY(-2px) scale(1.015);
   }

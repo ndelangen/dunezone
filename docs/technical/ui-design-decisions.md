@@ -180,12 +180,16 @@ declares around the band and the page, named `page-frame`, as wide as the page b
 gutters, or a Layout's container when one sits between, as `TriptychLayout`'s does on the home page.
 A page composition needs no container of its own. A component that lays out its own children by
 width names the container it asks, so a container inserted above it cannot move it. When that layout
-is the page's rhythm it asks `page-frame`: `FactionList`'s column count and `FactionCard`'s compact
-caption do, so a list in a side column keeps the page's count with smaller cards, the way a pane in
-a sidebar keeps the page's spacing. When it is the room it is given it asks that room: the faction
-editor's workbench asks `faction-review-stage`, the review's stage that spans the editor, and its
-sections ask `ConnectedTabs`' `connected-tabs-panel`. A story has no page, so a component that asks
-`page-frame` shows its widest layout there.
+is the page's rhythm it asks `page-frame`, as `AuthoringToolbar`'s review action does, because the
+review's stage spans the page the toolbar sits above. When it is the room it is given it asks that
+room: the faction editor's workbench asks `faction-review-stage`, the review's stage that spans the
+editor, and its sections ask `ConnectedTabs`' `connected-tabs-panel`. A story has no page, so a
+component that asks `page-frame` shows its widest layout there.
+
+A faction list is sized by its column count, not by its card width. `FactionList` declares
+`faction-list` and takes its count from its own width: two columns below 30rem, three from 30rem,
+and from 48rem as many columns of about 200px as fit. A card fills its column and sets no width, and
+below 12.5rem of its own width it takes the compact caption.
 
 A container query sits on the ladder too, unless its threshold is derived from its own content, such
 as two 14rem columns and a gap, and a comment next to it says so. A viewport number copied into a

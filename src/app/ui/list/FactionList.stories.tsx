@@ -1,5 +1,6 @@
 import preview from '@sb/preview';
 import { assetPublishingFaction } from '@shared/factions/fixtures/assetPublishingFaction';
+import { expect, waitFor, within } from 'storybook/test';
 
 import type { FactionCatalogueEntry } from '@db/factions';
 
@@ -41,9 +42,47 @@ const meta = preview.meta({
   argTypes: { className: { control: false } },
 });
 
-/** The grid's rhythm is all this owns; the tiles frame themselves. */
+/**
+ * Reads the column count of the grid the cards sit in, and checks that a card is as wide as its column, since the card sets no width of its own.
+ */
+async function expectColumns(canvasElement: HTMLElement, count: number) {
+  const [card] = await within(canvasElement).findAllByRole('link');
+  await waitFor(() => {
+    let grid = card.parentElement;
+    while (grid && getComputedStyle(grid).display !== 'grid') {
+      grid = grid.parentElement;
+    }
+    const tracks = grid ? getComputedStyle(grid).gridTemplateColumns.split(' ') : [];
+    expect(tracks).toHaveLength(count);
+    expect(card.getBoundingClientRect().width).toBeCloseTo(Number.parseFloat(tracks[0]), 0);
+  });
+}
+
+/**
+ * The grid's rhythm is all this owns, and the tiles frame themselves.
+ * From the tablet step the row takes as many columns of about 200px as fit, five across a desktop window.
+ */
 export const Default = meta.story({
   globals: { viewport: { value: 'appDesktop' } },
+  play: async ({ canvasElement }) => {
+    await expectColumns(canvasElement, 5);
+  },
+});
+
+/** A list as wide as a tablet's page is three columns across, however wide that makes each card. */
+export const Tablet = meta.story({
+  globals: { viewport: { value: 'appTablet' } },
+  play: async ({ canvasElement }) => {
+    await expectColumns(canvasElement, 3);
+  },
+});
+
+/** A list as wide as a phone's page is two columns across. */
+export const Mobile = meta.story({
+  globals: { viewport: { value: 'appMobile' } },
+  play: async ({ canvasElement }) => {
+    await expectColumns(canvasElement, 2);
+  },
 });
 
 /**

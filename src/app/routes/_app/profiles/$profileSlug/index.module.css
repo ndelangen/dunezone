@@ -125,11 +125,11 @@
 /*
  * The columns stack only where the main column can no longer hold two faction cards of 10rem beside
  * the sidebar, 10rem being the width FactionCard's ContentStress story renders a card at. The sidebar
- * takes its 21rem before the main column gets any room. Below 44rem of the page the list shows two
- * cards with a 0.75rem gap, and the column gap is 0.75rem at this width. The main column's other
- * blocks need less room than two cards: 21rem + 0.75rem + 2 × 10rem + 0.75rem = 42.5rem.
- * 10rem sizes this step and is not a floor: from 44rem of the page the list takes the page's three
- * columns, and beside the sidebar its cards go below 10rem, to 111px at a 744px window.
+ * takes its 21rem before the main column gets any room. The faction list is narrower than 30rem
+ * here, so it shows two cards with a 0.75rem gap, and the column gap is 0.75rem at this width. The
+ * main column's other blocks need less room than two cards: 21rem + 0.75rem + 2 × 10rem + 0.75rem =
+ * 42.5rem. 10rem sizes this step and is not a floor: from 30rem of its own width the list takes three
+ * columns, and its cards go below 10rem, to 149px at an 872px window.
  * The avatar takes its 56px where the columns stack. Beside the sidebar it fills PageIdentity's media
  * column, which steps with the title at 48rem of the page.
  */
