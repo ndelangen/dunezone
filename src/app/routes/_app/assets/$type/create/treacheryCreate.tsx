@@ -1,15 +1,6 @@
-import { useNavigate } from '@tanstack/react-router';
-import { LoadPending } from '@ui/block/LoadPending';
-import { LoginGate } from '@ui/block/LoginGate';
-import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
-import { PageLayout } from '@ui/layout/PageLayout';
-import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { useReducer, useState } from 'react';
 
-import { useSessionViewer } from '@db/profiles';
-import { useCreateAsset } from '@app/db/assets';
 import { postedPayload } from '@app/widgets/authoring/authoringEnvelope';
-import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import {
   INITIAL_TREACHERY_DRAFT,
@@ -20,7 +11,8 @@ import {
 import type { TreacheryChapter, TreacheryDraft, TreacheryMemory } from '@app/widgets/card-editor/TreacheryCardEditor';
 import { TreacheryAsset } from '@game/data/objects';
 
-import { AssetEditorMessage, SaveErrorAlert, useAssetNameField } from '../../assetEditorStates';
+import { useAssetNameField } from '../../assetEditorStates';
+import { CardCreateFrame, useCardCreate } from './cardCreatePage';
 
 /**
  * This page's authoring state, and the four things that happen to it.
@@ -56,9 +48,7 @@ function reduce(state: TreacheryState, event: TreacheryEvent): TreacheryState {
 
 /** The treachery card create page. Mounted by the generic `$type/create` route when the type is `card-treachery`. */
 export function TreacheryCreatePage() {
-  const navigate = useNavigate();
-  const viewer = useSessionViewer();
-  const createAsset = useCreateAsset();
+  const saving = useCardCreate('card-treachery');
   const [chapter, setChapter] = useState<TreacheryChapter>('head');
   const [state, dispatch] = useReducer(reduce, undefined, () =>
     openingState(INITIAL_TREACHERY_DRAFT, INITIAL_TREACHERY_DRAFT)
@@ -74,84 +64,39 @@ export function TreacheryCreatePage() {
     source: 'Head',
     chapter: 'head' as TreacheryChapter,
   });
-  const warnings = [...treacheryDraftWarnings(state.data), ...conflictWarnings];
   const header = useEditPageHeader({
-    warnings,
+    warnings: [...treacheryDraftWarnings(state.data), ...conflictWarnings],
     onFocusWarning: (warning) => setChapter(warning.chapter),
   });
   /* Dirty reads the draft alone and never the memory beside it (D6): memory is never posted, so counting it would arm a Save that writes an identical payload. */
   const isDirty = JSON.stringify(state.data) !== JSON.stringify(state.baseline);
-  const saveState: AuthoringSaveState = createAsset.isPending
-    ? 'saving'
-    : createAsset.error
-      ? 'error'
-      : createAsset.data !== undefined
-        ? 'saved'
-        : 'idle';
-
-  switch (viewer.kind) {
-    case 'pending':
-      return (
-        <AssetEditorMessage title="New treachery card" type="card-treachery">
-          <LoadPending title="Loading your profile">Checking whether you are signed in.</LoadPending>
-        </AssetEditorMessage>
-      );
-    case 'signed-out':
-      return (
-        <AssetEditorMessage title="New treachery card" type="card-treachery">
-          <LoginGate action="create cards" />
-        </AssetEditorMessage>
-      );
-    default:
-      break;
-  }
 
   const save = () => {
     /* The stored schema's own keys decide what is posted, so the session's memory can never ride along (D3). */
     const payload = postedPayload(TreacheryAsset, state.data);
-    createAsset.mutate(
-      { type: 'card-treachery', data: payload },
-      {
-        onSuccess: ({ slug }) => {
-          dispatch({ kind: 'saved', data: payload });
-          void navigate({ to: '/assets/$type/$slug/edit', params: { type: 'card-treachery', slug }, replace: true });
-        },
-      }
-    );
+    saving.save(payload, () => dispatch({ kind: 'saved', data: payload }));
   };
 
   return (
-    <PageLayout>
-      {header.slot}
-      <PageLayout.Toolbar>
-        <AuthoringToolbar
-          status={{ isDirty, isNameBlank: !state.data.name.trim(), saveState }}
-          copy={{
-            saveLabel: 'Save card',
-            nameBlankMessage: 'Add a card name before saving; it determines the card URL.',
-          }}
-          actions={{
-            onSave: save,
-            onReset: header.releasing(() => dispatch({ kind: 'replace', data: state.baseline })),
-            onBack: () => void navigate({ to: '/assets/$type', params: { type: 'card-treachery' } }),
-          }}
-        />
-      </PageLayout.Toolbar>
-      <PageLayout.Content>
-        <WorkbenchLayout gap="sm">
-          <SaveErrorAlert error={createAsset.error} />
-          <TreacheryCardEditor
-            nameField={nameField}
-            draft={state.data}
-            patch={patch}
-            memory={state.memory}
-            remember={(update) => dispatch({ kind: 'remember', update })}
-            chapter={chapter}
-            onChapterChange={setChapter}
-            onSettle={header.settle}
-          />
-        </WorkbenchLayout>
-      </PageLayout.Content>
-    </PageLayout>
+    <CardCreateFrame
+      type="card-treachery"
+      title="New treachery card"
+      headerSlot={header.slot}
+      status={{ isDirty, isNameBlank: !state.data.name.trim(), saveState: saving.saveState }}
+      onSave={save}
+      onReset={header.releasing(() => dispatch({ kind: 'replace', data: state.baseline }))}
+      saveError={saving.error}
+    >
+      <TreacheryCardEditor
+        nameField={nameField}
+        draft={state.data}
+        patch={patch}
+        memory={state.memory}
+        remember={(update) => dispatch({ kind: 'remember', update })}
+        chapter={chapter}
+        onChapterChange={setChapter}
+        onSettle={header.settle}
+      />
+    </CardCreateFrame>
   );
 }

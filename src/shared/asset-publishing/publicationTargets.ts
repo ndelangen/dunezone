@@ -22,6 +22,7 @@ export const PUBLICATION_ASSET_TYPES = [
   'faction-leader',
   'faction-token',
   'card-treachery',
+  'card-spice',
   'deck',
   'cardback-preset',
   'token-disc',
@@ -134,6 +135,14 @@ export const PUBLICATION_TARGETS: Record<PublicationAssetType, PublicationTarget
     file: 'card.jpg',
     contentType: 'image/jpeg',
     downloadFilename: 'treachery-card.jpg',
+    capture: { output: 'image', widthPx: 900, heightPx: 1263, jpegQuality: 88, maxBytes: 2_000_000 },
+  },
+  /* A spice card draws at the same 900x1263 card size, under its own collection so the two card types never share an address. */
+  'card-spice': {
+    collection: 'spice-cards',
+    file: 'card.jpg',
+    contentType: 'image/jpeg',
+    downloadFilename: 'spice-card.jpg',
     capture: { output: 'image', widthPx: 900, heightPx: 1263, jpegQuality: 88, maxBytes: 2_000_000 },
   },
   /*

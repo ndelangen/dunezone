@@ -14,6 +14,7 @@ import { useEffect, useState } from 'react';
 import { FactionSheetView } from '@app/print/sheet/FactionSheetView';
 import { AssetRenderModeProvider } from '@game/assets/assetRenderMode';
 import { CardBack } from '@game/assets/card/Back';
+import { SpiceCard } from '@game/assets/card/Spice';
 import { LeaderToken } from '@game/assets/faction/leader/Leader';
 import { Token as FactionToken } from '@game/assets/faction/token/Token';
 import { CustomToken } from '@game/assets/token/Custom';
@@ -80,6 +81,16 @@ function captureSubject(snapshot: PublisherCaptureSnapshot): CaptureSubject {
           <CaptureFrame assetType={snapshot.assetType}>
             <AssetRenderModeProvider mode="print">
               <TreacheryCard {...snapshot.payload.card} />
+            </AssetRenderModeProvider>
+          </CaptureFrame>
+        ),
+      };
+    case 'card-spice':
+      return {
+        node: (
+          <CaptureFrame assetType={snapshot.assetType}>
+            <AssetRenderModeProvider mode="print">
+              <SpiceCard {...snapshot.payload.card} />
             </AssetRenderModeProvider>
           </CaptureFrame>
         ),

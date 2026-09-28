@@ -1,3 +1,5 @@
+import { phaseDeclarationProblems } from '@shared/factions/extraPhases';
+
 import type { Faction } from '@db/factions';
 
 export const factionAuthoringChapters = [
@@ -13,6 +15,7 @@ export const factionAuthoringChapters = [
   { id: 'alliance', label: 'Alliance' },
   { id: 'rules', label: 'Rules' },
   { id: 'advantages', label: 'Advantages' },
+  { id: 'phases', label: 'Phases' },
   { id: 'complexity', label: 'Complexity' },
 ] as const;
 
@@ -154,6 +157,11 @@ export function factionAuthoringWarnings(faction: Faction): FactionAuthoringWarn
   return warnings;
 }
 
+/** The number of phase rows the shared schema refuses; any one of them holds Save. */
+export function invalidPhaseRowCount(faction: Faction): number {
+  return (faction.extraPhases ?? []).filter((row) => Object.keys(phaseDeclarationProblems(row)).length > 0).length;
+}
+
 /** The editor never owns extras while their domain model is unsettled. */
 export function preserveFactionExtras(values: Faction, baseline: Faction): Faction {
   const next = structuredClone(values);
@@ -276,6 +284,22 @@ export const factionAuthoringCoverage: Readonly<Record<string, CoverageEntry>> =
   ...coverage(['rules.advantages[].title', 'rules.advantages[].text', 'rules.advantages[].karama'], {
     state: 'control',
     chapter: 'advantages',
+  }),
+  ...coverage(
+    [
+      'extraPhases[].type',
+      'extraPhases[].title',
+      'extraPhases[].symbol',
+      'extraPhases[].before',
+      'extraPhases[].priority',
+      'extraPhases[].allPlayersMustBeReady',
+      'extraPhases[].instructions',
+    ],
+    { state: 'control', chapter: 'phases' }
+  ),
+  ...coverage(['extraPhases[].id'], {
+    state: 'preserved',
+    owner: 'Phase declaration identity generated when the author adds a row, never shown',
   }),
   ...coverage(['complexity.manual'], { state: 'control', chapter: 'complexity' }),
   ...coverage(['complexity.calculated'], {
