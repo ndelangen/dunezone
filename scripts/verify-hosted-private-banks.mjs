@@ -188,9 +188,11 @@ export async function verifyPrivateBanks(toolkit) {
     passed(
       'Raw snapshots, compact deltas and historical frames contain only the recipient faction bank; observer and guessed HTTP paths expose no bank; reconnect and a second tab restore the current bank'
     );
-    /* A real game's history starts at drafting, whose playback bar returns the tab to the live table. */
-    await tab.page.getByRole('button', { name: 'Return to live' }).click();
-    await button(tab, 'Spice').waitFor({ state: 'attached' });
+    /* A real game's history starts at drafting, whose playback bar returns each replaying page to the live table. */
+    for (const who of [tab, observer]) {
+      await who.page.getByRole('button', { name: 'Return to live' }).click();
+      await button(who, 'Spice').waitFor({ state: 'attached' });
+    }
     return tab;
   }
 

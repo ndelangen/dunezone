@@ -147,6 +147,11 @@ function MapFields({ draft, patch }: { draft: SpiceDraft; patch: Patch }) {
   );
 }
 
+/* A card adds a whole number of spice, at least one. */
+function isAmount(value: number | string): value is number {
+  return Number.isInteger(value) && Number(value) > 0;
+}
+
 /* The card's body: the amount in the corner and the text above it. */
 function BodyFields({ draft, patch }: { draft: SpiceDraft; patch: Patch }) {
   /* An amount left empty or below one is not kept, so leaving the field remounts it on the amount the card still holds. */
@@ -166,7 +171,7 @@ function BodyFields({ draft, patch }: { draft: SpiceDraft; patch: Patch }) {
             allowNegative={false}
             value={draft.amount}
             onChange={(value) => {
-              if (typeof value === 'number' && Number.isInteger(value) && value > 0) {
+              if (isAmount(value)) {
                 patch({ amount: value });
               }
             }}
