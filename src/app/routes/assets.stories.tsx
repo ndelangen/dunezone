@@ -315,6 +315,29 @@ export const EditDiscTokenResetDiscardsTheKeptFace = meta.story({
   },
 });
 
+/**
+ * The deck editor states only the latest save's failure (CodeRabbit on #1435).
+ * The first save fails at the server, because a name made only of punctuation gives the deck no URL.
+ * The second never reaches the server, because the card back names another deck without picking one.
+ * The first save's failure must not stay on the page beside the missing pick.
+ */
+export const EditDeckShowsOnlyTheLatestSaveFailure = meta.story({
+  args: { path: '/assets/deck/house-treachery/edit' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const name = await page.findByRole('textbox', { name: 'Name' }, { timeout: 30_000 });
+    await userEvent.clear(name);
+    await userEvent.type(name, '!!!');
+    await userEvent.click(page.getByRole('button', { name: 'Save deck' }));
+    await expect(page.findByText('Could not save', {}, { timeout: 30_000 })).resolves.toBeVisible();
+
+    await userEvent.click(page.getByRole('radio', { name: "Another deck's back" }));
+    await userEvent.click(page.getByRole('button', { name: 'Save deck' }));
+    await expect(page.findByText('No deck picked', {}, { timeout: 30_000 })).resolves.toBeVisible();
+    expect(page.queryByText('Could not save')).toBeNull();
+  },
+});
+
 const DECK_EDIT_STATUSES = ['No unsaved changes', 'Group access: Arrakeen Rules Council'];
 
 /**

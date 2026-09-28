@@ -220,6 +220,8 @@ function RectangleEditSession({
   const pickless = state.data.back.mode === 'reference' && state.data.back.asset_id === null;
 
   const save = () => {
+    /* A pickless save stops before the write, so it clears the previous write's failure itself rather than showing it beside its own. */
+    updateAsset.reset();
     /* A pickless reference is blocked here with words, rather than letting the stored schema answer with a Zod error. */
     dispatch({ kind: 'remember', update: { pickBlocked: pickless } });
     if (pickless) {
