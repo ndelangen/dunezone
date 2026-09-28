@@ -219,20 +219,27 @@ function observeRenderers() {
 function observeConnectionStatus() {
   const changes = [];
   let last = '';
+  let observer;
+  /* The waits before the subscription carry no connection state, so the status line is found first and its state beside it. */
   const record = () => {
-    const wait = document.querySelector('[data-connection]');
-    const connection = wait?.getAttribute('data-connection') ?? null;
-    const status = wait?.querySelector('[role="status"]')?.textContent ?? null;
-    const key = `${connection}|${status}`;
+    const status = document.querySelector('[role="status"]');
+    const connection = status?.closest('[data-connection]')?.getAttribute('data-connection') ?? null;
+    const text = status?.textContent ?? null;
+    const key = `${connection}|${text}`;
     if (key !== last) {
       last = key;
-      changes.push({ at: Math.round(performance.timeOrigin + performance.now()), connection, status });
+      changes.push({ at: Math.round(performance.timeOrigin + performance.now()), connection, status: text });
       changes.splice(0, Math.max(0, changes.length - 60));
+    }
+    /* Once admitted, the page's status lines are the table's own, so watching stops rather than costing the table frames. */
+    if (connection === 'authorized') {
+      observer?.disconnect();
     }
   };
   Object.assign(window, { hostedPlayConnection: changes });
   document.addEventListener('DOMContentLoaded', () => {
-    new MutationObserver(record).observe(document.body, {
+    observer = new MutationObserver(record);
+    observer.observe(document.body, {
       subtree: true,
       childList: true,
       characterData: true,
@@ -343,7 +350,7 @@ async function peer(label, context) {
     }
   });
   page.on('websocket', (socket) => {
-    if (socket.url().startsWith(backendSocketOrigin)) {
+    if (new URL(socket.url()).origin === backendSocketOrigin) {
       observeAdmission(state, socket);
       return;
     }
@@ -398,14 +405,16 @@ function observeAdmission(state, socket) {
   });
   socket.on('framesent', (frame) => {
     const message = parseFrame(frame.payload);
-    if (message?.type === 'Mutation' && (message.udfPath ?? '').endsWith('issueTicket')) {
-      state.admission.tickets.push({
-        requestId: message.requestId,
-        sentAt: Date.now(),
-        answeredAt: null,
-        success: null,
-      });
+    if (message?.type !== 'Mutation' || !(message.udfPath ?? '').endsWith('issueTicket')) {
+      return;
     }
+    /* A reconnecting Convex client sends its unanswered mutations again under the same request id. */
+    const resent = state.admission.tickets.find((entry) => entry.requestId === message.requestId);
+    if (resent) {
+      resent.sends += 1;
+      return;
+    }
+    state.admission.tickets.push({ requestId: message.requestId, sentAt: Date.now(), sends: 1, answeredAt: null });
   });
   socket.on('framereceived', (frame) => {
     const message = parseFrame(frame.payload);
@@ -417,8 +426,9 @@ function observeAdmission(state, socket) {
       state.admission.tickets.find((entry) => entry.requestId === message.requestId && entry.answeredAt === null);
     if (ticket) {
       ticket.answeredAt = Date.now();
-      /* A refusal is an ok:false result, so the mutation's own success says only whether the backend ran it. */
-      ticket.success = message.success === true;
+      /* A refusal is a successful mutation with an ok:false result; the result's ticket itself is never kept. */
+      ticket.outcome =
+        message.success !== true ? 'failed' : message.result?.ok ? 'issued' : (message.result?.reason ?? 'refused');
     }
   });
 }
@@ -433,10 +443,15 @@ function parseFrame(payload) {
 async function admissionTrace(who) {
   const start = Date.parse(report.startedAt);
   const since = (time) => (time === null ? null : time - start);
+  let timer;
   const statuses = await Promise.race([
     who.page.evaluate(() => window.hostedPlayConnection ?? []),
-    delay(5000).then(() => []),
-  ]).catch(() => []);
+    new Promise((resolve) => {
+      timer = setTimeout(() => resolve([]), 5000);
+    }),
+  ])
+    .catch(() => [])
+    .finally(() => clearTimeout(timer));
   return {
     label: who.label,
     gameSockets: who.sockets.length,
@@ -446,8 +461,9 @@ async function admissionTrace(who) {
     })),
     tickets: who.admission.tickets.map((entry) => ({
       sentAt: since(entry.sentAt),
+      sends: entry.sends,
       answeredAt: since(entry.answeredAt),
-      success: entry.success,
+      outcome: entry.outcome ?? null,
     })),
     authErrors: who.admission.authErrors,
     statuses: statuses.map((entry) => ({ ...entry, at: since(entry.at) })),
@@ -1612,9 +1628,8 @@ try {
     afterCheck: report.checks.at(-1)?.name ?? 'Startup',
     ...(frame ? { at: frame } : {}),
   };
-  report.failure.admission = [];
+  report.failure.admission = await Promise.all(peers.map(admissionTrace));
   for (const who of peers) {
-    report.failure.admission.push(await admissionTrace(who));
     try {
       await capture(who, `failure-${who.label}`);
     } catch {}
