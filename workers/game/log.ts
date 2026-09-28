@@ -4,7 +4,8 @@ import type { LogClass, LogEntry, LogTab } from '../../src/shared/play/log';
 import { seatLabel } from '../../src/shared/play/participation';
 import { phaseAt, TABLE_PHASES, tableProgressFor } from '../../src/shared/play/phases';
 import type { ClientMessage, Viewer } from '../../src/shared/play/protocol';
-import { describeResult } from '../../src/shared/play/result';
+import { describeResult, isResultAction } from '../../src/shared/play/result';
+import type { ResultAction } from '../../src/shared/play/result';
 import { setupStep } from '../../src/shared/play/setup';
 import type { StoredSnapshot } from './state';
 
@@ -109,9 +110,10 @@ export class PublicLog {
 
   /** A stage the game entered outside a table command: assignment, the trading deadline, a departure or a deletion. */
   recordStage(before: StoredSnapshot, next: StoredSnapshot) {
-    const entry = stageEntry(before, next);
-    if (entry) {
-      this.record(entry);
+    for (const entry of [stageEntry(before, next), endingClosed(before, next)]) {
+      if (entry) {
+        this.record(entry);
+      }
     }
   }
 
@@ -213,7 +215,9 @@ function commitEntries({
   return [
     ...(stage ? [stage] : []),
     ...(change ? [phaseEntry(next.revision, next.phase, change, context)] : []),
-    ...(message.type === 'command' ? resultEntries(before, next, message.action, viewer, faction) : []),
+    ...(message.type === 'command' && isResultAction(message.action)
+      ? resultEntries(before, next, message.action, viewer, faction)
+      : [endingClosed(before, next)].filter((entry) => entry !== undefined)),
     ...(message.type === 'command' ? predictionEntries(next, message.action, faction, context) : []),
     ...(transfer ? [spiceEntry(transfer, { userId: viewer.userId, name: viewer.displayName }, faction, context)] : []),
     ...(result && result.revision === next.revision ? [battleEntry(result, faction, context)] : []),
@@ -281,7 +285,7 @@ function phaseChangeOf(before: StoredSnapshot, next: StoredSnapshot, message: Co
 function resultEntries(
   before: StoredSnapshot,
   next: StoredSnapshot,
-  action: Extract<CommitMessage, { type: 'command' }>['action'],
+  action: ResultAction,
   viewer: Viewer,
   faction: (id: string) => string
 ): Entry[] {
@@ -297,8 +301,6 @@ function resultEntries(
           : undefined;
       case 'result-continue':
         return '{0} continued the game.';
-      default:
-        return undefined;
     }
   })();
   if (!template || before.revision === next.revision) {
@@ -314,6 +316,20 @@ function resultEntries(
       context: logContext(action.kind === 'result-declare' ? before : next),
     },
   ];
+}
+
+/* An open sequence that closed on its own, because the phase moved on or its player left the seat, says so. */
+function endingClosed(before: StoredSnapshot, next: StoredSnapshot): Entry | undefined {
+  if (!before.ending || next.ending || next.stage === 'finished' || before.revision === next.revision) {
+    return undefined;
+  }
+  return {
+    key: `ending-closed:${next.revision}`,
+    class: 'phase',
+    template: 'Determining the winner by {0} ended.',
+    people: [{ userId: before.ending.by.userId, name: before.ending.by.name }],
+    context: logContext(before),
+  };
 }
 
 /* A lock names only the faction; the choice appears once its player reveals it. */

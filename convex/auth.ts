@@ -4,6 +4,7 @@ import { Password } from '@convex-dev/auth/providers/Password';
 import { convexAuth } from '@convex-dev/auth/server';
 
 import { applicationTriggers } from './lib/applicationTriggers';
+import { syntheticIdentity } from './lib/playSynthetic';
 import { ensureProfileForUser, profileSourcesFromUserDoc } from './lib/profileBootstrap';
 
 const gemini = 'https://www.googleapis.com/auth/generative-language.retriever';
@@ -71,7 +72,7 @@ if (process.env.AUTH_DISCORD_ID && process.env.AUTH_DISCORD_SECRET) {
 }
 
 if (localE2eAuthEnabled) {
-  providers.push(Password);
+  providers.push(Password({ profile: syntheticIdentity }));
 }
 
 export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({

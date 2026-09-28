@@ -206,7 +206,7 @@ function canDetermine(table: TableProjection) {
 
 /** The plain Mentat pause control that opens the end-of-game sequence for every player. */
 export function DetermineWinner({ client, table }: Props) {
-  if (!canDetermine(table)) {
+  if (table.playback || !canDetermine(table)) {
     return null;
   }
   return (

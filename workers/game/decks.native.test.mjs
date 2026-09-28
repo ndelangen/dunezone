@@ -58,6 +58,9 @@ describe('Private deck commands through native delivery', () => {
     expect(oldHandles).not.toContain(recipient.snapshot.hand[0].items[0].id);
     a.send(result.message);
     expect((await syncView(b)).snapshot.hand).toHaveLength(1);
+    /* A view each socket asks for now arrives behind anything the draw or its retry sent to that socket. */
+    await syncView(a);
+    await syncView(spectator);
     expect(JSON.stringify(a.messages)).not.toContain('secret-3');
     expect(JSON.stringify(spectator.messages)).not.toContain('secret-3');
     await runtime.restart();

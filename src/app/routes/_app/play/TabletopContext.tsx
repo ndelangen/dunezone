@@ -124,12 +124,12 @@ function cancelDraftInState(current: TableState): TableState {
   };
 }
 
-function splitPieceFor(piece: TablePiece, takeCount: number, nextEventNumber: number): TablePiece {
+function splitPieceFor(current: TableState, piece: TablePiece, takeCount: number): TablePiece {
   const isCard = piece.kind === 'card';
   return {
     ...piece,
-    id: `${piece.id}-take-${nextEventNumber}`,
-    label: labelForCount(piece, takeCount, true),
+    id: `${piece.id}-take-${current.nextEventNumber}`,
+    label: labelForCount(piece, takeCount, current.factionNames, true),
     items: piece.items.slice(-takeCount),
     position: [
       piece.position[0] + (isCard ? 1.0 : 0.325),
@@ -139,8 +139,8 @@ function splitPieceFor(piece: TablePiece, takeCount: number, nextEventNumber: nu
   };
 }
 
-function piecesAfterSplit(pieces: TablePiece[], piece: TablePiece, remainingItems: TablePiece['items']) {
-  return pieces.flatMap((candidate) => {
+function piecesAfterSplit(current: TableState, piece: TablePiece, remainingItems: TablePiece['items']) {
+  return current.pieces.flatMap((candidate) => {
     if (candidate.id !== piece.id) {
       return [candidate];
     }
@@ -148,7 +148,7 @@ function piecesAfterSplit(pieces: TablePiece[], piece: TablePiece, remainingItem
       ? [
           {
             ...candidate,
-            label: labelForCount(candidate, remainingItems.length),
+            label: labelForCount(candidate, remainingItems.length, current.factionNames),
             items: remainingItems,
           },
         ]
@@ -182,8 +182,8 @@ function splitSelectedInState(current: TableState, count: number, pieceId?: stri
     return rejection(current, command, blockReason);
   }
   const takeCount = Math.min(Math.max(1, Math.floor(count)), pieceCount(piece));
-  const splitPiece = splitPieceFor(piece, takeCount, current.nextEventNumber);
-  const projectedPieces = piecesAfterSplit(current.pieces, piece, piece.items.slice(0, -takeCount));
+  const splitPiece = splitPieceFor(current, piece, takeCount);
+  const projectedPieces = piecesAfterSplit(current, piece, piece.items.slice(0, -takeCount));
   const splitPosition = nearestCollisionFreePosition(splitPiece, splitPiece.position, projectedPieces);
   if (!splitPosition) {
     return rejection(current, command, `There is no clear space beside ${piece.label}.`);

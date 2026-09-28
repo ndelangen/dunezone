@@ -224,9 +224,9 @@ function PhaseControls({ table }: Pick<ConnectionControlsProps, 'table'>) {
       eyebrow={table.playback ? 'Playback phase' : 'Shared phase'}
       title={phase.label}
       description={
-        table.snapshot.stage
-          ? `${phase.instructions} Previous changes the tracker only. Pieces and storm position stay as they are.`
-          : phase.instructions
+        table.snapshot.stage === 'finished' || !table.snapshot.stage
+          ? phase.instructions
+          : `${phase.instructions} Previous changes the tracker only. Pieces and storm position stay as they are.`
       }
     >
       {!table.snapshot.stage && (
