@@ -32,7 +32,6 @@ function durableTable(table: TableState): DurableTable {
 
 export function initialSnapshot(): GameSnapshot {
   const table = durableTable(freshTableState());
-  table.events = table.events.map((event) => ({ ...event, message: 'Table ready. Turn 1: Storm.' }));
   return { revision: 0, table, versions: Object.fromEntries(table.pieces.map((piece) => [piece.id, 0])), phase: 0 };
 }
 

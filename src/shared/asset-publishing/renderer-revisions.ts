@@ -16,6 +16,8 @@ export const CHECKED_IN_RENDERER_REVISIONS = {
   'faction-leader': 2,
   /* The first activation publishes tokens for existing factions; revision 2 adds the blocked `.back` face (#1228). */
   'faction-token': 2,
+  /* The first activation publishes every identified troop's front, and its back where one is authored (#1228). */
+  'faction-troop': 1,
   // 9: formatted text replaces Markdown while setup and revival stay inline (wayfinder #669).
   [FACTION_SHEET_ASSET_TYPE]: 9,
   /* Revision 2 regenerates Card image-and-geometry envelopes. */

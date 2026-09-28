@@ -265,7 +265,8 @@ export function ScenePresence() {
     }
   });
   useEffect(() => {
-    if (!import.meta.env.DEV) {
+    /* The local-auth build reuses its sign-in flag for browser verification, which projects table positions through this camera. */
+    if (!(import.meta.env.DEV || import.meta.env.VITE_E2E_LOCAL_AUTH === 'true')) {
       return;
     }
     const diagnostic: TableDiagnostic = {

@@ -2,19 +2,21 @@
 
 import type { Vector3Tuple } from '@shared/play/model';
 import { act, cleanup, render } from '@testing-library/react';
-import { Group } from 'three';
+import { Group, PerspectiveCamera, Scene } from 'three';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
-import { useTablePose } from './ScenePresence';
+import { ScenePresence, useTablePose } from './ScenePresence';
+import { TabletopProvider } from './TabletopContext';
 
 const scheduler = vi.hoisted(() => ({
   frames: new Set<(state: unknown, delta: number) => void>(),
+  three: {} as Record<string, unknown>,
 }));
 
 vi.mock('@react-three/fiber/webgpu', async () => {
   const { useLayoutEffect } = await import('react');
   return {
-    useThree: () => ({ invalidate: () => {} }),
+    useThree: () => ({ invalidate: () => {}, ...scheduler.three }),
     useFrame: (callback: (state: unknown, delta: number) => void) => {
       useLayoutEffect(() => {
         scheduler.frames.add(callback);
@@ -31,6 +33,8 @@ vi.mock('@react-three/drei/webgpu', () => ({ Html: () => null }));
 afterEach(() => {
   cleanup();
   scheduler.frames.clear();
+  scheduler.three = {};
+  vi.unstubAllEnvs();
 });
 
 function renderRemotePose(position: Vector3Tuple) {
@@ -84,4 +88,44 @@ describe('remote pose smoothing', () => {
       expect(pose.group.position.x).toBeLessThanOrEqual(1);
     }
   );
+});
+
+/** Renders the scene's presence layer at a local table, on an 800 by 400 canvas at (100, 50), seen by a camera that looks at the origin. */
+function renderPresence() {
+  const camera = new PerspectiveCamera(50, 2, 0.1, 100);
+  camera.position.set(0, 0, 10);
+  camera.lookAt(0, 0, 0);
+  camera.updateMatrixWorld();
+  const canvas = document.createElement('canvas');
+  canvas.getBoundingClientRect = () => ({ left: 100, top: 50, width: 800, height: 400 }) as DOMRect;
+  scheduler.three = { camera, renderer: { domElement: canvas }, scene: new Scene() };
+  render(<ScenePresence />, { wrapper: TabletopProvider });
+  return camera;
+}
+
+describe('the table diagnostic that browser verification projects through', () => {
+  test.each([
+    ['a development', true, undefined],
+    ['the local-auth', false, 'true'],
+  ] as const)('%s build installs it, and it projects through the rendered camera', (_build, dev, localAuth) => {
+    vi.stubEnv('DEV', dev);
+    vi.stubEnv('VITE_E2E_LOCAL_AUTH', localAuth);
+    const camera = renderPresence();
+
+    const centre = window.__duneTable?.worldToScreen([0, 0, 0]);
+    expect(centre?.x).toBeCloseTo(500);
+    expect(centre?.y).toBeCloseTo(250);
+
+    camera.position.set(1, 0, 10);
+    camera.updateMatrixWorld();
+    expect(window.__duneTable?.worldToScreen([0, 0, 0]).x).toBeLessThan(499);
+  });
+
+  test('a production build does not install it', () => {
+    vi.stubEnv('DEV', false);
+    vi.stubEnv('VITE_E2E_LOCAL_AUTH', undefined);
+    renderPresence();
+
+    expect(window.__duneTable).toBeUndefined();
+  });
 });

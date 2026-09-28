@@ -105,6 +105,17 @@ their sender's motion bucket was empty. Motion has its own bucket so that a busy
 stalls and then sees a steady mover's frames as a burst, drops frames instead of closing the socket
 with 4413 as it did in that run's peak cell.
 
+Neither reading sees a room that is busy all the time. A room's clock moves only when it does I/O
+or a timer fires, so in a saturated room it stands still between the 50 ms activity pass and the
+one-second sweep. Its handling and durable times then fall on those steps, and the sweep never
+looks late by its own clock. Compare `activityDeliveries` with about 20 per viewer per second of
+motion instead: in the fourth 28 September run the peak room sent 4,225 against roughly 26,400,
+and 45 of its 60 actions were late. That room spent its time on upkeep it ran for every message,
+including two queries over every viewer's seat. Pointer and pose frames now skip that upkeep and
+check only their own sender's seat, which leaves the rest to the activity pass and the sweep. A
+frame from a connection held by an account check is dropped instead of waiting for the check,
+since the next one supersedes it.
+
 `host` covers the other side. `idleBefore` is the share of the machine's CPU that was idle in the
 second before the run, and the runner warns when it is under half. `stalls` lists the moments the
 coordinator's own 100 ms tick ran more than 250 ms late, by the same clock as every send and

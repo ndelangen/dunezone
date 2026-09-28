@@ -1,6 +1,7 @@
 import { Box, Select } from '@mantine/core';
 import preview from '@sb/preview';
-import { expect, fn, userEvent, waitFor, within } from 'storybook/test';
+import { waitForFrame } from '@sb/storyWaits';
+import { expect, fn, userEvent, within } from 'storybook/test';
 
 import { ControlBlock } from './ControlBlock';
 import { ListLengthActions } from './ListLengthActions';
@@ -47,7 +48,7 @@ export const Default = meta.story({
     await expect(canvas.getByRole('combobox', { name: 'Preferred player color' })).toBeVisible();
 
     await userEvent.hover(canvas.getByRole('img', { name: 'Help' }));
-    await waitFor(() =>
+    await waitForFrame(() =>
       expect(page.getByRole('tooltip')).toHaveTextContent('Choose unique colors; drag to set their priority.')
     );
   },
@@ -91,6 +92,6 @@ export const TruncatedTitle = meta.story({
     await expect(title.scrollWidth).toBeGreaterThan(title.clientWidth);
 
     await userEvent.hover(title);
-    await waitFor(() => expect(page.getByRole('tooltip')).toHaveTextContent(longTitle));
+    await waitForFrame(() => expect(page.getByRole('tooltip')).toHaveTextContent(longTitle));
   },
 });

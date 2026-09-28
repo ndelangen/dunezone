@@ -47,7 +47,6 @@ export type TableViewState = Readonly<{
 
 export type TableViewEvent =
   | Readonly<{ type: 'view.selected'; view: TableView }>
-  | Readonly<{ type: 'view.reset' }>
   | Readonly<{ type: 'phase.changed'; phase: TablePhaseId | null }>
   | Readonly<{ type: 'interaction.changed'; active: boolean }>
   | Readonly<{ type: 'scene.ready' }>;
@@ -247,8 +246,6 @@ export function reduceTableView(state: TableViewState, event: TableViewEvent): T
   switch (event.type) {
     case 'view.selected':
       return requestView(state, { view: event.view, source: 'player' });
-    case 'view.reset':
-      return requestView(state, { view: state.activeView, source: 'player' });
     case 'phase.changed':
       return changePhase(state, event.phase);
     case 'interaction.changed':

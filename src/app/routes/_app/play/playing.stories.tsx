@@ -1,5 +1,5 @@
 import preview from '@sb/preview';
-import { advanceFrame, finishTransitions } from '@sb/storyWaits';
+import { finishTransitions, waitForFrame } from '@sb/storyWaits';
 import type { LogEntry } from '@shared/play/log';
 import type { TablePiece } from '@shared/play/model';
 import { composeTurn, PHASE_CHANGE_COOLDOWN_MS, TABLE_PHASES } from '@shared/play/phases';
@@ -804,14 +804,14 @@ export const PanelSchemeIsland = meta.story({
     const menu = await openPieceMenu(canvasElement.ownerDocument, deck, 'Deck actions');
     expect(view.getComputedStyle(menu).backgroundColor).toBe(glass);
     await userEvent.keyboard('{Escape}');
-    await waitFor(() => expect(page.queryByRole('menu')).toBeNull());
+    await waitForFrame(() => expect(page.queryByRole('menu')).toBeNull());
     const help = page.getByRole('button', { name: 'Help: Faction bank' });
     await userEvent.hover(help);
-    const tooltip = await page.findByRole('tooltip');
+    const tooltip = await waitForFrame(() => page.getByRole('tooltip'));
     expect(tooltip).toHaveTextContent('Only you see this balance');
     expect(view.getComputedStyle(tooltip).backgroundColor).toBe(glass);
     await userEvent.unhover(help);
-    await waitFor(() => expect(page.queryByRole('tooltip')).toBeNull());
+    await waitForFrame(() => expect(page.queryByRole('tooltip')).toBeNull());
     root.setAttribute('data-mantine-color-scheme', 'dark');
     expect(paint()).toEqual(light);
   },
@@ -832,7 +832,7 @@ export const SpiceMenuName = meta.story({
     });
     await openPieceMenu(document, spice, 'Spice actions');
     await userEvent.keyboard('{Escape}');
-    await waitFor(() => expect(within(document.body).queryByRole('menu')).toBeNull());
+    await waitForFrame(() => expect(within(document.body).queryByRole('menu')).toBeNull());
   },
 });
 
@@ -851,7 +851,8 @@ async function openPieceMenu(document: Document, piece: TablePiece, name: string
     piece.position[2],
   ]);
   const press = { clientX, clientY, bubbles: true, cancelable: true, pointerId: 1, pointerType: 'mouse', button: 2 };
-  return waitFor(
+  /* The menu enters the DOM only from inside an animation-frame callback, so each poll runs the waiting frames itself (https://github.com/ndelangen/dunezone/issues/1443). */
+  return waitForFrame(
     () => {
       const scene = document.querySelector('canvas');
       if (scene && !page.queryByRole('menu')) {
@@ -925,10 +926,9 @@ export const ControlsNarrow = meta.story({
     await settled(() => expect(page.getByLabelText('Banked spice')).toBeVisible());
     await userEvent.hover(page.getByRole('button', { name: 'Help: Faction bank' }));
     /* The tooltip's label mounts only from inside an animation-frame callback, so each poll runs the waiting frames itself (https://github.com/ndelangen/dunezone/issues/1422). */
-    await waitFor(() => {
-      advanceFrame();
-      expect(finishTransitions(page.getByText(/^Faction bank\. Only you see this balance\./))).toBeVisible();
-    });
+    await waitForFrame(() =>
+      expect(finishTransitions(page.getByText(/^Faction bank\. Only you see this balance\./))).toBeVisible()
+    );
     await userEvent.unhover(page.getByRole('button', { name: 'Help: Faction bank' }));
     expect(page.getByRole('button', { name: 'Withdraw spice' })).toBeDisabled();
     expect(page.queryByRole('button', { name: 'Take into bank' })).toBeNull();
