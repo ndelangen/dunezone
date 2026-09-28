@@ -54,13 +54,19 @@ const nativeCancelFrame = window.cancelAnimationFrame.bind(window);
  * A Mantine tooltip, menu or popover renders its content only from inside such a callback, so on a page that draws no frames the content never reaches the DOM and `finishTransitions` has no element to finish.
  * Call it inside a polling wait: each poll moves the page on by one frame, and a callback requested during this call waits for the next poll or a real frame, whichever comes first.
  * It runs every waiting callback, not only the one a wait needs, and each callback runs once.
+ * A callback that an earlier one cancels during this call does not run.
  * A callback that throws is reported as a frame would report it, and the rest still run.
  */
 export function advanceFrame() {
   const time = performance.now();
-  const due = [...waitingFrames];
-  waitingFrames.clear();
-  for (const [id, callback] of due) {
+  /* The ids are copied so a callback requested during this call waits, and each is looked up again before it runs, since a drawn frame skips one that an earlier callback cancelled. */
+  const due = [...waitingFrames.keys()];
+  for (const id of due) {
+    const callback = waitingFrames.get(id);
+    if (!callback) {
+      continue;
+    }
+    waitingFrames.delete(id);
     nativeCancelFrame(id);
     try {
       callback(time);
