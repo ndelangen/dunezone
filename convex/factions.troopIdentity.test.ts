@@ -1,37 +1,17 @@
 /// <reference types="vite/client" />
 // @vitest-environment edge-runtime
 
-import aggregateTest from '@convex-dev/aggregate/test';
-import { convexTest } from 'convex-test';
 import { describe, expect, test } from 'vitest';
 
 import { renewFactionComponentIds } from '../src/shared/factions/componentIdentity';
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
 import { createFactionTroopId } from '../src/shared/factions/troopIdentity';
 import { api } from './_generated/api';
-import schema from './schema';
-
-const modules = import.meta.glob('./**/*.ts');
+import { factionAuthor, factionTest } from './factions.test.fixture';
 
 async function authoringTest() {
-  const t = convexTest(schema, modules);
-  aggregateTest.register(t, 'statistics');
-  aggregateTest.register(t, 'profileActivity');
-  aggregateTest.register(t, 'profileDiscovery');
-  const userId = await t.run(async (ctx) => {
-    const id = await ctx.db.insert('users', { name: 'Troop identity owner' });
-    await ctx.db.insert('profiles', {
-      user_id: id,
-      username: 'Troop identity owner',
-      avatar_url: null,
-      account_state: 'active',
-      slug: 'troop-identity-owner',
-      created_at: '2026-09-28T00:00:00.000Z',
-      updated_at: '2026-09-28T00:00:00.000Z',
-    });
-    return id;
-  });
-  return { t, author: t.withIdentity({ subject: userId }) };
+  const t = factionTest();
+  return { t, author: await factionAuthor(t, 'Troop identity owner') };
 }
 
 /** Two troop types, so a reorder is observable. */
