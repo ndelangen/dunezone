@@ -403,6 +403,9 @@ async function checkPublisherImageCapture(
   assetType:
     | 'card-treachery'
     | 'card-spice'
+    | 'faction-troop'
+    | 'faction-traitor'
+    | 'faction-alliance'
     | 'deck'
     | 'cardback-preset'
     | 'token-disc'
