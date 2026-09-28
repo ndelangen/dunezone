@@ -1,5 +1,5 @@
 import { Popover } from '@mantine/core';
-import { renewFactionMemberIds } from '@shared/factions/memberIdentity';
+import { renewFactionComponentIds } from '@shared/factions/componentIdentity';
 import { IconAction } from '@ui/control/IconAction';
 import { Import } from 'lucide-react';
 import { useState } from 'react';
@@ -64,7 +64,7 @@ export function FactionLoadPopover({ disabled, currentPublicSlug, onLoaded }: Fa
             }}
             onCancel={() => setOpened(false)}
             onPick={(picked) => {
-              onLoaded(renewFactionMemberIds(picked.data));
+              onLoaded(renewFactionComponentIds(picked.data));
               setOpened(false);
             }}
           />

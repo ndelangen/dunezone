@@ -355,7 +355,7 @@ export class GameCatalogue {
     });
     const troops = definition.troops.map((troop) => {
       problems.push({ subject: `troop ${troop.name}`, reason: 'Troop faces are not generated yet.' });
-      return { name: troop.name, count: troop.count, front: null, back: null };
+      return { troopId: troop.troopId, name: troop.name, count: troop.count, front: null, back: null };
     });
     for (const face of troopCombatFaces(definition.troops).filter(lacksCombatValues)) {
       problems.push({
