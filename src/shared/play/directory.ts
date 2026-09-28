@@ -37,7 +37,8 @@ const playResultSchema = z.object({
   factions: z
     .array(z.object({ id: identifierSchema, name: z.string().max(160) }))
     .max(TABLE_SEAT_COUNTS[TABLE_SEAT_COUNTS.length - 1]!),
-  declaredBy: identifierSchema,
+  /* Null once the declaring account is deleted. */
+  declaredBy: identifierSchema.nullable(),
   declaredAt: timestampSchema,
 });
 

@@ -10,7 +10,7 @@ import type { MutationCtx } from './_generated/server';
 import { internalMutation } from './functions';
 import { newestUnusedPlayRefresh, playCredential } from './lib/playAuthorization';
 import { insertPendingGame } from './lib/playProvisioningSchedule';
-import { requireSyntheticBackend } from './lib/playSynthetic';
+import { limitLiveGames, requireSyntheticBackend } from './lib/playSynthetic';
 
 function requireShortExpiry(expiresInMs: number) {
   const withinTestWindow = expiresInMs >= 0 && expiresInMs <= 30_000;
@@ -83,6 +83,7 @@ export const createFixture = internalMutation({
   returns: v.object({ gameId: v.id('play_games'), secret: v.string(), attemptId: v.string(), expiresAt: v.number() }),
   handler: async (ctx, args) => {
     requireSyntheticBackend();
+    await limitLiveGames(ctx);
     if (args.useHostedRoute) {
       for (const state of ['pending', 'ready'] as const) {
         const existing = await ctx.db

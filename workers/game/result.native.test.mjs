@@ -261,5 +261,8 @@ describe('Determine winner and Continue playing', { timeout: 60_000 }, () => {
     await accepted(other, { kind: 'ready', ready: true });
     const moved = await next(other);
     expect(moved.snapshot.ending).toBeUndefined();
+    const texts = (await page(other)).map((entry) => entry.text);
+    const opener = (await syncView(owner)).viewer.displayName;
+    expect(texts).toContain(`Determining the winner by ${opener} ended.`);
   });
 });

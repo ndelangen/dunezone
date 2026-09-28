@@ -50,6 +50,8 @@ export type TableState = z.infer<typeof durableTableSchema> & {
   viewerSeat: z.infer<typeof tableSeatSchema>;
   /* The faction the viewer's seat carries, or null for a spectator or an unassigned seat. */
   viewerFaction: string | null;
+  /* Each seated faction's display name by its id: pieces are owned by the id, and a force stack's name reads the display name. */
+  factionNames: Readonly<Partial<Record<string, string>>>;
   selectedPieceId: string | null;
   draftMove: DraftMove | null;
 };
@@ -213,6 +215,7 @@ export function freshTableState(): TableState {
   return {
     viewerSeat: 'harkonnen',
     viewerFaction: 'harkonnen',
+    factionNames: { harkonnen: 'Harkonnen', atreides: 'Atreides', 'bene-gesserit': 'Bene Gesserit' },
     phase: 'Harkonnen shipment',
     stormSectorIndex: DEFAULT_STORM_SECTOR_INDEX,
     pieces: INITIAL_PIECES.map((piece) => ({

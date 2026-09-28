@@ -76,12 +76,15 @@ function requireFittingFactions(snapshot: StoredSnapshot, action: Declaration) {
 }
 
 /** An open sequence lives only in Mentat pause of play and only while its player holds a seat. */
-export function settleEnding(snapshot: StoredSnapshot, seatedUserIds: ReadonlySet<string>): StoredSnapshot {
+export function settleEnding<Snapshot extends StoredSnapshot>(
+  snapshot: Snapshot,
+  seatedUserIds: () => ReadonlySet<string>
+): Snapshot {
   const ending = snapshot.ending;
   if (!ending) {
     return snapshot;
   }
-  const holds = ending.by.userId !== null && seatedUserIds.has(ending.by.userId);
+  const holds = ending.by.userId !== null && seatedUserIds().has(ending.by.userId);
   return holds && inMentat(snapshot) ? snapshot : { ...snapshot, ending: null };
 }
 
