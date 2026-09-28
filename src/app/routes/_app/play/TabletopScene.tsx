@@ -839,19 +839,26 @@ function useScenePointerSession(onActiveChange: (active: boolean) => void) {
 
 /**
  * Ends every hover when the pointer leaves the canvas, the window loses focus or the page hides, so no hover-armed shortcut acts off the table.
- * R3F's own canvas `pointerleave` clears only pointer id 0, and a Chromium mouse is id 1, so its hover would outlive the leave.
+ * R3F's own `pointerleave` on its wrapper clears only pointer id 0, and a Chromium mouse is id 1, so its hover would outlive the leave.
  * Its `onPointerCancel` handler forgets the given pointer and fires the real leave handlers, and the next move over an object enters it afresh.
+ * The leave is heard on the canvas too, because drei's `Html` overlays sit inside the wrapper, so a move onto one leaves the canvas but not the wrapper.
+ * A touch is left alone: it leaves after every tap, before the click that R3F can only deliver while it still remembers the pointer.
  */
 function useCanvasHoverReset() {
-  const events = useThree((state) => state.events);
+  const connected = useThree((state) => state.events.connected as EventTarget | undefined);
+  const cancel = useThree((state) => state.events.handlers?.onPointerCancel);
   const internal = useThree((state) => state.internal);
+  const { renderer } = useThree();
   useEffect(() => {
-    const target = events.connected as EventTarget | undefined;
-    const cancel = events.handlers?.onPointerCancel;
-    if (!target || !cancel) {
+    if (!connected || !cancel) {
       return;
     }
-    const leave = (event: Event) => cancel(event);
+    const canvas = renderer.domElement;
+    const leave = (event: PointerEvent) => {
+      if (event.pointerType !== 'touch') {
+        cancel(event);
+      }
+    };
     const cancelAll = () => {
       for (const pointerId of internal.pointerMap.keys()) {
         cancel(new PointerEvent('pointercancel', { pointerId }));
@@ -862,15 +869,17 @@ function useCanvasHoverReset() {
         cancelAll();
       }
     };
-    target.addEventListener('pointerleave', leave);
+    connected.addEventListener('pointerleave', leave as EventListener);
+    canvas.addEventListener('pointerleave', leave);
     window.addEventListener('blur', cancelAll);
     document.addEventListener('visibilitychange', hidden);
     return () => {
-      target.removeEventListener('pointerleave', leave);
+      connected.removeEventListener('pointerleave', leave as EventListener);
+      canvas.removeEventListener('pointerleave', leave);
       window.removeEventListener('blur', cancelAll);
       document.removeEventListener('visibilitychange', hidden);
     };
-  }, [events.connected, events.handlers, internal]);
+  }, [connected, cancel, internal, renderer]);
 }
 
 function pieceHoverCursor(canInteract: boolean, interactionBlocked: boolean, gestureBlocked: boolean) {
