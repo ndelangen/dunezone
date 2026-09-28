@@ -1,6 +1,6 @@
 import { Box, Stack } from '@mantine/core';
 import preview from '@sb/preview';
-import { expect, userEvent, within } from 'storybook/test';
+import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import type { Faction } from '@db/factions';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
@@ -76,6 +76,14 @@ function FactionPhasesFixture({ faction }: { faction: Faction }) {
   );
 }
 
+/* The read-only rundown beside the list, as a list of its row texts per section. */
+function sequenceRows(canvasElement: HTMLElement, section: 'Setup' | 'Each turn') {
+  const sequence = within(within(canvasElement).getByRole('region', { name: 'Phase sequence' }));
+  return within(sequence.getByRole('list', { name: section }))
+    .getAllByRole('listitem')
+    .map((item) => item.textContent);
+}
+
 async function openPhases(canvasElement: HTMLElement) {
   const canvas = within(canvasElement);
   await userEvent.click(canvas.getByRole('tab', { name: /Phases/ }));
@@ -96,6 +104,57 @@ export const Empty = meta.story({
     const canvas = await openPhases(canvasElement);
     await expect(canvas.getByText('No faction phases')).toBeVisible();
     await expect(canvas.getByRole('button', { name: 'Save faction' })).toBeEnabled();
+    await expect(
+      canvas.getByText('This faction adds no phases, so the game runs the standard setup and turn.')
+    ).toBeVisible();
+    await expect(sequenceRows(canvasElement, 'Setup')).toEqual(['Traitors', 'Starting forces']);
+    await expect(sequenceRows(canvasElement, 'Each turn')).toHaveLength(9);
+  },
+});
+
+/** One phase in setup and one every turn: each sits before its target, with the storm-order hint for other factions' ties. */
+export const SequenceSetupAndTurn = meta.story({
+  args: {
+    faction: factionWith([
+      { ...validPhase, id: 'omen', title: 'Desert omen', symbol: '/vector/icon/fate.svg', before: 'forces' },
+      validPhase,
+    ]),
+  },
+  play: async ({ canvasElement }) => {
+    await openPhases(canvasElement);
+    const tie = "Another faction's phase here at the same priority goes in storm order.";
+    await expect(sequenceRows(canvasElement, 'Setup')).toEqual(['Traitors', 'Desert omen', tie, 'Starting forces']);
+    await expect(sequenceRows(canvasElement, 'Each turn').slice(2, 5)).toEqual([
+      'CHOAM charity',
+      'Guild negotiations',
+      tie,
+    ]);
+  },
+});
+
+/** A refused row stays out of the sequence, which names it, while the valid rows keep their places. */
+export const SequenceLeavesOutInvalidRow = meta.story({
+  args: { faction: factionWith([validPhase, { ...validPhase, id: 'broken', title: 'Broken omen', before: 'karama' }]) },
+  play: async ({ canvasElement }) => {
+    const canvas = await openPhases(canvasElement);
+    await expect(canvas.getByText('Left out until fixed: Broken omen.')).toBeVisible();
+    await expect(sequenceRows(canvasElement, 'Each turn')).toContain('Guild negotiations');
+    await expect(sequenceRows(canvasElement, 'Each turn')).not.toContain('Broken omen');
+  },
+});
+
+/** Re-targeting a row moves it in the sequence at once; nothing is saved. */
+export const SequenceFollowsPlacement = meta.story({
+  args: { faction: factionWith([validPhase]) },
+  play: async ({ canvasElement }) => {
+    const canvas = await openPhases(canvasElement);
+    await expect(sequenceRows(canvasElement, 'Each turn').indexOf('Guild negotiations')).toBe(3);
+
+    await userEvent.click(canvas.getByRole('combobox', { name: 'Placement' }));
+    await userEvent.click(await within(document.body).findByRole('option', { name: 'Before Revival' }));
+
+    await waitFor(() => expect(sequenceRows(canvasElement, 'Each turn').indexOf('Guild negotiations')).toBe(4));
+    await expect(sequenceRows(canvasElement, 'Each turn')[6]).toBe('Revival');
   },
 });
 
@@ -187,5 +246,7 @@ export const Reorder = meta.story({
 
     await expect(within(shelf).getAllByRole('listitem')[0]).toHaveTextContent('1. Second prediction');
     await expect(canvas.getByRole('button', { name: 'Save faction' })).toBeEnabled();
+    /* Same step and priority, so list order decides, and the sequence follows the new order before any save. */
+    await expect(sequenceRows(canvasElement, 'Setup').slice(0, 2)).toEqual(['Second prediction', 'First prediction']);
   },
 });

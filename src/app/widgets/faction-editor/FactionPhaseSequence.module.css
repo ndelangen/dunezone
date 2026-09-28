@@ -1,0 +1,39 @@
+/* Paper like the phase card above it: the sequence is a printed rundown, not a control. */
+.sequence {
+  padding: var(--space-md);
+  border: 1px solid var(--mantine-color-default-border);
+  border-radius: var(--mantine-radius-default);
+  background: #fffdf1;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  min-width: 0;
+  padding: 2px var(--space-xs);
+  border-left: 3px solid transparent;
+  border-radius: var(--mantine-radius-xs);
+}
+
+/* This faction's rows stand out from the standard steps they precede. */
+.row[data-kind="faction"] {
+  border-left-color: var(--mantine-color-orange-6);
+}
+
+.row[data-selected] {
+  background: var(--mantine-color-orange-light);
+}
+
+.tieHint {
+  padding: 0 var(--space-xs) 2px calc(var(--space-xs) + 3px);
+}

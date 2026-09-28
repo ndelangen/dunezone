@@ -1,5 +1,6 @@
 import { randomInt } from 'node:crypto';
 
+import { SETUP_PHASE_TARGETS } from '../../src/shared/factions/extraPhases';
 import { capturedDeclarations } from '../../src/shared/play/capture';
 import type { FactionCapture } from '../../src/shared/play/capture';
 import { accepted, nextSnapshot } from '../../src/shared/play/commands';
@@ -25,7 +26,7 @@ const TRAITORS_STEP = {
   kind: 'traitors',
   title: 'Traitor selection',
   instructions: 'Combine, shuffle and deal traitor cards. Return unwanted cards to the table, then confirm Ready.',
-  symbol: '/vector/icon/traitor.svg',
+  symbol: SETUP_PHASE_TARGETS[0].symbol,
   allPlayersMustBeReady: true,
 } as const;
 
@@ -35,7 +36,7 @@ const FORCES_STEP = {
   title: 'Starting forces',
   instructions:
     'Place your starting forces using your faction instructions. When every player is prepared, Ready enables Next into Turn 1 Storm.',
-  symbol: '/vector/icon/shipment_disc.svg',
+  symbol: SETUP_PHASE_TARGETS[1].symbol,
   allPlayersMustBeReady: true,
 } as const;
 
