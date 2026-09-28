@@ -46,6 +46,16 @@ describe('faction schema', () => {
     expect(CanonicalFactionStoredSchema.parse(historical).name).toBe('');
   });
 
+  it('reads retired TTS link lists in extras as absent while authoring accepts only catalogue references', () => {
+    const legacyLinks = { name: 'TTS', items: [{ url: 'https://example.com/board.png' }] };
+    const reference = { type: 'deck' as const, slug: 'omens' };
+    const stored = { ...structuredClone(assetPublishingFaction), extras: [legacyLinks, reference] };
+
+    expect(CanonicalFactionStoredSchema.parse(stored).extras).toEqual([reference]);
+    expect(FactionInputSchema.safeParse(stored).success).toBe(false);
+    expect(CanonicalFactionStoredSchema.safeParse({ ...stored, extras: [{ type: 'deck' }] }).success).toBe(false);
+  });
+
   it('narrows authored prose while keeping legacy stored prose readable', () => {
     const multilineSetup = structuredClone(assetPublishingFaction);
     multilineSetup.rules.startText = 'First line\nsecond line';

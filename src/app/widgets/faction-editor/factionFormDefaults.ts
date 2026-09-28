@@ -1,6 +1,7 @@
 import { DECAL, LEADERS, TROOP } from '@shared/assetIds';
 import { DEFAULT_PHASE_PRIORITY } from '@shared/factions/extraPhases';
 import { createFactionMemberId } from '@shared/factions/memberIdentity';
+import { createFactionTroopId } from '@shared/factions/troopIdentity';
 
 import type { Faction } from '@db/factions';
 import { CURATED_PLANET_IMAGES } from '@game/data/planetCatalogue';
@@ -72,6 +73,7 @@ export function defaultDecal(): Faction['decals'][number] {
 
 export function defaultTroop(): Faction['troops'][number] {
   return {
+    troopId: createFactionTroopId(),
     name: '',
     image: TROOP.options[0],
     description: '',

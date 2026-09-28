@@ -1,7 +1,7 @@
 import preview from '@sb/preview';
 import { TABLE_PHASES } from '@shared/play/phases';
 import { spiceSupplySlot } from '@shared/play/spiceSupply';
-import { stackTopHeight } from '@shared/play/tableGeometry';
+import { BOARD_RADIUS, BOARD_SURFACE_Y, stackTopHeight } from '@shared/play/tableGeometry';
 import { TRACKER_DISC_TOP_Y } from '@shared/play/tableTrackers';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
@@ -307,6 +307,106 @@ export const SpiceDiscAnswersOnReturn = meta.story({
     await waitFor(() =>
       expect(lastCommand()).toMatchObject({ type: 'command', action: { kind: 'spice-spawn', count: 2 } })
     );
+  },
+});
+
+/**
+ * A deck hovered when the pointer leaves the canvas, or when the window loses focus, stops answering its shuffle key.
+ * The key acts again once the pointer is back over the deck.
+ */
+export const DeckShortcutsEndOffTheTable = meta.story({
+  beforeEach: install(() => productTransport()),
+  play: async ({ canvasElement }) => {
+    const { page, document } = await tablePage(canvasElement);
+    const deck = playingSnapshot().table.pieces.find((piece) => piece.id === 'treachery-deck')!;
+    const [clientX, clientY] = mapViewPoint(document, [
+      deck.position[0],
+      deck.position[1] + stackTopHeight(deck),
+      deck.position[2],
+    ]);
+    const scene = document.querySelector('canvas')!;
+    const pointer = { bubbles: true, cancelable: true, pointerId: 1, pointerType: 'mouse', clientX, clientY };
+    const hoverTheDeck = (offset: number) =>
+      waitFor(
+        () => {
+          scene.dispatchEvent(new PointerEvent('pointermove', { ...pointer, clientX: clientX + offset }));
+          expect(scene.style.cursor).toBe('grab');
+        },
+        { timeout: 30_000 }
+      );
+    const commands = () => session.transport.messages.filter((message) => message.type === 'command').length;
+
+    await hoverTheDeck(0);
+    leaveTheCanvas(page, scene, pointer);
+    await waitFor(() => expect(scene.style.cursor).toBe('default'));
+    const before = commands();
+    await userEvent.keyboard('r');
+    expect(commands()).toBe(before);
+
+    await hoverTheDeck(1);
+    document.defaultView!.dispatchEvent(new FocusEvent('blur'));
+    await waitFor(() => expect(scene.style.cursor).toBe('default'));
+    await userEvent.keyboard('r');
+    expect(commands()).toBe(before);
+
+    await hoverTheDeck(2);
+    await userEvent.keyboard('r');
+    await waitFor(() =>
+      expect(lastCommand()).toMatchObject({
+        type: 'command',
+        action: { kind: 'deck-shuffle', pieceId: 'treachery-deck' },
+      })
+    );
+  },
+});
+
+/**
+ * A tap on the table still reaches the table's own click handlers although the touch leaves the canvas after every tap.
+ * Tapping the deck selects it, so L locks it.
+ * Tapping the empty board then clears the selection, so L sends nothing.
+ */
+export const TapOnTheBoardClearsTheSelection = meta.story({
+  beforeEach: install(() => productTransport()),
+  play: async ({ canvasElement }) => {
+    const { page, document } = await tablePage(canvasElement);
+    const deck = playingSnapshot().table.pieces.find((piece) => piece.id === 'treachery-deck')!;
+    const deckPoint = mapViewPoint(document, [
+      deck.position[0],
+      deck.position[1] + stackTopHeight(deck),
+      deck.position[2],
+    ]);
+    const boardPoint = mapViewPoint(document, [BOARD_RADIUS * 0.3, BOARD_SURFACE_Y, BOARD_RADIUS * 0.3]);
+    const scene = document.querySelector('canvas')!;
+    const tap = ([clientX, clientY]: [number, number]) => {
+      const touch = {
+        bubbles: true,
+        cancelable: true,
+        pointerId: 2,
+        pointerType: 'touch',
+        isPrimary: true,
+        clientX,
+        clientY,
+      };
+      scene.dispatchEvent(new PointerEvent('pointerdown', { ...touch, button: 0, buttons: 1 }));
+      scene.dispatchEvent(new PointerEvent('pointerup', { ...touch, button: 0, buttons: 0 }));
+      leaveTheCanvas(page, scene, touch);
+      scene.dispatchEvent(new PointerEvent('click', { ...touch, button: 0 }));
+    };
+    const commands = () => session.transport.messages.filter((message) => message.type === 'command').length;
+
+    await waitFor(
+      async () => {
+        tap(deckPoint);
+        await userEvent.keyboard('l');
+        expect(lastCommand()).toMatchObject({ type: 'command', action: { kind: 'lock', pieceId: 'treachery-deck' } });
+      },
+      { timeout: 30_000 }
+    );
+
+    tap(boardPoint);
+    const before = commands();
+    await userEvent.keyboard('l');
+    expect(commands()).toBe(before);
   },
 });
 

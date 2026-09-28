@@ -52,6 +52,17 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     return { connection, view };
   }
 
+  it('answers a keepalive without treating it as a message', async () => {
+    expect((await provision(runtime)).status).toBe(200);
+    const { connection } = await admit();
+    connection.keepalive();
+    await eventually(() => connection.keepalives === 1, 'keepalive answer');
+    connection.send({ type: 'metrics' });
+    const metrics = await connection.message('metrics');
+    expect(connection.closed).toBe(false);
+    expect(metrics.commands).toEqual([]);
+  });
+
   it('keeps normal play and expected refusals quiet, but reports a repeated storage failure once', async () => {
     expect((await provision(runtime)).status).toBe(200);
     const { connection } = await admit();

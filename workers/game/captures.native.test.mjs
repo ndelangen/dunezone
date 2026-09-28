@@ -277,9 +277,15 @@ describe('Catalogue capture and retention through the isolated fixture', () => {
     const token = tokenPage('extra-token');
     const bundle = bundlePage('extra-bundle', [token]);
     seed(token, bundle);
+    /* The faction declares its own Extras; one names an asset the catalogue does not have. */
+    const extras = [
+      { type: 'bundle', slug: 'extra-bundle' },
+      { type: 'token-disc', slug: 'missing' },
+    ];
+    const data = { ...assetPublishingFaction, extras };
     peer.factions.set('faction-one', {
       faction: { id: 'faction-one', slug: 'atreides', name: assetPublishingFaction.name },
-      data: assetPublishingFaction,
+      data,
       token: '/published/faction-tokens/faction-one/token.jpg',
       cardbacks: {
         traitor: '/published/cardback-presets/traitor/cardback.jpg?v=traitor-1',
@@ -290,22 +296,18 @@ describe('Catalogue capture and retention through the isolated fixture', () => {
         front: index === 0 ? null : `/published/leaders/faction-one.${leader.memberId}/leader.jpg`,
       })),
     });
-    const extras = [
-      { type: 'bundle', slug: 'extra-bundle' },
-      { type: 'token-disc', slug: 'missing' },
-    ];
     const pieces = await tablePieces();
     const before = peer.requests.length;
 
-    expect(await runtime.capture('faction', 'faction-one', { extras })).toEqual({
+    expect(await runtime.capture('faction', 'faction-one')).toEqual({
       ok: false,
       message: 'This faction Atreides is not ready: faction token, The faction token back is not generated yet.',
     });
     expect((await runtime.captures()).factions).toEqual([]);
 
-    const { record } = await runtime.capture('faction', 'faction-one', { extras, provisional: true });
+    const { record } = await runtime.capture('faction', 'faction-one', { provisional: true });
     expect(record.faction).toEqual({ id: 'faction-one', slug: 'atreides', name: assetPublishingFaction.name });
-    expect(record.definition).toEqual(assetPublishingFaction);
+    expect(record.definition).toEqual(data);
     expect(record.components.token).toEqual({
       front: 'http://table.test/published/faction-tokens/faction-one/token.jpg',
       back: null,
@@ -343,7 +345,7 @@ describe('Catalogue capture and retention through the isolated fixture', () => {
     ]);
 
     peer.factions.set('faction-one', { ...peer.factions.get('faction-one'), token: null });
-    expect((await runtime.capture('faction', 'faction-one', { extras, provisional: true })).record).toEqual(record);
+    expect((await runtime.capture('faction', 'faction-one', { provisional: true })).record).toEqual(record);
     expect(reads('playCatalogue:factionDefinition')).toBe(2);
     await runtime.restart();
     expect((await runtime.captures()).factions).toEqual([record]);

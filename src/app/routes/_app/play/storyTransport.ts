@@ -1,7 +1,7 @@
 import { LOG_PAGE_SIZE } from '@shared/play/log';
 import type { LogEntry, LogTab } from '@shared/play/log';
 import { isSeatAction } from '@shared/play/participation';
-import { clientMessageSchema } from '@shared/play/protocol';
+import { clientMessageSchema, KEEPALIVE_PING } from '@shared/play/protocol';
 import type { ClientMessage, GameSnapshot, ServerMessage, Viewer } from '@shared/play/protocol';
 import { isSwapAction } from '@shared/play/swapping';
 
@@ -74,6 +74,9 @@ export function storyTransport(
     }
 
     send(data: string) {
+      if (data === KEEPALIVE_PING) {
+        return;
+      }
       const message = clientMessageSchema.parse(JSON.parse(data));
       messages.push(message);
       if (message.type === 'admit' && !holdView) {

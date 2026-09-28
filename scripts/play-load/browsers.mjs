@@ -4,6 +4,8 @@ import { cpus, platform, arch, totalmem } from 'node:os';
 
 import { chromium } from 'playwright';
 
+import { KEEPALIVE_PING, KEEPALIVE_PONG } from '../../src/shared/play/protocol.ts';
+
 function snapshot() {
   return {
     ...window.loadMeasurements,
@@ -225,7 +227,7 @@ export async function browsers({ origin, backend, gameId, onMessage, onBytes, st
       };
       page.on('pageerror', (error) => report.errors.push(error.message));
       await page.exposeFunction('loadAppliedMessage', (text) => {
-        if (!stopping()) {
+        if (!stopping() && text !== KEEPALIVE_PONG) {
           onMessage(peer, JSON.parse(text));
         }
       });
@@ -233,8 +235,11 @@ export async function browsers({ origin, backend, gameId, onMessage, onBytes, st
         if (!socket.url().includes('/__play/games/')) {
           return;
         }
-        socket.on('framesent', (frame) => onBytes(peer, 'sent', Buffer.byteLength(frame.payload)));
-        socket.on('framereceived', (frame) => onBytes(peer, 'received', Buffer.byteLength(frame.payload)));
+        const keepalive = (frame) => [KEEPALIVE_PING, KEEPALIVE_PONG].includes(frame.payload.toString());
+        socket.on('framesent', (frame) => onBytes(peer, 'sent', Buffer.byteLength(frame.payload), keepalive(frame)));
+        socket.on('framereceived', (frame) =>
+          onBytes(peer, 'received', Buffer.byteLength(frame.payload), keepalive(frame))
+        );
       });
       await context.addInitScript(observeFrames);
       await context.addInitScript(observeMessages);
