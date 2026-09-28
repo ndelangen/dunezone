@@ -256,7 +256,7 @@ async function user(index) {
         params: { flow: attempt % 2 ? 'signIn' : 'signUp', email, password },
       });
     } catch (error) {
-      report.signupRetries.push({ index, attempt, message: error.message.slice(0, 200) });
+      report.signupRetries.push({ index, attempt, message: String(error?.message ?? error).slice(0, 200) });
       if (stopping || attempt === 3) {
         throw error;
       }
