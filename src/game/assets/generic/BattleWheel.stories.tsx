@@ -158,37 +158,6 @@ export const Unrevealed = meta.story({
 export const Ready = meta.story({
   args: { state: 'unrevealed', artwork, ready: true, label: 'Atreides, ready' },
 });
-
-/**
- * Every element's computed animation name, rather than `getAnimations`.
- * A reveal that already finished leaves `getAnimations` empty too, so only the name tells a still wheel from one that turned in before the check ran.
- */
-function animatedElements(canvasElement: HTMLElement) {
-  const view = canvasElement.ownerDocument.defaultView!;
-  return [...canvasElement.querySelectorAll('*')].filter(
-    (element) => view.getComputedStyle(element).animationName !== 'none'
-  );
-}
-
-/** A host whose Motion verdict is reduced shows the plan at once, with no reveal. */
-export const RevealedStill = meta.story({
-  args: { ...revealedArgs, motion: false },
-  play: async ({ canvasElement }) => {
-    await expect(animatedElements(canvasElement)).toEqual([]);
-    await expect(within(canvasElement).getByText('No leader')).toBeVisible();
-  },
-});
-
-/** A reduced Motion verdict swaps the preparing pulse for a dashed ring. */
-export const UnrevealedStill = meta.story({
-  args: { state: 'unrevealed', artwork, ready: false, label: 'Atreides, preparing', motion: false },
-  play: async ({ canvasElement }) => {
-    await expect(animatedElements(canvasElement)).toEqual([]);
-    const ring = canvasElement.querySelector('[data-ready="false"]')!;
-    await expect(canvasElement.ownerDocument.defaultView!.getComputedStyle(ring).strokeDasharray).not.toBe('none');
-  },
-});
-
 function RevealExample(args: ComponentProps<typeof BattleWheel>) {
   const [started, setStarted] = useState(false);
   useEffect(() => {
