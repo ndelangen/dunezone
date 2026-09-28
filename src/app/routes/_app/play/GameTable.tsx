@@ -422,34 +422,41 @@ function TrackerControls({ turn, onSelectTurn }: Readonly<{ turn: number; onSele
   );
 }
 
-function useStackCounts() {
-  const [showCounts, setShowCounts] = useState(false);
+/* The overlays a held modifier shows: Alt the stack counts, Control each piece's name and owner. A lost window or hidden page lets go of both. */
+function useHeldOverlays() {
+  const [held, setHeld] = useState({ counts: false, names: false });
 
   useEffect(() => {
-    const syncAlt = (event: KeyboardEvent | PointerEvent) => setShowCounts(event.altKey);
-    const clear = () => setShowCounts(false);
+    const sync = (event: KeyboardEvent | PointerEvent) =>
+      setHeld((current) =>
+        current.counts === event.altKey && current.names === event.ctrlKey
+          ? current
+          : { counts: event.altKey, names: event.ctrlKey }
+      );
+    const clear = () =>
+      setHeld((current) => (current.counts || current.names ? { counts: false, names: false } : current));
     const visibilityChanged = () => {
       if (document.hidden) {
         clear();
       }
     };
-    window.addEventListener('keydown', syncAlt);
-    window.addEventListener('keyup', syncAlt);
-    window.addEventListener('pointermove', syncAlt);
-    window.addEventListener('pointerdown', syncAlt);
+    window.addEventListener('keydown', sync);
+    window.addEventListener('keyup', sync);
+    window.addEventListener('pointermove', sync);
+    window.addEventListener('pointerdown', sync);
     window.addEventListener('blur', clear);
     document.addEventListener('visibilitychange', visibilityChanged);
     return () => {
-      window.removeEventListener('keydown', syncAlt);
-      window.removeEventListener('keyup', syncAlt);
-      window.removeEventListener('pointermove', syncAlt);
-      window.removeEventListener('pointerdown', syncAlt);
+      window.removeEventListener('keydown', sync);
+      window.removeEventListener('keyup', sync);
+      window.removeEventListener('pointermove', sync);
+      window.removeEventListener('pointerdown', sync);
       window.removeEventListener('blur', clear);
       document.removeEventListener('visibilitychange', visibilityChanged);
     };
   }, []);
 
-  return showCounts;
+  return held;
 }
 
 function controlsPanelValueText(percent: number) {
@@ -480,7 +487,7 @@ export function GameTable({
   const onSelectTurn = selectSharedTurn ?? setLocalTurn;
   const { gestureActivePieceId } = useTabletop();
   const phaseSymbolClipId = useId();
-  const showCounts = useStackCounts();
+  const heldOverlays = useHeldOverlays();
   const frame = stageFrame(stage);
   /* The camera follows the phase while the header names one: in play, and on the fixture. */
   const viewPhase = frame.word ? null : tableProgress.activePhaseId;
@@ -521,7 +528,8 @@ export function GameTable({
             {...darkSchemeIslandAttributes}
             data-board-gesture-active={overlaysInert}
             data-table-view={viewState.activeView}
-            data-show-counts={showCounts}
+            data-show-counts={heldOverlays.counts}
+            data-show-names={heldOverlays.names}
           >
             {/* The header sits outside the split, in the shell's own stacking, so it paints above the dock where the dock's floor grows up over the scene. It comes before the split so its controls lead the reading and Tab order. */}
             <header className="seated-header" inert={overlaysInert}>
