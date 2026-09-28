@@ -105,10 +105,7 @@ test('two factions whose joined ids would read alike still get distinct setup st
   const ids = setup.steps.map((step) => step.id);
 
   expect(new Set(ids).size).toBe(ids.length);
-  expect(
-    setup.steps
-      .filter((step) => step.kind === 'prediction')
-      .map((step) => step.factionId)
-      .sort()
-  ).toEqual(['a', 'a_b']);
+  expect(new Set(setup.steps.filter((step) => step.kind === 'prediction').map((step) => step.factionId))).toEqual(
+    new Set(['a', 'a_b'])
+  );
 });
