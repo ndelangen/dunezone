@@ -292,27 +292,99 @@ jobs:
           retention-days: 7
 
   hosted_play:
+    name: hosted_play (${{ matrix.shard }})
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # Above the launcher's own budgets, so a slow flow ends with its name and its evidence, not a
+    # cancelled job. The protocol shard's budgets add up to 15 minutes: 180 s for the protocol
+    # verifier, and 60 s to provision a game plus 300 s for each of its two flows. With a 46 s boot
+    # and about 35 s of setup that comes near 16.5 minutes.
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      # Each shard boots one stack and runs its flows on it, each on a fresh game (#1322).
+      # public-controls and battles share a shard because only they need the seeded public catalogue.
+      matrix:
+        include:
+          - shard: regular
+            flows: --browser-only --flow regular
+          - shard: catalogue
+            flows: --browser-only --flow public-controls --flow battles
+          # Without --browser-only the protocol verifier runs first, then these flows on the same boot.
+          - shard: protocol
+            flows: --flow private-banks --flow decks
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup
       - uses: ./.github/actions/generated-images
-      - name: Verify actual Auth and same-origin game Worker integration
+      - uses: ./.github/actions/playwright-chromium
+        with:
+          # The ubuntu-24.04 runner image already ships Chromium's shared libraries.
+          with-deps: "false"
+      - name: Select full Chromium in new headless mode
+        # The flows' budgets were measured in full Chromium, not Playwright's headless shell (#1343).
+        # On Linux the browser driver adds --use-angle=swiftshader itself (#1414).
+        run: |
+          chromium_path="$(bun -e 'import { chromium } from "playwright"; console.log(chromium.executablePath())')"
+          test -x "$chromium_path"
+          "$chromium_path" --version
+          echo "CHROMIUM=$chromium_path" >> "$GITHUB_ENV"
+      - name: Run the ${{ matrix.shard }} shard
         # The generated-images step above already wrote the image and vector output.
-        run: bun --no-env-file scripts/verify-hosted-play-stack.ts --skip-generate
+        env:
+          FLOWS: ${{ matrix.flows }}
+        run: |
+          read -r -a flows <<< "$FLOWS"
+          bun --no-env-file scripts/verify-hosted-play-stack.ts --skip-generate "${flows[@]}" --browser "$CHROMIUM"
+      - name: Summarise each flow
+        # A flow the launcher stopped at its budget writes no report.
+        if: ${{ !cancelled() }}
+        env:
+          SHARD: ${{ matrix.shard }}
+        run: |
+          out=test-results/hosted-play
+          {
+            echo "### hosted_play ${SHARD}"
+            echo
+            echo '| Flow | Result | Seconds | Failed after |'
+            echo '| --- | --- | --- | --- |'
+            if [ -f "$out/verification.log" ]; then
+              if grep -q '"status": "passed"' "$out/verification.log"; then
+                echo '| protocol verifier | pass | | |'
+              else
+                echo '| protocol verifier | fail | | see verification.log |'
+              fi
+            fi
+            for log in "$out"/*.log; do
+              flow="$(basename "$log" .log)"
+              case "$flow" in
+                '*' | verification | worker | wrangler) continue ;;
+              esac
+              report=''
+              for candidate in "$out/browser/$flow"-*/report.json; do
+                if [ -f "$candidate" ]; then
+                  report="$candidate"
+                fi
+              done
+              if [ -z "$report" ]; then
+                echo "| $flow | no report | | see $flow.log |"
+                continue
+              fi
+              jq -r 'def seconds: sub("\\.[0-9]+Z$"; "Z") | fromdate;
+                "| \(.flow) | \(if .failure then "fail" else "pass" end) | \((.finishedAt | seconds) - (.startedAt | seconds)) | \(.failure.afterCheck // "" | gsub("\\|"; "/")) |"' "$report"
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
       - name: Retain hosted game integration evidence
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: hosted-play-evidence-${{ github.run_id }}
+          name: hosted-play-evidence-${{ github.run_id }}-shard-${{ matrix.shard }}
+          # The verification, Worker and Wrangler logs, each flow's log, and each flow's report, captures and frames.
           path: |
-            test-results/hosted-play/verification.log
-            test-results/hosted-play/worker.log
-            test-results/hosted-play/wrangler.log
-          if-no-files-found: ignore
+            test-results/hosted-play/*.log
+            test-results/hosted-play/browser/
+          if-no-files-found: warn
           retention-days: 14
 
   tool_e2e:
