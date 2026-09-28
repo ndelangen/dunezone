@@ -1287,9 +1287,12 @@ export class GameRoom extends DurableObject<GameEnv> {
     this.broadcastCommittedView(connection, message);
     /* Frames sent after a write leave the room once the write is durable, so the confirmation's arrival bounds how long they were held. */
     this.ctx.waitUntil(
-      this.ctx.storage.sync().then(() => {
-        timing.durableAt = Date.now();
-      })
+      this.ctx.storage
+        .sync()
+        .then(() => {
+          timing.durableAt = Date.now();
+        })
+        .catch((error) => this.diagnostics.report('storage-sync', error))
     );
   }
 
