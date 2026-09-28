@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { TICKET_EXPIRED_CLOSE_CODE } from '../../src/shared/play/protocol.ts';
 import { spiceSupplySlot } from '../../src/shared/play/spiceSupply.ts';
+import { tokenPage } from './native-catalogue.fixture.mjs';
 import {
   createPeer,
   createRuntime,
@@ -485,6 +486,8 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     second.send({ type: 'admit', ticket: 'd'.repeat(64) });
     const joined = await second.message('view');
     expect(joined.carries).toHaveLength(1);
+    /* A view the first connection asks for arrives behind anything the join sent it. */
+    await syncView(first.connection);
     expect(first.connection.messages.slice(beforeMessages).some((message) => message.type === 'admission')).toBe(false);
     peer.watchMode = 'manual';
     peer.httpMode = 'hold';
@@ -585,9 +588,9 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     );
   });
 
-  it('re-authorizes the surviving player within seconds when one push denies two connections', async () => {
-    expect((await provision(runtime)).status).toBe(200);
-    const first = await admit();
+  /** Admits player A, then player B in two tabs of one Auth session, and leaves the watch for the test to answer. */
+  async function admitPlayerAndTwoTabs() {
+    const { connection: first } = await admit();
     peer.registrationId = 'registration-b';
     peer.watchMode = 'allow';
     const tabs = [];
@@ -598,13 +601,235 @@ describe('GameRoom native SQLite and admission boundaries', () => {
       tabs.push(tab);
     }
     peer.watchMode = 'manual';
-    const beforeDenial = first.connection.messages.length;
-    peer.answer(await peer.query(), (registrationId) => registrationId === 'registration-a');
-    await eventually(() => tabs.every((tab) => tab.closed), 'denied tabs');
-    const remaining = await peer.query(({ query }) => query.args[0].registrationIds.length === 1);
-    peer.answer(remaining);
-    await eventually(() => first.connection.messages.slice(beforeDenial).some(isFullView), 'survivor re-authorized');
-    expect(first.connection.closed).toBe(false);
+    return { first, tabs };
+  }
+
+  /** One watch push that denies every connection of `registrationId`, as a sign-out does, answered on the batch `watched` names. */
+  async function signOut(tabs, registrationId, watched) {
+    const current = await peer.query(({ query }) => query.args[0].registrationIds.join() === watched.join());
+    peer.answer(current, (candidate) => candidate !== registrationId);
+    await eventually(() => tabs.every((tab) => tab.closed), 'signed-out tabs');
+  }
+
+  const pausedOrReset = (message) => message.type === 'admission' || isFullView(message);
+
+  it('holds the other player through a sign-out that denies two tabs, then sends them what changed', async () => {
+    expect((await provision(runtime)).status).toBe(200);
+    const { first, tabs } = await admitPlayerAndTwoTabs();
+    first.send({
+      type: 'begin',
+      carryId: 'held-through',
+      sourcePieceId: 'harkonnen-force-stack',
+      expectedVersion: 0,
+      pickup: 'top',
+    });
+    await first.message('carry');
+    const signedOut = (await tabs[0].message('view')).viewer.connectionId;
+    tabs[0].send({ type: 'pointer', seq: 0, position: [1, 0.38, 0] });
+    await first.message('view', (message) => message.pointers.some((pointer) => pointer.connectionId === signedOut));
+    peer.reconcileMode = 'hold';
+    const beforeDenial = first.messages.length;
+    const checksBefore = peer.accountChecks().length;
+    await signOut(tabs, 'registration-b', ['registration-a', 'registration-b']);
+    await eventually(() => peer.accountChecks().length > checksBefore, 'the account check after the sign-out');
+    /* Long enough for a sweep to run, and well inside the check's 3 s request timeout. */
+    await new Promise((resolve) => setTimeout(resolve, 1100));
+    /* The room sends the other player nothing while it checks accounts, not even a pause. */
+    expect(first.messages.slice(beforeDenial)).toEqual([]);
+    peer.releaseAccounts();
+    const resumed = await eventually(
+      () => first.messages.slice(beforeDenial).find((message) => message.type === 'view'),
+      'the frame after the check'
+    );
+    expect(resumed.pointers.map((pointer) => pointer.connectionId)).not.toContain(signedOut);
+    expect(resumed.carries.map((carry) => carry.id)).toEqual(['held-through']);
+    expect(first.messages.slice(beforeDenial).filter(pausedOrReset)).toEqual([]);
+    expect(first.unapplied).toEqual([]);
+    /* One push denied both tabs, and one pass over the accounts covered it. */
+    expect(peer.accountChecks().slice(checksBefore)).toHaveLength(1);
+    expect(first.closed).toBe(false);
+  });
+
+  it('holds the other player through a deletion and resumes them on the vacated seat, never the deleted name', async () => {
+    expect((await provision(runtime)).status).toBe(200);
+    const { first, tabs } = await admitPlayerAndTwoTabs();
+    const deleted = (await tabs[0].message('view')).viewer.displayName;
+    expect((await syncView(first)).snapshot.controls.players.map((player) => player.name)).toContain(deleted);
+    peer.reconcileMode = 'hold';
+    peer.deletedAccounts.add('user-b');
+    const beforeDenial = first.messages.length;
+    await signOut(tabs, 'registration-b', ['registration-a', 'registration-b']);
+    await eventually(() => peer.accountChecks().some((record) => !record.response.writableEnded), 'the account check');
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    expect(first.messages.slice(beforeDenial)).toEqual([]);
+    peer.releaseAccounts();
+    const resumed = await eventually(
+      () => first.messages.slice(beforeDenial).find((message) => message.type === 'view'),
+      'the frame after the check'
+    );
+    /* The first frame after the check already has the seat vacated, and it applies to the last frame the player held. */
+    expect(resumed.snapshot.controls.players.map((player) => player.name)).not.toContain(deleted);
+    expect(first.messages.slice(beforeDenial).filter(pausedOrReset)).toEqual([]);
+    expect(first.unapplied).toEqual([]);
+    expect(resumed.snapshot).toEqual((await syncView(first)).snapshot);
+    expect(JSON.stringify(first.messages.slice(beforeDenial))).not.toContain(deleted);
+  });
+
+  it('admits a tab and applies a held command while two sign-outs in a row are still being checked', async () => {
+    expect((await provision(runtime)).status).toBe(200);
+    const { first, tabs } = await admitPlayerAndTwoTabs();
+    peer.registrationId = 'registration-c';
+    peer.watchMode = 'allow';
+    const third = await openGame(runtime);
+    third.send({ type: 'admit', ticket: 'f'.repeat(64) });
+    await third.message('view');
+    peer.watchMode = 'manual';
+    const { revision } = (await syncView(first)).snapshot;
+    peer.reconcileMode = 'hold';
+    const beforeDenial = first.messages.length;
+    const checksBefore = peer.accountChecks().length;
+    await signOut(tabs, 'registration-b', ['registration-a', 'registration-b', 'registration-c']);
+    await eventually(() => peer.accountChecks().length > checksBefore, 'the account check after the first sign-out');
+    first.send({ type: 'command', commandId: 'during-check', action: { kind: 'phase' }, expectedRevision: revision });
+    /* The second sign-out lands while the first one's check is still out, so that pass no longer counts. */
+    await signOut([third], 'registration-c', ['registration-a', 'registration-c']);
+    peer.registrationId = 'registration-d';
+    const late = await openGame(runtime);
+    late.send({ type: 'admit', ticket: '1'.repeat(64) });
+    await eventually(
+      () =>
+        peer.requests.some(
+          (record) => record.function === 'playAdmission:redeemTicket' && record.args.ticket === '1'.repeat(64)
+        ),
+      'the late tab redeeming its ticket'
+    );
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    expect(first.messages.slice(beforeDenial)).toEqual([]);
+    peer.releaseAccounts();
+    await eventually(
+      () => late.closed || peer.latestQuery()?.query.args[0].registrationIds.includes('registration-d'),
+      'the late tab admitted or refused'
+    );
+    expect(late.closed).toBe(false);
+    peer.answer(peer.latestQuery());
+    await late.message('view');
+    await first.message('view', (message) => message.completedCommandId === 'during-check');
+    expect(first.messages.slice(beforeDenial).filter(pausedOrReset)).toEqual([]);
+  });
+
+  it('drops a command held through the check when its own player is paused meanwhile, even once they are back', async () => {
+    expect((await provision(runtime)).status).toBe(200);
+    const { first, tabs } = await admitPlayerAndTwoTabs();
+    const { revision } = (await syncView(first)).snapshot;
+    peer.reconcileMode = 'hold';
+    const beforeDenial = first.messages.length;
+    await signOut(tabs, 'registration-b', ['registration-a', 'registration-b']);
+    await eventually(() => peer.accountChecks().some((record) => !record.response.writableEnded), 'the account check');
+    first.send({ type: 'command', commandId: 'before-pause', action: { kind: 'phase' }, expectedRevision: revision });
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    /* The watch transport drops while the check is out, so the player's own grant lapses and the page pauses. */
+    const previous = await peer.query();
+    peer.httpMode = 'hold';
+    previous.connection.socket.close(1012, 'controlled reconnect');
+    await eventually(
+      () => first.messages.slice(beforeDenial).find((message) => message.status === 'suspended'),
+      'the pause'
+    );
+    const current = await peer.query(({ query }) => query.args[0].generation !== previous.query.args[0].generation);
+    const beforeValidation = peer.requests.length;
+    peer.answer(current);
+    /* The new watch and its validation grant the player again before the check ends, so they are back the moment the lease returns. */
+    const validation = await eventually(
+      () =>
+        peer.requests.slice(beforeValidation).find((record) => record.function === 'playAdmission:watchAuthorizations'),
+      'the validation of the new watch'
+    );
+    validation.release(peer.result(validation.args));
+    await eventually(() => validation.completedAt, 'the validation answered');
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    peer.releaseAccounts();
+    await eventually(() => first.messages.slice(beforeDenial).some(isFullView), 'the view after the pause');
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    /* The page discarded the command on the pause, so the room never applies it. */
+    expect(first.messages.some((message) => message.completedCommandId === 'before-pause')).toBe(false);
+    expect((await syncView(first)).snapshot.revision).toBe(revision);
+  });
+
+  const catalogueRead = (slug) => () => ({
+    type: 'catalogue',
+    requestId: 'held-capture',
+    selection: { type: 'token-disc', slug },
+  });
+  const spawnRequest = (slug) => (expectedRevision) => ({
+    type: 'command',
+    commandId: 'held-capture',
+    expectedRevision,
+    action: { kind: 'spawn-request', type: 'token-disc', slug },
+  });
+  /* The catalogue refuses an asset it does not hold, and a refusal takes its own path back to the player. */
+  const heldCaptures = {
+    'catalogue read': [catalogueRead('held-token'), (message) => message.contents?.name === 'held-token'],
+    'refused catalogue read': [
+      catalogueRead('missing-token'),
+      (message) => message.type === 'catalogue' && message.error,
+    ],
+    'spawn request': [spawnRequest('held-token'), (message) => message.completedCommandId === 'held-capture'],
+    'refused spawn request': [
+      spawnRequest('missing-token'),
+      (message) => message.type === 'rejected' && message.requestId === 'held-capture',
+    ],
+  };
+
+  it.each(Object.keys(heldCaptures))(
+    "answers a %s whose catalogue call returns during another player's sign-out once the check ends",
+    async (kind) => {
+      expect((await provision(runtime)).status).toBe(200);
+      peer.catalogue.set('token-disc/held-token', tokenPage('held-token'));
+      const { first, tabs } = await admitPlayerAndTwoTabs();
+      const { revision } = (await syncView(first)).snapshot;
+      peer.catalogueMode = 'hold';
+      const before = peer.requests.length;
+      const [request, answers] = heldCaptures[kind];
+      first.send(request(revision));
+      const capture = await eventually(
+        () => peer.requests.slice(before).find((record) => record.function === 'playCatalogue:assetSupply'),
+        'the held catalogue call'
+      );
+      peer.reconcileMode = 'hold';
+      const beforeDenial = first.messages.length;
+      await signOut(tabs, 'registration-b', ['registration-a', 'registration-b']);
+      await eventually(
+        () => peer.accountChecks().some((record) => !record.response.writableEnded),
+        'the account check'
+      );
+      capture.release(peer.catalogue.get(`token-disc/${capture.args.slug}`) ?? null);
+      await eventually(() => capture.completedAt, 'the catalogue call answered');
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      expect(first.messages.slice(beforeDenial)).toEqual([]);
+      peer.releaseAccounts();
+      await eventually(() => first.messages.length > beforeDenial, 'the frame after the check');
+      /* The page frees its one capture slot only on this answer or on a pause, so without either the picker waits for good. */
+      await eventually(() => first.messages.slice(beforeDenial).find(answers), `the answer to the ${kind}`);
+      expect(first.messages.slice(beforeDenial).filter(pausedOrReset)).toEqual([]);
+    },
+    10_000
+  );
+
+  it('pauses the other player as before when the account check after a sign-out fails', async () => {
+    expect((await provision(runtime)).status).toBe(200);
+    const { first, tabs } = await admitPlayerAndTwoTabs();
+    peer.reconcileMode = 'error';
+    const beforeDenial = first.messages.length;
+    await signOut(tabs, 'registration-b', ['registration-a', 'registration-b']);
+    const [pause] = await eventually(() => {
+      const since = first.messages.slice(beforeDenial);
+      return since.length && since;
+    }, 'the pause after the failed check');
+    /* A check that cannot finish releases no frame; the player is paused as before. */
+    expect(pause).toEqual({ type: 'admission', status: 'suspended' });
+    peer.reconcileMode = 'answer';
+    await eventually(() => first.messages.slice(beforeDenial).some(isFullView), 'a full view once the check succeeds');
+    expect(first.closed).toBe(false);
   });
 
   it('retains carry replay history when authorization suspends and recovers on the same socket', async () => {
