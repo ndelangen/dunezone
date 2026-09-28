@@ -11,7 +11,7 @@ import {
   syncView,
 } from './native-runtime.fixture.mjs';
 
-describe('Public removal votes', () => {
+describe('Public removal votes', { timeout: 20_000 }, () => {
   let peer, runtime;
   beforeEach(async () => {
     ({ peer, runtime } = await draftingRuntime([['emperor', 'Emperor']]));

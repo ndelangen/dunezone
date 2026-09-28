@@ -3,11 +3,15 @@ import { execFileSync } from 'node:child_process';
 import { lstat, mkdir, readFile, realpath, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
+import { loadCaseSchema } from '../../src/shared/play/loadTarget.ts';
+import { runnerProfiles } from './profiles.ts';
+
 const root = path.resolve(import.meta.dirname, '../..');
+const reportName = new RegExp(`^(${runnerProfiles.join('|')})-(${loadCaseSchema.options.join('|')})-\\d{13}$`);
 
 export async function prepareDirectory(requested) {
   const name = path.basename(requested);
-  assert.match(name, /^(baseline|stacked|separated)-(probe|peak|reconnect|trace|multitab|steady|slow|browser)-\d{13}$/);
+  assert.match(name, reportName);
   const base = path.join(root, 'test-results', 'play-load');
   const directory = path.join(base, name);
   assert.equal(path.resolve(requested), directory, 'Reports must stay under test-results/play-load.');

@@ -101,7 +101,7 @@ export const Administrator = meta.story({
           lastActivityAt: 1_789_913_600_000,
           result: {
             kind: 'faction',
-            factionIds: ['house-atreides'],
+            factions: [{ id: 'house-atreides', name: 'House Atreides' }],
             declaredBy: 'story-user',
             declaredAt: 1_789_913_600_000,
           },
