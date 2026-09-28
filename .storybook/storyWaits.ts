@@ -60,7 +60,7 @@ const nativeCancelFrame = window.cancelAnimationFrame.bind(window);
  * A callback that an earlier one cancels during this call does not run.
  * A callback that throws is reported as a frame would report it, and the rest still run.
  */
-export function advanceFrame() {
+function advanceFrame() {
   const time = performance.now();
   /* The ids are copied so a callback requested during this call waits, and each is looked up again before it runs, since a drawn frame skips one that an earlier callback cancelled. */
   const due = [...waitingFrames.keys()];
