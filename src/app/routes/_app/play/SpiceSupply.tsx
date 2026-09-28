@@ -71,6 +71,12 @@ export function SpiceSupply({ radius }: Readonly<{ radius: number }>) {
           setHovered(true);
           setHoveredPiece(null);
         }}
+        /*
+         * The effect clears `hovered` on a canvas pointerleave, a window blur or a hidden page.
+         * The scene still counts the pointer as over the disc after those and sends no new enter until a move inside the canvas misses the disc.
+         * So each move over the disc restores the hover.
+         */
+        onPointerMove={() => setHovered(true)}
         onPointerLeave={() => setHovered(false)}
         onClick={(event) => event.stopPropagation()}
       >

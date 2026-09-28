@@ -1,9 +1,11 @@
 import preview from '@sb/preview';
 import { TABLE_PHASES } from '@shared/play/phases';
+import { spiceSupplySlot } from '@shared/play/spiceSupply';
 import { stackTopHeight } from '@shared/play/tableGeometry';
+import { TRACKER_DISC_TOP_Y } from '@shared/play/tableTrackers';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
-import { gameMeta, install, session } from './game.stories.fixture';
+import { gameMeta, install, lastCommand, session } from './game.stories.fixture';
 import { mapViewPoint } from './playing.stories.fixture';
 import { playingSnapshot, productTransport } from './product.stories.fixture';
 
@@ -223,5 +225,40 @@ export const PhaseViewWaitsForTheDrop = meta.story({
 
     scene.dispatchEvent(new PointerEvent('pointerup', { ...pointer, clientX: clientX + 24, buttons: 0 }));
     await waitFor(() => expect(shell).toHaveAttribute('data-table-view', 'right'));
+  },
+});
+
+/**
+ * The spice supply disc answers the number keys again when the pointer leaves the canvas from the disc and comes straight back onto it.
+ * The pointer moves to the view picker, so a pointerleave reaches the canvas and each ancestor that does not contain the picker, and it returns with no move over the rest of the table.
+ */
+export const SpiceDiscAnswersOnReturn = meta.story({
+  beforeEach: install(() => productTransport()),
+  play: async ({ canvasElement }) => {
+    const { page, document } = await tablePage(canvasElement);
+    const slot = spiceSupplySlot();
+    const [clientX, clientY] = mapViewPoint(document, [slot.position[0], TRACKER_DISC_TOP_Y + 0.015, slot.position[2]]);
+    const scene = document.querySelector('canvas')!;
+    const pointer = { bubbles: true, cancelable: true, pointerId: 1, pointerType: 'mouse', clientX, clientY };
+    await waitFor(
+      () => {
+        scene.dispatchEvent(new PointerEvent('pointermove', pointer));
+        expect(scene.style.cursor).toBe('pointer');
+      },
+      { timeout: 30_000 }
+    );
+
+    const picker = page.getByRole('group', { name: 'Table view' });
+    for (let left: Element | null = scene; left && !left.contains(picker); left = left.parentElement) {
+      left.dispatchEvent(new PointerEvent('pointerleave', { ...pointer, bubbles: false }));
+    }
+    await waitFor(() => expect(scene.style.cursor).toBe('default'));
+
+    scene.dispatchEvent(new PointerEvent('pointermove', { ...pointer, clientX: clientX + 1 }));
+    await waitFor(() => expect(scene.style.cursor).toBe('pointer'));
+    await userEvent.keyboard('2');
+    await waitFor(() =>
+      expect(lastCommand()).toMatchObject({ type: 'command', action: { kind: 'spice-spawn', count: 2 } })
+    );
   },
 });
