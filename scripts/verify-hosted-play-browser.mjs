@@ -141,6 +141,7 @@ const runDirectory = path.join(outputDirectory, `${values.flow}-${Date.now()}`);
 const directory = pathToFileURL(runDirectory + path.sep);
 const allowedOrigins = new Set([origin, backend]);
 const allowedSocketOrigins = new Set([...allowedOrigins].map((value) => value.replace('http:', 'ws:')));
+const backendSocketOrigin = backend.replace('http:', 'ws:');
 const blockedNetwork = [];
 await mkdir(directory, { recursive: true });
 const report = {
@@ -225,6 +226,42 @@ function observeRenderers() {
   });
   Object.assign(window, { __THREE_DEVTOOLS__: hook, hostedPlayRenderers: renderers });
 }
+/**
+ * Runs in every page before its scripts: keeps each change of the table's connection state and status line, so a flow stuck before the table (#1378) shows whether the page looped through reconnects or never left its first attempt.
+ * The status line is the page's own text, and the list keeps the newest 60 changes.
+ */
+function observeConnectionStatus() {
+  const changes = [];
+  let last = '';
+  let observer;
+  /* The waits before the subscription carry no connection state, so the status line is found first and its state beside it. */
+  const record = () => {
+    const status = document.querySelector('[role="status"]');
+    const connection = status?.closest('[data-connection]')?.getAttribute('data-connection') ?? null;
+    const text = status?.textContent ?? null;
+    const key = `${connection}|${text}`;
+    if (key !== last) {
+      last = key;
+      changes.push({ at: Math.round(performance.timeOrigin + performance.now()), connection, status: text });
+      changes.splice(0, Math.max(0, changes.length - 60));
+    }
+    /* Once admitted, the page's status lines are the table's own, so watching stops rather than costing the table frames. */
+    if (connection === 'authorized') {
+      observer?.disconnect();
+    }
+  };
+  Object.assign(window, { hostedPlayConnection: changes });
+  /* The document exists before any page script runs, so no change during the first load is missed. */
+  observer = new MutationObserver(record);
+  observer.observe(document, {
+    subtree: true,
+    childList: true,
+    characterData: true,
+    attributes: true,
+    attributeFilter: ['data-connection'],
+  });
+  record();
+}
 /** Runs in the page: the backend the table canvas's renderer initialised, or why it cannot name one yet. */
 function readTableRenderer(canvas) {
   const renderer = window.hostedPlayRenderers?.get(canvas);
@@ -287,6 +324,7 @@ async function peer(label, context) {
       serviceWorkers: 'block',
     });
     await context.addInitScript(observeRenderers);
+    await context.addInitScript(observeConnectionStatus);
     await context.route(
       (url) => !allowedOrigins.has(url.origin),
       async (route) => {
@@ -311,6 +349,8 @@ async function peer(label, context) {
     rawMessages: [],
     sent: [],
     sockets: [],
+    /* The page's Convex sync sockets and its ticket mutations on them, by time only: a ticket is a credential and never recorded. */
+    admission: { convexSockets: [], tickets: [], authErrors: 0 },
     view: () => state.messages.findLast((message) => message.type === 'view'),
     /* The phase cooldown the Worker stated in its latest view or update, and when that frame arrived. */
     phaseCooldown: { ms: 0, receivedAt: 0 },
@@ -323,6 +363,10 @@ async function peer(label, context) {
     }
   });
   page.on('websocket', (socket) => {
+    if (new URL(socket.url()).origin === backendSocketOrigin) {
+      observeAdmission(state, socket);
+      return;
+    }
     if (!socket.url().includes('/__play/games/')) {
       return;
     }
@@ -364,6 +408,79 @@ async function peer(label, context) {
     });
   });
   return state;
+}
+/** Records when each Convex sync socket opened and closed, and when each ticket mutation went out and was answered. */
+function observeAdmission(state, socket) {
+  const connection = { openedAt: Date.now(), closedAt: null };
+  state.admission.convexSockets.push(connection);
+  socket.on('close', () => {
+    connection.closedAt = Date.now();
+  });
+  socket.on('framesent', (frame) => {
+    const message = parseFrame(frame.payload);
+    if (message?.type !== 'Mutation' || !(message.udfPath ?? '').endsWith('issueTicket')) {
+      return;
+    }
+    /* A reconnecting Convex client sends its unanswered mutations again under the same request id. */
+    const resent = state.admission.tickets.find((entry) => entry.requestId === message.requestId);
+    if (resent) {
+      resent.sends += 1;
+      return;
+    }
+    state.admission.tickets.push({ requestId: message.requestId, sentAt: Date.now(), sends: 1, answeredAt: null });
+  });
+  socket.on('framereceived', (frame) => {
+    const message = parseFrame(frame.payload);
+    if (message?.type === 'AuthError') {
+      state.admission.authErrors += 1;
+    }
+    const ticket =
+      message?.type === 'MutationResponse' &&
+      state.admission.tickets.find((entry) => entry.requestId === message.requestId && entry.answeredAt === null);
+    if (ticket) {
+      ticket.answeredAt = Date.now();
+      /* A refusal is a successful mutation with an ok:false result; the result's ticket itself is never kept. */
+      ticket.outcome =
+        message.success !== true ? 'failed' : message.result?.ok ? 'issued' : (message.result?.reason ?? 'refused');
+    }
+  });
+}
+function parseFrame(payload) {
+  try {
+    return JSON.parse(payload.toString());
+  } catch {
+    return null;
+  }
+}
+/** What a peer's page and sockets say about its admission, for a failure report: times are milliseconds after the report started. */
+async function admissionTrace(who) {
+  const start = Date.parse(report.startedAt);
+  const since = (time) => (time === null ? null : time - start);
+  let timer;
+  const statuses = await Promise.race([
+    who.page.evaluate(() => window.hostedPlayConnection ?? []),
+    new Promise((resolve) => {
+      timer = setTimeout(() => resolve([]), 5000);
+    }),
+  ])
+    .catch(() => [])
+    .finally(() => clearTimeout(timer));
+  return {
+    label: who.label,
+    gameSockets: who.sockets.length,
+    convexSockets: who.admission.convexSockets.map((entry) => ({
+      openedAt: since(entry.openedAt),
+      closedAt: since(entry.closedAt),
+    })),
+    tickets: who.admission.tickets.map((entry) => ({
+      sentAt: since(entry.sentAt),
+      sends: entry.sends,
+      answeredAt: since(entry.answeredAt),
+      outcome: entry.outcome ?? null,
+    })),
+    authErrors: who.admission.authErrors,
+    statuses: statuses.map((entry) => ({ ...entry, at: since(entry.at) })),
+  };
 }
 async function signIn(who) {
   credentials[who.label] ??= {
@@ -1537,6 +1654,7 @@ try {
     afterCheck: report.checks.at(-1)?.name ?? 'Startup',
     ...(frame ? { at: frame } : {}),
   };
+  report.failure.admission = await Promise.all(peers.map(admissionTrace));
   for (const who of peers) {
     try {
       await capture(who, `failure-${who.label}`);

@@ -16,7 +16,9 @@ import type { Doc } from './_generated/dataModel';
 import { internalQuery } from './_generated/server';
 import { internalMutation } from './functions';
 import {
+  currentFactionComponentData,
   currentFactionLeaderData,
+  currentFactionTroopData,
   FACTION_TOKEN_BACK_REVISION,
   publicationJobsForAsset,
   publicationSettings,
@@ -129,13 +131,14 @@ export const takeWork = internalMutation({
         await ctx.db.delete(job._id);
         continue;
       }
-      if (job.asset_type === 'faction-leader') {
+      /* A roster face renders one capture at a time, so an older capture can never land after a newer one. */
+      if (job.asset_type === 'faction-leader' || job.asset_type === 'faction-troop') {
         const targetJobs = await publicationJobsForAsset(ctx, job.asset_type, job.asset_id);
         if (targetJobs.some((candidate) => candidate.status === 'in_progress')) {
           continue;
         }
       }
-      if (job.asset_type === 'faction-leader' && !(await currentFactionLeaderData(ctx, job.asset_id))) {
+      if ((await currentFactionComponentData(ctx, job.asset_type, job.asset_id)) === null) {
         await ctx.db.delete(job._id);
         continue;
       }
@@ -203,7 +206,7 @@ export const readJobForRender = internalQuery({
     if (!isPublicationAssetType(job.asset_type)) {
       return null;
     }
-    if (job.asset_type === 'faction-leader' && !(await currentFactionLeaderData(ctx, job.asset_id))) {
+    if ((await currentFactionComponentData(ctx, job.asset_type, job.asset_id)) === null) {
       return null;
     }
     if (!(await firstPageParentIsLive(ctx, job))) {
@@ -263,6 +266,14 @@ export const completeJob = internalMutation({
         alreadyReplaced ||
         JSON.stringify(current) !== JSON.stringify(parsePublicationAssetData(job.asset_type, job.asset_data))
       ) {
+        await ctx.db.delete(job._id);
+        return { status: 'missing' as const };
+      }
+    }
+    /* A troop removed or changed while its capture ran keeps no stale face. */
+    if (job.asset_type === 'faction-troop') {
+      const current = await currentFactionTroopData(ctx, job.asset_id);
+      if (JSON.stringify(current) !== JSON.stringify(parsePublicationAssetData(job.asset_type, job.asset_data))) {
         await ctx.db.delete(job._id);
         return { status: 'missing' as const };
       }
