@@ -174,7 +174,7 @@ export const NestedItemActive = meta.story({
     await userEvent.hover(rootItemB);
     await waitForFrame(() => expect(storyDocument.getByRole('tooltip')).toHaveTextContent('Root item B'));
     levels[0]?.querySelector(':scope > ul')?.dispatchEvent(new Event('scroll'));
-    await waitFor(() => expect(storyDocument.queryByRole('tooltip')).not.toBeInTheDocument());
+    await waitForFrame(() => expect(storyDocument.queryByRole('tooltip')).not.toBeInTheDocument());
     await new Promise<void>((resolve) => window.setTimeout(resolve, 700));
     await expect(storyDocument.queryByRole('tooltip')).not.toBeInTheDocument();
   },

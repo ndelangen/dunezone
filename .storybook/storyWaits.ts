@@ -18,10 +18,12 @@ const DUMP_LENGTH = 7000;
 const LAG_LINE = 'The longest animation-frame lag during this story was';
 
 let longestFrameLagMs = 0;
+let storyStartedAt = 0;
 
 /** A failed query states how late frames ran right after the line naming the element, so the next occurrence names its cause. */
 export function resetFrameLag() {
   longestFrameLagMs = 0;
+  storyStartedAt = performance.now();
 }
 
 /**
@@ -53,7 +55,8 @@ const nativeCancelFrame = window.cancelAnimationFrame.bind(window);
  * Runs the animation-frame callbacks waiting now, as the next drawn frame would.
  * A Mantine tooltip, menu or popover renders its content only from inside such a callback, so on a page that draws no frames the content never reaches the DOM and `finishTransitions` has no element to finish.
  * Call it inside a polling wait: each poll moves the page on by one frame, and a callback requested during this call waits for the next poll or a real frame, whichever comes first.
- * It runs every waiting callback, not only the one a wait needs, and each callback runs once.
+ * It runs every callback this story asked for, not only the one a wait needs, and each callback runs once.
+ * A callback an earlier story asked for is left to a real frame, since the component that asked may be gone.
  * A callback that an earlier one cancels during this call does not run.
  * A callback that throws is reported as a frame would report it, and the rest still run.
  */
@@ -63,7 +66,7 @@ export function advanceFrame() {
   const due = [...waitingFrames.keys()];
   for (const id of due) {
     const waiting = waitingFrames.get(id);
-    if (!waiting) {
+    if (!waiting || waiting.requestedAt < storyStartedAt) {
       continue;
     }
     waitingFrames.delete(id);
@@ -87,11 +90,13 @@ export function waitForFrame<T>(check: () => T | Promise<T>, options?: Parameter
   }, options);
 }
 
-/** The line a failed query adds after naming the element: the latest frame that ran, and the oldest one asked for that has not. */
+/** The line a failed query adds after naming the element: the latest frame that ran, and the oldest one this story asked for that has not. */
 function frameLagLine() {
   let oldest = Number.POSITIVE_INFINITY;
   for (const { requestedAt } of waitingFrames.values()) {
-    oldest = Math.min(oldest, requestedAt);
+    if (requestedAt >= storyStartedAt) {
+      oldest = Math.min(oldest, requestedAt);
+    }
   }
   const waiting = Number.isFinite(oldest)
     ? `The oldest frame still waiting was asked for ${Math.round(performance.now() - oldest)} ms ago.`

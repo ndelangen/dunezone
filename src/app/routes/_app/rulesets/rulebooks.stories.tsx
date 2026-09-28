@@ -335,17 +335,17 @@ export const Owner = meta.story({
     await userEvent.hover(page.getByRole('link', { name: 'Add Rulebook' }));
     await waitForFrame(() => expect(page.getByRole('tooltip')).toHaveTextContent('Add Rulebook'));
     await userEvent.unhover(page.getByRole('link', { name: 'Add Rulebook' }));
-    await waitFor(() => expect(page.queryByRole('tooltip')).toBeNull());
+    await waitForFrame(() => expect(page.queryByRole('tooltip')).toBeNull());
     await userEvent.hover(editions[0]!);
     await waitForFrame(() => expect(page.getByRole('tooltip')).toHaveTextContent('Edition 1'));
     await userEvent.unhover(editions[0]!);
-    await waitFor(() => expect(page.queryByRole('tooltip')).toBeNull());
+    await waitForFrame(() => expect(page.queryByRole('tooltip')).toBeNull());
     const actions = within(list).getByRole('button', { name: 'Actions for Rules' });
     expect(actions.closest('a')).toBeNull();
     await userEvent.hover(actions);
     await waitForFrame(() => expect(page.getByRole('tooltip')).toHaveTextContent('Actions for Rules'));
     await userEvent.unhover(actions);
-    await waitFor(() => expect(page.queryByRole('tooltip')).toBeNull());
+    await waitForFrame(() => expect(page.queryByRole('tooltip')).toBeNull());
     await userEvent.click(actions);
     await expect(page.findByRole('menuitem', { name: 'Editions' })).resolves.toHaveAttribute(
       'href',
@@ -605,7 +605,7 @@ export const Clone = meta.story({
     await userEvent.hover(tile);
     await waitForFrame(() => expect(page.getByRole('tooltip')).toHaveTextContent(/^Rules$/));
     await userEvent.unhover(tile);
-    await waitFor(() => expect(page.queryByRole('tooltip')).toBeNull());
+    await waitForFrame(() => expect(page.queryByRole('tooltip')).toBeNull());
     await userEvent.click(rules);
     await userEvent.type(page.getByRole('textbox', { name: 'Rulebook name' }), 'Copied rules');
     await userEvent.click(page.getByRole('button', { name: 'Create Rulebook' }));

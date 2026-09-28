@@ -804,14 +804,14 @@ export const PanelSchemeIsland = meta.story({
     const menu = await openPieceMenu(canvasElement.ownerDocument, deck, 'Deck actions');
     expect(view.getComputedStyle(menu).backgroundColor).toBe(glass);
     await userEvent.keyboard('{Escape}');
-    await waitFor(() => expect(page.queryByRole('menu')).toBeNull());
+    await waitForFrame(() => expect(page.queryByRole('menu')).toBeNull());
     const help = page.getByRole('button', { name: 'Help: Faction bank' });
     await userEvent.hover(help);
-    const tooltip = await page.findByRole('tooltip');
+    const tooltip = await waitForFrame(() => page.getByRole('tooltip'));
     expect(tooltip).toHaveTextContent('Only you see this balance');
     expect(view.getComputedStyle(tooltip).backgroundColor).toBe(glass);
     await userEvent.unhover(help);
-    await waitFor(() => expect(page.queryByRole('tooltip')).toBeNull());
+    await waitForFrame(() => expect(page.queryByRole('tooltip')).toBeNull());
     root.setAttribute('data-mantine-color-scheme', 'dark');
     expect(paint()).toEqual(light);
   },
@@ -832,7 +832,7 @@ export const SpiceMenuName = meta.story({
     });
     await openPieceMenu(document, spice, 'Spice actions');
     await userEvent.keyboard('{Escape}');
-    await waitFor(() => expect(within(document.body).queryByRole('menu')).toBeNull());
+    await waitForFrame(() => expect(within(document.body).queryByRole('menu')).toBeNull());
   },
 });
 
