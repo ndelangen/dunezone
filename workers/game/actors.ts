@@ -27,6 +27,10 @@ export const SPECTATOR_COLOR = '#d0c8b9';
 /** A seat without a faction, and a faction row stored without a colour, take the table's default. */
 const DEFAULT_SEAT_COLOR = '#75d8a7';
 
+function seatColor(seat: Viewer['viewerSeat'], factionColor: string | null | undefined): string {
+  return seat === SPECTATOR_SEAT ? SPECTATOR_COLOR : (factionColor ?? DEFAULT_SEAT_COLOR);
+}
+
 export class ActorDirectory {
   /* Requests are scrubbed with the actor that filed them; the room attaches its request ledger once both exist. */
   participation?: { scrubNames(userId: string): void };
@@ -318,29 +322,42 @@ export class ActorDirectory {
     };
   }
 
-  /** Resolves an admitted connection from current occupancy without creating or updating an actor. */
-  currentViewer(connectionId: string, userId: string): Viewer | undefined {
-    const actor = this.storage.sql
-      .exec<Actor>('SELECT * FROM actors WHERE user_id=? AND deleted=0', userId)
-      .toArray()[0];
-    return (
-      actor && {
-        connectionId,
-        userId,
-        viewerSeat: actor.seat,
-        displayName: actor.display_name,
-        color: this.color(actor.seat),
-      }
+  /**
+   * Resolves admitted connections from current occupancy without creating or updating an actor.
+   * One read serves every connection, since a room re-resolves all of them for each message it handles.
+   */
+  currentViewers(connections: readonly Pick<Viewer, 'connectionId' | 'userId'>[]): (Viewer | undefined)[] {
+    if (!connections.length) {
+      return [];
+    }
+    const occupants = new Map(
+      this.storage.sql
+        .exec<Pick<Actor, 'user_id' | 'seat' | 'display_name'> & Pick<Seat, 'faction_color'>>(
+          'SELECT actors.user_id, actors.seat, actors.display_name, seats.faction_color FROM actors LEFT JOIN seats ON seats.seat=actors.seat WHERE actors.deleted=0'
+        )
+        .toArray()
+        .map((row) => [row.user_id, row])
     );
+    return connections.map(({ connectionId, userId }) => {
+      const actor = occupants.get(userId);
+      return (
+        actor && {
+          connectionId,
+          userId,
+          viewerSeat: actor.seat,
+          displayName: actor.display_name,
+          color: seatColor(actor.seat, actor.faction_color),
+        }
+      );
+    });
   }
 
   private color(seat: Viewer['viewerSeat']): string {
-    if (seat === SPECTATOR_SEAT) {
-      return SPECTATOR_COLOR;
-    }
-    return (
-      this.storage.sql.exec<Seat>('SELECT * FROM seats WHERE seat=?', seat).toArray()[0]?.faction_color ??
-      DEFAULT_SEAT_COLOR
+    return seatColor(
+      seat,
+      seat === SPECTATOR_SEAT
+        ? null
+        : this.storage.sql.exec<Seat>('SELECT * FROM seats WHERE seat=?', seat).toArray()[0]?.faction_color
     );
   }
 

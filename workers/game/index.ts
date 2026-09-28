@@ -762,14 +762,13 @@ export class GameRoom extends DurableObject<GameEnv> {
       return false;
     }
     const revision = this.session.revision;
-    for (const connection of this.connections.values()) {
-      if (connection.viewer && connection.everAuthorized) {
-        const viewer = this.session.refreshViewer(connection.viewer);
-        if (viewer) {
-          connection.viewer = viewer;
-        }
-      }
-    }
+    const connections = [...this.connections.values()].filter(
+      (connection): connection is Connection & { viewer: Viewer } => !!connection.viewer && connection.everAuthorized
+    );
+    const viewers = this.session.refreshViewers(connections.map((connection) => connection.viewer));
+    connections.forEach((connection, index) => {
+      connection.viewer = viewers[index] ?? connection.viewer;
+    });
     return this.session.revision !== revision;
   }
 
