@@ -21,7 +21,7 @@ import type { TableProjection, TableSession } from './TableSession';
  * it in the game menu. Nothing is added to the table, and the bar says nothing once a game is
  * discarded except that it was.
  */
-function DecisionBar({
+export function DecisionBar({
   eyebrow,
   title,
   context,
@@ -222,7 +222,9 @@ export function GameMenu({ table, onLeave }: Readonly<{ table: TableProjection; 
 function PlayerBar({ client, table, readiness }: BarProps) {
   const controls = table.snapshot.controls ?? emptyPublicControls();
   const request = controls.seatRequests[0];
-  if (!request && table.snapshot.removalVotes?.length && !readiness) {
+  /* A removal vote or the end of the game has its own bar; "nobody is asking" would only add noise beside it. */
+  const otherBar = table.snapshot.removalVotes?.length || table.snapshot.ending || table.snapshot.result;
+  if (!request && otherBar && !readiness) {
     return null;
   }
   if (!request) {

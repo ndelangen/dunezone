@@ -109,6 +109,18 @@ function redeemedIdentity(peer) {
   };
 }
 
+/* Every account is active unless a test lists it in `peer.deletedAccounts`, which reads as a confirmed deletion. */
+function accountStates(peer, record) {
+  return {
+    ok: true,
+    accounts: record.args.userIds.map((userId) =>
+      peer.deletedAccounts.has(userId)
+        ? { userId, state: 'deletion_pending', deletionOperationId: `operation-${userId}` }
+        : { userId, state: 'active', deletionOperationId: null }
+    ),
+  };
+}
+
 function answerPeerRequest(peer, record) {
   switch (record.function) {
     case 'assets:listByTypes':
@@ -179,10 +191,13 @@ function answerPeerRequest(peer, record) {
       record.release(peer.redemptionRefusal ? { ok: false, reason: peer.redemptionRefusal } : redeemedIdentity(peer));
       break;
     case 'playAdmission:reconcileAccounts':
-      record.release({
-        ok: true,
-        accounts: record.args.userIds.map((userId) => ({ userId, state: 'active', deletionOperationId: null })),
-      });
+      /* The room's account check: `hold` keeps it open until `peer.releaseAccounts()` answers it, `error` fails it. */
+      if (peer.reconcileMode === 'error') {
+        record.response.writeHead(500);
+        record.response.end('Accounts unavailable');
+      } else if (peer.reconcileMode !== 'hold') {
+        record.release(accountStates(peer, record));
+      }
       break;
     case 'playAdmission:ackAccountDeletion':
       record.release(null);
@@ -217,6 +232,8 @@ export async function createPeer() {
     game: null,
     provisional: true,
     directoryMode: 'ack',
+    reconcileMode: 'answer',
+    deletedAccounts: new Set(),
     summaries: [],
     connections: [],
     requests: [],
@@ -241,6 +258,16 @@ export async function createPeer() {
     );
     connection.version = next;
   }
+  peer.accountChecks = () => peer.requests.filter((record) => record.function === 'playAdmission:reconcileAccounts');
+  /* Answers every account check that `hold` kept open, and every later one at once. */
+  peer.releaseAccounts = () => {
+    peer.reconcileMode = 'answer';
+    for (const record of peer.accountChecks()) {
+      if (!record.response.writableEnded) {
+        record.release(accountStates(peer, record));
+      }
+    }
+  };
   /* `allowed` may be a predicate on the registration id, so one result can deny one registration only. */
   peer.result = (args, allowed = true, expiresAt = peer.expiresAt()) => ({
     ok: true,

@@ -2,14 +2,37 @@ import { describe, expect, test } from 'vitest';
 
 import { assetPublishingFaction } from '../factions/fixtures/assetPublishingFaction';
 import type { FactionCapture } from './capture';
-import { applyPieceAction, initialSnapshot, nextSnapshot } from './commands';
+import { applyPieceAction, emptySnapshot, initialSnapshot, nextSnapshot } from './commands';
 import { freshTableState } from './model';
 import type { TablePiece, TableState, Vector3Tuple } from './model';
 import { tableForViewer } from './protocol';
+import type { GameSnapshot } from './protocol';
 import { factionSupply, piece, place } from './setupSupply';
 import type { SupplyDependencies } from './setupSupply';
+import { createSpiceStack } from './spiceSupply';
 import { stackPreviewPositionFor } from './tableGeometry';
 import { applyDraftToState, draftForGesture, renderedPiecesFor } from './tableState';
+
+const pieceById = (state: TableState, id: string) => state.pieces.find((candidate) => candidate.id === id);
+
+/* The drop a player makes by carrying one whole stack onto another, as the table commits it. */
+function dropOnto(state: TableState, pieceId: string, targetId: string): TableState {
+  const held = pieceById(state, pieceId)!;
+  const target = pieceById(state, targetId)!;
+  return applyDraftToState(state, {
+    operation: 'merge',
+    pieceId,
+    sourcePieceId: pieceId,
+    pickedUpItemIds: held.items.map((item) => item.id),
+    withdrawals: [],
+    origin: [...held.position],
+    originOrientation: held.orientation,
+    position: stackPreviewPositionFor(target),
+    orientation: held.orientation,
+    targetZoneId: target.zoneId,
+    targetPieceId: targetId,
+  });
+}
 
 test('snapshots discard version entries when a split removes its source', () => {
   const previous = initialSnapshot();
@@ -99,26 +122,6 @@ describe('card decks', () => {
     );
   }
 
-  /* The drop a player makes by carrying one whole stack onto another, as the table commits it. */
-  function dropOnto(state: TableState, pieceId: string, targetId: string): TableState {
-    const held = pieceById(state, pieceId)!;
-    const target = pieceById(state, targetId)!;
-    return applyDraftToState(state, {
-      operation: 'merge',
-      pieceId,
-      sourcePieceId: pieceId,
-      pickedUpItemIds: held.items.map((item) => item.id),
-      withdrawals: [],
-      origin: [...held.position],
-      originOrientation: held.orientation,
-      position: stackPreviewPositionFor(target),
-      orientation: held.orientation,
-      targetZoneId: target.zoneId,
-      targetPieceId: targetId,
-    });
-  }
-
-  const pieceById = (state: TableState, id: string) => state.pieces.find((candidate) => candidate.id === id);
   const splitOne = (state: TableState, pieceId: string) =>
     applyPieceAction(state, { kind: 'split', pieceId, count: 1 }, 0);
 
@@ -194,5 +197,93 @@ describe('card decks', () => {
     expect(dropped.events[0]?.status).toBe('accepted');
     expect(pieceById(dropped, traitors.id)?.label).toBe('Traitor cards');
     expect(pieceById(dropped, drawer.id)?.label).toBe('Dreamrules Treachery Deck');
+  });
+});
+
+describe('force stacks', () => {
+  /* House Atreides as a real game carries it: its pieces are owned by the catalogue's database id, and the roster holds its display name. */
+  const ATREIDES = { id: 'k17ag3gr1h60n7mmh88kj56avs8a1j7x', slug: 'house-atreides', name: 'House Atreides' };
+  let next = 0;
+  const dependencies: SupplyDependencies = { id: () => `troop-${next++}`, shuffle: (items) => items };
+
+  /* The table the seated Atreides player sees once setup has supplied the faction's troop reserve. */
+  function hostedTable(): TableState {
+    const capture: FactionCapture = {
+      faction: ATREIDES,
+      capturedAt: 0,
+      definition: assetPublishingFaction,
+      components: {
+        token: { front: null, back: null },
+        leaders: [],
+        troops: [{ name: 'Normal troop', count: 20, front: null, back: null }],
+        alliance: { front: null, back: null },
+        traitors: { back: null, cards: [] },
+      },
+      extras: [],
+      readiness: { ready: true, problems: [] },
+    };
+    const snapshot = {
+      ...emptySnapshot(),
+      roster: {
+        seatCount: 6,
+        seats: [{ id: 'seat-1', position: 0, faction: { id: ATREIDES.id, name: ATREIDES.name, color: '#4b4c0d' } }],
+      },
+    } satisfies GameSnapshot;
+    return { ...tableForViewer(snapshot, 'seat-1'), pieces: factionSupply(capture, 0, dependencies).reserves };
+  }
+
+  const labels = (pieces: TablePiece[]) => pieces.map(({ label, items }) => [label, items.length]);
+
+  test("a split, a carry and a merge name a hosted troop reserve after its faction's display name", () => {
+    const table = hostedTable();
+    const reserve = table.pieces[0]!;
+    expect(labels(table.pieces)).toEqual([['Normal troop', 20]]);
+
+    const split = applyPieceAction(table, { kind: 'split', pieceId: reserve.id, count: 5 }, 0);
+    expect(labels(split.pieces)).toEqual([
+      ['House Atreides forces', 15],
+      ['House Atreides forces', 5],
+    ]);
+
+    const peel = draftForGesture(pieceById(split, reserve.id)!, 'top')!;
+    expect(labels(renderedPiecesFor({ ...split, draftMove: peel }))).toEqual([
+      ['House Atreides forces', 14],
+      ['House Atreides forces', 5],
+      ['House Atreides force', 1],
+    ]);
+
+    const merged = dropOnto(split, split.pieces[1]!.id, reserve.id);
+    expect(labels(merged.pieces)).toEqual([['House Atreides forces', 20]]);
+  });
+
+  test.each([
+    [
+      'a catalogue token stack',
+      place(
+        {
+          ...piece('tokens', 'Harvester', 'shared', '#d5ba8c', 'force', 'token:harvester'),
+          items: [0, 1, 2].map((index) => ({ id: `harvester-${index}`, faceUp: true })),
+        },
+        [3, 0, 6]
+      ),
+      [
+        ['Shared forces', 2],
+        ['Shared force', 1],
+      ],
+    ],
+    [
+      'spice',
+      createSpiceStack(1, 3),
+      [
+        ['Spice', 2],
+        ['Spice', 1],
+      ],
+    ],
+  ])('a split of %s keeps its wording', (_case, stack, expected) => {
+    const table = { ...hostedTable(), pieces: [stack] };
+
+    const split = applyPieceAction(table, { kind: 'split', pieceId: stack.id, count: 1 }, 0);
+
+    expect(labels(split.pieces)).toEqual(expected);
   });
 });

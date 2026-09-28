@@ -40,23 +40,36 @@ export function SpiceSupply({ radius }: Readonly<{ radius: number }>) {
   const [hovered, setHovered] = useState(false);
   const enabled = canInteract && !state.draftMove;
 
+  /*
+   * The clears run while `enabled` is false too.
+   * A hover still set when `enabled` returns arms the number keys, so one that outlived a canvas leave during playback or a draft would arm them with the pointer off the table.
+   */
+  useEffect(() => {
+    if (!hovered) {
+      return;
+    }
+    const canvas = renderer.domElement;
+    const clear = () => setHovered(false);
+    window.addEventListener('blur', clear);
+    document.addEventListener('visibilitychange', clear);
+    canvas.addEventListener('pointerleave', clear);
+    return () => {
+      window.removeEventListener('blur', clear);
+      document.removeEventListener('visibilitychange', clear);
+      canvas.removeEventListener('pointerleave', clear);
+    };
+  }, [hovered, renderer]);
+
   useEffect(() => {
     if (!hovered || !enabled) {
       return;
     }
     const canvas = renderer.domElement;
     canvas.style.cursor = 'pointer';
-    const clear = () => setHovered(false);
     const keyDown = createSpiceKeyHandler(spawnSpice);
     window.addEventListener('keydown', keyDown, true);
-    window.addEventListener('blur', clear);
-    document.addEventListener('visibilitychange', clear);
-    canvas.addEventListener('pointerleave', clear);
     return () => {
       window.removeEventListener('keydown', keyDown, true);
-      window.removeEventListener('blur', clear);
-      document.removeEventListener('visibilitychange', clear);
-      canvas.removeEventListener('pointerleave', clear);
       canvas.style.cursor = 'default';
     };
   }, [enabled, hovered, renderer, spawnSpice]);
@@ -71,6 +84,12 @@ export function SpiceSupply({ radius }: Readonly<{ radius: number }>) {
           setHovered(true);
           setHoveredPiece(null);
         }}
+        /*
+         * The first effect clears `hovered` on a canvas pointerleave, a window blur or a visibility change.
+         * The scene still counts the pointer as over the disc after those and sends no new enter until a move inside the canvas misses the disc.
+         * So each move over the disc restores the hover.
+         */
+        onPointerMove={() => setHovered(true)}
         onPointerLeave={() => setHovered(false)}
         onClick={(event) => event.stopPropagation()}
       >

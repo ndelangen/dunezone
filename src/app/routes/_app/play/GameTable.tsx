@@ -245,6 +245,7 @@ type StageFrame = Readonly<{
  * What a Stage changes in the header and the panel.
  * The fixture has no Stage and keeps its full Table tab.
  * Play keeps the turn and phase in the header and names that tab Phase.
+ * A finished game shows its word but keeps the Phase tab, where its playback lives.
  * Every other stage shows its word in the header and brings its own tabs.
  */
 function stageFrame(stage: GameSnapshot['stage']): StageFrame {
@@ -260,7 +261,7 @@ function stageFrame(stage: GameSnapshot['stage']): StageFrame {
     case 'setup':
       return { word: 'Setup' };
     case 'finished':
-      return { word: 'Finished' };
+      return { word: 'Finished', tableTab: 'Phase' };
     case 'discarded':
       return { word: 'Discarded' };
   }

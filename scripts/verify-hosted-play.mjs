@@ -305,6 +305,7 @@ try {
   await admin.mutation(anyApi.playTesting.setAdministrator, { userId: alice.userId, enabled: false });
   await command(a, { kind: 'storm', direction: 1 });
   passed('Removing administrator status does not revoke signed-in play access');
+  const heldFrom = b.messages.length;
   const revokedAt = Date.now();
   await alice.client.action(anyApi.auth.signOut, {});
   await until(() => a.closeCode && aTab.closeCode, 'Logout did not revoke every tab of the Auth session.');
@@ -352,6 +353,12 @@ try {
   const replacementPeer = await connect(fixture.gameId, replacement);
   assert.equal(replacementPeer.view().viewer.viewerSeat, 'harkonnen');
   passed('Actual account deletion revokes access and vacates the faction for a new user');
+  /* A sign-out, expiry or deletion can withdraw the room's account lease while the room checks accounts; a player it does not concern is held through that check, not paused (#1418). */
+  assert.deepEqual(
+    b.messages.slice(heldFrom).filter((message) => message.type === 'admission'),
+    []
+  );
+  passed("Other players' sign-out, expiry and deletion never pause a connected player");
   b.send({ type: 'metrics' });
   const metrics = await until(
     () => b.messages.findLast((message) => message.type === 'metrics'),
