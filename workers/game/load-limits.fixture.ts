@@ -92,6 +92,8 @@ export function boundedLoadFetch(request: Parameters<typeof worker.fetch>[0], en
  */
 export class BoundedLoadRoom extends GameRoom {
   private readonly limits: LoadLimits;
+  /** Whether this object belongs to a game other than the activation this version carries. */
+  protected readonly foreign: boolean;
   private readonly available: Record<Counter, number> = { messages: 0, incomingBytes: 0, requests: 0 };
   private readonly active = new Set<Promise<unknown>>();
   private deadline: ReturnType<typeof setTimeout> | undefined;
@@ -105,16 +107,23 @@ export class BoundedLoadRoom extends GameRoom {
     }
     super(ctx, env);
     this.limits = limits;
+    /*
+     * A new activation reaches Worker versions one at a time, so this object can start under a version that still names the previous game.
+     * That activation must not claim this object's budget: the room stays inert, and the activation that names it starts it later.
+     */
+    this.foreign = ctx.id.name !== undefined && ctx.id.name !== limits.gameId;
+    if (this.foreign) {
+      this.stopped = null;
+      return;
+    }
     ctx.storage.sql.exec(
       'CREATE TABLE IF NOT EXISTS load_budget (id INTEGER PRIMARY KEY CHECK(id=1), configuration TEXT NOT NULL, stopped TEXT, messages INTEGER NOT NULL DEFAULT 0, incomingBytes INTEGER NOT NULL DEFAULT 0, requests INTEGER NOT NULL DEFAULT 0)'
     );
     const configuration = JSON.stringify(limits);
     ctx.storage.sql.exec('INSERT OR IGNORE INTO load_budget (id, configuration) VALUES (1, ?)', configuration);
     const stored = this.budget();
-    if (stored.configuration !== configuration) {
-      throw new Error('A load run cannot replace an existing budget.');
-    }
-    this.stopped = stored.stopped;
+    /* A budget another activation recorded is never replaced; the room stops instead, so the controller can still read and clear it. */
+    this.stopped = stored.stopped ?? (stored.configuration === configuration ? null : 'replaced-budget');
     ctx.blockConcurrencyWhile(async () => {
       if (this.stopped || Date.now() >= limits.expiresAt) {
         await this.stopLoad(this.stopped ?? 'expiry');
@@ -192,6 +201,9 @@ export class BoundedLoadRoom extends GameRoom {
   }
 
   override async fetch(request: Request): Promise<Response> {
+    if (this.foreign) {
+      return new Response('This room belongs to another load activation.', { status: 503 });
+    }
     if (!isLoadTarget(request, this.env, this.limits)) {
       return new Response('Load target refused.', { status: 403 });
     }
@@ -221,7 +233,7 @@ export class BoundedLoadRoom extends GameRoom {
   }
 
   override async webSocketMessage(socket: WebSocket, input: string | ArrayBuffer) {
-    if (!this.running() || !this.consume('messages', 1, 128)) {
+    if (this.foreign || !this.running() || !this.consume('messages', 1, 128)) {
       return;
     }
     if (typeof input !== 'string' || input.length > 8192) {
@@ -236,6 +248,9 @@ export class BoundedLoadRoom extends GameRoom {
   }
 
   override async alarm() {
+    if (this.foreign) {
+      return;
+    }
     if (!this.running()) {
       await this.stopLoad(this.stopped ?? 'expiry');
       return;

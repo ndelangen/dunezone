@@ -94,6 +94,25 @@ separate its own work from the path back. Its readings also wander: in the secon
 slow cell, `toRoomMs` spanned 1.2 s while most round trips took 150 to 300 ms. One command's split
 is therefore a hint rather than a measurement.
 
+Two readings in `roomTiming` separate the room's own causes. `durableMs` runs from handling to the
+moment the room saw the command's storage write confirmed, both by its own clock. Frames the room
+sends after a write leave only once the write is durable, so a long `durableMs` means the answer
+was held. `stalls` lists the recent moments the room's one-second sweep ran more than 250 ms late,
+which happens when the room is busy running code. In the third 28 September run, every recipient's
+motion stopped for about 2 s at once while the coordinator stayed on schedule, and nothing recorded
+which of the two held it. `motionDropped` counts pointer and pose frames the room dropped because
+their sender's motion bucket was empty. Motion has its own bucket so that a busy room, whose clock
+stalls and then sees a steady mover's frames as a burst, drops frames instead of closing the socket
+with 4413 as it did in that run's peak cell.
+
+`host` covers the other side. `idleBefore` is the share of the machine's CPU that was idle in the
+second before the run, and the runner warns when it is under half. `stalls` lists the moments the
+coordinator's own 100 ms tick ran more than 250 ms late, by the same clock as every send and
+receive, and `eventLoopDelayMs` and `cpuIdle` summarize the whole run. An idle process reads about
+10 ms of event-loop delay, which is its sampling interval. `timeOrigin` turns those readings into
+wall-clock time, the clock the room's `stalls` use. A delivery stall that lines up with a host
+stall was the client's; one that lines up with a room stall or a long `durableMs` was the room's. Start a hosted run on a machine that is mostly idle.
+
 Every protocol socket sends the page's keepalive frame every 30 s, as the page does. The room
 answers it without waking, so it counts as traffic in `keepalives` and the byte totals but not as
 a delivery or against the room's message ceiling. Without it, Cloudflare closes a socket that

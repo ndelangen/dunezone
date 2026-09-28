@@ -632,14 +632,31 @@ export class GameSession {
   }
 
   roomFrame(viewer: Viewer): RoomFrame {
-    return {
-      epoch: this.room!.epoch,
-      snapshot: {
-        ...this.forViewer(this.projection.snapshot(this.room!.snapshot, this.actors.factionFor(viewer.userId)), viewer),
-        ...(this.room!.snapshot.stage ? { removalVotes: this.removal.current() } : {}),
-      },
-      carries: this.projection.carries(this.room!.publicCarries(), this.room!.snapshot),
-      pointers: [...this.room!.pointers.values()],
+    return this.roomFrames()(viewer);
+  }
+
+  /**
+   * Frames for one delivery pass over the room's current state.
+   * The carries and pointers are built once for the pass, and viewers with the same faction and own seat request share one snapshot, so the delivery compares each shared part once.
+   */
+  roomFrames(): (viewer: Viewer) => RoomFrame {
+    const room = this.room!;
+    const carries = this.projection.carries(room.publicCarries(), room.snapshot);
+    const pointers = [...room.pointers.values()];
+    const snapshots = new Map<string, RoomFrame['snapshot']>();
+    return (viewer) => {
+      const factionId = this.actors.factionFor(viewer.userId);
+      const own = viewer.viewerSeat === SPECTATOR_SEAT ? this.participation.pendingRequestId(viewer.userId) : undefined;
+      const audience = JSON.stringify([factionId ?? null, own ?? null]);
+      let snapshot = snapshots.get(audience);
+      if (!snapshot) {
+        snapshot = {
+          ...this.forViewer(this.projection.snapshot(room.snapshot, factionId), viewer),
+          ...(room.snapshot.stage ? { removalVotes: this.removal.current() } : {}),
+        };
+        snapshots.set(audience, snapshot);
+      }
+      return { epoch: room.epoch, snapshot, carries, pointers };
     };
   }
   private applyCommand(viewer: Viewer, message: CommitMessage, contents?: StoredSpawnContents) {

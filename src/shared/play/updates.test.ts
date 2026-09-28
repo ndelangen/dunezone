@@ -6,7 +6,7 @@ import { initialSnapshot, nextSnapshot } from './commands';
 import { emptyPublicControls } from './inventory';
 import { serverMessageSchema, tableForViewer } from './protocol';
 import type { RoomView } from './updates';
-import { applyRoomUpdate, frameChange } from './updates';
+import { applyRoomUpdate, frameChange, frameChanges } from './updates';
 
 const base = (): RoomView => ({
   type: 'view',
@@ -207,5 +207,32 @@ describe('game transport reconstruction', () => {
       })
     ).toBeNull();
     expect(before.pointers).toEqual([]);
+  });
+});
+
+describe('shared frame changes', () => {
+  it('match a fresh comparison and compare a pair of shared parts once', () => {
+    const before = base();
+    const after = structuredClone(before);
+    after.snapshot.revision++;
+    after.snapshot.table.pieces[0]!.position = [2, 0, 2];
+    after.pointers = [
+      {
+        connectionId: 'c',
+        viewerSeat: 'harkonnen',
+        displayName: 'One',
+        color: '#000',
+        position: [1, 0, 1],
+        updatedAt: 1,
+        sourceSeq: 1,
+      },
+    ];
+    const change = frameChanges();
+    const first = change(before, after);
+    expect(first).toEqual(frameChange(before, after));
+    /* Another viewer whose frames share the same parts gets the same snapshot change without a second comparison. */
+    const second = change({ ...before, epoch: 'other' }, { ...after, epoch: 'other' });
+    expect(second.snapshot).toBe(first.snapshot);
+    expect(second.activity).toEqual(first.activity);
   });
 });

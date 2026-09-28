@@ -14,7 +14,8 @@ type Operation =
   | 'socket-error'
   | 'authorization-close'
   | 'draft-catalogue'
-  | 'assignment';
+  | 'assignment'
+  | 'storage-sync';
 
 const REPEAT_INTERVAL_MS = 60_000;
 

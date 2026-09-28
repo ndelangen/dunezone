@@ -382,27 +382,30 @@ export async function createRuntime(peer, kind = 'probe', bindings = {}) {
     write: false,
     external: ['cloudflare:workers', 'node:*'],
   });
-  const options = convertV4MiniflareOptions({
-    handleStructuredLogs: (log) => logs.push(log),
-    rootPath: repository,
-    resourcePersistencePath: persistence,
-    modules: true,
-    script: built.outputFiles[0].text,
-    compatibilityDate: '2026-08-11',
-    compatibilityFlags: ['nodejs_compat'],
-    durableObjects:
-      kind === 'probe'
-        ? { PROBE: { className: 'AuthorizationProbe', useSQLite: true } }
-        : { GAME_ROOMS: { className: 'GameRoom', useSQLite: true } },
-    bindings: {
-      PEER_URL: peer.url,
-      CONVEX_URL: peer.url,
-      APPLICATION_ORIGIN: origin,
-      GIT_SHA: 'native-test',
-      CF_VERSION_METADATA: { id: 'native-test', tag: 'native-test' },
-      ...bindings,
-    },
-  });
+  const configure = (overrides = {}) =>
+    convertV4MiniflareOptions({
+      handleStructuredLogs: (log) => logs.push(log),
+      rootPath: repository,
+      resourcePersistencePath: persistence,
+      modules: true,
+      script: built.outputFiles[0].text,
+      compatibilityDate: '2026-08-11',
+      compatibilityFlags: ['nodejs_compat'],
+      durableObjects:
+        kind === 'probe'
+          ? { PROBE: { className: 'AuthorizationProbe', useSQLite: true } }
+          : { GAME_ROOMS: { className: 'GameRoom', useSQLite: true } },
+      bindings: {
+        PEER_URL: peer.url,
+        CONVEX_URL: peer.url,
+        APPLICATION_ORIGIN: origin,
+        GIT_SHA: 'native-test',
+        CF_VERSION_METADATA: { id: 'native-test', tag: 'native-test' },
+        ...bindings,
+        ...overrides,
+      },
+    });
+  let options = configure();
   let instance = new Miniflare(options);
   await instance.ready;
   return {
@@ -469,9 +472,18 @@ export async function createRuntime(peer, kind = 'probe', bindings = {}) {
       const response = await room.fetch('https://native-test/native-test/alarm', { method: advance ? 'POST' : 'GET' });
       return response.json();
     },
-    async restart() {
+    /** Restarts the runtime, as a new Worker version does, optionally with changed bindings. */
+    async restart(overrides) {
       await instance.dispose();
+      if (overrides) {
+        options = configure(overrides);
+      }
       instance = new Miniflare(options);
+    },
+    /** Fetches a path from the room object with any name, as a Worker version routing another game would. */
+    async object(name, path) {
+      const namespace = await instance.getDurableObjectNamespace('GAME_ROOMS');
+      return namespace.get(namespace.idFromName(name)).fetch(`https://native-test${path}`);
     },
     /**
      * Runs one statement against the room's SQLite file with the runtime down.
