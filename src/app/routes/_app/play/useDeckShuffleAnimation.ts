@@ -14,13 +14,13 @@ export function useDeckShuffleAnimation(piece: TablePiece, interrupted: boolean)
   const motionAllowed = useMotionAllowed();
   useLayoutEffect(() => {
     const revision = piece.shuffleRevision ?? 0;
-    if (revision !== previous.current) {
-      started.current = !interrupted && motionAllowed ? performance.now() : null;
-      previous.current = revision;
-    }
-    if (interrupted || !motionAllowed) {
-      started.current = null;
-    }
+    started.current = shuffleStart(
+      started.current,
+      revision !== previous.current,
+      !interrupted && motionAllowed,
+      performance.now()
+    );
+    previous.current = revision;
     if (started.current === null) {
       resetShuffle(group.current);
     }
@@ -34,6 +34,14 @@ export function useDeckShuffleAnimation(piece: TablePiece, interrupted: boolean)
     invalidate();
   });
   return group;
+}
+
+/** When the shuffle wobble started: a new revision starts it now, and an interruption or the Motion setting turning off stops it for good. */
+export function shuffleStart(start: number | null, newRevision: boolean, allowed: boolean, now: number): number | null {
+  if (!allowed) {
+    return null;
+  }
+  return newRevision ? now : start;
 }
 
 function animateShuffle(group: Group, started: number): number | null {

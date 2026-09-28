@@ -6,6 +6,7 @@ import { composeTurn, PHASE_CHANGE_COOLDOWN_MS, TABLE_PHASES } from '@shared/pla
 import type { GameSnapshot } from '@shared/play/protocol';
 import { SPECTATOR_SEAT } from '@shared/play/schema';
 import { item, piece } from '@shared/play/setupSupply';
+import { createSpiceStack } from '@shared/play/spiceSupply';
 import { stackTopHeight } from '@shared/play/tableGeometry';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
@@ -813,6 +814,25 @@ export const PanelSchemeIsland = meta.story({
     await waitFor(() => expect(page.queryByRole('tooltip')).toBeNull());
     root.setAttribute('data-mantine-color-scheme', 'dark');
     expect(paint()).toEqual(light);
+  },
+});
+
+/** A spice stack's menu announces itself as spice actions, the deck's as deck actions. */
+export const SpiceMenuName = meta.story({
+  beforeEach: install(() => {
+    const snapshot = initialSnapshot();
+    snapshot.table.pieces.push(createSpiceStack(snapshot.table.nextEventNumber, 3));
+    return productTransport('seat-2', snapshot);
+  }),
+  play: async ({ canvasElement }) => {
+    const document = canvasElement.ownerDocument;
+    const spice = createSpiceStack(initialSnapshot().table.nextEventNumber, 3);
+    await waitFor(() => expect(document.querySelector('[data-scene-ready="true"] canvas')).not.toBeNull(), {
+      timeout: 30_000,
+    });
+    await openPieceMenu(document, spice, 'Spice actions');
+    await userEvent.keyboard('{Escape}');
+    await waitFor(() => expect(within(document.body).queryByRole('menu')).toBeNull());
   },
 });
 
