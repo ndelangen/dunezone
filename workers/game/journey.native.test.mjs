@@ -2,7 +2,15 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import { TABLE_PHASES } from '../../src/shared/play/phases';
 import { draftingRuntime } from './native-drafting.fixture.mjs';
-import { accepted, admitPlayer, eventually, seat, sendCommand, syncView } from './native-runtime.fixture.mjs';
+import {
+  accepted,
+  admitPlayer,
+  eventually,
+  isFullView,
+  seat,
+  sendCommand,
+  syncView,
+} from './native-runtime.fixture.mjs';
 
 /*
  * Whole journeys through one real game, each on its own isolated runtime and synthetic accounts:
@@ -37,9 +45,13 @@ describe('A real game from creation to continuation', { timeout: 240_000 }, () =
     return reply.type === 'rejected' ? reply.message : null;
   };
   const summaries = () => peer.summaries;
+  /* Answered directory deliveries with the given status; a request still open has no status yet. */
   const deliveries = (status) =>
     peer.requests.filter(
-      (request) => request.function === 'playDirectory:publishSummary' && request.response.statusCode === status
+      (request) =>
+        request.function === 'playDirectory:publishSummary' &&
+        request.response.writableEnded &&
+        request.response.statusCode === status
     );
   const refusals = () => deliveries(503).length;
   const deleteAccount = (userId) =>
@@ -67,6 +79,11 @@ describe('A real game from creation to continuation', { timeout: 240_000 }, () =
     offset += 8001;
     await runtime.clock(offset);
     return accepted(connection, { kind: 'phase', direction: 1 });
+  }
+  /** Restarts the runtime and puts the fresh isolate's clock back where the test had moved it. */
+  async function restart() {
+    await runtime.restart();
+    await runtime.clock(offset);
   }
   /** Readies every seat in the order given, whatever the stage asks readiness for. */
   async function readyAll(connections) {
@@ -146,10 +163,14 @@ describe('A real game from creation to continuation', { timeout: 240_000 }, () =
     connection.socket.close();
     await eventually(() => connection.closed, 'dropped socket');
     const again = await admit(suffix);
+    /* One reply is one frame from the Worker; the view the fixture assembles from an update repeats its id. */
     const outcomes = () =>
-      again.messages.filter((entry) =>
-        entry.type === 'rejected' ? entry.requestId === lost.commandId : entry.completedCommandId === lost.commandId
-      );
+      again.messages.filter((entry) => {
+        if (entry.type === 'rejected') {
+          return entry.requestId === lost.commandId;
+        }
+        return (entry.type === 'update' || isFullView(entry)) && entry.completedCommandId === lost.commandId;
+      });
     for (const count of [1, 2]) {
       again.send(lost);
       const [refused] = (await eventually(() => outcomes().length >= count && outcomes(), 'retried withdrawal')).filter(
@@ -168,10 +189,14 @@ describe('A real game from creation to continuation', { timeout: 240_000 }, () =
     expect(restored.snapshot.roster).toEqual(before.snapshot.roster);
     expect(restored.snapshot.table.pieces).toEqual(before.snapshot.table.pieces);
   }
+  /** Advances play to the Mentat pause, which is never more than one round of phases away. */
   async function toMentat(connection) {
-    while ((await syncView(connection)).snapshot.phase % TABLE_PHASES.length !== MENTAT) {
-      await next(connection);
+    const atMentat = (snapshot) => snapshot.phase % TABLE_PHASES.length === MENTAT;
+    let { snapshot } = await syncView(connection);
+    for (let guard = 0; guard < TABLE_PHASES.length && !atMentat(snapshot); guard++) {
+      ({ snapshot } = await next(connection));
     }
+    expect(atMentat(snapshot)).toBe(true);
   }
 
   it('takes two accounts from creation through a finished and continued game across failures and restarts', async () => {
@@ -189,8 +214,14 @@ describe('A real game from creation to continuation', { timeout: 240_000 }, () =
     expect((await syncView(a)).snapshot.roster.seats).toHaveLength(2);
     await eventually(async () => (await runtime.alarm()).scheduledAt !== null, 'directory retry alarm');
     peer.directoryMode = 'ack';
+    /* The retry is due on the room clock, which workerd's alarm does not read; move it past the backoff first. */
+    offset += 30_000;
+    await runtime.clock(offset);
     await runtime.alarm(true);
-    await eventually(() => summaries().at(-1).summary.seats.length === 2, 'retried summary with two seats');
+    await eventually(
+      () => deliveries(200).some((request) => request.args.summary.seats.length === 2),
+      'acknowledged summary with two seats'
+    );
     await eventually(async () => (await runtime.alarm()).scheduledAt === null, 'settled directory alarm');
 
     await accepted(b, { kind: 'draft-ready', ready: true });
@@ -222,7 +253,7 @@ describe('A real game from creation to continuation', { timeout: 240_000 }, () =
 
     /* Cold restore in play: the room comes back from storage with every projection intact. */
     const beforeRestart = await Promise.all([a2, b2].map(syncView));
-    await runtime.restart();
+    await restart();
     const [a3, b3] = [await admit('a'), await admit('b')];
     const afterRestart = await Promise.all([a3, b3].map(syncView));
     afterRestart.forEach((restored, index) => expectSameSeat(restored, beforeRestart[index]));
@@ -259,7 +290,7 @@ describe('A real game from creation to continuation', { timeout: 240_000 }, () =
     });
 
     /* A finished game survives a restart, and either player may continue it. */
-    await runtime.restart();
+    await restart();
     const b4 = await admit('b');
     const restoredFinished = await syncView(b4);
     expect(restoredFinished.snapshot.stage).toBe('finished');
@@ -324,7 +355,7 @@ describe('A real game from creation to continuation', { timeout: 240_000 }, () =
     expect(summary.summary.seats).toHaveLength(18);
     expect(summary.summary.result.factions.map((entry) => entry.id)).toEqual(allies);
 
-    await runtime.restart();
+    await restart();
     const middle = await admit(suffixes[9]);
     const restored = await syncView(middle);
     expect(restored.snapshot.stage).toBe('finished');
@@ -373,7 +404,7 @@ describe('A real game from creation to continuation', { timeout: 240_000 }, () =
 
     /* The remaining player continues; a restart keeps the scrub; the last departure discards the game. */
     await accepted(a, { kind: 'result-continue' });
-    await runtime.restart();
+    await restart();
     const a2 = await admit('a');
     const restored = await syncView(a2);
     expect(restored.snapshot.stage).toBe('play');
