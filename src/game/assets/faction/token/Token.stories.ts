@@ -23,3 +23,8 @@ export const Default = meta.story({
     logo: '/vector/logo/moritani.svg',
   },
 });
+
+/** The reverse of the same token (#1228). */
+export const Blocked = meta.story({
+  args: { ...Default.input.args, blocked: true },
+});

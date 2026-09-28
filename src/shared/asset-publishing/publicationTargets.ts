@@ -114,6 +114,8 @@ export const PUBLICATION_TARGETS: Record<PublicationAssetType, PublicationTarget
     contentType: 'image/jpeg',
     downloadFilename: 'faction-token.jpg',
     capture: { output: 'image', widthPx: 600, heightPx: 600, jpegQuality: 88, maxBytes: 2_000_000 },
+    /* The reversible faction token's blocked side (#1228). */
+    faces: ['back'],
   },
   'faction-leader': {
     collection: 'leaders',
