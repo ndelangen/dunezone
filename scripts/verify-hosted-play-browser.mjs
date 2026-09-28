@@ -614,9 +614,26 @@ async function cursorAt(recipient, sender, position) {
   }, 'The visible remote cursor did not reach the expected board position.');
 }
 
-async function redPixels(who, center) {
+const HIDDEN_CURSOR = 'data-verifier-hidden-cursor';
+/**
+ * Counts saturated red pixels in the 48 px box around `center` on the recipient's page, with the sender's drawn cursor hidden.
+ * The hand and name label take the sender's faction colour, so for the red Harkonnen seat they would count as a red token.
+ * A cursor still drawn at an earlier point would then raise a baseline, and a hand could stand in for a held token (#1461).
+ * Only the screenshot hides them: the page and its captures still show the cursor.
+ */
+async function redPixels(recipient, sender, center) {
+  await remoteCursor(recipient, sender)
+    .locator('..')
+    .evaluateAll((elements, attribute) => {
+      for (const element of elements) {
+        element.setAttribute(attribute, '');
+      }
+    }, HIDDEN_CURSOR);
   const clip = { x: Math.round(center.x) - 24, y: Math.round(center.y) - 24, width: 48, height: 48 };
-  const png = await who.page.screenshot({ clip });
+  const png = await recipient.page.screenshot({
+    clip,
+    style: `[${HIDDEN_CURSOR}] { visibility: hidden !important; }`,
+  });
   const { data, info } = await sharp(png).removeAlpha().raw().toBuffer({ resolveWithObject: true });
   let count = 0;
   for (let offset = 0; offset < data.length; offset += info.channels) {
@@ -657,7 +674,7 @@ async function visibleActivity(sender, recipient, name) {
   for (const position of targets) {
     const senderPoint = await point(sender, position, 'map');
     const recipientPoint = await point(recipient, position, 'map');
-    destinations.push({ senderPoint, recipientPoint, baseline: await redPixels(recipient, recipientPoint) });
+    destinations.push({ senderPoint, recipientPoint, baseline: await redPixels(recipient, sender, recipientPoint) });
   }
   await capture(recipient, `${name}-before-carry`);
   const sentBefore = sender.sent.length;
@@ -672,13 +689,13 @@ async function visibleActivity(sender, recipient, name) {
         `${name}: the native drag did not pick up the force stack.`
       );
       await until(
-        async () => (await redPixels(recipient, destination.recipientPoint)) > destination.baseline + 40,
+        async () => (await redPixels(recipient, sender, destination.recipientPoint)) > destination.baseline + 40,
         `${name}: the recipient did not render the held red token at destination ${index + 1}.`
       );
       if (index > 0) {
         const previous = destinations[index - 1];
         await until(
-          async () => (await redPixels(recipient, previous.recipientPoint)) <= previous.baseline + 10,
+          async () => (await redPixels(recipient, sender, previous.recipientPoint)) <= previous.baseline + 10,
           `${name}: the previous destination retained a duplicate token.`
         );
       }
@@ -694,7 +711,7 @@ async function visibleActivity(sender, recipient, name) {
   );
   for (const destination of destinations) {
     await until(
-      async () => (await redPixels(recipient, destination.recipientPoint)) <= destination.baseline + 10,
+      async () => (await redPixels(recipient, sender, destination.recipientPoint)) <= destination.baseline + 10,
       `${name}: the cancelled token remained visible at a dragged location.`
     );
   }
@@ -821,11 +838,11 @@ async function sharedPhaseFlow(a, b) {
   await focus(a, nextView);
   await a.page.mouse.move(10, 10);
   const nextViewPoint = await point(a, target, nextView);
-  const nextViewBaseline = await redPixels(a, nextViewPoint);
+  const nextViewBaseline = await redPixels(a, b, nextViewPoint);
   await focus(a, 'map');
   await a.page.mouse.move(10, 10);
   const recipientPoint = await point(a, target, 'map');
-  const baseline = await redPixels(a, recipientPoint);
+  const baseline = await redPixels(a, b, recipientPoint);
   await b.page.mouse.move(start.x, start.y);
   await b.page.mouse.down();
   try {
@@ -839,7 +856,7 @@ async function sharedPhaseFlow(a, b) {
       'The other player did not receive the held token before a phase change.'
     );
     await until(
-      async () => (await redPixels(a, recipientPoint)) > baseline + 40,
+      async () => (await redPixels(a, b, recipientPoint)) > baseline + 40,
       'The held token was not visible before a phase change.'
     );
     await phaseStep(a, b, 1, { recipientHeld: true });
@@ -850,7 +867,7 @@ async function sharedPhaseFlow(a, b) {
     await recommendedViewButton(b, nextView, false).waitFor();
     assert.equal(await shownView(b), 'map');
     await until(
-      async () => (await redPixels(a, nextViewPoint)) > nextViewBaseline + 40,
+      async () => (await redPixels(a, b, nextViewPoint)) > nextViewBaseline + 40,
       'The held token disappeared when the phase changed.'
     );
     assert.equal(await a.page.getByRole('heading', { name: 'Storm sector', exact: true }).count(), 0);

@@ -7,6 +7,7 @@ import { NoEditorYet } from '../../../assetEditorStates';
 import { BundleEditPage } from './bundleEdit';
 import { DeckEditPage } from './deckEdit';
 import { RectangleEditPage } from './rectangleEdit';
+import { SpiceEditPage } from './spiceEdit';
 import { TokenEditPage } from './tokenEdit';
 import { TreacheryEditPage } from './treacheryEdit';
 
@@ -31,6 +32,8 @@ function EditAssetPage() {
   switch (type) {
     case 'card-treachery':
       return <TreacheryEditPage slug={slug} loaderData={loaderData} />;
+    case 'card-spice':
+      return <SpiceEditPage slug={slug} loaderData={loaderData} />;
     case 'token-disc':
     case 'token-tech':
     case 'token-plate':

@@ -3,6 +3,7 @@ import {
   FACTION_SHEET_ASSET_TYPE,
   RECTANGLE_TOKEN_ASSET_TYPE,
   RULEBOOK_FIRST_PAGE_ASSET_TYPE,
+  SPICE_CARD_ASSET_TYPE,
   TREACHERY_CARD_ASSET_TYPE,
 } from './publication';
 
@@ -20,6 +21,8 @@ export const CHECKED_IN_RENDERER_REVISIONS = {
   /* Revision 2 regenerates Card image-and-geometry envelopes. */
   // 1: cards join the pipeline (wayfinder #516). Activating this is also the backfill for cards that predate it.
   [TREACHERY_CARD_ASSET_TYPE]: 2,
+  // 1: spice cards join the pipeline with their editor (#1229).
+  [SPICE_CARD_ASSET_TYPE]: 1,
   // 1: deck cardbacks join the pipeline (wayfinder #546). Activating this is also the backfill for decks that predate it.
   [DECK_ASSET_TYPE]: 1,
   'cardback-preset': 1,

@@ -299,10 +299,11 @@ single-use tickets, multi-tab logout, inactivity/total expiry, and account-delet
 Retained logs contain check results and payload counters, not credentials.
 
 The browser flows play real games. The stack seeds a synthetic ruleset
-(`playTesting:seedRealGameCatalogue`) with both required decks and two factions, installs its
-publication bytes, and passes its id to each flow. Every flow signs in synthetic accounts without the Administrator flag,
-creates a game at `/play/create`, seats the second player through a seat request and its approval,
-and plays through drafting and setup before its own checks. Against a running
+(`playTesting:seedRealGameCatalogue`) with both required decks, a treachery deck of treachery cards
+and a spice deck of spice cards, and two factions, installs its publication bytes, and passes its
+id to each flow. Every flow signs in synthetic accounts without the Administrator flag, creates a
+game at `/play/create`, seats the second player through a seat request and its approval, and plays
+through drafting and setup before its own checks. Against a running
 [local stack](../deployment.md#hosted-gameplay), seed that ruleset once and use a build with local
 Password sign-in enabled:
 
