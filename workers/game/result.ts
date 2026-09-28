@@ -89,7 +89,7 @@ export function settleEnding<Snapshot extends StoredSnapshot>(
 }
 
 function inMentat(snapshot: StoredSnapshot) {
-  return snapshot.stage === 'play' && phaseAt(snapshot.phase).id === 'mentat-pause';
+  return snapshot.stage === 'play' && phaseAt(snapshot.phase, snapshot.phases).id === 'mentat-pause';
 }
 
 function requireMentat(snapshot: StoredSnapshot) {

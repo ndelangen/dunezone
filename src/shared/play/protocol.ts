@@ -16,7 +16,8 @@ import { publicControlsSchema, publicActionSchema, spawnSelectionSchema, spawnCo
 import { logEntrySchema, logTabSchema } from './log';
 import type { TableState } from './model';
 import { seatActionSchema } from './participation';
-import { phaseAt } from './phases';
+import { phaseAt, TABLE_PHASES } from './phases';
+import type { TablePhaseId } from './phases';
 import { removalActionSchema, removalVoteSchema } from './removal';
 import { gameEndingSchema, gameResultSchema, resultActionSchema } from './result';
 import {
@@ -39,6 +40,17 @@ const factionArtworkSchema = z.record(
   HistoricalFactionPublicationSchema.pick({ background: true, logo: true }).extend({ troops: z.array(TroopArtwork) })
 );
 
+const phaseEntrySchema = z.object({
+  id: z.string().max(400),
+  label: z.string().max(160),
+  symbol: z.string().max(2048),
+  instructions: z.string().max(8000),
+  allPlayersMustBeReady: z.boolean(),
+  kind: z.enum(['standard', 'faction']),
+  factionId: z.string().max(200).optional(),
+  before: z.enum(TABLE_PHASES.map((entry) => entry.id) as [TablePhaseId, ...TablePhaseId[]]).optional(),
+});
+
 const direction = z.union([z.literal(-1), z.literal(1)]);
 
 export const gameSnapshotSchema = z.object({
@@ -46,6 +58,11 @@ export const gameSnapshotSchema = z.object({
   table: tableSchema,
   versions: z.record(z.string(), count),
   phase: count,
+  /*
+   * The turn as composed from the seated factions' declarations (#1138), in the order the storm marker gives now.
+   * Absent on fixtures, whose turn is the standard nine phases.
+   */
+  phases: z.array(phaseEntrySchema).optional(),
   /* Absent on the local demo and on snapshots a room stored before it fixed its seating. */
   roster: roster.optional(),
   /* Absent on fixtures, which have no lifecycle; a real game carries its stage from creation. */
@@ -295,7 +312,7 @@ export function rosterFactionNames(roster: GameSnapshot['roster']): TableState['
 export function tableForViewer(snapshot: GameSnapshot, viewerSeat: Viewer['viewerSeat']): TableState {
   return {
     ...snapshot.table,
-    phase: phaseAt(snapshot.phase).label,
+    phase: phaseAt(snapshot.phase, snapshot.phases).label,
     viewerSeat,
     viewerFaction: rosterSeat(snapshot.roster, viewerSeat)?.faction?.id ?? null,
     factionNames: rosterFactionNames(snapshot.roster),

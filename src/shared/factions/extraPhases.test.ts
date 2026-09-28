@@ -47,13 +47,17 @@ describe('faction phase declarations (#1138)', () => {
     expect(phaseDeclarationProblems({ ...valid, before: undefined })).toEqual({
       before: 'Choose where the phase goes.',
     });
+    expect(phaseDeclarationProblems({ ...valid, type: 'prediction' })).toEqual({
+      before: 'A prediction runs once, so place it before a setup step.',
+    });
+    expect(phaseDeclarationProblems({ ...valid, type: 'prediction', before: 'traitors' })).toEqual({});
     expect(phaseDeclarationProblems(valid)).toEqual({});
   });
 
   it('allows two prediction rows and same-target, same-priority rows in one faction', () => {
     const phases = [
-      { ...valid, id: 'a', type: 'prediction' },
-      { ...valid, id: 'b', type: 'prediction' },
+      { ...valid, id: 'a', type: 'prediction', before: 'traitors' },
+      { ...valid, id: 'b', type: 'prediction', before: 'traitors' },
     ];
     expect(FactionInputSchema.safeParse(withPhases(phases)).success).toBe(true);
   });

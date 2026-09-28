@@ -4,6 +4,7 @@ import { api } from '../../convex/_generated/api';
 import { cardbackPresetLabel } from '../../src/shared/assets/cardbackPresets';
 import { authoredCardback, DeckAssetInput } from '../../src/shared/assets/schema';
 import { parseAssetDataForWrite } from '../../src/shared/assets/validation';
+import { phaseDeclarationSchema } from '../../src/shared/factions/extraPhases';
 import { IdentifiedFactionStoredSchema } from '../../src/shared/factions/schema';
 import { lacksCombatValues, troopCombatFaces } from '../../src/shared/factions/troopCombat';
 import type {
@@ -317,12 +318,26 @@ export class GameCatalogue {
     if (!source) {
       throw new GameRejection('This faction is not available.');
     }
-    const parsed = IdentifiedFactionStoredSchema.safeParse(source.data);
+    const { declarations, data } = splitPhaseDeclarations(source.data);
+    const parsed = IdentifiedFactionStoredSchema.safeParse(data);
     if (!parsed.success) {
       throw new GameRejection('This faction has an incomplete definition.');
     }
-    const definition = parsed.data;
     const problems: CaptureProblem[] = [];
+    /* Each declaration is judged alone: an invalid one is a readiness problem naming it, the valid ones are captured (#1138). */
+    const extraPhases = declarations.flatMap((declaration, index) => {
+      const checked = phaseDeclarationSchema.safeParse(declaration);
+      if (checked.success) {
+        return [checked.data];
+      }
+      const title = (declaration as { title?: unknown } | null)?.title;
+      problems.push({
+        subject: `phase ${typeof title === 'string' && title.trim() ? title.trim() : index + 1}`,
+        reason: checked.error.issues[0]?.message ?? 'This phase declaration is invalid.',
+      });
+      return [];
+    });
+    const definition = declarations.length ? { ...parsed.data, extraPhases } : parsed.data;
     const token = { front: this.publishedFace(source.token, 'faction token', problems), back: null };
     if (!token.front) {
       problems.push({ subject: 'faction token', reason: 'The faction token has no published face.' });
@@ -380,4 +395,13 @@ export class GameCatalogue {
       readiness: readiness(problems),
     });
   }
+}
+
+/** The stored faction with its phase declarations set aside, so one invalid declaration cannot refuse the whole definition. */
+function splitPhaseDeclarations(data: unknown): { declarations: unknown[]; data: unknown } {
+  if (!data || typeof data !== 'object' || !('extraPhases' in data)) {
+    return { declarations: [], data };
+  }
+  const { extraPhases, ...rest } = data as { extraPhases: unknown };
+  return { declarations: Array.isArray(extraPhases) ? extraPhases : [], data: rest };
 }

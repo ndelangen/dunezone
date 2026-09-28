@@ -1,10 +1,11 @@
 import { z } from 'zod';
 
+import { phaseDeclarationSchema } from '../factions/extraPhases';
+import type { PhaseDeclaration } from '../factions/extraPhases';
 import { CanonicalFactionStoredSchema, HistoricalFactionPublicationSchema } from '../factions/schema';
 import { RULESET_ASSET_SLOT_ORDER } from '../rulesets/assetSlots';
 import { spawnSelectionSchema, storedSpawnContentsSchema } from './inventory';
 import { tableCountSchema } from './schema';
-import { setupDeclarationSchema } from './setup';
 
 /*
  * What a game retains of the catalogue, and when.
@@ -32,7 +33,8 @@ export type RulesetSupply = z.infer<typeof rulesetSupplySchema>;
  */
 export const factionDefinitionSchema = z.object({
   faction: sourceSchema,
-  data: CanonicalFactionStoredSchema.nullable(),
+  /* Phase declarations are widened here: the capture judges each one alone, so one invalid row names itself rather than refusing the faction (#1138). */
+  data: CanonicalFactionStoredSchema.extend({ extraPhases: z.array(z.unknown()).optional() }).nullable(),
   token: z.string().nullable(),
   cardbacks: z.object({ traitor: z.string().nullable(), alliance: z.string().nullable() }),
   leaders: z.array(z.object({ memberId: identitySchema, front: z.string().nullable() })),
@@ -143,17 +145,26 @@ export const factionCaptureSchema = z.object({
   capturedAt: tableCountSchema,
   /*
    * The stored faction as it read at capture; later edits and deletion do not reach it.
+   * Its `extraPhases` holds only the declarations that were valid at capture; the rest became readiness problems.
    * Read back through the historical decoder, so a later narrowing of the live faction schema
    * cannot make a game lose a faction it already holds.
+   * The declarations are read loosely for the same reason; `capturedDeclarations` keeps the ones the live schema still accepts.
    */
-  definition: HistoricalFactionPublicationSchema,
-  setupPhases: z.array(setupDeclarationSchema).optional(),
+  definition: HistoricalFactionPublicationSchema.extend({ extraPhases: z.array(z.unknown()).optional() }),
   components: factionComponentsSchema,
   /** Each Extra is supplied once per faction; a refused reference keeps its name and the reason. */
   extras: z.array(slotCaptureSchema),
   readiness: captureReadinessSchema,
 });
 export type FactionCapture = z.infer<typeof factionCaptureSchema>;
+
+/** A capture's phase declarations, in the author's list order; one a later schema would refuse is left out rather than failing the game. */
+export function capturedDeclarations(capture: FactionCapture): PhaseDeclaration[] {
+  return (capture.definition.extraPhases ?? []).flatMap((row) => {
+    const parsed = phaseDeclarationSchema.safeParse(row);
+    return parsed.success ? [parsed.data] : [];
+  });
+}
 
 /** A catalogue reference an Extra names: the same selection the shared inventory spawns from. */
 const extraReferenceSchema = spawnSelectionSchema;

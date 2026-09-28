@@ -1,5 +1,6 @@
+import type { TableRoster } from './schema';
 import { BOARD_RADIUS } from './tableGeometry';
-import { tableSectorCenterAngle, TABLE_SECTOR_COUNT } from './tableSettings';
+import { tableSeatSectorIndices, tableSectorCenterAngle, TABLE_SECTOR_COUNT } from './tableSettings';
 
 export const DEFAULT_STORM_SECTOR_INDEX = 5;
 export const STORM_SECTOR_ANGLE = (Math.PI * 2) / TABLE_SECTOR_COUNT;
@@ -41,4 +42,30 @@ export function nearestStormRotation(currentRotation: number, sectorIndex: numbe
 export function stormTransitionProgress(elapsedMs: number): number {
   const progress = Math.max(0, Math.min(1, elapsedMs / STORM_TRANSITION_MS));
   return progress * progress * (3 - 2 * progress);
+}
+
+/**
+ * The factions in storm order, read live from the marker (#1138);
+ * nothing stores an order.
+ * Each seat ranks by the sectors the storm must still travel to reach it, `(storm - seat) mod 18`, and a seat under the marker ranks last with 18, since the storm has already passed it.
+ * Seats occupy distinct sectors, so the order is total.
+ * Seats without a faction are left out.
+ */
+export function stormOrder(stormSectorIndex: number, roster: TableRoster | undefined): string[] {
+  if (!roster) {
+    return [];
+  }
+  const sectors = tableSeatSectorIndices(roster.seatCount);
+  const storm = normalizeStormSectorIndex(stormSectorIndex);
+  return roster.seats
+    .flatMap((seat) => {
+      const sector = sectors[seat.position];
+      if (!seat.faction || sector === undefined) {
+        return [];
+      }
+      const distance = (storm - sector + TABLE_SECTOR_COUNT) % TABLE_SECTOR_COUNT;
+      return [{ factionId: seat.faction.id, distance: distance === 0 ? TABLE_SECTOR_COUNT : distance }];
+    })
+    .sort((left, right) => left.distance - right.distance)
+    .map((entry) => entry.factionId);
 }
