@@ -110,8 +110,11 @@ export async function enqueuePublicationJob(
   });
 }
 
-/** The revision whose Worker and capture page draw the blocked `.back` face. */
-const FACTION_TOKEN_BACK_REVISION = 2;
+/**
+ * The revision whose Worker and capture page draw the blocked `.back` face.
+ * A floor rather than the checked-in number: later revisions keep drawing it.
+ */
+export const FACTION_TOKEN_BACK_REVISION = 2;
 
 /**
  * Both faces of the reversible faction token read only the logo and background, so one comparison decides both.

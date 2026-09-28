@@ -15,7 +15,12 @@ import { isPublicationAssetType, PUBLICATION_ASSET_TYPES } from '../src/shared/a
 import type { Doc } from './_generated/dataModel';
 import { internalQuery } from './_generated/server';
 import { internalMutation } from './functions';
-import { currentFactionLeaderData, publicationJobsForAsset, publicationSettings } from './lib/publication';
+import {
+  currentFactionLeaderData,
+  FACTION_TOKEN_BACK_REVISION,
+  publicationJobsForAsset,
+  publicationSettings,
+} from './lib/publication';
 import { rulebookForArtifactDelivery } from './lib/rulebookEditionArtifacts';
 import type { MutationCtx, QueryCtx } from './types';
 
@@ -110,6 +115,14 @@ export const takeWork = internalMutation({
     for (const job of pending) {
       /* The new Worker deploys before activation makes this type eligible for pickup. */
       if (job.asset_type === 'faction-leader' && !settings?.renderer_revisions['faction-leader']) {
+        continue;
+      }
+      /* A publisher rolled back below the blocked face would reject its payload, so `.back` jobs wait for the revision that draws it. */
+      if (
+        job.asset_type === 'faction-token' &&
+        job.asset_id.endsWith('.back') &&
+        (settings?.renderer_revisions['faction-token'] ?? 0) < FACTION_TOKEN_BACK_REVISION
+      ) {
         continue;
       }
       if (job.asset_type === 'faction-leader') {

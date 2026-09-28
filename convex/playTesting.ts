@@ -2,7 +2,7 @@ import { zodToConvex } from 'convex-helpers/server/zod4';
 import { v } from 'convex/values';
 
 import type { PublicationAssetType } from '../src/shared/asset-publishing/publicationTargets';
-import { publishedR2Key, publishedHref } from '../src/shared/asset-publishing/publicationTargets';
+import { publicationFaceId, publishedR2Key, publishedHref } from '../src/shared/asset-publishing/publicationTargets';
 import { publishingDeckCardback } from '../src/shared/assets/fixtures/publishingDeckCardback';
 import { publishingSpiceCard } from '../src/shared/assets/fixtures/publishingSpiceCard';
 import { publishingTokenFace } from '../src/shared/assets/fixtures/publishingTokenFace';
@@ -222,6 +222,7 @@ export const seedRealGameCatalogue = internalMutation({
       });
       await ctx.db.insert('ruleset_factions', { ruleset_id: rulesetId, faction_id: factionId });
       publications.push(await publish(ctx, 'faction-token', factionId, 'front'));
+      publications.push(await publish(ctx, 'faction-token', publicationFaceId(factionId, 'back'), 'back'));
     }
     return { rulesetId, publications };
   },

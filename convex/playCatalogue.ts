@@ -129,7 +129,10 @@ export const draftableFactions = query({
         background: parsed.data.background,
         color: parsed.data.themeColor,
         linked: linked.has(row._id),
-        published: (await publishedFace(ctx, 'faction-token', row._id)) !== null,
+        /* A game needs both faces of the reversible token, so a faction is draftable only once both are published. */
+        published:
+          (await publishedFace(ctx, 'faction-token', row._id)) !== null &&
+          (await publishedFace(ctx, 'faction-token', publicationFaceId(row._id, 'back'))) !== null,
       });
     }
     return { factions };

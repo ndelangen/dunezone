@@ -335,7 +335,7 @@ export class GameCatalogue {
     const definition = declarations.length ? { ...parsed.data, extraPhases } : parsed.data;
     const token = {
       front: this.publishedFace(source.token, 'faction token', problems),
-      back: this.publishedFace(source.tokenBack, 'faction token back', problems),
+      back: this.publishedFace(source.tokenBack ?? null, 'faction token', problems),
     };
     if (!token.front) {
       problems.push({ subject: 'faction token', reason: 'The faction token has no published face.' });
