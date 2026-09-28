@@ -7,12 +7,14 @@ is the specification. The live issue records review, deployment and verification
 
 ## Scope and ownership
 
-`/play/hosted` is unlinked and requires an active signed-in account. The first two distinct admitted
-users occupy the fixture's Harkonnen and Atreides seats. Later users are spectators. A user's other tabs
-share their seat but have independent connections and carries. These are fixture seats, not the
-future seat-request, draft or faction assignment workflow. Seated players draw and are dealt private
-hands here; faction messages are not available. `/play/demo` stays public and local-only; `/play`
-remains reserved for the lobby.
+Players reach a game only at `/play/<gameId>`: `/play` is the lobby, and an Administrator creates a
+real game at `/play/create`. The retired `/play/hosted` and `/play/demo` pages
+([#1296](https://github.com/ndelangen/dunezone/issues/1296)) no longer exist in the application;
+the public `playAdmission:getFixture` query stays so a bundle deployed before their removal still
+gets an answer. The fixture game this document describes remains the Worker's native test and load
+fixture: the first two distinct admitted users occupy its Harkonnen and Atreides seats, and later
+users are spectators. A user's other tabs share their seat but have independent connections and
+carries.
 
 Convex stores the fixture directory record, provisioning status, server-only game secrets, ticket hashes, session
 registrations and account-deletion delivery records. It does not store table actions or seats.
@@ -73,7 +75,7 @@ without the deck) leaves the placeholder cards in place; the room asks again at 
 read while the deck is absent. The captured pieces are retained with the room's metadata: a reset
 deals them again, reshuffled, and a room provisioned before the deck existed adopts it on wake,
 asynchronously, so a reset after the adoption brings the real cards to a running fixture without
-re-provisioning. The local demo at `/play/demo` keeps its placeholder; it has no backend.
+re-provisioning.
 
 ## Connection lifetime
 
@@ -282,8 +284,13 @@ spectator rejection, contested mutations, transient activity, receipt replay, ph
 single-use tickets, multi-tab logout, inactivity/total expiry, and account-deletion vacancy.
 Retained logs contain check results and payload counters, not credentials.
 
-Against a running [local stack](../deployment.md#hosted-gameplay), use a fresh canonical fixture
-and a build with local Password sign-in enabled:
+The browser flows play real games. The stack seeds a synthetic ruleset
+(`playTesting:seedRealGameCatalogue`) with both required decks and two factions, installs its
+publication bytes, and passes its id to each flow. Every flow signs in synthetic Administrators,
+creates a game at `/play/create`, seats the second player through a seat request and its approval,
+and plays through drafting and setup before its own checks. Against a running
+[local stack](../deployment.md#hosted-gameplay), seed that ruleset once and use a build with local
+Password sign-in enabled:
 
 ```sh
 bun --no-env-file scripts/verify-hosted-play-browser.mjs \
@@ -291,7 +298,8 @@ bun --no-env-file scripts/verify-hosted-play-browser.mjs \
   --env-file /absolute/private/local.env \
   --credentials-file /absolute/private/browser-accounts.json \
   --report-dir /absolute/proof-output \
-  --flow regular
+  --flow regular \
+  --ruleset-id <rulesetId>
 ```
 
 The environment file must contain the loopback `CONVEX_SELF_HOSTED_URL`. Private files need mode
@@ -306,11 +314,9 @@ the same readback path on macOS as on Linux; full Chromium on macOS draws on Met
 `chromium` field records the executable, the version and the added switches. `--flow` names one flow
 and defaults to `regular`. Each run writes screenshots and a
 compact report without credentials. A flow that retains synthetic received
-game frames writes them to `<flow>-frames.json`. The internal `playTesting:retireFixture` control can retire an
-old fixture on an isolated backend before provisioning a new one; it does not erase game data.
+game frames writes them to `<flow>-frames.json`.
 
 Browser proof supplements these tests with native pointer gestures, independent camera views,
-playback, reload, logout and route exit. The PR records the matching demo and hosted screenshots
-and sanitized reports. Payload and fanout counters establish a small fixture baseline only.
+playback, reload, logout and route exit. The PR records the screenshots and sanitized reports. Payload and fanout counters establish a small fixture baseline only.
 [Define multiplayer load targets and verification](https://github.com/ndelangen/dunezone/issues/1022)
 owns capacity targets and load testing; it does not block this environment's first deployment.
