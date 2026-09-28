@@ -15,7 +15,7 @@ function unavailable(status: number, message: string) {
   return new Response(message, { status, headers: { 'Cache-Control': 'no-store' } });
 }
 
-/** Resolve source availability before conditional delivery. Retained or cached bytes cannot revive a removed member. */
+/** Resolve source availability before conditional delivery. Retained or cached bytes cannot revive a source Convex reports missing; a published Leader stays found after its source is gone. */
 export async function handleComponentRequest(
   request: Request,
   assetId: string,

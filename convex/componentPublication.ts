@@ -4,10 +4,20 @@ import { v } from 'convex/values';
 import { COMPONENT_ASSET_TYPES } from '../src/shared/asset-publishing/componentGeometry';
 import { resolveComponentDeliveryResponseSchema } from '../src/shared/asset-publishing/componentPublication';
 import { TokenAsset, RectangleTokenAsset } from '../src/shared/assets/schema';
+import type { Doc } from './_generated/dataModel';
 import { internalQuery } from './_generated/server';
 import { currentFactionLeaderData } from './lib/publication';
 
-/** The Worker checks live source availability before reading retained bytes or answering a conditional request. */
+function found(published: Doc<'publication_assets'>) {
+  return {
+    ok: true as const,
+    status: 'found' as const,
+    revision: published.cache_token,
+    publishedAt: published.published_at,
+  };
+}
+
+/** The Worker checks source availability before reading retained bytes or answering a conditional request; a published Leader stays available after its source is gone. */
 export const resolveDelivery = internalQuery({
   args: {
     assetId: v.string(),
@@ -15,31 +25,35 @@ export const resolveDelivery = internalQuery({
   },
   returns: zodToConvex(resolveComponentDeliveryResponseSchema),
   handler: async (ctx, { assetId, assetType = 'faction-leader' }) => {
+    const publication = () =>
+      ctx.db
+        .query('publication_assets')
+        .withIndex('by_asset_type_and_asset_id', (q) => q.eq('asset_type', assetType).eq('asset_id', assetId))
+        .unique();
+    /*
+     * A Leader keeps its last published image after its faction is deleted or the member is removed, so retained games keep drawing it (#1227).
+     * Only a Leader that never published follows its source.
+     */
+    if (assetType === 'faction-leader') {
+      const published = await publication();
+      if (published) {
+        return found(published);
+      }
+      return (await currentFactionLeaderData(ctx, assetId))
+        ? { ok: true as const, status: 'pending' as const }
+        : { ok: true as const, status: 'missing' as const };
+    }
     const normalizedId = ctx.db.normalizeId('assets', assetId.replace(/\.back$/, ''));
-    const asset = assetType === 'faction-leader' || !normalizedId ? null : await ctx.db.get('assets', normalizedId);
+    const asset = normalizedId ? await ctx.db.get('assets', normalizedId) : null;
     const token =
       asset && assetType.startsWith('token-')
         ? (assetType === 'token-enhance' ? RectangleTokenAsset : TokenAsset).safeParse(asset.data)
         : null;
     const removedBack = assetId.endsWith('.back') && (!token?.success || token.data.back.mode !== 'custom');
-    const available =
-      assetType === 'faction-leader'
-        ? Boolean(await currentFactionLeaderData(ctx, assetId))
-        : Boolean(asset && !asset.is_deleted && asset.type === assetType && !removedBack);
-    if (!available) {
+    if (!asset || asset.is_deleted || asset.type !== assetType || removedBack) {
       return { ok: true as const, status: 'missing' as const };
     }
-    const published = await ctx.db
-      .query('publication_assets')
-      .withIndex('by_asset_type_and_asset_id', (q) => q.eq('asset_type', assetType).eq('asset_id', assetId))
-      .unique();
-    return published && (assetType === 'faction-leader' || published.component_geometry)
-      ? {
-          ok: true as const,
-          status: 'found' as const,
-          revision: published.cache_token,
-          publishedAt: published.published_at,
-        }
-      : { ok: true as const, status: 'pending' as const };
+    const published = await publication();
+    return published?.component_geometry ? found(published) : { ok: true as const, status: 'pending' as const };
   },
 });

@@ -44,6 +44,9 @@ export const factionDefinitionSchema = z.object({
   troops: z
     .array(z.object({ troopId: identitySchema, front: z.string().nullable(), back: z.string().nullable() }))
     .optional(),
+  /* Each supporting leader's traitor front and the alliance front (#1228). Optional so a game Worker still reads a Convex that predates them. */
+  traitors: z.array(z.object({ memberId: identitySchema, front: z.string().nullable() })).optional(),
+  alliance: z.string().nullish(),
 });
 
 /** A catalogue row as a capture reads it: its identity and its stored data, which the capture validates per type. */
@@ -117,8 +120,7 @@ export type RulesetCapture = z.infer<typeof rulesetCaptureSchema>;
 /**
  * The generated components setup supplies for one faction, each with the faces the catalogue has published for it.
  * A leader's back is the faction token's face.
- * Troops, the alliance card and the traitor cards have no publication yet;
- * their faces stay null and the verdict names them until the component publication deliveries land.
+ * A face the catalogue has not published stays null, and the verdict names it.
  */
 const factionComponentsSchema = z.object({
   token: z.object({ front: faceSchema, back: faceSchema }),
