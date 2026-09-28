@@ -74,7 +74,15 @@ export function FactionFormSectionExtras({ form }: { form: FactionFormApi }) {
           return (
             <Stack gap="sm">
               <Group justify="flex-end">
-                <Popover opened={picking} onChange={setPicking} width={340} position="bottom-end" withinPortal>
+                <Popover
+                  opened={picking}
+                  onChange={setPicking}
+                  width={340}
+                  position="bottom-end"
+                  withinPortal
+                  trapFocus
+                  returnFocus
+                >
                   <Popover.Target>
                     <Button variant="light" size="compact-sm" onClick={() => setPicking((open) => !open)}>
                       Add Extra
@@ -119,7 +127,7 @@ export function FactionFormSectionExtras({ form }: { form: FactionFormApi }) {
 /** The artifact column's view: what the faction adds to its starting supply. */
 export function FactionExtrasProof({ extras }: { extras: readonly FactionExtra[] }) {
   return (
-    <Stack component="section" gap="sm" className={styles.phaseProof} p="lg" aria-label="Starting Extras">
+    <Stack component="section" gap="sm" className={styles.extrasProof} p="lg" aria-label="Starting Extras">
       <Text ff="serif" fw={800} tt="uppercase">
         Added at setup
       </Text>

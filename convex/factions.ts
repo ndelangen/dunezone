@@ -304,12 +304,13 @@ async function assertAddedFactionExtrasExist(
   saved: readonly FactionExtra[]
 ) {
   const kept = new Set(saved.map(factionExtraKey));
-  for (const extra of extras ?? []) {
-    if (!kept.has(factionExtraKey(extra)) && !(await liveAsset(ctx, extra.type, extra.slug))) {
-      throw new ConvexError(
-        `The Extra ${factionExtraKey(extra)} is not in the catalogue. Choose it again or remove it.`
-      );
-    }
+  const added = (extras ?? []).filter((extra) => !kept.has(factionExtraKey(extra)));
+  const assets = await Promise.all(added.map((extra) => liveAsset(ctx, extra.type, extra.slug)));
+  const missing = added.find((_, index) => !assets[index]);
+  if (missing) {
+    throw new ConvexError(
+      `The Extra ${factionExtraKey(missing)} is not in the catalogue. Choose it again or remove it.`
+    );
   }
 }
 
