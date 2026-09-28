@@ -658,7 +658,7 @@ describe('hosted table interaction', () => {
     expect(socket().sent.at(-1)).toMatchObject({ type: 'drop', carryId: carried.carries[0].id });
   });
 
-  test('the piece menu offers bank and deck actions only to a viewer who can act, and not a piece another player holds', async () => {
+  test('the piece menu offers bank and deck actions only to a viewer who can act, and bank collect refuses a piece another player holds', async () => {
     const client = await connected();
     const harkonnen = { id: 'harkonnen', name: 'Harkonnen', color: '#ed927c' };
     const snapshot: GameSnapshot = {
