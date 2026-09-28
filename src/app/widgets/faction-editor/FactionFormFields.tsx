@@ -358,11 +358,11 @@ function ArtifactProof({
           title = 'Faction phase';
           artifact = selectedPhase ? (
             /* The phase as a player meets it: its symbol, title and instructions. Where it falls in the sequence is the deferred preview's job (#1467). */
-            <Box className={styles.rulesProof} p="lg">
+            <Box className={styles.rulesProof}>
               {selectedPhase.symbol ? (
                 <Image src={resolve(selectedPhase.symbol)} alt="" w={64} h={64} fit="contain" mb="sm" />
               ) : null}
-              <Text ff="serif" fw={800} tt="uppercase">
+              <Text className={styles.proofHeading} ff="serif" fw={800} tt="uppercase">
                 {phaseRowLabel(selectedPhase, phaseIndex)}
               </Text>
               <Text ff="serif" size="sm" style={{ whiteSpace: 'pre-wrap' }}>
