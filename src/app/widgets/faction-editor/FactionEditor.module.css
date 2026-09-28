@@ -175,6 +175,12 @@
   background: #fffdf1;
 }
 
+.phaseProof {
+  border: 1px solid var(--mantine-color-default-border);
+  border-radius: var(--mantine-radius-default);
+  background: #fffdf1;
+}
+
 .previewEmpty {
   display: grid;
   min-height: 15rem;
