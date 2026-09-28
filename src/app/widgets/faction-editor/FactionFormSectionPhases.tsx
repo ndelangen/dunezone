@@ -50,6 +50,134 @@ export function phaseRowLabel(declaration: Partial<PhaseDeclaration> | undefined
   return declaration?.title?.trim() || `Phase ${index + 1}`;
 }
 
+type PhaseProblems = ReturnType<typeof phaseDeclarationProblems>;
+
+/* Symbol and placement: the two choices only the author can make, besides the title. */
+function PhasePlacementFields({
+  form,
+  index,
+  problems,
+}: {
+  form: FactionFormApi;
+  index: number;
+  problems: PhaseProblems;
+}) {
+  return (
+    <>
+      <SimpleGrid cols={{ base: 1, sm: 2 }}>
+        <form.Field name={`extraPhases[${index}].symbol`}>
+          {(field) => (
+            <Input.Wrapper id={`phase-${index}-symbol`} label="Symbol" required error={problems.symbol}>
+              <AssetSelect
+                id={`phase-${index}-symbol`}
+                aria-label="Symbol"
+                allowDeselect={false}
+                data={symbolSelectOptions}
+                getPreviewSrc={assetOptionToPreviewSrc}
+                glyphPreviews
+                value={field.state.value ?? null}
+                onChange={(value) => {
+                  if (value) {
+                    field.handleChange(value as PhaseDeclaration['symbol']);
+                  }
+                }}
+              />
+            </Input.Wrapper>
+          )}
+        </form.Field>
+
+        <form.Field name={`extraPhases[${index}].before`}>
+          {(field) => (
+            <Select
+              id={`phase-${index}-placement`}
+              label="Placement"
+              required
+              allowDeselect={false}
+              data={placementOptions}
+              value={field.state.value ?? null}
+              error={problems.before}
+              onChange={(value) => {
+                if (value) {
+                  field.handleChange(value as PhaseTarget);
+                }
+              }}
+            />
+          )}
+        </form.Field>
+      </SimpleGrid>
+    </>
+  );
+}
+
+/* Type, priority and readiness: each starts from its default, so a new row is valid without them. */
+function PhaseBehaviourFields({
+  form,
+  index,
+  problems,
+}: {
+  form: FactionFormApi;
+  index: number;
+  problems: PhaseProblems;
+}) {
+  return (
+    <>
+      <SimpleGrid cols={{ base: 1, sm: 2 }}>
+        <form.Field name={`extraPhases[${index}].type`}>
+          {(field) => (
+            <Select
+              id={`phase-${index}-type`}
+              label="Type"
+              description="Prediction uses the built-in prediction controls."
+              allowDeselect={false}
+              data={typeOptions}
+              value={field.state.value ?? null}
+              error={problems.type}
+              onChange={(value) => {
+                if (value) {
+                  field.handleChange(value as PhaseDeclaration['type']);
+                }
+              }}
+            />
+          )}
+        </form.Field>
+
+        <form.Field name={`extraPhases[${index}].priority`}>
+          {(field) => (
+            <NumberInput
+              id={`phase-${index}-priority`}
+              label="Priority"
+              description="Lower runs first among phases before the same step."
+              allowDecimal
+              value={field.state.value ?? ''}
+              error={problems.priority}
+              onBlur={field.handleBlur}
+              /* An empty or fractional entry is kept as typed, so the row names the problem rather than hiding it. */
+              onChange={(value) => field.handleChange(value as number)}
+            />
+          )}
+        </form.Field>
+      </SimpleGrid>
+
+      <form.Field name={`extraPhases[${index}].allPlayersMustBeReady`}>
+        {(field) => (
+          <ControlBlock
+            title="Everyone must be ready"
+            description="Next waits until every player is ready, like Mentat pause. A prediction phase gates on its lock instead."
+            input={
+              <Switch
+                id={`phase-${index}-ready`}
+                aria-label="Everyone must be ready"
+                checked={field.state.value ?? false}
+                onChange={(event) => field.handleChange(event.currentTarget.checked)}
+              />
+            }
+          />
+        )}
+      </form.Field>
+    </>
+  );
+}
+
 function PhaseCard({ form, index }: { form: FactionFormApi; index: number }) {
   return (
     <form.Subscribe selector={(state) => state.values.extraPhases?.[index]}>
@@ -77,47 +205,7 @@ function PhaseCard({ form, index }: { form: FactionFormApi; index: number }) {
               )}
             </form.Field>
 
-            <SimpleGrid cols={{ base: 1, sm: 2 }}>
-              <form.Field name={`extraPhases[${index}].symbol`}>
-                {(field) => (
-                  <Input.Wrapper id={`phase-${index}-symbol`} label="Symbol" required error={problems.symbol}>
-                    <AssetSelect
-                      id={`phase-${index}-symbol`}
-                      aria-label="Symbol"
-                      allowDeselect={false}
-                      data={symbolSelectOptions}
-                      getPreviewSrc={assetOptionToPreviewSrc}
-                      glyphPreviews
-                      value={field.state.value ?? null}
-                      onChange={(value) => {
-                        if (value) {
-                          field.handleChange(value as PhaseDeclaration['symbol']);
-                        }
-                      }}
-                    />
-                  </Input.Wrapper>
-                )}
-              </form.Field>
-
-              <form.Field name={`extraPhases[${index}].before`}>
-                {(field) => (
-                  <Select
-                    id={`phase-${index}-placement`}
-                    label="Placement"
-                    required
-                    allowDeselect={false}
-                    data={placementOptions}
-                    value={field.state.value ?? null}
-                    error={problems.before}
-                    onChange={(value) => {
-                      if (value) {
-                        field.handleChange(value as PhaseTarget);
-                      }
-                    }}
-                  />
-                )}
-              </form.Field>
-            </SimpleGrid>
+            <PhasePlacementFields form={form} index={index} problems={problems} />
 
             <form.Field name={`extraPhases[${index}].instructions`}>
               {(field) => (
@@ -135,59 +223,7 @@ function PhaseCard({ form, index }: { form: FactionFormApi; index: number }) {
               )}
             </form.Field>
 
-            <SimpleGrid cols={{ base: 1, sm: 2 }}>
-              <form.Field name={`extraPhases[${index}].type`}>
-                {(field) => (
-                  <Select
-                    id={`phase-${index}-type`}
-                    label="Type"
-                    description="Prediction uses the built-in prediction controls."
-                    allowDeselect={false}
-                    data={typeOptions}
-                    value={field.state.value ?? null}
-                    error={problems.type}
-                    onChange={(value) => {
-                      if (value) {
-                        field.handleChange(value as PhaseDeclaration['type']);
-                      }
-                    }}
-                  />
-                )}
-              </form.Field>
-
-              <form.Field name={`extraPhases[${index}].priority`}>
-                {(field) => (
-                  <NumberInput
-                    id={`phase-${index}-priority`}
-                    label="Priority"
-                    description="Lower runs first among phases before the same step."
-                    allowDecimal
-                    value={field.state.value ?? ''}
-                    error={problems.priority}
-                    onBlur={field.handleBlur}
-                    /* An empty or fractional entry is kept as typed, so the row names the problem rather than hiding it. */
-                    onChange={(value) => field.handleChange(value as number)}
-                  />
-                )}
-              </form.Field>
-            </SimpleGrid>
-
-            <form.Field name={`extraPhases[${index}].allPlayersMustBeReady`}>
-              {(field) => (
-                <ControlBlock
-                  title="Everyone must be ready"
-                  description="Next waits until every player is ready, like Mentat pause. A prediction phase gates on its lock instead."
-                  input={
-                    <Switch
-                      id={`phase-${index}-ready`}
-                      aria-label="Everyone must be ready"
-                      checked={field.state.value ?? false}
-                      onChange={(event) => field.handleChange(event.currentTarget.checked)}
-                    />
-                  }
-                />
-              )}
-            </form.Field>
+            <PhaseBehaviourFields form={form} index={index} problems={problems} />
           </Stack>
         );
       }}
