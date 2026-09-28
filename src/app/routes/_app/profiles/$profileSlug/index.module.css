@@ -147,3 +147,42 @@
     height: 56px;
   }
 }
+
+/*
+ * PROTOTYPE, #1398. Throwaway, on prototype/1398-stacked-card-size, which never merges.
+ * The same condition as the stacking above, so a variant changes the cards only where the columns stack.
+ * The child selector outranks the list's own column rule whichever stylesheet loads last.
+ */
+@container (width < 42.5rem) {
+  .cardSize[data-variant="b"] > * {
+    grid-template-columns: repeat(2, minmax(0, 12.5rem));
+  }
+
+  .cardSize[data-variant="c"] > * {
+    grid-template-columns: repeat(auto-fill, 8.75rem);
+  }
+}
+
+.variantBar {
+  position: fixed;
+  bottom: 16px;
+  left: 50%;
+  z-index: 1000;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  max-width: calc(100vw - 24px);
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: #101014;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 45%);
+  color: #fff;
+  transform: translateX(-50%);
+}
+
+.variantBarTitle,
+.variantBarName {
+  white-space: nowrap;
+}

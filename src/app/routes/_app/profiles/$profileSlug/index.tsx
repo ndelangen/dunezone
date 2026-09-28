@@ -1,5 +1,5 @@
 import { useAuthActions } from '@convex-dev/auth/react';
-import { Group, Stack, Text } from '@mantine/core';
+import { Box, Group, SegmentedControl, Stack, Text } from '@mantine/core';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { LoadError } from '@ui/block/LoadError';
@@ -42,7 +42,59 @@ import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 import styles from './index.module.css';
 
+/*
+ * PROTOTYPE, #1398. Throwaway, on prototype/1398-stacked-card-size, which never merges.
+ * Where the two columns stack, `?variant=a|b|c` picks how big the cards under "Factions created" are.
+ * A is the page as it is: the list keeps its two columns across the stacked column.
+ * B caps each card at 200px, the size a card has at a 1280px window, and keeps the two columns.
+ * C gives each card 140px, its size side by side, and fits as many to a row as the column holds.
+ * Nothing changes while the columns sit side by side, and no choice is stored.
+ */
+const CARD_SIZE_VARIANTS = [
+  { key: 'a', name: 'A: the card fills half the stacked column' },
+  { key: 'b', name: 'B: the card is capped at 200px' },
+  { key: 'c', name: 'C: 140px cards, as many to a row as fit' },
+] as const;
+
+type CardSizeVariant = (typeof CARD_SIZE_VARIANTS)[number]['key'];
+
+function isCardSizeVariant(value: unknown): value is CardSizeVariant {
+  return CARD_SIZE_VARIANTS.some((variant) => variant.key === value);
+}
+
+/* PROTOTYPE, #1398: the floating bar that flips `?variant=` in place. */
+function CardSizeVariantBar({
+  current,
+  onChange,
+}: {
+  current: CardSizeVariant;
+  onChange: (variant: CardSizeVariant) => void;
+}) {
+  if (import.meta.env.PROD) {
+    return null;
+  }
+  const active = CARD_SIZE_VARIANTS.find((variant) => variant.key === current);
+  return (
+    <Box component="nav" aria-label="Prototype variants for #1398" className={styles.variantBar}>
+      <Text size="xs" fw={700} className={styles.variantBarTitle}>
+        #1398 stacked card size
+      </Text>
+      <SegmentedControl
+        size="xs"
+        value={current}
+        onChange={(value) => onChange(isCardSizeVariant(value) ? value : 'a')}
+        data={CARD_SIZE_VARIANTS.map((variant) => ({ value: variant.key, label: variant.key.toUpperCase() }))}
+      />
+      <Text size="xs" className={styles.variantBarName}>
+        {active?.name}
+      </Text>
+    </Box>
+  );
+}
+
 export const Route = createFileRoute('/_app/profiles/$profileSlug/')({
+  validateSearch: (params: Record<string, unknown>): { variant?: CardSizeVariant } =>
+    isCardSizeVariant(params?.variant) ? { variant: params.variant } : {},
   loader: async ({ params }) => {
     const profilePage = await loadProfileBySlug(params.profileSlug);
     return { profilePage };
@@ -183,6 +235,7 @@ function FaqAnswersGiven({ items, viewedProfileId }: { items: FaqAnswerGiven[]; 
 
 function ProfileDetailPage() {
   const { profileSlug } = Route.useParams();
+  const cardSizeVariant = Route.useSearch().variant ?? 'a';
   const loaderData = Route.useLoaderData();
   const profileQuery = useProfileBySlug(profileSlug, { initialData: loaderData.profilePage });
   const page = profileQuery.data;
@@ -289,7 +342,9 @@ function ProfileDetailPage() {
           <Stack gap="md" className={styles.mainColumn}>
             <Section icon={<Shield size={20} aria-hidden />} title="Factions created">
               {page.factions.length > 0 ? (
-                <FactionList factions={page.factions} />
+                <div className={styles.cardSize} data-variant={cardSizeVariant}>
+                  <FactionList factions={page.factions} />
+                </div>
               ) : (
                 <Surface padding="lg">
                   <Text size="sm" c="dimmed">
@@ -414,6 +469,12 @@ function ProfileDetailPage() {
             </Stack>
           </aside>
         </div>
+        <CardSizeVariantBar
+          current={cardSizeVariant}
+          onChange={(variant) =>
+            void navigate({ to: '.', search: (previous) => ({ ...previous, variant }), replace: true })
+          }
+        />
       </PageLayout.Content>
     </PageLayout>
   );

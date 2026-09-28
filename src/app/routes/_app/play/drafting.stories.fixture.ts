@@ -265,7 +265,7 @@ const OTHER_FACTIONS: readonly CatalogueSnapshotEntry[] = [
   },
 ];
 
-const PROFILES: readonly { slug: string; username: string; avatarUrl: string }[] = [
+export const PROFILES: readonly { slug: string; username: string; avatarUrl: string }[] = [
   {
     slug: 'thialfi',
     username: 'Thialfi',
