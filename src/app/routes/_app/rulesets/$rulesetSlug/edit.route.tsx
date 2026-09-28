@@ -12,6 +12,7 @@ import { Section } from '@ui/block/Section';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
 import { RULESET_ABOUT_HELP, rulesetAboutCount } from '@ui/content/rulesetAboutHint';
 import { SlugRenameNotice } from '@ui/content/SlugRenameNotice';
+import { StatusMark } from '@ui/content/StatusMark';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { ControlBlock } from '@ui/control/ControlBlock';
@@ -19,7 +20,7 @@ import { FORMATTED_TEXT_SYNTAX_HELP, FormattedTextInput } from '@ui/control/Form
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
-import { ArrowDown, ArrowUp, Pencil, X } from 'lucide-react';
+import { ArrowDown, ArrowUp, MessageCircleWarning, Pencil, X } from 'lucide-react';
 import { useReducer, useState } from 'react';
 
 import { useReorderRulebooks, useSoftDeleteRulebook } from '@db/rulebooks';
@@ -165,13 +166,13 @@ function RulesetEditor({
     void save();
   };
 
+  const saveFailure = mutationError ?? rehostFailure;
   const toolbar = (
     <AuthoringToolbar
       status={{ isDirty, isNameBlank: name.trim() === '', saveState }}
       copy={{
         saveLabel: 'Save ruleset',
         nameBlankMessage: 'Add a ruleset name before saving; it determines the ruleset URL.',
-        statusMessage: mutationError ?? rehostFailure ?? undefined,
       }}
       actions={{
         onSave: () => void save(),
@@ -193,6 +194,11 @@ function RulesetEditor({
           )}
           icon={<TopicIcon topic="rulesets" size={17} />}
         />
+      }
+      context={
+        saveFailure ? (
+          <StatusMark tone="negative" icon={<MessageCircleWarning size={16} aria-hidden />} label={saveFailure} />
+        ) : null
       }
     />
   );

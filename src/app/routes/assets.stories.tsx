@@ -3,6 +3,7 @@ import { expect, userEvent, within } from 'storybook/test';
 
 import { db } from '@db/storybook';
 
+import { expectToolbarStatusesOnOneLine } from './authoringToolbarPlay';
 import {
   craftLinearAngle,
   expectFreshLinear,
@@ -226,11 +227,11 @@ export const EditTreacheryCardDeclaringCustomIsNotAChange = meta.story({
   args: { path: '/assets/card-treachery/lasgun/edit' },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await expect(page.findByText('No unsaved changes', {}, { timeout: 30_000 })).resolves.toBeVisible();
+    await expect(page.findByRole('img', { name: 'No unsaved changes' }, { timeout: 30_000 })).resolves.toBeVisible();
     const row = within(await page.findByRole('radiogroup', { name: 'Head background' }, { timeout: 30_000 }));
     await userEvent.click(row.getByRole('radio', { name: 'Custom' }));
     /* The composer opening is the declaration, so this is the state the ruling had to answer for. */
-    await expect(page.findByText('No unsaved changes', {}, { timeout: 30_000 })).resolves.toBeVisible();
+    await expect(page.findByRole('img', { name: 'No unsaved changes' }, { timeout: 30_000 })).resolves.toBeVisible();
   },
 });
 
@@ -304,7 +305,7 @@ export const EditDiscTokenResetDiscardsTheKeptFace = meta.story({
     await userEvent.click((await backside()).getByRole('radio', { name: "Another token's back" }));
 
     await userEvent.click(page.getByRole('button', { name: 'Reset unsaved edits' }));
-    await expect(page.findByText('No unsaved changes', {}, { timeout: 30_000 })).resolves.toBeVisible();
+    await expect(page.findByRole('img', { name: 'No unsaved changes' }, { timeout: 30_000 })).resolves.toBeVisible();
 
     await userEvent.click((await backside()).getByRole('radio', { name: 'Composed here' }));
     await userEvent.click(await page.findByRole('tab', { name: 'Back rim' }, { timeout: 30_000 }));
@@ -312,4 +313,41 @@ export const EditDiscTokenResetDiscardsTheKeptFace = meta.story({
       'KEPT'
     );
   },
+});
+
+const DECK_EDIT_STATUSES = ['No unsaved changes', 'Group access: Arrakeen Rules Council'];
+
+/**
+ * The deck editor's toolbar on one line at a phone, tablet, laptop and desktop width (#1423).
+ * The deck carries the most actions of any asset editor, since it adds card creation to the group and delete actions every edit page has.
+ */
+export const EditDeckToolbarAt360 = meta.story({
+  args: { path: '/assets/deck/house-treachery/edit' },
+  globals: { viewport: { value: 'appMobileNarrow' } },
+  play: async ({ canvasElement }) =>
+    await expectToolbarStatusesOnOneLine(canvasElement, { statuses: DECK_EDIT_STATUSES, folded: true }),
+});
+export const EditDeckToolbarAt390 = meta.story({
+  args: { path: '/assets/deck/house-treachery/edit' },
+  globals: { viewport: { value: 'appMobile' } },
+  play: async ({ canvasElement }) =>
+    await expectToolbarStatusesOnOneLine(canvasElement, { statuses: DECK_EDIT_STATUSES, folded: true }),
+});
+export const EditDeckToolbarAt768 = meta.story({
+  args: { path: '/assets/deck/house-treachery/edit' },
+  globals: { viewport: { value: 'appTablet' } },
+  play: async ({ canvasElement }) =>
+    await expectToolbarStatusesOnOneLine(canvasElement, { statuses: DECK_EDIT_STATUSES, folded: false }),
+});
+export const EditDeckToolbarAt1100 = meta.story({
+  args: { path: '/assets/deck/house-treachery/edit' },
+  globals: { viewport: { value: 'appLaptop' } },
+  play: async ({ canvasElement }) =>
+    await expectToolbarStatusesOnOneLine(canvasElement, { statuses: DECK_EDIT_STATUSES, folded: false }),
+});
+export const EditDeckToolbarAt1440 = meta.story({
+  args: { path: '/assets/deck/house-treachery/edit' },
+  globals: { viewport: { value: 'appLarge' } },
+  play: async ({ canvasElement }) =>
+    await expectToolbarStatusesOnOneLine(canvasElement, { statuses: DECK_EDIT_STATUSES, folded: false }),
 });
