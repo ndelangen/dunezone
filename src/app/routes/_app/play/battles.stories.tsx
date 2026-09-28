@@ -1,4 +1,5 @@
 import preview from '@sb/preview';
+import { finishTransitions } from '@sb/storyWaits';
 import type { GameSnapshot } from '@shared/play/protocol';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
@@ -321,7 +322,7 @@ export const BattleRevealedPieces = meta.story({
         const callout = canvasElement.ownerDocument.querySelector<HTMLElement>('[data-battle-stage="revealed"]');
         expect(callout).not.toBeNull();
         const card = within(callout!).getByRole('button', { name: 'Drag Snooper onto table' });
-        expect(card).toBeVisible();
+        expect(finishTransitions(card)).toBeVisible();
         expect(card).toBeEnabled();
       },
       { timeout: 30_000 }
