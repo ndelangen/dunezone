@@ -4,6 +4,7 @@ import { v } from 'convex/values';
 import type { PublicationAssetType } from '../src/shared/asset-publishing/publicationTargets';
 import { publishedR2Key, publishedHref } from '../src/shared/asset-publishing/publicationTargets';
 import { publishingDeckCardback } from '../src/shared/assets/fixtures/publishingDeckCardback';
+import { publishingSpiceCard } from '../src/shared/assets/fixtures/publishingSpiceCard';
 import { publishingTokenFace } from '../src/shared/assets/fixtures/publishingTokenFace';
 import { publishingTreacheryCard } from '../src/shared/assets/fixtures/publishingTreacheryCard';
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
@@ -142,6 +143,12 @@ async function publish(ctx: MutationCtx, assetType: PublicationAssetType, assetI
  * Authored values the browser funding case needs: five troops cost five spice, three troops cost three.
  * The Harkonnen colour is a saturated red so the carry checks can find its troop tokens by their pixels.
  */
+/** Each required deck holds members of its own card type, so the seed exercises both card renderers and publications. */
+const SYNTHETIC_DECK_MEMBERS = {
+  treachery: { type: 'card-treachery', data: publishingTreacheryCard },
+  spice: { type: 'card-spice', data: publishingSpiceCard },
+} as const;
+
 const SYNTHETIC_TROOP_COMBAT = { strength: 0.5, fundedStrength: 1, fundingCost: 1 };
 const SYNTHETIC_FACTIONS = [
   { slug: 'synthetic-harkonnen', name: 'Harkonnen', color: '#b3261e' },
@@ -178,13 +185,14 @@ export const seedRealGameCatalogue = internalMutation({
         data: { name: `Synthetic ${slot} deck`, about: '', cardback: publishingDeckCardback },
       });
       publications.push(await publish(ctx, 'deck', deckId, 'back'));
+      const member = SYNTHETIC_DECK_MEMBERS[slot];
       for (const index of [1, 2, 3]) {
         const name = `Synthetic ${slot} card ${index}`;
         const cardId = await ctx.db.insert('assets', {
           ...row,
-          type: 'card-treachery',
+          type: member.type,
           slug: `synthetic-${slot}-card-${index}-${suffix}`,
-          data: { ...publishingTreacheryCard, name },
+          data: { ...member.data, name },
         });
         await ctx.db.insert('asset_relations', {
           from_asset_id: deckId,
@@ -192,7 +200,7 @@ export const seedRealGameCatalogue = internalMutation({
           kind: 'deck-card',
           count: 2,
         });
-        publications.push(await publish(ctx, 'card-treachery', cardId, 'front'));
+        publications.push(await publish(ctx, member.type, cardId, 'front'));
       }
       await ctx.db.insert('ruleset_asset_slots', { ruleset_id: rulesetId, asset_id: deckId, slot });
     }
