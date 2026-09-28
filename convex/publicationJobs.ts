@@ -119,6 +119,11 @@ export const takeWork = internalMutation({
       if (job.asset_type === 'faction-leader' && !settings?.renderer_revisions['faction-leader']) {
         continue;
       }
+      /* A plain faction face whose revision was rolled back is dropped rather than held, like the blocked token face below; reactivation rescans. */
+      if (isFactionFaceAssetType(job.asset_type) && !settings?.renderer_revisions[job.asset_type]) {
+        await ctx.db.delete(job._id);
+        continue;
+      }
       /*
        * A publisher rolled back below the blocked face would reject its payload, so its `.back` jobs are dropped rather than held, which would let them fill the pickup window.
        * Activating the revision that draws the face again rescans every faction, and that re-enqueues them.

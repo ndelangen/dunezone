@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { HistoricalFactionPublicationSchema } from '../factions/schema';
+import type { FactionRender } from '../factions/schema';
 import { factionMemberPublicationId } from './componentPublication';
 
 export const FACTION_TRAITOR_ASSET_TYPE = 'faction-traitor' as const;
@@ -74,3 +75,11 @@ export function factionAllianceAssetData(data: unknown): FactionAllianceAssetDat
     decals,
   });
 }
+
+/*
+ * A field a card renderer draws but its capture identity lacks would never republish, so games would deal a stale card.
+ * These fail to compile when either key set drifts from its renderer's projection.
+ */
+type SameKeys<A, B> = [Exclude<keyof A, keyof B>, Exclude<keyof B, keyof A>] extends [never, never] ? true : false;
+true satisfies SameKeys<Omit<z.output<typeof FactionRender.traitors>[number], 'memberId'>, FactionTraitorAssetData>;
+true satisfies SameKeys<z.output<typeof FactionRender.alliance>, FactionAllianceAssetData>;

@@ -126,6 +126,23 @@ describe('Faction card publication', () => {
     expect(definition?.alliance).toBe(`/published/alliance-cards/${faction._id}/card.jpg?v=card-1`);
   });
 
+  test('a revision rolled back before pickup drops its pending card work, and reactivation re-enqueues it', async () => {
+    const { t, settingsId, taken } = await cardFixture(true);
+    await t.run(async (ctx) => ctx.db.patch(settingsId, { renderer_revisions: { 'faction-alliance': 1 } }));
+    expect((await taken()).map((job) => job.assetType)).toEqual(['faction-alliance']);
+    await t.run(async (ctx) =>
+      ctx.db.patch(settingsId, { renderer_revisions: { 'faction-traitor': 1, 'faction-alliance': 1 } })
+    );
+    expect(await taken()).toEqual([]);
+    await t.mutation(internal.publicationRegeneration.scan, {
+      assetType: 'faction-traitor',
+      cursor: null,
+      scanned: 0,
+      enqueued: 0,
+    });
+    expect((await taken()).map((job) => job.assetType)).toContain('faction-traitor');
+  });
+
   test('a soft-deleted faction drops its pending troop and card work', async () => {
     const { t, owner, faction } = await cardFixture(true);
     await t.run(async (ctx) => {

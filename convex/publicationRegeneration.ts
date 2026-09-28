@@ -123,9 +123,13 @@ async function scanPage(ctx: MutationCtx, assetType: string, cursor: string | nu
     case 'faction-leader':
       return await scanFactions(ctx, cursor, 1, enqueueFactionLeaderPublications);
     case 'faction-troop':
-    case 'faction-traitor':
     case 'faction-alliance':
       return await scanFactions(ctx, cursor, REGENERATION_BATCH_SIZE, (ctx, faction) =>
+        enqueueFactionFacePublications(ctx, assetType, faction)
+      );
+    /* A traitor page holds one faction like a Leader page, since each supporting leader is a job. */
+    case 'faction-traitor':
+      return await scanFactions(ctx, cursor, 1, (ctx, faction) =>
         enqueueFactionFacePublications(ctx, assetType, faction)
       );
     case FACTION_SHEET_ASSET_TYPE:

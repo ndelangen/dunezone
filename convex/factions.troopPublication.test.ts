@@ -120,4 +120,22 @@ describe('Faction troop publication', () => {
     });
     expect((await taken()).map((job) => job.assetId).sort()).toEqual([eliteFront, `${eliteFront}.back`].sort());
   });
+
+  test('a game reads each troop front, and a back only where one has published', async () => {
+    const { t, faction, regular, elite, taken } = await troopFixture(1);
+    for (const job of await taken()) {
+      if (!job.assetId.endsWith('.back')) {
+        await t.mutation(internal.publicationJobs.completeJob, { jobId: job.jobId, cacheToken: 'troop-1' });
+      }
+    }
+    const definition = await t.query(api.playCatalogue.factionDefinition, { factionId: faction._id });
+    expect(definition?.troops).toEqual([
+      {
+        troopId: regular,
+        front: `/published/faction-troops/${faction._id}.${regular}/troop.jpg?v=troop-1`,
+        back: null,
+      },
+      { troopId: elite, front: `/published/faction-troops/${faction._id}.${elite}/troop.jpg?v=troop-1`, back: null },
+    ]);
+  });
 });
