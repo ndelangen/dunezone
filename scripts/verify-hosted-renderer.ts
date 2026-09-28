@@ -43,6 +43,22 @@ export function rendererReport(observation: TableRendererObservation) {
   }
 }
 
+/**
+ * What a recorded renderer was, as a refusal names it.
+ * The `string` return type makes a recorded kind without a case here fail typecheck.
+ */
+function recordedRenderer(renderer: ReturnType<typeof rendererReport>): string {
+  switch (renderer.kind) {
+    case 'unidentified':
+      return `the Play table's renderer was not identified: ${renderer.reason}`;
+    case 'webgpu':
+      return `the Play table rendered with webgpu (adapter ${renderer.adapter.vendor} ${renderer.adapter.architecture})`;
+    case 'webgl2-swiftshader':
+    case 'webgl2-other':
+      return `the Play table rendered with ${renderer.kind} (${renderer.glRenderer})`;
+  }
+}
+
 /** Why the recorded renderer fails `--expect-renderer`, naming both; undefined when it matches or no renderer is expected. */
 export function rendererMismatch(
   expected: RendererKind | undefined,
@@ -51,18 +67,8 @@ export function rendererMismatch(
   if (expected === undefined || renderer?.kind === expected) {
     return undefined;
   }
-  const refusal = `--expect-renderer is ${expected}, but`;
-  switch (renderer?.kind) {
-    case undefined:
-      return `${refusal} the flow opened no Play table, so no renderer was recorded.`;
-    case 'unidentified':
-      return `${refusal} the Play table's renderer was not identified: ${renderer.reason}.`;
-    case 'webgpu':
-      return `${refusal} the Play table rendered with webgpu (adapter ${renderer.adapter.vendor} ${renderer.adapter.architecture}).`;
-    case 'webgl2-swiftshader':
-    case 'webgl2-other':
-      return `${refusal} the Play table rendered with ${renderer.kind} (${renderer.glRenderer}).`;
-  }
+  const found = renderer ? recordedRenderer(renderer) : 'the flow opened no Play table, so no renderer was recorded';
+  return `--expect-renderer is ${expected}, but ${found}.`;
 }
 
 /**
