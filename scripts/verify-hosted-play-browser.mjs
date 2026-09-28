@@ -153,9 +153,22 @@ const report = {
   pageErrors: [],
   consoleErrors: [],
   signInRetries: [],
+  teardownErrors: [],
   ...(expectedRenderer ? { expectedRenderer } : {}),
 };
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+/** Scrubs the synthetic accounts' credentials and 64-hex secrets from text the report keeps. */
+function redactSecrets(text) {
+  let message = String(text);
+  for (const account of Object.values(credentials)) {
+    for (const value of [account.email, account.password]) {
+      if (value) {
+        message = message.replaceAll(value, '[synthetic credential]');
+      }
+    }
+  }
+  return message.replace(/\b[a-f0-9]{64}\b/giu, '[redacted]');
+}
 async function until(predicate, description, timeout = 15_000) {
   const deadline = Date.now() + timeout;
   while (Date.now() < deadline) {
@@ -368,19 +381,25 @@ async function signIn(who) {
   const signedIn = who.page.getByRole('heading', { name: "You're signed in" });
   /* A loaded local backend can end Convex Auth's createAccount at its 1 s limit (#1493); the aborted mutation
      leaves no account, so one resubmit repeats the same sign-in-then-sign-up a player would. */
-  const timedOut = who.page.getByRole('alert').filter({ hasText: 'Function execution timed out' });
+  const submit = who.page.getByTestId('local-auth-submit');
+  const alert = who.page.locator('form', { has: submit }).getByRole('alert');
   for (let attempt = 0; ; attempt++) {
-    await who.page.getByTestId('local-auth-submit').click();
+    await submit.click();
     /* Submitting clears the previous attempt's alert; waiting for that keeps it from answering this one. */
-    await timedOut.waitFor({ state: 'hidden' });
-    await signedIn.or(timedOut).first().waitFor();
+    await alert.waitFor({ state: 'hidden' });
+    await signedIn.or(alert).first().waitFor();
     if (await signedIn.isVisible()) {
       return;
     }
-    if (attempt === 1) {
-      throw new Error(`Sign-in for ${who.label} timed out on the backend twice.`);
+    const message = redactSecrets((await alert.textContent()) ?? '').slice(0, 300);
+    if (!message.includes('Function execution timed out')) {
+      throw new Error(`Sign-in for ${who.label} failed: ${message}`);
     }
-    report.signInRetries.push({ label: who.label, message: (await timedOut.first().textContent())?.slice(0, 200) });
+    report.signInRetries.push({ label: who.label, attempt, message });
+    console.warn(`RETRY sign-in for ${who.label} after a backend timeout (attempt ${attempt + 1}).`);
+    if (attempt === 1) {
+      throw new Error(`Sign-in for ${who.label} timed out on the backend twice: ${message}`);
+    }
   }
 }
 /** The id of the real game this flow creates; every account after the creator enters it. */
@@ -1507,14 +1526,6 @@ try {
   assert.deepEqual(report.pageErrors, []);
   assert.deepEqual(blockedNetwork, []);
 } catch (error) {
-  let message = error.message;
-  for (const account of Object.values(credentials)) {
-    for (const value of [account.email, account.password]) {
-      if (value) {
-        message = message.replaceAll(value, '[synthetic credential]');
-      }
-    }
-  }
   /* A bare assertion message ("false !== true") names no step; the first frame inside these scripts does. */
   const frame = error.stack
     ?.split('\n')
@@ -1522,7 +1533,7 @@ try {
     ?.trim();
   report.failure = {
     name: error.name,
-    message: message.replace(/\b[a-f0-9]{64}\b/giu, '[redacted]'),
+    message: redactSecrets(error.message),
     afterCheck: report.checks.at(-1)?.name ?? 'Startup',
     ...(frame ? { at: frame } : {}),
   };
@@ -1556,12 +1567,11 @@ try {
       await instance.close();
     } catch (error) {
       /* A teardown error is recorded, but it neither replaces the flow's own result nor stops the report. */
-      report.teardownErrors = [...(report.teardownErrors ?? []), String(error?.message ?? error).slice(0, 200)];
+      report.teardownErrors.push(redactSecrets(error?.message ?? error).slice(0, 200));
       console.error(`Browser teardown failed: ${report.teardownErrors.at(-1)}`);
     }
   }
-  const redacted = (entries) =>
-    entries.map(({ label, message }) => ({ label, message: message.replace(/\b[a-f0-9]{64}\b/giu, '[redacted]') }));
+  const redacted = (entries) => entries.map(({ label, message }) => ({ label, message: redactSecrets(message) }));
   report.pageErrorCount = report.pageErrors.length;
   report.pageErrors = redacted(report.pageErrors);
   report.consoleErrorCount = report.consoleErrors.length;
