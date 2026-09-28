@@ -324,8 +324,8 @@ export class ActorDirectory {
 
   /**
    * Resolves admitted connections from current occupancy without creating or updating an actor.
-   * One read serves every connection, since a room re-resolves all of them for each message it handles; it reads
-   * only the connected users, never everyone the room has admitted.
+   * One read serves every connection, since a room re-resolves all of them for each message it handles;
+   * it reads only the connected users, never everyone the room has admitted.
    */
   currentViewers(connections: readonly Pick<Viewer, 'connectionId' | 'userId'>[]): (Viewer | undefined)[] {
     if (!connections.length) {
