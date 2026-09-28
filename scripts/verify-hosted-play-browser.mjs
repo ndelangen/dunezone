@@ -109,7 +109,6 @@ const report = {
   captures: [],
   pageErrors: [],
   consoleErrors: [],
-  signInRetries: [],
   teardownErrors: [],
   ...(expectedRenderer ? { expectedRenderer } : {}),
 };
@@ -452,27 +451,15 @@ async function signIn(who) {
   await who.page.getByLabel('Email', { exact: true }).fill(credentials[who.label].email);
   await who.page.getByLabel('Password', { exact: true }).fill(credentials[who.label].password);
   const signedIn = who.page.getByRole('heading', { name: "You're signed in" });
-  /* A loaded local backend can end Convex Auth's createAccount at its 1 s limit (#1493); the aborted mutation
-     leaves no account, so one resubmit repeats the same sign-in-then-sign-up a player would. */
   const submit = who.page.getByTestId('local-auth-submit');
   const alert = who.page.locator('form', { has: submit }).getByRole('alert');
-  for (let attempt = 0; ; attempt++) {
-    await submit.click();
-    /* Submitting clears the previous attempt's alert; waiting for that keeps it from answering this one. */
-    await alert.waitFor({ state: 'hidden' });
-    await signedIn.or(alert).first().waitFor();
-    if (await signedIn.isVisible()) {
-      return;
-    }
-    const message = redactSecrets((await alert.textContent()) ?? '').slice(0, 300);
-    if (!message.includes('Function execution timed out')) {
-      throw new Error(`Sign-in for ${who.label} failed: ${message}`);
-    }
-    report.signInRetries.push({ label: who.label, attempt, message });
-    console.warn(`RETRY sign-in for ${who.label} after a backend timeout (attempt ${attempt + 1}).`);
-    if (attempt === 1) {
-      throw new Error(`Sign-in for ${who.label} timed out on the backend twice: ${message}`);
-    }
+  await submit.click();
+  /* A sign-in the backend refuses fails at once with the form's own message, not after a silent 30 s wait. */
+  await signedIn.or(alert).first().waitFor();
+  if (!(await signedIn.isVisible())) {
+    throw new Error(
+      `Sign-in for ${who.label} failed: ${redactSecrets((await alert.textContent()) ?? '').slice(0, 300)}`
+    );
   }
 }
 /** The id of the real game this flow creates; every account after the creator enters it. */
