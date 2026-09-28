@@ -465,5 +465,18 @@ describe('faction authoring full-field round trip', () => {
         data: { ...updated.data, extras: [{ type: 'deck', slug: 'extras-missing' }] },
       })
     ).rejects.toThrow(/The Extra deck\/extras-missing is not in the catalogue/);
+
+    /* Before the retirement migration reaches a row, a stored link list must not hide the references beside it. */
+    await t.run(async (ctx) => {
+      const row = await ctx.db.get('factions', created._id);
+      await ctx.db.patch(created._id, {
+        data: { ...row!.data, extras: [{ name: 'TTS', items: [] }, ...updated.data.extras!] },
+      });
+    });
+    const renamed = await asUser.mutation(api.factions.update, {
+      id: created._id,
+      data: { ...updated.data, name: 'Extras Proof Again' },
+    });
+    expect(renamed.data.extras).toEqual(updated.data.extras);
   });
 });

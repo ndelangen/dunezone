@@ -45,6 +45,7 @@ describe('faction Extras references migration', () => {
     });
 
     await t.mutation(internal.migrations.faction_extras_references_v1, {});
+    await t.mutation(internal.migrations.faction_extras_references_v1, { reset: true });
     await t.mutation(internal.migrations.faction_extras_references_verify_v1, {});
 
     const data = await t.run(async (ctx) =>
@@ -60,5 +61,26 @@ describe('faction Extras references migration', () => {
         required: ['faction_extras_references_v1', 'faction_extras_references_verify_v1'],
       })
     ).resolves.toMatchObject({ ok: true });
+  });
+
+  test('verification refuses a row that still holds a retired link list', async () => {
+    const t = migrationTest();
+    await t.run(async (ctx) => {
+      const ownerId = await ctx.db.insert('users', { name: 'Faction owner' });
+      await ctx.db.insert('factions', {
+        owner_id: ownerId,
+        data: { name: 'leftover', extras: [legacyLinks] },
+        slug: 'leftover',
+        created_at: '2026-09-28T00:00:00.000Z',
+        updated_at: '2026-09-28T00:00:00.000Z',
+        is_deleted: false,
+        group_id: null,
+      });
+    });
+
+    await t.mutation(internal.migrations.faction_extras_references_verify_v1, {});
+    await expect(
+      t.query(internal.migrations.assertReadyForNarrow, { required: ['faction_extras_references_verify_v1'] })
+    ).rejects.toThrow(/faction_extras_references_verify_v1\(failed/);
   });
 });

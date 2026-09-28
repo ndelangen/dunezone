@@ -10,6 +10,7 @@ import {
  * Wire validators for faction payloads, derived from their authority, the canonical faction Zod schemas (ADR-0002).
  * Zod still owns semantic rules (parsed in handlers via the catalogue helpers);
  * these derived validators give the wire the same structural contract instead of `v.any()`.
+ * Exception while `faction_extras_references_v1` retires the old link lists: `extras` reads through a preprocess, which derives as `v.any()`, so the wire leaves its shape to the Zod parse until the narrowing release.
  */
 export const factionDataValidator = zodToConvex(CanonicalFactionStoredSchema);
 

@@ -1,6 +1,6 @@
 import { ConvexError, v } from 'convex/values';
 
-import { factionExtraKey, factionExtrasSchema } from '../src/shared/factions/extras';
+import { factionExtraKey, storedFactionExtrasSchema } from '../src/shared/factions/extras';
 import type { FactionExtra } from '../src/shared/factions/extras';
 import type { Doc, Id } from './_generated/dataModel';
 import { query } from './_generated/server';
@@ -287,9 +287,12 @@ export const listByGroup = query({
   },
 });
 
-/** The Extras a stored faction already lists; anything unreadable counts as none, so it cannot excuse a new reference. */
+/**
+ * The Extras a stored faction already lists;
+ * retired link lists read as absent, and anything else unreadable counts as none, so it cannot excuse a new reference.
+ */
 function savedFactionExtras(data: unknown): FactionExtra[] {
-  const parsed = factionExtrasSchema.safeParse((data as { extras?: unknown } | null)?.extras ?? []);
+  const parsed = storedFactionExtrasSchema.safeParse((data as { extras?: unknown } | null)?.extras ?? []);
   return parsed.success ? parsed.data : [];
 }
 
