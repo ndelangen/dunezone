@@ -22,6 +22,17 @@ const stamp = (number) => {
   return bytes.toString('base64');
 };
 
+/*
+ * The waits in progress.
+ * A game socket frame ends each one early, so a wait for a reply reads again as the reply arrives instead of on its next tick.
+ */
+const waiting = new Set();
+function wake() {
+  for (const done of waiting) {
+    done();
+  }
+}
+
 export async function eventually(read, label, timeout = 5000) {
   const deadline = Date.now() + timeout;
   do {
@@ -29,7 +40,15 @@ export async function eventually(read, label, timeout = 5000) {
     if (value) {
       return value;
     }
-    await new Promise((resolve) => setTimeout(resolve, 15));
+    await new Promise((resolve) => {
+      const done = () => {
+        clearTimeout(timer);
+        waiting.delete(done);
+        resolve();
+      };
+      const timer = setTimeout(done, 15);
+      waiting.add(done);
+    });
   } while (Date.now() < deadline);
   throw new Error(`Timed out waiting for ${label}`);
 }
@@ -484,10 +503,12 @@ export async function openGame(runtime) {
         connection.unapplied.push(message);
       }
     }
+    wake();
   });
   socket.addEventListener('close', (event) => {
     connection.closed = true;
     connection.closeCode = event.code;
+    wake();
   });
   socket.accept();
   connection.send = (message) => socket.send(JSON.stringify(message));
