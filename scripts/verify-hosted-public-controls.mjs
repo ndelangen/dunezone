@@ -2,7 +2,32 @@ import assert from 'node:assert/strict';
 
 import sharp from 'sharp';
 
-import { PHASE_CHANGE_COOLDOWN_MS } from '../src/shared/play/phases.ts';
+import { PHASE_CHANGE_COOLDOWN_MS, phaseAt, tableProgressFor } from '../src/shared/play/phases.ts';
+
+/**
+ * Runs in the page: from now on, keeps each turn and phase the header names while its Previous and Next phase buttons are both disabled.
+ * The mutation observer reads the header at the end of the task whose render changed it, before the cooldown's tick can enable the buttons again.
+ * So the record does not depend on how long the verifier's round trips to the page take.
+ */
+function recordPhaseCooldowns() {
+  const shown = new Set();
+  const note = () => {
+    const status = document.querySelector('.seated-header .seated-phase-status__copy');
+    const buttons = [...document.querySelectorAll('.seated-header [aria-label="Phase navigation"] button')];
+    const disabled = (name) => buttons.some((button) => button.textContent === name && button.disabled);
+    if (status && disabled('Previous phase') && disabled('Next phase')) {
+      shown.add([...status.children].map((child) => child.textContent).join(' '));
+    }
+  };
+  new MutationObserver(note).observe(document.body, {
+    subtree: true,
+    childList: true,
+    characterData: true,
+    attributes: true,
+    attributeFilter: ['disabled'],
+  });
+  Object.assign(window, { hostedPlayCooldowns: shown });
+}
 
 /** Real browser actions against the disposable Password backend and game Worker. */
 export async function verifyPublicControls({
@@ -195,6 +220,10 @@ export async function verifyPublicControls({
   }
 
   async function verifyReadiness() {
+    const viewers = [a, b, observer];
+    for (const who of viewers) {
+      await who.page.evaluate(recordPhaseCooldowns);
+    }
     while (a.view().snapshot.phase < 8) {
       await act(a, 'Next phase');
       /* The launcher provisions this flow's game with the real cooldown, which the change's frame states. */
@@ -202,15 +231,17 @@ export async function verifyPublicControls({
         a.phaseCooldown.ms > PHASE_CHANGE_COOLDOWN_MS / 2,
         `The phase change stated a ${a.phaseCooldown.ms} ms cooldown instead of the real ${PHASE_CHANGE_COOLDOWN_MS} ms.`
       );
-      const phase = a.view().snapshot.phase;
+      const { phase, phases } = a.view().snapshot;
       await until(() => b.view().snapshot.phase === phase, 'Phase did not reach the other player.');
-      for (const who of [a, b, observer]) {
-        /* A received frame can precede the render that disables the controls. */
+      /*
+       * Each page notes the turn and phase its header named whenever both buttons were disabled.
+       * From phase 1 on, a seated player's Previous is disabled only while the cooldown runs, so a note naming the new phase is that phase's cooldown and not the one before it.
+       */
+      const shown = `Turn ${tableProgressFor(phase, phases).turn} ${phaseAt(phase, phases).label}`;
+      for (const who of viewers) {
         await until(
-          async () =>
-            (await button(who, 'Next phase').isDisabled()) && (await button(who, 'Previous phase').isDisabled()),
-          `${who.label}'s phase controls did not render the cooldown.`,
-          2500
+          () => who.page.evaluate((key) => window.hostedPlayCooldowns.has(key), shown),
+          `${who.label}'s phase controls did not render the cooldown.`
         );
       }
     }
