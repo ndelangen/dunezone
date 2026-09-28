@@ -4,11 +4,13 @@
  * they are not credentials.
  */
 
-/** Convex supplies deterministic randomness during mutation retries. */
+/** A version 4 UUID from the platform CSPRNG; each save allocates inside its own transaction. */
 export function createComponentId(): string {
-  return '10000000-1000-4000-8000-100000000000'.replace(/[018]/g, (digit) =>
-    (Number(digit) ^ (Math.floor(Math.random() * 16) >> (Number(digit) / 4))).toString(16)
-  );
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  bytes[6] = (bytes[6]! & 0x0f) | 0x40;
+  bytes[8] = (bytes[8]! & 0x3f) | 0x80;
+  const hex = Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
 }
 
 export function assertUniqueIds(ids: ReadonlyArray<string | undefined>, message: string): void {
