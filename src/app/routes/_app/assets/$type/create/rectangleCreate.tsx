@@ -125,6 +125,8 @@ export function RectangleCreatePage() {
   }
 
   const save = () => {
+    /* A pickless save stops before the write, so it clears the previous write's failure itself rather than showing it beside its own. */
+    createAsset.reset();
     /* The reference tile can be chosen here but not filled (picking waits for the edit page), so the save says so with words rather than a Zod error. */
     dispatch({ kind: 'remember', update: { pickBlocked: pickless } });
     if (pickless) {

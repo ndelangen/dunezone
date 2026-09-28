@@ -128,6 +128,8 @@ export function DeckCreatePage() {
   }
 
   const save = () => {
+    /* A pickless save stops before the write, so it clears the previous write's failure itself rather than showing it beside its own. */
+    createAsset.reset();
     /* Reference mode with nothing picked has no target to store, so the save says so with words rather than a Zod error. */
     dispatch({ kind: 'remember', update: { pickBlocked: pickless } });
     if (pickless) {

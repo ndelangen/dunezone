@@ -123,6 +123,12 @@ function RulesetEditor({
           : 'idle';
 
   const save = async () => {
+    /*
+     * Every save starts by clearing what the previous one left, so the form and the toolbar state only this save's failure.
+     * A save that stops at the cover never reaches the update, which would otherwise leave an earlier update failure standing beside the cover's.
+     */
+    updateRuleset.reset();
+    setRehostState('idle');
     if (!nameCheck.success || !aboutCheck.success || coverFormatError !== undefined) {
       return;
     }
@@ -140,8 +146,6 @@ function RulesetEditor({
         setRehostState({ failed: error instanceof Error ? error.message : 'The cover could not be stored' });
         return;
       }
-    } else {
-      setRehostState('idle');
     }
     try {
       const entry = await updateRuleset.mutateAsync({
