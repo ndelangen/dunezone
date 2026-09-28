@@ -87,9 +87,10 @@ The complete schedule and its outcome remain in `actionScheduleSlots` and `actio
 that moment, by its own clock, for its last 1,024 saved commands, and the metrics request returns
 the requester's own. The runner reads them at the end of the run, including a failed one, while
 its sockets are open. `toRoomMs` runs from the coordinator's send to that moment and `fromRoomMs`
-from it to the coordinator receiving the answer. Both include the unknown offset between the two
-clocks, so a slow command is read against the median of its leg. A Worker's clock stands still
-while its code runs, so the room cannot measure how long the command itself took.
+from it to the coordinator receiving the answer, so it holds the room's own work and the path
+back. Both include the unknown offset between the two clocks, so a slow command is read against
+the median of its leg. A Worker's clock stands still while its code runs, so the room cannot
+separate its own work from the path back.
 
 `trace` runs two complete action cycles without background motion, checks item conservation and
 compares every recipient's public durable snapshot once each holds the last confirmed revision. Private bank projections are not expected

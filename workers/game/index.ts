@@ -183,6 +183,7 @@ export class GameRoom extends DurableObject<GameEnv> {
   /*
    * When this object began handling each recent saved command, by its own clock, for the load runner's metrics request.
    * A Worker's clock stands still while code runs, so only when handling began is meaningful, not how long it took.
+   * A spawn request is timed after its catalogue read, so its entry includes that read.
    */
   private readonly commandTimings: { userId: string; commandId: string; handledAt: number }[] = [];
   private readonly session: GameSession;

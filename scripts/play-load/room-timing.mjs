@@ -2,7 +2,14 @@
  * Joins each saved command the coordinator sent with when the room began handling it, by the room's own clock.
  * The two clocks' offset is unknown, so the legs carry it with opposite signs and read against the run's own median.
  */
-export function roomTiming(sends, handled) {
+export function roomTiming(sends, replies) {
+  /* A replayed command is handled again, so the first handling is the one its send is answered by. */
+  const handled = new Map();
+  for (const { commandId, handledAt } of replies.flat()) {
+    if (!handled.has(commandId)) {
+      handled.set(commandId, handledAt);
+    }
+  }
   const commands = sends.map(({ peer, commandId, operation, phase, sentAt, answeredAt }) => {
     const handledAt = handled.get(commandId) ?? null;
     return {

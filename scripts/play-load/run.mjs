@@ -529,19 +529,27 @@ async function record(peer, message, operation, sample = beginInteraction(peer, 
     throw error;
   }
 }
-/** Asks each peer that sent saved commands for the room's handling times, so a slow command shows which leg was slow. */
+/**
+ * Asks each peer that sent saved commands for the room's handling times, so a slow command shows which leg was slow.
+ * The peers are asked together under one short deadline, and a peer that does not answer only loses its own commands.
+ */
 async function collectRoomTiming() {
-  const handled = new Map();
-  for (const peer of new Set(commandSends.map((sent) => sent.peer))) {
-    const metrics = await request(peer, { type: 'metrics' }, 'metrics');
-    for (const command of metrics.commands ?? []) {
-      handled.set(command.commandId, command.handledAt);
-    }
-  }
-  report.roomTiming = roomTiming(
-    commandSends.map((sent) => ({ ...sent, peer: sent.peer.index })),
-    handled
+  const senders = [...new Set(commandSends.map((sent) => sent.peer))];
+  const replies = await Promise.allSettled(
+    senders.map(async (peer) => {
+      peer.responses.delete('metrics');
+      assert.ok(send(peer, { type: 'metrics' }), `Peer ${peer.index} could not ask for room timing.`);
+      return (await until(() => peer.responses.get('metrics'), `Peer ${peer.index} room timing timed out.`, 5000))
+        .commands;
+    })
   );
+  report.roomTiming = {
+    ...roomTiming(
+      commandSends.map((sent) => ({ ...sent, peer: sent.peer.index })),
+      replies.flatMap((reply) => (reply.status === 'fulfilled' ? [reply.value ?? []] : []))
+    ),
+    errors: replies.flatMap((reply) => (reply.status === 'rejected' ? [reply.reason.message] : [])),
+  };
 }
 async function durable(peer, action, operation = action.kind, sample) {
   return record(
@@ -978,7 +986,8 @@ try {
   }
   if (!stopping) {
     await collectRoomTiming();
-    report.serverAfter = await request(first, { type: 'metrics' }, 'metrics');
+    const { commands: _commands, ...serverAfter } = await request(first, { type: 'metrics' }, 'metrics');
+    report.serverAfter = serverAfter;
     await until(
       () => interactionTiming.outstanding().length === 0,
       'Saved interactions did not reach every recipient.',
@@ -996,9 +1005,7 @@ try {
   report.error = error.message;
   /* A failed run is when the room's side matters most, so its handling times are read while the sockets are still open. */
   if (!stopping && !report.roomTiming) {
-    await collectRoomTiming().catch((timingError) => {
-      report.roomTiming = { error: timingError.message };
-    });
+    await collectRoomTiming();
   }
 } finally {
   const finalStopReason = stopReason ?? (report.status === 'failed' ? 'failed' : 'completed');
