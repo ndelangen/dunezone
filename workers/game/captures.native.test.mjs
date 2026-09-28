@@ -299,7 +299,7 @@ describe('Catalogue capture and retention through the isolated fixture', () => {
 
     expect(await runtime.capture('faction', 'faction-one', { extras })).toEqual({
       ok: false,
-      message: 'This faction is not ready: faction token, The faction token back is not generated yet.',
+      message: 'This faction Atreides is not ready: faction token, The faction token back is not generated yet.',
     });
     expect((await runtime.captures()).factions).toEqual([]);
 
@@ -347,6 +347,40 @@ describe('Catalogue capture and retention through the isolated fixture', () => {
     expect(reads('playCatalogue:factionDefinition')).toBe(2);
     await runtime.restart();
     expect((await runtime.captures()).factions).toEqual([record]);
+  });
+
+  it('names an invalid phase declaration as a readiness problem and captures only the valid ones (#1138)', async () => {
+    const valid = {
+      id: 'setup-note',
+      type: 'instruction',
+      title: 'Guild negotiations',
+      symbol: '/vector/icon/fate.svg',
+      before: 'traitors',
+      priority: 10,
+      allPlayersMustBeReady: false,
+    };
+    const data = {
+      ...assetPublishingFaction,
+      extraPhases: [valid, { ...valid, id: 'bad', title: 'Karama', before: 'karama' }],
+    };
+    peer.factions.set('faction-one', {
+      faction: { id: 'faction-one', slug: 'atreides', name: assetPublishingFaction.name },
+      data,
+      token: '/published/faction-tokens/faction-one/token.jpg',
+      cardbacks: { traitor: null, alliance: null },
+      leaders: [],
+    });
+
+    const { record } = await runtime.capture('faction', 'faction-one', { provisional: true });
+    expect(record.definition.extraPhases).toEqual([valid]);
+    expect(record.readiness.problems).toContainEqual({
+      subject: 'phase Karama',
+      reason: 'Karama is not a phase you can place before.',
+    });
+
+    /* A catalogue edit after capture reaches nothing: the retained record stays as it was. */
+    peer.factions.set('faction-one', { ...peer.factions.get('faction-one'), data: { ...data, extraPhases: [] } });
+    expect((await runtime.capture('faction', 'faction-one', { provisional: true })).record).toEqual(record);
   });
 
   it('refuses a faction the catalogue lacks or holds incompletely and retains nothing', async () => {

@@ -2,7 +2,8 @@ import type { SpiceTransfer } from '../../src/shared/play/banks';
 import { LOG_CLASS_TABS, LOG_PAGE_SIZE } from '../../src/shared/play/log';
 import type { LogClass, LogEntry, LogTab } from '../../src/shared/play/log';
 import { seatLabel } from '../../src/shared/play/participation';
-import { phaseAt, TABLE_PHASES, tableProgressFor } from '../../src/shared/play/phases';
+import { phaseAt, STANDARD_PHASES, tableProgressFor } from '../../src/shared/play/phases';
+import type { PhaseEntry } from '../../src/shared/play/phases';
 import type { ClientMessage, Viewer } from '../../src/shared/play/protocol';
 import { describeResult, isResultAction } from '../../src/shared/play/result';
 import type { ResultAction } from '../../src/shared/play/result';
@@ -169,7 +170,7 @@ export class PublicLog {
 }
 
 /** Where an event happened, as the log labels it: a turn and phase in play, the setup step, or the stage. */
-export function logContext(snapshot: Pick<StoredSnapshot, 'stage' | 'phase' | 'setup'>): string {
+export function logContext(snapshot: Pick<StoredSnapshot, 'stage' | 'phase' | 'phases' | 'setup'>): string {
   switch (snapshot.stage) {
     case 'drafting':
       return 'Drafting';
@@ -182,12 +183,12 @@ export function logContext(snapshot: Pick<StoredSnapshot, 'stage' | 'phase' | 's
     case 'discarded':
       return 'Discarded';
     default:
-      return playContext(snapshot.phase);
+      return playContext(snapshot.phase, snapshot.phases);
   }
 }
 
-function playContext(phase: number): string {
-  return `Turn ${tableProgressFor(phase).turn}, ${phaseAt(phase).label}`;
+function playContext(phase: number, phases?: readonly PhaseEntry[]): string {
+  return `Turn ${tableProgressFor(phase, phases).turn}, ${phaseAt(phase, phases).label}`;
 }
 
 function factionNameIn(snapshot: StoredSnapshot, id: string): string {
@@ -214,7 +215,7 @@ function commitEntries({
   const result = next.battleResults[0];
   return [
     ...(stage ? [stage] : []),
-    ...(change ? [phaseEntry(next.revision, next.phase, change, context)] : []),
+    ...(change ? [phaseEntry(next.revision, next.phase, change, context, next.phases)] : []),
     ...(message.type === 'command' && isResultAction(message.action)
       ? resultEntries(before, next, message.action, viewer, faction)
       : [endingClosed(before, next)].filter((entry) => entry !== undefined)),
@@ -249,7 +250,9 @@ function stageEntry(before: Pick<StoredSnapshot, 'stage'>, next: StoredSnapshot)
         context,
       };
     case 'play':
-      return before.stage === 'finished' ? undefined : phaseEntry(next.revision, next.phase, 'turn', context);
+      return before.stage === 'finished'
+        ? undefined
+        : phaseEntry(next.revision, next.phase, 'turn', context, next.phases);
     case 'discarded':
       return {
         key: `stage:discarded:${next.revision}`,
@@ -359,14 +362,20 @@ function predictionEntries(
   ];
 }
 
-function phaseEntry(revision: number, phase: number, change: PhaseChange, context: string): Entry {
-  const { turn } = tableProgressFor(phase);
-  const label = phaseAt(phase).label;
+function phaseEntry(
+  revision: number,
+  phase: number,
+  change: PhaseChange,
+  context: string,
+  phases: readonly PhaseEntry[] = STANDARD_PHASES
+): Entry {
+  const { turn } = tableProgressFor(phase, phases);
+  const label = phaseAt(phase, phases).label;
   const template =
     change === 'back'
       ? `Returned to ${label}.`
-      : change === 'turn' || phase % TABLE_PHASES.length === 0
-        ? `Turn ${turn} began${phase % TABLE_PHASES.length === 0 ? '' : ` at ${label}`}.`
+      : change === 'turn' || phase % phases.length === 0
+        ? `Turn ${turn} began${phase % phases.length === 0 ? '' : ` at ${label}`}.`
         : `${label} began.`;
   return { key: `phase:${revision}`, class: 'phase', template, context };
 }

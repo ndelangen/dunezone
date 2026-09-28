@@ -207,6 +207,9 @@ try {
   assert.deepEqual(history.snapshot, (await fresh(c)).snapshot);
   assert.equal(Object.hasOwn(history.snapshot, 'bank'), false);
   passed('Observers cannot mutate; authenticated phase playback reproduces the boundary');
+  /* The storm moves only during Storm (#1138), and the storm is this script's probe command below, so return to Storm once the phase cooldown allows. */
+  await delay(8100);
+  await command(a, { kind: 'phase', direction: -1 });
   const originalItems = (await fresh(a)).snapshot.table.pieces
     .flatMap((piece) => piece.items.map((item) => item.id))
     .sort();

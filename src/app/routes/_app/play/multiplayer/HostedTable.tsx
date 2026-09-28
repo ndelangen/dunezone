@@ -39,10 +39,12 @@ import type { TableProjection } from './TableSession';
 import { ServerClockContext } from './useServerNow';
 import '../dune-play.css';
 
-const SETUP_TOPICS = { traitors: 'leaders', forces: 'troops', prediction: 'fate' } as const satisfies Record<
-  string,
-  TopicIconTopic
->;
+const SETUP_TOPICS = {
+  traitors: 'leaders',
+  forces: 'troops',
+  prediction: 'fate',
+  instruction: 'setup',
+} as const satisfies Record<string, TopicIconTopic>;
 
 function useTableCommands(client: TableSession, table: TableProjection) {
   const value = useMemo<TabletopContextValue>(
@@ -217,7 +219,7 @@ function PhaseNavigation({ client, table }: Pick<ConnectionControlsProps, 'clien
 }
 
 function PhaseControls({ table }: Pick<ConnectionControlsProps, 'table'>) {
-  const phase = phaseAt(table.snapshot.phase);
+  const phase = phaseAt(table.snapshot.phase, table.snapshot.phases);
   return (
     <Section
       helpOnly={Boolean(table.snapshot.stage)}
@@ -649,7 +651,7 @@ function ConnectedTable({
     }),
     [canInteract, client, table]
   );
-  const progress = tableProgressFor(table.snapshot.phase);
+  const progress = tableProgressFor(table.snapshot.phase, table.snapshot.phases);
   const celebration = useResultCelebration(table);
   /* Giving up a seat starts in the game menu and is confirmed in the decision bar, so the two share one flag. */
   const [leaving, setLeaving] = useState(false);
@@ -854,15 +856,18 @@ function ConnectedTable({
               tabled ? (
                 <>
                   <PhaseControls table={table} />
-                  {stage === 'play' && table.snapshot.setup && table.snapshot.phase === 0 && (
-                    <Button
-                      variant="default"
-                      disabled={!table.canInteract}
-                      onClick={() => client.command({ kind: 'storm-random' })}
-                    >
-                      Place storm randomly
-                    </Button>
-                  )}
+                  {stage === 'play' &&
+                    table.snapshot.setup &&
+                    progress.turn === 1 &&
+                    progress.activePhaseId === 'storm' && (
+                      <Button
+                        variant="default"
+                        disabled={!table.canInteract}
+                        onClick={() => client.command({ kind: 'storm-random' })}
+                      >
+                        Place storm randomly
+                      </Button>
+                    )}
                   {stage === 'play' || stage === 'finished' ? (
                     <>
                       <DetermineWinner client={client} table={table} />

@@ -64,7 +64,7 @@ describe('table views', () => {
     expect(narrowLeft.position[0] - narrowLeft.target[0]).toBe(0);
   });
 
-  test('backs the map camera away for narrow screens and larger tracker arcs', () => {
+  test('backs the map camera away for narrow screens, and a composed turn keeps the standard arc', () => {
     const standardFrame = mapViewFramingPoints(trackerArcSlots(9));
     const wide = cameraPoseFor('map', 1, standardFrame);
     const narrow = cameraPoseFor('map', 390 / 844, standardFrame);
@@ -72,8 +72,8 @@ describe('table views', () => {
 
     expect(narrow.position[1]).toBeGreaterThan(wide.position[1]);
     expect(narrow.position[2]).toBeGreaterThan(wide.position[2]);
-    expect(expandedArc.position[1]).toBeGreaterThan(wide.position[1]);
-    expect(expandedArc.position[2]).toBeGreaterThan(wide.position[2]);
+    /* Extra phase discs refit into the standard arc (#1138), so the map framing does not move. */
+    expect(expandedArc.position).toEqual(wide.position);
     expect(narrow.target).toEqual(wide.target);
     expect(expandedArc.target).toEqual(wide.target);
   });
