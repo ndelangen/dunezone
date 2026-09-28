@@ -25,7 +25,6 @@ import {
 import type { DraftFaction } from '../../src/shared/play/drafting';
 import { isDraftAction } from '../../src/shared/play/drafting';
 import type { StoredSpawnContents } from '../../src/shared/play/inventory';
-import { PHASE_CHANGE_COOLDOWN_MS } from '../../src/shared/play/phases';
 import type { ClientMessage, ServerClock, ServerMessage, Viewer } from '../../src/shared/play/protocol';
 import { TICKET_EXPIRED_CLOSE_CODE, clientMessageSchema } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
@@ -36,6 +35,7 @@ import { GameCatalogue } from './catalogue';
 import { RoomDelivery } from './delivery';
 import { GameDiagnostics } from './diagnostics';
 import { FIXTURE_TREACHERY_DECK } from './fixture';
+import { isLocalIsolatedRuntime } from './localRuntime';
 import type { Metadata } from './session';
 import { GameSession } from './session';
 
@@ -293,6 +293,10 @@ export class GameRoom extends DurableObject<GameEnv> {
         args
       );
       const validation = playProvisioningValidationSchema.parse(raw);
+      /* Fail closed: a game without the real phase cooldown is provisioned only in the isolated local stack. */
+      if (validation.ok && validation.testPhaseCooldownMs !== undefined && !isLocalIsolatedRuntime(this.env)) {
+        throw new Error('A test phase cooldown is refused outside the isolated local runtime.');
+      }
       /* A real game retains its ruleset before it exists; a ruleset that is not ready never becomes a game. */
       if (validation.ok && 'game' in validation && !this.metadata) {
         try {
@@ -354,6 +358,9 @@ export class GameRoom extends DurableObject<GameEnv> {
         ...('loadProfile' in validation && validation.loadProfile ? { loadProfile: validation.loadProfile } : {}),
         ...('game' in validation ? { game: validation.game } : {}),
         ...('provisional' in validation && validation.provisional ? { provisional: true } : {}),
+        ...(validation.testPhaseCooldownMs === undefined
+          ? {}
+          : { testPhaseCooldownMs: validation.testPhaseCooldownMs }),
         ...(fixtureDeck ? { fixtureDeck } : {}),
       },
       factions
@@ -1345,7 +1352,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     }
     try {
       const clock: ServerClock = { serverNow: Date.now() };
-      const phaseCooldownMs = Math.max(0, this.session.phaseChangedAt + PHASE_CHANGE_COOLDOWN_MS - clock.serverNow);
+      const phaseCooldownMs = Math.max(0, this.session.phaseCooldownEndsAt - clock.serverNow);
       const battleCountdownMs = Math.max(0, this.session.battleDeadline - clock.serverNow);
       const data = JSON.stringify(
         message.type === 'view' || message.type === 'update'

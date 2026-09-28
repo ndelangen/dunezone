@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
+import { PHASE_CHANGE_COOLDOWN_MS } from '../../src/shared/play/phases.ts';
 import { TICKET_EXPIRED_CLOSE_CODE } from '../../src/shared/play/protocol.ts';
 import { spiceSupplySlot } from '../../src/shared/play/spiceSupply.ts';
 import { tokenPage } from './native-catalogue.fixture.mjs';
@@ -12,6 +13,24 @@ import {
   provision,
   syncView,
 } from './native-runtime.fixture.mjs';
+
+/**
+ * Moves the room clock from `from` to just past the phase cooldown and returns the new offset.
+ * The held carry is renewed at least every 4 s on the way, so it outlives its own lease.
+ */
+async function pastPhaseCooldown(runtime, holder, carryId, from) {
+  const until = from + PHASE_CHANGE_COOLDOWN_MS + 1;
+  let clock = from;
+  while (clock < until) {
+    clock = Math.min(clock + 4001, until);
+    await runtime.clock(clock);
+    holder.messages.length = 0;
+    holder.send({ type: 'renew', carryId });
+    holder.send({ type: 'metrics' });
+    await holder.message('metrics');
+  }
+  return clock;
+}
 
 describe('GameRoom native SQLite and admission boundaries', () => {
   let peer;
@@ -143,12 +162,7 @@ describe('GameRoom native SQLite and admission boundaries', () => {
       expectedRevision: 3,
     });
     await connection.message('rejected', (message) => message.requestId === 'reserved-spawn');
-    await runtime.clock(4000);
-    connection.messages.length = 0;
-    connection.send({ type: 'renew', carryId: 'spice-carry' });
-    connection.send({ type: 'metrics' });
-    await connection.message('metrics');
-    await runtime.clock(8001);
+    const turnAt = await pastPhaseCooldown(runtime, connection, 'spice-carry', 0);
     connection.send({
       type: 'command',
       commandId: 'select-turn',
@@ -211,7 +225,7 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     expect(
       (await connection.message('view', (message) => message.completedCommandId === 'delete-spice')).snapshot
     ).toEqual(returned.snapshot);
-    await runtime.clock(16_002);
+    await runtime.clock(turnAt + PHASE_CHANGE_COOLDOWN_MS + 1);
     connection.send({ type: 'command', commandId: 'save-boundary', action: { kind: 'phase' }, expectedRevision: 7 });
     const boundary = await connection.message('view', (message) => message.completedCommandId === 'save-boundary');
     connection.send({ type: 'metrics' });
@@ -322,14 +336,7 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     let revision = 0;
     let clock = 0;
     const cooldown = async () => {
-      for (let tick = 0; tick < 2; tick++) {
-        clock += 4001;
-        await runtime.clock(clock);
-        first.connection.messages.length = 0;
-        first.connection.send({ type: 'renew', carryId: 'across-phase' });
-        first.connection.send({ type: 'metrics' });
-        await first.connection.message('metrics');
-      }
+      clock = await pastPhaseCooldown(runtime, first.connection, 'across-phase', clock);
     };
     for (let index = 0; index < 9; index++) {
       if (index > 0) {

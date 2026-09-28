@@ -65,8 +65,17 @@ export async function dealt(peer, runtime, count = 2, pick) {
   return connections;
 }
 
-export async function draftingRuntime(extras = [], cards = [cardPage('card-one')]) {
+/**
+ * Provisions a real game in drafting, with the catalogue, ruleset and factions its deal reads.
+ * `bindings` override the game Worker's, and `testPhaseCooldownMs` is what the synthetic backend sends at provisioning.
+ */
+export async function draftingRuntime(
+  extras = [],
+  cards = [cardPage('card-one')],
+  { bindings, testPhaseCooldownMs } = {}
+) {
   const peer = await createPeer();
+  peer.testPhaseCooldownMs = testPhaseCooldownMs;
   peer.watchMode = 'allow';
   peer.expiresAt = () => Date.now() + 600_000;
   peer.game = { rulesetId: 'ruleset-one', minimumPlayers: 2, creator: CREATOR };
@@ -99,7 +108,7 @@ export async function draftingRuntime(extras = [], cards = [cardPage('card-one')
   }
   let runtime;
   try {
-    runtime = await createRuntime(peer, 'game');
+    runtime = await createRuntime(peer, 'game', bindings);
     if ((await provision(runtime)).status !== 200) {
       throw new Error('The real game did not provision.');
     }
