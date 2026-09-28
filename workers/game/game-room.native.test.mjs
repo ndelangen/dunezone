@@ -63,6 +63,56 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     expect(metrics.commands).toEqual([]);
   });
 
+  it('drops a burst of motion past its bucket without closing, keeps commands answered, and closes a flood', async () => {
+    expect((await provision(runtime)).status).toBe(200);
+    const { connection } = await admit();
+    for (let seq = 0; seq < 200; seq++) {
+      connection.send({ type: 'pointer', seq, position: [seq / 100, 0, 0] });
+    }
+    connection.send({ type: 'metrics' });
+    const metrics = await connection.message('metrics');
+    expect(connection.closed).toBe(false);
+    expect(metrics.motionReceived + metrics.motionDropped).toBe(200);
+    expect(metrics.motionDropped).toBeGreaterThan(0);
+    for (let seq = 200; seq < 500; seq++) {
+      connection.send({ type: 'pointer', seq, position: [seq / 100, 0, 0] });
+    }
+    await eventually(() => connection.closed, 'motion flood closed');
+    expect(connection.closeCode).toBe(4413);
+  });
+
+  it('reports when each saved command was durable and when its sweep ran late', async () => {
+    expect((await provision(runtime)).status).toBe(200);
+    const { connection, view } = await admit();
+    const piece = view.snapshot.table.pieces[0];
+    connection.send({
+      type: 'command',
+      commandId: 'durable-rotate',
+      action: { kind: 'rotate', pieceId: piece.id, direction: 1 },
+      expectedRevision: view.snapshot.revision,
+    });
+    await connection.message('view', (message) => message.completedCommandId === 'durable-rotate');
+    await eventually(async () => {
+      connection.messages.length = 0;
+      connection.send({ type: 'metrics' });
+      const { commands } = await connection.message('metrics');
+      return commands.at(-1)?.durableAt !== undefined;
+    }, 'durable confirmation');
+    const { commands, stalls } = await connection.message('metrics');
+    expect(commands.at(-1).durableAt).toBeGreaterThanOrEqual(commands.at(-1).handledAt);
+    expect(stalls).toEqual([]);
+    /* Once a sweep has run, moving the room's clock two seconds on makes the next one late by as much. */
+    await new Promise((resolve) => setTimeout(resolve, 1100));
+    await runtime.clock(2000);
+    await eventually(async () => {
+      connection.messages.length = 0;
+      connection.send({ type: 'metrics' });
+      return (await connection.message('metrics')).stalls.length === 1;
+    }, 'late sweep');
+    const [stall] = (await connection.message('metrics')).stalls;
+    expect(stall.lateMs).toBeGreaterThan(1000);
+  }, 15_000);
+
   it('keeps normal play and expected refusals quiet, but reports a repeated storage failure once', async () => {
     expect((await provision(runtime)).status).toBe(200);
     const { connection } = await admit();

@@ -156,6 +156,38 @@ export function frameChange(base: RoomFrame, next: RoomFrame): Pick<Update, 'sna
   };
 }
 
+/** Remembers each comparison by the two objects it compared, so callers that pass the same pair share one result. */
+function pairwise<T extends object, R>(compare: (base: T, next: T) => R) {
+  const results = new WeakMap<T, WeakMap<T, { result: R }>>();
+  return (base: T, next: T) => {
+    let byBase = results.get(next);
+    if (!byBase) {
+      byBase = new WeakMap();
+      results.set(next, byBase);
+    }
+    let entry = byBase.get(base);
+    if (!entry) {
+      entry = { result: compare(base, next) };
+      byBase.set(base, entry);
+    }
+    return entry.result;
+  };
+}
+
+/**
+ * `frameChange` with each part remembered by the base and next parts it compared.
+ * A room builds one carries list and one pointers list per broadcast, and viewers in one audience share a snapshot, so viewers that received the same last frame share every comparison.
+ */
+export function frameChanges() {
+  const snapshots = pairwise(snapshotChange);
+  const carries = pairwise(carryChanges);
+  const pointers = pairwise(pointerChanges);
+  return (base: RoomFrame, next: RoomFrame): Pick<Update, 'snapshot' | 'activity'> => ({
+    snapshot: snapshots(base.snapshot, next.snapshot),
+    activity: { ...carries(base.carries, next.carries), ...pointers(base.pointers, next.pointers) },
+  });
+}
+
 function patchEntries<T>(base: Iterable<[string, T]>, removed: string[], upserts: Iterable<[string, T]>) {
   const entries = new Map(base);
   for (const id of removed) {
