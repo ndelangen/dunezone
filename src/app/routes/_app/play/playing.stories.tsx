@@ -6,6 +6,7 @@ import { composeTurn, PHASE_CHANGE_COOLDOWN_MS, TABLE_PHASES } from '@shared/pla
 import type { GameSnapshot } from '@shared/play/protocol';
 import { SPECTATOR_SEAT } from '@shared/play/schema';
 import { item, piece } from '@shared/play/setupSupply';
+import { createSpiceStack } from '@shared/play/spiceSupply';
 import { stackTopHeight } from '@shared/play/tableGeometry';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
@@ -800,8 +801,7 @@ export const PanelSchemeIsland = meta.story({
     expect(light[0]).toBe(paintedColor(island, view.getComputedStyle(island).getPropertyValue('--color-text').trim()));
     const deck = initialSnapshot().table.pieces.find((piece) => piece.id === 'treachery-deck')!;
     const glass = paintedColor(island, view.getComputedStyle(island).getPropertyValue('--glass-overlay').trim());
-    const menu = await openPieceMenu(canvasElement.ownerDocument, deck);
-    expect(menu).toHaveAttribute('aria-label', 'Deck actions');
+    const menu = await openPieceMenu(canvasElement.ownerDocument, deck, 'Deck actions');
     expect(view.getComputedStyle(menu).backgroundColor).toBe(glass);
     await userEvent.keyboard('{Escape}');
     await waitFor(() => expect(page.queryByRole('menu')).toBeNull());
@@ -817,14 +817,33 @@ export const PanelSchemeIsland = meta.story({
   },
 });
 
+/** A spice stack's menu announces itself as spice actions, the deck's as deck actions. */
+export const SpiceMenuName = meta.story({
+  beforeEach: install(() => {
+    const snapshot = initialSnapshot();
+    snapshot.table.pieces.push(createSpiceStack(snapshot.table.nextEventNumber, 3));
+    return productTransport('seat-2', snapshot);
+  }),
+  play: async ({ canvasElement }) => {
+    const document = canvasElement.ownerDocument;
+    const spice = createSpiceStack(initialSnapshot().table.nextEventNumber, 3);
+    await waitFor(() => expect(document.querySelector('[data-scene-ready="true"] canvas')).not.toBeNull(), {
+      timeout: 30_000,
+    });
+    await openPieceMenu(document, spice, 'Spice actions');
+    await userEvent.keyboard('{Escape}');
+    await waitFor(() => expect(within(document.body).queryByRole('menu')).toBeNull());
+  },
+});
+
 /**
  * Right-clicks a piece on the table, in the map view, until its menu opens.
  * The right-click is a pointerdown and then a `contextmenu` PointerEvent with the same pointer id, because the scene fires a click on an object only when the pointerdown with that id hit it;
  * user-event's `[MouseRight]` sends its `contextmenu` without a pointer id, and no menu opens.
  * The events go to the canvas `mapViewPoint` projects against, the document's first.
- * The menu is found by role alone: Mantine labels it by its empty anchor, which hides its `aria-label` from the name lookup.
+ * The menu is found by the name a screen reader announces.
  */
-async function openPieceMenu(document: Document, piece: TablePiece) {
+async function openPieceMenu(document: Document, piece: TablePiece, name: string) {
   const page = within(document.body);
   const [clientX, clientY] = mapViewPoint(document, [
     piece.position[0],
@@ -842,6 +861,7 @@ async function openPieceMenu(document: Document, piece: TablePiece) {
       }
       const menu = page.getByRole('menu');
       expect(finishTransitions(menu)).toBeVisible();
+      expect(menu).toHaveAccessibleName(name);
       return menu;
     },
     { timeout: 30_000 }
