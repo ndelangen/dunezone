@@ -890,6 +890,28 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     10_000
   );
 
+  it('drops motion sent while a sign-out is being checked, then takes the next frame', async () => {
+    expect((await provision(runtime)).status).toBe(200);
+    const { first, tabs } = await admitPlayerAndTwoTabs();
+    const own = (await syncView(first)).viewer.connectionId;
+    peer.reconcileMode = 'hold';
+    const beforeDenial = first.messages.length;
+    await signOut(tabs, 'registration-b', ['registration-a', 'registration-b']);
+    await eventually(() => peer.accountChecks().some((record) => !record.response.writableEnded), 'the account check');
+    /* Motion skips the fence a command waits on, so a frame sent while the room checks accounts is dropped, not held. */
+    first.send({ type: 'pointer', seq: 0, position: [1, 0.38, 0] });
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    peer.releaseAccounts();
+    await eventually(() => first.messages.slice(beforeDenial).some((message) => message.type === 'view'), 'the frame');
+    expect((await syncView(first)).pointers.map((pointer) => pointer.connectionId)).not.toContain(own);
+    first.send({ type: 'pointer', seq: 1, position: [2, 0.38, 0] });
+    await eventually(
+      async () => (await syncView(first)).pointers.some((pointer) => pointer.connectionId === own),
+      'the next pointer'
+    );
+    expect(first.closed).toBe(false);
+  });
+
   it('pauses the other player as before when the account check after a sign-out fails', async () => {
     expect((await provision(runtime)).status).toBe(200);
     const { first, tabs } = await admitPlayerAndTwoTabs();
