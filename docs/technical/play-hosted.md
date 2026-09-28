@@ -134,6 +134,23 @@ Account deletion has a durable Convex notification with acknowledgment after the
 The room also reconciles all retained accounts in bounded batches before sending game data and
 while connected. A disconnected account can therefore lose its seat without reconnecting first.
 
+A watch result does not say why it denied a registration, and a sign-out and an account deletion
+look alike to the room. So any denial withdraws the room's account lease until a reconciliation
+started after the denial has checked every retained account. Meanwhile the room sends no game data
+and applies no command. A connection whose own grant still stands is held rather than suspended: it
+is not told about the wait, the room does not clear its carry and pointer, and its messages wait and
+then meet the same check as any other. A catalogue read or spawn request whose catalogue call
+returns during the wait is held the same way and answered once the wait ends. A message whose
+connection was suspended after it arrived is dropped, even if the connection was admitted again
+since, because the page discards its unanswered requests on a pause. That includes a catalogue read
+or spawn request whose connection was suspended during its catalogue call. When the lease returns,
+each held connection is sent what changed since the last frame it received, so another player's
+sign-out leaves its table as it was. A failed reconciliation or a lapsed lease suspends held
+connections like every other. One watch result that denies several connections, such as every tab of
+a signed-out session, starts one reconciliation, and a pass that a later denial or deletion made
+stale is followed at once by the next, so an admission waiting on it is not refused for the stale
+pass.
+
 ## Provisioning and transport
 
 An operator invokes `playProvisioning:beginFixtureProvision` once after deployment. This internal
