@@ -434,8 +434,12 @@ html[data-motion="reduce"] .dune-play-stage .dune-play-shell {
 
 /* A 768px tablet keeps the one-row header and the side-by-side dock, since a step belongs to its wider side. */
 @media (width < 48rem) {
-  :where(.dune-play-shell) {
+  /* The shell's own specificity, so the narrow value outranks the one the shell defines above. */
+  .dune-play-shell {
     --view-picker-button-padding-inline: calc(var(--space-xs) * 0.7);
+  }
+
+  :where(.dune-play-shell) {
     height: auto;
     min-height: 100dvh;
     overflow: visible;
