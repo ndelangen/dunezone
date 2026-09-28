@@ -25,22 +25,17 @@ export const resolveDelivery = internalQuery({
   },
   returns: zodToConvex(resolveComponentDeliveryResponseSchema),
   handler: async (ctx, { assetId, assetType = 'faction-leader' }) => {
-    const normalizedId = ctx.db.normalizeId('assets', assetId.replace(/\.back$/, ''));
-    const asset = assetType === 'faction-leader' || !normalizedId ? null : await ctx.db.get('assets', normalizedId);
-    const token =
-      asset && assetType.startsWith('token-')
-        ? (assetType === 'token-enhance' ? RectangleTokenAsset : TokenAsset).safeParse(asset.data)
-        : null;
-    const removedBack = assetId.endsWith('.back') && (!token?.success || token.data.back.mode !== 'custom');
-    const published = await ctx.db
-      .query('publication_assets')
-      .withIndex('by_asset_type_and_asset_id', (q) => q.eq('asset_type', assetType).eq('asset_id', assetId))
-      .unique();
+    const publication = () =>
+      ctx.db
+        .query('publication_assets')
+        .withIndex('by_asset_type_and_asset_id', (q) => q.eq('asset_type', assetType).eq('asset_id', assetId))
+        .unique();
     /*
      * A Leader keeps its last published image after its faction is deleted or the member is removed, so retained games keep drawing it (#1227).
      * Only a Leader that never published follows its source.
      */
     if (assetType === 'faction-leader') {
+      const published = await publication();
       if (published) {
         return found(published);
       }
@@ -48,9 +43,17 @@ export const resolveDelivery = internalQuery({
         ? { ok: true as const, status: 'pending' as const }
         : { ok: true as const, status: 'missing' as const };
     }
+    const normalizedId = ctx.db.normalizeId('assets', assetId.replace(/\.back$/, ''));
+    const asset = normalizedId ? await ctx.db.get('assets', normalizedId) : null;
+    const token =
+      asset && assetType.startsWith('token-')
+        ? (assetType === 'token-enhance' ? RectangleTokenAsset : TokenAsset).safeParse(asset.data)
+        : null;
+    const removedBack = assetId.endsWith('.back') && (!token?.success || token.data.back.mode !== 'custom');
     if (!asset || asset.is_deleted || asset.type !== assetType || removedBack) {
       return { ok: true as const, status: 'missing' as const };
     }
+    const published = await publication();
     return published?.component_geometry ? found(published) : { ok: true as const, status: 'pending' as const };
   },
 });

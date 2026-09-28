@@ -161,6 +161,19 @@ describe('Leader component publication lifecycle', () => {
     });
   });
 
+  test('a deleted faction whose Leader never published leaves nothing to serve', async () => {
+    const { t, factionId, assetId } = await fixture();
+    expect(await t.query(internal.componentPublication.resolveDelivery, { assetId })).toEqual({
+      ok: true,
+      status: 'pending',
+    });
+    await t.run(async (ctx) => ctx.db.patch(factionId, { is_deleted: true }));
+    expect(await t.query(internal.componentPublication.resolveDelivery, { assetId })).toEqual({
+      ok: true,
+      status: 'missing',
+    });
+  });
+
   test('a published Leader keeps serving after its member is removed or its faction is deleted', async () => {
     const { t, faction, factionId, assetId, save } = await fixture();
     const job = await takeMember(t, assetId);
