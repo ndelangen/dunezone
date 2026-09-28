@@ -111,8 +111,10 @@ one-second sweep. Its handling and durable times then fall on those steps, and t
 looks late by its own clock. Compare `activityDeliveries` with about 20 per viewer per second of
 motion instead: in the fourth 28 September run the peak room sent 4,225 against roughly 26,400,
 and 45 of its 60 actions were late. That room spent its time on upkeep it ran for every message,
-including two queries over every viewer's seat. Pointer and pose frames now skip that upkeep,
-which leaves it to the activity pass and the sweep, and a frame from a paused connection is dropped.
+including two queries over every viewer's seat. Pointer and pose frames now skip that upkeep and
+check only their own sender's seat, which leaves the rest to the activity pass and the sweep. A
+frame from a connection held by an account check is dropped instead of waiting for the check,
+since the next one supersedes it.
 
 `host` covers the other side. `idleBefore` is the share of the machine's CPU that was idle in the
 second before the run, and the runner warns when it is under half. `stalls` lists the moments the
