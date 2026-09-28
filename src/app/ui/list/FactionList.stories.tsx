@@ -44,10 +44,11 @@ const meta = preview.meta({
 
 /**
  * The grid's rhythm is all this owns, and the tiles frame themselves.
- * From the tablet step the row takes as many columns as fit at 11.5rem or wider, which keeps a card around 200px: five across a desktop window.
+ * From the tablet step the row takes as many columns as fit at 11.5rem or wider, which keeps a card around 200px: five across a laptop window.
+ * A laptop window rather than a desktop one, because at 1200px the canvas's 1rem padding leaves a 1168px list and five columns, and the test run renders no padding, so its 1200px list shows six.
  */
 export const Default = meta.story({
-  globals: { viewport: { value: 'appDesktop' } },
+  globals: { viewport: { value: 'appLaptop' } },
   play: async ({ canvasElement }) => {
     await expectFactionColumns(canvasElement, 5);
   },
