@@ -71,7 +71,9 @@ cycling a move, rotation, flip, token split, merge, deck draw and return of the 
 return keeps repeated cycles supplied. Preparation moves two action stacks into clear space; the
 separated profile first merges two loose items of each kind through normal carry commands. The
 initial fixture counts are checked before this setup. Baseline and peak runs retain rotation and
-flip as their durable work. The peak keeps its full 18 carries without adding a nineteenth carry
+flip as their durable work: three rotations, then one flip of the same piece. The room refuses a
+flip within 520 ms of the previous one by its own clock, so flips are at least two seconds apart.
+The peak keeps its full 18 carries without adding a nineteenth carry
 for a saved move. Scheduled intents, dispatches, accepted commands, rejections, failures and skipped slots are distinct.
 The scheduler offers a slot every 500 ms independently of response latency. The current command
 contract requires the prior durable revision, so this ordered trace has an explicit one-interaction
@@ -82,7 +84,7 @@ Recipient application does not hold this command slot: slow recipients are corre
 The complete schedule and its outcome remain in `actionScheduleSlots` and `actions.schedule`.
 
 `trace` runs two complete action cycles without background motion, checks item conservation and
-compares every recipient's public durable snapshot. Private bank projections are not expected
+compares every recipient's public durable snapshot once each holds the last confirmed revision. Private bank projections are not expected
 to match across factions. `multitab` checks each secondary tab and its primary
 tab independently carrying and cancelling. A preflight checks command replay and durable-snapshot
 convergence. `reconnect` interrupts one connection,
