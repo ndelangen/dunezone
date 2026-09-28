@@ -168,7 +168,7 @@ The launcher passes `--skip-generate` to the runner, because the job's generated
 already restored the images and written the vectors. The job verifies the checksum of the pinned
 native Convex backend release, creates a fresh database, configures real local Auth, builds the app,
 then runs `scripts/verify-hosted-play.mjs` through both actual Workers. The protocol verifier creates
-and provisions a synthetic game of its own. The two browser flows then run on the same stack, each
+and provisions a synthetic game of its own. The browser flows then run on the same stack, each
 on a fresh canonical fixture. A failure in any of them fails the job.
 No hosted deployment credentials or production snapshots are used. Its generated private keys,
 admin key, SQLite database and local Worker persistence are removed on exit. The artifact keeps the
@@ -191,8 +191,8 @@ provisions a fresh canonical fixture through the local Workers, so every flow's 
 receive the fixture's player seats. `--flow` repeats, `all` selects every flow in
 [`scripts/verify-hosted-flows.ts`](../scripts/verify-hosted-flows.ts), and `--browser-only` without it
 runs only the regular flow; the named flows are described under
-[Verification](./technical/play-hosted.md#verification). A failure does not stop the flows after it,
-and the run fails at the end naming each failed verifier. A run with browser flows rebuilds the
+[Verification](./technical/play-hosted.md#verification). A failed verifier does not stop the flows
+after it, and the run fails at the end naming each failed verifier. A run with browser flows rebuilds the
 frontend for this run's backend URL, so it rejects `--skip-build`. `--backend-binary` can still select
 an existing native backend executable, and `--browser /absolute/path/to/chromium` can select a
 Chromium executable instead of Playwright's installed browser. Each browser flow has its own timeout,

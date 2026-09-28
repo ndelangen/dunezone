@@ -398,7 +398,7 @@ try {
     }
   });
   await ready(`${origin}/__play/health`, worker, 300_000);
-  /* Each verifier that failed. A failure does not stop the verifiers after it, and the run fails at the end. */
+  /* Each verifier that failed. A failed verifier does not stop the ones after it, and the run fails at the end. */
   const failed: string[] = [];
   if (!values['browser-only']) {
     const verificationLog = path.join(evidence, 'verification.log');
