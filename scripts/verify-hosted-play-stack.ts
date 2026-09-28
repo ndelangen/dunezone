@@ -502,7 +502,21 @@ try {
     }
     await installPublications(publications, readFileSync(workerLog, 'utf8'), origin);
     const reportDirectory = path.join(evidence, 'browser');
+    /*
+     * A game takes its phase cooldown from the backend when it is provisioned, and the game Worker accepts a test value only in this isolated stack.
+     * The flow that checks the cooldown plays at the real one; every other flow's games change phase without waiting.
+     */
+    let testPhaseCooldown: string | undefined;
     for (const flow of flows) {
+      const wanted = browserFlows[flow].checksPhaseCooldown ? undefined : '0';
+      if (wanted !== testPhaseCooldown) {
+        convex(
+          wanted === undefined
+            ? ['env', 'remove', 'PLAY_TEST_PHASE_COOLDOWN_MS']
+            : ['env', 'set', 'PLAY_TEST_PHASE_COOLDOWN_MS', wanted]
+        );
+        testPhaseCooldown = wanted;
+      }
       const passed = await verify(
         {
           command: process.execPath,

@@ -168,6 +168,8 @@ function answerPeerRequest(peer, record) {
         attemptId,
         expiresAt: peer.provisionExpiresAt,
         ...(peer.game ? { game: peer.game, provisional: peer.provisional } : { fixtureKey: 'hosted-demo' }),
+        /* A test that sets `peer.testPhaseCooldownMs` has the backend provision the game with that cooldown. */
+        ...(peer.testPhaseCooldownMs === undefined ? {} : { testPhaseCooldownMs: peer.testPhaseCooldownMs }),
       });
       break;
     case 'playProvisioning:confirmProvisioning':
@@ -231,6 +233,7 @@ export async function createPeer() {
     draftable: [],
     game: null,
     provisional: true,
+    testPhaseCooldownMs: undefined,
     directoryMode: 'ack',
     reconcileMode: 'answer',
     deletedAccounts: new Set(),
@@ -358,6 +361,7 @@ export async function createPeer() {
 
 export async function createRuntime(peer, kind = 'probe', bindings = {}) {
   const logs = [];
+  const origin = bindings.APPLICATION_ORIGIN ?? 'http://table.test';
   const persistence = await mkdtemp(join(tmpdir(), 'dunezone-native-game-'));
   const built = await build({
     entryPoints: [
@@ -392,7 +396,7 @@ export async function createRuntime(peer, kind = 'probe', bindings = {}) {
     bindings: {
       PEER_URL: peer.url,
       CONVEX_URL: peer.url,
-      APPLICATION_ORIGIN: 'http://table.test',
+      APPLICATION_ORIGIN: origin,
       GIT_SHA: 'native-test',
       CF_VERSION_METADATA: { id: 'native-test', tag: 'native-test' },
       ...bindings,
@@ -402,6 +406,7 @@ export async function createRuntime(peer, kind = 'probe', bindings = {}) {
   await instance.ready;
   return {
     logs,
+    origin,
     url() {
       return instance.ready;
     },
@@ -452,7 +457,7 @@ export async function createRuntime(peer, kind = 'probe', bindings = {}) {
       return response.json();
     },
     fetch(path, init) {
-      return instance.dispatchFetch(`http://table.test${path}`, init);
+      return instance.dispatchFetch(`${origin}${path}`, init);
     },
     async request(path) {
       return (await this.fetch(path)).json();
@@ -506,7 +511,7 @@ export const isFullView = (message) => message.type === 'view' && !applied.has(m
  */
 export async function openGame(runtime) {
   const response = await runtime.fetch(`/__play/games/${gameId}/socket`, {
-    headers: { Origin: 'http://table.test', Upgrade: 'websocket' },
+    headers: { Origin: runtime.origin, Upgrade: 'websocket' },
   });
   if (response.status !== 101) {
     throw new Error(`Socket refused: ${response.status}`);

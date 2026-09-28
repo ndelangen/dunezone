@@ -17,13 +17,7 @@ import {
 } from '../src/app/routes/_app/play/playView.ts';
 import { mapViewFramingPoints } from '../src/app/routes/_app/play/tablePlateGeometry.ts';
 import { turnTrackerLayout } from '../src/app/routes/_app/play/turnTrackerGeometry.ts';
-import {
-  PHASE_CHANGE_COOLDOWN_MS,
-  phaseAt,
-  phaseForTurn,
-  TABLE_PHASES,
-  tableProgressFor,
-} from '../src/shared/play/phases.ts';
+import { phaseAt, phaseForTurn, TABLE_PHASES, tableProgressFor } from '../src/shared/play/phases.ts';
 import { isSpicePiece } from '../src/shared/play/spice.ts';
 import { spiceSupplySlot } from '../src/shared/play/spiceSupply.ts';
 import { stackTopHeight } from '../src/shared/play/tableGeometry.ts';
@@ -232,6 +226,8 @@ async function peer(label, context) {
     sent: [],
     sockets: [],
     view: () => state.messages.findLast((message) => message.type === 'view'),
+    /* The phase cooldown the Worker stated in its latest view or update, and when that frame arrived. */
+    phaseCooldown: { ms: 0, receivedAt: 0 },
   };
   peers.push(state);
   page.on('pageerror', (error) => report.pageErrors.push({ label, message: error.message }));
@@ -256,6 +252,9 @@ async function peer(label, context) {
     });
     socket.on('framereceived', (frame) => {
       const message = JSON.parse(frame.payload.toString());
+      if (typeof message.phaseCooldownMs === 'number') {
+        state.phaseCooldown = { ms: message.phaseCooldownMs, receivedAt: Date.now() };
+      }
       state.messages.push(message);
       state.rawMessages.push(message);
       if (message.type === 'update') {
@@ -888,12 +887,9 @@ async function sharedPhaseFlow(a, b) {
   passed('Either seated player can cross the turn boundary forward and backward without rewinding the table');
 }
 
-/* Next and Previous stay disabled for the cooldown after a phase change (#1139). */
+/* Next and Previous stay disabled for the cooldown after a phase change (#1139), which the Worker states on each frame. */
 async function phaseCooldownEnded(who) {
-  await until(
-    () => Date.now() >= (who.view().snapshot.controls?.phaseChangedAt ?? 0) + PHASE_CHANGE_COOLDOWN_MS,
-    'Phase cooldown did not end.'
-  );
+  await until(() => Date.now() >= who.phaseCooldown.receivedAt + who.phaseCooldown.ms, 'Phase cooldown did not end.');
 }
 
 async function sharedTurnChange(sender, recipient, turn, interact) {

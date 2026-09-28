@@ -185,6 +185,11 @@ Run `bun --no-env-file scripts/verify-hosted-play-stack.ts --browser-only --flow
 a change that reaches Play's client, shared contracts or the game Worker. It boots one stack and
 runs every browser flow against it, each on a fresh game with fresh accounts. `--flow` repeats to
 select flows by name. A failed flow does not stop the ones after it, and the run fails at the end.
+Only the public-controls flow, which checks the phase cooldown, plays at the real cooldown. The
+launcher provisions every other flow's games with none: before each flow it sets the backend's
+test-only `PLAY_TEST_PHASE_COOLDOWN_MS` to 0 or removes it, and a synthetic backend passes the value
+to the game Worker at provisioning. The Worker refuses to provision a game with that value unless its
+`GIT_SHA` is play-local's `local-isolated` and its `APPLICATION_ORIGIN` is a loopback origin.
 
 Run `bun --no-env-file scripts/verify-hosted-play-stack.ts --browser-only --flow private-banks` for
 manual collection, full withdrawal, disposal, phase boundaries, reconnect, history, multi-tab

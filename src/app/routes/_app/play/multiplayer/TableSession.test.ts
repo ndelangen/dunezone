@@ -1,5 +1,6 @@
 import { emptyBattlePlan, fixtureCombatFaces } from '@shared/play/battle';
 import { initialSnapshot, nextSnapshot } from '@shared/play/commands';
+import { PHASE_CHANGE_COOLDOWN_MS } from '@shared/play/phases';
 import { tableForViewer } from '@shared/play/protocol';
 import type { GameSnapshot, ServerMessage, Viewer } from '@shared/play/protocol';
 import { flipPieceInState } from '@shared/play/tableState';
@@ -110,10 +111,10 @@ describe('hosted public controls', () => {
       phase: 1,
       controls: { seats: [], ready: [], requests: [], seatRequests: [], players: [], phaseChangedAt: 1 },
     };
-    socket().deliver(view({ snapshot, phaseCooldownMs: 8000 }));
+    socket().deliver(view({ snapshot, phaseCooldownMs: PHASE_CHANGE_COOLDOWN_MS }));
     expect(table(client).phaseCooling).toBe(true);
     vi.setSystemTime(Date.now() - 3_600_000);
-    await vi.advanceTimersByTimeAsync(7999);
+    await vi.advanceTimersByTimeAsync(PHASE_CHANGE_COOLDOWN_MS - 1);
     expect(table(client).phaseCooling).toBe(true);
     await vi.advanceTimersByTimeAsync(1);
     expect(table(client).phaseCooling).toBe(false);
@@ -246,9 +247,11 @@ describe('hosted public controls', () => {
 
   test('refreshes an expired cooldown when a suspended tab misses the deadline', async () => {
     const client = await connected();
-    socket().deliver(view({ phaseCooldownMs: 8000 }));
+    socket().deliver(view({ phaseCooldownMs: PHASE_CHANGE_COOLDOWN_MS }));
     expect(table(client).phaseCooling).toBe(true);
-    const delayedClock = vi.spyOn(performance, 'now').mockReturnValue(performance.now() + 12_000);
+    const delayedClock = vi
+      .spyOn(performance, 'now')
+      .mockReturnValue(performance.now() + PHASE_CHANGE_COOLDOWN_MS + 4000);
     try {
       await vi.advanceTimersByTimeAsync(1000);
       expect(table(client).phaseCooling).toBe(false);

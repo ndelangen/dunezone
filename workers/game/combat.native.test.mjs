@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { TABLE_PHASES } from '../../src/shared/play/phases';
+import { PHASE_CHANGE_COOLDOWN_MS, TABLE_PHASES } from '../../src/shared/play/phases';
 import { draftingRuntime } from './native-drafting.fixture.mjs';
 import { accepted, admitPlayer, eventually, seat, sendCommand, syncView } from './native-runtime.fixture.mjs';
 
@@ -50,7 +50,7 @@ describe('Authored troop combat values in a real game', { timeout: 120_000 }, ()
   const admit = (suffix) => admitPlayer(peer, runtime, suffix);
   const stored = async () => JSON.parse((await runtime.exec('SELECT data FROM current_state'))[0].data);
   async function next(connection) {
-    offset += 8001;
+    offset += PHASE_CHANGE_COOLDOWN_MS + 1;
     await runtime.clock(offset);
     return accepted(connection, { kind: 'phase', direction: 1 });
   }

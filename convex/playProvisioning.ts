@@ -8,6 +8,7 @@ import {
   playProvisionFailureSchema,
   playProvisionRequestSchema,
   playProvisioningValidationSchema,
+  playTestPhaseCooldownSchema,
 } from '../src/shared/play/admission';
 import { internal } from './_generated/api';
 import type { Doc } from './_generated/dataModel';
@@ -24,6 +25,15 @@ import { isSyntheticBackend, requireSyntheticBackend } from './lib/playSynthetic
 function syntheticProfile(loadProfile: NonNullable<Doc<'play_games'>['load_profile']>) {
   requireSyntheticBackend();
   return { loadProfile };
+}
+
+/* The hosted browser verifier sets `PLAY_TEST_PHASE_COOLDOWN_MS` on its synthetic backend for each flow; no other backend sends one. */
+function testPhaseCooldown() {
+  const value = process.env.PLAY_TEST_PHASE_COOLDOWN_MS;
+  if (value === undefined || !isSyntheticBackend()) {
+    return {};
+  }
+  return { testPhaseCooldownMs: playTestPhaseCooldownSchema.parse(Number(value)) };
 }
 
 async function createPendingFixture(ctx: MutationCtx) {
@@ -153,6 +163,7 @@ export const validateProvisioning = mutation({
       attemptId: game.attempt_id,
       expiresAt: game.provision_expires_at,
       ...shape,
+      ...testPhaseCooldown(),
     };
   },
 });
