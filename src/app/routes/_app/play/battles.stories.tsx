@@ -370,6 +370,9 @@ export const BattleRevealedPiecesStill = meta.story({
     const plans = /^house-(harkonnen|atreides) plan,/;
     await settled(() => expect(page.getAllByLabelText(plans)).toHaveLength(2));
     expect(animatedIn(page.getAllByLabelText(plans))).toEqual([]);
+    for (const plan of page.getAllByLabelText(plans)) {
+      expect(within(plan).getByText('Force')).toBeVisible();
+    }
   },
 });
 
