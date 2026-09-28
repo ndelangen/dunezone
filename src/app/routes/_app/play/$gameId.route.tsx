@@ -1,11 +1,11 @@
 import { Button } from '@mantine/core';
-import { ClientOnly, createFileRoute, Link, redirect } from '@tanstack/react-router';
+import { ClientOnly, createFileRoute, Link, redirect, useNavigate } from '@tanstack/react-router';
 import { LoadPending } from '@ui/block/LoadPending';
 import { LoginGate } from '@ui/block/LoginGate';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import { PageTitle } from '@ui/block/PageTitle';
 import { PageLayout } from '@ui/layout/PageLayout';
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 
 import { useGameAccess } from '@db/play';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
@@ -21,7 +21,27 @@ const HostedTable = lazy(loadHostedTable);
  */
 const RETIRED_PAGES: ReadonlySet<string> = new Set(['demo', 'hosted']);
 
+/*
+ * PROTOTYPE, #1323: `?variant=a|b|c` picks what a signed-in player sees at the hosted fixture's address.
+ * A is today's table, B answers the fixture as the directory answers an unknown id, C sends it to the lobby as #1459 sends /play/hosted.
+ */
+const FIXTURE_ADMISSION_VARIANTS = ['a', 'b', 'c'] as const;
+type FixtureAdmissionVariant = (typeof FIXTURE_ADMISSION_VARIANTS)[number];
+const isFixtureAdmissionVariant = (value: unknown): value is FixtureAdmissionVariant =>
+  FIXTURE_ADMISSION_VARIANTS.some((variant) => variant === value);
+
+/* PROTOTYPE, #1323: Storybook's router mock records `<Navigate>` instead of following it, so the prototype navigates itself. */
+function LobbyRedirect() {
+  const navigate = useNavigate();
+  useEffect(() => {
+    void navigate({ to: '/play', replace: true });
+  }, [navigate]);
+  return null;
+}
+
 export const Route = createFileRoute('/_app/play/$gameId')({
+  validateSearch: (params: Record<string, unknown>): { variant?: FixtureAdmissionVariant } =>
+    isFixtureAdmissionVariant(params.variant) ? { variant: params.variant } : {},
   beforeLoad: ({ params }) => {
     if (RETIRED_PAGES.has(params.gameId)) {
       throw redirect({ to: '/play', replace: true });
@@ -44,7 +64,14 @@ export const Route = createFileRoute('/_app/play/$gameId')({
  */
 function GamePage() {
   const { gameId } = Route.useParams();
-  const { data } = useGameAccess(gameId);
+  const { variant } = Route.useSearch();
+  const { data: answer } = useGameAccess(gameId);
+  /* PROTOTYPE, #1323: the hosted fixture is the one ready game without a ruleset. */
+  const fixture = answer?.status === 'ready' && answer.ruleset === null;
+  if (fixture && variant === 'c') {
+    return <LobbyRedirect />;
+  }
+  const data = fixture && variant === 'b' ? { status: 'not_found' as const } : answer;
   const exit = (
     <Button component={Link} to="/play" variant="default" aria-label="Back to lobby">
       Lobby
