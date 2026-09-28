@@ -68,7 +68,8 @@ export function rendererMismatch(
 /**
  * The Chromium build and executable, from the running browser's `Browser.getVersion` product and `SystemInfo.getInfo` command line.
  * Playwright's headless shell names its product `HeadlessChrome`, and full Chromium in new headless mode names it `Chrome`.
- * The command line joins the arguments with spaces and each switch starts with `--`, so the executable path, spaces and all, ends before the first switch.
+ * On macOS and Linux the command line joins the arguments with spaces and each switch starts with `--`, so the executable path, spaces and all, ends before the first switch.
+ * On Windows Chromium quotes the program path, and the executable would keep those quotes.
  */
 export function runningChromium(product: string, commandLine: string) {
   return {

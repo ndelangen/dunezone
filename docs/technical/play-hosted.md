@@ -281,7 +281,8 @@ or `full`), the executable path from its command line and its version, with the 
 added. Its `renderer` field records the backend three.js initialised for the first table the flow
 opens, read through three.js's devtools hook: `webgpu` with the adapter's vendor and architecture,
 or WebGL2 with the unmasked GL renderer string, as `webgl2-swiftshader` when that string names
-SwiftShader and `webgl2-other` when it does not. `--expect-renderer` takes one of those three and
+SwiftShader and `webgl2-other` when it does not. When no backend was read within 15 s, the kind is
+`unidentified` with the reason. `--expect-renderer` takes one of those three and
 fails the flow at that table, naming both, when the table rendered with another; without it no
 renderer is enforced. `--flow` names one flow and defaults to `regular`. Each run writes screenshots
 and a compact report without credentials. A flow that retains synthetic received

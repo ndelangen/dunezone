@@ -11,7 +11,10 @@ import {
   runningChromium,
 } from './verify-hosted-renderer';
 
-/* The renderer strings CI and a Mac report, as recorded on #1322 and #1343. */
+/*
+ * The SwiftShader string is CI's, as recorded on #1322 and #1343.
+ * The Metal string is what full Chromium 151's WebGL2 reports on an M1 Pro.
+ */
 const swiftShader = 'ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)';
 const metal = 'ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Pro, Unspecified Version)';
 

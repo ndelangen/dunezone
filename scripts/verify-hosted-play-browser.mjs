@@ -184,6 +184,7 @@ const browser = await chromium.launch({ headless: true, executablePath: values.b
 /*
  * Without `--browser`, `headless: true` launches Playwright's headless shell rather than its full Chromium.
  * The running browser reports which of the two it is and its executable; `args` are the switches this script adds.
+ * `SystemInfo.getInfo` waits for the GPU process's feature info, and Chromium 151 ends the browser process when that takes more than 30 s on macOS and Linux, so a browser that closes here without a message points at the GPU process.
  */
 const devtools = await browser.newBrowserCDPSession();
 const [{ product }, { commandLine }] = await Promise.all([
