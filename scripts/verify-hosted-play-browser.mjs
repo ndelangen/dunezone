@@ -362,7 +362,7 @@ async function point(who, position, view = 'left') {
 /**
  * Hovers the spice supply disc in the map view until the canvas shows the disc's pointer cursor, then presses `key`.
  * The scene hit-tests the pointer only when it moves, so a move that reaches a table still mounting never hovers the disc.
- * A player's table remounts when the Worker re-admits them, which happens to the others after one player signs out (#1343).
+ * A table remounts when the Worker re-admits a suspended connection, and one that just opened is still mounting (#1343).
  * So every poll moves onto the disc again, alternating by one pixel so that each move changes the position.
  */
 async function supplyShortcut(who, key) {
@@ -1110,6 +1110,10 @@ async function verifyRegular() {
   const aTab = await peer('player-a-tab', a.context);
   await enter(aTab);
   assert.equal(aTab.view().viewer.userId, a.view().viewer.userId);
+  const others = [b, observer];
+  const tables = await Promise.all(others.map((who) => who.page.locator('.dune-play-shell canvas').elementHandle()));
+  const othersFrom = others.map((who) => who.rawMessages.length);
+  const signedOutFrom = [a.rawMessages.length, aTab.rawMessages.length];
   const accountPage = await a.context.newPage();
   await accountPage.goto(`${origin}/play`, { waitUntil: 'domcontentloaded' });
   await accountPage.getByRole('heading', { name: 'Game lobby' }).waitFor();
@@ -1135,8 +1139,19 @@ async function verifyRegular() {
   await revision(b, beforeSignOutFanout + 1);
   await delay(100);
   assert.deepEqual([a.messages.length, aTab.messages.length], lastCounts);
-  passed('Actual UI sign-out removes both tabs and fences later game fanout', {
+  /* Another player's sign-out neither pauses nor remounts a table (#1418). */
+  for (const [index, who] of others.entries()) {
+    const paused = who.rawMessages.slice(othersFrom[index]).filter((message) => message.type === 'admission');
+    assert.deepEqual(paused, [], `The sign-out paused ${who.label}.`);
+    assert.equal(await tables[index].evaluate((canvas) => canvas.isConnected), true, `${who.label}'s table remounted.`);
+  }
+  passed('Actual UI sign-out removes both tabs and fences later game fanout; the other players keep their tables', {
     logoutAndFanoutCheckMs: Date.now() - revokedAt,
+    workerRefusedSignOut: [a, aTab].some((who, index) =>
+      who.rawMessages
+        .slice(signedOutFrom[index])
+        .some((message) => message.type === 'admission' && message.status === 'denied')
+    ),
   });
 
   const leavingSocket = b.sockets.at(-1);

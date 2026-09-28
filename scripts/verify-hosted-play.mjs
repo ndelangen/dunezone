@@ -15,12 +15,14 @@ if (!args.includes('--env-file') || !args.includes('--origin')) {
 const localEnv = parseEnv(await readFile(option('--env-file'), 'utf8'));
 const backend = new URL(localEnv.CONVEX_SELF_HOSTED_URL);
 const origin = new URL(option('--origin'));
-for (const url of [backend, origin]) {
-  assert.equal(url.protocol, 'http:');
-  assert.equal(url.hostname, '127.0.0.1');
-  assert.equal(url.pathname, '/');
-  assert.equal(url.search, '');
-  assert.equal(url.username, '');
+/* loopbackOrigin's rule and message (scripts/lib/isolated-stack.ts): the launcher runs this file unbundled under whichever Node is on PATH, which may not import TypeScript. */
+for (const [label, url] of [
+  ['CONVEX_SELF_HOSTED_URL', backend],
+  ['--origin', origin],
+]) {
+  if (!url.port || url.href !== `http://127.0.0.1:${url.port}/`) {
+    throw new Error(`${label} must be an explicit http://127.0.0.1:PORT origin.`);
+  }
 }
 assert.ok(localEnv.CONVEX_SELF_HOSTED_ADMIN_KEY);
 const admin = new ConvexHttpClient(backend.origin, { logger: false });
@@ -303,6 +305,7 @@ try {
   await admin.mutation(anyApi.playTesting.setAdministrator, { userId: alice.userId, enabled: false });
   await command(a, { kind: 'storm', direction: 1 });
   passed('Removing administrator status does not revoke signed-in play access');
+  const heldFrom = b.messages.length;
   const revokedAt = Date.now();
   await alice.client.action(anyApi.auth.signOut, {});
   await until(() => a.closeCode && aTab.closeCode, 'Logout did not revoke every tab of the Auth session.');
@@ -350,6 +353,12 @@ try {
   const replacementPeer = await connect(fixture.gameId, replacement);
   assert.equal(replacementPeer.view().viewer.viewerSeat, 'harkonnen');
   passed('Actual account deletion revokes access and vacates the faction for a new user');
+  /* A sign-out, expiry or deletion can withdraw the room's account lease while the room checks accounts; a player it does not concern is held through that check, not paused (#1418). */
+  assert.deepEqual(
+    b.messages.slice(heldFrom).filter((message) => message.type === 'admission'),
+    []
+  );
+  passed("Other players' sign-out, expiry and deletion never pause a connected player");
   b.send({ type: 'metrics' });
   const metrics = await until(
     () => b.messages.findLast((message) => message.type === 'metrics'),

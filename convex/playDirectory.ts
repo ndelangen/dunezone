@@ -90,13 +90,9 @@ async function lobbyEntry(ctx: QueryCtx, game: Doc<'play_games'>, viewerId: Id<'
   };
 }
 
-/** The declared result with its factions named from the seats that hold them; an unknown id stays an id. */
+/** The declared result with the names the game gave its winning factions. */
 function namedResult(summary: PlayDirectorySummary) {
-  if (!summary.result) {
-    return null;
-  }
-  const names = new Map(summary.seats.flatMap((seat) => (seat.faction ? [[seat.faction.id, seat.faction.name]] : [])));
-  return { kind: summary.result.kind, factions: summary.result.factionIds.map((id) => names.get(id) ?? id) };
+  return summary.result && { kind: summary.result.kind, factions: summary.result.factions.map(({ name }) => name) };
 }
 
 async function gamesInStage(ctx: QueryCtx, stage: PlayDirectorySummary['stage']) {

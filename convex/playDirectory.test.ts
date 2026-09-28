@@ -163,11 +163,14 @@ describe('the directory keeps the newest published summary and lists it to Admin
       canCreate: true,
       ongoing: [{ seatsFilled: 1, players: [{ displayName: 'Administrator' }] }],
     });
-    const result = { kind: 'faction' as const, factionIds: ['atreides'], declaredBy: ids.admin, declaredAt: 5000 };
-    const seated = summary([ids.admin], { stage: 'finished', result, lastActivityAt: 5000 });
-    seated.seats[0]!.faction = { id: 'atreides', name: 'Atreides', color: '#4a7' };
-    await publish(2, seated);
-    /* The lobby reads faction names and no user id from a result. */
+    const result = {
+      kind: 'faction' as const,
+      factions: [{ id: 'atreides', name: 'Atreides' }],
+      declaredBy: ids.admin,
+      declaredAt: 5000,
+    };
+    await publish(2, summary([ids.admin], { stage: 'finished', result, lastActivityAt: 5000 }));
+    /* The lobby reads faction names and no user id from a result, even when the winner's seat is empty. */
     expect(await admin.query(api.playDirectory.listGames, {})).toMatchObject({
       ongoing: [],
       past: [{ gameId: game._id, stage: 'finished', result: { kind: 'faction', factions: ['Atreides'] } }],

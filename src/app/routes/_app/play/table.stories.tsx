@@ -1,10 +1,12 @@
 import preview from '@sb/preview';
 import { TABLE_PHASES } from '@shared/play/phases';
+import { spiceSupplySlot } from '@shared/play/spiceSupply';
 import { stackTopHeight } from '@shared/play/tableGeometry';
+import { TRACKER_DISC_TOP_Y } from '@shared/play/tableTrackers';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
-import { gameMeta, install, session } from './game.stories.fixture';
-import { mapViewPoint } from './playing.stories.fixture';
+import { gameMeta, install, lastCommand, session } from './game.stories.fixture';
+import { mapViewPoint, openTab } from './playing.stories.fixture';
 import { factions, playingSnapshot, productTransport } from './product.stories.fixture';
 
 const meta = preview.meta({
@@ -273,5 +275,89 @@ export const PhaseViewWaitsForTheDrop = meta.story({
 
     scene.dispatchEvent(new PointerEvent('pointerup', { ...pointer, clientX: clientX + 24, buttons: 0 }));
     await waitFor(() => expect(shell).toHaveAttribute('data-table-view', 'right'));
+  },
+});
+
+/**
+ * The spice supply disc answers the number keys again when the pointer leaves the canvas from the disc and comes straight back onto it.
+ * The pointer leaves for the view picker and returns with no move over the rest of the table.
+ */
+export const SpiceDiscAnswersOnReturn = meta.story({
+  beforeEach: install(() => productTransport()),
+  play: async ({ canvasElement }) => {
+    const { page, document } = await tablePage(canvasElement);
+    const slot = spiceSupplySlot();
+    const [clientX, clientY] = mapViewPoint(document, [slot.position[0], TRACKER_DISC_TOP_Y + 0.015, slot.position[2]]);
+    const scene = document.querySelector('canvas')!;
+    const pointer = { bubbles: true, cancelable: true, pointerId: 1, pointerType: 'mouse', clientX, clientY };
+    await waitFor(
+      () => {
+        scene.dispatchEvent(new PointerEvent('pointermove', pointer));
+        expect(scene.style.cursor).toBe('pointer');
+      },
+      { timeout: 30_000 }
+    );
+
+    leaveTheCanvas(page, scene, pointer);
+    await waitFor(() => expect(scene.style.cursor).toBe('default'));
+
+    scene.dispatchEvent(new PointerEvent('pointermove', { ...pointer, clientX: clientX + 1 }));
+    await waitFor(() => expect(scene.style.cursor).toBe('pointer'));
+    await userEvent.keyboard('2');
+    await waitFor(() =>
+      expect(lastCommand()).toMatchObject({ type: 'command', action: { kind: 'spice-spawn', count: 2 } })
+    );
+  },
+});
+
+/** The pointer moves to the view picker, so a pointerleave reaches the canvas and each ancestor that does not contain the picker. */
+function leaveTheCanvas(page: ReturnType<typeof within>, scene: HTMLCanvasElement, pointer: PointerEventInit) {
+  const picker = page.getByRole('group', { name: 'Table view' });
+  for (let left: Element | null = scene; left && !left.contains(picker); left = left.parentElement) {
+    left.dispatchEvent(new PointerEvent('pointerleave', { ...pointer, bubbles: false }));
+  }
+}
+
+/**
+ * A canvas leave ends the disc's hover while the viewer cannot act, too.
+ * The pointer rests on the disc when playback starts and leaves the canvas during playback, so after Return to live the number keys send nothing until the pointer is back on the disc.
+ */
+export const SpiceDiscForgetsAPlaybackHover = meta.story({
+  beforeEach: install(() => productTransport()),
+  play: async ({ canvasElement }) => {
+    const { page, document } = await tablePage(canvasElement);
+    await openTab(page, 'Phase');
+    const slot = spiceSupplySlot();
+    const [clientX, clientY] = mapViewPoint(document, [slot.position[0], TRACKER_DISC_TOP_Y + 0.015, slot.position[2]]);
+    const scene = document.querySelector('canvas')!;
+    const pointer = { bubbles: true, cancelable: true, pointerId: 1, pointerType: 'mouse', clientX, clientY };
+    await waitFor(
+      () => {
+        scene.dispatchEvent(new PointerEvent('pointermove', pointer));
+        expect(scene.style.cursor).toBe('pointer');
+      },
+      { timeout: 30_000 }
+    );
+
+    await userEvent.click(page.getByRole('button', { name: 'Replay from start' }));
+    session.transport.deliver({ type: 'history', step: 0, lastStep: 1, snapshot: playingSnapshot() });
+    await waitFor(() => {
+      expect(page.getByRole('button', { name: 'Earlier phase' })).toBeVisible();
+      expect(scene.style.cursor).toBe('default');
+    });
+    leaveTheCanvas(page, scene, pointer);
+
+    await userEvent.click(page.getByRole('button', { name: 'Return to live' }));
+    await waitFor(() => expect(page.getByRole('button', { name: 'Replay from start' })).toBeEnabled());
+    await userEvent.keyboard('3');
+    expect(scene.style.cursor).toBe('default');
+    expect(session.transport.messages.some((message) => message.type === 'command')).toBe(false);
+
+    scene.dispatchEvent(new PointerEvent('pointermove', { ...pointer, clientX: clientX + 1 }));
+    await waitFor(() => expect(scene.style.cursor).toBe('pointer'));
+    await userEvent.keyboard('3');
+    await waitFor(() =>
+      expect(lastCommand()).toMatchObject({ type: 'command', action: { kind: 'spice-spawn', count: 3 } })
+    );
   },
 });
