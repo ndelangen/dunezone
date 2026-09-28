@@ -197,7 +197,7 @@ describe('isolated load limits in native workerd', () => {
     expect((await provision(runtime)).status).toBe(410);
   });
 
-  it('leaves no alarm when the retry alarm fires while the stop waits for the confirmation', async () => {
+  it('sends no retry and leaves no alarm when the retry alarm fires while the stop waits for the confirmation', async () => {
     const { pending, stopped, fail } = await stopWhileConfirming();
     await runtime.alarm(true);
     await eventually(async () => (await runtime.loadControl()).alarm === null, 'retry alarm fired');
@@ -210,6 +210,7 @@ describe('isolated load limits in native workerd', () => {
       alarm: null,
     });
     await pending;
+    expect(peer.confirmationRequests).toBe(1);
   });
 
   it('refuses an oversized HTTP body before forwarding it', async () => {
