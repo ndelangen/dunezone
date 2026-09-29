@@ -57,6 +57,7 @@ export class TableKeyboard {
   private supplyHovered = false;
   private drawTimer: ReturnType<typeof setTimeout> | null = null;
   private drawDigit: number | null = null;
+  private drawCode = '';
 
   bind(binding: Binding) {
     this.release();
@@ -104,8 +105,10 @@ export class TableKeyboard {
     }
   };
 
+  /* The physical key that started the draw ends it, whatever it types by then, as AZERTY's Shift+& does coming up as "&" once Shift is let go; without a code, the typed digit still does. */
   private keyUp = (event: KeyboardEvent) => {
-    if (this.drawDigit !== null && digitOf(event) === this.drawDigit) {
+    const sameKey = this.drawCode !== '' && event.code === this.drawCode;
+    if (this.drawDigit !== null && (sameKey || digitOf(event) === this.drawDigit)) {
       this.cancelDraw();
     }
   };
@@ -116,6 +119,7 @@ export class TableKeyboard {
       this.drawTimer = null;
     }
     this.drawDigit = null;
+    this.drawCode = '';
   };
 
   /* The hovered disc takes a digit, 0 meaning ten, while the viewer can act and holds no carry. */
@@ -191,9 +195,11 @@ export class TableKeyboard {
       return;
     }
     this.drawDigit = digit;
+    this.drawCode = event.code === 'Unidentified' ? '' : event.code;
     this.drawTimer = setTimeout(() => {
       this.drawTimer = null;
       this.drawDigit = null;
+      this.drawCode = '';
       this.binding?.read().splitSelected(digit, pieceId);
     }, DRAW_HOLD_MS);
   }
