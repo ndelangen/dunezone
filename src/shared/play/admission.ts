@@ -1,6 +1,5 @@
 import { z } from 'zod';
 
-import { loadProfileSchema } from './loadProfile';
 import { PHASE_CHANGE_COOLDOWN_MS } from './phases';
 import { tableSeatCountSchema } from './schema';
 
@@ -82,9 +81,7 @@ const validatedAttemptSchema = playPendingProvisionSchema.omit({ secret: true })
 /* A validated attempt is a fixture or a real game; a row that is neither is refused, never provisioned as a fixture. */
 export const playProvisioningValidationSchema = z.union([
   refusedSchema,
-  validatedAttemptSchema
-    .extend({ fixtureKey: z.literal(PLAY_FIXTURE_KEY), loadProfile: loadProfileSchema.optional() })
-    .strip(),
+  validatedAttemptSchema.extend({ fixtureKey: z.literal(PLAY_FIXTURE_KEY) }).strip(),
   validatedAttemptSchema.extend({ game: playGameProvisionSchema, provisional: z.boolean().optional() }).strip(),
 ]);
 export const playConfirmationSchema = z.object({ ok: z.boolean() });

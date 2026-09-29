@@ -4,10 +4,7 @@ import type { Doc, Id } from '../_generated/dataModel';
 import type { MutationCtx } from '../_generated/server';
 import { playCredential } from './playAuthorization';
 
-type PendingGameFields = Pick<
-  Doc<'play_games'>,
-  'fixture_key' | 'load_profile' | 'ruleset_id' | 'minimum_players' | 'creator_id'
->;
+type PendingGameFields = Pick<Doc<'play_games'>, 'fixture_key' | 'ruleset_id' | 'minimum_players' | 'creator_id'>;
 
 /**
  * One pending game record with fresh server-only credentials and its expiry, whether the record is a fixture or a real game.

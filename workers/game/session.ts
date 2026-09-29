@@ -16,7 +16,6 @@ import {
 } from '../../src/shared/play/drafting';
 import type { StoredSpawnContents } from '../../src/shared/play/inventory';
 import { emptyPublicControls } from '../../src/shared/play/inventory';
-import type { LoadProfile } from '../../src/shared/play/loadFixture';
 import { isSeatAction, seatSubject } from '../../src/shared/play/participation';
 import { composeTurn, lobbyPhaseIndex } from '../../src/shared/play/phases';
 import type { PhaseEntry } from '../../src/shared/play/phases';
@@ -38,7 +37,8 @@ import { CaptureStore } from './captures';
 import { Conversations } from './conversations';
 import { DirectoryOutbox } from './directory';
 import { applyDraftAction, assignmentEvents, draftWithCatalogue, unbiased } from './drafting';
-import { fixtureRoster, fixtureSnapshot } from './fixture';
+import { hostedFixturePlan } from './fixture';
+import type { FixturePlan } from './fixture';
 import { logContext, PublicLog } from './log';
 import type { SeatPlan } from './participation';
 import { ownRequests, Participation } from './participation';
@@ -80,7 +80,6 @@ export type Metadata = {
   attemptId: string;
   expiresAt: number;
   confirmed: boolean;
-  loadProfile?: LoadProfile;
   /* Stations around the rim, fixed when the seating is. A room from before this field reads its fixture plan. */
   seatCount?: TableRoster['seatCount'];
   /* A real game's fixed ruleset, minimum and creator; absent on a fixture. */
@@ -133,7 +132,11 @@ export class GameSession {
     this.roomProjection ??= new RoomProjection(this.metadata!.secret);
     return this.roomProjection;
   }
-  constructor(private readonly storage: DurableObjectStorage) {
+  constructor(
+    private readonly storage: DurableObjectStorage,
+    /* What a fixture room seats and lays out: the hosted fixture's, unless a load entry supplies its own. */
+    private readonly fixturePlan: FixturePlan = hostedFixturePlan
+  ) {
     this.log = new PublicLog(this.storage, () => (this.room ? logContext(this.room.snapshot) : 'Drafting'));
     this.actors = new ActorDirectory(this.storage, this.log);
     this.spiceLedger = new SpiceLedger(this.storage);
@@ -194,7 +197,7 @@ export class GameSession {
 
   private seatCount(): TableRoster['seatCount'] {
     const row = this.storage.sql.exec<{ data: string }>('SELECT data FROM metadata WHERE id=1').toArray()[0];
-    return (row && (JSON.parse(row.data) as Metadata).seatCount) ?? fixtureRoster(this.metadata?.loadProfile).seatCount;
+    return (row && (JSON.parse(row.data) as Metadata).seatCount) ?? this.fixturePlan.roster.seatCount;
   }
 
   /** The stored seating rides on every snapshot the room holds, as the current occupancy already does. */
@@ -239,7 +242,6 @@ export class GameSession {
   private openRoom(snapshot: StoredSnapshot): Room {
     return new Room(
       snapshot,
-      this.metadata?.loadProfile,
       () => this.actors.seats(),
       (userId) => this.actors.factionFor(userId),
       this.metadata?.fixtureDeck,
@@ -248,7 +250,7 @@ export class GameSession {
   }
 
   private isHostedFixture(metadata: Metadata) {
-    return !metadata.game && !metadata.loadProfile;
+    return !metadata.game && this.fixturePlan.hosted;
   }
 
   /** A real game retains only ready content; the isolated development path may retain provisional content and says so. */
@@ -278,7 +280,7 @@ export class GameSession {
     const game = provisioned.game;
     const roster: TableRoster = game
       ? { seatCount: game.minimumPlayers, seats: [{ id: CREATOR_SEAT, position: 0, faction: null }] }
-      : fixtureRoster(provisioned.loadProfile);
+      : this.fixturePlan.roster;
     const metadata: Metadata = {
       ...provisioned,
       seatCount: roster.seatCount,
@@ -290,7 +292,7 @@ export class GameSession {
           ...creatorSeated(emptySnapshot(), roster),
           draft: emptyDraft(game.minimumPlayers, factions ?? [], factions ? Date.now() : 0),
         })
-      : fixtureSnapshot(roster, metadata.loadProfile, metadata.fixtureDeck);
+      : this.fixturePlan.snapshot(roster, metadata.fixtureDeck);
     const data = JSON.stringify(snapshot);
     this.storage.transactionSync(() => {
       this.storage.sql.exec('INSERT INTO metadata VALUES (1, ?)', JSON.stringify(metadata));

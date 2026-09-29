@@ -3,7 +3,7 @@ import { expect, test } from 'vitest';
 import { assetPublishingFaction } from '../../src/shared/factions/fixtures/assetPublishingFaction';
 import { factionSupply, piece, place } from '../../src/shared/play/setupSupply';
 import { deckCommand } from './decks';
-import { fixtureRoster, fixtureSnapshot } from './fixture';
+import { hostedFixturePlan } from './fixture';
 import type { StoredSnapshot } from './state';
 
 const TRAITOR_BACK = 'https://table.test/published/cardback-presets/traitor/cardback.jpg';
@@ -62,7 +62,7 @@ test('a deal renames the deck it leaves by the word on its back, and a shuffle k
     },
     [6, 0, 6]
   );
-  const fixture = fixtureSnapshot(fixtureRoster());
+  const fixture = hostedFixturePlan.snapshot(hostedFixturePlan.roster);
   let snapshot: StoredSnapshot = { ...fixture, table: { ...fixture.table, pieces: [traitors, dreamrules] } };
   const label = (id: string) => snapshot.table.pieces.find((candidate) => candidate.id === id)?.label;
 
