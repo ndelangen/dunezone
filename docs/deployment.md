@@ -165,16 +165,26 @@ publisher asset build; use it only when that build already has the same local ba
 `--skip-generate` still builds but reuses the image and vector output already in the checkout, and
 refuses to start when that output is missing; the OBJ pieces are always regenerated.
 
-The `hosted_play` CI job runs `bun --no-env-file scripts/verify-hosted-play-stack.ts --skip-generate`.
+The `hosted_play` CI job runs `bun --no-env-file scripts/verify-hosted-play-stack.ts --skip-generate`
+in three shards, each on its own runner with its own stack, and `ci_ok` requires all three through
+`verify`. Each flow in [`scripts/verify-hosted-flows.ts`](../scripts/verify-hosted-flows.ts) names
+its shard, and each shard runs `--shard <name>`: `regular` runs the regular flow, `catalogue`
+public-controls and battles, and `protocol` private-banks, decks and results. The `regular` and
+`catalogue` shards add `--browser-only`; in the `protocol` shard the protocol verifier runs first on
+the same stack. Each shard passes `--browser` with Playwright's full Chromium rather than its headless
+shell, and `--expect-renderer webgl2-swiftshader`, the renderer that browser draws with on the Linux
+runner.
 The launcher passes `--skip-generate` to the runner, because the job's generated-images step has
-already restored the images and written the vectors. The job verifies the checksum of the pinned
+already restored the images and written the vectors. Each shard verifies the checksum of the pinned
 native Convex backend release, creates a fresh database, configures real local Auth, builds the app,
-then runs `scripts/verify-hosted-play.mjs` through both actual Workers. It passes no `--flow`, so the
-protocol verifier runs alone on that stack.
+then runs its verifiers through both actual Workers.
 No hosted deployment credentials or production snapshots are used. Its generated private keys,
-admin key, SQLite database and local Worker persistence are removed on exit; only the Worker output,
-Wrangler's own log for that Worker and the verification log are retained as artifacts. The same
-command runs locally on supported platforms.
+admin key, SQLite database and local Worker persistence are removed on exit. Each shard keeps its
+logs and browser reports as its own artifact for 14 days. Its step summary has a row for each of its
+flows, a flow that never started included, and one for the protocol verifier where it runs. A flow's
+row gives its result, seconds, renderer kind and Chromium build from its report. The same table is
+printed in the job log.
+The same command runs locally on supported platforms.
 For a protocol-only local rehearsal, leave out `--flow`. `--backend-binary` can then select an existing
 native executable and `--skip-build` can reuse the publisher bundle; that shortcut does not verify the
 bundle's frontend backend URL.
@@ -190,7 +200,8 @@ verifier first. It then runs each selected browser flow in turn through
 `scripts/verify-hosted-play-browser.mjs`. Before the flows it seeds a synthetic ruleset
 (`playTesting:seedRealGameCatalogue`) and installs its publication bytes; each flow signs in fresh
 accounts, none of them Administrators, and creates its own real game. `--flow` repeats, `all` selects every flow in
-[`scripts/verify-hosted-flows.ts`](../scripts/verify-hosted-flows.ts), and `--browser-only` without it
+[`scripts/verify-hosted-flows.ts`](../scripts/verify-hosted-flows.ts), `--shard <name>` selects the
+flows that file assigns to one CI shard in place of `--flow`, and `--browser-only` without either
 runs only the regular flow; the named flows are described under
 [Verification](./technical/play-hosted.md#verification). A failed verifier does not stop the flows
 after it, and the run fails at the end naming each failed verifier. A run with browser flows rebuilds the
