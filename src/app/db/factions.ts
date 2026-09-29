@@ -4,7 +4,7 @@ import { recalculateFactionComplexity } from '@shared/factions/complexity';
 import {
   CanonicalFactionClientSchema,
   CatalogueFactionClientSchema,
-  FactionInputSchema,
+  FactionWriteSchema,
 } from '@shared/factions/schema';
 import type { CatalogueFactionData } from '@shared/factions/schema';
 import type { FactionInput } from '@shared/factions/schema';
@@ -243,7 +243,7 @@ export function useFactionLoadPicker(options?: { initialData?: FactionLoadPicker
 /**
  * Creates a faction from an editor draft.
  * `mutate({ input, groupId })`, and `onSuccess` receives a `CreatedFactionEntry` carrying the `route_notice` the redirect needs.
- * The input is recalculated for complexity and re-parsed through `FactionInputSchema` on the way out, so a caller hands over its draft rather than a finished payload.
+ * The input is recalculated for complexity and re-parsed through `FactionWriteSchema` on the way out, so a caller hands over its draft rather than a finished payload.
  */
 export function useCreateFaction() {
   const mutation = useLiveMutation<
@@ -259,7 +259,7 @@ export function useCreateFaction() {
     ) =>
       mutation.mutate(
         {
-          data: FactionInputSchema.parse(recalculateFactionComplexity(variables.input)),
+          data: FactionWriteSchema.parse(recalculateFactionComplexity(variables.input)),
           ...(variables.groupId === undefined ? {} : { group_id: variables.groupId }),
         },
         {
@@ -268,7 +268,7 @@ export function useCreateFaction() {
         }
       ),
     mutateAsync: async ({ input, groupId }: { input: Faction; groupId?: string | null }) => {
-      const validatedData = FactionInputSchema.parse(recalculateFactionComplexity(input));
+      const validatedData = FactionWriteSchema.parse(recalculateFactionComplexity(input));
       const entry = await mutation.mutateAsync({
         data: validatedData,
         ...(groupId === undefined ? {} : { group_id: groupId }),
@@ -294,7 +294,7 @@ export function useUpdateFaction() {
       mutation.mutate(
         {
           id: variables.id,
-          data: FactionInputSchema.parse(recalculateFactionComplexity(variables.input)),
+          data: FactionWriteSchema.parse(recalculateFactionComplexity(variables.input)),
         },
         {
           onSuccess: (entry) => options?.onSuccess?.(toFactionEntry(entry)),
@@ -302,7 +302,7 @@ export function useUpdateFaction() {
         }
       ),
     mutateAsync: async ({ input, id }: { input: Faction; id: string }) => {
-      const validatedData = FactionInputSchema.parse(recalculateFactionComplexity(input));
+      const validatedData = FactionWriteSchema.parse(recalculateFactionComplexity(input));
       const entry = await mutation.mutateAsync({
         id,
         data: validatedData,
