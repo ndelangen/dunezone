@@ -5,6 +5,7 @@ import path from 'node:path';
 
 import { CLEARED_AFTER_CLONE } from '../convex/lib/provisioningContract';
 import schema from '../convex/schema';
+import { db as storybookDatabase } from '../src/app/db/storybook/database';
 
 /**
  * The unified provision pipeline (map #352, ticket #359).
@@ -12,7 +13,9 @@ import schema from '../convex/schema';
  * Every non-production environment is a derived value, rebuilt from (code, data source), never repaired.
  * The pipeline is five stages: backend → configure → code → data → users, parameterized per target:
  *
- * E2e docker backend, fixture data (users: Playwright logins) local docker backend, prod clone (users: A/B logins + remap, via app-dev) dev cloud dev deployment, prod clone (users: replicated prod identities)
+ * E2e: docker backend, fixture data (users: Playwright logins).
+ * Local: docker backend, fixture data, or a prod clone only when app-dev is asked for one (users: A/B logins, fixture seeds and remap, via app-dev).
+ * Dev: cloud dev deployment, prod clone (users: replicated prod identities).
  *
  * Invariants: data flows prod → down only;
  * CI invokes this same script;
@@ -327,7 +330,7 @@ export function pushCode(deployment: TargetDeployment, env: NodeJS.ProcessEnv) {
   targetConvex(deployment, ['dev', '--once'], env);
 }
 
-/** Data stage, fixtures flavor: reset the pure e2e database. */
+/** Data stage, fixtures flavor: reset the application tables, which the users stage then seeds. */
 export function loadFixtureData(deployment: SelfHostedDeployment, env: NodeJS.ProcessEnv) {
   targetConvex(deployment, ['run', 'e2e:clearAll', '{}'], env);
 }
@@ -462,8 +465,27 @@ function drainRemapBatches(fetchBatch: (cursor: string | null) => RemapBatchResu
   }
 }
 
+type SeedBaselineResult = { seeded: true } | { seeded: false; reason: string };
+
 /**
- * Users stage, local flavor: after the two local accounts exist, hand the cloned factions and groups to reviewer A (B stays a member) so the local review workflow keeps working on prod-shaped data (ticket #357).
+ * Users stage, local fixture flavor: once the two local accounts exist, seed the e2e baseline for reviewer A, the Storybook page-story baseline, and the synthetic Play catalogues.
+ * The e2e baseline clears every application table before it seeds, so it runs first.
+ * It reports a missing owner instead of throwing, so its result is checked here.
+ */
+export function seedLocalFixtureData(deployment: SelfHostedDeployment, env: NodeJS.ProcessEnv, ownerEmail: string) {
+  const baseline = runProvisioningMutation<SeedBaselineResult>(deployment, env, 'e2e:seedBaseline', { ownerEmail });
+  if (!baseline.seeded) {
+    throw new Error(`The e2e baseline was not seeded: ${baseline.reason}`);
+  }
+  runProvisioningMutation(deployment, env, 'provisioning:insertSeedDocuments', {
+    documents: JSON.stringify(storybookDatabase(() => undefined).create()),
+  });
+  runProvisioningMutation(deployment, env, 'playTesting:seedRealGameCatalogue', {});
+  runProvisioningMutation(deployment, env, 'playTesting:seedPublicCatalogue', {});
+}
+
+/**
+ * Users stage, local flavor: after the two local accounts exist, hand every faction and group to reviewer A (B stays a member) so the local review workflow keeps working on fixture or cloned data (ticket #357).
  */
 export function remapOwnershipToLocalUsers(
   deployment: SelfHostedDeployment,
@@ -580,12 +602,7 @@ async function resolveSelfHostedDeployment(
   return { kind: 'self-hosted', url, adminKey };
 }
 
-async function provisionSelfHosted(
-  target: 'e2e' | 'local',
-  stages: ProvisionStage[],
-  env: NodeJS.ProcessEnv,
-  workDirectory: string
-) {
+async function provisionSelfHosted(stages: ProvisionStage[], env: NodeJS.ProcessEnv, workDirectory: string) {
   const deployment = await resolveSelfHostedDeployment(stages, env, workDirectory);
   if (stages.includes('configure')) {
     console.log('Configuring local auth env vars...');
@@ -598,15 +615,11 @@ async function provisionSelfHosted(
     console.log('Deploying functions to the local backend...');
     pushCode(deployment, env);
   }
-  if (!stages.includes('data')) {
-    return;
-  }
-  if (target === 'e2e') {
-    console.log('Resetting e2e fixture data...');
+  if (stages.includes('data')) {
+    /* The local target's production clone belongs to `app:dev --local --clone-prod` alone. */
+    console.log('Resetting fixture data...');
     loadFixtureData(deployment, env);
-    return;
   }
-  cloneProductionData(deployment, env, workDirectory);
 }
 
 async function runCli(args: ProvisionArgs) {
@@ -625,7 +638,7 @@ async function runCli(args: ProvisionArgs) {
       "The local target is provisioned by 'bun run app:dev --local' (its users stage needs the running app). Pass explicit --stage flags for partial provisioning."
     );
   }
-  await provisionSelfHosted(args.target, args.stages, process.env, workDirectory);
+  await provisionSelfHosted(args.stages, process.env, workDirectory);
 }
 
 if (import.meta.main) {

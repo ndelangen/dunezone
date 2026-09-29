@@ -8,6 +8,7 @@ import { PageLayout } from '@ui/layout/PageLayout';
 import { lazy, Suspense } from 'react';
 
 import { useGameAccess } from '@db/play';
+import { pageHead } from '@app/routes/pageTitle';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 import { TableWait } from './TableWait';
@@ -31,7 +32,7 @@ export const Route = createFileRoute('/_app/play/$gameId')({
   loader: () => {
     void loadHostedTable();
   },
-  head: () => ({ meta: [{ title: 'Game | Dune Zone' }, { name: 'robots', content: 'noindex' }] }),
+  head: () => pageHead('Game', { noindex: true }),
   component: GamePage,
 });
 

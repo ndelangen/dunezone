@@ -806,6 +806,40 @@ describe('hosted table interaction', () => {
     expect(socket().sent.filter((message) => message.type === 'command')).toHaveLength(2);
   });
 
+  test('a flip holds only its own piece, and only the revision it animates releases it', async () => {
+    const client = await connected();
+    const flips = () =>
+      socket().sent.flatMap((message) =>
+        message.type === 'command' && message.action.kind === 'flip' ? [message.action.pieceId] : []
+      );
+    const snapshot = table(client).snapshot;
+    client.selectPiece('treachery-deck');
+    client.flipSelected();
+    const deckFlip = command().commandId;
+    client.flipSelected();
+    client.flipSelected('harkonnen-force-stack');
+    const stackFlip = command().commandId;
+    expect(flips()).toEqual(['treachery-deck', 'harkonnen-force-stack']);
+    const deckFlipped = nextSnapshot(
+      snapshot,
+      flipPieceInState(tableForViewer(snapshot, 'harkonnen'), 'treachery-deck')
+    );
+    socket().deliver(view({ snapshot: deckFlipped, completedCommandId: deckFlip }));
+    const bothFlipped = nextSnapshot(
+      deckFlipped,
+      flipPieceInState(tableForViewer(deckFlipped, 'harkonnen'), 'harkonnen-force-stack')
+    );
+    socket().deliver(view({ snapshot: bothFlipped, completedCommandId: stackFlip }));
+    for (const stale of [0, 2]) {
+      client.finishPieceFlip('treachery-deck', stale);
+    }
+    client.finishPieceFlip('harkonnen-force-stack', 1);
+    expect([...table(client).flippingPieceIds]).toEqual([['treachery-deck', 1]]);
+    client.flipSelected();
+    client.flipSelected('harkonnen-force-stack');
+    expect(flips()).toEqual(['treachery-deck', 'harkonnen-force-stack', 'harkonnen-force-stack']);
+  });
+
   test('rejection releases a pending flip without changing saved state', async () => {
     const client = await connected();
     client.flipSelected('treachery-deck');

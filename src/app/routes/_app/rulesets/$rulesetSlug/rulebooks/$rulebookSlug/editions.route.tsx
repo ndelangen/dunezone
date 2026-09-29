@@ -16,13 +16,12 @@ import { ArrowLeft, BookOpen, History } from 'lucide-react';
 
 import { loadRulebookEditionHistory, useRulebookEditionHistory } from '@db/rulebooks';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
+import { pageHead } from '@app/routes/pageTitle';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/rulebooks/$rulebookSlug/editions')({
   loader: ({ params }) => loadRulebookEditionHistory(params),
-  head: ({ loaderData }) => ({
-    meta: [{ title: `Editions of ${loaderData?.rulebook.name ?? 'Rulebook'} | Dune Zone` }],
-  }),
+  head: ({ loaderData }) => pageHead(loaderData ? `Editions of ${loaderData.rulebook.name}` : 'Editions'),
   errorComponent: RulebookEditionHistoryError,
   pendingComponent: () => (
     <PageMessage title="Editions">

@@ -17,7 +17,6 @@ import type { MutationCtx } from './_generated/server';
 import { internalMutation, mutation } from './functions';
 import { authenticatedPlayRequest } from './lib/playAuthorization';
 import { playerSummary } from './lib/playerSummary';
-import { createPendingGame } from './lib/playProvisioningSchedule';
 import { playRateLimiter } from './lib/playRateLimits';
 import { postPlayService } from './lib/playService';
 import { isSyntheticBackend } from './lib/playSynthetic';
@@ -29,11 +28,6 @@ function testPhaseCooldown() {
     return {};
   }
   return { testPhaseCooldownMs: playTestPhaseCooldownSchema.parse(Number(value)) };
-}
-
-async function createPendingFixture(ctx: MutationCtx) {
-  const gameId = await createPendingGame(ctx, { fixture_key: PLAY_FIXTURE_KEY });
-  return { gameId, state: 'pending' as const };
 }
 
 /** What the game Worker initializes a real game with: its fixed ruleset and minimum, and the creator who takes the first seat. */
@@ -79,32 +73,6 @@ async function authenticatedProvisionAttempt(
 function isPendingProvision(game: Doc<'play_games'>) {
   return game.state === 'pending' && Date.now() < game.provision_expires_at;
 }
-
-/** Operator-only Stage B singleton. Browser users cannot create games. */
-export const beginFixtureProvision = internalMutation({
-  args: {},
-  returns: v.object({ gameId: v.id('play_games'), state: v.union(v.literal('ready'), v.literal('pending')) }),
-  handler: async (ctx) => {
-    const ready = await ctx.db
-      .query('play_games')
-      .withIndex('by_fixture_key_state', (q) => q.eq('fixture_key', PLAY_FIXTURE_KEY).eq('state', 'ready'))
-      .unique();
-    if (ready) {
-      return { gameId: ready._id, state: 'ready' as const };
-    }
-    const pending = await ctx.db
-      .query('play_games')
-      .withIndex('by_fixture_key_state', (q) => q.eq('fixture_key', PLAY_FIXTURE_KEY).eq('state', 'pending'))
-      .unique();
-    if (pending && Date.now() < pending.provision_expires_at) {
-      return { gameId: pending._id, state: 'pending' as const };
-    }
-    if (pending) {
-      await ctx.db.patch(pending._id, { state: 'expired' });
-    }
-    return await createPendingFixture(ctx);
-  },
-});
 
 export const provisioningRequest = internalQuery({
   args: { gameId: v.id('play_games') },

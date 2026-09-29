@@ -24,9 +24,12 @@ import {
 } from 'lucide-react';
 import type { ReactNode } from 'react';
 
+import { pageHead } from '@app/routes/pageTitle';
+
 import styles from './index.module.css';
 
 export const Route = createFileRoute('/_app/future-plans/')({
+  head: () => pageHead('Future plans'),
   component: FuturePlansPage,
 });
 
