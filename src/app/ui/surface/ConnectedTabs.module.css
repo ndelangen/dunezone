@@ -158,7 +158,7 @@ html[data-mantine-color-scheme="dark"] .mobileItemIcon img {
   outline-offset: 0.3rem;
 }
 
-@container connected-tabs (max-width: 34rem) {
+@container connected-tabs (width < 30rem) {
   .root {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
@@ -327,7 +327,7 @@ html[data-mantine-color-scheme="dark"] .mobileItemIcon img {
   max-height: 1.25rem;
 }
 
-@container connected-tabs (max-width: 46rem) {
+@container connected-tabs (width < 48rem) {
   .root {
     --connected-tabs-rail-width: 9.25rem;
     --connected-tabs-panel-padding: var(--space-md);

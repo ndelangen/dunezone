@@ -248,7 +248,8 @@
   transform: translateX(-50%);
 }
 
-@container faction-review-plane (min-width: 56rem) and (min-height: 34rem) {
+/* Stays off the ladder because Norbert plans to redesign this screen, 29 September 2026 (#1321). */
+@container faction-review-plane (width >= 56rem) and (height >= 34rem) {
   .sheetScroller {
     overflow: hidden;
   }

@@ -115,6 +115,7 @@
   transform-origin: top center;
 }
 
+/* Stays off the ladder with the workbench's narrow step, because Norbert judged the ladder's 48rem worse on 29 September 2026 (#1321). */
 @container workbench (max-width: 44rem) {
   .editorFields {
     grid-template-columns: 1fr;
