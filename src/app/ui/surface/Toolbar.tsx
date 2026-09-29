@@ -16,13 +16,14 @@ type ToolbarSlotProps = PropsWithChildren<{
 /**
  * What a run of actions on the right edge is for.
  * The kit, not the page, decides the order they stand in, so every toolbar reads left to right the same way:
+ * `about` is the page's statuses behind one `StatusInfo`, first, and it never folds.
  * `content` works on what the page shows (create, add, open, preview, fit), `access` changes who may touch it (group assignment, membership), `discard` throws work away (reset, delete), and `commit` keeps it (publish, save), last and nearest the edge.
  */
-type ToolbarClusterKind = 'content' | 'access' | 'discard' | 'commit';
+type ToolbarClusterKind = 'about' | 'content' | 'access' | 'discard' | 'commit';
 
-const CLUSTER_ORDER: readonly ToolbarClusterKind[] = ['content', 'access', 'discard', 'commit'];
+const CLUSTER_ORDER: readonly ToolbarClusterKind[] = ['about', 'content', 'access', 'discard', 'commit'];
 
-/* Which runs give way first when the band runs out of room: the rarest first, and never the commit run, which is why an editor is open at all. */
+/* Which runs give way first when the band runs out of room: the rarest first, and never the commit run, which is why an editor is open at all, nor the one action that holds the page's statuses. */
 const OVERFLOW_ORDER: readonly ToolbarClusterKind[] = ['discard', 'access', 'content'];
 
 type ToolbarClusterProps = PropsWithChildren<{ kind: ToolbarClusterKind }>;
@@ -47,18 +48,21 @@ function Cluster({ children }: ToolbarClusterProps) {
  * A pane of controls, divided into what leads, what labels, and what acts.
  *
  * Callers own the controls.
- * This owns the band they sit in: the pane, its gutter, the three positions, the order and dividers of the actions, and what happens when they do not fit.
+ * This owns the band they sit in: the pane, its gutter, the three positions, the order and spacing of the actions, and what happens when they do not fit.
  * `Left` and `Right` share the remaining width and pull to their outer edges, while `Center` takes only the room it needs.
  *
  * Every page toolbar reads the same way (Norbert, 2026-09-29).
  * `Left` is where you go: Back to the page above first, then the switch between reading and editing this thing (Edit on a detail page), and nothing else.
  * `Center` holds the controls that shape what the page lists, as one `SearchRefine`, or an editor's one live indicator, and is empty otherwise.
- * `Right` is what you can do here, handed over as `Toolbar.Cluster`s: the kit stands them in the order `ToolbarClusterKind` states and draws a thin divider between them, so a page cannot put delete before create.
+ * `Right` is what you can do here, handed over as `Toolbar.Cluster`s: the kit stands them in the order `ToolbarClusterKind` states with a wider gap between them, so a page cannot put delete before create.
+ * One thin divider stands before the commit run alone, since keeping the work is the one step apart from the rest.
+ * More lines than that read as clutter (Norbert, 2026-09-29).
  * Every action is an icon with its words in the tooltip, `size="lg"` with a 17px glyph.
  * Green (`intent="positive"`, `emphasis="strong"`) is kept for what creates or saves, violet (`intent="publish"`) for publishing, red (`negative`) for what destroys, and everything else is `standard`.
  *
- * A toolbar carries no statuses and no facts.
- * Facts about the page belong in its header, and the state of the work belongs on the action it concerns: Save wears the save state, and an action that cannot run says why in its own tooltip (`disabledReason`).
+ * A toolbar shows no statuses and no facts in its row.
+ * The page's statuses sit behind one info action, `StatusInfo` in the `about` cluster, which lists them all (Norbert, 2026-09-29).
+ * The state of the work also shows on the action it concerns: Save wears the save state, and an action that cannot run says why in its own tooltip (`disabledReason`).
  *
  * The band never grows taller than one row of actions, at any width.
  * When the actions do not fit, whole clusters fold into a More actions menu before the commit run, the rarest first (discard, then access, then content), and they come back when the room does.
@@ -93,7 +97,7 @@ type ClusterRun = { kind: ToolbarClusterKind; children: ReactNode; size: number 
 /*
  * The right edge's children as runs in reading order.
  * Anything handed over loose, outside a cluster, counts as `content`, so a single action needs no wrapper.
- * A run with nothing in it is dropped, so no divider stands beside an empty space.
+ * A run with nothing in it is dropped, so no gap stands beside an empty space.
  */
 function clusterRuns(children: ReactNode): ClusterRun[] {
   const byKind = new Map<ToolbarClusterKind, ReactNode[]>();
@@ -126,7 +130,7 @@ function clusterRuns(children: ReactNode): ClusterRun[] {
 function Runs({ runs }: { runs: ClusterRun[] }) {
   return runs.map((run, index) => (
     <Fragment key={run.kind}>
-      {index > 0 ? <span className={styles.divider} aria-hidden /> : null}
+      {index > 0 ? <span className={styles.gap} aria-hidden /> : null}
       {run.children}
     </Fragment>
   ));
@@ -286,7 +290,7 @@ const ToolbarBase = ({ className, children }: ToolbarProps) => {
           <Runs runs={before} />
           {hidden.length > 0 ? (
             <>
-              {before.length > 0 ? <span className={styles.divider} aria-hidden /> : null}
+              {before.length > 0 ? <span className={styles.gap} aria-hidden /> : null}
               <OverflowMenu runs={hidden} />
             </>
           ) : null}

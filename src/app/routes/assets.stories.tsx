@@ -347,27 +347,32 @@ const DECK_EDIT_STATUSES = ['No unsaved changes'];
 export const EditDeckToolbarAt360 = meta.story({
   args: { path: '/assets/deck/house-treachery/edit' },
   globals: { viewport: { value: 'appMobileNarrow' } },
-  play: async ({ canvasElement }) => await expectToolbarOnOneLine(canvasElement, { saveDescribes: DECK_EDIT_STATUSES }),
+  play: async ({ canvasElement }) =>
+    await expectToolbarOnOneLine(canvasElement, { statusDescribes: DECK_EDIT_STATUSES }),
 });
 export const EditDeckToolbarAt390 = meta.story({
   args: { path: '/assets/deck/house-treachery/edit' },
   globals: { viewport: { value: 'appMobile' } },
-  play: async ({ canvasElement }) => await expectToolbarOnOneLine(canvasElement, { saveDescribes: DECK_EDIT_STATUSES }),
+  play: async ({ canvasElement }) =>
+    await expectToolbarOnOneLine(canvasElement, { statusDescribes: DECK_EDIT_STATUSES }),
 });
 export const EditDeckToolbarAt768 = meta.story({
   args: { path: '/assets/deck/house-treachery/edit' },
   globals: { viewport: { value: 'appTablet' } },
-  play: async ({ canvasElement }) => await expectToolbarOnOneLine(canvasElement, { saveDescribes: DECK_EDIT_STATUSES }),
+  play: async ({ canvasElement }) =>
+    await expectToolbarOnOneLine(canvasElement, { statusDescribes: DECK_EDIT_STATUSES }),
 });
 export const EditDeckToolbarAt1100 = meta.story({
   args: { path: '/assets/deck/house-treachery/edit' },
   globals: { viewport: { value: 'appLaptop' } },
-  play: async ({ canvasElement }) => await expectToolbarOnOneLine(canvasElement, { saveDescribes: DECK_EDIT_STATUSES }),
+  play: async ({ canvasElement }) =>
+    await expectToolbarOnOneLine(canvasElement, { statusDescribes: DECK_EDIT_STATUSES }),
 });
 export const EditDeckToolbarAt1440 = meta.story({
   args: { path: '/assets/deck/house-treachery/edit' },
   globals: { viewport: { value: 'appLarge' } },
-  play: async ({ canvasElement }) => await expectToolbarOnOneLine(canvasElement, { saveDescribes: DECK_EDIT_STATUSES }),
+  play: async ({ canvasElement }) =>
+    await expectToolbarOnOneLine(canvasElement, { statusDescribes: DECK_EDIT_STATUSES }),
 });
 
 /* The spice card pages, the second live card type. */

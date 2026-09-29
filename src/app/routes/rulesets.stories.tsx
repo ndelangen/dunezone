@@ -60,31 +60,31 @@ export const EditToolbarAt360 = meta.story({
   args: { path: '/rulesets/classicrules/edit' },
   globals: { viewport: { value: 'appMobileNarrow' } },
   play: async ({ canvasElement }) =>
-    await expectToolbarOnOneLine(canvasElement, { saveDescribes: ['No unsaved changes'] }),
+    await expectToolbarOnOneLine(canvasElement, { statusDescribes: ['No unsaved changes'] }),
 });
 export const EditToolbarAt390 = meta.story({
   args: { path: '/rulesets/classicrules/edit' },
   globals: { viewport: { value: 'appMobile' } },
   play: async ({ canvasElement }) =>
-    await expectToolbarOnOneLine(canvasElement, { saveDescribes: ['No unsaved changes'] }),
+    await expectToolbarOnOneLine(canvasElement, { statusDescribes: ['No unsaved changes'] }),
 });
 export const EditToolbarAt768 = meta.story({
   args: { path: '/rulesets/classicrules/edit' },
   globals: { viewport: { value: 'appTablet' } },
   play: async ({ canvasElement }) =>
-    await expectToolbarOnOneLine(canvasElement, { saveDescribes: ['No unsaved changes'] }),
+    await expectToolbarOnOneLine(canvasElement, { statusDescribes: ['No unsaved changes'] }),
 });
 export const EditToolbarAt1100 = meta.story({
   args: { path: '/rulesets/classicrules/edit' },
   globals: { viewport: { value: 'appLaptop' } },
   play: async ({ canvasElement }) =>
-    await expectToolbarOnOneLine(canvasElement, { saveDescribes: ['No unsaved changes'] }),
+    await expectToolbarOnOneLine(canvasElement, { statusDescribes: ['No unsaved changes'] }),
 });
 export const EditToolbarAt1440 = meta.story({
   args: { path: '/rulesets/classicrules/edit' },
   globals: { viewport: { value: 'appLarge' } },
   play: async ({ canvasElement }) =>
-    await expectToolbarOnOneLine(canvasElement, { saveDescribes: ['No unsaved changes'] }),
+    await expectToolbarOnOneLine(canvasElement, { statusDescribes: ['No unsaved changes'] }),
 });
 
 /**

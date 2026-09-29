@@ -15,7 +15,7 @@ import { useReducer } from 'react';
 
 import { useSessionViewer } from '@db/profiles';
 import { useCreateRuleset } from '@db/rulesets';
-import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
+import { AuthoringToolbar, failureStatus } from '@app/widgets/authoring/AuthoringToolbar';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
@@ -103,7 +103,7 @@ function CreateRulesetForm() {
             }),
             onBack: () => navigate({ to: '/rulesets' }),
           }}
-          notes={[createRuleset.error?.message]}
+          statuses={[failureStatus(createRuleset.error?.message)]}
         />
       </PageLayout.Toolbar>
       <PageLayout.Content>

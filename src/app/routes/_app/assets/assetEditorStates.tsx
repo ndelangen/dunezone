@@ -5,6 +5,7 @@ import { NotAvailable } from '@ui/block/NotAvailable';
 import { AssignOptions, AssignPopover } from '@ui/control/AssignPopover';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { IconAction } from '@ui/control/IconAction';
+import type { StatusInfoItem } from '@ui/control/StatusInfo';
 import { UserRoundMinus, UsersRound } from 'lucide-react';
 import { useState } from 'react';
 import type { ReactNode } from 'react';
@@ -15,6 +16,7 @@ import { mutationErrorMessage } from '@app/db/core/mutationError';
 import { AssetNameInput } from '@app/pickers/AssetNameInput';
 import { nameConflictComplaint } from '@app/pickers/UniqueNameInput';
 import type { NameConflict } from '@app/pickers/UniqueNameInput';
+import { groupAccessStatus } from '@app/widgets/authoring/AuthoringToolbar';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 /**
@@ -154,7 +156,7 @@ export function useAssetGroupActions({
     viewerAccess: NonNullable<AssetPageData>['viewerAccess'];
     assignableGroups: NonNullable<AssetPageData>['assignableGroups'];
   };
-}): { accessActions: ReactNode; error: ReactNode } {
+}): { accessActions: ReactNode; status: StatusInfoItem; error: ReactNode } {
   const setAssetGroup = useSetAssetGroup();
   const { assignedGroup, capabilities } = access.viewerAccess;
 
@@ -192,6 +194,7 @@ export function useAssetGroupActions({
 
   return {
     accessActions,
+    status: groupAccessStatus(assignedGroup?.name ?? null),
     error: setAssetGroup.error ? (
       <Alert color="red" variant="light" role="alert" title="Could not change group">
         {setAssetGroup.error.message}

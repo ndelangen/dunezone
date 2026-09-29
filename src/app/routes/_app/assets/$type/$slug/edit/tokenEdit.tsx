@@ -238,6 +238,7 @@ function TokenEditSession({
             onBack: () => void navigate({ to: '/assets/$type/$slug', params: { type, slug: asset.slug } }),
           }}
           accessActions={groupActions.accessActions}
+          statuses={[groupActions.status]}
           destructiveActions={
             access.viewerAccess.capabilities.delete ? (
               <ConfirmDeleteAction label="Delete token" pending={deletion.pending} onConfirm={deletion.confirm} />

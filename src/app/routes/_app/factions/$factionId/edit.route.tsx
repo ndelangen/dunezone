@@ -17,14 +17,14 @@ import { useDeleteFaction, useFaction, useSetFactionGroup, useUpdateFaction } fr
 import { loadFaction } from '@db/factions';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
 import { resolveRouteNotice } from '@app/routes/routeNotices';
-import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
+import { AuthoringToolbar, groupAccessStatus } from '@app/widgets/authoring/AuthoringToolbar';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import { FactionComplexityIndicator } from '@app/widgets/faction-editor/FactionComplexityIndicator';
 import { FactionEditor } from '@app/widgets/faction-editor/FactionEditor';
 import type { FactionAuthoringViewHandle } from '@app/widgets/faction-editor/FactionEditor';
 import { FactionGroupPopover } from '@app/widgets/faction-editor/FactionGroupPopover';
 import { FactionLoadPopover } from '@app/widgets/faction-editor/FactionLoadPopover';
-import { factionPublicationNote } from '@app/widgets/faction-editor/FactionPublicationStatus';
+import { factionPublicationStatus } from '@app/widgets/faction-editor/factionPublicationStatus';
 import { useFactionAuthoring } from '@app/widgets/faction-editor/useFactionAuthoring';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
@@ -212,7 +212,7 @@ function FactionEditPage() {
               ) : null}
             </>
           }
-          notes={[factionPublicationNote(assetPublishing)]}
+          statuses={[factionPublicationStatus(assetPublishing), groupAccessStatus(assignedGroup?.name ?? null)]}
           destructiveActions={
             canDelete ? (
               <ConfirmDeleteAction

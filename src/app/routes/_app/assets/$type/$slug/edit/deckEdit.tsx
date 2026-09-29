@@ -305,6 +305,7 @@ function DeckEditSession({
             </>
           }
           accessActions={groupActions.accessActions}
+          statuses={[groupActions.status]}
           destructiveActions={
             access.viewerAccess.capabilities.delete ? (
               <ConfirmDeleteAction label="Delete deck" pending={deletion.pending} onConfirm={deletion.confirm} />

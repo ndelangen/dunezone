@@ -208,6 +208,7 @@ function BundleEditSession({
             onBack: () => void navigate({ to: '/assets/$type/$slug', params: { type: 'bundle', slug: asset.slug } }),
           }}
           accessActions={groupActions.accessActions}
+          statuses={[groupActions.status]}
           destructiveActions={
             access.viewerAccess.capabilities.delete ? (
               <ConfirmDeleteAction label="Delete bundle" pending={deletion.pending} onConfirm={deletion.confirm} />

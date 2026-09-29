@@ -1,9 +1,9 @@
 import preview from '@sb/preview';
 import { IconAction } from '@ui/control/IconAction';
-import { UserRoundMinus } from 'lucide-react';
+import { History, UserRoundMinus } from 'lucide-react';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
-import { AuthoringToolbar } from './AuthoringToolbar';
+import { AuthoringToolbar, failureStatus, groupAccessStatus } from './AuthoringToolbar';
 
 const toolbarActions = {
   onSave: () => undefined,
@@ -51,7 +51,7 @@ const meta = preview.meta({
   },
 });
 
-/** Back, then Reset, then Save last. No status marks: Save says there is nothing to save. */
+/** Back, then the status action, then Reset, then Save last. No status marks in the row: Save says there is nothing to save. */
 export const Clean = meta.story({
   args: cleanToolbar,
   play: async ({ canvasElement }) => {
@@ -62,11 +62,18 @@ export const Clean = meta.story({
 });
 
 /**
- * A faction mid-edit with a capture queued: Save wears a dot, and its hover text says there are unsaved changes, then where the publication has got to.
- * The same words sit in a live region, which is what a screen reader announces when they change.
+ * A faction mid-edit with a capture queued: Save wears a dot and says there are unsaved changes.
+ * The status action lists the save state, where the publication has got to, and which Group has access.
  */
-export const UnsavedWithNotes = meta.story({
-  args: { ...cleanToolbar, status: { ...cleanStatus, isDirty: true }, notes: [SCHEDULED] },
+export const UnsavedWithStatuses = meta.story({
+  args: {
+    ...cleanToolbar,
+    status: { ...cleanStatus, isDirty: true },
+    statuses: [
+      { tone: 'pending', icon: <History size={16} aria-hidden />, label: SCHEDULED },
+      groupAccessStatus('Arrakeen Rules Council'),
+    ],
+  },
   globals: { viewport: { value: 'appLarge' } },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
@@ -76,8 +83,13 @@ export const UnsavedWithNotes = meta.story({
     /* The tooltip mounts transparent and fades in, so visibility is waited for rather than read once. */
     await waitFor(() => expect(tooltip).toBeVisible());
     await expect(tooltip).toHaveTextContent('Unsaved changes');
-    await expect(tooltip).toHaveTextContent(SCHEDULED);
-    await expect(page.getByRole('status')).toHaveTextContent(`Unsaved changes ${SCHEDULED}`);
+    await expect(page.getByRole('status')).toHaveTextContent('Unsaved changes');
+    const info = page.getByRole('button', { name: 'Status' });
+    await expect(info).toHaveAccessibleDescription(`Unsaved changes ${SCHEDULED} Group access: Arrakeen Rules Council`);
+    await userEvent.click(info);
+    const list = await page.findByRole('dialog', { name: 'Status' });
+    await expect(list).toHaveTextContent(SCHEDULED);
+    await expect(list).toHaveTextContent('Group access: Arrakeen Rules Council');
   },
 });
 
@@ -93,7 +105,7 @@ export const NameBlank = meta.story({
   },
 });
 
-/** The ruleset editor after the server refused a rename: Save turns red, and its hover text says why. */
+/** The ruleset editor after the server refused a rename: Save turns red, and its hover text and the status list say why. */
 export const SaveFailed = meta.story({
   args: {
     ...cleanToolbar,
@@ -102,7 +114,13 @@ export const SaveFailed = meta.story({
       saveLabel: 'Save ruleset',
       nameBlankMessage: 'Add a ruleset name before saving; it determines the ruleset URL.',
     },
-    notes: ['Ruleset name already exists'],
+    statuses: [failureStatus('Ruleset name already exists')],
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.getByRole('button', { name: 'Save ruleset' })).toHaveAccessibleDescription(
+      'Save failed. Your changes are still here; press to try again. Ruleset name already exists'
+    );
   },
 });
 

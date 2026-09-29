@@ -310,38 +310,37 @@ const FACTION_EDIT_STATUSES = ['No unsaved changes', 'The public asset will be a
 
 /**
  * The faction editor's toolbar at a phone, tablet, laptop and desktop width, on one line at each (#1423).
- * The seeded faction states two things at rest, both on Save: nothing unsaved, and no publication yet.
- * Its Group is named by the Remove group action rather than by a status (Norbert, 2026-09-29).
+ * The seeded faction states two things at rest, both behind the Status action: nothing unsaved, and no publication yet.
  */
 export const EditToolbarAt360 = meta.story({
   args: { path: '/factions/house-atreides/edit' },
   globals: { viewport: { value: 'appMobileNarrow' } },
   play: async ({ canvasElement }) =>
-    await expectToolbarOnOneLine(canvasElement, { saveDescribes: FACTION_EDIT_STATUSES }),
+    await expectToolbarOnOneLine(canvasElement, { statusDescribes: FACTION_EDIT_STATUSES }),
 });
 export const EditToolbarAt390 = meta.story({
   args: { path: '/factions/house-atreides/edit' },
   globals: { viewport: { value: 'appMobile' } },
   play: async ({ canvasElement }) =>
-    await expectToolbarOnOneLine(canvasElement, { saveDescribes: FACTION_EDIT_STATUSES }),
+    await expectToolbarOnOneLine(canvasElement, { statusDescribes: FACTION_EDIT_STATUSES }),
 });
 export const EditToolbarAt768 = meta.story({
   args: { path: '/factions/house-atreides/edit' },
   globals: { viewport: { value: 'appTablet' } },
   play: async ({ canvasElement }) =>
-    await expectToolbarOnOneLine(canvasElement, { saveDescribes: FACTION_EDIT_STATUSES }),
+    await expectToolbarOnOneLine(canvasElement, { statusDescribes: FACTION_EDIT_STATUSES }),
 });
 export const EditToolbarAt1100 = meta.story({
   args: { path: '/factions/house-atreides/edit' },
   globals: { viewport: { value: 'appLaptop' } },
   play: async ({ canvasElement }) =>
-    await expectToolbarOnOneLine(canvasElement, { saveDescribes: FACTION_EDIT_STATUSES }),
+    await expectToolbarOnOneLine(canvasElement, { statusDescribes: FACTION_EDIT_STATUSES }),
 });
 export const EditToolbarAt1440 = meta.story({
   args: { path: '/factions/house-atreides/edit' },
   globals: { viewport: { value: 'appLarge' } },
   play: async ({ canvasElement }) =>
-    await expectToolbarOnOneLine(canvasElement, { saveDescribes: FACTION_EDIT_STATUSES }),
+    await expectToolbarOnOneLine(canvasElement, { statusDescribes: FACTION_EDIT_STATUSES }),
 });
 
 /**
@@ -355,7 +354,7 @@ export const EditToolbarWithBlankNameAt552 = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     await userEvent.clear(await page.findByRole('textbox', { name: 'Faction name' }, { timeout: 30_000 }));
     await expectToolbarOnOneLine(canvasElement, {
-      saveDescribes: [
+      statusDescribes: [
         'Unsaved changes',
         'Add a faction name before saving; it determines the faction URL.',
         'The public asset will be available soon.',

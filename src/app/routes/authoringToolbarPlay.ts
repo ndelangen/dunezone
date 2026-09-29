@@ -93,13 +93,15 @@ export async function findSave(canvasElement: HTMLElement): Promise<HTMLElement>
 
 export async function expectToolbarOnOneLine(
   canvasElement: HTMLElement,
-  { saveDescribes }: { saveDescribes: string[] }
+  { statusDescribes }: { statusDescribes: string[] }
 ) {
   const page = within(canvasElement.ownerDocument.body);
   const back = await page.findByRole('button', { name: 'Back' }, TIMEOUT);
   const save = await findSave(canvasElement);
-  for (const words of saveDescribes) {
-    await expect(save).toHaveAccessibleDescription(expect.stringContaining(words));
+  /* The statuses sit behind the one info action, whose description holds all their words. */
+  const status = page.getByRole('button', { name: 'Status' });
+  for (const words of statusDescribes) {
+    await expect(status).toHaveAccessibleDescription(expect.stringContaining(words));
   }
 
   await canvasElement.ownerDocument.fonts.ready;

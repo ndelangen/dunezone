@@ -40,7 +40,13 @@
   justify-content: flex-end;
 }
 
-/* Between two runs of actions of different kinds, so the order the kit imposes can be seen. */
+/* Between two runs of actions of different kinds: no line, only the band's gap twice over, so the runs read as groups. */
+.gap {
+  flex: 0 0 auto;
+  width: 0;
+}
+
+/* Before the commit run only, which is the one step apart from the rest. */
 .divider {
   flex: 0 0 auto;
   align-self: center;
@@ -50,7 +56,7 @@
   background: var(--mantine-color-default-border);
 }
 
-/* The folded runs, still one row of the same tiles, with the same dividers between them. */
+/* The folded runs, still one row of the same tiles, with the same gaps between them. */
 .overflow {
   display: flex;
   align-items: center;

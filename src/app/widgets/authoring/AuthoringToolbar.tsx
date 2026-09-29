@@ -1,10 +1,13 @@
 import { VisuallyHidden } from '@mantine/core';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
+import { TopicIcon } from '@ui/content/TopicIcon';
 import { IconAction } from '@ui/control/IconAction';
 import { SaveAction } from '@ui/control/SaveAction';
 import type { SaveActionState } from '@ui/control/SaveAction';
+import { StatusInfo } from '@ui/control/StatusInfo';
+import type { StatusInfoItem } from '@ui/control/StatusInfo';
 import { Toolbar } from '@ui/surface/Toolbar';
-import { ArrowLeft, Eye, RotateCcw } from 'lucide-react';
+import { ArrowLeft, Check, CircleAlert, Eye, PencilLine, RotateCcw, Save } from 'lucide-react';
 import { useId } from 'react';
 import type { ReactNode } from 'react';
 
@@ -24,6 +27,34 @@ function saveStateWords(saveState: AuthoringSaveState, isDirty: boolean): string
     default:
       return 'No unsaved changes';
   }
+}
+
+/* The same state as a status in the page's list, with a glyph that matches what Save wears. */
+function saveStateStatus(saveState: AuthoringSaveState, isDirty: boolean): StatusInfoItem {
+  const label = saveStateWords(saveState, isDirty);
+  switch (true) {
+    case saveState === 'saving':
+      return { tone: 'progress', icon: <Save size={16} aria-hidden />, label };
+    case saveState === 'error':
+      return { tone: 'negative', icon: <CircleAlert size={16} aria-hidden />, label };
+    case isDirty:
+      return { tone: 'caution', icon: <PencilLine size={16} aria-hidden />, label };
+    default:
+      return { tone: 'positive', icon: <Check size={16} aria-hidden />, label };
+  }
+}
+
+/** Which Group may edit the thing, as a status every editor with group access states the same way. */
+export function groupAccessStatus(groupName: string | null): StatusInfoItem {
+  return {
+    icon: <TopicIcon topic="groups" size={16} />,
+    label: groupName == null ? 'No group has access.' : `Group access: ${groupName}`,
+  };
+}
+
+/** Why a request failed, as a status; Save states it too. */
+export function failureStatus(message: string | null | undefined): StatusInfoItem | null {
+  return message ? { tone: 'negative', icon: <CircleAlert size={16} aria-hidden />, label: message } : null;
 }
 
 export interface AuthoringStatus {
@@ -52,9 +83,10 @@ export interface AuthoringToolbarActions {
  * The edit-page toolbar every authoring surface installs identically: Back on the left, and on the right the editor's own actions, then reset and delete, then Save last.
  * It follows the page toolbar rules `Toolbar` states, so an editor's bar reads like a detail page's (Norbert, 2026-09-29).
  *
- * It carries no status marks.
- * Save wears where the work stands: a dot while there are unsaved changes, a spinner while saving, a check once saved, red when a save failed, and disabled with the reason on hover while a blank name or a refused value blocks it.
- * Its hover text says the same in words, followed by the page's own `notes`, such as where a publication has got to.
+ * Its row carries no status marks.
+ * The statuses sit behind one info action first on the right: the save state, what blocks a save, and the page's own `statuses`, such as where a publication has got to or which Group has access.
+ * Save also wears where the work stands: a dot while there are unsaved changes, a spinner while saving, a check once saved, red when a save failed, and disabled with the reason on hover while a blank name or a refused value blocks it.
+ * Its hover text says the same in words, followed by any failing status of the page's, such as why the server refused the last save.
  * Those words also sit in a live region, so a screen reader hears each change, such as Saving and then Saved, and they are Save's accessible description.
  *
  * It carries no warning count and no standing explanation of what saving does.
@@ -69,7 +101,7 @@ export function AuthoringToolbar({
   review,
   auxiliaryActions,
   accessActions,
-  notes,
+  statuses,
   destructiveActions,
   centerIndicator,
 }: {
@@ -82,8 +114,8 @@ export function AuthoringToolbar({
   auxiliaryActions?: ReactNode;
   /** Who may touch the thing: assigning or removing its Group. */
   accessActions?: ReactNode;
-  /** Sentences Save states after its own state, such as where the publication has got to or why the server refused the last save. */
-  notes?: readonly (string | null | undefined | false)[];
+  /** The page's own statuses, listed after the save state: where the publication has got to, which Group has access, why the server refused the last save. A failing one is also stated on Save. */
+  statuses?: readonly (StatusInfoItem | null | undefined | false)[];
   destructiveActions?: ReactNode;
   centerIndicator?: ReactNode;
 }) {
@@ -91,7 +123,12 @@ export function AuthoringToolbar({
   const { onSave, onReset, onBack } = actions;
   const stateWords = saveStateWords(saveState, isDirty);
   const blocker = isNameBlank ? copy.nameBlankMessage : (invalid ?? null);
-  const lines = [stateWords, blocker, ...(notes ?? [])].filter((line): line is string => Boolean(line));
+  const pageStatuses = (statuses ?? []).filter((item): item is StatusInfoItem => Boolean(item));
+  const failures = pageStatuses.filter((item) => item.tone === 'negative').map((item) => item.label);
+  const lines = [stateWords, blocker, ...failures].filter((line): line is string => Boolean(line));
+  const blockerStatus: StatusInfoItem | null = blocker
+    ? { tone: 'negative', icon: <CircleAlert size={16} aria-hidden />, label: blocker }
+    : null;
   const describedBy = useId();
   const saveShows: SaveActionState =
     saveState === 'saving'
@@ -125,6 +162,12 @@ export function AuthoringToolbar({
         <Toolbar.Center>{centerIndicator}</Toolbar.Center>
 
         <Toolbar.Right label="Editing actions">
+          <Toolbar.Cluster kind="about">
+            <StatusInfo
+              label="Status"
+              statuses={[saveStateStatus(saveState, isDirty), blockerStatus, ...pageStatuses]}
+            />
+          </Toolbar.Cluster>
           <Toolbar.Cluster kind="content">
             {auxiliaryActions}
             {review ? (

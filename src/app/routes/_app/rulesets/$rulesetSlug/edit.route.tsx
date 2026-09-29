@@ -34,7 +34,7 @@ import {
 } from '@db/rulesets';
 import type { RulesetEntry } from '@db/rulesets';
 import { AssetPicker } from '@app/pickers/AssetPicker';
-import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
+import { AuthoringToolbar, failureStatus } from '@app/widgets/authoring/AuthoringToolbar';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
@@ -187,7 +187,7 @@ function RulesetEditor({
         /* Back returns to the ruleset itself, the page Edit came from, so no second "View ruleset" action is needed. */
         onBack: () => navigate({ to: '/rulesets/$rulesetSlug', params: { rulesetSlug: initial.slug } }),
       }}
-      notes={[saveFailure]}
+      statuses={[failureStatus(saveFailure)]}
     />
   );
 

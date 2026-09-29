@@ -76,7 +76,7 @@ export const ManyControls = meta.story({
   },
 });
 
-/** Runs of actions stand in the kit's order whatever order the page hands them over in, with a thin divider between kinds: content, access, discard, then commit at the edge. */
+/** Runs of actions stand in the kit's order whatever order the page hands them over in, with a wider gap between kinds and one thin divider before commit: content, access, discard, then commit at the edge. */
 export const Clusters = meta.story({
   args: {
     children: [

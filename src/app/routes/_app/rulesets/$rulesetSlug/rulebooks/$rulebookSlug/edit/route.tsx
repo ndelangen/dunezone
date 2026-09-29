@@ -51,6 +51,8 @@ import type {
   RulebookPageDraft,
   RulebookPageLayoutId,
 } from '@shared/rulebooks/contents';
+import { RULEBOOK_EDITION_ARTIFACT_KINDS } from '@shared/rulebooks/editionArtifacts';
+import type { RulebookEditionArtifactKind } from '@shared/rulebooks/editionArtifacts';
 import { rulebookNameSchema } from '@shared/rulebooks/metadata';
 import { projectRulebookDraftRenderPage } from '@shared/rulebooks/projectRenderDocument';
 import type { RulebookResolvedAssetsById, RulebookResolvedFactionsById } from '@shared/rulebooks/projectRenderDocument';
@@ -72,6 +74,8 @@ import { ControlBlock } from '@ui/control/ControlBlock';
 import { IconAction } from '@ui/control/IconAction';
 import { AddAction } from '@ui/control/ListLengthActions';
 import { SaveAction } from '@ui/control/SaveAction';
+import { StatusInfo } from '@ui/control/StatusInfo';
+import type { StatusInfoItem } from '@ui/control/StatusInfo';
 import { AsymmetricSplitLayout } from '@ui/layout/AsymmetricSplitLayout';
 import { DocumentEditorLayout } from '@ui/layout/DocumentEditorLayout';
 import type { DocumentEditorFit } from '@ui/layout/DocumentEditorLayout';
@@ -80,8 +84,15 @@ import { NestedTabs, Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
 import {
   ArrowLeft,
+  BookMarked,
+  Check,
+  CircleAlert,
+  FileText,
   GitCompareArrows,
+  History,
   Link2,
+  LoaderCircle,
+  PencilLine,
   MoveHorizontal,
   MoveVertical,
   SlidersHorizontal,
@@ -2520,6 +2531,25 @@ function editorViewReducer(view: EditorView, action: EditorViewAction): EditorVi
   }
 }
 
+type ArtifactStatus = EditablePageData['currentEdition']['html']['status'];
+
+/* Whether the current Edition's HTML or PDF is ready, as a status in the editor's list. */
+function artifactStatus(kind: RulebookEditionArtifactKind, status: ArtifactStatus): StatusInfoItem {
+  const name = kind.toUpperCase();
+  switch (status) {
+    case 'ready':
+      return { tone: 'positive', icon: <FileText size={16} aria-hidden />, label: `The ${name} is ready.` };
+    case 'failed':
+      return { tone: 'negative', icon: <CircleAlert size={16} aria-hidden />, label: `The ${name} could not be made.` };
+    case 'preparing':
+      return {
+        tone: 'progress',
+        icon: <LoaderCircle size={16} aria-hidden />,
+        label: `The ${name} is still being prepared.`,
+      };
+  }
+}
+
 type DraftReferences = ReturnType<typeof collectRulebookReferenceIds>;
 
 function RulebookEditorSession({
@@ -2709,6 +2739,28 @@ function RulebookEditorSession({
           : 'Saved draft',
     `Draft revision ${result.latest.revision}`,
   ];
+  /* Everything the toolbar used to show as badges, listed behind the status action (Norbert, 2026-09-29). */
+  const statuses: StatusInfoItem[] = [
+    {
+      tone: result.isSaving ? 'progress' : needsReview ? 'negative' : hasLocalChanges ? 'caution' : 'positive',
+      icon: needsReview ? (
+        <GitCompareArrows size={16} aria-hidden />
+      ) : hasLocalChanges || result.isSaving ? (
+        <PencilLine size={16} aria-hidden />
+      ) : (
+        <Check size={16} aria-hidden />
+      ),
+      label: saveLines[0],
+    },
+    { icon: <History size={16} aria-hidden />, label: `Draft revision ${result.latest.revision}` },
+    {
+      icon: <BookMarked size={16} aria-hidden />,
+      label: data.hasUnpublishedChanges
+        ? `Edition ${data.currentEdition.edition_number} is published. The draft has changes it does not have yet.`
+        : `Edition ${data.currentEdition.edition_number} is published and matches the draft.`,
+    },
+    ...RULEBOOK_EDITION_ARTIFACT_KINDS.map((kind) => artifactStatus(kind, data.currentEdition[kind].status)),
+  ];
   const publishBlocker = publishMutation.isPending
     ? undefined
     : hasLocalChanges || needsReview || result.isSaving
@@ -2735,6 +2787,9 @@ function RulebookEditorSession({
             />
           </Toolbar.Left>
           <Toolbar.Right label="Editing actions">
+            <Toolbar.Cluster kind="about">
+              <StatusInfo label="Rulebook status" statuses={statuses} />
+            </Toolbar.Cluster>
             <Toolbar.Cluster kind="content">
               {data.canRename ? (
                 <IconAction
