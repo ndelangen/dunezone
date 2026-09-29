@@ -10,6 +10,7 @@ export const browserFlows = {
     keepsFrames: false,
     needsCatalogue: false,
     checksPhaseCooldown: false,
+    shard: 'regular',
   },
   /* Every other flow first plays a real game through drafting and setup, which takes a few minutes on its own. */
   'public-controls': {
@@ -18,6 +19,7 @@ export const browserFlows = {
     keepsFrames: false,
     needsCatalogue: true,
     checksPhaseCooldown: true,
+    shard: 'catalogue',
   },
   'private-banks': {
     timeoutMs: 480_000,
@@ -25,6 +27,7 @@ export const browserFlows = {
     keepsFrames: true,
     needsCatalogue: false,
     checksPhaseCooldown: false,
+    shard: 'protocol',
   },
   battles: {
     timeoutMs: 480_000,
@@ -32,6 +35,7 @@ export const browserFlows = {
     keepsFrames: true,
     needsCatalogue: true,
     checksPhaseCooldown: false,
+    shard: 'catalogue',
   },
   decks: {
     timeoutMs: 480_000,
@@ -39,6 +43,7 @@ export const browserFlows = {
     keepsFrames: true,
     needsCatalogue: false,
     checksPhaseCooldown: false,
+    shard: 'protocol',
   },
   /* Steps to Mentat pause, then declares, reloads and continues. */
   results: {
@@ -47,6 +52,7 @@ export const browserFlows = {
     keepsFrames: false,
     needsCatalogue: false,
     checksPhaseCooldown: false,
+    shard: 'protocol',
   },
 } satisfies Record<
   string,
@@ -63,6 +69,11 @@ export const browserFlows = {
      * The launcher provisions every other flow's games with no cooldown.
      */
     checksPhaseCooldown: boolean;
+    /**
+     * The `hosted_play` CI shard that runs the flow, which the launcher's `--shard` selects.
+     * A shard seeds the public catalogue when one of its flows needs it, so the flows that need it share `catalogue`.
+     */
+    shard: 'regular' | 'catalogue' | 'protocol';
   }
 >;
 
@@ -70,4 +81,11 @@ export type BrowserFlow = keyof typeof browserFlows;
 
 export function isBrowserFlow(name: string): name is BrowserFlow {
   return Object.hasOwn(browserFlows, name);
+}
+
+/** The flows one `hosted_play` CI shard runs, in the order above; none for a name no flow carries. */
+export function flowsInShard(shard: string): BrowserFlow[] {
+  return Object.keys(browserFlows)
+    .filter(isBrowserFlow)
+    .filter((flow) => browserFlows[flow].shard === shard);
 }
