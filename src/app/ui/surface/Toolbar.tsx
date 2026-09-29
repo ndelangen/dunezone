@@ -18,7 +18,7 @@ type ToolbarSlotProps = PropsWithChildren<{
  * The kit, not the page, decides the order they stand in, so every toolbar reads left to right the same way:
  * `content` works on what the page shows (create, add, open, preview, fit), `access` changes who may touch it (group assignment, membership), `discard` throws work away (reset, delete), and `commit` keeps it (publish, save), last and nearest the edge.
  */
-export type ToolbarClusterKind = 'content' | 'access' | 'discard' | 'commit';
+type ToolbarClusterKind = 'content' | 'access' | 'discard' | 'commit';
 
 const CLUSTER_ORDER: readonly ToolbarClusterKind[] = ['content', 'access', 'discard', 'commit'];
 
@@ -212,14 +212,16 @@ function useFolding(root: RefObject<HTMLDivElement | null>, foldable: number, co
       return;
     }
     let frame = 0;
+    /* The width the current fold was measured at; the observer's first report is that same width and must not unfold anything. */
+    let measured = node.clientWidth;
     /* Next frame, not inside the callback: refolding changes layout, which inside the observer's own delivery is a resize loop. */
     const observer = new ResizeObserver(() => {
       cancelAnimationFrame(frame);
-      frame = requestAnimationFrame(() =>
-        setFold((current) =>
-          current.width === node.clientWidth ? current : { ...current, width: node.clientWidth, count: 0 }
-        )
-      );
+      if (node.clientWidth === measured) {
+        return;
+      }
+      measured = node.clientWidth;
+      frame = requestAnimationFrame(() => setFold((current) => ({ ...current, width: measured, count: 0 })));
     });
     observer.observe(node);
     return () => {

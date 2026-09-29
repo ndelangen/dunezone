@@ -29,7 +29,9 @@ export interface ConfirmPublishActionProps {
 export function ConfirmPublishAction({ label, pending, onConfirm, disabledReason, icon }: ConfirmPublishActionProps) {
   const { holding, remaining, submitted, handlers } = useHoldToConfirm({ pending, onConfirm });
   const glyph = icon ?? <BookUp2 size={17} aria-hidden />;
-  if (disabledReason != null && !pending && !submitted) {
+  /* A hold already fired keeps its spinner until the page settles, whatever the page now says about publishing. */
+  const busy = pending || submitted;
+  if (disabledReason != null && !busy) {
     return (
       <IconAction
         label={label}

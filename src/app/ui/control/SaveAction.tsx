@@ -28,6 +28,26 @@ export interface SaveActionProps {
   form?: string;
 }
 
+/* What Save's description says: the state and the page's lines, then why it is blocked when that is not among them. */
+function describingWords(lines: readonly string[], disabledReason: string | null | undefined): readonly string[] {
+  return disabledReason && !lines.includes(disabledReason) ? [...lines, disabledReason] : lines;
+}
+
+function SaveGlyph({ state }: { state: SaveActionState }) {
+  if (state === 'saved') {
+    return <Check size={17} aria-hidden />;
+  }
+  if (state === 'failed') {
+    return <CircleAlert size={17} aria-hidden />;
+  }
+  return (
+    <span className={styles.glyph}>
+      <Save size={17} aria-hidden />
+      {state === 'dirty' ? <span className={styles.dirtyDot} /> : null}
+    </span>
+  );
+}
+
 /**
  * Save, wearing where the work stands, so no status beside it has to (Norbert, 2026-09-29).
  *
@@ -49,20 +69,9 @@ export function SaveAction({
   /* Without the page's own live region, the words describe Save from here, so a reader who never hovers still hears the state. */
   const ownId = useId();
   const description = describedBy ?? ownId;
-  const words = [...lines, ...(disabledReason && !lines.includes(disabledReason) ? [disabledReason] : [])];
+  const words = describingWords(lines, disabledReason);
   const ownWords = describedBy ? null : <VisuallyHidden id={ownId}>{words.join(' ')}</VisuallyHidden>;
-  const glyph =
-    icon ??
-    (state === 'saved' ? (
-      <Check size={17} aria-hidden />
-    ) : state === 'failed' ? (
-      <CircleAlert size={17} aria-hidden />
-    ) : (
-      <span className={styles.glyph}>
-        <Save size={17} aria-hidden />
-        {state === 'dirty' ? <span className={styles.dirtyDot} /> : null}
-      </span>
-    ));
+  const glyph = icon ?? <SaveGlyph state={state} />;
   if (disabledReason && state !== 'saving') {
     return (
       <>
