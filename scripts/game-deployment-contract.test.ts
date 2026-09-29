@@ -13,6 +13,15 @@ const environment = {
   CLOUDFLARE_API_TOKEN: 'not-a-real-token',
 };
 
+/** One job of the verify workflow, from its key to the next job's key. */
+function verifyJob(id: string): string {
+  const workflow = readFileSync('.github/workflows/reusable-verify.yml', 'utf8');
+  const start = workflow.indexOf(`\n  ${id}:\n`);
+  expect(start, `reusable-verify.yml has no ${id} job`).toBeGreaterThan(0);
+  const length = workflow.slice(start + 1).search(/\n {2}[a-z_]+:\n/);
+  return length === -1 ? workflow.slice(start) : workflow.slice(start, start + 1 + length);
+}
+
 describe('game deployment contract', () => {
   test('accepts the reviewed private Worker and refuses public ingress', () => {
     expect(() => validateGameDeployContract(readGameConfig(), environment)).not.toThrow();
@@ -38,22 +47,34 @@ describe('game deployment contract', () => {
     expect(workflow).toContain('GAME_WORKER_VERSION_ID: ${{ steps.game_active.outputs.version_id }}');
   });
 
-  test('requires isolated real Auth and service-binding integration in PR CI without deployment secrets', () => {
-    const workflow = readFileSync('.github/workflows/reusable-verify.yml', 'utf8');
-    const job = workflow.slice(workflow.indexOf('\n  hosted_play:'), workflow.indexOf('\n  tool_e2e:'));
-    expect(job).toContain('bun --no-env-file scripts/verify-hosted-play-stack.ts');
-    expect(job).toContain('test-results/hosted-play/*.log');
-    expect(job).not.toContain('secrets.');
-    expect(job).not.toContain('.env');
-    expect(job).not.toContain('admin-key');
-  });
+  test.each(['hosted_play', 'hosted_play_webgpu'])(
+    '%s requires isolated real Auth and service-binding integration in PR CI without deployment secrets',
+    (id) => {
+      const job = verifyJob(id);
+      expect(job).toContain('bun --no-env-file scripts/verify-hosted-play-stack.ts');
+      expect(job).toContain('test-results/hosted-play/*.log');
+      expect(job).not.toContain('secrets.');
+      expect(job).not.toContain('.env');
+      expect(job).not.toContain('admin-key');
+    }
+  );
 
   test('gives every shard a hosted browser flow names exactly one hosted_play job', () => {
-    const workflow = readFileSync('.github/workflows/reusable-verify.yml', 'utf8');
-    const job = workflow.slice(workflow.indexOf('\n  hosted_play:'), workflow.indexOf('\n  tool_e2e:'));
+    const job = verifyJob('hosted_play');
     const shards = [...job.matchAll(/^ +- shard: (\S+)$/gm)].map(([, shard]) => shard);
     const named = new Set(Object.values(browserFlows).map(({ shard }) => shard));
     expect(shards.sort()).toEqual([...named].sort());
+  });
+
+  test('draws the regular flow with WebGPU on a free macOS runner, within a timeout above its budget', () => {
+    const job = verifyJob('hosted_play_webgpu');
+    /* Standard runners cost nothing on a public repository, and a larger one such as macos-26-xlarge is billed there too. */
+    expect(job).toMatch(/\n {4}runs-on: macos-\d+\n/);
+    expect(job).toContain('--shard regular');
+    expect(job).toContain('--expect-renderer webgpu');
+    /* Setup, build and boot took about two minutes before the flow started. */
+    const minutes = Number(/\n {4}timeout-minutes: (\d+)\n/.exec(job)?.[1]);
+    expect(minutes * 60_000).toBeGreaterThan(browserFlows.regular.timeoutMs + 2 * 60_000);
   });
 
   test('health proves the exact bound deployment without cached or alternate-origin responses', () => {

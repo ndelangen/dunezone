@@ -179,7 +179,8 @@ const CARRY_STEPS = 2;
  * On Linux, headless Chromium draws WebGL on SwiftShader and composites in software.
  * Each WebGL frame is then read back on the page's main thread, which held the page's timers seconds late on CI (#1343).
  * `--use-angle=swiftshader` keeps WebGL on SwiftShader and composites there too.
- * Local macOS runs launch unchanged until #1322 decides, although Playwright's default headless shell reads back there too.
+ * macOS gets no switch, so full Chromium there draws the table with WebGPU on Metal, which the `hosted_play_webgpu` CI job expects (#1322).
+ * Playwright's default headless shell reads frames back on macOS too.
  */
 const chromiumArgs = process.platform === 'linux' ? ['--use-angle=swiftshader'] : [];
 const browser = await chromium.launch({ headless: true, executablePath: values.browser, args: chromiumArgs });

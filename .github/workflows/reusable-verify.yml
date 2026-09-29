@@ -417,6 +417,57 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
+  # The regular flow once more, on macOS, where full Chromium draws the Play table with WebGPU on the
+  # runner's Metal device (#1322). The Linux shards draw WebGL2 on SwiftShader, so they pass a defect
+  # that only WebGPU shows, such as #1272's vertex buffer validation error.
+  hosted_play_webgpu:
+    name: hosted_play_webgpu (regular)
+    # A standard runner, which costs nothing on a public repository; a larger macOS runner is billed even
+    # there. Pinned rather than macos-latest, because the WebGPU adapter comes with the image.
+    runs-on: macos-26
+    # Above the regular flow's ten-minute budget, so a slow flow ends with its name and its evidence.
+    # Setup took about 45 s and the build and boot about 70 s, which comes near twelve minutes.
+    # A passing job took 249 to 276 s when this was measured (#1322).
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+      - uses: ./.github/actions/generated-images
+      - name: Install full Chromium
+        # Not the playwright-chromium action: it caches Linux's ~/.cache/ms-playwright, and on macOS
+        # Playwright installs to ~/Library/Caches/ms-playwright. The download takes about 10 s here.
+        run: npx playwright install --no-shell chromium
+      - name: Select full Chromium in new headless mode
+        # On macOS the browser driver adds no switch, so Chromium chooses its own WebGPU adapter.
+        run: |
+          chromium_path="$(bun -e 'import { chromium } from "playwright"; console.log(chromium.executablePath())')"
+          test -x "$chromium_path"
+          "$chromium_path" --version
+          echo "CHROMIUM=$chromium_path" >> "$GITHUB_ENV"
+      - name: Run the regular flow expecting WebGPU
+        # The generated-images step above already wrote the image and vector output.
+        run: bun --no-env-file scripts/verify-hosted-play-stack.ts --skip-generate --shard regular --browser-only --browser "$CHROMIUM" --expect-renderer webgpu
+      - name: Summarise each flow
+        # As in hosted_play: always() for a timed-out job, and the summary never changes the job's result.
+        if: always()
+        continue-on-error: true
+        uses: ./.github/actions/hosted-play-summary
+        with:
+          heading: hosted_play_webgpu regular
+          shard: regular
+      - name: Retain hosted game integration evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: hosted-play-evidence-${{ github.run_id }}-webgpu-regular
+          path: |
+            test-results/hosted-play/*.log
+            test-results/hosted-play/browser/
+          if-no-files-found: warn
+          retention-days: 14
+
   tool_e2e:
     runs-on: ubuntu-latest
     timeout-minutes: 15

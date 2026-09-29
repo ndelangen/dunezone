@@ -191,6 +191,15 @@ For a protocol-only local rehearsal, leave out `--flow`. `--backend-binary` can 
 native executable and `--skip-build` can reuse the publisher bundle; that shortcut does not verify the
 bundle's frontend backend URL.
 
+The `hosted_play_webgpu` job runs the `regular` shard's command once more on GitHub's standard
+`macos-26` runner, with `--expect-renderer webgpu` in place of `webgl2-swiftshader`. Standard runners
+cost nothing on a public repository, while a larger macOS runner is billed even there, so the job
+stays on a standard label. On that runner full Chromium draws the Play table with WebGPU on the
+runner's Metal device, and a table that falls back to WebGL2 fails the job. The Linux shards draw
+WebGL2 on SwiftShader and cannot see a defect only WebGPU shows, such as the vertex buffer validation
+error of [#1272](https://github.com/ndelangen/dunezone/issues/1272). `ci_ok` requires this job
+through `verify` as it does the shards. It keeps its own evidence artifact and summary table.
+
 Run the headless browser proof against a fresh synthetic backend with:
 
 ```bash
