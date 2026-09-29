@@ -293,6 +293,17 @@ describe('AuthorizationWatch in native workerd with the real Convex clients', ()
     expect(validations()[0].startedAt).toBeGreaterThanOrEqual(answeredAt);
   });
 
+  it('restarts a generation whose subscription stays silent for a renewal cadence', async () => {
+    await runtime.request('/stop');
+    await runtime.request('/start?leaseMs=10000&renewalMs=500');
+    const silent = await peer.query(({ connection }) => connection === peer.connections.at(-1));
+    const { generation } = silent.query.args[0];
+    const next = await peer.query(({ query }) => query.args[0].generation !== generation);
+    expect(await status()).toBe('suspended');
+    peer.answer(next);
+    await waitStatus('authorized');
+  });
+
   it('backs off while validations fail although the subscription keeps answering', async () => {
     await runtime.request('/stop');
     await runtime.request('/start?leaseMs=10000&renewalMs=30000');

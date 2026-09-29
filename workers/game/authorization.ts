@@ -179,6 +179,8 @@ export class AuthorizationWatch {
   private connected = false;
   private disposed = false;
   private needsFreshWatch = false;
+  private generationStartedAt = 0;
+  private generationAnswered = false;
 
   constructor(
     private readonly url: string,
@@ -307,6 +309,8 @@ export class AuthorizationWatch {
       this.resetGrants();
     }
     this.needsFreshWatch = false;
+    this.generationStartedAt = Date.now();
+    this.generationAnswered = false;
     this.clearRecovery();
     if (!this.client || !this.canRenew()) {
       return;
@@ -343,6 +347,7 @@ export class AuthorizationWatch {
         if (!this.isConnectedGeneration(batch.generation)) {
           return;
         }
+        this.generationAnswered = true;
         this.observation++;
         this.observe(raw, { batch });
         if (this.needsFreshWatch) {
@@ -437,6 +442,11 @@ export class AuthorizationWatch {
     }
     if (this.needsFreshWatch) {
       this.startGeneration();
+      return;
+    }
+    if (!this.generationAnswered && Date.now() - this.generationStartedAt >= this.renewalMs) {
+      /* A subscription silent for a whole renewal cadence can never set a lease, so it restarts through the recovery backoff. */
+      this.suspend();
       return;
     }
     const request = {
