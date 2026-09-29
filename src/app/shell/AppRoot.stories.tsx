@@ -87,7 +87,8 @@ function HeaderResizePage() {
 const BAND_TRANSITION_MS = 200;
 
 /**
- * Takes hold of the band's height transition if it has not finished, since a finished transition leaves the element's animations.
+ * Takes hold of the band's height transition if it has not finished.
+ * A finished transition leaves the element's animations, and one still listed is skipped, so the previous leg's transition cannot be rewound and read as this one's.
  * It pauses the transition, seeks it half way, reads the band's height there and finishes it, and returns that height.
  * Reading the animations flushes style, so a transition the last style change started is already there, whether or not a frame has run since.
  */
@@ -96,7 +97,9 @@ function holdHalfWay(header: HTMLElement, view: Window & typeof globalThis) {
     .getAnimations()
     .find(
       (animation): animation is CSSTransition =>
-        animation instanceof view.CSSTransition && animation.transitionProperty === 'height'
+        animation instanceof view.CSSTransition &&
+        animation.transitionProperty === 'height' &&
+        animation.playState !== 'finished'
     );
   if (!transition) {
     return undefined;
