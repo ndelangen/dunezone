@@ -195,6 +195,10 @@ A container query sits on the ladder too, unless its threshold is derived from i
 as two 14rem columns and a gap, and a comment next to it says so. A viewport number copied into a
 `@container` condition is a window decision wearing the wrong at-rule.
 
+A container threshold may also stay off the ladder when Norbert has judged the ladder step worse by
+eye, and a comment next to it names that decision. The ladder is the default for a threshold nobody
+has looked at, and the comment keeps a later sweep from snapping one that someone has.
+
 *Media queries enforced by `check:breakpoints`
 ([`assert-breakpoints.mjs`](../../scripts/assert-breakpoints.mjs)): a width query outside the window
 chrome, off the ladder, or in a form other than `width < step` or `width >= step`, fails. Media

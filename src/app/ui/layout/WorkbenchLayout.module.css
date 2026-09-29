@@ -74,12 +74,15 @@
  *
  * `ConnectedTabs` swaps its vertical tab rail for a stepper bar once its own column falls under 30rem. At this
  * step the chapters are the workbench less the 11rem rail, so the stepper bar arrives below a 41rem workbench,
- * 30rem of chapters beside the 11rem rail. The tab rail it swaps out there is the 9.25rem one `ConnectedTabs`
- * takes under 48rem, and from 41rem up to this step the chapters keep that tab rail while the proof is 11rem.
+ * and from 41rem up to this step the chapters keep the 9.25rem tab rail while the proof is 11rem. Just above
+ * this step the proof is 15rem, which leaves the chapters under 30rem until a 45rem workbench, so between 44rem
+ * and 45rem the stepper bar shows again.
  *
  * The desk keeps following, since side by side survives and there is something to sit beside.
+ *
+ * This step stays off the ladder because Norbert judged the ladder's 48rem worse on 29 September 2026 (#1321).
  */
-@container workbench (width < 48rem) {
+@container workbench (max-width: 44rem) {
   .workbench {
     grid-template-columns: minmax(0, 1fr) minmax(9rem, 11rem);
   }

@@ -10,7 +10,7 @@ const meta = preview.meta({
     docs: {
       description: {
         component:
-          'Three regions side by side with the centre given its own fill, collapsing to one column once its container drops below 62rem.',
+          'Three regions side by side with the centre given its own fill, collapsing to one column once its container drops below 61.25rem.',
       },
     },
   },

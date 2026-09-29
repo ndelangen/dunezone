@@ -18,7 +18,8 @@
   align-self: start;
 }
 
-@container atlas-layout (width >= 62rem) {
+/* Stays off the ladder because Norbert judged the ladder's 62rem worse on 29 September 2026 (#1321). */
+@container atlas-layout (width >= 56.25rem) {
   .layout {
     grid-template-columns: minmax(230px, 0.72fr) minmax(0, 2fr);
   }

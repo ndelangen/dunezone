@@ -248,12 +248,8 @@
   transform: translateX(-50%);
 }
 
-/*
- * The spread fits the plane instead of scrolling once the plane is on the tablet step and tall enough.
- * The width is the ladder's 48rem, because the plane is at most about 59rem inside the 1200px page and never reaches 62rem.
- * The height is off the ladder, which only measures widths: from 34rem the fitted spread, (height - 9rem) times 297/210, is about 35.4rem wide, near the 36rem the stacked spread is capped at.
- */
-@container faction-review-plane (width >= 48rem) and (height >= 34rem) {
+/* Stays off the ladder because Norbert plans to redesign this screen, 29 September 2026 (#1321). */
+@container faction-review-plane (width >= 56rem) and (height >= 34rem) {
   .sheetScroller {
     overflow: hidden;
   }

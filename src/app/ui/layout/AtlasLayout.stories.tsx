@@ -10,7 +10,7 @@ const meta = preview.meta({
     docs: {
       description: {
         component:
-          'A sticky sidebar beside a long scrolling column, collapsing to one column once its container drops below 62rem.',
+          'A sticky sidebar beside a long scrolling column, collapsing to one column once its container drops below 56.25rem.',
       },
     },
   },
