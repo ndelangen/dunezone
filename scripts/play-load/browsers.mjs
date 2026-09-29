@@ -5,6 +5,7 @@ import { cpus, platform, arch, totalmem } from 'node:os';
 import { chromium } from 'playwright';
 
 import { KEEPALIVE_PING, KEEPALIVE_PONG } from '../../src/shared/play/protocol.ts';
+import { signIn } from '../lib/synthetic-accounts.ts';
 
 function snapshot() {
   return {
@@ -69,14 +70,6 @@ function observeFrames() {
       );
     }
   }).observe({ type: 'longtask', buffered: true });
-}
-
-async function signIn(page, origin, user) {
-  await page.goto(`${origin}/auth/login`, { waitUntil: 'domcontentloaded' });
-  await page.getByLabel('Email', { exact: true }).fill(user.email);
-  await page.getByLabel('Password', { exact: true }).fill(user.password);
-  await page.getByTestId('local-auth-submit').click();
-  await page.getByRole('heading', { name: "You're signed in" }).waitFor();
 }
 
 async function measureImages(context, page, origin, gameId, report) {
@@ -243,7 +236,7 @@ export async function browsers({ origin, backend, gameId, onMessage, onBytes, st
       });
       await context.addInitScript(observeFrames);
       await context.addInitScript(observeMessages);
-      await signIn(page, origin, peer.user);
+      await signIn(page, origin, peer.user, `peer ${peer.index}`);
       await measureImages(context, page, origin, gameId(), report);
       await page.screenshot({ path: `${directory}/browser-${peer.index}.png` });
       report.memoryBefore = await page.evaluate(() =>

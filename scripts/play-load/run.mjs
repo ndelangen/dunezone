@@ -13,6 +13,7 @@ import { loadCaseSchema } from '../../src/shared/play/loadTarget.ts';
 import { KEEPALIVE_INTERVAL_MS, KEEPALIVE_PING, KEEPALIVE_PONG } from '../../src/shared/play/protocol.ts';
 import { applyRoomUpdate } from '../../src/shared/play/updates.ts';
 import { loopbackOrigin } from '../lib/isolated-stack.ts';
+import { provisionAccounts } from '../lib/synthetic-accounts.ts';
 import { browsers } from './browsers.mjs';
 import { cpuProfile } from './cpu.mjs';
 import { captureSource, prepareDirectory } from './files.mjs';
@@ -149,7 +150,7 @@ const report = {
     maxApplicationBytes: maxBytes,
     finalObservationMs: 5000,
     /*
-     * The wall bound includes signing up and admitting every connection, which took about 105 s on the 28 September hosted cells.
+     * The wall bound includes creating the accounts, signing in and admitting every connection; signing up and admitting took about 105 s on the 28 September hosted cells.
      * Each browser then signs in and loads the table twice, and the hosted browser cell reached motion 226 s in, so it gets three more minutes.
      */
     wallSeconds: Math.max(240, warmupSeconds + measuredSeconds + 120) + (values.case === 'browser' ? 180 : 0),
@@ -173,7 +174,6 @@ const report = {
   admissionAttempts: [],
   reconnects: [],
   rejections: [],
-  signupRetries: [],
   checks: [],
 };
 const peers = [];
@@ -249,33 +249,21 @@ const clientOptions = {
 };
 const admin = new ConvexHttpClient(backend.origin, clientOptions);
 admin.setAdminAuth(hosted?.key ?? local.CONVEX_SELF_HOSTED_ADMIN_KEY);
-async function user(index) {
+const accountSuffix = hosted?.run.runId ?? process.env.PLAY_LOAD_LOCAL_ACCOUNT_SUFFIX ?? randomBytes(6).toString('hex');
+/** The identity's synthetic account, named the way the hosted backend's fixed roster admits it. */
+function syntheticAccount(index) {
+  return { email: `load-${index}-${accountSuffix}@example.invalid`, password: randomBytes(24).toString('hex') };
+}
+/** Signs a provisioned account in for its protocol connections; it never creates the account. */
+async function user(index, account) {
   const client = new ConvexHttpClient(backend.origin, clientOptions);
-  const suffix = hosted?.run.runId ?? process.env.PLAY_LOAD_LOCAL_ACCOUNT_SUFFIX ?? randomBytes(6).toString('hex');
-  const email = `load-${index}-${suffix}@example.invalid`;
-  const password = randomBytes(24).toString('hex');
-  let result;
-  /*
-   * One hosted signup outlasted the client's 15 s timeout on 28 September and failed the peak cell during setup.
-   * A signup whose answer was lost may still have created the account, so the retries alternate signing in and signing up.
-   */
-  for (let attempt = 0; !result; attempt++) {
-    try {
-      result = await client.action(anyApi.auth.signIn, {
-        provider: 'password',
-        params: { flow: attempt % 2 ? 'signIn' : 'signUp', email, password },
-      });
-    } catch (error) {
-      report.signupRetries.push({ index, attempt, message: String(error?.message ?? error).slice(0, 200) });
-      if (stopping || attempt === 3) {
-        throw error;
-      }
-      await delay(1000);
-    }
-  }
+  const result = await client.action(anyApi.auth.signIn, {
+    provider: 'password',
+    params: { flow: 'signIn', ...account },
+  });
   assert.ok(result.tokens?.token);
   client.setAuth(result.tokens.token);
-  return { client, index, email, password };
+  return { client, index, ...account };
 }
 function send(peer, message) {
   if (stopping) {
@@ -639,6 +627,12 @@ function processResources() {
 }
 
 try {
+  const playerCount = values.profile === 'baseline' ? 2 : manifest.players;
+  const observerCount = values.profile === 'baseline' ? 1 : manifest.observers;
+  const secondaryCount = values.profile === 'baseline' ? 1 : manifest.secondaryTabs;
+  /* Every identity's account exists before any browser starts, so a connection or browser only signs in (#1493). */
+  const accounts = Array.from({ length: playerCount + observerCount }, (_, index) => syntheticAccount(index));
+  await provisionAccounts(admin, accounts);
   if (values.case === 'browser') {
     browserRun = await browsers({
       origin: origin.origin,
@@ -675,15 +669,12 @@ try {
     body: JSON.stringify({ gameId: game.gameId, secret: game.secret, attemptId: game.attemptId }),
   });
   assert.equal(provision.status, 200);
-  const playerCount = values.profile === 'baseline' ? 2 : manifest.players;
-  const observerCount = values.profile === 'baseline' ? 1 : manifest.observers;
-  const secondaryCount = values.profile === 'baseline' ? 1 : manifest.secondaryTabs;
   const users = [];
   if (values.case === 'slow') {
     link = await slowLink(origin, manifest.slowObserver);
   }
   for (let index = 0; index < playerCount + observerCount; index++) {
-    users.push(await user(index));
+    users.push(await user(index, accounts[index]));
     const peer = {
       index: peers.length,
       user: users[index],
