@@ -1,6 +1,7 @@
 /*
  * Slows image requests for the stories that show a published image loading and arriving, since a story cannot slow a network it does not own.
  * `/__story-images/held/<name>` never answers, and `/__story-images/after/<ms>/<name>` answers after that many milliseconds with a plain square SVG.
+ * `/__story-images/fail-once/<name>` answers its first request with a 503 and every later one with the SVG, for a story that shows recovery.
  * `@sb/storyImages` registers this worker and names its URLs.
  */
 
@@ -34,8 +35,21 @@ const ARTWORK =
   '<circle cx="300" cy="300" r="150" fill="#e3dbb3"/>' +
   '</svg>';
 
+/* The fail-once paths that have already failed, kept for the worker's life, so each render gives its image its own name. */
+const failedOnce = new Set();
+
 self.addEventListener('fetch', (event) => {
   const { pathname } = new URL(event.request.url);
+  if (pathname.startsWith('/__story-images/fail-once/')) {
+    const first = !failedOnce.has(pathname);
+    failedOnce.add(pathname);
+    event.respondWith(
+      first
+        ? new Response(null, { status: 503 })
+        : new Response(ARTWORK, { headers: { 'content-type': 'image/svg+xml' } })
+    );
+    return;
+  }
   if (pathname.startsWith('/__story-images/held/')) {
     event.respondWith(new Promise(() => {}));
     return;
