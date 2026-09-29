@@ -368,7 +368,7 @@ describe('live reference authoring reconciliation', () => {
       approval: {
         incompatibilityId: conflict.id,
         dependencyFingerprint: conflict.dependencyFingerprint,
-        outcome: { kind: 'field-value', value: conflict.latestValue },
+        outcome: { kind: 'field-value', value: { kind: 'stock', artworkId: 'map' } },
       },
     });
     manager.dispatch(
