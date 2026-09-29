@@ -316,6 +316,23 @@ server is silent while it waits, and `App server failed to become ready` names t
 carries the last probe's own error; a refusal of 3210 comes from `provision.ts` bringing the backend up and is printed as Docker
 prints it.
 
+## Bun 1.3 rewrites `bun.lock` instead of refusing it
+
+`bun.lock` is `lockfileVersion` 3, because `package.json` scopes an override to one parent package
+(see [`docs/README.md`](../README.md)), and only Bun 1.4 or later reads that version.
+`packageManager` pins Bun 1.4.2 and CI installs exactly that, but the `bun` on a machine is whatever
+was installed there.
+
+**What it looks like when it bites:** a plain `bun install` under Bun 1.3 prints `Ignoring lockfile`,
+resolves the whole tree again, warns that it does not support nested overrides, and exits 0 with
+`Saved lockfile`. The new file is `lockfileVersion` 1, close to 180 packages have moved, and
+miniflare's `undici` is back on the vulnerable 7.29.0. Under Bun 1.3, `bun install --frozen-lockfile`
+and `bun audit` refuse with `UnknownLockfileVersion`, which is the honest signal.
+
+Run `bun --version` before installing, and install Bun 1.4.2 or later on the machine first. A diff
+that turns the first lines of `bun.lock` back into `"lockfileVersion": 1` came from an older Bun and
+must not be committed.
+
 ## The shape these share
 
 Most of the entries above have the same shape: **the fast signal is the wrong one**. A port answers,
