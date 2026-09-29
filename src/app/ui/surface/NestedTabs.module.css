@@ -312,13 +312,8 @@
   padding-inline: 0;
 }
 
+/* The host is the container this asks, and a container query styles only what sits inside it. */
 @container nested-tabs (width < 30rem) {
-  .host {
-    --nested-tabs-level-width: 3.1rem;
-    --nested-tabs-item-size: 2.4rem;
-    --nested-tabs-gap: 0.25rem;
-  }
-
   .levelItems {
     padding-inline: 0.2rem;
   }
