@@ -144,6 +144,7 @@ export function PlayerPanel({
           seat: seat.id,
           name: seat.faction?.name ?? seat.id,
           avatar: null,
+          slug: null,
         }
     ) ?? occupants
   )
