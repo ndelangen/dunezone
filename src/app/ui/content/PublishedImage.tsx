@@ -14,6 +14,16 @@ const GRACE_MS = 90;
 /** How far outside the viewport an image starts fetching, so most have landed before the reader scrolls to them. */
 const FETCH_MARGIN_PX = 1600;
 
+/** A failed publication is tried again after 5 s, doubling to a minute, as the table's faces are, and after the last try it stays missing until the page reloads. */
+const RETRY_FIRST_MS = 5000;
+const RETRY_CEILING_MS = 60_000;
+export const PUBLISHED_IMAGE_RETRIES = 6;
+
+/** How long the retry after `attempt` earlier retries waits. */
+export function publishedImageRetryDelayMs(attempt: number) {
+  return Math.min(RETRY_FIRST_MS * 2 ** attempt, RETRY_CEILING_MS);
+}
+
 type Props = {
   /** The publication, or null when there is none, which draws the missing state. */
   src: string | null;
@@ -33,6 +43,7 @@ type Props = {
  * One published image, arriving gracefully.
  * Callers own which publication it shows and the outline it is cut to;
  * this owns the arrival: a clear slot while it loads, the develop when it lands, and a matte missing state that never looks like loading.
+ * A publication that fails is fetched again out of sight a few times, so a passing outage does not leave it missing.
  *
  * It fills the width it is given at `aspect`, and fetches nothing but `src`.
  */
@@ -60,7 +71,8 @@ type Action =
   | { type: 'graceOver' }
   | { type: 'decoded' }
   | { type: 'revealed' }
-  | { type: 'failed' };
+  | { type: 'failed' }
+  | { type: 'recovered' };
 
 function reducer(state: State, action: Action): State {
   switch (action.type) {
@@ -80,6 +92,9 @@ function reducer(state: State, action: Action): State {
       return state.phase === 'decoded' ? { ...state, phase: 'shown' } : state;
     case 'failed':
       return { ...state, phase: 'missing', fetching: false };
+    case 'recovered':
+      /* The bytes are already here, so the image replaces the missing state at once. */
+      return state.phase === 'missing' ? { ...state, phase: 'loading', fetching: true, slot: false } : state;
   }
 }
 
@@ -106,6 +121,7 @@ function Arrival({ src, name, aspect, radius, clipPath, raised = false }: Props)
   const rootRef = useRef<HTMLDivElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
   const arrivalRef = useRef<ReturnType<typeof joinArrival> | null>(null);
+  const retriesRef = useRef(0);
   const { phase, fetching, order } = state;
   const waiting = phase === 'loading' || phase === 'decoded';
 
@@ -175,6 +191,43 @@ function Arrival({ src, name, aspect, radius, clipPath, raised = false }: Props)
       arrivalRef.current = null;
     };
   }, [fetching, order, waiting]);
+
+  /* A failure may be a passing outage, so the publication is fetched again out of sight, and the missing state stays until its bytes are here. */
+  useEffect(() => {
+    if (phase !== 'missing' || src === null) {
+      return;
+    }
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let cancelled = false;
+    const schedule = () => {
+      if (retriesRef.current >= PUBLISHED_IMAGE_RETRIES) {
+        return;
+      }
+      timer = setTimeout(probe, publishedImageRetryDelayMs(retriesRef.current));
+      retriesRef.current += 1;
+    };
+    const probe = () => {
+      const image = new Image();
+      image.src = src;
+      image.decode().then(
+        () => {
+          if (!cancelled) {
+            dispatch({ type: 'recovered' });
+          }
+        },
+        () => {
+          if (!cancelled) {
+            schedule();
+          }
+        }
+      );
+    };
+    schedule();
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [phase, src]);
 
   const onLoad = () => {
     const img = imgRef.current;

@@ -1,5 +1,5 @@
 import preview from '@sb/preview';
-import { heldImage, imageAfter, serveStoryImages } from '@sb/storyImages';
+import { heldImage, imageAfter, imageFailingOnce, serveStoryImages } from '@sb/storyImages';
 import { expect, waitFor, within } from 'storybook/test';
 
 import { PublishedImage } from './PublishedImage';
@@ -65,6 +65,20 @@ export const FailedLoad = meta.story({
       within(canvasElement).findByRole('img', { name: 'Atreides: preview unavailable' })
     ).resolves.toBeVisible();
     expect(canvasElement.querySelectorAll('img')).toHaveLength(0);
+  },
+});
+
+/** A publication that fails once is fetched again out of sight after 5 s, and replaces the missing state when it lands. */
+export const RecoversAfterFailedLoad = meta.story({
+  args: { src: imageFailingOnce('recovers') },
+  loaders: [serveStoryImages],
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.findByRole('img', { name: 'Atreides: preview unavailable' })).resolves.toBeVisible();
+    const image = await canvas.findByRole<HTMLImageElement>('img', { name: 'Atreides' }, { timeout: 15_000 });
+    await waitFor(() => expect(image.closest('[aria-busy]')).toBeNull());
+    expect(image.naturalWidth).toBe(600);
+    expect(canvas.queryByRole('img', { name: 'Atreides: preview unavailable' })).toBeNull();
   },
 });
 
