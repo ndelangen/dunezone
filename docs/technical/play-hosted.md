@@ -12,12 +12,16 @@ real game at `/play/create`. Nothing in the application links to `/play` and the
 real games are an unlisted beta, shared privately, until the public-release decision
 ([#1094](https://github.com/ndelangen/dunezone/issues/1094)). The retired `/play/hosted` and `/play/demo` pages
 ([#1296](https://github.com/ndelangen/dunezone/issues/1296)) no longer exist in the application,
-and their old addresses redirect to the lobby;
-the public `playAdmission:getFixture` query stays so a bundle deployed before their removal still
-gets an answer. The fixture game this document describes remains the Worker's native test and load
-fixture: the first two distinct admitted users occupy its Harkonnen and Atreides seats, and later
-users are spectators. A user's other tabs share their seat but have independent connections and
-carries.
+and their old addresses redirect to the lobby. The hosted fixture game they opened stays stored but
+admits no player ([#1323](https://github.com/ndelangen/dunezone/issues/1323)): its `/play/<gameId>`
+address answers as an unknown game does, and no ticket is issued or redeemed for it. Players enter a
+real game, or a synthetic test game that the load runner and the protocol verifier create on an
+isolated backend. `admitsPlayers` in `convex/lib/playAuthorization.ts` holds that rule for the game
+page, the tickets and the live authorization alike. The stored fixture's account reconciliation and
+deletion acknowledgements keep answering its Worker. The fixture game this document describes
+remains the Worker's native test and load fixture: the first two distinct admitted users occupy its
+Harkonnen and Atreides seats, and later users are spectators. A user's other tabs share their seat
+but have independent connections and carries.
 
 Convex stores the fixture directory record, provisioning status, server-only game secrets, ticket hashes, session
 registrations and account-deletion delivery records. It does not store table actions or seats.
@@ -158,9 +162,9 @@ pass.
 
 ## Provisioning and transport
 
-An operator invokes `playProvisioning:beginFixtureProvision` once after deployment. This internal
-mutation creates the Stage B singleton and schedules its provisioning request. A real game is
-provisioned when a signed-in player creates it (`playGames.createGame`). The directory hides pending fixtures.
+A real game is provisioned when a signed-in player creates it (`playGames.createGame`). No operator
+step follows a deployment: the Stage B singleton that `playProvisioning:beginFixtureProvision`
+creates admits no player. The directory hides pending fixtures.
 
 The game Worker checks the supplied game secret and attempt with the fixed trusted Convex backend
 before creating state. Unknown, duplicate, expired and invalid requests get the same generic
