@@ -49,7 +49,7 @@ const additions = [
   {
     name: 'Court duelist',
     image: '/vector/troop/court-duelist.svg',
-    detail: 'Long blade, parrying dagger, extended lunge.',
+    detail: 'Broad blade, parrying dagger, sturdy fencing stance.',
   },
   {
     name: 'Salvage warden',
@@ -68,6 +68,39 @@ const additions = [
   },
 ] as const satisfies readonly { name: string; image: ComponentProps<typeof TroopToken>['image']; detail: string }[];
 
+const secondWave = [
+  {
+    name: 'Banner marshal',
+    image: '/vector/troop/banner-marshal.svg',
+    detail: 'Swallowtail standard, short sword, marching stance.',
+  },
+  {
+    name: 'Water keeper',
+    image: '/vector/troop/water-keeper.svg',
+    detail: 'Water reservoir, looped hose, crescent staff.',
+  },
+  {
+    name: 'Suspensor lancer',
+    image: '/vector/troop/suspensor-lancer.svg',
+    detail: 'Curved suspensor harness, raised lance, hovering stance.',
+  },
+  {
+    name: 'Masked saboteur',
+    image: '/vector/troop/masked-saboteur.svg',
+    detail: 'Demolition charge, raised detonator, deep crouch.',
+  },
+  {
+    name: 'Crescent executioner',
+    image: '/vector/troop/crescent-executioner.svg',
+    detail: 'Heavy crescent polearm, closed hood, split tabard.',
+  },
+  {
+    name: 'Gene-forged brute',
+    image: '/vector/troop/gene-forged-brute.svg',
+    detail: 'Oversized breaching gauntlet, hooked knife, charging stance.',
+  },
+] as const satisfies readonly { name: string; image: ComponentProps<typeof TroopToken>['image']; detail: string }[];
+
 const token = {
   background: {
     image: '/image/texture/021.jpg',
@@ -81,18 +114,20 @@ const token = {
   striped: false,
 } satisfies Omit<ComponentProps<typeof TroopToken>, 'image'>;
 
-export const NewSilhouettes = meta.story({
-  globals: { viewport: { value: undefined } },
-  parameters: { layout: 'fullscreen' },
-  render: () => (
+function renderGallery(
+  troops: readonly { name: string; image: ComponentProps<typeof TroopToken>['image']; detail: string }[],
+  heading: string,
+  description: string
+) {
+  return (
     <div style={{ padding: 28, background: '#eee3cd', color: '#302a23', minHeight: '100vh' }}>
       <div style={{ maxWidth: 1200, margin: '0 auto' }}>
-        <h1 style={{ fontFamily: 'Caladea, serif', fontSize: 32, margin: '0 0 8px' }}>Troops for new factions</h1>
-        <p style={{ margin: '0 0 24px' }}>Six silhouettes. Below each: regular, striped, and elite tokens at 64 px.</p>
+        <h1 style={{ fontFamily: 'Caladea, serif', fontSize: 32, margin: '0 0 8px' }}>{heading}</h1>
+        <p style={{ margin: '0 0 24px' }}>{description}</p>
         <div
           style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))', gap: 18 }}
         >
-          {additions.map(({ name, image, detail }) => (
+          {troops.map(({ name, image, detail }) => (
             <section key={image} style={{ background: '#faf4e6', padding: 20, borderRadius: 8 }}>
               <svg
                 viewBox="0 0 100 100"
@@ -132,7 +167,29 @@ export const NewSilhouettes = meta.story({
         </div>
       </div>
     </div>
-  ),
+  );
+}
+
+export const NewSilhouettes = meta.story({
+  globals: { viewport: { value: undefined } },
+  parameters: { layout: 'fullscreen' },
+  render: () =>
+    renderGallery(
+      [...secondWave, ...additions],
+      'Troops for new factions',
+      'Twelve silhouettes, newest first. Below each: regular, striped, and elite tokens at 64 px.'
+    ),
+});
+
+export const SecondWave = meta.story({
+  globals: { viewport: { value: undefined } },
+  parameters: { layout: 'fullscreen' },
+  render: () =>
+    renderGallery(
+      secondWave,
+      'Six more ways to build an army',
+      'The second set. Below each: regular, striped, and elite tokens at 64 px.'
+    ),
 });
 
 export const AtTokenSize = meta.story({
@@ -141,11 +198,12 @@ export const AtTokenSize = meta.story({
   render: () => (
     <div style={{ padding: 28, background: '#eee3cd', color: '#302a23', minHeight: '100vh' }}>
       <h1 style={{ fontFamily: 'Caladea, serif' }}>Small-size comparison</h1>
-      <p>Existing Atreides and Fremen troops beside the six additions. Columns are 32, 48, and 72 px.</p>
+      <p>Existing Atreides and Fremen troops beside all twelve additions. Columns are 32, 48, and 72 px.</p>
       {(
         [
           { name: 'Atreides, existing', image: '/vector/troop/atreides.svg' },
           { name: 'Fremen, existing', image: '/vector/troop/fremen.svg' },
+          ...secondWave,
           ...additions,
         ] as const
       ).map(({ name, image }) => (
@@ -168,3 +226,9 @@ export const CourtDuelist = meta.story({ args: { ...token, image: additions[2].i
 export const SalvageWarden = meta.story({ args: { ...token, image: additions[3].image } });
 export const VeiledAdept = meta.story({ args: { ...token, image: additions[4].image } });
 export const SiegeGunner = meta.story({ args: { ...token, image: additions[5].image } });
+export const BannerMarshal = meta.story({ args: { ...token, image: secondWave[0].image } });
+export const WaterKeeper = meta.story({ args: { ...token, image: secondWave[1].image } });
+export const SuspensorLancer = meta.story({ args: { ...token, image: secondWave[2].image } });
+export const MaskedSaboteur = meta.story({ args: { ...token, image: secondWave[3].image } });
+export const CrescentExecutioner = meta.story({ args: { ...token, image: secondWave[4].image } });
+export const GeneForgedBrute = meta.story({ args: { ...token, image: secondWave[5].image } });
