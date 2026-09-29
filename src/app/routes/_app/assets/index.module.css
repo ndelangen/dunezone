@@ -61,7 +61,7 @@
  * Re-derive it if the slot width changes, since a container query condition can read neither
  * `--pile-slot` nor the spacing token.
  */
-@container assets-pile-group (max-width: 34rem) {
+@container assets-pile-group (width < 34rem) {
   .pileGroupLayout {
     grid-template-areas:
       "label"

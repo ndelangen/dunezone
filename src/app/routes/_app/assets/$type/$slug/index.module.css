@@ -12,7 +12,8 @@
   width: min(100%, 22rem);
 }
 
-@container asymmetric-split-layout (min-width: 61.25rem) {
+/* Stays off the ladder with the split it asks, because Norbert judged the ladder's 62rem worse on 29 September 2026 (#1321). */
+@container asymmetric-split-layout (width >= 61.25rem) {
   .faceStage {
     width: 100%;
   }
