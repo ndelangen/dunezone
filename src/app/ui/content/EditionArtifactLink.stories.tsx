@@ -20,3 +20,16 @@ export const Ready = meta.story({
 export const Failed = meta.story({
   args: { kind: 'pdf' as const, artifact: { status: 'failed' as const, href: null } },
 });
+
+/** In a toolbar the unready file is a glyph whose words are in its tooltip, beside the other actions. */
+export const PreparingInAToolbar = meta.story({
+  args: { size: 'lg' as const },
+});
+
+/** A ready file in a toolbar wears the same tile as every other toolbar action. */
+export const ReadyInAToolbar = meta.story({
+  args: {
+    size: 'lg' as const,
+    artifact: { status: 'ready' as const, href: '/published/rulebooks/example/editions/2/rulebook.html' },
+  },
+});

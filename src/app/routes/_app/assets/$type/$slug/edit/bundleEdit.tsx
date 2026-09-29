@@ -205,7 +205,7 @@ function BundleEditSession({
           actions={{
             onSave: save,
             onReset: header.releasing(() => dispatch({ kind: 'replace', data: state.baseline })),
-            onBack: () => void navigate({ to: '/assets/$type', params: { type: 'bundle' } }),
+            onBack: () => void navigate({ to: '/assets/$type/$slug', params: { type: 'bundle', slug: asset.slug } }),
           }}
           auxiliaryActions={groupActions.auxiliaryActions}
           context={groupActions.context}

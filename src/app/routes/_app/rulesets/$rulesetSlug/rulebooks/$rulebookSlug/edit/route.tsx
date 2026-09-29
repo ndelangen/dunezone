@@ -26,7 +26,7 @@ import {
   useSortable,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { Alert, Badge, Box, Button, Group, Menu, Popover, Select, Stack, Text, TextInput } from '@mantine/core';
+import { Alert, Badge, Box, Button, Group, Loader, Menu, Popover, Select, Stack, Text, TextInput } from '@mantine/core';
 import {
   canonicalRulebookCoverControlValues,
   createRulebookLocalId,
@@ -68,6 +68,8 @@ import { LoginGate } from '@ui/block/LoginGate';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import { Section } from '@ui/block/Section';
 import { SlugRenameNotice } from '@ui/content/SlugRenameNotice';
+import { StatusMark } from '@ui/content/StatusMark';
+import type { StatusMarkProps } from '@ui/content/StatusMark';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { IconAction } from '@ui/control/IconAction';
@@ -78,7 +80,24 @@ import type { DocumentEditorFit } from '@ui/layout/DocumentEditorLayout';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { NestedTabs, Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
-import { ArrowLeft, Link2, SlidersHorizontal, TextCursorInput } from 'lucide-react';
+import {
+  ArrowLeft,
+  BookMarked,
+  BookUp2,
+  CircleAlert,
+  CircleCheck,
+  CircleDashed,
+  FileDown,
+  FileText,
+  GitCommitHorizontal,
+  GitCompareArrows,
+  Link2,
+  MoveHorizontal,
+  MoveVertical,
+  Save,
+  SlidersHorizontal,
+  TextCursorInput,
+} from 'lucide-react';
 import {
   memo,
   useCallback,
@@ -2524,14 +2543,14 @@ function artifactStatusLabel(kind: RulebookEditionArtifactKind, status: Artifact
   return `${kind.toUpperCase()} ${status}`;
 }
 
-function artifactStatusColor(status: ArtifactStatus) {
+function artifactStatusTone(status: ArtifactStatus) {
   switch (status) {
     case 'ready':
-      return 'green';
+      return 'positive';
     case 'failed':
-      return 'red';
+      return 'negative';
     case 'preparing':
-      return 'gray';
+      return 'progress';
   }
 }
 
@@ -2715,144 +2734,149 @@ function RulebookEditorSession({
     }
   };
 
+  const draftStatus: StatusMarkProps = result.isSaving
+    ? { tone: 'progress', icon: <Loader size={14} color="currentColor" />, label: 'Saving' }
+    : needsReview
+      ? { tone: 'negative', icon: <CircleAlert size={16} aria-hidden />, label: 'Review needed' }
+      : hasLocalChanges
+        ? { tone: 'caution', icon: <CircleDashed size={16} aria-hidden />, label: 'Local changes' }
+        : { tone: 'positive', icon: <CircleCheck size={16} aria-hidden />, label: 'Saved draft' };
+
   return (
     <PageLayout>
       {header.slot}
       <PageLayout.Toolbar>
-        <Toolbar className={styles.editorToolbar}>
-          <Toolbar.Left>
-            <Group gap="sm" wrap="wrap">
-              <IconAction
-                label="Back to ruleset"
-                intent="neutral"
-                emphasis="quiet"
-                icon={<ArrowLeft size={17} aria-hidden />}
-                renderRoot={(props) => <Link {...props} to="/rulesets/$rulesetSlug" params={{ rulesetSlug }} />}
+        <Toolbar>
+          {/* Statuses as marks, the authoring toolbar's shape: the words are each mark's name and tooltip, so the bar holds glyphs and actions only. */}
+          <Toolbar.Left label="Navigation and status">
+            <IconAction
+              label="Back to ruleset"
+              emphasis="standard"
+              intent="neutral"
+              size="lg"
+              icon={<ArrowLeft size={17} aria-hidden />}
+              renderRoot={(props) => <Link {...props} to="/rulesets/$rulesetSlug" params={{ rulesetSlug }} />}
+            />
+            <Group gap={6} wrap="nowrap" role="group" aria-label="Status">
+              <StatusMark {...draftStatus} />
+              <StatusMark
+                icon={<GitCommitHorizontal size={16} aria-hidden />}
+                label={`Revision ${result.latest.revision}`}
               />
-              <Text fw={700} style={{ overflowWrap: 'anywhere' }}>
-                {data.rulebook.name}
-              </Text>
-              <Stack gap={4}>
-                <Badge variant="light" color={needsReview || hasLocalChanges ? 'yellow' : 'gray'}>
-                  {result.isSaving
-                    ? 'Saving'
-                    : needsReview
-                      ? 'Review needed'
-                      : hasLocalChanges
-                        ? 'Local changes'
-                        : 'Saved draft'}
-                </Badge>
-                <Text size="xs" c="dimmed">
-                  Revision {result.latest.revision}
-                </Text>
-              </Stack>
-              <Stack gap={4}>
-                <Badge variant="light" color="gray">
-                  Edition {data.currentEdition.edition_number}
-                </Badge>
-                <Group gap={4} wrap="nowrap">
-                  {RULEBOOK_EDITION_ARTIFACT_KINDS.map((kind) => (
-                    <Badge
-                      key={kind}
-                      size="xs"
-                      variant="light"
-                      color={artifactStatusColor(data.currentEdition[kind].status)}
-                    >
-                      {artifactStatusLabel(kind, data.currentEdition[kind].status)}
-                    </Badge>
-                  ))}
-                </Group>
-              </Stack>
+              <StatusMark
+                icon={<BookMarked size={16} aria-hidden />}
+                label={`Edition ${data.currentEdition.edition_number}`}
+              />
+              {RULEBOOK_EDITION_ARTIFACT_KINDS.map((kind) => (
+                <StatusMark
+                  key={kind}
+                  tone={artifactStatusTone(data.currentEdition[kind].status)}
+                  icon={kind === 'html' ? <FileText size={16} aria-hidden /> : <FileDown size={16} aria-hidden />}
+                  label={artifactStatusLabel(kind, data.currentEdition[kind].status)}
+                />
+              ))}
             </Group>
           </Toolbar.Left>
-          <Toolbar.Right>
-            <Group gap="xs" wrap="wrap">
-              {data.canRename ? (
+          <Toolbar.Right label="Editing actions">
+            {data.canRename ? (
+              <IconAction
+                label="Rename Rulebook"
+                intent="neutral"
+                emphasis="standard"
+                size="lg"
+                tooltip={
+                  hasLocalChanges || needsReview
+                    ? 'Save your changes before renaming this Rulebook.'
+                    : 'Rename Rulebook'
+                }
+                disabled={hasLocalChanges || needsReview || result.isSaving}
+                icon={<TextCursorInput size={17} aria-hidden />}
+                onClick={() => sendView({ kind: 'rename', open: !view.renaming })}
+              />
+            ) : null}
+            <IconAction
+              label={`Fit ${fit === 'height' ? 'width' : 'height'}`}
+              intent="neutral"
+              emphasis="standard"
+              size="lg"
+              icon={
+                fit === 'height' ? <MoveHorizontal size={17} aria-hidden /> : <MoveVertical size={17} aria-hidden />
+              }
+              onClick={() => sendView({ kind: 'fit' })}
+            />
+            <Popover
+              opened={view.publishing && publishable}
+              onChange={(opened) => sendView({ kind: 'publish', open: opened })}
+              position="bottom-end"
+              width={320}
+              shadow="md"
+              withArrow
+              arrowPosition="center"
+              trapFocus
+              returnFocus
+              /* A failed publish adds its Alert to an already-measured pane, so the placement chosen on
+                 open has to stay free to move. Same reason as `AssignPopover`, different growth. */
+              preventPositionChangeWhenVisible={false}
+            >
+              <Popover.Target>
                 <IconAction
-                  label="Rename Rulebook"
-                  intent="neutral"
-                  emphasis="quiet"
-                  tooltip={
-                    hasLocalChanges || needsReview
-                      ? 'Save your changes before renaming this Rulebook.'
-                      : 'Rename Rulebook'
-                  }
-                  disabled={hasLocalChanges || needsReview || result.isSaving}
-                  icon={<TextCursorInput size={16} aria-hidden />}
-                  onClick={() => sendView({ kind: 'rename', open: !view.renaming })}
+                  label="Publish"
+                  tooltip={`Publish Edition ${nextEditionNumber}`}
+                  intent="positive"
+                  emphasis="strong"
+                  size="lg"
+                  disabled={!canPublish}
+                  icon={<BookUp2 size={17} aria-hidden />}
+                  onClick={() => {
+                    publishMutation.reset();
+                    sendView({ kind: 'publish', open: !view.publishing });
+                  }}
                 />
-              ) : null}
-              <Button size="xs" variant="default" onClick={() => sendView({ kind: 'fit' })}>
-                Fit {fit === 'height' ? 'width' : 'height'}
-              </Button>
-              <Button
-                size="xs"
-                color="confirm"
-                loading={result.isSaving}
-                disabled={!needsReview && !result.canSave}
-                onClick={() => (needsReview ? sendView({ kind: 'review', open: true }) : void save())}
-              >
-                {needsReview ? 'Review differences' : view.notice === 'saved' && !hasLocalChanges ? 'Saved' : 'Save'}
-              </Button>
-              <Popover
-                opened={view.publishing && publishable}
-                onChange={(opened) => sendView({ kind: 'publish', open: opened })}
-                position="bottom-end"
-                width={320}
-                shadow="md"
-                withArrow
-                arrowPosition="center"
-                trapFocus
-                returnFocus
-                /* A failed publish adds its Alert to an already-measured pane, so the placement chosen on
-                   open has to stay free to move. Same reason as `AssignPopover`, different growth. */
-                preventPositionChangeWhenVisible={false}
-              >
-                <Popover.Target>
-                  <Button
-                    size="xs"
-                    color="confirm"
-                    disabled={!canPublish}
-                    onClick={() => {
-                      publishMutation.reset();
-                      sendView({ kind: 'publish', open: !view.publishing });
-                    }}
-                  >
-                    Publish
-                  </Button>
-                </Popover.Target>
-                <Popover.Dropdown aria-labelledby={publishLabelId}>
-                  <Stack gap="sm">
-                    {/* Not a heading: a popover is not part of the page outline, so it names the dropdown
-                        through `aria-labelledby` the way the pickers' pane does. */}
-                    <Text id={publishLabelId} fw={700} fz="h4">
-                      Publish Edition {nextEditionNumber}?
-                    </Text>
-                    <Text size="sm">
-                      This makes the saved draft the Rulebook&apos;s current public Edition. Its Contents are permanent;
-                      HTML and PDF become available separately when each artifact is ready.
-                    </Text>
-                    {publishMutation.error ? (
-                      <Alert color="red" title="Edition could not be published">
-                        {publishMutation.error.message}
-                      </Alert>
-                    ) : null}
-                    <Group gap="xs">
-                      <Button color="confirm" loading={publishMutation.isPending} onClick={() => void publish()}>
-                        Publish Edition {nextEditionNumber}
-                      </Button>
-                      <Button
-                        variant="default"
-                        disabled={publishMutation.isPending}
-                        onClick={() => sendView({ kind: 'publish', open: false })}
-                      >
-                        Cancel
-                      </Button>
-                    </Group>
-                  </Stack>
-                </Popover.Dropdown>
-              </Popover>
-            </Group>
+              </Popover.Target>
+              <Popover.Dropdown aria-labelledby={publishLabelId}>
+                <Stack gap="sm">
+                  {/* Not a heading: a popover is not part of the page outline, so it names the dropdown
+                      through `aria-labelledby` the way the pickers' pane does. */}
+                  <Text id={publishLabelId} fw={700} fz="h4">
+                    Publish Edition {nextEditionNumber}?
+                  </Text>
+                  <Text size="sm">
+                    This makes the saved draft the Rulebook&apos;s current public Edition. Its Contents are permanent;
+                    HTML and PDF become available separately when each artifact is ready.
+                  </Text>
+                  {publishMutation.error ? (
+                    <Alert color="red" title="Edition could not be published">
+                      {publishMutation.error.message}
+                    </Alert>
+                  ) : null}
+                  <Group gap="xs">
+                    <Button color="confirm" loading={publishMutation.isPending} onClick={() => void publish()}>
+                      Publish Edition {nextEditionNumber}
+                    </Button>
+                    <Button
+                      variant="default"
+                      disabled={publishMutation.isPending}
+                      onClick={() => sendView({ kind: 'publish', open: false })}
+                    >
+                      Cancel
+                    </Button>
+                  </Group>
+                </Stack>
+              </Popover.Dropdown>
+            </Popover>
+            {/* Save last, as on every editor. Its name carries its state, since there are no words beside it. */}
+            <IconAction
+              label={
+                needsReview ? 'Review differences' : view.notice === 'saved' && !hasLocalChanges ? 'Saved' : 'Save'
+              }
+              intent="positive"
+              emphasis="strong"
+              size="lg"
+              loading={result.isSaving}
+              disabled={!needsReview && !result.canSave}
+              icon={needsReview ? <GitCompareArrows size={17} aria-hidden /> : <Save size={17} aria-hidden />}
+              onClick={() => (needsReview ? sendView({ kind: 'review', open: true }) : void save())}
+            />
           </Toolbar.Right>
         </Toolbar>
       </PageLayout.Toolbar>

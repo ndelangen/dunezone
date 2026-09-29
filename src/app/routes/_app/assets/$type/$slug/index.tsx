@@ -9,7 +9,7 @@
  * Its slug stays reserved so the address survives, but the page renders the same body a slug that never existed would get, matching the ruleset detail page.
  * That is deliberately not a claim that nothing was ever here, and nothing of the deleted row reaches the client to leak.
  */
-import { Alert, Group, Stack, Text } from '@mantine/core';
+import { Alert, Stack, Text } from '@mantine/core';
 import { ASSET_TYPES, holdsDeckMembership, isAssetType } from '@shared/assets/types';
 import { RULESET_ASSET_SLOTS } from '@shared/rulesets/assetSlots';
 import type { RulesetAssetSlot } from '@shared/rulesets/assetSlots';
@@ -486,12 +486,6 @@ function LoadedAssetDetail({ page }: { page: AssetPage }) {
   const { capabilities, assignedGroup } = viewerAccess;
   const definition = isAssetType(asset.type) ? ASSET_TYPES[asset.type] : undefined;
   const collectionLabel = definition?.label ?? 'Assets';
-  const showRight =
-    Boolean(assetPublishing?.publicationHref) ||
-    Boolean(backPublishing?.publicationHref) ||
-    capabilities.changeGroup ||
-    capabilities.delete;
-
   return (
     <PageLayout>
       <PageLayout.Header size="compact">
@@ -555,92 +549,83 @@ function LoadedAssetDetail({ page }: { page: AssetPage }) {
 
       <PageLayout.Toolbar>
         <Toolbar>
-          <Toolbar.Left>
-            <Group role="group" aria-label="Navigation and editing" gap="xs" wrap="wrap">
+          <Toolbar.Left label="Navigation">
+            <IconAction
+              label={`Back to ${collectionLabel.toLowerCase()}`}
+              emphasis="standard"
+              intent="neutral"
+              size="lg"
+              icon={<ArrowLeft size={17} aria-hidden />}
+              renderRoot={(rootProps) => <Link {...rootProps} to="/assets/$type" params={{ type: asset.type }} />}
+            />
+            {capabilities.edit ? (
               <IconAction
-                label={`Back to ${collectionLabel.toLowerCase()}`}
+                label={`Edit ${asset.name}`}
                 emphasis="standard"
                 intent="neutral"
                 size="lg"
-                icon={<ArrowLeft size={17} aria-hidden />}
-                renderRoot={(rootProps) => <Link {...rootProps} to="/assets/$type" params={{ type: asset.type }} />}
+                icon={<Pencil size={17} aria-hidden />}
+                renderRoot={(rootProps) => (
+                  <Link {...rootProps} to="/assets/$type/$slug/edit" params={{ type: asset.type, slug: asset.slug }} />
+                )}
               />
-              {capabilities.edit ? (
-                <IconAction
-                  label={`Edit ${asset.name}`}
-                  emphasis="standard"
-                  intent="neutral"
-                  size="lg"
-                  icon={<Pencil size={17} aria-hidden />}
-                  renderRoot={(rootProps) => (
-                    <Link
-                      {...rootProps}
-                      to="/assets/$type/$slug/edit"
-                      params={{ type: asset.type, slug: asset.slug }}
-                    />
-                  )}
-                />
-              ) : null}
-              {/* Every copy or each once: the grid's one view choice, for decks stacking multiples (Norbert, 2026-08-22). */}
-              {hasCopies ? (
-                <IconAction
-                  label={duplicated ? `Show each ${memberNoun} once` : 'Show every copy'}
-                  emphasis={duplicated ? 'standard' : 'strong'}
-                  intent="neutral"
-                  size="lg"
-                  icon={<Copy size={17} aria-hidden />}
-                  onClick={() =>
-                    void navigate({
-                      /* Functional, the browse controls' shape: a future search param must survive the toggle, and an undefined value is how absence-is-default is spelled. */
-                      search: (previous) => ({ ...previous, copies: duplicated ? ('once' as const) : undefined }),
-                      replace: true,
-                    })
-                  }
-                />
-              ) : null}
-            </Group>
+            ) : null}
           </Toolbar.Left>
           {/* The management actions the map's standing rule puts on the detail page as well as the edit page, each gated on the viewer's real capabilities. */}
-          {showRight ? (
-            <Toolbar.Right>
-              <Group role="group" aria-label={`${collectionLabel} actions`} gap="xs" wrap="wrap">
-                {assetPublishing?.publicationHref ? (
-                  <IconAction
-                    /* Named by face only when there are two of them, so a card keeps the plain label it already had. */
-                    label={backPublishing?.publicationHref ? 'Open published front' : 'Open published image'}
-                    emphasis="standard"
-                    intent="neutral"
-                    size="lg"
-                    href={assetPublishing.publicationHref}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    icon={<Download size={17} aria-hidden />}
-                  />
-                ) : null}
-                {/* A second published artifact rather than a second link to the first. A referenced back reaches here as null, so it offers nothing. */}
-                {backPublishing?.publicationHref ? (
-                  <IconAction
-                    label="Open published back"
-                    emphasis="standard"
-                    intent="neutral"
-                    size="lg"
-                    href={backPublishing.publicationHref}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    icon={<FlipHorizontal2 size={17} aria-hidden />}
-                  />
-                ) : null}
-                {groupActions.auxiliaryActions}
-                {capabilities.delete ? (
-                  <ConfirmDeleteAction
-                    label={`Delete ${asset.name}`}
-                    pending={deletion.pending}
-                    onConfirm={deletion.confirm}
-                  />
-                ) : null}
-              </Group>
-            </Toolbar.Right>
-          ) : null}
+          <Toolbar.Right label={`${collectionLabel} actions`}>
+            {/* Every copy or each once: the grid's one view choice, for decks stacking multiples (Norbert, 2026-08-22). A toggle: pressed and filled while every copy shows. */}
+            {hasCopies ? (
+              <IconAction
+                label="Show every copy"
+                emphasis={duplicated ? 'strong' : 'standard'}
+                intent="neutral"
+                size="lg"
+                aria-pressed={duplicated}
+                icon={<Copy size={17} aria-hidden />}
+                onClick={() =>
+                  void navigate({
+                    /* Functional, the browse controls' shape: a future search param must survive the toggle, and an undefined value is how absence-is-default is spelled. */
+                    search: (previous) => ({ ...previous, copies: duplicated ? ('once' as const) : undefined }),
+                    replace: true,
+                  })
+                }
+              />
+            ) : null}
+            {assetPublishing?.publicationHref ? (
+              <IconAction
+                /* Named by face only when there are two of them, so a card keeps the plain label it already had. */
+                label={backPublishing?.publicationHref ? 'Open published front' : 'Open published image'}
+                emphasis="standard"
+                intent="neutral"
+                size="lg"
+                href={assetPublishing.publicationHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                icon={<Download size={17} aria-hidden />}
+              />
+            ) : null}
+            {/* A second published artifact rather than a second link to the first. A referenced back reaches here as null, so it offers nothing. */}
+            {backPublishing?.publicationHref ? (
+              <IconAction
+                label="Open published back"
+                emphasis="standard"
+                intent="neutral"
+                size="lg"
+                href={backPublishing.publicationHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                icon={<FlipHorizontal2 size={17} aria-hidden />}
+              />
+            ) : null}
+            {groupActions.auxiliaryActions}
+            {capabilities.delete ? (
+              <ConfirmDeleteAction
+                label={`Delete ${asset.name}`}
+                pending={deletion.pending}
+                onConfirm={deletion.confirm}
+              />
+            ) : null}
+          </Toolbar.Right>
         </Toolbar>
       </PageLayout.Toolbar>
 

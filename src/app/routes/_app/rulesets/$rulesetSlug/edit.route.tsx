@@ -185,20 +185,9 @@ function RulesetEditor({
           setRehostState('idle');
           updateRuleset.reset();
         }),
-        onBack: () => navigate({ to: '/rulesets' }),
+        /* Back returns to the ruleset itself, the page Edit came from, so no second "View ruleset" action is needed. */
+        onBack: () => navigate({ to: '/rulesets/$rulesetSlug', params: { rulesetSlug: initial.slug } }),
       }}
-      auxiliaryActions={
-        <IconAction
-          label="View ruleset"
-          emphasis="standard"
-          intent="neutral"
-          size="lg"
-          renderRoot={(rootProps) => (
-            <Link {...rootProps} to="/rulesets/$rulesetSlug" params={{ rulesetSlug: initial.slug }} />
-          )}
-          icon={<TopicIcon topic="rulesets" size={17} />}
-        />
-      }
       context={
         saveFailure ? (
           <StatusMark tone="negative" icon={<MessageCircleWarning size={16} aria-hidden />} label={saveFailure} />

@@ -31,7 +31,7 @@ async function copySavedRulebookAndMoveFirst(page: Page, rulesetPath: string) {
   await page.getByRole('link', { name: 'Saved source title', exact: true }).click();
   await expect(page.getByRole('textbox', { name: 'Title', exact: true })).toHaveValue('Saved source title');
   await expect(page.getByRole('button', { name: 'Save', exact: true })).toBeDisabled();
-  await expect(page.getByText('Revision 1', { exact: true })).toBeVisible();
+  await expect(page.getByRole('img', { name: 'Revision 1', exact: true })).toBeVisible();
   await page.reload();
   await expect(page.getByRole('textbox', { name: 'Title', exact: true })).toHaveValue('Saved source title');
   await page.goto(`${rulesetPath}/edit`);

@@ -8,11 +8,10 @@ import { NotAvailable } from '@ui/block/NotAvailable';
 import { SlugRenameNotice } from '@ui/content/SlugRenameNotice';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { IconAction } from '@ui/control/IconAction';
-import { SubmitAction } from '@ui/control/SubmitAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
 import { Toolbar } from '@ui/surface/Toolbar';
-import { ArrowLeft, CircleUserRound, Palette, Save, Trash2, User, UsersRound } from 'lucide-react';
+import { ArrowLeft, CircleUserRound, Palette, Save, Trash2, UsersRound } from 'lucide-react';
 import { useId, useReducer, useRef, useState } from 'react';
 
 import { useDefaultGroupPreference, useSessionViewer, useUpdateCurrentProfile } from '@db/profiles';
@@ -434,35 +433,31 @@ function EditableProfilePage({ initial }: { initial: CurrentProfileEntry }) {
 
   const toolbar = (
     <Toolbar>
-      <Toolbar.Left>
+      <Toolbar.Left label="Navigation">
+        {/* Back returns to the profile these settings belong to, the page Edit came from. */}
         <IconAction
-          label="Back to profiles"
-          emphasis="standard"
-          intent="neutral"
-          size="lg"
-          renderRoot={(rootProps) => <Link {...rootProps} to="/profiles" />}
-          icon={<ArrowLeft size={16} aria-hidden />}
-        />
-        <IconAction
-          label="View public profile"
+          label="Back to profile"
           emphasis="standard"
           intent="neutral"
           size="lg"
           renderRoot={(rootProps) => (
             <Link {...rootProps} to="/profiles/$profileSlug" params={{ profileSlug: initial.slug }} />
           )}
-          icon={<User size={16} aria-hidden />}
+          icon={<ArrowLeft size={17} aria-hidden />}
         />
       </Toolbar.Left>
-      <Toolbar.Right>
-        <SubmitAction
+      <Toolbar.Right label="Editing actions">
+        <IconAction
+          label="Save profile"
+          emphasis="strong"
+          intent="positive"
+          size="lg"
+          type="submit"
           form={formId}
-          pending={update.isPending}
-          disabled={!isDirty}
+          loading={update.isPending}
+          disabled={!isDirty || update.isPending}
           icon={<Save size={17} aria-hidden />}
-        >
-          Save profile
-        </SubmitAction>
+        />
       </Toolbar.Right>
     </Toolbar>
   );

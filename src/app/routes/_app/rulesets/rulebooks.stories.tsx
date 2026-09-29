@@ -498,8 +498,14 @@ export const Rename = meta.story({
     await userEvent.type(within(form).getByRole('textbox', { name: 'Rulebook name' }), 'Battle reference');
     expect(page.getByText(/bookmarks or shared links to the old one stop/)).toBeVisible();
     await userEvent.click(within(form).getByRole('button', { name: 'Rename Rulebook' }));
-    await waitFor(() => expect(page.getByText('Battle reference', { exact: true })).toBeVisible());
-    expect(page.queryByRole('textbox', { name: 'Rulebook name' })).toBeNull();
+    await waitFor(() => expect(page.queryByRole('textbox', { name: 'Rulebook name' })).toBeNull());
+    /* The toolbar carries no name any more, so the new one is read back from the form it was set in. */
+    /* A rename re-slugs, so the editor remounts at its new address before the action is back. */
+    await userEvent.click(await page.findByRole('button', { name: 'Rename Rulebook' }, { timeout: 30_000 }));
+    await expect(page.findByRole('textbox', { name: 'Rulebook name' })).resolves.toHaveValue('Battle reference');
+    /* The form's submit shares the name, and the toolbar's toggle comes first. */
+    await userEvent.click(page.getAllByRole('button', { name: 'Rename Rulebook' })[0]!);
+    await waitFor(() => expect(page.queryByRole('textbox', { name: 'Rulebook name' })).toBeNull());
     expect(page.getByRole('button', { name: 'Save' })).toBeDisabled();
     const title = page.getByRole('textbox', { name: 'Title' });
     await userEvent.type(title, ' revised');
@@ -610,7 +616,7 @@ export const Clone = meta.story({
     await userEvent.type(page.getByRole('textbox', { name: 'Rulebook name' }), 'Copied rules');
     await userEvent.click(page.getByRole('button', { name: 'Create Rulebook' }));
     await expect(page.findByRole('button', { name: 'Save' }, { timeout: 30_000 })).resolves.toBeDisabled();
-    expect(page.getByText('Revision 1', { exact: true })).toBeVisible();
+    expect(page.getByRole('img', { name: 'Revision 1' })).toBeVisible();
   },
 });
 
@@ -722,9 +728,9 @@ export const MemberEditor = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     await expect(page.findByRole('button', { name: 'Save' }, { timeout: 30_000 })).resolves.toBeDisabled();
     expect(page.getByRole('button', { name: 'Publish' })).toBeEnabled();
-    expect(page.getByText('Edition 1')).toBeVisible();
-    expect(page.getByText('HTML ready')).toBeVisible();
-    expect(page.getByText('PDF preparing')).toBeVisible();
+    expect(page.getByRole('img', { name: 'Edition 1' })).toBeVisible();
+    expect(page.getByRole('img', { name: 'HTML ready' })).toBeVisible();
+    expect(page.getByRole('img', { name: 'PDF preparing' })).toBeVisible();
     expect(page.queryByRole('button', { name: 'Rename Rulebook' })).toBeNull();
   },
 });
@@ -875,12 +881,12 @@ export const PublishedEdition = meta.story({
     const confirmation = await page.findByRole('dialog', { name: 'Publish Edition 2?' }, { timeout: 30_000 });
     await waitFor(() => expect(finishTransitions(confirmation)).toBeVisible(), { timeout: 30_000 });
     await userEvent.click(within(confirmation).getByRole('button', { name: 'Publish Edition 2' }));
-    await waitFor(() => expect(page.getByText('Edition 2')).toBeVisible());
+    await waitFor(() => expect(page.getByRole('img', { name: 'Edition 2' })).toBeVisible());
     expect(
       page.getByText('The new Edition is now current. HTML and PDF are being prepared independently.')
     ).toBeVisible();
-    expect(page.getByText('HTML preparing')).toBeVisible();
-    expect(page.getByText('PDF preparing')).toBeVisible();
+    expect(page.getByRole('img', { name: 'HTML preparing' })).toBeVisible();
+    expect(page.getByRole('img', { name: 'PDF preparing' })).toBeVisible();
     expect(page.getByRole('button', { name: 'Publish' })).toBeDisabled();
   },
 });

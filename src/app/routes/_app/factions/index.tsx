@@ -407,11 +407,7 @@ function CatalogueToolbar({
   return (
     <>
       <Toolbar>
-        <Toolbar.Left>
-          <Text size="sm" c="dimmed" className={styles.resultCount}>
-            {visibleCount === totalCount ? `${totalCount} factions` : `${visibleCount} of ${totalCount} factions`}
-          </Text>
-        </Toolbar.Left>
+        {/* No result count on the left: the grid below already shows how many matched, as on the asset shelves (Norbert, 2026-08-21), and a toolbar carries actions, not facts. */}
         <Toolbar.Center>
           {/* The band's centre width comes from this field, not from the toolbar. */}
           <fieldset className={styles.joinedFilters} aria-label="Faction catalogue filters">
@@ -447,7 +443,7 @@ function CatalogueToolbar({
             />
           </fieldset>
         </Toolbar.Center>
-        <Toolbar.Right>
+        <Toolbar.Right label="Faction actions">
           <IconAction
             label="Create new faction"
             emphasis="strong"

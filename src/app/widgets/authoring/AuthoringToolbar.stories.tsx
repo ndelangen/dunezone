@@ -88,7 +88,7 @@ export const EveryStatus = meta.story({
 });
 
 /**
- * Below 32rem of toolbar the glyphs fold into one, wearing the status that blocks a save, and Save becomes an icon.
+ * Below 32rem of toolbar the glyphs fold into one, wearing the status that blocks a save.
  * The folded glyph's tooltip and its accessible description both list every status.
  */
 export const EveryStatusFolded = meta.story({

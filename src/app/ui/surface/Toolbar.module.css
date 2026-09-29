@@ -5,6 +5,12 @@
   min-width: 0;
 }
 
+/* With nothing in the centre there is nothing to give way, so a row of actions too long for a phone wraps onto a second line at the right edge rather than running off the screen. A centre that holds something shrinks instead, as below. */
+.root:has(> .center:empty) {
+  flex-wrap: wrap;
+  row-gap: var(--space-xs);
+}
+
 .left,
 .right {
   display: flex;

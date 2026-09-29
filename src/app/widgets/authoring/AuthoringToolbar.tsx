@@ -1,4 +1,4 @@
-import { Button, Group, Loader, VisuallyHidden } from '@mantine/core';
+import { Group, Loader, VisuallyHidden } from '@mantine/core';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
 import { StatusMark, StatusMarkList } from '@ui/content/StatusMark';
 import type { StatusMarkProps } from '@ui/content/StatusMark';
@@ -62,11 +62,12 @@ export interface AuthoringToolbarActions {
 
 /**
  * The edit-page toolbar every authoring surface installs identically: back, the statuses, reset, and the confirm-green save, with slots for whatever one editor adds around them.
+ * It follows the page toolbar rules `Toolbar` states: back leads on the left, and every action is an icon, Save included, so an editor's bar reads like a detail page's (Norbert, 2026-09-29).
  *
  * Every status is a `StatusMark`, a glyph whose tooltip and accessible name carry the words, so the bar stays one line at every width instead of growing a line of prose (Norbert, #1423).
  * The toolbar states the save state and a blank name itself.
  * A page adds its own statuses as further marks in `context`, such as where a publication has got to or which Group has access.
- * Below 32rem of toolbar the marks fold into one, whose tooltip lists them all, and Save becomes an icon.
+ * Below 32rem of toolbar the marks fold into one, whose tooltip lists them all.
  * The same statuses are also words in a live region, so a screen reader hears each one as it changes, such as Saving and then Saved after Save.
  *
  * It carries no warning count and no standing explanation of what saving does.
@@ -124,7 +125,7 @@ export function AuthoringToolbar({
         <StatusMarkList>{statuses}</StatusMarkList>
       </VisuallyHidden>
       <Toolbar>
-        <Toolbar.Left>
+        <Toolbar.Left label="Navigation and status">
           <Group gap="sm" wrap="nowrap">
             <IconAction
               label="Back"
@@ -149,7 +150,7 @@ export function AuthoringToolbar({
 
         <Toolbar.Center>{centerIndicator}</Toolbar.Center>
 
-        <Toolbar.Right>
+        <Toolbar.Right label="Editing actions">
           <Group gap="xs" wrap="nowrap" className={styles.actions}>
             <div className={styles.auxiliarySlot}>{auxiliaryActions}</div>
             <IconAction
@@ -173,30 +174,16 @@ export function AuthoringToolbar({
               />
             ) : null}
             <div className={styles.destructiveSlot}>{destructiveActions}</div>
-            <span className={styles.saveButton}>
-              <Button
-                type="button"
-                color="confirm"
-                leftSection={<Save size={17} aria-hidden />}
-                disabled={saveDisabled}
-                loading={saveState === 'saving'}
-                onClick={onSave}
-              >
-                {copy.saveLabel}
-              </Button>
-            </span>
-            <span className={styles.saveIcon}>
-              <IconAction
-                label={copy.saveLabel}
-                intent="positive"
-                emphasis="strong"
-                size="lg"
-                disabled={saveDisabled}
-                loading={saveState === 'saving'}
-                onClick={onSave}
-                icon={<Save size={17} aria-hidden />}
-              />
-            </span>
+            <IconAction
+              label={copy.saveLabel}
+              intent="positive"
+              emphasis="strong"
+              size="lg"
+              disabled={saveDisabled}
+              loading={saveState === 'saving'}
+              onClick={onSave}
+              icon={<Save size={17} aria-hidden />}
+            />
           </Group>
         </Toolbar.Right>
       </Toolbar>

@@ -66,7 +66,6 @@
     gap: var(--space-xs);
   }
 
-  .resultCount,
   .rulesetField,
   .sortField {
     display: none;

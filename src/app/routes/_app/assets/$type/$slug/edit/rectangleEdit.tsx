@@ -256,7 +256,7 @@ function RectangleEditSession({
           actions={{
             onSave: save,
             onReset: header.releasing(() => dispatch({ kind: 'replace', data: state.baseline, pick: backToken })),
-            onBack: () => void navigate({ to: '/assets/$type', params: { type } }),
+            onBack: () => void navigate({ to: '/assets/$type/$slug', params: { type, slug: asset.slug } }),
           }}
           auxiliaryActions={groupActions.auxiliaryActions}
           context={groupActions.context}

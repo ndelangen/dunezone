@@ -1,3 +1,4 @@
+import { Box } from '@mantine/core';
 import preview from '@sb/preview';
 
 import { SurfaceFiller } from './SurfaceFiller.stories.fixture';
@@ -63,6 +64,33 @@ export const ManyControls = meta.story({
         {control}
         {control}
         {wideControl}
+      </Toolbar.Right>,
+    ],
+  },
+});
+
+/** Too many actions for a phone, with nothing in the centre: the right edge wraps onto its own line instead of running off the screen. */
+export const WrapsWhenCrowded = meta.story({
+  decorators: [
+    (Story) => (
+      <Box w={320}>
+        <Story />
+      </Box>
+    ),
+  ],
+  args: {
+    children: [
+      <Toolbar.Left key="left" label="Navigation">
+        {control}
+        {control}
+      </Toolbar.Left>,
+      <Toolbar.Right key="right" label="Actions">
+        {control}
+        {control}
+        {control}
+        {control}
+        {control}
+        {control}
       </Toolbar.Right>,
     ],
   },

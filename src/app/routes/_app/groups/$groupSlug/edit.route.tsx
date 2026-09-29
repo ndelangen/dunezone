@@ -1,4 +1,4 @@
-import { Group, Stack, TextInput } from '@mantine/core';
+import { Stack, TextInput } from '@mantine/core';
 import { groupInputSchema } from '@shared/groups/validation';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
@@ -8,11 +8,10 @@ import { LoginGate } from '@ui/block/LoginGate';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import { SlugRenameNotice } from '@ui/content/SlugRenameNotice';
 import { IconAction } from '@ui/control/IconAction';
-import { SubmitAction } from '@ui/control/SubmitAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
-import { ArrowLeft, Users } from 'lucide-react';
+import { ArrowLeft, Save } from 'lucide-react';
 import { useRef, useState } from 'react';
 
 import { loadGroupEditBySlug, useGroupEditBySlug, useUpdateGroup } from '@db/groups';
@@ -20,6 +19,9 @@ import type { GroupEntry } from '@db/groups';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
+
+/* The form's id, so Save can sit in the toolbar with every other page's Save and still submit it. */
+const GROUP_EDIT_FORM_ID = 'group-edit-form';
 
 /**
  * The whole edit page for one group, mounted with `key={group.slug}` so a rename remounts it and resets the field.
@@ -73,33 +75,42 @@ function GroupEditor({ initial }: { initial: GroupEntry }) {
       {validationHeader.slot}
       <PageLayout.Toolbar>
         <Toolbar>
-          <Toolbar.Left>
-            <Group gap="xs" wrap="nowrap">
-              <IconAction
-                label="Back to profiles"
-                emphasis="standard"
-                intent="neutral"
-                size="lg"
-                renderRoot={(rootProps) => <Link {...rootProps} to="/profiles" />}
-                icon={<ArrowLeft size={16} aria-hidden />}
-              />
-              <IconAction
-                label="View group"
-                emphasis="standard"
-                intent="neutral"
-                size="lg"
-                renderRoot={(rootProps) => (
-                  <Link {...rootProps} to="/groups/$groupSlug" params={{ groupSlug: initial.slug }} />
-                )}
-                icon={<Users size={16} aria-hidden />}
-              />
-            </Group>
+          <Toolbar.Left label="Navigation">
+            <IconAction
+              label="Back to group"
+              emphasis="standard"
+              intent="neutral"
+              size="lg"
+              renderRoot={(rootProps) => (
+                <Link {...rootProps} to="/groups/$groupSlug" params={{ groupSlug: initial.slug }} />
+              )}
+              icon={<ArrowLeft size={17} aria-hidden />}
+            />
           </Toolbar.Left>
+          <Toolbar.Right label="Editing actions">
+            <IconAction
+              label="Save group"
+              emphasis="strong"
+              intent="positive"
+              size="lg"
+              type="submit"
+              form={GROUP_EDIT_FORM_ID}
+              loading={updateGroup.isPending}
+              disabled={!nameCheck.success || updateGroup.isPending}
+              icon={<Save size={17} aria-hidden />}
+            />
+          </Toolbar.Right>
         </Toolbar>
       </PageLayout.Toolbar>
       <PageLayout.Content>
         <Surface padding="lg">
-          <Stack component="form" gap="sm" onSubmit={handleSubmit} onBlurCapture={validationHeader.settle}>
+          <Stack
+            component="form"
+            id={GROUP_EDIT_FORM_ID}
+            gap="sm"
+            onSubmit={handleSubmit}
+            onBlurCapture={validationHeader.settle}
+          >
             <TextInput
               ref={nameInputRef}
               label="Group name"
@@ -113,11 +124,6 @@ function GroupEditor({ initial }: { initial: GroupEntry }) {
               onChange={(event) => setName(event.target.value)}
             />
             {mutationError ? <FormError title="Group could not be saved">{mutationError}</FormError> : null}
-            <Group gap="xs" wrap="nowrap">
-              <SubmitAction pending={updateGroup.isPending} disabled={!nameCheck.success}>
-                Save group
-              </SubmitAction>
-            </Group>
           </Stack>
         </Surface>
       </PageLayout.Content>

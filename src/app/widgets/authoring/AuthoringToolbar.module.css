@@ -1,4 +1,4 @@
-/* The toolbar answers to its own width: whether the status marks fold and Save shrinks depends on the room the bar has, not the window. */
+/* The toolbar answers to its own width: whether the status marks fold depends on the room the bar has, not the window. */
 .sticky {
   position: sticky;
   top: 0.75rem;
@@ -11,29 +11,25 @@
 }
 
 .auxiliarySlot,
-.destructiveSlot,
-.saveButton {
+.destructiveSlot {
   display: contents;
 }
 
-.foldedStatus,
-.saveIcon {
+.foldedStatus {
   display: none;
 }
 
 /*
  * Off the ladder because the threshold comes from the widest row a caller puts in the bar: the faction editor with its name cleared.
- * Back, four marks, the complexity ring and five actions ending in a worded Save need about 31.9rem of toolbar.
+ * Back, four marks, the complexity ring and five actions ending in Save need about 31.9rem of toolbar; Save lost its words since, so this now has slack.
  * Any narrower, the ring leaves its slot, and from about 30.4rem down it covers the mark and the action beside it.
  */
 @container authoring-toolbar (width < 32rem) {
-  .statuses,
-  .saveButton {
+  .statuses {
     display: none;
   }
 
-  .foldedStatus,
-  .saveIcon {
+  .foldedStatus {
     display: contents;
   }
 }

@@ -264,7 +264,7 @@ function DeckEditSession({
           actions={{
             onSave: save,
             onReset: header.releasing(() => dispatch({ kind: 'replace', data: state.baseline, pick: backDeck })),
-            onBack: () => void navigate({ to: '/assets/$type', params: { type: 'deck' } }),
+            onBack: () => void navigate({ to: '/assets/$type/$slug', params: { type: 'deck', slug: asset.slug } }),
           }}
           auxiliaryActions={
             <>

@@ -350,7 +350,7 @@ export const EditToolbarAt1440 = meta.story({
 
 /**
  * The faction editor with its name cleared, at the narrowest window where its toolbar keeps a glyph per status (#1423).
- * No caller puts a wider row in the bar: four statuses, the complexity ring, and five actions ending in a worded Save.
+ * No caller puts a wider row in the bar: four statuses, the complexity ring, and five actions ending in Save.
  * Each still sits in its own slot, clear of its neighbours.
  */
 export const EditToolbarWithBlankNameAt552 = meta.story({

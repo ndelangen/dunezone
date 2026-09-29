@@ -34,14 +34,14 @@ function AccountDeletionPage() {
 
   const toolbar = (
     <Toolbar>
-      <Toolbar.Left>
+      <Toolbar.Left label="Navigation">
         <IconAction
           label="Back to profile settings"
           emphasis="standard"
           intent="neutral"
           size="lg"
           renderRoot={(rootProps) => <Link {...rootProps} to="/profiles/$profileSlug/edit" params={{ profileSlug }} />}
-          icon={<ArrowLeft size={16} aria-hidden />}
+          icon={<ArrowLeft size={17} aria-hidden />}
         />
       </Toolbar.Left>
     </Toolbar>

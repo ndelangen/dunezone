@@ -97,7 +97,7 @@ function AssetTypePage() {
       {definition.status === 'live' ? (
         <PageLayout.Toolbar>
           <Toolbar>
-            <Toolbar.Left>
+            <Toolbar.Left label="Navigation">
               {/* A way back to the shelves, where a result count stood: the number told nobody anything a full grid did not (Norbert, 2026-08-21). */}
               <IconAction
                 label="Back to all assets"
@@ -133,7 +133,7 @@ function AssetTypePage() {
                 />
               </fieldset>
             </Toolbar.Center>
-            <Toolbar.Right>
+            <Toolbar.Right label={`${definition.label} actions`}>
               <IconAction
                 label={`Create a ${noun.toLowerCase()}`}
                 emphasis="strong"

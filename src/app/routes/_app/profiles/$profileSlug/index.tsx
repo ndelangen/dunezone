@@ -1,5 +1,5 @@
 import { useAuthActions } from '@convex-dev/auth/react';
-import { Group, Stack, Text } from '@mantine/core';
+import { Stack, Text } from '@mantine/core';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { LoadError } from '@ui/block/LoadError';
@@ -248,50 +248,46 @@ function ProfileDetailPage() {
 
   const toolbar = (
     <Toolbar>
-      <Toolbar.Left>
-        <Group gap="xs" wrap="wrap" role="group" aria-label="Navigation and editing">
+      <Toolbar.Left label="Navigation">
+        <IconAction
+          label="Back to profiles"
+          emphasis="standard"
+          intent="neutral"
+          size="lg"
+          renderRoot={(rootProps) => <Link {...rootProps} to="/profiles" />}
+          icon={<ArrowLeft size={17} aria-hidden />}
+        />
+        {isSelf ? (
           <IconAction
-            label="Back to profiles"
+            label="Edit profile"
             emphasis="standard"
             intent="neutral"
             size="lg"
-            renderRoot={(rootProps) => <Link {...rootProps} to="/profiles" />}
-            icon={<ArrowLeft size={17} aria-hidden />}
+            renderRoot={(rootProps) => (
+              <Link {...rootProps} to="/profiles/$profileSlug/edit" params={{ profileSlug }} />
+            )}
+            icon={<Pencil size={17} aria-hidden />}
           />
-          {isSelf ? (
-            <IconAction
-              label="Edit profile"
-              emphasis="standard"
-              intent="neutral"
-              size="lg"
-              renderRoot={(rootProps) => (
-                <Link {...rootProps} to="/profiles/$profileSlug/edit" params={{ profileSlug }} />
-              )}
-              icon={<Pencil size={17} aria-hidden />}
-            />
-          ) : null}
-        </Group>
+        ) : null}
       </Toolbar.Left>
       {isSelf ? (
-        <Toolbar.Right>
-          <Group gap="xs" wrap="wrap" role="group" aria-label="Profile actions">
-            <IconAction
-              label="Start group"
-              emphasis="strong"
-              intent="positive"
-              size="lg"
-              renderRoot={(rootProps) => <Link {...rootProps} to="/groups/create" />}
-              icon={<UserPlus size={17} aria-hidden />}
-            />
-            <IconAction
-              label="Log out"
-              emphasis="standard"
-              intent="negative"
-              size="lg"
-              onClick={() => void handleSignOut()}
-              icon={<LogOut size={17} aria-hidden />}
-            />
-          </Group>
+        <Toolbar.Right label="Profile actions">
+          <IconAction
+            label="Start group"
+            emphasis="strong"
+            intent="positive"
+            size="lg"
+            renderRoot={(rootProps) => <Link {...rootProps} to="/groups/create" />}
+            icon={<UserPlus size={17} aria-hidden />}
+          />
+          <IconAction
+            label="Log out"
+            emphasis="standard"
+            intent="negative"
+            size="lg"
+            onClick={() => void handleSignOut()}
+            icon={<LogOut size={17} aria-hidden />}
+          />
         </Toolbar.Right>
       ) : null}
     </Toolbar>

@@ -188,74 +188,70 @@ function FactionDetailPage() {
       </PageLayout.Header>
       <PageLayout.Toolbar>
         <Toolbar>
-          <Toolbar.Left>
-            <Group gap="xs" wrap="wrap" role="group" aria-label="Navigation and editing">
+          <Toolbar.Left label="Navigation">
+            <IconAction
+              label="Back to factions"
+              emphasis="standard"
+              intent="neutral"
+              size="lg"
+              renderRoot={(rootProps) => <Link {...rootProps} to="/factions" />}
+              icon={<ArrowLeft size={17} aria-hidden />}
+            />
+            {canEdit ? (
               <IconAction
-                label="Back to factions"
+                label="Edit faction"
                 emphasis="standard"
                 intent="neutral"
                 size="lg"
-                renderRoot={(rootProps) => <Link {...rootProps} to="/factions" />}
-                icon={<ArrowLeft size={17} aria-hidden />}
+                renderRoot={(rootProps) => (
+                  <Link {...rootProps} to="/factions/$factionId/edit" params={{ factionId }} />
+                )}
+                icon={<Pencil size={17} aria-hidden />}
               />
-              {canEdit ? (
-                <IconAction
-                  label="Edit faction"
-                  emphasis="standard"
-                  intent="neutral"
-                  size="lg"
-                  renderRoot={(rootProps) => (
-                    <Link {...rootProps} to="/factions/$factionId/edit" params={{ factionId }} />
-                  )}
-                  icon={<Pencil size={17} aria-hidden />}
-                />
-              ) : null}
-            </Group>
+            ) : null}
           </Toolbar.Left>
 
-          <Toolbar.Right>
-            <Group gap="xs" wrap="wrap" role="group" aria-label="Faction actions">
-              <IconAction
-                label="Preview faction sheet"
-                emphasis="strong"
-                intent="positive"
-                size="lg"
-                renderRoot={(rootProps) => (
-                  <Link
-                    {...rootProps}
-                    to="/preview/sheet/$factionSlug"
-                    params={{ factionSlug: factionId }}
-                    search={{ mode: 'db' }}
-                    target="_blank"
-                  />
-                )}
-                icon={<Eye size={17} aria-hidden />}
-              />
-              {assetPublishing.publicationHref ? (
-                <IconAction
-                  label="Open published PDF"
-                  emphasis="standard"
-                  intent="neutral"
-                  size="lg"
-                  href={assetPublishing.publicationHref}
+          <Toolbar.Right label="Faction actions">
+            <IconAction
+              label="Preview faction sheet"
+              emphasis="standard"
+              intent="neutral"
+              size="lg"
+              renderRoot={(rootProps) => (
+                <Link
+                  {...rootProps}
+                  to="/preview/sheet/$factionSlug"
+                  params={{ factionSlug: factionId }}
+                  search={{ mode: 'db' }}
                   target="_blank"
-                  rel="noopener noreferrer"
-                  icon={<Download size={17} aria-hidden />}
                 />
-              ) : null}
-              {canRequestMembership && assignedGroup ? (
-                <IconAction
-                  label="Request membership"
-                  emphasis="standard"
-                  intent="neutral"
-                  size="lg"
-                  loading={membershipWorkflow.request.isPending}
-                  disabled={membershipWorkflow.request.isPending}
-                  onClick={() => void membershipWorkflow.request.run(assignedGroup.id).catch(() => undefined)}
-                  icon={<UserPlus size={17} aria-hidden />}
-                />
-              ) : null}
-            </Group>
+              )}
+              icon={<Eye size={17} aria-hidden />}
+            />
+            {assetPublishing.publicationHref ? (
+              <IconAction
+                label="Open published PDF"
+                emphasis="standard"
+                intent="neutral"
+                size="lg"
+                href={assetPublishing.publicationHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                icon={<Download size={17} aria-hidden />}
+              />
+            ) : null}
+            {canRequestMembership && assignedGroup ? (
+              <IconAction
+                label="Request membership"
+                emphasis="standard"
+                intent="neutral"
+                size="lg"
+                loading={membershipWorkflow.request.isPending}
+                disabled={membershipWorkflow.request.isPending}
+                onClick={() => void membershipWorkflow.request.run(assignedGroup.id).catch(() => undefined)}
+                icon={<UserPlus size={17} aria-hidden />}
+              />
+            ) : null}
           </Toolbar.Right>
         </Toolbar>
       </PageLayout.Toolbar>

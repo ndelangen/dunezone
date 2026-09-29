@@ -3,7 +3,6 @@ import {
   Avatar,
   Badge,
   Box,
-  Group,
   Menu,
   Popover,
   Select,
@@ -279,7 +278,7 @@ function AddFactionPopover({
       <Popover.Target>
         <IconAction
           label="Add a faction"
-          emphasis="strong"
+          emphasis="standard"
           intent="neutral"
           size="lg"
           disabled={disabled}
@@ -536,113 +535,94 @@ function RulesetDetailPage() {
       </PageLayout.Header>
       <PageLayout.Toolbar>
         <Toolbar>
-          <Toolbar.Left>
-            <Group gap="xs" wrap="wrap" role="group" aria-label="Navigation and editing">
+          <Toolbar.Left label="Navigation">
+            <IconAction
+              label="Back to rulesets"
+              emphasis="standard"
+              intent="neutral"
+              size="lg"
+              renderRoot={(rootProps) => <Link {...rootProps} to="/rulesets" />}
+              icon={<ArrowLeft size={17} aria-hidden />}
+            />
+            {viewerAccess.capabilities.edit ? (
               <IconAction
-                label="Back to rulesets"
+                label="Edit ruleset"
                 emphasis="standard"
                 intent="neutral"
                 size="lg"
-                renderRoot={(rootProps) => <Link {...rootProps} to="/rulesets" />}
-                icon={<ArrowLeft size={17} aria-hidden />}
+                renderRoot={(rootProps) => (
+                  <Link {...rootProps} to="/rulesets/$rulesetSlug/edit" params={{ rulesetSlug: r.slug }} />
+                )}
+                icon={<Pencil size={17} aria-hidden />}
               />
-              {viewerAccess.capabilities.edit ? (
-                <IconAction
-                  label="Edit ruleset"
-                  emphasis="standard"
-                  intent="neutral"
-                  size="lg"
-                  renderRoot={(rootProps) => (
-                    <Link {...rootProps} to="/rulesets/$rulesetSlug/edit" params={{ rulesetSlug: r.slug }} />
-                  )}
-                  icon={<Pencil size={17} aria-hidden />}
-                />
-              ) : null}
-            </Group>
+            ) : null}
           </Toolbar.Left>
 
-          <Toolbar.Right>
-            {viewerAccess.capabilities.edit ||
-            actionVisibility.askQuestion ||
-            actionVisibility.assignGroup ||
-            actionVisibility.removeGroup ||
-            actionVisibility.canDelete ? (
-              <Group gap="xs" wrap="wrap" role="group" aria-label="Ruleset actions">
-                {viewerAccess.capabilities.edit ? (
-                  <IconAction
-                    label="Add Rulebook"
-                    emphasis="strong"
-                    intent="positive"
-                    size="lg"
-                    icon={<TopicIcon topic="rules" size={17} />}
-                    renderRoot={(props) => (
-                      <Link {...props} to="/rulesets/$rulesetSlug/rulebooks/create" params={{ rulesetSlug: r.slug }} />
-                    )}
-                  />
-                ) : null}
-                {actionVisibility.askQuestion ? (
-                  <IconAction
-                    label="Ask a question"
-                    emphasis="strong"
-                    intent="positive"
-                    size="lg"
-                    onClick={() =>
-                      navigate({
-                        to: '/rulesets/$rulesetSlug/faq/create',
-                        params: { rulesetSlug: r.slug },
-                      })
-                    }
-                    icon={<MessageCircleQuestionMark size={17} aria-hidden />}
-                  />
-                ) : null}
-                {viewerAccess.capabilities.edit ? (
-                  <AddFactionPopover
-                    disabled={addFaction.isPending}
-                    linkedSlugs={page.factions.map((faction) => faction.slug)}
-                    rulesetName={r.name}
-                    onAdd={(factionId) => addFaction.mutate({ rulesetId: r._id, factionId })}
-                  />
-                ) : null}
-                {actionVisibility.assignGroup ? (
-                  <AssignPopover
-                    noun="group"
-                    triggerLabel="Assign group"
-                    icon={<UsersRound size={17} aria-hidden />}
-                    disabled={setRulesetGroup.isPending}
-                    title="Assign Group"
-                  >
-                    <AssignOptions
-                      options={page.assignableGroups.map((group) => ({
-                        value: group.id,
-                        label: `${group.name} (${group.slug})`,
-                      }))}
-                      onAssign={async (nextGroupId) => {
-                        await setRulesetGroup.mutateAsync({ id: r._id, groupId: nextGroupId });
-                      }}
-                    />
-                  </AssignPopover>
-                ) : null}
-                {actionVisibility.removeGroup ? (
-                  <IconAction
-                    label="Remove group"
-                    intent="negative"
-                    emphasis="standard"
-                    size="lg"
-                    disabled={setRulesetGroup.isPending}
-                    onClick={() =>
-                      void setRulesetGroup.mutateAsync({ id: r._id, groupId: null }).catch(() => undefined)
-                    }
-                    icon={<UserRoundMinus size={17} aria-hidden />}
-                  />
-                ) : null}
-                {actionVisibility.canDelete ? (
-                  <ConfirmDeleteAction
-                    label="Delete ruleset"
-                    pending={deleteRuleset.isPending}
-                    onConfirm={handleDelete}
-                  />
-                ) : null}
-              </Group>
+          <Toolbar.Right label="Ruleset actions">
+            {viewerAccess.capabilities.edit ? (
+              <IconAction
+                label="Add Rulebook"
+                emphasis="strong"
+                intent="positive"
+                size="lg"
+                icon={<TopicIcon topic="rules" size={17} />}
+                renderRoot={(props) => (
+                  <Link {...props} to="/rulesets/$rulesetSlug/rulebooks/create" params={{ rulesetSlug: r.slug }} />
+                )}
+              />
+            ) : null}
+            {actionVisibility.askQuestion ? (
+              <IconAction
+                label="Ask a question"
+                emphasis="strong"
+                intent="positive"
+                size="lg"
+                renderRoot={(props) => (
+                  <Link {...props} to="/rulesets/$rulesetSlug/faq/create" params={{ rulesetSlug: r.slug }} />
+                )}
+                icon={<MessageCircleQuestionMark size={17} aria-hidden />}
+              />
+            ) : null}
+            {viewerAccess.capabilities.edit ? (
+              <AddFactionPopover
+                disabled={addFaction.isPending}
+                linkedSlugs={page.factions.map((faction) => faction.slug)}
+                rulesetName={r.name}
+                onAdd={(factionId) => addFaction.mutate({ rulesetId: r._id, factionId })}
+              />
+            ) : null}
+            {actionVisibility.assignGroup ? (
+              <AssignPopover
+                noun="group"
+                triggerLabel="Assign group"
+                icon={<UsersRound size={17} aria-hidden />}
+                disabled={setRulesetGroup.isPending}
+                title="Assign Group"
+              >
+                <AssignOptions
+                  options={page.assignableGroups.map((group) => ({
+                    value: group.id,
+                    label: `${group.name} (${group.slug})`,
+                  }))}
+                  onAssign={async (nextGroupId) => {
+                    await setRulesetGroup.mutateAsync({ id: r._id, groupId: nextGroupId });
+                  }}
+                />
+              </AssignPopover>
+            ) : null}
+            {actionVisibility.removeGroup ? (
+              <IconAction
+                label="Remove group"
+                intent="negative"
+                emphasis="standard"
+                size="lg"
+                disabled={setRulesetGroup.isPending}
+                onClick={() => void setRulesetGroup.mutateAsync({ id: r._id, groupId: null }).catch(() => undefined)}
+                icon={<UserRoundMinus size={17} aria-hidden />}
+              />
+            ) : null}
+            {actionVisibility.canDelete ? (
+              <ConfirmDeleteAction label="Delete ruleset" pending={deleteRuleset.isPending} onConfirm={handleDelete} />
             ) : null}
           </Toolbar.Right>
         </Toolbar>
