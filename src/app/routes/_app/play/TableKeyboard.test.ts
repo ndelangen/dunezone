@@ -127,4 +127,26 @@ describe('number-key stack draws', () => {
     vi.advanceTimersByTime(1000);
     expect(controls.splitSelected).not.toHaveBeenCalled();
   });
+  /* #1507: on AZERTY, Shift+& types 1, and with Shift let go first the same key comes up as "&". */
+  test('a pending draw is cancelled by its own key coming up, even when it no longer types the digit', () => {
+    const { controls } = table();
+
+    key('keydown', { key: '1', code: 'Digit1', shiftKey: true });
+    vi.advanceTimersByTime(500);
+    key('keyup', { key: 'Shift', code: 'ShiftLeft' });
+    key('keyup', { key: '&', code: 'Digit1' });
+
+    vi.advanceTimersByTime(1000);
+    expect(controls.splitSelected).not.toHaveBeenCalled();
+  });
+
+  test('another key coming up leaves the pending draw running', () => {
+    const { controls } = table();
+
+    key('keydown', { key: '1', code: 'Digit1', shiftKey: true });
+    key('keyup', { key: 'é', code: 'Digit2' });
+
+    vi.advanceTimersByTime(1000);
+    expect(controls.splitSelected.mock.calls).toEqual([[1, 'harkonnen-force-stack']]);
+  });
 });
