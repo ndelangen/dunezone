@@ -5,6 +5,8 @@
   min-width: 0;
 }
 
+/* The band never wraps: it is one row of actions at every width (Norbert, 2026-09-29). What does not fit folds into the More actions menu, which `Toolbar` measures for. */
+
 .left,
 .right {
   display: flex;
@@ -36,4 +38,28 @@
 
 .right {
   justify-content: flex-end;
+}
+
+/* Between two runs of actions of different kinds: no line, only the band's gap twice over, so the runs read as groups. */
+.gap {
+  flex: 0 0 auto;
+  width: 0;
+}
+
+/* Before the commit run only, which is the one step apart from the rest. */
+.divider {
+  flex: 0 0 auto;
+  align-self: center;
+  width: 1px;
+  height: 1.25rem;
+  margin-inline: calc(var(--space-xs) / 2);
+  background: var(--mantine-color-default-border);
+}
+
+/* The folded runs, still one row of the same tiles, with the same gaps between them. */
+.overflow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-xs);
 }

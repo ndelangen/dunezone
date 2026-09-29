@@ -194,7 +194,7 @@ export default definePreview({
             height: '900px',
           },
         },
-        /* The narrowest window at which the authoring toolbar keeps a glyph per status: its 32rem fold, plus the 40px the page puts around the toolbar at this width. */
+        /* A window just wider than a phone, where the widest editor row (the faction editor with its name cleared) must still fit unfolded. */
         appAuthoringToolbarUnfolded: {
           name: 'Authoring toolbar unfolded',
           styles: {
