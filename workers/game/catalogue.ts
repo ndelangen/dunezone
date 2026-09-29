@@ -333,11 +333,16 @@ export class GameCatalogue {
       return [];
     });
     const definition = declarations.length ? { ...parsed.data, extraPhases } : parsed.data;
-    const token = { front: this.publishedFace(source.token, 'faction token', problems), back: null };
+    const token = {
+      front: this.publishedFace(source.token, 'faction token', problems),
+      back: this.publishedFace(source.tokenBack ?? null, 'faction token', problems),
+    };
     if (!token.front) {
       problems.push({ subject: 'faction token', reason: 'The faction token has no published face.' });
     }
-    problems.push({ subject: 'faction token', reason: 'The faction token back is not generated yet.' });
+    if (!token.back) {
+      problems.push({ subject: 'faction token', reason: 'The faction token back has no published face.' });
+    }
     const leaders = definition.leaders.map((leader) => {
       const subject = `leader ${leader.name}`;
       const published = source.leaders.find((entry) => entry.memberId === leader.memberId)?.front ?? null;
@@ -354,8 +359,18 @@ export class GameCatalogue {
       };
     });
     const troops = definition.troops.map((troop) => {
-      problems.push({ subject: `troop ${troop.name}`, reason: 'Troop faces are not generated yet.' });
-      return { troopId: troop.troopId, name: troop.name, count: troop.count, front: null, back: null };
+      const subject = `troop ${troop.name}`;
+      const published = source.troops?.find((entry) => entry.troopId === troop.troopId);
+      const front = this.publishedFace(published?.front ?? null, subject, problems);
+      if (!front) {
+        problems.push({ subject, reason: 'This troop has no published face.' });
+      }
+      /* A troop without an authored back shows its front on both sides. */
+      const back = troop.back ? this.publishedFace(published?.back ?? null, subject, problems) : front;
+      if (troop.back && !back) {
+        problems.push({ subject, reason: 'This troop back has no published face.' });
+      }
+      return { troopId: troop.troopId, name: troop.name, count: troop.count, front, back };
     });
     for (const face of troopCombatFaces(definition.troops).filter(lacksCombatValues)) {
       problems.push({
@@ -363,8 +378,19 @@ export class GameCatalogue {
         reason: 'This troop face can fight but has no authored combat values.',
       });
     }
-    problems.push({ subject: 'alliance card', reason: 'The alliance card is not generated yet.' });
-    problems.push({ subject: 'traitor deck', reason: 'Traitor cards are not generated yet.' });
+    const allianceFront = this.publishedFace(source.alliance ?? null, 'alliance card', problems);
+    if (!allianceFront) {
+      problems.push({ subject: 'alliance card', reason: 'The alliance card has no published face.' });
+    }
+    const traitorCards = definition.leaders.map((leader) => {
+      const subject = `traitor ${leader.name}`;
+      const published = source.traitors?.find((entry) => entry.memberId === leader.memberId)?.front ?? null;
+      const front = this.publishedFace(published, subject, problems);
+      if (!front) {
+        problems.push({ subject, reason: 'This traitor card has no published face.' });
+      }
+      return { memberId: leader.memberId, name: leader.name, front };
+    });
     const captured: SlotCapture[] = [];
     for (const extra of definition.extras ?? []) {
       captured.push(await this.captureSlot('extra', extra, problems));
@@ -378,12 +404,12 @@ export class GameCatalogue {
         leaders,
         troops,
         alliance: {
-          front: null,
+          front: allianceFront,
           back: this.publishedFace(source.cardbacks.alliance, 'alliance back', problems),
         },
         traitors: {
           back: this.publishedFace(source.cardbacks.traitor, 'traitor back', problems),
-          cards: definition.leaders.map((leader) => ({ memberId: leader.memberId, name: leader.name, front: null })),
+          cards: traitorCards,
         },
       },
       extras: captured,

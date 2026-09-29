@@ -55,6 +55,11 @@ describe('isolated Play test controls', () => {
       t.mutation(internal.playTesting.shortenSession, { sessionId, kind: 'total', expiresInMs: 0 })
     ).rejects.toThrow('isolated loopback');
     await expect(t.mutation(internal.playTesting.seedRealGameCatalogue, {})).rejects.toThrow('isolated loopback');
+    await expect(
+      t.mutation(internal.playTesting.provisionAccounts, {
+        accounts: [{ email: 'player@example.invalid', secret: `${'0'.repeat(32)}:${'0'.repeat(128)}` }],
+      })
+    ).rejects.toThrow('isolated loopback');
   });
 
   test('seeds a real-game ruleset with both decks and two factions, distinct from an earlier seed', async () => {
@@ -64,8 +69,8 @@ describe('isolated Play test controls', () => {
     aggregateTest.register(t, 'profileActivity');
     const first = await t.mutation(internal.playTesting.seedRealGameCatalogue, {});
     const second = await t.mutation(internal.playTesting.seedRealGameCatalogue, {});
-    /* Two decks with three cards each, and a token per faction. */
-    expect(first.publications).toHaveLength(10);
+    /* Two decks with three cards each, and both token faces per faction. */
+    expect(first.publications).toHaveLength(12);
     const seeded = await t.run(async (ctx) => {
       const slots = await ctx.db
         .query('ruleset_asset_slots')

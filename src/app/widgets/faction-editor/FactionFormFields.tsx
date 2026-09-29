@@ -320,15 +320,15 @@ function ArtifactProof({
           artifact = (
             /* Paper, not a pane: this is an excerpt of the printed faction sheet, and it renders
                inside the workbench surface below, and surfaces never nest. */
-            <Box className={styles.rulesProof} p="lg">
-              <Text ff="serif" fw={800} tt="uppercase">
+            <Box className={styles.rulesProof}>
+              <Text className={styles.proofHeading} ff="serif" fw={800} tt="uppercase">
                 At start
               </Text>
               <Text ff="serif" size="sm">
                 Starting spice: {faction.rules.spiceCount} ·{' '}
                 <InlineFormattedTextSource source={faction.rules.startText} />
               </Text>
-              <Text ff="serif" fw={800} tt="uppercase" mt="md">
+              <Text className={styles.proofHeading} ff="serif" fw={800} tt="uppercase" mt="md">
                 Revival
               </Text>
               <Text ff="serif" size="sm">
@@ -339,8 +339,8 @@ function ArtifactProof({
         } else if (activeChapter === 'advantages') {
           title = 'Advantage excerpt';
           artifact = selectedAdvantage ? (
-            <Box className={styles.rulesProof} p="lg">
-              <Text ff="serif" fw={800} tt="uppercase">
+            <Box className={styles.rulesProof}>
+              <Text className={styles.proofHeading} ff="serif" fw={800} tt="uppercase">
                 {selectedAdvantage.title || 'Faction advantage'}
               </Text>
               <FormattedTextSource source={selectedAdvantage.text} size="sm" />
@@ -365,11 +365,11 @@ function ArtifactProof({
             <>
               {selectedPhase ? (
                 /* The phase as a player meets it: its symbol, title and instructions. */
-                <Box className={styles.phaseProof} p="lg">
+                <Box className={styles.phaseProof}>
                   {selectedPhase.symbol ? (
                     <Image src={resolve(selectedPhase.symbol)} alt="" w={48} h={48} fit="contain" mb="sm" />
                   ) : null}
-                  <Text ff="serif" fw={800} tt="uppercase">
+                  <Text className={styles.proofHeading} ff="serif" fw={800} tt="uppercase">
                     {phaseRowLabel(selectedPhase, phaseIndex)}
                   </Text>
                   <Text ff="serif" size="sm" style={{ whiteSpace: 'pre-wrap' }}>

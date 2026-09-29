@@ -40,11 +40,33 @@ function sequenceRows(canvasElement: HTMLElement, section: 'Setup' | 'Each turn'
     .map((item) => item.textContent);
 }
 
+/* The storm-order notes a reader sees, as their texts: the sequence shows one note per placed group, or one note for the whole sequence when its column is narrow. */
+function visibleStormNotes(canvasElement: HTMLElement) {
+  const sequence = within(within(canvasElement).getByRole('region', { name: 'Phase sequence' }));
+  return sequence
+    .queryAllByText(/storm order/)
+    .filter((note) => note.checkVisibility())
+    .map((note) => note.textContent);
+}
+
 async function openPhases(canvasElement: HTMLElement) {
   const canvas = within(canvasElement);
   await userEvent.click(canvas.getByRole('tab', { name: /Phases/ }));
   return canvas;
 }
+
+/* On a phone the section tabs fold into a picker, so the chapter is chosen there. */
+async function openPhasesFromPicker(canvasElement: HTMLElement) {
+  const canvas = within(canvasElement);
+  await userEvent.click(canvas.getByRole('combobox', { name: 'Faction editor sections' }));
+  await userEvent.click(await within(canvasElement.ownerDocument.body).findByRole('option', { name: /Phases/ }));
+  return canvas;
+}
+
+const setupAndTurnPhases = [
+  { ...validPhase, id: 'omen', title: 'Desert omen', symbol: '/vector/icon/fate.svg', before: 'forces' },
+  validPhase,
+];
 
 const meta = preview.meta({
   title: 'Faction Editor/Phases',
@@ -70,12 +92,7 @@ export const Empty = meta.story({
 
 /** One phase in setup and one every turn: each sits before its target, with the storm-order hint for other factions' ties. */
 export const SequenceSetupAndTurn = meta.story({
-  args: {
-    faction: factionWith([
-      { ...validPhase, id: 'omen', title: 'Desert omen', symbol: '/vector/icon/fate.svg', before: 'forces' },
-      validPhase,
-    ]),
-  },
+  args: { faction: factionWith(setupAndTurnPhases) },
   play: async ({ canvasElement }) => {
     await openPhases(canvasElement);
     const tie = "Another faction's phase here at the same priority goes in storm order.";
@@ -86,12 +103,36 @@ export const SequenceSetupAndTurn = meta.story({
       'Bidding',
     ]);
     /* The hint shows under each placed group but is a note, not a counted step. */
-    await expect(within(canvasElement).getAllByText(tie)).toHaveLength(2);
+    await expect(visibleStormNotes(canvasElement)).toEqual([tie, tie]);
     /* The shelf's selected phase is the one marked in the sequence. */
     const sequence = within(within(canvasElement).getByRole('region', { name: 'Phase sequence' }));
     const setup = within(sequence.getByRole('list', { name: 'Setup' }));
     await expect(setup.getByText('Desert omen').closest('li')).toHaveAttribute('aria-current', 'true');
     await expect(setup.getByText('Traitors').closest('li')).not.toHaveAttribute('aria-current');
+  },
+});
+
+/** On a phone the sequence sits in the 7rem preview thumbnail: every label wraps whole instead of truncating, and one storm-order note ends the sequence in place of one per group. */
+export const SequenceOnPhone = meta.story({
+  args: { faction: factionWith(setupAndTurnPhases) },
+  globals: { viewport: { value: 'appMobile' } },
+  play: async ({ canvasElement }) => {
+    await openPhasesFromPicker(canvasElement);
+    const sequence = await within(canvasElement).findByRole('region', { name: 'Phase sequence' });
+    const paper = sequence.getBoundingClientRect();
+    /* The labels a reader cannot read whole: cut short across by an ellipsis or down by a line clamp, or running past the sequence's paper. */
+    const clipped = within(sequence)
+      .getAllByRole('listitem')
+      .map((item) => within(item).getByText(item.textContent ?? ''))
+      .filter(
+        (label) =>
+          label.scrollWidth > label.clientWidth ||
+          label.scrollHeight > label.clientHeight ||
+          label.getBoundingClientRect().right > paper.right
+      )
+      .map((label) => label.textContent);
+    await expect(clipped).toEqual([]);
+    await expect(visibleStormNotes(canvasElement)).toEqual(['Ties with other factions go in storm order.']);
   },
 });
 

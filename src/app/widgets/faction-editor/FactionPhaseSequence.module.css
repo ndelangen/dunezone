@@ -37,3 +37,60 @@
 .tieHint {
   padding: 0 var(--space-xs) 2px calc(var(--space-xs) + 3px);
 }
+
+.symbol {
+  width: 20px;
+  height: 20px;
+}
+
+/* The single storm-order note waits for the narrow step below, where it replaces the note under each group. */
+.stormNote {
+  display: none;
+}
+
+/*
+ * Below a 38rem stage the preview column narrows from 15rem towards the 7rem phone thumbnail, and
+ * the phase card above takes the xs inset. The sequence takes the same step: the xs inset, 14px
+ * symbols, and extra-small labels that wrap instead of truncating. A word longer than the line
+ * breaks too. With `hyphens: auto` Chromium hyphenates such a word only when it starts lowercase, so
+ * the first word of a label and every word of a title-case one break with no hyphen, through
+ * `overflow-wrap: anywhere`. `break-word` would leave the label's min-content width at the whole
+ * word, and the word would run past the row. One storm-order note at the end replaces the note
+ * under each group, which would otherwise wrap to several lines apiece.
+ */
+@container faction-review-stage (width < 38rem) {
+  .sequence {
+    padding: var(--space-xs);
+  }
+
+  .row {
+    align-items: flex-start;
+    gap: 4px;
+    padding: 1px 2px;
+    border-left-width: 2px;
+  }
+
+  .symbol {
+    width: 14px;
+    height: 14px;
+    margin-top: 2px;
+  }
+
+  .label {
+    overflow: visible;
+    font-size: var(--mantine-font-size-xs);
+    line-height: 1.3;
+    white-space: normal;
+    text-overflow: clip;
+    overflow-wrap: anywhere;
+    hyphens: auto;
+  }
+
+  .tieHint {
+    display: none;
+  }
+
+  .stormNote {
+    display: block;
+  }
+}

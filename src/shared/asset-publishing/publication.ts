@@ -6,11 +6,19 @@ import { rulebookRenderPageV1Schema } from '../rulebooks/renderDocument';
 import { DEFAULT_RULEBOOK_SETTINGS, rulebookSettingsSchema } from '../rulebooks/settings';
 import { componentGeometrySchema } from './componentGeometry';
 import { factionLeaderAssetDataSchema } from './componentPublication';
+import { factionAllianceAssetDataSchema, factionTraitorAssetDataSchema } from './factionCardPublication';
+import { factionTroopAssetDataSchema } from './factionTroopPublication';
 import type { PublicationAssetType } from './publicationTargets';
 import { PUBLICATION_ASSET_TYPES } from './publicationTargets';
 
 export const FACTION_SHEET_ASSET_TYPE = 'faction_sheet' as const;
-export const factionTokenAssetDataSchema = HistoricalFactionPublicationSchema.pick({ logo: true, background: true });
+/** The token's `.back` face draws the same artwork with the blocked symbol, so its payload is the front's plus that flag. */
+export const factionTokenAssetDataSchema = HistoricalFactionPublicationSchema.pick({
+  logo: true,
+  background: true,
+}).extend({
+  blocked: z.literal(true).optional(),
+});
 
 export const TREACHERY_CARD_ASSET_TYPE = 'card-treachery' as const;
 export const SPICE_CARD_ASSET_TYPE = 'card-spice' as const;
@@ -120,6 +128,9 @@ const PUBLICATION_ASSET_DATA_SCHEMAS = {
   [FACTION_SHEET_ASSET_TYPE]: factionSheetAssetDataSchema,
   'faction-leader': factionLeaderAssetDataSchema,
   'faction-token': factionTokenAssetDataSchema,
+  'faction-troop': factionTroopAssetDataSchema,
+  'faction-traitor': factionTraitorAssetDataSchema,
+  'faction-alliance': factionAllianceAssetDataSchema,
   [TREACHERY_CARD_ASSET_TYPE]: treacheryCardAssetDataSchema,
   [SPICE_CARD_ASSET_TYPE]: spiceCardAssetDataSchema,
   [DECK_ASSET_TYPE]: deckCardbackAssetDataSchema,

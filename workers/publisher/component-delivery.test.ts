@@ -133,7 +133,7 @@ describe('complete component delivery', () => {
     expect(removed.status).toBe(404);
   });
 
-  test('source removal wins over retained bytes and a matching conditional request', async () => {
+  test('a missing source wins over retained bytes and a matching conditional request', async () => {
     const bucket = storage();
     await putComponentEnvelope(bucket, job, 'a'.repeat(64), revisionA, new Uint8Array([1]), geometry);
     const response = await handleComponentRequest(request({ 'If-None-Match': `"${revisionA}"` }), assetId, {

@@ -8,7 +8,7 @@ import type { ComponentAssetType } from './componentGeometry';
 export const FACTION_LEADER_ASSET_TYPE = 'faction-leader' as const;
 
 /** A component URL identifies one member of one faction, independent of its current name or position. */
-const factionIdSchema = z.string().regex(/^[0-9a-z]{16,64}$/);
+export const factionIdSchema = z.string().regex(/^[0-9a-z]{16,64}$/);
 const factionMemberPublicationIdentitySchema = z.strictObject({
   factionId: factionIdSchema,
   memberId: FactionMemberIdSchema,

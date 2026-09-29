@@ -185,16 +185,6 @@ export function rejection(state: TableState, command: string, message: string): 
   };
 }
 
-function isHarkonnenShipmentForce(state: TableState, piece: TablePiece): boolean {
-  const isHarkonnenForce = piece.owner === 'harkonnen' && piece.kind === 'force';
-  return state.phase === 'Harkonnen shipment' && isHarkonnenForce;
-}
-
-function isShipment(state: TableState, piece: TablePiece, targetZoneId: string | null): boolean {
-  const entersArrakeen = targetZoneId === 'arrakeen' && piece.zoneId !== 'arrakeen';
-  return isHarkonnenShipmentForce(state, piece) && entersArrakeen;
-}
-
 type StackTargetOptions = { draft?: DraftMove | null; includeNearby?: boolean };
 
 function stackCandidateIsAvailable(source: TablePiece, candidate: TablePiece): boolean {
@@ -607,7 +597,7 @@ function mergeEventFor(application: DraftApplication, target: TablePiece): Table
   const placement = piece.kind === 'card' ? 'placed on' : 'stacked with';
   return {
     id: eventId(current.nextEventNumber),
-    command: isShipment(current, piece, target.zoneId) ? 'ship.forces' : 'stack.merge',
+    command: 'stack.merge',
     message: `${count} ${unit} ${placement} ${target.label}.`,
     status: 'accepted',
   };
@@ -653,9 +643,6 @@ function applyMerge(application: DraftApplication): TableState {
 }
 
 function moveCommandFor({ current, draft, piece }: DraftApplication): string {
-  if (isShipment(current, piece, draft.targetZoneId)) {
-    return 'ship.forces';
-  }
   const source = current.pieces.find((candidate) => candidate.id === draft.sourcePieceId);
   const peeledFromStack = Boolean(source && draft.withdrawals.length && pieceCount(source) > 1);
   if (!peeledFromStack) {

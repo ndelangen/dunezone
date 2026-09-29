@@ -33,6 +33,7 @@ export function definition(id, name) {
     faction: { id, slug: id, name },
     data: { ...assetPublishingFaction, name },
     token: `/published/faction-tokens/${id}/token.jpg`,
+    tokenBack: `/published/faction-tokens/${id}.back/token.jpg`,
     cardbacks: { traitor: null, alliance: null },
     leaders: assetPublishingFaction.leaders.map((leader) => ({
       memberId: leader.memberId,
@@ -79,7 +80,7 @@ export async function draftingRuntime(
   peer.watchMode = 'allow';
   peer.expiresAt = () => Date.now() + 600_000;
   peer.game = { rulesetId: 'ruleset-one', minimumPlayers: 2, creator: CREATOR };
-  /* Faction backs and troops are not generated anywhere yet, so a real game could not deal; the isolated path may. */
+  /* This fixture's faction publishes no alliance or traitor faces, so a real game could not deal; the isolated path may. */
   peer.provisional = true;
   const [treachery, spice] = [deckPage('treachery-deck', cards), deckPage('spice-deck', cards, 5)];
   for (const page of [...cards, treachery, spice]) {

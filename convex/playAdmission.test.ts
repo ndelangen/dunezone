@@ -6,7 +6,7 @@ import rateLimiterTest from '@convex-dev/rate-limiter/test';
 import { convexTest } from 'convex-test';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
-import { PLAY_TICKET_TTL_MS } from '../src/shared/play/admission';
+import { PLAY_FIXTURE_KEY, PLAY_TICKET_TTL_MS } from '../src/shared/play/admission';
 import { api, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import type { MutationCtx } from './_generated/server';
@@ -23,14 +23,11 @@ function setup() {
   return t;
 }
 
+/* The protocol verifier's subject, a synthetic test game on an isolated backend, since the hosted fixture admits nobody. */
 async function fixture() {
   const t = setup();
-  const { gameId } = await t.mutation(internal.playProvisioning.beginFixtureProvision, {});
-  const game = await t.run(async (ctx) => await ctx.db.get(gameId));
-  if (!game) {
-    throw new Error('Missing test fixture');
-  }
-  const credentials = { gameId, secret: game.secret, attemptId: game.attempt_id };
+  const { gameId, secret, attemptId } = await t.mutation(internal.playTesting.createFixture, {});
+  const credentials = { gameId, secret, attemptId };
   expect(await t.mutation(api.playProvisioning.confirmProvisioning, credentials)).toEqual({ ok: true });
   const identity = await t.run(async (ctx) => {
     const userId = await ctx.db.insert('users', { account_state: 'active', name: 'Synthetic player' });
@@ -92,20 +89,30 @@ const admissionFailures: Record<
   used_refresh: (ctx, subject) => ctx.db.patch(subject.refreshId, { firstUsedTime: Date.now() }),
 };
 
-beforeEach(() => vi.useFakeTimers());
+beforeEach(() => {
+  vi.useFakeTimers();
+  vi.stubEnv('IS_TEST', 'true');
+  vi.stubEnv('E2E_LOCAL_AUTH', 'true');
+  vi.stubEnv('CONVEX_CLOUD_URL', 'http://127.0.0.1:3210');
+  vi.stubEnv('SITE_URL', 'http://127.0.0.1:8787');
+});
 afterEach(() => {
   vi.clearAllTimers();
   vi.useRealTimers();
+  vi.unstubAllEnvs();
 });
 
 describe('Play admission', () => {
   test('serves only safe ready metadata to a signed-in non-administrator', async () => {
     const subject = await fixture();
-    expect(await subject.t.query(api.playAdmission.getFixture, {})).toEqual({ status: 'sign_in_required' });
-    expect(await subject.player.query(api.playAdmission.getFixture, {})).toEqual({
+    const { gameId } = subject.credentials;
+    expect(await subject.t.query(api.playGames.getGame, { gameId })).toEqual({ status: 'sign_in_required' });
+    expect(await subject.player.query(api.playGames.getGame, { gameId })).toEqual({
       status: 'ready',
-      gameId: subject.credentials.gameId,
+      gameId,
       name: 'Hosted fixture',
+      ruleset: null,
+      minimumPlayers: null,
     });
     const { admission, issued } = await admit(subject);
     expect(issued.ticket).toMatch(/^[0-9a-f]{64}$/);
@@ -180,6 +187,32 @@ describe('Play admission', () => {
     expect(
       await subject.player.mutation(api.playAdmission.issueTicket, { gameId: subject.credentials.gameId })
     ).toMatchObject({ ok: true });
+  });
+
+  test('closing the hosted fixture refuses its outstanding ticket and denies its registered session', async () => {
+    const subject = await fixture();
+    const { admission } = await admit(subject);
+    const outstanding = await subject.player.mutation(api.playAdmission.issueTicket, {
+      gameId: subject.credentials.gameId,
+    });
+    if (!outstanding.ok) {
+      throw new Error('Ticket issuance refused');
+    }
+    const watch = () =>
+      subject.t.query(api.playAdmission.watchAuthorizations, watchArgs(subject, [admission.registrationId]));
+    expect(await watch()).toMatchObject({ ok: true, entries: [{ allowed: true }] });
+    /* The same row under the hosted fixture's key, as production keeps that game stored. */
+    await subject.t.run(
+      async (ctx) => await ctx.db.patch(subject.credentials.gameId, { fixture_key: PLAY_FIXTURE_KEY })
+    );
+    expect(
+      await subject.t.mutation(api.playAdmission.redeemTicket, {
+        gameId: subject.credentials.gameId,
+        secret: subject.credentials.secret,
+        ticket: outstanding.ticket,
+      })
+    ).toEqual({ ok: false, reason: 'refused' });
+    expect(await watch()).toMatchObject({ ok: true, entries: [{ allowed: false }] });
   });
 
   test.each(Object.entries(admissionFailures))(

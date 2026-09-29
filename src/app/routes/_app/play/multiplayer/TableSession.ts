@@ -2,7 +2,7 @@ import type { BattlePlanInput } from '@shared/play/battle';
 import type { SpawnSelection } from '@shared/play/inventory';
 import type { LogTab } from '@shared/play/log';
 import { affordancesFor, gestureBlockReason } from '@shared/play/model';
-import type { DraftMove, TablePiece, TableState, Vector3Tuple } from '@shared/play/model';
+import type { Affordance, DraftMove, TablePiece, TableState, Vector3Tuple } from '@shared/play/model';
 import { isSeatAction } from '@shared/play/participation';
 import { carryPieceId, tableForViewer } from '@shared/play/protocol';
 import type {
@@ -83,6 +83,18 @@ export type TableProjection = {
   battleCountdownSeconds: number;
   state: TableState;
   renderedPieces: TablePiece[];
+  selectedPiece: TablePiece | null;
+  affordances: Affordance[];
+  /* The piece menu's bank and deck actions, present only while this viewer can act. */
+  bankControls?: {
+    canCollect(pieceId: string): boolean;
+    collect(pieceId: string): void;
+  };
+  deckControls?: {
+    recipients: { id: string; name: string }[];
+    draw(pieceId: string, recipient?: string): void;
+    shuffle(pieceId: string): void;
+  };
   pointers: PublicPointer[];
   remoteCarriedIds: ReadonlySet<string>;
   reservedPieceIds: ReadonlySet<string>;
@@ -229,21 +241,40 @@ export class TableSession {
     };
     const { carries: remote, pointers } = this.activityForView();
     const local = this.localProjection(state);
+    const canInteract = this.canAct();
+    const renderedPieces = projectPublicCarries(local.pieces, remote);
+    const reservedPieceIds = new Set(remote.flatMap((carry) => carry.reservedIds));
     return {
       viewer: this.viewer,
       snapshot: displayed,
       liveRevision: this.snapshot.revision,
       playback: this.history ? { step: this.history.step, lastStep: this.history.lastStep } : null,
       historyPending: this.pendingHistory !== null,
-      canInteract: this.canAct(),
+      canInteract,
       seatCommandPending: this.seatCommandInFlight !== null,
       phaseCooling: this.runtime.monotonicNow() < this.phaseCooldownUntil,
       battleCountdownSeconds: Math.max(0, Math.ceil((this.battleCountdownUntil - this.runtime.monotonicNow()) / 1000)),
       state,
-      renderedPieces: projectPublicCarries(local.pieces, remote),
+      renderedPieces,
+      selectedPiece: renderedPieces.find((piece) => piece.id === state.selectedPieceId) ?? null,
+      affordances: affordancesFor({ ...state, pieces: renderedPieces }),
+      bankControls:
+        canInteract && displayed.bank
+          ? {
+              canCollect: (pieceId) => !reservedPieceIds.has(pieceId),
+              collect: (pieceId) => this.command({ kind: 'bank-collect', pieceId }),
+            }
+          : undefined,
+      deckControls: canInteract
+        ? {
+            recipients: displayed.roster?.seats.flatMap((seat) => (seat.faction ? [seat.faction] : [])) ?? [],
+            draw: (pieceId, recipient) => this.command({ kind: 'deck-draw', pieceId, recipient }),
+            shuffle: (pieceId) => this.command({ kind: 'deck-shuffle', pieceId }),
+          }
+        : undefined,
       pointers,
       remoteCarriedIds: new Set(remote.map((carry) => carry.held.id)),
-      reservedPieceIds: new Set(remote.flatMap((carry) => carry.reservedIds)),
+      reservedPieceIds,
       gestureActivePieceId: local.gestureActivePieceId,
       hoveredPieceId: this.hoveredId,
       flippingPieceIds: local.flippingPieceIds,
@@ -873,8 +904,6 @@ export class TableSession {
     this.flipping.delete(pieceId);
     this.emit();
   };
-  renderedPositionFor = (piece: TablePiece): Vector3Tuple => piece.position;
-  renderedOrientationFor = (piece: TablePiece) => piece.orientation;
   publishPointer = (position: Vector3Tuple | null) => {
     if (!this.canAct()) {
       this.pointer = null;
@@ -894,5 +923,4 @@ export class TableSession {
       }, 50);
     }
   };
-  affordances = () => affordancesFor({ ...this.requireTable().state, pieces: this.requireTable().renderedPieces });
 }

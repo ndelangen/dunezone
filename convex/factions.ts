@@ -34,6 +34,7 @@ import {
   enqueueFactionLeaderPublications,
   enqueueFactionSheetPublication,
   enqueueFactionTokenPublication,
+  enqueueFactionFaces,
 } from './lib/publication';
 import { nowIso, slugify } from './lib/utils';
 import type { MutationCtx, QueryCtx } from './types';
@@ -348,6 +349,7 @@ export const create = mutation({
     await enqueueFactionSheetPublication(ctx, row);
     await enqueueFactionTokenPublication(ctx, row);
     await enqueueFactionLeaderPublications(ctx, row);
+    await enqueueFactionFaces(ctx, row);
     return { ...factionRowForClient(row), route_notice: groupAssignment.route_notice };
   },
 });
@@ -379,6 +381,7 @@ export const update = mutation({
     await enqueueFactionSheetPublication(ctx, updated);
     await enqueueFactionTokenPublication(ctx, updated, access.subject.data);
     await enqueueFactionLeaderPublications(ctx, updated, access.subject.data);
+    await enqueueFactionFaces(ctx, updated, access.subject.data);
     return factionRowForClient(updated);
   },
 });

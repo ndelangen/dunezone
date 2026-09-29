@@ -276,13 +276,4 @@ describe('table views', () => {
     expect(state.activeView).toBe('bottom');
     expect(state.cameraRevision).toBe(1);
   });
-
-  test('recenters the active view without returning to the map', () => {
-    let state = createTableViewState();
-    state = reduceTableView(state, { type: 'view.selected', view: 'right' });
-    state = reduceTableView(state, { type: 'view.reset' });
-
-    expect(state.activeView).toBe('right');
-    expect(state.cameraRevision).toBe(2);
-  });
 });

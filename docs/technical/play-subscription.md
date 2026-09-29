@@ -27,7 +27,7 @@ Subscription patches).
 `gameRuntime` supplies browser sockets, clocks and page visibility. Route stories provide a runtime
 through `GameRuntimeContext`, and tests pass one directly. Each table owns its dependency; neither
 needs to replace the browser's WebSocket constructor or wall clock. React and scene rendering
-continue to consume the session through the existing table and presence contexts.
+continue to consume the session through the existing table context.
 
 The session suites retain command ordering, carry, privacy and playback coverage. The subscription
 suite exercises patch assembly, resynchronization, independent subscriptions and reconnect epochs.

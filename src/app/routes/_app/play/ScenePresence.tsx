@@ -9,7 +9,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import type { Group } from 'three';
 import { Raycaster, Vector2, Vector3 } from 'three';
 
-import { usePresence } from './multiplayer/PresenceContext';
+import { useTabletop } from './TabletopContext';
 
 function rectangleContainsPoint(bounds: DOMRect, x: number, y: number) {
   return x >= bounds.left && x <= bounds.right && y >= bounds.top && y <= bounds.bottom;
@@ -175,7 +175,7 @@ declare global {
 }
 
 export function ScenePresence() {
-  const { pointers, canInteract, publishPointer } = usePresence();
+  const { pointers, canInteract, publishPointer } = useTabletop();
   const { camera, renderer, scene } = useThree();
   const raycaster = useMemo(() => new Raycaster(), []);
   const normalized = useMemo(() => new Vector2(), []);
@@ -265,7 +265,8 @@ export function ScenePresence() {
     }
   });
   useEffect(() => {
-    if (!import.meta.env.DEV) {
+    /* The local-auth build reuses its sign-in flag for browser verification, which projects table positions through this camera. */
+    if (!(import.meta.env.DEV || import.meta.env.VITE_E2E_LOCAL_AUTH === 'true')) {
       return;
     }
     const diagnostic: TableDiagnostic = {

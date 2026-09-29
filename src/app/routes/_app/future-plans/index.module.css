@@ -51,7 +51,7 @@
   margin: 2rem 0 1rem;
 }
 
-@media (max-width: 40.625em) {
+@container (width < 48rem) {
   .hero h1 {
     font-size: 2.45rem;
   }

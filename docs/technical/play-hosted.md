@@ -12,12 +12,16 @@ real game at `/play/create`. Nothing in the application links to `/play` and the
 real games are an unlisted beta, shared privately, until the public-release decision
 ([#1094](https://github.com/ndelangen/dunezone/issues/1094)). The retired `/play/hosted` and `/play/demo` pages
 ([#1296](https://github.com/ndelangen/dunezone/issues/1296)) no longer exist in the application,
-and their old addresses redirect to the lobby;
-the public `playAdmission:getFixture` query stays so a bundle deployed before their removal still
-gets an answer. The fixture game this document describes remains the Worker's native test and load
-fixture: the first two distinct admitted users occupy its Harkonnen and Atreides seats, and later
-users are spectators. A user's other tabs share their seat but have independent connections and
-carries.
+and their old addresses redirect to the lobby. The hosted fixture game they opened stays stored but
+admits no player ([#1323](https://github.com/ndelangen/dunezone/issues/1323)): its `/play/<gameId>`
+address answers as an unknown game does, and no ticket is issued or redeemed for it. Players enter a
+real game, or a synthetic test game that the load runner and the protocol verifier create on an
+isolated backend. `admitsPlayers` in `convex/lib/playAuthorization.ts` holds that rule for the game
+page, the tickets and the live authorization alike. The stored fixture's account reconciliation and
+deletion acknowledgements keep answering its Worker. The fixture game this document describes
+remains the Worker's native test and load fixture: the first two distinct admitted users occupy its
+Harkonnen and Atreides seats, and later users are spectators. A user's other tabs share their seat
+but have independent connections and carries.
 
 Convex stores the fixture directory record, provisioning status, server-only game secrets, ticket hashes, session
 registrations and account-deletion delivery records. It does not store table actions or seats.
@@ -158,9 +162,9 @@ pass.
 
 ## Provisioning and transport
 
-An operator invokes `playProvisioning:beginFixtureProvision` once after deployment. This internal
-mutation creates the Stage B singleton and schedules its provisioning request. A real game is
-provisioned when a signed-in player creates it (`playGames.createGame`). The directory hides pending fixtures.
+A real game is provisioned when a signed-in player creates it (`playGames.createGame`). No operator
+step follows a deployment: the Stage B singleton that `playProvisioning:beginFixtureProvision`
+creates admits no player. The directory hides pending fixtures.
 
 The game Worker checks the supplied game secret and attempt with the fixed trusted Convex backend
 before creating state. Unknown, duplicate, expired and invalid requests get the same generic
@@ -297,7 +301,9 @@ binding and game Worker path. It creates a synthetic local backend with no produ
 hosted development credentials. Its checks include independent non-admin users, anonymous and
 spectator rejection, contested mutations, transient activity, receipt replay, phase playback,
 single-use tickets, multi-tab logout, inactivity/total expiry, and account-deletion vacancy.
-Retained logs contain check results and payload counters, not credentials.
+It creates its synthetic accounts through `playTesting:provisionAccounts` before the first check,
+so every check signs in and none signs up. Retained logs contain check results and payload
+counters, not credentials.
 
 The browser flows play real games. The stack seeds a synthetic ruleset
 (`playTesting:seedRealGameCatalogue`) with both required decks, a treachery deck of treachery cards
@@ -306,21 +312,29 @@ id to each flow. Every flow signs in synthetic accounts without the Administrato
 game at `/play/create`, seats the second player through a seat request and its approval, and plays
 through drafting and setup before its own checks. Against a running
 [local stack](../deployment.md#hosted-gameplay), seed that ruleset once and use a build with local
-Password sign-in enabled:
+Password sign-in enabled (`VITE_E2E_LOCAL_AUTH=true`). That build also installs
+`window.__duneTable`, and the script projects table positions through the camera it exposes.
+Create a mode-0700 directory under the operating system temporary directory, reported by
+`node -p "require('node:os').tmpdir()"`. In the command below, `/PRIVATE_TEMP` means that private
+directory; it must be replaced with its absolute path:
 
 ```sh
 bun --no-env-file scripts/verify-hosted-play-browser.mjs \
   --origin http://127.0.0.1:8787 \
-  --env-file /absolute/private/local.env \
-  --credentials-file /absolute/private/browser-accounts.json \
+  --env-file /PRIVATE_TEMP/local.env \
+  --credentials-file /PRIVATE_TEMP/browser-accounts.json \
   --report-dir /absolute/proof-output \
   --flow regular \
   --ruleset-id <rulesetId>
 ```
 
-The environment file must contain the loopback `CONVEX_SELF_HOSTED_URL`. Private files need mode
-0600 in a mode-0700 directory, outside the report directory. The script creates synthetic accounts
-and retains their credentials for later runs. Other network origins are blocked. It runs headless;
+The environment file must contain the loopback `CONVEX_SELF_HOSTED_URL` and the backend's
+`CONVEX_SELF_HOSTED_ADMIN_KEY`. Private files need mode 0600 and at most 8 KiB, and the report
+directory must not contain them. Before Chromium starts, the script creates its synthetic accounts
+through `playTesting:provisionAccounts` and retains their credentials for later runs, so a browser
+only signs in. A sign-in fails the flow when the backend refuses it, when it reaches the login
+form's sign-up fallback, or when the script never saw the form's `auth:signIn` frame. Other
+network origins are blocked. It runs headless;
 `--browser /absolute/browser-executable` selects a local Chromium-compatible executable instead
 of Playwright's installed Chromium. On Linux it adds `--use-angle=swiftshader`: headless Chromium
 there draws WebGL on SwiftShader and composites in software, which reads each WebGL frame back on

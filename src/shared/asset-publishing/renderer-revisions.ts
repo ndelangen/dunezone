@@ -14,8 +14,13 @@ import {
 export const CHECKED_IN_RENDERER_REVISIONS = {
   /* Revision 2 records measured part metadata for existing Leader publications. */
   'faction-leader': 2,
-  /* The first activation publishes tokens for existing factions. */
-  'faction-token': 1,
+  /* The first activation publishes tokens for existing factions; revision 2 adds the blocked `.back` face (#1228). */
+  'faction-token': 2,
+  /* The first activation publishes every identified troop's front, and its back where one is authored (#1228). */
+  'faction-troop': 1,
+  /* The first activations publish a traitor front per identified supporting leader, and one alliance front per faction (#1228). */
+  'faction-traitor': 1,
+  'faction-alliance': 1,
   // 9: formatted text replaces Markdown while setup and revival stay inline (wayfinder #669).
   [FACTION_SHEET_ASSET_TYPE]: 9,
   /* Revision 2 regenerates Card image-and-geometry envelopes. */

@@ -83,6 +83,8 @@ describe('the catalogue reads Play captures from', () => {
         alliance: '/published/cardback-presets/alliance/cardback.jpg?v=alliance-1',
       },
       token: `/published/faction-tokens/${factionId}/token.jpg?v=token-1`,
+      /* Its blocked back has not published yet. */
+      tokenBack: null,
     });
     const [first, second] = assetPublishingFaction.leaders;
     expect(definition?.leaders[0]).toEqual({

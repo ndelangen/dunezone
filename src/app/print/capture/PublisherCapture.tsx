@@ -15,8 +15,11 @@ import { FactionSheetView } from '@app/print/sheet/FactionSheetView';
 import { AssetRenderModeProvider } from '@game/assets/assetRenderMode';
 import { CardBack } from '@game/assets/card/Back';
 import { SpiceCard } from '@game/assets/card/Spice';
+import { AllianceCard } from '@game/assets/faction/alliance/Alliance';
 import { LeaderToken } from '@game/assets/faction/leader/Leader';
 import { Token as FactionToken } from '@game/assets/faction/token/Token';
+import { TraitorCard } from '@game/assets/faction/traitor/Traitor';
+import { TroopToken } from '@game/assets/faction/troop/Troop';
 import { CustomToken } from '@game/assets/token/Custom';
 import { RectangleToken } from '@game/assets/token/Rectangle';
 import { TreacheryCard } from '@game/assets/treachery/Treachery';
@@ -57,6 +60,17 @@ function CaptureFrame({
   );
 }
 
+/** An image subject: the renderer in print mode, inside a frame at the type's capture size. */
+function printedImage(assetType: PublicationAssetType, node: ReactNode): CaptureSubject {
+  return {
+    node: (
+      <CaptureFrame assetType={assetType}>
+        <AssetRenderModeProvider mode="print">{node}</AssetRenderModeProvider>
+      </CaptureFrame>
+    ),
+  };
+}
+
 /**
  * What each Publication asset type draws, and what it needs of the document around it.
  *
@@ -76,49 +90,35 @@ function captureSubject(snapshot: PublisherCaptureSnapshot): CaptureSubject {
         ),
       };
     case 'card-treachery':
-      return {
-        node: (
-          <CaptureFrame assetType={snapshot.assetType}>
-            <AssetRenderModeProvider mode="print">
-              <TreacheryCard {...snapshot.payload.card} />
-            </AssetRenderModeProvider>
-          </CaptureFrame>
-        ),
-      };
+      return printedImage(snapshot.assetType, <TreacheryCard {...snapshot.payload.card} />);
     case 'card-spice':
-      return {
-        node: (
-          <CaptureFrame assetType={snapshot.assetType}>
-            <AssetRenderModeProvider mode="print">
-              <SpiceCard {...snapshot.payload.card} />
-            </AssetRenderModeProvider>
-          </CaptureFrame>
-        ),
-      };
+      return printedImage(snapshot.assetType, <SpiceCard {...snapshot.payload.card} />);
     case 'faction-token':
-      return {
-        node: (
-          <CaptureFrame assetType={snapshot.assetType}>
-            <AssetRenderModeProvider mode="print">
-              <FactionToken {...snapshot.payload} />
-            </AssetRenderModeProvider>
-          </CaptureFrame>
-        ),
-      };
+      return printedImage(snapshot.assetType, <FactionToken {...snapshot.payload} />);
+    case 'faction-troop':
+      return printedImage(
+        snapshot.assetType,
+        <TroopToken
+          image={snapshot.payload.image}
+          background={snapshot.payload.background}
+          star={snapshot.payload.star}
+          hue={snapshot.payload.hue}
+          striped={snapshot.payload.striped}
+        />
+      );
+    case 'faction-traitor':
+      return printedImage(snapshot.assetType, <TraitorCard {...snapshot.payload} />);
+    case 'faction-alliance':
+      return printedImage(snapshot.assetType, <AllianceCard {...snapshot.payload} />);
     case 'faction-leader':
-      return {
-        node: (
-          <CaptureFrame assetType={snapshot.assetType}>
-            <AssetRenderModeProvider mode="print">
-              <LeaderToken
-                {...snapshot.payload.leader}
-                background={snapshot.payload.background}
-                logo={snapshot.payload.logo}
-              />
-            </AssetRenderModeProvider>
-          </CaptureFrame>
-        ),
-      };
+      return printedImage(
+        snapshot.assetType,
+        <LeaderToken
+          {...snapshot.payload.leader}
+          background={snapshot.payload.background}
+          logo={snapshot.payload.logo}
+        />
+      );
     /*
      * A token face, already resolved by the producer, so this never asks which face it is drawing.
      * No `TokenFrame`: that is catalogue chrome and carries a drop shadow, and a JPEG cannot hold a mask anyway, so the published artifact is the renderer's own square face and a consumer masks it themselves.
@@ -126,53 +126,32 @@ function captureSubject(snapshot: PublisherCaptureSnapshot): CaptureSubject {
     case 'token-disc':
     case 'token-tech':
     case 'token-plate':
-      return {
-        node: (
-          <CaptureFrame assetType={snapshot.assetType}>
-            <AssetRenderModeProvider mode="print">
-              <CustomToken
-                background={snapshot.payload.face.background}
-                image={snapshot.payload.face.image}
-                circle={snapshot.payload.face.ring}
-                circleShadow={snapshot.payload.face.ringShadow ?? false}
-                top={snapshot.payload.face.top || undefined}
-                bottom={
-                  snapshot.payload.face.bottomFirst || snapshot.payload.face.bottomSecond
-                    ? `${snapshot.payload.face.bottomFirst}\n${snapshot.payload.face.bottomSecond}`
-                    : undefined
-                }
-                /* The renderer centres the symbol in a 300 unit box, so scale is expressed against its reference size, the same arithmetic the editor's proof uses. */
-                size={{
-                  width: 100 * snapshot.payload.face.symbolScale,
-                  height: 100 * snapshot.payload.face.symbolScale,
-                }}
-              />
-            </AssetRenderModeProvider>
-          </CaptureFrame>
-        ),
-      };
+      return printedImage(
+        snapshot.assetType,
+        <CustomToken
+          background={snapshot.payload.face.background}
+          image={snapshot.payload.face.image}
+          circle={snapshot.payload.face.ring}
+          circleShadow={snapshot.payload.face.ringShadow ?? false}
+          top={snapshot.payload.face.top || undefined}
+          bottom={
+            snapshot.payload.face.bottomFirst || snapshot.payload.face.bottomSecond
+              ? `${snapshot.payload.face.bottomFirst}\n${snapshot.payload.face.bottomSecond}`
+              : undefined
+          }
+          /* The renderer centres the symbol in a 300 unit box, so scale is expressed against its reference size, the same arithmetic the editor's proof uses. */
+          size={{
+            width: 100 * snapshot.payload.face.symbolScale,
+            height: 100 * snapshot.payload.face.symbolScale,
+          }}
+        />
+      );
     case 'token-enhance':
-      return {
-        node: (
-          <CaptureFrame assetType={snapshot.assetType}>
-            <AssetRenderModeProvider mode="print">
-              <RectangleToken {...snapshot.payload.face} />
-            </AssetRenderModeProvider>
-          </CaptureFrame>
-        ),
-      };
+      return printedImage(snapshot.assetType, <RectangleToken {...snapshot.payload.face} />);
     /* A deck's face is its Cardback, drawn by the card renderer at the card's own size, so the frame is the card's frame. */
     case 'cardback-preset':
     case 'deck':
-      return {
-        node: (
-          <CaptureFrame assetType={snapshot.assetType}>
-            <AssetRenderModeProvider mode="print">
-              <CardBack {...snapshot.payload.cardback} />
-            </AssetRenderModeProvider>
-          </CaptureFrame>
-        ),
-      };
+      return printedImage(snapshot.assetType, <CardBack {...snapshot.payload.cardback} />);
     case 'rulebook-first-page':
       return {
         node: (

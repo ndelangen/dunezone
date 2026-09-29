@@ -15,7 +15,14 @@ import { isPublicationAssetType, PUBLICATION_ASSET_TYPES } from '../src/shared/a
 import type { Doc } from './_generated/dataModel';
 import { internalQuery } from './_generated/server';
 import { internalMutation } from './functions';
-import { currentFactionLeaderData, publicationJobsForAsset, publicationSettings } from './lib/publication';
+import {
+  currentFactionComponentData,
+  currentFactionLeaderData,
+  FACTION_TOKEN_BACK_REVISION,
+  isFactionFaceAssetType,
+  publicationJobsForAsset,
+  publicationSettings,
+} from './lib/publication';
 import { rulebookForArtifactDelivery } from './lib/rulebookEditionArtifacts';
 import type { MutationCtx, QueryCtx } from './types';
 
@@ -112,13 +119,31 @@ export const takeWork = internalMutation({
       if (job.asset_type === 'faction-leader' && !settings?.renderer_revisions['faction-leader']) {
         continue;
       }
-      if (job.asset_type === 'faction-leader') {
+      /* A plain faction face whose revision was rolled back is dropped rather than held, like the blocked token face below; reactivation rescans. */
+      if (isFactionFaceAssetType(job.asset_type) && !settings?.renderer_revisions[job.asset_type]) {
+        await ctx.db.delete(job._id);
+        continue;
+      }
+      /*
+       * A publisher rolled back below the blocked face would reject its payload, so its `.back` jobs are dropped rather than held, which would let them fill the pickup window.
+       * Activating the revision that draws the face again rescans every faction, and that re-enqueues them.
+       */
+      if (
+        job.asset_type === 'faction-token' &&
+        job.asset_id.endsWith('.back') &&
+        (settings?.renderer_revisions['faction-token'] ?? 0) < FACTION_TOKEN_BACK_REVISION
+      ) {
+        await ctx.db.delete(job._id);
+        continue;
+      }
+      /* A roster face renders one capture at a time, so an older capture can never land after a newer one. */
+      if (job.asset_type === 'faction-leader' || isFactionFaceAssetType(job.asset_type)) {
         const targetJobs = await publicationJobsForAsset(ctx, job.asset_type, job.asset_id);
         if (targetJobs.some((candidate) => candidate.status === 'in_progress')) {
           continue;
         }
       }
-      if (job.asset_type === 'faction-leader' && !(await currentFactionLeaderData(ctx, job.asset_id))) {
+      if ((await currentFactionComponentData(ctx, job.asset_type, job.asset_id)) === null) {
         await ctx.db.delete(job._id);
         continue;
       }
@@ -186,7 +211,7 @@ export const readJobForRender = internalQuery({
     if (!isPublicationAssetType(job.asset_type)) {
       return null;
     }
-    if (job.asset_type === 'faction-leader' && !(await currentFactionLeaderData(ctx, job.asset_id))) {
+    if ((await currentFactionComponentData(ctx, job.asset_type, job.asset_id)) === null) {
       return null;
     }
     if (!(await firstPageParentIsLive(ctx, job))) {
@@ -249,6 +274,15 @@ export const completeJob = internalMutation({
         await ctx.db.delete(job._id);
         return { status: 'missing' as const };
       }
+    }
+    /* A face removed or changed while its capture ran keeps no stale image. */
+    if (
+      isFactionFaceAssetType(job.asset_type) &&
+      JSON.stringify(await currentFactionComponentData(ctx, job.asset_type, job.asset_id)) !==
+        JSON.stringify(parsePublicationAssetData(job.asset_type, job.asset_data))
+    ) {
+      await ctx.db.delete(job._id);
+      return { status: 'missing' as const };
     }
     const geometry =
       args.componentGeometry === undefined ? undefined : componentGeometrySchema.parse(args.componentGeometry);

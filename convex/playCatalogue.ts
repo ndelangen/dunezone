@@ -2,8 +2,13 @@ import { zodToConvex } from 'convex-helpers/server/zod4';
 import { v } from 'convex/values';
 
 import { factionMemberPublicationId } from '../src/shared/asset-publishing/componentPublication';
+import { factionTroopPublicationId } from '../src/shared/asset-publishing/factionTroopPublication';
 import type { PublicationAssetType } from '../src/shared/asset-publishing/publicationTargets';
-import { isPublicationAssetType, publishedHref } from '../src/shared/asset-publishing/publicationTargets';
+import {
+  isPublicationAssetType,
+  publicationFaceId,
+  publishedHref,
+} from '../src/shared/asset-publishing/publicationTargets';
 import { CanonicalFactionStoredSchema } from '../src/shared/factions/schema';
 import { assetSupplySchema, factionDefinitionSchema, rulesetSupplySchema } from '../src/shared/play/capture';
 import { playDraftableFactionsSchema } from '../src/shared/play/drafting';
@@ -76,15 +81,39 @@ export const factionDefinition = query({
         front: await publishedFace(ctx, 'faction-leader', factionMemberPublicationId(row._id, leader.memberId)),
       });
     }
+    const troops = await Promise.all(
+      (parsed.success ? parsed.data.troops : []).flatMap(({ troopId }) => {
+        if (!troopId) {
+          return [];
+        }
+        const id = factionTroopPublicationId(row._id, troopId);
+        return [
+          Promise.all([
+            publishedFace(ctx, 'faction-troop', id),
+            publishedFace(ctx, 'faction-troop', publicationFaceId(id, 'back')),
+          ]).then(([front, back]) => ({ troopId, front, back })),
+        ];
+      })
+    );
+    const traitors = await Promise.all(
+      (parsed.success ? parsed.data.leaders : []).map(async ({ memberId }) => ({
+        memberId,
+        front: await publishedFace(ctx, 'faction-traitor', factionMemberPublicationId(row._id, memberId)),
+      }))
+    );
     return {
       faction: { id: row._id, slug: row.slug, name: parsed.success ? parsed.data.name : '' },
       data: parsed.success ? parsed.data : null,
       token: await publishedFace(ctx, 'faction-token', row._id),
+      tokenBack: await publishedFace(ctx, 'faction-token', publicationFaceId(row._id, 'back')),
       cardbacks: {
         traitor: await publishedFace(ctx, 'cardback-preset', 'traitor'),
         alliance: await publishedFace(ctx, 'cardback-preset', 'alliance'),
       },
       leaders,
+      troops,
+      traitors,
+      alliance: await publishedFace(ctx, 'faction-alliance', row._id),
     };
   },
 });
@@ -124,7 +153,10 @@ export const draftableFactions = query({
         background: parsed.data.background,
         color: parsed.data.themeColor,
         linked: linked.has(row._id),
-        published: (await publishedFace(ctx, 'faction-token', row._id)) !== null,
+        /* A game needs both faces of the reversible token, so a faction is draftable only once both are published. */
+        published:
+          (await publishedFace(ctx, 'faction-token', row._id)) !== null &&
+          (await publishedFace(ctx, 'faction-token', publicationFaceId(row._id, 'back'))) !== null,
       });
     }
     return { factions };

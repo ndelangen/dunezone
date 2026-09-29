@@ -10,7 +10,7 @@ import { FormError } from '@ui/block/FormError';
 import { Section } from '@ui/block/Section';
 import { InlineFormattedTextSource } from '@ui/content/FormattedText';
 import type { TopicIconTopic } from '@ui/content/TopicIcon';
-import { useContext, useEffect, useMemo, useReducer, useState, useSyncExternalStore } from 'react';
+import { useContext, useEffect, useReducer, useState, useSyncExternalStore } from 'react';
 import type { ReactNode } from 'react';
 
 import { requestPlayTicket } from '@db/play';
@@ -18,8 +18,7 @@ import { requestPlayTicket } from '@db/play';
 import { FoilConfetti } from '../FoilConfetti';
 import { GameTable } from '../GameTable';
 import { usePointerSession } from '../PointerSessionContext';
-import { TabletopContext, useTableKeyboard } from '../TabletopContext';
-import type { TabletopContextValue } from '../TabletopContext';
+import { TabletopSessionProvider } from '../TabletopContext';
 import { TableWait } from '../TableWait';
 import { BattleControls, BattleScene, HandControls } from './BattleControls';
 import { OfflineConversations } from './Conversation';
@@ -28,7 +27,6 @@ import { DetermineWinner, ResultDecisionBar } from './GameResult';
 import { GameRuntimeContext } from './gameRuntime';
 import { LogEntries } from './Log';
 import { PieceArtwork } from './PieceArtwork';
-import { PresenceContext } from './PresenceContext';
 import { PlayerPanel, RemovalDecisionBar } from './RemovalVotes';
 import { useResultCelebration } from './resultCelebration';
 import { GameMenu, SeatRequests } from './SeatRequests';
@@ -45,54 +43,6 @@ const SETUP_TOPICS = {
   prediction: 'fate',
   instruction: 'setup',
 } as const satisfies Record<string, TopicIconTopic>;
-
-function useTableCommands(client: TableSession, table: TableProjection) {
-  const value = useMemo<TabletopContextValue>(
-    () => ({
-      bankControls:
-        table.canInteract && table.snapshot.bank
-          ? {
-              canCollect: (pieceId) => !table.reservedPieceIds.has(pieceId),
-              collect: (pieceId) => client.command({ kind: 'bank-collect', pieceId }),
-            }
-          : undefined,
-      deckControls: table.canInteract
-        ? {
-            recipients: table.snapshot.roster?.seats.flatMap((seat) => (seat.faction ? [seat.faction] : [])) ?? [],
-            draw: (pieceId, recipient) => client.command({ kind: 'deck-draw', pieceId, recipient }),
-            shuffle: (pieceId) => client.command({ kind: 'deck-shuffle', pieceId }),
-          }
-        : undefined,
-      state: table.state,
-      selectedPiece: table.renderedPieces.find((piece) => piece.id === table.state.selectedPieceId) ?? null,
-      renderedPieces: table.renderedPieces,
-      hoveredPieceId: table.hoveredPieceId,
-      gestureActivePieceId: table.gestureActivePieceId,
-      flippingPieceIds: table.flippingPieceIds,
-      affordances: client.affordances(),
-      renderedPositionFor: client.renderedPositionFor,
-      renderedOrientationFor: client.renderedOrientationFor,
-      selectPiece: client.selectPiece,
-      setHoveredPiece: client.setHoveredPiece,
-      beginGesture: client.beginGesture,
-      updateGesture: client.updateGesture,
-      finishGesture: client.finishGesture,
-      cancelDraft: client.cancelDraft,
-      splitSelected: client.splitSelected,
-      stackSelected: client.stackSelected,
-      takeAdditionalFromTarget: client.takeAdditionalFromTarget,
-      rotateSelected: client.rotateSelected,
-      flipSelected: client.flipSelected,
-      finishPieceFlip: client.finishPieceFlip,
-      toggleLockSelected: client.toggleLockSelected,
-      moveStormBy: client.moveStormBy,
-      spawnSpice: client.spawnSpice,
-    }),
-    [client, table]
-  );
-  useTableKeyboard(value);
-  return value;
-}
 
 type ConnectionControlsProps = Readonly<{
   client: TableSession;
@@ -639,18 +589,6 @@ function ConnectedTable({
   table: TableProjection;
   error: string | null;
 }>) {
-  const value = useTableCommands(client, table);
-  const canInteract = table.canInteract;
-  const presence = useMemo(
-    () => ({
-      pointers: table.pointers,
-      remoteCarriedIds: table.remoteCarriedIds,
-      reservedPieceIds: table.reservedPieceIds,
-      canInteract,
-      publishPointer: client.publishPointer,
-    }),
-    [canInteract, client, table]
-  );
   const progress = tableProgressFor(table.snapshot.phase, table.snapshot.phases);
   const celebration = useResultCelebration(table);
   /* Giving up a seat starts in the game menu and is confirmed in the decision bar, so the two share one flag. */
@@ -671,222 +609,218 @@ function ConnectedTable({
   /* A finished game keeps its panels and playback; only the phase controls stop. */
   const tabled = inPlay || stage === 'finished';
   return (
-    <TabletopContext.Provider value={value}>
-      <PresenceContext.Provider value={presence}>
-        {/* A boxless wrapper carries the connection state the browser verification waits on, whichever tab is open. */}
-        <div data-connection="authorized" data-revision={table.liveRevision} style={{ display: 'contents' }}>
-          <GameTable
-            seatCount={table.snapshot.roster?.seatCount ?? DEFAULT_TABLE_SEAT_COUNT}
-            tableProgress={progress}
-            stage={stage}
-            mapVisible={setupMapVisible(table.snapshot.setup)}
-            toolbarControl={
-              inPlay || (stage === 'setup' && table.snapshot.setup) ? (
-                <PhaseNavigation client={client} table={table} />
-              ) : undefined
-            }
-            onSelectTurn={client.selectTurn}
-            showStormControls={inPlay && progress.activePhaseId === 'storm'}
-            sceneContent={
+    <TabletopSessionProvider session={client} table={table}>
+      {/* A boxless wrapper carries the connection state the browser verification waits on, whichever tab is open. */}
+      <div data-connection="authorized" data-revision={table.liveRevision} style={{ display: 'contents' }}>
+        <GameTable
+          seatCount={table.snapshot.roster?.seatCount ?? DEFAULT_TABLE_SEAT_COUNT}
+          tableProgress={progress}
+          stage={stage}
+          mapVisible={setupMapVisible(table.snapshot.setup)}
+          toolbarControl={
+            inPlay || (stage === 'setup' && table.snapshot.setup) ? (
+              <PhaseNavigation client={client} table={table} />
+            ) : undefined
+          }
+          onSelectTurn={client.selectTurn}
+          showStormControls={inPlay && progress.activePhaseId === 'storm'}
+          sceneContent={
+            <>
+              {stage === 'swapping' || stage === 'setup' ? (
+                <>
+                  <SwapScene snapshot={table.snapshot} />
+                  {stage === 'setup' && <BattleScene client={client} table={table} />}
+                </>
+              ) : (
+                <BattleScene client={client} table={table} />
+              )}
+              {celebration.mounted && <FoilConfetti launch={celebration.launch} />}
+            </>
+          }
+          decisionBar={
+            <Stack data-decision-bar gap="xs">
+              <ResultDecisionBar client={client} table={table} />
+              <RemovalDecisionBar
+                votes={removalVotes}
+                onOpen={(vote) => selectPlayer({ seat: vote.target.seat, vote: vote.id, tab: 'public' })}
+              />
+              <SeatRequests
+                client={client}
+                table={table}
+                error={error}
+                leaving={leaving}
+                onStay={() => setLeaving(false)}
+                readiness={
+                  stage === 'drafting' ? (
+                    <DraftingReadiness client={client} table={table} />
+                  ) : stage === 'swapping' ? (
+                    <SwappingReadiness client={client} table={table} />
+                  ) : undefined
+                }
+              />
+              {stage === 'drafting' && <DraftingNotice client={client} table={table} />}
+            </Stack>
+          }
+          gameMenu={
+            <GameMenu
+              table={table}
+              onLeave={() => setLeaving(true)}
+              onClearConfetti={celebration.hasConfetti ? celebration.clear : undefined}
+            />
+          }
+          stageStatus={
+            stage === 'drafting' ? (
+              <DraftingHeader table={table} />
+            ) : stage === 'setup' && table.snapshot.setup ? (
+              <Text size="sm">{setupStep(table.snapshot.setup).title}</Text>
+            ) : undefined
+          }
+          stageOverlay={stage === 'drafting' ? <DraftingOverlay client={client} table={table} /> : undefined}
+          panelContent={
+            stage === 'drafting' && table.viewer.viewerSeat !== SPECTATOR_SEAT ? (
+              <DraftingPanel client={client} table={table} />
+            ) : undefined
+          }
+          playerPanel={
+            stage && stage !== 'discarded' ? (
+              <PlayerPanel
+                client={client}
+                table={table}
+                error={error}
+                selected={selectedPlayer}
+                selectedTab={playerSelection.tab}
+                onSelect={(seat, tab) =>
+                  selectPlayer({
+                    seat,
+                    vote: removalVotes.find((vote) => vote.target.seat === seat)?.id ?? null,
+                    tab,
+                  })
+                }
+              />
+            ) : undefined
+          }
+          panelTabs={[
+            ...(!tabled && stage !== 'setup'
+              ? []
+              : [
+                  ...(table.snapshot.setup
+                    ? [
+                        {
+                          key: 'setup',
+                          label: stage === 'setup' ? 'Setup' : 'Predictions',
+                          topic:
+                            stage === 'setup' ? SETUP_TOPICS[setupStep(table.snapshot.setup).kind] : ('fate' as const),
+                          content:
+                            stage === 'setup' ? (
+                              <SetupControls client={client} table={table} />
+                            ) : (
+                              <Predictions client={client} table={table} />
+                            ),
+                        },
+                      ]
+                    : []),
+                  ...(table.snapshot.hand
+                    ? [
+                        {
+                          key: 'hand',
+                          label: 'Hand',
+                          topic: 'hand' as const,
+                          content: <HandControls client={client} table={table} hand={table.snapshot.hand} />,
+                        },
+                      ]
+                    : []),
+                  ...(inPlay && (table.snapshot.battle || progress.activePhaseId === 'battle')
+                    ? [
+                        {
+                          key: 'battle',
+                          label: 'Battle',
+                          topic: 'battle' as const,
+                          content: (
+                            <>
+                              {error && <FormError title="From the table">{error}</FormError>}
+                              <BattleControls client={client} table={table} />
+                            </>
+                          ),
+                        },
+                      ]
+                    : []),
+                  {
+                    key: 'shared',
+                    label: 'Shared inventory',
+                    topic: 'assets' as const,
+                    content: <SharedInventory client={client} table={table} />,
+                  },
+                  {
+                    key: 'spice',
+                    label: 'Spice',
+                    topic: 'spice' as const,
+                    content: (
+                      <>
+                        <FactionBankControls client={client} table={table} />
+                        <SpiceHistory client={client} table={table} />
+                      </>
+                    ),
+                  },
+                ]),
+            ...(stage
+              ? [
+                  {
+                    key: 'log',
+                    label: 'Log',
+                    topic: 'log' as const,
+                    content: null,
+                    subtabs: [
+                      {
+                        key: 'game',
+                        label: 'Game',
+                        topic: 'game' as const,
+                        content: <LogEntries client={client} table={table} tab="game" />,
+                      },
+                      {
+                        key: 'audit',
+                        label: 'Audit',
+                        topic: 'audit' as const,
+                        content: <LogEntries client={client} table={table} tab="audit" />,
+                      },
+                    ],
+                  },
+                ]
+              : []),
+          ]}
+          tableControls={
+            tabled ? (
               <>
-                {stage === 'swapping' || stage === 'setup' ? (
+                <PhaseControls table={table} />
+                {stage === 'play' &&
+                  table.snapshot.setup &&
+                  progress.turn === 1 &&
+                  progress.activePhaseId === 'storm' && (
+                    <Button
+                      variant="default"
+                      disabled={!table.canInteract}
+                      onClick={() => client.command({ kind: 'storm-random' })}
+                    >
+                      Place storm randomly
+                    </Button>
+                  )}
+                {stage === 'play' || stage === 'finished' ? (
                   <>
-                    <SwapScene snapshot={table.snapshot} />
-                    {stage === 'setup' && <BattleScene client={client} table={table} />}
+                    <DetermineWinner client={client} table={table} />
+                    <PlaybackControls client={client} table={table} />
+                    {error && <FormError title="From the table">{error}</FormError>}
+                    {stage === 'play' && (table.snapshot.battle || progress.activePhaseId === 'battle') && (
+                      <BattleControls client={client} table={table} />
+                    )}
                   </>
                 ) : (
-                  <BattleScene client={client} table={table} />
+                  <ConnectionControls client={client} table={table} error={error} />
                 )}
-                {celebration.mounted && <FoilConfetti launch={celebration.launch} />}
               </>
-            }
-            decisionBar={
-              <Stack data-decision-bar gap="xs">
-                <ResultDecisionBar client={client} table={table} />
-                <RemovalDecisionBar
-                  votes={removalVotes}
-                  onOpen={(vote) => selectPlayer({ seat: vote.target.seat, vote: vote.id, tab: 'public' })}
-                />
-                <SeatRequests
-                  client={client}
-                  table={table}
-                  error={error}
-                  leaving={leaving}
-                  onStay={() => setLeaving(false)}
-                  readiness={
-                    stage === 'drafting' ? (
-                      <DraftingReadiness client={client} table={table} />
-                    ) : stage === 'swapping' ? (
-                      <SwappingReadiness client={client} table={table} />
-                    ) : undefined
-                  }
-                />
-                {stage === 'drafting' && <DraftingNotice client={client} table={table} />}
-              </Stack>
-            }
-            gameMenu={
-              <GameMenu
-                table={table}
-                onLeave={() => setLeaving(true)}
-                onClearConfetti={celebration.hasConfetti ? celebration.clear : undefined}
-              />
-            }
-            stageStatus={
-              stage === 'drafting' ? (
-                <DraftingHeader table={table} />
-              ) : stage === 'setup' && table.snapshot.setup ? (
-                <Text size="sm">{setupStep(table.snapshot.setup).title}</Text>
-              ) : undefined
-            }
-            stageOverlay={stage === 'drafting' ? <DraftingOverlay client={client} table={table} /> : undefined}
-            panelContent={
-              stage === 'drafting' && table.viewer.viewerSeat !== SPECTATOR_SEAT ? (
-                <DraftingPanel client={client} table={table} />
-              ) : undefined
-            }
-            playerPanel={
-              stage && stage !== 'discarded' ? (
-                <PlayerPanel
-                  client={client}
-                  table={table}
-                  error={error}
-                  selected={selectedPlayer}
-                  selectedTab={playerSelection.tab}
-                  onSelect={(seat, tab) =>
-                    selectPlayer({
-                      seat,
-                      vote: removalVotes.find((vote) => vote.target.seat === seat)?.id ?? null,
-                      tab,
-                    })
-                  }
-                />
-              ) : undefined
-            }
-            panelTabs={[
-              ...(!tabled && stage !== 'setup'
-                ? []
-                : [
-                    ...(table.snapshot.setup
-                      ? [
-                          {
-                            key: 'setup',
-                            label: stage === 'setup' ? 'Setup' : 'Predictions',
-                            topic:
-                              stage === 'setup'
-                                ? SETUP_TOPICS[setupStep(table.snapshot.setup).kind]
-                                : ('fate' as const),
-                            content:
-                              stage === 'setup' ? (
-                                <SetupControls client={client} table={table} />
-                              ) : (
-                                <Predictions client={client} table={table} />
-                              ),
-                          },
-                        ]
-                      : []),
-                    ...(table.snapshot.hand
-                      ? [
-                          {
-                            key: 'hand',
-                            label: 'Hand',
-                            topic: 'hand' as const,
-                            content: <HandControls client={client} table={table} hand={table.snapshot.hand} />,
-                          },
-                        ]
-                      : []),
-                    ...(inPlay && (table.snapshot.battle || progress.activePhaseId === 'battle')
-                      ? [
-                          {
-                            key: 'battle',
-                            label: 'Battle',
-                            topic: 'battle' as const,
-                            content: (
-                              <>
-                                {error && <FormError title="From the table">{error}</FormError>}
-                                <BattleControls client={client} table={table} />
-                              </>
-                            ),
-                          },
-                        ]
-                      : []),
-                    {
-                      key: 'shared',
-                      label: 'Shared inventory',
-                      topic: 'assets' as const,
-                      content: <SharedInventory client={client} table={table} />,
-                    },
-                    {
-                      key: 'spice',
-                      label: 'Spice',
-                      topic: 'spice' as const,
-                      content: (
-                        <>
-                          <FactionBankControls client={client} table={table} />
-                          <SpiceHistory client={client} table={table} />
-                        </>
-                      ),
-                    },
-                  ]),
-              ...(stage
-                ? [
-                    {
-                      key: 'log',
-                      label: 'Log',
-                      topic: 'log' as const,
-                      content: null,
-                      subtabs: [
-                        {
-                          key: 'game',
-                          label: 'Game',
-                          topic: 'game' as const,
-                          content: <LogEntries client={client} table={table} tab="game" />,
-                        },
-                        {
-                          key: 'audit',
-                          label: 'Audit',
-                          topic: 'audit' as const,
-                          content: <LogEntries client={client} table={table} tab="audit" />,
-                        },
-                      ],
-                    },
-                  ]
-                : []),
-            ]}
-            tableControls={
-              tabled ? (
-                <>
-                  <PhaseControls table={table} />
-                  {stage === 'play' &&
-                    table.snapshot.setup &&
-                    progress.turn === 1 &&
-                    progress.activePhaseId === 'storm' && (
-                      <Button
-                        variant="default"
-                        disabled={!table.canInteract}
-                        onClick={() => client.command({ kind: 'storm-random' })}
-                      >
-                        Place storm randomly
-                      </Button>
-                    )}
-                  {stage === 'play' || stage === 'finished' ? (
-                    <>
-                      <DetermineWinner client={client} table={table} />
-                      <PlaybackControls client={client} table={table} />
-                      {error && <FormError title="From the table">{error}</FormError>}
-                      {stage === 'play' && (table.snapshot.battle || progress.activePhaseId === 'battle') && (
-                        <BattleControls client={client} table={table} />
-                      )}
-                    </>
-                  ) : (
-                    <ConnectionControls client={client} table={table} error={error} />
-                  )}
-                </>
-              ) : undefined
-            }
-          />
-        </div>
-      </PresenceContext.Provider>
-    </TabletopContext.Provider>
+            ) : undefined
+          }
+        />
+      </div>
+    </TabletopSessionProvider>
   );
 }
 

@@ -21,9 +21,38 @@ const meta = preview.meta({
 });
 
 export const Catalogue = meta.story({ args: { path: '/factions' } });
+
+/**
+ * On a phone the faction list shows two columns and each card its compact caption.
+ * The list reads its own width and the card its own, so neither needs the page.
+ * This story shows them in the catalogue's phone layout.
+ */
+export const CatalogueMobile = meta.story({
+  args: { path: '/factions' },
+  globals: { viewport: { value: 'appMobile' } },
+});
+
 export const Detail = meta.story({ args: { path: '/factions/house-atreides' } });
 export const Create = meta.story({ args: { path: '/factions/create' } });
 export const Edit = meta.story({ args: { path: '/factions/house-atreides/edit' } });
+
+/**
+ * Escape closes the sheet review opened from the toolbar, while the pointer still rests on the button that opened it.
+ * That button's tooltip is open then, and Mantine's tooltip stops the keydown on the document, so the review listens in the capture phase.
+ */
+export const EditEscapeClosesTheSheetReview = meta.story({
+  args: { path: '/factions/house-atreides/edit' },
+  globals: { viewport: { value: 'appLarge' } },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const review = () => canvasElement.ownerDocument.querySelector('[data-faction-sheet-review]');
+    await userEvent.click(await page.findByRole('button', { name: 'Review faction sheet' }, { timeout: 30_000 }));
+    await waitFor(() => expect(review()?.hasAttribute('data-review-open')).toBe(true), { timeout: 30_000 });
+    await expect(page.findByRole('tooltip', { name: 'Review faction sheet' })).resolves.toBeInTheDocument();
+    await userEvent.keyboard('{Escape}');
+    await waitFor(() => expect(review()?.hasAttribute('data-review-open')).toBe(false));
+  },
+});
 
 /**
  * A failed replacement capture beside a current faction sheet leaves the page reading Current (#1318).

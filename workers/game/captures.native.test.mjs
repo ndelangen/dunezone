@@ -282,11 +282,22 @@ describe('Catalogue capture and retention through the isolated fixture', () => {
       { type: 'bundle', slug: 'extra-bundle' },
       { type: 'token-disc', slug: 'missing' },
     ];
-    const data = { ...assetPublishingFaction, extras };
+    /* One troop shows its front on both sides; the other authors a back that has not published yet. */
+    const [regularId, eliteId] = ['30000000-3000-4000-8000-300000000001', '30000000-3000-4000-8000-300000000002'];
+    const regular = { ...assetPublishingFaction.troops[0], troopId: regularId };
+    const elite = {
+      ...regular,
+      troopId: eliteId,
+      name: 'Elite troop',
+      count: 3,
+      back: { name: 'Elite side', image: '/vector/troop/fremen.svg', description: '' },
+    };
+    const data = { ...assetPublishingFaction, extras, troops: [regular, elite] };
     peer.factions.set('faction-one', {
       faction: { id: 'faction-one', slug: 'atreides', name: assetPublishingFaction.name },
       data,
       token: '/published/faction-tokens/faction-one/token.jpg',
+      tokenBack: '/published/faction-tokens/faction-one.back/token.jpg',
       cardbacks: {
         traitor: '/published/cardback-presets/traitor/cardback.jpg?v=traitor-1',
         alliance: '/published/cardback-presets/alliance/cardback.jpg?v=alliance-1',
@@ -295,13 +306,23 @@ describe('Catalogue capture and retention through the isolated fixture', () => {
         memberId: leader.memberId,
         front: index === 0 ? null : `/published/leaders/faction-one.${leader.memberId}/leader.jpg`,
       })),
+      troops: [
+        { troopId: regularId, front: `/published/faction-troops/faction-one.${regularId}/troop.jpg`, back: null },
+        { troopId: eliteId, front: `/published/faction-troops/faction-one.${eliteId}/troop.jpg`, back: null },
+      ],
+      /* Every traitor front but the last has published, and the alliance front has too. */
+      traitors: leaders.map((leader, index) => ({
+        memberId: leader.memberId,
+        front: index === leaders.length - 1 ? null : `/published/traitor-cards/faction-one.${leader.memberId}/card.jpg`,
+      })),
+      alliance: '/published/alliance-cards/faction-one/card.jpg?v=alliance-front-1',
     });
     const pieces = await tablePieces();
     const before = peer.requests.length;
 
     expect(await runtime.capture('faction', 'faction-one')).toEqual({
       ok: false,
-      message: 'This faction Atreides is not ready: faction token, The faction token back is not generated yet.',
+      message: 'This faction Atreides is not ready: leader Dr. Yueh, This leader has no published face.',
     });
     expect((await runtime.captures()).factions).toEqual([]);
 
@@ -310,7 +331,7 @@ describe('Catalogue capture and retention through the isolated fixture', () => {
     expect(record.definition).toEqual(data);
     expect(record.components.token).toEqual({
       front: 'http://table.test/published/faction-tokens/faction-one/token.jpg',
-      back: null,
+      back: 'http://table.test/published/faction-tokens/faction-one.back/token.jpg',
     });
     expect(record.components.leaders.map((leader) => leader.memberId)).toEqual(
       leaders.map((leader) => leader.memberId)
@@ -320,10 +341,28 @@ describe('Catalogue capture and retention through the isolated fixture', () => {
       front: `http://table.test/published/leaders/faction-one.${leaders[1].memberId}/leader.jpg`,
       back: 'http://table.test/published/faction-tokens/faction-one/token.jpg',
     });
-    expect(record.components.troops).toEqual(
-      assetPublishingFaction.troops.map((troop) => ({ name: troop.name, count: troop.count, front: null, back: null }))
+    const regularFace = `http://table.test/published/faction-troops/faction-one.${regularId}/troop.jpg`;
+    expect(record.components.troops).toEqual([
+      { troopId: regularId, name: regular.name, count: regular.count, front: regularFace, back: regularFace },
+      {
+        troopId: eliteId,
+        name: elite.name,
+        count: elite.count,
+        front: `http://table.test/published/faction-troops/faction-one.${eliteId}/troop.jpg`,
+        back: null,
+      },
+    ]);
+    expect(record.components.traitors.cards).toEqual(
+      leaders.map((leader, index) => ({
+        memberId: leader.memberId,
+        name: leader.name,
+        front:
+          index === leaders.length - 1
+            ? null
+            : `http://table.test/published/traitor-cards/faction-one.${leader.memberId}/card.jpg`,
+      }))
     );
-    expect(record.components.traitors.cards).toHaveLength(leaders.length);
+    expect(record.components.alliance.front).toBe('http://table.test/published/alliance-cards/faction-one/card.jpg');
     /* A back is its publication address: the cache token of the publish that was current at capture is dropped. */
     expect(record.components.traitors.back).toBe('http://table.test/published/cardback-presets/traitor/cardback.jpg');
     expect(record.components.alliance.back).toBe('http://table.test/published/cardback-presets/alliance/cardback.jpg');
@@ -334,13 +373,14 @@ describe('Catalogue capture and retention through the isolated fixture', () => {
     expect(await tablePieces()).toBe(pieces);
     expect(peerFunctions(before)).toEqual(new Set(['playCatalogue:factionDefinition', 'playCatalogue:assetSupply']));
     expect(record.readiness.problems.map((problem) => problem.subject)).toEqual([
-      'faction token',
       `leader ${leaders[0].name}`,
-      ...assetPublishingFaction.troops.map((troop) => `troop ${troop.name}`),
-      /* The shared fixture predates combat authoring, so each of its fighting faces is named again for its values. */
-      ...assetPublishingFaction.troops.map((troop) => `troop ${troop.name}`),
-      'alliance card',
-      'traitor deck',
+      /* The elite troop's authored back has not published, while the regular troop's front serves both sides. */
+      'troop Elite troop',
+      /* The shared fixture predates combat authoring, so each of its fighting faces is named for its values. */
+      'troop Regular troop',
+      'troop Elite troop',
+      'troop Elite side back',
+      `traitor ${leaders.at(-1).name}`,
       'extra: missing',
     ]);
 
@@ -369,6 +409,7 @@ describe('Catalogue capture and retention through the isolated fixture', () => {
       faction: { id: 'faction-one', slug: 'atreides', name: assetPublishingFaction.name },
       data,
       token: '/published/faction-tokens/faction-one/token.jpg',
+      tokenBack: '/published/faction-tokens/faction-one.back/token.jpg',
       cardbacks: { traitor: null, alliance: null },
       leaders: [],
     });
@@ -391,6 +432,7 @@ describe('Catalogue capture and retention through the isolated fixture', () => {
       faction: { id: 'faction-two', slug: 'partial', name: '' },
       data: null,
       token: null,
+      tokenBack: null,
       cardbacks: { traitor: null, alliance: null },
       leaders: [],
     });

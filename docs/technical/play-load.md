@@ -105,6 +105,17 @@ their sender's motion bucket was empty. Motion has its own bucket so that a busy
 stalls and then sees a steady mover's frames as a burst, drops frames instead of closing the socket
 with 4413 as it did in that run's peak cell.
 
+Neither reading sees a room that is busy all the time. A room's clock moves only when it does I/O
+or a timer fires, so in a saturated room it stands still between the 50 ms activity pass and the
+one-second sweep. Its handling and durable times then fall on those steps, and the sweep never
+looks late by its own clock. Compare `activityDeliveries` with about 20 per viewer per second of
+motion instead: in the fourth 28 September run the peak room sent 4,225 against roughly 26,400,
+and 45 of its 60 actions were late. That room spent its time on upkeep it ran for every message,
+including two queries over every viewer's seat. Pointer and pose frames now skip that upkeep and
+check only their own sender's seat, which leaves the rest to the activity pass and the sweep. A
+frame from a connection held by an account check is dropped instead of waiting for the check,
+since the next one supersedes it.
+
 `host` covers the other side. `idleBefore` is the share of the machine's CPU that was idle in the
 second before the run, and the runner warns when it is under half. `stalls` lists the moments the
 coordinator's own 100 ms tick ran more than 250 ms late, by the same clock as every send and
@@ -117,9 +128,10 @@ Every protocol socket sends the page's keepalive frame every 30 s, as the page d
 answers it without waking, so it counts as traffic in `keepalives` and the byte totals but not as
 a delivery or against the room's message ceiling. Without it, Cloudflare closes a socket that
 carries nothing for 100 s with code 1006. That ended the second 28 September browser cell, whose
-early connections sat idle while the browsers signed in. A signup that fails or times out is
-retried up to three times, alternating signing in and signing up, and each failure is kept in
-`signupRetries`.
+early connections sat idle while the browsers signed in. The runner creates every account before
+any connection or browser starts, through `playTesting:provisionAccounts`. Each account then signs
+in once for its protocol connections, and each browser once through the login form, with no retry,
+so no connection or browser creates an account.
 
 `trace` runs two complete action cycles without background motion, checks item conservation and
 compares every recipient's public durable snapshot once each holds the last confirmed revision. Private bank projections are not expected
@@ -384,9 +396,12 @@ The copy contains tracked Convex and shared code with two generated modules, bot
 backend and application origin, lets Password Auth accept only 38 fixed synthetic emails during the
 run, and makes fixture creation refuse a second live game. Its `convex/crons.ts` registers no cron.
 Every other file is production source. Real hashing, sessions, JWTs, admission, authorization and
-commands remain in use. No environment files or data are copied. Production source retains its
-loopback-only synthetic guard. The additional guard and resource-ledger work must be included in
-the reported test overhead.
+commands remain in use, except at account creation: the runner hashes each password itself and
+writes the account through the test control `playTesting:provisionAccounts`. That control checks
+the run window but not the 38 emails or the password length. Password still checks both at every
+sign-in, so an account outside that list can be written but can never sign in. No environment
+files or data are copied. Production source retains its loopback-only synthetic guard. The
+additional guard and resource-ledger work must be included in the reported test overhead.
 
 Mint a development deploy key using the full explicit project and deployment reference in a
 sanitized environment. Save it to a private file and check its `dev:<backendName>|` prefix without
@@ -422,8 +437,8 @@ Then run the cells one at a time. For each cell:
 1. Set the backend's `PLAY_LOAD_RUN` to a fresh window: a random 32-hex-character `runId`,
    `startsAt` and `expiresAt` at most twenty minutes apart, long enough for the case's wall bound
    (480 seconds for `steady`, 420 for `browser`, 240 otherwise) plus setup. Synthetic account emails are
-   `load-<0..37>-<runId>@example.invalid`; passwords contain 32 to 128 characters. Each cell signs
-   up its own accounts.
+   `load-<0..37>-<runId>@example.invalid`; passwords contain 32 to 128 characters. Each cell creates
+   its own accounts.
 2. If an earlier cell's game is still `ready` because its coordinator did not reach cleanup, retire
    it now with `playTesting:retireFixture` under this window. The copied backend refuses a second
    live game.
@@ -541,8 +556,8 @@ URL. The socket has a 32 MiB response limit and debugger commands time out after
 A requested profile that cannot be captured makes the run fail and retains its error.
 
 Recording starts after admission and the initial metrics read, and ends after the workload,
-including its final metrics read. Initial signup and admission are outside that window. The
-report includes the target identity, recording duration, sample counts per frame and sample gaps.
+including its final metrics read. Account creation, sign-in and admission are outside that
+window. The report includes the target identity, recording duration, sample counts per frame and sample gaps.
 The raw profile preserves call stacks for inspection with DevTools.
 
 These are diagnostic samples, not per-handler CPU durations. In the first local baseline,
