@@ -1,6 +1,7 @@
 import { arrayMove } from '@dnd-kit/sortable';
 import { Alert, Badge, Box, Grid, Group, Stack, Text, TextInput } from '@mantine/core';
 import { LEADERS } from '@shared/assetIds';
+import { SUPPORTING_LEADER_LIMIT } from '@shared/factions/schema';
 import { AssetSelect } from '@ui/control/AssetSelect';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { ListLengthActions } from '@ui/control/ListLengthActions';
@@ -14,7 +15,6 @@ import { assetOptionToPreviewSrc, leaderOptionToLabel } from './factionFormAsset
 import { nextLeaderFromLast } from './factionFormDefaults';
 import type { FactionFormApi } from './factionFormTypes';
 
-export const SUPPORTING_LEADER_LIMIT = 10;
 export const CONVENTIONAL_SUPPORTING_LEADER_COUNT = 5;
 
 const leaderImageOptions = LEADERS.options.map((value) => ({
