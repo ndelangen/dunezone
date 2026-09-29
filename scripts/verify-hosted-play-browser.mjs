@@ -22,6 +22,7 @@ import { loopbackOrigin } from './lib/isolated-stack.ts';
 import { provisionAccounts, signIn as signInThroughForm } from './lib/synthetic-accounts.ts';
 import { privateInputFile } from './play-load/hosted-paths.ts';
 import { verifyBattles } from './verify-hosted-battles.mjs';
+import { cursorBounds, remoteCursor } from './verify-hosted-cursor.mjs';
 import { verifyDecks } from './verify-hosted-decks.mjs';
 import { browserFlows, isBrowserFlow } from './verify-hosted-flows.ts';
 import { verifyPrivateBanks } from './verify-hosted-private-banks.mjs';
@@ -750,31 +751,6 @@ async function headerStructure(who) {
   }
 }
 
-function remoteCursor(recipient, sender) {
-  return recipient.page
-    .getByText(sender.view().viewer.displayName, { exact: true })
-    .locator('..')
-    .filter({ has: recipient.page.locator('svg') })
-    .locator('svg');
-}
-
-async function cursorBounds(recipient, sender) {
-  const hand = remoteCursor(recipient, sender);
-  await hand.waitFor({ state: 'visible' });
-  const hasVisibleOpacity = await hand.evaluate((element) => {
-    for (let current = element; current; current = current.parentElement) {
-      if (Number(getComputedStyle(current).opacity) === 0) {
-        return false;
-      }
-    }
-    return true;
-  });
-  assert.ok(hasVisibleOpacity, 'The remote cursor or one of its ancestors is fully transparent.');
-  const bounds = await hand.boundingBox();
-  assert.ok(bounds, 'The remote cursor must have visible bounds.');
-  return bounds;
-}
-
 async function rejectTransparentCursor(recipient, sender) {
   /* Refresh the cursor after the carry checks, which can outlast its three-second expiry. */
   const position = [0, 0.38, 1];
@@ -1252,7 +1228,9 @@ async function sharedSpiceRoundTrip(sender, recipient, count, interact, name) {
 
 /** Clicks the turn wheel's sector for `turn`, which the wheel shows around the current one. */
 async function selectTurn(who, current, turn) {
-  const turnSlot = trackerArcSlots(TABLE_PHASES.length).find((slot) => slot.kind === 'turn');
+  /* The page lays the tracker arc out for the game's own turn, which faction phases can lengthen (#1473). */
+  const { phase, phases } = who.view().snapshot;
+  const turnSlot = trackerArcSlots(tableProgressFor(phase, phases).phases.length).find((slot) => slot.kind === 'turn');
   assert.ok(turnSlot, 'The shared layout must include the turn disc.');
   const sector = turnTrackerLayout({ radius: turnSlot.radius, turn: current }).sectors.find(
     (value) => value.turn === turn

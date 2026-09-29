@@ -18,7 +18,7 @@ const BreadcrumbAnchor = forwardRef<HTMLAnchorElement, ComponentPropsWithoutRef<
   { className, ...props },
   ref
 ) {
-  return <Anchor ref={ref} size="sm" fw={600} className={clsx(styles.breadcrumb, className)} {...props} />;
+  return <Anchor ref={ref} size="sm" className={clsx(styles.breadcrumb, className)} {...props} />;
 });
 
 /** A person the band cites, in `ProfileLink`'s own fields. */

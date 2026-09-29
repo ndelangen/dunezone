@@ -8,6 +8,7 @@ import { Surface } from '@ui/surface';
 import { CircleHelp, MessageCircleReply, Shield, UsersRound } from 'lucide-react';
 
 import { loadProfilesAll, profileAvatarUrl, useProfilesAll } from '@db/profiles';
+import { pageHead } from '@app/routes/pageTitle';
 
 import styles from './index.module.css';
 
@@ -20,6 +21,7 @@ const EMPTY_ACTIVITY = {
 
 export const Route = createFileRoute('/_app/profiles/')({
   loader: async () => ({ profiles: await loadProfilesAll() }),
+  head: () => pageHead('Profiles'),
   component: ProfilesPage,
 });
 

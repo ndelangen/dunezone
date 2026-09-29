@@ -100,5 +100,43 @@ describe('provisioning ownership remap', () => {
         paginationOpts: { numItems: 50, cursor: null },
       })
     ).rejects.toThrow('IS_TEST');
+    await expect(t.mutation(internal.provisioning.insertSeedDocuments, { documents: '[]' })).rejects.toThrow('IS_TEST');
+  });
+});
+
+describe('provisioning seed documents', () => {
+  beforeEach(() => {
+    vi.stubEnv('IS_TEST', 'true');
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  test('resolves each reference to the id inserted under its key', async () => {
+    const t = prepared();
+    const documents = [
+      { key: 'viewer', table: 'users', value: { name: 'Seeded viewer' } },
+      {
+        key: 'group',
+        table: 'groups',
+        value: {
+          name: 'Seeded group',
+          slug: { $seedRef: 'viewer', $seedText: 'group-of-__seed_ref__' },
+          created_at: '2026-01-01T12:00:00.000Z',
+          created_by: { $seedRef: 'viewer' },
+          is_deleted: false,
+        },
+      },
+    ];
+
+    await t.mutation(internal.provisioning.insertSeedDocuments, { documents: JSON.stringify(documents) });
+
+    await t.run(async (ctx) => {
+      const viewer = await ctx.db.query('users').unique();
+      const group = await ctx.db.query('groups').unique();
+      expect(group?.created_by).toBe(viewer?._id);
+      expect(group?.slug).toBe(`group-of-${viewer?._id}`);
+    });
   });
 });

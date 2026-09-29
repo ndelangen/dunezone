@@ -12,7 +12,8 @@ import schema from '../../../../convex/schema';
 import aggregateSchema from '../../../../node_modules/@convex-dev/aggregate/src/component/schema';
 import migrationsSchema from '../../../../node_modules/@convex-dev/migrations/src/component/schema';
 import rateLimiterSchema from '../../../../node_modules/@convex-dev/rate-limiter/src/component/schema';
-import { SEED_REF_TOKEN, STORYBOOK_NOW } from './protocol';
+import { resolveSeedValue } from '../../../shared/seedReferences';
+import { STORYBOOK_NOW } from './protocol';
 import type {
   ContextConformanceResult,
   ContextTraceEntry,
@@ -109,33 +110,6 @@ type WorldRequest = Exclude<
   WorkerRequest,
   { operation: 'contextConformance' | 'networkProbe' | 'ping' | 'reset' | 'subworkerProbe' }
 >;
-
-function resolveSeedObject(value: Record<string, unknown>, references: Map<string, string>) {
-  if (typeof value.$seedRef === 'string') {
-    const resolved = references.get(value.$seedRef);
-    if (!resolved) {
-      throw new Error(`Unknown seed reference: ${value.$seedRef}`);
-    }
-    if (typeof value.$seedText === 'string') {
-      return value.$seedText.replaceAll(SEED_REF_TOKEN, resolved);
-    }
-    return resolved;
-  }
-  return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, resolveSeedValue(item, references)]));
-}
-
-function resolveSeedValue(value: unknown, references: Map<string, string>): unknown {
-  if (!value || typeof value !== 'object') {
-    return value;
-  }
-  if (Array.isArray(value)) {
-    return value.map((item) => resolveSeedValue(item, references));
-  }
-  if (value instanceof ArrayBuffer) {
-    return value;
-  }
-  return resolveSeedObject(value as Record<string, unknown>, references);
-}
 
 async function insertDocument<TableName extends TableNames>(
   db: DatabaseWriter,
@@ -415,7 +389,7 @@ async function handleWorldRequest(request: WorldRequest, currentWorld: World): P
     return await mutateWorld(currentWorld, request.name, request.args, request.identity);
   }
   if (request.operation === 'resolve') {
-    return resolveSeedObject(request.reference, currentWorld.references);
+    return resolveSeedValue(request.reference, currentWorld.references);
   }
   return await queryWorld(currentWorld, request.name, request.args, request.identity);
 }

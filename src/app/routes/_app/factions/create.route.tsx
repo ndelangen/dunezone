@@ -7,6 +7,7 @@ import { useRef } from 'react';
 
 import { useCreateFaction } from '@db/factions';
 import { useCurrentProfile } from '@db/profiles';
+import { pageHead } from '@app/routes/pageTitle';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import { defaultFaction } from '@app/widgets/faction-editor/defaultFaction';
@@ -21,6 +22,7 @@ import { PageMessage } from '@app/widgets/page-message/PageMessage';
 import { useFactionNameField } from './factionNameField';
 
 export const Route = createFileRoute('/_app/factions/create')({
+  head: () => pageHead('Create faction'),
   component: CreateFactionPage,
 });
 
