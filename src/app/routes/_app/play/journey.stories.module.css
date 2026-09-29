@@ -1,0 +1,73 @@
+.panel {
+  position: fixed;
+  z-index: 1000;
+  display: grid;
+  gap: var(--space-sm);
+  width: min(26rem, calc(100vw - 2 * var(--space-md)));
+  padding: var(--space-sm) var(--space-md);
+  border-radius: 0.5rem;
+  background: rgb(20 16 12 / 0.9);
+  color: #f4ead8;
+  font:
+    0.8125rem/1.35 system-ui,
+    sans-serif;
+  box-shadow: 0 0.25rem 1rem rgb(0 0 0 / 0.4);
+}
+.header {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-sm);
+}
+.code {
+  font-variant-numeric: tabular-nums;
+  color: #f4cf82;
+}
+.title {
+  flex: 1;
+  font-weight: 600;
+}
+.count {
+  opacity: 0.7;
+  font-variant-numeric: tabular-nums;
+}
+.detail {
+  margin: 0;
+}
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-sm);
+}
+.scrub {
+  width: 100%;
+}
+.seat {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+.follow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+.toggle {
+  margin-left: auto;
+}
+.topLeft {
+  top: 7rem;
+  left: var(--space-md);
+}
+.topRight {
+  top: 7rem;
+  right: var(--space-md);
+}
+.bottomRight {
+  bottom: var(--space-md);
+  right: var(--space-md);
+}
+.bottomLeft {
+  bottom: var(--space-md);
+  left: var(--space-md);
+}
