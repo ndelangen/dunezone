@@ -6,7 +6,7 @@ import { WebSocketServer } from 'ws';
 
 import { provisionAccounts, signIn } from './synthetic-accounts.ts';
 
-/* The backend's error text for a Password call that ran past the local backend's 1 s limit inside `at`. */
+/* The backend's error text for a Password call that ran past a 1 s function limit inside `at`. */
 const timedOut = (at) =>
   `[Request ID: 0f1e2d3c4b5a6978] Server Error\nUncaught Error: Function execution timed out (maximum duration: 1s)\n    at async ${at} (../../node_modules/@convex-dev/auth/src/server/implementation/index.ts:558:0)`;
 

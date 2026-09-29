@@ -8,7 +8,7 @@ import { factionEntry, representativeFaction } from './FactionAuthoringStoryFixt
 import { FactionComplexityIndicator } from './FactionComplexityIndicator';
 import { FactionEditor } from './FactionEditor';
 import type { FactionAuthoringViewHandle } from './FactionEditor';
-import { FactionPublicationStatus } from './FactionPublicationStatus';
+import { factionPublicationStatus } from './factionPublicationStatus';
 import { useFactionAuthoring } from './useFactionAuthoring';
 
 function FactionAuthoringFixture() {
@@ -49,7 +49,7 @@ function FactionAuthoringFixture() {
           }}
           review={{ label: 'Review faction sheet', onOpen: (trigger) => viewRef.current?.openReview(trigger) }}
           centerIndicator={<FactionComplexityIndicator form={authoring.form} />}
-          context={<FactionPublicationStatus />}
+          statuses={[factionPublicationStatus()]}
         />
         <FactionEditor
           ref={viewRef}

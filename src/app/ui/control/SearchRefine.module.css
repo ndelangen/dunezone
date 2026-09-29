@@ -1,0 +1,82 @@
+/*
+ * One bordered field: the box, any joined segments, then the refine button.
+ * The width is a fact about the field rather than the toolbar, whose centre is sized by its content; `min-width: 0` keeps it shrinkable, so a phone narrows the box rather than overflowing the band.
+ */
+.field {
+  width: 28rem;
+  display: flex;
+  align-items: stretch;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--mantine-color-default-border);
+  border-radius: var(--mantine-radius-sm);
+  background: var(--mantine-color-body);
+  box-shadow: var(--mantine-shadow-xs);
+}
+
+.field[data-segmented] {
+  width: 44rem;
+}
+
+.search {
+  /* The search is the field's point, so the segments give way first. */
+  flex: 1 1 15rem;
+  min-width: 6rem;
+}
+
+.segment,
+.refine {
+  border-left: 1px solid var(--mantine-color-default-border);
+}
+
+.segment {
+  display: flex;
+  flex: 0 0 11.5rem;
+  min-width: 0;
+}
+
+.segment > * {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.refine {
+  position: relative;
+  display: flex;
+  flex: 0 0 auto;
+}
+
+/* Squared into the field, so it reads as the field's end rather than a separate tile. */
+.refine button {
+  height: 100%;
+  border-radius: 0;
+}
+
+.field[data-segmented] .refine {
+  display: none;
+}
+
+/* The list is narrowed: a dot on the button, since the words would not fit. */
+.activeDot {
+  position: absolute;
+  top: 0.4rem;
+  right: 0.4rem;
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 50%;
+  background: var(--mantine-color-selected-filled);
+  pointer-events: none;
+}
+
+/* Off the ladder: below this the page cannot seat a box, two segments and the edges' actions in one row. */
+@container page-frame (width < 48rem) {
+  .field[data-segmented] .segment {
+    display: none;
+  }
+
+  .field[data-segmented] .refine {
+    display: flex;
+  }
+}

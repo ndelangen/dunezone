@@ -11,7 +11,10 @@ type Actor = {
   display_name: string;
   deleted: number;
   avatar_url?: string | null;
+  profile_slug?: string | null;
 };
+/* The public face an admission carries for a player; undefined means Convex did not say, null means none. */
+type PlayerProfile = { avatarUrl?: string | null; profileSlug?: string | null };
 type Seat = {
   seat: string;
   position: number;
@@ -164,15 +167,25 @@ export class ActorDirectory {
       .map((row) => ({ seat: row.seat, userId: row.user_id }));
   }
 
-  /** Who holds each seat, by public name and avatar, for the panel; spectators hold none. */
-  holders(): { seat: string; name: string; avatar: string | null }[] {
+  /**
+   * Who holds each seat, by public name, avatar and profile slug, for the panel;
+   * spectators hold none.
+   * All three are as the player's last admission carried them, not live account state.
+   * An account closing since then keeps its slug until reconciliation removes the actor.
+   */
+  holders(): { seat: string; name: string; avatar: string | null; slug: string | null }[] {
     return this.storage.sql
-      .exec<{ seat: string; display_name: string; avatar_url: string | null }>(
-        'SELECT seat, display_name, avatar_url FROM actors WHERE deleted=0 AND seat!=? ORDER BY seat',
+      .exec<{ seat: string; display_name: string; avatar_url: string | null; profile_slug: string | null }>(
+        'SELECT seat, display_name, avatar_url, profile_slug FROM actors WHERE deleted=0 AND seat!=? ORDER BY seat',
         SPECTATOR_SEAT
       )
       .toArray()
-      .map((row) => ({ seat: row.seat, name: row.display_name, avatar: row.avatar_url ?? null }));
+      .map((row) => ({
+        seat: row.seat,
+        name: row.display_name,
+        avatar: row.avatar_url ?? null,
+        slug: row.profile_slug ?? null,
+      }));
   }
 
   /** Who holds each seat with the account behind it, for rows the scrub must find by user; never sent to a viewer. */
@@ -245,7 +258,7 @@ export class ActorDirectory {
       return;
     }
     this.storage.sql.exec(
-      "UPDATE actors SET seat=?, display_name='[deleted user]', deleted=1, avatar_url=NULL WHERE user_id=?",
+      "UPDATE actors SET seat=?, display_name='[deleted user]', deleted=1, avatar_url=NULL, profile_slug=NULL WHERE user_id=?",
       SPECTATOR_SEAT,
       userId
     );
@@ -296,22 +309,22 @@ export class ActorDirectory {
     connectionId: string,
     userId: string,
     displayName: string,
-    options: { seatNewcomers: boolean; avatarUrl?: string | null }
+    options: { seatNewcomers: boolean } & PlayerProfile
   ): Viewer {
     let actor = this.storage.sql.exec<Actor>('SELECT * FROM actors WHERE user_id=?', userId).toArray()[0];
     if (actor?.deleted) {
       throw new Error('Admission refused.');
     }
     if (!actor) {
-      actor = this.create(
-        userId,
-        displayName,
-        options.seatNewcomers ? this.availableSeat() : SPECTATOR_SEAT,
-        options.avatarUrl ?? null
-      );
-    } else if (options.avatarUrl !== undefined && options.avatarUrl !== (actor.avatar_url ?? null)) {
-      /* A player's picture follows their profile; each admission carries the current one. */
-      this.storage.sql.exec('UPDATE actors SET avatar_url=? WHERE user_id=?', options.avatarUrl, userId);
+      actor = this.create(userId, displayName, options.seatNewcomers ? this.availableSeat() : SPECTATOR_SEAT, options);
+    } else {
+      /* A player's picture and profile link follow their profile; each admission carries the current ones. */
+      if (options.avatarUrl !== undefined && options.avatarUrl !== (actor.avatar_url ?? null)) {
+        this.storage.sql.exec('UPDATE actors SET avatar_url=? WHERE user_id=?', options.avatarUrl, userId);
+      }
+      if (options.profileSlug !== undefined && options.profileSlug !== (actor.profile_slug ?? null)) {
+        this.storage.sql.exec('UPDATE actors SET profile_slug=? WHERE user_id=?', options.profileSlug, userId);
+      }
     }
     return {
       connectionId,
@@ -375,25 +388,27 @@ export class ActorDirectory {
   }
 
   /** The creator takes the first seat at creation, before anyone connects. */
-  seatCreator(userId: string, displayName: string, seat: string, avatarUrl: string | null) {
-    this.create(userId, displayName, seat, avatarUrl);
+  seatCreator(userId: string, displayName: string, seat: string, profile: PlayerProfile) {
+    this.create(userId, displayName, seat, profile);
   }
 
-  private create(userId: string, displayName: string, seat: Viewer['viewerSeat'], avatarUrl: string | null): Actor {
+  private create(userId: string, displayName: string, seat: Viewer['viewerSeat'], profile: PlayerProfile): Actor {
     const actor = {
       user_id: userId,
       seat,
       display_name: displayName.slice(0, 160),
       deleted: 0,
-      avatar_url: avatarUrl,
+      avatar_url: profile.avatarUrl ?? null,
+      profile_slug: profile.profileSlug ?? null,
     };
     this.storage.transactionSync(() => {
       this.storage.sql.exec(
-        'INSERT INTO actors (user_id, seat, display_name, deleted, avatar_url) VALUES(?,?,?,0,?)',
+        'INSERT INTO actors (user_id, seat, display_name, deleted, avatar_url, profile_slug) VALUES(?,?,?,0,?,?)',
         actor.user_id,
         actor.seat,
         actor.display_name,
-        actor.avatar_url
+        actor.avatar_url,
+        actor.profile_slug
       );
       if (seat !== SPECTATOR_SEAT) {
         this.record(actor.user_id, actor.display_name, seat, 'joined', { cause: 'creation' });

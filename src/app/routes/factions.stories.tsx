@@ -3,7 +3,7 @@ import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { db, refText, SEED_REF_TOKEN } from '@db/storybook';
 
-import { expectToolbarStatusesOnOneLine } from './authoringToolbarPlay';
+import { expectToolbarOnOneLine } from './authoringToolbarPlay';
 import {
   craftLinearAngle,
   currentLayerMode,
@@ -306,52 +306,46 @@ export const CreateLoadClosesTheValidationBand = meta.story({
   },
 });
 
-const FACTION_EDIT_STATUSES = [
-  'No unsaved changes',
-  'The public asset will be available soon.',
-  'Group access: Arrakeen Rules Council',
-];
+const FACTION_EDIT_STATUSES = ['No unsaved changes', 'The public asset will be available soon.'];
 
 /**
  * The faction editor's toolbar at a phone, tablet, laptop and desktop width, on one line at each (#1423).
- * The seeded faction states three things at rest: nothing unsaved, no publication yet, and its Group.
- * From the tablet width up each is its own glyph beside Back, and on a phone they fold into one glyph whose description lists all three.
+ * The seeded faction states two things at rest, both behind the Status action: nothing unsaved, and no publication yet.
  */
 export const EditToolbarAt360 = meta.story({
   args: { path: '/factions/house-atreides/edit' },
   globals: { viewport: { value: 'appMobileNarrow' } },
   play: async ({ canvasElement }) =>
-    await expectToolbarStatusesOnOneLine(canvasElement, { statuses: FACTION_EDIT_STATUSES, folded: true }),
+    await expectToolbarOnOneLine(canvasElement, { statusDescribes: FACTION_EDIT_STATUSES }),
 });
 export const EditToolbarAt390 = meta.story({
   args: { path: '/factions/house-atreides/edit' },
   globals: { viewport: { value: 'appMobile' } },
   play: async ({ canvasElement }) =>
-    await expectToolbarStatusesOnOneLine(canvasElement, { statuses: FACTION_EDIT_STATUSES, folded: true }),
+    await expectToolbarOnOneLine(canvasElement, { statusDescribes: FACTION_EDIT_STATUSES }),
 });
 export const EditToolbarAt768 = meta.story({
   args: { path: '/factions/house-atreides/edit' },
   globals: { viewport: { value: 'appTablet' } },
   play: async ({ canvasElement }) =>
-    await expectToolbarStatusesOnOneLine(canvasElement, { statuses: FACTION_EDIT_STATUSES, folded: false }),
+    await expectToolbarOnOneLine(canvasElement, { statusDescribes: FACTION_EDIT_STATUSES }),
 });
 export const EditToolbarAt1100 = meta.story({
   args: { path: '/factions/house-atreides/edit' },
   globals: { viewport: { value: 'appLaptop' } },
   play: async ({ canvasElement }) =>
-    await expectToolbarStatusesOnOneLine(canvasElement, { statuses: FACTION_EDIT_STATUSES, folded: false }),
+    await expectToolbarOnOneLine(canvasElement, { statusDescribes: FACTION_EDIT_STATUSES }),
 });
 export const EditToolbarAt1440 = meta.story({
   args: { path: '/factions/house-atreides/edit' },
   globals: { viewport: { value: 'appLarge' } },
   play: async ({ canvasElement }) =>
-    await expectToolbarStatusesOnOneLine(canvasElement, { statuses: FACTION_EDIT_STATUSES, folded: false }),
+    await expectToolbarOnOneLine(canvasElement, { statusDescribes: FACTION_EDIT_STATUSES }),
 });
 
 /**
- * The faction editor with its name cleared, at the narrowest window where its toolbar keeps a glyph per status (#1423).
- * No caller puts a wider row in the bar: four statuses, the complexity ring, and five actions ending in a worded Save.
- * Each still sits in its own slot, clear of its neighbours.
+ * The faction editor with its name cleared (#1423): Save is held, and its description says why, after the unsaved changes and before the publication.
+ * No caller puts a wider row in the bar: the complexity ring and every kind of action ending in Save.
  */
 export const EditToolbarWithBlankNameAt552 = meta.story({
   args: { path: '/factions/house-atreides/edit' },
@@ -359,14 +353,12 @@ export const EditToolbarWithBlankNameAt552 = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await userEvent.clear(await page.findByRole('textbox', { name: 'Faction name' }, { timeout: 30_000 }));
-    await expectToolbarStatusesOnOneLine(canvasElement, {
-      statuses: [
+    await expectToolbarOnOneLine(canvasElement, {
+      statusDescribes: [
         'Unsaved changes',
         'Add a faction name before saving; it determines the faction URL.',
         'The public asset will be available soon.',
-        'Group access: Arrakeen Rules Council',
       ],
-      folded: false,
     });
   },
 });

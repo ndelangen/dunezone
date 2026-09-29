@@ -593,6 +593,7 @@ export const readerPage = query({
   returns: v.union(
     v.null(),
     v.object({
+      ruleset: v.object({ name: v.string(), slug: v.string() }),
       rulebook: rulebookMetadataValidator,
       edition: readerEditionValidator,
       editions: v.array(readerEditionOptionValidator),
@@ -605,7 +606,7 @@ export const readerPage = query({
     if (!found) {
       return null;
     }
-    const { rulebook } = found;
+    const { ruleset, rulebook } = found;
     const selectedNumber = args.edition_number ?? rulebook.current_edition_number;
     const selected = await ctx.db
       .query('rulebook_editions')
@@ -629,6 +630,7 @@ export const readerPage = query({
     const contents = parseEditionContents(await contentsForRulebookEdition(ctx, selected));
     const summary = await rulebookEditionSummary(ctx, selected);
     return {
+      ruleset: { name: ruleset.name, slug: ruleset.slug },
       rulebook: metadataFrom(rulebook),
       edition: {
         edition_number: selected.edition_number,
