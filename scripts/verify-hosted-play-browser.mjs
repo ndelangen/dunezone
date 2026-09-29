@@ -1601,6 +1601,14 @@ try {
   /* A flow that never opens a table records no renderer, which an expected renderer refuses. */
   holdToExpectedRenderer();
   assert.deepEqual(report.pageErrors, []);
+  /*
+   * three.js logs a WebGPU error that nothing captured and keeps drawing, so a table can pass every pixel check with draws failing (#1272).
+   * With #1301 reverted, some runs of the regular flow on the macOS runner passed while logging them (#1322).
+   */
+  const webgpuError = report.consoleErrors.find(({ message }) => message.includes('Uncaptured WebGPU'));
+  if (webgpuError) {
+    throw new Error(`${webgpuError.label} logged ${webgpuError.message}`);
+  }
   assert.deepEqual(blockedNetwork, []);
 } catch (error) {
   /* A bare assertion message ("false !== true") names no step; the first frame inside these scripts does. */

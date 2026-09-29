@@ -221,6 +221,7 @@ an existing native backend executable, and `--browser /absolute/path/to/chromium
 Chromium executable instead of Playwright's installed browser. `--expect-renderer` passes each flow
 the renderer its first table must use (`webgpu`, `webgl2-swiftshader` or `webgl2-other`); a flow whose
 table rendered with another fails there, naming both, and without the option no renderer is enforced.
+With or without it, a flow fails when three.js logged an uncaptured WebGPU error on any of its pages.
 Each browser flow has its own timeout, ten minutes for the regular flow and eight for each named flow;
 protocol verification has three. All use the same stack cleanup.
 

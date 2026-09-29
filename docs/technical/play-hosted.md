@@ -376,8 +376,10 @@ or WebGL2 with the unmasked GL renderer string, as `webgl2-swiftshader` when tha
 SwiftShader and `webgl2-other` when it does not. When no backend was read within 15 s, the kind is
 `unidentified` with the reason. `--expect-renderer` takes one of those three and
 fails the flow at that table, naming both, when the table rendered with another; without it no
-renderer is enforced. `--flow` names one flow and defaults to `regular`. Each run writes screenshots
-and a compact report without credentials. A flow that retains synthetic received
+renderer is enforced. With or without it, the flow fails at its end when any of its pages logged an
+uncaptured WebGPU error. three.js logs such an error and keeps drawing, so the flow's pixel checks
+can pass while some draws fail. `--flow` names one flow and defaults to `regular`. Each run writes
+screenshots and a compact report without credentials. A flow that retains synthetic received
 game frames writes them to `<flow>-frames.json`.
 
 Browser proof supplements these tests with native pointer gestures, independent camera views,
