@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'vitest';
 
 import { initialSnapshot } from '../../src/shared/play/commands';
+import { LOAD_SEATS, loadSnapshot } from '../../src/shared/play/loadFixture';
 import { PHASE_CHANGE_COOLDOWN_MS, phaseAt, TABLE_PHASES, tableProgressFor } from '../../src/shared/play/phases';
 import { clientMessageSchema, gameSnapshotSchema, tableForViewer } from '../../src/shared/play/protocol';
 import type { GameSnapshot } from '../../src/shared/play/protocol';
@@ -304,6 +305,31 @@ describe('shared spice commands', () => {
 });
 
 describe('server-owned tabletop carries', () => {
+  test('an ordinary room admits one carry per table sector and refuses the nineteenth', () => {
+    const snapshot = loadSnapshot('stacked');
+    const room = new Room(snapshot, undefined, () => LOAD_SEATS);
+    const begin = (index: number) =>
+      room.begin(
+        {
+          connectionId: `connection-${index}`,
+          userId: `user-${index}`,
+          viewerSeat: LOAD_SEATS[index % LOAD_SEATS.length]!,
+          displayName: `Player ${index + 1}`,
+          color: '#176a73',
+        },
+        {
+          carryId: `carry-${index}`,
+          sourcePieceId: snapshot.table.pieces[index]!.id,
+          expectedVersion: 0,
+          pickup: 'whole',
+        }
+      );
+    for (let index = 0; index < 18; index++) {
+      begin(index);
+    }
+    expect(room.carries.size).toBe(18);
+    expect(() => begin(18)).toThrow('too many active carries');
+  });
   test('rejects stale source versions when reset reuses a retired split ID', () => {
     const room = new Room(initialSnapshot(), undefined, seated);
     const action = { kind: 'split', pieceId: 'harkonnen-force-stack', count: 1 } as const;
