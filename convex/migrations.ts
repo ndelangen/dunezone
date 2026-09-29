@@ -1206,7 +1206,7 @@ function namingFaction<T>(factionId: string, run: () => T): T {
 
 /**
  * Retires the hosted fixture (#1535): its room deletes what it stored, then the account deletions routed to it settle.
- * Listed in migration-guards.json once the game Worker that answers a retirement had shipped (#1544).
+ * Listed in migration-guards.json once the game Worker that answers a retirement has shipped (#1544).
  */
 export const play_hosted_fixture_retire_v1 = migrations.define({
   table: 'play_games',
