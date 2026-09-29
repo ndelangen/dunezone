@@ -55,7 +55,8 @@
 
 @container workbench (width < 62rem) {
   .workbench {
-    grid-template-columns: minmax(0, 1fr) minmax(13rem, 15rem);
+    /* Gives way to 30rem of chapters, so the tabs keep their rail from 41rem up instead of flipping back to the picker between 44rem and 45rem: Norbert accepted the band "as long as it's consistent" (#1321). */
+    grid-template-columns: minmax(0, 1fr) clamp(13rem, 100cqi - 30rem, 15rem);
   }
 
   .rail {
@@ -75,8 +76,8 @@
  * `ConnectedTabs` swaps its vertical tab rail for a stepper bar once its own column falls under 30rem. At this
  * step the chapters are the workbench less the 11rem rail, so the stepper bar arrives below a 41rem workbench,
  * and from 41rem up to this step the chapters keep the 9.25rem tab rail while the proof is 11rem. Just above
- * this step the proof is 15rem, which leaves the chapters under 30rem until a 45rem workbench, so between 44rem
- * and 45rem the stepper bar shows again.
+ * this step the proof stays under 15rem until the chapters have their 30rem, so the tab rail holds from a 41rem
+ * workbench up.
  *
  * The desk keeps following, since side by side survives and there is something to sit beside.
  *
