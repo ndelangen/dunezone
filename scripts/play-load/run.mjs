@@ -706,7 +706,11 @@ try {
   const itemIds = snapshot.table.pieces.flatMap((p) => p.items.map((i) => i.id)).sort();
   assert.equal(itemIds.length, values.profile === 'baseline' ? 17 : 750);
   assert.equal(new Set(itemIds).size, itemIds.length);
-  assert.equal(snapshot.table.pieces.length, { baseline: 6, stacked: 294, separated: 750 }[values.profile]);
+  assert.equal(
+    snapshot.table.pieces.length,
+    { baseline: 6, stacked: 294, separated: 750 }[values.profile],
+    `The fixture is not laid out on the ${values.profile} profile; start the local stack with play-local --load-profile ${values.profile}.`
+  );
   report.roles = peers.map((p) => ({
     peer: p.index,
     role: p.role,

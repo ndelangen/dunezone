@@ -19,6 +19,7 @@ import { loadProfileSchema } from '../src/shared/play/loadProfile';
 import { LOCAL_ISOLATED_GIT_SHA } from '../workers/game/localRuntime';
 import { loopbackOrigin } from './lib/isolated-stack';
 import { nodeExecutable } from './node-executable';
+import { runnerProfiles } from './play-load/profiles';
 
 const root = path.resolve(import.meta.dirname, '..');
 const { values } = parseArgs({
@@ -32,8 +33,16 @@ const { values } = parseArgs({
     'load-profile': { type: 'string' },
   },
 });
-/* A load run's game Worker is the load entry, which lays out every fixture on this profile; production never runs it. */
-const loadProfile = values['load-profile'] === undefined ? undefined : loadProfileSchema.parse(values['load-profile']);
+/*
+ * A load run on an expanded profile starts the game Worker from its load entry, which lays out every fixture on that profile.
+ * The baseline keeps the production Worker, and production never runs the entry.
+ */
+const requested = values['load-profile'];
+if (requested !== undefined && !runnerProfiles.includes(requested as (typeof runnerProfiles)[number])) {
+  throw new Error(`--load-profile must be one of ${runnerProfiles.join(', ')}.`);
+}
+const loadProfile =
+  requested === undefined || requested === 'baseline' ? undefined : loadProfileSchema.parse(requested);
 
 const convexUrl = loopbackOrigin(values['convex-url'], '--convex-url');
 const convexSiteUrl = loopbackOrigin(values['convex-site-url'], '--convex-site-url');

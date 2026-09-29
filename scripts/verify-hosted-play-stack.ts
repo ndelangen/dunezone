@@ -451,8 +451,7 @@ try {
       String(appPort),
       ...(values['skip-build'] ? ['--skip-build'] : []),
       ...(values['skip-generate'] ? ['--skip-generate'] : []),
-      /* The baseline keeps the production game Worker; the two expanded profiles run its load entry. */
-      ...(loadProfile && loadProfile !== 'baseline' ? ['--load-profile', loadProfile] : []),
+      ...(loadProfile ? ['--load-profile', loadProfile] : []),
     ],
     env: { ...environment, WRANGLER_LOG_PATH: wranglerLog },
     logPath: workerLog,
