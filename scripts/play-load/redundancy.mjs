@@ -168,13 +168,14 @@ function mergePatch(base, next, name) {
   return same(base, next) ? undefined : next;
 }
 
-/** What the room sent about pieces: the whole changed ones, the removed ids and any new order, as the minimal counts them. */
+/** What the room sent about pieces: the whole changed ones, the moves of the others, the removed ids and any new order, as the minimal counts them. */
 function pieceBytes(change) {
   if (!change) {
     return 0;
   }
   return (
     size(change.pieces) +
+    (change.pieceMoves ? size(change.pieceMoves) : 0) +
     (change.removedPieces.length ? size(change.removedPieces) : 0) +
     (change.pieceOrder ? size(change.pieceOrder) : 0)
   );
@@ -255,6 +256,7 @@ function keepLargest(top, sizing, update) {
     minimalPieceBytes: sizing.minimalPieceBytes,
     sent: excerpt({
       pieces: update.snapshot.pieces,
+      pieceMoves: update.snapshot.pieceMoves,
       removedPieces: update.snapshot.removedPieces,
       pieceOrder: update.snapshot.pieceOrder,
     }),
