@@ -9,7 +9,7 @@ import type { ConvexHttpClient } from 'convex/browser';
 import { anyApi } from 'convex/server';
 import type { Page, WebSocket } from 'playwright';
 
-export type SyntheticAccount = { email: string; password: string };
+type SyntheticAccount = { email: string; password: string };
 
 /**
  * The secret Convex Auth's Password provider stores for `password`: Lucia's Scrypt with N 16384, r 16 and p 1, a 64-byte key, and the hex salt used as text.
@@ -36,9 +36,9 @@ export async function provisionAccounts(admin: ConvexHttpClient, accounts: Synth
 function signInFlow(payload: string | Buffer) {
   try {
     const message = JSON.parse(payload.toString());
-    return message.type === 'Action' && message.udfPath === 'auth:signIn'
-      ? String(message.args?.[0]?.params?.flow)
-      : null;
+    const flow =
+      message.type === 'Action' && message.udfPath === 'auth:signIn' ? message.args?.[0]?.params?.flow : null;
+    return typeof flow === 'string' ? flow : null;
   } catch {
     return null;
   }
@@ -48,6 +48,7 @@ function signInFlow(payload: string | Buffer) {
  * Signs a provisioned account in through the login form and waits for the signed-in page, calling the account `name` in errors.
  * A sign-in the backend refuses fails at once with the form's own message, not after a silent 30 s wait.
  * The form falls back to sign-up when sign-in fails, so a sign-in that reached sign-up fails too: it would be a second attempt, and the account already exists.
+ * A signed-in page without the form's `signIn` frame fails as well, so the sign-up check cannot pass on frames it never saw.
  */
 export async function signIn(page: Page, origin: string, account: SyntheticAccount, name: string) {
   const flows: string[] = [];
@@ -90,5 +91,8 @@ export async function signIn(page: Page, origin: string, account: SyntheticAccou
     throw new Error(
       `Sign-in for ${name} reached the form's sign-up fallback (${flows.join(', ')}), so its sign-in failed.`
     );
+  }
+  if (!flows.includes('signIn')) {
+    throw new Error(`Sign-in for ${name} reached the signed-in page, but the form's signIn frame was never seen.`);
   }
 }

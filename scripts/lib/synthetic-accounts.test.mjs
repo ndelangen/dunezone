@@ -8,10 +8,10 @@ import { signIn } from './synthetic-accounts.ts';
 
 /*
  * A login page that sends the frames the real form's Convex client sends: an `auth:signIn` action per Password flow.
- * `outcome` decides what the page does after its sign-in: sign in, fall back to sign-up as the real form does after a failed sign-in, or show the form's alert.
+ * `outcome` decides what the page does after its sign-in: sign in, fall back to sign-up as the real form does after a failed sign-in, show the form's alert, or sign in without sending a frame.
  */
 let outcome = 'signed-in';
-const loginPage = (fallback, refused) => `<!doctype html>
+const loginPage = (fallback, refused, silent) => `<!doctype html>
 <form><div role="status"></div>
   <input aria-label="Email"><input aria-label="Password" type="password">
   <button type="submit" data-testid="local-auth-submit">Continue</button></form>
@@ -24,7 +24,7 @@ const loginPage = (fallback, refused) => `<!doctype html>
     await opened;
     const [email, password] = [...form.querySelectorAll('input')].map((input) => input.value);
     const send = (flow) => socket.send(JSON.stringify({ type: 'Action', requestId: 0, udfPath: 'auth:signIn', args: [{ provider: 'password', params: { flow, email, password } }] }));
-    send('signIn');
+    ${silent ? '' : "send('signIn');"}
     ${fallback ? "send('signUp');" : ''}
     await new Promise((resolve) => setTimeout(resolve, 50));
     if (${refused}) {
@@ -38,10 +38,10 @@ const loginPage = (fallback, refused) => `<!doctype html>
 /* Chromium can take 30 s to exit on a loaded Mac (scripts/play-load/browsers.test.mjs), so the teardown has its own budget. */
 const teardownBudget = 65_000;
 
-test('a sign-in passes only when the page signed in without the form falling back to sign-up', async () => {
+test('a sign-in passes only when the page sent its signIn frame and signed in without falling back to sign-up', async () => {
   const server = createServer((_request, response) => {
     response.setHeader('Content-Type', 'text/html');
-    response.end(loginPage(outcome === 'fallback', outcome === 'refused'));
+    response.end(loginPage(outcome === 'fallback', outcome === 'refused', outcome === 'silent'));
   });
   const sockets = new WebSocketServer({ server });
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
@@ -65,5 +65,10 @@ test('a sign-in passes only when the page signed in without the form falling bac
   outcome = 'refused';
   await expect(signIn(page, origin, account, 'player-a')).rejects.toThrow(
     'Sign-in for player-a failed: Account [synthetic email] already exists'
+  );
+
+  outcome = 'silent';
+  await expect(signIn(page, origin, account, 'player-a')).rejects.toThrow(
+    "Sign-in for player-a reached the signed-in page, but the form's signIn frame was never seen."
   );
 }, 30_000);

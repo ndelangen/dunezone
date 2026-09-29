@@ -96,7 +96,7 @@ try {
     throw error;
   }
 }
-/* Every account a flow signs in; a second tab shares its player's context, and the unsigned visitor has none. */
+/* Every account a flow signs in. A player's second tab shares that player's context, and the `unsigned` peer never signs in. */
 const SIGNED_IN = ['player-a', 'player-b', 'observer', 'visitor'];
 for (const label of SIGNED_IN) {
   credentials[label] ??= {
