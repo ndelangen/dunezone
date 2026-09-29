@@ -52,8 +52,9 @@ type Connection = {
   /* One catalogue capture per connection at a time; each capture is a Convex query. */
   capturing: boolean;
   viewer?: Viewer;
-  /* The player's public avatar as their admission carried it; the actor directory keeps it. */
+  /* The player's public avatar and profile slug as their admission carried them; the actor directory keeps them. */
   avatarUrl?: string | null;
+  profileSlug?: string | null;
   registrationId?: string;
   authorizationRound?: number;
   sessionId?: string;
@@ -710,6 +711,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     };
     /* Absent means the directory did not say; null means no picture. Only an answer updates the stored one. */
     connection.avatarUrl = result.avatarUrl;
+    connection.profileSlug = result.profileSlug;
     connection.registrationId = result.registrationId;
     connection.sessionId = result.sessionId;
     const metadata = this.metadata!;
@@ -874,7 +876,11 @@ export class GameRoom extends DurableObject<GameEnv> {
           connection.connectionId,
           connection.viewer!.userId,
           connection.viewer!.displayName,
-          { seatNewcomers: !this.metadata?.game, avatarUrl: connection.avatarUrl }
+          {
+            seatNewcomers: !this.metadata?.game,
+            avatarUrl: connection.avatarUrl,
+            profileSlug: connection.profileSlug,
+          }
         );
       } catch {
         this.deny(socket, false);

@@ -1,5 +1,7 @@
+import { Group } from '@mantine/core';
 import preview from '@sb/preview';
-import { ArrowLeft, Check, Pencil, Trash2 } from 'lucide-react';
+import { ArrowLeft, Check, Copy, Download, Pencil, Send, Trash2 } from 'lucide-react';
+import { expect, within } from 'storybook/test';
 
 import { IconAction } from './IconAction';
 
@@ -55,5 +57,72 @@ export const LongerTooltip = meta.story({
     label: 'Sync migration status',
     tooltip: 'Sync status snapshot to migration_runs table',
     icon: <Check size={17} aria-hidden />,
+  },
+});
+
+/**
+ * Every meaning at standard emphasis, then a toggle that is on, then the two strong fills (Norbert, 2026-09-29).
+ * Slate changes nothing, green creates or keeps, violet publishes, cyan hands over a file, and red loses something for good.
+ */
+export const Meanings = meta.story({
+  render: () => (
+    <Group gap="xs">
+      <IconAction
+        label="Back"
+        intent="neutral"
+        emphasis="standard"
+        size="lg"
+        icon={<ArrowLeft size={17} aria-hidden />}
+      />
+      <IconAction
+        label="Show every copy"
+        intent="neutral"
+        emphasis="standard"
+        size="lg"
+        pressed
+        icon={<Copy size={17} aria-hidden />}
+      />
+      <IconAction
+        label="Create a card"
+        intent="positive"
+        emphasis="standard"
+        size="lg"
+        icon={<Check size={17} aria-hidden />}
+      />
+      <IconAction
+        label="Download PDF"
+        intent="export"
+        emphasis="standard"
+        size="lg"
+        icon={<Download size={17} aria-hidden />}
+      />
+      <IconAction
+        label="Publish"
+        intent="publish"
+        emphasis="standard"
+        size="lg"
+        icon={<Send size={17} aria-hidden />}
+      />
+      <IconAction
+        label="Delete"
+        intent="negative"
+        emphasis="standard"
+        size="lg"
+        icon={<Trash2 size={17} aria-hidden />}
+      />
+      <IconAction
+        label="Publish Edition 3"
+        intent="publish"
+        emphasis="strong"
+        size="lg"
+        icon={<Send size={17} aria-hidden />}
+      />
+      <IconAction label="Save" intent="positive" emphasis="strong" size="lg" icon={<Check size={17} aria-hidden />} />
+    </Group>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole('button', { name: 'Show every copy' })).toHaveAttribute('aria-pressed', 'true');
+    await expect(canvas.getByRole('button', { name: 'Back' })).not.toHaveAttribute('aria-pressed');
   },
 });
