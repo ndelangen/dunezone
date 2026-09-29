@@ -57,7 +57,6 @@ describe('AuthorizationWatch in native workerd with the real Convex clients', ()
   });
 
   it('does not treat a connected, acknowledged, but never-fresh feed as authorization', async () => {
-    await peer.query();
     await new Promise((resolve) => setTimeout(resolve, 200));
     expect(await status()).toBe('suspended');
     expect((await runtime.request('/status')).events).not.toContain('authorized');
