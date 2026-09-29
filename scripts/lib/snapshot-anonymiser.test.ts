@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'vitest';
 
+import { userImagePublicPath } from '../../src/shared/user-images/contract';
 import type { SnapshotManifest } from './snapshot-anonymiser';
 import {
   anonymiseExport,
@@ -146,6 +147,66 @@ function authorWorld() {
   return { world, author, group, published, deleted, ruleset, question, faction };
 }
 
+const COVER_URL = `https://dune.zone${userImagePublicPath(`${'a'.repeat(64)}.jpg`)}`;
+/* The signed source `convex/rulebooks.coverImages.test.ts` plants: no run of hex, so only the projection keeps it out. */
+const SIGNED_SOURCE = 'https://images.example/cover.png?signature=private-cover-secret&expires=9999999999';
+
+/** Edition Contents whose one Cover holds a rehosted image fetched from a signed source. */
+function signedCoverContents() {
+  return {
+    schemaVersion: 1,
+    pageOrder: ['CVER'],
+    pagesById: {
+      CVER: {
+        id: 'CVER',
+        anchor: 'cover',
+        title: 'Cover',
+        layoutId: 'cover',
+        showHeading: true,
+        controlValues: {
+          cover: {
+            subtitle: '',
+            supportingText: '',
+            showDuneLogo: true,
+            backgroundImageUrl: SIGNED_SOURCE,
+            backgroundImage: { url: COVER_URL, sourceUrl: SIGNED_SOURCE, width: 1100, height: 1600 },
+          },
+        },
+        blockOrderByRegion: {},
+        blocksById: {},
+      },
+    },
+  };
+}
+
+/** The author's ruleset with a Rulebook: a legacy Edition holding its Contents inline, and a current one with a Contents row. */
+function rulebookWorld() {
+  const authored = authorWorld();
+  const { world, author, ruleset } = authored;
+  const rulebook = world.add('rulebooks', {
+    ruleset_id: ruleset,
+    name: 'Manual',
+    name_key: 'manual',
+    slug: 'manual',
+    sort_order: 0,
+    current_edition_number: 2,
+    created_by: author,
+    is_deleted: false,
+    ...timestamps,
+  });
+  const edition = (fields: Row) =>
+    world.add('rulebook_editions', {
+      rulebook_id: rulebook,
+      created_by: author,
+      created_at: timestamps.created_at,
+      ...fields,
+    });
+  const legacy = edition({ edition_number: 1, contents: signedCoverContents() });
+  const current = edition({ edition_number: 2 });
+  world.add('rulebook_edition_contents', { edition_id: current, contents: signedCoverContents() });
+  return { ...authored, rulebook, legacy, current };
+}
+
 function rowsOf(entries: ReadonlyMap<string, string>, table: string): Row[] {
   return (entries.get(`${table}/documents.jsonl`) ?? '')
     .split('\n')
@@ -243,6 +304,62 @@ describe('anonymiseExport', () => {
   });
 });
 
+describe('anonymiseExport on Rulebook Editions', () => {
+  test('shows Edition Contents the way the public reader does, so a signed cover source stays in production', () => {
+    const { world, legacy, current } = rulebookWorld();
+    const { entries } = anonymiseExport(world.entries());
+    const publicCover = {
+      backgroundImageUrl: COVER_URL,
+      backgroundImage: { url: COVER_URL, sourceUrl: COVER_URL, width: 1100, height: 1600 },
+    };
+
+    expect([...entries.values()].join('\n')).not.toContain('private-cover-secret');
+    const [legacyEdition, currentEdition] = rowsOf(entries, 'rulebook_editions');
+    const [stored] = rowsOf(entries, 'rulebook_edition_contents');
+    expect(legacyEdition).toMatchObject({ _id: legacy });
+    expect(currentEdition).not.toHaveProperty('contents');
+    expect(stored).toMatchObject({ edition_id: current });
+    for (const contents of [legacyEdition!.contents, stored!.contents]) {
+      expect(contents).toMatchObject({ pagesById: { CVER: { controlValues: { cover: publicCover } } } });
+    }
+  });
+
+  test('refuses Contents the public reader cannot read, without repeating them', () => {
+    const { world, current } = rulebookWorld();
+    world.add('rulebook_edition_contents', { edition_id: current, contents: { secret_draft: 'the spice silo plan' } });
+
+    const error = refusal(() => anonymiseExport(world.entries()));
+
+    expect(error.problems).toEqual(['rulebook_edition_contents: 1 rows whose contents the snapshot cannot project']);
+    expect(error.message).not.toContain('spice silo');
+  });
+
+  test('drops a row that lacks the reference its parent rule reads', () => {
+    const { world, ruleset, published } = rulebookWorld();
+    world.add('ruleset_factions', { ruleset_id: ruleset });
+    world.add('rulebook_edition_contents', { contents: { secret_draft: 'the spice silo plan' } });
+
+    const { entries } = anonymiseExport(world.entries());
+
+    expect(rowsOf(entries, 'ruleset_factions').map((row) => row.faction_id)).toEqual([published]);
+    expect(rowsOf(entries, 'rulebook_edition_contents')).toHaveLength(1);
+    expect([...entries.values()].join('\n')).not.toContain('spice silo');
+  });
+
+  test('reads the policy and field names as own keys, so Object members classify nothing', () => {
+    const { world, faction } = authorWorld();
+    faction({ slug: 'members', constructor: 'x', toString: 'y' });
+    world.add('constructor', { value: 1 });
+
+    const { problems } = refusal(() => anonymiseExport(world.entries()));
+
+    expect(problems).toEqual([
+      'tables the snapshot policy does not classify: constructor',
+      'factions: fields the snapshot policy does not classify: constructor, toString',
+    ]);
+  });
+});
+
 describe('scanSnapshot', () => {
   test('finds sign-in rows, extra users and denied fields, whatever the policy says', () => {
     const entries = new Map([
@@ -256,6 +373,28 @@ describe('scanSnapshot', () => {
       { table: 'authSessions', field: '*', kind: 'sign-in table' },
       { table: 'users', field: '*', kind: 'user row' },
       { table: 'groups', field: 'extra', kind: 'denied field' },
+    ]);
+  });
+
+  test('passes a rehosted user image URL and still stops a bare token', () => {
+    const key = '0123456789abcdef'.repeat(4);
+    const url = `https://dune.zone${userImagePublicPath(`${key}.jpg`)}`;
+    const profiles = (...rows: Row[]) =>
+      new Map([['profiles/documents.jsonl', rows.map((row) => `${JSON.stringify(row)}\n`).join('')]]);
+
+    expect(scanSnapshot(profiles({ _id: 'p', avatar_url: url, avatar: { url, width: 320, height: 320 } }))).toEqual([]);
+    expect(
+      scanSnapshot(
+        profiles(
+          { _id: 'bare', avatar_url: key },
+          { _id: 'upper', avatar: { url: `https://dune.zone${userImagePublicPath(`${key.toUpperCase()}.jpg`)}` } },
+          { _id: 'long', cover: `https://dune.zone${userImagePublicPath(`${key}${key}.jpg`)}` }
+        )
+      )
+    ).toEqual([
+      { table: 'profiles', field: 'avatar_url', kind: 'token' },
+      { table: 'profiles', field: 'avatar', kind: 'token' },
+      { table: 'profiles', field: 'cover', kind: 'token' },
     ]);
   });
 });

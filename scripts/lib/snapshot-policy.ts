@@ -2,6 +2,8 @@ import type { WithoutSystemFields } from 'convex/server';
 import type { GenericId } from 'convex/values';
 
 import type { Doc, Id, TableNames } from '../../convex/_generated/dataModel';
+import { rulebookEditionContentsV1Schema } from '../../src/shared/rulebooks/contents';
+import { readerContents } from '../../src/shared/rulebooks/readerContents';
 
 /**
  * What the anonymised snapshot keeps of each Convex table (#1559).
@@ -27,19 +29,26 @@ type ReferenceRule<Value> = [ReferencedTable<Value>] extends [never]
       | ('users' extends ReferencedTable<Value> ? 'owner' : never);
 
 /**
+ * Rewrites an untyped value into what the public reads of it.
+ * It throws on a value it cannot read, and the run then stops.
+ */
+type Projection = { project: (value: unknown) => unknown };
+
+/**
  * The rule for one field of a kept row.
  *
  * - `keep` copies the value unchanged.
  * - `drop` leaves the field out, which only an optional field allows, so the row still matches the schema.
  * - `owner` replaces a user reference with the placeholder owner, because no `users` row leaves production.
- * - `parent` keeps the row only when the row it points at is kept too.
+ * - `parent` keeps the row only when the row it points at is kept too, and drops a row that has no such reference.
  * - `orNull` sets a nullable reference to null when the row it points at is not kept.
+ * - `project` writes the value as a public read shows it, for an untyped field whose public read hides part of it.
  *
  * The reference rules name the table the field's validator points at, so a rule aimed at the wrong table does not compile.
  */
 type FieldRule<Row, Field extends keyof Row> =
   IsAny<Row[Field]> extends true
-    ? 'keep'
+    ? 'keep' | Projection
     : 'keep' | (IsOptional<Row, Field> extends true ? 'drop' : never) | ReferenceRule<Row[Field]>;
 
 /** A stored row as the export has it: the schema's field names, with values not yet checked. */
@@ -66,6 +75,14 @@ type DroppedTable = { drop: string };
 type TablePolicy<Table extends TableNames> = KeptTable<Table> | DroppedTable;
 
 const notDeleted = (row: { readonly is_deleted?: unknown }) => row.is_deleted === false;
+
+/**
+ * Edition Contents as the public reader returns them.
+ * A cover keeps its rehosted image, and the source URL the author pasted, which can be a signed link, stays in production.
+ */
+const readerEditionContents: Projection = {
+  project: (value) => readerContents(rulebookEditionContentsV1Schema.parse(value)),
+};
 
 export const snapshotPolicy = {
   authAccounts: { drop: 'sign-in accounts' },
@@ -200,14 +217,14 @@ export const snapshotPolicy = {
       rulebook_id: { parent: 'rulebooks' },
       settings: 'keep',
       edition_number: 'keep',
-      contents: 'keep',
+      contents: readerEditionContents,
       created_by: 'owner',
       created_at: 'keep',
     },
     rows: 'all',
   },
   rulebook_edition_contents: {
-    fields: { edition_id: { parent: 'rulebook_editions' }, contents: 'keep' },
+    fields: { edition_id: { parent: 'rulebook_editions' }, contents: readerEditionContents },
     rows: 'all',
   },
   rulebook_edition_artifacts: {

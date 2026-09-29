@@ -172,7 +172,13 @@ function placeholderId(tableNumber: number, table: string): string {
  * per-table types erased, so one loop can walk every table.
  */
 
-type FieldRule = 'keep' | 'drop' | 'owner' | { parent: TableNames } | { orNull: TableNames };
+type FieldRule =
+  | 'keep'
+  | 'drop'
+  | 'owner'
+  | { parent: TableNames }
+  | { orNull: TableNames }
+  | { project: (value: unknown) => unknown };
 
 type RowRule = 'all' | ((row: Readonly<Record<string, unknown>>) => boolean);
 
@@ -182,16 +188,32 @@ type KeptPolicy = Extract<TablePolicy, { fields: unknown }>;
 
 const policy: Readonly<Record<string, TablePolicy>> = snapshotPolicy;
 
+/*
+ * Every lookup by a name from the export reads own keys only. A plain object also answers `constructor` or
+ * `toString` through its prototype, which would let a table or field of that name pass as classified.
+ */
+
+function tablePolicy(table: string): TablePolicy | null {
+  return Object.hasOwn(policy, table) ? policy[table]! : null;
+}
+
 function keptPolicy(table: string): KeptPolicy | null {
-  const entry = policy[table];
+  const entry = tablePolicy(table);
   return entry && 'fields' in entry ? entry : null;
+}
+
+function fieldRule(kept: KeptPolicy, field: string): FieldRule | null {
+  return Object.hasOwn(kept.fields, field) ? kept.fields[field]! : null;
 }
 
 function referencedTable(rule: FieldRule): TableNames | null {
   if (typeof rule === 'string') {
     return null;
   }
-  return 'parent' in rule ? rule.parent : rule.orNull;
+  if ('parent' in rule) {
+    return rule.parent;
+  }
+  return 'orNull' in rule ? rule.orNull : null;
 }
 
 /** Kept tables in an order where every table comes after the tables its references point at. */
@@ -300,7 +322,7 @@ function readLayout(input: ExportEntries, problems: string[]): Layout {
     problems.push(`unexpected entries: ${unexpected.sort().join(', ')}`);
   }
   const unclassified = [...new Set([...layout.tableNumbers.keys(), ...layout.documents.keys()])]
-    .filter((table) => !(table in policy))
+    .filter((table) => tablePolicy(table) === null)
     .sort();
   if (unclassified.length > 0) {
     problems.push(`tables the snapshot policy does not classify: ${unclassified.join(', ')}`);
@@ -342,54 +364,92 @@ function parseTableRows(table: string, text: string, tableNumber: number, proble
   return rows;
 }
 
+type IsKept = (table: TableNames, id: unknown) => boolean;
+
+/**
+ * Whether a row is published: its row rule says so, and every `parent` rule finds the row it points at kept.
+ * It walks the policy rather than the row, so a row without a parent reference is dropped instead of skipping the check.
+ */
+function isPublished(kept: KeptPolicy, row: Row, isKept: IsKept): boolean {
+  if (kept.rows !== 'all' && kept.rows(row) !== true) {
+    return false;
+  }
+  return Object.entries(kept.fields).every(([field, rule]) => {
+    const parent = typeof rule === 'object' && 'parent' in rule ? rule.parent : null;
+    return parent === null || (Object.hasOwn(row, field) && isKept(parent, row[field]));
+  });
+}
+
+/** A published row with only its classified fields, its user references on the placeholder and its projections applied. */
+function anonymiseRow(kept: KeptPolicy, row: Row, isKept: IsKept, placeholder: Placeholder, unprojected: string[]) {
+  const anonymised: Row = { _id: row._id, _creationTime: row._creationTime };
+  for (const [field, rule] of Object.entries(kept.fields)) {
+    if (!Object.hasOwn(row, field)) {
+      continue;
+    }
+    const value = row[field];
+    switch (rule) {
+      case 'drop':
+        break;
+      case 'keep':
+        anonymised[field] = value;
+        break;
+      case 'owner':
+        anonymised[field] = placeholder.userId;
+        break;
+      default:
+        if ('parent' in rule) {
+          anonymised[field] = value;
+        } else if ('orNull' in rule) {
+          anonymised[field] = isKept(rule.orNull, value) ? value : null;
+        } else {
+          try {
+            anonymised[field] = rule.project(value);
+          } catch {
+            unprojected.push(field);
+          }
+        }
+    }
+  }
+  return anonymised;
+}
+
 /** Keeps a table's published rows, each with only its classified fields, and its references resolved. */
 function anonymiseRows(
   table: string,
-  tablePolicy: KeptPolicy,
+  kept: KeptPolicy,
   rows: readonly Row[],
   keptIds: ReadonlyMap<string, ReadonlySet<unknown>>,
   placeholder: Placeholder,
   problems: string[]
 ): Row[] {
-  const isKept = (target: TableNames, value: unknown) => keptIds.get(target)?.has(value) === true;
+  const isKept: IsKept = (target, id) => keptIds.get(target)?.has(id) === true;
   const unclassified = new Set<string>();
+  const unprojected = new Map<string, number>();
   const output: Row[] = [];
   for (const row of rows) {
-    let keep = tablePolicy.rows === 'all' || tablePolicy.rows(row) === true;
-    const anonymised: Row = { _id: row._id, _creationTime: row._creationTime };
-    for (const [field, value] of Object.entries(row)) {
-      if (field === '_id' || field === '_creationTime') {
-        continue;
-      }
-      const rule = tablePolicy.fields[field];
-      if (rule === undefined) {
+    for (const field of Object.keys(row)) {
+      if (field !== '_id' && field !== '_creationTime' && fieldRule(kept, field) === null) {
         unclassified.add(field);
-        continue;
-      }
-      switch (rule) {
-        case 'keep':
-          anonymised[field] = value;
-          break;
-        case 'drop':
-          break;
-        case 'owner':
-          anonymised[field] = placeholder.userId;
-          break;
-        default:
-          if ('parent' in rule) {
-            keep &&= isKept(rule.parent, value);
-            anonymised[field] = value;
-          } else {
-            anonymised[field] = isKept(rule.orNull, value) ? value : null;
-          }
       }
     }
-    if (keep) {
+    if (!isPublished(kept, row, isKept)) {
+      continue;
+    }
+    const failed: string[] = [];
+    const anonymised = anonymiseRow(kept, row, isKept, placeholder, failed);
+    for (const field of failed) {
+      unprojected.set(field, (unprojected.get(field) ?? 0) + 1);
+    }
+    if (failed.length === 0) {
       output.push(anonymised);
     }
   }
   if (unclassified.size > 0) {
     problems.push(`${table}: fields the snapshot policy does not classify: ${[...unclassified].sort().join(', ')}`);
+  }
+  for (const field of [...unprojected.keys()].sort()) {
+    problems.push(`${table}: ${unprojected.get(field)} rows whose ${field} the snapshot cannot project`);
   }
   return output;
 }
@@ -464,14 +524,14 @@ function snapshotEntries(layout: Layout, outputs: ReadonlyMap<string, Row[]>, pl
 
 function reportFor(layout: Layout, outputs: ReadonlyMap<string, Row[]>): SnapshotReport {
   const tables = [...layout.tableNumbers.keys()].sort().map((table) => {
-    const entry = policy[table];
-    const fields = keptPolicy(table)?.fields ?? {};
+    const entry = tablePolicy(table);
+    const fields = Object.entries(keptPolicy(table)?.fields ?? {});
     return {
       table,
       dropReason: entry && 'drop' in entry ? entry.drop : null,
       rowsIn: jsonLines(layout.documents.get(table) ?? '').length,
       rowsOut: outputs.get(table)?.length ?? 0,
-      droppedFields: Object.keys(fields).filter((field) => fields[field] === 'drop'),
+      droppedFields: fields.filter(([, rule]) => rule === 'drop').map(([field]) => field),
     };
   });
   return { tables, droppedComponents: [...layout.components].sort() };
@@ -513,12 +573,20 @@ const FILE_EXTENSIONS = new Set(['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'av
 const TOKENS = [
   /* A JSON Web Token: base64url header, payload and signature. */
   /eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}/,
-  /* Forty or more hex digits: digests, and credentials like the 256-bit ingest tokens. */
-  /(?<![0-9A-Fa-f])[0-9A-Fa-f]{40,}(?![0-9A-Fa-f])/,
   /* A Convex Auth refresh token, two document ids joined by a bar. */
   /[0-9a-z]{31,37}\|[0-9a-z]{31,37}/,
   /-----BEGIN [A-Z ]*PRIVATE KEY-----/,
 ];
+
+/* Forty or more hex digits: digests, and credentials like the 256-bit ingest tokens. */
+const HEX_RUN = /(?<![0-9A-Fa-f])[0-9A-Fa-f]{40,}(?![0-9A-Fa-f])/;
+
+/*
+ * A rehosted user image's public path, as `userImagePublicPath` in src/shared/user-images/contract.ts writes it.
+ * Its key is the sha-256 of the image bytes, so every rehosted avatar and cover holds 64 hex digits. The hex rule
+ * skips this exact shape and nothing looser: the prefix, 64 lowercase hex digits, then `.jpg`.
+ */
+const USER_IMAGE_PATH = /\/user-images\/[0-9a-f]{64}\.jpg/g;
 
 const DENIED_FIELDS = new Set([
   'email',
@@ -550,7 +618,7 @@ function hasEmail(text: string) {
 }
 
 function hasToken(text: string) {
-  return TOKENS.some((pattern) => pattern.test(text));
+  return TOKENS.some((pattern) => pattern.test(text)) || HEX_RUN.test(text.replaceAll(USER_IMAGE_PATH, ' '));
 }
 
 function scanValue(value: unknown, report: (kind: LeakKind) => void) {

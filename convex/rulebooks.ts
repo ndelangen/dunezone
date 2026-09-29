@@ -13,6 +13,7 @@ import {
 import type { RulebookBlockDraft, RulebookContentsV1 } from '../src/shared/rulebooks/contents';
 import { createRulebookEditorialStarterContents } from '../src/shared/rulebooks/fixtures';
 import { rulebookNameKey, rulebookNameSchema, rulebookRevisionSchema } from '../src/shared/rulebooks/metadata';
+import { readerContents } from '../src/shared/rulebooks/readerContents';
 import { rulebookResolvedFactionsByIdSchema } from '../src/shared/rulebooks/references';
 import { DEFAULT_RULEBOOK_SETTINGS, rulebookSettingsSchema } from '../src/shared/rulebooks/settings';
 import type { RulebookDesign, RulebookSettings } from '../src/shared/rulebooks/settings';
@@ -120,29 +121,6 @@ function parseEditionContents(contents: unknown) {
     throw new Error(parsed.error.issues.map((issue) => issue.message).join(' ') || 'Invalid Rulebook Edition Contents');
   }
   return parsed.data;
-}
-
-/** Reader Contents retain the stored image reference without exposing the author's source URL. */
-function readerContents(contents: ReturnType<typeof parseEditionContents>) {
-  const copy = structuredClone(contents);
-  for (const page of Object.values(copy.pagesById)) {
-    if (page.layoutId !== 'cover') {
-      continue;
-    }
-    const cover = page.controlValues.cover;
-    if (cover.backgroundSource?.kind === 'preset') {
-      delete cover.backgroundImage;
-      delete cover.backgroundImageUrl;
-      continue;
-    }
-    if (cover.backgroundImage) {
-      cover.backgroundImage.sourceUrl = cover.backgroundImage.url;
-    }
-    if (cover.backgroundImageUrl !== undefined) {
-      cover.backgroundImageUrl = cover.backgroundImage?.url ?? '';
-    }
-  }
-  return copy;
 }
 
 function comparableContents(contents: RulebookContentsV1): RulebookContentsV1 {
