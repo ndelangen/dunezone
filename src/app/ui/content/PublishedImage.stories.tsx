@@ -70,11 +70,13 @@ export const FailedLoad = meta.story({
 
 /** A publication that fails once is fetched again out of sight after 5 s, and replaces the missing state when it lands. */
 export const RecoversAfterFailedLoad = meta.story({
-  args: { src: imageFailingOnce('recovers') },
-  loaders: [serveStoryImages],
+  /* Each render gets a URL of its own, so a rerun fails once again instead of showing the image decoded last time. */
+  loaders: [async () => ({ ...(await serveStoryImages()), src: imageFailingOnce(`recovers-${crypto.randomUUID()}`) })],
+  render: (args, { loaded }) => <PublishedImage {...args} src={loaded.src as string} />,
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.findByRole('img', { name: 'Atreides: preview unavailable' })).resolves.toBeVisible();
+    /* The first retry waits 5 s, so this allows it three times over. */
     const image = await canvas.findByRole<HTMLImageElement>('img', { name: 'Atreides' }, { timeout: 15_000 });
     await waitFor(() => expect(image.closest('[aria-busy]')).toBeNull());
     expect(image.naturalWidth).toBe(600);

@@ -93,7 +93,7 @@ function reducer(state: State, action: Action): State {
     case 'failed':
       return { ...state, phase: 'missing', fetching: false };
     case 'recovered':
-      /* The bytes are already here, so the image replaces the missing state at once. */
+      /* The bytes were just fetched, so the image replaces the missing state at once when the browser still holds them. */
       return state.phase === 'missing' ? { ...state, phase: 'loading', fetching: true, slot: false } : state;
   }
 }
@@ -200,27 +200,29 @@ function Arrival({ src, name, aspect, radius, clipPath, raised = false }: Props)
     let timer: ReturnType<typeof setTimeout> | undefined;
     let cancelled = false;
     const schedule = () => {
-      if (retriesRef.current >= PUBLISHED_IMAGE_RETRIES) {
-        return;
+      if (retriesRef.current < PUBLISHED_IMAGE_RETRIES) {
+        timer = setTimeout(probe, publishedImageRetryDelayMs(retriesRef.current));
       }
-      timer = setTimeout(probe, publishedImageRetryDelayMs(retriesRef.current));
-      retriesRef.current += 1;
     };
+    /* A retry is charged when it fetches, so one cancelled while it waits costs nothing. */
     const probe = () => {
+      retriesRef.current += 1;
       const image = new Image();
       image.src = src;
-      image.decode().then(
-        () => {
-          if (!cancelled) {
-            dispatch({ type: 'recovered' });
+      /* Judged as onLoad judges the tile's own image: pixels present count, whatever decode() says. */
+      void image
+        .decode()
+        .catch(() => undefined)
+        .then(() => {
+          if (cancelled) {
+            return;
           }
-        },
-        () => {
-          if (!cancelled) {
+          if (image.naturalWidth > 0) {
+            dispatch({ type: 'recovered' });
+          } else {
             schedule();
           }
-        }
-      );
+        });
     };
     schedule();
     return () => {

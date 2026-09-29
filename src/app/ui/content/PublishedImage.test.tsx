@@ -11,9 +11,14 @@ const probedSources: string[] = [];
 
 class ProbeImage {
   src = '';
+  naturalWidth = 0;
   decode() {
     probedSources.push(this.src);
-    return probeOutcomes.shift() ? Promise.resolve() : Promise.reject(new Error('not decoded'));
+    if (probeOutcomes.shift()) {
+      this.naturalWidth = 600;
+      return Promise.resolve();
+    }
+    return Promise.reject(new Error('not decoded'));
   }
 }
 

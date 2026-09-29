@@ -35,7 +35,7 @@ const ARTWORK =
   '<circle cx="300" cy="300" r="150" fill="#e3dbb3"/>' +
   '</svg>';
 
-/* The fail-once paths that have already failed, kept for the worker's life, so each story gives its image its own name. */
+/* The fail-once paths that have already failed, kept for the worker's life, so each render gives its image its own name. */
 const failedOnce = new Set();
 
 self.addEventListener('fetch', (event) => {
