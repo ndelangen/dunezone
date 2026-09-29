@@ -32,7 +32,7 @@ const defaultFactionInput = {
   troops: [
     {
       name: 'Troop',
-      image: TROOP.options[0],
+      image: TROOP.enum['/vector/troop/atreides.svg'],
       description: 'Troop',
       count: 20,
     },

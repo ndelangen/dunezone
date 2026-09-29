@@ -843,6 +843,7 @@ export const TEXTURE = z.enum([
 ]);
 
 export const TROOP = z.enum([
+  '/vector/troop/acolyte.svg',
   '/vector/troop/atreides.svg',
   '/vector/troop/bene-gesserit.svg',
   '/vector/troop/bene-tleilaxu.svg',
@@ -859,6 +860,7 @@ export const TROOP = z.enum([
   '/vector/troop/hagal.svg',
   '/vector/troop/harkonnen.svg',
   '/vector/troop/iduali.svg',
+  '/vector/troop/ixian-engineer.svg',
   '/vector/troop/ixian.svg',
   '/vector/troop/juggernaut.svg',
   '/vector/troop/landsraad.svg',
