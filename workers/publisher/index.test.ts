@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
+import { playCallbackOperations } from '../../src/shared/play/callbacks';
 import { rendererManifest } from './renderer-manifest.generated';
 import { fakeR2Object } from './test-helpers';
 
@@ -95,7 +96,7 @@ describe('publisher Worker Publication flow', () => {
     expect(currentEnv.ASSETS.fetch).not.toHaveBeenCalled();
   });
 
-  test.each(['provision', 'account-deletion', 'retire'])(
+  test.each(playCallbackOperations)(
     'gives %s callbacks a separate per-IP quota without a game-ID bypass',
     async (operation) => {
       const currentEnv = publisherEnv();
@@ -107,9 +108,27 @@ describe('publisher Worker Publication flow', () => {
         currentEnv,
         { waitUntil: vi.fn() } as unknown as ExecutionContext
       );
+      expect(currentEnv.PLAY_INGRESS_RATE_LIMIT.limit).toHaveBeenCalledOnce();
       expect(currentEnv.PLAY_INGRESS_RATE_LIMIT.limit).toHaveBeenCalledWith({ key: 'callback:192.0.2.18' });
+      expect(currentEnv.GAME_SERVICE.fetch).toHaveBeenCalledOnce();
     }
   );
+
+  test.each([
+    { pathname: '/__play/games/any-id/retire', method: 'GET' },
+    { pathname: '/__play/games/any-id/socket', method: 'POST' },
+    { pathname: '/__play/retire', method: 'POST' },
+    { pathname: '/__play/games/a/b/retire', method: 'POST' },
+    { pathname: '/__play/games/any-id/retire?x=1', method: 'POST' },
+  ])('keeps $method $pathname on the connect quota', async ({ pathname, method }) => {
+    const currentEnv = publisherEnv();
+    await publisherWorker.fetch(
+      new Request(`https://dune.zone${pathname}`, { method, headers: { 'CF-Connecting-IP': '192.0.2.19' } }),
+      currentEnv,
+      { waitUntil: vi.fn() } as unknown as ExecutionContext
+    );
+    expect(currentEnv.PLAY_INGRESS_RATE_LIMIT.limit).toHaveBeenCalledWith({ key: 'connect:192.0.2.19' });
+  });
 
   test('forwards game requests with Worker-supported manual redirect handling and preserves their body', async () => {
     const currentEnv = publisherEnv();

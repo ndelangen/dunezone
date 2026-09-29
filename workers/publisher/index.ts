@@ -1,4 +1,5 @@
 import { publisherFailureFields } from '../../src/shared/asset-publishing/publisher-diagnostics';
+import { playGamePathPattern } from '../../src/shared/play/callbacks';
 import { openPublisherBrowser } from './browser';
 import { handleCaptureRoute } from './capture-route';
 import { EXECUTOR_REQUEST_MARGIN_MS, MAX_ASSIGNED_ITEMS, parsePublisherConfig } from './config';
@@ -49,7 +50,10 @@ async function allowGameIngress(request: Request, url: URL, env: Env): Promise<b
   if (request.method === 'GET' && url.pathname === '/__play/health' && !url.search) {
     return true;
   }
-  const callback = request.method === 'POST' && /\/(provision|account-deletion|retire)$/u.test(url.pathname);
+  // Only a path the game Worker would route counts as a callback, so a malformed one cannot
+  // borrow the callback counter's budget.
+  const operation = request.method === 'POST' && !url.search ? playGamePathPattern.exec(url.pathname)?.[2] : undefined;
+  const callback = operation !== undefined && operation !== 'socket';
   const clientIp = request.headers.get('CF-Connecting-IP') ?? 'unknown';
   const result = await env.PLAY_INGRESS_RATE_LIMIT.limit({ key: `${callback ? 'callback' : 'connect'}:${clientIp}` });
   return result.success;
