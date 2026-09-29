@@ -24,18 +24,6 @@
   color: var(--color-text, #2e2927);
 }
 
-.selfHint {
-  margin: 0;
-  font-size: 0.88rem;
-  font-weight: 600;
-  color: var(--color-muted, #666);
-}
-
-.profileSummary {
-  max-width: 42rem;
-  margin: 0;
-}
-
 .contentColumns {
   display: grid;
   grid-template-areas: "main sidebar";
@@ -53,12 +41,6 @@
 .sidebar {
   grid-area: sidebar;
   min-width: 0;
-}
-
-.memberSince {
-  margin: 0;
-  font-size: 0.9rem;
-  color: var(--color-muted, #666);
 }
 
 .contextStrip {

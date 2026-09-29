@@ -1,5 +1,6 @@
 import { Avatar, Text } from '@mantine/core';
 import preview from '@sb/preview';
+import { CheckCircle2, CircleHelp, Layers3 } from 'lucide-react';
 import { expect, within } from 'storybook/test';
 
 import { PageLayout } from '../layout/PageLayout';
@@ -46,6 +47,44 @@ export const Default = meta.story({
     const crumb = await band.findByRole('link', { name: 'Rulesets' });
     const column = crumb.parentElement ?? crumb;
     expect(crumb.getBoundingClientRect().width).toBeLessThan(column.getBoundingClientRect().width);
+  },
+});
+
+/**
+ * The meta line every detail page shares, in its fixed order: who maintains it, where the viewer stands, the page's own extras, then the counts.
+ * The ruleset page is the reference;
+ * the others fill the same slots with their own facts.
+ */
+export const DetailPage = meta.story({
+  args: {
+    children: undefined,
+    maintainers: {
+      owner: { slug: 'norbert', name: 'Norbert', image: null },
+      group: { slug: 'arrakeen-rules-council', name: 'Arrakeen Rules Council' },
+    },
+    standing: { tone: 'positive', label: 'Member' },
+    stats: [
+      { key: 'factions', icon: <Layers3 size={17} aria-hidden />, value: 6, label: '6 factions' },
+      { key: 'questions', icon: <CircleHelp size={17} aria-hidden />, value: 12, label: '12 questions' },
+      { key: 'answered', icon: <CheckCircle2 size={17} aria-hidden />, value: 9, label: '9 answered questions' },
+    ],
+  },
+  play: async ({ canvasElement }) => {
+    const band = within(canvasElement);
+    await expect(band.findByText('Maintained by')).resolves.toBeVisible();
+    await expect(band.findByRole('link', { name: /Arrakeen Rules Council/ })).resolves.toBeVisible();
+    await expect(band.findByText('Member')).resolves.toBeVisible();
+  },
+});
+
+/** A kind that groups can maintain, with none assigned, says so rather than leaving a gap. */
+export const WithoutMaintainingGroup = meta.story({
+  args: {
+    children: undefined,
+    maintainers: { owner: { slug: 'norbert', name: 'Norbert', image: null }, group: null },
+  },
+  play: async ({ canvasElement }) => {
+    await expect(within(canvasElement).findByText('No maintaining group')).resolves.toBeVisible();
   },
 });
 

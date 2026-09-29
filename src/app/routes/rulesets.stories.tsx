@@ -34,8 +34,21 @@ export const AskQuestionMissingRuleset = meta.story({
     expect(back.closest('main')).toBeNull();
   },
 });
+/** The question names itself in the header band, and the asker, who is the viewer here, gets Edit and Delete in the toolbar. */
 export const Question = meta.story({
   args: { path: '/rulesets/classicrules/faq/when-does-the-storm-move' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(
+      page.findByRole('heading', { name: 'When does the storm move?' }, { timeout: 30_000 })
+    ).resolves.toBeVisible();
+    const navigation = within(page.getByRole('group', { name: 'Navigation and editing' }));
+    await expect(navigation.getByRole('link', { name: 'Back to ruleset' })).toBeVisible();
+    await expect(navigation.getByRole('button', { name: 'Edit question' })).toBeVisible();
+    await expect(
+      within(page.getByRole('group', { name: 'Question actions' })).getByRole('button', { name: 'Delete question' })
+    ).toBeVisible();
+  },
 });
 export const RulebookEditor = meta.story({
   args: { path: '/rulesets/classicrules/rulebooks/player-aid/edit' },
