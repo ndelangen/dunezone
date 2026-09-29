@@ -1,10 +1,7 @@
+import { SUPPORTING_LEADER_LIMIT } from '@shared/factions/schema';
 import { describe, expect, it } from 'vitest';
 
-import {
-  CONVENTIONAL_SUPPORTING_LEADER_COUNT,
-  canAddSupportingLeader,
-  SUPPORTING_LEADER_LIMIT,
-} from './FactionFormSectionLeaders';
+import { CONVENTIONAL_SUPPORTING_LEADER_COUNT, canAddSupportingLeader } from './FactionFormSectionLeaders';
 
 describe('supporting leader limits', () => {
   it('treats zero and ten leaders as valid normal-control states', () => {

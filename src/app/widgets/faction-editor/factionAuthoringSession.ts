@@ -1,5 +1,5 @@
 import { ensureFactionComponentIds } from '@shared/factions/componentIdentity';
-import { FactionInputSchema } from '@shared/factions/schema';
+import { FactionWriteSchema } from '@shared/factions/schema';
 
 import type { Faction, FactionEntry } from '@db/factions';
 
@@ -52,7 +52,7 @@ export function createFactionAuthoringSession({
     },
 
     async persistDraft(value: Faction): Promise<void> {
-      const parsed = FactionInputSchema.safeParse(value);
+      const parsed = FactionWriteSchema.safeParse(value);
       if (!parsed.success) {
         onErrors([formatZodIssues(parsed.error)]);
         return;
