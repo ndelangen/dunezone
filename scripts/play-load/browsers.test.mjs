@@ -72,8 +72,18 @@ test('browser image measurements retain the cache while pages, workers and popup
     response.setHeader('Content-Type', 'text/html');
     pages.add(request.url);
     if (request.url === '/auth/login') {
+      /* The real form's Convex client sends its sign-in as an `auth:signIn` action frame, which the shared sign-in waits to see. */
       response.end(`<label>Email<input></label><label>Password<input type="password"></label>
-        <button data-testid="local-auth-submit" onclick="document.body.innerHTML = '<h1>You&amp;apos;re signed in</h1>'">Sign in</button>`);
+        <button data-testid="local-auth-submit">Sign in</button>
+        <script>
+          const socket = new WebSocket(location.origin.replace('http', 'ws'));
+          const opened = new Promise((resolve) => socket.addEventListener('open', resolve));
+          document.querySelector('button').addEventListener('click', async () => {
+            await opened;
+            socket.send(JSON.stringify({ type: 'Action', udfPath: 'auth:signIn', args: [{ params: { flow: 'signIn' } }] }));
+            document.body.innerHTML = "<h1>You're signed in</h1>";
+          });
+        </script>`);
       return;
     }
     response.end('<div data-connection="authorized"><img src="/pixel.svg"></div>');

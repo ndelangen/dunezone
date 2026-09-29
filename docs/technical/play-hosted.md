@@ -300,7 +300,9 @@ binding and game Worker path. It creates a synthetic local backend with no produ
 hosted development credentials. Its checks include independent non-admin users, anonymous and
 spectator rejection, contested mutations, transient activity, receipt replay, phase playback,
 single-use tickets, multi-tab logout, inactivity/total expiry, and account-deletion vacancy.
-Retained logs contain check results and payload counters, not credentials.
+It creates its synthetic accounts through `playTesting:provisionAccounts` before the first check,
+so every check signs in and none signs up. Retained logs contain check results and payload
+counters, not credentials.
 
 The browser flows play real games. The stack seeds a synthetic ruleset
 (`playTesting:seedRealGameCatalogue`) with both required decks, a treachery deck of treachery cards
@@ -325,10 +327,13 @@ bun --no-env-file scripts/verify-hosted-play-browser.mjs \
   --ruleset-id <rulesetId>
 ```
 
-The environment file must contain the loopback `CONVEX_SELF_HOSTED_URL`. Private files need mode
-0600 and at most 8 KiB, and the report directory must not contain them. The script creates
-synthetic accounts and retains their credentials for later runs. Other network origins are
-blocked. It runs headless;
+The environment file must contain the loopback `CONVEX_SELF_HOSTED_URL` and the backend's
+`CONVEX_SELF_HOSTED_ADMIN_KEY`. Private files need mode 0600 and at most 8 KiB, and the report
+directory must not contain them. Before Chromium starts, the script creates its synthetic accounts
+through `playTesting:provisionAccounts` and retains their credentials for later runs, so a browser
+only signs in. A sign-in fails the flow when the backend refuses it, when it reaches the login
+form's sign-up fallback, or when the script never saw the form's `auth:signIn` frame. Other
+network origins are blocked. It runs headless;
 `--browser /absolute/browser-executable` selects a local Chromium-compatible executable instead
 of Playwright's installed Chromium. On Linux it adds `--use-angle=swiftshader`: headless Chromium
 there draws WebGL on SwiftShader and composites in software, which reads each WebGL frame back on
