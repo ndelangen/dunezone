@@ -262,7 +262,11 @@ export const HistoricalEdition = meta.story({
       page.findByRole('heading', { name: 'Rules of Arrakis', level: 1 }, { timeout: 30_000 })
     ).resolves.toBeVisible();
     /* The label goes through the dates module, so this reads the same in every locale and time zone rather than only in the one the runner happens to use. */
-    expect(page.getByRole('combobox', { name: 'Rulebook Edition' })).toHaveValue('Edition 1, Jul 1, 2026');
+    await userEvent.click(page.getByRole('button', { name: 'Choose Edition' }));
+    await expect(
+      page.findByRole('menuitem', { name: 'Edition 1, Jul 1, 2026', current: true })
+    ).resolves.toBeInTheDocument();
+    await userEvent.keyboard('{Escape}');
     expect(page.getByRole('heading', { name: 'Welcome to Arrakis' })).toBeVisible();
     expect(page.queryByRole('heading', { name: 'The gathered rules' })).not.toBeInTheDocument();
     expect(page.getByRole('link', { name: /Movement/ })).toHaveAttribute('href', `${readerPath}?edition=1#movement`);
@@ -273,17 +277,18 @@ export const SelectingCurrentEditionUsesCanonicalUrl = meta.story({
   args: { path: `${readerPath}?edition=1` },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    const edition = await page.findByRole('combobox', { name: 'Rulebook Edition' }, { timeout: 30_000 });
-    await userEvent.click(edition);
-    await userEvent.click(page.getByRole('option', { name: 'Edition 2, Aug 31, 2026' }));
+    await userEvent.click(await page.findByRole('button', { name: 'Choose Edition' }, { timeout: 30_000 }));
+    await userEvent.click(await page.findByRole('menuitem', { name: 'Edition 2, Aug 31, 2026' }));
     await expect(
       page.findByRole('heading', { name: 'The gathered rules' }, { timeout: 30_000 })
     ).resolves.toBeVisible();
     /*
-     * The heading arrives with the new Edition's content, but the selector carries its own value and the
-     * links are rebuilt from the rewritten address, so both settle after it rather than with it.
+     * The heading arrives with the new Edition's content, but the header's Edition and the links are
+     * rebuilt from the rewritten address, so both settle after it rather than with it.
      */
-    await waitFor(() => expect(edition).toHaveValue('Edition 2, Aug 31, 2026'), { timeout: SETTLE_TIMEOUT_MS });
+    await waitFor(() => expect(page.getByText('Edition 2', { exact: true })).toBeVisible(), {
+      timeout: SETTLE_TIMEOUT_MS,
+    });
     await waitFor(
       () => expect(page.getByRole('link', { name: /Movement/ })).toHaveAttribute('href', `${readerPath}#movement`),
       { timeout: SETTLE_TIMEOUT_MS }
@@ -561,10 +566,11 @@ export const SidebarNavigationStaysInDocument = meta.story({
     storyDocument.addEventListener('click', observeNavigation, { once: true });
     await userEvent.click(link);
     expect(routerIntercepted).toBe(true);
-    const edition = page.getByRole('combobox', { name: 'Rulebook Edition' });
-    await userEvent.click(edition);
-    await userEvent.click(page.getByRole('option', { name: 'Edition 1, Jul 1, 2026' }));
-    await waitFor(() => expect(edition).toHaveValue('Edition 1, Jul 1, 2026'), { timeout: SETTLE_TIMEOUT_MS });
+    await userEvent.click(page.getByRole('button', { name: 'Choose Edition' }));
+    await userEvent.click(await page.findByRole('menuitem', { name: 'Edition 1, Jul 1, 2026' }));
+    await waitFor(() => expect(page.getByText('Edition 1', { exact: true })).toBeVisible(), {
+      timeout: SETTLE_TIMEOUT_MS,
+    });
     const nextPageHref = page.getByRole('link', { name: /Markers and tokens/ }).getAttribute('href');
     if (!nextPageHref) {
       throw new Error('Rulebook reader Page link is missing its href');
@@ -651,7 +657,7 @@ export const ControlKeyKeepsTargetRecovery = meta.story({
         page.findByRole('button', { name: 'Unpin linked target' }, { timeout: 30_000 })
       ).resolves.toBeVisible();
       page
-        .getByRole('combobox', { name: 'Rulebook Edition' })
+        .getByRole('button', { name: 'Choose Edition' })
         .dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'ArrowDown' }));
       /* The reveal fires RULEBOOK_TARGET_RECOVERY_MS after the mark; a key inside a control must not have cancelled it. */
       await waitFor(() => expect(scrollIntoView).toHaveBeenCalledOnce(), { timeout: SETTLE_TIMEOUT_MS });
@@ -690,9 +696,8 @@ export const EditionChangeDropsAnUnresolvedPin = meta.story({
     await expect(
       page.findByText('Select some Rulebook text first.', { selector: '[aria-hidden="true"]' }, { timeout: 30_000 })
     ).resolves.toBeVisible();
-    const edition = page.getByRole('combobox', { name: 'Rulebook Edition' });
-    await userEvent.click(edition);
-    await userEvent.click(page.getByRole('option', { name: 'Edition 2, Aug 31, 2026' }));
+    await userEvent.click(page.getByRole('button', { name: 'Choose Edition' }));
+    await userEvent.click(await page.findByRole('menuitem', { name: 'Edition 2, Aug 31, 2026' }));
     await expect(page.findByRole('alert', {}, { timeout: 30_000 })).resolves.toHaveTextContent(
       'The linked target does not exist'
     );
@@ -705,7 +710,7 @@ export const EditionChangeDropsAnUnresolvedPin = meta.story({
 /**
  * A rejected `?edition` leaves the reader on the current Edition instead of an error frame.
  * The value has to be rejected by `validateSearch` and then not show through: a route's search is the parent match's search merged with the child's result, so a validator that omits a rejected key lets the raw one reach the loader and the Convex query.
- * Asserting the Edition selector rather than the heading is what makes that visible, since a reader that fell through to the raw value names it here.
+ * Asserting the Edition menu's current entry rather than the heading is what makes that visible, since a reader that fell through to the raw value names it here.
  */
 export const RejectedEditionFallsBackToCurrent = meta.story({
   args: { path: `${readerPath}?edition=abc` },
@@ -714,6 +719,9 @@ export const RejectedEditionFallsBackToCurrent = meta.story({
     await expect(
       page.findByRole('heading', { name: 'Rules of Arrakis', level: 1 }, { timeout: 30_000 })
     ).resolves.toBeVisible();
-    expect(page.getByRole('combobox', { name: 'Rulebook Edition' })).toHaveValue('Edition 2, Aug 31, 2026');
+    await userEvent.click(page.getByRole('button', { name: 'Choose Edition' }));
+    await expect(
+      page.findByRole('menuitem', { name: 'Edition 2, Aug 31, 2026', current: true })
+    ).resolves.toBeInTheDocument();
   },
 });

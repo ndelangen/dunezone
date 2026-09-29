@@ -24,7 +24,7 @@ export function anonymizeHistory(storage: DurableObjectStorage, userId: string |
   }
   if (attribution.creatorDeleted) {
     storage.sql.exec(
-      "UPDATE metadata SET data=json_remove(json_set(data, '$.game.creator.displayName', '[deleted user]'), '$.game.creator.avatarUrl') WHERE id=1"
+      "UPDATE metadata SET data=json_remove(json_set(data, '$.game.creator.displayName', '[deleted user]'), '$.game.creator.avatarUrl', '$.game.creator.profileSlug') WHERE id=1"
     );
   }
 }

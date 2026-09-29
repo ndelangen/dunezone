@@ -1,0 +1,22 @@
+/* Save's glyph with room for the unsaved-changes dot on its shoulder. */
+.glyph {
+  position: relative;
+  display: inline-flex;
+}
+
+.dirtyDot {
+  position: absolute;
+  top: -0.2rem;
+  right: -0.25rem;
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: var(--color-caution);
+  box-shadow: 0 0 0 1.5px var(--mantine-color-confirm-filled);
+}
+
+/* The hover text can hold a publication's whole sentence, so it wraps instead of running off the screen. */
+.tooltip {
+  max-width: 20rem;
+  white-space: normal;
+}

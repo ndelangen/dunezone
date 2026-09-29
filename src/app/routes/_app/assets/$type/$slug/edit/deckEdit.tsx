@@ -264,7 +264,7 @@ function DeckEditSession({
           actions={{
             onSave: save,
             onReset: header.releasing(() => dispatch({ kind: 'replace', data: state.baseline, pick: backDeck })),
-            onBack: () => void navigate({ to: '/assets/$type', params: { type: 'deck' } }),
+            onBack: () => void navigate({ to: '/assets/$type/$slug', params: { type: 'deck', slug: asset.slug } }),
           }}
           auxiliaryActions={
             <>
@@ -284,7 +284,7 @@ function DeckEditSession({
                         : 'Create a new card, then come back and add it'
                     }
                     emphasis="standard"
-                    intent="neutral"
+                    intent="positive"
                     size="lg"
                     disabled={isDirty}
                     icon={<FilePlus2 size={17} aria-hidden />}
@@ -302,10 +302,10 @@ function DeckEditSession({
                   ))}
                 </Menu.Dropdown>
               </Menu>
-              {groupActions.auxiliaryActions}
             </>
           }
-          context={groupActions.context}
+          accessActions={groupActions.accessActions}
+          statuses={[groupActions.status]}
           destructiveActions={
             access.viewerAccess.capabilities.delete ? (
               <ConfirmDeleteAction label="Delete deck" pending={deletion.pending} onConfirm={deletion.confirm} />

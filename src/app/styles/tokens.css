@@ -48,6 +48,26 @@
   --button-toggle-fg: var(--button-neutral-fg);
   --selection-border: var(--button-toggle-fg);
 
+  /*
+   * Icon actions at standard emphasis: a tinted tile with the hue in the glyph, one set per meaning (Norbert, 2026-09-29).
+   * Neutral is the neutral button; the others keep their hue in dark mode too, where Mantine's own light variant turns every glyph near-white.
+   */
+  --action-neutral-bg: var(--button-neutral-bg);
+  --action-neutral-hover-bg: var(--button-neutral-hover-bg);
+  --action-neutral-fg: var(--button-neutral-fg);
+  --action-positive-bg: #e1ebd9;
+  --action-positive-hover-bg: #c8d6bc;
+  --action-positive-fg: #3f542f;
+  --action-negative-bg: #ffe3e3;
+  --action-negative-hover-bg: #ffc9c9;
+  --action-negative-fg: #b02525;
+  --action-publish-bg: #e5dbff;
+  --action-publish-hover-bg: #d0bfff;
+  --action-publish-fg: #5f3dc4;
+  --action-export-bg: #c5f6fa;
+  --action-export-hover-bg: #99e9f2;
+  --action-export-fg: #0b7285;
+
   --glass-surface-0: rgba(255, 255, 255, 0.1);
   --glass-surface-1: rgba(255, 255, 255, 0.12);
   --glass-surface-2: rgba(255, 255, 255, 0.2);
@@ -142,6 +162,19 @@
 
   --button-toggle-active-bg: #475877;
 
+  --action-positive-bg: rgba(111, 142, 87, 0.3);
+  --action-positive-hover-bg: rgba(111, 142, 87, 0.42);
+  --action-positive-fg: #c8d6bc;
+  --action-negative-bg: rgba(250, 82, 82, 0.3);
+  --action-negative-hover-bg: rgba(250, 82, 82, 0.42);
+  --action-negative-fg: #ffc9c9;
+  --action-publish-bg: rgba(121, 80, 242, 0.3);
+  --action-publish-hover-bg: rgba(121, 80, 242, 0.42);
+  --action-publish-fg: #d0bfff;
+  --action-export-bg: rgba(21, 170, 191, 0.3);
+  --action-export-hover-bg: rgba(21, 170, 191, 0.42);
+  --action-export-fg: #99e9f2;
+
   --glass-surface-0: rgba(12, 20, 34, 0.42);
   --glass-surface-1: rgba(12, 20, 34, 0.55);
   --glass-surface-2: rgba(17, 28, 46, 0.65);
@@ -161,6 +194,9 @@
  * nested provider with this selector so they flip with it.
  */
 [data-scheme-dark] {
+  --action-neutral-bg: var(--button-neutral-bg);
+  --action-neutral-hover-bg: var(--button-neutral-hover-bg);
+  --action-neutral-fg: var(--button-neutral-fg);
   --button-toggle-bg: var(--button-neutral-bg);
   --button-toggle-hover-bg: var(--button-neutral-hover-bg);
   --button-toggle-fg: var(--button-neutral-fg);

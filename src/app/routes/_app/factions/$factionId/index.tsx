@@ -190,37 +190,35 @@ function FactionDetailPage() {
       </PageLayout.Header>
       <PageLayout.Toolbar>
         <Toolbar>
-          <Toolbar.Left>
-            <Group gap="xs" wrap="wrap" role="group" aria-label="Navigation and editing">
+          <Toolbar.Left label="Navigation">
+            <IconAction
+              label="Back to factions"
+              emphasis="standard"
+              intent="neutral"
+              size="lg"
+              renderRoot={(rootProps) => <Link {...rootProps} to="/factions" />}
+              icon={<ArrowLeft size={17} aria-hidden />}
+            />
+            {canEdit ? (
               <IconAction
-                label="Back to factions"
+                label="Edit faction"
                 emphasis="standard"
                 intent="neutral"
                 size="lg"
-                renderRoot={(rootProps) => <Link {...rootProps} to="/factions" />}
-                icon={<ArrowLeft size={17} aria-hidden />}
+                renderRoot={(rootProps) => (
+                  <Link {...rootProps} to="/factions/$factionId/edit" params={{ factionId }} />
+                )}
+                icon={<Pencil size={17} aria-hidden />}
               />
-              {canEdit ? (
-                <IconAction
-                  label="Edit faction"
-                  emphasis="standard"
-                  intent="neutral"
-                  size="lg"
-                  renderRoot={(rootProps) => (
-                    <Link {...rootProps} to="/factions/$factionId/edit" params={{ factionId }} />
-                  )}
-                  icon={<Pencil size={17} aria-hidden />}
-                />
-              ) : null}
-            </Group>
+            ) : null}
           </Toolbar.Left>
 
-          <Toolbar.Right>
-            <Group gap="xs" wrap="wrap" role="group" aria-label="Faction actions">
+          <Toolbar.Right label="Faction actions">
+            <Toolbar.Cluster kind="content">
               <IconAction
                 label="Preview faction sheet"
-                emphasis="strong"
-                intent="positive"
+                emphasis="standard"
+                intent="neutral"
                 size="lg"
                 renderRoot={(rootProps) => (
                   <Link
@@ -237,7 +235,7 @@ function FactionDetailPage() {
                 <IconAction
                   label="Open published PDF"
                   emphasis="standard"
-                  intent="neutral"
+                  intent="export"
                   size="lg"
                   href={assetPublishing.publicationHref}
                   target="_blank"
@@ -245,6 +243,8 @@ function FactionDetailPage() {
                   icon={<Download size={17} aria-hidden />}
                 />
               ) : null}
+            </Toolbar.Cluster>
+            <Toolbar.Cluster kind="access">
               {canRequestMembership && assignedGroup ? (
                 <IconAction
                   label="Request membership"
@@ -257,7 +257,7 @@ function FactionDetailPage() {
                   icon={<UserPlus size={17} aria-hidden />}
                 />
               ) : null}
-            </Group>
+            </Toolbar.Cluster>
           </Toolbar.Right>
         </Toolbar>
       </PageLayout.Toolbar>

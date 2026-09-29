@@ -1,0 +1,47 @@
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mantine-spacing-xs);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* The glyph sits beside the first line of its words, however many lines they wrap to. */
+.row {
+  display: flex;
+  gap: var(--mantine-spacing-xs);
+  align-items: flex-start;
+}
+
+.glyph {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  padding-top: 2px;
+}
+
+.neutral {
+  color: var(--mantine-color-dimmed);
+}
+
+.positive {
+  color: var(--mantine-color-green-text);
+}
+
+.negative {
+  color: var(--mantine-color-red-text);
+}
+
+.caution {
+  color: var(--color-caution);
+}
+
+.pending {
+  color: var(--mantine-color-yellow-text);
+}
+
+.progress {
+  color: var(--mantine-color-blue-text);
+}

@@ -24,6 +24,7 @@ import type { DraftFaction, DraftState } from '@shared/play/drafting';
 import { emptyPublicControls } from '@shared/play/inventory';
 import type { PublicControls } from '@shared/play/inventory';
 import { SPECTATOR_SEAT } from '@shared/play/schema';
+import { ProfileLink } from '@ui/content/ProfileLink';
 import clsx from 'clsx';
 import { useState } from 'react';
 import type { CSSProperties } from 'react';
@@ -125,14 +126,35 @@ function FactionToken({
   );
 }
 
-/** A player is their real avatar, drawn as the Players tabs draw it; a ready player carries a check. */
+/*
+ * A player is their real avatar, cited through `ProfileLink` so it leads to their profile; a ready player carries a
+ * check. A player without a profile slug (an inactive account, or one admitted before slugs were carried) is the
+ * avatar alone.
+ */
 function PlayerMark({ player, size, ready = false }: Readonly<{ player: Player; size: number; ready?: boolean }>) {
   const name = `${player.name}${ready ? ', ready' : ''}`;
+  const mark = player.slug ? (
+    <ProfileLink
+      slug={player.slug}
+      name={player.name}
+      image={player.avatar}
+      showName={false}
+      title={name}
+      style={
+        {
+          '--profile-link-avatar-size': `${size}rem`,
+          '--profile-link-initials-size': `${size * 0.4}rem`,
+        } as CSSProperties
+      }
+    />
+  ) : (
+    <Avatar src={player.avatar} size={`${size}rem`} radius="50%" alt="" role="img" aria-label={name} title={name}>
+      {player.name.slice(0, 1)}
+    </Avatar>
+  );
   return (
     <Indicator color="green" size={16} label={<span aria-hidden="true">✓</span>} disabled={!ready}>
-      <Avatar src={player.avatar} size={`${size}rem`} radius="50%" alt="" role="img" aria-label={name} title={name}>
-        {player.name.slice(0, 1)}
-      </Avatar>
+      {mark}
     </Indicator>
   );
 }

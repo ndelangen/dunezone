@@ -1,6 +1,5 @@
 import { factionAssetPublishingCopy } from '@ui/content/assetPublishingStatus';
-import { StatusMark } from '@ui/content/StatusMark';
-import type { StatusMarkProps } from '@ui/content/StatusMark';
+import type { StatusInfoItem } from '@ui/control/StatusInfo';
 import { FileText, FileWarning, History, ImageOff, RefreshCw } from 'lucide-react';
 
 import type { PublicAssetPublishingStatusProjection } from '@db/factions';
@@ -14,7 +13,7 @@ function formatPublishedAt(timestamp: number): string {
 
 function publicationGlyph(
   publication: PublicAssetPublishingStatusProjection | undefined
-): Pick<StatusMarkProps, 'tone' | 'icon'> {
+): Pick<StatusInfoItem, 'tone' | 'icon'> {
   /* A failed replacement reads as failed, as the words do (#1385). */
   const capture = publication?.captureStatus;
   switch (true) {
@@ -32,19 +31,17 @@ function publicationGlyph(
 }
 
 /**
- * Where the faction's public sheet has got to, as one of the authoring toolbar's status marks.
+ * Where the faction's public sheet has got to, as one of the statuses behind the editor's info action.
  *
  * The faction routes own the projection.
  * This owns the glyph that says whether a capture is scheduled, running or done, and the words the faction page states for its files, with the last publication's time after them.
- * It leaves the save cycle to the toolbar's own save mark, so after a failed save this still says where the publication is.
- * The faction editors keep this status where the asset editors dropped theirs, because it reports real capture progress.
+ * It leaves the save cycle to Save, so after a failed save this still says where the publication is.
+ * The faction editors keep this where the asset editors dropped theirs, because it reports real capture progress.
  */
-export function FactionPublicationStatus({
-  publication,
-}: {
+export function factionPublicationStatus(
   /** Absent before the faction's first save, which is the create page. */
-  publication?: PublicAssetPublishingStatusProjection;
-}) {
+  publication?: PublicAssetPublishingStatusProjection
+): StatusInfoItem {
   const words = publication
     ? factionAssetPublishingCopy(publication.status, publication.captureStatus)
     : 'Saving this faction schedules its public assets.';
@@ -52,5 +49,5 @@ export function FactionPublicationStatus({
     publication?.lastPublishedAt == null
       ? words
       : `${words} Last published ${formatPublishedAt(publication.lastPublishedAt)}`;
-  return <StatusMark {...publicationGlyph(publication)} label={label} />;
+  return { ...publicationGlyph(publication), label };
 }
