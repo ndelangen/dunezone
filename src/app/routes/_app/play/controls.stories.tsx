@@ -1,6 +1,6 @@
 import preview from '@sb/preview';
 import type { GameSnapshot } from '@shared/play/protocol';
-import { expect } from 'storybook/test';
+import { expect, within } from 'storybook/test';
 
 import { openPanel, openPlayer } from './controls.stories.fixture';
 import {
@@ -23,7 +23,7 @@ const meta = preview.meta({
     docs: {
       description: {
         component:
-          'Shortcuts to each panel the game page renders today, one story per panel and state, each opening straight on its panel. Drafting and trading have their own sections (Play/Drafting, Play/Swapping), and Play/Journey replays a whole recorded game.',
+          'Shortcuts to each panel the game page renders today, one story per panel and state, each opening straight on its panel. Drafting and trading have their own sections (Play/Drafting, Play/Swapping).',
       },
     },
   },
@@ -35,10 +35,16 @@ const meta = preview.meta({
   ],
 });
 
-/** A snapshot in play with a loose Treachery card moved into the viewer's hand. */
+/* The panel's content can commit well after its tab turns current on a slow runner, so every read waits as long as the tab does. */
+const WAIT = { timeout: 30_000 };
+
+/** A seated snapshot in play with a loose Treachery card moved into the viewer's hand, as Play/Playing/PrivateDrawAndDeal does. */
 function withCardInHand(snapshot: GameSnapshot) {
-  const card = snapshot.table.pieces.find((piece) => piece.kind === 'card' && piece.items.length === 1)!;
-  snapshot.hand!.push({ ...card, owner: snapshot.bank?.factionId ?? card.owner });
+  const card = snapshot.table.pieces.find((piece) => piece.kind === 'card' && piece.items.length === 1);
+  if (!card || !snapshot.hand) {
+    throw new Error('withCardInHand needs a seated snapshot with a loose Treachery card on the table.');
+  }
+  snapshot.hand.push({ ...card, owner: snapshot.bank?.factionId ?? card.owner });
   snapshot.table.pieces = snapshot.table.pieces.filter((piece) => piece.id !== card.id);
   return snapshot;
 }
@@ -48,7 +54,7 @@ export const SetupTraitors = meta.story({
   beforeEach: install(() => productTransport('seat-2', setupSnapshot())),
   play: async ({ canvasElement }) => {
     const page = await openPanel(canvasElement, 'Setup');
-    await expect(page.findByRole('button', { name: 'Gather tabletop traitors' })).resolves.toBeVisible();
+    await expect(page.findByRole('button', { name: 'Gather tabletop traitors' }, WAIT)).resolves.toBeVisible();
   },
 });
 
@@ -56,7 +62,8 @@ export const SetupTraitors = meta.story({
 export const SetupStartingForces = meta.story({
   beforeEach: install(() => productTransport('seat-2', preparedSnapshot())),
   play: async ({ canvasElement }) => {
-    await openPanel(canvasElement, 'Setup');
+    const page = await openPanel(canvasElement, 'Setup');
+    await expect(page.findByText(/^10 forces in Carthag and 10 in reserves/, {}, WAIT)).resolves.toBeVisible();
   },
 });
 
@@ -65,7 +72,7 @@ export const SetupPrediction = meta.story({
   beforeEach: install(() => productTransport('seat-6', predictionSnapshot())),
   play: async ({ canvasElement }) => {
     const page = await openPanel(canvasElement, 'Setup');
-    await expect(page.findByRole('button', { name: 'Lock prediction' })).resolves.toBeVisible();
+    await expect(page.findByRole('button', { name: 'Lock prediction' }, WAIT)).resolves.toBeVisible();
   },
 });
 
@@ -74,7 +81,7 @@ export const SetupPredictionLocked = meta.story({
   beforeEach: install(() => productTransport('seat-6', predictionSnapshot(true))),
   play: async ({ canvasElement }) => {
     const page = await openPanel(canvasElement, 'Setup');
-    await expect(page.findByRole('button', { name: 'Reveal prediction' })).resolves.toBeVisible();
+    await expect(page.findByRole('button', { name: 'Reveal prediction' }, WAIT)).resolves.toBeVisible();
   },
 });
 
@@ -83,7 +90,7 @@ export const Hand = meta.story({
   beforeEach: install(() => productTransport('seat-2', withCardInHand(playingSnapshot()))),
   play: async ({ canvasElement }) => {
     const page = await openPanel(canvasElement, 'Hand');
-    await expect(page.findByRole('button', { name: 'Drag Snooper from hand' })).resolves.toBeVisible();
+    await expect(page.findByRole('button', { name: 'Drag Snooper from hand' }, WAIT)).resolves.toBeVisible();
   },
 });
 
@@ -92,7 +99,7 @@ export const BattlePlanning = meta.story({
   beforeEach: install(() => productTransport('seat-2', withCardInHand(battleStory('preparing')))),
   play: async ({ canvasElement }) => {
     const page = await openPanel(canvasElement, 'Battle');
-    await expect(page.findByRole('button', { name: 'Ready for battle' })).resolves.toBeVisible();
+    await expect(page.findByRole('button', { name: 'Ready for battle' }, WAIT)).resolves.toBeVisible();
   },
 });
 
@@ -101,7 +108,7 @@ export const BattleCountdown = meta.story({
   beforeEach: install(() => productTransport('seat-2', battleStory('countdown'))),
   play: async ({ canvasElement }) => {
     const page = await openPanel(canvasElement, 'Battle');
-    await expect(page.findByRole('button', { name: 'Undo Ready' })).resolves.toBeVisible();
+    await expect(page.findByRole('button', { name: 'Undo Ready' }, WAIT)).resolves.toBeVisible();
   },
 });
 
@@ -109,7 +116,8 @@ export const BattleCountdown = meta.story({
 export const BattleRevealed = meta.story({
   beforeEach: install(() => productTransport('seat-2', battleStory('revealed'))),
   play: async ({ canvasElement }) => {
-    await openPanel(canvasElement, 'Battle');
+    const page = await openPanel(canvasElement, 'Battle');
+    await expect(page.findByRole('button', { name: 'No winner' }, WAIT)).resolves.toBeVisible();
   },
 });
 
@@ -117,7 +125,8 @@ export const BattleRevealed = meta.story({
 export const BattleSpectator = meta.story({
   beforeEach: install(() => productTransport('neutral', battleStory('revealed', true))),
   play: async ({ canvasElement }) => {
-    await openPanel(canvasElement, 'Battle');
+    const page = await openPanel(canvasElement, 'Battle');
+    await expect(page.findByRole('button', { name: 'No winner' }, WAIT)).resolves.toBeDisabled();
   },
 });
 
@@ -126,7 +135,7 @@ export const SharedInventory = meta.story({
   beforeEach: install(pendingRequestTransport),
   play: async ({ canvasElement }) => {
     const page = await openPanel(canvasElement, 'Shared inventory');
-    await expect(page.findByRole('button', { name: 'Approve' })).resolves.toBeVisible();
+    await expect(page.findByRole('button', { name: 'Approve' }, WAIT)).resolves.toBeVisible();
   },
 });
 
@@ -137,7 +146,7 @@ export const Spice = meta.story({
   ),
   play: async ({ canvasElement }) => {
     const page = await openPanel(canvasElement, 'Spice');
-    await expect(page.findByLabelText('Banked spice')).resolves.toHaveTextContent('12');
+    await expect(page.findByLabelText('Banked spice', {}, WAIT)).resolves.toHaveTextContent('12');
   },
 });
 
@@ -145,7 +154,9 @@ export const Spice = meta.story({
 export const LogGame = meta.story({
   beforeEach: install(() => productTransport('seat-2', playingSnapshot(), { logEntries: { game: GAME_LOG } })),
   play: async ({ canvasElement }) => {
-    await openPanel(canvasElement, 'Log', 'Game');
+    const page = await openPanel(canvasElement, 'Log', 'Game');
+    const log = await page.findByRole('region', { name: 'Game log' }, WAIT);
+    await expect(within(log).findByText(GAME_LOG[0]!.text, {}, WAIT)).resolves.toBeVisible();
   },
 });
 
@@ -153,7 +164,9 @@ export const LogGame = meta.story({
 export const LogAudit = meta.story({
   beforeEach: install(() => productTransport('seat-2', playingSnapshot(), { logEntries: { audit: AUDIT_LOG } })),
   play: async ({ canvasElement }) => {
-    await openPanel(canvasElement, 'Log', 'Audit');
+    const page = await openPanel(canvasElement, 'Log', 'Audit');
+    const log = await page.findByRole('region', { name: 'Audit log' }, WAIT);
+    await expect(within(log).findByText(AUDIT_LOG[0]!.text, {}, WAIT)).resolves.toBeVisible();
   },
 });
 
@@ -161,7 +174,8 @@ export const LogAudit = meta.story({
 export const Phase = meta.story({
   beforeEach: install(() => productTransport('seat-2', playingSnapshot())),
   play: async ({ canvasElement }) => {
-    await openPanel(canvasElement, 'Phase');
+    const page = await openPanel(canvasElement, 'Phase');
+    await expect(page.findByRole('button', { name: 'Replay from start' }, WAIT)).resolves.toBeVisible();
   },
 });
 
@@ -169,7 +183,8 @@ export const Phase = meta.story({
 export const PlayerInfo = meta.story({
   beforeEach: install(() => productTransport('seat-2', playingSnapshot())),
   play: async ({ canvasElement }) => {
-    await openPlayer(canvasElement, 'Twaffle', 'Info');
+    const page = await openPlayer(canvasElement, 'Twaffle', 'Info');
+    await expect(page.findByText('House Atreides · Seat 1', {}, WAIT)).resolves.toBeVisible();
   },
 });
 
@@ -181,7 +196,8 @@ export const PlayerConversation = meta.story({
     productTransport('seat-2', playingSnapshot(), { conversationMessages: conversationMessages() })
   ),
   play: async ({ canvasElement }) => {
-    await openPlayer(canvasElement, 'Twaffle', 'Conversation');
+    const page = await openPlayer(canvasElement, 'Twaffle', 'Conversation');
+    await expect(page.findByText('Shall we keep the southern route open?', {}, WAIT)).resolves.toBeVisible();
   },
 });
 
@@ -189,6 +205,7 @@ export const PlayerConversation = meta.story({
 export const PlayerRemovalVote = meta.story({
   beforeEach: install(() => productTransport('seat-2', removalSnapshot())),
   play: async ({ canvasElement }) => {
-    await openPlayer(canvasElement, 'Twaffle', 'Info');
+    const page = await openPlayer(canvasElement, 'Twaffle', 'Info');
+    await expect(page.findByRole('button', { name: 'Keep' }, WAIT)).resolves.toBeVisible();
   },
 });
