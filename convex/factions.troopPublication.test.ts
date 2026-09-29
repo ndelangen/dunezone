@@ -14,8 +14,10 @@ const back = {
 
 async function troopFixture(revision: number | undefined) {
   const { t, owner } = await rulebookFixture();
-  const data = structuredClone(assetPublishingFaction);
-  data.troops = [data.troops[0]!, { ...data.troops[0]!, name: 'Elite troop', count: 3, back }];
+  const { troops, ...rest } = structuredClone(assetPublishingFaction);
+  /* The elite troop copies the regular one without its identity, so the save assigns it a new one. */
+  const { troopId: _regularId, ...unidentified } = troops[0]!;
+  const data = { ...rest, troops: [troops[0]!, { ...unidentified, name: 'Elite troop', count: 3, back }] };
   const settingsId = await t.run(async (ctx) =>
     ctx.db.insert('admin_settings', {
       key: 'publication',

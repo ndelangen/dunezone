@@ -41,6 +41,7 @@ describe('Rulebook current-Edition reader', () => {
 
     for (const reader of [t, owner, outsider]) {
       const page = await reader.query(api.rulebooks.readerPage, locator);
+      expect(page?.ruleset).toEqual({ name: 'Rulebook test rules', slug: 'rulebook-test-rules' });
       expect(page?.edition.contents).toEqual(created.edition.contents);
       expect(page).not.toHaveProperty('draft');
     }
