@@ -81,7 +81,7 @@ export const Empty = meta.story({
   play: async ({ canvasElement }) => {
     const canvas = await openPhases(canvasElement);
     await expect(canvas.getByText('No faction phases')).toBeVisible();
-    await expect(canvas.getByRole('button', { name: 'Save faction' })).toBeEnabled();
+    await expect(canvas.getByRole('button', { name: 'Save faction' })).not.toHaveAttribute('aria-disabled');
     await expect(
       canvas.getByText('This faction adds no phases, so the game runs the standard setup and turn.')
     ).toBeVisible();
@@ -168,7 +168,7 @@ export const OneValidRow = meta.story({
     const canvas = await openPhases(canvasElement);
     await expect(canvas.getByRole('textbox', { name: 'Title' })).toHaveValue('Guild negotiations');
     await expect(canvas.getByText('Before Bidding, priority 10')).toBeVisible();
-    await expect(canvas.getByRole('button', { name: 'Save faction' })).toBeEnabled();
+    await expect(canvas.getByRole('button', { name: 'Save faction' })).not.toHaveAttribute('aria-disabled');
   },
 });
 
@@ -180,7 +180,7 @@ export const NewRowNeedsTheRequiredThree = meta.story({
     await expect(canvas.getByText('Give the phase a title.')).toBeVisible();
     await expect(canvas.getByText('Choose a symbol.')).toBeVisible();
     await expect(canvas.getByText('Choose where the phase goes.')).toBeVisible();
-    await expect(canvas.getByRole('button', { name: 'Save faction' })).toBeDisabled();
+    await expect(canvas.getByRole('button', { name: 'Save faction' })).toHaveAttribute('aria-disabled', 'true');
 
     await userEvent.type(canvas.getByRole('textbox', { name: 'Title' }), 'Guild negotiations');
     await expect(canvas.queryByText('Give the phase a title.')).toBeNull();
@@ -192,7 +192,7 @@ export const UnknownPlacement = meta.story({
   play: async ({ canvasElement }) => {
     const canvas = await openPhases(canvasElement);
     await expect(canvas.getByText('Karama is not a phase you can place before.')).toBeVisible();
-    await expect(canvas.getByRole('button', { name: 'Save faction' })).toBeDisabled();
+    await expect(canvas.getByRole('button', { name: 'Save faction' })).toHaveAttribute('aria-disabled', 'true');
   },
 });
 
@@ -201,7 +201,7 @@ export const UnknownType = meta.story({
   play: async ({ canvasElement }) => {
     const canvas = await openPhases(canvasElement);
     await expect(canvas.getByText('"predictoin" is not a phase type.')).toBeVisible();
-    await expect(canvas.getByRole('button', { name: 'Save faction' })).toBeDisabled();
+    await expect(canvas.getByRole('button', { name: 'Save faction' })).toHaveAttribute('aria-disabled', 'true');
   },
 });
 
@@ -226,7 +226,7 @@ export const FractionalPriority = meta.story({
   play: async ({ canvasElement }) => {
     const canvas = await openPhases(canvasElement);
     await expect(canvas.getByText('Priority must be a whole number.')).toBeVisible();
-    await expect(canvas.getByRole('button', { name: 'Save faction' })).toBeDisabled();
+    await expect(canvas.getByRole('button', { name: 'Save faction' })).toHaveAttribute('aria-disabled', 'true');
   },
 });
 
@@ -249,7 +249,7 @@ export const Reorder = meta.story({
     await userEvent.keyboard('[Space]');
 
     await expect(within(shelf).getAllByRole('listitem')[0]).toHaveTextContent('1. Second prediction');
-    await expect(canvas.getByRole('button', { name: 'Save faction' })).toBeEnabled();
+    await expect(canvas.getByRole('button', { name: 'Save faction' })).not.toHaveAttribute('aria-disabled');
     /* Same step and priority, so list order decides, and the sequence follows the new order before any save. */
     await expect(sequenceRows(canvasElement, 'Setup').slice(0, 2)).toEqual(['Second prediction', 'First prediction']);
   },

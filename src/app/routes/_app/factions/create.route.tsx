@@ -1,7 +1,6 @@
 import type { RouteNoticeCode } from '@shared/routeNotices';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { LoginGate } from '@ui/block/LoginGate';
-import { StatusMark } from '@ui/content/StatusMark';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { useRef } from 'react';
@@ -15,7 +14,7 @@ import { FactionComplexityIndicator } from '@app/widgets/faction-editor/FactionC
 import { FactionEditor } from '@app/widgets/faction-editor/FactionEditor';
 import type { FactionAuthoringViewHandle } from '@app/widgets/faction-editor/FactionEditor';
 import { FactionLoadPopover } from '@app/widgets/faction-editor/FactionLoadPopover';
-import { FactionPublicationStatus } from '@app/widgets/faction-editor/FactionPublicationStatus';
+import { factionPublicationStatus } from '@app/widgets/faction-editor/factionPublicationStatus';
 import { useFactionAuthoring } from '@app/widgets/faction-editor/useFactionAuthoring';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
@@ -104,15 +103,13 @@ function CreateFactionPage() {
               onLoaded={validationHeader.releasing(authoring.actions.loadDraft)}
             />
           }
-          context={
-            <>
-              <FactionPublicationStatus />
-              <StatusMark
-                icon={<TopicIcon topic="groups" size={16} />}
-                label="Group assignment becomes available after the first save."
-              />
-            </>
-          }
+          statuses={[
+            factionPublicationStatus(),
+            {
+              icon: <TopicIcon topic="groups" size={16} />,
+              label: 'Group assignment becomes available after the first save.',
+            },
+          ]}
         />
       </PageLayout.Toolbar>
       <PageLayout.Content>
