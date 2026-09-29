@@ -60,6 +60,30 @@ describe('isolated load limits in native workerd', () => {
     expect(Object.values(stopped.rows).every((count) => count === 0)).toBe(true);
   });
 
+  it.each([
+    { name: 'the hosted fixture without a cell', cell: undefined, seats: 2, pieces: 6, retire: 200 },
+    {
+      name: 'the load fixture on the cell profile',
+      cell: { profile: 'stacked', case: 'probe', repetition: 1, compression: 'on' },
+      seats: 18,
+      pieces: 294,
+      retire: 403,
+    },
+  ])('provisions $name, and only the hosted fixture retires', async ({ cell, seats, pieces, retire }) => {
+    await start(cell ? { cell } : {});
+    expect((await provision(runtime)).status).toBe(200);
+    const connection = await admit();
+    const view = connection.messages.find((message) => message.type === 'view');
+    expect(view.snapshot.roster.seats).toHaveLength(seats);
+    expect(view.snapshot.table.pieces).toHaveLength(pieces);
+    const retirement = await runtime.fetch('/__play/games/fixture-game/retire', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ gameId: 'fixture-game', secret: 'a'.repeat(64) }),
+    });
+    expect(retirement.status).toBe(retire);
+  });
+
   it('refuses another game before it reaches provisioning or consumes the fixed run budget', async () => {
     await start();
     expect((await runtime.fetch('/__play/games/another-game/provision', { method: 'POST' })).status).toBe(403);

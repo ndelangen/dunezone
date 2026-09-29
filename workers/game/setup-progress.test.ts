@@ -7,7 +7,7 @@ import type { TableRoster } from '../../src/shared/play/schema';
 import { factionSupply } from '../../src/shared/play/setupSupply';
 import { OTHER_DECK_POSITION } from '../../src/shared/play/tableFurnitureLayout';
 import { deckCommand } from './decks';
-import { fixtureRoster, fixtureSnapshot } from './fixture';
+import { hostedFixturePlan } from './fixture';
 import { gatherTraitors, initialSetup } from './setup-progress';
 import type { StoredSnapshot } from './state';
 
@@ -44,7 +44,7 @@ function traitorDeck(factionId: string, angle: number) {
 }
 
 function tableOf(pieces: StoredPiece[]): StoredSnapshot {
-  const fixture = fixtureSnapshot(fixtureRoster());
+  const fixture = hostedFixturePlan.snapshot(hostedFixturePlan.roster);
   return { ...fixture, table: { ...fixture.table, pieces } };
 }
 
