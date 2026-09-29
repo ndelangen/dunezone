@@ -124,7 +124,7 @@ The publisher forwards the reserved `/__play` namespace only when the request or
 `PUBLIC_BASE_URL`. Its `GAME_SERVICE` binding targets `dunezone-game`, whose `workers_dev` and
 `preview_urls` are disabled and whose route list is empty. Unknown reserved paths never become
 SPA documents. The game Worker accepts only `/__play/health` and
-`/__play/games/:gameId/socket|provision|account-deletion`; it validates methods, origin and admission
+`/__play/games/:gameId/socket|provision|account-deletion|retire`; it validates methods, origin and admission
 at that boundary. Hosted gameplay requires a signed-in session and a fresh first-message connection
 ticket. Players open games at `/play/<gameId>`; the retired `/play/hosted` and `/play/demo` pages
 are ordinary application paths that the game route redirects to the lobby, and the release counts as
@@ -132,8 +132,9 @@ retiring them only once production no longer serves the pages.
 
 Before calling the game binding, the publisher applies `PLAY_INGRESS_RATE_LIMIT` (namespace
 `10960001`): 120 requests per ten seconds per trusted `CF-Connecting-IP`, with separate counters
-for connection requests and provisioning/deletion callbacks. Rotating game IDs does not change
-the key. The exact GET health endpoint is exempt. A refused request returns `429`, `Retry-After: 10`
+for connection requests and the Convex callbacks (provisioning, account deletion and retirement,
+listed once in `src/shared/play/callbacks.ts`). Only a path the game Worker would route counts as
+a callback. Rotating game IDs does not change the key. The exact GET health endpoint is exempt. A refused request returns `429`, `Retry-After: 10`
 and `Cache-Control: no-store` without resolving a Durable Object. This is Cloudflare's per-location,
 eventually consistent ingress protection, not an exact global quota; authenticated ticket and
 in-room limits are separate.

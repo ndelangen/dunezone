@@ -16,6 +16,7 @@ import {
   playReconcileAccountsResultSchema,
   playRedeemTicketResultSchema,
 } from '../../src/shared/play/admission';
+import { playGamePathPattern } from '../../src/shared/play/callbacks';
 import {
   PLAY_DIRECTORY_RETRY_CEILING_MS,
   PLAY_DIRECTORY_RETRY_MS,
@@ -95,9 +96,7 @@ function gameRequest(request: Request, applicationOrigin: string) {
   if (url.origin !== applicationOrigin || url.search) {
     return;
   }
-  const match = /^\/__play\/games\/([a-zA-Z0-9_-]{1,128})\/(socket|provision|account-deletion|retire)$/.exec(
-    url.pathname
-  );
+  const match = playGamePathPattern.exec(url.pathname);
   if (!match) {
     return;
   }
