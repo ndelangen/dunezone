@@ -107,6 +107,7 @@ function redeemedIdentity(peer) {
     sessionId: `session-${suffix}`,
     authExpiresAt: peer.expiresAt(),
     displayName: `Synthetic ${suffix.toUpperCase()}`,
+    profileSlug: `synthetic-${suffix}`,
   };
 }
 
