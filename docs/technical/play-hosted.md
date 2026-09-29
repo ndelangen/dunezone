@@ -163,8 +163,7 @@ pass.
 ## Provisioning and transport
 
 A real game is provisioned when a signed-in player creates it (`playGames.createGame`). No operator
-step follows a deployment: the Stage B singleton that `playProvisioning:beginFixtureProvision`
-creates admits no player. The directory hides pending fixtures.
+step follows a deployment. The directory hides pending fixtures.
 
 The game Worker checks the supplied game secret and attempt with the fixed trusted Convex backend
 before creating state. Unknown, duplicate, expired and invalid requests get the same generic
