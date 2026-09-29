@@ -73,6 +73,14 @@ describe('The hosted fixture room retires on request', () => {
     expect(await storedRows()).toBe(0);
   });
 
+  it('refuses to retire a room whose metadata it cannot read', async () => {
+    runtime = await createRuntime(peer, 'game');
+    expect((await provision(runtime)).status).toBe(200);
+    await runtime.offline("UPDATE metadata SET data='not json' WHERE id=1");
+    expect((await post('retire', CREDENTIALS)).status).toBe(403);
+    expect(await runtime.offline('SELECT data FROM metadata')).toEqual([{ data: 'not json' }]);
+  });
+
   it('never retires a real game', async () => {
     peer.game = {
       rulesetId: 'ruleset-one',

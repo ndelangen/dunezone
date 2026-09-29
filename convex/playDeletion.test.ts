@@ -257,6 +257,30 @@ describe('Play account deletion', () => {
     ]);
   });
 
+  test('a hosted fixture room that never retires keeps its deletions pending', async () => {
+    const subject = await fixture();
+    await subject.t.run(
+      async (ctx) =>
+        await ctx.db.patch(subject.game._id, {
+          fixture_key: PLAY_FIXTURE_KEY,
+          ruleset_id: undefined,
+          minimum_players: undefined,
+          creator_id: undefined,
+        })
+    );
+    const { event } = await startDeletion(subject);
+    const fetch = vi.fn(async (_url: string, _init?: RequestInit) => new Response(null, { status: 403 }));
+    vi.stubGlobal('fetch', fetch);
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    await subject.t.mutation(internal.migrations.play_hosted_fixture_retire_v1, {});
+    await subject.t.finishAllScheduledFunctions(vi.runAllTimers);
+
+    expect(fetch.mock.calls.filter(([url]) => String(url).endsWith('/retire'))).toHaveLength(17);
+    expect(await subject.t.run(async (ctx) => (await ctx.db.get(event._id))?.state)).toBe('pending');
+    expect(await subject.t.run(async (ctx) => await ctx.db.query('play_game_accounts').collect())).toHaveLength(1);
+  });
+
   test('retiring the hosted fixture leaves every real game as it was', async () => {
     const subject = await fixture();
     const { event } = await startDeletion(subject);

@@ -212,6 +212,8 @@ export class GameRoom extends DurableObject<GameEnv> {
    * Such a room answers only a retirement, so no handler reaches the session it could not open.
    */
   private closed = false;
+  private loadFailure: unknown;
+  private retired = false;
   private get metadata() {
     return this.session.info;
   }
@@ -225,6 +227,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     } catch (error) {
       this.diagnostics.report('load', error);
       this.closed = true;
+      this.loadFailure = error;
     }
     if (!this.closed && this.metadata) {
       if (this.metadata.confirmed && this.session.pendingDirectory()) {
@@ -436,14 +439,17 @@ export class GameRoom extends DurableObject<GameEnv> {
     this.broadcastViews();
   }
 
-  /* Read straight from storage, not through the session, so a room whose game no longer loads can still authenticate. */
+  /*
+   * Read straight from storage, not through the session, so a room whose game no longer loads can still authenticate.
+   * Only a room without a metadata table or row reads as empty; unreadable metadata throws.
+   */
   private storedMetadata(): Metadata | undefined {
-    try {
-      const row = this.ctx.storage.sql.exec<{ data: string }>('SELECT data FROM metadata WHERE id=1').toArray()[0];
-      return row ? (JSON.parse(row.data) as Metadata) : undefined;
-    } catch {
+    const sql = this.ctx.storage.sql;
+    if (!sql.exec("SELECT 1 FROM sqlite_master WHERE type='table' AND name='metadata'").toArray().length) {
       return undefined;
     }
+    const row = sql.exec<{ data: string }>('SELECT data FROM metadata WHERE id=1').toArray()[0];
+    return row ? (JSON.parse(row.data) as Metadata) : undefined;
   }
 
   /*
@@ -461,7 +467,13 @@ export class GameRoom extends DurableObject<GameEnv> {
     if (args.gameId !== gameId) {
       return refused();
     }
-    const metadata = this.storedMetadata();
+    let metadata: Metadata | undefined;
+    try {
+      metadata = this.storedMetadata();
+    } catch (error) {
+      this.diagnostics.report('retire', error);
+      return refused();
+    }
     if (!metadata) {
       return json({ ok: true });
     }
@@ -481,6 +493,7 @@ export class GameRoom extends DurableObject<GameEnv> {
         this.closeAuthorization();
       }
       this.closed = true;
+      this.retired = true;
       for (const socket of this.ctx.getWebSockets()) {
         socket.close(1000, 'This table is closed.');
       }
@@ -548,6 +561,10 @@ export class GameRoom extends DurableObject<GameEnv> {
   }
 
   override async alarm() {
+    if (this.loadFailure !== undefined && !this.retired) {
+      /* The platform retries a failed alarm, so a deadline survives a start that did not load. */
+      throw this.loadFailure;
+    }
     if (this.closed) {
       return;
     }
@@ -561,6 +578,9 @@ export class GameRoom extends DurableObject<GameEnv> {
 
   /** One alarm serves the battle deadline and the directory retry: whichever is due first. */
   private scheduleAlarm() {
+    if (this.closed) {
+      return Promise.resolve();
+    }
     const deadline = this.session.nextDeadline();
     return deadline === undefined ? this.ctx.storage.deleteAlarm() : this.ctx.storage.setAlarm(deadline);
   }
