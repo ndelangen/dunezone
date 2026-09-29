@@ -9,6 +9,8 @@ import type { Group, Texture } from 'three';
 
 import { useMotionAllowed } from '@app/styles/motion';
 
+import { loadPublishedFace } from '../publishedFaceRetry';
+
 const UP = new Vector3(0, 1, 0);
 
 function visibleColor(hex: string) {
@@ -49,37 +51,21 @@ function archBetween(a: Vector3, b: Vector3) {
 
 function TokenFace({ url, vacant }: Readonly<{ url: string; vacant: boolean }>) {
   const [texture, setTexture] = useState<Texture | null>(null);
-  useEffect(() => {
-    let disposed = false;
-    let loaded: Texture | undefined;
-    let retry: ReturnType<typeof setTimeout> | undefined;
-    const load = () =>
-      new TextureLoader().load(
-        url,
-        (image) => {
-          if (disposed) {
-            image.dispose();
-            return;
-          }
+  useEffect(
+    () =>
+      loadPublishedFace<Texture>({
+        load: (onLoad, onError) => new TextureLoader().load(url, onLoad, undefined, onError),
+        onLoad: (image) => {
           image.colorSpace = SRGBColorSpace;
           image.anisotropy = 8;
-          loaded = image;
           setTexture(image);
         },
-        undefined,
-        () => {
-          if (!disposed) {
-            retry = setTimeout(load, 10_000);
-          }
-        }
-      );
-    load();
-    return () => {
-      disposed = true;
-      clearTimeout(retry);
-      loaded?.dispose();
-    };
-  }, [url]);
+        release: (image) => image.dispose(),
+        firstDelayMs: 10_000,
+        maxDelayMs: 10_000,
+      }),
+    [url]
+  );
   return (
     <meshBasicMaterial
       key={texture?.uuid ?? 'placeholder'}
