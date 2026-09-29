@@ -847,6 +847,7 @@ export const TROOP = z.enum([
   '/vector/troop/banner-marshal.svg',
   '/vector/troop/bene-gesserit.svg',
   '/vector/troop/bene-tleilaxu.svg',
+  '/vector/troop/blade-dancer.svg',
   '/vector/troop/blaster.svg',
   '/vector/troop/choam.svg',
   '/vector/troop/coat.svg',
@@ -854,6 +855,7 @@ export const TROOP = z.enum([
   '/vector/troop/crescent-executioner.svg',
   '/vector/troop/cymecs.svg',
   '/vector/troop/desert-pathfinder.svg',
+  '/vector/troop/drum-herald.svg',
   '/vector/troop/ecaz.svg',
   '/vector/troop/emperor.svg',
   '/vector/troop/fat.svg',
@@ -872,13 +874,17 @@ export const TROOP = z.enum([
   '/vector/troop/moritani.svg',
   '/vector/troop/peddler.svg',
   '/vector/troop/pewpew.svg',
+  '/vector/troop/raptor-keeper.svg',
   '/vector/troop/richese.svg',
   '/vector/troop/salvage-warden.svg',
   '/vector/troop/siege-gunner.svg',
   '/vector/troop/smuggler.svg',
+  '/vector/troop/spice-driller.svg',
   '/vector/troop/suspensor-lancer.svg',
   '/vector/troop/veiled-adept.svg',
+  '/vector/troop/void-walker.svg',
   '/vector/troop/water-keeper.svg',
+  '/vector/troop/wire-hunter.svg',
 ]);
 
 export const TROOP_MODIFIER = z.enum([
