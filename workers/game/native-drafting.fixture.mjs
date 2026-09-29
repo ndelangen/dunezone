@@ -11,7 +11,12 @@ import {
   stage,
 } from './native-runtime.fixture.mjs';
 
-const CREATOR = { userId: 'user-a', displayName: 'Synthetic A', avatarUrl: 'https://dune.zone/user-images/a.jpg' };
+const CREATOR = {
+  userId: 'user-a',
+  displayName: 'Synthetic A',
+  avatarUrl: 'https://dune.zone/user-images/a.jpg',
+  profileSlug: 'synthetic-a',
+};
 
 /** A faction as the draft catalogue lists it: real render data from the shared fixture, a name of its own. */
 export function draftable(id, name, { linked = true, published = true } = {}) {

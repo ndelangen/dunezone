@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { PLAY_PROFILE_SLUG_MAX_LENGTH } from './admission';
 import { seatRequestSchema } from './participation';
 import { storedPieceSchema, tableCountSchema, tableIdSchema, tablePieceSchema, tableSeatSchema } from './schema';
 
@@ -31,9 +32,19 @@ export const publicControlsSchema = z.object({
   requests: z.array(spawnRequestSchema),
   /* Pending seat requests, public to every viewer; a snapshot from before they existed reads as none. */
   seatRequests: z.array(seatRequestSchema).default([]),
-  /* Who holds each seat, by public name and avatar, stamped at send time; a stored snapshot carries an empty list. */
+  /*
+   * Who holds each seat, by public name, avatar and profile slug, stamped at send time; a stored snapshot carries an
+   * empty list, and a player from before slugs were carried reads as unlinked.
+   */
   players: z
-    .array(z.object({ seat: tableSeatSchema, name: z.string(), avatar: z.string().max(2048).nullable() }))
+    .array(
+      z.object({
+        seat: tableSeatSchema,
+        name: z.string(),
+        avatar: z.string().max(2048).nullable(),
+        slug: z.string().min(1).max(PLAY_PROFILE_SLUG_MAX_LENGTH).nullable().default(null),
+      })
+    )
     .default([]),
 });
 export const storedControlsSchema = publicControlsSchema.extend({

@@ -298,12 +298,7 @@ export class GameSession {
       this.history.seed(snapshot);
       this.actors.install(roster);
       if (game) {
-        this.actors.seatCreator(
-          game.creator.userId,
-          game.creator.displayName,
-          CREATOR_SEAT,
-          game.creator.avatarUrl ?? null
-        );
+        this.actors.seatCreator(game.creator.userId, game.creator.displayName, CREATOR_SEAT, game.creator);
         this.directory.stage(this.directorySummary(snapshot, Date.now(), metadata), Date.now());
       }
     });
