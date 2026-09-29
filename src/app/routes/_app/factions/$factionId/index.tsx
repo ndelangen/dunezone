@@ -88,6 +88,7 @@ function FactionDetailError({ error }: ErrorComponentProps) {
 /**
  * The Files card's badge for the faction sheet.
  * A failed replacement leaves the publication it replaces in place (CONTEXT.md, Asset publication state), but every viewer is told the update failed (#1385).
+ * With no sheet published yet nothing was being updated, so the badge says the publish failed.
  */
 function filesBadge({ status, captureStatus }: PublicAssetPublishingStatusProjection): {
   tone: StatusBadgeTone;
@@ -99,7 +100,7 @@ function filesBadge({ status, captureStatus }: PublicAssetPublishingStatusProjec
     case 'scheduled':
       return { tone: 'pending', label: 'Scheduled' };
     case 'error':
-      return { tone: 'negative', label: 'Update failed' };
+      return { tone: 'negative', label: status === 'current' ? 'Update failed' : 'Publish failed' };
     case null:
       return status === 'current' ? { tone: 'positive', label: 'Current' } : { tone: 'neutral', label: 'Unavailable' };
   }

@@ -6,6 +6,7 @@ import { appContentTheme } from '@ui/theme';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
 import { FactionPublicationStatus } from './FactionPublicationStatus';
+import markStyles from '@ui/content/StatusMark.module.css';
 
 /* Mantine reads the colour scheme through matchMedia, which jsdom lacks. */
 vi.stubGlobal('matchMedia', (media: string) => ({
@@ -32,10 +33,10 @@ describe('FactionPublicationStatus', () => {
       </MantineProvider>
     );
 
-    expect(
-      screen.getByRole('img', {
-        name: 'The published faction sheet may be out of date because the latest changes were not captured.',
-      })
-    ).toBeTruthy();
+    const mark = screen.getByRole('img', {
+      name: 'The published faction sheet may be out of date because the latest changes were not captured.',
+    });
+    /* The glyph reads as failed too, not only the words. */
+    expect(mark.classList.contains(markStyles.negative)).toBe(true);
   });
 });

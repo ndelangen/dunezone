@@ -118,6 +118,41 @@ export const DetailTellsReadersAReplacementFailed = meta.story({
   },
 });
 
+/* A faction with no published sheet whose first capture failed (#1385). */
+const noSheetWithAFailedCapture = db((baseline) => {
+  baseline.publication_jobs.push({
+    asset_type: 'faction_sheet',
+    asset_id: refText('faction:house-atreides', SEED_REF_TOKEN),
+    asset_data: {},
+    status: 'error',
+    attempt_counter: 10,
+    error: 'Storybook capture failure',
+    created_at: Date.parse('2026-01-01T13:00:00.000Z'),
+    updated_at: Date.parse('2026-01-01T13:10:00.000Z'),
+  });
+});
+
+/**
+ * With no sheet published yet, a failed capture was not an update, so the badge says the publish failed (#1385).
+ */
+export const DetailTellsReadersTheFirstPublishFailed = meta.story({
+  args: { path: '/factions/house-atreides' },
+  parameters: { database: noSheetWithAFailedCapture, identity: null },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(
+      page.findByText(
+        'The latest changes were not captured, so no faction sheet is published yet.',
+        {},
+        { timeout: 30_000 }
+      )
+    ).resolves.toBeVisible();
+    await expect(page.findByText('Publish failed')).resolves.toBeVisible();
+    expect(page.queryByText('Update failed')).toBeNull();
+    expect(page.queryByRole('link', { name: 'Open published PDF' })).toBeNull();
+  },
+});
+
 /* The faction leader's name is a field `factionAuthoringWarnings` answers for.
    The faction's own name is not: an empty one is `isNameBlank`, which drives the toolbar and an inline
    field error and contributes nothing to the header's list, so a regression written against it would
