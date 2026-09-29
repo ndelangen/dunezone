@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
+import { DEFAULT_PHASE_PRIORITY } from '../../src/shared/factions/extraPhases';
 import { PHASE_CHANGE_COOLDOWN_MS } from '../../src/shared/play/phases';
 import { draftingRuntime } from './native-drafting.fixture.mjs';
 import { accepted, admitPlayer, eventually, seat, sendCommand, syncView } from './native-runtime.fixture.mjs';
@@ -121,6 +122,84 @@ describe('Real-game setup progression', () => {
     expect((await syncView(observer)).snapshot.predictions[action.stepId].choice).toEqual(choice);
     await runtime.restart();
     expect((await syncView(await admit('replacement'))).snapshot.predictions).toEqual(revealed.predictions);
+  });
+
+  it('takes phase declarations from the catalogue definition into setup and the turn, and a game that declares none has no prediction step (#1466)', async () => {
+    /* This game's factions declare nothing, so setup is the two standard steps and the turn is the standard nine. */
+    const [plain] = await enter();
+    const standard = (await syncView(plain)).snapshot;
+    expect(standard.setup.steps.map((step) => step.kind)).toEqual(['traitors', 'forces']);
+    expect(standard.setup.steps.every((step) => step.kind !== 'prediction')).toBe(true);
+    expect(standard.phases).toBeUndefined();
+
+    /*
+     * A second game reads its factions from a catalogue where Atreides carries the #1466 declaration and one turn phase.
+     * The deal captures them through the ordinary path; nothing writes the retained record.
+     */
+    await runtime.close();
+    await peer.close();
+    ({ peer, runtime } = await draftingRuntime());
+    offset = 0;
+    const prediction = {
+      id: 'bene-gesserit-prediction',
+      type: 'prediction',
+      title: 'Bene Gesserit prediction',
+      instructions: 'Secretly predict the faction that will win and the turn it will win.',
+      symbol: '/vector/icon/fate.svg',
+      before: 'traitors',
+      priority: DEFAULT_PHASE_PRIORITY,
+      allPlayersMustBeReady: false,
+    };
+    const negotiation = {
+      id: 'guild-negotiations',
+      type: 'instruction',
+      title: 'Guild negotiations',
+      instructions: 'Agree on shipping rates before the auction.',
+      symbol: '/vector/icon/heighliners.svg',
+      before: 'bidding',
+      priority: DEFAULT_PHASE_PRIORITY,
+      allPlayersMustBeReady: false,
+    };
+    const atreides = peer.factions.get('atreides');
+    peer.factions.set('atreides', { ...atreides, data: { ...atreides.data, extraPhases: [prediction, negotiation] } });
+    const players = await enter();
+    const views = await Promise.all(players.map(syncView));
+    const ownIndex = views.findIndex(
+      (view) => view.snapshot.roster.seats.find((seat) => seat.id === view.viewer.viewerSeat).faction.id === 'atreides'
+    );
+    const [owner, foreign] = [players[ownIndex], players[1 - ownIndex]];
+    const steps = views[ownIndex].snapshot.setup.steps;
+    expect(steps.map((step) => step.kind)).toEqual(['prediction', 'traitors', 'forces']);
+    expect(steps[0]).toMatchObject({
+      kind: 'prediction',
+      factionId: 'atreides',
+      title: 'Bene Gesserit prediction',
+      symbol: '/vector/icon/fate.svg',
+      allPlayersMustBeReady: false,
+    });
+
+    /* The prediction gates on its lock; Traitors and Starting forces gate on readiness, then Next opens Turn 1. */
+    await accepted(owner, {
+      kind: 'prediction-lock',
+      stepId: steps[0].id,
+      choice: { factionId: 'harkonnen', turn: 3 },
+    });
+    await next(owner);
+    await allReady(owner, foreign);
+    await next(owner);
+    await allReady(owner, foreign);
+    const { snapshot: playing } = await next(owner);
+    expect(playing.stage).toBe('play');
+    const ids = playing.phases.map((phase) => phase.id);
+    const bidding = ids.indexOf('bidding');
+    expect(playing.phases[bidding - 1]).toMatchObject({
+      id: 'atreides:guild-negotiations',
+      kind: 'faction',
+      factionId: 'atreides',
+      label: 'Guild negotiations',
+      symbol: '/vector/icon/heighliners.svg',
+    });
+    expect(ids.filter((id) => id.startsWith('atreides:'))).toEqual(['atreides:guild-negotiations']);
   });
 
   it('gathers tabletop traitors after readiness without interrupting a carry or touching private hands', async () => {

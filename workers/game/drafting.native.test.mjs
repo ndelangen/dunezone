@@ -15,6 +15,30 @@ import {
   syncView,
 } from './native-runtime.fixture.mjs';
 
+/** A definition a real game deals: every face published, and the fighting troop face carries authored values. */
+function ready(id, name) {
+  const base = definition(id, name);
+  const troops = base.data.troops.map((troop) => ({ ...troop, combat: { strength: 1, fundedStrength: 1 } }));
+  return {
+    ...base,
+    data: { ...base.data, troops },
+    cardbacks: {
+      traitor: '/published/cardback-presets/traitor/cardback.jpg',
+      alliance: '/published/cardback-presets/alliance/cardback.jpg',
+    },
+    troops: troops.map((troop) => ({
+      troopId: troop.troopId,
+      front: `/published/faction-troops/${id}.${troop.troopId}/troop.jpg`,
+      back: null,
+    })),
+    traitors: base.data.leaders.map((leader) => ({
+      memberId: leader.memberId,
+      front: `/published/traitor-cards/${id}.${leader.memberId}/card.jpg`,
+    })),
+    alliance: `/published/alliance-cards/${id}/card.jpg`,
+  };
+}
+
 describe('Drafting and public assignment on a real game', () => {
   let peer, runtime;
   beforeEach(async () => {
@@ -255,6 +279,41 @@ describe('Drafting and public assignment on a real game', () => {
     peer.factions.set('fremen', definition('fremen', 'Fremen'));
     await accepted(b, { kind: 'draft-ready', ready: true });
     await eventually(async () => (await stage(a)) === 'swapping', 'assignment after the retry');
+  });
+
+  it('refuses to deal a faction whose leader face has not published on a real game, and deals once it publishes', async () => {
+    /* A real game, not the isolated path the fixture provisions: every dealt faction must be ready. */
+    await runtime.close();
+    peer.provisional = false;
+    peer.factions.set('harkonnen', ready('harkonnen', 'Harkonnen'));
+    const fremen = ready('fremen', 'Fremen');
+    const [unpublished, ...published] = fremen.leaders;
+    peer.factions.set('fremen', { ...fremen, leaders: [{ ...unpublished, front: null }, ...published] });
+    runtime = await createRuntime(peer, 'game');
+    expect((await provision(runtime)).status).toBe(200);
+    const a = await admit('a');
+    const b = await admit('b');
+    await seat(b, a);
+    await accepted(a, { kind: 'draft-pick', factionId: 'fremen' });
+    await accepted(b, { kind: 'draft-pick', factionId: 'harkonnen' });
+    await accepted(a, { kind: 'draft-ready', ready: true });
+    await accepted(b, { kind: 'draft-ready', ready: true });
+    await eventually(async () => (await syncView(a)).snapshot.draft?.failure !== null, 'failure recorded');
+    const failed = await syncView(a);
+    expect(failed.snapshot.stage).toBe('drafting');
+    expect(failed.snapshot.draft.failure).toBe(
+      `This faction Fremen is not ready: leader ${assetPublishingFaction.leaders[0].name}, This leader has no published face.`
+    );
+    expect(failed.snapshot.roster.seats.every((seat) => seat.faction === null)).toBe(true);
+    expect((await runtime.captures()).factions.map((capture) => capture.faction.id)).not.toContain('fremen');
+
+    /* The catalogue publishes the face, and the next Ready deals without anything else changing. */
+    peer.factions.set('fremen', fremen);
+    await accepted(b, { kind: 'draft-ready', ready: true });
+    await eventually(async () => (await stage(a)) === 'swapping', 'assignment once published');
+    const dealt = await syncView(a);
+    expect(dealt.snapshot.roster.seats.map((seat) => seat.faction?.id).sort()).toEqual(['fremen', 'harkonnen']);
+    expect((await runtime.captures()).factions.every((capture) => capture.readiness.ready)).toBe(true);
   });
 
   it("clears readiness on a roster change, drops a departing player's lists, and reads the catalogue again when stale", async () => {
