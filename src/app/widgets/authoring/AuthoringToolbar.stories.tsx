@@ -1,10 +1,9 @@
 import preview from '@sb/preview';
-import { StatusMark } from '@ui/content/StatusMark';
-import { TopicIcon } from '@ui/content/TopicIcon';
-import { FileText, History, MessageCircleWarning } from 'lucide-react';
+import { IconAction } from '@ui/control/IconAction';
+import { History, UserRoundMinus } from 'lucide-react';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
-import { AuthoringToolbar } from './AuthoringToolbar';
+import { AuthoringToolbar, failureStatus, groupAccessStatus } from './AuthoringToolbar';
 
 const toolbarActions = {
   onSave: () => undefined,
@@ -31,21 +30,17 @@ const cleanToolbar = {
 
 const SCHEDULED =
   'A new faction sheet capture is scheduled. The current PDF remains available. Last published Aug 4, 2026, 6:30 PM';
-const GROUP_ACCESS = 'Group access: Arrakeen Rules Council';
 
-/* A faction mid-edit: an unsaved change, its name cleared, a capture queued by the last save, and a Group with access. */
-const everyStatus = {
-  ...cleanToolbar,
-  status: { ...cleanStatus, isDirty: true, isNameBlank: true },
-  context: (
-    <>
-      <StatusMark tone="pending" icon={<History size={16} aria-hidden />} label={SCHEDULED} />
-      <StatusMark icon={<TopicIcon topic="groups" size={16} />} label={GROUP_ACCESS} />
-    </>
-  ),
-};
-
-const EVERY_STATUS_WORDING = ['Unsaved changes', factionCopy.nameBlankMessage, SCHEDULED, GROUP_ACCESS];
+const removeGroup = (
+  <IconAction
+    label="Remove group"
+    tooltip="Remove group access (Arrakeen Rules Council)"
+    emphasis="standard"
+    intent="neutral"
+    size="lg"
+    icon={<UserRoundMinus size={17} aria-hidden />}
+  />
+);
 
 const meta = preview.meta({
   title: 'Authoring Toolbar',
@@ -56,59 +51,61 @@ const meta = preview.meta({
   },
 });
 
+/** Back, then the status action, then Reset, then Save last. No status marks in the row: Save says there is nothing to save. */
 export const Clean = meta.story({
   args: cleanToolbar,
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.getByRole('button', { name: 'Save faction' })).toHaveAccessibleDescription('No unsaved changes');
+    await expect(page.queryByRole('img')).toBeNull();
+  },
 });
 
 /**
- * Every status the faction editor can show at once, each its own glyph beside Back.
- * A glyph's accessible name is its full wording, and hovering it shows the same words.
- * The words also sit in a live region, which is what a screen reader announces when a status changes.
+ * A faction mid-edit with a capture queued: Save wears a dot and says there are unsaved changes.
+ * The status action lists the save state, where the publication has got to, and which Group has access.
  */
-export const EveryStatus = meta.story({
-  args: everyStatus,
+export const UnsavedWithStatuses = meta.story({
+  args: {
+    ...cleanToolbar,
+    status: { ...cleanStatus, isDirty: true },
+    statuses: [
+      { tone: 'pending', icon: <History size={16} aria-hidden />, label: SCHEDULED },
+      groupAccessStatus('Arrakeen Rules Council'),
+    ],
+  },
   globals: { viewport: { value: 'appLarge' } },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    const statuses = within(page.getByRole('group', { name: 'Status' }));
-    for (const wording of EVERY_STATUS_WORDING) {
-      const mark = statuses.getByRole('img', { name: wording });
-      await userEvent.hover(mark);
-      const tooltip = await page.findByRole('tooltip', { name: wording });
-      /* The tooltip mounts transparent and fades in, so visibility is waited for rather than read once. */
-      await waitFor(() => expect(tooltip).toBeVisible());
-      await userEvent.unhover(mark);
-    }
-    const live = page.getByRole('status');
-    for (const wording of EVERY_STATUS_WORDING) {
-      await expect(live).toHaveTextContent(wording);
-    }
-    await expect(page.getByRole('button', { name: 'Save faction' })).toBeDisabled();
+    const save = page.getByRole('button', { name: 'Save faction' });
+    await userEvent.hover(save);
+    const tooltip = await page.findByRole('tooltip');
+    /* The tooltip mounts transparent and fades in, so visibility is waited for rather than read once. */
+    await waitFor(() => expect(tooltip).toBeVisible());
+    await expect(tooltip).toHaveTextContent('Unsaved changes');
+    await expect(page.getByRole('status')).toHaveTextContent('Unsaved changes');
+    const info = page.getByRole('button', { name: 'Status' });
+    await expect(info).toHaveAccessibleDescription(`Unsaved changes ${SCHEDULED} Group access: Arrakeen Rules Council`);
+    await userEvent.click(info);
+    const list = await page.findByRole('dialog', { name: 'Status' });
+    await expect(list).toHaveTextContent(SCHEDULED);
+    await expect(list).toHaveTextContent('Group access: Arrakeen Rules Council');
   },
 });
 
-/**
- * Below 32rem of toolbar the glyphs fold into one, wearing the status that blocks a save, and Save becomes an icon.
- * The folded glyph's tooltip and its accessible description both list every status.
- */
-export const EveryStatusFolded = meta.story({
-  args: everyStatus,
-  globals: { viewport: { value: 'appMobile' } },
+/** A blank name blocks Save: it looks disabled, says why on hover, and pressing it does nothing. */
+export const NameBlank = meta.story({
+  args: { ...cleanToolbar, status: { ...cleanStatus, isDirty: true, isNameBlank: true } },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    expect(page.queryByRole('group', { name: 'Status' })).toBeNull();
-    const folded = page.getByRole('img', { name: `Status: ${factionCopy.nameBlankMessage}` });
-    await expect(folded).toHaveAccessibleDescription(EVERY_STATUS_WORDING.join(' '));
-    await userEvent.hover(folded);
-    const tooltip = await page.findByRole('tooltip');
-    for (const wording of EVERY_STATUS_WORDING) {
-      await expect(tooltip).toHaveTextContent(wording);
-    }
-    await expect(page.getByRole('button', { name: 'Save faction' })).toBeDisabled();
+    const save = page.getByRole('button', { name: 'Save faction' });
+    await expect(save).toHaveAttribute('aria-disabled', 'true');
+    await userEvent.hover(save);
+    await expect(await page.findByRole('tooltip', { name: factionCopy.nameBlankMessage })).toBeInTheDocument();
   },
 });
 
-/** The ruleset editor after the server refused a rename: the save state says it failed, and the page's own mark says why. */
+/** The ruleset editor after the server refused a rename: Save turns red, and its hover text and the status list say why. */
 export const SaveFailed = meta.story({
   args: {
     ...cleanToolbar,
@@ -117,26 +114,38 @@ export const SaveFailed = meta.story({
       saveLabel: 'Save ruleset',
       nameBlankMessage: 'Add a ruleset name before saving; it determines the ruleset URL.',
     },
-    context: (
-      <StatusMark
-        tone="negative"
-        icon={<MessageCircleWarning size={16} aria-hidden />}
-        label="Ruleset name already exists"
-      />
-    ),
+    statuses: [failureStatus('Ruleset name already exists')],
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.getByRole('button', { name: 'Save ruleset' })).toHaveAccessibleDescription(
+      'Save failed. Your changes are still here; press to try again. Ruleset name already exists'
+    );
   },
 });
 
-export const PublishedAndCurrent = meta.story({
+/** Saved: Save shows a check. */
+export const Saved = meta.story({
+  args: { ...cleanToolbar, status: { ...cleanStatus, saveState: 'saved' } },
+});
+
+/**
+ * Every kind of action at once, at a phone's width: the bar stays one row.
+ * Reset, delete and the group action fold into More actions before Save, which never leaves.
+ */
+export const CrowdedPhone = meta.story({
   args: {
     ...cleanToolbar,
-    status: { ...cleanStatus, saveState: 'saved' },
-    context: (
-      <StatusMark
-        icon={<FileText size={16} aria-hidden />}
-        label="Public assets are current. Last published Aug 4, 2026, 6:30 PM"
-      />
-    ),
+    status: { ...cleanStatus, isDirty: true },
+    accessActions: removeGroup,
+    review: { label: 'Review faction sheet', onOpen: () => undefined },
+  },
+  globals: { viewport: { value: 'appMobile' } },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const actions = page.getByRole('group', { name: 'Editing actions' });
+    await expect(actions.getBoundingClientRect().height).toBeLessThanOrEqual(40);
+    await expect(page.getByRole('button', { name: 'Save faction' })).toBeVisible();
   },
 });
 

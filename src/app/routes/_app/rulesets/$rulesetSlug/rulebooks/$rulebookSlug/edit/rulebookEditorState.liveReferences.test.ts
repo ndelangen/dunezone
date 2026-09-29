@@ -4,7 +4,12 @@ import { describe, expect, it } from 'vitest';
 
 import { createRulebookEditorStateManager } from './rulebookEditorState';
 import type { RulebookEditorResult } from './rulebookEditorState';
-import { replaceDraft } from './rulebookEditorState.fixtures';
+import {
+  createCleanSavedRevision,
+  createRulebookSavedRevision,
+  draftBlock,
+  replaceDraft,
+} from './rulebookEditorState.fixtures';
 
 function ready(result: RulebookEditorResult) {
   if (result.status !== 'ready') {
@@ -336,5 +341,74 @@ describe('live reference authoring reconciliation', () => {
     expect(inventory(result.draft).introduction).toBe('An *unfinished introduction');
     expect(result.canSave).toBe(false);
     expect(result.diagnostics.some((entry) => entry.field === 'introduction')).toBe(true);
+  });
+
+  /* The e2e order behind #1250: Keep saved version, then a local edit to that field, then a saved revision delivered after the edit. */
+  function clearedAfterKeepingSavedSource() {
+    const manager = createRulebookEditorStateManager(createCleanSavedRevision());
+    manager.dispatch(
+      replaceDraft(manager.result, (draft) => {
+        draftBlock(draft, 'RULE', 'ASST', 'referenced-illustration').source = { kind: 'stock', artworkId: 'moon' };
+      })
+    );
+    const saved = createRulebookSavedRevision('revision-2', (contents) => {
+      const block = contents.pagesById.RULE!.blocksById.ASST!;
+      if (block.kind !== 'referenced-illustration') {
+        throw new Error('Starter illustration must be a referenced illustration');
+      }
+      block.source = { kind: 'stock', artworkId: 'map' };
+    });
+    const review = ready(manager.dispatch({ kind: 'receive-latest', latest: saved }));
+    const conflict = review.incompatibilities.find((entry) => entry.kind === 'field' && entry.field === 'source');
+    if (conflict?.kind !== 'field') {
+      throw new Error('Expected source review');
+    }
+    manager.dispatch({
+      kind: 'resolve',
+      approval: {
+        incompatibilityId: conflict.id,
+        dependencyFingerprint: conflict.dependencyFingerprint,
+        outcome: { kind: 'field-value', value: { kind: 'stock', artworkId: 'map' } },
+      },
+    });
+    manager.dispatch(
+      replaceDraft(manager.result, (draft) => {
+        draftBlock(draft, 'RULE', 'ASST', 'referenced-illustration').source = undefined;
+      })
+    );
+    return { manager, saved };
+  }
+
+  function expectClearedAndSavable(result: RulebookEditorResult) {
+    const settled = ready(result);
+    expect(settled.incompatibilities).toEqual([]);
+    expect(draftBlock(settled.draft, 'RULE', 'ASST', 'referenced-illustration').source).toBeUndefined();
+    expect(settled.canSave).toBe(true);
+    expect(draftBlock(settled.saveCandidate!, 'RULE', 'ASST', 'referenced-illustration').source).toBeUndefined();
+    return settled;
+  }
+
+  it('keeps a clear made after Keep saved version when the same saved revision arrives again', () => {
+    const { manager, saved } = clearedAfterKeepingSavedSource();
+    expectClearedAndSavable(manager.result);
+    const result = expectClearedAndSavable(
+      manager.dispatch({ kind: 'receive-latest', latest: structuredClone(saved) })
+    );
+    expect(result.latest.revision).toBe('revision-2');
+  });
+
+  it('keeps a clear made after Keep saved version when a newer revision changes another field', () => {
+    const { manager } = clearedAfterKeepingSavedSource();
+    const newer = createRulebookSavedRevision('revision-3', (contents) => {
+      const block = contents.pagesById.RULE!.blocksById.ASST!;
+      if (block.kind !== 'referenced-illustration') {
+        throw new Error('Starter illustration must be a referenced illustration');
+      }
+      block.source = { kind: 'stock', artworkId: 'map' };
+      block.caption = 'A saved caption.';
+    });
+    const result = expectClearedAndSavable(manager.dispatch({ kind: 'receive-latest', latest: newer }));
+    expect(result.latest.revision).toBe('revision-3');
+    expect(draftBlock(result.draft, 'RULE', 'ASST', 'referenced-illustration').caption).toBe('A saved caption.');
   });
 });
