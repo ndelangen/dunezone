@@ -87,12 +87,20 @@ function FactionDetailError({ error }: ErrorComponentProps) {
 
 /**
  * The Files card's badge for the faction sheet.
- * A failed replacement reads as the publication it leaves in place, which stays current beside it (CONTEXT.md, Asset publication state).
+ * A failed replacement leaves the publication it replaces in place (CONTEXT.md, Asset publication state).
+ * A viewer who can edit the faction is told the update failed (#1385);
+ * a reader sees the publication that stays current.
  */
-function filesBadge({ status, captureStatus }: PublicAssetPublishingStatusProjection): {
+function filesBadge(
+  { status, captureStatus }: PublicAssetPublishingStatusProjection,
+  viewerCanEdit: boolean
+): {
   tone: StatusBadgeTone;
   label: string;
 } {
+  if (captureStatus === 'error' && viewerCanEdit) {
+    return { tone: 'negative', label: 'Update failed' };
+  }
   switch (captureStatus) {
     case 'in_progress':
       return { tone: 'progress', label: 'In progress' };
@@ -128,7 +136,7 @@ function FactionDetailPage() {
   const data = faction.data;
   const planets = data.planet ?? [];
   const troopCount = data.troops.reduce((total, troop) => total + troop.count, 0);
-  const files = filesBadge(assetPublishing);
+  const files = filesBadge(assetPublishing, canEdit);
   const complexity = effectiveComplexity(data.complexity);
   /**
    * Standing beside the maintaining group, and only when the viewer has a standing worth naming.
@@ -447,7 +455,9 @@ function FactionDetailPage() {
               }
             >
               <Text size="sm" c="dimmed">
-                {factionAssetPublishingCopy(assetPublishing.status, assetPublishing.captureStatus)}
+                {factionAssetPublishingCopy(assetPublishing.status, assetPublishing.captureStatus, {
+                  viewerCanEdit: canEdit,
+                })}
               </Text>
             </Card>
 
