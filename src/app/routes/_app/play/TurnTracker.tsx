@@ -58,12 +58,11 @@ export function TurnTracker({
         <circleGeometry args={[radius * 0.98, 128]} />
         <meshStandardMaterial color={PHASE_DISC_COLOR} roughness={1} metalness={0} fog={false} />
       </mesh>
-      {/* Replace each mesh with its geometry so WebGPU cannot reuse disposed vertex buffers. */}
-      <mesh key={wedge.uuid} raycast={ignoreRaycast}>
+      <mesh raycast={ignoreRaycast}>
         <primitive object={wedge} attach="geometry" />
         <meshStandardMaterial color="#d8bd74" roughness={1} metalness={0} fog={false} />
       </mesh>
-      <mesh key={frame.uuid} raycast={ignoreRaycast}>
+      <mesh raycast={ignoreRaycast}>
         <primitive object={frame} attach="geometry" />
         <meshStandardMaterial color={PHASE_INK_COLOR} roughness={1} metalness={0} fog={false} />
       </mesh>
@@ -81,7 +80,7 @@ export function TurnTracker({
         ) : null
       )}
       <group rotation={[0, -layout.pointerAngle, 0]}>
-        <mesh key={pointer.uuid} raycast={ignoreRaycast}>
+        <mesh raycast={ignoreRaycast}>
           <primitive object={pointer} attach="geometry" />
           <meshStandardMaterial color={PHASE_INK_COLOR} roughness={1} metalness={0} fog={false} />
         </mesh>
