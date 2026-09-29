@@ -1,13 +1,13 @@
 import { Box, Menu } from '@mantine/core';
 import preview from '@sb/preview';
-import { finishTransitions } from '@sb/storyWaits';
+import { finishTransitions, waitForFrame } from '@sb/storyWaits';
 import type { RulebookBlockDraft, RulebookBlockRegionKey } from '@shared/rulebooks/contents';
 import { AddAction } from '@ui/control/ListLengthActions';
 import { NestedTabs } from '@ui/surface';
 import { SlidersHorizontal } from 'lucide-react';
 import { useState } from 'react';
 import type { ReactNode } from 'react';
-import { expect, fn, userEvent, waitFor, within } from 'storybook/test';
+import { expect, fn, userEvent, within } from 'storybook/test';
 
 import { rulebookBlockIcon, rulebookLayoutIcon, rulebookRegionIcon } from './rulebookEditorIcons';
 import { PageDetailsEdit, rulebookBlockLabel } from './rulebookPageDetailsEdit';
@@ -381,7 +381,11 @@ export const PopulatedRulesPage = meta.story({
     await expect(onNavigateBlock).toHaveBeenCalledWith('MVVE');
     await userEvent.click(canvas.getByRole('button', { name: 'Add a Block to Rules' }));
     const page = within(canvasElement.ownerDocument.body);
-    await waitFor(() => expect(finishTransitions(page.getByRole('menuitem', { name: 'Text' }))).toBeVisible());
+    /*
+     * The dropdown mounts at opacity 0 from one animation-frame callback and starts its fade only from the next, so a page whose frames run late fails a plain wait with the item already found.
+     * Each poll runs the waiting frames itself (https://github.com/ndelangen/dunezone/issues/1199).
+     */
+    await waitForFrame(() => expect(finishTransitions(page.getByRole('menuitem', { name: 'Text' }))).toBeVisible());
     await userEvent.click(page.getByRole('menuitem', { name: 'Text' }));
     await expect(onAddBlock).toHaveBeenCalledWith('column1', 'text');
     await userEvent.click(canvas.getByRole('button', { name: 'Collapse Examples' }));

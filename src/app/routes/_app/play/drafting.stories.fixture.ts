@@ -344,7 +344,7 @@ export function storyPlayer(seat: string, slug: string): StoryPlayer {
   if (!profile) {
     throw new Error(`Unknown profile ${slug}`);
   }
-  return { seat, name: profile.username, avatar: profile.avatarUrl };
+  return { seat, name: profile.username, avatar: profile.avatarUrl, slug: profile.slug };
 }
 
 /** A drafting real game with the given players seated, at the given table size, with the draft as given. */
