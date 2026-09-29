@@ -675,6 +675,8 @@ describe('GameRoom native SQLite and admission boundaries', () => {
       await tab.message('view');
       tabs.push(tab);
     }
+    /* Each admission also sends player A an update, which can still be in flight when the tab's own view lands; a sync answered after it keeps that update out of what the test watches next. */
+    await syncView(first);
     peer.watchMode = 'manual';
     return { first, tabs };
   }

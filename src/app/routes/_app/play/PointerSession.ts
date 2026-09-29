@@ -6,13 +6,14 @@ const DRAG_THRESHOLD_PX = 4;
 const STACK_HOLD_MS = 320;
 
 type PointerInput = Pick<PointerEvent, 'pointerId' | 'button' | 'clientX' | 'clientY' | 'timeStamp'>;
-type Controls = Pick<TabletopContextValue, 'beginGesture' | 'updateGesture' | 'finishGesture' | 'cancelDraft'> & {
-  canInteract: boolean;
+type Controls = Pick<
+  TabletopContextValue,
+  'beginGesture' | 'updateGesture' | 'finishGesture' | 'cancelDraft' | 'canInteract' | 'publishPointer'
+> & {
   hasDraft: boolean;
   piece(id: string): TablePiece | undefined;
   point(piece: TablePiece, x: number, y: number): Vector3Tuple | null;
   isPublicPoint(x: number, y: number): boolean;
-  publishPointer(point: Vector3Tuple | null): void;
   onActiveChange(active: boolean): void;
 };
 type Binding = {

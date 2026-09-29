@@ -18,8 +18,8 @@ import { internalMutation } from './functions';
 import {
   currentFactionComponentData,
   currentFactionLeaderData,
-  currentFactionTroopData,
   FACTION_TOKEN_BACK_REVISION,
+  isFactionFaceAssetType,
   publicationJobsForAsset,
   publicationSettings,
 } from './lib/publication';
@@ -119,6 +119,11 @@ export const takeWork = internalMutation({
       if (job.asset_type === 'faction-leader' && !settings?.renderer_revisions['faction-leader']) {
         continue;
       }
+      /* A plain faction face whose revision was rolled back is dropped rather than held, like the blocked token face below; reactivation rescans. */
+      if (isFactionFaceAssetType(job.asset_type) && !settings?.renderer_revisions[job.asset_type]) {
+        await ctx.db.delete(job._id);
+        continue;
+      }
       /*
        * A publisher rolled back below the blocked face would reject its payload, so its `.back` jobs are dropped rather than held, which would let them fill the pickup window.
        * Activating the revision that draws the face again rescans every faction, and that re-enqueues them.
@@ -132,7 +137,7 @@ export const takeWork = internalMutation({
         continue;
       }
       /* A roster face renders one capture at a time, so an older capture can never land after a newer one. */
-      if (job.asset_type === 'faction-leader' || job.asset_type === 'faction-troop') {
+      if (job.asset_type === 'faction-leader' || isFactionFaceAssetType(job.asset_type)) {
         const targetJobs = await publicationJobsForAsset(ctx, job.asset_type, job.asset_id);
         if (targetJobs.some((candidate) => candidate.status === 'in_progress')) {
           continue;
@@ -270,13 +275,14 @@ export const completeJob = internalMutation({
         return { status: 'missing' as const };
       }
     }
-    /* A troop removed or changed while its capture ran keeps no stale face. */
-    if (job.asset_type === 'faction-troop') {
-      const current = await currentFactionTroopData(ctx, job.asset_id);
-      if (JSON.stringify(current) !== JSON.stringify(parsePublicationAssetData(job.asset_type, job.asset_data))) {
-        await ctx.db.delete(job._id);
-        return { status: 'missing' as const };
-      }
+    /* A face removed or changed while its capture ran keeps no stale image. */
+    if (
+      isFactionFaceAssetType(job.asset_type) &&
+      JSON.stringify(await currentFactionComponentData(ctx, job.asset_type, job.asset_id)) !==
+        JSON.stringify(parsePublicationAssetData(job.asset_type, job.asset_data))
+    ) {
+      await ctx.db.delete(job._id);
+      return { status: 'missing' as const };
     }
     const geometry =
       args.componentGeometry === undefined ? undefined : componentGeometrySchema.parse(args.componentGeometry);
