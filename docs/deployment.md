@@ -268,9 +268,9 @@ The workflow runs on every push to `main`, and by hand on `main` (see
 [Recovering from a dropped push](#recovering-from-a-dropped-push)). Its `release_gate` job runs
 first and reads the commit each production Worker reports on `https://dune.zone/__play/health` and
 `https://dune.zone/__asset-publisher/health`. The run ends green without deploying when either Worker
-already reports a later commit than the run's, or both already report the run's own commit. An
-endpoint that does not answer, or a commit git cannot place, lets the deploy go ahead. Otherwise the
-`deploy` job runs:
+already reports a later commit than the run's, or, on the run's first attempt, both already report
+the run's own commit. An endpoint that does not answer, or a commit git cannot place, lets the deploy
+go ahead. Otherwise the `deploy` job runs:
 
 1. Install dependencies, then verify schema-narrowing prerequisites
    (`migrations:narrow-check`). This runs *before* the Convex deploy and blocks
@@ -351,11 +351,13 @@ up later, its run stops at `release_gate`.
 Do not recover by rerunning an earlier deploy run. A rerun keeps that run's `GITHUB_SHA`, so it
 redeploys that older commit rather than `main`'s tip. "Re-run failed jobs" keeps the gate's first answer
 and deploys the older commit even over a later release. "Re-run all jobs" asks the gate again, which
-stops the run once production has that commit or a later one.
+stops the run once production has a later commit.
 
-"Re-run failed jobs" is still how to finish a deploy that failed partway, for example a smoke that
-failed after both Workers went out. A dispatched run would stop at the gate there, because both
-Workers already report that commit.
+To finish a deploy that failed partway, for example a smoke that failed after both Workers went out,
+rerun that run. "Re-run failed jobs" picks up at the failed job. "Re-run all jobs" deploys the commit
+again from the start, because the gate stops a commit production already has only on a run's first
+attempt. A dispatched run is a first attempt, so while `main` still points at that commit it stops
+at the gate, because both Workers already report it.
 
 ## Publication controls
 

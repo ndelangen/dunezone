@@ -22,13 +22,17 @@ concurrency:
 # on a branch up to date with main, and a dispatched run deploys a commit that reached main that way.
 # A merge through the ruleset's admin bypass skips those checks and deploys unverified.
 jobs:
-  # Ends the run green without deploying when production already serves this commit or a later one.
+  # Ends the run green without deploying when production already serves a later commit, or, on the
+  # run's first attempt, this commit.
   # The deploy-production group runs one run at a time and holds one more waiting: a newly queued run
   # cancels the waiting one and takes its place, whatever commit either carries.
   # So a late push event (80 to 219 s late on 2026-09-28 and 2026-09-29), a second event for a merge
   # that already deployed, or "Re-run all jobs" on an older run can start after a later release is
   # live, and without this check it would put the older commit back.
   # The group holds this job too, so it reads production only after the previous run has finished.
+  # "Re-run all jobs" runs this job again with GITHUB_RUN_ATTEMPT above 1, and then only a later
+  # commit stops it: a rerun deploys a commit production already has, which finishes a deploy that
+  # failed after both Workers went out.
   # "Re-run failed jobs" keeps this job's first answer and deploys that run's commit whatever
   # production serves by then.
   release_gate:

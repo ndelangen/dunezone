@@ -21,17 +21,24 @@ export type Reading = { endpoint: string; sha?: string; position: Position; note
 type Decision = { deploy: boolean; base: string; reason: string };
 
 /**
- * One Worker already on a later commit stops the run, since deploying would move that Worker back.
- * Every Worker already on this commit stops it too: the release is out, and this run is a duplicate.
+ * One Worker already on a later commit stops the run on every attempt, since deploying would move that Worker back.
+ * Every Worker already on this commit stops only the first attempt, as a duplicate of a release that is out.
+ * A later attempt reaches the gate only when someone reruns it, usually with "Re-run all jobs" to finish a deploy that failed after both Workers went out, so it deploys this commit again.
  * When every Worker reports the same earlier commit, that commit is the base the dev rebuild measures its change range from.
  */
-export function decide(readings: readonly Reading[]): Decision {
+export function decide(readings: readonly Reading[], attempt: number): Decision {
   const ahead = readings.find((reading) => reading.position === 'newer');
   if (ahead) {
     return { deploy: false, base: '', reason: `${ahead.endpoint} already reports ${ahead.sha}, a later commit` };
   }
   if (readings.length > 0 && readings.every((reading) => reading.position === 'same')) {
-    return { deploy: false, base: '', reason: 'every production Worker already reports this commit' };
+    return attempt === 1
+      ? { deploy: false, base: '', reason: 'every production Worker already reports this commit' }
+      : {
+          deploy: true,
+          base: '',
+          reason: `every production Worker already reports this commit, and attempt ${attempt} is a rerun`,
+        };
   }
   const earlier = new Set(readings.map((reading) => (reading.position === 'older' ? reading.sha : undefined)));
   const [base] = earlier;
@@ -46,8 +53,10 @@ export function decide(readings: readonly Reading[]): Decision {
 }
 
 /** Exit 0 and 1 answer the question; any other status means git could not compare the two, usually because the commit is not in this checkout. */
-function isAncestor(ancestor: string, descendant: string): boolean | undefined {
-  const { status } = spawnSync('/usr/bin/git', ['merge-base', '--is-ancestor', ancestor, descendant]);
+function isAncestor(ancestor: string, descendant: string, repository: string): boolean | undefined {
+  const { status } = spawnSync('/usr/bin/git', ['merge-base', '--is-ancestor', ancestor, descendant], {
+    cwd: repository,
+  });
   switch (status) {
     case 0:
       return true;
@@ -58,13 +67,14 @@ function isAncestor(ancestor: string, descendant: string): boolean | undefined {
   }
 }
 
-function position(head: string, production: string): Position {
+/** Where production's commit sits against head in the history of the git checkout at repository. */
+export function position(head: string, production: string, repository: string): Position {
   switch (true) {
     case production === head:
       return 'same';
-    case isAncestor(head, production):
+    case isAncestor(head, production, repository):
       return 'newer';
-    case isAncestor(production, head):
+    case isAncestor(production, head, repository):
       return 'older';
     default:
       return 'unknown';
@@ -72,7 +82,7 @@ function position(head: string, production: string): Position {
 }
 
 /** The notes are fixed text, so nothing an endpoint returns reaches the log except a validated SHA. */
-async function read(endpoint: string, head: string): Promise<Reading> {
+async function read(endpoint: string, head: string, repository: string): Promise<Reading> {
   let response: Response;
   try {
     response = await fetch(endpoint, {
@@ -92,7 +102,7 @@ async function read(endpoint: string, head: string): Promise<Reading> {
   if (typeof sha !== 'string' || !FULL_SHA.test(sha)) {
     return { endpoint, position: 'unknown', note: 'no commit SHA in the answer' };
   }
-  const found = position(head, sha);
+  const found = position(head, sha, repository);
   return {
     endpoint,
     sha,
@@ -106,12 +116,18 @@ if (import.meta.main) {
   if (!FULL_SHA.test(head)) {
     throw new Error('GITHUB_SHA must be a full Git SHA');
   }
-  const readings = await Promise.all(HEALTH_ENDPOINTS.map((endpoint) => read(endpoint, head)));
+  // GitHub sets it on every run; unset, as in a local run, reads as a first attempt.
+  const attempt = Number(process.env.GITHUB_RUN_ATTEMPT ?? '1');
+  if (!Number.isInteger(attempt) || attempt < 1) {
+    throw new Error('GITHUB_RUN_ATTEMPT must be a positive whole number');
+  }
+  const repository = process.cwd();
+  const readings = await Promise.all(HEALTH_ENDPOINTS.map((endpoint) => read(endpoint, head, repository)));
   for (const reading of readings) {
     const line = `${reading.endpoint}: ${reading.sha ?? 'no commit'} (${reading.position}${reading.note ? `, ${reading.note}` : ''})`;
     console.log(reading.position === 'unknown' ? `::warning::${line}` : line);
   }
-  const decision = decide(readings);
+  const decision = decide(readings, attempt);
   console.log(
     decision.deploy ? `Deploying ${head}: ${decision.reason}.` : `::notice::Not deploying ${head}: ${decision.reason}.`
   );
