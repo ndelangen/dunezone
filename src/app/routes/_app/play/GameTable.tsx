@@ -21,7 +21,6 @@ import {
   paneLimits,
 } from './controlPanelLayout';
 import { DarkSchemeIsland, darkSchemeIslandAttributes } from './DarkSchemeIsland';
-import { usePresence } from './multiplayer/PresenceContext';
 import {
   PHASE_DISC_COLOR,
   PHASE_INK_COLOR,
@@ -144,7 +143,6 @@ function selectedPieceCount(piece: TablePiece) {
 
 function SelectedPieceControl() {
   const table = useTabletop();
-  const { canInteract } = usePresence();
   const control = selectedFlipControl(table);
   const helpId = useId();
   return (
@@ -156,7 +154,7 @@ function SelectedPieceControl() {
           variant="default"
           aria-describedby={helpId}
           aria-busy={control.isFlipping}
-          disabled={control.disabled || !canInteract}
+          disabled={control.disabled || !table.canInteract}
           onClick={() => table.flipSelected()}
         >
           {control.label}
@@ -172,8 +170,7 @@ function SelectedPieceControl() {
 }
 
 function StormControls({ helpOnly = false }: { helpOnly?: boolean }) {
-  const { moveStormBy, state } = useTabletop();
-  const { canInteract } = usePresence();
+  const { canInteract, moveStormBy, state } = useTabletop();
   return (
     <Section
       helpOnly={helpOnly}
@@ -375,8 +372,7 @@ function PanelPanes({ children, secondary }: Readonly<{ children: ReactNode; sec
 }
 
 function TrackerControls({ turn, onSelectTurn }: Readonly<{ turn: number; onSelectTurn: (turn: number) => void }>) {
-  const { spawnSpice, state } = useTabletop();
-  const { canInteract } = usePresence();
+  const { canInteract, spawnSpice, state } = useTabletop();
   return (
     <>
       <Section
