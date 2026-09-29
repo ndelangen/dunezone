@@ -298,10 +298,26 @@ describe('AuthorizationWatch in native workerd with the real Convex clients', ()
     await runtime.request('/start?leaseMs=10000&renewalMs=500');
     const silent = await peer.query(({ connection }) => connection === peer.connections.at(-1));
     const { generation } = silent.query.args[0];
-    const next = await peer.query(({ query }) => query.args[0].generation !== generation);
     expect(await status()).toBe('suspended');
+    const validations = () =>
+      peer.requests.filter(
+        (request) => request.function === 'playAdmission:watchAuthorizations' && request.args.generation === generation
+      );
+    await eventually(() => validations().length === 1, 'the silent generation validated once');
+    const next = await peer.query(({ query }) => query.args[0].generation !== generation);
     peer.answer(next);
     await waitStatus('authorized');
+  });
+
+  it('still denies a revoked player whose new generation stays silent', async () => {
+    await runtime.request('/stop');
+    peer.httpMode = 'deny';
+    await runtime.request('/start?leaseMs=10000&renewalMs=500');
+    const silent = await peer.query(({ connection }) => connection === peer.connections.at(-1));
+    const { generation } = silent.query.args[0];
+    await waitStatus('denied');
+    await peer.query(({ query }) => query.args[0].generation !== generation);
+    expect(await status()).toBe('denied');
   });
 
   it('backs off while validations fail although the subscription keeps answering', async () => {
