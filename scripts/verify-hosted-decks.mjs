@@ -14,6 +14,7 @@ export async function verifyDecks({
   capture,
   until,
   passed,
+  origin,
 }) {
   const { a, b, observer } = await seated();
   const deckId = treacheryDeck(a);
@@ -73,8 +74,71 @@ export async function verifyDecks({
   assert.equal(publicDrop.items[0].artwork?.front, undefined);
   await capture(a, 'hand-card-dropped-face-down');
   passed('Dragging a private hand card onto the table retires its handle and exposes only its back');
+  /* B reloads into a publisher outage: every published image it asks for fails until both kinds of face have failed once (#1232). */
+  const backPath = publishedPath(deck(b).items[0].artwork.back, origin);
+  const outage = { on: true, failed: new Set() };
+  await b.context.addInitScript(observeScenes);
+  await b.context.route(
+    (url) => url.origin === origin && url.pathname.startsWith('/published/'),
+    async (route) => {
+      if (outage.on && route.request().resourceType() === 'image') {
+        outage.failed.add(new URL(route.request().url()).pathname);
+        await route.fulfill({ status: 503, body: '' });
+        return;
+      }
+      await route.fallback();
+    }
+  );
   await b.page.reload({ waitUntil: 'domcontentloaded' });
   await b.page.locator('[data-connection="authorized"]').waitFor();
   await until(() => hands(b).length === 1, 'The dealt hand did not survive reconnect.');
   passed('The shuffle retires old card handles and the recipient keeps its hand across reconnect');
+  await openTab(b, 'Hand');
+  const dealt = hands(b)[0].items[0].artwork;
+  const dealtControl = b.page.getByRole('button', { name: `Drag ${dealt.name} from hand`, exact: true });
+  await dealtControl.locator('[data-phase="missing"]').waitFor();
+  await until(
+    () => outage.failed.has(backPath) && outage.failed.has(publishedPath(dealt.front, origin)),
+    'The outage did not reach both the deck back and the dealt card.'
+  );
+  assert.equal(await b.page.evaluate(texturedFaces, backPath), 0);
+  await capture(b, 'published-images-during-outage');
+  outage.on = false;
+  /* Both retry on their own first cadence step, well inside the default wait. */
+  await until(
+    async () => (await b.page.evaluate(texturedFaces, backPath)) > 0,
+    'The deck back texture did not recover after the outage.'
+  );
+  await dealtControl.locator('[data-phase="shown"] img').waitFor();
+  await capture(b, 'published-images-after-outage');
+  passed('A table texture and a hand image that failed to load recover once the publisher answers again');
+}
+
+function publishedPath(href, origin) {
+  return new URL(href, origin).pathname;
+}
+
+/** Runs in the page before its scripts: keeps each three.js scene the page creates, through the devtools hook the renderer observer installed. */
+function observeScenes() {
+  const scenes = [];
+  window.__THREE_DEVTOOLS__?.addEventListener('observe', (event) => {
+    if (event.detail?.isScene) {
+      scenes.push(new WeakRef(event.detail));
+    }
+  });
+  Object.assign(window, { hostedPlayScenes: scenes });
+}
+
+/** Counts the page's meshes whose material draws the published image at `path`. */
+function texturedFaces(path) {
+  let count = 0;
+  for (const scene of window.hostedPlayScenes ?? []) {
+    scene.deref()?.traverse((object) => {
+      const source = object.material?.map?.image?.src;
+      if (source && new URL(source).pathname === path) {
+        count += 1;
+      }
+    });
+  }
+  return count;
 }
