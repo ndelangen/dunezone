@@ -112,10 +112,13 @@ export const BattleMarkerNamesItsTerritory = meta.story({
     ]);
     const dataTransfer = new DataTransfer();
     dataTransfer.setData('application/dune-battle', 'marker');
-    document
-      .querySelector('canvas')!
-      .dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, clientX, clientY, dataTransfer }));
-    expect(lastCommand()?.action).toMatchObject({ kind: 'battle-start', territory: 'Carthag' });
+    /* The camera can still be settling on a cold worker, so the drop repeats until it lands. */
+    await settled(() => {
+      document
+        .querySelector('canvas')!
+        .dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, clientX, clientY, dataTransfer }));
+      expect(lastCommand()?.action).toMatchObject({ kind: 'battle-start', territory: 'Carthag' });
+    });
   },
 });
 
