@@ -199,4 +199,16 @@
 
   /* Inherited text resolves at body, outside this subtree, so the ink is set directly. */
   color: var(--color-paper);
+
+  /* The link ink Mantine's Anchor reads.
+     The scheme's own link ink falls to 1.65:1 on the sand band, and the kit's darkest navy to 4.4:1 on the compact crop.
+     Black measures 4.8:1 or more there in both schemes, since the band does not flip with them (#821). */
+  --mantine-color-anchor: #000;
+}
+
+/* With the ink no longer a link colour, the weight and a permanent underline are what still say "link".
+   Scoped to the pinned subtree, where the only anchors are the band's way back and its breadcrumb. */
+[data-scheme-paper] .mantine-Anchor-root {
+  font-weight: 700;
+  text-decoration: underline;
 }

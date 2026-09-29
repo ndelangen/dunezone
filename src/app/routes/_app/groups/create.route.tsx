@@ -44,21 +44,13 @@ function GroupCreatePage() {
   switch (viewer.kind) {
     case 'pending':
       return (
-        <PageMessage
-          size="compact"
-          title="Start group"
-          back={<PageMessage.Back to="/profiles">Back to profiles</PageMessage.Back>}
-        >
+        <PageMessage title="Start group" back={<PageMessage.Back to="/profiles">Back to profiles</PageMessage.Back>}>
           <LoadPending title="Loading your profile">Checking whether you are signed in.</LoadPending>
         </PageMessage>
       );
     case 'signed-out':
       return (
-        <PageMessage
-          size="compact"
-          title="Start group"
-          back={<PageMessage.Back to="/profiles">Back to profiles</PageMessage.Back>}
-        >
+        <PageMessage title="Start group" back={<PageMessage.Back to="/profiles">Back to profiles</PageMessage.Back>}>
           <LoginGate action="start a group" />
         </PageMessage>
       );
