@@ -4,6 +4,12 @@ on:
   push:
     branches:
       - main
+  # GitHub has recorded merges to main without emitting their push event, so no run started and
+  # production stayed on the previous release (four merges on 2026-09-28 and 2026-09-29).
+  # Dispatching this workflow on main deploys main's tip; docs/deployment.md has the recovery steps.
+  # The production environment admits only main, so a dispatch from another branch fails before any
+  # deploy step runs.
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -12,9 +18,44 @@ concurrency:
   group: deploy-production
   cancel-in-progress: false
 
-# No verify job: branch protection on main guarantees every push is a merge PR CI already verified (#286).
+# No verify job (#286): main's ruleset only accepts a pull request merge whose required checks passed
+# on a branch up to date with main, and a dispatched run deploys a commit that reached main that way.
+# A merge through the ruleset's admin bypass skips those checks and deploys unverified.
 jobs:
+  # Ends the run green without deploying when production already serves this commit or a later one.
+  # The deploy-production group runs one run at a time and holds one more waiting: a newly queued run
+  # cancels the waiting one and takes its place, whatever commit either carries.
+  # So a late push event (80 to 219 s late on 2026-09-28 and 2026-09-29), a second event for a merge
+  # that already deployed, or "Re-run all jobs" on an older run can start after a later release is
+  # live, and without this check it would put the older commit back.
+  # The group holds this job too, so it reads production only after the previous run has finished.
+  # "Re-run failed jobs" keeps this job's first answer and deploys that run's commit whatever
+  # production serves by then.
+  release_gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      deploy: ${{ steps.decision.outputs.deploy }}
+      base: ${{ steps.decision.outputs.base }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+          # The decision compares production's commits with this one in git history.
+          fetch-depth: 0
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: package.json
+
+      - name: Decide whether production still needs this commit
+        id: decision
+        run: bun run ./scripts/deploy-decision.ts
+
   deploy:
+    needs: release_gate
+    if: needs.release_gate.outputs.deploy == 'true'
     environment: production
     runs-on: ubuntu-latest
     # The contract test budgets migrations, both active-version gates, narrowing and release work.
@@ -188,11 +229,15 @@ jobs:
 
   # Production has already shipped when this starts: a failed dev rebuild reddens the run without
   # ever gating the release.
+  # The rebuild measures its change range from the release production served before this run, which
+  # also covers a merge whose push event never arrived.
+  # When the gate cannot name that release, the range starts at the push's previous tip; a dispatched
+  # run has no previous tip, and an empty base rebuilds dev's data.
   dev_rebuild:
-    needs: deploy
+    needs: [release_gate, deploy]
     uses: ./.github/workflows/dev-rebuild.yml
     with:
-      base: ${{ github.event.before }}
+      base: ${{ needs.release_gate.outputs.base || github.event.before }}
     secrets:
       CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
       CONVEX_DEV_DEPLOY_KEY: ${{ secrets.CONVEX_DEV_DEPLOY_KEY }}

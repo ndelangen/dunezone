@@ -264,7 +264,13 @@ change after the public delivery release is verified.
 
 **Workflow**: [`.github/workflows/deploy-main.yml`](../.github/workflows/deploy-main.yml)
 
-On every push to `main`:
+The workflow runs on every push to `main`, and by hand on `main` (see
+[Recovering from a dropped push](#recovering-from-a-dropped-push)). Its `release_gate` job runs
+first and reads the commit each production Worker reports on `https://dune.zone/__play/health` and
+`https://dune.zone/__asset-publisher/health`. The run ends green without deploying when either Worker
+already reports a later commit than the run's, or both already report the run's own commit. An
+endpoint that does not answer, or a commit git cannot place, lets the deploy go ahead. Otherwise the
+`deploy` job runs:
 
 1. Install dependencies, then verify schema-narrowing prerequisites
    (`migrations:narrow-check`). This runs *before* the Convex deploy and blocks
@@ -297,9 +303,10 @@ On every push to `main`:
     activate all higher revisions in one mutation and schedule bounded
     regeneration scans. CI does not wait for scanning or capture.
 14. Set Convex Auth `SITE_URL` to `https://dune.zone`.
-15. A follow-on `dev_rebuild` job (`needs: deploy`) rebuilds the dev deployment
+15. A follow-on `dev_rebuild` job (`needs: [release_gate, deploy]`) rebuilds the dev deployment
     from production; see
-    [`dev-rebuild.yml`](../.github/workflows/dev-rebuild.yml).
+    [`dev-rebuild.yml`](../.github/workflows/dev-rebuild.yml). It measures its change range from
+    the release production served before the run, as `release_gate` read it.
 
 The revision step rejects a checked-in value lower than production. Equal values
 are a no-op. A revision activation stores the new values before scheduling scans,
@@ -308,6 +315,47 @@ so ordinary saves and later scans share the same job-coalescing behavior.
 Wrangler receives only the Cloudflare deployment credentials. Its checked-in
 configuration remains the deployment contract; CI only overrides `GIT_SHA` with
 the merged commit SHA.
+
+## Recovering from a dropped push
+
+GitHub sometimes records a merge to `main` without emitting a push event for it. No deploy run
+starts, no app reports a check on the commit, and production stays on the previous release until the
+next merge. Four merges went this way on 2026-09-28 and 2026-09-29, and production was behind for 19
+to 96 minutes each time. A deploy run normally appears within 10 seconds of its merge; the latest
+seen so far came 219 seconds after.
+
+A late event can also hide a merge. The `deploy-production` concurrency group holds at most one waiting run,
+and a newly queued run cancels the waiting one, so a late event for an older merge can cancel the run
+for a newer one. `release_gate` stops the late run if production already has a later commit, but
+either way the newer merge is not deployed.
+
+So check production against `main` once no deploy run is queued or in progress:
+
+```sh
+gh run list --workflow deploy-main.yml --limit 3
+curl -s https://dune.zone/__asset-publisher/health | jq -r .identity.gitSha
+gh api repos/ndelangen/dunezone/commits/main --jq .sha
+```
+
+If the two commits differ, deploy `main` by hand:
+
+```sh
+gh workflow run deploy-main.yml --ref main
+```
+
+The dispatched run deploys the commit `main` points at when you dispatch it, which includes every
+merge whose event went missing. Its dev rebuild measures from the release production was serving, so
+a schema or migration change in a dropped merge still rebuilds dev's data. If the missing event turns
+up later, its run stops at `release_gate`.
+
+Do not recover by rerunning an earlier deploy run. A rerun keeps that run's `GITHUB_SHA`, so it
+redeploys that older commit rather than `main`'s tip. "Re-run failed jobs" keeps the gate's first answer
+and deploys the older commit even over a later release. "Re-run all jobs" asks the gate again, which
+stops the run once production has that commit or a later one.
+
+"Re-run failed jobs" is still how to finish a deploy that failed partway, for example a smoke that
+failed after both Workers went out. A dispatched run would stop at the gate there, because both
+Workers already report that commit.
 
 ## Publication controls
 
