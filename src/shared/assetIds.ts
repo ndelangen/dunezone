@@ -864,7 +864,7 @@ export const TROOP = z.enum([
   '/vector/troop/harkonnen.svg',
   '/vector/troop/honored-matre.svg',
   '/vector/troop/iduali.svg',
-  '/vector/troop/ixian-probe.svg',
+  '/vector/troop/ixian-engineer.svg',
   '/vector/troop/ixian.svg',
   '/vector/troop/juggernaut.svg',
   '/vector/troop/landsraad.svg',
