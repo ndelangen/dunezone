@@ -87,6 +87,7 @@ import { useMotionAllowed } from '@app/styles/motion';
 
 import arrakisMapUrl from './assets/arrakis-map.png?url';
 import stormMarkerUrl from './assets/storm-marker.png?url';
+import { boardFurnitureFor } from './boardFurniture';
 import { BOARD_RIM_DEPTH, createBoardRimShape } from './boardRimGeometry';
 import { CameraControls, CameraRelativeFog } from './CameraControls';
 import { usePresence } from './multiplayer/PresenceContext';
@@ -232,11 +233,6 @@ function BoardRim({ seatCount }: { seatCount: TableSeatCount }) {
       <meshStandardMaterial color={BOARD_RIM_COLOR} roughness={BOARD_RIM_ROUGHNESS} metalness={BOARD_RIM_METALNESS} />
     </mesh>
   );
-}
-
-/** Drafting and swapping choose factions and seats, so the table shows no storm or trackers yet. */
-function beforeSetup(stage: TabletopSceneProps['stage']) {
-  return stage === 'drafting' || stage === 'swapping';
 }
 
 function TableTrackers({
@@ -469,7 +465,7 @@ function BoardSurface({
           placeholder replacing a table the visitor has already seen. */}
       <Suspense fallback={null}>
         {(stage !== 'setup' || mapVisible) && <BoardMap animate={stage === 'setup'} />}
-        {!beforeSetup(stage) && stage !== 'setup' && <StormSectorHighlight sectorIndex={stormSectorIndex} />}
+        {boardFurnitureFor(stage).storm && <StormSectorHighlight sectorIndex={stormSectorIndex} />}
       </Suspense>
       <mesh position={[0, BOARD_SURFACE_Y + 0.005, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <circleGeometry args={[BOARD_RADIUS, 128]} />
@@ -1218,13 +1214,13 @@ export function TabletopScene({
   const pieceMenuLabelId = useId();
   const deckAvailable =
     !!deckControls && !!menuPiece && !menuPiece.locked && !menuPiece.inventory && menuPiece.items.length > 0;
-  /* Drafting and swapping keep the board clear of trackers, and setup shows only the spice ones. */
-  const tableProgress = beforeSetup(stage) ? undefined : providedProgress;
+  const { trackers } = boardFurnitureFor(stage);
+  const tableProgress = trackers === 'none' ? undefined : providedProgress;
   const phaseCount = tableProgress?.phases.length ?? null;
   const trackerSlots = useMemo(() => {
     const slots = phaseCount === null ? [] : trackerArcSlots(phaseCount);
-    return stage === 'setup' ? slots.filter((slot) => slot.kind === 'spice') : slots;
-  }, [phaseCount, stage]);
+    return trackers === 'spice' ? slots.filter((slot) => slot.kind === 'spice') : slots;
+  }, [phaseCount, trackers]);
   const mapFramingPoints = useMemo(() => mapViewFramingPoints(trackerSlots, seatCount), [seatCount, trackerSlots]);
   const camera = useMemo(
     () => ({
