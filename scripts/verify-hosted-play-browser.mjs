@@ -109,8 +109,14 @@ for (const label of SIGNED_IN) {
   );
 }
 await writeFile(credentialsPath, JSON.stringify(credentials), { mode: 0o600 });
-/* The accounts exist before any browser starts, so a browser's sign-in only signs in and never creates one (#1493). */
-const admin = new ConvexHttpClient(backend, { logger: false });
+/*
+ * The accounts exist before any browser starts, so a browser's sign-in only signs in and never creates one (#1493).
+ * Each request gets the load runner's 15 s, so a backend that never answers fails here by name rather than at the flow's timeout.
+ */
+const admin = new ConvexHttpClient(backend, {
+  logger: false,
+  fetch: (input, init) => fetch(input, { ...init, signal: AbortSignal.timeout(15_000) }),
+});
 admin.setAdminAuth(environment.CONVEX_SELF_HOSTED_ADMIN_KEY);
 await provisionAccounts(
   admin,

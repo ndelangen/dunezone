@@ -396,9 +396,12 @@ The copy contains tracked Convex and shared code with two generated modules, bot
 backend and application origin, lets Password Auth accept only 38 fixed synthetic emails during the
 run, and makes fixture creation refuse a second live game. Its `convex/crons.ts` registers no cron.
 Every other file is production source. Real hashing, sessions, JWTs, admission, authorization and
-commands remain in use. No environment files or data are copied. Production source retains its
-loopback-only synthetic guard. The additional guard and resource-ledger work must be included in
-the reported test overhead.
+commands remain in use, except at account creation: the runner hashes each password itself and
+writes the account through the test control `playTesting:provisionAccounts`. That control checks
+the run window but not the 38 emails or the password length. Password still checks both at every
+sign-in, so an account outside that list can be written but can never sign in. No environment
+files or data are copied. Production source retains its loopback-only synthetic guard. The
+additional guard and resource-ledger work must be included in the reported test overhead.
 
 Mint a development deploy key using the full explicit project and deployment reference in a
 sanitized environment. Save it to a private file and check its `dev:<backendName>|` prefix without
