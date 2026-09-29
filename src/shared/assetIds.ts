@@ -849,7 +849,9 @@ export const TROOP = z.enum([
   '/vector/troop/blaster.svg',
   '/vector/troop/choam.svg',
   '/vector/troop/coat.svg',
+  '/vector/troop/court-duelist.svg',
   '/vector/troop/cymecs.svg',
+  '/vector/troop/desert-pathfinder.svg',
   '/vector/troop/ecaz.svg',
   '/vector/troop/emperor.svg',
   '/vector/troop/fat.svg',
@@ -858,6 +860,7 @@ export const TROOP = z.enum([
   '/vector/troop/guild.svg',
   '/vector/troop/hagal.svg',
   '/vector/troop/harkonnen.svg',
+  '/vector/troop/house-bulwark.svg',
   '/vector/troop/iduali.svg',
   '/vector/troop/ixian.svg',
   '/vector/troop/juggernaut.svg',
@@ -866,7 +869,10 @@ export const TROOP = z.enum([
   '/vector/troop/peddler.svg',
   '/vector/troop/pewpew.svg',
   '/vector/troop/richese.svg',
+  '/vector/troop/salvage-warden.svg',
+  '/vector/troop/siege-gunner.svg',
   '/vector/troop/smuggler.svg',
+  '/vector/troop/veiled-adept.svg',
 ]);
 
 export const TROOP_MODIFIER = z.enum([
