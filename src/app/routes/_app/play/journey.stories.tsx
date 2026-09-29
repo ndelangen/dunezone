@@ -62,17 +62,25 @@ async function atStep(canvasElement: HTMLElement, step: number) {
   return { page, panel: within(panel) };
 }
 
+/* The second seat's player, who joins between J01 and J02. */
+const PLAYERS_AT_TABLE_FULL = 'Thialfi';
+
 /** The whole game: start at J01 and step, scrub or switch seats from the panel. */
 export const Walkthrough = meta.story({
   play: async ({ canvasElement }) => {
-    const { panel } = await atStep(canvasElement, 1);
+    const { page, panel } = await atStep(canvasElement, 1);
     expect(panel.getByText(journeySteps()[0]!.title)).toBeVisible();
+    /* The page itself follows the panel: the second player shows once the table fills, and leaves again at the start. */
+    const seated = () => page.queryAllByText(PLAYERS_AT_TABLE_FULL, { exact: true });
+    expect(seated()).toHaveLength(0);
     await userEvent.click(panel.getByRole('button', { name: 'Next' }));
     await waitFor(() => expect(panel.getByText(stepCode(1))).toBeVisible());
     expect(journey.step).toBe(1);
+    await waitFor(() => expect(seated().length).toBeGreaterThan(0));
     /* Back to the start, so the story opens where the game does. */
     await userEvent.click(panel.getByRole('button', { name: 'Previous' }));
     await waitFor(() => expect(panel.getByText(stepCode(0))).toBeVisible());
+    await waitFor(() => expect(seated()).toHaveLength(0));
   },
 });
 

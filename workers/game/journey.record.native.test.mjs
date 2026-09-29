@@ -41,7 +41,7 @@ async function drafting(journey) {
   journey.spectator = await journey.admit('watcher');
   await journey.record(
     'Table full',
-    'Six players are seated through the creator’s approval, and Klyzx watches as a spectator.'
+    "Six players are seated through the creator's approval, and Klyzx watches as a spectator."
   );
   for (const [index, faction] of factionFixtures.entries()) {
     await journey.act(

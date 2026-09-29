@@ -227,20 +227,32 @@ export class JourneyRecorder {
     return (await syncView(this.players[0])).snapshot.stage;
   }
 
-  async logPage(tab, connection = this.players[0]) {
+  async logPage(tab, before = LATEST) {
+    const connection = this.players[0];
     const start = connection.messages.length;
-    connection.send({ type: 'log-history', tab, before: LATEST });
-    const page = await eventually(
+    connection.send({ type: 'log-history', tab, before });
+    return eventually(
       () => connection.messages.slice(start).find((message) => message.type === 'log-history' && message.tab === tab),
       `${tab} log page`
     );
-    return page.entries;
+  }
+
+  /** The whole log of one tab, newest first, paged back until nothing older remains. */
+  async fullLog(tab) {
+    const entries = [];
+    let page = await this.logPage(tab);
+    entries.push(...page.entries);
+    while (page.more) {
+      page = await this.logPage(tab, entries.at(-1).sequence);
+      entries.push(...page.entries);
+    }
+    return entries;
   }
 
   /** Keeps the current view of every viewer as one step. */
   async record(title, detail, actor = null, action = null) {
     const views = await Promise.all(this.viewers().map(syncView));
-    const [latest] = await this.logPage('game');
+    const [latest] = (await this.logPage('game')).entries;
     this.steps.push({
       title,
       detail,
@@ -343,7 +355,7 @@ export class JourneyRecorder {
 
   /** Writes the recording with the game and audit logs as they ended. */
   async write(path) {
-    const log = { game: await this.logPage('game'), audit: await this.logPage('audit') };
+    const log = { game: await this.fullLog('game'), audit: await this.fullLog('audit') };
     const recording = { recordedWith: 'bun run play:record', ...interned(this.steps), log };
     await mkdir(dirname(path), { recursive: true });
     await writeFile(path, `${portable(JSON.stringify(recording))}\n`);

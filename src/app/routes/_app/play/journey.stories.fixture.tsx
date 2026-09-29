@@ -115,10 +115,14 @@ export function journeyFrame(index: number, seat: string, completedCommandId?: s
   } as View;
 }
 
+/* Whether a command is the recorded one: every field the recording kept matches, so a different pick stays on this step. */
+const sameAction = (recorded: Action, action: Action) =>
+  Object.entries(recorded).every(([key, value]) => JSON.stringify(action[key]) === JSON.stringify(value));
+
 /** The step a command advances to when it is the one the recording took next from this viewer's seat. */
 export function railsTarget(index: number, seat: string, action: Action): number | null {
   const next = journeySteps()[index + 1];
-  return next?.actor === seat && next.action?.kind === action.kind ? index + 1 : null;
+  return next?.actor === seat && next.action && sameAction(next.action, action) ? index + 1 : null;
 }
 
 /** What the page currently shows, shared by the transport and the panel. */
@@ -290,12 +294,18 @@ function JourneyFrame({
     });
   };
   const shown = useRef({ step, seat });
-  journey.onStep = (next) => change({ step: next });
+  useEffect(() => {
+    journey.onStep = (next) => change({ step: next });
+  });
   useEffect(() => {
     if (shown.current.step === step && shown.current.seat === seat) {
       return;
     }
     shown.current = { step, seat };
+    /* A command on rails already delivered this step with its answer. */
+    if (journey.step === step && journey.seat === seat) {
+      return;
+    }
     journey.step = step;
     journey.seat = seat;
     /* Before the page connects, its admission reads the step itself. */
