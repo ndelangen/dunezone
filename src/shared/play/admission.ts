@@ -29,7 +29,10 @@ export const PLAY_AUTHORIZATION_BATCH_SIZE = 64;
  * Convex cuts a longer profile name to it before the game Worker sees it.
  */
 export const PLAY_DISPLAY_NAME_MAX_LENGTH = 256;
-/* The longest profile slug the game Worker carries; Convex sends null for a longer one, so the player is cited unlinked. */
+/*
+ * The longest profile slug the game Worker carries, the same bound as its stored names; Convex sends null for a longer
+ * one, so the player is cited unlinked.
+ */
 export const PLAY_PROFILE_SLUG_MAX_LENGTH = 160;
 /* A player's public profile slug, so the table can link to their profile; null for an inactive account. */
 export const playProfileSlugSchema = z.string().min(1).max(PLAY_PROFILE_SLUG_MAX_LENGTH).nullable().optional();

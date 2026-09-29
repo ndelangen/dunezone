@@ -167,7 +167,12 @@ export class ActorDirectory {
       .map((row) => ({ seat: row.seat, userId: row.user_id }));
   }
 
-  /** Who holds each seat, by public name, avatar and profile slug, for the panel; spectators hold none. */
+  /**
+   * Who holds each seat, by public name, avatar and profile slug, for the panel;
+   * spectators hold none.
+   * All three are as the player's last admission carried them, not live account state.
+   * An account closing since then keeps its slug until reconciliation removes the actor.
+   */
   holders(): { seat: string; name: string; avatar: string | null; slug: string | null }[] {
     return this.storage.sql
       .exec<{ seat: string; display_name: string; avatar_url: string | null; profile_slug: string | null }>(
