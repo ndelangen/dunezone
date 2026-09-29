@@ -28,21 +28,18 @@ export type AuditVerdict =
   | { kind: 'unexplained'; exitCode: number | null };
 
 /*
- * bun 1.4 prints `error: POST <registry>/-/npm/v1/security/advisories/bulk - <reason>` on its own
- * line for every transport failure, where the reason is a transport error such as `ConnectionClosed`
- * or an HTTP status such as `503`, and closes an advisory table with `N vulnerabilities (...)`, so
- * the output and the exit code classify an attempt.
+ * bun prints `<Reason>: audit request failed` on its own line for every transport failure, and
+ * closes an advisory table with `N vulnerabilities (...)`, so the output and the exit code classify
+ * an attempt.
  * An exit 1 with neither line is refused as unexplained rather than reported as an advisory.
  */
-const TRANSPORT_LINE = /^error: (POST \S+\/-\/npm\/v1\/security\/advisories\/bulk - .+)$/m;
-
 export function classifyAudit(attempt: AuditAttempt): AuditVerdict {
   if (attempt.exitedDueToTimeout) {
     throw new TransientError(`no answer within ${ATTEMPT_MS / 1000} s`);
   }
-  const transport = TRANSPORT_LINE.exec(attempt.output);
+  const transport = /^.*audit request failed.*$/m.exec(attempt.output);
   if (transport) {
-    throw new TransientError(transport[1]);
+    throw new TransientError(transport[0].trim());
   }
   if (attempt.exitCode === 0) {
     return { kind: 'clean' };

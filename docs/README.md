@@ -63,15 +63,6 @@ The colocated typecheck fixture checks valid and invalid Three props, Mantine at
 and the DOM namespace together. No files are excluded from typechecking.
 Replace the patch and local runtime together when Fiber provides an upstream scoped JSX entry.
 
-The `miniflare` entry in `package.json` `overrides` moves only miniflare's own `undici` to 7.29.1,
-for [GHSA-3wwx-pv8p-q78v](https://github.com/advisories/GHSA-3wwx-pv8p-q78v). miniflare pins
-`undici` to exactly 7.29.0, which no range can reach, and an override of `undici` everywhere would
-move jsdom's 8.x copy and the Codecov analyzer's 6.x copies across majors. An override scoped to one
-parent needs Bun 1.4 or later, and it makes `bun.lock` `lockfileVersion` 3, which Bun 1.3 cannot read
-(see [operational traps](./technical/operational-traps.md#bun-13-rewrites-bunlock-instead-of-refusing-it)).
-Remove the entry when the miniflare release in the tree, which moves with `wrangler`, pins `undici`
-7.29.1 or later.
-
 ### Disposable local app development
 
 `bun run app:dev --local` is the authenticated local environment for browser review and branch work

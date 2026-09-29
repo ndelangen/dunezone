@@ -7,54 +7,41 @@ import { ATTEMPT_MS, RETRY_DELAYS_MS, auditDependencies, classifyAudit, verdictL
 import type { AuditAttempt } from './dependency-audit';
 import { TransientError } from './retry-transient';
 
-/*
- * Output of bun audit 1.4.2 as the script captures it, stderr first, from local runs on 29 September 2026: this tree,
- * main's tree before the undici move, and a stand-in registry on 127.0.0.1 that drops the connection or answers 503.
- */
+/* Output of bun audit 1.3.9 and 1.3.14, copied from local runs and from the 2026-09-04 job logs. */
 const CLEAN: AuditAttempt = {
   exitCode: 0,
   exitedDueToTimeout: false,
-  output: 'bun audit v1.4.2 (744846f84)\n\nNo vulnerabilities found (checked 846 packages) [415.00ms]\n',
+  output: 'bun audit v1.3.9 (cf6cdbbb)\nNo vulnerabilities found\n',
 };
 const ADVISORIES: AuditAttempt = {
   exitCode: 1,
   exitedDueToTimeout: false,
   output: [
-    'bun audit v1.4.2 (744846f84)',
+    'bun audit v1.3.9 (cf6cdbbb)',
+    'lodash  <4.17.21',
+    '  (direct dependency)',
+    '  high: Command Injection in lodash - https://github.com/advisories/GHSA-35jh-r3h4-6jhm',
+    '  moderate: Regular Expression Denial of Service (ReDoS) in lodash - https://github.com/advisories/GHSA-29mw-wpgm-hmr9',
     '',
-    'undici@8.10.0, 6.28.0, 7.29.0',
-    '  workspace:svg-obj-tool > jsdom > undici',
-    '  miniflare > undici',
-    '  @codecov/bundle-analyzer > @codecov/bundler-plugin-core > @actions/github > undici',
-    '  moderate: undici vulnerable to Denial of Service via unhandled error in WebSocket permessage-deflate decompression (>=8.1.0 <8.10.2) - https://github.com/advisories/GHSA-3wwx-pv8p-q78v',
-    '  moderate: undici vulnerable to Denial of Service via unhandled error in WebSocket permessage-deflate decompression (>=7.28.0 <7.29.1) - https://github.com/advisories/GHSA-3wwx-pv8p-q78v',
-    '  moderate: undici vulnerable to Denial of Service via unhandled error in WebSocket permessage-deflate decompression (>=6.25.0 <6.28.1) - https://github.com/advisories/GHSA-3wwx-pv8p-q78v',
+    '2 vulnerabilities (1 high, 1 moderate)',
     '',
-    '3 vulnerabilities (3 moderate)',
-    '',
-    '  bun audit fix           upgrade the vulnerable packages within their ranges',
-    '  bun audit fix --latest  also cross major versions',
+    'To update all dependencies to the latest compatible versions:',
+    '  bun update',
     '',
   ].join('\n'),
 };
 const CLOSED: AuditAttempt = {
   exitCode: 1,
   exitedDueToTimeout: false,
-  output:
-    'error: POST http://127.0.0.1:47811/-/npm/v1/security/advisories/bulk - ConnectionClosed\nbun audit v1.4.2 (744846f84)\n\n',
+  output: 'bun audit v1.3.14 (0d9b296a)\nConnectionClosed: audit request failed\n',
 };
-const UNAVAILABLE: AuditAttempt = {
+const TIMED_OUT: AuditAttempt = {
   exitCode: 1,
   exitedDueToTimeout: false,
-  output:
-    'error: POST http://127.0.0.1:47812/-/npm/v1/security/advisories/bulk - 503\nbun audit v1.4.2 (744846f84)\n\n',
+  output: 'bun audit v1.3.14 (0d9b296a)\nTimeout: audit request failed\n',
 };
-const KILLED: AuditAttempt = { exitCode: null, exitedDueToTimeout: true, output: 'bun audit v1.4.2 (744846f84)\n\n' };
-const BROKEN: AuditAttempt = {
-  exitCode: 1,
-  exitedDueToTimeout: false,
-  output: "error: missing lockfile, nothing to audit\nnote: run 'bun install' first\nbun audit v1.4.2 (744846f84)\n\n",
-};
+const KILLED: AuditAttempt = { exitCode: null, exitedDueToTimeout: true, output: 'bun audit v1.3.14 (0d9b296a)\n' };
+const BROKEN: AuditAttempt = { exitCode: 1, exitedDueToTimeout: false, output: 'error: Lockfile not found\n' };
 
 function scripted(attempts: AuditAttempt[]) {
   const log: string[] = [];
@@ -76,34 +63,30 @@ describe('classifyAudit', () => {
     expect(classifyAudit(CLEAN)).toEqual({ kind: 'clean' });
     expect(classifyAudit(ADVISORIES)).toEqual({
       kind: 'advisories',
-      summary: '3 vulnerabilities (3 moderate)',
+      summary: '2 vulnerabilities (1 high, 1 moderate)',
     });
     expect(classifyAudit(BROKEN)).toEqual({ kind: 'unexplained', exitCode: 1 });
     expect(verdictLine(classifyAudit(ADVISORIES))).toBe(
-      'dependency audit: advisories at or above moderate found (3 vulnerabilities (3 moderate))'
+      'dependency audit: advisories at or above moderate found (2 vulnerabilities (1 high, 1 moderate))'
     );
   });
 
   test('names a transport failure and a killed attempt as transient', () => {
     expect(() => classifyAudit(CLOSED)).toThrow(TransientError);
-    expect(() => classifyAudit(CLOSED)).toThrow(
-      'POST http://127.0.0.1:47811/-/npm/v1/security/advisories/bulk - ConnectionClosed'
-    );
-    expect(() => classifyAudit(UNAVAILABLE)).toThrow(
-      'POST http://127.0.0.1:47812/-/npm/v1/security/advisories/bulk - 503'
-    );
+    expect(() => classifyAudit(CLOSED)).toThrow('ConnectionClosed: audit request failed');
+    expect(() => classifyAudit(TIMED_OUT)).toThrow('Timeout: audit request failed');
     expect(() => classifyAudit(KILLED)).toThrow(`no answer within ${ATTEMPT_MS / 1000} s`);
   });
 });
 
 describe('auditDependencies', () => {
   test('retries the registry through transport failures and keeps the attempt that answered', async () => {
-    const h = scripted([CLOSED, UNAVAILABLE, CLEAN]);
+    const h = scripted([CLOSED, TIMED_OUT, CLEAN]);
     await expect(h.audit()).resolves.toEqual({ verdict: { kind: 'clean' }, output: CLEAN.output });
     expect(h.calls()).toBe(3);
     expect(h.log).toEqual([
-      'npm advisory registry: attempt 1 of 4 failed (POST http://127.0.0.1:47811/-/npm/v1/security/advisories/bulk - ConnectionClosed); retrying in 5 s',
-      'npm advisory registry: attempt 2 of 4 failed (POST http://127.0.0.1:47812/-/npm/v1/security/advisories/bulk - 503); retrying in 15 s',
+      'npm advisory registry: attempt 1 of 4 failed (ConnectionClosed: audit request failed); retrying in 5 s',
+      'npm advisory registry: attempt 2 of 4 failed (Timeout: audit request failed); retrying in 15 s',
     ]);
   });
 
@@ -118,7 +101,7 @@ describe('auditDependencies', () => {
   test('never retries an advisory', async () => {
     const h = scripted([ADVISORIES, CLEAN]);
     await expect(h.audit()).resolves.toMatchObject({
-      verdict: { kind: 'advisories', summary: '3 vulnerabilities (3 moderate)' },
+      verdict: { kind: 'advisories', summary: '2 vulnerabilities (1 high, 1 moderate)' },
     });
     expect(h.calls()).toBe(1);
     expect(h.log).toEqual([]);
