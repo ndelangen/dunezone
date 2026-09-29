@@ -843,6 +843,7 @@ export const TEXTURE = z.enum([
 ]);
 
 export const TROOP = z.enum([
+  '/vector/troop/acolyte.svg',
   '/vector/troop/atreides.svg',
   '/vector/troop/bene-gesserit.svg',
   '/vector/troop/bene-tleilaxu.svg',
@@ -852,21 +853,34 @@ export const TROOP = z.enum([
   '/vector/troop/cymecs.svg',
   '/vector/troop/ecaz.svg',
   '/vector/troop/emperor.svg',
+  '/vector/troop/face-dancer.svg',
   '/vector/troop/fat.svg',
+  '/vector/troop/fedaykin.svg',
+  '/vector/troop/fish-speaker.svg',
   '/vector/troop/fremen.svg',
   '/vector/troop/ginaz.svg',
   '/vector/troop/guild.svg',
   '/vector/troop/hagal.svg',
   '/vector/troop/harkonnen.svg',
+  '/vector/troop/honored-matre.svg',
   '/vector/troop/iduali.svg',
+  '/vector/troop/ixian-probe.svg',
   '/vector/troop/ixian.svg',
   '/vector/troop/juggernaut.svg',
   '/vector/troop/landsraad.svg',
+  '/vector/troop/lasgun-gunner.svg',
+  '/vector/troop/mentat.svg',
   '/vector/troop/moritani.svg',
   '/vector/troop/peddler.svg',
   '/vector/troop/pewpew.svg',
   '/vector/troop/richese.svg',
+  '/vector/troop/sandrider.svg',
+  '/vector/troop/sardaukar.svg',
+  '/vector/troop/shield-noble.svg',
   '/vector/troop/smuggler.svg',
+  '/vector/troop/swordmaster.svg',
+  '/vector/troop/thumper-scout.svg',
+  '/vector/troop/water-seller.svg',
 ]);
 
 export const TROOP_MODIFIER = z.enum([
