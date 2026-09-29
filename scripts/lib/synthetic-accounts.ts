@@ -24,12 +24,23 @@ export function passwordSecret(password: string) {
   });
 }
 
+/**
+ * Accounts per provisioning mutation.
+ * The load runner creates up to 38, and one mutation writing all of them could itself meet the local backend's 1 s limit on a loaded machine.
+ * Six took at most about 0.4 s under 80 busy loops.
+ */
+const ACCOUNTS_PER_MUTATION = 6;
+
 /** Creates each account that does not exist yet through the synthetic backend's test control; `admin` carries the admin key. */
 export async function provisionAccounts(admin: ConvexHttpClient, accounts: SyntheticAccount[]) {
   const hashed = await Promise.all(
     accounts.map(async ({ email, password }) => ({ email, secret: await passwordSecret(password) }))
   );
-  await admin.mutation(anyApi.playTesting.provisionAccounts, { accounts: hashed });
+  for (let start = 0; start < hashed.length; start += ACCOUNTS_PER_MUTATION) {
+    await admin.mutation(anyApi.playTesting.provisionAccounts, {
+      accounts: hashed.slice(start, start + ACCOUNTS_PER_MUTATION),
+    });
+  }
 }
 
 /** The Password flow of an `auth:signIn` action the page sent, or null for any other frame. */
