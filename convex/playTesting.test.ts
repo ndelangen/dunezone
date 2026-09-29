@@ -55,6 +55,11 @@ describe('isolated Play test controls', () => {
       t.mutation(internal.playTesting.shortenSession, { sessionId, kind: 'total', expiresInMs: 0 })
     ).rejects.toThrow('isolated loopback');
     await expect(t.mutation(internal.playTesting.seedRealGameCatalogue, {})).rejects.toThrow('isolated loopback');
+    await expect(
+      t.mutation(internal.playTesting.provisionAccounts, {
+        accounts: [{ email: 'player@example.invalid', secret: `${'0'.repeat(32)}:${'0'.repeat(128)}` }],
+      })
+    ).rejects.toThrow('isolated loopback');
   });
 
   test('seeds a real-game ruleset with both decks and two factions, distinct from an earlier seed', async () => {

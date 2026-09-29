@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { randomBytes, randomUUID } from 'node:crypto';
+import { randomBytes, randomUUID, scrypt } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { parseEnv } from 'node:util';
 
@@ -46,21 +46,44 @@ const passed = (name, detail) => {
   results.push({ name, ...detail });
   console.log(`PASS ${name}`);
 };
-async function login(label, existing) {
-  const credentials = existing ?? {
-    email: `${label}-${randomBytes(6).toString('hex')}@example.invalid`,
-    password: randomBytes(24).toString('hex'),
-  };
+/*
+ * passwordSecret's Scrypt from scripts/lib/synthetic-accounts.ts, copied for the same reason as the loopback rule above.
+ * A secret that Password does not accept fails the first sign-in.
+ */
+function passwordSecret(password) {
+  const salt = randomBytes(16).toString('hex');
+  return new Promise((resolve, reject) => {
+    scrypt(password.normalize('NFKC'), salt, 64, { N: 16_384, r: 16, p: 1, maxmem: 64 * 1024 * 1024 }, (error, key) =>
+      error ? reject(error) : resolve(`${salt}:${key.toString('hex')}`)
+    );
+  });
+}
+/* Every account the checks sign in; they are created before the first sign-in, so no check signs up under the backend's 1 s limit (#1493). */
+const accounts = Object.fromEntries(
+  ['alice', 'bob', 'observer', 'short', 'total-expiry', 'replacement'].map((label) => [
+    label,
+    { email: `${label}-${randomBytes(6).toString('hex')}@example.invalid`, password: randomBytes(24).toString('hex') },
+  ])
+);
+/* Six accounts, the most scripts/lib/synthetic-accounts.ts sends in one provisioning mutation. */
+async function provisionAccounts() {
+  const hashed = await Promise.all(
+    Object.values(accounts).map(async ({ email, password }) => ({ email, secret: await passwordSecret(password) }))
+  );
+  await admin.mutation(anyApi.playTesting.provisionAccounts, { accounts: hashed });
+}
+async function login(label) {
+  assert.ok(accounts[label], `${label} has no provisioned account.`);
   const client = new ConvexHttpClient(backend.origin, { logger: false });
   const result = await client.action(anyApi.auth.signIn, {
     provider: 'password',
-    params: { flow: existing ? 'signIn' : 'signUp', ...credentials },
+    params: { flow: 'signIn', ...accounts[label] },
   });
   assert.ok(result.tokens?.token);
   client.setAuth(result.tokens.token);
   const { sub } = JSON.parse(Buffer.from(result.tokens.token.split('.')[1], 'base64url'));
   const [userId, sessionId] = sub.split('|');
-  return { client, credentials, userId, sessionId, tokens: result.tokens };
+  return { client, userId, sessionId, tokens: result.tokens };
 }
 async function open(gameId, ticket) {
   const socket = new WebSocket(`${origin.origin.replace('http:', 'ws:')}/__play/games/${gameId}/socket`, {
@@ -122,6 +145,7 @@ async function command(peer, action) {
   assert.equal(rejection, undefined, rejection?.message);
 }
 try {
+  await provisionAccounts();
   const fixture = await admin.mutation(anyApi.playTesting.createFixture, {});
   const provisions = await Promise.all(
     [0, 1].map(() =>
@@ -321,7 +345,7 @@ try {
   await delay(100);
   assert.deepEqual([a.messages.length, aTab.messages.length], endedCounts);
   assert.equal((await alice.client.mutation(anyApi.playAdmission.issueTicket, { gameId: fixture.gameId })).ok, false);
-  const returned = await login('alice', alice.credentials);
+  const returned = await login('alice');
   const aNew = await connect(fixture.gameId, returned);
   assert.equal(aNew.view().viewer.viewerSeat, seat);
   assert.notEqual(aNew.view().viewer.connectionId, a.view().viewer.connectionId);
