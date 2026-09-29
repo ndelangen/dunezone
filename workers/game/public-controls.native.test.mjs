@@ -715,8 +715,8 @@ describe('Hosted readiness and shared inventory through native commands', () => 
     await runtime.exec("UPDATE metadata SET data=json_remove(data, '$.historyRepair')");
     await armFailure();
     await runtime.restart();
-    /* A failed repair rolls back with its version unsaved, so the next start repairs again. */
-    await expect(openGame(runtime)).rejects.toThrow('Socket refused: 500');
+    /* A failed repair rolls back with its version unsaved, and the room refuses until the next start repairs again. */
+    await expect(openGame(runtime)).rejects.toThrow('Socket refused: 403');
     expect(JSON.stringify(await runtime.offline('SELECT data FROM history'))).toContain('Synthetic A');
     expect(version(await runtime.offline('SELECT data FROM metadata'))).toBeUndefined();
     await runtime.offline('DROP TRIGGER fail_history_scrub');

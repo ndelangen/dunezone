@@ -15,7 +15,9 @@ type Operation =
   | 'authorization-close'
   | 'draft-catalogue'
   | 'assignment'
-  | 'storage-sync';
+  | 'storage-sync'
+  | 'load'
+  | 'retire';
 
 const REPEAT_INTERVAL_MS = 60_000;
 
