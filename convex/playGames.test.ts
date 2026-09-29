@@ -7,7 +7,7 @@ import { convexTest } from 'convex-test';
 import { describe, expect, test } from 'vitest';
 
 import { publishingDeckCardback } from '../src/shared/assets/fixtures/publishingDeckCardback';
-import { PLAY_DISPLAY_NAME_MAX_LENGTH } from '../src/shared/play/admission';
+import { PLAY_DISPLAY_NAME_MAX_LENGTH, PLAY_PROFILE_SLUG_MAX_LENGTH } from '../src/shared/play/admission';
 import { api, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import type { MutationCtx } from './_generated/server';
@@ -265,7 +265,7 @@ describe('real games are created and entered by any signed-in player, Administra
     const avatarUrl = 'https://dune.zone/avatar/administrator.webp';
     const capped = 'n'.repeat(PLAY_DISPLAY_NAME_MAX_LENGTH);
 
-    expect(await creator()).toMatchObject({ displayName: 'Player', avatarUrl: null });
+    expect(await creator()).toMatchObject({ displayName: 'Player', avatarUrl: null, profileSlug: null });
     const profileId = await t.run(
       async (ctx) =>
         await ctx.db.insert('profiles', {
@@ -279,11 +279,14 @@ describe('real games are created and entered by any signed-in player, Administra
           updated_at: new Date().toISOString(),
         })
     );
-    expect(await creator()).toMatchObject({ displayName: capped, avatarUrl });
+    expect(await creator()).toMatchObject({ displayName: capped, avatarUrl, profileSlug: 'administrator' });
     await ready(t, created.gameId);
-    expect(await admitted()).toMatchObject({ ok: true, displayName: capped, avatarUrl });
+    expect(await admitted()).toMatchObject({ ok: true, displayName: capped, avatarUrl, profileSlug: 'administrator' });
+    /* A slug too long to carry leaves the player unlinked rather than refusing their admission. */
+    await t.run(async (ctx) => await ctx.db.patch(profileId, { slug: 's'.repeat(PLAY_PROFILE_SLUG_MAX_LENGTH + 1) }));
+    expect(await admitted()).toMatchObject({ ok: true, displayName: capped, profileSlug: null });
     await t.run(async (ctx) => await ctx.db.delete(profileId));
-    expect(await admitted()).toMatchObject({ ok: true, displayName: 'Player', avatarUrl: null });
+    expect(await admitted()).toMatchObject({ ok: true, displayName: 'Player', avatarUrl: null, profileSlug: null });
   });
 
   test('the ready hosted fixture reads as not found and issues no ticket, Administrator or not', async () => {

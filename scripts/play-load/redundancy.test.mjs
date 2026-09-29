@@ -107,6 +107,7 @@ const sized = (message) => {
   expect(sizing.pieceBytes).toBe(
     message.snapshot
       ? size(message.snapshot.pieces) +
+          (message.snapshot.pieceMoves ? size(message.snapshot.pieceMoves) : 0) +
           (message.snapshot.removedPieces.length ? size(message.snapshot.removedPieces) : 0) +
           (message.snapshot.pieceOrder ? size(message.snapshot.pieceOrder) : 0)
       : 0
@@ -152,6 +153,21 @@ test('a moved piece and a new event are durable: one leaf per piece, the event b
   );
   expect(sizing.minimalActivityBytes).toBe(0);
   expect(sizing.minimalBytes).toBe(size(envelope(message)) + KEY + sizing.minimalSnapshotBytes);
+});
+
+test('a move the room sends as a piece move counts as piece bytes, and its largest patch shows it', () => {
+  const move = { id: 'b', position: [0.4, 0.2, 0], orientation: 0, zoneId: null, flipRevision: null };
+  const message = update({ snapshot: { ...noSnapshot(), pieceMoves: [move], versions: { b: 2 } } });
+  const sizing = sized(message);
+  expect(sizing.kind).toBe('durable');
+  /* The room still sends the empty list of whole pieces beside the move. */
+  expect(sizing.pieceBytes).toBe(size([]) + size([move]));
+  expect(sizing.minimalPieceBytes).toBe(size({ b: { position: [0.4, 0.2, 0] } }));
+  const ledger = updateLedger();
+  ledger.add('protocol-player', sizing, message);
+  const [largest] = ledger.summary().byRecipientClass['protocol-player'].largestPiecePatches;
+  expect(largest.pieceBytes).toBe(sizing.pieceBytes);
+  expect(JSON.parse(largest.sent).pieceMoves).toEqual([move]);
 });
 
 test('a flipped item inside a piece is addressed by its id', () => {

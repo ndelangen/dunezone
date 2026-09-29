@@ -177,43 +177,42 @@ function GroupDetailPage() {
       </PageLayout.Header>
       <PageLayout.Toolbar>
         <Toolbar>
-          <Toolbar.Left>
-            <Group gap="xs" wrap="wrap" role="group" aria-label="Navigation and editing">
+          <Toolbar.Left label="Navigation">
+            <IconAction
+              label="Back to profiles"
+              emphasis="standard"
+              intent="neutral"
+              size="lg"
+              renderRoot={(rootProps) => <Link {...rootProps} to="/profiles" />}
+              icon={<ArrowLeft size={17} aria-hidden />}
+            />
+            {viewerAccess.capabilities.rename ? (
               <IconAction
-                label="Back to profiles"
+                label="Edit group"
                 emphasis="standard"
                 intent="neutral"
                 size="lg"
-                renderRoot={(rootProps) => <Link {...rootProps} to="/profiles" />}
-                icon={<ArrowLeft size={17} aria-hidden />}
+                renderRoot={(rootProps) => <Link {...rootProps} to="/groups/$groupSlug/edit" params={{ groupSlug }} />}
+                icon={<Pencil size={17} aria-hidden />}
               />
-              {viewerAccess.capabilities.rename ? (
-                <IconAction
-                  label="Edit group settings"
-                  emphasis="standard"
-                  intent="neutral"
-                  size="lg"
-                  renderRoot={(rootProps) => (
-                    <Link {...rootProps} to="/groups/$groupSlug/edit" params={{ groupSlug }} />
-                  )}
-                  icon={<Pencil size={17} aria-hidden />}
-                />
-              ) : null}
-            </Group>
+            ) : null}
           </Toolbar.Left>
-          <Toolbar.Right>
-            <Group gap="xs" wrap="wrap" role="group" aria-label="Group actions">
+          <Toolbar.Right label="Group actions">
+            <Toolbar.Cluster kind="access">
               {viewerAccess.capabilities.requestMembership ? (
                 <IconAction
                   label="Request membership"
-                  emphasis="strong"
-                  intent="positive"
+                  emphasis="standard"
+                  intent="neutral"
                   size="lg"
                   loading={membershipWorkflow.request.isPending}
+                  disabled={membershipWorkflow.request.isPending}
                   onClick={() => void membershipWorkflow.request.run(groupId).catch(() => undefined)}
                   icon={<UserPlus size={17} aria-hidden />}
                 />
               ) : null}
+            </Toolbar.Cluster>
+            <Toolbar.Cluster kind="discard">
               {viewerAccess.capabilities.delete ? (
                 <ConfirmDeleteAction
                   label="Delete group"
@@ -221,7 +220,7 @@ function GroupDetailPage() {
                   onConfirm={handleDeleteGroup}
                 />
               ) : null}
-            </Group>
+            </Toolbar.Cluster>
           </Toolbar.Right>
         </Toolbar>
       </PageLayout.Toolbar>

@@ -280,41 +280,39 @@ function LoadedFaqQuestion() {
       </PageLayout.Header>
       <PageLayout.Toolbar>
         <Toolbar>
-          <Toolbar.Left>
-            <Group gap="xs" wrap="wrap" role="group" aria-label="Navigation and editing">
+          <Toolbar.Left label="Navigation">
+            <IconAction
+              label="Back to ruleset"
+              emphasis="standard"
+              intent="neutral"
+              size="lg"
+              renderRoot={(rootProps) => (
+                <Link {...rootProps} to="/rulesets/$rulesetSlug" params={{ rulesetSlug: page.ruleset.slug }} />
+              )}
+              icon={<ArrowLeft size={17} aria-hidden />}
+            />
+            {item.capabilities.editQuestion ? (
               <IconAction
-                label="Back to ruleset"
+                label="Edit question"
                 emphasis="standard"
                 intent="neutral"
                 size="lg"
-                renderRoot={(rootProps) => (
-                  <Link {...rootProps} to="/rulesets/$rulesetSlug" params={{ rulesetSlug: page.ruleset.slug }} />
-                )}
-                icon={<ArrowLeft size={17} aria-hidden />}
+                disabled={editing.editingQuestion}
+                onClick={startEditQuestion}
+                icon={<Pencil size={17} aria-hidden />}
               />
-              {item.capabilities.editQuestion ? (
-                <IconAction
-                  label="Edit question"
-                  emphasis="standard"
-                  intent="neutral"
-                  size="lg"
-                  disabled={editing.editingQuestion}
-                  onClick={startEditQuestion}
-                  icon={<Pencil size={17} aria-hidden />}
-                />
-              ) : null}
-            </Group>
+            ) : null}
           </Toolbar.Left>
-          <Toolbar.Right>
-            {item.capabilities.deleteQuestion ? (
-              <Group gap="xs" wrap="wrap" role="group" aria-label="Question actions">
+          <Toolbar.Right label="Question actions">
+            <Toolbar.Cluster kind="discard">
+              {item.capabilities.deleteQuestion ? (
                 <ConfirmDeleteAction
                   label="Delete question"
                   pending={faq.deleteQuestion.isPending}
                   onConfirm={handleDeleteQuestion}
                 />
-              </Group>
-            ) : null}
+              ) : null}
+            </Toolbar.Cluster>
           </Toolbar.Right>
         </Toolbar>
       </PageLayout.Toolbar>

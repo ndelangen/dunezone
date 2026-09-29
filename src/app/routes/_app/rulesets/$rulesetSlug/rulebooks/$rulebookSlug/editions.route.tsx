@@ -90,19 +90,17 @@ function RulebookEditionHistoryPage() {
       </PageLayout.Header>
       <PageLayout.Toolbar>
         <Toolbar>
-          <Toolbar.Left>
-            <Group gap="xs" wrap="wrap" role="group" aria-label="Navigation and editing">
-              <IconAction
-                label="Back to ruleset"
-                emphasis="standard"
-                intent="neutral"
-                size="lg"
-                icon={<ArrowLeft size={17} aria-hidden />}
-                renderRoot={(props) => (
-                  <Link {...props} to="/rulesets/$rulesetSlug" params={{ rulesetSlug: params.rulesetSlug }} />
-                )}
-              />
-            </Group>
+          <Toolbar.Left label="Navigation">
+            <IconAction
+              label="Back to ruleset"
+              emphasis="standard"
+              intent="neutral"
+              size="lg"
+              icon={<ArrowLeft size={17} aria-hidden />}
+              renderRoot={(props) => (
+                <Link {...props} to="/rulesets/$rulesetSlug" params={{ rulesetSlug: params.rulesetSlug }} />
+              )}
+            />
           </Toolbar.Left>
         </Toolbar>
       </PageLayout.Toolbar>

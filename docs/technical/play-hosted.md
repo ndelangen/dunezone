@@ -318,6 +318,12 @@ It creates its synthetic accounts through `playTesting:provisionAccounts` before
 so every check signs in and none signs up. Retained logs contain check results and payload
 counters, not credentials.
 
+The launcher's backend lets a query or mutation run for 2 s, where Convex's default, which hosted
+deployments keep, is 1 s. Convex Auth checks a password with Scrypt inside a mutation at every
+sign-in, and on a loaded machine that check alone passed 1 s
+([#1493](https://github.com/ndelangen/dunezone/issues/1493)). A function that takes between 1 and
+2 s therefore passes on this stack and fails on a hosted deployment.
+
 The browser flows play real games. The stack seeds a synthetic ruleset
 (`playTesting:seedRealGameCatalogue`) with both required decks, a treachery deck of treachery cards
 and a spice deck of spice cards, and two factions, installs its publication bytes, and passes its

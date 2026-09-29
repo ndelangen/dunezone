@@ -12,7 +12,6 @@ import { Section } from '@ui/block/Section';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
 import { RULESET_ABOUT_HELP, rulesetAboutCount } from '@ui/content/rulesetAboutHint';
 import { SlugRenameNotice } from '@ui/content/SlugRenameNotice';
-import { StatusMark } from '@ui/content/StatusMark';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { ControlBlock } from '@ui/control/ControlBlock';
@@ -20,7 +19,7 @@ import { FORMATTED_TEXT_SYNTAX_HELP, FormattedTextInput } from '@ui/control/Form
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
-import { ArrowDown, ArrowUp, MessageCircleWarning, Pencil, X } from 'lucide-react';
+import { ArrowDown, ArrowUp, Pencil, X } from 'lucide-react';
 import { useReducer, useState } from 'react';
 
 import { useReorderRulebooks, useSoftDeleteRulebook } from '@db/rulebooks';
@@ -36,7 +35,7 @@ import {
 import type { RulesetEntry } from '@db/rulesets';
 import { AssetPicker } from '@app/pickers/AssetPicker';
 import { pageHead } from '@app/routes/pageTitle';
-import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
+import { AuthoringToolbar, failureStatus } from '@app/widgets/authoring/AuthoringToolbar';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
@@ -186,25 +185,10 @@ function RulesetEditor({
           setRehostState('idle');
           updateRuleset.reset();
         }),
-        onBack: () => navigate({ to: '/rulesets' }),
+        /* Back returns to the ruleset itself, the page Edit came from, so no second "View ruleset" action is needed. */
+        onBack: () => navigate({ to: '/rulesets/$rulesetSlug', params: { rulesetSlug: initial.slug } }),
       }}
-      auxiliaryActions={
-        <IconAction
-          label="View ruleset"
-          emphasis="standard"
-          intent="neutral"
-          size="lg"
-          renderRoot={(rootProps) => (
-            <Link {...rootProps} to="/rulesets/$rulesetSlug" params={{ rulesetSlug: initial.slug }} />
-          )}
-          icon={<TopicIcon topic="rulesets" size={17} />}
-        />
-      }
-      context={
-        saveFailure ? (
-          <StatusMark tone="negative" icon={<MessageCircleWarning size={16} aria-hidden />} label={saveFailure} />
-        ) : null
-      }
+      statuses={[failureStatus(saveFailure)]}
     />
   );
 

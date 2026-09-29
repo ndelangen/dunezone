@@ -1,4 +1,4 @@
-import { Alert, Badge, Group, Select, Stack, Text, VisuallyHidden } from '@mantine/core';
+import { Alert, Badge, Group, Menu, Stack, Text, VisuallyHidden } from '@mantine/core';
 import { projectRulebookRenderDocument } from '@shared/rulebooks/projectRenderDocument';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
@@ -14,7 +14,7 @@ import { PageLayout } from '@ui/layout/PageLayout';
 import type { StatsItem } from '@ui/list/Stats';
 import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
-import { ArrowLeft, CalendarPlus, FileText, Link2, Pin, PinOff } from 'lucide-react';
+import { ArrowLeft, CalendarPlus, Check, FileText, History, Link2, Pin, PinOff } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 
 import { loadRulebookReader, useRulebookReader } from '@db/rulebooks';
@@ -449,8 +449,8 @@ function RulebookReader({ data }: Readonly<{ data: ReaderData }>) {
     };
   }, [cancelRecovery, firstPageId, locatedTarget, targetMissing, view.pinned]);
 
-  const chooseEdition = (value: string | null) => {
-    const edition = value ? Number(value) : data.rulebook.current_edition_number;
+  const chooseEdition = (value: string) => {
+    const edition = Number(value);
     sendView({ kind: 'clear-message' });
     void navigate({
       search: {
@@ -529,44 +529,60 @@ function RulebookReader({ data }: Readonly<{ data: ReaderData }>) {
       </PageLayout.Header>
       <PageLayout.Toolbar>
         <Toolbar>
-          <Toolbar.Left>
-            <Group gap="xs" wrap="wrap" role="group" aria-label="Navigation and editing">
-              <IconAction
-                label="Back to ruleset"
-                emphasis="standard"
-                intent="neutral"
-                size="lg"
-                icon={<ArrowLeft size={17} aria-hidden />}
-                renderRoot={(props) => (
-                  <Link {...props} to="/rulesets/$rulesetSlug" params={{ rulesetSlug: params.rulesetSlug }} />
-                )}
-              />
-            </Group>
+          <Toolbar.Left label="Navigation">
+            <IconAction
+              label="Back to ruleset"
+              emphasis="standard"
+              intent="neutral"
+              size="lg"
+              icon={<ArrowLeft size={17} aria-hidden />}
+              renderRoot={(props) => (
+                <Link {...props} to="/rulesets/$rulesetSlug" params={{ rulesetSlug: params.rulesetSlug }} />
+              )}
+            />
           </Toolbar.Left>
-          <Toolbar.Right>
-            <Group gap="xs" wrap="wrap" role="group" aria-label="Rulebook actions">
-              <Select
-                aria-label="Rulebook Edition"
-                value={String(data.edition.edition_number)}
-                data={data.editions.map((edition) => ({
-                  value: String(edition.edition_number),
-                  label: editionLabel(edition),
-                }))}
-                allowDeselect={false}
-                onChange={chooseEdition}
-                w={220}
-              />
-              <EditionArtifactLink kind="html" artifact={data.edition.html} />
-              <EditionArtifactLink kind="pdf" artifact={data.edition.pdf} />
-              <IconAction
-                label="Copy link to selected text"
-                tooltip="Copy link to selected text"
-                emphasis="quiet"
-                intent="neutral"
-                icon={<Link2 size={17} aria-hidden />}
-                onClick={() => void createSelectionLink()}
-              />
-            </Group>
+          <Toolbar.Right label="Rulebook actions">
+            {/* A menu behind a glyph rather than a worded select: the header already names the Edition on screen, so the toolbar only offers the change. */}
+            <Menu position="bottom-end" shadow="md" withinPortal>
+              <Menu.Target>
+                <IconAction
+                  label="Choose Edition"
+                  emphasis="standard"
+                  intent="neutral"
+                  size="lg"
+                  disabled={data.editions.length < 2}
+                  icon={<History size={17} aria-hidden />}
+                />
+              </Menu.Target>
+              <Menu.Dropdown>
+                {data.editions.map((edition) => {
+                  const selected = edition.edition_number === data.edition.edition_number;
+                  return (
+                    <Menu.Item
+                      key={edition.edition_number}
+                      /* Mantine pins every entry's role to `menuitem`, so the open Edition is marked as current rather than checked. */
+                      aria-current={selected ? 'true' : undefined}
+                      leftSection={
+                        <Check size={15} aria-hidden style={{ visibility: selected ? undefined : 'hidden' }} />
+                      }
+                      onClick={() => chooseEdition(String(edition.edition_number))}
+                    >
+                      {editionLabel(edition)}
+                    </Menu.Item>
+                  );
+                })}
+              </Menu.Dropdown>
+            </Menu>
+            <EditionArtifactLink kind="html" artifact={data.edition.html} size="lg" />
+            <EditionArtifactLink kind="pdf" artifact={data.edition.pdf} size="lg" />
+            <IconAction
+              label="Copy link to selected text"
+              emphasis="standard"
+              intent="neutral"
+              size="lg"
+              icon={<Link2 size={17} aria-hidden />}
+              onClick={() => void createSelectionLink()}
+            />
           </Toolbar.Right>
         </Toolbar>
       </PageLayout.Toolbar>

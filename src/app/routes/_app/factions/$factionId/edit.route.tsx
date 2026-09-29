@@ -7,8 +7,6 @@ import { LoadError } from '@ui/block/LoadError';
 import { LoadPending } from '@ui/block/LoadPending';
 import { LoginGate } from '@ui/block/LoginGate';
 import { NotAvailable } from '@ui/block/NotAvailable';
-import { StatusMark } from '@ui/content/StatusMark';
-import { TopicIcon } from '@ui/content/TopicIcon';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -20,14 +18,14 @@ import { loadFaction } from '@db/factions';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
 import { pageHead } from '@app/routes/pageTitle';
 import { resolveRouteNotice } from '@app/routes/routeNotices';
-import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
+import { AuthoringToolbar, groupAccessStatus } from '@app/widgets/authoring/AuthoringToolbar';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import { FactionComplexityIndicator } from '@app/widgets/faction-editor/FactionComplexityIndicator';
 import { FactionEditor } from '@app/widgets/faction-editor/FactionEditor';
 import type { FactionAuthoringViewHandle } from '@app/widgets/faction-editor/FactionEditor';
 import { FactionGroupPopover } from '@app/widgets/faction-editor/FactionGroupPopover';
 import { FactionLoadPopover } from '@app/widgets/faction-editor/FactionLoadPopover';
-import { FactionPublicationStatus } from '@app/widgets/faction-editor/FactionPublicationStatus';
+import { factionPublicationStatus } from '@app/widgets/faction-editor/factionPublicationStatus';
 import { useFactionAuthoring } from '@app/widgets/faction-editor/useFactionAuthoring';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
@@ -182,12 +180,14 @@ function FactionEditPage() {
           review={{ label: 'Review faction sheet', onOpen: (trigger) => viewRef.current?.openReview(trigger) }}
           centerIndicator={<FactionComplexityIndicator form={authoring.form} />}
           auxiliaryActions={
+            <FactionLoadPopover
+              disabled={updateFaction.isPending}
+              currentPublicSlug={faction.slug}
+              onLoaded={validationHeader.releasing(authoring.actions.loadDraft)}
+            />
+          }
+          accessActions={
             <>
-              <FactionLoadPopover
-                disabled={updateFaction.isPending}
-                currentPublicSlug={faction.slug}
-                onLoaded={validationHeader.releasing(authoring.actions.loadDraft)}
-              />
               {canAssignGroup && !assignedGroup ? (
                 <FactionGroupPopover
                   disabled={setFactionGroup.isPending}
@@ -203,8 +203,9 @@ function FactionEditPage() {
               {canAssignGroup && assignedGroup ? (
                 <IconAction
                   label="Remove group"
+                  tooltip={`Remove group access (${assignedGroup.name})`}
                   emphasis="standard"
-                  intent="negative"
+                  intent="neutral"
                   size="lg"
                   disabled={setFactionGroup.isPending}
                   onClick={() => void setFactionGroup.mutateAsync({ id: faction._id, groupId: null })}
@@ -213,17 +214,7 @@ function FactionEditPage() {
               ) : null}
             </>
           }
-          context={
-            <>
-              <FactionPublicationStatus publication={assetPublishing} />
-              {assignedGroup ? (
-                <StatusMark
-                  icon={<TopicIcon topic="groups" size={16} />}
-                  label={`Group access: ${assignedGroup.name}`}
-                />
-              ) : null}
-            </>
-          }
+          statuses={[factionPublicationStatus(assetPublishing), groupAccessStatus(assignedGroup?.name ?? null)]}
           destructiveActions={
             canDelete ? (
               <ConfirmDeleteAction

@@ -1,4 +1,4 @@
-import { Select, Stack, Text, TextInput, Title } from '@mantine/core';
+import { Select, Stack, Text, Title } from '@mantine/core';
 import { ASSET_TYPES, isAssetType } from '@shared/assets/types';
 import type { AssetType } from '@shared/assets/types';
 import { createFileRoute, Link, notFound, useNavigate } from '@tanstack/react-router';
@@ -6,11 +6,12 @@ import { OpenableTile } from '@ui/block/OpenableTile';
 import { PageTitle } from '@ui/block/PageTitle';
 import { CallToAction } from '@ui/control/CallToAction';
 import { IconAction } from '@ui/control/IconAction';
+import { SearchRefine } from '@ui/control/SearchRefine';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { TileGrid } from '@ui/list/TileGrid';
 import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
-import { ArrowLeft, Plus, Search } from 'lucide-react';
+import { ArrowLeft, Plus } from 'lucide-react';
 import { useState } from 'react';
 
 import { loadAssetBrowsePage, useAssetBrowsePage } from '@app/db/assets';
@@ -80,6 +81,19 @@ function AssetTypePage() {
     });
   };
 
+  const sortSelect = (label?: string) => (
+    <Select
+      className={label ? undefined : styles.sortSegment}
+      variant={label ? 'default' : 'unstyled'}
+      label={label}
+      aria-label="Sort"
+      allowDeselect={false}
+      data={ASSET_BROWSE_SORTS}
+      value={search.sort ?? 'newest'}
+      onChange={(value) => changeSearch({ sort: value === 'newest' ? undefined : value })}
+    />
+  );
+
   return (
     <PageLayout>
       <PageLayout.Header>
@@ -101,7 +115,7 @@ function AssetTypePage() {
       {definition.status === 'live' ? (
         <PageLayout.Toolbar>
           <Toolbar>
-            <Toolbar.Left>
+            <Toolbar.Left label="Navigation">
               {/* A way back to the shelves, where a result count stood: the number told nobody anything a full grid did not (Norbert, 2026-08-21). */}
               <IconAction
                 label="Back to all assets"
@@ -113,31 +127,24 @@ function AssetTypePage() {
               />
             </Toolbar.Left>
             <Toolbar.Center>
-              {/* The band's centre width comes from this field, not from the toolbar. */}
-              <fieldset className={styles.joinedFilters} aria-label={`${definition.label} filters`}>
-                <TextInput
-                  className={styles.searchSegment}
-                  variant="unstyled"
-                  value={draft}
-                  onChange={(event) => setDraft(event.currentTarget.value)}
-                  onBlur={() => changeSearch({ q: draft })}
-                  onKeyDown={(event) => event.key === 'Enter' && changeSearch({ q: draft })}
-                  placeholder="Search by name or owner…"
-                  aria-label={`Search ${definition.label.toLowerCase()}`}
-                  leftSection={<Search size={16} aria-hidden />}
-                />
-                <Select
-                  className={styles.sortSegment}
-                  variant="unstyled"
-                  aria-label="Sort"
-                  allowDeselect={false}
-                  data={ASSET_BROWSE_SORTS}
-                  value={search.sort ?? 'newest'}
-                  onChange={(value) => changeSearch({ sort: value === 'newest' ? undefined : value })}
-                />
-              </fieldset>
+              <SearchRefine
+                label={`${definition.label} filters`}
+                search={{
+                  value: draft,
+                  onChange: setDraft,
+                  onCommit: () => changeSearch({ q: draft }),
+                  label: `Search ${definition.label.toLowerCase()}`,
+                  placeholder: 'Search by name or owner…',
+                }}
+                refine={{
+                  label: `Refine ${definition.label.toLowerCase()}`,
+                  content: sortSelect('Sort by'),
+                }}
+              >
+                {sortSelect()}
+              </SearchRefine>
             </Toolbar.Center>
-            <Toolbar.Right>
+            <Toolbar.Right label={`${definition.label} actions`}>
               <IconAction
                 label={`Create a ${noun.toLowerCase()}`}
                 emphasis="strong"

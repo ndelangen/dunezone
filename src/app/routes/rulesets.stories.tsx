@@ -1,9 +1,9 @@
 import preview from '@sb/preview';
-import { expect, userEvent, within } from 'storybook/test';
+import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { db, ruleset } from '@db/storybook';
 
-import { expectToolbarStatusesOnOneLine } from './authoringToolbarPlay';
+import { expectToolbarOnOneLine } from './authoringToolbarPlay';
 import { pageStoryMeta } from './storybookConfig';
 
 const meta = preview.meta({
@@ -42,7 +42,7 @@ export const Question = meta.story({
     await expect(
       page.findByRole('heading', { name: 'When does the storm move?' }, { timeout: 30_000 })
     ).resolves.toBeVisible();
-    const navigation = within(page.getByRole('group', { name: 'Navigation and editing' }));
+    const navigation = within(page.getByRole('group', { name: 'Navigation' }));
     await expect(navigation.getByRole('link', { name: 'Back to ruleset' })).toBeVisible();
     await expect(navigation.getByRole('button', { name: 'Edit question' })).toBeVisible();
     await expect(
@@ -60,35 +60,35 @@ export const EditToolbarAt360 = meta.story({
   args: { path: '/rulesets/classicrules/edit' },
   globals: { viewport: { value: 'appMobileNarrow' } },
   play: async ({ canvasElement }) =>
-    await expectToolbarStatusesOnOneLine(canvasElement, { statuses: ['No unsaved changes'], folded: true }),
+    await expectToolbarOnOneLine(canvasElement, { statusDescribes: ['No unsaved changes'] }),
 });
 export const EditToolbarAt390 = meta.story({
   args: { path: '/rulesets/classicrules/edit' },
   globals: { viewport: { value: 'appMobile' } },
   play: async ({ canvasElement }) =>
-    await expectToolbarStatusesOnOneLine(canvasElement, { statuses: ['No unsaved changes'], folded: true }),
+    await expectToolbarOnOneLine(canvasElement, { statusDescribes: ['No unsaved changes'] }),
 });
 export const EditToolbarAt768 = meta.story({
   args: { path: '/rulesets/classicrules/edit' },
   globals: { viewport: { value: 'appTablet' } },
   play: async ({ canvasElement }) =>
-    await expectToolbarStatusesOnOneLine(canvasElement, { statuses: ['No unsaved changes'], folded: false }),
+    await expectToolbarOnOneLine(canvasElement, { statusDescribes: ['No unsaved changes'] }),
 });
 export const EditToolbarAt1100 = meta.story({
   args: { path: '/rulesets/classicrules/edit' },
   globals: { viewport: { value: 'appLaptop' } },
   play: async ({ canvasElement }) =>
-    await expectToolbarStatusesOnOneLine(canvasElement, { statuses: ['No unsaved changes'], folded: false }),
+    await expectToolbarOnOneLine(canvasElement, { statusDescribes: ['No unsaved changes'] }),
 });
 export const EditToolbarAt1440 = meta.story({
   args: { path: '/rulesets/classicrules/edit' },
   globals: { viewport: { value: 'appLarge' } },
   play: async ({ canvasElement }) =>
-    await expectToolbarStatusesOnOneLine(canvasElement, { statuses: ['No unsaved changes'], folded: false }),
+    await expectToolbarOnOneLine(canvasElement, { statusDescribes: ['No unsaved changes'] }),
 });
 
 /**
- * The ruleset editor states only the latest save's failure, in the form and in the toolbar (CodeRabbit on #1435).
+ * The ruleset editor states only the latest save's failure, in the form and on Save (CodeRabbit on #1435).
  * The first save fails at the update, because another ruleset already has the name.
  * The second stops earlier, at the cover, because Storybook's Convex mock rejects every action.
  * The update's failure from the first save must not stay on the page beside the cover's.
@@ -103,23 +103,21 @@ export const EditShowsOnlyTheLatestSaveFailure = meta.story({
   },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    const toolbarStatus = async () => within(await page.findByRole('group', { name: 'Status' }, { timeout: 30_000 }));
+    const save = () => page.getByRole('button', { name: 'Save ruleset' });
     const name = await page.findByRole('textbox', { name: 'Name' }, { timeout: 30_000 });
     await userEvent.clear(name);
     await userEvent.type(name, 'Advanced Rules');
     await userEvent.click(page.getByRole('button', { name: 'Save ruleset' }));
     await expect(page.findByText('Ruleset could not be saved', {}, { timeout: 30_000 })).resolves.toBeVisible();
-    await expect(
-      (await toolbarStatus()).findByRole('img', { name: /Ruleset name already exists/ }, { timeout: 30_000 })
-    ).resolves.toBeVisible();
+    await waitFor(() => expect(save()).toHaveAccessibleDescription(/Ruleset name already exists/), { timeout: 30_000 });
 
     await userEvent.type(page.getByRole('textbox', { name: 'Cover image URL' }), 'https://example.com/cover.png');
     await userEvent.click(page.getByRole('button', { name: 'Save ruleset' }));
     await expect(page.findByText('Cover could not be stored', {}, { timeout: 30_000 })).resolves.toBeVisible();
-    await expect(
-      (await toolbarStatus()).findByRole('img', { name: 'The cover could not be stored' }, { timeout: 30_000 })
-    ).resolves.toBeVisible();
+    await waitFor(() => expect(save()).toHaveAccessibleDescription(/The cover could not be stored/), {
+      timeout: 30_000,
+    });
     expect(page.queryByText('Ruleset could not be saved')).toBeNull();
-    expect((await toolbarStatus()).queryByRole('img', { name: /Ruleset name already exists/ })).toBeNull();
+    expect(save()).not.toHaveAccessibleDescription(/Ruleset name already exists/);
   },
 });

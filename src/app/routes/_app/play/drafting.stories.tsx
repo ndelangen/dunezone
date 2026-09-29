@@ -38,6 +38,10 @@ export const WaitingForPlayers = meta.story({
         expect(page.queryByRole('group', { name: 'Phase navigation' })).toBeNull();
         expect(page.getByText('You are seated alone', { exact: false })).toBeVisible();
         expect(within(page.getByRole('region', { name: 'Players' })).getAllByTitle('Open seat')).toHaveLength(3);
+        /* The seated player is cited through ProfileLink, leading to their profile. */
+        expect(
+          within(page.getByRole('region', { name: 'Players' })).getByRole('link', { name: 'Thialfi' })
+        ).toHaveAttribute('href', '/profiles/thialfi');
       },
       { timeout: 30_000 }
     );

@@ -58,7 +58,7 @@ function passwordSecret(password) {
     );
   });
 }
-/* Every account the checks sign in; they are created before the first sign-in, so no check signs up under the backend's 1 s limit (#1493). */
+/* Every account the checks sign in; they are created before the first sign-in, so no check signs up under the backend's function limit (#1493). */
 const accounts = Object.fromEntries(
   ['alice', 'bob', 'observer', 'short', 'total-expiry', 'replacement'].map((label) => [
     label,

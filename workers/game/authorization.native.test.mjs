@@ -57,7 +57,7 @@ describe('AuthorizationWatch in native workerd with the real Convex clients', ()
   });
 
   it('does not treat a connected, acknowledged, but never-fresh feed as authorization', async () => {
-    await eventually(() => peer.requests.length > 0, 'HTTP validation');
+    await new Promise((resolve) => setTimeout(resolve, 200));
     expect(await status()).toBe('suspended');
     expect((await runtime.request('/status')).events).not.toContain('authorized');
   });
@@ -275,6 +275,51 @@ describe('AuthorizationWatch in native workerd with the real Convex clients', ()
     expect(peer.requests.at(-1).startedAt).toBeGreaterThanOrEqual(expiresAt + PLAY_AUTH_RECOVERY_MS);
   });
 
+  it('validates a new generation once, after its first fresh result', async () => {
+    await runtime.request('/stop');
+    await runtime.request('/start?leaseMs=10000&renewalMs=30000');
+    const query = await peer.query(({ connection }) => connection === peer.connections.at(-1));
+    const { generation } = query.query.args[0];
+    const validations = () =>
+      peer.requests.filter(
+        (request) => request.function === 'playAdmission:watchAuthorizations' && request.args.generation === generation
+      );
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    expect(validations()).toHaveLength(0);
+    const answeredAt = Date.now();
+    peer.answer(query);
+    await waitStatus('authorized');
+    expect(validations()).toHaveLength(1);
+    expect(validations()[0].startedAt).toBeGreaterThanOrEqual(answeredAt);
+  });
+
+  it('restarts a generation whose subscription stays silent for a renewal cadence', async () => {
+    await runtime.request('/stop');
+    await runtime.request('/start?leaseMs=10000&renewalMs=500');
+    const silent = await peer.query(({ connection }) => connection === peer.connections.at(-1));
+    const { generation } = silent.query.args[0];
+    expect(await status()).toBe('suspended');
+    const validations = () =>
+      peer.requests.filter(
+        (request) => request.function === 'playAdmission:watchAuthorizations' && request.args.generation === generation
+      );
+    await eventually(() => validations().length === 1, 'the silent generation validated once');
+    const next = await peer.query(({ query }) => query.args[0].generation !== generation);
+    peer.answer(next);
+    await waitStatus('authorized');
+  });
+
+  it('still denies a revoked player whose new generation stays silent', async () => {
+    await runtime.request('/stop');
+    peer.httpMode = 'deny';
+    await runtime.request('/start?leaseMs=10000&renewalMs=500');
+    const silent = await peer.query(({ connection }) => connection === peer.connections.at(-1));
+    const { generation } = silent.query.args[0];
+    await waitStatus('denied');
+    await peer.query(({ query }) => query.args[0].generation !== generation);
+    expect(await status()).toBe('denied');
+  });
+
   it('backs off while validations fail although the subscription keeps answering', async () => {
     await runtime.request('/stop');
     await runtime.request('/start?leaseMs=10000&renewalMs=30000');
@@ -285,7 +330,7 @@ describe('AuthorizationWatch in native workerd with the real Convex clients', ()
     peer.watchMode = 'allow';
     peer.httpMode = 'error';
     const before = peer.requests.length;
-    /* Each generation validates twice; the recovery cadence is the gap between generations. */
+    /* Each generation validates once its subscription answers; the recovery cadence is the gap between generations. */
     const generationStarts = () => {
       const first = new Map();
       for (const request of peer.requests.slice(before)) {

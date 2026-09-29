@@ -29,6 +29,13 @@ export const PLAY_AUTHORIZATION_BATCH_SIZE = 64;
  * Convex cuts a longer profile name to it before the game Worker sees it.
  */
 export const PLAY_DISPLAY_NAME_MAX_LENGTH = 256;
+/*
+ * The longest profile slug the game Worker carries, the same bound as its stored names; Convex sends null for a longer
+ * one, so the player is cited unlinked.
+ */
+export const PLAY_PROFILE_SLUG_MAX_LENGTH = 160;
+/* A player's public profile slug, so the table can link to their profile; null for an inactive account. */
+const playProfileSlugSchema = z.string().min(1).max(PLAY_PROFILE_SLUG_MAX_LENGTH).nullable().optional();
 
 const identifierSchema = z.string().min(1).max(128);
 const playCredentialSchema = z.string().regex(/^[0-9a-f]{64}$/);
@@ -60,6 +67,7 @@ export const playGameProvisionSchema = z.object({
     displayName: z.string().max(PLAY_DISPLAY_NAME_MAX_LENGTH),
     /* The creator's public avatar, a delivery URL or null; the draft ledger draws players by it. */
     avatarUrl: z.string().max(2048).nullable().optional(),
+    profileSlug: playProfileSlugSchema,
   }),
 });
 /*
@@ -109,6 +117,7 @@ export const playRedeemTicketResultSchema = z.union([
     authExpiresAt: timestampSchema,
     displayName: z.string().max(PLAY_DISPLAY_NAME_MAX_LENGTH),
     avatarUrl: z.string().max(2048).nullable().optional(),
+    profileSlug: playProfileSlugSchema,
   }),
 ]);
 
