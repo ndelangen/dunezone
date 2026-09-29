@@ -105,7 +105,7 @@ export class TableKeyboard {
     }
   };
 
-  /* The physical key that started the draw ends it, whatever it types by then: AZERTY's Shift+& released Shift first comes up as "&". */
+  /* The physical key that started the draw ends it, whatever it types by then, as AZERTY's Shift+& does coming up as "&" once Shift is let go; without a code, the typed digit still does. */
   private keyUp = (event: KeyboardEvent) => {
     const sameKey = this.drawCode !== '' && event.code === this.drawCode;
     if (this.drawDigit !== null && (sameKey || digitOf(event) === this.drawDigit)) {
@@ -195,7 +195,7 @@ export class TableKeyboard {
       return;
     }
     this.drawDigit = digit;
-    this.drawCode = event.code;
+    this.drawCode = event.code === 'Unidentified' ? '' : event.code;
     this.drawTimer = setTimeout(() => {
       this.drawTimer = null;
       this.drawDigit = null;
