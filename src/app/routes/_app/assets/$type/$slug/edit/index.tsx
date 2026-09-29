@@ -2,6 +2,7 @@ import { isAssetType } from '@shared/assets/types';
 import { createFileRoute, notFound } from '@tanstack/react-router';
 
 import { loadAssetPage } from '@app/db/assets';
+import { pageHead } from '@app/routes/pageTitle';
 
 import { NoEditorYet } from '../../../assetEditorStates';
 import { BundleEditPage } from './bundleEdit';
@@ -22,6 +23,7 @@ export const Route = createFileRoute('/_app/assets/$type/$slug/edit/')({
     }
     return await loadAssetPage(params.type, params.slug);
   },
+  head: ({ loaderData }) => pageHead(loaderData ? `Edit ${loaderData.asset.name}` : 'Edit asset'),
   component: EditAssetPage,
 });
 

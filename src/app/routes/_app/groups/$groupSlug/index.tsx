@@ -30,6 +30,7 @@ import type { RulesetEntry } from '@db/rulesets';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
 import { OwnedFactionAssignPicker, OwnedRulesetAssignPicker } from '@app/pickers/GroupAssignPicker';
 import type { OwnedAssignItem } from '@app/pickers/GroupAssignPicker';
+import { pageHead } from '@app/routes/pageTitle';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 import styles from './index.module.css';
@@ -42,6 +43,7 @@ export const Route = createFileRoute('/_app/groups/$groupSlug/')({
     return { groupDetail };
   },
   errorComponent: GroupDetailError,
+  head: ({ loaderData }) => pageHead(loaderData?.groupDetail.group.name ?? 'Group'),
   component: GroupDetailPage,
 });
 

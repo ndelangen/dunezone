@@ -1,11 +1,15 @@
 import { createFileRoute, Outlet } from '@tanstack/react-router';
 
+import { pageHead } from '@app/routes/pageTitle';
 import { ApplicationChrome } from '@app/shell/ApplicationChrome';
 import { AppNotFound } from '@app/shell/AppNotFound';
 
 export const Route = createFileRoute('/_app')({
   codeSplitGroupings: [['component', 'notFoundComponent']],
-  head: () => ({
+  /* A notFound thrown anywhere below lands on this layout's notFoundComponent, and heads below the boundary never run,
+     so this is the one place that can name the not-found page. */
+  head: ({ match }) => ({
+    ...(match.status === 'notFound' ? pageHead('Page not found') : {}),
     scripts: [
       {
         /* Pre-hydration twin of styles/colorScheme.ts: sets the scheme attribute before first

@@ -19,6 +19,7 @@ import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'r
 
 import { loadRulebookReader, useRulebookReader } from '@db/rulebooks';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
+import { pageHead } from '@app/routes/pageTitle';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 import { RulebookDocumentRenderer } from '@game/rulebook/RulebookRenderer';
 
@@ -55,9 +56,7 @@ export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/rulebooks/$rul
   validateSearch: parseReaderSearch,
   loaderDeps: ({ search }) => ({ editionNumber: search.edition }),
   loader: ({ params, deps }) => loadRulebookReader({ ...params, editionNumber: deps.editionNumber }),
-  head: ({ loaderData }) => ({
-    meta: [{ title: `${loaderData?.rulebook.name ?? 'Rulebook'} | Dune Zone` }],
-  }),
+  head: ({ loaderData }) => pageHead(loaderData?.rulebook.name ?? 'Rulebook'),
   pendingComponent: () => (
     <PageMessage title="Rulebook">
       <LoadPending title="Loading Rulebook">Loading the selected Edition.</LoadPending>

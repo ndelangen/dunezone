@@ -17,11 +17,13 @@ import { useReducer } from 'react';
 
 import { useSessionViewer } from '@db/profiles';
 import { useCreateRuleset } from '@db/rulesets';
+import { pageHead } from '@app/routes/pageTitle';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 export const Route = createFileRoute('/_app/rulesets/create')({
+  head: () => pageHead('Create ruleset'),
   component: CreateRulesetPage,
 });
 

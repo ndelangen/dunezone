@@ -4,6 +4,7 @@ import { ConvexAuthProvider } from '@convex-dev/auth/react';
 import { createRootRoute, HeadContent, Scripts } from '@tanstack/react-router';
 
 import { convex } from '@db/core';
+import { pageTitle } from '@app/routes/pageTitle';
 
 import '@fontsource/caladea/latin-400.css';
 import '@fontsource/caladea/latin-400-italic.css';
@@ -27,8 +28,9 @@ export const Route = createRootRoute({
         name: 'viewport',
         content: 'width=device-width, initial-scale=1',
       },
+      /* The home page's title and every route's fallback; routes name themselves through `pageHead`. */
       {
-        title: 'Dune Zone',
+        title: pageTitle(),
       },
       {
         name: 'google-site-verification',

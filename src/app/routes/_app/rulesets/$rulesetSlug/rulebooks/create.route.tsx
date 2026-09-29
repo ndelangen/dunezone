@@ -25,6 +25,7 @@ import { useId, useReducer } from 'react';
 import { loadRulebookCreationPage, useCreateRulebook, useRulebookCreationPage } from '@db/rulebooks';
 import type { RulebookCreateSource, RulebookCreationPageData } from '@db/rulebooks';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
+import { pageHead } from '@app/routes/pageTitle';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 import { RulebookPageRenderer } from '@game/rulebook/RulebookRenderer';
 
@@ -38,6 +39,7 @@ export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/rulebooks/crea
     </PageMessage>
   ),
   errorComponent: CreateRulebookError,
+  head: () => pageHead('Create rulebook'),
   component: CreateRulebookPage,
 });
 

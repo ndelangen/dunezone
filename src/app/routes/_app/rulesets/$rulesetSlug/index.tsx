@@ -71,6 +71,7 @@ import {
 } from '@db/rulesets';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
 import { FactionPicker } from '@app/pickers/FactionPicker';
+import { pageHead } from '@app/routes/pageTitle';
 import { resolveRouteNotice } from '@app/routes/routeNotices';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
@@ -373,6 +374,7 @@ export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/')({
   },
   pendingComponent: RulesetDetailPending,
   errorComponent: RulesetDetailError,
+  head: ({ loaderData }) => pageHead(loaderData?.notFound === false ? loaderData.detailPage.ruleset.name : 'Ruleset'),
   component: RulesetDetailPage,
 });
 

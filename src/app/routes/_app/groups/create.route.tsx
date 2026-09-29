@@ -12,10 +12,12 @@ import { useRef, useState } from 'react';
 
 import { useCreateGroup } from '@db/groups';
 import { useSessionViewer } from '@db/profiles';
+import { pageHead } from '@app/routes/pageTitle';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 export const Route = createFileRoute('/_app/groups/create')({
+  head: () => pageHead('Start group'),
   component: GroupCreatePage,
 });
 

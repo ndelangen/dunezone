@@ -12,10 +12,11 @@ import { useReducer } from 'react';
 
 import { useCreatableRulesets, useCreateGame } from '@db/play';
 import type { CreatableRuleset } from '@db/play';
+import { pageHead } from '@app/routes/pageTitle';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 export const Route = createFileRoute('/_app/play/create')({
-  head: () => ({ meta: [{ title: 'Create a game | Dune Zone' }, { name: 'robots', content: 'noindex' }] }),
+  head: () => pageHead('Create a game', { noindex: true }),
   component: CreateGamePage,
 });
 

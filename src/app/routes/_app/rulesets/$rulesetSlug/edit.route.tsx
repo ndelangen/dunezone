@@ -35,6 +35,7 @@ import {
 } from '@db/rulesets';
 import type { RulesetEntry } from '@db/rulesets';
 import { AssetPicker } from '@app/pickers/AssetPicker';
+import { pageHead } from '@app/routes/pageTitle';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
@@ -302,6 +303,8 @@ export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/edit')({
     }
     return { notFound: false as const, detailPage };
   },
+  head: ({ loaderData }) =>
+    pageHead(loaderData?.notFound === false ? `Edit ${loaderData.detailPage.ruleset.name}` : 'Edit ruleset'),
   component: RulesetEditPage,
 });
 

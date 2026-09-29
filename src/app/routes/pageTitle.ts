@@ -1,0 +1,24 @@
+/** The application's name: the suffix on every browser title, and the home page's whole title. */
+export const APP_TITLE = 'Dune Zone';
+
+const SEPARATOR = ' · ';
+
+/**
+ * The one browser title grammar: the entity or page name first, then the app, as in "Atreides · Dune Zone".
+ * A missing or blank name falls back to the app name alone, so a loader that failed still leaves a sensible tab.
+ */
+export function pageTitle(name?: string | null): string {
+  const trimmed = name?.trim();
+  return trimmed ? `${trimmed}${SEPARATOR}${APP_TITLE}` : APP_TITLE;
+}
+
+/**
+ * A route's `head` result carrying that title, so each route states only its name.
+ * The deepest matched route's title wins, which is why a detail route can refine its parent's.
+ * `noindex` adds the robots tag the play pages carry.
+ */
+export function pageHead(name?: string | null, options: { noindex?: boolean } = {}) {
+  return {
+    meta: [{ title: pageTitle(name) }, ...(options.noindex ? [{ name: 'robots', content: 'noindex' }] : [])],
+  };
+}

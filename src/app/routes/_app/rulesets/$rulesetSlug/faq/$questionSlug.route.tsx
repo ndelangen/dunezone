@@ -23,6 +23,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { loadFaqQuestionPage, useFaqQuestionPage } from '@db/faq';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
+import { pageHead } from '@app/routes/pageTitle';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 import styles from './$questionSlug.module.css';
@@ -43,6 +44,8 @@ export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/faq/$questionS
     }
   },
   errorComponent: FaqDetailError,
+  head: ({ loaderData }) =>
+    pageHead(loaderData?.page?.question ? questionTitle(loaderData.page.question.text) : 'FAQ question'),
   component: FaqDetailPage,
 });
 

@@ -6,11 +6,13 @@ import { PageLayout } from '@ui/layout/PageLayout';
 import { TileGrid } from '@ui/list/TileGrid';
 
 import { loadRulesetsAll, useRulesetsAll } from '@db/rulesets';
+import { pageHead } from '@app/routes/pageTitle';
 
 import styles from './index.module.css';
 
 export const Route = createFileRoute('/_app/rulesets/')({
   loader: async () => ({ rulesets: await loadRulesetsAll() }),
+  head: () => pageHead('Rulesets'),
   component: RulesetsPage,
 });
 

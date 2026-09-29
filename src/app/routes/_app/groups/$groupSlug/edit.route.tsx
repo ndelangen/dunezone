@@ -18,6 +18,7 @@ import { useRef, useState } from 'react';
 import { loadGroupEditBySlug, useGroupEditBySlug, useUpdateGroup } from '@db/groups';
 import type { GroupEntry } from '@db/groups';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
+import { pageHead } from '@app/routes/pageTitle';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
@@ -131,6 +132,7 @@ export const Route = createFileRoute('/_app/groups/$groupSlug/edit')({
     return { groupEdit };
   },
   errorComponent: GroupEditError,
+  head: ({ loaderData }) => pageHead(loaderData ? `Edit ${loaderData.groupEdit.group.name}` : 'Edit group'),
   component: GroupEditPage,
 });
 

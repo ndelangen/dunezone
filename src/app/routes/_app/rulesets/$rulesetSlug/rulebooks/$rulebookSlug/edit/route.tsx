@@ -104,6 +104,7 @@ import {
 import type { RulebookEditorPageData, RulebookMetadata } from '@db/rulebooks';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
 import { FactionPicker } from '@app/pickers/FactionPicker';
+import { pageHead } from '@app/routes/pageTitle';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 import { RulebookPageRenderer } from '@game/rulebook/RulebookRenderer';
@@ -395,6 +396,7 @@ const railCollision: CollisionDetection = (args) => {
 export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/rulebooks/$rulebookSlug/edit')({
   loader: ({ params }) => loadRulebookEditor(params),
   errorComponent: RulebookEditorError,
+  head: ({ loaderData }) => pageHead(loaderData ? `Edit ${loaderData.rulebook.name}` : 'Edit rulebook'),
   component: RulebookEditorPage,
 });
 

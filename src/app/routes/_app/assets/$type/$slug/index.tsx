@@ -50,6 +50,7 @@ import type { ReactNode } from 'react';
 import { loadAssetPage, useAssetPage } from '@app/db/assets';
 import type { AssetPageData } from '@app/db/assets';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
+import { pageHead } from '@app/routes/pageTitle';
 import { AssetFace } from '@app/widgets/asset-face/AssetFace';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
@@ -74,6 +75,7 @@ export const Route = createFileRoute('/_app/assets/$type/$slug/')({
   },
   pendingComponent: AssetDetailPending,
   errorComponent: AssetDetailError,
+  head: ({ loaderData }) => pageHead(loaderData?.asset.name ?? 'Asset'),
   component: AssetDetailPage,
 });
 

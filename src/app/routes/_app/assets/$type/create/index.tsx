@@ -1,6 +1,8 @@
 import { isAssetType } from '@shared/assets/types';
 import { createFileRoute, notFound } from '@tanstack/react-router';
 
+import { pageHead } from '@app/routes/pageTitle';
+
 import { NoEditorYet } from '../../assetEditorStates';
 import { BundleCreatePage } from './bundleCreate';
 import { DeckCreatePage } from './deckCreate';
@@ -22,6 +24,7 @@ export const Route = createFileRoute('/_app/assets/$type/create/')({
     }
     return null;
   },
+  head: () => pageHead('New asset'),
   component: CreateAssetPage,
 });
 

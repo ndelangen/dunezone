@@ -16,11 +16,13 @@ import { useState } from 'react';
 import { useAccountDeletionPage, useConfirmAccountDeletion } from '@db/accountDeletion';
 import type { ReplacementProfile } from '@db/accountDeletion';
 import { ProfilePicker } from '@app/pickers/ProfilePicker';
+import { pageHead } from '@app/routes/pageTitle';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 const kindLabels = { group: 'Groups', faction: 'Factions', ruleset: 'Rulesets' } as const;
 
 export const Route = createFileRoute('/_app/profiles/$profileSlug/delete')({
+  head: () => pageHead('Delete account'),
   component: AccountDeletionPage,
 });
 
