@@ -43,15 +43,113 @@ export async function provisionAccounts(admin: ConvexHttpClient, accounts: Synth
   }
 }
 
-/** The Password flow of an `auth:signIn` action the page sent, or null for any other frame. */
-function signInFlow(payload: string | Buffer) {
+/**
+ * One `auth:signIn` action the page sent.
+ * `error` stays undefined until the backend answers, then holds null for success or the backend's own error text.
+ */
+type SignInAttempt = { flow: string; error?: string | null };
+
+type Frame = { payload: string | Buffer };
+
+function parseFrame({ payload }: Frame) {
   try {
-    const message = JSON.parse(payload.toString());
-    const flow =
-      message.type === 'Action' && message.udfPath === 'auth:signIn' ? message.args?.[0]?.params?.flow : null;
-    return typeof flow === 'string' ? flow : null;
+    return JSON.parse(payload.toString());
   } catch {
     return null;
+  }
+}
+
+/** The request id and Password flow of an `auth:signIn` action frame, or null for any other frame. */
+function signInRequest(frame: Frame) {
+  const message = parseFrame(frame);
+  const flow = message?.type === 'Action' && message.udfPath === 'auth:signIn' ? message.args?.[0]?.params?.flow : null;
+  return typeof flow === 'string' ? { requestId: message.requestId, flow } : null;
+}
+
+/** The request id of an action response frame, with null for success or the backend's error text, or null for any other frame. */
+function actionAnswer(frame: Frame) {
+  const message = parseFrame(frame);
+  if (message?.type !== 'ActionResponse') {
+    return null;
+  }
+  return { requestId: message.requestId, error: message.success ? null : String(message.result) };
+}
+
+/** Records each `auth:signIn` action the page sends, and the backend's answer to it, until `stop` is called. */
+function watchSignIn(page: Page) {
+  const attempts: SignInAttempt[] = [];
+  const detach: (() => void)[] = [];
+  const onSocket = (socket: WebSocket) => {
+    const sent = new Map<unknown, SignInAttempt>();
+    const onSent = (frame: Frame) => {
+      const request = signInRequest(frame);
+      if (request) {
+        const attempt = { flow: request.flow };
+        attempts.push(attempt);
+        sent.set(request.requestId, attempt);
+      }
+    };
+    const onReceived = (frame: Frame) => {
+      const answer = actionAnswer(frame);
+      const attempt = answer && sent.get(answer.requestId);
+      if (attempt) {
+        attempt.error = answer.error;
+      }
+    };
+    socket.on('framesent', onSent);
+    socket.on('framereceived', onReceived);
+    detach.push(() => {
+      socket.off('framesent', onSent);
+      socket.off('framereceived', onReceived);
+    });
+  };
+  page.on('websocket', onSocket);
+  return {
+    attempts,
+    stop() {
+      page.off('websocket', onSocket);
+      for (const remove of detach) {
+        remove();
+      }
+    },
+  };
+}
+
+/** Fills and submits the login form, then returns the form's alert text, or null once the signed-in page shows. */
+async function submitLogin(page: Page, origin: string, account: SyntheticAccount) {
+  await page.goto(`${origin}/auth/login`, { waitUntil: 'domcontentloaded' });
+  await page.getByLabel('Email', { exact: true }).fill(account.email);
+  await page.getByLabel('Password', { exact: true }).fill(account.password);
+  const signedIn = page.getByRole('heading', { name: "You're signed in" });
+  const submit = page.getByTestId('local-auth-submit');
+  const alert = page.locator('form', { has: submit }).getByRole('alert');
+  await submit.click();
+  await signedIn.or(alert).first().waitFor();
+  return (await signedIn.isVisible()) ? null : ((await alert.textContent()) ?? '');
+}
+
+/** What went wrong with a sign-in, or null when the page signed in through its `signIn` flow alone. */
+function signInFailure(attempts: SignInAttempt[], alert: string | null) {
+  switch (true) {
+    case alert !== null:
+      return `failed: ${alert}`;
+    case attempts.some(({ flow }) => flow === 'signUp'):
+      return "reached the form's sign-up fallback, so its sign-in failed";
+    case !attempts.some(({ flow }) => flow === 'signIn'):
+      return "reached the signed-in page, but the form's signIn frame was never seen";
+    default:
+      return null;
+  }
+}
+
+function describeAttempt({ flow, error }: SignInAttempt, redact: (text: string) => string) {
+  switch (error) {
+    case undefined:
+      return `${flow} got no answer`;
+    case null:
+      return `${flow} succeeded`;
+    default:
+      return `${flow} failed: ${redact(error)}`;
   }
 }
 
@@ -60,50 +158,26 @@ function signInFlow(payload: string | Buffer) {
  * A sign-in the backend refuses fails at once with the form's own message, not after a silent 30 s wait.
  * The form falls back to sign-up when sign-in fails, so a sign-in that reached sign-up fails too: it would be a second attempt, and the account already exists.
  * A signed-in page without the form's `signIn` frame fails as well, so the sign-up check cannot pass on frames it never saw.
+ * Every failure lists each Password flow the form sent with the backend's answer, so a sign-in that timed out is named even when the fallback's error is what the form shows.
  */
 export async function signIn(page: Page, origin: string, account: SyntheticAccount, name: string) {
-  const flows: string[] = [];
-  const sockets: WebSocket[] = [];
-  const onFrame = ({ payload }: { payload: string | Buffer }) => {
-    const flow = signInFlow(payload);
-    if (flow) {
-      flows.push(flow);
-    }
-  };
-  const onSocket = (socket: WebSocket) => {
-    sockets.push(socket);
-    socket.on('framesent', onFrame);
-  };
   const redact = (text: string) =>
     text
       .replaceAll(account.email, '[synthetic email]')
       .replaceAll(account.password, '[synthetic password]')
+      .replaceAll(/\s+/g, ' ')
+      .trim()
       .slice(0, 300);
-  page.on('websocket', onSocket);
+  const watch = watchSignIn(page);
+  let alert: string | null;
   try {
-    await page.goto(`${origin}/auth/login`, { waitUntil: 'domcontentloaded' });
-    await page.getByLabel('Email', { exact: true }).fill(account.email);
-    await page.getByLabel('Password', { exact: true }).fill(account.password);
-    const signedIn = page.getByRole('heading', { name: "You're signed in" });
-    const submit = page.getByTestId('local-auth-submit');
-    const alert = page.locator('form', { has: submit }).getByRole('alert');
-    await submit.click();
-    await signedIn.or(alert).first().waitFor();
-    if (!(await signedIn.isVisible())) {
-      throw new Error(`Sign-in for ${name} failed: ${redact((await alert.textContent()) ?? '')}`);
-    }
+    alert = await submitLogin(page, origin, account);
   } finally {
-    page.off('websocket', onSocket);
-    for (const socket of sockets) {
-      socket.off('framesent', onFrame);
-    }
+    watch.stop();
   }
-  if (flows.includes('signUp')) {
-    throw new Error(
-      `Sign-in for ${name} reached the form's sign-up fallback (${flows.join(', ')}), so its sign-in failed.`
-    );
-  }
-  if (!flows.includes('signIn')) {
-    throw new Error(`Sign-in for ${name} reached the signed-in page, but the form's signIn frame was never seen.`);
+  const failure = signInFailure(watch.attempts, alert === null ? null : redact(alert));
+  if (failure) {
+    const flows = watch.attempts.map((attempt) => describeAttempt(attempt, redact)).join('; ');
+    throw new Error(`Sign-in for ${name} ${failure}. Password flows: ${flows || 'none seen'}.`);
   }
 }
