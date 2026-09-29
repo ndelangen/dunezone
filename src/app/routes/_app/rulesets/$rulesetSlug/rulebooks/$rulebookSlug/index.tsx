@@ -517,8 +517,8 @@ function RulebookReader({ data }: Readonly<{ data: ReaderData }>) {
         <PageIdentity
           title={data.rulebook.name}
           breadcrumb={
-            <PageIdentity.Breadcrumb to="/rulesets/$rulesetSlug" params={{ rulesetSlug: params.rulesetSlug }}>
-              Ruleset
+            <PageIdentity.Breadcrumb to="/rulesets/$rulesetSlug" params={{ rulesetSlug: data.ruleset.slug }}>
+              {data.ruleset.name}
             </PageIdentity.Breadcrumb>
           }
           stats={headerStats}

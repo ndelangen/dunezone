@@ -16,10 +16,11 @@ async function authoringTest() {
 
 /** Two troop types, so a reorder is observable. */
 function twoTroopFaction() {
-  const [regular] = structuredClone(assetPublishingFaction.troops);
+  /* Both troops arrive without identities, as a faction saved before #1227 did, so create assigns them. */
+  const { troopId: _troopId, ...regular } = structuredClone(assetPublishingFaction.troops[0]!);
   return {
     ...structuredClone(assetPublishingFaction),
-    troops: [regular!, { ...regular!, name: 'Elite troop', count: 5, star: undefined }],
+    troops: [regular, { ...regular, name: 'Elite troop', count: 5, star: undefined }],
   };
 }
 
@@ -66,8 +67,8 @@ describe('persistent faction troop identities (#1227)', () => {
   test('rejects an old tab that would erase adopted troop identities, and duplicate identities', async () => {
     const { author } = await authoringTest();
     const created = await author.mutation(api.factions.create, { data: twoTroopFaction(), group_id: null });
-    const stale = structuredClone(created.data);
-    stale.troops = stale.troops.map(({ troopId: _troopId, ...troop }) => troop);
+    const { troops, ...rest } = structuredClone(created.data);
+    const stale = { ...rest, troops: troops.map(({ troopId: _troopId, ...troop }) => troop) };
     await expect(author.mutation(api.factions.update, { id: created._id, data: stale })).rejects.toThrow(
       /Reload this page before saving\. This faction now uses persistent troop identities/
     );
