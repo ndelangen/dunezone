@@ -109,9 +109,22 @@ const report = {
   captures: [],
   pageErrors: [],
   consoleErrors: [],
+  teardownErrors: [],
   ...(expectedRenderer ? { expectedRenderer } : {}),
 };
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+/** Scrubs the synthetic accounts' credentials and 64-hex secrets from text the report keeps. */
+function redactSecrets(text) {
+  let message = String(text);
+  for (const account of Object.values(credentials)) {
+    for (const value of [account.email, account.password]) {
+      if (value) {
+        message = message.replaceAll(value, '[synthetic credential]');
+      }
+    }
+  }
+  return message.replace(/\b[a-f0-9]{64}\b/giu, '[redacted]');
+}
 async function until(predicate, description, timeout = 15_000) {
   const deadline = Date.now() + timeout;
   while (Date.now() < deadline) {
@@ -437,8 +450,17 @@ async function signIn(who) {
   await who.page.goto(`${origin}/auth/login`, { waitUntil: 'domcontentloaded' });
   await who.page.getByLabel('Email', { exact: true }).fill(credentials[who.label].email);
   await who.page.getByLabel('Password', { exact: true }).fill(credentials[who.label].password);
-  await who.page.getByTestId('local-auth-submit').click();
-  await who.page.getByRole('heading', { name: "You're signed in" }).waitFor();
+  const signedIn = who.page.getByRole('heading', { name: "You're signed in" });
+  const submit = who.page.getByTestId('local-auth-submit');
+  const alert = who.page.locator('form', { has: submit }).getByRole('alert');
+  await submit.click();
+  /* A sign-in the backend refuses fails at once with the form's own message, not after a silent 30 s wait. */
+  await signedIn.or(alert).first().waitFor();
+  if (!(await signedIn.isVisible())) {
+    throw new Error(
+      `Sign-in for ${who.label} failed: ${redactSecrets((await alert.textContent()) ?? '').slice(0, 300)}`
+    );
+  }
 }
 /** The id of the real game this flow creates; every account after the creator enters it. */
 let gameId;
@@ -1594,14 +1616,6 @@ try {
   assert.deepEqual(report.pageErrors, []);
   assert.deepEqual(blockedNetwork, []);
 } catch (error) {
-  let message = error.message;
-  for (const account of Object.values(credentials)) {
-    for (const value of [account.email, account.password]) {
-      if (value) {
-        message = message.replaceAll(value, '[synthetic credential]');
-      }
-    }
-  }
   /* A bare assertion message ("false !== true") names no step; the first frame inside these scripts does. */
   const frame = error.stack
     ?.split('\n')
@@ -1609,7 +1623,7 @@ try {
     ?.trim();
   report.failure = {
     name: error.name,
-    message: message.replace(/\b[a-f0-9]{64}\b/giu, '[redacted]'),
+    message: redactSecrets(error.message),
     afterCheck: report.checks.at(-1)?.name ?? 'Startup',
     ...(frame ? { at: frame } : {}),
   };
@@ -1638,17 +1652,22 @@ try {
     finalRevision: who.view()?.snapshot.revision,
     viewerSeat: who.view()?.viewer.viewerSeat,
   }));
-  report.pageErrors = report.pageErrors.length;
-  report.consoleErrorMessages = report.consoleErrors.map(({ label, message }) => ({
-    label,
-    message: message.replace(/\b[a-f0-9]{64}\b/giu, '[redacted]'),
-  }));
-  report.consoleErrors = report.consoleErrors.length;
-  report.blockedNetworkRequests = blockedNetwork.length;
-  for (const instance of otherBrowsers) {
-    await instance.close();
+  /* Pages keep logging until their browser closes (#1258), so the listeners' arrays are read only after that. */
+  for (const instance of [...otherBrowsers, browser]) {
+    try {
+      await instance.close();
+    } catch (error) {
+      /* A teardown error is recorded, but it neither replaces the flow's own result nor stops the report. */
+      report.teardownErrors.push(redactSecrets(error?.message ?? error).slice(0, 200));
+      console.error(`Browser teardown failed: ${report.teardownErrors.at(-1)}`);
+    }
   }
-  await browser.close();
+  const redacted = (entries) => entries.map(({ label, message }) => ({ label, message: redactSecrets(message) }));
+  report.pageErrorCount = report.pageErrors.length;
+  report.pageErrors = redacted(report.pageErrors);
+  report.consoleErrorCount = report.consoleErrors.length;
+  report.consoleErrors = redacted(report.consoleErrors);
+  report.blockedNetworkRequests = blockedNetwork.length;
   if (flow.keepsFrames) {
     await writeFile(
       new URL(`${values.flow}-frames.json`, directory),
