@@ -143,6 +143,7 @@ import {
   verticalRectCenter,
 } from './rulebookBlockPlacement';
 import type { BlockPlacement, VerticalRect } from './rulebookBlockPlacement';
+import { RulebookClippedBlockPanel } from './rulebookClippedBlockPanel';
 import { CoverEdit, CoverFooterEdit } from './rulebookControlRegionEditors';
 import {
   collisionPointerY,
@@ -1952,21 +1953,7 @@ function RulebookWorkspace({
                 </NestedTabs.Tools>
               </NestedTabs.Level>
               <NestedTabs.ContentPanel aria-label={`${page.title} editor`}>
-                {activeClippedBlock ? (
-                  <Stack gap="lg">
-                    <Alert color="yellow" title={`${rulebookBlockKindLabels[activeClippedBlock.kind]} is clipped`}>
-                      <Stack gap="xs">
-                        <Text size="sm">
-                          Part of this Block will not be visible in the published Rulebook. Shorten the Block to show
-                          all of it.
-                        </Text>
-                      </Stack>
-                    </Alert>
-                    {panel}
-                  </Stack>
-                ) : (
-                  panel
-                )}
+                <RulebookClippedBlockPanel clippedKind={activeClippedBlock?.kind}>{panel}</RulebookClippedBlockPanel>
               </NestedTabs.ContentPanel>
             </NestedTabs>
             {railDrag && (draggedRailBlock || draggedRailPage) ? (
