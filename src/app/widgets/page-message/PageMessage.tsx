@@ -8,7 +8,9 @@ import { forwardRef } from 'react';
 import type { ComponentPropsWithoutRef, ReactNode } from 'react';
 
 const BackAnchor = forwardRef<HTMLAnchorElement, ComponentPropsWithoutRef<'a'>>(function BackAnchor(props, ref) {
-  return <Anchor ref={ref} {...props} />;
+  /* It always sits on the sand artwork band, where the scheme's link ink falls to 1.65:1. The darkest
+     kit ink at bold weight holds 4.5:1 there in both schemes, since the band does not flip with them. */
+  return <Anchor ref={ref} c="dark.9" fw={700} {...props} />;
 });
 
 export interface PageMessageProps {
