@@ -13,6 +13,7 @@ import { useReducer, useRef, useState } from 'react';
 
 import { useCardbackPresets, useSaveCardbackPreset } from '@db/cardbackPresets';
 import { useSessionViewer } from '@db/profiles';
+import { pageHead } from '@app/routes/pageTitle';
 import { CardFrame } from '@app/widgets/asset-face/AssetFace';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
@@ -24,7 +25,10 @@ import { CardBack } from '@game/assets/card/Back';
 
 import { SaveErrorAlert } from './assetEditorStates';
 
-export const Route = createFileRoute('/_app/assets/__presets')({ component: CardbackPresetsPage });
+export const Route = createFileRoute('/_app/assets/__presets')({
+  head: () => pageHead('Card-back presets'),
+  component: CardbackPresetsPage,
+});
 
 type Draft = { cardback: CardbackPreset['cardback']; revision: number; custom: boolean; memory: BackgroundModeMemory };
 type Drafts = Partial<Record<CardbackPresetKey, Draft>>;

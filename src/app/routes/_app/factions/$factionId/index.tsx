@@ -39,6 +39,7 @@ import type { FactionData, PublicAssetPublishingStatusProjection } from '@db/fac
 import { useGroupMembershipWorkflow } from '@db/members';
 import { profileAvatarUrl } from '@db/profiles';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
+import { pageHead } from '@app/routes/pageTitle';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 import { LeaderToken } from '@game/assets/faction/leader/Leader';
 import { Token as FactionToken } from '@game/assets/faction/token/Token';
@@ -52,6 +53,7 @@ export const Route = createFileRoute('/_app/factions/$factionId/')({
   loader: async ({ params }) => await loadFaction(params.factionId),
   pendingComponent: FactionDetailPending,
   errorComponent: FactionDetailError,
+  head: ({ loaderData }) => pageHead(loaderData?.faction.data.name ?? 'Faction'),
   component: FactionDetailPage,
 });
 

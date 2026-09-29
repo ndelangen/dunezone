@@ -20,6 +20,7 @@ import { useMemo, useState } from 'react';
 import { loadFactionCataloguePage, useFactionCataloguePage } from '@db/factions';
 import type { FactionCatalogueEntry, FactionCataloguePageData, FactionRulesetSummary } from '@db/factions';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
+import { pageHead } from '@app/routes/pageTitle';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 import {
@@ -37,6 +38,7 @@ export const Route = createFileRoute('/_app/factions/')({
   loader: loadFactionCataloguePage,
   pendingComponent: FactionCataloguePending,
   errorComponent: FactionCatalogueError,
+  head: () => pageHead('Factions'),
   component: FactionsPage,
 });
 

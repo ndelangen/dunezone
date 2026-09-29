@@ -12,12 +12,14 @@ import { useReducer } from 'react';
 
 import { usePublicationJobsPage, useSetPublicationPickupEnabled } from '@db/publications';
 import type { PublicationJobStatus } from '@db/publications';
+import { pageHead } from '@app/routes/pageTitle';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 const PAGE_SIZE = 25;
 
 export const Route = createFileRoute('/_app/__jobs')({
   codeSplitGroupings: [['component']],
+  head: () => pageHead('Publication jobs'),
   component: PublicationJobsPage,
 });
 

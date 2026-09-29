@@ -10,6 +10,8 @@ import { icons, Search } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
+import { pageHead } from '@app/routes/pageTitle';
+
 const BATCH_SIZE = 60;
 
 const DUNE_GROUPS = [
@@ -187,6 +189,7 @@ function useDuneSvgSizes(enabled: boolean) {
 
 export const Route = createFileRoute('/_app/__icons')({
   codeSplitGroupings: [['component']],
+  head: () => pageHead('Icon catalog'),
   component: IconsPage,
 });
 

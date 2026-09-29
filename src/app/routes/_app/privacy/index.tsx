@@ -4,7 +4,10 @@ import { PageTitle } from '@ui/block/PageTitle';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 
+import { pageHead } from '@app/routes/pageTitle';
+
 export const Route = createFileRoute('/_app/privacy/')({
+  head: () => pageHead('Privacy'),
   component: PrivacyPage,
 });
 

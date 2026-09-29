@@ -15,6 +15,7 @@ import { useState } from 'react';
 
 import { loadAssetBrowsePage, useAssetBrowsePage } from '@app/db/assets';
 import type { AssetBrowseEntry } from '@app/db/assets';
+import { pageHead } from '@app/routes/pageTitle';
 import { AssetFace } from '@app/widgets/asset-face/AssetFace';
 
 import { applyAssetBrowseSearch, ASSET_BROWSE_SORTS, parseAssetBrowseSearch } from './browse';
@@ -38,6 +39,8 @@ export const Route = createFileRoute('/_app/assets/$type/')({
     }
     return await loadAssetBrowsePage(params.type);
   },
+  /* Hydration still runs this head for an unknown type, whose match carries the loader's notFound. */
+  head: ({ match, params }) => pageHead(isAssetType(params.type) ? ASSET_TYPES[params.type].label : null, { match }),
   component: AssetTypePage,
 });
 
