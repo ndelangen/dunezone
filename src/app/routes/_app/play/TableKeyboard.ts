@@ -7,6 +7,7 @@ const DRAW_HOLD_MS = 1000;
 
 type Controls = Pick<
   TabletopContextValue,
+  | 'canInteract'
   | 'deckControls'
   | 'flipSelected'
   | 'hoveredPieceId'
@@ -17,9 +18,7 @@ type Controls = Pick<
   | 'state'
   | 'takeAdditionalFromTarget'
   | 'toggleLockSelected'
-> & {
-  canInteract: boolean;
-};
+>;
 type Binding = {
   events: Pick<Window, 'addEventListener' | 'removeEventListener'>;
   read(): Controls;

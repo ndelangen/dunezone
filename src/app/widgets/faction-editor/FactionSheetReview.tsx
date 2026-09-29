@@ -234,7 +234,8 @@ export const FactionSheetReview = forwardRef<
         closeReview();
       }
     };
-    window.addEventListener('keydown', onKeyDown);
+    // Capture phase: the tooltip of the button that opened the review is still open under the pointer, and Mantine's tooltip stops Escape on the document before a bubbling window listener sees it.
+    window.addEventListener('keydown', onKeyDown, true);
     // A stage that narrows below the review's width closes the review as its close button does, so focus goes back to the trigger when the trigger can take it.
     const stage = stageRef.current;
     let observer: ResizeObserver | undefined;
@@ -247,7 +248,7 @@ export const FactionSheetReview = forwardRef<
       observer.observe(stage);
     }
     return () => {
-      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('keydown', onKeyDown, true);
       observer?.disconnect();
     };
   }, [closeReview, reviewOpen]);

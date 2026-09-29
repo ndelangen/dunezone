@@ -29,6 +29,11 @@ vi.mock('@react-three/fiber/webgpu', async () => {
 
 vi.mock('@react-three/drei/webgpu', () => ({ Html: () => null }));
 
+vi.mock('./TabletopContext', () => {
+  const table = { pointers: [], canInteract: true, publishPointer: () => {} };
+  return { useTabletop: () => table };
+});
+
 afterEach(() => {
   cleanup();
   scheduler.frames.clear();

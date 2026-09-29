@@ -2,15 +2,13 @@
 import { useThree } from '@react-three/fiber/webgpu';
 import { useEffect, useState } from 'react';
 
-import { usePresence } from './multiplayer/PresenceContext';
 import { PhaseSymbol } from './PhaseSymbol';
 import { useTableKeyboard } from './TableKeyboardContext';
 import { useTabletop } from './TabletopContext';
 import { SPICE_DISC_COLOR } from './tableTrackers';
 
 export function SpiceSupply({ radius }: Readonly<{ radius: number }>) {
-  const { setHoveredPiece, state } = useTabletop();
-  const { canInteract } = usePresence();
+  const { canInteract, setHoveredPiece, state } = useTabletop();
   const keyboard = useTableKeyboard();
   const { renderer } = useThree();
   const [hovered, setHovered] = useState(false);
