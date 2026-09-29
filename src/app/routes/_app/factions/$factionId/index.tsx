@@ -197,13 +197,7 @@ function FactionDetailPage() {
           }
           breadcrumb={<PageIdentity.Breadcrumb to="/factions">Factions</PageIdentity.Breadcrumb>}
           maintainers={{
-            owner: owner
-              ? {
-                  slug: owner.slug,
-                  name: owner.username,
-                  image: profileAvatarUrl(owner),
-                }
-              : null,
+            owner: owner ? { slug: owner.slug, name: owner.username, image: profileAvatarUrl(owner) } : null,
             group: assignedGroup ? { slug: assignedGroup.slug, name: assignedGroup.name } : null,
           }}
           standing={membershipBadge}
