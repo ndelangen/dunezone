@@ -2,11 +2,10 @@ import { Alert, Group, Text } from '@mantine/core';
 import { ASSET_TYPES, isAssetType } from '@shared/assets/types';
 import { useNavigate } from '@tanstack/react-router';
 import { NotAvailable } from '@ui/block/NotAvailable';
-import { StatusMark } from '@ui/content/StatusMark';
-import { TopicIcon } from '@ui/content/TopicIcon';
 import { AssignOptions, AssignPopover } from '@ui/control/AssignPopover';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { IconAction } from '@ui/control/IconAction';
+import type { StatusInfoItem } from '@ui/control/StatusInfo';
 import { UserRoundMinus, UsersRound } from 'lucide-react';
 import { useState } from 'react';
 import type { ReactNode } from 'react';
@@ -17,6 +16,7 @@ import { mutationErrorMessage } from '@app/db/core/mutationError';
 import { AssetNameInput } from '@app/pickers/AssetNameInput';
 import { nameConflictComplaint } from '@app/pickers/UniqueNameInput';
 import type { NameConflict } from '@app/pickers/UniqueNameInput';
+import { groupAccessStatus } from '@app/widgets/authoring/AuthoringToolbar';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 /**
@@ -156,15 +156,17 @@ export function useAssetGroupActions({
     viewerAccess: NonNullable<AssetPageData>['viewerAccess'];
     assignableGroups: NonNullable<AssetPageData>['assignableGroups'];
   };
-}): { auxiliaryActions: ReactNode; context: ReactNode; error: ReactNode } {
+}): { accessActions: ReactNode; status: StatusInfoItem; error: ReactNode } {
   const setAssetGroup = useSetAssetGroup();
   const { assignedGroup, capabilities } = access.viewerAccess;
 
-  const auxiliaryActions = !capabilities.changeGroup ? null : assignedGroup ? (
+  /* Which Group has access is said by the action that removes it, rather than by a status beside it. */
+  const accessActions = !capabilities.changeGroup ? null : assignedGroup ? (
     <IconAction
       label="Remove group"
+      tooltip={`Remove group access (${assignedGroup.name})`}
       emphasis="standard"
-      intent="negative"
+      intent="neutral"
       size="lg"
       disabled={setAssetGroup.isPending}
       onClick={() => setAssetGroup.mutate({ id: asset.id, group_id: null })}
@@ -191,10 +193,8 @@ export function useAssetGroupActions({
   );
 
   return {
-    auxiliaryActions,
-    context: assignedGroup ? (
-      <StatusMark icon={<TopicIcon topic="groups" size={16} />} label={`Group access: ${assignedGroup.name}`} />
-    ) : null,
+    accessActions,
+    status: groupAccessStatus(assignedGroup?.name ?? null),
     error: setAssetGroup.error ? (
       <Alert color="red" variant="light" role="alert" title="Could not change group">
         {setAssetGroup.error.message}

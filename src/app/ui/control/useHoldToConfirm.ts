@@ -20,7 +20,16 @@ const HOLD_SECONDS = 5;
  * The shapes that wear it (`ConfirmDeleteAction` for the icon triggers, `ConfirmDeleteButton` for the full-width ones) own the words and the glyphs;
  * spread `handlers` onto the pressable element and render `remaining` while `holding`.
  */
-export function useHoldToConfirm({ pending, onConfirm }: { pending: boolean; onConfirm: () => void }) {
+export function useHoldToConfirm({
+  pending,
+  onConfirm,
+  blocked = false,
+}: {
+  pending: boolean;
+  onConfirm: () => void;
+  /** True when the action has become impossible. */
+  blocked?: boolean;
+}) {
   /* Seconds until the action fires; null while nothing is held. */
   const [remaining, setRemaining] = useState<number | null>(null);
   const [submitted, setSubmitted] = useState(false);
@@ -48,6 +57,15 @@ export function useHoldToConfirm({ pending, onConfirm }: { pending: boolean; onC
     },
     []
   );
+
+  /* A countdown running when the action becomes impossible is dropped, or it would fire into a caller that does nothing and latch the spinner for good. */
+  useEffect(() => {
+    if (blocked && timer.current) {
+      clearInterval(timer.current);
+      timer.current = null;
+      setRemaining(null);
+    }
+  }, [blocked]);
 
   const cancelHold = () => {
     stopTimer();

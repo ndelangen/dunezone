@@ -308,7 +308,8 @@ describe('profile settings page', () => {
     );
 
     setMutationState({ isPending: true, error: null });
-    expect((view.getByRole('button', { name: 'Saving…' }) as HTMLButtonElement).disabled).toBe(true);
+    /* Save is an icon now, so pending shows as its spinner and its disabled state rather than a "Saving…" label. */
+    expect((view.getByRole('button', { name: 'Save profile' }) as HTMLButtonElement).disabled).toBe(true);
 
     /* The error channel is the mutation result itself now, not a callback: the page renders
        `update.error` whenever `update.isError`, so a failed save is simulated by the hook's state. */
