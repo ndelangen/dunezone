@@ -123,6 +123,8 @@ describe('number-key stack draws', () => {
     } else {
       unbind();
     }
+    /* Read before the clock moves: an unbound keyboard's leftover timer fires without a table to draw from, so only the count shows it. */
+    expect(vi.getTimerCount()).toBe(0);
 
     vi.advanceTimersByTime(1000);
     expect(controls.splitSelected).not.toHaveBeenCalled();
