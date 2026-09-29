@@ -16,11 +16,9 @@ export function RulebookClippedBlockPanel({
     <Stack gap="lg">
       {clippedKind ? (
         <Alert color="yellow" title={`${rulebookBlockKindLabels[clippedKind]} is clipped`}>
-          <Stack gap="xs">
-            <Text size="sm">
-              Part of this Block will not be visible in the published Rulebook. Shorten the Block to show all of it.
-            </Text>
-          </Stack>
+          <Text size="sm">
+            Part of this Block will not be visible in the published Rulebook. Shorten the Block to show all of it.
+          </Text>
         </Alert>
       ) : null}
       {children}
