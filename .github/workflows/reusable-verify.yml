@@ -438,7 +438,8 @@ jobs:
       - name: Install full Chromium
         # Not the playwright-chromium action: it caches Linux's ~/.cache/ms-playwright, and on macOS
         # Playwright installs to ~/Library/Caches/ms-playwright. The download takes about 10 s here.
-        run: npx playwright install --no-shell chromium
+        # The lockfile's own Playwright CLI, because npx would fetch a package that is not installed.
+        run: node_modules/.bin/playwright install --no-shell chromium
       - name: Select full Chromium in new headless mode
         # On macOS the browser driver adds no switch, so Chromium chooses its own WebGPU adapter.
         run: |
