@@ -42,6 +42,8 @@ export const ProfileLink = ({ slug, name, image, className, style, title, showNa
       className={clsx(styles.link, className)}
       style={style}
       title={title}
+      /* Without the name beside it, `title` is the link's only text; naming it explicitly keeps it announced everywhere. */
+      aria-label={showName ? undefined : title}
     >
       {/*
         The mark is decorative in both branches. The name is already beside it, or `title` carries it,
