@@ -28,4 +28,12 @@ describe('pageHead', () => {
       meta: [{ title: 'Game lobby · Dune Zone' }, { name: 'robots', content: 'noindex' }],
     });
   });
+
+  it('yields no title for a match that threw notFound', () => {
+    expect(pageHead('Asset', { match: { status: 'notFound' } })).toEqual({});
+  });
+
+  it('keeps the title for a match that loaded', () => {
+    expect(pageHead('Asset', { match: { status: 'success' } })).toEqual({ meta: [{ title: 'Asset · Dune Zone' }] });
+  });
 });

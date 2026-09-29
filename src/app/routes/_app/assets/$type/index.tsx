@@ -1,6 +1,5 @@
 import { Select, Stack, Text, Title } from '@mantine/core';
 import { ASSET_TYPES, isAssetType } from '@shared/assets/types';
-import type { AssetType } from '@shared/assets/types';
 import { createFileRoute, Link, notFound, useNavigate } from '@tanstack/react-router';
 import { OpenableTile } from '@ui/block/OpenableTile';
 import { PageTitle } from '@ui/block/PageTitle';
@@ -40,8 +39,8 @@ export const Route = createFileRoute('/_app/assets/$type/')({
     }
     return await loadAssetBrowsePage(params.type);
   },
-  /* The loader has already thrown notFound for an unknown type, so this head only ever sees a real one. */
-  head: ({ params }) => pageHead(ASSET_TYPES[params.type as AssetType].label),
+  /* Hydration still runs this head for an unknown type, whose match carries the loader's notFound. */
+  head: ({ match, params }) => pageHead(isAssetType(params.type) ? ASSET_TYPES[params.type].label : null, { match }),
   component: AssetTypePage,
 });
 

@@ -23,7 +23,7 @@ export const Route = createFileRoute('/_app/assets/$type/$slug/edit/')({
     }
     return await loadAssetPage(params.type, params.slug);
   },
-  head: ({ loaderData }) => pageHead(loaderData ? `Edit ${loaderData.asset.name}` : 'Edit asset'),
+  head: ({ match, loaderData }) => pageHead(loaderData ? `Edit ${loaderData.asset.name}` : 'Edit asset', { match }),
   component: EditAssetPage,
 });
 

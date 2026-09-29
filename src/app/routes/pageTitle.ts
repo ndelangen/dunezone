@@ -16,8 +16,18 @@ export function pageTitle(name?: string | null): string {
  * A route's `head` result carrying that title, so each route states only its name.
  * The deepest matched route's title wins, which is why a detail route can refine its parent's.
  * `noindex` adds the robots tag the play pages carry.
+ * `match` is the head context's own match, passed by every route whose loader can throw notFound.
+ * The server render and client navigation run no heads below the notFound boundary, but client hydration runs them all.
+ * There the throwing match arrives marked `status: 'notFound'` with no loader data, and its fallback name would outrank the `_app` boundary's "Page not found".
+ * So a match in that state yields no title at all.
  */
-export function pageHead(name?: string | null, options: { noindex?: boolean } = {}) {
+export function pageHead(
+  name?: string | null,
+  options: { noindex?: boolean; match?: { status: string } } = {}
+): { meta?: ({ title: string } | { name: string; content: string })[] } {
+  if (options.match?.status === 'notFound') {
+    return {};
+  }
   return {
     meta: [{ title: pageTitle(name) }, ...(options.noindex ? [{ name: 'robots', content: 'noindex' }] : [])],
   };

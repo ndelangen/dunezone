@@ -75,7 +75,7 @@ export const Route = createFileRoute('/_app/assets/$type/$slug/')({
   },
   pendingComponent: AssetDetailPending,
   errorComponent: AssetDetailError,
-  head: ({ loaderData }) => pageHead(loaderData?.asset.name ?? 'Asset'),
+  head: ({ match, loaderData }) => pageHead(loaderData?.asset.name ?? 'Asset', { match }),
   component: AssetDetailPage,
 });
 

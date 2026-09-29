@@ -24,7 +24,7 @@ export const Route = createFileRoute('/_app/assets/$type/create/')({
     }
     return null;
   },
-  head: () => pageHead('New asset'),
+  head: ({ match }) => pageHead('New asset', { match }),
   component: CreateAssetPage,
 });
 
