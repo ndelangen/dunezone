@@ -255,8 +255,9 @@ function keepLargest(top, sizing, update) {
     pieceBytes: sizing.pieceBytes,
     minimalPieceBytes: sizing.minimalPieceBytes,
     sent: excerpt({
-      pieces: update.snapshot.pieces,
+      // Moves go first: they are small, and a whole deck in pieces would push them past the excerpt's cut.
       pieceMoves: update.snapshot.pieceMoves,
+      pieces: update.snapshot.pieces,
       removedPieces: update.snapshot.removedPieces,
       pieceOrder: update.snapshot.pieceOrder,
     }),
