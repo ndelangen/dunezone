@@ -86,24 +86,35 @@ function HeaderResizePage() {
 /* The band's `transition: height 0.2s` in `AppHeader.module.css`. */
 const BAND_TRANSITION_MS = 200;
 
-/** The band's height transition until it finishes, since a finished transition leaves the element's animations. */
-function unfinishedHeightTransition(header: HTMLElement) {
-  return header
+/**
+ * Takes hold of the band's height transition if it has not finished, since a finished transition leaves the element's animations.
+ * It pauses the transition, seeks it half way, reads the band's height there and finishes it, and returns that height.
+ * Reading the animations flushes style, so a transition the last style change started is already there, whether or not a frame has run since.
+ */
+function holdHalfWay(header: HTMLElement, view: Window & typeof globalThis) {
+  const transition = header
     .getAnimations()
     .find(
       (animation): animation is CSSTransition =>
-        animation instanceof CSSTransition && animation.transitionProperty === 'height'
+        animation instanceof view.CSSTransition && animation.transitionProperty === 'height'
     );
+  if (!transition) {
+    return undefined;
+  }
+  transition.pause();
+  transition.currentTime = BAND_TRANSITION_MS / 2;
+  const midway = header.getBoundingClientRect().height;
+  transition.finish();
+  return midway;
 }
 
 /**
- * A CSS transition advances only on drawn frames, and its `transitionend` reaches the page from inside one.
- * When the GPU process is busy the page can draw no frame for seconds while its timers, and this wait's polls, keep running.
+ * In Chromium, as measured for this story, a CSS transition advances only on drawn frames, and its `transitionend` reaches the page from inside one.
+ * When the GPU process is busy the page can draw no frame for seconds while its timers, and a wait's polls, keep running.
  * The transition then sits at one point until the wait's bound, so a story that waits for the end event times the runner rather than the band (https://github.com/ndelangen/dunezone/issues/1180).
- * So the story takes hold of the running transition itself: it pauses it, seeks it half way, reads the band's height there, and finishes it.
+ * So the story takes hold of the transition itself, from a mutation observer: its callback runs in the microtask after the click's render is committed, before any frame can advance or end the transition that render started.
  * A height strictly between the two resting heights proves the band animates, and none of that waits for a frame.
- * A transition that ran to its end on drawn frames before the first check has already left the element, and then its `transitionrun` and `transitionend` are the proof instead.
- * Without the transition there is neither, and the wait fails.
+ * The story reads no transition events, so events a finished transition delivers late cannot stand in for a later change that did not animate.
  */
 async function playHeaderResize({ canvasElement }: { canvasElement: HTMLElement }, motion: 'reduce' | 'ok') {
   const canvas = within(canvasElement);
@@ -119,60 +130,40 @@ async function playHeaderResize({ canvasElement }: { canvasElement: HTMLElement 
     expect(header.getBoundingClientRect().height).toBe(51);
   });
 
-  const transitions: string[] = [];
-  const recordTransition = (event: TransitionEvent) => {
-    if (event.target === header && event.propertyName === 'height') {
-      transitions.push(event.type);
-    }
-  };
-  const transitionEvents = ['transitionrun', 'transitioncancel', 'transitionend'] as const;
-  for (const type of transitionEvents) {
-    header.addEventListener(type, recordTransition);
-  }
-
-  try {
-    for (const expanded of [true, false]) {
-      transitions.length = 0;
-      const from = header.getBoundingClientRect().height;
-      let midway: number | undefined;
-      await userEvent.click(canvas.getByRole('button', { name: expanded ? 'Show page header' : 'Hide page header' }));
-      await expect(view.getComputedStyle(header).transitionDuration).toBe(motion === 'reduce' ? '0s' : '0.2s');
-      await waitFor(() => {
-        expect(canvas.getByRole('banner')).toBe(header);
-        const transition = unfinishedHeightTransition(header);
-        if (transition) {
-          transition.pause();
-          transition.currentTime = BAND_TRANSITION_MS / 2;
-          midway = header.getBoundingClientRect().height;
-          transition.finish();
-        }
-        if (expanded) {
-          expect(header.getBoundingClientRect().height).toBeGreaterThan(51);
-        } else {
-          expect(header.getBoundingClientRect().height).toBe(51);
-        }
-        if (motion === 'reduce') {
-          expect(midway).toBeUndefined();
-          expect(transitions).toEqual([]);
-        } else {
-          const ranOnFrames =
-            transitions.includes('transitionrun') &&
-            transitions.lastIndexOf('transitionend') > transitions.lastIndexOf('transitionrun');
-          expect(
-            midway !== undefined || ranOnFrames,
-            `The band's height had no transition to hold and reported none that ran to its end. Events seen: ${transitions.join(', ') || 'none'}.`
-          ).toBe(true);
-        }
-      });
+  for (const expanded of [true, false]) {
+    const from = header.getBoundingClientRect().height;
+    let midway: number | undefined;
+    const observer = new view.MutationObserver(() => {
+      midway ??= holdHalfWay(header, view);
       if (midway !== undefined) {
-        const to = header.getBoundingClientRect().height;
-        expect(midway).toBeGreaterThan(Math.min(from, to));
-        expect(midway).toBeLessThan(Math.max(from, to));
+        observer.disconnect();
       }
+    });
+    observer.observe(canvasElement, { attributes: true, childList: true, subtree: true });
+    try {
+      await userEvent.click(canvas.getByRole('button', { name: expanded ? 'Show page header' : 'Hide page header' }));
+    } finally {
+      observer.disconnect();
     }
-  } finally {
-    for (const type of transitionEvents) {
-      header.removeEventListener(type, recordTransition);
+    await expect(view.getComputedStyle(header).transitionDuration).toBe(motion === 'reduce' ? '0s' : '0.2s');
+    await waitFor(() => {
+      expect(canvas.getByRole('banner')).toBe(header);
+      if (expanded) {
+        expect(header.getBoundingClientRect().height).toBeGreaterThan(51);
+      } else {
+        expect(header.getBoundingClientRect().height).toBe(51);
+      }
+    });
+    if (motion === 'reduce') {
+      expect(midway).toBeUndefined();
+    } else {
+      expect(
+        midway,
+        `The band's height started no transition when the page header was ${expanded ? 'shown' : 'hidden'}.`
+      ).toBeDefined();
+      const to = header.getBoundingClientRect().height;
+      expect(midway).toBeGreaterThan(Math.min(from, to));
+      expect(midway).toBeLessThan(Math.max(from, to));
     }
   }
 }
