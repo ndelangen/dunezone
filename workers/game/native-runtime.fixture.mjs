@@ -313,7 +313,16 @@ export async function createPeer() {
       return current && predicate(current) && current;
     }, 'native subscription');
   const server = createServer(async (request, response) => {
-    const record = await readPeerRequest(request, response);
+    let record;
+    try {
+      record = await readPeerRequest(request, response);
+    } catch (error) {
+      /* The Worker can cancel a call before its body arrives, as a retried command does; there is nothing left to answer. */
+      if (error?.code === 'ECONNRESET') {
+        return;
+      }
+      throw error;
+    }
     peer.requests.push(record);
     answerPeerRequest(peer, record);
   });
