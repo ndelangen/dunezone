@@ -29,7 +29,8 @@ Quick reference for understanding and working with the codebase.
 ```bash
 # Development
 bun run app:dev           # Port 3000, using the configured online Convex deployment
-bun run app:dev --local   # Separate Convex per launch + local auth + production data clone
+bun run app:dev --local   # Separate Convex per launch + local auth + fixture data
+bun run app:dev --local --clone-prod # The same with a production data clone; needs a Convex login
 bun run app:build         # Build for production
 bun run app:preview       # Preview production build locally
 
@@ -75,10 +76,12 @@ Remove the entry when the miniflare release in the tree, which moves with `wrang
 ### Disposable local app development
 
 `bun run app:dev --local` is the authenticated local environment for browser review and branch work
-on Convex functions, schemas, or migrations. It requires Docker, `.env.e2e.local` credentials, and a
-Convex CLI login able to export from production. A worktree without the ignored credentials file
-reads it from the main checkout, along with that checkout's Convex project selection. Set
-`LOCAL_DEV_ENV_FILE` to use another credentials file.
+on Convex functions, schemas, or migrations. It requires Docker and `.env.e2e.local` credentials. It
+needs no Convex login and never exports production. A worktree without the ignored credentials file
+reads it from the main checkout. Set `LOCAL_DEV_ENV_FILE` to use another credentials file.
+
+Bare `bun run app:dev` stays on the configured online deployment, which needs neither Docker nor a
+credentials file. The `app-integration` entry in `.claude/launch.json` starts it that way.
 
 Each launch creates a fresh Docker Compose project and volume, even in the same worktree. It chooses
 a random four-port block and prints the application, backend, site, and dashboard addresses.
@@ -92,9 +95,25 @@ absolute `LOCAL_DEV_DOCKER_PATH` when the CLI lives elsewhere.
 The fixed ports in `.env.e2e.local` belong to E2E and do not override the launch's ports. Copy
 `.env.e2e.local.example` when the main checkout has no credentials file.
 
-Each start runs `scripts/provision.ts`: push the checked-out functions, import a fresh production
-snapshot, clear the auth session/token and publication queue tables, then check the rebuild contract.
-The cleared and required table lists live in
+Each start runs the `scripts/provision.ts` stages: push the checked-out functions, clear the
+application tables, and run the migration guards. Once the two local accounts exist, it seeds, in
+this order:
+
+- `e2e:seedBaseline`: user A's profile and the E2E Baseline Group with its ruleset. It clears the
+  application tables before it seeds, so it goes first.
+- The Storybook page-story baseline from
+  [`src/app/db/storybook/database.ts`](../src/app/db/storybook/database.ts): the Arrakeen Rules
+  Council, the ClassicRules ruleset, House Atreides, representative assets and an FAQ.
+- `playTesting:seedRealGameCatalogue` and `playTesting:seedPublicCatalogue`: a synthetic ruleset
+  with both required decks and two factions, and the Recovery token.
+
+Vite serves no `/published/` path; it answers with the application's HTML. Published artwork such as
+faction tokens and leader portraits therefore shows as a missing image in a local launch.
+
+`bun run app:dev --local --clone-prod` imports a fresh production snapshot instead of the fixtures.
+It needs a Convex CLI login able to export from production, and it reads the main checkout's Convex
+project selection when the worktree has none. It clears the auth session/token and publication queue
+tables, then checks the rebuild contract. The cleared and required table lists live in
 [`convex/lib/provisioningContract.ts`](../convex/lib/provisioningContract.ts). This copy is not
 anonymized; users and other production data remain. Export reads production without changing it.
 
@@ -105,7 +124,7 @@ configuration edits to this launch's stack. It never changes the worktree's
 together.
 
 Normal exit or startup failure removes only this launch's containers, volume, and private temporary
-directory. The raw export archive is deleted after import. A hard crash or `SIGKILL` can leave
+directory. A clone's raw export archive is deleted after import. A hard crash or `SIGKILL` can leave
 containers and temporary files behind; later launches do not reclaim them. Startup prints the
 project, temporary directory, and a cleanup command:
 
@@ -114,14 +133,15 @@ bun scripts/local-dev-cleanup.ts dunezone-local-<UUID>
 ```
 
 Use the printed command from a checkout with the same Docker context and `LOCAL_DEV_DOCKER_PATH`,
-then delete only the printed temporary directory. It can contain production data and auth keys.
+then delete only the printed temporary directory. It holds auth keys, and after a `--clone-prod`
+launch it can hold production data.
 
 The backend and dashboard images are pinned to multi-platform digests in
 `docker-compose.convex-local.yml`, so an existing Docker cache cannot silently select an
 older runtime. When upgrading the Convex packages, update both image digests together and
 verify a clean `bun run app:dev --local` start.
 
-After the two configured local password users sign in, every cloned faction and group is
+After the two configured local password users sign in, every seeded or cloned faction and group is
 handed to user A (user B becomes an active member of every group) so the review workflow
 stays "log in as A, edit anything". Use the two configured local accounts in
 `/auth/login`; no real account is required.
@@ -134,7 +154,9 @@ each deploy. It requires `CONVEX_DEV_DEPLOY_KEY`; the prod snapshot export uses
 `CONVEX_PROD_DEPLOY_KEY` when set and otherwise falls back to the ambient
 `CONVEX_DEPLOY_KEY` (the repo's deploy secret is the prod key). A bare
 `bun run provision local` intentionally refuses to run: the local users stage needs the running app,
-so the complete local environment always comes from `bun run app:dev --local`.
+so the complete local environment always comes from `bun run app:dev --local`. With explicit
+`--stage` flags, its data stage clears the application tables as the e2e target does; only
+`--clone-prod` clones production into a local stack.
 
 ### Keeping the cloud dev deployment usable
 

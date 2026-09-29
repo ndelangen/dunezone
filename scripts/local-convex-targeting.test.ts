@@ -40,7 +40,8 @@ test.each(['configure', 'migrations', 'conflicting-targets'] as const)(
       for (const name of ['provision.ts', 'migration-guards.ts', 'retry-transient.ts']) {
         copyFileSync(path.join(import.meta.dirname, name), path.join(directory, 'scripts', name));
       }
-      for (const name of ['convex', 'node_modules']) {
+      /* The provision module seeds the Storybook baseline from src, so the copy links it beside convex. */
+      for (const name of ['convex', 'node_modules', 'src']) {
         symlinkSync(path.join(rootDirectory, name), path.join(directory, name), 'dir');
       }
       copyFileSync(path.join(rootDirectory, 'package.json'), path.join(directory, 'package.json'));

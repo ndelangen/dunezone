@@ -19,31 +19,40 @@ import {
   cloneProductionData,
   commandEnvironment,
   configureLocalAuth,
+  loadFixtureData,
   localApplicationEnvironment,
   parseEnvFile,
   pushCode,
   remapOwnershipToLocalUsers,
+  seedLocalFixtureData,
   selfHostedEnvironment,
 } from './provision';
 import type { SelfHostedDeployment } from './provision';
 
-type AppDevMode = 'cloud' | 'help' | 'local';
+/** Where a local launch's data comes from: seeded fixtures, or a production clone only when asked for. */
+type LocalData = 'fixture' | 'clone-prod';
+
+type AppDevMode = { kind: 'cloud' } | { kind: 'help' } | { kind: 'local'; data: LocalData };
 
 const rootDirectory = path.resolve(import.meta.dirname, '..');
 const viteDevRunnerPath = path.join(import.meta.dirname, 'vite-dev-runner.ts');
 const localConvexWatcherPath = path.join(import.meta.dirname, 'local-convex-watcher.ts');
 
 export function parseAppDevMode(args: string[]): AppDevMode {
-  if (args.length === 0) {
-    return 'cloud';
+  /* `app-dev.sh` supervises a launch whose first argument is `--local`, so the clone flag comes after it. */
+  switch (args.join(' ')) {
+    case '':
+      return { kind: 'cloud' };
+    case '--local':
+      return { kind: 'local', data: 'fixture' };
+    case '--local --clone-prod':
+      return { kind: 'local', data: 'clone-prod' };
+    case '--help':
+    case '-h':
+      return { kind: 'help' };
+    default:
+      throw new Error(`Unknown app:dev argument: ${args.join(' ')}`);
   }
-  if (args.length === 1 && args[0] === '--local') {
-    return 'local';
-  }
-  if (args.length === 1 && (args[0] === '--help' || args[0] === '-h')) {
-    return 'help';
-  }
-  throw new Error(`Unknown app:dev argument: ${args.join(' ')}`);
 }
 
 function requireValue(values: Record<string, string>, key: string, localEnvFile: string) {
@@ -151,9 +160,11 @@ async function requireProcessToStayRunning(exit: Promise<number>, label: string)
 
 function printHelp() {
   console.log(`Usage:
-  bun run app:dev          Start Vite with the configured online Convex deployment.
-  bun run app:dev --local  Reset and start this worktree's disposable local Convex,
-                           clone production data, and enable two local test accounts.`);
+  bun run app:dev                       Start Vite with the configured online Convex deployment.
+  bun run app:dev --local               Reset and start this worktree's disposable local Convex,
+                                        seed fixture data, and enable two local test accounts.
+  bun run app:dev --local --clone-prod  The same with a production data clone instead of fixtures.
+                                        Needs a Convex CLI login that can export production.`);
 }
 
 function runMigrationGuards(env: NodeJS.ProcessEnv) {
@@ -177,7 +188,14 @@ async function runCloudDevelopment() {
   process.exitCode = await waitForExit(vite);
 }
 
-async function runLocalDevelopment() {
+/** The Convex project a production clone exports from. A fixture launch never looks it up. */
+function cloneProjectDeployment(commonGitDirectory: string | undefined) {
+  const projectEnvFile = resolveLocalDevelopmentProjectEnvFile(rootDirectory, commonGitDirectory);
+  const projectValues = existsSync(projectEnvFile) ? parseEnvFile(readFileSync(projectEnvFile, 'utf8')) : {};
+  return normalizeConvexDeploymentSelection(projectValues.CONVEX_DEPLOYMENT);
+}
+
+async function runLocalDevelopment(data: LocalData) {
   const commonGitDirectory = resolveGitCommonDirectory(rootDirectory);
   const localEnvFile = resolveLocalDevelopmentEnvFile(rootDirectory, process.env, commonGitDirectory);
   if (!existsSync(localEnvFile)) {
@@ -185,9 +203,7 @@ async function runLocalDevelopment() {
       `Missing local credentials file ${localEnvFile}. Copy .env.e2e.local.example or set LOCAL_DEV_ENV_FILE.`
     );
   }
-  const projectEnvFile = resolveLocalDevelopmentProjectEnvFile(rootDirectory, commonGitDirectory);
-  const projectValues = existsSync(projectEnvFile) ? parseEnvFile(readFileSync(projectEnvFile, 'utf8')) : {};
-  const projectDeployment = normalizeConvexDeploymentSelection(projectValues.CONVEX_DEPLOYMENT);
+  const projectDeployment = data === 'clone-prod' ? cloneProjectDeployment(commonGitDirectory) : undefined;
   const values = {
     ...(projectDeployment ? { CONVEX_DEPLOYMENT: projectDeployment } : {}),
     ...parseEnvFile(readFileSync(localEnvFile, 'utf8')),
@@ -252,8 +268,16 @@ async function runLocalDevelopment() {
     });
     pushCode(deployment, localEnv);
 
-    console.log('Cloning production data into local Convex...');
-    cloneProductionData(deployment, localEnv, temporaryDirectory);
+    switch (data) {
+      case 'fixture':
+        console.log('Clearing local Convex for fixture data...');
+        loadFixtureData(deployment, localEnv);
+        break;
+      case 'clone-prod':
+        console.log('Cloning production data into local Convex...');
+        cloneProductionData(deployment, localEnv, temporaryDirectory);
+        break;
+    }
 
     console.log('Preparing required local migrations...');
     runMigrationGuards(selfHostedEnvironment(localEnv, deployment));
@@ -264,7 +288,11 @@ async function runLocalDevelopment() {
     await ensureLocalAuthUser(instance.appUrl, ownerEmail, password);
     await ensureLocalAuthUser(instance.appUrl, collaboratorEmail, password);
 
-    console.log('Handing cloned factions and groups to the local reviewer accounts...');
+    if (data === 'fixture') {
+      console.log('Seeding the e2e baseline, the Storybook baseline and the Play catalogues...');
+      seedLocalFixtureData(deployment, localEnv, ownerEmail);
+    }
+    console.log('Handing factions and groups to the local reviewer accounts...');
     remapOwnershipToLocalUsers(deployment, localEnv, ownerEmail, collaboratorEmail);
     console.log('Watching this worktree for Convex backend changes...');
     convexWatcher = startLocalConvexWatcher(deployment, localEnv);
@@ -285,15 +313,17 @@ async function runLocalDevelopment() {
 
 async function main() {
   const mode = parseAppDevMode(process.argv.slice(2));
-  if (mode === 'help') {
-    printHelp();
-    return;
+  switch (mode.kind) {
+    case 'help':
+      printHelp();
+      return;
+    case 'local':
+      await runLocalDevelopment(mode.data);
+      return;
+    case 'cloud':
+      await runCloudDevelopment();
+      return;
   }
-  if (mode === 'local') {
-    await runLocalDevelopment();
-    return;
-  }
-  await runCloudDevelopment();
 }
 
 if (import.meta.main) {

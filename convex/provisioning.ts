@@ -1,7 +1,9 @@
 import { paginationOptsValidator } from 'convex/server';
+import type { WithoutSystemFields } from 'convex/server';
 import { v } from 'convex/values';
 
-import type { Doc, Id } from './_generated/dataModel';
+import { resolveSeedValue } from '../src/shared/seedReferences';
+import type { Doc, Id, TableNames } from './_generated/dataModel';
 import type { MutationCtx } from './_generated/server';
 import { internalMutation } from './functions';
 import { ensureProfileForUser } from './lib/profileBootstrap';
@@ -147,5 +149,34 @@ export const remapGroupOwnershipBatch = internalMutation({
     }
 
     return { isDone: result.isDone, continueCursor: result.continueCursor };
+  },
+});
+
+type SeedDocument = { key?: string; table: TableNames; value: unknown };
+
+/** The schema validates the resolved row on insert, which is the check a seed document gets. */
+async function insertSeedDocument<TableName extends TableNames>(ctx: MutationCtx, table: TableName, value: unknown) {
+  return await ctx.db.insert(table, value as WithoutSystemFields<Doc<TableName>>);
+}
+
+/**
+ * Inserts a seed database, such as the Storybook page-story baseline, in the order given.
+ * A reference names a document earlier in the list and resolves to the id inserted under that key.
+ * The documents arrive as JSON text because a Convex value cannot hold the `$seedRef` field names that mark a reference.
+ */
+export const insertSeedDocuments = internalMutation({
+  args: { documents: v.string() },
+  returns: v.object({ inserted: v.number() }),
+  handler: async (ctx, args) => {
+    assertProvisioningMode();
+    const documents = JSON.parse(args.documents) as SeedDocument[];
+    const ids = new Map<string, string>();
+    for (const document of documents) {
+      const id = await insertSeedDocument(ctx, document.table, resolveSeedValue(document.value, ids));
+      if (document.key) {
+        ids.set(document.key, id);
+      }
+    }
+    return { inserted: documents.length };
   },
 });
