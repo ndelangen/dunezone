@@ -134,6 +134,39 @@ const thirdWave = [
   },
 ] as const satisfies readonly { name: string; image: ComponentProps<typeof TroopToken>['image']; detail: string }[];
 
+const fourthWave = [
+  {
+    name: 'Shield rammer',
+    image: '/vector/troop/shield-rammer.svg',
+    detail: 'Wedge shield, shock mace, driving charge.',
+  },
+  {
+    name: 'Hook climber',
+    image: '/vector/troop/hook-climber.svg',
+    detail: 'Twin climbing picks, raised knee, short desert cloak.',
+  },
+  {
+    name: 'Resonance adept',
+    image: '/vector/troop/resonance-adept.svg',
+    detail: 'Fan collar, tuning-fork weapon, ceremonial robes.',
+  },
+  {
+    name: 'Needle sniper',
+    image: '/vector/troop/needle-sniper.svg',
+    detail: 'Long needle rifle, swept cloak, kneeling aim.',
+  },
+  {
+    name: 'Furnace bearer',
+    image: '/vector/troop/furnace-bearer.svg',
+    detail: 'Furnace pack, heat projector, heavy protective suit.',
+  },
+  {
+    name: 'Mantis guard',
+    image: '/vector/troop/mantis-guard.svg',
+    detail: 'Paired hooked blades, pointed pauldrons, guarded stance.',
+  },
+] as const satisfies readonly { name: string; image: ComponentProps<typeof TroopToken>['image']; detail: string }[];
+
 const token = {
   background: {
     image: '/image/texture/021.jpg',
@@ -208,9 +241,9 @@ export const NewSilhouettes = meta.story({
   parameters: { layout: 'fullscreen' },
   render: () =>
     renderGallery(
-      [...thirdWave, ...secondWave, ...additions],
+      [...fourthWave, ...thirdWave, ...secondWave, ...additions],
       'Troops for new factions',
-      'Eighteen silhouettes, newest first. Below each: regular, striped, and elite tokens at 64 px.'
+      'Twenty-four silhouettes, newest first. Below each: regular, striped, and elite tokens at 64 px.'
     ),
 });
 
@@ -236,17 +269,29 @@ export const ThirdWave = meta.story({
     ),
 });
 
+export const FourthWave = meta.story({
+  globals: { viewport: { value: undefined } },
+  parameters: { layout: 'fullscreen' },
+  render: () =>
+    renderGallery(
+      fourthWave,
+      'Armour and strange weapons',
+      'The fourth set. Below each: regular, striped, and elite tokens at 64 px.'
+    ),
+});
+
 export const AtTokenSize = meta.story({
   globals: { viewport: { value: undefined } },
   parameters: { layout: 'fullscreen' },
   render: () => (
     <div style={{ padding: 28, background: '#eee3cd', color: '#302a23', minHeight: '100vh' }}>
       <h1 style={{ fontFamily: 'Caladea, serif' }}>Small-size comparison</h1>
-      <p>Existing Atreides and Fremen troops beside all eighteen additions. Columns are 32, 48, and 72 px.</p>
+      <p>Existing Atreides and Fremen troops beside all twenty-four additions. Columns are 32, 48, and 72 px.</p>
       {(
         [
           { name: 'Atreides, existing', image: '/vector/troop/atreides.svg' },
           { name: 'Fremen, existing', image: '/vector/troop/fremen.svg' },
+          ...fourthWave,
           ...thirdWave,
           ...secondWave,
           ...additions,
@@ -283,3 +328,10 @@ export const VoidWalker = meta.story({ args: { ...token, image: thirdWave[2].ima
 export const SpiceDriller = meta.story({ args: { ...token, image: thirdWave[3].image } });
 export const BladeDancer = meta.story({ args: { ...token, image: thirdWave[4].image } });
 export const DrumHerald = meta.story({ args: { ...token, image: thirdWave[5].image } });
+
+export const ShieldRammer = meta.story({ args: { ...token, image: fourthWave[0].image } });
+export const HookClimber = meta.story({ args: { ...token, image: fourthWave[1].image } });
+export const ResonanceAdept = meta.story({ args: { ...token, image: fourthWave[2].image } });
+export const NeedleSniper = meta.story({ args: { ...token, image: fourthWave[3].image } });
+export const FurnaceBearer = meta.story({ args: { ...token, image: fourthWave[4].image } });
+export const MantisGuard = meta.story({ args: { ...token, image: fourthWave[5].image } });
