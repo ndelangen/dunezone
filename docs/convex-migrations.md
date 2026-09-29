@@ -70,12 +70,14 @@ Rules:
 
 ## Strict branch and integration startup
 
-Use `bun run app:dev --local` to validate a branch against its own production-shaped database. The
-command creates a separate Convex stack per launch, pushes the checked-out schema and functions,
-imports a production snapshot, clears the provisioning contract's tables, and runs the required
-migration guards before starting the app. A local watcher pushes later function and schema edits
-to that stack without changing `.env.local`. Restart after changing a migration module or the guard
-manifest. This creates a fresh disposable database and reruns `dev-strict`. See
+Use `bun run app:dev --local --clone-prod` to validate a branch against its own production-shaped
+database. The command creates a separate Convex stack per launch, pushes the checked-out schema and
+functions, imports a production snapshot, clears the provisioning contract's tables, and runs the
+required migration guards before starting the app. Plain `bun run app:dev --local` starts from
+fixture data, which shows nothing about how a migration treats production rows. A local watcher
+pushes later function and schema edits to that stack without changing `.env.local`. Restart after
+changing a migration module or the guard manifest. This creates a fresh disposable database and
+reruns `dev-strict`. See
 [`Disposable local app development`](./README.md#disposable-local-app-development) for snapshot
 privacy and cleanup limits.
 

@@ -7,10 +7,15 @@ import { convexTest } from 'convex-test';
 import { describe, expect, test } from 'vitest';
 
 import { publishingDeckCardback } from '../src/shared/assets/fixtures/publishingDeckCardback';
-import { PLAY_DISPLAY_NAME_MAX_LENGTH, PLAY_PROFILE_SLUG_MAX_LENGTH } from '../src/shared/play/admission';
-import { api, internal } from './_generated/api';
+import {
+  PLAY_DISPLAY_NAME_MAX_LENGTH,
+  PLAY_FIXTURE_KEY,
+  PLAY_PROFILE_SLUG_MAX_LENGTH,
+} from '../src/shared/play/admission';
+import { api } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import type { MutationCtx } from './_generated/server';
+import { insertPendingGame } from './lib/playProvisioningSchedule';
 import schema from './schema';
 
 const modules = import.meta.glob('./**/*.ts');
@@ -291,7 +296,8 @@ describe('real games are created and entered by any signed-in player, Administra
 
   test('the ready hosted fixture reads as not found and issues no ticket, Administrator or not', async () => {
     const { t, admin, member } = await world();
-    const fixture = await t.mutation(internal.playProvisioning.beginFixtureProvision, {});
+    /* The hosted fixture's stored row: its key and no ruleset. */
+    const fixture = await t.run(async (ctx) => await insertPendingGame(ctx, { fixture_key: PLAY_FIXTURE_KEY }));
     await ready(t, fixture.gameId);
     for (const player of [admin, member]) {
       expect(await player.query(api.playGames.getGame, { gameId: fixture.gameId })).toEqual({ status: 'not_found' });

@@ -6,15 +6,36 @@ import { convexTest } from 'convex-test';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { api, internal } from './_generated/api';
+import { createPendingGame } from './lib/playProvisioningSchedule';
 import schema from './schema';
 
 const modules = import.meta.glob('./**/*.ts');
 
-async function fixture() {
+function setup() {
   const t = convexTest(schema, modules);
   rateLimiterTest.register(t);
-  const pending = await t.mutation(internal.playProvisioning.beginFixtureProvision, {});
-  const game = await t.run(async (ctx) => await ctx.db.get(pending.gameId));
+  return t;
+}
+
+/* A real game as `playGames.createGame` leaves it pending: provisioning never reads its ruleset, so a bare row stands in. */
+async function fixture(t = setup()) {
+  const game = await t.run(async (ctx) => {
+    const stamp = new Date().toISOString();
+    const creatorId = await ctx.db.insert('users', { account_state: 'active' });
+    const rulesetId = await ctx.db.insert('rulesets', {
+      name: 'Classic',
+      slug: 'classic',
+      about: '',
+      created_at: stamp,
+      updated_at: stamp,
+      owner_id: creatorId,
+      group_id: null,
+      is_deleted: false,
+      image_cover: null,
+    });
+    const gameId = await createPendingGame(ctx, { ruleset_id: rulesetId, minimum_players: 4, creator_id: creatorId });
+    return await ctx.db.get(gameId);
+  });
   if (!game) {
     throw new Error('Missing test fixture');
   }
@@ -35,25 +56,22 @@ afterEach(() => {
 });
 
 describe('Play provisioning', () => {
-  test('reuses pending work, validates without publishing, and publishes only confirmed initialization', async () => {
+  test('validates without publishing, and publishes only confirmed initialization', async () => {
     const { t, game, credentials } = await fixture();
-    expect(await t.mutation(internal.playProvisioning.beginFixtureProvision, {})).toEqual({
-      gameId: game._id,
-      state: 'pending',
-    });
     expect(await t.mutation(api.playProvisioning.validateProvisioning, credentials)).toEqual({
       ok: true,
       gameId: game._id,
       attemptId: game.attempt_id,
-      fixtureKey: 'hosted-demo',
       expiresAt: game.provision_expires_at,
+      game: {
+        rulesetId: game.ruleset_id,
+        minimumPlayers: 4,
+        creator: expect.objectContaining({ userId: game.creator_id }),
+      },
     });
     expect(await t.run(async (ctx) => (await ctx.db.get(game._id))?.state)).toBe('pending');
     expect(await t.mutation(api.playProvisioning.confirmProvisioning, credentials)).toEqual({ ok: true });
-    expect(await t.mutation(internal.playProvisioning.beginFixtureProvision, {})).toEqual({
-      gameId: game._id,
-      state: 'ready',
-    });
+    expect(await t.run(async (ctx) => (await ctx.db.get(game._id))?.state)).toBe('ready');
     expect(await t.mutation(api.playProvisioning.validateProvisioning, credentials)).toEqual({ ok: false });
   });
 
@@ -113,15 +131,12 @@ describe('Play provisioning', () => {
     expect(await t.run(async (ctx) => await ctx.db.get(game._id))).not.toHaveProperty('provision_error');
   });
 
-  test('the deadline refuses late completion before scheduled cleanup, and retries use a new DO identity', async () => {
+  test('the deadline refuses late completion before scheduled cleanup', async () => {
     const { t, game, credentials } = await fixture();
     vi.setSystemTime(game.provision_expires_at);
     expect(await t.mutation(api.playProvisioning.validateProvisioning, credentials)).toEqual({ ok: false });
     expect(await t.mutation(api.playProvisioning.confirmProvisioning, credentials)).toEqual({ ok: false });
-    const retry = await t.mutation(internal.playProvisioning.beginFixtureProvision, {});
-    expect(retry.gameId).not.toBe(game._id);
-    expect(await t.run(async (ctx) => (await ctx.db.get(game._id))?.state)).toBe('expired');
-    expect(await t.mutation(api.playProvisioning.confirmProvisioning, credentials)).toEqual({ ok: false });
+    expect(await t.run(async (ctx) => (await ctx.db.get(game._id))?.state)).toBe('pending');
   });
 
   test('only a synthetic backend provisions the test phase cooldown its environment sets', async () => {
@@ -169,14 +184,8 @@ describe('Play provisioning', () => {
       expect(await t.mutation(api.playProvisioning.validateProvisioning, credentials)).toMatchObject({ ok: true });
     }
     expect(await t.mutation(api.playProvisioning.validateProvisioning, credentials)).toEqual({ ok: false });
-    vi.setSystemTime(game.provision_expires_at);
-    const retry = await t.mutation(internal.playProvisioning.beginFixtureProvision, {});
-    const pending = await t.query(internal.playProvisioning.provisioningRequest, { gameId: retry.gameId });
-    if (!pending) {
-      throw new Error('Missing replacement fixture');
-    }
-    const { gameId, secret, attemptId } = pending;
-    expect(await t.mutation(api.playProvisioning.validateProvisioning, { gameId, secret, attemptId })).toMatchObject({
+    const replacement = await fixture(t);
+    expect(await t.mutation(api.playProvisioning.validateProvisioning, replacement.credentials)).toMatchObject({
       ok: true,
     });
   });
