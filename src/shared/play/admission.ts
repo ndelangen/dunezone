@@ -165,6 +165,8 @@ export const playAccountDeletionRequestSchema = z.strictObject({
   userId: identifierSchema,
   deletionOperationId: identifierSchema,
 });
+/** Retires the hosted fixture's room: the room checks the credentials against its own stored metadata, so it can answer even when its game state no longer loads. */
+export const playRetireFixtureRequestSchema = z.strictObject(gameCredentialFields);
 export const playAckAccountDeletionRequestSchema = z.strictObject({
   ...gameCredentialFields,
   eventId: identifierSchema,

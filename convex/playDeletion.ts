@@ -3,10 +3,14 @@ import { paginationOptsValidator } from 'convex/server';
 import type { PaginationOptions } from 'convex/server';
 import { v } from 'convex/values';
 
-import { playAccountDeletionRequestSchema } from '../src/shared/play/admission';
+import {
+  PLAY_FIXTURE_KEY,
+  playAccountDeletionRequestSchema,
+  playRetireFixtureRequestSchema,
+} from '../src/shared/play/admission';
 import { internal } from './_generated/api';
 import type { Doc, Id } from './_generated/dataModel';
-import { internalAction } from './_generated/server';
+import { internalAction, internalQuery } from './_generated/server';
 import type { MutationCtx } from './_generated/server';
 import { internalMutation } from './functions';
 import { postPlayService } from './lib/playService';
@@ -128,6 +132,73 @@ export const retryDueDeletions = internalMutation({
     for (const event of due) {
       await ctx.scheduler.runAfter(0, internal.playDeletion.deliver, { eventId: event._id });
     }
+    return null;
+  },
+});
+
+/* Doubling from one second, a retirement keeps trying for about a day, well past a Worker release that ships after the backend. */
+const RETIRE_ATTEMPTS = 17;
+
+/**
+ * Closes the hosted fixture for good (#1535): no player has opened it since admission stopped (#1505), and a room holding a request from before requests named their seat (#1172) no longer loads (#1407), so deletions routed to it could never be acknowledged.
+ * Its pending deletions settle here, its routing goes so none are queued again, and the room is asked to delete everything it stored, the deleted accounts' names included.
+ */
+export async function retireHostedFixture(ctx: MutationCtx, game: Doc<'play_games'>) {
+  if (game.fixture_key !== PLAY_FIXTURE_KEY || game.state !== 'ready') {
+    return;
+  }
+  await ctx.db.patch(game._id, { state: 'expired' });
+  const events = ctx.db
+    .query('play_account_deletions')
+    .withIndex('by_game_id_operation_id', (q) => q.eq('game_id', game._id));
+  for await (const event of events) {
+    if (event.state === 'pending') {
+      await ctx.db.patch(event._id, { state: 'acknowledged' });
+    }
+  }
+  const routings = ctx.db.query('play_game_accounts').withIndex('by_game_id_user_id', (q) => q.eq('game_id', game._id));
+  for await (const routing of routings) {
+    await ctx.db.delete(routing._id);
+  }
+  await ctx.scheduler.runAfter(0, internal.playDeletion.retireFixtureRoom, { gameId: game._id, attempt: 0 });
+}
+
+export const retiredFixture = internalQuery({
+  args: { gameId: v.id('play_games') },
+  returns: v.union(v.object({ gameId: v.id('play_games'), secret: v.string() }), v.null()),
+  handler: async (ctx, args) => {
+    const game = await ctx.db.get(args.gameId);
+    return game?.fixture_key === PLAY_FIXTURE_KEY && game.state === 'expired'
+      ? { gameId: game._id, secret: game.secret }
+      : null;
+  },
+});
+
+export const retireFixtureRoom = internalAction({
+  args: { gameId: v.id('play_games'), attempt: v.number() },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const credentials = await ctx.runQuery(internal.playDeletion.retiredFixture, { gameId: args.gameId });
+    if (!credentials) {
+      return null;
+    }
+    let retired = false;
+    try {
+      retired = await postPlayService(args.gameId, 'retire', playRetireFixtureRequestSchema.parse(credentials));
+    } catch {
+      /* A lost request is retried below like a refused one. */
+    }
+    if (retired) {
+      return null;
+    }
+    if (args.attempt + 1 >= RETIRE_ATTEMPTS) {
+      console.error(`The hosted fixture room ${args.gameId} did not retire after ${RETIRE_ATTEMPTS} attempts.`);
+      return null;
+    }
+    await ctx.scheduler.runAfter(1000 * 2 ** args.attempt, internal.playDeletion.retireFixtureRoom, {
+      gameId: args.gameId,
+      attempt: args.attempt + 1,
+    });
     return null;
   },
 });

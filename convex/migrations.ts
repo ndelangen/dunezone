@@ -44,6 +44,7 @@ import {
   reconcileRulesetStatistics,
 } from './lib/statistics';
 import { nowIso, slugify } from './lib/utils';
+import { retireHostedFixture } from './playDeletion';
 import schema from './schema';
 import type { MutationCtx, QueryCtx } from './types';
 
@@ -1201,3 +1202,14 @@ function namingFaction<T>(factionId: string, run: () => T): T {
     });
   }
 }
+
+/**
+ * Retires the hosted fixture (#1535): settles the account deletions routed to it and has its room delete what it stored.
+ * Listed in migration-guards.json only after the game Worker that answers a retirement has shipped and the production check on #1535 confirmed the loop.
+ */
+export const play_hosted_fixture_retire_v1 = migrations.define({
+  table: 'play_games',
+  migrateOne: async (ctx, game) => {
+    await retireHostedFixture(ctx, game);
+  },
+});

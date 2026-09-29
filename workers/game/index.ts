@@ -15,6 +15,7 @@ import {
   playProvisionRequestSchema,
   playReconcileAccountsResultSchema,
   playRedeemTicketResultSchema,
+  playRetireFixtureRequestSchema,
 } from '../../src/shared/play/admission';
 import {
   PLAY_DIRECTORY_RETRY_CEILING_MS,
@@ -93,7 +94,9 @@ function gameRequest(request: Request, applicationOrigin: string) {
   if (url.origin !== applicationOrigin || url.search) {
     return;
   }
-  const match = /^\/__play\/games\/([a-zA-Z0-9_-]{1,128})\/(socket|provision|account-deletion)$/.exec(url.pathname);
+  const match = /^\/__play\/games\/([a-zA-Z0-9_-]{1,128})\/(socket|provision|account-deletion|retire)$/.exec(
+    url.pathname
+  );
   if (!match) {
     return;
   }
@@ -203,7 +206,12 @@ export class GameRoom extends DurableObject<GameEnv> {
   /* Recent sweeps that ran late by more than STALL_MS: a busy room fires its timers late, while a held output does not. */
   private readonly stalls: { at: number; lateMs: number }[] = [];
   private sweptAt: number | undefined;
-  private readonly session: GameSession;
+  private readonly session!: GameSession;
+  /*
+   * Set when the stored game no longer loads, or once the room is retired.
+   * Such a room answers only a retirement, so no handler reaches the session it could not open.
+   */
+  private closed = false;
   private get metadata() {
     return this.session.info;
   }
@@ -211,8 +219,14 @@ export class GameRoom extends DurableObject<GameEnv> {
     super(ctx, env);
     this.ctx.setWebSocketAutoResponse(new WebSocketRequestResponsePair(KEEPALIVE_PING, KEEPALIVE_PONG));
     this.diagnostics = new GameDiagnostics(ctx.id.toString(), env.GIT_SHA);
-    this.session = new GameSession(ctx.storage);
-    if (this.metadata) {
+    try {
+      /* A start that fails keeps none of its writes, as a throwing constructor's would not. */
+      this.session = ctx.storage.transactionSync(() => new GameSession(ctx.storage));
+    } catch (error) {
+      this.diagnostics.report('load', error);
+      this.closed = true;
+    }
+    if (!this.closed && this.metadata) {
       if (this.metadata.confirmed && this.session.pendingDirectory()) {
         this.deliverDirectorySoon();
       }
@@ -284,6 +298,12 @@ export class GameRoom extends DurableObject<GameEnv> {
       return refused();
     }
     const { gameId, operation } = route;
+    if (operation === 'retire') {
+      return this.retire(request, gameId);
+    }
+    if (this.closed) {
+      return refused();
+    }
     if (operation === 'provision') {
       return this.provision(request, gameId);
     }
@@ -416,6 +436,63 @@ export class GameRoom extends DurableObject<GameEnv> {
     this.broadcastViews();
   }
 
+  /* Read straight from storage, not through the session, so a room whose game no longer loads can still authenticate. */
+  private storedMetadata(): Metadata | undefined {
+    try {
+      const row = this.ctx.storage.sql.exec<{ data: string }>('SELECT data FROM metadata WHERE id=1').toArray()[0];
+      return row ? (JSON.parse(row.data) as Metadata) : undefined;
+    } catch {
+      return undefined;
+    }
+  }
+
+  /*
+   * Deletes everything the hosted fixture's room stores, so account deletion reaches the names it retained.
+   * Only the hosted fixture retires; a real game or a load fixture is refused.
+   * An empty room has nothing left to retire, so a repeated request succeeds.
+   */
+  private async retire(request: Request, gameId: string): Promise<Response> {
+    let args: ReturnType<typeof playRetireFixtureRequestSchema.parse>;
+    try {
+      args = playRetireFixtureRequestSchema.parse(await readJson(request));
+    } catch {
+      return refused();
+    }
+    if (args.gameId !== gameId) {
+      return refused();
+    }
+    const metadata = this.storedMetadata();
+    if (!metadata) {
+      return json({ ok: true });
+    }
+    if (
+      metadata.gameId !== gameId ||
+      !credentialsMatch(args.secret, metadata.secret) ||
+      metadata.game ||
+      metadata.loadProfile
+    ) {
+      return refused();
+    }
+    try {
+      if (!this.closed) {
+        for (const socket of this.connections.keys()) {
+          this.disconnect(socket, false);
+        }
+        this.closeAuthorization();
+      }
+      this.closed = true;
+      for (const socket of this.ctx.getWebSockets()) {
+        socket.close(1000, 'This table is closed.');
+      }
+      await this.ctx.storage.deleteAlarm();
+      await this.ctx.storage.deleteAll();
+      return json({ ok: true });
+    } catch (error) {
+      this.diagnostics.report('retire', error);
+      return refused();
+    }
+  }
+
   private async receiveAccountDeletion(request: Request, metadata: Metadata): Promise<Response> {
     let args: ReturnType<typeof playAccountDeletionRequestSchema.parse>;
     try {
@@ -471,6 +548,9 @@ export class GameRoom extends DurableObject<GameEnv> {
   }
 
   override async alarm() {
+    if (this.closed) {
+      return;
+    }
     if (this.metadata?.confirmed) {
       this.advanceDeadlines();
       await this.deliverDirectory();
@@ -909,6 +989,10 @@ export class GameRoom extends DurableObject<GameEnv> {
   }
 
   override async webSocketMessage(socket: WebSocket, input: string | ArrayBuffer) {
+    if (this.closed) {
+      socket.close(1000, 'This table is closed.');
+      return;
+    }
     const connection = this.connections.get(socket);
     if (!connection) {
       return;
@@ -1619,12 +1703,16 @@ export class GameRoom extends DurableObject<GameEnv> {
   }
 
   override webSocketClose(socket: WebSocket) {
-    this.disconnect(socket);
+    if (!this.closed) {
+      this.disconnect(socket);
+    }
     socket.close(1000, 'Connection closed.');
   }
   override webSocketError(socket: WebSocket, error: unknown) {
     this.diagnostics.report('socket-error', error);
-    this.disconnect(socket);
+    if (!this.closed) {
+      this.disconnect(socket);
+    }
     socket.close(1011, 'Connection error.');
   }
 }

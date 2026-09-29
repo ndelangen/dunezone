@@ -2,6 +2,7 @@
 // @vitest-environment edge-runtime
 
 import aggregateTest from '@convex-dev/aggregate/test';
+import migrationsTest from '@convex-dev/migrations/test';
 import rateLimiterTest from '@convex-dev/rate-limiter/test';
 import { convexTest } from 'convex-test';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
@@ -16,6 +17,7 @@ const modules = import.meta.glob('./**/*.ts');
 async function fixture() {
   const t = convexTest(schema, modules);
   rateLimiterTest.register(t);
+  migrationsTest.register(t);
   aggregateTest.register(t, 'statistics');
   aggregateTest.register(t, 'profileDiscovery');
   aggregateTest.register(t, 'profileActivity');
@@ -216,6 +218,57 @@ describe('Play account deletion', () => {
     ).toEqual({ ok: true, accounts: [{ userId: subject.userId, state: 'deleted', deletionOperationId: operationId }] });
     await subject.t.mutation(api.playAdmission.ackAccountDeletion, { ...credentials, eventId: event._id });
     expect(await subject.t.run(async (ctx) => (await ctx.db.get(event._id))?.state)).toBe('acknowledged');
+  });
+
+  test('retiring the hosted fixture settles its deletions, drops its routing and retries until its room retires', async () => {
+    const subject = await fixture();
+    await subject.t.run(
+      async (ctx) =>
+        await ctx.db.patch(subject.game._id, {
+          fixture_key: PLAY_FIXTURE_KEY,
+          ruleset_id: undefined,
+          minimum_players: undefined,
+          creator_id: undefined,
+        })
+    );
+    const { event } = await startDeletion(subject);
+    const responses = [new Response(null, { status: 403 }), new Response(null, { status: 200 })];
+    const fetch = vi.fn(
+      async (_url: string, _init?: RequestInit) => responses.shift() ?? new Response(null, { status: 200 })
+    );
+    vi.stubGlobal('fetch', fetch);
+
+    await subject.t.mutation(internal.migrations.play_hosted_fixture_retire_v1, {});
+    await subject.t.finishAllScheduledFunctions(vi.runAllTimers);
+
+    const stored = await subject.t.run(async (ctx) => ({
+      game: await ctx.db.get(subject.game._id),
+      event: await ctx.db.get(event._id),
+      routings: await ctx.db.query('play_game_accounts').collect(),
+    }));
+    expect(stored.game?.state).toBe('expired');
+    expect(stored.event?.state).toBe('acknowledged');
+    expect(stored.routings).toEqual([]);
+    const retirements = fetch.mock.calls.filter(([url]) => String(url).endsWith('/retire'));
+    expect(retirements).toHaveLength(2);
+    expect(retirements[1]).toEqual([
+      `https://dune.zone/__play/games/${subject.game._id}/retire`,
+      expect.objectContaining({ body: JSON.stringify({ gameId: subject.game._id, secret: subject.game.secret }) }),
+    ]);
+  });
+
+  test('retiring the hosted fixture leaves every real game as it was', async () => {
+    const subject = await fixture();
+    const { event } = await startDeletion(subject);
+    const fetch = vi.fn(async (_url: string, _init?: RequestInit) => new Response(null, { status: 200 }));
+    vi.stubGlobal('fetch', fetch);
+
+    await subject.t.mutation(internal.migrations.play_hosted_fixture_retire_v1, {});
+
+    expect(await subject.t.run(async (ctx) => (await ctx.db.get(subject.game._id))?.state)).toBe('ready');
+    expect(await subject.t.run(async (ctx) => (await ctx.db.get(event._id))?.state)).toBe('pending');
+    expect(await subject.t.run(async (ctx) => await ctx.db.query('play_game_accounts').collect())).toHaveLength(1);
+    expect(fetch.mock.calls.filter(([url]) => String(url).endsWith('/retire'))).toEqual([]);
   });
 
   test('server-only reconciliation cannot read unregistered accounts from a different game', async () => {
