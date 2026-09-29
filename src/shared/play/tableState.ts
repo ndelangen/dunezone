@@ -402,44 +402,6 @@ export function flipPieceInState(state: TableState, pieceId?: string): TableStat
   };
 }
 
-/* Animation locks belong to this view, not to the canonical game record. */
-export type TabletopViewState = {
-  table: TableState;
-  flippingPieceIds: ReadonlyMap<string, number>;
-};
-
-export function requestPieceFlip(current: TabletopViewState, pieceId?: string): TabletopViewState {
-  const targetId = pieceId ?? current.table.selectedPieceId;
-  if (!targetId || current.flippingPieceIds.has(targetId)) {
-    return current;
-  }
-  const table = flipPieceInState(current.table, targetId);
-  if (table === current.table) {
-    return current;
-  }
-  const before = current.table.pieces.find((piece) => piece.id === targetId);
-  const after = table.pieces.find((piece) => piece.id === targetId);
-  if (!after || after.flipRevision === before?.flipRevision) {
-    return { ...current, table };
-  }
-  const flippingPieceIds = new Map(current.flippingPieceIds);
-  flippingPieceIds.set(targetId, after.flipRevision ?? 0);
-  return { table, flippingPieceIds };
-}
-
-export function finishPieceFlipInView(
-  current: TabletopViewState,
-  pieceId: string,
-  revision: number
-): TabletopViewState {
-  if (current.flippingPieceIds.get(pieceId) !== revision) {
-    return current;
-  }
-  const flippingPieceIds = new Map(current.flippingPieceIds);
-  flippingPieceIds.delete(pieceId);
-  return { ...current, flippingPieceIds };
-}
-
 export function moveStormInState(state: TableState, direction: -1 | 1 = 1): TableState {
   if (direction !== -1 && direction !== 1) {
     return state;
