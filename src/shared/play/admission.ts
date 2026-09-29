@@ -41,7 +41,7 @@ const identifierSchema = z.string().min(1).max(128);
 const playCredentialSchema = z.string().regex(/^[0-9a-f]{64}$/);
 const timestampSchema = z.number().finite().nonnegative();
 const refusedSchema = z.object({ ok: z.literal(false) });
-const gameCredentialFields = { gameId: identifierSchema, secret: playCredentialSchema };
+export const gameCredentialFields = { gameId: identifierSchema, secret: playCredentialSchema };
 
 export const playProvisionRequestSchema = z.strictObject({
   ...gameCredentialFields,
@@ -165,8 +165,6 @@ export const playAccountDeletionRequestSchema = z.strictObject({
   userId: identifierSchema,
   deletionOperationId: identifierSchema,
 });
-/** Retires the hosted fixture's room: the room checks the credentials against its own stored metadata, so it can answer even when its game state no longer loads. */
-export const playRetireFixtureRequestSchema = z.strictObject(gameCredentialFields);
 export const playAckAccountDeletionRequestSchema = z.strictObject({
   ...gameCredentialFields,
   eventId: identifierSchema,

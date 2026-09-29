@@ -3,11 +3,8 @@ import { paginationOptsValidator } from 'convex/server';
 import type { PaginationOptions } from 'convex/server';
 import { v } from 'convex/values';
 
-import {
-  PLAY_FIXTURE_KEY,
-  playAccountDeletionRequestSchema,
-  playRetireFixtureRequestSchema,
-} from '../src/shared/play/admission';
+import { PLAY_FIXTURE_KEY, playAccountDeletionRequestSchema } from '../src/shared/play/admission';
+import { playRetireFixtureRequestSchema } from '../src/shared/play/retire';
 import { internal } from './_generated/api';
 import type { Doc, Id } from './_generated/dataModel';
 import { internalAction, internalQuery } from './_generated/server';
@@ -86,13 +83,14 @@ export const claimDelivery = internalMutation({
     if (!event || !isDueDeletion(event)) {
       return null;
     }
+    const delay = Math.min(300_000, 1000 * 2 ** Math.min(event.attempts, 9));
+    const nextAttemptAt = Date.now() + delay;
+    await ctx.db.patch(event._id, { attempts: event.attempts + 1, next_attempt_at: nextAttemptAt });
+    /* A game that is not ready waits out the same backoff, so its events never crowd the due index. */
     const game = await ctx.db.get(event.game_id);
     if (game?.state !== 'ready') {
       return null;
     }
-    const delay = Math.min(300_000, 1000 * 2 ** Math.min(event.attempts, 9));
-    const nextAttemptAt = Date.now() + delay;
-    await ctx.db.patch(event._id, { attempts: event.attempts + 1, next_attempt_at: nextAttemptAt });
     await ctx.scheduler.runAt(nextAttemptAt, internal.playDeletion.deliver, { eventId: event._id });
     return {
       gameId: game._id,
@@ -143,7 +141,7 @@ const SETTLE_PAGE = 64;
 /**
  * Closes the hosted fixture for good (#1535): no player has opened it since admission stopped (#1505), and a room holding a request from before requests named their seat (#1172) no longer loads (#1407), so deletions routed to it could never be acknowledged.
  * The room is asked to delete everything it stored, the deleted accounts' names included.
- * Only once it has answered do its pending deletions settle and its routing go.
+ * Only once it has answered does its routing go, and then its pending deletions settle.
  */
 export async function retireHostedFixture(ctx: MutationCtx, game: Doc<'play_games'>) {
   if (game.fixture_key !== PLAY_FIXTURE_KEY || game.state !== 'ready') {
@@ -170,7 +168,7 @@ export const retiredFixtureCredentials = internalQuery({
 /**
  * Asks the retired fixture's room to delete what it stored, retrying with backoff.
  * The room answers again once empty.
- * A chain that gives up leaves the deletions pending, so running this again by hand picks up where it stopped.
+ * A chain that gives up leaves the deletions pending, so running this action again by hand, from attempt 0, picks up where it stopped.
  */
 export const retireFixtureRoom = internalAction({
   args: { gameId: v.id('play_games'), attempt: v.number() },
@@ -182,7 +180,7 @@ export const retireFixtureRoom = internalAction({
         return null;
       }
       if (await postPlayService(args.gameId, 'retire', playRetireFixtureRequestSchema.parse(credentials))) {
-        await ctx.runMutation(internal.playDeletion.settleRetiredFixture, { gameId: args.gameId, cursor: null });
+        await ctx.runMutation(internal.playDeletion.dropRetiredFixtureRouting, { gameId: args.gameId });
         return null;
       }
     } catch {
@@ -200,7 +198,10 @@ export const retireFixtureRoom = internalAction({
   },
 });
 
-/** The room holds nothing any more, so each deletion routed to it is done; one page per transaction. */
+/**
+ * The room holds nothing any more, so each deletion routed to it is done, one page per transaction.
+ * Its routing is already gone, so no new deletion can join behind the cursor.
+ */
 export const settleRetiredFixture = internalMutation({
   args: { gameId: v.id('play_games'), cursor: v.union(v.string(), v.null()) },
   returns: v.null(),
@@ -217,9 +218,7 @@ export const settleRetiredFixture = internalMutation({
         await ctx.db.patch(event._id, { state: 'acknowledged' });
       }
     }
-    if (page.isDone) {
-      await ctx.scheduler.runAfter(0, internal.playDeletion.dropRetiredFixtureRouting, { gameId: args.gameId });
-    } else {
+    if (!page.isDone) {
       await ctx.scheduler.runAfter(0, internal.playDeletion.settleRetiredFixture, {
         gameId: args.gameId,
         cursor: page.continueCursor,
@@ -229,7 +228,7 @@ export const settleRetiredFixture = internalMutation({
   },
 });
 
-/** Routing to a retired room would only queue deletions nothing can deliver. */
+/** Routing to a retired room would only queue deletions nothing can deliver; once it is gone, the deletions settle. */
 export const dropRetiredFixtureRouting = internalMutation({
   args: { gameId: v.id('play_games') },
   returns: v.null(),
@@ -246,6 +245,11 @@ export const dropRetiredFixtureRouting = internalMutation({
     }
     if (routings.length === SETTLE_PAGE) {
       await ctx.scheduler.runAfter(0, internal.playDeletion.dropRetiredFixtureRouting, { gameId: args.gameId });
+    } else {
+      await ctx.scheduler.runAfter(0, internal.playDeletion.settleRetiredFixture, {
+        gameId: args.gameId,
+        cursor: null,
+      });
     }
     return null;
   },

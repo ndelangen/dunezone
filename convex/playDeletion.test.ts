@@ -281,6 +281,22 @@ describe('Play account deletion', () => {
     expect(await subject.t.run(async (ctx) => await ctx.db.query('play_game_accounts').collect())).toHaveLength(1);
   });
 
+  test('a deletion for a game that is not ready waits out its backoff instead of staying due', async () => {
+    const subject = await fixture();
+    const { event } = await startDeletion(subject);
+    await subject.t.run(async (ctx) => await ctx.db.patch(subject.game._id, { state: 'expired' }));
+    const fetch = vi.fn(async (_url: string, _init?: RequestInit) => new Response(null, { status: 200 }));
+    vi.stubGlobal('fetch', fetch);
+
+    await subject.t.action(internal.playDeletion.deliver, { eventId: event._id });
+
+    const stored = await subject.t.run(async (ctx) => await ctx.db.get(event._id));
+    expect(stored?.state).toBe('pending');
+    expect(stored?.attempts).toBe(event.attempts + 1);
+    expect(stored?.next_attempt_at).toBeGreaterThan(Date.now());
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
   test('retiring the hosted fixture leaves every real game as it was', async () => {
     const subject = await fixture();
     const { event } = await startDeletion(subject);

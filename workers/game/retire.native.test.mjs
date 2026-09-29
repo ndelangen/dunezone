@@ -58,6 +58,7 @@ describe('The hosted fixture room retires on request', () => {
     await eventually(() => loadFailures().length > 0, 'the failed load reported');
     expect((await post('retire', { ...CREDENTIALS, secret: 'b'.repeat(64) })).status).toBe(403);
     expect((await post('retire', CREDENTIALS)).status).toBe(200);
+    expect(await storedTables()).toEqual([]);
     expect(await storedRows()).toBe(0);
 
     /* The room starts empty from now on, so a repeated retirement has nothing left to do. */

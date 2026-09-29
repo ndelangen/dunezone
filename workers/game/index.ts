@@ -15,7 +15,6 @@ import {
   playProvisionRequestSchema,
   playReconcileAccountsResultSchema,
   playRedeemTicketResultSchema,
-  playRetireFixtureRequestSchema,
 } from '../../src/shared/play/admission';
 import {
   PLAY_DIRECTORY_RETRY_CEILING_MS,
@@ -33,6 +32,7 @@ import {
   clientMessageSchema,
 } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
+import { playRetireFixtureRequestSchema } from '../../src/shared/play/retire';
 import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
 import { SPECTATOR_COLOR } from './actors';
 import { AuthorizationWatch, gameHttpClient } from './authorization';
@@ -490,7 +490,7 @@ export class GameRoom extends DurableObject<GameEnv> {
         for (const socket of this.connections.keys()) {
           this.disconnect(socket, false);
         }
-        this.closeAuthorization();
+        await this.closeAuthorization();
       }
       this.closed = true;
       this.retired = true;
@@ -562,7 +562,7 @@ export class GameRoom extends DurableObject<GameEnv> {
 
   override async alarm() {
     if (this.loadFailure !== undefined && !this.retired) {
-      /* The platform retries a failed alarm, so a deadline survives a start that did not load. */
+      /* A failed alarm is retried a few times, so a deadline outlives a brief load failure. */
       throw this.loadFailure;
     }
     if (this.closed) {
