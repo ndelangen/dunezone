@@ -44,6 +44,7 @@ import {
   reconcileRulesetStatistics,
 } from './lib/statistics';
 import { nowIso, slugify } from './lib/utils';
+import { retireHostedFixture } from './playDeletion';
 import schema from './schema';
 import type { MutationCtx, QueryCtx } from './types';
 
@@ -98,6 +99,7 @@ const MIGRATION_IDS: Record<string, MigrationRef> = {
   faction_extras_references_verify_v1: internal.migrations.faction_extras_references_verify_v1,
   faction_troop_ids_v1: internal.migrations.faction_troop_ids_v1,
   faction_troop_ids_verify_v1: internal.migrations.faction_troop_ids_verify_v1,
+  play_hosted_fixture_retire_v1: internal.migrations.play_hosted_fixture_retire_v1,
 };
 
 type MigrationId = keyof typeof MIGRATION_IDS;
@@ -1201,3 +1203,14 @@ function namingFaction<T>(factionId: string, run: () => T): T {
     });
   }
 }
+
+/**
+ * Retires the hosted fixture (#1535): its room deletes what it stored, then the account deletions routed to it settle.
+ * Listed in migration-guards.json only after the game Worker that answers a retirement has shipped.
+ */
+export const play_hosted_fixture_retire_v1 = migrations.define({
+  table: 'play_games',
+  migrateOne: async (ctx, game) => {
+    await retireHostedFixture(ctx, game);
+  },
+});
