@@ -23,7 +23,11 @@ function playServiceOrigin(): string {
   return service.origin;
 }
 
-export async function postPlayService(gameId: string, operation: 'provision' | 'account-deletion', body: unknown) {
+export async function postPlayService(
+  gameId: string,
+  operation: 'provision' | 'account-deletion' | 'retire',
+  body: unknown
+) {
   const response = await fetch(`${playServiceOrigin()}/__play/games/${encodeURIComponent(gameId)}/${operation}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

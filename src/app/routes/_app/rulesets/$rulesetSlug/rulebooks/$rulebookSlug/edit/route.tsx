@@ -122,6 +122,7 @@ import {
 import type { RulebookEditorPageData, RulebookMetadata } from '@db/rulebooks';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
 import { FactionPicker } from '@app/pickers/FactionPicker';
+import { pageHead } from '@app/routes/pageTitle';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 import { RulebookPageRenderer } from '@game/rulebook/RulebookRenderer';
@@ -143,6 +144,7 @@ import {
   verticalRectCenter,
 } from './rulebookBlockPlacement';
 import type { BlockPlacement, VerticalRect } from './rulebookBlockPlacement';
+import { RulebookClippedBlockPanel } from './rulebookClippedBlockPanel';
 import { CoverEdit, CoverFooterEdit } from './rulebookControlRegionEditors';
 import {
   collisionPointerY,
@@ -413,6 +415,7 @@ const railCollision: CollisionDetection = (args) => {
 export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/rulebooks/$rulebookSlug/edit')({
   loader: ({ params }) => loadRulebookEditor(params),
   errorComponent: RulebookEditorError,
+  head: ({ loaderData }) => pageHead(loaderData ? `Edit ${loaderData.rulebook.name}` : 'Edit rulebook'),
   component: RulebookEditorPage,
 });
 
@@ -1952,21 +1955,7 @@ function RulebookWorkspace({
                 </NestedTabs.Tools>
               </NestedTabs.Level>
               <NestedTabs.ContentPanel aria-label={`${page.title} editor`}>
-                {activeClippedBlock ? (
-                  <Stack gap="lg">
-                    <Alert color="yellow" title={`${rulebookBlockKindLabels[activeClippedBlock.kind]} is clipped`}>
-                      <Stack gap="xs">
-                        <Text size="sm">
-                          Part of this Block will not be visible in the published Rulebook. Shorten the Block to show
-                          all of it.
-                        </Text>
-                      </Stack>
-                    </Alert>
-                    {panel}
-                  </Stack>
-                ) : (
-                  panel
-                )}
+                <RulebookClippedBlockPanel clippedKind={activeClippedBlock?.kind}>{panel}</RulebookClippedBlockPanel>
               </NestedTabs.ContentPanel>
             </NestedTabs>
             {railDrag && (draggedRailBlock || draggedRailPage) ? (

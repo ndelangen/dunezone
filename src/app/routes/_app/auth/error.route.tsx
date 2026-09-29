@@ -3,7 +3,10 @@ import { PageTitle } from '@ui/block/PageTitle';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 
+import { pageHead } from '@app/routes/pageTitle';
+
 export const Route = createFileRoute('/_app/auth/error')({
+  head: () => pageHead('Sign-in error'),
   component: AuthErrorPage,
   validateSearch: (params) => {
     if (params.error && typeof params.error === 'string') {

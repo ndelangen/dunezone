@@ -16,6 +16,7 @@ import { useId, useReducer, useRef, useState } from 'react';
 
 import { useDefaultGroupPreference, useSessionViewer, useUpdateCurrentProfile } from '@db/profiles';
 import type { CurrentProfileEntry, ProfileUserEditInput } from '@db/profiles';
+import { pageHead } from '@app/routes/pageTitle';
 import { setSchemePreference, useSchemePreference } from '@app/styles/colorScheme';
 import type { SchemePreference } from '@app/styles/colorScheme';
 import { setMotionOverride, useMotionPreference } from '@app/styles/motion';
@@ -486,6 +487,7 @@ function EditableProfilePage({ initial }: { initial: CurrentProfileEntry }) {
 }
 
 export const Route = createFileRoute('/_app/profiles/$profileSlug/edit')({
+  head: () => pageHead('Profile settings'),
   component: ProfileSettingsPage,
 });
 

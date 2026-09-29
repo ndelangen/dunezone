@@ -23,6 +23,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { loadFaqQuestionPage, useFaqQuestionPage } from '@db/faq';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
+import { pageHead } from '@app/routes/pageTitle';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 import styles from './$questionSlug.module.css';
@@ -43,6 +44,15 @@ export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/faq/$questionS
     }
   },
   errorComponent: FaqDetailError,
+  /* A missing question comes back as `notFound: true`, not a thrown notFound, so the head names that page itself. */
+  head: ({ loaderData }) =>
+    pageHead(
+      loaderData?.notFound
+        ? 'Page not found'
+        : loaderData?.page?.question
+          ? questionTitle(loaderData.page.question.text)
+          : 'FAQ question'
+    ),
   component: FaqDetailPage,
 });
 
