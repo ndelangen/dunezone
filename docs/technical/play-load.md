@@ -55,8 +55,8 @@ Their 750 item identities are the same. The stacked arrangement has 294 pieces; 
 arrangement has 750. The synthetic pieces occupy a dense area of the table, with a clear position
 for the action piece. This layout is provisional and is not real catalogue or device acceptance.
 
-Every room, loaded or not, allows a total of `TABLE_SECTOR_COUNT` (18) simultaneous carries, plus
-one per connection. Reset restores the selected profile; restart retains its configuration and
+Every room, loaded or not, allows a total of `TABLE_SECTOR_COUNT` (18) simultaneous carries, and
+at most one per connection. Reset restores the selected profile; restart retains its configuration and
 saved contents. The live fixture is not selected or modified by these controls.
 
 `probe` uses six moving players, or two in the baseline, rotating groups every ten seconds.
