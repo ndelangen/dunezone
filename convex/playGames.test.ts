@@ -286,18 +286,16 @@ describe('real games are created and entered by any signed-in player, Administra
     expect(await admitted()).toMatchObject({ ok: true, displayName: 'Player', avatarUrl: null });
   });
 
-  test('the fixture keeps its signed-in access and reads as the hosted fixture', async () => {
-    const { t, member } = await world();
+  test('the ready hosted fixture reads as not found and issues no ticket, Administrator or not', async () => {
+    const { t, admin, member } = await world();
     const fixture = await t.mutation(internal.playProvisioning.beginFixtureProvision, {});
     await ready(t, fixture.gameId);
-    expect(await member.query(api.playGames.getGame, { gameId: fixture.gameId })).toMatchObject({
-      status: 'ready',
-      name: 'Hosted fixture',
-      ruleset: null,
-      minimumPlayers: null,
-    });
-    expect(await member.mutation(api.playAdmission.issueTicket, { gameId: fixture.gameId })).toMatchObject({
-      ok: true,
-    });
+    for (const player of [admin, member]) {
+      expect(await player.query(api.playGames.getGame, { gameId: fixture.gameId })).toEqual({ status: 'not_found' });
+      expect(await player.mutation(api.playAdmission.issueTicket, { gameId: fixture.gameId })).toEqual({
+        ok: false,
+        reason: 'unavailable',
+      });
+    }
   });
 });

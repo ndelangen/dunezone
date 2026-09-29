@@ -161,12 +161,6 @@ export const playAckAccountDeletionRequestSchema = z.strictObject({
   eventId: identifierSchema,
 });
 
-export const playFixtureSchema = z.union([
-  z.object({ status: z.literal('sign_in_required') }),
-  z.object({ status: z.literal('unavailable') }),
-  z.object({ status: z.literal('ready'), gameId: identifierSchema, name: z.string() }),
-]);
-
 /** The lifecycle stage a game is in. Fixtures have none and play from their first view. */
 export const playStageSchema = z.enum(['drafting', 'swapping', 'setup', 'play', 'finished', 'discarded']);
 

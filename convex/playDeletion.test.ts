@@ -6,7 +6,9 @@ import rateLimiterTest from '@convex-dev/rate-limiter/test';
 import { convexTest } from 'convex-test';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
+import { PLAY_FIXTURE_KEY } from '../src/shared/play/admission';
 import { api, internal } from './_generated/api';
+import { insertPendingGame } from './lib/playProvisioningSchedule';
 import schema from './schema';
 
 const modules = import.meta.glob('./**/*.ts');
@@ -17,16 +19,6 @@ async function fixture() {
   aggregateTest.register(t, 'statistics');
   aggregateTest.register(t, 'profileDiscovery');
   aggregateTest.register(t, 'profileActivity');
-  const { gameId } = await t.mutation(internal.playProvisioning.beginFixtureProvision, {});
-  const game = await t.run(async (ctx) => await ctx.db.get(gameId));
-  if (!game) {
-    throw new Error('Missing fixture');
-  }
-  await t.mutation(api.playProvisioning.confirmProvisioning, {
-    gameId,
-    secret: game.secret,
-    attemptId: game.attempt_id,
-  });
   const { userId, sessionId } = await t.run(async (ctx) => {
     const userId = await ctx.db.insert('users', { account_state: 'active' });
     const sessionId = await ctx.db.insert('authSessions', { userId, expirationTime: Date.now() + 3_600_000 });
@@ -42,6 +34,27 @@ async function fixture() {
     });
     return { userId, sessionId };
   });
+  /* A real game the player created: deletion never reads its ruleset, so a bare row stands in. */
+  const { gameId, secret, attemptId } = await t.run(async (ctx) => {
+    const stamp = new Date().toISOString();
+    const rulesetId = await ctx.db.insert('rulesets', {
+      name: 'Classic',
+      slug: 'classic',
+      about: '',
+      created_at: stamp,
+      updated_at: stamp,
+      owner_id: userId,
+      group_id: null,
+      is_deleted: false,
+      image_cover: null,
+    });
+    return await insertPendingGame(ctx, { ruleset_id: rulesetId, minimum_players: 4, creator_id: userId });
+  });
+  await t.mutation(api.playProvisioning.confirmProvisioning, { gameId, secret, attemptId });
+  const game = await t.run(async (ctx) => await ctx.db.get(gameId));
+  if (!game) {
+    throw new Error('Missing game');
+  }
   const player = t.withIdentity({ subject: `${userId}|${sessionId}` });
   const issued = await player.mutation(api.playAdmission.issueTicket, { gameId });
   if (!issued.ok) {
@@ -182,6 +195,27 @@ describe('Play account deletion', () => {
     );
     await subject.t.action(internal.playDeletion.deliver, { eventId: event._id });
     expect(await subject.t.run(async (ctx) => (await ctx.db.get(event._id))?.state)).toBe('pending');
+  });
+
+  test('the closed hosted fixture still settles the deletion of an account routed to it', async () => {
+    const subject = await fixture();
+    /* The hosted fixture's stored row: its key and no ruleset, with the routing its players' admissions left. */
+    await subject.t.run(
+      async (ctx) =>
+        await ctx.db.patch(subject.game._id, {
+          fixture_key: PLAY_FIXTURE_KEY,
+          ruleset_id: undefined,
+          minimum_players: undefined,
+          creator_id: undefined,
+        })
+    );
+    const { event, operationId } = await startDeletion(subject);
+    const credentials = { gameId: subject.game._id, secret: subject.game.secret };
+    expect(
+      await subject.t.query(api.playAdmission.reconcileAccounts, { ...credentials, userIds: [subject.userId] })
+    ).toEqual({ ok: true, accounts: [{ userId: subject.userId, state: 'deleted', deletionOperationId: operationId }] });
+    await subject.t.mutation(api.playAdmission.ackAccountDeletion, { ...credentials, eventId: event._id });
+    expect(await subject.t.run(async (ctx) => (await ctx.db.get(event._id))?.state)).toBe('acknowledged');
   });
 
   test('server-only reconciliation cannot read unregistered accounts from a different game', async () => {

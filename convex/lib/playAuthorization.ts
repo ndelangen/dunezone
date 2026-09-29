@@ -87,6 +87,27 @@ export function isRealGame(game: Pick<Doc<'play_games'>, 'ruleset_id'>) {
   return game.ruleset_id !== undefined;
 }
 
+const SYNTHETIC_FIXTURE_KEY = /^synthetic-[a-f0-9]{64}$/;
+
+/** The key `playTesting:createFixture` gives each test game: a fresh credential, so no two share a key. */
+export function syntheticFixtureKey() {
+  return `synthetic-${playCredential()}`;
+}
+
+export function isSyntheticFixtureKey(key: string | undefined) {
+  return key !== undefined && SYNTHETIC_FIXTURE_KEY.test(key);
+}
+
+/**
+ * Whether players may enter a game: a real game, or a test game that `playTesting:createFixture` made on an isolated backend for the load runner or the protocol verifier.
+ * The hosted fixture admits nobody (#1323): its game page reads as not found, no ticket is issued or redeemed for it, and the live authorization denies its registrations.
+ * Its Worker-authenticated account reconciliation and deletion acknowledgements keep answering, so deletion bookkeeping for its stored room still settles.
+ * The rule reads only the row, so every backend answers the same way.
+ */
+export function admitsPlayers(game: Pick<Doc<'play_games'>, 'ruleset_id' | 'fixture_key'>) {
+  return isRealGame(game) || isSyntheticFixtureKey(game.fixture_key);
+}
+
 export async function currentPlaySession(ctx: QueryCtx) {
   const [rawUserId, rawSessionId] = await Promise.all([getAuthUserId(ctx), getAuthSessionId(ctx)]);
   const userId = rawUserId ? ctx.db.normalizeId('users', rawUserId) : null;
