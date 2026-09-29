@@ -50,7 +50,7 @@ export function EditionArtifactLink({
         label={label}
         tooltip={label}
         emphasis={size === 'lg' ? 'standard' : 'quiet'}
-        intent="neutral"
+        intent="export"
         size={size}
         icon={glyph}
         renderRoot={(props) => (
@@ -68,7 +68,7 @@ export function EditionArtifactLink({
         label={label}
         disabledReason={UNAVAILABLE[artifact.status](kind.toUpperCase())}
         emphasis="standard"
-        intent="neutral"
+        intent="export"
         size={size}
         icon={glyph}
       />

@@ -166,7 +166,7 @@ export function useAssetGroupActions({
       label="Remove group"
       tooltip={`Remove group access (${assignedGroup.name})`}
       emphasis="standard"
-      intent="negative"
+      intent="neutral"
       size="lg"
       disabled={setAssetGroup.isPending}
       onClick={() => setAssetGroup.mutate({ id: asset.id, group_id: null })}

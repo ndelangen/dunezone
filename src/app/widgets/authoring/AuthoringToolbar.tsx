@@ -188,7 +188,7 @@ export function AuthoringToolbar({
             <IconAction
               label="Reset unsaved edits"
               emphasis="standard"
-              intent="neutral"
+              intent="negative"
               size="lg"
               disabled={!isDirty || saveState === 'saving'}
               onClick={onReset}

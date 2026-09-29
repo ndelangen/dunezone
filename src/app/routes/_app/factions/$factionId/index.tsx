@@ -233,7 +233,7 @@ function FactionDetailPage() {
                 <IconAction
                   label="Open published PDF"
                   emphasis="standard"
-                  intent="neutral"
+                  intent="export"
                   size="lg"
                   href={assetPublishing.publicationHref}
                   target="_blank"

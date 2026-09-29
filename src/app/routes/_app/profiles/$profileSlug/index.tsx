@@ -286,7 +286,7 @@ function ProfileDetailPage() {
             <IconAction
               label="Log out"
               emphasis="standard"
-              intent="negative"
+              intent="neutral"
               size="lg"
               onClick={() => void handleSignOut()}
               icon={<LogOut size={17} aria-hidden />}

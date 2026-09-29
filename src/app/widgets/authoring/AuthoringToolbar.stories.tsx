@@ -36,7 +36,7 @@ const removeGroup = (
     label="Remove group"
     tooltip="Remove group access (Arrakeen Rules Council)"
     emphasis="standard"
-    intent="negative"
+    intent="neutral"
     size="lg"
     icon={<UserRoundMinus size={17} aria-hidden />}
   />

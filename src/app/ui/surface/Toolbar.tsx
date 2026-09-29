@@ -58,7 +58,12 @@ function Cluster({ children }: ToolbarClusterProps) {
  * One thin divider stands before the commit run alone, since keeping the work is the one step apart from the rest.
  * More lines than that read as clutter (Norbert, 2026-09-29).
  * Every action is an icon with its words in the tooltip, `size="lg"` with a 17px glyph.
- * Green (`intent="positive"`, `emphasis="strong"`) is kept for what creates or saves, violet (`intent="publish"`) for publishing, red (`negative`) for what destroys, and everything else is `standard`.
+ * Colour says what happens to the reader's work, and emphasis only how prominent the action is (Norbert, 2026-09-29).
+ * Slate (`neutral`) changes nothing: going, looking, arranging, sharing, changing access.
+ * Green (`positive`) creates or saves, violet (`publish`) makes public for good, cyan (`export`) hands over a file, and red (`negative`) loses something for good.
+ * A step undone in one press is never red.
+ * Every action is `standard`, except the page's one create and the commit run, which are `strong`.
+ * A toggle that is on is `pressed`, never stronger.
  *
  * A toolbar shows no statuses and no facts in its row.
  * The page's statuses sit behind one info action, `StatusInfo` in the `about` cluster, which lists them all (Norbert, 2026-09-29).

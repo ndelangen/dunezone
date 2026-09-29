@@ -203,7 +203,7 @@ function FactionEditPage() {
                   label="Remove group"
                   tooltip={`Remove group access (${assignedGroup.name})`}
                   emphasis="standard"
-                  intent="negative"
+                  intent="neutral"
                   size="lg"
                   disabled={setFactionGroup.isPending}
                   onClick={() => void setFactionGroup.mutateAsync({ id: faction._id, groupId: null })}

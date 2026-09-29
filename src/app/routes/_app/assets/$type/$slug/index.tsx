@@ -578,10 +578,10 @@ function LoadedAssetDetail({ page }: { page: AssetPage }) {
               {hasCopies ? (
                 <IconAction
                   label="Show every copy"
-                  emphasis={duplicated ? 'strong' : 'standard'}
+                  emphasis="standard"
+                  pressed={duplicated}
                   intent="neutral"
                   size="lg"
-                  aria-pressed={duplicated}
                   icon={<Copy size={17} aria-hidden />}
                   onClick={() =>
                     void navigate({
@@ -597,7 +597,7 @@ function LoadedAssetDetail({ page }: { page: AssetPage }) {
                   /* Named by face only when there are two of them, so a card keeps the plain label it already had. */
                   label={backPublishing?.publicationHref ? 'Open published front' : 'Open published image'}
                   emphasis="standard"
-                  intent="neutral"
+                  intent="export"
                   size="lg"
                   href={assetPublishing.publicationHref}
                   target="_blank"
@@ -610,7 +610,7 @@ function LoadedAssetDetail({ page }: { page: AssetPage }) {
                 <IconAction
                   label="Open published back"
                   emphasis="standard"
-                  intent="neutral"
+                  intent="export"
                   size="lg"
                   href={backPublishing.publicationHref}
                   target="_blank"

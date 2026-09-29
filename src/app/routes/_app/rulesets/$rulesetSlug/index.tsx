@@ -616,7 +616,7 @@ function RulesetDetailPage() {
               {actionVisibility.removeGroup ? (
                 <IconAction
                   label="Remove group"
-                  intent="negative"
+                  intent="neutral"
                   emphasis="standard"
                   size="lg"
                   disabled={setRulesetGroup.isPending}

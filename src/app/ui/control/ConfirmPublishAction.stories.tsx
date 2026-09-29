@@ -39,7 +39,9 @@ export const Unavailable = meta.story({
     await expect(trigger).toHaveAttribute('aria-disabled', 'true');
 
     await userEvent.hover(trigger);
-    await expect(await page.findByText('Save your changes before publishing.')).toBeInTheDocument();
+    await expect(
+      await page.findByRole('tooltip', { name: 'Save your changes before publishing.' })
+    ).toBeInTheDocument();
     await expect(args.onConfirm).not.toHaveBeenCalled();
   },
 });

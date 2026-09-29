@@ -284,7 +284,7 @@ function DeckEditSession({
                         : 'Create a new card, then come back and add it'
                     }
                     emphasis="standard"
-                    intent="neutral"
+                    intent="positive"
                     size="lg"
                     disabled={isDirty}
                     icon={<FilePlus2 size={17} aria-hidden />}
