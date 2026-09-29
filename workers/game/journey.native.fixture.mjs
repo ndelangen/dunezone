@@ -108,7 +108,7 @@ async function journeyRuntime() {
   });
   /* A seventh faction in the catalogue, so the draft has something to ban. */
   peer.draftable = [
-    ...factionFixtures.map(draftable),
+    ...factionFixtures.map((faction) => draftable(faction)),
     {
       id: 'ixians',
       slug: 'ixians',
@@ -147,7 +147,7 @@ function interned(steps) {
       return value;
     }
     const shallow = Array.isArray(value)
-      ? value.map(intern)
+      ? value.map((entry) => intern(entry))
       : Object.fromEntries(Object.entries(value).map(([key, entry]) => [key, intern(entry)]));
     const text = JSON.stringify(shallow);
     if (text.length < 160) {
@@ -251,7 +251,7 @@ export class JourneyRecorder {
 
   /** Keeps the current view of every viewer as one step. */
   async record(title, detail, actor = null, action = null) {
-    const views = await Promise.all(this.viewers().map(syncView));
+    const views = await Promise.all(this.viewers().map((connection) => syncView(connection)));
     const [latest] = (await this.logPage('game')).entries;
     this.steps.push({
       title,

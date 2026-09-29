@@ -49,7 +49,7 @@ function resolver({ pool }: Recording) {
       return value;
     }
     if (Array.isArray(value)) {
-      return value.map(resolve);
+      return value.map((entry) => resolve(entry));
     }
     const keys = Object.keys(value);
     if (keys.length === 1 && keys[0] === '$') {
