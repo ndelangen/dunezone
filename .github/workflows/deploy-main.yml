@@ -59,7 +59,11 @@ jobs:
 
   deploy:
     needs: release_gate
-    if: needs.release_gate.outputs.deploy == 'true'
+    # Only the gate's explicit 'false' skips the deploy, and a missing or empty output deploys, the
+    # same way an endpoint the gate cannot read does.
+    # A failed gate job still skips it through the implicit success(), and the run fails.
+    # dev_rebuild needs this job, so it follows the same answer.
+    if: needs.release_gate.outputs.deploy != 'false'
     environment: production
     runs-on: ubuntu-latest
     # The contract test budgets migrations, both active-version gates, narrowing and release work.

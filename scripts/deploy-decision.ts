@@ -52,11 +52,21 @@ export function decide(readings: readonly Reading[], attempt: number): Decision 
   };
 }
 
-/** Exit 0 and 1 answer the question; any other status means git could not compare the two, usually because the commit is not in this checkout. */
+/**
+ * Exit 0 and 1 answer the question.
+ * Any other status means git could not compare the two, usually because the commit is not in this checkout.
+ * Only full SHAs reach git, so a short or option-shaped value cannot name another commit or pass git an option.
+ * Git also gets --end-of-options, so it reads both as revisions whatever they hold.
+ */
 function isAncestor(ancestor: string, descendant: string, repository: string): boolean | undefined {
-  const { status } = spawnSync('/usr/bin/git', ['merge-base', '--is-ancestor', ancestor, descendant], {
-    cwd: repository,
-  });
+  if (!FULL_SHA.test(ancestor) || !FULL_SHA.test(descendant)) {
+    return undefined;
+  }
+  const { status } = spawnSync(
+    '/usr/bin/git',
+    ['merge-base', '--is-ancestor', '--end-of-options', ancestor, descendant],
+    { cwd: repository }
+  );
   switch (status) {
     case 0:
       return true;

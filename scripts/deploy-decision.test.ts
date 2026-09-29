@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -110,5 +110,39 @@ describe('where production sits in git history', () => {
 
   test('leaves a commit git does not have unknown', () => {
     expect(position(child, '1'.repeat(40), repository)).toBe('unknown');
+  });
+
+  test('leaves a short or option-shaped value unknown, even a prefix git could resolve', () => {
+    expect(position(child, parent.slice(0, 12), repository)).toBe('unknown');
+    expect(position(child, '--all', repository)).toBe('unknown');
+  });
+});
+
+/*
+ * The gate's answer reaches the deploy job through the script's GITHUB_OUTPUT line, the decision step, the job's outputs and an if: condition.
+ * A key renamed at any link reads as empty, and an empty answer has to deploy, so every condition on it skips only on 'false'.
+ */
+describe('the release gate in the production deploy workflow', () => {
+  test('reads the keys the script writes, and skips the deploy only on an explicit false', () => {
+    const script = readFileSync('scripts/deploy-decision.ts', 'utf8');
+    const workflow = readFileSync('.github/workflows/deploy-main.yml', 'utf8');
+    const written = new Map(
+      [...script.matchAll(/(?:`|\\n)(\w+)=\$\{decision\.(\w+)\}/g)].map(([, key, field]) => [field, key])
+    );
+    const step = /id: (\w+)\n +run: bun run \.\/scripts\/deploy-decision\.ts\n/.exec(workflow)?.[1];
+    const jobOutput = (field: string) =>
+      new RegExp(`\\n +(\\w+): \\$\\{\\{ steps\\.${step}\\.outputs\\.${written.get(field)} \\}\\}\\n`).exec(
+        workflow
+      )?.[1];
+    const deploy = jobOutput('deploy');
+    const base = jobOutput('base');
+    expect(deploy).toBeDefined();
+    expect(base).toBeDefined();
+    const failOpen = `needs.release_gate.outputs.${deploy} != 'false'`;
+    const deployJob = workflow.slice(workflow.indexOf('\n  deploy:\n'), workflow.indexOf('\n  dev_rebuild:\n'));
+    expect(deployJob).toContain(`\n    if: ${failOpen}\n`);
+    const conditions = [...workflow.matchAll(new RegExp(`needs\\.release_gate\\.outputs\\.${deploy}\\b.*`, 'g'))];
+    expect([...new Set(conditions.map(([condition]) => condition))]).toEqual([failOpen]);
+    expect(workflow).toContain(`base: \${{ needs.release_gate.outputs.${base} || github.event.before }}`);
   });
 });

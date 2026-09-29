@@ -270,7 +270,8 @@ first and reads the commit each production Worker reports on `https://dune.zone/
 `https://dune.zone/__asset-publisher/health`. The run ends green without deploying when either Worker
 already reports a later commit than the run's, or, on the run's first attempt, both already report
 the run's own commit. An endpoint that does not answer, or a commit git cannot place, lets the deploy
-go ahead. Otherwise the `deploy` job runs:
+go ahead. Only the gate's answer `false` skips the `deploy` job, so a missing answer deploys too, and
+a gate job that fails ends the run red without deploying. In every other case the `deploy` job runs:
 
 1. Install dependencies, then verify schema-narrowing prerequisites
    (`migrations:narrow-check`). This runs *before* the Convex deploy and blocks
