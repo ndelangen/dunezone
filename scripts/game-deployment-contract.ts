@@ -4,6 +4,7 @@ import path from 'node:path';
 
 import { assertActiveDeployment } from './cloudflare-deployment';
 import { checkGameWorkerLiveDrift } from './cloudflare-live-drift';
+import { describeError } from './retry-transient';
 
 export const GAME_WORKER_NAME = 'dunezone-game';
 const APPLICATION_ORIGIN = 'https://dune.zone';
@@ -93,15 +94,56 @@ export function validateGameHealth(
   invariant(identity.workerVersionId === expected.versionId, 'Game health version differs from the active deployment');
 }
 
-async function smokeGame(expected: Parameters<typeof validateGameHealth>[1]): Promise<void> {
-  const response = await fetch(`${APPLICATION_ORIGIN}/__play/health`, {
-    headers: { Accept: 'application/json' },
-    redirect: 'error',
-    signal: AbortSignal.timeout(15_000),
-  });
-  invariant(response.status === 200, `Game health returned HTTP ${response.status}`);
-  validateGameHealth(await response.json(), expected, response);
-  console.log(`Bound game Worker health passed for ${expected.gitSha}, version ${expected.versionId}.`);
+export const GAME_HEALTH_READS = 12;
+export const GAME_HEALTH_INTERVAL_MS = 5000;
+
+type GameSmokeDependencies = {
+  fetcher?: (input: string, init?: RequestInit) => Promise<Response>;
+  sleep?: (ms: number) => Promise<void>;
+  log?: (line: string) => void;
+};
+
+function pause(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Reads the game health through the publisher's service binding until it reports the bound release, polling the way the publisher smoke does (#330).
+ * The control plane already reports the new game version as active when this runs, yet the binding can still reach the previous version for a while.
+ * On 2026-09-28 and 2026-09-29 a single read, 14 s and 20 s after the game deploy, saw the previous release and failed the run.
+ * Every failed read is retried, and only the last one decides, so a release that never arrives still fails the deploy.
+ */
+export async function smokeGame(
+  expected: Parameters<typeof validateGameHealth>[1],
+  dependencies: GameSmokeDependencies = {}
+): Promise<void> {
+  const fetcher = dependencies.fetcher ?? fetch;
+  const sleep = dependencies.sleep ?? pause;
+  const log = dependencies.log ?? console.log;
+  for (let read = 1; ; read += 1) {
+    try {
+      const response = await fetcher(`${APPLICATION_ORIGIN}/__play/health`, {
+        headers: { Accept: 'application/json' },
+        redirect: 'error',
+        signal: AbortSignal.timeout(5000),
+      });
+      invariant(response.status === 200, `Game health returned HTTP ${response.status}`);
+      validateGameHealth(await response.json(), expected, response);
+      log(`Bound game Worker health passed for ${expected.gitSha}, version ${expected.versionId}.`);
+      return;
+    } catch (error) {
+      const reason = describeError(error);
+      if (read === GAME_HEALTH_READS) {
+        throw new Error(`Game health did not report the bound release after ${read} reads; last: ${reason}`, {
+          cause: error,
+        });
+      }
+      log(
+        `Game health read ${read} of ${GAME_HEALTH_READS} failed (${reason}); reading again in ${GAME_HEALTH_INTERVAL_MS / 1000} s.`
+      );
+      await sleep(GAME_HEALTH_INTERVAL_MS);
+    }
+  }
 }
 
 function exactCheckout(sha: string): void {

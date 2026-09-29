@@ -286,8 +286,11 @@ On every push to `main`:
     deployment, reading the deployments list every ten seconds for up to twenty minutes,
     then smoke the workers.dev and `dune.zone` health endpoints. The game health request goes through
     `https://dune.zone/__play/health` and must report the merged SHA, matching tag and control-plane
-    version ID with `Cache-Control: no-store`. The complete deploy job allows 120 minutes for both
-    bounded active-version gates, migrations and release work.
+    version ID with `Cache-Control: no-store`. The publisher's service binding can reach the previous
+    game version for some seconds after the control plane reports the new one active, so the smoke
+    reads the endpoint up to twelve times, five seconds apart, and fails only when the last read is
+    still wrong. The complete deploy job allows 120 minutes for both bounded active-version gates,
+    migrations and release work.
 12. Build and verify the secret-free Storybook artifact, deploy it to `storybook.dune.zone`, and
     smoke its manager, page index, preview entry, CSP, and shared public assets.
 13. Read the stored Renderer revisions. If any checked-in revision is higher,
