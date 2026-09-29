@@ -80,7 +80,10 @@ describe('faction member identity migration', () => {
     await t.mutation(internal.migrations.faction_member_ids_verify_v1, {});
     const afterRetry = await t.run(async (ctx) => Promise.all(factionIds.map((id) => ctx.db.get('factions', id))));
     expect(afterRetry).toEqual(beforeRetry);
-    for (const faction of afterRetry) {
+    /* Stored factions also require troop identities since #1227 narrowed them, so the troop backfill completes the roster. */
+    await t.mutation(internal.migrations.faction_troop_ids_v1, {});
+    const identified = await t.run(async (ctx) => Promise.all(factionIds.map((id) => ctx.db.get('factions', id))));
+    for (const faction of identified) {
       expect(IdentifiedFactionStoredSchema.safeParse(faction?.data).success).toBe(true);
       expect(faction?.updated_at).toBe('2026-09-01T00:00:00.000Z');
     }

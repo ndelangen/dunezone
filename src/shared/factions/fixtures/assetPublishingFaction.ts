@@ -95,4 +95,8 @@ export const assetPublishingFaction = IdentifiedFactionStoredSchema.parse({
     ...leader,
     memberId: leaderIds[index],
   })),
+  troops: legacyAssetPublishingFaction.troops.map((troop, index) => ({
+    ...troop,
+    troopId: `20000000-0000-4000-8000-${String(index + 1).padStart(12, '0')}`,
+  })),
 });
