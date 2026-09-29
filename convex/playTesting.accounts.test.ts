@@ -41,12 +41,26 @@ function account(label: string) {
   };
 }
 
+/*
+ * Password hashes and checks each password with Lucia's Scrypt, written in JavaScript, and coverage-v8 counts every block of its loop.
+ * One Scrypt took about 0.1 s without coverage and 1 s with it on an idle Mac, and 2.9 to 3.4 s in CI's coverage run, which runs test files in parallel.
+ * Its loop awaits only microtasks, so no timer fires until it finishes: a slow Scrypt fails as a test timeout, and the `auth:store` lines Vitest prints above it show which Password call it was.
+ * So each test makes one Password call, and PASSWORD_TEST_BUDGET_MS covers it about four times over.
+ */
+const PASSWORD_TEST_BUDGET_MS = 15_000;
+
 function signIn(
   t: ReturnType<typeof backend>,
   flow: 'signIn' | 'signUp',
   { email, password }: ReturnType<typeof account>
 ) {
   return t.action(api.auth.signIn, { provider: 'password', params: { flow, email, password } });
+}
+
+async function provision(t: ReturnType<typeof backend>, { email, password }: ReturnType<typeof account>) {
+  await t.mutation(internal.playTesting.provisionAccounts, {
+    accounts: [{ email, secret: await passwordSecret(password) }],
+  });
 }
 
 /** Drops the fields that differ between any two accounts: ids, times, emails, slugs and secrets. */
@@ -86,44 +100,40 @@ async function rowCounts(t: ReturnType<typeof backend>) {
   }));
 }
 
-test('a provisioned account has the rows sign-up writes, and signing it in creates nothing', async () => {
-  const t = backend();
-  const signedUp = account('signed-up');
-  await signIn(t, 'signUp', signedUp);
-  const [signUpRows] = await accountRows(t);
+test(
+  'a provisioned account has the rows a real sign-up writes',
+  async () => {
+    const t = backend();
+    await signIn(t, 'signUp', account('signed-up'));
+    const [signUpRows] = await accountRows(t);
 
-  const provisioned = account('player-a');
-  await t.mutation(internal.playTesting.provisionAccounts, {
-    accounts: [{ email: provisioned.email, secret: await passwordSecret(provisioned.password) }],
-  });
-  const rows = await accountRows(t);
-  expect(rows).toHaveLength(2);
-  expect(rows[1]).toEqual(signUpRows);
+    await provision(t, account('player-a'));
+    const rows = await accountRows(t);
+    expect(rows).toHaveLength(2);
+    expect(rows[1]).toEqual(signUpRows);
+  },
+  PASSWORD_TEST_BUDGET_MS
+);
 
-  const before = await rowCounts(t);
-  const result = await signIn(t, 'signIn', provisioned);
-  expect(result.tokens?.token).toEqual(expect.any(String));
-  expect(await rowCounts(t)).toEqual(before);
-});
+test(
+  'a provisioned account keeps its first password and signs in without creating rows, and only synthetic accounts with a Scrypt secret are accepted',
+  async () => {
+    const t = backend();
+    const player = account('player-b');
+    await provision(t, player);
+    await provision(t, { email: player.email, password: account('other').password });
 
-test('an existing account keeps its password, and only synthetic accounts with a Scrypt secret are accepted', async () => {
-  const t = backend();
-  const player = account('player-b');
-  await t.mutation(internal.playTesting.provisionAccounts, {
-    accounts: [{ email: player.email, secret: await passwordSecret(player.password) }],
-  });
-  await t.mutation(internal.playTesting.provisionAccounts, {
-    accounts: [{ email: player.email, secret: await passwordSecret(account('other').password) }],
-  });
-  expect((await signIn(t, 'signIn', player)).tokens?.token).toEqual(expect.any(String));
-  await expect(
-    t.mutation(internal.playTesting.provisionAccounts, {
-      accounts: [{ email: 'player@example.com', secret: await passwordSecret(player.password) }],
-    })
-  ).rejects.toThrow('synthetic accounts');
-  await expect(
-    t.mutation(internal.playTesting.provisionAccounts, {
-      accounts: [{ email: account('plain').email, secret: player.password }],
-    })
-  ).rejects.toThrow('Scrypt secret');
-});
+    const before = await rowCounts(t);
+    expect((await signIn(t, 'signIn', player)).tokens?.token).toEqual(expect.any(String));
+    expect(await rowCounts(t)).toEqual(before);
+    await expect(provision(t, { email: 'player@example.com', password: player.password })).rejects.toThrow(
+      'synthetic accounts'
+    );
+    await expect(
+      t.mutation(internal.playTesting.provisionAccounts, {
+        accounts: [{ email: account('plain').email, secret: player.password }],
+      })
+    ).rejects.toThrow('Scrypt secret');
+  },
+  PASSWORD_TEST_BUDGET_MS
+);
