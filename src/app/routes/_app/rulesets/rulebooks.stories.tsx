@@ -860,7 +860,7 @@ export const PublishIsHeld = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     const trigger = await page.findByRole('button', { name: 'Publish Edition 2' }, { timeout: 30_000 });
     await userEvent.hover(trigger);
-    await waitForFrame(() => expect(page.getByRole('tooltip')).toHaveTextContent('hold to publish edition 2'));
+    await waitForFrame(() => expect(page.getByRole('tooltip')).toHaveTextContent('hold to publish'));
     await userEvent.click(trigger);
     expect(
       page.queryByText('The new Edition is now current. HTML and PDF are being prepared independently.')

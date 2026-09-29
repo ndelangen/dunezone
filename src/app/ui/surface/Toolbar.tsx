@@ -104,6 +104,16 @@ type ClusterRun = { kind: ToolbarClusterKind; children: ReactNode; size: number 
  * Anything handed over loose, outside a cluster, counts as `content`, so a single action needs no wrapper.
  * A run with nothing in it is dropped, so no gap stands beside an empty space.
  */
+/* The actions in a cluster, looking through fragments, so a fragment whose conditionals all rendered nothing counts as empty. */
+function countActions(node: ReactNode): number {
+  return Children.toArray(node).reduce<number>((total, child) => {
+    if (isValidElement<{ children?: ReactNode }>(child) && child.type === Fragment) {
+      return total + countActions(child.props.children);
+    }
+    return total + 1;
+  }, 0);
+}
+
 function clusterRuns(children: ReactNode): ClusterRun[] {
   const byKind = new Map<ToolbarClusterKind, ReactNode[]>();
   Children.forEach(children, (child) => {
@@ -113,7 +123,7 @@ function clusterRuns(children: ReactNode): ClusterRun[] {
     const isCluster = isValidElement<ToolbarClusterProps>(child) && child.type === Cluster;
     const kind = isCluster ? (child as ReactElement<ToolbarClusterProps>).props.kind : 'content';
     const content = isCluster ? (child as ReactElement<ToolbarClusterProps>).props.children : child;
-    if (Children.toArray(content).length === 0) {
+    if (countActions(content) === 0) {
       return;
     }
     byKind.set(kind, [...(byKind.get(kind) ?? []), content]);
@@ -125,7 +135,7 @@ function clusterRuns(children: ReactNode): ClusterRun[] {
           {
             kind,
             children: content.map((node, index) => <Fragment key={index}>{node}</Fragment>),
-            size: content.reduce<number>((total, node) => total + Children.toArray(node).length, 0),
+            size: content.reduce<number>((total, node) => total + countActions(node), 0),
           },
         ]
       : [];
@@ -170,9 +180,9 @@ function OverflowMenu({ runs }: { runs: ClusterRun[] }) {
       shadow="md"
       closeOnClickOutside={false}
       closeOnEscape
+      /* Focus moves into the folded actions on open and back to the trigger on close, so the keyboard reaches them without crossing the page. */
+      trapFocus
       returnFocus
-      /* A row of actions, not a dialog: it is named as a group, like the edges it came from. */
-      withRoles={false}
     >
       <Popover.Target>
         <IconAction
@@ -185,6 +195,7 @@ function OverflowMenu({ runs }: { runs: ClusterRun[] }) {
           onClick={() => setOpened((current) => !current)}
         />
       </Popover.Target>
+      {/* A row of actions, not a dialog: it is named as a group, like the edges it came from, while the trigger keeps its expanded state. */}
       <Popover.Dropdown role="group" aria-label="More actions" className={styles.overflow}>
         <Runs runs={runs} />
       </Popover.Dropdown>

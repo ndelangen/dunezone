@@ -208,7 +208,6 @@ function CatalogueRefine({
   visibleCount,
   totalCount,
   onSearchChange,
-  className,
 }: {
   search: FactionCatalogueSearch;
   rulesetOptions: { value: string; label: string }[];
@@ -216,7 +215,6 @@ function CatalogueRefine({
   visibleCount: number;
   totalCount: number;
   onSearchChange: (patch: Partial<Record<keyof FactionCatalogueSearch, unknown>>) => void;
-  className?: string;
 }) {
   const rulesetActive = search.ruleset != null;
   const rangeActive = search.complexity != null;
@@ -235,7 +233,6 @@ function CatalogueRefine({
           type="button"
           pointer
           variant="unstyled"
-          className={className}
           leftSection={<Filter size={15} aria-hidden />}
           rightSection={<ChevronsDown size={15} aria-hidden opacity={0.6} />}
           aria-label="Refine factions by ruleset and complexity"

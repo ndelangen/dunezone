@@ -27,7 +27,11 @@ export interface ConfirmPublishActionProps {
  * this owns the words: hovering says "hold to publish", pressing counts down in the hover text and the glyph, and letting go early cancels with nothing fired.
  */
 export function ConfirmPublishAction({ label, pending, onConfirm, disabledReason, icon }: ConfirmPublishActionProps) {
-  const { holding, remaining, submitted, handlers } = useHoldToConfirm({ pending, onConfirm });
+  const { holding, remaining, submitted, handlers } = useHoldToConfirm({
+    pending,
+    onConfirm,
+    blocked: disabledReason != null,
+  });
   const glyph = icon ?? <BookUp2 size={17} aria-hidden />;
   /* A hold already fired keeps its spinner until the page settles, whatever the page now says about publishing. */
   const busy = pending || submitted;
@@ -46,7 +50,7 @@ export function ConfirmPublishAction({ label, pending, onConfirm, disabledReason
   return (
     <IconAction
       label={label}
-      tooltip={holding ? `publishing in ${remaining}..` : `hold to ${label.toLowerCase()}`}
+      tooltip={holding ? `publishing in ${remaining}..` : 'hold to publish'}
       tooltipOpened={holding ? true : undefined}
       intent="publish"
       emphasis="strong"
