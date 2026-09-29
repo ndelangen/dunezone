@@ -35,7 +35,7 @@ export const PLAY_DISPLAY_NAME_MAX_LENGTH = 256;
  */
 export const PLAY_PROFILE_SLUG_MAX_LENGTH = 160;
 /* A player's public profile slug, so the table can link to their profile; null for an inactive account. */
-export const playProfileSlugSchema = z.string().min(1).max(PLAY_PROFILE_SLUG_MAX_LENGTH).nullable().optional();
+const playProfileSlugSchema = z.string().min(1).max(PLAY_PROFILE_SLUG_MAX_LENGTH).nullable().optional();
 
 const identifierSchema = z.string().min(1).max(128);
 const playCredentialSchema = z.string().regex(/^[0-9a-f]{64}$/);
