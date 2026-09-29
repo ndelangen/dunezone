@@ -1,5 +1,6 @@
-import { ActionIcon, Tooltip } from '@mantine/core';
+import { ActionIcon, Tooltip, VisuallyHidden } from '@mantine/core';
 import type { ActionIconProps, ActionIconVariant } from '@mantine/core';
+import { useId } from 'react';
 import type {
   FocusEventHandler,
   KeyboardEventHandler,
@@ -15,13 +16,18 @@ import type { RenderRoot } from '../renderRoot';
  * What the action means to the reader, independent of the palette that renders it.
  * Drawn from the variant language, so the same word means the same thing here as it does on a badge or a picker.
  */
-type IconActionIntent = 'neutral' | 'positive' | 'negative';
+type IconActionIntent = 'neutral' | 'positive' | 'negative' | 'publish';
 
-/* The component owns the resolution, so a call site states the meaning and never a hue. */
-const INTENT_COLOR = { neutral: 'gray', positive: 'confirm', negative: 'red' } as const satisfies Record<
-  IconActionIntent,
-  string
->;
+/*
+ * The component owns the resolution, so a call site states the meaning and never a hue.
+ * `publish` has a hue of its own because publishing is neither creating nor saving: it makes something public for good, so it must not read as one more green Save beside the real one (Norbert, 2026-09-29).
+ */
+const INTENT_COLOR = {
+  neutral: 'gray',
+  positive: 'confirm',
+  negative: 'red',
+  publish: 'violet',
+} as const satisfies Record<IconActionIntent, string>;
 
 /**
  * How loudly the action sits on the page: silent draws no chrome at all even when hovered, quiet blends in until hovered, standard wears a tinted tile, strong is fully filled.
@@ -48,6 +54,12 @@ export interface IconActionProps extends Pick<ActionIconProps, 'size' | 'disable
   emphasis?: IconActionEmphasis;
   /** Longer hover text, when the glyph needs more explanation than its name. */
   tooltip?: ReactNode;
+  /**
+   * Why the action cannot run right now, as a sentence: "The PDF is still being prepared."
+   * The action renders disabled but stays hoverable and focusable, and this becomes its hover text, so the reason sits on the control it explains instead of in a status beside it.
+   * A plain `disabled` control cannot say why, since it takes no pointer events and so never opens its tooltip.
+   */
+  disabledReason?: string;
   /** The glyph. Sized by the caller; marked decorative here, since `label` carries the meaning. */
   icon: ReactNode;
   onClick?: MouseEventHandler<HTMLButtonElement>;
@@ -101,6 +113,7 @@ export interface IconActionProps extends Pick<ActionIconProps, 'size' | 'disable
 export function IconAction({
   label,
   tooltip,
+  disabledReason,
   tooltipOpened,
   icon,
   onClick,
@@ -124,8 +137,34 @@ export function IconAction({
   emphasis,
   ...actionIconProps
 }: IconActionProps) {
+  const reasonId = useId();
   const resolvedColor = intent ? INTENT_COLOR[intent] : undefined;
   const resolvedVariant = emphasis ? EMPHASIS_VARIANT[emphasis] : undefined;
+  if (disabledReason != null) {
+    /* Mantine's own disabled look, without the `disabled` attribute that would swallow the hover. The reason is also the control's description, for a reader who never hovers. */
+    return (
+      <>
+        <Tooltip label={disabledReason}>
+          <ActionIcon
+            size={actionIconProps.size}
+            color={resolvedColor}
+            variant={resolvedVariant}
+            ref={ref}
+            type="button"
+            data-disabled
+            aria-disabled
+            aria-label={label}
+            aria-describedby={actionIconProps['aria-describedby'] ?? reasonId}
+            onClick={(event) => event.preventDefault()}
+            className={className}
+          >
+            {icon}
+          </ActionIcon>
+        </Tooltip>
+        {actionIconProps['aria-describedby'] ? null : <VisuallyHidden id={reasonId}>{disabledReason}</VisuallyHidden>}
+      </>
+    );
+  }
   /* Two branches rather than one spread: `component="a"` re-types the whole element, so the
      anchor form cannot carry the button-shaped ref, click handler or form binding anyway. */
   return (

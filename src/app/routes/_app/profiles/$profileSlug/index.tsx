@@ -272,22 +272,26 @@ function ProfileDetailPage() {
       </Toolbar.Left>
       {isSelf ? (
         <Toolbar.Right label="Profile actions">
-          <IconAction
-            label="Start group"
-            emphasis="strong"
-            intent="positive"
-            size="lg"
-            renderRoot={(rootProps) => <Link {...rootProps} to="/groups/create" />}
-            icon={<UserPlus size={17} aria-hidden />}
-          />
-          <IconAction
-            label="Log out"
-            emphasis="standard"
-            intent="negative"
-            size="lg"
-            onClick={() => void handleSignOut()}
-            icon={<LogOut size={17} aria-hidden />}
-          />
+          <Toolbar.Cluster kind="content">
+            <IconAction
+              label="Start group"
+              emphasis="strong"
+              intent="positive"
+              size="lg"
+              renderRoot={(rootProps) => <Link {...rootProps} to="/groups/create" />}
+              icon={<UserPlus size={17} aria-hidden />}
+            />
+          </Toolbar.Cluster>
+          <Toolbar.Cluster kind="access">
+            <IconAction
+              label="Log out"
+              emphasis="standard"
+              intent="negative"
+              size="lg"
+              onClick={() => void handleSignOut()}
+              icon={<LogOut size={17} aria-hidden />}
+            />
+          </Toolbar.Cluster>
         </Toolbar.Right>
       ) : null}
     </Toolbar>

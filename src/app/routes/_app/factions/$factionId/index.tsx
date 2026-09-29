@@ -212,46 +212,50 @@ function FactionDetailPage() {
           </Toolbar.Left>
 
           <Toolbar.Right label="Faction actions">
-            <IconAction
-              label="Preview faction sheet"
-              emphasis="standard"
-              intent="neutral"
-              size="lg"
-              renderRoot={(rootProps) => (
-                <Link
-                  {...rootProps}
-                  to="/preview/sheet/$factionSlug"
-                  params={{ factionSlug: factionId }}
-                  search={{ mode: 'db' }}
+            <Toolbar.Cluster kind="content">
+              <IconAction
+                label="Preview faction sheet"
+                emphasis="standard"
+                intent="neutral"
+                size="lg"
+                renderRoot={(rootProps) => (
+                  <Link
+                    {...rootProps}
+                    to="/preview/sheet/$factionSlug"
+                    params={{ factionSlug: factionId }}
+                    search={{ mode: 'db' }}
+                    target="_blank"
+                  />
+                )}
+                icon={<Eye size={17} aria-hidden />}
+              />
+              {assetPublishing.publicationHref ? (
+                <IconAction
+                  label="Open published PDF"
+                  emphasis="standard"
+                  intent="neutral"
+                  size="lg"
+                  href={assetPublishing.publicationHref}
                   target="_blank"
+                  rel="noopener noreferrer"
+                  icon={<Download size={17} aria-hidden />}
                 />
-              )}
-              icon={<Eye size={17} aria-hidden />}
-            />
-            {assetPublishing.publicationHref ? (
-              <IconAction
-                label="Open published PDF"
-                emphasis="standard"
-                intent="neutral"
-                size="lg"
-                href={assetPublishing.publicationHref}
-                target="_blank"
-                rel="noopener noreferrer"
-                icon={<Download size={17} aria-hidden />}
-              />
-            ) : null}
-            {canRequestMembership && assignedGroup ? (
-              <IconAction
-                label="Request membership"
-                emphasis="standard"
-                intent="neutral"
-                size="lg"
-                loading={membershipWorkflow.request.isPending}
-                disabled={membershipWorkflow.request.isPending}
-                onClick={() => void membershipWorkflow.request.run(assignedGroup.id).catch(() => undefined)}
-                icon={<UserPlus size={17} aria-hidden />}
-              />
-            ) : null}
+              ) : null}
+            </Toolbar.Cluster>
+            <Toolbar.Cluster kind="access">
+              {canRequestMembership && assignedGroup ? (
+                <IconAction
+                  label="Request membership"
+                  emphasis="standard"
+                  intent="neutral"
+                  size="lg"
+                  loading={membershipWorkflow.request.isPending}
+                  disabled={membershipWorkflow.request.isPending}
+                  onClick={() => void membershipWorkflow.request.run(assignedGroup.id).catch(() => undefined)}
+                  icon={<UserPlus size={17} aria-hidden />}
+                />
+              ) : null}
+            </Toolbar.Cluster>
           </Toolbar.Right>
         </Toolbar>
       </PageLayout.Toolbar>

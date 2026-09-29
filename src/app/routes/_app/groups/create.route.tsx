@@ -80,17 +80,19 @@ function GroupCreatePage() {
             />
           </Toolbar.Left>
           <Toolbar.Right label="Editing actions">
-            <IconAction
-              label="Save group"
-              emphasis="strong"
-              intent="positive"
-              size="lg"
-              type="submit"
-              form={GROUP_CREATE_FORM_ID}
-              loading={createGroup.isPending}
-              disabled={!canSubmit}
-              icon={<Save size={17} aria-hidden />}
-            />
+            <Toolbar.Cluster kind="commit">
+              <IconAction
+                label="Save group"
+                emphasis="strong"
+                intent="positive"
+                size="lg"
+                type="submit"
+                form={GROUP_CREATE_FORM_ID}
+                loading={createGroup.isPending}
+                disabled={!canSubmit}
+                icon={<Save size={17} aria-hidden />}
+              />
+            </Toolbar.Cluster>
           </Toolbar.Right>
         </Toolbar>
       </PageLayout.Toolbar>

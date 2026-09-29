@@ -1,17 +1,4 @@
-import {
-  Badge,
-  Button,
-  Drawer,
-  Group,
-  InputBase,
-  Popover,
-  RangeSlider,
-  Select,
-  Stack,
-  Text,
-  TextInput,
-  Title,
-} from '@mantine/core';
+import { Badge, Button, Group, InputBase, Popover, RangeSlider, Select, Stack, Text, Title } from '@mantine/core';
 import { Link, createFileRoute } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { FactionCatalogueSpotlight } from '@ui/block/FactionCatalogueSpotlight';
@@ -22,13 +9,13 @@ import { complexityTierSliderMarks } from '@ui/content/ComplexityGlyph';
 import { formatStableDate } from '@ui/content/dates';
 import { CallToAction } from '@ui/control/CallToAction';
 import { IconAction } from '@ui/control/IconAction';
+import { SearchRefine } from '@ui/control/SearchRefine';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { FactionList } from '@ui/list/FactionList';
 import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
-import { ArrowDownAZ, ChevronsDown, Filter, Plus, Search, SlidersHorizontal } from 'lucide-react';
+import { ArrowDownAZ, ChevronsDown, Filter, Plus } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import type { KeyboardEvent } from 'react';
 
 import { loadFactionCataloguePage, useFactionCataloguePage } from '@db/factions';
 import type { FactionCatalogueEntry, FactionCataloguePageData, FactionRulesetSummary } from '@db/factions';
@@ -346,7 +333,6 @@ function CatalogueToolbar({
   totalCount: number;
   onSearchChange: (patch: Partial<Record<keyof FactionCatalogueSearch, unknown>>) => void;
 }) {
-  const [opened, setOpened] = useState(false);
   const rulesetOptions = useMemo(
     () => [
       { value: 'all', label: 'All rulesets' },
@@ -354,14 +340,6 @@ function CatalogueToolbar({
     ],
     [rulesets]
   );
-  const handleSearchKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
-    if (event.key !== 'Enter') {
-      return;
-    }
-    onCommitQuery();
-    event.currentTarget.blur();
-  };
-
   const rulesetSelect = (label?: string) => (
     <Select
       label={label}
@@ -375,7 +353,6 @@ function CatalogueToolbar({
   );
   const sortSelect = (label?: string, joined = false) => (
     <Select
-      className={joined ? styles.sortField : undefined}
       variant={joined ? 'unstyled' : 'default'}
       label={label}
       value={search.sort ?? 'name'}
@@ -404,71 +381,55 @@ function CatalogueToolbar({
     </Stack>
   );
 
+  const refinements = (search.ruleset == null ? 0 : 1) + (search.complexity == null ? 0 : 1);
+
   return (
-    <>
-      <Toolbar>
-        {/* No result count on the left: the grid below already shows how many matched, as on the asset shelves (Norbert, 2026-08-21), and a toolbar carries actions, not facts. */}
-        <Toolbar.Center>
-          {/* The band's centre width comes from this field, not from the toolbar. */}
-          <fieldset className={styles.joinedFilters} aria-label="Faction catalogue filters">
-            <TextInput
-              className={styles.searchField}
-              variant="unstyled"
-              value={draftQuery}
-              onChange={(event) => onDraftQueryChange(event.currentTarget.value)}
-              onBlur={onCommitQuery}
-              onKeyDown={handleSearchKeyDown}
-              placeholder="Search factions…"
-              aria-label="Search factions"
-              leftSection={<Search size={16} aria-hidden />}
-            />
-            <CatalogueRefine
-              className={styles.rulesetField}
-              search={search}
-              rulesetOptions={rulesetOptions}
-              factions={factions}
-              visibleCount={visibleCount}
-              totalCount={totalCount}
-              onSearchChange={onSearchChange}
-            />
-            {sortSelect(undefined, true)}
-            <IconAction
-              label="Refine factions"
-              className={styles.mobileRefineButton}
-              emphasis="quiet"
-              intent="neutral"
-              size="lg"
-              onClick={() => setOpened(true)}
-              icon={<SlidersHorizontal size={17} aria-hidden />}
-            />
-          </fieldset>
-        </Toolbar.Center>
-        <Toolbar.Right label="Faction actions">
-          <IconAction
-            label="Create new faction"
-            emphasis="strong"
-            intent="positive"
-            size="lg"
-            renderRoot={(rootProps) => <Link {...rootProps} to="/factions/create" />}
-            icon={<Plus size={17} aria-hidden />}
+    <Toolbar>
+      {/* No result count on the left: the grid below already shows how many matched, as on the asset shelves (Norbert, 2026-08-21), and a toolbar carries actions, not facts. */}
+      <Toolbar.Center>
+        <SearchRefine
+          label="Faction catalogue filters"
+          search={{
+            value: draftQuery,
+            onChange: onDraftQueryChange,
+            onCommit: onCommitQuery,
+            label: 'Search factions',
+            placeholder: 'Search factions…',
+          }}
+          refine={{
+            label: 'Refine factions',
+            active: refinements,
+            content: (
+              <>
+                {rulesetSelect('Ruleset')}
+                {complexitySlider}
+                {sortSelect('Sort by')}
+              </>
+            ),
+          }}
+        >
+          <CatalogueRefine
+            search={search}
+            rulesetOptions={rulesetOptions}
+            factions={factions}
+            visibleCount={visibleCount}
+            totalCount={totalCount}
+            onSearchChange={onSearchChange}
           />
-        </Toolbar.Right>
-      </Toolbar>
-      <Drawer
-        opened={opened}
-        onClose={() => setOpened(false)}
-        position="bottom"
-        title="Refine factions"
-        size="26rem"
-        padding="lg"
-      >
-        <Stack gap="md" pb="md">
-          {rulesetSelect('Ruleset')}
-          {complexitySlider}
-          {sortSelect('Sort by')}
-        </Stack>
-      </Drawer>
-    </>
+          {sortSelect(undefined, true)}
+        </SearchRefine>
+      </Toolbar.Center>
+      <Toolbar.Right label="Faction actions">
+        <IconAction
+          label="Create new faction"
+          emphasis="strong"
+          intent="positive"
+          size="lg"
+          renderRoot={(rootProps) => <Link {...rootProps} to="/factions/create" />}
+          icon={<Plus size={17} aria-hidden />}
+        />
+      </Toolbar.Right>
+    </Toolbar>
   );
 }
 

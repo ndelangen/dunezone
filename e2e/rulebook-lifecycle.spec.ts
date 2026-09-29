@@ -4,6 +4,7 @@ import { ConvexHttpClient } from 'convex/browser';
 import { api } from '../convex/_generated/api';
 import { publishingTreacheryCard } from '../src/shared/assets/fixtures/publishingTreacheryCard';
 import { expect, longSpecTimeoutMs, test } from './coverage';
+import { holdToPublish } from './holdToPublish';
 import { seedRulebookEditor } from './rulebook-fixture';
 
 test.use({
@@ -31,7 +32,9 @@ async function copySavedRulebookAndMoveFirst(page: Page, rulesetPath: string) {
   await page.getByRole('link', { name: 'Saved source title', exact: true }).click();
   await expect(page.getByRole('textbox', { name: 'Title', exact: true })).toHaveValue('Saved source title');
   await expect(page.getByRole('button', { name: 'Save', exact: true })).toBeDisabled();
-  await expect(page.getByRole('img', { name: 'Revision 1', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: /^(Save|Saved|Review differences)$/ })).toHaveAccessibleDescription(
+    /Draft revision 1$/
+  );
   await page.reload();
   await expect(page.getByRole('textbox', { name: 'Title', exact: true })).toHaveValue('Saved source title');
   await page.goto(`${rulesetPath}/edit`);
@@ -307,11 +310,7 @@ test('a final-catalogue Rulebook saves fixed Pages and publishes written rules, 
   await authorCardGuides(page, cardNames);
   await authorAssetExplainer(page);
   await authorReferenceMatter(page);
-  await page.getByRole('button', { name: 'Publish', exact: true }).click();
-  await page
-    .getByRole('dialog', { name: 'Publish Edition 2?' })
-    .getByRole('button', { name: 'Publish Edition 2', exact: true })
-    .click();
+  await holdToPublish(page.getByRole('button', { name: 'Publish Edition 2', exact: true }));
   await expect(page.getByText('The new Edition is now current.')).toBeVisible();
   await page.goto(`${rulesetPath}/rulebooks/field-guide#${pageAnchor}`);
   await expect(battlePage).toContainText('When are losses removed?');

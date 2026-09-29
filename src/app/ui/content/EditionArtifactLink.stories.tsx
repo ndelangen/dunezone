@@ -1,4 +1,5 @@
 import preview from '@sb/preview';
+import { expect, within } from 'storybook/test';
 
 import { EditionArtifactLink } from './EditionArtifactLink';
 
@@ -21,9 +22,15 @@ export const Failed = meta.story({
   args: { kind: 'pdf' as const, artifact: { status: 'failed' as const, href: null } },
 });
 
-/** In a toolbar the unready file is a glyph whose words are in its tooltip, beside the other actions. */
+/** In a toolbar the unready file is the same action, disabled, saying why on hover. */
 export const PreparingInAToolbar = meta.story({
   args: { size: 'lg' as const },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const action = page.getByRole('button', { name: 'Open Edition HTML' });
+    await expect(action).toHaveAttribute('aria-disabled', 'true');
+    await expect(action).toHaveAccessibleDescription('The HTML is still being prepared.');
+  },
 });
 
 /** A ready file in a toolbar wears the same tile as every other toolbar action. */

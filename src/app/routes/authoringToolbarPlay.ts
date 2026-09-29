@@ -3,13 +3,14 @@ import { expect, within } from 'storybook/test';
 /**
  * The shared body of the stories that hold an editor's authoring toolbar to one line at a phone, tablet, laptop and desktop width.
  *
- * Each story states its page, its width, the statuses the page shows, and whether the toolbar is narrow enough to fold them into one glyph.
+ * Each story states its page, its width, and the words Save's description carries: its state, then any note the page adds.
+ * The bar carries no status marks (Norbert, 2026-09-29), so a phone keeps it one row by folding whole runs of actions into More actions, never by wrapping.
  * Pure helpers over the page, no fixtures and no decorators.
  */
 const TIMEOUT = { timeout: 30_000 } as const;
 
-/** The elements a reader sees in the bar: its controls and its status glyphs. */
-const BAR_ITEMS = 'button, a, [role="img"]';
+/** The elements a reader sees in the bar: its controls. */
+const BAR_ITEMS = 'button, a';
 
 function lowestCommonAncestor(first: Element, second: Element): Element {
   const ancestors = new Set<Element>();
@@ -21,10 +22,8 @@ function lowestCommonAncestor(first: Element, second: Element): Element {
       return node;
     }
   }
-  throw new Error('Back and Reset share no ancestor.');
+  throw new Error('Back and Save share no ancestor.');
 }
-
-type Page = ReturnType<typeof within>;
 
 interface BarItem {
   item: Element;
@@ -41,19 +40,6 @@ function slotOf(row: Element, item: Element): Element {
     throw new Error(`${nameOf(item)} sits in no slot of the bar.`);
   }
   return slot;
-}
-
-async function expectStatuses(page: Page, statuses: string[], folded: boolean) {
-  if (folded) {
-    expect(page.queryByRole('group', { name: 'Status' })).toBeNull();
-    const mark = await page.findByRole('img', { name: `Status: ${statuses[0]}` }, TIMEOUT);
-    await expect(mark).toHaveAccessibleDescription(statuses.join(' '));
-    return;
-  }
-  const group = within(await page.findByRole('group', { name: 'Status' }, TIMEOUT));
-  for (const wording of statuses) {
-    await expect(group.findByRole('img', { name: wording }, TIMEOUT)).resolves.toBeVisible();
-  }
 }
 
 /** The bar's visible items from left to right, each counted once: a glyph inside a button is part of that button, not its neighbour. */
@@ -94,26 +80,40 @@ function expectEachInItsSlot(row: Element, items: BarItem[]) {
   }
 }
 
-export async function expectToolbarStatusesOnOneLine(
+/** An editor's Save, which stands last among its editing actions whatever the page names it. */
+export async function findSave(canvasElement: HTMLElement): Promise<HTMLElement> {
+  const page = within(canvasElement.ownerDocument.body);
+  const actions = await page.findByRole('group', { name: 'Editing actions' }, TIMEOUT);
+  const save = within(actions).getAllByRole('button').at(-1);
+  if (!save) {
+    throw new Error('The editing actions hold no Save.');
+  }
+  return save;
+}
+
+export async function expectToolbarOnOneLine(
   canvasElement: HTMLElement,
-  { statuses, folded }: { statuses: string[]; folded: boolean }
+  { saveDescribes }: { saveDescribes: string[] }
 ) {
   const page = within(canvasElement.ownerDocument.body);
   const back = await page.findByRole('button', { name: 'Back' }, TIMEOUT);
-  const reset = await page.findByRole('button', { name: 'Reset unsaved edits' }, TIMEOUT);
-  await expectStatuses(page, statuses, folded);
+  const save = await findSave(canvasElement);
+  for (const words of saveDescribes) {
+    await expect(save).toHaveAccessibleDescription(expect.stringContaining(words));
+  }
 
   await canvasElement.ownerDocument.fonts.ready;
-  /* Back leads the bar and Reset sits among the actions, so the element holding both is the row the bar lays out. */
-  const row = lowestCommonAncestor(back, reset);
+  /* Back leads the bar and Save ends it, so the element holding both is the row the bar lays out. */
+  const row = lowestCommonAncestor(back, save);
   const items = barItems(row);
+  expect(row.querySelector('[role="img"]'), 'the bar carries no status marks').toBeNull();
   expectOneLine(row, items);
   expectNoOverlap(items);
   /*
-   * Unfolded, the bar has room for everything, so each item also sits inside its own slot.
-   * Folded, the bar has run out of room and its centre gives way to the edges (Toolbar), so only overlap is ruled out there.
+   * With room for everything, each item also sits inside its own slot.
+   * Once runs have folded into More actions the bar has run out of room and its centre gives way to the edges (Toolbar), so only overlap is ruled out there.
    */
-  if (!folded) {
+  if (!within(row as HTMLElement).queryByRole('button', { name: 'More actions' })) {
     expectEachInItsSlot(row, items);
   }
 }

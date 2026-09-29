@@ -237,8 +237,7 @@ function TokenEditSession({
             onReset: header.releasing(() => dispatch({ kind: 'replace', data: state.baseline, pick: backToken })),
             onBack: () => void navigate({ to: '/assets/$type/$slug', params: { type, slug: asset.slug } }),
           }}
-          auxiliaryActions={groupActions.auxiliaryActions}
-          context={groupActions.context}
+          accessActions={groupActions.accessActions}
           destructiveActions={
             access.viewerAccess.capabilities.delete ? (
               <ConfirmDeleteAction label="Delete token" pending={deletion.pending} onConfirm={deletion.confirm} />

@@ -1,6 +1,7 @@
 import type { Page, WebSocketRoute } from '@playwright/test';
 
 import { expect, test } from './coverage';
+import { holdToPublish } from './holdToPublish';
 import { seedRulebookEditor } from './rulebook-fixture';
 
 test.use({
@@ -94,13 +95,17 @@ test('two authors rebase, save, reload, and keep edits made during Save', async 
     const collaborator = other.page;
     await page.goto(`${fixture.path}#RULE/details`);
     await collaborator.goto(`${fixture.path}#RULE/details`);
-    await expect(page.getByRole('img', { name: 'Revision 1', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: /^(Save|Saved|Review differences)$/ })).toHaveAccessibleDescription(
+      /Draft revision 1$/
+    );
     await page.setViewportSize({ width: 1280, height: 720 });
     await page.screenshot({ path: testInfo.outputPath('saved-editor.png'), fullPage: false });
     await page.setViewportSize({ width: 1280, height: 1000 });
     await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Local movement');
     await expect(collaborator.getByRole('textbox', { name: 'Title', exact: true })).toHaveValue('Movement');
-    await expect(collaborator.getByRole('img', { name: 'Revision 1', exact: true })).toBeVisible();
+    await expect(
+      collaborator.getByRole('button', { name: /^(Save|Saved|Review differences)$/ })
+    ).toHaveAccessibleDescription(/Draft revision 1$/);
     await collaborator.getByRole('textbox', { name: 'Anchor', exact: true }).fill('saved-movement');
     expect(transport.saves).toBe(0);
     await collaborator.getByRole('button', { name: 'Save', exact: true }).click();
@@ -109,18 +114,26 @@ test('two authors rebase, save, reload, and keep edits made during Save', async 
     transport.holdNext = true;
     await page.getByRole('button', { name: 'Save', exact: true }).click();
     await expect.poll(() => transport.saves).toBe(1);
-    await expect(page.getByRole('img', { name: 'Saving', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: /^(Save|Saved|Review differences)$/ })).toHaveAccessibleDescription(
+      /^Saving/
+    );
     await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Written during Save');
     transport.releaseSave();
-    await expect(page.getByRole('img', { name: 'Revision 3', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: /^(Save|Saved|Review differences)$/ })).toHaveAccessibleDescription(
+      /Draft revision 3$/
+    );
     await expect(page.getByRole('textbox', { name: 'Title', exact: true })).toHaveValue('Written during Save');
-    await expect(page.getByRole('img', { name: 'Local changes', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: /^(Save|Saved|Review differences)$/ })).toHaveAccessibleDescription(
+      /^Unsaved changes/
+    );
     await page.getByRole('button', { name: 'Save', exact: true }).click();
     await expect(page.getByRole('button', { name: 'Saved', exact: true })).toBeDisabled();
     await page.reload();
     await expect(page.getByRole('textbox', { name: 'Title', exact: true })).toHaveValue('Written during Save');
     await expect(page.getByRole('textbox', { name: 'Anchor', exact: true })).toHaveValue('saved-movement');
-    await expect(page.getByRole('img', { name: 'Revision 4', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: /^(Save|Saved|Review differences)$/ })).toHaveAccessibleDescription(
+      /Draft revision 4$/
+    );
   } finally {
     await other.page.context().storageState({ path: '.playwright/user-b-rulebook-save.json' });
     await other.close();
@@ -203,7 +216,9 @@ test('a stale Save response and an injected failed Save both preserve work for r
     await expect(page.getByRole('button', { name: 'Saved', exact: true })).toBeDisabled();
     await page.reload();
     await expect(page.getByRole('textbox', { name: 'Title', exact: true })).toHaveValue('A stale local draft');
-    await expect(page.getByRole('img', { name: 'Revision 3', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: /^(Save|Saved|Review differences)$/ })).toHaveAccessibleDescription(
+      /Draft revision 3$/
+    );
   } finally {
     await other.page.context().storageState({ path: '.playwright/user-b-rulebook-save.json' });
     await other.close();
@@ -215,7 +230,7 @@ test('a clean saved draft publishes the next Edition without waiting for HTML or
   await page.goto(`${fixture.path}#RULE/details`);
 
   const save = page.getByRole('button', { name: 'Save', exact: true });
-  const publish = page.getByRole('button', { name: 'Publish', exact: true });
+  const publish = page.getByRole('button', { name: 'Publish Edition 2', exact: true });
   await expect(save).toBeDisabled();
   await expect(publish).toBeDisabled();
   await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Published movement');
@@ -225,15 +240,12 @@ test('a clean saved draft publishes the next Edition without waiting for HTML or
   await expect(page.getByRole('button', { name: 'Saved', exact: true })).toBeDisabled();
   await expect(publish).toBeEnabled();
 
+  /* Held, not clicked: a click publishes nothing. */
   await publish.click();
-  const confirmation = page.getByRole('dialog', { name: 'Publish Edition 2?' });
-  await expect(confirmation).toBeVisible();
-  await confirmation.getByRole('button', { name: 'Publish Edition 2', exact: true }).click();
+  await expect(page.getByText('The new Edition is now current.')).toHaveCount(0);
+  await holdToPublish(publish);
   await expect(page.getByText('The new Edition is now current.')).toBeVisible();
-  await expect(page.getByRole('img', { name: 'Edition 2', exact: true })).toBeVisible();
-  await expect(page.getByRole('img', { name: 'HTML preparing', exact: true })).toBeVisible();
-  await expect(page.getByRole('img', { name: 'PDF preparing', exact: true })).toBeVisible();
-  await expect(publish).toBeDisabled();
+  await expect(page.getByRole('button', { name: /^Publish Edition/ })).toBeDisabled();
 
   await page.goto(fixture.path.replace(/\/edit$/, ''));
   await expect(page.getByRole('heading', { name: 'Published movement' })).toBeVisible();
@@ -269,7 +281,9 @@ test('source references participate in review and can be cleared and saved', asy
     await expect(page.getByRole('button', { name: 'Saved', exact: true })).toBeDisabled();
     await page.reload();
     await expect(page.getByRole('button', { name: 'Choose source', exact: true })).toBeVisible();
-    await expect(page.getByRole('img', { name: 'Revision 3', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: /^(Save|Saved|Review differences)$/ })).toHaveAccessibleDescription(
+      /Draft revision 3$/
+    );
   } finally {
     await other.page.context().storageState({ path: '.playwright/user-b-rulebook-save.json' });
     await other.close();

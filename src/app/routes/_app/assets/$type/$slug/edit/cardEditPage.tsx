@@ -175,8 +175,7 @@ export function CardEditFrame({
             onReset,
             onBack: () => void navigate({ to: '/assets/$type/$slug', params: { type, slug: asset.slug } }),
           }}
-          auxiliaryActions={groupActions.auxiliaryActions}
-          context={groupActions.context}
+          accessActions={groupActions.accessActions}
           destructiveActions={
             access.viewerAccess.capabilities.delete ? (
               <ConfirmDeleteAction label="Delete card" pending={deletion.pending} onConfirm={deletion.confirm} />

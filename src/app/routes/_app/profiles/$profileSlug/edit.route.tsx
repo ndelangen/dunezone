@@ -447,17 +447,19 @@ function EditableProfilePage({ initial }: { initial: CurrentProfileEntry }) {
         />
       </Toolbar.Left>
       <Toolbar.Right label="Editing actions">
-        <IconAction
-          label="Save profile"
-          emphasis="strong"
-          intent="positive"
-          size="lg"
-          type="submit"
-          form={formId}
-          loading={update.isPending}
-          disabled={!isDirty || update.isPending}
-          icon={<Save size={17} aria-hidden />}
-        />
+        <Toolbar.Cluster kind="commit">
+          <IconAction
+            label="Save profile"
+            emphasis="strong"
+            intent="positive"
+            size="lg"
+            type="submit"
+            form={formId}
+            loading={update.isPending}
+            disabled={!isDirty || update.isPending}
+            icon={<Save size={17} aria-hidden />}
+          />
+        </Toolbar.Cluster>
       </Toolbar.Right>
     </Toolbar>
   );

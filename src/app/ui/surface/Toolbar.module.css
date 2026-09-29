@@ -5,11 +5,7 @@
   min-width: 0;
 }
 
-/* With nothing in the centre there is nothing to give way, so a row of actions too long for a phone wraps onto a second line at the right edge rather than running off the screen. A centre that holds something shrinks instead, as below. */
-.root:has(> .center:empty) {
-  flex-wrap: wrap;
-  row-gap: var(--space-xs);
-}
+/* The band never wraps: it is one row of actions at every width (Norbert, 2026-09-29). What does not fit folds into the More actions menu, which `Toolbar` measures for. */
 
 .left,
 .right {
@@ -42,4 +38,22 @@
 
 .right {
   justify-content: flex-end;
+}
+
+/* Between two runs of actions of different kinds, so the order the kit imposes can be seen. */
+.divider {
+  flex: 0 0 auto;
+  align-self: center;
+  width: 1px;
+  height: 1.25rem;
+  margin-inline: calc(var(--space-xs) / 2);
+  background: var(--mantine-color-default-border);
+}
+
+/* The folded runs, still one row of the same tiles, with the same dividers between them. */
+.overflow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-xs);
 }

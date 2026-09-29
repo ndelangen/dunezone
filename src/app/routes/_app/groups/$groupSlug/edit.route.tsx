@@ -88,17 +88,19 @@ function GroupEditor({ initial }: { initial: GroupEntry }) {
             />
           </Toolbar.Left>
           <Toolbar.Right label="Editing actions">
-            <IconAction
-              label="Save group"
-              emphasis="strong"
-              intent="positive"
-              size="lg"
-              type="submit"
-              form={GROUP_EDIT_FORM_ID}
-              loading={updateGroup.isPending}
-              disabled={!nameCheck.success || updateGroup.isPending}
-              icon={<Save size={17} aria-hidden />}
-            />
+            <Toolbar.Cluster kind="commit">
+              <IconAction
+                label="Save group"
+                emphasis="strong"
+                intent="positive"
+                size="lg"
+                type="submit"
+                form={GROUP_EDIT_FORM_ID}
+                loading={updateGroup.isPending}
+                disabled={!nameCheck.success || updateGroup.isPending}
+                icon={<Save size={17} aria-hidden />}
+              />
+            </Toolbar.Cluster>
           </Toolbar.Right>
         </Toolbar>
       </PageLayout.Toolbar>

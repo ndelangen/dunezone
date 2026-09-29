@@ -4,7 +4,7 @@ import { expect, userEvent, within } from 'storybook/test';
 
 import { db, storybookViewer } from '@db/storybook';
 
-import { expectToolbarStatusesOnOneLine } from '../../authoringToolbarPlay';
+import { expectToolbarOnOneLine } from '../../authoringToolbarPlay';
 import { pageStoryMeta } from '../../storybookConfig';
 
 const meta = preview.meta({
@@ -92,29 +92,29 @@ export const ToolbarAt360 = meta.story({
   parameters: { database: administratorDatabase },
   globals: { viewport: { value: 'appMobileNarrow' } },
   play: async ({ canvasElement }) =>
-    await expectToolbarStatusesOnOneLine(canvasElement, { statuses: ['No unsaved changes'], folded: true }),
+    await expectToolbarOnOneLine(canvasElement, { saveDescribes: ['No unsaved changes'] }),
 });
 export const ToolbarAt390 = meta.story({
   parameters: { database: administratorDatabase },
   globals: { viewport: { value: 'appMobile' } },
   play: async ({ canvasElement }) =>
-    await expectToolbarStatusesOnOneLine(canvasElement, { statuses: ['No unsaved changes'], folded: true }),
+    await expectToolbarOnOneLine(canvasElement, { saveDescribes: ['No unsaved changes'] }),
 });
 export const ToolbarAt768 = meta.story({
   parameters: { database: administratorDatabase },
   globals: { viewport: { value: 'appTablet' } },
   play: async ({ canvasElement }) =>
-    await expectToolbarStatusesOnOneLine(canvasElement, { statuses: ['No unsaved changes'], folded: false }),
+    await expectToolbarOnOneLine(canvasElement, { saveDescribes: ['No unsaved changes'] }),
 });
 export const ToolbarAt1100 = meta.story({
   parameters: { database: administratorDatabase },
   globals: { viewport: { value: 'appLaptop' } },
   play: async ({ canvasElement }) =>
-    await expectToolbarStatusesOnOneLine(canvasElement, { statuses: ['No unsaved changes'], folded: false }),
+    await expectToolbarOnOneLine(canvasElement, { saveDescribes: ['No unsaved changes'] }),
 });
 export const ToolbarAt1440 = meta.story({
   parameters: { database: administratorDatabase },
   globals: { viewport: { value: 'appLarge' } },
   play: async ({ canvasElement }) =>
-    await expectToolbarStatusesOnOneLine(canvasElement, { statuses: ['No unsaved changes'], folded: false }),
+    await expectToolbarOnOneLine(canvasElement, { saveDescribes: ['No unsaved changes'] }),
 });

@@ -302,10 +302,9 @@ function DeckEditSession({
                   ))}
                 </Menu.Dropdown>
               </Menu>
-              {groupActions.auxiliaryActions}
             </>
           }
-          context={groupActions.context}
+          accessActions={groupActions.accessActions}
           destructiveActions={
             access.viewerAccess.capabilities.delete ? (
               <ConfirmDeleteAction label="Delete deck" pending={deletion.pending} onConfirm={deletion.confirm} />

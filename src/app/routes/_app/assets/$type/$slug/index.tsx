@@ -573,58 +573,62 @@ function LoadedAssetDetail({ page }: { page: AssetPage }) {
           </Toolbar.Left>
           {/* The management actions the map's standing rule puts on the detail page as well as the edit page, each gated on the viewer's real capabilities. */}
           <Toolbar.Right label={`${collectionLabel} actions`}>
-            {/* Every copy or each once: the grid's one view choice, for decks stacking multiples (Norbert, 2026-08-22). A toggle: pressed and filled while every copy shows. */}
-            {hasCopies ? (
-              <IconAction
-                label="Show every copy"
-                emphasis={duplicated ? 'strong' : 'standard'}
-                intent="neutral"
-                size="lg"
-                aria-pressed={duplicated}
-                icon={<Copy size={17} aria-hidden />}
-                onClick={() =>
-                  void navigate({
-                    /* Functional, the browse controls' shape: a future search param must survive the toggle, and an undefined value is how absence-is-default is spelled. */
-                    search: (previous) => ({ ...previous, copies: duplicated ? ('once' as const) : undefined }),
-                    replace: true,
-                  })
-                }
-              />
-            ) : null}
-            {assetPublishing?.publicationHref ? (
-              <IconAction
-                /* Named by face only when there are two of them, so a card keeps the plain label it already had. */
-                label={backPublishing?.publicationHref ? 'Open published front' : 'Open published image'}
-                emphasis="standard"
-                intent="neutral"
-                size="lg"
-                href={assetPublishing.publicationHref}
-                target="_blank"
-                rel="noopener noreferrer"
-                icon={<Download size={17} aria-hidden />}
-              />
-            ) : null}
-            {/* A second published artifact rather than a second link to the first. A referenced back reaches here as null, so it offers nothing. */}
-            {backPublishing?.publicationHref ? (
-              <IconAction
-                label="Open published back"
-                emphasis="standard"
-                intent="neutral"
-                size="lg"
-                href={backPublishing.publicationHref}
-                target="_blank"
-                rel="noopener noreferrer"
-                icon={<FlipHorizontal2 size={17} aria-hidden />}
-              />
-            ) : null}
-            {groupActions.auxiliaryActions}
-            {capabilities.delete ? (
-              <ConfirmDeleteAction
-                label={`Delete ${asset.name}`}
-                pending={deletion.pending}
-                onConfirm={deletion.confirm}
-              />
-            ) : null}
+            <Toolbar.Cluster kind="content">
+              {/* Every copy or each once: the grid's one view choice, for decks stacking multiples (Norbert, 2026-08-22). A toggle: pressed and filled while every copy shows. */}
+              {hasCopies ? (
+                <IconAction
+                  label="Show every copy"
+                  emphasis={duplicated ? 'strong' : 'standard'}
+                  intent="neutral"
+                  size="lg"
+                  aria-pressed={duplicated}
+                  icon={<Copy size={17} aria-hidden />}
+                  onClick={() =>
+                    void navigate({
+                      /* Functional, the browse controls' shape: a future search param must survive the toggle, and an undefined value is how absence-is-default is spelled. */
+                      search: (previous) => ({ ...previous, copies: duplicated ? ('once' as const) : undefined }),
+                      replace: true,
+                    })
+                  }
+                />
+              ) : null}
+              {assetPublishing?.publicationHref ? (
+                <IconAction
+                  /* Named by face only when there are two of them, so a card keeps the plain label it already had. */
+                  label={backPublishing?.publicationHref ? 'Open published front' : 'Open published image'}
+                  emphasis="standard"
+                  intent="neutral"
+                  size="lg"
+                  href={assetPublishing.publicationHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  icon={<Download size={17} aria-hidden />}
+                />
+              ) : null}
+              {/* A second published artifact rather than a second link to the first. A referenced back reaches here as null, so it offers nothing. */}
+              {backPublishing?.publicationHref ? (
+                <IconAction
+                  label="Open published back"
+                  emphasis="standard"
+                  intent="neutral"
+                  size="lg"
+                  href={backPublishing.publicationHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  icon={<FlipHorizontal2 size={17} aria-hidden />}
+                />
+              ) : null}
+            </Toolbar.Cluster>
+            <Toolbar.Cluster kind="access">{groupActions.accessActions}</Toolbar.Cluster>
+            <Toolbar.Cluster kind="discard">
+              {capabilities.delete ? (
+                <ConfirmDeleteAction
+                  label={`Delete ${asset.name}`}
+                  pending={deletion.pending}
+                  onConfirm={deletion.confirm}
+                />
+              ) : null}
+            </Toolbar.Cluster>
           </Toolbar.Right>
         </Toolbar>
       </PageLayout.Toolbar>

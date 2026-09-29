@@ -559,71 +559,81 @@ function RulesetDetailPage() {
           </Toolbar.Left>
 
           <Toolbar.Right label="Ruleset actions">
-            {viewerAccess.capabilities.edit ? (
-              <IconAction
-                label="Add Rulebook"
-                emphasis="strong"
-                intent="positive"
-                size="lg"
-                icon={<TopicIcon topic="rules" size={17} />}
-                renderRoot={(props) => (
-                  <Link {...props} to="/rulesets/$rulesetSlug/rulebooks/create" params={{ rulesetSlug: r.slug }} />
-                )}
-              />
-            ) : null}
-            {actionVisibility.askQuestion ? (
-              <IconAction
-                label="Ask a question"
-                emphasis="strong"
-                intent="positive"
-                size="lg"
-                renderRoot={(props) => (
-                  <Link {...props} to="/rulesets/$rulesetSlug/faq/create" params={{ rulesetSlug: r.slug }} />
-                )}
-                icon={<MessageCircleQuestionMark size={17} aria-hidden />}
-              />
-            ) : null}
-            {viewerAccess.capabilities.edit ? (
-              <AddFactionPopover
-                disabled={addFaction.isPending}
-                linkedSlugs={page.factions.map((faction) => faction.slug)}
-                rulesetName={r.name}
-                onAdd={(factionId) => addFaction.mutate({ rulesetId: r._id, factionId })}
-              />
-            ) : null}
-            {actionVisibility.assignGroup ? (
-              <AssignPopover
-                noun="group"
-                triggerLabel="Assign group"
-                icon={<UsersRound size={17} aria-hidden />}
-                disabled={setRulesetGroup.isPending}
-                title="Assign Group"
-              >
-                <AssignOptions
-                  options={page.assignableGroups.map((group) => ({
-                    value: group.id,
-                    label: `${group.name} (${group.slug})`,
-                  }))}
-                  onAssign={async (nextGroupId) => {
-                    await setRulesetGroup.mutateAsync({ id: r._id, groupId: nextGroupId });
-                  }}
+            <Toolbar.Cluster kind="content">
+              {viewerAccess.capabilities.edit ? (
+                <IconAction
+                  label="Add Rulebook"
+                  emphasis="strong"
+                  intent="positive"
+                  size="lg"
+                  icon={<TopicIcon topic="rules" size={17} />}
+                  renderRoot={(props) => (
+                    <Link {...props} to="/rulesets/$rulesetSlug/rulebooks/create" params={{ rulesetSlug: r.slug }} />
+                  )}
                 />
-              </AssignPopover>
-            ) : null}
-            {actionVisibility.removeGroup ? (
-              <IconAction
-                label="Remove group"
-                intent="negative"
-                emphasis="standard"
-                size="lg"
-                disabled={setRulesetGroup.isPending}
-                onClick={() => void setRulesetGroup.mutateAsync({ id: r._id, groupId: null }).catch(() => undefined)}
-                icon={<UserRoundMinus size={17} aria-hidden />}
-              />
-            ) : null}
-            {actionVisibility.canDelete ? (
-              <ConfirmDeleteAction label="Delete ruleset" pending={deleteRuleset.isPending} onConfirm={handleDelete} />
-            ) : null}
+              ) : null}
+              {actionVisibility.askQuestion ? (
+                <IconAction
+                  label="Ask a question"
+                  emphasis="strong"
+                  intent="positive"
+                  size="lg"
+                  renderRoot={(props) => (
+                    <Link {...props} to="/rulesets/$rulesetSlug/faq/create" params={{ rulesetSlug: r.slug }} />
+                  )}
+                  icon={<MessageCircleQuestionMark size={17} aria-hidden />}
+                />
+              ) : null}
+              {viewerAccess.capabilities.edit ? (
+                <AddFactionPopover
+                  disabled={addFaction.isPending}
+                  linkedSlugs={page.factions.map((faction) => faction.slug)}
+                  rulesetName={r.name}
+                  onAdd={(factionId) => addFaction.mutate({ rulesetId: r._id, factionId })}
+                />
+              ) : null}
+            </Toolbar.Cluster>
+            <Toolbar.Cluster kind="access">
+              {actionVisibility.assignGroup ? (
+                <AssignPopover
+                  noun="group"
+                  triggerLabel="Assign group"
+                  icon={<UsersRound size={17} aria-hidden />}
+                  disabled={setRulesetGroup.isPending}
+                  title="Assign Group"
+                >
+                  <AssignOptions
+                    options={page.assignableGroups.map((group) => ({
+                      value: group.id,
+                      label: `${group.name} (${group.slug})`,
+                    }))}
+                    onAssign={async (nextGroupId) => {
+                      await setRulesetGroup.mutateAsync({ id: r._id, groupId: nextGroupId });
+                    }}
+                  />
+                </AssignPopover>
+              ) : null}
+              {actionVisibility.removeGroup ? (
+                <IconAction
+                  label="Remove group"
+                  intent="negative"
+                  emphasis="standard"
+                  size="lg"
+                  disabled={setRulesetGroup.isPending}
+                  onClick={() => void setRulesetGroup.mutateAsync({ id: r._id, groupId: null }).catch(() => undefined)}
+                  icon={<UserRoundMinus size={17} aria-hidden />}
+                />
+              ) : null}
+            </Toolbar.Cluster>
+            <Toolbar.Cluster kind="discard">
+              {actionVisibility.canDelete ? (
+                <ConfirmDeleteAction
+                  label="Delete ruleset"
+                  pending={deleteRuleset.isPending}
+                  onConfirm={handleDelete}
+                />
+              ) : null}
+            </Toolbar.Cluster>
           </Toolbar.Right>
         </Toolbar>
       </PageLayout.Toolbar>

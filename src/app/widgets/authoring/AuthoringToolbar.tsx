@@ -1,40 +1,28 @@
-import { Group, Loader, VisuallyHidden } from '@mantine/core';
+import { VisuallyHidden } from '@mantine/core';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
-import { StatusMark, StatusMarkList } from '@ui/content/StatusMark';
-import type { StatusMarkProps } from '@ui/content/StatusMark';
-import { TopicIcon } from '@ui/content/TopicIcon';
 import { IconAction } from '@ui/control/IconAction';
+import { SaveAction } from '@ui/control/SaveAction';
+import type { SaveActionState } from '@ui/control/SaveAction';
 import { Toolbar } from '@ui/surface/Toolbar';
-import { ArrowLeft, CircleAlert, CircleCheck, CircleDashed, Eye, RotateCcw, Save } from 'lucide-react';
+import { ArrowLeft, Eye, RotateCcw } from 'lucide-react';
+import { useId } from 'react';
 import type { ReactNode } from 'react';
 
 import styles from './AuthoringToolbar.module.css';
 
-type ToolbarStatus = Pick<StatusMarkProps, 'tone' | 'icon' | 'label'>;
-
-/* The glyph size every status mark in this toolbar uses, callers' included, so the cluster reads as one row. */
-const STATUS_GLYPH_SIZE = 16;
-
-function saveStatus(saveState: AuthoringSaveState, isDirty: boolean): ToolbarStatus {
+/* The words for where the work stands, which Save wears as its hover text and a screen reader hears as its description. */
+function saveStateWords(saveState: AuthoringSaveState, isDirty: boolean): string {
   switch (true) {
     case saveState === 'saving':
-      return {
-        tone: 'progress',
-        icon: <Loader size={STATUS_GLYPH_SIZE - 2} color="currentColor" />,
-        label: 'Saving',
-      };
+      return 'Saving';
     case saveState === 'error':
-      return { tone: 'negative', icon: <CircleAlert size={STATUS_GLYPH_SIZE} aria-hidden />, label: 'Save failed' };
+      return 'Save failed. Your changes are still here; press to try again.';
     case isDirty:
-      return { tone: 'caution', icon: <CircleDashed size={STATUS_GLYPH_SIZE} aria-hidden />, label: 'Unsaved changes' };
+      return 'Unsaved changes';
     case saveState === 'saved':
-      return { tone: 'positive', icon: <CircleCheck size={STATUS_GLYPH_SIZE} aria-hidden />, label: 'Saved' };
+      return 'Saved';
     default:
-      return {
-        tone: 'neutral',
-        icon: <CircleCheck size={STATUS_GLYPH_SIZE} aria-hidden />,
-        label: 'No unsaved changes',
-      };
+      return 'No unsaved changes';
   }
 }
 
@@ -61,14 +49,13 @@ export interface AuthoringToolbarActions {
 }
 
 /**
- * The edit-page toolbar every authoring surface installs identically: back, the statuses, reset, and the confirm-green save, with slots for whatever one editor adds around them.
- * It follows the page toolbar rules `Toolbar` states: back leads on the left, and every action is an icon, Save included, so an editor's bar reads like a detail page's (Norbert, 2026-09-29).
+ * The edit-page toolbar every authoring surface installs identically: Back on the left, and on the right the editor's own actions, then reset and delete, then Save last.
+ * It follows the page toolbar rules `Toolbar` states, so an editor's bar reads like a detail page's (Norbert, 2026-09-29).
  *
- * Every status is a `StatusMark`, a glyph whose tooltip and accessible name carry the words, so the bar stays one line at every width instead of growing a line of prose (Norbert, #1423).
- * The toolbar states the save state and a blank name itself.
- * A page adds its own statuses as further marks in `context`, such as where a publication has got to or which Group has access.
- * Below 32rem of toolbar the marks fold into one, whose tooltip lists them all.
- * The same statuses are also words in a live region, so a screen reader hears each one as it changes, such as Saving and then Saved after Save.
+ * It carries no status marks.
+ * Save wears where the work stands: a dot while there are unsaved changes, a spinner while saving, a check once saved, red when a save failed, and disabled with the reason on hover while a blank name or a refused value blocks it.
+ * Its hover text says the same in words, followed by the page's own `notes`, such as where a publication has got to.
+ * Those words also sit in a live region, so a screen reader hears each change, such as Saving and then Saved, and they are Save's accessible description.
  *
  * It carries no warning count and no standing explanation of what saving does.
  * `ValidationHeader` is open whenever any warning exists and names the fields, so a count here repeated it less usefully, and a sentence that never changes is not status (Norbert, 2026-08-20).
@@ -81,7 +68,8 @@ export function AuthoringToolbar({
   actions,
   review,
   auxiliaryActions,
-  context,
+  accessActions,
+  notes,
   destructiveActions,
   centerIndicator,
 }: {
@@ -90,69 +78,70 @@ export function AuthoringToolbar({
   actions: AuthoringToolbarActions;
   /** An optional artifact-review action (the eye); absent editors have no review. */
   review?: { label: string; onOpen: (trigger: HTMLButtonElement) => void };
+  /** The editor's own actions on what it edits, such as loading a draft, before review. */
   auxiliaryActions?: ReactNode;
-  /** The page's own statuses, each a `StatusMark` with a 16px glyph, after the save state and the blank name. */
-  context?: ReactNode;
+  /** Who may touch the thing: assigning or removing its Group. */
+  accessActions?: ReactNode;
+  /** Sentences Save states after its own state, such as where the publication has got to or why the server refused the last save. */
+  notes?: readonly (string | null | undefined | false)[];
   destructiveActions?: ReactNode;
   centerIndicator?: ReactNode;
 }) {
   const { isDirty, isNameBlank, saveState, invalid } = status;
   const { onSave, onReset, onBack } = actions;
-  const save = saveStatus(saveState, isDirty);
-  const name: ToolbarStatus | null = isNameBlank
-    ? { tone: 'negative', icon: <TopicIcon topic="identity" size={STATUS_GLYPH_SIZE} />, label: copy.nameBlankMessage }
-    : null;
-  const refused: ToolbarStatus | null = invalid
-    ? { tone: 'negative', icon: <CircleAlert size={STATUS_GLYPH_SIZE} aria-hidden />, label: invalid }
-    : null;
-  /* The folded mark wears what stands between the reader and a save: a failure first, then a blank name, then a refused value. */
-  const blocker = name ?? refused;
-  const lead = blocker && saveState !== 'error' ? blocker : save;
-  const statuses = (
-    <>
-      <StatusMark {...save} />
-      {name ? <StatusMark {...name} /> : null}
-      {refused ? <StatusMark {...refused} /> : null}
-      {context}
-    </>
-  );
-  const saveDisabled = isNameBlank || Boolean(invalid) || saveState === 'saving';
+  const stateWords = saveStateWords(saveState, isDirty);
+  const blocker = isNameBlank ? copy.nameBlankMessage : (invalid ?? null);
+  const lines = [stateWords, blocker, ...(notes ?? [])].filter((line): line is string => Boolean(line));
+  const describedBy = useId();
+  const saveShows: SaveActionState =
+    saveState === 'saving'
+      ? 'saving'
+      : saveState === 'error'
+        ? 'failed'
+        : isDirty
+          ? 'dirty'
+          : saveState === 'saved'
+            ? 'saved'
+            : 'clean';
 
   return (
     <div className={styles.sticky}>
-      {/* A mark is an image, and a screen reader does not announce an image whose name changes, so the words live here too. Not atomic: only the status that changed is read. */}
-      <VisuallyHidden role="status" aria-atomic={false}>
-        <StatusMarkList>{statuses}</StatusMarkList>
+      {/* Save's state is a glyph, and a screen reader does not announce a glyph changing, so the words live here too. */}
+      <VisuallyHidden id={describedBy} role="status">
+        {lines.join(' ')}
       </VisuallyHidden>
       <Toolbar>
-        <Toolbar.Left label="Navigation and status">
-          <Group gap="sm" wrap="nowrap">
-            <IconAction
-              label="Back"
-              emphasis="standard"
-              intent="neutral"
-              size="lg"
-              onClick={onBack}
-              icon={<ArrowLeft size={17} aria-hidden />}
-            />
-            <Group gap={6} wrap="nowrap" role="group" aria-label="Status" className={styles.statuses}>
-              {statuses}
-            </Group>
-            <span className={styles.foldedStatus}>
-              <StatusMark
-                {...lead}
-                label={`Status: ${lead.label}`}
-                tooltip={<StatusMarkList>{statuses}</StatusMarkList>}
-              />
-            </span>
-          </Group>
+        <Toolbar.Left label="Navigation">
+          <IconAction
+            label="Back"
+            emphasis="standard"
+            intent="neutral"
+            size="lg"
+            onClick={onBack}
+            icon={<ArrowLeft size={17} aria-hidden />}
+          />
         </Toolbar.Left>
 
         <Toolbar.Center>{centerIndicator}</Toolbar.Center>
 
         <Toolbar.Right label="Editing actions">
-          <Group gap="xs" wrap="nowrap" className={styles.actions}>
-            <div className={styles.auxiliarySlot}>{auxiliaryActions}</div>
+          <Toolbar.Cluster kind="content">
+            {auxiliaryActions}
+            {review ? (
+              <span className={styles.reviewAction}>
+                <IconAction
+                  label={review.label}
+                  emphasis="standard"
+                  intent="neutral"
+                  size="lg"
+                  onClick={(event) => review.onOpen(event.currentTarget)}
+                  icon={<Eye size={17} aria-hidden />}
+                />
+              </span>
+            ) : null}
+          </Toolbar.Cluster>
+          <Toolbar.Cluster kind="access">{accessActions}</Toolbar.Cluster>
+          <Toolbar.Cluster kind="discard">
             <IconAction
               label="Reset unsaved edits"
               emphasis="standard"
@@ -162,29 +151,18 @@ export function AuthoringToolbar({
               onClick={onReset}
               icon={<RotateCcw size={17} aria-hidden />}
             />
-            {review ? (
-              <IconAction
-                className={styles.reviewAction}
-                label={review.label}
-                emphasis="standard"
-                intent="neutral"
-                size="lg"
-                onClick={(event) => review.onOpen(event.currentTarget)}
-                icon={<Eye size={17} aria-hidden />}
-              />
-            ) : null}
-            <div className={styles.destructiveSlot}>{destructiveActions}</div>
-            <IconAction
+            {destructiveActions}
+          </Toolbar.Cluster>
+          <Toolbar.Cluster kind="commit">
+            <SaveAction
               label={copy.saveLabel}
-              intent="positive"
-              emphasis="strong"
-              size="lg"
-              disabled={saveDisabled}
-              loading={saveState === 'saving'}
-              onClick={onSave}
-              icon={<Save size={17} aria-hidden />}
+              state={saveShows}
+              lines={lines}
+              disabledReason={blocker}
+              describedBy={describedBy}
+              onSave={onSave}
             />
-          </Group>
+          </Toolbar.Cluster>
         </Toolbar.Right>
       </Toolbar>
     </div>

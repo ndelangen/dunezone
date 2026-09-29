@@ -196,21 +196,29 @@ function GroupDetailPage() {
             ) : null}
           </Toolbar.Left>
           <Toolbar.Right label="Group actions">
-            {viewerAccess.capabilities.requestMembership ? (
-              <IconAction
-                label="Request membership"
-                emphasis="standard"
-                intent="neutral"
-                size="lg"
-                loading={membershipWorkflow.request.isPending}
-                disabled={membershipWorkflow.request.isPending}
-                onClick={() => void membershipWorkflow.request.run(groupId).catch(() => undefined)}
-                icon={<UserPlus size={17} aria-hidden />}
-              />
-            ) : null}
-            {viewerAccess.capabilities.delete ? (
-              <ConfirmDeleteAction label="Delete group" pending={deleteGroup.isPending} onConfirm={handleDeleteGroup} />
-            ) : null}
+            <Toolbar.Cluster kind="access">
+              {viewerAccess.capabilities.requestMembership ? (
+                <IconAction
+                  label="Request membership"
+                  emphasis="standard"
+                  intent="neutral"
+                  size="lg"
+                  loading={membershipWorkflow.request.isPending}
+                  disabled={membershipWorkflow.request.isPending}
+                  onClick={() => void membershipWorkflow.request.run(groupId).catch(() => undefined)}
+                  icon={<UserPlus size={17} aria-hidden />}
+                />
+              ) : null}
+            </Toolbar.Cluster>
+            <Toolbar.Cluster kind="discard">
+              {viewerAccess.capabilities.delete ? (
+                <ConfirmDeleteAction
+                  label="Delete group"
+                  pending={deleteGroup.isPending}
+                  onConfirm={handleDeleteGroup}
+                />
+              ) : null}
+            </Toolbar.Cluster>
           </Toolbar.Right>
         </Toolbar>
       </PageLayout.Toolbar>

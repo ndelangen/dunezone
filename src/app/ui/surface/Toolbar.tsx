@@ -1,14 +1,31 @@
+import { Popover } from '@mantine/core';
 import { Surface } from '@ui/surface';
 import clsx from 'clsx';
-import { Children, isValidElement } from 'react';
-import type { PropsWithChildren, ReactNode } from 'react';
+import { Ellipsis } from 'lucide-react';
+import { Children, Fragment, isValidElement, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import type { PropsWithChildren, ReactElement, ReactNode, RefObject } from 'react';
 
+import { IconAction } from '../control/IconAction';
 import styles from './Toolbar.module.css';
 
 type ToolbarSlotProps = PropsWithChildren<{
   /** Names the edge for assistive tech, as a group: "Navigation", "Ruleset actions". */
   label?: string;
 }>;
+
+/**
+ * What a run of actions on the right edge is for.
+ * The kit, not the page, decides the order they stand in, so every toolbar reads left to right the same way:
+ * `content` works on what the page shows (create, add, open, preview, fit), `access` changes who may touch it (group assignment, membership), `discard` throws work away (reset, delete), and `commit` keeps it (publish, save), last and nearest the edge.
+ */
+export type ToolbarClusterKind = 'content' | 'access' | 'discard' | 'commit';
+
+const CLUSTER_ORDER: readonly ToolbarClusterKind[] = ['content', 'access', 'discard', 'commit'];
+
+/* Which runs give way first when the band runs out of room: the rarest first, and never the commit run, which is why an editor is open at all. */
+const OVERFLOW_ORDER: readonly ToolbarClusterKind[] = ['discard', 'access', 'content'];
+
+type ToolbarClusterProps = PropsWithChildren<{ kind: ToolbarClusterKind }>;
 
 function Left({ children }: ToolbarSlotProps) {
   return <>{children}</>;
@@ -22,22 +39,29 @@ function Right({ children }: ToolbarSlotProps) {
   return <>{children}</>;
 }
 
+function Cluster({ children }: ToolbarClusterProps) {
+  return <>{children}</>;
+}
+
 /**
  * A pane of controls, divided into what leads, what labels, and what acts.
  *
  * Callers own the controls.
- * This owns the band they sit in: the pane, its gutter, and the three positions.
+ * This owns the band they sit in: the pane, its gutter, the three positions, the order and dividers of the actions, and what happens when they do not fit.
  * `Left` and `Right` share the remaining width and pull to their outer edges, while `Center` takes only the room it needs.
  *
  * Every page toolbar reads the same way (Norbert, 2026-09-29).
  * `Left` is where you go: Back to the page above first, then the switch between reading and editing this thing (Edit on a detail page), and nothing else.
- * `Center` holds the controls that shape what the page lists (search, filter, sort), or an editor's one live indicator, and is empty otherwise.
- * `Right` is what you can do here: whatever makes something new first, then the rest, then group assignment, with delete or save last.
- * Every action is an icon with its words in the tooltip.
- * Facts about the page belong in its header, and a status the toolbar must carry is a `StatusMark`, never a sentence or a badge.
- * Every action is `size="lg"` with a 17px glyph.
- * Green (`intent="positive"`, `emphasis="strong"`) is kept for what creates or saves;
- * everything else is `standard`, and destructive actions are `negative`.
+ * `Center` holds the controls that shape what the page lists, as one `SearchRefine`, or an editor's one live indicator, and is empty otherwise.
+ * `Right` is what you can do here, handed over as `Toolbar.Cluster`s: the kit stands them in the order `ToolbarClusterKind` states and draws a thin divider between them, so a page cannot put delete before create.
+ * Every action is an icon with its words in the tooltip, `size="lg"` with a 17px glyph.
+ * Green (`intent="positive"`, `emphasis="strong"`) is kept for what creates or saves, violet (`intent="publish"`) for publishing, red (`negative`) for what destroys, and everything else is `standard`.
+ *
+ * A toolbar carries no statuses and no facts.
+ * Facts about the page belong in its header, and the state of the work belongs on the action it concerns: Save wears the save state, and an action that cannot run says why in its own tooltip (`disabledReason`).
+ *
+ * The band never grows taller than one row of actions, at any width.
+ * When the actions do not fit, whole clusters fold into a More actions menu before the commit run, the rarest first (discard, then access, then content), and they come back when the room does.
  *
  * Give an edge a `label` and it is announced as a named group, so a page never wraps its controls in a `Group` of its own.
  *
@@ -54,6 +78,7 @@ type ToolbarComponent = ((props: ToolbarProps) => ReactNode) & {
   Left: typeof Left;
   Center: typeof Center;
   Right: typeof Right;
+  Cluster: typeof Cluster;
 };
 
 type Slot = { children: ReactNode; label?: string };
@@ -61,6 +86,148 @@ type Slot = { children: ReactNode; label?: string };
 /* An edge with nothing in it is not announced: a named group that holds nothing is noise. */
 function slotProps({ label, children }: Slot) {
   return label && Children.count(children) > 0 ? { role: 'group', 'aria-label': label } : {};
+}
+
+type ClusterRun = { kind: ToolbarClusterKind; children: ReactNode; size: number };
+
+/*
+ * The right edge's children as runs in reading order.
+ * Anything handed over loose, outside a cluster, counts as `content`, so a single action needs no wrapper.
+ * A run with nothing in it is dropped, so no divider stands beside an empty space.
+ */
+function clusterRuns(children: ReactNode): ClusterRun[] {
+  const byKind = new Map<ToolbarClusterKind, ReactNode[]>();
+  Children.forEach(children, (child) => {
+    if (child == null || typeof child === 'boolean') {
+      return;
+    }
+    const isCluster = isValidElement<ToolbarClusterProps>(child) && child.type === Cluster;
+    const kind = isCluster ? (child as ReactElement<ToolbarClusterProps>).props.kind : 'content';
+    const content = isCluster ? (child as ReactElement<ToolbarClusterProps>).props.children : child;
+    if (Children.toArray(content).length === 0) {
+      return;
+    }
+    byKind.set(kind, [...(byKind.get(kind) ?? []), content]);
+  });
+  return CLUSTER_ORDER.flatMap((kind) => {
+    const content = byKind.get(kind);
+    return content
+      ? [
+          {
+            kind,
+            children: content.map((node, index) => <Fragment key={index}>{node}</Fragment>),
+            size: content.reduce<number>((total, node) => total + Children.toArray(node).length, 0),
+          },
+        ]
+      : [];
+  });
+}
+
+function Runs({ runs }: { runs: ClusterRun[] }) {
+  return runs.map((run, index) => (
+    <Fragment key={run.kind}>
+      {index > 0 ? <span className={styles.divider} aria-hidden /> : null}
+      {run.children}
+    </Fragment>
+  ));
+}
+
+/*
+ * The folded runs, behind one action.
+ * It closes on its own trigger, on Escape, and on a press anywhere outside it, where "outside" skips every portal: an action inside it may open a popover or menu of its own, which renders in a portal, and pressing into that must not unmount it.
+ */
+function OverflowMenu({ runs }: { runs: ClusterRun[] }) {
+  const [opened, setOpened] = useState(false);
+  const target = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (!opened) {
+      return;
+    }
+    const close = (event: PointerEvent) => {
+      const node = event.target instanceof Element ? event.target : null;
+      if (node && (node.closest('[data-portal]') || target.current?.contains(node))) {
+        return;
+      }
+      setOpened(false);
+    };
+    document.addEventListener('pointerdown', close);
+    return () => document.removeEventListener('pointerdown', close);
+  }, [opened]);
+  return (
+    <Popover
+      opened={opened}
+      onChange={setOpened}
+      position="bottom-end"
+      shadow="md"
+      closeOnClickOutside={false}
+      closeOnEscape
+      returnFocus
+      /* A row of actions, not a dialog: it is named as a group, like the edges it came from. */
+      withRoles={false}
+    >
+      <Popover.Target>
+        <IconAction
+          ref={target}
+          label="More actions"
+          emphasis="standard"
+          intent="neutral"
+          size="lg"
+          icon={<Ellipsis size={17} aria-hidden />}
+          onClick={() => setOpened((current) => !current)}
+        />
+      </Popover.Target>
+      <Popover.Dropdown role="group" aria-label="More actions" className={styles.overflow}>
+        <Runs runs={runs} />
+      </Popover.Dropdown>
+    </Popover>
+  );
+}
+
+/*
+ * How many runs are folded, in `OVERFLOW_ORDER`.
+ * Measured rather than guessed from breakpoints, because what fits depends on how many actions this page has and how wide its centre is.
+ * A width change or a change in the actions unfolds everything, and the layout effect folds again, one run per pass, until the row fits; all of it happens before paint, so the reader never sees a second row.
+ */
+function useFolding(root: RefObject<HTMLDivElement | null>, foldable: number, contentKey: string) {
+  const [fold, setFold] = useState({ key: contentKey, width: 0, count: 0 });
+  /* Reset during render when the actions change, the search box's pattern. */
+  if (fold.key !== contentKey) {
+    setFold({ key: contentKey, width: fold.width, count: 0 });
+  }
+  const count = fold.key === contentKey ? fold.count : 0;
+  useLayoutEffect(() => {
+    const node = root.current;
+    /* The centre shrinks without limit, so a crowded row can also show as the centre's content spilling out of it over its neighbours. */
+    const center = node?.querySelector<HTMLElement>(`:scope > .${styles.center}`);
+    const overflowing =
+      node != null &&
+      (node.scrollWidth > node.clientWidth + 1 || (center != null && center.scrollWidth > center.clientWidth + 1));
+    if (node && count < foldable && overflowing) {
+      setFold((current) => ({ ...current, count: current.count + 1 }));
+    }
+  }, [root, count, foldable, contentKey, fold.width]);
+  useEffect(() => {
+    const node = root.current;
+    if (!node || typeof ResizeObserver === 'undefined') {
+      return;
+    }
+    let frame = 0;
+    /* Next frame, not inside the callback: refolding changes layout, which inside the observer's own delivery is a resize loop. */
+    const observer = new ResizeObserver(() => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() =>
+        setFold((current) =>
+          current.width === node.clientWidth ? current : { ...current, width: node.clientWidth, count: 0 }
+        )
+      );
+    });
+    observer.observe(node);
+    return () => {
+      cancelAnimationFrame(frame);
+      observer.disconnect();
+    };
+  }, [root]);
+  return Math.min(count, foldable);
 }
 
 const ToolbarBase = ({ className, children }: ToolbarProps) => {
@@ -90,17 +257,43 @@ const ToolbarBase = ({ className, children }: ToolbarProps) => {
     }
   });
 
+  const runs = clusterRuns(right.children);
+  const foldOrder = OVERFLOW_ORDER.filter((kind) => runs.some((run) => run.kind === kind));
+  const root = useRef<HTMLDivElement>(null);
+  const folded = useFolding(root, foldOrder.length, runs.map((run) => `${run.kind}:${run.size}`).join(' '));
+  const foldedKinds = new Set(foldOrder.slice(0, folded));
+  const shown = runs.filter((run) => !foldedKinds.has(run.kind));
+  const hidden = runs.filter((run) => foldedKinds.has(run.kind));
+  /* The menu stands where the folded runs stood: before the commit run, or last when there is none. */
+  const commit = shown.at(-1)?.kind === 'commit' ? shown.at(-1) : undefined;
+  const before = commit ? shown.slice(0, -1) : shown;
+
   return (
     <Surface padding="sm">
-      <div className={clsx(styles.root, className)}>
+      <div ref={root} className={clsx(styles.root, className)}>
         <div className={styles.left} {...slotProps(left)}>
           {left.children}
         </div>
         <div className={styles.center} {...slotProps(center)}>
           {center.children}
         </div>
-        <div className={styles.right} {...slotProps(right)}>
-          {right.children}
+        <div
+          className={styles.right}
+          {...slotProps({ label: right.label, children: runs.length > 0 ? right.children : null })}
+        >
+          <Runs runs={before} />
+          {hidden.length > 0 ? (
+            <>
+              {before.length > 0 ? <span className={styles.divider} aria-hidden /> : null}
+              <OverflowMenu runs={hidden} />
+            </>
+          ) : null}
+          {commit ? (
+            <>
+              {before.length > 0 || hidden.length > 0 ? <span className={styles.divider} aria-hidden /> : null}
+              {commit.children}
+            </>
+          ) : null}
         </div>
       </div>
     </Surface>
@@ -111,4 +304,5 @@ export const Toolbar = Object.assign(ToolbarBase, {
   Left,
   Center,
   Right,
+  Cluster,
 }) as ToolbarComponent;

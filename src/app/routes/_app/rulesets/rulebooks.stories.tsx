@@ -1,5 +1,5 @@
 import preview from '@sb/preview';
-import { finishTransitions, waitForFrame } from '@sb/storyWaits';
+import { waitForFrame } from '@sb/storyWaits';
 import { rulebookContentsV1Schema, rulebookLocalIdAlphabet } from '@shared/rulebooks/contents';
 import { rulebookEditionArtifactPath } from '@shared/rulebooks/editionArtifacts';
 import { createRulebookEditorialStarterContents, createRulebookStarterContents } from '@shared/rulebooks/fixtures';
@@ -500,8 +500,10 @@ export const Rename = meta.story({
     await userEvent.click(within(form).getByRole('button', { name: 'Rename Rulebook' }));
     await waitFor(() => expect(page.queryByRole('textbox', { name: 'Rulebook name' })).toBeNull());
     /* The toolbar carries no name any more, so the new one is read back from the form it was set in. */
-    /* A rename re-slugs, so the editor remounts at its new address before the action is back. */
-    await userEvent.click(await page.findByRole('button', { name: 'Rename Rulebook' }, { timeout: 30_000 }));
+    /* A rename re-slugs, so the editor remounts at its new address before the action is back, and it stays unavailable until the draft settles. */
+    const rename = await page.findByRole('button', { name: 'Rename Rulebook' }, { timeout: 30_000 });
+    await waitFor(() => expect(rename).not.toHaveAttribute('aria-disabled'), { timeout: 30_000 });
+    await userEvent.click(rename);
     await expect(page.findByRole('textbox', { name: 'Rulebook name' })).resolves.toHaveValue('Battle reference');
     /* The form's submit shares the name, and the toolbar's toggle comes first. */
     await userEvent.click(page.getAllByRole('button', { name: 'Rename Rulebook' })[0]!);
@@ -509,7 +511,7 @@ export const Rename = meta.story({
     expect(page.getByRole('button', { name: 'Save' })).toBeDisabled();
     const title = page.getByRole('textbox', { name: 'Title' });
     await userEvent.type(title, ' revised');
-    expect(page.getByRole('button', { name: 'Rename Rulebook' })).toBeDisabled();
+    expect(page.getByRole('button', { name: 'Rename Rulebook' })).toHaveAttribute('aria-disabled', 'true');
   },
 });
 
@@ -615,8 +617,10 @@ export const Clone = meta.story({
     await userEvent.click(rules);
     await userEvent.type(page.getByRole('textbox', { name: 'Rulebook name' }), 'Copied rules');
     await userEvent.click(page.getByRole('button', { name: 'Create Rulebook' }));
-    await expect(page.findByRole('button', { name: 'Save' }, { timeout: 30_000 })).resolves.toBeDisabled();
-    expect(page.getByRole('img', { name: 'Revision 1' })).toBeVisible();
+    const save = await page.findByRole('button', { name: 'Save' }, { timeout: 30_000 });
+    expect(save).toBeDisabled();
+    /* The draft's revision is part of what Save says about the work, not a status of its own. */
+    expect(save).toHaveAccessibleDescription(expect.stringContaining('Draft revision 1'));
   },
 });
 
@@ -727,10 +731,9 @@ export const MemberEditor = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await expect(page.findByRole('button', { name: 'Save' }, { timeout: 30_000 })).resolves.toBeDisabled();
-    expect(page.getByRole('button', { name: 'Publish' })).toBeEnabled();
-    expect(page.getByRole('img', { name: 'Edition 1' })).toBeVisible();
-    expect(page.getByRole('img', { name: 'HTML ready' })).toBeVisible();
-    expect(page.getByRole('img', { name: 'PDF preparing' })).toBeVisible();
+    /* The next Edition's number is on the action that makes it; the toolbar states no Edition and no files. */
+    expect(page.getByRole('button', { name: 'Publish Edition 2' })).not.toHaveAttribute('aria-disabled');
+    expect(page.queryByRole('group', { name: 'Status' })).toBeNull();
     expect(page.queryByRole('button', { name: 'Rename Rulebook' })).toBeNull();
   },
 });
@@ -775,7 +778,7 @@ export const ClippedAuthorWarning = meta.story({
     await page.findByRole('button', { name: 'Page 1 / Referenced illustration: is clipped' }, { timeout: 30_000 });
     expect(page.getByText('Needs attention')).toBeVisible();
     expect(page.queryByRole('alert', { name: 'Referenced illustration is clipped' })).toBeNull();
-    expect(page.getByRole('button', { name: 'Publish' })).toBeEnabled();
+    expect(page.getByRole('button', { name: 'Publish Edition 2' })).not.toHaveAttribute('aria-disabled');
     if (canvasElement.ownerDocument.defaultView) {
       canvasElement.ownerDocument.defaultView.location.hash = '#RULE/details';
     }
@@ -849,45 +852,44 @@ export const RepeatedClippedAuthorWarnings = meta.story({
   },
 });
 
-export const PublishConfirmation = meta.story({
+/** Publishing is held, not clicked: a press short of five seconds publishes nothing, and the hover text says to hold (Norbert, 2026-09-29). */
+export const PublishIsHeld = meta.story({
   args: { path: '/rulesets/classicrules/rulebooks/book-0/edit' },
   parameters: { database: db(withUnpublishedRulebook) },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    const trigger = await page.findByRole('button', { name: 'Publish' }, { timeout: 30_000 });
+    const trigger = await page.findByRole('button', { name: 'Publish Edition 2' }, { timeout: 30_000 });
+    await userEvent.hover(trigger);
+    await waitForFrame(() => expect(page.getByRole('tooltip')).toHaveTextContent('hold to publish edition 2'));
     await userEvent.click(trigger);
-    /* Two waits, because the pane arrives in two steps: the dropdown mounts a frame after the trigger
-       reports itself expanded, so an eager `getByRole` throws, and it sits at `opacity: 0` until the
-       next frame starts its 150ms fade. The visibility wait retries through that frame and then
-       finishes the fade, so it does not wait for the frames that draw it. Both use the editor's mount
-       budget because opening frames can be delayed under load. */
-    const confirmation = await page.findByRole('dialog', { name: 'Publish Edition 2?' }, { timeout: 30_000 });
-    await waitFor(() => expect(finishTransitions(confirmation)).toBeVisible(), { timeout: 30_000 });
-    /* The confirmation hangs off the control that opens it rather than floating free of it. */
-    expect(trigger).toHaveAttribute('aria-haspopup', 'dialog');
-    expect(trigger).toHaveAttribute('aria-expanded', 'true');
-    expect(within(confirmation).getByRole('button', { name: 'Publish Edition 2' })).toBeEnabled();
+    expect(
+      page.queryByText('The new Edition is now current. HTML and PDF are being prepared independently.')
+    ).toBeNull();
+    expect(trigger).not.toHaveAttribute('aria-disabled');
   },
 });
 
+/** Holding Publish for five seconds publishes the next Edition, and the action then says there is nothing new to publish. */
 export const PublishedEdition = meta.story({
   args: { path: '/rulesets/classicrules/rulebooks/book-0/edit' },
   parameters: { database: db(withUnpublishedRulebook) },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    const trigger = await page.findByRole('button', { name: 'Publish' }, { timeout: 30_000 });
-    await userEvent.click(trigger);
-    /* The confirmation mounts and fades in after the trigger opens it, with the same mount budget as the editor. */
-    const confirmation = await page.findByRole('dialog', { name: 'Publish Edition 2?' }, { timeout: 30_000 });
-    await waitFor(() => expect(finishTransitions(confirmation)).toBeVisible(), { timeout: 30_000 });
-    await userEvent.click(within(confirmation).getByRole('button', { name: 'Publish Edition 2' }));
-    await waitFor(() => expect(page.getByRole('img', { name: 'Edition 2' })).toBeVisible());
-    expect(
-      page.getByText('The new Edition is now current. HTML and PDF are being prepared independently.')
-    ).toBeVisible();
-    expect(page.getByRole('img', { name: 'HTML preparing' })).toBeVisible();
-    expect(page.getByRole('img', { name: 'PDF preparing' })).toBeVisible();
-    expect(page.getByRole('button', { name: 'Publish' })).toBeDisabled();
+    const trigger = await page.findByRole('button', { name: 'Publish Edition 2' }, { timeout: 30_000 });
+    /* The keyboard holds too: Space held down runs the countdown, which is the one real five seconds this suite waits. */
+    trigger.focus();
+    await userEvent.keyboard('[Space>]');
+    await waitFor(
+      () =>
+        expect(
+          page.getByText('The new Edition is now current. HTML and PDF are being prepared independently.')
+        ).toBeVisible(),
+      { timeout: 15_000 }
+    );
+    await userEvent.keyboard('[/Space]');
+    await waitFor(() =>
+      expect(page.getByRole('button', { name: /^Publish Edition/ })).toHaveAttribute('aria-disabled', 'true')
+    );
   },
 });
 

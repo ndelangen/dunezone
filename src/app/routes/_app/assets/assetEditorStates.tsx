@@ -2,8 +2,6 @@ import { Alert, Group, Text } from '@mantine/core';
 import { ASSET_TYPES, isAssetType } from '@shared/assets/types';
 import { useNavigate } from '@tanstack/react-router';
 import { NotAvailable } from '@ui/block/NotAvailable';
-import { StatusMark } from '@ui/content/StatusMark';
-import { TopicIcon } from '@ui/content/TopicIcon';
 import { AssignOptions, AssignPopover } from '@ui/control/AssignPopover';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { IconAction } from '@ui/control/IconAction';
@@ -156,13 +154,15 @@ export function useAssetGroupActions({
     viewerAccess: NonNullable<AssetPageData>['viewerAccess'];
     assignableGroups: NonNullable<AssetPageData>['assignableGroups'];
   };
-}): { auxiliaryActions: ReactNode; context: ReactNode; error: ReactNode } {
+}): { accessActions: ReactNode; error: ReactNode } {
   const setAssetGroup = useSetAssetGroup();
   const { assignedGroup, capabilities } = access.viewerAccess;
 
-  const auxiliaryActions = !capabilities.changeGroup ? null : assignedGroup ? (
+  /* Which Group has access is said by the action that removes it, rather than by a status beside it. */
+  const accessActions = !capabilities.changeGroup ? null : assignedGroup ? (
     <IconAction
       label="Remove group"
+      tooltip={`Remove group access (${assignedGroup.name})`}
       emphasis="standard"
       intent="negative"
       size="lg"
@@ -191,10 +191,7 @@ export function useAssetGroupActions({
   );
 
   return {
-    auxiliaryActions,
-    context: assignedGroup ? (
-      <StatusMark icon={<TopicIcon topic="groups" size={16} />} label={`Group access: ${assignedGroup.name}`} />
-    ) : null,
+    accessActions,
     error: setAssetGroup.error ? (
       <Alert color="red" variant="light" role="alert" title="Could not change group">
         {setAssetGroup.error.message}

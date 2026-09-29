@@ -294,13 +294,15 @@ function LoadedFaqQuestion() {
             ) : null}
           </Toolbar.Left>
           <Toolbar.Right label="Question actions">
-            {item.capabilities.deleteQuestion ? (
-              <ConfirmDeleteAction
-                label="Delete question"
-                pending={faq.deleteQuestion.isPending}
-                onConfirm={handleDeleteQuestion}
-              />
-            ) : null}
+            <Toolbar.Cluster kind="discard">
+              {item.capabilities.deleteQuestion ? (
+                <ConfirmDeleteAction
+                  label="Delete question"
+                  pending={faq.deleteQuestion.isPending}
+                  onConfirm={handleDeleteQuestion}
+                />
+              ) : null}
+            </Toolbar.Cluster>
           </Toolbar.Right>
         </Toolbar>
       </PageLayout.Toolbar>
