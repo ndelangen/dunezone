@@ -73,6 +73,30 @@ function printReport(report: SnapshotReport) {
   console.log(`components dropped: ${report.droppedComponents.join(', ') || 'none'}`);
 }
 
+/**
+ * Anonymises the export zip at `exportPath` into a new snapshot zip at `out`, then reads the written file back and scans it.
+ * It returns the report and the entries read back, so a caller describes the file a later step would upload.
+ * On any refusal the written file is removed.
+ */
+export function anonymiseZip(exportPath: string, out: string): { report: SnapshotReport; snapshot: ExportEntries } {
+  if (existsSync(out)) {
+    throw new Error(`${out} already exists, and the anonymiser never overwrites a file`);
+  }
+  const { entries, report } = anonymiseExport(readZip(exportPath));
+  writeZip(entries, out);
+  try {
+    const snapshot = readZip(out);
+    const findings = scanSnapshot(snapshot);
+    if (findings.length > 0) {
+      throw new SnapshotRefused(findings.map(({ table, field, kind }) => `leak scan: ${kind} in ${table}.${field}`));
+    }
+    return { report, snapshot };
+  } catch (error) {
+    rmSync(out, { force: true });
+    throw error;
+  }
+}
+
 function main(argv: string[]) {
   const { values } = parseArgs({
     args: argv,
@@ -83,20 +107,7 @@ function main(argv: string[]) {
     throw new Error('Usage: snapshot-anonymise --export <convex-export.zip> --out <snapshot.zip>');
   }
   const out = path.resolve(values.out);
-  if (existsSync(out)) {
-    throw new Error(`${out} already exists, and the anonymiser never overwrites a file`);
-  }
-  const { entries, report } = anonymiseExport(readZip(path.resolve(values.export)));
-  writeZip(entries, out);
-  try {
-    const findings = scanSnapshot(readZip(out));
-    if (findings.length > 0) {
-      throw new SnapshotRefused(findings.map(({ table, field, kind }) => `leak scan: ${kind} in ${table}.${field}`));
-    }
-  } catch (error) {
-    rmSync(out, { force: true });
-    throw error;
-  }
+  const { report } = anonymiseZip(path.resolve(values.export), out);
   printReport(report);
   console.log(`Wrote the anonymised snapshot to ${out}.`);
 }

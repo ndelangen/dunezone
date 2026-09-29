@@ -364,7 +364,11 @@ export function rebuildFromProduction(deployment: TargetDeployment, env: NodeJS.
   }
 }
 
-function exportProductionSnapshot(env: NodeJS.ProcessEnv, workDirectory: string) {
+/**
+ * Exports production into a new directory under `workDirectory` and returns the zip's path.
+ * The caller deletes that directory once it is done with the export.
+ */
+export function exportProductionSnapshot(env: NodeJS.ProcessEnv, workDirectory: string) {
   mkdirSync(workDirectory, { recursive: true });
   const exportDirectory = mkdtempSync(path.join(workDirectory, 'prod-export-'));
   const snapshotPath = path.join(exportDirectory, 'prod-snapshot.zip');
