@@ -155,7 +155,7 @@ function completeAuthorizationBatch(raw: unknown, { generation, registrationIds 
  * Auth grants are memory-only.
  * Both a fresh watch and an uncached validation lease are required.
  * The watch is the prompt path for revocation;
- * the lease bounds a stalled subscription over a live transport;
+ * the lease bounds a stalled subscription over a live transport, a new generation's included, and the renewal tick still catches a denial there;
  * the Convex client's own inactivity reconnect bounds a dead transport.
  * A suspension while connected restarts the watch with backoff instead of waiting for the renewal tick.
  */
@@ -311,8 +311,8 @@ export class AuthorizationWatch {
     if (!this.client || !this.canRenew()) {
       return;
     }
+    /* The first fresh result validates the generation; a validation before it could never set the lease. */
     this.subscribeGeneration(this.client);
-    void this.renew();
   }
 
   private currentBatch(): WatchBatch {
