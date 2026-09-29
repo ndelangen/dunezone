@@ -76,8 +76,11 @@ export const RecoversAfterFailedLoad = meta.story({
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.findByRole('img', { name: 'Atreides: preview unavailable' })).resolves.toBeVisible();
-    /* The first retry waits 5 s, so this allows it three times over. */
-    const image = await canvas.findByRole<HTMLImageElement>('img', { name: 'Atreides' }, { timeout: 15_000 });
+    /*
+     * The first retry waits 5 s and the next two 10 s and 20 s.
+     * The worker forgets which paths failed if the browser stops it while idle, so the wait covers a first retry answered with another 503.
+     */
+    const image = await canvas.findByRole<HTMLImageElement>('img', { name: 'Atreides' }, { timeout: 40_000 });
     await waitFor(() => expect(image.closest('[aria-busy]')).toBeNull());
     expect(image.naturalWidth).toBe(600);
     expect(canvas.queryByRole('img', { name: 'Atreides: preview unavailable' })).toBeNull();

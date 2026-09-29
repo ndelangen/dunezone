@@ -94,7 +94,9 @@ function reducer(state: State, action: Action): State {
       return { ...state, phase: 'missing', fetching: false };
     case 'recovered':
       /* The bytes were just fetched, so the image replaces the missing state at once when the browser still holds them. */
-      return state.phase === 'missing' ? { ...state, phase: 'loading', fetching: true, slot: false } : state;
+      return state.phase === 'missing'
+        ? { ...state, phase: 'loading', fetching: true, slot: false, order: null }
+        : state;
   }
 }
 
@@ -122,6 +124,8 @@ function Arrival({ src, name, aspect, radius, clipPath, raised = false }: Props)
   const imgRef = useRef<HTMLImageElement>(null);
   const arrivalRef = useRef<ReturnType<typeof joinArrival> | null>(null);
   const retriesRef = useRef(0);
+  /* The probe that recovered the publication, held until the tile's own image settles, so the browser keeps its bytes for it. */
+  const probeRef = useRef<HTMLImageElement | null>(null);
   const { phase, fetching, order } = state;
   const waiting = phase === 'loading' || phase === 'decoded';
 
@@ -218,6 +222,7 @@ function Arrival({ src, name, aspect, radius, clipPath, raised = false }: Props)
             return;
           }
           if (image.naturalWidth > 0) {
+            probeRef.current = image;
             dispatch({ type: 'recovered' });
           } else {
             schedule();
@@ -241,6 +246,7 @@ function Arrival({ src, name, aspect, radius, clipPath, raised = false }: Props)
       .decode()
       .catch(() => undefined)
       .then(() => {
+        probeRef.current = null;
         if (img.naturalWidth === 0) {
           dispatch({ type: 'failed' });
           return;
@@ -290,7 +296,10 @@ function Arrival({ src, name, aspect, radius, clipPath, raised = false }: Props)
                 decoding="async"
                 draggable={false}
                 onLoad={onLoad}
-                onError={() => dispatch({ type: 'failed' })}
+                onError={() => {
+                  probeRef.current = null;
+                  dispatch({ type: 'failed' });
+                }}
               />
             ) : null}
           </div>
