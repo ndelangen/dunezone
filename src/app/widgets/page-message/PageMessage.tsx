@@ -8,9 +8,11 @@ import { forwardRef } from 'react';
 import type { ComponentPropsWithoutRef, ReactNode } from 'react';
 
 const BackAnchor = forwardRef<HTMLAnchorElement, ComponentPropsWithoutRef<'a'>>(function BackAnchor(props, ref) {
-  /* It always sits on the sand artwork band, where the scheme's link ink falls to 1.65:1. The darkest
-     kit ink at bold weight holds 4.5:1 there in both schemes, since the band does not flip with them. */
-  return <Anchor ref={ref} c="dark.9" fw={700} {...props} />;
+  /* It always sits on the sand artwork band, where the scheme's link ink falls to 1.65:1. Black at bold
+     weight measures 4.8:1 or more there in both schemes, since the band does not flip with them; the kit's
+     darkest navy fell to 4.4:1 on the compact band's crop (#821). With the ink no longer a link colour,
+     the underline is what still says it is a link. */
+  return <Anchor ref={ref} c="#000" fw={700} underline="always" {...props} />;
 });
 
 export interface PageMessageProps {
