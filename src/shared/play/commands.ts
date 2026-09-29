@@ -24,7 +24,6 @@ function durableTable(table: TableState): DurableTable {
     factionNames: _names,
     selectedPieceId: _selection,
     draftMove: _draft,
-    phase: _phase,
     ...durable
   } = table;
   return durable;
@@ -101,7 +100,7 @@ function applyTableAction(
       const next = stepPhase(phase, action.direction);
       const current = phaseAt(next, phases);
       return accepted(
-        { ...state, phase: current.label },
+        state,
         action.direction === -1 ? 'phase.previous' : 'phase.advance',
         `Turn ${tableProgressFor(next, phases).turn}: ${current.label}.`
       );

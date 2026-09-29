@@ -16,7 +16,7 @@ import { publicControlsSchema, publicActionSchema, spawnSelectionSchema, spawnCo
 import { logEntrySchema, logTabSchema } from './log';
 import type { TableState } from './model';
 import { seatActionSchema } from './participation';
-import { phaseAt, TABLE_PHASES } from './phases';
+import { TABLE_PHASES } from './phases';
 import type { TablePhaseId } from './phases';
 import { removalActionSchema, removalVoteSchema } from './removal';
 import { gameEndingSchema, gameResultSchema, resultActionSchema } from './result';
@@ -326,7 +326,6 @@ export function rosterFactionNames(roster: GameSnapshot['roster']): TableState['
 export function tableForViewer(snapshot: GameSnapshot, viewerSeat: Viewer['viewerSeat']): TableState {
   return {
     ...snapshot.table,
-    phase: phaseAt(snapshot.phase, snapshot.phases).label,
     viewerSeat,
     viewerFaction: rosterSeat(snapshot.roster, viewerSeat)?.faction?.id ?? null,
     factionNames: rosterFactionNames(snapshot.roster),
