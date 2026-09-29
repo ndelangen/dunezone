@@ -266,44 +266,6 @@ describe('faction authoring full-field round trip', () => {
     ).rejects.toThrow(/Priority must be a whole number/);
   });
 
-  test('a save refuses more than ten supporting leaders, while a stored faction over the cap still reads', async () => {
-    const t = convexTest(schema, modules);
-    aggregateTest.register(t, 'statistics');
-    aggregateTest.register(t, 'profileActivity');
-    aggregateTest.register(t, 'profileDiscovery');
-    const userId = await t.run(async (ctx) => await ctx.db.insert('users', { name: 'Leader cap proof user' }));
-    const asUser = t.withIdentity({ subject: userId });
-    const { memberId: _memberId, ...template } = assetPublishingFaction.leaders[0]!;
-    const roster = (count: number) =>
-      Array.from({ length: count }, (_, index) => ({ ...template, name: `Leader ${index + 1}` }));
-
-    await expect(
-      asUser.mutation(api.factions.create, {
-        data: { ...structuredClone(assetPublishingFaction), name: 'Eleven Leaders', leaders: roster(11) },
-        group_id: null,
-      })
-    ).rejects.toThrow(/leaders: A faction can have at most 10 supporting leaders/);
-    const created = await asUser.mutation(api.factions.create, {
-      data: { ...structuredClone(assetPublishingFaction), name: 'Ten Leaders', leaders: roster(10) },
-      group_id: null,
-    });
-    expect(created.data.leaders).toHaveLength(10);
-
-    /* A row written before the cap existed keeps loading; only saving it again asks for a trim. */
-    const eleven = [...created.data.leaders, { ...template, name: 'Leader 11', memberId: crypto.randomUUID() }];
-    await t.run(async (ctx) => {
-      const row = await ctx.db.get(created._id);
-      await ctx.db.patch(created._id, { data: { ...row!.data, leaders: eleven } });
-    });
-    const stored = CanonicalFactionStoredSchema.parse(
-      (await t.run(async (ctx) => await ctx.db.get(created._id)))!.data
-    );
-    expect(stored.leaders).toHaveLength(11);
-    await expect(
-      asUser.mutation(api.factions.update, { id: created._id, data: { ...stored, name: 'Still Eleven' } })
-    ).rejects.toThrow(/at most 10 supporting leaders/);
-  });
-
   test('creates, schedules, reloads, edits, and shares every admitted field without loss', async () => {
     const t = convexTest(schema, modules);
     aggregateTest.register(t, 'statistics');

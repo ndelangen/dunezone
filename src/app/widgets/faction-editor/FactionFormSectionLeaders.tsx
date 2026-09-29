@@ -15,7 +15,6 @@ import { assetOptionToPreviewSrc, leaderOptionToLabel } from './factionFormAsset
 import { nextLeaderFromLast } from './factionFormDefaults';
 import type { FactionFormApi } from './factionFormTypes';
 
-export { SUPPORTING_LEADER_LIMIT };
 export const CONVENTIONAL_SUPPORTING_LEADER_COUNT = 5;
 
 const leaderImageOptions = LEADERS.options.map((value) => ({
