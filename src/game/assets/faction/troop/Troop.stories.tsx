@@ -138,17 +138,17 @@ const fourthWave = [
   {
     name: 'Shield rammer',
     image: '/vector/troop/shield-rammer.svg',
-    detail: 'Wedge shield, shock mace, driving charge.',
+    detail: 'Broad shield, shock mace, low braced stance.',
   },
   {
     name: 'Hook climber',
     image: '/vector/troop/hook-climber.svg',
-    detail: 'Twin climbing picks, raised knee, short desert cloak.',
+    detail: 'Heavy climbing picks, rope loop, compact scrambling pose.',
   },
   {
     name: 'Resonance adept',
     image: '/vector/troop/resonance-adept.svg',
-    detail: 'Fan collar, tuning-fork weapon, ceremonial robes.',
+    detail: 'Plain hood, tuning-fork weapon, ceremonial robes.',
   },
   {
     name: 'Needle sniper',
@@ -277,6 +277,17 @@ export const FourthWave = meta.story({
       fourthWave,
       'Armour and strange weapons',
       'The fourth set. Below each: regular, striped, and elite tokens at 64 px.'
+    ),
+});
+
+export const RevisedSilhouettes = meta.story({
+  globals: { viewport: { value: undefined } },
+  parameters: { layout: 'fullscreen' },
+  render: () =>
+    renderGallery(
+      [fourthWave[2], fourthWave[0], fourthWave[1]],
+      'Three revised silhouettes',
+      'A plain hood for the adept, plus new rammer and climber designs. Tokens below are 64 px.'
     ),
 });
 
