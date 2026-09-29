@@ -656,12 +656,8 @@ try {
       },
     });
   }
-  game =
-    hosted?.game ??
-    (await admin.mutation(
-      anyApi.playTesting.createFixture,
-      values.profile === 'baseline' ? {} : { loadProfile: values.profile }
-    ));
+  /* The game Worker's load entry lays out the profile, so the fixture itself names none. */
+  game = hosted?.game ?? (await admin.mutation(anyApi.playTesting.createFixture, {}));
   const provision = await fetch(`${origin.origin}/__play/games/${game.gameId}/provision`, {
     method: 'POST',
     signal: AbortSignal.any([operations.signal, AbortSignal.timeout(30_000)]),

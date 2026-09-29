@@ -20,12 +20,7 @@ import { playerSummary } from './lib/playerSummary';
 import { createPendingGame } from './lib/playProvisioningSchedule';
 import { playRateLimiter } from './lib/playRateLimits';
 import { postPlayService } from './lib/playService';
-import { isSyntheticBackend, requireSyntheticBackend } from './lib/playSynthetic';
-
-function syntheticProfile(loadProfile: NonNullable<Doc<'play_games'>['load_profile']>) {
-  requireSyntheticBackend();
-  return { loadProfile };
-}
+import { isSyntheticBackend } from './lib/playSynthetic';
 
 /* The hosted browser verifier sets `PLAY_TEST_PHASE_COOLDOWN_MS` on its synthetic backend for each flow; no other backend sends one. */
 function testPhaseCooldown() {
@@ -45,7 +40,7 @@ async function createPendingFixture(ctx: MutationCtx) {
 /* What the Worker provisions: the fixture, or a real game's ruleset, count and creator. A row that is neither is refused. */
 async function provisionShape(ctx: MutationCtx, game: Doc<'play_games'>) {
   if (game.fixture_key !== undefined) {
-    return { fixtureKey: PLAY_FIXTURE_KEY, ...(game.load_profile ? syntheticProfile(game.load_profile) : {}) } as const;
+    return { fixtureKey: PLAY_FIXTURE_KEY } as const;
   }
   const { ruleset_id: rulesetId, minimum_players: minimumPlayers, creator_id: creatorId } = game;
   if (rulesetId === undefined || minimumPlayers === undefined || creatorId === undefined) {

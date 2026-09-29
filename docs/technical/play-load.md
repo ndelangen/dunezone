@@ -38,8 +38,12 @@ The stack runs the coordinator under Node 22 or later from the bundle that
 [`scripts/play-load/bundle.ts`](../../scripts/play-load/bundle.ts) writes.
 
 The runner accepts explicit `http://127.0.0.1:PORT` origins by default. The separate hosted preparation path below requires a private run file and a deployment-scoped key.
-Synthetic fixture creation and provisioning also enforce the isolated-backend guard. A supplied
-profile is server-selected provisioning metadata, never a browser-supplied seat or authority claim.
+Synthetic fixture creation also enforces the isolated-backend guard. The profile is not stored
+with the game. For `stacked` and `separated`, the local stack runs the game Worker's load entry,
+[`workers/game/load-entry.ts`](../../workers/game/load-entry.ts), with the profile in its
+`LOAD_PROFILE`. A hosted activation names the profile in its cell. Every fixture that Worker
+provisions seats the load players on that profile. The production Worker never imports the entry,
+and the baseline runs the production Worker.
 The browser case opens the provisioned fixture at the ordinary game address, `/play/<gameId>`, and
 reads its access through the same game query every page uses. Fixture creation is a guarded
 internal test control that refuses a second live game on the hosted load backend and cannot run against production.
@@ -58,8 +62,8 @@ arrangement has 750. The synthetic pieces occupy a dense area of the table, with
 for the action piece. This layout is provisional and is not real catalogue or device acceptance.
 
 Every room, loaded or not, allows a total of `TABLE_SECTOR_COUNT` (18) simultaneous carries, and
-at most one per connection. Reset restores the selected profile; restart retains its configuration and
-saved contents. The live fixture is not selected or modified by these controls.
+at most one per connection. A reset rebuilds the hosted fixture's table, so the runner never
+resets a load fixture. A restart retains the room's configuration and saved contents. The live fixture is not selected or modified by these controls.
 
 `probe` uses six moving players, or two in the baseline, rotating groups every ten seconds.
 `peak` uses all 18 primary players. Motion transmits at the existing 20 Hz cadence for pointers and
@@ -446,8 +450,9 @@ Then run the cells one at a time. For each cell:
 2. If an earlier cell's game is still `ready` because its coordinator did not reach cleanup, retire
    it now with `playTesting:retireFixture` under this window. The copied backend refuses a second
    live game.
-3. Create exactly one fixture through `playTesting:createFixture` with the cell's profile. The
-   browser cell opens that game at `/play/<gameId>`, as every other cell's players address it.
+3. Create exactly one fixture through `playTesting:createFixture`. The activation's cell names the
+   profile its room is laid out on. The browser cell opens that game at `/play/<gameId>`, as every
+   other cell's players address it.
 4. Regenerate into a fresh private directory using the returned game ID, this window and this
    cell. The generated `activation.json` is mode 0600 and contains the `LOAD_ACTIVATION` secret
    binding with the cell's ceilings. Publish it to each already-uploaded Worker with

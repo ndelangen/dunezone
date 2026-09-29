@@ -15,6 +15,7 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
 
+import { loadProfileSchema } from '../src/shared/play/loadProfile';
 import { LOCAL_ISOLATED_GIT_SHA } from '../workers/game/localRuntime';
 import { loopbackOrigin } from './lib/isolated-stack';
 import { nodeExecutable } from './node-executable';
@@ -28,8 +29,11 @@ const { values } = parseArgs({
     port: { type: 'string', default: '8787' },
     'skip-build': { type: 'boolean', default: false },
     'skip-generate': { type: 'boolean', default: false },
+    'load-profile': { type: 'string' },
   },
 });
+/* A load run's game Worker is the load entry, which lays out every fixture on this profile; production never runs it. */
+const loadProfile = values['load-profile'] === undefined ? undefined : loadProfileSchema.parse(values['load-profile']);
 
 const convexUrl = loopbackOrigin(values['convex-url'], '--convex-url');
 const convexSiteUrl = loopbackOrigin(values['convex-site-url'], '--convex-site-url');
@@ -145,8 +149,13 @@ publisher.r2_buckets = publisher.r2_buckets.map((binding: { binding: string }) =
 }));
 Object.assign(game, local, {
   name: gameName,
-  main: path.join(root, 'workers/game/index.ts'),
-  vars: { CONVEX_URL: gameConvexUrl, APPLICATION_ORIGIN: origin, GIT_SHA: LOCAL_ISOLATED_GIT_SHA },
+  main: path.join(root, loadProfile ? 'workers/game/load-entry.ts' : 'workers/game/index.ts'),
+  vars: {
+    CONVEX_URL: gameConvexUrl,
+    APPLICATION_ORIGIN: origin,
+    GIT_SHA: LOCAL_ISOLATED_GIT_SHA,
+    ...(loadProfile ? { LOAD_PROFILE: loadProfile } : {}),
+  },
 });
 const publisherConfig = path.join(runtime, 'publisher.json');
 const gameConfig = path.join(runtime, 'game.json');
