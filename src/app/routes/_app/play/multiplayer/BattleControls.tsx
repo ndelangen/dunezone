@@ -7,7 +7,9 @@ import { isBattleLeader } from '@shared/play/battle';
 import type { BattlePlan, BattlePlanInput, CombatFace, PublicBattle } from '@shared/play/battle';
 import type { TablePiece, Vector3Tuple } from '@shared/play/model';
 import { phaseAt, STANDARD_PHASES } from '@shared/play/phases';
+import { BOARD_RADIUS } from '@shared/play/tableGeometry';
 import { trackerArcSlots } from '@shared/play/tableTrackers';
+import { resolveRulebookBoardDefinition } from '@shared/rulebooks/boardDefinitions';
 import { Section } from '@ui/block/Section';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { CanvasScale } from '@ui/layout/CanvasScale';
@@ -85,10 +87,16 @@ function PieceImage({ piece }: { piece: TablePiece }) {
 }
 
 type FactionArtwork = TableProjection['snapshot']['factionArtwork'];
+type FactionNames = TableProjection['state']['factionNames'];
+/* A real game keys factions by their Convex ids, so every battle label reads the roster's name and keeps the id only when the roster has none. */
+function rosterName(factionId: string, names: FactionNames) {
+  return names[factionId] ?? factionId;
+}
 type WheelProps = {
   artwork?: FactionArtwork;
   plan: BattlePlan;
   factionId: string;
+  factionName: string;
   client?: TableSession;
   active?: Set<string>;
 };
@@ -123,7 +131,7 @@ function DraggablePiece({ piece, client, style }: { piece: TablePiece; client?: 
   );
 }
 /** Play owns piece visibility, pointer sessions and the Motion verdict; the asset owns the wheel artwork. */
-function BattleWheel({ plan, factionId, client, active, artwork }: WheelProps) {
+function BattleWheel({ plan, factionId, factionName, client, active, artwork }: WheelProps) {
   const leader = plan.pieces.find((piece) => piece.id === plan.leaderId);
   const motion = useMotionAllowed();
   const retained = artwork?.[factionId];
@@ -133,7 +141,7 @@ function BattleWheel({ plan, factionId, client, active, artwork }: WheelProps) {
       state="revealed"
       motion={motion}
       className={styles.wheel}
-      label={`${factionId} plan, troop strength ${plan.strength}, ${plan.spice} spice`}
+      label={`${factionName} plan, troop strength ${plan.strength}, ${plan.spice} spice`}
       background={factionArtwork(factionId, artwork).background}
       strength={plan.strength}
       spice={plan.spice}
@@ -393,7 +401,12 @@ function PlanFields({ client, table, plan, battle }: Props & { plan: BattlePlan;
         </WorkbenchLayout.Chapters>
         <WorkbenchLayout.Rail>
           <div className={styles.preview}>
-            <BattleWheel plan={preview} factionId={factionId} artwork={table.snapshot.factionArtwork} />
+            <BattleWheel
+              plan={preview}
+              factionId={factionId}
+              factionName={rosterName(factionId, table.state.factionNames)}
+              artwork={table.snapshot.factionArtwork}
+            />
           </div>
         </WorkbenchLayout.Rail>
       </WorkbenchLayout.Workbench>
@@ -462,9 +475,11 @@ export function HandControls({ client, table, hand }: Props & { hand: TablePiece
 function BattleResults({
   results: battleResults,
   artwork,
+  names,
 }: {
   results: NonNullable<TableProjection['snapshot']['battleResults']>;
   artwork?: FactionArtwork;
+  names: FactionNames;
 }) {
   return (
     <Section helpOnly title="Battle results">
@@ -472,12 +487,18 @@ function BattleResults({
         battleResults.map((result) => (
           <Stack key={result.id} gap="xs">
             <Text>
-              {result.territory}: {result.factions.join(' against ')}.{' '}
+              {result.territory}: {result.factions.map((id) => rosterName(id, names)).join(' against ')}.{' '}
               {outcomes.find(([outcome]) => outcome === result.outcome)?.[1]}.
             </Text>
             <Group pt={40}>
               {result.plans.map((plan, side) => (
-                <BattleWheel key={side} plan={plan} factionId={result.factions[side]} artwork={artwork} />
+                <BattleWheel
+                  key={side}
+                  plan={plan}
+                  factionId={result.factions[side]}
+                  factionName={rosterName(result.factions[side], names)}
+                  artwork={artwork}
+                />
               ))}
             </Group>
           </Stack>
@@ -507,7 +528,13 @@ export function BattleControls({ client, table }: Props) {
         )}
       </Section>
       {hand && <HandControls client={client} table={table} hand={hand} />}
-      {!!battleResults.length && <BattleResults results={battleResults} artwork={table.snapshot.factionArtwork} />}
+      {!!battleResults.length && (
+        <BattleResults
+          results={battleResults}
+          artwork={table.snapshot.factionArtwork}
+          names={table.state.factionNames}
+        />
+      )}
     </>
   );
 }
@@ -560,12 +587,35 @@ function dropPosition(event: DragEvent, canvas: HTMLCanvasElement, camera: Camer
   }
   return [point.x, 0.18, point.z] as Vector3Tuple;
 }
+/* These parts group several territories, and the storm sectors cut across all of them, so none of them names where a battle is. */
+const BOARD_GROUPS = new Set(['strongholds', 'rock', 'sand', 'sectors']);
+/**
+ * The territory a table point falls in, read from the rulebook board that the table map draws edge to edge across the board disc.
+ * The disc maps onto the board's unit square by the board radius, and each territory's outline is tested in that square.
+ * A point outside every territory keeps the generic name.
+ */
+function territoryAt(position: Vector3Tuple) {
+  const parts = resolveRulebookBoardDefinition('arrakis')?.geometry.parts ?? [];
+  const context = document.createElement('canvas').getContext('2d');
+  const x = position[0] / (2 * BOARD_RADIUS) + 0.5;
+  const y = position[2] / (2 * BOARD_RADIUS) + 0.5;
+  const territory = parts.find(
+    (part) =>
+      !BOARD_GROUPS.has(part.key) &&
+      part.highlight?.paths.some(({ d, transform }) => {
+        const outline = new Path2D();
+        outline.addPath(new Path2D(d), transform && new DOMMatrix(transform));
+        return context?.isPointInPath(outline, x, y, 'evenodd');
+      })
+  );
+  return territory?.label ?? 'Marked territory';
+}
 function sendDrop(client: TableSession, event: DragEvent, position: Vector3Tuple) {
   const pieceId = event.dataTransfer?.getData('application/dune-hand');
   if (pieceId) {
     client.command({ kind: 'hand-play', pieceId, position });
   } else if (event.dataTransfer?.getData('application/dune-battle')) {
-    client.command({ kind: 'battle-start', anchor: position, territory: 'Marked territory' });
+    client.command({ kind: 'battle-start', anchor: position, territory: territoryAt(position) });
   }
 }
 function useInventoryDrop({ client, table }: Props) {
@@ -683,6 +733,7 @@ function SideContents({
       <BattleWheel
         plan={battle.revealed[index]}
         factionId={side!.factionId}
+        factionName={rosterName(side!.factionId, table.state.factionNames)}
         artwork={table.snapshot.factionArtwork}
         client={table.canInteract ? client : undefined}
         active={active}
@@ -694,7 +745,7 @@ function SideContents({
       <BattleWheelAsset
         state="unrevealed"
         motion={motion}
-        label={`${side.factionId}, ${index === 0 ? 'left side, aggressor' : 'right side'}, ${side.ready ? 'Ready' : 'Preparing'}`}
+        label={`${rosterName(side.factionId, table.state.factionNames)}, ${index === 0 ? 'left side, aggressor' : 'right side'}, ${side.ready ? 'Ready' : 'Preparing'}`}
         artwork={factionArtwork(side.factionId, table.snapshot.factionArtwork)}
         ready={side.ready}
       />
