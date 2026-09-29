@@ -1,6 +1,15 @@
 import { spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  utimesSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -53,6 +62,23 @@ async function command(args: string[]) {
   });
 }
 
+/**
+ * Sets each asset's access time a millisecond after its modification time, before Wrangler starts watching the directory.
+ * On macOS Wrangler's asset watcher runs on FSEvents, which can report the build's writes, above all each file of a directory tree that `cpSync` clones, seconds after the watcher has started.
+ * The watcher counts a reported file as changed when its modification time moved or when its access time is not after its modification time, and each change reloads the local server, which drops every socket (#1343).
+ * With every access time after its modification time, a late report of a build write meets neither condition and changes nothing.
+ * The time is set rather than left to a read, because APFS keeps an access time that equals the modification time through a read.
+ */
+function markAssetsRead(directory: string) {
+  for (const entry of readdirSync(directory, { recursive: true, withFileTypes: true })) {
+    if (entry.isFile()) {
+      const file = path.join(entry.parentPath, entry.name);
+      const { mtimeMs } = statSync(file);
+      utimesSync(file, (mtimeMs + 1) / 1000, mtimeMs / 1000);
+    }
+  }
+}
+
 if (!values['skip-build']) {
   if (values['skip-generate']) {
     const generated = ['public/image', 'public/vector', 'src/game/data/assetMap.generated.ts'];
@@ -74,6 +100,7 @@ const renderer = path.join(root, 'workers/publisher/runtime-generated/rulebook-h
 if (!existsSync(path.join(assets, 'index.html')) || !existsSync(renderer)) {
   throw new Error('Publisher assets are missing. Run without --skip-build to create the local-auth build.');
 }
+markAssetsRead(assets);
 
 const runtime = mkdtempSync(path.join(tmpdir(), 'dunezone-play-local-'));
 const suffix = randomUUID();
