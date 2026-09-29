@@ -1,3 +1,10 @@
+/* The band's media column is width-only; the group's initials badge declares its own square. */
+.groupAvatar {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+}
+
 .twoColumnGrid {
   display: grid;
   grid-template-columns: minmax(0, 3fr) minmax(16rem, 2fr);

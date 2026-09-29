@@ -1,12 +1,14 @@
-import { Group, Stack } from '@mantine/core';
+import { Badge, Group, Stack, Text } from '@mantine/core';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
 import { LoadError } from '@ui/block/LoadError';
 import { LoadPending } from '@ui/block/LoadPending';
 import { NotAvailable } from '@ui/block/NotAvailable';
-import { PageTitle } from '@ui/block/PageTitle';
-import { FormattedTextSource, InlineFormattedTextSource } from '@ui/content/FormattedText';
+import { PageIdentity } from '@ui/block/PageIdentity';
+import { formatRelativeDate } from '@ui/content/dates';
+import { FAQ_TAG_LABELS } from '@ui/content/faqTagLabels';
+import { FormattedTextSource } from '@ui/content/FormattedText';
 import { ProfileLink } from '@ui/content/ProfileLink';
 import { StatusBadge } from '@ui/content/StatusBadge';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
@@ -15,7 +17,8 @@ import { FormattedTextInput } from '@ui/control/FormattedTextInput';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
-import { Check, MessageSquarePlus, Pencil, X } from 'lucide-react';
+import { Toolbar } from '@ui/surface/Toolbar';
+import { ArrowLeft, Check, MessageCircleReply, MessageSquarePlus, Pencil, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { loadFaqQuestionPage, useFaqQuestionPage } from '@db/faq';
@@ -25,6 +28,7 @@ import { PageMessage } from '@app/widgets/page-message/PageMessage';
 import styles from './$questionSlug.module.css';
 import { INITIAL_FAQ_EDITING_STATE, createFaqEditingSession } from './faqEditingSession';
 import type { FaqEditingSession } from './faqEditingSession';
+import { questionTitle } from './questionTitle';
 
 export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/faq/$questionSlug')({
   loader: async ({ params }) => {
@@ -168,23 +172,6 @@ function LoadedFaqQuestion() {
   const item = page?.question;
   const answers = useMemo(() => page?.answers ?? [], [page?.answers]);
 
-  const header = (
-    <div>
-      <PageTitle title="FAQ" />
-      <p>
-        {item ? (
-          <>
-            <Link to="/rulesets/$rulesetSlug" params={{ rulesetSlug: page?.ruleset.slug ?? rulesetSlug }}>
-              Back to ruleset
-            </Link>
-            {' · '}
-          </>
-        ) : null}
-        <Link to="/rulesets">Back to rulesets</Link>
-      </p>
-    </div>
-  );
-
   useEffect(() => {
     if (!item) {
       return;
@@ -206,9 +193,6 @@ function LoadedFaqQuestion() {
     return () => window.removeEventListener('hashchange', scrollToHash);
   }, [item, answers]);
 
-  /* Only the message frames move here. The loaded page keeps its hand-rolled `h1` header, which is
-     item 5 of this wave rather than item 1, so the two states spell the same words two ways until
-     that lands. */
   if (!item) {
     return (
       <PageMessage
@@ -243,89 +227,130 @@ function LoadedFaqQuestion() {
     void faq.deleteAnswer.run({ answerId }).catch(() => undefined);
   };
 
+  const hasAcceptedAnswer = answers.some((a) => a.accepted);
+  const headerStats = [
+    {
+      key: 'answers',
+      icon: <MessageCircleReply size={17} aria-hidden />,
+      value: answers.length,
+      label: `${answers.length} ${answers.length === 1 ? 'answer' : 'answers'}`,
+    },
+  ];
+
   return (
     <PageLayout>
-      <PageLayout.Header>{header}</PageLayout.Header>
+      <PageLayout.Header size="compact">
+        <PageIdentity
+          title={questionTitle(item.text)}
+          breadcrumb={
+            <PageIdentity.Breadcrumb to="/rulesets/$rulesetSlug" params={{ rulesetSlug: page.ruleset.slug }} hash="faq">
+              {page.ruleset.name} FAQ
+            </PageIdentity.Breadcrumb>
+          }
+          maintainers={{
+            label: 'Asked by',
+            owner: item.author
+              ? { slug: item.author.slug, name: item.author.username, image: item.author.avatarUrl }
+              : null,
+          }}
+          stats={headerStats}
+        >
+          <Text size="sm" c="dimmed">
+            <time dateTime={item.createdAt} title={new Date(item.createdAt).toLocaleString()}>
+              {formatRelativeDate(item.createdAt)}
+            </time>
+          </Text>
+          {hasAcceptedAnswer ? <StatusBadge tone="positive">Answered</StatusBadge> : null}
+          {(item.tags ?? []).map((tag) => (
+            <Badge key={tag} size="sm" variant="outline" color="dune">
+              {FAQ_TAG_LABELS[tag]}
+            </Badge>
+          ))}
+        </PageIdentity>
+      </PageLayout.Header>
+      <PageLayout.Toolbar>
+        <Toolbar>
+          <Toolbar.Left>
+            <Group gap="xs" wrap="wrap" role="group" aria-label="Navigation and editing">
+              <IconAction
+                label="Back to ruleset"
+                emphasis="standard"
+                intent="neutral"
+                size="lg"
+                renderRoot={(rootProps) => (
+                  <Link {...rootProps} to="/rulesets/$rulesetSlug" params={{ rulesetSlug: page.ruleset.slug }} />
+                )}
+                icon={<ArrowLeft size={17} aria-hidden />}
+              />
+              {item.capabilities.editQuestion ? (
+                <IconAction
+                  label="Edit question"
+                  emphasis="standard"
+                  intent="neutral"
+                  size="lg"
+                  disabled={editing.editingQuestion}
+                  onClick={startEditQuestion}
+                  icon={<Pencil size={17} aria-hidden />}
+                />
+              ) : null}
+            </Group>
+          </Toolbar.Left>
+          <Toolbar.Right>
+            {item.capabilities.deleteQuestion ? (
+              <Group gap="xs" wrap="wrap" role="group" aria-label="Question actions">
+                <ConfirmDeleteAction
+                  label="Delete question"
+                  pending={faq.deleteQuestion.isPending}
+                  onConfirm={handleDeleteQuestion}
+                />
+              </Group>
+            ) : null}
+          </Toolbar.Right>
+        </Toolbar>
+      </PageLayout.Toolbar>
       <PageLayout.Content>
         <Surface padding="lg">
           <Stack gap="md">
-            <Stack gap="sm">
-              {editing.editingQuestion ? (
-                <Stack gap="sm">
-                  <FormattedTextInput
-                    label="Edit question"
-                    value={editing.questionValue}
-                    onChange={(value) => editingSession.setQuestionValue(value)}
-                    profile="marks-only"
-                    rows={2}
+            {faq.deleteQuestion.error ? (
+              <FormError title="Question could not be deleted">{faq.deleteQuestion.error.message}</FormError>
+            ) : null}
+            {editing.editingQuestion ? (
+              <Stack gap="sm">
+                <FormattedTextInput
+                  label="Edit question"
+                  value={editing.questionValue}
+                  onChange={(value) => editingSession.setQuestionValue(value)}
+                  profile="marks-only"
+                  rows={2}
+                />
+                <FaqTagFieldset
+                  value={editing.tagValues}
+                  onToggle={(tag, checked) => editingSession.toggleTag(tag, checked)}
+                />
+                {faq.editQuestion.error ? (
+                  <FormError title="Question could not be saved">{faq.editQuestion.error.message}</FormError>
+                ) : null}
+                <Group gap="xs" wrap="nowrap">
+                  <IconAction
+                    label="Save question"
+                    emphasis="strong"
+                    intent="positive"
+                    size="lg"
+                    onClick={() => saveQuestion()}
+                    disabled={faq.editQuestion.isPending}
+                    icon={<Check size={16} aria-hidden />}
                   />
-                  <FaqTagFieldset
-                    value={editing.tagValues}
-                    onToggle={(tag, checked) => editingSession.toggleTag(tag, checked)}
+                  <IconAction
+                    label="Cancel editing question"
+                    emphasis="standard"
+                    intent="neutral"
+                    size="lg"
+                    onClick={() => editingSession.cancelQuestion()}
+                    icon={<X size={16} aria-hidden />}
                   />
-                  {faq.editQuestion.error ? (
-                    <FormError title="Question could not be saved">{faq.editQuestion.error.message}</FormError>
-                  ) : null}
-                  <Group gap="xs" wrap="nowrap">
-                    <IconAction
-                      label="Save question"
-                      emphasis="strong"
-                      intent="positive"
-                      size="lg"
-                      onClick={() => saveQuestion()}
-                      disabled={faq.editQuestion.isPending}
-                      icon={<Check size={16} aria-hidden />}
-                    />
-                    <IconAction
-                      label="Cancel editing question"
-                      emphasis="standard"
-                      intent="neutral"
-                      size="lg"
-                      onClick={() => editingSession.cancelQuestion()}
-                      icon={<X size={16} aria-hidden />}
-                    />
-                  </Group>
-                </Stack>
-              ) : (
-                <>
-                  <div className={styles.questionHeader}>
-                    {item.author && (
-                      <ProfileLink
-                        slug={item.author.slug}
-                        name={item.author.username}
-                        image={item.author.avatarUrl}
-                        className={styles.questionAskerLink}
-                      />
-                    )}
-                    <div>
-                      <h2 className={styles.questionTitle}>
-                        <InlineFormattedTextSource source={item.text} />
-                      </h2>
-                    </div>
-                  </div>
-                  {faq.deleteQuestion.error ? (
-                    <FormError title="Question could not be deleted">{faq.deleteQuestion.error.message}</FormError>
-                  ) : null}
-                  {item.capabilities.editQuestion && (
-                    <Group gap="xs" wrap="nowrap">
-                      <IconAction
-                        label="Edit question"
-                        emphasis="strong"
-                        intent="positive"
-                        size="lg"
-                        onClick={startEditQuestion}
-                        icon={<Pencil size={16} aria-hidden />}
-                      />
-                      <ConfirmDeleteAction
-                        label="Delete question"
-                        pending={faq.deleteQuestion.isPending}
-                        onConfirm={handleDeleteQuestion}
-                      />
-                    </Group>
-                  )}
-                </>
-              )}
-            </Stack>
+                </Group>
+              </Stack>
+            ) : null}
 
             {showAddAnswerForm ? <AddAnswerForm createAnswer={faq.createAnswer} /> : null}
 

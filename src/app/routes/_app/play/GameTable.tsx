@@ -10,7 +10,7 @@ import { TopicIcon } from '@ui/content/TopicIcon';
 import type { TopicIconTopic } from '@ui/content/TopicIcon';
 import { SplitPanels } from '@ui/layout/SplitPanels';
 import { NestedTabs } from '@ui/surface/NestedTabs';
-import { useCallback, useEffect, useId, useMemo, useReducer, useState } from 'react';
+import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useReducer, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 
 import {
@@ -32,6 +32,8 @@ import { createTableViewState, PHASE_VIEWS, reduceTableView, TABLE_VIEW_OPTIONS 
 import type { CameraViewCommand, TableView } from './playView';
 import { PointerSession } from './PointerSession';
 import { PointerSessionContext } from './PointerSessionContext';
+import { TableKeyboard } from './TableKeyboard';
+import { TableKeyboardContext } from './TableKeyboardContext';
 import { useTabletop } from './TabletopContext';
 import type { TabletopContextValue } from './TabletopContext';
 import { TabletopScene } from './TabletopScene';
@@ -449,6 +451,16 @@ function useHeldOverlays() {
   return held;
 }
 
+/* Hands the keyboard owner the live table on every render and binds it to the window once. */
+function useTableKeyboardBinding(keyboard: TableKeyboard) {
+  const table = useTabletop();
+  const live = useRef(table);
+  useLayoutEffect(() => {
+    live.current = table;
+  });
+  useLayoutEffect(() => keyboard.bind({ events: window, read: () => live.current }), [keyboard]);
+}
+
 function controlsPanelValueText(percent: number) {
   return `${Math.round(percent)}% of the window for controls`;
 }
@@ -472,6 +484,8 @@ export function GameTable({
   onSelectTurn,
 }: GameTableProps) {
   const [pointerSession] = useState(() => new PointerSession());
+  const [tableKeyboard] = useState(() => new TableKeyboard());
+  useTableKeyboardBinding(tableKeyboard);
   const { gestureActivePieceId } = useTabletop();
   const phaseSymbolClipId = useId();
   const heldOverlays = useHeldOverlays();
@@ -590,19 +604,21 @@ export function GameTable({
               valueText={controlsPanelValueText}
             >
               <SplitPanels.First>
-                <TabletopScene
-                  className="scene scene--immersive"
-                  cameraView={cameraView}
-                  onSceneReady={handleSceneReady}
-                  onInteractionActiveChange={handleInteractionActiveChange}
-                  seatCount={seatCount}
-                  tableProgress={tableProgress}
-                  stage={stage}
-                  mapVisible={mapVisible}
-                  onSelectTurn={onSelectTurn}
-                >
-                  {sceneContent}
-                </TabletopScene>
+                <TableKeyboardContext value={tableKeyboard}>
+                  <TabletopScene
+                    className="scene scene--immersive"
+                    cameraView={cameraView}
+                    onSceneReady={handleSceneReady}
+                    onInteractionActiveChange={handleInteractionActiveChange}
+                    seatCount={seatCount}
+                    tableProgress={tableProgress}
+                    stage={stage}
+                    mapVisible={mapVisible}
+                    onSelectTurn={onSelectTurn}
+                  >
+                    {sceneContent}
+                  </TabletopScene>
+                </TableKeyboardContext>
 
                 {stageOverlay && (
                   <div className="seated-stage-overlay" inert={overlaysInert}>
