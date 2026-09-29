@@ -10,7 +10,7 @@ import type { Doc, Id } from './_generated/dataModel';
 import { query } from './_generated/server';
 import type { QueryCtx } from './_generated/server';
 import { mutation } from './functions';
-import { currentPlaySession, isRealGame } from './lib/playAuthorization';
+import { admitsPlayers, currentPlaySession, isRealGame } from './lib/playAuthorization';
 import { createPendingGame } from './lib/playProvisioningSchedule';
 import { playRateLimiter } from './lib/playRateLimits';
 
@@ -128,7 +128,7 @@ export const createGame = mutation({
   },
 });
 
-/** What a game page learns before it opens a socket: any signed-in player may enter any game, and an unknown id reads as not found. */
+/** What a game page learns before it opens a socket: any signed-in player may enter a game that admits players, and an unknown id or the closed hosted fixture reads as not found. */
 export const getGame = query({
   args: { gameId: v.string() },
   returns: zodToConvex(playGameAccessSchema),
@@ -139,7 +139,7 @@ export const getGame = query({
     }
     const id = ctx.db.normalizeId('play_games', args.gameId);
     const game = id ? await ctx.db.get(id) : null;
-    if (!game) {
+    if (!game || !admitsPlayers(game)) {
       return { status: 'not_found' as const };
     }
     return await gameAccess(ctx, game);

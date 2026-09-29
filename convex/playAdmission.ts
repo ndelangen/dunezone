@@ -5,10 +5,8 @@ import type { Validator } from 'convex/values';
 import type { z } from 'zod';
 
 import {
-  PLAY_FIXTURE_KEY,
   PLAY_TICKET_TTL_MS,
   playAckAccountDeletionRequestSchema,
-  playFixtureSchema,
   playIssueTicketRequestSchema,
   playReconcileAccountsRequestSchema,
   playReconcileAccountsResultSchema,
@@ -25,6 +23,7 @@ import type { MutationCtx, QueryCtx } from './_generated/server';
 import { internalMutation, mutation } from './functions';
 import { accountStateOf } from './lib/accountLifecycle';
 import {
+  admitsPlayers,
   authenticatedPlayRequest,
   currentPlaySession,
   playCredential,
@@ -33,24 +32,6 @@ import {
 } from './lib/playAuthorization';
 import { playerSummary } from './lib/playerSummary';
 import { playRateLimiter, playTicketQuota } from './lib/playRateLimits';
-
-/** No current page reads this; it stays public so a bundle deployed before the hosted route's retirement still gets an answer. */
-export const getFixture = query({
-  args: {},
-  returns: zodToConvex(playFixtureSchema),
-  handler: async (ctx) => {
-    if (!(await currentPlaySession(ctx))) {
-      return { status: 'sign_in_required' as const };
-    }
-    const game = await ctx.db
-      .query('play_games')
-      .withIndex('by_fixture_key_state', (q) => q.eq('fixture_key', PLAY_FIXTURE_KEY).eq('state', 'ready'))
-      .unique();
-    return game
-      ? { status: 'ready' as const, gameId: game._id, name: 'Hosted fixture' }
-      : { status: 'unavailable' as const };
-  },
-});
 
 export const issueTicket = mutation({
   args: zodToConvex(playIssueTicketRequestSchema),
@@ -67,7 +48,7 @@ export const issueTicket = mutation({
     const request = playIssueTicketRequestSchema.safeParse(args);
     const gameId = request.success ? ctx.db.normalizeId('play_games', request.data.gameId) : null;
     const game = gameId ? await ctx.db.get(gameId) : null;
-    if (game?.state !== 'ready') {
+    if (game?.state !== 'ready' || !admitsPlayers(game)) {
       return { ok: false as const, reason: 'unavailable' as const };
     }
     const ticket = playCredential();
@@ -171,7 +152,7 @@ export const redeemTicket = mutation({
   returns: zodToConvex(playRedeemTicketResultSchema),
   handler: async (ctx, input) => {
     const request = await authenticatedPlayRequest(ctx, input, playRedeemTicketRequestSchema);
-    if (request?.game.state !== 'ready') {
+    if (request?.game.state !== 'ready' || !admitsPlayers(request.game)) {
       return refusedRedemption;
     }
     const { game, args } = request;
@@ -199,10 +180,11 @@ export const expireRegistration = internalMutation({
   },
 });
 
+/** A registration on a game that admits no players answers as an unknown one, so the Worker denies it. */
 async function authorizationEntry(ctx: QueryCtx, game: Doc<'play_games'>, registrationId: string) {
   const id = ctx.db.normalizeId('play_auth_registrations', registrationId);
   const registration = id ? await ctx.db.get(id) : null;
-  if (!registration || registration.game_id !== game._id) {
+  if (!registration || registration.game_id !== game._id || !admitsPlayers(game)) {
     return { registrationId, userId: null, sessionId: null, allowed: false, authExpiresAt: 0 };
   }
   const authorization = await playSessionAuthorization(ctx, registration.user_id, registration.session_id);

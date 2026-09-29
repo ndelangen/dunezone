@@ -14,7 +14,12 @@ import { loadProfileSchema } from '../src/shared/play/loadProfile';
 import type { Id } from './_generated/dataModel';
 import type { MutationCtx } from './_generated/server';
 import { internalMutation } from './functions';
-import { newestUnusedPlayRefresh, playCredential } from './lib/playAuthorization';
+import {
+  isSyntheticFixtureKey,
+  newestUnusedPlayRefresh,
+  playCredential,
+  syntheticFixtureKey,
+} from './lib/playAuthorization';
 import { insertPendingGame } from './lib/playProvisioningSchedule';
 import { limitLiveGames, requireSyntheticBackend } from './lib/playSynthetic';
 
@@ -42,7 +47,7 @@ async function syntheticExpiryTarget(ctx: MutationCtx, sessionId: Id<'authSessio
 }
 
 function isLocalFixtureKey(key: string | undefined) {
-  return key !== undefined && (key === PLAY_FIXTURE_KEY || /^synthetic-[a-f0-9]{64}$/.test(key));
+  return key === PLAY_FIXTURE_KEY || isSyntheticFixtureKey(key);
 }
 
 async function requireSyntheticUser(ctx: MutationCtx, userId: Id<'users'>) {
@@ -91,7 +96,7 @@ export const createFixture = internalMutation({
     requireSyntheticBackend();
     await limitLiveGames(ctx);
     return await insertPendingGame(ctx, {
-      fixture_key: `synthetic-${playCredential()}`,
+      fixture_key: syntheticFixtureKey(),
       ...(args.loadProfile ? { load_profile: args.loadProfile } : {}),
     });
   },
