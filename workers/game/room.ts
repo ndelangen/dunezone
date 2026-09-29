@@ -40,7 +40,7 @@ import { createSpiceStack, isSpicePiece } from '../../src/shared/play/spiceSuppl
 import type { SwapAction } from '../../src/shared/play/swapping';
 import { restingPositionAt } from '../../src/shared/play/tableGeometry';
 import { nearestCollisionFreePosition } from '../../src/shared/play/tablePhysics';
-import { PLAYER_RING_RADIUS, tableSeatAngles } from '../../src/shared/play/tableSettings';
+import { PLAYER_RING_RADIUS, TABLE_SECTOR_COUNT, tableSeatAngles } from '../../src/shared/play/tableSettings';
 import {
   applyDraftToState,
   draftForGesture,
@@ -182,7 +182,7 @@ export class Room {
     if ([...this.carries.values()].some((carry) => carry.connectionId === identity.connectionId)) {
       throw new GameRejection('Finish the current carry first.');
     }
-    if (this.carries.size >= (this.loadProfile ? 18 : 16)) {
+    if (this.carries.size >= TABLE_SECTOR_COUNT) {
       throw new GameRejection('The table already has too many active carries.');
     }
   }
