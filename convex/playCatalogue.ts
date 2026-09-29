@@ -95,6 +95,12 @@ export const factionDefinition = query({
         ];
       })
     );
+    const traitors = await Promise.all(
+      (parsed.success ? parsed.data.leaders : []).map(async ({ memberId }) => ({
+        memberId,
+        front: await publishedFace(ctx, 'faction-traitor', factionMemberPublicationId(row._id, memberId)),
+      }))
+    );
     return {
       faction: { id: row._id, slug: row.slug, name: parsed.success ? parsed.data.name : '' },
       data: parsed.success ? parsed.data : null,
@@ -106,6 +112,8 @@ export const factionDefinition = query({
       },
       leaders,
       troops,
+      traitors,
+      alliance: await publishedFace(ctx, 'faction-alliance', row._id),
     };
   },
 });

@@ -140,7 +140,7 @@ describe('Leader component publication lifecycle', () => {
     });
   });
 
-  test('removal makes retained bytes unavailable and rejects in-flight work without matching by name', async () => {
+  test('removal before any publish leaves nothing to serve and rejects in-flight work without matching by name', async () => {
     const { t, faction, assetId, save } = await fixture();
     const old = await takeMember(t, assetId);
     const next = structuredClone(faction);
@@ -158,6 +158,41 @@ describe('Leader component publication lifecycle', () => {
     expect(await t.query(internal.componentPublication.resolveDelivery, { assetId })).toEqual({
       ok: true,
       status: 'missing',
+    });
+  });
+
+  test('a deleted faction whose Leader never published leaves nothing to serve', async () => {
+    const { t, factionId, assetId } = await fixture();
+    expect(await t.query(internal.componentPublication.resolveDelivery, { assetId })).toEqual({
+      ok: true,
+      status: 'pending',
+    });
+    await t.run(async (ctx) => ctx.db.patch(factionId, { is_deleted: true }));
+    expect(await t.query(internal.componentPublication.resolveDelivery, { assetId })).toEqual({
+      ok: true,
+      status: 'missing',
+    });
+  });
+
+  test('a published Leader keeps serving after its member is removed or its faction is deleted', async () => {
+    const { t, faction, factionId, assetId, save } = await fixture();
+    const job = await takeMember(t, assetId);
+    await t.mutation(internal.publicationJobs.completeJob, {
+      jobId: job.jobId,
+      cacheToken: tokenA,
+      payloadHash: job.payloadHash,
+    });
+    const next = structuredClone(faction);
+    next.leaders.shift();
+    await save(next, faction);
+    expect(await t.query(internal.componentPublication.resolveDelivery, { assetId })).toMatchObject({
+      status: 'found',
+      revision: tokenA,
+    });
+    await t.run(async (ctx) => ctx.db.patch(factionId, { is_deleted: true }));
+    expect(await t.query(internal.componentPublication.resolveDelivery, { assetId })).toMatchObject({
+      status: 'found',
+      revision: tokenA,
     });
   });
 });
