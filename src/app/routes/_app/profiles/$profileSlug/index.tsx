@@ -17,7 +17,6 @@ import { TopicIcon } from '@ui/content/TopicIcon';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { FactionList } from '@ui/list/FactionList';
-import { Stats } from '@ui/list/Stats';
 import { Surface } from '@ui/surface';
 import { Card } from '@ui/surface/Card';
 import { SectionedSurface } from '@ui/surface/SectionedSurface';
@@ -212,18 +211,52 @@ function ProfileDetailPage() {
   };
 
   const acceptedAnswerCount = page.acceptedAnswerCount;
+  const count = (value: number, one: string, many: string) => `${value} ${value === 1 ? one : many}`;
+  /** The five counts the header carries, in place of the old "At a glance" card. */
+  const headerStats = [
+    {
+      key: 'factions',
+      icon: <Shield size={17} aria-hidden />,
+      value: page.factions.length,
+      label: count(page.factions.length, 'faction', 'factions'),
+    },
+    {
+      key: 'groups',
+      icon: <UsersRound size={17} aria-hidden />,
+      value: page.groupSummaries.length,
+      label: count(page.groupSummaries.length, 'group', 'groups'),
+    },
+    {
+      key: 'answers',
+      icon: <MessageCircleReply size={17} aria-hidden />,
+      value: page.faqAnswers.length,
+      label: count(page.faqAnswers.length, 'answer', 'answers'),
+    },
+    {
+      key: 'picked',
+      icon: <CheckCircle2 size={17} aria-hidden />,
+      value: acceptedAnswerCount,
+      label: count(acceptedAnswerCount, 'picked answer', 'picked answers'),
+    },
+    {
+      key: 'questions',
+      icon: <CircleHelp size={17} aria-hidden />,
+      value: page.faqAsked.length,
+      label: count(page.faqAsked.length, 'question', 'questions'),
+    },
+  ];
 
   const toolbar = (
     <Toolbar>
       <Toolbar.Left>
-        <Group gap="xs" wrap="nowrap">
+        <Group gap="xs" wrap="wrap" role="group" aria-label="Navigation and editing">
           <IconAction
             label="Back to profiles"
             emphasis="standard"
             intent="neutral"
             size="lg"
             renderRoot={(rootProps) => <Link {...rootProps} to="/profiles" />}
-            icon={<ArrowLeft size={16} aria-hidden />}
+            icon={<ArrowLeft size={17} aria-hidden />}
           />
           {isSelf ? (
             <IconAction
@@ -234,31 +267,31 @@ function ProfileDetailPage() {
               renderRoot={(rootProps) => (
                 <Link {...rootProps} to="/profiles/$profileSlug/edit" params={{ profileSlug }} />
               )}
-              icon={<Pencil size={16} aria-hidden />}
-            />
-          ) : null}
-          {isSelf ? (
-            <IconAction
-              label="Start group"
-              emphasis="strong"
-              intent="positive"
-              size="lg"
-              renderRoot={(rootProps) => <Link {...rootProps} to="/groups/create" />}
-              icon={<UserPlus size={16} aria-hidden />}
+              icon={<Pencil size={17} aria-hidden />}
             />
           ) : null}
         </Group>
       </Toolbar.Left>
       {isSelf ? (
         <Toolbar.Right>
-          <IconAction
-            label="Log out"
-            emphasis="standard"
-            intent="negative"
-            size="lg"
-            onClick={() => void handleSignOut()}
-            icon={<LogOut size={16} aria-hidden />}
-          />
+          <Group gap="xs" wrap="wrap" role="group" aria-label="Profile actions">
+            <IconAction
+              label="Start group"
+              emphasis="strong"
+              intent="positive"
+              size="lg"
+              renderRoot={(rootProps) => <Link {...rootProps} to="/groups/create" />}
+              icon={<UserPlus size={17} aria-hidden />}
+            />
+            <IconAction
+              label="Log out"
+              emphasis="standard"
+              intent="negative"
+              size="lg"
+              onClick={() => void handleSignOut()}
+              icon={<LogOut size={17} aria-hidden />}
+            />
+          </Group>
         </Toolbar.Right>
       ) : null}
     </Toolbar>
@@ -276,11 +309,19 @@ function ProfileDetailPage() {
               <span className={styles.avatarPlaceholder}>{initials}</span>
             )
           }
+          breadcrumb={<PageIdentity.Breadcrumb to="/profiles">Profiles</PageIdentity.Breadcrumb>}
+          standing={isSelf ? { tone: 'brand', label: 'You' } : null}
+          stats={headerStats}
         >
-          {isSelf && <p className={styles.selfHint}>This is you!</p>}
-          <p className={styles.profileSummary}>
-            <strong>Proposed bio:</strong> A short introduction describing this contributor's interests and work.
-          </p>
+          <Text size="sm" c="dimmed">
+            Member since{' '}
+            <time dateTime={page.profile.created_at}>
+              {new Intl.DateTimeFormat('en', {
+                month: 'short',
+                year: 'numeric',
+              }).format(new Date(page.profile.created_at))}
+            </time>
+          </Text>
         </PageIdentity>
       </PageLayout.Header>
       <PageLayout.Toolbar>{toolbar}</PageLayout.Toolbar>
@@ -336,66 +377,12 @@ function ProfileDetailPage() {
 
           <aside className={styles.sidebar} aria-label="Profile details">
             <Stack gap="sm">
-              <Card icon={<UsersRound size={20} aria-hidden />} title="At a glance">
-                <Stats
-                  orientation="column"
-                  items={[
-                    {
-                      key: 'factions',
-                      icon: <Shield size={18} aria-hidden />,
-                      value: page.factions.length,
-                      name: 'Factions',
-                      label: `${page.factions.length} factions`,
-                    },
-                    {
-                      key: 'groups',
-                      icon: <UsersRound size={18} aria-hidden />,
-                      value: page.groupSummaries.length,
-                      name: 'Groups',
-                      label: `${page.groupSummaries.length} groups`,
-                    },
-                    {
-                      key: 'answers',
-                      icon: <MessageCircleReply size={18} aria-hidden />,
-                      value: page.faqAnswers.length,
-                      name: 'Answers',
-                      label: `${page.faqAnswers.length} answers`,
-                    },
-                    {
-                      key: 'picked',
-                      icon: <CheckCircle2 size={18} aria-hidden />,
-                      value: acceptedAnswerCount,
-                      name: 'Picked answers',
-                      label: `${acceptedAnswerCount} picked answers`,
-                    },
-                    {
-                      key: 'questions',
-                      icon: <CircleHelp size={18} aria-hidden />,
-                      value: page.faqAsked.length,
-                      name: 'Questions',
-                      label: `${page.faqAsked.length} questions`,
-                    },
-                  ]}
-                />
-              </Card>
-
               <Card icon={<Link2 size={20} aria-hidden />} title="About">
-                <Stack gap="xs">
-                  <ProposedContent label="Proposed profile fields">
-                    <Text size="sm" c="dimmed">
-                      A short bio and a small set of relevant external links could live here.
-                    </Text>
-                  </ProposedContent>
-                  <p className={styles.memberSince}>
-                    Member since{' '}
-                    <time dateTime={page.profile.created_at}>
-                      {new Intl.DateTimeFormat('en', {
-                        month: 'short',
-                        year: 'numeric',
-                      }).format(new Date(page.profile.created_at))}
-                    </time>
-                  </p>
-                </Stack>
+                <ProposedContent label="Proposed profile fields">
+                  <Text size="sm" c="dimmed">
+                    A short bio and a small set of relevant external links could live here.
+                  </Text>
+                </ProposedContent>
               </Card>
 
               <Card icon={<UsersRound size={20} aria-hidden />} title="Groups">

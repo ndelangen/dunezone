@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 
 import styles from './Stats.module.css';
 
-interface StatsItem {
+export interface StatsItem {
   key: string;
   icon: ReactNode;
   value: ReactNode;

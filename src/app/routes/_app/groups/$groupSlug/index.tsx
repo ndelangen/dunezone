@@ -1,15 +1,15 @@
-import { Alert, Anchor, Avatar, Box, Button, Group, Stack, Text } from '@mantine/core';
+import { Alert, Avatar, Box, Group, Stack, Text } from '@mantine/core';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { LoadError } from '@ui/block/LoadError';
 import { LoadPending } from '@ui/block/LoadPending';
 import { PageIdentity } from '@ui/block/PageIdentity';
+import type { PageIdentityStanding } from '@ui/block/PageIdentity';
 import { formatRelativeDate } from '@ui/content/dates';
 import { FactionLink } from '@ui/content/FactionLink';
 import { ProfileLink } from '@ui/content/ProfileLink';
 import { RulesetLink } from '@ui/content/RulesetLink';
-import { StatusBadge } from '@ui/content/StatusBadge';
-import type { StatusBadgeTone } from '@ui/content/StatusBadge';
+import { TopicIcon } from '@ui/content/TopicIcon';
 import { AssignPopover } from '@ui/control/AssignPopover';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { IconAction } from '@ui/control/IconAction';
@@ -91,7 +91,6 @@ function GroupDetailPage() {
   const membershipStatus = viewerAccess.viewer.kind === 'authenticated' ? viewerAccess.viewer.membership : 'none';
   const isOwner = viewerAccess.capabilities.rename;
   const isActiveMember = membershipStatus === 'active';
-  const isAnonymous = viewerAccess.viewer.kind === 'anonymous';
   const factions = page.factions;
   const rulesets = page.rulesets;
   const roster = page.roster;
@@ -132,74 +131,109 @@ function GroupDetailPage() {
     await setRulesetGroup.mutateAsync({ id: item.id, groupId });
   };
 
+  const standing = isOwner
+    ? { tone: 'brand' as const, label: 'Owner', icon: <Crown size={12} aria-hidden /> }
+    : membershipStandings[membershipStatus];
+  const headerStats = [
+    {
+      key: 'members',
+      icon: <UsersRound size={17} aria-hidden />,
+      value: activeMembers.length,
+      label: `${activeMembers.length} ${activeMembers.length === 1 ? 'member' : 'members'}`,
+    },
+    {
+      key: 'factions',
+      icon: <TopicIcon topic="factions" size={17} />,
+      value: factions.length,
+      label: `${factions.length} ${factions.length === 1 ? 'faction' : 'factions'} maintained`,
+    },
+    {
+      key: 'rulesets',
+      icon: <TopicIcon topic="rulesets" size={17} />,
+      value: rulesets.length,
+      label: `${rulesets.length} ${rulesets.length === 1 ? 'ruleset' : 'rulesets'} maintained`,
+    },
+  ];
+  const requestError = membershipWorkflow.request.error?.message ?? null;
+
   return (
     <PageLayout>
       <PageLayout.Header size="compact">
         <PageIdentity
           title={group.name}
+          media={<Avatar name={group.name} radius="md" size="100%" color="dune" className={styles.groupAvatar} />}
           breadcrumb={<PageIdentity.Breadcrumb to="/profiles">Profiles</PageIdentity.Breadcrumb>}
-        >
-          <Group gap="xs" wrap="wrap">
-            <Text size="sm" c="dimmed">
-              Stewarded by
-            </Text>
-            <OwnerLine ownerProfile={ownerProfile} createdBy={group.created_by} />
-            <MembershipStatusBadge status={membershipStatus} isOwner={isOwner} />
-          </Group>
-        </PageIdentity>
+          maintainers={{
+            label: 'Owned by',
+            owner: ownerProfile?.slug
+              ? { slug: ownerProfile.slug, name: ownerProfile.username, image: ownerProfile.avatar_url }
+              : null,
+          }}
+          standing={standing}
+          stats={headerStats}
+        />
       </PageLayout.Header>
       <PageLayout.Toolbar>
-        <>
-          <Toolbar>
-            <Toolbar.Left>
-              <Group gap="xs" wrap="wrap" role="group" aria-label="Navigation and editing">
+        <Toolbar>
+          <Toolbar.Left>
+            <Group gap="xs" wrap="wrap" role="group" aria-label="Navigation and editing">
+              <IconAction
+                label="Back to profiles"
+                emphasis="standard"
+                intent="neutral"
+                size="lg"
+                renderRoot={(rootProps) => <Link {...rootProps} to="/profiles" />}
+                icon={<ArrowLeft size={17} aria-hidden />}
+              />
+              {viewerAccess.capabilities.rename ? (
                 <IconAction
-                  label="Back to profiles"
+                  label="Edit group settings"
                   emphasis="standard"
                   intent="neutral"
                   size="lg"
-                  renderRoot={(rootProps) => <Link {...rootProps} to="/profiles" />}
-                  icon={<ArrowLeft size={17} aria-hidden />}
+                  renderRoot={(rootProps) => (
+                    <Link {...rootProps} to="/groups/$groupSlug/edit" params={{ groupSlug }} />
+                  )}
+                  icon={<Pencil size={17} aria-hidden />}
                 />
-                {viewerAccess.capabilities.rename ? (
-                  <IconAction
-                    label="Edit group settings"
-                    emphasis="standard"
-                    intent="neutral"
-                    size="lg"
-                    renderRoot={(rootProps) => (
-                      <Link {...rootProps} to="/groups/$groupSlug/edit" params={{ groupSlug }} />
-                    )}
-                    icon={<Pencil size={17} aria-hidden />}
-                  />
-                ) : null}
-                {viewerAccess.capabilities.delete ? (
-                  <ConfirmDeleteAction
-                    label="Delete group"
-                    pending={deleteGroup.isPending}
-                    onConfirm={handleDeleteGroup}
-                  />
-                ) : null}
-              </Group>
-            </Toolbar.Left>
-            <Toolbar.Right>
-              <RequestMembershipButton
-                canRequestMembership={viewerAccess.capabilities.requestMembership}
-                isAnonymous={isAnonymous}
-                requestPending={membershipWorkflow.request.isPending}
-                requestError={membershipWorkflow.request.error?.message ?? null}
-                onRequestMembership={() => void membershipWorkflow.request.run(groupId).catch(() => undefined)}
-              />
-            </Toolbar.Right>
-          </Toolbar>
-          {deleteGroup.error && (
-            <Text size="sm" c="red" role="alert" mt="xs">
-              Delete failed: {deleteGroup.error.message}
-            </Text>
-          )}
-        </>
+              ) : null}
+            </Group>
+          </Toolbar.Left>
+          <Toolbar.Right>
+            <Group gap="xs" wrap="wrap" role="group" aria-label="Group actions">
+              {viewerAccess.capabilities.requestMembership ? (
+                <IconAction
+                  label="Request membership"
+                  emphasis="strong"
+                  intent="positive"
+                  size="lg"
+                  loading={membershipWorkflow.request.isPending}
+                  onClick={() => void membershipWorkflow.request.run(groupId).catch(() => undefined)}
+                  icon={<UserPlus size={17} aria-hidden />}
+                />
+              ) : null}
+              {viewerAccess.capabilities.delete ? (
+                <ConfirmDeleteAction
+                  label="Delete group"
+                  pending={deleteGroup.isPending}
+                  onConfirm={handleDeleteGroup}
+                />
+              ) : null}
+            </Group>
+          </Toolbar.Right>
+        </Toolbar>
       </PageLayout.Toolbar>
       <PageLayout.Content>
+        {requestError && (
+          <Alert color="red" variant="light" title="Membership request failed" role="alert" mb="lg">
+            {requestError}
+          </Alert>
+        )}
+        {deleteGroup.error && (
+          <Alert color="red" variant="light" title="Delete failed" role="alert" mb="lg">
+            {deleteGroup.error.message}
+          </Alert>
+        )}
         <Box className={styles.twoColumnGrid}>
           <Stack gap="lg">
             <Card
@@ -250,7 +284,7 @@ function GroupDetailPage() {
               onReject={(membershipId) => void membershipWorkflow.reject.run(membershipId).catch(() => undefined)}
             />
 
-            <Card icon={<UsersRound size={18} aria-hidden />} title={`Members (${activeMembers.length})`}>
+            <Card icon={<UsersRound size={18} aria-hidden />} title="Members">
               <MemberRoster
                 members={activeMembers}
                 moderationBusy={membersModerationBusy}
@@ -360,73 +394,12 @@ function FremenIcon({ size = 18 }: { size?: number }) {
   );
 }
 
-function OwnerLine({ ownerProfile, createdBy }: { ownerProfile: GroupDetailPageData['owner']; createdBy: string }) {
-  return ownerProfile?.slug ? (
-    <ProfileLink slug={ownerProfile.slug} name={ownerProfile.username} image={ownerProfile.avatar_url} />
-  ) : (
-    <Text size="sm">{ownerProfile?.username ?? createdBy}</Text>
-  );
-}
-
-const membershipBadges: Record<MembershipState, { tone: StatusBadgeTone; label: string }> = {
+/** The viewer's own relation to the group, when there is one worth naming; a stranger is the default and gets none. */
+const membershipStandings: Record<MembershipState, PageIdentityStanding | null> = {
   active: { tone: 'positive', label: 'Active member' },
   pending: { tone: 'pending', label: 'Pending approval' },
-  none: { tone: 'neutral', label: 'Not a member' },
+  none: null,
 };
-
-function MembershipStatusBadge({ status, isOwner }: { status: MembershipState; isOwner: boolean }) {
-  if (isOwner) {
-    return (
-      <StatusBadge tone="brand" icon={<Crown size={12} aria-hidden />}>
-        Owner
-      </StatusBadge>
-    );
-  }
-  const badge = membershipBadges[status];
-  return <StatusBadge tone={badge.tone}>{badge.label}</StatusBadge>;
-}
-
-function RequestMembershipButton({
-  canRequestMembership,
-  isAnonymous,
-  requestPending,
-  requestError,
-  onRequestMembership,
-}: {
-  canRequestMembership: boolean;
-  isAnonymous: boolean;
-  requestPending: boolean;
-  requestError: string | null;
-  onRequestMembership: () => void;
-}) {
-  return (
-    <Stack gap={4}>
-      {isAnonymous && (
-        <Text size="sm" c="dimmed">
-          <Anchor renderRoot={(rootProps) => <Link {...rootProps} to="/auth/login" />}>Log in</Anchor> to request
-          membership.
-        </Text>
-      )}
-      {canRequestMembership && (
-        <Button
-          type="button"
-          variant="filled"
-          leftSection={<UserPlus size={16} aria-hidden />}
-          loading={requestPending}
-          onClick={onRequestMembership}
-          w="fit-content"
-        >
-          Request membership
-        </Button>
-      )}
-      {requestError && (
-        <Text size="sm" c="red" role="alert">
-          {requestError}
-        </Text>
-      )}
-    </Stack>
-  );
-}
 
 function MemberRow({
   entry,

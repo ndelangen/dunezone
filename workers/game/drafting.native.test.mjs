@@ -38,7 +38,7 @@ describe('Drafting and public assignment on a real game', () => {
       'ixians',
     ]);
     expect(opening.snapshot.controls.players).toEqual([
-      { seat: 'seat-1', name: 'Synthetic A', avatar: 'https://dune.zone/user-images/a.jpg' },
+      { seat: 'seat-1', name: 'Synthetic A', avatar: 'https://dune.zone/user-images/a.jpg', slug: 'synthetic-a' },
     ]);
     const b = await admit('b');
     expect(await rejected(b, { kind: 'draft-pick', factionId: 'atreides' })).toBe('Only a seated player drafts.');
@@ -46,6 +46,8 @@ describe('Drafting and public assignment on a real game', () => {
 
     let view = await accepted(a, { kind: 'draft-pick', factionId: 'atreides' });
     expect(view.snapshot.draft.picks).toEqual({ 'seat-1': ['atreides'] });
+    /* A player seated after admission is cited by the profile slug their ticket carried. */
+    expect(view.snapshot.controls.players.map((player) => player.slug)).toEqual(['synthetic-a', 'synthetic-b']);
     expect(await rejected(a, { kind: 'draft-pick', factionId: 'ixians' })).toBe(
       'Ixians is not generated yet; its assets are not published.'
     );
@@ -178,13 +180,16 @@ describe('Drafting and public assignment on a real game', () => {
     /* The pool is dealt at random, so seat 2 plays either faction. */
     expect(dealt.some((message) => /^Seat 2 plays (Atreides|Harkonnen) at station \d\.$/.test(message))).toBe(true);
     expect((await storedEventMessages(runtime)).filter((message) => message.includes('Synthetic'))).toEqual([]);
-    /* The creator's deletion scrubs the recorded creator, avatar included. */
+    /* The creator's deletion scrubs the recorded creator, avatar and profile slug included. */
     expect((await deleteAccount('user-a')).status).toBe(200);
     expect(
       await runtime.exec(
-        "SELECT json_extract(data,'$.game.creator.displayName') AS name, json_extract(data,'$.game.creator.avatarUrl') AS avatar FROM metadata"
+        "SELECT json_extract(data,'$.game.creator.displayName') AS name, json_extract(data,'$.game.creator.avatarUrl') AS avatar, json_extract(data,'$.game.creator.profileSlug') AS slug FROM metadata"
       )
-    ).toEqual([{ name: '[deleted user]', avatar: null }]);
+    ).toEqual([{ name: '[deleted user]', avatar: null, slug: null }]);
+    expect(await runtime.exec("SELECT avatar_url, profile_slug FROM actors WHERE user_id='user-a'")).toEqual([
+      { avatar_url: null, profile_slug: null },
+    ]);
   });
 
   it('opens without a catalogue when the read fails at creation, and reads it again before the first pick can stand', async () => {

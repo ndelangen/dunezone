@@ -254,6 +254,8 @@ test('owner can author a faction through its complete lifecycle', async ({ page 
     await updatedFaction.click();
     await expect(page).toHaveURL(new RegExp(`/factions/${factionAName.toLowerCase()}/?$`));
     await expect(page.getByRole('heading', { name: factionAName })).toBeVisible();
-    await expect(page.getByText('7/10 · Expert', { exact: true })).toBeVisible();
+    /* The rating reads in the header band: the number shows, and its full phrase is the stat's accessible label. */
+    await expect(page.getByText('7/10', { exact: true })).toBeVisible();
+    await expect(page.getByText('Complexity 7/10 · Expert', { exact: true })).toHaveCount(1);
   });
 });
