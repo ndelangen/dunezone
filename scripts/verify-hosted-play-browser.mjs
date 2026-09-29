@@ -5,6 +5,7 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { parseArgs, parseEnv } from 'node:util';
 
+import { ConvexHttpClient } from 'convex/browser';
 import { chromium, errors } from 'playwright';
 import sharp from 'sharp';
 
@@ -18,6 +19,7 @@ import { stackTopHeight } from '../src/shared/play/tableGeometry.ts';
 import { trackerArcSlots, TRACKER_DISC_TOP_Y } from '../src/shared/play/tableTrackers.ts';
 import { applyRoomUpdate } from '../src/shared/play/updates.ts';
 import { loopbackOrigin } from './lib/isolated-stack.ts';
+import { provisionAccounts, signIn as signInThroughForm } from './lib/synthetic-accounts.ts';
 import { privateInputFile } from './play-load/hosted-paths.ts';
 import { verifyBattles } from './verify-hosted-battles.mjs';
 import { verifyDecks } from './verify-hosted-decks.mjs';
@@ -85,6 +87,7 @@ for (const filename of [environmentPath, credentialsPath]) {
     'Private files must stay outside the report directory.'
   );
 }
+assert.ok(environment.CONVEX_SELF_HOSTED_ADMIN_KEY, 'The environment file needs CONVEX_SELF_HOSTED_ADMIN_KEY.');
 let credentials = {};
 try {
   credentials = JSON.parse(await readFile(credentialsPath, 'utf8'));
@@ -93,6 +96,26 @@ try {
     throw error;
   }
 }
+/* Every account a flow signs in; a second tab shares its player's context, and the unsigned visitor has none. */
+const SIGNED_IN = ['player-a', 'player-b', 'observer', 'visitor'];
+for (const label of SIGNED_IN) {
+  credentials[label] ??= {
+    email: `${label}-${randomBytes(8).toString('hex')}@example.invalid`,
+    password: randomBytes(24).toString('hex'),
+  };
+  assert.ok(
+    credentials[label].email.endsWith('@example.invalid') && typeof credentials[label].password === 'string',
+    'Only synthetic accounts are accepted.'
+  );
+}
+await writeFile(credentialsPath, JSON.stringify(credentials), { mode: 0o600 });
+/* The accounts exist before any browser starts, so a browser's sign-in only signs in and never creates one (#1493). */
+const admin = new ConvexHttpClient(backend, { logger: false });
+admin.setAdminAuth(environment.CONVEX_SELF_HOSTED_ADMIN_KEY);
+await provisionAccounts(
+  admin,
+  SIGNED_IN.map((label) => credentials[label])
+);
 const runDirectory = path.join(outputDirectory, `${values.flow}-${Date.now()}`);
 const directory = pathToFileURL(runDirectory + path.sep);
 const allowedOrigins = new Set([origin, backend]);
@@ -438,29 +461,8 @@ async function admissionTrace(who) {
   };
 }
 async function signIn(who) {
-  credentials[who.label] ??= {
-    email: `${who.label}-${randomBytes(8).toString('hex')}@example.invalid`,
-    password: randomBytes(24).toString('hex'),
-  };
-  assert.ok(
-    credentials[who.label].email.endsWith('@example.invalid') && typeof credentials[who.label].password === 'string',
-    'Only synthetic accounts are accepted.'
-  );
-  await writeFile(credentialsPath, JSON.stringify(credentials), { mode: 0o600 });
-  await who.page.goto(`${origin}/auth/login`, { waitUntil: 'domcontentloaded' });
-  await who.page.getByLabel('Email', { exact: true }).fill(credentials[who.label].email);
-  await who.page.getByLabel('Password', { exact: true }).fill(credentials[who.label].password);
-  const signedIn = who.page.getByRole('heading', { name: "You're signed in" });
-  const submit = who.page.getByTestId('local-auth-submit');
-  const alert = who.page.locator('form', { has: submit }).getByRole('alert');
-  await submit.click();
-  /* A sign-in the backend refuses fails at once with the form's own message, not after a silent 30 s wait. */
-  await signedIn.or(alert).first().waitFor();
-  if (!(await signedIn.isVisible())) {
-    throw new Error(
-      `Sign-in for ${who.label} failed: ${redactSecrets((await alert.textContent()) ?? '').slice(0, 300)}`
-    );
-  }
+  assert.ok(credentials[who.label], `${who.label} has no provisioned account; add it to SIGNED_IN.`);
+  await signInThroughForm(who.page, origin, credentials[who.label], who.label);
 }
 /** The id of the real game this flow creates; every account after the creator enters it. */
 let gameId;
