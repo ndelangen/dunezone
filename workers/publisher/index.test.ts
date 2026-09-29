@@ -95,7 +95,7 @@ describe('publisher Worker Publication flow', () => {
     expect(currentEnv.ASSETS.fetch).not.toHaveBeenCalled();
   });
 
-  test.each(['provision', 'account-deletion'])(
+  test.each(['provision', 'account-deletion', 'retire'])(
     'gives %s callbacks a separate per-IP quota without a game-ID bypass',
     async (operation) => {
       const currentEnv = publisherEnv();

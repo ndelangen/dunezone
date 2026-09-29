@@ -49,7 +49,7 @@ async function allowGameIngress(request: Request, url: URL, env: Env): Promise<b
   if (request.method === 'GET' && url.pathname === '/__play/health' && !url.search) {
     return true;
   }
-  const callback = request.method === 'POST' && /\/(provision|account-deletion)$/u.test(url.pathname);
+  const callback = request.method === 'POST' && /\/(provision|account-deletion|retire)$/u.test(url.pathname);
   const clientIp = request.headers.get('CF-Connecting-IP') ?? 'unknown';
   const result = await env.PLAY_INGRESS_RATE_LIMIT.limit({ key: `${callback ? 'callback' : 'connect'}:${clientIp}` });
   return result.success;
