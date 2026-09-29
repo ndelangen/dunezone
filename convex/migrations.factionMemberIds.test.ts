@@ -7,8 +7,11 @@ import { convexTest } from 'convex-test';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
 import { legacyAssetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
-import { ensureFactionMemberIds, FactionMemberIdSchema } from '../src/shared/factions/memberIdentity';
-import { IdentifiedFactionStoredSchema } from '../src/shared/factions/schema';
+import {
+  ensureFactionMemberIds,
+  factionMembersHaveIds,
+  FactionMemberIdSchema,
+} from '../src/shared/factions/memberIdentity';
 import { internal } from './_generated/api';
 import schema from './schema';
 
@@ -81,7 +84,7 @@ describe('faction member identity migration', () => {
     const afterRetry = await t.run(async (ctx) => Promise.all(factionIds.map((id) => ctx.db.get('factions', id))));
     expect(afterRetry).toEqual(beforeRetry);
     for (const faction of afterRetry) {
-      expect(IdentifiedFactionStoredSchema.safeParse(faction?.data).success).toBe(true);
+      expect(factionMembersHaveIds(faction!.data)).toBe(true);
       expect(faction?.updated_at).toBe('2026-09-01T00:00:00.000Z');
     }
     await expect(
