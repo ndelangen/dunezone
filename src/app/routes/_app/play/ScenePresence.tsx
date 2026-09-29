@@ -9,7 +9,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import type { Group } from 'three';
 import { Raycaster, Vector2, Vector3 } from 'three';
 
-import { usePresence } from './multiplayer/PresenceContext';
+import { useTabletop } from './TabletopContext';
 
 function rectangleContainsPoint(bounds: DOMRect, x: number, y: number) {
   return x >= bounds.left && x <= bounds.right && y >= bounds.top && y <= bounds.bottom;
@@ -175,7 +175,7 @@ declare global {
 }
 
 export function ScenePresence() {
-  const { pointers, canInteract, publishPointer } = usePresence();
+  const { pointers, canInteract, publishPointer } = useTabletop();
   const { camera, renderer, scene } = useThree();
   const raycaster = useMemo(() => new Raycaster(), []);
   const normalized = useMemo(() => new Vector2(), []);
