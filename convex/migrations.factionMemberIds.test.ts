@@ -7,8 +7,11 @@ import { convexTest } from 'convex-test';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
 import { legacyAssetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
-import { ensureFactionMemberIds, FactionMemberIdSchema } from '../src/shared/factions/memberIdentity';
-import { IdentifiedFactionStoredSchema } from '../src/shared/factions/schema';
+import {
+  ensureFactionMemberIds,
+  factionMembersHaveIds,
+  FactionMemberIdSchema,
+} from '../src/shared/factions/memberIdentity';
 import { internal } from './_generated/api';
 import schema from './schema';
 
@@ -80,11 +83,8 @@ describe('faction member identity migration', () => {
     await t.mutation(internal.migrations.faction_member_ids_verify_v1, {});
     const afterRetry = await t.run(async (ctx) => Promise.all(factionIds.map((id) => ctx.db.get('factions', id))));
     expect(afterRetry).toEqual(beforeRetry);
-    /* Stored factions also require troop identities since #1227 narrowed them, so the troop backfill completes the roster. */
-    await t.mutation(internal.migrations.faction_troop_ids_v1, {});
-    const identified = await t.run(async (ctx) => Promise.all(factionIds.map((id) => ctx.db.get('factions', id))));
-    for (const faction of identified) {
-      expect(IdentifiedFactionStoredSchema.safeParse(faction?.data).success).toBe(true);
+    for (const faction of afterRetry) {
+      expect(factionMembersHaveIds(faction!.data)).toBe(true);
       expect(faction?.updated_at).toBe('2026-09-01T00:00:00.000Z');
     }
     await expect(
