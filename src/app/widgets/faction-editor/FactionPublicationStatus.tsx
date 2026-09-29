@@ -15,7 +15,7 @@ function formatPublishedAt(timestamp: number): string {
 function publicationGlyph(
   publication: PublicAssetPublishingStatusProjection | undefined
 ): Pick<StatusMarkProps, 'tone' | 'icon'> {
-  /* Only editors see this toolbar, so a failed replacement reads as failed, as the words do (#1385). */
+  /* A failed replacement reads as failed, as the words do (#1385). */
   const capture = publication?.captureStatus;
   switch (true) {
     case capture === 'error':
@@ -46,7 +46,7 @@ export function FactionPublicationStatus({
   publication?: PublicAssetPublishingStatusProjection;
 }) {
   const words = publication
-    ? factionAssetPublishingCopy(publication.status, publication.captureStatus, { viewerCanEdit: true })
+    ? factionAssetPublishingCopy(publication.status, publication.captureStatus)
     : 'Saving this faction schedules its public assets.';
   const label =
     publication?.lastPublishedAt == null

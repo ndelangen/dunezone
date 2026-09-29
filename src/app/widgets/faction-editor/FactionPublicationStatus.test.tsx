@@ -18,7 +18,7 @@ vi.stubGlobal('matchMedia', (media: string) => ({
 afterEach(cleanup);
 
 describe('FactionPublicationStatus', () => {
-  test('tells the editor a failed replacement left the previous sheet published', () => {
+  test('tells the editor a failed replacement may have left the published sheet out of date', () => {
     render(
       <MantineProvider theme={appContentTheme} forceColorScheme="light">
         <FactionPublicationStatus
@@ -34,7 +34,7 @@ describe('FactionPublicationStatus', () => {
 
     expect(
       screen.getByRole('img', {
-        name: 'The previous faction sheet is still published, but the latest changes were not captured.',
+        name: 'The published faction sheet may be out of date because the latest changes were not captured.',
       })
     ).toBeTruthy();
   });

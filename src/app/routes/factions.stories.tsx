@@ -77,17 +77,17 @@ const currentSheetWithAFailedReplacement = db((baseline) => {
 
 /**
  * Someone who can edit the faction is told when a replacement capture failed beside a current sheet (#1385).
- * The previous sheet stays published (CONTEXT.md, Asset publication state), so the words say that too, and the published PDF stays on offer.
+ * The previous sheet stays published (CONTEXT.md, Asset publication state), so the words say it may be out of date, and the published PDF stays on offer.
  */
 export const DetailTellsItsEditorsAReplacementFailed = meta.story({
   args: { path: '/factions/house-atreides' },
   parameters: { database: currentSheetWithAFailedReplacement },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    /* Confirms this viewer can edit, so the story is not a reader's page that happens to agree. */
+    /* Confirms this viewer can edit, so this story and the reader's one cover both kinds of viewer. */
     await expect(page.findByRole('link', { name: 'Edit faction' }, { timeout: 30_000 })).resolves.toBeVisible();
     await expect(
-      page.findByText('The previous faction sheet is still published, but the latest changes were not captured.')
+      page.findByText('The published faction sheet may be out of date because the latest changes were not captured.')
     ).resolves.toBeVisible();
     await expect(page.findByText('Update failed')).resolves.toBeVisible();
     expect(page.queryByText('Current')).toBeNull();
@@ -96,19 +96,25 @@ export const DetailTellsItsEditorsAReplacementFailed = meta.story({
 });
 
 /**
- * A reader sees the publication a failed replacement capture leaves in place, which is current (#1318, #1385).
- * The failure is the editors' business;
- * the sheet a reader downloads is the one the page says is current.
+ * A reader is told the same, since the sheet they download may be out of date (#1385).
+ * The published PDF stays on offer beside it.
  */
-export const DetailKeepsCurrentForReadersBesideAFailedReplacement = meta.story({
+export const DetailTellsReadersAReplacementFailed = meta.story({
   args: { path: '/factions/house-atreides' },
   parameters: { database: currentSheetWithAFailedReplacement, identity: null },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await expect(page.findByText('Public assets are current.', {}, { timeout: 30_000 })).resolves.toBeVisible();
-    await expect(page.findByText('Current')).resolves.toBeVisible();
+    await expect(
+      page.findByText(
+        'The published faction sheet may be out of date because the latest changes were not captured.',
+        {},
+        { timeout: 30_000 }
+      )
+    ).resolves.toBeVisible();
+    await expect(page.findByText('Update failed')).resolves.toBeVisible();
+    expect(page.queryByText('Current')).toBeNull();
     expect(page.queryByRole('link', { name: 'Edit faction' })).toBeNull();
-    expect(page.queryByText('Update failed')).toBeNull();
+    await expect(page.findByRole('link', { name: 'Open published PDF' })).resolves.toBeVisible();
   },
 });
 

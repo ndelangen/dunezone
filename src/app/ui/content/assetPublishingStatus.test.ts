@@ -18,17 +18,12 @@ describe('faction publishing feedback', () => {
     expect(factionAssetPublishingCopy(null, 'scheduled')).toBe('A new faction sheet capture is scheduled.');
   });
 
-  test('reads a failed replacement capture as the publication it leaves in place', () => {
-    expect(factionAssetPublishingCopy('current', 'error')).toBe('Public assets are current.');
-  });
-
-  test('tells a viewer who can edit the faction that the replacement capture failed', () => {
-    expect(factionAssetPublishingCopy('current', 'error', { viewerCanEdit: true })).toBe(
-      'The previous faction sheet is still published, but the latest changes were not captured.'
+  test('tells every viewer that a failed replacement capture may leave the sheet out of date', () => {
+    expect(factionAssetPublishingCopy('current', 'error')).toBe(
+      'The published faction sheet may be out of date because the latest changes were not captured.'
     );
-    expect(factionAssetPublishingCopy(null, 'error', { viewerCanEdit: true })).toBe(
+    expect(factionAssetPublishingCopy(null, 'error')).toBe(
       'The latest changes were not captured, so no faction sheet is published yet.'
     );
-    expect(factionAssetPublishingCopy('current', null, { viewerCanEdit: true })).toBe('Public assets are current.');
   });
 });

@@ -86,37 +86,20 @@ function FactionDetailError({ error }: ErrorComponentProps) {
 }
 
 /**
- * The Files card's badge and status line for the faction sheet.
- * A failed replacement leaves the publication it replaces in place (CONTEXT.md, Asset publication state).
- * A viewer who can edit the faction is told the update failed (#1385);
- * a reader sees the publication that stays current.
+ * The Files card's badge for the faction sheet.
+ * A failed replacement leaves the publication it replaces in place (CONTEXT.md, Asset publication state), but every viewer is told the update failed (#1385).
  */
-function filesStatus(
-  publishing: PublicAssetPublishingStatusProjection,
-  viewerCanEdit: boolean
-): { tone: StatusBadgeTone; label: string; copy: string } {
-  return {
-    ...filesBadge(publishing, viewerCanEdit),
-    copy: factionAssetPublishingCopy(publishing.status, publishing.captureStatus, { viewerCanEdit }),
-  };
-}
-
-function filesBadge(
-  { status, captureStatus }: PublicAssetPublishingStatusProjection,
-  viewerCanEdit: boolean
-): {
+function filesBadge({ status, captureStatus }: PublicAssetPublishingStatusProjection): {
   tone: StatusBadgeTone;
   label: string;
 } {
-  if (captureStatus === 'error' && viewerCanEdit) {
-    return { tone: 'negative', label: 'Update failed' };
-  }
   switch (captureStatus) {
     case 'in_progress':
       return { tone: 'progress', label: 'In progress' };
     case 'scheduled':
       return { tone: 'pending', label: 'Scheduled' };
     case 'error':
+      return { tone: 'negative', label: 'Update failed' };
     case null:
       return status === 'current' ? { tone: 'positive', label: 'Current' } : { tone: 'neutral', label: 'Unavailable' };
   }
@@ -146,7 +129,7 @@ function FactionDetailPage() {
   const data = faction.data;
   const planets = data.planet ?? [];
   const troopCount = data.troops.reduce((total, troop) => total + troop.count, 0);
-  const files = filesStatus(assetPublishing, canEdit);
+  const files = filesBadge(assetPublishing);
   const complexity = effectiveComplexity(data.complexity);
   /**
    * Standing beside the maintaining group, and only when the viewer has a standing worth naming.
@@ -465,7 +448,7 @@ function FactionDetailPage() {
               }
             >
               <Text size="sm" c="dimmed">
-                {files.copy}
+                {factionAssetPublishingCopy(assetPublishing.status, assetPublishing.captureStatus)}
               </Text>
             </Card>
 
