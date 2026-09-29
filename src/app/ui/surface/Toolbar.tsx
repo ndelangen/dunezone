@@ -26,11 +26,17 @@ function Right({ children }: ToolbarSlotProps) {
  * This owns the band they sit in: the pane, its gutter, and the three positions.
  * `Left` and `Right` share the remaining width and pull to their outer edges, while `Center` takes only the room it needs.
  *
+ * The edges hold their width by default, so a crowded band squeezes the centre and never the controls.
+ * `edges="shrink"` lets them give way down to their widest unbreakable piece instead, which is what a `Group wrap="wrap"` inside an edge needs before it can wrap.
+ * It is opt-in because an edge that cannot wrap, such as a `nowrap` row of actions, gains nothing from shrinking.
+ *
  * It is a surface, so it must not be placed inside one.
  * A page hands it controls, never chrome;
  * there is no variant of this without the pane, because a bare row of buttons is a `Group`.
  */
 export type ToolbarProps = {
+  /** Whether the edges keep their content's width (`hold`, the default) or may shrink so wrapping content inside them wraps (`shrink`). */
+  edges?: 'hold' | 'shrink';
   className?: string;
   children?: ReactNode;
 };
@@ -41,7 +47,7 @@ type ToolbarComponent = ((props: ToolbarProps) => ReactNode) & {
   Right: typeof Right;
 };
 
-const ToolbarBase = ({ className, children }: ToolbarProps) => {
+const ToolbarBase = ({ edges = 'hold', className, children }: ToolbarProps) => {
   let left: ReactNode = null;
   let center: ReactNode = null;
   let right: ReactNode = null;
@@ -68,7 +74,7 @@ const ToolbarBase = ({ className, children }: ToolbarProps) => {
 
   return (
     <Surface padding="sm">
-      <div className={clsx(styles.root, className)}>
+      <div className={clsx(styles.root, edges === 'shrink' && styles.shrinkingEdges, className)}>
         <div className={styles.left}>{left}</div>
         <div className={styles.center}>{center}</div>
         <div className={styles.right}>{right}</div>

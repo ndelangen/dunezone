@@ -1,4 +1,7 @@
+import { Group } from '@mantine/core';
 import preview from '@sb/preview';
+import type { ReactNode } from 'react';
+import { expect } from 'storybook/test';
 
 import { SurfaceFiller } from './SurfaceFiller.stories.fixture';
 import { Toolbar } from './Toolbar';
@@ -65,5 +68,68 @@ export const ManyControls = meta.story({
         {wideControl}
       </Toolbar.Right>,
     ],
+  },
+});
+
+/* A band narrower than its edges' controls, so the stories below can show which part gives way. */
+const NARROW_WIDTH = 320;
+
+const narrow = (Story: () => ReactNode) => (
+  <div data-narrow-frame style={{ width: NARROW_WIDTH }}>
+    <Story />
+  </div>
+);
+
+/* Each edge asks its controls to wrap, as a page with a long row of actions does. */
+const wrappingEdges = [
+  <Toolbar.Left key="left">
+    <Group gap="xs" wrap="wrap">
+      {wideControl}
+      {control}
+      {control}
+    </Group>
+  </Toolbar.Left>,
+  <Toolbar.Right key="right">
+    <Group gap="xs" wrap="wrap">
+      {control}
+      {control}
+      {wideControl}
+    </Group>
+  </Toolbar.Right>,
+];
+
+function controlRows(canvasElement: HTMLElement) {
+  const controls = [...canvasElement.querySelectorAll<HTMLElement>('[data-narrow-frame] [aria-hidden]')];
+  return new Set(controls.map((element) => Math.round(element.getBoundingClientRect().top))).size;
+}
+
+function rightmostControlEdge(canvasElement: HTMLElement) {
+  const controls = [...canvasElement.querySelectorAll<HTMLElement>('[data-narrow-frame] [aria-hidden]')];
+  return Math.max(...controls.map((element) => element.getBoundingClientRect().right));
+}
+
+function frameRight(canvasElement: HTMLElement) {
+  const frame = canvasElement.querySelector<HTMLElement>('[data-narrow-frame]');
+  expect(frame).not.toBeNull();
+  return (frame as HTMLElement).getBoundingClientRect().right;
+}
+
+/** By default the edges hold their width, so a wrapping row inside one stays on one line even when the band is too narrow for it. */
+export const EdgesHoldWhenNarrow = meta.story({
+  decorators: [narrow],
+  args: { children: wrappingEdges },
+  play: async ({ canvasElement }) => {
+    await expect(controlRows(canvasElement)).toBe(1);
+    await expect(rightmostControlEdge(canvasElement)).toBeGreaterThan(frameRight(canvasElement));
+  },
+});
+
+/** `edges="shrink"` lets the edges give way, so the rows inside them wrap and every control stays inside the band. */
+export const ShrinkingEdgesWrap = meta.story({
+  decorators: [narrow],
+  args: { edges: 'shrink', children: wrappingEdges },
+  play: async ({ canvasElement }) => {
+    await expect(controlRows(canvasElement)).toBeGreaterThan(1);
+    await expect(rightmostControlEdge(canvasElement)).toBeLessThanOrEqual(frameRight(canvasElement));
   },
 });

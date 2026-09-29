@@ -2719,7 +2719,7 @@ function RulebookEditorSession({
     <PageLayout>
       {header.slot}
       <PageLayout.Toolbar>
-        <Toolbar className={styles.editorToolbar}>
+        <Toolbar edges="shrink">
           <Toolbar.Left>
             <Group gap="sm" wrap="wrap">
               <IconAction

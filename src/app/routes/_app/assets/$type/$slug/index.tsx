@@ -554,7 +554,7 @@ function LoadedAssetDetail({ page }: { page: AssetPage }) {
       </PageLayout.Header>
 
       <PageLayout.Toolbar>
-        <Toolbar>
+        <Toolbar edges="shrink">
           <Toolbar.Left>
             <Group role="group" aria-label="Navigation and editing" gap="xs" wrap="wrap">
               <IconAction

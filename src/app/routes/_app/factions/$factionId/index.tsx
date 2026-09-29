@@ -187,7 +187,7 @@ function FactionDetailPage() {
         />
       </PageLayout.Header>
       <PageLayout.Toolbar>
-        <Toolbar>
+        <Toolbar edges="shrink">
           <Toolbar.Left>
             <Group gap="xs" wrap="wrap" role="group" aria-label="Navigation and editing">
               <IconAction

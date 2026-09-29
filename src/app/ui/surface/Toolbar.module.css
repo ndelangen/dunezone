@@ -17,6 +17,15 @@
   flex: 1 0 auto;
 }
 
+/* Opt-in: the edges still start from their content's width and share the leftover, but give way
+   in proportion to that width when the band runs out, so the wider edge keeps the larger share.
+   The automatic minimum stays, so an edge stops at its widest unbreakable piece rather than being
+   crushed into its neighbour; what lets it get narrower than one line is content that wraps. */
+.shrinkingEdges > .left,
+.shrinkingEdges > .right {
+  flex-shrink: 1;
+}
+
 .left {
   justify-content: flex-start;
 }
