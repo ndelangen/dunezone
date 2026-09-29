@@ -1,9 +1,7 @@
 import {
   Alert,
-  Anchor,
   Badge,
   Box,
-  Button,
   ColorSwatch,
   Divider,
   Flex,
@@ -23,21 +21,18 @@ import { Section } from '@ui/block/Section';
 import { factionAssetPublishingCopy } from '@ui/content/assetPublishingStatus';
 import { complexityOutOfTen, complexityTier, effectiveComplexity } from '@ui/content/complexity';
 import { COMPLEXITY_TIER_PRESENTATION, ComplexityGlyph } from '@ui/content/ComplexityGlyph';
-import { Eyebrow } from '@ui/content/Eyebrow';
 import { FormattedTextSource, InlineFormattedTextSource } from '@ui/content/FormattedText';
-import { GroupLink } from '@ui/content/GroupLink';
-import { ProfileLink } from '@ui/content/ProfileLink';
 import { StatusBadge } from '@ui/content/StatusBadge';
 import type { StatusBadgeTone } from '@ui/content/StatusBadge';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Links } from '@ui/list/Links';
-import { Stats } from '@ui/list/Stats';
+import type { StatsItem } from '@ui/list/Stats';
 import { Surface } from '@ui/surface';
 import { Card } from '@ui/surface/Card';
 import { Toolbar } from '@ui/surface/Toolbar';
-import { ArrowLeft, Download, Eye, FileText, MapPin, Pencil, UserPlus, UsersRound } from 'lucide-react';
+import { ArrowLeft, Download, Eye, FileText, MapPin, Pencil, UserPlus } from 'lucide-react';
 
 import { loadFaction, useFaction } from '@db/factions';
 import type { FactionData, PublicAssetPublishingStatusProjection } from '@db/factions';
@@ -70,35 +65,13 @@ function FactionDetailPending() {
   );
 }
 
-/** This page's compact sidebar summary for the faction's effective complexity rating. */
-function FactionComplexitySummary({ score }: { score: number }) {
-  return (
-    <Surface padding="md">
-      <Group justify="space-between" wrap="nowrap" gap="xs">
-        <Group gap="xs" wrap="nowrap">
-          <ComplexityGlyph score={score} size={17} decorative />
-          <Text size="sm" fw={600}>
-            Complexity
-          </Text>
-        </Group>
-        <Text size="sm" c="dimmed">
-          {complexityOutOfTen(score)}/10 · {COMPLEXITY_TIER_PRESENTATION[complexityTier(score)].label}
-        </Text>
-      </Group>
-    </Surface>
-  );
-}
-
 function FactionSidebarOverview({ data }: { data: FactionData }) {
   return (
-    <>
-      <FactionComplexitySummary score={effectiveComplexity(data.complexity)} />
-      <Section icon={<TopicIcon topic="hero" size={20} />} title="Faction leader">
-        <div className={styles.loreHeroToken}>
-          <LeaderToken {...data.hero} strength={undefined} background={data.background} logo={data.logo} />
-        </div>
-      </Section>
-    </>
+    <Section icon={<TopicIcon topic="hero" size={20} />} title="Faction leader">
+      <div className={styles.loreHeroToken}>
+        <LeaderToken {...data.hero} strength={undefined} background={data.background} logo={data.logo} />
+      </div>
+    </Section>
   );
 }
 
@@ -156,6 +129,44 @@ function FactionDetailPage() {
   const planets = data.planet ?? [];
   const troopCount = data.troops.reduce((total, troop) => total + troop.count, 0);
   const files = filesBadge(assetPublishing);
+  const complexity = effectiveComplexity(data.complexity);
+  /**
+   * Standing beside the maintaining group, and only when the viewer has a standing worth naming.
+   * "Not a member" is the default state of every reader, so saying it would be noise.
+   */
+  const membershipBadge =
+    membershipStatus === 'active'
+      ? ({ tone: 'positive', label: 'Member' } as const)
+      : membershipStatus === 'pending'
+        ? ({ tone: 'pending', label: 'Pending' } as const)
+        : null;
+  /** The counts the header carries; the rulesets stay a list of links in the content. */
+  const headerStats: StatsItem[] = [
+    {
+      key: 'complexity',
+      icon: <ComplexityGlyph score={complexity} size={17} decorative />,
+      value: `${complexityOutOfTen(complexity)}/10`,
+      label: `Complexity ${complexityOutOfTen(complexity)}/10 · ${COMPLEXITY_TIER_PRESENTATION[complexityTier(complexity)].label}`,
+    },
+    {
+      key: 'leaders',
+      icon: <TopicIcon topic="leaders" size={17} />,
+      value: data.leaders.length,
+      label: `${data.leaders.length} ${data.leaders.length === 1 ? 'leader' : 'leaders'}`,
+    },
+    {
+      key: 'troops',
+      icon: <TopicIcon topic="troops" size={17} />,
+      value: troopCount,
+      label: `${troopCount} ${troopCount === 1 ? 'troop' : 'troops'}`,
+    },
+    {
+      key: 'spice',
+      icon: <TopicIcon topic="spice" size={17} />,
+      value: data.rules.spiceCount,
+      label: `${data.rules.spiceCount} spice`,
+    },
+  ];
   return (
     <PageLayout>
       <PageLayout.Header size="compact">
@@ -167,18 +178,13 @@ function FactionDetailPage() {
             </div>
           }
           breadcrumb={<PageIdentity.Breadcrumb to="/factions">Factions</PageIdentity.Breadcrumb>}
-        >
-          <Group gap="xs" wrap="wrap">
-            <Text size="sm" c="dimmed">
-              Maintained by
-            </Text>
-            {owner ? (
-              <ProfileLink slug={owner.slug} name={owner.username} image={profileAvatarUrl(owner)} />
-            ) : (
-              <Text size="sm">Unknown</Text>
-            )}
-          </Group>
-        </PageIdentity>
+          maintainers={{
+            owner: owner ? { slug: owner.slug, name: owner.username, image: profileAvatarUrl(owner) } : null,
+            group: assignedGroup ? { slug: assignedGroup.slug, name: assignedGroup.name } : null,
+          }}
+          standing={membershipBadge}
+          stats={headerStats}
+        />
       </PageLayout.Header>
       <PageLayout.Toolbar>
         <Toolbar>
@@ -237,11 +243,28 @@ function FactionDetailPage() {
                   icon={<Download size={17} aria-hidden />}
                 />
               ) : null}
+              {canRequestMembership && assignedGroup ? (
+                <IconAction
+                  label="Request membership"
+                  emphasis="standard"
+                  intent="neutral"
+                  size="lg"
+                  loading={membershipWorkflow.request.isPending}
+                  disabled={membershipWorkflow.request.isPending}
+                  onClick={() => void membershipWorkflow.request.run(assignedGroup.id).catch(() => undefined)}
+                  icon={<UserPlus size={17} aria-hidden />}
+                />
+              ) : null}
             </Group>
           </Toolbar.Right>
         </Toolbar>
       </PageLayout.Toolbar>
       <PageLayout.Content>
+        {membershipWorkflow.request.isError ? (
+          <Alert color="red" title="Membership request failed" role="alert" mb="xl">
+            {membershipWorkflow.request.error?.message}
+          </Alert>
+        ) : null}
         <Flex direction={{ base: 'column-reverse', md: 'row' }} gap="xl" align={{ base: 'stretch', md: 'flex-start' }}>
           <Box miw={0} style={{ flex: '1 1 auto' }}>
             <Stack gap="xl">
@@ -370,57 +393,28 @@ function FactionDetailPage() {
             <Section icon={<TopicIcon topic="setup" size={20} />} title="Setup">
               <Surface padding="lg">
                 <Stack gap="lg">
-                  <Box>
+                  <Stack gap="xs">
                     <Title order={3} size="h4">
-                      Components
+                      Preferred TTS color
                     </Title>
-                    <Box mt="sm">
-                      <Stats
-                        items={[
-                          {
-                            key: 'spice',
-                            icon: <TopicIcon topic="spice" size={17} />,
-                            value: data.rules.spiceCount,
-                            label: `${data.rules.spiceCount} spice`,
-                          },
-                          {
-                            key: 'leaders',
-                            icon: <TopicIcon topic="leaders" size={17} />,
-                            value: data.leaders.length,
-                            label: `${data.leaders.length} ${data.leaders.length === 1 ? 'leader' : 'leaders'}`,
-                          },
-                          {
-                            key: 'troops',
-                            icon: <TopicIcon topic="troops" size={17} />,
-                            value: troopCount,
-                            label: `${troopCount} ${troopCount === 1 ? 'troop' : 'troops'}`,
-                          },
-                        ]}
-                      />
-                    </Box>
-                    <Stack gap="xs" mt="lg">
-                      <Title order={4} size="h5">
-                        Preferred TTS color
-                      </Title>
-                      {data.colors.length > 0 ? (
-                        <Group gap="sm">
-                          {data.colors.map((color) => (
-                            <Tooltip key={color} label={`${color} TTS color`}>
-                              <ColorSwatch
-                                color={TTS_COLOR_SWATCHES[color]}
-                                size={18}
-                                aria-label={`${color} TTS color`}
-                              />
-                            </Tooltip>
-                          ))}
-                        </Group>
-                      ) : (
-                        <Text size="sm" c="dimmed">
-                          None specified.
-                        </Text>
-                      )}
-                    </Stack>
-                  </Box>
+                    {data.colors.length > 0 ? (
+                      <Group gap="sm">
+                        {data.colors.map((color) => (
+                          <Tooltip key={color} label={`${color} TTS color`}>
+                            <ColorSwatch
+                              color={TTS_COLOR_SWATCHES[color]}
+                              size={18}
+                              aria-label={`${color} TTS color`}
+                            />
+                          </Tooltip>
+                        ))}
+                      </Group>
+                    ) : (
+                      <Text size="sm" c="dimmed">
+                        None specified.
+                      </Text>
+                    )}
+                  </Stack>
                   <Divider />
                   <Box>
                     <Title order={3} size="h4">
@@ -443,67 +437,6 @@ function FactionDetailPage() {
               </Surface>
             </Section>
 
-            <Card icon={<UsersRound size={20} aria-hidden />} title="Stewardship">
-              {!assignedGroup ? (
-                <Text size="sm" c="dimmed">
-                  No maintaining group.
-                </Text>
-              ) : (
-                <Stack gap="sm">
-                  <Box>
-                    <Eyebrow>Maintaining group</Eyebrow>
-                    {assignedGroup.slug ? (
-                      <GroupLink slug={assignedGroup.slug} name={assignedGroup.name} />
-                    ) : (
-                      <Text fw={600}>{assignedGroup.name}</Text>
-                    )}
-                  </Box>
-                  <Group justify="space-between" gap="xs">
-                    <Text size="sm" c="dimmed">
-                      Your membership
-                    </Text>
-                    <StatusBadge
-                      tone={
-                        membershipStatus === 'active'
-                          ? 'positive'
-                          : membershipStatus === 'pending'
-                            ? 'pending'
-                            : 'neutral'
-                      }
-                    >
-                      {membershipStatus === 'active'
-                        ? 'Active'
-                        : membershipStatus === 'pending'
-                          ? 'Pending'
-                          : 'Not a member'}
-                    </StatusBadge>
-                  </Group>
-                  {viewerAccess?.viewer.kind === 'anonymous' ? (
-                    <Text size="sm">
-                      <Anchor renderRoot={(rootProps) => <Link {...rootProps} to="/auth/login" />}>Log in</Anchor> to
-                      join.
-                    </Text>
-                  ) : null}
-                  {canRequestMembership ? (
-                    <Button
-                      type="button"
-                      variant="light"
-                      leftSection={<UserPlus size={16} aria-hidden />}
-                      loading={membershipWorkflow.request.isPending}
-                      onClick={() => void membershipWorkflow.request.run(assignedGroup.id).catch(() => undefined)}
-                    >
-                      Request membership
-                    </Button>
-                  ) : null}
-                </Stack>
-              )}
-              {membershipWorkflow.request.isError ? (
-                <Alert color="red" title="Membership request failed" role="alert">
-                  {membershipWorkflow.request.error?.message}
-                </Alert>
-              ) : null}
-            </Card>
-
             <Card
               icon={<FileText size={20} aria-hidden />}
               title="Files"
@@ -513,24 +446,9 @@ function FactionDetailPage() {
                 </StatusBadge>
               }
             >
-              <Stack gap="sm">
-                <Text size="sm" c="dimmed">
-                  {factionAssetPublishingCopy(assetPublishing.status, assetPublishing.captureStatus)}
-                </Text>
-                <Anchor
-                  fw={600}
-                  renderRoot={(rootProps) => (
-                    <Link
-                      {...rootProps}
-                      to="/preview/sheet/$factionSlug"
-                      params={{ factionSlug: factionId }}
-                      search={{ mode: 'db' }}
-                    />
-                  )}
-                >
-                  Preview faction sheet
-                </Anchor>
-              </Stack>
+              <Text size="sm" c="dimmed">
+                {factionAssetPublishingCopy(assetPublishing.status, assetPublishing.captureStatus)}
+              </Text>
             </Card>
 
             <Card icon={<TopicIcon topic="rulesets" size={20} />} title="Rulesets">

@@ -4,7 +4,7 @@ import type { ErrorComponentProps } from '@tanstack/react-router';
 import { LoadError } from '@ui/block/LoadError';
 import { LoadPending } from '@ui/block/LoadPending';
 import { NotAvailable } from '@ui/block/NotAvailable';
-import { PageTitle } from '@ui/block/PageTitle';
+import { PageIdentity } from '@ui/block/PageIdentity';
 import { formatStableDate } from '@ui/content/dates';
 import { EditionArtifactLink } from '@ui/content/EditionArtifactLink';
 import { StatusBadge } from '@ui/content/StatusBadge';
@@ -12,7 +12,7 @@ import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
-import { ArrowLeft, BookOpen } from 'lucide-react';
+import { ArrowLeft, BookOpen, History } from 'lucide-react';
 
 import { loadRulebookEditionHistory, useRulebookEditionHistory } from '@db/rulebooks';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
@@ -72,20 +72,33 @@ function RulebookEditionHistoryPage() {
   return (
     <PageLayout>
       <PageLayout.Header size="compact">
-        <PageTitle
+        <PageIdentity
           title={data.rulebook.name}
-          eyebrow={data.editions.length === 1 ? '1 Edition' : `${data.editions.length} Editions`}
+          breadcrumb={
+            <PageIdentity.Breadcrumb to="/rulesets/$rulesetSlug" params={{ rulesetSlug: data.ruleset.slug }}>
+              {data.ruleset.name}
+            </PageIdentity.Breadcrumb>
+          }
+          stats={[
+            {
+              key: 'editions',
+              icon: <History size={17} aria-hidden />,
+              value: data.editions.length,
+              label: data.editions.length === 1 ? '1 Edition' : `${data.editions.length} Editions`,
+            },
+          ]}
         />
       </PageLayout.Header>
       <PageLayout.Toolbar>
         <Toolbar>
           <Toolbar.Left>
-            <Group gap="sm" wrap="wrap">
+            <Group gap="xs" wrap="wrap" role="group" aria-label="Navigation and editing">
               <IconAction
                 label="Back to ruleset"
                 emphasis="standard"
                 intent="neutral"
-                icon={<ArrowLeft size={18} aria-hidden />}
+                size="lg"
+                icon={<ArrowLeft size={17} aria-hidden />}
                 renderRoot={(props) => (
                   <Link {...props} to="/rulesets/$rulesetSlug" params={{ rulesetSlug: params.rulesetSlug }} />
                 )}
