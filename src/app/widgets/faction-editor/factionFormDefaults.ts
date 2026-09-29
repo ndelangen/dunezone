@@ -75,7 +75,7 @@ export function defaultTroop(): Faction['troops'][number] {
   return {
     troopId: createFactionTroopId(),
     name: '',
-    image: TROOP.options[0],
+    image: TROOP.enum['/vector/troop/atreides.svg'],
     description: '',
     count: 20,
   };
