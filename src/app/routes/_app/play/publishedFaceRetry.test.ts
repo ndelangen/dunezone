@@ -56,6 +56,18 @@ describe('loadPublishedFace', () => {
     expect(delays).toEqual([5000, 10_000, 20_000, 40_000, 60_000, 60_000, 60_000]);
   });
 
+  test('equal first and maximum delays retry at a fixed interval', () => {
+    const { load, requests } = pendingLoader();
+    loadPublishedFace({ load, onLoad: vi.fn(), release: vi.fn(), firstDelayMs: 10_000, maxDelayMs: 10_000 });
+
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      requests[attempt]!.fail();
+      vi.runOnlyPendingTimers();
+    }
+
+    expect(requests.map((request) => request.at)).toEqual([0, 10_000, 20_000, 30_000]);
+  });
+
   test('disposing cancels the pending retry and releases a face that arrives afterwards', () => {
     const { load, requests } = pendingLoader();
     const onLoad = vi.fn();
