@@ -1,7 +1,7 @@
 import { factionAssetPublishingCopy } from '@ui/content/assetPublishingStatus';
 import { StatusMark } from '@ui/content/StatusMark';
 import type { StatusMarkProps } from '@ui/content/StatusMark';
-import { FileText, History, ImageOff, RefreshCw } from 'lucide-react';
+import { FileText, FileWarning, History, ImageOff, RefreshCw } from 'lucide-react';
 
 import type { PublicAssetPublishingStatusProjection } from '@db/factions';
 
@@ -15,9 +15,11 @@ function formatPublishedAt(timestamp: number): string {
 function publicationGlyph(
   publication: PublicAssetPublishingStatusProjection | undefined
 ): Pick<StatusMarkProps, 'tone' | 'icon'> {
-  /* A failed replacement leaves the current publication in place (CONTEXT.md, Asset publication state), so it reads as no capture, as the words do. */
-  const capture = publication?.captureStatus === 'error' ? null : publication?.captureStatus;
+  /* Only editors see this toolbar, so a failed replacement reads as failed, as the words do (#1385). */
+  const capture = publication?.captureStatus;
   switch (true) {
+    case capture === 'error':
+      return { tone: 'negative', icon: <FileWarning size={16} aria-hidden /> };
     case capture === 'in_progress':
       return { tone: 'progress', icon: <RefreshCw size={16} aria-hidden /> };
     case capture === 'scheduled':
@@ -44,7 +46,7 @@ export function FactionPublicationStatus({
   publication?: PublicAssetPublishingStatusProjection;
 }) {
   const words = publication
-    ? factionAssetPublishingCopy(publication.status, publication.captureStatus)
+    ? factionAssetPublishingCopy(publication.status, publication.captureStatus, { viewerCanEdit: true })
     : 'Saving this faction schedules its public assets.';
   const label =
     publication?.lastPublishedAt == null

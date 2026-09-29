@@ -86,11 +86,21 @@ function FactionDetailError({ error }: ErrorComponentProps) {
 }
 
 /**
- * The Files card's badge for the faction sheet.
+ * The Files card's badge and status line for the faction sheet.
  * A failed replacement leaves the publication it replaces in place (CONTEXT.md, Asset publication state).
  * A viewer who can edit the faction is told the update failed (#1385);
  * a reader sees the publication that stays current.
  */
+function filesStatus(
+  publishing: PublicAssetPublishingStatusProjection,
+  viewerCanEdit: boolean
+): { tone: StatusBadgeTone; label: string; copy: string } {
+  return {
+    ...filesBadge(publishing, viewerCanEdit),
+    copy: factionAssetPublishingCopy(publishing.status, publishing.captureStatus, { viewerCanEdit }),
+  };
+}
+
 function filesBadge(
   { status, captureStatus }: PublicAssetPublishingStatusProjection,
   viewerCanEdit: boolean
@@ -136,7 +146,7 @@ function FactionDetailPage() {
   const data = faction.data;
   const planets = data.planet ?? [];
   const troopCount = data.troops.reduce((total, troop) => total + troop.count, 0);
-  const files = filesBadge(assetPublishing, canEdit);
+  const files = filesStatus(assetPublishing, canEdit);
   const complexity = effectiveComplexity(data.complexity);
   /**
    * Standing beside the maintaining group, and only when the viewer has a standing worth naming.
@@ -187,7 +197,13 @@ function FactionDetailPage() {
           }
           breadcrumb={<PageIdentity.Breadcrumb to="/factions">Factions</PageIdentity.Breadcrumb>}
           maintainers={{
-            owner: owner ? { slug: owner.slug, name: owner.username, image: profileAvatarUrl(owner) } : null,
+            owner: owner
+              ? {
+                  slug: owner.slug,
+                  name: owner.username,
+                  image: profileAvatarUrl(owner),
+                }
+              : null,
             group: assignedGroup ? { slug: assignedGroup.slug, name: assignedGroup.name } : null,
           }}
           standing={membershipBadge}
@@ -455,9 +471,7 @@ function FactionDetailPage() {
               }
             >
               <Text size="sm" c="dimmed">
-                {factionAssetPublishingCopy(assetPublishing.status, assetPublishing.captureStatus, {
-                  viewerCanEdit: canEdit,
-                })}
+                {files.copy}
               </Text>
             </Card>
 
