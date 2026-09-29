@@ -28,7 +28,8 @@ function Right({ children }: ToolbarSlotProps) {
  *
  * The edges hold their width by default, so a crowded band squeezes the centre and never the controls.
  * `edges="shrink"` lets them give way down to their widest unbreakable piece instead, which is what a `Group wrap="wrap"` inside an edge needs before it can wrap.
- * It is opt-in because an edge that cannot wrap, such as a `nowrap` row of actions, gains nothing from shrinking.
+ * It is opt-in because the floor only holds while everything inside the edge either wraps or keeps its automatic minimum width.
+ * A piece that sets `min-width: 0` lets the edge shrink below its controls and paint over its neighbour, as `AuthoringToolbar`'s `nowrap` actions would.
  *
  * It is a surface, so it must not be placed inside one.
  * A page hands it controls, never chrome;

@@ -110,8 +110,10 @@ function rightmostControlEdge(canvasElement: HTMLElement) {
 
 function frameRight(canvasElement: HTMLElement) {
   const frame = canvasElement.querySelector<HTMLElement>('[data-narrow-frame]');
-  expect(frame).not.toBeNull();
-  return (frame as HTMLElement).getBoundingClientRect().right;
+  if (!frame) {
+    throw new Error('The story renders no narrow frame');
+  }
+  return frame.getBoundingClientRect().right;
 }
 
 /** By default the edges hold their width, so a wrapping row inside one stays on one line even when the band is too narrow for it. */
