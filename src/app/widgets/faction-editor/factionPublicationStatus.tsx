@@ -1,6 +1,6 @@
 import { factionAssetPublishingCopy } from '@ui/content/assetPublishingStatus';
 import type { StatusInfoItem } from '@ui/control/StatusInfo';
-import { FileText, History, ImageOff, RefreshCw } from 'lucide-react';
+import { FileText, FileWarning, History, ImageOff, RefreshCw } from 'lucide-react';
 
 import type { PublicAssetPublishingStatusProjection } from '@db/factions';
 
@@ -14,9 +14,11 @@ function formatPublishedAt(timestamp: number): string {
 function publicationGlyph(
   publication: PublicAssetPublishingStatusProjection | undefined
 ): Pick<StatusInfoItem, 'tone' | 'icon'> {
-  /* A failed replacement leaves the current publication in place (CONTEXT.md, Asset publication state), so it reads as no capture, as the words do. */
-  const capture = publication?.captureStatus === 'error' ? null : publication?.captureStatus;
+  /* A failed replacement reads as failed, as the words do (#1385). */
+  const capture = publication?.captureStatus;
   switch (true) {
+    case capture === 'error':
+      return { tone: 'negative', icon: <FileWarning size={16} aria-hidden /> };
     case capture === 'in_progress':
       return { tone: 'progress', icon: <RefreshCw size={16} aria-hidden /> };
     case capture === 'scheduled':

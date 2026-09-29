@@ -9,12 +9,14 @@ import type { CSSProperties } from 'react';
 
 import { loadAssetCataloguePage, useAssetCataloguePage } from '@app/db/assets';
 import type { AssetListEntry } from '@app/db/assets';
+import { pageHead } from '@app/routes/pageTitle';
 import { AssetFace, assetFaceAspect } from '@app/widgets/asset-face/AssetFace';
 
 import styles from './index.module.css';
 
 export const Route = createFileRoute('/_app/assets/')({
   loader: loadAssetCataloguePage,
+  head: () => pageHead('Assets'),
   component: AssetsLandingPage,
 });
 
