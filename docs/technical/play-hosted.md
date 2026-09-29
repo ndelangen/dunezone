@@ -321,10 +321,12 @@ bun --no-env-file scripts/verify-hosted-play-browser.mjs \
   --ruleset-id <rulesetId>
 ```
 
-The environment file must contain the loopback `CONVEX_SELF_HOSTED_URL`. Private files need mode
-0600 and at most 8 KiB, and the report directory must not contain them. The script creates
-synthetic accounts and retains their credentials for later runs. Other network origins are
-blocked. It runs headless;
+The environment file must contain the loopback `CONVEX_SELF_HOSTED_URL` and the backend's
+`CONVEX_SELF_HOSTED_ADMIN_KEY`. Private files need mode 0600 and at most 8 KiB, and the report
+directory must not contain them. Before Chromium starts, the script creates its synthetic accounts
+through `playTesting:provisionAccounts` and retains their credentials for later runs, so a browser
+only signs in. A sign-in that the backend refuses, or that reaches the login form's sign-up
+fallback, fails the flow. Other network origins are blocked. It runs headless;
 `--browser /absolute/browser-executable` selects a local Chromium-compatible executable instead
 of Playwright's installed Chromium. On Linux it adds `--use-angle=swiftshader`: headless Chromium
 there draws WebGL on SwiftShader and composites in software, which reads each WebGL frame back on
