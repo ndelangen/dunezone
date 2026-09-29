@@ -384,6 +384,7 @@ describe('live reference authoring reconciliation', () => {
     expect(settled.incompatibilities).toEqual([]);
     expect(draftBlock(settled.draft, 'RULE', 'ASST', 'referenced-illustration').source).toBeUndefined();
     expect(settled.canSave).toBe(true);
+    expect(draftBlock(settled.saveCandidate!, 'RULE', 'ASST', 'referenced-illustration').source).toBeUndefined();
     return settled;
   }
 
