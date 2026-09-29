@@ -18,7 +18,7 @@ import { requestPlayTicket } from '@db/play';
 import { FoilConfetti } from '../FoilConfetti';
 import { GameTable } from '../GameTable';
 import { usePointerSession } from '../PointerSessionContext';
-import { TabletopContext, useTableKeyboard } from '../TabletopContext';
+import { TabletopContext } from '../TabletopContext';
 import type { TabletopContextValue } from '../TabletopContext';
 import { TableWait } from '../TableWait';
 import { BattleControls, BattleScene, HandControls } from './BattleControls';
@@ -47,7 +47,7 @@ const SETUP_TOPICS = {
 } as const satisfies Record<string, TopicIconTopic>;
 
 function useTableCommands(client: TableSession, table: TableProjection) {
-  const value = useMemo<TabletopContextValue>(
+  return useMemo<TabletopContextValue>(
     () => ({
       bankControls:
         table.canInteract && table.snapshot.bank
@@ -90,8 +90,6 @@ function useTableCommands(client: TableSession, table: TableProjection) {
     }),
     [client, table]
   );
-  useTableKeyboard(value);
-  return value;
 }
 
 type ConnectionControlsProps = Readonly<{

@@ -4,38 +4,14 @@ import { useEffect, useState } from 'react';
 
 import { usePresence } from './multiplayer/PresenceContext';
 import { PhaseSymbol } from './PhaseSymbol';
+import { useTableKeyboard } from './TableKeyboardContext';
 import { useTabletop } from './TabletopContext';
 import { SPICE_DISC_COLOR } from './tableTrackers';
 
-function isEditingTarget(target: EventTarget | null): boolean {
-  if (!(target instanceof HTMLElement)) {
-    return false;
-  }
-  return target.isContentEditable || target.matches('input, textarea, select');
-}
-
-function createSpiceKeyHandler(spawnSpice: (count: number) => void) {
-  return (event: KeyboardEvent) => {
-    if ([event.metaKey, event.ctrlKey, event.altKey, event.shiftKey].some(Boolean)) {
-      return;
-    }
-    if (isEditingTarget(event.target)) {
-      return;
-    }
-    if (!/^[0-9]$/.test(event.key)) {
-      return;
-    }
-    event.preventDefault();
-    event.stopImmediatePropagation();
-    if (!event.repeat) {
-      spawnSpice(event.key === '0' ? 10 : Number(event.key));
-    }
-  };
-}
-
 export function SpiceSupply({ radius }: Readonly<{ radius: number }>) {
-  const { spawnSpice, setHoveredPiece, state } = useTabletop();
+  const { setHoveredPiece, state } = useTabletop();
   const { canInteract } = usePresence();
+  const keyboard = useTableKeyboard();
   const { renderer } = useThree();
   const [hovered, setHovered] = useState(false);
   const enabled = canInteract && !state.draftMove;
@@ -46,13 +22,13 @@ export function SpiceSupply({ radius }: Readonly<{ radius: number }>) {
     }
     const canvas = renderer.domElement;
     canvas.style.cursor = 'pointer';
-    const keyDown = createSpiceKeyHandler(spawnSpice);
-    window.addEventListener('keydown', keyDown, true);
     return () => {
-      window.removeEventListener('keydown', keyDown, true);
       canvas.style.cursor = 'default';
     };
-  }, [enabled, hovered, renderer, spawnSpice]);
+  }, [enabled, hovered, renderer]);
+
+  /* A disc that unmounts under the pointer hears no leave, so it lets go of the hover itself. */
+  useEffect(() => () => keyboard.hoverSupply(false), [keyboard]);
 
   return (
     <group>
@@ -63,8 +39,12 @@ export function SpiceSupply({ radius }: Readonly<{ radius: number }>) {
         onPointerEnter={() => {
           setHovered(true);
           setHoveredPiece(null);
+          keyboard.hoverSupply(true);
         }}
-        onPointerLeave={() => setHovered(false)}
+        onPointerLeave={() => {
+          setHovered(false);
+          keyboard.hoverSupply(false);
+        }}
         onClick={(event) => event.stopPropagation()}
       >
         <circleGeometry args={[radius, 96]} />
