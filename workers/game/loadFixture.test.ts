@@ -29,10 +29,9 @@ test('both content arrangements preserve item identity and the load profile surv
   expect(initialSnapshot().table.pieces).toHaveLength(6);
 });
 
-test('the peak admits eighteen distinct carries, retains the one-carry-per-connection guard, and leaves the baseline cap intact', () => {
+test('the peak admits eighteen distinct carries and retains the one-carry-per-connection guard', () => {
   const snapshot = loadSnapshot('stacked');
   const expanded = new Room(snapshot, 'stacked', () => LOAD_SEATS);
-  const baselineCap = new Room(snapshot, undefined, () => LOAD_SEATS);
   for (let index = 0; index < 18; index++) {
     const input = {
       carryId: `carry-${index}`,
@@ -41,11 +40,6 @@ test('the peak admits eighteen distinct carries, retains the one-carry-per-conne
       pickup: 'whole' as const,
     };
     expanded.begin(player(index), input);
-    if (index < 16) {
-      baselineCap.begin(player(index), input);
-    } else {
-      expect(() => baselineCap.begin(player(index), input)).toThrow('too many active carries');
-    }
   }
   expect(expanded.carries.size).toBe(18);
   expect(() =>

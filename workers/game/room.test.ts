@@ -1,10 +1,12 @@
 import { describe, expect, test } from 'vitest';
 
 import { initialSnapshot } from '../../src/shared/play/commands';
+import { LOAD_SEATS, loadSnapshot } from '../../src/shared/play/loadFixture';
 import { PHASE_CHANGE_COOLDOWN_MS, phaseAt, TABLE_PHASES, tableProgressFor } from '../../src/shared/play/phases';
 import { clientMessageSchema, gameSnapshotSchema, tableForViewer } from '../../src/shared/play/protocol';
 import type { GameSnapshot } from '../../src/shared/play/protocol';
 import { createSpiceStack, isSpicePiece, spiceSupplySlot } from '../../src/shared/play/spiceSupply';
+import { TABLE_SECTOR_COUNT } from '../../src/shared/play/tableSettings';
 import { fixtureRoster } from './fixture';
 import { applyPatch, diff } from './history';
 import { Room } from './room';
@@ -304,6 +306,30 @@ describe('shared spice commands', () => {
 });
 
 describe('server-owned tabletop carries', () => {
+  test('an ordinary room admits a total of TABLE_SECTOR_COUNT carries and refuses the nineteenth', () => {
+    const snapshot = loadSnapshot('stacked');
+    const extraSeat = 'extra-seat';
+    const room = new Room(snapshot, undefined, () => [...LOAD_SEATS, extraSeat]);
+    const begin = (index: number, viewerSeat: string) =>
+      room.begin(
+        {
+          connectionId: `connection-${index}`,
+          userId: `user-${index}`,
+          viewerSeat,
+          displayName: `Player ${index + 1}`,
+          color: '#176a73',
+        },
+        {
+          carryId: `carry-${index}`,
+          sourcePieceId: snapshot.table.pieces[index]!.id,
+          expectedVersion: 0,
+          pickup: 'whole',
+        }
+      );
+    LOAD_SEATS.forEach((seat, index) => begin(index, seat));
+    expect(room.carries.size).toBe(TABLE_SECTOR_COUNT);
+    expect(() => begin(TABLE_SECTOR_COUNT, extraSeat)).toThrow('too many active carries');
+  });
   test('rejects stale source versions when reset reuses a retired split ID', () => {
     const room = new Room(initialSnapshot(), undefined, seated);
     const action = { kind: 'split', pieceId: 'harkonnen-force-stack', count: 1 } as const;
