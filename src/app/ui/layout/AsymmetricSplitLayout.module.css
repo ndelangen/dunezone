@@ -13,7 +13,7 @@
   min-width: 0;
 }
 
-@container asymmetric-split-layout (min-width: 61.25rem) {
+@container asymmetric-split-layout (width >= 62rem) {
   .layout {
     grid-template-columns: 1.15fr 0.85fr;
   }

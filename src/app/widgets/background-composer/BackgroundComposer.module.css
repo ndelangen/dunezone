@@ -76,19 +76,14 @@
   place-items: center;
 }
 
-@container connected-tabs-panel (max-width: 34rem) {
+@container connected-tabs-panel (width < 30rem) {
   .pipelineTop {
+    grid-template-columns: 1fr;
     gap: var(--space-sm);
   }
 
   .pipelineStage {
     padding-top: 0;
-  }
-}
-
-@container connected-tabs-panel (max-width: 26rem) {
-  .pipelineTop {
-    grid-template-columns: 1fr;
   }
 
   .colorLayers {

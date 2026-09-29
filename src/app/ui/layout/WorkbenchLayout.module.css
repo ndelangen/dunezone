@@ -46,13 +46,14 @@
   gap: var(--space-md);
 }
 
-@container workbench (max-width: 70rem) {
+/* Off the ladder: the 21rem rail beside the 48rem that ConnectedTabs takes its wide tab rail from makes 69rem. */
+@container workbench (width < 69rem) {
   .workbench {
     grid-template-columns: minmax(0, 1fr) minmax(14rem, 17rem);
   }
 }
 
-@container workbench (max-width: 58rem) {
+@container workbench (width < 62rem) {
   .workbench {
     grid-template-columns: minmax(0, 1fr) minmax(13rem, 15rem);
   }
@@ -68,13 +69,13 @@
  * stacking it below made them scroll away from the artifact to reach the fields.
  *
  * The space is bought from the chapters instead. `ConnectedTabs` swaps its 11.5rem vertical tab rail for a
- * stepper bar once its own column falls under 34rem, which inside a narrowed workbench happens on its own.
+ * stepper bar once its own column falls under 30rem, which inside a narrowed workbench happens on its own.
  * Norbert, 2026-08-21: "keep the rail, and show the mobile connectedtabs to save space". That is the column to
  * spend, because a chapter list is navigation a reader can page through and the proof is what they came to see.
  *
  * The desk keeps following, since side by side survives and there is something to sit beside.
  */
-@container workbench (max-width: 44rem) {
+@container workbench (width < 48rem) {
   .workbench {
     grid-template-columns: minmax(0, 1fr) minmax(9rem, 11rem);
   }

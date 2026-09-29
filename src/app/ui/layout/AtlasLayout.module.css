@@ -18,7 +18,7 @@
   align-self: start;
 }
 
-@container atlas-layout (min-width: 56.25rem) {
+@container atlas-layout (width >= 62rem) {
   .layout {
     grid-template-columns: minmax(230px, 0.72fr) minmax(0, 2fr);
   }

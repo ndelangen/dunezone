@@ -26,7 +26,7 @@
   place-items: center;
 }
 
-@container triptych-layout (min-width: 61.25rem) {
+@container triptych-layout (width >= 62rem) {
   .layout {
     grid-template-columns: minmax(0, 1fr) minmax(17rem, 0.72fr) minmax(0, 0.9fr);
   }

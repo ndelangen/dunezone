@@ -11,7 +11,7 @@ const meta = preview.meta({
     docs: {
       description: {
         component:
-          'Places wide and narrow regions in unequal columns, then stacks them into one reading column once its own container drops below 61.25rem. Its parent owns page width and outer spacing.',
+          'Places wide and narrow regions in unequal columns, then stacks them into one reading column once its own container drops below 62rem. Its parent owns page width and outer spacing.',
       },
     },
   },

@@ -115,7 +115,7 @@
   transform-origin: top center;
 }
 
-@container workbench (max-width: 44rem) {
+@container workbench (width < 48rem) {
   .editorFields {
     grid-template-columns: 1fr;
   }

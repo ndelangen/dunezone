@@ -312,7 +312,7 @@
   padding-inline: 0;
 }
 
-@container nested-tabs (max-width: 34rem) {
+@container nested-tabs (width < 30rem) {
   .host {
     --nested-tabs-level-width: 3.1rem;
     --nested-tabs-item-size: 2.4rem;

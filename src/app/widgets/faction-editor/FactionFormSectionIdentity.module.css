@@ -5,14 +5,9 @@
   align-items: start;
 }
 
-@container connected-tabs-panel (max-width: 34rem) {
-  .identityGrid {
-    gap: var(--space-sm);
-  }
-}
-
-@container connected-tabs-panel (max-width: 26rem) {
+@container connected-tabs-panel (width < 30rem) {
   .identityGrid {
     grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-sm);
   }
 }
