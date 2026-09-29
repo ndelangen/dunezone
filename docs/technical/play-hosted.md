@@ -185,8 +185,22 @@ ingress limits, Worker identity, deployment order and local infrastructure.
 
 ## Verification
 
-Run `bun --no-env-file scripts/verify-hosted-play-stack.ts --browser-only --flow all` before merging
-a change that reaches Play's client, shared contracts or the game Worker. It boots one stack and
+The three `hosted_play` CI shards, `regular`, `catalogue` and `protocol`, are the merge gate for the
+hosted flows: `ci_ok` requires all three on every pull request, as the
+[deployment contract](../deployment.md#hosted-gameplay) describes. Each shard's command also runs
+locally with the same launcher:
+
+```sh
+bun --no-env-file scripts/verify-hosted-play-stack.ts --shard regular --browser-only
+bun --no-env-file scripts/verify-hosted-play-stack.ts --shard catalogue --browser-only
+bun --no-env-file scripts/verify-hosted-play-stack.ts --shard protocol
+```
+
+CI also passes `--skip-generate`, Playwright's full Chromium as `--browser` and
+`--expect-renderer webgl2-swiftshader`, the renderer of its Linux runner; a local run can leave them
+out. A local run is optional and never required before merging.
+
+`bun --no-env-file scripts/verify-hosted-play-stack.ts --browser-only --flow all` boots one stack and
 runs every browser flow against it, each on a fresh game with fresh accounts. `--flow` repeats to
 select flows by name. A failed flow does not stop the ones after it, and the run fails at the end.
 Only the public-controls flow, which checks the phase cooldown, plays at the real cooldown. The
