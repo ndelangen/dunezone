@@ -13,7 +13,7 @@ type SyntheticAccount = { email: string; password: string };
 
 /**
  * The secret Convex Auth's Password provider stores for `password`: Lucia's Scrypt with N 16384, r 16 and p 1, a 64-byte key, and the hex salt used as text.
- * Password hashes inside a mutation, which the local backend stops at 1 s, so the runner hashes here instead.
+ * Password hashes inside a mutation, which the backend stops at its function limit, so the runner hashes here instead.
  */
 export function passwordSecret(password: string) {
   const salt = randomBytes(16).toString('hex');
@@ -26,7 +26,7 @@ export function passwordSecret(password: string) {
 
 /**
  * Accounts per provisioning mutation.
- * The load runner creates up to 38, and one mutation writing all of them could itself meet the local backend's 1 s limit on a loaded machine.
+ * The load runner creates up to 38, and one mutation writing all of them could itself meet the backend's function limit on a loaded machine.
  * Six took at most about 0.4 s under 80 busy loops.
  */
 const ACCOUNTS_PER_MUTATION = 6;

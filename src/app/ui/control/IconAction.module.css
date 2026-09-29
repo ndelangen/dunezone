@@ -1,0 +1,4 @@
+/* A toggle that is on: the selected tile, ringed in its own ink, so it stands apart from the tiles beside it without a new colour. */
+.pressed {
+  box-shadow: inset 0 0 0 1px var(--selection-border);
+}

@@ -1,5 +1,7 @@
-import { ActionIcon, Tooltip } from '@mantine/core';
+import { ActionIcon, Tooltip, VisuallyHidden } from '@mantine/core';
 import type { ActionIconProps, ActionIconVariant } from '@mantine/core';
+import clsx from 'clsx';
+import { useId } from 'react';
 import type {
   FocusEventHandler,
   KeyboardEventHandler,
@@ -10,18 +12,50 @@ import type {
 } from 'react';
 
 import type { RenderRoot } from '../renderRoot';
+import styles from './IconAction.module.css';
 
 /**
  * What the action means to the reader, independent of the palette that renders it.
  * Drawn from the variant language, so the same word means the same thing here as it does on a badge or a picker.
  */
-type IconActionIntent = 'neutral' | 'positive' | 'negative';
+type IconActionIntent = 'neutral' | 'positive' | 'negative' | 'publish' | 'export';
 
-/* The component owns the resolution, so a call site states the meaning and never a hue. */
-const INTENT_COLOR = { neutral: 'gray', positive: 'confirm', negative: 'red' } as const satisfies Record<
-  IconActionIntent,
-  string
->;
+/*
+ * The component owns the resolution, so a call site states the meaning and never a hue.
+ * Each hue names what happens to the reader's work (Norbert, 2026-09-29):
+ * `neutral` changes nothing (go, look, arrange, share, change access), `positive` creates or keeps, `publish` makes it public for good, `export` hands the reader a file to take away, and `negative` loses something for good.
+ * Red is kept for what cannot be undone in one step, so removing a Group or logging out is `neutral`.
+ */
+const INTENT_COLOR = {
+  neutral: 'gray',
+  positive: 'confirm',
+  negative: 'red',
+  publish: 'violet',
+  export: 'cyan',
+} as const satisfies Record<IconActionIntent, string>;
+
+/*
+ * A standard tile takes its colours from the tokens rather than Mantine's light variant, which in dark mode paints every glyph near-white and so makes a red Delete look like Back.
+ * A pressed toggle keeps its tile: it wears the app's selected look, never a stronger fill, so being on never reads as another colour.
+ */
+const TILE = {
+  neutral: ['var(--action-neutral-bg)', 'var(--action-neutral-hover-bg)', 'var(--action-neutral-fg)'],
+  positive: ['var(--action-positive-bg)', 'var(--action-positive-hover-bg)', 'var(--action-positive-fg)'],
+  negative: ['var(--action-negative-bg)', 'var(--action-negative-hover-bg)', 'var(--action-negative-fg)'],
+  publish: ['var(--action-publish-bg)', 'var(--action-publish-hover-bg)', 'var(--action-publish-fg)'],
+  export: ['var(--action-export-bg)', 'var(--action-export-hover-bg)', 'var(--action-export-fg)'],
+} as const satisfies Record<IconActionIntent, readonly [string, string, string]>;
+
+const PRESSED_TILE = [
+  'var(--button-toggle-active-bg)',
+  'var(--button-toggle-active-bg)',
+  'var(--button-toggle-fg)',
+] as const;
+
+function tileVars(intent: IconActionIntent, pressed: boolean) {
+  const [background, hover, color] = pressed ? PRESSED_TILE : TILE[intent];
+  return { root: { '--ai-bg': background, '--ai-hover': hover, '--ai-color': color } };
+}
 
 /**
  * How loudly the action sits on the page: silent draws no chrome at all even when hovered, quiet blends in until hovered, standard wears a tinted tile, strong is fully filled.
@@ -48,8 +82,16 @@ export interface IconActionProps extends Pick<ActionIconProps, 'size' | 'disable
   emphasis?: IconActionEmphasis;
   /** Longer hover text, when the glyph needs more explanation than its name. */
   tooltip?: ReactNode;
+  /**
+   * Why the action cannot run right now, as a sentence: "The PDF is still being prepared."
+   * The action renders disabled but stays hoverable and focusable, and this becomes its hover text, so the reason sits on the control it explains instead of in a status beside it.
+   * A plain `disabled` control cannot say why, since it takes no pointer events and so never opens its tooltip.
+   */
+  disabledReason?: string;
   /** The glyph. Sized by the caller; marked decorative here, since `label` carries the meaning. */
   icon: ReactNode;
+  /** Makes the action a toggle that is on: it announces as pressed and wears the selected look, whatever its emphasis. */
+  pressed?: boolean;
   onClick?: MouseEventHandler<HTMLButtonElement>;
   /** Press-and-hold support, for an action whose commitment is the held duration rather than the click. */
   onPointerDown?: PointerEventHandler<HTMLButtonElement>;
@@ -101,6 +143,7 @@ export interface IconActionProps extends Pick<ActionIconProps, 'size' | 'disable
 export function IconAction({
   label,
   tooltip,
+  disabledReason,
   tooltipOpened,
   icon,
   onClick,
@@ -122,10 +165,42 @@ export function IconAction({
   ref,
   intent,
   emphasis,
+  pressed,
   ...actionIconProps
 }: IconActionProps) {
+  const reasonId = useId();
   const resolvedColor = intent ? INTENT_COLOR[intent] : undefined;
-  const resolvedVariant = emphasis ? EMPHASIS_VARIANT[emphasis] : undefined;
+  const tinted = pressed === true || emphasis === 'standard';
+  const resolvedVariant = pressed ? 'light' : emphasis ? EMPHASIS_VARIANT[emphasis] : undefined;
+  const vars = tinted ? () => tileVars(intent ?? 'neutral', pressed === true) : undefined;
+  const classes = clsx(className, pressed && styles.pressed);
+  const pressedState = pressed ?? actionIconProps['aria-pressed'];
+  if (disabledReason != null) {
+    /* Mantine's own disabled look, without the `disabled` attribute that would swallow the hover. The reason is also the control's description, for a reader who never hovers. */
+    return (
+      <>
+        <Tooltip label={disabledReason}>
+          <ActionIcon
+            size={actionIconProps.size}
+            color={resolvedColor}
+            variant={resolvedVariant}
+            vars={vars}
+            ref={ref}
+            type="button"
+            data-disabled
+            aria-disabled
+            aria-label={label}
+            aria-describedby={actionIconProps['aria-describedby'] ?? reasonId}
+            onClick={(event) => event.preventDefault()}
+            className={classes}
+          >
+            {icon}
+          </ActionIcon>
+        </Tooltip>
+        {actionIconProps['aria-describedby'] ? null : <VisuallyHidden id={reasonId}>{disabledReason}</VisuallyHidden>}
+      </>
+    );
+  }
   /* Two branches rather than one spread: `component="a"` re-types the whole element, so the
      anchor form cannot carry the button-shaped ref, click handler or form binding anyway. */
   return (
@@ -135,6 +210,8 @@ export function IconAction({
           {...actionIconProps}
           color={resolvedColor}
           variant={resolvedVariant}
+          vars={vars}
+          aria-pressed={pressedState}
           ref={ref}
           type={renderRoot ? undefined : type}
           form={form}
@@ -148,7 +225,7 @@ export function IconAction({
           onKeyUp={onKeyUp}
           onContextMenu={onContextMenu}
           onBlur={onBlur}
-          className={className}
+          className={classes}
           renderRoot={renderRoot}
         >
           {icon}
@@ -158,12 +235,13 @@ export function IconAction({
           {...actionIconProps}
           color={resolvedColor}
           variant={resolvedVariant}
+          vars={vars}
           component="a"
           href={href}
           target={target}
           rel={rel}
           aria-label={label}
-          className={className}
+          className={classes}
         >
           {icon}
         </ActionIcon>
