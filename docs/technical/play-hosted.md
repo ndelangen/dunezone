@@ -296,7 +296,9 @@ binding and game Worker path. It creates a synthetic local backend with no produ
 hosted development credentials. Its checks include independent non-admin users, anonymous and
 spectator rejection, contested mutations, transient activity, receipt replay, phase playback,
 single-use tickets, multi-tab logout, inactivity/total expiry, and account-deletion vacancy.
-Retained logs contain check results and payload counters, not credentials.
+It creates its synthetic accounts through `playTesting:provisionAccounts` before the first check,
+so every check signs in and none signs up. Retained logs contain check results and payload
+counters, not credentials.
 
 The browser flows play real games. The stack seeds a synthetic ruleset
 (`playTesting:seedRealGameCatalogue`) with both required decks, a treachery deck of treachery cards
