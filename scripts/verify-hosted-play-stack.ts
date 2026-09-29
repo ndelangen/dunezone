@@ -190,6 +190,16 @@ async function serviceResponds(url: string): Promise<boolean> {
   }
 }
 
+/**
+ * How long this local backend lets one query or mutation run, in whole seconds.
+ * Convex's default, which hosted deployments keep, is 1 s.
+ * Convex Auth runs Scrypt inside the `auth:store` mutation at every Password sign-in, and on a loaded machine that alone passed 1 s (#1493).
+ * A query or mutation that takes between 1 and 2 s passes here and fails on a hosted deployment, so this is the smallest whole raise.
+ * Sign-in's `auth:store` took at most 0.13 s in a run of every browser flow and 1.5 s under 120 busy loops on a 10-core Mac.
+ * It applies to this launcher's own backend only, and the verifiers still never retry.
+ */
+const LOCAL_FUNCTION_LIMIT_SECONDS = 2;
+
 function backendBinary(): string {
   if (values['backend-binary']) {
     if (!path.isAbsolute(values['backend-binary'])) {
@@ -390,6 +400,7 @@ try {
       '--disable-beacon',
       path.join(runtime, 'backend.sqlite3'),
     ],
+    env: { ...environment, DATABASE_UDF_USER_TIMEOUT_SECONDS: String(LOCAL_FUNCTION_LIMIT_SECONDS) },
     logPath: path.join(runtime, 'backend.log'),
   });
   await ready(`${backendUrl}/version`, backend, 30_000);

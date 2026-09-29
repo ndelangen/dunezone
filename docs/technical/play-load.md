@@ -30,7 +30,9 @@ binding. It imports no production snapshot, uses no hosted deployment credential
 the shared development deployment. Admission, authorization leases, command validation, persistence
 and recipient delivery use the existing application path. The stack runs the production five minute
 lease and 90 second renewal cadence, so a load run's `watchAuthorizations` and `reconcileAccounts`
-traffic is about 0.7 calls a minute per function per connected room.
+traffic is about 0.7 calls a minute per function per connected room. Its queries and mutations may
+run longer than a hosted deployment allows, as [Local checks](play-hosted.md#local-checks)
+describes, so a function that would stop at the hosted limit can finish in a local run.
 
 The stack runs the coordinator under Node 22 or later from the bundle that
 [`scripts/play-load/bundle.ts`](../../scripts/play-load/bundle.ts) writes.
