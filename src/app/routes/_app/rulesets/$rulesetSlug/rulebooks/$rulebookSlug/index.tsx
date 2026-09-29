@@ -5,14 +5,16 @@ import type { ErrorComponentProps } from '@tanstack/react-router';
 import { LoadError } from '@ui/block/LoadError';
 import { LoadPending } from '@ui/block/LoadPending';
 import { NotAvailable } from '@ui/block/NotAvailable';
-import { PageTitle } from '@ui/block/PageTitle';
+import { PageIdentity } from '@ui/block/PageIdentity';
 import { formatRelativeDate, formatStableDate } from '@ui/content/dates';
 import { EditionArtifactLink } from '@ui/content/EditionArtifactLink';
+import { StatusBadge } from '@ui/content/StatusBadge';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
+import type { StatsItem } from '@ui/list/Stats';
 import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
-import { ArrowLeft, Link2, Pin, PinOff } from 'lucide-react';
+import { ArrowLeft, CalendarPlus, FileText, Link2, Pin, PinOff } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 
 import { loadRulebookReader, useRulebookReader } from '@db/rulebooks';
@@ -495,28 +497,55 @@ function RulebookReader({ data }: Readonly<{ data: ReaderData }>) {
   };
   const locatorStatus = locatorResolution.status === 'stale' ? ('stale' as const) : parsedLocator.status;
   const historical = data.edition.edition_number !== data.rulebook.current_edition_number;
+  const headerStats: StatsItem[] = [
+    {
+      key: 'published',
+      icon: <CalendarPlus size={17} aria-hidden />,
+      value: formatRelativeDate(data.edition.created_at),
+      label: `Published ${formatStableDate(data.edition.created_at)}`,
+    },
+    {
+      key: 'pages',
+      icon: <FileText size={17} aria-hidden />,
+      value: renderDocument.pageOrder.length,
+      label: `${renderDocument.pageOrder.length} ${renderDocument.pageOrder.length === 1 ? 'Page' : 'Pages'}`,
+    },
+  ];
 
   return (
     <PageLayout>
       <PageLayout.Header size="compact">
-        <PageTitle
+        <PageIdentity
           title={data.rulebook.name}
-          eyebrow={`Edition ${data.edition.edition_number}${historical ? ' · Historical' : ''}`}
-        />
+          breadcrumb={
+            <PageIdentity.Breadcrumb to="/rulesets/$rulesetSlug" params={{ rulesetSlug: params.rulesetSlug }}>
+              Ruleset
+            </PageIdentity.Breadcrumb>
+          }
+          stats={headerStats}
+        >
+          <StatusBadge tone="neutral">Edition {data.edition.edition_number}</StatusBadge>
+          {historical ? <StatusBadge tone="pending">Historical</StatusBadge> : null}
+        </PageIdentity>
       </PageLayout.Header>
       <PageLayout.Toolbar>
         <Toolbar>
           <Toolbar.Left>
-            <Group gap="sm" wrap="wrap">
+            <Group gap="xs" wrap="wrap" role="group" aria-label="Navigation and editing">
               <IconAction
                 label="Back to ruleset"
                 emphasis="standard"
                 intent="neutral"
-                icon={<ArrowLeft size={18} aria-hidden />}
+                size="lg"
+                icon={<ArrowLeft size={17} aria-hidden />}
                 renderRoot={(props) => (
                   <Link {...props} to="/rulesets/$rulesetSlug" params={{ rulesetSlug: params.rulesetSlug }} />
                 )}
               />
+            </Group>
+          </Toolbar.Left>
+          <Toolbar.Right>
+            <Group gap="xs" wrap="wrap" role="group" aria-label="Rulebook actions">
               <Select
                 aria-label="Rulebook Edition"
                 value={String(data.edition.edition_number)}
@@ -530,16 +559,6 @@ function RulebookReader({ data }: Readonly<{ data: ReaderData }>) {
               />
               <EditionArtifactLink kind="html" artifact={data.edition.html} />
               <EditionArtifactLink kind="pdf" artifact={data.edition.pdf} />
-            </Group>
-          </Toolbar.Left>
-          <Toolbar.Right>
-            <Group gap="xs" wrap="wrap">
-              <Text size="sm" c="dimmed">
-                Published{' '}
-                <time dateTime={data.edition.created_at} title={new Date(data.edition.created_at).toLocaleString()}>
-                  {formatRelativeDate(data.edition.created_at)}
-                </time>
-              </Text>
               <IconAction
                 label="Copy link to selected text"
                 tooltip="Copy link to selected text"

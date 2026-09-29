@@ -1,28 +1,3 @@
-.questionHeader {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-}
-
-.questionAskerLink {
-  flex-shrink: 0;
-}
-
-.questionAskerLink img,
-.questionAskerLink > span:first-child {
-  width: 48px;
-  height: 48px;
-}
-
-.questionAskerLink > span:first-child {
-  background: rgba(0, 0, 0, 0.2);
-  font-size: 1rem;
-}
-
-.questionTitle {
-  margin: 0;
-}
-
 .answerList {
   display: flex;
   flex-direction: column;

@@ -171,7 +171,7 @@ export function renderedPiecesFor(state: TableState): TablePiece[] {
   );
 }
 
-export function rejection(state: TableState, command: string, message: string): TableState {
+function rejection(state: TableState, command: string, message: string): TableState {
   const event: TableEvent = {
     id: eventId(state.nextEventNumber),
     command,
