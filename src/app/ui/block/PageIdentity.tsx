@@ -22,19 +22,19 @@ const BreadcrumbAnchor = forwardRef<HTMLAnchorElement, ComponentPropsWithoutRef<
 });
 
 /** A person the band cites, in `ProfileLink`'s own fields. */
-export interface PageIdentityPerson {
+interface PageIdentityPerson {
   slug: ProfileLinkProps['slug'];
   name: ProfileLinkProps['name'];
   image?: ProfileLinkProps['image'];
 }
 
 /** A group the band cites. A group whose slug did not resolve is named without a link. */
-export interface PageIdentityGroup {
+interface PageIdentityGroup {
   slug?: string | null;
   name: string;
 }
 
-export interface PageIdentityMaintainers {
+interface PageIdentityMaintainers {
   /** The phrase before the names. Defaults to "Maintained by". */
   label?: string;
   /** The person who holds the thing; `null` reads as "Unknown". */
