@@ -241,6 +241,7 @@ export const CanonicalFactionStoredSchema = z.strictObject({
   name: z.string(),
   hero: Leader.omit({ strength: true }).extend({ memberId: FactionMemberIdSchema }),
   leaders: z.array(Leader.extend({ memberId: FactionMemberIdSchema })),
+  troops: z.array(Troop.extend({ troopId: FactionTroopIdSchema })),
 });
 
 /** Frozen sheet jobs and standalone previews may predate persistent member identity. Keep this decoder after live schema narrowing. */
