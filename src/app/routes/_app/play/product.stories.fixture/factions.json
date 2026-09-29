@@ -103,7 +103,8 @@
           "count": 20.0,
           "description": "0.5 strength when undialed, 1 strength when dialed",
           "image": "/vector/troop/atreides.svg",
-          "name": "Normal troop"
+          "name": "Normal troop",
+          "troopId": "30000000-0000-4000-8000-000000000001"
         }
       ]
     },
@@ -232,7 +233,8 @@
           "count": 20.0,
           "description": "0.5 strength, 1 strength when spice dialed",
           "image": "/vector/troop/harkonnen.svg",
-          "name": "Harkonnen Troop"
+          "name": "Harkonnen Troop",
+          "troopId": "30000000-0000-4000-8000-000000000002"
         }
       ]
     },
@@ -355,7 +357,8 @@
           "count": 15.0,
           "description": "0.5 strength when undialed, 1 strength dialed",
           "image": "/vector/troop/emperor.svg",
-          "name": "Normal troop"
+          "name": "Normal troop",
+          "troopId": "30000000-0000-4000-8000-000000000003"
         },
         {
           "count": 5.0,
@@ -363,7 +366,8 @@
           "hue": "#e6de12",
           "image": "/vector/troop/emperor.svg",
           "name": "Saudarkar",
-          "star": "/vector/troop_modifier/star-right.svg"
+          "star": "/vector/troop_modifier/star-right.svg",
+          "troopId": "30000000-0000-4000-8000-000000000004"
         }
       ]
     },
@@ -520,7 +524,8 @@
           "hue": "#ffffff",
           "image": "/vector/troop/guild.svg",
           "name": "Troop",
-          "planet": "Shipping Junction"
+          "planet": "Shipping Junction",
+          "troopId": "30000000-0000-4000-8000-000000000005"
         }
       ]
     },
@@ -689,7 +694,8 @@
           "count": 17.0,
           "description": "1 strength",
           "image": "/vector/troop/fremen.svg",
-          "name": "Normal troop"
+          "name": "Normal troop",
+          "troopId": "30000000-0000-4000-8000-000000000006"
         },
         {
           "count": 3.0,
@@ -697,7 +703,8 @@
           "hue": "#edecd5",
           "image": "/vector/troop/fremen.svg",
           "name": "Fedaykin",
-          "star": "/vector/troop_modifier/star-right.svg"
+          "star": "/vector/troop_modifier/star-right.svg",
+          "troopId": "30000000-0000-4000-8000-000000000007"
         }
       ]
     },
@@ -836,7 +843,8 @@
           "count": 20.0,
           "description": "Normal troops, 0.5 strength if undialed, 1 strength when dialed.",
           "image": "/vector/troop/bene-gesserit.svg",
-          "name": "Fighter"
+          "name": "Fighter",
+          "troopId": "30000000-0000-4000-8000-000000000008"
         }
       ]
     },

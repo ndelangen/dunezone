@@ -14,6 +14,7 @@ import { accepted, admitPlayer, eventually, seat, sendCommand, syncView } from '
 const BATTLE = TABLE_PHASES.findIndex((phase) => phase.id === 'battle');
 const AUTHORED_TROOPS = [
   {
+    troopId: '40000000-0000-4000-8000-000000000001',
     name: 'Trooper',
     image: '/vector/troop/harkonnen.svg',
     description: 'Synthetic trooper',
@@ -27,6 +28,7 @@ const AUTHORED_TROOPS = [
     },
   },
   {
+    troopId: '40000000-0000-4000-8000-000000000002',
     name: 'Envoy',
     image: '/vector/troop/harkonnen.svg',
     description: 'Synthetic envoy that never fights',
