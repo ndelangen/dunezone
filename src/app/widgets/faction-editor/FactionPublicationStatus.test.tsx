@@ -7,15 +7,12 @@ import { afterEach, describe, expect, test, vi } from 'vitest';
 
 import { FactionPublicationStatus } from './FactionPublicationStatus';
 
-window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+/* Mantine reads the colour scheme through matchMedia, which jsdom lacks. */
+vi.stubGlobal('matchMedia', (media: string) => ({
   matches: false,
-  media: query,
-  onchange: null,
-  addListener: vi.fn(),
-  removeListener: vi.fn(),
-  addEventListener: vi.fn(),
-  removeEventListener: vi.fn(),
-  dispatchEvent: vi.fn(),
+  media,
+  addEventListener: () => undefined,
+  removeEventListener: () => undefined,
 }));
 
 afterEach(cleanup);
