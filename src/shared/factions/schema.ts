@@ -233,6 +233,22 @@ function refineUniqueComponentIds(data: ComponentRoster, ctx: z.RefinementCtx) {
 /** Rejects unknown keys (e.g. `slug` must live on the Convex row, not in `data`). */
 export const FactionInputSchema = z.strictObject(factionAuthoringShape).superRefine(refineUniqueComponentIds);
 
+/** A faction has zero to ten supporting leaders; five is conventional (#644). */
+export const SUPPORTING_LEADER_LIMIT = 10;
+
+/**
+ * What a save accepts: authoring semantics plus the supporting-leader cap.
+ * Reads and renders keep `FactionInputSchema`, so a stored faction over the cap still loads and renders;
+ * it just cannot be saved until trimmed.
+ */
+export const FactionWriteSchema = FactionInputSchema.refine(
+  (faction) => faction.leaders.length <= SUPPORTING_LEADER_LIMIT,
+  {
+    message: `A faction can have at most ${SUPPORTING_LEADER_LIMIT} supporting leaders.`,
+    path: ['leaders'],
+  }
+);
+
 /**
  * Canonical storage is intentionally wider than current authoring semantics: historical rows with a blank name must remain readable while the UI requires a name for all new canonical writes.
  */

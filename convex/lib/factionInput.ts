@@ -1,6 +1,6 @@
 import { ensureFactionComponentIds } from '../../src/shared/factions/componentIdentity';
 import { factionMembersHaveIds } from '../../src/shared/factions/memberIdentity';
-import { CanonicalFactionStoredSchema, FactionInputSchema } from '../../src/shared/factions/schema';
+import { CanonicalFactionStoredSchema, FactionWriteSchema } from '../../src/shared/factions/schema';
 import { factionTroopsHaveIds } from '../../src/shared/factions/troopIdentity';
 
 export function parseStoredFactionForRead(input: unknown) {
@@ -11,7 +11,7 @@ export function parseFactionInput(
   input: unknown,
   { requireAuthoringSemantics = false }: { requireAuthoringSemantics?: boolean } = {}
 ) {
-  const parsed = (requireAuthoringSemantics ? FactionInputSchema : CanonicalFactionStoredSchema).safeParse(input);
+  const parsed = (requireAuthoringSemantics ? FactionWriteSchema : CanonicalFactionStoredSchema).safeParse(input);
   if (!parsed.success) {
     const firstIssue = parsed.error.issues[0];
     const issuePath = firstIssue?.path.join('.') ?? 'data';
