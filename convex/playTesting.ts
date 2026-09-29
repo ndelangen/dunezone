@@ -1,4 +1,3 @@
-import { zodToConvex } from 'convex-helpers/server/zod4';
 import { v } from 'convex/values';
 
 import type { PublicationAssetType } from '../src/shared/asset-publishing/publicationTargets';
@@ -10,7 +9,6 @@ import { publishingTreacheryCard } from '../src/shared/assets/fixtures/publishin
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
 import { ensureFactionTroopIds } from '../src/shared/factions/troopIdentity';
 import { PLAY_FIXTURE_KEY } from '../src/shared/play/admission';
-import { loadProfileSchema } from '../src/shared/play/loadProfile';
 import type { Id } from './_generated/dataModel';
 import type { MutationCtx } from './_generated/server';
 import { internalMutation } from './functions';
@@ -131,15 +129,12 @@ export const shortenSession = internalMutation({
 
 /** Test-only games have fresh DO IDs; a browser opens one at its own game address. */
 export const createFixture = internalMutation({
-  args: { loadProfile: v.optional(zodToConvex(loadProfileSchema)) },
+  args: {},
   returns: v.object({ gameId: v.id('play_games'), secret: v.string(), attemptId: v.string(), expiresAt: v.number() }),
-  handler: async (ctx, args) => {
+  handler: async (ctx) => {
     requireSyntheticBackend();
     await limitLiveGames(ctx);
-    return await insertPendingGame(ctx, {
-      fixture_key: syntheticFixtureKey(),
-      ...(args.loadProfile ? { load_profile: args.loadProfile } : {}),
-    });
+    return await insertPendingGame(ctx, { fixture_key: syntheticFixtureKey() });
   },
 });
 

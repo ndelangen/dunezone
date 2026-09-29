@@ -1,12 +1,29 @@
-import { initialSnapshot } from './commands';
-import type { LoadProfile } from './loadProfile';
-import workload from './loadWorkload.json';
-import type { TablePiece } from './model';
-import type { GameSnapshot } from './protocol';
-import { restingPositionAt } from './tableGeometry';
+import { initialSnapshot } from '../../src/shared/play/commands';
+import type { LoadProfile } from '../../src/shared/play/loadProfile';
+import workload from '../../src/shared/play/loadWorkload.json';
+import type { TablePiece } from '../../src/shared/play/model';
+import type { GameSnapshot } from '../../src/shared/play/protocol';
+import { tableSeatCountSchema } from '../../src/shared/play/schema';
+import { restingPositionAt } from '../../src/shared/play/tableGeometry';
+import { fixtureSnapshot } from './fixture';
+import type { FixturePlan } from './fixture';
 
-export type { LoadProfile } from './loadProfile';
 export const LOAD_SEATS = Array.from({ length: workload.players }, (_, index) => `load-seat-${index + 1}`);
+
+/**
+ * The load fixture a load entry provisions in place of the hosted one: the agreed eighteen players with no faction, and the profile's synthetic pieces.
+ * The production Worker never imports this file.
+ */
+export function loadFixturePlan(profile: LoadProfile): FixturePlan {
+  return {
+    hosted: false,
+    roster: {
+      seatCount: tableSeatCountSchema.parse(LOAD_SEATS.length),
+      seats: LOAD_SEATS.map((id, position) => ({ id, position, faction: null })),
+    },
+    snapshot: (roster) => fixtureSnapshot(roster, loadSnapshot(profile)),
+  };
+}
 
 /** Synthetic public content for the agreed workload; the baseline fixture never calls this. */
 export function loadSnapshot(profile: LoadProfile): GameSnapshot {

@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { PLAY_REQUEST_TIMEOUT_MS } from '../../src/shared/play/admission';
 import { loadCellIdentitySchema, loadRoomCeilingSchema } from '../../src/shared/play/loadTarget';
 import worker, { GameRoom } from './index';
+import { loadFixturePlan } from './loadFixture';
 
 /* A hosted activation names its cell, so the ledger pins the cell as well as the ceilings; native fixtures carry none. */
 const limitsSchema = loadRoomCeilingSchema
@@ -105,7 +106,8 @@ export class BoundedLoadRoom extends GameRoom {
     if (limits.startsAt > Date.now()) {
       throw new Error('A load budget must start when it is provisioned.');
     }
-    super(ctx, env);
+    /* A hosted cell seats the load players on its profile; a native fixture without a cell keeps the hosted fixture. */
+    super(ctx, env, limits.cell ? loadFixturePlan(limits.cell.profile) : undefined);
     this.limits = limits;
     /*
      * A new activation reaches Worker versions one at a time, so this object can start under a version that still names the previous game.

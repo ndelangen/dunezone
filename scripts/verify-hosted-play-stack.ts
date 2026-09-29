@@ -451,6 +451,7 @@ try {
       String(appPort),
       ...(values['skip-build'] ? ['--skip-build'] : []),
       ...(values['skip-generate'] ? ['--skip-generate'] : []),
+      ...(loadProfile ? ['--load-profile', loadProfile] : []),
     ],
     env: { ...environment, WRANGLER_LOG_PATH: wranglerLog },
     logPath: workerLog,
@@ -584,8 +585,7 @@ try {
   }
   if (hostedTarget) {
     /* The runner retired its game, so the copied backend takes a new one and refuses a second while that one is live. */
-    /* Baseline runs without a load profile, so createFixture gets none, as in the runner's own call. */
-    const fixtureArguments = JSON.stringify(loadProfile === 'baseline' ? {} : { loadProfile });
+    const fixtureArguments = '{}';
     const next = JSON.parse(convex(['run', 'playTesting:createFixture', fixtureArguments])) as { gameId: string };
     const refused = spawnSync(
       node,

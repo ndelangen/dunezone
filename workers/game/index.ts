@@ -39,7 +39,8 @@ import { AuthorizationWatch, gameHttpClient } from './authorization';
 import { GameCatalogue } from './catalogue';
 import { RoomDelivery } from './delivery';
 import { GameDiagnostics } from './diagnostics';
-import { FIXTURE_TREACHERY_DECK } from './fixture';
+import { FIXTURE_TREACHERY_DECK, hostedFixturePlan } from './fixture';
+import type { FixturePlan } from './fixture';
 import { isLocalIsolatedRuntime } from './localRuntime';
 import type { Metadata } from './session';
 import { GameSession } from './session';
@@ -217,13 +218,18 @@ export class GameRoom extends DurableObject<GameEnv> {
   private get metadata() {
     return this.session.info;
   }
-  constructor(ctx: DurableObjectState, env: GameEnv) {
+  constructor(
+    ctx: DurableObjectState,
+    env: GameEnv,
+    /* The production Worker provisions only the hosted fixture; a load entry passes the load fixture's plan. */
+    private readonly fixturePlan: FixturePlan = hostedFixturePlan
+  ) {
     super(ctx, env);
     this.ctx.setWebSocketAutoResponse(new WebSocketRequestResponsePair(KEEPALIVE_PING, KEEPALIVE_PONG));
     this.diagnostics = new GameDiagnostics(ctx.id.toString(), env.GIT_SHA);
     try {
       /* A start that fails keeps none of its writes, as a throwing constructor's would not. */
-      this.session = ctx.storage.transactionSync(() => new GameSession(ctx.storage));
+      this.session = ctx.storage.transactionSync(() => new GameSession(ctx.storage, fixturePlan));
     } catch (error) {
       this.diagnostics.report('load', error);
       this.closed = true;
@@ -362,7 +368,7 @@ export class GameRoom extends DurableObject<GameEnv> {
           : null;
       /* The hosted fixture asks the catalogue for its deck before it exists; a refusal costs nothing, a slow answer only time. */
       const fixtureDeck =
-        validation.ok && 'fixtureKey' in validation && !validation.loadProfile && !this.metadata
+        validation.ok && 'fixtureKey' in validation && this.fixturePlan.hosted && !this.metadata
           ? await this.captureFixtureDeck()
           : undefined;
       if (!this.initializeValidated(args, validation, factions, fixtureDeck)) {
@@ -397,7 +403,6 @@ export class GameRoom extends DurableObject<GameEnv> {
         ...args,
         expiresAt: validation.expiresAt,
         confirmed: false,
-        ...('loadProfile' in validation && validation.loadProfile ? { loadProfile: validation.loadProfile } : {}),
         ...('game' in validation ? { game: validation.game } : {}),
         ...('provisional' in validation && validation.provisional ? { provisional: true } : {}),
         ...(validation.testPhaseCooldownMs === undefined
@@ -481,7 +486,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       metadata.gameId !== gameId ||
       !credentialsMatch(args.secret, metadata.secret) ||
       metadata.game ||
-      metadata.loadProfile
+      !this.fixturePlan.hosted
     ) {
       return refused();
     }
