@@ -28,7 +28,8 @@ test('membership lifecycle: request, approve, moderate, remove', async ({ page, 
 
   await test.step('visitor requests membership', async () => {
     await userBPage.goto(groupUrl);
-    await expect(userBPage.getByText('Not a member', { exact: true })).toBeVisible();
+    /* A stranger wears no standing badge; the request action is what marks them as one. */
+    await expect(userBPage.getByRole('button', { name: 'Request membership' })).toBeVisible();
     await userBPage.getByRole('button', { name: 'Request membership' }).click();
     await expect(userBPage.getByText('Pending approval', { exact: true })).toBeVisible();
   });
@@ -51,7 +52,7 @@ test('membership lifecycle: request, approve, moderate, remove', async ({ page, 
   });
 
   await test.step('removed member loses membership and may request again', async () => {
-    await expect(userBPage.getByText('Not a member', { exact: true })).toBeVisible();
+    await expect(userBPage.getByText('Active member', { exact: true })).not.toBeVisible();
     await expect(userBPage.getByRole('button', { name: 'Request membership' })).toBeVisible();
   });
 

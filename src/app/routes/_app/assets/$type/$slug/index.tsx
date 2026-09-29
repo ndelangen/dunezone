@@ -24,15 +24,12 @@ import { Section } from '@ui/block/Section';
 import { AssetLink } from '@ui/content/AssetLink';
 import { formatRelativeDate } from '@ui/content/dates';
 import { FormattedTextSource } from '@ui/content/FormattedText';
-import { GroupLink } from '@ui/content/GroupLink';
-import { ProfileLink } from '@ui/content/ProfileLink';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { IconAction } from '@ui/control/IconAction';
 import { AsymmetricSplitLayout } from '@ui/layout/AsymmetricSplitLayout';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Links } from '@ui/list/Links';
-import { Stats } from '@ui/list/Stats';
 import { TileGrid } from '@ui/list/TileGrid';
 import { Surface } from '@ui/surface';
 import { Card } from '@ui/surface/Card';
@@ -47,7 +44,6 @@ import {
   History,
   Layers3,
   Pencil,
-  UsersRound,
 } from 'lucide-react';
 import type { ReactNode } from 'react';
 
@@ -486,6 +482,7 @@ function LoadedAssetDetail({ page }: { page: AssetPage }) {
   /* Only a container holding an actual multiple offers the toggle: with every count at one, the two views are the same picture. */
   const hasCopies = container && page.members.some(({ count }) => count > 1);
   const memberNoun = asset.type === 'deck' ? 'card' : 'token';
+  const memberTotal = page.members.reduce((total, { count }) => total + count, 0);
   const { capabilities, assignedGroup } = viewerAccess;
   const definition = isAssetType(asset.type) ? ASSET_TYPES[asset.type] : undefined;
   const collectionLabel = definition?.label ?? 'Assets';
@@ -511,47 +508,49 @@ function LoadedAssetDetail({ page }: { page: AssetPage }) {
               {collectionLabel}
             </PageIdentity.Breadcrumb>
           }
-        >
-          <Group gap="xs" wrap="wrap">
-            <Text size="sm" c="dimmed">
-              Made by
-            </Text>
-            {asset.owner ? (
-              <ProfileLink slug={asset.owner.slug} name={asset.owner.username} image={asset.owner.avatar_url} />
-            ) : (
-              <Text size="sm">Unknown</Text>
-            )}
-            {/* The band carries the page's statistics, the ruleset band's pattern (Norbert, 2026-08-21). */}
-            <Stats
-              orientation="row"
-              items={[
-                {
-                  key: 'created',
-                  icon: <CalendarPlus size={17} aria-hidden />,
-                  value: formatRelativeDate(asset.created_at),
-                  label: `Created ${formatRelativeDate(asset.created_at)}`,
-                },
-                {
-                  key: 'updated',
-                  icon: <History size={17} aria-hidden />,
-                  value: formatRelativeDate(asset.updated_at),
-                  label: `Updated ${formatRelativeDate(asset.updated_at)}`,
-                },
-                /* Only for types a deck can hold; the payload already carries the list for the In-decks section. */
-                ...(holdsDeckMembership(asset.type)
-                  ? [
-                      {
-                        key: 'decks',
-                        icon: <Layers3 size={17} aria-hidden />,
-                        value: inDecks.length,
-                        label: `In ${inDecks.length} ${inDecks.length === 1 ? 'deck' : 'decks'}`,
-                      },
-                    ]
-                  : []),
-              ]}
-            />
-          </Group>
-        </PageIdentity>
+          maintainers={{
+            owner: asset.owner
+              ? { slug: asset.owner.slug, name: asset.owner.username, image: asset.owner.avatar_url }
+              : null,
+            group: assignedGroup ? { slug: assignedGroup.slug, name: assignedGroup.name } : null,
+          }}
+          stats={[
+            {
+              key: 'created',
+              icon: <CalendarPlus size={17} aria-hidden />,
+              value: formatRelativeDate(asset.created_at),
+              label: `Created ${formatRelativeDate(asset.created_at)}`,
+            },
+            {
+              key: 'updated',
+              icon: <History size={17} aria-hidden />,
+              value: formatRelativeDate(asset.updated_at),
+              label: `Updated ${formatRelativeDate(asset.updated_at)}`,
+            },
+            /* A container's size, counting every copy, so the Composition heading need not say it. */
+            ...(container
+              ? [
+                  {
+                    key: 'members',
+                    icon: <TopicIcon topic="contents" size={17} />,
+                    value: memberTotal,
+                    label: `${memberTotal} ${memberNoun}${memberTotal === 1 ? '' : 's'}${page.membersTruncated ? ' or more' : ''}`,
+                  },
+                ]
+              : []),
+            /* Only for types a deck can hold; the payload already carries the list for the In-decks section. */
+            ...(holdsDeckMembership(asset.type)
+              ? [
+                  {
+                    key: 'decks',
+                    icon: <Layers3 size={17} aria-hidden />,
+                    value: inDecks.length,
+                    label: `In ${inDecks.length} ${inDecks.length === 1 ? 'deck' : 'decks'}`,
+                  },
+                ]
+              : []),
+          ]}
+        />
       </PageLayout.Header>
 
       <PageLayout.Toolbar>
@@ -663,11 +662,6 @@ function LoadedAssetDetail({ page }: { page: AssetPage }) {
             <Stack gap="lg">
               <AssetFaces page={page} />
               {container ? <ShippedByCard rulesets={page.linkingRulesets} /> : null}
-              {assignedGroup ? (
-                <Card title="Maintained by" icon={<UsersRound size={18} aria-hidden />}>
-                  <GroupLink slug={assignedGroup.slug} name={assignedGroup.name} />
-                </Card>
-              ) : null}
             </Stack>
           </AsymmetricSplitLayout.Narrow>
         </AsymmetricSplitLayout>

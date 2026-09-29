@@ -42,21 +42,23 @@ export const Detail = meta.story({
     /* The faction wears its own mark rather than the shared glyph: the token renders an svg, the glyph a masked span. */
     expect(faction.querySelector('svg')).not.toBeNull();
 
-    /* Stewardship reads from the band now. The card it used to sit in is gone rather than hidden. */
-    const stewardship = await page.findByText('Stewarded by', {}, { timeout: 30_000 });
-    const line = stewardship.parentElement;
+    /* Ownership reads from the band now. The card it used to sit in is gone rather than hidden. */
+    const ownedBy = await page.findByText('Owned by', {}, { timeout: 30_000 });
+    const line = ownedBy.parentElement;
     /* By href rather than accessible name: the avatar placeholder puts its initials into the name. */
     expect(line?.querySelector('a[href="/profiles/storybook-viewer"]')).not.toBeNull();
     expect(line?.textContent).toContain('Owner');
+    /* The member count is the band's too, so the roster card no longer repeats it in its title. */
+    expect(page.getByRole('heading', { name: 'Members' })).toBeVisible();
     expect(page.queryByRole('heading', { name: 'Stewardship' })).toBeNull();
   },
 });
 
 /**
- * The group as a stranger sees it, which is the only state that renders the "Not a member" badge.
+ * The group as a stranger sees it: the band names the owner and claims no standing for the viewer.
  *
- * The shared baseline makes the viewer the group's owner, so every other story on this page shows the Owner cell and this one is uncovered.
- * It exists because that cell is the one place the membership ladder's treatment differs from the ladder it was folded into: `neutral` is a bordered default rather than a light grey, deliberately, because the warm grey collapses into the dark scheme's navy surfaces.
+ * The shared baseline makes the viewer the group's owner, so every other story on this page shows the Owner badge and this one is uncovered.
+ * A stranger is every reader's default, so the band says nothing rather than wearing a "Not a member" badge.
  */
 export const DetailNotAMember = meta.story({
   args: { path: '/groups/arrakeen-rules-council' },
@@ -83,8 +85,11 @@ export const DetailNotAMember = meta.story({
   },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await expect(page.findByText('Not a member', {}, { timeout: 30_000 })).resolves.toBeVisible();
+    const ownedBy = await page.findByText('Owned by', {}, { timeout: 30_000 });
+    expect(ownedBy.parentElement?.querySelector('a[href="/profiles/reverend-mother"]')).not.toBeNull();
+    expect(page.queryByText('Not a member')).toBeNull();
     expect(page.queryByText('Owner')).toBeNull();
+    await expect(page.findByRole('button', { name: 'Request membership' })).resolves.toBeVisible();
   },
 });
 export const Create = meta.story({ args: { path: '/groups/create' } });

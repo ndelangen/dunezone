@@ -28,10 +28,7 @@ import { Section } from '@ui/block/Section';
 import { formatRelativeDate } from '@ui/content/dates';
 import { FAQ_TAG_LABELS } from '@ui/content/faqTagLabels';
 import { FormattedTextSource } from '@ui/content/FormattedText';
-import { GroupLink } from '@ui/content/GroupLink';
-import { ProfileLink } from '@ui/content/ProfileLink';
 import { RulebookPreview } from '@ui/content/RulebookPreview';
-import { StatusBadge } from '@ui/content/StatusBadge';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { AssignOptions, AssignPopover } from '@ui/control/AssignPopover';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
@@ -39,7 +36,6 @@ import { IconAction } from '@ui/control/IconAction';
 import { ColumnsWithRailLayout } from '@ui/layout/ColumnsWithRailLayout';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { FaqList } from '@ui/list/FaqList';
-import { Stats } from '@ui/list/Stats';
 import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
 import {
@@ -528,32 +524,15 @@ function RulesetDetailPage() {
             />
           }
           breadcrumb={<PageIdentity.Breadcrumb to="/rulesets">Rulesets</PageIdentity.Breadcrumb>}
-        >
-          {/*
-            One line carrying everything the old "At a glance" and "Stewardship" cards said.
-            The sizes are level on purpose: this row centres its children, and a 12px label among 14-16px text reads as
-            misaligned even when every box is perfectly centred.
-          */}
-          <Group gap="sm" wrap="wrap" align="center">
-            <Text size="sm" c="dimmed">
-              Maintained by
-            </Text>
-            {page.owner ? (
-              <ProfileLink slug={page.owner.slug} name={page.owner.username} image={page.owner.avatar_url} />
-            ) : (
-              <Text size="sm">Unknown</Text>
-            )}
-            {assignedGroup ? (
-              <GroupLink slug={assignedGroup.slug} name={assignedGroup.name} />
-            ) : (
-              <Text size="sm" c="dimmed">
-                No maintaining group
-              </Text>
-            )}
-            {membershipBadge ? <StatusBadge tone={membershipBadge.tone}>{membershipBadge.label}</StatusBadge> : null}
-            <Stats items={headerStats} orientation="row" />
-          </Group>
-        </PageIdentity>
+          maintainers={{
+            owner: page.owner
+              ? { slug: page.owner.slug, name: page.owner.username, image: page.owner.avatar_url }
+              : null,
+            group: assignedGroup ? { slug: assignedGroup.slug, name: assignedGroup.name } : null,
+          }}
+          standing={membershipBadge}
+          stats={headerStats}
+        />
       </PageLayout.Header>
       <PageLayout.Toolbar>
         <Toolbar>
