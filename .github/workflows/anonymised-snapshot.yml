@@ -18,7 +18,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  # Off until Norbert has read a dry-run report. Setting it to "true" turns the upload step on.
+  # "false" makes every run a dry run that uploads nothing, and "true" turns on the upload step below (#1559).
   SNAPSHOT_UPLOAD: "false"
 
 jobs:

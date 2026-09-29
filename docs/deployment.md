@@ -357,13 +357,13 @@ does, anonymises the export with `scripts/snapshot-anonymise.ts`, and scans the 
 The raw export is deleted as soon as the anonymiser has read it, and the job's last step deletes
 its directory whatever happened before.
 
-The step summary lists each table with its policy, its rows in and out, and the field names the
-snapshot keeps, followed by the leak scan result. It never shows a value, because Actions logs on
-this repository are public.
+The step summary gives the leak scan result, then each table with its policy, its rows in and
+out, and the field names the snapshot keeps. It never shows a value, because Actions logs on this
+repository are public.
 
-The upload step runs only when `SNAPSHOT_UPLOAD` in the workflow is `"true"`. It is `"false"`
-until Norbert has read a dry-run report, so the job uploads nothing. Once on, it uploads the
-snapshot file alone as an artifact kept for one day.
+The upload step runs only when `SNAPSHOT_UPLOAD` in the workflow is `"true"`, and then uploads the
+snapshot file alone as an artifact kept for one day. While the value is `"false"`, every run is a
+dry run and uploads nothing.
 
 ## Migrations on every `main` deploy
 
