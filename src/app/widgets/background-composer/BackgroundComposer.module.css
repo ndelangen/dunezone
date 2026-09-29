@@ -76,6 +76,7 @@
   place-items: center;
 }
 
+/* Stays off the ladder because Norbert judged the ladder's 30rem worse on 29 September 2026 (#1321). */
 @container connected-tabs-panel (max-width: 34rem) {
   .pipelineTop {
     gap: var(--space-sm);
@@ -86,6 +87,7 @@
   }
 }
 
+/* Stays off the ladder because Norbert judged the ladder's 30rem worse on 29 September 2026 (#1321). */
 @container connected-tabs-panel (max-width: 26rem) {
   .pipelineTop {
     grid-template-columns: 1fr;

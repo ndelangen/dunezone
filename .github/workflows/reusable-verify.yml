@@ -11,6 +11,57 @@ permissions:
   contents: read
 
 jobs:
+  # First in the file because it is one of the run's longest jobs (#1322). GitHub's docs on jobs and
+  # limits give no order for a run's queued jobs. In past PR runs a job with a later ID waited for a
+  # runner more often, and a job's ID loosely followed its place in this file. Being first should make
+  # it wait less often when runners are short; it does not make it start first.
+  storybook:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+      - uses: ./.github/actions/generated-images
+      - uses: ./.github/actions/playwright-chromium
+        with:
+          # The ubuntu-24.04 runner image already ships Chromium's shared libraries.
+          with-deps: "false"
+      - name: Verify generated images structurally
+        run: bun run verify:images
+      - name: Run story tests with coverage
+        run: bun run storybook:test --coverage.enabled=true --reporter=default --reporter=junit --outputFile.junit=test-results/vitest-storybook.junit.xml
+      - name: Retain Storybook failure evidence
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: storybook-failure-evidence
+          path: |
+            test-results/storybook-attachments/
+            test-results/storybook-screenshots/
+            test-results/vitest-storybook.junit.xml
+          retention-days: 14
+          if-no-files-found: ignore
+      - name: Upload storybook coverage to Codecov
+        uses: codecov/codecov-action@0fb7174895f61a3b6b78fc075e0cd60383518dac # v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: coverage/storybook/lcov.info
+          flags: storybook
+          disable_search: true
+          fail_ci_if_error: false
+      - name: Upload storybook test results to Codecov
+        if: ${{ !cancelled() }}
+        uses: codecov/codecov-action@0fb7174895f61a3b6b78fc075e0cd60383518dac # v5
+        with:
+          report_type: test_results
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: test-results/vitest-storybook.junit.xml
+          flags: storybook
+          disable_search: true
+          fail_ci_if_error: false
+
   actionlint:
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -349,6 +400,9 @@ jobs:
         # when the run stopped before reaching them. A flow the launcher stops at its budget still
         # writes a report, failed after its last check. Renderer and Chromium come from the report:
         # the renderer kind its first table drew with, and the Chromium build that ran it.
+        # A failed flow's report names only the checks that passed, so its failing step is the source line
+        # the driver recorded for the error and the check it passed last. The error is the report's message
+        # on one line: an assertion's first line only says what kind of comparison failed.
         # always(), because a job that reaches timeout-minutes reads as cancelled.
         # The summary never changes the shard's result: a failed flow lookup writes its own row and
         # fails only this step, as does a report jq cannot read.
@@ -367,23 +421,23 @@ jobs:
           {
             echo "### hosted_play ${SHARD}"
             echo
-            echo '| Flow | Result | Seconds | Renderer | Chromium | Failed after |'
-            echo '| --- | --- | --- | --- | --- | --- |'
+            echo '| Flow | Result | Seconds | Renderer | Chromium | Failing step | Error |'
+            echo '| --- | --- | --- | --- | --- | --- | --- |'
             if [ "$PROTOCOL_VERIFIER" = true ]; then
               if grep -qs '"status": "passed"' "$out/verification.log"; then
-                echo '| protocol verifier | pass | | | | |'
+                echo '| protocol verifier | pass | | | | | |'
               elif [ -f "$out/verification.log" ]; then
-                echo '| protocol verifier | fail | | | | see verification.log |'
+                echo '| protocol verifier | fail | | | | | see verification.log |'
               else
-                echo '| protocol verifier | did not run | | | | see the run step |'
+                echo '| protocol verifier | did not run | | | | | see the run step |'
               fi
             fi
             if [ "${#flows[@]}" -eq 0 ]; then
-              echo "| ${SHARD} flows | not listed | | | | the flow lookup in this step failed |"
+              echo "| ${SHARD} flows | not listed | | | | | the flow lookup in this step failed |"
             fi
             for flow in "${flows[@]}"; do
               if [ ! -f "$out/$flow.log" ]; then
-                echo "| $flow | did not run | | | | see the run step |"
+                echo "| $flow | did not run | | | | | see the run step |"
                 continue
               fi
               report=''
@@ -393,11 +447,16 @@ jobs:
                 fi
               done
               if [ -z "$report" ]; then
-                echo "| $flow | no report | | | | see $flow.log |"
+                echo "| $flow | no report | | | | | see $flow.log |"
                 continue
               fi
               jq -r 'def seconds: sub("\\.[0-9]+Z$"; "Z") | fromdate;
-                "| \(.flow) | \(if .failure then "fail" else "pass" end) | \((.finishedAt | seconds) - (.startedAt | seconds)) | \(.renderer.kind // "not read") | \(.chromium.build // "") | \(.failure.afterCheck // "" | gsub("\\|"; "/")) |"' "$report"
+                def cell: gsub("\\|"; "/");
+                def step: [(.at // "" | [match("(scripts/)?verify-hosted-[^/:() ]+:[0-9]+").string][0]), "after \"\(.afterCheck)\""]
+                  | map(select(. != null)) | join(", ");
+                def message: .message // "" | [splits("\\s+")] | map(select(length > 0)) | join(" ")
+                  | if length > 200 then .[:197] + "..." else . end;
+                "| \(.flow) | \(if .failure then "fail" else "pass" end) | \((.finishedAt | seconds) - (.startedAt | seconds)) | \(.renderer.kind // "not read") | \(.chromium.build // "") | \(if .failure then .failure | step | cell else "" end) | \(if .failure then .failure | message | cell else "" end) |"' "$report"
             done
           } | tee -a "$GITHUB_STEP_SUMMARY"
           test "${#flows[@]}" -gt 0
@@ -427,53 +486,6 @@ jobs:
           with-deps: "false"
       - name: Authoring tool E2E
         run: bun run tool:test:e2e
-
-  storybook:
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
-        with:
-          persist-credentials: false
-      - uses: ./.github/actions/setup
-      - uses: ./.github/actions/generated-images
-      - uses: ./.github/actions/playwright-chromium
-        with:
-          # The ubuntu-24.04 runner image already ships Chromium's shared libraries.
-          with-deps: "false"
-      - name: Verify generated images structurally
-        run: bun run verify:images
-      - name: Run story tests with coverage
-        run: bun run storybook:test --coverage.enabled=true --reporter=default --reporter=junit --outputFile.junit=test-results/vitest-storybook.junit.xml
-      - name: Retain Storybook failure evidence
-        if: ${{ failure() }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: storybook-failure-evidence
-          path: |
-            test-results/storybook-attachments/
-            test-results/storybook-screenshots/
-            test-results/vitest-storybook.junit.xml
-          retention-days: 14
-          if-no-files-found: ignore
-      - name: Upload storybook coverage to Codecov
-        uses: codecov/codecov-action@0fb7174895f61a3b6b78fc075e0cd60383518dac # v5
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: coverage/storybook/lcov.info
-          flags: storybook
-          disable_search: true
-          fail_ci_if_error: false
-      - name: Upload storybook test results to Codecov
-        if: ${{ !cancelled() }}
-        uses: codecov/codecov-action@0fb7174895f61a3b6b78fc075e0cd60383518dac # v5
-        with:
-          report_type: test_results
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: test-results/vitest-storybook.junit.xml
-          flags: storybook
-          disable_search: true
-          fail_ci_if_error: false
 
   # Builds the static Storybook and drives it in Chromium: 52 s that used to run ahead of the story
   # tests on the run's longest job. On its own runner the two proceed side by side. deploy-main.yml

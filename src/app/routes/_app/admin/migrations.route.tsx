@@ -10,9 +10,11 @@ import { Surface } from '@ui/surface';
 import { RefreshCw } from 'lucide-react';
 
 import { useAdminMigrationDashboard, useSyncMigrationRuns } from '@db/migrations';
+import { pageHead } from '@app/routes/pageTitle';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 export const Route = createFileRoute('/_app/admin/migrations')({
+  head: () => pageHead('Migration activity'),
   component: AdminMigrationsPage,
 });
 

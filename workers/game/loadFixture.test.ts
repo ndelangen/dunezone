@@ -1,8 +1,9 @@
 import { expect, test } from 'vitest';
 
 import { initialSnapshot } from '../../src/shared/play/commands';
-import { LOAD_SEATS, loadSnapshot } from '../../src/shared/play/loadFixture';
 import type { Viewer } from '../../src/shared/play/protocol';
+import { hostedFixturePlan } from './fixture';
+import { LOAD_SEATS, loadFixturePlan, loadSnapshot } from './loadFixture';
 import { Room } from './room';
 
 const player = (index: number): Viewer => ({
@@ -13,7 +14,7 @@ const player = (index: number): Viewer => ({
   color: '#176a73',
 });
 
-test('both content arrangements preserve item identity and the load profile survives reset', () => {
+test('both content arrangements preserve item identity, and the load plan seats its eighteen players on them', () => {
   const stacked = loadSnapshot('stacked');
   const separated = loadSnapshot('separated');
   const items = (snapshot: typeof stacked) =>
@@ -22,17 +23,19 @@ test('both content arrangements preserve item identity and the load profile surv
   expect(new Set(items(stacked)).size).toBe(750);
   expect(stacked.table.pieces).toHaveLength(294);
   expect(separated.table.pieces).toHaveLength(750);
-  const room = new Room(stacked, 'stacked', () => LOAD_SEATS);
-  const reset = room.command(player(0), { kind: 'reset' }, stacked.revision);
-  expect(items(reset)).toEqual(items(stacked));
-  expect(reset.table.pieces).toEqual(stacked.table.pieces);
-  expect(initialSnapshot().table.pieces).toHaveLength(6);
+  const plan = loadFixturePlan('separated');
+  expect(plan.hosted).toBe(false);
+  expect(plan.roster.seats.map((seat) => seat.id)).toEqual(LOAD_SEATS);
+  expect(plan.roster.seatCount).toBe(18);
+  const first = plan.snapshot(plan.roster);
+  expect(first.table.pieces).toEqual(separated.table.pieces);
+  expect(first.roster).toEqual(plan.roster);
+  expect(hostedFixturePlan.snapshot(hostedFixturePlan.roster).table.pieces).toEqual(initialSnapshot().table.pieces);
 });
 
-test('the peak admits eighteen distinct carries, retains the one-carry-per-connection guard, and leaves the baseline cap intact', () => {
+test('the peak admits eighteen distinct carries and retains the one-carry-per-connection guard', () => {
   const snapshot = loadSnapshot('stacked');
-  const expanded = new Room(snapshot, 'stacked', () => LOAD_SEATS);
-  const baselineCap = new Room(snapshot, undefined, () => LOAD_SEATS);
+  const expanded = new Room(snapshot, () => LOAD_SEATS);
   for (let index = 0; index < 18; index++) {
     const input = {
       carryId: `carry-${index}`,
@@ -41,11 +44,6 @@ test('the peak admits eighteen distinct carries, retains the one-carry-per-conne
       pickup: 'whole' as const,
     };
     expanded.begin(player(index), input);
-    if (index < 16) {
-      baselineCap.begin(player(index), input);
-    } else {
-      expect(() => baselineCap.begin(player(index), input)).toThrow('too many active carries');
-    }
   }
   expect(expanded.carries.size).toBe(18);
   expect(() =>

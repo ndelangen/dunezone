@@ -515,7 +515,8 @@
   font-size: 0.85em;
 }
 
-@container faction-introduction (min-width: 38em) {
+/* In the Page's em, so it scales with the printed page and sits off the screen ladder: a full-width region is about 45em and the wide side of a wide-narrow split about 29em, so only a full-width region takes the one-row layout. */
+@container faction-introduction (width >= 38em) {
   .rulebookFactionBody {
     grid-template-columns: minmax(0, 19fr) minmax(0, 27fr) minmax(0, 20fr) minmax(0, 34fr);
     gap: 0;
@@ -612,7 +613,8 @@
   }
 }
 
-@container faction-introduction (max-width: 18em) {
+/* A half-page column is about 22em and an outer-rail column about 17em, so the roster stacks in the outer-rail columns and in the narrower regions. */
+@container faction-introduction (width < 18em) {
   .rulebookFactionRoster {
     flex-direction: column;
   }

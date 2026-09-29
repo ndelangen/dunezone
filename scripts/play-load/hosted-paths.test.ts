@@ -1,4 +1,4 @@
-import { chmodSync, mkdtempSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { chmodSync, mkdirSync, mkdtempSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
@@ -48,6 +48,16 @@ test.each([
       return path.join(alias, 'input.json');
     },
     'Hosted files need a private parent directory.',
+  ],
+  [
+    'a private directory',
+    () => {
+      const inner = path.join(directory, 'input.json');
+      mkdirSync(inner, { mode: 0o700 });
+      chmodSync(inner, 0o700);
+      return inner;
+    },
+    'Hosted input files must be private regular files.',
   ],
   ['parent traversal', () => `${directory}/missing/../input.json`, 'Hosted paths must not contain parent traversal.'],
   [

@@ -109,8 +109,11 @@
   -webkit-line-clamp: 3;
 }
 
-/* A leader token is too small for words, so the glyph alone says there is nothing here. */
-@container (max-width: 80px) {
+/*
+ * A leader token is too small for words, so the glyph alone says there is nothing here.
+ * Off the ladder because it measures the image: at 80px the glyph over three 12px lines of name takes about 60px of the 64px inside a square's 10% inset.
+ */
+@container (width < 80px) {
   .name {
     display: none;
   }

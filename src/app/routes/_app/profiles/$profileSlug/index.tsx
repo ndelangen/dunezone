@@ -37,6 +37,7 @@ import {
 import type { ProfilePageData } from '@db/profiles';
 import { loadProfileBySlug, profileAvatarUrl, useCurrentProfile, useProfileBySlug } from '@db/profiles';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
+import { pageHead } from '@app/routes/pageTitle';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 import styles from './index.module.css';
@@ -47,6 +48,8 @@ export const Route = createFileRoute('/_app/profiles/$profileSlug/')({
     return { profilePage };
   },
   errorComponent: ProfileDetailError,
+  /* The same fallback the page heading uses, for a profile with no username. */
+  head: ({ loaderData }) => pageHead(loaderData ? (loaderData.profilePage.profile.username ?? 'Unknown') : 'Profile'),
   component: ProfileDetailPage,
 });
 

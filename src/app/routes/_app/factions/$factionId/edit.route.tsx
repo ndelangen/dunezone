@@ -16,6 +16,7 @@ import { useRef } from 'react';
 import { useDeleteFaction, useFaction, useSetFactionGroup, useUpdateFaction } from '@db/factions';
 import { loadFaction } from '@db/factions';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
+import { pageHead } from '@app/routes/pageTitle';
 import { resolveRouteNotice } from '@app/routes/routeNotices';
 import { AuthoringToolbar, groupAccessStatus } from '@app/widgets/authoring/AuthoringToolbar';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
@@ -39,6 +40,7 @@ export const Route = createFileRoute('/_app/factions/$factionId/edit')({
   },
   loader: async ({ params }) => await loadFaction(params.factionId),
   errorComponent: FactionEditError,
+  head: ({ loaderData }) => pageHead(loaderData ? `Edit ${loaderData.faction.data.name}` : 'Edit faction'),
   component: FactionEditPage,
 });
 

@@ -19,9 +19,11 @@ real game, or a synthetic test game that the load runner and the protocol verifi
 isolated backend. `admitsPlayers` in `convex/lib/playAuthorization.ts` holds that rule for the game
 page, the tickets and the live authorization alike. The stored fixture's account reconciliation and
 deletion acknowledgements keep answering its Worker. The fixture game this document describes
-remains the Worker's native test and load fixture: the first two distinct admitted users occupy its
+remains the Worker's native test fixture and the load baseline's: the first two distinct admitted users occupy its
 Harkonnen and Atreides seats, and later users are spectators. A user's other tabs share their seat
-but have independent connections and carries.
+but have independent connections and carries. The expanded load profiles run the Worker's load
+entry, `workers/game/load-entry.ts`, whose fixtures seat eighteen load players instead. The
+production Worker never imports it.
 
 Convex stores the fixture directory record, provisioning status, server-only game secrets, ticket hashes, session
 registrations and account-deletion delivery records. It does not store table actions or seats.
@@ -163,8 +165,7 @@ pass.
 ## Provisioning and transport
 
 A real game is provisioned when a signed-in player creates it (`playGames.createGame`). No operator
-step follows a deployment: the Stage B singleton that `playProvisioning:beginFixtureProvision`
-creates admits no player. The directory hides pending fixtures.
+step follows a deployment. The directory hides pending fixtures.
 
 The game Worker checks the supplied game secret and attempt with the fixed trusted Convex backend
 before creating state. Unknown, duplicate, expired and invalid requests get the same generic

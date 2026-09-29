@@ -26,7 +26,8 @@
   place-items: center;
 }
 
-@container triptych-layout (min-width: 61.25rem) {
+/* Stays off the ladder because Norbert judged the ladder's 62rem worse on 29 September 2026 (#1321). */
+@container triptych-layout (width >= 61.25rem) {
   .layout {
     grid-template-columns: minmax(0, 1fr) minmax(17rem, 0.72fr) minmax(0, 0.9fr);
   }

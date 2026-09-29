@@ -24,6 +24,8 @@ const config: KnipConfig = {
         // Worker entry, referenced from workers/publisher/wrangler.jsonc.
         'workers/publisher/index.ts',
         'workers/game/index.ts',
+        /* The isolated stack's load runs start the game Worker from this entry by filename. */
+        'workers/game/load-entry.ts',
         /* Native workerd tests bundle these entries with esbuild by filename. */
         'workers/game/authorization.native.fixture.ts',
         'workers/game/game-room.native.fixture.ts',

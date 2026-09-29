@@ -1,10 +1,8 @@
 import { fixtureCombatFaces } from '../../src/shared/play/battle';
 import { initialSnapshot } from '../../src/shared/play/commands';
 import type { SpawnSelection, StoredSpawnContents } from '../../src/shared/play/inventory';
-import { LOAD_SEATS, loadSnapshot } from '../../src/shared/play/loadFixture';
-import type { LoadProfile } from '../../src/shared/play/loadFixture';
 import type { TablePiece } from '../../src/shared/play/model';
-import { tableSeatCountSchema } from '../../src/shared/play/schema';
+import type { GameSnapshot } from '../../src/shared/play/protocol';
 import type { TableRoster } from '../../src/shared/play/schema';
 import { DEFAULT_TABLE_SEAT_COUNT } from '../../src/shared/play/tableSettings';
 import { shuffledCards } from './decks';
@@ -13,23 +11,12 @@ import type { StoredSnapshot } from './state';
 
 /*
  * The hosted fixture seats two houses at the first two of six stations, each seat named after the
- * house it carries; a load fixture seats the agreed eighteen players with no faction at all.
- * A real game fixes its own seating at public assignment and never reads this file.
+ * house it carries. A real game fixes its own seating at public assignment and never reads this file.
  */
 const HOSTED_FIXTURE_SEATS: TableRoster['seats'] = [
   { id: 'harkonnen', position: 0, faction: { id: 'harkonnen', name: 'Harkonnen', color: '#ed927c' } },
   { id: 'atreides', position: 1, faction: { id: 'atreides', name: 'Atreides', color: '#75d8a7' } },
 ];
-
-export function fixtureRoster(loadProfile?: LoadProfile): TableRoster {
-  if (loadProfile) {
-    return {
-      seatCount: tableSeatCountSchema.parse(LOAD_SEATS.length),
-      seats: LOAD_SEATS.map((id, position) => ({ id, position, faction: null })),
-    };
-  }
-  return { seatCount: DEFAULT_TABLE_SEAT_COUNT, seats: HOSTED_FIXTURE_SEATS };
-}
 
 /** Every seated house holds a bank and its fixture combat faces; a house that already has them keeps them. */
 function seedFactionState(snapshot: StoredSnapshot, roster: TableRoster): StoredSnapshot {
@@ -87,12 +74,27 @@ export function dealFixtureDeck<Table extends { pieces: TablePiece[] }>(
 /** A fixture's first snapshot: its pieces, its seating and an empty bank for each seated house. */
 export function fixtureSnapshot(
   roster: TableRoster,
-  loadProfile?: LoadProfile,
+  first: GameSnapshot = initialSnapshot(),
   deck?: StoredSpawnContents
 ): StoredSnapshot {
-  const snapshot = storedSnapshotSchema.parse(loadProfile ? loadSnapshot(loadProfile) : initialSnapshot());
-  return seedFactionState(
-    deck && !loadProfile ? { ...snapshot, table: dealFixtureDeck(snapshot.table, deck) } : snapshot,
-    roster
-  );
+  const snapshot = storedSnapshotSchema.parse(first);
+  return seedFactionState(deck ? { ...snapshot, table: dealFixtureDeck(snapshot.table, deck) } : snapshot, roster);
 }
+
+/**
+ * What a fixture room seats and lays out.
+ * The production Worker provisions only the hosted fixture;
+ * a load entry hands its room the load fixture's plan instead.
+ */
+export type FixturePlan = {
+  /* Only the hosted fixture deals the catalogue's deck and can be retired. */
+  readonly hosted: boolean;
+  readonly roster: TableRoster;
+  snapshot(roster: TableRoster, deck?: StoredSpawnContents): StoredSnapshot;
+};
+
+export const hostedFixturePlan: FixturePlan = {
+  hosted: true,
+  roster: { seatCount: DEFAULT_TABLE_SEAT_COUNT, seats: HOSTED_FIXTURE_SEATS },
+  snapshot: (roster, deck) => fixtureSnapshot(roster, initialSnapshot(), deck),
+};

@@ -10,6 +10,7 @@ import { Surface } from '@ui/surface';
 import type { z } from 'zod';
 
 import { useLobbyGames } from '@db/play';
+import { pageHead } from '@app/routes/pageTitle';
 
 /*
  * The lobby lists what the directory holds and nothing more; it never loads the 3D runtime.
@@ -17,7 +18,7 @@ import { useLobbyGames } from '@db/play';
  * (and noindex) until the public-release decision.
  */
 export const Route = createFileRoute('/_app/play/')({
-  head: () => ({ meta: [{ title: 'Game lobby | Dune Zone' }, { name: 'robots', content: 'noindex' }] }),
+  head: () => pageHead('Game lobby', { noindex: true }),
   component: PlayLobby,
 });
 

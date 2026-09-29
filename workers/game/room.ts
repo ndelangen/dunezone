@@ -6,8 +6,6 @@ import { accepted, applyPieceAction, nextSnapshot, requireAccepted } from '../..
 import type { DraftAction } from '../../src/shared/play/drafting';
 import { emptyPublicControls, isPublicAction } from '../../src/shared/play/inventory';
 import type { PublicAction, StoredControls, StoredSpawnContents } from '../../src/shared/play/inventory';
-import { loadSnapshot } from '../../src/shared/play/loadFixture';
-import type { LoadProfile } from '../../src/shared/play/loadFixture';
 import { gestureBlockReason } from '../../src/shared/play/model';
 import type { DraftMove, TablePiece, TableState, Vector3Tuple } from '../../src/shared/play/model';
 import { seatSubject } from '../../src/shared/play/participation';
@@ -40,7 +38,7 @@ import { createSpiceStack, isSpicePiece } from '../../src/shared/play/spiceSuppl
 import type { SwapAction } from '../../src/shared/play/swapping';
 import { restingPositionAt } from '../../src/shared/play/tableGeometry';
 import { nearestCollisionFreePosition } from '../../src/shared/play/tablePhysics';
-import { PLAYER_RING_RADIUS, tableSeatAngles } from '../../src/shared/play/tableSettings';
+import { PLAYER_RING_RADIUS, TABLE_SECTOR_COUNT, tableSeatAngles } from '../../src/shared/play/tableSettings';
 import {
   applyDraftToState,
   draftForGesture,
@@ -80,7 +78,6 @@ export class Room {
   private readonly flipUntil = new Map<string, number>();
   constructor(
     snapshot: GameSnapshot | StoredSnapshot,
-    private readonly loadProfile: LoadProfile | undefined,
     private readonly seatedPlayers: () => Identity['viewerSeat'][],
     private readonly factionFor: (userId: string) => string | undefined = () => undefined,
     /** The catalogue deck the fixture deals on reset; a room adopts one after the fact when its catalogue answers late. */
@@ -182,7 +179,7 @@ export class Room {
     if ([...this.carries.values()].some((carry) => carry.connectionId === identity.connectionId)) {
       throw new GameRejection('Finish the current carry first.');
     }
-    if (this.carries.size >= (this.loadProfile ? 18 : 16)) {
+    if (this.carries.size >= TABLE_SECTOR_COUNT) {
       throw new GameRejection('The table already has too many active carries.');
     }
   }
@@ -445,13 +442,10 @@ export class Room {
     return next === snapshot ? undefined : next;
   }
 
-  /** A reset rebuilds the fixture's table: the load fixture from its profile, the hosted one with its dealt deck. */
+  /** A reset rebuilds the fixture's table, with its dealt deck when the room has one. */
   private nextTable(guarded: TableState, action: TableAction, identity: Identity): TableState {
     if (action.kind !== 'reset') {
       return applyPieceAction(guarded, action, this.snapshot.phase, seatSubject(identity.viewerSeat), this.phases());
-    }
-    if (this.loadProfile) {
-      return tableForViewer(loadSnapshot(this.loadProfile), identity.viewerSeat);
     }
     const fresh = applyPieceAction(
       guarded,

@@ -39,6 +39,7 @@ import type { FactionData, PublicAssetPublishingStatusProjection } from '@db/fac
 import { useGroupMembershipWorkflow } from '@db/members';
 import { profileAvatarUrl } from '@db/profiles';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
+import { pageHead } from '@app/routes/pageTitle';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 import { LeaderToken } from '@game/assets/faction/leader/Leader';
 import { Token as FactionToken } from '@game/assets/faction/token/Token';
@@ -52,6 +53,7 @@ export const Route = createFileRoute('/_app/factions/$factionId/')({
   loader: async ({ params }) => await loadFaction(params.factionId),
   pendingComponent: FactionDetailPending,
   errorComponent: FactionDetailError,
+  head: ({ loaderData }) => pageHead(loaderData?.faction.data.name ?? 'Faction'),
   component: FactionDetailPage,
 });
 
@@ -87,7 +89,8 @@ function FactionDetailError({ error }: ErrorComponentProps) {
 
 /**
  * The Files card's badge for the faction sheet.
- * A failed replacement reads as the publication it leaves in place, which stays current beside it (CONTEXT.md, Asset publication state).
+ * A failed replacement leaves the publication it replaces in place (CONTEXT.md, Asset publication state), but every viewer is told the update failed (#1385).
+ * With no sheet published yet nothing was being updated, so the badge says the publish failed.
  */
 function filesBadge({ status, captureStatus }: PublicAssetPublishingStatusProjection): {
   tone: StatusBadgeTone;
@@ -99,6 +102,7 @@ function filesBadge({ status, captureStatus }: PublicAssetPublishingStatusProjec
     case 'scheduled':
       return { tone: 'pending', label: 'Scheduled' };
     case 'error':
+      return { tone: 'negative', label: status === 'current' ? 'Update failed' : 'Publish failed' };
     case null:
       return status === 'current' ? { tone: 'positive', label: 'Current' } : { tone: 'neutral', label: 'Unavailable' };
   }

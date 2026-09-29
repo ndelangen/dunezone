@@ -15,6 +15,19 @@
   padding: 1rem 1.5rem;
   box-sizing: border-box;
   z-index: 1;
+
+  /* The link ink Mantine's Anchor reads, set on the band only.
+     The paper scheme's own link ink falls to 1.65:1 on the sand band, and the kit's darkest navy to 4.4:1 on the compact crop.
+     Black measures 4.8:1 or more there in both schemes, since the band does not flip with them (#821).
+     It lives here rather than in tokens.css, which the faction sheet renderer also bundles, so a band style does not change the Renderer identity. */
+  --mantine-color-anchor: #000;
+}
+
+/* With the ink no longer a link colour, the weight and a permanent underline are what still say "link".
+   The band's only Mantine anchors are its way back and its breadcrumb. */
+.headerContent :global(.mantine-Anchor-root) {
+  font-weight: 700;
+  text-decoration: underline;
 }
 
 .layout[data-page-layout-header-size="compact"] .headerContent {

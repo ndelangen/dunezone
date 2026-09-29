@@ -54,37 +54,102 @@ export const EditEscapeClosesTheSheetReview = meta.story({
   },
 });
 
+/* A current faction sheet with a replacement capture that failed after it (#1318, #1385). */
+const currentSheetWithAFailedReplacement = db((baseline) => {
+  const factionId = refText('faction:house-atreides', SEED_REF_TOKEN);
+  baseline.publication_assets.push({
+    asset_type: 'faction_sheet',
+    asset_id: factionId,
+    cache_token: 'storybook-sheet',
+    published_at: Date.parse('2026-01-01T12:00:00.000Z'),
+  });
+  baseline.publication_jobs.push({
+    asset_type: 'faction_sheet',
+    asset_id: factionId,
+    asset_data: {},
+    status: 'error',
+    attempt_counter: 10,
+    error: 'Storybook capture failure',
+    created_at: Date.parse('2026-01-01T13:00:00.000Z'),
+    updated_at: Date.parse('2026-01-01T13:10:00.000Z'),
+  });
+});
+
 /**
- * A failed replacement capture beside a current faction sheet leaves the page reading Current (#1318).
- * The faction page's projection reports the failed job, and the page reads it as the publication it leaves in place (CONTEXT.md, Asset publication state).
+ * Someone who can edit the faction is told when a replacement capture failed beside a current sheet (#1385).
+ * The previous sheet stays published (CONTEXT.md, Asset publication state), so the words say it may be out of date, and the published PDF stays on offer.
  */
-export const DetailKeepsCurrentBesideAFailedReplacement = meta.story({
+export const DetailTellsItsEditorsAReplacementFailed = meta.story({
   args: { path: '/factions/house-atreides' },
-  parameters: {
-    database: db((baseline) => {
-      const factionId = refText('faction:house-atreides', SEED_REF_TOKEN);
-      baseline.publication_assets.push({
-        asset_type: 'faction_sheet',
-        asset_id: factionId,
-        cache_token: 'storybook-sheet',
-        published_at: Date.parse('2026-01-01T12:00:00.000Z'),
-      });
-      baseline.publication_jobs.push({
-        asset_type: 'faction_sheet',
-        asset_id: factionId,
-        asset_data: {},
-        status: 'error',
-        attempt_counter: 10,
-        error: 'Storybook capture failure',
-        created_at: Date.parse('2026-01-01T13:00:00.000Z'),
-        updated_at: Date.parse('2026-01-01T13:10:00.000Z'),
-      });
-    }),
-  },
+  parameters: { database: currentSheetWithAFailedReplacement },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await expect(page.findByText('Public assets are current.', {}, { timeout: 30_000 })).resolves.toBeVisible();
-    await expect(page.findByText('Current')).resolves.toBeVisible();
+    /* Confirms this viewer can edit, so this story and the reader's one cover both kinds of viewer. */
+    await expect(page.findByRole('link', { name: 'Edit faction' }, { timeout: 30_000 })).resolves.toBeVisible();
+    await expect(
+      page.findByText('The published faction sheet may be out of date because the latest changes were not captured.')
+    ).resolves.toBeVisible();
+    await expect(page.findByText('Update failed')).resolves.toBeVisible();
+    expect(page.queryByText('Current')).toBeNull();
+    await expect(page.findByRole('link', { name: 'Open published PDF' })).resolves.toBeVisible();
+  },
+});
+
+/**
+ * A reader is told the same, since the sheet they download may be out of date (#1385).
+ * The published PDF stays on offer beside it.
+ */
+export const DetailTellsReadersAReplacementFailed = meta.story({
+  args: { path: '/factions/house-atreides' },
+  parameters: { database: currentSheetWithAFailedReplacement, identity: null },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(
+      page.findByText(
+        'The published faction sheet may be out of date because the latest changes were not captured.',
+        {},
+        { timeout: 30_000 }
+      )
+    ).resolves.toBeVisible();
+    await expect(page.findByText('Update failed')).resolves.toBeVisible();
+    expect(page.queryByText('Current')).toBeNull();
+    expect(page.queryByRole('link', { name: 'Edit faction' })).toBeNull();
+    await expect(page.findByRole('link', { name: 'Open published PDF' })).resolves.toBeVisible();
+  },
+});
+
+/* A faction with no published sheet whose first capture failed (#1385). */
+const noSheetWithAFailedCapture = db((baseline) => {
+  baseline.publication_jobs.push({
+    asset_type: 'faction_sheet',
+    asset_id: refText('faction:house-atreides', SEED_REF_TOKEN),
+    asset_data: {},
+    status: 'error',
+    attempt_counter: 10,
+    error: 'Storybook capture failure',
+    created_at: Date.parse('2026-01-01T13:00:00.000Z'),
+    updated_at: Date.parse('2026-01-01T13:10:00.000Z'),
+  });
+});
+
+/**
+ * With no sheet published yet, a failed capture was not an update, so the badge says the publish failed (#1385).
+ */
+export const DetailTellsReadersTheFirstPublishFailed = meta.story({
+  args: { path: '/factions/house-atreides' },
+  parameters: { database: noSheetWithAFailedCapture, identity: null },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(
+      page.findByText(
+        'The latest changes were not captured, so no faction sheet is published yet.',
+        {},
+        { timeout: 30_000 }
+      )
+    ).resolves.toBeVisible();
+    await expect(page.findByText('Publish failed')).resolves.toBeVisible();
+    expect(page.queryByText('Update failed')).toBeNull();
+    expect(page.queryByRole('link', { name: 'Open published PDF' })).toBeNull();
   },
 });
 

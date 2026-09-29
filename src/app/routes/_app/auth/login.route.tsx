@@ -9,10 +9,12 @@ import type { SVGProps } from 'react';
 import { SiDiscord } from 'react-icons/si';
 
 import { useCurrentProfile } from '@db/profiles';
+import { pageHead } from '@app/routes/pageTitle';
 
 import styles from './login.module.css';
 
 export const Route = createFileRoute('/_app/auth/login')({
+  head: () => pageHead('Sign in'),
   component: LoginPage,
 });
 

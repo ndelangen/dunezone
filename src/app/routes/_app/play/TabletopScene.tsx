@@ -94,6 +94,7 @@ import { PhaseSymbol } from './PhaseSymbol';
 import { cameraPoseFor, TABLE_CAMERA_FAR, TABLE_CAMERA_FIELD_OF_VIEW, TABLE_CAMERA_NEAR } from './playView';
 import type { CameraViewCommand } from './playView';
 import { usePointerSession } from './PointerSessionContext';
+import { loadPublishedFace } from './publishedFaceRetry';
 import { isPublicTablePoint, ScenePresence, useTablePose } from './ScenePresence';
 import { SpiceSupply } from './SpiceSupply';
 import { TableFurniture } from './TableFurniture';
@@ -519,38 +520,18 @@ function PublishedFace({ href, card, ratio }: { href: string; card: boolean; rat
   /* Piece art skips useTexture so a missing publication image retries in place instead of suspending the table. */
   const [loadedFace, setLoadedFace] = useState<{ href: string; texture: Texture } | null>(null);
   const texture = loadedFace?.href === href ? loadedFace.texture : null;
-  useEffect(() => {
-    let active = true;
-    let loaded: Texture | undefined;
-    let retry: ReturnType<typeof setTimeout>;
-    let retryDelay = 5000;
-    const load = () =>
-      new TextureLoader().load(
-        href,
-        (value) => {
-          if (!active) {
-            value.dispose();
-            return;
-          }
+  useEffect(
+    () =>
+      loadPublishedFace<Texture>({
+        load: (onLoad, onError) => new TextureLoader().load(href, onLoad, undefined, onError),
+        onLoad: (value) => {
           value.colorSpace = SRGBColorSpace;
-          loaded = value;
           setLoadedFace({ href, texture: value });
         },
-        undefined,
-        () => {
-          if (active) {
-            retry = setTimeout(load, retryDelay);
-            retryDelay = Math.min(retryDelay * 2, 60_000);
-          }
-        }
-      );
-    load();
-    return () => {
-      active = false;
-      clearTimeout(retry);
-      loaded?.dispose();
-    };
-  }, [href]);
+        release: (value) => value.dispose(),
+      }),
+    [href]
+  );
   return (
     <mesh position={[0, 0, 0.002]} renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}>
       {card ? (
