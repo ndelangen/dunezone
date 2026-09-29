@@ -90,7 +90,6 @@ import stormMarkerUrl from './assets/storm-marker.png?url';
 import { boardFurnitureFor } from './boardFurniture';
 import { BOARD_RIM_DEPTH, createBoardRimShape } from './boardRimGeometry';
 import { CameraControls, CameraRelativeFog } from './CameraControls';
-import { usePresence } from './multiplayer/PresenceContext';
 import { PhaseSymbol } from './PhaseSymbol';
 import { cameraPoseFor, TABLE_CAMERA_FAR, TABLE_CAMERA_FIELD_OF_VIEW, TABLE_CAMERA_NEAR } from './playView';
 import type { CameraViewCommand } from './playView';
@@ -245,7 +244,7 @@ function TableTrackers({
   onSelectTurn?: TabletopSceneProps['onSelectTurn'];
 }) {
   const currentPhaseIndex = activePhaseIndex(progress);
-  const { canInteract } = usePresence();
+  const { canInteract } = useTabletop();
 
   return (
     <group>
@@ -766,8 +765,7 @@ type TablePieceMeshProps = {
 };
 
 function usePieceCarryState(piece: TablePiece) {
-  const { state, gestureActivePieceId } = useTabletop();
-  const { canInteract, remoteCarriedIds, reservedPieceIds } = usePresence();
+  const { state, gestureActivePieceId, canInteract, remoteCarriedIds, reservedPieceIds } = useTabletop();
   const drafted = state.draftMove?.pieceId === piece.id;
   const remoteCarried = remoteCarriedIds.has(piece.id);
   const locallyCarried = drafted && gestureActivePieceId !== null;
@@ -811,8 +809,7 @@ function useTablePointFromClient() {
 
 function useScenePointerSession(onActiveChange: (active: boolean) => void) {
   const session = usePointerSession();
-  const { state, beginGesture, updateGesture, finishGesture, cancelDraft } = useTabletop();
-  const { canInteract, publishPointer } = usePresence();
+  const { state, beginGesture, updateGesture, finishGesture, cancelDraft, canInteract, publishPointer } = useTabletop();
   const { renderer } = useThree();
   const point = useTablePointFromClient();
   const controls = {
@@ -894,9 +891,8 @@ function pieceHoverCursor(canInteract: boolean, interactionBlocked: boolean, ges
 const PieceMenuContext = createContext<((pieceId: string, x: number, y: number) => void) | null>(null);
 
 function usePiecePointerEvents({ piece }: TablePieceMeshProps, interactionBlocked: boolean) {
-  const { state, selectPiece, setHoveredPiece } = useTabletop();
+  const { state, selectPiece, setHoveredPiece, canInteract } = useTabletop();
   const openPieceMenu = useContext(PieceMenuContext);
-  const { canInteract } = usePresence();
   const { renderer } = useThree();
   const pointerSession = usePointerSession();
   const gestureBlocked = gestureBlockReason(piece);
@@ -1040,17 +1036,15 @@ function PieceBadge({
 
 function TablePieceMesh(props: TablePieceMeshProps) {
   const { piece } = props;
-  const { state, renderedPositionFor, renderedOrientationFor, finishPieceFlip } = useTabletop();
+  const { state, finishPieceFlip } = useTabletop();
   const { drafted, remoteCarried, locallyCarried, reserved, interactionBlocked } = usePieceCarryState(piece);
   const pointerEvents = usePiecePointerEvents(props, interactionBlocked);
   const selected = state.selectedPieceId === piece.id;
   const stackTargeted = state.draftMove?.targetPieceId === piece.id;
   const displayedCount = pieceCount(piece);
   const emptyProjection = displayedCount === 0;
-  const position = renderedPositionFor(piece);
-  const orientation = renderedOrientationFor(piece);
   const carried = locallyCarried || remoteCarried;
-  const poseRef = useTablePose(position, orientation, remoteCarried, locallyCarried);
+  const poseRef = useTablePose(piece.position, piece.orientation, remoteCarried, locallyCarried);
   const { pivotRef, labelRef, shadowRef, badgeRef } = usePieceFlipAnimation(
     piece,
     drafted || remoteCarried || emptyProjection,
@@ -1058,8 +1052,7 @@ function TablePieceMesh(props: TablePieceMeshProps) {
   );
   const shuffleRef = useDeckShuffleAnimation(piece, carried || emptyProjection);
   const flipPivotY = stackTopHeight(piece) / 2;
-  const footprint = { ...piece, orientation };
-  const shadowLocalY = contactShadowHeightAt(position, footprint) - position[1];
+  const shadowLocalY = contactShadowHeightAt(piece.position, piece) - piece.position[1];
 
   return (
     <group

@@ -26,43 +26,49 @@ import type { TabletopViewState } from '@shared/play/tableState';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode, RefObject, SetStateAction } from 'react';
 
-export type TabletopContextValue = {
-  state: TableState;
-  selectedPiece: TablePiece | null;
-  renderedPieces: TablePiece[];
-  hoveredPieceId: string | null;
-  gestureActivePieceId: string | null;
-  flippingPieceIds: ReadonlyMap<string, number>;
-  finishPieceFlip(pieceId: string, revision: number): void;
-  affordances: ReturnType<typeof affordancesFor>;
-  renderedPositionFor(piece: TablePiece): Vector3Tuple;
-  renderedOrientationFor(piece: TablePiece): number;
-  selectPiece(pieceId: string | null): void;
-  setHoveredPiece(pieceId: string | null): void;
-  beginGesture(pieceId: string, pickup: 'top' | 'whole'): void;
-  updateGesture(position: Vector3Tuple): void;
-  finishGesture(position: Vector3Tuple): void;
-  cancelDraft(): void;
-  splitSelected(count?: number, pieceId?: string): void;
-  stackSelected(pieceId?: string): void;
-  takeAdditionalFromTarget(): void;
-  rotateSelected(direction?: -1 | 1, pieceId?: string): void;
-  flipSelected(pieceId?: string): void;
-  toggleLockSelected(pieceId?: string): void;
-  moveStormBy(direction?: -1 | 1): void;
-  spawnSpice(count: number): void;
-  bankControls?: {
-    canCollect(pieceId: string): boolean;
-    collect(pieceId: string): void;
-  };
-  deckControls?: {
-    recipients: { id: string; name: string }[];
-    draw(pieceId: string, recipient?: string): void;
-    shuffle(pieceId: string): void;
-  };
-};
+import type { TableProjection, TableSession } from './multiplayer/TableSession';
 
-export const TabletopContext = createContext<TabletopContextValue | null>(null);
+/**
+ * What the scene and the table controls read: the session's commands over its latest projection.
+ * The session owns every member's type, and this list names which of them the table hands out.
+ */
+export type TabletopContextValue = Pick<
+  TableProjection,
+  | 'affordances'
+  | 'bankControls'
+  | 'canInteract'
+  | 'deckControls'
+  | 'flippingPieceIds'
+  | 'gestureActivePieceId'
+  | 'hoveredPieceId'
+  | 'pointers'
+  | 'remoteCarriedIds'
+  | 'renderedPieces'
+  | 'reservedPieceIds'
+  | 'selectedPiece'
+  | 'state'
+> &
+  Pick<
+    TableSession,
+    | 'beginGesture'
+    | 'cancelDraft'
+    | 'finishGesture'
+    | 'finishPieceFlip'
+    | 'flipSelected'
+    | 'moveStormBy'
+    | 'publishPointer'
+    | 'rotateSelected'
+    | 'selectPiece'
+    | 'setHoveredPiece'
+    | 'spawnSpice'
+    | 'splitSelected'
+    | 'stackSelected'
+    | 'takeAdditionalFromTarget'
+    | 'toggleLockSelected'
+    | 'updateGesture'
+  >;
+
+const TabletopContext = createContext<TabletopContextValue | null>(null);
 
 function selectPieceInState(current: TableState, pieceId: string | null): TableState {
   return {
@@ -483,7 +489,7 @@ function keyboardPieceId({ state, hoveredPieceId }: TableKeyboardControls) {
   return state.draftMove?.pieceId ?? hoveredPieceId ?? state.selectedPieceId ?? undefined;
 }
 
-export function useTableKeyboard({
+function useTableKeyboard({
   deckControls,
   flipSelected,
   hoveredPieceId,
@@ -671,20 +677,17 @@ function useTableProjection(state: TableState) {
   );
   const affordances = useMemo(() => affordancesFor({ ...state, pieces: renderedPieces }), [renderedPieces, state]);
 
-  const renderedPositionFor = useCallback(
-    (piece: TablePiece): Vector3Tuple =>
-      state.draftMove?.pieceId === piece.id ? state.draftMove.position : piece.position,
-    [state.draftMove]
-  );
-
-  const renderedOrientationFor = useCallback(
-    (piece: TablePiece): number =>
-      state.draftMove?.pieceId === piece.id ? state.draftMove.orientation : piece.orientation,
-    [state.draftMove]
-  );
-
-  return { renderedPieces, selectedPiece, affordances, renderedPositionFor, renderedOrientationFor };
+  return { renderedPieces, selectedPiece, affordances };
 }
+
+/* A local table has no other players, so nothing is carried, reserved or pointed at, and its one player can always act. */
+const LOCAL_PRESENCE = {
+  pointers: [],
+  remoteCarriedIds: new Set<string>(),
+  reservedPieceIds: new Set<string>(),
+  canInteract: true,
+  publishPointer() {},
+} satisfies Partial<TabletopContextValue>;
 
 export function TabletopProvider({ children }: { children: ReactNode }) {
   const [view, setView] = useState<TabletopViewState>(() => ({
@@ -710,8 +713,7 @@ export function TabletopProvider({ children }: { children: ReactNode }) {
   } = useTableInteraction(setState, state.draftMove);
   const { splitSelected, stackSelected, takeAdditionalFromTarget, rotateSelected, toggleLockSelected, moveStormBy } =
     usePieceCommands(setState, gestureActivePieceId);
-  const { renderedPieces, selectedPiece, affordances, renderedPositionFor, renderedOrientationFor } =
-    useTableProjection(state);
+  const { renderedPieces, selectedPiece, affordances } = useTableProjection(state);
 
   const flipSelected = useCallback((pieceId?: string) => {
     /* The command and lock are one update, so even same-frame requests are blocked. */
@@ -751,6 +753,7 @@ export function TabletopProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<TabletopContextValue>(
     () => ({
+      ...LOCAL_PRESENCE,
       state,
       selectedPiece,
       renderedPieces,
@@ -759,8 +762,6 @@ export function TabletopProvider({ children }: { children: ReactNode }) {
       flippingPieceIds,
       finishPieceFlip,
       affordances,
-      renderedPositionFor,
-      renderedOrientationFor,
       selectPiece,
       setHoveredPiece,
       beginGesture,
@@ -788,8 +789,6 @@ export function TabletopProvider({ children }: { children: ReactNode }) {
       hoveredPieceId,
       moveStormBy,
       spawnSpice,
-      renderedPositionFor,
-      renderedOrientationFor,
       renderedPieces,
       rotateSelected,
       selectPiece,
@@ -807,10 +806,42 @@ export function TabletopProvider({ children }: { children: ReactNode }) {
   return <TabletopContext.Provider value={value}>{children}</TabletopContext.Provider>;
 }
 
+/** Hands the scene and the table controls one value: a hosted session's latest projection with the commands they call. */
+export function TabletopSessionProvider({
+  session,
+  table,
+  children,
+}: Readonly<{ session: TableSession; table: TableProjection; children: ReactNode }>) {
+  const value = useMemo<TabletopContextValue>(
+    () => ({
+      ...table,
+      beginGesture: session.beginGesture,
+      cancelDraft: session.cancelDraft,
+      finishGesture: session.finishGesture,
+      finishPieceFlip: session.finishPieceFlip,
+      flipSelected: session.flipSelected,
+      moveStormBy: session.moveStormBy,
+      publishPointer: session.publishPointer,
+      rotateSelected: session.rotateSelected,
+      selectPiece: session.selectPiece,
+      setHoveredPiece: session.setHoveredPiece,
+      spawnSpice: session.spawnSpice,
+      splitSelected: session.splitSelected,
+      stackSelected: session.stackSelected,
+      takeAdditionalFromTarget: session.takeAdditionalFromTarget,
+      toggleLockSelected: session.toggleLockSelected,
+      updateGesture: session.updateGesture,
+    }),
+    [session, table]
+  );
+  useTableKeyboard(value);
+  return <TabletopContext value={value}>{children}</TabletopContext>;
+}
+
 export function useTabletop(): TabletopContextValue {
   const value = useContext(TabletopContext);
   if (!value) {
-    throw new Error('useTabletop must be used inside TabletopProvider');
+    throw new Error('useTabletop must be used inside TabletopSessionProvider');
   }
   return value;
 }

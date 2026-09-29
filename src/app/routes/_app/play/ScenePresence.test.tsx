@@ -6,6 +6,7 @@ import { Group, PerspectiveCamera, Scene } from 'three';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
 import { ScenePresence, useTablePose } from './ScenePresence';
+import { TabletopProvider } from './TabletopContext';
 
 const scheduler = vi.hoisted(() => ({
   frames: new Set<(state: unknown, delta: number) => void>(),
@@ -89,7 +90,7 @@ describe('remote pose smoothing', () => {
   );
 });
 
-/** Renders the scene's presence layer on an 800 by 400 canvas at (100, 50), seen by a camera that looks at the origin. */
+/** Renders the scene's presence layer at a local table, on an 800 by 400 canvas at (100, 50), seen by a camera that looks at the origin. */
 function renderPresence() {
   const camera = new PerspectiveCamera(50, 2, 0.1, 100);
   camera.position.set(0, 0, 10);
@@ -98,7 +99,7 @@ function renderPresence() {
   const canvas = document.createElement('canvas');
   canvas.getBoundingClientRect = () => ({ left: 100, top: 50, width: 800, height: 400 }) as DOMRect;
   scheduler.three = { camera, renderer: { domElement: canvas }, scene: new Scene() };
-  render(<ScenePresence />);
+  render(<ScenePresence />, { wrapper: TabletopProvider });
   return camera;
 }
 
