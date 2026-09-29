@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
+import { publishedHref } from '../../src/shared/asset-publishing/publicationTargets';
 import { factionSheetPublicPath, handlePublicAssetRequest } from './delivery';
 import type { PublicAssetBucket, PublicAssetCache } from './delivery';
 import { PUBLISHER_CACHE_TOKEN_METADATA_KEY } from './r2';
@@ -284,6 +285,40 @@ describe('public asset delivery boundary', () => {
     expect(new Uint8Array(await available!.arrayBuffer())).toEqual(PAYLOAD);
     await drained(ctx);
     expect(cacheState.put).toHaveBeenCalledTimes(1);
+  });
+
+  /*
+   * A game holds plain published URLs for the faces it retained, so deleting their source must not take the bytes away (#1013).
+   * Only a `componentRevision` preview asks the component client, and there a missing source wins over retained bytes.
+   */
+  test('a game URL keeps serving retained bytes after the source is deleted', async () => {
+    const componentClient = { resolveComponentDelivery: vi.fn(async () => ({ ok: true, status: 'missing' }) as const) };
+    const cardId = 'aaaaaaaaaaaaaaaa';
+    const gameUrls = [
+      publishedHref('faction-token', FACTION_ID, 'first-publication'),
+      publishedHref('card-treachery', cardId, 'first-publication'),
+    ];
+    for (const href of gameUrls) {
+      const response = await handlePublicAssetRequest(
+        new Request(`https://assets.example.com${href}`),
+        env(recordingBucket(PAYLOAD).value),
+        context(),
+        { cache: cache().value, componentClient }
+      );
+      expect(response?.status, href).toBe(200);
+      expect(response?.headers.get('Content-Type')).toBe('image/jpeg');
+      expect(new Uint8Array(await response!.arrayBuffer())).toEqual(PAYLOAD);
+    }
+    expect(componentClient.resolveComponentDelivery).not.toHaveBeenCalled();
+
+    const preview = await handlePublicAssetRequest(
+      new Request(`https://assets.example.com${gameUrls[1]}&componentRevision=${crypto.randomUUID()}`),
+      env(recordingBucket(PAYLOAD).value),
+      context(),
+      { cache: cache().value, componentClient }
+    );
+    expect(preview?.status).toBe(404);
+    expect(componentClient.resolveComponentDelivery).toHaveBeenCalledTimes(1);
   });
 
   test('identical-byte republication uses current metadata with cached bytes', async () => {
