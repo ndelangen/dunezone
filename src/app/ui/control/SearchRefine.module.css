@@ -70,7 +70,7 @@
   pointer-events: none;
 }
 
-/* Off the ladder: below this the page cannot seat a box, two segments and the edges' actions in one row. */
+/* The ladder's 48rem step: below it the page cannot seat a box, two segments and the edges' actions in one row. */
 @container page-frame (width < 48rem) {
   .field[data-segmented] .segment {
     display: none;
