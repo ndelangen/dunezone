@@ -13,7 +13,7 @@ import { anonymiseZip } from './snapshot-anonymise';
  * Its step summary gives table names, row counts, kept field names and the leak scan result, never a value, because Actions logs on this repository are public.
  * It uploads nothing itself.
  * The workflow's upload step does that, and only when SNAPSHOT_UPLOAD is 'true'.
- * It refuses to start anywhere but a GitHub Actions run on main that holds the production deploy key, so no other machine ever receives the export.
+ * It refuses to start unless it is a GitHub Actions run on main that holds the production deploy key, so a local run stops before it exports anything.
  */
 
 /** The job's directory under RUNNER_TEMP, which the workflow uploads the snapshot from and deletes when the job ends. */
@@ -58,7 +58,7 @@ export function jobEnvironment(env: NodeJS.ProcessEnv): JobEnvironment {
 type Outcome =
   | { kind: 'written'; report: SnapshotReport; snapshot: ExportEntries }
   | { kind: 'refused'; problems: readonly string[] }
-  | { kind: 'failed'; stage: 'exporting production' | 'anonymising the export' };
+  | { kind: 'failed'; stage: 'exporting production' | 'anonymising the export'; errorName: string };
 
 const TABLE_DOCUMENTS = /^([A-Za-z][A-Za-z0-9_]*)\/documents\.jsonl$/;
 
@@ -124,27 +124,30 @@ export function summaryMarkdown(outcome: Outcome, upload: boolean): string {
         ];
       case 'failed':
         return [
-          `Failed while ${outcome.stage}. Nothing was uploaded.`,
-          'The error message stays out of this public summary. The step log has the command output.',
+          `Failed while ${outcome.stage} (${outcome.errorName}). Nothing was uploaded.`,
+          'The error message stays out of this public summary, because it could quote what it failed on.',
         ];
     }
   })();
   return `${[heading, '', ...body].join('\n')}\n`;
 }
 
+/** Only an error's name reaches the public log, because its message could quote what it failed on. */
+const errorName = (error: unknown) => (error instanceof Error ? error.name : typeof error);
+
 function anonymiseProduction(env: NodeJS.ProcessEnv, exportDirectory: string, out: string): Outcome {
   let exportPath: string;
   try {
     exportPath = exportProductionSnapshot(env, exportDirectory);
-  } catch {
-    return { kind: 'failed', stage: 'exporting production' };
+  } catch (error) {
+    return { kind: 'failed', stage: 'exporting production', errorName: errorName(error) };
   }
   try {
     return { kind: 'written', ...anonymiseZip(exportPath, out) };
   } catch (error) {
     return error instanceof SnapshotRefused
       ? { kind: 'refused', problems: error.problems }
-      : { kind: 'failed', stage: 'anonymising the export' };
+      : { kind: 'failed', stage: 'anonymising the export', errorName: errorName(error) };
   }
 }
 
@@ -170,9 +173,9 @@ if (import.meta.main) {
       process.exitCode = 1;
     }
   } catch (error) {
-    /* Any other message could quote what it failed on, so only its name reaches the public log. */
-    const name = error instanceof Error ? error.name : typeof error;
-    console.error(error instanceof JobRefused ? error.message : `The anonymised snapshot job failed (${name})`);
+    console.error(
+      error instanceof JobRefused ? error.message : `The anonymised snapshot job failed (${errorName(error)})`
+    );
     process.exitCode = 1;
   }
 }

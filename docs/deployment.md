@@ -349,6 +349,22 @@ inventory uses Workers Scripts Read; no storage contents or secret values are re
 configuration/health check proves deployment wiring, not multiplayer behavior; Stage B's real
 Auth, command, projection and browser tests remain separate delivery evidence.
 
+## Anonymised snapshot
+
+`.github/workflows/anonymised-snapshot.yml` runs once a day and on manual dispatch, from `main`
+only, in the `production` environment (#1559). It exports production the way `dev-rebuild.yml`
+does, anonymises the export with `scripts/snapshot-anonymise.ts`, and scans the written snapshot.
+The raw export is deleted as soon as the anonymiser has read it, and the job's last step deletes
+its directory whatever happened before.
+
+The step summary lists each table with its policy, its rows in and out, and the field names the
+snapshot keeps, followed by the leak scan result. It never shows a value, because Actions logs on
+this repository are public.
+
+The upload step runs only when `SNAPSHOT_UPLOAD` in the workflow is `"true"`. It is `"false"`
+until Norbert has read a dry-run report, so the job uploads nothing. Once on, it uploads the
+snapshot file alone as an artifact kept for one day.
+
 ## Migrations on every `main` deploy
 
 After `bun run convex:deploy`, the workflow runs `bun run migrations:deploy`. This
