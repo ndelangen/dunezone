@@ -303,8 +303,15 @@ export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/edit')({
     }
     return { notFound: false as const, detailPage };
   },
+  /* A missing ruleset comes back as `notFound: true`, not a thrown notFound, so the head names that page itself. */
   head: ({ loaderData }) =>
-    pageHead(loaderData?.notFound === false ? `Edit ${loaderData.detailPage.ruleset.name}` : 'Edit ruleset'),
+    pageHead(
+      !loaderData
+        ? 'Edit ruleset'
+        : loaderData.notFound
+          ? 'Page not found'
+          : `Edit ${loaderData.detailPage.ruleset.name}`
+    ),
   component: RulesetEditPage,
 });
 

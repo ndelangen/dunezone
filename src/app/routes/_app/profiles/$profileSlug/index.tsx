@@ -48,7 +48,8 @@ export const Route = createFileRoute('/_app/profiles/$profileSlug/')({
     return { profilePage };
   },
   errorComponent: ProfileDetailError,
-  head: ({ loaderData }) => pageHead(loaderData?.profilePage.profile.username ?? 'Profile'),
+  /* The same fallback the page heading uses, for a profile with no username. */
+  head: ({ loaderData }) => pageHead(loaderData ? (loaderData.profilePage.profile.username ?? 'Unknown') : 'Profile'),
   component: ProfileDetailPage,
 });
 

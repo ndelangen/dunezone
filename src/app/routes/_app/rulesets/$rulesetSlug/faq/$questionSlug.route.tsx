@@ -44,8 +44,15 @@ export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/faq/$questionS
     }
   },
   errorComponent: FaqDetailError,
+  /* A missing question comes back as `notFound: true`, not a thrown notFound, so the head names that page itself. */
   head: ({ loaderData }) =>
-    pageHead(loaderData?.page?.question ? questionTitle(loaderData.page.question.text) : 'FAQ question'),
+    pageHead(
+      loaderData?.notFound
+        ? 'Page not found'
+        : loaderData?.page?.question
+          ? questionTitle(loaderData.page.question.text)
+          : 'FAQ question'
+    ),
   component: FaqDetailPage,
 });
 

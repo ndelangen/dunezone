@@ -374,7 +374,9 @@ export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/')({
   },
   pendingComponent: RulesetDetailPending,
   errorComponent: RulesetDetailError,
-  head: ({ loaderData }) => pageHead(loaderData?.notFound === false ? loaderData.detailPage.ruleset.name : 'Ruleset'),
+  /* The loader answers a missing ruleset with `notFound: true` rather than throwing, so the head names that page itself. */
+  head: ({ loaderData }) =>
+    pageHead(!loaderData ? 'Ruleset' : loaderData.notFound ? 'Page not found' : loaderData.detailPage.ruleset.name),
   component: RulesetDetailPage,
 });
 
