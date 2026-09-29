@@ -1,0 +1,130 @@
+# Temporary, for #1452 and #1343: runs each hosted_play shard of reusable-verify.yml five times at #1452's merge head.
+# It lives only on norbert/1452-repeat-merge-head, whose draft PR is closed unmerged,
+# so it never becomes a required check.
+name: Hosted shard repeats at the merge head
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: shard-repeats-merge-head-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  hosted_play:
+    if: github.head_ref == 'norbert/1452-repeat-merge-head'
+    name: hosted_play (${{ matrix.shard }}) merge head ${{ matrix.repeat }}
+    runs-on: ubuntu-latest
+    # The same timeout as reusable-verify.yml's hosted_play.
+    timeout-minutes: 32
+    strategy:
+      fail-fast: false
+      # Six at a time, so other PRs' CI keeps the rest of the concurrent runners.
+      max-parallel: 6
+      # repeat comes first, so the shards interleave within each repeat and meet the same mix of runner hosts.
+      matrix:
+        repeat: [1, 2, 3, 4, 5]
+        shard: [regular, catalogue, protocol]
+        include:
+          - shard: regular
+            protocol-verifier: false
+          - shard: catalogue
+            protocol-verifier: false
+          - shard: protocol
+            protocol-verifier: true
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - name: Record the runner CPU
+        run: |
+          out=test-results/hosted-play
+          mkdir -p "$out"
+          {
+            lscpu
+            echo "nproc: $(nproc)"
+          } > "$out/lscpu.txt"
+          echo "CPU model: $(lscpu | sed -n 's/^Model name: *//p'), $(nproc) CPUs"
+      - uses: ./.github/actions/setup
+      - uses: ./.github/actions/generated-images
+      - uses: ./.github/actions/playwright-chromium
+        with:
+          with-deps: "false"
+      - name: Select full Chromium in new headless mode
+        run: |
+          chromium_path="$(bun -e 'import { chromium } from "playwright"; console.log(chromium.executablePath())')"
+          test -x "$chromium_path"
+          "$chromium_path" --version
+          echo "CHROMIUM=$chromium_path" >> "$GITHUB_ENV"
+      - name: Run the ${{ matrix.shard }} shard
+        env:
+          SHARD: ${{ matrix.shard }}
+          PROTOCOL_VERIFIER: ${{ matrix.protocol-verifier }}
+        run: |
+          browser_only=(--browser-only)
+          if [ "$PROTOCOL_VERIFIER" = true ]; then
+            browser_only=()
+          fi
+          bun --no-env-file scripts/verify-hosted-play-stack.ts --skip-generate --shard "$SHARD" "${browser_only[@]}" --browser "$CHROMIUM" --expect-renderer webgl2-swiftshader
+      - name: Summarise each flow
+        if: always()
+        continue-on-error: true
+        env:
+          SHARD: ${{ matrix.shard }}
+          PROTOCOL_VERIFIER: ${{ matrix.protocol-verifier }}
+        run: |
+          set -o pipefail
+          out=test-results/hosted-play
+          flow_list="$(bun -e 'import { flowsInShard } from "./scripts/verify-hosted-flows.ts"; console.log(flowsInShard(process.argv[1]).join(" "))' "$SHARD")" || flow_list=''
+          read -r -a flows <<< "$flow_list"
+          {
+            echo "### hosted_play ${SHARD} ${{ matrix.repeat }}: $(lscpu | sed -n 's/^Model name: *//p')"
+            echo
+            echo '| Flow | Result | Seconds | Renderer | Chromium | Failed after |'
+            echo '| --- | --- | --- | --- | --- | --- |'
+            if [ "$PROTOCOL_VERIFIER" = true ]; then
+              if grep -qs '"status": "passed"' "$out/verification.log"; then
+                echo '| protocol verifier | pass | | | | |'
+              elif [ -f "$out/verification.log" ]; then
+                echo '| protocol verifier | fail | | | | see verification.log |'
+              else
+                echo '| protocol verifier | did not run | | | | see the run step |'
+              fi
+            fi
+            if [ "${#flows[@]}" -eq 0 ]; then
+              echo "| ${SHARD} flows | not listed | | | | the flow lookup in this step failed |"
+            fi
+            for flow in "${flows[@]}"; do
+              if [ ! -f "$out/$flow.log" ]; then
+                echo "| $flow | did not run | | | | see the run step |"
+                continue
+              fi
+              report=''
+              for candidate in "$out/browser/$flow"-*/report.json; do
+                if [ -f "$candidate" ]; then
+                  report="$candidate"
+                fi
+              done
+              if [ -z "$report" ]; then
+                echo "| $flow | no report | | | | see $flow.log |"
+                continue
+              fi
+              jq -r 'def seconds: sub("\\.[0-9]+Z$"; "Z") | fromdate;
+                "| \(.flow) | \(if .failure then "fail" else "pass" end) | \((.finishedAt | seconds) - (.startedAt | seconds)) | \(.renderer.kind // "not read") | \(.chromium.build // "") | \(.failure.afterCheck // "" | gsub("\\|"; "/")) |"' "$report"
+            done
+          } | tee -a "$GITHUB_STEP_SUMMARY"
+          test "${#flows[@]}" -gt 0
+      - name: Retain hosted game integration evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: merge-head-repeats-${{ matrix.shard }}-${{ matrix.repeat }}
+          path: |
+            test-results/hosted-play/*.log
+            test-results/hosted-play/lscpu.txt
+            test-results/hosted-play/browser/
+          if-no-files-found: warn
+          retention-days: 7
