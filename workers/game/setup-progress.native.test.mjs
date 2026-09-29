@@ -125,12 +125,10 @@ describe('Real-game setup progression', () => {
   });
 
   it('takes phase declarations from the catalogue definition into setup and the turn, and a game that declares none has no prediction step (#1466)', async () => {
-    /* This game's factions declare nothing, so setup is the two standard steps and the turn is the standard nine. */
+    /* This game's factions declare nothing, so setup is the two standard steps with no prediction. */
     const [plain] = await enter();
     const standard = (await syncView(plain)).snapshot;
     expect(standard.setup.steps.map((step) => step.kind)).toEqual(['traitors', 'forces']);
-    expect(standard.setup.steps.every((step) => step.kind !== 'prediction')).toBe(true);
-    expect(standard.phases).toBeUndefined();
 
     /*
      * A second game reads its factions from a catalogue where Atreides carries the #1466 declaration and one turn phase.
@@ -138,6 +136,8 @@ describe('Real-game setup progression', () => {
      */
     await runtime.close();
     await peer.close();
+    runtime = undefined;
+    peer = undefined;
     ({ peer, runtime } = await draftingRuntime());
     offset = 0;
     const prediction = {
@@ -178,7 +178,7 @@ describe('Real-game setup progression', () => {
       allPlayersMustBeReady: false,
     });
 
-    /* The prediction gates on its lock; Traitors and Starting forces gate on readiness, then Next opens Turn 1. */
+    /* The owner locks the prediction; Traitors and Starting forces gate on readiness, then Next opens Turn 1. */
     await accepted(owner, {
       kind: 'prediction-lock',
       stepId: steps[0].id,

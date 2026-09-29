@@ -253,7 +253,7 @@ describe('Drafting and public assignment on a real game', () => {
   it('leaves a reason when the capture itself errors, and a retry deals without a second readiness round', async () => {
     peer.factionMode = 'error';
     const { a, b } = await readyPair();
-    await eventually(async () => (await syncView(a)).snapshot.draft?.failure !== null, 'failure recorded');
+    await eventually(async () => typeof (await syncView(a)).snapshot.draft?.failure === 'string', 'failure recorded');
     expect((await syncView(a)).snapshot.draft.failure).toBe('The deal did not go through. Try again.');
     peer.factionMode = 'allow';
     await accepted(b, { kind: 'draft-ready', ready: true });
@@ -269,7 +269,7 @@ describe('Drafting and public assignment on a real game', () => {
     await accepted(a, { kind: 'draft-pick', factionId: 'harkonnen' });
     await accepted(a, { kind: 'draft-ready', ready: true });
     await accepted(b, { kind: 'draft-ready', ready: true });
-    await eventually(async () => (await syncView(a)).snapshot.draft?.failure !== null, 'failure recorded');
+    await eventually(async () => typeof (await syncView(a)).snapshot.draft?.failure === 'string', 'failure recorded');
     const failed = await syncView(a);
     expect(failed.snapshot.stage).toBe('drafting');
     expect(failed.snapshot.draft.failure).toBe('This faction is not available.');
@@ -284,6 +284,7 @@ describe('Drafting and public assignment on a real game', () => {
   it('refuses to deal a faction whose leader face has not published on a real game, and deals once it publishes', async () => {
     /* A real game, not the isolated path the fixture provisions: every dealt faction must be ready. */
     await runtime.close();
+    runtime = undefined;
     peer.provisional = false;
     peer.factions.set('harkonnen', ready('harkonnen', 'Harkonnen'));
     const fremen = ready('fremen', 'Fremen');
@@ -298,7 +299,7 @@ describe('Drafting and public assignment on a real game', () => {
     await accepted(b, { kind: 'draft-pick', factionId: 'harkonnen' });
     await accepted(a, { kind: 'draft-ready', ready: true });
     await accepted(b, { kind: 'draft-ready', ready: true });
-    await eventually(async () => (await syncView(a)).snapshot.draft?.failure !== null, 'failure recorded');
+    await eventually(async () => typeof (await syncView(a)).snapshot.draft?.failure === 'string', 'failure recorded');
     const failed = await syncView(a);
     expect(failed.snapshot.stage).toBe('drafting');
     expect(failed.snapshot.draft.failure).toBe(
