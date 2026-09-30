@@ -426,9 +426,10 @@ The step summary gives the leak scan result, then each table with its policy, it
 out, and the field names the snapshot keeps. It never shows a value, because Actions logs on this
 repository are public.
 
-The upload step runs only when `SNAPSHOT_UPLOAD` in the workflow is `"true"`, and then uploads the
-snapshot file alone as an artifact kept for one day. While the value is `"false"`, every run is a
-dry run and uploads nothing.
+The upload step runs when `SNAPSHOT_UPLOAD` in the workflow is `"true"`, which it has been since
+Norbert approved it after a dry-run report on 30 September 2026 (#1559). It uploads the snapshot
+file alone as the `anonymised-snapshot` artifact, kept for one day, which any signed-in GitHub
+account can download. Setting the value back to `"false"` makes every run a dry run again.
 
 ## Migrations on every `main` deploy
 
