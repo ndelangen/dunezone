@@ -139,36 +139,24 @@ describe('Play provisioning', () => {
     expect(await t.run(async (ctx) => (await ctx.db.get(game._id))?.state)).toBe('pending');
   });
 
-  test('only a synthetic backend provisions the test phase cooldown its environment sets', async () => {
+  test('only a synthetic backend provisions the test cooldown and start stage its environment sets', async () => {
     const { t, credentials } = await fixture();
+    const validated = () => t.mutation(api.playProvisioning.validateProvisioning, credentials);
     vi.stubEnv('PLAY_TEST_PHASE_COOLDOWN_MS', '0');
-    expect(await t.mutation(api.playProvisioning.validateProvisioning, credentials)).not.toHaveProperty(
-      'testPhaseCooldownMs'
-    );
-    vi.stubEnv('IS_TEST', 'true');
-    vi.stubEnv('E2E_LOCAL_AUTH', 'true');
-    vi.stubEnv('CONVEX_CLOUD_URL', 'http://127.0.0.1:3210');
-    vi.stubEnv('SITE_URL', 'http://127.0.0.1:8787');
-    expect(await t.mutation(api.playProvisioning.validateProvisioning, credentials)).toMatchObject({
-      ok: true,
-      testPhaseCooldownMs: 0,
-    });
-  });
-
-  test('only a synthetic backend asks for the start stage its environment sets', async () => {
-    const { t, credentials } = await fixture();
     vi.stubEnv('PLAY_TEST_START_STAGE', 'play');
-    expect(await t.mutation(api.playProvisioning.validateProvisioning, credentials)).not.toHaveProperty(
-      'testStartStage'
-    );
+    const elsewhere = await validated();
+    expect(elsewhere).not.toHaveProperty('testPhaseCooldownMs');
+    expect(elsewhere).not.toHaveProperty('testStartStage');
     vi.stubEnv('IS_TEST', 'true');
     vi.stubEnv('E2E_LOCAL_AUTH', 'true');
     vi.stubEnv('CONVEX_CLOUD_URL', 'http://127.0.0.1:3210');
     vi.stubEnv('SITE_URL', 'http://127.0.0.1:8787');
-    expect(await t.mutation(api.playProvisioning.validateProvisioning, credentials)).toMatchObject({
-      ok: true,
-      testStartStage: 'play',
-    });
+    expect(await validated()).toMatchObject({ ok: true, testPhaseCooldownMs: 0, testStartStage: 'play' });
+    /* Each value travels on its own: the flow that plays at the real cooldown still starts in play. */
+    vi.stubEnv('PLAY_TEST_PHASE_COOLDOWN_MS', undefined);
+    const stageOnly = await validated();
+    expect(stageOnly).not.toHaveProperty('testPhaseCooldownMs');
+    expect(stageOnly).toHaveProperty('testStartStage', 'play');
   });
 
   test('wrong game, secret and attempt have one refusal shape', async () => {
