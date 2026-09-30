@@ -1,4 +1,5 @@
 import { Alert, Divider, Group, Input, SimpleGrid, Stack, TextInput } from '@mantine/core';
+import { stockAssetOptions } from '@ui/content/stockAssetOptions';
 import { AssetSelect } from '@ui/control/AssetSelect';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
 import { ListLengthActions } from '@ui/control/ListLengthActions';
@@ -10,6 +11,11 @@ import { CURATED_PLANET_IMAGES } from '@game/data/planetCatalogue';
 
 import { defaultPlanet } from './factionFormDefaults';
 import type { FactionFormApi } from './factionFormTypes';
+
+const planetImageOptions = stockAssetOptions(CURATED_PLANET_IMAGES.map(({ image }) => image)).map((option) => ({
+  ...option,
+  label: CURATED_PLANET_IMAGES.find(({ image }) => image === option.value)!.label,
+}));
 
 type PlanetEntry = NonNullable<Faction['planet']>[number];
 
@@ -56,7 +62,7 @@ function PlanetFields({ form, index, onFocus }: { form: FactionFormApi; index: n
                 <AssetSelect
                   id={`planet-${index}-illustration`}
                   allowDeselect={false}
-                  data={CURATED_PLANET_IMAGES.map((option) => ({ value: option.image, label: option.label }))}
+                  data={planetImageOptions}
                   getPreviewSrc={(image) => resolve(image as PlanetEntry['image'], 'small')}
                   value={isCurated ? (imageField.state.value ?? null) : null}
                   onFocus={onFocus}
