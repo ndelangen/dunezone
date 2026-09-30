@@ -5,6 +5,7 @@ import { build } from 'esbuild';
 import { describe, expect, test } from 'vitest';
 
 import { decideHostedPlay, globToRegExp, reachesHostedPlay } from './lib/hosted-play-closure';
+import { byCodeUnit } from './lib/storybook-shards';
 
 const root = resolve(import.meta.dirname, '..');
 
@@ -74,7 +75,7 @@ async function importedFiles(): Promise<string[]> {
   });
   return Object.keys(result.metafile.inputs)
     .filter((file) => !file.startsWith('node_modules/') && !file.includes(':'))
-    .sort();
+    .sort(byCodeUnit);
 }
 
 describe('the hosted play closure', () => {
@@ -137,7 +138,7 @@ describe('the hosted play closure', () => {
   test('the verify workflow lets the closure job gate both hosted play jobs', () => {
     const workflow = readFileSync(resolve(root, '.github/workflows/reusable-verify.yml'), 'utf8');
     expect(workflow).toContain('\n  play_closure:\n');
-    expect(workflow).toContain('bun scripts/hosted-play-closure.ts');
+    expect(workflow).toContain('bun scripts/hosted-play-closure.ts < changed-files.txt');
     for (const job of ['hosted_play', 'hosted_play_webgpu']) {
       const start = workflow.indexOf(`\n  ${job}:\n`);
       expect(start, `reusable-verify.yml has no ${job} job`).toBeGreaterThan(0);

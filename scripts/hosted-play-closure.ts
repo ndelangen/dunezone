@@ -1,19 +1,16 @@
 /*
  * Decides whether a pull request's changed files can reach the hosted play flows (#1598).
- * The verify workflow's `play_closure` job passes the file that lists them and reads the JSON line this prints; the step summary gets the same decision in prose.
- * Run: `bun scripts/hosted-play-closure.ts changed-files.txt`
+ * The verify workflow's `play_closure` job pipes the list, one file per line, into this script and reads the JSON line it prints; the step summary gets the same decision in prose.
+ * Run: `bun scripts/hosted-play-closure.ts < changed-files.txt`
  */
 import { appendFileSync, readFileSync } from 'node:fs';
 
 import { decideHostedPlay } from './lib/hosted-play-closure';
 
-/** The changed files, or nothing when the list cannot be read, which the decision treats as a diff it cannot judge. */
-function changedFiles(listPath: string | undefined): string[] {
-  if (!listPath) {
-    return [];
-  }
+/** The changed files from standard input, or nothing when it cannot be read, which the decision treats as a diff it cannot judge. */
+function changedFiles(): string[] {
   try {
-    return readFileSync(listPath, 'utf8')
+    return readFileSync(0, 'utf8')
       .split('\n')
       .map((line) => line.trim())
       .filter((line) => line.length > 0);
@@ -22,7 +19,7 @@ function changedFiles(listPath: string | undefined): string[] {
   }
 }
 
-const decision = decideHostedPlay(changedFiles(process.argv[2]));
+const decision = decideHostedPlay(changedFiles());
 console.log(JSON.stringify(decision));
 if (process.env.GITHUB_STEP_SUMMARY) {
   const files = decision.reaching.map((file) => `- \`${file}\``).join('\n');

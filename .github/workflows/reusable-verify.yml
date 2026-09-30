@@ -423,7 +423,7 @@ jobs:
             echo "The changed files could not be read in full from the compare API, so the shards run." >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
-          decision="$(bun scripts/hosted-play-closure.ts changed-files.txt)"
+          decision="$(bun scripts/hosted-play-closure.ts < changed-files.txt)"
           echo "$decision"
           echo "run=$(echo "$decision" | jq -r .run)" >> "$GITHUB_OUTPUT"
 
