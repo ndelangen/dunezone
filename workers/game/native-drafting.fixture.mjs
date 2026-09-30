@@ -73,15 +73,17 @@ export async function dealt(peer, runtime, count = 2, pick) {
 
 /**
  * Provisions a real game in drafting, with the catalogue, ruleset and factions its deal reads.
- * `bindings` override the game Worker's, and `testPhaseCooldownMs` is what the synthetic backend sends at provisioning.
+ * `bindings` override the game Worker's.
+ * `testPhaseCooldownMs` and `testStartStage` are what the synthetic backend sends at provisioning.
  */
 export async function draftingRuntime(
   extras = [],
   cards = [cardPage('card-one')],
-  { bindings, testPhaseCooldownMs } = {}
+  { bindings, testPhaseCooldownMs, testStartStage } = {}
 ) {
   const peer = await createPeer();
   peer.testPhaseCooldownMs = testPhaseCooldownMs;
+  peer.testStartStage = testStartStage;
   peer.watchMode = 'allow';
   peer.expiresAt = () => Date.now() + 600_000;
   peer.game = { rulesetId: 'ruleset-one', minimumPlayers: 2, creator: CREATOR };

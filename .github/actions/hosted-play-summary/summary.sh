@@ -21,23 +21,23 @@ read -r -a flows <<< "$flow_list"
 {
   echo "### ${HEADING}"
   echo
-  echo '| Flow | Result | Seconds | Renderer | Chromium | Failing step | Error |'
-  echo '| --- | --- | --- | --- | --- | --- | --- |'
+  echo '| Flow | Result | Seconds | Play at | Renderer | Chromium | Failing step | Error |'
+  echo '| --- | --- | --- | --- | --- | --- | --- | --- |'
   if [ "$PROTOCOL_VERIFIER" = true ]; then
     if grep -qs '"status": "passed"' "$out/verification.log"; then
-      echo '| protocol verifier | pass | | | | | |'
+      echo '| protocol verifier | pass | | | | | | |'
     elif [ -f "$out/verification.log" ]; then
-      echo '| protocol verifier | fail | | | | | see verification.log |'
+      echo '| protocol verifier | fail | | | | | | see verification.log |'
     else
-      echo '| protocol verifier | did not run | | | | | see the run step |'
+      echo '| protocol verifier | did not run | | | | | | see the run step |'
     fi
   fi
   if [ "${#flows[@]}" -eq 0 ]; then
-    echo "| ${SHARD} flows | not listed | | | | | the flow lookup in this step failed |"
+    echo "| ${SHARD} flows | not listed | | | | | | the flow lookup in this step failed |"
   fi
   for flow in "${flows[@]}"; do
     if [ ! -f "$out/$flow.log" ]; then
-      echo "| $flow | did not run | | | | | see the run step |"
+      echo "| $flow | did not run | | | | | | see the run step |"
       continue
     fi
     report=''
@@ -47,7 +47,7 @@ read -r -a flows <<< "$flow_list"
       fi
     done
     if [ -z "$report" ]; then
-      echo "| $flow | no report | | | | | see $flow.log |"
+      echo "| $flow | no report | | | | | | see $flow.log |"
       continue
     fi
     jq -r 'def seconds: sub("\\.[0-9]+Z$"; "Z") | fromdate;
@@ -56,7 +56,7 @@ read -r -a flows <<< "$flow_list"
         | map(select(. != null)) | join(", ");
       def message: .message // "" | [splits("\\s+")] | map(select(length > 0)) | join(" ")
         | if length > 200 then .[:197] + "..." else . end;
-      "| \(.flow) | \(if .failure then "fail" else "pass" end) | \((.finishedAt | seconds) - (.startedAt | seconds)) | \(.renderer.kind // "not read") | \(.chromium.build // "") | \(if .failure then .failure | step | cell else "" end) | \(if .failure then .failure | message | cell else "" end) |"' "$report"
+      "| \(.flow) | \(if .failure then "fail" else "pass" end) | \((.finishedAt | seconds) - (.startedAt | seconds)) | \(.milestones.play // "") | \(.renderer.kind // "not read") | \(.chromium.build // "") | \(if .failure then .failure | step | cell else "" end) | \(if .failure then .failure | message | cell else "" end) |"' "$report"
   done
 } | tee -a "$GITHUB_STEP_SUMMARY"
 test "${#flows[@]}" -gt 0

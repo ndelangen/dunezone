@@ -49,15 +49,24 @@ export async function verifyPublicControls({
   passed,
   origin,
 }) {
-  /* Player B plays to Turn 1 and then gives up the seat, so player A holds the table alone until B asks for it back. */
+  /*
+   * Player A holds the table alone until B asks for the other seat.
+   * A game provisioned at Turn 1 (#1594) arrives with that seat open; any other game has player B play to Turn 1 and give the seat up.
+   */
   const a = await account('player-a');
   await createGame(a);
   const b = await account('player-b');
   await enter(b);
-  await seatThrough(a, b);
-  await playReady([a, b], []);
-  const departed = b.view().viewer.viewerSeat;
-  await depart(b);
+  let departed;
+  if (a.view().snapshot.stage === 'play') {
+    departed = a.view().snapshot.roster.seats.find((seat) => !a.view().snapshot.controls.seats.includes(seat.id))?.id;
+    assert.ok(departed, 'The provisioned game has no open seat.');
+  } else {
+    await seatThrough(a, b);
+    await playReady([a, b], []);
+    departed = b.view().viewer.viewerSeat;
+    await depart(b);
+  }
   const inventory = (who) => who.view().snapshot.table.pieces.filter((piece) => piece.inventory === 'shared');
   const requests = (who) => who.view().snapshot.controls.requests;
   async function facePixels(who, piece, face) {

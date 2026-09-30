@@ -25,7 +25,7 @@ import {
 import type { DraftFaction } from '../../src/shared/play/drafting';
 import { isDraftAction } from '../../src/shared/play/drafting';
 import type { StoredSpawnContents } from '../../src/shared/play/inventory';
-import type { ClientMessage, ServerClock, ServerMessage, Viewer } from '../../src/shared/play/protocol';
+import type { ClientMessage, PieceAction, ServerClock, ServerMessage, Viewer } from '../../src/shared/play/protocol';
 import {
   KEEPALIVE_PING,
   KEEPALIVE_PONG,
@@ -340,9 +340,13 @@ export class GameRoom extends DurableObject<GameEnv> {
         args
       );
       const validation = playProvisioningValidationSchema.parse(raw);
-      /* Fail closed: a game without the real phase cooldown is provisioned only in the isolated local stack. */
-      if (validation.ok && validation.testPhaseCooldownMs !== undefined && !isLocalIsolatedRuntime(this.env)) {
-        throw new Error('A test phase cooldown is refused outside the isolated local runtime.');
+      /* Fail closed: a game without the real phase cooldown, or provisioned past drafting, exists only in the isolated local stack. */
+      if (
+        validation.ok &&
+        (validation.testPhaseCooldownMs !== undefined || validation.testStartStage !== undefined) &&
+        !isLocalIsolatedRuntime(this.env)
+      ) {
+        throw new Error('A test phase cooldown or start stage is refused outside the isolated local runtime.');
       }
       /* A real game retains its ruleset before it exists; a ruleset that is not ready never becomes a game. */
       if (validation.ok && 'game' in validation && !this.metadata) {
@@ -372,6 +376,9 @@ export class GameRoom extends DurableObject<GameEnv> {
           : undefined;
       if (!this.initializeValidated(args, validation, factions, fixtureDeck)) {
         return refused();
+      }
+      if (validation.ok && 'game' in validation && validation.testStartStage === 'play') {
+        await this.provisionThroughSetup(validation.game);
       }
       await this.confirmProvisioning();
       return this.metadata!.confirmed ? json({ ok: true }) : refused();
@@ -1431,6 +1438,97 @@ export class GameRoom extends DurableObject<GameEnv> {
         })
         .catch((error) => this.diagnostics.report('storage-sync', error))
     );
+  }
+
+  /**
+   * Takes a game a synthetic backend asked for at the play stage from creation to Turn 1 with the commands its players would send (#1594).
+   * Placeholders take the seats the creator does not hold and ready the draft beside the creator.
+   * The deal, trading and every setup step then run exactly as they do for players, and the placeholders give up their seats.
+   * Those seats stay open with their factions, so a browser flow seats its second player through a request in play, the path a replacement takes.
+   * Nothing here bypasses a rule: a step the room would refuse a player fails the provisioning.
+   */
+  private async provisionThroughSetup(game: {
+    minimumPlayers: number;
+    creator: { userId: string; displayName: string };
+  }) {
+    const creator = { userId: game.creator.userId, displayName: game.creator.displayName };
+    const placeholders = Array.from({ length: game.minimumPlayers - 1 }, (_, index) => ({
+      userId: `provision-seat-${index + 2}`,
+      displayName: `Placeholder for seat ${index + 2}`,
+    }));
+    const everyone = [creator, ...placeholders];
+    const snapshot = () => this.session.currentSnapshot();
+    const viewerOf = (player: { userId: string; displayName: string }) =>
+      this.session.provisionViewer(player.userId, player.displayName);
+    let sequence = 0;
+    const command = (player: { userId: string; displayName: string }, action: PieceAction) => {
+      this.advanceDeadlines();
+      sequence += 1;
+      this.session.execute(viewerOf(player), {
+        type: 'command',
+        commandId: `provision-${sequence}`,
+        action,
+        expectedRevision: snapshot().revision,
+      });
+    };
+    for (const placeholder of placeholders) {
+      command(placeholder, { kind: 'seat-request' });
+      const requestId = this.session.pendingSeatRequest(placeholder.userId);
+      if (!requestId) {
+        throw new Error('A placeholder seat request was not filed.');
+      }
+      command(creator, { kind: 'seat-approve', requestId });
+    }
+    for (const player of everyone) {
+      command(player, { kind: 'draft-ready', ready: true });
+    }
+    await this.settleAssignment();
+    for (const player of everyone) {
+      const round = snapshot().swapping?.round;
+      if (snapshot().stage !== 'swapping' || round === undefined) {
+        throw new Error(`The provisioned game was not dealt; it is in ${snapshot().stage ?? 'no'} stage.`);
+      }
+      command(player, { kind: 'swap-ready', ready: true, round, seat: viewerOf(player).viewerSeat });
+    }
+    for (let changes = 0; snapshot().stage === 'setup'; changes++) {
+      if (changes >= 12) {
+        throw new Error('Setup did not reach play within twelve phase changes.');
+      }
+      const ready = snapshot().controls?.ready ?? [];
+      for (const player of everyone) {
+        if (!ready.includes(viewerOf(player).viewerSeat)) {
+          command(player, { kind: 'ready', ready: true });
+        }
+      }
+      await this.phaseCooldownElapsed();
+      command(creator, { kind: 'phase', direction: 1 });
+    }
+    if (snapshot().stage !== 'play') {
+      throw new Error(`The provisioned game did not reach play; it is in ${snapshot().stage ?? 'no'} stage.`);
+    }
+    for (const placeholder of placeholders) {
+      command(placeholder, { kind: 'seat-depart' });
+    }
+    this.deliverDirectorySoon();
+    await this.scheduleAlarm();
+  }
+
+  /** Waits for the deal a fully ready draft owes, whether an attempt is already under way or none has started. */
+  private async settleAssignment() {
+    for (let waited = 0; waited < 500 && (this.assigning || this.refreshingCatalogue); waited++) {
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    }
+    if (this.session.currentSnapshot().stage === 'drafting') {
+      await this.attemptAssignment();
+    }
+  }
+
+  /** Setup's phase changes keep the game's cooldown, so a provisioning that runs at the real one waits it out. */
+  private async phaseCooldownElapsed() {
+    const wait = this.session.phaseCooldownEndsAt - Date.now();
+    if (wait > 0) {
+      await new Promise((resolve) => setTimeout(resolve, wait));
+    }
   }
 
   private async draftableFactions(rulesetId: string): Promise<DraftFaction[] | null> {

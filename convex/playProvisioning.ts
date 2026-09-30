@@ -9,6 +9,7 @@ import {
   playProvisionRequestSchema,
   playProvisioningValidationSchema,
   playTestPhaseCooldownSchema,
+  playTestStartStageSchema,
 } from '../src/shared/play/admission';
 import { internal } from './_generated/api';
 import type { Doc } from './_generated/dataModel';
@@ -28,6 +29,15 @@ function testPhaseCooldown() {
     return {};
   }
   return { testPhaseCooldownMs: playTestPhaseCooldownSchema.parse(Number(value)) };
+}
+
+/* The verifier sets `PLAY_TEST_START_STAGE` for the flows that start in play (#1594); a backend that is not synthetic sends nothing. */
+function testStartStage() {
+  const value = process.env.PLAY_TEST_START_STAGE;
+  if (value === undefined || !isSyntheticBackend()) {
+    return {};
+  }
+  return { testStartStage: playTestStartStageSchema.parse(value) };
 }
 
 /** What the game Worker initializes a real game with: its fixed ruleset and minimum, and the creator who takes the first seat. */
@@ -127,6 +137,7 @@ export const validateProvisioning = mutation({
       expiresAt: game.provision_expires_at,
       ...shape,
       ...testPhaseCooldown(),
+      ...testStartStage(),
     };
   },
 });

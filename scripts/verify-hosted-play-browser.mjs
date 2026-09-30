@@ -136,6 +136,8 @@ const report = {
   origin,
   directory: directory.pathname,
   checks: [],
+  /* Seconds from the start to a point the flow passes on its way, such as reaching play, so CI shows where a flow's time goes (#1594). */
+  milestones: {},
   captures: [],
   pageErrors: [],
   consoleErrors: [],
@@ -166,9 +168,18 @@ async function until(predicate, description, timeout = 15_000) {
   }
   throw new Error(description);
 }
+/** Seconds since the flow started, as the report and the log show them. */
+function elapsed() {
+  return Math.round((Date.now() - Date.parse(report.startedAt)) / 100) / 10;
+}
 function passed(name, detail = {}) {
-  report.checks.push({ name, ...detail });
-  console.log(`PASS ${name}`);
+  const elapsedSeconds = elapsed();
+  report.checks.push({ name, elapsedSeconds, ...detail });
+  console.log(`PASS ${name} (${elapsedSeconds}s)`);
+}
+function milestone(name) {
+  report.milestones[name] = elapsed();
+  console.log(`MILESTONE ${name} (${report.milestones[name]}s)`);
 }
 /*
  * Mouse steps for moving a held piece over the canvas: the piece passes the midpoint, then reaches the destination.
@@ -542,31 +553,42 @@ function factionOf(who) {
  */
 async function playReady(players, audience) {
   const stage = () => players[0].view().snapshot.stage;
-  for (const who of players) {
-    await act(who, 'Ready');
-  }
-  await until(() => stage() === 'swapping', 'The deal did not assign factions.', 30_000);
-  for (const who of players) {
-    await act(who, 'Ready to start');
-  }
-  await until(() => stage() === 'setup', 'Trading did not close into setup.', 30_000);
-  while (stage() === 'setup') {
-    /* Next clears readiness, and a player whose view has not yet reached that step would read its old Ready and skip it (#1481). */
-    await converged(players);
+  /*
+   * A game the backend provisioned at Turn 1 (#1594) has nothing left to play through.
+   * Every other game is taken there by hand.
+   */
+  if (stage() !== 'play') {
     for (const who of players) {
-      if (!who.view().snapshot.controls.ready.includes(who.view().viewer.viewerSeat)) {
-        await act(who, 'Ready');
-      }
+      await act(who, 'Ready');
     }
-    await act(players[0], 'Next phase');
+    await until(() => stage() === 'swapping', 'The deal did not assign factions.', 30_000);
+    for (const who of players) {
+      await act(who, 'Ready to start');
+    }
+    await until(() => stage() === 'setup', 'Trading did not close into setup.', 30_000);
+    while (stage() === 'setup') {
+      /* Next clears readiness, and a player whose view has not yet reached that step would read its old Ready and skip it (#1481). */
+      await converged(players);
+      for (const who of players) {
+        if (!who.view().snapshot.controls.ready.includes(who.view().viewer.viewerSeat)) {
+          await act(who, 'Ready');
+        }
+      }
+      await act(players[0], 'Next phase');
+    }
   }
   assert.equal(stage(), 'play');
   for (const who of [...players, ...audience]) {
     await who.page.getByRole('group', { name: 'Table view' }).waitFor();
   }
   await converged([...players, ...audience]);
+  milestone('play');
 }
-/** Creates a real game for player-a, seats player-b through a request, admits the observer and plays to Turn 1. */
+/**
+ * Creates a real game for player-a, seats player-b through a request, admits the observer and reaches Turn 1.
+ * A game provisioned at Turn 1 offers player-b its open seat by name, as a replacement is offered one.
+ * Any other game is played to Turn 1 by hand.
+ */
 async function seated() {
   const a = await account('player-a');
   await createGame(a);

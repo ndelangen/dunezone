@@ -155,6 +155,22 @@ describe('Play provisioning', () => {
     });
   });
 
+  test('only a synthetic backend asks for the start stage its environment sets', async () => {
+    const { t, credentials } = await fixture();
+    vi.stubEnv('PLAY_TEST_START_STAGE', 'play');
+    expect(await t.mutation(api.playProvisioning.validateProvisioning, credentials)).not.toHaveProperty(
+      'testStartStage'
+    );
+    vi.stubEnv('IS_TEST', 'true');
+    vi.stubEnv('E2E_LOCAL_AUTH', 'true');
+    vi.stubEnv('CONVEX_CLOUD_URL', 'http://127.0.0.1:3210');
+    vi.stubEnv('SITE_URL', 'http://127.0.0.1:8787');
+    expect(await t.mutation(api.playProvisioning.validateProvisioning, credentials)).toMatchObject({
+      ok: true,
+      testStartStage: 'play',
+    });
+  });
+
   test('wrong game, secret and attempt have one refusal shape', async () => {
     const { t, credentials } = await fixture();
     for (const request of [
