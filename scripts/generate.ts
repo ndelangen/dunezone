@@ -57,7 +57,7 @@ for (const collection of stockAssetCollections) {
     classifiedAssets.add(asset);
   }
 }
-for (const asset of [...leaders, ...logo]) {
+for (const asset of [...leaders, ...logo, ...planet]) {
   if (!classifiedAssets.has(`/${asset}`)) {
     throw new Error(`Add /${asset} to a browsing collection in src/shared/stockAssetCollections.json`);
   }
