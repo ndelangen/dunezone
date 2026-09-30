@@ -149,7 +149,7 @@ the game protocol; no deployment bootstrap secret is installed on the game Worke
 Convex's nonsecret `PLAY_SERVICE_URL` must equal its `SITE_URL` origin, `https://dune.zone`. CI sets
 the callback origin after verifying the private game Worker and before exposing the hosted frontend.
 The test-only `IS_TEST` and `E2E_LOCAL_AUTH` flags must remain disabled in production, and the
-test-only `PLAY_TEST_PHASE_COOLDOWN_MS` unset.
+test-only `PLAY_TEST_PHASE_COOLDOWN_MS` and `PLAY_TEST_START_STAGE` unset.
 
 For an isolated rehearsal against an already provisioned synthetic Convex/Auth backend:
 
@@ -185,9 +185,9 @@ No hosted deployment credentials or production snapshots are used. Its generated
 admin key, SQLite database and local Worker persistence are removed on exit. Each shard keeps its
 logs and browser reports as its own artifact for 14 days. Its step summary has a row for each of its
 flows, a flow that never started included, and one for the protocol verifier where it runs. A flow's
-row gives its result, seconds, renderer kind and Chromium build from its report. A failed flow's row
-also gives its failing step, as the source line of the error and the check it passed last, and the
-error message on one line. The same table is printed in the job log.
+row gives its result, seconds, seconds to Turn 1, renderer kind and Chromium build from its report.
+A failed flow's row also gives its failing step, as the source line of the error and the check it
+passed last, and the error message on one line. The same table is printed in the job log.
 The same command runs locally on supported platforms.
 For a protocol-only local rehearsal, leave out `--flow`. `--backend-binary` can then select an existing
 native executable and `--skip-build` can reuse the publisher bundle; that shortcut does not verify the

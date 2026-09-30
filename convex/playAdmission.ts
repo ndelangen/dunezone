@@ -15,6 +15,7 @@ import {
   playTicketResultSchema,
   playWatchAuthorizationsRequestSchema,
   playWatchAuthorizationsResultSchema,
+  isProvisionPlaceholderId,
 } from '../src/shared/play/admission';
 import { internal } from './_generated/api';
 import type { Doc, Id } from './_generated/dataModel';
@@ -32,6 +33,7 @@ import {
 } from './lib/playAuthorization';
 import { playerSummary } from './lib/playerSummary';
 import { playRateLimiter, playTicketQuota } from './lib/playRateLimits';
+import { isSyntheticBackend } from './lib/playSynthetic';
 
 export const issueTicket = mutation({
   args: zodToConvex(playIssueTicketRequestSchema),
@@ -241,6 +243,13 @@ function routedAccountState(routing: Doc<'play_game_accounts'>, user: Doc<'users
 }
 
 async function accountEntry(ctx: QueryCtx, gameId: Id<'play_games'>, userId: string) {
+  /*
+   * A synthetic backend vouches for the placeholders that took its provisioned games to Turn 1 (#1594).
+   * No other backend has any.
+   */
+  if (isProvisionPlaceholderId(userId) && isSyntheticBackend()) {
+    return { userId, state: 'active' as const, deletionOperationId: null };
+  }
   const id = ctx.db.normalizeId('users', userId);
   const routing = id
     ? await ctx.db

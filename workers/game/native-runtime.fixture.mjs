@@ -172,6 +172,8 @@ function answerPeerRequest(peer, record) {
         ...(peer.game ? { game: peer.game, provisional: peer.provisional } : { fixtureKey: 'hosted-demo' }),
         /* A test that sets `peer.testPhaseCooldownMs` has the backend provision the game with that cooldown. */
         ...(peer.testPhaseCooldownMs === undefined ? {} : { testPhaseCooldownMs: peer.testPhaseCooldownMs }),
+        /* A test that sets `peer.testStartStage` has the backend ask for the game provisioned at that stage. */
+        ...(peer.testStartStage === undefined ? {} : { testStartStage: peer.testStartStage }),
       });
       break;
     case 'playProvisioning:confirmProvisioning':
@@ -236,6 +238,7 @@ export async function createPeer() {
     game: null,
     provisional: true,
     testPhaseCooldownMs: undefined,
+    testStartStage: undefined,
     directoryMode: 'ack',
     reconcileMode: 'answer',
     deletedAccounts: new Set(),

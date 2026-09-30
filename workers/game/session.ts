@@ -1008,6 +1008,18 @@ export class GameSession {
   seatFor(userId: string) {
     return this.actors.seatFor(userId);
   }
+  /** The identity the provisioning replay commands as (#1594): the creator at their seat, or a placeholder the room admits as a spectator. */
+  provisionViewer(userId: string, displayName: string): Viewer {
+    return this.actors.viewer(`provision:${userId}`, userId, displayName, { seatNewcomers: false });
+  }
+  /** The room's current snapshot, for a caller that judges its next command by the stage and revision. */
+  currentSnapshot(): StoredSnapshot {
+    return this.room!.snapshot;
+  }
+  /** The seat request a spectator has open, if any. */
+  pendingSeatRequest(userId: string) {
+    return this.participation.pendingRequestId(userId);
+  }
   factionFor(userId: string) {
     return this.actors.factionFor(userId);
   }

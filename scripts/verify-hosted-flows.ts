@@ -10,15 +10,17 @@ export const browserFlows = {
     keepsFrames: false,
     needsCatalogue: false,
     checksPhaseCooldown: false,
+    startsInPlay: false,
     shard: 'regular',
   },
-  /* Every other flow first plays a real game through drafting and setup, which takes a few minutes on its own. */
+  /* Every other flow tests play itself, so its games arrive at Turn 1 already provisioned through drafting and setup. */
   'public-controls': {
     timeoutMs: 480_000,
     separateBrowsers: false,
     keepsFrames: false,
     needsCatalogue: true,
     checksPhaseCooldown: true,
+    startsInPlay: true,
     shard: 'catalogue',
   },
   'private-banks': {
@@ -27,6 +29,7 @@ export const browserFlows = {
     keepsFrames: true,
     needsCatalogue: false,
     checksPhaseCooldown: false,
+    startsInPlay: true,
     shard: 'protocol',
   },
   battles: {
@@ -35,6 +38,7 @@ export const browserFlows = {
     keepsFrames: true,
     needsCatalogue: true,
     checksPhaseCooldown: false,
+    startsInPlay: true,
     shard: 'catalogue',
   },
   decks: {
@@ -43,6 +47,7 @@ export const browserFlows = {
     keepsFrames: true,
     needsCatalogue: false,
     checksPhaseCooldown: false,
+    startsInPlay: true,
     shard: 'protocol',
   },
   /* Steps to Mentat pause, then declares, reloads and continues. */
@@ -52,6 +57,7 @@ export const browserFlows = {
     keepsFrames: false,
     needsCatalogue: false,
     checksPhaseCooldown: false,
+    startsInPlay: true,
     shard: 'protocol',
   },
 } satisfies Record<
@@ -69,6 +75,12 @@ export const browserFlows = {
      * The launcher provisions every other flow's games with no cooldown.
      */
     checksPhaseCooldown: boolean;
+    /**
+     * The flow's games are provisioned past drafting and setup, at Turn 1, so it starts where its own checks begin (#1594).
+     * The launcher sets the backend's test-only `PLAY_TEST_START_STAGE` for it.
+     * `regular` keeps the real start, because stepping through those stages is what it proves.
+     */
+    startsInPlay: boolean;
     /**
      * The `hosted_play` CI shard that runs the flow, which the launcher's `--shard` selects.
      * A shard seeds the public catalogue when one of its flows needs it, so the flows that need it share `catalogue`.

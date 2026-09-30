@@ -136,6 +136,8 @@ const report = {
   origin,
   directory: directory.pathname,
   checks: [],
+  /* Seconds from the start to a point the flow passes on its way, such as reaching play, so CI shows where a flow's time goes (#1594). */
+  milestones: {},
   captures: [],
   pageErrors: [],
   consoleErrors: [],
@@ -166,9 +168,18 @@ async function until(predicate, description, timeout = 15_000) {
   }
   throw new Error(description);
 }
+/** Seconds since the flow started, as the report and the log show them. */
+function elapsed() {
+  return Math.round((Date.now() - Date.parse(report.startedAt)) / 100) / 10;
+}
 function passed(name, detail = {}) {
-  report.checks.push({ name, ...detail });
-  console.log(`PASS ${name}`);
+  const elapsedSeconds = elapsed();
+  report.checks.push({ name, elapsedSeconds, ...detail });
+  console.log(`PASS ${name} (${elapsedSeconds}s)`);
+}
+function milestone(name) {
+  report.milestones[name] = elapsed();
+  console.log(`MILESTONE ${name} (${report.milestones[name]}s)`);
 }
 /*
  * Mouse steps for moving a held piece over the canvas: the piece passes the midpoint, then reaches the destination.
@@ -500,6 +511,15 @@ async function createGame(who) {
   gameId = new URL(who.page.url()).pathname.split('/').at(-1);
   await admitted(who);
   assert.notEqual(who.view().viewer.viewerSeat, SPECTATOR);
+  /*
+   * The backend provisions this flow's games at the stage the flow table names (#1594).
+   * A game at any other stage fails here rather than being played through by hand.
+   */
+  assert.equal(
+    who.view().snapshot.stage,
+    flow.startsInPlay ? 'play' : 'drafting',
+    'The game did not start at the stage this flow expects.'
+  );
 }
 async function enter(who) {
   assert.ok(gameId, 'No real game was created yet.');
@@ -537,10 +557,26 @@ function factionOf(who) {
   return seat.faction;
 }
 /**
- * Takes the two players through drafting, the deal, trading and setup with ordinary controls, then waits for play.
+ * Waits for play with the players and the audience at the table.
+ * A game the backend provisioned at Turn 1 (#1594) is there already.
+ * Any other game is taken through drafting, the deal, trading and setup with ordinary controls.
  * Nothing patches the game: every step is a command the table accepts from its players.
  */
 async function playReady(players, audience) {
+  const stage = () => players[0].view().snapshot.stage;
+  /* A game the backend provisioned at Turn 1 (#1594) has nothing left to play through; every other game is taken there by hand. */
+  if (stage() !== 'play') {
+    await playThroughSetup(players);
+  }
+  assert.equal(stage(), 'play');
+  for (const who of [...players, ...audience]) {
+    await who.page.getByRole('group', { name: 'Table view' }).waitFor();
+  }
+  await converged([...players, ...audience]);
+  milestone('play');
+}
+/** Drafting, the deal, trading and every setup step, with the controls the table offers its players. */
+async function playThroughSetup(players) {
   const stage = () => players[0].view().snapshot.stage;
   for (const who of players) {
     await act(who, 'Ready');
@@ -560,13 +596,12 @@ async function playReady(players, audience) {
     }
     await act(players[0], 'Next phase');
   }
-  assert.equal(stage(), 'play');
-  for (const who of [...players, ...audience]) {
-    await who.page.getByRole('group', { name: 'Table view' }).waitFor();
-  }
-  await converged([...players, ...audience]);
 }
-/** Creates a real game for player-a, seats player-b through a request, admits the observer and plays to Turn 1. */
+/**
+ * Creates a real game for player-a, seats player-b through a request, admits the observer and reaches Turn 1.
+ * A game provisioned at Turn 1 offers player-b its open seat by name, as a replacement is offered one.
+ * Any other game is played to Turn 1 by hand.
+ */
 async function seated() {
   const a = await account('player-a');
   await createGame(a);
@@ -1457,6 +1492,10 @@ async function verifyRegular() {
   await visibleActivity(b, a, 'reloaded-player-b-to-player-a');
   await visibleActivity(a, b, 'player-a-to-reloaded-player-b');
 
+  /*
+   * The observer joins in play, where every check on it is.
+   * A third table tab through the earlier stages adds rendering load to the run's longest flow without a check to show for it.
+   */
   const observer = await account('observer');
   await enter(observer);
   assert.equal(observer.view().viewer.viewerSeat, SPECTATOR);
