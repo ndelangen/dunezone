@@ -1363,5 +1363,468 @@
     "label": "Familiar worlds",
     "keywords": "Our own homeworld.",
     "assets": ["/image/planet/familiar-worlds/earth.png"]
+  },
+  {
+    "label": "Decals / Blades and melee weapons",
+    "keywords": "knife dagger sword blade claw whip garrote close combat",
+    "assets": [
+      "/vector/decal/assassination.svg",
+      "/vector/decal/blade.svg",
+      "/vector/decal/crescent-guard.svg",
+      "/vector/decal/crysknife.svg",
+      "/vector/decal/extortion.svg",
+      "/vector/decal/fan-of-knives.svg",
+      "/vector/decal/flagella.svg",
+      "/vector/decal/gravity-hammer.svg",
+      "/vector/decal/knifes.svg",
+      "/vector/decal/mirror-weapon.svg",
+      "/vector/decal/poison-blade.svg",
+      "/vector/decal/ribbon-sabre.svg",
+      "/vector/decal/sand-lance.svg",
+      "/vector/decal/scissor-sword.svg",
+      "/vector/decal/slip-tip.svg",
+      "/vector/decal/talon-bracer.svg",
+      "/vector/decal/wire.svg"
+    ]
+  },
+  {
+    "label": "Decals / Guns and projectors",
+    "keywords": "gun pistol rifle launcher ray sonic projectile",
+    "assets": [
+      "/vector/decal/arc-bow.svg",
+      "/vector/decal/bolas-launcher.svg",
+      "/vector/decal/cutter-ray.svg",
+      "/vector/decal/eclipse-projector.svg",
+      "/vector/decal/harpoon-caster.svg",
+      "/vector/decal/lasgun-extra.svg",
+      "/vector/decal/lasgun.svg",
+      "/vector/decal/maula-pistol.svg",
+      "/vector/decal/scatter-bell.svg",
+      "/vector/decal/stunner.svg"
+    ]
+  },
+  {
+    "label": "Decals / Explosives and siege",
+    "keywords": "bomb explosion artillery mortar demolition siege battlefield",
+    "assets": [
+      "/vector/decal/artillery-strike-multicolor.svg",
+      "/vector/decal/artillery-strike-plus.svg",
+      "/vector/decal/artillery-strike.svg",
+      "/vector/decal/atomics-multicolor.svg",
+      "/vector/decal/burrow-charge-multicolor.svg",
+      "/vector/decal/family-atomics-multicolor.svg",
+      "/vector/decal/stone-burner-alt-multicolor.svg",
+      "/vector/decal/stone-burner-alt.svg",
+      "/vector/decal/stone-burner.svg"
+    ]
+  },
+  {
+    "label": "Decals / Poisons and chemistry",
+    "keywords": "poison bottle flask vial goblet drink food chemical laboratory",
+    "assets": [
+      "/vector/decal/amal.svg",
+      "/vector/decal/basilia.svg",
+      "/vector/decal/black-cordial.svg",
+      "/vector/decal/chaumas.svg",
+      "/vector/decal/chaumurky.svg",
+      "/vector/decal/chemistry-multicolor.svg",
+      "/vector/decal/chemistry.svg",
+      "/vector/decal/drip.svg",
+      "/vector/decal/ellaca.svg",
+      "/vector/decal/flask.svg",
+      "/vector/decal/funeral-orchid.svg",
+      "/vector/decal/juice-of-sapho-multicolor.svg",
+      "/vector/decal/juice-of-sapho.svg",
+      "/vector/decal/master-of-assassins-alt-multicolor.svg",
+      "/vector/decal/master-of-assassins-multicolor.svg",
+      "/vector/decal/perfumed-censer.svg",
+      "/vector/decal/sealed-fruit.svg",
+      "/vector/decal/semuta-drug.svg",
+      "/vector/decal/water-of-life.svg",
+      "/vector/decal/widows-comb.svg",
+      "/vector/decal/zenobia.svg"
+    ]
+  },
+  {
+    "label": "Decals / Tools and personal machinery",
+    "keywords": "tool detector snooper probe thumper mechanism instrument",
+    "assets": [
+      "/vector/decal/breach-auger.svg",
+      "/vector/decal/burrowing-beetle.svg",
+      "/vector/decal/cone-of-silence.svg",
+      "/vector/decal/dust-reader.svg",
+      "/vector/decal/gamond.svg",
+      "/vector/decal/gravity-keel.svg",
+      "/vector/decal/hunter-seeker.svg",
+      "/vector/decal/leech-capsule.svg",
+      "/vector/decal/listening-shell.svg",
+      "/vector/decal/needle-moth.svg",
+      "/vector/decal/phase-knot.svg",
+      "/vector/decal/portable-snooper.svg",
+      "/vector/decal/probe.svg",
+      "/vector/decal/pulse-lantern.svg",
+      "/vector/decal/resonance-brake.svg",
+      "/vector/decal/resonance-fork.svg",
+      "/vector/decal/scuttle-mine.svg",
+      "/vector/decal/shield-snooper.svg",
+      "/vector/decal/silence-cage.svg",
+      "/vector/decal/silence.svg",
+      "/vector/decal/snooper.svg",
+      "/vector/decal/tasters-fork.svg",
+      "/vector/decal/thread-crawler.svg",
+      "/vector/decal/thumper-alt.svg",
+      "/vector/decal/thumper-multicolor.svg",
+      "/vector/decal/thumper-plus.svg",
+      "/vector/decal/thumper.svg",
+      "/vector/decal/trip.svg"
+    ]
+  },
+  {
+    "label": "Decals / Shields and protective clothing",
+    "keywords": "shield armor protection barrier cloak clothing garment",
+    "assets": [
+      "/vector/decal/breath-bell.svg",
+      "/vector/decal/buckler-projector.svg",
+      "/vector/decal/deflective-shield.svg",
+      "/vector/decal/folded-cuirass.svg",
+      "/vector/decal/impact-mantle.svg",
+      "/vector/decal/jubba-cloak.svg",
+      "/vector/decal/living-filter.svg",
+      "/vector/decal/membrane.svg",
+      "/vector/decal/parrying-gauntlet.svg",
+      "/vector/decal/shield.svg",
+      "/vector/decal/shirt.svg",
+      "/vector/decal/vapor-comb.svg"
+    ]
+  },
+  {
+    "label": "Decals / Air travel",
+    "keywords": "aircraft ornithopter carryall glider balloon aerial flight",
+    "assets": [
+      "/vector/decal/ballast-drop-multicolor.svg",
+      "/vector/decal/barge.svg",
+      "/vector/decal/carryalls-multicolor.svg",
+      "/vector/decal/carryalls-plus.svg",
+      "/vector/decal/carryalls.svg",
+      "/vector/decal/cliff-docking-multicolor.svg",
+      "/vector/decal/descent-capsule-multicolor.svg",
+      "/vector/decal/net-recovery-multicolor.svg",
+      "/vector/decal/ornithopter.svg",
+      "/vector/decal/ornithopters.svg",
+      "/vector/decal/storm-glider-multicolor.svg"
+    ]
+  },
+  {
+    "label": "Decals / Ground travel and cargo",
+    "keywords": "vehicle wagon sled caravan wheeled walker ground transport",
+    "assets": [
+      "/vector/decal/cliff-hoist-multicolor.svg",
+      "/vector/decal/dune-freight-sled-multicolor.svg",
+      "/vector/decal/dune-skimmer-multicolor.svg",
+      "/vector/decal/suspensor-cradle-multicolor.svg"
+    ]
+  },
+  {
+    "label": "Decals / Large machines and industry",
+    "keywords": "harvester factory industry processing drilling engine machine",
+    "assets": [
+      "/vector/decal/breach-drum-multicolor.svg",
+      "/vector/decal/harvester-alt-multicolor.svg",
+      "/vector/decal/harvester-alt-plus.svg",
+      "/vector/decal/harvester-alt.svg",
+      "/vector/decal/harvester-multicolor.svg",
+      "/vector/decal/harvester-plus.svg",
+      "/vector/decal/harvester.svg",
+      "/vector/decal/orgiz-processing-station.svg",
+      "/vector/decal/well-crawler-multicolor.svg"
+    ]
+  },
+  {
+    "label": "Decals / Water and cultivation",
+    "keywords": "water rain droplet reservoir cistern irrigation seed agriculture plants",
+    "assets": [
+      "/vector/decal/cistern.svg",
+      "/vector/decal/dew-sail-multicolor.svg",
+      "/vector/decal/drops.svg",
+      "/vector/decal/ecological-testing-station.svg",
+      "/vector/decal/purification-cup.svg",
+      "/vector/decal/root-sanctuary-multicolor.svg",
+      "/vector/decal/salt-separator-multicolor.svg",
+      "/vector/decal/seed-drill-multicolor.svg",
+      "/vector/decal/spore-harvest-multicolor.svg",
+      "/vector/decal/water-bond.svg"
+    ]
+  },
+  {
+    "label": "Decals / Animals and desert fauna",
+    "keywords": "animal beast worm sandtrout bat insect predator fauna creature",
+    "assets": [
+      "/vector/decal/bat.svg",
+      "/vector/decal/cistern-guardian-multicolor.svg",
+      "/vector/decal/crown-burrower-multicolor.svg",
+      "/vector/decal/distrance-multicolor.svg",
+      "/vector/decal/drifting-bladder-colony-multicolor.svg",
+      "/vector/decal/glasswing-scavenger-multicolor.svg",
+      "/vector/decal/great-maker-multicolor.svg",
+      "/vector/decal/kulon.svg",
+      "/vector/decal/lazatiger.svg",
+      "/vector/decal/lion.svg",
+      "/vector/decal/night-glider-multicolor.svg",
+      "/vector/decal/sailfin-burrower-multicolor.svg",
+      "/vector/decal/sandtrout-multicolor.svg",
+      "/vector/decal/shai-hulud-plus.svg",
+      "/vector/decal/shai-hulud.svg",
+      "/vector/decal/spine-herd-multicolor.svg",
+      "/vector/decal/vaulting-sandcat-multicolor.svg"
+    ]
+  },
+  {
+    "label": "Decals / Medical help and biology",
+    "keywords": "doctor healer medicine syringe injection anatomy body ghola biology",
+    "assets": [
+      "/vector/decal/antidote-rosary.svg",
+      "/vector/decal/bone-setter-multicolor.svg",
+      "/vector/decal/convalescent-guide-multicolor.svg",
+      "/vector/decal/emergency-extraction-multicolor.svg",
+      "/vector/decal/injection.svg",
+      "/vector/decal/killer-doctor-multicolor.svg",
+      "/vector/decal/pulse-examiner-multicolor.svg",
+      "/vector/decal/quiet-vigil-multicolor.svg",
+      "/vector/decal/remedy-maker-multicolor.svg",
+      "/vector/decal/residual-poison-multicolor.svg",
+      "/vector/decal/residual-poison.svg",
+      "/vector/decal/suk-graduate.svg",
+      "/vector/decal/suk.svg",
+      "/vector/decal/suringe.svg",
+      "/vector/decal/tleilaxu-ghola-single.svg",
+      "/vector/decal/tleilaxu-ghola.svg"
+    ]
+  },
+  {
+    "label": "Decals / Guards and formations",
+    "keywords": "warrior soldier fighter guard martial swordmaster recruit troop combat training",
+    "assets": [
+      "/vector/decal/banner-escort-multicolor.svg",
+      "/vector/decal/body-guard.svg",
+      "/vector/decal/cheap-hero.svg",
+      "/vector/decal/cheap-heroine.svg",
+      "/vector/decal/door-warden-multicolor.svg",
+      "/vector/decal/flagmen-alt.svg",
+      "/vector/decal/flagmen.svg",
+      "/vector/decal/gate-brace-multicolor.svg",
+      "/vector/decal/mercenaries.svg",
+      "/vector/decal/paired-cover-multicolor.svg",
+      "/vector/decal/rearward-watch-multicolor.svg",
+      "/vector/decal/recruit-multicolor.svg",
+      "/vector/decal/recruit.svg",
+      "/vector/decal/reinforcements-multicolor.svg",
+      "/vector/decal/reinforcements.svg",
+      "/vector/decal/silent-formation-multicolor.svg",
+      "/vector/decal/warmaster-multicolor.svg",
+      "/vector/decal/warmaster.svg",
+      "/vector/decal/watch-relief-multicolor.svg"
+    ]
+  },
+  {
+    "label": "Decals / Scouts and travelers",
+    "keywords": "scout traveler journey movement pilgrim smuggler guide field",
+    "assets": [
+      "/vector/decal/dune-listener-multicolor.svg",
+      "/vector/decal/hajr.svg",
+      "/vector/decal/horizon-signal-multicolor.svg",
+      "/vector/decal/quiet-crossing-multicolor.svg",
+      "/vector/decal/ridge-spotters-multicolor.svg",
+      "/vector/decal/rope-team-multicolor.svg",
+      "/vector/decal/shoulder-lift-multicolor.svg",
+      "/vector/decal/shoutout.svg",
+      "/vector/decal/smuggler-alt-multicolor.svg",
+      "/vector/decal/smuggler-multicolor.svg",
+      "/vector/decal/track-reader-multicolor.svg"
+    ]
+  },
+  {
+    "label": "Decals / Court and diplomacy",
+    "keywords": "court diplomat official envoy authority adviser ceremony",
+    "assets": [
+      "/vector/decal/audience-petition-multicolor.svg",
+      "/vector/decal/bearer-of-decrees-multicolor.svg",
+      "/vector/decal/beaurocrat-multicolor.svg",
+      "/vector/decal/chamberlain-multicolor.svg",
+      "/vector/decal/diplomat-multicolor.svg",
+      "/vector/decal/favor.svg",
+      "/vector/decal/forced-honour.svg",
+      "/vector/decal/neutral-mediator-multicolor.svg",
+      "/vector/decal/open-handed-envoy-multicolor.svg",
+      "/vector/decal/reluctant-accord-multicolor.svg",
+      "/vector/decal/rihani-decipherer-multicolor.svg",
+      "/vector/decal/signet.svg",
+      "/vector/decal/terms-withheld-multicolor.svg"
+    ]
+  },
+  {
+    "label": "Decals / Trade and supplies",
+    "keywords": "trade supplies crate cargo box gems wealth bank exchange",
+    "assets": [
+      "/vector/decal/box-multicolor.svg",
+      "/vector/decal/box-outline.svg",
+      "/vector/decal/box.svg",
+      "/vector/decal/gems.svg",
+      "/vector/decal/keeper-of-accounts-multicolor.svg",
+      "/vector/decal/royal-appraiser-multicolor.svg",
+      "/vector/decal/spice-banker-multicolor.svg",
+      "/vector/decal/supplies.svg"
+    ]
+  },
+  {
+    "label": "Decals / Secret passages and access",
+    "keywords": "entrance door passage hidden concealed lock access infiltration",
+    "assets": [
+      "/vector/decal/buried-cache-multicolor.svg",
+      "/vector/decal/hidden-passage-multicolor.svg",
+      "/vector/decal/seal-breaker.svg"
+    ]
+  },
+  {
+    "label": "Decals / Mind and knowledge",
+    "keywords": "mind brain mentat memory evidence perception information scholar",
+    "assets": [
+      "/vector/decal/brain.svg",
+      "/vector/decal/evidence.svg",
+      "/vector/decal/memory-spindle.svg",
+      "/vector/decal/mentat.svg",
+      "/vector/decal/planetologist-multicolor.svg",
+      "/vector/decal/planetologist.svg"
+    ]
+  },
+  {
+    "label": "Decals / Ritual and culture",
+    "keywords": "ritual prayer meditation music instrument bible book campfire culture",
+    "assets": [
+      "/vector/decal/baliset.svg",
+      "/vector/decal/bible.svg",
+      "/vector/decal/campfire-multicolor.svg",
+      "/vector/decal/campfire.svg",
+      "/vector/decal/house-remembrance-multicolor.svg",
+      "/vector/decal/kull-wahad.svg",
+      "/vector/decal/measured-offering-multicolor.svg",
+      "/vector/decal/oathbound-heir-multicolor.svg",
+      "/vector/decal/pact-reliquary.svg",
+      "/vector/decal/shrine.svg",
+      "/vector/decal/truth-trance.svg",
+      "/vector/decal/unbinding-multicolor.svg",
+      "/vector/decal/water-oath-multicolor.svg"
+    ]
+  },
+  {
+    "label": "Decals / Cities and buildings",
+    "keywords": "city building palace tower architecture settlement skyline",
+    "assets": [
+      "/vector/decal/choam-share.svg",
+      "/vector/decal/metro.svg",
+      "/vector/decal/palace-alt-multicolor.svg",
+      "/vector/decal/palace-multicolor.svg"
+    ]
+  },
+  {
+    "label": "Decals / Weather and natural hazards",
+    "keywords": "storm wind dust weather hazard collapse terrain",
+    "assets": [
+      "/vector/decal/storm-multicolor.svg",
+      "/vector/decal/storm.svg",
+      "/vector/decal/weather-control-alt.svg",
+      "/vector/decal/weather-control.svg"
+    ]
+  },
+  {
+    "label": "Decals / Hands and gestures",
+    "keywords": "hand gesture fist finger offering palm touch",
+    "assets": [
+      "/vector/decal/chicken-multicolor.svg",
+      "/vector/decal/gom-jabbar.svg",
+      "/vector/decal/hands.svg",
+      "/vector/decal/poison-tooth-multicolor.svg",
+      "/vector/decal/poison-tooth.svg",
+      "/vector/decal/robbery.svg"
+    ]
+  },
+  {
+    "label": "Decals / Symbols and markings",
+    "keywords": "symbol glyph sign icon pattern target cog ring geometry",
+    "assets": [
+      "/vector/decal/balance.svg",
+      "/vector/decal/block.svg",
+      "/vector/decal/break-conditioning.svg",
+      "/vector/decal/cog.svg",
+      "/vector/decal/combatwheel-multicolor.svg",
+      "/vector/decal/sabotage.svg",
+      "/vector/decal/sun-gear.svg",
+      "/vector/decal/target.svg",
+      "/vector/decal/troll.svg"
+    ]
+  },
+  {
+    "label": "Decals / Combat and training",
+    "keywords": "duel fighter swordmaster martial practice exercise discipline parry",
+    "assets": [
+      "/vector/decal/balance-exercise-multicolor.svg",
+      "/vector/decal/blindfold-drill-multicolor.svg",
+      "/vector/decal/breach-partners-multicolor.svg",
+      "/vector/decal/breath-discipline-multicolor.svg",
+      "/vector/decal/cloaked-feint-multicolor.svg",
+      "/vector/decal/close-guard-multicolor.svg",
+      "/vector/decal/disarmed-blade-multicolor.svg",
+      "/vector/decal/kanly.svg",
+      "/vector/decal/low-counter-multicolor.svg",
+      "/vector/decal/measured-instruction-multicolor.svg",
+      "/vector/decal/practice-circle-multicolor.svg",
+      "/vector/decal/prana-bundu.svg",
+      "/vector/decal/sword-master.svg",
+      "/vector/decal/swordmaster-of-ginaz-multicolor.svg",
+      "/vector/decal/turning-parry-multicolor.svg",
+      "/vector/decal/weirding-way-multicolor.svg",
+      "/vector/decal/weirding-way-plus.svg",
+      "/vector/decal/weirding-way.svg"
+    ]
+  },
+  {
+    "label": "Decals / Fortifications and shelters",
+    "keywords": "bastion bunker shelter refuge barricade barrier defense shield wall",
+    "assets": [
+      "/vector/decal/blast-diversion-multicolor.svg",
+      "/vector/decal/buried-bastion-multicolor.svg",
+      "/vector/decal/buried-refuge-multicolor.svg",
+      "/vector/decal/intercept-screen-multicolor.svg",
+      "/vector/decal/shield-anchor.svg",
+      "/vector/decal/storm-shutters-multicolor.svg"
+    ]
+  },
+  {
+    "label": "Decals / Traps and sabotage",
+    "keywords": "trap snare sabotage demolition ambush disruption supply line",
+    "assets": [
+      "/vector/decal/collapsing-bridge-multicolor.svg",
+      "/vector/decal/cut-supply-line-multicolor.svg",
+      "/vector/decal/magnetic-snare-multicolor.svg",
+      "/vector/decal/sand-screen-multicolor.svg",
+      "/vector/decal/seeker-snare.svg",
+      "/vector/decal/severed-supply-multicolor.svg",
+      "/vector/decal/signal-shears.svg",
+      "/vector/decal/sinking-road-multicolor.svg"
+    ]
+  },
+  {
+    "label": "Decals / Intrigue and deception",
+    "keywords": "spy assassin covert disguise mask secret whisper deception testimony",
+    "assets": [
+      "/vector/decal/burned-testimony-multicolor.svg",
+      "/vector/decal/decoy-heart.svg",
+      "/vector/decal/false-convoy-multicolor.svg",
+      "/vector/decal/false-face-mold.svg",
+      "/vector/decal/listening-attendant-multicolor.svg",
+      "/vector/decal/masked-witness-multicolor.svg",
+      "/vector/decal/secret-exchange-multicolor.svg",
+      "/vector/decal/sleeve-switch-multicolor.svg",
+      "/vector/decal/whispered-warning-multicolor.svg"
+    ]
   }
 ]

@@ -6,10 +6,10 @@ artwork grid without changing the selected artwork. Choose All collections to cl
 keywords. The filter stays selected while editing another supporting leader, so a matching roster
 can be assembled without finding the collection again.
 
-`src/shared/stockAssetCollections.json` owns the curated portrait and emblem sets. The labels describe
-faction membership or a matching visual set. They do not grant access or refer to collaboration
+`src/shared/stockAssetCollections.json` owns the curated portrait, emblem, planet and decal collections. The labels describe
+faction membership, a matching visual set, or the depicted subject. They do not grant access or refer to collaboration
 Groups. `src/app/ui/content/stockAssetOptions.ts` turns these records into picker options and groups
-other vectors by their purpose and subject.
+uncurated vectors by their purpose and subject.
 
 ## Adding portraits or emblems
 
@@ -28,7 +28,32 @@ other vectors by their purpose and subject.
 Existing asset paths are saved in faction and asset documents. Organize them through this catalogue;
 keep those paths stable. SVG repairs can replace artwork at its existing path without touching
 collection membership. New sources not yet assigned a set remain discoverable through fallback
-categories at runtime; generation requires curated sets for portraits and emblems before delivery.
+categories at runtime; generation requires curated collections for portraits, emblems, planets and decals before delivery.
+
+## Decal subjects
+
+Decals share one catalogue across existing artwork and approved custom illustrations. Each decal
+has one primary collection, chosen by what the image depicts. Collection keywords and the original
+filename remain searchable for related uses. The collections do not prescribe card effects or rules.
+
+- A standalone sword belongs with blades; a duel belongs with combat and training. Guards and
+  formations cover standing watch, escorts and assembled troops.
+- Animals and desert fauna share one collection. Mechanical creatures belong with personal machinery.
+- Medical help covers treatment, rescue and anatomy. Water collection, purification and cultivation
+  have their own collection.
+- Portable mechanisms belong with tools and personal machinery; harvesters and industrial equipment
+  belong with large machines. Guns, explosives and vehicles have more specific collections.
+- Secret passages covers entrances and access tools. Intrigue covers covert encounters and disguises.
+- A visible building, hand or diagram takes precedence over an abstract card-effect name. For example,
+  `choam-share.svg` depicts a building and `extortion.svg` depicts a dagger.
+- Alternate drawings and colour variants of the same named illustration stay together. Existing
+  paths and spellings stay unchanged because saved documents refer to them.
+
+Add each new decal to one collection before running `bun run generate`. Monochrome SVGs inherit
+the caller's colour; artwork with a fixed palette uses the `-multicolor.svg` suffix. Generate the
+public vectors with `bun run generate:vectors`, then run `bun run verify:vectors`. Review both
+existing and new artwork together through the Asset Select picker, including collection filtering
+and selecting a result. Individual images do not need individual stories.
 
 ## Classification evidence
 

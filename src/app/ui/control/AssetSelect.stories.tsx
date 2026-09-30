@@ -143,5 +143,14 @@ export const AllSymbols = meta.story({
     await expect(screen.getByRole('listbox').querySelectorAll('[role="option"]')).toHaveLength(22);
     await userEvent.click(screen.getByRole('option', { name: 'Glass Owl' }));
     await expect(canvas.getByRole('combobox', { name: 'Symbol' })).toHaveValue('Glass Owl');
+
+    await userEvent.click(canvas.getByRole('button', { name: 'Filter Symbol collections' }));
+    await userEvent.click(screen.getByRole('option', { name: 'Decals / Medical help and biology 16' }));
+    await expect(screen.getByRole('option', { name: 'Suk Graduate' })).toBeVisible();
+    await expect(screen.getByRole('option', { name: 'Injection' })).toBeVisible();
+    const newDecal = screen.getByRole('option', { name: 'Pulse Examiner Multicolor' });
+    await expect(newDecal.querySelector('img')).toHaveStyle({ filter: 'none' });
+    await userEvent.click(newDecal);
+    await expect(canvas.getByRole('combobox', { name: 'Symbol' })).toHaveValue('Pulse Examiner Multicolor');
   },
 });
