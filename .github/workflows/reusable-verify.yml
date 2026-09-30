@@ -380,9 +380,54 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
 
+  # Decides whether the diff can reach the hosted play flows (#1598): the four hosted jobs below run
+  # only when a changed file lies in scripts/lib/hosted-play-closure.ts's closure, whose unit test holds it
+  # to the play pages', the Workers' and the launcher's import graph. A merge queue run, any other
+  # event, and a diff this job cannot read all run the shards. The job's own failure fails the run,
+  # so ci_ok never passes on shards that were neither run nor deliberately skipped.
+  play_closure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      run: ${{ steps.decide.outputs.run }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+      - name: Decide from the pull request's changed files
+        id: decide
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+          REPO: ${{ github.repository }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if [ "$EVENT" != pull_request ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            echo "### Hosted play shards run" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "Every event but a pull request runs them; this is a $EVENT run." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          # Three dots: the files changed since the merge base, so main's own commits do not count.
+          if ! gh api "repos/$REPO/compare/$BASE...$HEAD?per_page=100" --paginate --jq '.files[].filename' > changed-files.txt; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            echo "### Hosted play shards run" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "The changed files could not be read from the compare API, so the shards run." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          decision="$(bun scripts/hosted-play-closure.ts changed-files.txt)"
+          echo "$decision"
+          echo "run=$(echo "$decision" | jq -r .run)" >> "$GITHUB_OUTPUT"
+
   hosted_play:
     name: hosted_play (${{ matrix.shard }})
     runs-on: ubuntu-latest
+    needs: play_closure
+    if: needs.play_closure.outputs.run == 'true'
     # Above the launcher's own budgets, so a slow flow ends with its name and its evidence, not a
     # cancelled job. The protocol shard's budgets add up to 27 minutes: 180 s for the protocol
     # verifier, then 480 s for each of private-banks, decks and results.
@@ -463,6 +508,8 @@ jobs:
     # A standard runner, which costs nothing on a public repository; a larger macOS runner is billed even
     # there. Pinned rather than macos-latest, because the WebGPU adapter comes with the image.
     runs-on: macos-26
+    needs: play_closure
+    if: needs.play_closure.outputs.run == 'true'
     # Above the regular flow's ten-minute budget, so a slow flow ends with its name and its evidence.
     # Setup took about 45 s and the build and boot about 70 s, which comes near twelve minutes.
     # A passing job took 249 to 276 s when this was measured (#1322).
