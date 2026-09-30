@@ -2,6 +2,8 @@ import { join, relative } from 'node:path';
 
 import { recursiveReaddirFiles } from 'recursive-readdir-files';
 
+import { stockAssetCollections } from '../src/shared/stockAssetCollections';
+
 async function getFiles(path: string, root: 'public' | 'media' = 'public') {
   /*
    * Image enums read the media/ sources (public/image is generated output), but keys keep their
@@ -39,6 +41,27 @@ const enums = {
   troop,
   troop_modifier,
 };
+
+/* Renaming a source breaks saved references; catalogue membership must use the same durable keys. */
+const availableAssets = new Set(
+  Object.values(enums)
+    .flat()
+    .map((path) => `/${path}`)
+);
+const classifiedAssets = new Set<string>();
+for (const collection of stockAssetCollections) {
+  for (const asset of collection.assets) {
+    if (!availableAssets.has(asset) || classifiedAssets.has(asset)) {
+      throw new Error(`Invalid or repeated artwork in ${collection.label}: ${asset}`);
+    }
+    classifiedAssets.add(asset);
+  }
+}
+for (const asset of [...leaders, ...logo]) {
+  if (!classifiedAssets.has(`/${asset}`)) {
+    throw new Error(`Add /${asset} to a browsing collection in src/shared/stockAssetCollections.ts`);
+  }
+}
 
 await Bun.write(
   join(import.meta.dirname, '..', 'src/shared/assetIds.ts'),

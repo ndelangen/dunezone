@@ -1,20 +1,17 @@
 import { NumberInput, Slider, TextInput } from '@mantine/core';
 import type { CardBack } from '@shared/assets/schema';
+import { stockAssetOptions } from '@ui/content/stockAssetOptions';
 import { AssetSelect } from '@ui/control/AssetSelect';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import type { z } from 'zod';
 
 import type { BackgroundModeMemory } from '@app/widgets/background-composer/BackgroundComposer';
 import { BackgroundPresetControl } from '@app/widgets/background-composer/BackgroundPresetControl';
-import {
-  assetOptionToPreviewSrc,
-  decalAssetOptionToLabel,
-  decalAssetOptions,
-} from '@app/widgets/faction-editor/factionFormAssetUtils';
+import { assetOptionToPreviewSrc, decalAssetOptions } from '@app/widgets/faction-editor/factionFormAssetUtils';
 import { backgroundPresets } from '@game/data/backgrounds';
 
 type CardbackData = z.infer<typeof CardBack>;
-const emblemOptions = decalAssetOptions.map((value) => ({ value, label: decalAssetOptionToLabel(value) }));
+const emblemOptions = stockAssetOptions(decalAssetOptions);
 const BACK_PRESETS = [
   { key: 'weapon', label: 'Weapon', background: backgroundPresets.weapon },
   { key: 'defense', label: 'Defense', background: backgroundPresets.defense },
@@ -69,7 +66,6 @@ export function CardbackFields({
           <AssetSelect
             aria-label="Emblem"
             allowDeselect={false}
-            limit={30}
             data={emblemOptions}
             getPreviewSrc={assetOptionToPreviewSrc}
             glyphPreviews

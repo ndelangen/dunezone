@@ -1,5 +1,9 @@
 import preview from '@sb/preview';
+import { LOGO } from '@shared/assetIds';
+import { stockAssetOptions } from '@ui/content/stockAssetOptions';
 import { expect, screen, within } from 'storybook/test';
+
+import { resolveAsset } from '@game/assets/resolveAsset';
 
 import { AssetSelect } from './AssetSelect';
 
@@ -30,7 +34,7 @@ const meta = preview.meta({
   args: {
     'aria-label': 'Artifact symbol',
     data: options,
-    getPreviewSrc: (value) => previews[value as keyof typeof previews],
+    getPreviewSrc: (value): string | undefined => previews[value as keyof typeof previews],
     onChange: () => {},
     value: 'dune',
   },
@@ -64,5 +68,38 @@ export const DropdownOpen = meta.story({
 export const Disabled = meta.story({
   args: {
     disabled: true,
+  },
+});
+
+export const FactionEmblems = meta.story({
+  args: {
+    'aria-label': 'Faction emblem',
+    w: 680,
+    maw: 'calc(100vw - 2rem)',
+    data: stockAssetOptions(LOGO.options),
+    getPreviewSrc: (value) => resolveAsset(value, 'small'),
+    value: '/vector/logo/atreides.svg',
+    dropdownOpened: true,
+  },
+  play: async () => {
+    await expect(screen.getByRole('listbox').querySelectorAll('[role="option"]')).toHaveLength(LOGO.options.length);
+    await expect(screen.getByRole('group', { name: 'Faction emblems / Board game factions' })).toBeVisible();
+  },
+});
+
+export const MixedArtworkInDark = meta.story({
+  globals: { colorScheme: 'dark' },
+  args: {
+    w: 420,
+    maw: 'calc(100vw - 2rem)',
+    data: stockAssetOptions(['/vector/decal/artillery-strike.svg', '/vector/decal/artillery-strike-multicolor.svg']),
+    getPreviewSrc: (value) => resolveAsset(value, 'small'),
+    value: '/vector/decal/artillery-strike.svg',
+    dropdownOpened: true,
+    glyphPreviews: true,
+  },
+  play: async () => {
+    const colorPreview = screen.getByRole('option', { name: 'Artillery Strike Multicolor' }).querySelector('img');
+    await expect(colorPreview).toHaveStyle({ filter: 'none' });
   },
 });

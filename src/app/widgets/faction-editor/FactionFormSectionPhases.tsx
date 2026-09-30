@@ -22,17 +22,18 @@ import {
 } from '@shared/factions/extraPhases';
 import type { PhaseDeclaration, PhaseTarget } from '@shared/factions/extraPhases';
 import { TABLE_PHASES } from '@shared/play/phases';
+import { stockAssetOptions } from '@ui/content/stockAssetOptions';
 import { AssetSelect } from '@ui/control/AssetSelect';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { ListLengthActions } from '@ui/control/ListLengthActions';
 import { useState } from 'react';
 
 import { FactionCollectionShelf } from './FactionCollectionShelf';
-import { assetOptionToPreviewSrc, phaseSymbolOptions, phaseSymbolOptionToLabel } from './factionFormAssetUtils';
+import { assetOptionToPreviewSrc, phaseSymbolOptions } from './factionFormAssetUtils';
 import { defaultPhaseDeclaration } from './factionFormDefaults';
 import type { FactionFormApi } from './factionFormTypes';
 
-const symbolSelectOptions = phaseSymbolOptions.map((value) => ({ value, label: phaseSymbolOptionToLabel(value) }));
+const symbolSelectOptions = stockAssetOptions(phaseSymbolOptions);
 
 /* Grouped so the author reads the consequence of a target: once in setup, or every turn. */
 const placementOptions = [
