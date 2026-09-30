@@ -3,7 +3,7 @@ import { resolve } from 'node:path';
 
 import { describe, expect, test } from 'vitest';
 
-import { assignShards, listStoryFiles, readShardRules, shardOf } from './lib/storybook-shards';
+import { assignShards, byCodeUnit, listStoryFiles, readShardRules, shardOf } from './lib/storybook-shards';
 
 const root = resolve(import.meta.dirname, '..');
 
@@ -13,7 +13,7 @@ function storybookJob(): string {
   const start = workflow.indexOf('\n  storybook:\n');
   expect(start, 'reusable-verify.yml has no storybook job').toBeGreaterThan(0);
   const length = workflow.slice(start + 1).search(/\n {2}[\w-]+:\n/);
-  return workflow.slice(start, length === -1 ? undefined : start + 1 + length);
+  return length === -1 ? workflow.slice(start) : workflow.slice(start, start + 1 + length);
 }
 
 /*
@@ -26,7 +26,7 @@ describe('storybook shards', () => {
     const files = await listStoryFiles(root);
     const { shards, problems } = assignShards(files, rules);
     expect(problems).toEqual([]);
-    expect([...shards.values()].flat().sort()).toEqual(files);
+    expect([...shards.values()].flat().sort(byCodeUnit)).toEqual(files);
   });
 
   test('every Storybook stories directory sits under src, which is the tree the shards walk', () => {

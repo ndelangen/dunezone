@@ -20,27 +20,47 @@ const STORY_FILE = /\.stories\.(?:js|jsx|mjs|ts|tsx)$/;
 /** A shard's name is what the workflow matrix hands the runner and what the Actions UI shows: lowercase letters, digits and dashes. */
 const SHARD_NAME = /^[a-z][a-z0-9-]*$/;
 
-export async function readShardRules(root: string): Promise<ShardRules> {
-  const parsed: unknown = JSON.parse(await readFile(join(root, SHARDS_FILE), 'utf8'));
-  if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
-    throw new Error(`${SHARDS_FILE} must be an object of shard name to prefix list`);
-  }
-  const rules: ShardRules = {};
-  for (const [shard, prefixes] of Object.entries(parsed)) {
-    if (!SHARD_NAME.test(shard)) {
-      throw new Error(
-        `${SHARDS_FILE}: shard name ${JSON.stringify(shard)} is not lowercase letters, digits and dashes`
-      );
-    }
-    if (!Array.isArray(prefixes) || prefixes.length === 0 || !prefixes.every((prefix) => typeof prefix === 'string')) {
-      throw new Error(`${SHARDS_FILE}: shard ${shard} must list at least one prefix`);
-    }
-    rules[shard] = prefixes;
-  }
-  return rules;
+/** True for a JSON object, which is neither null nor an array. */
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-/** Every story file under `src`, as the repository-relative POSIX path the rules use, sorted. */
+/** True for a list of one or more strings, the only shape a shard's prefix list may take. */
+function isPrefixList(value: unknown): value is string[] {
+  return Array.isArray(value) && value.length > 0 && value.every((prefix) => typeof prefix === 'string');
+}
+
+/** The prefixes of one shard entry, once its name and its list have passed. */
+function readShard(shard: string, prefixes: unknown): string[] {
+  if (!SHARD_NAME.test(shard)) {
+    throw new Error(`${SHARDS_FILE}: shard name ${JSON.stringify(shard)} is not lowercase letters, digits and dashes`);
+  }
+  if (!isPrefixList(prefixes)) {
+    throw new Error(`${SHARDS_FILE}: shard ${shard} must list at least one prefix`);
+  }
+  return prefixes;
+}
+
+export async function readShardRules(root: string): Promise<ShardRules> {
+  const parsed: unknown = JSON.parse(await readFile(join(root, SHARDS_FILE), 'utf8'));
+  if (!isRecord(parsed)) {
+    throw new Error(`${SHARDS_FILE} must be an object of shard name to prefix list`);
+  }
+  return Object.fromEntries(Object.entries(parsed).map(([shard, prefixes]) => [shard, readShard(shard, prefixes)]));
+}
+
+/**
+ * Code-unit order, which `Array.prototype.sort` uses when no compare function is given, made explicit.
+ * No locale takes part, so a story list is the same on every machine that walks the same tree.
+ */
+export function byCodeUnit(left: string, right: string): number {
+  if (left === right) {
+    return 0;
+  }
+  return left < right ? -1 : 1;
+}
+
+/** Every story file under `src`, as the repository-relative POSIX path the rules use, in code-unit order. */
 export async function listStoryFiles(root: string): Promise<string[]> {
   const files: string[] = [];
   async function walk(directory: string): Promise<void> {
@@ -54,7 +74,7 @@ export async function listStoryFiles(root: string): Promise<string[]> {
     }
   }
   await walk(join(root, 'src'));
-  return files.sort();
+  return files.sort(byCodeUnit);
 }
 
 /** True when the prefix owns the file: a directory prefix owns its subtree, any other prefix owns that file alone. */
@@ -73,9 +93,21 @@ export function shardOf(file: string, rules: ShardRules): string | undefined {
 }
 
 /**
- * The files each shard runs, plus every problem in one pass.
- * A file no shard owns is a problem rather than a silent skip, and so is a shard that would run nothing, because a green run of an empty shard proves nothing.
+ * The problems of one shard given the files it owns.
+ * A shard that would run nothing is a problem, because a green run of an empty shard proves nothing.
  * A rule that owns no file is a problem too: a renamed story file would otherwise fall through to a later shard and unbalance it without a word.
+ */
+function shardProblems(shard: string, prefixes: string[], owned: string[]): string[] {
+  const idle = prefixes.filter((prefix) => !owned.some((file) => owns(prefix, file)));
+  return [
+    ...(owned.length === 0 ? [`shard ${shard} owns no story file`] : []),
+    ...idle.map((prefix) => `rule ${prefix} in shard ${shard} owns no story file`),
+  ];
+}
+
+/**
+ * The files each shard runs, plus every problem in one pass.
+ * A file no shard owns is a problem rather than a silent skip, and so is each problem of a shard.
  */
 export function assignShards(
   files: string[],
@@ -87,19 +119,12 @@ export function assignShards(
     const shard = shardOf(file, rules);
     if (shard === undefined) {
       problems.push(`${file} matches no shard in ${SHARDS_FILE}, so no CI run would execute it`);
-      continue;
+    } else {
+      shards.get(shard)?.push(file);
     }
-    shards.get(shard)?.push(file);
   }
-  for (const [shard, owned] of shards) {
-    if (owned.length === 0) {
-      problems.push(`shard ${shard} owns no story file`);
-    }
-    for (const prefix of rules[shard] ?? []) {
-      if (!owned.some((file) => owns(prefix, file))) {
-        problems.push(`rule ${prefix} in shard ${shard} owns no story file`);
-      }
-    }
+  for (const [shard, prefixes] of Object.entries(rules)) {
+    problems.push(...shardProblems(shard, prefixes, shards.get(shard) ?? []));
   }
   return { shards, problems };
 }

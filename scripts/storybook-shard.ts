@@ -10,7 +10,8 @@ import { join, resolve } from 'node:path';
 import { assignShards, listStoryFiles, readShardRules, SHARDS_FILE } from './lib/storybook-shards';
 
 const root = resolve(import.meta.dirname, '..');
-const [shard, ...vitestArguments] = process.argv.slice(2);
+const shard = process.argv.at(2);
+const vitestArguments = process.argv.slice(3);
 
 const rules = await readShardRules(root);
 if (shard === undefined || !Object.hasOwn(rules, shard)) {
@@ -20,9 +21,8 @@ if (shard === undefined || !Object.hasOwn(rules, shard)) {
 
 const { shards, problems } = assignShards(await listStoryFiles(root), rules);
 if (problems.length > 0) {
-  console.error(
-    `${SHARDS_FILE} does not cover the story files:\n${problems.map((problem) => `  - ${problem}`).join('\n')}`
-  );
+  const list = problems.map((problem) => `  - ${problem}`).join('\n');
+  console.error(`${SHARDS_FILE} does not cover the story files:\n${list}`);
   process.exit(1);
 }
 
