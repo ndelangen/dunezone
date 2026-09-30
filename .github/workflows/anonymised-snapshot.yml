@@ -1,0 +1,55 @@
+name: Anonymised snapshot
+
+# Exports production, anonymises it into the published-only snapshot and scans the result (#1559).
+# The step summary gives table names, row counts, kept field names and the leak scan result, never values.
+# The raw export never leaves the runner: scripts/anonymised-snapshot.ts reads it into memory and deletes it
+# before anonymising, and the last step deletes the job's directory whatever happened before.
+on:
+  schedule:
+    # Once a day. GitHub runs scheduled workflows from the default branch only.
+    - cron: "17 5 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: anonymised-snapshot
+  cancel-in-progress: false
+
+env:
+  # "false" makes every run a dry run that uploads nothing, and "true" turns on the upload step below (#1559).
+  SNAPSHOT_UPLOAD: "false"
+
+jobs:
+  snapshot:
+    # The production environment holds the deploy key and admits only main; this condition says so here too.
+    if: github.ref == 'refs/heads/main'
+    environment: production
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+
+      - uses: ./.github/actions/setup
+
+      - name: Export production, anonymise it and scan the snapshot
+        run: bun run ./scripts/anonymised-snapshot.ts
+        env:
+          CONVEX_PROD_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
+
+      # Off while SNAPSHOT_UPLOAD is "false". It uploads the anonymised file alone, never the directory.
+      - name: Upload the anonymised snapshot
+        if: success() && env.SNAPSHOT_UPLOAD == 'true'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: anonymised-snapshot
+          path: ${{ runner.temp }}/anonymised-snapshot/snapshot.zip
+          retention-days: 1
+          if-no-files-found: error
+
+      - name: Delete the export and the snapshot from the runner
+        if: always()
+        run: rm -rf "${RUNNER_TEMP:?}/anonymised-snapshot"
