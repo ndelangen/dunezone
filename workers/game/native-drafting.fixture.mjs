@@ -9,6 +9,7 @@ import {
   provision,
   seat,
   stage,
+  syncView,
 } from './native-runtime.fixture.mjs';
 
 const CREATOR = {
@@ -69,6 +70,35 @@ export async function dealt(peer, runtime, count = 2, pick) {
   }
   await eventually(async () => (await stage(connections[0])) === 'swapping', 'assignment');
   return connections;
+}
+
+/**
+ * Two dealt players keep what they were dealt and step through setup with the commands a table offers them, to Turn 1.
+ * The journey test drives the same steps with a moving clock.
+ * This helper serves games provisioned without a cooldown.
+ */
+export async function playToTurnOne(players) {
+  for (const player of players) {
+    const view = await syncView(player);
+    await accepted(player, {
+      kind: 'swap-ready',
+      ready: true,
+      round: view.snapshot.swapping.round,
+      seat: view.viewer.viewerSeat,
+    });
+  }
+  let { snapshot } = await syncView(players[0]);
+  for (let guard = 0; guard < 8 && snapshot.stage !== 'play'; guard++) {
+    if (snapshot.controls.ready.length < snapshot.roster.seats.length) {
+      for (const player of players) {
+        await accepted(player, { kind: 'ready', ready: true });
+      }
+    }
+    ({ snapshot } = await accepted(players[0], { kind: 'phase', direction: 1 }));
+  }
+  if (snapshot.stage !== 'play') {
+    throw new Error(`Setup did not reach play; the game is in ${snapshot.stage} stage.`);
+  }
 }
 
 /**

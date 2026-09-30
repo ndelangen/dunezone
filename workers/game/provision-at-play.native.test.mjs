@@ -1,8 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { dealt, draftingRuntime } from './native-drafting.fixture.mjs';
+import { dealt, draftingRuntime, playToTurnOne } from './native-drafting.fixture.mjs';
 import {
-  accepted,
   admitPlayer,
   createPeer,
   createRuntime,
@@ -34,29 +33,6 @@ function shapeAtPlay(view) {
   };
 }
 
-/** Two players keep what they were dealt and step through setup with the controls a table offers them. */
-async function throughSetup(players) {
-  for (const player of players) {
-    const view = await syncView(player);
-    await accepted(player, {
-      kind: 'swap-ready',
-      ready: true,
-      round: view.snapshot.swapping.round,
-      seat: view.viewer.viewerSeat,
-    });
-  }
-  let { snapshot } = await syncView(players[0]);
-  for (let guard = 0; guard < 8 && snapshot.stage !== 'play'; guard++) {
-    if (snapshot.controls.ready.length < snapshot.roster.seats.length) {
-      for (const player of players) {
-        await accepted(player, { kind: 'ready', ready: true });
-      }
-    }
-    ({ snapshot } = await accepted(players[0], { kind: 'phase', direction: 1 }));
-  }
-  expect(snapshot.stage).toBe('play');
-}
-
 describe('A real game provisioned at the play stage', () => {
   let peer, runtime;
   afterEach(async () => {
@@ -68,7 +44,7 @@ describe('A real game provisioned at the play stage', () => {
   it('arrives at Turn 1 in the shape a game reaches when its players take it there', async () => {
     ({ peer, runtime } = await draftingRuntime([], undefined, { bindings: LOCAL_ISOLATED, testPhaseCooldownMs: 0 }));
     const played = await dealt(peer, runtime);
-    await throughSetup(played);
+    await playToTurnOne(played);
     const byPlayers = shapeAtPlay(await syncView(played[0]));
     await runtime.close();
     await peer.close();
@@ -87,18 +63,24 @@ describe('A real game provisioned at the play stage', () => {
     expect(view.snapshot.roster.seats.map((entry) => entry.id).sort()).toEqual(['seat-1', 'seat-2']);
   });
 
-  it.each([
-    ['a deployed Worker', { GIT_SHA: 'a'.repeat(40), APPLICATION_ORIGIN: 'https://dune.zone' }],
-    ["play-local's marker on a public origin", { GIT_SHA: 'local-isolated', APPLICATION_ORIGIN: 'https://dune.zone' }],
-    ["a loopback origin without play-local's marker", { APPLICATION_ORIGIN: 'http://127.0.0.1:8787' }],
-  ])('is refused by %s, which provisions a game only at its start', async (_, bindings) => {
-    peer = await createPeer();
-    peer.watchMode = 'allow';
-    runtime = await createRuntime(peer, 'game', bindings);
-    peer.testStartStage = 'play';
-    expect((await provision(runtime)).status).toBe(403);
-    peer.testStartStage = undefined;
-    expect((await provision(runtime)).status).toBe(200);
+  it('is refused outside the isolated local runtime, which then provisions the game at its start', async () => {
+    const outside = {
+      'a deployed Worker': { GIT_SHA: 'a'.repeat(40), APPLICATION_ORIGIN: 'https://dune.zone' },
+      "play-local's marker on a public origin": { GIT_SHA: 'local-isolated', APPLICATION_ORIGIN: 'https://dune.zone' },
+      "a loopback origin without play-local's marker": { APPLICATION_ORIGIN: 'http://127.0.0.1:8787' },
+    };
+    for (const [runtimeName, bindings] of Object.entries(outside)) {
+      peer = await createPeer();
+      peer.watchMode = 'allow';
+      runtime = await createRuntime(peer, 'game', bindings);
+      peer.testStartStage = 'play';
+      expect((await provision(runtime)).status, `${runtimeName} accepted the start stage`).toBe(403);
+      peer.testStartStage = undefined;
+      expect((await provision(runtime)).status, `${runtimeName} refused a plain provisioning`).toBe(200);
+      await runtime.close();
+      await peer.close();
+      runtime = peer = undefined;
+    }
   });
 
   it('seats a spectator at the open seat through a request in play, and they command as its faction', async () => {

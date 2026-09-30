@@ -553,29 +553,9 @@ function factionOf(who) {
  */
 async function playReady(players, audience) {
   const stage = () => players[0].view().snapshot.stage;
-  /*
-   * A game the backend provisioned at Turn 1 (#1594) has nothing left to play through.
-   * Every other game is taken there by hand.
-   */
+  /* A game the backend provisioned at Turn 1 (#1594) has nothing left to play through; every other game is taken there by hand. */
   if (stage() !== 'play') {
-    for (const who of players) {
-      await act(who, 'Ready');
-    }
-    await until(() => stage() === 'swapping', 'The deal did not assign factions.', 30_000);
-    for (const who of players) {
-      await act(who, 'Ready to start');
-    }
-    await until(() => stage() === 'setup', 'Trading did not close into setup.', 30_000);
-    while (stage() === 'setup') {
-      /* Next clears readiness, and a player whose view has not yet reached that step would read its old Ready and skip it (#1481). */
-      await converged(players);
-      for (const who of players) {
-        if (!who.view().snapshot.controls.ready.includes(who.view().viewer.viewerSeat)) {
-          await act(who, 'Ready');
-        }
-      }
-      await act(players[0], 'Next phase');
-    }
+    await playThroughSetup(players);
   }
   assert.equal(stage(), 'play');
   for (const who of [...players, ...audience]) {
@@ -583,6 +563,28 @@ async function playReady(players, audience) {
   }
   await converged([...players, ...audience]);
   milestone('play');
+}
+/** Drafting, the deal, trading and every setup step, with the controls the table offers its players. */
+async function playThroughSetup(players) {
+  const stage = () => players[0].view().snapshot.stage;
+  for (const who of players) {
+    await act(who, 'Ready');
+  }
+  await until(() => stage() === 'swapping', 'The deal did not assign factions.', 30_000);
+  for (const who of players) {
+    await act(who, 'Ready to start');
+  }
+  await until(() => stage() === 'setup', 'Trading did not close into setup.', 30_000);
+  while (stage() === 'setup') {
+    /* Next clears readiness, and a player whose view has not yet reached that step would read its old Ready and skip it (#1481). */
+    await converged(players);
+    for (const who of players) {
+      if (!who.view().snapshot.controls.ready.includes(who.view().viewer.viewerSeat)) {
+        await act(who, 'Ready');
+      }
+    }
+    await act(players[0], 'Next phase');
+  }
 }
 /**
  * Creates a real game for player-a, seats player-b through a request, admits the observer and reaches Turn 1.
