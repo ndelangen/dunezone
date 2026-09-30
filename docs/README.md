@@ -113,10 +113,11 @@ faction tokens and leader portraits therefore shows as a missing image in a loca
 
 `bun run app:dev --local --data=snapshot` loads the anonymised production snapshot instead of the
 fixtures. The snapshot holds published content only: groups, factions, assets, rulesets, Rulebooks
-with their Editions, FAQ questions, and the profiles `profiles:list` already shows. It holds no
-users, sign-in accounts, emails, drafts, FAQ answers, group memberships or deleted accounts. Every
-owner, author and asker in it is one placeholder user, "Snapshot owner", which has no email, so
-nobody can sign in as it. `scripts/lib/snapshot-policy.ts` says what each table keeps.
+with their Editions, and FAQ questions. It holds no accounts, profiles, sign-in accounts, emails,
+drafts, FAQ answers, group memberships or deleted accounts. Every owner, author and asker in it is
+one placeholder user, "Snapshot owner", the snapshot's only user and profile. It has no email and
+no sign-in account, so nobody can sign in as it. `scripts/lib/snapshot-policy.ts` says what each
+table keeps.
 
 Without `--snapshot-file <zip>`, the launch downloads the newest snapshot that the `Anonymised
 snapshot` workflow uploaded from `main`, using the GitHub CLI (`gh auth login` first). It ignores an
@@ -131,10 +132,10 @@ points at `--data=fixture`.
 Before importing, the launch refuses any file the anonymiser did not write: it needs the
 anonymiser's manifest, no table the policy drops, and a clean leak scan, so a raw export never loads
 by mistake. The import uses `--replace-all`, which empties every table the snapshot leaves out, and
-the snapshot rebuild contract then checks that those tables are empty and that `users` holds the
-placeholder alone. The snapshot carries no migration state or aggregates; the migration guards that
-every launch runs rebuild both. Pass `--snapshot-file` to load a file you already have, such as one
-the anonymiser CLI wrote from a synthetic export.
+the snapshot rebuild contract then checks that those tables are empty and that `users` and
+`profiles` hold the placeholder alone. The snapshot carries no migration state or aggregates; the
+migration guards that every launch runs rebuild both. Pass `--snapshot-file` to load a file you
+already have, such as one the anonymiser CLI wrote from a synthetic export.
 
 `bun run app:dev --local --clone-prod` is break-glass only, for a problem the snapshot cannot
 show. It imports a raw production export: users with their email, sign-in accounts, drafts, group
@@ -207,9 +208,9 @@ with `provision dev --stage data --snapshot-file`, holding only the dev deploy k
 not depend on the public artifact, and it uploads nothing. The job's step summary shows the same
 table report as the snapshot job.
 
-After a rebuild, cloud dev holds no accounts from production: `users` holds only the placeholder
-owner, and `authAccounts` is empty. Signing in to dev therefore creates a new account and profile,
-the first time and again after every data rebuild, which empties `users` and `authAccounts` once
+After a rebuild, cloud dev holds no accounts from production: `users` and `profiles` hold only the
+placeholder owner, and `authAccounts` is empty. Signing in to dev therefore creates a new account
+and profile, the first time and again after every data rebuild, which empties those tables once
 more. That account owns nothing from the snapshot. The snapshot's content all belongs to the
 placeholder "Snapshot owner", nobody can sign in as it, and its groups have no members to approve a
 request to join. Create your own content to experiment with. No dev account is an administrator

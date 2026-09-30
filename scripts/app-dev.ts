@@ -241,7 +241,8 @@ async function runLocalDevelopment(requested: LocalData) {
       `Missing local credentials file ${localEnvFile}. Copy .env.e2e.local.example or set LOCAL_DEV_ENV_FILE.`
     );
   }
-  const data = requested.kind === 'snapshot' ? { kind: requested.kind, file: localSnapshot(requested.file) } : requested;
+  const data =
+    requested.kind === 'snapshot' ? { kind: requested.kind, file: localSnapshot(requested.file) } : requested;
   const projectDeployment = data.kind === 'clone-prod' ? cloneProjectDeployment(commonGitDirectory) : undefined;
   const values = {
     ...(projectDeployment ? { CONVEX_DEPLOYMENT: projectDeployment } : {}),

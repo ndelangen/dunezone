@@ -12,6 +12,8 @@ type RebuildContract = {
   empty: readonly TableNames[];
   /** Tables that must hold rows; an empty one means the data never landed. */
   required: readonly TableNames[];
+  /** Tables that must hold exactly one row, the snapshot's placeholder owner. */
+  placeholderOnly: readonly TableNames[];
 };
 
 /**
@@ -21,9 +23,9 @@ type RebuildContract = {
  */
 export const REBUILD_CONTRACTS = {
   /**
-   * The snapshot leaves these tables out, and `import --replace-all` empties every table the file leaves out.
-   * The snapshot policy in scripts/lib/snapshot-policy.ts drops exactly these tables and `users`, and typecheck holds the two lists to each other.
-   * `users` holds the snapshot's placeholder owner, which the contract checks on its own.
+   * The snapshot leaves the `empty` tables out, and `import --replace-all` empties every table the file leaves out.
+   * Of `users` and `profiles` it carries only the placeholder owner, which owns every kept row.
+   * The snapshot policy in scripts/lib/snapshot-policy.ts drops exactly the tables on these two lists, and typecheck holds them to each other.
    */
   snapshot: {
     empty: [
@@ -51,6 +53,7 @@ export const REBUILD_CONTRACTS = {
       'migration_runs',
     ],
     required: ['factions'],
+    placeholderOnly: ['users', 'profiles'],
   },
   /**
    * A raw clone keeps everything in the export, users with their email and sign-in accounts included, and then clears these tables.
@@ -67,5 +70,6 @@ export const REBUILD_CONTRACTS = {
       'publication_assets',
     ],
     required: ['factions', 'users', 'authAccounts'],
+    placeholderOnly: [],
   },
 } as const satisfies Record<RebuildSource, RebuildContract>;

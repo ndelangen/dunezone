@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 
 import type { Id, TableNames } from '../../convex/_generated/dataModel';
+import { REBUILD_CONTRACTS } from '../../convex/lib/provisioningContract';
 import { droppedComponents, placeholderOwner, snapshotPolicy } from './snapshot-policy';
 
 /**
@@ -39,7 +40,7 @@ type TableReport = {
 
 export type SnapshotReport = { tables: TableReport[]; droppedComponents: string[] };
 
-type LeakKind = 'email' | 'token' | 'denied field' | 'sign-in table' | 'user row' | 'unexpected entry';
+type LeakKind = 'email' | 'token' | 'denied field' | 'sign-in table' | 'user row' | 'profile row' | 'unexpected entry';
 
 /** Where a leak was found, never what it was. */
 export type LeakFinding = { table: string; field: string; kind: LeakKind };
@@ -485,14 +486,12 @@ function anonymiseTables(layout: Layout, placeholder: Placeholder, problems: str
     outputs.set(table, kept);
   }
 
-  const profile = placeholderOwner.profile(placeholder.userId);
-  const profiles = outputs.get('profiles') ?? [];
-  if (profiles.some((row) => row._id === placeholder.profileId || row.slug === profile.slug)) {
-    problems.push(`profiles: a kept profile already has the placeholder owner's id or slug`);
-  }
   outputs.set('profiles', [
-    ...profiles,
-    { _id: placeholder.profileId, _creationTime: placeholderOwner.creationTime, ...profile },
+    {
+      _id: placeholder.profileId,
+      _creationTime: placeholderOwner.creationTime,
+      ...placeholderOwner.profile(placeholder.userId),
+    },
   ]);
   outputs.set('users', [
     { _id: placeholder.userId, _creationTime: placeholderOwner.creationTime, ...placeholderOwner.user() },
@@ -563,7 +562,7 @@ export function anonymiseExport(input: ExportEntries): { entries: Map<string, st
 
 /**
  * Checks that entries are a snapshot the anonymiser wrote, before a loader imports them.
- * They need the anonymiser's manifest, which a raw Convex export lacks, no table the policy drops apart from the placeholder owner's `users`, and a clean leak scan.
+ * They need the anonymiser's manifest, which a raw Convex export lacks, no table the policy drops apart from the placeholder owner's `users` and `profiles`, and a clean leak scan.
  * Throws `SnapshotRefused` naming every problem by table and field, never by value.
  */
 export function verifySnapshot(entries: ExportEntries): SnapshotManifest {
@@ -572,10 +571,11 @@ export function verifySnapshot(entries: ExportEntries): SnapshotManifest {
   if (manifest?.format !== SNAPSHOT_FORMAT || manifest.version !== 1) {
     problems.push(`the file has no ${SNAPSHOT_MANIFEST} from the anonymiser, so it is not an anonymised snapshot`);
   }
+  const placeholderTables: readonly string[] = REBUILD_CONTRACTS.snapshot.placeholderOnly;
   const dropped = new Set(
     [...entries.keys()]
       .map((path) => TABLE_ENTRY.exec(path)?.[1])
-      .filter((table) => table !== undefined && table !== 'users' && keptPolicy(table) === null)
+      .filter((table) => table !== undefined && !placeholderTables.includes(table) && keptPolicy(table) === null)
   );
   if (dropped.size > 0) {
     problems.push(`tables the snapshot policy drops: ${[...dropped].sort().join(', ')}`);
@@ -674,17 +674,18 @@ function scanValue(value: unknown, report: (kind: LeakKind) => void) {
   }
 }
 
-function manifestUserId(entries: ExportEntries): string | null {
+/** The placeholder owner's row id in each of its two tables, as the manifest names them. */
+function manifestPlaceholder(entries: ExportEntries): { users: unknown; profiles: unknown } {
   const manifest = parseJsonObject(entries.get(SNAPSHOT_MANIFEST) ?? '');
-  const owner = manifest?.placeholderOwner as { userId?: unknown } | undefined;
-  return typeof owner?.userId === 'string' ? owner.userId : null;
+  const owner = manifest?.placeholderOwner as { userId?: unknown; profileId?: unknown } | undefined;
+  return { users: owner?.userId ?? null, profiles: owner?.profileId ?? null };
 }
 
 /** Scans a snapshot for anything that must never leave production, and says where each hit is. */
 export function scanSnapshot(entries: ExportEntries): LeakFinding[] {
   const findings = new Map<string, LeakFinding>();
   const add = (finding: LeakFinding) => findings.set(`${finding.table}\n${finding.field}\n${finding.kind}`, finding);
-  const placeholderUserId = manifestUserId(entries);
+  const placeholder = manifestPlaceholder(entries);
   for (const [path, text] of entries) {
     const table = TABLE_ENTRY.exec(path)?.[1];
     if (path === TABLE_MAP || path === SNAPSHOT_MANIFEST) {
@@ -701,8 +702,11 @@ export function scanSnapshot(entries: ExportEntries): LeakFinding[] {
       if (isSignInTable(table)) {
         add({ table, field: '*', kind: 'sign-in table' });
       }
-      if (table === 'users' && row._id !== placeholderUserId) {
+      if (table === 'users' && row._id !== placeholder.users) {
         add({ table, field: '*', kind: 'user row' });
+      }
+      if (table === 'profiles' && row._id !== placeholder.profiles) {
+        add({ table, field: '*', kind: 'profile row' });
       }
       for (const [field, value] of Object.entries(row)) {
         if (DENIED_FIELDS.has(field)) {

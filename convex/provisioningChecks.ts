@@ -18,28 +18,22 @@ async function tablesHolding(ctx: QueryCtx, tables: readonly TableNames[], rows:
 }
 
 /**
- * A snapshot carries one account, its placeholder owner, which has no email, phone, name or image.
- * It carries no profile of an account that is being deleted or was deleted.
+ * Each placeholder-only table holds one row, the snapshot's placeholder owner, so no account or profile from production is left.
+ * The owner's `users` row has no email, phone, name or image.
  */
-async function snapshotAccountViolations(ctx: QueryCtx): Promise<string[]> {
+async function placeholderViolations(ctx: QueryCtx, tables: readonly TableNames[]): Promise<string[]> {
   const violations: string[] = [];
-  const users = await ctx.db.query('users').take(2);
-  if (users.length !== 1) {
-    violations.push(
-      `users holds ${users.length === 0 ? 'no rows' : 'more than one row'}; a snapshot holds its placeholder owner alone`
-    );
+  for (const table of tables) {
+    const rows = await ctx.db.query(table).take(2);
+    if (rows.length !== 1) {
+      violations.push(
+        `${table} holds ${rows.length === 0 ? 'no rows' : 'more than one row'}; a snapshot holds its placeholder owner alone`
+      );
+    }
   }
+  const users = await ctx.db.query('users').take(2);
   if (users.some((user) => [user.email, user.phone, user.name, user.image].some((value) => value !== undefined))) {
     violations.push('users holds a row with an email, phone, name or image');
-  }
-  for (const state of ['deletion_pending', 'deleted'] as const) {
-    const profile = await ctx.db
-      .query('profiles')
-      .withIndex('by_account_state_username', (q) => q.eq('account_state', state))
-      .first();
-    if (profile !== null) {
-      violations.push(`profiles holds a ${state} account`);
-    }
   }
   return violations;
 }
@@ -67,7 +61,7 @@ export const assertRebuildContract = internalQuery({
     const violations = [
       ...uncleared.map((table) => `${table} still holds rows; ${emptyReason[args.source]}`),
       ...unpopulated.map((table) => `${table} is empty; the ${args.source} data did not land`),
-      ...(args.source === 'snapshot' ? await snapshotAccountViolations(ctx) : []),
+      ...(contract.placeholderOnly.length > 0 ? await placeholderViolations(ctx, contract.placeholderOnly) : []),
     ];
 
     if (violations.length > 0) {

@@ -113,7 +113,7 @@ describe('rebuild contract for the anonymised snapshot', () => {
     );
   });
 
-  test('rejects private rows and a deleted account beside the placeholder owner', async () => {
+  test('rejects private rows and a second account beside the placeholder owner', async () => {
     const t = rebuiltDeployment();
     const placeholderId = await seedSnapshotLoad(t);
     await t.run(async (ctx) => {
@@ -146,6 +146,6 @@ describe('rebuild contract for the anonymised snapshot', () => {
     const violation = t.query(internal.provisioningChecks.assertRebuildContract, { source: 'snapshot' });
     await expect(violation).rejects.toThrow('group_members still holds rows');
     await expect(violation).rejects.toThrow('users holds more than one row');
-    await expect(violation).rejects.toThrow('profiles holds a deleted account');
+    await expect(violation).rejects.toThrow('profiles holds more than one row');
   });
 });
