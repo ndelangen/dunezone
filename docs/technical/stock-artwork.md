@@ -1,7 +1,8 @@
 # Stock artwork collections
 
-The artwork controls show the complete catalogue in preview grids. A collection filter narrows the
-visible choices without changing the selected artwork. Search matches names, collection names, and
+The artwork controls show the complete catalogue in preview grids. The filter button at the right
+of the field opens collection choices in the same dropdown. Choosing a collection returns to its
+artwork grid without changing the selected artwork. Choose All collections to clear the filter. Search matches names, collection names, and
 keywords. The filter stays selected while editing another supporting leader, so a matching roster
 can be assembled without finding the collection again.
 
