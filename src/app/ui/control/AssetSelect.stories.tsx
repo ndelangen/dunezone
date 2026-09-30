@@ -62,6 +62,7 @@ export const Default = meta.story({
     const canvas = within(canvasElement);
     await expect(canvas.getByRole('combobox', { name: 'Artifact symbol' })).toBeVisible();
     await expect(canvas.queryByText('Artifact symbol')).not.toBeInTheDocument();
+    await expect(screen.queryByRole('listbox', { hidden: true })).not.toBeInTheDocument();
   },
 });
 

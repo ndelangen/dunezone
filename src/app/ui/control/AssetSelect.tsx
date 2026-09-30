@@ -162,6 +162,7 @@ export function AssetSelect({
         },
       }}
       {...comboboxProps}
+      keepMounted={false}
       store={combobox}
       readOnly={props.readOnly}
       onOptionSubmit={(next) => {
@@ -279,7 +280,7 @@ export function AssetSelect({
                 </Combobox.EventsTarget>
               </div>
             </Popover.Target>
-            <Popover.Dropdown p="xs" style={{ pointerEvents: 'none' }}>
+            <Popover.Dropdown role="dialog" aria-label="Artwork preview" p="xs" style={{ pointerEvents: 'none' }}>
               {hoveredPreview ? (
                 <Image
                   src={hoveredPreview}
@@ -294,8 +295,8 @@ export function AssetSelect({
           </Popover>
         </div>
       </Combobox.DropdownTarget>
-      <Combobox.Dropdown>
-        <ScrollArea.Autosize mah="min(420px, var(--asset-options-height, 420px))" type="auto" viewportRef={viewport}>
+      <Combobox.Dropdown className={styles.dropdown}>
+        <ScrollArea.Autosize mah="min(420px, var(--asset-options-height))" type="auto" viewportRef={viewport}>
           <Combobox.Options aria-label={choosingCollection ? 'Artwork collections' : 'Artwork'}>
             {choosingCollection ? (
               collections.map((collection) => (

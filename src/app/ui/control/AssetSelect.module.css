@@ -1,3 +1,7 @@
+.dropdown {
+  --asset-options-height: 420px;
+}
+
 .previewImg {
   flex-shrink: 0;
 
