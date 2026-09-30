@@ -1326,10 +1326,7 @@ async function verifyRegular() {
   const b = await account('player-b');
   await enter(b);
   await seatThrough(a, b);
-  /* The observer watches from drafting on, as the audience of every stage. Its own checks come once the players have proven theirs. */
-  const observer = await account('observer');
-  await enter(observer);
-  await playReady([a, b], [observer]);
+  await playReady([a, b], []);
   assert.notEqual(a.view().viewer.viewerSeat, SPECTATOR);
   assert.notEqual(b.view().viewer.viewerSeat, SPECTATOR);
   assert.notEqual(a.view().viewer.viewerSeat, b.view().viewer.viewerSeat);
@@ -1495,6 +1492,12 @@ async function verifyRegular() {
   await visibleActivity(b, a, 'reloaded-player-b-to-player-a');
   await visibleActivity(a, b, 'player-a-to-reloaded-player-b');
 
+  /*
+   * The observer joins in play, where every check on it is.
+   * A third table tab through the earlier stages adds rendering load to the run's longest flow without a check to show for it.
+   */
+  const observer = await account('observer');
+  await enter(observer);
   assert.equal(observer.view().viewer.viewerSeat, SPECTATOR);
   assert.equal(await observer.page.getByRole('button', { name: 'Next phase', exact: true }).isDisabled(), true);
   assert.equal(await observer.page.getByRole('button', { name: 'Previous phase', exact: true }).isDisabled(), true);
