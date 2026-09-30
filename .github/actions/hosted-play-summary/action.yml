@@ -1,0 +1,26 @@
+name: Hosted play summary
+description: Write a row for each of a shard's hosted browser flows to the step summary and the job log
+
+inputs:
+  heading:
+    description: The table's heading, which names the job and its shard
+    required: true
+  shard:
+    description: The shard whose flows get a row, as scripts/verify-hosted-flows.ts names it
+    required: true
+  protocol-verifier:
+    description: '"true" adds a row for the protocol verifier, for a shard that runs it first'
+    default: "false"
+
+runs:
+  using: composite
+  steps:
+    # The script is a file beside this one so the actionlint job can shellcheck it: actionlint checks
+    # the run: scripts of workflows, not those of actions.
+    - name: Summarise each flow
+      shell: bash
+      env:
+        HEADING: ${{ inputs.heading }}
+        SHARD: ${{ inputs.shard }}
+        PROTOCOL_VERIFIER: ${{ inputs.protocol-verifier }}
+      run: bash "$GITHUB_ACTION_PATH/summary.sh"

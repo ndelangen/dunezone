@@ -179,7 +179,8 @@ const CARRY_STEPS = 2;
  * On Linux, headless Chromium draws WebGL on SwiftShader and composites in software.
  * Each WebGL frame is then read back on the page's main thread, which held the page's timers seconds late on CI (#1343).
  * `--use-angle=swiftshader` keeps WebGL on SwiftShader and composites there too.
- * Local macOS runs launch unchanged until #1322 decides, although Playwright's default headless shell reads back there too.
+ * macOS gets no switch, so full Chromium there draws the table with WebGPU on Metal, which the `hosted_play_webgpu` CI job expects (#1322).
+ * Playwright's default headless shell reads frames back on macOS too.
  */
 const chromiumArgs = process.platform === 'linux' ? ['--use-angle=swiftshader'] : [];
 const browser = await chromium.launch({ headless: true, executablePath: values.browser, args: chromiumArgs });
@@ -1600,6 +1601,14 @@ try {
   /* A flow that never opens a table records no renderer, which an expected renderer refuses. */
   holdToExpectedRenderer();
   assert.deepEqual(report.pageErrors, []);
+  /*
+   * three.js logs a WebGPU error that nothing captured and keeps drawing, so a table can pass every pixel check with draws failing (#1272).
+   * With #1301 reverted, some runs of the regular flow on the macOS runner passed while logging them (#1322).
+   */
+  const webgpuError = report.consoleErrors.find(({ message }) => message.includes('Uncaptured WebGPU'));
+  if (webgpuError) {
+    throw new Error(`${webgpuError.label} logged ${webgpuError.message}`);
+  }
   assert.deepEqual(blockedNetwork, []);
 } catch (error) {
   /* A bare assertion message ("false !== true") names no step; the first frame inside these scripts does. */

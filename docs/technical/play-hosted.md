@@ -201,6 +201,12 @@ CI also passes `--skip-generate`, Playwright's full Chromium as `--browser` and
 `--expect-renderer webgl2-swiftshader`, the renderer of its Linux runner; a local run can leave them
 out. A local run is optional and never required before merging.
 
+The `hosted_play_webgpu` job, also required by `ci_ok`, runs the `regular` shard a second time on a
+standard macOS runner. There full Chromium draws the table with WebGPU on the runner's Metal device,
+and the job passes `--expect-renderer webgpu` in place of `webgl2-swiftshader`. Reverting the fix
+for [#1272](https://github.com/ndelangen/dunezone/issues/1272), a vertex buffer validation error only
+WebGPU reports, turned most of this job's runs red while the Linux shards stayed green.
+
 `bun --no-env-file scripts/verify-hosted-play-stack.ts --browser-only --flow all` boots one stack and
 runs every browser flow against it, each on a fresh game with fresh accounts. `--flow` repeats to
 select flows by name. A failed flow does not stop the ones after it, and the run fails at the end.
@@ -360,7 +366,8 @@ of Playwright's installed Chromium. On Linux it adds `--use-angle=swiftshader`: 
 there draws WebGL on SwiftShader and composites in software, which reads each WebGL frame back on
 the page's main thread, and the switch moves compositing onto SwiftShader too. Other platforms
 launch with no added switch. Without `--browser`, Playwright launches its headless shell, which takes
-the same readback path on macOS as on Linux; full Chromium on macOS draws on Metal. The report's
+the same readback path on macOS as on Linux; full Chromium on macOS draws on Metal, and on the CI
+macOS runner it draws the table with WebGPU. The report's
 `chromium` field records what the running browser reports about itself: its build (`headless-shell`
 or `full`), the executable path from its command line and its version, with the switches the script
 added. Its `renderer` field records the backend three.js initialised for the first table the flow
@@ -369,8 +376,10 @@ or WebGL2 with the unmasked GL renderer string, as `webgl2-swiftshader` when tha
 SwiftShader and `webgl2-other` when it does not. When no backend was read within 15 s, the kind is
 `unidentified` with the reason. `--expect-renderer` takes one of those three and
 fails the flow at that table, naming both, when the table rendered with another; without it no
-renderer is enforced. `--flow` names one flow and defaults to `regular`. Each run writes screenshots
-and a compact report without credentials. A flow that retains synthetic received
+renderer is enforced. With or without it, the flow fails at its end when any of its pages logged an
+uncaptured WebGPU error. three.js logs such an error and keeps drawing, so the flow's pixel checks
+can pass while some draws fail. `--flow` names one flow and defaults to `regular`. Each run writes
+screenshots and a compact report without credentials. A flow that retains synthetic received
 game frames writes them to `<flow>-frames.json`.
 
 Browser proof supplements these tests with native pointer gestures, independent camera views,
