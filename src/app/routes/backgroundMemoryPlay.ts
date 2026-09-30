@@ -1,3 +1,4 @@
+import { waitForFrame } from '@sb/storyWaits';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 /**
@@ -13,7 +14,8 @@ const TIMEOUT = { timeout: 30_000 } as const;
 /** The composer's mode control for one colour layer, scoped so a page holding two composers cannot answer for the wrong one. */
 export async function layerModeControl(page: Page, layer: 'base' | 'pattern') {
   const label = layer === 'base' ? 'Base color mode' : 'Pattern color mode';
-  return within(await page.findByRole('radiogroup', { name: label }, TIMEOUT));
+  /* The drawer's collapse brings its content out of hiding only from inside an animation-frame callback, so each poll runs the waiting frames itself. */
+  return within(await waitForFrame(() => page.getByRole('radiogroup', { name: label }), TIMEOUT));
 }
 
 /** Opens a layer's editor drawer. Only call it while the drawer is closed: the card is a toggle, and clicking an open one closes it. */

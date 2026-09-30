@@ -1,7 +1,8 @@
 import { Box } from '@mantine/core';
 import preview from '@sb/preview';
+import { finishTransitions, waitForFrame } from '@sb/storyWaits';
 import { Square } from 'lucide-react';
-import { expect, userEvent, waitFor, within } from 'storybook/test';
+import { expect, userEvent, within } from 'storybook/test';
 
 import { IconAction } from '../control/IconAction';
 import { SurfaceFiller } from './SurfaceFiller.stories.fixture';
@@ -138,7 +139,12 @@ export const FoldsWhenCrowded = meta.story({
     await expect(canvas.queryByRole('button', { name: 'Delete' })).not.toBeInTheDocument();
 
     await userEvent.click(canvas.getByRole('button', { name: 'More actions' }));
-    const menu = await within(canvasElement.ownerDocument.body).findByRole('group', { name: 'More actions' });
-    await waitFor(() => expect(within(menu).getByRole('button', { name: 'Delete' })).toBeVisible());
+    const menu = await waitForFrame(() =>
+      within(canvasElement.ownerDocument.body).getByRole('group', { name: 'More actions' })
+    );
+    /* The popover mounts transparent and fades in, so the check finishes the fade rather than waiting for the frames that draw it. */
+    await waitForFrame(() =>
+      expect(finishTransitions(within(menu).getByRole('button', { name: 'Delete' }))).toBeVisible()
+    );
   },
 });

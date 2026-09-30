@@ -1,4 +1,5 @@
 import preview from '@sb/preview';
+import { waitForFrame } from '@sb/storyWaits';
 import type { GameSnapshot } from '@shared/play/protocol';
 import { SPECTATOR_SEAT } from '@shared/play/schema';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
@@ -141,7 +142,7 @@ export const ClearingCelebration = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     await page.findByText(/won as an alliance/, {}, { timeout: 30_000 });
     await userEvent.click(page.getByRole('button', { name: 'Game menu' }));
-    await userEvent.click(await page.findByRole('menuitem', { name: 'Clear confetti' }));
+    await userEvent.click(await waitForFrame(() => page.getByRole('menuitem', { name: 'Clear confetti' })));
     await userEvent.click(page.getByRole('button', { name: 'Game menu' }));
     await page.findByRole('menuitem', { name: 'Give up your seat' });
     expect(page.queryByRole('menuitem', { name: 'Clear confetti' })).toBeNull();
@@ -155,7 +156,7 @@ export const FinishedWithoutCelebration = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     await page.findByText(/won as an alliance/, {}, { timeout: 30_000 });
     await userEvent.click(page.getByRole('button', { name: 'Game menu' }));
-    await page.findByRole('menuitem', { name: 'Give up your seat' });
+    await waitForFrame(() => page.getByRole('menuitem', { name: 'Give up your seat' }));
     expect(page.queryByRole('menuitem', { name: 'Clear confetti' })).toBeNull();
   },
 });

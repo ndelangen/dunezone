@@ -1,4 +1,5 @@
 import preview from '@sb/preview';
+import { waitForFrame } from '@sb/storyWaits';
 import { Check, CircleAlert, History, LoaderCircle } from 'lucide-react';
 import { expect, userEvent, within } from 'storybook/test';
 
@@ -31,7 +32,7 @@ export const ListsEveryStatus = meta.story({
       'Saved draft Draft revision 12 The PDF is still being prepared. The HTML could not be made.'
     );
     await userEvent.click(action);
-    const list = await page.findByRole('dialog', { name: 'Rulebook status' });
+    const list = await waitForFrame(() => page.getByRole('dialog', { name: 'Rulebook status' }));
     await expect(within(list).getAllByRole('listitem')).toHaveLength(4);
   },
 });

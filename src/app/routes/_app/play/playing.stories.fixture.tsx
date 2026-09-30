@@ -1,3 +1,4 @@
+import { waitForFrame } from '@sb/storyWaits';
 import { emptyBattlePlan } from '@shared/play/battle';
 import { TABLE_PHASES } from '@shared/play/phases';
 import type { GameSnapshot } from '@shared/play/protocol';
@@ -46,8 +47,10 @@ export async function openTab(
   );
 }
 
+const SETTLE = { timeout: 30_000 } as const;
+
 /** Waits for the visible panel, which arrives with the connection. */
-export const settled = (assert: () => void) => waitFor(assert, { timeout: 30_000 });
+export const settled = (assert: () => void) => waitFor(assert, SETTLE);
 
 export function expectHeaderPhase(canvasElement: HTMLElement, phaseIndex: number) {
   const header = canvasElement.ownerDocument.querySelector('.seated-header');
@@ -189,7 +192,8 @@ export async function expectBattleCalloutPlacement(
   expectedHalf: 'above' | 'below'
 ) {
   const page = within(canvasElement.ownerDocument.body);
-  await settled(() => {
+  /* The scene writes the callout's position and shape only from inside its animation-frame callbacks, so each poll runs the waiting frames itself (https://github.com/ndelangen/dunezone/issues/1443). */
+  await waitForFrame(() => {
     const cancel = page.getByRole('button', { name: 'Cancel battle' });
     expect(cancel).toBeVisible();
     const callout = cancel.closest<HTMLElement>('[data-battle-stage]');
@@ -250,5 +254,5 @@ export async function expectBattleCalloutPlacement(
       );
     }
     expect(closestDistance).toBeLessThan(6);
-  });
+  }, SETTLE);
 }

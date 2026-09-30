@@ -1,5 +1,6 @@
 import { Box, Button, Paper, Stack, Text, Title } from '@mantine/core';
 import preview from '@sb/preview';
+import { waitForFrame } from '@sb/storyWaits';
 import { useRef } from 'react';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
@@ -68,7 +69,8 @@ const meta = preview.meta({
 async function openReview(canvasElement: HTMLElement) {
   const page = within(canvasElement.ownerDocument.body);
   await userEvent.click(page.getByRole('button', { name: 'Review faction sheet' }));
-  await page.findByRole('heading', { name: 'Review faction artifacts' });
+  /* The review plane opens from inside a second animation-frame callback, so each poll runs the waiting frames itself. */
+  await waitForFrame(() => page.getByRole('heading', { name: 'Review faction artifacts' }));
 }
 
 const storyFaction = structuredClone(defaultFaction);
