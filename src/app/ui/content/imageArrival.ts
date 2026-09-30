@@ -98,7 +98,7 @@ function flush() {
         : Math.min(Math.max(now, lastRevealAt + STAGGER_MS), now + MAX_WAIT_MS);
     lastRevealAt = at;
     lastRevealOrder = entry.order;
-    setTimeout(entry.reveal, at - now);
+    entry.timer = setTimeout(entry.reveal, at - now);
   }
 }
 
@@ -125,5 +125,50 @@ export function joinArrival(order: number) {
         flush();
       }
     },
+  };
+}
+
+/** At most six published images develop at once across the page. */
+const MAX_ANIMATING_IMAGES = 6;
+
+type AnimationEntry = {
+  start: (animate: boolean) => void;
+  timer: ReturnType<typeof setTimeout> | undefined;
+};
+
+const animating = new Set<AnimationEntry>();
+const queuedAnimations = new Set<AnimationEntry>();
+
+function startQueuedAnimations() {
+  for (const entry of queuedAnimations) {
+    if (animating.size >= MAX_ANIMATING_IMAGES) {
+      break;
+    }
+    queuedAnimations.delete(entry);
+    clearTimeout(entry.timer);
+    animating.add(entry);
+    entry.start(true);
+  }
+}
+
+/**
+ * Waits for an animation slot, then holds it until the caller releases it after completion or unmount.
+ * A saturated queue shows an image without motion after 700 ms rather than hiding decoded content behind a long animation backlog.
+ */
+export function requestArrivalAnimation(start: (animate: boolean) => void) {
+  const entry: AnimationEntry = { start, timer: undefined };
+  queuedAnimations.add(entry);
+  entry.timer = setTimeout(() => {
+    if (queuedAnimations.delete(entry)) {
+      entry.start(false);
+    }
+  }, MAX_WAIT_MS);
+  startQueuedAnimations();
+  return () => {
+    clearTimeout(entry.timer);
+    queuedAnimations.delete(entry);
+    if (animating.delete(entry)) {
+      startQueuedAnimations();
+    }
   };
 }

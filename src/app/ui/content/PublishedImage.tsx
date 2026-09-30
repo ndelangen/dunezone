@@ -5,7 +5,7 @@ import type { CSSProperties } from 'react';
 
 import { useMotionAllowed } from '@app/styles/motion';
 
-import { joinArrival, markDecoded, requestOrder, wasDecoded } from './imageArrival';
+import { joinArrival, markDecoded, requestArrivalAnimation, requestOrder, wasDecoded } from './imageArrival';
 import styles from './PublishedImage.module.css';
 
 /** How long an image in fetch range draws nothing, so one the browser already holds appears at once instead of replacing a slot. */
@@ -52,7 +52,7 @@ export function PublishedImage(props: Props) {
   return <Arrival key={props.src ?? ''} {...props} />;
 }
 
-type Phase = 'loading' | 'decoded' | 'shown' | 'missing';
+type Phase = 'loading' | 'decoded' | 'ready' | 'arriving' | 'shown' | 'missing';
 
 type State = {
   phase: Phase;
@@ -71,6 +71,8 @@ type Action =
   | { type: 'graceOver' }
   | { type: 'decoded' }
   | { type: 'revealed' }
+  | { type: 'started'; animate: boolean }
+  | { type: 'finished' }
   | { type: 'failed' }
   | { type: 'recovered' };
 
@@ -89,7 +91,11 @@ function reducer(state: State, action: Action): State {
       /* Nothing was drawn yet, so there is nothing to arrive from. */
       return state.slot ? { ...state, phase: 'decoded' } : { ...state, phase: 'shown', arrival: 'instant' };
     case 'revealed':
-      return state.phase === 'decoded' ? { ...state, phase: 'shown' } : state;
+      return state.phase === 'decoded' ? { ...state, phase: 'ready' } : state;
+    case 'started':
+      return state.phase === 'ready' ? { ...state, phase: action.animate ? 'arriving' : 'shown' } : state;
+    case 'finished':
+      return state.phase === 'arriving' ? { ...state, phase: 'shown', slot: false } : state;
     case 'failed':
       return { ...state, phase: 'missing', fetching: false };
     case 'recovered':
@@ -122,12 +128,14 @@ function Arrival({ src, name, aspect, radius, clipPath, raised = false }: Props)
   const motion = useMotionAllowed();
   const rootRef = useRef<HTMLDivElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
+  const artRef = useRef<HTMLDivElement>(null);
+  const releaseAnimationRef = useRef<(() => void) | null>(null);
   const arrivalRef = useRef<ReturnType<typeof joinArrival> | null>(null);
   const retriesRef = useRef(0);
   /* The probe that recovered the publication, held until the tile's own image settles, so the browser keeps its bytes for it. */
   const probeRef = useRef<HTMLImageElement | null>(null);
   const { phase, fetching, order } = state;
-  const waiting = phase === 'loading' || phase === 'decoded';
+  const waiting = phase === 'loading' || phase === 'decoded' || phase === 'ready';
 
   useLayoutEffect(() => {
     const root = rootRef.current;
@@ -195,6 +203,39 @@ function Arrival({ src, name, aspect, radius, clipPath, raised = false }: Props)
       arrivalRef.current = null;
     };
   }, [fetching, order, waiting]);
+
+  /* Offscreen images arrive still; visible images share the page's animation budget. */
+  useLayoutEffect(() => {
+    if (phase === 'ready') {
+      const rect = rootRef.current?.getBoundingClientRect();
+      if (!rect || rect.bottom <= 0 || rect.top >= window.innerHeight) {
+        dispatch({ type: 'started', animate: false });
+      } else {
+        releaseAnimationRef.current = requestArrivalAnimation((animate) => dispatch({ type: 'started', animate }));
+      }
+    } else if (phase === 'shown' || phase === 'missing') {
+      releaseAnimationRef.current?.();
+      releaseAnimationRef.current = null;
+    }
+  }, [phase]);
+
+  useLayoutEffect(() => () => releaseAnimationRef.current?.(), []);
+
+  /* Cancellation also settles the image, so a removed animation cannot strand a pool slot. */
+  useEffect(() => {
+    if (phase !== 'arriving') {
+      return;
+    }
+    let cancelled = false;
+    void Promise.allSettled(artRef.current?.getAnimations().map((animation) => animation.finished) ?? []).then(() => {
+      if (!cancelled) {
+        dispatch({ type: 'finished' });
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [phase]);
 
   /* A failure may be a passing outage, so the publication is fetched again out of sight, and the missing state stays until its bytes are here. */
   useEffect(() => {
@@ -285,8 +326,8 @@ function Arrival({ src, name, aspect, radius, clipPath, raised = false }: Props)
         </div>
       ) : (
         <>
-          <div className={styles.slot} style={outline} aria-hidden />
-          <div className={styles.art} style={outline}>
+          {phase !== 'shown' ? <div className={styles.slot} style={outline} aria-hidden /> : null}
+          <div ref={artRef} className={styles.art} style={outline}>
             {fetching && src ? (
               <img
                 ref={imgRef}
