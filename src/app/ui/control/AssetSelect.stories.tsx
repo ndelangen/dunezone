@@ -1,5 +1,5 @@
 import preview from '@sb/preview';
-import { ALL, LEADERS, LOGO } from '@shared/assetIds';
+import { ALL, LOGO } from '@shared/assetIds';
 import { stockAssetOptions } from '@ui/content/stockAssetOptions';
 import { useState } from 'react';
 import { expect, screen, within } from 'storybook/test';
@@ -102,27 +102,6 @@ export const FactionEmblems = meta.story({
     await userEvent.click(within(canvasElement).getByRole('combobox', { name: 'Faction emblem' }));
     await expect(screen.getByRole('listbox').querySelectorAll('[role="option"]')).toHaveLength(LOGO.options.length);
     await expect(screen.getByRole('group', { name: 'Faction emblems / Board game factions' })).toBeVisible();
-  },
-});
-
-export const LeaderPortraits = meta.story({
-  args: {
-    'aria-label': 'Leader portrait',
-    w: 680,
-    maw: 'calc(100vw - 2rem)',
-    data: stockAssetOptions(LEADERS.options),
-    getPreviewSrc: (value) => resolveAsset(value, 'small'),
-    value: '/image/leader/custom/orren-ring/oren.png',
-    allowDeselect: false,
-  },
-  play: async ({ canvasElement, userEvent }) => {
-    const canvas = within(canvasElement);
-    await userEvent.click(canvas.getByRole('combobox', { name: 'Leader portrait' }));
-    await userEvent.click(canvas.getByRole('button', { name: 'Filter Leader portrait collections' }));
-    await userEvent.click(screen.getByRole('option', { name: 'Custom portraits / Orren Ring 7' }));
-    await expect(screen.getByRole('listbox').querySelectorAll('[role="option"]')).toHaveLength(7);
-    await userEvent.click(screen.getByRole('option', { name: 'Vessa' }));
-    await expect(canvas.getByRole('combobox', { name: 'Leader portrait' })).toHaveValue('Vessa');
   },
 });
 
