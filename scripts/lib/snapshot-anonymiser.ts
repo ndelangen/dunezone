@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { isDeepStrictEqual } from 'node:util';
 
 import type { Id, TableNames } from '../../convex/_generated/dataModel';
 import { SNAPSHOT_REBUILD_CONTRACT } from '../../convex/lib/provisioningContract';
@@ -512,6 +513,22 @@ function placeholderFor(layout: Layout, problems: string[]): Placeholder {
   };
 }
 
+type PlaceholderTable = (typeof SNAPSHOT_REBUILD_CONTRACT.placeholderOnly)[number];
+
+/** Everything a snapshot holds in `users` and `profiles`: the placeholder owner's one row in each. */
+function placeholderRows(placeholder: Placeholder): Record<PlaceholderTable, Row[]> {
+  return {
+    users: [{ _id: placeholder.userId, _creationTime: placeholderOwner.creationTime, ...placeholderOwner.user() }],
+    profiles: [
+      {
+        _id: placeholder.profileId,
+        _creationTime: placeholderOwner.creationTime,
+        ...placeholderOwner.profile(placeholder.userId),
+      },
+    ],
+  };
+}
+
 /** Every table the snapshot writes, with its rows: the kept tables, plus the placeholder owner's user and profile. */
 function anonymiseTables(layout: Layout, placeholder: Placeholder, problems: string[]): Map<string, Row[]> {
   const outputs = new Map<string, Row[]>();
@@ -526,17 +543,9 @@ function anonymiseTables(layout: Layout, placeholder: Placeholder, problems: str
     keptIds.set(table, new Set(kept.map((row) => row._id)));
     outputs.set(table, kept);
   }
-
-  outputs.set('profiles', [
-    {
-      _id: placeholder.profileId,
-      _creationTime: placeholderOwner.creationTime,
-      ...placeholderOwner.profile(placeholder.userId),
-    },
-  ]);
-  outputs.set('users', [
-    { _id: placeholder.userId, _creationTime: placeholderOwner.creationTime, ...placeholderOwner.user() },
-  ]);
+  for (const [table, rows] of Object.entries(placeholderRows(placeholder))) {
+    outputs.set(table, rows);
+  }
   return outputs;
 }
 
@@ -604,32 +613,116 @@ export function anonymiseExport(input: ExportEntries): { entries: Map<string, st
   return { entries, report: reportFor(layout, outputs) };
 }
 
+/*
+ * Checking a snapshot before a loader clears or imports anything.
+ * A check that fails only after the import would leave cloud dev cleared, so every condition the rebuild contract
+ * reads from the file is checked here first.
+ */
+
+const TABLE_NAME = /^[A-Za-z][A-Za-z0-9_]*$/;
+
+/** Each table's document lines, for every `<table>/documents.jsonl` entry. */
+function snapshotRows(entries: ExportEntries): Map<string, string[]> {
+  const rows = new Map<string, string[]>();
+  for (const [path, text] of entries) {
+    const table = TABLE_ENTRY.exec(path);
+    if (table?.[2] === 'documents') {
+      rows.set(table[1]!, jsonLines(text));
+    }
+  }
+  return rows;
+}
+
 /**
- * Checks that entries are a snapshot the anonymiser wrote, before a loader imports them.
- * They need the anonymiser's manifest, which a raw Convex export lacks, no table the policy drops apart from the placeholder owner's `users` and `profiles`, and a clean leak scan.
+ * Tables whose row count in the file is not the count the manifest records.
+ * It shows counts and table names only, since the manifest's keys and values come from the file.
+ */
+function rowCountProblems(recorded: unknown, rows: ReadonlyMap<string, readonly string[]>): string[] {
+  if (typeof recorded !== 'object' || recorded === null || Array.isArray(recorded)) {
+    return [`${SNAPSHOT_MANIFEST} records no row counts`];
+  }
+  const counts = recorded as Record<string, unknown>;
+  const names = new Set([...Object.keys(counts), ...rows.keys()]);
+  const unnamed = [...names].filter((name) => !TABLE_NAME.test(name)).length;
+  const differing = [...names]
+    .filter((name) => TABLE_NAME.test(name))
+    .sort()
+    .flatMap((table) => {
+      const count = Object.hasOwn(counts, table) ? counts[table] : undefined;
+      const held = rows.get(table)?.length;
+      if (count === held) {
+        return [];
+      }
+      const inManifest = typeof count === 'number' && Number.isSafeInteger(count) && count >= 0 ? count : 'no count';
+      return [`${table}: ${inManifest} in the manifest, ${held ?? 'no entry'} in the file`];
+    });
+  return [
+    ...(differing.length > 0 ? [listed('tables whose rows differ from the manifest', differing)] : []),
+    ...(unnamed > 0 ? [`${SNAPSHOT_MANIFEST} records rows under ${unnamed} names that are not table names`] : []),
+  ];
+}
+
+/**
+ * Tables the file carries that the policy drops or does not name.
+ * The placeholder owner's `users` and `profiles` are the exception.
+ */
+function policyProblems(entries: ExportEntries): string[] {
+  const placeholderTables: readonly string[] = SNAPSHOT_REBUILD_CONTRACT.placeholderOnly;
+  const tables = [
+    ...new Set([...entries.keys()].map((path) => TABLE_ENTRY.exec(path)?.[1]).filter((table) => table !== undefined)),
+  ].sort();
+  const dropped = tables.filter(
+    (table) => tablePolicy(table) !== null && keptPolicy(table) === null && !placeholderTables.includes(table)
+  );
+  const unclassified = tables.filter((table) => tablePolicy(table) === null);
+  return [
+    ...(dropped.length > 0 ? [listed('tables the snapshot policy drops', dropped)] : []),
+    ...(unclassified.length > 0 ? [listed('tables the snapshot policy does not classify', unclassified)] : []),
+  ];
+}
+
+/** Tables the rebuild contract requires rows in, which the file leaves empty or out. */
+function requiredRowProblems(rows: ReadonlyMap<string, readonly string[]>): string[] {
+  const empty = SNAPSHOT_REBUILD_CONTRACT.required.filter((table) => (rows.get(table)?.length ?? 0) === 0);
+  return empty.length > 0 ? [listed('tables that must hold rows, which the file leaves empty', empty)] : [];
+}
+
+/**
+ * `users` and `profiles` must each hold the placeholder owner's row alone, exactly as the anonymiser writes it under the manifest's ids.
+ * That covers the contract's checks on them: one row each, and no email, phone, name or image on the user.
+ */
+function placeholderProblems(entries: ExportEntries, rows: ReadonlyMap<string, readonly string[]>): string[] {
+  const ids = manifestPlaceholder(entries);
+  if (typeof ids.users !== 'string' || typeof ids.profiles !== 'string') {
+    return [`${SNAPSHOT_MANIFEST} does not name the placeholder owner's rows`];
+  }
+  const expected = placeholderRows({ userId: ids.users as Id<'users'>, profileId: ids.profiles as Id<'profiles'> });
+  const differing = SNAPSHOT_REBUILD_CONTRACT.placeholderOnly.filter(
+    (table) => !isDeepStrictEqual((rows.get(table) ?? []).map(parseJsonObject), expected[table])
+  );
+  return differing.length > 0 ? [listed("tables that must hold the placeholder owner's row alone", differing)] : [];
+}
+
+/**
+ * Checks that entries are a snapshot the anonymiser wrote, and that loading them meets the rebuild contract, before a loader clears or imports anything.
+ * They need the anonymiser's manifest, which a raw Convex export lacks, and in every table the row count the manifest records.
+ * Every table must be one the policy keeps, apart from `users` and `profiles`, which hold the placeholder owner's row alone.
+ * The tables the contract requires must hold rows, and the leak scan must find nothing.
  * Throws `SnapshotRefused` naming every problem by table and field, never by value.
  */
 export function verifySnapshot(entries: ExportEntries): SnapshotManifest {
-  const problems: string[] = [];
+  const rows = snapshotRows(entries);
   const manifest = parseJsonObject(entries.get(SNAPSHOT_MANIFEST) ?? '');
-  if (manifest?.format !== SNAPSHOT_FORMAT || manifest.version !== 1) {
-    problems.push(`the file has no ${SNAPSHOT_MANIFEST} from the anonymiser, so it is not an anonymised snapshot`);
-  }
-  const placeholderTables: readonly string[] = SNAPSHOT_REBUILD_CONTRACT.placeholderOnly;
-  const dropped = new Set(
-    [...entries.keys()]
-      .map((path) => TABLE_ENTRY.exec(path)?.[1])
-      .filter(
-        (table): table is string =>
-          table !== undefined && !placeholderTables.includes(table) && keptPolicy(table) === null
-      )
-  );
-  if (dropped.size > 0) {
-    problems.push(listed('tables the snapshot policy drops', [...dropped].sort()));
-  }
-  for (const { table, field, kind } of scanSnapshot(entries)) {
-    problems.push(`leak scan: ${kind} in ${table}.${field}`);
-  }
+  const fromAnonymiser = manifest?.format === SNAPSHOT_FORMAT && manifest.version === 1;
+  const problems = [
+    ...(fromAnonymiser
+      ? rowCountProblems(manifest.rows, rows)
+      : [`the file has no ${SNAPSHOT_MANIFEST} from the anonymiser, so it is not an anonymised snapshot`]),
+    ...policyProblems(entries),
+    ...requiredRowProblems(rows),
+    ...(fromAnonymiser ? placeholderProblems(entries, rows) : []),
+    ...scanSnapshot(entries).map(({ table, field, kind }) => `leak scan: ${kind} in ${table}.${field}`),
+  ];
   if (problems.length > 0) {
     throw new SnapshotRefused(problems);
   }

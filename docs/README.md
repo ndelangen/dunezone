@@ -127,11 +127,14 @@ each upload for one day, and uploads only while its `SNAPSHOT_UPLOAD` switch is 
 artifact, or when GitHub cannot be reached, the launch stops before Docker starts and points at
 `--data=fixture`.
 
-Before importing, the launch checks the file: it needs the anonymiser's manifest, no table the
-policy drops, and a clean leak scan, so a raw export never loads by mistake. The check does not
-apply the policy's field and row rules again. The import uses `--replace-all`, which empties every
-table the snapshot leaves out, and the snapshot rebuild contract then checks that those tables are
-empty and that `users` and `profiles` hold the placeholder alone. The snapshot carries no migration
+Before Docker starts, and again before importing, the launch checks the file. It needs the
+anonymiser's manifest and, in every table, the row count the manifest records. It needs only tables
+the policy keeps, rows in `factions`, the placeholder owner's row alone in `users` and `profiles`,
+and a clean leak scan. So a raw export never loads by mistake, and neither does a file the snapshot
+rebuild contract would reject after the import. The check does not apply the policy's field and row
+rules to the kept tables again. The import uses `--replace-all`, which empties every table the
+snapshot leaves out, and the snapshot rebuild contract then checks that those tables are empty and
+that `users` and `profiles` hold the placeholder alone. The snapshot carries no migration
 state or aggregates; the migration guards that every launch runs rebuild both. The contract lives in
 [`convex/lib/provisioningContract.ts`](../convex/lib/provisioningContract.ts). Pass
 `--snapshot-file` to load a file you already have, such as one the anonymiser CLI wrote from a

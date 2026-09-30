@@ -249,6 +249,20 @@ function manifestOf(entries: ReadonlyMap<string, string>): SnapshotManifest {
   return JSON.parse(entries.get(SNAPSHOT_MANIFEST)!) as SnapshotManifest;
 }
 
+/** The snapshot with one table's rows replaced, or its entry removed with null, and the manifest's count kept in step. */
+function withRows(entries: ReadonlyMap<string, string>, table: string, rows: readonly Row[] | null) {
+  const manifest = manifestOf(entries);
+  const changed = new Map(entries);
+  if (rows === null) {
+    changed.delete(`${table}/documents.jsonl`);
+    delete manifest.rows[table];
+  } else {
+    changed.set(`${table}/documents.jsonl`, rows.map((row) => `${JSON.stringify(row)}\n`).join(''));
+    manifest.rows[table] = rows.length;
+  }
+  return changed.set(SNAPSHOT_MANIFEST, JSON.stringify(manifest));
+}
+
 function refusal(run: () => unknown): SnapshotRefused {
   try {
     run();
@@ -508,14 +522,55 @@ describe('verifySnapshot', () => {
     );
   });
 
-  test('refuses a table the policy drops even under the anonymiser manifest', () => {
+  test('refuses a table the policy drops or does not name, even under the anonymiser manifest', () => {
     const { world } = authorWorld();
     const { entries } = anonymiseExport(world.entries());
-    const tampered = new Map(entries).set('faq_answers/documents.jsonl', '{"_id":"planted","answer":"Yes"}\n');
+    const tampered = withRows(withRows(entries, 'faq_answers', [{ _id: 'planted', answer: 'Yes' }]), 'mystery', [
+      { _id: 'planted' },
+    ]);
 
     expect(refusal(() => verifySnapshot(tampered)).problems).toEqual([
       'tables the snapshot policy drops:\n  - faq_answers',
+      'tables the snapshot policy does not classify:\n  - mystery',
     ]);
+  });
+
+  test('refuses a file whose rows differ from the counts in its manifest', () => {
+    const { world } = authorWorld();
+    const { entries } = anonymiseExport(world.entries());
+    const tampered = new Map(entries).set('groups/documents.jsonl', '');
+    tampered.delete('rulesets/documents.jsonl');
+
+    expect(refusal(() => verifySnapshot(tampered)).problems).toEqual([
+      'tables whose rows differ from the manifest:\n  - groups: 1 in the manifest, 0 in the file\n  - rulesets: 1 in the manifest, no entry in the file',
+    ]);
+  });
+
+  test('refuses a file without factions, empty or left out, which the rebuild contract requires', () => {
+    const { entries } = anonymiseExport(syntheticExport().entries());
+    const { world } = authorWorld();
+    const withoutFactions = withRows(anonymiseExport(world.entries()).entries, 'factions', null);
+
+    for (const snapshot of [entries, withoutFactions]) {
+      expect(refusal(() => verifySnapshot(snapshot)).problems).toEqual([
+        'tables that must hold rows, which the file leaves empty:\n  - factions',
+      ]);
+    }
+  });
+
+  test("refuses users and profiles that are not the placeholder owner's rows alone", () => {
+    const { world } = authorWorld();
+    const { entries } = anonymiseExport(world.entries());
+    const [user] = rowsOf(entries, 'users');
+    const [profile] = rowsOf(entries, 'profiles');
+    const placeholderRefusal = (tables: string[]) => [
+      `tables that must hold the placeholder owner's row alone:\n${tables.map((table) => `  - ${table}`).join('\n')}`,
+    ];
+
+    const emptied = withRows(withRows(entries, 'users', []), 'profiles', [{ ...profile, username: 'Someone' }]);
+    expect(refusal(() => verifySnapshot(emptied)).problems).toEqual(placeholderRefusal(['users', 'profiles']));
+    const named = withRows(entries, 'users', [{ ...user, name: 'Author' }]);
+    expect(refusal(() => verifySnapshot(named)).problems).toEqual(placeholderRefusal(['users']));
   });
 });
 

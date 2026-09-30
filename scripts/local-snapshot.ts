@@ -177,7 +177,7 @@ type SnapshotRequest = {
   github: GitHubCli;
 };
 
-/** The snapshot a local launch loads, refused without the anonymiser's manifest, with a table the policy drops, or with a leak scan finding. */
+/** The snapshot a local launch loads, which `verifySnapshot` must accept, so a launch refuses a file before it resets local Convex. */
 export function resolveLocalSnapshot({ snapshotFile, temporaryDirectory, github }: SnapshotRequest): LocalSnapshot {
   if (snapshotFile === null) {
     return downloadSnapshot(github, newestArtifact(github), temporaryDirectory);

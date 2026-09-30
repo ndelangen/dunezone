@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import type { GitHubCli } from './local-snapshot';
 import { discardDownloadedSnapshot, latestSnapshotArtifact, resolveLocalSnapshot } from './local-snapshot';
-import { anonymiseZip } from './snapshot-anonymise';
+import { writtenSnapshot } from './snapshot-anonymise.test.fixture';
 
 const JOB = '.github/workflows/anonymised-snapshot.yml';
 const REPOSITORY = { full_name: 'ndelangen/dunezone' };
@@ -106,15 +106,9 @@ describe('resolveLocalSnapshot', () => {
     directories.splice(0).forEach((created) => rmSync(created, { recursive: true, force: true }));
   });
 
-  /** A snapshot the anonymiser wrote from a synthetic export that holds no rows. */
-  function writtenSnapshot() {
-    const file = path.join(directory('snapshot-source-'), 'snapshot.zip');
-    anonymiseZip(
-      new Map([['_tables/documents.jsonl', '{"name":"users","id":10001}\n{"name":"profiles","id":10002}\n']]),
-      file
-    );
-    return file;
-  }
+  /** A snapshot the anonymiser wrote from a synthetic export holding `factions` published factions. */
+  const snapshot = (factions: number) =>
+    writtenSnapshot(path.join(directory('snapshot-source-'), 'snapshot.zip'), factions);
 
   /** A zip in `convex export` layout with no anonymiser manifest, holding a made-up account. */
   function rawExport() {
@@ -131,7 +125,7 @@ describe('resolveLocalSnapshot', () => {
   const newest = [artifact(2, 20, '2026-09-30T05:17:00Z')];
 
   test('downloads the newest snapshot for one launch, and discarding it deletes the download but never a named file', () => {
-    const source = writtenSnapshot();
+    const source = snapshot(1);
     const temporaryDirectory = directory('launch-');
     const github = fakeGitHub(newest, { 20: run() }, (target) =>
       copyFileSync(source, path.join(target, 'snapshot.zip'))
@@ -149,15 +143,20 @@ describe('resolveLocalSnapshot', () => {
     expect(existsSync(source)).toBe(true);
   });
 
-  test('refuses a download that is not the snapshot alone, and a missing artifact, leaving nothing behind', () => {
+  test('refuses a download that is not the snapshot alone, a named file that fails the check, and a missing artifact, leaving nothing behind', () => {
     const temporaryDirectory = directory('launch-');
     const raw = rawExport();
-    const snapshot = writtenSnapshot();
+    const loadable = snapshot(1);
+    const withoutFactions = snapshot(0);
     const refused: Array<[(target: string) => void, string]> = [
       [(target) => copyFileSync(raw, path.join(target, 'snapshot.zip')), 'The snapshot was refused'],
       [
+        (target) => copyFileSync(withoutFactions, path.join(target, 'snapshot.zip')),
+        'tables that must hold rows, which the file leaves empty',
+      ],
+      [
         (target) => {
-          copyFileSync(snapshot, path.join(target, 'snapshot.zip'));
+          copyFileSync(loadable, path.join(target, 'snapshot.zip'));
           writeFileSync(path.join(target, 'extra.jsonl'), '');
         },
         'does not hold snapshot.zip alone',
@@ -168,6 +167,9 @@ describe('resolveLocalSnapshot', () => {
       expect(() => resolveLocalSnapshot({ snapshotFile: null, temporaryDirectory, github })).toThrow(reason);
       expect(readdirSync(temporaryDirectory)).toEqual([]);
     }
+    expect(() =>
+      resolveLocalSnapshot({ snapshotFile: withoutFactions, temporaryDirectory, github: fakeGitHub([], {}) })
+    ).toThrow('tables that must hold rows, which the file leaves empty');
 
     expect(() => resolveLocalSnapshot({ snapshotFile: null, temporaryDirectory, github: fakeGitHub([], {}) })).toThrow(
       '--data=fixture'

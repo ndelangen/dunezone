@@ -342,7 +342,7 @@ export function loadFixtureData(deployment: SelfHostedDeployment, env: NodeJS.Pr
 
 /**
  * Data stage, snapshot flavor: the anonymised snapshot, atomically imported over the target.
- * The file is checked first and refused without the anonymiser's manifest, with a table the policy drops, or with a leak scan finding, so a raw export never loads by mistake.
+ * The file is checked first, so a raw export never loads by mistake, and neither does a snapshot the rebuild contract would reject after the import.
  * `--replace-all` empties every table the snapshot leaves out, and the rebuild contract then checks that they are empty.
  */
 export function loadSnapshotData(deployment: TargetDeployment, env: NodeJS.ProcessEnv, snapshotFile: string) {
@@ -357,6 +357,7 @@ export function loadSnapshotData(deployment: TargetDeployment, env: NodeJS.Proce
  * Clearing first escapes both, because empty tables satisfy every schema.
  * That is also what lets a deployment whose data went stale recover instead of deadlocking on its own failed push.
  * The snapshot is checked before anything is cleared, so a refused file leaves the deployment as it was.
+ * That check includes what the rebuild contract reads after the import, so a file the contract would reject is refused while dev still holds its data.
  * The snapshot carries no migration state or aggregates, so the migration guards run last and rebuild both.
  */
 export function rebuildFromSnapshot(
