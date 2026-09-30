@@ -1,6 +1,6 @@
-# Improve Codebase Architecture Reference
+# Improve codebase architecture reference
 
-This reference is tuned for this repo (TanStack Router/Query + Convex + generated domain data).
+This reference is tuned for this repo (TanStack Router and Start + Convex + generated domain data; there is no TanStack Query, since Convex subscriptions replace the client cache).
 
 ## Repo-specific context
 

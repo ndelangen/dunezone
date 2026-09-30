@@ -3,7 +3,7 @@ name: write-a-skill
 description: Create new agent skills with proper structure, progressive disclosure, and bundled resources. Use when user wants to create, write, or build a new skill.
 ---
 
-# Writing Skills
+# Writing skills
 
 ## Process
 
@@ -23,7 +23,16 @@ description: Create new agent skills with proper structure, progressive disclosu
  - Anything missing or unclear?
  - Should any section be more/less detailed?
 
-## Skill Structure
+## Where a skill lives in this repo
+
+A skill's one home is `.agents/skills/<name>/`. Claude Code reads only `.claude/skills`, so add a
+relative symlink there (`ln -s ../../.agents/skills/<name> .claude/skills/<name>`) rather than a
+copy, because a copy drifts. List the skill in [`.agents/skills/README.md`](../README.md). The
+vendored Convex skills are the ones `skills-lock.json` names; everything else is repo-authored and
+swept by `bun run check:prose`, so write it in the house style: sentence-case headings, no em
+dashes, straight quotes, no filler.
+
+## Skill structure
 
 ```
 skill-name/
@@ -35,7 +44,7 @@ skill-name/
     └── helper.js
 ```
 
-## SKILL.md Template
+## SKILL.md template
 
 ```md
 ---
@@ -58,7 +67,7 @@ description: Brief description of capability. Use when [specific triggers].
 [Link to separate files: See [REFERENCE.md](REFERENCE.md)]
 ```
 
-## Description Requirements
+## Description requirements
 
 The description is **the only thing your agent sees** when deciding which skill to load. It's surfaced in the system prompt alongside all other installed skills. Your agent reads these descriptions and picks the relevant skill based on the user's request.
 
@@ -88,7 +97,7 @@ Helps with documents.
 
 The bad example gives your agent no way to distinguish this from other document skills.
 
-## When to Add Scripts
+## When to add scripts
 
 Add utility scripts when:
 
@@ -98,7 +107,7 @@ Add utility scripts when:
 
 Scripts save tokens and improve reliability vs generated code.
 
-## When to Split Files
+## When to split files
 
 Split into separate files when:
 
@@ -106,7 +115,7 @@ Split into separate files when:
 - Content has distinct domains (finance vs sales schemas)
 - Advanced features are rarely needed
 
-## Review Checklist
+## Review checklist
 
 After drafting, verify:
 
@@ -116,3 +125,4 @@ After drafting, verify:
 - [ ] Consistent terminology
 - [ ] Concrete examples included
 - [ ] References one level deep
+- [ ] The `.claude/skills` symlink exists and `bun run check:prose` passes
