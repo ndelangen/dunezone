@@ -19,7 +19,7 @@ concurrency:
 
 env:
   # "false" makes every run a dry run that uploads nothing, and "true" turns on the upload step below (#1559).
-  SNAPSHOT_UPLOAD: "false"
+  SNAPSHOT_UPLOAD: "true"
 
 jobs:
   snapshot:
@@ -40,7 +40,7 @@ jobs:
         env:
           CONVEX_PROD_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
 
-      # Off while SNAPSHOT_UPLOAD is "false". It uploads the anonymised file alone, never the directory.
+      # Runs while SNAPSHOT_UPLOAD is "true" (Norbert, 30 September 2026, #1559). It uploads the anonymised file alone, never the directory.
       - name: Upload the anonymised snapshot
         if: success() && env.SNAPSHOT_UPLOAD == 'true'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
