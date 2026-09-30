@@ -383,8 +383,9 @@ jobs:
   # Decides whether the diff can reach the hosted play flows (#1598): the four hosted jobs below run
   # only when a changed file lies in scripts/lib/hosted-play-closure.ts's closure, whose unit test holds it
   # to the play pages', the Workers' and the launcher's import graph. A merge queue run, any other
-  # event, and a diff this job cannot read all run the shards. The job's own failure fails the run,
-  # so ci_ok never passes on shards that were neither run nor deliberately skipped.
+  # event, and a diff this job cannot read or the compare API cuts short all run the shards. The job's
+  # own failure fails the run, so ci_ok never passes on shards that were neither run nor deliberately
+  # skipped.
   play_closure:
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -412,11 +413,14 @@ jobs:
             exit 0
           fi
           # Three dots: the files changed since the merge base, so main's own commits do not count.
-          if ! gh api "repos/$REPO/compare/$BASE...$HEAD?per_page=100" --paginate --jq '.files[].filename' > changed-files.txt; then
+          # A renamed file counts under both its names, so a file moved out of the closure still reaches.
+          # The API lists at most 300 files, so a list that long may be cut short and is not trusted.
+          if ! gh api "repos/$REPO/compare/$BASE...$HEAD?per_page=100" --paginate --jq '.files[] | .filename, (.previous_filename // empty)' > changed-files.txt \
+            || [ "$(grep -c . changed-files.txt)" -ge 300 ]; then
             echo "run=true" >> "$GITHUB_OUTPUT"
             echo "### Hosted play shards run" >> "$GITHUB_STEP_SUMMARY"
             echo "" >> "$GITHUB_STEP_SUMMARY"
-            echo "The changed files could not be read from the compare API, so the shards run." >> "$GITHUB_STEP_SUMMARY"
+            echo "The changed files could not be read in full from the compare API, so the shards run." >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
           decision="$(bun scripts/hosted-play-closure.ts changed-files.txt)"

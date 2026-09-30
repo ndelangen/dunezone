@@ -98,7 +98,18 @@ describe('the hosted play closure', () => {
     ['src/app/ui/control/Button.tsx', true],
     ['scripts/verify-hosted-results.mjs', true],
     ['.github/workflows/reusable-verify.yml', true],
+    ['.github/workflows/deploy-main.yml', false],
+    ['.github/actions/hosted-play-summary/action.yml', true],
     ['bun.lock', true],
+    ['patches/@react-three%2Ffiber@10.0.0-alpha.4.patch', true],
+    ['convex.json', true],
+    ['convex/rulebooks.test.ts', false],
+    ['convex/_generated/ai/guidelines.md', false],
+    ['scripts/generate-images.ts', true],
+    ['src/app/routes/_app/play/$gameId.route.tsx', true],
+    ['workers/game/a file.ts', true],
+    ['AGENTS.md', false],
+    ['.oxlintrc.json', false],
   ])('%s reaches the flows: %s', (file, reaches) => {
     expect(reachesHostedPlay(file)).toBe(reaches);
   });
