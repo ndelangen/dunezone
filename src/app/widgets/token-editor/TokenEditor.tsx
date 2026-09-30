@@ -1,5 +1,6 @@
 import { Group, Slider, Stack, Switch, Text, TextInput } from '@mantine/core';
 import type { TokenAsset } from '@shared/assets/schema';
+import { stockAssetOptions } from '@ui/content/stockAssetOptions';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { AssetSelect } from '@ui/control/AssetSelect';
 import { ControlBlock } from '@ui/control/ControlBlock';
@@ -16,11 +17,7 @@ import { TokenFrame, tokenShapeOfType } from '@app/widgets/asset-face/AssetFace'
 import { emptyBackgroundModeMemory } from '@app/widgets/background-composer/BackgroundComposer';
 import type { BackgroundModeMemory } from '@app/widgets/background-composer/BackgroundComposer';
 import { BackgroundPresetControl } from '@app/widgets/background-composer/BackgroundPresetControl';
-import {
-  assetOptionToPreviewSrc,
-  decalAssetOptionToLabel,
-  decalAssetOptions,
-} from '@app/widgets/faction-editor/factionFormAssetUtils';
+import { assetOptionToPreviewSrc, decalAssetOptions } from '@app/widgets/faction-editor/factionFormAssetUtils';
 import { CustomToken } from '@game/assets/token/Custom';
 import { backgroundPresets } from '@game/data/backgrounds';
 
@@ -61,7 +58,7 @@ const FACE_PRESETS = [
   { key: 'worthless', label: 'Worthless', background: backgroundPresets.worthless },
 ];
 
-const symbolOptions = decalAssetOptions.map((value) => ({ value, label: decalAssetOptionToLabel(value) }));
+const symbolOptions = stockAssetOptions(decalAssetOptions);
 
 const INITIAL_FACE: TokenFaceDraft = {
   image: '/vector/icon/projectile.svg',
@@ -161,7 +158,6 @@ function FaceFields({
           <AssetSelect
             aria-label="Symbol"
             allowDeselect={false}
-            limit={30}
             data={symbolOptions}
             getPreviewSrc={assetOptionToPreviewSrc}
             glyphPreviews

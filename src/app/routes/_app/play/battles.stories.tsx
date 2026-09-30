@@ -1,10 +1,12 @@
 import preview from '@sb/preview';
-import { finishTransitions } from '@sb/storyWaits';
+import { finishTransitions, waitForFrame } from '@sb/storyWaits';
 import type { GameSnapshot } from '@shared/play/protocol';
+import { BOARD_RADIUS } from '@shared/play/tableGeometry';
+import { resolveRulebookBoardDefinition } from '@shared/rulebooks/boardDefinitions';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { gameMeta, install, lastCommand, session } from './game.stories.fixture';
-import { battleStory, expectBattleCalloutPlacement, openTab, settled } from './playing.stories.fixture';
+import { battleStory, expectBattleCalloutPlacement, mapViewPoint, openTab, settled } from './playing.stories.fixture';
 import { productTransport } from './product.stories.fixture';
 
 const meta = preview.meta({
@@ -76,7 +78,8 @@ export const BattleCalloutArrivesInPlace = meta.story({
       while (callout.parentElement && !callout.parentElement.contains(scene)) {
         callout = callout.parentElement;
       }
-      await settled(() => expect(firstDraws.has(callout)).toBe(true));
+      /* That write happens only inside the scene's animation-frame callbacks, so each poll runs the waiting frames itself. */
+      await waitForFrame(() => expect(firstDraws.has(callout)).toBe(true), { timeout: 30_000 });
       const first = firstDraws.get(callout)!;
       const sceneBounds = scene.getBoundingClientRect();
       expect(Math.abs(first.x - (sceneBounds.left + sceneBounds.width / 2))).toBeLessThanOrEqual(1);
@@ -89,6 +92,34 @@ export const BattleCalloutArrivesInPlace = meta.story({
     } finally {
       stop();
     }
+  },
+});
+
+/** The marker names the territory it lands on from the board's own outlines, so a battle dropped on Carthag is fought at Carthag. */
+export const BattleMarkerNamesItsTerritory = meta.story({
+  beforeEach: battleSetup('preparing', 'seat-2', (snapshot) => {
+    snapshot.battle = null;
+    snapshot.battlePlan = null;
+  }),
+  play: async ({ canvasElement }) => {
+    const document = canvasElement.ownerDocument;
+    const page = within(document.body);
+    await settled(() => expect(page.getByRole('button', { name: 'Drag battle marker onto territory' })).toBeVisible());
+    const carthag = resolveRulebookBoardDefinition('arrakis')!.geometry.parts.find((part) => part.key === 'carthag')!;
+    const [clientX, clientY] = mapViewPoint(document, [
+      (carthag.x + carthag.width / 2 - 0.5) * BOARD_RADIUS * 2,
+      0.18,
+      (carthag.y + carthag.height / 2 - 0.5) * BOARD_RADIUS * 2,
+    ]);
+    const dataTransfer = new DataTransfer();
+    dataTransfer.setData('application/dune-battle', 'marker');
+    /* The camera can still be settling on a cold worker, so the drop repeats until it lands. */
+    await settled(() => {
+      document
+        .querySelector('canvas')!
+        .dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, clientX, clientY, dataTransfer }));
+      expect(lastCommand()?.action).toMatchObject({ kind: 'battle-start', territory: 'Carthag' });
+    });
   },
 });
 
@@ -125,7 +156,7 @@ export const BattleOneClaimed = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await settled(() => expect(page.getByRole('button', { name: 'Cancel battle' })).toBeEnabled());
-    const faction = page.getByRole('img', { name: 'house-atreides, right side, Preparing' });
+    const faction = page.getByRole('img', { name: 'House Atreides, right side, Preparing' });
     expect(faction).toBeVisible();
     expect(faction.textContent).toBe('');
     const cancel = page.getByRole('button', { name: 'Cancel battle' });
@@ -157,10 +188,10 @@ export const BattleReadiness = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await settled(() =>
-      expect(page.getByRole('img', { name: 'house-harkonnen, left side, aggressor, Preparing' })).toBeVisible()
+      expect(page.getByRole('img', { name: 'House Harkonnen, left side, aggressor, Preparing' })).toBeVisible()
     );
-    const preparing = page.getByRole('img', { name: 'house-harkonnen, left side, aggressor, Preparing' });
-    const ready = page.getByRole('img', { name: 'house-atreides, right side, Ready' });
+    const preparing = page.getByRole('img', { name: 'House Harkonnen, left side, aggressor, Preparing' });
+    const ready = page.getByRole('img', { name: 'House Atreides, right side, Ready' });
     expect(ready).toBeVisible();
     const preparingRing = preparing.querySelector('svg[data-ready]')!;
     const readyRing = ready.querySelector('svg[data-ready]')!;
@@ -180,10 +211,10 @@ export const BattleReadinessStill = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     const preparing = await page.findByRole(
       'img',
-      { name: 'house-harkonnen, left side, aggressor, Preparing' },
+      { name: 'House Harkonnen, left side, aggressor, Preparing' },
       { timeout: 30_000 }
     );
-    const ready = page.getByRole('img', { name: 'house-atreides, right side, Ready' });
+    const ready = page.getByRole('img', { name: 'House Atreides, right side, Ready' });
     expect(animatedIn([preparing, ready])).toEqual([]);
     expect(getComputedStyle(preparing.querySelector('svg[data-ready]')!).strokeDasharray).not.toBe('none');
   },
@@ -203,12 +234,12 @@ export const BattlePlanner = meta.story({
     await settled(() => expect(page.getByRole('button', { name: 'Ready for battle' })).toBeEnabled());
     await settled(() => {
       expect(page.getByRole('textbox', { name: 'Troops' })).toBeEnabled();
-      expect(page.queryByText(/house-harkonnen reverse/i)).toBeNull();
+      expect(page.queryByText(/harkonnen reverse/i)).toBeNull();
       expect(page.queryByRole('region', { name: 'Battle results' })).toBeNull();
     });
 
     const wheel = await page.findByLabelText(
-      'house-harkonnen plan, troop strength 0, 0 spice',
+      'House Harkonnen plan, troop strength 0, 0 spice',
       {},
       { timeout: 30_000 }
     );
@@ -228,7 +259,7 @@ export const BattlePlanner = meta.story({
       kind: 'battle-plan',
       plan: { cardIds: ['treachery-card-loose'] },
     });
-    const currentWheel = page.getByLabelText(/^house-harkonnen plan,/);
+    const currentWheel = page.getByLabelText(/^House Harkonnen plan,/);
     expect(within(currentWheel).getByRole('img', { name: 'Snooper' })).toBeInTheDocument();
   },
 });
@@ -254,7 +285,7 @@ export const BattlePlanArtwork = meta.story({
       for (const name of ['Thufir Hawat', 'Gurney Halleck', 'Doctor Yueh']) {
         arrived(within(hand).getByRole('img', { name }));
       }
-      arrived(within(page.getByLabelText(/^house-harkonnen plan,/)).getByRole('img', { name: 'Feyd Rautha' }));
+      arrived(within(page.getByLabelText(/^House Harkonnen plan,/)).getByRole('img', { name: 'Feyd Rautha' }));
     });
   },
 });
@@ -367,7 +398,7 @@ export const BattleRevealedPiecesStill = meta.story({
   beforeEach: revealedPieces,
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    const plans = /^house-(harkonnen|atreides) plan,/;
+    const plans = /^House (Harkonnen|Atreides) plan,/;
     await settled(() => expect(page.getAllByLabelText(plans)).toHaveLength(2));
     expect(animatedIn(page.getAllByLabelText(plans))).toEqual([]);
     for (const plan of page.getAllByLabelText(plans)) {
@@ -408,8 +439,22 @@ export const BattleNumericDraft = meta.story({
   },
 });
 
-export const BattleResolved = meta.story({
-  beforeEach: install(() => {
+/* A real game keys each faction by its Convex document id, so a label that prints the id instead of the roster's name only shows once the stories stop using slugs. */
+const convexIds: Record<string, string> = {
+  'house-harkonnen': 'k175em553h9x2vq0t8c4wj6rsd7ab1ny',
+  'house-atreides': 'k17fybprv2m8kq5z3x0hd9tnwc6js4ge',
+};
+function withConvexIds(snapshot: GameSnapshot): GameSnapshot {
+  return JSON.parse(
+    Object.entries(convexIds).reduce(
+      (json, [slug, id]) => json.replaceAll(`"${slug}"`, `"${id}"`),
+      JSON.stringify(snapshot)
+    )
+  );
+}
+
+function resolvedBattle(rekey: (snapshot: GameSnapshot) => GameSnapshot = (snapshot) => snapshot) {
+  return install(() => {
     const snapshot = battleStory('revealed');
     const battle = snapshot.battle!;
     const card = snapshot.table.pieces.find((piece) => piece.kind === 'card' && piece.items.length === 1)!;
@@ -432,15 +477,49 @@ export const BattleResolved = meta.story({
     snapshot.hand!.push(card);
     snapshot.table.pieces = snapshot.table.pieces.filter((piece) => piece.id !== card.id);
     snapshot.revision = 1;
-    return productTransport('seat-2', snapshot);
-  }),
+    return productTransport('seat-2', rekey(snapshot));
+  });
+}
+
+export const BattleResolved = meta.story({
+  beforeEach: resolvedBattle(),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await openTab(page, 'Battle');
     await settled(() =>
-      expect(page.getByText('Arrakeen: house-harkonnen against house-atreides. Left side won.')).toBeInTheDocument()
+      expect(page.getByText('Arrakeen: House Harkonnen against House Atreides. Left side won.')).toBeInTheDocument()
     );
     expect(page.getByRole('button', { name: 'Drag Snooper from hand' })).toBeEnabled();
     expect(page.queryByRole('button', { name: 'No winner' })).toBeNull();
+  },
+});
+
+/** A real game's result names both factions from the roster, never by the Convex ids the result carries. */
+export const BattleResolvedInRealGame = meta.story({
+  beforeEach: resolvedBattle(withConvexIds),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await openTab(page, 'Battle');
+    await settled(() =>
+      expect(page.getByText('Arrakeen: House Harkonnen against House Atreides. Left side won.')).toBeInTheDocument()
+    );
+    expect(page.getByLabelText(/^House Harkonnen plan, troop strength/)).toBeInTheDocument();
+    expect(page.getByLabelText(/^House Atreides plan, troop strength/)).toBeInTheDocument();
+    for (const id of Object.values(convexIds)) {
+      expect(page.queryByText(new RegExp(id))).toBeNull();
+      expect(page.queryByLabelText(new RegExp(id))).toBeNull();
+    }
+  },
+});
+
+/** A live battle's wheels name both sides from the roster in a real game too. */
+export const BattleReadinessInRealGame = meta.story({
+  beforeEach: install(() => productTransport('neutral', withConvexIds(battleStory('preparing', true)))),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await settled(() =>
+      expect(page.getByRole('img', { name: 'House Harkonnen, left side, aggressor, Preparing' })).toBeVisible()
+    );
+    expect(page.getByRole('img', { name: 'House Atreides, right side, Ready' })).toBeVisible();
   },
 });

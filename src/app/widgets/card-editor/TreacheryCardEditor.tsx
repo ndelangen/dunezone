@@ -1,4 +1,5 @@
 import { Alert, Divider, Grid, Group, NumberInput, Slider, Stack, Switch, Text, TextInput } from '@mantine/core';
+import { stockAssetOptions } from '@ui/content/stockAssetOptions';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { AssetSelect } from '@ui/control/AssetSelect';
 import { ControlBlock } from '@ui/control/ControlBlock';
@@ -17,11 +18,7 @@ import type { BackgroundModeMemory } from '@app/widgets/background-composer/Back
 import { BackgroundPresetControl } from '@app/widgets/background-composer/BackgroundPresetControl';
 import { hasWorkToLose, sameBackground } from '@app/widgets/background-composer/presetChoice';
 import { DecalControls } from '@app/widgets/decal-editor/DecalControls';
-import {
-  assetOptionToPreviewSrc,
-  decalAssetOptions,
-  decalAssetOptionToLabel,
-} from '@app/widgets/faction-editor/factionFormAssetUtils';
+import { assetOptionToPreviewSrc, decalAssetOptions } from '@app/widgets/faction-editor/factionFormAssetUtils';
 import { TreacheryCard } from '@game/assets/treachery/Treachery';
 import { backgroundPresets } from '@game/data/backgrounds';
 import type { TreacheryAsset } from '@game/data/objects';
@@ -30,7 +27,7 @@ import { card as CARD_SIZE } from '@game/data/sizes';
 import styles from './CardEditor.module.css';
 
 /* The icon draws from the same full vector pool the decals do, the schema's ALL union, not just the icon set. */
-const iconOptions = decalAssetOptions.map((value) => ({ value, label: decalAssetOptionToLabel(value) }));
+const iconOptions = stockAssetOptions(decalAssetOptions);
 
 /* The draft model. */
 /* The draft IS the stored shape: the same TreacheryAsset zod validates on save (server-side
@@ -211,7 +208,6 @@ function IconFields({
           <AssetSelect
             aria-label="Icon"
             allowDeselect={false}
-            limit={30}
             data={iconOptions}
             getPreviewSrc={assetOptionToPreviewSrc}
             glyphPreviews

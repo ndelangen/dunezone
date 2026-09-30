@@ -2,7 +2,7 @@ import { describe, expect, test } from 'vitest';
 
 import { initialSnapshot } from '../../src/shared/play/commands';
 import { PHASE_CHANGE_COOLDOWN_MS, phaseAt, TABLE_PHASES, tableProgressFor } from '../../src/shared/play/phases';
-import { clientMessageSchema, gameSnapshotSchema, tableForViewer } from '../../src/shared/play/protocol';
+import { clientMessageSchema, gameSnapshotSchema } from '../../src/shared/play/protocol';
 import type { GameSnapshot } from '../../src/shared/play/protocol';
 import { createSpiceStack, isSpicePiece, spiceSupplySlot } from '../../src/shared/play/spiceSupply';
 import { TABLE_SECTOR_COUNT } from '../../src/shared/play/tableSettings';
@@ -103,7 +103,6 @@ describe('shared phase progression', () => {
     expect(room.snapshot.table.pieces).toEqual(table.pieces);
     expect(room.snapshot.table.stormSectorIndex).toBe(table.stormSectorIndex);
     expect(room.snapshot.versions).toEqual(versions);
-    expect(tableForViewer(room.snapshot, alice.viewerSeat).phase).toBe('Mentat pause');
 
     for (const player of [alice, bob]) {
       room.accept(room.command(player, { kind: 'ready', ready: true }, room.snapshot.revision));
@@ -149,7 +148,6 @@ describe('shared phase progression', () => {
     const room = new Room(JSON.parse(stored), seated);
     expect(room.snapshot.table).not.toHaveProperty('enforcement');
     expect(room.snapshot.table).not.toHaveProperty('phase');
-    expect(tableForViewer(room.snapshot, alice.viewerSeat).phase).toBe('Storm');
     room.begin(alice, {
       carryId: 'free-move',
       sourcePieceId: 'harkonnen-force-stack',

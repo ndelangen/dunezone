@@ -1,7 +1,8 @@
 import preview from '@sb/preview';
+import { finishTransitions, waitForFrame } from '@sb/storyWaits';
 import { IconAction } from '@ui/control/IconAction';
 import { History, UserRoundMinus } from 'lucide-react';
-import { expect, userEvent, waitFor, within } from 'storybook/test';
+import { expect, userEvent, within } from 'storybook/test';
 
 import { AuthoringToolbar, failureStatus, groupAccessStatus } from './AuthoringToolbar';
 
@@ -79,15 +80,15 @@ export const UnsavedWithStatuses = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     const save = page.getByRole('button', { name: 'Save faction' });
     await userEvent.hover(save);
-    const tooltip = await page.findByRole('tooltip');
-    /* The tooltip mounts transparent and fades in, so visibility is waited for rather than read once. */
-    await waitFor(() => expect(tooltip).toBeVisible());
+    const tooltip = await waitForFrame(() => page.getByRole('tooltip'));
+    /* The tooltip mounts transparent and fades in, so the check finishes the fade rather than waiting for the frames that draw it. */
+    await waitForFrame(() => expect(finishTransitions(tooltip)).toBeVisible());
     await expect(tooltip).toHaveTextContent('Unsaved changes');
     await expect(page.getByRole('status')).toHaveTextContent('Unsaved changes');
     const info = page.getByRole('button', { name: 'Status' });
     await expect(info).toHaveAccessibleDescription(`Unsaved changes ${SCHEDULED} Group access: Arrakeen Rules Council`);
     await userEvent.click(info);
-    const list = await page.findByRole('dialog', { name: 'Status' });
+    const list = await waitForFrame(() => page.getByRole('dialog', { name: 'Status' }));
     await expect(list).toHaveTextContent(SCHEDULED);
     await expect(list).toHaveTextContent('Group access: Arrakeen Rules Council');
   },
@@ -101,7 +102,9 @@ export const NameBlank = meta.story({
     const save = page.getByRole('button', { name: 'Save faction' });
     await expect(save).toHaveAttribute('aria-disabled', 'true');
     await userEvent.hover(save);
-    await expect(await page.findByRole('tooltip', { name: factionCopy.nameBlankMessage })).toBeInTheDocument();
+    await expect(
+      await waitForFrame(() => page.getByRole('tooltip', { name: factionCopy.nameBlankMessage }))
+    ).toBeInTheDocument();
   },
 });
 

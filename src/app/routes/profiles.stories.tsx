@@ -1,4 +1,5 @@
 import preview from '@sb/preview';
+import { waitForFrame } from '@sb/storyWaits';
 import { expectFactionColumns } from '@ui/list/factionListPlay';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
@@ -114,6 +115,6 @@ export const DeleteAccountReplacementPicker = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await userEvent.click(await page.findByRole('button', { name: 'Choose a replacement owner' }, { timeout: 30_000 }));
-    await page.findByText('No other active profiles are available.', {}, { timeout: 30_000 });
+    await waitForFrame(() => page.getByText('No other active profiles are available.'), { timeout: 30_000 });
   },
 });

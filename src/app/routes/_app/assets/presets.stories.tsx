@@ -1,4 +1,5 @@
 import preview from '@sb/preview';
+import { waitForFrame } from '@sb/storyWaits';
 import { INITIAL_CARDBACK_PRESETS } from '@shared/assets/cardbackPresets';
 import { expect, userEvent, within } from 'storybook/test';
 
@@ -49,7 +50,7 @@ export const Administrator = meta.story({
     await expect(page.queryByRole('region', { name: 'Background builder' })).not.toBeInTheDocument();
     await userEvent.click(page.getByRole('radio', { name: 'Custom' }));
     await userEvent.click(page.getByRole('button', { name: 'Edit base color layer' }));
-    await userEvent.click(await page.findByRole('radio', { name: 'Linear' }));
+    await userEvent.click(await waitForFrame(() => page.getByRole('radio', { name: 'Linear' })));
     const angle = page.getByRole('textbox', { name: 'Gradient angle' });
     await userEvent.clear(angle);
     await userEvent.type(angle, '37');

@@ -108,7 +108,13 @@ function writtenSummary({ report, snapshot }: Extract<Outcome, { kind: 'written'
     '| --- | --- | ---: | ---: | --- |',
     ...rows,
     '',
-    `Component data dropped: ${report.droppedComponents.map(code).join(', ') || 'none'}.`,
+    ...(report.droppedComponents.length === 0
+      ? ['Component data dropped: none.']
+      : [
+          'Component data dropped:',
+          '',
+          ...report.droppedComponents.map(({ component, dropReason }) => `- ${code(component)}: ${dropReason}`),
+        ]),
   ];
 }
 

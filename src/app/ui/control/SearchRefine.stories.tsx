@@ -1,5 +1,6 @@
 import { Select } from '@mantine/core';
 import preview from '@sb/preview';
+import { waitForFrame } from '@sb/storyWaits';
 import { useState } from 'react';
 import { expect, fn, userEvent, within } from 'storybook/test';
 
@@ -69,7 +70,7 @@ export const Default = meta.story({
     const canvas = within(canvasElement);
     await userEvent.click(canvas.getByRole('button', { name: 'Refine cards' }));
     const page = within(canvasElement.ownerDocument.body);
-    await expect(await page.findByRole('dialog', { name: 'Refine cards' })).toBeInTheDocument();
+    await expect(await waitForFrame(() => page.getByRole('dialog', { name: 'Refine cards' }))).toBeInTheDocument();
   },
 });
 

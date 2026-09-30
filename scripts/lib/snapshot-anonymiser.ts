@@ -2,7 +2,13 @@ import { createHash } from 'node:crypto';
 
 import type { Id, TableNames } from '../../convex/_generated/dataModel';
 import { SNAPSHOT_REBUILD_CONTRACT } from '../../convex/lib/provisioningContract';
-import { droppedComponents, placeholderOwner, snapshotPolicy } from './snapshot-policy';
+import {
+  installedComponents,
+  placeholderOwner,
+  retiredComponents,
+  retiredTables,
+  snapshotPolicy,
+} from './snapshot-policy';
 
 /**
  * Turns a Convex export into the anonymised snapshot that local and cloud dev load instead of production (#1559).
@@ -38,12 +44,22 @@ type TableReport = {
   droppedFields: string[];
 };
 
-export type SnapshotReport = { tables: TableReport[]; droppedComponents: string[] };
+type ComponentReport = { component: string; dropReason: string };
+
+export type SnapshotReport = { tables: TableReport[]; droppedComponents: ComponentReport[] };
 
 type LeakKind = 'email' | 'token' | 'denied field' | 'sign-in table' | 'user row' | 'profile row' | 'unexpected entry';
 
 /** Where a leak was found, never what it was. */
 export type LeakFinding = { table: string; field: string; kind: LeakKind };
+
+/**
+ * A problem that names several things, one per line under its heading.
+ * A log viewer that cuts long lines then still shows every name, and the step summary renders it as a nested list.
+ */
+function listed(heading: string, names: readonly string[]): string {
+  return [`${heading}:`, ...names.map((name) => `  - ${name}`)].join('\n');
+}
 
 export class SnapshotRefused extends Error {
   readonly problems: readonly string[];
@@ -187,7 +203,13 @@ type TablePolicy = { drop: string } | { fields: Readonly<Record<string, FieldRul
 
 type KeptPolicy = Extract<TablePolicy, { fields: unknown }>;
 
-const policy: Readonly<Record<string, TablePolicy>> = snapshotPolicy;
+/* A retired table is dropped like any table the policy drops. The types keep its name apart from the schema's. */
+const policy: Readonly<Record<string, TablePolicy>> = {
+  ...Object.fromEntries(Object.entries(retiredTables).map(([table, reason]) => [table, { drop: reason }])),
+  ...snapshotPolicy,
+};
+
+const componentPolicy: Readonly<Record<string, string>> = { ...installedComponents, ...retiredComponents };
 
 /*
  * Every lookup by a name from the export reads own keys only. A plain object also answers `constructor` or
@@ -196,6 +218,11 @@ const policy: Readonly<Record<string, TablePolicy>> = snapshotPolicy;
 
 function tablePolicy(table: string): TablePolicy | null {
   return Object.hasOwn(policy, table) ? policy[table]! : null;
+}
+
+/** Why the policy drops a component's data, or null when it does not name the component. */
+function componentDropReason(component: string): string | null {
+  return Object.hasOwn(componentPolicy, component) ? componentPolicy[component]! : null;
 }
 
 function keptPolicy(table: string): KeptPolicy | null {
@@ -249,7 +276,14 @@ function keptTableOrder(): string[] {
 
 const TABLE_MAP = '_tables/documents.jsonl';
 const TABLE_ENTRY = /^([A-Za-z][A-Za-z0-9_]*)\/(documents|generated_schema)\.jsonl$/;
-const COMPONENT_ENTRY = /^_components\/([^/]+)\//;
+/*
+ * A component's data, as the Convex backend's export writes it (`get_export_path_prefix` in crates/exports/src/lib.rs):
+ * `_components/<name>/` once for each level of the component's path, then its `_tables` map and its tables' two files
+ * in the root's layout. The first name is the component the app installs, so the whole tree under it is that component's.
+ * Component names are Convex identifiers, and table names start with a letter, as at the root.
+ */
+const COMPONENT_ENTRY =
+  /^_components\/([A-Za-z_][A-Za-z0-9_]*)\/(?:_components\/[A-Za-z_][A-Za-z0-9_]*\/)*(?:_tables\/documents|[A-Za-z][A-Za-z0-9_]*\/(?:documents|generated_schema))\.jsonl$/;
 const EMPTY_STORAGE = '_storage/documents.jsonl';
 /* The schema file of a table whose values are all plain JSON. Anything else carries typed values that plain JSON rows would lose. */
 const PLAIN_SCHEMA = '"uniform"';
@@ -292,9 +326,10 @@ function readTableMap(text: string, problems: string[]): Map<string, number> {
 function readLayout(input: ExportEntries, problems: string[]): Layout {
   const layout: Layout = { tableNumbers: new Map(), documents: new Map(), schemas: new Map(), components: new Set() };
   const unexpected: string[] = [];
+  const unclassifiedComponents = new Set<string>();
   for (const [path, text] of input) {
     const table = TABLE_ENTRY.exec(path);
-    const component = COMPONENT_ENTRY.exec(path);
+    const component = COMPONENT_ENTRY.exec(path)?.[1];
     switch (true) {
       case path === 'README.md':
         break;
@@ -309,8 +344,11 @@ function readLayout(input: ExportEntries, problems: string[]): Layout {
       case table !== null:
         layout.schemas.set(table[1]!, text);
         break;
-      case component !== null && droppedComponents.has(component[1]!):
-        layout.components.add(component[1]!);
+      case component !== undefined && componentDropReason(component) !== null:
+        layout.components.add(component);
+        break;
+      case component !== undefined:
+        unclassifiedComponents.add(component);
         break;
       default:
         unexpected.push(path);
@@ -320,17 +358,20 @@ function readLayout(input: ExportEntries, problems: string[]): Layout {
     problems.push(`the export has no ${TABLE_MAP}`);
   }
   if (unexpected.length > 0) {
-    problems.push(`unexpected entries: ${unexpected.sort().join(', ')}`);
+    problems.push(listed('unexpected entries', unexpected.sort()));
+  }
+  if (unclassifiedComponents.size > 0) {
+    problems.push(listed('components the snapshot policy does not classify', [...unclassifiedComponents].sort()));
   }
   const unclassified = [...new Set([...layout.tableNumbers.keys(), ...layout.documents.keys()])]
     .filter((table) => tablePolicy(table) === null)
     .sort();
   if (unclassified.length > 0) {
-    problems.push(`tables the snapshot policy does not classify: ${unclassified.join(', ')}`);
+    problems.push(listed('tables the snapshot policy does not classify', unclassified));
   }
   const unmapped = [...layout.documents.keys()].filter((table) => !layout.tableNumbers.has(table)).sort();
   if (unmapped.length > 0) {
-    problems.push(`tables missing from ${TABLE_MAP}: ${unmapped.join(', ')}`);
+    problems.push(listed(`tables missing from ${TABLE_MAP}`, unmapped));
   }
   return layout;
 }
@@ -447,7 +488,7 @@ function anonymiseRows(
     }
   }
   if (unclassified.size > 0) {
-    problems.push(`${table}: fields the snapshot policy does not classify: ${[...unclassified].sort().join(', ')}`);
+    problems.push(listed(`${table}: fields the snapshot policy does not classify`, [...unclassified].sort()));
   }
   for (const field of [...unprojected.keys()].sort()) {
     problems.push(`${table}: ${unprojected.get(field)} rows whose ${field} the snapshot cannot project`);
@@ -533,7 +574,10 @@ function reportFor(layout: Layout, outputs: ReadonlyMap<string, Row[]>): Snapsho
       droppedFields: fields.filter(([, rule]) => rule === 'drop').map(([field]) => field),
     };
   });
-  return { tables, droppedComponents: [...layout.components].sort() };
+  const droppedComponents = [...layout.components]
+    .sort()
+    .map((component) => ({ component, dropReason: componentDropReason(component)! }));
+  return { tables, droppedComponents };
 }
 
 /**
@@ -575,10 +619,13 @@ export function verifySnapshot(entries: ExportEntries): SnapshotManifest {
   const dropped = new Set(
     [...entries.keys()]
       .map((path) => TABLE_ENTRY.exec(path)?.[1])
-      .filter((table) => table !== undefined && !placeholderTables.includes(table) && keptPolicy(table) === null)
+      .filter(
+        (table): table is string =>
+          table !== undefined && !placeholderTables.includes(table) && keptPolicy(table) === null
+      )
   );
   if (dropped.size > 0) {
-    problems.push(`tables the snapshot policy drops: ${[...dropped].sort().join(', ')}`);
+    problems.push(listed('tables the snapshot policy drops', [...dropped].sort()));
   }
   for (const { table, field, kind } of scanSnapshot(entries)) {
     problems.push(`leak scan: ${kind} in ${table}.${field}`);

@@ -1,4 +1,5 @@
 import preview from '@sb/preview';
+import { waitForFrame } from '@sb/storyWaits';
 import { createRulebookStarterContents } from '@shared/rulebooks/fixtures';
 import { rulebookNameKey } from '@shared/rulebooks/metadata';
 import { projectRulebookRenderDocument } from '@shared/rulebooks/projectRenderDocument';
@@ -264,7 +265,7 @@ export const HistoricalEdition = meta.story({
     /* The label goes through the dates module, so this reads the same in every locale and time zone rather than only in the one the runner happens to use. */
     await userEvent.click(page.getByRole('button', { name: 'Choose Edition' }));
     await expect(
-      page.findByRole('menuitem', { name: 'Edition 1, Jul 1, 2026', current: true })
+      waitForFrame(() => page.getByRole('menuitem', { name: 'Edition 1, Jul 1, 2026', current: true }))
     ).resolves.toBeInTheDocument();
     await userEvent.keyboard('{Escape}');
     expect(page.getByRole('heading', { name: 'Welcome to Arrakis' })).toBeVisible();
@@ -278,7 +279,7 @@ export const SelectingCurrentEditionUsesCanonicalUrl = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await userEvent.click(await page.findByRole('button', { name: 'Choose Edition' }, { timeout: 30_000 }));
-    await userEvent.click(await page.findByRole('menuitem', { name: 'Edition 2, Aug 31, 2026' }));
+    await userEvent.click(await waitForFrame(() => page.getByRole('menuitem', { name: 'Edition 2, Aug 31, 2026' })));
     await expect(
       page.findByRole('heading', { name: 'The gathered rules' }, { timeout: 30_000 })
     ).resolves.toBeVisible();
@@ -567,7 +568,7 @@ export const SidebarNavigationStaysInDocument = meta.story({
     await userEvent.click(link);
     expect(routerIntercepted).toBe(true);
     await userEvent.click(page.getByRole('button', { name: 'Choose Edition' }));
-    await userEvent.click(await page.findByRole('menuitem', { name: 'Edition 1, Jul 1, 2026' }));
+    await userEvent.click(await waitForFrame(() => page.getByRole('menuitem', { name: 'Edition 1, Jul 1, 2026' })));
     await waitFor(() => expect(page.getByText('Edition 1', { exact: true })).toBeVisible(), {
       timeout: SETTLE_TIMEOUT_MS,
     });
@@ -697,7 +698,7 @@ export const EditionChangeDropsAnUnresolvedPin = meta.story({
       page.findByText('Select some Rulebook text first.', { selector: '[aria-hidden="true"]' }, { timeout: 30_000 })
     ).resolves.toBeVisible();
     await userEvent.click(page.getByRole('button', { name: 'Choose Edition' }));
-    await userEvent.click(await page.findByRole('menuitem', { name: 'Edition 2, Aug 31, 2026' }));
+    await userEvent.click(await waitForFrame(() => page.getByRole('menuitem', { name: 'Edition 2, Aug 31, 2026' })));
     await expect(page.findByRole('alert', {}, { timeout: 30_000 })).resolves.toHaveTextContent(
       'The linked target does not exist'
     );
@@ -721,7 +722,7 @@ export const RejectedEditionFallsBackToCurrent = meta.story({
     ).resolves.toBeVisible();
     await userEvent.click(page.getByRole('button', { name: 'Choose Edition' }));
     await expect(
-      page.findByRole('menuitem', { name: 'Edition 2, Aug 31, 2026', current: true })
+      waitForFrame(() => page.getByRole('menuitem', { name: 'Edition 2, Aug 31, 2026', current: true }))
     ).resolves.toBeInTheDocument();
   },
 });

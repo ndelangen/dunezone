@@ -5,7 +5,7 @@ import type { CSSProperties } from 'react';
 
 import { useMotionAllowed } from '@app/styles/motion';
 
-import { joinArrival, markDecoded, requestOrder, wasDecoded } from './imageArrival';
+import { joinArrival, markDecoded, requestArrivalAnimation, requestOrder, wasDecoded } from './imageArrival';
 import styles from './PublishedImage.module.css';
 
 /** How long an image in fetch range draws nothing, so one the browser already holds appears at once instead of replacing a slot. */
@@ -13,6 +13,16 @@ const GRACE_MS = 90;
 
 /** How far outside the viewport an image starts fetching, so most have landed before the reader scrolls to them. */
 const FETCH_MARGIN_PX = 1600;
+
+/** A failed publication is tried again after 5 s, doubling to a minute, as the table's faces are, and after the last try it stays missing until the page reloads. */
+const RETRY_FIRST_MS = 5000;
+const RETRY_CEILING_MS = 60_000;
+export const PUBLISHED_IMAGE_RETRIES = 6;
+
+/** How long the retry after `attempt` earlier retries waits. */
+export function publishedImageRetryDelayMs(attempt: number) {
+  return Math.min(RETRY_FIRST_MS * 2 ** attempt, RETRY_CEILING_MS);
+}
 
 type Props = {
   /** The publication, or null when there is none, which draws the missing state. */
@@ -33,6 +43,7 @@ type Props = {
  * One published image, arriving gracefully.
  * Callers own which publication it shows and the outline it is cut to;
  * this owns the arrival: a clear slot while it loads, the develop when it lands, and a matte missing state that never looks like loading.
+ * A publication that fails is fetched again out of sight a few times, so a passing outage does not leave it missing.
  *
  * It fills the width it is given at `aspect`, and fetches nothing but `src`.
  */
@@ -41,7 +52,7 @@ export function PublishedImage(props: Props) {
   return <Arrival key={props.src ?? ''} {...props} />;
 }
 
-type Phase = 'loading' | 'decoded' | 'shown' | 'missing';
+type Phase = 'loading' | 'decoded' | 'ready' | 'arriving' | 'shown' | 'missing';
 
 type State = {
   phase: Phase;
@@ -60,7 +71,10 @@ type Action =
   | { type: 'graceOver' }
   | { type: 'decoded' }
   | { type: 'revealed' }
-  | { type: 'failed' };
+  | { type: 'started'; animate: boolean }
+  | { type: 'finished' }
+  | { type: 'failed' }
+  | { type: 'recovered' };
 
 function reducer(state: State, action: Action): State {
   switch (action.type) {
@@ -77,9 +91,18 @@ function reducer(state: State, action: Action): State {
       /* Nothing was drawn yet, so there is nothing to arrive from. */
       return state.slot ? { ...state, phase: 'decoded' } : { ...state, phase: 'shown', arrival: 'instant' };
     case 'revealed':
-      return state.phase === 'decoded' ? { ...state, phase: 'shown' } : state;
+      return state.phase === 'decoded' ? { ...state, phase: 'ready' } : state;
+    case 'started':
+      return state.phase === 'ready' ? { ...state, phase: action.animate ? 'arriving' : 'shown' } : state;
+    case 'finished':
+      return state.phase === 'arriving' ? { ...state, phase: 'shown', slot: false } : state;
     case 'failed':
       return { ...state, phase: 'missing', fetching: false };
+    case 'recovered':
+      /* The bytes were just fetched, so the image replaces the missing state at once when the browser still holds them. */
+      return state.phase === 'missing'
+        ? { ...state, phase: 'loading', fetching: true, slot: false, order: null }
+        : state;
   }
 }
 
@@ -105,9 +128,14 @@ function Arrival({ src, name, aspect, radius, clipPath, raised = false }: Props)
   const motion = useMotionAllowed();
   const rootRef = useRef<HTMLDivElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
+  const artRef = useRef<HTMLDivElement>(null);
+  const releaseAnimationRef = useRef<(() => void) | null>(null);
   const arrivalRef = useRef<ReturnType<typeof joinArrival> | null>(null);
+  const retriesRef = useRef(0);
+  /* The probe that recovered the publication, held until the tile's own image settles, so the browser keeps its bytes for it. */
+  const probeRef = useRef<HTMLImageElement | null>(null);
   const { phase, fetching, order } = state;
-  const waiting = phase === 'loading' || phase === 'decoded';
+  const waiting = phase === 'loading' || phase === 'decoded' || phase === 'ready';
 
   useLayoutEffect(() => {
     const root = rootRef.current;
@@ -176,6 +204,79 @@ function Arrival({ src, name, aspect, radius, clipPath, raised = false }: Props)
     };
   }, [fetching, order, waiting]);
 
+  /* Offscreen images arrive still; visible images share the page's animation budget. */
+  useLayoutEffect(() => {
+    if (phase === 'ready') {
+      const rect = rootRef.current?.getBoundingClientRect();
+      if (!rect || rect.bottom <= 0 || rect.top >= window.innerHeight) {
+        dispatch({ type: 'started', animate: false });
+      } else {
+        releaseAnimationRef.current = requestArrivalAnimation((animate) => dispatch({ type: 'started', animate }));
+      }
+    } else if (phase === 'shown' || phase === 'missing') {
+      releaseAnimationRef.current?.();
+      releaseAnimationRef.current = null;
+    }
+  }, [phase]);
+
+  useLayoutEffect(() => () => releaseAnimationRef.current?.(), []);
+
+  /* Cancellation also settles the image, so a removed animation cannot strand a pool slot. */
+  useEffect(() => {
+    if (phase !== 'arriving') {
+      return;
+    }
+    let cancelled = false;
+    void Promise.allSettled(artRef.current?.getAnimations().map((animation) => animation.finished) ?? []).then(() => {
+      if (!cancelled) {
+        dispatch({ type: 'finished' });
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [phase]);
+
+  /* A failure may be a passing outage, so the publication is fetched again out of sight, and the missing state stays until its bytes are here. */
+  useEffect(() => {
+    if (phase !== 'missing' || src === null) {
+      return;
+    }
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let cancelled = false;
+    const schedule = () => {
+      if (retriesRef.current < PUBLISHED_IMAGE_RETRIES) {
+        timer = setTimeout(probe, publishedImageRetryDelayMs(retriesRef.current));
+      }
+    };
+    /* A retry is charged when it fetches, so one cancelled while it waits costs nothing. */
+    const probe = () => {
+      retriesRef.current += 1;
+      const image = new Image();
+      image.src = src;
+      /* Judged as onLoad judges the tile's own image: pixels present count, whatever decode() says. */
+      void image
+        .decode()
+        .catch(() => undefined)
+        .then(() => {
+          if (cancelled) {
+            return;
+          }
+          if (image.naturalWidth > 0) {
+            probeRef.current = image;
+            dispatch({ type: 'recovered' });
+          } else {
+            schedule();
+          }
+        });
+    };
+    schedule();
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [phase, src]);
+
   const onLoad = () => {
     const img = imgRef.current;
     if (!img || !src) {
@@ -186,6 +287,7 @@ function Arrival({ src, name, aspect, radius, clipPath, raised = false }: Props)
       .decode()
       .catch(() => undefined)
       .then(() => {
+        probeRef.current = null;
         if (img.naturalWidth === 0) {
           dispatch({ type: 'failed' });
           return;
@@ -224,8 +326,8 @@ function Arrival({ src, name, aspect, radius, clipPath, raised = false }: Props)
         </div>
       ) : (
         <>
-          <div className={styles.slot} style={outline} aria-hidden />
-          <div className={styles.art} style={outline}>
+          {phase !== 'shown' ? <div className={styles.slot} style={outline} aria-hidden /> : null}
+          <div ref={artRef} className={styles.art} style={outline}>
             {fetching && src ? (
               <img
                 ref={imgRef}
@@ -235,7 +337,10 @@ function Arrival({ src, name, aspect, radius, clipPath, raised = false }: Props)
                 decoding="async"
                 draggable={false}
                 onLoad={onLoad}
-                onError={() => dispatch({ type: 'failed' })}
+                onError={() => {
+                  probeRef.current = null;
+                  dispatch({ type: 'failed' });
+                }}
               />
             ) : null}
           </div>
