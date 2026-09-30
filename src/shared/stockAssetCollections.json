@@ -240,6 +240,17 @@
     "assets": ["/image/leader/ilya/inquisitor.png", "/image/leader/ilya/namri.jpg"]
   },
   {
+    "label": "Alien portraits / Hivers",
+    "keywords": "Hiver insect alien imperial court crown ceremonial mantle ruff pendant",
+    "assets": [
+      "/image/leader/hivers/hiver-amber-pendant.png",
+      "/image/leader/hivers/hiver-fur-mantle.png",
+      "/image/leader/hivers/hiver-high-crown.png",
+      "/image/leader/hivers/hiver-horned-mask.png",
+      "/image/leader/hivers/hiver-black-ruff.png"
+    ]
+  },
+  {
     "label": "Alien portraits / Blue horned",
     "keywords": "blue skin horns",
     "assets": [

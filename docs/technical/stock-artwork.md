@@ -32,6 +32,29 @@ categories at runtime; generation requires curated sets for portraits and emblem
 
 ## Classification evidence
 
+### Hivers
+
+The Hivers collection adapts five author-supplied insect characters with the built-in imagegen tool.
+Their ceremonial clothing reflects the author's premise: aliens with unfamiliar psychologies trying
+to fit into the empire by copying its dress and rituals. The style references are the original GF9
+portraits `official/aramsham.png`, `official/caid.png`, and `official/dryeuh.png`. Loose pen strokes
+and uneven colour washes retain a hand-drawn finish. The framing includes the thorax and arm poses.
+
+| Supplied drawing | Portrait in `media/image/leader/hivers/` |
+| --- | --- |
+| `IMG_1467.png` | `hiver-amber-pendant.png` |
+| `IMG_1464.png` | `hiver-fur-mantle.png` |
+| `IMG_1466.png` | `hiver-high-crown.png` |
+| `IMG_1463.png` | `hiver-horned-mask.png` |
+| `IMG_1468.png` | `hiver-black-ruff.png` |
+
+The descriptive filenames identify the artwork, not character names or game roles. The Storybook
+leader tokens use sample names, strengths, and the existing Obsidian Mantis emblem for crop review.
+These values are not Hiver faction rules. Each portrait has a square PNG source with a tan background
+matching the supplied GF9 references, plus generated 128 px and native-size WebP variants.
+
+### Initial catalogue
+
 The initial classification reviewed all 246 portraits and 83 emblems together in contact sheets.
 
 - `/Users/me/Projects/Dune/asset-generator/public/image/leader/` preserves the source collections
