@@ -11,7 +11,7 @@ const root = resolve(import.meta.dirname, '..');
 
 /*
  * What the hosted play flows exercise: the pages a flow visits, both Workers, and the launcher with its driver.
- * Their import graph is the closure's ground truth; the globs must cover every file in it.
+ * The globs must cover every file their import graph reaches; what the launcher runs as a subprocess is listed by hand and checked by the table below.
  */
 const ENTRY_POINTS = [
   'src/app/router.tsx',
@@ -65,7 +65,7 @@ async function importedFiles(): Promise<string[]> {
       {
         name: 'outside-the-graph',
         setup(bundler) {
-          /* Absolute urls name files under public/, which the closure lists by directory, and the route tree names every page, not the ones a flow visits. */
+          /* Absolute urls name generated files under public/, left to the merge queue with the media they come from, and the route tree names every page, not the ones a flow visits. */
           bundler.onResolve({ filter: /^\/|routeTree\.gen$/ }, (args) =>
             args.kind === 'entry-point' ? null : { external: true }
           );
@@ -107,6 +107,10 @@ describe('the hosted play closure', () => {
     ['convex/rulebooks.test.ts', false],
     ['convex/_generated/ai/guidelines.md', false],
     ['scripts/generate-images.ts', true],
+    ['scripts/assemble-publisher-assets.ts', true],
+    ['scripts/workerd-exit-record.mjs', true],
+    ['src/app/print/rulebookHtmlRuntime.ts', true],
+    ['publisher-capture.html', true],
     ['src/app/routes/_app/play/$gameId.route.tsx', true],
     ['workers/game/a file.ts', true],
     ['AGENTS.md', false],

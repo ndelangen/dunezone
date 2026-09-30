@@ -424,7 +424,12 @@ jobs:
           fi
           decision="$(bun scripts/hosted-play-closure.ts < changed-files.txt)"
           echo "$decision"
-          echo "run=$(echo "$decision" | jq -r .run)" >> "$GITHUB_OUTPUT"
+          # Only a plain true or false reaches the output, so a malformed decision fails this job rather than skipping the shards.
+          run="$(jq -er .run <<< "$decision")"
+          case "$run" in
+            true | false) echo "run=$run" >> "$GITHUB_OUTPUT" ;;
+            *) echo "The decision named no run value: $decision" >&2; exit 1 ;;
+          esac
 
   hosted_play:
     name: hosted_play (${{ matrix.shard }})

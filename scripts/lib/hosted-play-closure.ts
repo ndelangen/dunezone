@@ -2,7 +2,7 @@
  * The files a pull request must touch for the hosted play flows to be able to observe the change (#1598).
  * The globs name the game and publisher Workers, the backend, the shared modules, the play pages and the app code they import, the launcher with its flows, and the tooling that builds or runs them.
  * `scripts/hosted-play-closure.test.ts` holds the list to the import graph: a file the play entry points import from outside these globs fails the unit job, so the list widens with the code rather than drifting from it.
- * What the flows consume without importing is listed by hand: the dependency patches, the Convex project file and the generators whose output the pages load.
+ * What the flows consume without importing is listed by hand: the dependency patches, the Convex project file, the generators whose output the pages load, and the scripts and pages the launcher runs as subprocesses when it builds the publisher's assets.
  * `media` stays out: the flows play a synthetic catalogue built from the fixtures under `src/shared`, and the `generate_and_build` job checks the generators against the media on every pull request.
  */
 const HOSTED_PLAY_CLOSURE: readonly string[] = [
@@ -29,6 +29,11 @@ const HOSTED_PLAY_CLOSURE: readonly string[] = [
   'scripts/lib/synthetic-accounts.ts',
   'scripts/node-executable.ts',
   'scripts/generate-*',
+  'scripts/assemble-publisher-assets.ts',
+  'scripts/verify-rulebook-html-runtime.ts',
+  'scripts/workerd-exit-record.mjs',
+  'publisher-capture.html',
+  'src/app/print/**',
   'src/shared/**',
   'src/app/router.tsx',
   'src/app/routes/__root.tsx',
