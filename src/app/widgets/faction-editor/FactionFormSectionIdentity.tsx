@@ -1,19 +1,17 @@
 import { Box, ColorInput, Stack, Text, TextInput } from '@mantine/core';
+import { stockAssetOptions } from '@ui/content/stockAssetOptions';
 import { AssetSelect } from '@ui/control/AssetSelect';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import type { ReactNode } from 'react';
 
 import type { Faction } from '@db/factions';
 
-import { assetOptionToPreviewSrc, logoOptions, logoOptionToLabel } from './factionFormAssetUtils';
+import { assetOptionToPreviewSrc, logoOptions } from './factionFormAssetUtils';
 import styles from './FactionFormSectionIdentity.module.css';
 import type { FactionFormApi } from './factionFormTypes';
 import { TtsColorsEditor } from './TtsColorsEditor';
 
-const logoSelectOptions = logoOptions.map((value) => ({
-  value,
-  label: logoOptionToLabel(value),
-}));
+const logoSelectOptions = stockAssetOptions(logoOptions);
 
 /**
  * The control that renders in the name's place, supplied by the route.

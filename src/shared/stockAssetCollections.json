@@ -1,0 +1,605 @@
+[
+  {
+    "label": "Faction portraits / Atreides",
+    "keywords": "House Atreides Caladan",
+    "assets": [
+      "/image/leader/official/paul.jpg",
+      "/image/leader/official/dryeuh.png",
+      "/image/leader/official/duncan.png",
+      "/image/leader/official/gurney.png",
+      "/image/leader/official/thufir.png",
+      "/image/leader/official/jessica.png"
+    ]
+  },
+  {
+    "label": "Faction portraits / Harkonnen",
+    "keywords": "House Harkonnen Giedi Prime",
+    "assets": [
+      "/image/leader/official/baron.jpg",
+      "/image/leader/official/beast.png",
+      "/image/leader/official/feyd.png",
+      "/image/leader/official/nafud.png",
+      "/image/leader/official/piter.png",
+      "/image/leader/official/uman.png"
+    ]
+  },
+  {
+    "label": "Faction portraits / Bene Gesserit",
+    "keywords": "sisterhood reverend mother",
+    "assets": [
+      "/image/leader/official/alia.png",
+      "/image/leader/official/irulan.png",
+      "/image/leader/official/lady-fenring.png",
+      "/image/leader/official/mohiam.jpg",
+      "/image/leader/official/ramallo.png",
+      "/image/leader/official/wanna.png"
+    ]
+  },
+  {
+    "label": "Faction portraits / Emperor",
+    "keywords": "Corrino Shaddam Sardaukar",
+    "assets": [
+      "/image/leader/official/aramsham.png",
+      "/image/leader/official/bashar.png",
+      "/image/leader/official/burseg.png",
+      "/image/leader/official/caid.png",
+      "/image/leader/official/hasimir.png",
+      "/image/leader/official/shadam.jpg"
+    ]
+  },
+  {
+    "label": "Faction portraits / Fremen",
+    "keywords": "Liet Kynes Shadout desert",
+    "assets": [
+      "/image/leader/official/chani.png",
+      "/image/leader/official/jamis.png",
+      "/image/leader/official/liet.jpg",
+      "/image/leader/official/mapes.png",
+      "/image/leader/official/otheym.png",
+      "/image/leader/official/stilgar.png"
+    ]
+  },
+  {
+    "label": "Faction portraits / Spacing Guild",
+    "keywords": "navigators Tuek transport",
+    "assets": [
+      "/image/leader/official/bewt.png",
+      "/image/leader/official/edric.jpg",
+      "/image/leader/official/esmar.png",
+      "/image/leader/official/guildrep.png",
+      "/image/leader/official/soo-soo-sook.png",
+      "/image/leader/official/staban.png"
+    ]
+  },
+  {
+    "label": "Faction portraits / Ixians",
+    "keywords": "Vernius Pilru technology",
+    "assets": [
+      "/image/leader/official/cammar.png",
+      "/image/leader/official/ctair.png",
+      "/image/leader/official/dominic.png",
+      "/image/leader/official/kailea.png",
+      "/image/leader/official/rhombor.jpg",
+      "/image/leader/official/tessia.png"
+    ]
+  },
+  {
+    "label": "Faction portraits / Bene Tleilaxu",
+    "keywords": "Tleilax face dancers",
+    "assets": [
+      "/image/leader/official/blin.png",
+      "/image/leader/official/hidar.png",
+      "/image/leader/official/masters.jpg",
+      "/image/leader/official/wykk.png",
+      "/image/leader/official/zaaf.png",
+      "/image/leader/official/zoal.png"
+    ]
+  },
+  {
+    "label": "Faction portraits / CHOAM",
+    "keywords": "trade commerce",
+    "assets": [
+      "/image/leader/official/auditor.png",
+      "/image/leader/official/duke-verdun.png",
+      "/image/leader/official/frankos-aru.png",
+      "/image/leader/official/lady-yalma.png",
+      "/image/leader/official/rajiv-londine.png",
+      "/image/leader/official/viscount-tull.png"
+    ]
+  },
+  {
+    "label": "Faction portraits / Richese",
+    "keywords": "technology",
+    "assets": [
+      "/image/leader/official/ein-calimar.png",
+      "/image/leader/official/flinto-kinnis.png",
+      "/image/leader/official/haloa-rund.png",
+      "/image/leader/official/lady-helena.png",
+      "/image/leader/official/talis-balt.png"
+    ]
+  },
+  {
+    "label": "Faction portraits / Ecaz",
+    "keywords": "Whitmore Bludd  ",
+    "assets": [
+      "/image/leader/official/bindikk-narvi.png",
+      "/image/leader/official/ilesa-ecaz.png",
+      "/image/leader/official/sanya-ecaz.png",
+      "/image/leader/official/whitemore-bludd.png",
+      "/image/leader/official/whitmore.jpg",
+      "/image/leader/brainfood/rivvy-dinari.png",
+      "/image/leader/ilya/ecaz.jpg"
+    ]
+  },
+  {
+    "label": "Faction portraits / Moritani",
+    "keywords": "Grumman  ",
+    "assets": [
+      "/image/leader/official/grieu-kronos.png",
+      "/image/leader/official/hiih-resser.png",
+      "/image/leader/official/lupino-ord.png",
+      "/image/leader/official/trin-kronos.png",
+      "/image/leader/official/vando-terboli.png",
+      "/image/leader/brainfood/grumman.png",
+      "/image/leader/brainfood/hiir.png",
+      "/image/leader/brainfood/keshas.png",
+      "/image/leader/brainfood/kronos.png",
+      "/image/leader/ilya/hundro.jpg",
+      "/image/leader/ilya/lupino.png"
+    ]
+  },
+  {
+    "label": "Faction portraits / Ginaz",
+    "keywords": "swordmasters ",
+    "assets": [
+      "/image/leader/official/jammo.png",
+      "/image/leader/brainfood/rivvy.png",
+      "/image/leader/brainfood/mord.png",
+      "/image/leader/brainfood/karsty.png",
+      "/image/leader/brainfood/jehwu.png"
+    ]
+  },
+  {
+    "label": "Faction portraits / Smugglers",
+    "keywords": "smuggling  ",
+    "assets": [
+      "/image/leader/official/smuggler2.png",
+      "/image/leader/brainfood/banner-jee.png",
+      "/image/leader/brainfood/drisq.png",
+      "/image/leader/brainfood/marek.png",
+      "/image/leader/ilya/cheap-hero.png"
+    ]
+  },
+  {
+    "label": "Faction portraits / Hagal",
+    "keywords": "",
+    "assets": [
+      "/image/leader/brainfood/bain.png",
+      "/image/leader/brainfood/jorno.png",
+      "/image/leader/brainfood/lady-edwina.png",
+      "/image/leader/brainfood/natorus.png",
+      "/image/leader/brainfood/spice-merchant.png"
+    ]
+  },
+  {
+    "label": "Faction portraits / Water Peddlers",
+    "keywords": "",
+    "assets": [
+      "/image/leader/brainfood/banfi.png",
+      "/image/leader/brainfood/magnate.png",
+      "/image/leader/brainfood/lingar.jpg",
+      "/image/leader/brainfood/styros.png",
+      "/image/leader/brainfood/zenzi.png",
+      "/image/leader/brainfood/zirut.png"
+    ]
+  },
+  {
+    "label": "Faction portraits / Iduali",
+    "keywords": "",
+    "assets": [
+      "/image/leader/ilya/javid.png",
+      "/image/leader/ilya/korba.png",
+      "/image/leader/ilya/ratrunner.png",
+      "/image/leader/ilya/sabiha.png",
+      "/image/leader/ilya/smuggler.png"
+    ]
+  },
+  {
+    "label": "Brainfood / Other portraits",
+    "keywords": "",
+    "assets": [
+      "/image/leader/brainfood/administrator.png",
+      "/image/leader/brainfood/angelica.jpg",
+      "/image/leader/brainfood/helena.png",
+      "/image/leader/brainfood/leddenpook.png"
+    ]
+  },
+  {
+    "label": "Ilya / Green helmets",
+    "keywords": "",
+    "assets": [
+      "/image/leader/ilya/baltern.png",
+      "/image/leader/ilya/batern.png",
+      "/image/leader/ilya/bronso.png",
+      "/image/leader/ilya/levenbrech.png"
+    ]
+  },
+  {
+    "label": "Ilya / Purple uniforms",
+    "keywords": "",
+    "assets": [
+      "/image/leader/ilya/commisioner.png",
+      "/image/leader/ilya/earl.png",
+      "/image/leader/ilya/moat.png",
+      "/image/leader/ilya/representative.png"
+    ]
+  },
+  {
+    "label": "Ilya / Other portraits",
+    "keywords": "",
+    "assets": ["/image/leader/ilya/inquisitor.png", "/image/leader/ilya/namri.jpg"]
+  },
+  {
+    "label": "Alien portraits / Blue horned",
+    "keywords": "blue skin horns",
+    "assets": [
+      "/image/leader/alien/eeekkono.png",
+      "/image/leader/alien/eeloo.png",
+      "/image/leader/alien/eelu.png",
+      "/image/leader/alien/eeriva.png",
+      "/image/leader/alien/eezala.png",
+      "/image/leader/alien/eezaz.png"
+    ]
+  },
+  {
+    "label": "Alien portraits / Robots",
+    "keywords": "mechanical machines yellow green eyes",
+    "assets": [
+      "/image/leader/alien/into.png",
+      "/image/leader/alien/lp0.png",
+      "/image/leader/alien/nbio.png",
+      "/image/leader/alien/rrio.png",
+      "/image/leader/alien/tlux.png",
+      "/image/leader/alien/x1.png"
+    ]
+  },
+  {
+    "label": "Alien portraits / Armored creatures",
+    "keywords": "tentacles armor reptile",
+    "assets": [
+      "/image/leader/alien/buzcle.png",
+      "/image/leader/alien/kikcx.png",
+      "/image/leader/alien/rigfh.png",
+      "/image/leader/alien/royaglk.png",
+      "/image/leader/alien/rugle.png",
+      "/image/leader/alien/sbolq.png",
+      "/image/leader/alien/scriiiumh.png",
+      "/image/leader/alien/spicho.png",
+      "/image/leader/alien/sreek.png"
+    ]
+  },
+  {
+    "label": "Alien portraits / Pale court",
+    "keywords": "pale skin purple gold uniforms",
+    "assets": [
+      "/image/leader/alien/szkiva.png",
+      "/image/leader/alien/vlazia.png",
+      "/image/leader/alien/vloru.png",
+      "/image/leader/alien/vlurixia.png",
+      "/image/leader/alien/vor.png",
+      "/image/leader/alien/vora.png",
+      "/image/leader/alien/vorinth.png",
+      "/image/leader/alien/vorthal.png",
+      "/image/leader/alien/vuux.png",
+      "/image/leader/alien/vux.png"
+    ]
+  },
+  {
+    "label": "Alien portraits / Blue court",
+    "keywords": "blue skin purple gold uniforms",
+    "assets": [
+      "/image/leader/alien/zan.png",
+      "/image/leader/alien/ziel.png",
+      "/image/leader/alien/zilakador.png",
+      "/image/leader/alien/zilkr.png",
+      "/image/leader/alien/zixxi.png",
+      "/image/leader/alien/zor.png",
+      "/image/leader/alien/zorzokal.png",
+      "/image/leader/alien/zoul.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Black and gold uniforms",
+    "keywords": "officer black gold",
+    "assets": [
+      "/image/leader/custom/alfonso.png",
+      "/image/leader/custom/anndel.png",
+      "/image/leader/custom/annora.png",
+      "/image/leader/custom/hactro.png",
+      "/image/leader/custom/katrin.png",
+      "/image/leader/custom/ribo.png",
+      "/image/leader/custom/rico.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Green and gold uniforms",
+    "keywords": "officer green gold",
+    "assets": [
+      "/image/leader/custom/florian.png",
+      "/image/leader/custom/picard.png",
+      "/image/leader/custom/tallus.png",
+      "/image/leader/custom/tanya.png",
+      "/image/leader/custom/taraza.png",
+      "/image/leader/custom/taz.png",
+      "/image/leader/custom/tirza.png",
+      "/image/leader/custom/ylim.png",
+      "/image/leader/custom/yvonne.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Sand uniforms",
+    "keywords": "desert tan armor",
+    "assets": [
+      "/image/leader/custom/abon.png",
+      "/image/leader/custom/bill.png",
+      "/image/leader/custom/boener.png",
+      "/image/leader/custom/brad.png",
+      "/image/leader/custom/cortha.png",
+      "/image/leader/custom/huelab.png",
+      "/image/leader/custom/jack.png",
+      "/image/leader/custom/jiena.png",
+      "/image/leader/custom/klok.png",
+      "/image/leader/custom/louis.png",
+      "/image/leader/custom/markie.png",
+      "/image/leader/custom/ron.png",
+      "/image/leader/custom/thurn.png",
+      "/image/leader/custom/tina.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Sand respirators",
+    "keywords": "desert mask breathing",
+    "assets": [
+      "/image/leader/custom/boraqqa.png",
+      "/image/leader/custom/costanisto.png",
+      "/image/leader/custom/galio.png",
+      "/image/leader/custom/gia.png",
+      "/image/leader/custom/hara.png",
+      "/image/leader/custom/harber.png",
+      "/image/leader/custom/harqq.png",
+      "/image/leader/custom/talacti.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Sealed helmets",
+    "keywords": "helmet glass visor",
+    "assets": [
+      "/image/leader/custom/barko.png",
+      "/image/leader/custom/crocas.png",
+      "/image/leader/custom/elo.png",
+      "/image/leader/custom/salina.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Gray helmets",
+    "keywords": "helmet grey armor",
+    "assets": [
+      "/image/leader/custom/bas.png",
+      "/image/leader/custom/hacket.png",
+      "/image/leader/custom/kraakman.png",
+      "/image/leader/custom/pinneu.png",
+      "/image/leader/custom/wym.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Green helmets",
+    "keywords": "helmet green armor",
+    "assets": [
+      "/image/leader/custom/doqru.png",
+      "/image/leader/custom/gumbo.png",
+      "/image/leader/custom/jannes.png",
+      "/image/leader/custom/lajanna.png",
+      "/image/leader/custom/pinott.png",
+      "/image/leader/custom/uin.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Gold helmets",
+    "keywords": "helmet gold",
+    "assets": ["/image/leader/custom/liara.png"]
+  },
+  {
+    "label": "Custom portraits / Dark uniforms",
+    "keywords": "black grey armor",
+    "assets": [
+      "/image/leader/custom/annaval.png",
+      "/image/leader/custom/haar.png",
+      "/image/leader/custom/kadaf.png",
+      "/image/leader/custom/kino.png",
+      "/image/leader/custom/loura.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Desert robes",
+    "keywords": "hood scarf desert",
+    "assets": [
+      "/image/leader/custom/ari.png",
+      "/image/leader/custom/ilo.png",
+      "/image/leader/custom/keno.png",
+      "/image/leader/custom/laila.png",
+      "/image/leader/custom/louina.png",
+      "/image/leader/custom/lyynn.png",
+      "/image/leader/custom/vis.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Purple robes",
+    "keywords": "purple cloak",
+    "assets": ["/image/leader/custom/alissa.png", "/image/leader/custom/andre.png", "/image/leader/custom/jeroen.png"]
+  },
+  {
+    "label": "Custom portraits / Gold collars",
+    "keywords": "gold collar",
+    "assets": ["/image/leader/custom/lemm.png", "/image/leader/custom/liann.png", "/image/leader/custom/lieto.png"]
+  },
+  {
+    "label": "Custom portraits / Crowned court",
+    "keywords": "crown royal noble",
+    "assets": [
+      "/image/leader/custom/ariana.png",
+      "/image/leader/custom/boss.png",
+      "/image/leader/custom/charles.png",
+      "/image/leader/custom/edwards.png",
+      "/image/leader/custom/eleen.png",
+      "/image/leader/custom/floosian.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Ruffed collars",
+    "keywords": "ruff noble",
+    "assets": ["/image/leader/custom/elsa.png", "/image/leader/custom/hanz.png"]
+  },
+  {
+    "label": "Custom portraits / Hoods and veils",
+    "keywords": "hood veil ceremonial",
+    "assets": [
+      "/image/leader/custom/evictus.png",
+      "/image/leader/custom/juliazi.png",
+      "/image/leader/custom/lizza.png",
+      "/image/leader/custom/murkus.png",
+      "/image/leader/custom/uladina.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Other portraits",
+    "keywords": "uniform",
+    "assets": [
+      "/image/leader/custom/lacconi.png",
+      "/image/leader/custom/lara.png",
+      "/image/leader/custom/noaki.png",
+      "/image/leader/custom/sam.png",
+      "/image/leader/custom/urkno.png"
+    ]
+  },
+  {
+    "label": "Faction emblems / Board game factions",
+    "keywords": "established classic base expansion",
+    "assets": [
+      "/vector/logo/atreides.svg",
+      "/vector/logo/bene-gesserit.svg",
+      "/vector/logo/bene-tleilaxu.svg",
+      "/vector/logo/choam.svg",
+      "/vector/logo/ecaz.svg",
+      "/vector/logo/emperor.svg",
+      "/vector/logo/fremen.svg",
+      "/vector/logo/guild.svg",
+      "/vector/logo/harkonnen.svg",
+      "/vector/logo/ixian.svg",
+      "/vector/logo/moritani.svg",
+      "/vector/logo/richese.svg"
+    ]
+  },
+  {
+    "label": "Faction emblems / Community factions",
+    "keywords": "homebrew fan",
+    "assets": ["/vector/logo/ginaz.svg", "/vector/logo/hagal.svg", "/vector/logo/iduali.svg"]
+  },
+  {
+    "label": "Custom emblems / Creatures",
+    "keywords": "original custom heraldry",
+    "assets": [
+      "/vector/logo/glass-owl.svg",
+      "/vector/logo/spice-fox.svg",
+      "/vector/logo/iron-tortoise.svg",
+      "/vector/logo/dune-crab.svg",
+      "/vector/logo/moon-moth.svg",
+      "/vector/logo/horned-bat.svg",
+      "/vector/logo/sabre-cat.svg",
+      "/vector/logo/sand-ray.svg",
+      "/vector/logo/sun-cobra.svg",
+      "/vector/logo/thorn-frog.svg",
+      "/vector/logo/desert-hare.svg",
+      "/vector/logo/sail-fin.svg",
+      "/vector/logo/stone-bison.svg",
+      "/vector/logo/reed-crane.svg",
+      "/vector/logo/hooded-raven.svg",
+      "/vector/logo/dune-jackal.svg",
+      "/vector/logo/crowned-ibex.svg",
+      "/vector/logo/obsidian-mantis.svg",
+      "/vector/logo/coil-viper.svg",
+      "/vector/logo/cinder-phoenix.svg",
+      "/vector/logo/salt-scarab.svg",
+      "/vector/logo/sirocco-raptor.svg"
+    ]
+  },
+  {
+    "label": "Custom emblems / House crests",
+    "keywords": "original custom heraldry",
+    "assets": [
+      "/vector/logo/antler-tower.svg",
+      "/vector/logo/broken-spear.svg",
+      "/vector/logo/falcon-gauntlet.svg",
+      "/vector/logo/triple-axe.svg",
+      "/vector/logo/closed-helm.svg",
+      "/vector/logo/sun-bastion.svg",
+      "/vector/logo/blade-bridge.svg",
+      "/vector/logo/crown-anvil.svg",
+      "/vector/logo/sentinel-key.svg",
+      "/vector/logo/mountain-throne.svg",
+      "/vector/logo/crescent-blade.svg"
+    ]
+  },
+  {
+    "label": "Custom emblems / Desert symbols",
+    "keywords": "original custom heraldry",
+    "assets": [
+      "/vector/logo/dew-cistern.svg",
+      "/vector/logo/thorn-cactus.svg",
+      "/vector/logo/spice-chalice.svg",
+      "/vector/logo/salt-crystal.svg",
+      "/vector/logo/root-reservoir.svg",
+      "/vector/logo/sun-shutter.svg",
+      "/vector/logo/worm-hook.svg",
+      "/vector/logo/caravan-arch.svg",
+      "/vector/logo/water-clasp.svg",
+      "/vector/logo/sand-hourglass.svg",
+      "/vector/logo/worm-crown.svg",
+      "/vector/logo/sietch-well.svg",
+      "/vector/logo/thorn-bloom.svg",
+      "/vector/logo/twin-moons.svg",
+      "/vector/logo/storm-compass.svg"
+    ]
+  },
+  {
+    "label": "Custom emblems / Technology",
+    "keywords": "original custom heraldry",
+    "assets": [
+      "/vector/logo/orbital-spindle.svg",
+      "/vector/logo/heighliner-gate.svg",
+      "/vector/logo/gyroscope-seal.svg",
+      "/vector/logo/cog-sun.svg",
+      "/vector/logo/signal-fork.svg",
+      "/vector/logo/mirror-array.svg",
+      "/vector/logo/null-vault.svg",
+      "/vector/logo/carryall-wing.svg",
+      "/vector/logo/spice-refinery.svg",
+      "/vector/logo/foldspace-knot.svg",
+      "/vector/logo/prism-engine.svg"
+    ]
+  },
+  {
+    "label": "Custom emblems / Orders",
+    "keywords": "original custom heraldry",
+    "assets": [
+      "/vector/logo/veiled-mask.svg",
+      "/vector/logo/memory-tree.svg",
+      "/vector/logo/whisper-hand.svg",
+      "/vector/logo/twin-flame.svg",
+      "/vector/logo/eclipse-lotus.svg",
+      "/vector/logo/oath-chain.svg",
+      "/vector/logo/pilgrim-lantern.svg",
+      "/vector/logo/oracle-eye.svg",
+      "/vector/logo/merchant-seal.svg"
+    ]
+  }
+]

@@ -2,6 +2,7 @@ import { Box, ColorInput, NumberInput, SimpleGrid, Stack, Switch, Text, TextInpu
 import type { NumberInputProps } from '@mantine/core';
 import { TROOP, TROOP_MODIFIER } from '@shared/assetIds';
 import { completeCombat } from '@shared/factions/troopCombat';
+import { stockAssetOptions } from '@ui/content/stockAssetOptions';
 import { AssetSelect } from '@ui/control/AssetSelect';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
@@ -9,14 +10,11 @@ import { useEffect, useState } from 'react';
 
 import type { Faction } from '@db/factions';
 
-import { assetOptionToPreviewSrc, troopOptionToLabel, troopStarOptionToLabel } from './factionFormAssetUtils';
+import { assetOptionToPreviewSrc, troopStarOptionToLabel } from './factionFormAssetUtils';
 import { nextTroopCombat } from './factionFormDefaults';
 import type { FactionFormApi } from './factionFormTypes';
 
-const troopImageOptions = TROOP.options.map((value) => ({
-  value,
-  label: troopOptionToLabel(value),
-}));
+const troopImageOptions = stockAssetOptions(TROOP.options);
 
 /* The -red variants predate the star color field and are redundant with it: the editor
    offers only the base stars, while the schema and renderer keep accepting stored -red

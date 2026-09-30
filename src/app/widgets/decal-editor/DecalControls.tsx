@@ -1,21 +1,15 @@
 import { Grid, NumberInput, Slider, Stack, Switch } from '@mantine/core';
 import type { Decal } from '@shared/assets/schema';
+import { stockAssetOptions } from '@ui/content/stockAssetOptions';
 import { AssetSelect } from '@ui/control/AssetSelect';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import type { z } from 'zod';
 
-import {
-  assetOptionToPreviewSrc,
-  decalAssetOptions,
-  decalAssetOptionToLabel,
-} from '@app/widgets/faction-editor/factionFormAssetUtils';
+import { assetOptionToPreviewSrc, decalAssetOptions } from '@app/widgets/faction-editor/factionFormAssetUtils';
 
 export type DecalData = z.infer<typeof Decal>;
 
-const decalOptions = decalAssetOptions.map((value) => ({
-  value,
-  label: decalAssetOptionToLabel(value),
-}));
+const decalOptions = stockAssetOptions(decalAssetOptions);
 
 /**
  * The one decal control stack every decal-bearing editor installs identically (alliance cards, treachery cards): asset, treatments, scale, and slider-based offsets.
@@ -44,7 +38,6 @@ export function DecalControls({
           <AssetSelect
             aria-label={`Asset for ${label}`}
             allowDeselect={false}
-            limit={30}
             data={decalOptions}
             getPreviewSrc={assetOptionToPreviewSrc}
             glyphPreviews

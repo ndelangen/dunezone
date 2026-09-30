@@ -2,6 +2,7 @@ import { arrayMove } from '@dnd-kit/sortable';
 import { Alert, Badge, Box, Grid, Group, Stack, Text, TextInput } from '@mantine/core';
 import { LEADERS } from '@shared/assetIds';
 import { SUPPORTING_LEADER_LIMIT } from '@shared/factions/schema';
+import { stockAssetOptions } from '@ui/content/stockAssetOptions';
 import { AssetSelect } from '@ui/control/AssetSelect';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { ListLengthActions } from '@ui/control/ListLengthActions';
@@ -11,16 +12,13 @@ import type { Faction } from '@db/factions';
 import { LeaderToken } from '@game/assets/faction/leader/Leader';
 
 import { FactionCollectionShelf } from './FactionCollectionShelf';
-import { assetOptionToPreviewSrc, leaderOptionToLabel } from './factionFormAssetUtils';
+import { assetOptionToPreviewSrc } from './factionFormAssetUtils';
 import { nextLeaderFromLast } from './factionFormDefaults';
 import type { FactionFormApi } from './factionFormTypes';
 
 export const CONVENTIONAL_SUPPORTING_LEADER_COUNT = 5;
 
-const leaderImageOptions = LEADERS.options.map((value) => ({
-  value,
-  label: leaderOptionToLabel(value),
-}));
+const leaderImageOptions = stockAssetOptions(LEADERS.options);
 
 export function canAddSupportingLeader(count: number): boolean {
   return count >= 0 && count < SUPPORTING_LEADER_LIMIT;
@@ -121,7 +119,6 @@ function SupportingLeaderCard({
                           id={`leader-${index}-img`}
                           aria-label="Leader portrait"
                           allowDeselect={false}
-                          limit={24}
                           data={leaderImageOptions}
                           getPreviewSrc={assetOptionToPreviewSrc}
                           value={field.state.value}

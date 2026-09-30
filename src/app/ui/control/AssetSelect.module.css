@@ -1,3 +1,7 @@
+.dropdown {
+  --asset-options-height: 420px;
+}
+
 .previewImg {
   flex-shrink: 0;
 
@@ -10,4 +14,45 @@
 html[data-mantine-color-scheme="dark"] .glyph {
   filter: brightness(0) invert(1);
   opacity: 0.9;
+}
+
+.optionGroup {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 6rem), 1fr));
+  gap: var(--mantine-spacing-xs);
+}
+
+.groupLabel {
+  grid-column: 1 / -1;
+}
+
+.option {
+  min-width: 0;
+  justify-content: center;
+  border: 1px solid transparent;
+}
+
+.option[data-combobox-active] {
+  border-color: var(--selection-border);
+}
+
+.optionContent {
+  width: 100%;
+}
+
+.filterButton {
+  width: 100%;
+  height: 100%;
+  border-radius: 0;
+  border-left: 1px solid var(--mantine-color-default-border);
+}
+
+.activeDot {
+  position: absolute;
+  top: 0.3rem;
+  right: 0.3rem;
+  width: 0.3rem;
+  height: 0.3rem;
+  border-radius: 50%;
+  background: var(--mantine-color-selected-filled);
 }
