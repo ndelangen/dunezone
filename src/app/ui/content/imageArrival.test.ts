@@ -55,3 +55,46 @@ describe('the arrival gate', () => {
     expect(revealed).toHaveLength(60);
   });
 });
+
+describe('the animation pool', () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'performance'] });
+    vi.resetModules();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  test('six images animate while the next waits for an actual completion', async () => {
+    const { requestArrivalAnimation } = await import('./imageArrival');
+    const starts: [number, boolean][] = [];
+    const releases = Array.from({ length: 8 }, (_, index) =>
+      requestArrivalAnimation((animate) => starts.push([index, animate]))
+    );
+    expect(starts).toEqual(Array.from({ length: 6 }, (_, index) => [index, true]));
+    releases[0]!();
+    expect(starts.at(-1)).toEqual([6, true]);
+    /* Releasing twice cannot spend the same slot twice. */
+    releases[0]!();
+    expect(starts).toHaveLength(7);
+    releases[1]!();
+    expect(starts.at(-1)).toEqual([7, true]);
+    releases.forEach((release) => release());
+  });
+
+  test('a saturated queue shows decoded content still after 700 ms, and an unmounted image never starts', async () => {
+    const { requestArrivalAnimation } = await import('./imageArrival');
+    const releaseActive = Array.from({ length: 6 }, () => requestArrivalAnimation(() => undefined));
+    const starts: boolean[] = [];
+    const releaseWaiting = requestArrivalAnimation((animate) => starts.push(animate));
+    const cancelled = vi.fn();
+    requestArrivalAnimation(cancelled)();
+    vi.advanceTimersByTime(700);
+    expect(starts).toEqual([false]);
+    expect(cancelled).not.toHaveBeenCalled();
+    releaseActive.forEach((release) => release());
+    releaseWaiting();
+    expect(starts).toEqual([false]);
+  });
+});
