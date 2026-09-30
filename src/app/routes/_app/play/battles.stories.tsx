@@ -1,5 +1,5 @@
 import preview from '@sb/preview';
-import { finishTransitions } from '@sb/storyWaits';
+import { finishTransitions, waitForFrame } from '@sb/storyWaits';
 import type { GameSnapshot } from '@shared/play/protocol';
 import { BOARD_RADIUS } from '@shared/play/tableGeometry';
 import { resolveRulebookBoardDefinition } from '@shared/rulebooks/boardDefinitions';
@@ -78,7 +78,8 @@ export const BattleCalloutArrivesInPlace = meta.story({
       while (callout.parentElement && !callout.parentElement.contains(scene)) {
         callout = callout.parentElement;
       }
-      await settled(() => expect(firstDraws.has(callout)).toBe(true));
+      /* That write happens only inside the scene's animation-frame callbacks, so each poll runs the waiting frames itself. */
+      await waitForFrame(() => expect(firstDraws.has(callout)).toBe(true), { timeout: 30_000 });
       const first = firstDraws.get(callout)!;
       const sceneBounds = scene.getBoundingClientRect();
       expect(Math.abs(first.x - (sceneBounds.left + sceneBounds.width / 2))).toBeLessThanOrEqual(1);
