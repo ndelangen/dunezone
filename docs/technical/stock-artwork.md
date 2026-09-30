@@ -5,7 +5,7 @@ visible choices without changing the selected artwork. Search matches names, col
 keywords. The filter stays selected while editing another supporting leader, so a matching roster
 can be assembled without finding the collection again.
 
-`src/shared/stockAssetCollections.ts` owns the curated portrait and emblem sets. The labels describe
+`src/shared/stockAssetCollections.json` owns the curated portrait and emblem sets. The labels describe
 faction membership or a matching visual set. They do not grant access or refer to collaboration
 Groups. `src/app/ui/content/stockAssetOptions.ts` turns these records into picker options and groups
 other vectors by their purpose and subject.
@@ -14,7 +14,7 @@ other vectors by their purpose and subject.
 
 1. Put the source artwork in `media/image/leader/<source>/` or `media/vector/logo/`.
 2. Add its complete `/image/leader/...` or `/vector/logo/...` key to one collection in
-   `stockAssetCollections.ts`. Reuse the collection for matching artwork; create one for a new set.
+   `stockAssetCollections.json`. Reuse the collection for matching artwork; create one for a new set.
 3. Give a new set a descriptive label and useful search keywords. A source name and a matching set
    answer different questions, so faction sets collect related portraits across source folders. Visual sets use labels such as
    `Custom portraits / Sand uniforms`. Source names remain searchable through their saved paths.

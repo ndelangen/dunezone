@@ -1,4 +1,4 @@
-import { stockAssetCollections } from '@shared/stockAssetCollections';
+import stockAssetCollections from '@shared/stockAssetCollections.json';
 
 const collectionsByAsset = new Map<string, (typeof stockAssetCollections)[number]>(
   stockAssetCollections.flatMap((collection) => collection.assets.map((asset) => [asset, collection] as const))
@@ -8,42 +8,42 @@ function words(value: string) {
   return value.replace(/[-_]+/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
+const vectorCategories: Record<string, string> = {
+  logo: 'Emblems',
+  generic: 'General symbols',
+  decal: 'Decals',
+  icon: 'Game icons',
+  troop: 'Troops',
+  troop_modifier: 'Troop modifiers',
+  background: 'Patterns',
+};
+
+const vectorThemes = [
+  { match: /poison|chaumurky|chaumas|residual|snooper|antidote|semuta/, label: 'Poison and protection' },
+  {
+    match: /sword|blade|gun|weapon|laser|lazgun|shield|artillery|atomics|stone-burner|battle/,
+    label: 'Weapons and combat',
+  },
+  { match: /thopter|harvest|carryall|ship|transport|smuggl|caravan/, label: 'Vehicles and transport' },
+  { match: /water|spice|worm|shai|sand|desert|storm|weather|thumper|plant|tree/, label: 'Desert and resources' },
+  { match: /hand|eye|head|face|heart|skull|body/, label: 'People and anatomy' },
+];
+
 function fallbackCollection(value: string) {
-  const [, kind, category, source] = value.split('/');
+  const [, kind, category = 'Artwork', source = 'Other'] = value.split('/');
   if (kind === 'image' && category === 'leader') {
-    return `Portraits / ${words(source ?? 'Other')}`;
+    return `Portraits / ${words(source)}`;
   }
-  if (kind === 'vector') {
-    const categoryLabel =
-      (
-        {
-          logo: 'Emblems',
-          generic: 'General symbols',
-          decal: 'Decals',
-          icon: 'Game icons',
-          troop: 'Troops',
-          troop_modifier: 'Troop modifiers',
-          background: 'Patterns',
-        } as Record<string, string>
-      )[category ?? ''] ?? 'Symbols';
-    if (category === 'decal' || category === 'generic') {
-      const name = value.split('/').at(-1) ?? '';
-      const theme = /poison|chaumurky|chaumas|residual|snooper|antidote|semuta/.test(name)
-        ? 'Poison and protection'
-        : /sword|blade|gun|weapon|laser|lazgun|shield|artillery|atomics|stone-burner|battle/.test(name)
-          ? 'Weapons and combat'
-          : /thopter|harvest|carryall|ship|transport|smuggl|caravan/.test(name)
-            ? 'Vehicles and transport'
-            : /water|spice|worm|shai|sand|desert|storm|weather|thumper|plant|tree/.test(name)
-              ? 'Desert and resources'
-              : /hand|eye|head|face|heart|skull|body/.test(name)
-                ? 'People and anatomy'
-                : 'Other symbols';
-      return `${categoryLabel} / ${theme}`;
-    }
+  if (kind !== 'vector') {
+    return words(category);
+  }
+  const categoryLabel = vectorCategories[category] ?? 'Symbols';
+  if (category !== 'decal' && category !== 'generic') {
     return categoryLabel;
   }
-  return words(category ?? 'Artwork');
+  const name = value.split('/').at(-1) ?? '';
+  const theme = vectorThemes.find(({ match }) => match.test(name))?.label ?? 'Other symbols';
+  return `${categoryLabel} / ${theme}`;
 }
 
 /** Labels and browsing collections for stock artwork, without changing its saved identifier. */

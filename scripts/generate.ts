@@ -2,7 +2,7 @@ import { join, relative } from 'node:path';
 
 import { recursiveReaddirFiles } from 'recursive-readdir-files';
 
-import { stockAssetCollections } from '../src/shared/stockAssetCollections';
+import stockAssetCollections from '../src/shared/stockAssetCollections.json';
 
 async function getFiles(path: string, root: 'public' | 'media' = 'public') {
   /*
@@ -59,7 +59,7 @@ for (const collection of stockAssetCollections) {
 }
 for (const asset of [...leaders, ...logo]) {
   if (!classifiedAssets.has(`/${asset}`)) {
-    throw new Error(`Add /${asset} to a browsing collection in src/shared/stockAssetCollections.ts`);
+    throw new Error(`Add /${asset} to a browsing collection in src/shared/stockAssetCollections.json`);
   }
 }
 
