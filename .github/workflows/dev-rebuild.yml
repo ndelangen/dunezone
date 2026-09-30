@@ -1,6 +1,7 @@
 name: Rebuild dev deployment
 
-# Rebuilds the long-lived cloud dev deployment as a production replica (map #352).
+# Rebuilds the long-lived cloud dev deployment from the anonymised, published-only snapshot (map #352, #1559).
+# It never imports raw production: this job exports production, anonymises the export and loads only the result.
 # Called by deploy-main after production has shipped, or dispatched manually to force fresh data.
 on:
   workflow_call:
@@ -11,10 +12,10 @@ on:
         type: string
     secrets:
       CONVEX_DEPLOY_KEY:
-        description: Production deploy key; reads the snapshot the dev deployment is rebuilt from.
+        description: Production deploy key; exports production for the anonymised snapshot dev is rebuilt from.
         required: true
       CONVEX_DEV_DEPLOY_KEY:
-        description: Deploy key scoped to the dev deployment; pushes code and imports data.
+        description: Deploy key scoped to the dev deployment; pushes code and imports the snapshot.
         required: true
   workflow_dispatch:
     inputs:
@@ -35,7 +36,7 @@ jobs:
   rebuild:
     environment: production
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
@@ -61,9 +62,20 @@ jobs:
         env:
           CONVEX_DEV_DEPLOY_KEY: ${{ secrets.CONVEX_DEV_DEPLOY_KEY }}
 
-      - name: Rebuild dev from production
+      # The snapshot job's own script, and the only step that holds the production key. It reads the raw export
+      # into memory, deletes it before anonymising, and writes the scanned snapshot under RUNNER_TEMP.
+      - name: Export production, anonymise it and scan the snapshot
         if: steps.decision.outputs.rebuild == 'true'
-        run: bun run provision dev --stage data
+        run: bun run ./scripts/anonymised-snapshot.ts
+        env:
+          CONVEX_PROD_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
+
+      - name: Rebuild dev from the anonymised snapshot
+        if: steps.decision.outputs.rebuild == 'true'
+        run: bun run provision dev --stage data --snapshot-file "${RUNNER_TEMP}/anonymised-snapshot/snapshot.zip"
         env:
           CONVEX_DEV_DEPLOY_KEY: ${{ secrets.CONVEX_DEV_DEPLOY_KEY }}
-          CONVEX_PROD_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
+
+      - name: Delete the snapshot from the runner
+        if: always()
+        run: rm -rf "${RUNNER_TEMP:?}/anonymised-snapshot"

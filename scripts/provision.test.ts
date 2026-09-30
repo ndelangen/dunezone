@@ -30,19 +30,36 @@ describe('provision pipeline', () => {
       target: 'e2e',
       stages: ['backend', 'configure', 'code', 'data'],
       stagesExplicit: false,
+      snapshotFile: null,
     });
     expect(parseProvisionArgs(['e2e', '--stage', 'backend'])).toEqual({
       target: 'e2e',
       stages: ['backend'],
       stagesExplicit: true,
+      snapshotFile: null,
     });
-    expect(parseProvisionArgs(['dev'])).toEqual({
+    expect(parseProvisionArgs(['dev', '--stage', 'code'])).toEqual({
       target: 'dev',
-      stages: ['code', 'data'],
-      stagesExplicit: false,
+      stages: ['code'],
+      stagesExplicit: true,
+      snapshotFile: null,
     });
     expect(() => parseProvisionArgs(['prod'])).toThrow('Usage: provision');
     expect(() => parseProvisionArgs(['dev', '--stage', 'backend'])).toThrow('Invalid stage for target dev');
+  });
+
+  test('rebuilds dev data only from an anonymised snapshot file', () => {
+    expect(parseProvisionArgs(['dev', '--stage', 'data', '--snapshot-file', '/runner/snapshot.zip'])).toEqual({
+      target: 'dev',
+      stages: ['data'],
+      stagesExplicit: true,
+      snapshotFile: '/runner/snapshot.zip',
+    });
+    expect(() => parseProvisionArgs(['dev'])).toThrow('never production: pass --snapshot-file');
+    expect(() => parseProvisionArgs(['dev', '--stage', 'data'])).toThrow('never production: pass --snapshot-file');
+    expect(() => parseProvisionArgs(['local', '--stage', 'data', '--snapshot-file', 'snapshot.zip'])).toThrow(
+      '--snapshot-file belongs to the dev data stage alone'
+    );
   });
 
   test('parses pretty-printed multi-line convex run results', () => {

@@ -22,7 +22,8 @@ Convex agent skills for common tasks can be installed by running
 - `bun run app:dev` connects to the configured online Convex deployment. Treat that deployment as a
   shared integration target. For branch work on Convex functions, schemas, or migrations, add
   `--local`; each launch then owns a disposable Docker-backed environment with local test auth and
-  fixture data, and `--local --clone-prod` swaps the fixtures for a production snapshot. See
+  fixture data, and `--local --data=snapshot` swaps the fixtures for the anonymised, published-only
+  production snapshot. `--local --clone-prod` loads raw production and is break-glass only. See
   `docs/README.md`.
 
 ## Worktree freshness

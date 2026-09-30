@@ -70,16 +70,18 @@ Rules:
 
 ## Strict branch and integration startup
 
-Use `bun run app:dev --local --clone-prod` to validate a branch against its own production-shaped
+Use `bun run app:dev --local --data=snapshot` to validate a branch against its own production-shaped
 database. The command creates a separate Convex stack per launch, pushes the checked-out schema and
-functions, imports a production snapshot, clears the provisioning contract's tables, and runs the
+functions, imports the anonymised snapshot, checks the snapshot rebuild contract, and runs the
 required migration guards before starting the app. Plain `bun run app:dev --local` starts from
-fixture data, which shows nothing about how a migration treats production rows. A local watcher
-pushes later function and schema edits to that stack without changing `.env.local`. Restart after
-changing a migration module or the guard manifest. This creates a fresh disposable database and
-reruns `dev-strict`. See
-[`Disposable local app development`](./README.md#disposable-local-app-development) for snapshot
-privacy and cleanup limits.
+fixture data, which shows nothing about how a migration treats production rows. The snapshot holds
+published rows only, so it cannot show how a migration treats users, drafts, FAQ answers, group
+memberships or deleted rows. For those, reason from the schema and the migration's tests; the raw
+`--clone-prod` launch is break-glass only. A local watcher pushes later function and schema edits to
+that stack without changing `.env.local`. Restart after changing a migration module or the guard
+manifest. This creates a fresh disposable database and reruns `dev-strict`. See
+[`Disposable local app development`](./README.md#disposable-local-app-development) for what the
+snapshot holds, where it comes from and how long it stays cached.
 
 - `bun run convex:dev` runs `bun run migrations:dev-strict` before starting the configured Convex
   deployment's watcher. It is reserved for deliberate integration work because a feature branch can

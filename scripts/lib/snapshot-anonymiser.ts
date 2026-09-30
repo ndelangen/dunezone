@@ -561,6 +561,34 @@ export function anonymiseExport(input: ExportEntries): { entries: Map<string, st
   return { entries, report: reportFor(layout, outputs) };
 }
 
+/**
+ * Checks that entries are a snapshot the anonymiser wrote, before a loader imports them.
+ * They need the anonymiser's manifest, which a raw Convex export lacks, no table the policy drops apart from the placeholder owner's `users`, and a clean leak scan.
+ * Throws `SnapshotRefused` naming every problem by table and field, never by value.
+ */
+export function verifySnapshot(entries: ExportEntries): SnapshotManifest {
+  const problems: string[] = [];
+  const manifest = parseJsonObject(entries.get(SNAPSHOT_MANIFEST) ?? '');
+  if (manifest?.format !== SNAPSHOT_FORMAT || manifest.version !== 1) {
+    problems.push(`the file has no ${SNAPSHOT_MANIFEST} from the anonymiser, so it is not an anonymised snapshot`);
+  }
+  const dropped = new Set(
+    [...entries.keys()]
+      .map((path) => TABLE_ENTRY.exec(path)?.[1])
+      .filter((table) => table !== undefined && table !== 'users' && keptPolicy(table) === null)
+  );
+  if (dropped.size > 0) {
+    problems.push(`tables the snapshot policy drops: ${[...dropped].sort().join(', ')}`);
+  }
+  for (const { table, field, kind } of scanSnapshot(entries)) {
+    problems.push(`leak scan: ${kind} in ${table}.${field}`);
+  }
+  if (problems.length > 0) {
+    throw new SnapshotRefused(problems);
+  }
+  return manifest as SnapshotManifest;
+}
+
 /*
  * The leak scan.
  * It is independent of the policy on purpose: a policy mistake that keeps an email or a sign-in row still stops the run.

@@ -293,9 +293,10 @@ On every push to `main`:
     activate all higher revisions in one mutation and schedule bounded
     regeneration scans. CI does not wait for scanning or capture.
 14. Set Convex Auth `SITE_URL` to `https://dune.zone`.
-15. A follow-on `dev_rebuild` job (`needs: deploy`) rebuilds the dev deployment
-    from production; see
-    [`dev-rebuild.yml`](../.github/workflows/dev-rebuild.yml).
+15. A follow-on `dev_rebuild` job (`needs: deploy`) pushes main's functions to the dev deployment,
+    and when the data needs rebuilding, reloads it from a fresh anonymised snapshot, never from raw
+    production; see [`dev-rebuild.yml`](../.github/workflows/dev-rebuild.yml) and
+    [Anonymised snapshot](#anonymised-snapshot).
 
 The revision step rejects a checked-in value lower than production. Equal values
 are a no-op. A revision activation stores the new values before scheduling scans,
@@ -364,6 +365,26 @@ repository are public.
 The upload step runs only when `SNAPSHOT_UPLOAD` in the workflow is `"true"`, and then uploads the
 snapshot file alone as an artifact kept for one day. While the value is `"false"`, every run is a
 dry run and uploads nothing.
+
+Two consumers load the snapshot, and both refuse a file without the anonymiser's manifest, with a
+table the policy drops, or with a leak scan finding, so neither can load a raw export:
+
+- `dev-rebuild.yml` runs `scripts/anonymised-snapshot.ts` itself when dev's data needs rebuilding,
+  in the same job and without uploading anything, so it never waits on or reads the public
+  artifact. The production key reaches that step alone. The next step, holding only
+  `CONVEX_DEV_DEPLOY_KEY`, runs `provision dev --stage data --snapshot-file` on the written file: it
+  clears dev, pushes main's functions, imports the snapshot with `--replace-all`, checks the snapshot
+  rebuild contract in [`convex/lib/provisioningContract.ts`](../convex/lib/provisioningContract.ts)
+  and runs the migration guards, which rebuild the migration state and aggregates the snapshot
+  leaves out. The last step deletes the job's directory whatever happened before. Dev keeps no
+  account from production, so everyone signs in to dev afresh after a rebuild; see
+  [Keeping the cloud dev deployment usable](./README.md#keeping-the-cloud-dev-deployment-usable).
+- `bun run app:dev --local --data=snapshot` downloads the newest artifact the job uploaded from
+  `main`, or loads the file `--snapshot-file` names; see
+  [Disposable local app development](./README.md#disposable-local-app-development).
+
+Production stays the only raw copy. The one exception is `app:dev --local --clone-prod`, kept for
+local break-glass use by someone with a Convex login that can export production.
 
 ## Migrations on every `main` deploy
 

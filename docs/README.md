@@ -30,7 +30,8 @@ Quick reference for understanding and working with the codebase.
 # Development
 bun run app:dev           # Port 3000, using the configured online Convex deployment
 bun run app:dev --local   # Separate Convex per launch + local auth + fixture data
-bun run app:dev --local --clone-prod # The same with a production data clone; needs a Convex login
+bun run app:dev --local --data=snapshot # The same with the anonymised, published-only production snapshot
+bun run app:dev --local --clone-prod # Break-glass only: a raw production clone; needs a Convex login
 bun run app:build         # Build for production
 bun run app:preview       # Preview production build locally
 
@@ -110,12 +111,40 @@ this order:
 Vite serves no `/published/` path; it answers with the application's HTML. Published artwork such as
 faction tokens and leader portraits therefore shows as a missing image in a local launch.
 
-`bun run app:dev --local --clone-prod` imports a fresh production snapshot instead of the fixtures.
-It needs a Convex CLI login able to export from production, and it reads the main checkout's Convex
-project selection when the worktree has none. It clears the auth session/token and publication queue
-tables, then checks the rebuild contract. The cleared and required table lists live in
-[`convex/lib/provisioningContract.ts`](../convex/lib/provisioningContract.ts). This copy is not
-anonymized; users and other production data remain. Export reads production without changing it.
+`bun run app:dev --local --data=snapshot` loads the anonymised production snapshot instead of the
+fixtures. The snapshot holds published content only: groups, factions, assets, rulesets, Rulebooks
+with their Editions, FAQ questions, and the profiles `profiles:list` already shows. It holds no
+users, sign-in accounts, emails, drafts, FAQ answers, group memberships or deleted accounts. Every
+owner, author and asker in it is one placeholder user, "Snapshot owner", which has no email, so
+nobody can sign in as it. `scripts/lib/snapshot-policy.ts` says what each table keeps.
+
+Without `--snapshot-file <zip>`, the launch downloads the newest snapshot that the `Anonymised
+snapshot` workflow uploaded from `main`, using the GitHub CLI (`gh auth login` first). It ignores an
+artifact of that name from any other workflow, event, branch or fork. The download goes to
+`$XDG_CACHE_HOME/dunezone/anonymised-snapshot`, or `~/.cache/dunezone/anonymised-snapshot`, never
+inside the checkout. A later launch reuses it while it is the newest artifact, and falls back to it
+when no artifact is left or GitHub cannot be reached. Each launch deletes cached snapshots made more
+than seven days ago. The workflow keeps each upload for one day, and uploads only while its
+`SNAPSHOT_UPLOAD` switch is `"true"`, so with no artifact and no cached copy the launch stops and
+points at `--data=fixture`.
+
+Before importing, the launch refuses any file the anonymiser did not write: it needs the
+anonymiser's manifest, no table the policy drops, and a clean leak scan, so a raw export never loads
+by mistake. The import uses `--replace-all`, which empties every table the snapshot leaves out, and
+the snapshot rebuild contract then checks that those tables are empty and that `users` holds the
+placeholder alone. The snapshot carries no migration state or aggregates; the migration guards that
+every launch runs rebuild both. Pass `--snapshot-file` to load a file you already have, such as one
+the anonymiser CLI wrote from a synthetic export.
+
+`bun run app:dev --local --clone-prod` is break-glass only, for a problem the snapshot cannot
+show. It imports a raw production export: users with their email, sign-in accounts, drafts, group
+memberships, FAQ answers and deleted accounts all land on your machine. It needs a Convex CLI login
+able to export from production, and it reads the main checkout's Convex project selection when the
+worktree has none. It clears the auth session/token and publication queue tables, then checks the
+raw clone's rebuild contract. Both contracts live in
+[`convex/lib/provisioningContract.ts`](../convex/lib/provisioningContract.ts). Export reads
+production without changing it. Stop the launch as soon as you are done, so its cleanup deletes the
+copy.
 
 A supervised local Convex watcher pushes later function, schema, shared contract, and backend
 configuration edits to this launch's stack. It never changes the worktree's
@@ -124,7 +153,8 @@ configuration edits to this launch's stack. It never changes the worktree's
 together.
 
 Normal exit or startup failure removes only this launch's containers, volume, and private temporary
-directory. A clone's raw export archive is deleted after import. A hard crash or `SIGKILL` can leave
+directory. A break-glass clone's raw export archive is deleted after import. A downloaded snapshot
+stays in its cache until it is seven days old. A hard crash or `SIGKILL` can leave
 containers and temporary files behind; later launches do not reclaim them. Startup prints the
 project, temporary directory, and a cleanup command:
 
@@ -141,38 +171,56 @@ The backend and dashboard images are pinned to multi-platform digests in
 older runtime. When upgrading the Convex packages, update both image digests together and
 verify a clean `bun run app:dev --local` start.
 
-After the two configured local password users sign in, every seeded or cloned faction and group is
-handed to user A (user B becomes an active member of every group) so the review workflow
-stays "log in as A, edit anything". Use the two configured local accounts in
-`/auth/login`; no real account is required.
+After the two configured local password users sign in, every faction and group, whether seeded,
+from the snapshot or cloned, is handed to user A (user B becomes an active member of every group) so
+the review workflow stays "log in as A, edit anything". Assets and rulesets keep their owner, which
+in a snapshot launch is the placeholder, so A can edit one only through the group it belongs to and
+cannot rename or delete it. Use the two configured local accounts in `/auth/login`; no real account
+is required.
 
 `bun run e2e:local` remains the deterministic fixture-backed E2E environment; its
 provision target is structurally unable to touch production (no production credentials
 ever reach its commands). `bun run provision dev` is the same pipeline pointed at the
-long-lived cloud dev deployment, used by CI to rebuild it as a production replica after
-each deploy. It requires `CONVEX_DEV_DEPLOY_KEY`; the prod snapshot export uses
-`CONVEX_PROD_DEPLOY_KEY` when set and otherwise falls back to the ambient
-`CONVEX_DEPLOY_KEY` (the repo's deploy secret is the prod key). A bare
-`bun run provision local` intentionally refuses to run: the local users stage needs the running app,
-so the complete local environment always comes from `bun run app:dev --local`. With explicit
-`--stage` flags, its data stage clears the application tables as the e2e target does; only
-`--clone-prod` clones production into a local stack.
+long-lived cloud dev deployment. CI rebuilds dev with
+`provision dev --stage data --snapshot-file <zip>`, which refuses a file the anonymiser did not
+write, clears dev, pushes main's functions, imports the snapshot, checks the snapshot rebuild
+contract and runs the migration guards. It needs only `CONVEX_DEV_DEPLOY_KEY`, and it never exports
+production. A bare `bun run provision local` intentionally refuses to run: the local users stage
+needs the running app, so the complete local environment always comes from
+`bun run app:dev --local`. With explicit `--stage` flags, its data stage clears the application
+tables as the e2e target does; the snapshot load and the break-glass clone belong to
+`app:dev --local` alone.
 
 ### Keeping the cloud dev deployment usable
 
 `deploy-main` calls the `Rebuild dev deployment` workflow once production has shipped, so a
 failed rebuild reddens the run without ever gating the release. Every merge pushes main's
-functions to the dev deployment; the **data** is only re-cloned when the merge touches
+functions to the dev deployment; the **data** is only reloaded when the merge touches
 `convex/schema.ts`, `convex/migrations*.ts`, or `convex/migration-guards.json`, the changes that can
 invalidate or reshape dev's existing data. Ordinary merges therefore leave your dev session and any
 dev-side experiments intact.
+
+Dev's data is the anonymised snapshot, never raw production. A data rebuild runs the snapshot job's
+own script (`scripts/anonymised-snapshot.ts`) in the same job: it exports production, deletes the
+raw export once it has read it, anonymises it and scans the result. The next step loads that file
+with `provision dev --stage data --snapshot-file`, holding only the dev deploy key. The rebuild does
+not depend on the public artifact, and it uploads nothing. The job's step summary shows the same
+table report as the snapshot job.
+
+After a rebuild, cloud dev holds no accounts from production: `users` holds only the placeholder
+owner, and `authAccounts` is empty. Signing in to dev therefore creates a new account and profile,
+the first time and again after every data rebuild, which empties `users` and `authAccounts` once
+more. That account owns nothing from the snapshot. The snapshot's content all belongs to the
+placeholder "Snapshot owner", nobody can sign in as it, and its groups have no members to approve a
+request to join. Create your own content to experiment with. No dev account is an administrator
+until someone sets `isAdmin` on its `users` row in the dev dashboard.
 
 The cloud dev deployment is the shared integration copy of `main`, not a feature-branch workspace.
 Do not run a branch's `convex dev` against it. Use `bun run app:dev --local` when the checked-out
 Convex code must run.
 
-Run the `Rebuild dev deployment` workflow manually (Actions → Run workflow) to force fresh
-production data at any time. A skipped or failed rebuild cannot go unnoticed for long, and it
+Run the `Rebuild dev deployment` workflow manually (Actions → Run workflow) to force a fresh
+snapshot at any time. A skipped or failed rebuild cannot go unnoticed for long, and it
 recovers: Convex validates existing data against every pushed schema, so stale dev data fails
 the next ordinary merge's code push loudly, and a rebuild clears the target before pushing the new
 schema, which is why a forced rebuild heals a deployment whose data a schema change has already made

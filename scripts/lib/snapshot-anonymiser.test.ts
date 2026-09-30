@@ -9,6 +9,7 @@ import {
   scanSnapshot,
   SnapshotRefused,
   tableNumberOfId,
+  verifySnapshot,
 } from './snapshot-anonymiser';
 import { snapshotPolicy } from './snapshot-policy';
 
@@ -396,6 +397,28 @@ describe('scanSnapshot', () => {
       { table: 'profiles', field: 'avatar', kind: 'token' },
       { table: 'profiles', field: 'cover', kind: 'token' },
     ]);
+  });
+});
+
+describe('verifySnapshot', () => {
+  test('accepts what the anonymiser wrote and refuses a raw export', () => {
+    const { world } = authorWorld();
+    const { entries } = anonymiseExport(world.entries());
+
+    expect(verifySnapshot(entries)).toEqual(manifestOf(entries));
+    const { problems } = refusal(() => verifySnapshot(world.entries()));
+    expect(problems).toContain(
+      `the file has no ${SNAPSHOT_MANIFEST} from the anonymiser, so it is not an anonymised snapshot`
+    );
+    expect(problems).toContainEqual(expect.stringMatching(/^tables the snapshot policy drops: .*authAccounts/));
+  });
+
+  test('refuses a table the policy drops even under the anonymiser manifest', () => {
+    const { world } = authorWorld();
+    const { entries } = anonymiseExport(world.entries());
+    const tampered = new Map(entries).set('faq_answers/documents.jsonl', '{"_id":"planted","answer":"Yes"}\n');
+
+    expect(refusal(() => verifySnapshot(tampered)).problems).toEqual(['tables the snapshot policy drops: faq_answers']);
   });
 });
 

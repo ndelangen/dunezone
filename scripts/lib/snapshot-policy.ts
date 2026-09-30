@@ -2,6 +2,7 @@ import type { WithoutSystemFields } from 'convex/server';
 import type { GenericId } from 'convex/values';
 
 import type { Doc, Id, TableNames } from '../../convex/_generated/dataModel';
+import type { REBUILD_CONTRACTS } from '../../convex/lib/provisioningContract';
 import { rulebookEditionContentsV1Schema } from '../../src/shared/rulebooks/contents';
 import { readerContents } from '../../src/shared/rulebooks/readerContents';
 
@@ -72,7 +73,15 @@ type KeptTable<Table extends TableNames> = {
 
 type DroppedTable = { drop: string };
 
-type TablePolicy<Table extends TableNames> = KeptTable<Table> | DroppedTable;
+/** The tables the snapshot rebuild contract checks are empty after a snapshot load. */
+type EmptiedTable = (typeof REBUILD_CONTRACTS.snapshot.empty)[number];
+
+/**
+ * A table the rebuild contract checks is empty must be dropped here, and a table the policy drops must be on that list.
+ * `users` is the one table dropped without being empty, because the snapshot carries the placeholder owner.
+ * So a table dropped here but left off the contract, or kept here but listed there, fails typecheck.
+ */
+type TablePolicy<Table extends TableNames> = Table extends EmptiedTable | 'users' ? DroppedTable : KeptTable<Table>;
 
 const notDeleted = (row: { readonly is_deleted?: unknown }) => row.is_deleted === false;
 
