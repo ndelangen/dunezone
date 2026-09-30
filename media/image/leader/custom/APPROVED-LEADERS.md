@@ -6,6 +6,6 @@ The artwork uses the sparse painted treatment approved during the leader review.
 
 Sources in this directory are lossless RGB PNGs at 640 by 640 pixels. Full-resolution 1254-pixel approved originals, processed masters, masks and receipts are retained in the local leader review collection. The regular image pipeline generates the same small and large WebP variants used by all existing leaders.
 
-The leader picker lists each set as a named browsing collection, with category, leader names and roles available for search. Names, roles and faction groupings are recorded in `src/game/assets/faction/leader/approvedLeaders.stories.fixture.json`. Storybook has an approved collection overview and one story per faction, including sample leader tokens. Token strengths and the emblem in these stories are preview choices; this change does not create faction records or game rules.
+The leader picker lists each set as a named browsing collection in `src/shared/stockAssetCollections.json`, with category, leader names and roles available for search. The Leader Portraits story exercises filtering a collection and selecting one of its seven portraits. This change does not create faction records or game rules.
 
 Background processing uses [BiRefNet](https://github.com/ZhengPeng7/BiRefNet) and its [MIT-licensed model weights](https://huggingface.co/ZhengPeng7/BiRefNet). The approved source and resulting game-file hashes are recorded in `approved-leaders.provenance.json`.
