@@ -102,7 +102,7 @@ function writtenSummary({ report, snapshot }: Extract<Outcome, { kind: 'written'
   return [
     'Leak scan: no findings in the written snapshot.',
     '',
-    'Every kept row also keeps `_id` and `_creationTime`. The one `users` row and the one `profiles` row are the placeholder owner.',
+    "Every kept row also keeps `_id` and `_creationTime`. The one `users` row and the one `profiles` row are the placeholder owner's.",
     '',
     '| Table | Policy | Rows in | Rows out | Kept fields |',
     '| --- | --- | ---: | ---: | --- |',
