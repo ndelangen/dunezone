@@ -1,15 +1,16 @@
-import { existsSync, mkdtempSync, rmSync, utimesSync, writeFileSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import type { GitHubCli } from './local-snapshot';
-import { CACHE_MAX_AGE_MS, latestSnapshotArtifact, resolveLocalSnapshot } from './local-snapshot';
+import { discardDownloadedSnapshot, latestSnapshotArtifact, resolveLocalSnapshot } from './local-snapshot';
+import { anonymiseZip } from './snapshot-anonymise';
 
 const JOB = '.github/workflows/anonymised-snapshot.yml';
 const REPOSITORY = { full_name: 'ndelangen/dunezone' };
-const NOW = Date.parse('2026-09-30T12:00:00Z');
 
 function artifact(id: number, runId: number, createdAt: string, overrides: Record<string, unknown> = {}) {
   return {
@@ -35,8 +36,14 @@ function run(overrides: Record<string, unknown> = {}) {
   };
 }
 
-/** A GitHub CLI that answers the two API reads from these listings and refuses anything else. */
-function fakeGitHub(artifacts: unknown[], runs: Record<number, unknown>): GitHubCli {
+/**
+ * A GitHub CLI that answers the two API reads from these listings, hands `download` the directory of a `run download`, and refuses anything else.
+ */
+function fakeGitHub(
+  artifacts: unknown[],
+  runs: Record<number, unknown>,
+  download: (directory: string) => void = () => undefined
+): GitHubCli {
   return (args) => {
     const [command, endpoint] = args;
     if (command === 'api' && endpoint?.includes('/actions/artifacts?')) {
@@ -46,14 +53,19 @@ function fakeGitHub(artifacts: unknown[], runs: Record<number, unknown>): GitHub
     if (command === 'api' && runId && runs[Number(runId)]) {
       return JSON.stringify(runs[Number(runId)]);
     }
+    if (command === 'run' && endpoint === 'download') {
+      download(args[args.indexOf('--dir') + 1]!);
+      return '';
+    }
     throw new Error(`unexpected gh ${args.join(' ')}`);
   };
 }
 
 describe('latestSnapshotArtifact', () => {
-  test('takes the newest artifact the snapshot job uploaded from main, and no copy a pull request or fork made', () => {
+  test('takes the newest artifact the snapshot job uploaded green from main, and no copy a pull request or fork made', () => {
     const github = fakeGitHub(
       [
+        artifact(7, 70, '2026-09-30T10:00:00Z'),
         artifact(6, 60, '2026-09-30T09:00:00Z', {
           workflow_run: { id: 60, repository_id: 1, head_repository_id: 2, head_branch: 'main' },
         }),
@@ -63,6 +75,7 @@ describe('latestSnapshotArtifact', () => {
         artifact(2, 20, '2026-09-30T05:17:00Z'),
       ],
       {
+        70: run({ conclusion: 'failure' }),
         50: run({ event: 'pull_request' }),
         40: run({ path: '.github/workflows/ci-pr.yml' }),
         30: run(),
@@ -80,49 +93,85 @@ describe('latestSnapshotArtifact', () => {
 
 describe('resolveLocalSnapshot', () => {
   const directories: string[] = [];
+  const directory = (prefix: string) => {
+    const created = mkdtempSync(path.join(tmpdir(), prefix));
+    directories.push(created);
+    return created;
+  };
   beforeEach(() => {
     vi.spyOn(console, 'log').mockImplementation(() => undefined);
   });
   afterEach(() => {
     vi.restoreAllMocks();
-    directories.splice(0).forEach((directory) => rmSync(directory, { recursive: true, force: true }));
+    directories.splice(0).forEach((created) => rmSync(created, { recursive: true, force: true }));
   });
 
-  function cacheWith(files: Record<string, number>) {
-    const directory = mkdtempSync(path.join(tmpdir(), 'snapshot-cache-'));
-    directories.push(directory);
-    for (const [name, age] of Object.entries(files)) {
-      const file = path.join(directory, name);
-      writeFileSync(file, 'cached');
-      utimesSync(file, new Date(NOW - age), new Date(NOW - age));
-    }
-    return directory;
+  /** A snapshot the anonymiser wrote from a synthetic export that holds no rows. */
+  function writtenSnapshot() {
+    const file = path.join(directory('snapshot-source-'), 'snapshot.zip');
+    anonymiseZip(
+      new Map([['_tables/documents.jsonl', '{"name":"users","id":10001}\n{"name":"profiles","id":10002}\n']]),
+      file
+    );
+    return file;
   }
 
-  const day = 24 * 60 * 60 * 1000;
+  /** A zip in `convex export` layout with no anonymiser manifest, holding a made-up account. */
+  function rawExport() {
+    const staging = directory('raw-export-');
+    mkdirSync(path.join(staging, '_tables'));
+    mkdirSync(path.join(staging, 'users'));
+    writeFileSync(path.join(staging, '_tables', 'documents.jsonl'), '{"name":"users","id":10001}\n');
+    writeFileSync(path.join(staging, 'users', 'documents.jsonl'), '{"email":"someone@example.com"}\n');
+    const file = path.join(directory('raw-export-zip-'), 'export.zip');
+    spawnSync('/usr/bin/zip', ['-q', '-r', file, '_tables', 'users'], { cwd: staging });
+    return file;
+  }
 
-  test('reuses the cached download of the newest artifact', () => {
-    const cacheDirectory = cacheWith({ 'snapshot-2.zip': day });
-    const github = fakeGitHub([artifact(2, 20, new Date(NOW - day).toISOString())], { 20: run() });
+  const newest = [artifact(2, 20, '2026-09-30T05:17:00Z')];
 
-    expect(resolveLocalSnapshot({ snapshotFile: null, cacheDirectory, now: NOW, github })).toBe(
-      path.join(cacheDirectory, 'snapshot-2.zip')
+  test('downloads the newest snapshot for one launch, and discarding it deletes the download but never a named file', () => {
+    const source = writtenSnapshot();
+    const temporaryDirectory = directory('launch-');
+    const github = fakeGitHub(newest, { 20: run() }, (target) =>
+      copyFileSync(source, path.join(target, 'snapshot.zip'))
     );
+
+    const downloaded = resolveLocalSnapshot({ snapshotFile: null, temporaryDirectory, github });
+    expect(path.dirname(downloaded.file)).toBe(downloaded.downloadDirectory);
+    expect(path.dirname(downloaded.downloadDirectory!)).toBe(temporaryDirectory);
+    discardDownloadedSnapshot(downloaded);
+    expect(readdirSync(temporaryDirectory)).toEqual([]);
+
+    const named = resolveLocalSnapshot({ snapshotFile: source, temporaryDirectory, github: fakeGitHub([], {}) });
+    expect(named).toEqual({ file: source, downloadDirectory: null });
+    discardDownloadedSnapshot(named);
+    expect(existsSync(source)).toBe(true);
   });
 
-  test('keeps a download for at most seven days, and without one points at fixtures', () => {
-    const noArtifact = fakeGitHub([], {});
-    const recent = cacheWith({ 'snapshot-1.zip': 6 * day, 'snapshot-0.zip': CACHE_MAX_AGE_MS + 1 });
+  test('refuses a download that is not the snapshot alone, and a missing artifact, leaving nothing behind', () => {
+    const temporaryDirectory = directory('launch-');
+    const raw = rawExport();
+    const snapshot = writtenSnapshot();
+    const refused: Array<[(target: string) => void, string]> = [
+      [(target) => copyFileSync(raw, path.join(target, 'snapshot.zip')), 'The snapshot was refused'],
+      [
+        (target) => {
+          copyFileSync(snapshot, path.join(target, 'snapshot.zip'));
+          writeFileSync(path.join(target, 'extra.jsonl'), '');
+        },
+        'does not hold snapshot.zip alone',
+      ],
+    ];
+    for (const [download, reason] of refused) {
+      const github = fakeGitHub(newest, { 20: run() }, download);
+      expect(() => resolveLocalSnapshot({ snapshotFile: null, temporaryDirectory, github })).toThrow(reason);
+      expect(readdirSync(temporaryDirectory)).toEqual([]);
+    }
 
-    expect(resolveLocalSnapshot({ snapshotFile: null, cacheDirectory: recent, now: NOW, github: noArtifact })).toBe(
-      path.join(recent, 'snapshot-1.zip')
+    expect(() => resolveLocalSnapshot({ snapshotFile: null, temporaryDirectory, github: fakeGitHub([], {}) })).toThrow(
+      '--data=fixture'
     );
-    expect(existsSync(path.join(recent, 'snapshot-0.zip'))).toBe(false);
-
-    const expired = cacheWith({ 'snapshot-1.zip': CACHE_MAX_AGE_MS + 1 });
-    expect(() =>
-      resolveLocalSnapshot({ snapshotFile: null, cacheDirectory: expired, now: NOW, github: noArtifact })
-    ).toThrow('--data=fixture');
-    expect(existsSync(path.join(expired, 'snapshot-1.zip'))).toBe(false);
+    expect(readdirSync(temporaryDirectory)).toEqual([]);
   });
 });

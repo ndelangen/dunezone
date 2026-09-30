@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 
 import type { Id, TableNames } from '../../convex/_generated/dataModel';
-import { REBUILD_CONTRACTS } from '../../convex/lib/provisioningContract';
+import { SNAPSHOT_REBUILD_CONTRACT } from '../../convex/lib/provisioningContract';
 import { droppedComponents, placeholderOwner, snapshotPolicy } from './snapshot-policy';
 
 /**
@@ -571,7 +571,7 @@ export function verifySnapshot(entries: ExportEntries): SnapshotManifest {
   if (manifest?.format !== SNAPSHOT_FORMAT || manifest.version !== 1) {
     problems.push(`the file has no ${SNAPSHOT_MANIFEST} from the anonymiser, so it is not an anonymised snapshot`);
   }
-  const placeholderTables: readonly string[] = REBUILD_CONTRACTS.snapshot.placeholderOnly;
+  const placeholderTables: readonly string[] = SNAPSHOT_REBUILD_CONTRACT.placeholderOnly;
   const dropped = new Set(
     [...entries.keys()]
       .map((path) => TABLE_ENTRY.exec(path)?.[1])

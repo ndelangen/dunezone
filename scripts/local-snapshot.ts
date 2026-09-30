@@ -1,6 +1,5 @@
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, renameSync, rmSync, statSync, utimesSync } from 'node:fs';
-import { homedir } from 'node:os';
+import { mkdtempSync, readdirSync, rmSync } from 'node:fs';
 import path from 'node:path';
 
 import { z } from 'zod';
@@ -9,11 +8,11 @@ import { SNAPSHOT_FILE } from './anonymised-snapshot';
 import { verifySnapshotFile } from './snapshot-anonymise';
 
 /**
- * Finds the anonymised snapshot that `app:dev --local --data=snapshot` loads (#1559).
+ * Finds the anonymised snapshot that `app:dev --local --data=snapshot` loads (#1559), and checks it before Docker starts.
  *
- * A file the caller names is used as it is.
- * Otherwise the newest artifact the snapshot job uploaded from main is downloaded with the GitHub CLI, checked, and cached outside the checkout.
- * A cached download is used for at most seven days after the job made it, and older ones are deleted on the next launch.
+ * A file the caller names is used where it is, and stays there.
+ * Otherwise the newest artifact the snapshot job uploaded from main is downloaded with the GitHub CLI into the launch's private temporary directory.
+ * The launch deletes that download as soon as the import has finished or failed, so no copy outlives the one-day artifact, and nothing is cached between launches.
  */
 
 const REPOSITORY = 'ndelangen/dunezone';
@@ -22,10 +21,6 @@ const ARTIFACT_NAME = 'anonymised-snapshot';
 
 /* The job's own triggers. A pull request can run an edited copy of the workflow, and its artifact never counts. */
 const JOB_EVENTS: ReadonlySet<string> = new Set(['schedule', 'workflow_dispatch']);
-
-export const CACHE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
-
-const ROOT_DIRECTORY = path.resolve(import.meta.dirname, '..');
 
 const FIXTURE_HINT =
   'Start from fixtures with `bun run app:dev --local --data=fixture`, or pass `--snapshot-file <zip>`.';
@@ -73,7 +68,7 @@ const workflowRun = z.object({
   head_repository: z.object({ full_name: z.string() }).nullable(),
 });
 
-export type SnapshotArtifact = { artifactId: number; runId: number; createdAt: number };
+type SnapshotArtifact = { artifactId: number; runId: number; createdAt: number };
 
 /** Whether a run is the snapshot job itself, run on main of this repository by its own triggers, and finished green. */
 function isSnapshotJobRun(run: z.infer<typeof workflowRun>) {
@@ -121,45 +116,35 @@ export function latestSnapshotArtifact(github: GitHubCli): SnapshotArtifact | nu
   return null;
 }
 
-/** Where downloads are cached: under XDG_CACHE_HOME or ~/.cache, and never inside this checkout. */
-export function snapshotCacheDirectory(env: NodeJS.ProcessEnv): string {
-  const configured = env.XDG_CACHE_HOME?.trim();
-  const base = configured && path.isAbsolute(configured) ? configured : path.join(homedir(), '.cache');
-  const directory = path.join(base, 'dunezone', 'anonymised-snapshot');
-  const fromRoot = path.relative(ROOT_DIRECTORY, directory);
-  if (!fromRoot.startsWith('..') && !path.isAbsolute(fromRoot)) {
-    throw new Error(`The snapshot cache ${directory} would sit inside this checkout; set XDG_CACHE_HOME outside it`);
-  }
-  return directory;
-}
+/** The snapshot a local launch loads. */
+export type LocalSnapshot = {
+  file: string;
+  /** The directory this launch downloaded the file into, which it deletes after the import, or null for a file the caller named. */
+  downloadDirectory: string | null;
+};
 
-const cachedFile = (directory: string, artifactId: number) => path.join(directory, `snapshot-${artifactId}.zip`);
-
-/** Deletes everything in the cache that is older than seven days, counted from when the job made the snapshot. */
-function pruneCache(directory: string, now: number) {
-  for (const name of readdirSync(directory)) {
-    const entry = path.join(directory, name);
-    if (now - statSync(entry).mtimeMs > CACHE_MAX_AGE_MS) {
-      rmSync(entry, { recursive: true, force: true });
-    }
-  }
-}
-
-function newestCachedFile(directory: string): string | null {
-  const files = readdirSync(directory)
-    .filter((name) => /^snapshot-\d+\.zip$/.test(name))
-    .map((name) => path.join(directory, name))
-    .sort((left, right) => statSync(right).mtimeMs - statSync(left).mtimeMs);
-  return files[0] ?? null;
-}
-
-/**
- * Downloads the artifact into a staging directory in the cache, checks it, and only then moves it into the cache.
- * The cached file's modification time is set to when the job made it, so the seven days count from then.
- */
-function downloadSnapshot(github: GitHubCli, artifact: SnapshotArtifact, directory: string): string {
-  const staging = mkdtempSync(path.join(directory, 'download-'));
+/** The newest artifact, or a stop that points at fixtures when it cannot be looked up or none is left. */
+function newestArtifact(github: GitHubCli): SnapshotArtifact {
+  let artifact: SnapshotArtifact | null;
   try {
+    artifact = latestSnapshotArtifact(github);
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : 'the lookup failed';
+    throw new Error(`Could not look up the anonymised snapshot: ${reason}. ${FIXTURE_HINT}`);
+  }
+  if (!artifact) {
+    throw new Error(
+      `No anonymised snapshot is available. The snapshot job keeps each upload for one day, and uploads only while its SNAPSHOT_UPLOAD switch is on. ${FIXTURE_HINT}`
+    );
+  }
+  return artifact;
+}
+
+/** Downloads the artifact into a new directory under `temporaryDirectory` and checks it, deleting the directory again if either fails. */
+function downloadSnapshot(github: GitHubCli, artifact: SnapshotArtifact, temporaryDirectory: string): LocalSnapshot {
+  const directory = mkdtempSync(path.join(temporaryDirectory, 'anonymised-snapshot-'));
+  try {
+    console.log(`Downloading the anonymised snapshot from ${new Date(artifact.createdAt).toISOString()}...`);
     github([
       'run',
       'download',
@@ -169,70 +154,42 @@ function downloadSnapshot(github: GitHubCli, artifact: SnapshotArtifact, directo
       '--name',
       ARTIFACT_NAME,
       '--dir',
-      staging,
+      directory,
     ]);
-    const files = readdirSync(staging);
+    const files = readdirSync(directory);
     if (files.length !== 1 || files[0] !== SNAPSHOT_FILE) {
       throw new Error(`The snapshot artifact does not hold ${SNAPSHOT_FILE} alone, so it was not loaded`);
     }
-    const downloaded = path.join(staging, SNAPSHOT_FILE);
-    verifySnapshotFile(downloaded);
-    const cached = cachedFile(directory, artifact.artifactId);
-    renameSync(downloaded, cached);
-    const createdAt = new Date(artifact.createdAt);
-    utimesSync(cached, createdAt, createdAt);
-    return cached;
-  } finally {
-    rmSync(staging, { recursive: true, force: true });
+    const file = path.join(directory, SNAPSHOT_FILE);
+    verifySnapshotFile(file);
+    return { file, downloadDirectory: directory };
+  } catch (error) {
+    rmSync(directory, { recursive: true, force: true });
+    throw error;
   }
 }
 
 type SnapshotRequest = {
-  /** A file the caller named with --snapshot-file, or null to use the newest artifact. */
+  /** A file the caller named with --snapshot-file, or null to download the newest artifact. */
   snapshotFile: string | null;
-  cacheDirectory: string;
-  now: number;
+  /** The launch's private temporary directory, which its supervisor deletes when the launch exits. */
+  temporaryDirectory: string;
   github: GitHubCli;
 };
 
-/**
- * The snapshot file a local launch loads.
- * When the newest artifact cannot be looked up or none is left, a cached download younger than seven days stands in, and without one the launch stops.
- */
-export function resolveLocalSnapshot({ snapshotFile, cacheDirectory, now, github }: SnapshotRequest): string {
-  if (snapshotFile !== null) {
-    return path.resolve(snapshotFile);
+/** The snapshot a local launch loads, refused without the anonymiser's manifest, with a table the policy drops, or with a leak scan finding. */
+export function resolveLocalSnapshot({ snapshotFile, temporaryDirectory, github }: SnapshotRequest): LocalSnapshot {
+  if (snapshotFile === null) {
+    return downloadSnapshot(github, newestArtifact(github), temporaryDirectory);
   }
-  mkdirSync(cacheDirectory, { recursive: true, mode: 0o700 });
-  pruneCache(cacheDirectory, now);
+  const file = path.resolve(snapshotFile);
+  verifySnapshotFile(file);
+  return { file, downloadDirectory: null };
+}
 
-  let artifact: SnapshotArtifact | null = null;
-  let lookupFailure: string | null = null;
-  try {
-    artifact = latestSnapshotArtifact(github);
-  } catch (error) {
-    lookupFailure = error instanceof Error ? error.message : 'the lookup failed';
+/** Deletes a snapshot this launch downloaded. A file the caller named stays where it is. */
+export function discardDownloadedSnapshot(snapshot: LocalSnapshot) {
+  if (snapshot.downloadDirectory !== null) {
+    rmSync(snapshot.downloadDirectory, { recursive: true, force: true });
   }
-  const created = (time: number) => new Date(time).toISOString();
-  if (artifact) {
-    const cached = cachedFile(cacheDirectory, artifact.artifactId);
-    if (existsSync(cached)) {
-      console.log(`Using the anonymised snapshot from ${created(artifact.createdAt)}, cached in ${cacheDirectory}.`);
-      return cached;
-    }
-    console.log(`Downloading the anonymised snapshot from ${created(artifact.createdAt)}...`);
-    return downloadSnapshot(github, artifact, cacheDirectory);
-  }
-
-  const fallback = newestCachedFile(cacheDirectory);
-  const reason = lookupFailure ?? 'no snapshot artifact is available';
-  if (fallback) {
-    console.log(`Using the cached snapshot from ${created(statSync(fallback).mtimeMs)}, because ${reason}.`);
-    return fallback;
-  }
-  throw new Error(
-    lookupFailure
-      ? `Could not look up the anonymised snapshot: ${lookupFailure}. ${FIXTURE_HINT}`
-      : `No anonymised snapshot is available. The snapshot job keeps each upload for one day, and uploads only while its SNAPSHOT_UPLOAD switch is on. ${FIXTURE_HINT}`
-  );
 }

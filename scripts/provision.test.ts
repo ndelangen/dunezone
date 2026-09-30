@@ -1,7 +1,12 @@
-import { describe, expect, test } from 'vitest';
+import { mkdtempSync, readdirSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+
+import { describe, expect, test, vi } from 'vitest';
 
 import {
   cloudDevEnvironment,
+  exportProductionSnapshot,
   localApplicationEnvironment,
   parseConvexRunResult,
   parseEnvFile,
@@ -69,6 +74,20 @@ describe('provision pipeline', () => {
     });
     expect(() => parseConvexRunResult('', 'provisioning:x')).toThrow('produced no output');
     expect(() => parseConvexRunResult('not json', 'provisioning:x')).toThrow('unparseable output');
+  });
+
+  test('exports production only with the production deploy key, never with another key or a login', () => {
+    vi.spyOn(console, 'log').mockImplementation(() => undefined);
+    const workDirectory = mkdtempSync(path.join(tmpdir(), 'provision-export-'));
+    try {
+      for (const env of [{}, { CONVEX_DEPLOY_KEY: 'prod-key' }, { CONVEX_DEPLOYMENT: 'prod:someone' }]) {
+        expect(() => exportProductionSnapshot(env, workDirectory)).toThrow('needs CONVEX_PROD_DEPLOY_KEY');
+      }
+      expect(readdirSync(workDirectory)).toEqual([]);
+    } finally {
+      rmSync(workDirectory, { recursive: true, force: true });
+      vi.restoreAllMocks();
+    }
   });
 
   test('self-hosted commands never receive production credentials', () => {

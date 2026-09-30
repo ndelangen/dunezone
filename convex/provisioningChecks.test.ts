@@ -35,7 +35,8 @@ async function insertFaction(t: Deployment, ownerId: Id<'users'>) {
   });
 }
 
-async function seedRawClone(t: Deployment) {
+/** What a raw production export would leave: an account with its email and sign-in account. */
+async function seedRawExport(t: Deployment) {
   const userId = await t.run(async (ctx) => {
     const id = await ctx.db.insert('users', { email: 'someone@prod.example' });
     await ctx.db.insert('authAccounts', { userId: id, provider: 'discord', providerAccountId: '1234567890' });
@@ -63,52 +64,27 @@ async function seedSnapshotLoad(t: Deployment) {
   return placeholderId;
 }
 
-describe('rebuild contract for a raw production clone', () => {
-  test('passes on a cleaned clone carrying production data', async () => {
-    const t = rebuiltDeployment();
-    await seedRawClone(t);
-
-    expect(await t.query(internal.provisioningChecks.assertRebuildContract, { source: 'production' })).toEqual({
-      ok: true,
-    });
-  });
-
-  test('rejects a clone whose session tables survived the cleanup', async () => {
-    const t = rebuiltDeployment();
-    const userId = await seedRawClone(t);
-    await t.run(async (ctx) => {
-      await ctx.db.insert('authSessions', { userId, expirationTime: Date.parse('2026-09-01T00:00:00.000Z') });
-    });
-
-    await expect(t.query(internal.provisioningChecks.assertRebuildContract, { source: 'production' })).rejects.toThrow(
-      'authSessions still holds rows'
-    );
-  });
-
-  test('rejects a clone the export never landed in', async () => {
-    const t = rebuiltDeployment();
-
-    await expect(t.query(internal.provisioningChecks.assertRebuildContract, { source: 'production' })).rejects.toThrow(
-      'factions is empty'
-    );
-  });
-});
-
 describe('rebuild contract for the anonymised snapshot', () => {
   test('passes when the placeholder owner is the only account', async () => {
     const t = rebuiltDeployment();
     await seedSnapshotLoad(t);
 
-    expect(await t.query(internal.provisioningChecks.assertRebuildContract, { source: 'snapshot' })).toEqual({
-      ok: true,
-    });
+    expect(await t.query(internal.provisioningChecks.assertRebuildContract, {})).toEqual({ ok: true });
   });
 
-  test('rejects a raw clone, which carries accounts, emails and sign-in rows', async () => {
+  test('rejects a deployment the snapshot never landed in', async () => {
     const t = rebuiltDeployment();
-    await seedRawClone(t);
 
-    await expect(t.query(internal.provisioningChecks.assertRebuildContract, { source: 'snapshot' })).rejects.toThrow(
+    const violation = t.query(internal.provisioningChecks.assertRebuildContract, {});
+    await expect(violation).rejects.toThrow('factions is empty');
+    await expect(violation).rejects.toThrow('users holds no rows');
+  });
+
+  test('rejects raw production data, which carries accounts, emails and sign-in rows', async () => {
+    const t = rebuiltDeployment();
+    await seedRawExport(t);
+
+    await expect(t.query(internal.provisioningChecks.assertRebuildContract, {})).rejects.toThrow(
       /authAccounts still holds rows[\s\S]*users holds a row with an email/
     );
   });
@@ -143,7 +119,7 @@ describe('rebuild contract for the anonymised snapshot', () => {
       });
     });
 
-    const violation = t.query(internal.provisioningChecks.assertRebuildContract, { source: 'snapshot' });
+    const violation = t.query(internal.provisioningChecks.assertRebuildContract, {});
     await expect(violation).rejects.toThrow('group_members still holds rows');
     await expect(violation).rejects.toThrow('users holds more than one row');
     await expect(violation).rejects.toThrow('profiles holds more than one row');

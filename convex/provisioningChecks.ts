@@ -3,8 +3,7 @@ import { v } from 'convex/values';
 import type { TableNames } from './_generated/dataModel';
 import { internalQuery } from './_generated/server';
 import type { QueryCtx } from './_generated/server';
-import { REBUILD_CONTRACTS } from './lib/provisioningContract';
-import type { RebuildSource } from './lib/provisioningContract';
+import { SNAPSHOT_REBUILD_CONTRACT } from './lib/provisioningContract';
 
 /** Probing with `.first()` keeps every check constant-cost regardless of table size. */
 async function tablesHolding(ctx: QueryCtx, tables: readonly TableNames[], rows: boolean): Promise<TableNames[]> {
@@ -38,30 +37,25 @@ async function placeholderViolations(ctx: QueryCtx, tables: readonly TableNames[
   return violations;
 }
 
-const emptyReason: Record<RebuildSource, string> = {
-  snapshot: 'a snapshot load leaves it empty',
-  production: 'the post-clone cleanup did not clear it',
-};
-
 /**
- * The contract a rebuilt deployment must satisfy once its data stage finished.
+ * The contract a rebuilt deployment must satisfy once its snapshot load finished.
  *
- * Command exit codes cannot prove this: a snapshot can import successfully while being empty, and an empty `--replace` import into a table that no longer exists silently creates it and reports success.
+ * Command exit codes cannot prove this: a snapshot can import successfully while being empty, and an exit code does not say which tables still hold rows.
  *
  * Runs against rebuilt deployments only (local Docker and the cloud dev deployment);
  * production is never a rebuild target.
  */
 export const assertRebuildContract = internalQuery({
-  args: { source: v.union(v.literal('snapshot'), v.literal('production')) },
+  args: {},
   returns: v.object({ ok: v.literal(true) }),
-  handler: async (ctx, args) => {
-    const contract = REBUILD_CONTRACTS[args.source];
+  handler: async (ctx) => {
+    const contract = SNAPSHOT_REBUILD_CONTRACT;
     const uncleared = await tablesHolding(ctx, contract.empty, true);
     const unpopulated = await tablesHolding(ctx, contract.required, false);
     const violations = [
-      ...uncleared.map((table) => `${table} still holds rows; ${emptyReason[args.source]}`),
-      ...unpopulated.map((table) => `${table} is empty; the ${args.source} data did not land`),
-      ...(contract.placeholderOnly.length > 0 ? await placeholderViolations(ctx, contract.placeholderOnly) : []),
+      ...uncleared.map((table) => `${table} still holds rows; a snapshot load leaves it empty`),
+      ...unpopulated.map((table) => `${table} is empty; the snapshot data did not land`),
+      ...(await placeholderViolations(ctx, contract.placeholderOnly)),
     ];
 
     if (violations.length > 0) {

@@ -20,7 +20,7 @@ on:
   workflow_dispatch:
     inputs:
       force:
-        description: Rebuild the data even when no schema or migration file changed.
+        description: Rebuild the data even when no schema, migration or snapshot file changed.
         required: false
         default: true
         type: boolean

@@ -76,12 +76,12 @@ functions, imports the anonymised snapshot, checks the snapshot rebuild contract
 required migration guards before starting the app. Plain `bun run app:dev --local` starts from
 fixture data, which shows nothing about how a migration treats production rows. The snapshot holds
 published rows only, so it cannot show how a migration treats users, drafts, FAQ answers, group
-memberships or deleted rows. For those, reason from the schema and the migration's tests; the raw
-`--clone-prod` launch is break-glass only. A local watcher pushes later function and schema edits to
-that stack without changing `.env.local`. Restart after changing a migration module or the guard
-manifest. This creates a fresh disposable database and reruns `dev-strict`. See
+memberships or deleted rows. For those, reason from the schema and the migration's tests. A local
+watcher pushes later function and schema edits to that stack without changing `.env.local`. Restart
+after changing a migration module or the guard manifest. This creates a fresh disposable database
+and reruns `dev-strict`. See
 [`Disposable local app development`](./README.md#disposable-local-app-development) for what the
-snapshot holds, where it comes from and how long it stays cached.
+snapshot holds, where it comes from and when the download is deleted.
 
 - `bun run convex:dev` runs `bun run migrations:dev-strict` before starting the configured Convex
   deployment's watcher. It is reserved for deliberate integration work because a feature branch can

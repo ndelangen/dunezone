@@ -9,7 +9,7 @@ describe('app:dev command', () => {
     expect(() => parseAppDevMode(['--source', 'prod'])).toThrow('Unknown app:dev argument');
   });
 
-  test('starts local mode from fixtures, and loads the snapshot or clones production only on request', () => {
+  test('starts local mode from fixtures, loads the snapshot only on request, and has no raw production clone', () => {
     expect(parseAppDevMode(['--local'])).toEqual({ kind: 'local', data: { kind: 'fixture' } });
     expect(parseAppDevMode(['--local', '--data=fixture'])).toEqual({ kind: 'local', data: { kind: 'fixture' } });
     expect(parseAppDevMode(['--local', '--data=snapshot'])).toEqual({
@@ -20,10 +20,9 @@ describe('app:dev command', () => {
       kind: 'local',
       data: { kind: 'snapshot', file: 'snapshot.zip' },
     });
-    expect(parseAppDevMode(['--local', '--clone-prod'])).toEqual({ kind: 'local', data: { kind: 'clone-prod' } });
     for (const args of [
+      ['--local', '--clone-prod'],
       ['--clone-prod'],
-      ['--clone-prod', '--local'],
       ['--data=snapshot'],
       ['--local', '--data=prod'],
       ['--local', '--snapshot-file', 'snapshot.zip'],

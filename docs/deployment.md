@@ -380,11 +380,12 @@ table the policy drops, or with a leak scan finding, so neither can load a raw e
   account from production, so everyone signs in to dev afresh after a rebuild; see
   [Keeping the cloud dev deployment usable](./README.md#keeping-the-cloud-dev-deployment-usable).
 - `bun run app:dev --local --data=snapshot` downloads the newest artifact the job uploaded from
-  `main`, or loads the file `--snapshot-file` names; see
-  [Disposable local app development](./README.md#disposable-local-app-development).
+  `main` and deletes the download once it is imported, or loads the file `--snapshot-file` names;
+  see [Disposable local app development](./README.md#disposable-local-app-development).
 
-Production stays the only raw copy. The one exception is `app:dev --local --clone-prod`, kept for
-local break-glass use by someone with a Convex login that can export production.
+Production stays the only raw copy. No command imports a raw export outside production, and the
+only command that exports production is the job's script, which needs `CONVEX_PROD_DEPLOY_KEY`
+rather than a Convex login.
 
 ## Migrations on every `main` deploy
 

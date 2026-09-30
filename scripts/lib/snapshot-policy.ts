@@ -2,7 +2,7 @@ import type { WithoutSystemFields } from 'convex/server';
 import type { GenericId } from 'convex/values';
 
 import type { Doc, Id, TableNames } from '../../convex/_generated/dataModel';
-import type { REBUILD_CONTRACTS } from '../../convex/lib/provisioningContract';
+import type { SNAPSHOT_REBUILD_CONTRACT } from '../../convex/lib/provisioningContract';
 import { rulebookEditionContentsV1Schema } from '../../src/shared/rulebooks/contents';
 import { readerContents } from '../../src/shared/rulebooks/readerContents';
 
@@ -79,8 +79,8 @@ type DroppedTable = { drop: string };
  * So a table dropped here but left off the contract, or kept here but listed there, fails typecheck.
  */
 type DroppedBySnapshot =
-  | (typeof REBUILD_CONTRACTS.snapshot.empty)[number]
-  | (typeof REBUILD_CONTRACTS.snapshot.placeholderOnly)[number];
+  | (typeof SNAPSHOT_REBUILD_CONTRACT.empty)[number]
+  | (typeof SNAPSHOT_REBUILD_CONTRACT.placeholderOnly)[number];
 
 type TablePolicy<Table extends TableNames> = Table extends DroppedBySnapshot ? DroppedTable : KeptTable<Table>;
 
