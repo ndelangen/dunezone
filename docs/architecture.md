@@ -32,7 +32,7 @@ This keeps input types strict at the API edge and business rules centralized in 
 ## File-based routing
 
 Routes live in `src/app/routes/`. File structure maps to URLs, except that the `_app` segment is a
-pathless layout route and is stripped: `_app/index.tsx` → `/`, `_app/auth/login.tsx` →
+pathless layout route and is stripped: `_app/index.tsx` → `/`, `_app/auth/login.route.tsx` →
 `/auth/login`. Nearly every visual route lives under `_app`, which supplies the application chrome.
 Route tree auto-generates: [`src/app/routeTree.gen.ts`](../src/app/routeTree.gen.ts). Details in
 [Routing](./routing.md).
@@ -42,11 +42,12 @@ Route tree auto-generates: [`src/app/routeTree.gen.ts`](../src/app/routeTree.gen
 Configured in [`tsconfig.json`](../tsconfig.json):
 
 - `@db/core` → `src/app/db/core/index.ts` (DB client, types)
+- `@db/storybook` → `src/app/db/storybook/index.ts` (the page-story database and its provider)
 - `@db/*` → `src/app/db/*.ts` (domain data modules)
 - `@app/*` → `src/app/*` (app code)
 - `@ui/*` → `src/app/ui/*` (every published component)
+- `@shared/*` → `src/shared/*` (contracts the app, `convex/` and `workers/` all parse against)
 - `@game/*` → `src/game/*` (print-faithful renderers)
-- `@data/*` → `src/data/*` (shared default input values)
 - `@sb/*` → `.storybook/*` (Storybook preview, for stories)
 
 ## Where components live
@@ -60,9 +61,11 @@ Which category a component belongs to is decided by the taxonomy in
   get things. No Convex client, no *value* imports from `@db/**` (`import type` is fine and
   expected), and no router data hooks: `Link` stays allowed, `useNavigate` does not.
 - `src/app/**` is the application: routes (which own their own page composition), domain data
-  modules (`db/<domain>.ts`), the shell (`shell/`), document-rendering glue (`sheet/`, `capture/`),
-  and `widgets/<name>` for assemblies two or more routes install whole. There is no `components/`
-  directory here; every published component lives in `src/app/ui`.
+  modules (`db/<domain>.ts`), the shell (`shell/`), document-rendering glue (`print/sheet/`,
+  `print/capture/`), the fetching controls (`pickers/`), `widgets/<name>` for assemblies two or
+  more routes install whole, and the global stylesheets (`styles/`). That top level is a closed
+  set, held by `bun run check:app-layout`. There is no `components/` directory here; every
+  published component lives in `src/app/ui`.
 - `src/game/**` holds print-faithful renderers, independent of Mantine and the kit.
 
 ## How things come together

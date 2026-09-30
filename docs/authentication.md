@@ -40,16 +40,16 @@ const userId = await requireAuthUserId(ctx);
 The visual auth routes live under the `_app` layout, so they carry application chrome; only the
 non-visual hand-off sits outside it:
 
-- `_app/auth/login.tsx` → `/auth/login` - Login form
-- `_app/auth/error.tsx` → `/auth/error` - Auth error page
+- `_app/auth/login.route.tsx` → `/auth/login` - Login form
+- `_app/auth/error.route.tsx` → `/auth/error` - Auth error page
 - `_app/auth/index.tsx` → `/auth` - Auth landing
-- `auth/oauth.tsx` → `/auth/oauth` - Legacy compatibility redirect, outside `_app`
+- `auth/oauth.route.tsx` → `/auth/oauth` - Legacy compatibility redirect, outside `_app`
 
 ## Profiles
 
 A `profiles` document is created in Convex when an auth user is created or updated: `callbacks.afterUserCreatedOrUpdated` in [`convex/auth.ts`](../convex/auth.ts) calls `ensureProfileForUser` (see [`convex/lib/profileBootstrap.ts`](../convex/lib/profileBootstrap.ts)) using the patched `users` row (`name`, `image`).
 
-If a legacy user has no profile, the client's `useCurrentProfile()` calls `profiles.bootstrapCurrent` once when `profiles.session` returns a `userId` whose `profile` is still `null`. For bulk repair, missing profiles are backfilled by the **`profiles_from_users_v1`** Convex migration (see [`convex/migrations.ts`](../convex/migrations.ts)), which runs with the rest of the widen migrations via `bun run migrations:deploy` / `bun run migrations:dev-strict` and appears on [`/admin/migrations`](../src/app/routes/_app/admin/migrations.tsx).
+If a legacy user has no profile, the client's `useCurrentProfile()` calls `profiles.bootstrapCurrent` once when `profiles.session` returns a `userId` whose `profile` is still `null`. For bulk repair, missing profiles are backfilled by the **`profiles_from_users_v1`** Convex migration (see [`convex/migrations.ts`](../convex/migrations.ts)), which runs with the rest of the widen migrations via `bun run migrations:deploy` / `bun run migrations:dev-strict` and appears on [`/admin/migrations`](../src/app/routes/_app/admin/migrations.route.tsx).
 
 **Hooks**: `useCurrentProfile()`, `useDefaultGroupPreference()`, `useProfileBySlug(slug)`,
 `useProfilesAll()`, `useUpdateCurrentProfile()`. Profile lookups are slug-based, never by id.
