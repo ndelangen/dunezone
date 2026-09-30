@@ -343,7 +343,7 @@ jobs:
         run: bun run game:typecheck
       - name: Test game Worker
         # The root test job no longer runs these files (#1588), so the coverage they give workers/game, and the src/shared lines only they reach, is collected here.
-        run: bun run game:test --coverage.enabled=true '--coverage.include=workers/game/**' '--coverage.include=src/shared/**/*.ts' '--coverage.include=src/shared/**/*.tsx' --reporter=default --reporter=junit --outputFile.junit=test-results/vitest-game.junit.xml
+        run: bun run game:test --coverage.enabled=true '--coverage.include=workers/game/**/*.ts' '--coverage.include=src/shared/**/*.ts' '--coverage.include=src/shared/**/*.tsx' --reporter=default --reporter=junit --outputFile.junit=test-results/vitest-game.junit.xml
       - name: Upload game coverage to Codecov
         uses: codecov/codecov-action@0fb7174895f61a3b6b78fc075e0cd60383518dac # v5
         with:
