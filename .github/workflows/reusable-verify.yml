@@ -405,11 +405,13 @@ jobs:
           BASE: ${{ github.event.pull_request.base.sha }}
           HEAD: ${{ github.event.pull_request.head.sha }}
         run: |
-          if [ "$EVENT" != pull_request ]; then
+          # The shards run, with the reason on the step summary, when this job cannot judge the diff.
+          shards_run() {
             echo "run=true" >> "$GITHUB_OUTPUT"
-            echo "### Hosted play shards run" >> "$GITHUB_STEP_SUMMARY"
-            echo "" >> "$GITHUB_STEP_SUMMARY"
-            echo "Every event but a pull request runs them; this is a $EVENT run." >> "$GITHUB_STEP_SUMMARY"
+            printf '### Hosted play shards run\n\n%s\n' "$1" >> "$GITHUB_STEP_SUMMARY"
+          }
+          if [ "$EVENT" != pull_request ]; then
+            shards_run "Every event but a pull request runs them; this is a $EVENT run."
             exit 0
           fi
           # Three dots: the files changed since the merge base, so main's own commits do not count.
@@ -417,10 +419,7 @@ jobs:
           # The API lists at most 300 files, so a list that long may be cut short and is not trusted.
           if ! gh api "repos/$REPO/compare/$BASE...$HEAD?per_page=100" --paginate --jq '.files[] | .filename, (.previous_filename // empty)' > changed-files.txt \
             || [ "$(grep -c . changed-files.txt)" -ge 300 ]; then
-            echo "run=true" >> "$GITHUB_OUTPUT"
-            echo "### Hosted play shards run" >> "$GITHUB_STEP_SUMMARY"
-            echo "" >> "$GITHUB_STEP_SUMMARY"
-            echo "The changed files could not be read in full from the compare API, so the shards run." >> "$GITHUB_STEP_SUMMARY"
+            shards_run "The changed files could not be read in full from the compare API, so the shards run."
             exit 0
           fi
           decision="$(bun scripts/hosted-play-closure.ts < changed-files.txt)"
