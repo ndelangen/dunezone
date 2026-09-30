@@ -1,6 +1,6 @@
 import { Menu } from '@mantine/core';
 import preview from '@sb/preview';
-import { finishTransitions } from '@sb/storyWaits';
+import { finishTransitions, waitForFrame } from '@sb/storyWaits';
 import { EllipsisVertical, Link2Off, Pencil, Star } from 'lucide-react';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
@@ -43,7 +43,7 @@ export const Default = meta.story({
     await userEvent.click(target);
 
     await expect(target).toHaveAttribute('aria-haspopup', 'menu');
-    await waitFor(() =>
+    await waitForFrame(() =>
       expect(finishTransitions(page.getByRole('menuitem', { name: 'Remove from Dreamrules' }))).toBeVisible()
     );
   },

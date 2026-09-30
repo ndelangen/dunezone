@@ -162,10 +162,10 @@ so the complete local environment always comes from `bun run app:dev --local`. W
 
 `deploy-main` calls the `Rebuild dev deployment` workflow once production has shipped, so a
 failed rebuild reddens the run without ever gating the release. Every merge pushes main's
-functions to the dev deployment; the **data** is only re-cloned when the merge touches
-`convex/schema.ts`, `convex/migrations*.ts`, or `convex/migration-guards.json`, the changes that can
-invalidate or reshape dev's existing data. Ordinary merges therefore leave your dev session and any
-dev-side experiments intact.
+functions to the dev deployment; the **data** is only re-cloned when the commits a deploy adds to
+production touch `convex/schema.ts`, `convex/migrations*.ts`, or `convex/migration-guards.json`,
+the changes that can invalidate or reshape dev's existing data, or when it cannot tell which commits
+it adds. Ordinary merges therefore leave your dev session and any dev-side experiments intact.
 
 The cloud dev deployment is the shared integration copy of `main`, not a feature-branch workspace.
 Do not run a branch's `convex dev` against it. Use `bun run app:dev --local` when the checked-out

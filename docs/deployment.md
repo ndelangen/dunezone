@@ -124,7 +124,7 @@ The publisher forwards the reserved `/__play` namespace only when the request or
 `PUBLIC_BASE_URL`. Its `GAME_SERVICE` binding targets `dunezone-game`, whose `workers_dev` and
 `preview_urls` are disabled and whose route list is empty. Unknown reserved paths never become
 SPA documents. The game Worker accepts only `/__play/health` and
-`/__play/games/:gameId/socket|provision|account-deletion`; it validates methods, origin and admission
+`/__play/games/:gameId/socket|provision|account-deletion|retire`; it validates methods, origin and admission
 at that boundary. Hosted gameplay requires a signed-in session and a fresh first-message connection
 ticket. Players open games at `/play/<gameId>`; the retired `/play/hosted` and `/play/demo` pages
 are ordinary application paths that the game route redirects to the lobby, and the release counts as
@@ -132,8 +132,9 @@ retiring them only once production no longer serves the pages.
 
 Before calling the game binding, the publisher applies `PLAY_INGRESS_RATE_LIMIT` (namespace
 `10960001`): 120 requests per ten seconds per trusted `CF-Connecting-IP`, with separate counters
-for connection requests and provisioning/deletion callbacks. Rotating game IDs does not change
-the key. The exact GET health endpoint is exempt. A refused request returns `429`, `Retry-After: 10`
+for connection requests and the Convex callbacks (provisioning, account deletion and retirement,
+listed once in `src/shared/play/callbacks.ts`). Only a path the game Worker would route counts as
+a callback. Rotating game IDs does not change the key. The exact GET health endpoint is exempt. A refused request returns `429`, `Retry-After: 10`
 and `Cache-Control: no-store` without resolving a Durable Object. This is Cloudflare's per-location,
 eventually consistent ingress protection, not an exact global quota; authenticated ticket and
 in-room limits are separate.
@@ -190,6 +191,15 @@ For a protocol-only local rehearsal, leave out `--flow`. `--backend-binary` can 
 native executable and `--skip-build` can reuse the publisher bundle; that shortcut does not verify the
 bundle's frontend backend URL.
 
+The `hosted_play_webgpu` job runs the `regular` shard's command once more on GitHub's standard
+`macos-26` runner, with `--expect-renderer webgpu` in place of `webgl2-swiftshader`. Standard runners
+cost nothing on a public repository, while a larger macOS runner is billed even there, so the job
+stays on a standard label. On that runner full Chromium draws the Play table with WebGPU on the
+runner's Metal device, and a table that falls back to WebGL2 fails the job. The Linux shards draw
+WebGL2 on SwiftShader and cannot see a defect only WebGPU shows, such as the vertex buffer validation
+error of [#1272](https://github.com/ndelangen/dunezone/issues/1272). `ci_ok` requires this job
+through `verify` as it does the shards. It keeps its own evidence artifact and summary table.
+
 Run the headless browser proof against a fresh synthetic backend with:
 
 ```bash
@@ -211,6 +221,7 @@ an existing native backend executable, and `--browser /absolute/path/to/chromium
 Chromium executable instead of Playwright's installed browser. `--expect-renderer` passes each flow
 the renderer its first table must use (`webgpu`, `webgl2-swiftshader` or `webgl2-other`); a flow whose
 table rendered with another fails there, naming both, and without the option no renderer is enforced.
+With or without it, a flow fails when three.js logged an uncaptured WebGPU error on any of its pages.
 Each browser flow has its own timeout, ten minutes for the regular flow and eight for each named flow;
 protocol verification has three. All use the same stack cleanup.
 
@@ -263,7 +274,14 @@ change after the public delivery release is verified.
 
 **Workflow**: [`.github/workflows/deploy-main.yml`](../.github/workflows/deploy-main.yml)
 
-On every push to `main`:
+The workflow runs on every push to `main`, and by hand on `main` (see
+[Recovering from a dropped push](#recovering-from-a-dropped-push)). Its `release_gate` job runs
+first and reads the commit each production Worker reports on `https://dune.zone/__play/health` and
+`https://dune.zone/__asset-publisher/health`. The run ends green without deploying when either Worker
+already reports a later commit than the run's, or, on the run's first attempt, both already report
+the run's own commit. An endpoint that does not answer, or a commit git cannot place, lets the deploy
+go ahead. Only the gate's answer `false` skips the `deploy` job, so a missing answer deploys too, and
+a gate job that fails ends the run red without deploying. In every other case the `deploy` job runs:
 
 1. Install dependencies, then verify schema-narrowing prerequisites
    (`migrations:narrow-check`). This runs *before* the Convex deploy and blocks
@@ -285,17 +303,21 @@ On every push to `main`:
     deployment, reading the deployments list every ten seconds for up to twenty minutes,
     then smoke the workers.dev and `dune.zone` health endpoints. The game health request goes through
     `https://dune.zone/__play/health` and must report the merged SHA, matching tag and control-plane
-    version ID with `Cache-Control: no-store`. The complete deploy job allows 120 minutes for both
-    bounded active-version gates, migrations and release work.
+    version ID with `Cache-Control: no-store`. The publisher's service binding can reach the previous
+    game version for some seconds after the control plane reports the new one active, so the smoke
+    reads the endpoint up to twelve times, five seconds apart, and fails only when the last read is
+    still wrong. The complete deploy job allows 120 minutes for both bounded active-version gates,
+    migrations and release work.
 12. Build and verify the secret-free Storybook artifact, deploy it to `storybook.dune.zone`, and
     smoke its manager, page index, preview entry, CSP, and shared public assets.
 13. Read the stored Renderer revisions. If any checked-in revision is higher,
     activate all higher revisions in one mutation and schedule bounded
     regeneration scans. CI does not wait for scanning or capture.
 14. Set Convex Auth `SITE_URL` to `https://dune.zone`.
-15. A follow-on `dev_rebuild` job (`needs: deploy`) rebuilds the dev deployment
+15. A follow-on `dev_rebuild` job (`needs: [release_gate, deploy]`) rebuilds the dev deployment
     from production; see
-    [`dev-rebuild.yml`](../.github/workflows/dev-rebuild.yml).
+    [`dev-rebuild.yml`](../.github/workflows/dev-rebuild.yml). It measures its change range from
+    the release production served before the run, as `release_gate` read it.
 
 The revision step rejects a checked-in value lower than production. Equal values
 are a no-op. A revision activation stores the new values before scheduling scans,
@@ -304,6 +326,49 @@ so ordinary saves and later scans share the same job-coalescing behavior.
 Wrangler receives only the Cloudflare deployment credentials. Its checked-in
 configuration remains the deployment contract; CI only overrides `GIT_SHA` with
 the merged commit SHA.
+
+## Recovering from a dropped push
+
+GitHub sometimes records a merge to `main` without emitting a push event for it. No deploy run
+starts, no app reports a check on the commit, and production stays on the previous release until the
+next merge. Four merges went this way on 2026-09-28 and 2026-09-29, and production was behind for 19
+to 96 minutes each time. A deploy run normally appears within 10 seconds of its merge; the latest
+seen so far came 219 seconds after.
+
+A late event can also hide a merge. The `deploy-production` concurrency group holds at most one waiting run,
+and a newly queued run cancels the waiting one, so a late event for an older merge can cancel the run
+for a newer one. `release_gate` stops the late run if production already has a later commit, but
+either way the newer merge is not deployed.
+
+So check production against `main` once no deploy run is queued or in progress:
+
+```sh
+gh run list --workflow deploy-main.yml --limit 3
+curl -s https://dune.zone/__asset-publisher/health | jq -r .identity.gitSha
+gh api repos/ndelangen/dunezone/commits/main --jq .sha
+```
+
+If the two commits differ, deploy `main` by hand:
+
+```sh
+gh workflow run deploy-main.yml --ref main
+```
+
+The dispatched run deploys the commit `main` points at when you dispatch it, which includes every
+merge whose event went missing. Its dev rebuild measures from the release production was serving, so
+a schema or migration change in a dropped merge still rebuilds dev's data. If the missing event turns
+up later, its run stops at `release_gate`.
+
+Do not recover by rerunning an earlier deploy run. A rerun keeps that run's `GITHUB_SHA`, so it
+redeploys that older commit rather than `main`'s tip. "Re-run failed jobs" keeps the gate's first answer
+and deploys the older commit even over a later release. "Re-run all jobs" asks the gate again, which
+stops the run once production has a later commit.
+
+To finish a deploy that failed partway, for example a smoke that failed after both Workers went out,
+rerun that run. "Re-run failed jobs" picks up at the failed job. "Re-run all jobs" deploys the commit
+again from the start, because the gate stops a commit production already has only on a run's first
+attempt. A dispatched run is a first attempt, so while `main` still points at that commit it stops
+at the gate, because both Workers already report it.
 
 ## Publication controls
 
@@ -348,6 +413,22 @@ rejects game secrets, schedules, Custom Domains, routes, workers.dev or preview 
 inventory uses Workers Scripts Read; no storage contents or secret values are read. A successful
 configuration/health check proves deployment wiring, not multiplayer behavior; Stage B's real
 Auth, command, projection and browser tests remain separate delivery evidence.
+
+## Anonymised snapshot
+
+`.github/workflows/anonymised-snapshot.yml` runs once a day and on manual dispatch, from `main`
+only, in the `production` environment (#1559). It exports production the way `dev-rebuild.yml`
+does, anonymises the export with `scripts/snapshot-anonymise.ts`, and scans the written snapshot.
+The script reads the raw export into memory and deletes it before anonymising, whether the read
+succeeded or not, and the job's last step deletes its directory whatever happened before.
+
+The step summary gives the leak scan result, then each table with its policy, its rows in and
+out, and the field names the snapshot keeps. It never shows a value, because Actions logs on this
+repository are public.
+
+The upload step runs only when `SNAPSHOT_UPLOAD` in the workflow is `"true"`, and then uploads the
+snapshot file alone as an artifact kept for one day. While the value is `"false"`, every run is a
+dry run and uploads nothing.
 
 ## Migrations on every `main` deploy
 

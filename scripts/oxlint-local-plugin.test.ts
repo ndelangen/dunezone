@@ -1,5 +1,6 @@
 import { execFile } from 'node:child_process';
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { copyFileSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
 
@@ -7,11 +8,13 @@ import { describe, expect, test } from 'vitest';
 
 const run = promisify(execFile);
 
+const REPOSITORY = join(import.meta.dirname, '..');
+
 /*
  * The binary itself rather than `npx oxlint`: npx loads npm's own CLI before it finds the local
  * bin, which is the largest part of a cold spawn, and it is one missing bin away from a registry call.
  */
-const OXLINT = join(import.meta.dirname, '..', 'node_modules', '.bin', 'oxlint');
+const OXLINT = join(REPOSITORY, 'node_modules', '.bin', 'oxlint');
 
 /*
  * Measured on CI: a warm oxlint run costs 0.3 to 0.85 s, and the first run in a fresh job, which
@@ -39,33 +42,37 @@ function hasStdout(error: unknown): error is { stdout: string } {
  * The fourth test is what establishes that here, and it is why the claim is worth a probe rather than a sentence: an earlier version of this comment asserted the wholesale model, which that same test disproves.
  * A unit test on the rule would stay green through an override that had switched it off entirely.
  *
- * Fixtures are written under a temporary directory inside the repository, then removed, so no file carrying a deliberate tell is ever committed where another checker could read it as a real one.
+ * Fixtures are written at test time rather than committed, so no file carrying a deliberate tell sits where another checker could read it as a real one.
+ * Each probe is linted in a temporary tree of its own, never inside the repository, because a probe under the repository's `src` was met mid-removal by a test that copies `src` (#1572).
+ * The tree holds a copy of today's `.oxlintrc.json`, a link to `scripts` so the config's local plugin loads, and the fixture at the path it would have in the repository.
+ * oxlint runs from the tree's root as the lint script runs from the repository's, so the config's globs scope the fixture exactly as they would scope that path there.
  */
 const FIXTURE_ROOT = 'src/__lint-fixtures__';
-/* An existing folder of Play client code, so a probe there is scoped like the files the wall-clock ban guards and leaves no folder behind. */
+/* A folder of Play client code, so a probe there is scoped like the files the wall-clock ban guards. */
 const PLAY_FIXTURE_ROOT = 'src/app/routes/_app/play/multiplayer';
 
 async function lintDiagnostics(fileName: string, source: string, root = FIXTURE_ROOT): Promise<string> {
-  /* The root is created here rather than committed: an empty directory does not survive a clone. */
-  mkdirSync(root, { recursive: true });
-  const directory = mkdtempSync(join(root, 'probe-'));
-  const file = join(directory, fileName);
+  const tree = mkdtempSync(join(tmpdir(), 'oxlint-probe-'));
+  const file = join(root, fileName);
   try {
-    writeFileSync(file, source);
-    const { stdout } = await run(OXLINT, [file], { cwd: process.cwd(), timeout: SPAWN_BUDGET_MS });
-    return stdout;
-  } catch (error) {
-    if (wasKilled(error)) {
-      throw new Error(`oxlint did not finish within ${SPAWN_BUDGET_MS}ms`, { cause: error });
+    copyFileSync(join(REPOSITORY, '.oxlintrc.json'), join(tree, '.oxlintrc.json'));
+    symlinkSync(join(REPOSITORY, 'scripts'), join(tree, 'scripts'), 'dir');
+    mkdirSync(join(tree, root), { recursive: true });
+    writeFileSync(join(tree, file), source);
+    /* Only the spawn's failure is read as a lint result; a failure to build the tree throws instead of reading as an empty one. */
+    try {
+      const { stdout } = await run(OXLINT, [file], { cwd: tree, timeout: SPAWN_BUDGET_MS });
+      return stdout;
+    } catch (error) {
+      if (wasKilled(error)) {
+        throw new Error(`oxlint did not finish within ${SPAWN_BUDGET_MS}ms`, { cause: error });
+      }
+      /* oxlint exits non-zero when it reports, and its findings are on stdout rather than stderr. */
+      return hasStdout(error) ? error.stdout : '';
     }
-    /* oxlint exits non-zero when it reports, and its findings are on stdout rather than stderr. */
-    return hasStdout(error) ? error.stdout : '';
   } finally {
-    /*
-     * Only this call's own directory is removed. Tearing down the shared root instead would make the
-     * file serial-only, since a parallel case could lose its fixture to a neighbour's teardown.
-     */
-    rmSync(directory, { recursive: true, force: true });
+    /* rmSync removes the `scripts` link itself and never follows it into the repository. */
+    rmSync(tree, { recursive: true, force: true });
   }
 }
 

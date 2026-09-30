@@ -1,5 +1,5 @@
 import preview from '@sb/preview';
-import { heldImage, imageAfter, serveStoryImages } from '@sb/storyImages';
+import { heldImage, imageAfter, imageFailingOnce, serveStoryImages } from '@sb/storyImages';
 import { expect, waitFor, within } from 'storybook/test';
 
 import { PublishedImage } from './PublishedImage';
@@ -65,6 +65,25 @@ export const FailedLoad = meta.story({
       within(canvasElement).findByRole('img', { name: 'Atreides: preview unavailable' })
     ).resolves.toBeVisible();
     expect(canvasElement.querySelectorAll('img')).toHaveLength(0);
+  },
+});
+
+/** A publication that fails once is fetched again out of sight after 5 s, and replaces the missing state when it lands. */
+export const RecoversAfterFailedLoad = meta.story({
+  /* Each render gets a URL of its own, so a rerun fails once again instead of showing the image decoded last time. */
+  loaders: [async () => ({ ...(await serveStoryImages()), src: imageFailingOnce(`recovers-${crypto.randomUUID()}`) })],
+  render: (args, { loaded }) => <PublishedImage {...args} src={loaded.src as string} />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.findByRole('img', { name: 'Atreides: preview unavailable' })).resolves.toBeVisible();
+    /*
+     * The first retry waits 5 s and the next two 10 s and 20 s.
+     * The worker forgets which paths failed if the browser stops it while idle, so the wait covers a first retry answered with another 503.
+     */
+    const image = await canvas.findByRole<HTMLImageElement>('img', { name: 'Atreides' }, { timeout: 40_000 });
+    await waitFor(() => expect(image.closest('[aria-busy]')).toBeNull());
+    expect(image.naturalWidth).toBe(600);
+    expect(canvas.queryByRole('img', { name: 'Atreides: preview unavailable' })).toBeNull();
   },
 });
 

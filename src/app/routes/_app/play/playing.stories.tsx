@@ -595,7 +595,7 @@ export const FactionPhase = meta.story({
     await waitForPhase(() => expect(page.getByRole('button', { name: 'Help: Guild negotiations' })).toBeVisible());
     await userEvent.hover(page.getByRole('button', { name: 'Help: Guild negotiations' }));
     /* The tooltip fades in, so its text is the stable check; the header already shows the phase. */
-    await waitFor(() =>
+    await waitForFrame(() =>
       expect(page.getByRole('tooltip')).toHaveTextContent(
         'Guild negotiations. Agree any shipment deals before the auction opens.'
       )
@@ -718,13 +718,13 @@ export const SharedInventoryNarrow = meta.story({
       expect(page.getByText('House Atreides tokens requested by Twaffle')).toBeVisible();
     });
     await userEvent.hover(page.getByRole('button', { name: 'Help: Shared inventory' }));
-    await waitFor(() =>
+    await waitForFrame(() =>
       expect(finishTransitions(page.getByText(/Shared inventory\. Drag an item onto the table/))).toBeVisible()
     );
     await userEvent.unhover(page.getByRole('button', { name: 'Help: Shared inventory' }));
     await openTab(page, 'Phase');
     await userEvent.hover(page.getByRole('button', { name: 'Help: Storm' }));
-    await waitFor(() =>
+    await waitForFrame(() =>
       expect(finishTransitions(page.getByText(/Storm\. Move the storm using the storm controls/))).toBeVisible()
     );
     await userEvent.unhover(page.getByRole('button', { name: 'Help: Storm' }));

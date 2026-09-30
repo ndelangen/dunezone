@@ -1,4 +1,5 @@
 import preview from '@sb/preview';
+import { waitForFrame } from '@sb/storyWaits';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { db, refText, SEED_REF_TOKEN } from '@db/storybook';
@@ -47,7 +48,8 @@ export const EditEscapeClosesTheSheetReview = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     const review = () => canvasElement.ownerDocument.querySelector('[data-faction-sheet-review]');
     await userEvent.click(await page.findByRole('button', { name: 'Review faction sheet' }, { timeout: 30_000 }));
-    await waitFor(() => expect(review()?.hasAttribute('data-review-open')).toBe(true), { timeout: 30_000 });
+    /* The review plane opens from inside a second animation-frame callback, so each poll runs the waiting frames itself. */
+    await waitForFrame(() => expect(review()?.hasAttribute('data-review-open')).toBe(true), { timeout: 30_000 });
     await expect(page.findByRole('tooltip', { name: 'Review faction sheet' })).resolves.toBeInTheDocument();
     await userEvent.keyboard('{Escape}');
     await waitFor(() => expect(review()?.hasAttribute('data-review-open')).toBe(false));
@@ -365,7 +367,7 @@ export const CreateLoadClosesTheValidationBand = meta.story({
     await raiseAWarning(page);
     expect(body.querySelector('[data-page-layout-header-size]')).not.toBeNull();
     await userEvent.click(page.getByRole('button', { name: 'Load existing faction' }));
-    await userEvent.click((await page.findAllByRole('option', {}, { timeout: 30_000 }))[0]!);
+    await userEvent.click((await waitForFrame(() => page.getAllByRole('option'), { timeout: 30_000 }))[0]!);
     await userEvent.click(await page.findByRole('button', { name: 'Load faction' }, { timeout: 30_000 }));
     await waitFor(() => expect(body.querySelector('[data-page-layout-header-size]')).toBeNull(), { timeout: 30_000 });
   },

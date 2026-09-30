@@ -1,4 +1,5 @@
 import preview from '@sb/preview';
+import { waitForFrame } from '@sb/storyWaits';
 import { CircleAlert, CircleCheck, CircleDashed, FileText, History, RefreshCw, UsersRound } from 'lucide-react';
 import { expect, userEvent, within } from 'storybook/test';
 
@@ -22,7 +23,7 @@ export const Neutral = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     await userEvent.tab();
     await expect(page.getByRole('img', { name: 'No unsaved changes' })).toHaveFocus();
-    await expect(page.findByRole('tooltip')).resolves.toHaveTextContent('No unsaved changes');
+    await expect(waitForFrame(() => page.getByRole('tooltip'))).resolves.toHaveTextContent('No unsaved changes');
   },
 });
 
@@ -81,7 +82,7 @@ export const StandsInForSeveral = meta.story({
       'Unsaved changes Public assets are current. Group access: Arrakeen Rules Council'
     );
     await userEvent.tab();
-    const tooltip = await page.findByRole('tooltip');
+    const tooltip = await waitForFrame(() => page.getByRole('tooltip'));
     await expect(tooltip).toHaveTextContent('Unsaved changes');
     await expect(tooltip).toHaveTextContent('Public assets are current.');
     await expect(tooltip).toHaveTextContent('Group access: Arrakeen Rules Council');
