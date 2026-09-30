@@ -10,7 +10,10 @@ import { STORYBOOK_NOW } from '@db/storybook';
 import { browserGameRuntime } from './multiplayer/gameRuntime';
 import type { GameRuntime, GameSocket } from './multiplayer/gameRuntime';
 
-/* Scripted transport for route stories. Commands are recorded, never executed here. `holdView` leaves an admitted socket without a view, so a story can show the frame that waits for one. */
+/*
+ * Scripted transport for route stories. Commands are recorded, never executed here. `holdView` leaves an admitted socket without a view, so a story can show the frame that waits for one.
+ * `admitView` replaces the view built from `snapshot` with a recorded frame, and a `logEntries` callback is read on every page request, so a replayed journey can move its log with its step.
+ */
 export function storyTransport(
   viewerSeat: Viewer['viewerSeat'],
   snapshot: GameSnapshot,
@@ -19,11 +22,16 @@ export function storyTransport(
     holdLogHistory = false,
     logEntries = {},
     conversationMessages = [],
+    admitView,
+    answerCommand,
   }: {
     holdView?: boolean;
     holdLogHistory?: boolean;
     /* Newest first, as the table answers; a page is cut at the requested cursor. */
-    logEntries?: Partial<Record<LogTab, LogEntry[]>>;
+    logEntries?: Partial<Record<LogTab, LogEntry[]>> | (() => Partial<Record<LogTab, LogEntry[]>>);
+    admitView?: () => Extract<ServerMessage, { type: 'view' }>;
+    /* Answers every command in place of the scripted reply below, as a replayed journey follows its recording. */
+    answerCommand?: (message: Extract<ClientMessage, { type: 'command' }>) => Extract<ServerMessage, { type: 'view' }>;
     conversationMessages?: Extract<ServerMessage, { type: 'conversation-history' }>['entries'];
   } = {}
 ) {
@@ -80,14 +88,16 @@ export function storyTransport(
       const message = clientMessageSchema.parse(JSON.parse(data));
       messages.push(message);
       if (message.type === 'admit' && !holdView) {
-        queueMicrotask(() => this.deliver(view(snapshot)));
+        queueMicrotask(() => this.deliver(admitView?.() ?? view(snapshot)));
       }
       if (message.type === 'conversation-history') {
         const entries = conversationMessages.filter((entry) => entry.sequence < message.before);
         queueMicrotask(() => this.deliver({ ...message, entries: entries.slice(-50), more: entries.length > 50 }));
       }
       if (message.type === 'log-history' && !holdLogHistory) {
-        const entries = (logEntries[message.tab] ?? []).filter((entry) => entry.sequence < message.before);
+        const entries = ((typeof logEntries === 'function' ? logEntries() : logEntries)[message.tab] ?? []).filter(
+          (entry) => entry.sequence < message.before
+        );
         queueMicrotask(() =>
           this.deliver({
             type: 'log-history',
@@ -98,17 +108,24 @@ export function storyTransport(
           })
         );
       }
+      if (message.type === 'command' && answerCommand) {
+        queueMicrotask(() => this.deliver(answerCommand(message)));
+        return;
+      }
       /* A seat command is answered as the table answers it, with the same view marked complete, so the panel does not wait forever. */
       if (message.type === 'command' && (isSeatAction(message.action) || isSwapAction(message.action))) {
         queueMicrotask(() => this.deliver(view(snapshot, message.commandId)));
       }
     }
 
-    /* Every frame but admission carries the Worker's clock; the fixtures date their deadlines and votes from the same instant. */
+    /*
+     * Every frame but admission carries the Worker's clock; the fixtures date their deadlines and votes from the same instant.
+     * A recorded frame keeps the clock it was recorded with, since its deadlines are dated from that reading.
+     */
     deliver(message: ServerMessage) {
       if (this.readyState === StorySocket.OPEN) {
         this.onmessage?.({
-          data: JSON.stringify(message.type === 'admission' ? message : { ...message, serverNow: STORYBOOK_NOW }),
+          data: JSON.stringify(message.type === 'admission' ? message : { serverNow: STORYBOOK_NOW, ...message }),
         });
       }
     }
@@ -144,6 +161,8 @@ export function storyTransport(
     disconnect() {
       sockets.at(-1)?.close();
     },
+    /** Whether the page holds an open socket a frame can be delivered to. */
+    connected: () => sockets.at(-1)?.readyState === StorySocket.OPEN,
     view,
   };
 }

@@ -32,3 +32,8 @@ export function heldImage(name: string) {
 export function imageAfter(ms: number, name: string) {
   return `/__story-images/after/${ms}/${name}.svg`;
 }
+
+/** An image URL whose first request fails and whose later ones answer, for a story that shows recovery; give each render its own name. */
+export function imageFailingOnce(name: string) {
+  return `/__story-images/fail-once/${name}.svg`;
+}

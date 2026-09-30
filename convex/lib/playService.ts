@@ -1,4 +1,5 @@
 import { PLAY_REQUEST_TIMEOUT_MS } from '../../src/shared/play/admission';
+import type { PlayCallbackOperation } from '../../src/shared/play/callbacks';
 
 function isOriginOnly(url: URL) {
   const extra = [url.username, url.password, url.search, url.hash];
@@ -23,11 +24,7 @@ function playServiceOrigin(): string {
   return service.origin;
 }
 
-export async function postPlayService(
-  gameId: string,
-  operation: 'provision' | 'account-deletion' | 'retire',
-  body: unknown
-) {
+export async function postPlayService(gameId: string, operation: PlayCallbackOperation, body: unknown) {
   const response = await fetch(`${playServiceOrigin()}/__play/games/${encodeURIComponent(gameId)}/${operation}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

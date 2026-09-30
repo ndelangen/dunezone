@@ -643,7 +643,7 @@ describe('hosted table interaction', () => {
     expect(command()).toEqual(forward);
 
     socket().deliver({ ...carried, snapshot: { ...carried.snapshot, phase: 1, revision: 1 } });
-    expect(table(client).state.phase).toBe('Spice blow');
+    expect(table(client).snapshot.phase).toBe(1);
     expect(table(client).gestureActivePieceId).toBe(source.id);
     expect(renderedPiece(client, source.id)?.position).toEqual(heldPosition);
 
@@ -651,7 +651,7 @@ describe('hosted table interaction', () => {
     expect(command().action).toEqual({ kind: 'phase', direction: -1 });
     expect(command().expectedRevision).toBe(1);
     socket().deliver({ ...carried, snapshot: { ...carried.snapshot, phase: 0, revision: 2 } });
-    expect(table(client).state.phase).toBe('Storm');
+    expect(table(client).snapshot.phase).toBe(0);
     expect(table(client).state.draftMove?.pieceId).toBe(source.id);
 
     client.finishGesture([0, 0.38, 0]);

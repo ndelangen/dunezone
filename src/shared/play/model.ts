@@ -45,8 +45,6 @@ export type Affordance = {
 };
 
 export type TableState = z.infer<typeof durableTableSchema> & {
-  /* The active phase's label; a composed turn can name a faction's own phase (#1138). */
-  phase: string;
   viewerSeat: z.infer<typeof tableSeatSchema>;
   /* The faction the viewer's seat carries, or null for a spectator or an unassigned seat. */
   viewerFaction: string | null;
@@ -219,7 +217,6 @@ export function freshTableState(): TableState {
     viewerSeat: 'harkonnen',
     viewerFaction: 'harkonnen',
     factionNames: { harkonnen: 'Harkonnen', atreides: 'Atreides', 'bene-gesserit': 'Bene Gesserit' },
-    phase: OPENING_PHASE,
     stormSectorIndex: DEFAULT_STORM_SECTOR_INDEX,
     pieces: INITIAL_PIECES.map((piece) => ({
       ...piece,
