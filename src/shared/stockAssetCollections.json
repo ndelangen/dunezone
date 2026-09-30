@@ -1236,5 +1236,132 @@
       "/image/leader/custom/urrek-fan/orrel.png",
       "/image/leader/custom/urrek-fan/havva.png"
     ]
+  },
+  {
+    "label": "GF9 originals",
+    "keywords": "original official Dune planets",
+    "assets": [
+      "/image/planet/01.png",
+      "/image/planet/02.png",
+      "/image/planet/03.png",
+      "/image/planet/04.png",
+      "/image/planet/05.png",
+      "/image/planet/06.png",
+      "/image/planet/07.png",
+      "/image/planet/08.png",
+      "/image/planet/09.png",
+      "/image/planet/10.png",
+      "/image/planet/11.png",
+      "/image/planet/12.png",
+      "/image/planet/13.png"
+    ]
+  },
+  {
+    "label": "Desert dominions",
+    "keywords": "Salt, wind and scarce water",
+    "assets": [
+      "/image/planet/desert-dominions/salt-crown.png",
+      "/image/planet/desert-dominions/pilgrims-wake.png",
+      "/image/planet/desert-dominions/glass-dunes.png",
+      "/image/planet/desert-dominions/the-last-well.png",
+      "/image/planet/desert-dominions/wandering-sea.png"
+    ]
+  },
+  {
+    "label": "Ocean principalities",
+    "keywords": "Archipelagos and unfamiliar seas",
+    "assets": [
+      "/image/planet/ocean-principalities/drowned-crown.png",
+      "/image/planet/ocean-principalities/sable-tide.png",
+      "/image/planet/ocean-principalities/reef-labyrinth.png",
+      "/image/planet/ocean-principalities/twin-basins.png",
+      "/image/planet/ocean-principalities/storm-anchorage.png"
+    ]
+  },
+  {
+    "label": "Winter realms",
+    "keywords": "Ice shelves and hidden oceans",
+    "assets": [
+      "/image/planet/winter-realms/blue-fault.png",
+      "/image/planet/winter-realms/thawline.png",
+      "/image/planet/winter-realms/frost-basin.png",
+      "/image/planet/winter-realms/opal-winter.png",
+      "/image/planet/winter-realms/night-glacier.png"
+    ]
+  },
+  {
+    "label": "Furnace worlds",
+    "keywords": "Lava, ash and difficult refuges",
+    "assets": [
+      "/image/planet/furnace-worlds/ember-isthmus.png",
+      "/image/planet/furnace-worlds/ash-monsoon.png",
+      "/image/planet/furnace-worlds/copper-caldera.png",
+      "/image/planet/furnace-worlds/cinder-orchard.png",
+      "/image/planet/furnace-worlds/sulphur-veil.png"
+    ]
+  },
+  {
+    "label": "Living frontiers",
+    "keywords": "Unfamiliar planetary ecologies",
+    "assets": [
+      "/image/planet/living-frontiers/spore-atlas.png",
+      "/image/planet/living-frontiers/rootwater.png",
+      "/image/planet/living-frontiers/coral-dominion.png",
+      "/image/planet/living-frontiers/verdigris-bloom.png",
+      "/image/planet/living-frontiers/violet-canopy.png"
+    ]
+  },
+  {
+    "label": "Cloud kingdoms",
+    "keywords": "Storm systems and gas giants",
+    "assets": [
+      "/image/planet/cloud-kingdoms/saffron-eye.png",
+      "/image/planet/cloud-kingdoms/blue-procession.png",
+      "/image/planet/cloud-kingdoms/mauve-lantern.png",
+      "/image/planet/cloud-kingdoms/the-long-storm.png",
+      "/image/planet/cloud-kingdoms/pearl-gyre.png"
+    ]
+  },
+  {
+    "label": "Engineered legacies",
+    "keywords": "Industry and old planetary works",
+    "assets": [
+      "/image/planet/engineered-legacies/meridian-foundry.png",
+      "/image/planet/engineered-legacies/reservoir-nine.png",
+      "/image/planet/engineered-legacies/sleeping-engine.png",
+      "/image/planet/engineered-legacies/verdant-girdle.png",
+      "/image/planet/engineered-legacies/brass-reliquary.png"
+    ]
+  },
+  {
+    "label": "Strange horizons",
+    "keywords": "Worlds shaped by unusual histories",
+    "assets": [
+      "/image/planet/strange-horizons/twilight-covenant.png",
+      "/image/planet/strange-horizons/shattered-halo.png",
+      "/image/planet/strange-horizons/pilgrim-scar.png",
+      "/image/planet/strange-horizons/hollow-shoals.png",
+      "/image/planet/strange-horizons/black-mirror.png"
+    ]
+  },
+  {
+    "label": "Non spheres",
+    "keywords": "Unusual worlds, cosmic bodies and constructed homes.",
+    "assets": [
+      "/image/planet/non-spheres/halo-of-kes.png",
+      "/image/planet/non-spheres/veyr-ark.png",
+      "/image/planet/non-spheres/the-folded-world.png",
+      "/image/planet/non-spheres/the-linked-reach.png",
+      "/image/planet/non-spheres/ironheart-ocean.png",
+      "/image/planet/non-spheres/saffron-sun.png",
+      "/image/planet/non-spheres/the-quiet-maw.png",
+      "/image/planet/non-spheres/the-iron-conclave.png",
+      "/image/planet/non-spheres/the-swift-meridian.png"
+    ]
+  },
+  {
+    "label": "Familiar worlds",
+    "keywords": "Our own homeworld.",
+    "assets": ["/image/planet/familiar-worlds/earth.png"]
   }
 ]
