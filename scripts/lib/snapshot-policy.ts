@@ -1,6 +1,7 @@
 import type { WithoutSystemFields } from 'convex/server';
 import type { GenericId } from 'convex/values';
 
+import type { components } from '../../convex/_generated/api';
 import type { Doc, Id, TableNames } from '../../convex/_generated/dataModel';
 import { rulebookEditionContentsV1Schema } from '../../src/shared/rulebooks/contents';
 import { readerContents } from '../../src/shared/rulebooks/readerContents';
@@ -258,17 +259,45 @@ export const snapshotPolicy = {
 } satisfies { [Table in TableNames]: TablePolicy<Table> };
 
 /**
- * Convex components the export carries under `_components/`.
- * Their tables are derived indexes and rate limits keyed by user, so every one is dropped, and the loaders rebuild what they need.
- * A component not listed here fails the run.
+ * Tables production still holds that `convex/schema.ts` no longer declares, each dropped by name.
+ * Convex keeps a table after it leaves the schema, so the export carries it.
+ * A key that is also a schema table fails typecheck, so a table that comes back must be classified in the policy above.
+ * #1576 tracks deleting these tables from production.
  */
-export const droppedComponents: ReadonlySet<string> = new Set([
-  'migrations',
-  'rateLimiter',
-  'statistics',
-  'profileDiscovery',
-  'profileActivity',
-]);
+export const retiredTables = {
+  /* Left the schema in 2304c35e5e9, after `asset_claim_snapshots_retire_v1` deleted its rows. */
+  asset_claim_snapshots: 'retired asset publisher bookkeeping, not content',
+  /* Left the schema in 2304c35e5e9, after `asset_publisher_state_retire_v1` deleted its rows. */
+  asset_publisher_state: 'retired asset publisher bookkeeping, not content',
+  /* The last four left the schema in c99f69fa75e, after the `publication_delete_legacy_*_v1` migrations deleted their rows. */
+  asset_targets: 'retired asset publisher bookkeeping, not content',
+  asset_type_configs: 'retired asset publisher bookkeeping, not content',
+  asset_rollouts: 'retired asset publisher bookkeeping, not content',
+  asset_rollout_items: 'retired asset publisher bookkeeping, not content',
+} satisfies Record<string, string> & { [Table in TableNames]?: never };
+
+/**
+ * Convex components the app installs in `convex/convex.config.ts`, each dropped by name with its reason.
+ * Codegen writes the same names into `components` in `convex/_generated/api.d.ts`, so a component added or removed there fails typecheck until it is classified here.
+ */
+export const installedComponents = {
+  migrations: 'migration progress, which belongs to the deployment that ran it',
+  rateLimiter: 'rate limits keyed by user',
+  statistics: 'derived counts and the ids they count, which the loaders rebuild',
+  profileDiscovery: 'a derived index, which the loaders rebuild',
+  profileActivity: 'derived counts per user and the ids they count, which the loaders rebuild',
+} satisfies { [Name in keyof typeof components]: string };
+
+/**
+ * Components production still holds after the app stopped installing them, each dropped by name.
+ * Convex keeps an unmounted component's data until the component is deleted in the dashboard, and the export carries it.
+ * A key that is also an installed component fails typecheck.
+ * #1576 tracks deleting these components from production.
+ */
+export const retiredComponents = {
+  /* Unmounted in 41c443122f2 (#176). */
+  homepageCommunity: 'the retired homepage aggregate: derived counts and the ids they count',
+} satisfies Record<string, string> & { [Name in keyof typeof components]?: never };
 
 /**
  * The one owner every kept user reference points at.

@@ -66,15 +66,23 @@ describe('anonymised snapshot job', () => {
         { table: 'factions', dropReason: null, rowsIn: 2, rowsOut: 1, droppedFields: [] },
         { table: 'authAccounts', dropReason: 'sign-in accounts', rowsIn: 3, rowsOut: 0, droppedFields: [] },
       ],
-      droppedComponents: ['statistics'],
+      droppedComponents: [{ component: 'statistics', dropReason: 'derived counts' }],
     };
     const written = summaryMarkdown({ kind: 'written', report, snapshot }, false);
     expect(written).toContain('Upload: off.');
     expect(written).toContain('Leak scan: no findings');
     expect(written).toContain('| `factions` | kept | 2 | 1 | `data`, `slug` |');
     expect(written).toContain('| `authAccounts` | dropped: sign-in accounts | 3 | 0 |  |');
+    expect(written).toContain('Component data dropped:\n\n- `statistics`: derived counts\n');
     expect(written).not.toMatch(/Planted|planted-slug/);
-    const refused = summaryMarkdown({ kind: 'refused', problems: ['leak scan: email in factions.data'] }, false);
-    expect(refused).toContain('- leak scan: email in factions.data');
+    const refused = summaryMarkdown(
+      {
+        kind: 'refused',
+        problems: ['leak scan: email in factions.data', 'unexpected entries:\n  - a/b.txt\n  - c/d.txt'],
+      },
+      false
+    );
+    expect(refused).toContain('- leak scan: email in factions.data\n');
+    expect(refused).toContain('- unexpected entries:\n  - a/b.txt\n  - c/d.txt\n');
   });
 });

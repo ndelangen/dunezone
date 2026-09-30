@@ -71,7 +71,9 @@ function printReport(report: SnapshotReport) {
     const fields = droppedFields.length > 0 ? `, fields dropped: ${droppedFields.join(', ')}` : '';
     console.log(`${table}: ${action}, ${rowsIn} rows in, ${rowsOut} out${fields}`);
   }
-  console.log(`components dropped: ${report.droppedComponents.join(', ') || 'none'}`);
+  for (const { component, dropReason } of report.droppedComponents) {
+    console.log(`component ${component}: dropped (${dropReason})`);
+  }
 }
 
 /**
