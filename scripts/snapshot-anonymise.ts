@@ -34,7 +34,8 @@ function run(command: string, args: string[], cwd?: string): string {
   return result.stdout;
 }
 
-function readZip(file: string): ExportEntries {
+/** Reads every entry of the zip at `file` into memory, refusing entry names outside the export layout. */
+export function readZip(file: string): ExportEntries {
   const names = run('/usr/bin/unzip', ['-Z1', file])
     .split('\n')
     .filter((name) => name.length > 0 && !name.endsWith('/'));
@@ -74,15 +75,19 @@ function printReport(report: SnapshotReport) {
 }
 
 /**
- * Anonymises the export zip at `exportPath` into a new snapshot zip at `out`, then reads the written file back and scans it.
+ * Anonymises the export's entries into a new snapshot zip at `out`, then reads the written file back and scans it.
+ * It takes the entries rather than the export's path, so a caller can delete the export as soon as it has read it.
  * It returns the report and the entries read back, so a caller describes the file a later step would upload.
  * On any refusal the written file is removed.
  */
-export function anonymiseZip(exportPath: string, out: string): { report: SnapshotReport; snapshot: ExportEntries } {
+export function anonymiseZip(
+  exported: ExportEntries,
+  out: string
+): { report: SnapshotReport; snapshot: ExportEntries } {
   if (existsSync(out)) {
     throw new Error(`${out} already exists, and the anonymiser never overwrites a file`);
   }
-  const { entries, report } = anonymiseExport(readZip(exportPath));
+  const { entries, report } = anonymiseExport(exported);
   writeZip(entries, out);
   try {
     const snapshot = readZip(out);
@@ -107,7 +112,7 @@ function main(argv: string[]) {
     throw new Error('Usage: snapshot-anonymise --export <convex-export.zip> --out <snapshot.zip>');
   }
   const out = path.resolve(values.out);
-  const { report } = anonymiseZip(path.resolve(values.export), out);
+  const { report } = anonymiseZip(readZip(path.resolve(values.export)), out);
   printReport(report);
   console.log(`Wrote the anonymised snapshot to ${out}.`);
 }

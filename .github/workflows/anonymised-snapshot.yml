@@ -2,8 +2,8 @@ name: Anonymised snapshot
 
 # Exports production, anonymises it into the published-only snapshot and scans the result (#1559).
 # The step summary gives table names, row counts, kept field names and the leak scan result, never values.
-# The raw export never leaves the runner: scripts/anonymised-snapshot.ts deletes it once the anonymiser has
-# read it, and the last step deletes the job's directory whatever happened before.
+# The raw export never leaves the runner: scripts/anonymised-snapshot.ts reads it into memory and deletes it
+# before anonymising, and the last step deletes the job's directory whatever happened before.
 on:
   schedule:
     # Once a day. GitHub runs scheduled workflows from the default branch only.

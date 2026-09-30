@@ -4,12 +4,12 @@ import path from 'node:path';
 import type { ExportEntries, SnapshotReport } from './lib/snapshot-anonymiser';
 import { SnapshotRefused } from './lib/snapshot-anonymiser';
 import { exportProductionSnapshot } from './provision';
-import { anonymiseZip } from './snapshot-anonymise';
+import { anonymiseZip, readZip } from './snapshot-anonymise';
 
 /**
  * The anonymised snapshot job (#1559), which `.github/workflows/anonymised-snapshot.yml` runs.
  *
- * It exports production the way the dev rebuild does, anonymises the export, and deletes the raw export as soon as the anonymiser has read it.
+ * It exports production the way the dev rebuild does, reads the raw export into memory and deletes it before anonymising, whether the read succeeded or not.
  * Its step summary gives table names, row counts, kept field names and the leak scan result, never a value, because Actions logs on this repository are public.
  * It uploads nothing itself.
  * The workflow's upload step does that, and only when SNAPSHOT_UPLOAD is 'true'.
@@ -55,10 +55,12 @@ export function jobEnvironment(env: NodeJS.ProcessEnv): JobEnvironment {
   };
 }
 
+type Stage = 'exporting production' | 'reading the export' | 'anonymising the export';
+
 type Outcome =
   | { kind: 'written'; report: SnapshotReport; snapshot: ExportEntries }
   | { kind: 'refused'; problems: readonly string[] }
-  | { kind: 'failed'; stage: 'exporting production' | 'anonymising the export'; errorName: string };
+  | { kind: 'failed'; stage: Stage; errorName: string };
 
 const TABLE_DOCUMENTS = /^([A-Za-z][A-Za-z0-9_]*)\/documents\.jsonl$/;
 
@@ -135,32 +137,36 @@ export function summaryMarkdown(outcome: Outcome, upload: boolean): string {
 /** Only an error's name reaches the public log, because its message could quote what it failed on. */
 const errorName = (error: unknown) => (error instanceof Error ? error.name : typeof error);
 
+function stopped(stage: Stage, error: unknown): Outcome {
+  return error instanceof SnapshotRefused
+    ? { kind: 'refused', problems: error.problems }
+    : { kind: 'failed', stage, errorName: errorName(error) };
+}
+
+/** The raw export is deleted once it is read into memory, before the anonymiser starts, whether the read succeeded or not. */
 function anonymiseProduction(env: NodeJS.ProcessEnv, exportDirectory: string, out: string): Outcome {
-  let exportPath: string;
+  let stage: Stage = 'exporting production';
+  let exported: ExportEntries;
   try {
-    exportPath = exportProductionSnapshot(env, exportDirectory);
+    const exportPath = exportProductionSnapshot(env, exportDirectory);
+    stage = 'reading the export';
+    exported = readZip(exportPath);
   } catch (error) {
-    return { kind: 'failed', stage: 'exporting production', errorName: errorName(error) };
+    return stopped(stage, error);
+  } finally {
+    rmSync(exportDirectory, { recursive: true, force: true });
   }
   try {
-    return { kind: 'written', ...anonymiseZip(exportPath, out) };
+    return { kind: 'written', ...anonymiseZip(exported, out) };
   } catch (error) {
-    return error instanceof SnapshotRefused
-      ? { kind: 'refused', problems: error.problems }
-      : { kind: 'failed', stage: 'anonymising the export', errorName: errorName(error) };
+    return stopped('anonymising the export', error);
   }
 }
 
 function main(env: NodeJS.ProcessEnv): boolean {
   const job = jobEnvironment(env);
-  const exportDirectory = path.join(job.directory, 'export');
   mkdirSync(job.directory, { recursive: true, mode: 0o700 });
-  let outcome: Outcome;
-  try {
-    outcome = anonymiseProduction(env, exportDirectory, path.join(job.directory, SNAPSHOT_FILE));
-  } finally {
-    rmSync(exportDirectory, { recursive: true, force: true });
-  }
+  const outcome = anonymiseProduction(env, path.join(job.directory, 'export'), path.join(job.directory, SNAPSHOT_FILE));
   const summary = summaryMarkdown(outcome, job.upload);
   appendFileSync(job.summaryPath, summary);
   console.log(summary);

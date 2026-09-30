@@ -354,8 +354,8 @@ Auth, command, projection and browser tests remain separate delivery evidence.
 `.github/workflows/anonymised-snapshot.yml` runs once a day and on manual dispatch, from `main`
 only, in the `production` environment (#1559). It exports production the way `dev-rebuild.yml`
 does, anonymises the export with `scripts/snapshot-anonymise.ts`, and scans the written snapshot.
-The raw export is deleted as soon as the anonymiser has read it, and the job's last step deletes
-its directory whatever happened before.
+The script reads the raw export into memory and deletes it before anonymising, whether the read
+succeeded or not, and the job's last step deletes its directory whatever happened before.
 
 The step summary gives the leak scan result, then each table with its policy, its rows in and
 out, and the field names the snapshot keeps. It never shows a value, because Actions logs on this
