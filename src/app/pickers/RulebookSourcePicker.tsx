@@ -2,6 +2,7 @@ import { Box, Button, Center, Group, Loader, Select, Stack, Text } from '@mantin
 import { RULEBOOK_BOARD_ARTWORK, RULEBOOK_STOCK_ARTWORK, rulebookArtworkName } from '@shared/rulebooks/sources';
 import type { RulebookSourceReference } from '@shared/rulebooks/sources';
 import { PublishedImage } from '@ui/content/PublishedImage';
+import { stockAssetOptions } from '@ui/content/stockAssetOptions';
 import { AssetSelect } from '@ui/control/AssetSelect';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { useReducer } from 'react';
@@ -141,7 +142,10 @@ export function RulebookSourcePicker({
               aria-label="Artwork"
               value={null}
               placeholder="Choose artwork"
-              data={RULEBOOK_STOCK_ARTWORK.map((value) => ({ value, label: rulebookArtworkName(value) }))}
+              data={stockAssetOptions(RULEBOOK_STOCK_ARTWORK).map((option) => ({
+                ...option,
+                label: rulebookArtworkName(option.value),
+              }))}
               getPreviewSrc={(value) => resolveAsset(value, 'small')}
               onChange={(artworkId) => {
                 if (artworkId) {

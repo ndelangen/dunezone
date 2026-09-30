@@ -364,5 +364,6 @@ catalog used by game schemas.
 - [Membership](./membership.md) - Group membership approval flow
 - [Deployment](./deployment.md) - Cloudflare Worker deployment process
 - [Convex Migrations](./convex-migrations.md) - Required widen/migrate/verify/narrow runbook + CI/deploy guards
+- [Stock artwork collections](./technical/stock-artwork.md) - Portrait sets, SVG categories, and adding artwork
 - [UI Taxonomy & Ownership](./technical/ui-component-hierarchy.md) - Ownership rules around the canonical taxonomy in `AGENTS.md`
 - [UI Design Decisions](./technical/ui-design-decisions.md) - Accepted UI semantics and consistency defaults

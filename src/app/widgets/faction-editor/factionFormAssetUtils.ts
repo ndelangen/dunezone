@@ -1,4 +1,4 @@
-import { DECAL, GENERIC, ICON, LEADERS, LOGO, TROOP, TROOP_MODIFIER } from '@shared/assetIds';
+import { DECAL, GENERIC, ICON, LOGO, TROOP, TROOP_MODIFIER } from '@shared/assetIds';
 
 import { resolveAsset } from '@game/assets/resolveAsset';
 
@@ -76,13 +76,7 @@ export const decalAssetOptions = [
   ...new Set([...DECAL.options, ...ICON.options, ...LOGO.options, ...GENERIC.options, ...TROOP.options]),
 ].sort((a, b) => a.localeCompare(b)) as readonly string[];
 
-export const logoOptionToLabel = createPathOptionLabeler(logoOptions);
-
-export const decalAssetOptionToLabel = createPathOptionLabeler(decalAssetOptions);
-export const leaderOptionToLabel = createPathOptionLabeler(LEADERS.options);
-export const troopOptionToLabel = createPathOptionLabeler(TROOP.options);
 export const troopStarOptionToLabel = createPathOptionLabeler(TROOP_MODIFIER.options);
 
 /** A phase symbol is one icon vector: the control UI and the tracker disc draw the same reference. */
 export const phaseSymbolOptions = ICON.options as readonly string[];
-export const phaseSymbolOptionToLabel = createPathOptionLabeler(phaseSymbolOptions);

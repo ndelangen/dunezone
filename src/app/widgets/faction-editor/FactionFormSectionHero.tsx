@@ -1,18 +1,16 @@
 import { Box, Grid, Stack, Text, TextInput } from '@mantine/core';
 import { LEADERS } from '@shared/assetIds';
+import { stockAssetOptions } from '@ui/content/stockAssetOptions';
 import { AssetSelect } from '@ui/control/AssetSelect';
 import { ControlBlock } from '@ui/control/ControlBlock';
 
 import type { Faction } from '@db/factions';
 import { LeaderToken } from '@game/assets/faction/leader/Leader';
 
-import { assetOptionToPreviewSrc, leaderOptionToLabel } from './factionFormAssetUtils';
+import { assetOptionToPreviewSrc } from './factionFormAssetUtils';
 import type { FactionFormApi } from './factionFormTypes';
 
-const leaderImageOptions = LEADERS.options.map((value) => ({
-  value,
-  label: leaderOptionToLabel(value),
-}));
+const leaderImageOptions = stockAssetOptions(LEADERS.options);
 
 export function FactionFormSectionHero({ form, showPreview = true }: { form: FactionFormApi; showPreview?: boolean }) {
   return (
@@ -58,7 +56,6 @@ export function FactionFormSectionHero({ form, showPreview = true }: { form: Fac
                       id="hero-image"
                       aria-label="Faction leader portrait"
                       allowDeselect={false}
-                      limit={24}
                       data={leaderImageOptions}
                       getPreviewSrc={assetOptionToPreviewSrc}
                       value={field.state.value}
