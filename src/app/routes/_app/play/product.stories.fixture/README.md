@@ -21,6 +21,8 @@ These stories use one set of six faction definitions copied from the public Dune
   revision and design. The JPEG is copied unchanged into the isolated story assets.
 - Treachery cards: the card back and the Snooper face, copied from the published Dreamrules deck
   into `.storybook/static/play-fixtures/dreamrules`.
+- Spice card: `broken-land.jpg` in the same folder, a capture of the Game Assets / Cards / Spice
+  "Broken Land" story, so the journey recording (`../journey.recording`) can reveal a Spice card.
 - Players: the public profile snapshot recorded in `drafting.stories.fixture.ts`. Their public
   avatar images are copied from `https://dune.zone/user-images/` into `play-fixtures/product`.
 

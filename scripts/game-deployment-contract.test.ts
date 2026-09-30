@@ -2,10 +2,46 @@ import { readFileSync } from 'node:fs';
 
 import { describe, expect, test } from 'vitest';
 
-import { readGameConfig, validateGameDeployContract, validateGameHealth } from './game-deployment-contract';
+import {
+  GAME_HEALTH_INTERVAL_MS,
+  GAME_HEALTH_READS,
+  readGameConfig,
+  smokeGame,
+  validateGameDeployContract,
+  validateGameHealth,
+} from './game-deployment-contract';
 import { browserFlows } from './verify-hosted-flows';
 
 const SHA = 'a'.repeat(40);
+const RELEASED = { gitSha: SHA, versionId: 'b2caef52-f9dc-4be6-a427-8a93ff8b687c' };
+const PREVIOUS = { gitSha: 'c'.repeat(40), versionId: '48813235-0000-4000-8000-000000000000' };
+
+/** A /__play/health that answers each read with the next release in the list, repeating the last one. */
+function bindingServing(releases: (typeof RELEASED)[]) {
+  const slept: number[] = [];
+  let reads = 0;
+  const fetcher = async (url: string) => {
+    const release = releases[Math.min(reads, releases.length - 1)]!;
+    reads += 1;
+    const response = Response.json(
+      {
+        ok: true,
+        identity: { gitSha: release.gitSha, workerVersionTag: release.gitSha, workerVersionId: release.versionId },
+      },
+      { headers: { 'Cache-Control': 'no-store' } }
+    );
+    Object.defineProperty(response, 'url', { value: url });
+    return response;
+  };
+  const dependencies = {
+    fetcher,
+    sleep: async (ms: number) => {
+      slept.push(ms);
+    },
+    log: () => {},
+  };
+  return { dependencies, slept, reads: () => reads };
+}
 const environment = {
   GITHUB_SHA: SHA,
   GITHUB_REF: 'refs/heads/main',
@@ -96,5 +132,20 @@ describe('game deployment contract', () => {
         headers: new Headers({ 'Cache-Control': 'public, max-age=60' }),
       })
     ).toThrow(/cache/);
+  });
+
+  test('reads the health again while the publisher binding still reaches the previous release', async () => {
+    const binding = bindingServing([PREVIOUS, PREVIOUS, RELEASED]);
+    await expect(smokeGame(RELEASED, binding.dependencies)).resolves.toBeUndefined();
+    expect(binding.reads()).toBe(3);
+    expect(binding.slept).toEqual([GAME_HEALTH_INTERVAL_MS, GAME_HEALTH_INTERVAL_MS]);
+  });
+
+  test('fails on the last read when the bound release never answers', async () => {
+    const binding = bindingServing([PREVIOUS]);
+    await expect(smokeGame(RELEASED, binding.dependencies)).rejects.toThrow(
+      `Game health did not report the bound release after ${GAME_HEALTH_READS} reads; last: Game health source SHA or tag differs`
+    );
+    expect(binding.reads()).toBe(GAME_HEALTH_READS);
   });
 });
