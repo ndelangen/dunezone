@@ -426,6 +426,11 @@ describe('anonymiseExport on component data', () => {
     const extra = {
       ...Object.fromEntries(componentEntries('_components/newcomer/', ['items'])),
       '_components/constructor/_tables/documents.jsonl': '',
+      '_components/Statistics/btree/documents.jsonl': '',
+      '_components/statisticsX/btree/documents.jsonl': '',
+      '_components/statistics/btree/documents.jsonl.bak': '',
+      'x_components/statistics/btree/documents.jsonl': '',
+      '_Components/statistics/btree/documents.jsonl': '',
       '_components/statistics/btree/notes.txt': 'planted-note',
       '_components/statistics/documents.jsonl': '',
       '_components/statistics/_components/documents.jsonl': '',
@@ -438,13 +443,16 @@ describe('anonymiseExport on component data', () => {
     expect(error.problems).toEqual([
       [
         'unexpected entries:',
+        '  - _Components/statistics/btree/documents.jsonl',
         '  - _components/../users/documents.jsonl',
         '  - _components/statistics/_components/documents.jsonl',
         '  - _components/statistics/_storage/kg2abc',
+        '  - _components/statistics/btree/documents.jsonl.bak',
         '  - _components/statistics/btree/notes.txt',
         '  - _components/statistics/documents.jsonl',
+        '  - x_components/statistics/btree/documents.jsonl',
       ].join('\n'),
-      'components the snapshot policy does not classify:\n  - constructor\n  - newcomer',
+      'components the snapshot policy does not classify:\n  - Statistics\n  - constructor\n  - newcomer\n  - statisticsX',
     ]);
     expect(error.message).not.toContain('planted-note');
   });

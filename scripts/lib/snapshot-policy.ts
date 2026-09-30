@@ -283,9 +283,9 @@ export const retiredTables = {
 export const installedComponents = {
   migrations: 'migration progress, which belongs to the deployment that ran it',
   rateLimiter: 'rate limits keyed by user',
-  statistics: 'derived counts, which the loaders rebuild',
+  statistics: 'derived counts and the ids they count, which the loaders rebuild',
   profileDiscovery: 'a derived index, which the loaders rebuild',
-  profileActivity: 'derived counts, which the loaders rebuild',
+  profileActivity: 'derived counts per user and the ids they count, which the loaders rebuild',
 } satisfies { [Name in keyof typeof components]: string };
 
 /**
@@ -296,7 +296,7 @@ export const installedComponents = {
  */
 export const retiredComponents = {
   /* Unmounted in 41c443122f2 (#176). */
-  homepageCommunity: 'the retired homepage aggregate, derived counts only',
+  homepageCommunity: 'the retired homepage aggregate: derived counts and the ids they count',
 } satisfies Record<string, string> & { [Name in keyof typeof components]?: never };
 
 /**
