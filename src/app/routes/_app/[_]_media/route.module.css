@@ -1,0 +1,48 @@
+.filters {
+  display: grid;
+  grid-template-columns: 2fr 1fr 2fr;
+  gap: var(--space-md);
+}
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
+  gap: var(--space-sm);
+}
+.previewLink {
+  display: block;
+  color: inherit;
+}
+.preview {
+  display: block;
+  width: 100%;
+  height: 10rem;
+  object-fit: contain;
+}
+.largePreview {
+  display: block;
+  width: 100%;
+  height: 20rem;
+  object-fit: contain;
+}
+.detail {
+  display: grid;
+  grid-template-columns: minmax(0, 20rem) minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-lg);
+}
+.path {
+  overflow-wrap: anywhere;
+}
+@container (width < 48rem) {
+  .filters {
+    grid-template-columns: 1fr;
+  }
+  .detail {
+    grid-template-columns: 1fr;
+  }
+}
+
+.card {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 17rem;
+}

@@ -38,12 +38,14 @@ filename remain searchable for related uses. The collections do not prescribe ca
 
 - A standalone sword belongs with blades; a duel belongs with combat and training. Guards and
   formations cover standing watch, escorts and assembled troops.
-- Animals and desert fauna share one collection. Mechanical creatures belong with personal machinery.
-- Medical help covers treatment, rescue and anatomy. Water collection, purification and cultivation
-  have their own collection.
+- Animals and desert fauna share one collection. Plants and fungi are separate, as are microorganisms
+  such as Flagella and Zenobia. Mechanical creatures belong with personal machinery.
+- Medical care and rescue depicts caregivers and rescue scenes. Needles and injectors are weapons;
+  personal medical devices stay with tools. Bodies and protective fields have a separate collection.
 - Portable mechanisms belong with tools and personal machinery; harvesters and industrial equipment
-  belong with large machines. Guns, explosives and vehicles have more specific collections.
-- Secret passages covers entrances and access tools. Intrigue covers covert encounters and disguises.
+  belong with large machines. Guns and explosives have more specific collections. Aircraft, spacecraft and ground vehicles
+  share Long-distance travel. Cisterns, ecological stations and processing buildings belong with buildings.
+- Secret passages covers entrances and access tools. Intrigue covers people in covert encounters. Disguise objects and decoys have a separate collection.
 - A visible building, hand or diagram takes precedence over an abstract card-effect name. For example,
   `choam-share.svg` depicts a building and `extortion.svg` depicts a dagger.
 - Alternate drawings and colour variants of the same named illustration stay together. Existing
@@ -54,6 +56,18 @@ the caller's colour; artwork with a fixed palette uses the `-multicolor.svg` suf
 public vectors with `bun run generate:vectors`, then run `bun run verify:vectors`. Review both
 existing and new artwork together through the Asset Select picker, including collection filtering
 and selecting a result. Individual images do not need individual stories.
+
+## Media review
+
+`/__media` browses all stock vectors, leader portraits, planets and textures in one continuous catalogue. Type, group, search,
+and focused artwork are encoded in its URL. `__icons` redirects to this catalogue; Topics and
+Lucide remain available as tabs.
+
+Select artwork and choose an existing or new destination group to propose reclassification.
+Assignments stay in memory until the page is left or reloaded. Undo restores the previous move;
+Reset clears the draft. Copy prompt exports exact asset paths, original groups, proposed groups and
+optional notes. These proposals do not change source files, saved factions or the live picker.
+Apply an accepted prompt to `src/shared/stockAssetCollections.json` through the normal PR workflow.
 
 ## Classification evidence
 
