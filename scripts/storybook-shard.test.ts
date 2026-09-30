@@ -3,6 +3,7 @@ import { resolve } from 'node:path';
 
 import { describe, expect, test } from 'vitest';
 
+import storybook from '../.storybook/main';
 import { assignShards, byCodeUnit, listStoryFiles, readShardRules, shardOf } from './lib/storybook-shards';
 
 const root = resolve(import.meta.dirname, '..');
@@ -29,11 +30,13 @@ describe('storybook shards', () => {
     expect([...shards.values()].flat().sort(byCodeUnit)).toEqual(files);
   });
 
-  test('every Storybook stories directory sits under src, which is the tree the shards walk', () => {
-    const main = readFileSync(resolve(root, '.storybook/main.ts'), 'utf8');
-    const directories = [...main.matchAll(/directory: '([^']+)'/g)].map(([, directory]) => directory);
-    expect(directories.length).toBeGreaterThan(0);
-    expect(directories.filter((directory) => !directory.startsWith('../src/'))).toEqual([]);
+  test('every Storybook stories entry is a directory under src, the tree the shards walk, and no files pattern climbs out of it', () => {
+    const entries = Array.isArray(storybook.stories) ? storybook.stories : [];
+    expect(entries.length).toBeGreaterThan(0);
+    const outside = entries.filter(
+      (entry) => typeof entry === 'string' || !entry.directory.startsWith('../src/') || entry.files?.includes('..')
+    );
+    expect(outside).toEqual([]);
   });
 
   test('no story path is a substring of another, since Vitest selects a file by substring match on the filters', async () => {
