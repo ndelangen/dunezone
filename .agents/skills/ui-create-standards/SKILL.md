@@ -1,110 +1,122 @@
 ---
 name: ui-create-standards
-description: Design and implement application UI with Mantine-first ownership, domain-visual exceptions, and strict renderer isolation. Use when adding or refactoring UI, creating shared components, choosing layout or styling approaches, or checking consistency with repository UI patterns.
+description: Design and implement application UI in Dune Zone's kit-first taxonomy, where six kit categories under src/app/ui, widgets, pickers, the shell and isolated game renderers are all composed from Mantine under the app theme. Use when adding or refactoring UI, deciding where a component lives, choosing layout, spacing, breakpoints or variants, or checking a change against the repository's UI rules.
 ---
 
-# Mantine-First UI Standards
+# Kit-first UI standards
 
 ## Quick start
 
-1. Read [UI design decisions](../../../docs/technical/ui-design-decisions.md) and [UI component hierarchy](../../../docs/technical/ui-component-hierarchy.md).
-2. Identify the surface: standard application UI, shared content composition, domain UI, application shell, or isolated renderer.
-3. For standard application UI, discover a Mantine component first and use Mantine UI as the preferred composition-reference catalogue.
-4. Compose Mantine directly at the route or owning component before considering a local wrapper.
-5. Preserve domain visuals and renderer boundaries; add locally owned shared components only for proven product semantics.
+1. Read the component taxonomy in [`AGENTS.md`](../../../AGENTS.md#component-taxonomy), the
+   rulebook in [UI design decisions](../../../docs/technical/ui-design-decisions.md), the ownership
+   table in [UI component hierarchy](../../../docs/technical/ui-component-hierarchy.md), and the
+   aesthetic in [`design.md`](../../../design.md).
+2. Place the concern before writing it: page composition, kit vocabulary, widget, Picker, shell,
+   print glue, or renderer. The tables below decide.
+3. Build with Mantine under `appContentTheme` and the kit. Extract only at a real concern boundary.
+4. Run the guards listed at the end before opening or updating the PR.
 
-Mantine is the adopted direction even before the foundation dependency lands. Until it is installed, do not extend the legacy primitive system or add Mantine imports prematurely; keep the change scoped to the appropriate foundation or migration work.
+## Where it lives
 
-## Ownership decision
+The ladder runs before any question about categories. One page: the route file, as local
+functions. Two or more pages: a Widget. Domain-free vocabulary whose words travel as data: the kit.
+`src/app`'s top level is a closed set (`db`, `pickers`, `print`, `routes`, `shell`, `styles`, `ui`,
+`widgets`), held by `bun run check:app-layout`, and there is no `src/app/components`.
 
-Classify every UI concern before implementation:
+| Concern | Lives in | Rule |
+|---|---|---|
+| One page's own JSX | its route file (`index.tsx` or `*.route.tsx`), stylesheet named for the route's stem | Split into local functions; never export them as feature components |
+| Vocabulary any page may use | `src/app/ui/<category>`, reached as `@ui/*` | Renders what it is given: no Convex client, no `@db` value imports, no router navigation, no reach into `shell`, `widgets` or `routes`; lint holds every one of these |
+| An assembly two or more routes install whole | `src/app/widgets/<name>` | Takes its value and callbacks from the page; never fetches, never routes; derives from the draft rather than mirroring it; kit all the way down |
+| A control that loads its own options | `src/app/pickers` | The one sanctioned fetch: lazy, read-only, torn down on unmount, the choice leaving through `onPick`; a peer of Widgets, never a seventh category |
+| Persistent chrome | `src/app/shell` | Decided by position, not at the membrane; mounted only through `ApplicationChrome` and `AppNotFound`; storied under `Shell` |
+| Document-rendering glue | `src/app/print/sheet`, `src/app/print/capture` | Not published and not storied; capture depends on sheet, never the reverse |
+| Game assets and renderers | `src/game` | No Mantine, no Radix, nothing from `src/app`; print-faithful output that is never themed |
+| A file only its own feature imports | beside that feature, as an organ | No story and no outside importer; gaining either ends the classification |
 
-| Concern | Default owner |
-|---|---|
-| Standard controls, surfaces, layout, feedback, overlays, and typography | Mantine components, used directly |
-| Page-level composition references | Mantine UI patterns, adapted route-locally first |
-| Repeated product semantics or repeated content composition | A locally owned shared content component |
-| Dune Zone identity, behavior, or data-rich visuals | A domain component |
-| Persistent product chrome and route slots | Existing `AppShell` and `PageLayout` |
-| Game assets, sheets, print, capture, and publishing output | Isolated renderer code with no Mantine dependency or styling |
+The six kit categories are decided at the membrane, by what a caller hands the component:
 
-`FactionListItem`, leader/troop/planet showcases, and similar identity-rich components are valid domain visuals. This exception does not justify new generic buttons, cards, fields, toolbars, accordions, description lists, or layout stacks.
+| Category | Folder | Caller hands it | It owns |
+|---|---|---|---|
+| Content | `ui/content` | data | one kind of content, rendered our way |
+| Controls | `ui/control` | a value plus `onChange`, or an intent | the user changing things, and the furniture around doing so |
+| Lists | `ui/list` | items of one shape | the rhythm between items |
+| Layout | `ui/layout` | slots only | where things go, never what they are |
+| Surfaces | `ui/surface` | slots; words only to name itself | the pane: border, infill, blur; Surfaces never nest |
+| Blocks | `ui/block` | data, and at most one slot for the region it names | turning words into Content in one fixed arrangement |
 
-## Discovery workflow
+The tells, from `AGENTS.md`: main content arriving as `ReactNode` is a Layout or a Surface; a
+string prop becoming a heading is a Block; a component that receives, produces and changes is two
+components; a wrapper that only renames or lightly forwards a Mantine component is not a component.
 
-### Standard application UI
+## Building it
 
-1. Check Mantine for a maintained component that matches the interaction and accessibility semantics.
-2. Check the free Mantine UI catalogue for a composition pattern.
-3. Adapt the composition in the route or owning component, keeping `PageLayout` ownership at the terminal route.
-4. Extract a shared composition only after repeated product semantics or repeated composition are demonstrated.
+- **Mantine directly, under the theme.** Reach for `Button`, `ActionIcon`, `TextInput`, `Select`
+  and the rest at the call site. A kit component exists where the kit owns a concern: `Surface` for
+  a pane (never `Paper`), `IconAction` for an icon-only action, `CallToAction` for the one primary,
+  `ControlBlock` for label, hint and error furniture. No rename-only wrappers.
+- **Only Surfaces paint, and Surfaces never nest.** Only Blocks, and a Surface naming itself, render
+  headings; loudness comes from depth, never from a prop. One page-title Block per page, mounted by
+  the route.
+- **Terminal routes mount `PageLayout`** and fill only the slots the page needs; parent routes stay
+  outlet-only. `PageLayout.architecture.test.ts` fails a terminal route that omits it.
+- **Layouts lay out through named compound slots**, never fewer than two, and respond by container
+  query. `PageLayout` is the one `@media` exemption.
+- **Spacing is the scale.** `xs sm md lg xl`, written `var(--space-md)` in CSS and `gap="md"` in
+  TSX, never a raw length in a spacing property. Choose the step by what the gap separates, and take
+  the smaller one when two seem right.
+- **Breakpoints are one ladder**: 30rem, 48rem and 62rem, written `width < step` or
+  `width >= step`. `@media` belongs to the window chrome alone; everything inside a page asks its
+  container. `bun run check:breakpoints` holds the media half.
+- **Variants, not colours.** An app component takes a semantic word (`positive`, `negative`,
+  `neutral`, `caution`, `brand`, `selected`, plus the scoped words the decisions doc tables) and the
+  theme resolves it. A colour value never crosses an app component's boundary.
+- **Floating UI is small and single-layer.** Popovers and menus only where reflow is undesirable,
+  with few controls and no sub-editors; dropdowns portal to the document; a floating pane never
+  opens another.
+- **State past one primitive is a local reducer** in the file that owns it, with named events. A
+  widget holds no state whose correctness depends on the draft its caller owns.
+- **One Convex page query per route**, plus `useCurrentProfile` when the UI is auth-aware. Derive
+  inside that query and pass data down; a widget never adds a subscription.
+- **Actions and icons.** One primary per toolbar; every icon-only action carries a label; a delete
+  goes through `ConfirmDeleteAction` or `ConfirmDeleteButton`; a recurring topic renders through
+  `TopicIcon`; a tab icon is single-colour and never a preview; a published image arrives through
+  `PublishedImage`.
+- **Stylesheets have one owner.** Exactly one TSX file imports each `.module.css`, there is no
+  `composes`, and placement (`className`) may be passed in while appearance may not.
+  `check:css-orphans` holds every class to a use, and `check:css-vars` every custom property read to
+  a definition.
+- **Comments earn their place**, written as block comments with one sentence per line and no AI
+  tells; the last section of the decisions doc says what earns one.
 
-Prefer direct `Button`, `ActionIcon`, `Stack`, `Group`, `Grid`, `Text`, `Title`, `Tooltip`, field, and overlay composition. A pane comes from the kit's `Surface`, never from a Mantine `Paper`. Do not create wrappers whose only purpose is renaming or lightly forwarding Mantine APIs. For navigation controls, use Mantine's router integration at the call site; extract an adapter only when repeated use proves it can preserve TanStack Router's typed contract.
+## Stories
 
-### Domain UI
+Every kit component carries stories, and so does every Mantine component the app uses, filed by
+kind under the category root. Widget stories file under `Widgets`, chrome under `Shell`, pages
+under `Pages`, and organs carry none. A new directory needs a `titlePrefix` entry in
+[`.storybook/main.ts`](../../../.storybook/main.ts) or its stories never load. A page story runs the
+real route against production-derived data; see *Page stories* in
+[`docs/README.md`](../../../docs/README.md#page-stories).
 
-Search relevant domain folders and nearby routes for existing behavior and identity-rich visuals. Keep domain components domain-honest and let them compose Mantine around their specific core. Preserve small concern boundaries; do not extract a component merely to move a page fragment into another file.
+## Guards to run
 
-### Legacy migration paths
-
-The following are migration-only compatibility code, not discovery targets for new UI:
-
-- `src/app/components/generic/ui/**`
-- `src/app/components/generic/layout/**`
-- `src/app/components/generic/surfaces/**`
-- presentation primitives under `src/app/components/form/**`
-
-Do not add new consumers or expand these APIs. Existing domain behavior that happens to compose them is not blanket-deprecated; migrate its standard presentation when that consumer is in scope. TanStack Form, shared validation, and domain behavior remain authoritative.
-
-## Composition and styling
-
-- Prefer Mantine component, layout, and semantic props for ordinary application UI.
-- Use Mantine theme variables and Styles API for system-level customization.
-- Keep CSS Modules for domain visuals, existing shell ownership, and page-specific composition Mantine cannot express clearly.
-- Keep CSS module ownership local to its TSX owner. Do not import another component's CSS module.
-- Never use CSS `composes`; combine owned classes and component APIs in TSX.
-- Keep routine spacing in the parent composition. Prefer flex plus `gap` for one-dimensional layouts and grid for two-dimensional layouts when custom layout is justified.
-- Do not globally target Mantine internal selectors for routine styling.
-
-Ask for user direction when a proposed exception would establish a new system-level visual rule, create a broad shared API without demonstrated reuse, or change a domain visual's identity. Minor route-local composition choices do not require a pause.
-
-## Hard rendering boundary
-
-Do not add Mantine imports, theme dependencies, CSS, provider usage, or styling assumptions to:
-
-- `src/game/**`;
-- faction sheet or other document renderers;
-- print styles;
-- capture entry points under `src/app/print/capture/**`;
-- publishing renderer entry points.
-
-Mantine may arrange an embedded game visual in an application page, but it must not style the visual's internals or change its rendered output.
-
-## Data and route composition
-
-- Terminal visual routes render `PageLayout` and own their header, toolbar, loading, error, empty, and authorization states.
-- Nested parent routes remain outlet-only; document renderers and non-visual auth callbacks are intentional exceptions.
-- Each route uses at most one Convex page-data query plus `useCurrentProfile` when needed. Pass prefetched data into child controls instead of adding subscriptions.
-
-## Accessibility and action semantics
-
-- Keep one clear primary positive toolbar action; map visual treatment from semantic intent.
-- Use destructive treatment for destructive or irreversible actions and neutral treatment for utility actions.
-- Use icon-only actions only for established, recognizable actions. Always provide an accessible name, and add explanatory tooltip text when the icon may need reinforcement.
-
-## Storybook requirements
-
-Installed Mantine components and route-local Mantine compositions do not need duplicate local stories. Add representative colocated stories for new or materially changed locally owned shared content and domain components when visual states or reusable usage need documentation. Cover the meaningful variants and interaction states of the owned behavior.
+```bash
+bun run lint && bun run format:check
+bun run check:css-orphans && bun run check:css-vars && bun run check:breakpoints
+bun run check:app-layout && bun run check:prose
+bun run typecheck && bun run test && bun run storybook:test
+bun run publisher:release:verify   # before any PR that changes application code
+```
 
 ## Final checklist
 
-- [ ] Surface ownership was classified before implementation.
-- [ ] Standard UI started with Mantine and Mantine UI discovery.
-- [ ] Mantine APIs are composed directly; no rename-only wrapper was introduced.
-- [ ] No new consumer or API was added to migration-only legacy presentation paths.
-- [ ] Domain visuals retain their behavior and identity.
-- [ ] Game, sheet, print, capture, and publishing renderers have no Mantine dependency or styling.
-- [ ] Terminal routes own `PageLayout` composition and follow the one-page-query rule.
-- [ ] Action semantics and icon-only accessibility are explicit.
-- [ ] Locally owned shared components have representative stories; Mantine itself is not duplicated in Storybook.
-- [ ] CSS ownership is local and no CSS `composes` was introduced.
+- [ ] The concern was placed on the ladder before it was built: route, kit category, widget,
+      Picker, shell, print glue, or renderer.
+- [ ] Mantine is composed directly under the theme; no rename-only wrapper, no `Paper` for a pane.
+- [ ] The component renders what it is given: no fetch, no navigation, no reach into the app.
+- [ ] Spacing comes from the scale, and any width query sits on the ladder in the right at-rule.
+- [ ] Intent is said with a variant word; no colour crosses a component boundary.
+- [ ] Headings come from Blocks only; Surfaces never nest; only Surfaces paint.
+- [ ] Stories exist for every new kit or widget component, and their directory is registered.
+- [ ] Renderers under `src/game` and the print entry points took no Mantine or app import.
+- [ ] The guards above pass.

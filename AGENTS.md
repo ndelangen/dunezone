@@ -138,10 +138,10 @@ the router was not on the list. The suffix is gone.
 Outside the kit:
 
 - **One page's composition belongs in the route file.** Not in a component folder but in the route,
-  as local functions. `SignInPanel` lives inside `routes/_app/auth/login.tsx`, with its stylesheet
-  as `login.module.css` beside it, because exactly one page signs anyone in. Splitting a long route
-  into local functions is encouraged; exporting those pieces as feature components is not, because
-  an export invites a second caller that the piece was never designed for.
+  as local functions. `SignInPanel` lives inside `routes/_app/auth/login.route.tsx`, with its
+  stylesheet as `login.module.css` beside it, because exactly one page signs anyone in. Splitting a
+  long route into local functions is encouraged; exporting those pieces as feature components is
+  not, because an export invites a second caller that the piece was never designed for.
   - **One page → route. Two or more pages → Widget.** That is the whole ladder for page
     composition, and it runs before any question about categories: a piece with a single caller
     cannot be vocabulary, whatever shape it has.
@@ -460,6 +460,14 @@ holds markdown headings to sentence case; a proper noun it flags belongs in that
 `tools/svg-authoring` source, which keeps its own style.
 
 ## Agent skills
+
+### Local skills
+
+The skills an agent can load here live in `.agents/skills/`, indexed by
+[`.agents/skills/README.md`](.agents/skills/README.md). `.claude/skills/<name>` is a symlink back
+into that folder, because Claude Code reads only `.claude/skills`; the vendored Convex set is the
+part [`skills-lock.json`](skills-lock.json) names, and the rest is repo-authored prose that
+`bun run check:prose` sweeps.
 
 ### Issue tracker
 

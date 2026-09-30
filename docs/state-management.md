@@ -34,7 +34,7 @@ Every read hook in `src/app/db/<domain>.ts` is the same three lines: subscribe, 
 export function useFaction(slug: string, options?: { initialData?: FactionDetailPageData }) {
   const liveData = useQuery(api.factions.getBySlug, { slug });
   const normalized = liveData ? toFactionDetailPageData(liveData) : undefined;
-  return toLiveQueryResult(normalized, true, () => options?.initialData ?? undefined);
+  return toLiveQueryResult(normalized, () => options?.initialData);
 }
 ```
 

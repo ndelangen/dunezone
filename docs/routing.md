@@ -4,13 +4,13 @@
 
 ```mermaid
 graph TD
-    Root[__root.tsx<br/>HTML shell] --> App[_app.tsx<br/>pathless layout]
-    Root --> OAuth[auth/oauth.tsx<br/>/auth/oauth]
-    Root --> Sheet[preview/sheet/$factionSlug.tsx]
+    Root[__root.tsx<br/>HTML shell] --> App[_app/route.tsx<br/>pathless layout]
+    Root --> OAuth[auth/oauth.route.tsx<br/>/auth/oauth]
+    Root --> Sheet[preview/sheet/$factionSlug.route.tsx]
     App --> Index[_app/index.tsx<br/>/]
     App --> Factions[_app/factions/…<br/>/factions]
     App --> Rulesets[_app/rulesets/…<br/>/rulesets]
-    App --> Auth[_app/auth/login.tsx<br/>/auth/login]
+    App --> Auth[_app/auth/login.route.tsx<br/>/auth/login]
 ```
 
 Routes live in `src/app/routes/`. File structure maps to URLs with one exception that governs
@@ -23,8 +23,8 @@ nearly every file: `_app` is a **pathless layout route** and contributes no URL 
 and document-level scroll effects. It also owns the 404: `notFoundComponent: AppNotFound`.
 
 Two kinds of route live *outside* `_app`, deliberately, because they must not carry application
-chrome: `auth/oauth.tsx` (a non-visual hand-off) and `preview/sheet/$factionSlug.tsx` (a
-document-rendering target).
+chrome: `auth/oauth.route.tsx` (a non-visual hand-off) and
+`preview/sheet/$factionSlug.route.tsx` (a document-rendering target).
 
 **Every terminal visual route must render `PageLayout`** from
 [`@ui/layout/PageLayout`](../src/app/ui/layout/PageLayout.tsx), supplying the slots that page needs:

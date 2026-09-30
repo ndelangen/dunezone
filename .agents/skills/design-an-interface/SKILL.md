@@ -3,13 +3,13 @@ name: design-an-interface
 description: Generate multiple radically different interface designs for a module using parallel sub-agents. Use when user wants to design an API, explore interface options, compare module shapes, or mentions "design it twice".
 ---
 
-# Design an Interface
+# Design an interface
 
 Based on "Design It Twice" from "A Philosophy of Software Design": your first idea is unlikely to be the best. Generate multiple radically different designs, then compare.
 
 ## Workflow
 
-### 1. Gather Requirements
+### 1. Gather requirements
 
 Before designing, understand:
 
@@ -21,9 +21,9 @@ Before designing, understand:
 
 Ask: "What does this module need to do? Who will use it?"
 
-### 2. Generate Designs (Parallel Sub-Agents)
+### 2. Generate designs (parallel sub-agents)
 
-Spawn 3+ sub-agents simultaneously. In Cursor, use the `Subagent` tool for parallel runs. Each must produce a **radically different** approach.
+Spawn 3+ sub-agents at once, through whatever your environment offers for parallel runs (the `Subagent` tool in Cursor, the `Agent` tool in Claude Code). Each must produce a **radically different** approach.
 
 ```
 Prompt template for each sub-agent:
@@ -45,7 +45,7 @@ Output format:
 4. Trade-offs of this approach
 ```
 
-### 3. Present Designs
+### 3. Present designs
 
 Show each design with:
 
@@ -55,7 +55,7 @@ Show each design with:
 
 Present designs sequentially so user can absorb each approach before comparison.
 
-### 4. Compare Designs
+### 4. Compare designs
 
 After showing all designs, compare them on:
 
@@ -74,7 +74,7 @@ Often the best design combines insights from multiple options. Ask:
 - "Which design best fits your primary use case?"
 - "Any elements from other designs worth incorporating?"
 
-## Evaluation Criteria
+## Evaluation criteria
 
 From "A Philosophy of Software Design":
 
@@ -86,7 +86,7 @@ From "A Philosophy of Software Design":
 
 **Depth**: Small interface hiding significant complexity = deep module (good). Large interface with thin implementation = shallow module (avoid).
 
-## Anti-Patterns
+## Anti-patterns
 
 - Don't let sub-agents produce similar designs - enforce radical difference
 - Don't skip comparison - the value is in contrast

@@ -17,9 +17,18 @@ import { CURLY_QUOTES, EM_DASH, EMOJI, FILLER, HEDGE, stripInlineCode } from './
 
 const root = join(import.meta.dirname, '..');
 
-/* Vendored skills and generated output are not ours to rewrite; a reinstall would undo the sweep. */
+/**
+ * Vendored skills and generated output are not ours to rewrite;
+ * a reinstall would undo the sweep.
+ * The vendored skills are the ones `skills-lock.json` names, installed under `.agents/skills`.
+ * The skills beside them are this repo's own and are swept like any other markdown.
+ * `.claude/skills` holds only links back into `.agents/skills`, so it has nothing of its own to scan.
+ */
+const skillsLock = JSON.parse(await readFile(join(root, 'skills-lock.json'), 'utf8'));
+const VENDORED_SKILL_PATHS = Object.keys(skillsLock.skills).map((name) => `.agents/skills/${name}`);
+
 const EXCLUDED_PATHS = [
-  '.agents',
+  ...VENDORED_SKILL_PATHS,
   '.claude',
   '.git',
   '.temp',

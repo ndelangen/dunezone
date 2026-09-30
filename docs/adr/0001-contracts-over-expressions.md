@@ -28,8 +28,8 @@ in for interface tests. The test suite's churn (the architecture test changed
    **Narrow exception, a rule about the tree rather than about a
    module.** A source scan is allowed only where the guarantee is a
    property of the *file tree* that no type or lint rule can express,
-   and every such suite must name this ADR and say why. Three exist, and
-   the list is meant to stay short:
+   and every such suite must name this ADR and say why. Three carry this
+   ADR's name, and the list is meant to stay short:
    - `src/app/ui/layout/PageLayout.architecture.test.ts`: every terminal
      visual route mounts `PageLayout`. "Every file in this directory
      does X" is not something a type can say.
@@ -44,9 +44,10 @@ in for interface tests. The test suite's churn (the architecture test changed
      and only on the breakpoint ladder, since everything inside a page lays
      out by the room it is given. The guarantee is again a spelling across
      the tree, and the chrome stylesheets, `PageLayout` among them, are the
-     exemptions it encodes. Until part (b) of #1321 lands, a named list of
-     page stylesheets keeps the width queries each asks today, and only
-     those. Media conditions written in TypeScript are outside the scan.
+     exemptions it encodes. Part (b) of #1321 has landed: the named list of
+     page stylesheets that carried each page's width queries through the
+     migration is gone, and a width query outside the chrome fails outright.
+     Media conditions written in TypeScript are outside the scan.
 
    A scan that could have been a validator, a type, or a lint rule is still a
    defect. Adding a fourth entry here should feel expensive.
@@ -60,7 +61,10 @@ in for interface tests. The test suite's churn (the architecture test changed
 - The literal-annotation assertion was removed in PR #232, and issue #233 (now
   closed) retired the remaining source-text assertions in favor of validator and
   type-level guarantees, deleting rather than translating where the compiler
-  already enforced the intent. What survives is the three tree-level scans above.
+  already enforced the intent. What survives is the three tree-level scans above,
+  beside the `check:*` guards under `scripts/assert-*.mjs` that the package-script
+  taxonomy in `AGENTS.md` names, which scan the tree the same way without citing
+  this ADR.
 - Convex boundary suites (e.g. `convex/profiles.detail.test.ts`) are the
   approved testing shape: they cross the public query seam.
 - Future architecture reviews should not propose source-text contracts or
