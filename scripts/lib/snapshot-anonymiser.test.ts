@@ -14,6 +14,32 @@ import { snapshotPolicy } from './snapshot-policy';
 
 type Row = Record<string, unknown>;
 
+/*
+ * The component entries a local backend export wrote for this app's components (#1566), with `homepageCommunity`,
+ * which production still holds, in the same aggregate layout. The file names are the export's; the contents are made up.
+ */
+const COMPONENT_TABLES = {
+  migrations: ['migrations'],
+  rateLimiter: ['rateLimits'],
+  statistics: ['btree', 'btreeNode'],
+  profileDiscovery: ['btree', 'btreeNode'],
+  profileActivity: ['btree', 'btreeNode'],
+  homepageCommunity: ['btree', 'btreeNode'],
+};
+
+function componentEntries(prefix: string, tables: readonly string[]): [string, string][] {
+  return [
+    [
+      `${prefix}_tables/documents.jsonl`,
+      tables.map((name, index) => `{"name":"${name}","id":${10_001 + index}}\n`).join(''),
+    ],
+    ...tables.flatMap((table): [string, string][] => [
+      [`${prefix}${table}/documents.jsonl`, '{"_id":"x","_creationTime":1,"value":1}\n'],
+      [`${prefix}${table}/generated_schema.jsonl`, '"uniform"'],
+    ]),
+  ];
+}
+
 /** A synthetic export in `convex export` layout. Every value is made up here. */
 function syntheticExport() {
   const tableNumbers = new Map(Object.keys(snapshotPolicy).map((table, index) => [table, 10_001 + index]));
@@ -56,7 +82,11 @@ function syntheticExport() {
         );
         entries.set(`${table}/generated_schema.jsonl`, '"uniform"\n');
       }
-      entries.set('_components/statistics/btree/documents.jsonl', '{"_id":"x","value":1}\n');
+      for (const [component, tables] of Object.entries(COMPONENT_TABLES)) {
+        for (const [path, text] of componentEntries(`_components/${component}/`, tables)) {
+          entries.set(path, text);
+        }
+      }
       for (const [path, text] of Object.entries(extra)) {
         entries.set(path, text);
       }
@@ -271,14 +301,30 @@ describe('anonymiseExport', () => {
     expect(rowsOf(entries, 'profiles')[0]).toMatchObject({ user_id: author });
   });
 
-  test('fails on a table the policy does not classify and on an entry outside the layout', () => {
+  test('drops the tables that left the schema by name, and still fails on a table in neither list', () => {
     const { world } = authorWorld();
+    world.add('asset_rollouts', { renderer_version: 'planted-renderer' });
+    world.add('asset_targets', { target_key: 'planted-target' });
     world.add('mystery', { value: 1 });
+    world.add('another_mystery', { value: 2 });
 
-    const { problems } = refusal(() => anonymiseExport(world.entries({ '_storage/kg2abc': 'bytes' })));
+    const error = refusal(() => anonymiseExport(world.entries({ '_storage/kg2abc': 'bytes' })));
 
-    expect(problems).toContain('tables the snapshot policy does not classify: mystery');
-    expect(problems).toContain('unexpected entries: _storage/kg2abc');
+    expect(error.problems).toEqual([
+      'unexpected entries:\n  - _storage/kg2abc',
+      'tables the snapshot policy does not classify:\n  - another_mystery\n  - mystery',
+    ]);
+
+    const { world: retiredOnly } = authorWorld();
+    retiredOnly.add('asset_rollouts', { renderer_version: 'planted-renderer' });
+    const { entries, report } = anonymiseExport(retiredOnly.entries());
+    expect(entries.has('asset_rollouts/documents.jsonl')).toBe(false);
+    expect([...entries.values()].join('\n')).not.toContain('planted-renderer');
+    expect(report.tables.find(({ table }) => table === 'asset_rollouts')).toMatchObject({
+      dropReason: 'retired asset publisher bookkeeping, not content',
+      rowsIn: 1,
+      rowsOut: 0,
+    });
   });
 
   test('fails on a field the policy does not classify, without repeating its value', () => {
@@ -287,7 +333,7 @@ describe('anonymiseExport', () => {
 
     const error = refusal(() => anonymiseExport(world.entries()));
 
-    expect(error.problems).toEqual(['factions: fields the snapshot policy does not classify: notes']);
+    expect(error.problems).toEqual(['factions: fields the snapshot policy does not classify:\n  - notes']);
     expect(error.message).not.toContain('spice silo');
   });
 
@@ -354,9 +400,61 @@ describe('anonymiseExport on Rulebook Editions', () => {
     const { problems } = refusal(() => anonymiseExport(world.entries()));
 
     expect(problems).toEqual([
-      'tables the snapshot policy does not classify: constructor',
-      'factions: fields the snapshot policy does not classify: constructor, toString',
+      'tables the snapshot policy does not classify:\n  - constructor',
+      'factions: fields the snapshot policy does not classify:\n  - constructor\n  - toString',
     ]);
+  });
+});
+
+describe('anonymiseExport on component data', () => {
+  test('drops every installed and retired component by name, nested components included', () => {
+    const { world } = authorWorld();
+    const nested = Object.fromEntries(componentEntries('_components/statistics/_components/shards/', ['btree']));
+
+    const { entries, report } = anonymiseExport(world.entries(nested));
+
+    expect([...entries.keys()].filter((path) => path.startsWith('_components/'))).toEqual([]);
+    expect(report.droppedComponents).toEqual(
+      ['homepageCommunity', 'migrations', 'profileActivity', 'profileDiscovery', 'rateLimiter', 'statistics'].map(
+        (component) => ({ component, dropReason: expect.any(String) })
+      )
+    );
+  });
+
+  test('refuses a component the policy does not name and an entry outside the component layout', () => {
+    const { world } = authorWorld();
+    const extra = {
+      ...Object.fromEntries(componentEntries('_components/newcomer/', ['items'])),
+      '_components/constructor/_tables/documents.jsonl': '',
+      '_components/Statistics/btree/documents.jsonl': '',
+      '_components/statisticsX/btree/documents.jsonl': '',
+      '_components/statistics/btree/documents.jsonl.bak': '',
+      'x_components/statistics/btree/documents.jsonl': '',
+      '_Components/statistics/btree/documents.jsonl': '',
+      '_components/statistics/btree/notes.txt': 'planted-note',
+      '_components/statistics/documents.jsonl': '',
+      '_components/statistics/_components/documents.jsonl': '',
+      '_components/statistics/_storage/kg2abc': 'bytes',
+      '_components/../users/documents.jsonl': '',
+    };
+
+    const error = refusal(() => anonymiseExport(world.entries(extra)));
+
+    expect(error.problems).toEqual([
+      [
+        'unexpected entries:',
+        '  - _Components/statistics/btree/documents.jsonl',
+        '  - _components/../users/documents.jsonl',
+        '  - _components/statistics/_components/documents.jsonl',
+        '  - _components/statistics/_storage/kg2abc',
+        '  - _components/statistics/btree/documents.jsonl.bak',
+        '  - _components/statistics/btree/notes.txt',
+        '  - _components/statistics/documents.jsonl',
+        '  - x_components/statistics/btree/documents.jsonl',
+      ].join('\n'),
+      'components the snapshot policy does not classify:\n  - Statistics\n  - constructor\n  - newcomer\n  - statisticsX',
+    ]);
+    expect(error.message).not.toContain('planted-note');
   });
 });
 
