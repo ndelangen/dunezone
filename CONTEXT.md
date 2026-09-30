@@ -225,7 +225,7 @@ The forward-only response to a defective Publisher deployment: turn off job pick
 _Avoid_: Worker rollback, Renderer rollback, rollback rollout
 
 **Administrator**:
-An authenticated user whose Convex Auth `users` document has `isAdmin: true`. The flag is assigned manually through the Convex dashboard. Administrative routes may use it for presentation, but every protected Convex query and mutation must independently require it. When an authenticated non-Administrator visits `/__jobs`, the route renders a visible `Not authorized` message instead of redirecting or exposing job data.
+An authenticated user whose Convex Auth `users` document has `isAdmin: true`. The flag is assigned manually through the Convex dashboard. Administrative routes may use it for presentation, but every protected Convex query and mutation must independently require it. When an authenticated non-Administrator visits `/__jobs`, the route renders a visible refusal ("You cannot view publication jobs") instead of redirecting or exposing job data.
 
 **Publisher operational evidence**:
 The current proof that an asynchronous release is healthy: Worker health smoke confirms the deployed Git SHA and Renderer identity; Regeneration scans emit structured start and completion logs; and `/__jobs` shows no error jobs, no overdue in-progress jobs, and decreasing pending work while pickup is enabled. The queue need not reach absolute zero because ordinary saves can continuously add work. Automatic detection and notification integrations are deferred.

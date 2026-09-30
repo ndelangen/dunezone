@@ -51,9 +51,11 @@ Define which user-related fields belong to Convex Auth tables vs app-level profi
 - If an existing profile is missing `username` or `avatar_url`, bootstrap backfills those two fields
   only, from the identity / auth user (image for the avatar).
 - `slug` is allocated **once, on insert**, by `slugify` plus a uniqueness walk on `profiles.by_slug`
-  (`allocateUniqueProfileSlug`). Bootstrap never re-slugs an existing row; only an explicit
-  `updateCurrent` username change recomputes it. The insert-time fallback username is `nameless`.
-- `updateCurrent` lets users edit `username` and `avatar_url`; username changes recompute slug, and both display name and avatar URL are required.
+  (`allocateUniqueProfileSlug`). Bootstrap never re-slugs an existing row; only `updateCurrent`
+  recomputes it, and it does so on every save from the submitted username, so an unchanged name
+  keeps its slug unless the uniqueness walk now finds a shorter one free. The insert-time fallback
+  username is `nameless`.
+- `updateCurrent` lets users edit `username` and `avatar_url`; every save recomputes the slug from the username, and both display name and avatar URL are required.
 
 ## Query rules
 

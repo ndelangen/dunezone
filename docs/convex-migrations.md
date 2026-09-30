@@ -127,7 +127,8 @@ bun run scripts/migration-guards.ts dev-strict 300000 2000
 # (convex:dev runs `migrations:dev-strict && convex dev` — it does not call this alias.)
 bun run migrations:run-local-required
 
-# Static guard: fails a PR that narrows a slug field. Runs in PR CI.
+# Static guard. PR CI runs it only when the diff narrows a slug field, and it then fails unless
+# the manifest holds a narrow entry whose required migration ids all exist.
 bun run migrations:static-check
 ```
 
