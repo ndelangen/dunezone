@@ -1,4 +1,5 @@
 import preview from '@sb/preview';
+import { waitForFrame } from '@sb/storyWaits';
 import { useEffect, useState } from 'react';
 import { expect, fn, userEvent, waitFor, within } from 'storybook/test';
 
@@ -42,7 +43,7 @@ export const Unavailable = meta.story({
 
     await userEvent.hover(trigger);
     await expect(
-      await page.findByRole('tooltip', { name: 'Save your changes before publishing.' })
+      await waitForFrame(() => page.getByRole('tooltip', { name: 'Save your changes before publishing.' }))
     ).toBeInTheDocument();
     await expect(args.onConfirm).not.toHaveBeenCalled();
   },

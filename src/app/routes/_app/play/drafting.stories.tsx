@@ -205,7 +205,9 @@ export const PlayerLeavesTheGame = meta.story({
     expect(bar().queryByRole('button', { name: 'Leave' })).toBeNull();
     const giveUp = async () => {
       await press(() => page.getByRole('button', { name: 'Game menu' }));
-      await press(() => page.getByRole('menuitem', { name: 'Give up your seat' }));
+      await waitForFrame(() => userEvent.click(page.getByRole('menuitem', { name: 'Give up your seat' })), {
+        timeout: 30_000,
+      });
     };
     await giveUp();
     const leaving = await decisionBar(canvasElement, 'Leaving');
@@ -227,7 +229,7 @@ export const SpectatorGameMenu = meta.story({
     await decisionBar(canvasElement, 'You are watching');
     const page = within(canvasElement.ownerDocument.body);
     await press(() => page.getByRole('button', { name: 'Game menu' }));
-    await waitFor(() =>
+    await waitForFrame(() =>
       expect(page.getByRole('menuitem', { name: 'Give up your seat' })).toHaveAttribute('data-disabled')
     );
   },

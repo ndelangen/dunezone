@@ -1,5 +1,6 @@
 import { Box } from '@mantine/core';
 import preview from '@sb/preview';
+import { waitForFrame } from '@sb/storyWaits';
 import { useState } from 'react';
 import type { ComponentType } from 'react';
 import { expect, fn, userEvent, within } from 'storybook/test';
@@ -83,7 +84,7 @@ export const CoverPresets = meta.story({
     await userEvent.click(preset);
     const option = await page.findByRole('option', { name: 'Spice harvester' });
     await userEvent.hover(within(option).getByText('Spice harvester'));
-    const preview = await page.findByRole('dialog');
+    const preview = await waitForFrame(() => page.getByRole('dialog'));
     expect(preview.querySelector('img')).toHaveAttribute('src', '/image/rulebook-cover/spice-harvester-small.jpg');
     expect(preset).toHaveValue('Sandworm');
     await userEvent.click(option);

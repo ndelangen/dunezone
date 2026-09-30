@@ -1,5 +1,6 @@
 import { Group } from '@mantine/core';
 import preview from '@sb/preview';
+import { waitForFrame } from '@sb/storyWaits';
 import { expect, fn, userEvent, waitFor, within } from 'storybook/test';
 
 import { SaveAction } from './SaveAction';
@@ -40,7 +41,7 @@ export const SaysWhereTheWorkStands = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     const save = page.getByRole('button', { name: 'Save faction' });
     await userEvent.hover(save);
-    const tooltip = await page.findByRole('tooltip');
+    const tooltip = await waitForFrame(() => page.getByRole('tooltip'));
     await waitFor(() => expect(tooltip).toHaveTextContent('Unsaved changes'));
     await expect(tooltip).toHaveTextContent('A new faction sheet capture is scheduled.');
     await userEvent.click(save);

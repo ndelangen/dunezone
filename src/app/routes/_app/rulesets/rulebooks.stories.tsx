@@ -284,7 +284,7 @@ async function closeMenuWithEscape(page: ReturnType<typeof within>, trigger: HTM
   });
   const keyboardTarget = describeFocus(storyDocument);
   await userEvent.keyboard('{Escape}');
-  await waitFor(() => {
+  await waitForFrame(() => {
     const remaining = page.queryAllByRole('menuitem').length;
     if (dropdown.isConnected || remaining > 0) {
       throw new Error(
@@ -347,7 +347,7 @@ export const Owner = meta.story({
     await userEvent.unhover(actions);
     await waitForFrame(() => expect(page.queryByRole('tooltip')).toBeNull());
     await userEvent.click(actions);
-    await expect(page.findByRole('menuitem', { name: 'Editions' })).resolves.toHaveAttribute(
+    await expect(waitForFrame(() => page.getByRole('menuitem', { name: 'Editions' }))).resolves.toHaveAttribute(
       'href',
       '/rulesets/classicrules/rulebooks/book-0/editions'
     );
@@ -381,7 +381,7 @@ export const FailedPreview = meta.story({
       page.findByRole('img', { name: 'First-page preview failed for Rules' }, { timeout: 30_000 })
     ).resolves.toBeVisible();
     await userEvent.click(page.getByRole('button', { name: 'Actions for Rules' }));
-    expect(await page.findByRole('menuitem', { name: 'Retry preview' })).toBeEnabled();
+    expect(await waitForFrame(() => page.getByRole('menuitem', { name: 'Retry preview' }))).toBeEnabled();
   },
 });
 
@@ -401,7 +401,7 @@ export const UtilitiesMenu = meta.story({
     await userEvent.click(
       await page.findByRole('button', { name: 'Actions for Quick reference' }, { timeout: 30_000 })
     );
-    await expect(page.findByRole('menuitem', { name: 'Edit' })).resolves.toHaveAttribute(
+    await expect(waitForFrame(() => page.getByRole('menuitem', { name: 'Edit' }))).resolves.toHaveAttribute(
       'href',
       '/rulesets/classicrules/rulebooks/book-1/edit'
     );
@@ -902,7 +902,7 @@ export const Reader = meta.story({
     /* The history is a read path, so a signed-out reader gets the card menu too, minus the editing entries. */
     expect(within(list).getAllByRole('button')).toHaveLength(2);
     await userEvent.click(within(list).getByRole('button', { name: 'Actions for Rules' }));
-    await expect(page.findByRole('menuitem', { name: 'Editions' })).resolves.toHaveAttribute(
+    await expect(waitForFrame(() => page.getByRole('menuitem', { name: 'Editions' }))).resolves.toHaveAttribute(
       'href',
       '/rulesets/classicrules/rulebooks/book-0/editions'
     );
@@ -1032,7 +1032,7 @@ export const FinalPageCatalogue = meta.story({
     await userEvent.click(await page.findByRole('button', { name: 'Add Page' }, { timeout: 30_000 }));
     expect(page.queryByRole('menuitem', { name: 'Chapter opener' })).not.toBeInTheDocument();
     await expect(
-      page.findByRole('menuitem', { name: 'Single column' }, { timeout: 30_000 })
+      waitForFrame(() => page.getByRole('menuitem', { name: 'Single column' }), { timeout: 30_000 })
     ).resolves.toBeInTheDocument();
     expect(page.getByRole('menuitem', { name: 'Cover' })).toBeInTheDocument();
     await userEvent.click(page.getByRole('menuitem', { name: 'Narrow left / wide right' }));
@@ -1043,7 +1043,9 @@ export const FinalPageCatalogue = meta.story({
     expect(within(preview).queryByText('New page')).not.toBeInTheDocument();
     expect(page.getByRole('textbox', { name: 'Title' })).toHaveValue('New page');
     await userEvent.click(page.getByRole('button', { name: 'Add Block' }));
-    await expect(page.findByRole('menuitem', { name: 'Question and answer' })).resolves.toBeInTheDocument();
+    await expect(
+      waitForFrame(() => page.getByRole('menuitem', { name: 'Question and answer' }))
+    ).resolves.toBeInTheDocument();
     expect(page.queryByRole('menuitem', { name: 'Repeated text' })).not.toBeInTheDocument();
     await userEvent.click(page.getByRole('menuitem', { name: 'Question and answer' }));
     expect(page.getByRole('textbox', { name: 'Question' })).toBeVisible();
@@ -1062,7 +1064,7 @@ export const TallPageCatalogue = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await userEvent.click(await page.findByRole('button', { name: 'Add Page' }, { timeout: 30_000 }));
-    await page.findByRole('menuitem', { name: 'Single column' }, { timeout: 30_000 });
+    await waitForFrame(() => page.getByRole('menuitem', { name: 'Single column' }), { timeout: 30_000 });
     expect(page.getAllByRole('menuitem').map((item) => item.textContent)).toEqual(['Single column', 'Cover']);
   },
 });
@@ -1365,7 +1367,7 @@ export const DeletePagesAndBlocks = meta.story({
       });
     }
     await userEvent.click(page.getByRole('button', { name: 'Add Page' }));
-    await userEvent.click(await page.findByRole('menuitem', { name: 'Cover' }));
+    await userEvent.click(await waitForFrame(() => page.getByRole('menuitem', { name: 'Cover' })));
     await expect(page.findByRole('switch', { name: 'Show Dune logo' })).resolves.toBeChecked();
     expect(page.queryByRole('textbox', { name: 'Title' })).not.toBeInTheDocument();
     await userEvent.click(page.getByRole('button', { name: 'Save' }));
