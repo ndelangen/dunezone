@@ -9,6 +9,7 @@ import {
   provision,
   seat,
   stage,
+  syncView,
 } from './native-runtime.fixture.mjs';
 
 const CREATOR = {
@@ -71,17 +72,57 @@ export async function dealt(peer, runtime, count = 2, pick) {
   return connections;
 }
 
+/** Every dealt player keeps the seat they were dealt, which closes trading once all of them have. */
+async function keepDealtSeats(players) {
+  for (const player of players) {
+    const { snapshot, viewer } = await syncView(player);
+    await accepted(player, {
+      kind: 'swap-ready',
+      ready: true,
+      round: snapshot.swapping.round,
+      seat: viewer.viewerSeat,
+    });
+  }
+}
+
+/**
+ * Trading closes and setup runs to Turn 1 with the commands a table offers its players, readying every seat whenever a step waits for them.
+ * The journey test drives the same stages with a moving clock.
+ * This helper serves games provisioned without a cooldown.
+ */
+export async function playToTurnOne(players) {
+  await keepDealtSeats(players);
+  const [leader] = players;
+  let stage = (await syncView(leader)).snapshot.stage;
+  for (let changes = 0; stage === 'setup'; changes++) {
+    const { snapshot } = await syncView(leader);
+    if (changes >= snapshot.setup.steps.length) {
+      throw new Error(`Setup did not reach play within its ${snapshot.setup.steps.length} steps.`);
+    }
+    const waiting = snapshot.controls.ready.length < snapshot.roster.seats.length;
+    for (const player of waiting ? players : []) {
+      await accepted(player, { kind: 'ready', ready: true });
+    }
+    stage = (await accepted(leader, { kind: 'phase', direction: 1 })).snapshot.stage;
+  }
+  if (stage !== 'play') {
+    throw new Error(`Setup did not reach play; the game is in ${stage} stage.`);
+  }
+}
+
 /**
  * Provisions a real game in drafting, with the catalogue, ruleset and factions its deal reads.
- * `bindings` override the game Worker's, and `testPhaseCooldownMs` is what the synthetic backend sends at provisioning.
+ * `bindings` override the game Worker's.
+ * `testPhaseCooldownMs` and `testStartStage` are what the synthetic backend sends at provisioning.
  */
 export async function draftingRuntime(
   extras = [],
   cards = [cardPage('card-one')],
-  { bindings, testPhaseCooldownMs } = {}
+  { bindings, testPhaseCooldownMs, testStartStage } = {}
 ) {
   const peer = await createPeer();
   peer.testPhaseCooldownMs = testPhaseCooldownMs;
+  peer.testStartStage = testStartStage;
   peer.watchMode = 'allow';
   peer.expiresAt = () => Date.now() + 600_000;
   peer.game = { rulesetId: 'ruleset-one', minimumPlayers: 2, creator: CREATOR };

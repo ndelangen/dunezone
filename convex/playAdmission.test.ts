@@ -6,7 +6,7 @@ import rateLimiterTest from '@convex-dev/rate-limiter/test';
 import { convexTest } from 'convex-test';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
-import { PLAY_FIXTURE_KEY, PLAY_TICKET_TTL_MS } from '../src/shared/play/admission';
+import { PLAY_FIXTURE_KEY, PLAY_TICKET_TTL_MS, provisionPlaceholderId } from '../src/shared/play/admission';
 import { api, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import type { MutationCtx } from './_generated/server';
@@ -365,6 +365,26 @@ describe('Play admission', () => {
         { userId: subject.userId, state: 'active', deletionOperationId: null },
         { userId: 'missing', state: 'unknown', deletionOperationId: null },
       ],
+    });
+  });
+
+  test('only a synthetic backend vouches for the placeholders that took a provisioned game to Turn 1', async () => {
+    const subject = await fixture();
+    const placeholder = provisionPlaceholderId(2);
+    const reconciled = () =>
+      subject.t.query(api.playAdmission.reconcileAccounts, {
+        gameId: subject.credentials.gameId,
+        secret: subject.credentials.secret,
+        userIds: [placeholder],
+      });
+    expect(await reconciled()).toEqual({
+      ok: true,
+      accounts: [{ userId: placeholder, state: 'active', deletionOperationId: null }],
+    });
+    vi.stubEnv('SITE_URL', 'https://dune.zone');
+    expect(await reconciled()).toEqual({
+      ok: true,
+      accounts: [{ userId: placeholder, state: 'unknown', deletionOperationId: null }],
     });
   });
 

@@ -535,20 +535,22 @@ try {
     await installPublications(publications, readFileSync(workerLog, 'utf8'), origin);
     const reportDirectory = path.join(evidence, 'browser');
     /*
-     * A game takes its phase cooldown from the backend when it is provisioned, and the game Worker accepts a test value only in this isolated stack.
+     * A game takes its phase cooldown and its start stage from the backend when it is provisioned, and the game Worker accepts a test value only in this isolated stack.
      * The flow that checks the cooldown plays at the real one; every other flow's games change phase without waiting.
+     * A flow that tests play starts its games at Turn 1 (#1594); the regular flow starts at creation and plays every stage.
      */
-    let testPhaseCooldown: string | undefined;
-    for (const flow of flows) {
-      const wanted = browserFlows[flow].checksPhaseCooldown ? undefined : '0';
-      if (wanted !== testPhaseCooldown) {
-        convex(
-          wanted === undefined
-            ? ['env', 'remove', 'PLAY_TEST_PHASE_COOLDOWN_MS']
-            : ['env', 'set', 'PLAY_TEST_PHASE_COOLDOWN_MS', wanted]
-        );
-        testPhaseCooldown = wanted;
+    const testVariables = new Map<string, string | undefined>();
+    const setTestVariable = (name: string, wanted: string | undefined) => {
+      /* The stack's fresh backend starts with neither variable, so a first flow that wants none makes no call. */
+      if (testVariables.get(name) === wanted) {
+        return;
       }
+      convex(wanted === undefined ? ['env', 'remove', name] : ['env', 'set', name, wanted]);
+      testVariables.set(name, wanted);
+    };
+    for (const flow of flows) {
+      setTestVariable('PLAY_TEST_PHASE_COOLDOWN_MS', browserFlows[flow].checksPhaseCooldown ? undefined : '0');
+      setTestVariable('PLAY_TEST_START_STAGE', browserFlows[flow].startsInPlay ? 'play' : undefined);
       const passed = await verify(
         {
           command: process.execPath,

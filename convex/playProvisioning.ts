@@ -9,6 +9,7 @@ import {
   playProvisionRequestSchema,
   playProvisioningValidationSchema,
   playTestPhaseCooldownSchema,
+  playTestStartStageSchema,
 } from '../src/shared/play/admission';
 import { internal } from './_generated/api';
 import type { Doc } from './_generated/dataModel';
@@ -21,13 +22,20 @@ import { playRateLimiter } from './lib/playRateLimits';
 import { postPlayService } from './lib/playService';
 import { isSyntheticBackend } from './lib/playSynthetic';
 
-/* The hosted browser verifier sets `PLAY_TEST_PHASE_COOLDOWN_MS` on its synthetic backend for each flow; no other backend sends one. */
-function testPhaseCooldown() {
-  const value = process.env.PLAY_TEST_PHASE_COOLDOWN_MS;
-  if (value === undefined || !isSyntheticBackend()) {
+/*
+ * The hosted browser verifier sets `PLAY_TEST_PHASE_COOLDOWN_MS` and `PLAY_TEST_START_STAGE` on its synthetic backend for each flow (#1594).
+ * No other backend sends either.
+ */
+function testProvisioning() {
+  if (!isSyntheticBackend()) {
     return {};
   }
-  return { testPhaseCooldownMs: playTestPhaseCooldownSchema.parse(Number(value)) };
+  const cooldown = process.env.PLAY_TEST_PHASE_COOLDOWN_MS;
+  const stage = process.env.PLAY_TEST_START_STAGE;
+  return {
+    ...(cooldown === undefined ? {} : { testPhaseCooldownMs: playTestPhaseCooldownSchema.parse(Number(cooldown)) }),
+    ...(stage === undefined ? {} : { testStartStage: playTestStartStageSchema.parse(stage) }),
+  };
 }
 
 /** What the game Worker initializes a real game with: its fixed ruleset and minimum, and the creator who takes the first seat. */
@@ -126,7 +134,7 @@ export const validateProvisioning = mutation({
       attemptId: game.attempt_id,
       expiresAt: game.provision_expires_at,
       ...shape,
-      ...testPhaseCooldown(),
+      ...testProvisioning(),
     };
   },
 });
