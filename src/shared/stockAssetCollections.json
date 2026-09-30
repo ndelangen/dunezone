@@ -601,5 +601,629 @@
       "/vector/logo/oracle-eye.svg",
       "/vector/logo/merchant-seal.svg"
     ]
+  },
+  {
+    "label": "Custom portraits / House Orvek",
+    "keywords": "human Marda Orvek Ruling matriarch Selan Orvek Fleet heir Dora Vesk Salt marshal Tavin Ul Survey master Irena Pel House physician Neris Kalt Treaty speaker Boram Sen Mine captain",
+    "assets": [
+      "/image/leader/custom/house-orvek/marda-orvek.png",
+      "/image/leader/custom/house-orvek/selan-orvek.png",
+      "/image/leader/custom/house-orvek/dora-vesk.png",
+      "/image/leader/custom/house-orvek/tavin-ul.png",
+      "/image/leader/custom/house-orvek/irena-pel.png",
+      "/image/leader/custom/house-orvek/neris-kalt.png",
+      "/image/leader/custom/house-orvek/boram-sen.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / House Tessel",
+    "keywords": "human Aven Tessel Duke Ruva Tessel Harbor regent Cerin Voss Canal admiral Pela Renn Water assessor Damis Erel Reed guard commander Osta Vel Elder archivist Luren Tes House envoy",
+    "assets": [
+      "/image/leader/custom/house-tessel/aven-tessel.png",
+      "/image/leader/custom/house-tessel/ruva-tessel.png",
+      "/image/leader/custom/house-tessel/cerin-voss.png",
+      "/image/leader/custom/house-tessel/pela-renn.png",
+      "/image/leader/custom/house-tessel/damis-erel.png",
+      "/image/leader/custom/house-tessel/osta-vel.png",
+      "/image/leader/custom/house-tessel/luren-tes.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / House Ardent",
+    "keywords": "human Kessa Ardent Furnace sovereign Oren Ardent Succession claimant Brina Salk Forge commander Evan Dral Heat accountant Sura Neth Pressure engineer Joran Fell Foundry priest Hedra Kal Industrial diplomat",
+    "assets": [
+      "/image/leader/custom/house-ardent/kessa-ardent.png",
+      "/image/leader/custom/house-ardent/oren-ardent.png",
+      "/image/leader/custom/house-ardent/brina-salk.png",
+      "/image/leader/custom/house-ardent/evan-dral.png",
+      "/image/leader/custom/house-ardent/sura-neth.png",
+      "/image/leader/custom/house-ardent/joran-fell.png",
+      "/image/leader/custom/house-ardent/hedra-kal.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / House Velra",
+    "keywords": "human Tarin Velra First navigator Vela Velra Observatory ruler Nolan Isk Night fleet captain Miri Arel Chart keeper Senn Ral Signal warden Edda Vos Orbit adjudicator Ruvan Nel Deepwatch officer",
+    "assets": [
+      "/image/leader/custom/house-velra/tarin-velra.png",
+      "/image/leader/custom/house-velra/vela-velra.png",
+      "/image/leader/custom/house-velra/nolan-isk.png",
+      "/image/leader/custom/house-velra/miri-arel.png",
+      "/image/leader/custom/house-velra/senn-ral.png",
+      "/image/leader/custom/house-velra/edda-vos.png",
+      "/image/leader/custom/house-velra/ruvan-nel.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / House Cordane",
+    "keywords": "human Alma Cordane Trade matriarch Rell Cordane Market heir Iven Doss Convoy marshal Nara Kel Contract reader Jessa Lom Debt collector Boren Tuv Court host Orel Fen Dispute mediator",
+    "assets": [
+      "/image/leader/custom/house-cordane/alma-cordane.png",
+      "/image/leader/custom/house-cordane/rell-cordane.png",
+      "/image/leader/custom/house-cordane/iven-doss.png",
+      "/image/leader/custom/house-cordane/nara-kel.png",
+      "/image/leader/custom/house-cordane/jessa-lom.png",
+      "/image/leader/custom/house-cordane/boren-tuv.png",
+      "/image/leader/custom/house-cordane/orel-fen.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / House Nereth",
+    "keywords": "human Varda Nereth High regent Eren Nereth Border heir Ulna Kest Pass commander Davor Pel Winter quartermaster Mela Tav House interrogator Koren Il Avalanche engineer Siva Dorn Treaty guardian",
+    "assets": [
+      "/image/leader/custom/house-nereth/varda-nereth.png",
+      "/image/leader/custom/house-nereth/eren-nereth.png",
+      "/image/leader/custom/house-nereth/ulna-kest.png",
+      "/image/leader/custom/house-nereth/davor-pel.png",
+      "/image/leader/custom/house-nereth/mela-tav.png",
+      "/image/leader/custom/house-nereth/koren-il.png",
+      "/image/leader/custom/house-nereth/siva-dorn.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / House Osem",
+    "keywords": "human Senna Osem Seed regent Adren Osem Dynastic heir Mora Vell Granary commander Niven Sar Genetic steward Kela Hes Crop envoy Osta Mir Estate judge Barel Nun Irrigation captain",
+    "assets": [
+      "/image/leader/custom/house-osem/senna-osem.png",
+      "/image/leader/custom/house-osem/adren-osem.png",
+      "/image/leader/custom/house-osem/mora-vell.png",
+      "/image/leader/custom/house-osem/niven-sar.png",
+      "/image/leader/custom/house-osem/kela-hes.png",
+      "/image/leader/custom/house-osem/osta-mir.png",
+      "/image/leader/custom/house-osem/barel-nun.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / House Calven",
+    "keywords": "human Maren Calven Tunnel sovereign Tovan Calven Lower court heir Dena Rev Gate captain Olan Vek Civic examiner Iva Pell Deep court advocate Ressa Ul Emergency warden Bram Nes House remembrancer",
+    "assets": [
+      "/image/leader/custom/house-calven/maren-calven.png",
+      "/image/leader/custom/house-calven/tovan-calven.png",
+      "/image/leader/custom/house-calven/dena-rev.png",
+      "/image/leader/custom/house-calven/olan-vek.png",
+      "/image/leader/custom/house-calven/iva-pell.png",
+      "/image/leader/custom/house-calven/ressa-ul.png",
+      "/image/leader/custom/house-calven/bram-nes.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Kiln Synod",
+    "keywords": "machine Taro First judge Mella Archive speaker Varn Kiln marshal Sula Process auditor Orri Memory restorer Dessa Court envoy Kovel Old furnace custodian",
+    "assets": [
+      "/image/leader/custom/kiln-synod/taro.png",
+      "/image/leader/custom/kiln-synod/mella.png",
+      "/image/leader/custom/kiln-synod/varn.png",
+      "/image/leader/custom/kiln-synod/sula.png",
+      "/image/leader/custom/kiln-synod/orri.png",
+      "/image/leader/custom/kiln-synod/dessa.png",
+      "/image/leader/custom/kiln-synod/kovel.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Cable Court",
+    "keywords": "machine Noma Court conductor Duren Relay marshal Esi Treaty interpreter Vella Current auditor Ovek Grid captain Rissa Cable physician Tenn Elder switchkeeper",
+    "assets": [
+      "/image/leader/custom/cable-court/noma.png",
+      "/image/leader/custom/cable-court/duren.png",
+      "/image/leader/custom/cable-court/esi.png",
+      "/image/leader/custom/cable-court/vella.png",
+      "/image/leader/custom/cable-court/ovek.png",
+      "/image/leader/custom/cable-court/rissa.png",
+      "/image/leader/custom/cable-court/tenn.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Ivory Clock",
+    "keywords": "machine Arlo Senior negotiator Pella Minute keeper Dorun Clock guard commander Sivi Protocol writer Neral Treaty witness Etta Repair arbiter Korr Old time registrar",
+    "assets": [
+      "/image/leader/custom/ivory-clock/arlo.png",
+      "/image/leader/custom/ivory-clock/pella.png",
+      "/image/leader/custom/ivory-clock/dorun.png",
+      "/image/leader/custom/ivory-clock/sivi.png",
+      "/image/leader/custom/ivory-clock/neral.png",
+      "/image/leader/custom/ivory-clock/etta.png",
+      "/image/leader/custom/ivory-clock/korr.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Tarnished Host",
+    "keywords": "machine Mara Venn Host commander Dalen Or Campaign heir Istra Pell Siege captain Orren Mal Field surgeon Sena Dov Intelligence officer Bavel Rinn Heavy corps chief Vera Sorn Host emissary",
+    "assets": [
+      "/image/leader/custom/tarnished-host/mara-venn.png",
+      "/image/leader/custom/tarnished-host/dalen-or.png",
+      "/image/leader/custom/tarnished-host/istra-pell.png",
+      "/image/leader/custom/tarnished-host/orren-mal.png",
+      "/image/leader/custom/tarnished-host/sena-dov.png",
+      "/image/leader/custom/tarnished-host/bavel-rinn.png",
+      "/image/leader/custom/tarnished-host/vera-sorn.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Bellward Assembly",
+    "keywords": "machine Belan First resonant Orsa Assembly speaker Tuvor Harmonic marshal Miri Quiet court envoy Sennel Echo recorder Dorra Foundry steward Kavel Silence adjudicator",
+    "assets": [
+      "/image/leader/custom/bellward-assembly/belan.png",
+      "/image/leader/custom/bellward-assembly/orsa.png",
+      "/image/leader/custom/bellward-assembly/tuvor.png",
+      "/image/leader/custom/bellward-assembly/miri.png",
+      "/image/leader/custom/bellward-assembly/sennel.png",
+      "/image/leader/custom/bellward-assembly/dorra.png",
+      "/image/leader/custom/bellward-assembly/kavel.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Glass Register",
+    "keywords": "machine Vero Chief registrar Nalla Archive envoy Dorr Vault captain Evin Memory conservator Sera Record disputant Kelor Data customs master Ruva Elder archive bearer",
+    "assets": [
+      "/image/leader/custom/glass-register/vero.png",
+      "/image/leader/custom/glass-register/nalla.png",
+      "/image/leader/custom/glass-register/dorr.png",
+      "/image/leader/custom/glass-register/evin.png",
+      "/image/leader/custom/glass-register/sera.png",
+      "/image/leader/custom/glass-register/kelor.png",
+      "/image/leader/custom/glass-register/ruva.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Seam Bound",
+    "keywords": "machine Anra Court sovereign Dovek Custodian general Mella Identity advocate Sarin Foreign examiner Otta Restoration keeper Verren Oath officer Kessa Memory claimant",
+    "assets": [
+      "/image/leader/custom/seam-bound/anra.png",
+      "/image/leader/custom/seam-bound/dovek.png",
+      "/image/leader/custom/seam-bound/mella.png",
+      "/image/leader/custom/seam-bound/sarin.png",
+      "/image/leader/custom/seam-bound/otta.png",
+      "/image/leader/custom/seam-bound/verren.png",
+      "/image/leader/custom/seam-bound/kessa.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Pale Chorus",
+    "keywords": "mutant Vessa Chorus elder Tarin Sight marshal Nela Memory speaker Orris Treaty watcher Dama Field anatomist Boren Gate commander Siva Young court advocate",
+    "assets": [
+      "/image/leader/custom/pale-chorus/vessa.png",
+      "/image/leader/custom/pale-chorus/tarin.png",
+      "/image/leader/custom/pale-chorus/nela.png",
+      "/image/leader/custom/pale-chorus/orris.png",
+      "/image/leader/custom/pale-chorus/dama.png",
+      "/image/leader/custom/pale-chorus/boren.png",
+      "/image/leader/custom/pale-chorus/siva.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Foldkin",
+    "keywords": "mutant Oma Fold matriarch Derren Wall captain Nivi House interpreter Vorr Elder reader Salla Trade warden Taven Frontier judge Ruma Shelter engineer",
+    "assets": [
+      "/image/leader/custom/foldkin/oma.png",
+      "/image/leader/custom/foldkin/derren.png",
+      "/image/leader/custom/foldkin/nivi.png",
+      "/image/leader/custom/foldkin/vorr.png",
+      "/image/leader/custom/foldkin/salla.png",
+      "/image/leader/custom/foldkin/taven.png",
+      "/image/leader/custom/foldkin/ruma.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Mineral Heirs",
+    "keywords": "mutant Evara Mineral regent Koren Strata marshal Mela Vein speaker Orran Stone genealogist Siva Boundary surveyor Tessa Court examiner Barel Deep labor chief",
+    "assets": [
+      "/image/leader/custom/mineral-heirs/evara.png",
+      "/image/leader/custom/mineral-heirs/koren.png",
+      "/image/leader/custom/mineral-heirs/mela.png",
+      "/image/leader/custom/mineral-heirs/orran.png",
+      "/image/leader/custom/mineral-heirs/siva.png",
+      "/image/leader/custom/mineral-heirs/tessa.png",
+      "/image/leader/custom/mineral-heirs/barel.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Gill Covenant",
+    "keywords": "mutant Nerra Covenant mother Dovel Reservoir marshal Sela Moisture advocate Orrim Pressure elder Vara Drylands envoy Tenn Canal captain Muri Brine physician",
+    "assets": [
+      "/image/leader/custom/gill-covenant/nerra.png",
+      "/image/leader/custom/gill-covenant/dovel.png",
+      "/image/leader/custom/gill-covenant/sela.png",
+      "/image/leader/custom/gill-covenant/orrim.png",
+      "/image/leader/custom/gill-covenant/vara.png",
+      "/image/leader/custom/gill-covenant/tenn.png",
+      "/image/leader/custom/gill-covenant/muri.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Morrow Strain",
+    "keywords": "mutant Vessa Lineage sovereign Darren Strain commander Nali Pattern reader Orel Elder geneticist Suri Treaty examiner Tessa Memory captain Boren House steward",
+    "assets": [
+      "/image/leader/custom/morrow-strain/vessa.png",
+      "/image/leader/custom/morrow-strain/darren.png",
+      "/image/leader/custom/morrow-strain/nali.png",
+      "/image/leader/custom/morrow-strain/orel.png",
+      "/image/leader/custom/morrow-strain/suri.png",
+      "/image/leader/custom/morrow-strain/tessa.png",
+      "/image/leader/custom/morrow-strain/boren.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Khelt Dynasty",
+    "keywords": "animal Khelra Dynastic mother Dovar Crest marshal Nera Court speaker Ossar Elder record keeper Seli Boundary judge Tovel Citadel captain Murren House treasurer",
+    "assets": [
+      "/image/leader/custom/khelt-dynasty/khelra.png",
+      "/image/leader/custom/khelt-dynasty/dovar.png",
+      "/image/leader/custom/khelt-dynasty/nera.png",
+      "/image/leader/custom/khelt-dynasty/ossar.png",
+      "/image/leader/custom/khelt-dynasty/seli.png",
+      "/image/leader/custom/khelt-dynasty/tovel.png",
+      "/image/leader/custom/khelt-dynasty/murren.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Rul Feather Court",
+    "keywords": "animal Ruva Feather sovereign Dorrak Wingless guard commander Nelli House interpreter Orru Elder sky reader Sava Customs judge Tarel Border envoy Borel Court quartermaster",
+    "assets": [
+      "/image/leader/custom/rul-feather-court/ruva.png",
+      "/image/leader/custom/rul-feather-court/dorrak.png",
+      "/image/leader/custom/rul-feather-court/nelli.png",
+      "/image/leader/custom/rul-feather-court/orru.png",
+      "/image/leader/custom/rul-feather-court/sava.png",
+      "/image/leader/custom/rul-feather-court/tarel.png",
+      "/image/leader/custom/rul-feather-court/borel.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Harn Commonwealth",
+    "keywords": "animal Hessa Commonwealth elder Dorrun Civic marshal Niva Foreign advocate Orren Transit elder Sela Water magistrate Tavir Frontier captain Mura Court provisioner",
+    "assets": [
+      "/image/leader/custom/harn-commonwealth/hessa.png",
+      "/image/leader/custom/harn-commonwealth/dorrun.png",
+      "/image/leader/custom/harn-commonwealth/niva.png",
+      "/image/leader/custom/harn-commonwealth/orren.png",
+      "/image/leader/custom/harn-commonwealth/sela.png",
+      "/image/leader/custom/harn-commonwealth/tavir.png",
+      "/image/leader/custom/harn-commonwealth/mura.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Vel Silk Court",
+    "keywords": "animal Vela Silk sovereign Darr Court marshal Neri Treaty weaver Ossa Elder silk keeper Savin Gate adjudicator Tella Border speaker Berru Provision registrar",
+    "assets": [
+      "/image/leader/custom/vel-silk-court/vela.png",
+      "/image/leader/custom/vel-silk-court/darr.png",
+      "/image/leader/custom/vel-silk-court/neri.png",
+      "/image/leader/custom/vel-silk-court/ossa.png",
+      "/image/leader/custom/vel-silk-court/savin.png",
+      "/image/leader/custom/vel-silk-court/tella.png",
+      "/image/leader/custom/vel-silk-court/berru.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Sere Reservoir",
+    "keywords": "gel Oru Reservoir elder Sava Water judge Bren Cistern guard Ilo Drought envoy Vesh Flood keeper Toma Well scout Arel Mass accountant",
+    "assets": [
+      "/image/leader/custom/sere-reservoir/oru.png",
+      "/image/leader/custom/sere-reservoir/sava.png",
+      "/image/leader/custom/sere-reservoir/bren.png",
+      "/image/leader/custom/sere-reservoir/ilo.png",
+      "/image/leader/custom/sere-reservoir/vesh.png",
+      "/image/leader/custom/sere-reservoir/toma.png",
+      "/image/leader/custom/sere-reservoir/arel.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Brumal Court",
+    "keywords": "gel Dorel Winter regent Vana Ice marshal Kelm Border keeper Eris Court witness Noll Pressure surgeon Ruva Glacier envoy Hadr Seal master",
+    "assets": [
+      "/image/leader/custom/brumal-court/dorel.png",
+      "/image/leader/custom/brumal-court/vana.png",
+      "/image/leader/custom/brumal-court/kelm.png",
+      "/image/leader/custom/brumal-court/eris.png",
+      "/image/leader/custom/brumal-court/noll.png",
+      "/image/leader/custom/brumal-court/ruva.png",
+      "/image/leader/custom/brumal-court/hadr.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Velu Assembly",
+    "keywords": "gel Melo Assembly speaker Kiva Dispute broker Davo Caravan chief Usen Memory carrier Pera Young delegate Zaro Gate sentinel Elda Treaty keeper",
+    "assets": [
+      "/image/leader/custom/velu-assembly/melo.png",
+      "/image/leader/custom/velu-assembly/kiva.png",
+      "/image/leader/custom/velu-assembly/davo.png",
+      "/image/leader/custom/velu-assembly/usen.png",
+      "/image/leader/custom/velu-assembly/pera.png",
+      "/image/leader/custom/velu-assembly/zaro.png",
+      "/image/leader/custom/velu-assembly/elda.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Meret Shoal",
+    "keywords": "gel Nera Shoal matriarch Ovek Current pilot Telu Signal reader Rask Hull warden Vima Tide jurist Heso Shore envoy Lorn Deep archivist",
+    "assets": [
+      "/image/leader/custom/meret-shoal/nera.png",
+      "/image/leader/custom/meret-shoal/ovek.png",
+      "/image/leader/custom/meret-shoal/telu.png",
+      "/image/leader/custom/meret-shoal/rask.png",
+      "/image/leader/custom/meret-shoal/vima.png",
+      "/image/leader/custom/meret-shoal/heso.png",
+      "/image/leader/custom/meret-shoal/lorn.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Ulvo Bound",
+    "keywords": "gel Ulan First bound Mira Harness smith Drek Contract guard Sulo Shape advocate Aven Foundry envoy Bora Mass keeper Yel Unbound witness",
+    "assets": [
+      "/image/leader/custom/ulvo-bound/ulan.png",
+      "/image/leader/custom/ulvo-bound/mira.png",
+      "/image/leader/custom/ulvo-bound/drek.png",
+      "/image/leader/custom/ulvo-bound/sulo.png",
+      "/image/leader/custom/ulvo-bound/aven.png",
+      "/image/leader/custom/ulvo-bound/bora.png",
+      "/image/leader/custom/ulvo-bound/yel.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Orren Ring",
+    "keywords": "fungal Oren Ring elder Vessa Spore jurist Durn Root guard Iren Outer-ring envoy Pallo Harvest steward Cera Mycelial reader Brum Burial keeper",
+    "assets": [
+      "/image/leader/custom/orren-ring/oren.png",
+      "/image/leader/custom/orren-ring/vessa.png",
+      "/image/leader/custom/orren-ring/durn.png",
+      "/image/leader/custom/orren-ring/iren.png",
+      "/image/leader/custom/orren-ring/pallo.png",
+      "/image/leader/custom/orren-ring/cera.png",
+      "/image/leader/custom/orren-ring/brum.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Tarn Bracket",
+    "keywords": "fungal Tarek Trunk marshal Numa Growth regent Harn Breach captain Elo Season recorder Varo Root-road envoy Sena Core physician Berr Old-growth witness",
+    "assets": [
+      "/image/leader/custom/tarn-bracket/tarek.png",
+      "/image/leader/custom/tarn-bracket/numa.png",
+      "/image/leader/custom/tarn-bracket/harn.png",
+      "/image/leader/custom/tarn-bracket/elo.png",
+      "/image/leader/custom/tarn-bracket/varo.png",
+      "/image/leader/custom/tarn-bracket/sena.png",
+      "/image/leader/custom/tarn-bracket/berr.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Velnar Choir",
+    "keywords": "fungal Vela Choir speaker Ronn Bellows commander Tesa Quiet judge Umer Wind listener Sorel Seed envoy Dava Breath physician Kerr Last singer",
+    "assets": [
+      "/image/leader/custom/velnar-choir/vela.png",
+      "/image/leader/custom/velnar-choir/ronn.png",
+      "/image/leader/custom/velnar-choir/tesa.png",
+      "/image/leader/custom/velnar-choir/umer.png",
+      "/image/leader/custom/velnar-choir/sorel.png",
+      "/image/leader/custom/velnar-choir/dava.png",
+      "/image/leader/custom/velnar-choir/kerr.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Eshan Grove",
+    "keywords": "fungal Esha Grove keeper Tovan Thorn captain Mirae Rain envoy Hessa Graft surgeon Darun Seed magistrate Olan Root scout Savael Winter witness",
+    "assets": [
+      "/image/leader/custom/eshan-grove/esha.png",
+      "/image/leader/custom/eshan-grove/tovan.png",
+      "/image/leader/custom/eshan-grove/mirae.png",
+      "/image/leader/custom/eshan-grove/hessa.png",
+      "/image/leader/custom/eshan-grove/darun.png",
+      "/image/leader/custom/eshan-grove/olan.png",
+      "/image/leader/custom/eshan-grove/savael.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Korell Bloom",
+    "keywords": "fungal Kora Bloom elder Leth Fault warden Asha Soft-growth envoy Dorr Quarry speaker Venn Symbiosis judge Sira Moss physician Holm Deep sleeper",
+    "assets": [
+      "/image/leader/custom/korell-bloom/kora.png",
+      "/image/leader/custom/korell-bloom/leth.png",
+      "/image/leader/custom/korell-bloom/asha.png",
+      "/image/leader/custom/korell-bloom/dorr.png",
+      "/image/leader/custom/korell-bloom/venn.png",
+      "/image/leader/custom/korell-bloom/sira.png",
+      "/image/leader/custom/korell-bloom/holm.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Vesk Veil",
+    "keywords": "void Vesa Veil mother Ruun Seam captain Neli Whisper envoy Tovel Mask keeper Dira Thread jurist Havel Night watch Osa Unravelling witness",
+    "assets": [
+      "/image/leader/custom/vesk-veil/vesa.png",
+      "/image/leader/custom/vesk-veil/ruun.png",
+      "/image/leader/custom/vesk-veil/neli.png",
+      "/image/leader/custom/vesk-veil/tovel.png",
+      "/image/leader/custom/vesk-veil/dira.png",
+      "/image/leader/custom/vesk-veil/havel.png",
+      "/image/leader/custom/vesk-veil/osa.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Korven Night",
+    "keywords": "void Koraun Night sovereign Dresk Shard captain Vele Dark envoy Arun Fracture judge Soren Shell physician Neth Cavern scout Horo Long witness",
+    "assets": [
+      "/image/leader/custom/korven-night/koraun.png",
+      "/image/leader/custom/korven-night/dresk.png",
+      "/image/leader/custom/korven-night/vele.png",
+      "/image/leader/custom/korven-night/arun.png",
+      "/image/leader/custom/korven-night/soren.png",
+      "/image/leader/custom/korven-night/neth.png",
+      "/image/leader/custom/korven-night/horo.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Seln Absence",
+    "keywords": "void Selnor Empty regent Ava Frame jurist Raskel Hollow guard Neri Distant envoy Tor Keeper of names Vala Threshold scout Uren Broken witness",
+    "assets": [
+      "/image/leader/custom/seln-absence/selnor.png",
+      "/image/leader/custom/seln-absence/ava.png",
+      "/image/leader/custom/seln-absence/raskel.png",
+      "/image/leader/custom/seln-absence/neri.png",
+      "/image/leader/custom/seln-absence/tor.png",
+      "/image/leader/custom/seln-absence/vala.png",
+      "/image/leader/custom/seln-absence/uren.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Draal Fold",
+    "keywords": "void Draal First fold Vosk Crease marshal Ivara Fold envoy Nemm Line keeper Reth Deep-fold judge Sula Edge scout Holl Worn elder",
+    "assets": [
+      "/image/leader/custom/draal-fold/draal.png",
+      "/image/leader/custom/draal-fold/vosk.png",
+      "/image/leader/custom/draal-fold/ivara.png",
+      "/image/leader/custom/draal-fold/nemm.png",
+      "/image/leader/custom/draal-fold/reth.png",
+      "/image/leader/custom/draal-fold/sula.png",
+      "/image/leader/custom/draal-fold/holl.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Calar Flint",
+    "keywords": "energy Calen Facet regent Vora Mine marshal Isel Prism envoy Darn Fracture physician Sera Refraction judge Orik Vein scout Hema Old seam witness",
+    "assets": [
+      "/image/leader/custom/calar-flint/calen.png",
+      "/image/leader/custom/calar-flint/vora.png",
+      "/image/leader/custom/calar-flint/isel.png",
+      "/image/leader/custom/calar-flint/darn.png",
+      "/image/leader/custom/calar-flint/sera.png",
+      "/image/leader/custom/calar-flint/orik.png",
+      "/image/leader/custom/calar-flint/hema.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Resh Cinder",
+    "keywords": "energy Resha Kiln regent Borr Furnace captain Veli Heat envoy Daro Ash physician Sethra Temperature judge Orra Cinder scout Harnel Last coal keeper",
+    "assets": [
+      "/image/leader/custom/resh-cinder/resha.png",
+      "/image/leader/custom/resh-cinder/borr.png",
+      "/image/leader/custom/resh-cinder/veli.png",
+      "/image/leader/custom/resh-cinder/daro.png",
+      "/image/leader/custom/resh-cinder/sethra.png",
+      "/image/leader/custom/resh-cinder/orra.png",
+      "/image/leader/custom/resh-cinder/harnel.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Talar Coil",
+    "keywords": "energy Tala Coil sovereign Roven Grid marshal Iva Signal envoy Dask Ground keeper Senn Current judge Orven Storm scout Hela Old charge witness",
+    "assets": [
+      "/image/leader/custom/talar-coil/tala.png",
+      "/image/leader/custom/talar-coil/roven.png",
+      "/image/leader/custom/talar-coil/iva.png",
+      "/image/leader/custom/talar-coil/dask.png",
+      "/image/leader/custom/talar-coil/senn.png",
+      "/image/leader/custom/talar-coil/orven.png",
+      "/image/leader/custom/talar-coil/hela.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Avel Lattice",
+    "keywords": "energy Avela Lattice regent Korran Salt marshal Vesi Fault envoy Dulen Pattern physician Sora Lattice judge Orsa Crack scout Hemm Crust elder",
+    "assets": [
+      "/image/leader/custom/avel-lattice/avela.png",
+      "/image/leader/custom/avel-lattice/korran.png",
+      "/image/leader/custom/avel-lattice/vesi.png",
+      "/image/leader/custom/avel-lattice/dulen.png",
+      "/image/leader/custom/avel-lattice/sora.png",
+      "/image/leader/custom/avel-lattice/orsa.png",
+      "/image/leader/custom/avel-lattice/hemm.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Nura Dawn",
+    "keywords": "energy Nura Dawn regent Tarek Radiance marshal Velaun Light envoy Dara Boundary physician Surn Measure judge Olin Horizon scout Hessaun Fading witness",
+    "assets": [
+      "/image/leader/custom/nura-dawn/nura.png",
+      "/image/leader/custom/nura-dawn/tarek.png",
+      "/image/leader/custom/nura-dawn/velaun.png",
+      "/image/leader/custom/nura-dawn/dara.png",
+      "/image/leader/custom/nura-dawn/surn.png",
+      "/image/leader/custom/nura-dawn/olin.png",
+      "/image/leader/custom/nura-dawn/hessaun.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Temek Trine",
+    "keywords": "alien Temar Trine regent Vek Gate commander Ima Outer envoy Deren Balance judge Siva Triad physician Ormak Ridge scout Hune Third witness",
+    "assets": [
+      "/image/leader/custom/temek-trine/temar.png",
+      "/image/leader/custom/temek-trine/vek.png",
+      "/image/leader/custom/temek-trine/ima.png",
+      "/image/leader/custom/temek-trine/deren.png",
+      "/image/leader/custom/temek-trine/siva.png",
+      "/image/leader/custom/temek-trine/ormak.png",
+      "/image/leader/custom/temek-trine/hune.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Kelor Mantle",
+    "keywords": "alien Kelor Mantle elder Vaska Shell captain Irel Shore envoy Dumo Salt judge Selae Mantle physician Orvenn Dryland scout Horoa Old coast witness",
+    "assets": [
+      "/image/leader/custom/kelor-mantle/kelor.png",
+      "/image/leader/custom/kelor-mantle/vaska.png",
+      "/image/leader/custom/kelor-mantle/irel.png",
+      "/image/leader/custom/kelor-mantle/dumo.png",
+      "/image/leader/custom/kelor-mantle/selae.png",
+      "/image/leader/custom/kelor-mantle/orvenn.png",
+      "/image/leader/custom/kelor-mantle/horoa.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Varn Mouth",
+    "keywords": "alien Varna First speaker Kess Dune marshal Iven Scent envoy Darae Air judge Suma Membrane physician Orsk Storm scout Haran Wind elder",
+    "assets": [
+      "/image/leader/custom/varn-mouth/varna.png",
+      "/image/leader/custom/varn-mouth/kess.png",
+      "/image/leader/custom/varn-mouth/iven.png",
+      "/image/leader/custom/varn-mouth/darae.png",
+      "/image/leader/custom/varn-mouth/suma.png",
+      "/image/leader/custom/varn-mouth/orsk.png",
+      "/image/leader/custom/varn-mouth/haran.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Nolven Pact",
+    "keywords": "alien Nol and Evi Pact regent Varn and Sol Border command Ira and Vem Treaty envoys Dorr and Asa Pact judges Sera and Hek Bond physicians Orn and Teli Range scouts Huma and Rel Old witnesses",
+    "assets": [
+      "/image/leader/custom/nolven-pact/nol-and-evi.png",
+      "/image/leader/custom/nolven-pact/varn-and-sol.png",
+      "/image/leader/custom/nolven-pact/ira-and-vem.png",
+      "/image/leader/custom/nolven-pact/dorr-and-asa.png",
+      "/image/leader/custom/nolven-pact/sera-and-hek.png",
+      "/image/leader/custom/nolven-pact/orn-and-teli.png",
+      "/image/leader/custom/nolven-pact/huma-and-rel.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Urrek Fan",
+    "keywords": "alien Urra Fan regent Karn Vane marshal Ivela Membrane envoy Dorek Fan judge Sani Vane physician Orrel Ridge scout Havva Last fan witness",
+    "assets": [
+      "/image/leader/custom/urrek-fan/urra.png",
+      "/image/leader/custom/urrek-fan/karn.png",
+      "/image/leader/custom/urrek-fan/ivela.png",
+      "/image/leader/custom/urrek-fan/dorek.png",
+      "/image/leader/custom/urrek-fan/sani.png",
+      "/image/leader/custom/urrek-fan/orrel.png",
+      "/image/leader/custom/urrek-fan/havva.png"
+    ]
   }
 ]
