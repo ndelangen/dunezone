@@ -461,6 +461,14 @@ holds markdown headings to sentence case; a proper noun it flags belongs in that
 
 ## Agent skills
 
+### Local skills
+
+The skills an agent can load here live in `.agents/skills/`, indexed by
+[`.agents/skills/README.md`](.agents/skills/README.md). `.claude/skills/<name>` is a symlink back
+into that folder, because Claude Code reads only `.claude/skills`; the vendored Convex set is the
+part [`skills-lock.json`](skills-lock.json) names, and the rest is repo-authored prose that
+`bun run check:prose` sweeps.
+
 ### Issue tracker
 
 Issues and specs are tracked in GitHub Issues through the `gh` CLI. See `docs/agents/issue-tracker.md`.
