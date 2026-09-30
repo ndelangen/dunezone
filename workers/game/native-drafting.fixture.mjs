@@ -72,32 +72,38 @@ export async function dealt(peer, runtime, count = 2, pick) {
   return connections;
 }
 
-/**
- * Two dealt players keep what they were dealt and step through setup with the commands a table offers them, to Turn 1.
- * The journey test drives the same steps with a moving clock.
- * This helper serves games provisioned without a cooldown.
- */
-export async function playToTurnOne(players) {
+/** Every dealt player keeps the seat they were dealt, which closes trading once all of them have. */
+export async function keepDealtSeats(players) {
   for (const player of players) {
-    const view = await syncView(player);
+    const { snapshot, viewer } = await syncView(player);
     await accepted(player, {
       kind: 'swap-ready',
       ready: true,
-      round: view.snapshot.swapping.round,
-      seat: view.viewer.viewerSeat,
+      round: snapshot.swapping.round,
+      seat: viewer.viewerSeat,
     });
   }
-  let { snapshot } = await syncView(players[0]);
-  for (let guard = 0; guard < 8 && snapshot.stage !== 'play'; guard++) {
-    if (snapshot.controls.ready.length < snapshot.roster.seats.length) {
-      for (const player of players) {
-        await accepted(player, { kind: 'ready', ready: true });
-      }
+}
+
+/**
+ * Trading closes and setup runs to Turn 1 with the commands a table offers its players, readying every seat whenever a step waits for them.
+ * The journey test drives the same stages with a moving clock.
+ * This helper serves games provisioned without a cooldown.
+ */
+export async function playToTurnOne(players) {
+  await keepDealtSeats(players);
+  const [leader] = players;
+  let stage = (await syncView(leader)).snapshot.stage;
+  for (let changes = 0; stage === 'setup' && changes < 8; changes++) {
+    const { snapshot } = await syncView(leader);
+    const waiting = snapshot.controls.ready.length < snapshot.roster.seats.length;
+    for (const player of waiting ? players : []) {
+      await accepted(player, { kind: 'ready', ready: true });
     }
-    ({ snapshot } = await accepted(players[0], { kind: 'phase', direction: 1 }));
+    stage = (await accepted(leader, { kind: 'phase', direction: 1 })).snapshot.stage;
   }
-  if (snapshot.stage !== 'play') {
-    throw new Error(`Setup did not reach play; the game is in ${snapshot.stage} stage.`);
+  if (stage !== 'play') {
+    throw new Error(`Setup did not reach play; the game is in ${stage} stage.`);
   }
 }
 
