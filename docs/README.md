@@ -197,7 +197,7 @@ unpushable.
   `Layouts` and `Blocks/<Block name>`. Other Rulebook route stories remain under Pages.
 - Prefer args-only stories. Use wrappers, custom rendering, or interactions only when they
   demonstrate behavior or comparison that args cannot.
-- CI runs the story suite as four shards, balanced by measured file time and defined as directory
+- CI runs the story suite as four shards, balanced by measured file time and defined as prefix
   rules in [`.storybook/shards.json`](../.storybook/shards.json): a story file belongs to the first
   shard whose prefix matches it, and the last rule is a catch-all, so a new file lands in a shard
   without a list edit. `bun run storybook:test:shard <shard>` runs one shard locally, and

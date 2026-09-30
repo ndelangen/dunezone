@@ -29,6 +29,20 @@ describe('storybook shards', () => {
     expect([...shards.values()].flat().sort()).toEqual(files);
   });
 
+  test('every Storybook stories directory sits under src, which is the tree the shards walk', () => {
+    const main = readFileSync(resolve(root, '.storybook/main.ts'), 'utf8');
+    const directories = [...main.matchAll(/directory: '([^']+)'/g)].map(([, directory]) => directory);
+    expect(directories.length).toBeGreaterThan(0);
+    expect(directories.filter((directory) => !directory.startsWith('../src/'))).toEqual([]);
+  });
+
+  test('no story path is a substring of another, since Vitest selects a file by substring match on the filters', async () => {
+    const files = await listStoryFiles(root);
+    const lower = files.map((file) => file.toLowerCase());
+    const collisions = lower.filter((file, index) => lower.some((other, at) => at !== index && other.includes(file)));
+    expect(collisions).toEqual([]);
+  });
+
   test('the workflow matrix names exactly the shards the rules define, so a shard added to one is added to the other', async () => {
     const rules = await readShardRules(root);
     const matrix = /\n {8}shard: \[([^\]]+)\]\n/.exec(storybookJob())?.[1];
@@ -46,12 +60,17 @@ describe('storybook shards', () => {
     expect(shardOf('b/six.stories.tsx', rules)).toBeUndefined();
   });
 
-  test('a file no shard owns and a shard that owns nothing are both reported', () => {
-    const { shards, problems } = assignShards(['b/x.stories.tsx', 'a/y.stories.tsx'], { only: ['a/'], idle: ['c/'] });
+  test('a file no shard owns, a shard that owns nothing and a rule that owns nothing are all reported', () => {
+    const { shards, problems } = assignShards(['b/x.stories.tsx', 'a/y.stories.tsx'], {
+      only: ['a/gone.stories.tsx', 'a/'],
+      idle: ['c/'],
+    });
     expect(shards.get('only')).toEqual(['a/y.stories.tsx']);
     expect(problems).toEqual([
       'b/x.stories.tsx matches no shard in .storybook/shards.json, so no CI run would execute it',
+      'rule a/gone.stories.tsx in shard only owns no story file',
       'shard idle owns no story file',
+      'rule c/ in shard idle owns no story file',
     ]);
   });
 });

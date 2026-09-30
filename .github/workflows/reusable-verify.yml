@@ -22,7 +22,7 @@ jobs:
     strategy:
       fail-fast: false
       # Four shards balanced by measured file time, because the story suite ran 564 to 779 s on one
-      # runner and the seven Play page files were 58% of it (#1588). .storybook/shards.json owns the
+      # runner and the seven slowest Play page files were 58% of it (#1588). .storybook/shards.json owns the
       # rules and scripts/storybook-shard.ts resolves a shard's files; its test refuses a story file
       # no shard owns. Each shard uploads its own coverage and results under the storybook flag,
       # which Codecov merges.
@@ -124,9 +124,12 @@ jobs:
         run: bun run check:app-layout
       - name: Check developer-facing prose
         run: bun run check:prose
+      # The gates below ran as jobs of their own and reported whatever the lint steps found, so they keep running after an earlier step fails.
       - name: Enforce Convex skip guard
+        if: ${{ !cancelled() }}
         run: bun run check:convex-skip
       - name: Lint GitHub Actions workflows
+        if: ${{ !cancelled() }}
         run: >-
           docker run --rm -v "${PWD}:/repo" --workdir /repo
           rhysd/actionlint:1.7.12@sha256:b1934ee5f1c509618f2508e6eb47ee0d3520686341fec936f3b79331f9315667
@@ -135,6 +138,7 @@ jobs:
         # actionlint runs shellcheck on the run: scripts of workflows, not on those of the actions in
         # .github/actions, so an action keeps its script in a .sh file beside action.yml for this step.
         # The same image as above, which ships the shellcheck that actionlint runs.
+        if: ${{ !cancelled() }}
         run: >-
           docker run --rm -v "${PWD}:/repo" --workdir /repo --entrypoint shellcheck
           rhysd/actionlint:1.7.12@sha256:b1934ee5f1c509618f2508e6eb47ee0d3520686341fec936f3b79331f9315667
@@ -142,6 +146,7 @@ jobs:
       - name: Detect schema narrowing for slug fields
         id: narrow_check
         # Reusable Verify only runs from PR CI, so base_ref is always set.
+        if: ${{ !cancelled() }}
         env:
           BASE_REF: ${{ github.base_ref }}
         run: |
@@ -154,7 +159,7 @@ jobs:
             echo "changed=false" >> "$GITHUB_OUTPUT"
           fi
       - name: Enforce static narrow guard contract
-        if: steps.narrow_check.outputs.changed == 'true'
+        if: ${{ !cancelled() && steps.narrow_check.outputs.changed == 'true' }}
         run: bun run migrations:static-check
 
   knip:
@@ -295,7 +300,7 @@ jobs:
         run: bun run generate:objs
       - name: Test publisher and delivery
         # The src/shared sources join the denominator, extension-scoped as coverage-denominator.ts scopes them, because the root test job no longer runs these files (#1588) and they are the only tests that reach some of those lines.
-        run: bun run publisher:test --coverage.enabled=true '--coverage.include=workers/**' '--coverage.include=src/shared/**/*.ts' '--coverage.include=src/shared/**/*.tsx' --reporter=default --reporter=junit --outputFile.junit=test-results/vitest-publisher.junit.xml
+        run: bun run publisher:test --coverage.enabled=true '--coverage.include=workers/**/*.ts' '--coverage.include=src/shared/**/*.ts' '--coverage.include=src/shared/**/*.tsx' --reporter=default --reporter=junit --outputFile.junit=test-results/vitest-publisher.junit.xml
       - name: Upload publisher coverage to Codecov
         uses: codecov/codecov-action@0fb7174895f61a3b6b78fc075e0cd60383518dac # v5
         with:

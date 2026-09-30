@@ -5,7 +5,7 @@
  * A story file belongs to the first shard with a prefix that matches it: a prefix ending in `/` owns every file under that directory, and any other prefix owns exactly that file.
  * The last shard's prefix is `src/`, so every story file lands somewhere and a new file cannot fall out of CI;
  * the guard test proves both on the real tree.
- * Prefixes rather than Vitest's own `--shard`, because that cuts the sorted file list into ranges, and the seven Play page files, 58% of the suite's measured time, sit together in that order (#1588).
+ * Prefixes rather than Vitest's own `--shard`, because that cuts the sorted file list into ranges, and the seven slowest Play page files, 58% of the suite's measured time, sit together in that order (#1588).
  */
 import { readdir, readFile } from 'node:fs/promises';
 import { join, relative, sep } from 'node:path';
@@ -57,10 +57,15 @@ export async function listStoryFiles(root: string): Promise<string[]> {
   return files.sort();
 }
 
+/** True when the prefix owns the file: a directory prefix owns its subtree, any other prefix owns that file alone. */
+function owns(prefix: string, file: string): boolean {
+  return prefix.endsWith('/') ? file.startsWith(prefix) : file === prefix;
+}
+
 /** The first shard whose prefix matches the file, or undefined when none does. */
 export function shardOf(file: string, rules: ShardRules): string | undefined {
   for (const [shard, prefixes] of Object.entries(rules)) {
-    if (prefixes.some((prefix) => (prefix.endsWith('/') ? file.startsWith(prefix) : file === prefix))) {
+    if (prefixes.some((prefix) => owns(prefix, file))) {
       return shard;
     }
   }
@@ -70,6 +75,7 @@ export function shardOf(file: string, rules: ShardRules): string | undefined {
 /**
  * The files each shard runs, plus every problem in one pass.
  * A file no shard owns is a problem rather than a silent skip, and so is a shard that would run nothing, because a green run of an empty shard proves nothing.
+ * A rule that owns no file is a problem too: a renamed story file would otherwise fall through to a later shard and unbalance it without a word.
  */
 export function assignShards(
   files: string[],
@@ -88,6 +94,11 @@ export function assignShards(
   for (const [shard, owned] of shards) {
     if (owned.length === 0) {
       problems.push(`shard ${shard} owns no story file`);
+    }
+    for (const prefix of rules[shard] ?? []) {
+      if (!owned.some((file) => owns(prefix, file))) {
+        problems.push(`rule ${prefix} in shard ${shard} owns no story file`);
+      }
     }
   }
   return { shards, problems };

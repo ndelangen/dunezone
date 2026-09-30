@@ -2,7 +2,7 @@
  * Runs one CI shard of the story suite: `bun run storybook:test:shard <shard> [vitest arguments]`.
  *
  * It resolves the shard's files from `.storybook/shards.json` and hands them to Vitest as file filters, followed by whatever came after the shard name, such as the coverage and reporter flags the workflow passes.
- * Vitest matches a filter as a substring of the file path, and a complete repository-relative path matches only itself.
+ * Vitest matches a filter as a case-insensitive substring of the file path, so a complete repository-relative path selects itself, and the guard test holds that no story path is a substring of another.
  */
 import { spawn } from 'node:child_process';
 import { join, resolve } from 'node:path';
