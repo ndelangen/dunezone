@@ -148,8 +148,8 @@ a relationship from artwork. An author selects a shared preset explicitly when e
 
 The isolated production snapshot inspected on 21 September 2026 contained three live decks,
 all with custom backs. Those definitions, deck identifiers and slugs stay unchanged.
-A disposable clone includes the new table through the usual snapshot import; resetting the
-clone discards local Administrator edits along with the other cloned data.
+A snapshot launch includes the new table through the usual snapshot import; relaunching discards
+local Administrator edits along with the rest of the local data.
 
 Activating renderer revision 1 seeds only missing preset definitions and queues their
 publications through the existing regeneration scan. Repeating activation preserves saved

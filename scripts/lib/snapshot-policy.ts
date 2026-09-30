@@ -119,7 +119,7 @@ export const snapshotPolicy = {
   faq_answers: { drop: 'excluded by the ruling on #1310' },
   rulebook_drafts: { drop: 'unpublished drafts' },
   publication_jobs: { drop: 'work claims that must never run outside production' },
-  publication_assets: { drop: 'publication records, which every clone already clears' },
+  publication_assets: { drop: 'publication records, which must never be acted on outside production' },
   admin_settings: { drop: 'operational settings, not content' },
   counters: { drop: 'slug counters, which the allocators rebuild' },
   migration_runs: { drop: 'migration status, which the local migration guard writes again' },
