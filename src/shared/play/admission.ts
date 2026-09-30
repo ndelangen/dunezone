@@ -79,6 +79,17 @@ export const playTestPhaseCooldownSchema = z.number().int().min(0).max(PHASE_CHA
  * The game Worker honours it only in the isolated local runtime, and reaches the stage through the commands players would send.
  */
 export const playTestStartStageSchema = z.literal('play');
+/*
+ * The accounts that take a provisioned game to Turn 1 in place of players (#1594).
+ * The game Worker mints one for each seat the creator does not hold, and the synthetic backend that asked for the stage vouches for them when the room reconciles its accounts.
+ */
+const PROVISION_PLACEHOLDER_PREFIX = 'provision-seat-';
+export function provisionPlaceholderId(seat: number) {
+  return `${PROVISION_PLACEHOLDER_PREFIX}${seat}`;
+}
+export function isProvisionPlaceholderId(userId: string) {
+  return userId.startsWith(PROVISION_PLACEHOLDER_PREFIX);
+}
 const validatedAttemptSchema = playPendingProvisionSchema.omit({ secret: true }).extend({
   ok: z.literal(true),
   testPhaseCooldownMs: playTestPhaseCooldownSchema.optional(),

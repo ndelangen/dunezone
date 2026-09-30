@@ -216,8 +216,10 @@ test-only `PLAY_TEST_PHASE_COOLDOWN_MS` to 0 or removes it, and a synthetic back
 to the game Worker at provisioning. In the same way it sets `PLAY_TEST_START_STAGE` to `play` for
 every flow but `regular`, so those flows' games are provisioned past drafting and setup: the Worker
 takes each such game to Turn 1 with the commands its players would send, seating placeholders that
-ready the draft and setup beside the creator and then give up their seats, and the flow's second
-player joins through the open seat as a replacement would. The `regular` flow keeps creating its
+ready the draft, keep the seats they are dealt and ready every setup step beside the creator, and
+then give up their seats. The synthetic backend vouches for those placeholders when the room
+reconciles its accounts, so the game's log keeps their names, and the flow's second player joins
+through the open seat as a replacement would. The `regular` flow keeps creating its
 game at drafting and stepping through every stage, which is what it proves. The Worker refuses to
 provision a game with either test value unless its `GIT_SHA` is play-local's `local-isolated` and
 its `APPLICATION_ORIGIN` is a loopback origin.
@@ -341,8 +343,9 @@ The browser flows play real games. The stack seeds a synthetic ruleset
 (`playTesting:seedRealGameCatalogue`) with both required decks, a treachery deck of treachery cards
 and a spice deck of spice cards, and two factions, installs its publication bytes, and passes its
 id to each flow. Every flow signs in synthetic accounts without the Administrator flag, creates a
-game at `/play/create`, seats the second player through a seat request and its approval, and plays
-through drafting and setup before its own checks. Against a running
+game at `/play/create`, seats the second player through a seat request and its approval, and reaches
+Turn 1 before its own checks: the `regular` flow plays through drafting and setup, and the others
+start there, as described above. Against a running
 [local stack](../deployment.md#hosted-gameplay), seed that ruleset once and use a build with local
 Password sign-in enabled (`VITE_E2E_LOCAL_AUTH=true`). That build also installs
 `window.__duneTable`, and the script projects table positions through the camera it exposes.

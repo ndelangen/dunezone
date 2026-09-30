@@ -5,7 +5,8 @@
 # One row for each of the shard's flows, and one for the protocol verifier where it runs, even
 # when the run stopped before reaching them. A flow the launcher stops at its budget still
 # writes a report, failed after its last check. Renderer and Chromium come from the report:
-# the renderer kind its first table drew with, and the Chromium build that ran it.
+# the renderer kind its first table drew with, and the Chromium build that ran it. Play at is the
+# flow's seconds to Turn 1 from the report's milestones, blank for a flow that never reached it.
 # A failed flow's report names only the checks that passed, so its failing step is the source line
 # the driver recorded for the error and the check it passed last. The error is the report's message
 # on one line: an assertion's first line only says what kind of comparison failed.
@@ -21,7 +22,7 @@ read -r -a flows <<< "$flow_list"
 {
   echo "### ${HEADING}"
   echo
-  echo '| Flow | Result | Seconds | Play at | Renderer | Chromium | Failing step | Error |'
+  echo '| Flow | Result | Seconds | Play at (s) | Renderer | Chromium | Failing step | Error |'
   echo '| --- | --- | --- | --- | --- | --- | --- | --- |'
   if [ "$PROTOCOL_VERIFIER" = true ]; then
     if grep -qs '"status": "passed"' "$out/verification.log"; then

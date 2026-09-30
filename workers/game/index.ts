@@ -15,6 +15,7 @@ import {
   playProvisionRequestSchema,
   playReconcileAccountsResultSchema,
   playRedeemTicketResultSchema,
+  provisionPlaceholderId,
 } from '../../src/shared/play/admission';
 import { playGamePathPattern } from '../../src/shared/play/callbacks';
 import {
@@ -1453,7 +1454,7 @@ export class GameRoom extends DurableObject<GameEnv> {
   }) {
     const creator = { userId: game.creator.userId, displayName: game.creator.displayName };
     const placeholders = Array.from({ length: game.minimumPlayers - 1 }, (_, index) => ({
-      userId: `provision-seat-${index + 2}`,
+      userId: provisionPlaceholderId(index + 2),
       displayName: `Placeholder for seat ${index + 2}`,
     }));
     const everyone = [creator, ...placeholders];
@@ -1486,13 +1487,15 @@ export class GameRoom extends DurableObject<GameEnv> {
     for (const player of everyone) {
       const round = snapshot().swapping?.round;
       if (snapshot().stage !== 'swapping' || round === undefined) {
-        throw new Error(`The provisioned game was not dealt; it is in ${snapshot().stage ?? 'no'} stage.`);
+        const reason = snapshot().draft?.failure ?? `it is in ${snapshot().stage ?? 'no'} stage`;
+        throw new Error(`The provisioned game was not dealt: ${reason}`);
       }
       command(player, { kind: 'swap-ready', ready: true, round, seat: viewerOf(player).viewerSeat });
     }
     for (let changes = 0; snapshot().stage === 'setup'; changes++) {
-      if (changes >= 12) {
-        throw new Error('Setup did not reach play within twelve phase changes.');
+      const steps = snapshot().setup?.steps.length ?? 0;
+      if (changes >= steps) {
+        throw new Error(`Setup did not reach play within its ${steps} steps.`);
       }
       const ready = snapshot().controls?.ready ?? [];
       for (const player of everyone) {
@@ -1509,18 +1512,26 @@ export class GameRoom extends DurableObject<GameEnv> {
     for (const placeholder of placeholders) {
       command(placeholder, { kind: 'seat-depart' });
     }
-    this.deliverDirectorySoon();
-    await this.scheduleAlarm();
   }
 
-  /** Waits for the deal a fully ready draft owes, whether an attempt is already under way or none has started. */
+  /**
+   * Waits for the deal a fully ready draft owes.
+   * A catalogue refresh that creation started makes that attempt itself once it lands.
+   * A failed attempt waits for a player's next draft change, so it fails the provisioning rather than being retried.
+   * Otherwise the replay makes the attempt its last draft-ready command would have made.
+   */
   private async settleAssignment() {
     for (let waited = 0; waited < 500 && (this.assigning || this.refreshingCatalogue); waited++) {
       await new Promise((resolve) => setTimeout(resolve, 20));
     }
-    if (this.session.currentSnapshot().stage === 'drafting') {
-      await this.attemptAssignment();
+    const snapshot = this.session.currentSnapshot();
+    if (snapshot.stage !== 'drafting') {
+      return;
     }
+    if (snapshot.draft?.failure) {
+      throw new Error(`The deal did not complete: ${snapshot.draft.failure}`);
+    }
+    await this.attemptAssignment();
   }
 
   /** Setup's phase changes keep the game's cooldown, so a provisioning that runs at the real one waits it out. */

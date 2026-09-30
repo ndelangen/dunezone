@@ -511,6 +511,15 @@ async function createGame(who) {
   gameId = new URL(who.page.url()).pathname.split('/').at(-1);
   await admitted(who);
   assert.notEqual(who.view().viewer.viewerSeat, SPECTATOR);
+  /*
+   * The backend provisions this flow's games at the stage the flow table names (#1594).
+   * A game at any other stage fails here rather than being played through by hand.
+   */
+  assert.equal(
+    who.view().snapshot.stage,
+    flow.startsInPlay ? 'play' : 'drafting',
+    'The game did not start at the stage this flow expects.'
+  );
 }
 async function enter(who) {
   assert.ok(gameId, 'No real game was created yet.');
@@ -548,7 +557,9 @@ function factionOf(who) {
   return seat.faction;
 }
 /**
- * Takes the two players through drafting, the deal, trading and setup with ordinary controls, then waits for play.
+ * Waits for play with the players and the audience at the table.
+ * A game the backend provisioned at Turn 1 (#1594) is there already.
+ * Any other game is taken through drafting, the deal, trading and setup with ordinary controls.
  * Nothing patches the game: every step is a command the table accepts from its players.
  */
 async function playReady(players, audience) {
@@ -1315,7 +1326,10 @@ async function verifyRegular() {
   const b = await account('player-b');
   await enter(b);
   await seatThrough(a, b);
-  await playReady([a, b], []);
+  /* The observer watches from drafting on, as the audience of every stage. Its own checks come once the players have proven theirs. */
+  const observer = await account('observer');
+  await enter(observer);
+  await playReady([a, b], [observer]);
   assert.notEqual(a.view().viewer.viewerSeat, SPECTATOR);
   assert.notEqual(b.view().viewer.viewerSeat, SPECTATOR);
   assert.notEqual(a.view().viewer.viewerSeat, b.view().viewer.viewerSeat);
@@ -1481,8 +1495,6 @@ async function verifyRegular() {
   await visibleActivity(b, a, 'reloaded-player-b-to-player-a');
   await visibleActivity(a, b, 'player-a-to-reloaded-player-b');
 
-  const observer = await account('observer');
-  await enter(observer);
   assert.equal(observer.view().viewer.viewerSeat, SPECTATOR);
   assert.equal(await observer.page.getByRole('button', { name: 'Next phase', exact: true }).isDisabled(), true);
   assert.equal(await observer.page.getByRole('button', { name: 'Previous phase', exact: true }).isDisabled(), true);

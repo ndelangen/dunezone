@@ -73,7 +73,7 @@ export async function dealt(peer, runtime, count = 2, pick) {
 }
 
 /** Every dealt player keeps the seat they were dealt, which closes trading once all of them have. */
-export async function keepDealtSeats(players) {
+async function keepDealtSeats(players) {
   for (const player of players) {
     const { snapshot, viewer } = await syncView(player);
     await accepted(player, {
@@ -94,8 +94,11 @@ export async function playToTurnOne(players) {
   await keepDealtSeats(players);
   const [leader] = players;
   let stage = (await syncView(leader)).snapshot.stage;
-  for (let changes = 0; stage === 'setup' && changes < 8; changes++) {
+  for (let changes = 0; stage === 'setup'; changes++) {
     const { snapshot } = await syncView(leader);
+    if (changes >= snapshot.setup.steps.length) {
+      throw new Error(`Setup did not reach play within its ${snapshot.setup.steps.length} steps.`);
+    }
     const waiting = snapshot.controls.ready.length < snapshot.roster.seats.length;
     for (const player of waiting ? players : []) {
       await accepted(player, { kind: 'ready', ready: true });
