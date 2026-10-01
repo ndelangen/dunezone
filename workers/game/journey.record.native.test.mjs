@@ -124,16 +124,29 @@ async function dealTraitors(journey) {
   await journey.record('Traitors dealt', 'Every seat holds four Traitors in hand.', 'seat-1', { kind: 'deck-draw' });
 }
 
-/* Every faction but House Harkonnen keeps one Traitor and plays the other three back onto the pile. */
+/*
+ * Every faction but House Harkonnen keeps one Traitor and returns the other three to the pile, as a player does:
+ * each card is played from the hand onto the table beside the pile, then carried onto it.
+ */
 async function keepTraitors(journey) {
   const pileAt = (await journey.deck('cards:traitor')).position;
+  const beside = [pileAt[0] + 1.2, pileAt[1], pileAt[2]];
   for (let index = 0; index < journey.players.length; index++) {
     if (journey.factionAt(index).id === 'house-harkonnen') {
       continue;
     }
     const dealt = (await journey.hand(index)).filter((piece) => piece.stackKey === 'cards:traitor');
     for (const card of dealt.slice(1)) {
-      await journey.command(index, { kind: 'hand-play', pieceId: card.id, position: pileAt });
+      await journey.command(index, { kind: 'hand-play', pieceId: card.id, position: beside });
+      /* Card handles change as the pile changes, so the played card is found by what it is: the one loose Traitor. */
+      const traitors = (await journey.pieces(index)).filter(
+        (piece) => piece.stackKey === 'cards:traitor' && !piece.inventory
+      );
+      const played = traitors.find((piece) => piece.items.length === 1);
+      const pile = traitors.find((piece) => piece !== played);
+      await journey.carry(index, played.id, [pile.position[0], 0.4, pile.position[2]]);
+      /* The room refills each socket's message allowance from its own clock, which only moves when the journey moves it. */
+      await journey.advanceClock(1000);
     }
     if (index === 0) {
       await journey.record(
@@ -265,10 +278,13 @@ async function biddingAndShipment(journey) {
   }
 }
 
-/* These fixture troops carry no authored combat values, so each side fights with a leader and spice. */
-async function battlePlan(journey, index, spice) {
+/*
+ * The fixture troops carry no authored combat values, so no troop can be dialed and no spice can fund one.
+ * Each side commits a leader alone, and the reveal shows 0 force and 0 spice, as the step text says.
+ */
+async function battlePlan(journey, index) {
   const leader = (await journey.hand(index)).find((piece) => piece.kind === 'force');
-  return { mode: 'custom', troops: [], spice, adjustment: 0, leaderId: leader.id, cardIds: [] };
+  return { mode: 'custom', troops: [], spice: 0, adjustment: 0, leaderId: leader.id, cardIds: [] };
 }
 
 /* A battle in Arrakeen between House Harkonnen and House Atreides, from the claim to an agreed outcome. */
@@ -294,14 +310,13 @@ async function battle(journey) {
       `${journey.who(index)} takes the ${which} side.`
     );
   }
-  for (const [side, index] of sides.entries()) {
-    const spice = side === 0 ? 3 : 2;
-    const plan = await battlePlan(journey, index, spice);
+  for (const index of sides) {
+    const plan = await battlePlan(journey, index);
     await journey.act(
       index,
       { kind: 'battle-plan', battleId, plan },
       'Battle plan',
-      `${journey.who(index)} dials a leader and ${spice} spice.`
+      `${journey.who(index)} commits a leader; the fixture troops have no combat values to dial.`
     );
   }
   await journey.act(

@@ -3,6 +3,7 @@ import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { gameMeta, install } from './game.stories.fixture';
 import {
+  chapter,
   journey,
   journeyDecorator,
   JourneyPage,
@@ -11,15 +12,6 @@ import {
   journeyViewers,
   stepCode,
 } from './journey.stories.fixture';
-
-/* The 1-based step of the first recorded step with this title, so a re-recording keeps each chapter on its moment. */
-const chapter = (title: string) => {
-  const index = journeySteps().findIndex((step) => step.title === title);
-  if (index < 0) {
-    throw new Error(`The journey recording has no step titled ${title}.`);
-  }
-  return index + 1;
-};
 
 const meta = preview.meta({
   ...gameMeta,
