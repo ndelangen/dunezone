@@ -263,7 +263,7 @@ function observeConnectionStatus() {
 /**
  * Runs in every page before its scripts and keeps what the sign-out check needs to name a late socket (#1592).
  * For each game socket: when it opened, when each admission frame reached the page, each close() the page called, its close event, and its readyState as a 100 ms heartbeat sampled it.
- * For the page: long tasks, long animation frames, heartbeat gaps, storage events and visibility changes, so a report can say whether the main thread was busy and when the page learned of the sign-out.
+ * For the page: long tasks, long animation frames, heartbeat gaps, WebGPU frame requests, storage events and visibility changes, so a report can say whether the main thread was busy, whether its table had drawn, and when the page learned of the sign-out.
  * Times are the page's clock in epoch milliseconds.
  * An admission frame is found by its prefix, so the page parses no other frame a second time.
  */
@@ -279,6 +279,17 @@ function observeGameSockets() {
   const gaps = [];
   const storage = [];
   const visibility = [{ at: now(), state: document.visibilityState }];
+  /* When a WebGPU table first asked for a frame's texture and the newest such requests, so a report shows whether a table was still mounting. */
+  const frames = { first: null, recent: [] };
+  const canvasContext = window.GPUCanvasContext?.prototype;
+  if (canvasContext) {
+    const getCurrentTexture = canvasContext.getCurrentTexture;
+    canvasContext.getCurrentTexture = function (...args) {
+      frames.first ??= now();
+      keep(frames.recent, now(), 300);
+      return getCurrentTexture.apply(this, args);
+    };
+  }
   window.WebSocket = new Proxy(window.WebSocket, {
     construct(target, args, newTarget) {
       const socket = Reflect.construct(target, args, newTarget);
@@ -346,7 +357,11 @@ function observeGameSockets() {
       500
     )
   );
-  /* A long animation frame names the scripts that ran in it, so a busy page shows what kept it busy. */
+  /*
+   * A long animation frame names the scripts that ran in it, so a busy page shows what kept it busy.
+   * Its script time against its length, and when its rendering and its style and layout began, say whether scripts or rendering took the time.
+   */
+  const offset = (entry, time) => (time > 0 ? Math.round(time - entry.startTime) : null);
   observe('long-animation-frame', (entry) =>
     keep(
       longFrames,
@@ -354,6 +369,9 @@ function observeGameSockets() {
         at: Math.round(performance.timeOrigin + entry.startTime),
         durationMs: Math.round(entry.duration),
         blockingMs: Math.round(entry.blockingDuration),
+        scriptMs: Math.round(entry.scripts.reduce((total, script) => total + script.duration, 0)),
+        renderStartMs: offset(entry, entry.renderStart),
+        styleAndLayoutStartMs: offset(entry, entry.styleAndLayoutStart),
         scripts: [...entry.scripts]
           .sort((left, right) => right.duration - left.duration)
           .slice(0, 3)
@@ -382,6 +400,7 @@ function observeGameSockets() {
       gaps,
       storage,
       visibility,
+      frames,
     }),
   });
 }
@@ -705,6 +724,13 @@ async function signOutReport(timeout) {
               worstHeartbeatGapMs: Math.max(0, ...gaps.map((gap) => gap.gapMs)),
             }
           : null,
+        /* The table's first frame, and its frames from a second before the click to the window's end. */
+        tableFrames: page
+          ? {
+              first: since(page.frames.first),
+              recent: page.frames.recent.filter((at) => at > clickedAt - 1000 && at < end).map(since),
+            }
+          : null,
         sockets,
         longTasks: longTasks.map((task) => ({ ...task, at: since(task.at) })),
         longFrames: (page?.longFrames ?? []).filter(inWindow).map((frame) => ({ ...frame, at: since(frame.at) })),
@@ -725,6 +751,8 @@ async function signOutReport(timeout) {
     label: tab.label,
     answered: tab.pageAnsweredAt,
     busy: tab.busy,
+    firstFrame: tab.tableFrames?.first ?? null,
+    framesInWindow: tab.tableFrames?.recent.length ?? null,
     sockets: tab.sockets.map(({ playwright, page }) => ({
       refusal: [
         playwright.admissions.findLast((entry) => entry.status === 'denied')?.at ?? null,
@@ -1866,7 +1894,6 @@ async function verifyRegular() {
     signOut.waitEndedAt = Date.now();
     signOut.driverLagMs = signOut.stopDriverLag();
   }
-  report.signOut = await signOutReport(5000);
   await until(
     async () => (await a.page.locator('canvas').count()) === 0 && (await aTab.page.locator('canvas').count()) === 0,
     'Signed-out game data remained visible.'
@@ -2005,10 +2032,6 @@ try {
       await capture(who, `failure-${who.label}`);
     } catch {}
   }
-  /* After the captures, so they show the moment of failure; a page still busy then gets 30 s more to answer (#1592). */
-  if (signOut && !report.signOut) {
-    report.signOut = await signOutReport(30_000);
-  }
   process.exitCode = 1;
   console.error(`Browser verification stopped after: ${report.failure.afterCheck}.`);
   console.error(report.failure.message);
@@ -2016,6 +2039,13 @@ try {
     console.error(frame);
   }
 } finally {
+  /*
+   * Read once the flow has ended, so a failure's captures show the moment it failed, and a long animation frame that was still open at the close has ended (#1592).
+   * A page still busy then gets 30 s more to answer.
+   */
+  if (signOut) {
+    report.signOut = await signOutReport(30_000);
+  }
   const counts = (messages) =>
     messages.reduce((result, message) => ({ ...result, [message.type]: (result[message.type] ?? 0) + 1 }), {});
   report.transport = peers.map((who) => ({
