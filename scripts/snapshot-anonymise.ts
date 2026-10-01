@@ -4,8 +4,8 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { parseArgs } from 'node:util';
 
-import type { ExportEntries, SnapshotReport } from './lib/snapshot-anonymiser';
-import { anonymiseExport, scanSnapshot, SnapshotRefused } from './lib/snapshot-anonymiser';
+import type { ExportEntries, SnapshotManifest, SnapshotReport } from './lib/snapshot-anonymiser';
+import { anonymiseExport, scanSnapshot, SnapshotRefused, verifySnapshot } from './lib/snapshot-anonymiser';
 
 /**
  * Anonymises a Convex export zip into the snapshot that local and cloud dev load (#1559).
@@ -44,6 +44,11 @@ export function readZip(file: string): ExportEntries {
     throw new SnapshotRefused([`${unsafe.length} zip entries have names outside the export layout`]);
   }
   return new Map(names.map((name) => [name, run('/usr/bin/unzip', ['-p', file, name])]));
+}
+
+/** Reads the zip at `file` and refuses it unless the anonymiser wrote it, so a loader never imports a raw export by mistake. */
+export function verifySnapshotFile(file: string): SnapshotManifest {
+  return verifySnapshot(readZip(file));
 }
 
 function writeZip(entries: ExportEntries, out: string) {

@@ -9,6 +9,7 @@ import {
   scanSnapshot,
   SnapshotRefused,
   tableNumberOfId,
+  verifySnapshot,
 } from './snapshot-anonymiser';
 import { snapshotPolicy } from './snapshot-policy';
 
@@ -248,6 +249,20 @@ function manifestOf(entries: ReadonlyMap<string, string>): SnapshotManifest {
   return JSON.parse(entries.get(SNAPSHOT_MANIFEST)!) as SnapshotManifest;
 }
 
+/** The snapshot with one table's rows replaced, or its entry removed with null, and the manifest's count kept in step. */
+function withRows(entries: ReadonlyMap<string, string>, table: string, rows: readonly Row[] | null) {
+  const manifest = manifestOf(entries);
+  const changed = new Map(entries);
+  if (rows === null) {
+    changed.delete(`${table}/documents.jsonl`);
+    delete manifest.rows[table];
+  } else {
+    changed.set(`${table}/documents.jsonl`, rows.map((row) => `${JSON.stringify(row)}\n`).join(''));
+    manifest.rows[table] = rows.length;
+  }
+  return changed.set(SNAPSHOT_MANIFEST, JSON.stringify(manifest));
+}
+
 function refusal(run: () => unknown): SnapshotRefused {
   try {
     run();
@@ -268,7 +283,7 @@ describe('anonymiseExport', () => {
     expect(rowsOf(entries, 'factions').map((row) => row._id)).toEqual([published]);
     expect(rowsOf(entries, 'groups').map((row) => row.slug)).toEqual(['council']);
     expect(rowsOf(entries, 'ruleset_factions').map((row) => row.faction_id)).toEqual([published]);
-    expect(rowsOf(entries, 'profiles').map((row) => row.slug)).toEqual(['author', 'snapshot-owner']);
+    expect(rowsOf(entries, 'profiles').map((row) => row.slug)).toEqual(['snapshot-owner']);
     expect(rowsOf(entries, 'faq_items').map((row) => row._id)).toEqual([question]);
     for (const table of ['authAccounts', 'group_members', 'faq_answers']) {
       expect(entries.has(`${table}/documents.jsonl`)).toBe(false);
@@ -276,29 +291,19 @@ describe('anonymiseExport', () => {
     expect([...entries.keys()].filter((path) => path.startsWith('_components/') || path === 'README.md')).toEqual([]);
   });
 
-  test('leaves out the fields the policy drops', () => {
-    const { world } = authorWorld();
-    const { entries } = anonymiseExport(world.entries());
-
-    const [profile] = rowsOf(entries, 'profiles');
-    expect(profile).toMatchObject({ username: 'author', account_state: 'active' });
-    expect(profile).not.toHaveProperty('default_group_id');
-  });
-
   test('points user references at the placeholder owner and nulls references to dropped rows', () => {
-    const { world, author, group } = authorWorld();
+    const { world, group } = authorWorld();
     const { entries } = anonymiseExport(world.entries());
     const { userId, profileId } = manifestOf(entries).placeholderOwner;
 
     expect(tableNumberOfId(userId)).toBe(world.numberOf('users'));
     expect(tableNumberOfId(profileId)).toBe(world.numberOf('profiles'));
     expect(rowsOf(entries, 'users')).toEqual([expect.objectContaining({ _id: userId })]);
-    expect(rowsOf(entries, 'profiles').at(-1)).toMatchObject({ _id: profileId, user_id: userId });
+    expect(rowsOf(entries, 'profiles')).toEqual([expect.objectContaining({ _id: profileId, user_id: userId })]);
     expect(rowsOf(entries, 'factions')[0]).toMatchObject({ owner_id: userId, group_id: null });
     expect(rowsOf(entries, 'rulesets')[0]).toMatchObject({ owner_id: userId, group_id: group });
     expect(rowsOf(entries, 'groups')[0]).toMatchObject({ created_by: userId });
     expect(rowsOf(entries, 'faq_items')[0]).toMatchObject({ asked_by: userId, accepted_answer_id: null });
-    expect(rowsOf(entries, 'profiles')[0]).toMatchObject({ user_id: author });
   });
 
   test('drops the tables that left the schema by name, and still fails on a table in neither list', () => {
@@ -459,17 +464,22 @@ describe('anonymiseExport on component data', () => {
 });
 
 describe('scanSnapshot', () => {
-  test('finds sign-in rows, extra users and denied fields, whatever the policy says', () => {
+  test('finds sign-in rows, extra users and profiles, and denied fields, whatever the policy says', () => {
     const entries = new Map([
-      [SNAPSHOT_MANIFEST, JSON.stringify({ placeholderOwner: { userId: 'placeholder' } })],
+      [
+        SNAPSHOT_MANIFEST,
+        JSON.stringify({ placeholderOwner: { userId: 'placeholder', profileId: 'placeholder-profile' } }),
+      ],
       ['authSessions/documents.jsonl', '{"_id":"a","userId":"b"}\n'],
       ['users/documents.jsonl', '{"_id":"placeholder"}\n{"_id":"someone"}\n'],
+      ['profiles/documents.jsonl', '{"_id":"placeholder-profile"}\n{"_id":"someone-profile"}\n'],
       ['groups/documents.jsonl', '{"_id":"c","extra":{"phone":"0"}}\n'],
     ]);
 
     expect(scanSnapshot(entries)).toEqual([
       { table: 'authSessions', field: '*', kind: 'sign-in table' },
       { table: 'users', field: '*', kind: 'user row' },
+      { table: 'profiles', field: '*', kind: 'profile row' },
       { table: 'groups', field: 'extra', kind: 'denied field' },
     ]);
   });
@@ -477,23 +487,97 @@ describe('scanSnapshot', () => {
   test('passes a rehosted user image URL and still stops a bare token', () => {
     const key = '0123456789abcdef'.repeat(4);
     const url = `https://dune.zone${userImagePublicPath(`${key}.jpg`)}`;
-    const profiles = (...rows: Row[]) =>
-      new Map([['profiles/documents.jsonl', rows.map((row) => `${JSON.stringify(row)}\n`).join('')]]);
+    const rulesets = (...rows: Row[]) =>
+      new Map([['rulesets/documents.jsonl', rows.map((row) => `${JSON.stringify(row)}\n`).join('')]]);
 
-    expect(scanSnapshot(profiles({ _id: 'p', avatar_url: url, avatar: { url, width: 320, height: 320 } }))).toEqual([]);
+    expect(scanSnapshot(rulesets({ _id: 'r', image_cover: url, cover: { url, width: 320, height: 320 } }))).toEqual([]);
     expect(
       scanSnapshot(
-        profiles(
-          { _id: 'bare', avatar_url: key },
-          { _id: 'upper', avatar: { url: `https://dune.zone${userImagePublicPath(`${key.toUpperCase()}.jpg`)}` } },
-          { _id: 'long', cover: `https://dune.zone${userImagePublicPath(`${key}${key}.jpg`)}` }
+        rulesets(
+          { _id: 'bare', image_cover: key },
+          { _id: 'upper', cover: { url: `https://dune.zone${userImagePublicPath(`${key.toUpperCase()}.jpg`)}` } },
+          { _id: 'long', about: `https://dune.zone${userImagePublicPath(`${key}${key}.jpg`)}` }
         )
       )
     ).toEqual([
-      { table: 'profiles', field: 'avatar_url', kind: 'token' },
-      { table: 'profiles', field: 'avatar', kind: 'token' },
-      { table: 'profiles', field: 'cover', kind: 'token' },
+      { table: 'rulesets', field: 'image_cover', kind: 'token' },
+      { table: 'rulesets', field: 'cover', kind: 'token' },
+      { table: 'rulesets', field: 'about', kind: 'token' },
     ]);
+  });
+});
+
+describe('verifySnapshot', () => {
+  test('accepts what the anonymiser wrote and refuses a raw export', () => {
+    const { world } = authorWorld();
+    const { entries } = anonymiseExport(world.entries());
+
+    expect(verifySnapshot(entries)).toEqual(manifestOf(entries));
+    const { problems } = refusal(() => verifySnapshot(world.entries()));
+    expect(problems).toContain(
+      `the file has no ${SNAPSHOT_MANIFEST} from the anonymiser, so it is not an anonymised snapshot`
+    );
+    expect(problems).toContainEqual(
+      expect.stringMatching(/^tables the snapshot policy drops:\n(?: {2}- .+\n)* {2}- authAccounts(?:\n|$)/)
+    );
+  });
+
+  test('refuses a table the policy drops or does not name, even under the anonymiser manifest', () => {
+    const { world } = authorWorld();
+    const { entries } = anonymiseExport(world.entries());
+    const tampered = withRows(withRows(entries, 'faq_answers', [{ _id: 'planted', answer: 'Yes' }]), 'mystery', [
+      { _id: 'planted' },
+    ]);
+
+    expect(refusal(() => verifySnapshot(tampered)).problems).toEqual([
+      'tables the snapshot policy drops:\n  - faq_answers',
+      'tables the snapshot policy does not classify:\n  - mystery',
+    ]);
+  });
+
+  test('refuses a file whose rows differ from the counts in its manifest', () => {
+    const { world } = authorWorld();
+    const { entries } = anonymiseExport(world.entries());
+    const manifest = manifestOf(entries);
+    manifest.rows.janeDoe = 1;
+    const tampered = new Map(entries)
+      .set('groups/documents.jsonl', '')
+      .set(SNAPSHOT_MANIFEST, JSON.stringify(manifest));
+    tampered.delete('rulesets/documents.jsonl');
+
+    const error = refusal(() => verifySnapshot(tampered));
+    expect(error.problems).toEqual([
+      'tables whose rows differ from the manifest:\n  - groups: 1 in the manifest, 0 in the file\n  - rulesets: 1 in the manifest, no entry in the file',
+      `${SNAPSHOT_MANIFEST} counts rows for 1 name that the file and the policy do not hold`,
+    ]);
+    expect(error.message).not.toContain('janeDoe');
+  });
+
+  test('refuses a file without factions, empty or left out, which the rebuild contract requires', () => {
+    const { entries } = anonymiseExport(syntheticExport().entries());
+    const { world } = authorWorld();
+    const withoutFactions = withRows(anonymiseExport(world.entries()).entries, 'factions', null);
+
+    for (const snapshot of [entries, withoutFactions]) {
+      expect(refusal(() => verifySnapshot(snapshot)).problems).toEqual([
+        'tables that must hold rows, which the file leaves empty:\n  - factions',
+      ]);
+    }
+  });
+
+  test("refuses users and profiles that are not the placeholder owner's rows alone", () => {
+    const { world } = authorWorld();
+    const { entries } = anonymiseExport(world.entries());
+    const [user] = rowsOf(entries, 'users');
+    const [profile] = rowsOf(entries, 'profiles');
+    const placeholderRefusal = (tables: string[]) => [
+      `tables that must hold the placeholder owner's row alone:\n${tables.map((table) => `  - ${table}`).join('\n')}`,
+    ];
+
+    const emptied = withRows(withRows(entries, 'users', []), 'profiles', [{ ...profile, username: 'Someone' }]);
+    expect(refusal(() => verifySnapshot(emptied)).problems).toEqual(placeholderRefusal(['users', 'profiles']));
+    const named = withRows(entries, 'users', [{ ...user, name: 'Author' }]);
+    expect(refusal(() => verifySnapshot(named)).problems).toEqual(placeholderRefusal(['users']));
   });
 });
 
