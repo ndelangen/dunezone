@@ -4,8 +4,9 @@ name: Sign-out fix repeats
 # steps as the hosted_play_webgpu job. The run named "mutation" also applies a mutation in which the Worker sends
 # the refusal but leaves the socket open, and the client never closes its game socket; the sign-out wait must
 # then fail. This PR deletes ci-pr.yml so nothing else runs; it is closed unmerged.
-# Second round: a page probe records long tasks and each install of window.__duneTable; "control" runs drop the
-# fix's table draw wait, so the two show whether the install marks the end of the mount.
+# Probe rounds: a page probe records long tasks and each install of window.__duneTable; "control" runs drop the
+# fix's table wait, so the two show whether the install marks the end of the mount. The third round probes the
+# wait for the table's artwork.
 on:
   pull_request:
 
@@ -25,16 +26,12 @@ jobs:
         run:
           - probe-1
           - probe-2
-          - control-1
           - probe-3
           - probe-4
-          - control-2
           - probe-5
           - probe-6
-          - control-3
           - probe-7
           - probe-8
-          - control-4
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
@@ -86,7 +83,7 @@ jobs:
             echo "### ${{ matrix.run }}"
             for report in test-results/hosted-play/browser/*/report.json; do
               [ -f "$report" ] || continue
-              jq -c '{failure: .failure.message, at: .failure.afterCheck, tableDraws, renderer: .renderer.kind}' "$report"
+              jq -c '{failure: .failure.message, at: .failure.afterCheck, tableLoads, renderer: .renderer.kind}' "$report"
             done
             echo '```'
             grep -h '^SIGNOUT\|^PROBE' test-results/hosted-play/*.log || echo "no SIGNOUT line"
