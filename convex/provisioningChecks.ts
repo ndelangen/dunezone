@@ -3,7 +3,8 @@ import { v } from 'convex/values';
 import type { TableNames } from './_generated/dataModel';
 import { internalQuery } from './_generated/server';
 import type { QueryCtx } from './_generated/server';
-import { SNAPSHOT_REBUILD_CONTRACT } from './lib/provisioningContract';
+import { identifiesSomeone, SNAPSHOT_REBUILD_CONTRACT } from './lib/provisioningContract';
+import { storedRulebookDraft } from './rulebooks';
 
 /** Probing with `.first()` keeps every check constant-cost regardless of table size. */
 async function tablesHolding(ctx: QueryCtx, tables: readonly TableNames[], rows: boolean): Promise<TableNames[]> {
@@ -31,11 +32,34 @@ async function placeholderViolations(ctx: QueryCtx, tables: readonly TableNames[
     }
   }
   const users = await ctx.db.query('users').take(2);
-  if (users.some((user) => [user.email, user.phone, user.name, user.image].some((value) => value !== undefined))) {
+  if (users.some(identifiesSomeone)) {
     violations.push('users holds a row with an email, phone, name or image');
   }
   return violations;
 }
+
+/**
+ * Every live Rulebook needs the draft the load seeds, or its editor cannot open.
+ * Unlike the probes above, it reads every Rulebook.
+ */
+async function rulebooksWithoutDrafts(ctx: QueryCtx): Promise<string[]> {
+  let missing = 0;
+  for await (const rulebook of ctx.db.query('rulebooks')) {
+    if (!rulebook.is_deleted && (await storedRulebookDraft(ctx, rulebook._id)) === null) {
+      missing += 1;
+    }
+  }
+  return missing === 0
+    ? []
+    : [
+        `${missing} live ${missing === 1 ? 'Rulebook has' : 'Rulebooks have'} no row in rulebook_drafts; a snapshot load seeds one from each current Edition`,
+      ];
+}
+
+/** What each seeded table must hold after the load, so a table added to `seeded` fails typecheck until it has a check here. */
+const seededChecks = {
+  rulebook_drafts: rulebooksWithoutDrafts,
+} satisfies Record<(typeof SNAPSHOT_REBUILD_CONTRACT.seeded)[number], (ctx: QueryCtx) => Promise<string[]>>;
 
 /**
  * The contract a rebuilt deployment must satisfy once its snapshot load finished.
@@ -52,9 +76,11 @@ export const assertRebuildContract = internalQuery({
     const contract = SNAPSHOT_REBUILD_CONTRACT;
     const uncleared = await tablesHolding(ctx, contract.empty, true);
     const unpopulated = await tablesHolding(ctx, contract.required, false);
+    const unseeded = await Promise.all(contract.seeded.map((table) => seededChecks[table](ctx)));
     const violations = [
       ...uncleared.map((table) => `${table} still holds rows; a snapshot load leaves it empty`),
       ...unpopulated.map((table) => `${table} is empty; the snapshot data did not land`),
+      ...unseeded.flat(),
       ...(await placeholderViolations(ctx, contract.placeholderOnly)),
     ];
 

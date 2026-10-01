@@ -174,12 +174,18 @@ export function draftWithCatalogue(
 }
 
 /**
- * Factions a deal found unready, set aside with their reasons, so the deal never fails twice on the same one.
- * The failure names each of them, and the copy of the catalogue is stamped stale so the next draft command judges them again.
+ * Factions found unready, set aside with their reasons, so the deal never fails on the same one twice.
+ * A deal's refusal names each of them as its failure;
+ * a pick judged ahead of any deal leaves the failure as it was.
+ * Either way the copy of the catalogue is stamped stale, so the next draft command judges them again.
  * One only random filling chose leaves readiness standing, and the next attempt fills from what remains.
  * A drafted one changes the pool the players readied for, so readiness clears.
  */
-export function draftWithSetAside(draft: DraftState, refused: Readonly<Record<string, string>>): DraftState {
+export function draftWithSetAside(
+  draft: DraftState,
+  refused: Readonly<Record<string, string>>,
+  { atDeal = true }: { atDeal?: boolean } = {}
+): DraftState {
   const drafted = draftedPool(draft).some((id) => id in refused);
   const named = Object.entries(refused).map(([id, reason]) => {
     const name = draft.factions.find((faction) => faction.id === id)?.name ?? id;
@@ -190,7 +196,7 @@ export function draftWithSetAside(draft: DraftState, refused: Readonly<Record<st
     setAside: { ...draft.setAside, ...refused },
     catalogueAt: 0,
     ready: drafted ? [] : draft.ready,
-    failure: `Set aside as not ready to deal: ${named.join('; ')}.`.slice(0, 400),
+    failure: atDeal ? `Set aside as not ready to deal: ${named.join('; ')}.`.slice(0, 400) : draft.failure,
   };
 }
 

@@ -72,8 +72,8 @@ Rules:
 
 Use `bun run app:dev --local --data=snapshot` to validate a branch against its own production-shaped
 database. The command creates a separate Convex stack per launch, pushes the checked-out schema and
-functions, imports the anonymised snapshot, checks the snapshot rebuild contract, and runs the
-required migration guards before starting the app. Plain `bun run app:dev --local` starts from
+functions, imports the anonymised snapshot, seeds a draft for each Rulebook from its current Edition,
+checks the snapshot rebuild contract, and runs the required migration guards before starting the app. Plain `bun run app:dev --local` starts from
 fixture data, which shows nothing about how a migration treats production rows. The snapshot holds
 published rows only, so it cannot show how a migration treats users, drafts, FAQ answers, group
 memberships or deleted rows. For those, reason from the schema and the migration's tests. A local

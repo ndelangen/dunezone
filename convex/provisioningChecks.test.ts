@@ -124,4 +124,42 @@ describe('rebuild contract for the anonymised snapshot', () => {
     await expect(violation).rejects.toThrow('users holds more than one row');
     await expect(violation).rejects.toThrow('profiles holds more than one row');
   });
+
+  test('rejects a live Rulebook without the draft its editor needs', async () => {
+    const t = rebuiltDeployment();
+    const placeholderId = await seedSnapshotLoad(t);
+    await t.run(async (ctx) => {
+      const rulesetId = await ctx.db.insert('rulesets', {
+        name: 'Published rules',
+        slug: 'published-rules',
+        about: '',
+        owner_id: placeholderId,
+        group_id: null,
+        image_cover: null,
+        is_deleted: false,
+        ...timestamps,
+      });
+      for (const [slug, isDeleted] of [
+        ['live', false],
+        ['retired', true],
+      ] as const) {
+        await ctx.db.insert('rulebooks', {
+          ruleset_id: rulesetId,
+          name: slug,
+          name_key: slug,
+          slug,
+          sort_order: 0,
+          current_edition_number: 1,
+          created_by: placeholderId,
+          is_deleted: isDeleted,
+          deleted_at: isDeleted ? timestamps.updated_at : null,
+          ...timestamps,
+        });
+      }
+    });
+
+    await expect(t.query(internal.provisioningChecks.assertRebuildContract, {})).rejects.toThrow(
+      '1 live Rulebook has no row in rulebook_drafts'
+    );
+  });
 });

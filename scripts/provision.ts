@@ -343,12 +343,14 @@ export function loadFixtureData(deployment: SelfHostedDeployment, env: NodeJS.Pr
 /**
  * Data stage, snapshot flavor: the anonymised snapshot, atomically imported over the target.
  * The file is checked first, so a raw export never loads by mistake, and neither does a snapshot the rebuild contract would reject after the import.
- * `--replace-all` empties every table the snapshot leaves out, and the rebuild contract then checks that they are empty.
+ * `--replace-all` empties every table the snapshot leaves out.
+ * The load then seeds the Rulebook drafts the snapshot leaves out, and the rebuild contract checks the emptied tables and the seeded drafts.
  */
 export function loadSnapshotData(deployment: TargetDeployment, env: NodeJS.ProcessEnv, snapshotFile: string) {
   verifySnapshotFile(snapshotFile);
   console.log('Importing the anonymised snapshot into the target deployment...');
   targetConvex(deployment, ['import', '--replace-all', '-y', snapshotFile], env);
+  seedSnapshotRulebookDrafts(deployment, env);
   assertRebuildContract(deployment, env);
 }
 
@@ -444,9 +446,10 @@ function clearTables(
   }
 }
 
-type RemapBatchResult = { isDone: boolean; continueCursor: string };
+type BatchResult = { isDone: boolean; continueCursor: string };
 
 const REMAP_BATCH_SIZE = 50;
+const DRAFT_SEED_BATCH_SIZE = 10;
 
 /**
  * Parses a `convex run` result: non-TTY output is pretty-printed JSON spanning multiple lines, so the whole output is one JSON value.
@@ -465,7 +468,7 @@ export function parseConvexRunResult<Result>(output: string, functionName: strin
 
 /** Runs an internal provisioning mutation through the CLI (admin-key authorized) and returns its parsed result. */
 function runProvisioningMutation<Result>(
-  deployment: SelfHostedDeployment,
+  deployment: TargetDeployment,
   env: NodeJS.ProcessEnv,
   functionName: string,
   args: Record<string, unknown>
@@ -474,13 +477,33 @@ function runProvisioningMutation<Result>(
   return parseConvexRunResult<Result>(output, functionName);
 }
 
-function drainRemapBatches(fetchBatch: (cursor: string | null) => RemapBatchResult) {
+function drainBatches(fetchBatch: (cursor: string | null) => BatchResult) {
   let cursor: string | null = null;
   let batch = fetchBatch(cursor);
   while (!batch.isDone) {
     cursor = batch.continueCursor;
     batch = fetchBatch(cursor);
   }
+}
+
+/**
+ * Each draft holds its Rulebook's current Edition as the public reader shows it, since the snapshot drops the private drafts (#1559).
+ * A batch reads an Edition's Contents and writes a draft of the same size for each Rulebook, and either can come near a document's size limit, so batches stay small.
+ */
+function seedSnapshotRulebookDrafts(deployment: TargetDeployment, env: NodeJS.ProcessEnv) {
+  console.log('Seeding a draft for each Rulebook from its current Edition...');
+  let seeded = 0;
+  drainBatches((cursor) => {
+    const batch = runProvisioningMutation<BatchResult & { seeded: number }>(
+      deployment,
+      env,
+      'provisioning:seedSnapshotRulebookDraftsBatch',
+      { paginationOpts: { numItems: DRAFT_SEED_BATCH_SIZE, cursor } }
+    );
+    seeded += batch.seeded;
+    return batch;
+  });
+  console.log(`Seeded ${seeded} Rulebook ${seeded === 1 ? 'draft' : 'drafts'}.`);
 }
 
 type SeedBaselineResult = { seeded: true } | { seeded: false; reason: string };
@@ -515,13 +538,13 @@ export function remapOwnershipToLocalUsers(
     ownerEmail,
     collaboratorEmail,
   });
-  drainRemapBatches((cursor) =>
+  drainBatches((cursor) =>
     runProvisioningMutation(deployment, env, 'provisioning:remapFactionOwnershipBatch', {
       ownerEmail,
       paginationOpts: { numItems: REMAP_BATCH_SIZE, cursor },
     })
   );
-  drainRemapBatches((cursor) =>
+  drainBatches((cursor) =>
     runProvisioningMutation(deployment, env, 'provisioning:remapGroupOwnershipBatch', {
       ownerEmail,
       collaboratorEmail,
