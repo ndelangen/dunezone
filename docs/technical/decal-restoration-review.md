@@ -2,13 +2,15 @@
 
 This pass follows the complete 410-decal review at c147672dedd274b712d7a169e47897e8d9fb8c32. The user approved 181 proposals and requested 32 follow-ups, including two decals that had no initial proposal. The changes include nine additional variants. The resulting catalogue has 419 decals and 128 multicolor/monochrome pairs.
 
+The latest feedback accepts 209 proposals, retains three originals, and requests seven further geometry repairs. The PR now changes 209 existing decals and adds nine variants. The requested Ballast drop scene, Planetologist scene and inert Salt separator variants were already present and are accepted in that export. The dashboard links each parent to its additional versions.
+
 Existing paths remain stable. The additional scene and drawing variants have distinct names and stay in their parent artwork's collection. Monochrome artwork uses transparent cutouts and inherits the caller's ink.
 
 ## Feedback resolution
 
 | Artwork | Result |
 | --- | --- |
-| antidote-rosary | Connected the upper-left hose to its fitting. |
+| antidote-rosary | The latest review retained the original. Restored its unchanged source SVG. |
 | balance-exercise | Turned the held ball into a transparent cutout while keeping the hands. |
 | ballast-drop | Added Ballast drop scene with the ground restored; kept the simpler version. |
 | bearer-of-decrees | Turned the shoulder strap into a transparent cutout. |
@@ -19,11 +21,11 @@ Existing paths remain stable. The additional scene and drawing variants have dis
 | diplomat | Reconstructed the people and handshake, then rebuilt six equal banners and circular medallions as native geometry. Kept the heraldry order. |
 | door-warden | Turned the shoulder banner into a transparent cutout. |
 | dune-skimmer | Added Dune skimmer scene with the ground restored; kept the simpler version. |
-| eclipse-projector | Repaired the short split and irregular edge at the left rim. |
+| eclipse-projector | The latest review retained the original. Restored its unchanged source SVG. |
 | false-convoy | Added False convoy scene with the ground restored; kept the simpler version. |
-| family-atomics | Added Family atomics straight with regular horizontal map hatching for comparison. |
-| great-maker | Restored the eruption billows and flying debris as black shapes, separated from the worm. |
-| hidden-passage | Turned the doorway interior into a transparent cutout. |
+| family-atomics | Aligned the map hatching to a uniform horizontal pitch with sharp ends and a stroke weight no heavier than the original. |
+| great-maker | Restored the entire eruption plume, including its spreading lower billows and debris, from the color source. |
+| hidden-passage | Replaced the polygonal doorway cut with the source doorway contour, retaining the curtain at its edge. |
 | killer-doctor | Made the medical cross legible while retaining slightly curved, uneven edges. |
 | master-of-assassins | Made the liquid transparent and retained an enclosing black contour so it remains visible outside the jacket. |
 | master-of-assassins-alt | Made the liquid transparent and retained an enclosing black contour so it remains visible outside the jacket. |
@@ -35,11 +37,14 @@ Existing paths remain stable. The additional scene and drawing variants have dis
 | prana-bundu | Added Prana bundu detailed with reconstructed anatomy and a regular segmented field inspired by Shield. Kept the simpler figure. |
 | remedy-maker | Turned the visible contents at the top of the mortar into a transparent cutout. |
 | salt-separator-multicolor | Added inert color and monochrome versions with empty basins and no falling crystals or pouring liquid. |
-| severed-supply | Converted broad cliff strata into cutouts, removing their fine outlined interiors. |
+| severed-supply | Inverted the cliff treatment so the original dark strata are cutouts; kept the ropes, structures and cargo. |
 | sleeve-switch | Turned the ball in the left hand into a transparent cutout. |
-| smuggler-alt | Cleaned the long leading wing contour while keeping the other blades and aircraft details. |
+| smuggler-alt | The latest review retained the original. Restored its unchanged source SVG. |
 | watch-relief | Turned the male guard's sash and belt accent into transparent cutouts. |
 | well-crawler | Added Well crawler scene with the ground restored; kept the simpler version. |
+| balance | Rebuilt the circle and equal round cutouts around one smooth S-shaped channel with constant spacing. |
+| buried-bastion | Turned the sand markings into complete transparent cutouts instead of outlined black islands. |
+| rihani-decipherer | Smoothed small contour irregularities around the figures while preserving facial turns, silhouettes and garment cutouts. |
 
 ## Additional variants
 
