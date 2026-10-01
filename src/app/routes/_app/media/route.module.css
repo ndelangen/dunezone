@@ -8,7 +8,15 @@
   grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
 }
 .decalGrid {
-  grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 16rem), 1fr));
+  gap: var(--space-md);
+}
+.decalGrid .preview {
+  height: auto;
+  aspect-ratio: 4 / 3;
+}
+.decalGrid .card {
+  contain-intrinsic-size: auto 17rem;
 }
 .leaderGrid {
   grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr));
@@ -22,6 +30,12 @@
   width: 100%;
   height: 9rem;
   object-fit: contain;
+}
+.vectorPreview {
+  box-sizing: border-box;
+  padding: var(--space-xs);
+  border-radius: var(--mantine-radius-sm);
+  background: repeating-conic-gradient(#f2f2f2 0% 25%, #dedede 0% 50%) 0 / 16px 16px;
 }
 .portrait {
   display: block;

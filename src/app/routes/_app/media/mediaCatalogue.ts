@@ -105,7 +105,7 @@ export function validateMediaSearch(input: unknown): MediaSearch {
   const search = searchRecord(input);
   const source = search.source === 'topics' || search.source === 'lucide' ? search.source : 'media';
   const kind = mediaKinds.find(({ value }) => value === search.kind)?.value ?? 'all';
-  const item = typeof search.item === 'string' && entriesByValue.has(search.item) ? search.item : undefined;
+  const item = selectedMedia(search.item, source);
   return {
     source,
     kind,
@@ -113,6 +113,14 @@ export function validateMediaSearch(input: unknown): MediaSearch {
     q: searchText(search.q).slice(0, 300),
     ...(mediaSubjects.some(({ value }) => value === search.subject) ? { subject: String(search.subject) } : {}),
     ...(search.browse === 'collection' ? { browse: 'collection' as const } : {}),
-    ...(source === 'media' && item ? { item } : {}),
+    ...(item ? { item } : {}),
   };
+}
+
+function selectedMedia(value: unknown, source: MediaSearch['source']) {
+  if (source !== 'media') {
+    return undefined;
+  }
+  const item = searchText(value);
+  return entriesByValue.has(item) ? item : undefined;
 }

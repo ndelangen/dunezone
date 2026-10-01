@@ -8,6 +8,7 @@ import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
 import { icons, X, Images, Info, ArrowRight } from 'lucide-react';
+import { useState } from 'react';
 
 import { resolveAsset } from '@game/assets/resolveAsset';
 
@@ -18,6 +19,8 @@ import { indexGalleries } from './mediaIndex';
 import { mediaLocation, mediaPathSearch, validateMediaQuery } from './mediaNavigation';
 import { filterCatalogue } from './mediaSearch';
 import { MediaShowcase } from './MediaShowcase';
+import { mediaTiles, variantLabel } from './mediaTiles';
+import type { MediaTile } from './mediaTiles';
 import styles from './route.module.css';
 
 export const Route = createFileRoute('/_app/media')({
@@ -58,43 +61,76 @@ function MediaPage() {
         </PageLayout.Toolbar>
       )}
       <PageLayout.Content width="viewport">
-        <Stack gap="xl">
-          {!overview && (
-            <Group gap="xs">
-              <Images size={16} aria-hidden />
-              <Anchor renderRoot={(props) => <Link {...props} to="/media" />}>All media</Anchor>
-              {(search.kind !== 'all' || search.source !== 'media') && (
-                <Text size="sm">
-                  /{' '}
-                  {search.source === 'media'
-                    ? mediaKinds.find((kind) => kind.value === search.kind)?.label
-                    : search.source === 'topics'
-                      ? 'Topic icons'
-                      : 'Lucide icons'}
-                </Text>
-              )}
-              <Text size="sm" c="dimmed" role="status">
-                {total === 0 ? 'No matches' : `${total} matches`}
-              </Text>
-            </Group>
-          )}
-          {focused && <FocusedMedia focused={focused} onClose={() => updateSearch({ item: undefined })} />}
-          {!overview && catalogue.approximate && search.source === 'media' && (
-            <Text size="sm">No exact matches. Showing close spellings.</Text>
-          )}
-          {search.source === 'media' ? (
-            search.kind === 'all' ? (
-              <MediaLibraries />
-            ) : (
-              <MediaGroups groups={catalogue.groups} search={search} />
-            )
-          ) : (
-            <ExtraIcons source={search.source} query={query} />
-          )}
-          {total === 0 && <Text>No artwork matches these filters. Try fewer words or clear the filters.</Text>}
-        </Stack>
+        <MediaResults
+          search={search}
+          catalogue={catalogue}
+          total={total}
+          focused={focused}
+          onClose={() => updateSearch({ item: undefined })}
+        />
       </PageLayout.Content>
     </PageLayout>
+  );
+}
+
+function MediaResults({
+  search,
+  catalogue,
+  total,
+  focused,
+  onClose,
+}: {
+  search: MediaSearch;
+  catalogue: ReturnType<typeof filterCatalogue>;
+  total: number;
+  focused?: MediaEntry;
+  onClose: () => void;
+}) {
+  if (search.source === 'media' && search.kind === 'all') {
+    return <MediaLibraries />;
+  }
+  return (
+    <Stack gap="xl">
+      <MediaBreadcrumb search={search} matches={catalogue.matches} total={total} />
+      {focused && <FocusedMedia focused={focused} onClose={onClose} />}
+      {search.source === 'media' ? (
+        <>
+          {catalogue.approximate && <Text size="sm">No exact matches. Showing close spellings.</Text>}
+          <MediaGroups groups={catalogue.groups} search={search} />
+        </>
+      ) : (
+        <ExtraIcons source={search.source} query={search.q.trim().toLowerCase()} />
+      )}
+      {total === 0 && <Text>No artwork matches these filters. Try fewer words or clear the filters.</Text>}
+    </Stack>
+  );
+}
+
+function resultCount(search: MediaSearch, matches: MediaEntry[], total: number) {
+  if (!total) {
+    return 'No matches';
+  }
+  if (search.source === 'media' && search.kind === 'decal') {
+    return `${mediaTiles(matches).length} decals · ${total} matching files`;
+  }
+  return `${total} matches`;
+}
+
+function MediaBreadcrumb({ search, matches, total }: { search: MediaSearch; matches: MediaEntry[]; total: number }) {
+  const iconLabels = { topics: 'Topic icons', lucide: 'Lucide icons' };
+  const label =
+    search.source === 'media'
+      ? mediaKinds.find((kind) => kind.value === search.kind)?.label
+      : iconLabels[search.source];
+  return (
+    <Group gap="xs">
+      <Images size={16} aria-hidden />
+      <Anchor renderRoot={(props) => <Link {...props} to="/media" />}>All media</Anchor>
+      <Text size="sm">/ {label}</Text>
+      <Text size="sm" c="dimmed" role="status">
+        {resultCount(search, matches, total)}
+      </Text>
+    </Group>
   );
 }
 
@@ -160,14 +196,9 @@ function MediaLibraries() {
 
 function MediaPreview({ entry, large = false }: { entry: MediaEntry; large?: boolean }) {
   const className = large ? styles.largePreview : entry.kind === 'leader' ? styles.portrait : styles.preview;
-  return entry.value.startsWith('/vector/') ? (
-    <svg className={className} viewBox="0 0 100 100" role="img" aria-label={entry.label}>
-      <rect width="100" height="100" fill="#d7cba1" />
-      <use href={`${entry.value}#root`} fill="#000" />
-    </svg>
-  ) : (
+  return (
     <img
-      className={className}
+      className={`${className} ${entry.value.startsWith('/vector/') ? styles.vectorPreview : ''}`}
       src={resolveAsset(entry.value, large ? 'large' : 'small')}
       alt={entry.label}
       loading="lazy"
@@ -206,9 +237,11 @@ function FocusedMedia({ focused, onClose }: { focused: MediaEntry; onClose: () =
   );
 }
 
-function MediaCard({ entry, search }: { entry: MediaEntry; search: MediaSearch }) {
+function MediaCard({ tile, search }: { tile: MediaTile; search: MediaSearch }) {
+  const [selected, setSelected] = useState<string>();
+  const entry = tile.variants.find((variant) => variant.value === selected) ?? tile.entry;
   return (
-    <article aria-label={entry.label} className={styles.card}>
+    <article aria-label={tile.label} className={styles.card}>
       <Tooltip label={mediaDetails(entry)} multiline w={320} events={{ hover: true, focus: true, touch: false }}>
         <Anchor
           renderRoot={(props) => <Link {...props} {...mediaLocation({ ...search, item: entry.value })} />}
@@ -218,11 +251,27 @@ function MediaCard({ entry, search }: { entry: MediaEntry; search: MediaSearch }
           <Stack gap="xs" align="center">
             <MediaPreview entry={entry} />
             <Text size="sm" ta="center">
-              {entry.label}
+              {tile.label}
             </Text>
           </Stack>
         </Anchor>
       </Tooltip>
+      {tile.variants.length > 1 && (
+        <Group gap="xs" justify="center" mt="xs" aria-label={`${tile.label} versions`}>
+          {tile.variants.map((variant) => (
+            <Tooltip key={variant.value} label={`${variantLabel(variant)} version`}>
+              <Button
+                size="compact-xs"
+                variant={variant.value === entry.value ? 'light' : 'subtle'}
+                aria-pressed={variant.value === entry.value}
+                onClick={() => setSelected(variant.value)}
+              >
+                {variantLabel(variant)}
+              </Button>
+            </Tooltip>
+          ))}
+        </Group>
+      )}
     </article>
   );
 }
@@ -254,8 +303,8 @@ function MediaGroups({
             }
           >
             <div className={kind === 'leader' ? styles.leaderGrid : kind === 'decal' ? styles.decalGrid : styles.grid}>
-              {entries.map((entry) => (
-                <MediaCard key={entry.value} entry={entry} search={search} />
+              {mediaTiles(entries).map((tile) => (
+                <MediaCard key={tile.key} tile={tile} search={search} />
               ))}
             </div>
           </Section>
@@ -316,96 +365,7 @@ function MediaFilters({
           refine={{
             label: 'Refine media',
             active,
-            content: (
-              <>
-                <Select
-                  label="Library"
-                  aria-label="Media library"
-                  value={search.source}
-                  data={[
-                    { value: 'media', label: 'Game media' },
-                    { value: 'topics', label: 'Topic icons' },
-                    { value: 'lucide', label: 'Lucide icons' },
-                  ]}
-                  allowDeselect={false}
-                  comboboxProps={{ keepMounted: false }}
-                  onChange={(value) =>
-                    updateSearch({
-                      source: value as MediaSearch['source'],
-                      kind: 'all',
-                      group: '',
-                      subject: undefined,
-                      item: undefined,
-                    })
-                  }
-                />
-                {search.source === 'media' && (
-                  <>
-                    <Select
-                      label="Media type"
-                      aria-label="Media type"
-                      value={search.kind}
-                      data={[
-                        { value: 'all', label: 'Choose a gallery' },
-                        ...catalogue.kindCounts.map(({ value, label, count }) => ({
-                          value,
-                          label: `${label} (${count})`,
-                        })),
-                      ]}
-                      allowDeselect={false}
-                      searchable
-                      comboboxProps={{ keepMounted: false }}
-                      onChange={(value) =>
-                        updateSearch({ kind: value as MediaSearch['kind'], group: '', item: undefined })
-                      }
-                    />
-                    <Select
-                      label="Subject"
-                      aria-label="Filter by subject"
-                      placeholder="All subjects"
-                      value={search.subject ?? null}
-                      data={catalogue.subjectCounts.map(({ value, label, count }) => ({
-                        value,
-                        label: `${label} (${count})`,
-                      }))}
-                      searchable
-                      clearable
-                      comboboxProps={{ keepMounted: false }}
-                      onChange={(value) => updateSearch({ subject: value ?? undefined })}
-                    />
-                    <Select
-                      label="Collection"
-                      aria-label="Filter by group"
-                      placeholder="All collections"
-                      value={search.group || null}
-                      data={catalogue.collectionCounts.map(({ value, label, count }) => ({
-                        value,
-                        label: `${label} (${count})`,
-                      }))}
-                      searchable
-                      clearable
-                      comboboxProps={{ keepMounted: false }}
-                      onChange={(value) => updateSearch({ group: value ?? '' })}
-                    />
-                    {search.kind !== 'leader' && search.kind !== 'decal' && (
-                      <Select
-                        label="Group results by"
-                        value={search.browse ?? 'subject'}
-                        data={[
-                          { value: 'subject', label: 'Subject' },
-                          { value: 'collection', label: 'Collection' },
-                        ]}
-                        allowDeselect={false}
-                        comboboxProps={{ keepMounted: false }}
-                        onChange={(value) =>
-                          updateSearch({ browse: value === 'collection' ? 'collection' : undefined })
-                        }
-                      />
-                    )}
-                  </>
-                )}
-              </>
-            ),
+            content: <MediaRefinements search={search} catalogue={catalogue} updateSearch={updateSearch} />,
           }}
         />
       </Toolbar.Center>
@@ -426,6 +386,103 @@ function MediaFilters({
     </Toolbar>
   );
 }
+function MediaRefinements({
+  search,
+  catalogue,
+  updateSearch,
+}: {
+  search: MediaSearch;
+  catalogue: ReturnType<typeof filterCatalogue>;
+  updateSearch: (patch: Partial<MediaSearch>, replace?: boolean) => void;
+}) {
+  return (
+    <>
+      <Select
+        label="Library"
+        aria-label="Media library"
+        value={search.source}
+        data={[
+          { value: 'media', label: 'Game media' },
+          { value: 'topics', label: 'Topic icons' },
+          { value: 'lucide', label: 'Lucide icons' },
+        ]}
+        allowDeselect={false}
+        comboboxProps={{ keepMounted: false }}
+        onChange={(value) =>
+          updateSearch({
+            source: value as MediaSearch['source'],
+            kind: 'all',
+            group: '',
+            subject: undefined,
+            item: undefined,
+          })
+        }
+      />
+      {search.source === 'media' && (
+        <>
+          <Select
+            label="Media type"
+            aria-label="Media type"
+            value={search.kind}
+            data={[
+              { value: 'all', label: 'Choose a gallery' },
+              ...catalogue.kindCounts.map(({ value, label, count }) => ({
+                value,
+                label: `${label} (${count})`,
+              })),
+            ]}
+            allowDeselect={false}
+            searchable
+            comboboxProps={{ keepMounted: false }}
+            onChange={(value) => updateSearch({ kind: value as MediaSearch['kind'], group: '', item: undefined })}
+          />
+          <Select
+            label="Subject"
+            aria-label="Filter by subject"
+            placeholder="All subjects"
+            value={search.subject ?? null}
+            data={catalogue.subjectCounts.map(({ value, label, count }) => ({
+              value,
+              label: `${label} (${count})`,
+            }))}
+            searchable
+            clearable
+            comboboxProps={{ keepMounted: false }}
+            onChange={(value) => updateSearch({ subject: value ?? undefined })}
+          />
+          <Select
+            label="Collection"
+            aria-label="Filter by group"
+            placeholder="All collections"
+            value={search.group || null}
+            data={catalogue.collectionCounts.map(({ value, label, count }) => ({
+              value,
+              label: `${label} (${count})`,
+            }))}
+            searchable
+            clearable
+            comboboxProps={{ keepMounted: false }}
+            onChange={(value) => updateSearch({ group: value ?? '' })}
+          />
+          {search.kind !== 'leader' && search.kind !== 'decal' && (
+            <Select
+              label="Group results by"
+              value={search.browse ?? 'subject'}
+              data={[
+                { value: 'subject', label: 'Subject' },
+                { value: 'collection', label: 'Collection' },
+              ]}
+              allowDeselect={false}
+              comboboxProps={{ keepMounted: false }}
+              onChange={(value) => updateSearch({ browse: value === 'collection' ? 'collection' : undefined })}
+            />
+          )}
+        </>
+      )}
+    </>
+  );
+}
+
 function iconMatchCount(source: 'topics' | 'lucide', query: string) {
   if (source === 'topics') {
     return TOPIC_ICON_TOPICS.filter((name) => name.toLowerCase().includes(query)).length;

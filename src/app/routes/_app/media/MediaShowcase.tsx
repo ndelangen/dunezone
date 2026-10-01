@@ -31,7 +31,7 @@ function preload(src: string) {
   return image.decode();
 }
 
-export function MediaShowcase({ overview, compact = false }: { overview: boolean; compact?: boolean }) {
+function useShowcaseRotation() {
   const reducedMotion = useReducedMotion();
   const [state, dispatch] = useReducer(
     (previous: typeof initial, event: ShowcaseEvent) =>
@@ -66,6 +66,12 @@ export function MediaShowcase({ overview, compact = false }: { overview: boolean
       window.clearInterval(timer);
     };
   }, [state.decal, state.leader, state.paused, reducedMotion]);
+
+  return { state, dispatch, reducedMotion };
+}
+
+export function MediaShowcase({ overview, compact = false }: { overview: boolean; compact?: boolean }) {
+  const { state, dispatch, reducedMotion } = useShowcaseRotation();
 
   const decal = decals[state.decal]!;
   const leader = leaders[state.leader]!;

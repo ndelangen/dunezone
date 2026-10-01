@@ -42,15 +42,15 @@ function normalize(text: string) {
 }
 
 function tokens(text: string) {
-  return normalize(text)
-    .split(/\s+/)
-    .filter(Boolean)
-    .map((word) => {
-      if (synonyms[word]) {
-        return synonyms[word];
-      }
-      return word.length > 4 && word.endsWith('s') && !word.endsWith('ss') ? word.slice(0, -1) : word;
-    });
+  return normalize(text).split(/\s+/).filter(Boolean).map(canonicalWord);
+}
+
+function canonicalWord(word: string) {
+  if (synonyms[word]) {
+    return synonyms[word];
+  }
+  const plural = word.length > 4 && word.endsWith('s') && !word.endsWith('ss');
+  return plural ? word.slice(0, -1) : word;
 }
 
 function words(text: string) {
@@ -73,13 +73,9 @@ function closeSpelling(a: string, b: string) {
   if (Math.abs(a.length - b.length) > limit) {
     return false;
   }
-  const rows = Array.from({ length: a.length + 1 }, () => Array<number>(b.length + 1).fill(0));
-  for (let i = 0; i <= a.length; i++) {
-    rows[i]![0] = i;
-  }
-  for (let j = 0; j <= b.length; j++) {
-    rows[0]![j] = j;
-  }
+  const rows = Array.from({ length: a.length + 1 }, (_, i) =>
+    Array.from({ length: b.length + 1 }, (_, j) => (i === 0 ? j : j === 0 ? i : 0))
+  );
   for (let i = 1; i <= a.length; i++) {
     for (let j = 1; j <= b.length; j++) {
       rows[i]![j] = Math.min(
@@ -87,7 +83,7 @@ function closeSpelling(a: string, b: string) {
         rows[i]![j - 1]! + 1,
         rows[i - 1]![j - 1]! + (a[i - 1] === b[j - 1] ? 0 : 1)
       );
-      if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) {
+      if (isTransposition({ a, b, i, j })) {
         rows[i]![j] = Math.min(rows[i]![j]!, rows[i - 2]![j - 2]! + 1);
       }
     }
@@ -95,14 +91,25 @@ function closeSpelling(a: string, b: string) {
   return rows[a.length]![b.length]! <= limit;
 }
 
+function isTransposition({ a, b, i, j }: { a: string; b: string; i: number; j: number }) {
+  if (i < 2 || j < 2) {
+    return false;
+  }
+  return a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1];
+}
+
 function matchWeight(term: string, field: ReadonlySet<string>, fuzzy: boolean) {
   if (field.has(term)) {
     return 3;
   }
-  if (term.length >= 3 && !synonyms[term] && [...field].some((word) => word.startsWith(term))) {
+  const prefixAllowed = term.length >= 3 && !synonyms[term];
+  if (prefixAllowed && [...field].some((word) => word.startsWith(term))) {
     return 2;
   }
-  return fuzzy && term.length >= 4 && [...field].some((word) => closeSpelling(term, word)) ? 1 : 0;
+  if (!fuzzy || term.length < 4) {
+    return 0;
+  }
+  return [...field].some((word) => closeSpelling(term, word)) ? 1 : 0;
 }
 
 export function searchMedia(query: string, fuzzy = true) {
@@ -112,96 +119,114 @@ export function searchMedia(query: string, fuzzy = true) {
   if (!terms.length) {
     return mediaEntries;
   }
-  const phrase = normalize(query);
+  const request = { terms, phrase: normalize(query), fuzzy };
   return documents
-    .flatMap((document) => {
-      const context = document.context;
-      let score = document.name === phrase ? 1000 : document.name.includes(phrase) ? 100 : 0;
-      let approximateTerms = 0;
-      for (const term of terms) {
-        if (
-          !matchWeight(term, document.title, false) &&
-          !matchWeight(term, document.detail, false) &&
-          !matchWeight(term, document.path, false) &&
-          !matchWeight(term, context, false)
-        ) {
-          approximateTerms++;
-        }
-        const match = Math.max(
-          matchWeight(term, document.title, fuzzy) * 12,
-          matchWeight(term, document.detail, fuzzy) * 5,
-          matchWeight(term, document.path, false) * 3,
-          matchWeight(term, context, false)
-        );
-        if (!match) {
-          return [];
-        }
-        score += match;
-      }
-      return [{ entry: document.entry, score: score - approximateTerms * 1000 }];
-    })
+    .flatMap((document) => scoreDocument(document, request))
     .sort((a, b) => b.score - a.score || a.entry.label.localeCompare(b.entry.label, 'en'))
     .map(({ entry }) => entry);
 }
 
-export function filterCatalogue(search: MediaSearch) {
-  const collectionOf = (entry: MediaEntry) => entry.collection;
-  const kindMatches = (entry: MediaEntry) => search.kind === 'all' || search.kind === entry.kind;
-  const subjectMatches = (entry: MediaEntry) => !search.subject || entry.subjects.includes(search.subject);
-  const collectionMatches = (entry: MediaEntry) => !search.group || collectionOf(entry) === search.group;
-  const candidates = searchMedia(search.q);
-  const exact = searchMedia(search.q, false);
-  const approximate =
-    Boolean(search.q.trim()) &&
-    !exact.some((entry) => kindMatches(entry) && subjectMatches(entry) && collectionMatches(entry)) &&
-    candidates.some((entry) => kindMatches(entry) && subjectMatches(entry) && collectionMatches(entry));
-  const matches = candidates.filter((entry) => kindMatches(entry) && subjectMatches(entry) && collectionMatches(entry));
-  const collections = [...new Set(mediaEntries.filter(kindMatches).map(collectionOf))].sort((a, b) =>
+type SearchDocument = (typeof documents)[number];
+interface SearchRequest {
+  terms: string[];
+  phrase: string;
+  fuzzy: boolean;
+}
+
+function termScore(document: SearchDocument, term: string, fuzzy: boolean) {
+  const fields = [
+    { words: document.title, weight: 12, fuzzy },
+    { words: document.detail, weight: 5, fuzzy },
+    { words: document.path, weight: 3, fuzzy: false },
+    { words: document.context, weight: 1, fuzzy: false },
+  ];
+  const exact = fields.some((field) => matchWeight(term, field.words, false) > 0);
+  const match = Math.max(...fields.map((field) => matchWeight(term, field.words, field.fuzzy) * field.weight));
+  return { match, penalty: exact ? 0 : 1000 };
+}
+
+function scoreDocument(document: SearchDocument, request: SearchRequest) {
+  const scores = request.terms.map((term) => termScore(document, term, request.fuzzy));
+  if (scores.some(({ match }) => !match)) {
+    return [];
+  }
+  const titleBonus = document.name === request.phrase ? 1000 : Number(document.name.includes(request.phrase)) * 100;
+  return [
+    { entry: document.entry, score: scores.reduce((score, term) => score + term.match - term.penalty, titleBonus) },
+  ];
+}
+
+function cataloguePredicates(search: MediaSearch) {
+  const kind = (entry: MediaEntry) => search.kind === 'all' || search.kind === entry.kind;
+  const subject = (entry: MediaEntry) => !search.subject || entry.subjects.includes(search.subject);
+  const collection = (entry: MediaEntry) => !search.group || entry.collection === search.group;
+  const all = (entry: MediaEntry) => [kind, subject, collection].every((predicate) => predicate(entry));
+  return { kind, subject, collection, all };
+}
+
+type CataloguePredicates = ReturnType<typeof cataloguePredicates>;
+
+function catalogueFacets(candidates: MediaEntry[], predicates: CataloguePredicates) {
+  const collections = [...new Set(mediaEntries.filter(predicates.kind).map((entry) => entry.collection))].sort((a, b) =>
     a.localeCompare(b, 'en')
   );
   const kindCounts = mediaKinds.map((kind) => ({
     ...kind,
-    count: candidates.filter((entry) => entry.kind === kind.value && subjectMatches(entry) && collectionMatches(entry))
-      .length,
+    count: candidates
+      .filter(predicates.subject)
+      .filter(predicates.collection)
+      .filter((entry) => entry.kind === kind.value).length,
   }));
   const subjectCounts = mediaSubjects.map((subject) => ({
     ...subject,
-    count: candidates.filter(
-      (entry) => entry.subjects.includes(subject.value) && kindMatches(entry) && collectionMatches(entry)
-    ).length,
+    count: candidates
+      .filter(predicates.kind)
+      .filter(predicates.collection)
+      .filter((entry) => entry.subjects.includes(subject.value)).length,
   }));
   const collectionCounts = collections.map((collection) => ({
     value: collection,
     label: collection,
-    count: candidates.filter(
-      (entry) => collectionOf(entry) === collection && kindMatches(entry) && subjectMatches(entry)
-    ).length,
+    count: candidates
+      .filter(predicates.kind)
+      .filter(predicates.subject)
+      .filter((entry) => entry.collection === collection).length,
   }));
-  const groupedCollection = (entry: MediaEntry) =>
-    entry.kind === 'leader' || entry.kind === 'decal' || search.browse === 'collection';
-  const groupOf = (entry: MediaEntry) =>
-    groupedCollection(entry)
-      ? entry.collection
-      : search.q.trim()
-        ? 'Other results'
-        : subjectLabel(search.subject ?? entry.subjects[0]!);
+  return { collections, kindCounts, subjectCounts, collectionCounts };
+}
+
+function groupsByCollection(entry: MediaEntry, search: MediaSearch) {
+  return ['leader', 'decal'].includes(entry.kind) || search.browse === 'collection';
+}
+
+function groupLabel(entry: MediaEntry, search: MediaSearch) {
+  if (groupsByCollection(entry, search)) {
+    return entry.collection;
+  }
+  if (search.q.trim()) {
+    return 'Other results';
+  }
+  return subjectLabel(search.subject ?? entry.subjects[0]!);
+}
+
+function catalogueGroups(matches: MediaEntry[], search: MediaSearch) {
+  const groupOf = (entry: MediaEntry) => groupLabel(entry, search);
   const ordered = search.q.trim()
     ? matches
     : [...matches].sort((a, b) => groupOf(a).localeCompare(groupOf(b), 'en') || a.label.localeCompare(b.label, 'en'));
-  const groups = [...new Set(ordered.map(groupOf))].map((label) => {
+  return [...new Set(ordered.map(groupOf))].map((label) => {
     const entries = ordered.filter((entry) => groupOf(entry) === label);
     const first = entries[0]!;
-    const collection = groupedCollection(first) ? first.collection : undefined;
+    const collection = groupsByCollection(first, search) ? first.collection : undefined;
     const total = collection ? mediaEntries.filter((entry) => entry.collection === collection).length : entries.length;
     return { label, entries, collection, total, kind: first.kind };
   });
-  return {
-    matches,
-    collections,
-    groups,
-    kindCounts,
-    subjectCounts,
-    collectionCounts,
-    approximate,
-  };
+}
+
+export function filterCatalogue(search: MediaSearch) {
+  const predicates = cataloguePredicates(search);
+  const candidates = searchMedia(search.q);
+  const matches = candidates.filter(predicates.all);
+  const approximate = matches.length > 0 && !searchMedia(search.q, false).some(predicates.all);
+  return { matches, groups: catalogueGroups(matches, search), ...catalogueFacets(candidates, predicates), approximate };
 }

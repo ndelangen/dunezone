@@ -29,7 +29,7 @@ export const Decals = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement);
     await expect(page.findByRole('heading', { name: 'Decals / Blades and melee weapons' })).resolves.toBeVisible();
-    await expect(page.getAllByRole('article')).toHaveLength(420);
+    await expect(page.getAllByRole('article')).toHaveLength(292);
   },
 });
 export const LeaderLink = meta.story({
@@ -101,5 +101,23 @@ export const FuzzyDecals = meta.story({
     await expect(page.findByRole('article', { name: 'Poison Blade' })).resolves.toBeVisible();
     await expect(page.queryByRole('article', { name: 'Wire' })).toBeNull();
     await expect(page.getByText('No exact matches. Showing close spellings.')).toBeVisible();
+  },
+});
+
+export const DecalVersions = meta.story({
+  args: { path: '/media/game/decals?q=atomics' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement);
+    const tile = within(await page.findByRole('article', { name: 'Atomics' }));
+    await expect(tile.getByRole('img')).toHaveAttribute('src', '/vector/decal/atomics.svg');
+    await userEvent.click(tile.getByRole('button', { name: 'Color' }));
+    await expect(tile.getByRole('img')).toHaveAttribute('src', '/vector/decal/atomics-multicolor.svg');
+    await expect(tile.getByRole('link')).toHaveAttribute(
+      'href',
+      '/media/game/decals?item=%2Fvector%2Fdecal%2Fatomics-multicolor.svg&q=atomics'
+    );
+    await expect(tile.getByRole('button', { name: 'Color' })).toHaveAttribute('aria-pressed', 'true');
+    await userEvent.click(tile.getByRole('button', { name: 'Mono' }));
+    await expect(tile.getByRole('img')).toHaveAttribute('src', '/vector/decal/atomics.svg');
   },
 });
