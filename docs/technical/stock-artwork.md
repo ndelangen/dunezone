@@ -58,17 +58,78 @@ public vectors with `bun run generate:vectors`, then run `bun run verify:vectors
 existing and new artwork together through the Asset Select picker, including collection filtering
 and selecting a result. Individual images do not need individual stories.
 
-## Media review
+## Media catalogue
 
-`/__media` browses all stock vectors, leader portraits, planets and textures in one continuous catalogue. Type, group, search,
-and focused artwork are encoded in its URL. `__icons` redirects to this catalogue; Topics and
-Lucide remain available as tabs. Vector previews use black ink on a light paper background, while multicolor files keep their authored palette.
+`/media` is a visual directory with eight galleries and 1,525 publicly browsable files. Each category
+opens a separate gallery. The index has no search toolbar; search and filters belong inside a gallery.
+The selected collection wall gives leaders and decals larger tiles, with smaller groups below.
+Artwork varies in size and angle while keeping its original proportions; leader masks stay circular.
+The design comparison is archived on `norbert/media-index-prototypes`, with the chosen direction
+recorded in `mediaIndex.prototype.md` on that branch. Prototype controls do not ship.
+Leaders never share a results grid with decals or other artwork.
 
-Hover over a card and choose its destination from the group dropdown. Keyboard focus reveals the same control, and touch screens show it without hovering. The sticky toolbar keeps Copy prompt and Undo available while browsing. To move several items or create a new group, select artwork and open Review / bulk move.
-Assignments stay in memory until the page is left or reloaded. Undo restores the previous move;
-Reset clears the draft. Copy prompt exports exact asset paths, original groups, proposed groups and
-optional notes. These proposals do not change source files, saved factions or the live picker.
-Apply an accepted prompt to `src/shared/stockAssetCollections.json` through the normal PR workflow.
+The underlying metadata covers all 1,617 source images and vectors. Troop modifiers, patterns,
+textures, card layers, shield layers and website artwork are excluded from the public galleries and
+search. Fonts, provenance records and generated size variants are not separate artwork entries.
+These counts describe the initial index and grow with the source tree.
+
+Libraries and media types have shareable paths, such as `/media/game/leaders`, `/media/game/decals`,
+`/media/game/covers`, `/media/topics` and `/media/lucide`. Search, subject, collection and focused
+artwork stay in the query string. Old `__media` and `__icons` links redirect. The footer links to the
+catalogue with a teal Images glyph.
+
+The toolbar uses SearchRefine, as the faction catalogue does. Its refinement drawer contains the
+library, media type, subject, collection and browse grouping. Search ranks matches by relevance. Leaders and decals always remain within their collections;
+other files can be browsed by subject or collection. Each gallery shows every matching file, with images loading lazily as the reader scrolls. The header
+cycles a sample card and leader token every six seconds, preloads their artwork, pauses when the
+browser tab is hidden and offers a pause control. Reduced-motion preferences keep the samples still.
+
+### Search metadata and taxonomy
+
+`src/app/routes/_app/media/media-index.json` owns one record per source path. Each record contains a
+visual description, per-file keywords, one or more subject IDs and a SHA-256 hash of the reviewed
+source. `mediaSubjects.ts` defines the controlled subject vocabulary. The first subject is the default
+browse group; other subjects make a file discoverable through more than one relevant filter.
+
+Media type describes the file's role, subject describes its contents, and collection keeps related
+artwork together. A portrait can therefore be a leader image, depict an alien and belong to a named
+house. Collections remain in `stockAssetCollections.json`; search does not copy their broad keyword
+lists onto every member.
+
+The initial descriptions were AI-assisted and checked against contact sheets. Portrait descriptions
+are conservative and often describe the shared appearance of a set. They do not assert character
+biographies, canon, species identities or rules that the image cannot establish. Monochrome partners
+share visible subject descriptions where appropriate, with corrections for omitted scene details.
+The existing empty CHOAM logo is explicitly described as a placeholder.
+
+Search runs locally without a model call or external service. Every query word must match; word
+order, accents, common singular/plural forms and a small synonym vocabulary are normalized. Exact
+names rank first, then visual descriptions and tags, then file paths. Close spellings match alongside
+exact results but rank below them. Search allows one typo for words of four or more letters, two for
+words of eight or more, and treats adjacent transpositions as one typo. Searches with only approximate
+results are labelled. Collection names stay in the collection filter so a wire does not match
+"blade" merely because both belong to the same set. This is a word index, not semantic image search.
+
+When adding or changing artwork:
+
+1. Generate the normal image/vector outputs and inspect the actual artwork, including color and
+   monochrome variants separately when their contents differ.
+2. Add or update its index record. Describe visible shapes, actions, clothing, materials and colors
+   that help distinguish it. Add useful alternative names as tags, without guessing lore from a filename.
+3. Choose subjects from `mediaSubjects.ts`, with the strongest browsing subject first. Preserve the
+   source path and existing collection unless a separate collection change is intended.
+4. Update `sourceHash` from the reviewed source bytes. Do not refresh hashes without checking the
+   changed artwork. The index coverage test rejects missing files, removed files and stale hashes.
+5. Run `bunx vitest run src/app/routes/_app/media`, then check real searches and the focused preview.
+   Run the Media page stories and the required release verification before updating the PR.
+
+### Public galleries
+
+Leaders use circular portrait previews; decals use larger vector previews. Both keep their collection
+headings during search, even for a single match. Each collection has one surface; individual images
+have no pane or outline. A partial collection links to its complete gallery,
+clearing the search and subject filter. Descriptions, keywords and file paths appear in tooltips and
+in the focused preview's details control. Collection reorganization is not available on the public page.
 
 ## Classification evidence
 
