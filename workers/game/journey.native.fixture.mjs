@@ -38,6 +38,8 @@ export const SUFFIXES = ['a', 'b', 'c', 'd', 'e', 'f'];
 export const PLAYERS = ['Twaffle', 'Thialfi', 'Fectumbra', 'Erickenneth', 'Ridwan', 'Argelius'];
 /* Only these two factions have Traitor fronts among the Storybook fixtures; the others deal without a face. */
 const TRAITOR_FRONTS = new Set(['house-atreides', 'house-harkonnen']);
+/* The stages the sandbox story runs the table in; drafting and trading stay with the recorded journey. */
+const SANDBOX_STAGES = new Set(['setup', 'play']);
 
 function definition({ slug, data, token, leaders }) {
   return {
@@ -157,7 +159,14 @@ function interned(steps) {
     pool[key] = shallow;
     return { $: key };
   };
-  return { steps: steps.map((step) => ({ ...step, views: intern(step.views) })), pool };
+  return {
+    steps: steps.map((step) => ({
+      ...step,
+      views: intern(step.views),
+      ...(step.stored ? { stored: intern(step.stored) } : {}),
+    })),
+    pool,
+  };
 }
 
 /** The recording as text: fixture origins for the published paths, and the story profiles for the synthetic accounts. */
@@ -253,6 +262,9 @@ export class JourneyRecorder {
   async record(title, detail, actor = null, action = null) {
     const views = await Promise.all(this.viewers().map((connection) => syncView(connection)));
     const [latest] = (await this.logPage('game')).entries;
+    /* From setup on, the step also keeps the room's stored state, so the sandbox story can run the table from it. */
+    const [row] = await this.runtime.exec('SELECT data FROM current_state WHERE id=1');
+    const stored = JSON.parse(row.data);
     this.steps.push({
       title,
       detail,
@@ -260,6 +272,7 @@ export class JourneyRecorder {
       action,
       logSequence: latest?.sequence ?? 0,
       views: Object.fromEntries(views.map(({ type: _type, ...view }) => [view.viewer.viewerSeat, view])),
+      ...(SANDBOX_STAGES.has(stored.stage) ? { stored } : {}),
     });
   }
 

@@ -9,6 +9,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import type { Group } from 'three';
 import { Raycaster, Vector2, Vector3 } from 'three';
 
+import { unsettledArtworkLoads } from './artworkLoads';
 import { useTabletop } from './TabletopContext';
 
 function rectangleContainsPoint(bounds: DOMRect, x: number, y: number) {
@@ -167,6 +168,8 @@ type TableDiagnostic = {
   stations(): Vector3Tuple[];
   pointers(): PublicPointer[];
   canvasBounds(): { x: number; y: number; width: number; height: number };
+  /* Artwork loads on the page that have not settled; the verification waits for none before it acts on a new table (#1592). */
+  unsettledArtwork(): number;
 };
 declare global {
   interface Window {
@@ -310,6 +313,7 @@ export function ScenePresence() {
         const { x, y, width, height } = renderer.domElement.getBoundingClientRect();
         return { x, y, width, height };
       },
+      unsettledArtwork: unsettledArtworkLoads,
     };
     window.__duneTable = diagnostic;
     return () => {

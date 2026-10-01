@@ -9,7 +9,16 @@ on:
   # Dispatching this workflow on main deploys main's tip; docs/deployment.md has the recovery steps.
   # The production environment admits only main, so a dispatch from another branch fails before any
   # deploy step runs.
+  # A dashboard edit to dunezone-game (a secret, a variable) marks it last deployed from the
+  # dashboard, and from then on `wrangler deploy --strict` refuses any config that differs from it.
+  # A dispatch with replace_dashboard_game_config deploys the game Worker without --strict once, so
+  # main's config replaces the dashboard version. docs/deployment.md has the steps.
   workflow_dispatch:
+    inputs:
+      replace_dashboard_game_config:
+        description: Replace a dashboard-edited game Worker config with main's (drops --strict once)
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -168,14 +177,19 @@ jobs:
         run: bun run game:dry-run
 
       - name: Deploy exact game Worker release
-        run: >-
-          bunx wrangler deploy
-          --strict
-          --config workers/game/wrangler.jsonc
-          --tag "$GITHUB_SHA"
-          --message "GitHub Actions game $GITHUB_SHA"
-          --var "GIT_SHA:$GITHUB_SHA"
+        run: |
+          strict=(--strict)
+          if [ "$REPLACE_DASHBOARD_CONFIG" = true ]; then
+            echo "::warning::Replacing the dashboard-edited dunezone-game config with main's"
+            strict=()
+          fi
+          bunx wrangler deploy "${strict[@]}" \
+            --config workers/game/wrangler.jsonc \
+            --tag "$GITHUB_SHA" \
+            --message "GitHub Actions game $GITHUB_SHA" \
+            --var "GIT_SHA:$GITHUB_SHA"
         env:
+          REPLACE_DASHBOARD_CONFIG: ${{ inputs.replace_dashboard_game_config }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
 

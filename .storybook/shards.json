@@ -1,6 +1,14 @@
 {
   "play-table": ["src/app/routes/_app/play/playing.stories.tsx", "src/app/routes/_app/play/battles.stories.tsx"],
   "play-flows": ["src/app/routes/_app/play/"],
-  "pages": ["src/app/routes/"],
-  "components": ["src/"]
+  "components": [
+    "src/app/routes/_app/rulesets/rulebooks-editor.stories.tsx",
+    "src/app/routes/_app/rulesets/rulebooks-editing.stories.tsx",
+    "src/app/db/",
+    "src/app/shell/",
+    "src/app/ui/",
+    "src/app/widgets/",
+    "src/game/"
+  ],
+  "pages": ["src/"]
 }

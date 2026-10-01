@@ -13,6 +13,7 @@ import type { GameRuntime, GameSocket } from './multiplayer/gameRuntime';
 /*
  * Scripted transport for route stories. Commands are recorded, never executed here. `holdView` leaves an admitted socket without a view, so a story can show the frame that waits for one.
  * `admitView` replaces the view built from `snapshot` with a recorded frame, and a `logEntries` callback is read on every page request, so a replayed journey can move its log with its step.
+ * `receive` hands the rest of the traffic to a table that runs in the story, as the sandbox does.
  */
 export function storyTransport(
   viewerSeat: Viewer['viewerSeat'],
@@ -24,6 +25,7 @@ export function storyTransport(
     conversationMessages = [],
     admitView,
     answerCommand,
+    receive,
   }: {
     holdView?: boolean;
     holdLogHistory?: boolean;
@@ -32,6 +34,8 @@ export function storyTransport(
     admitView?: () => Extract<ServerMessage, { type: 'view' }>;
     /* Answers every command in place of the scripted reply below, as a replayed journey follows its recording. */
     answerCommand?: (message: Extract<ClientMessage, { type: 'command' }>) => Extract<ServerMessage, { type: 'view' }>;
+    /* Takes every message but admission and the history pages first, as a live table does; true means it answered. */
+    receive?: (message: ClientMessage) => boolean;
     conversationMessages?: Extract<ServerMessage, { type: 'conversation-history' }>['entries'];
   } = {}
 ) {
@@ -87,6 +91,11 @@ export function storyTransport(
       }
       const message = clientMessageSchema.parse(JSON.parse(data));
       messages.push(message);
+      if (message.type !== 'admit' && message.type !== 'log-history' && message.type !== 'conversation-history') {
+        if (receive?.(message)) {
+          return;
+        }
+      }
       if (message.type === 'admit' && !holdView) {
         queueMicrotask(() => this.deliver(admitView?.() ?? view(snapshot)));
       }
