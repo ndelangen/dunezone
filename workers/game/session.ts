@@ -8,6 +8,7 @@ import type { PlayDirectorySummary } from '../../src/shared/play/directory';
 import type { DraftFaction, DraftState } from '../../src/shared/play/drafting';
 import {
   dealSeats,
+  draftedPool,
   draftGates,
   emptyDraft,
   isDraftAction,
@@ -1145,8 +1146,13 @@ export class GameSession {
   draftSetAside(): Readonly<Record<string, string>> {
     return this.room?.snapshot.draft?.setAside ?? {};
   }
-  setFactionsAside(refused: Readonly<Record<string, string>>) {
-    this.rewriteDraft((draft) => draftWithSetAside(draft, refused));
+  setFactionsAside(refused: Readonly<Record<string, string>>, options?: { atDeal?: boolean }) {
+    this.rewriteDraft((draft) => draftWithSetAside(draft, refused, options));
+  }
+  /** The drafted pool as it stands, for a judgement of its picks ahead of the deal. */
+  draftedPicks(): string[] {
+    const draft = this.room?.snapshot.stage === 'drafting' ? this.room.snapshot.draft : undefined;
+    return draft ? draftedPool(draft) : [];
   }
   assignmentFailed(reason: string) {
     this.rewriteDraft((draft) => ({ ...draft, failure: reason }));
