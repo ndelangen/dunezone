@@ -29,6 +29,8 @@ export type JourneyStep = {
   /* The newest public log entry at this step. */
   logSequence: number;
   views: Record<string, RecordedView>;
+  /* The room's stored state, kept from setup on so the sandbox story can run the table from this step. */
+  stored?: unknown;
 };
 type Recording = {
   steps: unknown[];
