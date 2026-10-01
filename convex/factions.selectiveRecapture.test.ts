@@ -5,17 +5,18 @@ import { FACTION_SHEET_ASSET_TYPE } from '../src/shared/asset-publishing/publica
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
 import { api, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
+import { FACTION_TOKEN_BACK_REVISION } from './lib/publication';
 import { rulebookFixture } from './rulebooks.test.fixture';
 
 /* Every faction-generated component type, each active, so a capture of any of them would show here. */
-const COMPONENT_TYPES = ['faction-token', 'faction-leader', 'faction-troop', 'faction-traitor', 'faction-alliance'];
 const revisions = {
-  'faction-token': 2,
+  'faction-token': FACTION_TOKEN_BACK_REVISION,
   'faction-leader': 1,
   'faction-troop': 1,
   'faction-traitor': 1,
   'faction-alliance': 1,
 };
+const COMPONENT_TYPES = Object.keys(revisions);
 let revision = 0;
 /* A Leader publication only accepts a UUID revision, so every capture gets a fresh one. */
 const nextToken = () => `10000000-1000-4000-8000-${String(++revision).padStart(12, '0')}`;
@@ -41,18 +42,30 @@ async function recaptureFixture() {
     (await t.run(async (ctx) => ctx.db.query('publication_jobs').collect())).filter(
       (job) => job.asset_type !== FACTION_SHEET_ASSET_TYPE
     );
-  const take = async () =>
-    (await t.mutation(internal.publicationJobs.takeWork, {})).items.filter(
-      (item) => item.assetType !== FACTION_SHEET_ASSET_TYPE
-    );
-  const complete = async (job: { jobId: Id<'publication_jobs'> }) => {
-    const snapshot = await t.query(internal.publicationJobs.readJobForRender, { jobId: job.jobId });
-    return t.mutation(internal.publicationJobs.completeJob, {
+  /* Sheet jobs are cleared before pickup so the window holds only component work. */
+  const take = async () => {
+    await t.run(async (ctx) => {
+      for (const job of await ctx.db.query('publication_jobs').collect()) {
+        if (job.asset_type === FACTION_SHEET_ASSET_TYPE) {
+          await ctx.db.delete(job._id);
+        }
+      }
+    });
+    return (await t.mutation(internal.publicationJobs.takeWork, {})).items;
+  };
+  const snapshot = async (job: { jobId: Id<'publication_jobs'> }) => {
+    const rendered = await t.query(internal.publicationJobs.readJobForRender, { jobId: job.jobId });
+    if (!rendered) {
+      throw new Error('Taken job is not renderable');
+    }
+    return rendered;
+  };
+  const complete = async (job: { jobId: Id<'publication_jobs'> }) =>
+    t.mutation(internal.publicationJobs.completeJob, {
       jobId: job.jobId,
       cacheToken: nextToken(),
-      payloadHash: snapshot?.payloadHash,
+      payloadHash: (await snapshot(job)).payloadHash,
     });
-  };
   /* Publishes every component the save produced, so later assertions start from completed outputs. */
   const drain = async () => {
     for (let taken = await take(); taken.length > 0; taken = await take()) {
@@ -60,19 +73,19 @@ async function recaptureFixture() {
         expect(await complete(job)).toMatchObject({ status: 'completed' });
       }
     }
-    await t.run(async (ctx) => {
-      for (const job of await ctx.db.query('publication_jobs').collect()) {
-        await ctx.db.delete(job._id);
-      }
-    });
+    expect(await jobs()).toEqual([]);
   };
   const published = async () =>
     t.run(async (ctx) => {
       const rows = await ctx.db.query('publication_assets').collect();
       return Object.fromEntries(rows.map((row) => [`${row.asset_type}:${row.asset_id}`, row.cache_token]));
     });
-  return { t, faction, leaderId, update, jobs, take, complete, drain, published };
+  return { faction, leaderId, update, jobs, take, snapshot, complete, drain, published };
 }
+
+/* Where each payload carries the Leader's name: the Leader capture nests it, the traitor card holds it at the top. */
+const drawnName = (assetType: string, name: string) =>
+  assetType === 'faction-leader' ? { leader: { name } } : { name };
 
 describe('Selective recapture of faction components', () => {
   test('an edit no component draws captures nothing for any component type', async () => {
@@ -117,8 +130,7 @@ describe('Selective recapture of faction components', () => {
     );
     for (const job of pending) {
       expect(job.status).toBe('pending');
-      expect(JSON.stringify(job.asset_data)).toContain(`"name":"${first!.name}"`);
-      expect(JSON.stringify(job.asset_data)).not.toContain('Renamed');
+      expect(job.asset_data).toMatchObject(drawnName(job.asset_type, first!.name));
     }
 
     const before = await published();
@@ -132,7 +144,7 @@ describe('Selective recapture of faction components', () => {
   });
 
   test('returning to the earlier value while the edit is capturing publishes the earlier value, not the edit', async () => {
-    const { faction, leaderId, update, take, complete, drain, published } = await recaptureFixture();
+    const { faction, leaderId, update, take, snapshot, complete, drain, published } = await recaptureFixture();
     await drain();
     const [first, ...rest] = faction.data.leaders;
     const renamed = { ...faction.data, leaders: [{ ...first!, name: 'Renamed' }, ...rest] };
@@ -156,6 +168,7 @@ describe('Selective recapture of faction components', () => {
       [`faction-leader:${leaderId}`, `faction-traitor:${leaderId}`].sort()
     );
     for (const job of successors) {
+      expect((await snapshot(job)).payload).toMatchObject(drawnName(job.assetType, first!.name));
       expect(await complete(job)).toMatchObject({ status: 'completed' });
     }
     expect(await take()).toEqual([]);
