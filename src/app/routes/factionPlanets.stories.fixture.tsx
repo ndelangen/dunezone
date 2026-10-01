@@ -132,5 +132,6 @@ export const spaceOrksOwner = {
 
 export const spaceOrksPublication = {
   published_at: 1_787_666_467_629,
-  cache_token: 'v1.GbILRdmR4AuCzAcw-8wQNA.PoSw4501r94hncY2brFX-EUyC68rPZXweGJz-ci2brM',
+  cache_token:
+    'v1.GbILRdmR4AuCzAcw-8wQNA.PoSw4501r94hncY2brFX-EUyC68rPZXweGJz-ci2brM' /* NOSONAR: Public asset cache version returned without authentication, not a credential. */,
 };

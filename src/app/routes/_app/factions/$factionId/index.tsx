@@ -79,7 +79,7 @@ function FactionSidebarOverview({ data }: { data: FactionData }) {
   );
 }
 
-function FactionPlanet({ planet }: { planet: NonNullable<FactionData['planet']>[number] }) {
+function FactionPlanet({ planet }: { readonly planet: NonNullable<FactionData['planet']>[number] }) {
   const image = useAsset(planet.image, 'small');
   const descriptionId = useId();
   const hasDescription = planet.description.trim().length > 0;
