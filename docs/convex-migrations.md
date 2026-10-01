@@ -91,7 +91,9 @@ schema gains a member, which is how the preset cardback stopped the dev rebuild 
 with it every later migration in the series, the aggregate rebuilds among them. Once production
 has run a backfill whose second pass would change a row, such as one that multiplies a stored
 value, its body becomes a no-op and its id stays. `convex/migrations.snapshotReplay.test.ts`
-replays the manifest over rows in their migrated shape.
+replays the manifest over rows in their migrated shape, with a row for every deck cardback mode
+and every token back mode. Those rows are keyed by mode, so a mode added to either union fails
+typecheck until the test has a row that wears it.
 
 - `bun run convex:dev` runs `bun run migrations:dev-strict` before starting the configured Convex
   deployment's watcher. It is reserved for deliberate integration work because a feature branch can
