@@ -38,3 +38,16 @@ export const Narrow = meta.story({
   args: { title: 'At a glance' },
   globals: { viewport: { value: 'contentNarrow' } },
 });
+
+export const Linked = meta.story({
+  args: {
+    title: 'Media catalogue',
+    interactive: true,
+    padding: 'md',
+    renderRoot: (props) => (
+      <a {...props} href="/media">
+        {props.children}
+      </a>
+    ),
+  },
+});

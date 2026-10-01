@@ -22,7 +22,7 @@ const initial = { decal: 0, leader: 117, paused: false };
 type ShowcaseEvent = { type: 'pause' } | { type: 'advance'; decal: number; leader: number };
 
 function nextIndex(current: number, length: number) {
-  return (current + 1 + Math.floor(Math.random() * (length - 1))) % length;
+  return (current + 1 + Math.floor((crypto.getRandomValues(new Uint32Array(1))[0]! / 2 ** 32) * (length - 1))) % length;
 }
 
 function preload(src: string) {
@@ -70,7 +70,7 @@ function useShowcaseRotation() {
   return { state, dispatch, reducedMotion };
 }
 
-export function MediaShowcase({ overview, compact = false }: { overview: boolean; compact?: boolean }) {
+export function MediaShowcase({ overview, compact = false }: Readonly<{ overview: boolean; compact?: boolean }>) {
   const { state, dispatch, reducedMotion } = useShowcaseRotation();
 
   const decal = decals[state.decal]!;

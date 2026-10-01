@@ -146,6 +146,7 @@ describe('AppRoot page header', () => {
         label: link.getAttribute('aria-label'),
       }))
     ).toEqual([
+      { href: '/media', label: 'Media catalogue' },
       { href: 'https://storybook.dune.zone', label: 'Component library' },
       { href: 'https://github.com/ndelangen/dunezone', label: 'Source code' },
       { href: '/privacy', label: 'Privacy policy' },

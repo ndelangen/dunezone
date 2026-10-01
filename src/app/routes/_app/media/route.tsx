@@ -6,9 +6,10 @@ import { IconAction } from '@ui/control/IconAction';
 import { SearchRefine } from '@ui/control/SearchRefine';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
+import { Card } from '@ui/surface/Card';
 import { Toolbar } from '@ui/surface/Toolbar';
 import { icons, X, Images, Info, ArrowRight } from 'lucide-react';
-import { useState } from 'react';
+import { useReducer, useState } from 'react';
 
 import { resolveAsset } from '@game/assets/resolveAsset';
 
@@ -33,9 +34,13 @@ export const Route = createFileRoute('/_app/media')({
 const lucideEntries = Object.entries(icons);
 
 function MediaPage() {
-  const search = mediaPathSearch(Route.useSearch(), useParams({ strict: false }));
+  const committedSearch = mediaPathSearch(Route.useSearch(), useParams({ strict: false }));
+  const { search, editQuery } = useMediaQuery(committedSearch);
   const navigate = Route.useNavigate();
   const updateSearch = (patch: Partial<MediaSearch>, replace = false) => {
+    if (patch.q !== undefined) {
+      editQuery(patch.q);
+    }
     void navigate({
       ...mediaLocation({ ...search, ...patch }),
       replace,
@@ -57,7 +62,7 @@ function MediaPage() {
       </PageLayout.Header>
       {!overview && (
         <PageLayout.Toolbar>
-          <MediaFilters search={search} catalogue={catalogue} updateSearch={updateSearch} />
+          <MediaFilters search={search} catalogue={catalogue} updateSearch={updateSearch} editQuery={editQuery} />
         </PageLayout.Toolbar>
       )}
       <PageLayout.Content width="viewport">
@@ -73,19 +78,37 @@ function MediaPage() {
   );
 }
 
+type QueryDraft = { identity: string; q: string };
+type QueryEvent = { type: 'edit'; q: string } | { type: 'navigate'; identity: string; q: string };
+function queryDraftReducer(state: QueryDraft, event: QueryEvent): QueryDraft {
+  if (event.type === 'edit') {
+    return { ...state, q: event.q.slice(0, 300) };
+  }
+  return { identity: event.identity, q: event.q };
+}
+
+function useMediaQuery(committed: MediaSearch) {
+  const identity = JSON.stringify(committed);
+  const [draft, dispatch] = useReducer(queryDraftReducer, { identity, q: committed.q });
+  if (draft.identity !== identity) {
+    dispatch({ type: 'navigate', identity, q: committed.q });
+  }
+  return { search: { ...committed, q: draft.q }, editQuery: (q: string) => dispatch({ type: 'edit', q }) };
+}
+
 function MediaResults({
   search,
   catalogue,
   total,
   focused,
   onClose,
-}: {
+}: Readonly<{
   search: MediaSearch;
   catalogue: ReturnType<typeof filterCatalogue>;
   total: number;
   focused?: MediaEntry;
   onClose: () => void;
-}) {
+}>) {
   if (search.source === 'media' && search.kind === 'all') {
     return <MediaLibraries />;
   }
@@ -116,7 +139,11 @@ function resultCount(search: MediaSearch, matches: MediaEntry[], total: number) 
   return `${total} matches`;
 }
 
-function MediaBreadcrumb({ search, matches, total }: { search: MediaSearch; matches: MediaEntry[]; total: number }) {
+function MediaBreadcrumb({
+  search,
+  matches,
+  total,
+}: Readonly<{ search: MediaSearch; matches: MediaEntry[]; total: number }>) {
   const iconLabels = { topics: 'Topic icons', lucide: 'Lucide icons' };
   const label =
     search.source === 'media'
@@ -138,64 +165,70 @@ function MediaLibraries() {
   return (
     <div className={styles.libraryWall}>
       {indexGalleries.map((gallery, index) => (
-        <Surface
+        <Card
+          title={gallery.title}
+          action={
+            <Group gap="xs">
+              <Text size="xs" c="dimmed">
+                {gallery.total}
+              </Text>
+              <ArrowRight size={16} aria-hidden />
+            </Group>
+          }
           key={gallery.kind}
           padding="md"
           interactive
           className={index < 2 ? styles.libraryFeatured : styles.librarySmall}
           renderRoot={(props) => (
-            <Link
-              {...props}
-              className={`${props.className} ${styles.libraryLink}`}
-              {...mediaLocation({ source: 'media', kind: gallery.kind, q: '', group: '' })}
-            />
+            <Link {...props} {...mediaLocation({ source: 'media', kind: gallery.kind, q: '', group: '' })} />
           )}
         >
-          <Section
-            title={gallery.title}
-            action={
-              <Group gap="xs">
-                <Text size="xs" c="dimmed">
-                  {gallery.total}
-                </Text>
-                <ArrowRight size={16} aria-hidden />
-              </Group>
-            }
+          <div
+            className={`${styles.libraryCollage} ${index < 2 ? styles.libraryLargeCollage : ''} ${gallery.kind === 'leader' ? styles.libraryPortraits : ''} ${gallery.kind === 'decal' ? styles.libraryDecals : ''}`}
           >
-            <div
-              className={`${styles.libraryCollage} ${index < 2 ? styles.libraryLargeCollage : ''} ${gallery.kind === 'leader' ? styles.libraryPortraits : ''} ${gallery.kind === 'decal' ? styles.libraryDecals : ''}`}
-            >
-              {gallery.samples.map((entry) => (
-                <div key={entry.value} className={styles.librarySpecimen}>
-                  {entry.value.startsWith('/vector/') ? (
-                    <svg
-                      viewBox="0 0 100 100"
-                      preserveAspectRatio="xMidYMid meet"
-                      className={styles.libraryArt}
-                      aria-hidden
-                    >
-                      <use href={`${entry.value}#root`} fill="currentColor" />
-                    </svg>
-                  ) : (
-                    <img
-                      src={resolveAsset(entry.value, 'small')}
-                      alt=""
-                      loading="lazy"
-                      className={`${styles.libraryArt} ${entry.kind === 'leader' ? styles.libraryDisc : ''}`}
-                    />
-                  )}
-                </div>
-              ))}
-            </div>
-          </Section>
-        </Surface>
+            {gallery.samples.map((entry) => (
+              <div key={entry.value} className={styles.librarySpecimen}>
+                {entry.value.startsWith('/vector/') ? (
+                  <svg
+                    viewBox="0 0 100 100"
+                    preserveAspectRatio="xMidYMid meet"
+                    className={styles.libraryArt}
+                    aria-hidden
+                  >
+                    <use href={`${entry.value}#root`} fill="currentColor" />
+                  </svg>
+                ) : (
+                  <img
+                    src={resolveAsset(entry.value, 'small')}
+                    alt=""
+                    loading="lazy"
+                    className={`${styles.libraryArt} ${entry.kind === 'leader' ? styles.libraryDisc : ''}`}
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+        </Card>
       ))}
     </div>
   );
 }
 
-function MediaPreview({ entry, large = false }: { entry: MediaEntry; large?: boolean }) {
-  const className = large ? styles.largePreview : entry.kind === 'leader' ? styles.portrait : styles.preview;
+function previewClass(entry: MediaEntry, large: boolean) {
+  if (large) {
+    return styles.largePreview;
+  }
+  return entry.kind === 'leader' ? styles.portrait : styles.preview;
+}
+function galleryGrid(kind: MediaEntry['kind']) {
+  if (kind === 'leader') {
+    return styles.leaderGrid;
+  }
+  return kind === 'decal' ? styles.decalGrid : styles.grid;
+}
+
+function MediaPreview({ entry, large = false }: Readonly<{ entry: MediaEntry; large?: boolean }>) {
+  const className = previewClass(entry, large);
   return (
     <img
       className={`${className} ${entry.value.startsWith('/vector/') ? styles.vectorPreview : ''}`}
@@ -210,7 +243,7 @@ function mediaDetails(entry: MediaEntry) {
   return `${entry.description} Keywords: ${entry.tags.join(', ')}. File: ${entry.value}`;
 }
 
-function FocusedMedia({ focused, onClose }: { focused: MediaEntry; onClose: () => void }) {
+function FocusedMedia({ focused, onClose }: Readonly<{ focused: MediaEntry; onClose: () => void }>) {
   return (
     <Section
       title={focused.label}
@@ -237,7 +270,7 @@ function FocusedMedia({ focused, onClose }: { focused: MediaEntry; onClose: () =
   );
 }
 
-function MediaCard({ tile, search }: { tile: MediaTile; search: MediaSearch }) {
+function MediaCard({ tile, search }: Readonly<{ tile: MediaTile; search: MediaSearch }>) {
   const [selected, setSelected] = useState<string>();
   const entry = tile.variants.find((variant) => variant.value === selected) ?? tile.entry;
   return (
@@ -279,42 +312,42 @@ function MediaCard({ tile, search }: { tile: MediaTile; search: MediaSearch }) {
 function MediaGroups({
   groups,
   search,
-}: {
+}: Readonly<{
   groups: ReturnType<typeof filterCatalogue>['groups'];
   search: MediaSearch;
-}) {
+}>) {
   return (
     <>
       {groups.map(({ label, entries, total, collection, kind }) => (
-        <Surface key={label} padding="md">
-          <Section
-            title={label}
-            action={
-              collection && entries.length < total ? (
-                <Anchor
-                  size="sm"
-                  renderRoot={(props) => (
-                    <Link {...props} {...mediaLocation({ source: 'media', kind, q: '', group: collection })} />
-                  )}
-                >
-                  Show everything from this group
-                </Anchor>
-              ) : undefined
-            }
-          >
-            <div className={kind === 'leader' ? styles.leaderGrid : kind === 'decal' ? styles.decalGrid : styles.grid}>
-              {mediaTiles(entries).map((tile) => (
-                <MediaCard key={tile.key} tile={tile} search={search} />
-              ))}
-            </div>
-          </Section>
-        </Surface>
+        <Card
+          key={label}
+          padding="md"
+          title={label}
+          action={
+            collection && entries.length < total ? (
+              <Anchor
+                size="sm"
+                renderRoot={(props) => (
+                  <Link {...props} {...mediaLocation({ source: 'media', kind, q: '', group: collection })} />
+                )}
+              >
+                Show everything from this group
+              </Anchor>
+            ) : undefined
+          }
+        >
+          <div className={galleryGrid(kind)}>
+            {mediaTiles(entries).map((tile) => (
+              <MediaCard key={tile.key} tile={tile} search={search} />
+            ))}
+          </div>
+        </Card>
       ))}
     </>
   );
 }
 
-function ExtraIcons({ source, query }: { source: 'topics' | 'lucide'; query: string }) {
+function ExtraIcons({ source, query }: Readonly<{ source: 'topics' | 'lucide'; query: string }>) {
   return (
     <div className={styles.grid}>
       {source === 'topics'
@@ -344,11 +377,13 @@ function MediaFilters({
   search,
   catalogue,
   updateSearch,
-}: {
+  editQuery,
+}: Readonly<{
+  editQuery: (q: string) => void;
   search: MediaSearch;
   catalogue: ReturnType<typeof filterCatalogue>;
   updateSearch: (patch: Partial<MediaSearch>, replace?: boolean) => void;
-}) {
+}>) {
   const active = Number(Boolean(search.subject)) + Number(Boolean(search.group)) + Number(search.kind !== 'all');
   return (
     <Toolbar>
@@ -357,8 +392,8 @@ function MediaFilters({
           label="Media catalogue filters"
           search={{
             value: search.q,
-            onChange: (q) => updateSearch({ q }, true),
-            onCommit: () => {},
+            onChange: editQuery,
+            onCommit: () => updateSearch({ q: search.q }, true),
             label: 'Search media',
             placeholder: 'Search names, subjects or visual details...',
           }}
@@ -390,11 +425,11 @@ function MediaRefinements({
   search,
   catalogue,
   updateSearch,
-}: {
+}: Readonly<{
   search: MediaSearch;
   catalogue: ReturnType<typeof filterCatalogue>;
   updateSearch: (patch: Partial<MediaSearch>, replace?: boolean) => void;
-}) {
+}>) {
   return (
     <>
       <Select

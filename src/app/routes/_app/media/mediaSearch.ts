@@ -1,3 +1,5 @@
+import Fuse from 'fuse.js';
+
 import { catalogueEntries as mediaEntries, mediaKinds } from './mediaCatalogue';
 import type { MediaEntry, MediaSearch } from './mediaCatalogue';
 import { mediaSubjects, subjectLabel } from './mediaSubjects';
@@ -67,59 +69,51 @@ const documents = mediaEntries.map((entry) => ({
   context: words(`${mediaKinds.find((kind) => kind.value === entry.kind)?.label}`),
 }));
 
-/* Adjacent transpositions count as one typo, as do a missing, extra or substituted letter. */
-function closeSpelling(a: string, b: string) {
-  const limit = a.length >= 8 ? 2 : 1;
-  if (Math.abs(a.length - b.length) > limit) {
-    return false;
+/* Match individual words so long descriptions cannot dilute a relevant subject. */
+const vocabulary = new Set(documents.flatMap((document) => [...document.title, ...document.detail]));
+const wordIndex = new Fuse([...vocabulary], { threshold: 0.4, ignoreLocation: true });
+interface SearchTerm {
+  word: string;
+  approximate: ReadonlySet<string>;
+}
+
+interface SearchOptions {
+  fuzzy: boolean;
+}
+
+function searchTerm(word: string, options: SearchOptions): SearchTerm {
+  if (!options.fuzzy || word.length < 4 || vocabulary.has(word)) {
+    return { word, approximate: new Set() };
   }
-  const rows = Array.from({ length: a.length + 1 }, (_, i) =>
-    Array.from({ length: b.length + 1 }, (_, j) => (i === 0 ? j : j === 0 ? i : 0))
+  const maxLengthDifference = word.length >= 8 ? 2 : 1;
+  const approximate = new Set(
+    wordIndex
+      .search(word)
+      .map(({ item }) => item)
+      .filter((candidate) => Math.abs(candidate.length - word.length) <= maxLengthDifference)
   );
-  for (let i = 1; i <= a.length; i++) {
-    for (let j = 1; j <= b.length; j++) {
-      rows[i]![j] = Math.min(
-        rows[i - 1]![j]! + 1,
-        rows[i]![j - 1]! + 1,
-        rows[i - 1]![j - 1]! + (a[i - 1] === b[j - 1] ? 0 : 1)
-      );
-      if (isTransposition({ a, b, i, j })) {
-        rows[i]![j] = Math.min(rows[i]![j]!, rows[i - 2]![j - 2]! + 1);
-      }
-    }
-  }
-  return rows[a.length]![b.length]! <= limit;
+  return { word, approximate };
 }
 
-function isTransposition({ a, b, i, j }: { a: string; b: string; i: number; j: number }) {
-  if (i < 2 || j < 2) {
-    return false;
-  }
-  return a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1];
-}
-
-function matchWeight(term: string, field: ReadonlySet<string>, fuzzy: boolean) {
-  if (field.has(term)) {
+function matchWeight(term: SearchTerm, field: ReadonlySet<string>) {
+  if (field.has(term.word)) {
     return 3;
   }
-  const prefixAllowed = term.length >= 3 && !synonyms[term];
-  if (prefixAllowed && [...field].some((word) => word.startsWith(term))) {
+  const prefixAllowed = term.word.length >= 3 && !synonyms[term.word];
+  if (prefixAllowed && [...field].some((word) => word.startsWith(term.word))) {
     return 2;
   }
-  if (!fuzzy || term.length < 4) {
-    return 0;
-  }
-  return [...field].some((word) => closeSpelling(term, word)) ? 1 : 0;
+  return [...field].some((word) => term.approximate.has(word)) ? 1 : 0;
 }
 
-export function searchMedia(query: string, fuzzy = true) {
+export function searchMedia(query: string, options: SearchOptions = { fuzzy: true }) {
   const terms = [...new Set(tokens(query))].filter(
     (term) => !['a', 'an', 'the', 'of', 'with', 'and', 'in'].includes(term)
   );
   if (!terms.length) {
     return mediaEntries;
   }
-  const request = { terms, phrase: normalize(query), fuzzy };
+  const request = { terms: terms.map((term) => searchTerm(term, options)), phrase: normalize(query) };
   return documents
     .flatMap((document) => scoreDocument(document, request))
     .sort((a, b) => b.score - a.score || a.entry.label.localeCompare(b.entry.label, 'en'))
@@ -128,25 +122,23 @@ export function searchMedia(query: string, fuzzy = true) {
 
 type SearchDocument = (typeof documents)[number];
 interface SearchRequest {
-  terms: string[];
+  terms: SearchTerm[];
   phrase: string;
-  fuzzy: boolean;
 }
 
-function termScore(document: SearchDocument, term: string, fuzzy: boolean) {
-  const fields = [
-    { words: document.title, weight: 12, fuzzy },
-    { words: document.detail, weight: 5, fuzzy },
-    { words: document.path, weight: 3, fuzzy: false },
-    { words: document.context, weight: 1, fuzzy: false },
-  ];
-  const exact = fields.some((field) => matchWeight(term, field.words, false) > 0);
-  const match = Math.max(...fields.map((field) => matchWeight(term, field.words, field.fuzzy) * field.weight));
+function termScore(document: SearchDocument, term: SearchTerm) {
+  const exactTerm = { ...term, approximate: new Set<string>() };
+  const title = matchWeight(term, document.title);
+  const detail = matchWeight(term, document.detail);
+  const path = matchWeight(exactTerm, document.path);
+  const context = matchWeight(exactTerm, document.context);
+  const exact = Math.max(title, detail, path, context) >= 2;
+  const match = Math.max(title * 12, detail * 5, path * 3, context);
   return { match, penalty: exact ? 0 : 1000 };
 }
 
 function scoreDocument(document: SearchDocument, request: SearchRequest) {
-  const scores = request.terms.map((term) => termScore(document, term, request.fuzzy));
+  const scores = request.terms.map((term) => termScore(document, term));
   if (scores.some(({ match }) => !match)) {
     return [];
   }
@@ -227,6 +219,6 @@ export function filterCatalogue(search: MediaSearch) {
   const predicates = cataloguePredicates(search);
   const candidates = searchMedia(search.q);
   const matches = candidates.filter(predicates.all);
-  const approximate = matches.length > 0 && !searchMedia(search.q, false).some(predicates.all);
+  const approximate = matches.length > 0 && !searchMedia(search.q, { fuzzy: false }).some(predicates.all);
   return { matches, groups: catalogueGroups(matches, search), ...catalogueFacets(candidates, predicates), approximate };
 }
