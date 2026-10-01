@@ -20,7 +20,8 @@ export type Position = 'same' | 'newer' | 'older' | 'unknown';
 
 export type Reading = { endpoint: string; sha?: string; position: Position; note?: string };
 
-type Decision = { deploy: boolean; base: string; reason: string };
+/** Unread marks a deploy that went ahead only because the Actions API could not say, so the log raises it as a warning. */
+type Decision = { deploy: boolean; base: string; reason: string; unread?: true };
 
 /**
  * This run as GitHub's environment describes it, and the request function the gate reaches the Actions API with.
@@ -82,6 +83,7 @@ function duplicate(lookup: Lookup): Decision {
         deploy: true,
         base: '',
         reason: `${reason}, and the Actions API could not say whether an earlier run finished it (${lookup.note})`,
+        unread: true,
       };
     default:
       return { deploy: true, base: '', reason: `${reason}, but no earlier run of this workflow finished it green` };
@@ -233,7 +235,9 @@ if (import.meta.main) {
     request: fetch,
   });
   console.log(
-    decision.deploy ? `Deploying ${head}: ${decision.reason}.` : `::notice::Not deploying ${head}: ${decision.reason}.`
+    decision.deploy
+      ? `${decision.unread ? '::warning::' : ''}Deploying ${head}: ${decision.reason}.`
+      : `::notice::Not deploying ${head}: ${decision.reason}.`
   );
   if (process.env.GITHUB_OUTPUT) {
     appendFileSync(process.env.GITHUB_OUTPUT, `deploy=${decision.deploy}\nbase=${decision.base}\n`);
