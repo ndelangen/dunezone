@@ -47,9 +47,17 @@ import { TroopToken } from '@game/assets/faction/troop/Troop';
 import { TTS_COLOR_SWATCHES } from '@game/data/ttsColors';
 
 import styles from './index.module.css';
+import { PrototypeSwitcher, VariantA, VariantB, VariantC, prototypePlanets } from './planets.prototype';
+import type { PlanetVariant, PlanetScenario } from './planets.prototype';
 
 export const Route = createFileRoute('/_app/factions/$factionId/')({
   codeSplitGroupings: [['component', 'pendingComponent', 'errorComponent']],
+  validateSearch: (search: Record<string, unknown>): { variant?: PlanetVariant; scenario?: PlanetScenario } => ({
+    variant: ['A', 'B', 'C'].includes(String(search.variant)) ? (search.variant as PlanetVariant) : undefined,
+    scenario: ['saved', 'one', 'many', 'empty'].includes(String(search.scenario))
+      ? (search.scenario as PlanetScenario)
+      : undefined,
+  }),
   loader: async ({ params }) => await loadFaction(params.factionId),
   pendingComponent: FactionDetailPending,
   errorComponent: FactionDetailError,
@@ -110,6 +118,10 @@ function filesBadge({ status, captureStatus }: PublicAssetPublishingStatusProjec
 
 function FactionDetailPage() {
   const { factionId } = Route.useParams();
+  const search = Route.useSearch();
+  const navigate = Route.useNavigate();
+  const variant = import.meta.env.DEV ? search.variant : undefined;
+  const scenario = search.scenario ?? 'saved';
   const loaderData = Route.useLoaderData();
   const factionSeed = loaderData;
 
@@ -130,7 +142,7 @@ function FactionDetailPage() {
   const membershipStatus = viewerAccess.viewer.kind === 'authenticated' ? viewerAccess.viewer.membership : 'none';
 
   const data = faction.data;
-  const planets = data.planet ?? [];
+  const planets = variant ? prototypePlanets(data.planet ?? [], scenario) : (data.planet ?? []);
   const troopCount = data.troops.reduce((total, troop) => total + troop.count, 0);
   const files = filesBadge(assetPublishing);
   const complexity = effectiveComplexity(data.complexity);
@@ -272,6 +284,7 @@ function FactionDetailPage() {
         <Flex direction={{ base: 'column-reverse', md: 'row' }} gap="xl" align={{ base: 'stretch', md: 'flex-start' }}>
           <Box miw={0} style={{ flex: '1 1 auto' }}>
             <Stack gap="xl">
+              {variant === 'B' ? <VariantB planets={planets} /> : null}
               <Section icon={<TopicIcon topic="leaders" size={20} />} title="Leaders">
                 <div className={styles.horizontalLane}>
                   {/* Position disambiguates: an author may field two identical leaders, and a
@@ -326,7 +339,9 @@ function FactionDetailPage() {
                 </div>
               </Section>
 
-              {planets.length > 0 ? (
+              {variant === 'A' ? (
+                <VariantA planets={planets} />
+              ) : !variant && planets.length > 0 ? (
                 <Section icon={<MapPin size={20} aria-hidden />} title="Planets">
                   <div className={styles.horizontalLane}>
                     {planets.map((planet, index) => (
@@ -393,6 +408,7 @@ function FactionDetailPage() {
             style={{ flex: '0 0 auto' }}
           >
             <FactionSidebarOverview data={data} />
+            {variant === 'C' ? <VariantC planets={planets} /> : null}
 
             <Section icon={<TopicIcon topic="setup" size={20} />} title="Setup">
               <Surface padding="lg">
@@ -472,6 +488,19 @@ function FactionDetailPage() {
             </Card>
           </Stack>
         </Flex>
+        {variant ? (
+          <PrototypeSwitcher
+            variant={variant}
+            scenario={scenario}
+            planets={planets}
+            onVariant={(value) =>
+              void navigate({ search: { ...search, variant: value }, replace: true, resetScroll: false })
+            }
+            onScenario={(value) =>
+              void navigate({ search: { ...search, scenario: value }, replace: true, resetScroll: false })
+            }
+          />
+        ) : null}
       </PageLayout.Content>
     </PageLayout>
   );
