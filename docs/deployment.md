@@ -288,10 +288,14 @@ The workflow runs on every push to `main`, and by hand on `main` (see
 [Recovering from a dropped push](#recovering-from-a-dropped-push)). Its `release_gate` job runs
 first and reads the commit each production Worker reports on `https://dune.zone/__play/health` and
 `https://dune.zone/__asset-publisher/health`. The run ends green without deploying when either Worker
-already reports a later commit than the run's, or, on the run's first attempt, both already report
-the run's own commit. An endpoint that does not answer, or a commit git cannot place, lets the deploy
-go ahead. Only the gate's answer `false` skips the `deploy` job, so a missing answer deploys too, and
-a gate job that fails ends the run red without deploying. In every other case the `deploy` job runs:
+already reports a later commit than the run's. On the run's first attempt it also ends green when
+both already report the run's own commit and an earlier run of `deploy-main.yml` for that commit
+finished green, which the gate reads from the Actions API with the job's `actions: read` token. The
+run asking is left out of that list, and a run still queued or in progress has no conclusion yet, so
+it does not count. An endpoint that does not answer, a commit git cannot place, or an Actions API
+answer the gate cannot read lets the deploy go ahead. Only the gate's answer `false` skips the
+`deploy` job, so a missing answer deploys too, and a gate job that fails ends the run red without
+deploying. In every other case the `deploy` job runs:
 
 1. Install dependencies, then verify schema-narrowing prerequisites
    (`migrations:narrow-check`). This runs *before* the Convex deploy and blocks
@@ -367,8 +371,9 @@ gh workflow run deploy-main.yml --ref main
 
 The dispatched run deploys the commit `main` points at when you dispatch it, which includes every
 merge whose event went missing. Its dev rebuild measures from the release production was serving, so
-a schema, migration or snapshot change in a dropped merge still rebuilds dev's data. If the missing event turns
-up later, its run stops at `release_gate`.
+a schema, migration or snapshot change in a dropped merge still rebuilds dev's data. If the missing
+event turns up later, its run stops at `release_gate`, unless it carries the commit the dispatched
+run deployed and that run did not finish green, in which case it deploys that commit again.
 
 Do not recover by rerunning an earlier deploy run. A rerun keeps that run's `GITHUB_SHA`, so it
 redeploys that older commit rather than `main`'s tip. "Re-run failed jobs" keeps the gate's first answer
@@ -378,8 +383,20 @@ stops the run once production has a later commit.
 To finish a deploy that failed partway, for example a smoke that failed after both Workers went out,
 rerun that run. "Re-run failed jobs" picks up at the failed job. "Re-run all jobs" deploys the commit
 again from the start, because the gate stops a commit production already has only on a run's first
-attempt. A dispatched run is a first attempt, so while `main` still points at that commit it stops
-at the gate, because both Workers already report it.
+attempt. A dispatched run, or a second push event for the same merge, is a first attempt: while both
+Workers report that commit, it stops at the gate only if an earlier run for the commit finished
+green, and otherwise deploys it again from the start, which finishes the release too.
+
+GitHub sometimes sends one merge's push event twice, and the `deploy-production` group runs the
+second run after the first one finishes. On 2026-10-01 #1618's merge started runs 36923609357 and
+36923879225. The first deployed both Workers and failed at "Deploy isolated Storybook" on a
+Cloudflare API error (code 10500), and the second stopped at the gate because both Workers already
+reported the commit. Storybook, the Renderer revision activation, `SITE_URL` and the dev rebuild
+waited for a manual "Re-run all jobs" on the first run. A second run in that position finds no green
+run for the commit, so it deploys. A run for the commit that is still queued or in progress when the
+gate reads the list, such as a rerun waiting behind the run asking, does not count: the run asking
+deploys, and the waiting run deploys again when it starts, unless it is a first attempt and the run
+before it finished green, in which case it stops at its own gate.
 
 ## Publication controls
 

@@ -23,13 +23,19 @@ concurrency:
 # A merge through the ruleset's admin bypass skips those checks and deploys unverified.
 jobs:
   # Ends the run green without deploying when production already serves a later commit, or, on the
-  # run's first attempt, this commit.
+  # run's first attempt, this commit after an earlier run of this workflow finished it green.
   # The deploy-production group runs one run at a time and holds one more waiting: a newly queued run
   # cancels the waiting one and takes its place, whatever commit either carries.
   # So a late push event (80 to 219 s late on 2026-09-28 and 2026-09-29), a second event for a merge
   # that already deployed, or "Re-run all jobs" on an older run can start after a later release is
   # live, and without this check it would put the older commit back.
   # The group holds this job too, so it reads production only after the previous run has finished.
+  # A second event for a merge whose first run failed after both Workers went out finds no green run
+  # for its commit and deploys, which finishes that release (runs 36923609357 and 36923879225 on
+  # 2026-10-01).
+  # A run still queued or in progress, such as a rerun waiting behind this one, has no conclusion yet
+  # and does not count: this run deploys, and the waiting run deploys again when it starts, or stops
+  # at its own gate if it is a first attempt and this run finished green.
   # "Re-run all jobs" runs this job again with GITHUB_RUN_ATTEMPT above 1, and then only a later
   # commit stops it: a rerun deploys a commit production already has, which finishes a deploy that
   # failed after both Workers went out.
@@ -38,6 +44,11 @@ jobs:
   release_gate:
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    # Job permissions replace the workflow's, so contents: read is restated, and actions: read lets
+    # the gate list this workflow's runs for its commit.
+    permissions:
+      contents: read
+      actions: read
     outputs:
       deploy: ${{ steps.decision.outputs.deploy }}
       base: ${{ steps.decision.outputs.base }}
@@ -56,6 +67,8 @@ jobs:
       - name: Decide whether production still needs this commit
         id: decision
         run: bun run ./scripts/deploy-decision.ts
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
 
   deploy:
     needs: release_gate
