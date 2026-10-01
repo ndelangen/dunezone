@@ -139,8 +139,8 @@ const report = {
   checks: [],
   /* Seconds from the start to a point the flow passes on its way, such as reaching play, so CI shows where a flow's time goes (#1594). */
   milestones: {},
-  /* Seconds each table entered in play took to finish mounting and draw, after its Table view group appeared (#1592). */
-  tableDraws: [],
+  /* Seconds each table entered in play took to mount, load its artwork and draw it, after its Table view group appeared (#1592). */
+  tableLoads: [],
   captures: [],
   pageErrors: [],
   consoleErrors: [],
@@ -511,39 +511,42 @@ async function signIn(who) {
 let gameId;
 const SPECTATOR = 'neutral';
 /*
- * How long a table entered in play gets to finish mounting and draw once, after its Table view group appears.
- * On the macOS WebGPU runner a newly opened tab's table finished mounting and drawing up to 17.6 s after its game socket opened (#1592).
+ * How long a table entered in play gets to mount, load its artwork and draw it, after its Table view group appears.
+ * On the macOS WebGPU runner a newly opened tab's mount ended up to 13.4 s after that group appeared, and its artwork kept the tab busy up to 9.4 s after its first frame (#1592).
  */
-const TABLE_DRAW_MS = 30_000;
+const TABLE_LOAD_MS = 45_000;
 /**
- * Waits for a table in play to finish mounting and to draw once, and records how long that took.
- * The scene mounts in one task once its renderer has initialised, and the frame after it builds the scene's shaders.
- * On the macOS WebGPU runner the two held a newly opened tab's main thread for up to 14.3 s, so a tab signed out meanwhile handled its socket's close only after them (#1592).
- * `window.__duneTable` is installed by an effect that runs after the mount commits, and two animation frames later the frame the mount asked for has been drawn.
+ * Waits for a table in play to mount, load its artwork and draw it, and records how long that took.
+ * The scene mounts in one task once its renderer has initialised, the frame after it builds the scene's shaders, and each phase symbol and published face that arrives later is parsed or uploaded on the same thread.
+ * On the macOS WebGPU runner that work held a newly opened tab's main thread for up to 14.3 s, so a tab signed out meanwhile handled its socket's close only after it (#1592).
+ * `window.__duneTable` is installed by an effect that runs after the mount commits, and it counts the artwork loads that have not settled.
+ * Two animation frames after that count reaches zero, the frame the last artwork asked for has been drawn.
  */
-async function tableDrawn(who) {
+async function tableLoaded(who) {
   const started = Date.now();
-  const drawn = await who.page
+  const loaded = await who.page
     .waitForFunction(
       () =>
-        window.__duneTable !== undefined &&
+        window.__duneTable?.unsettledArtwork() === 0 &&
         new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve(true)))),
       undefined,
-      { timeout: TABLE_DRAW_MS }
+      { timeout: TABLE_LOAD_MS }
     )
     .catch((error) => {
       if (!(error instanceof errors.TimeoutError)) {
         throw error;
       }
-      throw new Error(`${who.label}'s table did not finish mounting and draw within ${TABLE_DRAW_MS / 1000} s.`);
+      throw new Error(
+        `${who.label}'s table did not mount, load its artwork and draw within ${TABLE_LOAD_MS / 1000} s.`
+      );
     });
-  await drawn.dispose();
-  report.tableDraws.push({ label: who.label, seconds: Math.round((Date.now() - started) / 100) / 10 });
+  await loaded.dispose();
+  report.tableLoads.push({ label: who.label, seconds: Math.round((Date.now() - started) / 100) / 10 });
 }
 /**
  * Waits for an admitted connection and the table it projects.
  * Before play the stage replaces the table view.
- * A table in play has also finished mounting and drawn, so the flow's next step does not share the tab with its mount.
+ * A table in play has also mounted, loaded its artwork and drawn it, so the flow's next step does not share the tab with that work.
  */
 async function admitted(who) {
   await who.page.locator('[data-connection="authorized"]').waitFor();
@@ -552,7 +555,7 @@ async function admitted(who) {
   assert.equal(who.sent[0].ticketLength, 64);
   if (who.view().snapshot.stage === 'play') {
     await who.page.getByRole('group', { name: 'Table view' }).waitFor();
-    await tableDrawn(who);
+    await tableLoaded(who);
   }
   if (!report.renderer) {
     await recordRenderer(who);
