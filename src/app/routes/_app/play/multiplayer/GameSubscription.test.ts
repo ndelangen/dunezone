@@ -1,3 +1,4 @@
+import { PLAY_REQUEST_TIMEOUT_MS, PLAY_TICKET_TTL_MS } from '@shared/play/admission';
 import { initialSnapshot } from '@shared/play/commands';
 import { KEEPALIVE_INTERVAL_MS, KEEPALIVE_PONG, TICKET_EXPIRED_CLOSE_CODE } from '@shared/play/protocol';
 import { frameChange } from '@shared/play/updates';
@@ -243,6 +244,63 @@ test('a ticket that lapses before or while the socket opens waits in the same ba
   turnedAway.open();
   turnedAway.close(TICKET_EXPIRED_CLOSE_CODE);
   await reconnectsAfter(4000);
+});
+
+test('a ticket answered after the request timeout is taken by the next attempt instead of asked for again (#1378)', async () => {
+  let issued = 0;
+  const answers: (() => void)[] = [];
+  const requestTicket = vi.fn(
+    () =>
+      new Promise<{ ok: true; ticket: string; expiresInMs: number }>((resolve) => {
+        const ticket = String(++issued).repeat(64);
+        answers.push(() => resolve({ ok: true, ticket, expiresInMs: 30_000 }));
+      })
+  );
+  const listener = vi.fn();
+  const subscription = new GameSubscription('game', requestTicket, runtime);
+  stops.push(subscription.subscribe(listener));
+  await vi.advanceTimersByTimeAsync(PLAY_REQUEST_TIMEOUT_MS);
+  expect(listener).toHaveBeenLastCalledWith({
+    type: 'connection',
+    error: 'The table could not verify this login. Reconnecting...',
+  });
+  /* The answer lands while the subscription waits to try again, after it stopped waiting for it. */
+  await vi.advanceTimersByTimeAsync(500);
+  answers[0]();
+  await vi.advanceTimersByTimeAsync(500);
+  expect(requestTicket).toHaveBeenCalledTimes(1);
+  const socket = Socket.instances.at(-1)!;
+  socket.open();
+  expect(socket.sent).toEqual([{ type: 'admit', ticket: '1'.repeat(64) }]);
+  socket.deliver(initial());
+  expect(subscription.status).toBe('authorized');
+});
+
+test('a ticket request is asked again only once it failed or outlived a ticket lifetime', async () => {
+  let now = 0;
+  const pending: { reject: (error: Error) => void }[] = [];
+  const requestTicket = vi.fn(
+    () =>
+      new Promise<never>((_, reject) => {
+        pending.push({ reject });
+      })
+  );
+  const subscription = new GameSubscription('game', requestTicket, { ...runtime, monotonicNow: () => now });
+  stops.push(subscription.subscribe(vi.fn()));
+  const retry = async () => {
+    await vi.advanceTimersByTimeAsync(PLAY_REQUEST_TIMEOUT_MS + 1000);
+    now += PLAY_REQUEST_TIMEOUT_MS + 1000;
+  };
+  await retry();
+  await retry();
+  expect(requestTicket).toHaveBeenCalledTimes(1);
+  pending[0].reject(new Error('Connection lost.'));
+  await retry();
+  expect(requestTicket).toHaveBeenCalledTimes(2);
+  now += PLAY_TICKET_TTL_MS;
+  await retry();
+  expect(requestTicket).toHaveBeenCalledTimes(3);
+  expect(Socket.instances).toEqual([]);
 });
 
 test('an open socket sends a keepalive on an interval, ignores the answer and stops once it closes', async () => {

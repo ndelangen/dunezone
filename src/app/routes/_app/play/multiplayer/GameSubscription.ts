@@ -1,4 +1,9 @@
-import { PLAY_PENDING_TIMEOUT_MS, PLAY_REQUEST_TIMEOUT_MS, PLAY_TICKET_RETRY_MAX_MS } from '@shared/play/admission';
+import {
+  PLAY_PENDING_TIMEOUT_MS,
+  PLAY_REQUEST_TIMEOUT_MS,
+  PLAY_TICKET_RETRY_MAX_MS,
+  PLAY_TICKET_TTL_MS,
+} from '@shared/play/admission';
 import {
   KEEPALIVE_INTERVAL_MS,
   KEEPALIVE_PING,
@@ -18,6 +23,7 @@ import type { GameRuntime, GameSocket } from './gameRuntime';
 
 type TicketResult = Awaited<ReturnType<typeof requestPlayTicket>>;
 type TicketAttempt = { readonly generation: number; timer?: ReturnType<typeof setTimeout> };
+type TicketRequest = { readonly result: Promise<TicketResult>; readonly requestedAt: number };
 type Status = 'connecting' | 'authorized' | 'suspended' | 'denied';
 
 /** Reads stay available while gameplay waits for synchronization or shows history. */
@@ -44,6 +50,8 @@ export class GameSubscription {
   private admissionTimer: ReturnType<typeof setTimeout> | undefined;
   private keepaliveTimer: ReturnType<typeof setInterval> | undefined;
   private ticketAttempt: TicketAttempt | undefined;
+  /* The ticket request still on the wire: an attempt that gives up waiting leaves it there for the next attempt to take its answer. */
+  private ticketRequest: TicketRequest | undefined;
   private generation = 0;
   private current: RoomView | null = null;
   /* Whether this attempt has shown the table once: a suspended admission before that is still the first connect, not a pause. */
@@ -96,6 +104,7 @@ export class GameSubscription {
     clearInterval(this.keepaliveTimer);
     clearTimeout(this.ticketAttempt?.timer);
     this.ticketAttempt = undefined;
+    this.ticketRequest = undefined;
     const socket = this.socket;
     this.socket = null;
     socket?.close();
@@ -151,9 +160,8 @@ export class GameSubscription {
     this.sawView = false;
     this.serverOffset = Number.NEGATIVE_INFINITY;
     this.changeStatus('connecting');
-    /* The ticket's lifetime starts somewhere inside the request, so measuring from before it can only end early. */
-    const requestedAt = this.runtime.monotonicNow();
-    const result = await this.acquireTicket(attempt);
+    const request = this.pendingTicketRequest();
+    const result = await this.acquireTicket(attempt, request);
     if (!this.isCurrentAttempt(attempt) || !result) {
       return;
     }
@@ -167,7 +175,7 @@ export class GameSubscription {
       this.scheduleReconnect(Math.max(1000, result.retryAfterMs ?? 1000));
       return;
     }
-    const expiresAt = requestedAt + result.expiresInMs;
+    const expiresAt = request.requestedAt + result.expiresInMs;
     if (expiresAt <= this.runtime.monotonicNow()) {
       this.renewExpiredTicket();
       return;
@@ -184,14 +192,42 @@ export class GameSubscription {
     return this.listener !== null && attempt.generation === this.generation;
   }
 
-  private async acquireTicket(attempt: TicketAttempt): Promise<TicketResult | null> {
+  /**
+   * Reuses the request an earlier attempt stopped waiting for (#1378).
+   * Asking again would not overtake it: one client's mutations run in order, so each new request queues behind the old one.
+   * A connection whose round trip outlasts the wait would then throw away every answer and never be admitted.
+   * Only a request older than a ticket's whole lifetime is replaced, because nothing it could still answer would be usable.
+   */
+  private pendingTicketRequest(): TicketRequest {
+    const now = this.runtime.monotonicNow();
+    if (this.ticketRequest && now - this.ticketRequest.requestedAt < PLAY_TICKET_TTL_MS) {
+      return this.ticketRequest;
+    }
+    /* The ticket's lifetime starts somewhere inside the request, so measuring from before it can only end early. */
+    const request: TicketRequest = { result: this.requestTicket(this.gameId), requestedAt: now };
+    this.ticketRequest = request;
+    /* A failed request is never reused; the next attempt asks again. */
+    request.result.catch(() => {
+      if (this.ticketRequest === request) {
+        this.ticketRequest = undefined;
+      }
+    });
+    return request;
+  }
+
+  private async acquireTicket(attempt: TicketAttempt, request: TicketRequest): Promise<TicketResult | null> {
     try {
-      return await Promise.race([
-        this.requestTicket(this.gameId),
+      const result = await Promise.race([
+        request.result,
         new Promise<never>((_, reject) => {
           attempt.timer = setTimeout(() => reject(new Error('Admission timed out.')), PLAY_REQUEST_TIMEOUT_MS);
         }),
       ]);
+      /* An answer is used once; whatever happens next asks for a fresh ticket. */
+      if (this.ticketRequest === request) {
+        this.ticketRequest = undefined;
+      }
+      return result;
     } catch {
       if (this.isCurrentAttempt(attempt)) {
         this.changeStatus('suspended', 'The table could not verify this login. Reconnecting...');
