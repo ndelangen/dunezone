@@ -2,6 +2,7 @@ import { ExtrudeGeometry, Path, Shape, Vector3 } from 'three';
 import { SVGLoader } from 'three/examples/jsm/loaders/SVGLoader.js';
 import type { SVGResult } from 'three/examples/jsm/loaders/SVGLoader.js';
 
+import { startArtworkLoad } from './artworkLoads';
 import { PHASE_RING_INNER_RADIUS, PHASE_RING_OUTER_RADIUS, PHASE_SYMBOL_MAX_RADIUS } from './phaseSymbolLayout';
 
 export const PHASE_SYMBOL_HEIGHT = 0.008;
@@ -39,6 +40,7 @@ export function loadPhaseSymbolGeometry(
 ): () => void {
   let cancelled = false;
   let ownedGeometry: ExtrudeGeometry | null = null;
+  const settle = startArtworkLoad();
   void new SVGLoader()
     .loadAsync(symbol)
     .then((svg) => {
@@ -50,9 +52,11 @@ export function loadPhaseSymbolGeometry(
     })
     .catch(() => {
       /* An unavailable symbol leaves its colored well visible instead of suspending the table. */
-    });
+    })
+    .finally(settle);
   return () => {
     cancelled = true;
+    settle();
     ownedGeometry?.dispose();
     ownedGeometry = null;
   };
