@@ -174,11 +174,16 @@ in three shards, each on its own runner with its own stack, and `ci_ok` requires
 `play_closure` job reads the diff since the merge base and matches it against the closure in
 [`scripts/lib/hosted-play-closure.ts`](../scripts/lib/hosted-play-closure.ts), whose unit test holds
 the list to the import graph of the play pages, both Workers, the launcher and the builds it runs.
-Tests, stories and prose never count. A merge queue run, any other event, and a diff the job cannot
-read all run the shards, and the job's own failure fails the run. No workflow runs the shards after a
-merge, so the merge queue, enabled in `main`'s ruleset, is the one place a change outside the closure
-meets them before it lands; while the queue is off, such a change is caught by the next pull request
-that reaches the flows. Each flow in [`scripts/verify-hosted-flows.ts`](../scripts/verify-hosted-flows.ts) names
+Tests, stories and prose never count. A diff the job cannot read runs the shards, and the job's own
+failure fails the run. This repository has no merge queue (GitHub offers none to a personal
+account's repository, and #286 chose the up-to-date rule over one), so a change outside the closure
+meets the flows after it lands: in the next pull request that reaches them, and in the daily run on
+`main`. `.github/workflows/hosted-play-daily.yml` runs the four shards once a day and on manual
+dispatch through the same `play_closure` job, which skips them when `main`'s tree already had them,
+from the last daily run that checked this commit or from the pull request that merged as it when
+that merge was up to date and its diff reached the closure. A red daily run opens or extends one
+issue labelled `hosted-play-daily`.
+Each flow in [`scripts/verify-hosted-flows.ts`](../scripts/verify-hosted-flows.ts) names
 its shard, and each shard runs `--shard <name>`: `regular` runs the regular flow, `catalogue`
 public-controls and battles, and `protocol` private-banks, decks and results. The `regular` and
 `catalogue` shards add `--browser-only`; in the `protocol` shard the protocol verifier runs first on
