@@ -1,5 +1,5 @@
 /* Throwaway comparison for #1607: three planet layouts on the faction detail route, selected by ?variant=A|B|C. */
-import { ActionIcon, Box, Button, Group, Select, Stack, Text } from '@mantine/core';
+import { ActionIcon, Box, Button, Group, Select, Stack, Text, Tooltip } from '@mantine/core';
 import { Section } from '@ui/block/Section';
 import { FormattedTextSource } from '@ui/content/FormattedText';
 import { Surface } from '@ui/surface';
@@ -120,19 +120,33 @@ export function VariantC({ planets }: { planets: Planet[] }) {
   }
   return (
     <Section title="Planets" icon={<Globe2 size={20} />}>
-      <Stack gap="lg">
+      <Stack gap="sm">
         {planets.map((planet, index) => (
-          <article key={`${planet.name}-${index}`}>
-            <Group wrap="nowrap" gap="sm" align="center">
+          <Tooltip
+            key={`${planet.name}-${index}`}
+            label={<FormattedTextSource source={planet.description} size="sm" />}
+            disabled={!planet.description.trim()}
+            position="left"
+            multiline
+            maw={280}
+            withArrow
+            events={{ hover: true, focus: true, touch: true }}
+          >
+            <Group
+              wrap="nowrap"
+              gap="sm"
+              align="center"
+              tabIndex={planet.description.trim() ? 0 : undefined}
+              aria-label={planet.name}
+              role="group"
+              style={{ cursor: planet.description.trim() ? 'help' : undefined }}
+            >
               <Box style={{ flex: '0 0 64px' }}>
                 <PlanetArt planet={planet} size={64} />
               </Box>
               <Text fw={700}>{planet.name}</Text>
             </Group>
-            <Box mt="xs">
-              <FormattedTextSource source={planet.description} size="xs" tone="neutral" />
-            </Box>
-          </article>
+          </Tooltip>
         ))}
       </Stack>
     </Section>
