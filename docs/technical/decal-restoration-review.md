@@ -23,7 +23,7 @@ Existing paths remain stable. The additional scene and drawing variants have dis
 | dune-skimmer | Added Dune skimmer scene with the ground restored; kept the simpler version. |
 | eclipse-projector | The latest review retained the original. Restored its unchanged source SVG. |
 | false-convoy | Added False convoy scene with the ground restored; kept the simpler version. |
-| family-atomics | Made the map outline and territory dividers consistently bold, with thinner hatch lines. Added a separate version without labels, preserving the cities and explosion. |
+| family-atomics | Made the map outline and territory dividers consistently bold, with thinner hatch lines. Added a separate version without labels, preserving the cities and explosion. Completed the city-side border and smoothed the join between hatch directions after browser review. |
 | great-maker | Restored the entire eruption plume, including its spreading lower billows and debris, from the color source. |
 | hidden-passage | Replaced the polygonal doorway cut with the source doorway contour, retaining the curtain at its edge. |
 | killer-doctor | Made the medical cross legible while retaining slightly curved, uneven edges. |
