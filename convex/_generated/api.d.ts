@@ -30,7 +30,6 @@ import type * as lib_assetInput from "../lib/assetInput.js";
 import type * as lib_cardbackPresets from "../lib/cardbackPresets.js";
 import type * as lib_collaborativeAccess from "../lib/collaborativeAccess.js";
 import type * as lib_collaborativeAccessValidators from "../lib/collaborativeAccessValidators.js";
-import type * as lib_decalRetune from "../lib/decalRetune.js";
 import type * as lib_defaultGroupPreference from "../lib/defaultGroupPreference.js";
 import type * as lib_directOwnership from "../lib/directOwnership.js";
 import type * as lib_factionCatalogue from "../lib/factionCatalogue.js";
@@ -129,7 +128,6 @@ declare const fullApi: ApiFromModules<{
   "lib/cardbackPresets": typeof lib_cardbackPresets;
   "lib/collaborativeAccess": typeof lib_collaborativeAccess;
   "lib/collaborativeAccessValidators": typeof lib_collaborativeAccessValidators;
-  "lib/decalRetune": typeof lib_decalRetune;
   "lib/defaultGroupPreference": typeof lib_defaultGroupPreference;
   "lib/directOwnership": typeof lib_directOwnership;
   "lib/factionCatalogue": typeof lib_factionCatalogue;

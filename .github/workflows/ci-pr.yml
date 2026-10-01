@@ -2,6 +2,8 @@ name: PR CI
 
 on:
   pull_request:
+  # The merge queue runs the full set once per merge, hosted play shards included, where a pull
+  # request run skips them for a diff outside their closure (#1598).
   merge_group:
     types: [checks_requested]
 

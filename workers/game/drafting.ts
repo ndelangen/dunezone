@@ -1,7 +1,7 @@
 import { randomInt } from 'node:crypto';
 
 import { accepted, nextSnapshot } from '../../src/shared/play/commands';
-import { emptyDraft, isBanned } from '../../src/shared/play/drafting';
+import { draftedPool, emptyDraft, isBanned, setAsideReason } from '../../src/shared/play/drafting';
 import type { DraftAction, DraftFaction, DraftState } from '../../src/shared/play/drafting';
 import { emptyPublicControls } from '../../src/shared/play/inventory';
 import { seatSubject } from '../../src/shared/play/participation';
@@ -86,6 +86,10 @@ export function applyDraftAction(
       if (!faction.published) {
         throw new GameRejection(`${faction.name} is not generated yet; its assets are not published.`);
       }
+      const aside = setAsideReason(draft, faction.id);
+      if (aside !== undefined) {
+        throw new GameRejection(`${faction.name} cannot be dealt yet: ${aside}`);
+      }
       if (isBanned(draft, faction.id)) {
         throw new GameRejection(`${faction.name} is banned; every ban on it has to go first.`);
       }
@@ -146,9 +150,48 @@ export function draftAfterRosterChange(draft: DraftState | undefined, departed?:
   return changed({ ...draft, picks: without(draft.picks), bans: without(draft.bans) });
 }
 
-/** The catalogue read again: picks and readiness stay, the factions behind them are the latest. */
-export function draftWithCatalogue(draft: DraftState, factions: DraftFaction[], now: number): DraftState {
-  return { ...draft, factions, catalogueAt: now };
+/** What a catalogue refresh found of the factions set aside when it began: those it judged, and which of them stay aside. */
+export type SetAsideJudgement = { judged: readonly string[]; stillAside: Readonly<Record<string, string>> };
+
+/**
+ * The catalogue read again: picks and readiness stay, the factions behind them are the latest.
+ * A faction the refresh judged stays aside only if it is still refused;
+ * one a deal set aside while the refresh ran stays as it is.
+ */
+export function draftWithCatalogue(
+  draft: DraftState,
+  factions: DraftFaction[],
+  now: number,
+  setAside: SetAsideJudgement = { judged: [], stillAside: {} }
+): DraftState {
+  const unjudged = Object.entries(draft.setAside ?? {}).filter(([id]) => !setAside.judged.includes(id));
+  return {
+    ...draft,
+    factions,
+    catalogueAt: now,
+    setAside: { ...Object.fromEntries(unjudged), ...setAside.stillAside },
+  };
+}
+
+/**
+ * Factions a deal found unready, set aside with their reasons, so the deal never fails twice on the same one.
+ * The failure names each of them, and the copy of the catalogue is stamped stale so the next draft command judges them again.
+ * One only random filling chose leaves readiness standing, and the next attempt fills from what remains.
+ * A drafted one changes the pool the players readied for, so readiness clears.
+ */
+export function draftWithSetAside(draft: DraftState, refused: Readonly<Record<string, string>>): DraftState {
+  const drafted = draftedPool(draft).some((id) => id in refused);
+  const named = Object.entries(refused).map(([id, reason]) => {
+    const name = draft.factions.find((faction) => faction.id === id)?.name ?? id;
+    return `${name} (${reason.replace(/\.$/, '')})`;
+  });
+  return {
+    ...draft,
+    setAside: { ...draft.setAside, ...refused },
+    catalogueAt: 0,
+    ready: drafted ? [] : draft.ready,
+    failure: `Set aside as not ready to deal: ${named.join('; ')}.`.slice(0, 400),
+  };
 }
 
 /** The events that record a public assignment, one per seat and one for the count, newest first in the table. */
