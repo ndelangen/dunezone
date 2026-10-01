@@ -63,16 +63,24 @@ export interface MediaSearch {
   item?: string;
 }
 
+function searchRecord(input: unknown): Record<string, unknown> {
+  return input && typeof input === 'object' ? (input as Record<string, unknown>) : {};
+}
+
+function searchText(value: unknown): string {
+  return typeof value === 'string' ? value : '';
+}
+
 export function validateMediaSearch(input: unknown): MediaSearch {
-  const search = input && typeof input === 'object' ? (input as Record<string, unknown>) : {};
+  const search = searchRecord(input);
   const source = search.source === 'topics' || search.source === 'lucide' ? search.source : 'media';
   const kind = mediaKinds.find(({ value }) => value === search.kind)?.value ?? 'all';
   const item = typeof search.item === 'string' && entriesByValue.has(search.item) ? search.item : undefined;
   return {
     source,
     kind,
-    group: typeof search.group === 'string' ? search.group.trim().slice(0, 200) : '',
-    q: typeof search.q === 'string' ? search.q.slice(0, 300) : '',
+    group: searchText(search.group).trim().slice(0, 200),
+    q: searchText(search.q).slice(0, 300),
     ...(source === 'media' && item ? { item } : {}),
   };
 }
@@ -108,49 +116,45 @@ export type DraftEvent =
   | { type: 'undo' }
   | { type: 'notes'; value: string };
 
+type DraftHandlers = {
+  [Type in DraftEvent['type']]: (state: DraftState, event: Extract<DraftEvent, { type: Type }>) => DraftState;
+};
+
+const draftHandlers: DraftHandlers = {
+  review: (state, event) => ({ ...state, reviewOpen: event.open }),
+  moveOne: (state, event) => {
+    const moved = moveSelected({ ...state, selected: [event.value], destination: event.destination });
+    return { ...moved, selected: state.selected, destination: state.destination };
+  },
+  select: (state, event) => (entriesByValue.has(event.value) ? { ...state, selected: [event.value] } : state),
+  toggle: (state, event) => {
+    if (!entriesByValue.has(event.value)) {
+      return state;
+    }
+    const selected = state.selected.includes(event.value)
+      ? state.selected.filter((value) => value !== event.value)
+      : [...state.selected, event.value];
+    return { ...state, selected };
+  },
+  selectMany: (state, event) => ({
+    ...state,
+    selected: [...new Set([...state.selected, ...event.values.filter((value) => entriesByValue.has(value))])],
+  }),
+  clearSelection: (state) => ({ ...state, selected: [] }),
+  destination: (state, event) => ({ ...state, destination: event.value }),
+  notes: (state, event) => ({ ...state, notes: event.value }),
+  move: (state) => moveSelected(state),
+  undo: (state) => {
+    const moves = state.history.at(-1);
+    return moves ? { ...state, moves, history: state.history.slice(0, -1) } : state;
+  },
+  reset: () => ({ reviewOpen: false, selected: [], moves: {}, destination: '', notes: '', history: [] }),
+};
+
 export function draftReducer(state: DraftState, event: DraftEvent): DraftState {
-  switch (event.type) {
-    case 'review':
-      return { ...state, reviewOpen: event.open };
-    case 'moveOne': {
-      const moved = draftReducer(
-        { ...state, selected: [event.value], destination: event.destination },
-        { type: 'move' }
-      );
-      return { ...moved, selected: state.selected, destination: state.destination };
-    }
-    case 'select':
-      return entriesByValue.has(event.value) ? { ...state, selected: [event.value] } : state;
-    case 'toggle':
-      if (!entriesByValue.has(event.value)) {
-        return state;
-      }
-      return {
-        ...state,
-        selected: state.selected.includes(event.value)
-          ? state.selected.filter((value) => value !== event.value)
-          : [...state.selected, event.value],
-      };
-    case 'selectMany':
-      return {
-        ...state,
-        selected: [...new Set([...state.selected, ...event.values.filter((value) => entriesByValue.has(value))])],
-      };
-    case 'clearSelection':
-      return { ...state, selected: [] };
-    case 'destination':
-      return { ...state, destination: event.value };
-    case 'notes':
-      return { ...state, notes: event.value };
-    case 'move':
-      return moveSelected(state);
-    case 'undo': {
-      const moves = state.history.at(-1);
-      return moves ? { ...state, moves, history: state.history.slice(0, -1) } : state;
-    }
-    case 'reset':
-      return { reviewOpen: false, selected: [], moves: {}, destination: '', notes: '', history: [] };
-  }
+  /* The mapped handler table pairs each event discriminator with its payload. */
+  const handler = draftHandlers[event.type] as (state: DraftState, event: DraftEvent) => DraftState;
+  return handler(state, event);
 }
 
 export function reclassificationPrompt(

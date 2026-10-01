@@ -55,22 +55,9 @@ function MediaPage() {
   const updateSearch = (patch: Partial<typeof search>, replace = false) => {
     void navigate({ search: { ...search, ...patch }, replace, resetScroll: false });
   };
-  const collectionOf = (entry: MediaEntry) => draft.moves[entry.value] ?? entry.collection;
-  const kindEntries = mediaEntries.filter((entry) => search.kind === 'all' || entry.kind === search.kind);
-  const collections = [...new Set(kindEntries.map(collectionOf))].sort((a, b) => a.localeCompare(b, 'en'));
-  const destinations = [...new Set(mediaEntries.map(collectionOf))].sort((a, b) => a.localeCompare(b, 'en'));
+  const { matches, collections, destinations, groups } = filterCatalogue(search, draft.moves);
   const query = search.q.trim().toLowerCase();
-  const matches = kindEntries.filter(
-    (entry) =>
-      (!search.group || collectionOf(entry) === search.group) &&
-      `${entry.label} ${entry.keywords} ${collectionOf(entry)}`.toLowerCase().includes(query)
-  );
-  const otherEntries =
-    search.source === 'topics'
-      ? TOPIC_ICON_TOPICS.filter((name) => name.toLowerCase().includes(query))
-      : lucideEntries.filter(([name]) => name.toLowerCase().includes(query));
-  const total = search.source === 'media' ? matches.length : otherEntries.length;
-  const groups = [...new Set(matches.map(collectionOf))];
+  const total = search.source === 'media' ? matches.length : iconMatchCount(search.source, query);
   const focused = search.source === 'media' ? mediaEntries.find((entry) => entry.value === search.item) : undefined;
   const changes = mediaEntries.filter(
     (entry) => draft.moves[entry.value] && draft.moves[entry.value] !== entry.collection
@@ -400,19 +387,11 @@ function MediaCard({
           onChange={() => dispatch({ type: 'toggle', value: entry.value })}
         />
         <div className={styles.groupPicker}>
-          <Select
-            aria-label={`Group for ${entry.label}`}
-            size="xs"
-            value={collection}
-            data={destinations}
-            searchable
-            allowDeselect={false}
-            comboboxProps={{ keepMounted: false }}
-            onChange={(destination) => {
-              if (destination) {
-                dispatch({ type: 'moveOne', value: entry.value, destination });
-              }
-            }}
+          <GroupAssignment
+            label={entry.label}
+            collection={collection}
+            destinations={destinations}
+            onChange={(destination) => dispatch({ type: 'moveOne', value: entry.value, destination })}
           />
         </div>
         <Text size="xs" c="dimmed">
@@ -568,5 +547,56 @@ function MediaFilters({
         )}
       </div>
     </Stack>
+  );
+}
+
+function filterCatalogue(search: MediaSearch, moves: DraftState['moves']) {
+  const collectionOf = (entry: MediaEntry) => moves[entry.value] ?? entry.collection;
+  const kindEntries = mediaEntries.filter((entry) => search.kind === 'all' || entry.kind === search.kind);
+  const collections = [...new Set(kindEntries.map(collectionOf))].sort((a, b) => a.localeCompare(b, 'en'));
+  const destinations = [...new Set(mediaEntries.map(collectionOf))].sort((a, b) => a.localeCompare(b, 'en'));
+  const query = search.q.trim().toLowerCase();
+  const matches = kindEntries.filter(
+    (entry) =>
+      (!search.group || collectionOf(entry) === search.group) &&
+      `${entry.label} ${entry.keywords} ${collectionOf(entry)}`.toLowerCase().includes(query)
+  );
+  const groups = [...new Set(matches.map(collectionOf))];
+  return { matches, collections, destinations, groups };
+}
+
+function iconMatchCount(source: 'topics' | 'lucide', query: string) {
+  if (source === 'topics') {
+    return TOPIC_ICON_TOPICS.filter((name) => name.toLowerCase().includes(query)).length;
+  }
+  return lucideEntries.filter(([name]) => name.toLowerCase().includes(query)).length;
+}
+
+function GroupAssignment({
+  label,
+  collection,
+  destinations,
+  onChange,
+}: {
+  label: string;
+  collection: string;
+  destinations: string[];
+  onChange: (destination: string) => void;
+}) {
+  return (
+    <Select
+      aria-label={`Group for ${label}`}
+      size="xs"
+      value={collection}
+      data={destinations}
+      searchable
+      allowDeselect={false}
+      comboboxProps={{ keepMounted: false }}
+      onChange={(destination) => {
+        if (destination) {
+          onChange(destination);
+        }
+      }}
+    />
   );
 }
