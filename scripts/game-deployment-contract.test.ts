@@ -75,6 +75,13 @@ describe('game deployment contract', () => {
     ).toThrow(/alert email binding/);
   });
 
+  test('keeps issue detection on for the alert relay', () => {
+    const { issues: _issues, ...observability } = readGameConfig().observability as Record<string, unknown>;
+    expect(() => validateGameDeployContract({ ...readGameConfig(), observability }, environment)).toThrow(
+      /observability/
+    );
+  });
+
   test('deploys and verifies the private game service before exposing it through the publisher', () => {
     const workflow = readFileSync('.github/workflows/deploy-main.yml', 'utf8');
     const gameDeploy = workflow.indexOf('name: Deploy exact game Worker release');

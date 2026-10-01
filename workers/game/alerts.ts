@@ -24,7 +24,7 @@ export type AlertMarkers = Pick<Cache, 'match' | 'put'>;
 
 export const ALERT_EMAIL_TEXT = [
   'Cloudflare reported a new or rising issue in a dune.zone Worker.',
-  'Open Workers & Pages > Observability > Issues in the Cloudflare dashboard for the details.',
+  'Open Workers & Pages > dunezone-game > Issues in the Cloudflare dashboard for the details.',
   `Further reports within ${ALERT_INTERVAL_SECONDS / 60} minutes are not emailed.`,
   'Runbook: https://github.com/ndelangen/dunezone/blob/main/docs/technical/play-operations.md',
 ].join('\n\n');
