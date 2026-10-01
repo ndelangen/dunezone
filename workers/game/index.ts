@@ -177,6 +177,9 @@ export class GameRoom extends DurableObject<GameEnv> {
   /* Picks a capture found ready since the catalogue was last read, so a draft command judges each pick once. */
   private readyPicks = new Set<string>();
   private judgingPicks = false;
+  private judgePicksAgain = false;
+  /* Counts catalogue refreshes, so a pick judgement that straddles one is dropped. */
+  private catalogueGeneration = 0;
   private directoryDelivery?: Promise<void>;
   protected readonly diagnostics: GameDiagnostics;
   private confirmationEpoch = 0;
@@ -1609,6 +1612,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       const setAside = await this.judgeSetAside(catalogue, factions);
       this.session.updateDraftCatalogue(factions, setAside);
       this.readyPicks.clear();
+      this.catalogueGeneration += 1;
       /* An attempt that ran alongside dealt from the copy before this one, so it tries again on this. */
       if (this.assigning) {
         this.draftChangedDuringAttempt = true;
@@ -1629,42 +1633,68 @@ export class GameRoom extends DurableObject<GameEnv> {
    * The deal still judges every faction it captures, random fills included.
    */
   private async judgePicks() {
-    if (this.judgingPicks || this.metadata?.provisional === true) {
+    if (this.metadata?.provisional === true) {
       return;
     }
-    const pending = this.session.draftedPicks().filter((id) => !this.readyPicks.has(id));
-    if (!pending.length) {
+    if (this.judgingPicks) {
+      /* A pick made while a judgement is in flight is judged when it ends. */
+      this.judgePicksAgain = true;
       return;
     }
     this.judgingPicks = true;
     try {
-      const catalogue = new GameCatalogue(this.env.CONVEX_URL, this.env.APPLICATION_ORIGIN);
-      const refused: Record<string, string> = {};
-      for (const factionId of pending) {
-        try {
-          const problem = readinessProblem((await catalogue.captureFaction(factionId)).readiness);
-          if (problem === undefined) {
-            this.readyPicks.add(factionId);
-          } else {
-            refused[factionId] = problem.slice(0, 400);
-          }
-        } catch (error) {
-          if (!(error instanceof GameRejection)) {
-            throw error;
-          }
-          refused[factionId] = error.message.slice(0, 400);
-        }
-      }
-      if (Object.keys(refused).length) {
-        this.session.setFactionsAside(refused, { atDeal: false });
-        if (this.assigning) {
-          this.draftChangedDuringAttempt = true;
-        }
-        this.reconcileViewers();
-        this.broadcastViews();
-      }
+      do {
+        this.judgePicksAgain = false;
+        await this.judgePendingPicks();
+      } while (this.judgePicksAgain);
     } finally {
       this.judgingPicks = false;
+    }
+  }
+
+  private async judgePendingPicks() {
+    const pending = this.session.draftedPicks().filter((id) => !this.readyPicks.has(id));
+    if (!pending.length) {
+      return;
+    }
+    const generation = this.catalogueGeneration;
+    const catalogue = new GameCatalogue(this.env.CONVEX_URL, this.env.APPLICATION_ORIGIN);
+    const ready: string[] = [];
+    const refused: Record<string, string> = {};
+    for (const factionId of pending) {
+      const problem = await this.pickProblem(catalogue, factionId);
+      if (problem === undefined) {
+        ready.push(factionId);
+      } else if (problem !== null) {
+        refused[factionId] = problem;
+      }
+    }
+    /* A refresh since judged against a newer catalogue, so these verdicts are stale; the next command judges again. */
+    if (generation !== this.catalogueGeneration) {
+      return;
+    }
+    ready.forEach((factionId) => this.readyPicks.add(factionId));
+    if (!Object.keys(refused).length) {
+      return;
+    }
+    this.session.setFactionsAside(refused, { atDeal: false });
+    if (this.assigning) {
+      this.draftChangedDuringAttempt = true;
+    }
+    this.reconcileViewers();
+    this.broadcastViews();
+  }
+
+  /** Why a pick cannot be dealt; nothing when it is ready, null when its capture could not be read, which is reported and judged again later. */
+  private async pickProblem(catalogue: GameCatalogue, factionId: string): Promise<string | undefined | null> {
+    try {
+      return readinessProblem((await catalogue.captureFaction(factionId)).readiness)?.slice(0, 400);
+    } catch (error) {
+      if (error instanceof GameRejection) {
+        return error.message.slice(0, 400);
+      }
+      this.diagnostics.report('draft-catalogue', error);
+      return null;
     }
   }
 
