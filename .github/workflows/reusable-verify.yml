@@ -633,7 +633,7 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
-  # The authoring tool's own end-to-end tests and the three script tests that launch Chromium, named in
+  # The authoring tool's own end-to-end tests and the script tests that launch Chromium, named in
   # browser-launch-tests.ts, share the one Playwright install, so the unit job needs no browser (#1590).
   tool_e2e:
     runs-on: ubuntu-latest
@@ -651,6 +651,8 @@ jobs:
       - name: Authoring tool E2E
         run: bun run tool:test:e2e
       - name: Browser-launching script tests
+        # Their result is wanted whatever the authoring tool's step found, so a failure there does not hide theirs.
+        if: ${{ !cancelled() }}
         run: bun run test:browser-launch --reporter=default --reporter=junit --outputFile.junit=test-results/vitest-browser-launch.junit.xml
       - name: Upload test results to Codecov
         # Failure results are the point of Test Analytics, so upload unless cancelled.
