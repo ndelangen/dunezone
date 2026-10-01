@@ -38,6 +38,8 @@ type View = Extract<ServerMessage, { type: 'view' }>;
 type Message = Exclude<ClientMessage, { type: 'admit' | 'log-history' | 'conversation-history' }>;
 type TableMessage<Type extends Message['type']> = Extract<Message, { type: Type }>;
 type RoomAction = Parameters<Room['command']>[1];
+/** Where a sandbox starts: a journey step (0-based) and the seat the page is viewed as. */
+export type SandboxStart = { start: number; seat: string };
 
 /* The session commits these families outside the table, so the sandbox refuses them with a pointer to the journey. */
 const SESSION_ONLY = [isDraftAction, isSwapAction, isSeatAction, isRemovalAction, isResultAction];
@@ -70,7 +72,7 @@ export class SandboxTable {
   /** Why the room refused the latest message it refused, for a story to assert on. */
   refusal: string | undefined;
 
-  constructor(start: number, seat: string) {
+  constructor({ start, seat }: SandboxStart) {
     this.start = clampStart(start);
     this.step = journeySteps()[this.start]!;
     const stored = storedSnapshotSchema.parse(this.step.stored);
@@ -330,15 +332,15 @@ export const sandbox: { table?: SandboxTable; transport?: ReturnType<typeof stor
  * Storybook runs a story's `beforeEach` again on every change of its arguments, so a page already connected keeps its transport;
  * the panel moves the table itself.
  */
-export function sandboxTransport(start: number, seat: string) {
+export function sandboxTransport(place: SandboxStart) {
   if (sandbox.transport?.connected()) {
     return sandbox.transport;
   }
   sandbox.table?.dispose();
-  const table = new SandboxTable(start, seat);
+  const table = new SandboxTable(place);
   table.open();
   sandbox.table = table;
-  const transport = storyTransport(seat as Viewer['viewerSeat'], table.frame().snapshot, {
+  const transport = storyTransport(table.seat as Viewer['viewerSeat'], table.frame().snapshot, {
     admitView: () => sandbox.table!.frame(),
     logEntries: () => sandbox.table!.log(),
     receive: (message) => sandbox.table!.receive(message as Message),
@@ -358,10 +360,10 @@ export function sandboxTransport(start: number, seat: string) {
 }
 
 /** Starts the table again from a step, on the connection the page already holds. */
-function restart(start: number, seat: string) {
+function restart(place: SandboxStart) {
   const deliver = sandbox.table?.deliver;
   sandbox.table?.dispose();
-  const table = new SandboxTable(start, seat);
+  const table = new SandboxTable(place);
   table.open();
   if (deliver) {
     table.deliver = deliver;
@@ -440,7 +442,7 @@ function SandboxFrame({
     const previous = shown.current;
     shown.current = { start, seat };
     if (previous.start !== start) {
-      restart(start, seat);
+      restart({ start, seat });
     } else if (previous.seat !== seat) {
       sandbox.table?.viewAs(seat);
     }
@@ -448,7 +450,7 @@ function SandboxFrame({
   const change = (next: { start?: number; seat?: string }) => {
     /* Restart on the step already shown starts the table over all the same. */
     if (next.start === start) {
-      restart(start, seat);
+      restart({ start, seat });
       return;
     }
     setShown((current) => ({ ...current, ...next }));

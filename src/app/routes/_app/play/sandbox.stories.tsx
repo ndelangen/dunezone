@@ -28,7 +28,7 @@ const meta = preview.meta({
     },
   },
   beforeEach: ({ args }) =>
-    install(() => sandboxTransport(Number(args.step ?? 1) - 1, String(args.seat ?? 'seat-1')))(),
+    install(() => sandboxTransport({ start: Number(args.step ?? 1) - 1, seat: String(args.seat ?? 'seat-1') }))(),
   decorators: [...gameMeta.decorators, sandboxDecorator],
   /* The stories load the table chunk before they render, as Play/Playing explains. */
   loaders: [

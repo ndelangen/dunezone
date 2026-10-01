@@ -19,7 +19,7 @@ describe('The Play sandbox', () => {
 
   test('every starting table shows each viewer a view the page accepts', () => {
     for (const start of sandboxSteps()) {
-      const table = new SandboxTable(start, 'seat-1');
+      const table = new SandboxTable({ start, seat: 'seat-1' });
       for (const seat of journeyViewers()) {
         const parsed = serverMessageSchema.safeParse(table.frame(seat));
         expect(parsed.error?.issues ?? [], `${stepCode(start)} as ${seat}`).toEqual([]);
@@ -29,13 +29,13 @@ describe('The Play sandbox', () => {
   });
 
   test('a step before setup starts at the first table the recording kept', () => {
-    const table = new SandboxTable(0, 'seat-1');
+    const table = new SandboxTable({ start: 0, seat: 'seat-1' });
     expect(table.start).toBe(sandboxSteps()[0]);
     table.dispose();
   });
 
   test('the table changes on a phase command and tells the page, while a result command is refused', () => {
-    const table = new SandboxTable(sandboxSteps().at(-1)!, 'seat-1');
+    const table = new SandboxTable({ start: sandboxSteps().at(-1)!, seat: 'seat-1' });
     const delivered: unknown[] = [];
     table.deliver = (message) => delivered.push(message);
     const revision = table.room.snapshot.revision;
@@ -60,13 +60,13 @@ describe('The Play sandbox', () => {
   });
 
   test('viewing as another seat shows that seat its own hand and bank', () => {
-    const table = new SandboxTable(sandboxSteps().at(-1)!, 'seat-1');
+    const table = new SandboxTable({ start: sandboxSteps().at(-1)!, seat: 'seat-1' });
     const delivered: { type: string; viewer?: { viewerSeat: string } }[] = [];
     table.deliver = (message) => delivered.push(message as (typeof delivered)[number]);
     table.viewAs('seat-3');
     expect(delivered.at(-1)?.viewer?.viewerSeat).toBe('seat-3');
     expect(table.frame().snapshot.bank?.factionId).not.toBe(
-      new SandboxTable(sandboxSteps().at(-1)!, 'seat-1').frame().snapshot.bank?.factionId
+      new SandboxTable({ start: sandboxSteps().at(-1)!, seat: 'seat-1' }).frame().snapshot.bank?.factionId
     );
     table.dispose();
   });
