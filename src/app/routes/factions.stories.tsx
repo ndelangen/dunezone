@@ -14,6 +14,7 @@ import {
   openLayerEditor,
   resetAndSettle,
 } from './backgroundMemoryPlay';
+import { spaceOrks, spaceOrksOwner, spaceOrksPublication } from './factionPlanets.stories.fixture';
 import { pageStoryMeta } from './storybookConfig';
 
 const meta = preview.meta({
@@ -42,68 +43,78 @@ export const Detail = meta.story({
   },
 });
 
-const withPlanets = db((baseline) => {
-  baseline.factions[0].data = faction({
-    name: 'House Atreides',
-    data: {
-      planet: [
-        {
-          name: 'Caladan',
-          image: '/image/planet/08.png',
-          description:
-            'An **ocean world** of rain, green coastlines and deep seas. The ancestral home of House Atreides.',
-        },
-        {
-          name: 'Arrakis',
-          image: '/image/planet/09.png',
-          description:
-            'A desert world and the source of the spice. Its strongholds, sand seas and storms shape the struggle for control.',
-        },
-        { name: 'Giedi Prime', image: '/image/planet/07.png', description: '' },
-      ],
-    },
-  }).data;
-});
+const withPlanets = (description = true) =>
+  db((baseline) => {
+    baseline.factions = [
+      {
+        ...faction({
+          name: spaceOrks.name,
+          data: {
+            ...spaceOrks,
+            planet: spaceOrks.planet.map((planet) => ({
+              ...planet,
+              description: description ? planet.description : '',
+            })),
+          },
+        }),
+        $key: 'faction:space-orks',
+      },
+    ];
+    Object.assign(baseline.profiles[0], spaceOrksOwner);
+    baseline.ruleset_factions = [];
+    baseline.publication_jobs = [];
+    baseline.publication_assets = [
+      {
+        asset_type: 'faction_sheet',
+        asset_id: refText('faction:space-orks', SEED_REF_TOKEN),
+        ...spaceOrksPublication,
+      },
+    ];
+  });
 
 export const DetailWithPlanets = meta.story({
-  args: { path: '/factions/house-atreides' },
-  parameters: { database: withPlanets },
+  args: { path: '/factions/space-orks' },
+  parameters: { database: withPlanets(), identity: null },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     const sidebar = await page.findByRole('complementary', { name: 'Faction details' });
     const planets = within(sidebar).getByRole('region', { name: 'Planets' });
-    const caladan = within(planets).getByRole('listitem', { name: 'Caladan' });
-    const arrakis = within(planets).getByRole('listitem', { name: 'Arrakis' });
-    const giediPrime = within(planets).getByRole('listitem', { name: 'Giedi Prime' });
-
-    expect(caladan).toHaveAccessibleDescription(/An ocean world/);
-    await userEvent.hover(caladan);
-    const description = await page.findByRole('tooltip');
-    expect(description).toHaveTextContent('An ocean world');
-    expect(within(description).getByText('ocean world').tagName).toBe('STRONG');
-    await userEvent.unhover(caladan);
+    const planet = within(planets).getByRole('listitem', { name: 'Space Hulk Leviathan' });
+    expect(planet).toHaveAccessibleDescription(spaceOrks.planet[0].description);
+    await userEvent.hover(planet);
+    await expect(page.findByRole('tooltip')).resolves.toHaveTextContent(spaceOrks.planet[0].description);
+    await userEvent.unhover(planet);
     await waitFor(() => expect(page.queryByRole('tooltip')).not.toBeInTheDocument());
 
-    caladan.focus();
+    planet.focus();
+    await userEvent.tab({ shift: true });
     await userEvent.tab();
-    expect(arrakis).toHaveFocus();
-    await expect(page.findByRole('tooltip')).resolves.toHaveTextContent('A desert world');
+    expect(planet).toHaveFocus();
+    await expect(page.findByRole('tooltip')).resolves.toHaveTextContent(spaceOrks.planet[0].description);
     await userEvent.keyboard('{Escape}');
     await waitFor(() => expect(page.queryByRole('tooltip')).not.toBeInTheDocument());
-    await userEvent.tab();
-    expect(giediPrime).not.toHaveFocus();
-    await userEvent.hover(giediPrime);
-    expect(page.queryByRole('tooltip')).not.toBeInTheDocument();
-    await userEvent.unhover(giediPrime);
   },
 });
 
 export const DetailWithPlanetsMobile = meta.story({
-  args: { path: '/factions/house-atreides' },
-  parameters: { database: withPlanets },
+  args: { path: '/factions/space-orks' },
+  parameters: { database: withPlanets(), identity: null },
   globals: { viewport: { value: 'appMobile' } },
 });
 
+export const DetailWithUndescribedPlanet = meta.story({
+  args: { path: '/factions/space-orks' },
+  parameters: { database: withPlanets(false), identity: null },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const planet = await page.findByRole('listitem', { name: 'Space Hulk Leviathan' });
+    await userEvent.hover(planet);
+    expect(page.queryByRole('tooltip')).not.toBeInTheDocument();
+    expect(planet).not.toHaveAccessibleDescription();
+    expect(planet.tabIndex).toBe(-1);
+    await userEvent.unhover(planet);
+  },
+});
 export const Create = meta.story({ args: { path: '/factions/create' } });
 export const Edit = meta.story({ args: { path: '/factions/house-atreides/edit' } });
 

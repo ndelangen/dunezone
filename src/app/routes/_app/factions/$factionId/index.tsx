@@ -90,6 +90,7 @@ function FactionPlanet({ planet }: { planet: NonNullable<FactionData['planet']>[
       label={description}
       disabled={!hasDescription}
       position="left"
+      middlewares={{ flip: { fallbackPlacements: ['top', 'bottom'] } }}
       multiline
       maw={280}
       withArrow
