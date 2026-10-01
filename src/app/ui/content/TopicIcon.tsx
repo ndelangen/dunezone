@@ -1,7 +1,6 @@
 import {
   BookOpen,
-  CircleDashed,
-  Gauge,
+  Zap,
   ShieldOff,
   TriangleAlert,
   Dices,
@@ -26,8 +25,7 @@ const TOPIC_ICON_DEFINITIONS = {
   audit: { kind: 'component', component: ShieldCheck },
   battle: { kind: 'mask', src: '/vector/icon/combat.svg' },
   flip: { kind: 'mask', src: '/vector/icon/flip.svg' },
-  undialed: { kind: 'component', component: CircleDashed },
-  dialed: { kind: 'component', component: Gauge },
+  strength: { kind: 'component', component: Zap },
   noncombatant: { kind: 'component', component: ShieldOff },
   combatUnknown: { kind: 'component', component: TriangleAlert },
   /* Every authoring surface opens on an Identity chapter: what a thing is called, and what it fundamentally is. */

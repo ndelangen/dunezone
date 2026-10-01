@@ -1,8 +1,16 @@
 .cards {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  display: flex;
+  flex-wrap: wrap;
   gap: var(--space-sm);
   align-items: start;
+}
+.singleCard {
+  flex: 0 1 10.5rem;
+  min-width: 0;
+}
+.doubleCard {
+  flex: 0 1 20rem;
+  min-width: 0;
 }
 .token {
   display: block;
@@ -35,7 +43,7 @@
 .cardFace {
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
+  gap: var(--space-xs);
 }
 .faceContent {
   display: flex;
@@ -43,45 +51,59 @@
   gap: 3px;
   min-width: 0;
 }
+.pairedFaces {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+  gap: 20px;
+}
+.singleFace {
+  display: flex;
+}
+.faceSlot {
+  position: relative;
+  min-width: 0;
+}
+.flipDivider {
+  position: absolute;
+  left: -18px;
+  top: 0;
+  bottom: 0;
+  width: 16px;
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  gap: 3px;
+}
+.flipDivider::before,
+.flipDivider::after {
+  content: "";
+  flex: 1;
+  width: 1px;
+  background: var(--panel-border);
+  min-height: 8px;
+}
 .strip {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-start;
-  gap: var(--space-sm);
+  gap: var(--space-md);
 }
 .stripTroop {
   flex: 1 1 auto;
   display: flex;
   flex-direction: column;
   gap: var(--space-xs);
-  padding-inline: var(--space-sm);
-}
-.stripTroop + .stripTroop {
-  border-inline-start: 1px solid var(--panel-border);
 }
 .comparison {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: var(--space-xs);
 }
 .comparisonRow {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) repeat(4, 2.75rem);
+  grid-template-columns: minmax(7rem, 0.4fr) minmax(0, 1fr);
   align-items: center;
-  gap: var(--space-xs);
-  font-size: var(--mantine-font-size-sm);
-  min-height: 1.25rem;
-}
-.comparisonRow > span {
-  display: flex;
-  justify-content: center;
-}
-.comparisonRow .token {
-  width: 2rem;
-  height: 2rem;
-}
-.comparisonRow .noValues {
-  grid-column: span 3;
+  gap: var(--space-sm);
 }
 .switcher {
   position: fixed;
@@ -92,20 +114,16 @@
   width: max-content;
   max-width: calc(100vw - 2rem);
 }
-@container (width < 50rem) {
-  .cards {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
 @container (width < 35rem) {
-  .cards {
-    grid-template-columns: minmax(0, 1fr);
+  .singleCard,
+  .doubleCard {
+    flex-basis: 100%;
   }
   .comparisonRow {
-    grid-template-columns: minmax(0, 1fr) repeat(4, 1.6rem);
-    gap: 3px;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
   }
-  .strip {
-    row-gap: var(--space-md);
+  .comparison {
+    gap: var(--space-sm);
   }
 }

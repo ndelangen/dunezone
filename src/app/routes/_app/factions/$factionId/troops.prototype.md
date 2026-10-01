@@ -29,3 +29,11 @@ All three revised layouts were viewed at 1280px and 390px, with no page overflow
 Base decision: fetched main on 2026-10-01 and inspected the changes since the prototype base. They only concern CI selection and its documentation. Kept the established prototype base at 78283a2a9ff to continue this visual comparison, following the user's instruction to judge the impact of unrelated concurrent work.
 
 Missing combat values use the same TriangleAlert glyph as ValidationHeader, in the caution colour. The question-mark glyph remains reserved for explanatory help.
+
+## Paired-face revision
+
+The user requested one strength glyph followed by an undialed | dialed value pair. The prototype now uses the mapped strength glyph and removes the separate dialed and undialed entries. The tooltip names both values.
+
+An authored reverse face sits to the right of its front inside the same panel. A vertical divider separates the faces, with the mapped flip glyph in the middle of the divider. Counts remain shared. All three variants use this arrangement.
+
+Fresh main changes through 3c3353181a4 concern CI and Play drafting, not this page or the icon mapping. Continued on the preserved prototype base.

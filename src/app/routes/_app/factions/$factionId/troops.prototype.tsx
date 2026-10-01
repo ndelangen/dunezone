@@ -119,13 +119,11 @@ function Values({ face }: { face: Face }) {
     );
   return (
     <>
-      <Hint label={`Undialed strength: ${face.combat.strength} per troop`}>
-        <TopicIcon topic="undialed" size={15} />
-        <b>{face.combat.strength}</b>
-      </Hint>
-      <Hint label={`Dialed strength: ${face.combat.fundedStrength} per troop`}>
-        <TopicIcon topic="dialed" size={15} />
-        <b>{face.combat.fundedStrength}</b>
+      <Hint label={`Strength per troop: ${face.combat.strength} undialed | ${face.combat.fundedStrength} dialed`}>
+        <TopicIcon topic="strength" size={15} />
+        <b>
+          {face.combat.strength} <span aria-hidden>|</span> {face.combat.fundedStrength}
+        </b>
       </Hint>
       <Hint label={`Funding cost: ${face.combat.fundingCost} spice per dialed troop`}>
         <TopicIcon topic="spice" size={15} />
@@ -145,11 +143,46 @@ function Count({ count }: { count: number }) {
   );
 }
 
+function PairedFaces({ data, troop }: { data: FactionData; troop: Troop }) {
+  const faces = troopCombatFaces([troop]);
+  return (
+    <div className={troop.back ? styles.pairedFaces : styles.singleFace}>
+      {faces.map((face, index) => (
+        <div className={styles.faceSlot} key={face.id}>
+          {index > 0 ? (
+            <div className={styles.flipDivider}>
+              <Hint label={`Flip side: ${face.face.name}`}>
+                <TopicIcon topic="flip" size={16} />
+              </Hint>
+            </div>
+          ) : null}
+          <div className={styles.cardFace}>
+            <Art data={data} face={face} />
+            <div className={styles.faceContent}>
+              {face.side === 'back' ? <Text size="xs">{face.face.name}</Text> : null}
+              <Group gap={6} wrap="wrap">
+                <Eligibility face={face} />
+                <Values face={face} />
+              </Group>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function VariantA({ data, troops }: Props) {
   return (
     <div className={styles.cards}>
       {troops.map((troop, i) => (
-        <Surface as="article" aria-label={troop.name} padding="sm" key={i}>
+        <Surface
+          as="article"
+          aria-label={troop.name}
+          padding="sm"
+          className={troop.back ? styles.doubleCard : styles.singleCard}
+          key={i}
+        >
           <Stack gap={6}>
             <Group justify="space-between" gap={6}>
               <Text fw={700} size="sm">
@@ -157,23 +190,7 @@ export function VariantA({ data, troops }: Props) {
               </Text>
               <Count count={troop.count} />
             </Group>
-            {troopCombatFaces([troop]).map((face) => (
-              <div className={styles.cardFace} key={face.id}>
-                <Art data={data} face={face} />
-                <div className={styles.faceContent}>
-                  {face.side === 'back' ? (
-                    <Group gap={4}>
-                      <TopicIcon topic="flip" size={12} />
-                      <Text size="xs">{face.face.name}</Text>
-                    </Group>
-                  ) : null}
-                  <Group gap="sm" wrap="nowrap">
-                    <Eligibility face={face} />
-                    <Values face={face} />
-                  </Group>
-                </div>
-              </div>
-            ))}
+            <PairedFaces data={data} troop={troop} />
           </Stack>
         </Surface>
       ))}
@@ -187,30 +204,13 @@ export function VariantB({ data, troops }: Props) {
       <div className={styles.strip}>
         {troops.map((troop, i) => (
           <div className={styles.stripTroop} key={i}>
-            <Group gap={6} justify="center">
+            <Group gap={6}>
               <Text fw={700} size="sm">
                 {troop.name}
               </Text>
               <Count count={troop.count} />
             </Group>
-            <Group gap="md" justify="center" align="flex-start" wrap="nowrap">
-              {troopCombatFaces([troop]).map((face) => (
-                <Stack gap={5} align="center" key={face.id}>
-                  <Group gap={5} wrap="nowrap">
-                    <Art data={data} face={face} />
-                    <Eligibility face={face} />
-                  </Group>
-                  <Group gap="sm" wrap="nowrap">
-                    <Values face={face} />
-                  </Group>
-                  {face.side === 'back' ? (
-                    <Hint label={`Reverse side: ${face.face.name}`}>
-                      <TopicIcon topic="flip" size={13} />
-                    </Hint>
-                  ) : null}
-                </Stack>
-              ))}
-            </Group>
+            <PairedFaces data={data} troop={troop} />
           </div>
         ))}
       </div>
@@ -221,71 +221,16 @@ export function VariantB({ data, troops }: Props) {
 export function VariantC({ data, troops }: Props) {
   return (
     <Surface padding="sm">
-      <div className={styles.comparison} role="table" aria-label="Troop combat comparison">
-        <div className={styles.comparisonRow} role="row">
-          <span />
-          <span role="columnheader">
-            <Hint label="Combat eligibility">
-              <TopicIcon topic="battle" size={15} />
-            </Hint>
-          </span>
-          <span role="columnheader">
-            <Hint label="Undialed strength per troop">
-              <TopicIcon topic="undialed" size={15} />
-            </Hint>
-          </span>
-          <span role="columnheader">
-            <Hint label="Dialed strength per troop">
-              <TopicIcon topic="dialed" size={15} />
-            </Hint>
-          </span>
-          <span role="columnheader">
-            <Hint label="Spice per dialed troop">
-              <TopicIcon topic="spice" size={15} />
-            </Hint>
-          </span>
-        </div>
-        {troopCombatFaces(troops).map((face) => (
-          <div className={styles.comparisonRow} role="row" key={face.id}>
-            <Group gap="xs" wrap="nowrap" role="cell">
-              <Art data={data} face={face} />
-              <Text size="sm" fw={face.side === 'front' ? 700 : 400}>
-                {face.face.name}
+      <div className={styles.comparison}>
+        {troops.map((troop, i) => (
+          <div className={styles.comparisonRow} key={i}>
+            <Group gap={6}>
+              <Text fw={700} size="sm">
+                {troop.name}
               </Text>
-              {face.side === 'front' ? (
-                <Count count={troops[face.troopIndex].count} />
-              ) : (
-                <Hint label={`Reverse of ${troops[face.troopIndex].name}`}>
-                  <TopicIcon topic="flip" size={13} />
-                </Hint>
-              )}
+              <Count count={troop.count} />
             </Group>
-            <span role="cell">
-              <Eligibility face={face} />
-            </span>
-            {face.capable && face.combat ? (
-              <>
-                <span role="cell">
-                  <Hint label={`Undialed strength: ${face.combat.strength}`}>
-                    <b>{face.combat.strength}</b>
-                  </Hint>
-                </span>
-                <span role="cell">
-                  <Hint label={`Dialed strength: ${face.combat.fundedStrength}`}>
-                    <b>{face.combat.fundedStrength}</b>
-                  </Hint>
-                </span>
-                <span role="cell">
-                  <Hint label={`Funding cost: ${face.combat.fundingCost} spice`}>
-                    <b>{face.combat.fundingCost}</b>
-                  </Hint>
-                </span>
-              </>
-            ) : (
-              <span role="cell" className={styles.noValues}>
-                {face.capable ? <Values face={face} /> : null}
-              </span>
-            )}
+            <PairedFaces data={data} troop={troop} />
           </div>
         ))}
       </div>
