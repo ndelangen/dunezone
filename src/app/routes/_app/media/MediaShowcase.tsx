@@ -22,7 +22,14 @@ const initial = { decal: 0, leader: 117, paused: false };
 type ShowcaseEvent = { type: 'pause' } | { type: 'advance'; decal: number; leader: number };
 
 function nextIndex(current: number, length: number) {
-  return (current + 1 + Math.floor((crypto.getRandomValues(new Uint32Array(1))[0]! / 2 ** 32) * (length - 1))) % length;
+  const choices = length - 1;
+  const limit = 2 ** 32 - (2 ** 32 % choices);
+  let sample: number;
+  do {
+    sample = crypto.getRandomValues(new Uint32Array(1))[0]!;
+  } while (sample >= limit);
+  const index = sample % choices;
+  return index >= current ? index + 1 : index;
 }
 
 function preload(src: string) {
