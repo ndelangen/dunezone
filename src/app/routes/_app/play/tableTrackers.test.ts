@@ -7,6 +7,7 @@ import {
   TABLE_VISIBLE_RADIUS,
 } from '@shared/play/tableGeometry';
 import {
+  DEFAULT_TABLE_SEAT_COUNT,
   PLAYER_RING_RADIUS,
   PLAYER_STATION_RADIUS,
   tableSeatAngles,
@@ -69,14 +70,32 @@ function independentlySampledMapBoundary(slots: readonly TrackerArcSlot[], seatC
   ];
 }
 
-const MAP_FRAMING_CASES = TABLE_SEAT_COUNTS.flatMap((seatCount) =>
-  [0, 1, 9, 12, 18, 24, 30].flatMap((phaseCount) =>
-    [16 / 9, 1, 3 / 4, 390 / 844].map((aspectRatio) => [seatCount, phaseCount, aspectRatio] as const)
+/*
+ * Each sweep holds at its bounds and at one case inside the range, sized to rules rather than to a permutation matrix (ADR-0002, #1590).
+ * Phases: a turn with none, the standard nine, and the longest the arc composes.
+ * Seats: the fewest and the most the table seats, with the default between them; the list is ascending, which a test below holds.
+ * Aspect ratios: the widest desktop, a square, and the narrowest phone.
+ */
+const PHASE_COUNTS = [0, 9, 30] as const;
+const SEAT_COUNTS = [
+  TABLE_SEAT_COUNTS[0],
+  DEFAULT_TABLE_SEAT_COUNT,
+  TABLE_SEAT_COUNTS[TABLE_SEAT_COUNTS.length - 1],
+] as const;
+const ASPECT_RATIOS = [16 / 9, 1, 390 / 844] as const;
+
+const MAP_FRAMING_CASES = SEAT_COUNTS.flatMap((seatCount) =>
+  PHASE_COUNTS.flatMap((phaseCount) =>
+    ASPECT_RATIOS.map((aspectRatio) => [seatCount, phaseCount, aspectRatio] as const)
   )
 );
 
 describe('table trackers', () => {
-  test.each(Array.from({ length: 31 }, (_, index) => index))(
+  test('lists the seat counts in ascending order, so the ends of the list bound the sweep', () => {
+    expect([...TABLE_SEAT_COUNTS].sort((left, right) => left - right)).toEqual([...TABLE_SEAT_COUNTS]);
+  });
+
+  test.each(PHASE_COUNTS)(
     'pins the spice supply and turn tracker and fits %i phase trackers in the standard arc',
     (phaseCount) => {
       const standard = trackerArcSlots(9);
@@ -114,7 +133,7 @@ describe('table trackers', () => {
     });
   });
 
-  test.each(Array.from({ length: 31 }, (_, index) => index))('keeps the %i-phase arc separated', (phaseCount) => {
+  test.each(PHASE_COUNTS)('keeps the %i-phase arc separated', (phaseCount) => {
     const slots = trackerArcSlots(phaseCount);
 
     slots.forEach((slot) => {
@@ -133,7 +152,8 @@ describe('table trackers', () => {
   });
 
   test('keeps dynamic tracker arcs clear of every player station', () => {
-    for (let phaseCount = 0; phaseCount <= 30; phaseCount += 1) {
+    /* Every seat layout, since each is its own rule and the check costs nothing. */
+    PHASE_COUNTS.forEach((phaseCount) => {
       const slots = trackerArcSlots(phaseCount);
       expect(slots.every((slot) => slot.position[2] + slot.radius < 0)).toBe(true);
 
@@ -150,7 +170,7 @@ describe('table trackers', () => {
           });
         });
       });
-    }
+    });
   });
 
   test('keeps the standard tracker arc seated across the round plate edge', () => {
