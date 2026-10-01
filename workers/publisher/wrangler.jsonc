@@ -34,10 +34,13 @@
       "/__user-images",
       "/__user-images/*",
       "/__play",
-      "/__play/*"
+      "/__play/*",
+      "/__alerts",
+      "/__alerts/*"
     ]
   },
   "browser": { "binding": "BROWSER" },
+  "send_email": [{ "name": "ALERT_EMAIL" }],
   "images": { "binding": "IMAGES" },
   "version_metadata": { "binding": "CF_VERSION_METADATA" },
   "services": [{ "binding": "GAME_SERVICE", "service": "dunezone-game" }],

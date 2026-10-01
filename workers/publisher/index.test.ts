@@ -207,6 +207,22 @@ describe('publisher Worker Publication flow', () => {
     expect(currentEnv.ASSETS.fetch).not.toHaveBeenCalled();
   });
 
+  test('answers the alert webhook path itself until the relay is configured', async () => {
+    const currentEnv = publisherEnv();
+    for (const path of ['/__alerts/issues', '/__alerts/unknown']) {
+      const response = await publisherWorker.fetch(
+        new Request(`https://dune.zone${path}`, { method: 'POST' }),
+        currentEnv,
+        {
+          waitUntil: vi.fn(),
+        } as unknown as ExecutionContext
+      );
+      expect(response.status).toBe(404);
+      expect(response.headers.get('Cache-Control')).toBe('no-store');
+    }
+    expect(currentEnv.ASSETS.fetch).not.toHaveBeenCalled();
+  });
+
   test('health reports one current Renderer identity and deployment SHA', async () => {
     const response = await publisherWorker.fetch(
       new Request('https://publisher.example.com/__asset-publisher/health'),
