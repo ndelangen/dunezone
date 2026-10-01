@@ -855,11 +855,17 @@ export class TableSession {
       this.seatCommandInFlight = commandId;
     } else if (action.kind === 'spawn-request') {
       this.captureInFlight = commandId;
-    } else if (action.kind === 'traitors-gather') {
+    } else if (action.kind === 'traitors-gather' && this.traitorGatherInFlight === null && this.tabletopTraitors()) {
+      /* A second click before the first settles is refused for its stale revision, so the first gather is the one to follow; with no Traitor left on the table there is no pile to look at. */
       this.traitorGatherInFlight = commandId;
     }
     this.emit();
   };
+  private tabletopTraitors() {
+    return this.snapshot.table.pieces.some(
+      (piece) => piece.kind === 'card' && piece.stackKey === 'cards:traitor' && !piece.inventory
+    );
+  }
   private target(id?: string) {
     return id ?? this.hoveredId ?? this.selectedId;
   }

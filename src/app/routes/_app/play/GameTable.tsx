@@ -515,12 +515,14 @@ export function GameTable({
 
   /* A request already standing when the table mounts was answered by an earlier mount, so only a later revision moves the camera. */
   const answeredRevision = useRef(requestedView?.revision);
+  const requestedRevision = requestedView?.revision;
+  const requestedTableView = requestedView?.view;
   useEffect(() => {
-    if (requestedView && requestedView.revision !== answeredRevision.current) {
-      answeredRevision.current = requestedView.revision;
-      dispatchView({ type: 'view.selected', view: requestedView.view });
+    if (requestedTableView && requestedRevision !== answeredRevision.current) {
+      answeredRevision.current = requestedRevision;
+      dispatchView({ type: 'view.selected', view: requestedTableView });
     }
-  }, [requestedView]);
+  }, [requestedRevision, requestedTableView]);
 
   const handleInteractionActiveChange = useCallback((active: boolean) => {
     dispatchView({ type: 'interaction.changed', active });
