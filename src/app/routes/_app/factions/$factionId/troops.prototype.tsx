@@ -100,9 +100,10 @@ function Art({ data, face }: { data: FactionData; face: Face }) {
 }
 
 function Eligibility({ face }: { face: Face }) {
+  if (face.capable) return null;
   return (
-    <Hint label={face.capable ? 'Can participate in combat' : 'Cannot participate in combat'}>
-      {face.capable ? <TopicIcon topic="battle" size={15} /> : <TopicIcon topic="noncombatant" size={15} />}
+    <Hint label="Cannot participate in combat">
+      <TopicIcon topic="noncombatant" size={15} />
     </Hint>
   );
 }
@@ -159,8 +160,13 @@ function PairedFaces({ data, troop }: { data: FactionData; troop: Troop }) {
           <div className={styles.cardFace}>
             <Art data={data} face={face} />
             <div className={styles.faceContent}>
-              {face.side === 'back' ? <Text size="xs">{face.face.name}</Text> : null}
-              <Group gap={6} wrap="wrap">
+              <Group gap={6} wrap="nowrap">
+                <Text size="sm" fw={700} lh={1.2}>
+                  {face.face.name}
+                </Text>
+                {face.side === 'front' ? <Count count={troop.count} /> : null}
+              </Group>
+              <Group gap={6} wrap="nowrap">
                 <Eligibility face={face} />
                 <Values face={face} />
               </Group>
@@ -183,15 +189,7 @@ export function VariantA({ data, troops }: Props) {
           className={troop.back ? styles.doubleCard : styles.singleCard}
           key={i}
         >
-          <Stack gap={6}>
-            <Group justify="space-between" gap={6}>
-              <Text fw={700} size="sm">
-                {troop.name}
-              </Text>
-              <Count count={troop.count} />
-            </Group>
-            <PairedFaces data={data} troop={troop} />
-          </Stack>
+          <PairedFaces data={data} troop={troop} />
         </Surface>
       ))}
     </div>
@@ -204,12 +202,6 @@ export function VariantB({ data, troops }: Props) {
       <div className={styles.strip}>
         {troops.map((troop, i) => (
           <div className={styles.stripTroop} key={i}>
-            <Group gap={6}>
-              <Text fw={700} size="sm">
-                {troop.name}
-              </Text>
-              <Count count={troop.count} />
-            </Group>
             <PairedFaces data={data} troop={troop} />
           </div>
         ))}
@@ -224,12 +216,6 @@ export function VariantC({ data, troops }: Props) {
       <div className={styles.comparison}>
         {troops.map((troop, i) => (
           <div className={styles.comparisonRow} key={i}>
-            <Group gap={6}>
-              <Text fw={700} size="sm">
-                {troop.name}
-              </Text>
-              <Count count={troop.count} />
-            </Group>
             <PairedFaces data={data} troop={troop} />
           </div>
         ))}
