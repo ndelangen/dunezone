@@ -407,8 +407,8 @@ before it finished green, in which case it stops at its own gate.
 
 Every push deploy runs `wrangler deploy --strict` for `dunezone-game`. When the Worker was last
 changed outside wrangler (adding a secret or variable in the dashboard creates a new version),
-wrangler compares the checked-in config with that version and, under `--strict` in CI, aborts on any
-change to it. `GIT_SHA` always changes, so every deploy fails at "Deploy exact game Worker release"
+wrangler compares the checked-in config with that version and, under `--strict` in CI, aborts when the
+checked-in config modifies or removes anything in it; an added field alone does not abort. `GIT_SHA` always changes, so every deploy fails at "Deploy exact game Worker release"
 until one deploy replaces the dashboard version. Both Workers keep serving the last good release
 meanwhile, but `Deploy Convex` and its migrations run before that step, so Convex is already on the
 new commit: recover promptly. This happened on 2026-10-01: setting `ALERT_EMAIL_TO` in the

@@ -69,8 +69,9 @@ Play is healthy for release when all of these hold:
    a merged badge (`docs/technical/operational-traps.md:143-158`).
 6. `ci_ok` passed with the three `hosted_play` shards and `hosted_play_webgpu` on the merged change
    (`docs/deployment.md:171-211`).
-7. No sustained `game-operation-failed` stream for the new `gitSha` in the game Worker's logs. No
-   alert watches this yet (section 3), so it is read by hand after a deploy.
+7. No sustained `game-operation-failed` stream for the new `gitSha` in the game Worker's logs. The
+   Worker-error alert (section 3) emails when an issue appears; read the logs after a deploy anyway,
+   since one email covers ten minutes.
 
 ## 3. Alert routing
 
@@ -85,12 +86,6 @@ Live since 2026-10-01:
   dune.zone zone: Cloudflare's alert when Cloudflare cannot reach an origin. A test notification
   reached `alerting@dune.zone`. dune.zone is served by Workers, so this alert does not fire on
   Worker exceptions and covers little of Play.
-
-Email Routing owns the zone's mail records: MX `route1/2/3.mx.cloudflare.net`, SPF
-`include:_spf.mx.cloudflare.net` and DKIM at `cf2024-1._domainkey`. The catch-all rule stays Drop,
-so only addresses created on purpose receive mail.
-
-Partly set up:
 
 - **Worker errors, through the alert relay.** Workers Issues captures uncaught exceptions, failed
   invocations, 5xx responses and `console.error` output, including `game-operation-failed`, but
@@ -127,7 +122,9 @@ Partly set up:
   alert inbox within a minute mean the publisher forwarding, the game Worker route, the secret and
   the Email Routing binding all work. A `404` means `ALERT_EMAIL_TO` is unset. A second call
   within ten minutes from the same location answers `202` without an email, which is the interval
-  guard, not a failure. Look for `alert-email-failed` in the game Worker's logs when no email
+  guard, not a failure; it also means a real issue in that window sends no email, so test when
+  nothing is being watched. A `429` is the publisher's per-IP limit on `/__play` requests; retry
+  after ten seconds. Look for `alert-email-failed` in the game Worker's logs when no email
   arrives after a `202`. The automation itself can only be tested by a real issue.
 
   State (2026-10-01): `ALERT_EMAIL_TO` is set on `dunezone-game`, and detection is on since
@@ -137,6 +134,10 @@ Partly set up:
   above, with no webhook secret.
 - **Health Checks** against `/__play/health`. They need the Pro plan, and Norbert decided not to
   upgrade. The deploy smoke still reads that endpoint (section 2).
+
+Email Routing owns the zone's mail records: MX `route1/2/3.mx.cloudflare.net`, SPF
+`include:_spf.mx.cloudflare.net` and DKIM at `cf2024-1._domainkey`. The catch-all rule stays Drop,
+so only addresses created on purpose receive mail.
 
 When an alert arrives, start from the matching case in section 4.
 
@@ -212,7 +213,7 @@ First checks: `asset_publisher_cron` events with `result = failed`
 (`docs/deployment.md:101-121`). Open `/__jobs` as an administrator for the pickup switch and error
 jobs (`docs/deployment.md:384-398`).
 
-Recovery: follow "Post-deploy observation" (`docs/deployment.md:488-504`). The Cron does not retry a
+Recovery: follow "Post-deploy observation" (`docs/deployment.md`). The Cron does not retry a
 failed invocation (`workers/publisher/index.ts:143`); the next one runs five minutes later. Turning
 pickup off at `/__jobs` stops new leases but not leased work. Play depends on published faction and
 deck assets: a real game refuses a faction until its faces are published and sets it aside with the
@@ -263,8 +264,6 @@ stops any run whose commit is older than what production reports
 
 ## 5. Known gaps
 
-- Until issue detection is deployed and the Issues automation exists (section 3), no alert covers
-  game Worker errors.
 - Only the game Worker has issue detection. The publisher would need its own setting and
   automation.
 - The relay runs in the game Worker behind the publisher, so an outage of either silences Worker
@@ -276,7 +275,7 @@ stops any run whose commit is older than what production reports
 - No saved Workers Logs query or dashboard is checked into the repository; the filters above are
   described, not stored. Log retention for either Worker is not stated in the repository.
 - `/__play/health` is static and says nothing about Durable Objects, SQLite or Convex reachability.
-- No Play step in the post-deploy "Application smoke test" (`docs/deployment.md:506-514`), and no
+- No Play step in the post-deploy "Application smoke test" (`docs/deployment.md`), and no
   production synthetic game: real-game checks run only on isolated backends.
 - The deletion backlog has no metric, count query or log line; it is visible only by reading the
   table.
