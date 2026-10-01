@@ -49,7 +49,11 @@ export async function verifyPublicControls({
   passed,
   origin,
 }) {
-  /* Player B plays to Turn 1 and then gives up the seat, so player A holds the table alone until B asks for it back. */
+  /*
+   * Player B takes the other seat and gives it up at Turn 1, so player A holds the table alone until B asks for it back.
+   * A game provisioned at Turn 1 (#1594) offers that seat open by name.
+   * Any other game seats B in drafting and is played to Turn 1 by hand.
+   */
   const a = await account('player-a');
   await createGame(a);
   const b = await account('player-b');

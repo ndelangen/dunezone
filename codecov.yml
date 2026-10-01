@@ -5,12 +5,14 @@
 
 codecov:
   notify:
-    # unit + publisher + e2e + storybook. Known tradeoff with the
-    # fail_ci_if_error: false upload steps: if one upload silently fails,
-    # the PR comment for that push is silently withheld (statuses still
-    # post per upload; the next push retries). Accepted over the
-    # alternatives, partial-data comments or upload failures breaking CI.
-    after_n_builds: 4
+    # One coverage upload per job that collects coverage: unit, publisher,
+    # game, four storybook shards and three e2e shards (#1588). Known
+    # tradeoff with the fail_ci_if_error: false upload steps: if one upload
+    # silently fails, the PR comment for that push is silently withheld
+    # (statuses still post per upload; the next push retries). Accepted
+    # over the alternatives, partial-data comments or upload failures
+    # breaking CI.
+    after_n_builds: 10
 
 coverage:
   status:
@@ -27,13 +29,15 @@ flags:
     carryforward: true
   publisher:
     carryforward: true
+  game:
+    carryforward: true
   e2e:
     carryforward: true
   storybook:
     carryforward: true
 
 comment:
-  after_n_builds: 4
+  after_n_builds: 10
   layout: "diff, flags, files"
   # Bundle section: list only categories that actually changed, so the
   # per-category split (app/images/vectors/objs/pages/fonts) surfaces real

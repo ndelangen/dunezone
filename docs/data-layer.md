@@ -74,7 +74,7 @@ export async function loadFactionCataloguePage(): Promise<FactionCataloguePageDa
 export function useFactionCataloguePage(options?: { initialData?: FactionCataloguePageData }) {
   const liveData = useQuery(api.factions.cataloguePage, {});
   const normalized = liveData ? toFactionCataloguePageData(liveData) : undefined;
-  return toLiveQueryResult(normalized, true, () => options?.initialData);
+  return toLiveQueryResult(normalized, () => options?.initialData);
 }
 ```
 

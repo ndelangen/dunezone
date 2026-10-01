@@ -2,7 +2,7 @@
 .card {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: var(--space-md);
   overflow: hidden;
 }
 
@@ -15,4 +15,10 @@
 
   /* A rail card meets unbreakable names (a ruleset called after its expansion, a group named in one word); wrapping anywhere beats clipping at the pane border, the same call the asset title made. */
   overflow-wrap: anywhere;
+}
+
+.link {
+  color: inherit;
+  text-decoration: none;
+  overflow: visible;
 }

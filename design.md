@@ -13,7 +13,8 @@ decision log in [`docs/technical/ui-design-decisions.md`](docs/technical/ui-desi
 - Glass surfaces with subtle blur on interactive containers.
 - Strong `2px` borders as a primary visual motif.
 - Controls should stand out clearly over glass surfaces with strong contrast.
-- Warm sand palette aligned with `public/web/page.jpg` and `public/web/head.png`.
+- Warm sand palette aligned with `media/web/page.jpg` and `media/web/head.png`, which
+  `bun run generate:images` publishes under `public/web/`.
 - Icon-only action controls as the default, with clear tooltip labels.
 
 ## Design tokens
@@ -31,8 +32,8 @@ Global tokens live in `src/app/styles/tokens.css` and are imported by `src/app/r
 
 ### Button semantics
 
-- `Toggle` (`--button-toggle-*`): the only button family a component reads. Its one reader is `SortableDnd`'s reorder handle, which takes the background, hover background and foreground. No `aria-pressed` control reads it, and `--button-toggle-active-bg` has no reader at all; it is kept because a real toggle would need it, not because something paints with it today.
-- `--button-neutral-*` still exists, but it is not a family to reach for: it is where `--button-toggle-*` gets its light and dark values from, and the dark block redefines neutral rather than toggle.
+- `Toggle` (`--button-toggle-*`): the selection family, and the only button family a component reads. The theme in `src/app/ui/theme.ts` resolves `color="selected"` to it for buttons, checkboxes, radios and switches, so a control says `selected` and never names these tokens; `--button-toggle-active-bg` is the selected fill, and `--selection-border` takes its ink from `--button-toggle-fg`. A stylesheet reads the family directly only where no Mantine control stands in between: `SortableDnd`'s reorder handle, the background composer's selected mark and the rulebook reader's page links.
+- `--button-neutral-*` still exists, but it is not a family to reach for: it is where `--button-toggle-*` and `--action-neutral-*` take their light and dark values from, and the dark block redefines neutral and then re-derives toggle from it.
 
 A button's intent is said with a variant word rather than a colour family; see the variant language in `docs/technical/ui-design-decisions.md`. The `Confirm`, `Add`, `Danger` and disabled families this section used to list were removed once nothing read them.
 
@@ -59,11 +60,12 @@ A button's intent is said with a variant word rather than a colour family; see t
 
 ## Controls
 
-Controls come from `src/ui/control` and from Mantine under `appContentTheme`; the home-grown
-`components/form` layer they replaced is gone. `ControlBlock` carries label, hint, and error
-semantics; `IconAction` carries an icon-only action and its accessible name; `CallToAction` carries
-the forward-moving primary. Reach for Mantine's `TextInput`, `Textarea`, `Select`, and `ColorInput`
-directly rather than wrapping them; they are storied under our theme, filed by kind.
+Controls come from `src/app/ui/control` (`@ui/control`) and from Mantine under `appContentTheme`;
+the home-grown `components/form` layer they replaced is gone. `ControlBlock` carries label, hint,
+and error semantics; `IconAction` carries an icon-only action and its accessible name;
+`CallToAction` carries the forward-moving primary. Reach for Mantine's `TextInput`, `Textarea`,
+`Select`, and `ColorInput` directly rather than wrapping them; they are storied under our theme,
+filed by kind.
 
 The aesthetic those controls must keep:
 
@@ -106,7 +108,7 @@ modules; the shared `formRow` / `arrayCardGrid` / `formRowActions` classes it on
 
 ## Checklist for a new page
 
-1. Source controls from `src/ui/control` and Mantine; add nothing that merely renames a Mantine
+1. Source controls from `@ui/control` and Mantine; add nothing that merely renames a Mantine
    component. If a concern repeats and no kit component owns it, extract to the right category first.
 2. Reuse the tokens below before introducing a literal.
 3. Give every icon-only action an accessible name (`IconAction`'s `label` is both).

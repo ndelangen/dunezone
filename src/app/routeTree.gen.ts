@@ -14,6 +14,8 @@ import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppSplatRouteRouteImport } from './routes/_app/$.route'
 import { Route as App_iconsRouteRouteImport } from './routes/_app/[_]_icons.route'
 import { Route as App_jobsRouteRouteImport } from './routes/_app/[_]_jobs.route'
+import { Route as App_mediaRouteRouteImport } from './routes/_app/[_]_media.route'
+import { Route as AppMediaRouteRouteImport } from './routes/_app/media/route'
 import { Route as AppPlayRouteRouteImport } from './routes/_app/play/route'
 import { Route as AuthOauthRouteRouteImport } from './routes/auth/oauth.route'
 import { Route as AppAdminMigrationsRouteRouteImport } from './routes/_app/admin/migrations.route'
@@ -26,6 +28,7 @@ import { Route as AppFactionsIndexRouteImport } from './routes/_app/factions/ind
 import { Route as AppFactionsCreateRouteRouteImport } from './routes/_app/factions/create.route'
 import { Route as AppFuturePlansIndexRouteImport } from './routes/_app/future-plans/index'
 import { Route as AppGroupsCreateRouteRouteImport } from './routes/_app/groups/create.route'
+import { Route as AppMediaSourceRouteRouteImport } from './routes/_app/media/$source/route'
 import { Route as AppPlayIndexRouteImport } from './routes/_app/play/index'
 import { Route as AppPlayGameIdRouteRouteImport } from './routes/_app/play/$gameId.route'
 import { Route as AppPlayCreateRouteRouteImport } from './routes/_app/play/create.route'
@@ -39,6 +42,7 @@ import { Route as AppFactionsFactionIdIndexRouteImport } from './routes/_app/fac
 import { Route as AppFactionsFactionIdEditRouteRouteImport } from './routes/_app/factions/$factionId/edit.route'
 import { Route as AppGroupsGroupSlugIndexRouteImport } from './routes/_app/groups/$groupSlug/index'
 import { Route as AppGroupsGroupSlugEditRouteRouteImport } from './routes/_app/groups/$groupSlug/edit.route'
+import { Route as AppMediaSourceKindRouteRouteImport } from './routes/_app/media/$source/$kind.route'
 import { Route as AppProfilesProfileSlugIndexRouteImport } from './routes/_app/profiles/$profileSlug/index'
 import { Route as AppProfilesProfileSlugDeleteRouteRouteImport } from './routes/_app/profiles/$profileSlug/delete.route'
 import { Route as AppProfilesProfileSlugEditRouteRouteImport } from './routes/_app/profiles/$profileSlug/edit.route'
@@ -76,6 +80,16 @@ const App_iconsRouteRoute = App_iconsRouteRouteImport.update({
 const App_jobsRouteRoute = App_jobsRouteRouteImport.update({
   id: '/__jobs',
   path: '/__jobs',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const App_mediaRouteRoute = App_mediaRouteRouteImport.update({
+  id: '/__media',
+  path: '/__media',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AppMediaRouteRoute = AppMediaRouteRouteImport.update({
+  id: '/media',
+  path: '/media',
   getParentRoute: () => AppRouteRoute,
 } as any)
 const AppPlayRouteRoute = AppPlayRouteRouteImport.update({
@@ -137,6 +151,11 @@ const AppGroupsCreateRouteRoute = AppGroupsCreateRouteRouteImport.update({
   id: '/groups/create',
   path: '/groups/create',
   getParentRoute: () => AppRouteRoute,
+} as any)
+const AppMediaSourceRouteRoute = AppMediaSourceRouteRouteImport.update({
+  id: '/$source',
+  path: '/$source',
+  getParentRoute: () => AppMediaRouteRoute,
 } as any)
 const AppPlayIndexRoute = AppPlayIndexRouteImport.update({
   id: '/',
@@ -207,6 +226,11 @@ const AppGroupsGroupSlugEditRouteRoute =
     path: '/groups/$groupSlug/edit',
     getParentRoute: () => AppRouteRoute,
   } as any)
+const AppMediaSourceKindRouteRoute = AppMediaSourceKindRouteRouteImport.update({
+  id: '/$kind',
+  path: '/$kind',
+  getParentRoute: () => AppMediaSourceRouteRoute,
+} as any)
 const AppProfilesProfileSlugIndexRoute =
   AppProfilesProfileSlugIndexRouteImport.update({
     id: '/profiles/$profileSlug/',
@@ -296,6 +320,8 @@ export interface FileRoutesByFullPath {
   '/$': typeof AppSplatRouteRoute
   '/__icons': typeof App_iconsRouteRoute
   '/__jobs': typeof App_jobsRouteRoute
+  '/__media': typeof App_mediaRouteRoute
+  '/media': typeof AppMediaRouteRouteWithChildren
   '/play': typeof AppPlayRouteRouteWithChildren
   '/auth/oauth': typeof AuthOauthRouteRoute
   '/admin/migrations': typeof AppAdminMigrationsRouteRoute
@@ -304,6 +330,7 @@ export interface FileRoutesByFullPath {
   '/auth/login': typeof AppAuthLoginRouteRoute
   '/factions/create': typeof AppFactionsCreateRouteRoute
   '/groups/create': typeof AppGroupsCreateRouteRoute
+  '/media/$source': typeof AppMediaSourceRouteRouteWithChildren
   '/play/$gameId': typeof AppPlayGameIdRouteRoute
   '/play/create': typeof AppPlayCreateRouteRoute
   '/rulesets/create': typeof AppRulesetsCreateRouteRoute
@@ -318,6 +345,7 @@ export interface FileRoutesByFullPath {
   '/rulesets/': typeof AppRulesetsIndexRoute
   '/factions/$factionId/edit': typeof AppFactionsFactionIdEditRouteRoute
   '/groups/$groupSlug/edit': typeof AppGroupsGroupSlugEditRouteRoute
+  '/media/$source/$kind': typeof AppMediaSourceKindRouteRoute
   '/profiles/$profileSlug/delete': typeof AppProfilesProfileSlugDeleteRouteRoute
   '/profiles/$profileSlug/edit': typeof AppProfilesProfileSlugEditRouteRoute
   '/rulesets/$rulesetSlug/edit': typeof AppRulesetsRulesetSlugEditRouteRoute
@@ -340,6 +368,8 @@ export interface FileRoutesByTo {
   '/$': typeof AppSplatRouteRoute
   '/__icons': typeof App_iconsRouteRoute
   '/__jobs': typeof App_jobsRouteRoute
+  '/__media': typeof App_mediaRouteRoute
+  '/media': typeof AppMediaRouteRouteWithChildren
   '/auth/oauth': typeof AuthOauthRouteRoute
   '/': typeof AppIndexRoute
   '/admin/migrations': typeof AppAdminMigrationsRouteRoute
@@ -348,6 +378,7 @@ export interface FileRoutesByTo {
   '/auth/login': typeof AppAuthLoginRouteRoute
   '/factions/create': typeof AppFactionsCreateRouteRoute
   '/groups/create': typeof AppGroupsCreateRouteRoute
+  '/media/$source': typeof AppMediaSourceRouteRouteWithChildren
   '/play/$gameId': typeof AppPlayGameIdRouteRoute
   '/play/create': typeof AppPlayCreateRouteRoute
   '/rulesets/create': typeof AppRulesetsCreateRouteRoute
@@ -362,6 +393,7 @@ export interface FileRoutesByTo {
   '/rulesets': typeof AppRulesetsIndexRoute
   '/factions/$factionId/edit': typeof AppFactionsFactionIdEditRouteRoute
   '/groups/$groupSlug/edit': typeof AppGroupsGroupSlugEditRouteRoute
+  '/media/$source/$kind': typeof AppMediaSourceKindRouteRoute
   '/profiles/$profileSlug/delete': typeof AppProfilesProfileSlugDeleteRouteRoute
   '/profiles/$profileSlug/edit': typeof AppProfilesProfileSlugEditRouteRoute
   '/rulesets/$rulesetSlug/edit': typeof AppRulesetsRulesetSlugEditRouteRoute
@@ -386,6 +418,8 @@ export interface FileRoutesById {
   '/_app/$': typeof AppSplatRouteRoute
   '/_app/__icons': typeof App_iconsRouteRoute
   '/_app/__jobs': typeof App_jobsRouteRoute
+  '/_app/__media': typeof App_mediaRouteRoute
+  '/_app/media': typeof AppMediaRouteRouteWithChildren
   '/_app/play': typeof AppPlayRouteRouteWithChildren
   '/auth/oauth': typeof AuthOauthRouteRoute
   '/_app/': typeof AppIndexRoute
@@ -395,6 +429,7 @@ export interface FileRoutesById {
   '/_app/auth/login': typeof AppAuthLoginRouteRoute
   '/_app/factions/create': typeof AppFactionsCreateRouteRoute
   '/_app/groups/create': typeof AppGroupsCreateRouteRoute
+  '/_app/media/$source': typeof AppMediaSourceRouteRouteWithChildren
   '/_app/play/$gameId': typeof AppPlayGameIdRouteRoute
   '/_app/play/create': typeof AppPlayCreateRouteRoute
   '/_app/rulesets/create': typeof AppRulesetsCreateRouteRoute
@@ -409,6 +444,7 @@ export interface FileRoutesById {
   '/_app/rulesets/': typeof AppRulesetsIndexRoute
   '/_app/factions/$factionId/edit': typeof AppFactionsFactionIdEditRouteRoute
   '/_app/groups/$groupSlug/edit': typeof AppGroupsGroupSlugEditRouteRoute
+  '/_app/media/$source/$kind': typeof AppMediaSourceKindRouteRoute
   '/_app/profiles/$profileSlug/delete': typeof AppProfilesProfileSlugDeleteRouteRoute
   '/_app/profiles/$profileSlug/edit': typeof AppProfilesProfileSlugEditRouteRoute
   '/_app/rulesets/$rulesetSlug/edit': typeof AppRulesetsRulesetSlugEditRouteRoute
@@ -434,6 +470,8 @@ export interface FileRouteTypes {
     | '/$'
     | '/__icons'
     | '/__jobs'
+    | '/__media'
+    | '/media'
     | '/play'
     | '/auth/oauth'
     | '/admin/migrations'
@@ -442,6 +480,7 @@ export interface FileRouteTypes {
     | '/auth/login'
     | '/factions/create'
     | '/groups/create'
+    | '/media/$source'
     | '/play/$gameId'
     | '/play/create'
     | '/rulesets/create'
@@ -456,6 +495,7 @@ export interface FileRouteTypes {
     | '/rulesets/'
     | '/factions/$factionId/edit'
     | '/groups/$groupSlug/edit'
+    | '/media/$source/$kind'
     | '/profiles/$profileSlug/delete'
     | '/profiles/$profileSlug/edit'
     | '/rulesets/$rulesetSlug/edit'
@@ -478,6 +518,8 @@ export interface FileRouteTypes {
     | '/$'
     | '/__icons'
     | '/__jobs'
+    | '/__media'
+    | '/media'
     | '/auth/oauth'
     | '/'
     | '/admin/migrations'
@@ -486,6 +528,7 @@ export interface FileRouteTypes {
     | '/auth/login'
     | '/factions/create'
     | '/groups/create'
+    | '/media/$source'
     | '/play/$gameId'
     | '/play/create'
     | '/rulesets/create'
@@ -500,6 +543,7 @@ export interface FileRouteTypes {
     | '/rulesets'
     | '/factions/$factionId/edit'
     | '/groups/$groupSlug/edit'
+    | '/media/$source/$kind'
     | '/profiles/$profileSlug/delete'
     | '/profiles/$profileSlug/edit'
     | '/rulesets/$rulesetSlug/edit'
@@ -523,6 +567,8 @@ export interface FileRouteTypes {
     | '/_app/$'
     | '/_app/__icons'
     | '/_app/__jobs'
+    | '/_app/__media'
+    | '/_app/media'
     | '/_app/play'
     | '/auth/oauth'
     | '/_app/'
@@ -532,6 +578,7 @@ export interface FileRouteTypes {
     | '/_app/auth/login'
     | '/_app/factions/create'
     | '/_app/groups/create'
+    | '/_app/media/$source'
     | '/_app/play/$gameId'
     | '/_app/play/create'
     | '/_app/rulesets/create'
@@ -546,6 +593,7 @@ export interface FileRouteTypes {
     | '/_app/rulesets/'
     | '/_app/factions/$factionId/edit'
     | '/_app/groups/$groupSlug/edit'
+    | '/_app/media/$source/$kind'
     | '/_app/profiles/$profileSlug/delete'
     | '/_app/profiles/$profileSlug/edit'
     | '/_app/rulesets/$rulesetSlug/edit'
@@ -606,6 +654,20 @@ declare module '@tanstack/react-router' {
       path: '/__jobs'
       fullPath: '/__jobs'
       preLoaderRoute: typeof App_jobsRouteRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/_app/__media': {
+      id: '/_app/__media'
+      path: '/__media'
+      fullPath: '/__media'
+      preLoaderRoute: typeof App_mediaRouteRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/_app/media': {
+      id: '/_app/media'
+      path: '/media'
+      fullPath: '/media'
+      preLoaderRoute: typeof AppMediaRouteRouteImport
       parentRoute: typeof AppRouteRoute
     }
     '/_app/play': {
@@ -691,6 +753,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/groups/create'
       preLoaderRoute: typeof AppGroupsCreateRouteRouteImport
       parentRoute: typeof AppRouteRoute
+    }
+    '/_app/media/$source': {
+      id: '/_app/media/$source'
+      path: '/$source'
+      fullPath: '/media/$source'
+      preLoaderRoute: typeof AppMediaSourceRouteRouteImport
+      parentRoute: typeof AppMediaRouteRoute
     }
     '/_app/play/': {
       id: '/_app/play/'
@@ -782,6 +851,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/groups/$groupSlug/edit'
       preLoaderRoute: typeof AppGroupsGroupSlugEditRouteRouteImport
       parentRoute: typeof AppRouteRoute
+    }
+    '/_app/media/$source/$kind': {
+      id: '/_app/media/$source/$kind'
+      path: '/$kind'
+      fullPath: '/media/$source/$kind'
+      preLoaderRoute: typeof AppMediaSourceKindRouteRouteImport
+      parentRoute: typeof AppMediaSourceRouteRoute
     }
     '/_app/profiles/$profileSlug/': {
       id: '/_app/profiles/$profileSlug/'
@@ -884,6 +960,29 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AppMediaSourceRouteRouteChildren {
+  AppMediaSourceKindRouteRoute: typeof AppMediaSourceKindRouteRoute
+}
+
+const AppMediaSourceRouteRouteChildren: AppMediaSourceRouteRouteChildren = {
+  AppMediaSourceKindRouteRoute: AppMediaSourceKindRouteRoute,
+}
+
+const AppMediaSourceRouteRouteWithChildren =
+  AppMediaSourceRouteRoute._addFileChildren(AppMediaSourceRouteRouteChildren)
+
+interface AppMediaRouteRouteChildren {
+  AppMediaSourceRouteRoute: typeof AppMediaSourceRouteRouteWithChildren
+}
+
+const AppMediaRouteRouteChildren: AppMediaRouteRouteChildren = {
+  AppMediaSourceRouteRoute: AppMediaSourceRouteRouteWithChildren,
+}
+
+const AppMediaRouteRouteWithChildren = AppMediaRouteRoute._addFileChildren(
+  AppMediaRouteRouteChildren,
+)
+
 interface AppPlayRouteRouteChildren {
   AppPlayGameIdRouteRoute: typeof AppPlayGameIdRouteRoute
   AppPlayCreateRouteRoute: typeof AppPlayCreateRouteRoute
@@ -904,6 +1003,8 @@ interface AppRouteRouteChildren {
   AppSplatRouteRoute: typeof AppSplatRouteRoute
   App_iconsRouteRoute: typeof App_iconsRouteRoute
   App_jobsRouteRoute: typeof App_jobsRouteRoute
+  App_mediaRouteRoute: typeof App_mediaRouteRoute
+  AppMediaRouteRoute: typeof AppMediaRouteRouteWithChildren
   AppPlayRouteRoute: typeof AppPlayRouteRouteWithChildren
   AppIndexRoute: typeof AppIndexRoute
   AppAdminMigrationsRouteRoute: typeof AppAdminMigrationsRouteRoute
@@ -945,6 +1046,8 @@ const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppSplatRouteRoute: AppSplatRouteRoute,
   App_iconsRouteRoute: App_iconsRouteRoute,
   App_jobsRouteRoute: App_jobsRouteRoute,
+  App_mediaRouteRoute: App_mediaRouteRoute,
+  AppMediaRouteRoute: AppMediaRouteRouteWithChildren,
   AppPlayRouteRoute: AppPlayRouteRouteWithChildren,
   AppIndexRoute: AppIndexRoute,
   AppAdminMigrationsRouteRoute: AppAdminMigrationsRouteRoute,

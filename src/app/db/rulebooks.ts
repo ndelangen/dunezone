@@ -29,7 +29,7 @@ type RawEdition = RawEditorBundle['edition'];
 export type RulebookSavedDraft = Omit<RawDraft, 'contents'> & {
   contents: RulebookContentsV1;
 };
-export type RulebookEdition = Omit<RawEdition, 'contents'> & {
+type RulebookEdition = Omit<RawEdition, 'contents'> & {
   contents: RulebookContentsV1;
 };
 export type RulebookEditorData = {
@@ -46,7 +46,7 @@ export type RulebookEditorPageData =
 export type RulebookCreateSource =
   | { kind: 'starter'; settings?: RulebookSettings }
   | { kind: 'clone'; rulebookId: RulebookMetadata['_id']; design?: RulebookDesign };
-export type RulesetRulebooksLocator = { rulesetSlug: string };
+type RulesetRulebooksLocator = { rulesetSlug: string };
 type RulebookReferenceRequests = { referenceAssetIds?: readonly string[]; referenceFactionIds?: readonly string[] };
 
 export type RulebookLocator = RulesetRulebooksLocator & {
@@ -172,15 +172,6 @@ function normalizeEditorPage(raw: RawEditorPage): RulebookEditorPageData {
     : raw;
 }
 
-/** Ordered Rulebook metadata for one Ruleset, paired with `useRulebooksByRulesetSlug`. */
-export async function loadRulebooksByRulesetSlug({
-  rulesetSlug,
-}: RulesetRulebooksLocator): Promise<RulebookMetadata[]> {
-  return await db.query(api.rulebooks.listByRulesetSlug, {
-    ruleset_slug: rulesetSlug,
-  });
-}
-
 /** One Rulebook editor's access, saved draft, and referenced images, paired with `useRulebookEditor`. */
 export async function loadRulebookEditor({
   rulesetSlug,
@@ -196,16 +187,6 @@ export async function loadRulebookEditor({
     reference_faction_ids: referenceFactionIds ? [...referenceFactionIds] : undefined,
   });
   return raw ? normalizeEditorPage(raw) : null;
-}
-
-export function useRulebooksByRulesetSlug({
-  rulesetSlug,
-  initialData,
-}: RulesetRulebooksLocator & { initialData?: RulebookMetadata[] }) {
-  const live = useQuery(api.rulebooks.listByRulesetSlug, {
-    ruleset_slug: rulesetSlug,
-  });
-  return toLiveQueryResult(live, () => initialData);
 }
 
 export function useRulebookEditor({
@@ -326,7 +307,7 @@ export function useSaveRulebook() {
   return useLiveOperation(operation);
 }
 
-export function useRehostRulebookCoverImage() {
+function useRehostRulebookCoverImage() {
   const rehost = useAction(api.rulebookCoverImages.rehost);
   return useCallback(
     async ({ rulebookId, sourceUrl }: { rulebookId: RulebookMetadata['_id']; sourceUrl: string }) => {

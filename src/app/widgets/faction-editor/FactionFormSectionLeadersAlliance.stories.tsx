@@ -81,6 +81,22 @@ export const ConventionalFive = meta.story({
   },
 });
 
+export const Hivers = meta.story({
+  args: {
+    faction: {
+      ...withLeadersAndDecals(5, 0),
+      hero: { name: 'Hiver court', image: '/image/leader/hivers/hiver-high-crown.png' },
+      leaders: [
+        { name: 'Amber Pendant', strength: 1, image: '/image/leader/hivers/hiver-amber-pendant.png' },
+        { name: 'Fur Mantle', strength: 2, image: '/image/leader/hivers/hiver-fur-mantle.png' },
+        { name: 'High Crown', strength: 3, image: '/image/leader/hivers/hiver-high-crown.png' },
+        { name: 'Horned Mask', strength: 4, image: '/image/leader/hivers/hiver-horned-mask.png' },
+        { name: 'Black Ruff', strength: 5, image: '/image/leader/hivers/hiver-black-ruff.png' },
+      ],
+    },
+  },
+});
+
 export const AdvisoryBlanks = meta.story({
   args: {
     faction: {

@@ -42,11 +42,12 @@ bun run migrations:run-local-required # Force local required migration catch-up
 # Code quality
 bun run check            # Lint and check formatting
 bun run format           # Format files
-bun run test             # Run tests
+bun run test             # Unit, seam and script tests; the Worker suites run through game:test and publisher:test
+bun run storybook:test:shard <shard> # One CI shard of the story suite, named in .storybook/shards.json
 bun run storybook        # Storybook dev (port 6006)
 bun run build-storybook  # Static Storybook → storybook-static
 bun run verify:storybook-publication # Public bytes, headers, isolation, and browser runtime
-bun run generate         # Regenerate the public asset catalog in src/game/data/generated.ts
+bun run generate         # Regenerate the asset-id vocabulary in src/shared/assetIds.ts
 bun run publisher:release:verify # Exact pre-PR publisher build, manifest, and dry-run gate
 ```
 
@@ -246,6 +247,11 @@ unpushable.
   `Layouts` and `Blocks/<Block name>`. Other Rulebook route stories remain under Pages.
 - Prefer args-only stories. Use wrappers, custom rendering, or interactions only when they
   demonstrate behavior or comparison that args cannot.
+- CI runs the story suite as four shards, balanced by measured file time and defined as prefix
+  rules in [`.storybook/shards.json`](../.storybook/shards.json): a story file belongs to the first
+  shard whose prefix matches it, and the last rule is a catch-all, so a new file lands in a shard
+  without a list edit. `bun run storybook:test:shard <shard>` runs one shard locally, and
+  `scripts/storybook-shard.test.ts` fails when a file matches no shard or a shard owns nothing.
 - Represent controlled components with static values and noop callbacks unless interaction itself
   is the contract under test.
 
@@ -334,7 +340,7 @@ consumers to real games.
    export const schema = z.object({ ... });
    ```
 
-2. Create domain db file in `src/app/domain-name/db.ts`:
+2. Create the domain data module `src/app/db/<domain>.ts`, reached as `@db/<domain>`:
    - Types (wrap Convex `Doc<'table'>` types)
    - Loaders (`loadDomain...`, via `db.query`) for route first paint
    - Live query hooks (`useDomain...`, via Convex `useQuery` + `toLiveQueryResult`)
@@ -355,8 +361,11 @@ Production and the shared cloud dev integration deployment update through the po
 
 1. Create file in `src/app/routes/`:
    - `_app/index.tsx` → `/`
-   - `_app/about.tsx` → `/about`
+   - `_app/about.route.tsx` → `/about`
    - `_app/users/$userId/index.tsx` → `/users/:userId`
+
+   Only `index.tsx` and a file whose last dot-segment is `route` are routes; every other file in a
+   route folder is a co-located module. See [Routing](./routing.md#which-files-are-routes).
 
 2. Use a loader for data and compose every terminal visual route with `PageLayout`, imported from
    `@ui/layout/PageLayout`:
@@ -396,8 +405,8 @@ Dune card/faction rendering and Storybook stories live in `src/game`. **Source**
 `media/**`; everything under `public/image/**` and `public/web/**` is generated output and
 gitignored, apart from the committed files named in `COMMITTED_WEB_FILES`
 (`src/shared/assetRules.ts`). Run `bun run generate:images` locally, and see the image pipeline
-section of [`AGENTS.md`](../AGENTS.md). `scripts/generate.ts` refreshes the typed public-asset
-catalog used by game schemas.
+section of [`AGENTS.md`](../AGENTS.md). `scripts/generate.ts` refreshes `src/shared/assetIds.ts`,
+the typed public-asset catalog used by game schemas.
 
 ## Detailed documentation
 

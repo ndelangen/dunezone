@@ -1,0 +1,2704 @@
+{
+  "backgroundRgb": [205, 186, 120],
+  "sourceSize": [1254, 1254],
+  "gameSize": [640, 640],
+  "sourceFeedbackUpdatedAt": "2026-09-30T14:21:40.515593+00:00",
+  "excludedSets": ["21", "36"],
+  "processing": {
+    "segmentation": "BiRefNet general; rembg 2.0.85 ONNX and official PyTorch model",
+    "modelRevision": "e2bf8e4460fc8fa32bba5ea4d94b3233d367b0e4",
+    "edgeCleanup": "Flood connected remnants whose RGB distribution matches confidently removed background; retained foreground RGB unchanged",
+    "edgeCleanupExceptions": ["15-06"],
+    "resize": "Pillow Lanczos; lossless RGB PNG"
+  },
+  "portraits": [
+    {
+      "id": "01-01",
+      "asset": "/image/leader/custom/house-orvek/marda-orvek.png",
+      "approvedAt": "2026-09-30T13:05:03.142Z",
+      "approvedSourceSha256": "b030fe3cfebe2315c42ad3cbefa22fa1cfb10c730a3b09929d9ad6bcc46a96c9",
+      "processedMasterSha256": "4a8fbca25fb2ef7053d45a4879e01e7d721c2d4c051afcf293055f996912e19d",
+      "gamePngSha256": "ccd11f2d2d5fdaca82c26eabcc3df5db75db6ee2e54e33ca1f8968094fb74768"
+    },
+    {
+      "id": "01-02",
+      "asset": "/image/leader/custom/house-orvek/selan-orvek.png",
+      "approvedAt": "2026-09-30T13:05:03.142Z",
+      "approvedSourceSha256": "99fd5f567df27bb30af5ffcc884914f5a4ec63dcf298b1bc6bb71ca45b3515e2",
+      "processedMasterSha256": "97b2026406e594ca5a0d0c6adc378ce67a85fde5137b57bb92623d94598e2108",
+      "gamePngSha256": "3023a7eb50453448c1df63e53ec5527324bbeaa7bca54c43ec90f4302f645308"
+    },
+    {
+      "id": "01-03",
+      "asset": "/image/leader/custom/house-orvek/dora-vesk.png",
+      "approvedAt": "2026-09-30T13:05:03.142Z",
+      "approvedSourceSha256": "90e0495a52f542c83a23fdc767d6f6eaf69d91bab616c014c909f87777ec8610",
+      "processedMasterSha256": "470cae6386743c65f8f42c08c7ceeffec1492354bfc3dfd929695cdefac42765",
+      "gamePngSha256": "b8f092c48d44a021d27f31a476b0e213251bdfcfbc8bd6589161eb9c53fb11fc"
+    },
+    {
+      "id": "01-04",
+      "asset": "/image/leader/custom/house-orvek/tavin-ul.png",
+      "approvedAt": "2026-09-30T13:05:03.142Z",
+      "approvedSourceSha256": "c2e8b91f01527cea12f13d5dde1163edaa7248ea0aadb4b2c2bea97ad832c13c",
+      "processedMasterSha256": "e18862e0c53314301cb49f1da63067c845783d814354d7d1522a060ea9dd4e75",
+      "gamePngSha256": "049c73210aa32832c2db3bc1776494655d98cdbe746b0242d9535d438997e68b"
+    },
+    {
+      "id": "01-05",
+      "asset": "/image/leader/custom/house-orvek/irena-pel.png",
+      "approvedAt": "2026-09-30T13:05:03.142Z",
+      "approvedSourceSha256": "c7d44c1d689e0b05fa9cf1334b26042dfd52a41c6df9ed88d2f3f00ef6725960",
+      "processedMasterSha256": "63ddab5c9f53b0b94b7d8831517ab84b6c3a646bb1579642b7058efcdbe860db",
+      "gamePngSha256": "1999307099917a07dac77e5377bba2ce393b4ffe473a69425d9f8135d26979e6"
+    },
+    {
+      "id": "01-06",
+      "asset": "/image/leader/custom/house-orvek/neris-kalt.png",
+      "approvedAt": "2026-09-30T13:05:03.142Z",
+      "approvedSourceSha256": "315d9b8a51f4c26b4bb88352c91155ce2047f78606106b08a61411e29b2d765d",
+      "processedMasterSha256": "a1645139b7f400da7fed8e21d9a878f6a3095d17ec68da7e21e063bd7d267ac2",
+      "gamePngSha256": "7fd13fa491c47dfe27940e622571cc0216e52be9f3cc0c499406e3aa9beac680"
+    },
+    {
+      "id": "01-07",
+      "asset": "/image/leader/custom/house-orvek/boram-sen.png",
+      "approvedAt": "2026-09-30T13:05:03.142Z",
+      "approvedSourceSha256": "53b0aea711ae364ba57727e1ec9228b50c437f9ce967f52dc91441174ca25fe6",
+      "processedMasterSha256": "beba6903bdfc39bffb0de67df0d65d2fb8c6c27e50e3a979b0f80d8ff16a0531",
+      "gamePngSha256": "d63c042ce83d93c2792a61d015c52de31a7a8f8316a4c30033b46f6da7b3f10b"
+    },
+    {
+      "id": "02-01",
+      "asset": "/image/leader/custom/house-tessel/aven-tessel.png",
+      "approvedAt": "2026-09-30T13:05:10.637Z",
+      "approvedSourceSha256": "1d7a9f5d76aacfe52a3d4d388c2b68c208944ae19b391747a8a3ab421cf4138e",
+      "processedMasterSha256": "cd2cc23bdbc88c34432018de53910137f136455cc26591ab0e05fcb18e910a8e",
+      "gamePngSha256": "c7822efca3f397bfeb581cef2d8796aa44314addd703f32cbdb4f6eb843f7d2e"
+    },
+    {
+      "id": "02-02",
+      "asset": "/image/leader/custom/house-tessel/ruva-tessel.png",
+      "approvedAt": "2026-09-30T13:05:10.637Z",
+      "approvedSourceSha256": "a9e06e0f03bf3ed5a2473a6c77d8ad885f9939821f4c58ee1b19f41d17845be8",
+      "processedMasterSha256": "eee068620ae74a7bfbd7e723720118ae72b3cc793152ba2b913f8617983b882f",
+      "gamePngSha256": "f867dd0bb4a6a7e9ec5becbed0354015286c6a5ac6b0889275d752f4fda17cbd"
+    },
+    {
+      "id": "02-03",
+      "asset": "/image/leader/custom/house-tessel/cerin-voss.png",
+      "approvedAt": "2026-09-30T13:05:10.637Z",
+      "approvedSourceSha256": "3bd096a7df8ac96109066ec6649f0d6ba75d2316767523bb2730fa86b9d30926",
+      "processedMasterSha256": "5d28b6f4ff04f69e3749167d8ed4d2a197d1cea91009df07cac90dfcc08a9a0f",
+      "gamePngSha256": "2dbe793f56b0efff888b7cc6d9f0eceac1e1641e197a80e3e9d91b8a5971e510"
+    },
+    {
+      "id": "02-04",
+      "asset": "/image/leader/custom/house-tessel/pela-renn.png",
+      "approvedAt": "2026-09-30T13:05:10.637Z",
+      "approvedSourceSha256": "8b4a8d377abed66cea9572f7b1a3eeaadb8b41953b478e7d3ba380fa301f1a4c",
+      "processedMasterSha256": "8dd58dd60be477424a55907944e3263d175729aed9172d78265736d5051f5052",
+      "gamePngSha256": "4f4248c780b713626cfff8e84bb1d573e6a42f6c269dda28a8a4bf6c5832f311"
+    },
+    {
+      "id": "02-05",
+      "asset": "/image/leader/custom/house-tessel/damis-erel.png",
+      "approvedAt": "2026-09-30T13:05:10.637Z",
+      "approvedSourceSha256": "63f6baa65490ad556c9fd84dc8c4f656bcb58958b3adacf080fc565e002b098e",
+      "processedMasterSha256": "26a1d3ace94fc0aa48209bc0e90f34ea378db0f0b3793949d8686f45b24599e4",
+      "gamePngSha256": "fd44874831152a511892dd597d8117dbb647b2d035d2e48242020504202017de"
+    },
+    {
+      "id": "02-06",
+      "asset": "/image/leader/custom/house-tessel/osta-vel.png",
+      "approvedAt": "2026-09-30T13:05:10.637Z",
+      "approvedSourceSha256": "c2c0f012c6f4bb1c9340593d8987fd4a639292e49783c2903f5796bb54a734fe",
+      "processedMasterSha256": "6b0edf19095535c2b0bf3d5b04db7d1c73d28052f0b16fed9bae57e5da8f6b9a",
+      "gamePngSha256": "1dcdb065537a6070babdf45df056050bc91d399bba2be8ab81624705cdb99eed"
+    },
+    {
+      "id": "02-07",
+      "asset": "/image/leader/custom/house-tessel/luren-tes.png",
+      "approvedAt": "2026-09-30T13:05:10.637Z",
+      "approvedSourceSha256": "f0ce874f73cfcb9c72e285112949477cdf5ac40d2b5690adcce14d25aaf48c56",
+      "processedMasterSha256": "92640b415621c3716d0779fe6d186e5fb455672dc8d545a830d3234cf9c4d42c",
+      "gamePngSha256": "9402a496e6255c1345ab6016f71f504613b1d66ddac88f53ce67798321d5ab65"
+    },
+    {
+      "id": "03-01",
+      "asset": "/image/leader/custom/house-ardent/kessa-ardent.png",
+      "approvedAt": "2026-09-30T12:02:58.069Z",
+      "approvedSourceSha256": "624e28785a8c8d3b8ca7eab91570f2297601a5cea394660544bdb45c0fb65260",
+      "processedMasterSha256": "ccc81c9373ca790176b3ba9259453a2820bc5daa2c97ef5e626a1ddf3581c5e3",
+      "gamePngSha256": "afe49a26058e422097b965becddaf849477eaf858ab94ebc3131915614aaa9ec"
+    },
+    {
+      "id": "03-02",
+      "asset": "/image/leader/custom/house-ardent/oren-ardent.png",
+      "approvedAt": "2026-09-30T12:02:58.069Z",
+      "approvedSourceSha256": "3851072cab4c531f2dd8c3dde31cf9bb668684d869b360002d2ee96e47cf22cd",
+      "processedMasterSha256": "7edb203a8a61f135a9a407ff60f9cac2b0dc75bed0537fc13b0e4d9d166e2021",
+      "gamePngSha256": "3efca323efea7be5d96dad5ce14c5f37e75cb227456d03e3751abee5613b514f"
+    },
+    {
+      "id": "03-03",
+      "asset": "/image/leader/custom/house-ardent/brina-salk.png",
+      "approvedAt": "2026-09-30T12:02:58.069Z",
+      "approvedSourceSha256": "ef61cf7790d6914cbcad3f466c12f7b44ed9227477d16a91f5818f688fccd606",
+      "processedMasterSha256": "dba4cb96e1e3d0263d19c98798cf997631d65f45f14ea99ac4981be5205c8e78",
+      "gamePngSha256": "2e149c9479dc96212f3c3c71eaf10c1689e03a0b7b0c08843d199069aad7f3eb"
+    },
+    {
+      "id": "03-04",
+      "asset": "/image/leader/custom/house-ardent/evan-dral.png",
+      "approvedAt": "2026-09-30T12:02:58.069Z",
+      "approvedSourceSha256": "5a3fe3522e12f88a770b4142cbdf7492d24bf79ab755a13b8ab02e6c321210fc",
+      "processedMasterSha256": "b73a3f035f9f8cedcce7577c989ed06c2b5bf2accddde879ef0a9cd3cebcf297",
+      "gamePngSha256": "a0b073a8d8721823b89994040e2038be6fbba49283e15f10a0deae5486849c61"
+    },
+    {
+      "id": "03-05",
+      "asset": "/image/leader/custom/house-ardent/sura-neth.png",
+      "approvedAt": "2026-09-30T12:02:58.069Z",
+      "approvedSourceSha256": "73767dfd57d86035007314ca95036527015043c98d5628885c3e69892b25a0b6",
+      "processedMasterSha256": "679c4f3acc4e6a47583245ee859974e7b62ba896d91bbc3a89d720c2782536b7",
+      "gamePngSha256": "f0e18ff4beb43592ae26b6cc76c44cd4fa5a894b05b4ea1e08291b722b245843"
+    },
+    {
+      "id": "03-06",
+      "asset": "/image/leader/custom/house-ardent/joran-fell.png",
+      "approvedAt": "2026-09-30T12:02:58.069Z",
+      "approvedSourceSha256": "1bd935d2b6e4d46c2298c23a16763462dd9389d9509deae2971691ae96c84cbf",
+      "processedMasterSha256": "1b18908c1f1eb43574959e9ac83542d4e1549cb3cc8efa0951196b545d5d1cb9",
+      "gamePngSha256": "51ae2b961a70a857418f577f579abab1805a4ee13f4f4805c827d2e333c13f6f"
+    },
+    {
+      "id": "03-07",
+      "asset": "/image/leader/custom/house-ardent/hedra-kal.png",
+      "approvedAt": "2026-09-30T12:02:58.069Z",
+      "approvedSourceSha256": "6394de92a49d303f250e54bf35c8519c8fd8a3f11eb82de98159391363032777",
+      "processedMasterSha256": "ae8d60da362f5ff1465d0b72612646a21159c58db73f807f6a9cebf116091265",
+      "gamePngSha256": "1f36a315c7ff25b3bd88aeb0f0aa09b8191c4df50b436b11f83363a2254b8456"
+    },
+    {
+      "id": "04-01",
+      "asset": "/image/leader/custom/house-velra/tarin-velra.png",
+      "approvedAt": "2026-09-30T12:02:56.343Z",
+      "approvedSourceSha256": "a8f95ab02516514a3efc819d07273388d1ca3db1391292eeead3d11848251bb3",
+      "processedMasterSha256": "378771bf12dbd3f5d765999a825ecedfce4ad33ba6d9f0b2d68db8458dc8f063",
+      "gamePngSha256": "24418811b231ec1973f29ca19b7394ee1a0f5839ddc02fa2e9a9027f12fbedb6"
+    },
+    {
+      "id": "04-02",
+      "asset": "/image/leader/custom/house-velra/vela-velra.png",
+      "approvedAt": "2026-09-30T12:02:56.343Z",
+      "approvedSourceSha256": "728a61069eda9370baea48e9e7a04d90e2e6c9f3f061e1180ba970f5d5333583",
+      "processedMasterSha256": "506356a2888e80a9a0577e1fd55372d949cf01d65050a11c9dbfe2979b9ec2cd",
+      "gamePngSha256": "f99d1df7a469c921417ac2dbc695e94bae6af000d669d715153e4aa1c14ba977"
+    },
+    {
+      "id": "04-03",
+      "asset": "/image/leader/custom/house-velra/nolan-isk.png",
+      "approvedAt": "2026-09-30T12:02:56.343Z",
+      "approvedSourceSha256": "18422bc90924d2e077144f270ac35b8282ece05e7d0ecafccbe0ef07c7d1cad6",
+      "processedMasterSha256": "acc259e4064737fdb6a78b87c95852044c94e17da132900a886cdd20897645be",
+      "gamePngSha256": "34ee972186f590ada2a1b1928f6bfc886e6c05ece027f4548b06c5fb070fc93d"
+    },
+    {
+      "id": "04-04",
+      "asset": "/image/leader/custom/house-velra/miri-arel.png",
+      "approvedAt": "2026-09-30T12:02:56.343Z",
+      "approvedSourceSha256": "894fcdf56f936f829e2b79b6d519c1fde29a38d0c93f90d7db4c26fae0409af1",
+      "processedMasterSha256": "9f9dcac53075a61d139e5dd733babbe75d57b8d51a996f430ffd170c2b96b29a",
+      "gamePngSha256": "4d1646c6e8022e7a5caccc5c0140878c0b6bb000531d9fd626eef2f9265e5e23"
+    },
+    {
+      "id": "04-05",
+      "asset": "/image/leader/custom/house-velra/senn-ral.png",
+      "approvedAt": "2026-09-30T12:02:56.343Z",
+      "approvedSourceSha256": "7a98c16dbfdeb53542ade83ad64bbf5da6da7dda6a291ef8a691ce8ada07903a",
+      "processedMasterSha256": "e31edcf0d7f87715eba746977fcbdf9793cb96e756aee06a22fd087bf4b53c48",
+      "gamePngSha256": "6cd0b1e359329bbdb1319288a2e730df69ddd5b73d1dc0442504a5fa9cf98360"
+    },
+    {
+      "id": "04-06",
+      "asset": "/image/leader/custom/house-velra/edda-vos.png",
+      "approvedAt": "2026-09-30T12:02:56.343Z",
+      "approvedSourceSha256": "9289d38f33322e5b779ef06b195dc73efbfe477d625f00c80ac6a7054ddb3b6c",
+      "processedMasterSha256": "28324a19da9afdf6339a6c9ea969679de21027dd04a220b322e893c66cd4edd1",
+      "gamePngSha256": "4b1f7c0f91e32b591c12023c0be6cf2b85ed244947f188b69456da4aa9fe24a5"
+    },
+    {
+      "id": "04-07",
+      "asset": "/image/leader/custom/house-velra/ruvan-nel.png",
+      "approvedAt": "2026-09-30T12:02:56.343Z",
+      "approvedSourceSha256": "f1bbdb2bd6f1c2ec1bbcc952b807254e07907cb433c3f6fde8ed9c2bc932ed4c",
+      "processedMasterSha256": "2ceffe1229a44574f06375e89a7bf90dac04b42b721fed657e0b5aae764f840a",
+      "gamePngSha256": "e02648f1b798b2040e4c367eba01c44390cca74feb3cdeb05e1f85f5885e72c0"
+    },
+    {
+      "id": "05-01",
+      "asset": "/image/leader/custom/house-cordane/alma-cordane.png",
+      "approvedAt": "2026-09-30T12:02:53.585Z",
+      "approvedSourceSha256": "93d24a9f8bb791d7ac75accf1605d9f88c5c023eaf1319093ed22eb192340997",
+      "processedMasterSha256": "f5e08c9f54a2efc6c2dc1d6f479066f7ecd9590a20acf20628b1195b962b45c1",
+      "gamePngSha256": "b59ad55bfcf1c7656e68d1d59c1b5841d98d90bc8f422fa50626b454cc7bd966"
+    },
+    {
+      "id": "05-02",
+      "asset": "/image/leader/custom/house-cordane/rell-cordane.png",
+      "approvedAt": "2026-09-30T12:02:53.585Z",
+      "approvedSourceSha256": "a614eb10a2b057de782cee905bc0bb347a3a0fae94ffc4b545ab1996ab27dab8",
+      "processedMasterSha256": "bf7c175131a4afb67e466a619c97a08a03b4781f284af9051f67f4afe7fb0942",
+      "gamePngSha256": "9559e7bdfbfb4c5b79d9346aec04c6ad3b25d3fd749e0008e7f4c1d6a04c9c77"
+    },
+    {
+      "id": "05-03",
+      "asset": "/image/leader/custom/house-cordane/iven-doss.png",
+      "approvedAt": "2026-09-30T12:02:53.585Z",
+      "approvedSourceSha256": "1d7491348b24c5ca9495ccadff2c6fa1b276dcd5ec154bc6fa658836a890d01e",
+      "processedMasterSha256": "cfe0bcf9a9dced8e13fb60c5424ca6682d46f148e00bec23760848c316e1bd24",
+      "gamePngSha256": "34e1dee9a918510e6c160ca3dcda108a52c19a34f571a2677831d3345bba771b"
+    },
+    {
+      "id": "05-04",
+      "asset": "/image/leader/custom/house-cordane/nara-kel.png",
+      "approvedAt": "2026-09-30T12:02:53.585Z",
+      "approvedSourceSha256": "ae7ae4e70d5d2da442092381f9c43fb3d241f1a3e3212f0cd75ebbdc709cfb75",
+      "processedMasterSha256": "8c1fe4704b4b05cb19bc6a5ac1d2de7dd23c041cc6e8d619bcf3ecbcbc596d65",
+      "gamePngSha256": "359a503af3ed50e3e222c6750db27336704fe99c5710578aff3a67a64c22faeb"
+    },
+    {
+      "id": "05-05",
+      "asset": "/image/leader/custom/house-cordane/jessa-lom.png",
+      "approvedAt": "2026-09-30T12:02:53.585Z",
+      "approvedSourceSha256": "e8b5f6a117268474cb66f033e385696ac8c47ffc06356c73d3c6dc58f63c39d4",
+      "processedMasterSha256": "99b16423108c0516fce140a5e455e02cb34255c4bbc44264c557b9d0c6f23083",
+      "gamePngSha256": "60d1c85530843dc956b04c266077565d7cdea0dc1de313e80ac0f225d804b9d8"
+    },
+    {
+      "id": "05-06",
+      "asset": "/image/leader/custom/house-cordane/boren-tuv.png",
+      "approvedAt": "2026-09-30T12:02:53.585Z",
+      "approvedSourceSha256": "b7257668ca8c6066fcb169d2c121851b42b4b33d47f41c04a875ccec4854ffa7",
+      "processedMasterSha256": "b2dccfa8364c54809d68ee2eca063d0ffc239ed22fff8ee331e8972600073f7a",
+      "gamePngSha256": "96c03dc37d5e1359582ac13633684b3c24216572d320d10384cbb1af6798d357"
+    },
+    {
+      "id": "05-07",
+      "asset": "/image/leader/custom/house-cordane/orel-fen.png",
+      "approvedAt": "2026-09-30T12:02:53.585Z",
+      "approvedSourceSha256": "5a41539a4b92ba82cd029408e2b4b3492c202a35321ab7e669b8a0b7ac50a054",
+      "processedMasterSha256": "7d84f099f4e8dadf4c17f6d18ae9524b850d1ccf584858d05e3c19b119321ec4",
+      "gamePngSha256": "a2e9d6766cbb2228b870771e0f503cf61b78ac3a966934a9916c7148f7245262"
+    },
+    {
+      "id": "06-01",
+      "asset": "/image/leader/custom/house-nereth/varda-nereth.png",
+      "approvedAt": "2026-09-30T12:02:51.477Z",
+      "approvedSourceSha256": "985eefab2dc26d84645bad6806b98a3e0ee49bf0128e61332b093727988277cc",
+      "processedMasterSha256": "f6835a8f4d5e440714c2b206a07eaf6d24644e2c7d48571442a471997d1a7ce9",
+      "gamePngSha256": "4a0853ad961b5aaca5fccfcac5cec39fa0a68fd1b3f7f7361316612b91d6926b"
+    },
+    {
+      "id": "06-02",
+      "asset": "/image/leader/custom/house-nereth/eren-nereth.png",
+      "approvedAt": "2026-09-30T12:02:51.477Z",
+      "approvedSourceSha256": "4271355232617827f19d63fbb093b03dcfa05559433522c7f4a1b2c5e0912b82",
+      "processedMasterSha256": "deda4449c4da537947cc87e1d5495ac331c95a4a6d8fe935b944f1ed345a4eba",
+      "gamePngSha256": "2e394386641e342bb2c915822582101b82e1bcb9eb811a618cd9b1a1716108a0"
+    },
+    {
+      "id": "06-03",
+      "asset": "/image/leader/custom/house-nereth/ulna-kest.png",
+      "approvedAt": "2026-09-30T12:02:51.477Z",
+      "approvedSourceSha256": "99cdaa01b53abd9e550fd740b2ccbd60f48aa737fc5a89de36733af63c5d9342",
+      "processedMasterSha256": "eddb94597f8d156d4201ec4b0558a881fb84e647a1a0cd5cb3a0be7a7d8153f9",
+      "gamePngSha256": "a461e93d584d12d1d82fa254cbb44a0acff18fd59c6ab33d85e898577c16fb7d"
+    },
+    {
+      "id": "06-04",
+      "asset": "/image/leader/custom/house-nereth/davor-pel.png",
+      "approvedAt": "2026-09-30T12:02:51.477Z",
+      "approvedSourceSha256": "30541de5d6e257ec84561e422a0aef93ce8f1a0b5c841a14ed4c370ce9f1390d",
+      "processedMasterSha256": "ce2e68649e889672792acdc36509be7b7b38deceab5fb53d15bf6fe7bc5f76c8",
+      "gamePngSha256": "a6bcd0e9c89086b249e82fc810f2c7a1c24bf45d629d79933dd02c2ea7d2871b"
+    },
+    {
+      "id": "06-05",
+      "asset": "/image/leader/custom/house-nereth/mela-tav.png",
+      "approvedAt": "2026-09-30T12:02:51.477Z",
+      "approvedSourceSha256": "f9e5adbd7260f7313221fd3f6cf6b562ec5d3844ae0986ee2e5a4f29d6180de7",
+      "processedMasterSha256": "9292ae34fb6f4b4ac153efecfc25c33a7160eec4b8f5e6a86737cb54ed8a919e",
+      "gamePngSha256": "709af785e82a8249c94857386c9c118f37916b8d3b447ce63ab192b7c29b5af0"
+    },
+    {
+      "id": "06-06",
+      "asset": "/image/leader/custom/house-nereth/koren-il.png",
+      "approvedAt": "2026-09-30T12:02:51.477Z",
+      "approvedSourceSha256": "ea7b926c1b63a7c19d86c1f626d3c57301f7f9d2b5fb7855c5809ac06c85b743",
+      "processedMasterSha256": "4ba5ffa5b2dbb27e42dc5872155b7bbbb8f11383e4b213413561d67f2d5c3681",
+      "gamePngSha256": "cb8c61327f8b8932c8f454625fe9c2b05b113eee1aeace4f85e46e1573eda799"
+    },
+    {
+      "id": "06-07",
+      "asset": "/image/leader/custom/house-nereth/siva-dorn.png",
+      "approvedAt": "2026-09-30T12:02:51.477Z",
+      "approvedSourceSha256": "6bcd75b13a566f309cedf352c1f173cecd092c0fb57a9ed8a17df45f60e219a0",
+      "processedMasterSha256": "0176cd14428b213ea4a01ab91bf93de5cfe679a437db31247a275f53fd50afc9",
+      "gamePngSha256": "25545f0c9e9bc6ccb39c59c815dd4ff8234492ba4eac6938f83af8e955671e9b"
+    },
+    {
+      "id": "07-01",
+      "asset": "/image/leader/custom/house-osem/senna-osem.png",
+      "approvedAt": "2026-09-30T13:36:25.628Z",
+      "approvedSourceSha256": "9a6ff7e4502869b09212195cc2b85ceb531679df6ed5ff25a6d51fcca166eaa9",
+      "processedMasterSha256": "084652fa6561d7e1328786e5cce7c6290d633bb60a53e4aae590fa80fc918644",
+      "gamePngSha256": "91990e6ca46fb9ccc545bed2b503945ecb6b46bc571f29f966e01e82ca6d2a58"
+    },
+    {
+      "id": "07-02",
+      "asset": "/image/leader/custom/house-osem/adren-osem.png",
+      "approvedAt": "2026-09-30T13:36:25.628Z",
+      "approvedSourceSha256": "bfb814b414ee2a49fc885735fcc17ed7ef633abf6caaaf4f0da7a1ec0584415d",
+      "processedMasterSha256": "a0395634aaec0c1c04b02c4a367b0ccdd0dd3ccd3121e3aaf35185504feb6c51",
+      "gamePngSha256": "d41a386333f760867bae9bc2a24bf8b2b31353574527f776e83c14a92c24ab59"
+    },
+    {
+      "id": "07-03",
+      "asset": "/image/leader/custom/house-osem/mora-vell.png",
+      "approvedAt": "2026-09-30T13:36:25.628Z",
+      "approvedSourceSha256": "0e9cf1cdffcb32d93134c0a7e51a5d4c877c8e7965f571748fb0a747f351cb46",
+      "processedMasterSha256": "628296d2d532464bed2d9593c57fffd5b652770b47351de464c14db581802147",
+      "gamePngSha256": "7db54c0e33ce7ba10ec39d1b56e8a4270c3f2b324a3cd0d46e63501311836b0d"
+    },
+    {
+      "id": "07-04",
+      "asset": "/image/leader/custom/house-osem/niven-sar.png",
+      "approvedAt": "2026-09-30T13:36:25.628Z",
+      "approvedSourceSha256": "ebe495d910c4ca655fa5193024ac037b0ca3b6c5507ba9f03a2a995111333e01",
+      "processedMasterSha256": "3f0427d7f35c5ae81e041624bad6594ccbfb7c8e0340cbb385b20e4ebb2053ca",
+      "gamePngSha256": "d7052807c4d8d80d4782d84a66b09b319075a5cc5d542da09c2686f4cedce225"
+    },
+    {
+      "id": "07-05",
+      "asset": "/image/leader/custom/house-osem/kela-hes.png",
+      "approvedAt": "2026-09-30T13:36:25.628Z",
+      "approvedSourceSha256": "aff5ee26336a06dde9b441e889082ccf0bc505d988b941a49ba175f2c9fe345f",
+      "processedMasterSha256": "32531f16b6e4e08d9cd130aaaf70190a3d8556aff8469db100945e2f5ee0f7c0",
+      "gamePngSha256": "2868b0630b842cd2fb2c60d9ddd8674ce391ae967f90d6a3a0957ebcc92e83a0"
+    },
+    {
+      "id": "07-06",
+      "asset": "/image/leader/custom/house-osem/osta-mir.png",
+      "approvedAt": "2026-09-30T13:36:25.628Z",
+      "approvedSourceSha256": "673d10dcd33d452321dd35bf24c7e0dd9950fdb4d41e1bd0366f226038ad1350",
+      "processedMasterSha256": "bbfeef34c397b08c59c2f55aecc5efb219cabb7efeb6f7eaf4d94d4d6f81e178",
+      "gamePngSha256": "f9c5c330cbbaf6b99eea0ba47365b1e3dab47f3873af8f7ae3c64173668b2e60"
+    },
+    {
+      "id": "07-07",
+      "asset": "/image/leader/custom/house-osem/barel-nun.png",
+      "approvedAt": "2026-09-30T13:36:25.628Z",
+      "approvedSourceSha256": "4b35adc77ac90956f0fb653e863533575401dd6560696fd93b700ccb1d10d086",
+      "processedMasterSha256": "cb5ea105e3e96c5970775911fa309b34868c5f12f67fddad0f93c62c1ad6e658",
+      "gamePngSha256": "dfa746433cad3acf35a901b40aee7321352fa6b8726ded945a37f88114253565"
+    },
+    {
+      "id": "08-01",
+      "asset": "/image/leader/custom/house-calven/maren-calven.png",
+      "approvedAt": "2026-09-30T13:20:57.660Z",
+      "approvedSourceSha256": "f7b444355dd6aa901c9fd870fac79dddee9cd8c2646c1d3c21883a0420ec0e4a",
+      "processedMasterSha256": "2e735f30d577e1ca4621b45f93bed03bf39753fd5797a5a26b0ea102865a4cc3",
+      "gamePngSha256": "e92608fbe3355f76de6862667821f7bcef8c92691deddf2076536e0854b14fa9"
+    },
+    {
+      "id": "08-02",
+      "asset": "/image/leader/custom/house-calven/tovan-calven.png",
+      "approvedAt": "2026-09-30T13:20:57.660Z",
+      "approvedSourceSha256": "c88010d888f5fe1781a67ccfb33fccd23d1ecd6bb9dcfb1c75e79b8f3ace858b",
+      "processedMasterSha256": "84f45c6f9f616796b18150521a3fe4b3a5758a0656a163687f77bb4c4daa3fc6",
+      "gamePngSha256": "7fa7f4f19ed7c25933d15a2d052ba97196d9c1e8770ea646d8d0b5a782aa6495"
+    },
+    {
+      "id": "08-03",
+      "asset": "/image/leader/custom/house-calven/dena-rev.png",
+      "approvedAt": "2026-09-30T13:20:57.660Z",
+      "approvedSourceSha256": "d39f58a68bab826379069ffcb33b2994b4f3d25c72e8a07d0d1839c31344d612",
+      "processedMasterSha256": "b33d66ea5663534466b55df4ff8f192e7d8d972f8769054127b3ddd7633f596c",
+      "gamePngSha256": "32cf983bdc2ae8593048154725a448feed83462800e8a0c1d009bec3c230a6cc"
+    },
+    {
+      "id": "08-04",
+      "asset": "/image/leader/custom/house-calven/olan-vek.png",
+      "approvedAt": "2026-09-30T13:20:57.660Z",
+      "approvedSourceSha256": "b79f487c68527d0f91e95a96856d666ffd1621634d687c5dbc9df13da103b04b",
+      "processedMasterSha256": "f4270ef5eb9d50739a01e1c63ac7e5db557668df83366f280ef12b5f0d7723ee",
+      "gamePngSha256": "3907abc9be5a8c68b45d6bc2ffd6782fd174a6d3aaef54e65910f5c4b3b14b25"
+    },
+    {
+      "id": "08-05",
+      "asset": "/image/leader/custom/house-calven/iva-pell.png",
+      "approvedAt": "2026-09-30T13:20:57.660Z",
+      "approvedSourceSha256": "13df84b6151dc90700fedfebea170b7b2f535532590399fcf07546eb5b4147f9",
+      "processedMasterSha256": "e1e7c80a774f816d4158fc0391e35d826d54b3134b3c782be1ad25a0c6a444f1",
+      "gamePngSha256": "01ad08410c7f0e4814d7853e2a733920834147763617605c84fe544ee918621a"
+    },
+    {
+      "id": "08-06",
+      "asset": "/image/leader/custom/house-calven/ressa-ul.png",
+      "approvedAt": "2026-09-30T13:20:57.660Z",
+      "approvedSourceSha256": "87475123afff6d9ca04570f089927feed4e5f03e3aea239dfe7fbb31e5e91547",
+      "processedMasterSha256": "4030dd0de3201bdcdf599eb2ef7995d8156b28eec9f012aca0f663520b038ea6",
+      "gamePngSha256": "9b85bb6e511356073804b59dc0e962384b59deff98e50931ca0db331651c5154"
+    },
+    {
+      "id": "08-07",
+      "asset": "/image/leader/custom/house-calven/bram-nes.png",
+      "approvedAt": "2026-09-30T13:20:57.660Z",
+      "approvedSourceSha256": "700dd850af5c602c49727deec21f8196972bd0c3aadee6066414f69136dc32d5",
+      "processedMasterSha256": "6653f0da7ebb7ea62ed6c7ab03a5bc50a9baa996443ec351da817d05f76d2532",
+      "gamePngSha256": "e6b90d72c3411068b5c7e50856bee38e7a5381927180adad3ad75e1cabd697e8"
+    },
+    {
+      "id": "09-01",
+      "asset": "/image/leader/custom/kiln-synod/taro.png",
+      "approvedAt": "2026-09-30T13:36:30.268Z",
+      "approvedSourceSha256": "2948b1f15fc4c79846ca898836cbeafe0ef8dd57e38f837ff71c6d077f37a4d2",
+      "processedMasterSha256": "45825a190ceb9df2230ab3cebab495a01dd45c5c2e903b2031d280e7ff971821",
+      "gamePngSha256": "23e35b91123cfe784b3253bbecaa075efa49e62ff782c10972eaff59e570bf3b"
+    },
+    {
+      "id": "09-02",
+      "asset": "/image/leader/custom/kiln-synod/mella.png",
+      "approvedAt": "2026-09-30T13:36:30.268Z",
+      "approvedSourceSha256": "7bae5f3f48d09322808534b691c9b2ffb710f4fbc7c7c3a2988dc51ee3a3535a",
+      "processedMasterSha256": "f28cf2ecb0c795cd26acaff4acae27fce3ada9e3bc686cbf2962e3438eeac445",
+      "gamePngSha256": "3f442710b6ef34d7118dec50a5387cf66a0f81bee9104bb158313da2bac938e7"
+    },
+    {
+      "id": "09-03",
+      "asset": "/image/leader/custom/kiln-synod/varn.png",
+      "approvedAt": "2026-09-30T13:36:30.268Z",
+      "approvedSourceSha256": "d055c5582b10fc7e80134cb27fa10b805bf2b9eeb05bb4abc7786ba94c212b89",
+      "processedMasterSha256": "8ab85ac5fc965123892980d3bdbd70cedf95f19aec0fb92245c30574f0c4b815",
+      "gamePngSha256": "505c299a730de96ccefbc8c9142de3596dad3658c288827e8c29162d0f46ba54"
+    },
+    {
+      "id": "09-04",
+      "asset": "/image/leader/custom/kiln-synod/sula.png",
+      "approvedAt": "2026-09-30T13:36:30.268Z",
+      "approvedSourceSha256": "7c4428c02ec7b77f53513bd16277ae02dcd0da181e9b57f9423706ce0acbedfd",
+      "processedMasterSha256": "03f1348f708916ba5a36cb77ff3117f09166b7085b783ff6f21a11fa37282506",
+      "gamePngSha256": "d6487ffea4592f7dbcf402f905b1156308f9b52351562b84a493af0674afad1c"
+    },
+    {
+      "id": "09-05",
+      "asset": "/image/leader/custom/kiln-synod/orri.png",
+      "approvedAt": "2026-09-30T13:36:30.268Z",
+      "approvedSourceSha256": "36c96ccd9786621185e16676524050a038550a783bc352295eed0197a87e2ac7",
+      "processedMasterSha256": "5397697a86fceeae5aba45a6f398e83eb0e5f3ffc00458f7d9434848060fc0ec",
+      "gamePngSha256": "74026cb1b9e2b01e89c62f8985eec3db92af14725ad22e5d38202cf8ed6f826a"
+    },
+    {
+      "id": "09-06",
+      "asset": "/image/leader/custom/kiln-synod/dessa.png",
+      "approvedAt": "2026-09-30T13:36:30.268Z",
+      "approvedSourceSha256": "623c6b7746f6fe6dcc7743fad4f013e8a7dc522e367f3707cb4e1fe4da733be9",
+      "processedMasterSha256": "2b7450566d4fcd665a7c9831733dd98723108dd9a22060e959402b5cc60d96ff",
+      "gamePngSha256": "73163fbd315f4b3a380066280c844241f85498d1f770b093daa915812842d302"
+    },
+    {
+      "id": "09-07",
+      "asset": "/image/leader/custom/kiln-synod/kovel.png",
+      "approvedAt": "2026-09-30T13:36:30.268Z",
+      "approvedSourceSha256": "ca959784a1b570ea5d3332a0fafe11a0c9cd612c21967cdd43b9004e59722268",
+      "processedMasterSha256": "25643c3d1ae99e2f1ffa317f3cb7b8592bfdec8506b4b6da9addb2a992f05c5f",
+      "gamePngSha256": "b0a1d9127a808c0b02557d47c63475fbd7b0adc42ca64f0067a404d2c2e28873"
+    },
+    {
+      "id": "10-01",
+      "asset": "/image/leader/custom/cable-court/noma.png",
+      "approvedAt": "2026-09-30T13:53:30.506Z",
+      "approvedSourceSha256": "1072a7dca8b43f44af92ec1b6ec284ee6553d3632baec26db84f6c00027163be",
+      "processedMasterSha256": "482051eb96d5f31c20af32703e6eb24b0ea2a51d9d0eab257e266d00a986b7ce",
+      "gamePngSha256": "e71a5d5775427bd904e38bc432cb631b3b5960c8ec555b19ccf827df9977c48e"
+    },
+    {
+      "id": "10-02",
+      "asset": "/image/leader/custom/cable-court/duren.png",
+      "approvedAt": "2026-09-30T13:53:30.506Z",
+      "approvedSourceSha256": "f71ea43b8b2504d782be29e2d950d8ce9baf2452f548c4fe1177374437c7f80c",
+      "processedMasterSha256": "fce1c6b25f229460e2805e66905c1321c2be5b0529195105a1702b49571eac6c",
+      "gamePngSha256": "49c7b3ca550e77415b4f4164f0c3bca2401fba29067c4eb85f0f021575094ce9"
+    },
+    {
+      "id": "10-03",
+      "asset": "/image/leader/custom/cable-court/esi.png",
+      "approvedAt": "2026-09-30T13:53:30.506Z",
+      "approvedSourceSha256": "3aa53160515bc78bdde4259b2f930781e29ccab0c090bffed70c4bb05869cac4",
+      "processedMasterSha256": "a0a74a35d2a25277138fdcaf34f3f82e1061c03eba6447c97f876b40def6e289",
+      "gamePngSha256": "8fd6b2a9fa421d345745d5a619ccb36b31970716c49d83005ae3359cb06815f0"
+    },
+    {
+      "id": "10-04",
+      "asset": "/image/leader/custom/cable-court/vella.png",
+      "approvedAt": "2026-09-30T13:53:30.506Z",
+      "approvedSourceSha256": "63456583fd39ec35aebddd4b83f7188e635a679918fb33ea3ccb6838cb1a583f",
+      "processedMasterSha256": "51ef41e0e62b68084430c2357ddc339f42a45e7be441a29f9259de5bc9d2bc15",
+      "gamePngSha256": "21584d0e89dbc512f5c2c673a678985d226560b975028c218fc67d9ded5412c4"
+    },
+    {
+      "id": "10-05",
+      "asset": "/image/leader/custom/cable-court/ovek.png",
+      "approvedAt": "2026-09-30T13:53:30.506Z",
+      "approvedSourceSha256": "f1e0159116cb97d597b21310942de1367a0c719a10b7682f0b3a65ed065d0d60",
+      "processedMasterSha256": "00f977d21a4bb4c37f25aa28aa068f0d3b2502d69e6b640673e0e0559c471eac",
+      "gamePngSha256": "f171d30914d826d8f804a30d12935a75aad6eb4347ea31d0cede377b14c8ee9c"
+    },
+    {
+      "id": "10-06",
+      "asset": "/image/leader/custom/cable-court/rissa.png",
+      "approvedAt": "2026-09-30T13:53:30.506Z",
+      "approvedSourceSha256": "412f879a46ac495f74d346e91bdf45ae4b68ac201dac258d2d6cae046f611a17",
+      "processedMasterSha256": "05a2144974bcc67aff6667b0d148e81ff838596949052ca7ae0cb742b0b81d51",
+      "gamePngSha256": "d717afc4708af336e5d48a9cd177135e37b297ad70664d0b59d603d4c2a7dab5"
+    },
+    {
+      "id": "10-07",
+      "asset": "/image/leader/custom/cable-court/tenn.png",
+      "approvedAt": "2026-09-30T13:53:30.506Z",
+      "approvedSourceSha256": "1468137302b95915f26351d311735295c40492479fe554a46f75d0d153c791a5",
+      "processedMasterSha256": "10adb3b4aeea60273bfaa329f81ede31d4af397a3b566f5293e18fe14d1d9ce9",
+      "gamePngSha256": "ae4f75f52afd04b48abf17e41cf5e80c75af535f57b1ec5a7b0ddb35a193b121"
+    },
+    {
+      "id": "11-01",
+      "asset": "/image/leader/custom/ivory-clock/arlo.png",
+      "approvedAt": "2026-09-30T12:04:43.349Z",
+      "approvedSourceSha256": "83a35f4147bf29709d1936300a4f87c5377e11d6b36119929b534796e167dc74",
+      "processedMasterSha256": "6001267595e427e53d938c11c6517ff7758348e8de174ad93b165b1a8ad7fb3f",
+      "gamePngSha256": "9ce473973d4ca2e0f419ad5c567730b5d758bebee507dadd023973fae9772c2b"
+    },
+    {
+      "id": "11-02",
+      "asset": "/image/leader/custom/ivory-clock/pella.png",
+      "approvedAt": "2026-09-30T12:04:43.349Z",
+      "approvedSourceSha256": "c6963ef4a7cc5587c1a54d8aeeda0121103e9d644cd94b3a48c2c5f4a48fb662",
+      "processedMasterSha256": "3c3e88a081166c34076c0007e4c7f706a54d3a67602ddf87090a69ee9dfae23e",
+      "gamePngSha256": "d8cde48ef6e6d44b23f486d442c6bab57291183782ca914fea44da68cd67d297"
+    },
+    {
+      "id": "11-03",
+      "asset": "/image/leader/custom/ivory-clock/dorun.png",
+      "approvedAt": "2026-09-30T12:04:43.349Z",
+      "approvedSourceSha256": "b654c478551ca6ef8a1413d31476b536f53a95f7f38c0f5683decc36085102a7",
+      "processedMasterSha256": "24ab46fc3c6b7950354d09353b4fcc0d06068e5a3452ec3d8934d979c0f3f58a",
+      "gamePngSha256": "612f90e0afcceb09a0e94a19e00df02ab8193477137b5bcfd4ebe76ca2e5b026"
+    },
+    {
+      "id": "11-04",
+      "asset": "/image/leader/custom/ivory-clock/sivi.png",
+      "approvedAt": "2026-09-30T12:04:43.349Z",
+      "approvedSourceSha256": "c4621d0234a635977480a7f530b350186c4b7aaab9ce411862accfc9eb16c415",
+      "processedMasterSha256": "73551f2860dfaebf83fbcda482da84b26083a60584815e08aedef1eba62930f1",
+      "gamePngSha256": "5ef076830802fb5598e124b00845af75f9050ba8de9c32675b417c1eedd24aac"
+    },
+    {
+      "id": "11-05",
+      "asset": "/image/leader/custom/ivory-clock/neral.png",
+      "approvedAt": "2026-09-30T12:04:43.349Z",
+      "approvedSourceSha256": "dd802fb47263df5af29096ba4ba06bfe63ad641b2c0b0b2966aabc26cd5e8cd9",
+      "processedMasterSha256": "070d795123ab3823f0a5b4ba8fabaa4c141fdfaa6ad1593fae0aeb4af9357ae2",
+      "gamePngSha256": "4a3a7692dc2ca65f26d3b0076f68b91ab2a2431d214b3dc33f0638ed214281a5"
+    },
+    {
+      "id": "11-06",
+      "asset": "/image/leader/custom/ivory-clock/etta.png",
+      "approvedAt": "2026-09-30T12:04:43.349Z",
+      "approvedSourceSha256": "7e3ce96f572ae1350d1fc1995567594e8be904fa7b2ddf6a12fba528af3b0200",
+      "processedMasterSha256": "cef0f15597cd8727bab38d696da1d70ff529dd31af4c7848b4a080696608ddee",
+      "gamePngSha256": "bac3aceb06a3d42bf172c23c80f7bab524e0924ab64c823613fb79715537ecbd"
+    },
+    {
+      "id": "11-07",
+      "asset": "/image/leader/custom/ivory-clock/korr.png",
+      "approvedAt": "2026-09-30T12:04:43.349Z",
+      "approvedSourceSha256": "23a71b7ba038714615a397d3b4d9d3aabae4513cb35e6f2c45447654e3d77060",
+      "processedMasterSha256": "6b442e38057cfb56314c51e030a2055ce843a2f62d29e1c8a9a86a27efe4f23b",
+      "gamePngSha256": "243c9362e0e07646e95b9e7e2cecb830469cdb425d04b7d94df55cfd334815f6"
+    },
+    {
+      "id": "12-01",
+      "asset": "/image/leader/custom/tarnished-host/mara-venn.png",
+      "approvedAt": "2026-09-30T12:04:49.916Z",
+      "approvedSourceSha256": "99d69e887a2e568e6718de2e25d97c9ecfd303a53e53db096fb59e8b5f818246",
+      "processedMasterSha256": "c83138888c84347be50dd34ebcb7f6155f1c9ce74bc583eb98b98ede42d91b15",
+      "gamePngSha256": "17148e13ea0c156789da25d8f8a9fd34e08654845409c06935ed7c88a988518d"
+    },
+    {
+      "id": "12-02",
+      "asset": "/image/leader/custom/tarnished-host/dalen-or.png",
+      "approvedAt": "2026-09-30T12:04:49.916Z",
+      "approvedSourceSha256": "edfe2ff9b79e265bea55baf7deb2a57493d945a5d4226c57505488cd4cf60394",
+      "processedMasterSha256": "4ce272990ac25dde0fe94603aade3548d849551b7abbad735e8faec01a7ffd79",
+      "gamePngSha256": "24c349054cffe28b0cf07b97a2b069b93c884e131d55e774d19f7e6765531ea0"
+    },
+    {
+      "id": "12-03",
+      "asset": "/image/leader/custom/tarnished-host/istra-pell.png",
+      "approvedAt": "2026-09-30T12:04:49.916Z",
+      "approvedSourceSha256": "0c147eb492faff827d4576685c4fcd60ecf9a53d499f8260c3376f399b066bf8",
+      "processedMasterSha256": "f54442d455202a27095410c08114f3d3498c66dd2f7414ca9a36cc43e2bbe5f4",
+      "gamePngSha256": "c78a967a168e4a69b1c01d22b5d69ecbde2053de529587318219a7cf15a71f77"
+    },
+    {
+      "id": "12-04",
+      "asset": "/image/leader/custom/tarnished-host/orren-mal.png",
+      "approvedAt": "2026-09-30T12:04:49.916Z",
+      "approvedSourceSha256": "a854f7947b6629211d896d6404a729452a14bcd9fd17e12c2f5faf8b4f1fc8f1",
+      "processedMasterSha256": "e676ce08914a591e7a15f3108fa5492f47ccfa6ab172ef4278a68f7b7fbb8c13",
+      "gamePngSha256": "3554c5d599fe9c5f06156789e7f165b1999c1f5b26197eb22c0612738a474ca1"
+    },
+    {
+      "id": "12-05",
+      "asset": "/image/leader/custom/tarnished-host/sena-dov.png",
+      "approvedAt": "2026-09-30T12:04:49.916Z",
+      "approvedSourceSha256": "f6d8776a8b4979e05bc2203d076b7e2d2cbca2863fd1c28e9d14bf698fcf13bf",
+      "processedMasterSha256": "8e2305c16b2cbfe2e0fc97686f78e65de1f931850851271ffb08f51b0f8762c5",
+      "gamePngSha256": "3d3cfc6c800637a65ac62ee08547dea16901d122701d9df80c8f18d45742363d"
+    },
+    {
+      "id": "12-06",
+      "asset": "/image/leader/custom/tarnished-host/bavel-rinn.png",
+      "approvedAt": "2026-09-30T12:04:49.916Z",
+      "approvedSourceSha256": "282bcc2bbb00e20914ed618e552c63dcd58fb3358feac9beaf4782b966880653",
+      "processedMasterSha256": "fe8bfcfe90f559d8d18779852e15d8cdb3484d70a9a5cf575a3e361eead0389f",
+      "gamePngSha256": "aec354f0503f358ab910fd002c655d48ec75e06785d0bb1ba63a62f4eaf38cae"
+    },
+    {
+      "id": "12-07",
+      "asset": "/image/leader/custom/tarnished-host/vera-sorn.png",
+      "approvedAt": "2026-09-30T12:04:49.916Z",
+      "approvedSourceSha256": "31f053b21961d372258ca9dbf93ada8e532701ed35de9a9b6807da9b01df2cc3",
+      "processedMasterSha256": "87b78f6237f4d5877da3d344ebe627c09bb590874539a3adce97ad4926592124",
+      "gamePngSha256": "45f8ccb3ac0622d2d607485f28cf06d0a1fc4c87a453a3bd224b899e02cc394d"
+    },
+    {
+      "id": "13-01",
+      "asset": "/image/leader/custom/bellward-assembly/belan.png",
+      "approvedAt": "2026-09-30T12:04:54.851Z",
+      "approvedSourceSha256": "b38f18088bdd5d18de7d3c3dc3609c70b6dc236ab10f77a867bd73ecb2baa143",
+      "processedMasterSha256": "6c6e8b34ec6f2a1a028ef2fe89cca46cb91c86203b6043f78a3a0e054a7b8576",
+      "gamePngSha256": "8537f2afeafc91fdb47dc7fab07e24f71c5c7d43fedee1e20d718168bb159a03"
+    },
+    {
+      "id": "13-02",
+      "asset": "/image/leader/custom/bellward-assembly/orsa.png",
+      "approvedAt": "2026-09-30T12:04:54.851Z",
+      "approvedSourceSha256": "9ca76f74fcfa5f00ebe3c767d778a3f3c5826860f3d8dff4ecf2193cf96f1bf5",
+      "processedMasterSha256": "fa3624f4acecba559a8d81ce3c60953363ceed0b1deaea4543879007caab6548",
+      "gamePngSha256": "9a5d1a717cc357ea414b3cf6787dee2fd129efda12c7f872ca283c8510b4fd7d"
+    },
+    {
+      "id": "13-03",
+      "asset": "/image/leader/custom/bellward-assembly/tuvor.png",
+      "approvedAt": "2026-09-30T12:04:54.851Z",
+      "approvedSourceSha256": "4e082f4eb0fd98b984baddd41205b4f2047623dfc182edc41db03a67af55405c",
+      "processedMasterSha256": "629e9f59189d43ed7df0d0c4baec06c4ed74a114b9407056028dc60521a31b6f",
+      "gamePngSha256": "371ec12bc7ec817cc44f46c675c2ede20a7594706f0b43b6d9d6ed5c3042477a"
+    },
+    {
+      "id": "13-04",
+      "asset": "/image/leader/custom/bellward-assembly/miri.png",
+      "approvedAt": "2026-09-30T12:04:54.851Z",
+      "approvedSourceSha256": "3327cd052e44fe7592e85bbeaffc22623f52444eaa15bef1bfb17c89c5e4c77c",
+      "processedMasterSha256": "9fe2491bcf5b174495bbcb730d6349c3a7def916a8ab164a8dcd9eb1a4a86ec2",
+      "gamePngSha256": "d9d576f232a30ab8ee616502906b5044e80118437da31b924f0d368e9bf62075"
+    },
+    {
+      "id": "13-05",
+      "asset": "/image/leader/custom/bellward-assembly/sennel.png",
+      "approvedAt": "2026-09-30T12:04:54.851Z",
+      "approvedSourceSha256": "85930d91121465b128d34cd6096f4981746df2833a9878f184d5184030dfa686",
+      "processedMasterSha256": "aaa6d6d9e8e7f454a5a91390b5a20f0e549935a179c7fff27863a06a4483f2cd",
+      "gamePngSha256": "e0eaeba6ea375d2568059c912dbaf044837f978423fd866708c38e93066fc8ce"
+    },
+    {
+      "id": "13-06",
+      "asset": "/image/leader/custom/bellward-assembly/dorra.png",
+      "approvedAt": "2026-09-30T12:04:54.851Z",
+      "approvedSourceSha256": "2f0aa4058acaff8c9eacf3c478955f6aa3b98bb15ee729e249bca4a9a6957874",
+      "processedMasterSha256": "6510c8348fc20bf8ac96aa23a1a2624932e60e646d0b2ed426e92396ea5d574f",
+      "gamePngSha256": "a5ed70971b52e0816ebd0cea49f1ec5a2a0787808adca6efe963a5b5f0d953b7"
+    },
+    {
+      "id": "13-07",
+      "asset": "/image/leader/custom/bellward-assembly/kavel.png",
+      "approvedAt": "2026-09-30T12:04:54.851Z",
+      "approvedSourceSha256": "2268b5a5b8012dce8eced3a43f89ababf39065c6359e93704b2690a62d2de1b4",
+      "processedMasterSha256": "8c9197483071b16dcf117bc9f46de67c09814e49e9e2d0f1ef796f2e5a8a9caa",
+      "gamePngSha256": "8ee35827dc6258e4048739b9b6d01d7c10a77a33dc46f36a718b34f5a575b1e9"
+    },
+    {
+      "id": "14-01",
+      "asset": "/image/leader/custom/glass-register/vero.png",
+      "approvedAt": "2026-09-30T12:04:58.456Z",
+      "approvedSourceSha256": "6b3c65c22875dfe819dadaca3496f09f35265047433792a0c63062314a6f6fdd",
+      "processedMasterSha256": "060795e75a028c6ff00a0e14e0a23b8b32745401052a771eb4ef841c5412b8d0",
+      "gamePngSha256": "d549040f74d5abee7aad6355e20ae1ceafea75063e3a995af6c955ed5e4d88d1"
+    },
+    {
+      "id": "14-02",
+      "asset": "/image/leader/custom/glass-register/nalla.png",
+      "approvedAt": "2026-09-30T12:04:58.456Z",
+      "approvedSourceSha256": "9882bf54e6495a6e5edd0b61109190076444a0a14309dd07761a89f4190f20d9",
+      "processedMasterSha256": "509269602e8274d616af986eae76f723bac2a0f4d266e3a6d8c16c17c9d34039",
+      "gamePngSha256": "853035c24c8c0d139b8796b3918227eeaee65a95d23c74a9b9dcbd917fb7fa57"
+    },
+    {
+      "id": "14-03",
+      "asset": "/image/leader/custom/glass-register/dorr.png",
+      "approvedAt": "2026-09-30T12:04:58.456Z",
+      "approvedSourceSha256": "7fa600e554fe87dbde3b6eb2944a35764fe9352cb4e27a0fb0a6afe745769be8",
+      "processedMasterSha256": "0448907470b5be41bfca8fe55b4106f0ae433ecf5928a1e08d49bcf262a4dc96",
+      "gamePngSha256": "5afc182b59a120bd4da9cca0f99578dfd126746361d1d46463b44fc642f3935a"
+    },
+    {
+      "id": "14-04",
+      "asset": "/image/leader/custom/glass-register/evin.png",
+      "approvedAt": "2026-09-30T12:04:58.456Z",
+      "approvedSourceSha256": "74bac47eadbf747d65e3b7f5c34f339a4e1a68df3f882669041b9b1ddbe412b3",
+      "processedMasterSha256": "9f79c557b9b84e059ddc4fac0923076c5e18dcadf5c5d4690272e031677863cf",
+      "gamePngSha256": "a2f842cf847b54b66e42a324b4b00b8bbb998fa345cd2da9224449478f778265"
+    },
+    {
+      "id": "14-05",
+      "asset": "/image/leader/custom/glass-register/sera.png",
+      "approvedAt": "2026-09-30T12:04:58.456Z",
+      "approvedSourceSha256": "e751aeb6549084006e5e216007ea7ed692ab2d1cf477fffe7e0f0db64b58d9a9",
+      "processedMasterSha256": "7cf8114194c04623da0c03bd0425131ec25254e3c5c07a5e40b21297e1cc8ee4",
+      "gamePngSha256": "36cc07a19b659ce779d634c9656676e9cb8fe8270173df86eb30ab55ec8c29e6"
+    },
+    {
+      "id": "14-06",
+      "asset": "/image/leader/custom/glass-register/kelor.png",
+      "approvedAt": "2026-09-30T12:04:58.456Z",
+      "approvedSourceSha256": "ca962ea8d547ace1f253f63a499a8c707e207883fc0e833ea88c5e17ea2e029b",
+      "processedMasterSha256": "fa8e42943cd9228b253ef38e661216b3418dc0728c73f9a6750a3a951d58ce9b",
+      "gamePngSha256": "9adcf7c30adc4f73bd62f3904001e2087d8f29f401784e90d049154e18bde057"
+    },
+    {
+      "id": "14-07",
+      "asset": "/image/leader/custom/glass-register/ruva.png",
+      "approvedAt": "2026-09-30T12:04:58.456Z",
+      "approvedSourceSha256": "4739b332e79aad78f4904e2da338979586654a901de3dc8dc28bfc9db6db9482",
+      "processedMasterSha256": "5ea3084bb647dabc3d34fcb91d17a4590178389f8237c803a599e35863a4e143",
+      "gamePngSha256": "da71c5ba2196b251f872e6aa5f8f3efcdb78e350ad14c58f4550b932a4a1ec31"
+    },
+    {
+      "id": "15-01",
+      "asset": "/image/leader/custom/seam-bound/anra.png",
+      "approvedAt": "2026-09-30T14:18:55.309Z",
+      "approvedSourceSha256": "d8062151fd118a1862bd9b514ec5e357e15a33eae80f8b47a7993a30f11fe5a8",
+      "processedMasterSha256": "856b44a3a3f8c7176e9969ebd6c07f0f6f4e0f5a847ca45686cdf331f65c85b2",
+      "gamePngSha256": "e70eef56499d1878179dff79274a58c2275c3934e669fc358ff48277dd5135dd"
+    },
+    {
+      "id": "15-02",
+      "asset": "/image/leader/custom/seam-bound/dovek.png",
+      "approvedAt": "2026-09-30T14:18:55.309Z",
+      "approvedSourceSha256": "e8e73a983c8107fd7842f76079ffd904b643783ed6ef1edbed2ee0d9cbe7ca7e",
+      "processedMasterSha256": "41166a527d3feed32b448e90a065b4bc5e57b4eda26e610cb4ea795f749d102a",
+      "gamePngSha256": "acf8c17248fac745ec759011cc804d2ac259f057ccac00382e96a51bf9113eca"
+    },
+    {
+      "id": "15-03",
+      "asset": "/image/leader/custom/seam-bound/mella.png",
+      "approvedAt": "2026-09-30T14:18:55.309Z",
+      "approvedSourceSha256": "6fb80ebb859e614b9fd0eb040b1a61f587d436ca224c17c238ef7e227025475a",
+      "processedMasterSha256": "4c166b7c6787d143bc353a116ee0e108e696002030af617a14cfde4f9de3b2f9",
+      "gamePngSha256": "cb3b3d7723650ac7883917a06f9538384e532741541a406f9df218e1eff1248f"
+    },
+    {
+      "id": "15-04",
+      "asset": "/image/leader/custom/seam-bound/sarin.png",
+      "approvedAt": "2026-09-30T14:18:55.309Z",
+      "approvedSourceSha256": "85997aa2c4cae283a55feba382bf6f476ea46881683a6f2307dd5f3ad329cb1a",
+      "processedMasterSha256": "502881463b9cbf0617436accbbcc96836d550d149b57dabb413543f91ac08ca4",
+      "gamePngSha256": "9d1963c97e103d64d8d0e3f4004b649c6d6fac44003b0eae85d9703b65b8ec63"
+    },
+    {
+      "id": "15-05",
+      "asset": "/image/leader/custom/seam-bound/otta.png",
+      "approvedAt": "2026-09-30T14:18:55.309Z",
+      "approvedSourceSha256": "5173a3fef4321b722879489681d70a8f6ab8eef033f25fb686fe65544f031fde",
+      "processedMasterSha256": "6b3c8758d8b90741e5f5c44c14f3990c8f3c1ed1492495eb0fd010a3363f2db5",
+      "gamePngSha256": "2d7fd4aa60dd30c772ca91a639b20a1e64a13f65368d38a455ddd404ef921254"
+    },
+    {
+      "id": "15-06",
+      "asset": "/image/leader/custom/seam-bound/verren.png",
+      "approvedAt": "2026-09-30T14:18:55.309Z",
+      "approvedSourceSha256": "64788177b8e4cc51c002cc559dce0cdecaf345d4923942366c1070818241c409",
+      "processedMasterSha256": "576c04113aaf9f2b6ed72ad4f735a5da43d6cfc25f2877a7c96469868aa391c3",
+      "gamePngSha256": "08144f4833f7d90b3e9dbc3d09dc72a16640d806362aafdecbf75361389b0e9a"
+    },
+    {
+      "id": "15-07",
+      "asset": "/image/leader/custom/seam-bound/kessa.png",
+      "approvedAt": "2026-09-30T14:18:55.309Z",
+      "approvedSourceSha256": "e06bf81ad6e6aa49f4689aca23267f6915741db3d19f8c118f247b3fe4394b3a",
+      "processedMasterSha256": "6529007b4664b9a734e337bde03032a7ef97991eb3f069fb72cd3ff6591003b4",
+      "gamePngSha256": "3a18b1076fb4ae7925a96972f5af79a6ef664b3ae5a5b1214635e6461dc85c9a"
+    },
+    {
+      "id": "16-01",
+      "asset": "/image/leader/custom/pale-chorus/vessa.png",
+      "approvedAt": "2026-09-30T14:19:45.342Z",
+      "approvedSourceSha256": "250a7f87b73a77f36ec9c4c9d7102865ff44eeec43dbb7c51583bf7a332cd5fa",
+      "processedMasterSha256": "8587697786e8a10b7f77c2ba834f6255480f61fd51a97fa2acfc7aa746d28e78",
+      "gamePngSha256": "544a0fc875cd6fba55738e97158ec81cd2f4723f31cff6f928b44c2011f75a6b"
+    },
+    {
+      "id": "16-02",
+      "asset": "/image/leader/custom/pale-chorus/tarin.png",
+      "approvedAt": "2026-09-30T14:19:45.342Z",
+      "approvedSourceSha256": "761ab59ddefd932fb60af400d5f3cace578b701e248a7067ea612ed9d9feadae",
+      "processedMasterSha256": "739c1432ef246e42131c294257b86e30357eb6da907cd0ec9b0f0c284e25d722",
+      "gamePngSha256": "a728e40b4f03b57360dced7baba6f7e7ae5e2d130dc10d3f21455bb3462309b4"
+    },
+    {
+      "id": "16-03",
+      "asset": "/image/leader/custom/pale-chorus/nela.png",
+      "approvedAt": "2026-09-30T14:19:45.342Z",
+      "approvedSourceSha256": "fa00af9e24e8b8b10f4b4f1c03f73cd982cdef9fb971d006e1260ccbc575f8b8",
+      "processedMasterSha256": "3123ddbc7ff93b2081f147cd48cabd59fb078ed58dd739ff5d8ebd351de2865c",
+      "gamePngSha256": "751680fa32a3cf4541fa351933887b4141e57f67c74d83b700c2939add1cd55d"
+    },
+    {
+      "id": "16-04",
+      "asset": "/image/leader/custom/pale-chorus/orris.png",
+      "approvedAt": "2026-09-30T14:19:45.342Z",
+      "approvedSourceSha256": "92d5180bf1d9fedff2def9ea158cd68de14f84b762cf239f15c1994ac676faaa",
+      "processedMasterSha256": "483701d596602a7ccb8229b41b634a173e18ac6e5777bbac385da0e50d241e1d",
+      "gamePngSha256": "efbdaff4d39f351f0a4038dd2c19e6a2314a47efd58d7a3841d1bf64caedeeb2"
+    },
+    {
+      "id": "16-05",
+      "asset": "/image/leader/custom/pale-chorus/dama.png",
+      "approvedAt": "2026-09-30T14:19:45.342Z",
+      "approvedSourceSha256": "072bbf858a39b16dc6e668aff88fbd33a4a38f1bf314711c44b3e6b0f1b9327a",
+      "processedMasterSha256": "b16564b6c05d3ae8881a1da53cea0270a1cad62c1840fc5ea8be422107de8004",
+      "gamePngSha256": "2af6fe4c7cc9e840a32e1b7565e067ffd2a3c26d8884139aefce45ccb12e36bc"
+    },
+    {
+      "id": "16-06",
+      "asset": "/image/leader/custom/pale-chorus/boren.png",
+      "approvedAt": "2026-09-30T14:19:45.342Z",
+      "approvedSourceSha256": "11a2cb35ba4d3cdd545c1781671f6be8c5fbf523e47c6a6c47bb68f90deafaa9",
+      "processedMasterSha256": "0c90796530a36038579d132fe86f26f5967c40337020fb5879a06a5dba5252f0",
+      "gamePngSha256": "2c45af7a10969a339dde4578ff4520dc421b74c8c8ca64db1c4c424162cee963"
+    },
+    {
+      "id": "16-07",
+      "asset": "/image/leader/custom/pale-chorus/siva.png",
+      "approvedAt": "2026-09-30T14:19:45.342Z",
+      "approvedSourceSha256": "42074fb9c0de2ad19d4c914cbbb9040d42d8051aeb89bf56309111a41f27f5b6",
+      "processedMasterSha256": "963799d768e48799ac7367424bedfb409562bbe68b90654296358549ebe544bb",
+      "gamePngSha256": "34fcfd72b2a82c3f0be7056234d331b3de29862c2301675258a904ac9a438575"
+    },
+    {
+      "id": "17-01",
+      "asset": "/image/leader/custom/foldkin/oma.png",
+      "approvedAt": "2026-09-30T13:07:42.467Z",
+      "approvedSourceSha256": "4f0a0afccde3ba97006292fb3cda6bd6358829dce52facadb7d4e17d4260eefe",
+      "processedMasterSha256": "b9e841b956e92b7486c8a9810825818ae31acfb2e2639523d824f0e0263ae6dd",
+      "gamePngSha256": "0fb76908bc4247c53b1fc987a4339f184334ca88766fbc3d119ae23df29c1dd1"
+    },
+    {
+      "id": "17-02",
+      "asset": "/image/leader/custom/foldkin/derren.png",
+      "approvedAt": "2026-09-30T13:07:42.467Z",
+      "approvedSourceSha256": "facc3b7dfe002cbcba59a31115c4f312fcf3b464cf4aed8c6a612af25c2f48fa",
+      "processedMasterSha256": "4fd18946af2f7f48b0735c45ec8159cdab8c51c193a4dc5746cd657163fc8441",
+      "gamePngSha256": "a5cf8700c05695f7ea0b1cbf92d738a083713a4f4de089b80512bc8cf73e6cb8"
+    },
+    {
+      "id": "17-03",
+      "asset": "/image/leader/custom/foldkin/nivi.png",
+      "approvedAt": "2026-09-30T13:07:42.467Z",
+      "approvedSourceSha256": "0b3814632861ef3ef9f924a0f3180d4522b8b0e8bd977d2b68c9fa9ad4993d73",
+      "processedMasterSha256": "7eb16c800ce088c66b16395b8c7563bdb49337f8ae1909e36894ed7d7725557b",
+      "gamePngSha256": "20c23af6723f2ab5af063aefd066006bc283d26c8363db1caf1c95adcc34e012"
+    },
+    {
+      "id": "17-04",
+      "asset": "/image/leader/custom/foldkin/vorr.png",
+      "approvedAt": "2026-09-30T13:07:42.467Z",
+      "approvedSourceSha256": "93c086c40ac3f81a584a5ce4ef36f328a9f2f573776d11638f52f365114dab46",
+      "processedMasterSha256": "14bfda9152607f9ee7ec937c8faa188d5693f6c41d0b829995b5f38287bae72b",
+      "gamePngSha256": "eebbb41f68deb684ae39f0018b047610f84f6386efb4d2a981c8a5267c981438"
+    },
+    {
+      "id": "17-05",
+      "asset": "/image/leader/custom/foldkin/salla.png",
+      "approvedAt": "2026-09-30T13:07:42.467Z",
+      "approvedSourceSha256": "5735e104d92e10f5e4aa658ba069d53535004f0bf4d50ae56fc742c711c9e001",
+      "processedMasterSha256": "65abac7191b1c3cacaa6f8136d0e77e4759c85c865fd5d120d3b74e934616dfd",
+      "gamePngSha256": "7a48fb3ebb9248f003f1b32a2dd929c87eca2b940691c49fa163e2149f78e8a3"
+    },
+    {
+      "id": "17-06",
+      "asset": "/image/leader/custom/foldkin/taven.png",
+      "approvedAt": "2026-09-30T13:07:42.467Z",
+      "approvedSourceSha256": "80a2a2956c2affaba8c0fbdd1b7cde52f0276ab0faae455f9b62ecb050b26bc7",
+      "processedMasterSha256": "35045e39df4cb59c4213ee27e5c6e45ca2ab9b19c465d1d5b8eabf4f2a8c7343",
+      "gamePngSha256": "96714e237dd5359e9a11d5f2663439f57307bfbbb0f25c523afea1dd946ff23a"
+    },
+    {
+      "id": "17-07",
+      "asset": "/image/leader/custom/foldkin/ruma.png",
+      "approvedAt": "2026-09-30T13:07:42.467Z",
+      "approvedSourceSha256": "8b291efc01271f2410f9289e74dff628a3d9e6559d664782df1205669c6b0921",
+      "processedMasterSha256": "f9d1f49092e17ecc0bf3bc1970663651d63871ab5dff8ab33eaa2bc6a35f289b",
+      "gamePngSha256": "24f75e7f00d5d663cd4e9a858b01f1635b88a14c2e7b82f78cbb1a122c845439"
+    },
+    {
+      "id": "18-01",
+      "asset": "/image/leader/custom/mineral-heirs/evara.png",
+      "approvedAt": "2026-09-30T13:12:54.082Z",
+      "approvedSourceSha256": "894f855f1cee52831d2ae1195d9ec2a531823d502fe0339396f66f90fa1d1e31",
+      "processedMasterSha256": "594cffb18759e8104982f9235ab97b71beecde01950e63276902f18b5a09b65f",
+      "gamePngSha256": "3e0765ed3513b09c060448bfef5efba834e0de047eb940314ed44a685eb74c3f"
+    },
+    {
+      "id": "18-02",
+      "asset": "/image/leader/custom/mineral-heirs/koren.png",
+      "approvedAt": "2026-09-30T13:12:54.082Z",
+      "approvedSourceSha256": "b37ae6f2b3bacf82df9c7907758d210f93ee679f9cee4b07374bafeb170084c9",
+      "processedMasterSha256": "9e306f558352e85511f756476f11dc91e8f469ce46442071dcbef1c9967793f9",
+      "gamePngSha256": "12cde52cebfb97cd210e9df23fe7a6d4fa36528259852ef496ab64d47b0ed781"
+    },
+    {
+      "id": "18-03",
+      "asset": "/image/leader/custom/mineral-heirs/mela.png",
+      "approvedAt": "2026-09-30T13:12:54.082Z",
+      "approvedSourceSha256": "0928dd81945c9d96ad16c21289d3d58b66cedae938d5e639f86e09ed73441698",
+      "processedMasterSha256": "76ebe2e03f1f53505ca340281a7b15622121b520274c98a343ec43582337acef",
+      "gamePngSha256": "d10a07984c127fa6b00c5acac2ca6a566dde9dc2b3645abfa8eb419d0fc0a1b8"
+    },
+    {
+      "id": "18-04",
+      "asset": "/image/leader/custom/mineral-heirs/orran.png",
+      "approvedAt": "2026-09-30T13:12:54.082Z",
+      "approvedSourceSha256": "22fff2341e5800fa37c3adc805ba1d2b87def9a54afb177be358bf0721846191",
+      "processedMasterSha256": "40c9520d7e95445f348c0682b7a8d717c58566d7fbf9ec2e855b55b700632f46",
+      "gamePngSha256": "443fb96f0ebb8f742afe6cb2fd97ea8d5aa7342cdf8524c1250e0137b68f4f30"
+    },
+    {
+      "id": "18-05",
+      "asset": "/image/leader/custom/mineral-heirs/siva.png",
+      "approvedAt": "2026-09-30T13:12:54.082Z",
+      "approvedSourceSha256": "7b83c1118a36ec9b3c3bf09c56b88a75c5645bc5ab152c480aa68eebfa9408ab",
+      "processedMasterSha256": "cf23e02982013f5e4fab4d7b6d2b24921c8b1e268279145bf3722715e1858328",
+      "gamePngSha256": "45fbf2254f94ab60c4fa7493dd3c387ff09961f1055101413a75c1e581724bda"
+    },
+    {
+      "id": "18-06",
+      "asset": "/image/leader/custom/mineral-heirs/tessa.png",
+      "approvedAt": "2026-09-30T13:12:54.082Z",
+      "approvedSourceSha256": "0fb9a3da91433609a786344f43092fec31ad07002e3dcc76a4e03ca4f8a30747",
+      "processedMasterSha256": "cab11ad595ada625e9df991f27e0ae29daf6f8c43593f994e2bf3c3cb74bcc64",
+      "gamePngSha256": "ccc681050ef24733c2e25432a11c8b64d7efdc388a7121b84603483a311d04fe"
+    },
+    {
+      "id": "18-07",
+      "asset": "/image/leader/custom/mineral-heirs/barel.png",
+      "approvedAt": "2026-09-30T13:12:54.082Z",
+      "approvedSourceSha256": "724c81994a1472bedacb0231d37d2acbcc4aed914d04b8e1d02694cb6f92da93",
+      "processedMasterSha256": "deb32f4b3f2ac8145528051ffd08518b3cbc4c7c1f9a3a2b88a9564c12b65df3",
+      "gamePngSha256": "e302383ac27d8bb8c898dab655bdbf687d4e7c8a286eb3b4b23d3c19274ab4c8"
+    },
+    {
+      "id": "19-01",
+      "asset": "/image/leader/custom/gill-covenant/nerra.png",
+      "approvedAt": "2026-09-30T14:20:00.784Z",
+      "approvedSourceSha256": "1a43bc29ff8e37266f09b1846cf75577ddf279499bb2d7ae756c3049dc0bb22d",
+      "processedMasterSha256": "fe262ca1ac70f95a38044d4525d1a83fa038444a30ecd7b37da89e21de6f860a",
+      "gamePngSha256": "a3f7e0e9447ddd23da66b2422d0d0596110fbb7fabe97b93d2bbae57db71a29f"
+    },
+    {
+      "id": "19-02",
+      "asset": "/image/leader/custom/gill-covenant/dovel.png",
+      "approvedAt": "2026-09-30T14:20:00.784Z",
+      "approvedSourceSha256": "c974f0cfddd60f9ec04e1cd5d8c20bd1938764a35ee3cfa227f53585b9da1a92",
+      "processedMasterSha256": "cd5a54ec101056030229a02f433617711d59ae3aeda6338b9ae856732074c7d0",
+      "gamePngSha256": "123614dcfb42a24cd773317342d3712232ee254d290d3dc750c25362f957762a"
+    },
+    {
+      "id": "19-03",
+      "asset": "/image/leader/custom/gill-covenant/sela.png",
+      "approvedAt": "2026-09-30T14:20:00.784Z",
+      "approvedSourceSha256": "97206f8bf25d4dd4685d551e9d6d2bc592a56ec68ac75c7209aef7041133b4c8",
+      "processedMasterSha256": "3555e813157c4b798ce97922dae83f2c0d787d21e6532da3322814f0e6ec91ab",
+      "gamePngSha256": "493fa9312c447f29949c7cd6ea57fc0031bb9de298deec20315a33b5cc691572"
+    },
+    {
+      "id": "19-04",
+      "asset": "/image/leader/custom/gill-covenant/orrim.png",
+      "approvedAt": "2026-09-30T14:20:00.784Z",
+      "approvedSourceSha256": "987db766373429cf2f63143fcaa4810255696cad85b93b6d8a561858c4460895",
+      "processedMasterSha256": "8e1efb1b6cdb9c86809bb026eebccd9b3ed7732f93ed1dd508b3ab0f6fa5bcc1",
+      "gamePngSha256": "58c6c9bef65a0f70c7b5276f5b0f1bb1e0006b392434bc394121e217629ab3b2"
+    },
+    {
+      "id": "19-05",
+      "asset": "/image/leader/custom/gill-covenant/vara.png",
+      "approvedAt": "2026-09-30T14:20:00.784Z",
+      "approvedSourceSha256": "a20d021312aeb4570a4a991561e38739589633f5f7ee788f9b8f4755c74f2335",
+      "processedMasterSha256": "d934c627f357b8e8f50d8bff03886527c4b3bd64dadb4bae5b4a98653b2ac94b",
+      "gamePngSha256": "7c9070e59474d52a172d16835f9a2d4a821880c36b7ff687ee8ff5c7db610650"
+    },
+    {
+      "id": "19-06",
+      "asset": "/image/leader/custom/gill-covenant/tenn.png",
+      "approvedAt": "2026-09-30T14:20:00.784Z",
+      "approvedSourceSha256": "94316dda15ae63d1baaa75d1a7b4052f290ecaa9723f99a9d4660870d7e6e588",
+      "processedMasterSha256": "47939dafb39973c3d924fe9b8edbc5d2e798f531a5fc229ca4a5ccfc0c1fd361",
+      "gamePngSha256": "5471b54f1d09522c77256cd29c04fdf2ced9026652afe686bd5e50054b3ecc9e"
+    },
+    {
+      "id": "19-07",
+      "asset": "/image/leader/custom/gill-covenant/muri.png",
+      "approvedAt": "2026-09-30T14:20:00.784Z",
+      "approvedSourceSha256": "f9ad0520c217d95c13e49f75dbcf39624f3bd7cfc91b849df79a803da75f3974",
+      "processedMasterSha256": "44d02585972e771095fbb97df03bdcc53945fbd9f7873abeac2735b814803256",
+      "gamePngSha256": "2772021d55ace02e5e38453a66371cea238cd225825c2c6c930101ab63fede36"
+    },
+    {
+      "id": "20-01",
+      "asset": "/image/leader/custom/morrow-strain/vessa.png",
+      "approvedAt": "2026-09-30T12:08:02.378Z",
+      "approvedSourceSha256": "4b800fd88c1376f96b05b0ed7e23f10e2f5943e5a9f18d7b7cc7fcda68882688",
+      "processedMasterSha256": "537cddbfc1c4e6d3b3353808a0d591b5234ba5e1a27dc8bafa6befb166065782",
+      "gamePngSha256": "f83b167b40288ff7c82d9b8f5244ca7a477546bbc417cace5f1cf3cc392382b5"
+    },
+    {
+      "id": "20-02",
+      "asset": "/image/leader/custom/morrow-strain/darren.png",
+      "approvedAt": "2026-09-30T12:08:02.378Z",
+      "approvedSourceSha256": "c87ed20dd55a3b18747561e18c1ede6b60e912778902dec84eb61bf33d61b4f0",
+      "processedMasterSha256": "6ac7fecf11dca9c877b7a329ade201293f929f1e868cfa4e5f8aeef027b0de28",
+      "gamePngSha256": "e2c0116d06f86492c555d66d3f983855bc8be10c720ae1a5783f172302807e4a"
+    },
+    {
+      "id": "20-03",
+      "asset": "/image/leader/custom/morrow-strain/nali.png",
+      "approvedAt": "2026-09-30T12:08:02.378Z",
+      "approvedSourceSha256": "2e9891e04dbbd8efbd9f128f191d4ec38e6644e8f316e473dce4ab5510295c06",
+      "processedMasterSha256": "8751c8cded19af7c0b5f843f06f0109a511753d0454a5562ae80ccc408c1ad33",
+      "gamePngSha256": "cde743a27ed721bb57849cfc6ca7b01a4acc0ac5d6b52f77e8208043aed224a7"
+    },
+    {
+      "id": "20-04",
+      "asset": "/image/leader/custom/morrow-strain/orel.png",
+      "approvedAt": "2026-09-30T12:08:02.378Z",
+      "approvedSourceSha256": "f77d10108581c925c0e4165f9af45144ddfacec3fcf48e6b4b0492352e4dde3a",
+      "processedMasterSha256": "4fcbaac25b6e4554568c86ddc7745c208537515878086edf4eca8dfdfab9af95",
+      "gamePngSha256": "c4c9d04e2fb7ccfdfd0e55d5ef7f99a470b928e8d7c17a889809e018de728aa4"
+    },
+    {
+      "id": "20-05",
+      "asset": "/image/leader/custom/morrow-strain/suri.png",
+      "approvedAt": "2026-09-30T12:08:02.378Z",
+      "approvedSourceSha256": "47e8bcaac23ba838ec5b156d4d16b4105e3fbe9291cb0f30ee82ca75780ad77e",
+      "processedMasterSha256": "d666d474cafcb76978a75f84815d8620f5d696bec037141018938b10b22c5179",
+      "gamePngSha256": "581dafecb0b5100df3bd118bb937913ef8cfd020aa72832c4a127639413a2ff9"
+    },
+    {
+      "id": "20-06",
+      "asset": "/image/leader/custom/morrow-strain/tessa.png",
+      "approvedAt": "2026-09-30T12:08:02.378Z",
+      "approvedSourceSha256": "ec935adc39c830734b416c22823fff070955365b5c11ec4071080672b95ca1ee",
+      "processedMasterSha256": "2fd9ed3925afc89d507b0b8111c3bd40b4aa74267137f68f587e91414efffbfa",
+      "gamePngSha256": "e857b8b14154a76417e80179f55ccab1c1b713839b486948ac0bc64ef5a630b7"
+    },
+    {
+      "id": "20-07",
+      "asset": "/image/leader/custom/morrow-strain/boren.png",
+      "approvedAt": "2026-09-30T12:08:02.378Z",
+      "approvedSourceSha256": "a4977f83e6533d8d9eba1df68afd393e62aec8024bb6d401ceb51c2767ad117a",
+      "processedMasterSha256": "593e4a565d1c4a68a19bf4255516ac8bb8a57b37eaae38c5e0ffef6bcf7cce83",
+      "gamePngSha256": "9772e2a7b13b6a6be31bcce09871b6e5713c43596a571ca7f8024cf42633b95c"
+    },
+    {
+      "id": "22-01",
+      "asset": "/image/leader/custom/khelt-dynasty/khelra.png",
+      "approvedAt": "2026-09-30T12:09:00.698Z",
+      "approvedSourceSha256": "6943725036486a5f53fda78f3799ad3ac6defdb75a41f2a980cad76a806c6fe5",
+      "processedMasterSha256": "4e651a18e10b8916608d3801a20580a86cfd9f9d4ac5ee685d61889f7901b904",
+      "gamePngSha256": "1576fce1ac68bb0634dbedc7a69ecd8d0bed383bd01cb44937c17d6a87146de2"
+    },
+    {
+      "id": "22-02",
+      "asset": "/image/leader/custom/khelt-dynasty/dovar.png",
+      "approvedAt": "2026-09-30T12:09:00.698Z",
+      "approvedSourceSha256": "ffc0de690e603085c1e8af1bd5bd50f5dda704aadc347853ce369c09bb8007f2",
+      "processedMasterSha256": "525ada9c5c158117c6637687d7739b8bd7a9b5cbbd82680ad0ff4da493e3922e",
+      "gamePngSha256": "b4bad0566126f20147b7d9d6ff177c64987b846f401d0b13e0e442cd26101734"
+    },
+    {
+      "id": "22-03",
+      "asset": "/image/leader/custom/khelt-dynasty/nera.png",
+      "approvedAt": "2026-09-30T12:09:00.698Z",
+      "approvedSourceSha256": "9c2e765c17ccd097fc7acadee1caa873b7a5ede2f1e62bfaed43e2fc738a3b71",
+      "processedMasterSha256": "0e569428869a30d027568796f0cd4c97c463fc3b03a366824b976cd00a234689",
+      "gamePngSha256": "ca236ff8bc1fea5f2db1b307ea966a714a157d5fee94660dd8c41fdbd809462e"
+    },
+    {
+      "id": "22-04",
+      "asset": "/image/leader/custom/khelt-dynasty/ossar.png",
+      "approvedAt": "2026-09-30T12:09:00.698Z",
+      "approvedSourceSha256": "65fab7a5aa6ca3f35cb77827f4e4911b382eabdc07805cc0c299d3c48f7d36df",
+      "processedMasterSha256": "0a1e94bc4b0f1fc25ecf97c7ef28234ddf91eede6db12dc5857edb0a6e2946e4",
+      "gamePngSha256": "ac6f9f92c1f221c4369f5dd9b9af19f78d5c4f74556c2a179a16367ac35238d3"
+    },
+    {
+      "id": "22-05",
+      "asset": "/image/leader/custom/khelt-dynasty/seli.png",
+      "approvedAt": "2026-09-30T12:09:00.698Z",
+      "approvedSourceSha256": "e5189b06e8e6adf5b22eaf5ce8e3ec9f92635ac30a64a0ec708b0dc1a6986dd9",
+      "processedMasterSha256": "bc9a34613bf34efa2bba2f0a9afd095bab20cb924f0ec85c585a2c9c50578e78",
+      "gamePngSha256": "cb8209ff9f4fad6fe44f7dc6b311bc3a9b9d3353d053ccc64bba47b19cf49abb"
+    },
+    {
+      "id": "22-06",
+      "asset": "/image/leader/custom/khelt-dynasty/tovel.png",
+      "approvedAt": "2026-09-30T12:09:00.698Z",
+      "approvedSourceSha256": "e8765e2e894feac77d838cf5cc05b423dcd920b7e6144151f6e7de5a7e77b634",
+      "processedMasterSha256": "b2dd2ecfac84a3d52603d5ea0e702c0430470554a21961bd54c6204112b034a8",
+      "gamePngSha256": "19f5717f9e675161d7ac02752738968d9692dc0d9896b292c70d4a99a7334ed9"
+    },
+    {
+      "id": "22-07",
+      "asset": "/image/leader/custom/khelt-dynasty/murren.png",
+      "approvedAt": "2026-09-30T12:09:00.698Z",
+      "approvedSourceSha256": "7ac204b01289330d837793c211224492b73807aa53e46b224795bd7129634fb5",
+      "processedMasterSha256": "5519be9d80df5702f310d7208fa75f8c072eea077fc8fc5a7145a99b4bf3e418",
+      "gamePngSha256": "0547457b762d070b728e8b9cfc3cde125f51c54c007dfc8c4142316fd9f9ad74"
+    },
+    {
+      "id": "23-01",
+      "asset": "/image/leader/custom/rul-feather-court/ruva.png",
+      "approvedAt": "2026-09-30T13:22:29.561Z",
+      "approvedSourceSha256": "57ff45969bc78dbd81267b55b4b2ade48d197cf2c49c2b7d36872bcc35b05600",
+      "processedMasterSha256": "bec2c0db6b19b37d7274fbacce498aa8f87ba1d76d886b499b106c1fd892d7fb",
+      "gamePngSha256": "a6e29827a7d1165993c4a417f679ecb05224e3b2d54b9a2722f27977ec14ea03"
+    },
+    {
+      "id": "23-02",
+      "asset": "/image/leader/custom/rul-feather-court/dorrak.png",
+      "approvedAt": "2026-09-30T13:22:29.561Z",
+      "approvedSourceSha256": "f92b0f8cb3d65fb63467963aba0969c26fd1f82decf8d3ce7171abedae23a1d0",
+      "processedMasterSha256": "c1127a870027073f5793ff2d4a5e6e2a6ffb54e11ff06dddda36c90959c3047c",
+      "gamePngSha256": "07120e4b24e1976e0b581c8efde6e507d2bc12a3dee2c6136a681089323c6c1b"
+    },
+    {
+      "id": "23-03",
+      "asset": "/image/leader/custom/rul-feather-court/nelli.png",
+      "approvedAt": "2026-09-30T13:22:29.561Z",
+      "approvedSourceSha256": "ac383ab67ca8ff4516c2befc88e85a853687022679e4f5d0d4eeaca7e8393cd0",
+      "processedMasterSha256": "d2fae19e840634c219cd7e962ad20108aede3274bc507a22afb4b61cb3ecfc46",
+      "gamePngSha256": "5c437edcb839e69a88956c714b04953a707df145f38d05a90920e757429a0166"
+    },
+    {
+      "id": "23-04",
+      "asset": "/image/leader/custom/rul-feather-court/orru.png",
+      "approvedAt": "2026-09-30T13:22:29.561Z",
+      "approvedSourceSha256": "24d35f7cce5cca7ca4896deffd2ff30e18a2b66a9e1f586f092ed18c98f4ce02",
+      "processedMasterSha256": "4791835c81c9f4c81ce17c6831a14bceac7cac8c43ab22cd0c333ca8288c9704",
+      "gamePngSha256": "b6379ac1bc46c77c7b6565dec81762b55a446ed4d672b991ba32e3920febf217"
+    },
+    {
+      "id": "23-05",
+      "asset": "/image/leader/custom/rul-feather-court/sava.png",
+      "approvedAt": "2026-09-30T13:22:29.561Z",
+      "approvedSourceSha256": "57c4c13ad0932fa59c855ae2692c4be54eda6982dce527fe3fc7ed11b6c7c40c",
+      "processedMasterSha256": "79e60c791a6f0c10f5555dc5596065d89a51c24c6114fe474d2385a74c1d278f",
+      "gamePngSha256": "22cacd555f737d54a92cf37d6177eecc6035551b0d3b0735c8d2fcf7fe291ba3"
+    },
+    {
+      "id": "23-06",
+      "asset": "/image/leader/custom/rul-feather-court/tarel.png",
+      "approvedAt": "2026-09-30T13:22:29.561Z",
+      "approvedSourceSha256": "35d9e85c5824ffda9f1befdeb0757a38ac54b1904797a5c96abaa1848e70b486",
+      "processedMasterSha256": "7b03b7e917cd136e7c8bb13bd3b4ec3fa05350ea43674a7c258effa65a677427",
+      "gamePngSha256": "c2c4186588cafb7f99296ad1c54bc5767b03564ef2456d94ffbc85188dd020e0"
+    },
+    {
+      "id": "23-07",
+      "asset": "/image/leader/custom/rul-feather-court/borel.png",
+      "approvedAt": "2026-09-30T13:22:29.561Z",
+      "approvedSourceSha256": "e61698ba323f85ceef94bbab6ba79035c46a1ff70e5c421759e6998b01f2e046",
+      "processedMasterSha256": "fad7983ef75aa56ecfe6e3689ef1ec2dc435af8719c873944535d8a2f10973d9",
+      "gamePngSha256": "35c716eef2a26cf5f1844316d4e1e5607e6a0e1abc291e95e1a3b98cee988d4c"
+    },
+    {
+      "id": "24-01",
+      "asset": "/image/leader/custom/harn-commonwealth/hessa.png",
+      "approvedAt": "2026-09-30T13:22:44.416Z",
+      "approvedSourceSha256": "90c8227a1566a50611e8fb1a39b620963d866c36d8ffe627ac8b1244a7846de4",
+      "processedMasterSha256": "8445951ebc6e86263bc8c0a3437c494864ac642ff316579b234b0480048eb33c",
+      "gamePngSha256": "18e496e0b2726fc046d53c930489c31e46daa9f49fe2fcc317f7b95f9c5be1ac"
+    },
+    {
+      "id": "24-02",
+      "asset": "/image/leader/custom/harn-commonwealth/dorrun.png",
+      "approvedAt": "2026-09-30T13:22:44.416Z",
+      "approvedSourceSha256": "3d428923ed6a1ae6ad006b4ec95409ab5bdf92a82c61b3c12ea7bc82098fb272",
+      "processedMasterSha256": "1924cfa0c7012fc5988f38b2733bd2844dc236f09b18de820251424d8b967f1b",
+      "gamePngSha256": "562ddeaacdf9f64609403b11b4564ec419d55eb638b692cfee9c1f129d97f7a0"
+    },
+    {
+      "id": "24-03",
+      "asset": "/image/leader/custom/harn-commonwealth/niva.png",
+      "approvedAt": "2026-09-30T13:22:44.416Z",
+      "approvedSourceSha256": "712354e0ba2751cf3babaf00391219fde3fb7dba6b2506f8ed5849a0ebc9d72c",
+      "processedMasterSha256": "f334571f9d6f5ff2a1e03561600dac75f33b8e5ca6399329cfe083606780ac89",
+      "gamePngSha256": "59a4e2288ede9d71bec010a6b7e153019477f10c255d2fc0b2582f9750c59dbb"
+    },
+    {
+      "id": "24-04",
+      "asset": "/image/leader/custom/harn-commonwealth/orren.png",
+      "approvedAt": "2026-09-30T13:22:44.416Z",
+      "approvedSourceSha256": "bac66893f80c55845bb3acbb6cb180c23c817f6a2e51c37248114970401ca02b",
+      "processedMasterSha256": "e243252d13bb1b066c98aa58c3274d161b9044fce0327ae7cc5bb2d749b3c453",
+      "gamePngSha256": "5413d224fc1c9e4e9f63e3135b7300c7efdd0743b95c083db7bf37d5c6889f08"
+    },
+    {
+      "id": "24-05",
+      "asset": "/image/leader/custom/harn-commonwealth/sela.png",
+      "approvedAt": "2026-09-30T13:22:44.416Z",
+      "approvedSourceSha256": "86b6da085daba68d369acb4469c733a515cdd2140f4e624c05883a2d1ed6575d",
+      "processedMasterSha256": "22adac3a9e13977d4d488ad0a89ddcea630a3cc6c682413799559c6b1248c742",
+      "gamePngSha256": "11347c16a547d98e5d22b23af8a0c4d61f9ecde9311a48b0a586861482c2c079"
+    },
+    {
+      "id": "24-06",
+      "asset": "/image/leader/custom/harn-commonwealth/tavir.png",
+      "approvedAt": "2026-09-30T13:22:44.416Z",
+      "approvedSourceSha256": "85f2e49a72903f6a6ce10c56993ff51e66add736ac623622bbf913eb842a6e54",
+      "processedMasterSha256": "7f1f4cc0a4ee669bb98343f5f7ed641d8b7f4d3ed6c9683258cfb42aec75cbd3",
+      "gamePngSha256": "e1a7eb1505c6f37404567c6cb55b6bfdac3866cabb8d6f508b26af95d7ad1fe7"
+    },
+    {
+      "id": "24-07",
+      "asset": "/image/leader/custom/harn-commonwealth/mura.png",
+      "approvedAt": "2026-09-30T13:22:44.416Z",
+      "approvedSourceSha256": "95418ce7c73a9829c125b6f24b2e7d738ef28e7949cff6b66c857606f223dd4c",
+      "processedMasterSha256": "e8881f104b46f04edf963cade4203588138ae53fe72288d07ad84da252545d8d",
+      "gamePngSha256": "9e998d0e447b3d6c67701097490cd1f7633ca00c04911372167a6056f51fabfb"
+    },
+    {
+      "id": "25-01",
+      "asset": "/image/leader/custom/vel-silk-court/vela.png",
+      "approvedAt": "2026-09-30T12:09:56.251Z",
+      "approvedSourceSha256": "743b68e4e56580ed5dc214d937331c46fd96718b1b66a26e83ad26b2b937c67e",
+      "processedMasterSha256": "31ec8a135e7be331254d9397f64f6f808c476ac0a8859f93eb33855aec463481",
+      "gamePngSha256": "24cd1150ecdbc32e7f86d8c690a0389da27a3ea4c58c28c9b910fe7b84d7bc77"
+    },
+    {
+      "id": "25-02",
+      "asset": "/image/leader/custom/vel-silk-court/darr.png",
+      "approvedAt": "2026-09-30T12:09:56.251Z",
+      "approvedSourceSha256": "fc5819e3125ed0a58021abedecad549f5f332d5cc5d64b83d2dc097c4bf10182",
+      "processedMasterSha256": "4a918826e67aa68b43247cfcd6247bb7a43a946b3fddf9df42344fe43bf8ca5c",
+      "gamePngSha256": "f714e92f9b4c6e95843be70f0b16de3343bdc0f5922b6e712c3e2ed0bc3010be"
+    },
+    {
+      "id": "25-03",
+      "asset": "/image/leader/custom/vel-silk-court/neri.png",
+      "approvedAt": "2026-09-30T12:09:56.251Z",
+      "approvedSourceSha256": "f72ee6c4055028e1372bb6070b5259cea9205a730452d5e63bdb6d178797b161",
+      "processedMasterSha256": "596150a1379a47c3bb8145a2d7a9f2956a19c7b8948f6ca657837c88902f7624",
+      "gamePngSha256": "db3986770062781826220615373b7c6e8d8e6008c60e92e43a2cfe66f200442c"
+    },
+    {
+      "id": "25-04",
+      "asset": "/image/leader/custom/vel-silk-court/ossa.png",
+      "approvedAt": "2026-09-30T12:09:56.251Z",
+      "approvedSourceSha256": "c4614f6972823d6db8357edfd5458f5cf720bb887131c91302a100b0242b9b6c",
+      "processedMasterSha256": "d7377253f79390714e3b797341c82eb2afbcfa1e3eb3a8dba00974d021cef449",
+      "gamePngSha256": "f02b0bd4043b1176f2306ce2894fd4fbfe92ccdd3599d2372c60048917dd49ff"
+    },
+    {
+      "id": "25-05",
+      "asset": "/image/leader/custom/vel-silk-court/savin.png",
+      "approvedAt": "2026-09-30T12:09:56.251Z",
+      "approvedSourceSha256": "eb33f57ad53d40a27c6bc65697e35b022c3581b04527a704118643043e714ae0",
+      "processedMasterSha256": "2be4842fd25cd9eb3dbe7b4f9f60a076a373a9d25c9e5668a84b15a27a1e6fdb",
+      "gamePngSha256": "2b454cb232c6c7527f2406f932eb23391095d9077c958e345ea94a29acdd362d"
+    },
+    {
+      "id": "25-06",
+      "asset": "/image/leader/custom/vel-silk-court/tella.png",
+      "approvedAt": "2026-09-30T12:09:56.251Z",
+      "approvedSourceSha256": "a911ac989afab4f9a05eaad3bb1f3420d3fc36215cfeacc72db351fc5d444ac9",
+      "processedMasterSha256": "fbc085b5dac5098c5328b0a29ac345d10e77dfaa222ff9f49a2fb3673703087a",
+      "gamePngSha256": "287d043d330db5f86c353b6af0eff7e429a87b6f544dc3b802e0738a26882e51"
+    },
+    {
+      "id": "25-07",
+      "asset": "/image/leader/custom/vel-silk-court/berru.png",
+      "approvedAt": "2026-09-30T12:09:56.251Z",
+      "approvedSourceSha256": "f3390a1005afc85648eec457b54125ab529ae6e89e6778da4f0a7b21c39deac8",
+      "processedMasterSha256": "c2b3d68d26e20609badd4d3ceb8788c935aa60e0df4206868e4f327a60d27147",
+      "gamePngSha256": "716b3d3f733f1e221394690c59c95e5b60de18ea0b8f347dde414f178451ba80"
+    },
+    {
+      "id": "26-01",
+      "asset": "/image/leader/custom/sere-reservoir/oru.png",
+      "approvedAt": "2026-09-30T14:20:06.818Z",
+      "approvedSourceSha256": "31b89091dac33aa0ee02c76ce4103b6933b7e1d195a38ba2d3af2f4d3ee44ba9",
+      "processedMasterSha256": "7f3f08a16b96db1a785a54bfce2c4ef0400b81e3454dc0b8635a989c91fa84ce",
+      "gamePngSha256": "7f479f715e11cdc1ffd9eb474eb832906d9149e4dc6d8431b2518e25b047ac34"
+    },
+    {
+      "id": "26-02",
+      "asset": "/image/leader/custom/sere-reservoir/sava.png",
+      "approvedAt": "2026-09-30T14:20:06.818Z",
+      "approvedSourceSha256": "dcfbb8f13f581ab5eed35ab79d7cc8be116b06dc47bf4b9691d324b6b041255b",
+      "processedMasterSha256": "ca08d338ce3fed9c1544e1490aa54bf9bb8128266122d4d505e8cd80b1f7f940",
+      "gamePngSha256": "2b479301bcf451577921b66cae7d1a584ec56cda47f9a0ee3228ec8b08e4296c"
+    },
+    {
+      "id": "26-03",
+      "asset": "/image/leader/custom/sere-reservoir/bren.png",
+      "approvedAt": "2026-09-30T14:20:06.818Z",
+      "approvedSourceSha256": "63e222ff11e486dfa89229d2335d9962bd27b52d99f9cbf14af7a9cd024d1a97",
+      "processedMasterSha256": "a4099eb8df454349a2058c523a7b910a2001991c589a3ea04fd8d3c0f5911c9d",
+      "gamePngSha256": "7b3c616e15f13fee28c6d4e0d024db6fa7f497ebe31242bb6d02980810695a19"
+    },
+    {
+      "id": "26-04",
+      "asset": "/image/leader/custom/sere-reservoir/ilo.png",
+      "approvedAt": "2026-09-30T14:20:06.818Z",
+      "approvedSourceSha256": "ed52110a05a00c362217143cff68b2b31ad4f924f3612b12307d6de1a396d630",
+      "processedMasterSha256": "bcf52a263e3f41c281a26952b684f6bc656740683996f77153f021c7df013b21",
+      "gamePngSha256": "e1fa7858f9f5b579827c0cbda81d76dd4db46c5318ca607bb2c6e3f5d3b0c7a7"
+    },
+    {
+      "id": "26-05",
+      "asset": "/image/leader/custom/sere-reservoir/vesh.png",
+      "approvedAt": "2026-09-30T14:20:06.818Z",
+      "approvedSourceSha256": "d6d5f57da01fdf71f9ee41fb5196c64c1bf525e87a49495a84c8abf6f609e91e",
+      "processedMasterSha256": "826ba2e460c1cea91faba40d933e73b98a5f8ca7607c3b2323a5c70070edf52f",
+      "gamePngSha256": "c19196e9d92e1d887d28f517c41e96df4e9298f3238862cfa6a924a9b6c76945"
+    },
+    {
+      "id": "26-06",
+      "asset": "/image/leader/custom/sere-reservoir/toma.png",
+      "approvedAt": "2026-09-30T14:20:06.818Z",
+      "approvedSourceSha256": "d67d8ef039f023c8088f8d4e68eca9266ff6df4f328ce378024d903f06ef1ec4",
+      "processedMasterSha256": "cd3302305ef3ad11201dfbaef78735c09cbf3ff42f1159273c4e93bf18553358",
+      "gamePngSha256": "7a88b12471c066495954a9cf14a247e9b5f4d9574641548752e7331945cc03fc"
+    },
+    {
+      "id": "26-07",
+      "asset": "/image/leader/custom/sere-reservoir/arel.png",
+      "approvedAt": "2026-09-30T14:20:06.818Z",
+      "approvedSourceSha256": "cb84cc616972208a4bf22afe595b32972b1559b1c6f10bcaefd8236f9632f812",
+      "processedMasterSha256": "291d360f55b17ede31dd5489eb7e4aed2e0afd43c0571ce5edd691ebd784886f",
+      "gamePngSha256": "5e31f63b525a8b23ba96c46bd08fd9d1355bd581e57feaa64a625cb4dff5d142"
+    },
+    {
+      "id": "27-01",
+      "asset": "/image/leader/custom/brumal-court/dorel.png",
+      "approvedAt": "2026-09-30T12:10:37.760Z",
+      "approvedSourceSha256": "5b3c8ea93288938a9723470bd7e51cb50c2907ec6da7d988191a2c5e9a733ac4",
+      "processedMasterSha256": "5e00ee56b2be004d7fc2d51fd4514a276cba12beb09b92e187fe572766a774fd",
+      "gamePngSha256": "4434c8abb7891cf31f894ce3d4f5dfef77618a859e9246c52856192789c9fe71"
+    },
+    {
+      "id": "27-02",
+      "asset": "/image/leader/custom/brumal-court/vana.png",
+      "approvedAt": "2026-09-30T12:10:37.760Z",
+      "approvedSourceSha256": "d637ee2475fd9cabb31f25d7d0d40dd4f33279d6f27381ac308224064e46b412",
+      "processedMasterSha256": "9126ed608d4eb0d070d14b05482d5c23efd0cb9b1c9729b6c0be380a0877c2f4",
+      "gamePngSha256": "dfbb99b6667bf57915c3b8836a3a039a11b409c83adbceb7444985928c7ce6e4"
+    },
+    {
+      "id": "27-03",
+      "asset": "/image/leader/custom/brumal-court/kelm.png",
+      "approvedAt": "2026-09-30T12:10:37.760Z",
+      "approvedSourceSha256": "c60f386672bbec6b6d7ec84701427fe6ee29398397843d7a17cd0f61d176e64c",
+      "processedMasterSha256": "95d1085e5d0aa7eb3b56b361232024ecbdc9bd74d8ed51faaa131ae66076b672",
+      "gamePngSha256": "caab3ccac2d902c9dfdb71e72202dc623616b8cb56bee71d7c337afa3b1bf71f"
+    },
+    {
+      "id": "27-04",
+      "asset": "/image/leader/custom/brumal-court/eris.png",
+      "approvedAt": "2026-09-30T12:10:37.760Z",
+      "approvedSourceSha256": "515218ff107eb2f52a366b9354e856cf43ebaebbec6ebf73c36b1824849aea30",
+      "processedMasterSha256": "bfb3f846c58c82cf0e5b1ba19e0fcfa0269ad6dfd21d1d578935f774f10c5dce",
+      "gamePngSha256": "ce53b9330966ad93e17a9223f2b6f8fec270a9a125befdd4cca5ef1f3846961c"
+    },
+    {
+      "id": "27-05",
+      "asset": "/image/leader/custom/brumal-court/noll.png",
+      "approvedAt": "2026-09-30T12:10:37.760Z",
+      "approvedSourceSha256": "4af2d3322a6c28d626f4fcbbafb9ba0aae8bb85d443d74a4f358273b4c4fbd0b",
+      "processedMasterSha256": "5930ac6017dece09235b6bd96b1277ffaf53fe34ed7d6d76c166f7dcfd9a1260",
+      "gamePngSha256": "3cf2eaa0c402701f20c56667090bc39d75e06f7839256001323b99350657e2d3"
+    },
+    {
+      "id": "27-06",
+      "asset": "/image/leader/custom/brumal-court/ruva.png",
+      "approvedAt": "2026-09-30T12:10:37.760Z",
+      "approvedSourceSha256": "ff01c8bef442d7dcb5de9a5a7ab976866e8550f65d15a1f5049b9b775706670c",
+      "processedMasterSha256": "5425e4404ebcaedbc63968a407ac4801046b52dce43982283d6a03bffa401731",
+      "gamePngSha256": "a90b4dbd2c27d1bb4eb708405795e37c6f677f08c86f03c8451770d5b3d671a3"
+    },
+    {
+      "id": "27-07",
+      "asset": "/image/leader/custom/brumal-court/hadr.png",
+      "approvedAt": "2026-09-30T12:10:37.760Z",
+      "approvedSourceSha256": "cd83ffea9f17becccd61a36a0f514ca79e7e3f54fbddf011fe357e806a8f26b5",
+      "processedMasterSha256": "6fef806d329e28bdc70eda5151d89010e2e76f62c8e729b7a68d9fb886e0b9cd",
+      "gamePngSha256": "9c9bb0235e4d7d4d3354a051c9a4c2b8e678f3057f366148865752bef5bd8501"
+    },
+    {
+      "id": "28-01",
+      "asset": "/image/leader/custom/velu-assembly/melo.png",
+      "approvedAt": "2026-09-30T12:17:39.030Z",
+      "approvedSourceSha256": "ed022d2b1594a2369a6e495b201dda3b40c71f17f5b13e3cf923f0b16b61676b",
+      "processedMasterSha256": "9fe87765bef2238f0610455c6f6daee2d207b8ce83b3bc6f8b102aedb996f1f7",
+      "gamePngSha256": "61450ea02d4f3807d9d1bfc632169e7da2aaeed995fd72466617192a349473ff"
+    },
+    {
+      "id": "28-02",
+      "asset": "/image/leader/custom/velu-assembly/kiva.png",
+      "approvedAt": "2026-09-30T12:17:39.030Z",
+      "approvedSourceSha256": "f76139a456420b928fbafdb78d564c4587568d2458d886fbd301dd1393a7d944",
+      "processedMasterSha256": "71e86aa496b7de4f67fc0639b5772e64fdf725bc89541ade794c1cad8f9f8844",
+      "gamePngSha256": "73a83b96082f93cedb01fd01a6e60e3637933d25921eaea80f0870c2af18532f"
+    },
+    {
+      "id": "28-03",
+      "asset": "/image/leader/custom/velu-assembly/davo.png",
+      "approvedAt": "2026-09-30T12:17:39.030Z",
+      "approvedSourceSha256": "7b06c18882b50bf2f1f6d9e6b59415369b7e2f4a59d2bc5f7622d7b49aee9669",
+      "processedMasterSha256": "a9148b091d13a34439ba89fcb54dba52b60223e4aa73ec9789472301fd84bfc3",
+      "gamePngSha256": "1fdc7b7a9f16d0ce7590c8975f9ed6af02aee2be43ab405ae0b07fce0e0186b4"
+    },
+    {
+      "id": "28-04",
+      "asset": "/image/leader/custom/velu-assembly/usen.png",
+      "approvedAt": "2026-09-30T12:17:39.030Z",
+      "approvedSourceSha256": "756f5e4233b415e9291283aeb8a73a55c46cf2100b4c73ee6d6d4ef47752c69b",
+      "processedMasterSha256": "131867078a386c3e879ef34bbe2c8f20f840bfd67341b5a544aa681359de5b30",
+      "gamePngSha256": "2af40f224fba66076f8f617e89e1217c48480fcacbd88088b166d0e330857bb5"
+    },
+    {
+      "id": "28-05",
+      "asset": "/image/leader/custom/velu-assembly/pera.png",
+      "approvedAt": "2026-09-30T12:17:39.030Z",
+      "approvedSourceSha256": "a801e221d708ffc0568e08147b1b4bd139aacb072d61b5292e1fc9ec4f812e34",
+      "processedMasterSha256": "d68932a0c71088aac0e58c5b0f1ad05323b4b21553e15d3dab368e6564b3179c",
+      "gamePngSha256": "60c005cda0348230147d0363243ac83d74bdab2d3f03820b20e35b762218857a"
+    },
+    {
+      "id": "28-06",
+      "asset": "/image/leader/custom/velu-assembly/zaro.png",
+      "approvedAt": "2026-09-30T12:17:39.030Z",
+      "approvedSourceSha256": "ab696d6e4840433d83fdcf15be1c011680601d9d0fd5a4f137edc1dc102a7e44",
+      "processedMasterSha256": "99b3fc2031290476e73f30f75eaf0e0dd1d435f282dd17d9019a850f0d77a30e",
+      "gamePngSha256": "22fa6b0cfc05c18b270854af219a25cb45b59d5b62481255d52c141dc2a1452c"
+    },
+    {
+      "id": "28-07",
+      "asset": "/image/leader/custom/velu-assembly/elda.png",
+      "approvedAt": "2026-09-30T12:17:39.030Z",
+      "approvedSourceSha256": "83d91c99cbdaa6ee65f3313a99876b992c90859176843ec20c8a37f7b7bd04db",
+      "processedMasterSha256": "afa6d35411e239256edcba1922ed12bb437c73962aa4c8c6bc34d202188f9275",
+      "gamePngSha256": "eed027d13591d6651f9a01096f437f8ee81d9234c6904bfc5406b0d150f0ec7d"
+    },
+    {
+      "id": "29-01",
+      "asset": "/image/leader/custom/meret-shoal/nera.png",
+      "approvedAt": "2026-09-30T14:20:20.898Z",
+      "approvedSourceSha256": "0d1d2db7048fc39d28344170c131418a3813194f5856beaff76dc988affe49f7",
+      "processedMasterSha256": "f800eaef590015ccfb4355d18c0755f3ab95415ba78ed9768a55c47240ad06a0",
+      "gamePngSha256": "f0fa8a2405fd08200c3f344c4b17e88836e4cd4072cb861290ce08e1f76435af"
+    },
+    {
+      "id": "29-02",
+      "asset": "/image/leader/custom/meret-shoal/ovek.png",
+      "approvedAt": "2026-09-30T14:20:20.898Z",
+      "approvedSourceSha256": "a48d1738c080c122f67dfa43ad7527c4e86b4336507293cd4c9e8ad7ce67dbe5",
+      "processedMasterSha256": "942b53576c1d2309588d2fa804b370aa867667d3f1f5d3f2f870c3afa65e8bce",
+      "gamePngSha256": "15baeff961c175d2e62a94cd1c88765ae1e12f4e99288ef1aca5a04cbdb91267"
+    },
+    {
+      "id": "29-03",
+      "asset": "/image/leader/custom/meret-shoal/telu.png",
+      "approvedAt": "2026-09-30T14:20:20.898Z",
+      "approvedSourceSha256": "06c829ca4f4949d7ade0089f0272e443042b62d4f6be0cfc8b4f3168ef4d3c24",
+      "processedMasterSha256": "61e6ecd73e17c71db905a3f3e0694cd3ea7762df75d23a8f0a467cd5e75ed69f",
+      "gamePngSha256": "3652c1b1239eead8eb0000da655e2d387dc7fddfdb3f78ec7e10e3ab9af33e40"
+    },
+    {
+      "id": "29-04",
+      "asset": "/image/leader/custom/meret-shoal/rask.png",
+      "approvedAt": "2026-09-30T14:20:20.898Z",
+      "approvedSourceSha256": "5a14e9497c3c80d81bca5467a341e46740bc6257c3f7ea93b4ffe255324c4913",
+      "processedMasterSha256": "61e205a19f2e043fff5460e142e5fc3738e27a490153948d4c35c7f70385ead5",
+      "gamePngSha256": "3750927bf09f5261d8c91b6dc96957dd9054ba176a7ab1f4ccd8008742d4c0e5"
+    },
+    {
+      "id": "29-05",
+      "asset": "/image/leader/custom/meret-shoal/vima.png",
+      "approvedAt": "2026-09-30T14:20:20.898Z",
+      "approvedSourceSha256": "958b56fb7bead448edf030317b04d7ece7b8e2ea760ffe4d209248b10a42a988",
+      "processedMasterSha256": "1afe5215f655b4d1982a9ee0b93b74d00a6c28adaa2f1350c9a29d8c6ce305a0",
+      "gamePngSha256": "6ce8591b0bc078c6f24e5af6320d5bf5c0921e1c631d129d1cd2a41a28a05fb0"
+    },
+    {
+      "id": "29-06",
+      "asset": "/image/leader/custom/meret-shoal/heso.png",
+      "approvedAt": "2026-09-30T14:20:20.898Z",
+      "approvedSourceSha256": "524742ad62c8d3f339c1eea38009d96472a4137dcae16fef6118702ef792784f",
+      "processedMasterSha256": "fd8d8bd39fe7e779db70ae27a3c854d586af3c93e47406e93c55c8e7f8a4703b",
+      "gamePngSha256": "686da53ceb7d74ba2f71b6099199240dcbb76705007f44390f8abd94d83237db"
+    },
+    {
+      "id": "29-07",
+      "asset": "/image/leader/custom/meret-shoal/lorn.png",
+      "approvedAt": "2026-09-30T14:20:20.898Z",
+      "approvedSourceSha256": "91b0d195ed900e8e904c18083fbc9a658b3fe610f8c4a5c179701d3bed7fd9c6",
+      "processedMasterSha256": "b25b541903137dc2e9c3953c19fbf254349b2c5ec6e2ed3a1310953961d82bec",
+      "gamePngSha256": "8bf0e015b813a2c16f16e17837301866bbe15b5726fd697dde2150d61f7e040b"
+    },
+    {
+      "id": "30-01",
+      "asset": "/image/leader/custom/ulvo-bound/ulan.png",
+      "approvedAt": "2026-09-30T14:20:33.529Z",
+      "approvedSourceSha256": "68eba5579c70850578cbd786eefd09d96034d52ae5a8f68481c01201d147b0cf",
+      "processedMasterSha256": "e00c88c482416fe7ae35200e9ada738805159fc7fbaa50613a68029fd21a3591",
+      "gamePngSha256": "04dbffdbd39d142254e032c9a554d632a86d12c4b533d1c8f3302a8ba5ab38d0"
+    },
+    {
+      "id": "30-02",
+      "asset": "/image/leader/custom/ulvo-bound/mira.png",
+      "approvedAt": "2026-09-30T14:20:33.529Z",
+      "approvedSourceSha256": "293f3bf3ea3f9ca6b25e0ffb15a6bb6c110515ffa381473c6c0292b77ec72152",
+      "processedMasterSha256": "958412e81b94fbacaef3891967addc4024f023c2aaba0699db7984c319040869",
+      "gamePngSha256": "30570700e41a49f07fb870c669d5b2f40c2a5fd16e70cabbaf0e36b7be7794ce"
+    },
+    {
+      "id": "30-03",
+      "asset": "/image/leader/custom/ulvo-bound/drek.png",
+      "approvedAt": "2026-09-30T14:20:33.529Z",
+      "approvedSourceSha256": "59a0cc20e89d2800d611a45cff3ad278b0bf5cc83840fb65b0225118e045416f",
+      "processedMasterSha256": "83b7d5ad96270ded6ac0c8880f90583e22bfd0c906995b65a25ca1ef8d8f85e7",
+      "gamePngSha256": "f36b82be5dc68b718a5585a4684a8c144d62e67fae1e77d692734c8ca10b66b0"
+    },
+    {
+      "id": "30-04",
+      "asset": "/image/leader/custom/ulvo-bound/sulo.png",
+      "approvedAt": "2026-09-30T14:20:33.529Z",
+      "approvedSourceSha256": "d0ea9611232ea7a12c459cfeda619472a743d2fdcb7ff115616c8796ec507d3d",
+      "processedMasterSha256": "506544137f8fe444ec8f295dd900eba5ada73e294eab1983dc64ff878a502e56",
+      "gamePngSha256": "27085b84ee7ae616b961a89bfdd64dd68869e54383287080b81bc6412bd88727"
+    },
+    {
+      "id": "30-05",
+      "asset": "/image/leader/custom/ulvo-bound/aven.png",
+      "approvedAt": "2026-09-30T14:20:33.529Z",
+      "approvedSourceSha256": "f1950d65f2f6d434396305c39801db8f1d2be011458113ba811c7b5d9f3325f8",
+      "processedMasterSha256": "aa2b4aa3eec0a55040dad91c730ffe33f17db5025d960f67843079c1b69d8cdf",
+      "gamePngSha256": "b709d1a7c9a943ec6b9269a5714c6d7e9f96c1f2561b3e9c0522c133dd61c368"
+    },
+    {
+      "id": "30-06",
+      "asset": "/image/leader/custom/ulvo-bound/bora.png",
+      "approvedAt": "2026-09-30T14:20:33.529Z",
+      "approvedSourceSha256": "8b693dc0f78bef306b7008715add6668466bcd63cb99cad724e2f719784ba4a7",
+      "processedMasterSha256": "fccac101306d7bc94517285581766d96f3828bcf2c52cc1ec3f931f79e0cce98",
+      "gamePngSha256": "75a789a1b4707733b68629e8da6d58216f871c32928c6b0796291d4c6151fc65"
+    },
+    {
+      "id": "30-07",
+      "asset": "/image/leader/custom/ulvo-bound/yel.png",
+      "approvedAt": "2026-09-30T14:20:33.529Z",
+      "approvedSourceSha256": "f8a08ab62858c8a56e60e4d163831ffecaa5b61c21ed33eed831f01d55fdb275",
+      "processedMasterSha256": "ec386ca4ccf288ae0f050a340610b26a86d922870588eee879fe2d71128a838b",
+      "gamePngSha256": "9a141f139faa86b220411daf49079455a9485169a9b3558587b5b3a9ce5fb517"
+    },
+    {
+      "id": "31-01",
+      "asset": "/image/leader/custom/orren-ring/oren.png",
+      "approvedAt": "2026-09-30T13:33:41.455Z",
+      "approvedSourceSha256": "40f8e87d842629f2863943f0a4c047fc9535989acccbe7cca3913bc38600a821",
+      "processedMasterSha256": "d0504b6fba245e31ae0e984f310b32e226171c99b75e16e63ef94cb29fce9902",
+      "gamePngSha256": "87f0f8416df4cf56e2dec197988e1f7684b16f343075e65afd6d86a413d15e71"
+    },
+    {
+      "id": "31-02",
+      "asset": "/image/leader/custom/orren-ring/vessa.png",
+      "approvedAt": "2026-09-30T13:33:41.455Z",
+      "approvedSourceSha256": "7b9bd4ba91bdf0505eec98e30892e75c54f180ecceee477ce3da9f31c890512d",
+      "processedMasterSha256": "88912e3776ffd32dc6e63e466b57c372777e983494b3c18b93950b64e44528b9",
+      "gamePngSha256": "48fb1648d62498fb09611f3c4e422d7c32a44ef8cce2a3a5d3200f330fcc14c5"
+    },
+    {
+      "id": "31-03",
+      "asset": "/image/leader/custom/orren-ring/durn.png",
+      "approvedAt": "2026-09-30T13:33:41.455Z",
+      "approvedSourceSha256": "ea234e47f796ea64c3acd177f6ab39ede715fc104c3e7e1ec2402c16daf30576",
+      "processedMasterSha256": "f19c0661ab7a0bf1dc801bbc4d6ec3fb14891f8da802620d63984eaa7a22b75f",
+      "gamePngSha256": "ce9782e3ca72d4fb78aca5e5892f683fec9276e7ec4d144c656405f93d0875a6"
+    },
+    {
+      "id": "31-04",
+      "asset": "/image/leader/custom/orren-ring/iren.png",
+      "approvedAt": "2026-09-30T13:33:41.455Z",
+      "approvedSourceSha256": "1ad6cf9906a10c211f8e95e5a3ef454e7b5a363ecdbc37a053ffd8e2c5c39037",
+      "processedMasterSha256": "dbd087a6655e1096caae841a59d28b2a66f15dda7905e874bfc256923548922b",
+      "gamePngSha256": "38ee6ae4b6767b9f19f4c948324d3bff9b35b3adef6094f27d6d880024629b87"
+    },
+    {
+      "id": "31-05",
+      "asset": "/image/leader/custom/orren-ring/pallo.png",
+      "approvedAt": "2026-09-30T13:33:41.455Z",
+      "approvedSourceSha256": "09bf44a37026fd91418f7a65743ba6dee6262b9b060b575eca5d5f03e12c280c",
+      "processedMasterSha256": "f358ba2b1f42395e97e40bcf082a54ecd9469892fe298a6d11c56d6cdae9a74f",
+      "gamePngSha256": "279dc93153d3b11abf05392f58c51393bc7826116021b7ad75889a38f0bcf066"
+    },
+    {
+      "id": "31-06",
+      "asset": "/image/leader/custom/orren-ring/cera.png",
+      "approvedAt": "2026-09-30T13:33:41.455Z",
+      "approvedSourceSha256": "e159c200b95ebd2efd6560173c96eeb5d3403f9f562f81cf6e0b74a0e4bbbfc2",
+      "processedMasterSha256": "217f7d7bdf66498f211264bcef4fd5041c9540977b7e3f072f4615fb35596644",
+      "gamePngSha256": "473d55e01324100a778e3d956f51bac7ea65e1b26da2766234c91833e0f45b78"
+    },
+    {
+      "id": "31-07",
+      "asset": "/image/leader/custom/orren-ring/brum.png",
+      "approvedAt": "2026-09-30T13:33:41.455Z",
+      "approvedSourceSha256": "c32e0117cf5cbe169fc7cd1682a4c927e3ae2b591fcb46504302f937410b3a1f",
+      "processedMasterSha256": "a28c2e729d28e42a549aef61677ebbc9d3b27a8ec3bacd8b413f57dfbb393bfb",
+      "gamePngSha256": "df33ccdeddb4b19f9d946db89defa6b5c99b4bb8e0414515ba2738c3b8b6824f"
+    },
+    {
+      "id": "32-01",
+      "asset": "/image/leader/custom/tarn-bracket/tarek.png",
+      "approvedAt": "2026-09-30T14:20:46.245Z",
+      "approvedSourceSha256": "b4d3295fffa552d35078c4eb449d7170c9cd94cad3910cb34b3bb9ba1c81e204",
+      "processedMasterSha256": "776235e0bdc2231e1fa165e67b9f3ef03c0526c588f4d4c9efbb16afb69c5470",
+      "gamePngSha256": "5ee743853bda2306fcb094d66b1d403c10729f3a706aff76a810a0cc5bdde1df"
+    },
+    {
+      "id": "32-02",
+      "asset": "/image/leader/custom/tarn-bracket/numa.png",
+      "approvedAt": "2026-09-30T14:20:46.245Z",
+      "approvedSourceSha256": "f57f7c139628dca860f2cb0c8ab653e81cd5ab703bde92a369a5496ec3e243ca",
+      "processedMasterSha256": "c86826b68a58d948021e51a229b2eebec242c136e2d6385ede95ca7b5ef0a3cd",
+      "gamePngSha256": "2787427053d50983e7e2bfbb58590311fb6ce6e5539eaf79961d65ce0dfdbe9e"
+    },
+    {
+      "id": "32-03",
+      "asset": "/image/leader/custom/tarn-bracket/harn.png",
+      "approvedAt": "2026-09-30T14:20:46.245Z",
+      "approvedSourceSha256": "3b61262d67d2e48ffea8cd485152f4dcd11b03dd6e42e116956bb073d09cb0dc",
+      "processedMasterSha256": "e6c4fa17e8c3326731a5a47a9b43e404d707ea19d76b404a769535ed5595fa8a",
+      "gamePngSha256": "f7340f51d9cf90f4cee1ca3532bd50a508710e5568ff3505205726f9d017bc25"
+    },
+    {
+      "id": "32-04",
+      "asset": "/image/leader/custom/tarn-bracket/elo.png",
+      "approvedAt": "2026-09-30T14:20:46.245Z",
+      "approvedSourceSha256": "42a11d17926b2871f3d9f5f613ed148a8a51ca11d671a9aeed499c64a7af0bf5",
+      "processedMasterSha256": "5013173ba9283cc5f4fd938c00f20c2d5f896e21018f79096374738fa087bf2d",
+      "gamePngSha256": "7330f0f96be1b2d05312313788e45f2d137886e0691434a2371fd713b3b9cb02"
+    },
+    {
+      "id": "32-05",
+      "asset": "/image/leader/custom/tarn-bracket/varo.png",
+      "approvedAt": "2026-09-30T14:20:46.245Z",
+      "approvedSourceSha256": "ee4db0b916144f3e0c123aa605fb6565f1c11140473dabe742379011bdfa80eb",
+      "processedMasterSha256": "bdf2d808667b44810fecf0b992e81e90689de673873df3bb76315bc8c19dd123",
+      "gamePngSha256": "2bf7c27487c01cc5588de7f204bd92c617fd637c9e7a4fdbdd80859688d02174"
+    },
+    {
+      "id": "32-06",
+      "asset": "/image/leader/custom/tarn-bracket/sena.png",
+      "approvedAt": "2026-09-30T14:20:46.245Z",
+      "approvedSourceSha256": "e39d77d8a6fffbab513975631206c31db84b0bde266e1f1147d63959af43350b",
+      "processedMasterSha256": "f03cacdba1f939f86d9f284367a9f662428b7f95b27d8b5ca5a02a2ed9cd8754",
+      "gamePngSha256": "76e9bee19f5e8acc47045c69802f0ff920be1484d1ea11aa47e3ccb8e8c8b36a"
+    },
+    {
+      "id": "32-07",
+      "asset": "/image/leader/custom/tarn-bracket/berr.png",
+      "approvedAt": "2026-09-30T14:20:46.245Z",
+      "approvedSourceSha256": "0139ebe2cd6ca043308c2351a4e0d74cbdb8c2a8426dd63ffad7d7dd9a628bc9",
+      "processedMasterSha256": "dfc25238bea6e577122d82a0bab18a734cdecb0b43232293e92a1cdedf3e40f3",
+      "gamePngSha256": "602d7f2fa5e812edfe68b5b20850a3b99a096a0493ad490dce4c41b2aa190c15"
+    },
+    {
+      "id": "33-01",
+      "asset": "/image/leader/custom/velnar-choir/vela.png",
+      "approvedAt": "2026-09-30T12:40:47.275Z",
+      "approvedSourceSha256": "7e901367ea1e98ca5aab3825c8c43e4ea1d7df6c5ac578755c9e69401b11270f",
+      "processedMasterSha256": "9c4cc1cd0856276fd7d34064ff87df103b2e7c53401c6a133706a8fcfb608f70",
+      "gamePngSha256": "cec14b3840c58e41f5b74733f504390e296013a861634b5edb89b0eb616b1a6b"
+    },
+    {
+      "id": "33-02",
+      "asset": "/image/leader/custom/velnar-choir/ronn.png",
+      "approvedAt": "2026-09-30T12:40:47.275Z",
+      "approvedSourceSha256": "725c8a36430accee49df599cc7127be3ea381617101f1adf39f7962e90dda4e0",
+      "processedMasterSha256": "66acc73ab735b6c33d94265c9988e85ee93fd4cb69a00b99dd7380fa40c49333",
+      "gamePngSha256": "ad11c87cb1f42d4b1d23d5fe25a60af36cfe4233f19070736e0732a3e478aa6d"
+    },
+    {
+      "id": "33-03",
+      "asset": "/image/leader/custom/velnar-choir/tesa.png",
+      "approvedAt": "2026-09-30T12:40:47.275Z",
+      "approvedSourceSha256": "ac7796f8cef9e2604da5f16b27273387cdbd87cb387e0f93970a2a21350ee8d5",
+      "processedMasterSha256": "08f067358a45f0c4548575125bded554a22e6805ba78be49d7d4fa1a93b34dda",
+      "gamePngSha256": "3c91d7faa0b963498cf261982252b8e14568b5a61dd7be2fc663b1937b784a4e"
+    },
+    {
+      "id": "33-04",
+      "asset": "/image/leader/custom/velnar-choir/umer.png",
+      "approvedAt": "2026-09-30T12:40:47.275Z",
+      "approvedSourceSha256": "00ade2cb5d6b6fc7c4f7e2d60d9d88a216e9ecaf302ee682a890fcf153010e2f",
+      "processedMasterSha256": "607b386935d1aa99cba20eb9f0fb81023c23baf5bab955171e20719bfc70d3d4",
+      "gamePngSha256": "cc0643974c52ce191144f02a6c3d6b5e11eca03d6053c19e81e1841c9b701b83"
+    },
+    {
+      "id": "33-05",
+      "asset": "/image/leader/custom/velnar-choir/sorel.png",
+      "approvedAt": "2026-09-30T12:40:47.275Z",
+      "approvedSourceSha256": "cfbc1fc08fdc8fa3abf99c3f56746b341b5e9aa659c454833ff77ad7f8dd5123",
+      "processedMasterSha256": "17604220072d9779aaec2bd6a4d841f133c0b0f1dfe4363bfd6e3924ba72f147",
+      "gamePngSha256": "952bd7465c30787bba045116521767343624b729c33cd3c948d560ea032e460a"
+    },
+    {
+      "id": "33-06",
+      "asset": "/image/leader/custom/velnar-choir/dava.png",
+      "approvedAt": "2026-09-30T12:40:47.275Z",
+      "approvedSourceSha256": "b8764ce82012305c357e325206762b376948b98f7872d7c78a9098b68ad5a55e",
+      "processedMasterSha256": "ec4cdcdc3d2488bdea56a99a8747a25ad8b4296e9a5f06b108bf27c746d25769",
+      "gamePngSha256": "9db8ac127228dc2b667379a7163e7bc16fec6c18d1ffb8f72fb270a66c76470a"
+    },
+    {
+      "id": "33-07",
+      "asset": "/image/leader/custom/velnar-choir/kerr.png",
+      "approvedAt": "2026-09-30T12:40:47.275Z",
+      "approvedSourceSha256": "0627611405c9d7d328a1221ff621d22299d54b56c45d0f99e5132aaf2704131f",
+      "processedMasterSha256": "085f362dfead986664693f03b706f82f73b3054ae42e38e34d5ffe2d0e86d2dd",
+      "gamePngSha256": "29e3cb58411e2e8d03cb6f92a6a9a2d1567e001d313e28e843259dfac2962932"
+    },
+    {
+      "id": "34-01",
+      "asset": "/image/leader/custom/eshan-grove/esha.png",
+      "approvedAt": "2026-09-30T14:20:59.030Z",
+      "approvedSourceSha256": "8d6d225a5aa38e8239db0323d5264c0790c22f1769ffb0a6c9aeafd4c6803ad1",
+      "processedMasterSha256": "d5847a9096d0137fd561ebaf232d0a7956bc56d532d4a8beb761dc78af34aafa",
+      "gamePngSha256": "796f77daebba0475c5fc076582c1a7e8724fc1c1a6b28cfc1eac4eac6193d107"
+    },
+    {
+      "id": "34-02",
+      "asset": "/image/leader/custom/eshan-grove/tovan.png",
+      "approvedAt": "2026-09-30T14:20:59.030Z",
+      "approvedSourceSha256": "38ecece8f3c8bb1d0245d1f74cb40638f13855cd72525d3b2829dfd3f449255c",
+      "processedMasterSha256": "213870a385c0b81f3dae6b3e61ba1708ff6f08745dc4ce987e87eacfc4535123",
+      "gamePngSha256": "b41f443854d778df682c0d66b84f7540e97d4b9719847abb21598f1922b7d6ca"
+    },
+    {
+      "id": "34-03",
+      "asset": "/image/leader/custom/eshan-grove/mirae.png",
+      "approvedAt": "2026-09-30T14:20:59.030Z",
+      "approvedSourceSha256": "4938a2cf2428c1ab4eb718f7007e1e6c9168b62988cfe0e78caa6dd57d310dfb",
+      "processedMasterSha256": "f51dfd8fa50661850f14fb249ec993f21b86e43fbda678f6222292228cbd82e3",
+      "gamePngSha256": "5cb4f84c9d079ccfeaae3bee2b757bcd043d3bbdf29521aa96074d8f2c89dbd7"
+    },
+    {
+      "id": "34-04",
+      "asset": "/image/leader/custom/eshan-grove/hessa.png",
+      "approvedAt": "2026-09-30T14:20:59.030Z",
+      "approvedSourceSha256": "7d767ad530317a8dfbc732a073fc2d0ec0f209d53adf3dbd29402a8f3f1ae7aa",
+      "processedMasterSha256": "f91a922ddcb9f6606d842f2a26391e146669d489616f66d9aab05cdaf58ded6a",
+      "gamePngSha256": "7ab6fe1933250a7a69ede380981bddab78b7040b227f3bcd4de28a427ca8cc31"
+    },
+    {
+      "id": "34-05",
+      "asset": "/image/leader/custom/eshan-grove/darun.png",
+      "approvedAt": "2026-09-30T14:20:59.030Z",
+      "approvedSourceSha256": "74c742c5482929ac348631bc059f3fe3ccdd4fff7ddfa7086bb658d4fcb5c99e",
+      "processedMasterSha256": "db804e78661915cfff8e9a179e24920dac87ae4079f4b998ff21a86c2708593a",
+      "gamePngSha256": "b145e3e99fa59571c72fb67c76d77918159077244bdac3473833d888a979492f"
+    },
+    {
+      "id": "34-06",
+      "asset": "/image/leader/custom/eshan-grove/olan.png",
+      "approvedAt": "2026-09-30T14:20:59.030Z",
+      "approvedSourceSha256": "8c6e720aa759846a38fc9c979410c903912c5c4dd1d5ea657932bd691059cb85",
+      "processedMasterSha256": "e906f1c89803a562158d8cee5ba566462e49943013108763b1949128c35cb38d",
+      "gamePngSha256": "9283340fe9778bcbed2e450ae5e5a51f409b3ff3bf4589fee5d7885be1b99580"
+    },
+    {
+      "id": "34-07",
+      "asset": "/image/leader/custom/eshan-grove/savael.png",
+      "approvedAt": "2026-09-30T14:20:59.030Z",
+      "approvedSourceSha256": "e2b204457aae2a6f66694c34ceb6c84bc5c9f3dfb532a712821a4f84710c1a78",
+      "processedMasterSha256": "28196a682c2f1b8c444a0af75ee5e6328a636da6371c6eb99bbaa85e6b6b2476",
+      "gamePngSha256": "b6515a3706e61e8c45cc9d2edf36825aa9337f5043731edcb5e183c74902a67b"
+    },
+    {
+      "id": "35-01",
+      "asset": "/image/leader/custom/korell-bloom/kora.png",
+      "approvedAt": "2026-09-30T14:21:11.813Z",
+      "approvedSourceSha256": "561b67d1623c121271448cd615ff704e381fa5a41beccd56cd648138495446d8",
+      "processedMasterSha256": "53754f17741732f036d34eab94b9d0366b6b74dae90c04a7b05ccff2f0485950",
+      "gamePngSha256": "a297169fbf751bafed64337d4c1b851133f017b0910b6b546c717b48ee6ebce7"
+    },
+    {
+      "id": "35-02",
+      "asset": "/image/leader/custom/korell-bloom/leth.png",
+      "approvedAt": "2026-09-30T14:21:11.813Z",
+      "approvedSourceSha256": "88bfa3d2c0e131b463326be7f253ee6cdd3a79508699cd69d98648df6a1f9b1e",
+      "processedMasterSha256": "3f0bed6af7e1267d95c5573f553c903f9a469d10286e38298882668357a4e171",
+      "gamePngSha256": "acb37f58797e73ac3f810478917f587971d25ee22205da9dc66aa9f4bf5136c9"
+    },
+    {
+      "id": "35-03",
+      "asset": "/image/leader/custom/korell-bloom/asha.png",
+      "approvedAt": "2026-09-30T14:21:11.813Z",
+      "approvedSourceSha256": "db3bcacad85c240d35141e093b18b0cbb50126ed726e996796c8ccaf7bb492e7",
+      "processedMasterSha256": "27e90ce1608a7acb80a1a10f177dc99f261bc70f22381e237da18adde25bd453",
+      "gamePngSha256": "db577d255836d7885b57c7644d5374c1b5ebee2312e936e3c85124669b8d3b45"
+    },
+    {
+      "id": "35-04",
+      "asset": "/image/leader/custom/korell-bloom/dorr.png",
+      "approvedAt": "2026-09-30T14:21:11.813Z",
+      "approvedSourceSha256": "fe68ec8a868f983171081042fcc606d9838ab86668bdfa1e2e92699f447819af",
+      "processedMasterSha256": "a1254b053f292ba5c367a79aa058f1bf31778e01fd4a3862cd2945164376a00a",
+      "gamePngSha256": "dc3971a162a82a0815c57110613a4b8af5fe78bcba22d8202f48073200dcfef0"
+    },
+    {
+      "id": "35-05",
+      "asset": "/image/leader/custom/korell-bloom/venn.png",
+      "approvedAt": "2026-09-30T14:21:11.813Z",
+      "approvedSourceSha256": "71421308404ca227fc0f155b0f4a50fe24fc1b058b2251c9e75b4e32d9516b0d",
+      "processedMasterSha256": "59025eee60d983cef70386b3fa9354829becbd25fe718f7fcb1f7ad90a1715b6",
+      "gamePngSha256": "d3f85a8ce324df3c3b370bbdd8bbcf6e722e25b2b285b80171127d09a0111e27"
+    },
+    {
+      "id": "35-06",
+      "asset": "/image/leader/custom/korell-bloom/sira.png",
+      "approvedAt": "2026-09-30T14:21:11.813Z",
+      "approvedSourceSha256": "ff5384398fcf2140c51293b0426b7f6484ec25a1a42eb5975d72e9ceffd1d8bc",
+      "processedMasterSha256": "519e2e684d1c0937d63971596a002ee77291d447b2b9344f4b5a148ee69452a5",
+      "gamePngSha256": "058b78750ded1703c48f57c77c501a4bc608fe5f72823f3e1cbd2376f905b933"
+    },
+    {
+      "id": "35-07",
+      "asset": "/image/leader/custom/korell-bloom/holm.png",
+      "approvedAt": "2026-09-30T14:21:11.813Z",
+      "approvedSourceSha256": "7b668bb7a2a13b7aca8d652afbe11348e795ef161ab1b42e40221b6738384958",
+      "processedMasterSha256": "deb7b2e7a9ad489975d470f8d0ef1963ce0b751e3cc0bd3f9cd673f8588dec02",
+      "gamePngSha256": "0b334fb7c07b6d98e872a11af1d5211ec1a389094a2f243462644db16e099bc5"
+    },
+    {
+      "id": "37-01",
+      "asset": "/image/leader/custom/vesk-veil/vesa.png",
+      "approvedAt": "2026-09-30T12:27:58.144Z",
+      "approvedSourceSha256": "23c4e976d1456471f77722e53327b69dd178c8eb8983b0e86425ee4e12665bfb",
+      "processedMasterSha256": "eb988cf29f63f1a79db7df1e4ce31453ed6c2fc5c50600f8e597d48edd8f5980",
+      "gamePngSha256": "0e86c357674b0bbebecb06ce30d08aa2228dbd7916a845c9cab8246511b0a51a"
+    },
+    {
+      "id": "37-02",
+      "asset": "/image/leader/custom/vesk-veil/ruun.png",
+      "approvedAt": "2026-09-30T12:27:58.144Z",
+      "approvedSourceSha256": "b566d79c708874a1dd44850d2b397bc595b8a1f0ad6497d74681a92e64f8af3d",
+      "processedMasterSha256": "6c583dc0a1fc1c5ee12a57a9000abf00e88fd6def39e1f3776832d47241b9273",
+      "gamePngSha256": "6dc058a5bcd62598a32ab04ad266f2cf8832d7d43e97ba3d14bded0a79c81a37"
+    },
+    {
+      "id": "37-03",
+      "asset": "/image/leader/custom/vesk-veil/neli.png",
+      "approvedAt": "2026-09-30T12:27:58.144Z",
+      "approvedSourceSha256": "65f97898d525dd7456933f6f10df968bc7ead31c8fde3ff804e324dd9485f735",
+      "processedMasterSha256": "dd778bcd56e64e1fe90f687f6506057f65614a9a55a1250f315d945e7fb262e0",
+      "gamePngSha256": "a4621b30f0704a1e6cfa6954dcd21fd2d767e730ac2ee6310f5e5db510090721"
+    },
+    {
+      "id": "37-04",
+      "asset": "/image/leader/custom/vesk-veil/tovel.png",
+      "approvedAt": "2026-09-30T12:27:58.144Z",
+      "approvedSourceSha256": "ec1961b1912c8e2ce38a2ca1e8ba9410428a850665a4b304128516bb5b27f735",
+      "processedMasterSha256": "053b7403a436c0d90c88847863b1c6d588a99e901f225c0ea828d7502c70230d",
+      "gamePngSha256": "71d9d1c3e5740e9ad000c281f03c8770497f04738657de9be3a4b67d7dd54677"
+    },
+    {
+      "id": "37-05",
+      "asset": "/image/leader/custom/vesk-veil/dira.png",
+      "approvedAt": "2026-09-30T12:27:58.144Z",
+      "approvedSourceSha256": "b41001633ac3e9076e3e1db72135b03e715b201a2b23838857ebff703c7993db",
+      "processedMasterSha256": "d5bb319fa56f96b8ce3aee34be231da5ddf3e97fc58f28e061939ec89deaf010",
+      "gamePngSha256": "96da70ea6e2b06914765c01112e7318e5c1cd8251453332dab4f14cd6f378787"
+    },
+    {
+      "id": "37-06",
+      "asset": "/image/leader/custom/vesk-veil/havel.png",
+      "approvedAt": "2026-09-30T12:27:58.144Z",
+      "approvedSourceSha256": "c30bbacd01752c64995473f1f0515a501d107d24cdfe5aa0e7e521f7ea098a65",
+      "processedMasterSha256": "3556be9162e5d860eddec96c18942700b0d48ea40e2cede37a1bd0486bfcd270",
+      "gamePngSha256": "39b3517955538a2fe3cd8546bee8602900338dc82f5a8d4ea436d2297ad99832"
+    },
+    {
+      "id": "37-07",
+      "asset": "/image/leader/custom/vesk-veil/osa.png",
+      "approvedAt": "2026-09-30T12:27:58.144Z",
+      "approvedSourceSha256": "482cfb21a8ad9d0ff969acfdf64b796384734f9f2021727d7494380e22a65717",
+      "processedMasterSha256": "ab7ef952a6c0d3bd815fdaf82662728575f21b4a56e43c7ad31621d0a91f66ca",
+      "gamePngSha256": "235cd4c74846d309f471695816a32871cabadb43022e09d730ef8e47581fe7cf"
+    },
+    {
+      "id": "38-01",
+      "asset": "/image/leader/custom/korven-night/koraun.png",
+      "approvedAt": "2026-09-30T12:49:31.741Z",
+      "approvedSourceSha256": "c63fcc77ff71bb839685c85faa93c711a6e82b2066071238c851d9fe9e553c2b",
+      "processedMasterSha256": "b9da75a19f67f8bfe4a919fadae51232df6fdd7b9fb6bef199fb125d9e1ad4b9",
+      "gamePngSha256": "0a38c7532a2fcf1d7351a37b632a36f2b4ae91f6852384417a6829cbfdf490a3"
+    },
+    {
+      "id": "38-02",
+      "asset": "/image/leader/custom/korven-night/dresk.png",
+      "approvedAt": "2026-09-30T12:49:31.741Z",
+      "approvedSourceSha256": "48a7d7cda68eb256dc5af10e980509583af33426d21565c16ff871c0c2dfd7eb",
+      "processedMasterSha256": "999d7f35533bb0f80d9a90424a6b1fb3bda73e5f5a86321021f7b58518794418",
+      "gamePngSha256": "7954e9328346ba04c871d426efe6b2bd964580382a63eb5045e52dd169d21084"
+    },
+    {
+      "id": "38-03",
+      "asset": "/image/leader/custom/korven-night/vele.png",
+      "approvedAt": "2026-09-30T12:49:31.741Z",
+      "approvedSourceSha256": "f6881aeaf39c78719670284be2c717b4c47e96517396ab1f851bacf0baa0b24e",
+      "processedMasterSha256": "4a123e552b4d9b48000c5efb5b3ba67ed41a83f305efc859613265890f90e20f",
+      "gamePngSha256": "2346de8f0640767a3e6031d3d7fcb1a2bedcce50c8b5e063aafea7282eef1d62"
+    },
+    {
+      "id": "38-04",
+      "asset": "/image/leader/custom/korven-night/arun.png",
+      "approvedAt": "2026-09-30T12:49:31.741Z",
+      "approvedSourceSha256": "c702cf4480948589d65c7bdc2c40840dc35fd0c9bf85c7849cd14d893430c9dd",
+      "processedMasterSha256": "48d4ce7d15e060a61f017d6eb4ff0d83f82bdeca79dd308a0a28a2b570613842",
+      "gamePngSha256": "de0f8be22e32f309aab9c69c41a1e22dfb7d171724f201e9ab045e1097026ed1"
+    },
+    {
+      "id": "38-05",
+      "asset": "/image/leader/custom/korven-night/soren.png",
+      "approvedAt": "2026-09-30T12:49:31.741Z",
+      "approvedSourceSha256": "e8a1a287fefbbdde7e9fb26d6cb011bee54846e313af55af706500a420d566eb",
+      "processedMasterSha256": "35ac1034bd5c2ead4b51e7c240689343c1929b253f4f3d491a2f5c2c0d74a3f1",
+      "gamePngSha256": "44b21c6b42c9c348ec1fc88454d9335814f662eedda33f08e3cababb811d2cf9"
+    },
+    {
+      "id": "38-06",
+      "asset": "/image/leader/custom/korven-night/neth.png",
+      "approvedAt": "2026-09-30T12:49:31.741Z",
+      "approvedSourceSha256": "f563e4511d29239a8b80aa9dde8b07a0bf420c63ebbffb8ebe01035582000040",
+      "processedMasterSha256": "ddeecdee2f03ff164f93e5d5ae7bc184f38c7be992d8e83297e7ec8721ed6770",
+      "gamePngSha256": "ff3553d3a202f32c327dd8829d94b594f539f24143d64b40d94b81f2ef2bac06"
+    },
+    {
+      "id": "38-07",
+      "asset": "/image/leader/custom/korven-night/horo.png",
+      "approvedAt": "2026-09-30T12:49:31.741Z",
+      "approvedSourceSha256": "6ec2a5eb51ae17f28bfced99af0609c46014398ab45c1ab10f2505a2d8a612d2",
+      "processedMasterSha256": "bf5adce7dea76444f6c50d1d7f64c162698b2e0141fab9b026e3c3c517811a73",
+      "gamePngSha256": "b7e7072e53b7e650f7ae37651a8ae3c6849a2946dc3b40cb2b693c58509527bd"
+    },
+    {
+      "id": "39-01",
+      "asset": "/image/leader/custom/seln-absence/selnor.png",
+      "approvedAt": "2026-09-30T12:49:36.462Z",
+      "approvedSourceSha256": "bd595e2371ae212713d34e7a1f56498978127b549112515671869c41cc6125ca",
+      "processedMasterSha256": "8a4f16001adb3f1e8cb047351f49a5050dab351a81549f53bfceef442b67f507",
+      "gamePngSha256": "25dcd20c98c218525ce2cab7371c27d56bd7a59b7f32161feabc7603ac8cd497"
+    },
+    {
+      "id": "39-02",
+      "asset": "/image/leader/custom/seln-absence/ava.png",
+      "approvedAt": "2026-09-30T12:49:36.462Z",
+      "approvedSourceSha256": "c5cef4c60e454f0d0f43a960fa2f667c6af1ad0310861513f669b744cbbb8081",
+      "processedMasterSha256": "c258be49bbd73ee0b6e6049bcd643b23ae42e3fea7ae5c0a66356d15e7e77a09",
+      "gamePngSha256": "89c1408b05063c39004fd8c9666acfeca7b436d1dea370a09b83421cd3b4477a"
+    },
+    {
+      "id": "39-03",
+      "asset": "/image/leader/custom/seln-absence/raskel.png",
+      "approvedAt": "2026-09-30T12:49:36.462Z",
+      "approvedSourceSha256": "6b9b8741a60d4f3b5e11ee4383b520392d360442ca65ca65f4170b781cb73be0",
+      "processedMasterSha256": "943b28ec10ae96f7f6e149854e03e2c4280a8f89d9dfba1f89bb8b16b0456c2b",
+      "gamePngSha256": "dc411befd69de8bf8597088db252eb18877dd65148b6368fd83b4fee5bb2a7fe"
+    },
+    {
+      "id": "39-04",
+      "asset": "/image/leader/custom/seln-absence/neri.png",
+      "approvedAt": "2026-09-30T12:49:36.462Z",
+      "approvedSourceSha256": "2a05e0fac850b931f649fded95e49fdae31b3c32061fd2d42095523ba3b5be75",
+      "processedMasterSha256": "e899a9709a7545d228f1178514e9d28ae24cc46ceb6d3a40427c6633d5dfffd1",
+      "gamePngSha256": "1414efd81496807985029835cececf5a8659757214df39ffb98fef7b7ef3dc31"
+    },
+    {
+      "id": "39-05",
+      "asset": "/image/leader/custom/seln-absence/tor.png",
+      "approvedAt": "2026-09-30T12:49:36.462Z",
+      "approvedSourceSha256": "956a3ce5b58af63ca3a44b9f5bb52a81695c268151be5fa91703978b0e4a021c",
+      "processedMasterSha256": "f606e62a16b133f577c52a41a2a69eeb88f9dc708bed5545528491e455084d7e",
+      "gamePngSha256": "082f2ffcaecd6e93d13aaac0b94ce46811b68282111fd60d0f05e5e5ba4f40c2"
+    },
+    {
+      "id": "39-06",
+      "asset": "/image/leader/custom/seln-absence/vala.png",
+      "approvedAt": "2026-09-30T12:49:36.462Z",
+      "approvedSourceSha256": "f8e44289c78ae358e26d7a18a46aaa0e927d789768f4701fe767b365a8b6f4e7",
+      "processedMasterSha256": "e53fa4aa0e7d5ddde1069ac8f1d873f4035ce9333fd00a7343ad4ee6f7011cff",
+      "gamePngSha256": "9bd31fe90358be192c768dff59c1beb5dc168b5bd2da526ab0708c6e37623c5f"
+    },
+    {
+      "id": "39-07",
+      "asset": "/image/leader/custom/seln-absence/uren.png",
+      "approvedAt": "2026-09-30T12:49:36.462Z",
+      "approvedSourceSha256": "ecf614e335ef5b956461d24b16b0adef63dcf66ad3f9e5ba202d64a00282cff7",
+      "processedMasterSha256": "031a0e2d2f261d7bc80ed842adae877071585d4e54ee9aa70abdc292767f73ee",
+      "gamePngSha256": "20e5c534fbf4e3eac2a1f4737c4f0f78dde3e218afb3fb085c955e44a9393d6a"
+    },
+    {
+      "id": "40-01",
+      "asset": "/image/leader/custom/draal-fold/draal.png",
+      "approvedAt": "2026-09-30T12:49:41.508Z",
+      "approvedSourceSha256": "405c6d3b9129fb21c21e8620dc09da77e850795e777cc83efb5b8d4ba6fc3d5d",
+      "processedMasterSha256": "0f04a4e0d9841df698cc2aca07e82abebe944d27ce12d3cef6d7f1c403d0afa9",
+      "gamePngSha256": "37112475b0333cc5954dcfeee35193d9753ed1b76bacdafc758c3e465de446cf"
+    },
+    {
+      "id": "40-02",
+      "asset": "/image/leader/custom/draal-fold/vosk.png",
+      "approvedAt": "2026-09-30T12:49:41.508Z",
+      "approvedSourceSha256": "1681177b7a4086a95fd01f774ebc0811cff433935c8680f4f0c04085ae63ef76",
+      "processedMasterSha256": "6458e481fb3fb7bbac1209551896ea53e0f490605b3b99adb7c276130c164693",
+      "gamePngSha256": "e0e184858f36f60df9817ed622d9574c28050324e6d35fd3ad364208b757736b"
+    },
+    {
+      "id": "40-03",
+      "asset": "/image/leader/custom/draal-fold/ivara.png",
+      "approvedAt": "2026-09-30T12:49:41.508Z",
+      "approvedSourceSha256": "390700011d47b6e153612d252915335b587c467eed687770809932f7eb467f23",
+      "processedMasterSha256": "031fb0fb0b42294f4007a6f1dd1b57ed975667684ae62f623c341b2b44f461e2",
+      "gamePngSha256": "355c8f87aa5c6dca7b819ed54faa6a7f36b803f5d945960303582680e5954d02"
+    },
+    {
+      "id": "40-04",
+      "asset": "/image/leader/custom/draal-fold/nemm.png",
+      "approvedAt": "2026-09-30T12:49:41.508Z",
+      "approvedSourceSha256": "4c607f2a176c8055feec669c3028d7714619cd58f3000497af0071fff9a29f5b",
+      "processedMasterSha256": "7599aa09474e8eded5d4bd095c228c5b090fc22f4ddb7351ed9a968215af6ffa",
+      "gamePngSha256": "292d5717c4f89043e58ec72db77a2cd77fcba1375fe18d6afd289b14964b146c"
+    },
+    {
+      "id": "40-05",
+      "asset": "/image/leader/custom/draal-fold/reth.png",
+      "approvedAt": "2026-09-30T12:49:41.508Z",
+      "approvedSourceSha256": "ae68176c337a43089f1bc4a0ad1fa7f0345ea5d09dd496c4f29260251e3449d5",
+      "processedMasterSha256": "c5dc3146d7da0e1e19208f0ec47f54f7cc875fde1c25f67bb3ad19f472c724a7",
+      "gamePngSha256": "08ddf47bdae28f65c24a156bc691a707c12dc02832658634c8f42e9309c04387"
+    },
+    {
+      "id": "40-06",
+      "asset": "/image/leader/custom/draal-fold/sula.png",
+      "approvedAt": "2026-09-30T12:49:41.508Z",
+      "approvedSourceSha256": "4e762c89dfe3e10848a2302575cec9411eb9504095b079e6835a6961550ed513",
+      "processedMasterSha256": "c5cd29babab42c33f7f2876103cf63d8b3ae9567437fe10ebbbedba365a5da12",
+      "gamePngSha256": "39db1a3b2316279781c98e55c8fbe5e22e312e2716957062e7f7e1819da6ecca"
+    },
+    {
+      "id": "40-07",
+      "asset": "/image/leader/custom/draal-fold/holl.png",
+      "approvedAt": "2026-09-30T12:49:41.508Z",
+      "approvedSourceSha256": "dec23839573e1c4243a220d61fc2f4d80d584c76bbd719d1565cad85dddbe7b4",
+      "processedMasterSha256": "8d08564510fb8b684144f81668be03716fe465235f5539ca55ffb8610a92aae6",
+      "gamePngSha256": "612bd9e87119b1e803a1e3a37924b03eb43e38fd4bc470c52bec786e44165ed5"
+    },
+    {
+      "id": "41-01",
+      "asset": "/image/leader/custom/calar-flint/calen.png",
+      "approvedAt": "2026-09-30T14:21:24.696Z",
+      "approvedSourceSha256": "9f077cd740ec49088943e0453a3e455e76a436c3cefd8b3c07bdabfb7e330383",
+      "processedMasterSha256": "21b3eb8da946712536ed339a901e0af7b974226439db1e4d164708fe310e5b95",
+      "gamePngSha256": "329abf197b5f082e8c6fc04d459f0998dff900a43234036849119c41ea9c36e0"
+    },
+    {
+      "id": "41-02",
+      "asset": "/image/leader/custom/calar-flint/vora.png",
+      "approvedAt": "2026-09-30T14:21:24.696Z",
+      "approvedSourceSha256": "10f028d4ea887b4fb7513a384780aaec546514126be69c8cbbf0ff98aff67d77",
+      "processedMasterSha256": "d79c55e9aa8ffa32a7005ac56ac2f0f84deabefbfff498d5b6b3c5b614eb5a75",
+      "gamePngSha256": "910b41821bdca8249b4aa92ac3417f2b82fe0ea039b55f56c88e8c6d0f9e65f7"
+    },
+    {
+      "id": "41-03",
+      "asset": "/image/leader/custom/calar-flint/isel.png",
+      "approvedAt": "2026-09-30T14:21:24.696Z",
+      "approvedSourceSha256": "a542d67a6c4e584180a6bb523a8379fdea729b91ec1901b9586d5dd9b2b9a91f",
+      "processedMasterSha256": "205677531114d98996159df32b21a3498d7edfd5de7901934a2b709e5434c465",
+      "gamePngSha256": "e5977b0f326964f51f1dd459b742f0f0bb6a2279adf64f385f4ddb119fd4ef18"
+    },
+    {
+      "id": "41-04",
+      "asset": "/image/leader/custom/calar-flint/darn.png",
+      "approvedAt": "2026-09-30T14:21:24.696Z",
+      "approvedSourceSha256": "7276daf8649b9f6f3d75835d6d5f3ccfe4300b102e09f4893da7254f63b56fbf",
+      "processedMasterSha256": "cd4bf617d491da4661e30466f84a232028acd23ac39f62d5cbb75840cc18d104",
+      "gamePngSha256": "b40f19ab344fa6b77455054b63312903f629c6614f80edbf0c02d6118c2d24f5"
+    },
+    {
+      "id": "41-05",
+      "asset": "/image/leader/custom/calar-flint/sera.png",
+      "approvedAt": "2026-09-30T14:21:24.696Z",
+      "approvedSourceSha256": "dd776626f3df63b8f277c86e2d892c31d2db9a83efb6f95eb1208bbdba3a6b96",
+      "processedMasterSha256": "be88824ecb2d992248bff01d5e56bd42135a4901a27f24a77bf4b8502a4adce4",
+      "gamePngSha256": "a3ebfb79f8fda458aadf516ccd386a26636e60a30dd91d6159acfd03e335c7fc"
+    },
+    {
+      "id": "41-06",
+      "asset": "/image/leader/custom/calar-flint/orik.png",
+      "approvedAt": "2026-09-30T14:21:24.696Z",
+      "approvedSourceSha256": "97ac7533d5d2f33369c408755a2f47014eb0549d3af78ad04813cd4c808b4a2d",
+      "processedMasterSha256": "3459e9ff7001279039d75d0ba63be465bd4fb079bd211d7ebe15ae8caf8f04e7",
+      "gamePngSha256": "e4c8115ae7063e8b24dc58bef51b32b75258b06a9a6cf905591f1ca481d883a4"
+    },
+    {
+      "id": "41-07",
+      "asset": "/image/leader/custom/calar-flint/hema.png",
+      "approvedAt": "2026-09-30T14:21:24.696Z",
+      "approvedSourceSha256": "0d44cea58c67565b2221cf2888d077d6b6e4a0f26f9a7ba1ed40ba9f13df216e",
+      "processedMasterSha256": "ebd44637196259e9fd00cab742b5ee1fe55458d43206543251409f5c72a510d8",
+      "gamePngSha256": "a765e5a60082457ea9b4309b61fe522733939e87c0b6c1453b601a96654abd73"
+    },
+    {
+      "id": "42-01",
+      "asset": "/image/leader/custom/resh-cinder/resha.png",
+      "approvedAt": "2026-09-30T12:58:10.309Z",
+      "approvedSourceSha256": "c31fc691217d4e1e433667c910912246cf30c227205f855c62af8163f8867f12",
+      "processedMasterSha256": "5d2f18bb2a080f761dbd442744cc6058763bef7e2cb891b4ee0ec4a8816b8f13",
+      "gamePngSha256": "248ce8754e5a8804216c87c1a1024b35c6ef92e2865a5b4d2217bf55eead1132"
+    },
+    {
+      "id": "42-02",
+      "asset": "/image/leader/custom/resh-cinder/borr.png",
+      "approvedAt": "2026-09-30T12:58:10.309Z",
+      "approvedSourceSha256": "8080165605b4d02725a7de6c556a1c3bb8503ba7e34314e64c7a20132f637543",
+      "processedMasterSha256": "c5419d0130dac2c10dd252b498f2d7e551abe27d765e10a49404807740863578",
+      "gamePngSha256": "a82d29bc607cfa5f355b6f79d47f611deb207c85c2a90035534a55e310fed449"
+    },
+    {
+      "id": "42-03",
+      "asset": "/image/leader/custom/resh-cinder/veli.png",
+      "approvedAt": "2026-09-30T12:58:10.309Z",
+      "approvedSourceSha256": "c1bdb31fa336894aae59b097a6820cb13bf2668de42f9c15ef85cc4b72c81311",
+      "processedMasterSha256": "15ab95f54474e6045f9c31ead103b0efe05bd66f8b6dcdc2c46321dc6c9f1fd0",
+      "gamePngSha256": "45aad9f2f275aca725249d2bb11b4814fa008d6775e36e17ee0e6b8a687e5747"
+    },
+    {
+      "id": "42-04",
+      "asset": "/image/leader/custom/resh-cinder/daro.png",
+      "approvedAt": "2026-09-30T12:58:10.309Z",
+      "approvedSourceSha256": "6c683026a8b475ba0e1ed169cf5208613b3e067aa07ba3f23b70bff039013f74",
+      "processedMasterSha256": "9e5a3f8165635161e7600b91a2131a22df80f4cdc2258003284bf667ea1b1917",
+      "gamePngSha256": "94f3f17bc90063cc37226b1b936430e85a69cc4110d959e8d56fe6525d8f084c"
+    },
+    {
+      "id": "42-05",
+      "asset": "/image/leader/custom/resh-cinder/sethra.png",
+      "approvedAt": "2026-09-30T12:58:10.309Z",
+      "approvedSourceSha256": "17e5534a25f8b4dddb9d48a115bd28241a455477149d509fbe40d5dd36650c56",
+      "processedMasterSha256": "23fb65d7fa8d04f397928f3b538ac1cbbd881332e7ab4acf9298440372ae38a2",
+      "gamePngSha256": "c109c7cdebce7276dc5b3e5069f0a19f6a82f7a5592f9e8d7876447edaf6d276"
+    },
+    {
+      "id": "42-06",
+      "asset": "/image/leader/custom/resh-cinder/orra.png",
+      "approvedAt": "2026-09-30T12:58:10.309Z",
+      "approvedSourceSha256": "7f60217586183bb2e015d9bae2f95b24470a220fe54b086ef0f0518eb737204e",
+      "processedMasterSha256": "967622ee8181c7f83a934e46b60eaf5fbbc6d02606d95f2481e9a506ab22c9d0",
+      "gamePngSha256": "5b3044e2703e57932828a72c4f0a47d91d4129fceace0b701b30eef755419b06"
+    },
+    {
+      "id": "42-07",
+      "asset": "/image/leader/custom/resh-cinder/harnel.png",
+      "approvedAt": "2026-09-30T12:58:10.309Z",
+      "approvedSourceSha256": "0d7fd2ca53ba881873456285992a883cf0bfb7bd2b6b1fdbfb4edf517bd6bc01",
+      "processedMasterSha256": "df6e0ec9451df7672386bd794ca25f6227ed50aeba6f7a5463aa3792e831de4d",
+      "gamePngSha256": "4f6183ddfcc23ba791d74712252601967d00dc34e4fd7f4d0947bebb35f766c1"
+    },
+    {
+      "id": "43-01",
+      "asset": "/image/leader/custom/talar-coil/tala.png",
+      "approvedAt": "2026-09-30T12:27:45.148Z",
+      "approvedSourceSha256": "acd816adb06c9c455cf0547216ec4f46ca2789bec2254f98453ac2ab85e5cbb0",
+      "processedMasterSha256": "33ca1c67536cb735b0dca3ca82db736c2278b9b54d0955bed2906054b5bc1c74",
+      "gamePngSha256": "ca2ff48d2a0fae682eaa1a8f1778c24da82650ede21098f1a53d83750213cc31"
+    },
+    {
+      "id": "43-02",
+      "asset": "/image/leader/custom/talar-coil/roven.png",
+      "approvedAt": "2026-09-30T12:27:45.148Z",
+      "approvedSourceSha256": "d3b99a5e7911235ae34dc0243b19cd87e20f254dcc288df06490564e8d3fe1c2",
+      "processedMasterSha256": "b888b867a7552cbc98648e38c7dd1064d9b10eb0a7fe143d79f08e939456f424",
+      "gamePngSha256": "e67d8b0b74683e9090b9063bb64223c097fd21f38a8560363560c067c4672c48"
+    },
+    {
+      "id": "43-03",
+      "asset": "/image/leader/custom/talar-coil/iva.png",
+      "approvedAt": "2026-09-30T12:27:45.148Z",
+      "approvedSourceSha256": "ae7c6dc54e4d2746b255994e305a217c31f7bec67a55b17c7ea70a0e25f6bf53",
+      "processedMasterSha256": "335dbfe20eb681e97560c60359d83366bd35e205c01ca14e17ed97a1a2bea972",
+      "gamePngSha256": "1069308e99e18cab9cce54748b6becdba24a743fceb090033e746b9f955e465a"
+    },
+    {
+      "id": "43-04",
+      "asset": "/image/leader/custom/talar-coil/dask.png",
+      "approvedAt": "2026-09-30T12:27:45.148Z",
+      "approvedSourceSha256": "638206cb5871d5e9f4ad5a8303df94dc8ec7f00c76d4bb2e7402c1a2a553f9fb",
+      "processedMasterSha256": "aeb5ed2b6a975e6a2d39394404fa6dd83d77b0b53e02c708c7315d3963dd1eb2",
+      "gamePngSha256": "15463957b1ef9b50f23a7e841d6a6bcc261da7c82370e2bef778a667fbd466c7"
+    },
+    {
+      "id": "43-05",
+      "asset": "/image/leader/custom/talar-coil/senn.png",
+      "approvedAt": "2026-09-30T12:27:45.148Z",
+      "approvedSourceSha256": "5911ee50a894bc45ccb2380ba4107898a1969b7fc3d02412c77e23467cd11ce4",
+      "processedMasterSha256": "5240a823905ab72494dbeb6027b03bea4db85f7940332396e21d4aef0f4f2102",
+      "gamePngSha256": "71191627a2e259719d5330f364fb1633e3d788fcbb238f8caeae203fa103afb4"
+    },
+    {
+      "id": "43-06",
+      "asset": "/image/leader/custom/talar-coil/orven.png",
+      "approvedAt": "2026-09-30T12:27:45.148Z",
+      "approvedSourceSha256": "b638da61df7346a78c212c21a345c050b09a984277057064470c79e938641f7f",
+      "processedMasterSha256": "8083334bd7446213f8c68398bf720f2423040d776c659a256e5afec9972fbc78",
+      "gamePngSha256": "5535de08ce6207c5da2a3a8890709c107f61c6d8e0a2c24354151042f0dc7af0"
+    },
+    {
+      "id": "43-07",
+      "asset": "/image/leader/custom/talar-coil/hela.png",
+      "approvedAt": "2026-09-30T12:27:45.148Z",
+      "approvedSourceSha256": "a747d2f3c1443dce74e6092bc16911b5238c1bf09399910e347063ecf53a7649",
+      "processedMasterSha256": "7cef06c515cdea8d230ee1c124e638581becefbc5e8c27ad9d278023b83402de",
+      "gamePngSha256": "db2ca231a197b67cda7f1cb96c13b69af0f8d015e358ed4c1c07efeb54bb1bb6"
+    },
+    {
+      "id": "44-01",
+      "asset": "/image/leader/custom/avel-lattice/avela.png",
+      "approvedAt": "2026-09-30T12:27:50.737Z",
+      "approvedSourceSha256": "c62bc480613aaf84ca259a4dcfe3a4ecbd53c7c1fd13dc1c19da62b1c1d7ea35",
+      "processedMasterSha256": "d84f32c9d5de8fcbb30077d46adac6bece9e68f2912392e5443c5053947e57ef",
+      "gamePngSha256": "eb1001d040a828da308e255bcd574d108431390fb46e9ba6142674e34f5eb4f2"
+    },
+    {
+      "id": "44-02",
+      "asset": "/image/leader/custom/avel-lattice/korran.png",
+      "approvedAt": "2026-09-30T12:27:50.737Z",
+      "approvedSourceSha256": "f45e86b981eb88fcb2531b2481c6a82d5c810992d63bca0f72d6ace765613527",
+      "processedMasterSha256": "262236a3d79fcd7de559d12b1615b02fe2d1d191129819c6f04f9e0c50a89170",
+      "gamePngSha256": "e65e2ec24fe3ef19a03b6dbcdb697e00491ab7d256e2c1258d9dd4e4c38fa616"
+    },
+    {
+      "id": "44-03",
+      "asset": "/image/leader/custom/avel-lattice/vesi.png",
+      "approvedAt": "2026-09-30T12:27:50.737Z",
+      "approvedSourceSha256": "94ef394dd87064de372eb75c542156b909041154e4c83fa13b688fa3ae6c6e1f",
+      "processedMasterSha256": "395945ff73ef75aeb7ce5960990cb1a632c9a4ae1de0133a8e0b735ad5d5aabf",
+      "gamePngSha256": "3e956813f152d5da008f80296b9a9e4ee2c711d8068b94f3bb9fe6a8630e5463"
+    },
+    {
+      "id": "44-04",
+      "asset": "/image/leader/custom/avel-lattice/dulen.png",
+      "approvedAt": "2026-09-30T12:27:50.737Z",
+      "approvedSourceSha256": "2a98722c0fb9fe3873bfd06f19b42e3a16d34d2acd43322721fb1436e82aed83",
+      "processedMasterSha256": "94bf2ee8c9033a6cf0a96bd753870b59b153a2b956d96a17ed1347fefc837eae",
+      "gamePngSha256": "4e8ceb2fe2c73a8d1eeec15b7c0c0f2807df266d77a322ca349df1203f25c96c"
+    },
+    {
+      "id": "44-05",
+      "asset": "/image/leader/custom/avel-lattice/sora.png",
+      "approvedAt": "2026-09-30T12:27:50.737Z",
+      "approvedSourceSha256": "0e90f24830beec5fa30436be3353031c7f4d8ba8bb596f3dc7225c7187b9f160",
+      "processedMasterSha256": "22f320254ee9ad41b753d098d84b6dc95d4231320a2f4f1c1818610c73a28802",
+      "gamePngSha256": "bfabd0597de1dfd8c962c2cfa3d8493ce6d5e6b198130c599c24c72e2042ea45"
+    },
+    {
+      "id": "44-06",
+      "asset": "/image/leader/custom/avel-lattice/orsa.png",
+      "approvedAt": "2026-09-30T12:27:50.737Z",
+      "approvedSourceSha256": "347d7c76a98da4564521db0007e0aa967965893343b094c8a1ce90c044fcc4fc",
+      "processedMasterSha256": "2407954d2d90f32a7e8a56d041fdba460772679951313d1c9b41b2402f738f01",
+      "gamePngSha256": "4802e90ea7976d38a1e27645f9d7ef5f77e4c61816e16e507852ed94dded5a68"
+    },
+    {
+      "id": "44-07",
+      "asset": "/image/leader/custom/avel-lattice/hemm.png",
+      "approvedAt": "2026-09-30T12:27:50.737Z",
+      "approvedSourceSha256": "29b9e8c0c8ed018bfc1fa091b3f026d0eb6d06d27504a3ffcbdc7186264a0e55",
+      "processedMasterSha256": "1d99afd18bc6116c5d1e786e32a7bc0822bb9d62c651cb86b0136ce6e90e5dc3",
+      "gamePngSha256": "5e3f1c3e26ab29e6af6e15f1b13e6c6ce019f7fe40fd325d8a1d2559a4af959e"
+    },
+    {
+      "id": "45-01",
+      "asset": "/image/leader/custom/nura-dawn/nura.png",
+      "approvedAt": "2026-09-30T13:24:49.419Z",
+      "approvedSourceSha256": "8846d1982f682fe9218942c541299f2e978ec167fd95fdcf4a48d2fca175d8e4",
+      "processedMasterSha256": "2b654d5f893ce874fb3bbfd6968f28565ce090c7e04e82ec0deff7b9ad031573",
+      "gamePngSha256": "ac798fc395b60d68eb4d19394257d0917a8d2b2af45f7dcc57d59e82623b63ea"
+    },
+    {
+      "id": "45-02",
+      "asset": "/image/leader/custom/nura-dawn/tarek.png",
+      "approvedAt": "2026-09-30T13:24:49.419Z",
+      "approvedSourceSha256": "7821d25076be5b1b299609e144d6b2bc885466a3902ac2ff1fb318442b90dd8e",
+      "processedMasterSha256": "550a5300eb0e4cefec3bebc26cbb55d3c45750c9e58a7a9fcb963b346cbba2df",
+      "gamePngSha256": "83e8f181710064d08f0e60422d06cd422eac99aee226c3257cde172714cc9932"
+    },
+    {
+      "id": "45-03",
+      "asset": "/image/leader/custom/nura-dawn/velaun.png",
+      "approvedAt": "2026-09-30T13:24:49.419Z",
+      "approvedSourceSha256": "4f534de8eced7d4347fea90e273bdb79e94b80ad500ef61837b03954228e9c56",
+      "processedMasterSha256": "fc566450e949b6715c0f5a88bf6a132683c304371f34d0ef3516e0c5d4c6cdad",
+      "gamePngSha256": "3d1aecd6b31f2b31f170a99a3c51d2b01e7450d761b738abab2829cfa67c2c0f"
+    },
+    {
+      "id": "45-04",
+      "asset": "/image/leader/custom/nura-dawn/dara.png",
+      "approvedAt": "2026-09-30T13:24:49.419Z",
+      "approvedSourceSha256": "68aed0a74a2ddb523a7bf1aecb4f5364e5150e20b01f8fc5b3367766493f2c85",
+      "processedMasterSha256": "7113de8bd04a7a61c282343ddd218f1cd951da0fa5eaf24e507649d764b8c6c9",
+      "gamePngSha256": "c5f204709fd027ce8102412f1f090744e2a01af09f17d8790ba0c3915b12f8aa"
+    },
+    {
+      "id": "45-05",
+      "asset": "/image/leader/custom/nura-dawn/surn.png",
+      "approvedAt": "2026-09-30T13:24:49.419Z",
+      "approvedSourceSha256": "dbd4efff349331cb72a06943488b7ddaf005b28146bbc52655c9f9b12e9628f8",
+      "processedMasterSha256": "1e6fd26cf10d6ac75b64641fe1d06c343ad456f9b7878524b3e9df7e35af0d45",
+      "gamePngSha256": "0b70b7a2aec03a52a4de05f4892bf2dce3c20d1397c74281f18230824cb38fcc"
+    },
+    {
+      "id": "45-06",
+      "asset": "/image/leader/custom/nura-dawn/olin.png",
+      "approvedAt": "2026-09-30T13:24:49.419Z",
+      "approvedSourceSha256": "8bab2d6da83429663f929ec9c66d62c770d00de6660937b73e65a5b37901cd4b",
+      "processedMasterSha256": "e7b9acaabf8cdfb19616212c1651f10289cd9776ad3dc683e06781fcad4bdeb2",
+      "gamePngSha256": "a94ca0b597f3eff8775ed32be058878b7e5b26cdbb2a5a54c34ca02814f51135"
+    },
+    {
+      "id": "45-07",
+      "asset": "/image/leader/custom/nura-dawn/hessaun.png",
+      "approvedAt": "2026-09-30T13:24:49.419Z",
+      "approvedSourceSha256": "0a395788606d3102693fb4a76f946e5bdec2af488ec02a3658238793709d4d96",
+      "processedMasterSha256": "643673fbcddd588a4df28d414c2d1aad7bdbbb6afd858e031a924fa1ac0a3cdc",
+      "gamePngSha256": "9cda6a5ab3d99eedc92e9eb2bbf9d97e23352554095fc4ea72c525b1f2f444ca"
+    },
+    {
+      "id": "46-01",
+      "asset": "/image/leader/custom/temek-trine/temar.png",
+      "approvedAt": "2026-09-30T14:21:32.101Z",
+      "approvedSourceSha256": "010f39a755105cd1185461ca88edf17ac9d64612e546c2ff1b90d382484c609a",
+      "processedMasterSha256": "9de76d981d5d08335605d4773008b66e47a563b58cbaf3e41f2fc543162641b9",
+      "gamePngSha256": "abfb881c2f203dcec4dc2e3a29528f46c83743fa4211e7b603223c964bdebb1d"
+    },
+    {
+      "id": "46-02",
+      "asset": "/image/leader/custom/temek-trine/vek.png",
+      "approvedAt": "2026-09-30T14:21:32.101Z",
+      "approvedSourceSha256": "4036cfef8c136e85ca5390f6d2878c6dbe0144cf291dd6f64781e02a8cc3cadf",
+      "processedMasterSha256": "aa0190fde44d64eff724a5d98f03057544ccc3f27697396dc6077dc8f1033532",
+      "gamePngSha256": "a4612cdc19a46f02e08839c77d0da5d1bbb68b2d7505babcde283f21bb7ed26b"
+    },
+    {
+      "id": "46-03",
+      "asset": "/image/leader/custom/temek-trine/ima.png",
+      "approvedAt": "2026-09-30T14:21:32.101Z",
+      "approvedSourceSha256": "abe25f4e220a8f6eee63a3a2cc48ec90eacd1440882488608a38ff408bfd4e57",
+      "processedMasterSha256": "41963f56e9107cae621f960e1886ed76281a3acc05630a639930feabc3b95da6",
+      "gamePngSha256": "1bb2667da51f3a78113fa33194063c579e57d4b3625a85d46b810b7a949b5e0c"
+    },
+    {
+      "id": "46-04",
+      "asset": "/image/leader/custom/temek-trine/deren.png",
+      "approvedAt": "2026-09-30T14:21:32.101Z",
+      "approvedSourceSha256": "48a9932ef7fdfe3433a2b325aff83b54a65cb896d89348ac2bf2675441f9ff88",
+      "processedMasterSha256": "470cd2ac7113c3a35b40021387c7547a5a5e25e62768a0c20fda0e3ea5c54e5b",
+      "gamePngSha256": "bd3e2be79b6d1c52467605769a287bce7a15c84c0d33c5dd8ba96f8112050816"
+    },
+    {
+      "id": "46-05",
+      "asset": "/image/leader/custom/temek-trine/siva.png",
+      "approvedAt": "2026-09-30T14:21:32.101Z",
+      "approvedSourceSha256": "353a834ae1f5727879791f296053702d9816e252bbe77536ef2b02cdbdb14871",
+      "processedMasterSha256": "86d4de30780035eb4f5d0eaadcbcf23e2dc9c6984f604eee7fc34098b1eba0f0",
+      "gamePngSha256": "ef107b49c7f5dab4b59467c6741b2a7e54f00cd5231c7d337019ea0bca0f7394"
+    },
+    {
+      "id": "46-06",
+      "asset": "/image/leader/custom/temek-trine/ormak.png",
+      "approvedAt": "2026-09-30T14:21:32.101Z",
+      "approvedSourceSha256": "d7b77cb1f53b06833d2562d0cfdd6ec77a81f97cada105d7bccfe024f9e27cdf",
+      "processedMasterSha256": "6dbce31092b1154c39e7626bab232ab2e1855e94b6e77271a22f0f1568f8d717",
+      "gamePngSha256": "9eeac395dd7f80b17e1f4e63e956e67fbed59385354fe15ffb6a6c7c7702b74c"
+    },
+    {
+      "id": "46-07",
+      "asset": "/image/leader/custom/temek-trine/hune.png",
+      "approvedAt": "2026-09-30T14:21:32.101Z",
+      "approvedSourceSha256": "626be4a63f707a4b0c03485485a9a4f226b4e3eca90c3b529db99fedec21ce1c",
+      "processedMasterSha256": "5e5a719ee09024f192e01746cda027293bdde91d9cc85a3ad9ed513d676ab4be",
+      "gamePngSha256": "893404b03d6e9c7cff0dd95e7534154e29cc1422821fa72f2a0467cf4c036159"
+    },
+    {
+      "id": "47-01",
+      "asset": "/image/leader/custom/kelor-mantle/kelor.png",
+      "approvedAt": "2026-09-30T12:43:54.123Z",
+      "approvedSourceSha256": "eb5bf6e1a4c4edadc470078659f0b9c9239a3b2dc5d1b719507247b9cb61b78b",
+      "processedMasterSha256": "40fab1b26f723ca309ba663a5edc60863be34ced50bd562b955026a809d403af",
+      "gamePngSha256": "3c39ded833edd868c2fc7c64724a878d701a77de3651351c8a89b77fc63b13fb"
+    },
+    {
+      "id": "47-02",
+      "asset": "/image/leader/custom/kelor-mantle/vaska.png",
+      "approvedAt": "2026-09-30T12:43:54.123Z",
+      "approvedSourceSha256": "8d49cfeaf1b7f6f3eeb3e3e625055e8baf6ea009f63d48d27e2dbeedabe0a595",
+      "processedMasterSha256": "b63a711b165042a14f07595e02a56cfb0b77c3f94a975f8fe6e56cae3a287539",
+      "gamePngSha256": "df1b6ad73d07db8caeb47f6798e1f815ab370bff7a017afd15707085acfd389a"
+    },
+    {
+      "id": "47-03",
+      "asset": "/image/leader/custom/kelor-mantle/irel.png",
+      "approvedAt": "2026-09-30T12:43:54.123Z",
+      "approvedSourceSha256": "419bbe9ff88816d4839216625b50377e004cbdac857a236549710445abfec0f0",
+      "processedMasterSha256": "c6afc75cc9476cd85d97e2d0cb7e06c037d041f8bec96db0ba83091a65c4ceda",
+      "gamePngSha256": "adf478a9a1ee5ad19eea4d255a1cd0272a5f59475466d5e7065e349a586cc6d1"
+    },
+    {
+      "id": "47-04",
+      "asset": "/image/leader/custom/kelor-mantle/dumo.png",
+      "approvedAt": "2026-09-30T12:43:54.123Z",
+      "approvedSourceSha256": "4980a8b0936772dd70d9ddc4782cde8803f5eabf2f90a9b6bdc2695500f2539d",
+      "processedMasterSha256": "f42a8b8a8fbfc6936b8e7fd0aa4ec9885ed6e4bee2cbc8801dd8292fa220a630",
+      "gamePngSha256": "40440a4cccd125a682028b2f6b859582922a402d56978f2003a2b194d52414fc"
+    },
+    {
+      "id": "47-05",
+      "asset": "/image/leader/custom/kelor-mantle/selae.png",
+      "approvedAt": "2026-09-30T12:43:54.123Z",
+      "approvedSourceSha256": "86fcd62ff5a27e7f5166b4e7686defe987c4e378549d67e74e506f98e3094628",
+      "processedMasterSha256": "3b962af30d9fd1d779c01e39f48b37a7273efe81075e63c7fc628ab284d2114a",
+      "gamePngSha256": "3d7a11c678fbbbf7468a79e6bad22977141f95b0597a037fe97ac10d5b547a24"
+    },
+    {
+      "id": "47-06",
+      "asset": "/image/leader/custom/kelor-mantle/orvenn.png",
+      "approvedAt": "2026-09-30T12:43:54.123Z",
+      "approvedSourceSha256": "2288144a664089de38b876cf5ad9b9b65f9e706596c70464a32d77da14e1ce84",
+      "processedMasterSha256": "fca7eee732c6774c63cfedaa26835a66372ab77ed1bd8d68615f22107e86fbc5",
+      "gamePngSha256": "834e18d3c660ac3fef96d6ad461d7f37c7ae3d344ccfb5689f937d1e1346eb93"
+    },
+    {
+      "id": "47-07",
+      "asset": "/image/leader/custom/kelor-mantle/horoa.png",
+      "approvedAt": "2026-09-30T12:43:54.123Z",
+      "approvedSourceSha256": "78636b8151bb77bc0af68856383a6a9065d54e1e8d6f3df22e41a996719f5914",
+      "processedMasterSha256": "a49c2c351cff6d96021927f8da9d74e6057ff54005e8d568ef1a0292fa0e1592",
+      "gamePngSha256": "2e963f793da8af30e7828b133e6a7c5b2e2c429ca68ebee2a3d2fd0add92aada"
+    },
+    {
+      "id": "48-01",
+      "asset": "/image/leader/custom/varn-mouth/varna.png",
+      "approvedAt": "2026-09-30T12:52:38.159Z",
+      "approvedSourceSha256": "eba79495f7dcf5988cfe1ee80ceb7065ebaba521cb0a35873a15dd8ca0b283e6",
+      "processedMasterSha256": "5d82e4b63956948621f4ab299745a634043f8bde2a58fe03c5a6b23242129829",
+      "gamePngSha256": "7cc68e7c1d44fc4e627f2daf91dc919c39b49af477c048d8b08ce8b4ba89a75d"
+    },
+    {
+      "id": "48-02",
+      "asset": "/image/leader/custom/varn-mouth/kess.png",
+      "approvedAt": "2026-09-30T12:52:38.159Z",
+      "approvedSourceSha256": "a23676a41a0be5fb13118d24b2ace8c02380f71e7a7c24f50c7906a343d49685",
+      "processedMasterSha256": "17d68c4009c8b70875bcb7fd5af8dd37d020bb114f0b1f52e9ff099a3e01ac22",
+      "gamePngSha256": "e417330554e0bd292ab090292f0ca4fcbce4da831c0b5dff1db487006252aac0"
+    },
+    {
+      "id": "48-03",
+      "asset": "/image/leader/custom/varn-mouth/iven.png",
+      "approvedAt": "2026-09-30T12:52:38.159Z",
+      "approvedSourceSha256": "de4359bb098d61c6dac96628ef3bc46993cac135035ece1ced8f2153aac90374",
+      "processedMasterSha256": "5a3140153cc5706db2f5826f0a82d4c13cc6e75c476084c739d9e2f868c18a2c",
+      "gamePngSha256": "a58ca62456ebf6557fc8a55e469288a670519afe6ee6c4393186375237ea9659"
+    },
+    {
+      "id": "48-04",
+      "asset": "/image/leader/custom/varn-mouth/darae.png",
+      "approvedAt": "2026-09-30T12:52:38.159Z",
+      "approvedSourceSha256": "2d731c171f1516a75dc23edcef900fced52d3addc773513f2ff608f4b4445d7c",
+      "processedMasterSha256": "b15b7c931db4c48a8599d723c89eee016d6c752b4dafd39f17b3b93e28051cc0",
+      "gamePngSha256": "f6db9fe509e2a90eda50072796dc21e19adf8b790566d5f5f1fd167a8ed6610d"
+    },
+    {
+      "id": "48-05",
+      "asset": "/image/leader/custom/varn-mouth/suma.png",
+      "approvedAt": "2026-09-30T12:52:38.159Z",
+      "approvedSourceSha256": "654a852818929c2329d7c262c146bd6709bc8342a302da3f7e0c4f6f325424d8",
+      "processedMasterSha256": "e8ae38bda7792d1170655ad3d4c52d32244f80740c96c8a8f757f97251718691",
+      "gamePngSha256": "6aa2be260955f69df35f3b5e34eaccca92926d180c1208438992150770d61ce7"
+    },
+    {
+      "id": "48-06",
+      "asset": "/image/leader/custom/varn-mouth/orsk.png",
+      "approvedAt": "2026-09-30T12:52:38.159Z",
+      "approvedSourceSha256": "5facbeeed05a1b40a9efe5c83d011a8fb6279362154445cb01e63f3891b55bed",
+      "processedMasterSha256": "94835744af7fce6477a23fb437c2bc187912bc6841d2848e22866b509b7c7987",
+      "gamePngSha256": "8534a3aca10e569b60a7a26285f3ceb729e137d10523d822f7ecaaa00dfe403d"
+    },
+    {
+      "id": "48-07",
+      "asset": "/image/leader/custom/varn-mouth/haran.png",
+      "approvedAt": "2026-09-30T12:52:38.159Z",
+      "approvedSourceSha256": "1dbe42fbd82d4d0c0d008dbdaf944d53005a640b5f8f7cd6f06bfbc89054a7c8",
+      "processedMasterSha256": "903e7e7fbc30bb57c60cd2bec44bc187b99b646522e8e6182bc2414d838d6dcc",
+      "gamePngSha256": "d643778663e567f22cdef16f14a41edc1486d067e05a96d082326d6962f497eb"
+    },
+    {
+      "id": "49-01",
+      "asset": "/image/leader/custom/nolven-pact/nol-and-evi.png",
+      "approvedAt": "2026-09-30T12:57:41.799Z",
+      "approvedSourceSha256": "e509a7061ef78e2ad2924a4351fe8c30c05f33d0933813792ea075bd4b8f5e10",
+      "processedMasterSha256": "1fbe4e719c86e303868c963312256151e8068dcc99fd45aea2bab7494961c2e9",
+      "gamePngSha256": "19fac24c981c90279f32a08ed779701d1c7a89d02f69b1b1a89786eb362fe1ab"
+    },
+    {
+      "id": "49-02",
+      "asset": "/image/leader/custom/nolven-pact/varn-and-sol.png",
+      "approvedAt": "2026-09-30T12:57:41.799Z",
+      "approvedSourceSha256": "42d713be7addb386789c24c8c0f0d4c994691c409bb7ee0bb2f43e6ec42ab8c9",
+      "processedMasterSha256": "69bf0dccb4c3c19747ea1e22dcea79a8c66c8fcf9739e95a8162c9de3c62b4ce",
+      "gamePngSha256": "4cff3fb17a03c0878fd920184081f8c04d6dfe46a02869e82b950410296c1a09"
+    },
+    {
+      "id": "49-03",
+      "asset": "/image/leader/custom/nolven-pact/ira-and-vem.png",
+      "approvedAt": "2026-09-30T12:57:41.799Z",
+      "approvedSourceSha256": "439def09e86e98fb3886d78882a90733b6d6c9640b47258062ae3d45e6a06808",
+      "processedMasterSha256": "481b9246fa5e934a323b1cf677ca8a2c4372b1e99af01bd2c90cb864343b79c5",
+      "gamePngSha256": "c5adbef23b3b46810161809fa9cca892e1732f82571de497b50a8bfc649ea5fe"
+    },
+    {
+      "id": "49-04",
+      "asset": "/image/leader/custom/nolven-pact/dorr-and-asa.png",
+      "approvedAt": "2026-09-30T12:57:41.799Z",
+      "approvedSourceSha256": "68793a37bd81674713b8e4ffd033f2bb0892ca9ffa93ca0be0ebcdbad907f59c",
+      "processedMasterSha256": "de0e774982decad10bf039fea3885e587a546b24f037986f0b24a2efebf75364",
+      "gamePngSha256": "b803f72e079d32559a450dc5d8120503b69ff684a5b301e7e237cad2f57ffdf4"
+    },
+    {
+      "id": "49-05",
+      "asset": "/image/leader/custom/nolven-pact/sera-and-hek.png",
+      "approvedAt": "2026-09-30T12:57:41.799Z",
+      "approvedSourceSha256": "413623de931888fad6755a92b63ffcecd1d33cbd859d356e298ab584240294b0",
+      "processedMasterSha256": "066516cbf0d82899ef4d69c321ab5637c9cf70b4aa718f6c0e51e61b4eadbe36",
+      "gamePngSha256": "832bda415502970de63c962266b84e746aa525630ac96a29c60bdb9f69ed6521"
+    },
+    {
+      "id": "49-06",
+      "asset": "/image/leader/custom/nolven-pact/orn-and-teli.png",
+      "approvedAt": "2026-09-30T12:57:41.799Z",
+      "approvedSourceSha256": "5f1e04e1b01e58751a9a12a00e6c3d7053de0682fe93bcdfafd242e284e49800",
+      "processedMasterSha256": "72744803565b2fd7ac7da446af15143694ad93f2a3a9e8a16b5294d0df447915",
+      "gamePngSha256": "098d14182255c6d02e8e9b87bc80bca39a5fef3d3816c32d550c3ae410f66737"
+    },
+    {
+      "id": "49-07",
+      "asset": "/image/leader/custom/nolven-pact/huma-and-rel.png",
+      "approvedAt": "2026-09-30T12:57:41.799Z",
+      "approvedSourceSha256": "46f44fa9ce193f16e6747b1168ac3f68d8f618860ca00205323822bd000c8ca0",
+      "processedMasterSha256": "eb0b9310c2d4ee82818a2ae07cff3728906fb56a31dab211158013211ee64533",
+      "gamePngSha256": "33a28b60264758841a585e923103eef450bea4efb74e0456e0d608d7573b624a"
+    },
+    {
+      "id": "50-01",
+      "asset": "/image/leader/custom/urrek-fan/urra.png",
+      "approvedAt": "2026-09-30T13:03:16.195Z",
+      "approvedSourceSha256": "7ec756c1980ab2ed443fab9c19ddd1dbef0e58dfa4c22a43e9de7c9cdbe7fc0b",
+      "processedMasterSha256": "4afae6cc240837c7ed37515de2f38e29ac41fe63e67b116d8d8a84fa2880ec64",
+      "gamePngSha256": "65e93874e2a6c3989223eae32017cbcd8bd772d9896dc660bac2b9481d1f2ea7"
+    },
+    {
+      "id": "50-02",
+      "asset": "/image/leader/custom/urrek-fan/karn.png",
+      "approvedAt": "2026-09-30T13:03:16.195Z",
+      "approvedSourceSha256": "d8918424dfd17cc205008f0af307d01fc2baba444a924cfe089e8c311bf89f7a",
+      "processedMasterSha256": "b6ab6de7978185e3413fc80d3add2bb8798d752f18644c14d52111d27e2bf980",
+      "gamePngSha256": "2b6b780510df4d3345420b8fa2340161ee1cb679db1349c9c932257dc1c15a5b"
+    },
+    {
+      "id": "50-03",
+      "asset": "/image/leader/custom/urrek-fan/ivela.png",
+      "approvedAt": "2026-09-30T13:03:16.195Z",
+      "approvedSourceSha256": "4efc967426551a3a5aeb9d7fde9636893bd6c52d08b661965f1e602e46760b3e",
+      "processedMasterSha256": "86a811c9d06ed39b2c73d261da2bb88c28233c91ea825f3da5f190dc83e8ae2c",
+      "gamePngSha256": "497a308596afd8f7bb1993938aed1fdc1fa676639c03619e3d8066e28ee450bb"
+    },
+    {
+      "id": "50-04",
+      "asset": "/image/leader/custom/urrek-fan/dorek.png",
+      "approvedAt": "2026-09-30T13:03:16.195Z",
+      "approvedSourceSha256": "c9ea571fbaea80df71bf1649b049dc469167ac6817cb0363c8924b84555baab0",
+      "processedMasterSha256": "e8dfe67811f0a872a6099ea1d0427fe2686dac1d5256c37bd1d249ca90a84f8c",
+      "gamePngSha256": "309cf821bcfc970ee81baa425f586685b172bd14cf144ea460c800d8179dd244"
+    },
+    {
+      "id": "50-05",
+      "asset": "/image/leader/custom/urrek-fan/sani.png",
+      "approvedAt": "2026-09-30T13:03:16.195Z",
+      "approvedSourceSha256": "fc8592c16e0f149048c35945671a6a421f9632229e9c5bcaba367342f3392baa",
+      "processedMasterSha256": "83425726c03a8e8c5947c10c2df1ec87c1cee8ff5fbc4440ee82f4775ce4db8b",
+      "gamePngSha256": "77869e54aecfe1f19d7825c978f8797127be48a07050b481c962c1ba0ba67851"
+    },
+    {
+      "id": "50-06",
+      "asset": "/image/leader/custom/urrek-fan/orrel.png",
+      "approvedAt": "2026-09-30T13:03:16.195Z",
+      "approvedSourceSha256": "19e391b1844d3366fb2ce09b504b57a10e9c1be974a0482e991580d8292da0ff",
+      "processedMasterSha256": "0166ba06d514353ffa01a84117a13b35e8d69011bb829c55a4a1a0165d096391",
+      "gamePngSha256": "1d470bbcf6f61365bfb5ce0543586ae5213c793bc2a954d87c434611d2c36033"
+    },
+    {
+      "id": "50-07",
+      "asset": "/image/leader/custom/urrek-fan/havva.png",
+      "approvedAt": "2026-09-30T13:03:16.195Z",
+      "approvedSourceSha256": "331ed93269d548cf2693138df04206c449d8c68720c9464f9acebd1803ab436b",
+      "processedMasterSha256": "6db19472d895256198a94b4807268a25d248571846eef0638e78c7d21656d727",
+      "gamePngSha256": "8d63cc622cac499c10c46a7722f3e05b012ec9dc46fdceb6d3a0f6f7ed5169b6"
+    }
+  ]
+}

@@ -1,0 +1,181 @@
+.grid,
+.decalGrid,
+.leaderGrid {
+  display: grid;
+  gap: var(--space-sm);
+}
+.grid {
+  grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
+}
+.decalGrid {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 16rem), 1fr));
+  gap: var(--space-md);
+}
+.decalGrid .preview {
+  height: auto;
+  aspect-ratio: 4 / 3;
+}
+.decalGrid .card {
+  contain-intrinsic-size: auto 17rem;
+}
+.leaderGrid {
+  grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr));
+}
+.previewLink {
+  display: block;
+  color: inherit;
+}
+.preview {
+  display: block;
+  width: 100%;
+  height: 9rem;
+  object-fit: contain;
+}
+.vectorPreview {
+  box-sizing: border-box;
+  padding: var(--space-xs);
+  border-radius: var(--mantine-radius-sm);
+  background: repeating-conic-gradient(#f2f2f2 0% 25%, #dedede 0% 50%) 0 / 16px 16px;
+}
+.portrait {
+  display: block;
+  width: 7rem;
+  height: 7rem;
+  object-fit: cover;
+  border-radius: 50%;
+}
+.largePreview {
+  display: block;
+  width: 100%;
+  height: 20rem;
+  object-fit: contain;
+}
+.card {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 12rem;
+}
+
+.libraryWall {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: var(--space-sm);
+}
+.libraryFeatured {
+  grid-column: span 3;
+}
+.librarySmall {
+  grid-column: span 2;
+}
+
+.libraryArt {
+  filter: drop-shadow(0 2px 2px rgb(0 0 0 / 35%)) drop-shadow(0 6px 5px rgb(0 0 0 / 25%));
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.libraryDisc {
+  border-radius: 50%;
+  aspect-ratio: 1;
+  object-fit: cover;
+}
+.libraryCollage {
+  position: relative;
+  height: 7rem;
+  overflow: visible;
+}
+.librarySpecimen {
+  position: absolute;
+  width: 35%;
+  height: 80%;
+  left: 0;
+  top: 5%;
+  transform: rotate(-9deg);
+}
+.librarySpecimen:nth-child(2) {
+  width: 40%;
+  height: 100%;
+  left: 29%;
+  top: 0;
+  transform: rotate(7deg);
+}
+.librarySpecimen:nth-child(3) {
+  width: 29%;
+  height: 65%;
+  left: 69%;
+  top: 22%;
+  transform: rotate(-5deg);
+}
+.libraryLargeCollage {
+  height: 9rem;
+}
+.libraryLargeCollage .librarySpecimen:nth-child(1) {
+  width: 24%;
+  height: 85%;
+  left: 0;
+  top: 15%;
+}
+.libraryLargeCollage .librarySpecimen:nth-child(2) {
+  width: 21%;
+  height: 65%;
+  left: 17%;
+  top: 0;
+}
+.libraryLargeCollage .librarySpecimen:nth-child(3) {
+  width: 26%;
+  height: 100%;
+  left: 32%;
+  top: 5%;
+  transform: rotate(-14deg);
+}
+.libraryLargeCollage .librarySpecimen:nth-child(4) {
+  width: 19%;
+  height: 60%;
+  left: 55%;
+  top: 2%;
+  transform: rotate(12deg);
+}
+.libraryLargeCollage .librarySpecimen:nth-child(5) {
+  width: 25%;
+  height: 85%;
+  left: 70%;
+  top: 20%;
+  transform: rotate(8deg);
+}
+.libraryLargeCollage .librarySpecimen:nth-child(6) {
+  width: 14%;
+  height: 45%;
+  left: 84%;
+  top: 0;
+  transform: rotate(-16deg);
+}
+.libraryPortraits .librarySpecimen:nth-child(n) {
+  max-width: 5.5rem;
+  height: auto;
+  aspect-ratio: 1;
+}
+.libraryPortraits.libraryLargeCollage .librarySpecimen {
+  max-width: 8rem;
+}
+.libraryPortraits.libraryLargeCollage .librarySpecimen:nth-child(1),
+.libraryPortraits.libraryLargeCollage .librarySpecimen:nth-child(5) {
+  top: 8%;
+}
+
+.libraryDecals .librarySpecimen:nth-child(1) {
+  transform: rotate(-25deg);
+}
+.libraryDecals .librarySpecimen:nth-child(2) {
+  transform: rotate(14deg);
+}
+@container page-frame (width < 48rem) {
+  .libraryWall {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .libraryFeatured {
+    grid-column: span 2;
+  }
+  .librarySmall {
+    grid-column: span 1;
+  }
+}

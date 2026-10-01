@@ -15,7 +15,7 @@ inputs:
 runs:
   using: composite
   steps:
-    # The script is a file beside this one so the actionlint job can shellcheck it: actionlint checks
+    # The script is a file beside this one so the lint job's ShellCheck step can check it: actionlint checks
     # the run: scripts of workflows, not those of actions.
     - name: Summarise each flow
       shell: bash

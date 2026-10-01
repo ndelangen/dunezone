@@ -1,4 +1,5 @@
 import { Group } from '@mantine/core';
+import clsx from 'clsx';
 import { useId } from 'react';
 import type { ReactNode } from 'react';
 
@@ -6,8 +7,9 @@ import { BlockHeading } from '../block/BlockHeading';
 import { OneLevelDeeper, useSectionDepth } from '../block/depth';
 import styles from './Card.module.css';
 import { Surface } from './Surface';
+import type { SurfaceProps } from './Surface';
 
-export interface CardProps {
+export interface CardProps extends Pick<SurfaceProps, 'padding' | 'interactive' | 'renderRoot' | 'className'> {
   /**
    * Required.
    * A Card without a title is a `Surface`;
@@ -33,12 +35,28 @@ export interface CardProps {
  *
  * Content that brings panes of its own (a list of cards, a grid of spotlights) belongs in a `Section` instead, or the surfaces would nest.
  */
-export function Card({ title, icon, action, children }: CardProps) {
+export function Card({
+  title,
+  icon,
+  action,
+  children,
+  padding = 'lg',
+  interactive,
+  renderRoot,
+  className,
+}: Readonly<CardProps>) {
   const headingId = useId();
   const depth = useSectionDepth();
 
   return (
-    <Surface padding="lg" className={styles.card}>
+    <Surface
+      padding={padding}
+      interactive={interactive}
+      renderRoot={renderRoot}
+      as="section"
+      aria-labelledby={headingId}
+      className={clsx(styles.card, renderRoot && styles.link, className)}
+    >
       <div className={styles.header}>
         {action == null ? (
           <BlockHeading id={headingId} title={title} icon={icon} />

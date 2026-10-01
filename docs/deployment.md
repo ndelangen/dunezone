@@ -81,6 +81,8 @@ are Worker-first:
 | `/published` and `/published/*` | Current public generated-asset delivery by stable pathname |
 | `/__asset-publisher` and `/__asset-publisher/*` | Health and operational endpoints |
 | `/publisher-capture`, `/publisher-capture.html`, `/publisher-capture/*` | Protected capture document and bundle |
+| `/user-images` and `/user-images/*` | Delivery of rehosted user images from the user-image bucket |
+| `/__user-images` and `/__user-images/*` | The ingest endpoint the Convex rehost action posts a source URL to |
 | `/__play` and `/__play/*` | Canonical-host-only forwarding to the private game Worker |
 | Everything else, including `/factions/*` | Static asset lookup, then SPA fallback |
 
@@ -147,7 +149,7 @@ the game protocol; no deployment bootstrap secret is installed on the game Worke
 Convex's nonsecret `PLAY_SERVICE_URL` must equal its `SITE_URL` origin, `https://dune.zone`. CI sets
 the callback origin after verifying the private game Worker and before exposing the hosted frontend.
 The test-only `IS_TEST` and `E2E_LOCAL_AUTH` flags must remain disabled in production, and the
-test-only `PLAY_TEST_PHASE_COOLDOWN_MS` unset.
+test-only `PLAY_TEST_PHASE_COOLDOWN_MS` and `PLAY_TEST_START_STAGE` unset.
 
 For an isolated rehearsal against an already provisioned synthetic Convex/Auth backend:
 
@@ -183,9 +185,9 @@ No hosted deployment credentials or production snapshots are used. Its generated
 admin key, SQLite database and local Worker persistence are removed on exit. Each shard keeps its
 logs and browser reports as its own artifact for 14 days. Its step summary has a row for each of its
 flows, a flow that never started included, and one for the protocol verifier where it runs. A flow's
-row gives its result, seconds, renderer kind and Chromium build from its report. A failed flow's row
-also gives its failing step, as the source line of the error and the check it passed last, and the
-error message on one line. The same table is printed in the job log.
+row gives its result, seconds, seconds to Turn 1, renderer kind and Chromium build from its report.
+A failed flow's row also gives its failing step, as the source line of the error and the check it
+passed last, and the error message on one line. The same table is printed in the job log.
 The same command runs locally on supported platforms.
 For a protocol-only local rehearsal, leave out `--flow`. `--backend-binary` can then select an existing
 native executable and `--skip-build` can reuse the publisher bundle; that shortcut does not verify the
@@ -373,8 +375,8 @@ at the gate, because both Workers already report it.
 
 ## Publication controls
 
-`admin_settings.publicationPickupEnabled` is the sole pickup switch. Administrators
-toggle it at `/__jobs`.
+`admin_settings.publication_pickup_enabled`, which `convex/publicationAdmin.ts` reads and writes
+as `publicationPickupEnabled`, is the sole pickup switch. Administrators toggle it at `/__jobs`.
 
 The Worker reads the value once at the start of each Cron invocation. Turning it
 off therefore:
@@ -384,8 +386,8 @@ off therefore:
 - does not prevent expired jobs from being reset to pending.
 
 The same page shows stored Renderer revisions and paged job status. It requires
-`users.isAdmin === true`; authenticated non-admin users see `Not authorized`, and
-unauthenticated visitors receive no job data.
+`users.isAdmin === true`; authenticated non-admin users see the "You cannot view publication
+jobs" refusal, and unauthenticated visitors receive no job data.
 
 ## Pull-request Cloudflare drift guard
 
@@ -418,8 +420,9 @@ Auth, command, projection and browser tests remain separate delivery evidence.
 ## Anonymised snapshot
 
 `.github/workflows/anonymised-snapshot.yml` runs once a day and on manual dispatch, from `main`
-only, in the `production` environment (#1559). It exports production the way `dev-rebuild.yml`
-does, anonymises the export with `scripts/snapshot-anonymise.ts`, and scans the written snapshot.
+only, in the `production` environment (#1559). Its one step runs `scripts/anonymised-snapshot.ts`,
+which exports production the way `dev-rebuild.yml` does, anonymises the export through
+`scripts/snapshot-anonymise.ts`, and scans the written snapshot.
 The script reads the raw export into memory and deletes it before anonymising, whether the read
 succeeded or not, and the job's last step deletes its directory whatever happened before.
 

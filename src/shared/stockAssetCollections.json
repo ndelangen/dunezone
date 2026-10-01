@@ -240,6 +240,17 @@
     "assets": ["/image/leader/ilya/inquisitor.png", "/image/leader/ilya/namri.jpg"]
   },
   {
+    "label": "Alien portraits / Hivers",
+    "keywords": "Hiver insect alien imperial court crown ceremonial mantle ruff pendant",
+    "assets": [
+      "/image/leader/hivers/hiver-amber-pendant.png",
+      "/image/leader/hivers/hiver-fur-mantle.png",
+      "/image/leader/hivers/hiver-high-crown.png",
+      "/image/leader/hivers/hiver-horned-mask.png",
+      "/image/leader/hivers/hiver-black-ruff.png"
+    ]
+  },
+  {
     "label": "Alien portraits / Blue horned",
     "keywords": "blue skin horns",
     "assets": [
@@ -600,6 +611,1354 @@
       "/vector/logo/pilgrim-lantern.svg",
       "/vector/logo/oracle-eye.svg",
       "/vector/logo/merchant-seal.svg"
+    ]
+  },
+  {
+    "label": "Custom portraits / House Orvek",
+    "keywords": "human Marda Orvek Ruling matriarch Selan Orvek Fleet heir Dora Vesk Salt marshal Tavin Ul Survey master Irena Pel House physician Neris Kalt Treaty speaker Boram Sen Mine captain",
+    "assets": [
+      "/image/leader/custom/house-orvek/marda-orvek.png",
+      "/image/leader/custom/house-orvek/selan-orvek.png",
+      "/image/leader/custom/house-orvek/dora-vesk.png",
+      "/image/leader/custom/house-orvek/tavin-ul.png",
+      "/image/leader/custom/house-orvek/irena-pel.png",
+      "/image/leader/custom/house-orvek/neris-kalt.png",
+      "/image/leader/custom/house-orvek/boram-sen.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / House Tessel",
+    "keywords": "human Aven Tessel Duke Ruva Tessel Harbor regent Cerin Voss Canal admiral Pela Renn Water assessor Damis Erel Reed guard commander Osta Vel Elder archivist Luren Tes House envoy",
+    "assets": [
+      "/image/leader/custom/house-tessel/aven-tessel.png",
+      "/image/leader/custom/house-tessel/ruva-tessel.png",
+      "/image/leader/custom/house-tessel/cerin-voss.png",
+      "/image/leader/custom/house-tessel/pela-renn.png",
+      "/image/leader/custom/house-tessel/damis-erel.png",
+      "/image/leader/custom/house-tessel/osta-vel.png",
+      "/image/leader/custom/house-tessel/luren-tes.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / House Ardent",
+    "keywords": "human Kessa Ardent Furnace sovereign Oren Ardent Succession claimant Brina Salk Forge commander Evan Dral Heat accountant Sura Neth Pressure engineer Joran Fell Foundry priest Hedra Kal Industrial diplomat",
+    "assets": [
+      "/image/leader/custom/house-ardent/kessa-ardent.png",
+      "/image/leader/custom/house-ardent/oren-ardent.png",
+      "/image/leader/custom/house-ardent/brina-salk.png",
+      "/image/leader/custom/house-ardent/evan-dral.png",
+      "/image/leader/custom/house-ardent/sura-neth.png",
+      "/image/leader/custom/house-ardent/joran-fell.png",
+      "/image/leader/custom/house-ardent/hedra-kal.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / House Velra",
+    "keywords": "human Tarin Velra First navigator Vela Velra Observatory ruler Nolan Isk Night fleet captain Miri Arel Chart keeper Senn Ral Signal warden Edda Vos Orbit adjudicator Ruvan Nel Deepwatch officer",
+    "assets": [
+      "/image/leader/custom/house-velra/tarin-velra.png",
+      "/image/leader/custom/house-velra/vela-velra.png",
+      "/image/leader/custom/house-velra/nolan-isk.png",
+      "/image/leader/custom/house-velra/miri-arel.png",
+      "/image/leader/custom/house-velra/senn-ral.png",
+      "/image/leader/custom/house-velra/edda-vos.png",
+      "/image/leader/custom/house-velra/ruvan-nel.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / House Cordane",
+    "keywords": "human Alma Cordane Trade matriarch Rell Cordane Market heir Iven Doss Convoy marshal Nara Kel Contract reader Jessa Lom Debt collector Boren Tuv Court host Orel Fen Dispute mediator",
+    "assets": [
+      "/image/leader/custom/house-cordane/alma-cordane.png",
+      "/image/leader/custom/house-cordane/rell-cordane.png",
+      "/image/leader/custom/house-cordane/iven-doss.png",
+      "/image/leader/custom/house-cordane/nara-kel.png",
+      "/image/leader/custom/house-cordane/jessa-lom.png",
+      "/image/leader/custom/house-cordane/boren-tuv.png",
+      "/image/leader/custom/house-cordane/orel-fen.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / House Nereth",
+    "keywords": "human Varda Nereth High regent Eren Nereth Border heir Ulna Kest Pass commander Davor Pel Winter quartermaster Mela Tav House interrogator Koren Il Avalanche engineer Siva Dorn Treaty guardian",
+    "assets": [
+      "/image/leader/custom/house-nereth/varda-nereth.png",
+      "/image/leader/custom/house-nereth/eren-nereth.png",
+      "/image/leader/custom/house-nereth/ulna-kest.png",
+      "/image/leader/custom/house-nereth/davor-pel.png",
+      "/image/leader/custom/house-nereth/mela-tav.png",
+      "/image/leader/custom/house-nereth/koren-il.png",
+      "/image/leader/custom/house-nereth/siva-dorn.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / House Osem",
+    "keywords": "human Senna Osem Seed regent Adren Osem Dynastic heir Mora Vell Granary commander Niven Sar Genetic steward Kela Hes Crop envoy Osta Mir Estate judge Barel Nun Irrigation captain",
+    "assets": [
+      "/image/leader/custom/house-osem/senna-osem.png",
+      "/image/leader/custom/house-osem/adren-osem.png",
+      "/image/leader/custom/house-osem/mora-vell.png",
+      "/image/leader/custom/house-osem/niven-sar.png",
+      "/image/leader/custom/house-osem/kela-hes.png",
+      "/image/leader/custom/house-osem/osta-mir.png",
+      "/image/leader/custom/house-osem/barel-nun.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / House Calven",
+    "keywords": "human Maren Calven Tunnel sovereign Tovan Calven Lower court heir Dena Rev Gate captain Olan Vek Civic examiner Iva Pell Deep court advocate Ressa Ul Emergency warden Bram Nes House remembrancer",
+    "assets": [
+      "/image/leader/custom/house-calven/maren-calven.png",
+      "/image/leader/custom/house-calven/tovan-calven.png",
+      "/image/leader/custom/house-calven/dena-rev.png",
+      "/image/leader/custom/house-calven/olan-vek.png",
+      "/image/leader/custom/house-calven/iva-pell.png",
+      "/image/leader/custom/house-calven/ressa-ul.png",
+      "/image/leader/custom/house-calven/bram-nes.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Kiln Synod",
+    "keywords": "machine Taro First judge Mella Archive speaker Varn Kiln marshal Sula Process auditor Orri Memory restorer Dessa Court envoy Kovel Old furnace custodian",
+    "assets": [
+      "/image/leader/custom/kiln-synod/taro.png",
+      "/image/leader/custom/kiln-synod/mella.png",
+      "/image/leader/custom/kiln-synod/varn.png",
+      "/image/leader/custom/kiln-synod/sula.png",
+      "/image/leader/custom/kiln-synod/orri.png",
+      "/image/leader/custom/kiln-synod/dessa.png",
+      "/image/leader/custom/kiln-synod/kovel.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Cable Court",
+    "keywords": "machine Noma Court conductor Duren Relay marshal Esi Treaty interpreter Vella Current auditor Ovek Grid captain Rissa Cable physician Tenn Elder switchkeeper",
+    "assets": [
+      "/image/leader/custom/cable-court/noma.png",
+      "/image/leader/custom/cable-court/duren.png",
+      "/image/leader/custom/cable-court/esi.png",
+      "/image/leader/custom/cable-court/vella.png",
+      "/image/leader/custom/cable-court/ovek.png",
+      "/image/leader/custom/cable-court/rissa.png",
+      "/image/leader/custom/cable-court/tenn.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Ivory Clock",
+    "keywords": "machine Arlo Senior negotiator Pella Minute keeper Dorun Clock guard commander Sivi Protocol writer Neral Treaty witness Etta Repair arbiter Korr Old time registrar",
+    "assets": [
+      "/image/leader/custom/ivory-clock/arlo.png",
+      "/image/leader/custom/ivory-clock/pella.png",
+      "/image/leader/custom/ivory-clock/dorun.png",
+      "/image/leader/custom/ivory-clock/sivi.png",
+      "/image/leader/custom/ivory-clock/neral.png",
+      "/image/leader/custom/ivory-clock/etta.png",
+      "/image/leader/custom/ivory-clock/korr.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Tarnished Host",
+    "keywords": "machine Mara Venn Host commander Dalen Or Campaign heir Istra Pell Siege captain Orren Mal Field surgeon Sena Dov Intelligence officer Bavel Rinn Heavy corps chief Vera Sorn Host emissary",
+    "assets": [
+      "/image/leader/custom/tarnished-host/mara-venn.png",
+      "/image/leader/custom/tarnished-host/dalen-or.png",
+      "/image/leader/custom/tarnished-host/istra-pell.png",
+      "/image/leader/custom/tarnished-host/orren-mal.png",
+      "/image/leader/custom/tarnished-host/sena-dov.png",
+      "/image/leader/custom/tarnished-host/bavel-rinn.png",
+      "/image/leader/custom/tarnished-host/vera-sorn.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Bellward Assembly",
+    "keywords": "machine Belan First resonant Orsa Assembly speaker Tuvor Harmonic marshal Miri Quiet court envoy Sennel Echo recorder Dorra Foundry steward Kavel Silence adjudicator",
+    "assets": [
+      "/image/leader/custom/bellward-assembly/belan.png",
+      "/image/leader/custom/bellward-assembly/orsa.png",
+      "/image/leader/custom/bellward-assembly/tuvor.png",
+      "/image/leader/custom/bellward-assembly/miri.png",
+      "/image/leader/custom/bellward-assembly/sennel.png",
+      "/image/leader/custom/bellward-assembly/dorra.png",
+      "/image/leader/custom/bellward-assembly/kavel.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Glass Register",
+    "keywords": "machine Vero Chief registrar Nalla Archive envoy Dorr Vault captain Evin Memory conservator Sera Record disputant Kelor Data customs master Ruva Elder archive bearer",
+    "assets": [
+      "/image/leader/custom/glass-register/vero.png",
+      "/image/leader/custom/glass-register/nalla.png",
+      "/image/leader/custom/glass-register/dorr.png",
+      "/image/leader/custom/glass-register/evin.png",
+      "/image/leader/custom/glass-register/sera.png",
+      "/image/leader/custom/glass-register/kelor.png",
+      "/image/leader/custom/glass-register/ruva.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Seam Bound",
+    "keywords": "machine Anra Court sovereign Dovek Custodian general Mella Identity advocate Sarin Foreign examiner Otta Restoration keeper Verren Oath officer Kessa Memory claimant",
+    "assets": [
+      "/image/leader/custom/seam-bound/anra.png",
+      "/image/leader/custom/seam-bound/dovek.png",
+      "/image/leader/custom/seam-bound/mella.png",
+      "/image/leader/custom/seam-bound/sarin.png",
+      "/image/leader/custom/seam-bound/otta.png",
+      "/image/leader/custom/seam-bound/verren.png",
+      "/image/leader/custom/seam-bound/kessa.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Pale Chorus",
+    "keywords": "mutant Vessa Chorus elder Tarin Sight marshal Nela Memory speaker Orris Treaty watcher Dama Field anatomist Boren Gate commander Siva Young court advocate",
+    "assets": [
+      "/image/leader/custom/pale-chorus/vessa.png",
+      "/image/leader/custom/pale-chorus/tarin.png",
+      "/image/leader/custom/pale-chorus/nela.png",
+      "/image/leader/custom/pale-chorus/orris.png",
+      "/image/leader/custom/pale-chorus/dama.png",
+      "/image/leader/custom/pale-chorus/boren.png",
+      "/image/leader/custom/pale-chorus/siva.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Foldkin",
+    "keywords": "mutant Oma Fold matriarch Derren Wall captain Nivi House interpreter Vorr Elder reader Salla Trade warden Taven Frontier judge Ruma Shelter engineer",
+    "assets": [
+      "/image/leader/custom/foldkin/oma.png",
+      "/image/leader/custom/foldkin/derren.png",
+      "/image/leader/custom/foldkin/nivi.png",
+      "/image/leader/custom/foldkin/vorr.png",
+      "/image/leader/custom/foldkin/salla.png",
+      "/image/leader/custom/foldkin/taven.png",
+      "/image/leader/custom/foldkin/ruma.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Mineral Heirs",
+    "keywords": "mutant Evara Mineral regent Koren Strata marshal Mela Vein speaker Orran Stone genealogist Siva Boundary surveyor Tessa Court examiner Barel Deep labor chief",
+    "assets": [
+      "/image/leader/custom/mineral-heirs/evara.png",
+      "/image/leader/custom/mineral-heirs/koren.png",
+      "/image/leader/custom/mineral-heirs/mela.png",
+      "/image/leader/custom/mineral-heirs/orran.png",
+      "/image/leader/custom/mineral-heirs/siva.png",
+      "/image/leader/custom/mineral-heirs/tessa.png",
+      "/image/leader/custom/mineral-heirs/barel.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Gill Covenant",
+    "keywords": "mutant Nerra Covenant mother Dovel Reservoir marshal Sela Moisture advocate Orrim Pressure elder Vara Drylands envoy Tenn Canal captain Muri Brine physician",
+    "assets": [
+      "/image/leader/custom/gill-covenant/nerra.png",
+      "/image/leader/custom/gill-covenant/dovel.png",
+      "/image/leader/custom/gill-covenant/sela.png",
+      "/image/leader/custom/gill-covenant/orrim.png",
+      "/image/leader/custom/gill-covenant/vara.png",
+      "/image/leader/custom/gill-covenant/tenn.png",
+      "/image/leader/custom/gill-covenant/muri.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Morrow Strain",
+    "keywords": "mutant Vessa Lineage sovereign Darren Strain commander Nali Pattern reader Orel Elder geneticist Suri Treaty examiner Tessa Memory captain Boren House steward",
+    "assets": [
+      "/image/leader/custom/morrow-strain/vessa.png",
+      "/image/leader/custom/morrow-strain/darren.png",
+      "/image/leader/custom/morrow-strain/nali.png",
+      "/image/leader/custom/morrow-strain/orel.png",
+      "/image/leader/custom/morrow-strain/suri.png",
+      "/image/leader/custom/morrow-strain/tessa.png",
+      "/image/leader/custom/morrow-strain/boren.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Khelt Dynasty",
+    "keywords": "animal Khelra Dynastic mother Dovar Crest marshal Nera Court speaker Ossar Elder record keeper Seli Boundary judge Tovel Citadel captain Murren House treasurer",
+    "assets": [
+      "/image/leader/custom/khelt-dynasty/khelra.png",
+      "/image/leader/custom/khelt-dynasty/dovar.png",
+      "/image/leader/custom/khelt-dynasty/nera.png",
+      "/image/leader/custom/khelt-dynasty/ossar.png",
+      "/image/leader/custom/khelt-dynasty/seli.png",
+      "/image/leader/custom/khelt-dynasty/tovel.png",
+      "/image/leader/custom/khelt-dynasty/murren.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Rul Feather Court",
+    "keywords": "animal Ruva Feather sovereign Dorrak Wingless guard commander Nelli House interpreter Orru Elder sky reader Sava Customs judge Tarel Border envoy Borel Court quartermaster",
+    "assets": [
+      "/image/leader/custom/rul-feather-court/ruva.png",
+      "/image/leader/custom/rul-feather-court/dorrak.png",
+      "/image/leader/custom/rul-feather-court/nelli.png",
+      "/image/leader/custom/rul-feather-court/orru.png",
+      "/image/leader/custom/rul-feather-court/sava.png",
+      "/image/leader/custom/rul-feather-court/tarel.png",
+      "/image/leader/custom/rul-feather-court/borel.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Harn Commonwealth",
+    "keywords": "animal Hessa Commonwealth elder Dorrun Civic marshal Niva Foreign advocate Orren Transit elder Sela Water magistrate Tavir Frontier captain Mura Court provisioner",
+    "assets": [
+      "/image/leader/custom/harn-commonwealth/hessa.png",
+      "/image/leader/custom/harn-commonwealth/dorrun.png",
+      "/image/leader/custom/harn-commonwealth/niva.png",
+      "/image/leader/custom/harn-commonwealth/orren.png",
+      "/image/leader/custom/harn-commonwealth/sela.png",
+      "/image/leader/custom/harn-commonwealth/tavir.png",
+      "/image/leader/custom/harn-commonwealth/mura.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Vel Silk Court",
+    "keywords": "animal Vela Silk sovereign Darr Court marshal Neri Treaty weaver Ossa Elder silk keeper Savin Gate adjudicator Tella Border speaker Berru Provision registrar",
+    "assets": [
+      "/image/leader/custom/vel-silk-court/vela.png",
+      "/image/leader/custom/vel-silk-court/darr.png",
+      "/image/leader/custom/vel-silk-court/neri.png",
+      "/image/leader/custom/vel-silk-court/ossa.png",
+      "/image/leader/custom/vel-silk-court/savin.png",
+      "/image/leader/custom/vel-silk-court/tella.png",
+      "/image/leader/custom/vel-silk-court/berru.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Sere Reservoir",
+    "keywords": "gel Oru Reservoir elder Sava Water judge Bren Cistern guard Ilo Drought envoy Vesh Flood keeper Toma Well scout Arel Mass accountant",
+    "assets": [
+      "/image/leader/custom/sere-reservoir/oru.png",
+      "/image/leader/custom/sere-reservoir/sava.png",
+      "/image/leader/custom/sere-reservoir/bren.png",
+      "/image/leader/custom/sere-reservoir/ilo.png",
+      "/image/leader/custom/sere-reservoir/vesh.png",
+      "/image/leader/custom/sere-reservoir/toma.png",
+      "/image/leader/custom/sere-reservoir/arel.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Brumal Court",
+    "keywords": "gel Dorel Winter regent Vana Ice marshal Kelm Border keeper Eris Court witness Noll Pressure surgeon Ruva Glacier envoy Hadr Seal master",
+    "assets": [
+      "/image/leader/custom/brumal-court/dorel.png",
+      "/image/leader/custom/brumal-court/vana.png",
+      "/image/leader/custom/brumal-court/kelm.png",
+      "/image/leader/custom/brumal-court/eris.png",
+      "/image/leader/custom/brumal-court/noll.png",
+      "/image/leader/custom/brumal-court/ruva.png",
+      "/image/leader/custom/brumal-court/hadr.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Velu Assembly",
+    "keywords": "gel Melo Assembly speaker Kiva Dispute broker Davo Caravan chief Usen Memory carrier Pera Young delegate Zaro Gate sentinel Elda Treaty keeper",
+    "assets": [
+      "/image/leader/custom/velu-assembly/melo.png",
+      "/image/leader/custom/velu-assembly/kiva.png",
+      "/image/leader/custom/velu-assembly/davo.png",
+      "/image/leader/custom/velu-assembly/usen.png",
+      "/image/leader/custom/velu-assembly/pera.png",
+      "/image/leader/custom/velu-assembly/zaro.png",
+      "/image/leader/custom/velu-assembly/elda.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Meret Shoal",
+    "keywords": "gel Nera Shoal matriarch Ovek Current pilot Telu Signal reader Rask Hull warden Vima Tide jurist Heso Shore envoy Lorn Deep archivist",
+    "assets": [
+      "/image/leader/custom/meret-shoal/nera.png",
+      "/image/leader/custom/meret-shoal/ovek.png",
+      "/image/leader/custom/meret-shoal/telu.png",
+      "/image/leader/custom/meret-shoal/rask.png",
+      "/image/leader/custom/meret-shoal/vima.png",
+      "/image/leader/custom/meret-shoal/heso.png",
+      "/image/leader/custom/meret-shoal/lorn.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Ulvo Bound",
+    "keywords": "gel Ulan First bound Mira Harness smith Drek Contract guard Sulo Shape advocate Aven Foundry envoy Bora Mass keeper Yel Unbound witness",
+    "assets": [
+      "/image/leader/custom/ulvo-bound/ulan.png",
+      "/image/leader/custom/ulvo-bound/mira.png",
+      "/image/leader/custom/ulvo-bound/drek.png",
+      "/image/leader/custom/ulvo-bound/sulo.png",
+      "/image/leader/custom/ulvo-bound/aven.png",
+      "/image/leader/custom/ulvo-bound/bora.png",
+      "/image/leader/custom/ulvo-bound/yel.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Orren Ring",
+    "keywords": "fungal Oren Ring elder Vessa Spore jurist Durn Root guard Iren Outer-ring envoy Pallo Harvest steward Cera Mycelial reader Brum Burial keeper",
+    "assets": [
+      "/image/leader/custom/orren-ring/oren.png",
+      "/image/leader/custom/orren-ring/vessa.png",
+      "/image/leader/custom/orren-ring/durn.png",
+      "/image/leader/custom/orren-ring/iren.png",
+      "/image/leader/custom/orren-ring/pallo.png",
+      "/image/leader/custom/orren-ring/cera.png",
+      "/image/leader/custom/orren-ring/brum.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Tarn Bracket",
+    "keywords": "fungal Tarek Trunk marshal Numa Growth regent Harn Breach captain Elo Season recorder Varo Root-road envoy Sena Core physician Berr Old-growth witness",
+    "assets": [
+      "/image/leader/custom/tarn-bracket/tarek.png",
+      "/image/leader/custom/tarn-bracket/numa.png",
+      "/image/leader/custom/tarn-bracket/harn.png",
+      "/image/leader/custom/tarn-bracket/elo.png",
+      "/image/leader/custom/tarn-bracket/varo.png",
+      "/image/leader/custom/tarn-bracket/sena.png",
+      "/image/leader/custom/tarn-bracket/berr.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Velnar Choir",
+    "keywords": "fungal Vela Choir speaker Ronn Bellows commander Tesa Quiet judge Umer Wind listener Sorel Seed envoy Dava Breath physician Kerr Last singer",
+    "assets": [
+      "/image/leader/custom/velnar-choir/vela.png",
+      "/image/leader/custom/velnar-choir/ronn.png",
+      "/image/leader/custom/velnar-choir/tesa.png",
+      "/image/leader/custom/velnar-choir/umer.png",
+      "/image/leader/custom/velnar-choir/sorel.png",
+      "/image/leader/custom/velnar-choir/dava.png",
+      "/image/leader/custom/velnar-choir/kerr.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Eshan Grove",
+    "keywords": "fungal Esha Grove keeper Tovan Thorn captain Mirae Rain envoy Hessa Graft surgeon Darun Seed magistrate Olan Root scout Savael Winter witness",
+    "assets": [
+      "/image/leader/custom/eshan-grove/esha.png",
+      "/image/leader/custom/eshan-grove/tovan.png",
+      "/image/leader/custom/eshan-grove/mirae.png",
+      "/image/leader/custom/eshan-grove/hessa.png",
+      "/image/leader/custom/eshan-grove/darun.png",
+      "/image/leader/custom/eshan-grove/olan.png",
+      "/image/leader/custom/eshan-grove/savael.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Korell Bloom",
+    "keywords": "fungal Kora Bloom elder Leth Fault warden Asha Soft-growth envoy Dorr Quarry speaker Venn Symbiosis judge Sira Moss physician Holm Deep sleeper",
+    "assets": [
+      "/image/leader/custom/korell-bloom/kora.png",
+      "/image/leader/custom/korell-bloom/leth.png",
+      "/image/leader/custom/korell-bloom/asha.png",
+      "/image/leader/custom/korell-bloom/dorr.png",
+      "/image/leader/custom/korell-bloom/venn.png",
+      "/image/leader/custom/korell-bloom/sira.png",
+      "/image/leader/custom/korell-bloom/holm.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Vesk Veil",
+    "keywords": "void Vesa Veil mother Ruun Seam captain Neli Whisper envoy Tovel Mask keeper Dira Thread jurist Havel Night watch Osa Unravelling witness",
+    "assets": [
+      "/image/leader/custom/vesk-veil/vesa.png",
+      "/image/leader/custom/vesk-veil/ruun.png",
+      "/image/leader/custom/vesk-veil/neli.png",
+      "/image/leader/custom/vesk-veil/tovel.png",
+      "/image/leader/custom/vesk-veil/dira.png",
+      "/image/leader/custom/vesk-veil/havel.png",
+      "/image/leader/custom/vesk-veil/osa.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Korven Night",
+    "keywords": "void Koraun Night sovereign Dresk Shard captain Vele Dark envoy Arun Fracture judge Soren Shell physician Neth Cavern scout Horo Long witness",
+    "assets": [
+      "/image/leader/custom/korven-night/koraun.png",
+      "/image/leader/custom/korven-night/dresk.png",
+      "/image/leader/custom/korven-night/vele.png",
+      "/image/leader/custom/korven-night/arun.png",
+      "/image/leader/custom/korven-night/soren.png",
+      "/image/leader/custom/korven-night/neth.png",
+      "/image/leader/custom/korven-night/horo.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Seln Absence",
+    "keywords": "void Selnor Empty regent Ava Frame jurist Raskel Hollow guard Neri Distant envoy Tor Keeper of names Vala Threshold scout Uren Broken witness",
+    "assets": [
+      "/image/leader/custom/seln-absence/selnor.png",
+      "/image/leader/custom/seln-absence/ava.png",
+      "/image/leader/custom/seln-absence/raskel.png",
+      "/image/leader/custom/seln-absence/neri.png",
+      "/image/leader/custom/seln-absence/tor.png",
+      "/image/leader/custom/seln-absence/vala.png",
+      "/image/leader/custom/seln-absence/uren.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Draal Fold",
+    "keywords": "void Draal First fold Vosk Crease marshal Ivara Fold envoy Nemm Line keeper Reth Deep-fold judge Sula Edge scout Holl Worn elder",
+    "assets": [
+      "/image/leader/custom/draal-fold/draal.png",
+      "/image/leader/custom/draal-fold/vosk.png",
+      "/image/leader/custom/draal-fold/ivara.png",
+      "/image/leader/custom/draal-fold/nemm.png",
+      "/image/leader/custom/draal-fold/reth.png",
+      "/image/leader/custom/draal-fold/sula.png",
+      "/image/leader/custom/draal-fold/holl.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Calar Flint",
+    "keywords": "energy Calen Facet regent Vora Mine marshal Isel Prism envoy Darn Fracture physician Sera Refraction judge Orik Vein scout Hema Old seam witness",
+    "assets": [
+      "/image/leader/custom/calar-flint/calen.png",
+      "/image/leader/custom/calar-flint/vora.png",
+      "/image/leader/custom/calar-flint/isel.png",
+      "/image/leader/custom/calar-flint/darn.png",
+      "/image/leader/custom/calar-flint/sera.png",
+      "/image/leader/custom/calar-flint/orik.png",
+      "/image/leader/custom/calar-flint/hema.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Resh Cinder",
+    "keywords": "energy Resha Kiln regent Borr Furnace captain Veli Heat envoy Daro Ash physician Sethra Temperature judge Orra Cinder scout Harnel Last coal keeper",
+    "assets": [
+      "/image/leader/custom/resh-cinder/resha.png",
+      "/image/leader/custom/resh-cinder/borr.png",
+      "/image/leader/custom/resh-cinder/veli.png",
+      "/image/leader/custom/resh-cinder/daro.png",
+      "/image/leader/custom/resh-cinder/sethra.png",
+      "/image/leader/custom/resh-cinder/orra.png",
+      "/image/leader/custom/resh-cinder/harnel.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Talar Coil",
+    "keywords": "energy Tala Coil sovereign Roven Grid marshal Iva Signal envoy Dask Ground keeper Senn Current judge Orven Storm scout Hela Old charge witness",
+    "assets": [
+      "/image/leader/custom/talar-coil/tala.png",
+      "/image/leader/custom/talar-coil/roven.png",
+      "/image/leader/custom/talar-coil/iva.png",
+      "/image/leader/custom/talar-coil/dask.png",
+      "/image/leader/custom/talar-coil/senn.png",
+      "/image/leader/custom/talar-coil/orven.png",
+      "/image/leader/custom/talar-coil/hela.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Avel Lattice",
+    "keywords": "energy Avela Lattice regent Korran Salt marshal Vesi Fault envoy Dulen Pattern physician Sora Lattice judge Orsa Crack scout Hemm Crust elder",
+    "assets": [
+      "/image/leader/custom/avel-lattice/avela.png",
+      "/image/leader/custom/avel-lattice/korran.png",
+      "/image/leader/custom/avel-lattice/vesi.png",
+      "/image/leader/custom/avel-lattice/dulen.png",
+      "/image/leader/custom/avel-lattice/sora.png",
+      "/image/leader/custom/avel-lattice/orsa.png",
+      "/image/leader/custom/avel-lattice/hemm.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Nura Dawn",
+    "keywords": "energy Nura Dawn regent Tarek Radiance marshal Velaun Light envoy Dara Boundary physician Surn Measure judge Olin Horizon scout Hessaun Fading witness",
+    "assets": [
+      "/image/leader/custom/nura-dawn/nura.png",
+      "/image/leader/custom/nura-dawn/tarek.png",
+      "/image/leader/custom/nura-dawn/velaun.png",
+      "/image/leader/custom/nura-dawn/dara.png",
+      "/image/leader/custom/nura-dawn/surn.png",
+      "/image/leader/custom/nura-dawn/olin.png",
+      "/image/leader/custom/nura-dawn/hessaun.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Temek Trine",
+    "keywords": "alien Temar Trine regent Vek Gate commander Ima Outer envoy Deren Balance judge Siva Triad physician Ormak Ridge scout Hune Third witness",
+    "assets": [
+      "/image/leader/custom/temek-trine/temar.png",
+      "/image/leader/custom/temek-trine/vek.png",
+      "/image/leader/custom/temek-trine/ima.png",
+      "/image/leader/custom/temek-trine/deren.png",
+      "/image/leader/custom/temek-trine/siva.png",
+      "/image/leader/custom/temek-trine/ormak.png",
+      "/image/leader/custom/temek-trine/hune.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Kelor Mantle",
+    "keywords": "alien Kelor Mantle elder Vaska Shell captain Irel Shore envoy Dumo Salt judge Selae Mantle physician Orvenn Dryland scout Horoa Old coast witness",
+    "assets": [
+      "/image/leader/custom/kelor-mantle/kelor.png",
+      "/image/leader/custom/kelor-mantle/vaska.png",
+      "/image/leader/custom/kelor-mantle/irel.png",
+      "/image/leader/custom/kelor-mantle/dumo.png",
+      "/image/leader/custom/kelor-mantle/selae.png",
+      "/image/leader/custom/kelor-mantle/orvenn.png",
+      "/image/leader/custom/kelor-mantle/horoa.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Varn Mouth",
+    "keywords": "alien Varna First speaker Kess Dune marshal Iven Scent envoy Darae Air judge Suma Membrane physician Orsk Storm scout Haran Wind elder",
+    "assets": [
+      "/image/leader/custom/varn-mouth/varna.png",
+      "/image/leader/custom/varn-mouth/kess.png",
+      "/image/leader/custom/varn-mouth/iven.png",
+      "/image/leader/custom/varn-mouth/darae.png",
+      "/image/leader/custom/varn-mouth/suma.png",
+      "/image/leader/custom/varn-mouth/orsk.png",
+      "/image/leader/custom/varn-mouth/haran.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Nolven Pact",
+    "keywords": "alien Nol and Evi Pact regent Varn and Sol Border command Ira and Vem Treaty envoys Dorr and Asa Pact judges Sera and Hek Bond physicians Orn and Teli Range scouts Huma and Rel Old witnesses",
+    "assets": [
+      "/image/leader/custom/nolven-pact/nol-and-evi.png",
+      "/image/leader/custom/nolven-pact/varn-and-sol.png",
+      "/image/leader/custom/nolven-pact/ira-and-vem.png",
+      "/image/leader/custom/nolven-pact/dorr-and-asa.png",
+      "/image/leader/custom/nolven-pact/sera-and-hek.png",
+      "/image/leader/custom/nolven-pact/orn-and-teli.png",
+      "/image/leader/custom/nolven-pact/huma-and-rel.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Urrek Fan",
+    "keywords": "alien Urra Fan regent Karn Vane marshal Ivela Membrane envoy Dorek Fan judge Sani Vane physician Orrel Ridge scout Havva Last fan witness",
+    "assets": [
+      "/image/leader/custom/urrek-fan/urra.png",
+      "/image/leader/custom/urrek-fan/karn.png",
+      "/image/leader/custom/urrek-fan/ivela.png",
+      "/image/leader/custom/urrek-fan/dorek.png",
+      "/image/leader/custom/urrek-fan/sani.png",
+      "/image/leader/custom/urrek-fan/orrel.png",
+      "/image/leader/custom/urrek-fan/havva.png"
+    ]
+  },
+  {
+    "label": "GF9 originals",
+    "keywords": "original official Dune planets",
+    "assets": [
+      "/image/planet/01.png",
+      "/image/planet/02.png",
+      "/image/planet/03.png",
+      "/image/planet/04.png",
+      "/image/planet/05.png",
+      "/image/planet/06.png",
+      "/image/planet/07.png",
+      "/image/planet/08.png",
+      "/image/planet/09.png",
+      "/image/planet/10.png",
+      "/image/planet/11.png",
+      "/image/planet/12.png",
+      "/image/planet/13.png"
+    ]
+  },
+  {
+    "label": "Desert dominions",
+    "keywords": "Salt, wind and scarce water",
+    "assets": [
+      "/image/planet/desert-dominions/salt-crown.png",
+      "/image/planet/desert-dominions/pilgrims-wake.png",
+      "/image/planet/desert-dominions/glass-dunes.png",
+      "/image/planet/desert-dominions/the-last-well.png",
+      "/image/planet/desert-dominions/wandering-sea.png"
+    ]
+  },
+  {
+    "label": "Ocean principalities",
+    "keywords": "Archipelagos and unfamiliar seas",
+    "assets": [
+      "/image/planet/ocean-principalities/drowned-crown.png",
+      "/image/planet/ocean-principalities/sable-tide.png",
+      "/image/planet/ocean-principalities/reef-labyrinth.png",
+      "/image/planet/ocean-principalities/twin-basins.png",
+      "/image/planet/ocean-principalities/storm-anchorage.png"
+    ]
+  },
+  {
+    "label": "Winter realms",
+    "keywords": "Ice shelves and hidden oceans",
+    "assets": [
+      "/image/planet/winter-realms/blue-fault.png",
+      "/image/planet/winter-realms/thawline.png",
+      "/image/planet/winter-realms/frost-basin.png",
+      "/image/planet/winter-realms/opal-winter.png",
+      "/image/planet/winter-realms/night-glacier.png"
+    ]
+  },
+  {
+    "label": "Furnace worlds",
+    "keywords": "Lava, ash and difficult refuges",
+    "assets": [
+      "/image/planet/furnace-worlds/ember-isthmus.png",
+      "/image/planet/furnace-worlds/ash-monsoon.png",
+      "/image/planet/furnace-worlds/copper-caldera.png",
+      "/image/planet/furnace-worlds/cinder-orchard.png",
+      "/image/planet/furnace-worlds/sulphur-veil.png"
+    ]
+  },
+  {
+    "label": "Living frontiers",
+    "keywords": "Unfamiliar planetary ecologies",
+    "assets": [
+      "/image/planet/living-frontiers/spore-atlas.png",
+      "/image/planet/living-frontiers/rootwater.png",
+      "/image/planet/living-frontiers/coral-dominion.png",
+      "/image/planet/living-frontiers/verdigris-bloom.png",
+      "/image/planet/living-frontiers/violet-canopy.png"
+    ]
+  },
+  {
+    "label": "Cloud kingdoms",
+    "keywords": "Storm systems and gas giants",
+    "assets": [
+      "/image/planet/cloud-kingdoms/saffron-eye.png",
+      "/image/planet/cloud-kingdoms/blue-procession.png",
+      "/image/planet/cloud-kingdoms/mauve-lantern.png",
+      "/image/planet/cloud-kingdoms/the-long-storm.png",
+      "/image/planet/cloud-kingdoms/pearl-gyre.png"
+    ]
+  },
+  {
+    "label": "Engineered legacies",
+    "keywords": "Industry and old planetary works",
+    "assets": [
+      "/image/planet/engineered-legacies/meridian-foundry.png",
+      "/image/planet/engineered-legacies/reservoir-nine.png",
+      "/image/planet/engineered-legacies/sleeping-engine.png",
+      "/image/planet/engineered-legacies/verdant-girdle.png",
+      "/image/planet/engineered-legacies/brass-reliquary.png"
+    ]
+  },
+  {
+    "label": "Strange horizons",
+    "keywords": "Worlds shaped by unusual histories",
+    "assets": [
+      "/image/planet/strange-horizons/twilight-covenant.png",
+      "/image/planet/strange-horizons/shattered-halo.png",
+      "/image/planet/strange-horizons/pilgrim-scar.png",
+      "/image/planet/strange-horizons/hollow-shoals.png",
+      "/image/planet/strange-horizons/black-mirror.png"
+    ]
+  },
+  {
+    "label": "Non spheres",
+    "keywords": "Unusual worlds, cosmic bodies and constructed homes.",
+    "assets": [
+      "/image/planet/non-spheres/halo-of-kes.png",
+      "/image/planet/non-spheres/veyr-ark.png",
+      "/image/planet/non-spheres/the-folded-world.png",
+      "/image/planet/non-spheres/the-linked-reach.png",
+      "/image/planet/non-spheres/ironheart-ocean.png",
+      "/image/planet/non-spheres/saffron-sun.png",
+      "/image/planet/non-spheres/the-quiet-maw.png",
+      "/image/planet/non-spheres/the-iron-conclave.png",
+      "/image/planet/non-spheres/the-swift-meridian.png"
+    ]
+  },
+  {
+    "label": "Familiar worlds",
+    "keywords": "Our own homeworld.",
+    "assets": ["/image/planet/familiar-worlds/earth.png"]
+  },
+  {
+    "label": "Decals / Blades and melee weapons",
+    "keywords": "knife dagger sword blade claw whip garrote close combat",
+    "assets": [
+      "/vector/decal/assassination.svg",
+      "/vector/decal/blade.svg",
+      "/vector/decal/crescent-guard.svg",
+      "/vector/decal/crysknife.svg",
+      "/vector/decal/extortion.svg",
+      "/vector/decal/fan-of-knives.svg",
+      "/vector/decal/gravity-hammer.svg",
+      "/vector/decal/knifes.svg",
+      "/vector/decal/mirror-weapon.svg",
+      "/vector/decal/poison-blade.svg",
+      "/vector/decal/ribbon-sabre.svg",
+      "/vector/decal/sand-lance.svg",
+      "/vector/decal/scissor-sword.svg",
+      "/vector/decal/slip-tip.svg",
+      "/vector/decal/talon-bracer.svg",
+      "/vector/decal/wire.svg"
+    ]
+  },
+  {
+    "label": "Decals / Guns and projectors",
+    "keywords": "gun pistol rifle launcher ray sonic projectile",
+    "assets": [
+      "/vector/decal/arc-bow.svg",
+      "/vector/decal/cutter-ray.svg",
+      "/vector/decal/eclipse-projector.svg",
+      "/vector/decal/harpoon-caster.svg",
+      "/vector/decal/lasgun-extra.svg",
+      "/vector/decal/lasgun.svg",
+      "/vector/decal/maula-pistol.svg",
+      "/vector/decal/pulse-lantern.svg",
+      "/vector/decal/scatter-bell.svg",
+      "/vector/decal/stunner.svg",
+      "/vector/decal/stone-burner.svg"
+    ]
+  },
+  {
+    "label": "Decals / Explosives and siege",
+    "keywords": "bomb explosion artillery mortar demolition siege battlefield",
+    "assets": [
+      "/vector/decal/artillery-strike-multicolor.svg",
+      "/vector/decal/artillery-strike-plus.svg",
+      "/vector/decal/artillery-strike.svg",
+      "/vector/decal/atomics.svg",
+      "/vector/decal/atomics-multicolor.svg",
+      "/vector/decal/burrow-charge.svg",
+      "/vector/decal/burrow-charge-multicolor.svg",
+      "/vector/decal/family-atomics.svg",
+      "/vector/decal/family-atomics-straight.svg",
+      "/vector/decal/family-atomics-no-text.svg",
+      "/vector/decal/family-atomics-multicolor.svg",
+      "/vector/decal/stone-burner-alt-multicolor.svg",
+      "/vector/decal/stone-burner-alt.svg"
+    ]
+  },
+  {
+    "label": "Decals / Fluids and containers",
+    "keywords": "fluids containers poison chemistry water bottle flask vial goblet drink food chemical laboratory collection storage purification cup reservoir",
+    "assets": [
+      "/vector/decal/amal.svg",
+      "/vector/decal/basilia.svg",
+      "/vector/decal/black-cordial.svg",
+      "/vector/decal/chaumas.svg",
+      "/vector/decal/chaumurky.svg",
+      "/vector/decal/chemistry-multicolor.svg",
+      "/vector/decal/chemistry.svg",
+      "/vector/decal/drip.svg",
+      "/vector/decal/drops.svg",
+      "/vector/decal/ellaca.svg",
+      "/vector/decal/flask.svg",
+      "/vector/decal/juice-of-sapho-multicolor.svg",
+      "/vector/decal/juice-of-sapho.svg",
+      "/vector/decal/perfumed-censer.svg",
+      "/vector/decal/purification-cup.svg",
+      "/vector/decal/semuta-drug.svg",
+      "/vector/decal/water-bond.svg",
+      "/vector/decal/water-of-life.svg"
+    ]
+  },
+  {
+    "label": "Decals / Tools and personal machinery",
+    "keywords": "tool detector snooper probe thumper mechanism instrument",
+    "assets": [
+      "/vector/decal/antidote-rosary.svg",
+      "/vector/decal/bolas-launcher.svg",
+      "/vector/decal/breach-auger.svg",
+      "/vector/decal/burrowing-beetle.svg",
+      "/vector/decal/cone-of-silence.svg",
+      "/vector/decal/dust-reader.svg",
+      "/vector/decal/gravity-keel.svg",
+      "/vector/decal/hunter-seeker.svg",
+      "/vector/decal/leech-capsule.svg",
+      "/vector/decal/listening-shell.svg",
+      "/vector/decal/memory-spindle.svg",
+      "/vector/decal/needle-moth.svg",
+      "/vector/decal/phase-knot.svg",
+      "/vector/decal/portable-snooper.svg",
+      "/vector/decal/probe.svg",
+      "/vector/decal/resonance-brake.svg",
+      "/vector/decal/resonance-fork.svg",
+      "/vector/decal/scuttle-mine.svg",
+      "/vector/decal/shield-snooper.svg",
+      "/vector/decal/silence-cage.svg",
+      "/vector/decal/silence.svg",
+      "/vector/decal/snooper.svg",
+      "/vector/decal/tasters-fork.svg",
+      "/vector/decal/thread-crawler.svg",
+      "/vector/decal/thumper-alt.svg",
+      "/vector/decal/thumper-multicolor.svg",
+      "/vector/decal/thumper-plus.svg",
+      "/vector/decal/thumper.svg",
+      "/vector/decal/widows-comb.svg",
+      "/vector/decal/dew-sail.svg",
+      "/vector/decal/dew-sail-multicolor.svg",
+      "/vector/decal/false-face-mold.svg",
+      "/vector/decal/pact-reliquary.svg",
+      "/vector/decal/seal-breaker.svg",
+      "/vector/decal/signal-shears.svg",
+      "/vector/decal/vapor-comb.svg"
+    ]
+  },
+  {
+    "label": "Decals / Shields and protective clothing",
+    "keywords": "shield armor protection barrier cloak clothing garment",
+    "assets": [
+      "/vector/decal/breath-bell.svg",
+      "/vector/decal/buckler-projector.svg",
+      "/vector/decal/folded-cuirass.svg",
+      "/vector/decal/impact-mantle.svg",
+      "/vector/decal/jubba-cloak.svg",
+      "/vector/decal/parrying-gauntlet.svg",
+      "/vector/decal/shirt.svg"
+    ]
+  },
+  {
+    "label": "Decals / Long-distance travel",
+    "keywords": "travel transport aircraft air ground space spacecraft spaceship flight ornithopter carryall glider caravan vehicle sled cargo",
+    "assets": [
+      "/vector/decal/ballast-drop.svg",
+      "/vector/decal/ballast-drop-scene.svg",
+      "/vector/decal/ballast-drop-multicolor.svg",
+      "/vector/decal/barge.svg",
+      "/vector/decal/carryalls-multicolor.svg",
+      "/vector/decal/carryalls-plus.svg",
+      "/vector/decal/carryalls.svg",
+      "/vector/decal/cliff-docking.svg",
+      "/vector/decal/cliff-docking-multicolor.svg",
+      "/vector/decal/descent-capsule.svg",
+      "/vector/decal/descent-capsule-multicolor.svg",
+      "/vector/decal/dune-skimmer.svg",
+      "/vector/decal/dune-skimmer-scene.svg",
+      "/vector/decal/dune-skimmer-multicolor.svg",
+      "/vector/decal/gamond.svg",
+      "/vector/decal/net-recovery.svg",
+      "/vector/decal/net-recovery-multicolor.svg",
+      "/vector/decal/ornithopter.svg",
+      "/vector/decal/ornithopters.svg",
+      "/vector/decal/storm-glider.svg",
+      "/vector/decal/storm-glider-multicolor.svg",
+      "/vector/decal/trip.svg"
+    ]
+  },
+  {
+    "label": "Decals / Large machines and industry",
+    "keywords": "harvester factory industry processing drilling engine machine",
+    "assets": [
+      "/vector/decal/breach-drum.svg",
+      "/vector/decal/breach-drum-multicolor.svg",
+      "/vector/decal/harvester-alt-multicolor.svg",
+      "/vector/decal/harvester-alt-plus.svg",
+      "/vector/decal/harvester-alt.svg",
+      "/vector/decal/harvester-multicolor.svg",
+      "/vector/decal/harvester-plus.svg",
+      "/vector/decal/harvester.svg",
+      "/vector/decal/salt-separator.svg",
+      "/vector/decal/salt-separator-inert.svg",
+      "/vector/decal/salt-separator-multicolor.svg",
+      "/vector/decal/salt-separator-inert-multicolor.svg",
+      "/vector/decal/seed-drill.svg",
+      "/vector/decal/seed-drill-multicolor.svg",
+      "/vector/decal/tleilaxu-ghola-single.svg",
+      "/vector/decal/tleilaxu-ghola.svg",
+      "/vector/decal/well-crawler.svg",
+      "/vector/decal/well-crawler-scene.svg",
+      "/vector/decal/well-crawler-multicolor.svg",
+      "/vector/decal/buried-bastion.svg",
+      "/vector/decal/buried-bastion-multicolor.svg",
+      "/vector/decal/cliff-hoist.svg",
+      "/vector/decal/cliff-hoist-multicolor.svg",
+      "/vector/decal/decoy-heart.svg",
+      "/vector/decal/dune-freight-sled.svg",
+      "/vector/decal/dune-freight-sled-multicolor.svg",
+      "/vector/decal/false-convoy.svg",
+      "/vector/decal/false-convoy-scene.svg",
+      "/vector/decal/false-convoy-multicolor.svg",
+      "/vector/decal/shield-anchor.svg",
+      "/vector/decal/suspensor-cradle.svg",
+      "/vector/decal/suspensor-cradle-multicolor.svg"
+    ]
+  },
+  {
+    "label": "Decals / Animals and desert fauna",
+    "keywords": "animal beast worm sandtrout bat insect predator fauna creature",
+    "assets": [
+      "/vector/decal/bat.svg",
+      "/vector/decal/cistern-guardian.svg",
+      "/vector/decal/cistern-guardian-multicolor.svg",
+      "/vector/decal/crown-burrower.svg",
+      "/vector/decal/crown-burrower-multicolor.svg",
+      "/vector/decal/distrance.svg",
+      "/vector/decal/distrance-multicolor.svg",
+      "/vector/decal/drifting-bladder-colony.svg",
+      "/vector/decal/drifting-bladder-colony-multicolor.svg",
+      "/vector/decal/glasswing-scavenger.svg",
+      "/vector/decal/glasswing-scavenger-multicolor.svg",
+      "/vector/decal/great-maker.svg",
+      "/vector/decal/great-maker-multicolor.svg",
+      "/vector/decal/kulon.svg",
+      "/vector/decal/lazatiger.svg",
+      "/vector/decal/lion.svg",
+      "/vector/decal/night-glider.svg",
+      "/vector/decal/night-glider-multicolor.svg",
+      "/vector/decal/sailfin-burrower.svg",
+      "/vector/decal/sailfin-burrower-multicolor.svg",
+      "/vector/decal/sandtrout.svg",
+      "/vector/decal/sandtrout-multicolor.svg",
+      "/vector/decal/shai-hulud-plus.svg",
+      "/vector/decal/shai-hulud.svg",
+      "/vector/decal/spine-herd.svg",
+      "/vector/decal/spine-herd-multicolor.svg",
+      "/vector/decal/vaulting-sandcat.svg",
+      "/vector/decal/vaulting-sandcat-multicolor.svg"
+    ]
+  },
+  {
+    "label": "Decals / Medical care and rescue",
+    "keywords": "doctor healer medical medicine treatment care rescue convalescent pulse aid patient",
+    "assets": [
+      "/vector/decal/bone-setter.svg",
+      "/vector/decal/bone-setter-multicolor.svg",
+      "/vector/decal/convalescent-guide.svg",
+      "/vector/decal/convalescent-guide-multicolor.svg",
+      "/vector/decal/emergency-extraction.svg",
+      "/vector/decal/emergency-extraction-multicolor.svg",
+      "/vector/decal/killer-doctor.svg",
+      "/vector/decal/killer-doctor-multicolor.svg",
+      "/vector/decal/pulse-examiner.svg",
+      "/vector/decal/pulse-examiner-multicolor.svg",
+      "/vector/decal/quiet-vigil.svg",
+      "/vector/decal/quiet-vigil-multicolor.svg",
+      "/vector/decal/remedy-maker.svg",
+      "/vector/decal/remedy-maker-multicolor.svg"
+    ]
+  },
+  {
+    "label": "Decals / Guards and formations",
+    "keywords": "warrior soldier fighter guard martial swordmaster recruit troop combat training",
+    "assets": [
+      "/vector/decal/banner-escort.svg",
+      "/vector/decal/banner-escort-multicolor.svg",
+      "/vector/decal/body-guard.svg",
+      "/vector/decal/cheap-hero.svg",
+      "/vector/decal/cheap-heroine.svg",
+      "/vector/decal/door-warden.svg",
+      "/vector/decal/door-warden-multicolor.svg",
+      "/vector/decal/flagmen-alt.svg",
+      "/vector/decal/flagmen.svg",
+      "/vector/decal/gate-brace.svg",
+      "/vector/decal/gate-brace-multicolor.svg",
+      "/vector/decal/mercenaries.svg",
+      "/vector/decal/paired-cover.svg",
+      "/vector/decal/paired-cover-multicolor.svg",
+      "/vector/decal/rearward-watch.svg",
+      "/vector/decal/rearward-watch-multicolor.svg",
+      "/vector/decal/recruit-multicolor.svg",
+      "/vector/decal/recruit.svg",
+      "/vector/decal/reinforcements-multicolor.svg",
+      "/vector/decal/reinforcements.svg",
+      "/vector/decal/silent-formation.svg",
+      "/vector/decal/silent-formation-multicolor.svg",
+      "/vector/decal/warmaster-multicolor.svg",
+      "/vector/decal/warmaster.svg",
+      "/vector/decal/watch-relief.svg",
+      "/vector/decal/watch-relief-multicolor.svg",
+      "/vector/decal/suk-graduate.svg",
+      "/vector/decal/suk.svg"
+    ]
+  },
+  {
+    "label": "Decals / Scouts and travelers",
+    "keywords": "scout traveler journey movement pilgrim smuggler guide field",
+    "assets": [
+      "/vector/decal/dune-listener.svg",
+      "/vector/decal/dune-listener-multicolor.svg",
+      "/vector/decal/hajr.svg",
+      "/vector/decal/horizon-signal.svg",
+      "/vector/decal/horizon-signal-multicolor.svg",
+      "/vector/decal/quiet-crossing.svg",
+      "/vector/decal/quiet-crossing-multicolor.svg",
+      "/vector/decal/ridge-spotters.svg",
+      "/vector/decal/ridge-spotters-multicolor.svg",
+      "/vector/decal/rope-team.svg",
+      "/vector/decal/rope-team-multicolor.svg",
+      "/vector/decal/shoulder-lift.svg",
+      "/vector/decal/shoulder-lift-multicolor.svg",
+      "/vector/decal/shoutout.svg",
+      "/vector/decal/smuggler-alt.svg",
+      "/vector/decal/smuggler-alt-multicolor.svg",
+      "/vector/decal/smuggler.svg",
+      "/vector/decal/smuggler-multicolor.svg",
+      "/vector/decal/track-reader.svg",
+      "/vector/decal/track-reader-multicolor.svg"
+    ]
+  },
+  {
+    "label": "Decals / Court and diplomacy",
+    "keywords": "court diplomat official envoy authority adviser ceremony",
+    "assets": [
+      "/vector/decal/audience-petition.svg",
+      "/vector/decal/audience-petition-multicolor.svg",
+      "/vector/decal/bearer-of-decrees.svg",
+      "/vector/decal/bearer-of-decrees-multicolor.svg",
+      "/vector/decal/beaurocrat.svg",
+      "/vector/decal/beaurocrat-multicolor.svg",
+      "/vector/decal/chamberlain.svg",
+      "/vector/decal/chamberlain-multicolor.svg",
+      "/vector/decal/diplomat.svg",
+      "/vector/decal/diplomat-multicolor.svg",
+      "/vector/decal/favor.svg",
+      "/vector/decal/forced-honour.svg",
+      "/vector/decal/neutral-mediator.svg",
+      "/vector/decal/neutral-mediator-multicolor.svg",
+      "/vector/decal/open-handed-envoy.svg",
+      "/vector/decal/open-handed-envoy-multicolor.svg",
+      "/vector/decal/reluctant-accord.svg",
+      "/vector/decal/reluctant-accord-multicolor.svg",
+      "/vector/decal/rihani-decipherer.svg",
+      "/vector/decal/rihani-decipherer-multicolor.svg",
+      "/vector/decal/terms-withheld.svg",
+      "/vector/decal/terms-withheld-multicolor.svg"
+    ]
+  },
+  {
+    "label": "Decals / Trade goods and supplies",
+    "keywords": "trade supplies crate cargo box gems wealth bank exchange",
+    "assets": [
+      "/vector/decal/box-multicolor.svg",
+      "/vector/decal/box-outline.svg",
+      "/vector/decal/box.svg",
+      "/vector/decal/gems.svg",
+      "/vector/decal/supplies.svg"
+    ]
+  },
+  {
+    "label": "Decals / Secret passages and access",
+    "keywords": "entrance door passage hidden concealed lock access infiltration",
+    "assets": [
+      "/vector/decal/buried-cache.svg",
+      "/vector/decal/buried-cache-multicolor.svg",
+      "/vector/decal/hidden-passage.svg",
+      "/vector/decal/hidden-passage-multicolor.svg"
+    ]
+  },
+  {
+    "label": "Decals / Knowledge and cultural objects",
+    "keywords": "record book bible instrument music baliset seal signet reliquary pact evidence culture knowledge",
+    "assets": [
+      "/vector/decal/baliset.svg",
+      "/vector/decal/bible.svg",
+      "/vector/decal/evidence.svg",
+      "/vector/decal/signet.svg"
+    ]
+  },
+  {
+    "label": "Decals / Rituals and gatherings",
+    "keywords": "ritual prayer oath offering meditation gathering ceremony remembrance people culture",
+    "assets": [
+      "/vector/decal/campfire-multicolor.svg",
+      "/vector/decal/campfire.svg",
+      "/vector/decal/house-remembrance.svg",
+      "/vector/decal/house-remembrance-multicolor.svg",
+      "/vector/decal/kull-wahad.svg",
+      "/vector/decal/measured-offering.svg",
+      "/vector/decal/measured-offering-multicolor.svg",
+      "/vector/decal/oathbound-heir.svg",
+      "/vector/decal/oathbound-heir-multicolor.svg",
+      "/vector/decal/shrine.svg",
+      "/vector/decal/truth-trance.svg",
+      "/vector/decal/unbinding.svg",
+      "/vector/decal/unbinding-multicolor.svg",
+      "/vector/decal/water-oath.svg",
+      "/vector/decal/water-oath-multicolor.svg"
+    ]
+  },
+  {
+    "label": "Decals / Cities and buildings",
+    "keywords": "city building palace tower architecture settlement skyline",
+    "assets": [
+      "/vector/decal/choam-share.svg",
+      "/vector/decal/cistern.svg",
+      "/vector/decal/ecological-testing-station.svg",
+      "/vector/decal/metro.svg",
+      "/vector/decal/orgiz-processing-station.svg",
+      "/vector/decal/palace-alt.svg",
+      "/vector/decal/palace-alt-multicolor.svg",
+      "/vector/decal/palace.svg",
+      "/vector/decal/palace-multicolor.svg"
+    ]
+  },
+  {
+    "label": "Decals / Weather and natural hazards",
+    "keywords": "storm wind dust weather hazard collapse terrain",
+    "assets": ["/vector/decal/storm-multicolor.svg", "/vector/decal/storm.svg"]
+  },
+  {
+    "label": "Decals / Hands and gestures",
+    "keywords": "hand gesture fist finger offering palm touch",
+    "assets": [
+      "/vector/decal/chicken.svg",
+      "/vector/decal/chicken-multicolor.svg",
+      "/vector/decal/gom-jabbar.svg",
+      "/vector/decal/hands.svg",
+      "/vector/decal/poison-tooth-multicolor.svg",
+      "/vector/decal/poison-tooth.svg",
+      "/vector/decal/robbery.svg",
+      "/vector/decal/secret-exchange.svg",
+      "/vector/decal/secret-exchange-multicolor.svg"
+    ]
+  },
+  {
+    "label": "Decals / Symbols and markings",
+    "keywords": "symbol glyph sign icon pattern target cog ring geometry",
+    "assets": [
+      "/vector/decal/balance.svg",
+      "/vector/decal/block.svg",
+      "/vector/decal/break-conditioning.svg",
+      "/vector/decal/cog.svg",
+      "/vector/decal/combatwheel.svg",
+      "/vector/decal/combatwheel-multicolor.svg",
+      "/vector/decal/sabotage.svg",
+      "/vector/decal/sun-gear.svg",
+      "/vector/decal/target.svg",
+      "/vector/decal/troll.svg"
+    ]
+  },
+  {
+    "label": "Decals / Combat and training",
+    "keywords": "duel fighter swordmaster martial practice exercise discipline parry",
+    "assets": [
+      "/vector/decal/balance-exercise.svg",
+      "/vector/decal/balance-exercise-multicolor.svg",
+      "/vector/decal/blindfold-drill.svg",
+      "/vector/decal/blindfold-drill-multicolor.svg",
+      "/vector/decal/breach-partners.svg",
+      "/vector/decal/breach-partners-multicolor.svg",
+      "/vector/decal/breath-discipline.svg",
+      "/vector/decal/breath-discipline-multicolor.svg",
+      "/vector/decal/cloaked-feint.svg",
+      "/vector/decal/cloaked-feint-multicolor.svg",
+      "/vector/decal/close-guard.svg",
+      "/vector/decal/close-guard-multicolor.svg",
+      "/vector/decal/disarmed-blade.svg",
+      "/vector/decal/disarmed-blade-multicolor.svg",
+      "/vector/decal/kanly.svg",
+      "/vector/decal/low-counter.svg",
+      "/vector/decal/low-counter-multicolor.svg",
+      "/vector/decal/measured-instruction.svg",
+      "/vector/decal/measured-instruction-multicolor.svg",
+      "/vector/decal/practice-circle.svg",
+      "/vector/decal/practice-circle-multicolor.svg",
+      "/vector/decal/prana-bundu.svg",
+      "/vector/decal/prana-bundu-detailed.svg",
+      "/vector/decal/sword-master.svg",
+      "/vector/decal/swordmaster-of-ginaz.svg",
+      "/vector/decal/swordmaster-of-ginaz-multicolor.svg",
+      "/vector/decal/turning-parry.svg",
+      "/vector/decal/turning-parry-multicolor.svg",
+      "/vector/decal/weirding-way-multicolor.svg",
+      "/vector/decal/weirding-way-plus.svg",
+      "/vector/decal/weirding-way.svg"
+    ]
+  },
+  {
+    "label": "Decals / Fortifications and shelters",
+    "keywords": "bastion bunker shelter refuge barricade barrier defense shield wall",
+    "assets": [
+      "/vector/decal/blast-diversion.svg",
+      "/vector/decal/blast-diversion-multicolor.svg",
+      "/vector/decal/buried-refuge.svg",
+      "/vector/decal/buried-refuge-multicolor.svg",
+      "/vector/decal/intercept-screen.svg",
+      "/vector/decal/intercept-screen-multicolor.svg",
+      "/vector/decal/storm-shutters.svg",
+      "/vector/decal/storm-shutters-multicolor.svg"
+    ]
+  },
+  {
+    "label": "Decals / Traps and sabotage",
+    "keywords": "trap snare sabotage demolition ambush disruption supply line",
+    "assets": [
+      "/vector/decal/collapsing-bridge.svg",
+      "/vector/decal/collapsing-bridge-multicolor.svg",
+      "/vector/decal/magnetic-snare.svg",
+      "/vector/decal/magnetic-snare-multicolor.svg",
+      "/vector/decal/sand-screen.svg",
+      "/vector/decal/sand-screen-multicolor.svg",
+      "/vector/decal/seeker-snare.svg",
+      "/vector/decal/severed-supply.svg",
+      "/vector/decal/severed-supply-multicolor.svg",
+      "/vector/decal/sinking-road.svg",
+      "/vector/decal/sinking-road-multicolor.svg",
+      "/vector/decal/cut-supply-line.svg",
+      "/vector/decal/cut-supply-line-multicolor.svg"
+    ]
+  },
+  {
+    "label": "Decals / Intrigue and deception",
+    "keywords": "spy assassin covert disguise mask secret whisper deception testimony",
+    "assets": [
+      "/vector/decal/burned-testimony.svg",
+      "/vector/decal/burned-testimony-multicolor.svg",
+      "/vector/decal/listening-attendant.svg",
+      "/vector/decal/listening-attendant-multicolor.svg",
+      "/vector/decal/masked-witness.svg",
+      "/vector/decal/masked-witness-multicolor.svg",
+      "/vector/decal/master-of-assassins-alt.svg",
+      "/vector/decal/master-of-assassins-alt-multicolor.svg",
+      "/vector/decal/master-of-assassins.svg",
+      "/vector/decal/master-of-assassins-multicolor.svg",
+      "/vector/decal/sleeve-switch.svg",
+      "/vector/decal/sleeve-switch-multicolor.svg",
+      "/vector/decal/whispered-warning.svg",
+      "/vector/decal/whispered-warning-multicolor.svg"
+    ]
+  },
+  {
+    "label": "Decals / Microorganisms",
+    "keywords": "microorganism bacteria microbe flagella zenobia poison biological weapon",
+    "assets": ["/vector/decal/flagella.svg", "/vector/decal/zenobia.svg"]
+  },
+  {
+    "label": "Decals / Plants and fungi",
+    "keywords": "plant flora flower orchid fungus fungi mushroom spore sapling leaf root organic",
+    "assets": [
+      "/vector/decal/funeral-orchid.svg",
+      "/vector/decal/living-filter.svg",
+      "/vector/decal/root-sanctuary.svg",
+      "/vector/decal/root-sanctuary-multicolor.svg",
+      "/vector/decal/spore-harvest.svg",
+      "/vector/decal/spore-harvest-multicolor.svg",
+      "/vector/decal/sealed-fruit.svg"
+    ]
+  },
+  {
+    "label": "Decals / Needles and injectors",
+    "keywords": "needle injector injection syringe suringe weapon poison delivery dart",
+    "assets": ["/vector/decal/injection.svg", "/vector/decal/suringe.svg"]
+  },
+  {
+    "label": "Decals / Traders and appraisers",
+    "keywords": "trader merchant banker accountant keeper accounts appraiser trade commerce valuation supplies",
+    "assets": [
+      "/vector/decal/keeper-of-accounts.svg",
+      "/vector/decal/keeper-of-accounts-multicolor.svg",
+      "/vector/decal/royal-appraiser.svg",
+      "/vector/decal/royal-appraiser-multicolor.svg",
+      "/vector/decal/spice-banker.svg",
+      "/vector/decal/spice-banker-multicolor.svg"
+    ]
+  },
+  {
+    "label": "Decals / Scholars and operators",
+    "keywords": "scholar scientist planetologist mentat operator control weather research knowledge mind",
+    "assets": [
+      "/vector/decal/mentat.svg",
+      "/vector/decal/planetologist-multicolor.svg",
+      "/vector/decal/planetologist.svg",
+      "/vector/decal/planetologist-scene.svg",
+      "/vector/decal/weather-control-alt.svg",
+      "/vector/decal/weather-control.svg"
+    ]
+  },
+  {
+    "label": "Decals / Bodies and protective fields",
+    "keywords": "body anatomy biology brain membrane shield field protection conditioning human diagram poison",
+    "assets": [
+      "/vector/decal/brain.svg",
+      "/vector/decal/deflective-shield.svg",
+      "/vector/decal/membrane.svg",
+      "/vector/decal/residual-poison-multicolor.svg",
+      "/vector/decal/residual-poison.svg",
+      "/vector/decal/shield.svg"
     ]
   }
 ]

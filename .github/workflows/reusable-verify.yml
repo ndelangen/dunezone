@@ -11,13 +11,23 @@ permissions:
   contents: read
 
 jobs:
-  # First in the file because it is one of the run's longest jobs (#1322). GitHub's docs on jobs and
+  # First in the file because it was the run's longest job (#1322). GitHub's docs on jobs and
   # limits give no order for a run's queued jobs. In past PR runs a job with a later ID waited for a
   # runner more often, and a job's ID loosely followed its place in this file. Being first should make
   # it wait less often when runners are short; it does not make it start first.
   storybook:
+    name: storybook (${{ matrix.shard }})
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      # Four shards balanced by measured file time, because the story suite ran 564 to 779 s on one
+      # runner and the seven slowest Play page files were 58% of it (#1588). .storybook/shards.json owns the
+      # rules and scripts/storybook-shard.ts resolves a shard's files; its test refuses a story file
+      # no shard owns. Each shard uploads its own coverage and results under the storybook flag,
+      # which Codecov merges.
+      matrix:
+        shard: [play-table, play-flows, pages, components]
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
@@ -30,13 +40,13 @@ jobs:
           with-deps: "false"
       - name: Verify generated images structurally
         run: bun run verify:images
-      - name: Run story tests with coverage
-        run: bun run storybook:test --coverage.enabled=true --reporter=default --reporter=junit --outputFile.junit=test-results/vitest-storybook.junit.xml
+      - name: Run the ${{ matrix.shard }} story shard with coverage
+        run: bun run storybook:test:shard ${{ matrix.shard }} --coverage.enabled=true --reporter=default --reporter=junit --outputFile.junit=test-results/vitest-storybook.junit.xml
       - name: Retain Storybook failure evidence
         if: ${{ failure() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: storybook-failure-evidence
+          name: storybook-failure-evidence-${{ matrix.shard }}
           path: |
             test-results/storybook-attachments/
             test-results/storybook-screenshots/
@@ -62,27 +72,6 @@ jobs:
           disable_search: true
           fail_ci_if_error: false
 
-  actionlint:
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
-        with:
-          persist-credentials: false
-      - name: Lint GitHub Actions workflows
-        run: >-
-          docker run --rm -v "${PWD}:/repo" --workdir /repo
-          rhysd/actionlint:1.7.12@sha256:b1934ee5f1c509618f2508e6eb47ee0d3520686341fec936f3b79331f9315667
-          -color
-      - name: Check the scripts that local actions run
-        # actionlint runs shellcheck on the run: scripts of workflows, not on those of the actions in
-        # .github/actions, so an action keeps its script in a .sh file beside action.yml for this step.
-        # The same image as above, which ships the shellcheck that actionlint runs.
-        run: >-
-          docker run --rm -v "${PWD}:/repo" --workdir /repo --entrypoint shellcheck
-          rhysd/actionlint:1.7.12@sha256:b1934ee5f1c509618f2508e6eb47ee0d3520686341fec936f3b79331f9315667
-          .github/actions/*/*.sh
-
   # Named for what it audits, because `audit` already means the Cloudflare live-drift
   # check in cloudflare-live-drift.yml and two checks with one name are unreadable.
   dependency_audit:
@@ -106,6 +95,9 @@ jobs:
       - name: Audit dependencies for known advisories
         run: bun run dependencies:audit
 
+  # The static gates share one job: each of the workflow lint, the Convex skip guard and the static
+  # narrow check ran 12 to 14 s on a runner of its own after 5 to 12 s of setup (#1588), and a slot
+  # held for that is a slot a long job waits for when runners are short.
   lint:
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -113,6 +105,8 @@ jobs:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           persist-credentials: false
+          # The static narrow check below diffs against the base branch.
+          fetch-depth: 0
       - uses: ./.github/actions/setup
       - name: Lint with inline PR annotations
         run: bun run lint:ci
@@ -130,6 +124,43 @@ jobs:
         run: bun run check:app-layout
       - name: Check developer-facing prose
         run: bun run check:prose
+      # The gates below ran as jobs of their own and reported whatever the lint steps found, so they keep running after an earlier step fails.
+      - name: Enforce Convex skip guard
+        if: ${{ !cancelled() }}
+        run: bun run check:convex-skip
+      - name: Lint GitHub Actions workflows
+        if: ${{ !cancelled() }}
+        run: >-
+          docker run --rm -v "${PWD}:/repo" --workdir /repo
+          rhysd/actionlint:1.7.12@sha256:b1934ee5f1c509618f2508e6eb47ee0d3520686341fec936f3b79331f9315667
+          -color
+      - name: Check the scripts that local actions run
+        # actionlint runs shellcheck on the run: scripts of workflows, not on those of the actions in
+        # .github/actions, so an action keeps its script in a .sh file beside action.yml for this step.
+        # The same image as above, which ships the shellcheck that actionlint runs.
+        if: ${{ !cancelled() }}
+        run: >-
+          docker run --rm -v "${PWD}:/repo" --workdir /repo --entrypoint shellcheck
+          rhysd/actionlint:1.7.12@sha256:b1934ee5f1c509618f2508e6eb47ee0d3520686341fec936f3b79331f9315667
+          .github/actions/*/*.sh
+      - name: Detect schema narrowing for slug fields
+        id: narrow_check
+        # Reusable Verify only runs from PR CI, so base_ref is always set.
+        if: ${{ !cancelled() }}
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          set -euo pipefail
+          DIFF="$(git diff --unified=0 "origin/${BASE_REF}...HEAD" -- convex/schema.ts || true)"
+          if echo "$DIFF" | grep -Eq "^-\\s*slug:\\s*v\\.optional\\(v\\.string\\(\\)\\)" && \
+             echo "$DIFF" | grep -Eq "^\\+\\s*slug:\\s*v\\.string\\(\\)"; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Enforce static narrow guard contract
+        if: ${{ !cancelled() && steps.narrow_check.outputs.changed == 'true' }}
+        run: bun run migrations:static-check
 
   knip:
     runs-on: ubuntu-latest
@@ -142,17 +173,6 @@ jobs:
       - uses: ./.github/actions/generated-images
       - name: Detect unused files, exports, and dependencies
         run: bun run knip
-
-  convex_skip_guard:
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
-        with:
-          persist-credentials: false
-      - uses: ./.github/actions/setup
-      - name: Enforce Convex skip guard
-        run: bun run check:convex-skip
 
   typecheck:
     runs-on: ubuntu-latest
@@ -279,7 +299,8 @@ jobs:
       - name: Generate OBJ pieces
         run: bun run generate:objs
       - name: Test publisher and delivery
-        run: bun run publisher:test --coverage.enabled=true '--coverage.include=workers/**' --reporter=default --reporter=junit --outputFile.junit=test-results/vitest-publisher.junit.xml
+        # The src/shared sources join the denominator, extension-scoped as coverage-denominator.ts scopes them, because the root test job no longer runs these files (#1588) and they are the only tests that reach some of those lines.
+        run: bun run publisher:test --coverage.enabled=true '--coverage.include=workers/**/*.ts' '--coverage.include=src/shared/**/*.ts' '--coverage.include=src/shared/**/*.tsx' --reporter=default --reporter=junit --outputFile.junit=test-results/vitest-publisher.junit.xml
       - name: Upload publisher coverage to Codecov
         uses: codecov/codecov-action@0fb7174895f61a3b6b78fc075e0cd60383518dac # v5
         with:
@@ -326,7 +347,16 @@ jobs:
       - name: Typecheck game Worker
         run: bun run game:typecheck
       - name: Test game Worker
-        run: bun run game:test --reporter=default --reporter=junit --outputFile.junit=test-results/vitest-game.junit.xml
+        # The root test job no longer runs these files (#1588), so the coverage they give workers/game, and the src/shared lines only they reach, is collected here.
+        run: bun run game:test --coverage.enabled=true '--coverage.include=workers/game/**/*.ts' '--coverage.include=src/shared/**/*.ts' '--coverage.include=src/shared/**/*.tsx' --reporter=default --reporter=junit --outputFile.junit=test-results/vitest-game.junit.xml
+      - name: Upload game coverage to Codecov
+        uses: codecov/codecov-action@0fb7174895f61a3b6b78fc075e0cd60383518dac # v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: coverage/lcov.info
+          flags: game
+          disable_search: true
+          fail_ci_if_error: false
       - name: Upload game test results to Codecov
         if: ${{ !cancelled() }}
         uses: codecov/codecov-action@0fb7174895f61a3b6b78fc075e0cd60383518dac # v5
@@ -510,33 +540,6 @@ jobs:
           with-deps: "false"
       - name: Verify the public Storybook artifact
         run: bun run verify:storybook-publication
-
-  migration_static_narrow:
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
-        with:
-          persist-credentials: false
-          fetch-depth: 0
-      - uses: ./.github/actions/setup
-      - name: Detect schema narrowing for slug fields
-        id: narrow_check
-        # Reusable Verify only runs from PR CI, so base_ref is always set.
-        env:
-          BASE_REF: ${{ github.base_ref }}
-        run: |
-          set -euo pipefail
-          DIFF="$(git diff --unified=0 "origin/${BASE_REF}...HEAD" -- convex/schema.ts || true)"
-          if echo "$DIFF" | grep -Eq "^-\\s*slug:\\s*v\\.optional\\(v\\.string\\(\\)\\)" && \
-             echo "$DIFF" | grep -Eq "^\\+\\s*slug:\\s*v\\.string\\(\\)"; then
-            echo "changed=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "changed=false" >> "$GITHUB_OUTPUT"
-          fi
-      - name: Enforce static narrow guard contract
-        if: steps.narrow_check.outputs.changed == 'true'
-        run: bun run migrations:static-check
 
   # Proves two local launches never share ports, containers or data. It needs Docker and
   # nothing of the e2e suite, so it runs once here rather than before every shard.
