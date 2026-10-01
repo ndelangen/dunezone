@@ -1881,7 +1881,7 @@ async function verifyRegular() {
       traceConfig: {
         recordMode: 'recordContinuously',
         traceBufferSizeInKb: 300 * 1024,
-        includedCategories: ['toplevel', 'devtools.timeline'],
+        includedCategories: ['toplevel', 'devtools.timeline', 'disabled-by-default-v8.cpu_profiler'],
       },
     });
     stopSignOutTrace = async () => {
