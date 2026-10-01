@@ -75,12 +75,13 @@ type KeptTable<Table extends TableNames> = {
 type DroppedTable = { drop: string };
 
 /**
- * The tables the snapshot rebuild contract checks after a snapshot load: empty, or holding the placeholder owner's one row.
- * A table on either list must be dropped here, and a table dropped here must be on one of them.
+ * The tables the snapshot rebuild contract checks after a snapshot load: empty, seeded by the load from published rows, or holding the placeholder owner's one row.
+ * A table on any of those lists must be dropped here, and a table dropped here must be on one of them.
  * So a table dropped here but left off the contract, or kept here but listed there, fails typecheck.
  */
 type DroppedBySnapshot =
   | (typeof SNAPSHOT_REBUILD_CONTRACT.empty)[number]
+  | (typeof SNAPSHOT_REBUILD_CONTRACT.seeded)[number]
   | (typeof SNAPSHOT_REBUILD_CONTRACT.placeholderOnly)[number];
 
 type TablePolicy<Table extends TableNames> = Table extends DroppedBySnapshot ? DroppedTable : KeptTable<Table>;
@@ -118,7 +119,7 @@ export const snapshotPolicy = {
   account_deletion_items: { drop: 'account deletions' },
   group_members: { drop: 'excluded by the ruling on #1310' },
   faq_answers: { drop: 'excluded by the ruling on #1310' },
-  rulebook_drafts: { drop: 'unpublished drafts' },
+  rulebook_drafts: { drop: 'unpublished drafts; the load seeds each live Rulebook a draft from its current Edition' },
   publication_jobs: { drop: 'work claims that must never run outside production' },
   publication_assets: { drop: 'publication records, which must never be acted on outside production' },
   admin_settings: { drop: 'operational settings, not content' },
