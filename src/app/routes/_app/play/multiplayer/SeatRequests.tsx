@@ -271,6 +271,21 @@ function PlayerBar({ client, table, readiness }: BarProps) {
   );
 }
 
+/* A seated player drafting with others and no seat request to answer: the seat column already says who holds which seat. */
+function draftingIdle(table: TableProjection): boolean {
+  const controls = table.snapshot.controls ?? emptyPublicControls();
+  return table.snapshot.stage === 'drafting' && controls.seatRequests.length === 0 && controls.seats.length > 1;
+}
+
+/* Drafting with nothing to ask, the bar is the draft summary and Ready on one row, so the faction list keeps the dock's height (#1633). */
+function ReadinessBar({ readiness }: Readonly<{ readiness: ReactNode }>) {
+  return (
+    <Surface as="section" aria-label="Your seat" padding="sm" className={styles.bar}>
+      {readiness}
+    </Surface>
+  );
+}
+
 function barFor(
   client: TableSession,
   table: TableProjection,
@@ -291,6 +306,8 @@ function barFor(
       );
     case table.viewer.viewerSeat === SPECTATOR_SEAT:
       return <SpectatorBar client={client} table={table} readiness={readiness} />;
+    case Boolean(readiness) && draftingIdle(table):
+      return <ReadinessBar readiness={readiness} />;
     default:
       return <PlayerBar client={client} table={table} readiness={readiness} />;
   }
