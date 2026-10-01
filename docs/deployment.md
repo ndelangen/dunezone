@@ -403,6 +403,27 @@ gate reads the list, such as a rerun waiting behind the run asking, does not cou
 deploys, and the waiting run deploys again when it starts, unless it is a first attempt and the run
 before it finished green, in which case it stops at its own gate.
 
+## Recovering from a dashboard edit to `dunezone-game`
+
+Every push deploy runs `wrangler deploy --strict` for `dunezone-game`. When the Worker was last
+changed in the Cloudflare dashboard (adding a secret or variable there creates a new version),
+wrangler compares the checked-in config with that dashboard version and, under `--strict` in CI,
+aborts on any difference. `GIT_SHA` always differs, so every deploy fails at "Deploy exact game
+Worker release" until one deploy replaces the dashboard version. Production keeps serving the last
+good release meanwhile. This happened on 2026-10-01: setting `ALERT_EMAIL_TO` in the dashboard
+blocked run 36934067755.
+
+To recover, dispatch the workflow on `main` with the override, which drops `--strict` for that one
+game deploy (Actions > Deploy production > Run workflow, tick `replace_dashboard_game_config`):
+
+```sh
+gh workflow run deploy-main.yml --ref main -f replace_dashboard_game_config=true
+```
+
+Secrets stay: Cloudflare's Wrangler configuration docs say wrangler does not delete secrets unless
+`wrangler secret delete` runs. Push runs stay strict. Avoid dashboard edits to `dunezone-game`; a secret is better set
+with `wrangler secret put`, though whether that also counts as a dashboard edit has not been checked.
+
 ## Publication controls
 
 `admin_settings.publication_pickup_enabled`, which `convex/publicationAdmin.ts` reads and writes
