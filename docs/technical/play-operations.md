@@ -117,16 +117,24 @@ Partly set up:
   dashboard toggle-off goes unnoticed until the next deploy. Issues is free during its open beta.
   Automations are per Worker too and only appear once detection is on: Workers & Pages >
   `dunezone-game` > Issues > Automations > Add automation, not the account-level Observability
-  pages. Cloudflare requires a generic webhook to have a webhook secret or mTLS. The relay ignores
-  it, so the value is any random string kept only in that automation, never a Worker secret or a
+  pages. The generic webhook form offers an optional webhook secret; the relay ignores it, so leave
+  it empty or set any random string kept only in that automation, never a Worker secret or a
   repository value. Trigger on occurrence threshold; recurrence after inactivity can be a second
-  trigger. To test, open any issue and send it to the automation's destination, which should
-  produce one email.
+  trigger.
+
+  To prove the email path without a real error, send the request the automation would send:
+  `curl -i -X POST https://dune.zone/__play/alerts/issues`. A `202` answer and one email at the
+  alert inbox within a minute mean the publisher forwarding, the game Worker route, the secret and
+  the Email Routing binding all work. A `404` means `ALERT_EMAIL_TO` is unset. A second call
+  within ten minutes from the same location answers `202` without an email, which is the interval
+  guard, not a failure. Look for `alert-email-failed` in the game Worker's logs when no email
+  arrives after a `202`. The automation itself can only be tested by a real issue.
 
   State (2026-10-01): `ALERT_EMAIL_TO` is set on `dunezone-game`, and detection is on since
   deploy run 36937790739. Setting the secret in the dashboard blocked strict deploys until that run
   (`docs/deployment.md`, "Recovering from a dashboard edit"), so avoid dashboard edits to this
-  Worker. The automation is created through the Mac session.
+  Worker. The automation "Email alert relay" fires when an issue occurs once and posts to the route
+  above, with no webhook secret.
 - **Health Checks** against `/__play/health`. They need the Pro plan, and Norbert decided not to
   upgrade. The deploy smoke still reads that endpoint (section 2).
 
