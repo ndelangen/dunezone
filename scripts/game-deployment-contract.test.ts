@@ -69,6 +69,12 @@ describe('game deployment contract', () => {
     );
   });
 
+  test('allows only the reviewed alert email binding', () => {
+    expect(() =>
+      validateGameDeployContract({ ...readGameConfig(), send_email: [{ name: 'OTHER_EMAIL' }] }, environment)
+    ).toThrow(/alert email binding/);
+  });
+
   test('deploys and verifies the private game service before exposing it through the publisher', () => {
     const workflow = readFileSync('.github/workflows/deploy-main.yml', 'utf8');
     const gameDeploy = workflow.indexOf('name: Deploy exact game Worker release');

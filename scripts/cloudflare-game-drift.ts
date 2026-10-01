@@ -1,5 +1,7 @@
 type JsonRecord = Record<string, unknown>;
 type ReadClient = { get(pathname: string): Promise<{ result: unknown; resultInfo?: JsonRecord }> };
+const ALERT_BINDINGS = ['ALERT_EMAIL', 'ALERT_EMAIL_TO'];
+
 export type GameDriftReport = { worker: string; namespaceId: string; bindingCount: number };
 
 function record(value: unknown, label: string): JsonRecord {
@@ -169,7 +171,15 @@ function checkBindings(settings: JsonRecord, config: JsonRecord): { namespaceId:
     bindings.map((binding) => binding.name),
     'binding names'
   );
-  exact(names, ['APPLICATION_ORIGIN', 'CF_VERSION_METADATA', 'CONVEX_URL', 'GAME_ROOMS', 'GIT_SHA'], 'bindings');
+  /* The alert relay's binding arrives with the deploy and its recipient secret is set by hand afterwards, so both may be absent. */
+  exact(
+    names.filter((name) => !ALERT_BINDINGS.includes(name)),
+    ['APPLICATION_ORIGIN', 'CF_VERSION_METADATA', 'CONVEX_URL', 'GAME_ROOMS', 'GIT_SHA'],
+    'bindings'
+  );
+  for (const binding of bindings.filter((value) => ALERT_BINDINGS.includes(value.name as string))) {
+    exact(binding.type, binding.name === 'ALERT_EMAIL' ? 'send_email' : 'secret_text', `${binding.name} binding type`);
+  }
   checkVariables(bindings, record(config.vars, 'configured variables'));
   exact(
     bindings.find((binding) => binding.name === 'CF_VERSION_METADATA')!.type,
@@ -213,7 +223,9 @@ export async function auditGameWorker(client: ReadClient, config: JsonRecord): P
     'compatibility flags'
   );
   exact(record(settings.limits, 'limits').cpu_ms, record(config.limits, 'configured limits').cpu_ms, 'CPU limit');
-  exact(array(secrets.result, 'secrets'), [], 'secrets');
+  for (const secret of array(secrets.result, 'secrets')) {
+    exact(record(secret, 'secret').name, 'ALERT_EMAIL_TO', 'secrets');
+  }
   exact(array(record(schedules.result, 'schedules').schedules, 'schedules'), [], 'schedules');
   exact(array(domains.result, 'Custom Domains'), [], 'Custom Domains');
   exact(array(routes.result, 'routes'), [], 'routes');

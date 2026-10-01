@@ -415,6 +415,7 @@ the typed public-asset catalog used by game schemas.
 
 - [Architecture](./architecture.md) - Request flow, structure, tsconfig paths
 - [Hosted table](./technical/play-hosted.md) - Game addresses, the native fixture, connection lifetime, provisioning and real-game browser verification, with a ticket pointer per game mechanic
+- [Play operations](./technical/play-operations.md) - What Play monitoring watches, where alerts go, and what to check and do for each failure
 - [Hosted Play subscription](./technical/play-subscription.md) - Received views, local interactions and reconnect ownership
 - [Play pointer sessions](./technical/play-pointer-session.md) - Pointer capture, drag thresholds and cancellation ownership
 - [Local and hosted multiplayer load runs](./technical/play-load.md) - Bounded local probes, the workload fixture and hosted batch preparation

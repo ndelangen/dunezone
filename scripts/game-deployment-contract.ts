@@ -60,6 +60,7 @@ export function validateGameDeployContract(config: JsonObject, environment: Node
   );
   exact(config.migrations, [{ tag: 'v1', new_sqlite_classes: ['GameRoom'] }], 'SQLite migration');
   exact(config.version_metadata, { binding: 'CF_VERSION_METADATA' }, 'version metadata');
+  exact(config.send_email, [{ name: 'ALERT_EMAIL' }], 'alert email binding');
   exact(config.limits, { cpu_ms: 30_000 }, 'CPU bound');
   for (const binding of [
     'assets',
