@@ -398,7 +398,7 @@ gate reads the list, such as a rerun waiting behind the run asking, does not cou
 deploys, and the waiting run deploys again when it starts, unless it is a first attempt and the run
 before it finished green, in which case it stops at its own gate.
 
-## Recovering from a dashboard edit to the game Worker
+## Recovering from a dashboard edit to `dunezone-game`
 
 Every push deploy runs `wrangler deploy --strict` for `dunezone-game`. When the Worker was last
 changed in the Cloudflare dashboard (adding a secret or variable there creates a new version),
