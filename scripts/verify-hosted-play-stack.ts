@@ -361,6 +361,12 @@ process.once('SIGTERM', interrupt);
 try {
   /* A broken shared import fails here, before any backend or Worker starts. */
   const runnerBundle = loadProfile ? await bundleRunner() : undefined;
+  /* measure-1493 (throwaway): CPU busy share, load and a Node Lucia Scrypt probe for the whole run. */
+  start({
+    command: node,
+    args: [path.join(root, 'scripts/measure-1493-sampler.mjs')],
+    logPath: path.join(evidence, 'measure-1493-sampler.log'),
+  });
   const binary = backendBinary();
   const ports = new Set<number>();
   while (ports.size < 3) {
@@ -416,8 +422,13 @@ try {
       '--disable-beacon',
       path.join(runtime, 'backend.sqlite3'),
     ],
-    env: { ...environment, DATABASE_UDF_USER_TIMEOUT_SECONDS: String(LOCAL_FUNCTION_LIMIT_SECONDS) },
-    logPath: path.join(runtime, 'backend.log'),
+    /* measure-1493 (throwaway): a warning ratio of 0.01 makes the backend log its "actual duration" for every function over 20 ms; the limit itself is unchanged. */
+    env: {
+      ...environment,
+      DATABASE_UDF_USER_TIMEOUT_SECONDS: String(LOCAL_FUNCTION_LIMIT_SECONDS),
+      FUNCTION_LIMIT_WARNING_RATIO: '0.01',
+    },
+    logPath: path.join(evidence, 'backend.log'),
   });
   await ready(`${backendUrl}/version`, backend, 30_000);
   const localEnv = { ...environment, CONVEX_SELF_HOSTED_URL: backendUrl, CONVEX_SELF_HOSTED_ADMIN_KEY: adminKey };
@@ -439,6 +450,23 @@ try {
     environment.PLAY_LOAD_LOCAL_ACCOUNT_SUFFIX = runId;
   }
   convex(['deploy', '--yes']);
+  /* measure-1493 (throwaway): every function execution, with its execution time and log lines, as JSON lines. */
+  start({
+    command: node,
+    args: [
+      path.join(root, 'node_modules/convex/bin/main.js'),
+      'logs',
+      '--history',
+      '--success',
+      '--jsonl',
+      '--url',
+      backendUrl,
+      '--admin-key',
+      adminKey,
+    ],
+    env: localEnv,
+    logPath: path.join(evidence, 'convex-functions.log'),
+  });
   console.log(`Synthetic Auth backend ready at ${backendUrl}; same-origin publisher ${origin}.`);
   /* Wrangler's own debug log goes to its global log directory by default, outside the evidence the artifact keeps. */
   const wranglerLog = path.join(evidence, 'wrangler.log');
@@ -478,6 +506,23 @@ try {
     }
   });
   await ready(`${origin}/__play/health`, worker, 300_000);
+  /* measure-1493 (throwaway): idle sign-ins before any verifier or browser starts. */
+  try {
+    console.log(
+      run({
+        command: node,
+        args: [
+          path.join(root, 'scripts/measure-1493-baseline.mjs'),
+          backendUrl,
+          path.join(evidence, 'measure-1493-baseline.json'),
+        ],
+        env: { ...environment, MEASURE_ADMIN_KEY: adminKey },
+        label: 'measure-1493 baseline',
+      })
+    );
+  } catch (error) {
+    console.error(`measure-1493 baseline failed: ${error instanceof Error ? error.message : String(error)}`);
+  }
   /* Each verifier that failed. A failed verifier does not stop the ones after it, and the run fails at the end. */
   const failed: string[] = [];
   if (!values['browser-only']) {

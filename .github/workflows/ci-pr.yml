@@ -18,6 +18,9 @@ concurrency:
 jobs:
   verify:
     uses: ./.github/workflows/reusable-verify.yml
+    # measure-1493 (throwaway): the hosted play jobs alone.
+    with:
+      hosted_only: true
     # Fork PRs and merge-group code get no secrets; Codecov falls back to tokenless uploads.
     secrets:
       CODECOV_TOKEN: ${{ github.event_name == 'pull_request' && secrets.CODECOV_TOKEN || '' }}
