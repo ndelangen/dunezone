@@ -78,6 +78,8 @@ type GameTableProps = {
   /* A stage's own panel in place of the tabs, under the decision bar: the drafting panel. Its tab's pane is flush, so the content insets itself with --nested-tabs-panel-inset. */
   panelContent?: ReactNode;
   playerPanel?: ReactNode;
+  /* A view the host asks for after something the viewer did lands out of frame; each new revision moves the camera once. */
+  requestedView?: Readonly<{ view: TableView; revision: number }>;
   onSelectTurn(turn: number): void;
 };
 
@@ -481,6 +483,7 @@ export function GameTable({
   showStormControls,
   seatCount,
   tableProgress,
+  requestedView,
   onSelectTurn,
 }: GameTableProps) {
   const [pointerSession] = useState(() => new PointerSession());
@@ -509,6 +512,15 @@ export function GameTable({
   );
   const activePhaseIndex = tableProgress.phases.findIndex((phase) => phase.id === tableProgress.activePhaseId);
   const activePhase = tableProgress.phases[activePhaseIndex];
+
+  /* A request already standing when the table mounts was answered by an earlier mount, so only a later revision moves the camera. */
+  const answeredRevision = useRef(requestedView?.revision);
+  useEffect(() => {
+    if (requestedView && requestedView.revision !== answeredRevision.current) {
+      answeredRevision.current = requestedView.revision;
+      dispatchView({ type: 'view.selected', view: requestedView.view });
+    }
+  }, [requestedView]);
 
   const handleInteractionActiveChange = useCallback((active: boolean) => {
     dispatchView({ type: 'interaction.changed', active });

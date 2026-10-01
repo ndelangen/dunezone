@@ -715,6 +715,19 @@ describe('hosted table interaction', () => {
     expect(client.getSnapshot().error).toBe('Already at Turn 1.');
   });
 
+  test('counts only the Traitor gathers of this viewer that the table completed (#1635)', async () => {
+    const client = await connected();
+    expect(table(client).traitorsGathered).toBe(0);
+    client.command({ kind: 'traitors-gather' });
+    socket().deliver({ type: 'rejected', requestId: command().commandId, message: 'No Traitors to gather.' });
+    expect(table(client).traitorsGathered).toBe(0);
+    client.command({ kind: 'traitors-gather' });
+    socket().deliver(view({ sequence: 2, completedCommandId: 'another-command' }));
+    expect(table(client).traitorsGathered).toBe(0);
+    socket().deliver(view({ sequence: 3, completedCommandId: command().commandId }));
+    expect(table(client).traitorsGathered).toBe(1);
+  });
+
   test('a held carry survives unrelated views until its drop is acknowledged', async () => {
     const { client, source, carried } = await grantedWholeCarry();
     const updatedView = {
