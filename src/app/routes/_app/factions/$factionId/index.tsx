@@ -1,17 +1,6 @@
-import {
-  Alert,
-  Badge,
-  Box,
-  ColorSwatch,
-  Divider,
-  Flex,
-  Group,
-  SimpleGrid,
-  Stack,
-  Text,
-  Title,
-  Tooltip,
-} from '@mantine/core';
+import { Alert, Box, ColorSwatch, Divider, Flex, Group, SimpleGrid, Stack, Text, Title, Tooltip } from '@mantine/core';
+import { troopCombatFaces } from '@shared/factions/troopCombat';
+import type { TroopFaceCombat } from '@shared/factions/troopCombat';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { LoadError } from '@ui/block/LoadError';
@@ -24,6 +13,7 @@ import { COMPLEXITY_TIER_PRESENTATION, ComplexityGlyph } from '@ui/content/Compl
 import { FormattedTextSource, InlineFormattedTextSource } from '@ui/content/FormattedText';
 import { StatusBadge } from '@ui/content/StatusBadge';
 import type { StatusBadgeTone } from '@ui/content/StatusBadge';
+import { StatusMark } from '@ui/content/StatusMark';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -33,7 +23,8 @@ import { Surface } from '@ui/surface';
 import { Card } from '@ui/surface/Card';
 import { Toolbar } from '@ui/surface/Toolbar';
 import { ArrowLeft, Download, Eye, FileText, Pencil, UserPlus } from 'lucide-react';
-import { useId } from 'react';
+import { Fragment, useId } from 'react';
+import type { ReactNode } from 'react';
 
 import { loadFaction, useFaction } from '@db/factions';
 import type { FactionData, PublicAssetPublishingStatusProjection } from '@db/factions';
@@ -119,6 +110,136 @@ function FactionPlanet({ planet }: { readonly planet: NonNullable<FactionData['p
   );
 }
 
+type Troop = FactionData['troops'][number];
+type TroopFace = TroopFaceCombat<NonNullable<Troop['back']>>;
+
+function TroopHint({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <Tooltip label={label} multiline maw={280} withArrow events={{ hover: true, focus: true, touch: true }}>
+      <Box component="span" className={styles.troopHint} role="img" tabIndex={0} aria-label={label}>
+        {children}
+      </Box>
+    </Tooltip>
+  );
+}
+
+function TroopStrengths({ face }: { face: TroopFace }) {
+  if (!face.capable) {
+    return <StatusMark label="Cannot participate in combat" icon={<TopicIcon topic="noncombatant" size={15} />} />;
+  }
+  if (!face.combat) {
+    return (
+      <StatusMark
+        tone="caution"
+        label="Combat strengths have not been set. This side is unavailable in battle plans."
+        icon={<TopicIcon topic="combatUnknown" size={16} />}
+      />
+    );
+  }
+  return (
+    <>
+      <TroopHint label={`Strength per troop: ${face.combat.strength} undialed | ${face.combat.fundedStrength} dialed`}>
+        <TopicIcon topic="strength" size={15} />
+        <b>
+          {face.combat.strength} | {face.combat.fundedStrength}
+        </b>
+      </TroopHint>
+      <TroopHint label={`Funding cost: ${face.combat.fundingCost} spice per dialed troop`}>
+        <TopicIcon topic="spice" size={15} />
+        <b>{face.combat.fundingCost}</b>
+      </TroopHint>
+    </>
+  );
+}
+
+function TroopFaceDetails({ face, background }: { face: TroopFace; background: FactionData['background'] }) {
+  const descriptionId = useId();
+  const name = `${face.face.name}${face.side === 'back' ? ', reverse side' : ''}`;
+  const hasDescription = face.face.description.trim().length > 0;
+  const description = <FormattedTextSource source={face.face.description} size="sm" />;
+  return (
+    <div className={styles.troopFace}>
+      {hasDescription ? (
+        <div hidden id={descriptionId}>
+          {description}
+        </div>
+      ) : null}
+      <Tooltip
+        label={
+          <Stack gap="xs">
+            <Text size="sm" fw={700}>
+              {name}
+            </Text>
+            {hasDescription ? description : null}
+          </Stack>
+        }
+        multiline
+        maw={280}
+        withArrow
+        events={{ hover: true, focus: true, touch: true }}
+      >
+        <Box
+          component="span"
+          className={styles.troopHint}
+          role="img"
+          tabIndex={0}
+          aria-label={name}
+          aria-describedby={hasDescription ? descriptionId : undefined}
+        >
+          <span className={styles.troopToken} aria-hidden>
+            <TroopToken
+              background={background}
+              image={face.face.image}
+              hue={face.face.hue}
+              star={face.face.star}
+              striped={face.face.striped}
+            />
+          </span>
+        </Box>
+      </Tooltip>
+      <Stack gap="xs" className={styles.troopFaceContent}>
+        <Text size="sm" fw={700} lh={1.2} truncate>
+          {face.face.name}
+        </Text>
+        <Group gap="xs">
+          <TroopStrengths face={face} />
+        </Group>
+      </Stack>
+    </div>
+  );
+}
+
+function FactionTroop({ troop, background }: { troop: Troop; background: FactionData['background'] }) {
+  const faces = troopCombatFaces<NonNullable<Troop['back']>>([troop]);
+  return (
+    <Surface as="article" aria-label={troop.name} padding="sm" className={styles.troopTile}>
+      <div className={styles.troopFaces}>
+        {faces.map((face) => (
+          <Fragment key={face.id}>
+            {face.side === 'back' ? (
+              <div className={styles.troopFlipDivider}>
+                <Divider orientation="vertical" />
+                <TroopHint label={`Flip side: ${face.face.name}`}>
+                  <TopicIcon topic="flip" size={16} />
+                </TroopHint>
+                <Divider orientation="vertical" />
+              </div>
+            ) : null}
+            <TroopFaceDetails face={face} background={background} />
+          </Fragment>
+        ))}
+        <span className={styles.troopCount}>
+          <TroopHint label={`${troop.count} ${troop.count === 1 ? 'troop token' : 'troop tokens'}`}>
+            <Text component="span" size="xs" c="dimmed">
+              ×{troop.count}
+            </Text>
+          </TroopHint>
+        </span>
+      </div>
+    </Surface>
+  );
+}
+
 function FactionDetailError({ error }: ErrorComponentProps) {
   return (
     <PageMessage size="compact" title="Faction" back={backToFactions}>
@@ -148,6 +269,55 @@ function filesBadge({ status, captureStatus }: PublicAssetPublishingStatusProjec
     case null:
       return status === 'current' ? { tone: 'positive', label: 'Current' } : { tone: 'neutral', label: 'Unavailable' };
   }
+}
+
+function FactionTroops({
+  troops,
+  background,
+}: {
+  troops: FactionData['troops'];
+  background: FactionData['background'];
+}) {
+  return (
+    <Section icon={<TopicIcon topic="troops" size={20} />} title="Troops">
+      <Group gap="sm" align="flex-start">
+        {troops.map((troop, index) => (
+          <FactionTroop key={troop.troopId ?? index} troop={troop} background={background} />
+        ))}
+      </Group>
+    </Section>
+  );
+}
+
+function FactionAdvantages({ advantages }: { advantages: FactionData['rules']['advantages'] }) {
+  return (
+    <Section icon={<TopicIcon topic="advantages" size={20} />} title="Advantages">
+      {advantages.length > 0 ? (
+        <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
+          {advantages.map((advantage, index) => (
+            <Card
+              key={`${advantage.title ?? 'advantage'}-${advantage.text}-${index}`}
+              title={advantage.title ?? `Advantage ${index + 1}`}
+            >
+              <Stack gap="sm">
+                <FormattedTextSource source={advantage.text} size="sm" />
+                {advantage.karama ? (
+                  <Group gap="xs" wrap="nowrap" align="flex-start">
+                    <TopicIcon topic="karama" size={16} />
+                    <FormattedTextSource source={advantage.karama} size="sm" tone="neutral" />
+                  </Group>
+                ) : null}
+              </Stack>
+            </Card>
+          ))}
+        </SimpleGrid>
+      ) : (
+        <Surface padding="lg">
+          <Text c="dimmed">No faction advantages have been added yet.</Text>
+        </Surface>
+      )}
+    </Section>
+  );
 }
 
 function FactionDetailPage() {
@@ -330,70 +500,9 @@ function FactionDetailPage() {
                 </div>
               </Section>
 
-              <Section icon={<TopicIcon topic="troops" size={20} />} title="Troops">
-                <div className={styles.horizontalLane}>
-                  {data.troops.map((troop, index) => (
-                    <Surface
-                      as="article"
-                      padding="sm"
-                      className={styles.troopTile}
-                      key={`${troop.name}-${troop.image}-${index}`}
-                    >
-                      <Group wrap="nowrap" gap="md">
-                        <div className={styles.troopToken}>
-                          <TroopToken
-                            background={data.background}
-                            image={troop.image}
-                            hue={troop.hue}
-                            star={troop.star}
-                            striped={troop.striped}
-                          />
-                        </div>
-                        <Stack gap={4} miw={0} style={{ flex: '1 1 auto' }}>
-                          <Group gap="xs" wrap="nowrap" justify="space-between">
-                            <Text fw={700} lh={1.2}>
-                              {troop.name}
-                            </Text>
-                            <Badge variant="default" size="lg">
-                              ×{troop.count}
-                            </Badge>
-                          </Group>
-                          {troop.description ? (
-                            <FormattedTextSource source={troop.description} size="xs" tone="neutral" />
-                          ) : null}
-                        </Stack>
-                      </Group>
-                    </Surface>
-                  ))}
-                </div>
-              </Section>
+              <FactionTroops troops={data.troops} background={data.background} />
 
-              <Section icon={<TopicIcon topic="advantages" size={20} />} title="Advantages">
-                {data.rules.advantages.length > 0 ? (
-                  <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
-                    {data.rules.advantages.map((advantage, index) => (
-                      <Card
-                        key={`${advantage.title ?? 'advantage'}-${advantage.text}-${index}`}
-                        title={advantage.title ?? `Advantage ${index + 1}`}
-                      >
-                        <Stack gap="sm">
-                          <FormattedTextSource source={advantage.text} size="sm" />
-                          {advantage.karama ? (
-                            <Group gap="xs" wrap="nowrap" align="flex-start">
-                              <TopicIcon topic="karama" size={16} />
-                              <FormattedTextSource source={advantage.karama} size="sm" tone="neutral" />
-                            </Group>
-                          ) : null}
-                        </Stack>
-                      </Card>
-                    ))}
-                  </SimpleGrid>
-                ) : (
-                  <Surface padding="lg">
-                    <Text c="dimmed">No faction advantages have been added yet.</Text>
-                  </Surface>
-                )}
-              </Section>
+              <FactionAdvantages advantages={data.rules.advantages} />
 
               <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
                 <Card icon={<TopicIcon topic="alliance" size={20} />} title="Alliance">
