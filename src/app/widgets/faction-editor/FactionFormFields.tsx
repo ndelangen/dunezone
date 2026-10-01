@@ -7,7 +7,7 @@ import { FormattedTextSource, InlineFormattedTextSource } from '@ui/content/Form
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { CanvasScale } from '@ui/layout/CanvasScale';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
-import { Globe2, ListOrdered, PackagePlus, Swords } from 'lucide-react';
+import { ListOrdered, PackagePlus, Swords } from 'lucide-react';
 import { forwardRef, useImperativeHandle, useState } from 'react';
 
 import type { Faction, FactionCatalogueEntry } from '@db/factions';
@@ -65,7 +65,7 @@ function ChapterIcon({ chapter, form }: { chapter: FactionAuthoringChapterId; fo
     return <Swords size={21} aria-hidden />;
   }
   if (chapter === 'worlds') {
-    return <Globe2 size={21} aria-hidden />;
+    return <TopicIcon topic="planets" size={21} />;
   }
   if (chapter === 'phases') {
     return <ListOrdered size={21} aria-hidden />;

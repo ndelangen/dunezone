@@ -32,7 +32,8 @@ import type { StatsItem } from '@ui/list/Stats';
 import { Surface } from '@ui/surface';
 import { Card } from '@ui/surface/Card';
 import { Toolbar } from '@ui/surface/Toolbar';
-import { ArrowLeft, Download, Eye, FileText, MapPin, Pencil, UserPlus } from 'lucide-react';
+import { ArrowLeft, Download, Eye, FileText, Pencil, UserPlus } from 'lucide-react';
+import { useId } from 'react';
 
 import { loadFaction, useFaction } from '@db/factions';
 import type { FactionData, PublicAssetPublishingStatusProjection } from '@db/factions';
@@ -41,6 +42,7 @@ import { profileAvatarUrl } from '@db/profiles';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
 import { pageHead } from '@app/routes/pageTitle';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
+import { useAsset } from '@game/assets/assetRenderMode';
 import { LeaderToken } from '@game/assets/faction/leader/Leader';
 import { Token as FactionToken } from '@game/assets/faction/token/Token';
 import { TroopToken } from '@game/assets/faction/troop/Troop';
@@ -74,6 +76,46 @@ function FactionSidebarOverview({ data }: { data: FactionData }) {
         <LeaderToken {...data.hero} strength={undefined} background={data.background} logo={data.logo} />
       </div>
     </Section>
+  );
+}
+
+function FactionPlanet({ planet }: { readonly planet: NonNullable<FactionData['planet']>[number] }) {
+  const image = useAsset(planet.image, 'small');
+  const descriptionId = useId();
+  const hasDescription = planet.description.trim().length > 0;
+  const description = <FormattedTextSource source={planet.description} size="sm" />;
+
+  return (
+    <Tooltip
+      label={description}
+      disabled={!hasDescription}
+      position="left"
+      middlewares={{ flip: { fallbackPlacements: ['top', 'bottom'] } }}
+      multiline
+      maw={280}
+      withArrow
+      events={{ hover: true, focus: true, touch: true }}
+    >
+      <Group
+        component="li"
+        wrap="nowrap"
+        gap="sm"
+        aria-label={planet.name}
+        aria-describedby={hasDescription ? descriptionId : undefined}
+        tabIndex={hasDescription ? 0 : undefined}
+        style={{ cursor: hasDescription ? 'help' : undefined }}
+      >
+        <img src={image} alt="" width={64} height={64} className={styles.planetArt} />
+        <Text fw={700} miw={0} style={{ overflowWrap: 'anywhere' }}>
+          {planet.name}
+        </Text>
+        {hasDescription ? (
+          <div hidden id={descriptionId}>
+            {description}
+          </div>
+        ) : null}
+      </Group>
+    </Tooltip>
   );
 }
 
@@ -326,26 +368,6 @@ function FactionDetailPage() {
                 </div>
               </Section>
 
-              {planets.length > 0 ? (
-                <Section icon={<MapPin size={20} aria-hidden />} title="Planets">
-                  <div className={styles.horizontalLane}>
-                    {planets.map((planet, index) => (
-                      <Surface
-                        as="article"
-                        padding="md"
-                        className={styles.planetTile}
-                        key={`${planet.name}-${planet.image}-${index}`}
-                      >
-                        <Stack gap="xs">
-                          <Text fw={700}>{planet.name}</Text>
-                          <FormattedTextSource source={planet.description} size="xs" tone="neutral" />
-                        </Stack>
-                      </Surface>
-                    ))}
-                  </div>
-                </Section>
-              ) : null}
-
               <Section icon={<TopicIcon topic="advantages" size={20} />} title="Advantages">
                 {data.rules.advantages.length > 0 ? (
                   <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
@@ -393,6 +415,16 @@ function FactionDetailPage() {
             style={{ flex: '0 0 auto' }}
           >
             <FactionSidebarOverview data={data} />
+
+            {planets.length > 0 ? (
+              <Section icon={<TopicIcon topic="planets" size={20} />} title="Planets">
+                <Stack component="ul" gap="sm" m={0} p={0} style={{ listStyle: 'none' }}>
+                  {planets.map((planet, index) => (
+                    <FactionPlanet key={`${planet.name}-${planet.image}-${index}`} planet={planet} />
+                  ))}
+                </Stack>
+              </Section>
+            ) : null}
 
             <Section icon={<TopicIcon topic="setup" size={20} />} title="Setup">
               <Surface padding="lg">
