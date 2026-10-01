@@ -90,7 +90,7 @@ Email Routing owns the zone's mail records: MX `route1/2/3.mx.cloudflare.net`, S
 `include:_spf.mx.cloudflare.net` and DKIM at `cf2024-1._domainkey`. The catch-all rule stays Drop,
 so only addresses created on purpose receive mail.
 
-Not set up:
+Partly set up:
 
 - **Worker errors, through the alert relay.** Workers Issues captures uncaught exceptions, failed
   invocations, 5xx responses and `console.error` output, including `game-operation-failed`, but
@@ -100,7 +100,7 @@ Not set up:
   forwards like any `/__play` path, and the game Worker emails from `alerting@dune.zone` through
   the `ALERT_EMAIL` Email Routing binding. Sending to a verified destination is free on every
   plan. The route takes no credential, so the email carries nothing from the request: it only says
-  an issue was reported and to open Observability > Issues in the dashboard. The interval guard
+  an issue was reported and to open the Worker's Issues page in the dashboard. The interval guard
   holds one email per ten minutes within each Cloudflare location and isolate, not globally: callers
   reaching several locations can each cause one, so an unexpected burst means someone is calling the
   route, and the dashboard shows whether a real issue exists. A failed send is logged as a
@@ -108,10 +108,21 @@ Not set up:
   issue faster than the interval. The one Worker secret, `ALERT_EMAIL_TO`, holds the destination so
   the address stays out of the repository; until it is set the route is refused like any unknown
   path. The deploy contract and the live drift audit allow exactly that binding and that secret on
-  the game Worker. To turn it on: verify the destination in Email Routing first, then add
-  `ALERT_EMAIL_TO` as a secret under the `dunezone-game` Worker's Settings > Variables and Secrets,
-  then create the Issues automation with a generic webhook to the route. The secret and the
-  automation are not live yet.
+  the game Worker.
+
+  Issue detection itself is per Worker and off by default. `observability.issues.enabled` in
+  `workers/game/wrangler.jsonc` turns it on at every deploy; the dashboard's Enable issues toggle
+  alone would be undone by the next `wrangler deploy`. Issues is free during its open beta.
+  Automations are per Worker too and only appear once detection is on: Workers & Pages >
+  `dunezone-game` > Issues > Automations > Add automation, not the account-level Observability
+  pages. Cloudflare requires a generic webhook to have a webhook secret or mTLS. The relay ignores
+  it, so the value is any random string kept only in that automation, never a Worker secret or a
+  repository value. Trigger on occurrence threshold; recurrence after inactivity can be a second
+  trigger. To test, open any issue and send it to the automation's destination, which should
+  produce one email.
+
+  State (2026-10-01): `ALERT_EMAIL_TO` is set on `dunezone-game`. Detection turns on with the
+  first deploy that carries the wrangler setting, and the automation is created after that.
 - **Health Checks** against `/__play/health`. They need the Pro plan, and Norbert decided not to
   upgrade. The deploy smoke still reads that endpoint (section 2).
 
@@ -240,8 +251,10 @@ stops any run whose commit is older than what production reports
 
 ## 5. Known gaps
 
-- Until the Issues automation and the relay's secret is set (section 3), no alert covers game
-  Worker errors.
+- Until issue detection is deployed and the Issues automation exists (section 3), no alert covers
+  game Worker errors.
+- Only the game Worker has issue detection. The publisher would need its own setting and
+  automation.
 - The relay runs in the game Worker behind the publisher, so an outage of either silences Worker
   error alerts; the email says only that an issue exists, and the dashboard has the detail.
 - Alert thresholds are Cloudflare's defaults; nothing in the repository defines what rate of

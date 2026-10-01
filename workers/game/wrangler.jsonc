@@ -11,7 +11,8 @@
   "observability": {
     "enabled": true,
     "head_sampling_rate": 1,
-    "logs": { "enabled": true, "invocation_logs": false }
+    "logs": { "enabled": true, "invocation_logs": false },
+    "issues": { "enabled": true }
   },
   "durable_objects": {
     "bindings": [{ "name": "GAME_ROOMS", "class_name": "GameRoom" }]
