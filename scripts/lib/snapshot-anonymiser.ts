@@ -619,8 +619,6 @@ export function anonymiseExport(input: ExportEntries): { entries: Map<string, st
  * reads from the file is checked here first.
  */
 
-const TABLE_NAME = /^[A-Za-z][A-Za-z0-9_]*$/;
-
 /** Each table's document lines, for every `<table>/documents.jsonl` entry. */
 function snapshotRows(entries: ExportEntries): Map<string, string[]> {
   const rows = new Map<string, string[]>();
@@ -635,7 +633,7 @@ function snapshotRows(entries: ExportEntries): Map<string, string[]> {
 
 /**
  * Tables whose row count in the file is not the count the manifest records.
- * It shows counts and table names only, since the manifest's keys and values come from the file.
+ * The manifest's keys and values come from the file, so it names only tables the file carries or the policy names, and counts the rest.
  */
 function rowCountProblems(recorded: unknown, rows: ReadonlyMap<string, readonly string[]>): string[] {
   if (typeof recorded !== 'object' || recorded === null || Array.isArray(recorded)) {
@@ -643,9 +641,10 @@ function rowCountProblems(recorded: unknown, rows: ReadonlyMap<string, readonly 
   }
   const counts = recorded as Record<string, unknown>;
   const names = new Set([...Object.keys(counts), ...rows.keys()]);
-  const unnamed = [...names].filter((name) => !TABLE_NAME.test(name)).length;
+  const nameable = (name: string) => rows.has(name) || tablePolicy(name) !== null;
+  const unnamed = [...names].filter((name) => !nameable(name)).length;
   const differing = [...names]
-    .filter((name) => TABLE_NAME.test(name))
+    .filter(nameable)
     .sort()
     .flatMap((table) => {
       const count = Object.hasOwn(counts, table) ? counts[table] : undefined;
@@ -658,7 +657,11 @@ function rowCountProblems(recorded: unknown, rows: ReadonlyMap<string, readonly 
     });
   return [
     ...(differing.length > 0 ? [listed('tables whose rows differ from the manifest', differing)] : []),
-    ...(unnamed > 0 ? [`${SNAPSHOT_MANIFEST} records rows under ${unnamed} names that are not table names`] : []),
+    ...(unnamed > 0
+      ? [
+          `${SNAPSHOT_MANIFEST} counts rows for ${unnamed} ${unnamed === 1 ? 'name' : 'names'} that the file and the policy do not hold`,
+        ]
+      : []),
   ];
 }
 

@@ -433,10 +433,10 @@ file alone as the `anonymised-snapshot` artifact, kept for one day, which any si
 account can download. Setting the value back to `"false"` makes every run a dry run again.
 
 Two consumers load the snapshot, and both check the file before they clear or import anything.
-They refuse a file without the anonymiser's manifest, with row counts that differ from it, with a
-table the policy does not keep, without rows in `factions`, with anything besides the placeholder
-owner in `users` or `profiles`, or with a leak scan finding. So neither can load a raw export, or a
-file the snapshot rebuild contract would reject after dev was cleared:
+They refuse a file without the anonymiser's manifest, with row counts that differ from it, without
+rows in `factions`, with anything besides the placeholder owner's row in `users` or `profiles`,
+with any other table the policy does not keep, or with a leak scan finding. So neither can load a
+raw export, or a file the snapshot rebuild contract would reject after the import:
 
 - `dev-rebuild.yml` runs `scripts/anonymised-snapshot.ts` itself when dev's data needs rebuilding,
   in the same job and without uploading anything, so it never waits on or reads the public

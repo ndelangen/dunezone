@@ -538,12 +538,19 @@ describe('verifySnapshot', () => {
   test('refuses a file whose rows differ from the counts in its manifest', () => {
     const { world } = authorWorld();
     const { entries } = anonymiseExport(world.entries());
-    const tampered = new Map(entries).set('groups/documents.jsonl', '');
+    const manifest = manifestOf(entries);
+    manifest.rows.janeDoe = 1;
+    const tampered = new Map(entries)
+      .set('groups/documents.jsonl', '')
+      .set(SNAPSHOT_MANIFEST, JSON.stringify(manifest));
     tampered.delete('rulesets/documents.jsonl');
 
-    expect(refusal(() => verifySnapshot(tampered)).problems).toEqual([
+    const error = refusal(() => verifySnapshot(tampered));
+    expect(error.problems).toEqual([
       'tables whose rows differ from the manifest:\n  - groups: 1 in the manifest, 0 in the file\n  - rulesets: 1 in the manifest, no entry in the file',
+      `${SNAPSHOT_MANIFEST} counts rows for 1 name that the file and the policy do not hold`,
     ]);
+    expect(error.message).not.toContain('janeDoe');
   });
 
   test('refuses a file without factions, empty or left out, which the rebuild contract requires', () => {

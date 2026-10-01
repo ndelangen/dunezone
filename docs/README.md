@@ -128,11 +128,11 @@ artifact, or when GitHub cannot be reached, the launch stops before Docker start
 `--data=fixture`.
 
 Before Docker starts, and again before importing, the launch checks the file. It needs the
-anonymiser's manifest and, in every table, the row count the manifest records. It needs only tables
-the policy keeps, rows in `factions`, the placeholder owner's row alone in `users` and `profiles`,
-and a clean leak scan. So a raw export never loads by mistake, and neither does a file the snapshot
-rebuild contract would reject after the import. The check does not apply the policy's field and row
-rules to the kept tables again. The import uses `--replace-all`, which empties every table the
+anonymiser's manifest and, in every table, the row count the manifest records. It needs rows in
+`factions` and the placeholder owner's row alone in `users` and `profiles`, refuses any other table
+the policy does not keep, and needs a clean leak scan. So a raw export never loads by mistake, and
+neither does a file the snapshot rebuild contract would reject after the import. The check does not
+apply the policy's field and row rules to the kept tables again. The import uses `--replace-all`, which empties every table the
 snapshot leaves out, and the snapshot rebuild contract then checks that those tables are empty and
 that `users` and `profiles` hold the placeholder alone. The snapshot carries no migration
 state or aggregates; the migration guards that every launch runs rebuild both. The contract lives in
