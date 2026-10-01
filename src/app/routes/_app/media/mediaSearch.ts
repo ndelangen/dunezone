@@ -144,8 +144,6 @@ export function searchMedia(query: string, fuzzy = true) {
     .map(({ entry }) => entry);
 }
 
-export const mediaPageSize = 60;
-
 export function filterCatalogue(search: MediaSearch) {
   const collectionOf = (entry: MediaEntry) => entry.collection;
   const kindMatches = (entry: MediaEntry) => search.kind === 'all' || search.kind === entry.kind;
@@ -190,11 +188,8 @@ export function filterCatalogue(search: MediaSearch) {
   const ordered = search.q.trim()
     ? matches
     : [...matches].sort((a, b) => groupOf(a).localeCompare(groupOf(b), 'en') || a.label.localeCompare(b.label, 'en'));
-  const pageCount = Math.max(1, Math.ceil(ordered.length / mediaPageSize));
-  const page = Math.min(search.page ?? 1, pageCount);
-  const visible = ordered.slice((page - 1) * mediaPageSize, page * mediaPageSize);
-  const groups = [...new Set(visible.map(groupOf))].map((label) => {
-    const entries = visible.filter((entry) => groupOf(entry) === label);
+  const groups = [...new Set(ordered.map(groupOf))].map((label) => {
+    const entries = ordered.filter((entry) => groupOf(entry) === label);
     const first = entries[0]!;
     const collection = groupedCollection(first) ? first.collection : undefined;
     const total = collection ? mediaEntries.filter((entry) => entry.collection === collection).length : entries.length;
@@ -207,8 +202,6 @@ export function filterCatalogue(search: MediaSearch) {
     kindCounts,
     subjectCounts,
     collectionCounts,
-    page,
-    pageCount,
     approximate,
   };
 }

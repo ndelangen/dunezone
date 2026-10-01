@@ -9,15 +9,29 @@ export const Catalogue = meta.story({
   args: { path: '/media' },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement);
-    await expect(page.findByRole('link', { name: 'Leader portraits' })).resolves.toBeVisible();
+    await expect(page.findByRole('link', { name: 'Leaders' })).resolves.toBeVisible();
     await expect(page.getByRole('link', { name: 'Decals' })).toHaveAttribute('href', '/media/game/decals');
     await expect(page.queryByRole('textbox', { name: 'Search media' })).toBeNull();
     await expect(page.queryByRole('link', { name: 'Textures' })).toBeNull();
     await expect(page.queryByRole('article')).toBeNull();
   },
 });
-export const Leaders = meta.story({ args: { path: '/media/game/leaders' } });
-export const Decals = meta.story({ args: { path: '/media/game/decals' } });
+export const Leaders = meta.story({
+  args: { path: '/media/game/leaders' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement);
+    await expect(page.findByRole('heading', { name: 'Alien portraits / Armored creatures' })).resolves.toBeVisible();
+    await expect(page.getAllByRole('article')).toHaveLength(587);
+  },
+});
+export const Decals = meta.story({
+  args: { path: '/media/game/decals' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement);
+    await expect(page.findByRole('heading', { name: 'Decals / Blades and melee weapons' })).resolves.toBeVisible();
+    await expect(page.getAllByRole('article')).toHaveLength(420);
+  },
+});
 export const LeaderLink = meta.story({
   args: { path: '/media/game/leaders?item=%2Fimage%2Fleader%2Fofficial%2Faramsham.png' },
   play: async ({ canvasElement }) => {

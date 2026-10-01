@@ -1,6 +1,5 @@
-import { Anchor, Button, Group, Pagination, Select, Stack, Text, Tooltip } from '@mantine/core';
+import { Anchor, Button, Group, Select, Stack, Text, Tooltip } from '@mantine/core';
 import { createFileRoute, Link, useParams } from '@tanstack/react-router';
-import { OpenableTile } from '@ui/block/OpenableTile';
 import { Section } from '@ui/block/Section';
 import { TOPIC_ICON_TOPICS, TopicIcon } from '@ui/content/TopicIcon';
 import { IconAction } from '@ui/control/IconAction';
@@ -8,15 +7,16 @@ import { SearchRefine } from '@ui/control/SearchRefine';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
-import { icons, X, Images, Info } from 'lucide-react';
+import { icons, X, Images, Info, ArrowRight } from 'lucide-react';
 
 import { resolveAsset } from '@game/assets/resolveAsset';
 
 import { pageHead } from '../../pageTitle';
 import { catalogueEntries as mediaEntries, mediaKinds } from './mediaCatalogue';
 import type { MediaEntry, MediaSearch } from './mediaCatalogue';
+import { indexGalleries } from './mediaIndex';
 import { mediaLocation, mediaPathSearch, validateMediaQuery } from './mediaNavigation';
-import { filterCatalogue, mediaPageSize } from './mediaSearch';
+import { filterCatalogue } from './mediaSearch';
 import { MediaShowcase } from './MediaShowcase';
 import styles from './route.module.css';
 
@@ -34,9 +34,9 @@ function MediaPage() {
   const navigate = Route.useNavigate();
   const updateSearch = (patch: Partial<MediaSearch>, replace = false) => {
     void navigate({
-      ...mediaLocation({ ...search, page: undefined, ...patch }),
+      ...mediaLocation({ ...search, ...patch }),
       replace,
-      resetScroll: patch.page !== undefined,
+      resetScroll: false,
     });
   };
   const overview = search.source === 'media' && search.kind === 'all';
@@ -49,8 +49,8 @@ function MediaPage() {
       : undefined;
   return (
     <PageLayout>
-      <PageLayout.Header>
-        <MediaShowcase overview={overview} />
+      <PageLayout.Header size={overview ? 'compact' : 'default'}>
+        <MediaShowcase overview={overview} compact={overview} />
       </PageLayout.Header>
       {!overview && (
         <PageLayout.Toolbar>
@@ -92,19 +92,6 @@ function MediaPage() {
             <ExtraIcons source={search.source} query={query} />
           )}
           {total === 0 && <Text>No artwork matches these filters. Try fewer words or clear the filters.</Text>}
-          {search.source === 'media' && search.kind !== 'all' && catalogue.pageCount > 1 && (
-            <Group justify="space-between">
-              <Text size="sm">
-                Showing {(catalogue.page - 1) * mediaPageSize + 1} to {Math.min(catalogue.page * mediaPageSize, total)}{' '}
-                of {total}
-              </Text>
-              <Pagination
-                total={catalogue.pageCount}
-                value={catalogue.page}
-                onChange={(page) => updateSearch({ page })}
-              />
-            </Group>
-          )}
         </Stack>
       </PageLayout.Content>
     </PageLayout>
@@ -113,33 +100,61 @@ function MediaPage() {
 
 function MediaLibraries() {
   return (
-    <Section title="Choose a gallery">
-      <Surface padding="lg">
-        <div className={styles.libraryGrid}>
-          {mediaKinds.map(({ value, label }) => {
-            const entries = mediaEntries.filter((entry) => entry.kind === value);
-            return (
-              <OpenableTile
-                key={value}
-                caption={label}
-                renderRoot={(props) => (
-                  <Link {...props} {...mediaLocation({ source: 'media', kind: value, q: '', group: '' })} />
-                )}
-              >
-                <Stack gap="xs" align="center">
-                  <div className={styles.libraryArt}>
-                    <MediaPreview entry={entries[0]!} />
-                  </div>
-                  <Text size="xs" c="dimmed">
-                    {entries.length} items
-                  </Text>
-                </Stack>
-              </OpenableTile>
-            );
-          })}
-        </div>
-      </Surface>
-    </Section>
+    <div className={styles.libraryWall}>
+      {indexGalleries.map((gallery, index) => (
+        <Surface
+          key={gallery.kind}
+          padding="md"
+          interactive
+          className={index < 2 ? styles.libraryFeatured : styles.librarySmall}
+          renderRoot={(props) => (
+            <Link
+              {...props}
+              className={`${props.className} ${styles.libraryLink}`}
+              {...mediaLocation({ source: 'media', kind: gallery.kind, q: '', group: '' })}
+            />
+          )}
+        >
+          <Section
+            title={gallery.title}
+            action={
+              <Group gap="xs">
+                <Text size="xs" c="dimmed">
+                  {gallery.total}
+                </Text>
+                <ArrowRight size={16} aria-hidden />
+              </Group>
+            }
+          >
+            <div
+              className={`${styles.libraryCollage} ${index < 2 ? styles.libraryLargeCollage : ''} ${gallery.kind === 'leader' ? styles.libraryPortraits : ''} ${gallery.kind === 'decal' ? styles.libraryDecals : ''}`}
+            >
+              {gallery.samples.map((entry) => (
+                <div key={entry.value} className={styles.librarySpecimen}>
+                  {entry.value.startsWith('/vector/') ? (
+                    <svg
+                      viewBox="0 0 100 100"
+                      preserveAspectRatio="xMidYMid meet"
+                      className={styles.libraryArt}
+                      aria-hidden
+                    >
+                      <use href={`${entry.value}#root`} fill="currentColor" />
+                    </svg>
+                  ) : (
+                    <img
+                      src={resolveAsset(entry.value, 'small')}
+                      alt=""
+                      loading="lazy"
+                      className={`${styles.libraryArt} ${entry.kind === 'leader' ? styles.libraryDisc : ''}`}
+                    />
+                  )}
+                </div>
+              ))}
+            </div>
+          </Section>
+        </Surface>
+      ))}
+    </div>
   );
 }
 

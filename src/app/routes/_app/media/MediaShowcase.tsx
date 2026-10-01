@@ -31,7 +31,7 @@ function preload(src: string) {
   return image.decode();
 }
 
-export function MediaShowcase({ overview }: { overview: boolean }) {
+export function MediaShowcase({ overview, compact = false }: { overview: boolean; compact?: boolean }) {
   const reducedMotion = useReducedMotion();
   const [state, dispatch] = useReducer(
     (previous: typeof initial, event: ShowcaseEvent) =>
@@ -72,15 +72,18 @@ export function MediaShowcase({ overview }: { overview: boolean }) {
   return (
     <div className={styles.header}>
       <Stack gap="sm">
-        <PageTitle eyebrow="Artwork for your creations" title="Media catalogue" />
-        {overview ? (
-          <Text>Choose a gallery to explore its artwork.</Text>
-        ) : (
-          <>
-            <Text>Find artwork by name, subject or visual detail.</Text>
-            <Text size="sm">Try "crossed knives", "ringed planet" or "hooded sniper".</Text>
-          </>
-        )}
+        <PageTitle eyebrow={compact ? undefined : 'Artwork for your creations'} title="Media catalogue" />
+        {!compact &&
+          (overview ? (
+            <Text>Choose a gallery to explore its artwork.</Text>
+          ) : (
+            <>
+              <Text>Find artwork by name, subject or visual detail.</Text>
+              <Text size="sm" className={styles.examples}>
+                Try "crossed knives", "ringed planet" or "hooded sniper".
+              </Text>
+            </>
+          ))}
         <Text size="sm">{mediaEntries.length.toLocaleString('en')} images and vectors to explore.</Text>
       </Stack>
       <Stack gap="xs" align="center">

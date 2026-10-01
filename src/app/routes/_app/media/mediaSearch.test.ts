@@ -6,7 +6,7 @@ import { describe, expect, test } from 'vitest';
 import metadata from './media-index.json';
 import { mediaEntries, catalogueEntries, validateMediaSearch } from './mediaCatalogue';
 import { mediaLocation, mediaPathSearch, validateMediaQuery } from './mediaNavigation';
-import { filterCatalogue, mediaPageSize, searchMedia } from './mediaSearch';
+import { filterCatalogue, searchMedia } from './mediaSearch';
 import { mediaSubjects } from './mediaSubjects';
 
 const paths = (query: string) => searchMedia(query).map((entry) => entry.value);
@@ -87,22 +87,22 @@ describe('media search index', () => {
     expect(paths('assasination')).toContain('/vector/decal/assassination.svg');
   });
 
-  test('facet counts reflect the other filters, and pagination never loses or duplicates files', () => {
+  test('facet counts reflect the other filters and every gallery includes all its files', () => {
     const filtered = search({ kind: 'troop', subject: 'weapons' });
     expect(filtered.subjectCounts.find((subject) => subject.value === 'weapons')?.count).toBe(filtered.matches.length);
     expect(filtered.kindCounts.find((kind) => kind.value === 'troop')?.count).toBe(filtered.matches.length);
-    const first = search({});
-    const seen = [];
-    for (let page = 1; page <= first.pageCount; page++) {
-      const result = search({ page });
-      const entries = result.groups.flatMap((group) => group.entries);
-      expect(entries.length).toBeLessThanOrEqual(mediaPageSize);
-      seen.push(...entries.map((entry) => entry.value));
+    for (const kind of ['all', 'leader', 'decal']) {
+      const result = search({ kind });
+      const visible = result.groups.flatMap((group) => group.entries.map((entry) => entry.value));
+      expect(visible.sort()).toEqual(
+        catalogueEntries
+          .filter((entry) => kind === 'all' || entry.kind === kind)
+          .map((entry) => entry.value)
+          .sort()
+      );
+      expect(new Set(visible).size).toBe(visible.length);
     }
-    expect(seen.sort()).toEqual(catalogueEntries.map((entry) => entry.value).sort());
-    expect(search({ page: 9999 }).page).toBe(first.pageCount);
-    expect(validateMediaSearch({ subject: 'invented', page: -1 }).subject).toBeUndefined();
-    expect(validateMediaSearch({ page: -1 }).page).toBeUndefined();
+    expect(validateMediaSearch({ subject: 'invented' }).subject).toBeUndefined();
   });
 });
 
@@ -114,7 +114,6 @@ describe('media path navigation', () => {
       subject: 'people',
       group: 'Custom portraits / Desert robes',
       item: '/image/leader/official/aramsham.png',
-      page: 2,
     });
     const location = mediaLocation(selection);
     expect(location.to).toBe('/media/$source/$kind');

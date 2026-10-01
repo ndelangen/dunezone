@@ -91,7 +91,6 @@ export interface MediaSearch {
   item?: string;
   subject?: string;
   browse?: 'collection';
-  page?: number;
 }
 
 function searchRecord(input: unknown): Record<string, unknown> {
@@ -114,9 +113,6 @@ export function validateMediaSearch(input: unknown): MediaSearch {
     q: searchText(search.q).slice(0, 300),
     ...(mediaSubjects.some(({ value }) => value === search.subject) ? { subject: String(search.subject) } : {}),
     ...(search.browse === 'collection' ? { browse: 'collection' as const } : {}),
-    ...(Number.isSafeInteger(Number(search.page)) && Number(search.page) > 1
-      ? { page: Math.min(Number(search.page), 10_000) }
-      : {}),
     ...(source === 'media' && item ? { item } : {}),
   };
 }

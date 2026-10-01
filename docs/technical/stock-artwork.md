@@ -62,6 +62,10 @@ and selecting a result. Individual images do not need individual stories.
 
 `/media` is a visual directory with eight galleries and 1,525 publicly browsable files. Each category
 opens a separate gallery. The index has no search toolbar; search and filters belong inside a gallery.
+The selected collection wall gives leaders and decals larger tiles, with smaller groups below.
+Artwork varies in size and angle while keeping its original proportions; leader masks stay circular.
+The design comparison is archived on `norbert/media-index-prototypes`, with the chosen direction
+recorded in `mediaIndex.prototype.md` on that branch. Prototype controls do not ship.
 Leaders never share a results grid with decals or other artwork.
 
 The underlying metadata covers all 1,617 source images and vectors. Troop modifiers, patterns,
@@ -70,13 +74,13 @@ search. Fonts, provenance records and generated size variants are not separate a
 These counts describe the initial index and grow with the source tree.
 
 Libraries and media types have shareable paths, such as `/media/game/leaders`, `/media/game/decals`,
-`/media/game/covers`, `/media/topics` and `/media/lucide`. Search, subject, collection, page and focused
+`/media/game/covers`, `/media/topics` and `/media/lucide`. Search, subject, collection and focused
 artwork stay in the query string. Old `__media` and `__icons` links redirect. The footer links to the
 catalogue with a teal Images glyph.
 
 The toolbar uses SearchRefine, as the faction catalogue does. Its refinement drawer contains the
 library, media type, subject, collection and browse grouping. Search ranks matches by relevance. Leaders and decals always remain within their collections;
-other files can be browsed by subject or collection. Each page shows at most 60 files. The header
+other files can be browsed by subject or collection. Each gallery shows every matching file, with images loading lazily as the reader scrolls. The header
 cycles a sample card and leader token every six seconds, preloads their artwork, pauses when the
 browser tab is hidden and offers a pause control. Reduced-motion preferences keep the samples still.
 
