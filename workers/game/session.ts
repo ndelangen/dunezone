@@ -101,13 +101,14 @@ type TableMessage =
   | Extract<CommitMessage, { type: 'drop' }>
   | (CommandMessage & { action: Parameters<Room['command']>[1] });
 
-/** What an attempt must find unchanged after its captures: the roster and the lists, order aside. */
+/** What an attempt must find unchanged after its captures: the roster, the lists and the factions set aside, order aside. */
 function draftStamp(seated: readonly string[], draft: NonNullable<StoredSnapshot['draft']>): string {
   return JSON.stringify({
     seated: [...seated].sort((a, b) => a.localeCompare(b)),
     picks: draft.picks,
     bans: draft.bans,
     ready: [...draft.ready].sort((a, b) => a.localeCompare(b)),
+    setAside: Object.keys(draft.setAside ?? {}).sort((a, b) => a.localeCompare(b)),
   });
 }
 

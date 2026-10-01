@@ -1604,6 +1604,10 @@ export class GameRoom extends DurableObject<GameEnv> {
       const factions = await catalogue.draftableFactions(metadata.game.rulesetId);
       const setAside = await this.judgeSetAside(catalogue, factions);
       this.session.updateDraftCatalogue(factions, setAside);
+      /* An attempt that ran alongside dealt from the copy before this one, so it tries again on this. */
+      if (this.assigning) {
+        this.draftChangedDuringAttempt = true;
+      }
       this.reconcileViewers();
       this.broadcastViews();
     } catch (error) {
@@ -1635,10 +1639,11 @@ export class GameRoom extends DurableObject<GameEnv> {
    * The factions set aside, judged again with the catalogue: one still listed and still refused keeps its latest reason, one ready now returns to the draft.
    * A capture that cannot be read keeps the reason it had.
    */
-  private async judgeSetAside(catalogue: GameCatalogue, factions: DraftFaction[]) {
-    const judged: SetAsideJudgement = { judged: [], stillAside: {} };
+  private async judgeSetAside(catalogue: GameCatalogue, factions: DraftFaction[]): Promise<SetAsideJudgement> {
+    const judged: string[] = [];
+    const stillAside: Record<string, string> = {};
     for (const [factionId, reason] of Object.entries(this.session.draftSetAside())) {
-      judged.judged.push(factionId);
+      judged.push(factionId);
       if (!factions.some((faction) => faction.id === factionId)) {
         continue;
       }
@@ -1646,13 +1651,16 @@ export class GameRoom extends DurableObject<GameEnv> {
         const capture = await catalogue.captureFaction(factionId);
         const problem = this.metadata?.provisional === true ? undefined : readinessProblem(capture.readiness);
         if (problem !== undefined) {
-          judged.stillAside[factionId] = problem.slice(0, 400);
+          stillAside[factionId] = problem.slice(0, 400);
         }
       } catch (error) {
-        judged.stillAside[factionId] = error instanceof GameRejection ? error.message.slice(0, 400) : reason;
+        if (!(error instanceof GameRejection)) {
+          this.diagnostics.report('draft-catalogue', error);
+        }
+        stillAside[factionId] = error instanceof GameRejection ? error.message.slice(0, 400) : reason;
       }
     }
-    return judged;
+    return { judged, stillAside };
   }
 
   /*

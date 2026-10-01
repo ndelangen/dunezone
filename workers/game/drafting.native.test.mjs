@@ -292,9 +292,9 @@ describe('Drafting and public assignment on a real game', () => {
       'Fremen cannot be dealt yet: This faction is not available.'
     );
 
-    /* The catalogue has it again: the next refresh returns it to the pool it was drafted into. */
+    /* The catalogue has it again: setting it aside stamped the copy stale, so the next Ready judges it again at once. */
     peer.factions.set('fremen', definition('fremen', 'Fremen'));
-    await refreshCatalogue(a);
+    await accepted(a, { kind: 'draft-ready', ready: true });
     await eventually(async () => !('fremen' in (await setAside(a))), 'fremen judged again');
     await accepted(b, { kind: 'draft-ready', ready: true });
     await eventually(async () => (await stage(a)) === 'swapping', 'assignment once it can be captured');
@@ -378,8 +378,10 @@ describe('Drafting and public assignment on a real game', () => {
     const short = await syncView(a);
     expect(short.snapshot.stage).toBe('drafting');
     expect(short.snapshot.draft.setAside).toEqual({ atreides: leaderProblem });
-    /* Nobody drafted it, so nobody's readiness depended on it. */
-    expect(short.snapshot.draft.failure).toBeNull();
+    /* Nobody drafted it, so nobody's readiness depended on it; the reason still shows while the pool is short. */
+    expect(short.snapshot.draft.failure).toBe(
+      `Set aside as not ready to deal: Atreides (${leaderProblem.replace(/\.$/, '')}).`
+    );
     expect(short.snapshot.draft.ready.sort()).toEqual(['seat-1', 'seat-2']);
 
     /* A ready faction joins the catalogue, and the refresh deals it without a second readiness round. */
