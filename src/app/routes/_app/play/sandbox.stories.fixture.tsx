@@ -327,7 +327,8 @@ export const sandbox: { table?: SandboxTable; transport?: ReturnType<typeof stor
 
 /**
  * Starts a sandbox at a journey step (0-based) viewed as a seat, and the scripted transport around it.
- * Storybook runs a story's `beforeEach` again on every change of its arguments, so a page already connected keeps its transport; the panel moves the table itself.
+ * Storybook runs a story's `beforeEach` again on every change of its arguments, so a page already connected keeps its transport;
+ * the panel moves the table itself.
  */
 export function sandboxTransport(start: number, seat: string) {
   if (sandbox.transport?.connected()) {
