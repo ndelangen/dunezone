@@ -575,6 +575,36 @@ async function playReady(players, audience) {
   await converged([...players, ...audience]);
   milestone('play');
 }
+/** The setup steps the regular flow walked, in order, as the table showed them. */
+const walkedSetup = [];
+/**
+ * The seated faction's player locks its prediction through the Setup tab (#1232 H1).
+ * The other player sees only that it is locked until the predictor reveals it.
+ */
+async function lockPrediction(players, step) {
+  const predictor = players.find((who) => factionOf(who).id === step.factionId);
+  const other = players.find((who) => who !== predictor);
+  assert.ok(predictor && other, `No seated player holds the faction of ${step.title}.`);
+  await openTab(predictor, 'Setup');
+  await predictor.page.getByRole('combobox', { name: 'Predicted winner', exact: true }).click();
+  await predictor.page.locator(`[role="option"][value="${factionOf(other).id}"]`).click();
+  await act(predictor, 'Lock prediction');
+  await converged(players);
+  assert.deepEqual(predictor.view().snapshot.predictions[step.id].choice, { factionId: factionOf(other).id, turn: 1 });
+  assert.equal(
+    other.view().snapshot.predictions[step.id].choice,
+    undefined,
+    'A locked prediction reached the other seat.'
+  );
+  await openTab(other, 'Setup');
+  await other.page.getByText('Prediction locked', { exact: true }).waitFor();
+  await act(predictor, 'Reveal prediction');
+  await until(
+    () => other.view().snapshot.predictions[step.id].choice?.factionId === factionOf(other).id,
+    'The revealed prediction did not reach the other seat.'
+  );
+  await other.page.getByText('Prediction revealed', { exact: true }).waitFor();
+}
 /** Drafting, the deal, trading and every setup step, with the controls the table offers its players. */
 async function playThroughSetup(players) {
   const stage = () => players[0].view().snapshot.stage;
@@ -589,9 +619,17 @@ async function playThroughSetup(players) {
   while (stage() === 'setup') {
     /* Next clears readiness, and a player whose view has not yet reached that step would read its old Ready and skip it (#1481). */
     await converged(players);
-    for (const who of players) {
-      if (!who.view().snapshot.controls.ready.includes(who.view().viewer.viewerSeat)) {
-        await act(who, 'Ready');
+    const { setup } = players[0].view().snapshot;
+    const step = setup.steps[setup.index];
+    walkedSetup.push(step);
+    /* A prediction gates on its lock; any other step asks for readiness unless its author turned that off. */
+    if (step.kind === 'prediction') {
+      await lockPrediction(players, step);
+    } else if (step.allPlayersMustBeReady ?? true) {
+      for (const who of players) {
+        if (!who.view().snapshot.controls.ready.includes(who.view().viewer.viewerSeat)) {
+          await act(who, 'Ready');
+        }
       }
     }
     await act(players[0], 'Next phase');
@@ -1319,6 +1357,41 @@ function samePublicView(a, b) {
   assert.ok(![...handIds(a)].some((id) => handIds(b).has(id)), 'A private hand reached the other player.');
 }
 
+/**
+ * The seeded catalogue's custom content reached the real game (#1232 H1): the declaring faction's phases ran in setup, its Extra sits in its own hand only, and every dealt leader shows its published face.
+ */
+async function seededCustomContent(a, b) {
+  assert.deepEqual(
+    walkedSetup.map(({ kind, title }) => ({ kind, title })),
+    [
+      { kind: 'prediction', title: 'Bene Gesserit prediction' },
+      { kind: 'traitors', title: walkedSetup[1]?.title },
+      { kind: 'instruction', title: 'Synthetic muster' },
+      { kind: 'forces', title: walkedSetup[3]?.title },
+    ]
+  );
+  const extras = (who) =>
+    (who.view().snapshot.hand ?? []).filter((piece) => piece.label === 'Synthetic extra').map((piece) => piece.id);
+  const declaring = [a, b].find((who) => factionOf(who).id === walkedSetup[0].factionId);
+  for (const who of [a, b]) {
+    assert.equal(extras(who).length, who === declaring ? 1 : 0, `${who.label} holds the wrong Extras.`);
+    const leaders = (who.view().snapshot.hand ?? [])
+      .flatMap((piece) => piece.items)
+      .map((item) => item.artwork.front)
+      .filter((front) => front?.startsWith('/published/leaders/'));
+    assert.equal(leaders.length, 5, `${who.label} was not dealt five published leader faces.`);
+    for (const front of leaders) {
+      const response = await who.page.request.get(`${origin}${front}`);
+      assert.equal(response.status(), 200, `${front} did not serve.`);
+      assert.match(response.headers()['content-type'] ?? '', /^image\//u);
+    }
+  }
+  passed(
+    "A seeded faction's prediction and ready-gated instruction run in setup, its Extra reaches only its own hand and every leader shows its published face",
+    { steps: walkedSetup.map((step) => step.title) }
+  );
+}
+
 /** The regular flow, for the broad tabletop interactions the named flows leave out. */
 async function verifyRegular() {
   const a = await account('player-a');
@@ -1342,6 +1415,7 @@ async function verifyRegular() {
     return seats.includes(seatB) && players.some((player) => player.seat === seatB);
   }, "Player A's view did not list player B's seat.").catch(() => {});
   samePublicView(a, b);
+  await seededCustomContent(a, b);
   const initialItems = a
     .view()
     .snapshot.table.pieces.flatMap((value) => value.items.map((item) => item.id))

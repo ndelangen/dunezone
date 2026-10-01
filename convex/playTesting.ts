@@ -1,5 +1,6 @@
 import { v } from 'convex/values';
 
+import { factionMemberPublicationId } from '../src/shared/asset-publishing/componentPublication';
 import type { PublicationAssetType } from '../src/shared/asset-publishing/publicationTargets';
 import { publicationFaceId, publishedR2Key, publishedHref } from '../src/shared/asset-publishing/publicationTargets';
 import { publishingDeckCardback } from '../src/shared/assets/fixtures/publishingDeckCardback';
@@ -192,13 +193,46 @@ const SYNTHETIC_DECK_MEMBERS = {
  * The Harkonnen colour is a saturated red so the carry checks can find its troop tokens by their pixels.
  */
 const SYNTHETIC_TROOP_COMBAT = { strength: 0.5, fundedStrength: 1, fundingCost: 1 };
+
+/** The Extra one seeded faction supplies at setup; the regular flow finds it in that faction's hand by this name. */
+const SYNTHETIC_EXTRA_NAME = 'Synthetic extra';
+
+/*
+ * One faction declares phases, so every two-seat game composes them (#1232 H1).
+ * The prediction is #1466's production declaration; the instruction step is ready-gated, as an authored step may be.
+ */
+const SYNTHETIC_PHASES = [
+  {
+    id: 'prediction',
+    type: 'prediction',
+    title: 'Bene Gesserit prediction',
+    symbol: '/vector/icon/fate.svg',
+    before: 'traitors',
+    priority: 10,
+    allPlayersMustBeReady: false,
+    instructions:
+      'During setup secretly choose a turn number and a faction. If that faction wins the game on that turn, you win instead. (Fremen Special Victory condition does not count)',
+  },
+  {
+    id: 'muster',
+    type: 'instruction',
+    title: 'Synthetic muster',
+    symbol: '/vector/icon/fate.svg',
+    before: 'forces',
+    priority: 10,
+    allPlayersMustBeReady: true,
+    instructions: 'Every player confirms Ready before starting forces.',
+  },
+] as const;
+
 const SYNTHETIC_FACTIONS = [
-  { slug: 'synthetic-harkonnen', name: 'Harkonnen', color: '#b3261e' },
-  { slug: 'synthetic-atreides', name: 'Atreides', color: '#75d8a7' },
+  { slug: 'synthetic-harkonnen', name: 'Harkonnen', color: '#b3261e', declares: true },
+  { slug: 'synthetic-atreides', name: 'Atreides', color: '#75d8a7', declares: false },
 ];
 
 /**
- * Seeds a ruleset an Administrator can start a real game with on the disposable browser backend: both required decks, and two linked factions with published tokens and authored troop combat values.
+ * Seeds a ruleset an Administrator can start a real game with on the disposable browser backend: both required decks, and two linked factions with published tokens, published leader faces and authored troop combat values.
+ * The Harkonnen also supply an Extra and declare a prediction and an instruction phase, so real games carry custom content.
  * Returns the publications whose local bytes the runner installs.
  */
 export const seedRealGameCatalogue = internalMutation({
@@ -246,6 +280,14 @@ export const seedRealGameCatalogue = internalMutation({
       }
       await ctx.db.insert('ruleset_asset_slots', { ruleset_id: rulesetId, asset_id: deckId, slot });
     }
+    const extraSlug = `synthetic-extra-${suffix}`;
+    const extraId = await ctx.db.insert('assets', {
+      ...row,
+      type: 'token-disc',
+      slug: extraSlug,
+      data: { name: SYNTHETIC_EXTRA_NAME, about: '', front: publishingTokenFace, back: { mode: 'same' } },
+    });
+    publications.push(await publish(ctx, 'token-disc', extraId, 'front'));
     for (const faction of SYNTHETIC_FACTIONS) {
       const factionId = await ctx.db.insert('factions', {
         ...row,
@@ -259,11 +301,19 @@ export const seedRealGameCatalogue = internalMutation({
             name: 'Troops',
             combat: SYNTHETIC_TROOP_COMBAT,
           })),
+          ...(faction.declares
+            ? { extras: [{ type: 'token-disc', slug: extraSlug }], extraPhases: [...SYNTHETIC_PHASES] }
+            : {}),
         }),
       });
       await ctx.db.insert('ruleset_factions', { ruleset_id: rulesetId, faction_id: factionId });
       publications.push(await publish(ctx, 'faction-token', factionId, 'front'));
       publications.push(await publish(ctx, 'faction-token', publicationFaceId(factionId, 'back'), 'back'));
+      for (const leader of assetPublishingFaction.leaders) {
+        publications.push(
+          await publish(ctx, 'faction-leader', factionMemberPublicationId(factionId, leader.memberId), 'front')
+        );
+      }
     }
     return { rulesetId, publications };
   },

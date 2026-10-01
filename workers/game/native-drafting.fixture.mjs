@@ -114,11 +114,12 @@ export async function playToTurnOne(players) {
  * Provisions a real game in drafting, with the catalogue, ruleset and factions its deal reads.
  * `bindings` override the game Worker's.
  * `testPhaseCooldownMs` and `testStartStage` are what the synthetic backend sends at provisioning.
+ * `prepare` edits the peer's catalogue before the game is provisioned.
  */
 export async function draftingRuntime(
   extras = [],
   cards = [cardPage('card-one')],
-  { bindings, testPhaseCooldownMs, testStartStage } = {}
+  { bindings, testPhaseCooldownMs, testStartStage, prepare } = {}
 ) {
   const peer = await createPeer();
   peer.testPhaseCooldownMs = testPhaseCooldownMs;
@@ -153,6 +154,7 @@ export async function draftingRuntime(
     peer.draftable.push(draftable(id, name));
     peer.factions.set(id, definition(id, name));
   }
+  prepare?.(peer);
   let runtime;
   try {
     runtime = await createRuntime(peer, 'game', bindings);
