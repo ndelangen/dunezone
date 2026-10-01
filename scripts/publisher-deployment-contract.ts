@@ -105,6 +105,9 @@ export function validatePublisherDeployContract(config: JsonObject, environment:
         '/__user-images/*',
         '/__play',
         '/__play/*',
+        '/play',
+        '/play/*',
+        '/robots.txt',
       ],
     },
     'Static Assets routing'

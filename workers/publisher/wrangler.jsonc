@@ -34,7 +34,10 @@
       "/__user-images",
       "/__user-images/*",
       "/__play",
-      "/__play/*"
+      "/__play/*",
+      "/play",
+      "/play/*",
+      "/robots.txt"
     ]
   },
   "browser": { "binding": "BROWSER" },
