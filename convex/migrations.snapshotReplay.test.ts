@@ -9,6 +9,8 @@ import { publishingDeckCardback } from '../src/shared/assets/fixtures/publishing
 import { publishingTokenFace } from '../src/shared/assets/fixtures/publishingTokenFace';
 import type { DeckAsset, TokenAsset } from '../src/shared/assets/schema';
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
+import { createRulebookStarterContents } from '../src/shared/rulebooks/fixtures';
+import { rulebookNameKey } from '../src/shared/rulebooks/metadata';
 import { api, internal } from './_generated/api';
 import { factionTest } from './factions.test.fixture';
 import guards from './migration-guards.json';
@@ -96,5 +98,91 @@ describe('a snapshot load', () => {
     await expect(t.query(internal.migrations.assertReadyForNarrow, { required })).resolves.toMatchObject({ ok: true });
     expect(await rows()).toEqual(loaded);
     expect((await t.query(api.homepage.get, {})).community.counts).toMatchObject({ factions: 1, members: 1 });
+  });
+
+  test('seeds each live Rulebook a draft of its current Edition as the public reader shows it, so the editor opens', async () => {
+    const t = factionTest();
+    /* The stored cover keeps a signed source, as production's Edition does, so the draft shows the seed applies the reader's projection itself. */
+    const signedSource = 'https://images.example/cover.png?signature=private-cover-secret';
+    const current = createRulebookStarterContents();
+    current.pagesById.CVER = {
+      id: 'CVER',
+      anchor: 'cover',
+      title: 'Cover',
+      layoutId: 'cover',
+      showHeading: true,
+      controlValues: {
+        cover: {
+          subtitle: '',
+          supportingText: '',
+          backgroundImageUrl: signedSource,
+          backgroundImage: {
+            url: `https://dune.zone/user-images/${'a'.repeat(64)}.jpg`,
+            sourceUrl: signedSource,
+            width: 1100,
+            height: 1600,
+          },
+        },
+      },
+      blockOrderByRegion: {},
+      blocksById: {},
+    };
+    current.pageOrder.unshift('CVER');
+
+    const ownerId = await t.run(async (ctx) => {
+      const ownerId = await ctx.db.insert('users', placeholderOwner.user());
+      await ctx.db.insert('profiles', placeholderOwner.profile(ownerId));
+      const owned = { owner_id: ownerId, group_id: null, is_deleted: false, created_at: STAMP, updated_at: STAMP };
+      await ctx.db.insert('factions', { ...owned, slug: 'published', data: assetPublishingFaction });
+      const rulesetId = await ctx.db.insert('rulesets', {
+        ...owned,
+        name: 'Published rules',
+        slug: 'published-rules',
+        about: '',
+        image_cover: null,
+      });
+      const rulebookId = await ctx.db.insert('rulebooks', {
+        ruleset_id: rulesetId,
+        name: 'Manual',
+        name_key: rulebookNameKey('Manual'),
+        slug: 'manual',
+        sort_order: 0,
+        current_edition_number: 2,
+        created_by: ownerId,
+        created_at: STAMP,
+        updated_at: STAMP,
+        is_deleted: false,
+        deleted_at: null,
+      });
+      for (const [index, contents] of [createRulebookStarterContents(), current].entries()) {
+        const editionId = await ctx.db.insert('rulebook_editions', {
+          rulebook_id: rulebookId,
+          edition_number: index + 1,
+          created_by: ownerId,
+          created_at: STAMP,
+        });
+        await ctx.db.insert('rulebook_edition_contents', { edition_id: editionId, contents });
+      }
+      return ownerId;
+    });
+    const seed = () =>
+      t.mutation(internal.provisioning.seedSnapshotRulebookDraftsBatch, {
+        paginationOpts: { numItems: 10, cursor: null },
+      });
+
+    expect(await seed()).toMatchObject({ isDone: true, seeded: 1 });
+    expect(await seed()).toMatchObject({ isDone: true, seeded: 0 });
+    await expect(t.query(internal.provisioningChecks.assertRebuildContract, {})).resolves.toEqual({ ok: true });
+
+    const locator = { ruleset_slug: 'published-rules', rulebook_slug: 'manual' };
+    const reader = await t.query(api.rulebooks.readerPage, locator);
+    const editor = await t.withIdentity({ subject: ownerId }).query(api.rulebooks.editorPage, locator);
+    if (editor?.kind !== 'editable') {
+      throw new Error('The editor did not open the seeded Rulebook');
+    }
+    expect(editor.currentEdition.edition_number).toBe(2);
+    expect(editor.draft).toMatchObject({ revision: 1, updated_by: ownerId });
+    expect(editor.draft.contents).toEqual(reader?.edition.contents);
+    expect(JSON.stringify(editor.draft)).not.toContain('private-cover-secret');
   });
 });

@@ -7,7 +7,9 @@ import type { Doc, Id, TableNames } from './_generated/dataModel';
 import type { MutationCtx } from './_generated/server';
 import { internalMutation } from './functions';
 import { ensureProfileForUser } from './lib/profileBootstrap';
+import { identifiesSomeone } from './lib/provisioningContract';
 import { nowIso } from './lib/utils';
+import { seedRulebookDraftFromCurrentEdition } from './rulebooks';
 
 const batchResultValidator = v.object({
   isDone: v.boolean(),
@@ -149,6 +151,43 @@ export const remapGroupOwnershipBatch = internalMutation({
     }
 
     return { isDone: result.isDone, continueCursor: result.continueCursor };
+  },
+});
+
+/**
+ * The snapshot's placeholder owner, which a snapshot load leaves as the deployment's one account, with no email, phone, name or image.
+ * Production holds real accounts, so a seed that needs this refuses to run there, as it does on a deployment someone has signed in to since the load.
+ * The cloud dev rebuild runs the seeds too and never sets `IS_TEST` the way a local launch does, so the test-mode guard the local helpers here use would rest on a setting the rebuild does not control.
+ */
+async function requireSnapshotPlaceholderOwner(ctx: MutationCtx): Promise<Id<'users'>> {
+  const users = await ctx.db.query('users').take(2);
+  const [owner] = users;
+  if (users.length !== 1 || !owner || identifiesSomeone(owner)) {
+    throw new Error(
+      "Snapshot seeds run only where a snapshot load left the placeholder owner as the deployment's one account"
+    );
+  }
+  return owner._id;
+}
+
+/**
+ * Seeds the draft each live Rulebook in this batch lacks after a snapshot load, saved by the placeholder owner.
+ * The snapshot leaves drafts out because they are private, so each draft holds the Rulebook's current Edition as the public reader shows it, and nothing else.
+ * A Rulebook that already has a draft keeps it, so a second run seeds nothing.
+ */
+export const seedSnapshotRulebookDraftsBatch = internalMutation({
+  args: { paginationOpts: paginationOptsValidator },
+  returns: batchResultValidator.extend({ seeded: v.number() }),
+  handler: async (ctx, args) => {
+    const ownerId = await requireSnapshotPlaceholderOwner(ctx);
+    const result = await ctx.db.query('rulebooks').paginate(args.paginationOpts);
+    let seeded = 0;
+    for (const rulebook of result.page) {
+      if (!rulebook.is_deleted && (await seedRulebookDraftFromCurrentEdition(ctx, rulebook, ownerId))) {
+        seeded += 1;
+      }
+    }
+    return { isDone: result.isDone, continueCursor: result.continueCursor, seeded };
   },
 });
 

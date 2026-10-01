@@ -320,7 +320,7 @@ describe('Drafting and public assignment on a real game', () => {
   }
   const leaderProblem = `leader ${assetPublishingFaction.leaders[0].name}, This leader has no published face.`;
 
-  it('sets aside a drafted faction whose leader face has not published on a real game, and deals it once it publishes', async () => {
+  it('sets aside a faction whose leader face has not published as soon as a real game drafts it, and deals it once it publishes', async () => {
     await realGame(() => {
       peer.factions.set('harkonnen', ready('harkonnen', 'Harkonnen'));
       peer.factions.set('fremen', missingLeaderFace('fremen', 'Fremen'));
@@ -328,18 +328,19 @@ describe('Drafting and public assignment on a real game', () => {
     const a = await admit('a');
     const b = await admit('b');
     await seat(b, a);
-    await accepted(a, { kind: 'draft-pick', factionId: 'fremen' });
     await accepted(b, { kind: 'draft-pick', factionId: 'harkonnen' });
-    await accepted(a, { kind: 'draft-ready', ready: true });
     await accepted(b, { kind: 'draft-ready', ready: true });
-    await eventually(async () => typeof (await syncView(a)).snapshot.draft?.failure === 'string', 'failure recorded');
+    await accepted(a, { kind: 'draft-pick', factionId: 'fremen' });
+    /* The pick is judged before anyone readies again: no deal was tried, so there is no failure to show. */
+    await eventually(async () => 'fremen' in (await setAside(a)), 'fremen judged at the pick');
     const failed = await syncView(a);
     expect(failed.snapshot.stage).toBe('drafting');
     expect(failed.snapshot.draft.setAside).toEqual({ fremen: leaderProblem });
-    expect(failed.snapshot.draft.failure).toBe(
-      `Set aside as not ready to deal: Fremen (${leaderProblem.replace(/\.$/, '')}).`
-    );
+    expect(failed.snapshot.draft.failure).toBeNull();
     expect(failed.snapshot.draft.ready).toEqual([]);
+    expect(await rejected(b, { kind: 'draft-pick', factionId: 'fremen' })).toBe(
+      `Fremen cannot be dealt yet: ${leaderProblem}`
+    );
     expect(failed.snapshot.roster.seats.every((seat) => seat.faction === null)).toBe(true);
     expect((await runtime.captures()).factions.map((capture) => capture.faction.id)).not.toContain('fremen');
 

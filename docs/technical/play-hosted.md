@@ -282,12 +282,17 @@ through drafting and setup, and the others start at Turn 1 as described above. T
 also finishes and continues one, so the lobby's Create and Past listings and the result bars are
 covered by a signed-in browser run as well as by Storybook and the native journeys.
 
-A real game still depends on final authored content. The catalogue capture refuses every faction
-until its token back, troop faces, alliance card and traitor cards are generated
-(`workers/game/catalogue.ts`). Only an isolated backend, which marks its content provisional, can
-deal a faction today. The journeys therefore run on provisional synthetic content: one-card decks
-and factions that share one published fixture's faces. They say nothing about capacity or about the
-actual catalogue.
+A real game deals only ready content. The catalogue capture (`workers/game/catalogue.ts`) refuses
+a faction until its token faces, leader, troop, traitor and alliance faces, troop combat values
+and Extras are all published. A real game judges each drafted faction when it is picked, and the
+deal judges every faction it captures, random fills included. A refused faction is set aside with
+its reason (`DraftState.setAside`): the draft list shows the reason, it cannot be picked or
+random-filled, and the next draft command after a fix reads the catalogue again and returns it to
+the pool. A refusal that only random filling met leaves readiness standing, and the deal fills from
+what remains; a drafted one changes the pool, so readiness clears (#1613). An isolated backend marks
+its content provisional and deals it regardless. The native journeys run on that provisional
+synthetic content: one-card decks and factions that share one published fixture's faces. They say
+nothing about capacity or about the actual catalogue, which the live checks on #1232 cover.
 
 Real games are exercised on isolated backends only: the seam tests run on convex-test, the native
 suite on miniflare, the browser flows on a disposable synthetic backend with fresh test

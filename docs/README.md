@@ -117,7 +117,8 @@ with their Editions, and FAQ questions. It holds no accounts, profiles, sign-in 
 drafts, FAQ answers, group memberships or deleted accounts. Every owner, author and asker in it is
 one placeholder user, "Snapshot owner", the snapshot's only user and profile. It has no email and
 no sign-in account, so nobody can sign in as it. `scripts/lib/snapshot-policy.ts` says what each
-table keeps.
+table keeps. Without a draft a Rulebook's editor cannot open, so the load gives every Rulebook a draft
+that holds its current Edition as the public reader shows it, saved by the placeholder owner.
 
 Without `--snapshot-file <zip>`, the launch downloads the newest snapshot that the `Anonymised
 snapshot` workflow uploaded from `main`, using the GitHub CLI (`gh auth login` first). It ignores an
@@ -134,8 +135,10 @@ anonymiser's manifest and, in every table, the row count the manifest records. I
 the policy does not keep, and needs a clean leak scan. So a raw export never loads by mistake, and
 neither does a file the snapshot rebuild contract would reject after the import. The check does not
 apply the policy's field and row rules to the kept tables again. The import uses `--replace-all`, which empties every table the
-snapshot leaves out, and the snapshot rebuild contract then checks that those tables are empty and
-that `users` and `profiles` hold the placeholder alone. The snapshot carries no migration
+snapshot leaves out. The load then seeds the Rulebook drafts, and the snapshot rebuild contract checks
+that those tables are empty, that every live Rulebook has its draft, and that `users` and `profiles`
+hold the placeholder alone. The seed runs only while the placeholder is the deployment's one account,
+so production, which holds real accounts, refuses it. The snapshot carries no migration
 state or aggregates; the migration guards that every launch runs rebuild both. The contract lives in
 [`convex/lib/provisioningContract.ts`](../convex/lib/provisioningContract.ts). Pass
 `--snapshot-file` to load a file you already have, such as one the anonymiser CLI wrote from a
@@ -180,8 +183,8 @@ provision target is structurally unable to touch production (no production crede
 ever reach its commands). `bun run provision dev` is the same pipeline pointed at the
 long-lived cloud dev deployment. CI rebuilds dev with
 `provision dev --stage data --snapshot-file <zip>`, which checks the file as a local launch does,
-clears dev, pushes main's functions, imports the snapshot, checks the snapshot rebuild
-contract and runs the migration guards. It needs only `CONVEX_DEV_DEPLOY_KEY`, and it never exports
+clears dev, pushes main's functions, imports the snapshot, seeds the Rulebook drafts, checks the
+snapshot rebuild contract and runs the migration guards. It needs only `CONVEX_DEV_DEPLOY_KEY`, and it never exports
 production. A bare `bun run provision local` intentionally refuses to run: the local users stage
 needs the running app, so the complete local environment always comes from
 `bun run app:dev --local`. With explicit `--stage` flags, its data stage clears the application

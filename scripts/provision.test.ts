@@ -23,15 +23,19 @@ import { writtenSnapshot } from './snapshot-anonymise.test.fixture';
  * Every command the pipeline starts, in order.
  * The zip tools run for real, because they write and read the tests' own files.
  * Every other command is recorded and answered with success, so no test here reaches a deployment.
+ * The draft seed's batches answer as one finished batch, because the load reads their results.
  */
 const started = vi.hoisted((): string[][] => []);
 vi.mock('node:child_process', async (importOriginal) => {
   const actual = await importOriginal<typeof ChildProcess>();
   const spawnSync = (command: string, args: readonly string[], options?: ChildProcess.SpawnSyncOptions) => {
     started.push([command, ...args]);
+    const stdout = args.includes('provisioning:seedSnapshotRulebookDraftsBatch')
+      ? JSON.stringify({ isDone: true, continueCursor: '', seeded: 1 })
+      : '';
     return command.startsWith('/usr/bin/')
       ? actual.spawnSync(command, args, options)
-      : { pid: 0, output: [], stdout: '', stderr: '', status: 0, signal: null };
+      : { pid: 0, output: [], stdout, stderr: '', status: 0, signal: null };
   };
   return { ...actual, spawnSync };
 });
@@ -213,6 +217,35 @@ describe('snapshot loads', () => {
         expect(beforeTarget().length).toBeGreaterThan(0);
         expect(beforeTarget().every(([command]) => command === '/usr/bin/unzip')).toBe(true);
         expect(started.find(isConvex)).toEqual(expect.arrayContaining(firstTargetCommand));
+      }
+    } finally {
+      rmSync(directory, { recursive: true, force: true });
+      vi.restoreAllMocks();
+    }
+  });
+
+  test('seed the Rulebook drafts after the import, so the rebuild contract and the migration guards find them', () => {
+    vi.spyOn(console, 'log').mockImplementation(() => undefined);
+    const directory = mkdtempSync(path.join(tmpdir(), 'provision-snapshot-'));
+    /* What each target command does: the snapshot import, a function it runs, or the migration guard script. */
+    const step = (command: string[]) =>
+      command.includes('--replace-all') ? 'import' : command[command.indexOf('run') + 1];
+    try {
+      const loadable = writtenSnapshot(path.join(directory, 'loadable.zip'), 1);
+      const loads: Array<[() => void, string[]]> = [
+        [() => rebuildFromSnapshot(cloudDev, {}, loadable, directory), ['./scripts/migration-guards.ts']],
+        [() => loadSnapshotData(local, {}, loadable), []],
+      ];
+      for (const [load, after] of loads) {
+        started.length = 0;
+        load();
+        const steps = started.filter(isConvex).map(step);
+        expect(steps.slice(steps.indexOf('import'))).toEqual([
+          'import',
+          'provisioning:seedSnapshotRulebookDraftsBatch',
+          'provisioningChecks:assertRebuildContract',
+          ...after,
+        ]);
       }
     } finally {
       rmSync(directory, { recursive: true, force: true });
