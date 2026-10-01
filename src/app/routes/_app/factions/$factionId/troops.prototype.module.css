@@ -1,48 +1,87 @@
 .cards {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--space-md);
+  gap: var(--space-sm);
+  align-items: start;
 }
-.token,
-.smallToken {
+.token {
+  display: block;
   position: relative;
   flex: 0 0 auto;
-  width: 4rem;
-  height: 4rem;
+  width: 2.5rem;
+  height: 2.5rem;
   overflow: hidden;
   border-radius: 50%;
 }
-.smallToken {
-  width: 3rem;
-  height: 3rem;
-}
-.token > *,
-.smallToken > * {
+.token > * {
   position: absolute;
   inset: 0;
 }
-.values {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+.hint {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  cursor: help;
+  font-size: var(--mantine-font-size-sm);
+  line-height: 1.2;
+  flex-shrink: 0;
+}
+.hint:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+.cardFace {
+  display: flex;
+  align-items: center;
   gap: var(--space-sm);
 }
-.tableScroll {
-  overflow-x: auto;
+.faceContent {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
 }
-.tableScroll table {
-  min-width: 42rem;
+.strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--space-sm);
 }
-.tableScroll td:first-child {
-  width: 40%;
+.stripTroop {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding-inline: var(--space-sm);
 }
-.rosterRow {
+.stripTroop + .stripTroop {
+  border-inline-start: 1px solid var(--panel-border);
+}
+.comparison {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.comparisonRow {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) repeat(4, 2.75rem);
   align-items: center;
-  gap: var(--space-lg);
+  gap: var(--space-xs);
+  font-size: var(--mantine-font-size-sm);
+  min-height: 1.25rem;
 }
-.rosterStrength {
-  min-width: 9rem;
+.comparisonRow > span {
+  display: flex;
+  justify-content: center;
+}
+.comparisonRow .token {
+  width: 2rem;
+  height: 2rem;
+}
+.comparisonRow .noValues {
+  grid-column: span 3;
 }
 .switcher {
   position: fixed;
@@ -53,7 +92,7 @@
   width: max-content;
   max-width: calc(100vw - 2rem);
 }
-@container (width < 52rem) {
+@container (width < 50rem) {
   .cards {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -62,10 +101,11 @@
   .cards {
     grid-template-columns: minmax(0, 1fr);
   }
-  .rosterRow {
-    grid-template-columns: minmax(0, 1fr);
+  .comparisonRow {
+    grid-template-columns: minmax(0, 1fr) repeat(4, 1.6rem);
+    gap: 3px;
   }
-  .rosterStrength {
-    justify-self: end;
+  .strip {
+    row-gap: var(--space-md);
   }
 }

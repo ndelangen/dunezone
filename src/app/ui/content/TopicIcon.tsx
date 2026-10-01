@@ -1,5 +1,9 @@
 import {
   BookOpen,
+  CircleDashed,
+  Gauge,
+  ShieldOff,
+  CircleHelp,
   Dices,
   Globe2,
   Hand,
@@ -21,6 +25,11 @@ const TOPIC_ICON_DEFINITIONS = {
   game: { kind: 'component', component: Dices },
   audit: { kind: 'component', component: ShieldCheck },
   battle: { kind: 'mask', src: '/vector/icon/combat.svg' },
+  flip: { kind: 'mask', src: '/vector/icon/flip.svg' },
+  undialed: { kind: 'component', component: CircleDashed },
+  dialed: { kind: 'component', component: Gauge },
+  noncombatant: { kind: 'component', component: ShieldOff },
+  combatUnknown: { kind: 'component', component: CircleHelp },
   /* Every authoring surface opens on an Identity chapter: what a thing is called, and what it fundamentally is. */
   identity: { kind: 'component', component: Signature },
   /* Off-face prose (CONTEXT.md: About), on every asset editor and every detail page. */

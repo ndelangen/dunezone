@@ -1,12 +1,12 @@
 # Troop detail prototype
 
-Throwaway source for issue #1615. No layout has been selected.
+Throwaway source for issue #1615. The user declined the first three layouts as too large. This revision explores compact, icon-led alternatives; no layout has been selected.
 
 Run `bun run prototype:troops`, then open `/factions/house-atreides?variant=A&scenario=sample` on port 3198.
 
-- A: separate troop cards with front and reverse sides grouped together.
-- B: one comparison table, with strengths and cost aligned in columns.
-- C: one compact roster with an undialed-to-dialed strength pair per face.
+- A: compact cards, one short icon-and-number row per face.
+- B: a compact token strip with front and reverse faces beside one another.
+- C: a compact comparison list with icon-only column headings.
 
 The floating bar and left/right keys switch variants. The data menu switches between saved public faction data and sample troop values. Samples are temporary, use the current faction's artwork, and do not change saved data. Other page content stays live. The sample counts belong only to the troop preview; the page header retains the saved faction's total.
 
@@ -17,3 +17,13 @@ The shared troopCombatFaces function supplies the combat contract: missing capab
 The public House Atreides record currently has its strengths in descriptive text but no structured combat values. Saved mode therefore preserves the description and reports that the structured strengths are not set.
 
 The browser review covered all three variants, URL updates, keyboard cycling, saved data, and 390px layouts. The comparison table scrolls within its surface on narrow screens. Type checking passed; no prototype test suite was added.
+
+## Compact revision
+
+Names and counts remain visible. Descriptions, eligibility explanations, missing-value messages, and metric names appear in tooltips. Counts use the multiplication sign, without a token label. Tooltips open on hover or keyboard focus.
+
+TopicIcon owns every troop concept glyph. Flip uses the existing /vector/icon/flip.svg artwork, and battle and spice reuse their existing entries. Dialed, undialed, noncombatant and unknown combat values have entries in the same mapping. The TopicIcon catalogue story lists new entries automatically.
+
+All three revised layouts were viewed at 1280px and 390px, with no page overflow. At 1280px, the complete troop sections, including the heading, measured 185px for A, 164px for B and 233px for C with three sample troop types and four faces.
+
+Base decision: fetched main on 2026-10-01 and inspected the changes since the prototype base. They only concern CI selection and its documentation. Kept the established prototype base at 78283a2a9ff to continue this visual comparison, following the user's instruction to judge the impact of unrelated concurrent work.
