@@ -92,6 +92,7 @@ export interface MediaSearch {
   subject?: string;
   browse?: 'collection';
   page?: number;
+  variant?: 'A' | 'B' | 'C';
 }
 
 function searchRecord(input: unknown): Record<string, unknown> {
@@ -110,6 +111,7 @@ export function validateMediaSearch(input: unknown): MediaSearch {
   return {
     source,
     kind,
+    ...(search.variant === 'A' || search.variant === 'B' || search.variant === 'C' ? { variant: search.variant } : {}),
     group: searchText(search.group).trim().slice(0, 200),
     q: searchText(search.q).slice(0, 300),
     ...(mediaSubjects.some(({ value }) => value === search.subject) ? { subject: String(search.subject) } : {}),

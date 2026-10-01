@@ -15,6 +15,7 @@ import { resolveAsset } from '@game/assets/resolveAsset';
 import { pageHead } from '../../pageTitle';
 import { catalogueEntries as mediaEntries, mediaKinds } from './mediaCatalogue';
 import type { MediaEntry, MediaSearch } from './mediaCatalogue';
+import { MediaIndexPrototype } from './mediaIndex.prototype';
 import { mediaLocation, mediaPathSearch, validateMediaQuery } from './mediaNavigation';
 import { filterCatalogue, mediaPageSize } from './mediaSearch';
 import { MediaShowcase } from './MediaShowcase';
@@ -47,6 +48,11 @@ function MediaPage() {
     search.source === 'media'
       ? mediaEntries.find((entry) => entry.value === search.item && entry.kind === search.kind)
       : undefined;
+  if (import.meta.env.DEV && overview) {
+    return (
+      <MediaIndexPrototype variant={search.variant ?? 'A'} onVariant={(variant) => updateSearch({ variant }, true)} />
+    );
+  }
   return (
     <PageLayout>
       <PageLayout.Header>
