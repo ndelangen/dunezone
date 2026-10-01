@@ -632,6 +632,8 @@ async function admissionTrace(who) {
 }
 /** The sign-out under test: the tabs it should close, when Sign out was clicked, and the driver's own event loop lag since. */
 let signOut = null;
+/* Probe only (#1592): writes the sign-out trace once, when the traced job recorded one. */
+let stopSignOutTrace = null;
 /** Samples the driver's event loop every 20 ms and keeps its worst lateness, so a late Playwright event can be told apart from a busy driver. */
 function driverLag() {
   let expected = Date.now() + 20;
@@ -1869,6 +1871,26 @@ async function verifyRegular() {
   );
   passed('A third real account is a server-assigned observer with no public pointer or write controls');
 
+  /* Probe only (#1592): the traced job flips this, and the trace runs from before the second tab opens until its sockets close. */
+  const traceSignOut = false;
+  if (traceSignOut) {
+    await browser.startTracing(undefined, {
+      categories: [
+        '-*',
+        'toplevel',
+        'devtools.timeline',
+        'disabled-by-default-devtools.timeline',
+        'disabled-by-default-devtools.timeline.frame',
+        'v8.execute',
+        'mojom',
+        'blink.user_timing',
+      ],
+    });
+    stopSignOutTrace = async () => {
+      stopSignOutTrace = null;
+      await writeFile(new URL('signout-trace.json', directory), await browser.stopTracing());
+    };
+  }
   const aTab = await peer('player-a-tab', a.context);
   await enter(aTab);
   assert.equal(aTab.view().viewer.userId, a.view().viewer.userId);
@@ -1894,6 +1916,7 @@ async function verifyRegular() {
     signOut.waitEndedAt = Date.now();
     signOut.driverLagMs = signOut.stopDriverLag();
   }
+  await stopSignOutTrace?.();
   await until(
     async () => (await a.page.locator('canvas').count()) === 0 && (await aTab.page.locator('canvas').count()) === 0,
     'Signed-out game data remained visible.'
@@ -2043,6 +2066,11 @@ try {
    * Read once the flow has ended, so a failure's captures show the moment it failed, and a long animation frame that was still open at the close has ended (#1592).
    * A page still busy then gets 30 s more to answer.
    */
+  try {
+    await stopSignOutTrace?.();
+  } catch (error) {
+    report.teardownErrors.push(`trace: ${String(error?.message ?? error).slice(0, 200)}`);
+  }
   if (signOut) {
     report.signOut = await signOutReport(30_000);
   }

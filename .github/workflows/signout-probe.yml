@@ -16,10 +16,10 @@ jobs:
     timeout-minutes: 15
     strategy:
       fail-fast: false
-      # Four at a time, which leaves one of the account's five macOS slots for other PRs' WebGPU job.
-      max-parallel: 4
+      # Three at a time beside the traced job's one, which leaves one of the account's five macOS slots for other PRs' WebGPU job.
+      max-parallel: 3
       matrix:
-        repeat: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+        repeat: [11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
@@ -55,6 +55,61 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: signout-probe-${{ github.run_id }}-${{ github.run_attempt }}-repeat-${{ matrix.repeat }}
+          path: |
+            test-results/hosted-play/*.log
+            test-results/hosted-play/browser/
+          if-no-files-found: warn
+          retention-days: 7
+
+  regular_webgpu_traced:
+    name: "hosted_play_webgpu (regular), traced, repeat ${{ matrix.repeat }}"
+    runs-on: macos-26
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      # One at a time; a Chromium trace from before the second tab opens until its sockets close names the work that kept a page busy.
+      max-parallel: 1
+      matrix:
+        repeat: [1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+      - uses: ./.github/actions/generated-images
+      - name: Install full Chromium
+        run: node_modules/.bin/playwright install --no-shell chromium
+      - name: Select full Chromium in new headless mode
+        run: |
+          chromium_path="$(bun -e 'import { chromium } from "playwright"; console.log(chromium.executablePath())')"
+          test -x "$chromium_path"
+          "$chromium_path" --version
+          echo "CHROMIUM=$chromium_path" >> "$GITHUB_ENV"
+      - name: Turn on the sign-out trace
+        run: |
+          sed -i '' 's/const traceSignOut = false;/const traceSignOut = true;/' scripts/verify-hosted-play-browser.mjs
+          grep -n 'const traceSignOut = true;' scripts/verify-hosted-play-browser.mjs
+      - name: Run the regular flow expecting WebGPU
+        run: bun --no-env-file scripts/verify-hosted-play-stack.ts --skip-generate --shard regular --browser-only --browser "$CHROMIUM" --expect-renderer webgpu
+      - name: Summarise the sign-out
+        if: always()
+        continue-on-error: true
+        run: |
+          {
+            echo "### repeat ${{ matrix.repeat }}"
+            for report in test-results/hosted-play/browser/*/report.json; do
+              [ -f "$report" ] || continue
+              jq -c '{failure: .failure.message, at: .failure.afterCheck}' "$report"
+            done
+            echo '```'
+            grep -h '^SIGNOUT' test-results/hosted-play/*.log || echo "no SIGNOUT line"
+            echo '```'
+          } | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Retain evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: signout-probe-${{ github.run_id }}-${{ github.run_attempt }}-traced-${{ matrix.repeat }}
           path: |
             test-results/hosted-play/*.log
             test-results/hosted-play/browser/
