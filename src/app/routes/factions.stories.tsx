@@ -2,7 +2,7 @@ import preview from '@sb/preview';
 import { waitForFrame } from '@sb/storyWaits';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
-import { db, refText, SEED_REF_TOKEN } from '@db/storybook';
+import { db, faction, refText, SEED_REF_TOKEN } from '@db/storybook';
 
 import { expectToolbarOnOneLine } from './authoringToolbarPlay';
 import {
@@ -14,6 +14,7 @@ import {
   openLayerEditor,
   resetAndSettle,
 } from './backgroundMemoryPlay';
+import { spaceOrks, spaceOrksOwner, spaceOrksPublication } from './factionPlanets.stories.fixture';
 import { pageStoryMeta } from './storybookConfig';
 
 const meta = preview.meta({
@@ -33,7 +34,87 @@ export const CatalogueMobile = meta.story({
   globals: { viewport: { value: 'appMobile' } },
 });
 
-export const Detail = meta.story({ args: { path: '/factions/house-atreides' } });
+export const Detail = meta.story({
+  args: { path: '/factions/house-atreides' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByRole('heading', { name: 'House Atreides' })).resolves.toBeVisible();
+    expect(page.queryByRole('region', { name: 'Planets' })).not.toBeInTheDocument();
+  },
+});
+
+const withPlanets = (description = true) =>
+  db((baseline) => {
+    baseline.factions = [
+      {
+        ...faction({
+          name: spaceOrks.name,
+          data: {
+            ...spaceOrks,
+            planet: spaceOrks.planet.map((planet) => ({
+              ...planet,
+              description: description ? planet.description : '',
+            })),
+          },
+        }),
+        $key: 'faction:space-orks',
+      },
+    ];
+    Object.assign(baseline.profiles[0], spaceOrksOwner);
+    baseline.ruleset_factions = [];
+    baseline.publication_jobs = [];
+    baseline.publication_assets = [
+      {
+        asset_type: 'faction_sheet',
+        asset_id: refText('faction:space-orks', SEED_REF_TOKEN),
+        ...spaceOrksPublication,
+      },
+    ];
+  });
+
+export const DetailWithPlanets = meta.story({
+  args: { path: '/factions/space-orks' },
+  parameters: { database: withPlanets(), identity: null },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const sidebar = await page.findByRole('complementary', { name: 'Faction details' });
+    const planets = within(sidebar).getByRole('region', { name: 'Planets' });
+    const planet = within(planets).getByRole('listitem', { name: 'Space Hulk Leviathan' });
+    expect(planet).toHaveAccessibleDescription(spaceOrks.planet[0].description);
+    await userEvent.hover(planet);
+    await expect(page.findByRole('tooltip')).resolves.toHaveTextContent(spaceOrks.planet[0].description);
+    await userEvent.unhover(planet);
+    await waitFor(() => expect(page.queryByRole('tooltip')).not.toBeInTheDocument());
+
+    planet.focus();
+    await userEvent.tab({ shift: true });
+    await userEvent.tab();
+    expect(planet).toHaveFocus();
+    await expect(page.findByRole('tooltip')).resolves.toHaveTextContent(spaceOrks.planet[0].description);
+    await userEvent.keyboard('{Escape}');
+    await waitFor(() => expect(page.queryByRole('tooltip')).not.toBeInTheDocument());
+  },
+});
+
+export const DetailWithPlanetsMobile = meta.story({
+  args: { path: '/factions/space-orks' },
+  parameters: { database: withPlanets(), identity: null },
+  globals: { viewport: { value: 'appMobile' } },
+});
+
+export const DetailWithUndescribedPlanet = meta.story({
+  args: { path: '/factions/space-orks' },
+  parameters: { database: withPlanets(false), identity: null },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const planet = await page.findByRole('listitem', { name: 'Space Hulk Leviathan' });
+    await userEvent.hover(planet);
+    expect(page.queryByRole('tooltip')).not.toBeInTheDocument();
+    expect(planet).not.toHaveAccessibleDescription();
+    expect(planet.tabIndex).toBe(-1);
+    await userEvent.unhover(planet);
+  },
+});
 export const Create = meta.story({ args: { path: '/factions/create' } });
 export const Edit = meta.story({ args: { path: '/factions/house-atreides/edit' } });
 
