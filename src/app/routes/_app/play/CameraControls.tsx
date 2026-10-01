@@ -123,6 +123,12 @@ function applyCameraDestination(
   const atDestination =
     camera.position.distanceToSquared(destination.toPosition) <= CAMERA_POSE_EPSILON_SQUARED &&
     controls.target.distanceToSquared(destination.toTarget) <= CAMERA_POSE_EPSILON_SQUARED;
+  const inFlight = playback.transition;
+  if (inFlight && inFlight.commandKey === destination.commandKey && !atDestination) {
+    /* A tilt or resize while the camera is still moving to this view retargets the move instead of cutting it short. */
+    playback.transition = { ...inFlight, ...destination };
+    return true;
+  }
   const resizedCurrentView = playback.appliedCommandKey === destination.commandKey;
   const snapToDestination = playback.appliedCommand === null || atDestination || resizedCurrentView;
   if (snapToDestination) {
