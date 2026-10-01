@@ -174,6 +174,9 @@ export class GameRoom extends DurableObject<GameEnv> {
   private assigning = false;
   private draftChangedDuringAttempt = false;
   private refreshingCatalogue = false;
+  /* Picks a capture found ready since the catalogue was last read, so a draft command judges each pick once. */
+  private readyPicks = new Set<string>();
+  private judgingPicks = false;
   private directoryDelivery?: Promise<void>;
   protected readonly diagnostics: GameDiagnostics;
   private confirmationEpoch = 0;
@@ -1581,6 +1584,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     if (this.assigning) {
       this.draftChangedDuringAttempt = true;
     }
+    this.ctx.waitUntil(this.judgePicks().catch((error) => this.diagnostics.report('draft-catalogue', error)));
     if (status.refresh && !this.refreshingCatalogue) {
       this.ctx.waitUntil(
         this.refreshDraftCatalogue().catch((error) => this.diagnostics.report('draft-catalogue', error))
@@ -1604,6 +1608,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       const factions = await catalogue.draftableFactions(metadata.game.rulesetId);
       const setAside = await this.judgeSetAside(catalogue, factions);
       this.session.updateDraftCatalogue(factions, setAside);
+      this.readyPicks.clear();
       /* An attempt that ran alongside dealt from the copy before this one, so it tries again on this. */
       if (this.assigning) {
         this.draftChangedDuringAttempt = true;
@@ -1617,6 +1622,50 @@ export class GameRoom extends DurableObject<GameEnv> {
       this.refreshingCatalogue = false;
     }
     await this.attemptAssignment();
+  }
+
+  /**
+   * A real game judges each drafted faction when it is picked, so one that is not ready is set aside with its reason before anyone readies.
+   * The deal still judges every faction it captures, random fills included.
+   */
+  private async judgePicks() {
+    if (this.judgingPicks || this.metadata?.provisional === true) {
+      return;
+    }
+    const pending = this.session.draftedPicks().filter((id) => !this.readyPicks.has(id));
+    if (!pending.length) {
+      return;
+    }
+    this.judgingPicks = true;
+    try {
+      const catalogue = new GameCatalogue(this.env.CONVEX_URL, this.env.APPLICATION_ORIGIN);
+      const refused: Record<string, string> = {};
+      for (const factionId of pending) {
+        try {
+          const problem = readinessProblem((await catalogue.captureFaction(factionId)).readiness);
+          if (problem === undefined) {
+            this.readyPicks.add(factionId);
+          } else {
+            refused[factionId] = problem.slice(0, 400);
+          }
+        } catch (error) {
+          if (!(error instanceof GameRejection)) {
+            throw error;
+          }
+          refused[factionId] = error.message.slice(0, 400);
+        }
+      }
+      if (Object.keys(refused).length) {
+        this.session.setFactionsAside(refused, { atDeal: false });
+        if (this.assigning) {
+          this.draftChangedDuringAttempt = true;
+        }
+        this.reconcileViewers();
+        this.broadcastViews();
+      }
+    } finally {
+      this.judgingPicks = false;
+    }
   }
 
   /** Why the deal cannot take this faction, from its capture; nothing once it is retained. */
