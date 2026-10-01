@@ -50,7 +50,7 @@ jobs:
           RESULT: ${{ needs.verify.result }}
         run: |
           gh label create hosted-play-daily --repo "$REPO" --description "The daily hosted play run on main failed" --color B60205 --force
-          body="The daily hosted play run on main ended with $RESULT on $SHA: $RUN_URL. The step summaries name the flow that failed, and the hosted-play-evidence artifacts hold its log, report and captures."
+          body="The daily hosted play run on main ended with $RESULT on $SHA: $RUN_URL. When a shard failed, its step summary names the flow and its hosted-play-evidence artifact holds the log, the report and the captures; when the play_closure gate failed, the run's log says which reading of the API broke."
           number="$(gh issue list --repo "$REPO" --label hosted-play-daily --state open --limit 1 --json number --jq '.[0].number // empty')"
           if [ -n "$number" ]; then
             gh issue comment "$number" --repo "$REPO" --body "$body"
