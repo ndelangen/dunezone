@@ -127,6 +127,16 @@ function ConnectionControls({ client, table, error }: ConnectionControlsProps) {
   );
 }
 
+/* A battle the viewer's faction fights in opens the Battle tab once, when that faction takes its side. */
+function battleFocus(table: TableProjection) {
+  const battle = table.snapshot.battle;
+  const own = rosterSeat(table.snapshot.roster, table.viewer.viewerSeat)?.faction?.id;
+  if (table.snapshot.stage !== 'play' || !battle || !own || !battle.sides.some((side) => side?.factionId === own)) {
+    return null;
+  }
+  return { key: 'battle', token: battle.id };
+}
+
 function PhaseNavigation({ client, table }: Pick<ConnectionControlsProps, 'client' | 'table'>) {
   const controls = table.snapshot.controls ?? emptyPublicControls();
   const cooling = table.phaseCooling;
@@ -713,11 +723,14 @@ function ConnectedTable({
               />
             ) : undefined
           }
+          focusTab={battleFocus(table)}
           panelTabs={[
             ...(!tabled && stage !== 'setup'
               ? []
               : [
-                  ...(table.snapshot.setup
+                  /* Past setup the tab holds predictions only, so a game without them has no empty tab to open on. */
+                  ...(table.snapshot.setup &&
+                  (stage === 'setup' || table.snapshot.setup.steps.some((step) => step.kind === 'prediction'))
                     ? [
                         {
                           key: 'setup',

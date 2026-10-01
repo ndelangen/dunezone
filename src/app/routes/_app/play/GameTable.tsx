@@ -58,6 +58,8 @@ type GameTableProps = {
   sceneContent?: ReactNode;
   /** Tabs the host adds ahead of the fixture's own Table tab, in the accepted order. */
   panelTabs?: readonly PanelTab[];
+  /** A tab to open once per token, as a battle opens on the viewer's side; the player can move away and it stays put. */
+  focusTab?: Readonly<{ key: string; token: string }> | null;
   /** Sections the host adds to the Table tab, above the fixture's trackers. */
   tableControls?: ReactNode;
   /** The important decision of the moment, above the panel's tabs: a seat request, a vote, a result. */
@@ -270,6 +272,7 @@ function stageFrame(stage: GameSnapshot['stage']): StageFrame {
  */
 function TableControlsPanel({
   panelTabs = [],
+  focusTab = null,
   tableControls,
   showStormControls,
   turn,
@@ -278,7 +281,10 @@ function TableControlsPanel({
   tableTab: tableTabLabel,
   panelContent,
 }: Readonly<
-  Pick<GameTableProps, 'panelTabs' | 'tableControls' | 'showStormControls' | 'onSelectTurn' | 'panelContent'> &
+  Pick<
+    GameTableProps,
+    'panelTabs' | 'focusTab' | 'tableControls' | 'showStormControls' | 'onSelectTurn' | 'panelContent'
+  > &
     StageFrame & {
       turn: number;
     }
@@ -304,6 +310,12 @@ function TableControlsPanel({
       ]
     : [...panelTabs, ...(tableTabLabel ? [tableTab] : [])];
   const [path, setPath] = useReducer((_: string[], next: string[]) => next, [tabs[0]?.key ?? tableTab.key]);
+  /* Each focus token opens its tab once, during render as React adjusts state from a changed prop. */
+  const [focused, setFocused] = useState<string | null>(null);
+  if (focusTab && focusTab.token !== focused && tabs.some((tab) => tab.key === focusTab.key)) {
+    setFocused(focusTab.token);
+    setPath([focusTab.key]);
+  }
   const active = tabs.find((tab) => tab.key === path[0]) ?? tabs[0] ?? tableTab;
   const subtab = active.subtabs?.find((tab) => tab.key === path[1]) ?? active.subtabs?.[0];
   if (panelContent && panelTabs.length === 0) {
@@ -470,6 +482,7 @@ function controlsPanelValueText(percent: number) {
 export function GameTable({
   sceneContent,
   panelTabs,
+  focusTab,
   tableControls,
   decisionBar,
   gameMenu,
@@ -646,6 +659,7 @@ export function GameTable({
                   <PanelPanes secondary={playerPanel}>
                     <TableControlsPanel
                       panelTabs={panelTabs}
+                      focusTab={focusTab}
                       tableControls={tableControls}
                       panelContent={panelContent}
                       word={frame.word}
