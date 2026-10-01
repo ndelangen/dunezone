@@ -1,0 +1,105 @@
+name: Sign-out fix repeats
+
+# Throwaway (#1592): runs the macOS WebGPU regular flow on norbert/1592-signout-fix, repeated, with the same
+# steps as the hosted_play_webgpu job. The run named "mutation" also applies a mutation in which the Worker sends
+# the refusal but leaves the socket open, and the client never closes its game socket; the sign-out wait must
+# then fail. This PR deletes ci-pr.yml so nothing else runs; it is closed unmerged.
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  regular_webgpu:
+    name: "hosted_play_webgpu (regular), ${{ matrix.run }}"
+    runs-on: macos-26
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      # Four at a time, which leaves one of the account's five macOS slots for other PRs' WebGPU job.
+      max-parallel: 4
+      matrix:
+        run:
+          - mutation
+          - repeat-1
+          - repeat-2
+          - repeat-3
+          - repeat-4
+          - repeat-5
+          - repeat-6
+          - repeat-7
+          - repeat-8
+          - repeat-9
+          - repeat-10
+          - repeat-11
+          - repeat-12
+          - repeat-13
+          - repeat-14
+          - repeat-15
+          - repeat-16
+          - repeat-17
+          - repeat-18
+          - repeat-19
+          - repeat-20
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+      - uses: ./.github/actions/generated-images
+      - name: Install full Chromium
+        run: node_modules/.bin/playwright install --no-shell chromium
+      - name: Select full Chromium in new headless mode
+        run: |
+          chromium_path="$(bun -e 'import { chromium } from "playwright"; console.log(chromium.executablePath())')"
+          test -x "$chromium_path"
+          "$chromium_path" --version
+          echo "CHROMIUM=$chromium_path" >> "$GITHUB_ENV"
+      - name: Apply the mutation
+        if: matrix.run == 'mutation'
+        run: |
+          # The Worker sends the refusal to a signed-out socket and drops its connection, but no longer closes it.
+          perl -0pi -e "s/this\.deny\(socket, false\);\n      return 'denied';/this.sendAdmission(socket, 'denied');\n      this.disconnect(socket, false);\n      return 'denied';/" workers/game/index.ts
+          # The client never closes its game socket, whatever the Worker says.
+          perl -0pi -e 's/    return new WebSocket\(url\);/    const socket = new WebSocket(url);\n    socket.close = () => undefined;\n    return socket;/' src/app/routes/_app/play/multiplayer/gameRuntime.ts
+          git diff --stat
+          git diff
+          test "$(git diff --numstat | wc -l | tr -d ' ')" = 2
+      - name: Run the regular flow expecting WebGPU
+        if: matrix.run != 'mutation'
+        run: bun --no-env-file scripts/verify-hosted-play-stack.ts --skip-generate --shard regular --browser-only --browser "$CHROMIUM" --expect-renderer webgpu
+      - name: Run the mutated regular flow, which must fail at the sign-out wait
+        if: matrix.run == 'mutation'
+        run: |
+          status=0
+          bun --no-env-file scripts/verify-hosted-play-stack.ts --skip-generate --shard regular --browser-only --browser "$CHROMIUM" --expect-renderer webgpu || status=$?
+          echo "flow exit status: $status"
+          test "$status" -ne 0
+          report="$(ls test-results/hosted-play/browser/regular-*/report.json | head -1)"
+          jq -c '{afterCheck: .failure.afterCheck, message: .failure.message, signOut}' "$report"
+          jq -e '.failure.message | startswith("Sign out did not close every tab socket. Still open: ")' "$report"
+      - name: Summarise the sign-out
+        if: always()
+        continue-on-error: true
+        run: |
+          {
+            echo "### ${{ matrix.run }}"
+            for report in test-results/hosted-play/browser/*/report.json; do
+              [ -f "$report" ] || continue
+              jq -c '{failure: .failure.message, at: .failure.afterCheck, tableDraws, renderer: .renderer.kind}' "$report"
+            done
+            echo '```'
+            grep -h '^SIGNOUT' test-results/hosted-play/*.log || echo "no SIGNOUT line"
+            echo '```'
+          } | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Retain evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: signout-fix-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.run }}
+          path: |
+            test-results/hosted-play/*.log
+            test-results/hosted-play/browser/
+          if-no-files-found: warn
+          retention-days: 7
