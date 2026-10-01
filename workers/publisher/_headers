@@ -3,3 +3,12 @@
 # (max-age=0, must-revalidate) makes a warm navigation revalidate every chunk before the page can run.
 /public/*
   Cache-Control: public, max-age=31536000, immutable
+
+# Play is an unlisted beta (#1094). The play pages set a robots meta only once JavaScript runs, so the
+# header also covers crawlers that never run it. Rules match the request path, so they reach the SPA
+# document these routes are served from without making the Worker run first.
+/play
+  X-Robots-Tag: noindex
+
+/play/*
+  X-Robots-Tag: noindex

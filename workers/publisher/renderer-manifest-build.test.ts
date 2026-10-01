@@ -142,6 +142,7 @@ describe('current Renderer manifest digest', () => {
     'index.html',
     'dune-zone-favicon.svg',
     '_headers',
+    'robots.txt',
     '__storybook/index.html',
     '__storybook/assets/Background.stories-hash.js',
     'public/FactionEditor-hash.js',
