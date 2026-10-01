@@ -13,6 +13,7 @@ import { COMPLEXITY_TIER_PRESENTATION, ComplexityGlyph } from '@ui/content/Compl
 import { FormattedTextSource, InlineFormattedTextSource } from '@ui/content/FormattedText';
 import { StatusBadge } from '@ui/content/StatusBadge';
 import type { StatusBadgeTone } from '@ui/content/StatusBadge';
+import { StatusMark } from '@ui/content/StatusMark';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -124,19 +125,15 @@ function TroopHint({ label, children }: { label: string; children: ReactNode }) 
 
 function TroopStrengths({ face }: { face: TroopFace }) {
   if (!face.capable) {
-    return (
-      <TroopHint label="Cannot participate in combat">
-        <TopicIcon topic="noncombatant" size={15} />
-      </TroopHint>
-    );
+    return <StatusMark label="Cannot participate in combat" icon={<TopicIcon topic="noncombatant" size={15} />} />;
   }
   if (!face.combat) {
     return (
-      <TroopHint label="Combat strengths have not been set. This side is unavailable in battle plans.">
-        <Text component="span" c="var(--color-caution)" style={{ display: 'inline-flex' }}>
-          <TopicIcon topic="combatUnknown" size={16} />
-        </Text>
-      </TroopHint>
+      <StatusMark
+        tone="caution"
+        label="Combat strengths have not been set. This side is unavailable in battle plans."
+        icon={<TopicIcon topic="combatUnknown" size={16} />}
+      />
     );
   }
   return (
@@ -204,7 +201,7 @@ function TroopFaceDetails({ face, background }: { face: TroopFace; background: F
         <Text size="sm" fw={700} lh={1.2} truncate>
           {face.face.name}
         </Text>
-        <Group gap="xs" wrap="nowrap">
+        <Group gap="xs">
           <TroopStrengths face={face} />
         </Group>
       </Stack>

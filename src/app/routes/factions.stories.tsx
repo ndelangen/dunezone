@@ -144,12 +144,12 @@ export const DetailWithIndependentTroopFaces = meta.story({
           ...art,
           name: 'A troop with a long authored name',
           count: 1,
-          combat: { strength: 0, fundedStrength: 0, fundingCost: 0 },
+          combat: { strength: 0, fundedStrength: 1.5, fundingCost: 0 },
           back: {
             image: art.image,
             description: 'The reverse has its own combat values.',
             name: 'An independently authored reverse',
-            combat: { strength: 1, fundedStrength: 3, fundingCost: 2 },
+            combat: { strength: 0.5, fundedStrength: 1, fundingCost: 2 },
           },
         },
       ];
@@ -159,11 +159,23 @@ export const DetailWithIndependentTroopFaces = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     const troops = within(await page.findByRole('region', { name: 'Troops' }));
-    expect(troops.getByRole('img', { name: 'Strength per troop: 0 undialed | 0 dialed' })).toBeVisible();
+    expect(troops.getByRole('img', { name: 'Strength per troop: 0 undialed | 1.5 dialed' })).toBeVisible();
     expect(troops.getByRole('img', { name: 'Funding cost: 0 spice per dialed troop' })).toBeVisible();
-    expect(troops.getByRole('img', { name: 'Strength per troop: 1 undialed | 3 dialed' })).toBeVisible();
+    expect(troops.getByRole('img', { name: 'Strength per troop: 0.5 undialed | 1 dialed' })).toBeVisible();
     const card = troops.getByRole('article');
     expect(card.scrollWidth).toBeLessThanOrEqual(card.clientWidth);
+    const flip = troops
+      .getByRole('img', { name: 'Flip side: An independently authored reverse' })
+      .getBoundingClientRect();
+    const frontCost = troops
+      .getByRole('img', { name: 'Funding cost: 0 spice per dialed troop' })
+      .getBoundingClientRect();
+    const backCost = troops
+      .getByRole('img', { name: 'Funding cost: 2 spice per dialed troop' })
+      .getBoundingClientRect();
+    const count = troops.getByRole('img', { name: '1 troop token' }).getBoundingClientRect();
+    expect(frontCost.right).toBeLessThanOrEqual(flip.left);
+    expect(backCost.right).toBeLessThanOrEqual(count.left);
   },
 });
 
