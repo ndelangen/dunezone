@@ -325,48 +325,6 @@ async function peer(label, context) {
     });
     await context.addInitScript(observeRenderers);
     await context.addInitScript(observeConnectionStatus);
-    /* Throwaway probe (#1592): the page's long tasks and each install of window.__duneTable, by the page's clock. */
-    await context.addInitScript(() => {
-      const now = () => Math.round(performance.timeOrigin + performance.now());
-      const longTasks = [];
-      const installs = [];
-      try {
-        new PerformanceObserver((list) => {
-          for (const entry of list.getEntries()) {
-            longTasks.push({ at: Math.round(performance.timeOrigin + entry.startTime), ms: Math.round(entry.duration) });
-            longTasks.splice(0, Math.max(0, longTasks.length - 500));
-          }
-        }).observe({ type: 'longtask', buffered: true });
-      } catch {}
-      const frames = [];
-      try {
-        new PerformanceObserver((list) => {
-          for (const entry of list.getEntries()) {
-            frames.push({
-              at: Math.round(performance.timeOrigin + entry.startTime),
-              ms: Math.round(entry.duration),
-              scripts: [...entry.scripts]
-                .sort((left, right) => right.duration - left.duration)
-                .slice(0, 3)
-                .map((script) => `${script.invoker}|${script.sourceFunctionName}|${script.sourceURL.split('/').at(-1)}|${Math.round(script.duration)}`),
-            });
-            frames.splice(0, Math.max(0, frames.length - 300));
-          }
-        }).observe({ type: 'long-animation-frame', buffered: true });
-      } catch {}
-      const storage = [];
-      window.addEventListener('storage', (event) => storage.push({ at: now(), key: event.key, cleared: event.newValue === null }));
-      let table;
-      Object.defineProperty(window, '__duneTable', {
-        configurable: true,
-        get: () => table,
-        set: (value) => {
-          table = value;
-          installs.push(now());
-        },
-      });
-      Object.assign(window, { hostedPlayProbe: () => ({ longTasks, installs, frames, storage }) });
-    });
     await context.route(
       (url) => !allowedOrigins.has(url.origin),
       async (route) => {
@@ -584,10 +542,7 @@ async function tableLoaded(who) {
     });
   await loaded.dispose();
   report.tableLoads.push({ label: who.label, seconds: Math.round((Date.now() - started) / 100) / 10 });
-  drawTimes.push({ label: who.label, startedAt: started, endedAt: Date.now() });
 }
-/* Throwaway probe (#1592): when each table draw wait started and ended, by the driver's clock. */
-const drawTimes = [];
 /**
  * Waits for an admitted connection and the table it projects.
  * Before play the stage replaces the table view.
@@ -1861,47 +1816,6 @@ try {
   if (signOut) {
     report.signOut = signOutReport();
     console.log(`SIGNOUT ${JSON.stringify(report.signOut)}`);
-    /* Throwaway probe (#1592): each signed-out tab's and the observer's long tasks and table installs, in ms after the click. */
-    const clickedAt = signOut.clickedAt;
-    report.probe = await Promise.all(
-      peers
-        .filter((who) => ['player-a', 'player-a-tab', 'observer'].includes(who.label))
-        .map(async (who) => {
-          let timer;
-          const page = await Promise.race([
-            who.page.evaluate(() => window.hostedPlayProbe?.() ?? null),
-            new Promise((resolve) => {
-              timer = setTimeout(() => resolve(null), 30_000);
-            }),
-          ])
-            .catch(() => null)
-            .finally(() => clearTimeout(timer));
-          const closedAt = who.sockets.at(-1)?.closedAt ?? null;
-          const end = who.label === 'observer' ? clickedAt + 15_000 : (closedAt ?? clickedAt + 15_000);
-          const overlap = ({ at, ms }) => Math.max(0, Math.min(at + ms, end) - Math.max(at, clickedAt));
-          const tasks = page?.longTasks ?? [];
-          const draw = drawTimes.find((entry) => entry.label === who.label);
-          return {
-            label: who.label,
-            answered: page !== null,
-            installs: page?.installs.map((at) => at - clickedAt) ?? null,
-            drawWait: draw ? [draw.startedAt - clickedAt, draw.endedAt - clickedAt] : null,
-            windowMs: end - clickedAt,
-            busyInWindowMs: tasks.reduce((total, task) => total + overlap(task), 0),
-            longestInWindowMs: Math.max(0, ...tasks.filter((task) => overlap(task) > 0).map((task) => task.ms)),
-            tasksFrom20sBefore: tasks
-              .filter((task) => task.at + task.ms > clickedAt - 20_000 && task.at < end)
-              .map((task) => `${task.at - clickedAt}+${task.ms}`),
-            framesFrom5sBefore: (page?.frames ?? [])
-              .filter((frame) => frame.at + frame.ms > clickedAt - 5000 && frame.at < end)
-              .map((frame) => ({ at: frame.at - clickedAt, ms: frame.ms, scripts: frame.scripts })),
-            storage: (page?.storage ?? []).filter((entry) => entry.at > clickedAt - 5000).map((entry) => ({ ...entry, at: entry.at - clickedAt })),
-            refusedMs: who.sockets.at(-1)?.refusedAt ? who.sockets.at(-1).refusedAt - clickedAt : null,
-            closedMs: closedAt ? closedAt - clickedAt : null,
-          };
-        })
-    );
-    console.log(`PROBE ${JSON.stringify(report.probe)}`);
   }
   const counts = (messages) =>
     messages.reduce((result, message) => ({ ...result, [message.type]: (result[message.type] ?? 0) + 1 }), {});
