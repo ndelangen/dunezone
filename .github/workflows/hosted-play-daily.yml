@@ -1,0 +1,59 @@
+name: Hosted play daily
+
+# Runs the four hosted play shards on main once a day (#1598). A pull request whose diff lies outside
+# the hosted closure skips them, and this repository has no merge queue (GitHub offers none to a
+# personal account's repository, and #286 chose the up-to-date rule over one), so this run is where a
+# change outside the closure first meets the flows. The play_closure job in reusable-verify.yml skips
+# the shards when main's tree already had them: when the last daily run checked this same commit, or
+# when the pull request that merged as this commit was up to date and its diff reached the closure, so
+# its own run executed the shards on this tree.
+on:
+  schedule:
+    # Once a day, off the hour. GitHub runs scheduled workflows from the default branch only.
+    - cron: "47 3 * * *"
+  workflow_dispatch:
+    inputs:
+      force:
+        description: Run the shards even when main's tree already had them
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hosted-play-daily
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    uses: ./.github/workflows/reusable-verify.yml
+    with:
+      hosted_only: true
+
+  # A red scheduled run is read by nobody unless it is written down: one open issue carries every
+  # failure until someone closes it.
+  report:
+    if: ${{ always() && needs.verify.result != 'success' && needs.verify.result != 'skipped' }}
+    needs: verify
+    permissions:
+      issues: write
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Open or extend the failure issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          SHA: ${{ github.sha }}
+          RESULT: ${{ needs.verify.result }}
+        run: |
+          gh label create hosted-play-daily --repo "$REPO" --description "The daily hosted play run on main failed" --color B60205 --force
+          body="The daily hosted play run on main ended with $RESULT on $SHA: $RUN_URL. The step summaries name the flow that failed, and the hosted-play-evidence artifacts hold its log, report and captures."
+          number="$(gh issue list --repo "$REPO" --label hosted-play-daily --state open --limit 1 --json number --jq '.[0].number // empty')"
+          if [ -n "$number" ]; then
+            gh issue comment "$number" --repo "$REPO" --body "$body"
+          else
+            gh issue create --repo "$REPO" --title "The daily hosted play run on main failed" --label hosted-play-daily --label needs-triage --body "$body"
+          fi
