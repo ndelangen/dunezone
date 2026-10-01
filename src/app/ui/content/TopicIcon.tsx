@@ -1,6 +1,7 @@
 import {
   BookOpen,
   Dices,
+  Globe2,
   Hand,
   ScrollText,
   ShieldCheck,
@@ -30,6 +31,7 @@ const TOPIC_ICON_DEFINITIONS = {
   face: { kind: 'component', component: ImageIcon },
   /* Words on an artifact: a card's Head, an enhance token's per-face text. Both editors had hand-picked the same glyph. */
   text: { kind: 'component', component: Type },
+  planets: { kind: 'component', component: Globe2 },
   hero: { kind: 'mask', src: '/vector/generic/ceasar.svg' },
   leaders: { kind: 'mask', src: '/vector/icon/traitor.svg' },
   alliance: { kind: 'mask', src: '/vector/icon/alliance.svg' },

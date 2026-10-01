@@ -2,7 +2,7 @@ import preview from '@sb/preview';
 import { waitForFrame } from '@sb/storyWaits';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
-import { db, refText, SEED_REF_TOKEN } from '@db/storybook';
+import { db, faction, refText, SEED_REF_TOKEN } from '@db/storybook';
 
 import { expectToolbarOnOneLine } from './authoringToolbarPlay';
 import {
@@ -33,7 +33,77 @@ export const CatalogueMobile = meta.story({
   globals: { viewport: { value: 'appMobile' } },
 });
 
-export const Detail = meta.story({ args: { path: '/factions/house-atreides' } });
+export const Detail = meta.story({
+  args: { path: '/factions/house-atreides' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByRole('heading', { name: 'House Atreides' })).resolves.toBeVisible();
+    expect(page.queryByRole('region', { name: 'Planets' })).not.toBeInTheDocument();
+  },
+});
+
+const withPlanets = db((baseline) => {
+  baseline.factions[0].data = faction({
+    name: 'House Atreides',
+    data: {
+      planet: [
+        {
+          name: 'Caladan',
+          image: '/image/planet/08.png',
+          description:
+            'An **ocean world** of rain, green coastlines and deep seas. The ancestral home of House Atreides.',
+        },
+        {
+          name: 'Arrakis',
+          image: '/image/planet/09.png',
+          description:
+            'A desert world and the source of the spice. Its strongholds, sand seas and storms shape the struggle for control.',
+        },
+        { name: 'Giedi Prime', image: '/image/planet/07.png', description: '' },
+      ],
+    },
+  }).data;
+});
+
+export const DetailWithPlanets = meta.story({
+  args: { path: '/factions/house-atreides' },
+  parameters: { database: withPlanets },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const sidebar = await page.findByRole('complementary', { name: 'Faction details' });
+    const planets = within(sidebar).getByRole('region', { name: 'Planets' });
+    const caladan = within(planets).getByRole('listitem', { name: 'Caladan' });
+    const arrakis = within(planets).getByRole('listitem', { name: 'Arrakis' });
+    const giediPrime = within(planets).getByRole('listitem', { name: 'Giedi Prime' });
+
+    expect(caladan).toHaveAccessibleDescription(/An ocean world/);
+    await userEvent.hover(caladan);
+    const description = await page.findByRole('tooltip');
+    expect(description).toHaveTextContent('An ocean world');
+    expect(within(description).getByText('ocean world').tagName).toBe('STRONG');
+    await userEvent.unhover(caladan);
+    await waitFor(() => expect(page.queryByRole('tooltip')).not.toBeInTheDocument());
+
+    caladan.focus();
+    await userEvent.tab();
+    expect(arrakis).toHaveFocus();
+    await expect(page.findByRole('tooltip')).resolves.toHaveTextContent('A desert world');
+    await userEvent.keyboard('{Escape}');
+    await waitFor(() => expect(page.queryByRole('tooltip')).not.toBeInTheDocument());
+    await userEvent.tab();
+    expect(giediPrime).not.toHaveFocus();
+    await userEvent.hover(giediPrime);
+    expect(page.queryByRole('tooltip')).not.toBeInTheDocument();
+    await userEvent.unhover(giediPrime);
+  },
+});
+
+export const DetailWithPlanetsMobile = meta.story({
+  args: { path: '/factions/house-atreides' },
+  parameters: { database: withPlanets },
+  globals: { viewport: { value: 'appMobile' } },
+});
+
 export const Create = meta.story({ args: { path: '/factions/create' } });
 export const Edit = meta.story({ args: { path: '/factions/house-atreides/edit' } });
 
