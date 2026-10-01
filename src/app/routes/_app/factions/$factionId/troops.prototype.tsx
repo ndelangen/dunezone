@@ -6,7 +6,7 @@ import { FormattedTextSource } from '@ui/content/FormattedText';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { Surface } from '@ui/surface';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
-import { useEffect } from 'react';
+import { Fragment, useEffect } from 'react';
 import type { ReactNode } from 'react';
 
 import type { FactionData } from '@db/factions';
@@ -149,7 +149,7 @@ function PairedFaces({ data, troop }: { data: FactionData; troop: Troop }) {
   return (
     <div className={troop.back ? styles.pairedFaces : styles.singleFace}>
       {faces.map((face, index) => (
-        <div className={styles.faceSlot} key={face.id}>
+        <Fragment key={face.id}>
           {index > 0 ? (
             <div className={styles.flipDivider}>
               <Hint label={`Flip side: ${face.face.name}`}>
@@ -158,13 +158,13 @@ function PairedFaces({ data, troop }: { data: FactionData; troop: Troop }) {
             </div>
           ) : null}
           <div className={styles.cardFace}>
+            {face.side === 'front' ? <Count count={troop.count} /> : null}
             <Art data={data} face={face} />
             <div className={styles.faceContent}>
               <Group gap={6} wrap="nowrap">
                 <Text size="sm" fw={700} lh={1.2}>
                   {face.face.name}
                 </Text>
-                {face.side === 'front' ? <Count count={troop.count} /> : null}
               </Group>
               <Group gap={6} wrap="nowrap">
                 <Eligibility face={face} />
@@ -172,7 +172,7 @@ function PairedFaces({ data, troop }: { data: FactionData; troop: Troop }) {
               </Group>
             </div>
           </div>
-        </div>
+        </Fragment>
       ))}
     </div>
   );

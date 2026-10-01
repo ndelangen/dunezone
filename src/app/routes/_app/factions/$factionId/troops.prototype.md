@@ -41,3 +41,5 @@ Fresh main changes through 3c3353181a4 concern CI and Play drafting, not this pa
 ## Two-line face layout
 
 Each face now puts its token beside a name line and a stats line. Front and reverse names share the same size and weight. The front keeps the shared count beside its name. Successful combat eligibility has no separate icon; the strength pair communicates that. The noncombatant icon and missing-value warning remain. This applies to all three layouts.
+
+The shared token count now precedes the first token at the left of the block. The flip divider occupies its own layout column, with the same spacing on both sides. Browser geometry confirmed a 12px gap from either face to the divider at the reviewed desktop width.

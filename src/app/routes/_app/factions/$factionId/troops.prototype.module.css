@@ -4,13 +4,10 @@
   gap: var(--space-sm);
   align-items: start;
 }
-.singleCard {
-  flex: 0 1 10.5rem;
-  min-width: 0;
-}
+.singleCard,
 .doubleCard {
-  flex: 0 1 20rem;
-  min-width: 0;
+  flex: 0 0 auto;
+  max-width: 100%;
 }
 .token {
   display: block;
@@ -51,24 +48,14 @@
   gap: 3px;
   min-width: 0;
 }
-.pairedFaces {
-  display: grid;
-  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
-  gap: 20px;
-}
+.pairedFaces,
 .singleFace {
   display: flex;
-}
-.faceSlot {
-  position: relative;
-  min-width: 0;
+  align-items: stretch;
+  gap: var(--space-sm);
 }
 .flipDivider {
-  position: absolute;
-  left: -18px;
-  top: 0;
-  bottom: 0;
-  width: 16px;
+  flex: 0 0 16px;
   display: flex;
   align-items: center;
   flex-direction: column;
