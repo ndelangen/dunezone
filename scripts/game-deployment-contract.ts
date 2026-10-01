@@ -62,6 +62,17 @@ export function validateGameDeployContract(config: JsonObject, environment: Node
   exact(config.version_metadata, { binding: 'CF_VERSION_METADATA' }, 'version metadata');
   exact(config.send_email, [{ name: 'ALERT_EMAIL' }], 'alert email binding');
   exact(config.limits, { cpu_ms: 30_000 }, 'CPU bound');
+  /* Issue detection feeds the alert relay; a dashboard toggle would not survive a deploy. */
+  exact(
+    config.observability,
+    {
+      enabled: true,
+      head_sampling_rate: 1,
+      logs: { enabled: true, invocation_logs: false },
+      issues: { enabled: true },
+    },
+    'observability'
+  );
   for (const binding of [
     'assets',
     'browser',

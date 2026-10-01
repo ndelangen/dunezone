@@ -33,7 +33,7 @@ Play ingress rate limit (`workers/publisher/index.ts:49-51`).
 
 `game-operation-failed` is the only Play application diagnostic
 (`docs/technical/play-hosted.md:302-324`). The game Worker turns off invocation logs and keeps logs
-at 100% sampling so these failure reports survive (`workers/game/wrangler.jsonc:11-15`). Each record
+at 100% sampling so these failure reports survive (`workers/game/wrangler.jsonc:11-16`). Each record
 carries `operation`, `roomId` (the opaque Durable Object ID), `gitSha`, `errorKind`, `suppressed`
 and `since` (`workers/game/diagnostics.ts:62-70`). The operation names are fixed
 (`workers/game/diagnostics.ts:1-20`): `provision`, `confirmation`, `battle-alarm`, `directory`,
@@ -112,7 +112,9 @@ Partly set up:
 
   Issue detection itself is per Worker and off by default. `observability.issues.enabled` in
   `workers/game/wrangler.jsonc` turns it on at every deploy; the dashboard's Enable issues toggle
-  alone would be undone by the next `wrangler deploy`. Issues is free during its open beta.
+  alone would be undone by the next `wrangler deploy`, and the deploy contract refuses a config
+  without it. The live drift audit does not read the deployed observability settings, so a later
+  dashboard toggle-off goes unnoticed until the next deploy. Issues is free during its open beta.
   Automations are per Worker too and only appear once detection is on: Workers & Pages >
   `dunezone-game` > Issues > Automations > Add automation, not the account-level Observability
   pages. Cloudflare requires a generic webhook to have a webhook secret or mTLS. The relay ignores
