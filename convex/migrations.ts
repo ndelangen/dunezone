@@ -3,6 +3,7 @@ import type { FunctionReference } from 'convex/server';
 import { v } from 'convex/values';
 import { z } from 'zod';
 
+import { DeckAsset, RectangleTokenAsset, TokenAsset } from '../src/shared/assets/schema';
 import { factionExtrasSchema, isLegacyFactionExtra } from '../src/shared/factions/extras';
 import {
   assertUniqueFactionMemberIds,
@@ -24,7 +25,6 @@ import { internalQuery, query } from './_generated/server';
 import { internalMutation, mutation } from './functions';
 import { accountStateOf, optionalActiveUserId } from './lib/accountLifecycle';
 import { hasAuthoredBack, TOKEN_ASSET_TYPES, tokenBackOf } from './lib/assetBacks';
-import { DECAL_ID_RENAMES, DECAL_SCALE_FACTORS } from './lib/decalRetune';
 import { requireAdminUserId } from './lib/policy';
 import {
   reconcileAnswerActivity,
@@ -488,46 +488,14 @@ export const profile_activity_answers_v1 = migrations.define({
 });
 
 /**
- * Vector-train retune (wayfinder #307): the train normalized decals into the shared square and 16 baked-paint decals gained `-multicolor` names.
- * Stored placements (faction.data.decals) get the matching rename + scale multiplier so cards render pixel-identically.
- * Run-once semantics come from the migrations framework;
- * factors live frozen in `./lib/decalRetune`.
+ * Retains the completed vector-train decal retune identity (wayfinder #307).
+ * Its body multiplied each stored decal scale by a frozen factor, which is right once and wrong on every later pass.
+ * Production finished it, and a loaded snapshot carries no migration state, so each load would have scaled production's retuned decals a second time.
  */
 export const faction_decal_retune_v1 = migrations.define({
   table: 'factions',
   batchSize: 50,
-  migrateOne: async (_ctx, row) => {
-    const data = (row as { data?: { decals?: unknown } }).data;
-    if (!data || !Array.isArray(data.decals) || data.decals.length === 0) {
-      return;
-    }
-    let changed = false;
-    const decals = data.decals.map((decal) => {
-      if (typeof decal !== 'object' || decal === null) {
-        return decal;
-      }
-      const entry = decal as { id?: unknown; scale?: unknown };
-      if (typeof entry.id !== 'string') {
-        return decal;
-      }
-      const id = DECAL_ID_RENAMES[entry.id] ?? entry.id;
-      const factor = DECAL_SCALE_FACTORS[id] ?? 1;
-      const scale =
-        typeof entry.scale === 'number' && factor !== 1
-          ? Math.round(entry.scale * factor * 10_000) / 10_000
-          : entry.scale;
-      if (id !== entry.id || scale !== entry.scale) {
-        changed = true;
-        // Convex rejects `undefined` values, so never introduce an own `scale: undefined` key.
-        return scale === undefined ? { ...entry, id } : { ...entry, id, scale };
-      }
-      return decal;
-    });
-    if (!changed) {
-      return;
-    }
-    return { data: { ...data, decals } };
-  },
+  migrateOne: async () => undefined,
 });
 
 /** Retains the completed grouped-complexity backfill identity after contract narrowing. */
@@ -755,7 +723,17 @@ export const asset_relations_token_back_drop_v1 = migrations.define({
 });
 
 /**
- * Proves the move left nothing behind: every token back is one of the three modes, every reference carries its target in data, and no `token-back` relation row remains.
+ * The modes a token back can wear, read off the back unions of both token schemas.
+ * Every snapshot load replays the verify below over today's tokens, so a list written into the verify would refuse a mode added after it shipped.
+ */
+const TOKEN_BACK_MODES: ReadonlySet<unknown> = new Set(
+  [TokenAsset, RectangleTokenAsset].flatMap((schema) =>
+    schema.shape.back.options.map((member) => member.shape.mode.value)
+  )
+);
+
+/**
+ * Proves the move left nothing behind: every token back wears a mode the token schemas accept, every reference carries its target in data, and no `token-back` relation row remains.
  * Passing is what makes requiring `asset_id` on the reference member safe in a later release.
  */
 export const assets_back_modes_verify_v1 = migrations.define({
@@ -766,7 +744,7 @@ export const assets_back_modes_verify_v1 = migrations.define({
       return;
     }
     const back = tokenBackOf(row.data);
-    if (back?.mode !== 'custom' && back?.mode !== 'same' && back?.mode !== 'reference') {
+    if (!back || !TOKEN_BACK_MODES.has(back.mode)) {
       throw new Error(`Token ${row._id} has no recognisable back mode`);
     }
     if (back.mode === 'reference' && typeof back.asset_id !== 'string') {
@@ -802,6 +780,14 @@ export const assets_deck_cardback_wrap_v1 = migrations.define({
   },
 });
 
+/**
+ * The modes a tagged deck cardback can wear, read off the schema's own union.
+ * A loaded snapshot carries no migration state, so every load replays the verify below over today's decks, and a list written into the verify would refuse a mode added after it shipped.
+ */
+const TAGGED_DECK_CARDBACK_MODES: ReadonlySet<unknown> = new Set(
+  DeckAsset.shape.cardback.options.flatMap((member) => ('mode' in member.shape ? [member.shape.mode.value] : []))
+);
+
 /** Proves every deck cardback wears a mode, which is what makes removing the bare transitional member safe later. */
 export const assets_deck_cardback_wrap_verify_v1 = migrations.define({
   table: 'assets',
@@ -811,7 +797,7 @@ export const assets_deck_cardback_wrap_verify_v1 = migrations.define({
       return;
     }
     const cardback = (row.data as { cardback?: { mode?: unknown } } | null)?.cardback;
-    if (cardback?.mode !== 'custom' && cardback?.mode !== 'reference') {
+    if (!TAGGED_DECK_CARDBACK_MODES.has(cardback?.mode)) {
       throw new Error(`Deck ${row._id} still has an untagged cardback`);
     }
   },

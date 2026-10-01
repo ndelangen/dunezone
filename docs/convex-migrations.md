@@ -83,6 +83,18 @@ and reruns `dev-strict`. See
 [`Disposable local app development`](./README.md#disposable-local-app-development) for what the
 snapshot holds, where it comes from and when the download is deleted.
 
+The snapshot carries no migration state, so every load replays every widen migration in the
+manifest over rows production has already migrated. That holds for local loads and for the cloud
+dev rebuild alike. Each listed migration therefore has to be safe to replay. A verify reads the
+shapes it accepts from the current schema. A list written into the verify goes stale when the
+schema gains a member, which is how the preset cardback stopped the dev rebuild after #1573, and
+with it every later migration in the series, the aggregate rebuilds among them. Once production
+has run a backfill whose second pass would change a row, such as one that multiplies a stored
+value, its body becomes a no-op and its id stays. `convex/migrations.snapshotReplay.test.ts`
+replays the manifest over rows in their migrated shape, with a row for every deck cardback mode
+and every token back mode. Those rows are keyed by mode, so a mode added to either union fails
+typecheck until the test has a row that wears it.
+
 - `bun run convex:dev` runs `bun run migrations:dev-strict` before starting the configured Convex
   deployment's watcher. It is reserved for deliberate integration work because a feature branch can
   replace the shared cloud dev functions and schema.
@@ -106,6 +118,8 @@ On failure, the command prints the required ids, latest statuses, and the exact 
 - [ ] Widen phase implemented and deployed first
 - [ ] Compatibility reads and writes cover the migration window
 - [ ] Backfill or retirement work is bounded and idempotent
+- [ ] Each listed migration replays cleanly over migrated rows, because every snapshot load reruns
+      the whole manifest
 - [ ] Verification exists and proves the target invariants
 - [ ] Narrow phase is separate and waits for verified completion
 - [ ] Temporary fallback and migration code has a later cleanup plan
