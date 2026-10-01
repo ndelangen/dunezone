@@ -112,7 +112,9 @@ function Values({ face }: { face: Face }) {
   if (!face.combat)
     return (
       <Hint label="Combat strengths have not been set. This side is unavailable in battle plans.">
-        <TopicIcon topic="combatUnknown" size={16} />
+        <Text component="span" c="var(--color-caution)" style={{ display: 'inline-flex' }}>
+          <TopicIcon topic="combatUnknown" size={16} />
+        </Text>
       </Hint>
     );
   return (

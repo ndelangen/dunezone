@@ -3,7 +3,7 @@ import {
   CircleDashed,
   Gauge,
   ShieldOff,
-  CircleHelp,
+  TriangleAlert,
   Dices,
   Globe2,
   Hand,
@@ -29,7 +29,7 @@ const TOPIC_ICON_DEFINITIONS = {
   undialed: { kind: 'component', component: CircleDashed },
   dialed: { kind: 'component', component: Gauge },
   noncombatant: { kind: 'component', component: ShieldOff },
-  combatUnknown: { kind: 'component', component: CircleHelp },
+  combatUnknown: { kind: 'component', component: TriangleAlert },
   /* Every authoring surface opens on an Identity chapter: what a thing is called, and what it fundamentally is. */
   identity: { kind: 'component', component: Signature },
   /* Off-face prose (CONTEXT.md: About), on every asset editor and every detail page. */

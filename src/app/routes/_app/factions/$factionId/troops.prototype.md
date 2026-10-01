@@ -27,3 +27,5 @@ TopicIcon owns every troop concept glyph. Flip uses the existing /vector/icon/fl
 All three revised layouts were viewed at 1280px and 390px, with no page overflow. At 1280px, the complete troop sections, including the heading, measured 185px for A, 164px for B and 233px for C with three sample troop types and four faces.
 
 Base decision: fetched main on 2026-10-01 and inspected the changes since the prototype base. They only concern CI selection and its documentation. Kept the established prototype base at 78283a2a9ff to continue this visual comparison, following the user's instruction to judge the impact of unrelated concurrent work.
+
+Missing combat values use the same TriangleAlert glyph as ValidationHeader, in the caution colour. The question-mark glyph remains reserved for explanatory help.
