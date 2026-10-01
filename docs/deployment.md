@@ -406,12 +406,13 @@ before it finished green, in which case it stops at its own gate.
 ## Recovering from a dashboard edit to `dunezone-game`
 
 Every push deploy runs `wrangler deploy --strict` for `dunezone-game`. When the Worker was last
-changed in the Cloudflare dashboard (adding a secret or variable there creates a new version),
-wrangler compares the checked-in config with that dashboard version and, under `--strict` in CI,
-aborts on any difference. `GIT_SHA` always differs, so every deploy fails at "Deploy exact game
-Worker release" until one deploy replaces the dashboard version. Production keeps serving the last
-good release meanwhile. This happened on 2026-10-01: setting `ALERT_EMAIL_TO` in the dashboard
-blocked run 36934067755.
+changed outside wrangler (adding a secret or variable in the dashboard creates a new version),
+wrangler compares the checked-in config with that version and, under `--strict` in CI, aborts on any
+change to it. `GIT_SHA` always changes, so every deploy fails at "Deploy exact game Worker release"
+until one deploy replaces the dashboard version. Both Workers keep serving the last good release
+meanwhile, but `Deploy Convex` and its migrations run before that step, so Convex is already on the
+new commit: recover promptly. This happened on 2026-10-01: setting `ALERT_EMAIL_TO` in the
+dashboard blocked run 36934067755, and dispatched run 36937790739 recovered it.
 
 To recover, dispatch the workflow on `main` with the override, which drops `--strict` for that one
 game deploy (Actions > Deploy production > Run workflow, tick `replace_dashboard_game_config`):
@@ -420,9 +421,15 @@ game deploy (Actions > Deploy production > Run workflow, tick `replace_dashboard
 gh workflow run deploy-main.yml --ref main -f replace_dashboard_game_config=true
 ```
 
-Secrets stay: Cloudflare's Wrangler configuration docs say wrangler does not delete secrets unless
-`wrangler secret delete` runs. Push runs stay strict. Avoid dashboard edits to `dunezone-game`; a secret is better set
-with `wrangler secret put`, though whether that also counts as a dashboard edit has not been checked.
+Dispatch after a push run has failed this way: `release_gate` stops a dispatch whose commit an
+earlier run already finished green. Without `--strict`, wrangler accepts every remote-conflict
+prompt for that deploy, not only the dashboard diff, so dispatch it only for this case. Secrets
+stay: Cloudflare's Wrangler configuration docs say wrangler does not delete secrets unless
+`wrangler secret delete` runs. Push runs stay strict.
+
+Avoid editing `dunezone-game` in the dashboard. Wrangler also refuses a strict deploy after an edit
+through the script API, and whether `wrangler secret put` counts as one has not been checked. The
+publisher and Storybook deploys use `--strict` too and have no override yet.
 
 ## Publication controls
 

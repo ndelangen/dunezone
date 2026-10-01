@@ -123,8 +123,10 @@ Partly set up:
   trigger. To test, open any issue and send it to the automation's destination, which should
   produce one email.
 
-  State (2026-10-01): `ALERT_EMAIL_TO` is set on `dunezone-game`. Detection turns on with the
-  first deploy that carries the wrangler setting, and the automation is created after that.
+  State (2026-10-01): `ALERT_EMAIL_TO` is set on `dunezone-game`, and detection is on since
+  deploy run 36937790739. Setting the secret in the dashboard blocked strict deploys until that run
+  (`docs/deployment.md`, "Recovering from a dashboard edit"), so avoid dashboard edits to this
+  Worker. The automation is created through the Mac session.
 - **Health Checks** against `/__play/health`. They need the Pro plan, and Norbert decided not to
   upgrade. The deploy smoke still reads that endpoint (section 2).
 
