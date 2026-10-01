@@ -35,9 +35,19 @@ test.each(['configure', 'migrations', 'conflicting-targets'] as const)(
     let child: ReturnType<typeof spawn> | undefined;
     let exited: Promise<number | null> | undefined;
     try {
-      mkdirSync(path.join(directory, 'scripts'));
-      /* The guards import the retry helper by relative path, so the copy carries it too. */
-      for (const name of ['provision.ts', 'migration-guards.ts', 'retry-transient.ts']) {
+      mkdirSync(path.join(directory, 'scripts', 'lib'), { recursive: true });
+      /*
+       * The guards import the retry helper by relative path, so the copy carries it too.
+       * The provision module checks a snapshot before it loads one, so the copy carries the anonymiser as well.
+       */
+      for (const name of [
+        'provision.ts',
+        'migration-guards.ts',
+        'retry-transient.ts',
+        'snapshot-anonymise.ts',
+        'lib/snapshot-anonymiser.ts',
+        'lib/snapshot-policy.ts',
+      ]) {
         copyFileSync(path.join(import.meta.dirname, name), path.join(directory, 'scripts', name));
       }
       /* The provision module seeds the Storybook baseline from src, so the copy links it beside convex. */

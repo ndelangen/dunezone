@@ -63,6 +63,49 @@ describe('A real game provisioned at the play stage', () => {
     expect(view.snapshot.roster.seats.map((entry) => entry.id).sort()).toEqual(['seat-1', 'seat-2']);
   });
 
+  it('locks and reveals an authored prediction and readies only where a setup step asks', async () => {
+    ({ peer, runtime } = await draftingRuntime([], undefined, {
+      bindings: LOCAL_ISOLATED,
+      testPhaseCooldownMs: 0,
+      testStartStage: 'play',
+      prepare: (catalogue) => {
+        const atreides = catalogue.factions.get('atreides');
+        catalogue.factions.set('atreides', {
+          ...atreides,
+          data: {
+            ...atreides.data,
+            extraPhases: [
+              {
+                id: 'prediction',
+                type: 'prediction',
+                title: 'Bene Gesserit prediction',
+                symbol: '/vector/icon/fate.svg',
+                before: 'traitors',
+                priority: 10,
+                allPlayersMustBeReady: false,
+              },
+              {
+                id: 'muster',
+                type: 'instruction',
+                title: 'Muster',
+                symbol: '/vector/icon/fate.svg',
+                before: 'forces',
+                priority: 10,
+                allPlayersMustBeReady: true,
+              },
+            ],
+          },
+        });
+      },
+    }));
+    const { snapshot } = await syncView(await admitPlayer(peer, runtime, 'a'));
+    expect(snapshot.stage).toBe('play');
+    expect(snapshot.setup.steps.map((step) => step.kind)).toEqual(['prediction', 'traitors', 'instruction', 'forces']);
+    const [prediction] = Object.values(snapshot.predictions);
+    expect(prediction).toMatchObject({ factionId: 'atreides', choice: { factionId: 'atreides', turn: 1 } });
+    expect(prediction.revealedAt).not.toBeNull();
+  });
+
   it('is refused outside the isolated local runtime, which then provisions the game at its start', async () => {
     const outside = {
       'a deployed Worker': { GIT_SHA: 'a'.repeat(40), APPLICATION_ORIGIN: 'https://dune.zone' },

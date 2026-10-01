@@ -3,6 +3,7 @@ import type { GenericId } from 'convex/values';
 
 import type { components } from '../../convex/_generated/api';
 import type { Doc, Id, TableNames } from '../../convex/_generated/dataModel';
+import type { SNAPSHOT_REBUILD_CONTRACT } from '../../convex/lib/provisioningContract';
 import { rulebookEditionContentsV1Schema } from '../../src/shared/rulebooks/contents';
 import { readerContents } from '../../src/shared/rulebooks/readerContents';
 
@@ -73,7 +74,16 @@ type KeptTable<Table extends TableNames> = {
 
 type DroppedTable = { drop: string };
 
-type TablePolicy<Table extends TableNames> = KeptTable<Table> | DroppedTable;
+/**
+ * The tables the snapshot rebuild contract checks after a snapshot load: empty, or holding the placeholder owner's one row.
+ * A table on either list must be dropped here, and a table dropped here must be on one of them.
+ * So a table dropped here but left off the contract, or kept here but listed there, fails typecheck.
+ */
+type DroppedBySnapshot =
+  | (typeof SNAPSHOT_REBUILD_CONTRACT.empty)[number]
+  | (typeof SNAPSHOT_REBUILD_CONTRACT.placeholderOnly)[number];
+
+type TablePolicy<Table extends TableNames> = Table extends DroppedBySnapshot ? DroppedTable : KeptTable<Table>;
 
 const notDeleted = (row: { readonly is_deleted?: unknown }) => row.is_deleted === false;
 
@@ -93,6 +103,11 @@ export const snapshotPolicy = {
   authVerifiers: { drop: 'sign-in verifiers' },
   authRateLimits: { drop: 'sign-in rate limits' },
   users: { drop: 'accounts carry email, and the placeholder owner stands in for every user' },
+  /**
+   * A profile belongs to an account, and production holds every profile to an existing user, which the snapshot leaves out.
+   * The placeholder owner's profile stands in, and it owns every kept row anyway.
+   */
+  profiles: { drop: "profiles belong to accounts, and the placeholder owner's profile stands in for every one" },
   play_games: { drop: 'Play games carry provisioning secrets and are not published content' },
   play_tickets: { drop: 'Play admission tickets' },
   play_auth_registrations: { drop: 'Play sign-in registrations' },
@@ -105,34 +120,13 @@ export const snapshotPolicy = {
   faq_answers: { drop: 'excluded by the ruling on #1310' },
   rulebook_drafts: { drop: 'unpublished drafts' },
   publication_jobs: { drop: 'work claims that must never run outside production' },
-  publication_assets: { drop: 'publication records, which every clone already clears' },
+  publication_assets: { drop: 'publication records, which must never be acted on outside production' },
   admin_settings: { drop: 'operational settings, not content' },
   counters: { drop: 'slug counters, which the allocators rebuild' },
   migration_runs: { drop: 'migration status, which the local migration guard writes again' },
   cardback_presets: {
     fields: { key: 'keep', cardback: 'keep', revision: 'keep', updated_at: 'keep' },
     rows: 'all',
-  },
-  /**
-   * Only as much as the public `profiles:list` shows for an active profile, and no preference or deletion state.
-   * `user_id` stays as it is rather than pointing at the placeholder owner.
-   * `profiles:list` already shows it, and every lookup from a user to a profile expects exactly one profile.
-   */
-  profiles: {
-    fields: {
-      user_id: 'keep',
-      username: 'keep',
-      avatar_url: 'keep',
-      avatar: 'keep',
-      default_group_id: 'drop',
-      account_state: 'keep',
-      deleted_at: 'drop',
-      account_deletion_operation_id: 'drop',
-      slug: 'keep',
-      created_at: 'keep',
-      updated_at: 'keep',
-    },
-    rows: (row) => row.account_state === 'active',
   },
   groups: {
     fields: { name: 'keep', slug: 'keep', created_at: 'keep', created_by: 'owner', is_deleted: 'keep' },
@@ -300,9 +294,9 @@ export const retiredComponents = {
 } satisfies Record<string, string> & { [Name in keyof typeof components]?: never };
 
 /**
- * The one owner every kept user reference points at.
- * The loaders hand it to local user A, as #1539 hands factions and groups to A.
- * It carries no email, so nobody can sign in as it before a loader links it.
+ * The one owner every kept user reference points at, and the snapshot's only account and profile.
+ * A local load hands its factions and groups to local user A, as #1539 does, and cloud dev leaves everything with it.
+ * It carries no email and no sign-in account, so nobody can sign in as it.
  */
 export const placeholderOwner = {
   creationTime: Date.UTC(2024, 0, 1),

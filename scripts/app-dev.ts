@@ -1,36 +1,44 @@
-import { spawn, spawnSync } from 'node:child_process';
+import { spawn } from 'node:child_process';
 import type { ChildProcess } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { constants as osConstants } from 'node:os';
 import path from 'node:path';
+import { parseArgs } from 'node:util';
 
 import { ensureLocalAuthUser } from './local-dev-auth';
 import { recordLocalDevelopmentCleanup } from './local-dev-cleanup';
 import {
   createLocalDevelopmentInstance,
   localDevelopmentEnvironmentOverrides,
-  normalizeConvexDeploymentSelection,
   resolveGitCommonDirectory,
   resolveLocalDevelopmentEnvFile,
-  resolveLocalDevelopmentProjectEnvFile,
 } from './local-dev-instance';
+import { discardDownloadedSnapshot, githubCli, resolveLocalSnapshot } from './local-snapshot';
+import type { LocalSnapshot } from './local-snapshot';
 import {
   backendUp,
-  cloneProductionData,
   commandEnvironment,
   configureLocalAuth,
   loadFixtureData,
+  loadSnapshotData,
   localApplicationEnvironment,
   parseEnvFile,
   pushCode,
   remapOwnershipToLocalUsers,
+  runMigrationGuards,
   seedLocalFixtureData,
   selfHostedEnvironment,
 } from './provision';
 import type { SelfHostedDeployment } from './provision';
 
-/** Where a local launch's data comes from: seeded fixtures, or a production clone only when asked for. */
-type LocalData = 'fixture' | 'clone-prod';
+/**
+ * Where a local launch's data comes from: seeded fixtures by default, or the anonymised snapshot when asked for.
+ * No launch loads raw production data (#1559).
+ */
+type LocalData = { kind: 'fixture' } | { kind: 'snapshot'; file: string | null };
+
+/** The data a launch loads, once a requested snapshot is found and checked. */
+type LaunchData = { kind: 'fixture' } | { kind: 'snapshot'; snapshot: LocalSnapshot };
 
 type AppDevMode = { kind: 'cloud' } | { kind: 'help' } | { kind: 'local'; data: LocalData };
 
@@ -38,20 +46,44 @@ const rootDirectory = path.resolve(import.meta.dirname, '..');
 const viteDevRunnerPath = path.join(import.meta.dirname, 'vite-dev-runner.ts');
 const localConvexWatcherPath = path.join(import.meta.dirname, 'local-convex-watcher.ts');
 
+function unknownArguments(args: string[]): Error {
+  return new Error(`Unknown app:dev argument: ${args.join(' ')}`);
+}
+
+function parseLocalData(args: string[]): LocalData {
+  let values: { data?: string; 'snapshot-file'?: string };
+  try {
+    ({ values } = parseArgs({
+      args,
+      strict: true,
+      options: { data: { type: 'string' }, 'snapshot-file': { type: 'string' } },
+    }));
+  } catch {
+    throw unknownArguments(['--local', ...args]);
+  }
+  const { data, 'snapshot-file': file } = values;
+  switch (true) {
+    case data === 'snapshot':
+      return { kind: 'snapshot', file: file ?? null };
+    case (data ?? 'fixture') === 'fixture' && file === undefined:
+      return { kind: 'fixture' };
+    default:
+      throw unknownArguments(['--local', ...args]);
+  }
+}
+
 export function parseAppDevMode(args: string[]): AppDevMode {
-  /* `app-dev.sh` supervises a launch whose first argument is `--local`, so the clone flag comes after it. */
-  switch (args.join(' ')) {
-    case '':
+  /* `app-dev.sh` supervises a launch whose first argument is `--local`, so the data flags come after it. */
+  const [first, ...rest] = args;
+  switch (true) {
+    case first === undefined:
       return { kind: 'cloud' };
-    case '--local':
-      return { kind: 'local', data: 'fixture' };
-    case '--local --clone-prod':
-      return { kind: 'local', data: 'clone-prod' };
-    case '--help':
-    case '-h':
+    case first === '--local':
+      return { kind: 'local', data: parseLocalData(rest) };
+    case (first === '--help' || first === '-h') && rest.length === 0:
       return { kind: 'help' };
     default:
-      throw new Error(`Unknown app:dev argument: ${args.join(' ')}`);
+      throw unknownArguments(args);
   }
 }
 
@@ -163,23 +195,12 @@ function printHelp() {
   bun run app:dev                       Start Vite with the configured online Convex deployment.
   bun run app:dev --local               Reset and start this worktree's disposable local Convex,
                                         seed fixture data, and enable two local test accounts.
-  bun run app:dev --local --clone-prod  The same with a production data clone instead of fixtures.
-                                        Needs a Convex CLI login that can export production.`);
-}
-
-function runMigrationGuards(env: NodeJS.ProcessEnv) {
-  const result = spawnSync(
-    process.execPath,
-    ['--no-env-file', 'run', './scripts/migration-guards.ts', 'dev-strict', '300000', '2000'],
-    {
-      cwd: rootDirectory,
-      env,
-      stdio: 'inherit',
-    }
-  );
-  if (result.status !== 0) {
-    throw new Error('Local migration guards failed');
-  }
+                                        --data=fixture asks for the same.
+  bun run app:dev --local --data=snapshot [--snapshot-file <zip>]
+                                        The same with the anonymised production snapshot, which holds
+                                        published content only. Without --snapshot-file it downloads the
+                                        newest one with the GitHub CLI, and deletes the download once it
+                                        is imported.`);
 }
 
 async function runCloudDevelopment() {
@@ -188,14 +209,16 @@ async function runCloudDevelopment() {
   process.exitCode = await waitForExit(vite);
 }
 
-/** The Convex project a production clone exports from. A fixture launch never looks it up. */
-function cloneProjectDeployment(commonGitDirectory: string | undefined) {
-  const projectEnvFile = resolveLocalDevelopmentProjectEnvFile(rootDirectory, commonGitDirectory);
-  const projectValues = existsSync(projectEnvFile) ? parseEnvFile(readFileSync(projectEnvFile, 'utf8')) : {};
-  return normalizeConvexDeploymentSelection(projectValues.CONVEX_DEPLOYMENT);
+/** Loads the snapshot, then deletes it if this launch downloaded it, whether the import succeeded or not (#1559). */
+function loadLocalSnapshot(deployment: SelfHostedDeployment, env: NodeJS.ProcessEnv, snapshot: LocalSnapshot) {
+  try {
+    loadSnapshotData(deployment, env, snapshot.file);
+  } finally {
+    discardDownloadedSnapshot(snapshot);
+  }
 }
 
-async function runLocalDevelopment(data: LocalData) {
+async function runLocalDevelopment(requested: LocalData) {
   const commonGitDirectory = resolveGitCommonDirectory(rootDirectory);
   const localEnvFile = resolveLocalDevelopmentEnvFile(rootDirectory, process.env, commonGitDirectory);
   if (!existsSync(localEnvFile)) {
@@ -203,9 +226,7 @@ async function runLocalDevelopment(data: LocalData) {
       `Missing local credentials file ${localEnvFile}. Copy .env.e2e.local.example or set LOCAL_DEV_ENV_FILE.`
     );
   }
-  const projectDeployment = data === 'clone-prod' ? cloneProjectDeployment(commonGitDirectory) : undefined;
   const values = {
-    ...(projectDeployment ? { CONVEX_DEPLOYMENT: projectDeployment } : {}),
     ...parseEnvFile(readFileSync(localEnvFile, 'utf8')),
     ...Object.fromEntries(
       Object.entries(process.env).filter((entry): entry is [string, string] => entry[1] !== undefined)
@@ -215,6 +236,17 @@ async function runLocalDevelopment(data: LocalData) {
   const collaboratorEmail = requireValue(values, 'PLAYWRIGHT_USER_B_EMAIL', localEnvFile);
   const password = requireValue(values, 'PLAYWRIGHT_USER_PASSWORD', localEnvFile);
   const temporaryDirectory = localTemporaryDirectory();
+  /*
+   * The snapshot is found and checked before Docker starts, so a missing or refused file stops the launch at once.
+   * A download sits in the launch's private temporary directory, which the supervisor deletes when the launch exits, and the import deletes it sooner.
+   */
+  const data: LaunchData =
+    requested.kind === 'snapshot'
+      ? {
+          kind: 'snapshot',
+          snapshot: resolveLocalSnapshot({ snapshotFile: requested.file, temporaryDirectory, github: githubCli }),
+        }
+      : requested;
   const instance = createLocalDevelopmentInstance(process.env);
   const viteReadyFile = path.join(temporaryDirectory, 'vite-ready.json');
 
@@ -268,19 +300,19 @@ async function runLocalDevelopment(data: LocalData) {
     });
     pushCode(deployment, localEnv);
 
-    switch (data) {
+    switch (data.kind) {
       case 'fixture':
         console.log('Clearing local Convex for fixture data...');
         loadFixtureData(deployment, localEnv);
         break;
-      case 'clone-prod':
-        console.log('Cloning production data into local Convex...');
-        cloneProductionData(deployment, localEnv, temporaryDirectory);
+      case 'snapshot':
+        console.log(`Loading the anonymised snapshot ${data.snapshot.file} into local Convex...`);
+        loadLocalSnapshot(deployment, localEnv, data.snapshot);
         break;
     }
 
     console.log('Preparing required local migrations...');
-    runMigrationGuards(selfHostedEnvironment(localEnv, deployment));
+    runMigrationGuards(deployment, localEnv);
 
     console.log('Starting the app and creating the two local accounts...');
     vite = startOwnedVite(instance.appPort, viteReadyFile, localApplicationEnvironment(localEnv));
@@ -288,7 +320,7 @@ async function runLocalDevelopment(data: LocalData) {
     await ensureLocalAuthUser(instance.appUrl, ownerEmail, password);
     await ensureLocalAuthUser(instance.appUrl, collaboratorEmail, password);
 
-    if (data === 'fixture') {
+    if (data.kind === 'fixture') {
       console.log('Seeding the e2e baseline, the Storybook baseline and the Play catalogues...');
       seedLocalFixtureData(deployment, localEnv, ownerEmail);
     }

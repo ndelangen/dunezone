@@ -8,6 +8,7 @@ import { anonymiseZip, readZip } from './snapshot-anonymise';
 
 /**
  * The anonymised snapshot job (#1559), which `.github/workflows/anonymised-snapshot.yml` runs.
+ * `.github/workflows/dev-rebuild.yml` runs it too, and loads the snapshot it writes into cloud dev without uploading it.
  *
  * It exports production the way the dev rebuild does, reads the raw export into memory and deletes it before anonymising, whether the read succeeded or not.
  * Its step summary gives table names, row counts, kept field names and the leak scan result, never a value, because Actions logs on this repository are public.
@@ -88,7 +89,7 @@ const code = (name: string) => `\`${name}\``;
 function uploadLine(upload: boolean) {
   return upload
     ? `Upload: on. The next step uploads ${code(SNAPSHOT_FILE)} as an artifact kept for one day.`
-    : 'Upload: off. This is a dry run, and nothing from it is uploaded.';
+    : 'Upload: off. Nothing from this run is uploaded.';
 }
 
 function writtenSummary({ report, snapshot }: Extract<Outcome, { kind: 'written' }>): string[] {
@@ -101,7 +102,7 @@ function writtenSummary({ report, snapshot }: Extract<Outcome, { kind: 'written'
   return [
     'Leak scan: no findings in the written snapshot.',
     '',
-    'Every kept row also keeps `_id` and `_creationTime`. The one `users` row is the placeholder owner.',
+    "Every kept row also keeps `_id` and `_creationTime`. The one `users` row and the one `profiles` row are the placeholder owner's.",
     '',
     '| Table | Policy | Rows in | Rows out | Kept fields |',
     '| --- | --- | ---: | ---: | --- |',

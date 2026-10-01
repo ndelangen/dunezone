@@ -69,8 +69,8 @@ describe('isolated Play test controls', () => {
     aggregateTest.register(t, 'profileActivity');
     const first = await t.mutation(internal.playTesting.seedRealGameCatalogue, {});
     const second = await t.mutation(internal.playTesting.seedRealGameCatalogue, {});
-    /* Two decks with three cards each, and both token faces per faction. */
-    expect(first.publications).toHaveLength(12);
+    /* Two decks with three cards each, the Extra's face, and both token faces per faction. */
+    expect(first.publications).toHaveLength(13);
     const seeded = await t.run(async (ctx) => {
       const slots = await ctx.db
         .query('ruleset_asset_slots')
@@ -113,6 +113,35 @@ describe('isolated Play test controls', () => {
       }
     }
     expect(publications.filter(({ href }) => href.startsWith('/published/spice-cards/'))).toHaveLength(3);
+  });
+
+  test('one faction supplies an Extra and declares phases', async () => {
+    const { t } = await fixture();
+    aggregateTest.register(t, 'statistics');
+    aggregateTest.register(t, 'profileActivity');
+    const { rulesetId, publications } = await t.mutation(internal.playTesting.seedRealGameCatalogue, {});
+    const factionIds = await t.run(async (ctx) =>
+      (
+        await ctx.db
+          .query('ruleset_factions')
+          .withIndex('by_ruleset', (q) => q.eq('ruleset_id', rulesetId))
+          .collect()
+      ).map((link) => link.faction_id)
+    );
+    const definitions = await Promise.all(
+      factionIds.map((factionId) => t.query(api.playCatalogue.factionDefinition, { factionId }))
+    );
+    const declaring = definitions.filter((definition) => definition?.data?.extraPhases?.length);
+    expect(declaring.map((definition) => definition?.faction.name)).toEqual(['Harkonnen']);
+    expect(declaring[0]?.data?.extraPhases?.map(({ type, title, before }) => ({ type, title, before }))).toEqual([
+      { type: 'prediction', title: 'Bene Gesserit prediction', before: 'traitors' },
+      { type: 'instruction', title: 'Synthetic muster', before: 'forces' },
+    ]);
+    const [extra] = declaring[0]?.data?.extras ?? [];
+    expect(extra?.type).toBe('token-disc');
+    const supply = await t.query(api.playCatalogue.assetSupply, { type: 'token-disc', slug: extra!.slug });
+    expect(supply?.asset.name).toBe('Synthetic extra');
+    expect(publications.some(({ href }) => href === supply?.front)).toBe(true);
   });
 
   test('changes only the requested synthetic account flag', async () => {
