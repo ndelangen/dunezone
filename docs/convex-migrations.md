@@ -70,16 +70,18 @@ Rules:
 
 ## Strict branch and integration startup
 
-Use `bun run app:dev --local --clone-prod` to validate a branch against its own production-shaped
+Use `bun run app:dev --local --data=snapshot` to validate a branch against its own production-shaped
 database. The command creates a separate Convex stack per launch, pushes the checked-out schema and
-functions, imports a production snapshot, clears the provisioning contract's tables, and runs the
+functions, imports the anonymised snapshot, checks the snapshot rebuild contract, and runs the
 required migration guards before starting the app. Plain `bun run app:dev --local` starts from
-fixture data, which shows nothing about how a migration treats production rows. A local watcher
-pushes later function and schema edits to that stack without changing `.env.local`. Restart after
-changing a migration module or the guard manifest. This creates a fresh disposable database and
-reruns `dev-strict`. See
-[`Disposable local app development`](./README.md#disposable-local-app-development) for snapshot
-privacy and cleanup limits.
+fixture data, which shows nothing about how a migration treats production rows. The snapshot holds
+published rows only, so it cannot show how a migration treats users, drafts, FAQ answers, group
+memberships or deleted rows. For those, reason from the schema and the migration's tests. A local
+watcher pushes later function and schema edits to that stack without changing `.env.local`. Restart
+after changing a migration module or the guard manifest. This creates a fresh disposable database
+and reruns `dev-strict`. See
+[`Disposable local app development`](./README.md#disposable-local-app-development) for what the
+snapshot holds, where it comes from and when the download is deleted.
 
 - `bun run convex:dev` runs `bun run migrations:dev-strict` before starting the configured Convex
   deployment's watcher. It is reserved for deliberate integration work because a feature branch can
@@ -147,8 +149,8 @@ a relationship from artwork. An author selects a shared preset explicitly when e
 
 The isolated production snapshot inspected on 21 September 2026 contained three live decks,
 all with custom backs. Those definitions, deck identifiers and slugs stay unchanged.
-A disposable clone includes the new table through the usual snapshot import; resetting the
-clone discards local Administrator edits along with the other cloned data.
+A snapshot launch includes the new table through the usual snapshot import; relaunching discards
+local Administrator edits along with the rest of the local data.
 
 Activating renderer revision 1 seeds only missing preset definitions and queues their
 publications through the existing regeneration scan. Repeating activation preserves saved

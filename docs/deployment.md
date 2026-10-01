@@ -324,10 +324,11 @@ a gate job that fails ends the run red without deploying. In every other case th
     activate all higher revisions in one mutation and schedule bounded
     regeneration scans. CI does not wait for scanning or capture.
 14. Set Convex Auth `SITE_URL` to `https://dune.zone`.
-15. A follow-on `dev_rebuild` job (`needs: [release_gate, deploy]`) rebuilds the dev deployment
-    from production; see
-    [`dev-rebuild.yml`](../.github/workflows/dev-rebuild.yml). It measures its change range from
-    the release production served before the run, as `release_gate` read it.
+15. A follow-on `dev_rebuild` job (`needs: [release_gate, deploy]`) pushes main's functions to the
+    dev deployment, and when the data needs rebuilding, reloads it from a fresh anonymised snapshot,
+    never from raw production; see [`dev-rebuild.yml`](../.github/workflows/dev-rebuild.yml) and
+    [Anonymised snapshot](#anonymised-snapshot). It measures its change range from the release
+    production served before the run, as `release_gate` read it.
 
 The revision step rejects a checked-in value lower than production. Equal values
 are a no-op. A revision activation stores the new values before scheduling scans,
@@ -366,7 +367,7 @@ gh workflow run deploy-main.yml --ref main
 
 The dispatched run deploys the commit `main` points at when you dispatch it, which includes every
 merge whose event went missing. Its dev rebuild measures from the release production was serving, so
-a schema or migration change in a dropped merge still rebuilds dev's data. If the missing event turns
+a schema, migration or snapshot change in a dropped merge still rebuilds dev's data. If the missing event turns
 up later, its run stops at `release_gate`.
 
 Do not recover by rerunning an earlier deploy run. A rerun keeps that run's `GITHUB_SHA`, so it
@@ -441,6 +442,30 @@ The upload step runs when `SNAPSHOT_UPLOAD` in the workflow is `"true"`, which i
 Norbert approved it after a dry-run report on 30 September 2026 (#1559). It uploads the snapshot
 file alone as the `anonymised-snapshot` artifact, kept for one day, which any signed-in GitHub
 account can download. Setting the value back to `"false"` makes every run a dry run again.
+
+Two consumers load the snapshot, and both check the file before they clear or import anything.
+They refuse a file without the anonymiser's manifest, with row counts that differ from it, without
+rows in `factions`, with anything besides the placeholder owner's row in `users` or `profiles`,
+with any other table the policy does not keep, or with a leak scan finding. So neither can load a
+raw export, or a file the snapshot rebuild contract would reject after the import:
+
+- `dev-rebuild.yml` runs `scripts/anonymised-snapshot.ts` itself when dev's data needs rebuilding,
+  in the same job and without uploading anything, so it never waits on or reads the public
+  artifact. The production key reaches that step alone. The next step, holding only
+  `CONVEX_DEV_DEPLOY_KEY`, runs `provision dev --stage data --snapshot-file` on the written file: it
+  clears dev, pushes main's functions, imports the snapshot with `--replace-all`, checks the snapshot
+  rebuild contract in [`convex/lib/provisioningContract.ts`](../convex/lib/provisioningContract.ts)
+  and runs the migration guards, which rebuild the migration state and aggregates the snapshot
+  leaves out. The last step deletes the job's directory whatever happened before. Dev keeps no
+  account from production, so everyone signs in to dev afresh after a rebuild; see
+  [Keeping the cloud dev deployment usable](./README.md#keeping-the-cloud-dev-deployment-usable).
+- `bun run app:dev --local --data=snapshot` downloads the newest artifact the job uploaded from
+  `main` and deletes the download once it is imported, or loads the file `--snapshot-file` names;
+  see [Disposable local app development](./README.md#disposable-local-app-development).
+
+Production stays the only raw copy. No command imports a raw export outside production, and the
+only command that exports production is the job's script, which needs `CONVEX_PROD_DEPLOY_KEY`
+rather than a Convex login.
 
 ## Migrations on every `main` deploy
 

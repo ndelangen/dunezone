@@ -5,11 +5,12 @@ import { convexTest } from 'convex-test';
 import { describe, expect, test } from 'vitest';
 
 import { internal } from './_generated/api';
+import type { Id } from './_generated/dataModel';
 import schema from './schema';
 
 const modules = import.meta.glob('./**/*.ts');
 
-function clonedDeployment() {
+function rebuiltDeployment() {
   const t = convexTest(schema, modules);
   aggregateTest.register(t, 'statistics');
   aggregateTest.register(t, 'profileActivity');
@@ -17,55 +18,110 @@ function clonedDeployment() {
   return t;
 }
 
-async function seedSatisfiedContract(t: ReturnType<typeof clonedDeployment>) {
+type Deployment = ReturnType<typeof rebuiltDeployment>;
+
+const timestamps = { created_at: '2026-07-01T10:00:00.000Z', updated_at: '2026-07-02T10:00:00.000Z' };
+
+async function insertFaction(t: Deployment, ownerId: Id<'users'>) {
   await t.run(async (ctx) => {
-    const userId = await ctx.db.insert('users', { email: 'someone@prod.example' });
-    await ctx.db.insert('authAccounts', {
-      userId,
-      provider: 'discord',
-      providerAccountId: '1234567890',
-    });
     await ctx.db.insert('factions', {
-      owner_id: userId,
+      owner_id: ownerId,
       data: { name: 'House Cloned' },
       slug: 'house-cloned',
-      created_at: '2026-07-01T10:00:00.000Z',
-      updated_at: '2026-07-02T10:00:00.000Z',
       is_deleted: false,
       group_id: null,
+      ...timestamps,
     });
   });
 }
 
-describe('rebuild contract', () => {
-  test('passes on a cleaned clone carrying production data', async () => {
-    const t = clonedDeployment();
-    await seedSatisfiedContract(t);
+/** What a raw production export would leave: an account with its email and sign-in account. */
+async function seedRawExport(t: Deployment) {
+  const userId = await t.run(async (ctx) => {
+    const id = await ctx.db.insert('users', { email: 'someone@prod.example' });
+    await ctx.db.insert('authAccounts', { userId: id, provider: 'discord', providerAccountId: '1234567890' });
+    return id;
+  });
+  await insertFaction(t, userId);
+  return userId;
+}
 
-    expect(await t.query(internal.provisioningChecks.assertRebuildContract, {})).toEqual({
-      ok: true,
+/** What a snapshot load leaves: the placeholder owner with its profile, and published content it owns. */
+async function seedSnapshotLoad(t: Deployment) {
+  const placeholderId = await t.run(async (ctx) => {
+    const id = await ctx.db.insert('users', { account_state: 'active' });
+    await ctx.db.insert('profiles', {
+      user_id: id,
+      username: 'Snapshot owner',
+      avatar_url: null,
+      account_state: 'active',
+      slug: 'snapshot-owner',
+      ...timestamps,
     });
+    return id;
+  });
+  await insertFaction(t, placeholderId);
+  return placeholderId;
+}
+
+describe('rebuild contract for the anonymised snapshot', () => {
+  test('passes when the placeholder owner is the only account', async () => {
+    const t = rebuiltDeployment();
+    await seedSnapshotLoad(t);
+
+    expect(await t.query(internal.provisioningChecks.assertRebuildContract, {})).toEqual({ ok: true });
   });
 
-  test('rejects a clone whose session tables survived the cleanup', async () => {
-    const t = clonedDeployment();
-    await seedSatisfiedContract(t);
-    await t.run(async (ctx) => {
-      const user = await ctx.db.query('users').first();
-      await ctx.db.insert('authSessions', {
-        userId: user!._id,
-        expirationTime: Date.parse('2026-09-01T00:00:00.000Z'),
-      });
-    });
+  test('rejects a deployment the snapshot never landed in', async () => {
+    const t = rebuiltDeployment();
+
+    const violation = t.query(internal.provisioningChecks.assertRebuildContract, {});
+    await expect(violation).rejects.toThrow('factions is empty');
+    await expect(violation).rejects.toThrow('users holds no rows');
+  });
+
+  test('rejects raw production data, which carries accounts, emails and sign-in rows', async () => {
+    const t = rebuiltDeployment();
+    await seedRawExport(t);
 
     await expect(t.query(internal.provisioningChecks.assertRebuildContract, {})).rejects.toThrow(
-      'authSessions still holds rows'
+      /authAccounts still holds rows[\s\S]*users holds a row with an email/
     );
   });
 
-  test('rejects a clone the snapshot never landed in', async () => {
-    const t = clonedDeployment();
+  test('rejects private rows and a second account beside the placeholder owner', async () => {
+    const t = rebuiltDeployment();
+    const placeholderId = await seedSnapshotLoad(t);
+    await t.run(async (ctx) => {
+      const group = await ctx.db.insert('groups', {
+        name: 'Council',
+        slug: 'council',
+        created_by: placeholderId,
+        is_deleted: false,
+        created_at: timestamps.created_at,
+      });
+      await ctx.db.insert('group_members', {
+        group_id: group,
+        user_id: placeholderId,
+        status: 'active',
+        requested_at: timestamps.created_at,
+        approved_at: null,
+        approved_by: null,
+      });
+      const leaving = await ctx.db.insert('users', {});
+      await ctx.db.insert('profiles', {
+        user_id: leaving,
+        username: 'leaving',
+        avatar_url: null,
+        account_state: 'deleted',
+        slug: 'leaving',
+        ...timestamps,
+      });
+    });
 
-    await expect(t.query(internal.provisioningChecks.assertRebuildContract, {})).rejects.toThrow('factions is empty');
+    const violation = t.query(internal.provisioningChecks.assertRebuildContract, {});
+    await expect(violation).rejects.toThrow('group_members still holds rows');
+    await expect(violation).rejects.toThrow('users holds more than one row');
+    await expect(violation).rejects.toThrow('profiles holds more than one row');
   });
 });

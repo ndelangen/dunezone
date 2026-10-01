@@ -3,9 +3,9 @@ import { generateKeyPairSync } from 'node:crypto';
 import { accessSync, constants as fsConstants, mkdirSync, mkdtempSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
-import { CLEARED_AFTER_CLONE } from '../convex/lib/provisioningContract';
 import schema from '../convex/schema';
 import { db as storybookDatabase } from '../src/app/db/storybook/database';
+import { verifySnapshotFile } from './snapshot-anonymise';
 
 /**
  * The unified provision pipeline (map #352, ticket #359).
@@ -14,10 +14,12 @@ import { db as storybookDatabase } from '../src/app/db/storybook/database';
  * The pipeline is five stages: backend → configure → code → data → users, parameterized per target:
  *
  * E2e: docker backend, fixture data (users: Playwright logins).
- * Local: docker backend, fixture data, or a prod clone only when app-dev is asked for one (users: A/B logins, fixture seeds and remap, via app-dev).
- * Dev: cloud dev deployment, prod clone (users: replicated prod identities).
+ * Local: docker backend, fixture data or the anonymised snapshot (users: A/B logins, fixture seeds and remap, via app-dev).
+ * Dev: cloud dev deployment, the anonymised snapshot (users: none from production, so people sign in to dev afresh).
  *
  * Invariants: data flows prod → down only;
+ * outside production only the anonymised snapshot is loaded, and no target imports a raw production export;
+ * only the snapshot job exports production, with the production deploy key;
  * CI invokes this same script;
  * the e2e target must remain incapable of touching prod: its commands never receive Convex deployment credentials (see strippedConvexAdminCredentials).
  */
@@ -175,16 +177,19 @@ export function cloudDevEnvironment(base: NodeJS.ProcessEnv, deployment: CloudDe
 }
 
 /**
- * Environment for the read-only prod snapshot export.
- * Prefers the dedicated CONVEX_PROD_DEPLOY_KEY, falls back to the ambient CONVEX_DEPLOY_KEY (the repo's deploy secret is the prod key, #353), and otherwise relies on the logged-in
- * CLI plus `--prod`.
+ * Environment for the read-only production export, which only the snapshot job runs.
+ * It takes the key from CONVEX_PROD_DEPLOY_KEY alone and never falls back to another key or a logged-in Convex CLI, so no command here exports production with a developer's login.
  */
 function productionExportEnvironment(base: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
+  const deployKey = base.CONVEX_PROD_DEPLOY_KEY;
+  if (!deployKey) {
+    throw new Error('Exporting production needs CONVEX_PROD_DEPLOY_KEY, which only the snapshot job holds');
+  }
   return commandEnvironment(base, {
     CONVEX_SELF_HOSTED_URL: undefined,
     CONVEX_SELF_HOSTED_ADMIN_KEY: undefined,
     CONVEX_DEV_DEPLOY_KEY: undefined,
-    CONVEX_DEPLOY_KEY: base.CONVEX_PROD_DEPLOY_KEY ?? base.CONVEX_DEPLOY_KEY ?? undefined,
+    CONVEX_DEPLOY_KEY: deployKey,
     CONVEX_DEPLOYMENT_TOKEN: undefined,
     CONVEX_PROD_DEPLOY_KEY: undefined,
   });
@@ -336,37 +341,62 @@ export function loadFixtureData(deployment: SelfHostedDeployment, env: NodeJS.Pr
 }
 
 /**
- * Data stage, clone flavor: point-in-time prod snapshot, atomically imported over the target, then the non-replicated tables are cleared with the documented empty-import pattern.
+ * Data stage, snapshot flavor: the anonymised snapshot, atomically imported over the target.
+ * The file is checked first, so a raw export never loads by mistake, and neither does a snapshot the rebuild contract would reject after the import.
+ * `--replace-all` empties every table the snapshot leaves out, and the rebuild contract then checks that they are empty.
  */
-export function cloneProductionData(deployment: TargetDeployment, env: NodeJS.ProcessEnv, workDirectory: string) {
-  const snapshotPath = exportProductionSnapshot(env, workDirectory);
-  try {
-    importSnapshot(deployment, env, snapshotPath, workDirectory);
-  } finally {
-    rmSync(path.dirname(snapshotPath), { recursive: true, force: true });
-  }
+export function loadSnapshotData(deployment: TargetDeployment, env: NodeJS.ProcessEnv, snapshotFile: string) {
+  verifySnapshotFile(snapshotFile);
+  console.log('Importing the anonymised snapshot into the target deployment...');
+  targetConvex(deployment, ['import', '--replace-all', '-y', snapshotFile], env);
+  assertRebuildContract(deployment, env);
 }
 
 /**
  * Rebuilding a long-lived deployment cannot go straight from a code push to an import: a schema push is validated against the data already there, and an import is validated against the schema already there, so a narrowing change breaks the first order and a widening change breaks the second.
  * Clearing first escapes both, because empty tables satisfy every schema.
  * That is also what lets a deployment whose data went stale recover instead of deadlocking on its own failed push.
+ * The snapshot is checked before anything is cleared, so a refused file leaves the deployment as it was.
+ * That check includes what the rebuild contract reads after the import, so a file the contract would reject is refused while dev still holds its data.
+ * The snapshot carries no migration state or aggregates, so the migration guards run last and rebuild both.
  */
-export function rebuildFromProduction(deployment: TargetDeployment, env: NodeJS.ProcessEnv, workDirectory: string) {
-  const snapshotPath = exportProductionSnapshot(env, workDirectory);
-  try {
-    clearAllTables(deployment, env, workDirectory);
-    console.log('Pushing code to the target deployment...');
-    pushCode(deployment, env);
-    importSnapshot(deployment, env, snapshotPath, workDirectory);
-  } finally {
-    rmSync(path.dirname(snapshotPath), { recursive: true, force: true });
+export function rebuildFromSnapshot(
+  deployment: CloudDevDeployment,
+  env: NodeJS.ProcessEnv,
+  snapshotFile: string,
+  workDirectory: string
+) {
+  verifySnapshotFile(snapshotFile);
+  clearAllTables(deployment, env, workDirectory);
+  console.log('Pushing code to the target deployment...');
+  pushCode(deployment, env);
+  loadSnapshotData(deployment, env, snapshotFile);
+  console.log('Running the required migrations, which also rebuild the aggregates...');
+  runMigrationGuards(deployment, env);
+}
+
+/**
+ * Starts the required migrations on the target and waits for them.
+ * A deployment loaded from fixtures or the snapshot has no migration state, so every required migration runs.
+ */
+export function runMigrationGuards(deployment: TargetDeployment, env: NodeJS.ProcessEnv) {
+  const [guardEnv, timeoutMs] =
+    deployment.kind === 'self-hosted'
+      ? [selfHostedEnvironment(env, deployment), 300_000]
+      : [cloudDevEnvironment(env, deployment), 600_000];
+  const result = spawnSync(
+    process.execPath,
+    ['--no-env-file', 'run', './scripts/migration-guards.ts', 'dev-strict', String(timeoutMs), '2000'],
+    { cwd: rootDirectory, env: guardEnv, stdio: 'inherit' }
+  );
+  if (result.status !== 0) {
+    throw new Error('The migration guards failed');
   }
 }
 
 /**
  * Exports production into a new directory under `workDirectory` and returns the zip's path.
- * The caller deletes that directory once it is done with the export.
+ * Only the snapshot job calls it, and the caller deletes that directory once it has read the export.
  */
 export function exportProductionSnapshot(env: NodeJS.ProcessEnv, workDirectory: string) {
   mkdirSync(workDirectory, { recursive: true });
@@ -384,18 +414,6 @@ export function exportProductionSnapshot(env: NodeJS.ProcessEnv, workDirectory: 
   }
 }
 
-function importSnapshot(
-  deployment: TargetDeployment,
-  env: NodeJS.ProcessEnv,
-  snapshotPath: string,
-  workDirectory: string
-) {
-  console.log('Importing the snapshot into the target deployment...');
-  targetConvex(deployment, ['import', '--replace-all', '-y', snapshotPath], env);
-  clearClonedTables(deployment, env, workDirectory);
-  assertRebuildContract(deployment, env);
-}
-
 /** Empties every table the schema declares so the next schema push cannot be rejected by data. */
 function clearAllTables(deployment: TargetDeployment, env: NodeJS.ProcessEnv, workDirectory: string) {
   console.log('Clearing the target deployment before pushing the new schema...');
@@ -403,16 +421,12 @@ function clearAllTables(deployment: TargetDeployment, env: NodeJS.ProcessEnv, wo
 }
 
 /**
- * A clone that fails its contract is not a completed clone, so the assertion is part of the data stage rather than a separate caller's responsibility.
+ * A load that fails its contract is not a completed load, so the assertion is part of the data stage rather than a separate caller's responsibility.
  * The query throws on violation, which exits `convex run` non-zero and fails whoever invoked the pipeline.
  */
 function assertRebuildContract(deployment: TargetDeployment, env: NodeJS.ProcessEnv) {
   console.log('Verifying the rebuild contract...');
   targetConvex(deployment, ['run', 'provisioningChecks:assertRebuildContract', '{}'], env);
-}
-
-function clearClonedTables(deployment: TargetDeployment, env: NodeJS.ProcessEnv, workDirectory: string) {
-  clearTables(deployment, env, workDirectory, CLEARED_AFTER_CLONE);
 }
 
 function clearTables(
@@ -489,7 +503,7 @@ export function seedLocalFixtureData(deployment: SelfHostedDeployment, env: Node
 }
 
 /**
- * Users stage, local flavor: after the two local accounts exist, hand every faction and group to reviewer A (B stays a member) so the local review workflow keeps working on fixture or cloned data (ticket #357).
+ * Users stage, local flavor: after the two local accounts exist, hand every faction and group to reviewer A (B stays a member) so the local review workflow keeps working on fixture or snapshot data (ticket #357).
  */
 export function remapOwnershipToLocalUsers(
   deployment: SelfHostedDeployment,
@@ -529,44 +543,71 @@ export type ProvisionArgs = {
   stages: ProvisionStage[];
   /** True when the caller named stages with --stage flags rather than taking the default set. */
   stagesExplicit: boolean;
+  /** The anonymised snapshot the dev target's data stage loads, and null for every other stage and target. */
+  snapshotFile: string | null;
 };
 
 const PROVISION_TARGETS: readonly ProvisionTarget[] = ['e2e', 'local', 'dev'];
+
+const USAGE =
+  'Usage: provision <e2e|local|dev> [--stage <backend|configure|code|data>]... [--snapshot-file <zip>, dev data stage only]';
+
+const SNAPSHOT_FILE_REQUIRED =
+  'The dev data stage loads the anonymised snapshot, never production: pass --snapshot-file <zip>';
 
 function isProvisionTarget(value: string | undefined): value is ProvisionTarget {
   return PROVISION_TARGETS.includes(value as ProvisionTarget);
 }
 
-function parseStageFlags(rest: string[], target: ProvisionTarget): ProvisionStage[] {
+function parseFlags(rest: string[], target: ProvisionTarget) {
   const allowed = stagesForTarget(target);
   const stages: ProvisionStage[] = [];
+  let snapshotFile: string | null = null;
   for (let index = 0; index < rest.length; index += 2) {
-    if (rest[index] !== '--stage') {
-      throw new Error(`Unknown provision argument: ${rest[index]}`);
+    const value = rest[index + 1];
+    switch (rest[index]) {
+      case '--stage':
+        if (!value || !allowed.includes(value as ProvisionStage)) {
+          throw new Error(`Invalid stage for target ${target}: ${value ?? '(missing)'}`);
+        }
+        stages.push(value as ProvisionStage);
+        break;
+      case '--snapshot-file':
+        if (!value || snapshotFile !== null) {
+          throw new Error(USAGE);
+        }
+        snapshotFile = value;
+        break;
+      default:
+        throw new Error(`Unknown provision argument: ${rest[index]}`);
     }
-    const stage = rest[index + 1] as ProvisionStage | undefined;
-    if (!stage || !allowed.includes(stage)) {
-      throw new Error(`Invalid stage for target ${target}: ${stage ?? '(missing)'}`);
-    }
-    stages.push(stage);
   }
-  return stages;
+  return { stages, snapshotFile };
 }
 
 export function parseProvisionArgs(argv: string[]): ProvisionArgs {
   const [target, ...rest] = argv;
   if (!isProvisionTarget(target)) {
-    throw new Error(`Usage: provision <e2e|local|dev> [--stage <backend|configure|code|data>]...`);
+    throw new Error(USAGE);
   }
-  const explicit = parseStageFlags(rest, target);
-  return {
-    target,
-    stages: explicit.length > 0 ? explicit : stagesForTarget(target),
-    stagesExplicit: explicit.length > 0,
-  };
+  const { stages: explicit, snapshotFile } = parseFlags(rest, target);
+  const stages = explicit.length > 0 ? explicit : stagesForTarget(target);
+  const loadsSnapshot = target === 'dev' && stages.includes('data');
+  if (loadsSnapshot && snapshotFile === null) {
+    throw new Error(SNAPSHOT_FILE_REQUIRED);
+  }
+  if (!loadsSnapshot && snapshotFile !== null) {
+    throw new Error('--snapshot-file belongs to the dev data stage alone');
+  }
+  return { target, stages, stagesExplicit: explicit.length > 0, snapshotFile };
 }
 
-function provisionCloudDev(stages: ProvisionStage[], env: NodeJS.ProcessEnv, workDirectory: string) {
+function provisionCloudDev(
+  stages: ProvisionStage[],
+  snapshotFile: string | null,
+  env: NodeJS.ProcessEnv,
+  workDirectory: string
+) {
   const deployKey = env.CONVEX_DEV_DEPLOY_KEY;
   if (!deployKey) {
     throw new Error('Set CONVEX_DEV_DEPLOY_KEY (a deployment-scoped dev deploy key)');
@@ -577,8 +618,11 @@ function provisionCloudDev(stages: ProvisionStage[], env: NodeJS.ProcessEnv, wor
    * import), so asking for data means asking for the code that data has to satisfy.
    */
   if (stages.includes('data')) {
-    rebuildFromProduction(deployment, env, workDirectory);
-    console.log('Cloud dev deployment rebuilt from production.');
+    if (snapshotFile === null) {
+      throw new Error(SNAPSHOT_FILE_REQUIRED);
+    }
+    rebuildFromSnapshot(deployment, env, path.resolve(snapshotFile), workDirectory);
+    console.log('Cloud dev deployment rebuilt from the anonymised snapshot.');
     return;
   }
   console.log('Pushing code to the cloud dev deployment...');
@@ -620,7 +664,7 @@ async function provisionSelfHosted(stages: ProvisionStage[], env: NodeJS.Process
     pushCode(deployment, env);
   }
   if (stages.includes('data')) {
-    /* The local target's production clone belongs to `app:dev --local --clone-prod` alone. */
+    /* The local target's snapshot load belongs to `app:dev --local` alone. */
     console.log('Resetting fixture data...');
     loadFixtureData(deployment, env);
   }
@@ -629,7 +673,7 @@ async function provisionSelfHosted(stages: ProvisionStage[], env: NodeJS.Process
 async function runCli(args: ProvisionArgs) {
   const workDirectory = path.join(rootDirectory, '.playwright');
   if (args.target === 'dev') {
-    provisionCloudDev(args.stages, process.env, workDirectory);
+    provisionCloudDev(args.stages, args.snapshotFile, process.env, workDirectory);
     return;
   }
   if (args.target === 'local' && !args.stagesExplicit) {

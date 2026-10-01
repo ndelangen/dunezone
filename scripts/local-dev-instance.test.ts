@@ -7,19 +7,12 @@ import { describe, expect, test } from 'vitest';
 import {
   createLocalDevelopmentInstance,
   localDevelopmentEnvironmentOverrides,
-  normalizeConvexDeploymentSelection,
   resolveGitCommonDirectory,
   resolveLocalDevelopmentEnvFile,
-  resolveLocalDevelopmentProjectEnvFile,
 } from './local-dev-instance';
 import { commandEnvironment } from './provision';
 
 describe('local development instance', () => {
-  test('reads the project selection without the generated annotation', () => {
-    expect(normalizeConvexDeploymentSelection('dev:tame-raccoon-541 # team: example')).toBe('dev:tame-raccoon-541');
-    expect(normalizeConvexDeploymentSelection('  ')).toBeUndefined();
-  });
-
   test('gives each launch its own project and loopback topology', () => {
     const environment = { COMPOSE_PROJECT_NAME: 'dunezone' };
     const first = createLocalDevelopmentInstance(environment);
@@ -106,19 +99,11 @@ describe('local development instance', () => {
     try {
       expect(resolveGitCommonDirectory(main)).toBe(commonGitDirectory);
       expect(resolveGitCommonDirectory(worktree)).toBe(commonGitDirectory);
-      for (const name of ['.env.e2e.local', '.env.local']) {
-        writeFileSync(path.join(main, name), '');
-      }
+      writeFileSync(path.join(main, '.env.e2e.local'), '');
       expect(resolveLocalDevelopmentEnvFile(worktree, {}, commonGitDirectory)).toBe(path.join(main, '.env.e2e.local'));
-      expect(resolveLocalDevelopmentProjectEnvFile(worktree, commonGitDirectory)).toBe(path.join(main, '.env.local'));
-      for (const name of ['.env.e2e.local', '.env.local']) {
-        writeFileSync(path.join(worktree, name), '');
-      }
+      writeFileSync(path.join(worktree, '.env.e2e.local'), '');
       expect(resolveLocalDevelopmentEnvFile(worktree, {}, commonGitDirectory)).toBe(
         path.join(worktree, '.env.e2e.local')
-      );
-      expect(resolveLocalDevelopmentProjectEnvFile(worktree, commonGitDirectory)).toBe(
-        path.join(worktree, '.env.local')
       );
       expect(resolveLocalDevelopmentEnvFile(worktree, { LOCAL_DEV_ENV_FILE: './custom.env' }, commonGitDirectory)).toBe(
         path.join(worktree, 'custom.env')

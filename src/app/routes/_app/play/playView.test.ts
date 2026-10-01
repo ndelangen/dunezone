@@ -6,6 +6,7 @@ import type { TABLE_VIEW_OPTIONS } from './playView';
 import {
   cameraFogRange,
   cameraPoseFor,
+  cameraTiltAfterWheel,
   cameraViewTransitionProgress,
   createTableViewState,
   mapViewTopLimitForViewport,
@@ -154,6 +155,43 @@ describe('table views', () => {
     for (const view of ['left', 'right', 'bottom'] as const) {
       expect(distance(view)).toBeLessThan(mapDistance);
     }
+  });
+
+  test('tilts toward top-down without losing the board from view', () => {
+    const aspectRatio = 1165 / 920;
+    const frame = mapViewFramingPoints(trackerArcSlots(9));
+    const polarAngle = (tilt: number) => {
+      const pose = cameraPoseFor('map', aspectRatio, frame, MAP_VIEW_TOP_LIMIT, tilt);
+      return Math.atan2(pose.position[2] - pose.target[2], pose.position[1] - pose.target[1]);
+    };
+
+    expect(cameraPoseFor('map', aspectRatio, frame, MAP_VIEW_TOP_LIMIT, 0)).toEqual(
+      cameraPoseFor('map', aspectRatio, frame)
+    );
+    expect(polarAngle(0.5)).toBeLessThan(polarAngle(0));
+    expect(polarAngle(1)).toBeLessThan(polarAngle(0.5));
+    expect(polarAngle(1)).toBeCloseTo(0.2);
+    expect(polarAngle(2)).toBeCloseTo(polarAngle(1));
+    expect(polarAngle(-1)).toBeCloseTo(polarAngle(0));
+    for (const tilt of [0.5, 1]) {
+      const camera = tableCamera(cameraPoseFor('map', aspectRatio, frame, MAP_VIEW_TOP_LIMIT, tilt), aspectRatio);
+      frame.forEach((point) => {
+        const projected = new Vector3(...point).project(camera);
+        expect(projected.y).toBeLessThanOrEqual(MAP_VIEW_TOP_LIMIT + 1e-9);
+        expect(projected.y).toBeGreaterThanOrEqual(-MAP_VIEW_BOTTOM_LIMIT - 1e-9);
+        expect(Math.abs(projected.x)).toBeLessThanOrEqual(MAP_VIEW_HORIZONTAL_LIMIT + 1e-9);
+      });
+    }
+  });
+
+  test('steers the tilt with the wheel, in pixels, lines or pages, within its range', () => {
+    expect(cameraTiltAfterWheel(0, 100)).toBeCloseTo(1 / 6);
+    expect(cameraTiltAfterWheel(0, 3, 1)).toBeCloseTo(48 / 600);
+    expect(cameraTiltAfterWheel(0, 1, 2)).toBeCloseTo(400 / 600);
+    expect(cameraTiltAfterWheel(0.5, -100)).toBeCloseTo(1 / 3);
+    expect(cameraTiltAfterWheel(0, -100)).toBe(0);
+    expect(cameraTiltAfterWheel(0.9, 1000)).toBe(1);
+    expect(cameraTiltAfterWheel(0.4, Number.NaN)).toBe(0.4);
   });
 
   test('moves the fog range with responsive camera framing', () => {

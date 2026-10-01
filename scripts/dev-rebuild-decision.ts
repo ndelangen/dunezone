@@ -1,11 +1,22 @@
 import { spawnSync } from 'node:child_process';
 import { appendFileSync } from 'node:fs';
 
+/** The files beside the snapshot policy and the anonymiser (`scripts/lib/snapshot-*.ts`, `scripts/snapshot-*.ts`) that decide what dev's data is. */
+const SNAPSHOT_PIPELINE_FILES: ReadonlySet<string> = new Set([
+  'scripts/anonymised-snapshot.ts',
+  'convex/lib/provisioningContract.ts',
+  'convex/provisioningChecks.ts',
+  '.github/workflows/dev-rebuild.yml',
+]);
+
 /**
- * Decides whether a merge needs the dev deployment's data rebuilt from production.
+ * Decides whether a merge needs the dev deployment's data rebuilt from the anonymised snapshot (#1559).
  *
- * Only changes that can invalidate or reshape dev's existing data qualify: the schema itself, and the migrations that reshape data within a schema (cloud dev runs no migrations of its own;
+ * Two kinds of change qualify.
+ * The first can invalidate or reshape dev's existing data: the schema itself, and the migrations that reshape data within a schema (cloud dev runs no migrations of its own;
  * the rebuild replaced them, so a migration that never reached dev's data is a stale-data bug).
+ * The second changes what the snapshot keeps or how it is made, loaded and checked: the snapshot policy, the anonymiser, the rebuild contract and the rebuild workflow.
+ * Dev holds what the last rebuild made, so a tightened policy reaches dev only through a rebuild.
  *
  * Every merge still pushes code to dev, which doubles as the safety net for a missed rebuild: Convex validates existing data against the pushed schema, so data left stale by a skipped rebuild fails that push loudly on the very next merge.
  */
@@ -15,7 +26,11 @@ export function needsDataRebuild(changedFiles: readonly string[]): boolean {
       return false;
     }
     return (
-      file === 'convex/schema.ts' || file === 'convex/migration-guards.json' || /^convex\/migrations.*\.ts$/.test(file)
+      file === 'convex/schema.ts' ||
+      file === 'convex/migration-guards.json' ||
+      /^convex\/migrations.*\.ts$/.test(file) ||
+      SNAPSHOT_PIPELINE_FILES.has(file) ||
+      /^scripts\/(?:lib\/)?snapshot-[^/]+\.ts$/.test(file)
     );
   });
 }
@@ -59,9 +74,9 @@ export function decide(base: string, head: string, force: boolean): Decision {
   }
   const files = changedFiles(base, head);
   if (needsDataRebuild(files)) {
-    return { rebuild: true, reason: 'schema or migration files changed' };
+    return { rebuild: true, reason: 'schema, migration or snapshot files changed' };
   }
-  return { rebuild: false, reason: `no schema or migration changes across ${files.length} files` };
+  return { rebuild: false, reason: `no schema, migration or snapshot changes across ${files.length} files` };
 }
 
 if (import.meta.main) {

@@ -2,11 +2,6 @@ import { randomInt, randomUUID } from 'node:crypto';
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
 
-export function normalizeConvexDeploymentSelection(value: string | undefined): string | undefined {
-  const selection = value?.split(/\s#/u, 1)[0]?.trim();
-  return selection || undefined;
-}
-
 export type LocalDevelopmentInstance = {
   composeProjectName: string;
   appPort: number;
@@ -123,7 +118,7 @@ export function localDevelopmentEnvironmentOverrides(
 
 type LocalEnvironmentFileSearch = {
   rootDirectory: string;
-  fileName: '.env.e2e.local' | '.env.local';
+  fileName: '.env.e2e.local';
   commonGitDirectory?: string;
 };
 
@@ -149,9 +144,4 @@ export function resolveLocalDevelopmentEnvFile(
     return path.resolve(rootDirectory, explicitPath);
   }
   return resolveWorktreeOrMainFile({ rootDirectory, fileName: '.env.e2e.local', commonGitDirectory });
-}
-
-/** Finds the Convex project selection needed for the production snapshot export. */
-export function resolveLocalDevelopmentProjectEnvFile(rootDirectory: string, commonGitDirectory?: string): string {
-  return resolveWorktreeOrMainFile({ rootDirectory, fileName: '.env.local', commonGitDirectory });
 }

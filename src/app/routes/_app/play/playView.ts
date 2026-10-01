@@ -74,12 +74,13 @@ const MAP_VIEW_MINIMUM_TOP_LIMIT = 0.08;
 
 const CAMERA_OFFSET: Vector3Tuple = [0, 9.4, 11.2];
 const CAMERA_OFFSET_LENGTH = Math.hypot(...CAMERA_OFFSET);
-const CAMERA_FORWARD: Vector3Tuple = [
-  -CAMERA_OFFSET[0] / CAMERA_OFFSET_LENGTH,
-  -CAMERA_OFFSET[1] / CAMERA_OFFSET_LENGTH,
-  -CAMERA_OFFSET[2] / CAMERA_OFFSET_LENGTH,
-];
-const CAMERA_UP: Vector3Tuple = [0, CAMERA_OFFSET[2] / CAMERA_OFFSET_LENGTH, -CAMERA_OFFSET[1] / CAMERA_OFFSET_LENGTH];
+/* The approved table angle, measured from straight down, and the steepest the player may tilt to: near top-down, short of the pole where the orbit loses its heading. */
+const CAMERA_APPROVED_POLAR_ANGLE = Math.atan2(CAMERA_OFFSET[2], CAMERA_OFFSET[1]);
+export const CAMERA_TOP_DOWN_POLAR_ANGLE = 0.2;
+/* Scroll distance, in pixels, that tilts the camera from the approved angle all the way to top-down. */
+const CAMERA_TILT_SCROLL_RANGE_PX = 600;
+const WHEEL_LINE_PX = 16;
+const WHEEL_PAGE_PX = 400;
 const CAMERA_TANGENT = Math.tan((TABLE_CAMERA_FIELD_OF_VIEW * Math.PI) / 360);
 const DEFAULT_MAP_VIEW_FRAMING_POINTS = mapViewFramingPoints([]);
 const CAMERA_FOG_REFERENCE_HEIGHT = CAMERA_OFFSET[1];
@@ -93,6 +94,8 @@ const SIDE_VIEW_WIDE_ASPECT = 1;
 const SIDE_VIEW_ASPECT_COMPENSATION = 2.85;
 const SIDE_VIEW_MAX_TARGET_X = 6.1;
 const MAP_VIEW_TARGET_Z = 0.8;
+const MAP_VIEW_TARGET_SEARCH_RANGE = 12;
+const MAP_VIEW_TARGET_SEARCH_STEPS = 48;
 
 const TABLE_VIEW_TARGETS: Record<TableView, Vector3Tuple> = {
   map: [0, 0.1, MAP_VIEW_TARGET_Z],
@@ -101,16 +104,47 @@ const TABLE_VIEW_TARGETS: Record<TableView, Vector3Tuple> = {
   bottom: [0, 0.1, 5.15],
 };
 
+/* The camera's direction from its target and its screen axes at a tilt: 0 is the approved angle, 1 is near top-down. */
+type CameraBasis = Readonly<{ offset: Vector3Tuple; forward: Vector3Tuple; up: Vector3Tuple }>;
+
+/** A tilt within its range, where 0 is the approved table angle and 1 is near top-down. */
+function clampCameraTilt(tilt: number): number {
+  return Number.isFinite(tilt) ? Math.max(0, Math.min(1, tilt)) : 0;
+}
+
+/** The tilt after a wheel turn: scrolling down raises the camera toward top-down, scrolling up lowers it back to the approved angle. */
+export function cameraTiltAfterWheel(tilt: number, deltaY: number, deltaMode = 0): number {
+  const pixels = deltaY * (deltaMode === 1 ? WHEEL_LINE_PX : deltaMode === 2 ? WHEEL_PAGE_PX : 1);
+  return Number.isFinite(pixels) ? clampCameraTilt(tilt + pixels / CAMERA_TILT_SCROLL_RANGE_PX) : clampCameraTilt(tilt);
+}
+
+function cameraBasisFor(tilt: number): CameraBasis {
+  const polarAngle =
+    CAMERA_APPROVED_POLAR_ANGLE + (CAMERA_TOP_DOWN_POLAR_ANGLE - CAMERA_APPROVED_POLAR_ANGLE) * clampCameraTilt(tilt);
+  const height = Math.cos(polarAngle);
+  const depth = Math.sin(polarAngle);
+  return {
+    offset: [0, height * CAMERA_OFFSET_LENGTH, depth * CAMERA_OFFSET_LENGTH],
+    forward: [0, -height, -depth],
+    up: [0, depth, -height],
+  };
+}
+
 function dot(left: Vector3Tuple, right: Vector3Tuple): number {
   return left[0] * right[0] + left[1] * right[1] + left[2] * right[2];
 }
 
-function mapCameraScaleFor(aspectRatio: number, framingPoints: readonly Vector3Tuple[], topLimit: number): number {
-  const target = TABLE_VIEW_TARGETS.map;
+function mapCameraScaleFor(
+  aspectRatio: number,
+  framingPoints: readonly Vector3Tuple[],
+  topLimit: number,
+  basis: CameraBasis,
+  target: Vector3Tuple = TABLE_VIEW_TARGETS.map
+): number {
   return framingPoints.reduce((requiredScale, point) => {
     const relativePoint: Vector3Tuple = [point[0] - target[0], point[1] - target[1], point[2] - target[2]];
-    const depthAtTarget = dot(relativePoint, CAMERA_FORWARD);
-    const viewHeight = dot(relativePoint, CAMERA_UP);
+    const depthAtTarget = dot(relativePoint, basis.forward);
+    const viewHeight = dot(relativePoint, basis.up);
     const horizontalDepth = Math.abs(relativePoint[0]) / (CAMERA_TANGENT * MAP_VIEW_HORIZONTAL_LIMIT * aspectRatio);
     const verticalDepth =
       viewHeight >= 0
@@ -119,6 +153,39 @@ function mapCameraScaleFor(aspectRatio: number, framingPoints: readonly Vector3T
     const pointScale = (Math.max(horizontalDepth, verticalDepth) - depthAtTarget) / CAMERA_OFFSET_LENGTH;
     return Math.max(requiredScale, pointScale);
   }, MAP_VIEW_MINIMUM_CAMERA_SCALE);
+}
+
+/*
+ * Where along the table's depth the tilted map view looks, so the frame sits between header and dock with the camera closest.
+ * The required scale is the maximum of functions linear in the target's depth, so it is convex there and a ternary search finds its floor.
+ * The approved angle keeps its approved target; a tilt blends toward this one so the map grows as it turns, instead of drifting toward the header.
+ */
+function tiltedMapTarget(
+  aspectRatio: number,
+  framingPoints: readonly Vector3Tuple[],
+  topLimit: number,
+  basis: CameraBasis,
+  tilt: number
+): Vector3Tuple {
+  const approved = TABLE_VIEW_TARGETS.map;
+  if (tilt <= 0) {
+    return [...approved];
+  }
+  const scaleAt = (depth: number) =>
+    mapCameraScaleFor(aspectRatio, framingPoints, topLimit, basis, [approved[0], approved[1], depth]);
+  let near = approved[2] - MAP_VIEW_TARGET_SEARCH_RANGE;
+  let far = approved[2] + MAP_VIEW_TARGET_SEARCH_RANGE;
+  for (let step = 0; step < MAP_VIEW_TARGET_SEARCH_STEPS; step++) {
+    const lower = near + (far - near) / 3;
+    const upper = far - (far - near) / 3;
+    if (scaleAt(lower) <= scaleAt(upper)) {
+      far = upper;
+    } else {
+      near = lower;
+    }
+  }
+  const balanced = (near + far) / 2;
+  return [approved[0], approved[1], approved[2] + (balanced - approved[2]) * tilt];
 }
 
 export function mapViewTopLimitForViewport(
@@ -141,8 +208,10 @@ export function cameraPoseFor(
   view: TableView,
   aspectRatio = 1,
   mapFramingPoints: readonly Vector3Tuple[] = DEFAULT_MAP_VIEW_FRAMING_POINTS,
-  mapTopLimit = MAP_VIEW_TOP_LIMIT
+  mapTopLimit = MAP_VIEW_TOP_LIMIT,
+  tilt = 0
 ): CameraPose {
+  const basis = cameraBasisFor(tilt);
   const safeAspectRatio = Number.isFinite(aspectRatio) && aspectRatio > 0 ? aspectRatio : 1;
   const baseTarget = TABLE_VIEW_TARGETS[view];
   const safeMapTopLimit =
@@ -154,19 +223,21 @@ export function cameraPoseFor(
       ? [-sideTargetX, baseTarget[1], baseTarget[2]]
       : view === 'right'
         ? [sideTargetX, baseTarget[1], baseTarget[2]]
-        : [...baseTarget];
+        : view === 'map'
+          ? tiltedMapTarget(safeAspectRatio, mapFramingPoints, safeMapTopLimit, basis, clampCameraTilt(tilt))
+          : [...baseTarget];
   const cameraScale =
     view === 'map'
-      ? mapCameraScaleFor(safeAspectRatio, mapFramingPoints, safeMapTopLimit)
+      ? mapCameraScaleFor(safeAspectRatio, mapFramingPoints, safeMapTopLimit, basis, target)
       : view === 'bottom'
         ? Math.max(BOTTOM_VIEW_CAMERA_SCALE, BOTTOM_VIEW_MINIMUM_HORIZONTAL_SCALE / safeAspectRatio)
         : FOCUS_VIEW_CAMERA_SCALE;
   return {
     target: [...target],
     position: [
-      target[0] + CAMERA_OFFSET[0] * cameraScale,
-      target[1] + CAMERA_OFFSET[1] * cameraScale,
-      target[2] + CAMERA_OFFSET[2] * cameraScale,
+      target[0] + basis.offset[0] * cameraScale,
+      target[1] + basis.offset[1] * cameraScale,
+      target[2] + basis.offset[2] * cameraScale,
     ],
   };
 }
