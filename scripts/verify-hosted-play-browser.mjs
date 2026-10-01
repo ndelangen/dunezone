@@ -139,6 +139,8 @@ const report = {
   checks: [],
   /* Seconds from the start to a point the flow passes on its way, such as reaching play, so CI shows where a flow's time goes (#1594). */
   milestones: {},
+  /* Seconds each table entered in play took to finish mounting and draw, after its Table view group appeared (#1592). */
+  tableDraws: [],
   captures: [],
   pageErrors: [],
   consoleErrors: [],
@@ -369,10 +371,12 @@ async function peer(label, context) {
       return;
     }
     assert.equal(new URL(socket.url()).search, '');
-    state.sockets.push({ url: socket.url(), closed: false });
+    /* The driver's clock when Playwright reported the refusal and the close, for the sign-out report (#1592). */
+    state.sockets.push({ url: socket.url(), closed: false, refusedAt: null, closedAt: null });
     const connection = state.sockets.at(-1);
     socket.on('close', () => {
       connection.closed = true;
+      connection.closedAt = Date.now();
     });
     socket.on('framesent', (frame) => {
       if (frame.payload.toString() === KEEPALIVE_PING) {
@@ -386,6 +390,9 @@ async function peer(label, context) {
         return;
       }
       const message = JSON.parse(frame.payload.toString());
+      if (message.type === 'admission' && message.status === 'denied') {
+        connection.refusedAt ??= Date.now();
+      }
       if (typeof message.phaseCooldownMs === 'number') {
         state.phaseCooldown = { ms: message.phaseCooldownMs, receivedAt: Date.now() };
       }
@@ -480,6 +487,22 @@ async function admissionTrace(who) {
     statuses: statuses.map((entry) => ({ ...entry, at: since(entry.at) })),
   };
 }
+/** The regular flow's sign-out: the tabs it should close and when Sign out was clicked. */
+let signOut = null;
+/**
+ * When each signed-out tab's game sockets received the Worker's refusal and closed, in milliseconds after the Sign out click (#1592).
+ * Both times are the driver's, when Playwright reported each event, and a socket that closed before the click shows a negative time.
+ */
+function signOutReport() {
+  const since = (time) => (time === null ? null : time - signOut.clickedAt);
+  return {
+    clickedAtSeconds: Math.round((signOut.clickedAt - Date.parse(report.startedAt)) / 100) / 10,
+    tabs: signOut.tabs.map((who) => ({
+      label: who.label,
+      sockets: who.sockets.map((socket) => ({ refusedMs: since(socket.refusedAt), closedMs: since(socket.closedAt) })),
+    })),
+  };
+}
 async function signIn(who) {
   assert.ok(credentials[who.label], `${who.label} has no provisioned account; add it to SIGNED_IN.`);
   await signInThroughForm(who.page, origin, credentials[who.label], who.label);
@@ -487,7 +510,41 @@ async function signIn(who) {
 /** The id of the real game this flow creates; every account after the creator enters it. */
 let gameId;
 const SPECTATOR = 'neutral';
-/** Waits for an admitted connection and the table it projects; before play the stage replaces the table view. */
+/*
+ * How long a table entered in play gets to finish mounting and draw once, after its Table view group appears.
+ * On the macOS WebGPU runner a newly opened tab's table finished mounting and drawing up to 17.6 s after its game socket opened (#1592).
+ */
+const TABLE_DRAW_MS = 30_000;
+/**
+ * Waits for a table in play to finish mounting and to draw once, and records how long that took.
+ * The scene mounts in one task once its renderer has initialised, and the frame after it builds the scene's shaders.
+ * On the macOS WebGPU runner the two held a newly opened tab's main thread for up to 14.3 s, so a tab signed out meanwhile handled its socket's close only after them (#1592).
+ * `window.__duneTable` is installed by an effect that runs after the mount commits, and two animation frames later the frame the mount asked for has been drawn.
+ */
+async function tableDrawn(who) {
+  const started = Date.now();
+  const drawn = await who.page
+    .waitForFunction(
+      () =>
+        window.__duneTable !== undefined &&
+        new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve(true)))),
+      undefined,
+      { timeout: TABLE_DRAW_MS }
+    )
+    .catch((error) => {
+      if (!(error instanceof errors.TimeoutError)) {
+        throw error;
+      }
+      throw new Error(`${who.label}'s table did not finish mounting and draw within ${TABLE_DRAW_MS / 1000} s.`);
+    });
+  await drawn.dispose();
+  report.tableDraws.push({ label: who.label, seconds: Math.round((Date.now() - started) / 100) / 10 });
+}
+/**
+ * Waits for an admitted connection and the table it projects.
+ * Before play the stage replaces the table view.
+ * A table in play has also finished mounting and drawn, so the flow's next step does not share the tab with its mount.
+ */
 async function admitted(who) {
   await who.page.locator('[data-connection="authorized"]').waitFor();
   await until(() => who.view(), 'The UI did not receive an authorized snapshot.');
@@ -495,6 +552,7 @@ async function admitted(who) {
   assert.equal(who.sent[0].ticketLength, 64);
   if (who.view().snapshot.stage === 'play') {
     await who.page.getByRole('group', { name: 'Table view' }).waitFor();
+    await tableDrawn(who);
   }
   if (!report.renderer) {
     await recordRenderer(who);
@@ -1593,11 +1651,19 @@ async function verifyRegular() {
   await accountPage.getByRole('heading', { name: 'Game lobby' }).waitFor();
   await accountPage.locator('header button[aria-haspopup="menu"]').last().click();
   const revokedAt = Date.now();
+  signOut = { tabs: [a, aTab], clickedAt: revokedAt };
   await accountPage.getByRole('menuitem', { name: 'Sign out', exact: true }).click();
   await until(
     () => [a, aTab].every((who) => who.sockets.every((socket) => socket.closed)),
     'Sign out did not close every tab socket.'
-  );
+  ).catch((error) => {
+    const open = [a, aTab].flatMap((who) =>
+      who.sockets.flatMap((socket, index) =>
+        socket.closed ? [] : [`${who.label} socket ${index + 1} of ${who.sockets.length}`]
+      )
+    );
+    throw new Error(`${error.message} Still open: ${open.join(', ')}.`);
+  });
   await until(
     async () => (await a.page.locator('canvas').count()) === 0 && (await aTab.page.locator('canvas').count()) === 0,
     'Signed-out game data remained visible.'
@@ -1743,6 +1809,11 @@ try {
     console.error(frame);
   }
 } finally {
+  /* Read before the browsers close, whose teardown closes every socket still open, so a failed wait still shows the socket that closed late. */
+  if (signOut) {
+    report.signOut = signOutReport();
+    console.log(`SIGNOUT ${JSON.stringify(report.signOut)}`);
+  }
   const counts = (messages) =>
     messages.reduce((result, message) => ({ ...result, [message.type]: (result[message.type] ?? 0) + 1 }), {});
   report.transport = peers.map((who) => ({
