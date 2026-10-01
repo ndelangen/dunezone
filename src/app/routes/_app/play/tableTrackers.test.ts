@@ -167,12 +167,15 @@ describe('table trackers', () => {
       const pose = cameraPoseFor('map', aspectRatio, mapViewFramingPoints(slots, seatCount));
       const camera = tableCamera(pose, aspectRatio);
 
-      independentlySampledMapBoundary(slots, seatCount).forEach((point) => {
-        const projected = new Vector3(...point).project(camera);
-        expect(Math.abs(projected.x)).toBeLessThanOrEqual(MAP_VIEW_HORIZONTAL_LIMIT + 0.0005);
-        expect(projected.y).toBeLessThanOrEqual(MAP_VIEW_TOP_LIMIT + 0.0005);
-        expect(projected.y).toBeGreaterThanOrEqual(-MAP_VIEW_BOTTOM_LIMIT - 0.0005);
-      });
+      /* One assertion per edge on the extreme sampled point: a separate expect per point made this sweep take 98 s (#1590). */
+      const projected = independentlySampledMapBoundary(slots, seatCount).map((point) =>
+        new Vector3(...point).project(camera)
+      );
+      expect(Math.max(...projected.map((point) => Math.abs(point.x)))).toBeLessThanOrEqual(
+        MAP_VIEW_HORIZONTAL_LIMIT + 0.0005
+      );
+      expect(Math.max(...projected.map((point) => point.y))).toBeLessThanOrEqual(MAP_VIEW_TOP_LIMIT + 0.0005);
+      expect(Math.min(...projected.map((point) => point.y))).toBeGreaterThanOrEqual(-MAP_VIEW_BOTTOM_LIMIT - 0.0005);
     }
   );
 
