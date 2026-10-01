@@ -60,7 +60,8 @@ Play is healthy for release when all of these hold:
    game Worker is never rolled back on its own (`docs/deployment.md:19-24`).
 3. The game Worker passed its preflight and live contract: no workers.dev, preview or route ingress,
    one SQLite `GameRoom` namespace, and the exact checked-in configuration
-   (`scripts/game-deployment-contract.ts:39-78`, `.github/workflows/deploy-main.yml:113-174`).
+   (`validateGameDeployContract` in `scripts/game-deployment-contract.ts`,
+   `.github/workflows/deploy-main.yml:113-174`).
 4. Convex `PLAY_SERVICE_URL` and `SITE_URL` are both `https://dune.zone`, and the test-only flags
    `IS_TEST`, `E2E_LOCAL_AUTH`, `PLAY_TEST_PHASE_COOLDOWN_MS` and `PLAY_TEST_START_STAGE` are off or
    unset in production (`docs/deployment.md:149-152`).
@@ -99,12 +100,18 @@ Not set up:
   forwards like any `/__play` path, and the game Worker emails from `alerting@dune.zone` through
   the `ALERT_EMAIL` Email Routing binding. Sending to a verified destination is free on every
   plan. The route takes no credential, so the email carries nothing from the request: it only says
-  an issue was reported and to open Observability > Issues in the dashboard. At most one is sent
-  per ten minutes (a Cache API marker per location, plus a timestamp per isolate). The one Worker
-  secret, `ALERT_EMAIL_TO`, holds the verified destination so the address stays out of the
-  repository; until it is set the route is refused like any unknown path. The deploy contract and
-  the live drift audit allow exactly that binding and that secret on the game Worker. The secret
-  and the automation are not live yet.
+  an issue was reported and to open Observability > Issues in the dashboard. The interval guard
+  holds one email per ten minutes within each Cloudflare location and isolate, not globally: callers
+  reaching several locations can each cause one, so an unexpected burst means someone is calling the
+  route, and the dashboard shows whether a real issue exists. A failed send is logged as a
+  `console.warn` `alert-email-failed` and still answered 202, so it cannot feed itself back as a new
+  issue faster than the interval. The one Worker secret, `ALERT_EMAIL_TO`, holds the destination so
+  the address stays out of the repository; until it is set the route is refused like any unknown
+  path. The deploy contract and the live drift audit allow exactly that binding and that secret on
+  the game Worker. To turn it on: verify the destination in Email Routing first, then add
+  `ALERT_EMAIL_TO` as a secret under the `dunezone-game` Worker's Settings > Variables and Secrets,
+  then create the Issues automation with a generic webhook to the route. The secret and the
+  automation are not live yet.
 - **Health Checks** against `/__play/health`. They need the Pro plan, and Norbert decided not to
   upgrade. The deploy smoke still reads that endpoint (section 2).
 
@@ -233,7 +240,7 @@ stops any run whose commit is older than what production reports
 
 ## 5. Known gaps
 
-- Until the Issues automation and the relay's secrets are set (section 3), no alert covers game
+- Until the Issues automation and the relay's secret is set (section 3), no alert covers game
   Worker errors.
 - The relay runs in the game Worker behind the publisher, so an outage of either silences Worker
   error alerts; the email says only that an issue exists, and the dashboard has the detail.

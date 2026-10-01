@@ -2019,7 +2019,7 @@ export default {
     }
     /* The Node globals in this tsconfig shadow the Workers `caches`, which has `default` at runtime. */
     const markers = (caches as unknown as { default: Cache }).default;
-    const alert = await handleAlertWebhook(request, url.pathname, env, markers);
+    const alert = await handleAlertWebhook(request, url.pathname, env, { markers });
     if (alert) {
       return alert;
     }
