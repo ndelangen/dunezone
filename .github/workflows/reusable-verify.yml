@@ -491,7 +491,7 @@ jobs:
                 exit 0
               fi
               # The script's own output and summary are not wanted here; its decision is read from the JSON it prints.
-              decision="$(GITHUB_OUTPUT= GITHUB_STEP_SUMMARY= bun scripts/hosted-play-closure.ts < changed-files.txt)"
+              decision="$(GITHUB_OUTPUT='' GITHUB_STEP_SUMMARY='' bun scripts/hosted-play-closure.ts < changed-files.txt)"
               if [ "$(jq .run <<< "$decision")" = true ]; then
                 shards_skip "The pull request that merged as $SHA was up to date and its diff reached the closure, so its run executed the shards on this tree."
               else
