@@ -4,6 +4,7 @@ import aggregateTest from '@convex-dev/aggregate/test';
 import { convexTest } from 'convex-test';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
+import { placeholderOwner } from '../scripts/lib/snapshot-policy';
 import { internal } from './_generated/api';
 import schema from './schema';
 
@@ -138,5 +139,23 @@ describe('provisioning seed documents', () => {
       expect(group?.created_by).toBe(viewer?._id);
       expect(group?.slug).toBe(`group-of-${viewer?._id}`);
     });
+  });
+});
+
+describe('snapshot Rulebook draft seed', () => {
+  test('runs only where a snapshot load left the placeholder owner as the one account, so never on production', async () => {
+    const t = prepared();
+    const seed = () =>
+      t.mutation(internal.provisioning.seedSnapshotRulebookDraftsBatch, {
+        paginationOpts: { numItems: 10, cursor: null },
+      });
+    const refusal = "where a snapshot load left the placeholder owner as the deployment's one account";
+
+    await t.run((ctx) => ctx.db.insert('users', { email: 'someone@prod.example' }));
+    await expect(seed()).rejects.toThrow(refusal);
+    await t.run(async (ctx) => {
+      await ctx.db.insert('users', placeholderOwner.user());
+    });
+    await expect(seed()).rejects.toThrow(refusal);
   });
 });

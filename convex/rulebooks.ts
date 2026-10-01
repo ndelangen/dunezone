@@ -18,7 +18,7 @@ import { rulebookResolvedFactionsByIdSchema } from '../src/shared/rulebooks/refe
 import { DEFAULT_RULEBOOK_SETTINGS, rulebookSettingsSchema } from '../src/shared/rulebooks/settings';
 import type { RulebookDesign, RulebookSettings } from '../src/shared/rulebooks/settings';
 import { rulebookResolvedAssetsByIdSchema } from '../src/shared/rulebooks/sources';
-import type { Id } from './_generated/dataModel';
+import type { Doc, Id } from './_generated/dataModel';
 import { query } from './_generated/server';
 import { mutation } from './functions';
 import { loadRulesetAccessForLoadedSubject, requireRulesetMaintenance } from './lib/collaborativeAccess';
@@ -149,11 +149,16 @@ async function rulebookById(ctx: AnyCtx, rulebookId: Id<'rulebooks'>) {
   return rulebook;
 }
 
-async function draftFor(ctx: AnyCtx, rulebookId: Id<'rulebooks'>) {
-  const draft = await ctx.db
+/** A Rulebook's one draft, or null when it has none. */
+export async function storedRulebookDraft(ctx: AnyCtx, rulebookId: Id<'rulebooks'>) {
+  return await ctx.db
     .query('rulebook_drafts')
     .withIndex('by_rulebook', (q) => q.eq('rulebook_id', rulebookId))
     .unique();
+}
+
+async function draftFor(ctx: AnyCtx, rulebookId: Id<'rulebooks'>) {
+  const draft = await storedRulebookDraft(ctx, rulebookId);
   if (!draft) {
     throw new Error('Rulebook draft not found');
   }
@@ -367,6 +372,44 @@ function assertCompleteRulebookOrder(currentIds: Id<'rulebooks'>[], proposedIds:
   }
 }
 
+/** A Rulebook's first draft starts at revision 1. */
+async function insertRulebookDraft(
+  ctx: MutationCtx,
+  input: { rulebookId: Id<'rulebooks'>; contents: RulebookContentsV1; updatedBy: Id<'users'>; now: string }
+) {
+  return await ctx.db.insert('rulebook_drafts', {
+    rulebook_id: input.rulebookId,
+    revision: 1,
+    contents: input.contents,
+    updated_by: input.updatedBy,
+    updated_at: input.now,
+  });
+}
+
+/**
+ * Gives a Rulebook without a draft one that holds its current Edition as the public reader shows it, so its editor opens.
+ * A snapshot load needs this, because the snapshot leaves every draft out (#1559).
+ * A Rulebook that already has a draft keeps it, so a second run changes nothing.
+ * Returns whether it inserted a draft.
+ */
+export async function seedRulebookDraftFromCurrentEdition(
+  ctx: MutationCtx,
+  rulebook: Doc<'rulebooks'>,
+  updatedBy: Id<'users'>
+) {
+  if (await storedRulebookDraft(ctx, rulebook._id)) {
+    return false;
+  }
+  const edition = await editionFor(ctx, rulebook._id, rulebook.current_edition_number);
+  await insertRulebookDraft(ctx, {
+    rulebookId: rulebook._id,
+    contents: parseContents(readerContents(edition.contents)),
+    updatedBy,
+    now: nowIso(),
+  });
+  return true;
+}
+
 async function insertRulebookBundle(
   ctx: MutationCtx,
   input: {
@@ -395,12 +438,11 @@ async function insertRulebookBundle(
     is_deleted: false,
     deleted_at: null,
   });
-  const draftId = await ctx.db.insert('rulebook_drafts', {
-    rulebook_id: rulebookId,
-    revision: 1,
+  const draftId = await insertRulebookDraft(ctx, {
+    rulebookId,
     contents: input.contents,
-    updated_by: input.viewerId,
-    updated_at: now,
+    updatedBy: input.viewerId,
+    now,
   });
   const editionId = await ctx.db.insert('rulebook_editions', {
     rulebook_id: rulebookId,
