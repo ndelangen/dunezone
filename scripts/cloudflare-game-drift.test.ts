@@ -16,6 +16,9 @@ type GameApiOptions = {
   namespaceResultInfo?: Record<string, unknown> | ((page: number) => Record<string, unknown>);
   bindingName?: unknown;
   flags?: readonly unknown[];
+  alertRelay?: boolean;
+  alertEmailType?: string;
+  secretName?: string;
 };
 
 function gameSettings(options: GameApiOptions) {
@@ -27,6 +30,12 @@ function gameSettings(options: GameApiOptions) {
       { name: 'APPLICATION_ORIGIN', type: 'plain_text', text: 'https://dune.zone' },
       { name: 'GIT_SHA', type: 'plain_text', text: gitSha },
       ...(options.extraBinding ? [{ name: 'EXTRA_SECRET', type: 'secret_text' }] : []),
+      ...(options.alertRelay
+        ? [
+            { name: 'ALERT_EMAIL', type: options.alertEmailType ?? 'send_email' },
+            { name: 'ALERT_EMAIL_TO', type: 'secret_text' },
+          ]
+        : []),
     ],
     compatibility_date: '2026-08-11',
     compatibility_flags: options.flags ?? ['nodejs_compat'],
@@ -60,7 +69,12 @@ function gameApi(options: GameApiOptions = {}) {
       authorization.push(new Headers(init?.headers).get('Authorization'));
       const responses: Record<string, () => unknown> = {
         settings: () => gameSettings(options),
-        secrets: () => [],
+        secrets: () =>
+          options.secretName
+            ? [{ name: options.secretName, type: 'secret_text' }]
+            : options.alertRelay
+              ? [{ name: 'ALERT_EMAIL_TO', type: 'secret_text' }]
+              : [],
         domains: () => [],
         routes: () => (options.route ? [{ pattern: 'other.example/*' }] : []),
         schedules: () => ({ schedules: [] }),
@@ -109,6 +123,8 @@ test.each([
   [{ owner: 'other-worker' }, /owned/],
   [{ bindingName: {} }, /only strings/],
   [{ flags: [{}] }, /only strings/],
+  [{ alertRelay: true, alertEmailType: 'secret_text' }, /ALERT_EMAIL binding type/],
+  [{ secretName: 'OTHER_SECRET' }, /secrets/],
 ] as const)('the game audit refuses live contract drift %j', async (options, error) => {
   const api = gameApi(options);
   await expect(
@@ -118,6 +134,17 @@ test.each([
       fetcher: api.fetcher,
     })
   ).rejects.toThrow(error);
+});
+
+test('the game audit accepts the alert relay binding and its one recipient secret', async () => {
+  const api = gameApi({ alertRelay: true });
+  await expect(
+    checkGameWorkerLiveDrift({
+      accountId: namespaceId,
+      apiToken: 'read-only-test-token',
+      fetcher: api.fetcher,
+    })
+  ).resolves.toEqual({ worker: 'dunezone-game', namespaceId, bindingCount: 7 });
 });
 
 test('the game audit reads the full namespace inventory before identifying the bound class', async () => {
