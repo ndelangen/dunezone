@@ -64,3 +64,30 @@
   width: 100%;
   height: 100%;
 }
+
+@container page-frame (width < 30rem) {
+  .compact {
+    flex-wrap: nowrap;
+    gap: var(--space-sm);
+  }
+  .compact > :first-child {
+    min-width: 0;
+    flex: 1;
+  }
+  .compact .artwork {
+    width: 9rem;
+    height: 6rem;
+  }
+  .compact .cardLink {
+    flex-basis: 4.05rem;
+    height: 5.69rem;
+  }
+  .compact .cardFrame {
+    transform: scale(0.072);
+  }
+  .compact .leaderLink {
+    flex-basis: 4.95rem;
+    width: 4.95rem;
+    height: 4.95rem;
+  }
+}

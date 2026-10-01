@@ -1,16 +1,16 @@
 /* Three throwaway media-index designs on /media, selected by ?variant=A, B or C. */
-import { Anchor, Button, Divider, Group, Stack, Text } from '@mantine/core';
+import { Button, Group, Stack, Text } from '@mantine/core';
 import { Link } from '@tanstack/react-router';
 import { Section } from '@ui/block/Section';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
-import { ArrowLeft, ArrowRight, ChevronRight } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { ArrowLeft, ArrowRight } from 'lucide-react';
+import { useEffect } from 'react';
 
 import { resolveAsset } from '@game/assets/resolveAsset';
 
-import { catalogueEntries, mediaKinds } from './mediaCatalogue';
+import { catalogueEntries } from './mediaCatalogue';
 import type { MediaEntry } from './mediaCatalogue';
 import styles from './mediaIndex.prototype.module.css';
 import { mediaLocation } from './mediaNavigation';
@@ -29,6 +29,7 @@ const categories = [
 
 const galleries = categories.map((category) => {
   const entries = catalogueEntries.filter((entry) => entry.kind === category.kind);
+  const previewEntries = entries.filter((entry) => entry.value !== '/vector/logo/choam.svg');
   const samplePositions = category.kind === 'leader' ? [1, 28, 117, 241, 310, 432] : [0, 3, 8, 12, 19, 24];
   const samples =
     category.kind === 'decal'
@@ -40,12 +41,12 @@ const galleries = categories.map((category) => {
           'family-atomics-no-text',
           'prana-bundu',
         ].map((name) => entries.find((entry) => entry.value === `/vector/decal/${name}.svg`)!)
-      : samplePositions.map((i) => entries[i % entries.length]!);
+      : samplePositions.map((i) => previewEntries[i % previewEntries.length]!);
   return { ...category, entries, samples };
 });
 type Gallery = (typeof galleries)[number];
 export type PrototypeVariant = 'A' | 'B' | 'C';
-const variants = { A: 'Collection wall', B: 'Illustrated directory', C: 'Gallery browser' };
+const variants = { A: 'Tight wall', B: 'Even grid', C: 'Decals first' };
 
 function destination(gallery: Gallery) {
   return mediaLocation({ source: 'media', kind: gallery.kind, q: '', group: '' });
@@ -66,36 +67,59 @@ function Artwork({ entry }: { entry: MediaEntry }) {
   );
 }
 
+function GalleryTile({
+  gallery,
+  className = '',
+  featured = false,
+}: {
+  gallery: Gallery;
+  className?: string;
+  featured?: boolean;
+}) {
+  return (
+    <Surface
+      padding="md"
+      interactive
+      className={className}
+      renderRoot={(props) => (
+        <Link {...props} className={`${props.className} ${styles.open}`} {...destination(gallery)} />
+      )}
+    >
+      <Section
+        title={gallery.title}
+        action={
+          <Group gap="xs">
+            <Text size="xs" c="dimmed">
+              {gallery.entries.length}
+            </Text>
+            <ArrowRight size={16} aria-hidden />
+          </Group>
+        }
+      >
+        <div
+          className={`${styles.collage} ${featured ? styles.largeCollage : ''} ${gallery.kind === 'leader' ? styles.portraits : ''} ${gallery.kind === 'decal' ? styles.decals : ''}`}
+        >
+          {gallery.samples.slice(0, featured ? 6 : 3).map((entry, i) => (
+            <div key={`${entry.value}-${i}`} className={styles.specimen}>
+              <Artwork entry={entry} />
+            </div>
+          ))}
+        </div>
+      </Section>
+    </Surface>
+  );
+}
+
 export function VariantA() {
   return (
-    <div className={styles.wall}>
-      {galleries.map((gallery, index) => (
-        <Surface
+    <div className={styles.tightWall}>
+      {galleries.map((gallery, i) => (
+        <GalleryTile
           key={gallery.kind}
-          padding="lg"
-          interactive
-          className={index < 2 ? styles.featured : styles.wallTile}
-          renderRoot={(props) => (
-            <Link {...props} className={`${props.className} ${styles.open}`} {...destination(gallery)} />
-          )}
-        >
-          <Section
-            title={gallery.title}
-            description={`${gallery.entries.length} artworks`}
-            action={<ArrowRight size={22} aria-hidden />}
-          >
-            <div className={`${styles.wallArt} ${gallery.kind === 'leader' ? styles.portraitWall : ''}`}>
-              {gallery.samples.slice(0, index < 2 ? 5 : 3).map((entry, i) => (
-                <div key={`${entry.value}-${i}`} className={styles.specimen}>
-                  <Artwork entry={entry} />
-                </div>
-              ))}
-            </div>
-            <Text size="sm" c="dimmed">
-              {gallery.description}
-            </Text>
-          </Section>
-        </Surface>
+          gallery={gallery}
+          featured={i < 2}
+          className={i < 2 ? styles.featured : styles.wallTile}
+        />
       ))}
     </div>
   );
@@ -103,108 +127,32 @@ export function VariantA() {
 
 export function VariantB() {
   return (
-    <Surface padding="lg">
-      <Stack gap="md">
-        {galleries.map((gallery, index) => (
-          <Stack key={gallery.kind} gap="md">
-            {index > 0 && <Divider />}
-            <Anchor
-              className={styles.directoryRow}
-              renderRoot={(props) => <Link {...props} {...destination(gallery)} />}
-            >
-              <Text className={styles.number} c="dimmed">
-                {String(index + 1).padStart(2, '0')}
-              </Text>
-              <Stack gap={4}>
-                <Text size="xl" fw={600}>
-                  {gallery.title}
-                </Text>
-                <Text size="sm" c="dimmed">
-                  {gallery.entries.length} artworks
-                </Text>
-              </Stack>
-              <div className={styles.strip}>
-                {gallery.samples.slice(0, 4).map((entry, i) => (
-                  <Artwork key={`${entry.value}-${i}`} entry={entry} />
-                ))}
-              </div>
-              <ChevronRight size={22} aria-hidden />
-            </Anchor>
-          </Stack>
-        ))}
-      </Stack>
-    </Surface>
+    <div className={styles.evenGrid}>
+      {galleries.map((gallery) => (
+        <GalleryTile key={gallery.kind} gallery={gallery} />
+      ))}
+    </div>
   );
 }
 
-export function VariantC({ selected, onSelect }: { selected: string; onSelect: (kind: string) => void }) {
-  const gallery = galleries.find((item) => item.kind === selected)!;
+export function VariantC() {
   return (
-    <Surface padding="lg">
-      <div className={styles.browser}>
-        <nav aria-label="Preview a gallery" className={styles.categoryNav}>
-          {galleries.map((item) => (
-            <Button
-              key={item.kind}
-              variant={item.kind === selected ? 'light' : 'subtle'}
-              color="gray"
-              justify="space-between"
-              size="lg"
-              fullWidth
-              rightSection={<Text size="xs">{item.entries.length}</Text>}
-              onClick={() => onSelect(item.kind)}
-              aria-pressed={item.kind === selected}
-            >
-              {item.title}
-            </Button>
-          ))}
-        </nav>
-        <div className={styles.stage}>
-          <Section
-            title={gallery.title}
-            description={gallery.description}
-            action={
-              <Text size="sm" c="dimmed">
-                {gallery.entries.length} artworks
-              </Text>
-            }
-          >
-            <Anchor
-              className={styles.stageLink}
-              aria-label={`Open ${gallery.title} gallery`}
-              renderRoot={(props) => <Link {...props} {...destination(gallery)} />}
-            >
-              <div className={`${styles.stageArt} ${gallery.kind === 'cover' ? styles.covers : ''}`}>
-                {gallery.samples.map((entry, i) => (
-                  <div key={`${entry.value}-${i}`}>
-                    <Artwork entry={entry} />
-                  </div>
-                ))}
-              </div>
-            </Anchor>
-            <Button
-              size="md"
-              variant="light"
-              rightSection={<ArrowRight size={18} aria-hidden />}
-              renderRoot={(props) => <Link {...props} {...destination(gallery)} />}
-            >
-              Explore {gallery.title.toLowerCase()}
-            </Button>
-          </Section>
-        </div>
-      </div>
-    </Surface>
+    <div className={styles.decalsFirst}>
+      <GalleryTile gallery={galleries[1]!} featured className={styles.focusDecals} />
+      <GalleryTile gallery={galleries[0]!} featured className={styles.focusLeaders} />
+      {galleries.slice(2).map((gallery) => (
+        <GalleryTile key={gallery.kind} gallery={gallery} />
+      ))}
+    </div>
   );
 }
 
 function PrototypeSwitcher({
   variant,
   onChange,
-  selected,
 }: {
   variant: PrototypeVariant;
   onChange: (variant: PrototypeVariant) => void;
-  selected: string;
 }) {
   const change = (direction: number) => {
     const keys = Object.keys(variants) as PrototypeVariant[];
@@ -253,8 +201,7 @@ function PrototypeSwitcher({
               </Text>
             </Group>
             <Text size="xs" c="dimmed">
-              {variant === 'C' ? `${mediaKinds.find((kind) => kind.value === selected)?.label} preview · ` : ''}8
-              galleries · No search toolbar
+              Round 2 · Smaller gaps · Varied artwork sizes
             </Text>
           </Stack>
           <IconAction label="Next design" icon={<ArrowRight size={20} />} onClick={() => change(1)} />
@@ -271,26 +218,19 @@ export function MediaIndexPrototype({
   variant: PrototypeVariant;
   onVariant: (variant: PrototypeVariant) => void;
 }) {
-  const [selected, setSelected] = useState<string>('decal');
   return (
     <>
       <PageLayout>
         <PageLayout.Header size="compact">
-          <MediaShowcase overview />
+          <MediaShowcase overview compact />
         </PageLayout.Header>
         <PageLayout.Content width="viewport">
           <Stack gap="lg" className={styles.prototype}>
-            {variant === 'A' ? (
-              <VariantA />
-            ) : variant === 'B' ? (
-              <VariantB />
-            ) : (
-              <VariantC selected={selected} onSelect={setSelected} />
-            )}
+            {variant === 'A' ? <VariantA /> : variant === 'B' ? <VariantB /> : <VariantC />}
           </Stack>
         </PageLayout.Content>
       </PageLayout>
-      {import.meta.env.DEV && <PrototypeSwitcher variant={variant} onChange={onVariant} selected={selected} />}
+      {import.meta.env.DEV && <PrototypeSwitcher variant={variant} onChange={onVariant} />}
     </>
   );
 }
