@@ -134,9 +134,10 @@ function PhaseNavigation({ client, table }: Pick<ConnectionControlsProps, 'clien
   const { needsReady, refusal } = phaseGate({ ...table.snapshot, ready: controls.ready, seats: controls.seats });
   const ready = controls.ready.includes(table.viewer.viewerSeat);
   /* Readiness is a phase control, so it sits with Previous and Next in the header rather than on a
-     tab; the count stays short so the toolbar keeps to one row at desktop widths. */
+     tab; the count stays short so the toolbar keeps to one row at desktop widths, and a phone wraps
+     the group onto a second row instead of pushing its buttons off both edges. */
   return (
-    <Group gap="xs" justify="flex-end" wrap="nowrap" role="group" aria-label="Phase navigation">
+    <Group gap="xs" justify="flex-end" wrap="wrap" role="group" aria-label="Phase navigation">
       {needsReady && (
         <>
           <Button
@@ -319,6 +320,12 @@ function SetupControls({ client, table }: SetupControlProps) {
     return null;
   }
   const step = setupStep(setup);
+  /* The viewer's own starting forces lead, so a narrow dock shows the line that seat has to follow. */
+  const ownFaction = rosterSeat(table.snapshot.roster, table.viewer.viewerSeat)?.faction?.id;
+  const instructions = [
+    ...setup.instructions.filter((entry) => entry.factionId === ownFaction),
+    ...setup.instructions.filter((entry) => entry.factionId !== ownFaction),
+  ];
   return (
     <Stack gap="md">
       {step.kind !== 'prediction' && (
@@ -338,7 +345,7 @@ function SetupControls({ client, table }: SetupControlProps) {
               </Button>
             )}
             {step.kind === 'forces' &&
-              setup.instructions.map((entry) => (
+              instructions.map((entry) => (
                 <Section
                   helpOnly={Boolean(table.snapshot.stage)}
                   key={entry.factionId}

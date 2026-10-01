@@ -40,8 +40,13 @@ const meta = preview.meta({
       },
     },
   },
-  beforeEach: ({ args }) =>
-    install(() => journeyTransport(Number(args.step ?? 1) - 1, String(args.seat ?? 'seat-1')))(),
+  beforeEach: ({ args }) => {
+    /* Storybook runs this again on every argument change without unmounting the page, so the page keeps the transport it connected to and the panel delivers the new step there. */
+    if (journey.transport?.connected()) {
+      return;
+    }
+    return install(() => journeyTransport(Number(args.step ?? 1) - 1, String(args.seat ?? 'seat-1')))();
+  },
   decorators: [...gameMeta.decorators, journeyDecorator],
   /* The stories load the table chunk before they render, as Play/Playing explains. */
   loaders: [
