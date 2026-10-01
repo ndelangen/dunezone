@@ -1,8 +1,8 @@
 # Decal restoration review
 
-This pass follows the complete 410-decal review at c147672dedd274b712d7a169e47897e8d9fb8c32. The user approved 181 proposals and requested 32 follow-ups, including two decals that had no initial proposal. The changes include nine additional variants. The resulting catalogue has 419 decals and 128 multicolor/monochrome pairs.
+This pass follows the complete 410-decal review at c147672dedd274b712d7a169e47897e8d9fb8c32. The user approved 181 proposals and requested 32 follow-ups, including two decals that had no initial proposal. The changes include ten additional variants. The resulting catalogue has 420 decals and 128 multicolor/monochrome pairs.
 
-The latest feedback accepts 214 proposals, retains two originals, and requests three further geometry repairs. The PR now changes 210 existing decals and adds nine variants. The requested Ballast drop scene, Planetologist scene and inert Salt separator variants were already present and accepted. The dashboard links each parent to its additional versions.
+The latest feedback accepts 216 proposals, retains two originals, and requests bolder map boundaries and a version without text. The PR now changes 210 existing decals and adds ten variants. The requested Ballast drop scene, Planetologist scene and inert Salt separator variants were already present and accepted. The dashboard links each parent to its additional versions.
 
 Existing paths remain stable. The additional scene and drawing variants have distinct names and stay in their parent artwork's collection. Monochrome artwork uses transparent cutouts and inherits the caller's ink.
 
@@ -23,7 +23,7 @@ Existing paths remain stable. The additional scene and drawing variants have dis
 | dune-skimmer | Added Dune skimmer scene with the ground restored; kept the simpler version. |
 | eclipse-projector | The latest review retained the original. Restored its unchanged source SVG. |
 | false-convoy | Added False convoy scene with the ground restored; kept the simpler version. |
-| family-atomics | Clipped uniform horizontal hatching to the map outline and restored continuous territory boundaries, so the lines read as infill rather than staggered bricks. |
+| family-atomics | Made the map outline and territory dividers consistently bold, with thinner hatch lines. Added a separate version without labels, preserving the cities and explosion. |
 | great-maker | Restored the entire eruption plume, including its spreading lower billows and debris, from the color source. |
 | hidden-passage | Replaced the polygonal doorway cut with the source doorway contour, retaining the curtain at its edge. |
 | killer-doctor | Made the medical cross legible while retaining slightly curved, uneven edges. |
@@ -56,7 +56,7 @@ Existing paths remain stable. The additional scene and drawing variants have dis
 - `salt-separator-inert-multicolor.svg` accompanies `salt-separator-multicolor.svg`.
 - `prana-bundu-detailed.svg` accompanies `prana-bundu.svg`.
 - `false-convoy-scene.svg` accompanies `false-convoy.svg`.
-- `family-atomics-straight.svg` accompanies `family-atomics.svg`.
+- `family-atomics-straight.svg` and `family-atomics-no-text.svg` accompany `family-atomics.svg`.
 
 ## Reconstruction and limits
 
