@@ -1,17 +1,6 @@
-import {
-  Alert,
-  Badge,
-  Box,
-  ColorSwatch,
-  Divider,
-  Flex,
-  Group,
-  SimpleGrid,
-  Stack,
-  Text,
-  Title,
-  Tooltip,
-} from '@mantine/core';
+import { Alert, Box, ColorSwatch, Divider, Flex, Group, SimpleGrid, Stack, Text, Title, Tooltip } from '@mantine/core';
+import { troopCombatFaces } from '@shared/factions/troopCombat';
+import type { TroopFaceCombat } from '@shared/factions/troopCombat';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { LoadError } from '@ui/block/LoadError';
@@ -33,7 +22,8 @@ import { Surface } from '@ui/surface';
 import { Card } from '@ui/surface/Card';
 import { Toolbar } from '@ui/surface/Toolbar';
 import { ArrowLeft, Download, Eye, FileText, Pencil, UserPlus } from 'lucide-react';
-import { useId } from 'react';
+import { Fragment, useId } from 'react';
+import type { ReactNode } from 'react';
 
 import { loadFaction, useFaction } from '@db/factions';
 import type { FactionData, PublicAssetPublishingStatusProjection } from '@db/factions';
@@ -116,6 +106,140 @@ function FactionPlanet({ planet }: { readonly planet: NonNullable<FactionData['p
         ) : null}
       </Group>
     </Tooltip>
+  );
+}
+
+type Troop = FactionData['troops'][number];
+type TroopFace = TroopFaceCombat<NonNullable<Troop['back']>>;
+
+function TroopHint({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <Tooltip label={label} multiline maw={280} withArrow events={{ hover: true, focus: true, touch: true }}>
+      <Box component="span" className={styles.troopHint} role="img" tabIndex={0} aria-label={label}>
+        {children}
+      </Box>
+    </Tooltip>
+  );
+}
+
+function TroopStrengths({ face }: { face: TroopFace }) {
+  if (!face.capable) {
+    return (
+      <TroopHint label="Cannot participate in combat">
+        <TopicIcon topic="noncombatant" size={15} />
+      </TroopHint>
+    );
+  }
+  if (!face.combat) {
+    return (
+      <TroopHint label="Combat strengths have not been set. This side is unavailable in battle plans.">
+        <Text component="span" c="var(--color-caution)" style={{ display: 'inline-flex' }}>
+          <TopicIcon topic="combatUnknown" size={16} />
+        </Text>
+      </TroopHint>
+    );
+  }
+  return (
+    <>
+      <TroopHint label={`Strength per troop: ${face.combat.strength} undialed | ${face.combat.fundedStrength} dialed`}>
+        <TopicIcon topic="strength" size={15} />
+        <b>
+          {face.combat.strength} | {face.combat.fundedStrength}
+        </b>
+      </TroopHint>
+      <TroopHint label={`Funding cost: ${face.combat.fundingCost} spice per dialed troop`}>
+        <TopicIcon topic="spice" size={15} />
+        <b>{face.combat.fundingCost}</b>
+      </TroopHint>
+    </>
+  );
+}
+
+function TroopFaceDetails({ face, background }: { face: TroopFace; background: FactionData['background'] }) {
+  const descriptionId = useId();
+  const name = `${face.face.name}${face.side === 'back' ? ', reverse side' : ''}`;
+  const hasDescription = face.face.description.trim().length > 0;
+  const description = <FormattedTextSource source={face.face.description} size="sm" />;
+  return (
+    <div className={styles.troopFace}>
+      {hasDescription ? (
+        <div hidden id={descriptionId}>
+          {description}
+        </div>
+      ) : null}
+      <Tooltip
+        label={
+          <Stack gap="xs">
+            <Text size="sm" fw={700}>
+              {name}
+            </Text>
+            {hasDescription ? description : null}
+          </Stack>
+        }
+        multiline
+        maw={280}
+        withArrow
+        events={{ hover: true, focus: true, touch: true }}
+      >
+        <Box
+          component="span"
+          className={styles.troopHint}
+          role="img"
+          tabIndex={0}
+          aria-label={name}
+          aria-describedby={hasDescription ? descriptionId : undefined}
+        >
+          <span className={styles.troopToken} aria-hidden>
+            <TroopToken
+              background={background}
+              image={face.face.image}
+              hue={face.face.hue}
+              star={face.face.star}
+              striped={face.face.striped}
+            />
+          </span>
+        </Box>
+      </Tooltip>
+      <Stack gap="xs" className={styles.troopFaceContent}>
+        <Text size="sm" fw={700} lh={1.2} truncate>
+          {face.face.name}
+        </Text>
+        <Group gap="xs" wrap="nowrap">
+          <TroopStrengths face={face} />
+        </Group>
+      </Stack>
+    </div>
+  );
+}
+
+function FactionTroop({ troop, background }: { troop: Troop; background: FactionData['background'] }) {
+  const faces = troopCombatFaces<NonNullable<Troop['back']>>([troop]);
+  return (
+    <Surface as="article" aria-label={troop.name} padding="sm" className={styles.troopTile}>
+      <div className={styles.troopFaces}>
+        {faces.map((face) => (
+          <Fragment key={face.id}>
+            {face.side === 'back' ? (
+              <div className={styles.troopFlipDivider}>
+                <Divider orientation="vertical" />
+                <TroopHint label={`Flip side: ${face.face.name}`}>
+                  <TopicIcon topic="flip" size={16} />
+                </TroopHint>
+                <Divider orientation="vertical" />
+              </div>
+            ) : null}
+            <TroopFaceDetails face={face} background={background} />
+          </Fragment>
+        ))}
+        <span className={styles.troopCount}>
+          <TroopHint label={`${troop.count} ${troop.count === 1 ? 'troop token' : 'troop tokens'}`}>
+            <Text component="span" size="xs" c="dimmed">
+              ×{troop.count}
+            </Text>
+          </TroopHint>
+        </span>
+      </div>
+    </Surface>
   );
 }
 
@@ -331,41 +455,11 @@ function FactionDetailPage() {
               </Section>
 
               <Section icon={<TopicIcon topic="troops" size={20} />} title="Troops">
-                <div className={styles.horizontalLane}>
+                <Group gap="sm" align="flex-start">
                   {data.troops.map((troop, index) => (
-                    <Surface
-                      as="article"
-                      padding="sm"
-                      className={styles.troopTile}
-                      key={`${troop.name}-${troop.image}-${index}`}
-                    >
-                      <Group wrap="nowrap" gap="md">
-                        <div className={styles.troopToken}>
-                          <TroopToken
-                            background={data.background}
-                            image={troop.image}
-                            hue={troop.hue}
-                            star={troop.star}
-                            striped={troop.striped}
-                          />
-                        </div>
-                        <Stack gap={4} miw={0} style={{ flex: '1 1 auto' }}>
-                          <Group gap="xs" wrap="nowrap" justify="space-between">
-                            <Text fw={700} lh={1.2}>
-                              {troop.name}
-                            </Text>
-                            <Badge variant="default" size="lg">
-                              ×{troop.count}
-                            </Badge>
-                          </Group>
-                          {troop.description ? (
-                            <FormattedTextSource source={troop.description} size="xs" tone="neutral" />
-                          ) : null}
-                        </Stack>
-                      </Group>
-                    </Surface>
+                    <FactionTroop key={troop.troopId ?? index} troop={troop} background={data.background} />
                   ))}
-                </div>
+                </Group>
               </Section>
 
               <Section icon={<TopicIcon topic="advantages" size={20} />} title="Advantages">

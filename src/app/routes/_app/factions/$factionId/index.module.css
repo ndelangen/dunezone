@@ -48,18 +48,73 @@
 }
 
 .troopTile {
-  flex: 0 0 18rem;
-  min-height: 6rem;
-  overflow: hidden;
+  flex: 0 1 auto;
+  max-width: 100%;
+  min-width: 0;
 }
 
 .troopToken {
+  display: block;
   position: relative;
-  flex: 0 0 4rem;
-  width: 4rem;
-  height: 4rem;
+  flex: 0 0 auto;
+  width: 2.5rem;
+  height: 2.5rem;
   overflow: hidden;
   border-radius: 50%;
+}
+
+.troopHint {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  cursor: help;
+  font-size: var(--mantine-font-size-sm);
+  line-height: 1.2;
+  flex-shrink: 0;
+}
+
+.troopHint:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+.troopFace {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  min-width: 0;
+}
+
+.troopFaceContent {
+  min-width: 0;
+}
+
+.troopFaces {
+  display: flex;
+  align-items: stretch;
+  gap: var(--space-sm);
+}
+
+.troopFlipDivider {
+  flex: 0 0 1rem;
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.troopFlipDivider > :first-child,
+.troopFlipDivider > :last-child {
+  flex: 1;
+  align-self: center;
+}
+
+.troopCount {
+  display: flex;
+  align-items: center;
+  margin-inline-start: auto;
 }
 
 .planetArt {
@@ -87,6 +142,10 @@
 }
 
 @container (width < 48rem) {
+  .troopTile {
+    flex-basis: 100%;
+  }
+
   .loreHeroToken {
     width: min(100%, 12rem);
   }

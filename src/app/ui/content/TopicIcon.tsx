@@ -5,6 +5,9 @@ import {
   Hand,
   ScrollText,
   ShieldCheck,
+  ShieldOff,
+  TriangleAlert,
+  Zap,
   Boxes,
   Image as ImageIcon,
   Info,
@@ -21,6 +24,10 @@ const TOPIC_ICON_DEFINITIONS = {
   game: { kind: 'component', component: Dices },
   audit: { kind: 'component', component: ShieldCheck },
   battle: { kind: 'mask', src: '/vector/icon/combat.svg' },
+  flip: { kind: 'mask', src: '/vector/icon/flip.svg' },
+  strength: { kind: 'component', component: Zap },
+  noncombatant: { kind: 'component', component: ShieldOff },
+  combatUnknown: { kind: 'component', component: TriangleAlert },
   /* Every authoring surface opens on an Identity chapter: what a thing is called, and what it fundamentally is. */
   identity: { kind: 'component', component: Signature },
   /* Off-face prose (CONTEXT.md: About), on every asset editor and every detail page. */

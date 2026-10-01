@@ -43,6 +43,130 @@ export const Detail = meta.story({
   },
 });
 
+const withTroopDetails = db((baseline) => {
+  const data = baseline.factions[0]!.data;
+  const art = data.troops[0]!;
+  data.troops = [
+    {
+      ...art,
+      name: 'Soldiers',
+      count: 15,
+      description: 'The main fighting force.',
+      capable: true,
+      combat: { strength: 0.5, fundedStrength: 1 },
+      back: {
+        image: art.image,
+        name: 'Advisors',
+        description: 'The reverse side supports the faction without joining battles.',
+        striped: true,
+        capable: false,
+      },
+    },
+    {
+      ...art,
+      troopId: 'a939da92-5f9f-4c50-a102-3bc437ffd1e6',
+      name: 'Veterans',
+      count: 5,
+      description: 'A smaller force with a stronger dial.',
+      capable: true,
+      back: undefined,
+      combat: { strength: 1, fundedStrength: 2, fundingCost: 2 },
+    },
+    {
+      ...art,
+      troopId: '5a34c071-2399-43c4-9e51-8166a876694f',
+      name: 'Recruits',
+      count: 8,
+      description: 'Combat values have not been entered yet.',
+      capable: true,
+      combat: undefined,
+      back: undefined,
+    },
+  ];
+});
+
+export const DetailWithTroopStrengths = meta.story({
+  args: { path: '/factions/house-atreides' },
+  parameters: { database: withTroopDetails, identity: null },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const troops = within(await page.findByRole('region', { name: 'Troops' }));
+    const soldiers = within(troops.getByRole('article', { name: 'Soldiers' }));
+    expect(soldiers.getByRole('img', { name: 'Strength per troop: 0.5 undialed | 1 dialed' })).toBeVisible();
+    expect(soldiers.getByRole('img', { name: 'Funding cost: 1 spice per dialed troop' })).toBeVisible();
+    expect(soldiers.getByRole('img', { name: 'Cannot participate in combat' })).toBeVisible();
+    expect(soldiers.getByRole('img', { name: '15 troop tokens' })).toBeVisible();
+    const reverse = soldiers.getByRole('img', { name: 'Advisors, reverse side' });
+    expect(reverse).toHaveAccessibleDescription('The reverse side supports the faction without joining battles.');
+    expect(
+      within(troops.getByRole('article', { name: 'Recruits' })).getByRole('img', {
+        name: 'Combat strengths have not been set. This side is unavailable in battle plans.',
+      })
+    ).toBeVisible();
+    reverse.focus();
+    await userEvent.tab({ shift: true });
+    await userEvent.tab();
+    expect(reverse).toHaveFocus();
+    await expect(page.findByRole('tooltip')).resolves.toHaveTextContent(
+      'The reverse side supports the faction without joining battles.'
+    );
+    await userEvent.keyboard('{Escape}');
+    await waitFor(() => expect(page.queryByRole('tooltip')).not.toBeInTheDocument());
+  },
+});
+
+export const DetailWithTroopStrengthsMobile = meta.story({
+  args: { path: '/factions/house-atreides' },
+  parameters: { database: withTroopDetails, identity: null },
+  globals: { viewport: { value: 'appMobileNarrow' } },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const troops = await page.findByRole('region', { name: 'Troops' });
+    const viewport = canvasElement.ownerDocument.documentElement.clientWidth;
+    for (const card of within(troops).getAllByRole('article')) {
+      const bounds = card.getBoundingClientRect();
+      expect(bounds.left).toBeGreaterThanOrEqual(0);
+      expect(bounds.right).toBeLessThanOrEqual(viewport);
+      expect(card.scrollWidth).toBeLessThanOrEqual(card.clientWidth);
+    }
+  },
+});
+
+export const DetailWithIndependentTroopFaces = meta.story({
+  args: { path: '/factions/house-atreides' },
+  parameters: {
+    identity: null,
+    database: db((baseline) => {
+      const data = baseline.factions[0]!.data;
+      const art = data.troops[0]!;
+      data.troops = [
+        {
+          ...art,
+          name: 'A troop with a long authored name',
+          count: 1,
+          combat: { strength: 0, fundedStrength: 0, fundingCost: 0 },
+          back: {
+            image: art.image,
+            description: 'The reverse has its own combat values.',
+            name: 'An independently authored reverse',
+            combat: { strength: 1, fundedStrength: 3, fundingCost: 2 },
+          },
+        },
+      ];
+    }),
+  },
+  globals: { viewport: { value: 'appMobileNarrow' } },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const troops = within(await page.findByRole('region', { name: 'Troops' }));
+    expect(troops.getByRole('img', { name: 'Strength per troop: 0 undialed | 0 dialed' })).toBeVisible();
+    expect(troops.getByRole('img', { name: 'Funding cost: 0 spice per dialed troop' })).toBeVisible();
+    expect(troops.getByRole('img', { name: 'Strength per troop: 1 undialed | 3 dialed' })).toBeVisible();
+    const card = troops.getByRole('article');
+    expect(card.scrollWidth).toBeLessThanOrEqual(card.clientWidth);
+  },
+});
+
 const withPlanets = (description = true) =>
   db((baseline) => {
     baseline.factions = [
