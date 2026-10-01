@@ -82,8 +82,12 @@ interface SearchOptions {
 }
 
 function searchTerm(word: string, options: SearchOptions): SearchTerm {
-  if (!options.fuzzy || word.length < 4 || vocabulary.has(word)) {
-    return { word, approximate: new Set() };
+  const exact = { word, approximate: new Set<string>() };
+  if (!options.fuzzy) {
+    return exact;
+  }
+  if (word.length < 4 || vocabulary.has(word)) {
+    return exact;
   }
   const maxLengthDifference = word.length >= 8 ? 2 : 1;
   const approximate = new Set(

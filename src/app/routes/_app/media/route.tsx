@@ -51,10 +51,7 @@ function MediaPage() {
   const catalogue = filterCatalogue(overview ? { source: 'media', kind: 'all', q: '', group: '' } : search);
   const query = search.q.trim().toLowerCase();
   const total = search.source === 'media' ? catalogue.matches.length : iconMatchCount(search.source, query);
-  const focused =
-    search.source === 'media'
-      ? mediaEntries.find((entry) => entry.value === search.item && entry.kind === search.kind)
-      : undefined;
+  const focused = focusedMedia(search);
   return (
     <PageLayout>
       <PageLayout.Header size={overview ? 'compact' : 'default'}>
@@ -76,6 +73,13 @@ function MediaPage() {
       </PageLayout.Content>
     </PageLayout>
   );
+}
+
+function focusedMedia(search: MediaSearch) {
+  if (search.source !== 'media') {
+    return undefined;
+  }
+  return mediaEntries.find((entry) => entry.value === search.item && entry.kind === search.kind);
 }
 
 type QueryDraft = { identity: string; q: string };
