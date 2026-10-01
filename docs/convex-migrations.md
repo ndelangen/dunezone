@@ -83,15 +83,15 @@ and reruns `dev-strict`. See
 [`Disposable local app development`](./README.md#disposable-local-app-development) for what the
 snapshot holds, where it comes from and when the download is deleted.
 
-The snapshot carries no migration state, so each load, local or the cloud dev rebuild, replays
-every widen migration in the manifest over rows production has already migrated. Every listed
-migration therefore has to be safe to replay. A verify reads the shapes it accepts from the
-current schema rather than listing the ones that existed when it was written: a list went stale
-when decks gained the preset cardback, and the replay then stopped every later migration, the
-aggregate rebuilds among them. A backfill whose second pass would change a row, such as one that
-multiplies a stored value, gets a no-op body once production has run it, keeping its id.
-`convex/migrations.snapshotReplay.test.ts` replays the manifest over rows in their migrated
-shape.
+The snapshot carries no migration state, so every load replays every widen migration in the
+manifest over rows production has already migrated. That holds for local loads and for the cloud
+dev rebuild alike. Each listed migration therefore has to be safe to replay. A verify reads the
+shapes it accepts from the current schema. A list written into the verify goes stale when the
+schema gains a member, which is how the preset cardback stopped the dev rebuild after #1573, and
+with it every later migration in the series, the aggregate rebuilds among them. Once production
+has run a backfill whose second pass would change a row, such as one that multiplies a stored
+value, its body becomes a no-op and its id stays. `convex/migrations.snapshotReplay.test.ts`
+replays the manifest over rows in their migrated shape.
 
 - `bun run convex:dev` runs `bun run migrations:dev-strict` before starting the configured Convex
   deployment's watcher. It is reserved for deliberate integration work because a feature branch can
