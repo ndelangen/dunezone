@@ -108,7 +108,7 @@ const TABLE_VIEW_TARGETS: Record<TableView, Vector3Tuple> = {
 type CameraBasis = Readonly<{ offset: Vector3Tuple; forward: Vector3Tuple; up: Vector3Tuple }>;
 
 /** A tilt within its range, where 0 is the approved table angle and 1 is near top-down. */
-export function clampCameraTilt(tilt: number): number {
+function clampCameraTilt(tilt: number): number {
   return Number.isFinite(tilt) ? Math.max(0, Math.min(1, tilt)) : 0;
 }
 
