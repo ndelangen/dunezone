@@ -260,6 +260,131 @@ function observeConnectionStatus() {
   });
   record();
 }
+/**
+ * Runs in every page before its scripts and keeps what the sign-out check needs to name a late socket (#1592).
+ * For each game socket: when it opened, when each admission frame reached the page, each close() the page called, its close event, and its readyState as a 100 ms heartbeat sampled it.
+ * For the page: long tasks, long animation frames, heartbeat gaps, storage events and visibility changes, so a report can say whether the main thread was busy and when the page learned of the sign-out.
+ * Times are the page's clock in epoch milliseconds.
+ * An admission frame is found by its prefix, so the page parses no other frame a second time.
+ */
+function observeGameSockets() {
+  const now = () => Math.round(performance.timeOrigin + performance.now());
+  const keep = (list, entry, size) => {
+    list.push(entry);
+    list.splice(0, Math.max(0, list.length - size));
+  };
+  const sockets = [];
+  const longTasks = [];
+  const longFrames = [];
+  const gaps = [];
+  const storage = [];
+  const visibility = [{ at: now(), state: document.visibilityState }];
+  window.WebSocket = new Proxy(window.WebSocket, {
+    construct(target, args, newTarget) {
+      const socket = Reflect.construct(target, args, newTarget);
+      if (!String(args[0]).includes('/__play/games/')) {
+        return socket;
+      }
+      const record = {
+        createdAt: now(),
+        openedAt: null,
+        admissions: [],
+        closeCalls: [],
+        closedAt: null,
+        closeCode: null,
+        closeReason: null,
+        wasClean: null,
+        readyStates: [{ at: now(), readyState: socket.readyState }],
+      };
+      sockets.push({ socket, record });
+      const close = socket.close;
+      socket.close = (...closeArgs) => {
+        record.closeCalls.push({ at: now(), code: closeArgs[0] ?? null, readyState: socket.readyState });
+        return close.apply(socket, closeArgs);
+      };
+      socket.addEventListener('open', () => {
+        record.openedAt = now();
+      });
+      socket.addEventListener('message', (event) => {
+        if (typeof event.data === 'string' && event.data.startsWith('{"type":"admission"')) {
+          record.admissions.push({ at: now(), status: JSON.parse(event.data).status });
+        }
+      });
+      socket.addEventListener('close', (event) => {
+        Object.assign(record, {
+          closedAt: now(),
+          closeCode: event.code,
+          closeReason: event.reason,
+          wasClean: event.wasClean,
+        });
+      });
+      return socket;
+    },
+  });
+  let tick = performance.now();
+  setInterval(() => {
+    const at = performance.now();
+    if (at - tick > 300) {
+      keep(gaps, { at: Math.round(performance.timeOrigin + tick), gapMs: Math.round(at - tick) }, 200);
+    }
+    tick = at;
+    for (const { socket, record } of sockets) {
+      if (record.readyStates.at(-1).readyState !== socket.readyState) {
+        record.readyStates.push({ at: now(), readyState: socket.readyState });
+      }
+    }
+  }, 100);
+  const observe = (type, take) => {
+    try {
+      new PerformanceObserver((list) => list.getEntries().forEach(take)).observe({ type, buffered: true });
+    } catch {}
+  };
+  observe('longtask', (entry) =>
+    keep(
+      longTasks,
+      { at: Math.round(performance.timeOrigin + entry.startTime), durationMs: Math.round(entry.duration) },
+      500
+    )
+  );
+  /* A long animation frame names the scripts that ran in it, so a busy page shows what kept it busy. */
+  observe('long-animation-frame', (entry) =>
+    keep(
+      longFrames,
+      {
+        at: Math.round(performance.timeOrigin + entry.startTime),
+        durationMs: Math.round(entry.duration),
+        blockingMs: Math.round(entry.blockingDuration),
+        scripts: [...entry.scripts]
+          .sort((left, right) => right.duration - left.duration)
+          .slice(0, 3)
+          .map((script) => ({
+            invoker: script.invoker,
+            source: script.sourceURL.split('/').at(-1),
+            function: script.sourceFunctionName,
+            durationMs: Math.round(script.duration),
+          })),
+      },
+      200
+    )
+  );
+  window.addEventListener('storage', (event) =>
+    keep(storage, { at: now(), key: event.key, cleared: event.newValue === null }, 50)
+  );
+  document.addEventListener('visibilitychange', () =>
+    keep(visibility, { at: now(), state: document.visibilityState }, 50)
+  );
+  Object.assign(window, {
+    hostedPlaySockets: () => ({
+      readAt: now(),
+      sockets: sockets.map(({ socket, record }) => ({ ...record, readyState: socket.readyState })),
+      longTasks,
+      longFrames,
+      gaps,
+      storage,
+      visibility,
+    }),
+  });
+}
 /** Runs in the page: the backend the table canvas's renderer initialised, or why it cannot name one yet. */
 function readTableRenderer(canvas) {
   const renderer = window.hostedPlayRenderers?.get(canvas);
@@ -323,6 +448,7 @@ async function peer(label, context) {
     });
     await context.addInitScript(observeRenderers);
     await context.addInitScript(observeConnectionStatus);
+    await context.addInitScript(observeGameSockets);
     await context.route(
       (url) => !allowedOrigins.has(url.origin),
       async (route) => {
@@ -369,10 +495,12 @@ async function peer(label, context) {
       return;
     }
     assert.equal(new URL(socket.url()).search, '');
-    state.sockets.push({ url: socket.url(), closed: false });
+    /* Times are the driver's clock when Playwright reported each event, for the sign-out report (#1592). */
+    state.sockets.push({ url: socket.url(), closed: false, openedAt: Date.now(), admissions: [], closedAt: null });
     const connection = state.sockets.at(-1);
     socket.on('close', () => {
       connection.closed = true;
+      connection.closedAt = Date.now();
     });
     socket.on('framesent', (frame) => {
       if (frame.payload.toString() === KEEPALIVE_PING) {
@@ -386,6 +514,9 @@ async function peer(label, context) {
         return;
       }
       const message = JSON.parse(frame.payload.toString());
+      if (message.type === 'admission') {
+        connection.admissions.push({ at: Date.now(), status: message.status });
+      }
       if (typeof message.phaseCooldownMs === 'number') {
         state.phaseCooldown = { ms: message.phaseCooldownMs, receivedAt: Date.now() };
       }
@@ -479,6 +610,135 @@ async function admissionTrace(who) {
     authErrors: who.admission.authErrors,
     statuses: statuses.map((entry) => ({ ...entry, at: since(entry.at) })),
   };
+}
+/** The sign-out under test: the tabs it should close, when Sign out was clicked, and the driver's own event loop lag since. */
+let signOut = null;
+/** Samples the driver's event loop every 20 ms and keeps its worst lateness, so a late Playwright event can be told apart from a busy driver. */
+function driverLag() {
+  let expected = Date.now() + 20;
+  let worstMs = 0;
+  const timer = setInterval(() => {
+    const now = Date.now();
+    worstMs = Math.max(worstMs, now - expected);
+    expected = now + 20;
+  }, 20);
+  return () => {
+    clearInterval(timer);
+    return worstMs;
+  };
+}
+/** The tab sockets Playwright has not reported closed, by tab label and position. */
+function openTabSockets(tabs) {
+  return tabs
+    .flatMap((who) =>
+      who.sockets.flatMap((socket, index) =>
+        socket.closed ? [] : [`${who.label} socket ${index + 1} of ${who.sockets.length}`]
+      )
+    )
+    .join(', ');
+}
+/**
+ * What each signed-out tab and its game sockets recorded around the sign-out (#1592), in milliseconds after the Sign out click.
+ * Playwright's times come from the driver, the page's from its own clock, and both clocks are this machine's.
+ * A page that does not answer within `timeout` has a busy main thread, so its entry keeps only Playwright's side.
+ */
+async function signOutReport(timeout) {
+  const { tabs, clickedAt } = signOut;
+  const since = (time) => (time === null || time === undefined ? null : time - clickedAt);
+  signOut.driverLagMs ??= signOut.stopDriverLag();
+  const entries = await Promise.all(
+    tabs.map(async (who) => {
+      let timer;
+      const page = await Promise.race([
+        who.page.evaluate(() => window.hostedPlaySockets?.() ?? null),
+        new Promise((resolve) => {
+          timer = setTimeout(() => resolve(null), timeout);
+        }),
+      ])
+        .catch(() => null)
+        .finally(() => clearTimeout(timer));
+      const answeredAt = page ? Date.now() : null;
+      /* The page lists its current document's sockets, Playwright every socket the tab opened, so the page's list matches Playwright's tail. */
+      const offset = who.sockets.length - (page?.sockets.length ?? 0);
+      const sockets = who.sockets.map((socket, index) => {
+        const own = page?.sockets[index - offset];
+        return {
+          playwright: {
+            openedAt: since(socket.openedAt),
+            admissions: socket.admissions.map(({ at, status }) => ({ at: since(at), status })),
+            closedAt: since(socket.closedAt),
+          },
+          page: own
+            ? {
+                createdAt: since(own.createdAt),
+                openedAt: since(own.openedAt),
+                admissions: own.admissions.map(({ at, status }) => ({ at: since(at), status })),
+                closeCalls: own.closeCalls.map((call) => ({ ...call, at: since(call.at) })),
+                closedAt: since(own.closedAt),
+                closeCode: own.closeCode,
+                closeReason: own.closeReason,
+                wasClean: own.wasClean,
+                readyState: own.readyState,
+                readyStates: own.readyStates.map((entry) => ({ ...entry, at: since(entry.at) })),
+              }
+            : null,
+        };
+      });
+      /* The window that matters runs from the click to the tab's last close, as either side saw it. */
+      const end = Math.max(
+        clickedAt,
+        ...who.sockets.map((socket) => socket.closedAt ?? answeredAt ?? Date.now()),
+        ...(page?.sockets ?? []).map((socket) => socket.closedAt ?? 0)
+      );
+      const inWindow = ({ at, durationMs = 0, gapMs = 0 }) => at + durationMs + gapMs > clickedAt - 1000 && at < end;
+      const overlap = ({ at, durationMs }) => Math.max(0, Math.min(at + durationMs, end) - Math.max(at, clickedAt));
+      const longTasks = (page?.longTasks ?? []).filter(inWindow);
+      const gaps = (page?.gaps ?? []).filter(inWindow);
+      return {
+        label: who.label,
+        pageAnsweredAt: since(answeredAt),
+        windowEnd: since(end),
+        busy: page
+          ? {
+              longTaskMs: longTasks.reduce((total, task) => total + overlap(task), 0),
+              longestTaskMs: Math.max(0, ...longTasks.map((task) => task.durationMs)),
+              worstHeartbeatGapMs: Math.max(0, ...gaps.map((gap) => gap.gapMs)),
+            }
+          : null,
+        sockets,
+        longTasks: longTasks.map((task) => ({ ...task, at: since(task.at) })),
+        longFrames: (page?.longFrames ?? []).filter(inWindow).map((frame) => ({ ...frame, at: since(frame.at) })),
+        heartbeatGaps: gaps.map((gap) => ({ ...gap, at: since(gap.at) })),
+        storage: (page?.storage ?? []).filter(inWindow).map((entry) => ({ ...entry, at: since(entry.at) })),
+        visibility: (page?.visibility ?? []).map((entry) => ({ ...entry, at: since(entry.at) })),
+      };
+    })
+  );
+  const result = {
+    clickedAtSeconds: Math.round((clickedAt - Date.parse(report.startedAt)) / 100) / 10,
+    waitEndedAt: since(signOut.waitEndedAt),
+    driverLagMs: signOut.driverLagMs,
+    tabs: entries,
+  };
+  /* One line per run in the flow's log, so a reader compares runs without opening each report. */
+  const digest = entries.map((tab) => ({
+    label: tab.label,
+    answered: tab.pageAnsweredAt,
+    busy: tab.busy,
+    sockets: tab.sockets.map(({ playwright, page }) => ({
+      refusal: [
+        playwright.admissions.findLast((entry) => entry.status === 'denied')?.at ?? null,
+        page?.admissions.findLast((entry) => entry.status === 'denied')?.at ?? null,
+      ],
+      closeCall: page?.closeCalls[0]?.at ?? null,
+      closed: [page?.closedAt ?? null, playwright.closedAt],
+      code: page?.closeCode ?? null,
+    })),
+  }));
+  console.log(
+    `SIGNOUT ${JSON.stringify({ waitEndedAt: result.waitEndedAt, driverLagMs: result.driverLagMs, tabs: digest })}`
+  );
+  return result;
 }
 async function signIn(who) {
   assert.ok(credentials[who.label], `${who.label} has no provisioned account; add it to SIGNED_IN.`);
@@ -1593,11 +1853,20 @@ async function verifyRegular() {
   await accountPage.getByRole('heading', { name: 'Game lobby' }).waitFor();
   await accountPage.locator('header button[aria-haspopup="menu"]').last().click();
   const revokedAt = Date.now();
+  signOut = { tabs: [a, aTab], clickedAt: revokedAt, stopDriverLag: driverLag() };
   await accountPage.getByRole('menuitem', { name: 'Sign out', exact: true }).click();
-  await until(
-    () => [a, aTab].every((who) => who.sockets.every((socket) => socket.closed)),
-    'Sign out did not close every tab socket.'
-  );
+  try {
+    await until(
+      () => [a, aTab].every((who) => who.sockets.every((socket) => socket.closed)),
+      'Sign out did not close every tab socket.'
+    );
+  } catch (error) {
+    throw new Error(`${error.message} Still open: ${openTabSockets([a, aTab])}.`);
+  } finally {
+    signOut.waitEndedAt = Date.now();
+    signOut.driverLagMs = signOut.stopDriverLag();
+  }
+  report.signOut = await signOutReport(5000);
   await until(
     async () => (await a.page.locator('canvas').count()) === 0 && (await aTab.page.locator('canvas').count()) === 0,
     'Signed-out game data remained visible.'
@@ -1735,6 +2004,10 @@ try {
     try {
       await capture(who, `failure-${who.label}`);
     } catch {}
+  }
+  /* After the captures, so they show the moment of failure; a page still busy then gets 30 s more to answer (#1592). */
+  if (signOut && !report.signOut) {
+    report.signOut = await signOutReport(30_000);
   }
   process.exitCode = 1;
   console.error(`Browser verification stopped after: ${report.failure.afterCheck}.`);
