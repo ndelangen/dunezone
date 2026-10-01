@@ -3,7 +3,7 @@ import type { FunctionReference } from 'convex/server';
 import { v } from 'convex/values';
 import { z } from 'zod';
 
-import { DeckAsset } from '../src/shared/assets/schema';
+import { DeckAsset, RectangleTokenAsset, TokenAsset } from '../src/shared/assets/schema';
 import { factionExtrasSchema, isLegacyFactionExtra } from '../src/shared/factions/extras';
 import {
   assertUniqueFactionMemberIds,
@@ -723,7 +723,17 @@ export const asset_relations_token_back_drop_v1 = migrations.define({
 });
 
 /**
- * Proves the move left nothing behind: every token back is one of the three modes, every reference carries its target in data, and no `token-back` relation row remains.
+ * The modes a token back can wear, read off the back unions of both token schemas.
+ * Every snapshot load replays the verify below over today's tokens, so a list written into the verify would refuse a mode added after it shipped.
+ */
+const TOKEN_BACK_MODES: ReadonlySet<unknown> = new Set(
+  [TokenAsset, RectangleTokenAsset].flatMap((schema) =>
+    schema.shape.back.options.map((member) => member.shape.mode.value)
+  )
+);
+
+/**
+ * Proves the move left nothing behind: every token back wears a mode the token schemas accept, every reference carries its target in data, and no `token-back` relation row remains.
  * Passing is what makes requiring `asset_id` on the reference member safe in a later release.
  */
 export const assets_back_modes_verify_v1 = migrations.define({
@@ -734,7 +744,7 @@ export const assets_back_modes_verify_v1 = migrations.define({
       return;
     }
     const back = tokenBackOf(row.data);
-    if (back?.mode !== 'custom' && back?.mode !== 'same' && back?.mode !== 'reference') {
+    if (!back || !TOKEN_BACK_MODES.has(back.mode)) {
       throw new Error(`Token ${row._id} has no recognisable back mode`);
     }
     if (back.mode === 'reference' && typeof back.asset_id !== 'string') {

@@ -2,8 +2,12 @@
 // @vitest-environment edge-runtime
 
 import { afterEach, describe, expect, test, vi } from 'vitest';
+import type { z } from 'zod';
 
 import { placeholderOwner } from '../scripts/lib/snapshot-policy';
+import { publishingDeckCardback } from '../src/shared/assets/fixtures/publishingDeckCardback';
+import { publishingTokenFace } from '../src/shared/assets/fixtures/publishingTokenFace';
+import type { DeckAsset, TokenAsset } from '../src/shared/assets/schema';
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
 import { api, internal } from './_generated/api';
 import { factionTest } from './factions.test.fixture';
@@ -17,13 +21,26 @@ const required = guards.entries
 
 const STAMP = '2026-10-01T00:00:00.000Z';
 
-const composition = {
-  name: 'Spice',
-  image: '/vector/decal/amal.svg',
-  imageOffset: [0, 0],
-  imageScale: 1,
-  background: {},
-};
+/**
+ * One stored value per member of a tagged union, keyed by its mode.
+ * A mode added to the schema fails typecheck here until the replay has a row wearing it.
+ */
+type OnePerMode<T extends { mode: string }> = { [M in T['mode']]: Extract<T, { mode: M }> };
+
+/* `authored` is the row each reference names. */
+const cardbacks = (authored: string) =>
+  ({
+    custom: { mode: 'custom', ...publishingDeckCardback },
+    preset: { mode: 'preset', key: 'spice' },
+    reference: { mode: 'reference', asset_id: authored },
+  }) satisfies OnePerMode<Extract<z.infer<typeof DeckAsset>['cardback'], { mode: string }>>;
+
+const tokenBacks = (authored: string) =>
+  ({
+    custom: { mode: 'custom', face: publishingTokenFace },
+    same: { mode: 'same' },
+    reference: { mode: 'reference', asset_id: authored },
+  }) satisfies OnePerMode<z.infer<typeof TokenAsset>['back']>;
 
 /* A decal the vector-train retune scaled by 1.5625 in production, stored at its retuned scale. */
 const retunedDecal = {
@@ -46,19 +63,29 @@ describe('a snapshot load', () => {
       const ownerId = await ctx.db.insert('users', placeholderOwner.user());
       await ctx.db.insert('profiles', placeholderOwner.profile(ownerId));
       const owned = { owner_id: ownerId, group_id: null, is_deleted: false, created_at: STAMP, updated_at: STAMP };
-      const deck = (slug: string, cardback: unknown) =>
-        ctx.db.insert('assets', { ...owned, type: 'deck', slug, data: { name: slug, about: '', cardback } });
-      const custom = await deck('custom', { mode: 'custom', ...composition });
+      const asset = (type: string, slug: string, data: Record<string, unknown>) =>
+        ctx.db.insert('assets', { ...owned, type, slug, data: { name: slug, about: '', ...data } });
+      const deck = await asset('deck', 'authored-deck', { cardback: { mode: 'custom', ...publishingDeckCardback } });
+      const token = await asset('token-disc', 'authored-token', {
+        front: publishingTokenFace,
+        back: { mode: 'custom', face: publishingTokenFace },
+      });
+      const modeRows = [
+        ...Object.entries(cardbacks(deck)).map(([mode, cardback]) => asset('deck', `deck-${mode}`, { cardback })),
+        ...Object.entries(tokenBacks(token)).map(([mode, back]) =>
+          asset('token-disc', `token-${mode}`, { front: publishingTokenFace, back })
+        ),
+      ];
       return [
-        custom,
-        await deck('preset', { mode: 'preset', key: 'spice' }),
-        await deck('reference', { mode: 'reference', asset_id: custom }),
+        deck,
+        token,
+        ...(await Promise.all(modeRows)),
         await ctx.db.insert('factions', {
           ...owned,
           slug: 'retuned',
           data: { ...assetPublishingFaction, decals: [retunedDecal] },
         }),
-      ] as const;
+      ];
     });
     const rows = () => t.run((ctx) => Promise.all(ids.map((id) => ctx.db.get(id))));
     const loaded = await rows();
