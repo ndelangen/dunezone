@@ -2,7 +2,7 @@
 
 This pass follows the complete 410-decal review at c147672dedd274b712d7a169e47897e8d9fb8c32. The user approved 181 proposals and requested 32 follow-ups, including two decals that had no initial proposal. The changes include nine additional variants. The resulting catalogue has 419 decals and 128 multicolor/monochrome pairs.
 
-The latest feedback accepts 209 proposals, retains three originals, and requests seven further geometry repairs. The PR now changes 209 existing decals and adds nine variants. The requested Ballast drop scene, Planetologist scene and inert Salt separator variants were already present and are accepted in that export. The dashboard links each parent to its additional versions.
+The latest feedback accepts 214 proposals, retains two originals, and requests three further geometry repairs. The PR now changes 210 existing decals and adds nine variants. The requested Ballast drop scene, Planetologist scene and inert Salt separator variants were already present and accepted. The dashboard links each parent to its additional versions.
 
 Existing paths remain stable. The additional scene and drawing variants have distinct names and stay in their parent artwork's collection. Monochrome artwork uses transparent cutouts and inherits the caller's ink.
 
@@ -23,7 +23,7 @@ Existing paths remain stable. The additional scene and drawing variants have dis
 | dune-skimmer | Added Dune skimmer scene with the ground restored; kept the simpler version. |
 | eclipse-projector | The latest review retained the original. Restored its unchanged source SVG. |
 | false-convoy | Added False convoy scene with the ground restored; kept the simpler version. |
-| family-atomics | Aligned the map hatching to a uniform horizontal pitch with sharp ends and a stroke weight no heavier than the original. |
+| family-atomics | Clipped uniform horizontal hatching to the map outline and restored continuous territory boundaries, so the lines read as infill rather than staggered bricks. |
 | great-maker | Restored the entire eruption plume, including its spreading lower billows and debris, from the color source. |
 | hidden-passage | Replaced the polygonal doorway cut with the source doorway contour, retaining the curtain at its edge. |
 | killer-doctor | Made the medical cross legible while retaining slightly curved, uneven edges. |
@@ -39,12 +39,12 @@ Existing paths remain stable. The additional scene and drawing variants have dis
 | salt-separator-multicolor | Added inert color and monochrome versions with empty basins and no falling crystals or pouring liquid. |
 | severed-supply | Inverted the cliff treatment so the original dark strata are cutouts; kept the ropes, structures and cargo. |
 | sleeve-switch | Turned the ball in the left hand into a transparent cutout. |
-| smuggler-alt | The latest review retained the original. Restored its unchanged source SVG. |
+| smuggler-alt | The latest review accepts the earlier wing cleanup. Applied that exact reviewed proposal. |
 | watch-relief | Turned the male guard's sash and belt accent into transparent cutouts. |
 | well-crawler | Added Well crawler scene with the ground restored; kept the simpler version. |
 | balance | Rebuilt the circle and equal round cutouts around one smooth S-shaped channel with constant spacing. |
-| buried-bastion | Turned the sand markings into complete transparent cutouts instead of outlined black islands. |
-| rihani-decipherer | Smoothed small contour irregularities around the figures while preserving facial turns, silhouettes and garment cutouts. |
+| buried-bastion | Replaced the two fragmented terrain markings with continuous cutouts, combining the cluster of small spots into one smooth shape. |
+| rihani-decipherer | Redrew the left figure with smooth cubic contours around the hair, profile, shoulder and sleeve, keeping the facial details and the right figure unchanged. |
 
 ## Additional variants
 
