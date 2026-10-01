@@ -58,7 +58,6 @@ function MediaPage() {
   const { matches, collections, destinations, groups } = filterCatalogue(search, draft.moves);
   const query = search.q.trim().toLowerCase();
   const total = search.source === 'media' ? matches.length : iconMatchCount(search.source, query);
-  const focused = search.source === 'media' ? mediaEntries.find((entry) => entry.value === search.item) : undefined;
   const changes = mediaEntries.filter(
     (entry) => draft.moves[entry.value] && draft.moves[entry.value] !== entry.collection
   );
@@ -77,44 +76,19 @@ function MediaPage() {
       <PageLayout.Content width="viewport">
         <Stack gap="xl">
           {search.source === 'media' && (
-            <>
-              <DraftToolbar
-                draft={draft}
-                dispatch={dispatch}
-                matches={matches}
-                changes={changes}
-                prompt={prompt}
-                clipboard={clipboard}
-              />
-              {draft.reviewOpen && (
-                <DraftReview
-                  draft={draft}
-                  dispatch={dispatch}
-                  changes={changes}
-                  prompt={prompt}
-                  destinations={destinations}
-                />
-              )}
-              {focused && (
-                <FocusedMedia
-                  focused={focused}
-                  draft={draft}
-                  dispatch={dispatch}
-                  search={search}
-                  onClose={() => updateSearch({ item: undefined })}
-                />
-              )}
-              {search.item && !focused && (
-                <Text role="status">This media item was not found. You can still browse the catalogue below.</Text>
-              )}
-            </>
+            <MediaDraft
+              draft={draft}
+              dispatch={dispatch}
+              matches={matches}
+              changes={changes}
+              prompt={prompt}
+              clipboard={clipboard}
+              destinations={destinations}
+              search={search}
+              onClose={() => updateSearch({ item: undefined })}
+            />
           )}
-          <Group justify="space-between">
-            <Text size="sm" c="dimmed">
-              {total === 0 ? 'No matches' : `${total} matches`}
-            </Text>
-            <Anchor renderRoot={(props) => <Link {...props} to="/__media" search={search} />}>Link to this view</Anchor>
-          </Group>
+          <MatchSummary total={total} search={search} />
           {search.source === 'media' ? (
             <MediaGroups
               groups={groups}
@@ -131,6 +105,58 @@ function MediaPage() {
         </Stack>
       </PageLayout.Content>
     </PageLayout>
+  );
+}
+
+function MatchSummary({ total, search }: { total: number; search: MediaSearch }) {
+  return (
+    <Group justify="space-between">
+      <Text size="sm" c="dimmed">
+        {total === 0 ? 'No matches' : `${total} matches`}
+      </Text>
+      <Anchor renderRoot={(props) => <Link {...props} to="/__media" search={search} />}>Link to this view</Anchor>
+    </Group>
+  );
+}
+
+function MediaDraft({
+  draft,
+  dispatch,
+  matches,
+  changes,
+  prompt,
+  clipboard,
+  destinations,
+  search,
+  onClose,
+}: DraftControls & {
+  matches: MediaEntry[];
+  clipboard: ReturnType<typeof useClipboard>;
+  destinations: string[];
+  search: MediaSearch;
+  onClose: () => void;
+}) {
+  const focused = mediaEntries.find((entry) => entry.value === search.item);
+  return (
+    <>
+      <DraftToolbar
+        draft={draft}
+        dispatch={dispatch}
+        matches={matches}
+        changes={changes}
+        prompt={prompt}
+        clipboard={clipboard}
+      />
+      {draft.reviewOpen && (
+        <DraftReview draft={draft} dispatch={dispatch} changes={changes} prompt={prompt} destinations={destinations} />
+      )}
+      {focused && (
+        <FocusedMedia focused={focused} draft={draft} dispatch={dispatch} search={search} onClose={onClose} />
+      )}
+      {search.item && !focused && (
+        <Text role="status">This media item was not found. You can still browse the catalogue below.</Text>
+      )}
+    </>
   );
 }
 
