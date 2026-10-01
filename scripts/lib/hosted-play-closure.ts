@@ -15,6 +15,7 @@ const HOSTED_PLAY_CLOSURE: readonly string[] = [
   'tsconfig.json',
   'vite.config.ts',
   'coverage-denominator.ts',
+  'browser-launch-tests.ts',
   'docker-compose.convex-local.yml',
   'patches/**',
   'convex.json',
