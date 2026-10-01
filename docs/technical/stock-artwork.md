@@ -44,16 +44,17 @@ filename remain searchable for related uses. The collections do not prescribe ca
   personal medical devices stay with tools. Bodies and protective fields have a separate collection.
 - Portable mechanisms belong with tools and personal machinery; harvesters and industrial equipment
   belong with large machines. Guns and explosives have more specific collections. Aircraft, spacecraft and ground vehicles
-  share Long-distance travel. Cisterns, ecological stations and processing buildings belong with buildings.
-- Secret passages covers entrances and access tools. Intrigue covers people in covert encounters. Disguise objects and decoys have a separate collection.
+  share Long-distance travel; freight sleds, hoists and industrial carriers stay with large machines. Cisterns, ecological stations and processing buildings belong with buildings.
+- Secret passages covers entrances. Intrigue covers people in covert encounters. Portable access and disguise devices stay with tools.
 - A visible building, hand or diagram takes precedence over an abstract card-effect name. For example,
   `choam-share.svg` depicts a building and `extortion.svg` depicts a dagger.
+- Fluids and containers collects vessels, chemical preparations and water-storage objects. Standalone plants and portable collection mechanisms stay in their own subject groups.
 - Alternate drawings and colour variants of the same named illustration stay together. Existing
   paths and spellings stay unchanged because saved documents refer to them.
 
 Add each new decal to one collection before running `bun run generate`. Monochrome SVGs inherit
 the caller's colour; artwork with a fixed palette uses the `-multicolor.svg` suffix. Generate the
-public vectors with `bun run generate:vectors`, then run `bun run verify:vectors`. Review both
+public vectors with `bun run generate:vectors`, then run `bun run verify:vectors`. Every multicolor decal must also have a monochrome partner at the same basename without `-multicolor`. Monochrome variants use transparent cutouts for pale contours and black shapes for essential colored props; recoloring every layer black would hide those details. The vector verification checks pair coverage. Review both
 existing and new artwork together through the Asset Select picker, including collection filtering
 and selecting a result. Individual images do not need individual stories.
 
@@ -61,9 +62,9 @@ and selecting a result. Individual images do not need individual stories.
 
 `/__media` browses all stock vectors, leader portraits, planets and textures in one continuous catalogue. Type, group, search,
 and focused artwork are encoded in its URL. `__icons` redirects to this catalogue; Topics and
-Lucide remain available as tabs.
+Lucide remain available as tabs. Vector previews use black ink on a light paper background, while multicolor files keep their authored palette.
 
-Select artwork and choose an existing or new destination group to propose reclassification.
+Hover over a card and choose its destination from the group dropdown. Keyboard focus reveals the same control, and touch screens show it without hovering. The sticky toolbar keeps Copy prompt and Undo available while browsing. To move several items or create a new group, select artwork and open Review / bulk move.
 Assignments stay in memory until the page is left or reloaded. Undo restores the previous move;
 Reset clears the draft. Copy prompt exports exact asset paths, original groups, proposed groups and
 optional notes. These proposals do not change source files, saved factions or the live picker.

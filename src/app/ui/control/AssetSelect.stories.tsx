@@ -145,8 +145,8 @@ export const AllSymbols = meta.story({
     await expect(canvas.getByRole('combobox', { name: 'Symbol' })).toHaveValue('Glass Owl');
 
     await userEvent.click(canvas.getByRole('button', { name: 'Filter Symbol collections' }));
-    await userEvent.click(screen.getByRole('option', { name: 'Decals / Medical care and rescue 9' }));
-    await expect(screen.getByRole('option', { name: 'Suk Graduate' })).toBeVisible();
+    await userEvent.click(screen.getByRole('option', { name: 'Decals / Medical care and rescue 14' }));
+    await expect(screen.getByRole('option', { name: 'Bone Setter' })).toBeVisible();
     await expect(screen.getByRole('option', { name: 'Bone Setter Multicolor' })).toBeVisible();
     const newDecal = screen.getByRole('option', { name: 'Pulse Examiner Multicolor' });
     await expect(newDecal.querySelector('img')).toHaveStyle({ filter: 'none' });

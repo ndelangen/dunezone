@@ -12,6 +12,14 @@ const first = mediaEntries[0]!;
 const second = mediaEntries.find((entry) => entry.value !== first.value)!;
 
 describe('media catalogue draft', () => {
+  test('a card move preserves a separate bulk selection and can be undone', () => {
+    const selected = draftReducer(draftInitial, { type: 'select', value: second.value });
+    const moved = draftReducer(selected, { type: 'moveOne', value: first.value, destination: 'Equipment' });
+    expect(moved.selected).toEqual([second.value]);
+    expect(moved.moves).toEqual({ [first.value]: 'Equipment' });
+    expect(draftReducer(moved, { type: 'undo' }).moves).toEqual({});
+  });
+
   test('moves a bulk selection once and restores the previous assignments with undo', () => {
     let draft = draftReducer(draftInitial, {
       type: 'selectMany',

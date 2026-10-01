@@ -46,3 +46,24 @@
   content-visibility: auto;
   contain-intrinsic-size: auto 17rem;
 }
+
+.groupPicker {
+  opacity: 0;
+}
+.card:hover .groupPicker,
+.card:focus-within .groupPicker {
+  opacity: 1;
+}
+.draftToolbar {
+  position: sticky;
+  top: var(--space-xs);
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+@media (hover: none) {
+  .groupPicker {
+    opacity: 1;
+  }
+}

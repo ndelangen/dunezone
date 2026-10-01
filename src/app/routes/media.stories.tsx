@@ -13,6 +13,7 @@ export const Reclassify = meta.story({
     const flagella = await page.findByRole('checkbox', { name: 'Select Flagella' }, { timeout: 30_000 });
     await userEvent.click(flagella);
     await userEvent.click(page.getByRole('checkbox', { name: 'Select Zenobia' }));
+    await userEvent.click(page.getByRole('button', { name: 'Review / bulk move' }));
     await userEvent.type(page.getByRole('combobox', { name: 'Destination group' }), 'Decals / Test proposal');
     await userEvent.click(page.getByRole('button', { name: 'Move selected' }));
     const prompt = page.getByRole('textbox', { name: 'Reclassification prompt' });
@@ -49,5 +50,24 @@ export const LegacyLink = meta.story({
     await expect(
       within(canvasElement).findByRole('heading', { name: 'Media catalogue' }, { timeout: 30_000 })
     ).resolves.toBeVisible();
+  },
+});
+
+export const QuickReclassify = meta.story({
+  args: { path: '/__media?kind=decal&group=Decals%20%2F%20Microorganisms' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const card = await page.findByRole('article', { name: 'Flagella' }, { timeout: 30_000 });
+    await userEvent.hover(card);
+    await userEvent.click(page.getByRole('combobox', { name: 'Group for Flagella' }));
+    await userEvent.click(page.getByRole('option', { name: 'Decals / Fluids and containers' }));
+    await expect(page.getByRole('button', { name: 'Copy prompt' })).toBeEnabled();
+    await expect(page.getByText('0 selected · 1 proposed changes')).toBeVisible();
+    await userEvent.click(page.getByRole('button', { name: 'Review changes' }));
+    await expect(
+      (page.getByRole('textbox', { name: 'Reclassification prompt' }) as HTMLTextAreaElement).value
+    ).toContain('/vector/decal/flagella.svg');
+    await userEvent.click(page.getByRole('button', { name: 'Undo move' }));
+    await expect(page.getByRole('article', { name: 'Flagella' })).toBeVisible();
   },
 });

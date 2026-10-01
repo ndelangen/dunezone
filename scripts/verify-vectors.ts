@@ -20,6 +20,8 @@
  * 7.
  * Media sources carry the authoring stamp (hard failure;
  * the in-repo tool emits it)
+ * 8.
+ * Every multicolor decal has a monochrome partner
  */
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
@@ -66,6 +68,13 @@ for (const relative of sourceRelatives) {
   if (!(category in VECTOR_CATEGORY_RULES)) {
     failures.push(`${relative}: unknown vector category`);
     continue;
+  }
+  /* Multicolor decals also have a paint-inheriting version at the matching path. */
+  if (category === 'decal' && relative.endsWith('-multicolor.svg')) {
+    const monochrome = relative.replace(/-multicolor\.svg$/, '.svg');
+    if (!sourceRelatives.has(monochrome)) {
+      failures.push(`${relative}: missing monochrome partner ${monochrome}`);
+    }
   }
   const generatedPath = path.join(publicRoot, relative);
   if (!existsSync(generatedPath)) {
