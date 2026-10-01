@@ -36,7 +36,8 @@ import { expireBattle } from './battle';
 import { CaptureStore } from './captures';
 import { Conversations } from './conversations';
 import { DirectoryOutbox } from './directory';
-import { applyDraftAction, assignmentEvents, draftWithCatalogue, unbiased } from './drafting';
+import { applyDraftAction, assignmentEvents, draftWithCatalogue, draftWithSetAside, unbiased } from './drafting';
+import type { SetAsideJudgement } from './drafting';
 import { hostedFixturePlan } from './fixture';
 import type { FixturePlan } from './fixture';
 import { logContext, PublicLog } from './log';
@@ -111,6 +112,22 @@ function draftStamp(seated: readonly string[], draft: NonNullable<StoredSnapshot
 }
 
 const CREATOR_SEAT = 'seat-1';
+
+/** A capture refused for readiness, carrying its first problem alone for the draft to show beside the faction. */
+export class NotReady extends GameRejection {
+  constructor(
+    subject: string,
+    readonly problem: string
+  ) {
+    super(`This ${subject} is not ready: ${problem}`);
+  }
+}
+
+/** The first readiness problem, as the draft and a refusal both phrase it; nothing when the capture is ready. */
+export function readinessProblem(readiness: CaptureReadiness): string | undefined {
+  const problem = readiness.ready ? undefined : readiness.problems[0];
+  return problem && `${problem.subject}, ${problem.reason}`;
+}
 
 /** Owns game state and its durable transitions; the host owns connections and delivery. */
 export class GameSession {
@@ -261,11 +278,11 @@ export class GameSession {
     if (options.provisional) {
       return;
     }
-    const problem = readiness.problems[0];
+    const problem = readinessProblem(readiness);
     if (!problem) {
       return;
     }
-    throw new GameRejection(`This ${subject} is not ready: ${problem.subject}, ${problem.reason}`);
+    throw new NotReady(subject, problem);
   }
 
   retainedCaptures() {
@@ -1120,8 +1137,15 @@ export class GameSession {
     }
     return { refresh: Date.now() - draft.catalogueAt >= PLAY_DRAFT_CATALOGUE_TTL_MS };
   }
-  updateDraftCatalogue(factions: DraftFaction[]) {
-    this.rewriteDraft((draft) => draftWithCatalogue(draft, factions, Date.now()));
+  updateDraftCatalogue(factions: DraftFaction[], setAside?: SetAsideJudgement) {
+    this.rewriteDraft((draft) => draftWithCatalogue(draft, factions, Date.now(), setAside));
+  }
+  /** The factions set aside now, for a catalogue refresh to judge again. */
+  draftSetAside(): Readonly<Record<string, string>> {
+    return this.room?.snapshot.draft?.setAside ?? {};
+  }
+  setFactionsAside(refused: Readonly<Record<string, string>>) {
+    this.rewriteDraft((draft) => draftWithSetAside(draft, refused));
   }
   assignmentFailed(reason: string) {
     this.rewriteDraft((draft) => ({ ...draft, failure: reason }));

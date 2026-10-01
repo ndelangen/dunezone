@@ -40,8 +40,9 @@ function ready(id, name) {
 }
 
 describe('Drafting and public assignment on a real game', () => {
-  let peer, runtime;
+  let peer, runtime, offset;
   beforeEach(async () => {
+    offset = 0;
     ({ peer, runtime } = await draftingRuntime());
   });
   afterEach(async () => {
@@ -260,7 +261,15 @@ describe('Drafting and public assignment on a real game', () => {
     await eventually(async () => (await stage(a)) === 'swapping', 'deal after the retry');
   });
 
-  it('stays in drafting with the reason when a dealt faction cannot be captured, and deals once it can', async () => {
+  /** Moves the room's clock past the catalogue's TTL again and re-sends this player's readiness, which reads the catalogue again. */
+  async function refreshCatalogue(connection) {
+    offset += 60_000;
+    await runtime.clock(offset);
+    await accepted(connection, { kind: 'draft-ready', ready: true });
+  }
+  const setAside = async (connection) => (await syncView(connection)).snapshot.draft.setAside ?? {};
+
+  it('sets aside a drafted faction that cannot be captured, clears readiness, and takes it back once a refresh finds it', async () => {
     peer.factions.delete('fremen');
     const a = await admit('a');
     const b = await admit('b');
@@ -272,26 +281,50 @@ describe('Drafting and public assignment on a real game', () => {
     await eventually(async () => typeof (await syncView(a)).snapshot.draft?.failure === 'string', 'failure recorded');
     const failed = await syncView(a);
     expect(failed.snapshot.stage).toBe('drafting');
-    expect(failed.snapshot.draft.failure).toBe('This faction is not available.');
-    expect(failed.snapshot.draft.ready.sort()).toEqual(['seat-1', 'seat-2']);
+    expect(failed.snapshot.draft.failure).toBe(
+      'Set aside as not ready to deal: Fremen (This faction is not available).'
+    );
+    expect(failed.snapshot.draft.setAside).toEqual({ fremen: 'This faction is not available.' });
+    /* The pool the players readied for changed, so their readiness went with it. */
+    expect(failed.snapshot.draft.ready).toEqual([]);
     expect(failed.snapshot.roster.seats.every((seat) => seat.faction === null)).toBe(true);
-    /* A technical retry rechecks the gates without a second readiness round. */
+    expect(await rejected(b, { kind: 'draft-pick', factionId: 'fremen' })).toBe(
+      'Fremen cannot be dealt yet: This faction is not available.'
+    );
+
+    /* The catalogue has it again: the next refresh returns it to the pool it was drafted into. */
     peer.factions.set('fremen', definition('fremen', 'Fremen'));
+    await refreshCatalogue(a);
+    await eventually(async () => !('fremen' in (await setAside(a))), 'fremen judged again');
     await accepted(b, { kind: 'draft-ready', ready: true });
-    await eventually(async () => (await stage(a)) === 'swapping', 'assignment after the retry');
+    await eventually(async () => (await stage(a)) === 'swapping', 'assignment once it can be captured');
+    const dealt = await syncView(a);
+    expect(dealt.snapshot.roster.seats.map((seat) => seat.faction?.id).sort()).toEqual(['fremen', 'harkonnen']);
   });
 
-  it('refuses to deal a faction whose leader face has not published on a real game, and deals once it publishes', async () => {
-    /* A real game, not the isolated path the fixture provisions: every dealt faction must be ready. */
+  /** Closes the fixture's isolated game and provisions a real one from the peer as `prepare` leaves it. */
+  async function realGame(prepare) {
+    offset = 0;
     await runtime.close();
     runtime = undefined;
     peer.provisional = false;
-    peer.factions.set('harkonnen', ready('harkonnen', 'Harkonnen'));
-    const fremen = ready('fremen', 'Fremen');
-    const [unpublished, ...published] = fremen.leaders;
-    peer.factions.set('fremen', { ...fremen, leaders: [{ ...unpublished, front: null }, ...published] });
+    prepare();
     runtime = await createRuntime(peer, 'game');
     expect((await provision(runtime)).status).toBe(200);
+  }
+  /** A ready faction with its first leader's face unpublished. */
+  function missingLeaderFace(id, name) {
+    const faction = ready(id, name);
+    const [unpublished, ...published] = faction.leaders;
+    return { ...faction, leaders: [{ ...unpublished, front: null }, ...published] };
+  }
+  const leaderProblem = `leader ${assetPublishingFaction.leaders[0].name}, This leader has no published face.`;
+
+  it('sets aside a drafted faction whose leader face has not published on a real game, and deals it once it publishes', async () => {
+    await realGame(() => {
+      peer.factions.set('harkonnen', ready('harkonnen', 'Harkonnen'));
+      peer.factions.set('fremen', missingLeaderFace('fremen', 'Fremen'));
+    });
     const a = await admit('a');
     const b = await admit('b');
     await seat(b, a);
@@ -302,19 +335,60 @@ describe('Drafting and public assignment on a real game', () => {
     await eventually(async () => typeof (await syncView(a)).snapshot.draft?.failure === 'string', 'failure recorded');
     const failed = await syncView(a);
     expect(failed.snapshot.stage).toBe('drafting');
+    expect(failed.snapshot.draft.setAside).toEqual({ fremen: leaderProblem });
     expect(failed.snapshot.draft.failure).toBe(
-      `This faction Fremen is not ready: leader ${assetPublishingFaction.leaders[0].name}, This leader has no published face.`
+      `Set aside as not ready to deal: Fremen (${leaderProblem.replace(/\.$/, '')}).`
     );
+    expect(failed.snapshot.draft.ready).toEqual([]);
     expect(failed.snapshot.roster.seats.every((seat) => seat.faction === null)).toBe(true);
     expect((await runtime.captures()).factions.map((capture) => capture.faction.id)).not.toContain('fremen');
 
-    /* The catalogue publishes the face, and the next Ready deals without anything else changing. */
-    peer.factions.set('fremen', fremen);
+    /* A refresh before the face publishes keeps it aside with the latest reason. */
+    await refreshCatalogue(a);
+    await eventually(
+      async () => (await syncView(a)).snapshot.draft.catalogueAt > failed.snapshot.draft.catalogueAt,
+      'refreshed'
+    );
+    expect(await setAside(a)).toEqual({ fremen: leaderProblem });
+
+    /* The catalogue publishes the face, and the next refresh deals it. */
+    peer.factions.set('fremen', ready('fremen', 'Fremen'));
+    await refreshCatalogue(a);
+    await eventually(async () => !('fremen' in (await setAside(a))), 'fremen judged ready');
     await accepted(b, { kind: 'draft-ready', ready: true });
     await eventually(async () => (await stage(a)) === 'swapping', 'assignment once published');
     const dealt = await syncView(a);
     expect(dealt.snapshot.roster.seats.map((seat) => seat.faction?.id).sort()).toEqual(['fremen', 'harkonnen']);
     expect((await runtime.captures()).factions.every((capture) => capture.readiness.ready)).toBe(true);
+  });
+
+  it('never fills with an unready faction: it is set aside, readiness stands, and the deal fills from what remains', async () => {
+    await realGame(() => {
+      peer.factions.set('harkonnen', ready('harkonnen', 'Harkonnen'));
+      peer.factions.set('atreides', missingLeaderFace('atreides', 'Atreides'));
+    });
+    const a = await admit('a');
+    const b = await admit('b');
+    await seat(b, a);
+    /* Atreides is the only linked faction left to fill with. */
+    await accepted(a, { kind: 'draft-pick', factionId: 'harkonnen' });
+    await accepted(a, { kind: 'draft-ready', ready: true });
+    await accepted(b, { kind: 'draft-ready', ready: true });
+    await eventually(async () => 'atreides' in (await setAside(a)), 'atreides set aside');
+    const short = await syncView(a);
+    expect(short.snapshot.stage).toBe('drafting');
+    expect(short.snapshot.draft.setAside).toEqual({ atreides: leaderProblem });
+    /* Nobody drafted it, so nobody's readiness depended on it. */
+    expect(short.snapshot.draft.failure).toBeNull();
+    expect(short.snapshot.draft.ready.sort()).toEqual(['seat-1', 'seat-2']);
+
+    /* A ready faction joins the catalogue, and the refresh deals it without a second readiness round. */
+    peer.draftable = [...peer.draftable, draftable('emperor', 'Emperor')];
+    peer.factions.set('emperor', ready('emperor', 'Emperor'));
+    await refreshCatalogue(a);
+    await eventually(async () => (await stage(a)) === 'swapping', 'assignment from what remains');
+    const dealt = await syncView(a);
+    expect(dealt.snapshot.roster.seats.map((seat) => seat.faction?.id).sort()).toEqual(['emperor', 'harkonnen']);
   });
 
   it("clears readiness on a roster change, drops a departing player's lists, and reads the catalogue again when stale", async () => {

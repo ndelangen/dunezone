@@ -45,6 +45,11 @@ export const draftStateSchema = z.object({
   ready: z.array(tableSeatSchema),
   /* Why the last automatic assignment did not commit, until the next change; null when it never failed. */
   failure: z.string().max(400).nullable(),
+  /*
+   * Factions a deal found unready, each with the reason its capture gave. They are neither dealt nor filled
+   * with until a catalogue refresh finds them ready. Optional so a snapshot from before it still reads.
+   */
+  setAside: z.record(tableIdentitySchema, z.string().max(400)).optional(),
 });
 export type DraftState = z.infer<typeof draftStateSchema>;
 
@@ -77,9 +82,17 @@ export function isBanned(draft: DraftState, factionId: string): boolean {
   return Object.values(draft.bans).some((list) => list.includes(factionId));
 }
 
-/** A pick the catalogue still lists as published; a faction unpublished or removed since the pick weighs nothing. */
+/** Why a deal set this faction aside, when one did and no refresh has found it ready since. */
+export function setAsideReason(draft: DraftState, factionId: string): string | undefined {
+  return draft.setAside?.[factionId];
+}
+
+/** A pick the catalogue still lists as published; a faction unpublished, removed or set aside since the pick weighs nothing. */
 function stillDealable(draft: DraftState, factionId: string): boolean {
-  return draft.factions.some((faction) => faction.id === factionId && faction.published);
+  return (
+    draft.factions.some((faction) => faction.id === factionId && faction.published) &&
+    setAsideReason(draft, factionId) === undefined
+  );
 }
 
 /** The drafted pool: every distinct dealable pick that is not banned, in the order it was first picked. */
@@ -103,11 +116,16 @@ export function bannersOf(draft: DraftState, factionId: string): string[] {
   return Object.entries(draft.bans).flatMap(([seat, list]) => (list.includes(factionId) ? [seat] : []));
 }
 
-/** Linked, published, unbanned factions outside the drafted pool: what random filling can add. */
+/** Linked, published, unbanned factions outside the drafted pool and not set aside: what random filling can add. */
 function fillableFactions(draft: DraftState): DraftFaction[] {
   const pool = draftedPool(draft);
   return draft.factions.filter(
-    (faction) => faction.linked && faction.published && !isBanned(draft, faction.id) && !pool.includes(faction.id)
+    (faction) =>
+      faction.linked &&
+      faction.published &&
+      !isBanned(draft, faction.id) &&
+      !pool.includes(faction.id) &&
+      setAsideReason(draft, faction.id) === undefined
   );
 }
 

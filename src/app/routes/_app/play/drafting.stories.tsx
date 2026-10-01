@@ -144,6 +144,34 @@ export const InsufficientFactionPool = meta.story({
   },
 });
 
+/** The deal found a drafted faction unready: it is set aside with its reason, readiness cleared, and it cannot be drafted again until it is ready. */
+const NOT_READY = 'faction token, The faction token back has no published face.';
+export const FactionSetAside = meta.story({
+  beforeEach: install(() =>
+    productTransport(
+      'seat-2',
+      draftingSnapshot(SIX, 6, {
+        picks: { 'seat-1': ['house-atreides', 'iduali'], 'seat-2': ['fremen'] },
+        setAside: { iduali: NOT_READY },
+        failure: `Set aside as not ready to deal: Iduali (${NOT_READY.replace(/\.$/, '')}).`,
+      })
+    )
+  ),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(
+      page.findByRole('heading', { name: 'Dreamrules', level: 1 }, { timeout: 30_000 })
+    ).resolves.toBeVisible();
+    await waitFor(() => expect(page.getByRole('alert')).toHaveTextContent('Set aside as not ready to deal: Iduali'), {
+      timeout: 30_000,
+    });
+    const list = () => within(page.getByRole('list', { name: 'Factions' }));
+    await shows(() => list().getByText(`Not ready to deal: ${NOT_READY}`));
+    const row = list().getByText('Iduali').closest('li') as HTMLElement;
+    expect(within(row).getByRole('button', { name: /^Draft$/ })).toBeDisabled();
+  },
+});
+
 /** A spectator is offered a seat; asking sends the one seat command a spectator may send. */
 export const SpectatorAsksForASeat = meta.story({
   beforeEach: install(() => productTransport('neutral', drafting())),

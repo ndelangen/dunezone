@@ -42,11 +42,12 @@ import { AuthorizationWatch, gameHttpClient } from './authorization';
 import { GameCatalogue } from './catalogue';
 import { RoomDelivery } from './delivery';
 import { GameDiagnostics } from './diagnostics';
+import type { SetAsideJudgement } from './drafting';
 import { FIXTURE_TREACHERY_DECK, hostedFixturePlan } from './fixture';
 import type { FixturePlan } from './fixture';
 import { isLocalIsolatedRuntime } from './localRuntime';
 import type { Metadata } from './session';
-import { GameSession } from './session';
+import { GameSession, NotReady, readinessProblem } from './session';
 
 /** The seat a real game's creator holds from creation. */
 
@@ -1599,10 +1600,10 @@ export class GameRoom extends DurableObject<GameEnv> {
     }
     this.refreshingCatalogue = true;
     try {
-      const factions = await new GameCatalogue(this.env.CONVEX_URL, this.env.APPLICATION_ORIGIN).draftableFactions(
-        metadata.game.rulesetId
-      );
-      this.session.updateDraftCatalogue(factions);
+      const catalogue = new GameCatalogue(this.env.CONVEX_URL, this.env.APPLICATION_ORIGIN);
+      const factions = await catalogue.draftableFactions(metadata.game.rulesetId);
+      const setAside = await this.judgeSetAside(catalogue, factions);
+      this.session.updateDraftCatalogue(factions, setAside);
       this.reconcileViewers();
       this.broadcastViews();
     } catch (error) {
@@ -1614,13 +1615,54 @@ export class GameRoom extends DurableObject<GameEnv> {
     await this.attemptAssignment();
   }
 
+  /** Why the deal cannot take this faction, from its capture; nothing once it is retained. */
+  private async refusedFaction(factionId: string): Promise<string | undefined> {
+    try {
+      await this.retainFactionCapture(factionId, { provisional: this.metadata?.provisional === true });
+      return undefined;
+    } catch (error) {
+      if (error instanceof NotReady) {
+        return error.problem.slice(0, 400);
+      }
+      if (error instanceof GameRejection) {
+        return error.message.slice(0, 400);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * The factions set aside, judged again with the catalogue: one still listed and still refused keeps its latest reason, one ready now returns to the draft.
+   * A capture that cannot be read keeps the reason it had.
+   */
+  private async judgeSetAside(catalogue: GameCatalogue, factions: DraftFaction[]) {
+    const judged: SetAsideJudgement = { judged: [], stillAside: {} };
+    for (const [factionId, reason] of Object.entries(this.session.draftSetAside())) {
+      judged.judged.push(factionId);
+      if (!factions.some((faction) => faction.id === factionId)) {
+        continue;
+      }
+      try {
+        const capture = await catalogue.captureFaction(factionId);
+        const problem = this.metadata?.provisional === true ? undefined : readinessProblem(capture.readiness);
+        if (problem !== undefined) {
+          judged.stillAside[factionId] = problem.slice(0, 400);
+        }
+      } catch (error) {
+        judged.stillAside[factionId] = error instanceof GameRejection ? error.message.slice(0, 400) : reason;
+      }
+    }
+    return judged;
+  }
+
   /*
    * Public assignment, by itself, once the roster meets the minimum, every player is ready and the
    * pool holds enough factions: the dealt factions are captured first (a real game refuses unready
    * content, an isolated backend deals provisional content), then one transaction fixes the seat
    * count, gives every seat its faction and a random station, ends the draft and opens swapping,
-   * provided nothing about the draft or the roster changed while the captures ran. A failure
-   * before that commit leaves the draft as it was, with its reason, for a gate-checked retry.
+   * provided nothing about the draft or the roster changed while the captures ran. A faction whose
+   * capture is refused is set aside with its reason and the deal tries again from what remains; any
+   * other failure before that commit leaves the draft as it was, with its reason, for a gate-checked retry.
    */
   private async attemptAssignment() {
     if (this.assigning) {
@@ -1632,10 +1674,20 @@ export class GameRoom extends DurableObject<GameEnv> {
     }
     this.assigning = true;
     try {
+      const refused: Record<string, string> = {};
       for (const faction of prepared.factions) {
-        await this.retainFactionCapture(faction, { provisional: this.metadata?.provisional === true });
+        const reason = await this.refusedFaction(faction);
+        if (reason !== undefined) {
+          refused[faction] = reason;
+        }
       }
-      if (this.session.completeAssignment(prepared)) {
+      if (Object.keys(refused).length) {
+        /* The deal never fails twice on the same faction: it is set aside, and the next attempt deals from what remains. */
+        this.session.setFactionsAside(refused);
+        this.draftChangedDuringAttempt = true;
+        this.reconcileViewers();
+        this.broadcastViews();
+      } else if (this.session.completeAssignment(prepared)) {
         this.deliverDirectorySoon();
         this.reconcileViewers();
         this.broadcastViews();

@@ -19,6 +19,7 @@ import {
   draftedPool,
   isBanned,
   pickersOf,
+  setAsideReason,
 } from '@shared/play/drafting';
 import type { DraftFaction, DraftState } from '@shared/play/drafting';
 import { emptyPublicControls } from '@shared/play/inventory';
@@ -58,12 +59,14 @@ function playersOf(table: TableProjection): Player[] {
     .sort((a, b) => seats.indexOf(a.seat) - seats.indexOf(b.seat));
 }
 
-function unavailableReason(banned: boolean, published: boolean): string | undefined {
+function unavailableReason(banned: boolean, published: boolean, setAside: string | undefined): string | undefined {
   switch (true) {
     case banned:
       return 'Banned; remove every ban on it first';
     case !published:
       return 'Not generated yet: its assets are not published';
+    case setAside !== undefined:
+      return `Not ready to deal: ${setAside}`;
     default:
       return undefined;
   }
@@ -185,7 +188,7 @@ export function DraftingOverlay({ client, table }: Props) {
         faction={faction}
         size={size}
         banned={kind === 'ban'}
-        dim={kind === 'pick' && isBanned(draft, id)}
+        dim={kind === 'pick' && (isBanned(draft, id) || setAsideReason(draft, id) !== undefined)}
         title={ledgerTitle(mine, kind, faction.name, owner.name)}
         onClick={mine && !locked(table) ? () => client.command({ kind: undo, factionId: id }) : undefined}
       />
@@ -349,12 +352,14 @@ function FactionRow({
   const banned = isBanned(draft, faction.id);
   const picked = (draft.picks[own] ?? []).includes(faction.id);
   const mine = (draft.bans[own] ?? []).includes(faction.id);
-  const why = unavailableReason(banned, faction.published);
+  const aside = setAsideReason(draft, faction.id);
+  const why = unavailableReason(banned, faction.published, aside);
+  const dealable = faction.published && aside === undefined;
   const pickers = pickersOf(draft, faction.id);
   const banners = bannersOf(draft, faction.id);
   return (
     <li className={clsx(styles.row, banned && styles.rowBanned)}>
-      <FactionToken faction={faction} size={2.2} banned={banned} dim={!faction.published} title={faction.name} />
+      <FactionToken faction={faction} size={2.2} banned={banned} dim={!dealable} title={faction.name} />
       <div>
         <Text size="sm" fw={700}>
           {faction.name}
@@ -372,7 +377,7 @@ function FactionRow({
           size="compact-sm"
           variant={picked ? 'filled' : 'default'}
           aria-pressed={picked}
-          disabled={locked(table) || ((banned || !faction.published) && !picked)}
+          disabled={locked(table) || ((banned || !dealable) && !picked)}
           title={why}
           onClick={() => client.command({ kind: picked ? 'draft-unpick' : 'draft-pick', factionId: faction.id })}
         >
