@@ -71,12 +71,16 @@ function independentlySampledMapBoundary(slots: readonly TrackerArcSlot[], seatC
 }
 
 /*
- * Each sweep holds at its bounds and at one case inside the range, sized to rules rather than to a permutation matrix (ADR-0002, #1590).
- * Phases: a turn with none, the standard nine, and the longest the arc composes.
- * Seats: the fewest and the most the table seats, with the default between them; the list is ascending, which a test below holds.
+ * Each sweep holds at the bounds of every regime of the function under test and at one case inside each, sized to rules rather than to a permutation matrix (ADR-0002, #1590).
+ * Phases: 0 is the function's floor, since a turn always has the standard nine and the scene passes no slots at all when there is no progress.
+ * From 1 to 8 the composed discs keep their full size, 9 is the standard layout the function returns early, from 10 the discs shrink and keep the edge gap, and from 23 they give up the gap; a test below pins those bounds.
+ * 30 is where the retired sweep ended and the longest layout proved here; no cap bounds a composed turn, and a test below checks 200 for size alone.
+ * Framing proves 0, 9 and 30: a composed turn refits its discs into the span the standard nine cover, so its extent is the standard's, and 30 stands for every composed count with the smallest discs.
+ * Seats: the fewest and the most the table seats, with the default between them; tableSettings.test.ts holds that the list is ascending and that the default lies strictly inside it.
  * Aspect ratios: the widest desktop, a square, and the narrowest phone.
  */
-const PHASE_COUNTS = [0, 9, 30] as const;
+const PHASE_COUNTS = [0, 1, 8, 9, 10, 22, 23, 30] as const;
+const FRAMED_PHASE_COUNTS = [0, 9, 30] as const;
 const SEAT_COUNTS = [
   TABLE_SEAT_COUNTS[0],
   DEFAULT_TABLE_SEAT_COUNT,
@@ -85,14 +89,19 @@ const SEAT_COUNTS = [
 const ASPECT_RATIOS = [16 / 9, 1, 390 / 844] as const;
 
 const MAP_FRAMING_CASES = SEAT_COUNTS.flatMap((seatCount) =>
-  PHASE_COUNTS.flatMap((phaseCount) =>
+  FRAMED_PHASE_COUNTS.flatMap((phaseCount) =>
     ASPECT_RATIOS.map((aspectRatio) => [seatCount, phaseCount, aspectRatio] as const)
   )
 );
 
 describe('table trackers', () => {
-  test('lists the seat counts in ascending order, so the ends of the list bound the sweep', () => {
-    expect([...TABLE_SEAT_COUNTS].sort((left, right) => left - right)).toEqual([...TABLE_SEAT_COUNTS]);
+  test('keeps full-size phase discs through nine, shrinks them with the edge gap from ten, and gives up the gap from twenty-three', () => {
+    const gapBetween = (slots: readonly TrackerArcSlot[]) =>
+      distance(slots[2].position, slots[3].position) - slots[2].radius - slots[3].radius;
+    expect(trackerArcSlots(8)[2].radius).toBe(PHASE_TRACKER_RADIUS);
+    expect(trackerArcSlots(10)[2].radius).toBeLessThan(PHASE_TRACKER_RADIUS);
+    expect(gapBetween(trackerArcSlots(22))).toBeCloseTo(TRACKER_EDGE_GAP);
+    expect(gapBetween(trackerArcSlots(23))).toBeLessThan(TRACKER_EDGE_GAP);
   });
 
   test.each(PHASE_COUNTS)(
@@ -152,11 +161,11 @@ describe('table trackers', () => {
   });
 
   test('keeps dynamic tracker arcs clear of every player station', () => {
-    /* Every seat layout, since each is its own rule and the check costs nothing. */
     PHASE_COUNTS.forEach((phaseCount) => {
       const slots = trackerArcSlots(phaseCount);
       expect(slots.every((slot) => slot.position[2] + slot.radius < 0)).toBe(true);
 
+      /* Every seat layout, since each is its own rule and the check costs nothing. */
       TABLE_SEAT_COUNTS.forEach((seatCount) => {
         tableSeatAngles(seatCount).forEach((seatAngle) => {
           const seatPosition: [number, number, number] = [

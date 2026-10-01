@@ -1,6 +1,12 @@
 import { describe, expect, test } from 'vitest';
 
-import { tableSeatAngles, tableSeatSectorIndices, TABLE_SEAT_COUNTS, TABLE_SECTOR_COUNT } from './tableSettings';
+import {
+  DEFAULT_TABLE_SEAT_COUNT,
+  tableSeatAngles,
+  tableSeatSectorIndices,
+  TABLE_SEAT_COUNTS,
+  TABLE_SECTOR_COUNT,
+} from './tableSettings';
 import type { TableSeatCount } from './tableSettings';
 
 const layouts = [
@@ -66,6 +72,16 @@ describe('table seating', () => {
 });
 
 describe('every accepted seat count', () => {
+  /* The roster limit, the result and directory pages, the create route and the tracker sweep read the ends of this list as the fewest and the most. */
+  test('is listed in ascending order, so the ends of the list are the fewest and the most', () => {
+    expect([...TABLE_SEAT_COUNTS].sort((left, right) => left - right)).toEqual([...TABLE_SEAT_COUNTS]);
+  });
+
+  test('seats the default count strictly between the fewest and the most', () => {
+    expect(DEFAULT_TABLE_SEAT_COUNT).toBeGreaterThan(TABLE_SEAT_COUNTS[0]);
+    expect(DEFAULT_TABLE_SEAT_COUNT).toBeLessThan(TABLE_SEAT_COUNTS[TABLE_SEAT_COUNTS.length - 1]);
+  });
+
   test.each(TABLE_SEAT_COUNTS)('seats %s players in distinct sectors with near-even gaps', (seatCount) => {
     const sectorIndices = tableSeatSectorIndices(seatCount);
 
