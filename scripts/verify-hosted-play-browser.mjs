@@ -13,6 +13,7 @@ import { PHASE_VIEWS } from '../src/app/routes/_app/play/playView.ts';
 import { turnTrackerLayout } from '../src/app/routes/_app/play/turnTrackerGeometry.ts';
 import { phaseAt, phaseForTurn, TABLE_PHASES, tableProgressFor } from '../src/shared/play/phases.ts';
 import { KEEPALIVE_PING, KEEPALIVE_PONG } from '../src/shared/play/protocol.ts';
+import { setupReadyRequired, setupStep } from '../src/shared/play/setup.ts';
 import { isSpicePiece } from '../src/shared/play/spice.ts';
 import { spiceSupplySlot } from '../src/shared/play/spiceSupply.ts';
 import { stackTopHeight } from '../src/shared/play/tableGeometry.ts';
@@ -617,22 +618,29 @@ async function playThroughSetup(players) {
   }
   await until(() => stage() === 'setup', 'Trading did not close into setup.', 30_000);
   while (stage() === 'setup') {
-    /* Next clears readiness, and a player whose view has not yet reached that step would read its old Ready and skip it (#1481). */
-    await converged(players);
-    const { setup } = players[0].view().snapshot;
-    const step = setup.steps[setup.index];
-    walkedSetup.push(step);
-    /* A prediction gates on its lock; any other step asks for readiness unless its author turned that off. */
-    if (step.kind === 'prediction') {
-      await lockPrediction(players, step);
-    } else if (step.allPlayersMustBeReady ?? true) {
-      for (const who of players) {
-        if (!who.view().snapshot.controls.ready.includes(who.view().viewer.viewerSeat)) {
-          await act(who, 'Ready');
-        }
-      }
-    }
+    await completeSetupStep(players);
     await act(players[0], 'Next phase');
+  }
+}
+/** Does what the current setup step gates Next on. */
+async function completeSetupStep(players) {
+  /* Next clears readiness, and a player whose view has not yet reached that step would read its old Ready and skip it (#1481). */
+  await converged(players);
+  const { setup } = players[0].view().snapshot;
+  const step = setupStep(setup);
+  walkedSetup.push(step);
+  /* A prediction gates on its lock; any other step asks for readiness unless its author turned that off. */
+  if (step.kind === 'prediction') {
+    await lockPrediction(players, step);
+    return;
+  }
+  if (!setupReadyRequired(setup)) {
+    return;
+  }
+  for (const who of players.filter(
+    (player) => !player.view().snapshot.controls.ready.includes(player.view().viewer.viewerSeat)
+  )) {
+    await act(who, 'Ready');
   }
 }
 /**
@@ -1362,14 +1370,11 @@ function samePublicView(a, b) {
  */
 async function seededCustomContent(a, b) {
   assert.deepEqual(
-    walkedSetup.map(({ kind, title }) => ({ kind, title })),
-    [
-      { kind: 'prediction', title: 'Bene Gesserit prediction' },
-      { kind: 'traitors', title: walkedSetup[1]?.title },
-      { kind: 'instruction', title: 'Synthetic muster' },
-      { kind: 'forces', title: walkedSetup[3]?.title },
-    ]
+    walkedSetup.map((step) => step.kind),
+    ['prediction', 'traitors', 'instruction', 'forces']
   );
+  assert.equal(walkedSetup[0].title, 'Bene Gesserit prediction');
+  assert.equal(walkedSetup[2].title, 'Synthetic muster');
   const extras = (who) =>
     (who.view().snapshot.hand ?? []).filter((piece) => piece.label === 'Synthetic extra').map((piece) => piece.id);
   const declaring = [a, b].find((who) => factionOf(who).id === walkedSetup[0].factionId);
