@@ -1358,7 +1358,7 @@ function samePublicView(a, b) {
 }
 
 /**
- * The seeded catalogue's custom content reached the real game (#1232 H1): the declaring faction's phases ran in setup, its Extra sits in its own hand only, and every dealt leader shows its published face.
+ * The seeded catalogue's custom content reached the real game (#1232 H1): the declaring faction's phases ran in setup, and its Extra sits in its own hand only.
  */
 async function seededCustomContent(a, b) {
   assert.deepEqual(
@@ -1375,19 +1375,9 @@ async function seededCustomContent(a, b) {
   const declaring = [a, b].find((who) => factionOf(who).id === walkedSetup[0].factionId);
   for (const who of [a, b]) {
     assert.equal(extras(who).length, who === declaring ? 1 : 0, `${who.label} holds the wrong Extras.`);
-    const leaders = (who.view().snapshot.hand ?? [])
-      .flatMap((piece) => piece.items)
-      .map((item) => item.artwork.front)
-      .filter((front) => front?.startsWith('/published/leaders/'));
-    assert.equal(leaders.length, 5, `${who.label} was not dealt five published leader faces.`);
-    for (const front of leaders) {
-      const response = await who.page.request.get(`${origin}${front}`);
-      assert.equal(response.status(), 200, `${front} did not serve.`);
-      assert.match(response.headers()['content-type'] ?? '', /^image\//u);
-    }
   }
   passed(
-    "A seeded faction's prediction and ready-gated instruction run in setup, its Extra reaches only its own hand and every leader shows its published face",
+    "A seeded faction's prediction and ready-gated instruction run in setup, and its Extra reaches only its own hand",
     { steps: walkedSetup.map((step) => step.title) }
   );
 }

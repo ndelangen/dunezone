@@ -69,8 +69,8 @@ describe('isolated Play test controls', () => {
     aggregateTest.register(t, 'profileActivity');
     const first = await t.mutation(internal.playTesting.seedRealGameCatalogue, {});
     const second = await t.mutation(internal.playTesting.seedRealGameCatalogue, {});
-    /* Two decks with three cards each, the Extra's face, and per faction both token faces and five leader faces. */
-    expect(first.publications).toHaveLength(23);
+    /* Two decks with three cards each, the Extra's face, and both token faces per faction. */
+    expect(first.publications).toHaveLength(13);
     const seeded = await t.run(async (ctx) => {
       const slots = await ctx.db
         .query('ruleset_asset_slots')
@@ -115,7 +115,7 @@ describe('isolated Play test controls', () => {
     expect(publications.filter(({ href }) => href.startsWith('/published/spice-cards/'))).toHaveLength(3);
   });
 
-  test('one faction supplies an Extra and declares phases, and every leader face is published', async () => {
+  test('one faction supplies an Extra and declares phases', async () => {
     const { t } = await fixture();
     aggregateTest.register(t, 'statistics');
     aggregateTest.register(t, 'profileActivity');
@@ -131,10 +131,6 @@ describe('isolated Play test controls', () => {
     const definitions = await Promise.all(
       factionIds.map((factionId) => t.query(api.playCatalogue.factionDefinition, { factionId }))
     );
-    for (const definition of definitions) {
-      expect(definition?.leaders).toHaveLength(5);
-      expect(definition?.leaders.every(({ front }) => front?.startsWith('/published/leaders/'))).toBe(true);
-    }
     const declaring = definitions.filter((definition) => definition?.data?.extraPhases?.length);
     expect(declaring.map((definition) => definition?.faction.name)).toEqual(['Harkonnen']);
     expect(declaring[0]?.data?.extraPhases?.map(({ type, title, before }) => ({ type, title, before }))).toEqual([

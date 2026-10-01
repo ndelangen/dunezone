@@ -1,6 +1,5 @@
 import { v } from 'convex/values';
 
-import { factionMemberPublicationId } from '../src/shared/asset-publishing/componentPublication';
 import type { PublicationAssetType } from '../src/shared/asset-publishing/publicationTargets';
 import { publicationFaceId, publishedR2Key, publishedHref } from '../src/shared/asset-publishing/publicationTargets';
 import { publishingDeckCardback } from '../src/shared/assets/fixtures/publishingDeckCardback';
@@ -231,7 +230,7 @@ const SYNTHETIC_FACTIONS = [
 ];
 
 /**
- * Seeds a ruleset an Administrator can start a real game with on the disposable browser backend: both required decks, and two linked factions with published tokens, published leader faces and authored troop combat values.
+ * Seeds a ruleset an Administrator can start a real game with on the disposable browser backend: both required decks, and two linked factions with published tokens and authored troop combat values.
  * The Harkonnen also supply an Extra and declare a prediction and an instruction phase, so real games carry custom content.
  * Returns the publications whose local bytes the runner installs.
  */
@@ -309,11 +308,6 @@ export const seedRealGameCatalogue = internalMutation({
       await ctx.db.insert('ruleset_factions', { ruleset_id: rulesetId, faction_id: factionId });
       publications.push(await publish(ctx, 'faction-token', factionId, 'front'));
       publications.push(await publish(ctx, 'faction-token', publicationFaceId(factionId, 'back'), 'back'));
-      for (const leader of assetPublishingFaction.leaders) {
-        publications.push(
-          await publish(ctx, 'faction-leader', factionMemberPublicationId(factionId, leader.memberId), 'front')
-        );
-      }
     }
     return { rulesetId, publications };
   },
