@@ -36,6 +36,7 @@ import {
 import { GameRejection } from '../../src/shared/play/rejection';
 import { playRetireFixtureRequestSchema } from '../../src/shared/play/retire';
 import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
+import { setupReadyRequired, setupStep } from '../../src/shared/play/setup';
 import { SPECTATOR_COLOR } from './actors';
 import { AuthorizationWatch, gameHttpClient } from './authorization';
 import { GameCatalogue } from './catalogue';
@@ -1497,10 +1498,26 @@ export class GameRoom extends DurableObject<GameEnv> {
       if (changes >= steps) {
         throw new Error(`Setup did not reach play within its ${steps} steps.`);
       }
-      const ready = snapshot().controls?.ready ?? [];
-      for (const player of everyone) {
-        if (!ready.includes(viewerOf(player).viewerSeat)) {
-          command(player, { kind: 'ready', ready: true });
+      const setup = snapshot().setup!;
+      const step = setupStep(setup);
+      if (step?.kind === 'prediction') {
+        /* A prediction gates on its lock, never on readiness; it is revealed at once so every seat starts play with the same public view. */
+        const predictor = everyone.find((player) => this.seatFaction(viewerOf(player).viewerSeat) === step.factionId);
+        if (!predictor) {
+          throw new Error(`No provisioned player holds the faction of ${step.title}.`);
+        }
+        command(predictor, {
+          kind: 'prediction-lock',
+          stepId: step.id,
+          choice: { factionId: step.factionId!, turn: 1 },
+        });
+        command(predictor, { kind: 'prediction-reveal', stepId: step.id });
+      } else if (setupReadyRequired(setup)) {
+        const ready = snapshot().controls?.ready ?? [];
+        for (const player of everyone) {
+          if (!ready.includes(viewerOf(player).viewerSeat)) {
+            command(player, { kind: 'ready', ready: true });
+          }
         }
       }
       await this.phaseCooldownElapsed();
@@ -1512,6 +1529,10 @@ export class GameRoom extends DurableObject<GameEnv> {
     for (const placeholder of placeholders) {
       command(placeholder, { kind: 'seat-depart' });
     }
+  }
+
+  private seatFaction(seat: string) {
+    return this.session.currentSnapshot().roster?.seats.find((entry) => entry.id === seat)?.faction?.id;
   }
 
   /**
