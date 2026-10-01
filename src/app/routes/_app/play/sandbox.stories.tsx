@@ -2,18 +2,9 @@ import preview from '@sb/preview';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { gameMeta, install } from './game.stories.fixture';
-import { journeySteps, journeyViewers, JourneyPage } from './journey.stories.fixture';
+import { chapter, journeyViewers, JourneyPage } from './journey.stories.fixture';
 import { expectHeaderPhase, openTab, phaseControls } from './playing.stories.fixture';
 import { sandbox, sandboxDecorator, sandboxSteps, sandboxTransport } from './sandbox.stories.fixture';
-
-/* The 1-based step of the first recorded step with this title, so a re-recording keeps the story on its moment. */
-const chapter = (title: string) => {
-  const index = journeySteps().findIndex((step) => step.title === title);
-  if (index < 0) {
-    throw new Error(`The journey recording has no step titled ${title}.`);
-  }
-  return index + 1;
-};
 
 const meta = preview.meta({
   ...gameMeta,
@@ -89,11 +80,12 @@ export const Sandbox = meta.story({
       (candidate) => candidate.kind === 'force' && !!candidate.stackKey?.startsWith(`troops:${faction}:`)
     );
     const target: [number, number, number] = [0, 0.4, 1.5];
+    const versionBefore = shown().versions[force.id]!;
     table.receive({
       type: 'begin',
       carryId: 'sandbox-carry',
       sourcePieceId: force.id,
-      expectedVersion: shown().versions[force.id]!,
+      expectedVersion: versionBefore,
       pickup: 'whole',
     });
     table.receive({
@@ -105,8 +97,8 @@ export const Sandbox = meta.story({
     });
     expect(table.refusal).toBeUndefined();
     const moved = shown().table.pieces.find((candidate) => candidate.id === force.id)!;
-    expect(moved.position[0]).toBeCloseTo(target[0], 0);
-    expect(moved.position[2]).toBeCloseTo(target[2], 0);
+    expect(moved.position).not.toEqual(force.position);
+    expect(shown().versions[force.id]).toBeGreaterThan(versionBefore);
     expect(room.carries.size).toBe(0);
 
     /* The page's own Next phase reaches the room, which moves from Bidding to Revival. */

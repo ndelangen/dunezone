@@ -9,7 +9,8 @@ import HmacSHA256 from 'crypto-js/hmac-sha256';
 export function randomInt(min: number, max?: number): number {
   const [low, high] = max === undefined ? [0, min] : [min, max];
   const range = high - low;
-  if (!Number.isSafeInteger(range) || range <= 0 || range > 2 ** 32) {
+  const supported = Number.isSafeInteger(range) && range > 0 && range <= 2 ** 32;
+  if (!supported) {
     throw new RangeError(`randomInt needs a range of 1 to 2^32, not ${range}.`);
   }
   /* Rejection sampling keeps every value equally likely. */

@@ -36,6 +36,13 @@ import { storyTransport } from './storyTransport';
 
 type View = Extract<ServerMessage, { type: 'view' }>;
 type Message = Exclude<ClientMessage, { type: 'admit' | 'log-history' | 'conversation-history' }>;
+type TableMessage<Type extends Message['type']> = Extract<Message, { type: Type }>;
+type RoomAction = Parameters<Room['command']>[1];
+
+/* The session commits these families outside the table, so the sandbox refuses them with a pointer to the journey. */
+const SESSION_ONLY = [isDraftAction, isSwapAction, isSeatAction, isRemovalAction, isResultAction];
+const sessionOnly = (action: { kind: string }) =>
+  action.kind === 'spawn-request' || SESSION_ONLY.some((family) => family(action));
 
 /** The steps the sandbox can start from: those the recording kept the room's stored state for, setup onwards. */
 export function sandboxSteps(): number[] {
@@ -145,6 +152,7 @@ export class SandboxTable {
       return;
     }
     this.room.clearActivity(this.viewer().connectionId);
+    this.cleanUpSetup();
     this.seat = seat;
     this.deliver(this.frame());
   }
@@ -152,112 +160,107 @@ export class SandboxTable {
   /**
    * Answers one message from `seat` as the Worker would: a carry reply or a rejection to the sender, then the room as it now stands to the page.
    * A seat other than the page's acts as a second player at the same table.
+   * Replays, the spice history, conversations and metrics stay with the scripted transport, so those answer false.
    */
   receive(message: Message, seat = this.seat): boolean {
+    const handle = this.handlers[message.type] as
+      | ((message: Message, viewer: Viewer, own: boolean) => void)
+      | undefined;
+    if (!handle) {
+      return false;
+    }
     const viewer = this.viewer(seat);
     const own = seat === this.seat;
     this.revealDueBattle();
     try {
-      switch (message.type) {
-        case 'sync':
-          break;
-        case 'pointer':
-          this.room.pointer(viewer, message.position, Date.now(), message.seq);
-          return true;
-        case 'pose':
-          this.room.pose(viewer, message);
-          if (!own) {
-            this.deliver(this.frame());
-          }
-          return true;
-        case 'begin':
-        case 'take':
-        case 'renew':
-        case 'cancel': {
-          const draft = this.activity(viewer, message);
-          if (draft && own) {
-            this.deliver({ type: 'carry', carryId: message.carryId, draft });
-          }
-          break;
-        }
-        case 'command':
-        case 'drop':
-          this.commit(viewer, message);
-          this.scheduleBattleReveal();
-          this.deliver(this.frame(this.seat, own ? message.commandId : undefined));
-          return true;
-        default:
-          /* Replays, the spice history, conversations and metrics stay with the scripted transport. */
-          return false;
-      }
+      handle(message, viewer, own);
     } catch (error) {
-      if (!(error instanceof GameRejection)) {
-        throw error;
-      }
-      if (message.type === 'drop' && this.room.carries.get(message.carryId)?.connectionId === viewer.connectionId) {
-        this.room.cancel(viewer, message.carryId);
-      }
-      this.refusal = error.message;
-      if (own) {
-        this.deliver({ type: 'rejected', requestId: requestId(message), message: error.message });
-      }
+      this.refuse(message, viewer, own, error);
     }
-    this.deliver(this.frame());
     return true;
   }
 
-  private activity(viewer: Viewer, message: Extract<Message, { type: 'begin' | 'take' | 'renew' | 'cancel' }>) {
-    const room = this.room;
-    let draft;
-    switch (message.type) {
-      case 'begin':
-        draft = room.begin(viewer, {
-          ...message,
-          sourcePieceId: internalPieceId(room.snapshot, message.sourcePieceId),
-        });
-        break;
-      case 'take':
-        draft = room.take(viewer, { ...message, donorPieceId: internalPieceId(room.snapshot, message.donorPieceId) });
-        break;
-      case 'renew':
-        room.renew(viewer, message.carryId);
-        break;
-      case 'cancel':
-        room.cancel(viewer, message.carryId);
-        break;
+  private readonly handlers: {
+    [Type in Message['type']]?: (message: TableMessage<Type>, viewer: Viewer, own: boolean) => void;
+  } = {
+    sync: () => this.deliver(this.frame()),
+    pointer: (message, viewer) => {
+      this.room.pointer(viewer, message.position, Date.now(), message.seq);
+    },
+    pose: (message, viewer, own) => {
+      if (this.room.pose(viewer, message) && !own) {
+        this.deliver(this.frame());
+      }
+    },
+    /* A renew moves only the carry's expiry, which no page acts on, so no frame goes out, as in the Worker. */
+    renew: (message, viewer) => this.room.renew(viewer, message.carryId),
+    begin: (message, viewer, own) => this.activity(message, viewer, own),
+    take: (message, viewer, own) => this.activity(message, viewer, own),
+    cancel: (message, viewer, own) => this.activity(message, viewer, own),
+    command: (message, viewer, own) => this.commit(message, viewer, own),
+    drop: (message, viewer, own) => this.commit(message, viewer, own),
+  };
+
+  /* A refusal as the Worker sends one: a rejected drop lets go of its carry, and an unexpected error is reported but still answered. */
+  private refuse(message: Message, viewer: Viewer, own: boolean, error: unknown) {
+    if (!(error instanceof GameRejection)) {
+      console.error('The sandbox table failed on a message.', error);
     }
-    this.cleanUpSetup();
-    return draft && this.projection.draft(draft, room.snapshot);
+    if (message.type === 'drop' && this.room.carries.get(message.carryId)?.connectionId === viewer.connectionId) {
+      this.room.cancel(viewer, message.carryId);
+      this.cleanUpSetup();
+    }
+    const reason = error instanceof GameRejection ? error.message : 'Unable to process the command.';
+    this.refusal = reason;
+    if (own) {
+      this.deliver({ type: 'rejected', requestId: requestId(message), message: reason });
+    }
+    this.deliver(this.frame());
   }
 
-  /* The table half of the session's commit: the room decides, then setup's Traitor clean-up runs, and nothing is stored. */
-  private commit(viewer: Viewer, message: Extract<Message, { type: 'command' | 'drop' }>) {
+  private activity(message: TableMessage<'begin' | 'take' | 'cancel'>, viewer: Viewer, own: boolean) {
     const room = this.room;
-    let next;
-    if (message.type === 'drop') {
-      next = room.drop(viewer, message.carryId, message.position, message.orientation);
+    let draft;
+    if (message.type === 'begin') {
+      draft = room.begin(viewer, { ...message, sourcePieceId: internalPieceId(room.snapshot, message.sourcePieceId) });
+    } else if (message.type === 'take') {
+      draft = room.take(viewer, { ...message, donorPieceId: internalPieceId(room.snapshot, message.donorPieceId) });
     } else {
-      const { action } = message;
-      /* The session commits these outside the table, so the sandbox refuses them with a pointer to the journey. */
-      if (
-        isDraftAction(action) ||
-        isSwapAction(action) ||
-        isSeatAction(action) ||
-        isRemovalAction(action) ||
-        isResultAction(action) ||
-        action.kind === 'spawn-request'
-      ) {
-        throw new GameRejection(
-          'The sandbox runs the table only. Drafting, seats, votes, catalogue requests and the result play out in Play/Journey.'
-        );
-      }
-      next = room.command(viewer, internalAction(room.snapshot, action), message.expectedRevision);
+      room.cancel(viewer, message.carryId);
     }
-    next = storedSnapshotSchema.parse(next);
+    this.cleanUpSetup();
+    if (draft && own) {
+      this.deliver({ type: 'carry', carryId: message.carryId, draft: this.projection.draft(draft, room.snapshot) });
+    }
+    this.deliver(this.frame());
+  }
+
+  /*
+   * The table half of the session's commit: the room decides, then setup's Traitor clean-up runs, and nothing is stored.
+   * The session's roster pass is left out, so the turn keeps the phase order recorded at the starting step and spice transfers are not described.
+   */
+  private commit(message: TableMessage<'command' | 'drop'>, viewer: Viewer, own: boolean) {
+    const room = this.room;
+    const next = storedSnapshotSchema.parse(
+      message.type === 'drop'
+        ? room.drop(viewer, message.carryId, message.position, message.orientation)
+        : room.command(viewer, this.tableAction(message.action), message.expectedRevision)
+    );
     const completedCarryId = message.type === 'drop' ? message.carryId : undefined;
     const clearAll = message.type === 'command' && message.action.kind === 'reset';
     const cleaned = room.finishSetupCleanup(next, completedCarryId, clearAll);
     room.accept(cleaned ?? next, completedCarryId, clearAll);
+    this.scheduleBattleReveal();
+    this.deliver(this.frame(this.seat, own ? message.commandId : undefined));
+  }
+
+  private tableAction(action: TableMessage<'command'>['action']): RoomAction {
+    if (sessionOnly(action)) {
+      throw new GameRejection(
+        'The sandbox runs the table only. Drafting, seats, votes, catalogue requests and the result play out in Play/Journey.'
+      );
+    }
+    return internalAction(this.room.snapshot, action as RoomAction);
   }
 
   private cleanUpSetup() {
@@ -305,9 +308,13 @@ export class SandboxTable {
   }
 }
 
+/* The id a rejection answers, as the Worker's `messageId` picks it. */
 function requestId(message: Message) {
   if ('commandId' in message) {
     return message.commandId;
+  }
+  if ('requestId' in message) {
+    return message.requestId;
   }
   if ('carryId' in message) {
     return message.carryId;
@@ -318,8 +325,14 @@ function requestId(message: Message) {
 /** What the story shows: the live table and the transport the page is connected through. */
 export const sandbox: { table?: SandboxTable; transport?: ReturnType<typeof storyTransport> } = {};
 
-/** Starts a sandbox at a journey step (0-based) viewed as a seat, and the scripted transport around it. */
+/**
+ * Starts a sandbox at a journey step (0-based) viewed as a seat, and the scripted transport around it.
+ * Storybook runs a story's `beforeEach` again on every change of its arguments, so a page already connected keeps its transport; the panel moves the table itself.
+ */
 export function sandboxTransport(start: number, seat: string) {
+  if (sandbox.transport?.connected()) {
+    return sandbox.transport;
+  }
   sandbox.table?.dispose();
   const table = new SandboxTable(start, seat);
   table.open();
@@ -329,13 +342,15 @@ export function sandboxTransport(start: number, seat: string) {
     logEntries: () => sandbox.table!.log(),
     receive: (message) => sandbox.table!.receive(message as Message),
   });
-  table.deliver = (message) => transport.connected() && transport.deliver(message);
+  /* Answers leave after the message that caused them, as they do from a socket. */
+  table.deliver = (message) => queueMicrotask(() => transport.connected() && transport.deliver(message));
   const dispose = transport.dispose;
   sandbox.transport = {
     ...transport,
     dispose() {
       sandbox.table?.dispose();
       dispose();
+      sandbox.transport = undefined;
     },
   };
   return sandbox.transport;
