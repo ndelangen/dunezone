@@ -1,5 +1,7 @@
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { execFileSync } from 'node:child_process';
+import { mkdtempSync, readFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join, resolve } from 'node:path';
 
 import { build } from 'esbuild';
 import { describe, expect, test } from 'vitest';
@@ -137,6 +139,29 @@ describe('the hosted play closure', () => {
     expect(globToRegExp('scripts/verify-hosted-*').test('scripts/verify-hosted/decks.mjs')).toBe(false);
     expect(globToRegExp('**/*.test.*').test('workers/game/session.test.ts')).toBe(true);
     expect(globToRegExp('package.json').test('workers/game/package.json')).toBe(false);
+  });
+
+  test.each([
+    ['docs/deployment.md\nmedia/vector/icon/spice.svg\n', 'false'],
+    ['docs/deployment.md\nworkers/game/index.ts\n', 'true'],
+    ['', 'true'],
+  ])('the script writes the decision for %j to the job outputs: run=%s', (list, run) => {
+    const directory = mkdtempSync(join(tmpdir(), 'hosted-play-closure-'));
+    const env = {
+      ...process.env,
+      GITHUB_OUTPUT: join(directory, 'output'),
+      GITHUB_STEP_SUMMARY: join(directory, 'summary.md'),
+    };
+    const printed = execFileSync('bun', [resolve(root, 'scripts/hosted-play-closure.ts')], {
+      input: list,
+      env,
+      cwd: root,
+    });
+    expect(JSON.parse(printed.toString())).toMatchObject({ run: run === 'true' });
+    expect(readFileSync(env.GITHUB_OUTPUT, 'utf8')).toBe(`run=${run}\n`);
+    expect(readFileSync(env.GITHUB_STEP_SUMMARY, 'utf8')).toContain(
+      `### Hosted play shards ${run === 'true' ? 'run' : 'skipped'}`
+    );
   });
 
   test('the verify workflow lets the closure job gate both hosted play jobs', () => {

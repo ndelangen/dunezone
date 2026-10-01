@@ -422,14 +422,8 @@ jobs:
             shards_run "The changed files could not be read in full from the compare API, so the shards run."
             exit 0
           fi
-          decision="$(bun scripts/hosted-play-closure.ts < changed-files.txt)"
-          echo "$decision"
-          # Only a plain true or false reaches the output, so a malformed decision fails this job rather than skipping the shards.
-          run="$(jq -er .run <<< "$decision")"
-          case "$run" in
-            true | false) echo "run=$run" >> "$GITHUB_OUTPUT" ;;
-            *) echo "The decision named no run value: $decision" >&2; exit 1 ;;
-          esac
+          # The script writes run=true or run=false to the outputs itself; a script that fails writes nothing and fails this job.
+          bun scripts/hosted-play-closure.ts < changed-files.txt
 
   hosted_play:
     name: hosted_play (${{ matrix.shard }})
