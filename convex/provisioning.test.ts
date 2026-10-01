@@ -2,10 +2,13 @@
 
 import aggregateTest from '@convex-dev/aggregate/test';
 import { convexTest } from 'convex-test';
+import type { WithoutSystemFields } from 'convex/server';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { placeholderOwner } from '../scripts/lib/snapshot-policy';
 import { internal } from './_generated/api';
+import type { Doc } from './_generated/dataModel';
+import { identifiesSomeone } from './lib/provisioningContract';
 import schema from './schema';
 
 const modules = import.meta.glob('./**/*.ts');
@@ -143,19 +146,33 @@ describe('provisioning seed documents', () => {
 });
 
 describe('snapshot Rulebook draft seed', () => {
-  test('runs only where a snapshot load left the placeholder owner as the one account, so never on production', async () => {
-    const t = prepared();
-    const seed = () =>
-      t.mutation(internal.provisioning.seedSnapshotRulebookDraftsBatch, {
-        paginationOpts: { numItems: 10, cursor: null },
-      });
-    const refusal = "where a snapshot load left the placeholder owner as the deployment's one account";
+  const refusal = "where a snapshot load left the placeholder owner as the deployment's one account";
 
-    await t.run((ctx) => ctx.db.insert('users', { email: 'someone@prod.example' }));
-    await expect(seed()).rejects.toThrow(refusal);
+  async function deploymentWith(...accounts: WithoutSystemFields<Doc<'users'>>[]) {
+    const t = prepared();
     await t.run(async (ctx) => {
-      await ctx.db.insert('users', placeholderOwner.user());
+      for (const account of accounts) {
+        await ctx.db.insert('users', account);
+      }
     });
-    await expect(seed()).rejects.toThrow(refusal);
+    return t;
+  }
+
+  function seed(t: ReturnType<typeof prepared>) {
+    return t.mutation(internal.provisioning.seedSnapshotRulebookDraftsBatch, {
+      paginationOpts: { numItems: 10, cursor: null },
+    });
+  }
+
+  test('refuses a deployment whose one account identifies someone, so never runs on production', async () => {
+    const t = await deploymentWith({ email: 'someone@prod.example' });
+    await expect(seed(t)).rejects.toThrow(refusal);
+  });
+
+  test('refuses once someone signs in after the load, though the placeholder owner still sorts first', async () => {
+    const t = await deploymentWith(placeholderOwner.user(), { email: 'user-a@example.com' });
+    const first = await t.run((ctx) => ctx.db.query('users').first());
+    expect(first && identifiesSomeone(first)).toBe(false);
+    await expect(seed(t)).rejects.toThrow(refusal);
   });
 });
