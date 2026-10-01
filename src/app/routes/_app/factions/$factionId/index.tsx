@@ -49,8 +49,14 @@ import { TroopToken } from '@game/assets/faction/troop/Troop';
 import { TTS_COLOR_SWATCHES } from '@game/data/ttsColors';
 
 import styles from './index.module.css';
+import { PrototypeSwitcher, TroopPrototype, prototypeTroops } from './troops.prototype';
+import type { TroopVariant, TroopScenario } from './troops.prototype';
 
 export const Route = createFileRoute('/_app/factions/$factionId/')({
+  validateSearch: (search: Record<string, unknown>): { variant?: TroopVariant; scenario?: TroopScenario } => ({
+    variant: ['A', 'B', 'C'].includes(String(search.variant)) ? (search.variant as TroopVariant) : undefined,
+    scenario: ['saved', 'sample'].includes(String(search.scenario)) ? (search.scenario as TroopScenario) : undefined,
+  }),
   codeSplitGroupings: [['component', 'pendingComponent', 'errorComponent']],
   loader: async ({ params }) => await loadFaction(params.factionId),
   pendingComponent: FactionDetailPending,
@@ -151,6 +157,10 @@ function filesBadge({ status, captureStatus }: PublicAssetPublishingStatusProjec
 }
 
 function FactionDetailPage() {
+  const search = Route.useSearch();
+  const navigate = Route.useNavigate();
+  const variant = import.meta.env.DEV ? search.variant : undefined;
+  const scenario = search.scenario ?? 'saved';
   const { factionId } = Route.useParams();
   const loaderData = Route.useLoaderData();
   const factionSeed = loaderData;
@@ -173,6 +183,7 @@ function FactionDetailPage() {
 
   const data = faction.data;
   const planets = data.planet ?? [];
+  const troops = prototypeTroops(data.troops, scenario);
   const troopCount = data.troops.reduce((total, troop) => total + troop.count, 0);
   const files = filesBadge(assetPublishing);
   const complexity = effectiveComplexity(data.complexity);
@@ -330,43 +341,47 @@ function FactionDetailPage() {
                 </div>
               </Section>
 
-              <Section icon={<TopicIcon topic="troops" size={20} />} title="Troops">
-                <div className={styles.horizontalLane}>
-                  {data.troops.map((troop, index) => (
-                    <Surface
-                      as="article"
-                      padding="sm"
-                      className={styles.troopTile}
-                      key={`${troop.name}-${troop.image}-${index}`}
-                    >
-                      <Group wrap="nowrap" gap="md">
-                        <div className={styles.troopToken}>
-                          <TroopToken
-                            background={data.background}
-                            image={troop.image}
-                            hue={troop.hue}
-                            star={troop.star}
-                            striped={troop.striped}
-                          />
-                        </div>
-                        <Stack gap={4} miw={0} style={{ flex: '1 1 auto' }}>
-                          <Group gap="xs" wrap="nowrap" justify="space-between">
-                            <Text fw={700} lh={1.2}>
-                              {troop.name}
-                            </Text>
-                            <Badge variant="default" size="lg">
-                              ×{troop.count}
-                            </Badge>
-                          </Group>
-                          {troop.description ? (
-                            <FormattedTextSource source={troop.description} size="xs" tone="neutral" />
-                          ) : null}
-                        </Stack>
-                      </Group>
-                    </Surface>
-                  ))}
-                </div>
-              </Section>
+              {variant ? (
+                <TroopPrototype data={data} troops={troops} variant={variant} />
+              ) : (
+                <Section icon={<TopicIcon topic="troops" size={20} />} title="Troops">
+                  <div className={styles.horizontalLane}>
+                    {data.troops.map((troop, index) => (
+                      <Surface
+                        as="article"
+                        padding="sm"
+                        className={styles.troopTile}
+                        key={`${troop.name}-${troop.image}-${index}`}
+                      >
+                        <Group wrap="nowrap" gap="md">
+                          <div className={styles.troopToken}>
+                            <TroopToken
+                              background={data.background}
+                              image={troop.image}
+                              hue={troop.hue}
+                              star={troop.star}
+                              striped={troop.striped}
+                            />
+                          </div>
+                          <Stack gap={4} miw={0} style={{ flex: '1 1 auto' }}>
+                            <Group gap="xs" wrap="nowrap" justify="space-between">
+                              <Text fw={700} lh={1.2}>
+                                {troop.name}
+                              </Text>
+                              <Badge variant="default" size="lg">
+                                ×{troop.count}
+                              </Badge>
+                            </Group>
+                            {troop.description ? (
+                              <FormattedTextSource source={troop.description} size="xs" tone="neutral" />
+                            ) : null}
+                          </Stack>
+                        </Group>
+                      </Surface>
+                    ))}
+                  </div>
+                </Section>
+              )}
 
               <Section icon={<TopicIcon topic="advantages" size={20} />} title="Advantages">
                 {data.rules.advantages.length > 0 ? (
@@ -504,6 +519,19 @@ function FactionDetailPage() {
             </Card>
           </Stack>
         </Flex>
+        {variant ? (
+          <PrototypeSwitcher
+            variant={variant}
+            scenario={scenario}
+            troops={troops}
+            onVariant={(value) => {
+              void navigate({ search: { ...search, variant: value }, replace: true, resetScroll: false });
+            }}
+            onScenario={(value) => {
+              void navigate({ search: { ...search, scenario: value }, replace: true, resetScroll: false });
+            }}
+          />
+        ) : null}
       </PageLayout.Content>
     </PageLayout>
   );
