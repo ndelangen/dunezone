@@ -1,8 +1,8 @@
 /*
  * The files a pull request must touch for the hosted play flows to be able to observe the change (#1598).
- * The globs name the game and publisher Workers, the backend, the shared modules, the play pages and the app code they import, the launcher with its flows, and the tooling that builds or runs them.
- * `scripts/hosted-play-closure.test.ts` holds the list to the import graph: a file the play entry points import from outside these globs fails the unit job, so the list widens with the code rather than drifting from it.
- * What the flows consume without importing is listed by hand: the dependency patches, the Convex project file, the generators whose output the pages load, and the scripts and pages the launcher runs as subprocesses when it builds the publisher's assets.
+ * The globs name the game and publisher Workers, the backend, the shared modules, the play pages and the app code they import, the launcher with its flows, and the builds, generators and checks it runs as subprocesses with the configuration they read.
+ * `scripts/hosted-play-closure.test.ts` holds the list to the import graph: a file the play entry points or the launcher's subprocess inputs import from outside these globs fails the unit job, so the list widens with the code rather than drifting from it.
+ * What the flows consume without importing is listed by hand: the workflow and action files, the dependency manifest with its lockfile and patches, the Convex project file, the compose file, and the tracked files under `public` the pages load by URL (the generated output there is ignored by git and never appears in a diff).
  * `media` stays out: the flows play a synthetic catalogue built from the fixtures under `src/shared`, and the `generate_and_build` job checks the generators against the media on every pull request.
  */
 const HOSTED_PLAY_CLOSURE: readonly string[] = [
@@ -14,6 +14,7 @@ const HOSTED_PLAY_CLOSURE: readonly string[] = [
   'bunfig.toml',
   'tsconfig.json',
   'vite.config.ts',
+  'coverage-denominator.ts',
   'docker-compose.convex-local.yml',
   'patches/**',
   'convex.json',
@@ -28,6 +29,9 @@ const HOSTED_PLAY_CLOSURE: readonly string[] = [
   'scripts/lib/isolated-stack.ts',
   'scripts/lib/synthetic-accounts.ts',
   'scripts/node-executable.ts',
+  'scripts/lib/publisher-assets.ts',
+  'scripts/lib/reactCompiler.ts',
+  'scripts/generate.ts',
   'scripts/generate-*',
   'scripts/assemble-publisher-assets.ts',
   'scripts/verify-rulebook-html-runtime.ts',
@@ -49,7 +53,8 @@ const HOSTED_PLAY_CLOSURE: readonly string[] = [
   'src/game/assets/**',
   'src/game/data/**',
   'src/game/fixtures/**',
-  'public/font/**',
+  'src/game/rulebook/**',
+  'public/**',
 ];
 
 /** Files no hosted flow can observe wherever they sit: tests, stories, prose. */

@@ -395,7 +395,11 @@ jobs:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           persist-credentials: false
-      - uses: ./.github/actions/setup
+      # The script imports nothing from node_modules, so the job installs Bun alone and the shards wait for no dependency install.
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: package.json
       - name: Decide from the pull request's changed files
         id: decide
         env:
@@ -416,8 +420,8 @@ jobs:
           fi
           # Three dots: the files changed since the merge base, so main's own commits do not count.
           # A renamed file counts under both its names, so a file moved out of the closure still reaches.
-          # The API lists at most 300 files, so a list that long may be cut short and is not trusted.
-          if ! gh api "repos/$REPO/compare/$BASE...$HEAD?per_page=100" --paginate --jq '.files[] | .filename, (.previous_filename // empty)' > changed-files.txt \
+          # One response carries the files of the whole comparison (paging splits only its commits) and lists at most 300, so a list that long may be cut short and is not trusted.
+          if ! gh api "repos/$REPO/compare/$BASE...$HEAD" --jq '.files[] | .filename, (.previous_filename // empty)' > changed-files.txt \
             || [ "$(grep -c . changed-files.txt)" -ge 300 ]; then
             shards_run "The changed files could not be read in full from the compare API, so the shards run."
             exit 0

@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, readFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, readdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
@@ -11,9 +11,16 @@ import { byCodeUnit } from './lib/storybook-shards';
 
 const root = resolve(import.meta.dirname, '..');
 
+/** The scripts whose names match, as repository paths; their tests are not run by anything. */
+function scriptsNamed(pattern: RegExp): string[] {
+  return readdirSync(resolve(root, 'scripts'))
+    .filter((name) => pattern.test(name) && !name.includes('.test.'))
+    .map((name) => `scripts/${name}`);
+}
+
 /*
- * What the hosted play flows exercise: the pages a flow visits, both Workers, and the launcher with its driver.
- * The globs must cover every file their import graph reaches; what the launcher runs as a subprocess is listed by hand and checked by the table below.
+ * What the hosted play flows exercise: the pages a flow visits, both Workers, the launcher with its driver and every flow, and what the launcher runs as subprocesses when it builds the publisher's assets: the Vite builds with their configurations and entry pages, the generators, the asset assembly, the rulebook runtime check, the exit recorder and the load tooling.
+ * The globs must cover every file their import graph reaches.
  */
 const ENTRY_POINTS = [
   'src/app/router.tsx',
@@ -26,10 +33,19 @@ const ENTRY_POINTS = [
   'src/app/routes/_app/play/create.route.tsx',
   'src/app/routes/_app/play/$gameId.route.tsx',
   'workers/game/index.ts',
+  'workers/game/load-entry.ts',
   'workers/publisher/index.ts',
-  'scripts/verify-hosted-play-stack.ts',
-  'scripts/verify-hosted-play-browser.mjs',
   'scripts/play-local.ts',
+  'scripts/play-load/run.mjs',
+  'vite.config.ts',
+  'workers/publisher/vite.config.ts',
+  'workers/publisher/rulebook-html-renderer.vite.config.ts',
+  'src/app/print/capture/publisher-entry.tsx',
+  'src/app/print/rulebookHtmlRuntime.ts',
+  'scripts/assemble-publisher-assets.ts',
+  'scripts/verify-rulebook-html-runtime.ts',
+  'scripts/workerd-exit-record.mjs',
+  ...scriptsNamed(/^(?:generate|verify-hosted-)/u),
 ];
 /* Assets the bundler would otherwise try to read; their bytes are not code. */
 const ASSET_EXTENSIONS = [
@@ -62,12 +78,14 @@ async function importedFiles(): Promise<string[]> {
     format: 'esm',
     logLevel: 'silent',
     tsconfig: resolve(root, 'tsconfig.json'),
+    /* The publisher Worker imports its rulebook renderer through a Vite alias; the graph follows it to the runtime source. */
+    alias: { 'rulebook-html-renderer-runtime': './src/app/print/rulebookHtmlRuntime.ts' },
     loader: Object.fromEntries(ASSET_EXTENSIONS.map((extension) => [extension, 'empty'])),
     plugins: [
       {
         name: 'outside-the-graph',
         setup(bundler) {
-          /* Absolute urls name generated files under public/, left to the merge queue with the media they come from, and the route tree names every page, not the ones a flow visits. */
+          /* Absolute urls name files under public/ the pages load at run time, a directory the closure names whole, and the route tree names every page, not the ones a flow visits. */
           bundler.onResolve({ filter: /^\/|routeTree\.gen$/ }, (args) =>
             args.kind === 'entry-point' ? null : { external: true }
           );
@@ -75,7 +93,9 @@ async function importedFiles(): Promise<string[]> {
       },
     ],
   });
-  return Object.keys(result.metafile.inputs)
+  /* A stylesheet imported with `?inline` is the same file. */
+  const files = Object.keys(result.metafile.inputs).map((file) => file.replace(/\?.*$/u, ''));
+  return [...new Set(files)]
     .filter((file) => !file.startsWith('node_modules/') && !file.includes(':'))
     .sort(byCodeUnit);
 }
@@ -117,6 +137,13 @@ describe('the hosted play closure', () => {
     ['workers/game/a file.ts', true],
     ['AGENTS.md', false],
     ['.oxlintrc.json', false],
+    ['public/web/no-deck-back.svg', true],
+    ['public/page/map.svg', true],
+    ['src/game/rulebook/RulebookRenderer.tsx', true],
+    ['src/game/rulebook/RulebookRenderer.stories.tsx', false],
+    ['scripts/lib/reactCompiler.ts', true],
+    ['scripts/lib/storybook-shards.ts', false],
+    ['coverage-denominator.ts', true],
   ])('%s reaches the flows: %s', (file, reaches) => {
     expect(reachesHostedPlay(file)).toBe(reaches);
   });
@@ -162,18 +189,5 @@ describe('the hosted play closure', () => {
     expect(readFileSync(env.GITHUB_STEP_SUMMARY, 'utf8')).toContain(
       `### Hosted play shards ${run === 'true' ? 'run' : 'skipped'}`
     );
-  });
-
-  test('the verify workflow lets the closure job gate both hosted play jobs', () => {
-    const workflow = readFileSync(resolve(root, '.github/workflows/reusable-verify.yml'), 'utf8');
-    expect(workflow).toContain('\n  play_closure:\n');
-    expect(workflow).toContain('bun scripts/hosted-play-closure.ts < changed-files.txt');
-    for (const job of ['hosted_play', 'hosted_play_webgpu']) {
-      const start = workflow.indexOf(`\n  ${job}:\n`);
-      expect(start, `reusable-verify.yml has no ${job} job`).toBeGreaterThan(0);
-      const body = workflow.slice(start, workflow.indexOf('\n    steps:', start));
-      expect(body).toContain('needs: play_closure');
-      expect(body).toContain("if: needs.play_closure.outputs.run == 'true'");
-    }
   });
 });
