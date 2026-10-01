@@ -42,27 +42,6 @@ function isReservedWorkerPath(pathname: string): boolean {
   );
 }
 
-/** The real-game pages stay out of search while Play is an unlisted beta (#1094); the robots meta they render needs JavaScript, this header does not. */
-function isUnlistedPlayPath(pathname: string): boolean {
-  return pathname === '/play' || pathname.startsWith('/play/');
-}
-
-async function unlistedPlayPage(request: Request, env: Env): Promise<Response> {
-  const page = await env.ASSETS.fetch(request);
-  const response = new Response(page.body, page);
-  response.headers.set('X-Robots-Tag', 'noindex');
-  return response;
-}
-
-/* Crawling stays allowed everywhere, including /play: a crawler that may not fetch a page never sees its noindex. */
-const ROBOTS_TXT = 'User-agent: *\nAllow: /\n';
-
-function robotsTxt(): Response {
-  return new Response(ROBOTS_TXT, {
-    headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'public, max-age=3600' },
-  });
-}
-
 function reservedNotFound(): Response {
   return Response.json({ error: 'Not found' }, { status: 404, headers: { 'Cache-Control': 'no-store' } });
 }
@@ -156,12 +135,6 @@ const publisherWorker = {
     }
     if (isReservedWorkerPath(pathname)) {
       return reservedNotFound();
-    }
-    if (pathname === '/robots.txt') {
-      return robotsTxt();
-    }
-    if (isUnlistedPlayPath(pathname)) {
-      return unlistedPlayPage(request, env);
     }
     return env.ASSETS.fetch(request);
   },

@@ -179,6 +179,8 @@ export function isRendererManifestAsset(relativePath: string): boolean {
     normalizedPath !== 'dune-zone-favicon.svg' &&
     // The cache policy for the hashed bundle changes what a browser keeps, never what a capture renders.
     normalizedPath !== '_headers' &&
+    // Crawler policy for the site; capture never reads it.
+    normalizedPath !== 'robots.txt' &&
     !normalizedPath.startsWith('__storybook/') &&
     !normalizedPath.startsWith('public/') &&
     // Generated image and vector output is identified by ingredients, never by bytes.

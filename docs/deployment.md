@@ -84,8 +84,6 @@ are Worker-first:
 | `/user-images` and `/user-images/*` | Delivery of rehosted user images from the user-image bucket |
 | `/__user-images` and `/__user-images/*` | The ingest endpoint the Convex rehost action posts a source URL to |
 | `/__play` and `/__play/*` | Canonical-host-only forwarding to the private game Worker |
-| `/play` and `/play/*` | The SPA document from Static Assets with `X-Robots-Tag: noindex`, while Play is an unlisted beta (#1094) |
-| `/robots.txt` | A plain-text robots file that allows crawling, so crawlers can read the `/play` noindex |
 | Everything else, including `/factions/*` | Static asset lookup, then SPA fallback |
 
 Faction sheets use `/published/factions/<Convex faction id>/sheet.pdf`. Rulebook

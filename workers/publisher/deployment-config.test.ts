@@ -111,9 +111,6 @@ describe('scheduled production deployment shape', () => {
       '/__user-images/*',
       '/__play',
       '/__play/*',
-      '/play',
-      '/play/*',
-      '/robots.txt',
     ]);
   });
 });

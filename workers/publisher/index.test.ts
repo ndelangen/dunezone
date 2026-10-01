@@ -207,38 +207,6 @@ describe('publisher Worker Publication flow', () => {
     expect(currentEnv.ASSETS.fetch).not.toHaveBeenCalled();
   });
 
-  test('serves the play pages from Static Assets marked noindex', async () => {
-    for (const path of ['/play', '/play/create', '/play/some-game-id']) {
-      const currentEnv = publisherEnv();
-      const request = new Request(`https://dune.zone${path}`);
-      const response = await publisherWorker.fetch(request, currentEnv, {
-        waitUntil: vi.fn(),
-      } as unknown as ExecutionContext);
-      expect(currentEnv.ASSETS.fetch).toHaveBeenCalledWith(request);
-      expect(response.status).toBe(200);
-      expect(response.headers.get('X-Robots-Tag')).toBe('noindex');
-      await expect(response.text()).resolves.toBe('<html>spa shell</html>');
-    }
-  });
-
-  test('leaves other SPA pages indexable', async () => {
-    const currentEnv = publisherEnv();
-    const response = await publisherWorker.fetch(new Request('https://dune.zone/playbook'), currentEnv, {
-      waitUntil: vi.fn(),
-    } as unknown as ExecutionContext);
-    expect(response.headers.get('X-Robots-Tag')).toBeNull();
-  });
-
-  test('answers robots.txt with a plain-text file instead of the SPA shell', async () => {
-    const currentEnv = publisherEnv();
-    const response = await publisherWorker.fetch(new Request('https://dune.zone/robots.txt'), currentEnv, {
-      waitUntil: vi.fn(),
-    } as unknown as ExecutionContext);
-    expect(response.headers.get('Content-Type')).toBe('text/plain; charset=utf-8');
-    await expect(response.text()).resolves.toBe('User-agent: *\nAllow: /\n');
-    expect(currentEnv.ASSETS.fetch).not.toHaveBeenCalled();
-  });
-
   test('health reports one current Renderer identity and deployment SHA', async () => {
     const response = await publisherWorker.fetch(
       new Request('https://publisher.example.com/__asset-publisher/health'),
