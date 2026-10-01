@@ -189,6 +189,37 @@ export const PieceNames = meta.story({
   },
 });
 
+/* The wheel over the board tilts the camera toward top-down and back; Ctrl with the wheel stays the browser's zoom. */
+export const WheelTiltsTheCamera = meta.story({
+  beforeEach: install(() => productTransport()),
+  play: async ({ canvasElement }) => {
+    const { shell, document } = await tablePage(canvasElement);
+    const canvas = shell.querySelector('canvas')!;
+    /* The deck's tag follows the camera, so its placement shows where the camera stands. */
+    const deckPlacement = () =>
+      document.querySelector('[data-piece-id="treachery-deck"]')?.closest('div')?.parentElement?.style.transform;
+    const turnWheel = (deltaY: number, ctrlKey = false) => {
+      const event = new WheelEvent('wheel', { deltaY, ctrlKey, bubbles: true, cancelable: true });
+      canvas.dispatchEvent(event);
+      return event.defaultPrevented;
+    };
+    const approved = deckPlacement();
+    expect(approved).toBeTruthy();
+
+    expect(turnWheel(600, true)).toBe(false);
+    expect(turnWheel(600)).toBe(true);
+    await waitFor(() => expect(deckPlacement()).not.toBe(approved));
+    const topDown = deckPlacement();
+    /* Past either end the tilt holds. */
+    turnWheel(600);
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect(deckPlacement()).toBe(topDown);
+
+    turnWheel(-600);
+    await waitFor(() => expect(deckPlacement()).toBe(approved));
+  },
+});
+
 /**
  * On a short window the dock keeps its floor by growing up over the scene, to above the header's lower edge.
  * The header still paints above it there, so every control in it takes the pointer at its top, middle and bottom.
