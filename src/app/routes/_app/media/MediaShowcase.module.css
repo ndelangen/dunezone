@@ -1,0 +1,66 @@
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-lg);
+}
+.artwork {
+  display: flex;
+  align-items: center;
+  width: 20rem;
+  height: 13rem;
+}
+.cardLink {
+  position: relative;
+  display: block;
+  flex: 0 0 9rem;
+  min-width: 0;
+  height: 12.63rem;
+  transform: rotate(-7deg);
+}
+.cardFrame {
+  width: 900px;
+  height: 1263px;
+  transform: scale(0.16);
+  transform-origin: top left;
+  animation: reveal 400ms ease-out;
+}
+.leaderLink {
+  display: block;
+  flex: 0 0 11rem;
+  width: 11rem;
+  height: 11rem;
+  transform: rotate(8deg);
+}
+.leaderFrame {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  overflow: hidden;
+  animation: reveal 400ms ease-out;
+}
+@keyframes reveal {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cardFrame,
+  .leaderFrame {
+    animation: none;
+  }
+}
+@container page-frame (width < 30rem) {
+  .header {
+    justify-content: center;
+  }
+}
+
+.leaderFrame > div > svg {
+  width: 100%;
+  height: 100%;
+}

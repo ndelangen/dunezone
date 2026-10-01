@@ -1,0 +1,59 @@
+.grid,
+.decalGrid,
+.leaderGrid {
+  display: grid;
+  gap: var(--space-sm);
+}
+.grid {
+  grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
+}
+.decalGrid {
+  grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
+}
+.leaderGrid {
+  grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr));
+}
+.previewLink {
+  display: block;
+  color: inherit;
+}
+.preview {
+  display: block;
+  width: 100%;
+  height: 9rem;
+  object-fit: contain;
+}
+.portrait {
+  display: block;
+  width: 7rem;
+  height: 7rem;
+  object-fit: cover;
+  border-radius: 50%;
+}
+.largePreview {
+  display: block;
+  width: 100%;
+  height: 20rem;
+  object-fit: contain;
+}
+.card {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 12rem;
+}
+
+.libraryGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-lg);
+}
+.libraryArt {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 9rem;
+}
+@container page-frame (width < 48rem) {
+  .libraryGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

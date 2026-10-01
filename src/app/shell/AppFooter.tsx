@@ -1,6 +1,6 @@
 import { Tooltip } from '@mantine/core';
 import { Link } from '@tanstack/react-router';
-import { ShieldCheck } from 'lucide-react';
+import { Images, ShieldCheck } from 'lucide-react';
 import { useId } from 'react';
 import type { SVGProps } from 'react';
 import { FaRedditAlien } from 'react-icons/fa6';
@@ -97,6 +97,13 @@ const SITE_BRAND = 'var(--color-brand)';
 /* `to` marks a routed page; `href` is a destination outside the router: the static Storybook
    build, or an external site (opened in a new tab). */
 const footerLinks = [
+  {
+    to: '/media',
+    icon: Images,
+    size: LINE_GLYPH,
+    tint: '#5EEAD4',
+    label: 'Media catalogue',
+  },
   {
     href: 'https://storybook.dune.zone',
     icon: StorybookMark,
