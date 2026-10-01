@@ -1,12 +1,19 @@
 import { OrbitControls } from '@react-three/drei/webgpu';
 import { useFrame, useThree } from '@react-three/fiber/webgpu';
 import type { Vector3Tuple } from '@shared/play/model';
-import { useLayoutEffect, useRef } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { ComponentRef } from 'react';
 import { Fog, Vector3 } from 'three';
 import type { Camera } from 'three';
 
-import { cameraFogRange, cameraPoseFor, cameraViewTransitionProgress, mapViewTopLimitForViewport } from './playView';
+import {
+  CAMERA_TOP_DOWN_POLAR_ANGLE,
+  cameraFogRange,
+  cameraPoseFor,
+  cameraTiltAfterWheel,
+  cameraViewTransitionProgress,
+  mapViewTopLimitForViewport,
+} from './playView';
 import type { CameraViewCommand } from './playView';
 
 const CAMERA_POSE_EPSILON_SQUARED = 0.000001;
@@ -48,14 +55,16 @@ function cameraDestinationFor(
   command: CameraViewCommand,
   aspectRatio: number,
   mapFramingPoints: readonly Vector3Tuple[],
-  mapTopLimit: number
+  mapTopLimit: number,
+  tilt: number
 ): CameraDestination {
-  const pose = cameraPoseFor(command.view, aspectRatio, mapFramingPoints, mapTopLimit);
+  const pose = cameraPoseFor(command.view, aspectRatio, mapFramingPoints, mapTopLimit, tilt);
   return {
     commandKey: `${command.view}:${command.revision}`,
     signature: [
       command.view,
       command.revision,
+      tilt.toFixed(4),
       pose.position[1].toFixed(3),
       pose.position[2].toFixed(3),
       pose.target[0].toFixed(3),
@@ -114,6 +123,12 @@ function applyCameraDestination(
   const atDestination =
     camera.position.distanceToSquared(destination.toPosition) <= CAMERA_POSE_EPSILON_SQUARED &&
     controls.target.distanceToSquared(destination.toTarget) <= CAMERA_POSE_EPSILON_SQUARED;
+  const inFlight = playback.transition;
+  if (inFlight && inFlight.commandKey === destination.commandKey && !atDestination) {
+    /* A tilt or resize while the camera is still moving to this view retargets the move instead of cutting it short. */
+    playback.transition = { ...inFlight, ...destination };
+    return true;
+  }
   const resizedCurrentView = playback.appliedCommandKey === destination.commandKey;
   const snapToDestination = playback.appliedCommand === null || atDestination || resizedCurrentView;
   if (snapToDestination) {
@@ -130,6 +145,31 @@ function applyCameraDestination(
   return true;
 }
 
+/** The player's tilt, from the approved angle toward top-down, steered by the wheel over the board while the camera is free. */
+function useWheelTilt(enabled: boolean): number {
+  const [tilt, setTilt] = useState(0);
+  /* Only the board itself listens, so a scrollable panel or label over the table keeps its own wheel. */
+  const surface = useThree((state) => state.renderer.domElement);
+
+  useEffect(() => {
+    if (!enabled) {
+      return;
+    }
+    const onWheel = (event: WheelEvent) => {
+      /* Ctrl with the wheel is the browser's zoom and a trackpad's pinch; that stays theirs. */
+      if (event.ctrlKey || event.deltaY === 0) {
+        return;
+      }
+      event.preventDefault();
+      setTilt((current) => cameraTiltAfterWheel(current, event.deltaY, event.deltaMode));
+    };
+    surface.addEventListener('wheel', onWheel, { passive: false });
+    return () => surface.removeEventListener('wheel', onWheel);
+  }, [enabled, surface]);
+
+  return tilt;
+}
+
 type SeatedCameraProps = {
   command: CameraViewCommand;
   enabled: boolean;
@@ -140,6 +180,7 @@ function useSeatedCameraTransition({ command, enabled, mapFramingPoints }: Seate
   const controlsRef = useRef<SeatedOrbitControls>(null);
   const playback = useRef<CameraPlayback>({ appliedCommand: null, appliedCommandKey: null, transition: null });
   const { camera, invalidate, renderer, size } = useThree();
+  const tilt = useWheelTilt(enabled);
   const aspectRatio = size.width / Math.max(1, size.height);
 
   useFrame(() => advanceCameraTransition(camera, controlsRef.current, playback.current, invalidate));
@@ -156,7 +197,8 @@ function useSeatedCameraTransition({ command, enabled, mapFramingPoints }: Seate
       { view: command.view, revision: command.revision },
       aspectRatio,
       mapFramingPoints,
-      mapTopLimit
+      mapTopLimit,
+      tilt
     );
     if (!enabled) {
       playback.current.transition = null;
@@ -179,6 +221,7 @@ function useSeatedCameraTransition({ command, enabled, mapFramingPoints }: Seate
     invalidate,
     mapFramingPoints,
     size.height,
+    tilt,
   ]);
 
   return controlsRef;
@@ -198,7 +241,7 @@ export function CameraControls(props: SeatedCameraProps) {
       enableZoom={false}
       minDistance={8.5}
       maxDistance={96}
-      minPolarAngle={0.72}
+      minPolarAngle={CAMERA_TOP_DOWN_POLAR_ANGLE}
       maxPolarAngle={1.08}
       minAzimuthAngle={-0.72}
       maxAzimuthAngle={0.72}
