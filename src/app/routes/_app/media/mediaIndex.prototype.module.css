@@ -108,7 +108,7 @@
   top: 0;
   transform: rotate(-16deg);
 }
-.portraits .specimen {
+.portraits .specimen:nth-child(n) {
   max-width: 5.5rem;
   height: auto;
   aspect-ratio: 1;

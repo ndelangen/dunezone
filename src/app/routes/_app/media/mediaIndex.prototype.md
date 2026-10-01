@@ -21,4 +21,6 @@ Round 2 keeps that direction:
 
 All three use tighter gaps, less copy and varied image sizes. Leaders remain circular. The index has no search toolbar.
 The floating controls and left/right arrow keys switch variants and update the URL. Text fields retain their arrow keys.
-The second-round choice is pending. Do not promote these prototypes or the switcher into production.
+The user chose A in round 2 and required original image proportions during scaling and rotation.
+Leader masks must stay circular. Promote the tight wall composition after correcting the aspect-ratio
+cascade; retain the comparison and switcher only on this throwaway branch.

@@ -54,7 +54,13 @@ function destination(gallery: Gallery) {
 
 function Artwork({ entry }: { entry: MediaEntry }) {
   return entry.value.startsWith('/vector/') ? (
-    <svg viewBox="0 0 100 100" className={styles.art} role="img" aria-label={entry.label}>
+    <svg
+      viewBox="0 0 100 100"
+      preserveAspectRatio="xMidYMid meet"
+      className={styles.art}
+      role="img"
+      aria-label={entry.label}
+    >
       <use href={`${entry.value}#root`} fill="currentColor" />
     </svg>
   ) : (
