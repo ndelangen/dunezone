@@ -170,7 +170,15 @@ refuses to start when that output is missing; the OBJ pieces are always regenera
 
 The `hosted_play` CI job runs `bun --no-env-file scripts/verify-hosted-play-stack.ts --skip-generate`
 in three shards, each on its own runner with its own stack, and `ci_ok` requires all three through
-`verify`. Each flow in [`scripts/verify-hosted-flows.ts`](../scripts/verify-hosted-flows.ts) names
+`verify`. On a pull request the shards run only when a changed file can reach the flows: the
+`play_closure` job reads the diff since the merge base and matches it against the closure in
+[`scripts/lib/hosted-play-closure.ts`](../scripts/lib/hosted-play-closure.ts), whose unit test holds
+the list to the import graph of the play pages, both Workers, the launcher and the builds it runs.
+Tests, stories and prose never count. A merge queue run, any other event, and a diff the job cannot
+read all run the shards, and the job's own failure fails the run. No workflow runs the shards after a
+merge, so the merge queue, enabled in `main`'s ruleset, is the one place a change outside the closure
+meets them before it lands; while the queue is off, such a change is caught by the next pull request
+that reaches the flows. Each flow in [`scripts/verify-hosted-flows.ts`](../scripts/verify-hosted-flows.ts) names
 its shard, and each shard runs `--shard <name>`: `regular` runs the regular flow, `catalogue`
 public-controls and battles, and `protocol` private-banks, decks and results. The `regular` and
 `catalogue` shards add `--browser-only`; in the `protocol` shard the protocol verifier runs first on
