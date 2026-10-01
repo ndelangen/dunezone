@@ -271,7 +271,7 @@ function PlayerBar({ client, table, readiness }: BarProps) {
   );
 }
 
-/* A seated player drafting with others and no seat request to answer: the seat column already says who holds which seat. */
+/* A seated player drafting with others and no seat request to answer: the seat column shows who is at the table, and the seat number only matters once factions are dealt. */
 function draftingIdle(table: TableProjection): boolean {
   const controls = table.snapshot.controls ?? emptyPublicControls();
   return table.snapshot.stage === 'drafting' && controls.seatRequests.length === 0 && controls.seats.length > 1;

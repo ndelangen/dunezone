@@ -72,11 +72,11 @@
   list-style: none;
 }
 
-/* Too narrow for three columns (a phone), the seat column leads and the pooled zones share a row under it (#1633). */
-@container drafting-overlay (width < 36rem) {
+/* Below the 48rem step the two 15rem zones leave the seat column less than its 15.8rem row, so the seat column leads and the pooled zones share a row under it (#1633); each part scrolls so a large table cannot starve the zones. */
+@container drafting-overlay (width < 48rem) {
   .layout {
     grid-template-columns: 1fr 1fr;
-    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-rows: minmax(0, fit-content(60%)) minmax(0, 1fr);
     grid-template-areas:
       "ledger ledger"
       "banned drafted";
