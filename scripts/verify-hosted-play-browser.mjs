@@ -1874,21 +1874,33 @@ async function verifyRegular() {
   /* Probe only (#1592): the traced job flips this, and the trace runs from before the second tab opens until its sockets close. */
   const traceSignOut = false;
   if (traceSignOut) {
-    await browser.startTracing(undefined, {
-      categories: [
-        '-*',
-        'toplevel',
-        'devtools.timeline',
-        'disabled-by-default-devtools.timeline',
-        'disabled-by-default-devtools.timeline.frame',
-        'v8.execute',
-        'mojom',
-        'blink.user_timing',
-      ],
+    /* A ring buffer keeps the newest events, so the trace reaches the close however long it takes; Playwright's own tracing stops when its buffer fills. */
+    const tracing = await browser.newBrowserCDPSession();
+    await tracing.send('Tracing.start', {
+      transferMode: 'ReturnAsStream',
+      traceConfig: {
+        recordMode: 'recordContinuously',
+        traceBufferSizeInKb: 300 * 1024,
+        includedCategories: ['toplevel', 'devtools.timeline'],
+      },
     });
     stopSignOutTrace = async () => {
       stopSignOutTrace = null;
-      await writeFile(new URL('signout-trace.json', directory), await browser.stopTracing());
+      const [{ stream }] = await Promise.all([
+        new Promise((resolve) => tracing.once('Tracing.tracingComplete', resolve)),
+        tracing.send('Tracing.end'),
+      ]);
+      const chunks = [];
+      for (;;) {
+        const { data, eof, base64Encoded } = await tracing.send('IO.read', { handle: stream, size: 1 << 20 });
+        chunks.push(Buffer.from(data, base64Encoded ? 'base64' : 'utf8'));
+        if (eof) {
+          break;
+        }
+      }
+      await tracing.send('IO.close', { handle: stream });
+      await tracing.detach();
+      await writeFile(new URL('signout-trace.json', directory), Buffer.concat(chunks));
     };
   }
   const aTab = await peer('player-a-tab', a.context);
