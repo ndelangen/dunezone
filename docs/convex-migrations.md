@@ -83,6 +83,16 @@ and reruns `dev-strict`. See
 [`Disposable local app development`](./README.md#disposable-local-app-development) for what the
 snapshot holds, where it comes from and when the download is deleted.
 
+The snapshot carries no migration state, so each load, local or the cloud dev rebuild, replays
+every widen migration in the manifest over rows production has already migrated. Every listed
+migration therefore has to be safe to replay. A verify reads the shapes it accepts from the
+current schema rather than listing the ones that existed when it was written: a list went stale
+when decks gained the preset cardback, and the replay then stopped every later migration, the
+aggregate rebuilds among them. A backfill whose second pass would change a row, such as one that
+multiplies a stored value, gets a no-op body once production has run it, keeping its id.
+`convex/migrations.snapshotReplay.test.ts` replays the manifest over rows in their migrated
+shape.
+
 - `bun run convex:dev` runs `bun run migrations:dev-strict` before starting the configured Convex
   deployment's watcher. It is reserved for deliberate integration work because a feature branch can
   replace the shared cloud dev functions and schema.
@@ -106,6 +116,8 @@ On failure, the command prints the required ids, latest statuses, and the exact 
 - [ ] Widen phase implemented and deployed first
 - [ ] Compatibility reads and writes cover the migration window
 - [ ] Backfill or retirement work is bounded and idempotent
+- [ ] Each listed migration replays cleanly over migrated rows, because every snapshot load reruns
+      the whole manifest
 - [ ] Verification exists and proves the target invariants
 - [ ] Narrow phase is separate and waits for verified completion
 - [ ] Temporary fallback and migration code has a later cleanup plan

@@ -25,7 +25,7 @@ const composition = {
   background: {},
 };
 
-/* A post-train decal whose frozen retune factor is not 1, at the scale production stores after the retune. */
+/* A decal the vector-train retune scaled by 1.5625 in production, stored at its retuned scale. */
 const retunedDecal = {
   id: '/vector/decal/carryalls.svg',
   muted: false,
