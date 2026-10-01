@@ -271,6 +271,55 @@ function filesBadge({ status, captureStatus }: PublicAssetPublishingStatusProjec
   }
 }
 
+function FactionTroops({
+  troops,
+  background,
+}: {
+  troops: FactionData['troops'];
+  background: FactionData['background'];
+}) {
+  return (
+    <Section icon={<TopicIcon topic="troops" size={20} />} title="Troops">
+      <Group gap="sm" align="flex-start">
+        {troops.map((troop, index) => (
+          <FactionTroop key={troop.troopId ?? index} troop={troop} background={background} />
+        ))}
+      </Group>
+    </Section>
+  );
+}
+
+function FactionAdvantages({ advantages }: { advantages: FactionData['rules']['advantages'] }) {
+  return (
+    <Section icon={<TopicIcon topic="advantages" size={20} />} title="Advantages">
+      {advantages.length > 0 ? (
+        <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
+          {advantages.map((advantage, index) => (
+            <Card
+              key={`${advantage.title ?? 'advantage'}-${advantage.text}-${index}`}
+              title={advantage.title ?? `Advantage ${index + 1}`}
+            >
+              <Stack gap="sm">
+                <FormattedTextSource source={advantage.text} size="sm" />
+                {advantage.karama ? (
+                  <Group gap="xs" wrap="nowrap" align="flex-start">
+                    <TopicIcon topic="karama" size={16} />
+                    <FormattedTextSource source={advantage.karama} size="sm" tone="neutral" />
+                  </Group>
+                ) : null}
+              </Stack>
+            </Card>
+          ))}
+        </SimpleGrid>
+      ) : (
+        <Surface padding="lg">
+          <Text c="dimmed">No faction advantages have been added yet.</Text>
+        </Surface>
+      )}
+    </Section>
+  );
+}
+
 function FactionDetailPage() {
   const { factionId } = Route.useParams();
   const loaderData = Route.useLoaderData();
@@ -451,40 +500,9 @@ function FactionDetailPage() {
                 </div>
               </Section>
 
-              <Section icon={<TopicIcon topic="troops" size={20} />} title="Troops">
-                <Group gap="sm" align="flex-start">
-                  {data.troops.map((troop, index) => (
-                    <FactionTroop key={troop.troopId ?? index} troop={troop} background={data.background} />
-                  ))}
-                </Group>
-              </Section>
+              <FactionTroops troops={data.troops} background={data.background} />
 
-              <Section icon={<TopicIcon topic="advantages" size={20} />} title="Advantages">
-                {data.rules.advantages.length > 0 ? (
-                  <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
-                    {data.rules.advantages.map((advantage, index) => (
-                      <Card
-                        key={`${advantage.title ?? 'advantage'}-${advantage.text}-${index}`}
-                        title={advantage.title ?? `Advantage ${index + 1}`}
-                      >
-                        <Stack gap="sm">
-                          <FormattedTextSource source={advantage.text} size="sm" />
-                          {advantage.karama ? (
-                            <Group gap="xs" wrap="nowrap" align="flex-start">
-                              <TopicIcon topic="karama" size={16} />
-                              <FormattedTextSource source={advantage.karama} size="sm" tone="neutral" />
-                            </Group>
-                          ) : null}
-                        </Stack>
-                      </Card>
-                    ))}
-                  </SimpleGrid>
-                ) : (
-                  <Surface padding="lg">
-                    <Text c="dimmed">No faction advantages have been added yet.</Text>
-                  </Surface>
-                )}
-              </Section>
+              <FactionAdvantages advantages={data.rules.advantages} />
 
               <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
                 <Card icon={<TopicIcon topic="alliance" size={20} />} title="Alliance">

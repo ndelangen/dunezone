@@ -122,11 +122,11 @@ export const DetailWithTroopStrengthsMobile = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     const troops = await page.findByRole('region', { name: 'Troops' });
-    const viewport = canvasElement.ownerDocument.documentElement.clientWidth;
+    const sectionBounds = troops.getBoundingClientRect();
     for (const card of within(troops).getAllByRole('article')) {
       const bounds = card.getBoundingClientRect();
-      expect(bounds.left).toBeGreaterThanOrEqual(0);
-      expect(bounds.right).toBeLessThanOrEqual(viewport);
+      expect(bounds.left).toBeGreaterThanOrEqual(sectionBounds.left);
+      expect(bounds.right).toBeLessThanOrEqual(sectionBounds.right);
       expect(card.scrollWidth).toBeLessThanOrEqual(card.clientWidth);
     }
   },
