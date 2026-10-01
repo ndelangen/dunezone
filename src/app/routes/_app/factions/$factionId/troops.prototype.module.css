@@ -114,3 +114,9 @@
     gap: var(--space-sm);
   }
 }
+
+.tokenCount {
+  display: flex;
+  align-items: center;
+  margin-inline-start: auto;
+}

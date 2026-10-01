@@ -158,7 +158,6 @@ function PairedFaces({ data, troop }: { data: FactionData; troop: Troop }) {
             </div>
           ) : null}
           <div className={styles.cardFace}>
-            {face.side === 'front' ? <Count count={troop.count} /> : null}
             <Art data={data} face={face} />
             <div className={styles.faceContent}>
               <Group gap={6} wrap="nowrap">
@@ -174,6 +173,9 @@ function PairedFaces({ data, troop }: { data: FactionData; troop: Troop }) {
           </div>
         </Fragment>
       ))}
+      <span className={styles.tokenCount}>
+        <Count count={troop.count} />
+      </span>
     </div>
   );
 }
