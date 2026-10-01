@@ -32,10 +32,6 @@ describe('scheduled production deployment shape', () => {
     expect(config).not.toHaveProperty('migrations');
   });
 
-  test('sends alert email through one Email Routing binding', () => {
-    expect(config.send_email).toEqual([{ name: 'ALERT_EMAIL' }]);
-  });
-
   test('keeps the two private R2 bindings, one per audience', () => {
     expect(config.r2_buckets).toEqual([
       {
@@ -115,8 +111,6 @@ describe('scheduled production deployment shape', () => {
       '/__user-images/*',
       '/__play',
       '/__play/*',
-      '/__alerts',
-      '/__alerts/*',
     ]);
   });
 });

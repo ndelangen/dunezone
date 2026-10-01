@@ -38,6 +38,7 @@ import { playRetireFixtureRequestSchema } from '../../src/shared/play/retire';
 import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
 import { setupReadyRequired, setupStep } from '../../src/shared/play/setup';
 import { SPECTATOR_COLOR } from './actors';
+import { handleAlertWebhook } from './alerts';
 import { AuthorizationWatch, gameHttpClient } from './authorization';
 import { GameCatalogue } from './catalogue';
 import { RoomDelivery } from './delivery';
@@ -2015,6 +2016,12 @@ export default {
     const url = new URL(request.url);
     if (url.origin !== env.APPLICATION_ORIGIN || url.search) {
       return refused();
+    }
+    /* The Node globals in this tsconfig shadow the Workers `caches`, which has `default` at runtime. */
+    const markers = (caches as unknown as { default: Cache }).default;
+    const alert = await handleAlertWebhook(request, url.pathname, env, markers);
+    if (alert) {
+      return alert;
     }
     if (url.pathname === '/__play/health' && request.method === 'GET') {
       return json({

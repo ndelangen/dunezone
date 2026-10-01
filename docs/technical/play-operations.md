@@ -25,11 +25,11 @@ rather than describing a tool that does not exist.
   `playDeletion`, `playProvisioning` and `playDirectory` functions.
 
 The two health endpoints are identity checks. `/__play/health` returns a fixed `ok: true` with the
-release identity (`workers/game/index.ts:1989-1998`) without touching a Durable Object or Convex.
-The publisher's endpoint is the same kind of answer (`workers/publisher/index.ts:123-135`). A green
-health read proves which release is live and that the binding routes, not that a game works.
-The publisher exempts the exact GET health path from the Play ingress rate limit
-(`workers/publisher/index.ts:49-51`).
+release identity (`/__play/health` in the default export of `workers/game/index.ts`) without
+touching a Durable Object or Convex. The publisher's endpoint is the same kind of answer
+(`workers/publisher/index.ts:123-135`). A green health read proves which release is live and that
+the binding routes, not that a game works. The publisher exempts the exact GET health path from the
+Play ingress rate limit (`workers/publisher/index.ts:49-51`).
 
 `game-operation-failed` is the only Play application diagnostic
 (`docs/technical/play-hosted.md:302-324`). The game Worker turns off invocation logs and keeps logs
@@ -94,13 +94,17 @@ Not set up:
 - **Worker errors, through the alert relay.** Workers Issues captures uncaught exceptions, failed
   invocations, 5xx responses and `console.error` output, including `game-operation-failed`, but
   delivers only through Automations (coding agent, generic webhook, chat, incident management),
-  not email. The publisher Worker therefore relays it: an Issues automation with a generic webhook
-  posts to `https://dune.zone/__alerts/issues`, and `workers/publisher/alerts.ts` checks the
-  `cf-webhook-auth` header and emails a summary from `alerting@dune.zone` through the
-  `ALERT_EMAIL` Email Routing binding. Sending to a verified destination is free on every plan.
-  It needs two Worker secrets, set in the dashboard: `ALERT_WEBHOOK_SECRET` (the automation's
-  webhook secret) and `ALERT_EMAIL_TO` (the verified destination, kept out of the repository).
-  Until both are set the path answers 404. The automation and secrets are not live yet.
+  not email. The game Worker therefore relays it (`workers/game/alerts.ts`): an Issues automation
+  with a generic webhook posts to `https://dune.zone/__play/alerts/issues`, which the publisher
+  forwards like any `/__play` path, and the game Worker emails from `alerting@dune.zone` through
+  the `ALERT_EMAIL` Email Routing binding. Sending to a verified destination is free on every
+  plan. The route takes no credential, so the email carries nothing from the request: it only says
+  an issue was reported and to open Observability > Issues in the dashboard. At most one is sent
+  per ten minutes (a Cache API marker per location, plus a timestamp per isolate). The one Worker
+  secret, `ALERT_EMAIL_TO`, holds the verified destination so the address stays out of the
+  repository; until it is set the route is refused like any unknown path. The deploy contract and
+  the live drift audit allow exactly that binding and that secret on the game Worker. The secret
+  and the automation are not live yet.
 - **Health Checks** against `/__play/health`. They need the Pro plan, and Norbert decided not to
   upgrade. The deploy smoke still reads that endpoint (section 2).
 
@@ -153,22 +157,23 @@ What recovers by itself:
 
 - Provisioning confirmation re-arms its alarm before each request: 2 s within the provisioning
   window, 30 s after expiry to find a confirmation committed but lost
-  (`workers/game/index.ts:666-700`, `docs/technical/play-hosted.md:175-180`).
+  (`confirmProvisioning` in `workers/game/index.ts`, `docs/technical/play-hosted.md:175-180`).
 - Directory delivery retries on the room's alarm with backoff from 2 s up to 30 s, with no player
-  connected; a refusal from Convex is terminal for that summary
-  (`workers/game/index.ts:629-664`, `src/shared/play/directory.ts:15-16`). One alarm serves both the
-  battle deadline and the directory retry (`:596-603`).
-- A failed reconciliation retries with backoff (`workers/game/index.ts:711-720`).
+  connected; a refusal from Convex is terminal for that summary (`deliverDirectoryLoop` in
+  `workers/game/index.ts`, `src/shared/play/directory.ts:15-16`). One alarm serves both the battle
+  deadline and the directory retry (`scheduleAlarm`).
+- A failed reconciliation retries with backoff (`reconcileAccounts` in `workers/game/index.ts`).
 - A cold restore, including the one every deploy causes, closes old sockets with 1012 so browsers
-  reconnect with a new ticket (`workers/game/index.ts:252-254`). Carries and pointers are lost by
-  design; the table, receipts and history are kept (`docs/technical/play-hosted.md:28-33`).
+  reconnect with a new ticket (the `GameRoom` constructor in `workers/game/index.ts`). Carries and
+  pointers are lost by design; the table, receipts and history are kept
+  (`docs/technical/play-hosted.md:28-33`).
 
-What does not: a room whose stored game no longer loads is closed and answers only a retirement,
-and its alarm throws so Cloudflare retries it a few times
-(`workers/game/index.ts:216-241, 580-584`).
-Retirement accepts only the hosted fixture and refuses a real game (`:474-503`). There is no
-operator procedure for a real game in that state; a fix ships as a new release. Production rows
-are never edited by hand (`docs/technical/play-hosted.md:297-300`).
+What does not: a room whose stored game no longer loads is closed and answers only a retirement, and
+its alarm throws so Cloudflare retries it a few times (the `GameRoom` load path and `alarm` in
+`workers/game/index.ts`). Retirement accepts only the hosted fixture and refuses a real game
+(`retire` in `workers/game/index.ts`). There is no operator procedure for a real game in that state;
+a fix ships as a new release. Production rows are never edited by hand
+(`docs/technical/play-hosted.md:297-300`).
 
 ### Asset publisher failing
 
@@ -230,7 +235,8 @@ stops any run whose commit is older than what production reports
 
 - Until the Issues automation and the relay's secrets are set (section 3), no alert covers game
   Worker errors.
-- The relay runs in the publisher Worker, so a publisher outage also silences Worker error alerts.
+- The relay runs in the game Worker behind the publisher, so an outage of either silences Worker
+  error alerts; the email says only that an issue exists, and the dashboard has the detail.
 - Alert thresholds are Cloudflare's defaults; nothing in the repository defines what rate of
   `game-operation-failed` per operation is abnormal.
 - The alerts live in the Cloudflare account, not the repository, so a change to them is not

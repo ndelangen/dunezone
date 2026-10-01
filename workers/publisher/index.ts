@@ -1,6 +1,5 @@
 import { publisherFailureFields } from '../../src/shared/asset-publishing/publisher-diagnostics';
 import { playGamePathPattern } from '../../src/shared/play/callbacks';
-import { handleAlertWebhook } from './alerts';
 import { openPublisherBrowser } from './browser';
 import { handleCaptureRoute } from './capture-route';
 import { EXECUTOR_REQUEST_MARGIN_MS, MAX_ASSIGNED_ITEMS, parsePublisherConfig } from './config';
@@ -39,9 +38,7 @@ function isReservedWorkerPath(pathname: string): boolean {
     pathname === '/publisher-capture.html' ||
     pathname.startsWith('/publisher-capture/') ||
     pathname === '/__user-images' ||
-    pathname.startsWith('/__user-images/') ||
-    pathname === '/__alerts' ||
-    pathname.startsWith('/__alerts/')
+    pathname.startsWith('/__user-images/')
   );
 }
 
@@ -98,10 +95,6 @@ const publisherWorker = {
     const game = await handleGameIngress(request, url, env);
     if (game) {
       return game;
-    }
-    const alert = await handleAlertWebhook(request, env);
-    if (alert) {
-      return alert;
     }
     const publicAsset = await handlePublicAssetRequest(request, env, ctx, {
       publicBaseUrl: env.PUBLIC_BASE_URL,
