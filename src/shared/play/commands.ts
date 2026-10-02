@@ -1,6 +1,6 @@
 import { freshTableState, gestureBlockReason, nearestZone, pieceCount } from './model';
 import type { TablePiece, TableState } from './model';
-import { phaseAt, phaseForTurn, STANDARD_PHASES, stepPhase, tableProgressFor } from './phases';
+import { phaseAt, STANDARD_PHASES, stepPhase, tableProgressFor, TURN_SELECT_REFUSAL } from './phases';
 import type { PhaseEntry } from './phases';
 import type { DurableTable, GameSnapshot, TableAction } from './protocol';
 import { GameRejection } from './rejection';
@@ -105,10 +105,9 @@ function applyTableAction(
         `Turn ${tableProgressFor(next, phases).turn}: ${current.label}.`
       );
     }
-    case 'turn': {
-      const next = phaseForTurn(phase, action.turn, phases.length);
-      return accepted(state, 'turn.select', `Turn ${action.turn}: ${phaseAt(next, phases).label}.`);
-    }
+    /* The protocol keeps the action so an older client is refused rather than disconnected. */
+    case 'turn':
+      throw new GameRejection(TURN_SELECT_REFUSAL);
     case 'spice-spawn':
       return spawnSpiceInState(state, action.count, actorName);
   }

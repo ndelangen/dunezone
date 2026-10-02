@@ -1375,7 +1375,6 @@ export function TabletopScene({
                 onInteractionActiveChange={onInteractionActiveChange}
                 seatCount={seatCount}
                 tableProgress={tableProgress}
-
                 trackerSlots={trackerSlots}
                 mapFramingPoints={mapFramingPoints}
               />

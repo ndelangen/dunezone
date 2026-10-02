@@ -1351,8 +1351,8 @@ async function sharedSpiceRoundTrip(sender, recipient, count, interact, name) {
   passed(`${name}: the other player drags the full stack onto the supply and both players see it removed`);
 }
 
-/** Clicks the turn wheel's sector for `turn`, which the wheel shows around the current one; the wheel only shows the turn (#1683). */
-async function selectTurn(who, current, turn) {
+/** Clicks the turn wheel's printed `turn`, which the wheel shows around the current one; the click must change nothing (#1683). */
+async function clickTurnOnWheel(who, current, turn) {
   /* The page lays the tracker arc out for the game's own turn, which faction phases can lengthen (#1473). */
   const { phase, phases } = who.view().snapshot;
   const turnSlot = trackerArcSlots(tableProgressFor(phase, phases).phases.length).find((slot) => slot.kind === 'turn');
@@ -1360,7 +1360,7 @@ async function selectTurn(who, current, turn) {
   const sector = turnTrackerLayout({ radius: turnSlot.radius, turn: current }).sectors.find(
     (value) => value.turn === turn
   );
-  assert.ok(sector, `Turn ${turn} must be selectable on the wheel at turn ${current}.`);
+  assert.ok(sector, `Turn ${turn} must be printed on the wheel at turn ${current}.`);
   const wheelPoint = await point(who, [
     turnSlot.position[0] + sector.position[0],
     TRACKER_DISC_TOP_Y + 0.045,
@@ -1377,7 +1377,7 @@ async function sharedTrackerFlow(a, b) {
   /* Past the cooldown, so a click the wheel still acted on would land. */
   await phaseCooldownEnded(a);
   const before = a.view().snapshot.revision;
-  await selectTurn(a, originalTurn, originalTurn + 1);
+  await clickTurnOnWheel(a, originalTurn, originalTurn + 1);
   await delay(1000);
   assert.equal(a.view().snapshot.revision, before);
   assert.equal(b.view().snapshot.revision, before);

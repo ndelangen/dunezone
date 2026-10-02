@@ -141,7 +141,6 @@ describe('Hosted readiness and shared inventory through native commands', () => 
     expect(state.controls.ready).toEqual([]);
     expect(state.table.pieces).toEqual(pieces);
     await waitPhase();
-    await act(b, { kind: 'turn', turn: 3 }, 'only by moving through the phases');
     await runtime.restart();
     const restored = await admit('a');
     expect((await snapshot(restored)).controls.ready).toEqual([]);

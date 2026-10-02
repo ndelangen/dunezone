@@ -13,10 +13,10 @@ import type { SeatAction } from '../../src/shared/play/participation';
 import {
   PHASE_CHANGE_COOLDOWN_MS,
   phaseAt,
-  phaseForTurn,
   requirePhaseCooldownElapsed,
   STANDARD_PHASES,
   stepPhase,
+  TURN_SELECT_REFUSAL,
 } from '../../src/shared/play/phases';
 import { PIECE_FLIP_DURATION_MS } from '../../src/shared/play/pieceFlip';
 import { carryPieceId, tableForViewer } from '../../src/shared/play/protocol';
@@ -412,7 +412,7 @@ export class Room {
     this.assertCommand(identity, action, expectedRevision);
     /* The turn moves only through the phases, so Mentat pause always asks everyone to be ready (#1683); an older client may still send this. */
     if (action.kind === 'turn') {
-      throw new GameRejection('The turn changes only by moving through the phases.');
+      throw new GameRejection(TURN_SELECT_REFUSAL);
     }
     if (isSetupAction(action) || (this.snapshot.stage === 'setup' && ['phase', 'ready'].includes(action.kind))) {
       return setupCommand(this.snapshot, action, {
@@ -470,7 +470,7 @@ export class Room {
     const guardedNext = this.nextTable(guarded, action, identity);
     // Any command touching a reserved donor or target must be rejected, even
     // when the acting player owns the carry in another tab.
-    if (!['reset', 'phase', 'turn'].includes(action.kind)) {
+    if (!['reset', 'phase'].includes(action.kind)) {
       this.assertReservationsUnchanged(guarded, guardedNext);
     }
     const table = action.kind === 'reset' ? guardedNext : this.restoreReservationLocks(raw, guardedNext);
@@ -587,7 +587,7 @@ export class Room {
   }
 
   private assertPhaseChange(action: PieceAction, now: number) {
-    if (action.kind !== 'phase' && action.kind !== 'turn') {
+    if (action.kind !== 'phase') {
       return;
     }
     const phase = this.nextPhase(action);
@@ -731,9 +731,6 @@ export class Room {
   private nextPhase(action: PieceAction): number {
     if (action.kind === 'reset') {
       return 0;
-    }
-    if (action.kind === 'turn') {
-      return phaseForTurn(this.snapshot.phase, action.turn, this.phases().length);
     }
     return action.kind === 'phase' ? stepPhase(this.snapshot.phase, action.direction) : this.snapshot.phase;
   }
