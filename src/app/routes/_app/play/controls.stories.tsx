@@ -97,7 +97,7 @@ export const SetupPredictionSharedName = meta.story({
     const page = await openPanel(canvasElement, 'Setup');
     const [first, second] = predictionSnapshot().controls!.players;
     const name = predictionSnapshot().roster!.seats[0]!.faction!.name;
-    await userEvent.click(await page.findByRole('textbox', { name: 'Predicted winner' }, WAIT));
+    await userEvent.click(await page.findByRole('combobox', { name: 'Predicted winner' }, WAIT));
     await expect(page.findByRole('option', { name: `${name} (${first!.name})` }, WAIT)).resolves.toBeVisible();
     await expect(page.findByRole('option', { name: `${name} (${second!.name})` }, WAIT)).resolves.toBeVisible();
   },
