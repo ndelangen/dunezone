@@ -63,8 +63,8 @@ Play is healthy for release when all of these hold:
    (`validateGameDeployContract` in `scripts/game-deployment-contract.ts`,
    `.github/workflows/deploy-main.yml:113-174`).
 4. Convex `PLAY_SERVICE_URL` and `SITE_URL` are both `https://dune.zone`, and the test-only flags
-   `IS_TEST`, `E2E_LOCAL_AUTH`, `PLAY_TEST_PHASE_COOLDOWN_MS` and `PLAY_TEST_START_STAGE` are off or
-   unset in production (`docs/deployment.md:149-152`).
+   `IS_TEST`, `E2E_LOCAL_AUTH`, `PLAY_TEST_PHASE_COOLDOWN_MS`, `PLAY_TEST_START_STAGE` and
+   `PLAY_TEST_PASSWORD_HASH` are off or unset in production (`docs/deployment.md:149-152`).
 5. The deploy run for `main`'s tip finished green, and the commit is on `main` by ancestry, not by
    a merged badge (`docs/technical/operational-traps.md:143-158`).
 6. `ci_ok` passed with the three `hosted_play` shards and `hosted_play_webgpu` on the merged change

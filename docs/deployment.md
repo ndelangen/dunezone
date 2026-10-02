@@ -149,7 +149,7 @@ the game protocol; no deployment bootstrap secret is installed on the game Worke
 Convex's nonsecret `PLAY_SERVICE_URL` must equal its `SITE_URL` origin, `https://dune.zone`. CI sets
 the callback origin after verifying the private game Worker and before exposing the hosted frontend.
 The test-only `IS_TEST` and `E2E_LOCAL_AUTH` flags must remain disabled in production, and the
-test-only `PLAY_TEST_PHASE_COOLDOWN_MS` and `PLAY_TEST_START_STAGE` unset.
+test-only `PLAY_TEST_PHASE_COOLDOWN_MS`, `PLAY_TEST_START_STAGE` and `PLAY_TEST_PASSWORD_HASH` unset.
 
 For an isolated rehearsal against an already provisioned synthetic Convex/Auth backend:
 
