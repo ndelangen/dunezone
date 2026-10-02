@@ -198,11 +198,14 @@ function answerPeerRequest(peer, record) {
     case 'playAdmission:redeemTicket':
       /*
        * A test that sets `peer.redemptionRefusal` has Convex refuse the ticket with that reason instead of redeeming it.
-       * `peer.redemptionMode` set to `error` fails the request as an outage would; `malformed` answers in a shape no deployment sends.
+       * `peer.redemptionMode` set to `error` fails the request as an outage would, `busy` answers as rate-limited Convex does; `malformed` answers in a shape no deployment sends.
        */
       if (peer.redemptionMode === 'error') {
         record.response.writeHead(503);
         record.response.end('Redemption unavailable');
+      } else if (peer.redemptionMode === 'busy') {
+        record.response.writeHead(429);
+        record.response.end('Too many requests');
       } else if (peer.redemptionMode === 'malformed') {
         record.release({ ok: true, registrationId: peer.registrationId });
       } else {

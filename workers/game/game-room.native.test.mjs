@@ -520,6 +520,11 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     await eventually(() => unavailable.closed, 'unavailable redemption close');
     expect(unavailable.closeCode).toBe(ADMISSION_UNAVAILABLE_CLOSE_CODE);
     expect(unavailable.messages).toEqual([]);
+    peer.redemptionMode = 'busy';
+    const busy = await openGame(runtime);
+    busy.send({ type: 'admit', ticket: 'e'.repeat(64) });
+    await eventually(() => busy.closed, 'rate-limited redemption close');
+    expect(busy.closeCode).toBe(ADMISSION_UNAVAILABLE_CLOSE_CODE);
     peer.redemptionMode = 'answer';
     const retried = await openGame(runtime);
     retried.send({ type: 'admit', ticket: 'd'.repeat(64) });

@@ -197,6 +197,7 @@ export class GameRoom extends DurableObject<GameEnv> {
   private reconcileUntil = 0;
   private nextReconcileAt = 0;
   private reconcileFailures = 0;
+  private reconcileUnavailable = false;
   private reconcileEpoch = 0;
   /*
    * Open from a watch denial until the account reconciliation started after it settles.
@@ -719,8 +720,10 @@ export class GameRoom extends DurableObject<GameEnv> {
     try {
       await this.reconcilePromise;
       this.reconcileFailures = 0;
+      this.reconcileUnavailable = false;
     } catch (error) {
       this.diagnostics.report('account-reconciliation', error);
+      this.reconcileUnavailable = error instanceof ConvexUnavailable;
       this.reconciled = false;
       this.reconcileUntil = 0;
       /* A failed reconciliation retries with backoff; the renewal cadence is too slow to be the recovery path. */
@@ -904,6 +907,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     return (
       !this.hasAccountLease() &&
       !this.reconcilePromise &&
+      this.reconcileUnavailable &&
       this.reconcileFailures > 0 &&
       Date.now() < this.nextReconcileAt
     );

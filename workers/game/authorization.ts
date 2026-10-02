@@ -21,6 +21,8 @@ export class ConvexUnavailable extends Error {}
 
 /* Convex reports a function that threw, a ConvexError included, with this status: that is an answer, not an outage. */
 const FUNCTION_FAILED_STATUS = 560;
+/* Request timeout and rate limiting: Convex is busy, not refusing. */
+const BUSY_STATUSES = new Set([408, 429]);
 
 export function gameHttpClient(url: string): ConvexHttpClient {
   return new ConvexHttpClient(url, {
@@ -34,6 +36,7 @@ export function gameHttpClient(url: string): ConvexHttpClient {
         });
         if (
           (response.status >= 300 && response.status < 400) ||
+          BUSY_STATUSES.has(response.status) ||
           (response.status >= 500 && response.status !== FUNCTION_FAILED_STATUS)
         ) {
           throw new ConvexUnavailable(`Convex answered with status ${response.status}.`);
