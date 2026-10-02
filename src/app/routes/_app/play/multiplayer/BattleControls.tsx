@@ -36,8 +36,11 @@ import styles from './BattleControls.module.css';
 import { battleCapsuleY, headerInset } from './battlePlacement';
 import { PieceArtwork } from './PieceArtwork';
 import type { TableSession, TableProjection } from './TableSession';
+import { startTouchCarry } from './touchCarry';
 
 type Props = { client: TableSession; table: TableProjection };
+const HAND_PARCEL = 'application/dune-hand';
+const BATTLE_PARCEL = 'application/dune-battle';
 const outcomes = [
   ['left', 'Left side won'],
   ['none', 'No winner'],
@@ -431,6 +434,7 @@ function canTakeSelected(piece: TablePiece | undefined) {
   return piece.kind === 'card' || isBattleLeader(piece);
 }
 export function HandControls({ client, table, hand }: Props & { hand: TablePiece[] }) {
+  const pointerSession = usePointerSession();
   const selected = table.snapshot.table.pieces.find((piece) => piece.id === table.state.selectedPieceId);
   return (
     <Section
@@ -462,8 +466,19 @@ export function HandControls({ client, table, hand }: Props & { hand: TablePiece
               className={styles.piece}
               draggable={table.canHandleTable}
               aria-label={`Drag ${pieceName(piece)} from hand`}
+              onPointerDown={(event) => {
+                if (
+                  table.canHandleTable &&
+                  startTouchCarry(pointerSession, event.nativeEvent, event.currentTarget, {
+                    type: HAND_PARCEL,
+                    data: piece.id,
+                  })
+                ) {
+                  event.preventDefault();
+                }
+              }}
               onDragStart={(event) => {
-                event.dataTransfer.setData('application/dune-hand', piece.id);
+                event.dataTransfer.setData(HAND_PARCEL, piece.id);
                 const target = event.currentTarget;
                 event.dataTransfer.setDragImage(target, target.offsetWidth / 2, target.offsetHeight / 2);
               }}
@@ -583,7 +598,7 @@ function useBattlePlacement(battle: PublicBattle | null | undefined) {
   });
   return placement;
 }
-function dropPosition(event: DragEvent, canvas: HTMLCanvasElement, camera: Camera) {
+function dropPosition(event: Pick<DragEvent, 'clientX' | 'clientY'>, canvas: HTMLCanvasElement, camera: Camera) {
   const bounds = canvas.getBoundingClientRect();
   const ray = new Raycaster();
   ray.setFromCamera(
@@ -624,16 +639,31 @@ function territoryAt(position: Vector3Tuple) {
   );
   return territory?.label ?? 'Marked territory';
 }
-function sendDrop(client: TableSession, event: DragEvent, position: Vector3Tuple) {
-  const pieceId = event.dataTransfer?.getData('application/dune-hand');
+/* A mouse drop reads the browser's `DataTransfer` and a touch carry reads its parcel, and both send the same intent. */
+function sendDrop(client: TableSession, read: (type: string) => string | undefined, position: Vector3Tuple) {
+  const pieceId = read(HAND_PARCEL);
   if (pieceId && onTablePlate(position)) {
     client.command({ kind: 'hand-play', pieceId, position });
-  } else if (event.dataTransfer?.getData('application/dune-battle') && Math.hypot(position[0], position[2]) <= 5.5) {
+  } else if (read(BATTLE_PARCEL) && Math.hypot(position[0], position[2]) <= 5.5) {
     client.command({ kind: 'battle-start', anchor: position, territory: territoryAt(position) });
   }
 }
 function useInventoryDrop({ client, table }: Props) {
   const { camera, renderer } = useThree();
+  const pointerSession = usePointerSession();
+  useEffect(
+    () =>
+      pointerSession.receive((parcel, clientX, clientY) => {
+        if (!table.canHandleTable) {
+          return;
+        }
+        const position = dropPosition({ clientX, clientY }, renderer.domElement, camera);
+        if (position) {
+          sendDrop(client, (type) => (type === parcel.type ? parcel.data : undefined), position);
+        }
+      }),
+    [pointerSession, camera, renderer, client, table.canHandleTable]
+  );
   useEffect(() => {
     const canvas = renderer.domElement;
     const over = (event: DragEvent) => event.preventDefault();
@@ -644,7 +674,7 @@ function useInventoryDrop({ client, table }: Props) {
       }
       const position = dropPosition(event, canvas, camera);
       if (position) {
-        sendDrop(client, event, position);
+        sendDrop(client, (type) => event.dataTransfer?.getData(type), position);
       }
     };
     canvas.addEventListener('dragover', over);
@@ -656,6 +686,8 @@ function useInventoryDrop({ client, table }: Props) {
   }, [camera, renderer, client, table.canHandleTable]);
 }
 function BattleMarker({ table }: Props) {
+  /* Html draws in its own React root, so the session is read here and closed over. */
+  const pointerSession = usePointerSession();
   const phases = table.snapshot.phases ?? STANDARD_PHASES;
   if (phaseAt(table.snapshot.phase, phases).id !== 'battle') {
     return null;
@@ -667,9 +699,21 @@ function BattleMarker({ table }: Props) {
       <DarkSchemeIsland>
         <Button
           aria-label="Drag battle marker onto territory"
+          style={{ touchAction: 'none' }}
           draggable={table.canHandleTable}
           disabled={!table.canHandleTable}
-          onDragStart={(event) => event.dataTransfer.setData('application/dune-battle', 'marker')}
+          onPointerDown={(event) => {
+            if (
+              table.canHandleTable &&
+              startTouchCarry(pointerSession, event.nativeEvent, event.currentTarget, {
+                type: BATTLE_PARCEL,
+                data: 'marker',
+              })
+            ) {
+              event.preventDefault();
+            }
+          }}
+          onDragStart={(event) => event.dataTransfer.setData(BATTLE_PARCEL, 'marker')}
         >
           <TopicIcon topic="battle" />
         </Button>

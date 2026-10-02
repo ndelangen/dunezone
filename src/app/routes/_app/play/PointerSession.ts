@@ -23,18 +23,25 @@ type Binding = {
   canvas: HTMLCanvasElement;
   read(): Controls;
 };
+/** What a carry from outside the table holds, read at the drop the way an HTML5 drop reads its `DataTransfer`. */
+export type Parcel = { type: string; data: string };
+/** Follows a parcel's finger while it is carried, and is told once when the carry ends however it ends. */
+export type ParcelTrack = { move(x: number, y: number): void; end(): void };
+type ParcelReceiver = (parcel: Parcel, x: number, y: number) => void;
 type ActivePress = {
   input: PointerInput;
   pieceId: string;
-  origin: 'table' | 'panel';
+  origin: 'table' | 'panel' | 'parcel';
   dragging: boolean;
   draftObserved: boolean;
+  parcel?: { parcel: Parcel; track?: ParcelTrack };
 };
 
 /** Owns one table's active pointer from pickup through drop or cancellation. */
 export class PointerSession {
   private binding: Binding | null = null;
   private active: ActivePress | null = null;
+  private receiver: ParcelReceiver | null = null;
 
   get busy() {
     return this.active !== null;
@@ -64,6 +71,49 @@ export class PointerSession {
     }
   }
 
+  /**
+   * Carries something that is not yet a table piece, such as a hand piece or the battle marker, under a pointer onto the canvas.
+   * It has no draft in the scene;
+   * a release over the canvas hands the parcel and the release point to the scene's receiver.
+   */
+  deliver(input: PointerInput, parcel: Parcel, track?: ParcelTrack) {
+    if (input.button !== 0 || this.active || !this.binding || !this.receiver) {
+      return false;
+    }
+    const controls = this.binding.read();
+    if (!controls.canHandleTable) {
+      return false;
+    }
+    this.active = {
+      input,
+      pieceId: '',
+      origin: 'parcel',
+      dragging: true,
+      draftObserved: false,
+      parcel: { parcel, track },
+    };
+    this.listen(this.binding);
+    controls.onActiveChange(true);
+    try {
+      this.binding.canvas.setPointerCapture(input.pointerId);
+    } catch {
+      this.release('default');
+      return false;
+    }
+    this.binding.canvas.style.cursor = 'grabbing';
+    return true;
+  }
+
+  /** The scene that can turn a screen point into a table position takes every parcel dropped on its canvas. */
+  receive(receiver: ParcelReceiver) {
+    this.receiver = receiver;
+    return () => {
+      if (this.receiver === receiver) {
+        this.receiver = null;
+      }
+    };
+  }
+
   isPressing(pieceId: string) {
     return this.active?.pieceId === pieceId;
   }
@@ -77,7 +127,11 @@ export class PointerSession {
       return;
     }
     const controls = this.binding.read();
-    if (!controls.canHandleTable || !controls.piece(this.active.pieceId)) {
+    if (this.active.parcel) {
+      if (!controls.canHandleTable) {
+        this.cancel();
+      }
+    } else if (!controls.canHandleTable || !controls.piece(this.active.pieceId)) {
       this.cancel();
     } else if (controls.hasDraft) {
       this.active.draftObserved = true;
@@ -92,8 +146,12 @@ export class PointerSession {
       return;
     }
     const dragging = this.active.dragging;
+    const parcel = Boolean(this.active.parcel);
     const controls = this.binding.read();
     this.release('default');
+    if (parcel) {
+      return;
+    }
     if (dragging) {
       controls.cancelDraft();
     }
@@ -135,6 +193,7 @@ export class PointerSession {
       return;
     }
     this.active = null;
+    active.parcel?.track?.end();
     const { events, canvas } = binding;
     events.removeEventListener('pointermove', this.move);
     events.removeEventListener('pointerup', this.drop);
@@ -194,6 +253,10 @@ export class PointerSession {
       return;
     }
     const controls = this.binding.read();
+    if (this.active?.parcel) {
+      this.active.parcel.track?.move(event.clientX, event.clientY);
+      return;
+    }
     if (this.active?.origin === 'table' && !controls.isPublicPoint(event.clientX, event.clientY)) {
       this.cancel();
       return;
@@ -212,6 +275,21 @@ export class PointerSession {
       return;
     }
     if (!this.matches(event) || !this.binding) {
+      return;
+    }
+    const carried = this.active?.parcel?.parcel;
+    if (carried) {
+      const bounds = this.binding.canvas.getBoundingClientRect();
+      const onCanvas =
+        event.clientX >= bounds.left &&
+        event.clientX <= bounds.right &&
+        event.clientY >= bounds.top &&
+        event.clientY <= bounds.bottom;
+      const receiver = this.receiver;
+      this.release('default');
+      if (onCanvas) {
+        receiver?.(carried, event.clientX, event.clientY);
+      }
       return;
     }
     const controls = this.binding.read();

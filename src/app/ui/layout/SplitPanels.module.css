@@ -131,6 +131,31 @@
   height: 5.5rem;
 }
 
+/*
+ * A finger needs more than the thin track to land on, so a coarse pointer gets an invisible hit area at least 24px across the split.
+ * It overhangs both panel edges above their stacking contexts and draws nothing, so the separator looks the same.
+ */
+@media (pointer: coarse) {
+  .separator::after {
+    position: absolute;
+    content: "";
+  }
+
+  .layout[data-orientation="horizontal"] > .separator::after {
+    inset-inline: 0;
+    top: 50%;
+    height: max(24px, 100%);
+    transform: translateY(-50%);
+  }
+
+  .layout[data-orientation="vertical"] > .separator::after {
+    inset-block: 0;
+    left: 50%;
+    width: max(24px, 100%);
+    transform: translateX(-50%);
+  }
+}
+
 /* A concealed separator keeps its track but draws nothing and leaves the Tab order, so a panel that overflows its share is never crossed by a grip. */
 .layout[data-concealed="true"] > .separator {
   visibility: hidden;

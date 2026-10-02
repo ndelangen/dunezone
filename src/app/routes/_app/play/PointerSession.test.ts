@@ -24,6 +24,7 @@ function table() {
   const canvas = document.createElement('canvas');
   canvas.setPointerCapture = vi.fn();
   canvas.releasePointerCapture = vi.fn();
+  canvas.getBoundingClientRect = () => DOMRect.fromRect({ x: 0, y: 0, width: 100, height: 100 });
   const piece = initialSnapshot().table.pieces[0];
   const controls = {
     canHandleTable: true,
@@ -226,4 +227,93 @@ test('failed capture leaves no active listeners or carry', () => {
   expect(controls.beginGesture).not.toHaveBeenCalled();
   expect(controls.finishGesture).not.toHaveBeenCalled();
   expect(session.press(pointer('pointerdown'), piece.id)).toBe(true);
+});
+
+const HAND = { type: 'application/dune-hand', data: 'hand-piece' };
+
+test('a parcel carry is refused while no scene receives parcels', () => {
+  const { session, controls } = table();
+  expect(session.deliver(pointer('pointerdown', 10, 1, 0, 'touch'), HAND)).toBe(false);
+  expect(session.busy).toBe(false);
+  expect(controls.onActiveChange).not.toHaveBeenCalled();
+});
+
+test('a parcel carried onto the canvas reaches the receiver at the release point, without a scene draft', () => {
+  const { session, controls, canvas } = table();
+  const receiver = vi.fn();
+  stops.push(session.receive(receiver));
+  const track = { move: vi.fn(), end: vi.fn() };
+  expect(session.deliver(pointer('pointerdown', -20, 1, 0, 'touch'), HAND, track)).toBe(true);
+  expect(session.busy).toBe(true);
+  expect(canvas.setPointerCapture).toHaveBeenCalledWith(1);
+  expect(controls.onActiveChange).toHaveBeenLastCalledWith(true);
+  window.dispatchEvent(pointer('pointermove', 30, 1, 10, 'touch'));
+  expect(track.move).toHaveBeenCalledWith(30, 10);
+  window.dispatchEvent(pointer('pointerup', 40, 1, 20, 'touch'));
+  expect(receiver).toHaveBeenCalledExactlyOnceWith(HAND, 40, 10);
+  expect(track.end).toHaveBeenCalledTimes(1);
+  expect(session.busy).toBe(false);
+  expect(controls.onActiveChange).toHaveBeenLastCalledWith(false);
+  expect(controls.beginGesture).not.toHaveBeenCalled();
+  expect(controls.finishGesture).not.toHaveBeenCalled();
+  expect(controls.cancelDraft).not.toHaveBeenCalled();
+});
+
+test('a parcel released off the canvas is dropped nowhere', () => {
+  const { session } = table();
+  const receiver = vi.fn();
+  stops.push(session.receive(receiver));
+  const track = { move: vi.fn(), end: vi.fn() };
+  session.deliver(pointer('pointerdown', 10, 1, 0, 'touch'), HAND, track);
+  window.dispatchEvent(pointer('pointerup', 140, 1, 10, 'touch'));
+  expect(receiver).not.toHaveBeenCalled();
+  expect(track.end).toHaveBeenCalledTimes(1);
+  expect(session.busy).toBe(false);
+});
+
+test.each(['Escape', 'pointercancel', 'permission'])(
+  '%s ends a parcel carry without a drop or a draft cancel',
+  (reason) => {
+    const { session, controls } = table();
+    const receiver = vi.fn();
+    stops.push(session.receive(receiver));
+    const track = { move: vi.fn(), end: vi.fn() };
+    session.deliver(pointer('pointerdown', 10, 1, 0, 'touch'), HAND, track);
+    if (reason === 'Escape') {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    } else if (reason === 'permission') {
+      controls.canHandleTable = false;
+      session.reconcile();
+    } else {
+      window.dispatchEvent(pointer(reason, 10, 1, 0, 'touch'));
+    }
+    window.dispatchEvent(pointer('pointerup', 40, 1, 20, 'touch'));
+    expect(receiver).not.toHaveBeenCalled();
+    expect(track.end).toHaveBeenCalledTimes(1);
+    expect(controls.cancelDraft).not.toHaveBeenCalled();
+    expect(session.busy).toBe(false);
+  }
+);
+
+test('a parcel carry survives scene renders that have no draft', () => {
+  const { session } = table();
+  const receiver = vi.fn();
+  stops.push(session.receive(receiver));
+  session.deliver(pointer('pointerdown', 10, 1, 0, 'touch'), HAND);
+  session.reconcile();
+  window.dispatchEvent(pointer('pointerup', 40, 1, 20, 'touch'));
+  expect(receiver).toHaveBeenCalledOnce();
+});
+
+test('a replaced receiver cannot unregister its successor', () => {
+  const { session } = table();
+  const first = vi.fn();
+  const second = vi.fn();
+  const stopFirst = session.receive(first);
+  stops.push(session.receive(second));
+  stopFirst();
+  session.deliver(pointer('pointerdown', 10, 1, 0, 'touch'), HAND);
+  window.dispatchEvent(pointer('pointerup', 40, 1, 20, 'touch'));
+  expect(first).not.toHaveBeenCalled();
+  expect(second).toHaveBeenCalledOnce();
 });
