@@ -75,7 +75,7 @@ export async function resolveRulebookReferences(
         const background = parsed.data.background.colors[0];
         const color = typeof background === 'string' ? background : (background.stops[0]?.[0] ?? '#20394a');
         const members = await Promise.all(
-          [parsed.data.hero, ...parsed.data.leaders].map(async (member): Promise<RulebookResolvedSource> => {
+          [parsed.data.leader, ...parsed.data.leaders].map(async (member): Promise<RulebookResolvedSource> => {
             if (!member.memberId) {
               return { status: 'unselected' };
             }

@@ -53,7 +53,7 @@ async function liveReferenceFixture() {
       cache_token: 'token-one',
       published_at: 1,
     });
-    for (const member of [data.hero, ...data.leaders]) {
+    for (const member of [data.leader, ...data.leaders]) {
       await ctx.db.insert('publication_assets', {
         asset_type: 'faction-leader',
         asset_id: factionMemberPublicationId(factionId, member.memberId),
@@ -197,7 +197,7 @@ describe('Rulebook component references', () => {
     expect(await t.query(api.rulebookSources.factionMembers, { faction_id: refs.factionId })).toMatchObject({
       name: 'Updated house',
       members: [
-        { memberId: revised.hero.memberId, role: 'Ruler' },
+        { memberId: revised.leader.memberId, role: 'Ruler' },
         ...revised.leaders.map((member) => ({ memberId: member.memberId, name: member.name, role: 'Leader' })),
       ],
     });

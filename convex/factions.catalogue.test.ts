@@ -116,7 +116,7 @@ describe('faction catalogue page', () => {
     expect(Object.keys(row?.data ?? {}).sort()).toEqual([
       'background',
       'complexity',
-      'hero',
+      'leader',
       'leaders',
       'logo',
       'name',

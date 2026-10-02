@@ -5,7 +5,7 @@ import { cardbackPresetLabel } from '../../src/shared/assets/cardbackPresets';
 import { authoredCardback, DeckAssetInput } from '../../src/shared/assets/schema';
 import { parseAssetDataForWrite } from '../../src/shared/assets/validation';
 import { phaseDeclarationSchema } from '../../src/shared/factions/extraPhases';
-import { IdentifiedFactionStoredSchema } from '../../src/shared/factions/schema';
+import { IdentifiedFactionStoredSchema, toStoredHeroKey } from '../../src/shared/factions/schema';
 import { lacksCombatValues, troopCombatFaces } from '../../src/shared/factions/troopCombat';
 import type {
   AssetSupply,
@@ -398,7 +398,8 @@ export class GameCatalogue {
     return factionCaptureSchema.parse({
       faction: { ...source.faction, name: definition.name },
       capturedAt: now,
-      definition,
+      /* The glossary term is "leader"; the capture keeps the `hero` literal, which games already in storage hold. */
+      definition: toStoredHeroKey(definition),
       components: {
         token,
         leaders,

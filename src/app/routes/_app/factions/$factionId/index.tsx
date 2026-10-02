@@ -62,9 +62,9 @@ function FactionDetailPending() {
 
 function FactionSidebarOverview({ data }: { data: FactionData }) {
   return (
-    <Section icon={<TopicIcon topic="hero" size={20} />} title="Faction leader">
-      <div className={styles.loreHeroToken}>
-        <LeaderToken {...data.hero} strength={undefined} background={data.background} logo={data.logo} />
+    <Section icon={<TopicIcon topic="leader" size={20} />} title="Faction leader">
+      <div className={styles.loreLeaderToken}>
+        <LeaderToken {...data.leader} strength={undefined} background={data.background} logo={data.logo} />
       </div>
     </Section>
   );

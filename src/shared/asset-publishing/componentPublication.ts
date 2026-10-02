@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 import { FactionMemberIdSchema } from '../factions/memberIdentity';
-import { FactionInputSchema, HistoricalFactionPublicationSchema } from '../factions/schema';
+import { FactionInputObject, HistoricalFactionPublicationSchema } from '../factions/schema';
 import { componentGeometrySchema, COMPONENT_ASSET_TYPES } from './componentGeometry';
 import type { ComponentAssetType } from './componentGeometry';
 
@@ -30,9 +30,9 @@ export function parseFactionMemberPublicationId(value: string) {
 
 /** Only fields drawn by the complete Leader renderer belong in its capture identity. */
 export const factionLeaderAssetDataSchema = factionMemberPublicationIdentitySchema.extend({
-  leader: FactionInputSchema.shape.leaders.element.omit({ memberId: true }),
-  background: FactionInputSchema.shape.background,
-  logo: FactionInputSchema.shape.logo,
+  leader: FactionInputObject.shape.leaders.element.omit({ memberId: true }),
+  background: FactionInputObject.shape.background,
+  logo: FactionInputObject.shape.logo,
 });
 
 export type FactionLeaderAssetData = z.infer<typeof factionLeaderAssetDataSchema>;
@@ -46,7 +46,7 @@ export function factionLeaderAssetData(
   if (!faction.success) {
     return null;
   }
-  const member = [faction.data.hero, ...faction.data.leaders].find((candidate) => candidate.memberId === memberId);
+  const member = [faction.data.leader, ...faction.data.leaders].find((candidate) => candidate.memberId === memberId);
   if (!member) {
     return null;
   }

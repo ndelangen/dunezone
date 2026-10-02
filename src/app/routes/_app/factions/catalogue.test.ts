@@ -10,7 +10,7 @@ function faction(
   id: string,
   name: string,
   options: {
-    hero?: string;
+    leader?: string;
     leaders?: string[];
     created?: string;
     updated?: string;
@@ -32,7 +32,7 @@ function faction(
       ...assetPublishingFaction,
       name,
       ...(options.complexity == null ? {} : { complexity: { calculated: options.complexity } }),
-      hero: { ...assetPublishingFaction.hero, name: options.hero ?? 'Lady Jessica' },
+      leader: { ...assetPublishingFaction.leader, name: options.leader ?? 'Lady Jessica' },
       leaders: (options.leaders ?? ['Duncan Idaho']).map((leader, index) => ({
         ...assetPublishingFaction.leaders[index],
         name: leader,
@@ -42,10 +42,10 @@ function faction(
 }
 
 describe('faction catalogue controls', () => {
-  test('fuzzy-searches faction, hero, and leader names before applying a ruleset', () => {
+  test('fuzzy-searches faction, Faction leader, and supporting leader names before applying a ruleset', () => {
     const classic = { id: 'classic', slug: 'classic', name: 'Classic' } as never;
     const factions = [
-      faction('1', 'Atreides', { hero: 'Duke Leto', rulesets: [classic] }),
+      faction('1', 'Atreides', { leader: 'Duke Leto', rulesets: [classic] }),
       faction('2', 'Fremen', { leaders: ['Chani'] }),
     ];
 

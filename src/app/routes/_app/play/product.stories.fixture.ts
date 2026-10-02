@@ -1,3 +1,4 @@
+import { toStoredHeroKey } from '@shared/factions/schema';
 import type { FactionCapture } from '@shared/play/capture';
 import type { TablePiece } from '@shared/play/model';
 import type { GameSnapshot, Viewer } from '@shared/play/protocol';
@@ -101,7 +102,7 @@ function capture({ slug, data, token, leaders }: (typeof factions)[number]): Fac
   return {
     faction: { id: slug, slug, name: data.name },
     capturedAt: 0,
-    definition: data,
+    definition: toStoredHeroKey(data),
     components: {
       token: { front: imageHref(token), back: null },
       leaders: data.leaders.map((leader, index) => ({

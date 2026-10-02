@@ -1,6 +1,7 @@
 import { expect, test } from 'vitest';
 
 import { assetPublishingFaction } from '../../src/shared/factions/fixtures/assetPublishingFaction';
+import { toStoredHeroKey } from '../../src/shared/factions/schema';
 import type { FactionCapture } from '../../src/shared/play/capture';
 import type { StoredPiece } from '../../src/shared/play/model';
 import type { TableRoster } from '../../src/shared/play/schema';
@@ -20,7 +21,7 @@ function traitorDeck(factionId: string, angle: number) {
     {
       faction: { id: factionId, slug: factionId, name: factionId },
       capturedAt: 0,
-      definition: assetPublishingFaction,
+      definition: toStoredHeroKey(assetPublishingFaction),
       components: {
         token: { front: null, back: null },
         leaders: [],

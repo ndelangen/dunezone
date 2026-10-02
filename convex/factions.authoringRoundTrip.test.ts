@@ -70,15 +70,15 @@ function representativeFullFieldFaction(): FactionInput {
         },
       ],
     },
-    hero: {
-      name: 'Proof Hero',
-      image: assetPublishingFaction.hero.image,
+    leader: {
+      name: 'Proof Leader',
+      image: assetPublishingFaction.leader.image,
     },
     leaders: [
       {
         name: 'Numeric Leader',
         strength: 4,
-        image: assetPublishingFaction.hero.image,
+        image: assetPublishingFaction.leader.image,
       },
       {
         name: 'Letter Leader',

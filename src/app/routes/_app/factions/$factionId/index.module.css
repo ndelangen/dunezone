@@ -6,7 +6,7 @@
 
 .factionSymbol,
 .leaderTile,
-.loreHeroToken {
+.loreLeaderToken {
   overflow: hidden;
   border: 0;
   border-radius: 50%;
@@ -17,7 +17,7 @@
 .factionSymbol > *,
 .leaderTile > *,
 .troopToken > *,
-.loreHeroToken > * {
+.loreLeaderToken > * {
   position: absolute;
   inset: 0;
 }
@@ -125,7 +125,7 @@
   filter: drop-shadow(0 10px 14px rgba(0, 0, 0, 0.25));
 }
 
-.loreHeroToken {
+.loreLeaderToken {
   position: relative;
   width: min(100%, 15rem);
   margin-inline: auto;
@@ -146,7 +146,7 @@
     flex-basis: 100%;
   }
 
-  .loreHeroToken {
+  .loreLeaderToken {
     width: min(100%, 12rem);
   }
 }

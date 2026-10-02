@@ -9,6 +9,10 @@ function schemaLeafPaths(schema: z.ZodType, prefix = ''): string[] {
   if (schema instanceof z.ZodOptional || schema instanceof z.ZodNullable || schema instanceof z.ZodDefault) {
     return schemaLeafPaths(schema.unwrap() as z.ZodType, prefix);
   }
+  /* A preprocess, such as the one that reads the old `hero` key, has its leaves on the schema it feeds. */
+  if (schema instanceof z.ZodPipe) {
+    return schemaLeafPaths(schema.out as z.ZodType, prefix);
+  }
   if (schema instanceof z.ZodObject) {
     return Object.entries(schema.shape).flatMap(([key, child]) =>
       schemaLeafPaths(child as z.ZodType, prefix ? `${prefix}.${key}` : key)
@@ -141,14 +145,14 @@ describe('faction authoring contract', () => {
 
   it('round-trips the complete Leaders and Alliance contract without reordering', () => {
     const faction = structuredClone(defaultFaction);
-    faction.hero = {
-      name: 'Faction hero',
-      image: faction.hero.image,
+    faction.leader = {
+      name: 'Faction leader',
+      image: faction.leader.image,
     };
     faction.leaders = Array.from({ length: 10 }, (_, index) => ({
       name: `Leader ${index + 1}`,
       strength: index === 0 ? 'A' : index + 1,
-      image: faction.hero.image,
+      image: faction.leader.image,
     }));
     faction.rules.alliance.text = '';
     faction.decals = [
@@ -170,7 +174,7 @@ describe('faction authoring contract', () => {
 
     const parsed = FactionInputSchema.parse(structuredClone(faction));
 
-    expect(parsed.hero).toEqual(faction.hero);
+    expect(parsed.leader).toEqual(faction.leader);
     expect(parsed.leaders).toEqual(faction.leaders);
     expect(parsed.leaders).toHaveLength(10);
     expect(parsed.leaders[0].strength).toBe('A');
@@ -209,7 +213,7 @@ describe('faction authoring contract', () => {
   it('blocks only the faction name among schema-valid authored blanks', () => {
     const faction = structuredClone(defaultFaction);
     faction.name = '   ';
-    faction.hero.name = '';
+    faction.leader.name = '';
     faction.rules.alliance.text = '';
 
     const parsed = FactionInputSchema.safeParse(faction);
@@ -227,7 +231,7 @@ describe('faction authoring contract', () => {
 
   it('keeps likely-incomplete blanks advisory and grouped by chapter', () => {
     const faction = structuredClone(defaultFaction);
-    faction.hero.name = '';
+    faction.leader.name = '';
     faction.rules.alliance.text = '  ';
     faction.rules.startText = '';
 
@@ -235,7 +239,7 @@ describe('faction authoring contract', () => {
 
     expect(warnings).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ path: 'hero.name', chapter: 'hero' }),
+        expect.objectContaining({ path: 'leader.name', chapter: 'leader' }),
         expect.objectContaining({ path: 'rules.alliance.text', chapter: 'alliance' }),
         expect.objectContaining({ path: 'rules.startText', chapter: 'rules' }),
       ])

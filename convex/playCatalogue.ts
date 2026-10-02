@@ -9,7 +9,7 @@ import {
   publicationFaceId,
   publishedHref,
 } from '../src/shared/asset-publishing/publicationTargets';
-import { CanonicalFactionStoredSchema } from '../src/shared/factions/schema';
+import { CanonicalFactionStoredSchema, toStoredHeroKey } from '../src/shared/factions/schema';
 import { assetSupplySchema, factionDefinitionSchema, rulesetSupplySchema } from '../src/shared/play/capture';
 import { playDraftableFactionsSchema } from '../src/shared/play/drafting';
 import type { Doc } from './_generated/dataModel';
@@ -103,7 +103,8 @@ export const factionDefinition = query({
     );
     return {
       faction: { id: row._id, slug: row.slug, name: parsed.success ? parsed.data.name : '' },
-      data: parsed.success ? parsed.data : null,
+      /* The glossary term is "leader"; this answer keeps the `hero` literal so a game Worker one deploy behind still reads it. */
+      data: parsed.success ? toStoredHeroKey(parsed.data) : null,
       token: await publishedFace(ctx, 'faction-token', row._id),
       tokenBack: await publishedFace(ctx, 'faction-token', publicationFaceId(row._id, 'back')),
       cardbacks: {

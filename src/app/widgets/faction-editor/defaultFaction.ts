@@ -16,8 +16,8 @@ const defaultFactionInput = {
     influence: 1,
   },
   themeColor: '#444444',
-  hero: {
-    name: 'Hero',
+  leader: {
+    name: 'Faction leader',
     image: LEADERS.options[0],
   },
   leaders: [

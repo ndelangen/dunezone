@@ -99,6 +99,8 @@ const MIGRATION_IDS: Record<string, MigrationRef> = {
   faction_extras_references_verify_v1: internal.migrations.faction_extras_references_verify_v1,
   faction_troop_ids_v1: internal.migrations.faction_troop_ids_v1,
   faction_troop_ids_verify_v1: internal.migrations.faction_troop_ids_verify_v1,
+  faction_leader_key_v1: internal.migrations.faction_leader_key_v1,
+  faction_leader_key_verify_v1: internal.migrations.faction_leader_key_verify_v1,
   play_hosted_fixture_retire_v1: internal.migrations.play_hosted_fixture_retire_v1,
 };
 
@@ -196,20 +198,39 @@ function toMigrationId(name: string): string {
    Validate only the roster this migration changes, preserving every other field. */
 const migrationFactionMemberSchema = z.looseObject({ memberId: FactionMemberIdSchema.optional() });
 const migrationFactionRosterSchema = z.looseObject({
-  hero: migrationFactionMemberSchema,
+  leader: migrationFactionMemberSchema.optional(),
+  /* The glossary term is "leader"; rows saved before `faction_leader_key_v1` hold the Faction leader as `hero`. */
+  hero: migrationFactionMemberSchema.optional(),
   leaders: z.array(migrationFactionMemberSchema),
 });
 
-/** Adds member identities without changing authored fields or the faction's edit timestamp. */
+/** The roster as `leader ?? hero`, which is how the member migrations read a row from before or after `faction_leader_key_v1`. */
+function migrationRosterOf(data: z.infer<typeof migrationFactionRosterSchema>) {
+  const leader = data.leader ?? data.hero;
+  if (!leader) {
+    throw new Error('Faction leader is missing.');
+  }
+  return { leader, leaders: data.leaders };
+}
+
+/** Adds member identities without changing authored fields, the stored leader key or the faction's edit timestamp. */
 export const faction_member_ids_v1 = migrations.define({
   table: 'factions',
   migrateOne: async (ctx, row) => {
     const data = migrationFactionRosterSchema.parse(row.data);
-    const identified = ensureFactionMemberIds(data);
-    if (factionMembersHaveIds(data)) {
+    const roster = migrationRosterOf(data);
+    const identified = ensureFactionMemberIds(roster);
+    if (factionMembersHaveIds(roster)) {
       return;
     }
-    await ctx.db.patch('factions', row._id, { data: identified });
+    await ctx.db.patch('factions', row._id, {
+      data: {
+        ...data,
+        ...(data.leader === undefined ? {} : { leader: identified.leader }),
+        ...(data.hero === undefined ? {} : { hero: identified.leader }),
+        leaders: identified.leaders,
+      },
+    });
   },
 });
 
@@ -218,10 +239,11 @@ export const faction_member_ids_verify_v1 = migrations.define({
   table: 'factions',
   migrateOne: async (_ctx, row) => {
     const parsed = migrationFactionRosterSchema.safeParse(row.data);
-    if (!parsed.success || !factionMembersHaveIds(parsed.data)) {
+    const roster = parsed.success && (parsed.data.leader ?? parsed.data.hero) ? migrationRosterOf(parsed.data) : null;
+    if (!roster || !factionMembersHaveIds(roster)) {
       throw new Error(`Faction ${row._id} has missing or duplicate member identities.`);
     }
-    assertUniqueFactionMemberIds(parsed.data);
+    assertUniqueFactionMemberIds(roster);
   },
 });
 
@@ -1176,6 +1198,36 @@ export const faction_troop_ids_verify_v1 = migrations.define({
       throw new Error(`Faction ${row._id} has missing troop identities.`);
     }
     namingFaction(row._id, () => assertUniqueFactionTroopIds(parsed.data));
+  },
+});
+
+/* The glossary term is "leader".
+   Validate only the two keys this migration reads and keep every other field as stored. */
+const migrationFactionLeaderKeySchema = z.looseObject({ leader: z.unknown().optional(), hero: z.unknown().optional() });
+
+/**
+ * Copies the Faction leader from the old `hero` key to `leader`, without changing authored fields or the faction's edit timestamp.
+ * The old key stays on the row.
+ * Dropping it is the narrowing, left for a later PR together with `readFactionLeaderKey`.
+ */
+export const faction_leader_key_v1 = migrations.define({
+  table: 'factions',
+  batchSize: 50,
+  migrateOne: async (_ctx, row) => {
+    const data = migrationFactionLeaderKeySchema.parse(row.data);
+    return data.leader !== undefined || data.hero === undefined ? undefined : { data: { ...data, leader: data.hero } };
+  },
+});
+
+/** Every stored faction, including deleted sources, must carry `leader` before the narrowing drops `hero`. */
+export const faction_leader_key_verify_v1 = migrations.define({
+  table: 'factions',
+  batchSize: 50,
+  migrateOne: async (_ctx, row) => {
+    const parsed = migrationFactionLeaderKeySchema.safeParse(row.data);
+    if (!parsed.success || parsed.data.leader === undefined) {
+      throw new Error(`Faction ${row._id} has no \`leader\`.`);
+    }
   },
 });
 

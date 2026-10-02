@@ -12,13 +12,19 @@ import type { FactionFormApi } from './factionFormTypes';
 
 const leaderImageOptions = stockAssetOptions(LEADERS.options);
 
-export function FactionFormSectionHero({ form, showPreview = true }: { form: FactionFormApi; showPreview?: boolean }) {
+export function FactionFormSectionLeader({
+  form,
+  showPreview = true,
+}: {
+  form: FactionFormApi;
+  showPreview?: boolean;
+}) {
   return (
     <Stack component="section" gap="md" aria-label="Faction leader">
       <Grid gap="xl" align="center">
         <Grid.Col span={{ base: 12, sm: showPreview ? 8 : 12 }}>
           <Stack gap="md">
-            <form.Field name="hero.name">
+            <form.Field name="leader.name">
               {(field) => {
                 const blank = field.state.value.trim().length === 0;
                 return (
@@ -28,17 +34,17 @@ export function FactionFormSectionHero({ form, showPreview = true }: { form: Fac
                       description="Printed around the leader portrait on the Faction shield."
                       input={
                         <TextInput
-                          id="hero-name"
+                          id="leader-name"
                           aria-label="Faction leader name"
                           value={field.state.value}
-                          aria-describedby={blank ? 'hero-name-warning' : undefined}
+                          aria-describedby={blank ? 'leader-name-warning' : undefined}
                           onBlur={field.handleBlur}
                           onChange={(event) => field.handleChange(event.currentTarget.value)}
                         />
                       }
                     />
                     {blank ? (
-                      <Text id="hero-name-warning" c="var(--color-caution)" size="xs" role="status">
+                      <Text id="leader-name-warning" c="var(--color-caution)" size="xs" role="status">
                         The leader name is empty. This is advisory and does not prevent saving.
                       </Text>
                     ) : null}
@@ -47,13 +53,13 @@ export function FactionFormSectionHero({ form, showPreview = true }: { form: Fac
               }}
             </form.Field>
 
-            <form.Field name="hero.image">
+            <form.Field name="leader.image">
               {(field) => (
                 <ControlBlock
                   title="Faction leader portrait"
                   input={
                     <AssetSelect
-                      id="hero-image"
+                      id="leader-image"
                       aria-label="Faction leader portrait"
                       allowDeselect={false}
                       data={leaderImageOptions}
@@ -61,7 +67,7 @@ export function FactionFormSectionHero({ form, showPreview = true }: { form: Fac
                       value={field.state.value}
                       onChange={(value) => {
                         if (value) {
-                          field.handleChange(value as Faction['hero']['image']);
+                          field.handleChange(value as Faction['leader']['image']);
                         }
                       }}
                     />
@@ -77,11 +83,11 @@ export function FactionFormSectionHero({ form, showPreview = true }: { form: Fac
             <form.Subscribe
               selector={(state) => ({
                 background: state.values.background,
-                hero: state.values.hero,
+                leader: state.values.leader,
                 logo: state.values.logo,
               })}
             >
-              {({ background, hero, logo }) => (
+              {({ background, leader, logo }) => (
                 <Stack align="center" gap="sm">
                   <Text size="xs" fw={700} tt="uppercase" c="dimmed" ta="center">
                     Used on: Faction shield
@@ -89,9 +95,9 @@ export function FactionFormSectionHero({ form, showPreview = true }: { form: Fac
                   <Box w={148} aria-label="Faction leader token preview">
                     <LeaderToken
                       background={background}
-                      image={hero.image}
+                      image={leader.image}
                       logo={logo}
-                      name={hero.name}
+                      name={leader.name}
                       strength={undefined}
                     />
                   </Box>

@@ -2,7 +2,11 @@ import { z } from 'zod';
 
 import { phaseDeclarationSchema } from '../factions/extraPhases';
 import type { PhaseDeclaration } from '../factions/extraPhases';
-import { CanonicalFactionStoredSchema, HistoricalFactionPublicationSchema } from '../factions/schema';
+import {
+  HeroKeyedCanonicalFactionObject,
+  HeroKeyedHistoricalFactionObject,
+  heroKeyedDecoder,
+} from '../factions/schema';
 import { RULESET_ASSET_SLOT_ORDER } from '../rulesets/assetSlots';
 import { storedSpawnContentsSchema } from './inventory';
 import { tableCountSchema } from './schema';
@@ -33,8 +37,13 @@ export type RulesetSupply = z.infer<typeof rulesetSupplySchema>;
  */
 export const factionDefinitionSchema = z.object({
   faction: sourceSchema,
-  /* Phase declarations are widened here: the capture judges each one alone, so one invalid row names itself rather than refusing the faction (#1138). */
-  data: CanonicalFactionStoredSchema.extend({ extraPhases: z.array(z.unknown()).optional() }).nullable(),
+  /*
+   * Phase declarations are widened here: the capture judges each one alone, so one invalid row names itself rather than refusing the faction (#1138).
+   * The glossary term is "leader"; this answer keeps the `hero` literal so a game Worker one deploy behind still reads it.
+   */
+  data: heroKeyedDecoder(
+    HeroKeyedCanonicalFactionObject.extend({ extraPhases: z.array(z.unknown()).optional() })
+  ).nullable(),
   token: z.string().nullable(),
   /* The reversible token's blocked face (#1228); the leaders' shared back is the token's front. Optional so a game Worker still reads a Convex that predates it. */
   tokenBack: z.string().nullish(),
@@ -159,8 +168,11 @@ export const factionCaptureSchema = z.object({
    * Read back through the historical decoder, so a later narrowing of the live faction schema
    * cannot make a game lose a faction it already holds.
    * The declarations are read loosely for the same reason; `capturedDeclarations` keeps the ones the live schema still accepts.
+   * The glossary term is "leader"; captures keep the `hero` literal because games already in Durable Object storage hold it.
    */
-  definition: HistoricalFactionPublicationSchema.extend({ extraPhases: z.array(z.unknown()).optional() }),
+  definition: heroKeyedDecoder(
+    HeroKeyedHistoricalFactionObject.extend({ extraPhases: z.array(z.unknown()).optional() })
+  ),
   components: factionComponentsSchema,
   /** Each Extra is supplied once per faction; a refused reference keeps its name and the reason. */
   extras: z.array(slotCaptureSchema),

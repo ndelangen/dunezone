@@ -1,6 +1,7 @@
 import { expect, test } from 'vitest';
 
 import { assetPublishingFaction } from '../../src/shared/factions/fixtures/assetPublishingFaction';
+import { toStoredHeroKey } from '../../src/shared/factions/schema';
 import { initialSnapshot } from '../../src/shared/play/commands';
 import { freshTableState } from '../../src/shared/play/model';
 import { composeTurn } from '../../src/shared/play/phases';
@@ -17,7 +18,7 @@ test("a deck on the Traitor preset joins a faction's Traitor deck, and every fac
     {
       faction: { id: 'atreides', slug: 'atreides', name: 'Atreides' },
       capturedAt: 0,
-      definition: assetPublishingFaction,
+      definition: toStoredHeroKey(assetPublishingFaction),
       components: {
         token: { front: null, back: null },
         leaders: [],

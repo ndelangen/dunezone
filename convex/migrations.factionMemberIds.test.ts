@@ -46,7 +46,11 @@ function legacyFaction() {
   return {
     ...structuredClone(legacyAssetPublishingFaction),
     background: { ...legacyAssetPublishingFaction.background, image: '/image/texture/retired.jpg' },
-    hero: { ...legacyAssetPublishingFaction.hero, memberId: '00000000-0000-4000-8000-000000000001', legacy: ['kept'] },
+    leader: {
+      ...legacyAssetPublishingFaction.leader,
+      memberId: '00000000-0000-4000-8000-000000000001',
+      legacy: ['kept'],
+    },
     leaders: legacyAssetPublishingFaction.leaders.map((leader) => ({ ...leader, legacy: { text: 'kept' } })),
     legacy: { nested: { text: 'Untouched\n*legacy prose' } },
   };
@@ -105,7 +109,7 @@ describe('faction member identity migration', () => {
     const migrated = await t.run((ctx) => Promise.all(ids.map((id) => ctx.db.get('factions', id))));
     for (const [index, row] of migrated.entries()) {
       const memberIds = [
-        row!.data.hero.memberId,
+        row!.data.leader.memberId,
         ...row!.data.leaders.map((member: { memberId: string }) => member.memberId),
       ];
       expect(memberIds.every((id) => FactionMemberIdSchema.safeParse(id).success)).toBe(true);
@@ -127,12 +131,12 @@ describe('faction member identity migration', () => {
       const data = ensureFactionMemberIds(legacyFaction());
       let invalid: unknown;
       if (kind === 'missing') {
-        const { memberId: _memberId, ...hero } = data.hero;
-        invalid = { ...data, hero };
+        const { memberId: _memberId, ...leader } = data.leader;
+        invalid = { ...data, leader };
       } else if (kind === 'invalid') {
-        invalid = { ...data, hero: { ...data.hero, memberId: 'invalid' } };
+        invalid = { ...data, leader: { ...data.leader, memberId: 'invalid' } };
       } else if (kind === 'duplicate') {
-        invalid = { ...data, leaders: [{ ...data.leaders[0], memberId: data.hero.memberId }] };
+        invalid = { ...data, leaders: [{ ...data.leaders[0], memberId: data.leader.memberId }] };
       } else {
         invalid = { ...data, leaders: [null] };
       }
@@ -148,7 +152,7 @@ describe('faction member identity migration', () => {
     vi.useFakeTimers();
     const t = migrationTest();
     const data = legacyFaction();
-    const id = await seedFaction(t, { ...data, hero: { ...data.hero, memberId: 'invalid' } });
+    const id = await seedFaction(t, { ...data, leader: { ...data.leader, memberId: 'invalid' } });
     await t.mutation(internal.migrations.runRequired, { ids: required });
     await t.finishAllScheduledFunctions(vi.runAllTimers);
     expect(await t.query(internal.migrations.getStatus, { ids: required })).toEqual(

@@ -141,7 +141,7 @@ describe('faction authoring member identity', () => {
     expect(formResets.at(-1)?.values.leaders).toEqual(identified.leaders);
     await session.persistDraft(formResets.at(-1)!.values);
     session.reset();
-    expect(formResets.at(-1)?.values.hero.memberId).toBe(identified.hero.memberId);
+    expect(formResets.at(-1)?.values.leader.memberId).toBe(identified.leader.memberId);
     expect(savedEntries[0]!.data.leaders).toEqual(identified.leaders);
   });
 
@@ -149,7 +149,7 @@ describe('faction authoring member identity', () => {
     const { session, formResets } = makeHarness();
     session.loadDraft(structuredClone(legacyAssetPublishingFaction));
     const imported = formResets.at(-1)!.values;
-    expect(imported.hero.memberId).toEqual(expect.any(String));
+    expect(imported.leader.memberId).toEqual(expect.any(String));
     expect(imported.leaders.every((leader) => !!leader.memberId)).toBe(true);
     session.loadDraft(imported);
     expect(formResets.at(-1)?.values).toEqual(imported);

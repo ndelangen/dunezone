@@ -19,6 +19,7 @@ import capturedFactions from './product.stories.fixture/factions.json';
  * The drafting catalogue's other 13 factions were read from production through the public query API on 2026-09-12, with test rows and jokes left out.
  * The eight profiles are real public profiles with their avatars.
  * All of it is a display-only snapshot the catalogue may since have moved past.
+ * The glossary term is "leader"; the copies keep the `hero` literal they were recorded with, and the parse below reads it as `leader`.
  */
 
 /** The six product factions of the Play page stories, with their provenance beside the JSON. */
