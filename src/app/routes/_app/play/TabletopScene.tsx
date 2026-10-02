@@ -85,6 +85,7 @@ import {
 
 import { useMotionAllowed } from '@app/styles/motion';
 
+import { ArtworkPending } from './ArtworkPending';
 import arrakisMapUrl from './assets/arrakis-map.png?url';
 import stormMarkerUrl from './assets/storm-marker.png?url';
 import { boardFurnitureFor } from './boardFurniture';
@@ -462,8 +463,8 @@ function BoardSurface({
       <BoardRim seatCount={seatCount} />
       {/* The textured parts suspend while their image loads; the boundary keeps that inside the scene, so the
           rim, the furniture and the pieces stay on screen and the map fills in, instead of the route's
-          placeholder replacing a table the visitor has already seen. */}
-      <Suspense fallback={null}>
+          placeholder replacing a table the visitor has already seen. While it waits it counts as unsettled artwork. */}
+      <Suspense fallback={<ArtworkPending />}>
         {(stage !== 'setup' || mapVisible) && <BoardMap animate={stage === 'setup'} />}
         {boardFurnitureFor(stage).storm && <StormSectorHighlight sectorIndex={stormSectorIndex} />}
       </Suspense>
