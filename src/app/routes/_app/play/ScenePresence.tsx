@@ -5,12 +5,12 @@ import type { Vector3Tuple } from '@shared/play/model';
 import type { PublicPointer } from '@shared/play/protocol';
 import { SPECTATOR_SEAT } from '@shared/play/schema';
 import { CARRIED_BASE_Y, pointOnRayAtHeight } from '@shared/play/tableGeometry';
-import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
+import { memo, useEffect, useLayoutEffect, useMemo, useRef, useSyncExternalStore } from 'react';
 import type { Group } from 'three';
 import { Raycaster, Vector2, Vector3 } from 'three';
 
 import { unsettledArtworkLoads } from './artworkLoads';
-import { useTabletop } from './TabletopContext';
+import { useTabletop, useTabletopActions } from './TabletopContext';
 
 function rectangleContainsPoint(bounds: DOMRect, x: number, y: number) {
   return x >= bounds.left && x <= bounds.right && y >= bounds.top && y <= bounds.bottom;
@@ -85,7 +85,7 @@ export function useTablePose(position: Vector3Tuple, orientation: number, remote
   const target = useRef({ position: new Vector3(...position), orientation });
   const initialized = useRef(false);
   const smoothing = useRef<PoseSmoothing>({ active: false, wasRemote: false });
-  const { invalidate } = useThree();
+  const invalidate = useThree((state) => state.invalidate);
   useLayoutEffect(() => {
     target.current.position.set(positionX, positionY, positionZ);
     target.current.orientation = orientation;
@@ -111,54 +111,72 @@ export function useTablePose(position: Vector3Tuple, orientation: number, remote
   return groupRef;
 }
 
-function RemoteHand({ pointer }: { pointer: PublicPointer }) {
-  const group = useTablePose(pointer.position, 0, true);
+const REMOTE_HAND_HTML_STYLE = { pointerEvents: 'none' } as const;
+const REMOTE_HAND_Z_RANGE = [6, 0];
+
+/*
+ * A pointer moves many times a second while its label never changes, so the hand follows the position in the scene
+ * and keeps one label element: drei's `Html` renders its own React root again whenever its children change.
+ */
+const RemoteHand = memo(function RemoteHand({
+  position,
+  color,
+  displayName,
+}: Pick<PublicPointer, 'position' | 'color' | 'displayName'>) {
+  const group = useTablePose(position, 0, true);
+  const label = useMemo(() => <RemoteHandLabel color={color} displayName={displayName} />, [color, displayName]);
   return (
     <group ref={group}>
-      <Html zIndexRange={[6, 0]} style={{ pointerEvents: 'none' }}>
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'flex-end',
-            gap: 3,
-            transform: 'translate(-8px, -2px)',
-            pointerEvents: 'none',
-            userSelect: 'none',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          <svg
-            width="26"
-            height="32"
-            viewBox="0 0 26 32"
-            aria-hidden="true"
-            style={{ overflow: 'visible', filter: 'drop-shadow(0 2px 2px #0008)', flexShrink: 0 }}
-          >
-            <path
-              d="M6 18V4a2 2 0 0 1 4 0v10V11a2 2 0 0 1 4 0v4v-2a2 2 0 0 1 4 0v3v-1a2 2 0 0 1 4 0v8c0 3-2 6-5 7H9l-7-9c-2-3 1-5 3-3l3 3"
-              fill={pointer.color}
-              stroke="#2a2018"
-              strokeWidth="1.4"
-              strokeLinejoin="round"
-            />
-          </svg>
-          <span
-            style={{
-              color: pointer.color,
-              background: '#21170de6',
-              border: `1px solid ${pointer.color}`,
-              borderRadius: 4,
-              padding: '2px 5px',
-              fontFamily: 'system-ui, sans-serif',
-              fontSize: 11,
-              fontWeight: 650,
-            }}
-          >
-            {pointer.displayName}
-          </span>
-        </div>
+      <Html zIndexRange={REMOTE_HAND_Z_RANGE} style={REMOTE_HAND_HTML_STYLE}>
+        {label}
       </Html>
     </group>
+  );
+});
+
+function RemoteHandLabel({ color, displayName }: Pick<PublicPointer, 'color' | 'displayName'>) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'flex-end',
+        gap: 3,
+        transform: 'translate(-8px, -2px)',
+        pointerEvents: 'none',
+        userSelect: 'none',
+        whiteSpace: 'nowrap',
+      }}
+    >
+      <svg
+        width="26"
+        height="32"
+        viewBox="0 0 26 32"
+        aria-hidden="true"
+        style={{ overflow: 'visible', filter: 'drop-shadow(0 2px 2px #0008)', flexShrink: 0 }}
+      >
+        <path
+          d="M6 18V4a2 2 0 0 1 4 0v10V11a2 2 0 0 1 4 0v4v-2a2 2 0 0 1 4 0v3v-1a2 2 0 0 1 4 0v8c0 3-2 6-5 7H9l-7-9c-2-3 1-5 3-3l3 3"
+          fill={color}
+          stroke="#2a2018"
+          strokeWidth="1.4"
+          strokeLinejoin="round"
+        />
+      </svg>
+      <span
+        style={{
+          color,
+          background: '#21170de6',
+          border: `1px solid ${color}`,
+          borderRadius: 4,
+          padding: '2px 5px',
+          fontFamily: 'system-ui, sans-serif',
+          fontSize: 11,
+          fontWeight: 650,
+        }}
+      >
+        {displayName}
+      </span>
+    </div>
   );
 }
 
@@ -189,8 +207,12 @@ declare global {
 }
 
 export function ScenePresence() {
-  const { pointers, canInteract, publishPointer } = useTabletop();
-  const { camera, renderer, scene } = useThree();
+  const { canInteract, publishPointer } = useTabletop();
+  const { subscribePointers, getPointers } = useTabletopActions();
+  const pointers = useSyncExternalStore(subscribePointers, getPointers);
+  const camera = useThree((state) => state.camera);
+  const renderer = useThree((state) => state.renderer);
+  const scene = useThree((state) => state.scene);
   const raycaster = useMemo(() => new Raycaster(), []);
   const normalized = useMemo(() => new Vector2(), []);
   const lastScreenPoint = useRef<{ x: number; y: number } | null>(null);
@@ -338,7 +360,12 @@ export function ScenePresence() {
       {pointers
         .filter((pointer) => pointer.viewerSeat !== SPECTATOR_SEAT)
         .map((pointer) => (
-          <RemoteHand key={pointer.connectionId} pointer={pointer} />
+          <RemoteHand
+            key={pointer.connectionId}
+            position={pointer.position}
+            color={pointer.color}
+            displayName={pointer.displayName}
+          />
         ))}
     </>
   );

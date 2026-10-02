@@ -61,6 +61,7 @@ import { trackerArcSlots, TRACKER_DISC_HEIGHT } from '@shared/play/tableTrackers
 import type { TrackerArcSlot } from '@shared/play/tableTrackers';
 import {
   createContext,
+  memo,
   useContext,
   Suspense,
   useCallback,
@@ -108,7 +109,8 @@ import { TableFurniture } from './TableFurniture';
 import { TableGraphicsBoundary, TableGraphicsUnavailable } from './TableGraphicsBoundary';
 import { useTableLighting } from './tableLighting';
 import { mapViewFramingPoints } from './tablePlateGeometry';
-import { useTabletop } from './TabletopContext';
+import { useTabletop, useTabletopActions } from './TabletopContext';
+import type { TabletopContextValue } from './TabletopContext';
 import styles from './TabletopScene.module.css';
 import { activePhaseIndex, trackerDiscColor } from './tableTrackers';
 import type { TableProgress } from './tableTrackers';
@@ -757,23 +759,54 @@ function SpiceLayers({ piece }: { piece: TablePiece }) {
   );
 }
 
-type TablePieceMeshProps = {
-  piece: TablePiece;
+/*
+ * What a piece shows besides itself, worked out by the scene so each piece receives plain values.
+ * A piece renders again only when one of them or the piece changes, not on every update to the table.
+ */
+type PieceSceneState = {
+  selected: boolean;
+  stackTargeted: boolean;
+  drafted: boolean;
+  remoteCarried: boolean;
+  locallyCarried: boolean;
+  reserved: boolean;
+  interactionBlocked: boolean;
+  canHandleTable: boolean;
+  /* No piece opens its menu while a piece is in hand. */
+  carrying: boolean;
+  owner: string | undefined;
 };
 
-function usePieceCarryState(piece: TablePiece) {
-  const { state, gestureActivePieceId, canHandleTable, remoteCarriedIds, reservedPieceIds } = useTabletop();
+type TablePieceMeshProps = { piece: TablePiece } & PieceSceneState;
+
+function pieceSceneState(
+  piece: TablePiece,
+  {
+    state,
+    gestureActivePieceId,
+    canHandleTable,
+    remoteCarriedIds,
+    reservedPieceIds,
+  }: Pick<
+    TabletopContextValue,
+    'state' | 'gestureActivePieceId' | 'canHandleTable' | 'remoteCarriedIds' | 'reservedPieceIds'
+  >
+): PieceSceneState {
   const drafted = state.draftMove?.pieceId === piece.id;
   const remoteCarried = remoteCarriedIds.has(piece.id);
-  const locallyCarried = drafted && gestureActivePieceId !== null;
   const reserved = reservedPieceIds.has(piece.id);
   const localSource = state.draftMove?.sourcePieceId === piece.id;
   return {
+    selected: state.selectedPieceId === piece.id,
+    stackTargeted: state.draftMove?.targetPieceId === piece.id,
     drafted,
     remoteCarried,
-    locallyCarried,
+    locallyCarried: drafted && gestureActivePieceId !== null,
     reserved,
     interactionBlocked: !canHandleTable || remoteCarried || (reserved && !localSource),
+    canHandleTable,
+    carrying: Boolean(state.draftMove),
+    owner: pieceOwnerName(piece, state),
   };
 }
 
@@ -901,13 +934,14 @@ function pieceHoverCursor(canInteract: boolean, interactionBlocked: boolean, ges
 /* Opens a piece's menu at a point; `touch` says a finger asked for it, which has no keyboard shortcut to offer. */
 const PieceMenuContext = createContext<((pieceId: string, x: number, y: number, touch: boolean) => void) | null>(null);
 
-function usePiecePointerEvents({ piece }: TablePieceMeshProps, interactionBlocked: boolean) {
-  const { state, selectPiece, setHoveredPiece, canHandleTable } = useTabletop();
+function usePiecePointerEvents({ piece, interactionBlocked, canHandleTable, carrying }: TablePieceMeshProps) {
+  const { selectPiece, setHoveredPiece } = useTabletopActions();
   const openPieceMenu = useContext(PieceMenuContext);
-  const { renderer } = useThree();
+  /* A selector, so a change elsewhere in the scene's store does not render every piece again. */
+  const renderer = useThree((state) => state.renderer);
   const pointerSession = usePointerSession();
   const gestureBlocked = gestureBlockReason(piece);
-  const hasMenu = !state.draftMove && (piece.kind === 'card' || isSpicePiece(piece)) && !piece.inventory;
+  const hasMenu = !carrying && (piece.kind === 'card' || isSpicePiece(piece)) && !piece.inventory;
   const stopLongPress = useRef<(() => void) | null>(null);
   useEffect(() => () => stopLongPress.current?.(), []);
 
@@ -1113,13 +1147,10 @@ function PieceBadge({
   );
 }
 
-function TablePieceMesh(props: TablePieceMeshProps) {
-  const { piece } = props;
-  const { state, finishPieceFlip } = useTabletop();
-  const { drafted, remoteCarried, locallyCarried, reserved, interactionBlocked } = usePieceCarryState(piece);
-  const pointerEvents = usePiecePointerEvents(props, interactionBlocked);
-  const selected = state.selectedPieceId === piece.id;
-  const stackTargeted = state.draftMove?.targetPieceId === piece.id;
+const TablePieceMesh = memo(function TablePieceMesh(props: TablePieceMeshProps) {
+  const { piece, drafted, remoteCarried, locallyCarried, reserved, selected, stackTargeted, owner } = props;
+  const { finishPieceFlip } = useTabletopActions();
+  const pointerEvents = usePiecePointerEvents(props);
   const displayedCount = pieceCount(piece);
   const emptyProjection = displayedCount === 0;
   const carried = locallyCarried || remoteCarried;
@@ -1179,18 +1210,12 @@ function TablePieceMesh(props: TablePieceMeshProps) {
             </group>
           </group>
           <PieceLock piece={piece} />
-          <PieceBadge
-            piece={piece}
-            owner={pieceOwnerName(piece, state)}
-            selected={selected}
-            labelRef={labelRef}
-            badgeRef={badgeRef}
-          />
+          <PieceBadge piece={piece} owner={owner} selected={selected} labelRef={labelRef} badgeRef={badgeRef} />
         </>
       ) : null}
     </group>
   );
-}
+});
 
 function useSceneInteractions(onInteractionActiveChange: TabletopSceneProps['onInteractionActiveChange']) {
   const { gestureActivePieceId } = useTabletop();
@@ -1263,7 +1288,8 @@ function SceneContents({
   trackerSlots: readonly TrackerArcSlot[];
   mapFramingPoints: readonly Vector3Tuple[];
 }) {
-  const { state, renderedPieces, selectPiece } = useTabletop();
+  const table = useTabletop();
+  const { state, renderedPieces, selectPiece } = table;
   const { controlsEnabled, onPointerSessionChange } = useSceneInteractions(onInteractionActiveChange);
   useScenePointerSession(onPointerSessionChange);
   useCanvasHoverReset();
@@ -1288,7 +1314,7 @@ function SceneContents({
         {renderedPieces
           .filter((piece) => !piece.battleOverlay)
           .map((piece) => (
-            <TablePieceMesh key={piece.id} piece={piece} />
+            <TablePieceMesh key={piece.id} piece={piece} {...pieceSceneState(piece, table)} />
           ))}
       </group>
       <CameraControls enabled={controlsEnabled} command={cameraView} mapFramingPoints={mapFramingPoints} />
@@ -1310,6 +1336,18 @@ export function TabletopScene({
 }: TabletopSceneProps) {
   const { takeAdditionalFromTarget, state, deckControls, bankControls } = useTabletop();
   const [pieceMenu, setPieceMenu] = useState<{ pieceId: string; x: number; y: number; touch: boolean } | null>(null);
+  /* One opener for the table's life: a new one on every update would render every piece again. */
+  const openPieceMenu = useCallback(
+    (pieceId: string, x: number, y: number, touch: boolean) =>
+      /* A long press may also send a context menu; the second opening keeps the finger's menu. */
+      setPieceMenu((current) => ({
+        pieceId,
+        x,
+        y,
+        touch: touch || (current?.pieceId === pieceId && current.touch),
+      })),
+    []
+  );
   const menuPiece = state.pieces.find((piece) => piece.id === pieceMenu?.pieceId);
   const pieceMenuName = isSpicePiece(menuPiece) ? 'Spice actions' : 'Deck actions';
   const pieceMenuLabelId = useId();
@@ -1432,20 +1470,7 @@ export function TabletopScene({
           )}
         </Menu.Dropdown>
       </Menu>
-      <PieceMenuContext.Provider
-        value={
-          deckControls || bankControls
-            ? (pieceId, x, y, touch) =>
-                /* A long press may also send a context menu; the second opening keeps the finger's menu. */
-                setPieceMenu((current) => ({
-                  pieceId,
-                  x,
-                  y,
-                  touch: touch || (current?.pieceId === pieceId && current.touch),
-                }))
-            : null
-        }
-      >
+      <PieceMenuContext.Provider value={deckControls || bankControls ? openPieceMenu : null}>
         {graphics === 'unavailable' && <TableGraphicsUnavailable onShown={onSceneReady} />}
         {graphics === 'ready' && (
           <TableGraphicsBoundary onShown={onSceneReady}>
