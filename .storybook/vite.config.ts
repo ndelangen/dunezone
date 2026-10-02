@@ -3,7 +3,7 @@ import { defineConfig } from 'vite';
 import type { Plugin } from 'vite';
 
 import { reactCompiler } from '../scripts/lib/reactCompiler.ts';
-import { threeRendererStackAliases } from '../scripts/lib/threeRendererStack.ts';
+import { threeRendererStackAliases, threeRendererStackTreeShaking } from '../scripts/lib/threeRendererStack.ts';
 import { pageStylesheetStaysWithItsStory } from './pageStylesheet.ts';
 import {
   convexWorkerAliases,
@@ -88,6 +88,7 @@ export default defineConfig({
     pageStylesheetStaysWithItsStory(),
     viteReact(),
     reactCompiler(),
+    threeRendererStackTreeShaking(),
     quietDeferredAssetWarnings(),
   ],
   worker: {

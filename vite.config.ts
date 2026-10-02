@@ -10,7 +10,7 @@ import { configDefaults, defineConfig } from 'vitest/config';
 import { browserLaunchTests } from './browser-launch-tests.ts';
 import { coverageExclude, coverageInclude } from './coverage-denominator.ts';
 import { reactCompiler } from './scripts/lib/reactCompiler.ts';
-import { threeRendererStackAliases } from './scripts/lib/threeRendererStack.ts';
+import { threeRendererStackAliases, threeRendererStackTreeShaking } from './scripts/lib/threeRendererStack.ts';
 
 /**
  * Codecov's bundle-report normalizer wildcards from the first `-` to the next `.`, so a dash or dot inside a base name either collapses distinct files into one normalized name (lato-latin-300-normal -> lato-*) or leaves the hash un-wildcarded (floating-ui.react-dom-<hash>).
@@ -129,6 +129,7 @@ const config = defineConfig({
     }),
     viteReact(),
     reactCompiler(),
+    threeRendererStackTreeShaking(),
   ]),
 });
 
