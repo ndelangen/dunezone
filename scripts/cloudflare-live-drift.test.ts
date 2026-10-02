@@ -88,6 +88,7 @@ function gameResponse(url: URL): Response {
         { name: 'CONVEX_URL', type: 'plain_text', text: 'https://exuberant-finch-263.eu-west-1.convex.cloud' },
         { name: 'APPLICATION_ORIGIN', type: 'plain_text', text: 'https://dune.zone' },
         { name: 'GIT_SHA', type: 'plain_text', text: '0123456789abcdef0123456789abcdef01234567' },
+        { name: 'ALERT_EMAIL', type: 'send_email' },
       ],
       compatibility_date: '2026-08-11',
       compatibility_flags: ['nodejs_compat'],
@@ -239,7 +240,7 @@ describe('Cloudflare live drift check', () => {
       cronCount: 1,
       queueCount: 1,
       bucketCount: 2,
-      game: { worker: 'dunezone-game', namespaceId: ACCOUNT_ID, bindingCount: 5 },
+      game: { worker: 'dunezone-game', namespaceId: ACCOUNT_ID, bindingCount: 6 },
     });
     expect(live.requests).toHaveLength(18);
     expect(new Set(live.requests.map((request) => request.method))).toEqual(new Set(['GET']));
