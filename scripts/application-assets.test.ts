@@ -6,6 +6,7 @@ import { afterEach, expect, test, vi } from 'vitest';
 
 import {
   APPLICATION_ASSET_MANIFEST,
+  bootstrapApplicationAssets,
   APPLICATION_ASSET_RETENTION_MS,
   retainApplicationAssets,
   writeApplicationAssetManifest,
@@ -66,4 +67,22 @@ test('rejects paths outside the hashed browser bundle directory', async () => {
   const readPrevious = vi.fn();
   await expect(retainApplicationAssets(second.directory, first.manifest, readPrevious, 2)).rejects.toThrow();
   expect(readPrevious).not.toHaveBeenCalled();
+});
+
+test('bootstraps transitive Vite imports, preload maps and CSS font URLs', async () => {
+  const files: Record<string, string> = {
+    'public/index-abcd.js': `import './shared-abcd.js';const lazy=["public/editor-abcd.js", "public/page-abcd.css"];`,
+    'public/shared-abcd.js': `import './index-abcd.js';`,
+    'public/editor-abcd.js': `import('./leaf-abcd.js')`,
+    'public/leaf-abcd.js': 'leaf',
+    'public/page-abcd.css': `@font-face{src:url(/public/font-abcd.woff2)}`,
+    'public/font-abcd.woff2': 'font bytes',
+  };
+  const read = vi.fn(async (file: string) => new TextEncoder().encode(files[file]));
+  const result = await bootstrapApplicationAssets('<script src="/public/index-abcd.js"></script>', read, 1);
+  expect(result.manifest.files.map((file) => file.path).sort()).toEqual(Object.keys(files).sort());
+  expect(read).toHaveBeenCalledTimes(6);
+  await expect(bootstrapApplicationAssets('<html>unavailable</html>', read)).rejects.toThrow(
+    'no hashed application entry'
+  );
 });

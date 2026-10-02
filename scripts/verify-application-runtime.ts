@@ -25,7 +25,7 @@ try {
     assert.equal(response.headers.get('Set-Cookie'), null, pathname);
     const html = await response.text();
     assert.ok(html.endsWith('</html>'), `${pathname} returned a truncated document`);
-    const scripts = [...html.matchAll(/<script[^>]+src="([^\"]+)"/g)].map((match) => match[1]!);
+    const scripts = [...html.matchAll(/<script[^>]+src="([^"]+)"/g)].map((match) => match[1]!);
     assert.ok(scripts.length > 0, `${pathname} has no hydration entry`);
     for (const script of scripts) {
       const asset = await worker.fetch(script);

@@ -30,6 +30,47 @@ function digest(bytes: Uint8Array): string {
   return createHash('sha256').update(bytes).digest('hex');
 }
 
+/** Import the deployed Vite dependency graph once, before it has a retention manifest. */
+export async function bootstrapApplicationAssets(
+  html: string,
+  readPrevious: (assetPath: string) => Promise<Uint8Array>,
+  now = Date.now()
+): Promise<{ manifest: ApplicationAssetManifest; bytes: Map<string, Uint8Array> }> {
+  const pending = new Set<string>();
+  const bytes = new Map<string, Uint8Array>();
+  const discover = (text: string) => {
+    /* Vite uses /public URLs in HTML/CSS, public URLs in preload maps, and sibling imports in JS. */
+    for (const match of text.matchAll(/["'(](?:\/?public\/|\.\/)([A-Za-z0-9_~-]+-[A-Za-z0-9_-]+\.[A-Za-z0-9.]+)/g)) {
+      pending.add(`public/${match[1]}`);
+    }
+  };
+  discover(html);
+  if (![...pending].some((file) => file.endsWith('.js'))) {
+    throw new Error('The deployed shell has no hashed application entry');
+  }
+  for (const file of pending) {
+    if (pending.size > 20_000) {
+      throw new Error('The deployed application graph exceeds the asset limit');
+    }
+    const content = await readPrevious(file);
+    bytes.set(file, content);
+    if (/\.(js|css)$/.test(file)) {
+      discover(new TextDecoder().decode(content));
+    }
+  }
+  const manifest = manifestSchema.parse({
+    version: 1,
+    files: [...bytes].map(([file, content]) => ({
+      path: file,
+      sha256: digest(content),
+      bytes: content.length,
+      current: true,
+      lastUsedAt: now,
+    })),
+  });
+  return { manifest, bytes };
+}
+
 export function writeApplicationAssetManifest(directory: string, now = Date.now()): ApplicationAssetManifest {
   const manifest = manifestSchema.parse({
     version: 1,

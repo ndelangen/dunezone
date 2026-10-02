@@ -108,9 +108,10 @@ omit them after that window. No request-time R2 lookup or new storage binding is
 The manifest lists only hashed `/public/` files. Downloads must match their SHA-256 and byte count;
 a reused URL with different bytes fails the release. The existing Static Assets count and file-size
 gates apply after retention. A missing or corrupt manifest stops deployment once this feature has
-shipped. The initial rollout has no predecessor manifest, so retention starts with this release.
-Tabs from before that rollout, or left open beyond seven days, have no availability guarantee and
-may need a refresh. Stable artwork and font URLs retain their existing delivery rules.
+shipped. The initial rollout imports the currently deployed Vite dependency graph from the live shell,
+including dynamic imports, preload maps, stylesheets and their hashed resources. It rejects HTML
+fallbacks masquerading as missing scripts. Tabs already broken before rollout, or left open beyond
+seven days after replacement, may still need a refresh. Stable artwork and font URLs retain their existing delivery rules.
 
 `publisher:application-runtime:verify` starts the assembled Worker locally and checks complete HTML,
 hydration-entry availability, public dispatch, browser-only paths and protected capture delivery.
