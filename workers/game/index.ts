@@ -1899,6 +1899,7 @@ export class GameRoom extends DurableObject<GameEnv> {
               ...message,
               phaseCooldownMs,
               battleCountdownMs,
+              historySteps: this.session.historySteps,
               ...clock,
             }
           : { ...message, ...clock }

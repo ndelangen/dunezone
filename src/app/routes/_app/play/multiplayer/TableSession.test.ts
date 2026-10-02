@@ -913,6 +913,15 @@ describe('hosted table interaction', () => {
     expect(command().expectedRevision).toBe(4);
   });
 
+  test('playback offers the checkpoints the live game saves while a viewer sits at the last one', async () => {
+    const client = await connected();
+    client.requestHistory(2);
+    socket().deliver({ type: 'history', step: 2, lastStep: 2, snapshot: initialSnapshot() });
+    expect(table(client).playback).toEqual({ step: 2, lastStep: 2 });
+    socket().deliver(view({ snapshot: { ...initialSnapshot(), revision: 4, phase: 2 }, historySteps: 3 }));
+    expect(table(client).playback).toEqual({ step: 2, lastStep: 3 });
+  });
+
   test('retains the pending flip gate through acceptance and animation completion', async () => {
     const client = await connected();
     const snapshot = table(client).snapshot;

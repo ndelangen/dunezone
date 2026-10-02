@@ -256,6 +256,8 @@ export const serverMessageSchema = z.discriminatedUnion('type', [
     type: z.literal('view'),
     phaseCooldownMs: count.optional(),
     battleCountdownMs: count.optional(),
+    /* The room's newest history step, so playback offers the steps saved while a viewer looks back. */
+    historySteps: count.optional(),
     sequence: count.optional(),
     viewer: viewerSchema,
     epoch: id,
@@ -268,6 +270,7 @@ export const serverMessageSchema = z.discriminatedUnion('type', [
     type: z.literal('update'),
     phaseCooldownMs: count.optional(),
     battleCountdownMs: count.optional(),
+    historySteps: count.optional(),
     epoch: id,
     baseSequence: count,
     sequence: count,
