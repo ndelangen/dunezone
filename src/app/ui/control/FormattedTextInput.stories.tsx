@@ -80,3 +80,11 @@ export const MarksOnlyRejectsParagraphs = meta.story({
     value: '1 *free* revival.\nThis second line is not allowed.',
   },
 });
+
+/** Words the glossary says differently get a callout; Fix wording swaps the ones it can, and Undo puts the draft back. */
+export const WordingHints = meta.story({
+  args: {
+    label: 'Answer',
+    value: 'Ship your forces before combat, then fight with your best hero.',
+  },
+});

@@ -21,6 +21,11 @@ type AvoidedWord = {
   forms?: readonly string[];
   /** Text around a match that makes it acceptable, such as the card name Cheap Hero. */
   exceptions?: readonly RegExp[];
+  /**
+   * What each spelling becomes when an author asks to fix their wording, keyed by the lowercase spelling.
+   * A spelling without an entry is only pointed out, because swapping it would break the sentence, as with a verb.
+   */
+  fixes?: Readonly<Record<string, string>>;
   /** False keeps the word out of input hints because it has common meanings outside the game; the page still lists it. */
   hint?: boolean;
 };
@@ -59,10 +64,10 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
       'The 2019 rulebook calls these tokens forces. Dune Zone says troop, the word its faction editor and catalogue are built on, so one name runs through the whole site.',
     source: 'house',
     avoid: [
-      { word: 'forces' },
+      { word: 'forces', fixes: { forces: 'troops' } },
       { word: 'force', hint: false },
       { word: 'unit', forms: ['units'], hint: false },
-      { word: 'soldier', forms: ['soldiers'] },
+      { word: 'soldier', forms: ['soldiers'], fixes: { soldier: 'troop', soldiers: 'troops' } },
     ],
   },
   {
@@ -75,9 +80,21 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
       'The rulebook calls these starred forces. Elite troop follows Dune Zone’s choice of troop and names all of them at once.',
     source: 'house',
     avoid: [
-      { word: 'elite force', forms: ['elite forces'] },
-      { word: 'special force', forms: ['special forces'] },
-      { word: 'starred force', forms: ['starred forces'] },
+      {
+        word: 'elite force',
+        forms: ['elite forces'],
+        fixes: { 'elite force': 'elite troop', 'elite forces': 'elite troops' },
+      },
+      {
+        word: 'special force',
+        forms: ['special forces'],
+        fixes: { 'special force': 'elite troop', 'special forces': 'elite troops' },
+      },
+      {
+        word: 'starred force',
+        forms: ['starred forces'],
+        fixes: { 'starred force': 'elite troop', 'starred forces': 'elite troops' },
+      },
     ],
   },
   {
@@ -99,9 +116,13 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
     reason: 'The rulebook name. Graveyard and dead pile are borrowed from other games.',
     source: 'rulebook',
     avoid: [
-      { word: 'tanks', exceptions: [/tleilaxu\s+tanks/i, /the\s+tanks/i] },
-      { word: 'graveyard', forms: ['graveyards'] },
-      { word: 'dead pile' },
+      { word: 'tanks', exceptions: [/tleilaxu\s+tanks/i, /the\s+tanks/i], fixes: { tanks: 'Tleilaxu Tanks' } },
+      {
+        word: 'graveyard',
+        forms: ['graveyards'],
+        fixes: { graveyard: 'Tleilaxu Tanks', graveyards: 'Tleilaxu Tanks' },
+      },
+      { word: 'dead pile', fixes: { 'dead pile': 'Tleilaxu Tanks' } },
     ],
   },
   {
@@ -113,7 +134,7 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
     reason: 'Dune Zone’s word for every cardboard component that is not a card.',
     source: 'house',
     avoid: [
-      { word: 'chit', forms: ['chits'] },
+      { word: 'chit', forms: ['chits'], fixes: { chit: 'token', chits: 'tokens' } },
       { word: 'counter', forms: ['counters'], hint: false },
     ],
   },
@@ -124,7 +145,10 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
     explanation: 'One full pass through all nine phases. A game lasts a set number of turns.',
     reason: 'The rulebook only ever says turn. Round means the same thing, so it is not used.',
     source: 'rulebook',
-    avoid: [{ word: 'rounds' }, { word: 'round', hint: false }],
+    avoid: [
+      { word: 'rounds', fixes: { rounds: 'turns' } },
+      { word: 'round', hint: false },
+    ],
   },
   {
     id: 'phase',
@@ -154,8 +178,16 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
     reason: 'The rulebook phase name, with revive as its verb.',
     source: 'rulebook',
     avoid: [
-      { word: 'resurrect', forms: ['resurrects', 'resurrected', 'resurrection'] },
-      { word: 'respawn', forms: ['respawns', 'respawned'] },
+      {
+        word: 'resurrect',
+        forms: ['resurrects', 'resurrected', 'resurrection'],
+        fixes: { resurrect: 'revive', resurrects: 'revives', resurrected: 'revived', resurrection: 'revival' },
+      },
+      {
+        word: 'respawn',
+        forms: ['respawns', 'respawned'],
+        fixes: { respawn: 'revive', respawns: 'revives', respawned: 'revived' },
+      },
     ],
   },
   {
@@ -167,7 +199,16 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
     reason: 'The rulebook phase name, written out in full so it reads the same everywhere.',
     source: 'rulebook',
     avoid: [
-      { word: 'ship & move', forms: ['ship and move', 'shipping and movement', 'ship/move'] },
+      {
+        word: 'ship & move',
+        forms: ['ship and move', 'shipping and movement', 'ship/move'],
+        fixes: {
+          'ship & move': 'Shipment and Movement',
+          'ship and move': 'Shipment and Movement',
+          'shipping and movement': 'Shipment and Movement',
+          'ship/move': 'Shipment and Movement',
+        },
+      },
       { word: 'deploy', forms: ['deploys', 'deployed', 'deployment'] },
     ],
   },
@@ -178,7 +219,7 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
     explanation: 'The phase where troops standing on spice collect it from the board.',
     reason: 'The 2019 rulebook names the phase Spice Harvest; the older rules called it Spice Collection.',
     source: 'rulebook',
-    avoid: [{ word: 'spice collection', forms: ['collection phase'] }],
+    avoid: [{ word: 'spice collection', forms: ['collection phase'], fixes: { 'spice collection': 'Spice Harvest' } }],
   },
   {
     id: 'battle',
@@ -190,10 +231,10 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
       'The rulebook uses battle for the phase, the event and the act, and never uses combat. One word for all three keeps rules text and code readable.',
     source: 'rulebook',
     avoid: [
-      { word: 'combat', forms: ['combats'] },
+      { word: 'combat', forms: ['combats'], fixes: { combat: 'battle', combats: 'battles' } },
       { word: 'combatant', forms: ['combatants', 'noncombatant', 'non-combatant'] },
       { word: 'fight', forms: ['fights', 'fighting', 'fought'] },
-      { word: 'duel', forms: ['duels'] },
+      { word: 'duel', forms: ['duels'], fixes: { duel: 'battle', duels: 'battles' } },
     ],
   },
   {
@@ -205,7 +246,7 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
     reason:
       'The rulebook word. Attacker suggests the aggressor started the battle by choice, when storm order decides who it is.',
     source: 'rulebook',
-    avoid: [{ word: 'attacker', forms: ['attackers'] }],
+    avoid: [{ word: 'attacker', forms: ['attackers'], fixes: { attacker: 'aggressor', attackers: 'aggressors' } }],
   },
   {
     id: 'battle-plan',
@@ -215,7 +256,10 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
       'The secret choices each faction makes for one battle: how many troops to dial, which leader to send, and which weapon and defense cards to play.',
     reason: 'The rulebook word.',
     source: 'rulebook',
-    avoid: [{ word: 'battle strategy' }, { word: 'combat plan' }],
+    avoid: [
+      { word: 'battle strategy', fixes: { 'battle strategy': 'battle plan' } },
+      { word: 'combat plan', fixes: { 'combat plan': 'battle plan' } },
+    ],
   },
   {
     id: 'battle-wheel',
@@ -224,7 +268,10 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
     explanation: 'The dial each faction turns in secret to choose how many troops it commits to a battle.',
     reason: 'The rulebook calls the component the battle wheel; dial is what you do with it.',
     source: 'rulebook',
-    avoid: [{ word: 'battle dial' }, { word: 'combat wheel' }],
+    avoid: [
+      { word: 'battle dial', fixes: { 'battle dial': 'battle wheel' } },
+      { word: 'combat wheel', fixes: { 'combat wheel': 'battle wheel' } },
+    ],
   },
   {
     id: 'territory',
@@ -236,8 +283,13 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
       'The rulebook word. Region already means something else in Dune Zone’s rulebook editor, and area and zone are vaguer.',
     source: 'rulebook',
     avoid: [
-      { word: 'region', forms: ['regions'] },
-      { word: 'zone', forms: ['zones'], exceptions: [/dune\s+zone/i] },
+      { word: 'region', forms: ['regions'], fixes: { region: 'territory', regions: 'territories' } },
+      {
+        word: 'zone',
+        forms: ['zones'],
+        exceptions: [/dune\s+zone/i],
+        fixes: { zone: 'territory', zones: 'territories' },
+      },
       { word: 'area', forms: ['areas'], hint: false },
     ],
   },
@@ -250,7 +302,7 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
     reason: 'The rulebook word.',
     source: 'rulebook',
     avoid: [
-      { word: 'wedge', forms: ['wedges'] },
+      { word: 'wedge', forms: ['wedges'], fixes: { wedge: 'sector', wedges: 'sectors' } },
       { word: 'slice', forms: ['slices'], hint: false },
     ],
   },
@@ -264,7 +316,7 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
     source: 'rulebook',
     avoid: [
       { word: 'city', forms: ['cities'], hint: false },
-      { word: 'fortress', forms: ['fortresses'] },
+      { word: 'fortress', forms: ['fortresses'], fixes: { fortress: 'stronghold', fortresses: 'strongholds' } },
     ],
   },
   {
@@ -288,9 +340,9 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
     source: 'rulebook',
     avoid: [
       { word: 'melange', hint: false },
-      { word: 'credit', forms: ['credits'] },
-      { word: 'solari', forms: ['solaris'] },
-      { word: 'money' },
+      { word: 'credit', forms: ['credits'], fixes: { credit: 'spice', credits: 'spice' } },
+      { word: 'solari', forms: ['solaris'], fixes: { solari: 'spice', solaris: 'spice' } },
+      { word: 'money', fixes: { money: 'spice' } },
     ],
   },
   {
@@ -301,7 +353,10 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
       'The shared pile of spice that belongs to nobody. Spice you pay goes to the Spice Bank, and spice you collect comes from it.',
     reason: 'The rulebook word. Spice supply and spice pool describe the same pile.',
     source: 'rulebook',
-    avoid: [{ word: 'spice supply' }, { word: 'spice pool' }],
+    avoid: [
+      { word: 'spice supply', fixes: { 'spice supply': 'Spice Bank' } },
+      { word: 'spice pool', fixes: { 'spice pool': 'Spice Bank' } },
+    ],
   },
   {
     id: 'treachery-card',
@@ -311,7 +366,13 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
       'A card bought during Bidding: weapons, defenses and special effects you play in battle or at other moments.',
     reason: 'The rulebook word.',
     source: 'rulebook',
-    avoid: [{ word: 'trick card', forms: ['trick cards'] }],
+    avoid: [
+      {
+        word: 'trick card',
+        forms: ['trick cards'],
+        fixes: { 'trick card': 'treachery card', 'trick cards': 'treachery cards' },
+      },
+    ],
   },
   {
     id: 'traitor-card',
@@ -333,8 +394,16 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
       'The rulebook word. Territory card names the card after what is printed on it rather than the deck it belongs to.',
     source: 'rulebook',
     avoid: [
-      { word: 'territory card', forms: ['territory cards'] },
-      { word: 'spice blow card', forms: ['spice blow cards'] },
+      {
+        word: 'territory card',
+        forms: ['territory cards'],
+        fixes: { 'territory card': 'spice card', 'territory cards': 'spice cards' },
+      },
+      {
+        word: 'spice blow card',
+        forms: ['spice blow cards'],
+        fixes: { 'spice blow card': 'spice card', 'spice blow cards': 'spice cards' },
+      },
     ],
   },
   {
@@ -345,7 +414,7 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
       'A treachery card that lets you break the rules once, usually by cancelling another faction’s advantage.',
     reason: 'The rulebook spelling.',
     source: 'rulebook',
-    avoid: [{ word: 'karma' }],
+    avoid: [{ word: 'karma', fixes: { karma: 'Karama' } }],
   },
   {
     id: 'faction',
@@ -361,6 +430,7 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
         word: 'house',
         forms: ['houses'],
         exceptions: [/(?:[Hh]ouses?|HOUSES?)\s+\p{Lu}/gu, /great\s+houses?/i, /house\s+rules?/i],
+        fixes: { house: 'faction', houses: 'factions' },
       },
     ],
   },
@@ -375,8 +445,13 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
     source: 'rulebook',
     avoid: [
       { word: 'ability', forms: ['abilities'], hint: false },
-      { word: 'power', forms: ['powers'], exceptions: [/desert\s+power/i] },
-      { word: 'perk', forms: ['perks'] },
+      {
+        word: 'power',
+        forms: ['powers'],
+        exceptions: [/desert\s+power/i],
+        fixes: { power: 'advantage', powers: 'advantages' },
+      },
+      { word: 'perk', forms: ['perks'], fixes: { perk: 'advantage', perks: 'advantages' } },
     ],
   },
   {
@@ -388,9 +463,14 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
     reason: 'The rulebook word. Hero is kept only for the treachery card Cheap Hero, which stands in for a leader.',
     source: 'rulebook',
     avoid: [
-      { word: 'hero', forms: ['heroes'], exceptions: [/cheap\s+hero(?:es)?/i] },
+      {
+        word: 'hero',
+        forms: ['heroes'],
+        exceptions: [/cheap\s+hero(?:es)?/i],
+        fixes: { hero: 'leader', heroes: 'leaders' },
+      },
       { word: 'general', forms: ['generals'], hint: false },
-      { word: 'commander', forms: ['commanders'] },
+      { word: 'commander', forms: ['commanders'], fixes: { commander: 'leader', commanders: 'leaders' } },
     ],
   },
   {
@@ -401,7 +481,7 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
       'The Atreides’ special token. Once the Atreides have lost enough troops, it can join a leader in battle, adding strength and stopping that leader from turning traitor.',
     reason: 'Written out in full so new players can look it up.',
     source: 'rulebook',
-    avoid: [{ word: 'KH' }],
+    avoid: [{ word: 'KH', fixes: { kh: 'Kwisatz Haderach' } }],
   },
   {
     id: 'alliance',
@@ -413,7 +493,7 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
     source: 'rulebook',
     avoid: [
       { word: 'team', forms: ['teams'], hint: false },
-      { word: 'coalition', forms: ['coalitions'] },
+      { word: 'coalition', forms: ['coalitions'], fixes: { coalition: 'alliance', coalitions: 'alliances' } },
     ],
   },
 ];

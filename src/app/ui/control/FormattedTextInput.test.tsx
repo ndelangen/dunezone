@@ -147,9 +147,9 @@ it('suggests the glossary word for an avoided one without marking the field inva
 
   const field = screen.getByRole('textbox', { name: 'Text' });
   expect(screen.getByRole('note', { name: 'Wording suggestions' }).textContent).toContain(
-    '“forces”: you may mean Troop (opens in a new tab).'
+    'Dune Zone says troop (opens in a new tab) rather than “forces”. You can keep your wording.'
   );
-  expect(screen.getByRole('link', { name: /^Troop\b/ }).getAttribute('href')).toBe('/glossary#troop');
+  expect(screen.getByRole('link', { name: /^troop\b/ }).getAttribute('href')).toBe('/glossary#troop');
   const note = screen.getByRole('note', { name: 'Wording suggestions' });
   expect(field.getAttribute('aria-describedby')?.split(' ')).toContain(note.id);
   expect(field.getAttribute('aria-invalid')).not.toBe('true');
@@ -162,5 +162,37 @@ it('shows no wording suggestions when the caller turns them off', () => {
     </MantineProvider>
   );
 
+  expect(screen.queryByRole('note', { name: 'Wording suggestions' })).toBeNull();
+});
+
+it('fixes the wording on request and can put the draft back', () => {
+  render(
+    <MantineProvider theme={appContentTheme} forceColorScheme="light">
+      <EditableInput initialValue="Forces fight in combat." />
+    </MantineProvider>
+  );
+  const field = screen.getByRole('textbox', { name: 'Text' }) as HTMLTextAreaElement;
+
+  fireEvent.click(screen.getByRole('button', { name: 'Fix wording' }));
+  expect(field.value).toBe('Troops fight in battle.');
+  expect(screen.getByRole('note', { name: 'Wording suggestions' }).textContent).toContain('rather than “fight”');
+  expect(screen.queryByRole('button', { name: 'Fix wording' })).toBeNull();
+
+  fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
+  expect(field.value).toBe('Forces fight in combat.');
+  expect(screen.queryByRole('button', { name: 'Undo' })).toBeNull();
+});
+
+it('drops the undo once the author edits the fixed draft', () => {
+  render(
+    <MantineProvider theme={appContentTheme} forceColorScheme="light">
+      <EditableInput initialValue="Ship three forces." />
+    </MantineProvider>
+  );
+  const field = screen.getByRole('textbox', { name: 'Text' }) as HTMLTextAreaElement;
+
+  fireEvent.click(screen.getByRole('button', { name: 'Fix wording' }));
+  expect(screen.getByRole('note', { name: 'Wording suggestions' }).textContent).toContain('Wording fixed.');
+  fireEvent.change(field, { target: { value: 'Ship three troops now.' } });
   expect(screen.queryByRole('note', { name: 'Wording suggestions' })).toBeNull();
 });

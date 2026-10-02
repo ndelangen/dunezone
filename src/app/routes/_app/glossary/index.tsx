@@ -1,10 +1,12 @@
-import { Anchor, Badge, Group, SimpleGrid, Stack, Text, Title } from '@mantine/core';
+import { Anchor, Badge, Group, SimpleGrid, Stack, Text, TextInput, Title } from '@mantine/core';
 import { GLOSSARY, GLOSSARY_TOPICS } from '@shared/glossary/terms';
 import type { GlossaryTerm } from '@shared/glossary/terms';
 import { createFileRoute } from '@tanstack/react-router';
 import { PageTitle } from '@ui/block/PageTitle';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
+import { Search } from 'lucide-react';
+import { useState } from 'react';
 
 import { pageHead } from '@app/routes/pageTitle';
 
@@ -17,6 +19,15 @@ export const Route = createFileRoute('/_app/glossary/')({
 
 function avoidedWords(term: GlossaryTerm) {
   return term.avoid.map((avoided) => avoided.word);
+}
+
+/* A search matches the preferred term or any word it replaces, so a reader can look up the word they were about to use. */
+function matches(term: GlossaryTerm, needle: string) {
+  return (
+    !needle ||
+    term.term.toLowerCase().includes(needle) ||
+    term.avoid.some((avoided) => avoided.word.toLowerCase().includes(needle))
+  );
 }
 
 function TermEntry({ term }: { term: GlossaryTerm }) {
@@ -52,6 +63,12 @@ function TermEntry({ term }: { term: GlossaryTerm }) {
 }
 
 function GlossaryPage() {
+  const [query, setQuery] = useState('');
+  const needle = query.trim().toLowerCase();
+  const topics = GLOSSARY_TOPICS.map((topic) => ({
+    ...topic,
+    terms: GLOSSARY.filter((term) => term.topic === topic.id && matches(term, needle)),
+  })).filter((topic) => topic.terms.length > 0);
   return (
     <PageLayout>
       <PageLayout.Header>
@@ -83,11 +100,15 @@ function GlossaryPage() {
         <Stack gap="xl">
           <Surface padding="lg">
             <Stack gap="sm">
-              <Title order={2} size="h3">
-                Topics
-              </Title>
+              <TextInput
+                leftSection={<Search size={16} />}
+                placeholder="Search, for example forces or combat"
+                value={query}
+                onChange={(event) => setQuery(event.currentTarget.value)}
+                aria-label="Search the glossary"
+              />
               <Group gap="md">
-                {GLOSSARY_TOPICS.map((topic) => (
+                {topics.map((topic) => (
                   <Anchor key={topic.id} href={`#topic-${topic.id}`}>
                     {topic.label}
                   </Anchor>
@@ -95,7 +116,8 @@ function GlossaryPage() {
               </Group>
             </Stack>
           </Surface>
-          {GLOSSARY_TOPICS.map((topic) => (
+          {topics.length === 0 ? <Text c="dimmed">No term matches that search.</Text> : null}
+          {topics.map((topic) => (
             <Surface key={topic.id} padding="xl">
               <Stack gap="lg" id={`topic-${topic.id}`} className={styles.topic}>
                 <Stack gap={0}>
@@ -103,7 +125,7 @@ function GlossaryPage() {
                   <Text c="dimmed">{topic.summary}</Text>
                 </Stack>
                 <SimpleGrid cols={{ base: 1, md: 2 }} spacing="xl" verticalSpacing="lg">
-                  {GLOSSARY.filter((term) => term.topic === topic.id).map((term) => (
+                  {topic.terms.map((term) => (
                     <TermEntry key={term.id} term={term} />
                   ))}
                 </SimpleGrid>

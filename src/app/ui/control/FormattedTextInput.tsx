@@ -2,7 +2,7 @@ import { Group, Stack, Textarea } from '@mantine/core';
 import type { TextareaProps } from '@mantine/core';
 import { parseFormattedText } from '@shared/formattedText';
 import type { FormattedTextParseResult, FormattedTextProfile } from '@shared/formattedText';
-import { distinctTermHints } from '@shared/glossary/hints';
+import { distinctTermHints, fixTermWording } from '@shared/glossary/hints';
 import { Bold, Italic, Underline } from 'lucide-react';
 import { Fragment, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
@@ -144,6 +144,14 @@ export function FormattedTextInput({
   };
   const hints = useMemo(() => (termHints ? distinctTermHints(value) : []), [termHints, value]);
   const hintsId = useId();
+  /* The draft from before the last fix, offered back only while the field still holds exactly what the fix wrote. */
+  const [lastFix, setLastFix] = useState<{ before: string; after: string } | null>(null);
+  const undoable = lastFix?.after === value && !props.disabled && !props.readOnly;
+  const fixWording = () => {
+    const after = fixTermWording(value);
+    setLastFix({ before: value, after });
+    onChange(after);
+  };
   /*
    * Mantine owns the textarea's aria-describedby and overwrites any value passed in, so the hint id is merged after each render.
    * React leaves the attribute alone until Mantine's own value changes, and this runs again whenever it does.
@@ -154,7 +162,7 @@ export function FormattedTextInput({
       return;
     }
     const ids = (field.getAttribute('aria-describedby') ?? '').split(' ').filter((id) => id && id !== hintsId);
-    if (hints.length > 0) {
+    if (hints.length > 0 || undoable) {
       ids.push(hintsId);
     }
     if (ids.length > 0) {
@@ -193,7 +201,12 @@ export function FormattedTextInput({
           </Group>
 
           {props.inputContainer ? props.inputContainer(input) : input}
-          <TermHints hints={hints} id={hintsId} />
+          <TermHints
+            hints={hints}
+            id={hintsId}
+            onFix={props.disabled || props.readOnly ? undefined : fixWording}
+            onUndo={undoable ? () => onChange(lastFix.before) : undefined}
+          />
         </Stack>
       )}
       ref={fieldRef}

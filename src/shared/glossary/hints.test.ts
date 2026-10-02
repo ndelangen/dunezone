@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
 
-import { distinctTermHints, findTermHints } from './hints';
+import { distinctTermHints, findTermHints, fixTermWording } from './hints';
 import { GLOSSARY } from './terms';
 import type { GlossaryTerm } from './terms';
 
@@ -98,6 +98,31 @@ describe('distinctTermHints', () => {
   });
 });
 
+describe('fixTermWording', () => {
+  test("swaps avoided words for the preferred ones and keeps the author's case", () => {
+    expect(fixTermWording('Forces gather. Combat follows, and FORCES fall to the graveyard.')).toBe(
+      'Troops gather. Battle follows, and TROOPS fall to the Tleilaxu Tanks.'
+    );
+  });
+
+  test('keeps the preferred spelling of a name', () => {
+    expect(fixTermWording('the KH and the spice pool')).toBe('the Kwisatz Haderach and the Spice Bank');
+  });
+
+  test('leaves words it cannot safely swap, names and exceptions alone', () => {
+    const text = 'We fight in Dune Zone with House Atreides and Cheap Hero.';
+    expect(fixTermWording(text)).toBe(text);
+  });
+
+  test('replaces a phrase that spans a line break', () => {
+    expect(fixTermWording('then ship\nand move')).toBe('then Shipment and Movement');
+  });
+
+  test('offers a fix on the hint only where it has one', () => {
+    expect(findTermHints('forces fight').map((hint) => hint.fix)).toEqual(['troops', undefined]);
+  });
+});
+
 describe('GLOSSARY', () => {
   test('gives every term a unique id', () => {
     const ids = GLOSSARY.map((term) => term.id);
@@ -124,6 +149,16 @@ describe('GLOSSARY', () => {
     const started = performance.now();
     expect(findTermHints(draft)).toHaveLength(2000);
     expect(performance.now() - started).toBeLessThan(250);
+  });
+
+  test('only fixes spellings it matches', () => {
+    const stray = GLOSSARY.flatMap((term) =>
+      term.avoid.flatMap((word) => {
+        const spellings = new Set([word.word, ...(word.forms ?? [])].map((form) => form.toLowerCase()));
+        return Object.keys(word.fixes ?? {}).filter((key) => !spellings.has(key));
+      })
+    );
+    expect(stray).toEqual([]);
   });
 
   test('never hints against its own preferred terms', () => {

@@ -1,5 +1,5 @@
 import preview from '@sb/preview';
-import { expect, within } from 'storybook/test';
+import { expect, userEvent, within } from 'storybook/test';
 
 import { pageStoryMeta } from './storybookConfig';
 
@@ -45,12 +45,15 @@ export const PublicationJobsSignedOut = meta.story({
 export const FuturePlans = meta.story({ args: { path: '/future-plans' } });
 export const Privacy = meta.story({ args: { path: '/privacy' } });
 
-/** The hard-coded glossary, one Surface per topic, every term reachable by its anchor. */
+/** The hard-coded glossary, one Surface per topic, every term reachable by its anchor and found by the word it replaces. */
 export const Glossary = meta.story({
   args: { path: '/glossary' },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await expect(page.findByRole('heading', { name: 'Troop' }, { timeout: 30_000 })).resolves.toBeVisible();
     expect(canvasElement.ownerDocument.getElementById('battle')).not.toBeNull();
+    await userEvent.type(page.getByRole('textbox', { name: 'Search the glossary' }), 'combat');
+    await expect(page.findByRole('heading', { name: 'Battle' })).resolves.toBeVisible();
+    expect(page.queryByRole('heading', { name: 'Troop' })).toBeNull();
   },
 });

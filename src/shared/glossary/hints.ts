@@ -7,12 +7,16 @@ export type TermHint = {
   found: string;
   /** Where the word starts in the text. */
   index: number;
+  /** How many characters the word takes up in the text, which can differ from `found` when a phrase spans a line break. */
+  length: number;
   term: GlossaryTerm;
+  /** The glossary's wording to put in place of `found`, in the same case; absent when only a person can reword it. */
+  fix?: string;
 };
 
 type Span = readonly [number, number];
 
-type Matcher = { pattern: RegExp; term: GlossaryTerm; exceptions: readonly RegExp[] };
+type Matcher = { pattern: RegExp; term: GlossaryTerm; exceptions: readonly RegExp[]; fix?: string };
 
 function escape(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s+');
@@ -30,14 +34,20 @@ function matchers(glossary: readonly GlossaryTerm[]): Matcher[] {
         .filter((avoided) => avoided.hint !== false)
         .flatMap((avoided) => {
           const exceptions = (avoided.exceptions ?? []).map(global);
-          return [avoided.word, ...(avoided.forms ?? [])].map((word) => ({ word, term, exceptions }));
+          return [avoided.word, ...(avoided.forms ?? [])].map((word) => ({
+            word,
+            term,
+            exceptions,
+            fix: avoided.fixes?.[word.toLowerCase()],
+          }));
         })
     )
     .sort((a, b) => b.word.length - a.word.length)
-    .map(({ word, term, exceptions }) => ({
+    .map(({ word, term, exceptions, fix }) => ({
       pattern: new RegExp(`(?<![\\p{L}\\p{N}])${escape(word)}(?![\\p{L}\\p{N}])`, 'giu'),
       term,
       exceptions,
+      fix,
     }));
 }
 
@@ -62,6 +72,21 @@ function excusedMask(text: string, exceptions: readonly RegExp[], cache: Map<rea
   return mask;
 }
 
+/*
+ * The fix follows the author's case: shouted words stay shouted, and a capital at the start of a sentence stays.
+ * A fix that is a name, such as Spice Bank, keeps its own capitals.
+ */
+function inCaseOf(found: string, fix: string) {
+  if (fix !== fix.toLowerCase()) {
+    return fix;
+  }
+  if (found.length > 1 && found === found.toUpperCase() && found !== found.toLowerCase()) {
+    return fix.toUpperCase();
+  }
+  const first = found.charAt(0);
+  return first !== first.toLowerCase() ? fix.charAt(0).toUpperCase() + fix.slice(1) : fix;
+}
+
 function covers(mask: Uint8Array, [start, end]: Span, every: boolean) {
   const part = mask.subarray(start, end);
   return every ? part.every(Boolean) : part.some(Boolean);
@@ -76,7 +101,7 @@ export function findTermHints(text: string, glossary?: readonly GlossaryTerm[]):
   const taken = new Uint8Array(text.length);
   const hints: TermHint[] = [];
   const cache = new Map<readonly RegExp[], Uint8Array>();
-  for (const { pattern, term, exceptions } of glossary ? matchers(glossary) : DEFAULT_MATCHERS) {
+  for (const { pattern, term, exceptions, fix } of glossary ? matchers(glossary) : DEFAULT_MATCHERS) {
     for (const match of text.matchAll(pattern)) {
       const span: Span = [match.index, match.index + match[0].length];
       const claimed = covers(taken, span, false);
@@ -84,7 +109,14 @@ export function findTermHints(text: string, glossary?: readonly GlossaryTerm[]):
         continue;
       }
       taken.fill(1, span[0], span[1]);
-      hints.push({ found: match[0].replace(/\s+/g, ' '), index: match.index, term });
+      const found = match[0].replace(/\s+/g, ' ');
+      hints.push({
+        found,
+        index: match.index,
+        length: match[0].length,
+        term,
+        ...(fix ? { fix: inCaseOf(found, fix) } : {}),
+      });
     }
   }
   return hints.sort((a, b) => a.index - b.index);
@@ -101,4 +133,21 @@ export function distinctTermHints(text: string, glossary?: readonly GlossaryTerm
     seen.add(key);
     return true;
   });
+}
+
+/**
+ * Rewrites every avoided word the glossary knows a safe replacement for, and leaves the rest for the author.
+ * It only runs when the author asks for it, never on its own.
+ */
+export function fixTermWording(text: string, glossary?: readonly GlossaryTerm[]): string {
+  let fixed = '';
+  let from = 0;
+  for (const hint of findTermHints(text, glossary)) {
+    if (hint.fix === undefined) {
+      continue;
+    }
+    fixed += text.slice(from, hint.index) + hint.fix;
+    from = hint.index + hint.length;
+  }
+  return fixed + text.slice(from);
 }
