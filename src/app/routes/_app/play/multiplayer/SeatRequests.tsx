@@ -172,8 +172,9 @@ export function SeatPopover({
   error,
 }: Readonly<{ client: TableSession; table: TableProjection; error: string | null }>) {
   const notice = useSpectatorSeat(client, table);
-  /* The open state lives with the notice, so a seat that comes and goes never brings the popover back already open. */
-  return notice ? <SeatNoticePopover notice={notice} error={error} /> : null;
+  /* The open state lives with the notice, so a seat that comes and goes never brings the popover back already open.
+     Playback shows a past snapshot, so its seat actions would be stale; the dock drops them then too. */
+  return notice && !table.playback ? <SeatNoticePopover notice={notice} error={error} /> : null;
 }
 
 function SeatNoticePopover({ notice, error }: Readonly<{ notice: SeatNotice; error: string | null }>) {
