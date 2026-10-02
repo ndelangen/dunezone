@@ -61,7 +61,7 @@ function PieceImage({ piece }: { piece: TablePiece }) {
   }
   if (piece.kind === 'card') {
     return (
-      <div style={{ width: 60 }} aria-label={pieceName(piece)}>
+      <div style={{ width: 60 }} role="img" aria-label={pieceName(piece)}>
         <CanvasScale canvasWidth={card.width} canvasHeight={card.height}>
           <CardBack
             name={pieceName(piece)}
@@ -297,7 +297,7 @@ function PlanInventory({ plan, locked, update, pieces }: PlanEditor & { pieces: 
         data={pieces.filter(isBattleLeader).map((piece) => ({ value: piece.id, label: pieceName(piece) }))}
         onChange={(leaderId) => update({ leaderId })}
       />
-      <div className={styles.hand} aria-label="Cards from your hand">
+      <div className={styles.hand} role="group" aria-label="Cards from your hand">
         {cards.map((piece) => {
           const selected = plan.cardIds.includes(piece.id);
           return (

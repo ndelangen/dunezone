@@ -61,9 +61,14 @@ export const TradingEndedWithVacancy = meta.story({
   }),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await expect(
-      page.findByText('Trading ended. Waiting for approved replacements.', {}, { timeout: 30_000 })
-    ).resolves.toBeVisible();
+    await waitFor(
+      () =>
+        expect(page.getByLabelText('Trading time remaining')).toHaveTextContent(
+          'Trading ended. Waiting for approved replacements.'
+        ),
+      { timeout: 30_000 }
+    );
+    expect(page.getByLabelText('Trading time remaining')).toBeVisible();
     expect(page.queryByRole('button', { name: /Offer trade to/ })).toBeNull();
     expect(page.getByRole('button', { name: 'Ready to start' })).toBeDisabled();
   },

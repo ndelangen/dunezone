@@ -32,7 +32,8 @@ export function DecisionBar({
   return (
     <Surface as="section" aria-labelledby={labelId} padding="sm" className={styles.bar}>
       <Group justify="space-between" align="center" wrap="wrap" gap="md">
-        <Stack gap={2} miw={0} className={styles.copy}>
+        {/* The copy is a polite status, so a change to a bar already shown is heard, not only seen; a bar that appears with its copy is not announced. */}
+        <Stack gap={2} miw={0} className={styles.copy} role="status">
           <Eyebrow tone="inverse" id={labelId}>
             {eyebrow}
           </Eyebrow>
