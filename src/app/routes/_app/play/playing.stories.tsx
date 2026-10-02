@@ -370,14 +370,28 @@ export const ConversationOffline = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     await page.findByRole('tab', { name: 'Conversation' });
     session.transport.deliver({ type: 'admission', status: 'suspended' });
-    await expect(page.findByRole('combobox', { name: 'Faction conversation' })).resolves.toBeVisible();
+    /* The locked table keeps its conversation panel, so a message written while reconnecting waits there. */
+    await expect(
+      page.findByText('Offline. Pending messages will send after your faction access is checked.')
+    ).resolves.toBeVisible();
     await userEvent.type(page.getByRole('textbox', { name: 'Message' }), 'Send once I reconnect.');
     await userEvent.click(page.getByRole('button', { name: /^Send$/ }));
     await expect(page.findByText('Pending', { exact: true })).resolves.toBeVisible();
     expect(session.transport.messages.filter((entry) => entry.type === 'conversation-send')).toHaveLength(0);
-    await userEvent.click(page.getByRole('combobox', { name: 'Faction conversation' }));
-    const peers = await page.findByRole('listbox');
-    expect(peers.closest('[data-scheme-dark]')).not.toBeNull();
+  },
+});
+
+/* A tab that lost its connection keeps the last table on screen, read-only, with a reconnecting status beside the logo, until a fresh view arrives. */
+export const Reconnecting = meta.story({
+  beforeEach: install(() => productTransport('seat-2', playingSnapshot())),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await page.findByRole('tab', { name: 'Conversation' });
+    session.transport.deliver({ type: 'admission', status: 'suspended' });
+    const status = await page.findByRole('status', { name: /^Reconnecting\./ });
+    expect(status.closest('.seated-brand')).not.toBeNull();
+    expect(status.closest('[data-connection]')).toHaveAttribute('data-connection', 'suspended');
+    expect(page.getByText('Reconnecting', { exact: true })).toBeVisible();
   },
 });
 
