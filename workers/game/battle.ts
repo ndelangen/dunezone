@@ -10,6 +10,7 @@ import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
 import { BOARD_RADIUS, restingPositionAt } from '../../src/shared/play/tableGeometry';
 import { clampPositionToTable, nearestCollisionFreePosition } from '../../src/shared/play/tablePhysics';
 import { playFromHandAtAnchor } from '../../src/shared/play/tableState';
+import { holdsPredictionCard } from './predictionCards';
 import type { StoredSnapshot, StoredBattle } from './state';
 
 type BattleActor = { snapshot: StoredSnapshot; battle: StoredBattle; factionId: string };
@@ -139,7 +140,9 @@ function selectedPlanPieces(plan: BattlePlanInput, available: StoredPiece[]) {
   return pieces;
 }
 function validateCardSlots(pieces: StoredPiece[], plan: BattlePlanInput) {
-  if (pieces.some((piece) => plan.cardIds.includes(piece.id) && piece.kind !== 'card')) {
+  if (
+    pieces.some((piece) => plan.cardIds.includes(piece.id) && (piece.kind !== 'card' || holdsPredictionCard(piece)))
+  ) {
     return refuse('Choose cards for the card slots.');
   }
 }

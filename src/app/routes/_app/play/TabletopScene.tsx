@@ -77,6 +77,7 @@ import type { ReactNode } from 'react';
 import type { ExtrudeGeometry, Group, Texture } from 'three';
 import {
   BufferGeometry,
+  CanvasTexture,
   EdgesGeometry,
   Float32BufferAttribute,
   Mesh,
@@ -102,6 +103,8 @@ import { PhaseSymbol } from './PhaseSymbol';
 import { cameraPoseFor, TABLE_CAMERA_FAR, TABLE_CAMERA_FIELD_OF_VIEW, TABLE_CAMERA_NEAR } from './playView';
 import type { CameraViewCommand } from './playView';
 import { usePointerSession } from './PointerSessionContext';
+import type { CardPrediction } from './prediction/predictionFace';
+import { usePredictionFace } from './prediction/predictionFace';
 import { sharedPublishedFaces } from './publishedFaceRetry';
 import { isPublicTablePoint, ScenePresence, useTablePose } from './ScenePresence';
 import { SpiceBank } from './SpiceBank';
@@ -657,6 +660,29 @@ function TroopStackLayers({ piece }: { piece: TablePiece }) {
   );
 }
 
+/* A prediction card's chosen logo and turn, drawn over its published base (#1753). */
+function PredictionOverlay({ prediction }: { prediction: CardPrediction }) {
+  const face = usePredictionFace(prediction);
+  const texture = useMemo(() => {
+    if (!face) {
+      return null;
+    }
+    const value = new CanvasTexture(face);
+    value.colorSpace = SRGBColorSpace;
+    return value;
+  }, [face]);
+  useEffect(() => () => texture?.dispose(), [texture]);
+  if (!texture) {
+    return null;
+  }
+  return (
+    <mesh position={[0, 0, 0.003]} renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}>
+      <planeGeometry args={[CARD_WIDTH, CARD_DEPTH]} />
+      <meshBasicMaterial map={texture} transparent depthWrite={false} />
+    </mesh>
+  );
+}
+
 function CardFace({
   piece,
   faceUp,
@@ -675,6 +701,9 @@ function CardFace({
     <PieceFace height={CARD_LAYER_HEIGHT} underside={underside}>
       {piece.items[itemIndex]?.artwork?.[faceUp ? 'front' : 'back'] && (
         <PublishedFace href={piece.items[itemIndex].artwork![faceUp ? 'front' : 'back']!} card />
+      )}
+      {faceUp && piece.items[itemIndex]?.artwork?.prediction && (
+        <PredictionOverlay prediction={piece.items[itemIndex].artwork.prediction} />
       )}
       <mesh renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}>
         <planeGeometry args={[CARD_WIDTH, CARD_DEPTH]} />
