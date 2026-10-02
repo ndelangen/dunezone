@@ -51,7 +51,7 @@ function focusKeepsKey(target: EventTarget | null, branch: 'supply' | 'table') {
   if (target.isContentEditable || target.matches('input, textarea, select')) {
     return true;
   }
-  return branch === 'table' && (target.matches(FOCUSED_CONTROL) || target.closest(OPEN_MENU) !== null);
+  return branch === 'table' && target.closest(`${FOCUSED_CONTROL}, ${OPEN_MENU}`) !== null;
 }
 
 /**
