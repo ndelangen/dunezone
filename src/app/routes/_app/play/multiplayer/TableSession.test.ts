@@ -1196,7 +1196,7 @@ test('discards a paused battle edit when another battle replaces its target', as
 
 describe('fresh reconnect recovery', () => {
   test.each([false, true])(
-    'discards an uncertain drop and accepts the saved server position, committed: %s',
+    'discards an uncertain drop, accepts the saved server position and asks the player to check it, committed: %s',
     async (committed) => {
       const { client, source } = await grantedWholeCarry();
       const snapshot = table(client).snapshot;
@@ -1224,7 +1224,7 @@ describe('fresh reconnect recovery', () => {
         committed ? position : source.position
       );
       expect(socket().sent).toEqual([{ type: 'admit', ticket: 'a'.repeat(64) }]);
-      expect(client.getSnapshot().error).toBeNull();
+      expect(client.getSnapshot().error).toBe('The connection dropped as you placed a piece. Check where it landed.');
     }
   );
 
