@@ -5,7 +5,11 @@ export type Patch = { path: string[]; value?: Json; remove?: true };
 const object = (value: Json): value is Record<string, Json> =>
   value !== null && typeof value === 'object' && !Array.isArray(value);
 
-// Ordered arrays are replaced together. Only server-produced patches are stored.
+/*
+ * Only server-produced patches are stored. An array changes element by element when that is smaller than the whole array:
+ * a changed element by its index, an added one at its new index and a shorter array by its `length`.
+ * These are the same set operations `applyPatch` has always read, so a room rolled back to an older release still restores them.
+ */
 export function diff(base: GameSnapshot, next: GameSnapshot): Patch[] {
   return visit(base as Json, next as Json, []);
 }
@@ -13,6 +17,9 @@ export function diff(base: GameSnapshot, next: GameSnapshot): Patch[] {
 function visit(a: Json, b: Json, path: string[]): Patch[] {
   if (JSON.stringify(a) === JSON.stringify(b)) {
     return [];
+  }
+  if (Array.isArray(a) && Array.isArray(b)) {
+    return elements(a, b, path);
   }
   if (!object(a) || !object(b)) {
     return [{ path, value: b }];
@@ -24,6 +31,19 @@ function visit(a: Json, b: Json, path: string[]): Patch[] {
     Object.hasOwn(a, key) ? visit(a[key], b[key], [...path, key]) : [{ path: [...path, key], value: b[key] }]
   );
   return [...removals, ...changes];
+}
+
+function elements(a: Json[], b: Json[], path: string[]): Patch[] {
+  const whole: Patch[] = [{ path, value: b }];
+  const patches = b.flatMap((entry, index) =>
+    index < a.length
+      ? visit(a[index], entry, [...path, String(index)])
+      : [{ path: [...path, String(index)], value: entry }]
+  );
+  if (b.length < a.length) {
+    patches.push({ path: [...path, 'length'], value: b.length });
+  }
+  return JSON.stringify(patches).length < JSON.stringify(whole).length ? patches : whole;
 }
 
 export function applyPatch(base: GameSnapshot, patches: Patch[]): GameSnapshot {
