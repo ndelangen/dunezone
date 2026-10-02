@@ -78,6 +78,24 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
     await accepted(b, { kind: 'battle-claim', battleId, side: 1 });
     return battleId;
   }
+  /* A revealed battle whose plan put the fixture leader on the table, with player A carrying that leader. */
+  async function revealWithCarriedLeader(carryId) {
+    await accepted(a, { kind: 'hand-take', pieceId: 'fixture-leader' });
+    const battleId = await start();
+    await accepted(a, { kind: 'battle-plan', battleId, plan: plan(1, 0, { leaderId: 'fixture-leader' }) });
+    await ready(battleId);
+    await runtime.clock(6000);
+    const view = await syncView(a);
+    a.send({
+      type: 'begin',
+      carryId,
+      sourcePieceId: 'fixture-leader',
+      expectedVersion: view.snapshot.versions['fixture-leader'],
+      pickup: 'whole',
+    });
+    await a.message('carry', (message) => message.carryId === carryId);
+    return battleId;
+  }
   function plan(troops = 5, spice = 5, extra = {}) {
     return {
       mode: 'max',
@@ -467,20 +485,7 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
   });
 
   it('cancels a revealed battle while one of its pieces is being carried', async () => {
-    await accepted(a, { kind: 'hand-take', pieceId: 'fixture-leader' });
-    const battleId = await start();
-    await accepted(a, { kind: 'battle-plan', battleId, plan: plan(1, 0, { leaderId: 'fixture-leader' }) });
-    await ready(battleId);
-    await runtime.clock(6000);
-    const view = await syncView(a);
-    a.send({
-      type: 'begin',
-      carryId: 'cancel-carry',
-      sourcePieceId: 'fixture-leader',
-      expectedVersion: view.snapshot.versions['fixture-leader'],
-      pickup: 'whole',
-    });
-    await a.message('carry', (message) => message.carryId === 'cancel-carry');
+    const battleId = await revealWithCarriedLeader('cancel-carry');
     const cancelled = await accepted(b, { kind: 'battle-cancel', battleId });
     expect(cancelled.snapshot.battle).toBeNull();
     expect(cancelled.snapshot.battleResults[0]).toMatchObject({ id: battleId, outcome: 'none' });
@@ -488,20 +493,7 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
   });
 
   it.each(['movement-first', 'resolution-first'])('serializes overlay movement and resolution: %s', async (order) => {
-    await accepted(a, { kind: 'hand-take', pieceId: 'fixture-leader' });
-    const battleId = await start();
-    await accepted(a, { kind: 'battle-plan', battleId, plan: plan(1, 0, { leaderId: 'fixture-leader' }) });
-    await ready(battleId);
-    await runtime.clock(6000);
-    const view = await syncView(a);
-    a.send({
-      type: 'begin',
-      carryId: 'leader-carry',
-      sourcePieceId: 'fixture-leader',
-      expectedVersion: view.snapshot.versions['fixture-leader'],
-      pickup: 'whole',
-    });
-    await a.message('carry', (message) => message.carryId === 'leader-carry');
+    const battleId = await revealWithCarriedLeader('leader-carry');
     const drop = {
       type: 'drop',
       commandId: 'leader-drop',
