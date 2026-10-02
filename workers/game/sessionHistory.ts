@@ -87,13 +87,18 @@ export class SessionHistory {
       return this.checkpoint(next);
     }
     if (boundaryActions.has(message.action.kind)) {
-      return this.row(next, {
-        kind: 'patch',
-        data: JSON.stringify(diff(this.boundary!, next)),
-        step: this.step + 1,
-        base_revision: this.boundary!.revision,
-      });
+      return this.patch(next);
     }
+  }
+
+  /** A playback step stored as its change from the last recorded step; restore replays it onto the checkpoint before it. */
+  patch(next: StoredSnapshot): HistoryRow {
+    return this.row(next, {
+      kind: 'patch',
+      data: JSON.stringify(diff(this.boundary!, next)),
+      step: this.step + 1,
+      base_revision: this.boundary!.revision,
+    });
   }
 
   private row(next: StoredSnapshot, input: RowInput): HistoryRow {

@@ -442,7 +442,8 @@ export class GameSession {
     if (!next) {
       return;
     }
-    const history = this.history.checkpoint(next);
+    /* The reveal is a playback step between two others, so it stores its change; the outcome after it is the checkpoint. */
+    const history = this.history.patch(next);
     this.storage.transactionSync(() => {
       this.storage.sql.exec('UPDATE current_state SET data=? WHERE id=1', JSON.stringify(next));
       this.history.write(history);
