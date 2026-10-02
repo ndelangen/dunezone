@@ -14,11 +14,22 @@ export const playRateLimiter = new RateLimiter(components.rateLimiter, {
   playCreateGlobal: { kind: 'token bucket', rate: 60, period: HOUR, capacity: 20 },
 });
 
-/** Refuses a game creation once the account or the whole site has used its creation budget. */
+/**
+ * Refuses a game creation once the account or the whole site has used its creation budget.
+ * Both buckets are checked before either is spent, so a site-wide refusal costs the player none of their own budget
+ * and an account past its own budget cannot drain the site's.
+ */
 export async function playCreateQuota(ctx: MutationCtx, userId: string) {
-  const perAccount = await playRateLimiter.limit(ctx, 'playCreatePerAccount', { key: userId });
-  const quota = perAccount.ok ? await playRateLimiter.limit(ctx, 'playCreateGlobal') : perAccount;
-  return quota.ok ? null : { ok: false as const, reason: 'rate_limited' as const };
+  const refused = { ok: false as const, reason: 'rate_limited' as const };
+  if (!(await playRateLimiter.check(ctx, 'playCreatePerAccount', { key: userId })).ok) {
+    return refused;
+  }
+  if (!(await playRateLimiter.check(ctx, 'playCreateGlobal')).ok) {
+    return refused;
+  }
+  await playRateLimiter.limit(ctx, 'playCreatePerAccount', { key: userId, throws: true });
+  await playRateLimiter.limit(ctx, 'playCreateGlobal', { throws: true });
+  return null;
 }
 
 export async function playTicketQuota(ctx: MutationCtx, userId: string) {
