@@ -129,7 +129,7 @@ function ConnectionControls({ client, table, error }: ConnectionControlsProps) {
   );
 }
 
-/* A spectator's dock opens on the battle while there is one, otherwise on the Log. */
+/* A spectator's dock opens on the battle when it loads during one, otherwise on the Log; later the spectator picks. */
 const SPECTATOR_OPENING_TABS = ['battle', 'log'];
 
 /* A battle the viewer's faction fights in opens the Battle tab once, when that faction takes its side. */

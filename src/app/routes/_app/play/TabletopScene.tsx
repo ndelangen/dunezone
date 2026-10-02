@@ -1319,7 +1319,12 @@ export function TabletopScene({
             return;
           }
           const bounds = event.currentTarget.getBoundingClientRect();
-          setPieceMenu({ pieceId: piece.id, x: bounds.left, y: bounds.bottom, touch: false });
+          setPieceMenu({
+            pieceId: piece.id,
+            x: bounds.left,
+            y: bounds.bottom,
+            touch: (event.nativeEvent as Partial<PointerEvent>).pointerType === 'touch',
+          });
         }}
       >
         Selected piece actions

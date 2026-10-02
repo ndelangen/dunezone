@@ -331,7 +331,8 @@ function TableControlsPanel({
     choose([focusTab.key]);
   }
   const chosen = stageOpened ? undefined : tabs.find((tab) => tab.key === path[0]);
-  const active = chosen ?? opening ?? tableTab;
+  /* The stage overlay shows the stage tab, never the opening one, which only stands in when no tab is chosen. */
+  const active = chosen ?? (stageOpened ? tabs[0] : opening) ?? tableTab;
   const subtab = (chosen && active.subtabs?.find((tab) => tab.key === path[1])) ?? active.subtabs?.[0];
   if (panelContent && panelTabs.length === 0) {
     return <div className="seated-stage-panel">{panelContent}</div>;
