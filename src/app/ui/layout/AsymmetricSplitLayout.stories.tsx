@@ -79,6 +79,26 @@ export const StackedNarrowFirst = meta.story({
     const wide = within(canvasElement).getByText('wide').getBoundingClientRect();
     const narrowSlot = within(canvasElement).getByText('narrow').getBoundingClientRect();
     await expect(narrowSlot.top).toBeLessThan(wide.top);
+    const [first] = within(canvasElement).getAllByText(/^(wide|narrow)$/);
+    await expect(first).toHaveTextContent('narrow');
+  },
+});
+
+/** The slim rail on the leading side keeps its fixed-ish band. */
+export const SlimNarrowStart = meta.story({
+  render: () => (
+    <AsymmetricSplitLayout rail="slim" narrowSide="start">
+      <AsymmetricSplitLayout.Wide>
+        <LayoutSlotPlaceholder name="wide" tone="primary" minHeight={360} />
+      </AsymmetricSplitLayout.Wide>
+      <AsymmetricSplitLayout.Narrow>{narrow}</AsymmetricSplitLayout.Narrow>
+    </AsymmetricSplitLayout>
+  ),
+  globals: { viewport: { value: 'appDesktop' } },
+  play: async ({ canvasElement }) => {
+    const wide = within(canvasElement).getByText('wide').getBoundingClientRect();
+    const narrowSlot = within(canvasElement).getByText('narrow').getBoundingClientRect();
+    await expect(narrowSlot.left).toBeLessThan(wide.left);
   },
 });
 

@@ -21,7 +21,7 @@ type AsymmetricSplitLayoutProps = PropsWithChildren<{
   rail?: 'reading' | 'slim';
   /** Which side the narrow column takes once the columns split. `start` puts it before the wide one. */
   narrowSide?: 'end' | 'start';
-  /** Which column comes first once they stack. `narrow` leads with it, for a picture that introduces the text beside it. */
+  /** Which column comes first in reading order, and so on top once they stack. `narrow` leads with it, for a picture that introduces the text beside it. */
   stackFirst?: 'wide' | 'narrow';
 }>;
 
@@ -62,8 +62,9 @@ function AsymmetricSplitLayoutBase({
         data-narrow-side={narrowSide}
         data-stack-first={stackFirst}
       >
+        {stackFirst === 'narrow' ? <div className={styles.narrow}>{narrow}</div> : null}
         <div className={styles.wide}>{wide}</div>
-        <div className={styles.narrow}>{narrow}</div>
+        {stackFirst === 'wide' ? <div className={styles.narrow}>{narrow}</div> : null}
       </div>
     </div>
   );

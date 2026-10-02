@@ -28,7 +28,7 @@
     grid-template-columns: minmax(0, 1fr) minmax(11rem, 15rem);
   }
 
-  /* Once split, each column takes its side by placement, so the stacking order never moves it. */
+  /* Once split, each column takes its side by placement, so the reading order never moves it. */
   .layout > .wide,
   .layout > .narrow {
     grid-row: 1;

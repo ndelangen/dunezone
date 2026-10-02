@@ -55,6 +55,8 @@ export const JustFixed = meta.story({
     ),
   },
   play: async ({ canvasElement }) => {
-    await expect(within(canvasElement).getByText('Wording fixed.')).toBeVisible();
+    const note = within(canvasElement).getByRole('note', { name: 'Wording suggestions' });
+    await expect(within(note).getByText('Wording fixed.')).toBeVisible();
+    await expect(within(note).getByRole('button', { name: 'Undo' })).toBeVisible();
   },
 });
