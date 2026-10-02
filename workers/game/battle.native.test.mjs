@@ -161,6 +161,33 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
     expect((await syncView(a)).snapshot.bank.balance).toBe(7);
   });
 
+  it('shows a spectator who joins mid-battle the public battle and countdown but no plan', async () => {
+    const started = await accepted(a, { kind: 'battle-start', anchor: [0.95, 0.18, -3.05], territory: 'Arrakeen' });
+    const battleId = started.snapshot.battle.id;
+    await accepted(a, { kind: 'battle-claim', battleId, side: 0 });
+    await accepted(a, { kind: 'battle-plan', battleId, plan: plan() });
+    const halfClaimed = await admit('d');
+    const early = await syncView(halfClaimed);
+    expect(early.viewer.viewerSeat).toBe('neutral');
+    expect(early.snapshot.battle.sides[1]).toBeNull();
+    expect(early.snapshot.battlePlan).toBeNull();
+    expect(early.snapshot).not.toHaveProperty('bank');
+    await accepted(b, { kind: 'battle-claim', battleId, side: 1 });
+    const countdown = await ready(battleId);
+    const late = await admit('e');
+    const view = await syncView(late);
+    expect(view.snapshot.battle.stage).toBe('countdown');
+    expect(view.snapshot.battle.deadline).toBe(countdown.snapshot.battle.deadline);
+    expect(view.battleCountdownMs).toBeGreaterThan(0);
+    expect(view.snapshot.battlePlan).toBeNull();
+    for (const connection of [halfClaimed, late]) {
+      for (const message of connection.messages) {
+        expect(JSON.stringify(message)).not.toContain('harkonnen-front","undialed');
+      }
+    }
+    expect((await revealed(late)).battle.revealed[0].spice).toBe(5);
+  });
+
   it('Undo Ready preserves both plans and reserves, clears only its side and restarts a full countdown', async () => {
     const battleId = await start();
     await accepted(a, { kind: 'battle-plan', battleId, plan: plan() });

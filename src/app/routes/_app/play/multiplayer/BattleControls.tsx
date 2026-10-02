@@ -7,6 +7,7 @@ import { isBattleLeader } from '@shared/play/battle';
 import type { BattlePlan, BattlePlanInput, CombatFace, PublicBattle } from '@shared/play/battle';
 import type { TablePiece, Vector3Tuple } from '@shared/play/model';
 import { phaseAt, STANDARD_PHASES } from '@shared/play/phases';
+import { SPECTATOR_SEAT } from '@shared/play/schema';
 import { BOARD_RADIUS } from '@shared/play/tableGeometry';
 import { trackerArcSlots } from '@shared/play/tableTrackers';
 import { resolveRulebookBoardDefinition } from '@shared/rulebooks/boardDefinitions';
@@ -511,6 +512,20 @@ function BattleResults({
   );
 }
 
+/* Without a plan of its own, the panel says why: no battle, the plans are out, or the viewer cannot claim a side. */
+function battleNotice(table: TableProjection, battle: PublicBattle | null | undefined) {
+  if (!battle) {
+    return 'No battle in progress.';
+  }
+  if (battle.stage === 'revealed') {
+    return 'Both plans are revealed on the table.';
+  }
+  if (table.viewer.viewerSeat === SPECTATOR_SEAT || battle.sides.every(Boolean)) {
+    return 'Only the two sides see their plans until the reveal.';
+  }
+  return 'Claim a side on the table to prepare your private plan.';
+}
+
 export function BattleControls({ client, table }: Props) {
   const { battle, battlePlan, hand, battleResults = [] } = table.snapshot;
   return (
@@ -523,9 +538,7 @@ export function BattleControls({ client, table }: Props) {
         {battlePlan && battle ? (
           <PlanFields client={client} table={table} plan={battlePlan} battle={battle} />
         ) : (
-          <Text size="sm">
-            {battle ? 'Claim a side on the table to prepare your private plan.' : 'No battle in progress.'}
-          </Text>
+          <Text size="sm">{battleNotice(table, battle)}</Text>
         )}
       </Section>
       {hand && <HandControls client={client} table={table} hand={hand} />}
@@ -796,7 +809,8 @@ function BattleSides(props: ActiveProps) {
 function BattleCallout({ client, table, battle, placement }: Props & { battle: PublicBattle; placement: Placement }) {
   const pointerSession = usePointerSession();
   const { anchor, capsule } = placement;
-  const own = battle.sides.findIndex((side) => side?.factionId === table.snapshot.bank?.factionId);
+  const faction = table.snapshot.bank?.factionId;
+  const own = faction ? battle.sides.findIndex((side) => side?.factionId === faction) : -1;
   const props = { client, table, battle, own };
   /* Html reads its position only in its own frame and the table draws on demand, so the capsule is projected in that frame: `capsule` from state commits after the frame that computed it, and Html would not read it until something else asked for a frame. */
   return (
