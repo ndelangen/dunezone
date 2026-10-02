@@ -532,9 +532,9 @@ function PublishedFace({ href, card, ratio }: { href: string; card: boolean; rat
       ) : (
         <circleGeometry args={[FORCE_FACE_RADIUS, 48]} />
       )}
-      {/* Printed art keeps its own colours: the warm table light and tone mapping washed out card, leader and token faces (#1756). The placeholder stays lit, like the piece beneath it. */}
+      {/* Printed art is drawn unlit: the warm table light washed out card, leader and token faces (#1756). The renderer still tone maps the whole frame in its output pass. The placeholder stays lit, like the piece beneath it. */}
       {texture ? (
-        <meshBasicMaterial key={href} args={[{ toneMapped: false }]} map={texture} transparent />
+        <meshBasicMaterial key={href} map={texture} transparent />
       ) : (
         <meshStandardMaterial key="placeholder" color="#d5ba8c" transparent roughness={0.68} metalness={0} />
       )}
