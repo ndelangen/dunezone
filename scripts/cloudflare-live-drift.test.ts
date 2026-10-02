@@ -29,6 +29,12 @@ function liveBindings() {
       namespace_id: '10960001',
       simple: { limit: 120, period: 10 },
     },
+    {
+      name: 'SOCIAL_RENDER_RATE_LIMIT',
+      type: 'ratelimit',
+      namespace_id: '17190001',
+      simple: { limit: 20, period: 10 },
+    },
     { name: 'ASSET_BUCKET', type: 'r2_bucket', bucket_name: 'tanstack-start-faction-sheet-assets' },
     { name: 'USER_IMAGE_BUCKET', type: 'r2_bucket', bucket_name: 'dunezone-user-images' },
     { name: 'BROWSER', type: 'browser' },
