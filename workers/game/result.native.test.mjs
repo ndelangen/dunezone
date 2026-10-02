@@ -290,6 +290,7 @@ describe('Determine winner and Continue playing', { timeout: 60_000 }, () => {
     /* The table is held as it ended: a carry and table commands are refused, and so is a new determination. */
     const view = await syncView(other);
     const force = view.snapshot.table.pieces.find((piece) => piece.kind === 'force' && !piece.locked);
+    expect(force).toBeDefined();
     const sent = other.messages.length;
     other.send({
       type: 'begin',
@@ -299,19 +300,23 @@ describe('Determine winner and Continue playing', { timeout: 60_000 }, () => {
       pickup: 'whole',
     });
     const refusal = await eventually(
-      () => other.messages.slice(sent).find((message) => message.type === 'rejected'),
+      () =>
+        other.messages
+          .slice(sent)
+          .find((message) => message.type === 'rejected' && message.requestId === 'after-the-end'),
       'carry refusal'
     );
-    expect(refusal.message).toBe('The game is finished. Continue playing to change the table.');
+    const finishedRefusal = 'The game is finished. Continue playing to change the table.';
+    expect(refusal.message).toBe(finishedRefusal);
     for (const action of [
       { kind: 'flip', pieceId: force.id },
       { kind: 'spice-spawn', count: 1 },
       { kind: 'ready', ready: true },
       { kind: 'turn', turn: 2 },
-      { kind: 'result-open' },
     ]) {
-      expect(await rejected(other, action)).toBe(true);
+      expect((await sendCommand(other, action)).reply.message).toBe(finishedRefusal);
     }
+    expect(await rejected(other, { kind: 'result-open' })).toBe(true);
     expect((await syncView(other)).snapshot.revision).toBe(declared.snapshot.revision);
 
     /* A cold restart wakes finished, with the same result for a player and a watcher. */
@@ -330,6 +335,8 @@ describe('Determine winner and Continue playing', { timeout: 60_000 }, () => {
     expect(continued.snapshot.phase).toBe(declared.snapshot.phase);
     await accepted(player, { kind: 'result-open' });
     const again = await accepted(player, { kind: 'result-declare', result: 'none', factionIds: [] });
+    expect(again.snapshot.stage).toBe('finished');
+    expect(again.snapshot.ending).toBeUndefined();
     expect(again.snapshot.result).toMatchObject({ kind: 'none', factionIds: [] });
     const texts = (await page(watcher)).slice(0, 7).map((entry) => entry.text);
     expect(texts).toEqual([
