@@ -1,0 +1,140 @@
+.stage {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  min-height: 12rem;
+}
+
+.row,
+.fan {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: flex-end;
+  gap: var(--space-md);
+}
+
+.fan .piece:nth-child(1) .art {
+  transform: rotate(-6deg) translateY(var(--space-xs));
+}
+
+.fan .piece:nth-child(3) .art {
+  transform: rotate(6deg) translateY(var(--space-xs));
+}
+
+.piece {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-xs);
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.piece:hover .caption {
+  text-decoration: underline;
+}
+
+.art {
+  display: block;
+}
+
+.caption {
+  font-size: var(--mantine-font-size-sm);
+  font-weight: 600;
+}
+
+.disc {
+  display: block;
+  width: 5.5rem;
+  overflow: hidden;
+  border-radius: 50%;
+  filter: drop-shadow(0 6px 10px rgb(54 29 8 / 28%));
+}
+
+.card {
+  display: block;
+  width: 7rem;
+  border-radius: var(--radius-md);
+  filter: drop-shadow(0 6px 10px rgb(54 29 8 / 28%));
+}
+
+.glyph {
+  display: block;
+  flex: 0 0 auto;
+  width: 2rem;
+  height: 2rem;
+  background-color: currentColor;
+  mask-position: center;
+  mask-repeat: no-repeat;
+  mask-size: contain;
+}
+
+.phases {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-sm);
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.phase {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-xs);
+  padding-block: var(--space-xs);
+  font-size: var(--mantine-font-size-xs);
+  font-weight: 600;
+  text-align: center;
+  color: var(--color-text);
+}
+
+.phase a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.phaseNumber {
+  color: var(--color-muted);
+  font-size: var(--mantine-font-size-xs);
+}
+
+.wheel {
+  width: min(100%, 16rem);
+  aspect-ratio: 1;
+}
+
+.wheelLeader {
+  width: 3.75rem;
+}
+
+.wheelLeader .disc {
+  width: 100%;
+}
+
+.board {
+  display: block;
+  width: min(100%, 18rem);
+  height: auto;
+}
+
+.spicePile {
+  display: flex;
+  gap: var(--space-xs);
+  color: #b65d12;
+}
+
+.factions {
+  display: grid;
+  grid-template-columns: repeat(3, 4.5rem);
+  gap: var(--space-sm);
+}
+
+.factions .disc {
+  width: 100%;
+}

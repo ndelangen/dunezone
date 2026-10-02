@@ -63,6 +63,10 @@ const TOPIC_ICON_DEFINITIONS = {
   assets: { kind: 'component', component: Boxes },
   /* The play table's own controls: trackers, the storm, the selected piece. The Table tab of the play panel. */
   controls: { kind: 'component', component: SlidersHorizontal },
+  /* The glossary's topics that no editor had named yet: the turn's phases, the map, and the decks. */
+  turn: { kind: 'mask', src: '/vector/icon/turn.svg' },
+  board: { kind: 'mask', src: '/vector/icon/landscape.svg' },
+  cards: { kind: 'mask', src: '/vector/icon/treachery.svg' },
 } as const satisfies Record<string, { kind: 'mask'; src: string } | { kind: 'component'; component: LucideIcon }>;
 
 export type TopicIconTopic = keyof typeof TOPIC_ICON_DEFINITIONS;

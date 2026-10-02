@@ -12,6 +12,7 @@ const config: KnipConfig = {
         /* TanStack Start file-based routing: routes are loaded by the router
            plugin, not imported anywhere knip can see. */
         'src/app/router.tsx',
+        'src/app/routes/start.ts',
         'src/app/routes/**/{index,route,*.route,__root}.tsx',
         /* Scene pragmas load these JSX compiler entries. */
         'src/app/routes/_app/play/three-jsx/*.{ts,tsx}',
@@ -46,6 +47,7 @@ const config: KnipConfig = {
       /* The app's Vite aliases are an array, which knip's Vite plugin does not read; this one names a source file. */
       paths: {
         'rulebook-html-renderer-runtime': ['src/app/print/rulebookHtmlRuntime.ts'],
+        'application-ssr-runtime': ['node_modules/@tanstack/react-start/dist/default-entry/esm/server.js'],
       },
       /**
        * Dev-toggle devtools: imported only from commented-out code in src/app/routes/__root.tsx and vite.config.ts, kept for flipping on during debugging.

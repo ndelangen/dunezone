@@ -315,6 +315,9 @@ jobs:
           with-deps: "false"
       - name: Exercise narrow snapshot contract in Chromium
         run: bun run workers/publisher/capture-contract-regression.ts
+      - name: Verify public application runtime
+        run: bun run publisher:application-runtime:verify
+
       - name: Check Worker startup
         run: bun run publisher:startup
 

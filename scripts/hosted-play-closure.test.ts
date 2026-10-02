@@ -24,6 +24,7 @@ function scriptsNamed(pattern: RegExp): string[] {
  */
 const ENTRY_POINTS = [
   'src/app/router.tsx',
+  'src/app/routes/start.ts',
   'src/app/routes/__root.tsx',
   'src/app/routes/_app/route.tsx',
   'src/app/routes/_app/auth/index.tsx',

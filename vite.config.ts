@@ -94,6 +94,12 @@ const config = defineConfig({
     ...({ tsconfigPaths: true } as Record<string, unknown>),
     alias: [
       {
+        find: 'application-ssr-runtime',
+        replacement: fileURLToPath(
+          new URL('./node_modules/@tanstack/react-start/dist/default-entry/esm/server.js', import.meta.url)
+        ),
+      },
+      {
         find: 'rulebook-html-renderer-runtime',
         replacement: fileURLToPath(new URL('./src/app/print/rulebookHtmlRuntime.ts', import.meta.url)),
       },
@@ -104,6 +110,7 @@ const config = defineConfig({
     // devtools(),
     tanstackStart({
       srcDirectory: './src/app',
+      start: { entry: './routes/start.ts' },
       router: {
         /**
          * A route file is `index.tsx`, or its last dot-segment is `route` (`create.route.tsx`, `edit/route.tsx`).
