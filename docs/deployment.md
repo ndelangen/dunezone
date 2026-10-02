@@ -54,6 +54,15 @@ before the page can run. Files outside `/public/` keep their unhashed names and 
 The file lives with the Worker, not under `public/`, so Storybook's copy of the public files never
 carries it and its own `_headers` (the CSP) stays the only one in `storybook-static`.
 
+The same file serves `/play` and `/play/*` with `X-Robots-Tag: noindex`. The play pages also set a
+robots meta tag, but only once JavaScript runs, and the server HTML is the SPA shell. The rules
+match the request path, so they reach the SPA document without making the Worker run first, and
+Renderer identity does not change. Matching is case-sensitive, so a mixed-case path such as
+`/Play/create` gets only the meta tag. [`public/robots.txt`](../public/robots.txt) allows every
+path, `/play` included, because a crawler that may not fetch a page never sees its noindex. The
+Renderer manifest leaves `robots.txt` out, as it does `_headers` and the favicon
+(`isRendererManifestAsset` in `workers/publisher/renderer-manifest-build.ts`).
+
 Storybook is a separate secret-free Static Assets Worker at `https://storybook.dune.zone`.
 `bun run verify:storybook-publication` builds `storybook-static`, scans the final bytes for
 credentials and hosted Convex URLs, checks the CSP and exact hosting configuration, and runs the
@@ -125,8 +134,10 @@ no detailed cause, the operation and request correlation remain available for in
 The publisher forwards the reserved `/__play` namespace only when the request origin equals
 `PUBLIC_BASE_URL`. Its `GAME_SERVICE` binding targets `dunezone-game`, whose `workers_dev` and
 `preview_urls` are disabled and whose route list is empty. Unknown reserved paths never become
-SPA documents. The game Worker accepts only `/__play/health` and
-`/__play/games/:gameId/socket|provision|account-deletion|retire`; it validates methods, origin and admission
+SPA documents. The game Worker accepts only `/__play/health`,
+`/__play/games/:gameId/socket|provision|account-deletion|retire` and, once its `ALERT_EMAIL_TO`
+secret is set, `POST /__play/alerts/issues`, the Workers Issues alert relay described in
+[Play operations](./technical/play-operations.md#3-alert-routing); it validates methods, origin and admission
 at that boundary. Hosted gameplay requires a signed-in session and a fresh first-message connection
 ticket. Players open games at `/play/<gameId>`; the retired `/play/hosted` and `/play/demo` pages
 are ordinary application paths that the game route redirects to the lobby, and the release counts as
@@ -145,11 +156,15 @@ in-room limits are separate.
 migration. The publisher owns neither game storage nor a Durable Object class. The game Worker has
 three nonsecret variables: the fixed `CONVEX_URL`, `APPLICATION_ORIGIN`, and deployed `GIT_SHA`.
 `CF_VERSION_METADATA` supplies the active Worker identity. Per-game secrets are provisioned through
-the game protocol; no deployment bootstrap secret is installed on the game Worker.
+the game protocol; no deployment bootstrap secret is installed on the game Worker. Its one Worker
+secret, `ALERT_EMAIL_TO`, is the alert relay's recipient and is set by hand in Cloudflare; the
+relay sends through the `ALERT_EMAIL` `send_email` binding, which `workers/game/wrangler.jsonc`
+declares. `observability.issues.enabled` in the same file turns on Workers issue detection at every
+deploy, and the deploy contract refuses a configuration without it.
 Convex's nonsecret `PLAY_SERVICE_URL` must equal its `SITE_URL` origin, `https://dune.zone`. CI sets
 the callback origin after verifying the private game Worker and before exposing the hosted frontend.
 The test-only `IS_TEST` and `E2E_LOCAL_AUTH` flags must remain disabled in production, and the
-test-only `PLAY_TEST_PHASE_COOLDOWN_MS` and `PLAY_TEST_START_STAGE` unset.
+test-only `PLAY_TEST_PHASE_COOLDOWN_MS`, `PLAY_TEST_START_STAGE` and `PLAY_TEST_PASSWORD_HASH` unset.
 
 For an isolated rehearsal against an already provisioned synthetic Convex/Auth backend:
 
@@ -469,9 +484,12 @@ the audit.
 
 The same audit checks the publisher's exact `GAME_SERVICE` target and the game Worker contract in
 `workers/game/wrangler.jsonc`. It compares the bound namespace ID with Cloudflare's complete namespace
-inventory, requiring one `GameRoom` namespace owned by `dunezone-game` with `use_sqlite: true`. It also
-rejects game secrets, schedules, Custom Domains, routes, workers.dev or preview ingress. Namespace
-inventory uses Workers Scripts Read; no storage contents or secret values are read. A successful
+inventory, requiring one `GameRoom` namespace owned by `dunezone-game` with `use_sqlite: true`. It
+requires the `ALERT_EMAIL` `send_email` binding, which ships with every deploy, and allows
+`ALERT_EMAIL_TO` as the one game secret, which may be missing because it is set by hand. It rejects
+any other game secret, and schedules, Custom Domains, routes, workers.dev or preview ingress. The
+deploy runs the same game audit in its `Require active game Worker before binding publisher` step.
+Namespace inventory uses Workers Scripts Read; no storage contents or secret values are read. A successful
 configuration/health check proves deployment wiring, not multiplayer behavior; Stage B's real
 Auth, command, projection and browser tests remain separate delivery evidence.
 

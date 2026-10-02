@@ -127,3 +127,33 @@ test("the composed turn reaches every viewer, so hosted headers and trackers fol
   expect(projection.snapshot(stored, 'guild').phases).toEqual(phases);
   expect(projection.snapshot(storedSnapshotSchema.parse(initialSnapshot())).phases).toBeUndefined();
 });
+
+test('a viewer without a faction never takes an empty battle side as its own, even beside a stray plan', () => {
+  const plan = {
+    mode: 'max' as const,
+    troops: [],
+    spice: 3,
+    adjustment: 0,
+    leaderId: null,
+    cardIds: [],
+    strength: 0,
+    pieces: [],
+    faces: [],
+  };
+  const stored = storedSnapshotSchema.parse({
+    ...initialSnapshot(),
+    battleState: {
+      id: 'battle',
+      anchor: [0, 0, 0],
+      territory: 'Arrakeen',
+      stage: 'preparing',
+      sides: [{ factionId: 'atreides', ready: false, choice: null }, null],
+      deadline: null,
+      plans: [plan, plan],
+    },
+  });
+  const projection = new RoomProjection('secret');
+
+  expect(projection.snapshot(stored).battlePlan).toBeNull();
+  expect(projection.snapshot(stored, 'atreides').battlePlan).toMatchObject({ spice: 3 });
+});

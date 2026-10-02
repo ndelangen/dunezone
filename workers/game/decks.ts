@@ -1,6 +1,7 @@
 import { randomInt, randomUUID } from 'node:crypto';
 
 import { accepted, nextSnapshot } from '../../src/shared/play/commands';
+import { rosterFactionEventName } from '../../src/shared/play/factionLabels';
 import type { StoredPiece, TablePiece } from '../../src/shared/play/model';
 import { rosterFactionNames, tableForViewer } from '../../src/shared/play/protocol';
 import type { DeckAction } from '../../src/shared/play/protocol';
@@ -93,7 +94,7 @@ function drawCard(snapshot: StoredSnapshot, deck: StoredPiece, recipient: string
       [recipient]: [...(snapshot.factionInventories[recipient] ?? []), drawn],
     },
     concealed: [drawn],
-    message: `One card was dealt to ${faction.name}.`,
+    message: `One card was dealt to ${rosterFactionEventName(snapshot.roster, recipient)}.`,
   };
 }
 

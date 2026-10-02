@@ -12,6 +12,18 @@ export const playRateLimiter = new RateLimiter(components.rateLimiter, {
   playCreatePerAccount: { kind: 'token bucket', rate: 10, period: HOUR, capacity: 3 },
 });
 
+/**
+ * Refuses a game creation once the account has used its creation budget.
+ * The seat limit bounds how many games one account holds open;
+ * this bucket bounds how fast it creates them.
+ */
+export async function playCreateQuota(ctx: MutationCtx, userId: string) {
+  if (!(await playRateLimiter.limit(ctx, 'playCreatePerAccount', { key: userId })).ok) {
+    return { ok: false as const, reason: 'rate_limited' as const };
+  }
+  return null;
+}
+
 export async function playTicketQuota(ctx: MutationCtx, userId: string) {
   const perAccount = await playRateLimiter.limit(ctx, 'playTicketPerAccount', { key: userId });
   const quota = perAccount.ok ? await playRateLimiter.limit(ctx, 'playTicketGlobal') : perAccount;

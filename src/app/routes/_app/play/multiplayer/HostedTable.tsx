@@ -1,4 +1,5 @@
 import { Anchor, Button, Group, List, Loader, NumberInput, Select, Stack, Text } from '@mantine/core';
+import { snapshotFactionLabels } from '@shared/play/factionLabels';
 import { emptyPublicControls } from '@shared/play/inventory';
 import type { SpawnSelection } from '@shared/play/inventory';
 import { phaseAt, tableProgressFor } from '@shared/play/phases';
@@ -108,7 +109,8 @@ function seatLabel(table: TableProjection): string {
   if (seat === SPECTATOR_SEAT) {
     return 'Spectator';
   }
-  return rosterSeat(table.snapshot.roster, seat)?.faction?.name ?? seat;
+  const faction = rosterSeat(table.snapshot.roster, seat)?.faction;
+  return (faction && snapshotFactionLabels(table.snapshot)[faction.id]) ?? seat;
 }
 
 function ConnectionControls({ client, table, error }: ConnectionControlsProps) {
@@ -214,19 +216,14 @@ type SetupControlProps = Pick<ConnectionControlsProps, 'client' | 'table'>;
 function PredictionCards({ table, factionId, turn }: { table: TableProjection; factionId: string; turn: number }) {
   const seat = table.snapshot.roster?.seats.find((entry) => entry.faction?.id === factionId);
   const token = seat && table.snapshot.swapping?.tokens[seat.id];
+  const name = snapshotFactionLabels(table.snapshot)[factionId] ?? factionId;
   return (
-    <svg
-      width="300"
-      height="190"
-      viewBox="0 0 300 190"
-      role="img"
-      aria-label={`${seat?.faction?.name ?? factionId}, turn ${turn}`}
-    >
+    <svg width="300" height="190" viewBox="0 0 300 190" role="img" aria-label={`${name}, turn ${turn}`}>
       <rect x="2" y="2" width="142" height="184" rx="10" fill="#dfcbaa" stroke="#66503a" strokeWidth="3" />
       <rect x="156" y="2" width="142" height="184" rx="10" fill="#dfcbaa" stroke="#66503a" strokeWidth="3" />
       {token && <image href={token} x="23" y="20" width="100" height="100" />}
       <text x="73" y="153" textAnchor="middle" fill="#302219" fontSize="13">
-        {seat?.faction?.name ?? factionId}
+        {name}
       </text>
       <text x="227" y="62" textAnchor="middle" fill="#302219" fontSize="20">
         TURN
@@ -252,11 +249,7 @@ function PredictionInput({ client, table, stepId }: SetupControlProps & { stepId
     <Stack gap="sm">
       <Select
         label="Predicted winner"
-        data={
-          table.snapshot.roster?.seats.flatMap((seat) =>
-            seat.faction ? [{ value: seat.faction.id, label: seat.faction.name }] : []
-          ) ?? []
-        }
+        data={Object.entries(snapshotFactionLabels(table.snapshot)).map(([value, label]) => ({ value, label }))}
         value={choice.factionId}
         onChange={(factionId) => change({ factionId })}
         disabled={!table.canInteract}
@@ -372,10 +365,7 @@ function SetupControls({ client, table }: SetupControlProps) {
                 /* A visible heading, not help-only: the faction name is what tells the lines apart. */
                 <Section
                   key={entry.factionId}
-                  title={
-                    table.snapshot.roster?.seats.find((seat) => seat.faction?.id === entry.factionId)?.faction?.name ??
-                    entry.factionId
-                  }
+                  title={snapshotFactionLabels(table.snapshot)[entry.factionId] ?? entry.factionId}
                 >
                   <Text size="sm" style={{ whiteSpace: 'pre-wrap' }}>
                     <InlineFormattedTextSource
@@ -579,11 +569,11 @@ function FactionBankControls({ client, table }: Pick<ConnectionControlsProps, 'c
 }
 
 /* A transfer's ends are a faction's id, or the table or the supply, as the Worker's spice ledger records them (#1664). */
-function spicePlace(roster: TableProjection['snapshot']['roster'], place: string): string {
+function spicePlace(labels: Readonly<Partial<Record<string, string>>>, place: string): string {
   if (place === 'table' || place === 'supply') {
     return `the ${place}`;
   }
-  const name = roster?.seats.find((seat) => seat.faction?.id === place)?.faction?.name;
+  const name = labels[place];
   return name ? `the ${name} bank` : 'a faction no longer in the game';
 }
 
@@ -591,7 +581,7 @@ function SpiceHistory({ client, table }: Pick<ConnectionControlsProps, 'client' 
   const view = useSyncExternalStore(client.subscribe, client.getSnapshot);
   const entries = view.spiceHistory?.entries ?? table.snapshot.spiceTransfers ?? [];
   const more = view.spiceHistory?.more ?? entries.length === 20;
-  const roster = table.snapshot.roster;
+  const labels = snapshotFactionLabels(table.snapshot);
   return (
     <Section helpOnly={Boolean(table.snapshot.stage)} title="Public spice transfers">
       <Stack gap="xs">
@@ -599,8 +589,8 @@ function SpiceHistory({ client, table }: Pick<ConnectionControlsProps, 'client' 
         <List type="ordered" size="sm">
           {entries.map((entry) => (
             <List.Item key={entry.revision}>
-              {entry.actor}: {entry.kind}, {entry.amount} spice from {spicePlace(roster, entry.source)}
-              {entry.destination ? ` to ${spicePlace(roster, entry.destination)}` : ' removed from play'}.
+              {entry.actor}: {entry.kind}, {entry.amount} spice from {spicePlace(labels, entry.source)}
+              {entry.destination ? ` to ${spicePlace(labels, entry.destination)}` : ' removed from play'}.
             </List.Item>
           ))}
         </List>
@@ -685,7 +675,6 @@ function ConnectedTable({
               <PhaseNavigation client={client} table={table} />
             ) : undefined
           }
-          onSelectTurn={client.selectTurn}
           /* The gathered Traitor pile lies under the Tleilaxu tanks, below the Map view's frame on a wide screen (#1635). */
           requestedView={table.traitorsGathered ? { view: 'bottom', revision: table.traitorsGathered } : undefined}
           showStormControls={inPlay && progress.activePhaseId === 'storm'}

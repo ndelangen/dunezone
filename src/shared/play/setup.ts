@@ -64,6 +64,8 @@ export function setupReadyRequired(setup: SetupState) {
 type PhaseGateInput = Pick<GameSnapshot, 'stage' | 'setup' | 'phase' | 'phases' | 'roster' | 'predictions'> & {
   ready: readonly string[];
   seats: readonly string[];
+  /** The open battle, public or stored; while there is one the table stays in its phase. */
+  battle?: object | null;
 };
 
 /**
@@ -71,10 +73,14 @@ type PhaseGateInput = Pick<GameSnapshot, 'stage' | 'setup' | 'phase' | 'phases' 
  * The Worker passes its private predictions and a view its public ones.
  * The gate reads only whether the current step holds one.
  */
-export function phaseGate({ stage, setup, phase, phases, roster, ready, seats, predictions }: PhaseGateInput) {
+export function phaseGate({ stage, setup, phase, phases, roster, ready, seats, predictions, battle }: PhaseGateInput) {
   const allReady = seats.length > 0 && seats.every((seat) => ready.includes(seat));
   if (stage !== 'setup' || !setup) {
     const needsReady = phaseAt(phase, phases).allPlayersMustBeReady;
+    /* A battle left open past its phase would block every later battle, so the table waits for it to end. */
+    if (battle) {
+      return { needsReady, refusal: 'A battle is still open. Resolve or cancel it before moving to the next phase.' };
+    }
     return {
       needsReady,
       refusal: needsReady && !allReady ? 'Every seated player must be ready before advancing.' : null,

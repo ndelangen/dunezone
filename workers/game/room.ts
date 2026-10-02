@@ -13,10 +13,10 @@ import type { SeatAction } from '../../src/shared/play/participation';
 import {
   PHASE_CHANGE_COOLDOWN_MS,
   phaseAt,
-  phaseForTurn,
   requirePhaseCooldownElapsed,
   STANDARD_PHASES,
   stepPhase,
+  TURN_SELECT_REFUSAL,
 } from '../../src/shared/play/phases';
 import { PIECE_FLIP_DURATION_MS } from '../../src/shared/play/pieceFlip';
 import { carryPieceId, tableForViewer } from '../../src/shared/play/protocol';
@@ -81,12 +81,19 @@ const REVISION_TOLERANT_ACTIONS = new Set<string>([
   'battle-plan',
   'battle-ready',
   'battle-outcome',
+  'battle-cancel',
   'draft-pick',
   'draft-unpick',
   'draft-ban',
   'draft-unban',
   'removal-ballot',
 ]);
+
+/** The carry IDs a connection may use before it reconnects; the room never forgets one while the connection lasts. */
+const CARRY_HISTORY_LIMIT = 1024;
+
+/** The refusal of a carry from a connection that used every carry ID the room remembers; only a new connection may start more. */
+export class CarryHistoryExhausted extends GameRejection {}
 
 /** Readiness confirms the table its sender saw, so it may cross other readiness but never a change it would have answered. */
 const READINESS_ACTIONS = new Set<string>(['ready', 'draft-ready', 'swap-ready']);
@@ -228,8 +235,8 @@ export class Room {
     if (used?.has(input.carryId)) {
       throw new GameRejection('That carry ID has ended. Start a new carry.');
     }
-    if (used && used.size >= 1024) {
-      throw new GameRejection('Reconnect to the table before starting another carry.');
+    if (used && used.size >= CARRY_HISTORY_LIMIT) {
+      throw new CarryHistoryExhausted('Reconnect to the table before starting another carry.');
     }
   }
 
@@ -250,8 +257,9 @@ export class Room {
 
   private newCarryDraft(identity: Identity, input: CarryInput<'begin'>): DraftMove {
     const { carryId: id, sourcePieceId: sourceId, pickup } = input;
-    this.assertCarryHistory(identity, input);
+    /* A carry still in hand is refused as such first, so only a connection with nothing left to finish is sent to reconnect. */
     this.assertCarryCapacity(identity);
+    this.assertCarryHistory(identity, input);
     this.available(sourceId);
     const state = tableForViewer(this.snapshot, identity.viewerSeat);
     const source = this.pickupSource(state, input);
@@ -409,6 +417,10 @@ export class Room {
   command(identity: Identity, action: RoomAction, expectedRevision: number, now = Date.now()): StoredSnapshot {
     this.assertActionStage(action);
     this.assertCommand(identity, action, expectedRevision);
+    /* The turn moves only through the phases, so Mentat pause always asks everyone to be ready (#1683); an older client may still send this. */
+    if (action.kind === 'turn') {
+      throw new GameRejection(TURN_SELECT_REFUSAL);
+    }
     if (isSetupAction(action) || (this.snapshot.stage === 'setup' && ['phase', 'ready'].includes(action.kind))) {
       return setupCommand(this.snapshot, action, {
         factionId: this.requireFaction(identity),
@@ -426,7 +438,8 @@ export class Room {
     if (isBattleAction(action)) {
       const factionId = this.requireFaction(identity);
       const next = battleCommand(this.snapshot, factionId, action, now);
-      if (action.kind !== 'battle-outcome') {
+      /* Settling a revealed battle, by outcome or cancel, moves its overlay pieces even mid-carry; refusing it would let a carry hold the battle open. */
+      if (this.snapshot.battleState?.stage !== 'revealed' || next.battleState) {
         this.assertReservationsUnchanged(this.snapshot.table as TableState, next.table as TableState);
       }
       if (action.kind === 'hand-take' || action.kind === 'hand-play') {
@@ -464,7 +477,7 @@ export class Room {
     const guardedNext = this.nextTable(guarded, action, identity);
     // Any command touching a reserved donor or target must be rejected, even
     // when the acting player owns the carry in another tab.
-    if (!['reset', 'phase', 'turn'].includes(action.kind)) {
+    if (!['reset', 'phase'].includes(action.kind)) {
       this.assertReservationsUnchanged(guarded, guardedNext);
     }
     const table = action.kind === 'reset' ? guardedNext : this.restoreReservationLocks(raw, guardedNext);
@@ -581,7 +594,7 @@ export class Room {
   }
 
   private assertPhaseChange(action: PieceAction, now: number) {
-    if (action.kind !== 'phase' && action.kind !== 'turn') {
+    if (action.kind !== 'phase') {
       return;
     }
     const phase = this.nextPhase(action);
@@ -594,6 +607,7 @@ export class Room {
     }
     const { refusal } = phaseGate({
       ...this.snapshot,
+      battle: this.snapshot.battleState,
       ready: controls.ready,
       seats: this.seatedPlayers(),
       predictions: this.snapshot.privatePredictions,
@@ -724,9 +738,6 @@ export class Room {
   private nextPhase(action: PieceAction): number {
     if (action.kind === 'reset') {
       return 0;
-    }
-    if (action.kind === 'turn') {
-      return phaseForTurn(this.snapshot.phase, action.turn, this.phases().length);
     }
     return action.kind === 'phase' ? stepPhase(this.snapshot.phase, action.direction) : this.snapshot.phase;
   }

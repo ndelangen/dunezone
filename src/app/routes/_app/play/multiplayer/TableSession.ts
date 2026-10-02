@@ -1,4 +1,5 @@
 import type { BattlePlanInput } from '@shared/play/battle';
+import { snapshotFactionLabels, snapshotFactionTieBreaks } from '@shared/play/factionLabels';
 import type { SpawnSelection } from '@shared/play/inventory';
 import type { LogTab } from '@shared/play/log';
 import { affordancesFor, gestureBlockReason } from '@shared/play/model';
@@ -285,6 +286,7 @@ export class TableSession {
       : authoritative;
     const state = {
       ...tableForViewer(displayed, viewer.viewerSeat),
+      factionTieBreaks: snapshotFactionTieBreaks(displayed),
       selectedPieceId: this.selectedId,
       draftMove: this.carry?.draft ?? null,
     };
@@ -318,7 +320,7 @@ export class TableSession {
           : undefined,
       deckControls: canInteract
         ? {
-            recipients: displayed.roster?.seats.flatMap((seat) => (seat.faction ? [seat.faction] : [])) ?? [],
+            recipients: Object.entries(snapshotFactionLabels(displayed)).map(([id, name]) => ({ id, name })),
             draw: (pieceId, recipient) => this.command({ kind: 'deck-draw', pieceId, recipient }),
             shuffle: (pieceId) => this.command({ kind: 'deck-shuffle', pieceId }),
           }
@@ -888,11 +890,7 @@ export class TableSession {
     }
     if (
       !(isSeatAction(action) ? this.current() : this.canAct()) ||
-      (this.carry &&
-        action.kind !== 'phase' &&
-        action.kind !== 'turn' &&
-        !isRemovalAction(action) &&
-        !isSeatAction(action))
+      (this.carry && action.kind !== 'phase' && !isRemovalAction(action) && !isSeatAction(action))
     ) {
       return;
     }
@@ -976,7 +974,6 @@ export class TableSession {
     }
   };
   moveStormBy = (direction: -1 | 1 = 1) => this.command({ kind: 'storm', direction });
-  selectTurn = (turn: number) => this.command({ kind: 'turn', turn });
   spawnSpice = (count: number) => this.command({ kind: 'spice-spawn', count });
   finishPieceFlip = (pieceId: string, revision: number) => {
     if (this.flipping.get(pieceId) !== revision) {

@@ -40,18 +40,18 @@ it('coalesces a burst to the latest pointer while preserving an immediate commit
   /* Allow one scheduling boundary, while still requiring the burst to coalesce. */
   const maximum = Math.min(pointerCount - 1, windows + 1);
   expect(connection.messages.filter((message) => message.type === 'update').length).toBeLessThanOrEqual(maximum);
-  connection.send({ type: 'command', commandId: 'turn', expectedRevision: 0, action: { kind: 'turn', turn: 2 } });
-  expect((await connection.message('view', (message) => message.completedCommandId === 'turn')).snapshot.revision).toBe(
-    1
-  );
+  connection.send({ type: 'command', commandId: 'phase', expectedRevision: 0, action: { kind: 'phase' } });
+  expect(
+    (await connection.message('view', (message) => message.completedCommandId === 'phase')).snapshot.revision
+  ).toBe(1);
 });
 
 it('stamps its clock on every frame but admission', async () => {
   const connection = await openGame(runtime);
   connection.send({ type: 'admit', ticket: 'c'.repeat(64) });
   await connection.message('view');
-  connection.send({ type: 'command', commandId: 'turn', expectedRevision: 0, action: { kind: 'turn', turn: 2 } });
-  await connection.message('update', (message) => message.completedCommandId === 'turn');
+  connection.send({ type: 'command', commandId: 'phase', expectedRevision: 0, action: { kind: 'phase' } });
+  await connection.message('update', (message) => message.completedCommandId === 'phase');
   const stamped = connection.messages.filter((message) => message.type !== 'admission');
   expect(stamped.map((message) => message.type)).toEqual(expect.arrayContaining(['view', 'update']));
   for (const message of stamped) {
@@ -67,8 +67,8 @@ it('supplies a full snapshot on resync between compact updates', async () => {
   connection.send({ type: 'admit', ticket: 'c'.repeat(64) });
   const initial = await connection.message('view');
   expect((await syncView(connection)).sequence).toBeGreaterThan(initial.sequence);
-  connection.send({ type: 'command', commandId: 'turn', expectedRevision: 0, action: { kind: 'turn', turn: 2 } });
-  const update = await connection.message('update', (message) => message.completedCommandId === 'turn');
+  connection.send({ type: 'command', commandId: 'phase', expectedRevision: 0, action: { kind: 'phase' } });
+  const update = await connection.message('update', (message) => message.completedCommandId === 'phase');
   expect(update.snapshot.baseRevision).toBe(0);
   expect(update.snapshot.revision).toBe(1);
   expect(JSON.stringify(update).length).toBeLessThan(JSON.stringify(initial).length / 2);
@@ -83,10 +83,10 @@ it('an admission takes one full view before its first patch', async () => {
   const connection = await openGame(runtime);
   connection.send({ type: 'admit', ticket: 'c'.repeat(64) });
   const initial = await connection.message('view');
-  connection.send({ type: 'command', commandId: 'turn', expectedRevision: 0, action: { kind: 'turn', turn: 2 } });
+  connection.send({ type: 'command', commandId: 'phase', expectedRevision: 0, action: { kind: 'phase' } });
   const result = await eventually(
-    () => connection.messages.find((message) => message.completedCommandId === 'turn'),
-    'turn result'
+    () => connection.messages.find((message) => message.completedCommandId === 'phase'),
+    'phase result'
   );
   expect(result.type).toBe('update');
   expect(result.baseSequence).toBe(initial.sequence);

@@ -194,7 +194,7 @@ export async function verifyPrivateBanks(toolkit) {
        The sign-out step opens the Spice tab on both viewers that replayed here, so both go back. */
     for (const who of [tab, observer]) {
       await who.page.getByRole('button', { name: 'Return to live' }).click();
-      await button(who, 'Spice').waitFor({ state: 'attached' });
+      await who.page.getByRole('tab', { name: 'Spice', exact: true }).waitFor({ state: 'attached' });
     }
     return tab;
   }
@@ -237,7 +237,7 @@ export async function verifyPrivateBanks(toolkit) {
     const accountPage = await b.context.newPage();
     await accountPage.goto(`${origin}/play`, { waitUntil: 'domcontentloaded' });
     await accountPage.getByRole('heading', { name: 'Game lobby' }).waitFor();
-    await accountPage.locator('header button[aria-haspopup="menu"]').last().click();
+    await accountPage.locator('[data-app-band] button[aria-haspopup="menu"]').last().click();
     await accountPage.getByRole('menuitem', { name: 'Sign out', exact: true }).click();
     await until(
       () => [b, tab].every((who) => who.sockets.every((socket) => socket.closed || socket.documentReplaced)),
@@ -264,7 +264,7 @@ export async function verifyPrivateBanks(toolkit) {
         `${who.label}'s table remounted.`
       );
       assert.equal(
-        await who.page.locator('[data-nested-tabs-item][aria-label="Spice"][aria-current="true"]').count(),
+        await who.page.locator('[role="tab"][aria-label="Spice"][aria-selected="true"]').count(),
         1,
         `${who.label} lost the Spice tab.`
       );

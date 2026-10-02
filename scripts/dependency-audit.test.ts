@@ -1,10 +1,8 @@
-import { readFileSync } from 'node:fs';
-import path from 'node:path';
-
 import { describe, expect, test } from 'vitest';
 
 import { ATTEMPT_MS, RETRY_DELAYS_MS, auditDependencies, classifyAudit, verdictLine } from './dependency-audit';
 import type { AuditAttempt } from './dependency-audit';
+import { jobTimeoutMinutes, verifyJob } from './lib/verify-workflow';
 import { TransientError } from './retry-transient';
 
 /*
@@ -124,11 +122,17 @@ describe('auditDependencies', () => {
     expect(h.log).toEqual([]);
   });
 
-  test('the audit job runs this script and its timeout holds every attempt plus a minute of setup', () => {
-    const workflow = readFileSync(path.resolve(process.cwd(), '.github/workflows/reusable-verify.yml'), 'utf8');
-    const job = /dependency_audit:\n\s+runs-on: [^\n]+\n\s+timeout-minutes: (\d+)\n([\s\S]*?)\n\n/.exec(workflow);
-    expect(job?.[2]).toContain('run: bun run dependencies:audit');
+  /*
+   * What the lint job runs before the audit step: a full-history checkout, the install, the lint gates, the generated
+   * images (regenerated on a cache miss) and the two typechecks and knip.
+   * About 2.5 min with warm caches on 2 October 2026 (run 2403 measured lint 26 s, typecheck 56 s and knip 44 s as jobs of their own), several minutes more when the images regenerate, so this budget is generous rather than exact.
+   */
+  const LINT_STEPS_BEFORE_AUDIT_MS = 10 * 60_000;
+
+  test('the lint job runs this script, and its timeout holds the rest of the job plus every audit attempt', () => {
+    const job = verifyJob('lint');
+    expect(job).toContain('run: bun run dependencies:audit');
     const worstCaseMs = (RETRY_DELAYS_MS.length + 1) * ATTEMPT_MS + RETRY_DELAYS_MS.reduce((sum, ms) => sum + ms, 0);
-    expect(Number(job?.[1]) * 60_000).toBeGreaterThan(worstCaseMs + 60_000);
+    expect(jobTimeoutMinutes(job) * 60_000).toBeGreaterThan(LINT_STEPS_BEFORE_AUDIT_MS + worstCaseMs);
   });
 });

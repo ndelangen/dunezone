@@ -69,6 +69,12 @@ The colocated typecheck fixture checks valid and invalid Three props, Mantine at
 and the DOM namespace together. No files are excluded from typechecking.
 Replace the patch and local runtime together when Fiber provides an upstream scoped JSX entry.
 
+The Bun patch for `three@0.185.1` fixes two renderer leaks that grew with every rebuilt piece on the
+Play table. A destroyed bind group is removed from its texture's `bindGroups` set, which three only
+clears when the texture is disposed. The WebGL2 fallback deletes the cached vertex arrays built on a
+buffer when it destroys that buffer. The patch covers `build/three.webgpu.js`,
+`build/three.webgpu.nodes.js` and the matching `src/` files.
+
 The `miniflare` entry in `package.json` `overrides` moves only miniflare's own `undici` to 7.29.1,
 for [GHSA-3wwx-pv8p-q78v](https://github.com/advisories/GHSA-3wwx-pv8p-q78v). miniflare pins
 `undici` to exactly 7.29.0, which no range can reach, and an override of `undici` everywhere would

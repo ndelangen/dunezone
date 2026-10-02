@@ -32,7 +32,8 @@ export function DecisionBar({
   return (
     <Surface as="section" aria-labelledby={labelId} padding="sm" className={styles.bar}>
       <Group justify="space-between" align="center" wrap="wrap" gap="md">
-        <Stack gap={2} miw={0} className={styles.copy}>
+        {/* The copy is a polite status, so a change to a bar already shown is heard, not only seen; a bar that appears with its copy is not announced. */}
+        <Stack gap={2} miw={0} className={styles.copy} role="status">
           <Eyebrow tone="inverse" id={labelId}>
             {eyebrow}
           </Eyebrow>
@@ -98,8 +99,12 @@ function OwnRequestBar({ client, table, request, readiness }: BarProps & Readonl
     <DecisionBar
       readiness={readiness}
       eyebrow="Seat requested"
-      title="Waiting for a player to approve you"
-      context={`You asked for ${seatWords(table, request.seat)}. Any current player can approve; until then you keep watching.`}
+      {...(table.snapshot.stage === 'finished'
+        ? { title: 'This game has finished', context: 'Nobody can take a seat now. Withdraw the request to clear it.' }
+        : {
+            title: 'Waiting for a player to approve you',
+            context: `You asked for ${seatWords(table, request.seat)}. Any current player can approve; until then you keep watching.`,
+          })}
       action={
         <SeatButton client={client} table={table} action={{ kind: 'seat-withdraw' }} variant="default">
           Withdraw
@@ -117,6 +122,9 @@ function SpectatorBar({ client, table, readiness }: BarProps) {
   const own = controls.seatRequests.find((request) => request.own);
   if (own) {
     return <OwnRequestBar client={client} table={table} request={own} readiness={readiness} />;
+  }
+  if (table.snapshot.stage === 'finished') {
+    return null;
   }
   const seated = controls.seats.length;
   const seatCount = table.snapshot.roster?.seatCount ?? seated;
@@ -232,11 +240,18 @@ export function GameMenu({
 
 function PlayerBar({ client, table, readiness }: BarProps) {
   const controls = table.snapshot.controls ?? emptyPublicControls();
-  const request = controls.seatRequests[0];
+  const open = openSeats(table);
+  const grantableRequest = (candidate: SeatRequest) =>
+    table.snapshot.stage === 'drafting' || (candidate.seat !== null && open.includes(candidate.seat));
+  /* The bar offers one request: the first one an approval can grant, so a request for a seat taken since never hides a later one for an open seat. */
+  const request = controls.seatRequests.find(grantableRequest) ?? controls.seatRequests[0];
   /* A removal vote or the end of the game has its own bar; "nobody is asking" would only add noise beside it.
      Past drafting it would only take height from the dock's tabs, so the bar comes back with the next request. */
   const otherBar = table.snapshot.removalVotes?.length || table.snapshot.ending || table.snapshot.result;
-  if (!request && (otherBar || table.snapshot.stage !== 'drafting') && !readiness) {
+  if (
+    table.snapshot.stage === 'finished' ||
+    (!request && (otherBar || table.snapshot.stage !== 'drafting') && !readiness)
+  ) {
     return null;
   }
   if (!request) {
@@ -254,8 +269,7 @@ function PlayerBar({ client, table, readiness }: BarProps) {
     );
   }
   const more = controls.seatRequests.length - 1;
-  const grantable =
-    table.snapshot.stage === 'drafting' || (request.seat !== null && openSeats(table).includes(request.seat));
+  const grantable = grantableRequest(request);
   return (
     <DecisionBar
       readiness={readiness}

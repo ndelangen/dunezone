@@ -1,0 +1,136 @@
+diff --git a/node_modules/three/.bun-tag-cfe6290c95bb4ce1 b/.bun-tag-cfe6290c95bb4ce1
+new file mode 100644
+index 0000000000000000000000000000000000000000..e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
+diff --git a/build/three.webgpu.js b/build/three.webgpu.js
+index 2e490796d4d4aa9479b04a5c46ddbf31cc05b1a1..9c356543d7ea8932c9aa71074489a25ca1c0b674 100644
+--- a/build/three.webgpu.js
++++ b/build/three.webgpu.js
+@@ -32897,6 +32897,12 @@ class Bindings extends DataMap {
+ 
+ 							this.backend.destroySampler( binding );
+ 
++						} else if ( this.textures.has( binding.texture ) ) {
++
++							// forget the bind group on its texture, or a long-lived texture keeps every bind group ever built for it
++
++							this.textures.get( binding.texture ).bindGroups?.delete( bindGroup );
++
+ 						}
+ 
+ 						binding.release();
+@@ -67143,6 +67149,25 @@ class WebGLAttributeUtils {
+ 
+ 		const attributeData = backend.get( attribute );
+ 
++		if ( attributeData.id !== undefined ) {
++
++			// drop the vertex arrays built on this buffer, or the VAO cache keeps them, and the buffer, for the renderer's lifetime
++
++			const segment = ':' + attributeData.id + ':';
++
++			for ( const vaoKey in backend.vaoCache ) {
++
++				if ( ( vaoKey + ':' ).includes( segment ) ) {
++
++					gl.deleteVertexArray( backend.vaoCache[ vaoKey ] );
++					delete backend.vaoCache[ vaoKey ];
++
++				}
++
++			}
++
++		}
++
+ 		gl.deleteBuffer( attributeData.bufferGPU );
+ 
+ 		backend.delete( attribute );
+diff --git a/build/three.webgpu.nodes.js b/build/three.webgpu.nodes.js
+index f707acc24f5711fdae065ce920b08435b0869c1b..19a4a88bd9ebd13e9bfd6791257b4b3014ac71b8 100644
+--- a/build/three.webgpu.nodes.js
++++ b/build/three.webgpu.nodes.js
+@@ -32897,6 +32897,12 @@ class Bindings extends DataMap {
+ 
+ 							this.backend.destroySampler( binding );
+ 
++						} else if ( this.textures.has( binding.texture ) ) {
++
++							// forget the bind group on its texture, or a long-lived texture keeps every bind group ever built for it
++
++							this.textures.get( binding.texture ).bindGroups?.delete( bindGroup );
++
+ 						}
+ 
+ 						binding.release();
+@@ -67143,6 +67149,25 @@ class WebGLAttributeUtils {
+ 
+ 		const attributeData = backend.get( attribute );
+ 
++		if ( attributeData.id !== undefined ) {
++
++			// drop the vertex arrays built on this buffer, or the VAO cache keeps them, and the buffer, for the renderer's lifetime
++
++			const segment = ':' + attributeData.id + ':';
++
++			for ( const vaoKey in backend.vaoCache ) {
++
++				if ( ( vaoKey + ':' ).includes( segment ) ) {
++
++					gl.deleteVertexArray( backend.vaoCache[ vaoKey ] );
++					delete backend.vaoCache[ vaoKey ];
++
++				}
++
++			}
++
++		}
++
+ 		gl.deleteBuffer( attributeData.bufferGPU );
+ 
+ 		backend.delete( attribute );
+diff --git a/src/renderers/common/Bindings.js b/src/renderers/common/Bindings.js
+index 5f3d213a016b37db3b2e5d022da3dd0234d86f6d..38bf42c23ddf69bffaf802774ae98319b4e58d21 100644
+--- a/src/renderers/common/Bindings.js
++++ b/src/renderers/common/Bindings.js
+@@ -271,6 +271,12 @@ class Bindings extends DataMap {
+ 
+ 							this.backend.destroySampler( binding );
+ 
++						} else if ( this.textures.has( binding.texture ) ) {
++
++							// forget the bind group on its texture, or a long-lived texture keeps every bind group ever built for it
++
++							this.textures.get( binding.texture ).bindGroups?.delete( bindGroup );
++
+ 						}
+ 
+ 						binding.release();
+diff --git a/src/renderers/webgl-fallback/utils/WebGLAttributeUtils.js b/src/renderers/webgl-fallback/utils/WebGLAttributeUtils.js
+index 5e2cf317c96b239c5b027b3dd73a0c08d75282e0..4abfb6fd4d005fa39310de76dfcd42ad781129fc 100644
+--- a/src/renderers/webgl-fallback/utils/WebGLAttributeUtils.js
++++ b/src/renderers/webgl-fallback/utils/WebGLAttributeUtils.js
+@@ -246,6 +246,25 @@ class WebGLAttributeUtils {
+ 
+ 		const attributeData = backend.get( attribute );
+ 
++		if ( attributeData.id !== undefined ) {
++
++			// drop the vertex arrays built on this buffer, or the VAO cache keeps them, and the buffer, for the renderer's lifetime
++
++			const segment = ':' + attributeData.id + ':';
++
++			for ( const vaoKey in backend.vaoCache ) {
++
++				if ( ( vaoKey + ':' ).includes( segment ) ) {
++
++					gl.deleteVertexArray( backend.vaoCache[ vaoKey ] );
++					delete backend.vaoCache[ vaoKey ];
++
++				}
++
++			}
++
++		}
++
+ 		gl.deleteBuffer( attributeData.bufferGPU );
+ 
+ 		backend.delete( attribute );

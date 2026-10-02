@@ -11,12 +11,12 @@ import {
   playReconcileAccountsRequestSchema,
   playReconcileAccountsResultSchema,
   playRedeemTicketRequestSchema,
-  playRedeemTicketResultSchema,
   playTicketResultSchema,
   playWatchAuthorizationsRequestSchema,
   playWatchAuthorizationsResultSchema,
   isProvisionPlaceholderId,
 } from '../src/shared/play/admission';
+import { playRedeemTicketOutcomeSchema } from '../src/shared/play/seatLimit';
 import { internal } from './_generated/api';
 import type { Doc, Id } from './_generated/dataModel';
 import { query } from './_generated/server';
@@ -33,6 +33,7 @@ import {
 } from './lib/playAuthorization';
 import { playerSummary } from './lib/playerSummary';
 import { playRateLimiter, playTicketQuota } from './lib/playRateLimits';
+import { atPlaySeatLimit } from './lib/playSeats';
 import { isSyntheticBackend } from './lib/playSynthetic';
 
 export const issueTicket = mutation({
@@ -144,6 +145,11 @@ async function consumeTicket(
     sessionId: ticket.session_id,
     authExpiresAt: authorization.authExpiresAt,
     ...playerSummary(profile),
+    /*
+     * Read once per admission, so it is as fresh as the socket: a player who leaves a seat elsewhere reconnects to ask again.
+     * Requests pending in several games at once can each be approved, so a player can end up a few seats over the limit.
+     */
+    seatLimitReached: await atPlaySeatLimit(ctx, ticket.user_id, ticket.game_id),
   };
 }
 
@@ -151,7 +157,7 @@ const refusedRedemption = { ok: false, reason: 'refused' } as const;
 
 export const redeemTicket = mutation({
   args: zodToConvex(playRedeemTicketRequestSchema),
-  returns: zodToConvex(playRedeemTicketResultSchema),
+  returns: zodToConvex(playRedeemTicketOutcomeSchema),
   handler: async (ctx, input) => {
     const request = await authenticatedPlayRequest(ctx, input, playRedeemTicketRequestSchema);
     if (request?.game.state !== 'ready' || !admitsPlayers(request.game)) {

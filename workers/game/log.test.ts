@@ -45,6 +45,7 @@ describe('the public log', () => {
     log.enabled = true;
     const message = { type: 'command', action: { kind: 'battle-reveal' } } as never;
     log.recordCommit({
+      holders: [],
       before: snapshot(1),
       next: snapshot(2, {
         battleResults: [{ id: 'b', revision: 2, outcome: 'left', factions: ['house', 'fremen'] }],
@@ -53,6 +54,7 @@ describe('the public log', () => {
       viewer: viewer as never,
     });
     log.recordCommit({
+      holders: [],
       before: snapshot(2),
       next: snapshot(3),
       message,
@@ -60,6 +62,7 @@ describe('the public log', () => {
       transfer: { kind: 'withdrawal', amount: 3, source: 'fremen', revision: 3 } as never,
     });
     log.recordCommit({
+      holders: [],
       before: snapshot(3),
       next: snapshot(4, {
         privatePredictions: {
@@ -71,6 +74,7 @@ describe('the public log', () => {
     });
     const phases = [{ label: 'Storm {0}' }, { label: 'Spice {1}' }];
     log.recordCommit({
+      holders: [],
       before: snapshot(4, { phase: 0, phases } as never),
       next: snapshot(5, { phase: 1, phases } as never),
       message: { type: 'command', action: { kind: 'phase', direction: 1 } } as never,
@@ -81,6 +85,55 @@ describe('the public log', () => {
       'House {0} revealed its prediction: Fremen {1}, turn 3.',
       'Alice withdrew 3 spice from the Fremen {1} bank to the table.',
       'House {0} defeated Fremen {1}.',
+    ]);
+  });
+
+  it('names the player of a faction whose name another seat shares, and forgets them on deletion', () => {
+    const log = new PublicLog(memoryStorage(), () => 'Turn 1');
+    log.enabled = true;
+    const twins = (revision: number, extra: Partial<StoredSnapshot> = {}) =>
+      snapshot(revision, {
+        roster: {
+          seats: [
+            { id: 'seat-1', faction: { id: 'h1', name: 'Harkonnen' } },
+            { id: 'seat-2', faction: { id: 'h2', name: 'Harkonnen' } },
+            { id: 'seat-3', faction: { id: 'a', name: 'Atreides' } },
+          ],
+        },
+        ...extra,
+      } as never);
+    log.recordCommit({
+      holders: [
+        { seat: 'seat-1', userId: 'user-alice', name: 'Alice' },
+        { seat: 'seat-3', userId: 'user-carol', name: 'Carol' },
+      ],
+      before: twins(1),
+      next: twins(2, {
+        battleResults: [{ id: 'b', revision: 2, outcome: 'right', factions: ['a', 'h2'] }],
+      } as never),
+      message: { type: 'command', action: { kind: 'battle-reveal' } } as never,
+      viewer: viewer as never,
+    });
+    log.recordCommit({
+      holders: [
+        { seat: 'seat-1', userId: 'user-alice', name: 'Alice' },
+        { seat: 'seat-2', userId: 'user-bob', name: 'Bob' },
+      ],
+      before: twins(2),
+      next: twins(3),
+      message: { type: 'command', action: { kind: 'battle-reveal' } } as never,
+      viewer: viewer as never,
+      transfer: { kind: 'collection', amount: 2, destination: 'h1', revision: 3 } as never,
+    });
+    const texts = () => log.page('game', Number.MAX_SAFE_INTEGER).entries.map((entry) => entry.text);
+    expect(texts()).toEqual([
+      'Alice collected 2 spice from the table into the Harkonnen (Alice) bank.',
+      'Harkonnen (seat 2) defeated Atreides.',
+    ]);
+    log.scrub('user-alice');
+    expect(texts()).toEqual([
+      '[deleted user] collected 2 spice from the table into the Harkonnen (seat 1) bank.',
+      'Harkonnen (seat 2) defeated Atreides.',
     ]);
   });
 });

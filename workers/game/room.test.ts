@@ -37,30 +37,16 @@ const items = (snapshot: GameSnapshot) =>
   snapshot.table.pieces.flatMap((piece) => piece.items.map((item) => item.id)).sort();
 
 describe('shared phase progression', () => {
-  test('selects any representable turn while preserving the phase, pieces and active carries', () => {
-    const initial = { ...initialSnapshot(), phase: 3 };
+  test('refuses a turn change, so the turn moves only through the phases (#1683)', () => {
+    const initial = { ...initialSnapshot(), phase: TABLE_PHASES.length + 3 };
     const room = new Room(initial, seated);
-    room.begin(alice, {
-      carryId: 'turn-carry',
-      sourcePieceId: 'harkonnen-force-stack',
-      expectedVersion: 0,
-      pickup: 'top',
-    });
-    const carries = structuredClone(room.publicCarries());
-    room.accept(room.command(bob, { kind: 'turn', turn: 25 }, 0));
-    expect(tableProgressFor(room.snapshot.phase)).toMatchObject({ turn: 25, activePhaseId: 'bidding' });
-    expect(room.snapshot.table.pieces).toEqual(initial.table.pieces);
-    expect(room.snapshot.versions).toEqual(initial.versions);
-    expect(room.publicCarries()).toEqual(carries);
-    expect(() => room.command(bob, { kind: 'turn', turn: 2 }, 0)).toThrow('table changed');
-    expect(() => room.command(spectator, { kind: 'turn', turn: 2 }, 1)).toThrow('Spectators');
-    for (const turn of [0, -1, 1.5, Number.MAX_SAFE_INTEGER]) {
-      expect(() => room.command(alice, { kind: 'turn', turn }, 1)).toThrow();
+    for (const turn of [1, 2, 3, 25]) {
+      expect(() => room.command(bob, { kind: 'turn', turn }, 0, Date.now() + PHASE_CHANGE_COOLDOWN_MS)).toThrow(
+        'The turn changes only by moving through the phases.'
+      );
     }
-    room.accept(room.command(alice, { kind: 'turn', turn: 1 }, 1, Date.now() + PHASE_CHANGE_COOLDOWN_MS));
-    expect(room.snapshot.phase).toBe(3);
-    room.accept(room.drop(alice, 'turn-carry', [0, 0.38, 0], 0), 'turn-carry');
-    expect(room.snapshot.table.pieces.some((piece) => piece.id === 'carry-turn-carry')).toBe(true);
+    expect(() => room.command(spectator, { kind: 'turn', turn: 1 }, 0)).toThrow('Spectators');
+    expect(room.snapshot).toMatchObject(initial);
   });
   test('accepts old forward commands and steps across turn boundaries without replaying tabletop actions', () => {
     const room = new Room(initialSnapshot(), seated);

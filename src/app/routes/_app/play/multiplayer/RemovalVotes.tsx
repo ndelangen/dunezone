@@ -142,6 +142,7 @@ export function PlayerPanel({
       (seat) =>
         occupants.find((player) => player.seat === seat.id) ?? {
           seat: seat.id,
+          /* A vacant seat's line under the name already gives the seat, which tells a shared faction name apart. */
           name: seat.faction?.name ?? seat.id,
           avatar: null,
           slug: null,

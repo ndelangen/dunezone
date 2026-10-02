@@ -4,6 +4,7 @@ import { SETUP_PHASE_TARGETS } from '../../src/shared/factions/extraPhases';
 import { capturedDeclarations } from '../../src/shared/play/capture';
 import type { FactionCapture } from '../../src/shared/play/capture';
 import { accepted, nextSnapshot } from '../../src/shared/play/commands';
+import { rosterFactionEventName } from '../../src/shared/play/factionLabels';
 import { emptyPublicControls } from '../../src/shared/play/inventory';
 import type { StoredPiece } from '../../src/shared/play/model';
 import { composeSetup, phaseAt, requirePhaseCooldownElapsed, tableProgressFor } from '../../src/shared/play/phases';
@@ -98,7 +99,7 @@ function retainedFaction(snapshot: StoredSnapshot, id: string) {
 }
 
 function factionName(snapshot: StoredSnapshot, id: string) {
-  return retainedFaction(snapshot, id)?.name ?? id;
+  return rosterFactionEventName(snapshot.roster, id);
 }
 
 function setupControls(snapshot: StoredSnapshot) {

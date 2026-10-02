@@ -82,7 +82,6 @@ type GameTableProps = {
   playerPanel?: ReactNode;
   /* A view the host asks for after something the viewer did lands out of frame; each new revision moves the camera once. */
   requestedView?: Readonly<{ view: TableView; revision: number }>;
-  onSelectTurn(turn: number): void;
 };
 
 function flippableSelection(piece: TablePiece | null) {
@@ -275,19 +274,11 @@ function TableControlsPanel({
   focusTab = null,
   tableControls,
   showStormControls,
-  turn,
-  onSelectTurn,
   word,
   tableTab: tableTabLabel,
   panelContent,
 }: Readonly<
-  Pick<
-    GameTableProps,
-    'panelTabs' | 'focusTab' | 'tableControls' | 'showStormControls' | 'onSelectTurn' | 'panelContent'
-  > &
-    StageFrame & {
-      turn: number;
-    }
+  Pick<GameTableProps, 'panelTabs' | 'focusTab' | 'tableControls' | 'showStormControls' | 'panelContent'> & StageFrame
 >) {
   const tableTab: PanelTab = {
     key: 'table',
@@ -296,7 +287,7 @@ function TableControlsPanel({
     content: (
       <>
         {tableControls}
-        {tableTabLabel === 'Table' && <TrackerControls turn={turn} onSelectTurn={onSelectTurn} />}
+        {tableTabLabel === 'Table' && <SpiceSupplyControls />}
         {tableTabLabel === 'Table' && <SelectedPieceControl />}
         {showStormControls && <StormControls helpOnly={tableTabLabel === 'Phase'} />}
       </>
@@ -376,7 +367,7 @@ function TableControlsPanel({
           ))}
         </NestedTabs.Level>
       )}
-      {/* Unnamed on purpose: the sections inside are the regions, and a second region with a section's own name would double it. */}
+      {/* No label of its own: the panel is the tabs' tabpanel, which NestedTabs names after the selected tab, and the sections inside stay the regions. */}
       <NestedTabs.ContentPanel className="seated-controls-tab-content" padding={(subtab ?? active).padding}>
         <Stack gap="lg">{subtab?.content ?? active.content}</Stack>
       </NestedTabs.ContentPanel>
@@ -404,44 +395,28 @@ function PanelPanes({ children, secondary }: Readonly<{ children: ReactNode; sec
   );
 }
 
-function TrackerControls({ turn, onSelectTurn }: Readonly<{ turn: number; onSelectTurn: (turn: number) => void }>) {
+function SpiceSupplyControls() {
   const { canInteract, spawnSpice, state } = useTabletop();
   return (
-    <>
-      <Section
-        eyebrow="Table trackers"
-        title={`Turn ${turn}`}
-        description="Select a number on the turn wheel. This changes the turn only, without moving pieces or changing the phase."
-      >
-        <Group gap="sm">
-          <Button variant="default" disabled={!canInteract || turn <= 1} onClick={() => onSelectTurn(turn - 1)}>
-            Previous turn
+    <Section
+      title="Spice supply"
+      description="Hover the spice disc left of the turn wheel and press 1 through 9, or 0 for ten. Drop spice onto the disc to delete it."
+    >
+      <Group gap="xs" role="group" aria-label="Spawn spice">
+        {Array.from({ length: 10 }, (_, index) => index + 1).map((count) => (
+          <Button
+            key={count}
+            variant="default"
+            size="compact-sm"
+            disabled={!canInteract || !!state.draftMove}
+            aria-label={`Spawn ${count} spice`}
+            onClick={() => spawnSpice(count)}
+          >
+            {count}
           </Button>
-          <Button variant="default" disabled={!canInteract} onClick={() => onSelectTurn(turn + 1)}>
-            Next turn
-          </Button>
-        </Group>
-      </Section>
-      <Section
-        title="Spice supply"
-        description="Hover the spice disc left of the turn wheel and press 1 through 9, or 0 for ten. Drop spice onto the disc to delete it."
-      >
-        <Group gap="xs" role="group" aria-label="Spawn spice">
-          {Array.from({ length: 10 }, (_, index) => index + 1).map((count) => (
-            <Button
-              key={count}
-              variant="default"
-              size="compact-sm"
-              disabled={!canInteract || !!state.draftMove}
-              aria-label={`Spawn ${count} spice`}
-              onClick={() => spawnSpice(count)}
-            >
-              {count}
-            </Button>
-          ))}
-        </Group>
-      </Section>
-    </>
+        ))}
+      </Group>
+    </Section>
   );
 }
 
@@ -514,7 +489,6 @@ export function GameTable({
   seatCount,
   tableProgress,
   requestedView,
-  onSelectTurn,
 }: GameTableProps) {
   const [pointerSession] = useState(() => new PointerSession());
   const [tableKeyboard] = useState(() => new TableKeyboard());
@@ -658,7 +632,6 @@ export function GameTable({
                     tableProgress={tableProgress}
                     stage={stage}
                     mapVisible={mapVisible}
-                    onSelectTurn={onSelectTurn}
                   >
                     {sceneContent}
                   </TabletopScene>
@@ -682,8 +655,6 @@ export function GameTable({
                       word={frame.word}
                       tableTab={frame.tableTab}
                       showStormControls={showStormControls}
-                      turn={tableProgress.turn}
-                      onSelectTurn={onSelectTurn}
                     />
                   </PanelPanes>
                 </div>
