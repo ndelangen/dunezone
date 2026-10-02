@@ -96,7 +96,7 @@ import stormMarkerUrl from './assets/storm-marker.png?url';
 import { boardFurnitureFor } from './boardFurniture';
 import { BOARD_RIM_DEPTH, createBoardRimShape } from './boardRimGeometry';
 import { CameraControls, CameraRelativeFog } from './CameraControls';
-import { swallowLift, watchLongPress } from './longPress';
+import { deckShuffleHint, swallowLift, watchLongPress } from './longPress';
 import { PhaseSymbol } from './PhaseSymbol';
 import { cameraPoseFor, TABLE_CAMERA_FAR, TABLE_CAMERA_FIELD_OF_VIEW, TABLE_CAMERA_NEAR } from './playView';
 import type { CameraViewCommand } from './playView';
@@ -909,7 +909,8 @@ function pieceHoverCursor(canInteract: boolean, interactionBlocked: boolean, ges
   return gestureBlocked ? 'not-allowed' : 'grab';
 }
 
-const PieceMenuContext = createContext<((pieceId: string, x: number, y: number) => void) | null>(null);
+/* Opens a piece's menu at a point; `touch` says a finger asked for it, which has no keyboard shortcut to offer. */
+const PieceMenuContext = createContext<((pieceId: string, x: number, y: number, touch: boolean) => void) | null>(null);
 
 function usePiecePointerEvents({ piece, interactionBlocked, canHandleTable, carrying }: TablePieceMeshProps) {
   const { selectPiece, setHoveredPiece } = useTabletopActions();
@@ -926,7 +927,10 @@ function usePiecePointerEvents({ piece, interactionBlocked, canHandleTable, carr
     onContextMenu: (event: ThreeEvent<MouseEvent>) => {
       if (hasMenu && openPieceMenu) {
         event.stopPropagation();
-        openPieceMenu(piece.id, event.nativeEvent.clientX, event.nativeEvent.clientY);
+        const { clientX, clientY } = event.nativeEvent;
+        /* Android's long-press context menu is a touch pointer event. */
+        const touch = 'pointerType' in event.nativeEvent && event.nativeEvent.pointerType === 'touch';
+        openPieceMenu(piece.id, clientX, clientY, touch);
       }
     },
     onClick: (event: ThreeEvent<MouseEvent>) => {
@@ -960,7 +964,7 @@ function usePiecePointerEvents({ piece, interactionBlocked, canHandleTable, carr
           }
           stopLongPress.current = swallowLift(window, { clientX, clientY });
           /* Android also sends a context menu for the long press; opening the same menu twice changes nothing. */
-          openPieceMenu(piece.id, clientX, clientY);
+          openPieceMenu(piece.id, clientX, clientY, true);
         });
       }
       if (gestureBlocked) {
@@ -1307,14 +1311,25 @@ export function TabletopScene({
   mapVisible,
 }: TabletopSceneProps) {
   const { takeAdditionalFromTarget, state, deckControls, bankControls } = useTabletop();
-  const [pieceMenu, setPieceMenu] = useState<{ pieceId: string; x: number; y: number } | null>(null);
+  const [pieceMenu, setPieceMenu] = useState<{ pieceId: string; x: number; y: number; touch: boolean } | null>(null);
   /* One opener for the table's life: a new one on every update would render every piece again. */
-  const openPieceMenu = useCallback((pieceId: string, x: number, y: number) => setPieceMenu({ pieceId, x, y }), []);
+  const openPieceMenu = useCallback(
+    (pieceId: string, x: number, y: number, touch: boolean) =>
+      /* A long press may also send a context menu; the second opening keeps the finger's menu. */
+      setPieceMenu((current) => ({
+        pieceId,
+        x,
+        y,
+        touch: touch || (current?.pieceId === pieceId && current.touch),
+      })),
+    []
+  );
   const menuPiece = state.pieces.find((piece) => piece.id === pieceMenu?.pieceId);
   const pieceMenuName = isSpicePiece(menuPiece) ? 'Spice actions' : 'Deck actions';
   const pieceMenuLabelId = useId();
   const deckAvailable =
     !!deckControls && !!menuPiece && !menuPiece.locked && !menuPiece.inventory && menuPiece.items.length > 0;
+  const shuffleHint = deckShuffleHint(pieceMenu?.touch ?? false);
   const { trackers } = boardFurnitureFor(stage);
   const tableProgress = trackers === 'none' ? undefined : providedProgress;
   const phaseCount = tableProgress?.phases.length ?? null;
@@ -1354,7 +1369,12 @@ export function TabletopScene({
             return;
           }
           const bounds = event.currentTarget.getBoundingClientRect();
-          setPieceMenu({ pieceId: piece.id, x: bounds.left, y: bounds.bottom });
+          setPieceMenu({
+            pieceId: piece.id,
+            x: bounds.left,
+            y: bounds.bottom,
+            touch: (event.nativeEvent as Partial<PointerEvent>).pointerType === 'touch',
+          });
         }}
       >
         Selected piece actions
@@ -1421,7 +1441,7 @@ export function TabletopScene({
               >
                 Shuffle
               </Menu.Item>
-              <Menu.Label>Hover a deck and press R to shuffle.</Menu.Label>
+              {shuffleHint && <Menu.Label>{shuffleHint}</Menu.Label>}
             </>
           )}
         </Menu.Dropdown>

@@ -1,0 +1,15 @@
+/* A heading reached by its anchor keeps some room above it instead of touching the window edge. */
+.topic,
+.term {
+  scroll-margin-top: var(--space-xl);
+}
+
+.avoided {
+  text-decoration: line-through;
+}
+
+/* The picture stays in view beside a long run of terms; stacked, its cell is its own height, so it never rides over them. */
+.visual {
+  position: sticky;
+  top: var(--space-md);
+}

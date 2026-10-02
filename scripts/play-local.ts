@@ -134,7 +134,10 @@ const local = {
 Object.assign(publisher, local, {
   name: `dunezone-publisher-local-${suffix}`,
   main: path.join(root, 'workers/publisher/index.ts'),
-  alias: { 'rulebook-html-renderer-runtime': renderer },
+  alias: {
+    'rulebook-html-renderer-runtime': renderer,
+    'application-ssr-runtime': path.join(root, 'dist/server/server.js'),
+  },
   assets: { ...publisher.assets, directory: assets },
   services: [{ binding: 'GAME_SERVICE', service: gameName }],
   triggers: { crons: [] },

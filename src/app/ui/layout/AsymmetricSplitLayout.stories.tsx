@@ -1,5 +1,6 @@
 import { Image, Stack, Text } from '@mantine/core';
 import preview from '@sb/preview';
+import { expect, within } from 'storybook/test';
 
 import { AsymmetricSplitLayout } from './AsymmetricSplitLayout';
 import { LayoutSlotPlaceholder } from './LayoutSlotPlaceholder.stories.fixture';
@@ -43,6 +44,62 @@ export const Stacked = meta.story({
     </AsymmetricSplitLayout>
   ),
   globals: { viewport: { value: 'appConstrained' } },
+});
+
+/** The narrow column on the leading side, for alternating a picture from one pane to the next. */
+export const NarrowStart = meta.story({
+  render: () => (
+    <AsymmetricSplitLayout narrowSide="start">
+      <AsymmetricSplitLayout.Wide>
+        <LayoutSlotPlaceholder name="wide" tone="primary" minHeight={360} />
+      </AsymmetricSplitLayout.Wide>
+      <AsymmetricSplitLayout.Narrow>{narrow}</AsymmetricSplitLayout.Narrow>
+    </AsymmetricSplitLayout>
+  ),
+  globals: { viewport: { value: 'appDesktop' } },
+  play: async ({ canvasElement }) => {
+    const wide = within(canvasElement).getByText('wide').getBoundingClientRect();
+    const narrowSlot = within(canvasElement).getByText('narrow').getBoundingClientRect();
+    await expect(narrowSlot.left).toBeLessThan(wide.left);
+  },
+});
+
+/** Stacked with the narrow column first, so a picture introduces the text it sits beside. */
+export const StackedNarrowFirst = meta.story({
+  render: () => (
+    <AsymmetricSplitLayout stackFirst="narrow">
+      <AsymmetricSplitLayout.Wide>
+        <LayoutSlotPlaceholder name="wide" tone="primary" minHeight={360} />
+      </AsymmetricSplitLayout.Wide>
+      <AsymmetricSplitLayout.Narrow>{narrow}</AsymmetricSplitLayout.Narrow>
+    </AsymmetricSplitLayout>
+  ),
+  globals: { viewport: { value: 'appConstrained' } },
+  play: async ({ canvasElement }) => {
+    const wide = within(canvasElement).getByText('wide').getBoundingClientRect();
+    const narrowSlot = within(canvasElement).getByText('narrow').getBoundingClientRect();
+    await expect(narrowSlot.top).toBeLessThan(wide.top);
+    const [first] = within(canvasElement).getAllByText(/^(wide|narrow)$/);
+    await expect(first).toHaveTextContent('narrow');
+  },
+});
+
+/** The slim rail on the leading side keeps its fixed-ish band. */
+export const SlimNarrowStart = meta.story({
+  render: () => (
+    <AsymmetricSplitLayout rail="slim" narrowSide="start">
+      <AsymmetricSplitLayout.Wide>
+        <LayoutSlotPlaceholder name="wide" tone="primary" minHeight={360} />
+      </AsymmetricSplitLayout.Wide>
+      <AsymmetricSplitLayout.Narrow>{narrow}</AsymmetricSplitLayout.Narrow>
+    </AsymmetricSplitLayout>
+  ),
+  globals: { viewport: { value: 'appDesktop' } },
+  play: async ({ canvasElement }) => {
+    const wide = within(canvasElement).getByText('wide').getBoundingClientRect();
+    const narrowSlot = within(canvasElement).getByText('narrow').getBoundingClientRect();
+    await expect(narrowSlot.left).toBeLessThan(wide.left);
+  },
 });
 
 /** An unbreakable word and an oversized image must both respect the column they are given. */

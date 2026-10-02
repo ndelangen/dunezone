@@ -1,11 +1,13 @@
-import { Group, Stack, Textarea } from '@mantine/core';
+import { Button, Group, Stack, Textarea } from '@mantine/core';
 import type { TextareaProps } from '@mantine/core';
 import { parseFormattedText } from '@shared/formattedText';
 import type { FormattedTextParseResult, FormattedTextProfile } from '@shared/formattedText';
+import { distinctTermHints, fixTermWording } from '@shared/glossary/hints';
 import { Bold, Italic, Underline } from 'lucide-react';
-import { Fragment, useLayoutEffect, useRef, useState } from 'react';
+import { Fragment, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 
+import { TermHints } from '../content/TermHints';
 import { IconAction } from './IconAction';
 
 /** The one sentence every formatted field's help can say about what it accepts, kept beside the control that parses it. */
@@ -18,6 +20,8 @@ export interface FormattedTextInputProps extends Omit<TextareaProps, 'defaultVal
   value: string;
   onChange: (value: string) => void;
   profile?: FormattedTextProfile;
+  /** False turns off the glossary's wording suggestions, for text that is not about the game. */
+  termHints?: boolean;
 }
 
 function Diagnostic({ diagnostic }: { diagnostic: FormattedTextDiagnostic }) {
@@ -75,8 +79,17 @@ function isEntireMark(source: string, delimiter: '*' | '-' | '_') {
  *
  * The caller owns the draft and any field-specific validation such as requiredness.
  * This control owns syntax validation so every author sees the same source location, explanation, and suggested repair.
+ * It also suggests the glossary's word wherever the draft uses one the glossary avoids;
+ * the suggestions never block a save.
  */
-export function FormattedTextInput({ value, onChange, error, profile = 'prose', ...props }: FormattedTextInputProps) {
+export function FormattedTextInput({
+  value,
+  onChange,
+  error,
+  profile = 'prose',
+  termHints = true,
+  ...props
+}: FormattedTextInputProps) {
   const fieldRef = useRef<HTMLTextAreaElement>(null);
   const pendingSelection = useRef<{ value: string; start: number; end: number } | null>(null);
   const [hasSelection, setHasSelection] = useState(false);
@@ -129,6 +142,36 @@ export function FormattedTextInput({ value, onChange, error, profile = 'prose', 
     };
     onChange(nextValue);
   };
+  const hints = useMemo(() => (termHints ? distinctTermHints(value) : []), [termHints, value]);
+  const hintsId = useId();
+  /* The draft from before the last fix, offered back only while the field still holds exactly what the fix wrote. */
+  const [lastFix, setLastFix] = useState<{ before: string; after: string } | null>(null);
+  const undoable = lastFix?.after === value && !props.disabled && !props.readOnly;
+  const fixable = !props.disabled && !props.readOnly && hints.some((hint) => hint.fix !== undefined);
+  const fixWording = () => {
+    const after = fixTermWording(value);
+    setLastFix({ before: value, after });
+    onChange(after);
+  };
+  /*
+   * Mantine owns the textarea's aria-describedby and overwrites any value passed in, so the hint id is merged after each render.
+   * React leaves the attribute alone until Mantine's own value changes, and this runs again whenever it does.
+   */
+  useLayoutEffect(() => {
+    const field = fieldRef.current;
+    if (!field) {
+      return;
+    }
+    const ids = (field.getAttribute('aria-describedby') ?? '').split(' ').filter((id) => id && id !== hintsId);
+    if (hints.length > 0 || undoable) {
+      ids.push(hintsId);
+    }
+    if (ids.length > 0) {
+      field.setAttribute('aria-describedby', ids.join(' '));
+    } else {
+      field.removeAttribute('aria-describedby');
+    }
+  });
   const parsed = parseFormattedText(value, profile);
   const diagnostics = parsed.valid ? [] : parsed.diagnostics;
 
@@ -159,6 +202,27 @@ export function FormattedTextInput({ value, onChange, error, profile = 'prose', 
           </Group>
 
           {props.inputContainer ? props.inputContainer(input) : input}
+          <TermHints
+            hints={hints}
+            id={hintsId}
+            fixed={undoable}
+            actions={
+              (undoable || fixable) && (
+                <>
+                  {undoable ? (
+                    <Button size="compact-sm" variant="subtle" onClick={() => onChange(lastFix.before)}>
+                      Undo
+                    </Button>
+                  ) : null}
+                  {fixable ? (
+                    <Button size="compact-sm" variant="light" onClick={fixWording}>
+                      Fix wording
+                    </Button>
+                  ) : null}
+                </>
+              )
+            }
+          />
         </Stack>
       )}
       ref={fieldRef}

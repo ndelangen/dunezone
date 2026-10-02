@@ -78,6 +78,7 @@ export function validatePublisherDeployContract(config: JsonObject, environment:
   invariant(config.main === './index.ts', 'Worker entrypoint changed unexpectedly');
   invariant(config.workers_dev === true, 'workers.dev must remain enabled');
   invariant(config.preview_urls === false, 'preview URLs must remain disabled');
+  exactJson(config.define, { 'process.env.NODE_ENV': '"production"' }, 'application runtime mode');
   exactJson(
     config.routes,
     [{ pattern: new URL(APPLICATION_ORIGIN).hostname, custom_domain: true }],
@@ -105,6 +106,10 @@ export function validatePublisherDeployContract(config: JsonObject, environment:
         '/__user-images/*',
         '/__play',
         '/__play/*',
+        '/factions',
+        '/factions/*',
+        '/assets',
+        '/assets/*',
       ],
     },
     'Static Assets routing'
@@ -199,6 +204,11 @@ export function validatePublisherHealth(
       identity.rendererIdentity === rendererManifest.rendererIdentity &&
       identity.rendererManifestDigest === rendererManifest.digest,
     'Worker health does not report the current Renderer identity'
+  );
+  const application = object(health.application, 'application release');
+  invariant(
+    application.serverRendering === true && application.release === identity.workerVersionId,
+    'Application HTML must report the active Worker version'
   );
   invariant(identity.gitSha === expectedGitSha, 'Deployed Worker Git SHA does not match GITHUB_SHA');
   invariant(identity.workerVersionTag === expectedGitSha, 'Deployed Worker tag does not match GITHUB_SHA');

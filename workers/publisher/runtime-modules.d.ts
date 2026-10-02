@@ -9,3 +9,8 @@ declare module 'rulebook-html-renderer-runtime' {
     title: string;
   }): string;
 }
+
+declare module 'application-ssr-runtime' {
+  const application: { fetch(request: Request): Promise<Response> };
+  export default application;
+}
