@@ -124,9 +124,9 @@ describe('auditDependencies', () => {
     expect(h.log).toEqual([]);
   });
 
-  test('the audit job runs this script and its timeout holds every attempt plus a minute of setup', () => {
+  test('the lint job runs this script and its timeout holds every attempt plus a minute of setup', () => {
     const workflow = readFileSync(path.resolve(process.cwd(), '.github/workflows/reusable-verify.yml'), 'utf8');
-    const job = /dependency_audit:\n\s+runs-on: [^\n]+\n\s+timeout-minutes: (\d+)\n([\s\S]*?)\n\n/.exec(workflow);
+    const job = /\n {2}lint:\n {4}runs-on: [^\n]+\n {4}timeout-minutes: (\d+)\n([\s\S]*?)\n\n/.exec(workflow);
     expect(job?.[2]).toContain('run: bun run dependencies:audit');
     const worstCaseMs = (RETRY_DELAYS_MS.length + 1) * ATTEMPT_MS + RETRY_DELAYS_MS.reduce((sum, ms) => sum + ms, 0);
     expect(Number(job?.[1]) * 60_000).toBeGreaterThan(worstCaseMs + 60_000);

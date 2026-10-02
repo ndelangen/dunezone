@@ -79,33 +79,11 @@ jobs:
           disable_search: true
           fail_ci_if_error: false
 
-  # Named for what it audits, because `audit` already means the Cloudflare live-drift
-  # check in cloudflare-live-drift.yml and two checks with one name are unreadable.
-  dependency_audit:
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    if: ${{ !inputs.hosted_only }}
-    steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
-        with:
-          persist-credentials: false
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
-        with:
-          bun-version-file: package.json
-      # Reads bun.lock and package.json only, so no `bun install` and no cache; the script
-      # imports nothing from a package for the same reason.
-      # Fails the job on any advisory at moderate or above; a conscious exception is
-      # `--ignore=<GHSA-id>` with the reason in the diff, never lowering the level.
-      # Fail-closed: an unreachable registry still refuses, after four attempts of thirty
-      # seconds with backoff between them, and the last log line names whether the run ended
-      # on advisories or on the registry (#1053).
-      - name: Audit dependencies for known advisories
-        run: bun run dependencies:audit
-
   # The static gates share one job: each of the workflow lint, the Convex skip guard and the static
   # narrow check ran 12 to 14 s on a runner of its own after 5 to 12 s of setup (#1588), and a slot
-  # held for that is a slot a long job waits for when runners are short.
+  # held for that is a slot a long job waits for when runners are short. The typecheck, knip and
+  # dependency audit jobs joined it for the same reason (#1590): each spent about 40 s on checkout,
+  # install and caches for less work than that, and none of them was on the run's critical path.
   lint:
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -170,34 +148,29 @@ jobs:
       - name: Enforce static narrow guard contract
         if: ${{ !cancelled() && steps.narrow_check.outputs.changed == 'true' }}
         run: bun run migrations:static-check
-
-  knip:
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    if: ${{ !inputs.hosted_only }}
-    steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
-        with:
-          persist-credentials: false
-      - uses: ./.github/actions/setup
+      # Typecheck and knip read src/game/data/assetMap.generated.ts, so the generated images come
+      # first; the lint steps above ran before any generated file existed, as they did on their own.
       - uses: ./.github/actions/generated-images
-      - name: Detect unused files, exports, and dependencies
-        run: bun run knip
-
-  typecheck:
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    if: ${{ !inputs.hosted_only }}
-    steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
-        with:
-          persist-credentials: false
-      - uses: ./.github/actions/setup
-      - uses: ./.github/actions/generated-images
+        if: ${{ !cancelled() }}
       - name: Typecheck
+        if: ${{ !cancelled() }}
         run: bun run typecheck
       - name: Typecheck authoring tool
+        if: ${{ !cancelled() }}
         run: bun run tool:typecheck
+      - name: Detect unused files, exports, and dependencies
+        if: ${{ !cancelled() }}
+        run: bun run knip
+      # Reads bun.lock and package.json only; the script imports nothing from a package for the
+      # same reason. Fails on any advisory at moderate or above; a conscious exception is
+      # `--ignore=<GHSA-id>` with the reason in the diff, never lowering the level. Fail-closed: an
+      # unreachable registry still refuses, after four attempts of thirty seconds with backoff
+      # between them, and the last log line names whether the run ended on advisories or on the
+      # registry (#1053). Named for what it audits, because `audit` already means the Cloudflare
+      # live-drift check in cloudflare-live-drift.yml.
+      - name: Audit dependencies for known advisories
+        if: ${{ !cancelled() }}
+        run: bun run dependencies:audit
 
   test:
     runs-on: ubuntu-latest
