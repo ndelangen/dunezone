@@ -64,6 +64,9 @@ function settledRequest(message: GameSubscriptionEvent): { id: string; outcome: 
   }
 }
 
+/* A carry the table ended before its piece left the hand; the player has to pick it up again. */
+const pausedWhileHeld = 'The table paused while you held a piece. Pick it up again to continue.';
+
 type LocalCarry = {
   id: string;
   sourceId: string;
@@ -535,7 +538,7 @@ export class TableSession {
       case 'connection':
         this.conversations.disconnected(this.status === 'denied');
         this.noteEndedCarry({
-          held: 'The table paused while you held a piece. Pick it up again to continue.',
+          held: pausedWhileHeld,
           placing: 'The connection dropped as you placed a piece. Check where it landed.',
         });
         this.clearDisconnectedActivity();
@@ -757,6 +760,10 @@ export class TableSession {
     }
     if (local.granted) {
       if (!this.carries.some((carry) => carry.id === local.id)) {
+        /* A drop still waiting to go out never reached the Worker, so the piece snaps back and the player is told why. */
+        if (local.dropUnsent) {
+          this.error = pausedWhileHeld;
+        }
         this.carry = null;
       }
       return;

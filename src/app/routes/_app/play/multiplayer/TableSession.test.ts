@@ -319,6 +319,13 @@ async function grantedWholeCarry() {
 
 const dropPosition: [number, number, number] = [0.5, 0.38, 0.5];
 
+/* Every drop any socket sent, so a drop that went out on a closed socket still counts. */
+function sentDrops() {
+  return Socket.instances
+    .flatMap((instance) => instance.sent)
+    .flatMap((message) => (message.type === 'drop' ? [message] : []));
+}
+
 /* The drop's completion arrives on an update the tab cannot apply, and the fresh view saves the stack where it landed. */
 function dropThroughResync(client: TableSession, sourceId: string) {
   const rendered = () => table(client).renderedPieces.find((piece) => piece.id === sourceId)?.position;
@@ -892,6 +899,47 @@ describe('hosted table interaction', () => {
     const drop = socket().sent.find((message) => message.type === 'drop');
     expect(drop).toMatchObject({ position: dropPosition });
     expect(table(client).gestureActivePieceId).toBeNull();
+    socket().deliver({ ...carried, sequence: 10 });
+    socket().deliver({ type: 'update', epoch: 'epoch-one', baseSequence: 10, sequence: 11, activity: noActivity });
+    expect(sentDrops()).toHaveLength(1);
+  });
+
+  test('a drop released during a resync is not sent when the fresh view no longer holds its carry', async () => {
+    const { client, carried } = await grantedWholeCarry();
+    socket().deliver(carried);
+    deliverGap();
+    client.finishGesture(dropPosition);
+    socket().deliver({ ...carried, sequence: 9, carries: [] });
+    expect(sentDrops()).toHaveLength(0);
+    expect(table(client).gestureActivePieceId).toBeNull();
+    expect(client.getSnapshot().error).toBe('The table paused while you held a piece. Pick it up again to continue.');
+  });
+
+  test('a drop released during a resync is not sent when the fresh view comes from a resumed room', async () => {
+    const { client, carried } = await grantedWholeCarry();
+    socket().deliver(carried);
+    deliverGap();
+    client.finishGesture(dropPosition);
+    socket().deliver({ ...carried, sequence: 9, epoch: 'epoch-two' });
+    expect(sentDrops()).toHaveLength(0);
+    expect(table(client).gestureActivePieceId).toBeNull();
+    expect(client.getSnapshot().error).toBe('The room resumed. Pick up the piece again to continue.');
+  });
+
+  test('a drop flushed after a resync that the Worker rejects clears the carry and shows why', async () => {
+    const { client, carried } = await grantedWholeCarry();
+    socket().deliver(carried);
+    deliverGap();
+    client.finishGesture(dropPosition);
+    socket().deliver({ ...carried, sequence: 9 });
+    const [drop] = sentDrops();
+    if (!drop) {
+      throw new Error('The drop was not sent.');
+    }
+    socket().deliver({ type: 'rejected', requestId: drop.commandId, message: 'The table changed.' });
+    expect(table(client).state.draftMove).toBeNull();
+    expect(socket().sent.some((message) => message.type === 'cancel')).toBe(true);
+    expect(client.getSnapshot().error).toBe('The table changed.');
   });
 
   test('a drop still waiting on a resync when the connection drops asks the player to pick the piece up again', async () => {
@@ -903,7 +951,7 @@ describe('hosted table interaction', () => {
     await vi.advanceTimersByTimeAsync(1000);
     socket().open();
     authorize();
-    expect(socket().sent.some((message) => message.type === 'drop')).toBe(false);
+    expect(sentDrops()).toHaveLength(0);
     expect(client.getSnapshot().error).toBe('The table paused while you held a piece. Pick it up again to continue.');
   });
 
