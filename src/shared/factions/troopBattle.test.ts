@@ -1,20 +1,20 @@
 import { describe, expect, it } from 'vitest';
 
-import { capturedCombatFaces } from '../play/battle';
+import { capturedBattleFaces } from '../play/battle';
 
 const image = '/vector/troop/atreides.svg';
 const values = { strength: 0.5, supportedStrength: 1 };
 
-describe('captured troop combat faces', () => {
+describe('captured troop battle faces', () => {
   it('lets an unauthored reverse play as its front, with one section for both', () => {
-    expect(capturedCombatFaces([{ name: 'Guard', image, combat: values }])).toEqual([
+    expect(capturedBattleFaces([{ name: 'Guard', image, combat: values }])).toEqual([
       { id: 'troop-0-front', name: 'Guard', capable: true, ...values, supportCost: 1, image },
     ]);
-    expect(capturedCombatFaces([{ name: 'Envoy', image, capable: false, combat: values }])).toEqual([]);
+    expect(capturedBattleFaces([{ name: 'Envoy', image, capable: false, combat: values }])).toEqual([]);
   });
 
   it('keeps an authored back distinct: its own flag, its own values, and no borrowing when they are missing', () => {
-    const faces = capturedCombatFaces([
+    const faces = capturedBattleFaces([
       { name: 'Envoy', image, capable: false, back: { name: 'Zealot', image, combat: { ...values, supportCost: 0 } } },
       { name: 'Guard', image, combat: values, back: { name: 'Unset', image } },
       { name: 'Unset', image, back: { name: 'Quiet', image, capable: false, combat: values } },

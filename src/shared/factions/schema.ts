@@ -41,11 +41,11 @@ export const Decal = z.strictObject({
  * What one troop face contributes to a battle plan (#1062).
  * Strengths may be fractional or negative;
  * the support cost is whole spice, zero or more, and one when absent.
- * A face without this object has no authored combat values, which is never read as zero.
+ * A face without this object has no authored battle values, which is never read as zero.
  * Authoring and writes accept only these names;
- * stored reads go through `StoredTroopCombat`.
+ * stored reads go through `StoredTroopBattle`.
  */
-export const TroopCombat = z.strictObject({
+export const TroopBattle = z.strictObject({
   strength: z.number(),
   supportedStrength: z.number(),
   supportCost: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER).optional(),
@@ -74,11 +74,11 @@ export function withSupportNames(value: unknown): unknown {
 /**
  * Stored-data reader for the rename's compatibility window: the legacy names read as the new ones, and every write emits only the new ones.
  * `faction_troop_support_names_v1` rewrites stored factions.
- * Narrowing the live schemas to `TroopCombat` is a later release, once that migration and its verify have run everywhere;
+ * Narrowing the live schemas to `TroopBattle` is a later release, once that migration and its verify have run everywhere;
  * `HistoricalFactionPublicationSchema` keeps this read even then, because games retain captures taken before the rename.
  * Like `extras`, a preprocess derives as `v.any()` on the Convex wire, which leaves the shape to the Zod parse.
  */
-const StoredTroopCombat = z.preprocess(withSupportNames, TroopCombat);
+const StoredTroopBattle = z.preprocess(withSupportNames, TroopBattle);
 
 /* `capable` is the face's battle eligibility, separate from its strengths: an authored face without it can fight. */
 const TroopSide = z.strictObject({
@@ -89,7 +89,8 @@ const TroopSide = z.strictObject({
   hue: z.string().optional(),
   striped: z.boolean().optional(),
   capable: z.boolean().optional(),
-  combat: StoredTroopCombat.optional(),
+  /* Stored key: saved faction definitions keep `combat`; the glossary term is battle. */
+  combat: StoredTroopBattle.optional(),
 });
 
 const Troop = z.strictObject({
@@ -101,13 +102,14 @@ const Troop = z.strictObject({
   hue: z.string().optional(),
   striped: z.boolean().optional(),
   capable: z.boolean().optional(),
-  combat: StoredTroopCombat.optional(),
+  /* Stored key, kept as `combat`; see the note on TroopSide. */
+  combat: StoredTroopBattle.optional(),
   back: TroopSide.optional(),
   count: z.number().int().positive(),
   planet: z.string().optional(),
 });
 
-/** A troop as a game table draws it: its artwork alone, since a face's combat values reach the plans on their own path. */
+/** A troop as a game table draws it: its artwork alone, since a face's battle values reach the plans on their own path. */
 export const TroopArtwork = Troop.omit({ capable: true, combat: true }).extend({
   back: TroopSide.omit({ capable: true, combat: true }).optional(),
 });
@@ -214,11 +216,11 @@ const AuthoringRule = RULE.extend({
   karama: proseFormattedTextSchema.optional(),
 });
 
-const AuthoringTroopSide = TroopSide.extend({ description: proseFormattedTextSchema, combat: TroopCombat.optional() });
+const AuthoringTroopSide = TroopSide.extend({ description: proseFormattedTextSchema, combat: TroopBattle.optional() });
 
 const AuthoringTroop = Troop.extend({
   description: proseFormattedTextSchema,
-  combat: TroopCombat.optional(),
+  combat: TroopBattle.optional(),
   back: AuthoringTroopSide.optional(),
 });
 

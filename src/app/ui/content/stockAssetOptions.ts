@@ -22,7 +22,7 @@ const vectorThemes = [
   { match: /poison|chaumurky|chaumas|residual|snooper|antidote|semuta/, label: 'Poison and protection' },
   {
     match: /sword|blade|gun|weapon|laser|lazgun|shield|artillery|atomics|stone-burner|battle/,
-    label: 'Weapons and combat',
+    label: 'Weapons and battle',
   },
   { match: /thopter|harvest|carryall|ship|transport|smuggl|caravan/, label: 'Vehicles and transport' },
   { match: /water|spice|worm|shai|sand|desert|storm|weather|thumper|plant|tree/, label: 'Desert and resources' },

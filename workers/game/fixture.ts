@@ -1,4 +1,4 @@
-import { fixtureCombatFaces } from '../../src/shared/play/battle';
+import { fixtureBattleFaces } from '../../src/shared/play/battle';
 import { initialSnapshot } from '../../src/shared/play/commands';
 import type { SpawnSelection, StoredSpawnContents } from '../../src/shared/play/inventory';
 import type { TablePiece } from '../../src/shared/play/model';
@@ -18,7 +18,7 @@ const HOSTED_FIXTURE_SEATS: TableRoster['seats'] = [
   { id: 'atreides', position: 1, faction: { id: 'atreides', name: 'Atreides', color: '#75d8a7' } },
 ];
 
-/** Every seated house holds a bank and its fixture combat faces; a house that already has them keeps them. */
+/** Every seated house holds a bank and its fixture battle faces; a house that already has them keeps them. */
 function seedFactionState(snapshot: StoredSnapshot, roster: TableRoster): StoredSnapshot {
   const factions = roster.seats.flatMap((seat) => (seat.faction ? [seat.faction.id] : []));
   return {
@@ -26,7 +26,7 @@ function seedFactionState(snapshot: StoredSnapshot, roster: TableRoster): Stored
     roster,
     factionBanks: { ...Object.fromEntries(factions.map((id) => [id, 0])), ...snapshot.factionBanks },
     combatFaces: {
-      ...Object.fromEntries(factions.map((id) => [id, fixtureCombatFaces(id)])),
+      ...Object.fromEntries(factions.map((id) => [id, fixtureBattleFaces(id)])),
       ...snapshot.combatFaces,
     },
   };

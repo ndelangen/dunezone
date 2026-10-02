@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { assetPublishingFaction } from '../factions/fixtures/assetPublishingFaction';
-import { emptyBattlePlan, fixtureCombatFaces } from './battle';
+import { emptyBattlePlan, fixtureBattleFaces } from './battle';
 import { initialSnapshot, nextSnapshot } from './commands';
 import { emptyPublicControls } from './inventory';
 import { serverMessageSchema, tableForViewer } from './protocol';
@@ -88,7 +88,7 @@ describe('game transport reconstruction', () => {
 
   it('keeps null for a battle that ended, as the fresh view carries it', () => {
     const before = base();
-    before.snapshot.battlePlan = emptyBattlePlan(fixtureCombatFaces('harkonnen'));
+    before.snapshot.battlePlan = emptyBattlePlan(fixtureBattleFaces('harkonnen'));
     before.snapshot.battle = {
       id: 'battle',
       anchor: [0, 0, 0],

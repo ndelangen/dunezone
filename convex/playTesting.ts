@@ -195,7 +195,7 @@ const SYNTHETIC_DECK_MEMBERS = {
  * Authored values the browser support case needs: five troops cost five spice, three troops cost three.
  * The Harkonnen colour is a saturated red so the carry checks can find its troop tokens by their pixels.
  */
-const SYNTHETIC_TROOP_COMBAT = { strength: 0.5, supportedStrength: 1, supportCost: 1 };
+const SYNTHETIC_TROOP_BATTLE = { strength: 0.5, supportedStrength: 1, supportCost: 1 };
 
 /** The Extra one seeded faction supplies at setup; the regular flow finds it in that faction's hand by this name. */
 const SYNTHETIC_EXTRA_NAME = 'Synthetic extra';
@@ -234,7 +234,7 @@ const SYNTHETIC_FACTIONS = [
 ];
 
 /**
- * Seeds a ruleset an Administrator can start a real game with on the disposable browser backend: both required decks, and two linked factions with published tokens and authored troop combat values.
+ * Seeds a ruleset an Administrator can start a real game with on the disposable browser backend: both required decks, and two linked factions with published tokens and authored troop battle values.
  * The Harkonnen also supply an Extra and declare a prediction and an instruction phase, so real games carry custom content.
  * Returns the publications whose local bytes the runner installs.
  */
@@ -302,7 +302,7 @@ export const seedRealGameCatalogue = internalMutation({
           troops: assetPublishingFaction.troops.map((troop) => ({
             ...troop,
             name: 'Troops',
-            combat: SYNTHETIC_TROOP_COMBAT,
+            combat: SYNTHETIC_TROOP_BATTLE,
           })),
           ...(faction.declares
             ? { extras: [{ type: 'token-disc', slug: extraSlug }], extraPhases: [...SYNTHETIC_PHASES] }

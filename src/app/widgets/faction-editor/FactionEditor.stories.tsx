@@ -84,7 +84,7 @@ export const RetainsManualComplexityAcrossChapters = meta.story({
   },
 });
 
-export const AuthorsTroopCombatValues = meta.story({
+export const AuthorsTroopBattleValues = meta.story({
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
 

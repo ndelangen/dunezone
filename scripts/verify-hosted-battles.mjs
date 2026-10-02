@@ -120,7 +120,7 @@ export async function verifyBattles(toolkit) {
   await act(b, 'Claim right side');
   await until(
     () => a.view().snapshot.battlePlan && b.view().snapshot.battlePlan,
-    'Combatants did not receive private plans.'
+    'The factions in the battle did not receive private plans.'
   );
   assert.equal(observer.view().snapshot.battlePlan, null);
   const cardName = battleCard.items[0].artwork.name;
@@ -196,7 +196,9 @@ export async function verifyBattles(toolkit) {
   );
   assert.equal(a.view().snapshot.bank.balance, startingSpice + 4);
   await capture(a, 'after-battle-cancellation');
-  passed('A seated noncombatant cancels preparation and restores the private card without a public result');
+  passed(
+    'A seated faction outside the battle cancels preparation and restores the private card without a public result'
+  );
   await focus(a, 'map');
 }
 

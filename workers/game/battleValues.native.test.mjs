@@ -5,10 +5,10 @@ import { draftingRuntime } from './native-drafting.fixture.mjs';
 import { accepted, admitPlayer, eventually, seat, sendCommand, syncView } from './native-runtime.fixture.mjs';
 
 /*
- * Authored troop combat values travel from a faction's definition, through its capture at assignment
+ * Authored troop battle values travel from a faction's definition, through its capture at assignment
  * and setup, into a real game's battle plans, using ordinary commands only.
  * Harkonnen's troops carry synthetic authored values; Atreides keeps the shared fixture's troops,
- * which predate combat authoring and so have none.
+ * which predate battle authoring and so have none.
  */
 
 const BATTLE = TABLE_PHASES.findIndex((phase) => phase.id === 'battle');
@@ -43,7 +43,7 @@ const AUTHORED_TROOPS = [
   },
 ];
 
-describe('Authored troop combat values in a real game', { timeout: 120_000 }, () => {
+describe('Authored troop battle values in a real game', { timeout: 120_000 }, () => {
   let peer, runtime, offset;
   afterEach(async () => {
     await runtime?.close();
@@ -115,7 +115,7 @@ describe('Authored troop combat values in a real game', { timeout: 120_000 }, ()
     return { harkonnen: players[harkonnen], atreides: players[1 - harkonnen] };
   }
 
-  it('supplies both authored faces, omits noncombatant and unauthored faces, and supports the retained values', async () => {
+  it('supplies both authored faces, omits faces that cannot battle and unauthored faces, and supports the retained values', async () => {
     ({ peer, runtime } = await draftingRuntime());
     offset = 0;
     const harkonnenSource = peer.factions.get('harkonnen');
@@ -129,12 +129,12 @@ describe('Authored troop combat values in a real game', { timeout: 120_000 }, ()
     const problems = Object.fromEntries(
       factions.map((capture) => [
         capture.faction.id,
-        capture.readiness.problems.filter((problem) => problem.reason.includes('combat values')),
+        capture.readiness.problems.filter((problem) => problem.reason.includes('battle values')),
       ])
     );
     expect(problems.harkonnen).toEqual([]);
     expect(problems.atreides).toEqual([
-      { subject: 'troop Regular troop', reason: 'This troop face can fight but has no authored combat values.' },
+      { subject: 'troop Regular troop', reason: 'This troop face can fight but has no authored battle values.' },
     ]);
 
     const state = await stored();
@@ -170,7 +170,7 @@ describe('Authored troop combat values in a real game', { timeout: 120_000 }, ()
       ],
       atreides: [],
     });
-    /* Artwork is public; combat values reach the plans through combatFaces alone. */
+    /* Artwork is public; battle values reach the plans through combatFaces alone. */
     expect(JSON.stringify(state.factionArtwork)).not.toContain('combat');
     expect(JSON.stringify(state.factionArtwork)).not.toContain('capable');
 

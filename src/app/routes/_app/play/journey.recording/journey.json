@@ -454,7 +454,7 @@
     },
     {
       "title": "Battle plan",
-      "detail": "Fectumbra (House Harkonnen) commits a leader; the fixture troops have no combat values to dial.",
+      "detail": "Fectumbra (House Harkonnen) commits a leader; the fixture troops have no battle values to dial.",
       "actor": "seat-3",
       "action": {
         "kind": "battle-plan",
@@ -474,7 +474,7 @@
     },
     {
       "title": "Battle plan",
-      "detail": "Erickenneth (House Atreides) commits a leader; the fixture troops have no combat values to dial.",
+      "detail": "Erickenneth (House Atreides) commits a leader; the fixture troops have no battle values to dial.",
       "actor": "seat-4",
       "action": {
         "kind": "battle-plan",

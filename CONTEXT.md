@@ -135,8 +135,8 @@ One member of a faction's ordered supporting-leader roster. A faction may have z
 **Troop count**:
 The number of physical tokens supplied for one faction troop type. A reversible troop token has one Troop count shared by its front and back faces.
 
-**Combat values**:
-What one troop face contributes to a battle plan: its strength, its supported strength and its support cost in spice. Strengths may be fractional or negative; the support cost is a whole number, zero or more, and one when left out. A separate flag says whether the face fights at all, and an authored face without it does. A troop with no authored back plays both sides as its front; an authored back keeps its own flag and values. A face that fights but has no Combat values is a gap the editor warns about and a game's capture names; nothing reads it as zero.
+**Battle values**:
+What one troop face contributes to a battle plan: its strength, its supported strength and its support cost in spice. Strengths may be fractional or negative; the support cost is a whole number, zero or more, and one when left out. A separate flag says whether the face fights at all, and an authored face without it does. A troop with no authored back plays both sides as its front; an authored back keeps its own flag and values. A face that fights but has no Battle values is a gap the editor warns about and a game's capture names; nothing reads it as zero.
 
 **Starting spice**:
 The amount of spice a faction begins the game with. Starting spice is a structured setup value, distinct from the faction's free-form starting instructions.

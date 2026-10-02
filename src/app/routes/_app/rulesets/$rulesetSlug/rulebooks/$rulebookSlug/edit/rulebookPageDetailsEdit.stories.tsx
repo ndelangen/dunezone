@@ -49,7 +49,7 @@ const retreatSequence: RulebookBlockDraft = {
   id: 'RTRT',
   kind: 'text',
   name: 'Retreat movement',
-  text: 'Resolve retreat movement after combat losses are assigned.',
+  text: 'Resolve retreat movement after battle losses are assigned.',
 };
 
 const exampleList: RulebookBlockDraft = {

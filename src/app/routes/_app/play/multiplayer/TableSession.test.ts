@@ -1,4 +1,4 @@
-import { emptyBattlePlan, fixtureCombatFaces } from '@shared/play/battle';
+import { emptyBattlePlan, fixtureBattleFaces } from '@shared/play/battle';
 import { initialSnapshot, nextSnapshot } from '@shared/play/commands';
 import { PHASE_CHANGE_COOLDOWN_MS } from '@shared/play/phases';
 import { tableForViewer } from '@shared/play/protocol';
@@ -1201,7 +1201,7 @@ describe('private banks and public transfers', () => {
 });
 
 function battleTable() {
-  const plan = emptyBattlePlan(fixtureCombatFaces('harkonnen'));
+  const plan = emptyBattlePlan(fixtureBattleFaces('harkonnen'));
   const snapshot: GameSnapshot = {
     ...initialSnapshot(),
     phase: 6,

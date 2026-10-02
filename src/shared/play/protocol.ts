@@ -8,7 +8,7 @@ import {
   publicBattleSchema,
   battlePlanSchema,
   battleResultSchema,
-  combatFaceSchema,
+  battleFaceSchema,
 } from './battle';
 import { conversationMessageSchema, conversationSummarySchema, conversationTextSchema } from './conversations';
 import { draftActionSchema, draftStateSchema } from './drafting';
@@ -82,7 +82,8 @@ export const gameSnapshotSchema = z.object({
   battlePlan: battlePlanSchema.nullable().optional(),
   hand: z.array(pieceSchema).optional(),
   factionArtwork: factionArtworkSchema.optional(),
-  combatFaces: z.record(z.string(), z.array(combatFaceSchema)).optional(),
+  /* Wire key, kept as `combatFaces` for clients and recordings; the glossary says battle. */
+  combatFaces: z.record(z.string(), z.array(battleFaceSchema)).optional(),
   battleResults: z.array(battleResultSchema).optional(),
   spiceTransfers: z.array(spiceTransferSchema).optional(),
 });

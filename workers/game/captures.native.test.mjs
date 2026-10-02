@@ -376,7 +376,7 @@ describe('Catalogue capture and retention through the isolated fixture', () => {
       `leader ${leaders[0].name}`,
       /* The elite troop's authored back has not published, while the regular troop's front serves both sides. */
       'troop Elite troop',
-      /* The shared fixture predates combat authoring, so each of its fighting faces is named for its values. */
+      /* The shared fixture predates battle authoring, so each of its fighting faces is named for its values. */
       'troop Regular troop',
       'troop Elite troop',
       'troop Elite side back',
