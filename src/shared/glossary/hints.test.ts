@@ -120,8 +120,8 @@ describe('fixTermWording', () => {
       ['spent troops', 'Dialed'],
       ['committed troops', 'Dialed'],
     ]);
-    expect(fixTermWording('Spend troops wisely; never commit troop counts blindly.')).toBe(
-      'Dial troops wisely; never dial troop counts blindly.'
+    expect(fixTermWording('Spend troops wisely; never commit troops blindly.')).toBe(
+      'Dial troops wisely; never commit troops blindly.'
     );
   });
 

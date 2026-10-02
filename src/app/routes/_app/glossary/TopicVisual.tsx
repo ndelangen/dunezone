@@ -94,13 +94,7 @@ function PiecesVisual() {
     <div className={styles.row}>
       <Piece caption="Troop" anchor="troop">
         <Disc>
-          <TroopToken
-            background={atreides.background}
-            image="/vector/troop/atreides.svg"
-            star={undefined}
-            hue={undefined}
-            striped={undefined}
-          />
+          <TroopToken {...atreidesTroop} />
         </Disc>
       </Piece>
       <Piece caption="Elite troop" anchor="elite-troop">
@@ -226,10 +220,9 @@ function Wheel() {
 function BattleVisual() {
   return (
     <div className={styles.column}>
-      <a className={styles.piece} href="#battle-wheel">
+      <Piece caption="Battle wheel" anchor="battle-wheel">
         <Wheel />
-        <span className={styles.caption}>Battle wheel</span>
-      </a>
+      </Piece>
       <div className={clsx(styles.grid, styles.extra)}>
         <Piece caption="Dialed troops" anchor="dialed">
           <span className={styles.troopStack}>

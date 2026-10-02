@@ -156,11 +156,10 @@
 }
 
 .spicePile {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(3, auto);
   justify-content: center;
   gap: var(--space-xs);
-  max-width: 12rem;
   color: #b65d12;
 }
 

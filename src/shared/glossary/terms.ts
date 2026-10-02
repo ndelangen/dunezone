@@ -282,13 +282,7 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
       {
         word: 'committed troops',
         forms: ['committed troop', 'commit troops', 'commit troop', 'committing troops'],
-        fixes: {
-          'committed troops': 'dialed troops',
-          'committed troop': 'dialed troop',
-          'commit troops': 'dial troops',
-          'commit troop': 'dial troop',
-          'committing troops': 'dialing troops',
-        },
+        /* No fixes: committing troops also means sending them to Arrakis, which is not dialing. */
       },
     ],
   },
@@ -311,7 +305,8 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
     id: 'battle-wheel',
     term: 'Battle wheel',
     topic: 'battle',
-    explanation: 'The dial each faction turns in secret to choose how many troops it dials for a battle.',
+    explanation:
+      'The dial each faction turns in secret to choose how many of its troops in the territory fight the battle.',
     reason: 'The rulebook calls the component the battle wheel; dial is what you do with it.',
     source: 'rulebook',
     avoid: [
