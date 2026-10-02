@@ -13,7 +13,7 @@ import { playFromHandAtAnchor } from '../../src/shared/play/tableState';
 import type { StoredSnapshot, StoredBattle } from './state';
 
 type BattleActor = { snapshot: StoredSnapshot; battle: StoredBattle; factionId: string };
-type BattlingFaction = BattleActor & { side: 0 | 1 };
+type BattleSide = BattleActor & { side: 0 | 1 };
 
 const refuse = (message: string): never => {
   throw new GameRejection(message);
@@ -158,7 +158,7 @@ function reservedBalance({ snapshot, factionId }: BattleActor, before: StoredBat
   return balance;
 }
 
-function editPlan({ snapshot, battle, side, factionId }: BattlingFaction, input: BattlePlanInput) {
+function editPlan({ snapshot, battle, side, factionId }: BattleSide, input: BattlePlanInput) {
   if (battle.stage !== 'preparing' || battle.sides[side]!.ready) {
     return refuse('Undo Ready before editing your plan.');
   }
@@ -305,7 +305,7 @@ function claimSide({ snapshot, battle, factionId }: BattleActor, side: 0 | 1) {
 }
 
 function setReady(
-  { snapshot, battle, side }: BattlingFaction,
+  { snapshot, battle, side }: BattleSide,
   action: Extract<BattleAction, { kind: 'battle-ready' }>,
   now: number
 ) {
@@ -358,7 +358,7 @@ function resolveBattle(snapshot: StoredSnapshot, battle: StoredBattle, outcome: 
 }
 
 function chooseOutcome(
-  { snapshot, battle, side }: BattlingFaction,
+  { snapshot, battle, side }: BattleSide,
   action: Extract<BattleAction, { kind: 'battle-outcome' }>
 ) {
   const { outcome } = action;
@@ -372,7 +372,7 @@ function chooseOutcome(
   return commit(snapshot, { battleState: battle });
 }
 
-function battlingFactionCommand(
+function sideCommand(
   actor: BattleActor,
   action: Extract<BattleAction, { kind: 'battle-plan' | 'battle-ready' | 'battle-outcome' }>,
   now: number
@@ -413,7 +413,7 @@ export function battleCommand(
   if (action.kind === 'battle-claim') {
     return claimSide({ snapshot, battle, factionId }, action.side);
   }
-  return battlingFactionCommand({ snapshot, battle, factionId }, action, now);
+  return sideCommand({ snapshot, battle, factionId }, action, now);
 }
 
 /** The caller persists this transition before exposing any revealed contents. */

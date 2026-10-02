@@ -10,7 +10,7 @@ import {
   defaultPlanet,
   defaultTroop,
   nextLeaderFromLast,
-  nextTroopBattle,
+  nextTroopBattleValues,
 } from './factionFormDefaults';
 
 describe('faction chapter defaults', () => {
@@ -68,17 +68,21 @@ describe('faction chapter defaults', () => {
   });
 
   it('keeps battle values the author entered and never fills the other strength', () => {
-    const strength = nextTroopBattle(undefined, 'strength', 1.5);
+    const strength = nextTroopBattleValues(undefined, 'strength', 1.5);
     expect(strength).toEqual({ strength: 1.5 });
-    const both = nextTroopBattle(strength, 'fundedStrength', -2);
+    const both = nextTroopBattleValues(strength, 'fundedStrength', -2);
     expect(both).toEqual({ strength: 1.5, fundedStrength: -2 });
-    expect(nextTroopBattle(both, 'fundingCost', 0)).toEqual({ strength: 1.5, fundedStrength: -2, fundingCost: 0 });
-    expect(nextTroopBattle(both, 'strength', undefined)).toEqual({ fundedStrength: -2 });
-    expect(nextTroopBattle({ strength: 1, fundedStrength: 2 }, 'fundingCost', undefined)).toEqual({
+    expect(nextTroopBattleValues(both, 'fundingCost', 0)).toEqual({
+      strength: 1.5,
+      fundedStrength: -2,
+      fundingCost: 0,
+    });
+    expect(nextTroopBattleValues(both, 'strength', undefined)).toEqual({ fundedStrength: -2 });
+    expect(nextTroopBattleValues({ strength: 1, fundedStrength: 2 }, 'fundingCost', undefined)).toEqual({
       strength: 1,
       fundedStrength: 2,
     });
-    expect(nextTroopBattle(strength, 'strength', undefined)).toBeUndefined();
+    expect(nextTroopBattleValues(strength, 'strength', undefined)).toBeUndefined();
   });
 
   it('keeps optional advantage fields absent by default', () => {

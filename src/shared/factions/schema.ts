@@ -43,7 +43,7 @@ export const Decal = z.strictObject({
  * the funding cost is whole spice, zero or more, and one when absent.
  * A face without this object has no authored battle values, which is never read as zero.
  */
-export const TroopBattle = z.strictObject({
+export const TroopBattleValues = z.strictObject({
   strength: z.number(),
   fundedStrength: z.number(),
   fundingCost: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER).optional(),
@@ -59,7 +59,7 @@ const TroopSide = z.strictObject({
   striped: z.boolean().optional(),
   capable: z.boolean().optional(),
   /* Stored key: saved faction definitions keep `combat`; the glossary term is battle. */
-  combat: TroopBattle.optional(),
+  combat: TroopBattleValues.optional(),
 });
 
 const Troop = z.strictObject({
@@ -72,7 +72,7 @@ const Troop = z.strictObject({
   striped: z.boolean().optional(),
   capable: z.boolean().optional(),
   /* Stored key, kept as `combat`; see the note on TroopSide. */
-  combat: TroopBattle.optional(),
+  combat: TroopBattleValues.optional(),
   back: TroopSide.optional(),
   count: z.number().int().positive(),
   planet: z.string().optional(),

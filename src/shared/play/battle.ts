@@ -106,11 +106,11 @@ type CapturedFace = AuthoredFace & { image: string };
 
 /**
  * The battle faces a captured faction definition supplies to its battle plans: every face that can fight and has authored values.
- * A face that cannot battle has no section, and a face missing its values stays out rather than borrowing any, which the capture's verdict names.
+ * A face that cannot fight has no section, and a face missing its values stays out rather than borrowing any, which the capture's verdict names.
  */
 export function capturedBattleFaces(troops: readonly AuthoredTroop<CapturedFace>[]): BattleFace[] {
-  return troopBattleFaces(troops).flatMap(({ id, face, capable, combat }) =>
-    capable && combat ? [{ id, name: face.name, capable: true, ...combat, image: face.image }] : []
+  return troopBattleFaces(troops).flatMap(({ id, face, capable, values }) =>
+    capable && values ? [{ id, name: face.name, capable: true, ...values, image: face.image }] : []
   );
 }
 

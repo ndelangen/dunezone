@@ -280,7 +280,7 @@ async function biddingAndShipment(journey) {
 
 /*
  * The fixture troops carry no authored battle values, so no troop can be dialed and no spice can fund one.
- * Each side commits a leader alone, and the reveal shows 0 force and 0 spice, as the step text says.
+ * Each side commits a leader alone, and the reveal shows 0 strength and 0 spice, as the step text says.
  */
 async function battlePlan(journey, index) {
   const leader = (await journey.hand(index)).find((piece) => piece.kind === 'force');

@@ -36,7 +36,7 @@ Decals share one catalogue across existing artwork and approved custom illustrat
 has one primary collection, chosen by what the image depicts. Collection keywords and the original
 filename remain searchable for related uses. The collections do not prescribe card effects or rules.
 
-- A standalone sword belongs with blades; a duel belongs with battle and training. Guards and
+- A standalone sword belongs with blades; a duel belongs with fighting and training. Guards and
   formations cover standing watch, escorts and assembled troops.
 - Animals and desert fauna share one collection. Plants and fungi are separate, as are microorganisms
   such as Flagella and Zenobia. Mechanical creatures belong with personal machinery.

@@ -1,6 +1,6 @@
 import { Alert, Box, ColorSwatch, Divider, Flex, Group, SimpleGrid, Stack, Text, Title, Tooltip } from '@mantine/core';
 import { troopBattleFaces } from '@shared/factions/troopBattle';
-import type { TroopFaceBattle } from '@shared/factions/troopBattle';
+import type { TroopFaceBattleValues } from '@shared/factions/troopBattle';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { LoadError } from '@ui/block/LoadError';
@@ -111,7 +111,7 @@ function FactionPlanet({ planet }: { readonly planet: NonNullable<FactionData['p
 }
 
 type Troop = FactionData['troops'][number];
-type TroopFace = TroopFaceBattle<NonNullable<Troop['back']>>;
+type TroopFace = TroopFaceBattleValues<NonNullable<Troop['back']>>;
 
 function TroopHint({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -127,7 +127,7 @@ function TroopStrengths({ face }: { face: TroopFace }) {
   if (!face.capable) {
     return <StatusMark label="Cannot participate in battle" icon={<TopicIcon topic="cannotBattle" size={15} />} />;
   }
-  if (!face.combat) {
+  if (!face.values) {
     return (
       <StatusMark
         tone="caution"
@@ -138,15 +138,15 @@ function TroopStrengths({ face }: { face: TroopFace }) {
   }
   return (
     <>
-      <TroopHint label={`Strength per troop: ${face.combat.strength} undialed | ${face.combat.fundedStrength} dialed`}>
+      <TroopHint label={`Strength per troop: ${face.values.strength} undialed | ${face.values.fundedStrength} dialed`}>
         <TopicIcon topic="strength" size={15} />
         <b>
-          {face.combat.strength} | {face.combat.fundedStrength}
+          {face.values.strength} | {face.values.fundedStrength}
         </b>
       </TroopHint>
-      <TroopHint label={`Funding cost: ${face.combat.fundingCost} spice per dialed troop`}>
+      <TroopHint label={`Funding cost: ${face.values.fundingCost} spice per dialed troop`}>
         <TopicIcon topic="spice" size={15} />
-        <b>{face.combat.fundingCost}</b>
+        <b>{face.values.fundingCost}</b>
       </TroopHint>
     </>
   );
