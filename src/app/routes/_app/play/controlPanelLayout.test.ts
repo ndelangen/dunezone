@@ -25,9 +25,13 @@ describe('table controls panel layout', () => {
     expect(controlsPanelLimits(2000, 16)).toEqual({ min: MIN_CONTROLS_PANEL_PERCENT, max: MAX_CONTROLS_PANEL_PERCENT });
   });
 
-  test('a shell too short for both keeps the dock floor and gives the scene less', () => {
-    const limits = controlsPanelLimits(400, 16);
-    expect(limits.min).toBeCloseTo(68);
+  test('a shell with room for the dock floor and the least of the table gives the scene less than it prefers', () => {
+    const limits = controlsPanelLimits(480, 16);
+    expect(limits.min).toBeCloseTo((272 / 480) * 100);
     expect(limits.max).toBe(limits.min);
+  });
+
+  test('a shell too short for both keeps the table and fixes the split, with the dock over the scene', () => {
+    expect(controlsPanelLimits(400, 16)).toEqual({ min: MIN_CONTROLS_PANEL_PERCENT, max: MIN_CONTROLS_PANEL_PERCENT });
   });
 });

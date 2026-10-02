@@ -235,6 +235,8 @@ export const ShortWindow = meta.story({
     const header = shell.querySelector('header')!;
     const dock = shell.querySelector('.seated-controls-panel')!;
     expect(dock.getBoundingClientRect().top).toBeLessThan(header.getBoundingClientRect().bottom);
+    /* The dock grows up over the scene here, so the fixed split draws no separator across it. */
+    expect(shell.querySelector('[role="separator"][aria-orientation="horizontal"]')).not.toBeVisible();
     const picker = within(header).getByRole('group', { name: 'Table view' });
     const controls = [
       ...within(picker).getAllByRole('button'),

@@ -223,6 +223,7 @@ function SplitPanelsBase({
         className={styles.layout}
         data-orientation={orientation}
         data-resizing={state.pointerId !== null}
+        data-fixed={state.limits.min === state.limits.max}
         style={split}
       >
         <div className={styles.panel} id={primary === 'first' ? primaryId : undefined}>

@@ -353,7 +353,8 @@ html[data-motion="reduce"] .dune-play-stage .dune-play-shell {
    the tabs bring their own glass, fill the dock's height, and scroll their content inside it so
    the rail stays put. The dock never drops below the height the rail needs for three items and
    its label; the split's lower limit is this same floor (CONTROLS_DOCK_MIN_HEIGHT_REM in
-   controlPanelLayout.ts), so the dock never rises out of its panel under the separator. */
+   controlPanelLayout.ts), so the dock never rises out of its panel under the separator. Only a
+   shell too short for the floor and the table lets it rise; the split is fixed there and draws no separator. */
 :where(.dune-play-shell) .seated-controls-panel {
   position: absolute;
   right: 0;

@@ -31,14 +31,23 @@ function rootFontSize(): number {
   return Number.isFinite(size) && size > 0 ? size : 16;
 }
 
+/* The least of the table a shell shows beside a dock at its floor; the canvas stays readable above it. */
+const MIN_TABLETOP_SCENE_HEIGHT_PX = 160;
+
 /*
  * The separator never goes above the dock's own floor: below it the dock would rise out of its panel
  * and the separator's line and grip would be drawn across the dock's first row.
- * When the shell cannot fit both, the dock keeps its floor and the scene gives way.
+ * A shell too short for that floor and the least of the table keeps the table and fixes the split:
+ * the dock grows up over the scene to keep its floor, and SplitPanels draws no separator to cross it.
  */
 export function controlsPanelLimits(shellHeight: number, remPx = rootFontSize()): SplitLimits {
-  const dockPercent =
-    Number.isFinite(shellHeight) && shellHeight > 0 ? ((CONTROLS_DOCK_MIN_HEIGHT_REM * remPx) / shellHeight) * 100 : 0;
-  const min = Math.min(100, Math.max(MIN_CONTROLS_PANEL_PERCENT, dockPercent));
+  if (!Number.isFinite(shellHeight) || shellHeight <= 0) {
+    return { min: MIN_CONTROLS_PANEL_PERCENT, max: MAX_CONTROLS_PANEL_PERCENT };
+  }
+  const dockFloor = CONTROLS_DOCK_MIN_HEIGHT_REM * remPx;
+  if (shellHeight - dockFloor < MIN_TABLETOP_SCENE_HEIGHT_PX) {
+    return { min: MIN_CONTROLS_PANEL_PERCENT, max: MIN_CONTROLS_PANEL_PERCENT };
+  }
+  const min = Math.max(MIN_CONTROLS_PANEL_PERCENT, (dockFloor / shellHeight) * 100);
   return { min, max: Math.max(min, maxControlsPanelPercentForHeight(shellHeight)) };
 }
