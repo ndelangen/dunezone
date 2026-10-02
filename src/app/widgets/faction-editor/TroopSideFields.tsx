@@ -146,13 +146,13 @@ function TroopBattleFields({
     {
       key: 'strength',
       title: 'Strength',
-      description: 'What one undialed troop adds. May be fractional or negative.',
+      description: 'What one unsupported troop adds. May be fractional or negative.',
       whole: false,
     },
     {
       key: 'supportedStrength',
       title: 'Supported strength',
-      description: 'What one dialed troop adds instead. May be fractional or negative.',
+      description: 'What one supported troop adds instead. May be fractional or negative.',
       whole: false,
     },
     {

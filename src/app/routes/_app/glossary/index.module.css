@@ -8,7 +8,7 @@
   text-decoration: line-through;
 }
 
-/* The picture stays in view beside a long run of terms; stacked, its cell is its own height, so it never rides over them. */
+/* The picture stays in view beside a long run of terms. */
 .visual {
   position: sticky;
   top: var(--space-md);
