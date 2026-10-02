@@ -79,6 +79,61 @@ CI uses `bun run publisher:release:dry-run` after verifying the already-built
 assets. Pull-request CI builds the same production-URL release on Linux and rejects
 Renderer manifest drift.
 
+## Public application server
+
+The publisher bundles `dist/server/server.js` alongside its existing capture runtime. The
+`application-ssr-runtime` alias points to that build output, so Worker source does not import the
+browser application. The application build still emits `_shell.html` for browser-only pages.
+`src/app/routes/start.ts` makes server rendering opt-in. The document root renders on the server;
+the shared layout and page loaders remain browser-only until the public-page implementation in
+[Serve public faction and asset HTML with live browser data](https://github.com/ndelangen/dunezone/issues/1717).
+This foundation release does not yet make faction content crawlable.
+
+The dispatcher accepts only GET and HEAD on public faction and asset paths. It creates a fresh
+anonymous request, forwarding the URL but no cookies, authorization or caller headers. Other
+methods and create/edit paths retain their existing owner. Responses currently use `no-store`;
+[Cache anonymous public HTML and social images at Cloudflare](https://github.com/ndelangen/dunezone/issues/1719)
+will add the agreed five-minute cache. Its key must include the active Worker version reported by
+`X-Application-Release` and health's `application.release`. This separates HTML containing different
+client chunk URLs, including two uploads of the same Git commit. The Worker bundles production React.
+
+### Browser files across deployments
+
+A new HTML cache key cannot repair a document already open in a browser. Before deploying, the
+workflow reads the current site's `application-assets.json` and copies older hashed browser files
+into the new Static Assets upload. Files in the previous current build remain available for at
+least seven days after replacement. Subsequent releases carry their original expiry forward, then
+omit them after that window. No request-time R2 lookup or new storage binding is involved.
+
+The manifest lists only hashed `/public/` files. Downloads must match their SHA-256 and byte count;
+a reused URL with different bytes fails the release. The existing Static Assets count and file-size
+gates apply after retention. A missing or corrupt manifest stops deployment once this feature has
+shipped. The initial rollout imports the currently deployed Vite dependency graph from the live shell,
+including dynamic imports, preload maps, stylesheets and their hashed resources. It rejects HTML
+fallbacks masquerading as missing scripts. Tabs already broken before rollout, or left open beyond
+seven days after replacement, may still need a refresh. Stable artwork and font URLs retain their existing delivery rules.
+
+`publisher:application-runtime:verify` starts the assembled Worker locally and checks complete HTML,
+hydration-entry availability, public dispatch, browser-only paths and protected capture delivery.
+Both PR CI and deployment run it. It caught truncated output from React's streaming renderer when
+the shared layout was opted into SSR before its child pages. Enable the layout and public page
+rendering together in the page-data ticket, with browser hydration proof.
+
+### Forward fixes
+
+Ship a corrected commit through the normal deployment workflow. Keep the retention step and the
+versioned HTML identity in place; do not replace the current release with an old asset directory.
+If retention fails, leave the current deployment serving traffic, inspect the manifest or failed
+asset digest, and fix the release input before deploying. Do not skip retention to turn a failed
+build green. Verify health's Git SHA and application version, then fetch a public document and one
+of its scripts. The combined SEO release has its own live acceptance ticket.
+
+The release checks report both raw and compressed bundle size and measure local startup. Cloudflare's
+[current limits](https://developers.cloudflare.com/workers/platform/limits/) specify 64 MiB
+uncompressed and one second of startup; compressed size is reported for comparison, not as a limit.
+Cloudflare's deployment validation remains the hosted check. This integration uses the existing Workers subscription and adds no service. Request and CPU costs are measured in
+[Verify hosted previews, live data and operating costs](https://github.com/ndelangen/dunezone/issues/1721).
+
 ## Routing and ownership
 
 Cloudflare Static Assets uses `not_found_handling:
@@ -93,7 +148,8 @@ are Worker-first:
 | `/user-images` and `/user-images/*` | Delivery of rehosted user images from the user-image bucket |
 | `/__user-images` and `/__user-images/*` | The ingest endpoint the Convex rehost action posts a source URL to |
 | `/__play` and `/__play/*` | Canonical-host-only forwarding to the private game Worker |
-| Everything else, including `/factions/*` | Static asset lookup, then SPA fallback |
+| `/factions`, `/factions/*`, `/assets`, `/assets/*` | Public document reads reach the TanStack server; create and edit paths retain the SPA |
+| Everything else | Static asset lookup, then SPA fallback |
 
 Faction sheets use `/published/factions/<Convex faction id>/sheet.pdf`. Rulebook
 HTML uses a permanent Edition path under `/published/rulebooks/<Convex rulebook

@@ -52,6 +52,7 @@ describe('scheduled production deployment shape', () => {
     ]);
     expect(config.alias).toEqual({
       'rulebook-html-renderer-runtime': './runtime-generated/rulebook-html-renderer.mjs',
+      'application-ssr-runtime': '../../dist/server/server.js',
     });
   });
 
@@ -111,6 +112,10 @@ describe('scheduled production deployment shape', () => {
       '/__user-images/*',
       '/__play',
       '/__play/*',
+      '/factions',
+      '/factions/*',
+      '/assets',
+      '/assets/*',
     ]);
   });
 });

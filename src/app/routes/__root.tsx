@@ -19,6 +19,7 @@ import '../styles/tokens.css';
 // import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools';
 
 export const Route = createRootRoute({
+  ssr: true,
   head: () => ({
     meta: [
       {
