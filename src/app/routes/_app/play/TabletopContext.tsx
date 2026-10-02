@@ -124,7 +124,7 @@ export function useTabletop(): TabletopContextValue {
   return useMemo(() => ({ ...table, ...commands }), [table, commands]);
 }
 
-/** One value read from the live table; the caller renders again only when that value changes, so `select` returns a primitive or a kept reference. */
+/** One value read from the live table; the caller renders again only when that value changes, so a primitive follows only its own changes and a member the table rebuilds follows every update. */
 export function useTabletopSelector<T>(select: (table: TableProjection) => T): T {
   const { session } = useTabletopStore();
   return useSyncExternalStore(session.subscribeTable, () => select(liveTable(session)));

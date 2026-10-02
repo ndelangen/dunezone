@@ -185,6 +185,12 @@ function sameConversations(previous: ConversationView, next: ConversationView) {
   );
 }
 
+function notify(listeners: ReadonlySet<() => void>) {
+  for (const listener of listeners) {
+    listener();
+  }
+}
+
 /* How often a table hearing only pointer moves re-saves its kept copy, so a reload knows it was live recently. */
 const POINTER_KEEP_INTERVAL_MS = 5000;
 
@@ -582,6 +588,19 @@ export class TableSession {
     this.keep();
     const table = this.derive();
     this.table = table;
+    const panelsChanged = this.showPanels(table);
+    const tableChanged = table !== null && table !== this.shownTable;
+    this.shownTable = table ?? this.shownTable;
+    if (panelsChanged) {
+      notify(this.listeners);
+    }
+    if (tableChanged) {
+      notify(this.tableListeners);
+    }
+    this.emitPointers();
+  }
+  /* Replaces the panels' view only when something they show changed, and says whether it did. */
+  private showPanels(table: TableProjection | null) {
     const previous = this.cached;
     const conversations = this.conversations.view();
     const next: ConnectionView = {
@@ -593,25 +612,9 @@ export class TableSession {
       spiceHistory: this.spiceHistory,
       logHistory: this.logHistory,
     };
-    const panelsChanged = (Object.keys(next) as (keyof ConnectionView)[]).some((key) => next[key] !== previous[key]);
-    if (panelsChanged) {
-      this.cached = next;
-    }
-    const tableChanged = table !== null && table !== this.shownTable;
-    if (tableChanged) {
-      this.shownTable = table;
-    }
-    if (panelsChanged) {
-      for (const listener of this.listeners) {
-        listener();
-      }
-    }
-    if (tableChanged) {
-      for (const listener of this.tableListeners) {
-        listener();
-      }
-    }
-    this.emitPointers();
+    const changed = (Object.keys(next) as (keyof ConnectionView)[]).some((key) => next[key] !== previous[key]);
+    this.cached = changed ? next : previous;
+    return changed;
   }
   private canSend(message: Exclude<ClientMessage, { type: 'admit' | 'sync' }>): boolean {
     /* A seat command is the spectator's one way to act, so it passes without a seat; `command` holds it to a current view. */

@@ -1536,6 +1536,21 @@ describe('pointer moves', () => {
       activity: { ...noActivity, ...activity },
     });
 
+  /* Another player holding the Harkonnen stack. */
+  const otherCarry = (client: TableSession) => {
+    const source = table(client).snapshot.table.pieces.find((piece) => piece.id === 'harkonnen-force-stack')!;
+    const carry = {
+      ...viewer,
+      connectionId: 'other',
+      id: 'other-carry',
+      held: { ...source, position: [1, 0.38, 1] },
+      withdrawnCounts: { [source.id]: source.items.length },
+      reservedIds: [source.id],
+      expiresAt: Date.now() + 8000,
+    } satisfies ActivityChange['carries'][number];
+    return { source, carry };
+  };
+
   test("another player's pointer moving leaves the table as it was and tells only the pointer listeners", async () => {
     const client = await connected();
     socket().deliver(view({ sequence: 1 }));
@@ -1557,16 +1572,7 @@ describe('pointer moves', () => {
   test('a pointer that moves with a carried piece still updates the table', async () => {
     const client = await connected();
     socket().deliver(view({ sequence: 1 }));
-    const source = table(client).snapshot.table.pieces.find((piece) => piece.id === 'harkonnen-force-stack')!;
-    const carry = {
-      ...viewer,
-      connectionId: 'other',
-      id: 'other-carry',
-      held: { ...source, position: [1, 0.38, 1] },
-      withdrawnCounts: { [source.id]: source.items.length },
-      reservedIds: [source.id],
-      expiresAt: Date.now() + 8000,
-    } satisfies ActivityChange['carries'][number];
+    const { source, carry } = otherCarry(client);
     pointerUpdate(2, { pointers: [other], carries: [carry] });
     const before = client.getTable();
 
@@ -1582,16 +1588,7 @@ describe('pointer moves', () => {
   test('a carried piece moving updates the scene and leaves the panels as they are', async () => {
     const client = await connected();
     socket().deliver(view({ sequence: 1 }));
-    const source = table(client).snapshot.table.pieces.find((piece) => piece.id === 'harkonnen-force-stack')!;
-    const carry = {
-      ...viewer,
-      connectionId: 'other',
-      id: 'other-carry',
-      held: { ...source, position: [1, 0.38, 1] },
-      withdrawnCounts: { [source.id]: source.items.length },
-      reservedIds: [source.id],
-      expiresAt: Date.now() + 8000,
-    } satisfies ActivityChange['carries'][number];
+    const { source, carry } = otherCarry(client);
     pointerUpdate(2, { carries: [carry] });
     expect(client.getSnapshot().table?.reservedPieceIds.has(source.id)).toBe(true);
     const panels = client.getSnapshot();
