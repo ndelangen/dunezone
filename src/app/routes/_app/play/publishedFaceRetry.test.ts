@@ -195,6 +195,15 @@ describe('sharedPublishedFaces', () => {
     expect(subscribe.peek('back')).toBeUndefined();
   });
 
+  test('peek has nothing once the last subscriber has left', () => {
+    const { requests, subscribe } = sharedLoader();
+    const leave = subscribe('front', vi.fn());
+    requests[0]!.succeed('face');
+    leave();
+
+    expect(subscribe.peek('front')).toBeUndefined();
+  });
+
   test('a shared load retries a failure for every subscriber', () => {
     const { load, requests, subscribe } = sharedLoader();
     const first = vi.fn();

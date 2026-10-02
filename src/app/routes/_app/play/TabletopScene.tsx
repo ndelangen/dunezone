@@ -531,9 +531,16 @@ const subscribePublishedFace = sharedPublishedFaces<Texture>({
 
 function PublishedFace({ href, card, ratio }: { href: string; card: boolean; ratio?: number | null }) {
   /* Piece art skips useTexture so a missing publication image retries in place instead of suspending the table. */
-  const [loadedFace, setLoadedFace] = useState<{ href: string; texture: Texture } | null>(null);
+  const [loadedFace, setLoadedFace] = useState<{ href: string; texture: Texture | null } | null>(null);
   const texture = loadedFace?.href === href ? loadedFace.texture : (subscribePublishedFace.peek(href) ?? null);
-  useEffect(() => subscribePublishedFace(href, (value) => setLoadedFace({ href, texture: value })), [href]);
+  useEffect(() => {
+    const unsubscribe = subscribePublishedFace(href, (value) => setLoadedFace({ href, texture: value }));
+    /* The image this face first drew can be released in the same commit, by the last other face that held it; then it shows the placeholder until the reload arrives. */
+    if (subscribePublishedFace.peek(href) === undefined) {
+      setLoadedFace({ href, texture: null });
+    }
+    return unsubscribe;
+  }, [href]);
   return (
     <mesh position={[0, 0, 0.002]} renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}>
       {card ? (
@@ -992,7 +999,10 @@ function SelectionRingWarmup() {
   useEffect(() => {
     const geometry = new RingGeometry(...PIECE_SELECTION_RADII.card);
     const material = new MeshBasicMaterial(PIECE_SELECTION_RING_MATERIAL);
-    renderer.compileAsync(new Mesh(geometry, material), camera, scene).catch(() => {});
+    const ring = new Mesh(geometry, material);
+    /* Off-screen or not, it must compile. */
+    ring.frustumCulled = false;
+    renderer.compileAsync(ring, camera, scene).catch(() => {});
     return () => {
       geometry.dispose();
       material.dispose();
