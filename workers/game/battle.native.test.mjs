@@ -324,6 +324,18 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
     expect((await sendCommand(a, { kind: 'phase' })).reply.type).not.toBe('rejected');
   });
 
+  it('holds the phase against going back while a battle is open', async () => {
+    const placed = await accepted(a, { kind: 'battle-start', anchor: [0.95, 0.18, -3.05], territory: 'Arrakeen' });
+    expect((await sendCommand(b, { kind: 'phase', direction: -1 })).reply).toMatchObject({
+      type: 'rejected',
+      message: 'A battle is still open. Resolve or cancel it before going back a phase.',
+    });
+    const battleId = placed.snapshot.battle.id;
+    await accepted(a, { kind: 'battle-cancel', battleId });
+    const back = await accepted(b, { kind: 'phase', direction: -1 });
+    expect(back.snapshot.phase).toBe(5);
+  });
+
   it('rejects competing starts and claims, counts exact support and refunds a mode switch', async () => {
     const battleId = await start();
     expect(
@@ -453,6 +465,8 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
     expect(after.bank.balance).toBe(10);
   });
 
+  /* 21 full battles of 7 commands each are needed to overflow the 20 retained results. Alone this takes ~3s, but under
+     the full workers/game run it reached ~20s, past this suite's 15s budget. */
   it('retains every public reveal and result through older history reads after more than twenty battles', async () => {
     let firstId;
     for (let index = 0; index < 21; index++) {
@@ -482,7 +496,7 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
       expect(history.snapshot.battlePlan).toBeNull();
       expect(history.snapshot).not.toHaveProperty('hand');
     }
-  });
+  }, 60_000);
 
   it('cancels a revealed battle while one of its pieces is being carried', async () => {
     const battleId = await revealWithCarriedLeader('cancel-carry');

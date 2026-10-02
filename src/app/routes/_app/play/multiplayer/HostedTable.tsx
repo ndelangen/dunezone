@@ -182,6 +182,7 @@ function PhaseNavigation({ client, table }: Pick<ConnectionControlsProps, 'clien
             !table.canInteract ||
             cooling ||
             Boolean(table.snapshot.ending) ||
+            Boolean(table.snapshot.battle) ||
             (setup ? setup.index === 0 : table.snapshot.phase === 0)
           }
           onClick={() => client.command({ kind: 'phase', direction: -1 })}
