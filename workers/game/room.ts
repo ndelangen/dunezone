@@ -14,6 +14,7 @@ import {
   PHASE_CHANGE_COOLDOWN_MS,
   phaseAt,
   phaseForTurn,
+  readyPhaseCrossed,
   requirePhaseCooldownElapsed,
   STANDARD_PHASES,
   stepPhase,
@@ -603,6 +604,13 @@ export class Room {
     });
     if (refusal) {
       throw new GameRejection(refusal);
+    }
+    /* A turn jump forward would pass every Mentat pause in between without anyone saying they are ready; going back stays free. */
+    const crossed = readyPhaseCrossed(this.snapshot.phase, phase, this.phases());
+    if (crossed) {
+      throw new GameRejection(
+        `Moving to a later turn passes ${crossed.label}, where every seated player must be ready. Use Next phase to reach it first.`
+      );
     }
   }
 
