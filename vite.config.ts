@@ -10,6 +10,7 @@ import { configDefaults, defineConfig } from 'vitest/config';
 import { browserLaunchTests } from './browser-launch-tests.ts';
 import { coverageExclude, coverageInclude } from './coverage-denominator.ts';
 import { reactCompiler } from './scripts/lib/reactCompiler.ts';
+import { threeRendererStackAliases } from './scripts/lib/threeRendererStack.ts';
 
 /**
  * Codecov's bundle-report normalizer wildcards from the first `-` to the next `.`, so a dash or dot inside a base name either collapses distinct files into one normalized name (lato-latin-300-normal -> lato-*) or leaves the hash un-wildcarded (floating-ui.react-dom-<hash>).
@@ -89,11 +90,13 @@ const config = defineConfig({
   // Typings in the current Vite package lag behind docs/runtime support.
   resolve: {
     ...({ tsconfigPaths: true } as Record<string, unknown>),
-    alias: {
-      'rulebook-html-renderer-runtime': fileURLToPath(
-        new URL('./src/app/print/rulebookHtmlRuntime.ts', import.meta.url)
-      ),
-    },
+    alias: [
+      {
+        find: 'rulebook-html-renderer-runtime',
+        replacement: fileURLToPath(new URL('./src/app/print/rulebookHtmlRuntime.ts', import.meta.url)),
+      },
+      ...threeRendererStackAliases,
+    ],
   },
   plugins: withoutRouteSplittingInVitest([
     // devtools(),

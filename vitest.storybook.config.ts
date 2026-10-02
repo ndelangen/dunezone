@@ -19,6 +19,7 @@ import {
 } from './.storybook/worker-async-transform.ts';
 import { coverageExclude, coverageIncludeSrc } from './coverage-denominator.ts';
 import { reactCompiler } from './scripts/lib/reactCompiler.ts';
+import { threeRendererStackAliases } from './scripts/lib/threeRendererStack.ts';
 
 export default defineConfig({
   oxc: convexWorkerOxc,
@@ -66,7 +67,10 @@ export default defineConfig({
     /* Typings in the current Vite package lag behind docs/runtime support
        (same cast as .storybook/vite.config.ts). */
     ...({ tsconfigPaths: true } as Record<string, unknown>),
-    alias: convexWorkerAliases,
+    alias: [
+      ...Object.entries(convexWorkerAliases).map(([find, replacement]) => ({ find, replacement })),
+      ...threeRendererStackAliases,
+    ],
   },
   plugins: [
     ...convexWorkerServePlugins(),

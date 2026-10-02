@@ -3,6 +3,7 @@ import { defineConfig } from 'vite';
 import type { Plugin } from 'vite';
 
 import { reactCompiler } from '../scripts/lib/reactCompiler.ts';
+import { threeRendererStackAliases } from '../scripts/lib/threeRendererStack.ts';
 import { pageStylesheetStaysWithItsStory } from './pageStylesheet.ts';
 import {
   convexWorkerAliases,
@@ -77,7 +78,10 @@ export default defineConfig({
   resolve: {
     // Keep Storybook path resolution aligned with the app config.
     ...({ tsconfigPaths: true } as Record<string, unknown>),
-    alias: convexWorkerAliases,
+    alias: [
+      ...Object.entries(convexWorkerAliases).map(([find, replacement]) => ({ find, replacement })),
+      ...threeRendererStackAliases,
+    ],
   },
   plugins: [
     ...convexWorkerServePlugins(),

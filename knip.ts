@@ -43,6 +43,10 @@ const config: KnipConfig = {
       vite: {
         config: ['vite.config.ts', 'workers/publisher/vite.config.ts', '.storybook/vite.config.ts'],
       },
+      /* The app's Vite aliases are an array, which knip's Vite plugin does not read; this one names a source file. */
+      paths: {
+        'rulebook-html-renderer-runtime': ['src/app/print/rulebookHtmlRuntime.ts'],
+      },
       /**
        * Dev-toggle devtools: imported only from commented-out code in src/app/routes/__root.tsx and vite.config.ts, kept for flipping on during debugging.
        */

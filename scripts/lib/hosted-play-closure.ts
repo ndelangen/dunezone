@@ -32,6 +32,7 @@ const HOSTED_PLAY_CLOSURE: readonly string[] = [
   'scripts/node-executable.ts',
   'scripts/lib/publisher-assets.ts',
   'scripts/lib/reactCompiler.ts',
+  'scripts/lib/threeRendererStack.ts',
   'scripts/generate.ts',
   'scripts/generate-*',
   'scripts/assemble-publisher-assets.ts',
