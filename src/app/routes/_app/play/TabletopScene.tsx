@@ -1030,7 +1030,7 @@ function PieceLock({ piece }: { piece: TablePiece }) {
       <meshStandardMaterial color="#251912" metalness={0.3} roughness={0.6} />
     </mesh>
   );
-  return piece.kind === 'force' ? <group scale={0.5}>{lock}</group> : lock;
+  return piece.kind === 'force' ? <group scale={0.5 * forceScale(piece)}>{lock}</group> : lock;
 }
 
 /*
