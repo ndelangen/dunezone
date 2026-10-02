@@ -1,6 +1,6 @@
 import preview from '@sb/preview';
 import type { GameSnapshot } from '@shared/play/protocol';
-import { expect, within } from 'storybook/test';
+import { expect, userEvent, within } from 'storybook/test';
 
 import { openPanel, openPlayer } from './controls.stories.fixture';
 import {
@@ -82,6 +82,24 @@ export const SetupPredictionLocked = meta.story({
   play: async ({ canvasElement }) => {
     const page = await openPanel(canvasElement, 'Setup');
     await expect(page.findByRole('button', { name: 'Reveal prediction' }, WAIT)).resolves.toBeVisible();
+  },
+});
+
+/** Two seats carry factions with one name, so each reads with its player in the prediction's options (#1667). */
+export const SetupPredictionSharedName = meta.story({
+  beforeEach: install(() => {
+    const snapshot = predictionSnapshot();
+    const [first, second] = snapshot.roster!.seats;
+    second!.faction!.name = first!.faction!.name;
+    return productTransport('seat-6', snapshot);
+  }),
+  play: async ({ canvasElement }) => {
+    const page = await openPanel(canvasElement, 'Setup');
+    const [first, second] = predictionSnapshot().controls!.players;
+    const name = predictionSnapshot().roster!.seats[0]!.faction!.name;
+    await userEvent.click(await page.findByRole('textbox', { name: 'Predicted winner' }, WAIT));
+    await expect(page.findByRole('option', { name: `${name} (${first!.name})` }, WAIT)).resolves.toBeVisible();
+    await expect(page.findByRole('option', { name: `${name} (${second!.name})` }, WAIT)).resolves.toBeVisible();
   },
 });
 

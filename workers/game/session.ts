@@ -604,7 +604,14 @@ export class GameSession {
       if (transfer) {
         this.spiceLedger.record(transfer, viewer.userId);
       }
-      this.log.recordCommit({ before: this.room!.snapshot, next, message, viewer, transfer });
+      this.log.recordCommit({
+        before: this.room!.snapshot,
+        next,
+        message,
+        viewer,
+        transfer,
+        holders: this.actors.occupants(),
+      });
       this.storage.sql.exec(
         'INSERT INTO receipts VALUES(?,?,?,?)',
         key,

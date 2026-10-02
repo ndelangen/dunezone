@@ -1,4 +1,5 @@
 import { Button, Group, Text, Tooltip, VisuallyHidden } from '@mantine/core';
+import { snapshotFactionLabels } from '@shared/play/factionLabels';
 import { SPECTATOR_SEAT } from '@shared/play/schema';
 import type { SwapAction, SwappingState } from '@shared/play/swapping';
 import { useId } from 'react';
@@ -106,7 +107,12 @@ function Seat({ seat, entry, ...props }: Swapping & Readonly<{ seat: string; ent
       <Text size="sm" c="dimmed">
         {!player ? 'Open seat' : trading.state.ready.includes(seat) ? 'Ready' : 'Not ready'}
       </Text>
-      <SeatAction trading={trading} entry={entry} player={player} />
+      <SeatAction
+        trading={trading}
+        entry={entry}
+        player={player}
+        label={(entry.faction && snapshotFactionLabels(props.table.snapshot)[entry.faction.id]) ?? entry.id}
+      />
     </Group>
   );
 }
@@ -143,7 +149,8 @@ function SeatAction({
   trading,
   entry,
   player,
-}: Readonly<{ trading: Trading; entry: RosterSeat; player: Player | undefined }>) {
+  label,
+}: Readonly<{ trading: Trading; entry: RosterSeat; player: Player | undefined; label: string }>) {
   const { state, seat, closed, disabled, send } = trading;
   if (seat === entry.id) {
     return (
@@ -162,7 +169,7 @@ function SeatAction({
       size="xs"
       variant={choice.variant}
       disabled={disabled || ready}
-      aria-label={`${choice.prefix} ${entry.faction?.name ?? entry.id}`}
+      aria-label={`${choice.prefix} ${label}`}
       onClick={() => send(choice.action)}
     >
       {choice.label}

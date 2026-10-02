@@ -1,4 +1,5 @@
 import type { SpiceTransfer } from '../../src/shared/play/banks';
+import { factionTitleText, rosterFactionTitles } from '../../src/shared/play/factionLabels';
 import { LOG_CLASS_TABS, LOG_PAGE_SIZE } from '../../src/shared/play/log';
 import type { LogClass, LogEntry, LogTab } from '../../src/shared/play/log';
 import { seatLabel } from '../../src/shared/play/participation';
@@ -100,6 +101,7 @@ export class PublicLog {
     message: CommitMessage;
     viewer: Viewer;
     transfer?: SpiceTransfer;
+    holders: readonly Holder[];
   }) {
     if (!this.enabled) {
       return;
@@ -191,8 +193,21 @@ function playContext(phase: number, phases?: readonly PhaseEntry[]): string {
   return `Turn ${tableProgressFor(phase, phases).turn}, ${phaseAt(phase, phases).label}`;
 }
 
-function factionNameIn(snapshot: StoredSnapshot, id: string): string {
-  return snapshot.roster?.seats.find((seat) => seat.faction?.id === id)?.faction?.name ?? id;
+/** Who holds each seat as a commit lands, so a faction whose name another seat shares can name its player. */
+type Holder = { seat: string; userId: string; name: string };
+/** Writes a faction into a template, adding its player to the row's people when that is what tells it apart (#1667). */
+type FactionNamer = (id: string, people: Person[]) => string;
+
+function factionNamer(snapshot: StoredSnapshot, holders: readonly Holder[]): FactionNamer {
+  const titles = rosterFactionTitles(snapshot.roster, holders);
+  return (id, people) => {
+    const title = titles.get(id);
+    if (title?.tieBreak?.kind !== 'player') {
+      return literal(title ? factionTitleText(title) : id);
+    }
+    people.push({ userId: title.tieBreak.player.userId, name: title.tieBreak.player.name });
+    return `${literal(title.name)} ({${people.length - 1}})`;
+  };
 }
 
 function commitEntries({
@@ -201,15 +216,17 @@ function commitEntries({
   message,
   viewer,
   transfer,
+  holders,
 }: {
   before: StoredSnapshot;
   next: StoredSnapshot;
   message: CommitMessage;
   viewer: Viewer;
   transfer?: SpiceTransfer;
+  holders: readonly Holder[];
 }): Entry[] {
   const context = logContext(next);
-  const faction = (id: string) => literal(factionNameIn(next, id));
+  const faction = factionNamer(next, holders);
   const stage = stageEntry(before, next);
   const change = phaseChangeOf(before, next, message);
   const result = next.battleResults[0];
@@ -290,8 +307,9 @@ function resultEntries(
   next: StoredSnapshot,
   action: ResultAction,
   viewer: Viewer,
-  faction: (id: string) => string
+  faction: FactionNamer
 ): Entry[] {
+  const people: Person[] = [{ userId: viewer.userId, name: viewer.displayName }];
   const template = (() => {
     switch (action.kind) {
       case 'result-open':
@@ -300,7 +318,10 @@ function resultEntries(
         return '{0} stopped determining the winner.';
       case 'result-declare':
         return next.result
-          ? `{0} declared the result: ${describeResult(next.result.kind, next.result.factionIds.map(faction))}.`
+          ? `{0} declared the result: ${describeResult(
+              next.result.kind,
+              next.result.factionIds.map((id) => faction(id, people))
+            )}.`
           : undefined;
       case 'result-continue':
         return '{0} continued the game.';
@@ -314,7 +335,7 @@ function resultEntries(
       key: `result:${next.revision}`,
       class: 'phase',
       template,
-      people: [{ userId: viewer.userId, name: viewer.displayName }],
+      people,
       /* A declaration happened in Mentat pause; the finished stage is where it left the game. */
       context: logContext(action.kind === 'result-declare' ? before : next),
     },
@@ -339,7 +360,7 @@ function endingClosed(before: StoredSnapshot, next: StoredSnapshot): Entry | und
 function predictionEntries(
   next: StoredSnapshot,
   action: Extract<CommitMessage, { type: 'command' }>['action'],
-  faction: (id: string) => string,
+  faction: FactionNamer,
   context: string
 ): Entry[] {
   if (action.kind !== 'prediction-lock' && action.kind !== 'prediction-reveal') {
@@ -350,13 +371,15 @@ function predictionEntries(
     return [];
   }
   const locked = action.kind === 'prediction-lock';
+  const people: Person[] = [];
   return [
     {
       key: `prediction:${action.stepId}:${locked ? 'lock' : 'reveal'}`,
       class: 'prediction',
       template: locked
-        ? `${faction(prediction.factionId)} locked its prediction.`
-        : `${faction(prediction.factionId)} revealed its prediction: ${faction(prediction.choice.factionId)}, turn ${prediction.choice.turn}.`,
+        ? `${faction(prediction.factionId, people)} locked its prediction.`
+        : `${faction(prediction.factionId, people)} revealed its prediction: ${faction(prediction.choice.factionId, people)}, turn ${prediction.choice.turn}.`,
+      people,
       context,
     },
   ];
@@ -380,29 +403,31 @@ function phaseEntry(
   return { key: `phase:${revision}`, class: 'phase', template, context };
 }
 
-function spiceEntry(transfer: SpiceTransfer, actor: Person, faction: (id: string) => string, context: string): Entry {
+function spiceEntry(transfer: SpiceTransfer, actor: Person, faction: FactionNamer, context: string): Entry {
+  const people = [actor];
   const amount = `${transfer.amount} spice`;
   const template =
     transfer.kind === 'withdrawal'
-      ? `{0} withdrew ${amount} from the ${faction(transfer.source)} bank to the table.`
+      ? `{0} withdrew ${amount} from the ${faction(transfer.source, people)} bank to the table.`
       : transfer.kind === 'collection'
-        ? `{0} collected ${amount} from the table into the ${faction(transfer.destination ?? '')} bank.`
+        ? `{0} collected ${amount} from the table into the ${faction(transfer.destination ?? '', people)} bank.`
         : transfer.kind === 'supply'
           ? `{0} supplied ${amount} to the table.`
           : `{0} removed ${amount} from play.`;
-  return { key: `spice:${transfer.revision}`, class: 'spice', template, people: [actor], context };
+  return { key: `spice:${transfer.revision}`, class: 'spice', template, people, context };
 }
 
 /* A result names the two factions and who prevailed; the indicator's position stays with the result, never a territory name. */
-function battleEntry(result: BattleResult, faction: (id: string) => string, context: string): Entry {
+function battleEntry(result: BattleResult, faction: FactionNamer, context: string): Entry {
   const [left, right] = result.factions;
+  const people: Person[] = [];
   const template =
     result.outcome === 'none'
-      ? `The battle between ${faction(left)} and ${faction(right)} ended with no winner.`
+      ? `The battle between ${faction(left, people)} and ${faction(right, people)} ended with no winner.`
       : result.outcome === 'left'
-        ? `${faction(left)} defeated ${faction(right)}.`
-        : `${faction(right)} defeated ${faction(left)}.`;
-  return { key: `battle:${result.id}`, class: 'battle', template, context };
+        ? `${faction(left, people)} defeated ${faction(right, people)}.`
+        : `${faction(right, people)} defeated ${faction(left, people)}.`;
+  return { key: `battle:${result.id}`, class: 'battle', template, people, context };
 }
 
 function seatEntry(change: SeatChange): Entry {

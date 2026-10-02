@@ -1,4 +1,5 @@
 import { Button, Group, MultiSelect, SegmentedControl, Select, Stack } from '@mantine/core';
+import { snapshotFactionLabels } from '@shared/play/factionLabels';
 import { phaseAt } from '@shared/play/phases';
 import { describeResult, resultFactionCountFits } from '@shared/play/result';
 import type { GameResult, GameResultKind } from '@shared/play/result';
@@ -17,15 +18,11 @@ const KINDS: { value: GameResultKind; label: string }[] = [
 ];
 
 function factionOptions(table: TableProjection) {
-  return (
-    table.snapshot.roster?.seats.flatMap((seat) =>
-      seat.faction ? [{ value: seat.faction.id, label: seat.faction.name }] : []
-    ) ?? []
-  );
+  return Object.entries(snapshotFactionLabels(table.snapshot)).map(([value, label]) => ({ value, label: label! }));
 }
 
 function factionName(table: TableProjection, id: string) {
-  return table.snapshot.roster?.seats.find((seat) => seat.faction?.id === id)?.faction?.name ?? id;
+  return snapshotFactionLabels(table.snapshot)[id] ?? id;
 }
 
 /** The viewer's own locked prediction that nobody has seen yet, if any. */
