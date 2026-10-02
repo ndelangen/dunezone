@@ -98,12 +98,15 @@ function answerConfirmation(peer, record) {
   }
 }
 
+/* A user a test lists in `peer.seatLimitReached` is admitted as already holding the most seats one player may. */
 function redeemedIdentity(peer) {
   const suffix = peer.registrationId.split('-').at(-1);
+  const userId = `user-${suffix}`;
   return {
+    ...(peer.seatLimitReached.has(userId) ? { seatLimitReached: true } : {}),
     ok: true,
     registrationId: peer.registrationId,
-    userId: `user-${suffix}`,
+    userId,
     sessionId: `session-${suffix}`,
     authExpiresAt: peer.expiresAt(),
     displayName: `Synthetic ${suffix.toUpperCase()}`,
@@ -242,6 +245,7 @@ export async function createPeer() {
     directoryMode: 'ack',
     reconcileMode: 'answer',
     deletedAccounts: new Set(),
+    seatLimitReached: new Set(),
     summaries: [],
     connections: [],
     requests: [],

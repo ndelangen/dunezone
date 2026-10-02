@@ -132,6 +132,11 @@ export const playRedeemTicketResultSchema = z.union([
     displayName: z.string().max(PLAY_DISPLAY_NAME_MAX_LENGTH),
     avatarUrl: z.string().max(2048).nullable().optional(),
     profileSlug: playProfileSlugSchema,
+    /*
+     * True when the player already holds `PLAY_SEAT_LIMIT` seats in other games, so the room refuses their seat request.
+     * Absent means not at the limit, which is also how a Convex deployment from before the limit answers.
+     */
+    seatLimitReached: z.boolean().optional(),
   }),
 ]);
 
@@ -193,7 +198,7 @@ export const playCreateGameRequestSchema = z.strictObject({
 });
 export const playCreateGameResultSchema = z.union([
   z.object({ ok: z.literal(true), gameId: identifierSchema }),
-  z.object({ ok: z.literal(false), reason: z.enum(['not_authorized', 'unavailable', 'rate_limited']) }),
+  z.object({ ok: z.literal(false), reason: z.enum(['not_authorized', 'unavailable', 'rate_limited', 'seat_limit']) }),
 ]);
 
 /*

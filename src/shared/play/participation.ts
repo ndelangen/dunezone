@@ -14,6 +14,17 @@ import { TABLE_SEAT_COUNTS } from './tableSettings';
 /** The most players a drafting roster admits; a fixed seat count never exceeds it. */
 export const PLAY_ROSTER_LIMIT = TABLE_SEAT_COUNTS[TABLE_SEAT_COUNTS.length - 1]!;
 
+/**
+ * The most games one player may be seated in at once.
+ * A created game holds its creator's seat from creation;
+ * a finished, discarded or expired game holds none.
+ * Convex refuses a creation at the limit, and the game Worker refuses a seat request.
+ */
+export const PLAY_SEAT_LIMIT = 30;
+export const PLAY_SEAT_LIMIT_MESSAGE = `You are already seated in ${PLAY_SEAT_LIMIT} games. For technical reasons that is the maximum, so to create or join a new game, leave a seat in another game first. If you think this limit is too low, contact the system administrator.`;
+/** What the approving player reads when the requester is at the limit. */
+export const PLAY_SEAT_LIMIT_APPROVAL_MESSAGE = `That player is already seated in ${PLAY_SEAT_LIMIT} games, the most one player may hold, so their request cannot be approved until they leave a seat in another game.`;
+
 /** One pending request as every viewer sees it. The requester is named, never identified. */
 export const seatRequestSchema = z.object({
   id: tableIdSchema,

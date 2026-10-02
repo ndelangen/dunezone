@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
+import { PLAY_SEAT_LIMIT_APPROVAL_MESSAGE, PLAY_SEAT_LIMIT_MESSAGE } from '../../src/shared/play/participation';
 import { cardPage, deckPage, slot } from './native-catalogue.fixture.mjs';
 import {
   accepted,
@@ -124,6 +125,31 @@ describe('Explicit participation on a real game', () => {
     expect(fourth.viewer.viewerSeat).toBe('seat-4');
     expect(fourth.snapshot.roster.seatCount).toBe(4);
     expect(fourth.snapshot.roster.seats.map((seat) => seat.position)).toEqual([0, 1, 2, 3]);
+  });
+
+  it('refuses a seat request, and its approval, from a player admitted at the seat limit', async () => {
+    const a = await admit('a');
+    peer.seatLimitReached.add('user-b');
+    const b = await admit('b');
+    expect(await rejected(b, { kind: 'seat-request' })).toBe(PLAY_SEAT_LIMIT_MESSAGE);
+    expect((await syncView(a)).snapshot.controls.seatRequests).toEqual([]);
+
+    /* A player under the limit asks as before. */
+    const c = await admit('c');
+    const request = pendingRequest(await accepted(c, { kind: 'seat-request' }));
+    expect(request).toMatchObject({ requesterName: 'Synthetic C', seat: null });
+
+    /* A request filed before the limit was reached is refused at approval while a tab of the requester's was admitted at it. */
+    peer.seatLimitReached.add('user-c');
+    const limited = await admit('c');
+    expect(await rejected(a, { kind: 'seat-approve', requestId: request.id })).toBe(PLAY_SEAT_LIMIT_APPROVAL_MESSAGE);
+    expect((await syncView(c)).viewer.viewerSeat).toBe('neutral');
+
+    /* Once no connection of theirs reports the limit, the approval goes through. */
+    limited.socket.close();
+    await eventually(() => limited.closed, 'limited tab closed');
+    await accepted(a, { kind: 'seat-approve', requestId: request.id });
+    expect((await syncView(c)).viewer.viewerSeat).toBe('seat-2');
   });
 
   it('fills one fixed seat once, keeps its faction for the replacement and takes it from the player who left', async () => {

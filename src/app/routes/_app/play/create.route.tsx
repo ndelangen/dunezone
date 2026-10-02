@@ -1,5 +1,6 @@
 import { Button, NumberInput, Select, Stack, Text } from '@mantine/core';
 import { playCreateGameRequestSchema } from '@shared/play/admission';
+import { PLAY_SEAT_LIMIT_MESSAGE } from '@shared/play/participation';
 import { TABLE_SEAT_COUNTS } from '@shared/play/tableSettings';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
@@ -42,6 +43,7 @@ function draftReducer(state: Draft, event: DraftEvent): Draft {
 const REFUSALS = {
   not_authorized: 'Your account cannot create a game while signed out, suspended or deleted.',
   rate_limited: 'Too many games were created recently. Try again later.',
+  seat_limit: PLAY_SEAT_LIMIT_MESSAGE,
   unavailable: 'That ruleset cannot start a game right now.',
 } as const;
 

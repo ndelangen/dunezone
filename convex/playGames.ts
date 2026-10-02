@@ -13,6 +13,7 @@ import { mutation } from './functions';
 import { admitsPlayers, currentPlaySession, isRealGame, livePlaySession } from './lib/playAuthorization';
 import { createPendingGame } from './lib/playProvisioningSchedule';
 import { playCreateQuota } from './lib/playRateLimits';
+import { atPlaySeatLimit } from './lib/playSeats';
 
 /*
  * Real games: any active signed-in player may create and enter one. The lobby is unlisted rather
@@ -100,7 +101,7 @@ export const creatable = query({
 
 /**
  * Creates a real game: a pending directory record with its fixed ruleset, minimum count and creator, and the provisioning requests that ask the game Worker to initialize it.
- * The creator takes the first seat when the Worker initializes;
+ * The creator takes the first seat when the Worker initializes, and that seat counts against the seat limit from creation;
  * nothing here grants them more.
  */
 export const createGame = mutation({
@@ -115,6 +116,10 @@ export const createGame = mutation({
     const ruleset = rulesetId ? await ctx.db.get('rulesets', rulesetId) : null;
     if (!ruleset || ruleset.is_deleted || (await rulesetObjection(ctx, ruleset._id)) !== null) {
       return { ok: false as const, reason: 'unavailable' as const };
+    }
+    /* The creator holds the new game's first seat, so a player at the seat limit is refused before the hourly budget is spent. */
+    if (await atPlaySeatLimit(ctx, session.userId)) {
+      return { ok: false as const, reason: 'seat_limit' as const };
     }
     const limited = await playCreateQuota(ctx, session.userId);
     if (limited) {
