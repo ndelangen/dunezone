@@ -67,7 +67,7 @@ type GameTableProps = {
   /** The game menu in the toolbar, present in every stage: what a player can do about their own seat. Previous and Next stay rightmost. */
   gameMenu?: ReactNode;
   toolbarControl?: ReactNode;
-  /** The connection's state, leftmost in the toolbar, present only while the table is not live. */
+  /** The connection's state, beside the logo where the bar has room, present only while the table is not live. */
   connectionStatus?: ReactNode;
   showStormControls: boolean;
   seatCount: TableSeatCount;
@@ -559,6 +559,7 @@ export function GameTable({
             <header className="seated-header" inert={overlaysInert} data-hides-cursor>
               <div className="seated-brand">
                 <img className="seated-brand__logo" src="/web/logo.svg" alt="Dune" />
+                {connectionStatus}
               </div>
 
               <div className="seated-phase-status" aria-live="polite">
@@ -604,7 +605,6 @@ export function GameTable({
               </div>
 
               <div className="seated-toolbar">
-                {connectionStatus}
                 <TableViewPicker
                   activeView={viewState.activeView}
                   preferredView={viewPhase === null ? undefined : PHASE_VIEWS[viewPhase]}

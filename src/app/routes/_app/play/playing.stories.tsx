@@ -381,7 +381,7 @@ export const ConversationOffline = meta.story({
   },
 });
 
-/* A tab that lost its connection keeps the last table on screen, read-only, with a reconnecting status in the toolbar, until a fresh view arrives. */
+/* A tab that lost its connection keeps the last table on screen, read-only, with a reconnecting status beside the logo, until a fresh view arrives. */
 export const Reconnecting = meta.story({
   beforeEach: install(() => productTransport('seat-2', playingSnapshot())),
   play: async ({ canvasElement }) => {
@@ -389,7 +389,7 @@ export const Reconnecting = meta.story({
     await page.findByRole('tab', { name: 'Conversation' });
     session.transport.deliver({ type: 'admission', status: 'suspended' });
     const status = await page.findByRole('status', { name: /^Reconnecting\./ });
-    expect(status.closest('.seated-toolbar')).not.toBeNull();
+    expect(status.closest('.seated-brand')).not.toBeNull();
     expect(status.closest('[data-connection]')).toHaveAttribute('data-connection', 'suspended');
     expect(page.getByText('Reconnecting', { exact: true })).toBeVisible();
   },

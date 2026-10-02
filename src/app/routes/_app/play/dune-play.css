@@ -246,7 +246,11 @@ html[data-motion="reduce"] .dune-play-stage .dune-play-shell {
 }
 
 :where(.dune-play-shell) .seated-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
   min-width: 0;
+  pointer-events: auto;
 }
 
 :where(.dune-play-shell) .seated-brand__logo {
