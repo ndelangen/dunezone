@@ -22,15 +22,16 @@ const STATIC_ASSIGNMENT_BUNDLES = /\/@react-three\/(?:fiber\/dist\/webgpu|drei\/
 
 type Node = { type: string; start: number; end: number; [key: string]: unknown };
 
-type Edit = { at: number; text: string };
+/** A parsed module and the text insertions planned for it. */
+type Bundle = { code: string; body: Node[]; edits: { at: number; text: string }[] };
+
+/** `name.property = …` with no further member access before the `=`. */
+const STATIC_ASSIGNMENT = /^([A-Za-z_$][\w$]*)\.[A-Za-z_$][\w$]*\s*=(?!=)/u;
 
 /** `name.property = value;` at the top level of a module, as the name it assigns to. */
-function staticAssignmentTarget(statement: Node): string | undefined {
-  const expression = statement.type === 'ExpressionStatement' ? (statement.expression as Node) : undefined;
-  const left =
-    expression?.type === 'AssignmentExpression' && expression.operator === '=' ? (expression.left as Node) : undefined;
-  const object = left?.type === 'MemberExpression' && !left.computed ? (left.object as Node) : undefined;
-  return object?.type === 'Identifier' ? (object.name as string) : undefined;
+function staticAssignmentTarget(bundle: Bundle, statement: Node): string | undefined {
+  const text = statement.type === 'ExpressionStatement' ? bundle.code.slice(statement.start, statement.end) : '';
+  return STATIC_ASSIGNMENT.exec(text)?.[1];
 }
 
 /** The names a top-level `const`/`let`/`var` binds, with `''` for a destructuring pattern. */
@@ -39,19 +40,20 @@ function declaredNames(statement: Node): string[] {
   return declarators.map((declarator) => ((declarator.id as Node).name as string | undefined) ?? '');
 }
 
-/** Whether `code` mentions `name` as a whole identifier, not as a property. */
-function mentions(code: string, name: string): boolean {
-  const escaped = name.replace(/[\\^$.*+?()[\]{}|]/gu, '\\$&');
-  return new RegExp(`(?<![\\w$.])${escaped}(?![\\w$])`, 'u').test(code);
+/** Whether the bundle names `binding` as a whole identifier outside `body[first]` to `body[last]`. */
+function namedOutside(bundle: Bundle, range: { first: number; last: number }, binding: string): boolean {
+  const outside = bundle.code.slice(0, bundle.body[range.first].start) + bundle.code.slice(bundle.body[range.last].end);
+  const escaped = binding.replace(/[\\^$.*+?()[\]{}|]/gu, '\\$&');
+  return new RegExp(`(?<![\\w$.])${escaped}(?![\\w$])`, 'u').test(outside);
 }
 
 /** The index of the last `name.property = …;` that follows `body[index]`, past nothing but variable declarations. */
-function lastStaticAssignment(body: Node[], index: number, name: string): number {
+function lastStaticAssignment(bundle: Bundle, index: number, name: string): number {
   let last = index;
-  for (let next = index + 1; next < body.length; next += 1) {
-    if (staticAssignmentTarget(body[next]) === name) {
+  for (let next = index + 1; next < bundle.body.length; next += 1) {
+    if (staticAssignmentTarget(bundle, bundle.body[next]) === name) {
       last = next;
-    } else if (body[next].type !== 'VariableDeclaration') {
+    } else if (bundle.body[next].type !== 'VariableDeclaration') {
       break;
     }
   }
@@ -63,30 +65,26 @@ function lastStaticAssignment(body: Node[], index: number, name: string): number
  * fiber and drei declare `preloadDefaultOptions` between `useEnvironment` and its statics;
  * such a declaration moves into the call only when nothing else names it.
  */
-function wrapHookStatics(code: string, body: Node[], index: number, edits: Edit[]): number {
-  const statement = body[index];
-  const name = (statement.id as Node | null)?.name as string | undefined;
-  const last = name ? lastStaticAssignment(body, index, name) : index;
-  if (!name || last === index) {
+function wrapHookStatics(bundle: Bundle, index: number): number {
+  const statement = bundle.body[index];
+  const name = ((statement.id as Node | null)?.name as string | undefined) ?? '';
+  const range = { first: index, last: name ? lastStaticAssignment(bundle, index, name) : index };
+  const enclosed = bundle.body.slice(index + 1, range.last).flatMap(declaredNames);
+  if (range.last === index || enclosed.some((binding) => binding === '' || namedOutside(bundle, range, binding))) {
     return index;
   }
-  const outside = code.slice(0, statement.start) + code.slice(body[last].end);
-  const enclosed = body.slice(index + 1, last).flatMap(declaredNames);
-  if (enclosed.some((binding) => binding === '' || mentions(outside, binding))) {
-    return index;
-  }
-  edits.push({ at: statement.start, text: `const ${name} = /* @__PURE__ */ (() => { ` });
-  edits.push({ at: body[last].end, text: ` return ${name}; })();` });
-  return last;
+  bundle.edits.push({ at: statement.start, text: `const ${name} = /* @__PURE__ */ (() => { ` });
+  bundle.edits.push({ at: bundle.body[range.last].end, text: ` return ${name}; })();` });
+  return range.last;
 }
 
 /** drei: `const KTX2LoaderService = globalThis[SERVICE_KEY] || (globalThis[SERVICE_KEY] = new KTX2LoaderServiceImpl());` becomes a pure call. */
-function wrapGlobalSingletons(code: string, statement: Node, edits: Edit[]): void {
+function wrapGlobalSingletons(bundle: Bundle, statement: Node): void {
   const declarators = statement.type === 'VariableDeclaration' ? (statement.declarations as Node[]) : [];
   for (const init of declarators.map((declarator) => declarator.init as Node | null)) {
-    if (init?.type === 'LogicalExpression' && code.startsWith('globalThis[', init.start)) {
-      edits.push({ at: init.start, text: '/* @__PURE__ */ (() => ' });
-      edits.push({ at: init.end, text: ')()' });
+    if (init?.type === 'LogicalExpression' && bundle.code.startsWith('globalThis[', init.start)) {
+      bundle.edits.push({ at: init.start, text: '/* @__PURE__ */ (() => ' });
+      bundle.edits.push({ at: init.end, text: ')()' });
     }
   }
 }
@@ -99,22 +97,21 @@ function wrapGlobalSingletons(code: string, statement: Node, edits: Edit[]): voi
  * The code only gains text around existing statements, so it still runs in the same order when it is used.
  */
 export function pureStaticAssignments(code: string): string {
-  const body = (parseAst(code) as unknown as { body: Node[] }).body;
-  const edits: Edit[] = [];
-  for (let index = 0; index < body.length; index += 1) {
-    if (body[index].type === 'FunctionDeclaration') {
-      index = wrapHookStatics(code, body, index, edits);
+  const bundle: Bundle = { code, body: (parseAst(code) as unknown as { body: Node[] }).body, edits: [] };
+  for (let index = 0; index < bundle.body.length; index += 1) {
+    if (bundle.body[index].type === 'FunctionDeclaration') {
+      index = wrapHookStatics(bundle, index);
     } else {
-      wrapGlobalSingletons(code, body[index], edits);
+      wrapGlobalSingletons(bundle, bundle.body[index]);
     }
   }
-  if (edits.length === 0) {
+  if (bundle.edits.length === 0) {
     throw new Error(
       'pureStaticAssignments found nothing to rewrite; the bundle changed shape, so check whether its loaders still drop out.'
     );
   }
   let rewritten = code;
-  for (const { at, text } of edits.sort((a, b) => b.at - a.at)) {
+  for (const { at, text } of bundle.edits.sort((a, b) => b.at - a.at)) {
     rewritten = rewritten.slice(0, at) + text + rewritten.slice(at);
   }
   return rewritten;
