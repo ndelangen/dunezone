@@ -11,7 +11,7 @@ export const spiceReserveSchema = z.object({
 export const spiceTransferSchema = z.object({
   revision: tableCountSchema,
   /*
-   * The glossary term for the shared pile is "Spice Bank" (see the glossary).
+   * The glossary term for the shared pile is "Spice Bank" (see CONTEXT.md).
    * The `supply` kind, and `supply` as a source, are kept because transfer records are stored data.
    */
   kind: z.enum(['withdrawal', 'collection', 'supply', 'disposal']),
@@ -23,7 +23,7 @@ export const spiceTransferSchema = z.object({
 export type SpiceTransfer = z.infer<typeof spiceTransferSchema>;
 
 /*
- * The glossary term is "spice reserve" (see the glossary).
+ * The glossary term is "spice reserve" (see CONTEXT.md).
  * The `bank-` command kinds are kept because they are protocol messages and recorded command receipts.
  */
 export const spiceReserveActionSchema = z.discriminatedUnion('kind', [

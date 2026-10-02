@@ -44,7 +44,7 @@ export const storedSnapshotSchema = gameSnapshotSchema
     /* Spice reserves and combat faces are seeded per faction when a game fixes its seating, never by the schema. */
     combatFaces: z.record(tableIdSchema, z.array(combatFaceSchema)).default({}),
     battleResults: z.array(storedBattleResultSchema).default([]),
-    /* Each faction's spice reserve (see the glossary); the `factionBanks` key is kept for stored game state. */
+    /* Each faction's spice reserve (see CONTEXT.md); the `factionBanks` key is kept for stored game state. */
     factionBanks: z.record(tableIdSchema, tableCountSchema).default({}),
     /* Public card handles change independently of retained card identity. Never serialized. */
     cardHandles: z.record(tableIdSchema, tableIdSchema).default({}),

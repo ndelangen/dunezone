@@ -277,6 +277,14 @@ The retained private messages between two factions in one Real game, available f
 The retained public record of a Real game, read in the controls panel by every viewer, Spectators included, during and after play. Game holds what happened on the table: phases, spice transfers, battle results and predictions. Audit holds who sat where and how removal votes ended. Every entry is one sentence with its classification and the turn, setup step or stage it happened in; each producer files its entry inside the transaction that commits the event, and a deleted account reads `[deleted user]` wherever it appears. Private cards, unrevealed plans, spice reserve balances, Conversations and territory names never enter it.
 _Avoid_: Event log, history feed, activity feed
 
+**Spice Bank**:
+The shared, unlimited pile of spice outside any faction, drawn as the spice disc. Stored data still calls it `supply`.
+_Avoid_: spice supply, the supply, bank
+
+**Spice reserve**:
+One faction's own spice balance. Stored data and the protocol still call it `bank`, `factionBanks`, `bank-withdraw` and `bank-collect`.
+_Avoid_: bank, faction bank, banked spice
+
 **Directory**:
 Convex's record that a Play game exists and what the lobby may show of it: its stage, its seated players with any public faction, its progress, its last activity and its declared result. The game database owns gameplay; the directory holds only this summary, published by the game with a sequence so a late delivery never overwrites a newer one.
 _Avoid_: Game list database, index

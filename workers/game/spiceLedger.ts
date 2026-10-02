@@ -30,7 +30,7 @@ export class SpiceLedger {
         return { ...record, kind: 'collection', amount: piece.items.length, source: 'table', destination: factionId! };
       }
       if (action.kind === 'spice-spawn') {
-        /* `supply` names the Spice Bank (see the glossary); the literal is kept for stored transfer records. */
+        /* `supply` names the Spice Bank (see CONTEXT.md); the literal is kept for stored transfer records. */
         return { ...record, kind: 'supply', amount: action.count, source: 'supply', destination: 'table' };
       }
     }

@@ -77,7 +77,7 @@ export const gameSnapshotSchema = z.object({
   ending: gameEndingSchema.nullable().optional(),
   result: gameResultSchema.nullable().optional(),
   controls: publicControlsSchema.optional(),
-  /* The glossary term is "spice reserve" (see the glossary); the `bank` field is kept for the protocol and recorded frames. */
+  /* The glossary term is "spice reserve" (see CONTEXT.md); the `bank` field is kept for the protocol and recorded frames. */
   bank: spiceReserveSchema.optional(),
   battle: publicBattleSchema.nullable().optional(),
   battlePlan: battlePlanSchema.nullable().optional(),

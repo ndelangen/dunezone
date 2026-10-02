@@ -817,10 +817,10 @@ export const SpiceTransfers = meta.story({
           .getAllByRole('listitem')
           .map((item) => item.textContent)
       ).toEqual([
-        'Thialfi: disposal, 1 spice from the table removed from play.',
-        'Thialfi: collection, 3 spice from the table to a faction no longer in the game.',
-        'Twaffle: supply, 6 spice from the Spice Bank to the table.',
-        `Thialfi: withdrawal, 2 spice from the ${faction.name} spice reserve to the table.`,
+        'Thialfi returned 1 spice to the Spice Bank.',
+        'Thialfi collected 3 spice from the table to a faction no longer in the game.',
+        'Twaffle took 6 spice from the Spice Bank to the table.',
+        `Thialfi withdrew 2 spice from the ${faction.name} spice reserve to the table.`,
       ]);
     });
   },

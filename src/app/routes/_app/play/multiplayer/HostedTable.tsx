@@ -5,6 +5,7 @@ import type { SpawnSelection } from '@shared/play/inventory';
 import { phaseAt, tableProgressFor } from '@shared/play/phases';
 import { rosterSeat, SPECTATOR_SEAT } from '@shared/play/schema';
 import { phaseGate, setupMapVisible, setupStep } from '@shared/play/setup';
+import type { SpiceTransfer } from '@shared/play/spiceReserve';
 import { DEFAULT_TABLE_SEAT_COUNT } from '@shared/play/tableSettings';
 import { Link } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
@@ -568,7 +569,7 @@ function SpiceReserveControls({ client, table }: Pick<ConnectionControlsProps, '
 
 /*
  * A transfer's ends are a faction's id, the table or the Spice Bank, as the Worker's spice ledger records them (#1664).
- * The ledger stores the Spice Bank as `supply`; that literal is kept for stored data (see the glossary).
+ * The ledger stores the Spice Bank as `supply`; that literal is kept for stored data (see CONTEXT.md).
  */
 function spicePlace(labels: Readonly<Partial<Record<string, string>>>, place: string): string {
   if (place === 'table') {
@@ -579,6 +580,22 @@ function spicePlace(labels: Readonly<Partial<Record<string, string>>>, place: st
   }
   const name = labels[place];
   return name ? `the ${name} spice reserve` : 'a faction no longer in the game';
+}
+
+/* The verb each stored transfer kind reads as; `supply` and `disposal` stay as stored, and both name the Spice Bank. */
+const SPICE_TRANSFER_VERBS: Readonly<Record<SpiceTransfer['kind'], string>> = {
+  withdrawal: 'withdrew',
+  collection: 'collected',
+  supply: 'took',
+  disposal: 'returned',
+};
+
+function spiceTransferText(labels: Readonly<Partial<Record<string, string>>>, transfer: SpiceTransfer): string {
+  const moved = `${transfer.actor} ${SPICE_TRANSFER_VERBS[transfer.kind]} ${transfer.amount} spice`;
+  if (transfer.kind === 'disposal') {
+    return `${moved} to the Spice Bank.`;
+  }
+  return `${moved} from ${spicePlace(labels, transfer.source)} to ${spicePlace(labels, transfer.destination ?? 'table')}.`;
 }
 
 function SpiceHistory({ client, table }: Pick<ConnectionControlsProps, 'client' | 'table'>) {
@@ -592,10 +609,7 @@ function SpiceHistory({ client, table }: Pick<ConnectionControlsProps, 'client' 
         {entries.length === 0 && <Text size="sm">No spice transfers yet.</Text>}
         <List type="ordered" size="sm">
           {entries.map((entry) => (
-            <List.Item key={entry.revision}>
-              {entry.actor}: {entry.kind}, {entry.amount} spice from {spicePlace(labels, entry.source)}
-              {entry.destination ? ` to ${spicePlace(labels, entry.destination)}` : ' removed from play'}.
-            </List.Item>
+            <List.Item key={entry.revision}>{spiceTransferText(labels, entry)}</List.Item>
           ))}
         </List>
         <Group>

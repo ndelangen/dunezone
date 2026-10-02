@@ -388,8 +388,8 @@ function PlanFields({ client, table, plan, battle }: Props & { plan: BattlePlan;
             </div>
             <PlanInventory plan={plan} locked={locked} update={update} pieces={pieces} />
             <Text size="sm">
-              {table.snapshot.bank!.balance} available in your spice reserve, {plan.spice} reserved. Troop strength
-              excludes leader strength.
+              {table.snapshot.bank!.balance} in your spice reserve, {plan.spice} set aside. Troop strength excludes
+              leader strength.
             </Text>
             {battle.stage !== 'revealed' && (
               <Button

@@ -80,7 +80,25 @@ describe('the public log', () => {
       message: { type: 'command', action: { kind: 'phase', direction: 1 } } as never,
       viewer: viewer as never,
     });
+    log.recordCommit({
+      holders: [],
+      before: snapshot(5),
+      next: snapshot(6),
+      message,
+      viewer: viewer as never,
+      transfer: { kind: 'supply', amount: 4, source: 'supply', destination: 'table', revision: 6 } as never,
+    });
+    log.recordCommit({
+      holders: [],
+      before: snapshot(6),
+      next: snapshot(7),
+      message,
+      viewer: viewer as never,
+      transfer: { kind: 'disposal', amount: 2, source: 'table', revision: 7 } as never,
+    });
     expect(log.page('game', Number.MAX_SAFE_INTEGER).entries.map((entry) => entry.text)).toEqual([
+      'Alice returned 2 spice to the Spice Bank.',
+      'Alice took 4 spice from the Spice Bank to the table.',
       'Spice {1} began.',
       'House {0} revealed its prediction: Fremen {1}, turn 3.',
       'Alice withdrew 3 spice from the Fremen {1} spice reserve to the table.',

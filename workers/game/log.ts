@@ -408,7 +408,7 @@ function phaseEntry(
 function spiceEntry(transfer: SpiceTransfer, actor: Person, faction: FactionNamer, context: string): Entry {
   const people = [actor];
   const amount = `${transfer.amount} spice`;
-  /* The `supply` kind is the Spice Bank (see the glossary); the literal is kept for stored transfer records. */
+  /* The `supply` kind is the Spice Bank (see CONTEXT.md); the literal is kept for stored transfer records. */
   const template =
     transfer.kind === 'withdrawal'
       ? `{0} withdrew ${amount} from the ${faction(transfer.source, people)} spice reserve to the table.`
@@ -416,7 +416,7 @@ function spiceEntry(transfer: SpiceTransfer, actor: Person, faction: FactionName
         ? `{0} collected ${amount} from the table into the ${faction(transfer.destination ?? '', people)} spice reserve.`
         : transfer.kind === 'supply'
           ? `{0} took ${amount} from the Spice Bank to the table.`
-          : `{0} removed ${amount} from play.`;
+          : `{0} returned ${amount} to the Spice Bank.`;
   return { key: `spice:${transfer.revision}`, class: 'spice', template, people, context };
 }
 

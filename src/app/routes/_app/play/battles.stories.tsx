@@ -328,7 +328,7 @@ export const BattleSpiceBound = meta.story({
   }),
   play: async ({ canvasElement }) => {
     const page = await expectPlanBound(canvasElement, 'Committed spice', { spice: 2 });
-    await settled(() => expect(page.getByText(/0 available in your spice reserve, 2 reserved/)).toBeVisible());
+    await settled(() => expect(page.getByText(/0 in your spice reserve, 2 set aside/)).toBeVisible());
   },
 });
 
