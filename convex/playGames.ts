@@ -10,7 +10,7 @@ import type { Doc, Id } from './_generated/dataModel';
 import { query } from './_generated/server';
 import type { QueryCtx } from './_generated/server';
 import { mutation } from './functions';
-import { admitsPlayers, currentPlaySession, isRealGame } from './lib/playAuthorization';
+import { admitsPlayers, currentPlaySession, isRealGame, livePlaySession } from './lib/playAuthorization';
 import { createPendingGame } from './lib/playProvisioningSchedule';
 import { playRateLimiter } from './lib/playRateLimits';
 
@@ -107,9 +107,8 @@ export const createGame = mutation({
   args: zodToConvex(playCreateGameRequestSchema),
   returns: zodToConvex(playCreateGameResultSchema),
   handler: async (ctx, args) => {
-    const session = await currentPlaySession(ctx);
-    /* A session past its idle or total deadline creates nothing, as it takes no ticket. */
-    if (!session || Date.now() >= session.authExpiresAt) {
+    const session = await livePlaySession(ctx);
+    if (!session) {
       return { ok: false as const, reason: 'not_authorized' as const };
     }
     const rulesetId = ctx.db.normalizeId('rulesets', args.rulesetId);

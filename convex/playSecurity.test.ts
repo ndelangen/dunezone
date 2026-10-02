@@ -1,19 +1,13 @@
 /// <reference types="vite/client" />
 // @vitest-environment edge-runtime
 
-import aggregateTest from '@convex-dev/aggregate/test';
-import rateLimiterTest from '@convex-dev/rate-limiter/test';
-import { convexTest } from 'convex-test';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
-import { publishingDeckCardback } from '../src/shared/assets/fixtures/publishingDeckCardback';
 import type { PlayDirectorySummary } from '../src/shared/play/directory';
 import { api } from './_generated/api';
 import type { Doc, Id } from './_generated/dataModel';
 import type { MutationCtx } from './_generated/server';
-import schema from './schema';
-
-const modules = import.meta.glob('./**/*.ts');
+import { playPerson, playRuleset, playTest } from './play.test.fixture';
 
 /*
  * Who may call each Play function in Convex.
@@ -21,75 +15,14 @@ const modules = import.meta.glob('./**/*.ts');
  * Seats, votes and results live in the game Worker, which publishes only the directory summary here.
  */
 
-async function person(ctx: MutationCtx, name: string) {
-  const userId = await ctx.db.insert('users', { account_state: 'active', name });
-  const sessionId = await ctx.db.insert('authSessions', { userId, expirationTime: Date.now() + 3_600_000 });
-  const refreshId = await ctx.db.insert('authRefreshTokens', { sessionId, expirationTime: Date.now() + 600_000 });
-  const stamp = new Date().toISOString();
-  await ctx.db.insert('profiles', {
-    user_id: userId,
-    username: name,
-    avatar_url: null,
-    account_state: 'active',
-    slug: name.toLowerCase(),
-    created_at: stamp,
-    updated_at: stamp,
-  });
-  return { userId, sessionId, refreshId, subject: `${userId}|${sessionId}` };
-}
-
-async function ruleset(ctx: MutationCtx, owner: Id<'users'>) {
-  const stamp = new Date().toISOString();
-  const rulesetId = await ctx.db.insert('rulesets', {
-    name: 'Classic',
-    about: 'The classic table, as printed.'.padEnd(60, '.'),
-    created_at: stamp,
-    updated_at: stamp,
-    owner_id: owner,
-    group_id: null,
-    is_deleted: false,
-    image_cover: null,
-    slug: 'classic',
-  });
-  const card = await ctx.db.insert('assets', {
-    owner_id: owner,
-    type: 'card-treachery',
-    data: { name: 'lasgun' },
-    slug: 'lasgun',
-    created_at: stamp,
-    updated_at: stamp,
-    is_deleted: false,
-    group_id: null,
-  });
-  for (const slot of ['treachery', 'spice'] as const) {
-    const deckId = await ctx.db.insert('assets', {
-      owner_id: owner,
-      type: 'deck',
-      data: { name: slot, about: '', cardback: publishingDeckCardback },
-      slug: slot,
-      created_at: stamp,
-      updated_at: stamp,
-      is_deleted: false,
-      group_id: null,
-    });
-    await ctx.db.insert('asset_relations', { from_asset_id: deckId, to_asset_id: card, kind: 'deck-card', count: 2 });
-    await ctx.db.insert('ruleset_asset_slots', { ruleset_id: rulesetId, asset_id: deckId, slot });
-  }
-  return rulesetId;
-}
-
 /* Two players, each with a ready real game, and a third player who has no game. */
 async function world() {
-  const t = convexTest(schema, modules);
-  rateLimiterTest.register(t);
-  aggregateTest.register(t, 'statistics');
-  aggregateTest.register(t, 'profileActivity');
-  aggregateTest.register(t, 'profileDiscovery');
+  const t = playTest();
   const seeded = await t.run(async (ctx) => {
-    const host = await person(ctx, 'Host');
-    const rival = await person(ctx, 'Rival');
-    const outsider = await person(ctx, 'Outsider');
-    return { host, rival, outsider, rulesetId: await ruleset(ctx, host.userId) };
+    const host = await playPerson(ctx, 'Host');
+    const rival = await playPerson(ctx, 'Rival');
+    const outsider = await playPerson(ctx, 'Outsider');
+    return { host, rival, outsider, rulesetId: await playRuleset(ctx, host.userId) };
   });
   const as = (subject: string) => t.withIdentity({ subject });
   async function readyGame(subject: string) {
@@ -195,7 +128,9 @@ describe('Play functions in Convex refuse callers who may not use them', () => {
   test('a caller with no identity reads nothing and writes nothing', async () => {
     const { t, seeded, mine } = await world();
     const before = await playRows(t);
+    expect(await t.query(api.playGames.creatable, {})).toEqual({ access: 'unauthenticated' });
     expect(await t.query(api.playGames.getGame, { gameId: mine._id })).toEqual({ status: 'sign_in_required' });
+    expect(await t.query(api.playDirectory.listGames, {})).toEqual({ status: 'sign_in_required' });
     expect(await t.mutation(api.playGames.createGame, { rulesetId: seeded.rulesetId, minimumPlayers: 2 })).toEqual({
       ok: false,
       reason: 'not_authorized',
@@ -219,8 +154,10 @@ describe('Play functions in Convex refuse callers who may not use them', () => {
       secret: theirs.secret,
       ticket: issued.ticket,
     });
-    expect(admitted.ok).toBe(true);
-    const registrationId = admitted.ok ? admitted.registrationId : '';
+    if (!admitted.ok) {
+      throw new Error('Admission refused');
+    }
+    const { registrationId } = admitted;
     const before = await playRows(t);
     const borrowed = { gameId: theirs._id, secret: mine.secret };
 
