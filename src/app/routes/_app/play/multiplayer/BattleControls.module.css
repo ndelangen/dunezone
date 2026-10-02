@@ -9,6 +9,29 @@
   width: min(180px, calc((88vw - 116px) / 2));
   aspect-ratio: 1;
   text-align: center;
+  container: battle-side / inline-size;
+}
+
+/*
+ * A revealed wheel draws at its asset's fixed 170 px, so a side narrower than that zooms it down a step at a time instead of letting it run off a phone screen.
+ * Each threshold is the width the zoom below it fits: 170 px, then 0.8 and 0.64 of it.
+ */
+@container battle-side (width < 170px) {
+  .wheel {
+    zoom: 0.8;
+  }
+}
+
+@container battle-side (width < 136px) {
+  .wheel {
+    zoom: 0.64;
+  }
+}
+
+@container battle-side (width < 109px) {
+  .wheel {
+    zoom: 0.48;
+  }
 }
 
 .claim {
@@ -35,6 +58,11 @@
 
 .cancel {
   border-radius: 4px 4px 18px 18px;
+}
+
+.outcome {
+  /* A label never clips: with a larger font the button outgrows its half of the row instead. */
+  min-width: max-content;
 }
 
 .outcome[data-outcome="right"] {

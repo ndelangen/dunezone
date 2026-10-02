@@ -1,4 +1,4 @@
-import { freshTableState, nearestZone, pieceCount } from './model';
+import { freshTableState, gestureBlockReason, nearestZone, pieceCount } from './model';
 import type { TablePiece, TableState } from './model';
 import { phaseAt, phaseForTurn, STANDARD_PHASES, stepPhase, tableProgressFor } from './phases';
 import type { PhaseEntry } from './phases';
@@ -119,8 +119,9 @@ function actionablePiece(state: TableState, action: Extract<TableAction, { piece
   if (!piece || pieceCount(piece) === 0) {
     throw new GameRejection('That piece is no longer available.');
   }
-  if (piece.locked && action.kind !== 'lock') {
-    throw new GameRejection(`Unlock ${piece.label} first.`);
+  const blocked = action.kind === 'lock' ? null : gestureBlockReason(piece);
+  if (blocked) {
+    throw new GameRejection(blocked);
   }
   return piece;
 }
