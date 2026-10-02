@@ -68,6 +68,8 @@ export class GameSubscription {
   private serverOffset = Number.NEGATIVE_INFINITY;
   /* Tickets that expired since the table last showed; each one doubles the wait before the next. */
   private expiredTickets = 0;
+  /** Why the last attempt failed before a table showed, kept on screen through the retries so a table that never answers never reads as still connecting. */
+  private retryReason: string | null = null;
 
   constructor(
     private readonly gameId: string,
@@ -122,6 +124,7 @@ export class GameSubscription {
     this.resyncing = false;
     this.connectionStatus = 'suspended';
     this.expiredTickets = 0;
+    this.retryReason = null;
   }
 
   send(message: Exclude<ClientMessage, { type: 'admit' | 'sync' }>): boolean {
@@ -159,6 +162,13 @@ export class GameSubscription {
     }, delay);
   }
 
+  /* Only a failure before the table showed is kept for the retries; after one, the next attempt reads as the connection opening. */
+  private retryAfterFailure(reason: string, delay = 1000) {
+    this.retryReason = this.sawView ? null : reason;
+    this.changeStatus('suspended', reason);
+    this.scheduleReconnect(delay);
+  }
+
   private renewExpiredTicket() {
     this.changeStatus('suspended');
     this.scheduleReconnect(Math.min(1000 * 2 ** this.expiredTickets++, PLAY_TICKET_RETRY_MAX_MS));
@@ -172,20 +182,18 @@ export class GameSubscription {
     this.ticketAttempt = attempt;
     this.sawView = false;
     this.serverOffset = Number.NEGATIVE_INFINITY;
-    this.changeStatus('connecting');
+    this.changeStatus('connecting', this.retryReason);
     const request = this.pendingTicketRequest();
     const result = await this.acquireTicket(attempt, request);
     if (!this.isCurrentAttempt(attempt) || !result) {
       return;
     }
     if (!result.ok) {
-      this.changeStatus(
-        result.reason === 'not_authorized' ? 'denied' : 'suspended',
-        result.reason === 'not_authorized'
-          ? 'Sign in again to access the table.'
-          : 'The table is temporarily unavailable.'
-      );
-      this.scheduleReconnect(Math.max(1000, result.retryAfterMs ?? 1000));
+      if (result.reason === 'not_authorized') {
+        this.changeStatus('denied', 'Sign in again to access the table.');
+        return;
+      }
+      this.retryAfterFailure('The table is temporarily unavailable.', Math.max(1000, result.retryAfterMs ?? 1000));
       return;
     }
     const expiresAt = request.requestedAt + result.expiresInMs;
@@ -196,8 +204,7 @@ export class GameSubscription {
     try {
       this.openSocket(result.ticket, expiresAt);
     } catch {
-      this.changeStatus('suspended', 'The table could not connect. Reconnecting...');
-      this.scheduleReconnect();
+      this.retryAfterFailure('The table could not connect. Reconnecting...');
     }
   }
 
@@ -243,8 +250,7 @@ export class GameSubscription {
       return result;
     } catch {
       if (this.isCurrentAttempt(attempt)) {
-        this.changeStatus('suspended', 'The table could not be reached. Reconnecting...');
-        this.scheduleReconnect();
+        this.retryAfterFailure('The table could not be reached. Reconnecting...');
       }
       return null;
     } finally {
@@ -268,6 +274,8 @@ export class GameSubscription {
         this.renewExpiredTicket();
         return;
       }
+      /* The Worker answered, so whatever happens next is not a table that could not be reached. */
+      this.retryReason = null;
       socket.send(JSON.stringify({ type: 'admit', ticket }));
       ticket = '';
       this.startKeepalive(socket, 0);
@@ -289,8 +297,18 @@ export class GameSubscription {
         this.renewExpiredTicket();
         return;
       }
-      this.changeStatus(event.code === 4401 ? 'denied' : 'suspended');
-      this.scheduleReconnect(event.code === 4413 ? 5000 : 1000);
+      if (event.code === 4401) {
+        this.changeStatus('denied', 'This login can no longer access the table.');
+        return;
+      }
+      const delay = event.code === 4413 ? 5000 : 1000;
+      /* A socket that closes before its table showed is a Worker that refused, failed or never answered; one that closes after reconnects as the connection opening. */
+      if (this.sawView) {
+        this.changeStatus('suspended');
+        this.scheduleReconnect(delay);
+        return;
+      }
+      this.retryAfterFailure('The table could not be reached. Reconnecting...', delay);
     };
     socket.onerror = () => {
       if (this.isCurrentSocket(socket)) {
@@ -352,8 +370,7 @@ export class GameSubscription {
     if (this.status === 'denied') {
       return;
     }
-    this.changeStatus('suspended', 'The table could not be reached. Reconnecting...');
-    this.scheduleReconnect();
+    this.retryAfterFailure('The table could not be reached. Reconnecting...');
   }
 
   /* Coming back online reconnects at once when the plain retry is waiting, and otherwise asks the open socket to prove it still works. */
@@ -424,6 +441,7 @@ export class GameSubscription {
   private receiveView(message: RoomView) {
     this.sawView = true;
     this.expiredTickets = 0;
+    this.retryReason = null;
     const previous = this.acceptView(message);
     this.resyncing = false;
     this.connectionStatus = 'authorized';

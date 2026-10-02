@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
-import type { ReactNode } from 'react';
+import type { ComponentType, ReactNode } from 'react';
 import { mocked } from 'storybook/test';
 
 import { db as applicationDb } from '../core';
@@ -124,4 +124,13 @@ export function useStorybookDatabaseClient() {
     throw new Error('The story has no browser-local Convex database.');
   }
   return session.client;
+}
+
+/**
+ * A story decorator that holds every Convex query unanswered, as a page sees an unreachable deployment.
+ * Story decorators render inside the browser-local database, so this replaces the query it installs on each render.
+ */
+export function convexNeverAnswers(Story: ComponentType) {
+  mocked(convexUseQuery).mockImplementation((() => undefined) as typeof convexUseQuery);
+  return <Story />;
 }
