@@ -7,6 +7,7 @@ import {
   createElement,
   isValidElement,
   useContext,
+  useId,
   useLayoutEffect,
   useRef,
   useState,
@@ -16,6 +17,7 @@ import type {
   Context,
   Dispatch,
   ElementType,
+  KeyboardEvent,
   PropsWithChildren,
   ReactElement,
   ReactNode,
@@ -30,10 +32,18 @@ import { PaintedSurfaceBoundary } from './Surface';
 
 export type NestedTabsPath = readonly string[];
 
+interface NestedTabsTabsWiring {
+  /** Prefixes every tab's id, so two NestedTabs on one page never share one. */
+  idBase: string;
+  panelId: string;
+}
+
 interface NestedTabsContextValue {
   activePath: NestedTabsPath;
   isScrolling: boolean;
   levelIndex: number;
+  /** Set when every item switches content in place, so the levels are tablists rather than navigation. */
+  tabs: (NestedTabsTabsWiring & { tabStopPath: NestedTabsPath | null }) | null;
 }
 
 const NESTED_TABS_CONTEXT_KEY = Symbol.for('dunezone.nested-tabs-context');
@@ -324,6 +334,10 @@ function useNestedTabsLayerGeometry({
   return geometry;
 }
 
+function nestedTabId(idBase: string, path: NestedTabsPath) {
+  return `${idBase}-tab-${path.map(encodeURIComponent).join('/')}`;
+}
+
 function useNestedTabsContext(component: string) {
   const context = useContext(NestedTabsContext);
   if (!context) {
@@ -439,15 +453,26 @@ function Item<Root extends ElementType>({
   className,
   ...rootProps
 }: NestedTabsItemProps<Root>) {
-  const { activePath, isScrolling } = useNestedTabsContext('Item');
+  const { activePath, isScrolling, tabs } = useNestedTabsContext('Item');
   const pathState = itemPathState(path, activePath);
+  /* A tab stays selected while it leads to what the panel shows, so a first-level tab is selected above its own tabs.
+     The tab stop is the level's selected tab, so Tab enters a level once and the arrow keys move within it. */
+  const semantics = tabs
+    ? {
+        role: 'tab',
+        id: nestedTabId(tabs.idBase, path),
+        'aria-selected': pathState !== 'inactive',
+        'aria-controls': tabs.panelId,
+        tabIndex: tabs.tabStopPath && pathsEqual(path, tabs.tabStopPath) ? 0 : -1,
+      }
+    : /* A link item is the current page; a button item among links switches content in place, so it is only current. */
+      { 'aria-current': pathState === 'active' ? (Root === 'button' ? 'true' : 'page') : undefined };
   const itemRoot = createElement(
     Root,
     {
       ...rootProps,
+      ...semantics,
       className: clsx(styles.item, className),
-      /* A link item is the current page; a button item switches content in place, so it is only current. */
-      'aria-current': pathState === 'active' ? (Root === 'button' ? 'true' : 'page') : undefined,
       'aria-label': label,
       'data-nested-tabs-item': true,
       'data-path-state': pathState,
@@ -458,7 +483,7 @@ function Item<Root extends ElementType>({
   );
 
   return (
-    <li className={styles.itemSlot}>
+    <li className={styles.itemSlot} role={tabs ? 'none' : undefined}>
       <NestedTabsTooltip label={label} isScrolling={isScrolling}>
         {itemRoot}
       </NestedTabsTooltip>
@@ -477,21 +502,28 @@ type NestedTabsGroupProps<Root extends ElementType> = NestedTabsGroupOwnProps &
     as?: Root;
   };
 
-function descendantItemPaths(children: ReactNode): NestedTabsPath[] {
-  const paths: NestedTabsPath[] = [];
+type DeclaredItem = NestedTabsItemOwnProps & { as?: unknown };
+
+/* The items a level declares directly or through its groups; an item inside any other wrapper is not seen. */
+function descendantItems(children: ReactNode): DeclaredItem[] {
+  const items: DeclaredItem[] = [];
   Children.forEach(children, (child) => {
     if (!isValidElement(child)) {
       return;
     }
     if (nestedTabsChildKind(child) === 'item') {
-      paths.push((child.props as NestedTabsItemOwnProps).path);
+      items.push(child.props as DeclaredItem);
       return;
     }
     if (nestedTabsChildKind(child) === 'group') {
-      paths.push(...descendantItemPaths((child.props as NestedTabsGroupOwnProps).children));
+      items.push(...descendantItems((child.props as NestedTabsGroupOwnProps).children));
     }
   });
-  return paths;
+  return items;
+}
+
+function descendantItemPaths(children: ReactNode): NestedTabsPath[] {
+  return descendantItems(children).map((item) => item.path);
 }
 
 function Group<Root extends ElementType = 'li'>({
@@ -502,7 +534,7 @@ function Group<Root extends ElementType = 'li'>({
   children,
   ...rootProps
 }: NestedTabsGroupProps<Root>) {
-  const { activePath, isScrolling } = useNestedTabsContext('Group');
+  const { activePath, isScrolling, tabs } = useNestedTabsContext('Group');
   const containsActiveItem = descendantItemPaths(children).some((path) => pathsEqual(path, activePath));
   const Root = as ?? 'li';
 
@@ -511,6 +543,8 @@ function Group<Root extends ElementType = 'li'>({
     {
       ...rootProps,
       className: clsx(styles.group, className),
+      /* A tablist owns only tabs, so inside one a group is presentation and its tabs belong to the list. */
+      role: tabs ? 'none' : undefined,
       'data-contains-active-item': containsActiveItem || undefined,
     } as ComponentPropsWithoutRef<Root>,
     <>
@@ -519,7 +553,7 @@ function Group<Root extends ElementType = 'li'>({
           {icon ?? <span className={styles.groupMarker} />}
         </span>
       </NestedTabsTooltip>
-      <ul className={styles.groupItems} aria-label={label}>
+      <ul className={styles.groupItems} role={tabs ? 'none' : undefined} aria-label={tabs ? undefined : label}>
         {children}
       </ul>
     </>
@@ -576,13 +610,43 @@ function splitLevelChildren(children: ReactNode) {
   return { entries, tools };
 }
 
+/* Up and Down step through a rail's tabs, wrapping at the ends, and Home and End jump to its ends.
+   Focus moves and the panel waits for Enter or Space, since opening a tab mounts its content. */
+function moveTabFocus(event: KeyboardEvent<HTMLElement>) {
+  if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) {
+    return;
+  }
+  const tabs = Array.from(event.currentTarget.querySelectorAll<HTMLElement>('[role="tab"]')).filter(
+    (tab) => !tab.matches(':disabled, [aria-disabled="true"]')
+  );
+  const index = tabs.indexOf(event.target as HTMLElement);
+  if (index < 0) {
+    return;
+  }
+  const targets: Partial<Record<string, number>> = {
+    ArrowDown: (index + 1) % tabs.length,
+    ArrowUp: (index - 1 + tabs.length) % tabs.length,
+    Home: 0,
+    End: tabs.length - 1,
+  };
+  const target = targets[event.key];
+  if (target === undefined) {
+    return;
+  }
+  event.preventDefault();
+  tabs[target]?.focus();
+}
+
 function NestedTabsLevelView({
   activePath,
   levelIndex,
   label,
+  tabs,
   children,
-}: NestedTabsLevelProps & { activePath: NestedTabsPath; levelIndex: number }) {
+}: NestedTabsLevelProps & { activePath: NestedTabsPath; levelIndex: number; tabs: NestedTabsTabsWiring | null }) {
   const { entries, tools } = splitLevelChildren(children);
+  const paths = tabs ? descendantItemPaths(entries) : [];
+  const tabStopPath = paths.find((path) => itemPathState(path, activePath) !== 'inactive') ?? paths[0] ?? null;
   const [isScrolling, setIsScrolling] = useState(false);
   const scrollingTimer = useRef(0);
 
@@ -600,23 +664,45 @@ function NestedTabsLevelView({
   };
 
   return (
-    <NestedTabsContext.Provider value={{ activePath, isScrolling, levelIndex }}>
-      <nav className={styles.level} aria-label={label} data-nested-tabs-level={levelIndex + 1}>
-        <ul
-          className={styles.levelItems}
-          data-nested-tabs-items
-          data-scrolling={isScrolling || undefined}
-          onScroll={handleScroll}
-        >
-          {entries}
-        </ul>
+    <NestedTabsContext.Provider value={{ activePath, isScrolling, levelIndex, tabs: tabs && { ...tabs, tabStopPath } }}>
+      {/* A level of tabs is no landmark: its tablist carries the level's name instead. */}
+      {createElement(
+        tabs ? 'div' : 'nav',
+        {
+          className: styles.level,
+          'aria-label': tabs ? undefined : label,
+          'data-nested-tabs-level': levelIndex + 1,
+        },
+        tabs ? (
+          <ul
+            className={styles.levelItems}
+            role="tablist"
+            aria-label={label}
+            aria-orientation="vertical"
+            data-nested-tabs-items
+            data-scrolling={isScrolling || undefined}
+            onScroll={handleScroll}
+            onKeyDown={moveTabFocus}
+          >
+            {entries}
+          </ul>
+        ) : (
+          <ul
+            className={styles.levelItems}
+            data-nested-tabs-items
+            data-scrolling={isScrolling || undefined}
+            onScroll={handleScroll}
+          >
+            {entries}
+          </ul>
+        ),
         <div className={styles.levelFooter}>
           {tools ? <div className={styles.levelTools}>{tools}</div> : null}
           <span className={styles.levelLabel} aria-hidden>
             {label}
           </span>
         </div>
-      </nav>
+      )}
     </NestedTabsContext.Provider>
   );
 }
@@ -659,13 +745,27 @@ function splitRootChildren(children: ReactNode) {
 /**
  * Icon-only navigation in one or two connected levels beside a caller-owned content panel.
  * Callers own the path and the navigation;
- * this owns the glass, the contour that joins the active item to what it opens, and that items stay semantic links or buttons rather than tabs.
+ * this owns the glass, the contour that joins the active item to what it opens, and the semantics the items carry, which follow from what the items are.
+ * When every item is a button, each one switches the panel in place, so each level is a vertical tablist named by its label and the panel is their tabpanel, named by the deepest selected tab.
+ * Selection follows the path, and only a level's selected tab sits in the Tab order.
+ * Up, Down, Home and End move focus between a level's tabs, and Enter or Space opens the focused one: activation is manual, since opening a tab mounts its content.
+ * When any item is a link, the items navigate, so each level stays a named `nav` and its current item carries `aria-current`.
  * With two levels the first connects to the second and the second to the panel;
  * with one level, its items connect straight to the panel.
  */
 function NestedTabsBase({ activePath, ariaLabel, className, children }: NestedTabsProps) {
   const { levels, panel } = splitRootChildren(children);
   const { padding = true } = panel.props;
+  const idBase = useId();
+  const items = levels.flatMap((level) => descendantItems(level.props.children));
+  const tabs: NestedTabsTabsWiring | null =
+    items.length > 0 && items.every((item) => item.as === 'button') ? { idBase, panelId: `${idBase}-panel` } : null;
+  /* The deepest declared prefix of the path: the tab whose content the panel shows. */
+  const shownPath = tabs
+    ? activePath
+        .map((_, index) => activePath.slice(0, activePath.length - index))
+        .find((prefix) => items.some((item) => pathsEqual(item.path, prefix)))
+    : undefined;
   const rootRef = useRef<HTMLDivElement>(null);
   const levelCount = levels.length;
   const firstGeometry = useNestedTabsLayerGeometry({ activePath, rootRef, levelIndex: 0, levelCount });
@@ -688,6 +788,7 @@ function NestedTabsBase({ activePath, ariaLabel, className, children }: NestedTa
             activePath={activePath}
             levelIndex={index}
             label={level.props.label}
+            tabs={tabs}
             key={level.key ?? index}
           >
             {level.props.children}
@@ -696,8 +797,12 @@ function NestedTabsBase({ activePath, ariaLabel, className, children }: NestedTa
         <section
           className={clsx(styles.contentPanel, !padding && styles.contentPanelFlush, panel.props.className)}
           data-nested-tabs-content
+          role={tabs ? 'tabpanel' : undefined}
+          id={tabs?.panelId}
           aria-label={panel.props['aria-label']}
-          aria-labelledby={panel.props['aria-labelledby']}
+          aria-labelledby={
+            panel.props['aria-labelledby'] ?? (tabs && shownPath ? nestedTabId(tabs.idBase, shownPath) : undefined)
+          }
         >
           <PaintedSurfaceBoundary>{panel.props.children}</PaintedSurfaceBoundary>
         </section>

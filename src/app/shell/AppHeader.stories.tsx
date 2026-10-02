@@ -86,7 +86,7 @@ export const HeaderlessPageResponsive = meta.story({
     },
   },
   play: async ({ canvasElement }) => {
-    const band = canvasElement.querySelector('header');
+    const band = canvasElement.querySelector<HTMLElement>('[data-app-band]');
     if (band == null) {
       throw new Error('The masthead band never rendered, so its height cannot be measured.');
     }
@@ -103,7 +103,7 @@ export const HeaderlessPageResponsive = meta.story({
 });
 
 async function playResizing(context: Parameters<typeof playHeaderResize>[0]) {
-  const band = context.canvasElement.querySelector('header');
+  const band = context.canvasElement.querySelector<HTMLElement>('[data-app-band]');
   const view = context.canvasElement.ownerDocument.defaultView;
   if (!band || !view) {
     throw new Error('The resize story requires a mounted header and browser window.');

@@ -9,6 +9,7 @@ import {
   TextInput,
   Tooltip,
   UnstyledButton,
+  VisuallyHidden,
 } from '@mantine/core';
 import {
   bannedIds,
@@ -287,8 +288,10 @@ export function DraftingHeader({ table }: Readonly<{ table: TableProjection }>) 
         <strong>{draftStatus(gates)}</strong>
       </div>
       <span className={styles.gates}>
+        {/* A met gate turns green, and says so in words for anyone who cannot see the colour. */}
         <span className={clsx(styles.gate, gates.minimumMet && styles.gateMet)}>
           Seats <strong>{gates.seated}</strong>/{gates.minimum}+
+          {gates.minimumMet && <VisuallyHidden component="span">, met</VisuallyHidden>}
         </span>
         <Tooltip
           label={warning.kind === 'none' ? 'Drafted factions are dealt randomly when everyone is ready.' : warning.text}
@@ -296,17 +299,19 @@ export function DraftingHeader({ table }: Readonly<{ table: TableProjection }>) 
           maw={320}
           events={{ hover: true, focus: true, touch: true }}
         >
+          {/* Named by its text, so the count and whether the gate is met reach a screen reader; the tooltip holds the details. */}
           <UnstyledButton
             type="button"
-            aria-label="Draft pool details"
             className={clsx(styles.gate, styles.poolHelp, gates.enoughFactions && styles.gateMet)}
           >
             Pool <strong>{gates.poolSize}</strong>/{gates.seated}
             {fill > 0 && <em> +{fill} random</em>}
+            {gates.enoughFactions && <VisuallyHidden component="span">, met</VisuallyHidden>}
           </UnstyledButton>
         </Tooltip>
         <span className={clsx(styles.gate, gates.allReady && styles.gateMet)}>
           Ready <strong>{gates.ready}</strong>/{gates.seated}
+          {gates.allReady && <VisuallyHidden component="span">, met</VisuallyHidden>}
         </span>
       </span>
     </div>

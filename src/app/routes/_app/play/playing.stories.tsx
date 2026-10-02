@@ -62,7 +62,7 @@ export const RemovalVoting = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await userEvent.click(await page.findByRole('button', { name: 'View vote about Twaffle' }));
-    expect(page.getByRole('button', { name: 'Twaffle, removal vote in progress' })).toBeVisible();
+    expect(page.getByRole('tab', { name: 'Twaffle, removal vote in progress' })).toBeVisible();
     await userEvent.click(page.getByRole('button', { name: 'Withdraw' }));
     expect(lastCommand()).toMatchObject({ action: { kind: 'removal-ballot', voteId: 'removal-12', choice: null } });
     await userEvent.click(page.getByRole('button', { name: 'Keep' }));
@@ -76,7 +76,7 @@ export const LogGame = meta.story({
   ),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await userEvent.click(await page.findByRole('button', { name: 'Log' }));
+    await userEvent.click(await page.findByRole('tab', { name: 'Log' }));
     const log = await page.findByRole('region', { name: 'Game log' });
     await expect(within(log).findByText('Bene Gesserit locked its prediction.')).resolves.toBeVisible();
     expect(
@@ -101,8 +101,8 @@ export const LogAudit = meta.story({
   }),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await userEvent.click(await page.findByRole('button', { name: 'Log' }));
-    await userEvent.click(await page.findByRole('button', { name: 'Audit' }));
+    await userEvent.click(await page.findByRole('tab', { name: 'Log' }));
+    await userEvent.click(await page.findByRole('tab', { name: 'Audit' }));
     const log = await page.findByRole('region', { name: 'Audit log' });
     await expect(within(log).findByText(/Twaffle keeps seat 1/)).resolves.toBeVisible();
     expect(within(log).getByText('[deleted user] left seat 6 when the account was deleted.')).toBeVisible();
@@ -114,7 +114,7 @@ export const LogPagination = meta.story({
   beforeEach: install(() => productTransport('seat-6', revealedPredictionSnapshot(), { holdLogHistory: true })),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await userEvent.click(await page.findByRole('button', { name: 'Log' }));
+    await userEvent.click(await page.findByRole('tab', { name: 'Log' }));
     await waitFor(() => expect(gameLogReads(session.transport.messages).length).toBeGreaterThan(0));
     const latest = GAME_LOG[0]!;
     const older: LogEntry = {
@@ -207,9 +207,9 @@ export const RemovalResolution = meta.story({
     session.transport.deliver(session.transport.view(resolved, command!.commandId));
     await waitFor(() => expect(page.queryByRole('button', { name: 'View vote about Twaffle' })).toBeNull());
     expect(page.queryByRole('heading', { name: 'Remove Twaffle?' })).toBeNull();
-    expect(page.queryByRole('button', { name: 'Twaffle, removal vote in progress' })).toBeNull();
-    await userEvent.click(page.getByRole('button', { name: 'Log' }));
-    await userEvent.click(await page.findByRole('button', { name: 'Audit' }));
+    expect(page.queryByRole('tab', { name: 'Twaffle, removal vote in progress' })).toBeNull();
+    await userEvent.click(page.getByRole('tab', { name: 'Log' }));
+    await userEvent.click(await page.findByRole('tab', { name: 'Audit' }));
     await expect(page.findByText(/Twaffle keeps seat 1/)).resolves.toBeVisible();
   },
 });
@@ -242,10 +242,10 @@ export const ConversationHistory = meta.story({
   ),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await page.findByRole('button', { name: 'Twaffle' });
+    await page.findByRole('tab', { name: 'Twaffle' });
     page.getByRole('separator', { name: 'Resize controls panel' }).focus();
     await userEvent.keyboard('{End}');
-    await userEvent.click(page.getByRole('button', { name: 'Info' }));
+    await userEvent.click(page.getByRole('tab', { name: 'Info' }));
     const { factionId, peerId } = conversationPair();
     session.transport.deliver({
       type: 'conversations',
@@ -253,9 +253,9 @@ export const ConversationHistory = meta.story({
       generation: 0,
       entries: [{ peerId, latest: 55, unread: 55 }],
     });
-    await expect(page.findByRole('button', { name: 'Twaffle, 55 unread' })).resolves.toBeVisible();
+    await expect(page.findByRole('tab', { name: 'Twaffle, 55 unread' })).resolves.toBeVisible();
     expect(session.transport.messages.some((entry) => entry.type === 'conversation-read')).toBe(false);
-    await userEvent.click(page.getByRole('button', { name: 'Conversation' }));
+    await userEvent.click(page.getByRole('tab', { name: 'Conversation' }));
     await page.findByText('Shall we keep the southern route open?');
     const loadedHistory = page.getByRole('region', { name: 'Conversation history' });
     await waitFor(() =>
@@ -295,7 +295,7 @@ export const ConversationHistory = meta.story({
       generation: 0,
       entries: [{ peerId, latest: 56, unread: 1 }],
     });
-    await expect(page.findByRole('button', { name: 'Twaffle, 1 unread' })).resolves.toBeVisible();
+    await expect(page.findByRole('tab', { name: 'Twaffle, 1 unread' })).resolves.toBeVisible();
     expect(session.transport.messages.some((entry) => entry.type === 'conversation-read' && entry.through === 56)).toBe(
       false
     );
@@ -318,12 +318,12 @@ export const ConversationHistory = meta.story({
     await waitFor(() => expect(history.scrollHeight - history.scrollTop - history.clientHeight).toBeLessThan(8));
     expect(page.getByRole('textbox', { name: 'Message' }).getBoundingClientRect().top).toBe(composerTop);
 
-    await userEvent.click(page.getByRole('button', { name: 'Info' }));
+    await userEvent.click(page.getByRole('tab', { name: 'Info' }));
     expect(page.queryByRole('textbox', { name: 'Message' })).toBeNull();
-    await userEvent.click(page.getByRole('button', { name: 'fectumbra' }));
+    await userEvent.click(page.getByRole('tab', { name: 'fectumbra' }));
     await expect(page.findByRole('textbox', { name: 'Message' })).resolves.toBeVisible();
-    await userEvent.click(page.getByRole('button', { name: 'Thialfi' }));
-    expect(page.queryByRole('button', { name: 'Conversation' })).toBeNull();
+    await userEvent.click(page.getByRole('tab', { name: 'Thialfi' }));
+    expect(page.queryByRole('tab', { name: 'Conversation' })).toBeNull();
   },
 });
 
@@ -368,7 +368,7 @@ export const ConversationOffline = meta.story({
   beforeEach: install(() => productTransport('seat-2', playingSnapshot())),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await page.findByRole('button', { name: 'Conversation' });
+    await page.findByRole('tab', { name: 'Conversation' });
     session.transport.deliver({ type: 'admission', status: 'suspended' });
     await expect(page.findByRole('combobox', { name: 'Faction conversation' })).resolves.toBeVisible();
     await userEvent.type(page.getByRole('textbox', { name: 'Message' }), 'Send once I reconnect.');
@@ -416,7 +416,7 @@ export const SharedPhaseControls = meta.story({
   beforeEach: install(() => productTransport('seat-2')),
   play: async ({ canvasElement }) => {
     const { page, controls, waitForPhase } = phaseControls(canvasElement);
-    await waitForPhase(() => expect(page.getByRole('button', { name: 'Phase' })).toBeVisible());
+    await waitForPhase(() => expect(page.getByRole('tab', { name: 'Phase' })).toBeVisible());
     await openTab(page, 'Phase');
     await waitForPhase(() => {
       expect(controls().getByRole('button', { name: 'Previous phase' })).toBeDisabled();
@@ -465,7 +465,7 @@ export const ObserverPhaseControls = meta.story({
   beforeEach: install(() => productTransport('neutral', { ...initialSnapshot(), phase: 5 })),
   play: async ({ canvasElement }) => {
     const { page, controls, waitForPhase } = phaseControls(canvasElement);
-    await waitForPhase(() => expect(page.getByRole('button', { name: 'Phase' })).toBeVisible());
+    await waitForPhase(() => expect(page.getByRole('tab', { name: 'Phase' })).toBeVisible());
     await openTab(page, 'Phase');
     await waitForPhase(() => {
       expect(controls().getByRole('button', { name: 'Previous phase' })).toBeDisabled();
@@ -482,7 +482,7 @@ export const PlaybackKeepsLivePhaseSeparate = meta.story({
   beforeEach: install(() => productTransport('seat-2', { ...initialSnapshot(), phase: 5 })),
   play: async ({ canvasElement }) => {
     const { page, controls, waitForPhase } = phaseControls(canvasElement);
-    await waitForPhase(() => expect(page.getByRole('button', { name: 'Phase' })).toBeVisible());
+    await waitForPhase(() => expect(page.getByRole('tab', { name: 'Phase' })).toBeVisible());
     await openTab(page, 'Phase');
     await waitForPhase(() => expect(page.getByRole('button', { name: 'Replay from start' })).toBeEnabled());
     await userEvent.click(page.getByRole('button', { name: 'Replay from start' }));
@@ -590,7 +590,7 @@ export const FactionPhase = meta.story({
   beforeEach: install(() => productTransport('seat-2', factionPhaseSnapshot(false))),
   play: async ({ canvasElement }) => {
     const { page, waitForPhase } = phaseControls(canvasElement);
-    await waitForPhase(() => expect(page.getByRole('button', { name: 'Phase' })).toBeVisible());
+    await waitForPhase(() => expect(page.getByRole('tab', { name: 'Phase' })).toBeVisible());
     await openTab(page, 'Phase');
     await waitForPhase(() => expect(page.getByRole('button', { name: 'Help: Guild negotiations' })).toBeVisible());
     await userEvent.hover(page.getByRole('button', { name: 'Help: Guild negotiations' }));
@@ -746,14 +746,14 @@ export const ControlsPanelTabs = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await openTab(page, 'Shared inventory');
-    const rail = () => page.getByRole('navigation', { name: 'Controls' });
+    const rail = () => page.getByRole('tablist', { name: 'Controls' });
     await settled(() => {
       expect(
         within(rail())
-          .getAllByRole('button')
+          .getAllByRole('tab')
           .map((item) => item.getAttribute('aria-label'))
       ).toEqual(['Hand', 'Shared inventory', 'Spice', 'Log', 'Phase']);
-      expect(page.getByRole('button', { name: 'Shared inventory' })).toHaveAttribute('aria-current', 'true');
+      expect(page.getByRole('tab', { name: 'Shared inventory' })).toHaveAttribute('aria-selected', 'true');
       expect(page.getByRole('region', { name: 'Shared inventory' })).toBeVisible();
       expect(page.queryByRole('heading', { name: 'Faction bank' })).toBeNull();
     });
@@ -913,7 +913,7 @@ export const Controls = meta.story({
   ),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await waitFor(() => expect(page.getByRole('button', { name: 'Spice' })).toBeVisible(), {
+    await waitFor(() => expect(page.getByRole('tab', { name: 'Spice' })).toBeVisible(), {
       timeout: 30_000,
     });
     await openTab(page, 'Spice');
@@ -956,7 +956,7 @@ export const ControlsNarrow = meta.story({
   ),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await settled(() => expect(page.getByRole('button', { name: 'Spice' })).toBeVisible());
+    await settled(() => expect(page.getByRole('tab', { name: 'Spice' })).toBeVisible());
     await openTab(page, 'Spice');
     await settled(() => expect(page.getByLabelText('Banked spice')).toBeVisible());
     await userEvent.hover(page.getByRole('button', { name: 'Help: Faction bank' }));
@@ -1060,7 +1060,7 @@ export const PrivateDrawAndDeal = meta.story({
   }),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await userEvent.click(await page.findByRole('button', { name: /^Hand$/ }));
+    await userEvent.click(await page.findByRole('tab', { name: /^Hand$/ }));
     await expect(page.findByRole('button', { name: 'Drag Snooper from hand' })).resolves.toBeVisible();
     expect(page.getByRole('button', { name: 'Drag Feyd Rautha from hand' })).toBeVisible();
   },

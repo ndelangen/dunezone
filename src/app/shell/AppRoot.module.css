@@ -26,6 +26,35 @@
   padding: 40px 0;
 }
 
+/* Out of flow, so it takes no room in the column, and clipped away until a keyboard user reaches it. */
+.skipLink {
+  position: fixed;
+  z-index: 1000;
+  top: var(--space-sm);
+  left: var(--space-sm);
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.skipLink:focus {
+  width: auto;
+  height: auto;
+  padding: var(--space-xs) var(--space-sm);
+  overflow: visible;
+  clip-path: none;
+  color: var(--color-text);
+  font-weight: 700;
+  text-decoration: underline;
+  background: var(--color-paper);
+  border-radius: var(--mantine-radius-md);
+  box-shadow: var(--panel-shadow);
+  outline: 3px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
 .footer {
   height: auto;
   min-height: 8rem;

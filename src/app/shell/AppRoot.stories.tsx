@@ -53,6 +53,35 @@ export const DefaultMobile = meta.story({
   globals: { viewport: { value: 'appMobile' } },
 });
 
+/**
+ * The page has one banner, the page's own header, and one main; the band above is artwork and site navigation.
+ * The first Tab shows a skip link, and following it puts focus on the main, past the navigation.
+ */
+export const SkipToContent = meta.story({
+  globals: { viewport: { value: 'appDesktop' } },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const view = canvasElement.ownerDocument.defaultView;
+    await expect(canvas.getAllByRole('banner')).toHaveLength(1);
+    await expect(canvas.getAllByRole('main')).toHaveLength(1);
+    const main = canvas.getByRole('main');
+    const skip = canvas.getByRole('link', { name: 'Skip to content' });
+    await expect(skip.getBoundingClientRect().width).toBe(1);
+    canvasElement.ownerDocument.body.focus();
+    await userEvent.tab();
+    await expect(skip).toHaveFocus();
+    await expect(skip.getBoundingClientRect().width).toBeGreaterThan(1);
+    await expect(skip).toHaveAttribute('href', `#${main.id}`);
+    const hash = view?.location.hash;
+    await userEvent.keyboard('{Enter}');
+    await expect(main).toHaveFocus();
+    await expect(view?.location.hash).toBe(hash);
+    /* The main holds focus only while it has it, so a later click inside it never lands there. */
+    await userEvent.tab();
+    await expect(main).not.toHaveAttribute('tabindex');
+  },
+});
+
 export const HeaderlessPage = meta.story({
   globals: { viewport: { value: 'appDesktop' } },
   args: { children: shellPageOptionLabels[2] },
@@ -123,9 +152,10 @@ async function playHeaderResize({ canvasElement }: { canvasElement: HTMLElement 
   const canvas = within(canvasElement);
   const root = canvasElement.ownerDocument.documentElement;
   const view = canvasElement.ownerDocument.defaultView;
-  const header = canvas.getByRole('banner');
-  if (!view) {
-    throw new Error('The header resize story requires a browser window.');
+  /* The band is artwork and site navigation; the page's own header is the banner landmark. */
+  const header = canvasElement.querySelector<HTMLElement>('[data-app-band]');
+  if (!view || !header) {
+    throw new Error('The header resize story requires a browser window and a mounted band.');
   }
 
   await waitFor(() => {
@@ -150,7 +180,7 @@ async function playHeaderResize({ canvasElement }: { canvasElement: HTMLElement 
     }
     await expect(view.getComputedStyle(header).transitionDuration).toBe(motion === 'reduce' ? '0s' : '0.2s');
     await waitFor(() => {
-      expect(canvas.getByRole('banner')).toBe(header);
+      expect(canvasElement.querySelector('[data-app-band]')).toBe(header);
       if (expanded) {
         expect(header.getBoundingClientRect().height).toBeGreaterThan(51);
       } else {
@@ -227,6 +257,9 @@ async function playFullscreenHeight({ canvasElement }: { canvasElement: HTMLElem
   exit.focus();
   await userEvent.tab();
   expect(canvasElement.ownerDocument.activeElement).toBe(canvasElement.ownerDocument.body);
+  /* The skip link is the first stop, and the workspace's own control the next. */
+  await userEvent.tab();
+  expect(canvas.getByRole('link', { name: 'Skip to content' })).toHaveFocus();
   await userEvent.tab();
   expect(exit).toHaveFocus();
 

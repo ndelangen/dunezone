@@ -12,16 +12,16 @@ const whole = (name: string, suffix = '$') => new RegExp(`^${name.replace(/[.*+?
 
 /**
  * Clicks a control by name until the click takes, since the panel arrives with the table chunk and the connection, and the pane can remount under the click.
- * `took` proves the click landed: by default the control becomes the current tab.
+ * `took` proves the click landed: by default the control becomes the selected tab.
  */
 async function choose(
   page: Page,
   name: RegExp,
-  took: (button: HTMLElement) => void = (button) => expect(button).toHaveAttribute('aria-current', 'true')
+  took: (button: HTMLElement) => void = (button) => expect(button).toHaveAttribute('aria-selected', 'true')
 ) {
   await waitFor(
     async () => {
-      const button = page.getByRole('button', { name });
+      const button = page.getByRole('tab', { name });
       await userEvent.click(button);
       took(button);
       /* The pointer leaves again, so the tab's tooltip does not cover the panel the story shows. */
@@ -36,7 +36,7 @@ export async function openPanel(canvasElement: HTMLElement, tab: string, subtab?
   const page = within(canvasElement.ownerDocument.body);
   if (subtab) {
     /* A tab with its own tabs marks the inner tab as current, not itself; the inner tab showing proves the click. */
-    await choose(page, whole(tab), () => expect(page.getByRole('button', { name: whole(subtab) })).toBeVisible());
+    await choose(page, whole(tab), () => expect(page.getByRole('tab', { name: whole(subtab) })).toBeVisible());
     await choose(page, whole(subtab));
   } else {
     await choose(page, whole(tab));
@@ -56,9 +56,7 @@ export async function openPlayer(canvasElement: HTMLElement, player: string, tab
   page.getByRole('separator', { name: 'Resize controls panel' }).focus();
   await userEvent.keyboard('{End}');
   /* A player opens on one of their own tabs, so the player's tab showing proves the click. */
-  await choose(page, whole(player, '(,|$)'), () =>
-    expect(page.getByRole('button', { name: whole(tab) })).toBeVisible()
-  );
+  await choose(page, whole(player, '(,|$)'), () => expect(page.getByRole('tab', { name: whole(tab) })).toBeVisible());
   await choose(page, whole(tab));
   return page;
 }

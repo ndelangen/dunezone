@@ -1,5 +1,6 @@
+import { PAGE_CONTENT_ID } from '@ui/layout/PageLayout';
 import { useEffect } from 'react';
-import type { ReactNode } from 'react';
+import type { MouseEvent, ReactNode } from 'react';
 
 import { useMotionAllowed } from '../styles/motion';
 import { AppFooter } from './AppFooter';
@@ -16,6 +17,24 @@ function updateScrollProgress() {
   const percent = maxScroll > 0 ? 100 - (remainingScroll / maxScroll) * 100 : 100;
 
   root.style.setProperty(SCROLL_VAR, `${Math.min(100, Math.max(0, percent))}`);
+}
+
+/*
+ * Moves focus to the page's main itself rather than following the fragment, which would put `#page-content` in the address
+ * and hand the router a navigation (the rulebook editor keeps its own state in the hash).
+ * The main takes focus only for the moment it holds it, so a click inside it never lands focus there.
+ */
+function skipToContent(event: MouseEvent<HTMLAnchorElement>) {
+  const main = document.getElementById(PAGE_CONTENT_ID);
+  if (!main) {
+    return;
+  }
+  event.preventDefault();
+  if (!main.hasAttribute('tabindex')) {
+    main.setAttribute('tabindex', '-1');
+    main.addEventListener('blur', () => main.removeAttribute('tabindex'), { once: true });
+  }
+  main.focus();
 }
 
 export interface AppRootProps {
@@ -68,6 +87,10 @@ export function AppRoot({ children }: AppRootProps) {
 
   return (
     <div className={styles.container} data-app-root>
+      {/* The first stop in the Tab order, out of sight until it has focus. */}
+      <a className={styles.skipLink} href={`#${PAGE_CONTENT_ID}`} onClick={skipToContent}>
+        Skip to content
+      </a>
       <div className={styles.main}>
         <AppHeader>{children}</AppHeader>
       </div>

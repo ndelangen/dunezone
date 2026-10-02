@@ -49,7 +49,8 @@ export function AppHeader({ children }: AppHeaderProps) {
 
   return (
     <div className={styles.frame}>
-      <header className={styles.band}>
+      {/* Artwork and site navigation, not the banner: the page's own header is that landmark (see PageLayout). */}
+      <div className={styles.band} data-app-band>
         <img alt="" aria-hidden className={styles.bandPlaceholder} src={bandPlaceholder} />
         <img alt="" aria-hidden className={styles.bandPoster} src="/video/band-poster.jpg" />
         {motionOk && (
@@ -68,7 +69,7 @@ export function AppHeader({ children }: AppHeaderProps) {
           />
         )}
         <SiteNavigation />
-      </header>
+      </div>
       {children}
     </div>
   );
