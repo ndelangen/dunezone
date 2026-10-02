@@ -162,8 +162,9 @@ export class GameSubscription {
     }, delay);
   }
 
+  /* Only a failure before the table showed is kept for the retries; after one, the next attempt reads as the connection opening. */
   private retryAfterFailure(reason: string, delay = 1000) {
-    this.retryReason = reason;
+    this.retryReason = this.sawView ? null : reason;
     this.changeStatus('suspended', reason);
     this.scheduleReconnect(delay);
   }
@@ -273,6 +274,8 @@ export class GameSubscription {
         this.renewExpiredTicket();
         return;
       }
+      /* The Worker answered, so whatever happens next is not a table that could not be reached. */
+      this.retryReason = null;
       socket.send(JSON.stringify({ type: 'admit', ticket }));
       ticket = '';
       this.startKeepalive(socket, 0);
@@ -303,9 +306,9 @@ export class GameSubscription {
       if (this.sawView) {
         this.changeStatus('suspended');
         this.scheduleReconnect(delay);
-      } else {
-        this.retryAfterFailure('The table could not be reached. Reconnecting...', delay);
+        return;
       }
+      this.retryAfterFailure('The table could not be reached. Reconnecting...', delay);
     };
     socket.onerror = () => {
       if (this.isCurrentSocket(socket)) {

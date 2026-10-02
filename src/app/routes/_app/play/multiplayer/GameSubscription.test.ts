@@ -336,6 +336,8 @@ test('a socket that stops answering keepalives is dropped and reconnected, while
   expect(Socket.instances).toHaveLength(1);
   await vi.advanceTimersByTimeAsync(1000);
   expect(Socket.instances).toHaveLength(2);
+  /* The table had shown, so the reconnect reads as the connection opening. */
+  expect(listener.mock.lastCall?.[0]).toEqual({ type: 'connection', error: null });
 });
 
 test('coming back online probes the open socket and skips the wait before a reconnect (#1662)', async () => {
@@ -394,6 +396,12 @@ test('a table that never answers keeps saying so through every retry until a vie
   await vi.advanceTimersByTimeAsync(1000);
   expect(subscription.status).toBe('connecting');
   expect(listener.mock.lastCall?.[0]).toEqual(unreachable);
+  /* A Worker that answers but lets the ticket lapse was reached, so the retry after it reads as connecting. */
+  const lapsed = Socket.instances.at(-1)!;
+  lapsed.open();
+  lapsed.close(TICKET_EXPIRED_CLOSE_CODE);
+  await vi.advanceTimersByTimeAsync(1000);
+  expect(listener.mock.lastCall?.[0]).toEqual({ type: 'connection', error: null });
   const socket = Socket.instances.at(-1)!;
   socket.open();
   socket.deliver(initial());
