@@ -505,7 +505,7 @@ function validateDraftApplication(current: TableState, draft: DraftMove): DraftR
     return rejectDraft(rejectedBase, 'piece.move', 'The held object is no longer available.');
   }
   if (piece.locked) {
-    return rejectDraft(rejectedBase, 'piece.move', `${piece.label} is locked.`);
+    return rejectDraft(rejectedBase, 'piece.move', `Unlock ${piece.label} first.`);
   }
   const withdrawalConstraint = withdrawalConstraintMessage(current, draft);
   if (withdrawalConstraint) {

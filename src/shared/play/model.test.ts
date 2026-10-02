@@ -23,7 +23,7 @@ describe('table model', () => {
     if (force) {
       force.locked = true;
     }
-    expect(force ? gestureBlockReason(force) : null).toBe('Harkonnen force is locked.');
+    expect(force ? gestureBlockReason(force) : null).toBe('Unlock Harkonnen force first.');
   });
 
   test("starts pointer capture for another seat's piece", () => {

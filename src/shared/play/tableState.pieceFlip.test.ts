@@ -150,7 +150,7 @@ describe('flip permissions and draft safety', () => {
     expect(next.pieces).toBe(state.pieces);
     expect(next.selectedPieceId).toBe(state.selectedPieceId);
     expect(next.events[0]?.status).toBe('rejected');
-    expect(next.events[0]?.message).toBe('Treachery deck is locked.');
+    expect(next.events[0]?.message).toBe('Unlock Treachery deck first.');
     expect(pieceFor(next, piece.id).flipRevision).toBe(0);
   });
 

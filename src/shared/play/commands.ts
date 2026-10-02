@@ -120,7 +120,7 @@ function actionablePiece(state: TableState, action: Extract<TableAction, { piece
     throw new GameRejection('That piece is no longer available.');
   }
   if (piece.locked && action.kind !== 'lock') {
-    throw new GameRejection(`${piece.label} is locked.`);
+    throw new GameRejection(`Unlock ${piece.label} first.`);
   }
   return piece;
 }
@@ -208,7 +208,7 @@ function rotatePiece(state: TableState, piece: TablePiece, direction: -1 | 1): T
       state.pieces.filter((candidate) => candidate.id !== piece.id)
     )
   ) {
-    throw new GameRejection(`${piece.label} does not have room to rotate here.`);
+    throw new GameRejection(`There is no room to rotate ${piece.label} here.`);
   }
   return accepted(
     { ...state, pieces: state.pieces.map((candidate) => (candidate.id === piece.id ? rotated : candidate)) },

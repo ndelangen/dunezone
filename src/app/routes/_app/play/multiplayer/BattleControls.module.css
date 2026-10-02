@@ -18,7 +18,8 @@
 }
 
 .actions {
-  width: 176px;
+  /* Wide enough for "Right won" on its own half, with the button's padding. */
+  width: 188px;
   height: 38px;
   padding: 0 6px 6px;
 }

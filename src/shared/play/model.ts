@@ -203,7 +203,7 @@ export function topItemFaceUp(piece: TablePiece): boolean {
 
 export function gestureBlockReason(piece: TablePiece): string | null {
   if (piece.locked) {
-    return `${piece.label} is locked.`;
+    return `Unlock ${piece.label} first.`;
   }
   return null;
 }
