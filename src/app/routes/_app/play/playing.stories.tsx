@@ -10,7 +10,8 @@ import { createSpiceStack } from '@shared/play/spiceSupply';
 import { stackTopHeight } from '@shared/play/tableGeometry';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
-import { STORYBOOK_NOW } from '@db/storybook';
+import { storedAuthTokenKey, STORED_PLAY_TABLE_PREFIX } from '@db/playTables';
+import { convexNeverAnswers, STORYBOOK_NOW } from '@db/storybook';
 
 import {
   AUDIT_LOG,
@@ -25,6 +26,8 @@ import {
   revealedPredictionSnapshot,
   session,
 } from './game.stories.fixture';
+import { browserGameRuntime } from './multiplayer/gameRuntime';
+import { storedTableText } from './multiplayer/storedTable';
 import {
   expectHeaderPhase,
   mapViewPoint,
@@ -386,11 +389,52 @@ export const Reconnecting = meta.story({
   beforeEach: install(() => productTransport('seat-2', playingSnapshot())),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await page.findByRole('button', { name: 'Conversation' });
+    await page.findByRole('tab', { name: 'Conversation' });
     session.transport.deliver({ type: 'admission', status: 'suspended' });
     const bar = await page.findByText('Reconnecting', { exact: true });
     expect(bar.closest('[data-connection]')).toHaveAttribute('data-connection', 'suspended');
     expect(page.getByText('The table shows its last saved state. Actions are paused until it is back.')).toBeVisible();
+  },
+});
+
+/* A game this tab kept for a reload, at an address the story's directory never answers for. */
+const STORED_GAME = 'stored-game';
+
+/*
+ * A reload while neither the directory nor the table can be reached shows the table this tab kept, locked under the reconnecting bar, instead of the unreachable notice (#1746).
+ * The story stands in for the signed-in tab: an auth token naming the transport's viewer, and the table stored under it.
+ */
+export const ReloadedWhileUnreachable = meta.story({
+  args: { path: `/play/${STORED_GAME}` },
+  decorators: [convexNeverAnswers],
+  beforeEach: () => {
+    const transport = productTransport('seat-2', playingSnapshot(), { unreachable: true });
+    session.transport = transport;
+    session.runtime = transport.runtime;
+    const { viewer, snapshot } = transport.view(playingSnapshot());
+    const subject = btoa(JSON.stringify({ sub: `${viewer.userId}|story-session` }));
+    localStorage.setItem(storedAuthTokenKey(), `story.${subject}.token`);
+    const text = storedTableText(
+      STORED_GAME,
+      { viewer, snapshot, serverNow: STORYBOOK_NOW, pending: [] },
+      { userId: viewer.userId, sessionId: 'story-session' },
+      Date.now()
+    );
+    sessionStorage.setItem(`${STORED_PLAY_TABLE_PREFIX}${STORED_GAME}`, text!);
+    return () => {
+      transport.dispose();
+      localStorage.removeItem(storedAuthTokenKey());
+      sessionStorage.removeItem(`${STORED_PLAY_TABLE_PREFIX}${STORED_GAME}`);
+      session.runtime = browserGameRuntime;
+    };
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const bar = await page.findByText('Reconnecting', { exact: true }, { timeout: 30_000 });
+    expect(bar.closest('[data-connection]')).not.toHaveAttribute('data-connection', 'authorized');
+    await page.findByRole('tab', { name: 'Conversation' });
+    expect(page.queryByText("Can't reach the server. Retrying...")).toBeNull();
+    expect(session.transport.messages.filter((message) => message.type === 'command')).toEqual([]);
   },
 });
 

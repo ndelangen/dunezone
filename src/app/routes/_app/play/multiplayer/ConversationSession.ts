@@ -68,6 +68,27 @@ export class ConversationSession {
     this.flush();
   }
 
+  /**
+   * Picks up where a reloaded tab left off: the faction and peers from its stored table, offline, with the messages it had not confirmed.
+   * The first live view's `authority` keeps them when the faction is the same and sends them;
+   * the room saves each request id once.
+   */
+  resume(snapshot: GameSnapshot, viewer: Viewer, pending: Extract<Request, { type: 'conversation-send' }>[]) {
+    const factionId = currentFaction(snapshot, viewer);
+    if (!factionId) {
+      return;
+    }
+    this.context = { userId: viewer.userId, factionId, peers: otherFactions(snapshot, factionId) };
+    this.pending = pending
+      .filter((request) => request.factionId === factionId)
+      .map((request) => ({ request, delivery: { state: 'unsent' } }));
+  }
+
+  /** The messages the room has not confirmed, which a reload should keep. */
+  unconfirmed(): Extract<Request, { type: 'conversation-send' }>[] {
+    return this.pending.map((entry) => entry.request);
+  }
+
   disconnected(denied: boolean) {
     this.online = false;
     this.pages = {};

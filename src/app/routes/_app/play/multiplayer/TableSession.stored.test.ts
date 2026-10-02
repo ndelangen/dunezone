@@ -1,0 +1,163 @@
+import { initialSnapshot } from '@shared/play/commands';
+import type { GameSnapshot, Viewer } from '@shared/play/protocol';
+import { afterEach, beforeEach, expect, test, vi } from 'vitest';
+
+import { runtime, Socket } from './gameRuntime.test.fixture';
+import { sessionTableStore } from './storedTable';
+import type { TableAccount } from './storedTable';
+import { TableSession } from './TableSession';
+
+/* A reload is a new session over the same tab storage; the store writes two seconds after a change, or as the page leaves. */
+const storage = new Map<string, string>();
+const tabStorage = {
+  get length() {
+    return storage.size;
+  },
+  key: (index: number) => [...storage.keys()][index] ?? null,
+  getItem: (key: string) => storage.get(key) ?? null,
+  setItem: (key: string, value: string) => void storage.set(key, value),
+  removeItem: (key: string) => void storage.delete(key),
+  clear: () => storage.clear(),
+} satisfies Storage;
+let account: TableAccount | null;
+let leave: () => void;
+let stops: (() => void)[] = [];
+
+beforeEach(() => {
+  vi.useFakeTimers();
+  Socket.instances = [];
+  storage.clear();
+  account = { userId: 'user', sessionId: 'session-one' };
+});
+afterEach(() => {
+  for (const stop of stops) {
+    stop();
+  }
+  stops = [];
+  vi.useRealTimers();
+});
+
+const viewer: Viewer = {
+  connectionId: 'connection',
+  userId: 'user',
+  viewerSeat: 'seat-1',
+  displayName: 'One',
+  color: 'red',
+};
+const snapshot: GameSnapshot = {
+  ...initialSnapshot(),
+  stage: 'setup',
+  roster: {
+    seatCount: 2,
+    seats: [
+      { id: 'seat-1', position: 0, faction: { id: 'one', name: 'One', color: 'red' } },
+      { id: 'seat-2', position: 1, faction: { id: 'two', name: 'Two', color: 'blue' } },
+    ],
+  },
+  hand: [],
+  bank: { factionId: 'one', balance: 7 },
+};
+const socket = () => Socket.instances.at(-1)!;
+
+/* Each load of the page builds its runtime afresh, as a reload does. */
+function load() {
+  const tables = sessionTableStore({
+    storage: () => tabStorage,
+    account: () => account,
+    now: () => Date.now(),
+    onLeave: (listener) => {
+      leave = listener;
+    },
+  });
+  const client = new TableSession('game', async () => ({ ok: true, ticket: 'a'.repeat(64), expiresInMs: 30_000 }), {
+    ...runtime,
+    tables,
+  });
+  stops.push(client.connect());
+  return client;
+}
+
+async function live(frame: Partial<{ snapshot: GameSnapshot; viewer: Viewer }> = {}) {
+  await vi.advanceTimersByTimeAsync(0);
+  socket().open();
+  socket().deliver({ type: 'view', viewer, epoch: 'epoch', snapshot, carries: [], pointers: [], ...frame });
+}
+
+async function visitAndLeave() {
+  const client = load();
+  await live();
+  socket().close();
+  leave();
+  return client;
+}
+
+test('a reload shows the last table locked, with the hand, before anything connects', async () => {
+  await visitAndLeave();
+  const reloaded = load();
+
+  expect(reloaded.getSnapshot().table).toMatchObject({
+    reconnecting: true,
+    canInteract: false,
+    snapshot: { bank: { balance: 7 } },
+  });
+  await vi.advanceTimersByTimeAsync(0);
+  socket().open();
+  expect(socket().sent.filter((message) => message.type === 'command')).toEqual([]);
+});
+
+test('the first live view replaces the kept table and unlocks it', async () => {
+  await visitAndLeave();
+  const reloaded = load();
+  await live({ snapshot: { ...snapshot, bank: { factionId: 'one', balance: 9 } } });
+
+  expect(reloaded.getSnapshot().table).toMatchObject({ reconnecting: false, snapshot: { bank: { balance: 9 } } });
+});
+
+test('another account or a new sign-in on this tab never sees the kept table, and the record is dropped', async () => {
+  await visitAndLeave();
+  account = { userId: 'someone-else', sessionId: 'session-two' };
+  expect(load().getSnapshot().table).toBeNull();
+  expect(storage.size).toBe(0);
+
+  await visitAndLeave();
+  account = { userId: 'user', sessionId: 'session-two' };
+  expect(load().getSnapshot().table).toBeNull();
+
+  await visitAndLeave();
+  account = null;
+  expect(load().getSnapshot().table).toBeNull();
+});
+
+test('a refusal clears the kept table', async () => {
+  await visitAndLeave();
+  const reloaded = load();
+  await vi.advanceTimersByTimeAsync(0);
+  socket().open();
+  socket().deliver({ type: 'admission', status: 'denied' });
+
+  expect(reloaded.getSnapshot().table).toBeNull();
+  expect(storage.size).toBe(0);
+  expect(load().getSnapshot().table).toBeNull();
+});
+
+test('a chat message written offline survives the reload and is sent once the table is live', async () => {
+  const client = await visitAndLeave();
+  client.conversations.submit({ peerId: 'two', text: 'A plan' });
+  leave();
+
+  const reloaded = load();
+  expect(reloaded.getSnapshot().conversations.pending).toMatchObject([
+    { request: { text: 'A plan' }, delivery: { state: 'unsent' } },
+  ]);
+  const [original] = client.conversations.unconfirmed();
+  await live();
+  expect(socket().sent.filter((message) => message.type === 'conversation-send')).toEqual([original]);
+});
+
+test('the kept table is written soon after a change without waiting for the page to leave', async () => {
+  load();
+  await live();
+  expect(storage.size).toBe(0);
+  await vi.advanceTimersByTimeAsync(2000);
+  expect(storage.size).toBe(1);
+});
