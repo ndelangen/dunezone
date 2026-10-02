@@ -19,7 +19,7 @@ type Span = readonly [number, number];
 type Matcher = { pattern: RegExp; term: GlossaryTerm; exceptions: readonly RegExp[]; fix?: string };
 
 function escape(value: string) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s+');
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '(?=\\s)[^\\S\\n]*\\n?[^\\S\\n]*');
 }
 
 function global(exception: RegExp) {
@@ -72,19 +72,21 @@ function excusedMask(text: string, exceptions: readonly RegExp[], cache: Map<rea
   return mask;
 }
 
+/* Two capitals and no small letters: an author who wrote FORCES gets TROOPS back. */
+const SHOUTED = /^[^\p{Ll}]*\p{Lu}[^\p{Ll}]*\p{Lu}[^\p{Ll}]*$/u;
+
 /*
  * The fix follows the author's case: shouted words stay shouted, and a capital at the start of a sentence stays.
  * A fix that is a name, such as Spice Bank, keeps its own capitals.
  */
-function inCaseOf(found: string, fix: string) {
+function inCaseOf({ found, fix }: { found: string; fix: string }) {
   if (fix !== fix.toLowerCase()) {
     return fix;
   }
-  if (found.length > 1 && found === found.toUpperCase() && found !== found.toLowerCase()) {
+  if (SHOUTED.test(found)) {
     return fix.toUpperCase();
   }
-  const first = found.charAt(0);
-  return first !== first.toLowerCase() ? fix.charAt(0).toUpperCase() + fix.slice(1) : fix;
+  return /^\p{Lu}/u.test(found) ? fix.charAt(0).toUpperCase() + fix.slice(1) : fix;
 }
 
 function covers(mask: Uint8Array, [start, end]: Span, every: boolean) {
@@ -115,7 +117,7 @@ export function findTermHints(text: string, glossary?: readonly GlossaryTerm[]):
         index: match.index,
         length: match[0].length,
         term,
-        ...(fix ? { fix: inCaseOf(found, fix) } : {}),
+        ...(fix ? { fix: inCaseOf({ found, fix }) } : {}),
       });
     }
   }

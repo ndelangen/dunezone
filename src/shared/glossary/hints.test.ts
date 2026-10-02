@@ -118,6 +118,26 @@ describe('fixTermWording', () => {
     expect(fixTermWording('then ship\nand move')).toBe('then Shipment and Movement');
   });
 
+  test('never joins paragraphs while fixing a phrase', () => {
+    const text = 'then ship\n\nand move';
+    expect(fixTermWording(text)).toBe(text);
+  });
+
+  test('leaves ordinary uses of round, credit and power alone', () => {
+    const text = 'Spice rounds down. Three rounds of bidding. Take credit for the power play.';
+    expect(fixTermWording(text)).toBe(text);
+  });
+
+  test('capitalises a fix at the start of a sentence and keeps lower case elsewhere', () => {
+    expect(fixTermWording('Combat, then combat.')).toBe('Battle, then battle.');
+  });
+
+  test('leaves no avoided word behind once it has fixed every hint it can', () => {
+    const draft = 'Forces fight in combat, then the KH ships elite forces from the graveyard.';
+    const fixed = fixTermWording(draft);
+    expect(findTermHints(fixed).filter((hint) => hint.fix)).toEqual([]);
+  });
+
   test('offers a fix on the hint only where it has one', () => {
     expect(findTermHints('forces fight').map((hint) => hint.fix)).toEqual(['troops', undefined]);
   });

@@ -145,10 +145,7 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
     explanation: 'One full pass through all nine phases. A game lasts a set number of turns.',
     reason: 'The rulebook only ever says turn. Round means the same thing, so it is not used.',
     source: 'rulebook',
-    avoid: [
-      { word: 'rounds', fixes: { rounds: 'turns' } },
-      { word: 'round', hint: false },
-    ],
+    avoid: [{ word: 'rounds' }, { word: 'round', hint: false }],
   },
   {
     id: 'phase',
@@ -340,7 +337,7 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
     source: 'rulebook',
     avoid: [
       { word: 'melange', hint: false },
-      { word: 'credit', forms: ['credits'], fixes: { credit: 'spice', credits: 'spice' } },
+      { word: 'credit', forms: ['credits'], fixes: { credits: 'spice' } },
       { word: 'solari', forms: ['solaris'], fixes: { solari: 'spice', solaris: 'spice' } },
       { word: 'money', fixes: { money: 'spice' } },
     ],
@@ -449,7 +446,6 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
         word: 'power',
         forms: ['powers'],
         exceptions: [/desert\s+power/i],
-        fixes: { power: 'advantage', powers: 'advantages' },
       },
       { word: 'perk', forms: ['perks'], fixes: { perk: 'advantage', perks: 'advantages' } },
     ],

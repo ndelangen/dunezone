@@ -1,5 +1,4 @@
 .stage {
-  container-type: inline-size;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -16,11 +15,11 @@
   gap: var(--space-md);
 }
 
-.fan .piece:nth-child(1) {
+.fan .piece:nth-child(1) .art {
   transform: rotate(-6deg) translateY(var(--space-xs));
 }
 
-.fan .piece:nth-child(3) {
+.fan .piece:nth-child(3) .art {
   transform: rotate(6deg) translateY(var(--space-xs));
 }
 
@@ -99,6 +98,8 @@
 
 .phase a {
   color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
 }
 
 .phaseNumber {

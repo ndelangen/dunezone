@@ -44,7 +44,9 @@ function matches(term: GlossaryTerm, needle: string) {
   return (
     !needle ||
     term.term.toLowerCase().includes(needle) ||
-    term.avoid.some((avoided) => avoided.word.toLowerCase().includes(needle))
+    term.avoid.some((avoided) =>
+      [avoided.word, ...(avoided.forms ?? [])].some((word) => word.toLowerCase().includes(needle))
+    )
   );
 }
 
@@ -133,8 +135,8 @@ function CardsTopic({ topic, terms, index }: TopicProps) {
         <TopicVisual topic={topic.id} />
       </Surface>
       {terms.map((term) => (
-        <Card key={term.id} title={term.term} action={<SourceBadge term={term} />} className={styles.term}>
-          <div id={term.id}>
+        <Card key={term.id} title={term.term} action={<SourceBadge term={term} />}>
+          <div id={term.id} className={styles.term}>
             <TermBody term={term} />
           </div>
         </Card>

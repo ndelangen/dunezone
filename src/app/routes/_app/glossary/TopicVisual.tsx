@@ -23,7 +23,9 @@ const atreides = factionTokenFixtures.atreides;
 function Piece({ caption, anchor, children }: { caption: string; anchor: string; children: ReactNode }) {
   return (
     <a className={styles.piece} href={`#${anchor}`}>
-      <span className={styles.art}>{children}</span>
+      <span className={styles.art} aria-hidden="true">
+        {children}
+      </span>
       <span className={styles.caption}>{caption}</span>
     </a>
   );
