@@ -226,7 +226,8 @@ export const DetailWithPlanets = meta.story({
     await userEvent.tab({ shift: true });
     await userEvent.tab();
     expect(planet).toHaveFocus();
-    await expect(page.findByRole('tooltip')).resolves.toHaveTextContent(spaceOrks.planet[0].description);
+    // The troop hint behind Shift+Tab can still be fading out, so wait for the planet's own tooltip.
+    await page.findByRole('tooltip', { name: spaceOrks.planet[0].description });
     await userEvent.keyboard('{Escape}');
     await waitFor(() => expect(page.queryByRole('tooltip')).not.toBeInTheDocument());
   },
