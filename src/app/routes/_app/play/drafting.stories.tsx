@@ -276,6 +276,30 @@ export const PlayerLeavesTheGame = meta.story({
   },
 });
 
+/** A player who left and was seated again holds the new seat without being asked to give it up. */
+export const PlayerRejoinsAfterLeaving = meta.story({
+  beforeEach: install(() => productTransport('seat-2', draftingSnapshot(SIX.slice(0, 2), 6))),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const deliver = (viewerSeat: 'seat-2' | 'neutral') => {
+      const view = session.transport.view(draftingSnapshot(SIX.slice(0, viewerSeat === 'neutral' ? 1 : 2), 6));
+      session.transport.deliver({ ...view, viewer: { ...view.viewer, viewerSeat } });
+    };
+    await press(() => page.getByRole('button', { name: 'Game menu' }));
+    await waitForFrame(() => userEvent.click(page.getByRole('menuitem', { name: 'Give up your seat' })), {
+      timeout: 30_000,
+    });
+    const leaving = await decisionBar(canvasElement, 'Leaving');
+    await press(() => leaving().getByRole('button', { name: 'Leave' }));
+    await waitFor(() => expect(lastCommand()).toMatchObject({ type: 'command', action: { kind: 'seat-depart' } }));
+    deliver('neutral');
+    await seatPopover(canvasElement, 'You are watching');
+    deliver('seat-2');
+    await waitFor(() => expect(page.getByRole('region', { name: 'Your seat' })).toBeVisible(), { timeout: 30_000 });
+    expect(page.queryByRole('region', { name: 'Leaving' })).toBeNull();
+  },
+});
+
 /** A spectator's game menu has nothing to give up. */
 export const SpectatorGameMenu = meta.story({
   beforeEach: install(() => productTransport('neutral', drafting())),

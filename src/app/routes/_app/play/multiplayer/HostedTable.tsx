@@ -622,6 +622,12 @@ function ConnectedTable({
   const celebration = useResultCelebration(table);
   /* Giving up a seat starts in the game menu and is confirmed in the decision bar, so the two share one flag. */
   const [leaving, setLeaving] = useState(false);
+  /* The confirmation is about the seat held when it opened: leaving, a removal vote or a new seat closes it, so a player seated again is not asked to give up the new seat. */
+  const [leavingFrom, setLeavingFrom] = useState(table.viewer.viewerSeat);
+  if (leavingFrom !== table.viewer.viewerSeat) {
+    setLeavingFrom(table.viewer.viewerSeat);
+    setLeaving(false);
+  }
   const [playerSelection, selectPlayer] = useReducer(
     (
       _: { seat: string | null; vote: string | null; tab: 'public' | 'conversation' },
