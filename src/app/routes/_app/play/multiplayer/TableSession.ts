@@ -70,6 +70,8 @@ type LocalCarry = {
   draft: DraftMove;
   granted: boolean;
   pendingDrop?: string;
+  /* The drop was released while the table could not send it, such as during a resync; it goes out once the table can act again. */
+  dropUnsent?: true;
   /* A resync completed the drop before the tab holds its snapshot, so the draft keeps the piece where it landed until the fresh view. */
   landed?: true;
 };
@@ -611,6 +613,7 @@ export class TableSession {
     if (!this.saved) {
       return;
     }
+    this.flushDrop();
     this.flushCatalogue();
     this.flushBattlePlan();
     this.flushBattleReady();
@@ -697,10 +700,10 @@ export class TableSession {
     }
     this.reconcileCarry();
   }
-  /* A drop already sent may or may not have landed, so it asks the player to look rather than to pick the piece up again; a drop the server confirmed needs no notice. */
+  /* A drop already sent may or may not have landed, so it asks the player to look; a drop still waiting to go out never left the hand, and one the server confirmed needs no notice. */
   private noteEndedCarry(notice: { held: string; placing: string }) {
     if (this.carry && !this.carry.landed) {
-      this.droppedCarryNotice = this.carry.pendingDrop ? notice.placing : notice.held;
+      this.droppedCarryNotice = this.carry.pendingDrop && !this.carry.dropUnsent ? notice.placing : notice.held;
     }
   }
   private replaceActivity(message: Extract<GameSubscriptionEvent, { type: 'view' }>) {
@@ -960,17 +963,27 @@ export class TableSession {
     }
     this.updateGesture(position);
     this.flushPose();
-    const commandId = crypto.randomUUID();
-    this.carry = { ...this.carry, pendingDrop: commandId };
-    this.send({
-      type: 'drop',
-      carryId: this.carry.id,
-      commandId,
-      position: this.carry.draft.position,
-      orientation: this.carry.draft.orientation,
-    });
+    this.carry = { ...this.carry, pendingDrop: crypto.randomUUID(), dropUnsent: true };
+    this.flushDrop();
     this.emit();
   };
+  private flushDrop() {
+    const carry = this.carry;
+    if (!carry?.pendingDrop || !carry.dropUnsent) {
+      return;
+    }
+    const sent = this.send({
+      type: 'drop',
+      carryId: carry.id,
+      commandId: carry.pendingDrop,
+      position: carry.draft.position,
+      orientation: carry.draft.orientation,
+    });
+    if (sent) {
+      const { dropUnsent: _unsent, ...rest } = carry;
+      this.carry = rest;
+    }
+  }
   cancelDraft = () => {
     if (!this.carry || this.carry.pendingDrop) {
       return;

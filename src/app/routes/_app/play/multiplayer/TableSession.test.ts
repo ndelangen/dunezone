@@ -882,6 +882,31 @@ describe('hosted table interaction', () => {
     });
   });
 
+  test('a drop released while the table resynchronizes goes out once the fresh view arrives', async () => {
+    const { client, carried } = await grantedWholeCarry();
+    socket().deliver(carried);
+    deliverGap();
+    client.finishGesture(dropPosition);
+    expect(socket().sent.some((message) => message.type === 'drop')).toBe(false);
+    socket().deliver({ ...carried, sequence: 9 });
+    const drop = socket().sent.find((message) => message.type === 'drop');
+    expect(drop).toMatchObject({ position: dropPosition });
+    expect(table(client).gestureActivePieceId).toBeNull();
+  });
+
+  test('a drop still waiting on a resync when the connection drops asks the player to pick the piece up again', async () => {
+    const { client, carried } = await grantedWholeCarry();
+    socket().deliver(carried);
+    deliverGap();
+    client.finishGesture(dropPosition);
+    socket().close(1006);
+    await vi.advanceTimersByTimeAsync(1000);
+    socket().open();
+    authorize();
+    expect(socket().sent.some((message) => message.type === 'drop')).toBe(false);
+    expect(client.getSnapshot().error).toBe('The table paused while you held a piece. Pick it up again to continue.');
+  });
+
   test('ignores an older snapshot without reverting the saved revision or flip presentation', async () => {
     const client = await connected();
     const original = initialSnapshot();
