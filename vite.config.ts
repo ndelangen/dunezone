@@ -10,6 +10,7 @@ import { configDefaults, defineConfig } from 'vitest/config';
 import { browserLaunchTests } from './browser-launch-tests.ts';
 import { coverageExclude, coverageInclude } from './coverage-denominator.ts';
 import { reactCompiler } from './scripts/lib/reactCompiler.ts';
+import { threeRendererStackAliases } from './scripts/lib/threeRendererStack.ts';
 
 /**
  * Codecov's bundle-report normalizer wildcards from the first `-` to the next `.`, so a dash or dot inside a base name either collapses distinct files into one normalized name (lato-latin-300-normal -> lato-*) or leaves the hash un-wildcarded (floating-ui.react-dom-<hash>).
@@ -44,27 +45,6 @@ function withoutRouteSplittingInVitest(plugins: PluginOption[]): PluginOption[] 
     throw new Error('No tanstack-router:code-splitter:compile-reference-file plugin to remove under Vitest.');
   }
   return kept;
-}
-
-/**
- * drei's WebGPU entry imports the plain `@react-three/fiber` entry and one class from three's source tree, which three marks as having side effects.
- * Both kept a second copy of fiber, and of three's math and node classes, in the Play table chunk next to the `@react-three/fiber/webgpu` and `three/webgpu` builds the table runs on.
- */
-function oneThreeRendererStack(): PluginOption {
-  const physicalLightingModel = fileURLToPath(new URL('./src/app/three/physicalLightingModel.ts', import.meta.url));
-  return {
-    name: 'one-three-renderer-stack',
-    enforce: 'pre',
-    resolveId(source, importer, options) {
-      if (source === '@react-three/fiber') {
-        return this.resolve('@react-three/fiber/webgpu', importer, { ...options, skipSelf: true });
-      }
-      if (source === 'three/src/nodes/functions/PhysicalLightingModel.js') {
-        return physicalLightingModel;
-      }
-      return null;
-    },
-  };
 }
 
 const config = defineConfig({
@@ -110,11 +90,13 @@ const config = defineConfig({
   // Typings in the current Vite package lag behind docs/runtime support.
   resolve: {
     ...({ tsconfigPaths: true } as Record<string, unknown>),
-    alias: {
-      'rulebook-html-renderer-runtime': fileURLToPath(
-        new URL('./src/app/print/rulebookHtmlRuntime.ts', import.meta.url)
-      ),
-    },
+    alias: [
+      {
+        find: 'rulebook-html-renderer-runtime',
+        replacement: fileURLToPath(new URL('./src/app/print/rulebookHtmlRuntime.ts', import.meta.url)),
+      },
+      ...threeRendererStackAliases,
+    ],
   },
   plugins: withoutRouteSplittingInVitest([
     // devtools(),
@@ -147,7 +129,6 @@ const config = defineConfig({
     }),
     viteReact(),
     reactCompiler(),
-    oneThreeRendererStack(),
   ]),
 });
 
