@@ -56,8 +56,10 @@ describe('findTermHints', () => {
     expect(findTermHints('Deploy with your forces').map((hint) => hint.index)).toEqual([0, 17]);
   });
 
-  test('leaves hero alone, since it names the leader on the faction shield', () => {
-    expect(findTermHints('Our hero leads two supporting leaders.')).toEqual([]);
+  test('points hero to the faction leader on the shield', () => {
+    expect(fixTermWording('Our hero leads two supporting leaders.')).toBe(
+      'Our faction leader leads two supporting leaders.'
+    );
   });
 
   test('leaves fight alone, since it is plain English', () => {

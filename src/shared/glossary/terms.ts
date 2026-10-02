@@ -485,7 +485,7 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
     term: 'Leader',
     topic: 'factions',
     explanation:
-      'A named character disc a faction can send into battle to add strength. On Dune Zone, every faction has one hero, shown on its shield, and a roster of supporting leaders.',
+      'A named character disc a faction can send into battle to add strength. On Dune Zone, every faction has one faction leader, shown on its shield, and a roster of supporting leaders.',
     reason: 'The rulebook word.',
     source: 'rulebook',
     avoid: [
@@ -494,15 +494,22 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
     ],
   },
   {
-    id: 'hero',
-    term: 'Hero',
+    id: 'faction-leader',
+    term: 'Faction leader',
     topic: 'factions',
     explanation:
       'The one leader that represents a faction, shown on its faction shield. Its other leaders are supporting leaders.',
     reason:
-      'A Dune Zone name that keeps the shield leader apart from the supporting leaders. It is not the treachery card Cheap Hero.',
+      'Keeps the shield leader apart from the supporting leaders. Hero is kept only for the treachery card Cheap Hero, which stands in for a leader.',
     source: 'house',
-    avoid: [],
+    avoid: [
+      {
+        word: 'hero',
+        forms: ['heroes'],
+        exceptions: [/cheap\s+hero(?:es)?/i],
+        fixes: { hero: 'faction leader', heroes: 'faction leaders' },
+      },
+    ],
   },
   {
     id: 'kwisatz-haderach',
