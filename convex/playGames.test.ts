@@ -212,6 +212,25 @@ describe('real games are created and entered by any signed-in player, Administra
     expect(await admin.mutation(api.playGames.createGame, request)).toMatchObject({ ok: true });
   });
 
+  test('creation across all accounts stops at the site-wide budget', async () => {
+    const { t, rulesets } = await world();
+    const request = { rulesetId: rulesets.ready, minimumPlayers: 4 as const };
+    const subjects = await t.run(
+      async (ctx) =>
+        await Promise.all(
+          Array.from({ length: 8 }, async (_, index) => (await person(ctx, `Player ${index}`, false)).subject)
+        )
+    );
+    const results = [];
+    for (const subject of subjects) {
+      for (let index = 0; index < 3; index++) {
+        results.push(await t.withIdentity({ subject }).mutation(api.playGames.createGame, request));
+      }
+    }
+    expect(results.filter((result) => result.ok)).toHaveLength(20);
+    expect(results.slice(20)).toEqual(Array.from({ length: 4 }, () => ({ ok: false, reason: 'rate_limited' })));
+  });
+
   test('admission to a real game ignores the Administrator flag at every step', async () => {
     const { t, admin, member, adminId, rulesets } = await world();
     const created = await admin.mutation(api.playGames.createGame, { rulesetId: rulesets.ready, minimumPlayers: 6 });

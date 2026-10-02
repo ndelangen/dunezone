@@ -12,7 +12,7 @@ import type { QueryCtx } from './_generated/server';
 import { mutation } from './functions';
 import { admitsPlayers, currentPlaySession, isRealGame } from './lib/playAuthorization';
 import { createPendingGame } from './lib/playProvisioningSchedule';
-import { playRateLimiter } from './lib/playRateLimits';
+import { playCreateQuota } from './lib/playRateLimits';
 
 /*
  * Real games: any active signed-in player may create and enter one. The lobby is unlisted rather
@@ -116,8 +116,9 @@ export const createGame = mutation({
     if (!ruleset || ruleset.is_deleted || (await rulesetObjection(ctx, ruleset._id)) !== null) {
       return { ok: false as const, reason: 'unavailable' as const };
     }
-    if (!(await playRateLimiter.limit(ctx, 'playCreatePerAccount', { key: session.userId })).ok) {
-      return { ok: false as const, reason: 'rate_limited' as const };
+    const limited = await playCreateQuota(ctx, session.userId);
+    if (limited) {
+      return limited;
     }
     const gameId = await createPendingGame(ctx, {
       ruleset_id: ruleset._id,
