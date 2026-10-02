@@ -76,7 +76,7 @@ export const ChoosingFactions = meta.story({
     await waitFor(
       () => {
         const header = canvasElement.ownerDocument.querySelector('.seated-header');
-        expect(within(header as HTMLElement).getByText('Waiting for 5 to ready')).toBeVisible();
+        expect(within(header as HTMLElement).getByText('Waiting for 5 to be ready')).toBeVisible();
         expect(
           within(page.getByRole('region', { name: 'Banned factions' })).getByRole('img', {
             name: /Ixians, banned by Twaffle/,
