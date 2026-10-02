@@ -86,13 +86,8 @@ export function storyTransport(
     }
 
     send(data: string) {
-      /* Answered as the Worker's auto-response does, so an idle story keeps its socket. */
       if (data === KEEPALIVE_PING) {
-        queueMicrotask(() => {
-          if (this.readyState === StorySocket.OPEN) {
-            this.onmessage?.({ data: KEEPALIVE_PONG });
-          }
-        });
+        queueMicrotask(() => this.answerKeepalive());
         return;
       }
       const message = clientMessageSchema.parse(JSON.parse(data));
@@ -130,6 +125,13 @@ export function storyTransport(
       /* A seat command is answered as the table answers it, with the same view marked complete, so the panel does not wait forever. */
       if (message.type === 'command' && (isSeatAction(message.action) || isSwapAction(message.action))) {
         queueMicrotask(() => this.deliver(view(snapshot, message.commandId)));
+      }
+    }
+
+    /* Answered as the Worker's auto-response does, so an idle story keeps its socket. */
+    answerKeepalive() {
+      if (this.readyState === StorySocket.OPEN) {
+        this.onmessage?.({ data: KEEPALIVE_PONG });
       }
     }
 
