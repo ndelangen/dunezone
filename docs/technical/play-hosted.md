@@ -344,10 +344,21 @@ so every check signs in and none signs up. Retained logs contain check results a
 counters, not credentials.
 
 The launcher's backend lets a query or mutation run for 2 s, where Convex's default, which hosted
-deployments keep, is 1 s. Convex Auth checks a password with Scrypt inside a mutation at every
-sign-in, and on a loaded machine that check alone passed 1 s
+deployments keep, is 1 s. By default Convex Auth checks a password with Scrypt inside a mutation at
+every sign-in, and on a loaded machine that check alone passed 1 s
 ([#1493](https://github.com/ndelangen/dunezone/issues/1493)). A function that takes between 1 and
 2 s therefore passes on this stack and fails on a hosted deployment.
+
+The launcher also sets the test-only `PLAY_TEST_PASSWORD_DIGEST=sha256` on its backend, and there
+Password stores and checks a salted SHA-256 instead of Scrypt (`convex/lib/syntheticPasswords.ts`).
+Scrypt was most of each sign-in's `auth:store` time on the macOS runner, and a stall of that runner
+during it ended a sign-in at the 2 s limit (#1493). The synthetic accounts' passwords are 48 random
+hex digits, which no hash makes guessable, so the slow hash protected nothing here. Only an isolated
+loopback backend honours the variable, and only the launcher sets it, so every other backend keeps
+Scrypt. Production keeps `E2E_LOCAL_AUTH` off and so registers no Password provider at all, and the
+`--load-hosted-backend` copy keeps Scrypt because its own URL is the hosted one. The runners send
+each password to `playTesting:provisionAccounts` both ways, and the control keeps the one the
+backend checks.
 
 The browser flows play real games. The stack seeds a synthetic ruleset
 (`playTesting:seedRealGameCatalogue`) with both required decks, a treachery deck of treachery cards

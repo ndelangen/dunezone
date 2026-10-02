@@ -91,7 +91,9 @@ test('a provisioned account keeps the runner’s digest, signs in with its passw
   const t = backend();
   const player = account('player-a');
   await t.mutation(internal.playTesting.provisionAccounts, {
-    accounts: [{ email: player.email, scrypt: await passwordSecret(player.password), sha256: passwordDigest(player.password) }],
+    accounts: [
+      { email: player.email, scrypt: await passwordSecret(player.password), sha256: passwordDigest(player.password) },
+    ],
   });
 
   expect(await storedSecret(t, player.email)).toMatch(/^sha256:[a-f0-9]{32}:[a-f0-9]{64}$/);

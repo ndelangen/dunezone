@@ -1,10 +1,12 @@
 /*
  * Password secrets for the hosted-play launcher's synthetic accounts (#1493).
- * Convex Auth's Password provider checks a password with Lucia's Scrypt inside the `auth:store` mutation, so each sign-in spends
- * 130 to 200 ms of the backend's function limit on it, and a stall on a loaded CI runner during that window can pass the limit.
- * The launcher's accounts have random 48-hex-digit passwords. A slow hash only slows guessing a password a person chose;
- * guessing a random 192-bit one is out of reach with any hash, so one salted SHA-256 keeps them as safe and costs almost nothing.
- * Production registers no Password provider, and every other backend keeps Convex Auth's default Scrypt.
+ * By default Convex Auth's Password checks a password with Lucia's Scrypt inside the `auth:store` mutation.
+ * On CI's macOS runner that took a median 0.2 s of the backend's function limit at every sign-in,
+ * and a stall of the runner during it ended one sign-in at the limit.
+ * The launcher's accounts have random 48-hex-digit passwords. A slow hash only slows the guessing of a password a person chose,
+ * and no hash makes a random 192-bit password guessable, so one salted SHA-256 serves as well here and takes a few milliseconds.
+ * Production keeps E2E_LOCAL_AUTH off (docs/deployment.md), so it registers no Password provider at all.
+ * A hosted deployment's own URL is never on a loopback host either, so none checks a digest whatever its settings, and every backend but the launcher's keeps Scrypt.
  */
 import { isIsolatedLoopbackBackend } from './isolatedBackend';
 

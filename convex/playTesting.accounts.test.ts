@@ -136,7 +136,9 @@ test(
     ).rejects.toThrow('Scrypt secret');
     await expect(
       t.mutation(internal.playTesting.provisionAccounts, {
-        accounts: [{ email: account('plain').email, scrypt: await passwordSecret(player.password), sha256: player.password }],
+        accounts: [
+          { email: account('plain').email, scrypt: await passwordSecret(player.password), sha256: player.password },
+        ],
       })
     ).rejects.toThrow('SHA-256 digest');
   },
