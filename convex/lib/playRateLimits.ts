@@ -16,8 +16,8 @@ export const playRateLimiter = new RateLimiter(components.rateLimiter, {
 
 /**
  * Refuses a game creation once the account or the whole site has used its creation budget.
- * Both buckets are checked before either is spent, so a site-wide refusal costs the player none of their own budget
- * and an account past its own budget cannot drain the site's.
+ * Both buckets are checked before either is spent, so a site-wide refusal costs the player none of their own budget.
+ * An account past its own budget cannot drain the site's either.
  */
 export async function playCreateQuota(ctx: MutationCtx, userId: string) {
   const refused = { ok: false as const, reason: 'rate_limited' as const };
