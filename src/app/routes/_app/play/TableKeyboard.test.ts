@@ -95,9 +95,10 @@ describe('focus elsewhere on the page', () => {
   test.each([
     ['a link', '<a href="#profile">Profile</a>'],
     ['something inside a link', '<a href="#profile"><span data-target tabindex="-1">Profile</span></a>'],
-    ['an open menu', '<div role="menu" tabindex="-1"><button data-target role="menuitem">Draw a card</button></div>'],
-    ['an open menu itself', '<div role="menu" tabindex="-1"></div>'],
-    ['a menu item inside an open menu', '<div role="menu"><div data-target role="presentation"></div></div>'],
+    [
+      'a menu item button',
+      '<div role="menu" tabindex="-1"><button data-target role="menuitem">Draw a card</button></div>',
+    ],
   ])('%s keeps the table keys', (_name, html) => {
     const { controls } = table();
     const target = focusable(html);
@@ -117,6 +118,7 @@ describe('focus elsewhere on the page', () => {
   test.each([
     ['a plain element out of the tab order', '<div tabindex="-1"></div>'],
     ['a focusable region', '<div role="region" tabindex="0" aria-label="Conversation history"></div>'],
+    ['an open piece menu', '<div role="menu" tabindex="-1"></div>'],
   ])('%s leaves the table keys working', (_name, html) => {
     const { controls } = table();
     const target = focusable(html);
