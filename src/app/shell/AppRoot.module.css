@@ -45,7 +45,8 @@
   padding: var(--space-xs) var(--space-sm);
   overflow: visible;
   clip-path: none;
-  color: var(--color-text);
+  /* Ink, not text: the paper behind it keeps its light value in the dark scheme, and so must the words on it. */
+  color: var(--color-ink);
   font-weight: 700;
   text-decoration: underline;
   background: var(--color-paper);

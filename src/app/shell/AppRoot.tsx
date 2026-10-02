@@ -25,11 +25,11 @@ function updateScrollProgress() {
  * The main takes focus only for the moment it holds it, so a click inside it never lands focus there.
  */
 function skipToContent(event: MouseEvent<HTMLAnchorElement>) {
+  event.preventDefault();
   const main = document.getElementById(PAGE_CONTENT_ID);
   if (!main) {
     return;
   }
-  event.preventDefault();
   if (!main.hasAttribute('tabindex')) {
     main.setAttribute('tabindex', '-1');
     main.addEventListener('blur', () => main.removeAttribute('tabindex'), { once: true });

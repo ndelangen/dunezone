@@ -17,6 +17,7 @@ import type {
   Context,
   Dispatch,
   ElementType,
+  FocusEvent,
   KeyboardEvent,
   PropsWithChildren,
   ReactElement,
@@ -456,7 +457,7 @@ function Item<Root extends ElementType>({
   const { activePath, isScrolling, tabs } = useNestedTabsContext('Item');
   const pathState = itemPathState(path, activePath);
   /* A tab stays selected while it leads to what the panel shows, so a first-level tab is selected above its own tabs.
-     The tab stop is the level's selected tab, so Tab enters a level once and the arrow keys move within it. */
+     A level has one tab stop, so Tab enters a level once and the arrow keys move within it. */
   const semantics = tabs
     ? {
         role: 'tab',
@@ -520,6 +521,14 @@ function descendantItems(children: ReactNode): DeclaredItem[] {
     }
   });
   return items;
+}
+
+function isDisabledItem(item: DeclaredItem) {
+  const { disabled, 'aria-disabled': ariaDisabled } = item as DeclaredItem & {
+    disabled?: unknown;
+    'aria-disabled'?: unknown;
+  };
+  return Boolean(disabled) || ariaDisabled === true || ariaDisabled === 'true';
 }
 
 function descendantItemPaths(children: ReactNode): NestedTabsPath[] {
@@ -645,8 +654,27 @@ function NestedTabsLevelView({
   children,
 }: NestedTabsLevelProps & { activePath: NestedTabsPath; levelIndex: number; tabs: NestedTabsTabsWiring | null }) {
   const { entries, tools } = splitLevelChildren(children);
-  const paths = tabs ? descendantItemPaths(entries) : [];
-  const tabStopPath = paths.find((path) => itemPathState(path, activePath) !== 'inactive') ?? paths[0] ?? null;
+  const items = tabs ? descendantItems(entries) : [];
+  /* The tab the keyboard last reached in this list; the tab stop follows it while focus stays inside. */
+  const [focusedPath, setFocusedPath] = useState<NestedTabsPath | null>(null);
+  const enabled = items.filter((item) => !isDisabledItem(item)).map((item) => item.path);
+  const tabStopPath =
+    (focusedPath && enabled.find((path) => pathsEqual(path, focusedPath))) ??
+    items.map((item) => item.path).find((path) => itemPathState(path, activePath) !== 'inactive') ??
+    enabled[0] ??
+    null;
+  const trackFocus = (event: FocusEvent<HTMLElement>) => {
+    const path = tabs && items.find((item) => nestedTabId(tabs.idBase, item.path) === event.target.id)?.path;
+    if (path) {
+      setFocusedPath(path);
+    }
+  };
+  /* Leaving the list hands the tab stop back to the selected tab, so Tab enters the list there next time. */
+  const releaseFocus = (event: FocusEvent<HTMLElement>) => {
+    if (!(event.relatedTarget instanceof Node && event.currentTarget.contains(event.relatedTarget))) {
+      setFocusedPath(null);
+    }
+  };
   const [isScrolling, setIsScrolling] = useState(false);
   const scrollingTimer = useRef(0);
 
@@ -683,6 +711,8 @@ function NestedTabsLevelView({
             data-scrolling={isScrolling || undefined}
             onScroll={handleScroll}
             onKeyDown={moveTabFocus}
+            onFocus={trackFocus}
+            onBlur={releaseFocus}
           >
             {entries}
           </ul>
@@ -747,7 +777,7 @@ function splitRootChildren(children: ReactNode) {
  * Callers own the path and the navigation;
  * this owns the glass, the contour that joins the active item to what it opens, and the semantics the items carry, which follow from what the items are.
  * When every item is a button, each one switches the panel in place, so each level is a vertical tablist named by its label and the panel is their tabpanel, named by the deepest selected tab.
- * Selection follows the path, and only a level's selected tab sits in the Tab order.
+ * Selection follows the path, and each level has one tab stop: the tab focus last reached inside the level, or its selected tab once focus has left.
  * Up, Down, Home and End move focus between a level's tabs, and Enter or Space opens the focused one: activation is manual, since opening a tab mounts its content.
  * When any item is a link, the items navigate, so each level stays a named `nav` and its current item carries `aria-current`.
  * With two levels the first connects to the second and the second to the panel;

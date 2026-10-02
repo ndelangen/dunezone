@@ -225,15 +225,18 @@ describe('NestedTabs', () => {
 function TabsFixture({
   activePath,
   onSelect = () => {},
+  disabled = [],
 }: {
   activePath: readonly string[];
   onSelect?: (path: readonly string[]) => void;
+  disabled?: readonly string[];
 }) {
   const tab = (path: readonly string[], label: string) => (
     <NestedTabs.Item
       key={path.join('/')}
       as="button"
       type="button"
+      disabled={disabled.includes(label)}
       path={path}
       label={label}
       icon={<span>{label.slice(0, 1)}</span>}
@@ -327,6 +330,24 @@ describe('NestedTabs with button items', () => {
   it('falls back to the first tab as the stop while a level has no selected tab', async () => {
     await act(async () => root?.render(<TabsFixture activePath={['elsewhere']} />));
     expect(['Hand', 'Log', 'Spice'].map((label) => tab(label).tabIndex)).toEqual([0, -1, -1]);
+  });
+
+  it('skips a disabled tab when it falls back', async () => {
+    await act(async () => root?.render(<TabsFixture activePath={['elsewhere']} disabled={['Hand']} />));
+    expect(['Hand', 'Log', 'Spice'].map((label) => tab(label).tabIndex)).toEqual([-1, 0, -1]);
+  });
+
+  it('moves the tab stop with focus, so Home then Tab leaves the rail', () => {
+    act(() => tab('Log').focus());
+    press('Home');
+    expect(document.activeElement).toBe(tab('Hand'));
+    /* The focused tab is now the list's one stop, so the next Tab goes past the list rather than back to Log. */
+    expect(['Hand', 'Log', 'Spice'].map((label) => tab(label).tabIndex)).toEqual([0, -1, -1]);
+    const next = container?.querySelector('[role="tablist"][aria-label="Log"] [tabindex="0"]');
+    act(() => (next as HTMLElement).focus());
+    expect(document.activeElement).toBe(tab('Game'));
+    /* Focus has left the Controls list, so its stop is the selected tab again. */
+    expect(['Hand', 'Log', 'Spice'].map((label) => tab(label).tabIndex)).toEqual([-1, 0, -1]);
   });
 
   it('moves focus with Up, Down, Home and End, wrapping, without opening a tab', () => {

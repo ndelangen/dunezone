@@ -43,6 +43,11 @@
   gap: var(--space-md);
 }
 
+/* The skip link focuses the main for a moment (tabindex -1 only while it holds focus); a ring round the whole page would be the only trace. */
+.content[tabindex="-1"]:focus {
+  outline: none;
+}
+
 .toolbar,
 .pageContent {
   width: 100%;

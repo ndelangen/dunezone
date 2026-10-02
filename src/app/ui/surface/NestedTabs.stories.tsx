@@ -487,6 +487,14 @@ export const Tabs = meta.story({
     await userEvent.tab({ shift: true });
     await expect(rootTabB).toHaveFocus();
 
+    /* The stop follows focus inside a list, so Home then Tab leaves the rail; coming back lands on the selected tab again. */
+    await userEvent.keyboard('{Home}');
+    await expect(rootTabA).toHaveFocus();
+    await userEvent.tab();
+    await expect(nestedTabA).toHaveFocus();
+    await userEvent.tab({ shift: true });
+    await expect(rootTabB).toHaveFocus();
+
     /* The arrows move focus and wrap without opening anything; Enter opens. */
     await userEvent.keyboard('{ArrowDown}');
     await expect(rootTabC).toHaveFocus();

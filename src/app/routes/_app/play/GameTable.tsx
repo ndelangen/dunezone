@@ -376,7 +376,7 @@ function TableControlsPanel({
           ))}
         </NestedTabs.Level>
       )}
-      {/* Unnamed on purpose: the sections inside are the regions, and a second region with a section's own name would double it. */}
+      {/* No label of its own: the panel is the tabs' tabpanel, which NestedTabs names after the selected tab, and the sections inside stay the regions. */}
       <NestedTabs.ContentPanel className="seated-controls-tab-content" padding={(subtab ?? active).padding}>
         <Stack gap="lg">{subtab?.content ?? active.content}</Stack>
       </NestedTabs.ContentPanel>
