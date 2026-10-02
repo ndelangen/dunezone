@@ -70,6 +70,7 @@ import {
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
 } from 'react';
 import type { ReactNode } from 'react';
 import type { ExtrudeGeometry, Group, Texture } from 'three';
@@ -513,12 +514,23 @@ const subscribePublishedFace = sharedPublishedFaces<Texture>({
   release: (value) => value.dispose(),
 });
 
+/*
+ * Holds one published image and returns it once loaded. The shared store is the only source of truth, read through
+ * useSyncExternalStore, so a face never draws a texture released while it showed another image, and a retried load
+ * that lands later always re-renders it.
+ */
+function usePublishedFace(href: string | undefined): Texture | undefined {
+  const subscribe = useCallback(
+    (onChange: () => void) => (href ? subscribePublishedFace(href, onChange) : () => {}),
+    [href]
+  );
+  const snapshot = useCallback(() => (href ? subscribePublishedFace.peek(href) : undefined), [href]);
+  return useSyncExternalStore(subscribe, snapshot, snapshot);
+}
+
 function PublishedFace({ href, card, ratio }: { href: string; card: boolean; ratio?: number | null }) {
   /* Piece art skips useTexture so a missing publication image retries in place instead of suspending the table. */
-  /* The held texture is always read from the shared store, so a face never draws one released while it showed another image. */
-  const [, setLoaded] = useState<Texture | null>(null);
-  const texture = subscribePublishedFace.peek(href) ?? null;
-  useEffect(() => subscribePublishedFace(href, setLoaded), [href]);
+  const texture = usePublishedFace(href) ?? null;
   return (
     <mesh position={[0, 0, 0.002]} renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}>
       {card ? (
@@ -552,9 +564,7 @@ function topFaceHref(piece: TablePiece): string | undefined {
 
 /* Holds the image a piece shows on top and says whether it is loaded, so a flip can wait for a card's revealed face instead of turning up a placeholder. */
 function usePublishedFaceReady(href: string | undefined): boolean {
-  const [, setLoaded] = useState<Texture | null>(null);
-  useEffect(() => (href ? subscribePublishedFace(href, setLoaded) : undefined), [href]);
-  return !href || subscribePublishedFace.peek(href) !== undefined;
+  return usePublishedFace(href) !== undefined || !href;
 }
 
 function TokenFace({
