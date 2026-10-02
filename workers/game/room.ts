@@ -665,7 +665,7 @@ export class Room {
     if (ready) {
       controls.ready.push(identity.viewerSeat);
     }
-    return `${identity.viewerSeat} ${ready ? 'is ready' : 'withdrew readiness'}.`;
+    return `${seatSubject(identity.viewerSeat)} ${ready ? 'is ready' : 'withdrew readiness'}.`;
   }
 
   private requestSpawn(

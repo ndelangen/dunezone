@@ -1,5 +1,6 @@
 import { accepted, nextSnapshot } from '../../src/shared/play/commands';
 import { emptyPublicControls } from '../../src/shared/play/inventory';
+import { seatSubject } from '../../src/shared/play/participation';
 import { tableForViewer } from '../../src/shared/play/protocol';
 import type { Viewer } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
@@ -189,7 +190,9 @@ class SwapStep {
       this.state.ready.push(seat);
       this.expire((offer) => offer.origin === seat || offer.target === seat, 'readiness');
     }
-    this.event(action.kind, `${seat} ${action.ready ? 'is ready' : 'is open to trading'}.`, { origin: seat });
+    this.event(action.kind, `${seatSubject(seat)} ${action.ready ? 'is ready' : 'is open to trading'}.`, {
+      origin: seat,
+    });
   }
 
   trade(action: Exclude<SwapAction, { kind: 'swap-ready' }>) {
