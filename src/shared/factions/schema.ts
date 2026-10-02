@@ -267,7 +267,10 @@ const AuthoringRule = RULE.extend({
   karama: proseFormattedTextSchema.optional(),
 });
 
-const AuthoringTroopSide = TroopSide.extend({ description: proseFormattedTextSchema, combat: TroopBattleValues.optional() });
+const AuthoringTroopSide = TroopSide.extend({
+  description: proseFormattedTextSchema,
+  combat: TroopBattleValues.optional(),
+});
 
 const AuthoringTroop = Troop.extend({
   description: proseFormattedTextSchema,
