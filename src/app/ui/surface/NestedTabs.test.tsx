@@ -221,3 +221,171 @@ describe('NestedTabs', () => {
     error.mockRestore();
   });
 });
+
+function TabsFixture({
+  activePath,
+  onSelect = () => {},
+  disabled = [],
+}: {
+  activePath: readonly string[];
+  onSelect?: (path: readonly string[]) => void;
+  disabled?: readonly string[];
+}) {
+  const tab = (path: readonly string[], label: string) => (
+    <NestedTabs.Item
+      key={path.join('/')}
+      as="button"
+      type="button"
+      disabled={disabled.includes(label)}
+      path={path}
+      label={label}
+      icon={<span>{label.slice(0, 1)}</span>}
+      onClick={() => onSelect(path)}
+    />
+  );
+  return (
+    <MantineProvider theme={appContentTheme}>
+      <NestedTabs activePath={activePath} ariaLabel="Table controls">
+        <NestedTabs.Level label="Controls">
+          {tab(['hand'], 'Hand')}
+          {tab(['log'], 'Log')}
+          {tab(['spice'], 'Spice')}
+          <NestedTabs.Tools>
+            <button type="button">Tool</button>
+          </NestedTabs.Tools>
+        </NestedTabs.Level>
+        <NestedTabs.Level label="Log">
+          {tab(['log', 'game'], 'Game')}
+          <NestedTabs.Group label="Records">{tab(['log', 'audit'], 'Audit')}</NestedTabs.Group>
+        </NestedTabs.Level>
+        <NestedTabs.ContentPanel>
+          <p>Panel</p>
+        </NestedTabs.ContentPanel>
+      </NestedTabs>
+    </MantineProvider>
+  );
+}
+
+function tab(label: string) {
+  const match = container?.querySelector(`[role="tab"][aria-label="${label}"]`);
+  if (!(match instanceof HTMLButtonElement)) {
+    throw new Error(`Missing tab: ${label}`);
+  }
+  return match;
+}
+
+function press(key: string) {
+  const target = document.activeElement ?? document.body;
+  act(() => {
+    target.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }));
+  });
+}
+
+describe('NestedTabs with button items', () => {
+  const selected: (readonly string[])[] = [];
+
+  beforeEach(async () => {
+    selected.length = 0;
+    await act(async () =>
+      root?.render(<TabsFixture activePath={['log', 'game']} onSelect={(path) => selected.push(path)} />)
+    );
+  });
+
+  it('turns each level into a named vertical tablist instead of a navigation landmark', () => {
+    expect(container?.querySelectorAll('nav')).toHaveLength(0);
+    const lists = Array.from(container?.querySelectorAll('[role="tablist"]') ?? []);
+    expect(lists.map((list) => list.getAttribute('aria-label'))).toEqual(['Controls', 'Log']);
+    expect(lists.every((list) => list.getAttribute('aria-orientation') === 'vertical')).toBe(true);
+    /* A tablist owns only tabs: the slots and a group's wrappers step aside, and tools stay outside it. */
+    for (const list of lists) {
+      const owned = Array.from(list.querySelectorAll('li, ul'));
+      expect(owned.every((element) => element.getAttribute('role') === 'none')).toBe(true);
+    }
+    expect(container?.querySelector('[role="tablist"] button:not([role="tab"])')).toBeNull();
+    expect(container?.querySelector('[role="tablist"] [aria-label="Records"]')).toBeNull();
+  });
+
+  it('wires selection, the controlled panel and the panel name to the path', () => {
+    const panel = container?.querySelector('[role="tabpanel"]');
+    expect(panel?.id).toBeTruthy();
+    for (const label of ['Hand', 'Log', 'Spice', 'Game', 'Audit']) {
+      expect(tab(label).getAttribute('aria-controls')).toBe(panel?.id);
+      expect(tab(label).hasAttribute('aria-current')).toBe(false);
+    }
+    expect(tab('Log').getAttribute('aria-selected')).toBe('true');
+    expect(tab('Game').getAttribute('aria-selected')).toBe('true');
+    expect(tab('Hand').getAttribute('aria-selected')).toBe('false');
+    expect(tab('Audit').getAttribute('aria-selected')).toBe('false');
+    expect(tab('Game').dataset.pathState).toBe('active');
+    expect(tab('Log').dataset.pathState).toBe('ancestor');
+    expect(panel?.getAttribute('aria-labelledby')).toBe(tab('Game').id);
+    expect(document.getElementById(tab('Game').id)).toBe(tab('Game'));
+  });
+
+  it('keeps one tab stop per level, on its selected tab', () => {
+    expect(['Hand', 'Log', 'Spice'].map((label) => tab(label).tabIndex)).toEqual([-1, 0, -1]);
+    expect(['Game', 'Audit'].map((label) => tab(label).tabIndex)).toEqual([0, -1]);
+  });
+
+  it('falls back to the first tab as the stop while a level has no selected tab', async () => {
+    await act(async () => root?.render(<TabsFixture activePath={['elsewhere']} />));
+    expect(['Hand', 'Log', 'Spice'].map((label) => tab(label).tabIndex)).toEqual([0, -1, -1]);
+  });
+
+  it('skips a disabled tab when it falls back', async () => {
+    await act(async () => root?.render(<TabsFixture activePath={['elsewhere']} disabled={['Hand']} />));
+    expect(['Hand', 'Log', 'Spice'].map((label) => tab(label).tabIndex)).toEqual([-1, 0, -1]);
+  });
+
+  it('moves the tab stop with focus, so Home then Tab leaves the rail', () => {
+    act(() => tab('Log').focus());
+    press('Home');
+    expect(document.activeElement).toBe(tab('Hand'));
+    /* The focused tab is now the list's one stop, so the next Tab goes past the list rather than back to Log. */
+    expect(['Hand', 'Log', 'Spice'].map((label) => tab(label).tabIndex)).toEqual([0, -1, -1]);
+    const next = container?.querySelector('[role="tablist"][aria-label="Log"] [tabindex="0"]');
+    act(() => (next as HTMLElement).focus());
+    expect(document.activeElement).toBe(tab('Game'));
+    /* Focus has left the Controls list, so its stop is the selected tab again. */
+    expect(['Hand', 'Log', 'Spice'].map((label) => tab(label).tabIndex)).toEqual([-1, 0, -1]);
+  });
+
+  it('moves focus with Up, Down, Home and End, wrapping, without opening a tab', () => {
+    tab('Log').focus();
+    press('ArrowDown');
+    expect(document.activeElement).toBe(tab('Spice'));
+    press('ArrowDown');
+    expect(document.activeElement).toBe(tab('Hand'));
+    press('ArrowUp');
+    expect(document.activeElement).toBe(tab('Spice'));
+    press('Home');
+    expect(document.activeElement).toBe(tab('Hand'));
+    press('End');
+    expect(document.activeElement).toBe(tab('Spice'));
+    /* Left and Right belong to a horizontal list; a vertical rail leaves them alone. */
+    press('ArrowRight');
+    expect(document.activeElement).toBe(tab('Spice'));
+    expect(selected).toEqual([]);
+    expect(tab('Log').getAttribute('aria-selected')).toBe('true');
+  });
+
+  it('moves within its own level, through groups', () => {
+    tab('Game').focus();
+    press('ArrowDown');
+    expect(document.activeElement).toBe(tab('Audit'));
+    press('ArrowDown');
+    expect(document.activeElement).toBe(tab('Game'));
+  });
+
+  it('opens the focused tab through the button itself', () => {
+    tab('Hand').focus();
+    act(() => tab('Hand').click());
+    expect(selected).toEqual([['hand']]);
+  });
+
+  it('keeps link items as navigation when any item is a link', async () => {
+    await act(async () => root?.render(<Fixture />));
+    expect(container?.querySelector('[role="tablist"], [role="tab"], [role="tabpanel"]')).toBeNull();
+    expect(container?.querySelectorAll('nav')).toHaveLength(2);
+  });
+});
