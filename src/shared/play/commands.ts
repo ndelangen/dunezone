@@ -195,7 +195,7 @@ function lockPiece(state: TableState, piece: TablePiece): TableState {
 }
 
 function rotatePiece(state: TableState, piece: TablePiece, direction: -1 | 1): TableState {
-  const orientation = piece.orientation + (direction * Math.PI) / 12;
+  const orientation = piece.orientation - (direction * Math.PI) / 12;
   const rotated = {
     ...piece,
     orientation,

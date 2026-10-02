@@ -70,6 +70,7 @@ import {
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
 } from 'react';
 import type { ReactNode } from 'react';
 import type { ExtrudeGeometry, Group, Texture } from 'three';
@@ -498,7 +499,8 @@ function PieceFace({ height, underside, children }: { height: number; underside:
   return (
     <group
       position={[0, underside ? -0.001 : height + 0.001, 0]}
-      rotation={[underside ? Math.PI / 2 : -Math.PI / 2, 0, 0]}
+      /* The underside is also turned end over end, so the flip's half turn about the long edge shows it the same way up as the top face it replaces. */
+      rotation={underside ? [Math.PI / 2, 0, Math.PI] : [-Math.PI / 2, 0, 0]}
     >
       {children}
     </group>
@@ -515,18 +517,23 @@ const subscribePublishedFace = sharedPublishedFaces<Texture>({
   release: (value) => value.dispose(),
 });
 
+/*
+ * Holds one published image and returns it once loaded. The shared store is the only source of truth, read through
+ * useSyncExternalStore, so a face never draws a texture released while it showed another image, and a retried load
+ * that lands later always re-renders it.
+ */
+function usePublishedFace(href: string | undefined): Texture | undefined {
+  const subscribe = useCallback(
+    (onChange: () => void) => (href ? subscribePublishedFace(href, onChange) : () => {}),
+    [href]
+  );
+  const snapshot = useCallback(() => (href ? subscribePublishedFace.peek(href) : undefined), [href]);
+  return useSyncExternalStore(subscribe, snapshot, snapshot);
+}
+
 function PublishedFace({ href, card, ratio }: { href: string; card: boolean; ratio?: number | null }) {
   /* Piece art skips useTexture so a missing publication image retries in place instead of suspending the table. */
-  const [loadedFace, setLoadedFace] = useState<{ href: string; texture: Texture | null } | null>(null);
-  const texture = loadedFace?.href === href ? loadedFace.texture : (subscribePublishedFace.peek(href) ?? null);
-  useEffect(() => {
-    const unsubscribe = subscribePublishedFace(href, (value) => setLoadedFace({ href, texture: value }));
-    /* The image this face first drew can be released in the same commit, by the last other face that held it; then it shows the placeholder until the reload arrives. */
-    if (subscribePublishedFace.peek(href) === undefined) {
-      setLoadedFace({ href, texture: null });
-    }
-    return unsubscribe;
-  }, [href]);
+  const texture = usePublishedFace(href) ?? null;
   return (
     <mesh position={[0, 0, 0.002]} renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}>
       {card ? (
@@ -544,6 +551,21 @@ function PublishedFace({ href, card, ratio }: { href: string; card: boolean; rat
       )}
     </mesh>
   );
+}
+
+/** The published image a piece shows on top: the upper face of its top layer. */
+function topFaceHref(piece: TablePiece): string | undefined {
+  if (piece.kind === 'marker' || piece.items.length === 0) {
+    return undefined;
+  }
+  const shownLayers = visibleLayerCount(piece);
+  const item = piece.items[stackLayerItemIndex(piece.items.length, shownLayers, shownLayers - 1, piece.flipRevision)];
+  return item?.artwork?.[item.faceUp ? 'front' : 'back'];
+}
+
+/* Holds the image a piece shows on top and says whether it is loaded, so a flip can wait for a card's revealed face instead of turning up a placeholder. */
+function usePublishedFaceReady(href: string | undefined): boolean {
+  return usePublishedFace(href) !== undefined || !href;
 }
 
 function TokenFace({
@@ -1102,10 +1124,12 @@ function TablePieceMesh(props: TablePieceMeshProps) {
   const emptyProjection = displayedCount === 0;
   const carried = locallyCarried || remoteCarried;
   const poseRef = useTablePose(piece.position, piece.orientation, remoteCarried, locallyCarried);
+  const faceReady = usePublishedFaceReady(topFaceHref(piece));
   const { pivotRef, labelRef, shadowRef, badgeRef } = usePieceFlipAnimation(
     piece,
     drafted || remoteCarried || emptyProjection,
-    finishPieceFlip
+    finishPieceFlip,
+    faceReady
   );
   const shuffleRef = useDeckShuffleAnimation(piece, carried || emptyProjection);
   const flipPivotY = stackTopHeight(piece) / 2;
