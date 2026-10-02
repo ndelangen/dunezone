@@ -341,7 +341,7 @@ function PlanInventory({ plan, locked, update, pieces }: PlanEditor & { pieces: 
 function PlanFields({ client, table, plan, battle }: Props & { plan: BattlePlan; battle: PublicBattle }) {
   const factionId = table.snapshot.bank!.factionId;
   const side = battle.sides.find((side) => side?.factionId === factionId)!;
-  const locked = !table.canInteract || side.ready || battle.stage !== 'preparing';
+  const locked = !table.canHandleTable || side.ready || battle.stage !== 'preparing';
   const update = (patch: Partial<BattlePlanInput>) => {
     client.editBattlePlan(patch);
   };
@@ -394,7 +394,7 @@ function PlanFields({ client, table, plan, battle }: Props & { plan: BattlePlan;
             </Text>
             {battle.stage !== 'revealed' && (
               <Button
-                disabled={!table.canInteract}
+                disabled={!table.canHandleTable}
                 variant={side.ready ? 'default' : 'filled'}
                 onClick={() => client.command({ kind: 'battle-ready', battleId: battle.id, ready: !side.ready })}
               >
@@ -445,7 +445,7 @@ export function HandControls({ client, table, hand }: Props & { hand: TablePiece
       <Stack gap="sm">
         <Button
           variant="default"
-          disabled={!table.canInteract || !canTakeSelected(selected)}
+          disabled={!table.canHandleTable || !canTakeSelected(selected)}
           onClick={() => selected && client.command({ kind: 'hand-take', pieceId: selected.id })}
         >
           Take selected piece into hand
@@ -667,8 +667,8 @@ function BattleMarker({ table }: Props) {
       <DarkSchemeIsland>
         <Button
           aria-label="Drag battle marker onto territory"
-          draggable={table.canInteract}
-          disabled={!table.canInteract}
+          draggable={table.canHandleTable}
+          disabled={!table.canHandleTable}
           onDragStart={(event) => event.dataTransfer.setData('application/dune-battle', 'marker')}
         >
           <TopicIcon topic="battle" />
@@ -686,7 +686,7 @@ function OutcomeButton({ client, table, battle, own, outcome }: ActiveProps & { 
       data-outcome={outcome}
       aria-label={outcomes.find(([choice]) => choice === outcome)![1]}
       variant={own >= 0 && battle.sides[own]?.choice === outcome ? 'filled' : 'default'}
-      disabled={!table.canInteract || own < 0}
+      disabled={!table.canHandleTable || own < 0}
       onClick={() => client.command({ kind: 'battle-outcome', battleId: battle.id, outcome })}
     >
       {outcome === 'none' ? 'No winner' : outcome === 'left' ? 'Left won' : 'Right won'}
@@ -709,7 +709,7 @@ function CancelBattleButton({
       variant={variant}
       className={className}
       fullWidth={fullWidth}
-      disabled={!table.canInteract}
+      disabled={!table.canHandleTable}
       onClick={() => client.command({ kind: 'battle-cancel', battleId: battle.id })}
     >
       Cancel battle
@@ -767,7 +767,7 @@ function SideContents({
         factionId={side!.factionId}
         factionName={rosterName(side!.factionId, snapshotFactionLabels(table.snapshot))}
         artwork={table.snapshot.factionArtwork}
-        client={table.canInteract ? client : undefined}
+        client={table.canHandleTable ? client : undefined}
         active={active}
       />
     );
@@ -789,7 +789,7 @@ function SideContents({
       aria-label={index ? 'Claim right side' : 'Claim left side'}
       styles={{ label: { whiteSpace: 'normal' } }}
       variant="default"
-      disabled={!table.canInteract || own >= 0}
+      disabled={!table.canHandleTable || own >= 0}
       onClick={() => client.command({ kind: 'battle-claim', battleId: battle.id, side: index })}
     >
       {index ? 'Claim right' : 'Claim left'}

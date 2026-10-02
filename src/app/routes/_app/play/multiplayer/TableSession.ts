@@ -367,7 +367,8 @@ export class TableSession {
     const state = {
       ...tableForViewer(displayed, viewer.viewerSeat),
       factionTieBreaks: snapshotFactionTieBreaks(displayed),
-      selectedPieceId: this.selectedId,
+      /* A selection made before handling closed is not shown, so nothing offers to act on it. */
+      selectedPieceId: tableHandlingOpen(this.snapshot.stage) ? this.selectedId : null,
       draftMove: this.carry?.draft ?? null,
     };
     const { carries: remote, pointers } = this.activityForView();
@@ -803,7 +804,8 @@ export class TableSession {
     this.emit();
   };
   selectPiece = (id: string | null) => {
-    if (!this.canHandle()) {
+    /* Clearing a selection sends nothing, so it is allowed even when the table cannot be handled. */
+    if (id !== null && !this.canHandle()) {
       return;
     }
     this.selectedId = id;

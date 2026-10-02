@@ -788,7 +788,7 @@ function useScenePointerSession(onActiveChange: (active: boolean) => void) {
   const { renderer } = useThree();
   const point = useTablePointFromClient();
   const controls = {
-    canInteract: canHandleTable,
+    canHandleTable,
     hasDraft: Boolean(state.draftMove),
     piece: (id: string) => state.pieces.find((piece) => piece.id === id),
     point,
