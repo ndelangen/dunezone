@@ -15,7 +15,7 @@ export const PredictionLogosContext = createContext<Readonly<Record<string, stri
 /* The decal slot of a Treachery card, in card pixels: a 439px square centred horizontally, its centre 470px from the top (`Decals.tsx`). */
 const DECAL_CENTRE_Y = 470;
 const LOGO = { centreY: DECAL_CENTRE_Y - 40, size: 230 };
-const TURN = { centreY: DECAL_CENTRE_Y + 165, size: 150, font: 'Caladea' };
+const TURN = { centreY: DECAL_CENTRE_Y + 165, size: 170, font: 'C_Advokat_Modern' };
 /* Decals draw black with a light outline (`Decals.tsx`); the overlay keeps both colours and the outline width. */
 const FOREGROUND = '#e3dbb3';
 const INK = '#1c140d';
