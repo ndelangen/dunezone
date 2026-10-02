@@ -90,6 +90,7 @@ import stormMarkerUrl from './assets/storm-marker.png?url';
 import { boardFurnitureFor } from './boardFurniture';
 import { BOARD_RIM_DEPTH, createBoardRimShape } from './boardRimGeometry';
 import { CameraControls, CameraRelativeFog } from './CameraControls';
+import { swallowLift, watchLongPress } from './longPress';
 import { PhaseSymbol } from './PhaseSymbol';
 import { cameraPoseFor, TABLE_CAMERA_FAR, TABLE_CAMERA_FIELD_OF_VIEW, TABLE_CAMERA_NEAR } from './playView';
 import type { CameraViewCommand } from './playView';
@@ -875,10 +876,13 @@ function usePiecePointerEvents({ piece }: TablePieceMeshProps, interactionBlocke
   const { renderer } = useThree();
   const pointerSession = usePointerSession();
   const gestureBlocked = gestureBlockReason(piece);
+  const hasMenu = !state.draftMove && (piece.kind === 'card' || isSpicePiece(piece)) && !piece.inventory;
+  const stopLongPress = useRef<(() => void) | null>(null);
+  useEffect(() => () => stopLongPress.current?.(), []);
 
   return {
     onContextMenu: (event: ThreeEvent<MouseEvent>) => {
-      if (!state.draftMove && (piece.kind === 'card' || isSpicePiece(piece)) && !piece.inventory && openPieceMenu) {
+      if (hasMenu && openPieceMenu) {
         event.stopPropagation();
         openPieceMenu(piece.id, event.nativeEvent.clientX, event.nativeEvent.clientY);
       }
@@ -895,6 +899,28 @@ function usePiecePointerEvents({ piece }: TablePieceMeshProps, interactionBlocke
         return;
       }
       selectPiece(piece.id);
+      /*
+       * A touch has no right-click, and iOS never turns a long press into a context menu, so a finger resting on a deck or spice opens the same menu.
+       * A finger that moves first is carrying the piece, and the menu leaves it alone.
+       */
+      stopLongPress.current?.();
+      stopLongPress.current = null;
+      if (event.pointerType === 'touch' && hasMenu && openPieceMenu) {
+        const { clientX, clientY } = event.nativeEvent;
+        stopLongPress.current = watchLongPress(window, event.nativeEvent, () => {
+          stopLongPress.current = null;
+          if (pointerSession.isDragging(piece.id)) {
+            return;
+          }
+          /* Only this finger's press stops; another finger may be carrying another piece. */
+          if (pointerSession.isPressing(piece.id)) {
+            pointerSession.cancel();
+          }
+          stopLongPress.current = swallowLift(window, { clientX, clientY });
+          /* Android also sends a context menu for the long press; opening the same menu twice changes nothing. */
+          openPieceMenu(piece.id, clientX, clientY);
+        });
+      }
       if (gestureBlocked) {
         return;
       }

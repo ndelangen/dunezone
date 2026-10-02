@@ -56,6 +56,16 @@ test('a click captures and releases its pointer without starting a carry', () =>
   expect(session.busy).toBe(false);
 });
 
+test('a press belongs to its own piece until it ends', () => {
+  const { session, piece } = table();
+  expect(session.isPressing(piece.id)).toBe(false);
+  session.press(pointer('pointerdown'), piece.id);
+  expect(session.isPressing(piece.id)).toBe(true);
+  expect(session.isPressing('another-piece')).toBe(false);
+  window.dispatchEvent(pointer('pointerup', 10));
+  expect(session.isPressing(piece.id)).toBe(false);
+});
+
 test.each([
   [319, 'top'],
   [320, 'whole'],
