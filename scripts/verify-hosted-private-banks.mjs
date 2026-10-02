@@ -194,7 +194,7 @@ export async function verifyPrivateBanks(toolkit) {
        The sign-out step opens the Spice tab on both viewers that replayed here, so both go back. */
     for (const who of [tab, observer]) {
       await who.page.getByRole('button', { name: 'Return to live' }).click();
-      await button(who, 'Spice').waitFor({ state: 'attached' });
+      await who.page.getByRole('tab', { name: 'Spice', exact: true }).waitFor({ state: 'attached' });
     }
     return tab;
   }
@@ -264,7 +264,7 @@ export async function verifyPrivateBanks(toolkit) {
         `${who.label}'s table remounted.`
       );
       assert.equal(
-        await who.page.locator('[data-nested-tabs-item][aria-label="Spice"][aria-current="true"]').count(),
+        await who.page.locator('[role="tab"][aria-label="Spice"][aria-selected="true"]').count(),
         1,
         `${who.label} lost the Spice tab.`
       );
