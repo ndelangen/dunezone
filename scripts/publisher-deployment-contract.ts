@@ -95,6 +95,8 @@ export function validatePublisherDeployContract(config: JsonObject, environment:
       run_worker_first: [
         '/__asset-publisher',
         '/__asset-publisher/*',
+        '/social',
+        '/social/*',
         '/published',
         '/published/*',
         '/publisher-capture',

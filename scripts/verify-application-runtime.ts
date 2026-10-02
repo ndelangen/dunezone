@@ -3,6 +3,8 @@ import path from 'node:path';
 
 import { unstable_dev } from 'wrangler';
 
+import { pngDimensions } from '../workers/publisher/image-inspection.ts';
+
 /* Exercise the assembled Worker, including Static Assets precedence and the real TanStack entry. */
 process.chdir(path.resolve(import.meta.dirname, '../workers/publisher'));
 const worker = await unstable_dev('index.ts', {
@@ -39,6 +41,17 @@ try {
     assert.match(html, /rel="canonical"/, `${pathname} has no canonical URL`);
     assert.match(html, /property="og:title"/, `${pathname} has no social metadata`);
     assert.ok(html.endsWith('</html>'), `${pathname} returned a truncated document`);
+    if (pathname !== '/factions' && pathname !== '/assets' && pathname !== '/assets/token-disc') {
+      const image = /property="og:image" content="([^"]+)"/.exec(html)?.[1]?.replaceAll('&amp;', '&');
+      assert.ok(image, `${pathname} has no social image URL`);
+      const imageUrl = new URL(image);
+      assert.equal(imageUrl.pathname, '/social/image.png');
+      const png = await worker.fetch(imageUrl.pathname + imageUrl.search);
+      assert.equal(png.status, 200);
+      assert.equal(png.headers.get('Content-Type'), 'image/png');
+      assert.deepEqual(pngDimensions(new Uint8Array(await png.arrayBuffer())), { widthPx: 1200, heightPx: 630 });
+    }
+
     const scripts = [...html.matchAll(/<script[^>]+src="([^"]+)"/g)].map((match) => match[1]!);
     assert.ok(scripts.length > 0, `${pathname} has no hydration entry`);
     for (const script of scripts) {

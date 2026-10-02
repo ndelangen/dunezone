@@ -61,6 +61,7 @@ export const Route = createFileRoute('/_app/factions/$factionId/')({
       pathname: `/factions/${encodeURIComponent(loaderData?.faction.slug ?? params.factionId)}`,
       description: publicDescription(loaderData?.faction.data.rules.advantages[0]?.text),
       image: loaderData ? publishedHref('faction-token', loaderData.faction._id, loaderData.faction.updated_at) : null,
+      social: { kind: 'Faction', shape: 'round' },
       match,
     }),
   component: FactionDetailPage,

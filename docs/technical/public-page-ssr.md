@@ -8,9 +8,9 @@ HTTP client for server reads.
 Each route calls its existing page query once. That result supplies the visible content, title,
 canonical URL, description and social metadata. The faction excerpt comes from its first advantage;
 an asset uses About. Formatting marks become readable text, and empty excerpts remain empty.
-Descriptions stop at 200 Unicode code points. Existing published artwork supplies `og:image` until
-[the social PNG endpoint](https://github.com/ndelangen/dunezone/issues/1718) replaces it with the
-selected card design and bounded URL inputs.
+Descriptions stop at 200 Unicode code points. Faction and asset detail metadata points to [the social PNG endpoint](social-images.md).
+Its URL carries bounded words and the existing published artwork path. Catalogues retain the site
+poster. Image generation adds no metadata query.
 
 The browser hydrates the anonymous result and starts the existing Convex subscriptions. A live
 result replaces the initial data, including a null result after deletion. Edit and membership
