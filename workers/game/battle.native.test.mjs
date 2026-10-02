@@ -121,6 +121,18 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
     expect((await syncView(observer)).snapshot).not.toHaveProperty('bank');
   });
 
+  it('takes a battle action that crossed the opponent action, but no revision from the future (#1681)', async () => {
+    const battleId = await start();
+    const seen = (await syncView(a)).snapshot.revision;
+    await accepted(b, { kind: 'battle-ready', battleId, ready: true });
+    const planned = await sendCommand(a, { kind: 'battle-plan', battleId, plan: plan() }, undefined, seen);
+    expect(planned.reply.type).not.toBe('rejected');
+    const readied = await sendCommand(a, { kind: 'battle-ready', battleId, ready: true }, undefined, seen);
+    expect(readied.reply.type).not.toBe('rejected');
+    const ahead = await sendCommand(b, { kind: 'battle-ready', battleId, ready: false }, undefined, seen + 100);
+    expect(ahead.reply.type).toBe('rejected');
+  });
+
   it('returns an invalidated reserve and spends the rest once, with no private plan in other frames', async () => {
     const battleId = await start();
     a.messages.length = 0;
