@@ -1,10 +1,12 @@
 import { Alert, Box, ColorSwatch, Divider, Flex, Group, SimpleGrid, Stack, Text, Title, Tooltip } from '@mantine/core';
+import { publishedHref } from '@shared/asset-publishing/publicationTargets';
 import { troopCombatFaces } from '@shared/factions/troopCombat';
 import type { TroopFaceCombat } from '@shared/factions/troopCombat';
-import { createFileRoute, Link } from '@tanstack/react-router';
+import { createFileRoute, Link, notFound } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { LoadError } from '@ui/block/LoadError';
 import { LoadPending } from '@ui/block/LoadPending';
+import { NotAvailable } from '@ui/block/NotAvailable';
 import { PageIdentity } from '@ui/block/PageIdentity';
 import { Section } from '@ui/block/Section';
 import { factionAssetPublishingCopy } from '@ui/content/assetPublishingStatus';
@@ -26,12 +28,12 @@ import { ArrowLeft, Download, Eye, FileText, Pencil, UserPlus } from 'lucide-rea
 import { Fragment, useId } from 'react';
 import type { ReactNode } from 'react';
 
-import { loadFaction, useFaction } from '@db/factions';
+import { isFactionNotFound, loadPublicFaction, useFaction } from '@db/factions';
 import type { FactionData, PublicAssetPublishingStatusProjection } from '@db/factions';
 import { useGroupMembershipWorkflow } from '@db/members';
 import { profileAvatarUrl } from '@db/profiles';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
-import { pageHead } from '@app/routes/pageTitle';
+import { publicDescription, publicPageHead, useLivePageTitle } from '@app/routes/publicPage';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 import { useAsset } from '@game/assets/assetRenderMode';
 import { LeaderToken } from '@game/assets/faction/leader/Leader';
@@ -42,11 +44,25 @@ import { TTS_COLOR_SWATCHES } from '@game/data/ttsColors';
 import styles from './index.module.css';
 
 export const Route = createFileRoute('/_app/factions/$factionId/')({
+  ssr: true,
   codeSplitGroupings: [['component', 'pendingComponent', 'errorComponent']],
-  loader: async ({ params }) => await loadFaction(params.factionId),
+  loader: async ({ params }) => {
+    const page = await loadPublicFaction(params.factionId);
+    if (!page) {
+      throw notFound();
+    }
+    return page;
+  },
   pendingComponent: FactionDetailPending,
   errorComponent: FactionDetailError,
-  head: ({ loaderData }) => pageHead(loaderData?.faction.data.name ?? 'Faction'),
+  head: ({ match, loaderData, params }) =>
+    publicPageHead({
+      name: loaderData?.faction.data.name ?? 'Faction',
+      pathname: `/factions/${encodeURIComponent(loaderData?.faction.slug ?? params.factionId)}`,
+      description: publicDescription(loaderData?.faction.data.rules.advantages[0]?.text),
+      image: loaderData ? publishedHref('faction-token', loaderData.faction._id, loaderData.faction.updated_at) : null,
+      match,
+    }),
   component: FactionDetailPage,
 });
 
@@ -241,6 +257,17 @@ function FactionTroop({ troop, background }: { troop: Troop; background: Faction
 }
 
 function FactionDetailError({ error }: ErrorComponentProps) {
+  const absent = isFactionNotFound(error);
+  useLivePageTitle(absent ? 'Faction not found' : undefined);
+  if (absent) {
+    return (
+      <PageMessage size="compact" title="Faction" back={backToFactions}>
+        <NotAvailable title="Faction not found">
+          This faction does not exist or was deleted. Its address may have changed after a rename.
+        </NotAvailable>
+      </PageMessage>
+    );
+  }
   return (
     <PageMessage size="compact" title="Faction" back={backToFactions}>
       <LoadError title="Faction could not be loaded" stale={isStaleClientData(error)}>
@@ -330,6 +357,7 @@ function FactionDetailPage() {
   });
   const membershipWorkflow = useGroupMembershipWorkflow();
   const page = factionQuery.data;
+  useLivePageTitle(page?.faction.data.name);
 
   if (!page) {
     return <FactionDetailPending />;
@@ -337,7 +365,8 @@ function FactionDetailPage() {
 
   const { faction, viewerAccess, owner, assetPublishing, rulesets } = page;
 
-  const { edit: canEdit, requestMembership: canRequestMembership } = viewerAccess.capabilities;
+  const canEdit = !factionQuery.isPending && viewerAccess.capabilities.edit;
+  const canRequestMembership = !factionQuery.isPending && viewerAccess.capabilities.requestMembership;
   const assignedGroup = viewerAccess.assignedGroup;
   const membershipStatus = viewerAccess.viewer.kind === 'authenticated' ? viewerAccess.viewer.membership : 'none';
 
