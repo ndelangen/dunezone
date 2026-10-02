@@ -177,6 +177,27 @@ export const FactionSetAside = meta.story({
   },
 });
 
+/** A spectator reads why the deal failed; trying the deal again is the players' to do. */
+export const ObserverAfterAFailedDeal = meta.story({
+  beforeEach: install(() =>
+    productTransport(
+      'neutral',
+      draftingSnapshot(SIX, 6, {
+        picks: { 'seat-1': ['house-atreides', 'iduali'], 'seat-2': ['fremen'] },
+        setAside: { iduali: NOT_READY },
+        failure: `Set aside as not ready to deal: Iduali (${NOT_READY.replace(/\.$/, '')}).`,
+      })
+    )
+  ),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await waitFor(() => expect(page.getByRole('alert')).toHaveTextContent('Set aside as not ready to deal: Iduali'), {
+      timeout: 30_000,
+    });
+    expect(page.queryByRole('button', { name: 'Try again' })).toBeNull();
+  },
+});
+
 /** A spectator is offered a seat; asking sends the one seat command a spectator may send. */
 export const SpectatorAsksForASeat = meta.story({
   beforeEach: install(() => productTransport('neutral', drafting())),
