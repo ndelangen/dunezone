@@ -595,6 +595,13 @@ export class TableSession {
   }
   private receiveRejection(message: Extract<ServerMessage, { type: 'rejected' }>) {
     this.error = message.message;
+    if (this.pendingHistory !== null && message.requestId === 'message') {
+      /*
+       * A history read carries no id, so the Worker refuses it as 'message'. It never gets a history reply, so the
+       * viewer stays on the checkpoint they were on and sees the reason instead of waiting.
+       */
+      this.pendingHistory = null;
+    }
     if (message.requestId === this.catalogueRequestId) {
       /* A refused catalogue read never gets a catalogue reply; the picker shows the reason instead of waiting. */
       this.catalogueResult = {
@@ -719,6 +726,7 @@ export class TableSession {
     this.spiceHistoryBefore = undefined;
     this.history = null;
     this.pendingHistory = null;
+    this.liveHistorySteps = 0;
     this.carry = null;
     this.carries = [];
     this.pointers = [];
