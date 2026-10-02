@@ -34,8 +34,14 @@ function hasModifier(event: KeyboardEvent) {
 }
 
 /*
+ * What the keyboard has reached on purpose: a control or a link.
+ * A focusable region such as the conversation history, and an open piece menu, are left out: the keys keep working over the table while either has focus.
+ */
+const FOCUSED_CONTROL = "button, a[href], [role='separator']";
+
+/*
  * A focused text field keeps its keys from the table.
- * The table's shortcuts also leave a focused button or the panel divider alone, while the spice disc answers over them.
+ * The table's shortcuts also leave any other focused control or link alone, while the spice disc answers over them.
  */
 function focusKeepsKey(target: EventTarget | null, branch: 'supply' | 'table') {
   if (!(target instanceof HTMLElement)) {
@@ -44,7 +50,7 @@ function focusKeepsKey(target: EventTarget | null, branch: 'supply' | 'table') {
   if (target.isContentEditable || target.matches('input, textarea, select')) {
     return true;
   }
-  return branch === 'table' && target.matches("button, [role='separator']");
+  return branch === 'table' && target.closest(FOCUSED_CONTROL) !== null;
 }
 
 /**

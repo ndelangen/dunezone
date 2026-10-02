@@ -86,9 +86,9 @@ export const ChoosingFactions = meta.story({
       },
       { timeout: 30_000 }
     );
-    await userEvent.hover(page.getByLabelText('Draft pool details'));
+    await userEvent.hover(page.getByRole('button', { name: /^Pool / }));
     await waitForFrame(() => expect(page.getByRole('tooltip')).toHaveTextContent('a random 6 of them will be dealt'));
-    await userEvent.unhover(page.getByLabelText('Draft pool details'));
+    await userEvent.unhover(page.getByRole('button', { name: /^Pool / }));
     const list = () => within(page.getByRole('list', { name: 'Factions' }));
     await waitFor(
       async () => {

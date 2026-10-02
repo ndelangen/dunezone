@@ -27,7 +27,7 @@ import type { PublicControls } from '@shared/play/inventory';
 import { SPECTATOR_SEAT } from '@shared/play/schema';
 import { ProfileLink } from '@ui/content/ProfileLink';
 import clsx from 'clsx';
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import type { CSSProperties } from 'react';
 
 import { Token } from '@game/assets/faction/token/Token';
@@ -272,6 +272,7 @@ export function DraftingOverlay({ client, table }: Props) {
 
 /** The drafting statistics in the page header's centre, where turn and phase sit during play. */
 export function DraftingHeader({ table }: Readonly<{ table: TableProjection }>) {
+  const poolHelpId = useId();
   const draft = draftOf(table);
   if (!draft) {
     return null;
@@ -280,8 +281,11 @@ export function DraftingHeader({ table }: Readonly<{ table: TableProjection }>) 
   const gates = draftGates(draft, controls.seats, draft.minimum);
   const warning = draftWarning(gates);
   const fill = gates.poolSize < gates.seated ? Math.min(gates.fillable, gates.seated - gates.poolSize) : 0;
+  const poolHelp =
+    warning.kind === 'none' ? 'Drafted factions are dealt randomly when everyone is ready.' : warning.text;
+  /* The page header around this is already the polite live region, so this one announces through it rather than again. */
   return (
-    <div className={styles.header} aria-live="polite">
+    <div className={styles.header}>
       <div className="seated-phase-status__copy">
         <span>Drafting</span>
         <strong>{draftStatus(gates)}</strong>
@@ -290,15 +294,11 @@ export function DraftingHeader({ table }: Readonly<{ table: TableProjection }>) 
         <span className={clsx(styles.gate, gates.minimumMet && styles.gateMet)}>
           Seats <strong>{gates.seated}</strong>/{gates.minimum}+
         </span>
-        <Tooltip
-          label={warning.kind === 'none' ? 'Drafted factions are dealt randomly when everyone is ready.' : warning.text}
-          multiline
-          maw={320}
-          events={{ hover: true, focus: true, touch: true }}
-        >
+        <Tooltip label={poolHelp} multiline maw={320} events={{ hover: true, focus: true, touch: true }}>
+          {/* Named by its visible count; the tooltip names nothing to assistive technology, so its words also describe the button. */}
           <UnstyledButton
             type="button"
-            aria-label="Draft pool details"
+            aria-describedby={poolHelpId}
             className={clsx(styles.gate, styles.poolHelp, gates.enoughFactions && styles.gateMet)}
           >
             Pool <strong>{gates.poolSize}</strong>/{gates.seated}
@@ -307,6 +307,9 @@ export function DraftingHeader({ table }: Readonly<{ table: TableProjection }>) 
         </Tooltip>
         <span className={clsx(styles.gate, gates.allReady && styles.gateMet)}>
           Ready <strong>{gates.ready}</strong>/{gates.seated}
+        </span>
+        <span id={poolHelpId} hidden>
+          {poolHelp}
         </span>
       </span>
     </div>
