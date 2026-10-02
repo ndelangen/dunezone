@@ -571,3 +571,46 @@ export const SpiceDiscForgetsAPlaybackHover = meta.story({
     );
   },
 });
+
+/* The table canvases' WebGL2 contexts, in the order the renderer created them. */
+const tableContexts: { context: WebGL2RenderingContext; canvas: HTMLCanvasElement }[] = [];
+
+/* Records every WebGL2 context the table creates, then restores the browser's own lookup. */
+const recordTableContexts = () => {
+  tableContexts.length = 0;
+  const getContext = HTMLCanvasElement.prototype.getContext;
+  HTMLCanvasElement.prototype.getContext = function (this: HTMLCanvasElement, kind: string, ...rest: unknown[]) {
+    const context = Reflect.apply(getContext, this, [kind, ...rest]);
+    if (kind === 'webgl2' && context && this.closest('.dune-play-shell')) {
+      if (!tableContexts.some((entry) => entry.context === context)) {
+        tableContexts.push({ context, canvas: this });
+      }
+    }
+    return context;
+  } as HTMLCanvasElement['getContext'];
+  const uninstall = install(() => productTransport())();
+  return () => {
+    uninstall();
+    HTMLCanvasElement.prototype.getContext = getContext;
+  };
+};
+
+/* A table that mounts again, as it does when its socket reconnects, frees the renderer it leaves behind instead of holding a WebGL context per remount until the browser runs out of them. */
+export const ReleasesItsRendererOnRemount = meta.story({
+  beforeEach: recordTableContexts,
+  play: async ({ canvasElement }) => {
+    await tablePage(canvasElement);
+    const first = await waitFor(
+      () => {
+        expect(tableContexts[0]).toBeDefined();
+        return tableContexts[0]!;
+      },
+      { timeout: 30_000 }
+    );
+    session.transport.disconnect();
+    await waitFor(() => expect(first.canvas.isConnected).toBe(false), { timeout: 30_000 });
+    await tablePage(canvasElement);
+    await waitFor(() => expect(first.context.isContextLost()).toBe(true), { timeout: 5000 });
+    expect(tableContexts.at(-1)!.context.isContextLost()).toBe(false);
+  },
+});
