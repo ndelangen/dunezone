@@ -130,6 +130,9 @@ function ConnectionControls({ client, table, error }: ConnectionControlsProps) {
   );
 }
 
+/* A spectator's dock opens on the battle when it loads during one, otherwise on the Log; later the spectator picks. */
+const SPECTATOR_OPENING_TABS = ['battle', 'log'];
+
 /* A battle the viewer's faction fights in opens the Battle tab once, when that faction takes its side. */
 function battleFocus(table: TableProjection) {
   const battle = table.snapshot.battle;
@@ -785,6 +788,8 @@ function ConnectedTable({
             ) : undefined
           }
           focusTab={battleFocus(table)}
+          /* A spectator's Shared inventory and Spice are a seat's controls, all disabled; the battle or the Log is what they came to watch. */
+          openOn={table.viewer.viewerSeat === SPECTATOR_SEAT ? SPECTATOR_OPENING_TABS : undefined}
           panelTabs={[
             ...(!tabled && stage !== 'setup'
               ? []

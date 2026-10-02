@@ -54,12 +54,12 @@ export function DecisionBar({
 
 type BarProps = Readonly<{ client: TableSession; table: TableProjection; readiness?: ReactNode }>;
 
-function seatWords(table: TableProjection, seat: string | null): string {
+function seatWords(table: TableProjection, seat: string | null, label: (seat: string) => string = seatLabel): string {
   if (seat === null) {
     return 'a seat';
   }
   const faction = rosterSeat(table.snapshot.roster, seat)?.faction?.name;
-  return faction ? `${seatLabel(seat)} (${faction})` : seatLabel(seat);
+  return faction ? `${label(seat)} (${faction})` : label(seat);
 }
 
 /** The seats nobody holds, once the seating is fixed; while drafting a request names no seat. */
@@ -112,10 +112,16 @@ function useSpectatorSeat(client: TableSession, table: TableProjection): SeatNot
       eyebrow: 'Seat requested',
       ...(table.snapshot.stage === 'finished'
         ? { title: 'This game has finished', context: 'Nobody can take a seat now. Withdraw the request to clear it.' }
-        : {
-            title: 'Waiting for a player to approve you',
-            context: `You asked for ${seatWords(table, own.seat)}. Any current player can approve; until then you keep watching.`,
-          }),
+        : /* The table keeps a request for a seat someone else took, so it can be approved if that seat opens again. */
+          table.snapshot.stage !== 'drafting' && own.seat !== null && !openSeats(table).includes(own.seat)
+          ? {
+              title: `${seatWords(table, own.seat, seatSubject)} is taken now`,
+              context: 'A player can approve you if it opens again. Withdraw to ask for another seat.',
+            }
+          : {
+              title: 'Waiting for a player to approve you',
+              context: `You asked for ${seatWords(table, own.seat)}. Any current player can approve; until then you keep watching.`,
+            }),
       action: (
         <SeatButton client={client} table={table} action={{ kind: 'seat-withdraw' }} variant="default">
           Withdraw
