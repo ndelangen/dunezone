@@ -690,7 +690,7 @@ describe('hosted table interaction', () => {
       })
     );
     const { bankControls, deckControls } = table(client);
-    expect(deckControls?.recipients).toEqual([harkonnen]);
+    expect(deckControls?.recipients).toEqual([{ id: harkonnen.id, name: harkonnen.name }]);
     deckControls?.draw('treachery-deck', 'harkonnen');
     expect(command().action).toEqual({ kind: 'deck-draw', pieceId: 'treachery-deck', recipient: 'harkonnen' });
     deckControls?.shuffle('treachery-deck');

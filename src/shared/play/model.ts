@@ -50,6 +50,8 @@ export type TableState = z.infer<typeof durableTableSchema> & {
   viewerFaction: string | null;
   /* Each seated faction's display name by its id: pieces are owned by the id, and a force stack's name reads the display name. */
   factionNames: Readonly<Partial<Record<string, string>>>;
+  /* What tells a faction apart when another seat's faction shares its name (#1667): its player, or its seat. Never stored. */
+  factionTieBreaks?: Readonly<Partial<Record<string, string>>>;
   selectedPieceId: string | null;
   draftMove: DraftMove | null;
 };

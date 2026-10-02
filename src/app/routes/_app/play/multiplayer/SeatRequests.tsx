@@ -291,7 +291,11 @@ export function GameMenu({
 
 function PlayerBar({ client, table, readiness }: BarProps) {
   const controls = table.snapshot.controls ?? emptyPublicControls();
-  const request = controls.seatRequests[0];
+  const open = openSeats(table);
+  const grantableRequest = (candidate: SeatRequest) =>
+    table.snapshot.stage === 'drafting' || (candidate.seat !== null && open.includes(candidate.seat));
+  /* The bar offers one request: the first one an approval can grant, so a request for a seat taken since never hides a later one for an open seat. */
+  const request = controls.seatRequests.find(grantableRequest) ?? controls.seatRequests[0];
   /* A removal vote or the end of the game has its own bar; "nobody is asking" would only add noise beside it.
      Past drafting it would only take height from the dock's tabs, so the bar comes back with the next request. */
   const otherBar = table.snapshot.removalVotes?.length || table.snapshot.ending || table.snapshot.result;
@@ -316,8 +320,7 @@ function PlayerBar({ client, table, readiness }: BarProps) {
     );
   }
   const more = controls.seatRequests.length - 1;
-  const grantable =
-    table.snapshot.stage === 'drafting' || (request.seat !== null && openSeats(table).includes(request.seat));
+  const grantable = grantableRequest(request);
   return (
     <DecisionBar
       readiness={readiness}

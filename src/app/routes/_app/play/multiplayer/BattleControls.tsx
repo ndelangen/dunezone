@@ -5,6 +5,7 @@ import { useFrame, useThree } from '@react-three/fiber/webgpu';
 import { troopCombatFaces } from '@shared/factions/troopCombat';
 import { isBattleLeader } from '@shared/play/battle';
 import type { BattlePlan, BattlePlanInput, CombatFace, PublicBattle } from '@shared/play/battle';
+import { snapshotFactionLabels } from '@shared/play/factionLabels';
 import type { TablePiece, Vector3Tuple } from '@shared/play/model';
 import { phaseAt, STANDARD_PHASES } from '@shared/play/phases';
 import { SPECTATOR_SEAT } from '@shared/play/schema';
@@ -406,7 +407,7 @@ function PlanFields({ client, table, plan, battle }: Props & { plan: BattlePlan;
             <BattleWheel
               plan={preview}
               factionId={factionId}
-              factionName={rosterName(factionId, table.state.factionNames)}
+              factionName={rosterName(factionId, snapshotFactionLabels(table.snapshot))}
               artwork={table.snapshot.factionArtwork}
             />
           </div>
@@ -546,7 +547,7 @@ export function BattleControls({ client, table }: Props) {
         <BattleResults
           results={battleResults}
           artwork={table.snapshot.factionArtwork}
-          names={table.state.factionNames}
+          names={snapshotFactionLabels(table.snapshot)}
         />
       )}
     </>
@@ -767,7 +768,7 @@ function SideContents({
       <BattleWheel
         plan={battle.revealed[index]}
         factionId={side!.factionId}
-        factionName={rosterName(side!.factionId, table.state.factionNames)}
+        factionName={rosterName(side!.factionId, snapshotFactionLabels(table.snapshot))}
         artwork={table.snapshot.factionArtwork}
         client={table.canInteract ? client : undefined}
         active={active}
@@ -779,7 +780,7 @@ function SideContents({
       <BattleWheelAsset
         state="unrevealed"
         motion={motion}
-        label={`${rosterName(side.factionId, table.state.factionNames)}, ${index === 0 ? 'left side, aggressor' : 'right side'}, ${side.ready ? 'Ready' : 'Preparing'}`}
+        label={`${rosterName(side.factionId, snapshotFactionLabels(table.snapshot))}, ${index === 0 ? 'left side, aggressor' : 'right side'}, ${side.ready ? 'Ready' : 'Preparing'}`}
         artwork={factionArtwork(side.factionId, table.snapshot.factionArtwork)}
         ready={side.ready}
       />
