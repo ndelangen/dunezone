@@ -1011,7 +1011,7 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     await runtime.clock(50_000);
     expect(await begin(connection, 'carry-past-history')).toMatchObject({ type: 'rejected' });
     await eventually(() => connection.closed, 'the socket closing for a reconnect');
-    expect(connection.closeCode).not.toBe(4401);
+    expect(connection.closeCode).toBe(1012);
     const { connection: reconnected } = await admit();
     expect((await begin(reconnected, 'carry-after-reconnect')).type).toBe('carry');
   }, 60_000);

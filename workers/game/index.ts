@@ -47,6 +47,7 @@ import type { SetAsideJudgement } from './drafting';
 import { FIXTURE_TREACHERY_DECK, hostedFixturePlan } from './fixture';
 import type { FixturePlan } from './fixture';
 import { isLocalIsolatedRuntime } from './localRuntime';
+import { CarryHistoryExhausted } from './room';
 import type { Metadata } from './session';
 import { GameSession, NotReady, readinessProblem } from './session';
 
@@ -1088,7 +1089,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       /* A capture that failed while a fence held its connection is refused once the fence lifts. */
       await this.outlastFence(socket, connection, suspensions);
       this.rejectMessage(socket, connection, message, error);
-      if (message.type === 'begin' && this.session.carryHistoryFull(connection.connectionId)) {
+      if (error instanceof CarryHistoryExhausted) {
         /* A connection that used every carry ID the room remembers can pick nothing up again, so the browser is sent to reconnect, as after a restart. */
         this.disconnect(socket);
         socket.close(1012, 'Reconnect to the table.');
