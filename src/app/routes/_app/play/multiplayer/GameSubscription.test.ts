@@ -355,3 +355,25 @@ test('coming back online probes the open socket and skips the wait before a reco
   await vi.advanceTimersByTimeAsync(0);
   expect(Socket.instances).toHaveLength(2);
 });
+
+test('a probe on coming back online gets a whole interval to be answered, and a wait the Worker asked for is kept (#1662)', async () => {
+  const { subscription, socket } = await subscribed();
+  socket.answersKeepalives = false;
+  await vi.advanceTimersByTimeAsync(KEEPALIVE_INTERVAL_MS - 1);
+  for (const listener of online) {
+    listener();
+  }
+  await vi.advanceTimersByTimeAsync(KEEPALIVE_INTERVAL_MS - 1);
+  expect(socket.readyState).toBe(1);
+  socket.onmessage?.({ data: KEEPALIVE_PONG });
+  await vi.advanceTimersByTimeAsync(1);
+  expect(subscription.ready).toBe(true);
+  socket.close(4413);
+  for (const listener of online) {
+    listener();
+  }
+  await vi.advanceTimersByTimeAsync(4999);
+  expect(Socket.instances).toHaveLength(1);
+  await vi.advanceTimersByTimeAsync(1);
+  expect(Socket.instances).toHaveLength(2);
+});

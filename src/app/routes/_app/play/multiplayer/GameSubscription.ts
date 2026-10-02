@@ -47,6 +47,8 @@ export class GameSubscription {
   private socket: GameSocket | null = null;
   private listener: ((event: GameSubscriptionEvent) => void) | null = null;
   private reconnectTimer: ReturnType<typeof setTimeout> | undefined;
+  /* Whether the waiting reconnect is the plain one-second retry, which a returning network may skip; a wait the Worker asked for may not be. */
+  private reconnectSkippable = false;
   private admissionTimer: ReturnType<typeof setTimeout> | undefined;
   private keepaliveTimer: ReturnType<typeof setInterval> | undefined;
   /* Keepalive ticks since the socket last delivered any frame, its answers included (#1662). */
@@ -150,6 +152,7 @@ export class GameSubscription {
       return;
     }
     clearTimeout(this.reconnectTimer);
+    this.reconnectSkippable = delay <= 1000;
     this.reconnectTimer = setTimeout(() => {
       this.reconnectTimer = undefined;
       void this.open();
@@ -267,9 +270,7 @@ export class GameSubscription {
       }
       socket.send(JSON.stringify({ type: 'admit', ticket }));
       ticket = '';
-      clearInterval(this.keepaliveTimer);
-      this.silentTicks = 0;
-      this.keepaliveTimer = setInterval(() => this.keepAlive(socket), KEEPALIVE_INTERVAL_MS);
+      this.startKeepalive(socket, 0);
     };
     socket.onmessage = (event) => this.receiveSocketMessage(socket, event.data);
     socket.onclose = (event) => {
@@ -337,6 +338,12 @@ export class GameSubscription {
     socket.send(KEEPALIVE_PING);
   }
 
+  private startKeepalive(socket: GameSocket, silentTicks: number) {
+    clearInterval(this.keepaliveTimer);
+    this.silentTicks = silentTicks;
+    this.keepaliveTimer = setInterval(() => this.keepAlive(socket), KEEPALIVE_INTERVAL_MS);
+  }
+
   private dropSilentSocket(socket: GameSocket) {
     this.socket = null;
     clearTimeout(this.admissionTimer);
@@ -349,22 +356,23 @@ export class GameSubscription {
     this.scheduleReconnect();
   }
 
-  /* Coming back online reconnects at once when a reconnect is waiting, and otherwise asks the open socket to prove it still works. */
+  /* Coming back online reconnects at once when the plain retry is waiting, and otherwise asks the open socket to prove it still works. */
   private networkReturned() {
     if (!this.listener || this.status === 'denied') {
       return;
     }
     const socket = this.socket;
     if (!socket) {
-      if (this.reconnectTimer !== undefined) {
+      if (this.reconnectTimer !== undefined && this.reconnectSkippable) {
         clearTimeout(this.reconnectTimer);
         this.reconnectTimer = undefined;
         void this.open();
       }
       return;
     }
+    /* The probe counts as a tick already, and the interval restarts so its answer always has a whole interval to arrive. */
     if (socket.readyState === 1) {
-      this.silentTicks = 1;
+      this.startKeepalive(socket, 1);
       socket.send(KEEPALIVE_PING);
     }
   }
