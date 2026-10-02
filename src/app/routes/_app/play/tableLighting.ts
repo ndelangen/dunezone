@@ -9,7 +9,7 @@ const TABLE_LIGHTING_STORAGE_KEY = 'dunezone-table-lighting';
 
 export const TABLE_LIGHTING_MIN = 0.4;
 export const TABLE_LIGHTING_MAX = 1.4;
-export const TABLE_LIGHTING_DEFAULT = 1;
+const TABLE_LIGHTING_DEFAULT = 1;
 
 const listeners = new Set<() => void>();
 
