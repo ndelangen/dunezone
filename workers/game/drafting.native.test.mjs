@@ -472,6 +472,22 @@ describe('Drafting and public assignment on a real game', () => {
     expect((await syncView(watcher)).viewer.viewerSeat).toBe('seat-2');
   });
 
+  it('takes a withdrawal of readiness sent before a seat request, so the deal never goes ahead with a player who withdrew', async () => {
+    const a = await admit('a');
+    const b = await admit('b');
+    await seat(b, a);
+    const watcher = await admit('w');
+    const seen = await accepted(a, { kind: 'draft-ready', ready: true });
+    /* A spectator's request moves the revision but leaves the draft as A saw it. */
+    await accepted(watcher, { kind: 'seat-request' });
+    const withdrawn = await sendCommand(a, { kind: 'draft-ready', ready: false }, undefined, seen.snapshot.revision);
+    expect(withdrawn.reply.type).not.toBe('rejected');
+    await accepted(b, { kind: 'draft-ready', ready: true });
+    const view = await syncView(b);
+    expect(view.snapshot.stage).toBe('drafting');
+    expect(view.snapshot.draft.ready).toEqual(['seat-2']);
+  });
+
   it("clears readiness on a roster change, drops a departing player's lists, and reads the catalogue again when stale", async () => {
     const a = await admit('a');
     const b = await admit('b');

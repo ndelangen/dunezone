@@ -104,6 +104,11 @@ export class CarryHistoryExhausted extends GameRejection {}
 /** Readiness confirms the table its sender saw, so it may cross other readiness but never a change it would have answered. */
 const READINESS_ACTIONS = new Set<string>(['ready', 'draft-ready', 'swap-ready']);
 
+/** Withdrawing readiness confirms no table, so it never waits on the revision; the stage, round or step it names still judges it. */
+function withdrawsReadiness(action: { kind: string; ready?: boolean }) {
+  return READINESS_ACTIONS.has(action.kind) && action.ready === false;
+}
+
 /** Whether a commit left the game at the same stage, phase, setup step and trading round. */
 function samePlace(before: GameSnapshot, after: GameSnapshot) {
   return (
@@ -137,11 +142,17 @@ export class Room {
   }
 
   /** Refuses a command sent against a table that has since changed in a way the command depends on. */
-  assertRevision(kind: string, expectedRevision: number, message = 'The table changed. Try the action again.') {
+  assertRevision(
+    action: { kind: string; ready?: boolean },
+    expectedRevision: number,
+    message = 'The table changed. Try the action again.'
+  ) {
+    const { kind } = action;
     const current = this.snapshot.revision;
     const crossed =
       expectedRevision < current &&
       (REVISION_TOLERANT_ACTIONS.has(kind) ||
+        withdrawsReadiness(action) ||
         (READINESS_ACTIONS.has(kind) && expectedRevision >= this.settledRevision));
     if (expectedRevision !== current && !crossed) {
       throw new GameRejection(message);
@@ -730,7 +741,7 @@ export class Room {
 
   private assertCommand(identity: Identity, action: PieceAction, expectedRevision: number) {
     this.player(identity);
-    this.assertRevision(action.kind, expectedRevision);
+    this.assertRevision(action, expectedRevision);
     if ('pieceId' in action) {
       this.available(action.pieceId);
       if (this.snapshot.table.pieces.find((piece) => piece.id === action.pieceId)?.inventory) {
