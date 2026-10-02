@@ -425,6 +425,18 @@ export const ConnectingStill = meta.story({
   },
 });
 
+/* A table the browser cannot reach says so through every retry instead of reading as still connecting, and the way back to the lobby stays. */
+export const Unreachable = meta.story({
+  beforeEach: install(() => productTransport('seat-2', initialSnapshot(), { unreachable: true })),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const status = await page.findByText('The table could not be reached. Reconnecting...', {}, { timeout: 30_000 });
+    await waitFor(() => expect(finishTransitions(status)).toBeVisible());
+    expect(page.getByRole('link', { name: 'Back to lobby' })).toBeVisible();
+    expect(page.queryByText('Connecting to the hosted table...')).toBeNull();
+  },
+});
+
 export const SharedPhaseControls = meta.story({
   beforeEach: install(() => productTransport('seat-2')),
   play: async ({ canvasElement }) => {
