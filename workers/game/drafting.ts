@@ -158,6 +158,7 @@ export type SetAsideJudgement = { judged: readonly string[]; stillAside: Readonl
  * A faction the refresh judged stays aside only if it is still refused;
  * one a deal set aside while the refresh ran stays as it is.
  * A refresh that changes the drafted pool, by returning a faction or losing one, clears readiness: the players readied for another pool.
+ * A refresh that changes the pool or returns a set-aside faction drops the last deal's failure, which named a pool that is gone.
  */
 export function draftWithCatalogue(
   draft: DraftState,
@@ -175,7 +176,12 @@ export function draftWithCatalogue(
   const before = draftedPool(draft);
   const after = draftedPool(refreshed);
   const changed = before.length !== after.length || after.some((id) => !before.includes(id));
-  return { ...refreshed, ready: changed ? [] : draft.ready };
+  const returned = Object.keys(draft.setAside ?? {}).some((id) => !(id in refreshed.setAside));
+  return {
+    ...refreshed,
+    ready: changed ? [] : draft.ready,
+    failure: changed || returned ? null : draft.failure,
+  };
 }
 
 /**
