@@ -210,7 +210,9 @@ export function ScenePresence() {
   const { canInteract, publishPointer } = useTabletop();
   const { subscribePointers, getPointers } = useTabletopActions();
   const pointers = useSyncExternalStore(subscribePointers, getPointers);
-  const { camera, renderer, scene } = useThree();
+  const camera = useThree((state) => state.camera);
+  const renderer = useThree((state) => state.renderer);
+  const scene = useThree((state) => state.scene);
   const raycaster = useMemo(() => new Raycaster(), []);
   const normalized = useMemo(() => new Vector2(), []);
   const lastScreenPoint = useRef<{ x: number; y: number } | null>(null);

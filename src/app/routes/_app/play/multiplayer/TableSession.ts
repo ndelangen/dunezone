@@ -124,6 +124,9 @@ export type ConnectionView = {
 };
 export type LogPage = Extract<ServerMessage, { type: 'log-history' }>;
 
+/* How often a table hearing only pointer moves re-saves its kept copy, so a reload knows it was live recently. */
+const POINTER_KEEP_INTERVAL_MS = 5000;
+
 /* A table a reloaded tab kept from its last visit: read-only, with nothing in hand or in motion, until a fresh view replaces it. */
 function storedProjection({ viewer, snapshot, serverNow }: StoredTable): TableProjection {
   const state = {
@@ -196,6 +199,7 @@ export class TableSession {
   private traitorsGathered = 0;
   private queuedCatalogue: { requestId: string; selection?: SpawnSelection } | null = null;
   private phaseCooldownUntil = 0;
+  private keptOnPointersAt = Number.NEGATIVE_INFINITY;
   private battleCountdownUntil = 0;
   private pendingBattlePlan: { commandId: string; battleId: string; patch: Partial<BattlePlanInput> } | null = null;
   private queuedBattlePlan: { battleId: string; patch: Partial<BattlePlanInput> } | null = null;
@@ -243,6 +247,14 @@ export class TableSession {
       ...(stored.liveAt === undefined ? {} : { liveAt: stored.liveAt }),
     };
     this.lastLive = { table: storedProjection(stored), serverNow: () => stored.serverNow };
+  }
+  /* A table that hears only pointers still stamps its saved copy as live, now and then rather than on every move. */
+  private keepWhilePointersMove() {
+    const now = this.runtime.monotonicNow();
+    if (now - this.keptOnPointersAt >= POINTER_KEEP_INTERVAL_MS) {
+      this.keptOnPointersAt = now;
+      this.keep();
+    }
   }
   private keep() {
     const live = this.subscription.getSnapshot();
@@ -321,9 +333,12 @@ export class TableSession {
       !table.reconnecting &&
       message.epoch === this.epoch &&
       message.carries === this.carries &&
-      table.phaseCooling === this.runtime.monotonicNow() < this.phaseCooldownUntil &&
+      table.phaseCooling === this.phaseCooling() &&
       table.battleCountdownSeconds === this.battleCountdownSeconds()
     );
+  }
+  private phaseCooling() {
+    return this.runtime.monotonicNow() < this.phaseCooldownUntil;
   }
   private battleCountdownSeconds() {
     return Math.max(0, Math.ceil((this.battleCountdownUntil - this.runtime.monotonicNow()) / 1000));
@@ -427,7 +442,7 @@ export class TableSession {
       reconnecting: false,
       seatCommandPending: this.seatCommandInFlight !== null,
       traitorsGathered: this.traitorsGathered,
-      phaseCooling: this.runtime.monotonicNow() < this.phaseCooldownUntil,
+      phaseCooling: this.phaseCooling(),
       battleCountdownSeconds: this.battleCountdownSeconds(),
       state,
       renderedPieces,
@@ -530,6 +545,7 @@ export class TableSession {
         if (this.movesOnlyPointers(message)) {
           this.pointers = message.pointers;
           this.emitPointers();
+          this.keepWhilePointersMove();
           return;
         }
         this.receiveRoomUpdate(message);
@@ -793,7 +809,7 @@ export class TableSession {
     }
     if (
       this.cached.table?.snapshot.battle?.stage === 'countdown' ||
-      (this.cached.table?.phaseCooling && this.runtime.monotonicNow() >= this.phaseCooldownUntil)
+      (this.cached.table?.phaseCooling && !this.phaseCooling())
     ) {
       this.emit();
     }

@@ -1427,6 +1427,32 @@ describe('pointer moves', () => {
     expect(table(client).renderedPieces.find((piece) => piece.id === source.id)?.position).toEqual([2, 0.38, 2]);
   });
 
+  test('a table hearing only pointer moves still re-saves its kept copy, a few seconds apart', async () => {
+    const tables = { read: () => null, save: vi.fn(), clear: vi.fn() };
+    const client = new TableSession('fixture-one', ticket, { ...runtime, tables });
+    disconnect = client.connect();
+    await vi.advanceTimersByTimeAsync(0);
+    socket().open();
+    authorize(initialSnapshot(), viewer);
+    socket().deliver(view({ sequence: 1 }));
+    pointerUpdate(2, { pointers: [other] });
+    const move = (sequence: number) =>
+      pointerUpdate(sequence, {
+        pointerMoves: [{ connectionId: 'other', position: [sequence, 0, 0], updatedAt: sequence }],
+      });
+
+    /* The pointer arriving was itself a pointer-only update, so it saved. */
+    tables.save.mockClear();
+    move(3);
+    move(4);
+    expect(tables.save).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(5000);
+    move(5);
+    expect(tables.save).toHaveBeenCalledTimes(1);
+    expect(tables.save).toHaveBeenLastCalledWith('fixture-one', expect.anything(), true);
+    expect(client.getPointers()).toMatchObject([{ position: [5, 0, 0] }]);
+  });
+
   test("a pointer move does not hide the phase cooldown's end", async () => {
     const client = await connected();
     socket().deliver({ ...view({ sequence: 1 }), phaseCooldownMs: 1500 });
