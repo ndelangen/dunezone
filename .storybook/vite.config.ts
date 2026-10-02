@@ -74,6 +74,8 @@ export default defineConfig({
       '@react-three/fiber/webgpu',
       'three',
     ],
+    /* The prebundled table runs the same fiber and drei code as the build. */
+    rolldownOptions: { plugins: [threeRendererStackTreeShaking()] },
   },
   resolve: {
     // Keep Storybook path resolution aligned with the app config.

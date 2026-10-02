@@ -70,19 +70,24 @@ function wrapHookStatics(bundle: Bundle, index: number): number {
   const name = ((statement.id as Node | null)?.name as string | undefined) ?? '';
   const range = { first: index, last: name ? lastStaticAssignment(bundle, index, name) : index };
   const enclosed = bundle.body.slice(index + 1, range.last).flatMap(declaredNames);
-  if (range.last === index || enclosed.some((binding) => binding === '' || namedOutside(bundle, range, binding))) {
+  const movable = (binding: string) => binding !== '' && !namedOutside(bundle, range, binding);
+  if (range.last === index || !enclosed.every(movable)) {
     return index;
   }
   bundle.edits.push({ at: statement.start, text: `const ${name} = /* @__PURE__ */ (() => { ` });
-  bundle.edits.push({ at: bundle.body[range.last].end, text: ` return ${name}; })();` });
+  bundle.edits.push({ at: bundle.body[range.last].end, text: `; return ${name}; })();` });
   return range.last;
 }
 
-/** drei: `const KTX2LoaderService = globalThis[SERVICE_KEY] || (globalThis[SERVICE_KEY] = new KTX2LoaderServiceImpl());` becomes a pure call. */
+/**
+ * drei: `const KTX2LoaderService = globalThis[SERVICE_KEY] || (globalThis[SERVICE_KEY] = new KTX2LoaderServiceImpl());` becomes a pure call.
+ * Only that one: fiber's `context` and `catalogue` use the same pattern to share state across copies, and that registration must stay.
+ */
 function wrapGlobalSingletons(bundle: Bundle, statement: Node): void {
   const declarators = statement.type === 'VariableDeclaration' ? (statement.declarations as Node[]) : [];
-  for (const init of declarators.map((declarator) => declarator.init as Node | null)) {
-    if (init?.type === 'LogicalExpression' && bundle.code.startsWith('globalThis[', init.start)) {
+  for (const declarator of declarators) {
+    const init = declarator.init as Node | null;
+    if ((declarator.id as Node).name === 'KTX2LoaderService' && init?.type === 'LogicalExpression') {
       bundle.edits.push({ at: init.start, text: '/* @__PURE__ */ (() => ' });
       bundle.edits.push({ at: init.end, text: ')()' });
     }
