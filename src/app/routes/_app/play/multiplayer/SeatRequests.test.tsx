@@ -96,3 +96,24 @@ test('playback in play leaves the controls to the Phase tab', () => {
   renderPlayback('play', 2);
   expect(screen.queryByText(/Playback checkpoint/)).toBeNull();
 });
+
+test('giving up a seat in play names the seat that stays open at the start of the sentence', () => {
+  const table = {
+    snapshot: { stage: 'play', controls: { seats: ['seat-1', 'seat-2', 'seat-4'] } },
+    viewer: { viewerSeat: 'seat-4' },
+    playback: null,
+    seatCommandPending: false,
+  } as unknown as Parameters<typeof SeatRequests>[0]['table'];
+  render(
+    <MantineProvider theme={appContentTheme}>
+      <SeatRequests
+        client={{ command: vi.fn() } as unknown as TableSession}
+        table={table}
+        error={null}
+        leaving
+        onStay={() => {}}
+      />
+    </MantineProvider>
+  );
+  expect(screen.getByText('Seat 4 stays open with its faction for a replacement.')).toBeTruthy();
+});
