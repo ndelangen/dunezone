@@ -62,6 +62,8 @@ export class GameSubscription {
   private current: RoomView | null = null;
   /* Whether this attempt has shown the table once: a suspended admission before that is still the first connect, not a pause. */
   private sawView = false;
+  /* The Worker's name for the last connection that showed the table; the next admission asks the Worker to retire it, since a connection lost without a close frame still holds its carry and pointer there. */
+  private connectionId: string | undefined;
   private wireView: RoomView | null = null;
   private resyncing = false;
   private connectionStatus: Status = 'connecting';
@@ -282,7 +284,12 @@ export class GameSubscription {
       }
       /* The Worker answered, so whatever happens next is not a table that could not be reached. */
       this.retryReason = null;
-      socket.send(JSON.stringify({ type: 'admit', ticket }));
+      const admit: ClientMessage = {
+        type: 'admit',
+        ticket,
+        ...(this.connectionId ? { replaces: this.connectionId } : {}),
+      };
+      socket.send(JSON.stringify(admit));
       ticket = '';
       this.startKeepalive(socket, 0);
     };
@@ -450,6 +457,7 @@ export class GameSubscription {
 
   private receiveView(message: RoomView) {
     this.sawView = true;
+    this.connectionId = message.viewer.connectionId;
     this.admissionRetries = 0;
     this.retryReason = null;
     const previous = this.acceptView(message);

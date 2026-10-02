@@ -498,3 +498,13 @@ test('a refusal that arrives only as the close code still says why', async () =>
     error: 'This login can no longer access the table.',
   });
 });
+
+test('a reconnect names the connection that last showed the table, so the Worker can retire it', async () => {
+  const { socket } = await subscribed();
+  expect(socket.sent[0]).toEqual({ type: 'admit', ticket: 'a'.repeat(64) });
+  socket.close(1006);
+  await vi.advanceTimersByTimeAsync(1000);
+  const next = Socket.instances.at(-1)!;
+  next.open();
+  expect(next.sent[0]).toEqual({ type: 'admit', ticket: 'a'.repeat(64), replaces: 'one' });
+});

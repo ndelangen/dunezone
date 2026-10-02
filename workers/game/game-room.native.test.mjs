@@ -664,6 +664,39 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     return watcher.messages.slice(before).filter((frame) => frame.type === 'view' || frame.type === 'update');
   }
 
+  it('closes the connection a reconnecting page replaces, so its carry and pointer leave with it, but never one of another player', async () => {
+    expect((await provision(runtime)).status).toBe(200);
+    const { connection: lost, view } = await admit();
+    const { connection: watcher, view: watching } = await admitWatcher();
+    lost.send({
+      type: 'begin',
+      carryId: 'ghost',
+      sourcePieceId: 'harkonnen-force-stack',
+      expectedVersion: 0,
+      pickup: 'top',
+    });
+    await lost.message('carry');
+    lost.send({ type: 'pointer', seq: 0, position: [1, 0.38, 0] });
+    await watcher.message('view', (message) => message.carries.length === 1 && message.pointers.length === 1);
+    /* The network died without a close frame, so the Worker still holds the old socket when the page reconnects. */
+    peer.registrationId = 'registration-a';
+    const before = watcher.messages.length;
+    const reconnected = await openGame(runtime);
+    reconnected.send({ type: 'admit', ticket: 'e'.repeat(64), replaces: view.viewer.connectionId });
+    const rejoined = await reconnected.message('view');
+    expect(rejoined.carries).toEqual([]);
+    expect(rejoined.pointers).toEqual([]);
+    await eventually(() => lost.closed, 'the replaced connection closing');
+    await watcher.message('update', (message) => message.activity.removedCarries.includes('ghost'));
+    expect(watcher.messages.slice(before).filter((message) => message.type === 'admission')).toEqual([]);
+    /* A page can name only a connection of its own player. */
+    const other = await openGame(runtime);
+    other.send({ type: 'admit', ticket: 'f'.repeat(64), replaces: watching.viewer.connectionId });
+    await other.message('view');
+    await syncView(watcher);
+    expect(watcher.closed).toBe(false);
+  });
+
   it('renews a held carry without a frame to other viewers, and the renewals keep it past 8 s', async () => {
     expect((await provision(runtime)).status).toBe(200);
     const { connection: holder } = await admit();

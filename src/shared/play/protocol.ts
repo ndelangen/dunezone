@@ -151,7 +151,12 @@ export const clientMessageSchema = z.discriminatedUnion('type', [
     text: conversationTextSchema,
   }),
   z.strictObject({ type: z.literal('conversation-read'), requestId: id, factionId: id, peerId: id, through: count }),
-  z.strictObject({ type: z.literal('admit'), ticket: z.string().regex(/^[a-f0-9]{64}$/) }),
+  z.strictObject({
+    type: z.literal('admit'),
+    ticket: z.string().regex(/^[a-f0-9]{64}$/),
+    /* The connection this page held before it reconnected, which the Worker retires once this one is admitted. */
+    replaces: id.optional(),
+  }),
   z.strictObject({
     type: z.literal('begin'),
     carryId: id,

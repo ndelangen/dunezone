@@ -555,7 +555,7 @@ describe('hosted table admission', () => {
     old.deliver(view({ epoch: 'old' }));
     expectLocked(client);
     expect(issue).toHaveBeenCalledTimes(2);
-    expect(socket().sent).toEqual([{ type: 'admit', ticket: '2'.repeat(64) }]);
+    expect(socket().sent).toEqual([{ type: 'admit', ticket: '2'.repeat(64), replaces: 'connection-one' }]);
     authorize(initialSnapshot(), { ...viewer, connectionId: 'connection-two' });
     expect(table(client).viewer.connectionId).toBe('connection-two');
   });
@@ -1375,7 +1375,7 @@ describe('fresh reconnect recovery', () => {
       expect(table(client).renderedPieces.find((piece) => piece.id === source.id)?.position).toEqual(
         committed ? position : source.position
       );
-      expect(socket().sent).toEqual([{ type: 'admit', ticket: 'a'.repeat(64) }]);
+      expect(socket().sent).toEqual([{ type: 'admit', ticket: 'a'.repeat(64), replaces: 'connection-one' }]);
       expect(client.getSnapshot().error).toBe('The connection dropped as you placed a piece. Check where it landed.');
     }
   );
