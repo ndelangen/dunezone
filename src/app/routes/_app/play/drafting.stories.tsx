@@ -11,6 +11,7 @@ import {
   lastCommand,
   MIDWAY,
   press,
+  seatPopover,
   session,
   shows,
 } from './game.stories.fixture';
@@ -108,7 +109,7 @@ export const ChoosingFactions = meta.story({
 export const Observer = meta.story({
   beforeEach: install(() => productTransport('neutral', draftingSnapshot(SIX, 6, MIDWAY))),
   play: async ({ canvasElement }) => {
-    const bar = await decisionBar(canvasElement, 'You are watching');
+    const bar = await seatPopover(canvasElement, 'You are watching');
     await shows(() => bar().getByText('Take a seat in this game?'));
     const page = within(canvasElement.ownerDocument.body);
     await shows(() => page.getByRole('region', { name: 'Drafted factions' }));
@@ -180,7 +181,7 @@ export const FactionSetAside = meta.story({
 export const SpectatorAsksForASeat = meta.story({
   beforeEach: install(() => productTransport('neutral', drafting())),
   play: async ({ canvasElement }) => {
-    const bar = await decisionBar(canvasElement, 'You are watching');
+    const bar = await seatPopover(canvasElement, 'You are watching');
     await shows(() => bar().getByText('Take a seat in this game?'));
     await shows(() => bar().getByText(/1 player is drafting/));
     await press(() => bar().getByRole('button', { name: 'Request a seat' }));
@@ -194,7 +195,7 @@ export const SeatedSpectatorLandsOnDrafting = meta.story({
   beforeEach: install(() => productTransport('neutral', drafting())),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await decisionBar(canvasElement, 'You are watching');
+    await shows(() => page.getByRole('button', { name: 'Seats' }));
     /* A spectator's dock holds the Log alone, so that is where it opens. */
     await shows(() => page.getByRole('tab', { name: 'Log' }));
     expect(page.queryByRole('tab', { name: 'Drafting' })).toBeNull();
@@ -216,7 +217,7 @@ export const WaitingForApproval = meta.story({
     productTransport('neutral', drafting([{ id: 'seat-request-2', requesterName: 'Klyzx', seat: null, own: true }]))
   ),
   play: async ({ canvasElement }) => {
-    const bar = await decisionBar(canvasElement, 'Seat requested');
+    const bar = await seatPopover(canvasElement, 'Seat requested');
     await shows(() => bar().getByText('Waiting for a player to approve you'));
     await press(() => bar().getByRole('button', { name: 'Withdraw' }));
     await waitFor(() => expect(lastCommand()).toMatchObject({ type: 'command', action: { kind: 'seat-withdraw' } }));
@@ -279,8 +280,8 @@ export const PlayerLeavesTheGame = meta.story({
 export const SpectatorGameMenu = meta.story({
   beforeEach: install(() => productTransport('neutral', drafting())),
   play: async ({ canvasElement }) => {
-    await decisionBar(canvasElement, 'You are watching');
     const page = within(canvasElement.ownerDocument.body);
+    await shows(() => page.getByRole('button', { name: 'Seats' }));
     await press(() => page.getByRole('button', { name: 'Game menu' }));
     await waitForFrame(() =>
       expect(page.getByRole('menuitem', { name: 'Give up your seat' })).toHaveAttribute('data-disabled')

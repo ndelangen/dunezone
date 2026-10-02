@@ -83,6 +83,17 @@ export async function decisionBar(canvasElement: HTMLElement, name: string) {
   return bar;
 }
 
+/** Opens a spectator's seat from the header toolbar and reads it as the named region. */
+export async function seatPopover(canvasElement: HTMLElement, name: string) {
+  const page = within(canvasElement.ownerDocument.body);
+  await expect(
+    page.findByRole('heading', { name: 'Dreamrules', level: 1 }, { timeout: 30_000 })
+  ).resolves.toBeVisible();
+  await press(() => page.getByRole('button', { name: 'Seats' }));
+  await waitFor(() => expect(page.getByRole('region', { name })).toBeVisible(), { timeout: 30_000 });
+  return () => within(page.getByRole('region', { name }));
+}
+
 /** Reads text under a fresh query until the remounting scene lets it settle. */
 export const shows = (read: () => HTMLElement) => waitFor(() => expect(read()).toBeVisible(), { timeout: 30_000 });
 

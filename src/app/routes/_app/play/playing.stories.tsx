@@ -853,12 +853,18 @@ export const PanelSchemeIsland = meta.story({
     await userEvent.keyboard('{Escape}');
     await waitForFrame(() => expect(page.queryByRole('menu')).toBeNull());
     const help = page.getByRole('button', { name: 'Help: Faction bank' });
+    /* By its words: the tab the panel opened from can show its own name tip at the same time. */
+    const bankTip = () =>
+      page.queryAllByRole('tooltip').find((tip) => tip.textContent?.includes('Only you see this balance')) ?? null;
     await userEvent.hover(help);
-    const tooltip = await waitForFrame(() => page.getByRole('tooltip'));
-    expect(tooltip).toHaveTextContent('Only you see this balance');
+    const tooltip = await waitForFrame(() => {
+      const tip = bankTip();
+      expect(tip).not.toBeNull();
+      return tip!;
+    });
     expect(view.getComputedStyle(tooltip).backgroundColor).toBe(glass);
     await userEvent.unhover(help);
-    await waitForFrame(() => expect(page.queryByRole('tooltip')).toBeNull());
+    await waitForFrame(() => expect(bankTip()).toBeNull());
     root.setAttribute('data-mantine-color-scheme', 'dark');
     expect(paint()).toEqual(light);
   },
