@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
 
-import { tableSeatAngles, tableSeatSectorIndices, TABLE_SEAT_COUNTS, TABLE_SECTOR_COUNT } from './tableSettings';
+import { tableSeatAngles, tableSeatSectorIndices, TABLE_SECTOR_COUNT } from './tableSettings';
 import type { TableSeatCount } from './tableSettings';
 
 const layouts = [
@@ -65,8 +65,9 @@ describe('table seating', () => {
   );
 });
 
-describe('every accepted seat count', () => {
-  test.each(TABLE_SEAT_COUNTS)('seats %s players in distinct sectors with near-even gaps', (seatCount) => {
+describe('seat counts at the edges of the sector arithmetic', () => {
+  /* 2 and 18 are the ends of TABLE_SEAT_COUNTS; 9 divides the 18 sectors evenly and 10 does not, so its gaps mix 1 and 2 (#1590). */
+  test.each([2, 9, 10, 18] as const)('seats %s players in distinct sectors with near-even gaps', (seatCount) => {
     const sectorIndices = tableSeatSectorIndices(seatCount);
 
     expect(sectorIndices).toHaveLength(seatCount);

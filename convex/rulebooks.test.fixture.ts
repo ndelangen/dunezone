@@ -7,6 +7,8 @@ import type { TestConvex } from 'convex-test';
 
 import { createRulebookStarterContents } from '../src/shared/rulebooks/fixtures';
 import { rulebookNameKey } from '../src/shared/rulebooks/metadata';
+import { rulebookDesignCatalogue, rulebookSizeCatalogue } from '../src/shared/rulebooks/settings';
+import type { RulebookSettings } from '../src/shared/rulebooks/settings';
 import type { Id } from './_generated/dataModel';
 import { applicationTriggers } from './lib/applicationTriggers';
 import schema from './schema';
@@ -51,6 +53,18 @@ function createRulebookSeeder(t: RulebookTest, ids: RulebookFixtureIds) {
       }
       return rulebookIds;
     });
+}
+
+/**
+ * Settings rows in which every Size and every Design appears at least once, rather than the full product.
+ * The server hands settings through unchanged, so a pair proves nothing its two values have not shown on their own, and a Size or Design added to a catalogue still gets a row (#1590).
+ */
+export function coveringRulebookSettings(): RulebookSettings[] {
+  const rows = Math.max(rulebookSizeCatalogue.length, rulebookDesignCatalogue.length);
+  return Array.from({ length: rows }, (_, index) => ({
+    size: rulebookSizeCatalogue[index % rulebookSizeCatalogue.length]!.id,
+    design: rulebookDesignCatalogue[index % rulebookDesignCatalogue.length]!.id,
+  }));
 }
 
 export async function rulebookFixture() {
