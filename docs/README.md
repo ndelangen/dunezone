@@ -48,7 +48,7 @@ bun run storybook:test:shard <shard> # One CI shard of the story suite, named in
 bun run storybook        # Storybook dev (port 6006)
 bun run build-storybook  # Static Storybook → storybook-static
 bun run verify:storybook-publication # Public bytes, headers, isolation, and browser runtime
-bun run generate         # Regenerate the asset-id vocabulary in src/shared/assetIds.ts
+bun run generate         # Regenerate the asset-id vocabulary in src/shared/assetIds.ts, already formatted
 bun run publisher:release:verify # Exact pre-PR publisher build, manifest, and dry-run gate
 ```
 
@@ -56,6 +56,9 @@ bun run publisher:release:verify # Exact pre-PR publisher build, manifest, and d
 `typescript` 6.x development dependency remains intentionally installed because Storybook's
 React Component Meta integration still imports the legacy compiler API; it is not the compiler
 used by the application or publisher typecheck scripts.
+
+A fresh checkout or worktree needs `bun run generate:images` once before `bun run typecheck`:
+it writes `src/game/data/assetMap.generated.ts`, which is gitignored and which the app imports.
 
 The pinned Fiber patch removes its ambient Three JSX declarations from React's namespaces.
 Those declarations make even a DOM `React.ElementType` enumerate Three's catalogue, which
