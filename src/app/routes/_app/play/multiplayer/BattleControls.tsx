@@ -7,6 +7,7 @@ import { isBattleLeader } from '@shared/play/battle';
 import type { BattlePlan, BattlePlanInput, CombatFace, PublicBattle } from '@shared/play/battle';
 import type { TablePiece, Vector3Tuple } from '@shared/play/model';
 import { phaseAt, STANDARD_PHASES } from '@shared/play/phases';
+import { SPECTATOR_SEAT } from '@shared/play/schema';
 import { BOARD_RADIUS } from '@shared/play/tableGeometry';
 import { trackerArcSlots } from '@shared/play/tableTrackers';
 import { resolveRulebookBoardDefinition } from '@shared/rulebooks/boardDefinitions';
@@ -524,7 +525,11 @@ export function BattleControls({ client, table }: Props) {
           <PlanFields client={client} table={table} plan={battlePlan} battle={battle} />
         ) : (
           <Text size="sm">
-            {battle ? 'Claim a side on the table to prepare your private plan.' : 'No battle in progress.'}
+            {!battle
+              ? 'No battle in progress.'
+              : table.viewer.viewerSeat === SPECTATOR_SEAT
+                ? 'Only the two sides see their plans until the reveal.'
+                : 'Claim a side on the table to prepare your private plan.'}
           </Text>
         )}
       </Section>
@@ -796,7 +801,8 @@ function BattleSides(props: ActiveProps) {
 function BattleCallout({ client, table, battle, placement }: Props & { battle: PublicBattle; placement: Placement }) {
   const pointerSession = usePointerSession();
   const { anchor, capsule } = placement;
-  const own = battle.sides.findIndex((side) => side?.factionId === table.snapshot.bank?.factionId);
+  const faction = table.snapshot.bank?.factionId;
+  const own = faction ? battle.sides.findIndex((side) => side?.factionId === faction) : -1;
   const props = { client, table, battle, own };
   /* Html reads its position only in its own frame and the table draws on demand, so the capsule is projected in that frame: `capsule` from state commits after the frame that computed it, and Html would not read it until something else asked for a frame. */
   return (
