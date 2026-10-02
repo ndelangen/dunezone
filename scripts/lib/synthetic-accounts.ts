@@ -38,7 +38,7 @@ export function passwordDigest(password: string) {
 const ACCOUNTS_PER_MUTATION = 6;
 
 /**
- * Creates each account that does not exist yet through the synthetic backend's test control; `admin` carries the admin key.
+ * Creates each account that does not exist yet through the synthetic backend's test control, with `admin` carrying the admin key.
  * Each password goes as Scrypt and as a salted SHA-256, and the control keeps the one the backend's Password checks.
  */
 export async function provisionAccounts(admin: ConvexHttpClient, accounts: SyntheticAccount[]) {

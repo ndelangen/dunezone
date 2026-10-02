@@ -21,7 +21,7 @@ export function checksPasswordDigest() {
   return process.env.PLAY_TEST_PASSWORD_DIGEST === 'sha256' && isIsolatedLoopbackBackend();
 }
 
-/** Whether `secret` is in the stored form of a digest; it says nothing about which password it matches. */
+/** Whether `secret` is in the stored form of a digest, whichever password it matches. */
 export function isPasswordDigest(secret: string) {
   return PASSWORD_DIGEST.test(secret);
 }

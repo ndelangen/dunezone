@@ -30,7 +30,7 @@ afterEach(() => {
 });
 
 /**
- * Production registers no Password provider at all; this is the second guard.
+ * Production keeps E2E_LOCAL_AUTH off and so registers no Password provider, and this is the guard behind that.
  * Each case leaves one condition unmet, and the hosted URLs stand for any deployment Convex hosts.
  */
 describe('which backends check a digest', () => {
