@@ -695,7 +695,7 @@ function ConnectedTable({
   /* A finished game keeps its panels and playback; only the phase controls stop. */
   const tabled = inPlay || stage === 'finished';
   return (
-    <TabletopSessionProvider session={client} table={table}>
+    <TabletopSessionProvider session={client}>
       {/* A boxless wrapper carries the connection state the browser verification waits on, whichever tab is open. */}
       <div data-connection={connection} data-revision={table.liveRevision} style={{ display: 'contents' }}>
         <GameTable

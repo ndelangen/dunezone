@@ -10,7 +10,7 @@ import type { Group } from 'three';
 import { Raycaster, Vector2, Vector3 } from 'three';
 
 import { unsettledArtworkLoads } from './artworkLoads';
-import { useTabletop, useTabletopActions } from './TabletopContext';
+import { useTabletopActions, useTabletopCommands, useTabletopSelector } from './TabletopContext';
 
 function rectangleContainsPoint(bounds: DOMRect, x: number, y: number) {
   return x >= bounds.left && x <= bounds.right && y >= bounds.top && y <= bounds.bottom;
@@ -207,7 +207,8 @@ declare global {
 }
 
 export function ScenePresence() {
-  const { canInteract, publishPointer } = useTabletop();
+  const canInteract = useTabletopSelector((table) => table.canInteract);
+  const { publishPointer } = useTabletopCommands();
   const { subscribePointers, getPointers } = useTabletopActions();
   const pointers = useSyncExternalStore(subscribePointers, getPointers);
   const camera = useThree((state) => state.camera);

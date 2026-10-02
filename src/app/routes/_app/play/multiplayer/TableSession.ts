@@ -129,6 +129,62 @@ export type ConnectionView = {
 };
 export type LogPage = Extract<ServerMessage, { type: 'log-history' }>;
 
+/* Whether two sets hold the same members, so a table rebuilt for a move keeps the sets a panel already read. */
+function sameMembers<T>(a: ReadonlySet<T> | ReadonlyMap<T, unknown>, b: ReadonlySet<T> | ReadonlyMap<T, unknown>) {
+  if (a.size !== b.size) {
+    return false;
+  }
+  for (const key of a.keys()) {
+    if (!b.has(key)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/*
+ * Whether the panels would show `next` as they show `previous`: everything they read is the same, and only where held pieces are on their way differs.
+ * A carry moves many times a second, and only the scene follows it, so the panels keep the table they have until something they show changes.
+ */
+function sameForPanels(previous: TableProjection, next: TableProjection) {
+  return (
+    previous.viewer === next.viewer &&
+    previous.snapshot === next.snapshot &&
+    previous.liveRevision === next.liveRevision &&
+    previous.playback?.step === next.playback?.step &&
+    previous.playback?.lastStep === next.playback?.lastStep &&
+    previous.historyPending === next.historyPending &&
+    previous.canInteract === next.canInteract &&
+    previous.canHandleTable === next.canHandleTable &&
+    previous.reconnecting === next.reconnecting &&
+    previous.seatCommandPending === next.seatCommandPending &&
+    previous.traitorsGathered === next.traitorsGathered &&
+    previous.phaseCooling === next.phaseCooling &&
+    previous.battleCountdownSeconds === next.battleCountdownSeconds &&
+    previous.serverNow === next.serverNow &&
+    previous.state.selectedPieceId === next.state.selectedPieceId &&
+    previous.state.draftMove?.pieceId === next.state.draftMove?.pieceId &&
+    previous.gestureActivePieceId === next.gestureActivePieceId &&
+    previous.hoveredPieceId === next.hoveredPieceId &&
+    Boolean(previous.spiceReserveControls) === Boolean(next.spiceReserveControls) &&
+    Boolean(previous.deckControls) === Boolean(next.deckControls) &&
+    sameMembers(previous.remoteCarriedIds, next.remoteCarriedIds) &&
+    sameMembers(previous.reservedPieceIds, next.reservedPieceIds) &&
+    sameMembers(previous.flippingPieceIds, next.flippingPieceIds) &&
+    [...previous.flippingPieceIds].every(([id, revision]) => next.flippingPieceIds.get(id) === revision)
+  );
+}
+
+function sameConversations(previous: ConversationView, next: ConversationView) {
+  return (
+    previous.context === next.context &&
+    previous.online === next.online &&
+    previous.summaries === next.summaries &&
+    previous.pages === next.pages &&
+    previous.pending === next.pending
+  );
+}
+
 /* How often a table hearing only pointer moves re-saves its kept copy, so a reload knows it was live recently. */
 const POINTER_KEEP_INTERVAL_MS = 5000;
 
@@ -170,6 +226,11 @@ function storedProjection({ viewer, snapshot, serverNow }: StoredTable): TablePr
 export class TableSession {
   private readonly listeners = new Set<() => void>();
   private readonly pointerListeners = new Set<() => void>();
+  private readonly tableListeners = new Set<() => void>();
+  /* The table as the last update derived it, which the session itself and the scene read. */
+  private table: TableProjection | null = null;
+  /* The last table there was, which the scene keeps reading while its parent takes it off the page. */
+  private shownTable: TableProjection | null = null;
   private shownPointers: PublicPointer[] = [];
   private tickTimer: ReturnType<typeof setInterval> | undefined;
   private poseTimer: ReturnType<typeof setTimeout> | undefined;
@@ -229,10 +290,12 @@ export class TableSession {
       runtime.monotonicNow
     );
     this.restore();
+    this.table = this.derive();
+    this.shownTable = this.table;
     this.cached = {
       status: 'connecting',
       error: null,
-      table: this.derive(),
+      table: this.table,
       conversations: this.conversations.view(),
       logHistory: {},
     };
@@ -296,7 +359,7 @@ export class TableSession {
     return this.saved;
   }
   private requireTable(): TableProjection {
-    const table = this.cached.table;
+    const table = this.table;
     if (!table) {
       throw new Error('The table is not authorized.');
     }
@@ -306,7 +369,17 @@ export class TableSession {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);
   };
+  /*
+   * The connection and a table for the panels. While only held pieces move, the panels' table stays the one they have:
+   * where a carried piece is on its way may lag there, and the scene, which shows it, reads `getTable` instead.
+   */
   getSnapshot = () => this.cached;
+  /* The live table, every move included, for the scene and the table's own controls. */
+  subscribeTable = (listener: () => void) => {
+    this.tableListeners.add(listener);
+    return () => this.tableListeners.delete(listener);
+  };
+  getTable = () => this.shownTable;
   /*
    * The other players' pointers, apart from the table: they move many times a second, and only the scene's hands follow them,
    * so an update that moves nothing else leaves the table, and everything that reads it, as it was.
@@ -331,7 +404,7 @@ export class TableSession {
   }
   /* An update that moved only pointers: the room, the carries and every countdown the table shows are as the last frame left them. */
   private movesOnlyPointers(message: Extract<GameSubscriptionEvent, { type: 'view' }>) {
-    const table = this.cached.table;
+    const table = this.table;
     return (
       !message.snapshotChanged &&
       message.previous !== null &&
@@ -507,17 +580,36 @@ export class TableSession {
   }
   private emit() {
     this.keep();
-    this.cached = {
+    const table = this.derive();
+    this.table = table;
+    const previous = this.cached;
+    const conversations = this.conversations.view();
+    const next: ConnectionView = {
       status: this.status,
-      conversations: this.conversations.view(),
+      conversations: sameConversations(previous.conversations, conversations) ? previous.conversations : conversations,
       error: this.error,
-      table: this.derive(),
+      table: table && previous.table && sameForPanels(previous.table, table) ? previous.table : table,
       catalogue: this.catalogueResult,
       spiceHistory: this.spiceHistory,
       logHistory: this.logHistory,
     };
-    for (const listener of this.listeners) {
-      listener();
+    const panelsChanged = (Object.keys(next) as (keyof ConnectionView)[]).some((key) => next[key] !== previous[key]);
+    if (panelsChanged) {
+      this.cached = next;
+    }
+    const tableChanged = table !== null && table !== this.shownTable;
+    if (tableChanged) {
+      this.shownTable = table;
+    }
+    if (panelsChanged) {
+      for (const listener of this.listeners) {
+        listener();
+      }
+    }
+    if (tableChanged) {
+      for (const listener of this.tableListeners) {
+        listener();
+      }
     }
     this.emitPointers();
   }
@@ -834,10 +926,7 @@ export class TableSession {
     if (this.pointer !== null && this.canAct()) {
       this.send({ type: 'pointer', seq: ++this.seq, position: this.pointer });
     }
-    if (
-      this.cached.table?.snapshot.battle?.stage === 'countdown' ||
-      (this.cached.table?.phaseCooling && !this.phaseCooling())
-    ) {
+    if (this.table?.snapshot.battle?.stage === 'countdown' || (this.table?.phaseCooling && !this.phaseCooling())) {
       this.emit();
     }
   };

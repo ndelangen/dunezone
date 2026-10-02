@@ -85,8 +85,9 @@ function expectLocked(client: TableSession) {
   expect(table(client).state.draftMove).toBeNull();
 }
 
+/* The live table the scene reads, every move included; the panels' copy may lag behind a carry. */
 function table(client: TableSession) {
-  const result = client.getSnapshot().table;
+  const result = client.getSnapshot().table && client.getTable();
   if (!result) {
     throw new Error('The table is not authorized.');
   }
@@ -405,9 +406,9 @@ describe('hosted table admission', () => {
     const client = await connected();
     socket().deliver({ type: 'admission', status: 'suspended' });
     const clock = table(client).serverNow;
-    const before = client.getSnapshot();
+    const before = client.getTable();
     client.setHoveredPiece('harkonnen-force-stack');
-    expect(client.getSnapshot()).not.toBe(before);
+    expect(client.getTable()).not.toBe(before);
     expect(table(client).serverNow).toBe(clock);
     disconnect?.();
     disconnect = undefined;
@@ -1567,15 +1568,51 @@ describe('pointer moves', () => {
       expiresAt: Date.now() + 8000,
     } satisfies ActivityChange['carries'][number];
     pointerUpdate(2, { pointers: [other], carries: [carry] });
-    const before = client.getSnapshot();
+    const before = client.getTable();
 
     pointerUpdate(3, {
       pointerMoves: [{ connectionId: 'other', position: [2, 0, 0], updatedAt: 2 }],
       carryMoves: [{ id: 'other-carry', position: [2, 0.38, 2], orientation: 0, expiresAt: Date.now() + 8000 }],
     });
 
-    expect(client.getSnapshot()).not.toBe(before);
+    expect(client.getTable()).not.toBe(before);
     expect(table(client).renderedPieces.find((piece) => piece.id === source.id)?.position).toEqual([2, 0.38, 2]);
+  });
+
+  test('a carried piece moving updates the scene and leaves the panels as they are', async () => {
+    const client = await connected();
+    socket().deliver(view({ sequence: 1 }));
+    const source = table(client).snapshot.table.pieces.find((piece) => piece.id === 'harkonnen-force-stack')!;
+    const carry = {
+      ...viewer,
+      connectionId: 'other',
+      id: 'other-carry',
+      held: { ...source, position: [1, 0.38, 1] },
+      withdrawnCounts: { [source.id]: source.items.length },
+      reservedIds: [source.id],
+      expiresAt: Date.now() + 8000,
+    } satisfies ActivityChange['carries'][number];
+    pointerUpdate(2, { carries: [carry] });
+    expect(client.getSnapshot().table?.reservedPieceIds.has(source.id)).toBe(true);
+    const panels = client.getSnapshot();
+    const panelListener = vi.fn();
+    const sceneListener = vi.fn();
+    client.subscribe(panelListener);
+    client.subscribeTable(sceneListener);
+
+    pointerUpdate(3, {
+      carryMoves: [{ id: 'other-carry', position: [2, 0.38, 2], orientation: 0, expiresAt: Date.now() + 8000 }],
+    });
+
+    expect(client.getSnapshot()).toBe(panels);
+    expect(panelListener).not.toHaveBeenCalled();
+    expect(sceneListener).toHaveBeenCalledTimes(1);
+    expect(table(client).renderedPieces.find((piece) => piece.id === source.id)?.position).toEqual([2, 0.38, 2]);
+
+    pointerUpdate(4, { removedCarries: ['other-carry'] });
+
+    expect(client.getSnapshot()).not.toBe(panels);
+    expect(client.getSnapshot().table?.reservedPieceIds.size).toBe(0);
   });
 
   test('a table hearing only pointer moves still re-saves its kept copy, a few seconds apart', async () => {
