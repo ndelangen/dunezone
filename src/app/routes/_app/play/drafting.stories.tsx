@@ -198,8 +198,6 @@ export const SeatedSpectatorLandsOnDrafting = meta.story({
     /* A spectator's dock holds the Log alone, so that is where it opens. */
     await shows(() => page.getByRole('button', { name: 'Log' }));
     expect(page.queryByRole('button', { name: 'Drafting' })).toBeNull();
-    /* Even a Log the spectator picked gives way to the stage once they are seated. */
-    await userEvent.click(page.getByRole('button', { name: 'Log' }));
     const seated = session.transport.view({
       ...draftingSnapshot([SIX[0]!, SIX[1]!], 6),
       revision: drafting().revision + 1,

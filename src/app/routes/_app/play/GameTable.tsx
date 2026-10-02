@@ -309,13 +309,16 @@ function TableControlsPanel({
         ...panelTabs,
       ]
     : [...panelTabs, ...(tableTabLabel ? [tableTab] : [])];
-  const [path, setPath] = useReducer((_: string[], next: string[]) => next, [tabs[0]?.key ?? tableTab.key]);
-  /* The stage tab arriving or leaving opens the first tab, so a spectator seated during drafting lands on the stage, not on the Log they watched from (#1666). */
+  const firstKey = tabs[0]?.key ?? tableTab.key;
+  const [path, setPath] = useReducer((_: string[], next: string[]) => next, [firstKey]);
+  /* The stage tab arriving opens it, so a spectator seated during drafting lands on the stage, not on the Log they watched from (#1666). */
   const hasStage = Boolean(panelContent);
   const [stageShown, setStageShown] = useState(hasStage);
   if (hasStage !== stageShown) {
     setStageShown(hasStage);
-    setPath([tabs[0]?.key ?? tableTab.key]);
+    if (hasStage) {
+      setPath([firstKey]);
+    }
   }
   /* Each focus token opens its tab once, during render as React adjusts state from a changed prop. */
   const [focused, setFocused] = useState<string | null>(null);
