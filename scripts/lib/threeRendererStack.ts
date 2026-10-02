@@ -12,6 +12,6 @@ export const threeRendererStackAliases: Alias[] = [
   { find: /^@react-three\/fiber$/u, replacement: '@react-three/fiber/webgpu' },
   {
     find: 'three/src/nodes/functions/PhysicalLightingModel.js',
-    replacement: fileURLToPath(new URL('../../src/app/three/physicalLightingModel.ts', import.meta.url)),
+    replacement: fileURLToPath(new URL('../../src/app/routes/_app/play/physicalLightingModel.ts', import.meta.url)),
   },
 ];

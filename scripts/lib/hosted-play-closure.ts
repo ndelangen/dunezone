@@ -49,7 +49,6 @@ const HOSTED_PLAY_CLOSURE: readonly string[] = [
   'src/app/routes/_app/play/**',
   'src/app/db/**',
   'src/app/shell/**',
-  'src/app/three/**',
   'src/app/styles/**',
   'src/app/ui/**',
   'src/app/widgets/page-message/**',
