@@ -6,12 +6,12 @@ import { restingPositionAt } from './tableGeometry';
 import { trackerArcSlots } from './tableTrackers';
 export { isSpicePiece } from './spice';
 
-export function spiceSupplySlot() {
+export function spiceBankSlot() {
   return trackerArcSlots(TABLE_PHASES.length)[0];
 }
 
-export function isSpiceSupplyPosition(position: Vector3Tuple): boolean {
-  const slot = spiceSupplySlot();
+export function isSpiceBankPosition(position: Vector3Tuple): boolean {
+  const slot = spiceBankSlot();
   return Math.hypot(position[0] - slot.position[0], position[2] - slot.position[2]) <= slot.radius;
 }
 
@@ -22,7 +22,7 @@ export function createSpiceStack(eventNumber: number, count: number): TablePiece
   if (count < 1 || count > 10) {
     throw new GameRejection('Spawn between 1 and 10 spice at a time.');
   }
-  const slot = spiceSupplySlot();
+  const slot = spiceBankSlot();
   const radius = slot.arcRadius - slot.radius - SPICE_FOOTPRINT_RADIUS - 0.12;
   const piece: TablePiece = {
     id: `spice-${eventNumber}`,

@@ -323,7 +323,7 @@ of returning a fixture-shaped answer.
 
 Play has one product story set for all features. Organise it under `Pages / Play` by stage: Lobby,
 Create, Drafting, Swapping, Setup, Playing and Finished. Within a stage, prefer descriptive stories
-over another group. `Playing / Controls` is a story, not a folder for a lone Private bank story.
+over another group. `Playing / Controls` is a story, not a folder for a lone Private spice reserve story.
 Battles earns a group under Playing because it has several meaningful page states. Add other
 feature groups only when several related stories need them; do not require a stage / feature /
 state hierarchy everywhere.

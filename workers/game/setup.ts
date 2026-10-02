@@ -70,6 +70,7 @@ export class SetupSupply {
       JSON.stringify({
         pieces: supplied.table.pieces,
         inventories: supplied.factionInventories,
+        /* Glossary term: "spice reserve" (see the glossary); the `banks` key is kept for stored data. */
         banks: supplied.factionBanks,
         event: supplied.table.events[0],
       })

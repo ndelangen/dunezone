@@ -138,7 +138,7 @@ describe('Seats, factions and stations through native delivery', () => {
     expect(b.snapshot.bank).toEqual({ factionId: 'house-b', balance: 11 });
     expect(a.viewer.color).toBe('#111111');
     expect(b.viewer.color).toBe('#222222');
-    /* The seating is public; the other house's bank is not. */
+    /* The seating is public; the other house's spice reserve is not. */
     expect(JSON.stringify(a)).not.toContain('factionBanks');
     expect(JSON.stringify(a)).not.toContain('"balance":11');
   });

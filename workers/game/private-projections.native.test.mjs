@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { PHASE_CHANGE_COOLDOWN_MS } from '../../src/shared/play/phases';
-import { spiceSupplySlot } from '../../src/shared/play/spiceSupply';
+import { spiceBankSlot } from '../../src/shared/play/spiceBank';
 import {
   admitPlayer,
   createPeer,
@@ -52,7 +52,7 @@ describe('Faction privacy through native delivery', () => {
     }
   }
 
-  it('sends only the current faction bank in snapshots, history, reconnects and cold restore', async () => {
+  it('sends only the spice reserve of the current faction in snapshots, history, reconnects and cold restore', async () => {
     const a = await admit('a');
     const b = await admit('b');
     const observer = await admit('c');
@@ -98,7 +98,7 @@ describe('Faction privacy through native delivery', () => {
     expect((await replacement.message('history')).snapshot.bank).toEqual({ factionId: 'harkonnen', balance: 37 });
   });
 
-  it('keeps the bank with its faction when faction assignments move between seats', async () => {
+  it('keeps the spice reserve with its faction when faction assignments move between seats', async () => {
     const a = await admit('a');
     const b = await admit('b');
     await sync(a);
@@ -161,7 +161,7 @@ describe('Faction privacy through native delivery', () => {
     expect((await sync(await admit('b'))).snapshot.bank.balance).toBe(120);
   });
 
-  it('serializes competing withdrawals and leaves both bank and table unchanged if persistence fails', async () => {
+  it('serializes competing withdrawals and leaves both spice reserve and table unchanged if persistence fails', async () => {
     const a = await admit('a');
     const tab = await admit('a');
     const before = (await sync(a)).snapshot;
@@ -249,7 +249,7 @@ describe('Faction privacy through native delivery', () => {
     const restored = await admit('c');
     restored.send({ type: 'spice-history', before: 3 });
     expect((await restored.message('spice-history')).entries).toEqual(older.entries);
-    expect(JSON.stringify(runtime.logs)).not.toMatch(/factionBanks|banked spice|"balance"/);
+    expect(JSON.stringify(runtime.logs)).not.toMatch(/factionBanks|spice in the spice reserve|"balance"/);
   }, 30_000);
 
   it('fences collection against reservations, disposal, invalid targets and stale commands', async () => {
@@ -279,7 +279,7 @@ describe('Faction privacy through native delivery', () => {
       type: 'drop',
       commandId: 'dispose-spice',
       carryId: 'dispose',
-      position: spiceSupplySlot().position,
+      position: spiceBankSlot().position,
       orientation: 0,
     });
     await eventually(
@@ -376,7 +376,7 @@ describe('Faction privacy through native delivery', () => {
     const full = await admit('a');
     expect((await command(full, { kind: 'bank-collect', pieceId: stack.id })).reply).toMatchObject({
       type: 'rejected',
-      message: 'This collection exceeds the bank capacity.',
+      message: 'This collection exceeds the spice reserve capacity.',
     });
     expect((await sync(full)).snapshot.bank.balance).toBe(Number.MAX_SAFE_INTEGER);
     full.send({
@@ -439,7 +439,7 @@ describe('Faction privacy through native delivery', () => {
     expect((await sync(await admit('a'))).snapshot).toEqual(before);
   });
 
-  it('refuses a withdrawal when the table is full without debiting the bank', async () => {
+  it('refuses a withdrawal when the table is full without debiting the spice reserve', async () => {
     const row = (await runtime.exec('SELECT data FROM current_state WHERE id=1'))[0];
     const snapshot = JSON.parse(row.data);
     const template = snapshot.table.pieces[0];

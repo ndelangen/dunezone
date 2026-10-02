@@ -232,8 +232,8 @@ async function stormAndSpice(journey) {
     journey.act(
       0,
       { kind: 'spice-spawn', count: 8 },
-      'Spice from the supply',
-      `${PLAYERS[0]} takes the 8 spice the card names from the supply.`
+      'Spice from the Spice Bank',
+      `${PLAYERS[0]} takes the 8 spice the card names from the Spice Bank.`
     )
   );
   await journey.carry(0, blow.id, territoryPosition('broken-land'));

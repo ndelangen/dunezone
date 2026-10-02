@@ -153,7 +153,7 @@ function validateLeaderSlot(pieces: StoredPiece[], plan: BattlePlanInput) {
 function reservedBalance({ snapshot, factionId }: BattleActor, before: StoredBattlePlan, plan: BattlePlanInput) {
   const balance = sum(snapshot.factionBanks[factionId] ?? 0, before.spice) - plan.spice;
   if (balance < 0) {
-    return refuse('There is not enough banked spice for this plan.');
+    return refuse('There is not enough spice in the spice reserve for this plan.');
   }
   return balance;
 }

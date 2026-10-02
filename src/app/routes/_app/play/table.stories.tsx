@@ -1,6 +1,6 @@
 import preview from '@sb/preview';
 import { TABLE_PHASES } from '@shared/play/phases';
-import { spiceSupplySlot } from '@shared/play/spiceSupply';
+import { spiceBankSlot } from '@shared/play/spiceBank';
 import { BOARD_RADIUS, BOARD_SURFACE_Y, stackTopHeight } from '@shared/play/tableGeometry';
 import { TRACKER_DISC_TOP_Y } from '@shared/play/tableTrackers';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
@@ -368,14 +368,14 @@ export const PhaseViewWaitsForTheDrop = meta.story({
 });
 
 /**
- * The spice supply disc answers the number keys again when the pointer leaves the canvas from the disc and comes straight back onto it.
+ * The Spice Bank disc answers the number keys again when the pointer leaves the canvas from the disc and comes straight back onto it.
  * The pointer leaves for the view picker and returns with no move over the rest of the table.
  */
 export const SpiceDiscAnswersOnReturn = meta.story({
   beforeEach: install(() => productTransport()),
   play: async ({ canvasElement }) => {
     const { page, document } = await tablePage(canvasElement);
-    const slot = spiceSupplySlot();
+    const slot = spiceBankSlot();
     const [clientX, clientY] = mapViewPoint(document, [slot.position[0], TRACKER_DISC_TOP_Y + 0.015, slot.position[2]]);
     const scene = document.querySelector('canvas')!;
     const pointer = { bubbles: true, cancelable: true, pointerId: 1, pointerType: 'mouse', clientX, clientY };
@@ -537,7 +537,7 @@ export const SpiceDiscForgetsAPlaybackHover = meta.story({
   play: async ({ canvasElement }) => {
     const { page, document } = await tablePage(canvasElement);
     await openTab(page, 'Phase');
-    const slot = spiceSupplySlot();
+    const slot = spiceBankSlot();
     const [clientX, clientY] = mapViewPoint(document, [slot.position[0], TRACKER_DISC_TOP_Y + 0.015, slot.position[2]]);
     const scene = document.querySelector('canvas')!;
     const pointer = { bubbles: true, cancelable: true, pointerId: 1, pointerType: 'mouse', clientX, clientY };

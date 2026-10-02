@@ -2,7 +2,7 @@ import type { GameSnapshot } from '@shared/play/protocol';
 
 /**
  * What the table draws beside the board in each stage.
- * Drafting, swapping and a discarded game have no storm or trackers, and setup shows only the spice supply.
+ * Drafting, swapping and a discarded game have no storm or trackers, and setup shows only the Spice Bank.
  * Play, a finished game and a fixture show both.
  */
 export function boardFurnitureFor(stage: GameSnapshot['stage']): {

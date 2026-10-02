@@ -9,7 +9,7 @@ import { tableForViewer } from './protocol';
 import type { GameSnapshot } from './protocol';
 import { factionSupply, piece, place } from './setupSupply';
 import type { SupplyDependencies } from './setupSupply';
-import { createSpiceStack } from './spiceSupply';
+import { createSpiceStack } from './spiceBank';
 import { stackPreviewPositionFor } from './tableGeometry';
 import { applyDraftToState, draftForGesture, renderedPiecesFor } from './tableState';
 

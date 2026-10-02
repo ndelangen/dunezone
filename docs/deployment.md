@@ -200,7 +200,7 @@ that merge was up to date and its diff reached the closure. A red daily run open
 issue labelled `hosted-play-daily`.
 Each flow in [`scripts/verify-hosted-flows.ts`](../scripts/verify-hosted-flows.ts) names
 its shard, and each shard runs `--shard <name>`: `regular` runs the regular flow, `catalogue`
-public-controls and battles, and `protocol` private-banks, decks and results. The `regular` and
+public-controls and battles, and `protocol` private-spice-reserves, decks and results. The `regular` and
 `catalogue` shards add `--browser-only`; in the `protocol` shard the protocol verifier runs first on
 the same stack. Each shard passes `--browser` with Playwright's full Chromium rather than its headless
 shell, and `--expect-renderer webgl2-swiftshader`, the renderer that browser draws with on the Linux

@@ -52,7 +52,7 @@ describe('over the hovered spice disc', () => {
     ['keypad 1', 'one spice', { key: '1', code: 'Numpad1' }],
   ] as const)('%s spawns %s and draws nothing', (_name, spawned, press) => {
     const { keyboard, controls } = table();
-    keyboard.hoverSupply(true);
+    keyboard.hoverSpiceBank(true);
 
     key('keydown', press);
     vi.advanceTimersByTime(1000);
@@ -64,7 +64,7 @@ describe('over the hovered spice disc', () => {
 
   test('0 spawns ten', () => {
     const { keyboard, controls } = table();
-    keyboard.hoverSupply(true);
+    keyboard.hoverSpiceBank(true);
     key('keydown', { key: '0' });
     expect(controls.spawnSpice.mock.calls).toEqual([[10]]);
   });
@@ -74,10 +74,10 @@ describe('over the hovered spice disc', () => {
     const field = document.body.appendChild(document.createElement('input'));
     const button = document.body.appendChild(document.createElement('button'));
 
-    keyboard.hoverSupply(true);
+    keyboard.hoverSpiceBank(true);
     key('keydown', { key: '2' }, field);
     key('keydown', { key: '3' }, button);
-    keyboard.hoverSupply(false);
+    keyboard.hoverSpiceBank(false);
     key('keydown', { key: '4' }, button);
     vi.advanceTimersByTime(1000);
 
@@ -132,7 +132,7 @@ describe('focus elsewhere on the page', () => {
     const { keyboard, controls } = table();
     const target = focusable('<a href="#profile">Profile</a>');
 
-    keyboard.hoverSupply(true);
+    keyboard.hoverSpiceBank(true);
     key('keydown', { key: '5' }, target);
 
     expect(controls.spawnSpice.mock.calls).toEqual([[5]]);

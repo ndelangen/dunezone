@@ -2,7 +2,7 @@ import { spawnSpiceInState } from '@shared/play/commands';
 import { freshTableState, nearestZone } from '@shared/play/model';
 import type { TablePiece, Vector3Tuple } from '@shared/play/model';
 import { isSpicePiece } from '@shared/play/spice';
-import { createSpiceStack, isSpiceSupplyPosition, spiceSupplySlot } from '@shared/play/spiceSupply';
+import { createSpiceStack, isSpiceBankPosition, spiceBankSlot } from '@shared/play/spiceBank';
 import { pointOnPieceDragRay } from '@shared/play/tableDragGeometry';
 import {
   BOARD_RIM_SURFACE_Y,
@@ -191,16 +191,16 @@ describe('tabletop contact geometry', () => {
   });
 });
 
-describe('spice supply drag targeting', () => {
+describe('Spice Bank drag targeting', () => {
   const surfaceY = TRACKER_DISC_TOP_Y + 0.015;
-  const slot = spiceSupplySlot();
-  const supplyCenter: Vector3Tuple = [slot.position[0], surfaceY, slot.position[2]];
+  const slot = spiceBankSlot();
+  const spiceBankCenter: Vector3Tuple = [slot.position[0], surfaceY, slot.position[2]];
 
   test.each([4, 5, 6] as const)('returns spice when the cursor hits the visible disc with %i seats', (seatCount) => {
     for (const aspect of [1.44, 1, 390 / 844]) {
       const pose = cameraPoseFor('map', aspect, mapViewFramingPoints(trackerArcSlots(9), seatCount));
       const camera = tableCamera(pose, aspect);
-      const pointer = new Vector3(...supplyCenter).project(camera);
+      const pointer = new Vector3(...spiceBankCenter).project(camera);
       const raycaster = new Raycaster();
       raycaster.setFromCamera(new Vector2(pointer.x, pointer.y), camera);
       const origin = raycaster.ray.origin.toArray();
@@ -208,18 +208,18 @@ describe('spice supply drag targeting', () => {
       const state = spawnSpiceInState(freshTableState(), 3);
       const spice = state.pieces.find(isSpicePiece)!;
       const oldPoint = pointOnRayAtHeight(origin, direction, CARRIED_BASE_Y)!;
-      expect(isSpiceSupplyPosition(oldPoint)).toBe(false);
+      expect(isSpiceBankPosition(oldPoint)).toBe(false);
 
       const point = pointOnPieceDragRay(spice, origin, direction)!;
-      expect(point[0]).toBeCloseTo(supplyCenter[0]);
+      expect(point[0]).toBeCloseTo(spiceBankCenter[0]);
       expect(point[1]).toBe(surfaceY);
-      expect(point[2]).toBeCloseTo(supplyCenter[2]);
-      expect(isSpiceSupplyPosition(point)).toBe(true);
+      expect(point[2]).toBeCloseTo(spiceBankCenter[2]);
+      expect(isSpiceBankPosition(point)).toBe(true);
       const draft = settleCarryAtPosition(state, draftForGesture(spice, 'whole')!, point)!;
       const returned = applyDraftToState(state, draft, 'Alice');
       expect(returned.pieces.some(isSpicePiece)).toBe(false);
       expect(returned.pieces).toEqual(state.pieces.filter((piece) => !isSpicePiece(piece)));
-      expect(returned.events[0].message).toBe('Alice returned 3 spice to the supply.');
+      expect(returned.events[0].message).toBe('Alice returned 3 spice to the Spice Bank.');
 
       for (const piece of state.pieces.filter((candidate) => !isSpicePiece(candidate))) {
         expect(pointOnPieceDragRay(piece, origin, direction)).toEqual(oldPoint);
@@ -227,15 +227,15 @@ describe('spice supply drag targeting', () => {
     }
   });
 
-  test('only changes spice dragging within the visible supply circle', () => {
+  test('only changes spice dragging within the visible Spice Bank circle', () => {
     const piece = createSpiceStack(2, 1);
     for (let sample = 0; sample < 16; sample++) {
       const angle = (sample / 16) * Math.PI * 2;
       for (const scale of [0.95, 1.05]) {
         const target: Vector3Tuple = [
-          supplyCenter[0] + Math.cos(angle) * slot.radius * scale,
+          spiceBankCenter[0] + Math.cos(angle) * slot.radius * scale,
           surfaceY,
-          supplyCenter[2] + Math.sin(angle) * slot.radius * scale,
+          spiceBankCenter[2] + Math.sin(angle) * slot.radius * scale,
         ];
         const origin: Vector3Tuple = [target[0], 9, target[2] + 12];
         const direction: Vector3Tuple = [0, surfaceY - 9, -12];

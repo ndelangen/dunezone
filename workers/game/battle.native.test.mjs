@@ -122,7 +122,7 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
     );
   }
 
-  it('projects a zero bank for a current faction missing from persisted balances', async () => {
+  it('projects a zero spice reserve for a current faction missing from persisted balances', async () => {
     const rows = await runtime.exec('SELECT data FROM current_state WHERE id=1');
     const state = JSON.parse(rows[0].data);
     state.factionBanks = {};
@@ -536,7 +536,7 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
     );
     const battleId = await start();
     expect((await sendCommand(a, { kind: 'battle-plan', battleId, plan: plan(12, 12) })).reply.message).toBe(
-      'There is not enough banked spice for this plan.'
+      'There is not enough spice in the spice reserve for this plan.'
     );
     const invalid = [
       plan(12, 12),

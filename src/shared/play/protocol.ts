@@ -2,7 +2,6 @@ import { z } from 'zod';
 
 import { HistoricalFactionPublicationSchema, TroopArtwork } from '../factions/schema';
 import { playStageSchema } from './admission';
-import { bankActionSchema, factionBankSchema, spiceTransferSchema } from './banks';
 import {
   battleActionSchema,
   publicBattleSchema,
@@ -33,6 +32,7 @@ import {
   rosterSeat,
 } from './schema';
 import { setupActionSchema, setupStateSchema, predictionsSchema } from './setup';
+import { spiceReserveActionSchema, spiceReserveSchema, spiceTransferSchema } from './spiceReserve';
 import { swapActionSchema, swappingStateSchema } from './swapping';
 
 const factionArtworkSchema = z.record(
@@ -77,7 +77,8 @@ export const gameSnapshotSchema = z.object({
   ending: gameEndingSchema.nullable().optional(),
   result: gameResultSchema.nullable().optional(),
   controls: publicControlsSchema.optional(),
-  bank: factionBankSchema.optional(),
+  /* The glossary term is "spice reserve" (see the glossary); the `bank` field is kept for the protocol and recorded frames. */
+  bank: spiceReserveSchema.optional(),
   battle: publicBattleSchema.nullable().optional(),
   battlePlan: battlePlanSchema.nullable().optional(),
   hand: z.array(pieceSchema).optional(),
@@ -129,7 +130,7 @@ const deckActionSchema = z.discriminatedUnion('kind', [
 export type DeckAction = z.infer<typeof deckActionSchema>;
 const pieceActionSchema = z.discriminatedUnion('kind', [
   ...battleActionSchema.options,
-  ...bankActionSchema.options,
+  ...spiceReserveActionSchema.options,
   ...publicActionSchema.options,
   ...seatActionSchema.options,
   ...removalActionSchema.options,

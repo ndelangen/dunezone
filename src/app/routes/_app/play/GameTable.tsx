@@ -287,7 +287,7 @@ function TableControlsPanel({
     content: (
       <>
         {tableControls}
-        {tableTabLabel === 'Table' && <SpiceSupplyControls />}
+        {tableTabLabel === 'Table' && <SpiceBankControls />}
         {tableTabLabel === 'Table' && <SelectedPieceControl />}
         {showStormControls && <StormControls helpOnly={tableTabLabel === 'Phase'} />}
       </>
@@ -395,12 +395,12 @@ function PanelPanes({ children, secondary }: Readonly<{ children: ReactNode; sec
   );
 }
 
-function SpiceSupplyControls() {
+function SpiceBankControls() {
   const { canInteract, spawnSpice, state } = useTabletop();
   return (
     <Section
-      title="Spice supply"
-      description="Hover the spice disc left of the turn wheel and press 1 through 9, or 0 for ten. Drop spice onto the disc to delete it."
+      title="Spice Bank"
+      description="Hover the Spice Bank disc left of the turn wheel and press 1 through 9, or 0 for ten. Drop spice onto the disc to return it to the Spice Bank."
     >
       <Group gap="xs" role="group" aria-label="Spawn spice">
         {Array.from({ length: 10 }, (_, index) => index + 1).map((count) => (

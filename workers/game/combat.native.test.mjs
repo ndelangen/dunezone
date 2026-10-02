@@ -183,7 +183,7 @@ describe('Authored troop combat values in a real game', { timeout: 120_000 }, ()
     await accepted(harkonnen, { kind: 'battle-claim', battleId, side: 0 });
     const claimed = await accepted(atreides, { kind: 'battle-claim', battleId, side: 1 });
     expect(claimed.snapshot.battlePlan.faces).toEqual([]);
-    const bank = (await syncView(harkonnen)).snapshot.bank.balance;
+    const reserve = (await syncView(harkonnen)).snapshot.bank.balance;
     const plan = (troops, spice, extra = {}) => ({
       mode: 'max',
       troops: [{ faceId: 'troop-0-front', undialed: troops, dialed: 0 }],
@@ -196,11 +196,11 @@ describe('Authored troop combat values in a real game', { timeout: 120_000 }, ()
 
     /* The browser funding case: five troops reserve five spice; three return two. */
     const five = await accepted(harkonnen, { kind: 'battle-plan', battleId, plan: plan(5, 5) });
-    expect(five.snapshot.bank.balance).toBe(bank - 5);
+    expect(five.snapshot.bank.balance).toBe(reserve - 5);
     expect(five.snapshot.battlePlan.strength).toBe(5);
     const three = await accepted(harkonnen, { kind: 'battle-plan', battleId, plan: plan(3, 5) });
     expect(three.snapshot.battlePlan.spice).toBe(3);
-    expect(three.snapshot.bank.balance).toBe(bank - 3);
+    expect(three.snapshot.bank.balance).toBe(reserve - 3);
     expect(three.snapshot.battlePlan.strength).toBe(3);
 
     /* Mixed faces, fractional and negative strengths and a zero cost, with exact usable funding. */
@@ -216,7 +216,7 @@ describe('Authored troop combat values in a real game', { timeout: 120_000 }, ()
     expect(odd.reply).toMatchObject({ type: 'rejected' });
     const funded = await accepted(harkonnen, { kind: 'battle-plan', battleId, plan: mixed(4) });
     expect(funded.snapshot.battlePlan.spice).toBe(4);
-    expect(funded.snapshot.bank.balance).toBe(bank - 4);
+    expect(funded.snapshot.bank.balance).toBe(reserve - 4);
     /* Two spice lift a veteran by three, one each lifts a trooper by a half, and the zealots fund free. */
     expect(funded.snapshot.battlePlan.strength).toBe(2 * 1 + 2.5 + 2 * 1.5);
     /* Switching modes resets the declaration and refunds the reserve, so the Custom plan is sent twice. */
@@ -226,7 +226,7 @@ describe('Authored troop combat values in a real game', { timeout: 120_000 }, ()
       plan: { ...mixed(0), mode: 'custom', troops: [{ faceId: 'troop-0-back', undialed: 1, dialed: 1 }] },
     });
     expect(custom.snapshot.battlePlan.spice).toBe(0);
-    expect(custom.snapshot.bank.balance).toBe(bank);
+    expect(custom.snapshot.bank.balance).toBe(reserve);
     const customFunded = await accepted(harkonnen, {
       kind: 'battle-plan',
       battleId,
@@ -234,7 +234,7 @@ describe('Authored troop combat values in a real game', { timeout: 120_000 }, ()
     });
     expect(customFunded.snapshot.battlePlan.spice).toBe(2);
     expect(customFunded.snapshot.battlePlan.strength).toBe(-0.5 + 2.5);
-    expect(customFunded.snapshot.bank.balance).toBe(bank - 2);
+    expect(customFunded.snapshot.bank.balance).toBe(reserve - 2);
     for (const faceId of ['troop-1-front', 'Envoy']) {
       const refused = await sendCommand(harkonnen, {
         kind: 'battle-plan',

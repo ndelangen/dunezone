@@ -6,7 +6,7 @@ type Delivered = { frame: RoomFrame; sequence: number; viewerSeat: Viewer['viewe
 
 /**
  * Per-connection baselines advance only for authorized sends.
- * Each frame after a socket's first view is a compact update against the last frame it received, unless the epoch, the viewer's seat or the bank's faction changed, which takes a full view.
+ * Each frame after a socket's first view is a compact update against the last frame it received, unless the epoch, the viewer's seat or the spice reserve's faction changed, which takes a full view.
  */
 export class RoomDelivery {
   private readonly delivered = new WeakMap<WebSocket, Delivered>();

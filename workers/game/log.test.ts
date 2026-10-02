@@ -83,7 +83,7 @@ describe('the public log', () => {
     expect(log.page('game', Number.MAX_SAFE_INTEGER).entries.map((entry) => entry.text)).toEqual([
       'Spice {1} began.',
       'House {0} revealed its prediction: Fremen {1}, turn 3.',
-      'Alice withdrew 3 spice from the Fremen {1} bank to the table.',
+      'Alice withdrew 3 spice from the Fremen {1} spice reserve to the table.',
       'House {0} defeated Fremen {1}.',
     ]);
   });
@@ -127,12 +127,12 @@ describe('the public log', () => {
     });
     const texts = () => log.page('game', Number.MAX_SAFE_INTEGER).entries.map((entry) => entry.text);
     expect(texts()).toEqual([
-      'Alice collected 2 spice from the table into the Harkonnen (Alice) bank.',
+      'Alice collected 2 spice from the table into the Harkonnen (Alice) spice reserve.',
       'Harkonnen (seat 2) defeated Atreides.',
     ]);
     log.scrub('user-alice');
     expect(texts()).toEqual([
-      '[deleted user] collected 2 spice from the table into the Harkonnen (seat 1) bank.',
+      '[deleted user] collected 2 spice from the table into the Harkonnen (seat 1) spice reserve.',
       'Harkonnen (seat 2) defeated Atreides.',
     ]);
   });

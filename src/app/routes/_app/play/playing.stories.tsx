@@ -6,7 +6,7 @@ import { composeTurn, PHASE_CHANGE_COOLDOWN_MS, TABLE_PHASES } from '@shared/pla
 import type { GameSnapshot } from '@shared/play/protocol';
 import { SPECTATOR_SEAT } from '@shared/play/schema';
 import { item, piece } from '@shared/play/setupSupply';
-import { createSpiceStack } from '@shared/play/spiceSupply';
+import { createSpiceStack } from '@shared/play/spiceBank';
 import { stackTopHeight } from '@shared/play/tableGeometry';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
@@ -84,8 +84,8 @@ export const LogGame = meta.story({
         .getAllByRole('listitem')
         .map((item) => item.textContent)
     ).toEqual([
-      'SpiceRidwan collected 3 spice from the table into the Fremen bank.Setup, Prediction',
-      'SpiceTwaffle withdrew 4 spice from the House Atreides bank to the table.Setup, Prediction',
+      'SpiceRidwan collected 3 spice from the table into the Fremen spice reserve.Setup, Prediction',
+      'SpiceTwaffle withdrew 4 spice from the House Atreides spice reserve to the table.Setup, Prediction',
       'PredictionBene Gesserit revealed its prediction: House Atreides, turn 6.Setup, Prediction',
       'PredictionBene Gesserit locked its prediction.Setup, Prediction',
     ]);
@@ -767,14 +767,14 @@ export const ControlsPanelTabs = meta.story({
       ).toEqual(['Hand', 'Shared inventory', 'Spice', 'Log', 'Phase']);
       expect(page.getByRole('tab', { name: 'Shared inventory' })).toHaveAttribute('aria-selected', 'true');
       expect(page.getByRole('region', { name: 'Shared inventory' })).toBeVisible();
-      expect(page.queryByRole('heading', { name: 'Faction bank' })).toBeNull();
+      expect(page.queryByRole('heading', { name: 'Spice reserve' })).toBeNull();
     });
     /* Compared as plain numbers: two DOMRects have no own enumerable properties, so toEqual on the rects themselves is always true. */
     const railBox = rail().getBoundingClientRect().toJSON();
 
     await openTab(page, 'Spice');
     await settled(() => {
-      expect(page.getByRole('region', { name: 'Faction bank' })).toBeVisible();
+      expect(page.getByRole('region', { name: 'Spice reserve' })).toBeVisible();
       expect(page.getByRole('region', { name: 'Public spice transfers' })).toBeVisible();
       expect(page.queryByRole('heading', { name: 'Shared inventory' })).toBeNull();
     });
@@ -783,7 +783,7 @@ export const ControlsPanelTabs = meta.story({
     await settled(() => {
       expect(page.getByRole('button', { name: 'Replay from start' })).toBeVisible();
       expect(page.queryByRole('button', { name: 'Help: Hosted connection' })).toBeNull();
-      expect(page.queryByRole('heading', { name: 'Faction bank' })).toBeNull();
+      expect(page.queryByRole('heading', { name: 'Spice reserve' })).toBeNull();
       expect(rail().getBoundingClientRect().toJSON()).toEqual(railBox);
     });
     /* The phase controls stay in the header, outside the tabs. */
@@ -791,7 +791,7 @@ export const ControlsPanelTabs = meta.story({
   },
 });
 
-/* Public spice transfers name each end in words (#1664): a faction's bank by its name, the table and the supply, and a faction gone from the roster as such. */
+/* Public spice transfers name each end in words (#1664): a faction's spice reserve by its name, the table and the Spice Bank, and a faction gone from the roster as such. */
 export const SpiceTransfers = meta.story({
   beforeEach: install(() => {
     const snapshot = initialSnapshot();
@@ -819,8 +819,8 @@ export const SpiceTransfers = meta.story({
       ).toEqual([
         'Thialfi: disposal, 1 spice from the table removed from play.',
         'Thialfi: collection, 3 spice from the table to a faction no longer in the game.',
-        'Twaffle: supply, 6 spice from the supply to the table.',
-        `Thialfi: withdrawal, 2 spice from the ${faction.name} bank to the table.`,
+        'Twaffle: supply, 6 spice from the Spice Bank to the table.',
+        `Thialfi: withdrawal, 2 spice from the ${faction.name} spice reserve to the table.`,
       ]);
     });
   },
@@ -837,7 +837,7 @@ export const PanelSchemeIsland = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await openTab(page, 'Spice');
-    const balance = await page.findByLabelText('Banked spice');
+    const balance = await page.findByLabelText('Spice reserve balance');
     const button = page.getByRole('button', { name: 'Withdraw spice' });
     const island = balance.closest<HTMLElement>('[data-scheme-dark]')!;
     const root = canvasElement.ownerDocument.documentElement;
@@ -852,7 +852,7 @@ export const PanelSchemeIsland = meta.story({
     expect(view.getComputedStyle(menu).backgroundColor).toBe(glass);
     await userEvent.keyboard('{Escape}');
     await waitForFrame(() => expect(page.queryByRole('menu')).toBeNull());
-    const help = page.getByRole('button', { name: 'Help: Faction bank' });
+    const help = page.getByRole('button', { name: 'Help: Spice reserve' });
     await userEvent.hover(help);
     const tooltip = await waitForFrame(() => page.getByRole('tooltip'));
     expect(tooltip).toHaveTextContent('Only you see this balance');
@@ -929,9 +929,9 @@ export const Controls = meta.story({
       timeout: 30_000,
     });
     await openTab(page, 'Spice');
-    await settled(() => expect(page.getByRole('region', { name: 'Faction bank' })).toBeVisible());
-    expect(page.getByLabelText('Banked spice')).toHaveTextContent('37');
-    expect(page.queryByRole('button', { name: 'Take into bank' })).toBeNull();
+    await settled(() => expect(page.getByRole('region', { name: 'Spice reserve' })).toBeVisible());
+    expect(page.getByLabelText('Spice reserve balance')).toHaveTextContent('37');
+    expect(page.queryByRole('button', { name: 'Take into spice reserve' })).toBeNull();
     const amount = page.getByRole('textbox', { name: 'Spice to withdraw' });
     await userEvent.clear(amount);
     await userEvent.type(amount, '38');
@@ -947,14 +947,14 @@ export const Controls = meta.story({
         command?.commandId
       )
     );
-    await waitFor(() => expect(page.getByLabelText('Banked spice')).toHaveTextContent('0'));
+    await waitFor(() => expect(page.getByLabelText('Spice reserve balance')).toHaveTextContent('0'));
     expect(page.getByRole('button', { name: 'Withdraw spice' })).toBeDisabled();
     const observerSnapshot = initialSnapshot('neutral');
     delete observerSnapshot.hand;
     delete observerSnapshot.bank;
     const observer = session.transport.view({ ...observerSnapshot, revision: 2 });
     session.transport.deliver({ ...observer, viewer: { ...observer.viewer, viewerSeat: 'neutral' } });
-    await waitFor(() => expect(page.queryByRole('region', { name: 'Faction bank' })).toBeNull());
+    await waitFor(() => expect(page.queryByRole('region', { name: 'Spice reserve' })).toBeNull());
   },
 });
 
@@ -970,15 +970,15 @@ export const ControlsNarrow = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     await settled(() => expect(page.getByRole('tab', { name: 'Spice' })).toBeVisible());
     await openTab(page, 'Spice');
-    await settled(() => expect(page.getByLabelText('Banked spice')).toBeVisible());
-    await userEvent.hover(page.getByRole('button', { name: 'Help: Faction bank' }));
+    await settled(() => expect(page.getByLabelText('Spice reserve balance')).toBeVisible());
+    await userEvent.hover(page.getByRole('button', { name: 'Help: Spice reserve' }));
     /* The tooltip's label mounts only from inside an animation-frame callback, so each poll runs the waiting frames itself (https://github.com/ndelangen/dunezone/issues/1422). */
     await waitForFrame(() =>
-      expect(finishTransitions(page.getByText(/^Faction bank\. Only you see this balance\./))).toBeVisible()
+      expect(finishTransitions(page.getByText(/^Spice reserve\. Only you see this balance\./))).toBeVisible()
     );
-    await userEvent.unhover(page.getByRole('button', { name: 'Help: Faction bank' }));
+    await userEvent.unhover(page.getByRole('button', { name: 'Help: Spice reserve' }));
     expect(page.getByRole('button', { name: 'Withdraw spice' })).toBeDisabled();
-    expect(page.queryByRole('button', { name: 'Take into bank' })).toBeNull();
+    expect(page.queryByRole('button', { name: 'Take into spice reserve' })).toBeNull();
   },
 });
 
