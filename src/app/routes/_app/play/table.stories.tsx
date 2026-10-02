@@ -595,10 +595,11 @@ const recordTableContexts = () => {
   };
 };
 
-/* A table that mounts again, as it does when its socket reconnects, frees the renderer it leaves behind instead of holding a WebGL context per remount until the browser runs out of them. */
+/* A dropped socket keeps the table's renderer, since the locked table stays on screen through the reconnect; a table that leaves the page, as it does on a refusal, frees its renderer instead of holding a WebGL context per remount until the browser runs out of them. */
 export const ReleasesItsRendererOnRemount = meta.story({
   beforeEach: recordTableContexts,
   play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
     await tablePage(canvasElement);
     const first = await waitFor(
       () => {
@@ -608,9 +609,17 @@ export const ReleasesItsRendererOnRemount = meta.story({
       { timeout: 30_000 }
     );
     session.transport.disconnect();
-    await waitFor(() => expect(first.canvas.isConnected).toBe(false), { timeout: 30_000 });
+    await page.findByRole('status', { name: /^Reconnecting\./ });
+    expect(first.canvas.isConnected).toBe(true);
+    await waitFor(() => expect(page.queryByRole('status', { name: /^Reconnecting\./ })).toBeNull(), {
+      timeout: 30_000,
+    });
     await tablePage(canvasElement);
+    expect(tableContexts.at(-1)).toBe(first);
+    expect(first.context.isContextLost()).toBe(false);
+
+    session.transport.deliver({ type: 'admission', status: 'denied' });
+    await waitFor(() => expect(first.canvas.isConnected).toBe(false), { timeout: 30_000 });
     await waitFor(() => expect(first.context.isContextLost()).toBe(true), { timeout: 5000 });
-    expect(tableContexts.at(-1)!.context.isContextLost()).toBe(false);
   },
 });
