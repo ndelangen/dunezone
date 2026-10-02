@@ -269,7 +269,8 @@ describe('Drafting and public assignment on a real game', () => {
   }
   const setAside = async (connection) => (await syncView(connection)).snapshot.draft.setAside ?? {};
 
-  it('sets aside a drafted faction that cannot be captured, clears readiness, and takes it back once a refresh finds it', async () => {
+  /** Two players ready a pool holding Fremen, which the catalogue no longer has, so the deal sets it aside and fails. */
+  async function fremenRefusedAtDeal() {
     peer.factions.delete('fremen');
     const a = await admit('a');
     const b = await admit('b');
@@ -279,6 +280,11 @@ describe('Drafting and public assignment on a real game', () => {
     await accepted(a, { kind: 'draft-ready', ready: true });
     await accepted(b, { kind: 'draft-ready', ready: true });
     await eventually(async () => typeof (await syncView(a)).snapshot.draft?.failure === 'string', 'failure recorded');
+    return { a, b };
+  }
+
+  it('sets aside a drafted faction that cannot be captured, clears readiness, and takes it back once a refresh finds it', async () => {
+    const { a, b } = await fremenRefusedAtDeal();
     const failed = await syncView(a);
     expect(failed.snapshot.stage).toBe('drafting');
     expect(failed.snapshot.draft.failure).toBe(
@@ -304,6 +310,18 @@ describe('Drafting and public assignment on a real game', () => {
     await eventually(async () => (await stage(a)) === 'swapping', 'assignment once it can be captured');
     const dealt = await syncView(a);
     expect(dealt.snapshot.roster.seats.map((seat) => seat.faction?.id).sort()).toEqual(['fremen', 'harkonnen']);
+  });
+
+  it('drops the set-aside notice once a refresh brings the faction back, before anyone readies again', async () => {
+    const { a, b } = await fremenRefusedAtDeal();
+
+    /* The refused pick reads the stale catalogue again, which finds Fremen; nobody has readied since. */
+    peer.factions.set('fremen', definition('fremen', 'Fremen'));
+    await rejected(b, { kind: 'draft-pick', factionId: 'fremen' });
+    await eventually(async () => !('fremen' in (await setAside(a))), 'fremen back in the draft');
+    const returned = await syncView(a);
+    expect(returned.snapshot.draft.ready).toEqual([]);
+    expect(returned.snapshot.draft.failure).toBeNull();
   });
 
   /** Closes the fixture's isolated game and provisions a real one from the peer as `prepare` leaves it. */
@@ -509,6 +527,20 @@ describe('Drafting and public assignment on a real game', () => {
     await eventually(async () => (await stage(a)) === 'swapping', 'assignment from what remains');
     const dealt = await syncView(a);
     expect(dealt.snapshot.roster.seats.map((seat) => seat.faction?.id).sort()).toEqual(['emperor', 'harkonnen']);
+  });
+
+  it("lets a Ready cross a spectator's seat request and withdrawal, which leave the draft as the player saw it", async () => {
+    const a = await admit('a');
+    const b = await admit('b');
+    await seat(b, a);
+    const watcher = await admit('w');
+    await accepted(a, { kind: 'draft-pick', factionId: 'harkonnen' });
+    const seen = await syncView(b);
+    await accepted(watcher, { kind: 'seat-request' });
+    await accepted(watcher, { kind: 'seat-withdraw' });
+    const crossing = await sendCommand(b, { kind: 'draft-ready', ready: true }, undefined, seen.snapshot.revision);
+    expect(crossing.reply.type).not.toBe('rejected');
+    expect((await syncView(a)).snapshot.draft.ready).toEqual(['seat-2']);
   });
 
   it('closes a request for a drafting place at the deal, so it cannot hold up a request for a vacant seat', async () => {

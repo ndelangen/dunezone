@@ -1,7 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { dealt, draftingRuntime } from './native-drafting.fixture.mjs';
-import { accepted, admitPlayer, eventually, sendCommand, syncView } from './native-runtime.fixture.mjs';
+import {
+  accepted,
+  admitPlayer,
+  eventually,
+  sendCommand,
+  storedEventMessages,
+  syncView,
+} from './native-runtime.fixture.mjs';
 
 describe('Swapping on a real game', () => {
   let peer, runtime;
@@ -57,6 +64,28 @@ describe('Swapping on a real game', () => {
     await trade(b, { kind: 'swap-ready', ready: true });
     await trade(c, { kind: 'swap-ready', ready: true });
     expect((await syncView(a)).snapshot.swapping.closed).toBe(true);
+  });
+
+  it('names the seat in trading and setup readiness the way the draft does, never by its id', async () => {
+    const [a, b] = await deal(2);
+    await trade(a, { kind: 'swap-ready', ready: true });
+    await trade(a, { kind: 'swap-ready', ready: false });
+    await trade(a, { kind: 'swap-ready', ready: true });
+    await trade(b, { kind: 'swap-ready', ready: true });
+    const setup = await syncView(a);
+    expect(setup.snapshot.stage).toBe('setup');
+    await accepted(a, { kind: 'ready', ready: true });
+    await accepted(a, { kind: 'ready', ready: false });
+    const subject = `Seat ${setup.viewer.viewerSeat.replace('seat-', '')}`;
+    const messages = await storedEventMessages(runtime);
+    expect(messages).toEqual(
+      expect.arrayContaining([
+        `${subject} is ready.`,
+        `${subject} is open to trading.`,
+        `${subject} withdrew readiness.`,
+      ])
+    );
+    expect(messages.filter((message) => /^seat-\d/.test(message))).toEqual([]);
   });
 
   it('resolves an entire vacancy chain, including an offline holder, before admitting a replacement', async () => {
