@@ -1,4 +1,3 @@
-import type { SpiceTransfer } from '../../src/shared/play/banks';
 import { factionTitleText, rosterFactionTitles } from '../../src/shared/play/factionLabels';
 import { LOG_CLASS_TABS, LOG_PAGE_SIZE } from '../../src/shared/play/log';
 import type { LogClass, LogEntry, LogTab } from '../../src/shared/play/log';
@@ -9,6 +8,7 @@ import type { ClientMessage, Viewer } from '../../src/shared/play/protocol';
 import { describeResult, isResultAction } from '../../src/shared/play/result';
 import type { ResultAction } from '../../src/shared/play/result';
 import { setupStep } from '../../src/shared/play/setup';
+import type { SpiceTransfer } from '../../src/shared/play/spiceReserve';
 import type { StoredSnapshot } from './state';
 
 /** The one name retained history shows for a deleted account. */
@@ -408,14 +408,15 @@ function phaseEntry(
 function spiceEntry(transfer: SpiceTransfer, actor: Person, faction: FactionNamer, context: string): Entry {
   const people = [actor];
   const amount = `${transfer.amount} spice`;
+  /* The `supply` kind is the Spice Bank (see CONTEXT.md); the literal is kept for stored transfer records. */
   const template =
     transfer.kind === 'withdrawal'
-      ? `{0} withdrew ${amount} from the ${faction(transfer.source, people)} bank to the table.`
+      ? `{0} withdrew ${amount} from the ${faction(transfer.source, people)} spice reserve to the table.`
       : transfer.kind === 'collection'
-        ? `{0} collected ${amount} from the table into the ${faction(transfer.destination ?? '', people)} bank.`
+        ? `{0} collected ${amount} from the table into the ${faction(transfer.destination ?? '', people)} spice reserve.`
         : transfer.kind === 'supply'
-          ? `{0} supplied ${amount} to the table.`
-          : `{0} removed ${amount} from play.`;
+          ? `{0} took ${amount} from the Spice Bank to the table.`
+          : `{0} returned ${amount} to the Spice Bank.`;
   return { key: `spice:${transfer.revision}`, class: 'spice', template, people, context };
 }
 

@@ -378,7 +378,7 @@ export async function enqueueFactionLeaderPublications(
   previousData?: unknown
 ): Promise<number> {
   const parsed = HistoricalFactionPublicationSchema.parse(faction.data);
-  const members = [parsed.hero, ...parsed.leaders];
+  const members = [parsed.factionLeader, ...parsed.leaders];
   let enqueued = 0;
   for (const member of members) {
     if (!member.memberId) {
@@ -406,7 +406,7 @@ export async function enqueueFactionLeaderPublications(
   const previous = HistoricalFactionPublicationSchema.safeParse(previousData);
   if (previous.success) {
     const currentIds = new Set(members.map((member) => member.memberId));
-    for (const member of [previous.data.hero, ...previous.data.leaders]) {
+    for (const member of [previous.data.factionLeader, ...previous.data.leaders]) {
       if (member.memberId && !currentIds.has(member.memberId)) {
         await supersedePendingPublication(
           ctx,

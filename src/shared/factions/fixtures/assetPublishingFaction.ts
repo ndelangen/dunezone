@@ -14,7 +14,7 @@ const assetPublishingFactionInput = {
     influence: 1,
   },
   themeColor: '#4b4c0d',
-  hero: {
+  factionLeader: {
     name: 'Lady Jessica',
     image: '/image/leader/official/jessica.png',
   },
@@ -56,7 +56,7 @@ const assetPublishingFactionInput = {
       },
       {
         title: "Leto's tithe",
-        text: 'During Spice Collection take spice from the bank when you control one or more strongholds.',
+        text: 'During Spice Collection take spice from the Spice Bank when you control one or more strongholds.',
       },
       {
         title: 'Kwisatz Haderach',
@@ -90,7 +90,7 @@ const leaderIds = [
 /** Stable canonical payload for asset-publishing integration and regression coverage. */
 export const assetPublishingFaction = IdentifiedFactionStoredSchema.parse({
   ...legacyAssetPublishingFaction,
-  hero: { ...legacyAssetPublishingFaction.hero, memberId: '10000000-0000-4000-8000-000000000001' },
+  factionLeader: { ...legacyAssetPublishingFaction.factionLeader, memberId: '10000000-0000-4000-8000-000000000001' },
   leaders: legacyAssetPublishingFaction.leaders.map((leader, index) => ({
     ...leader,
     memberId: leaderIds[index],

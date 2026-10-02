@@ -96,23 +96,23 @@ export function createTroopBackFromFront(
   };
 }
 
-type TroopCombat = NonNullable<Faction['troops'][number]['combat']>;
+type TroopBattleValues = NonNullable<Faction['troops'][number]['combat']>;
 
 /**
- * One combat value entered or cleared on a troop face;
- * clearing the last one removes the face's combat values.
+ * One battle value entered or cleared on a troop face;
+ * clearing the last one removes the face's battle values.
  * A face with only one strength is kept as the author left it, so saving names the missing one rather than inventing it.
  */
-export function nextTroopCombat(
+export function nextTroopBattleValues(
   current: Faction['troops'][number]['combat'],
-  key: keyof TroopCombat,
+  key: keyof TroopBattleValues,
   value: number | undefined
 ): Faction['troops'][number]['combat'] {
-  const next: Partial<TroopCombat> = { ...current, [key]: value };
+  const next: Partial<TroopBattleValues> = { ...current, [key]: value };
   if (value === undefined) {
     delete next[key];
   }
-  return Object.keys(next).length ? (next as TroopCombat) : undefined;
+  return Object.keys(next).length ? (next as TroopBattleValues) : undefined;
 }
 
 export function defaultAdvantage(): Faction['rules']['advantages'][number] {

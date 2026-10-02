@@ -68,8 +68,8 @@ changed. Try the action again." The actions in `REVISION_TOLERANT_ACTIONS` (spic
 draws, battle actions, draft picks and bans, and removal ballots) name what they change and are
 checked against the live table instead, so seats acting at the same moment do not turn each other
 away. Readiness (`ready`, `draft-ready`, `swap-ready`) may cross other readiness, but not a commit
-that changed more than who is ready. A bank withdrawal stays strict, so two tabs of one player
-cannot both spend from a bank they saw once.
+that changed more than who is ready. A spice reserve withdrawal stays strict, so two tabs of one player
+cannot both spend from a spice reserve they saw once.
 
 Each socket can start at most 1,024 carries before it must reconnect. Replay history stays
 bounded per connection and is released on disconnect. Ended carry IDs are never evicted while
@@ -95,7 +95,7 @@ Each mechanic's contract is its resolution ticket; [CONTEXT.md](../../CONTEXT.md
 - Participation: **Seat request** and **Departure**, [#1215](https://github.com/ndelangen/dunezone/issues/1215).
 - Drafting and public assignment: **Draft list**, **Ban list** and **Public assignment**, [#1216](https://github.com/ndelangen/dunezone/issues/1216).
 - Directory summary: **Directory**, [#1214](https://github.com/ndelangen/dunezone/issues/1214).
-- Private banks and public spice: [#1140](https://github.com/ndelangen/dunezone/issues/1140).
+- Private spice reserves and public spice: [#1140](https://github.com/ndelangen/dunezone/issues/1140).
 - Player-run battles: [#1141](https://github.com/ndelangen/dunezone/issues/1141).
 
 ## The fixture's treachery deck
@@ -288,10 +288,10 @@ game at drafting and stepping through every stage, which is what it proves. The 
 provision a game with either test value unless its `GIT_SHA` is play-local's `local-isolated` and
 its `APPLICATION_ORIGIN` is a loopback origin.
 
-Run `bun --no-env-file scripts/verify-hosted-play-stack.ts --browser-only --flow private-banks` for
+Run `bun --no-env-file scripts/verify-hosted-play-stack.ts --browser-only --flow private-spice-reserves` for
 manual collection, full withdrawal, disposal, phase boundaries, reconnect, history, multi-tab
 sign-out and spectator privacy. This mode uses distinct synthetic accounts in two separate browser
-processes. It retains received game frames in `private-banks-frames.json` for audience inspection.
+processes. It retains received game frames in `private-spice-reserves-frames.json` for audience inspection.
 The fixture refuses seat commands, so the native suites change its faction assignments in SQL to
 exercise replacement.
 
@@ -304,10 +304,10 @@ also cover captured deck and bundle quantities, missing backs, retries, account 
 recovery. The regular browser mode remains available for the broader tabletop interactions.
 
 Run `bun --no-env-file scripts/verify-hosted-play-stack.ts --browser-only --flow battles` for private
-plans, funding refunds, both side assignments, Undo Ready, each player's countdown reconnect,
-revealed-piece dragging, opposing choices, agreement and cancellation by a seated noncombatant.
+plans, support refunds, both side assignments, Undo Ready, each player's countdown reconnect,
+revealed-piece dragging, opposing choices, agreement and cancellation by a seated faction outside the battle.
 It uses two distinct signed-in browser processes and a spectator, retaining `battles-frames.json`
-for privacy inspection. Native cases additionally cover exact and zero-cost funding, replacement,
+for privacy inspection. Native cases additionally cover exact and zero-cost support, replacement,
 cold restore, stale commands, ordering races and older results.
 
 Run `bun --no-env-file scripts/verify-hosted-play-stack.ts --browser-only --flow decks` for the deck
@@ -331,9 +331,9 @@ proves one rule; these prove the rules still hold when one game passes through a
   result and Continue playing. On the way the directory refuses writes twice and the alarm delivers
   the owed summary, the socket drops right after a withdrawal and its identical retries debit once,
   a player reconnects, and the room restarts cold in play and again while finished.
-- Eighteen accounts are each dealt a distinct faction, station and bank, finish as an alliance,
-  restart cold and continue at Mentat pause. A spectator holds no bank and cannot end the game.
-- In a running game a player leaves and a spectator takes the seat with its faction and bank. The
+- Eighteen accounts are each dealt a distinct faction, station and spice reserve, finish as an alliance,
+  restart cold and continue at Mentat pause. A spectator holds no spice reserve and cannot end the game.
+- In a running game a player leaves and a spectator takes the seat with its faction and spice reserve. The
   replacement declares a result and then deletes their account. The result, log and stored history
   name `[deleted user]` through a restart, and the last departure discards the game.
 
@@ -343,7 +343,7 @@ also finishes and continues one, so the lobby's Create and Past listings and the
 covered by a signed-in browser run as well as by Storybook and the native journeys.
 
 A real game deals only ready content. The catalogue capture (`workers/game/catalogue.ts`) refuses
-a faction until its token faces, leader, troop, traitor and alliance faces, troop combat values
+a faction until its token faces, leader, troop, traitor and alliance faces, troop battle values
 and Extras are all published. A real game judges each drafted faction when it is picked, and the
 deal judges every faction it captures, random fills included. A refused faction is set aside with
 its reason (`DraftState.setAside`): the draft list shows the reason, it cannot be picked or

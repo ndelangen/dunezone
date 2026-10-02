@@ -70,15 +70,15 @@ function representativeFullFieldFaction(): FactionInput {
         },
       ],
     },
-    hero: {
-      name: 'Proof Hero',
-      image: assetPublishingFaction.hero.image,
+    factionLeader: {
+      name: 'Proof Leader',
+      image: assetPublishingFaction.factionLeader.image,
     },
     leaders: [
       {
         name: 'Numeric Leader',
         strength: 4,
-        image: assetPublishingFaction.hero.image,
+        image: assetPublishingFaction.factionLeader.image,
       },
       {
         name: 'Letter Leader',
@@ -127,7 +127,7 @@ function representativeFullFieldFaction(): FactionInput {
         striped: true,
         count: 12,
         planet: 'Curated Prime',
-        combat: { strength: -0.5, fundedStrength: 1.25, fundingCost: 0 },
+        combat: { strength: -0.5, supportedStrength: 1.25, supportCost: 0 },
         back: {
           image: assetPublishingFaction.troops[0].image,
           name: 'Reversible Guard Elite',

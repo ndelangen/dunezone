@@ -1,7 +1,7 @@
 import { Box, ColorInput, NumberInput, SimpleGrid, Stack, Switch, Text, TextInput } from '@mantine/core';
 import type { NumberInputProps } from '@mantine/core';
 import { TROOP, TROOP_MODIFIER } from '@shared/assetIds';
-import { completeCombat } from '@shared/factions/troopCombat';
+import { completeBattleValues } from '@shared/factions/troopBattle';
 import { stockAssetOptions } from '@ui/content/stockAssetOptions';
 import { AssetSelect } from '@ui/control/AssetSelect';
 import { ControlBlock } from '@ui/control/ControlBlock';
@@ -11,7 +11,7 @@ import { useEffect, useState } from 'react';
 import type { Faction } from '@db/factions';
 
 import { assetOptionToPreviewSrc, troopStarOptionToLabel } from './factionFormAssetUtils';
-import { nextTroopCombat } from './factionFormDefaults';
+import { nextTroopBattleValues } from './factionFormDefaults';
 import type { FactionFormApi } from './factionFormTypes';
 
 const troopImageOptions = stockAssetOptions(TROOP.options);
@@ -89,7 +89,7 @@ function committedNumber(text: string | number, whole: boolean): number | undefi
  * Mantine reports text like `1.` or `-` as a string while the author is still typing a fraction.
  * The draft keeps that text local and commits one complete value on blur or Enter, as the battle planner's inputs do.
  */
-function CombatNumberInput({
+function BattleValueInput({
   value,
   whole,
   onCommit,
@@ -128,7 +128,7 @@ function CombatNumberInput({
  * A face's battle eligibility and the values a battle plan reads from it (#1062).
  * Empty strengths stay empty: the authoring warning and a game's capture name the gap instead of reading it as zero.
  */
-function TroopCombatFields({
+function TroopBattleFields({
   form,
   troopIndex: i,
   side,
@@ -141,7 +141,7 @@ function TroopCombatFields({
 }) {
   const isBack = side === 'back';
   const capableField = isBack ? (`troops[${i}].back.capable` as const) : (`troops[${i}].capable` as const);
-  const combatField = isBack ? (`troops[${i}].back.combat` as const) : (`troops[${i}].combat` as const);
+  const battleValuesField = isBack ? (`troops[${i}].back.combat` as const) : (`troops[${i}].combat` as const);
   const inputs = [
     {
       key: 'strength',
@@ -150,14 +150,14 @@ function TroopCombatFields({
       whole: false,
     },
     {
-      key: 'fundedStrength',
-      title: 'Funded strength',
+      key: 'supportedStrength',
+      title: 'Supported strength',
       description: 'What one dialed troop adds instead. May be fractional or negative.',
       whole: false,
     },
     {
-      key: 'fundingCost',
-      title: 'Funding cost',
+      key: 'supportCost',
+      title: 'Support cost',
       description: 'Spice to dial one troop; one when left empty, and zero is free.',
       whole: true,
     },
@@ -181,8 +181,8 @@ function TroopCombatFields({
             }
           />
           {capable.state.value !== false ? (
-            <form.Field name={combatField}>
-              {(combat) => (
+            <form.Field name={battleValuesField}>
+              {(battleValues) => (
                 <Stack gap="xs">
                   <SimpleGrid cols={{ base: 1, sm: 3 }}>
                     {inputs.map(({ key, title, description, whole }) => {
@@ -193,16 +193,16 @@ function TroopCombatFields({
                           title={label}
                           description={description}
                           input={
-                            <CombatNumberInput
+                            <BattleValueInput
                               id={`${idBase}-${key}`}
                               aria-label={label}
                               placeholder={whole ? '1' : 'Not set'}
                               step={whole ? 1 : 0.5}
                               whole={whole}
-                              value={combat.state.value?.[key]}
+                              value={battleValues.state.value?.[key]}
                               onCommit={(value) => {
-                                combat.handleChange(nextTroopCombat(combat.state.value, key, value));
-                                combat.handleBlur();
+                                battleValues.handleChange(nextTroopBattleValues(battleValues.state.value, key, value));
+                                battleValues.handleBlur();
                               }}
                             />
                           }
@@ -210,8 +210,8 @@ function TroopCombatFields({
                       );
                     })}
                   </SimpleGrid>
-                  {completeCombat(combat.state.value) === null ? (
-                    <Text id={`${idBase}-combat-warning`} c="var(--color-caution)" size="xs" role="status">
+                  {completeBattleValues(battleValues.state.value) === null ? (
+                    <Text id={`${idBase}-battle-warning`} c="var(--color-caution)" size="xs" role="status">
                       Enter both strengths to use this side in battle. Until then a game leaves it out of battle plans.
                     </Text>
                   ) : null}
@@ -400,7 +400,7 @@ export function TroopSideFields({
         </Box>
       </SimpleGrid>
 
-      <TroopCombatFields form={form} troopIndex={i} side={side} idBase={idBase} />
+      <TroopBattleFields form={form} troopIndex={i} side={side} idBase={idBase} />
     </Stack>
   );
 }

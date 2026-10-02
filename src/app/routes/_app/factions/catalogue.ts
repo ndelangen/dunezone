@@ -122,7 +122,7 @@ export function projectFactionCatalogue(
 
   const matches = query
     ? new Fuse(complexityMatches, {
-        keys: ['data.name', 'data.hero.name', 'data.leaders.name'],
+        keys: ['data.name', 'data.factionLeader.name', 'data.leaders.name'],
         ignoreLocation: true,
         threshold: 0.35,
       })

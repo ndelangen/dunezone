@@ -6,7 +6,7 @@ import { tableCountSchema } from './schema';
  * The retained public log of a real game, as every viewer reads it: one sentence per public event with its classification and the turn or stage it happened in.
  * Game holds what happened on the table;
  * Audit holds who sat where and how votes ended.
- * Private cards, unrevealed plans, bank balances and conversations never enter it.
+ * Private cards, unrevealed plans, spice reserve balances and conversations never enter it.
  */
 export const logTabSchema = z.enum(['game', 'audit']);
 export type LogTab = z.infer<typeof logTabSchema>;

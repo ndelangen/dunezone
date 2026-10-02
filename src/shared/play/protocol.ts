@@ -1,14 +1,13 @@
 import { z } from 'zod';
 
-import { HistoricalFactionPublicationSchema, TroopArtwork } from '../factions/schema';
+import { HistoricalFactionPublicationObject, TroopArtwork } from '../factions/schema';
 import { playStageSchema } from './admission';
-import { bankActionSchema, factionBankSchema, spiceTransferSchema } from './banks';
 import {
   battleActionSchema,
   publicBattleSchema,
   battlePlanSchema,
   battleResultSchema,
-  combatFaceSchema,
+  battleFaceSchema,
 } from './battle';
 import { conversationMessageSchema, conversationSummarySchema, conversationTextSchema } from './conversations';
 import { draftActionSchema, draftStateSchema } from './drafting';
@@ -33,11 +32,12 @@ import {
   rosterSeat,
 } from './schema';
 import { setupActionSchema, setupStateSchema, predictionsSchema } from './setup';
+import { spiceReserveActionSchema, spiceReserveSchema, spiceTransferSchema } from './spiceReserve';
 import { swapActionSchema, swappingStateSchema } from './swapping';
 
 const factionArtworkSchema = z.record(
   z.string(),
-  HistoricalFactionPublicationSchema.pick({ background: true, logo: true }).extend({ troops: z.array(TroopArtwork) })
+  HistoricalFactionPublicationObject.pick({ background: true, logo: true }).extend({ troops: z.array(TroopArtwork) })
 );
 
 const phaseEntrySchema = z.object({
@@ -77,12 +77,14 @@ export const gameSnapshotSchema = z.object({
   ending: gameEndingSchema.nullable().optional(),
   result: gameResultSchema.nullable().optional(),
   controls: publicControlsSchema.optional(),
-  bank: factionBankSchema.optional(),
+  /* The glossary term is "spice reserve" (see CONTEXT.md); the `bank` field is kept for the protocol and recorded frames. */
+  bank: spiceReserveSchema.optional(),
   battle: publicBattleSchema.nullable().optional(),
   battlePlan: battlePlanSchema.nullable().optional(),
   hand: z.array(pieceSchema).optional(),
   factionArtwork: factionArtworkSchema.optional(),
-  combatFaces: z.record(z.string(), z.array(combatFaceSchema)).optional(),
+  /* Wire key, kept as `combatFaces` for clients and recordings; the glossary says battle. */
+  combatFaces: z.record(z.string(), z.array(battleFaceSchema)).optional(),
   battleResults: z.array(battleResultSchema).optional(),
   spiceTransfers: z.array(spiceTransferSchema).optional(),
 });
@@ -129,7 +131,7 @@ const deckActionSchema = z.discriminatedUnion('kind', [
 export type DeckAction = z.infer<typeof deckActionSchema>;
 const pieceActionSchema = z.discriminatedUnion('kind', [
   ...battleActionSchema.options,
-  ...bankActionSchema.options,
+  ...spiceReserveActionSchema.options,
   ...publicActionSchema.options,
   ...seatActionSchema.options,
   ...removalActionSchema.options,

@@ -6,12 +6,13 @@ import { tableCountSchema, tableIdSchema } from './schema';
 
 const setupStepSchema = z.object({
   id: tableIdSchema,
+  /* 'forces' is a stored literal for the starting-troops step: Dune Zone says troop (see the glossary). */
   kind: z.enum(['prediction', 'instruction', 'traitors', 'forces']),
   factionId: tableIdSchema.optional(),
   title: z.string(),
   instructions: z.string(),
   symbol: z.string(),
-  /* Traitors and forces set it, prediction clears it (its lock gates instead), an instruction step takes its declaration's; absent on steps stored before it existed. */
+  /* Traitors and starting troops set it, prediction clears it (its lock gates instead), an instruction step takes its declaration's; absent on steps stored before it existed. */
   allPlayersMustBeReady: z.boolean().optional(),
 });
 type SetupStep = z.infer<typeof setupStepSchema>;

@@ -153,7 +153,7 @@ describe('Explicit participation on a real game', () => {
   });
 
   it('fills one fixed seat once, keeps its faction for the replacement and takes it from the player who left', async () => {
-    /* Seed a supplied setup table so this suite isolates fixed-seat replacement and bank privacy. */
+    /* Seed a supplied setup table so this suite isolates fixed-seat replacement and spice reserve privacy. */
     await runtime.exec(
       "UPDATE seats SET faction_id='house-a', faction_name='House A', faction_color='#111111' WHERE seat='seat-1'"
     );
@@ -189,7 +189,7 @@ describe('Explicit participation on a real game', () => {
     expect(await rejected(a, { kind: 'seat-approve', requestId: requestC.id })).toBe('That seat is no longer open.');
     expect((await syncView(a)).snapshot.controls.seatRequests).toHaveLength(1);
 
-    /* Leaving keeps the seat and its faction; the former player watches without the bank they held. */
+    /* Leaving keeps the seat and its faction; the former player watches without the spice reserve they held. */
     const left = await accepted(b, { kind: 'seat-depart' });
     expect(left.viewer.viewerSeat).toBe('neutral');
     expect(left.snapshot.bank).toBeUndefined();

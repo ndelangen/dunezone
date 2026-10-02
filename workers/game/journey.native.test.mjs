@@ -228,7 +228,7 @@ describe('A real game from creation to continuation', { timeout: 240_000 }, () =
     await accepted(a, { kind: 'draft-ready', ready: true });
     await eventually(async () => (await syncView(a)).snapshot.stage === 'swapping', 'the deal', 20_000);
 
-    /* Two distinct accounts hold two distinct factions and see only their own bank. */
+    /* Two distinct accounts hold two distinct factions and see only their own spice reserve. */
     const [viewA, viewB] = await Promise.all([a, b].map(syncView));
     expect(viewA.viewer.userId).not.toBe(viewB.viewer.userId);
     expect(viewA.viewer.viewerSeat).not.toBe(viewB.viewer.viewerSeat);
@@ -244,7 +244,7 @@ describe('A real game from creation to continuation', { timeout: 240_000 }, () =
     expect(afterRetry.snapshot.bank.balance).toBe(beforeLoss.snapshot.bank.balance - 3);
     expect(afterRetry.snapshot.table.pieces.length).toBe(beforeLoss.snapshot.table.pieces.length + 1);
 
-    /* Reconnect: a player who drops and comes back finds the same seat, bank and table. */
+    /* Reconnect: a player who drops and comes back finds the same seat, spice reserve and table. */
     const beforeReconnect = await syncView(a);
     a.socket.close();
     await eventually(() => a.closed, 'closed socket');
@@ -319,7 +319,7 @@ describe('A real game from creation to continuation', { timeout: 240_000 }, () =
     expect(sequences.every((sequence, index) => index === 0 || sequence > sequences[index - 1])).toBe(true);
   });
 
-  it('deals, plays, finishes and continues an eighteen-player game with a distinct station and bank for each account', async () => {
+  it('deals, plays, finishes and continues an eighteen-player game with a distinct station and spice reserve for each account', async () => {
     await open(HOUSES);
     const suffixes = ['a', ...Array.from({ length: 17 }, (_, index) => `p${String(index + 2).padStart(2, '0')}`)];
     const players = await draft(suffixes);
@@ -376,17 +376,17 @@ describe('A real game from creation to continuation', { timeout: 240_000 }, () =
     const [a, b] = await draft(['a', 'b']);
     await toPlay([a, b]);
 
-    /* A player leaves mid-game; the seat keeps its faction and bank for whoever replaces them. */
+    /* A player leaves mid-game; the seat keeps its faction and spice reserve for whoever replaces them. */
     const leaving = await syncView(b);
     const heldSeat = leaving.viewer.viewerSeat;
-    const heldBank = leaving.snapshot.bank;
+    const heldReserve = leaving.snapshot.bank;
     const left = await accepted(b, { kind: 'seat-depart' });
     expect(left.viewer.viewerSeat).toBe('neutral');
     expect(left.snapshot.bank).toBeUndefined();
     const c = await admit('c');
     const replaced = await seat(c, a, heldSeat);
     expect(replaced.viewer.viewerSeat).toBe(heldSeat);
-    expect(replaced.snapshot.bank).toEqual(heldBank);
+    expect(replaced.snapshot.bank).toEqual(heldReserve);
     expect(await rejection(b, { kind: 'ready', ready: true })).toMatch(/^Spectators/);
 
     /* The replacement can end the game; the declarer then deletes their account. */

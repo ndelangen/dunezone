@@ -1,4 +1,4 @@
-import { emptyBattlePlan, fixtureCombatFaces } from '@shared/play/battle';
+import { emptyBattlePlan, fixtureBattleFaces } from '@shared/play/battle';
 import { initialSnapshot, nextSnapshot } from '@shared/play/commands';
 import { PHASE_CHANGE_COOLDOWN_MS } from '@shared/play/phases';
 import { tableForViewer } from '@shared/play/protocol';
@@ -291,7 +291,7 @@ async function grantedWholeCarry() {
   const snapshot = table(client).snapshot;
   const source = snapshot.table.pieces.find((piece) => piece.id === 'harkonnen-force-stack');
   if (!source) {
-    throw new Error('Missing force fixture.');
+    throw new Error('Missing troop fixture.');
   }
   client.beginGesture(source.id, 'whole');
   const begin = socket().sent.find((message) => message.type === 'begin');
@@ -692,7 +692,11 @@ describe('hosted table interaction', () => {
       expect(table(client).state.selectedPieceId).toBeNull();
       expect(table(client).state.draftMove).toBeNull();
       expect(socket().sent).toHaveLength(sent);
-      expect(table(client)).toMatchObject({ canHandleTable: false, bankControls: undefined, deckControls: undefined });
+      expect(table(client)).toMatchObject({
+        canHandleTable: false,
+        spiceReserveControls: undefined,
+        deckControls: undefined,
+      });
     }
   );
 
@@ -714,7 +718,7 @@ describe('hosted table interaction', () => {
     expect(table(client).state.selectedPieceId).toBeNull();
   });
 
-  test('spice supply emits separate amount commands and observers cannot use trackers', async () => {
+  test('Spice Bank emits separate amount commands and observers cannot use trackers', async () => {
     const client = await connected();
     client.spawnSpice(10);
     expect(command().action).toEqual({ kind: 'spice-spawn', count: 10 });
@@ -756,7 +760,7 @@ describe('hosted table interaction', () => {
     expect(socket().sent.at(-1)).toMatchObject({ type: 'drop', carryId: carried.carries[0].id });
   });
 
-  test('the piece menu offers bank and deck actions only to a viewer who can act, and bank collect refuses a piece another player holds', async () => {
+  test('the piece menu offers spice reserve and deck actions only to a viewer who can act, and spice reserve collect refuses a piece another player holds', async () => {
     const client = await connected();
     const harkonnen = { id: 'harkonnen', name: 'Harkonnen', color: '#ed927c' };
     const snapshot: GameSnapshot = {
@@ -787,19 +791,19 @@ describe('hosted table interaction', () => {
         ],
       })
     );
-    const { bankControls, deckControls } = table(client);
+    const { spiceReserveControls, deckControls } = table(client);
     expect(deckControls?.recipients).toEqual([{ id: harkonnen.id, name: harkonnen.name }]);
     deckControls?.draw('treachery-deck', 'harkonnen');
     expect(command().action).toEqual({ kind: 'deck-draw', pieceId: 'treachery-deck', recipient: 'harkonnen' });
     deckControls?.shuffle('treachery-deck');
     expect(command().action).toEqual({ kind: 'deck-shuffle', pieceId: 'treachery-deck' });
-    expect(bankControls?.canCollect(held.id)).toBe(false);
-    expect(bankControls?.canCollect('treachery-card-loose')).toBe(true);
-    bankControls?.collect('treachery-card-loose');
+    expect(spiceReserveControls?.canCollect(held.id)).toBe(false);
+    expect(spiceReserveControls?.canCollect('treachery-card-loose')).toBe(true);
+    spiceReserveControls?.collect('treachery-card-loose');
     expect(command().action).toEqual({ kind: 'bank-collect', pieceId: 'treachery-card-loose' });
 
     authorize(snapshot, { ...viewer, viewerSeat: 'neutral' });
-    expect(table(client).bankControls).toBeUndefined();
+    expect(table(client).spiceReserveControls).toBeUndefined();
     expect(table(client).deckControls).toBeUndefined();
   });
 
@@ -1058,7 +1062,7 @@ describe('hosted table interaction', () => {
     socket().deliver(view({ sequence: 1 }));
     const source = table(client).snapshot.table.pieces.find((piece) => piece.id === 'harkonnen-force-stack');
     if (!source) {
-      throw new Error('Missing force fixture.');
+      throw new Error('Missing troop fixture.');
     }
     client.beginGesture(source.id, 'whole');
     socket().deliver({
@@ -1189,8 +1193,8 @@ test('compact update gaps pause commands until a full resync restores the table'
   expect(command().action).toEqual({ kind: 'seat-request' });
 });
 
-describe('private banks and public transfers', () => {
-  test('applies own-bank deltas and discards private playback when the current faction changes', async () => {
+describe('private spice reserves and public transfers', () => {
+  test('applies own-spice-reserve deltas and discards private playback when the current faction changes', async () => {
     const client = await connected();
     const initial = { ...initialSnapshot(), bank: { factionId: 'harkonnen', balance: 37 } };
     socket().deliver(view({ sequence: 0, snapshot: initial }));
@@ -1241,7 +1245,7 @@ describe('private banks and public transfers', () => {
 });
 
 function battleTable() {
-  const plan = emptyBattlePlan(fixtureCombatFaces('harkonnen'));
+  const plan = emptyBattlePlan(fixtureBattleFaces('harkonnen'));
   const snapshot: GameSnapshot = {
     ...initialSnapshot(),
     phase: 6,

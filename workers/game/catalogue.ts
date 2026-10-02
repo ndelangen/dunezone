@@ -5,8 +5,8 @@ import { cardbackPresetLabel } from '../../src/shared/assets/cardbackPresets';
 import { authoredCardback, DeckAssetInput } from '../../src/shared/assets/schema';
 import { parseAssetDataForWrite } from '../../src/shared/assets/validation';
 import { phaseDeclarationSchema } from '../../src/shared/factions/extraPhases';
-import { IdentifiedFactionStoredSchema } from '../../src/shared/factions/schema';
-import { lacksCombatValues, troopCombatFaces } from '../../src/shared/factions/troopCombat';
+import { IdentifiedFactionStoredSchema, toStoredHeroKey } from '../../src/shared/factions/schema';
+import { lacksBattleValues, troopBattleFaces } from '../../src/shared/factions/troopBattle';
 import type {
   AssetSupply,
   CaptureProblem,
@@ -372,10 +372,10 @@ export class GameCatalogue {
       }
       return { troopId: troop.troopId, name: troop.name, count: troop.count, front, back };
     });
-    for (const face of troopCombatFaces(definition.troops).filter(lacksCombatValues)) {
+    for (const face of troopBattleFaces(definition.troops).filter(lacksBattleValues)) {
       problems.push({
         subject: `troop ${face.face.name}${face.side === 'back' ? ' back' : ''}`,
-        reason: 'This troop face can fight but has no authored combat values.',
+        reason: 'This troop face can fight but has no authored battle values.',
       });
     }
     const allianceFront = this.publishedFace(source.alliance ?? null, 'alliance card', problems);
@@ -398,7 +398,8 @@ export class GameCatalogue {
     return factionCaptureSchema.parse({
       faction: { ...source.faction, name: definition.name },
       capturedAt: now,
-      definition,
+      /* The glossary term is "Faction leader"; the capture keeps the `hero` literal, which games already in storage hold. */
+      definition: toStoredHeroKey(definition),
       components: {
         token,
         leaders,

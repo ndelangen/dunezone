@@ -26,8 +26,8 @@ const TOPIC_ICON_DEFINITIONS = {
   battle: { kind: 'mask', src: '/vector/icon/combat.svg' },
   flip: { kind: 'mask', src: '/vector/icon/flip.svg' },
   strength: { kind: 'component', component: Zap },
-  noncombatant: { kind: 'component', component: ShieldOff },
-  combatUnknown: { kind: 'component', component: TriangleAlert },
+  cannotBattle: { kind: 'component', component: ShieldOff },
+  battleUnknown: { kind: 'component', component: TriangleAlert },
   /* Every authoring surface opens on an Identity chapter: what a thing is called, and what it fundamentally is. */
   identity: { kind: 'component', component: Signature },
   /* Off-face prose (CONTEXT.md: About), on every asset editor and every detail page. */
@@ -39,7 +39,7 @@ const TOPIC_ICON_DEFINITIONS = {
   /* Words on an artifact: a card's Head, an enhance token's per-face text. Both editors had hand-picked the same glyph. */
   text: { kind: 'component', component: Type },
   planets: { kind: 'component', component: Globe2 },
-  hero: { kind: 'mask', src: '/vector/generic/ceasar.svg' },
+  factionLeader: { kind: 'mask', src: '/vector/generic/ceasar.svg' },
   leaders: { kind: 'mask', src: '/vector/icon/traitor.svg' },
   alliance: { kind: 'mask', src: '/vector/icon/alliance.svg' },
   decals: { kind: 'mask', src: '/vector/icon/alliance.svg' },
@@ -56,7 +56,7 @@ const TOPIC_ICON_DEFINITIONS = {
   karama: { kind: 'mask', src: '/vector/icon/karama.svg' },
   rulesets: { kind: 'component', component: BookOpen },
   fate: { kind: 'mask', src: '/vector/icon/fate.svg' },
-  /* The entity-kind glyphs the mention chips wear. Factions reuse the hero pictogram and assets
+  /* The entity-kind glyphs the mention chips wear. Factions reuse the Faction leader pictogram and assets
      reuse the contents glyph, the way decals reuses alliance: one drawing, two topics. */
   factions: { kind: 'mask', src: '/vector/generic/ceasar.svg' },
   groups: { kind: 'component', component: UsersRound },

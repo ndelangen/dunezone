@@ -2,7 +2,7 @@ import { ConvexError, v } from 'convex/values';
 
 import { factionExtraKey, storedFactionExtrasSchema } from '../src/shared/factions/extras';
 import type { FactionExtra } from '../src/shared/factions/extras';
-import type { Doc, Id } from './_generated/dataModel';
+import type { Id } from './_generated/dataModel';
 import { query } from './_generated/server';
 import { publicationStatusFor } from './assetPublishingStatus';
 import { liveAsset } from './assets';
@@ -23,7 +23,12 @@ import {
 import { resolveGroupAssignmentForCreation } from './lib/defaultGroupPreference';
 import { loadFactionCatalogue, selectFactionCatalogueSpotlights } from './lib/factionCatalogue';
 import { factionDataValidator } from './lib/factionData';
-import { factionInputForWrite, parseFactionInput, parseStoredFactionForRead } from './lib/factionInput';
+import {
+  factionInputForWrite,
+  factionRowForClient,
+  parseFactionInput,
+  parseStoredFactionForRead,
+} from './lib/factionInput';
 import {
   buildOwnedForGroupAssignRows,
   OWNED_FOR_GROUP_ASSIGN_LIMIT,
@@ -79,13 +84,6 @@ async function assertFactionSlugAvailable(ctx: MutationCtx, slug: string, factio
 
 function factionDataForClient(data: unknown) {
   return parseStoredFactionForRead(data);
-}
-
-function factionRowForClient(row: Doc<'factions'>) {
-  return {
-    ...row,
-    data: factionDataForClient(row.data),
-  };
 }
 
 async function listFactionRulesets(ctx: QueryCtx, factionId: Id<'factions'>) {

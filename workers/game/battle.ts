@@ -1,5 +1,5 @@
 import { emptyBattlePlan, BATTLE_COUNTDOWN_MS } from '../../src/shared/play/battle';
-import type { BattleAction, BattlePlanInput, CombatFace, StoredBattlePlan } from '../../src/shared/play/battle';
+import type { BattleAction, BattlePlanInput, BattleFace, StoredBattlePlan } from '../../src/shared/play/battle';
 import { isBattleLeader } from '../../src/shared/play/battle';
 import { nextSnapshot, requireAccepted } from '../../src/shared/play/commands';
 import type { StoredPiece } from '../../src/shared/play/model';
@@ -13,7 +13,7 @@ import { playFromHandAtAnchor } from '../../src/shared/play/tableState';
 import type { StoredSnapshot, StoredBattle } from './state';
 
 type BattleActor = { snapshot: StoredSnapshot; battle: StoredBattle; factionId: string };
-type Combatant = BattleActor & { side: 0 | 1 };
+type BattleSide = BattleActor & { side: 0 | 1 };
 
 const refuse = (message: string): never => {
   throw new GameRejection(message);
@@ -24,7 +24,7 @@ function commit(snapshot: StoredSnapshot, changes: Partial<StoredSnapshot>, piec
 function sideFor(battle: StoredBattle, factionId: string): 0 | 1 {
   const side = battle.sides.findIndex((side) => side?.factionId === factionId);
   if (side !== 0 && side !== 1) {
-    return refuse('Only a combatant can change its plan or outcome.');
+    return refuse('Only a faction in the battle can change its plan or outcome.');
   }
   return side;
 }
@@ -36,17 +36,19 @@ function sum(a: number, b: number) {
   return result;
 }
 
-/** Exact funding uses bounded binary groups, including zero-cost and negative-strength faces. */
-function allocations(troops: BattlePlanInput['troops'], faces: Map<string, CombatFace>, limit: number) {
-  let states = new Map<number, { gain: number; funded: number[] }>([[0, { gain: 0, funded: troops.map(() => 0) }]]);
+/** Exact support uses bounded binary groups, including zero-cost and negative-strength faces. */
+function allocations(troops: BattlePlanInput['troops'], faces: Map<string, BattleFace>, limit: number) {
+  let states = new Map<number, { gain: number; supported: number[] }>([
+    [0, { gain: 0, supported: troops.map(() => 0) }],
+  ]);
   troops.forEach((troop, index) => {
     const face = faces.get(troop.faceId)!;
     let remaining = sum(troop.undialed, troop.dialed);
     for (let batch = 1; remaining > 0; batch *= 2) {
       const quantity = Math.min(batch, remaining);
       remaining -= quantity;
-      const cost = quantity * face.fundingCost;
-      const gain = quantity * (face.fundedStrength - face.strength);
+      const cost = quantity * face.supportCost;
+      const gain = quantity * (face.supportedStrength - face.strength);
       const next = new Map(states);
       for (const [spent, allocation] of states) {
         const total = spent + cost;
@@ -55,14 +57,14 @@ function allocations(troops: BattlePlanInput['troops'], faces: Map<string, Comba
         }
         const previous = next.get(total);
         if (!previous || allocation.gain + gain > previous.gain) {
-          const funded = [...allocation.funded];
-          funded[index] += quantity;
-          next.set(total, { gain: allocation.gain + gain, funded });
+          const supported = [...allocation.supported];
+          supported[index] += quantity;
+          next.set(total, { gain: allocation.gain + gain, supported });
         }
       }
       /* A pathological declaration fails explicitly before consuming unbounded Worker memory. */
       if (next.size > 100_000) {
-        return refuse('This funding calculation is too large. Reduce the declaration.');
+        return refuse('This support calculation is too large. Reduce the declaration.');
       }
       states = next;
     }
@@ -70,9 +72,9 @@ function allocations(troops: BattlePlanInput['troops'], faces: Map<string, Comba
   return states;
 }
 
-function fundMaxTroops(
+function supportMaxTroops(
   troops: BattlePlanInput['troops'],
-  faces: Map<string, CombatFace>,
+  faces: Map<string, BattleFace>,
   spice: number,
   before: StoredBattlePlan
 ) {
@@ -80,23 +82,23 @@ function fundMaxTroops(
   if (!states.has(spice)) {
     const troopEdit = JSON.stringify(troops) !== JSON.stringify(before.troops) && spice === before.spice;
     if (!troopEdit) {
-      return refuse('That exact amount of spice cannot fund these troops.');
+      return refuse('That exact amount of spice cannot support these troops.');
     }
     spice = [...states.keys()].reduce((highest, value) => Math.max(highest, value), 0);
   }
   const allocation = states.get(spice)!;
   troops.forEach((troop, index) => {
     const total = sum(troop.undialed, troop.dialed);
-    troop.dialed = allocation.funded[index];
+    troop.dialed = allocation.supported[index];
     troop.undialed = total - troop.dialed;
   });
   return spice;
 }
 
-function declaredStrength(troops: BattlePlanInput['troops'], faces: Map<string, CombatFace>, adjustment: number) {
+function declaredStrength(troops: BattlePlanInput['troops'], faces: Map<string, BattleFace>, adjustment: number) {
   const strength = troops.reduce((total, troop) => {
     const face = faces.get(troop.faceId)!;
-    return total + troop.undialed * face.strength + troop.dialed * face.fundedStrength;
+    return total + troop.undialed * face.strength + troop.dialed * face.supportedStrength;
   }, adjustment);
   if (!Number.isFinite(strength)) {
     return refuse('The declared strength is too large.');
@@ -104,7 +106,7 @@ function declaredStrength(troops: BattlePlanInput['troops'], faces: Map<string, 
   return strength;
 }
 
-function fundedPlan(input: BattlePlanInput, before: StoredBattlePlan) {
+function supportedPlan(input: BattlePlanInput, before: StoredBattlePlan) {
   const faces = new Map(before.faces.filter((face) => face.capable).map((face) => [face.id, face]));
   const troops = input.mode !== before.mode ? [] : input.troops.map((troop) => ({ ...troop }));
   if (
@@ -115,9 +117,9 @@ function fundedPlan(input: BattlePlanInput, before: StoredBattlePlan) {
   }
   let spice = input.mode !== before.mode ? 0 : input.spice;
   if (input.mode === 'custom') {
-    spice = troops.reduce((total, troop) => sum(total, troop.dialed * faces.get(troop.faceId)!.fundingCost), 0);
+    spice = troops.reduce((total, troop) => sum(total, troop.dialed * faces.get(troop.faceId)!.supportCost), 0);
   } else {
-    spice = fundMaxTroops(troops, faces, spice, before);
+    spice = supportMaxTroops(troops, faces, spice, before);
   }
   const strength = declaredStrength(troops, faces, input.adjustment);
   return { ...input, troops, spice, strength, faces: before.faces };
@@ -153,17 +155,17 @@ function validateLeaderSlot(pieces: StoredPiece[], plan: BattlePlanInput) {
 function reservedBalance({ snapshot, factionId }: BattleActor, before: StoredBattlePlan, plan: BattlePlanInput) {
   const balance = sum(snapshot.factionBanks[factionId] ?? 0, before.spice) - plan.spice;
   if (balance < 0) {
-    return refuse('There is not enough banked spice for this plan.');
+    return refuse('There is not enough spice in the spice reserve for this plan.');
   }
   return balance;
 }
 
-function editPlan({ snapshot, battle, side, factionId }: Combatant, input: BattlePlanInput) {
+function editPlan({ snapshot, battle, side, factionId }: BattleSide, input: BattlePlanInput) {
   if (battle.stage !== 'preparing' || battle.sides[side]!.ready) {
     return refuse('Undo Ready before editing your plan.');
   }
   const before = battle.plans[side]!;
-  const plan = fundedPlan(input, before);
+  const plan = supportedPlan(input, before);
   const available = [...(snapshot.factionInventories[factionId] ?? []), ...before.pieces];
   const pieces = selectedPlanPieces(plan, available);
   validateCardSlots(pieces, plan);
@@ -305,7 +307,7 @@ function claimSide({ snapshot, battle, factionId }: BattleActor, side: 0 | 1) {
 }
 
 function setReady(
-  { snapshot, battle, side }: Combatant,
+  { snapshot, battle, side }: BattleSide,
   action: Extract<BattleAction, { kind: 'battle-ready' }>,
   now: number
 ) {
@@ -358,7 +360,7 @@ function resolveBattle(snapshot: StoredSnapshot, battle: StoredBattle, outcome: 
 }
 
 function chooseOutcome(
-  { snapshot, battle, side }: Combatant,
+  { snapshot, battle, side }: BattleSide,
   action: Extract<BattleAction, { kind: 'battle-outcome' }>
 ) {
   const { outcome } = action;
@@ -372,19 +374,19 @@ function chooseOutcome(
   return commit(snapshot, { battleState: battle });
 }
 
-function combatantCommand(
+function sideCommand(
   actor: BattleActor,
   action: Extract<BattleAction, { kind: 'battle-plan' | 'battle-ready' | 'battle-outcome' }>,
   now: number
 ) {
-  const combatant = { ...actor, side: sideFor(actor.battle, actor.factionId) };
+  const battlingFaction = { ...actor, side: sideFor(actor.battle, actor.factionId) };
   switch (action.kind) {
     case 'battle-plan':
-      return editPlan(combatant, action.plan);
+      return editPlan(battlingFaction, action.plan);
     case 'battle-ready':
-      return setReady(combatant, action, now);
+      return setReady(battlingFaction, action, now);
     case 'battle-outcome':
-      return chooseOutcome(combatant, action);
+      return chooseOutcome(battlingFaction, action);
   }
 }
 
@@ -413,7 +415,7 @@ export function battleCommand(
   if (action.kind === 'battle-claim') {
     return claimSide({ snapshot, battle, factionId }, action.side);
   }
-  return combatantCommand({ snapshot, battle, factionId }, action, now);
+  return sideCommand({ snapshot, battle, factionId }, action, now);
 }
 
 /** The caller persists this transition before exposing any revealed contents. */

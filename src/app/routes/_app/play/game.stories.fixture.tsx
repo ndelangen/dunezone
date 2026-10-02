@@ -154,14 +154,14 @@ export const GAME_LOG: LogEntry[] = [
   {
     sequence: 5,
     class: 'spice',
-    text: 'Ridwan collected 3 spice from the table into the Fremen bank.',
+    text: 'Ridwan collected 3 spice from the table into the Fremen spice reserve.',
     context: 'Setup, Prediction',
     at: 5,
   },
   {
     sequence: 4,
     class: 'spice',
-    text: 'Twaffle withdrew 4 spice from the House Atreides bank to the table.',
+    text: 'Twaffle withdrew 4 spice from the House Atreides spice reserve to the table.',
     context: 'Setup, Prediction',
     at: 4,
   },

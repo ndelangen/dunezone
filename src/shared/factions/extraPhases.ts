@@ -14,7 +14,8 @@ import type { TablePhaseId } from '../play/phases';
 /** The two setup steps a declaration can precede; a setup target runs the phase once. The symbol is the one Play shows for the step. */
 export const SETUP_PHASE_TARGETS = [
   { id: 'traitors', label: 'Traitors', symbol: '/vector/icon/traitor.svg' },
-  { id: 'forces', label: 'Starting forces', symbol: '/vector/icon/shipment_disc.svg' },
+  /* 'forces' is a stored target id, saved on faction declarations: Dune Zone says troop (see the glossary). */
+  { id: 'forces', label: 'Starting troops', symbol: '/vector/icon/shipment_disc.svg' },
 ] as const;
 
 export type SetupPhaseTarget = (typeof SETUP_PHASE_TARGETS)[number]['id'];

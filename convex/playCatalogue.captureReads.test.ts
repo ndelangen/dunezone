@@ -9,6 +9,7 @@ import { publishedHref } from '../src/shared/asset-publishing/publicationTargets
 import { publishingDeckCardback } from '../src/shared/assets/fixtures/publishingDeckCardback';
 import { publishingTreacheryCard } from '../src/shared/assets/fixtures/publishingTreacheryCard';
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
+import { toStoredHeroKey } from '../src/shared/factions/schema';
 import { api } from './_generated/api';
 import schema from './schema';
 
@@ -77,7 +78,7 @@ describe('the catalogue reads Play captures from', () => {
     const definition = await t.query(api.playCatalogue.factionDefinition, { factionId });
     expect(definition).toMatchObject({
       faction: { id: factionId, slug: 'atreides', name: assetPublishingFaction.name },
-      data: assetPublishingFaction,
+      data: toStoredHeroKey(assetPublishingFaction),
       cardbacks: {
         traitor: '/published/cardback-presets/traitor/cardback.jpg?v=traitor-1',
         alliance: '/published/cardback-presets/alliance/cardback.jpg?v=alliance-1',

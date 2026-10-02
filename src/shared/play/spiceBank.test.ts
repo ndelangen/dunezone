@@ -3,7 +3,7 @@ import { describe, expect, test } from 'vitest';
 import { spawnSpiceInState } from './commands';
 import { freshTableState } from './model';
 import { isSpicePiece, SPICE_LAYER_HEIGHT, SPICE_LAYER_PITCH } from './spice';
-import { createSpiceStack, isSpiceSupplyPosition, spiceSupplySlot } from './spiceSupply';
+import { createSpiceStack, isSpiceBankPosition, spiceBankSlot } from './spiceBank';
 import {
   CONTACT_SHADOW_EPSILON,
   contactShadowHeightAt,
@@ -16,8 +16,8 @@ import {
 import { isCollisionFreePosition } from './tablePhysics';
 import { applyDraftToState, draftForGesture, heldPieceFor, settleCarryAtPosition } from './tableState';
 
-describe('shared spice supply', () => {
-  test('adds each batch to one fixed supply stack with distinct items and actor counts', () => {
+describe('shared Spice Bank', () => {
+  test('adds each batch to one fixed Spice Bank stack with distinct items and actor counts', () => {
     const first = spawnSpiceInState(freshTableState(), 10, 'Alice');
     const source = first.pieces.find(isSpicePiece)!;
     const second = spawnSpiceInState(first, 2, 'Bob');
@@ -35,7 +35,7 @@ describe('shared spice supply', () => {
       'Alice spawned 10 spice.',
     ]);
     for (const piece of spice) {
-      expect(isSpiceSupplyPosition(piece.position)).toBe(false);
+      expect(isSpiceBankPosition(piece.position)).toBe(false);
       expect(
         isCollisionFreePosition(
           piece,
@@ -65,11 +65,11 @@ describe('shared spice supply', () => {
     const position = createSpiceStack(state.nextEventNumber, 1).position;
     state.pieces[0] = { ...state.pieces[0], position };
     const before = structuredClone(state);
-    expect(() => spawnSpiceInState(state, 2)).toThrow('blocking the spice supply spawn point');
+    expect(() => spawnSpiceInState(state, 2)).toThrow('blocking the Spice Bank spawn point');
     expect(state).toEqual(before);
   });
 
-  test('does not add to a locked supply stack or place a second one', () => {
+  test('does not add to a locked Spice Bank stack or place a second one', () => {
     const first = spawnSpiceInState(freshTableState(), 10);
     const state = { ...first, pieces: first.pieces.map((piece) => ({ ...piece, locked: true })) };
     const before = structuredClone(state);
@@ -105,18 +105,18 @@ describe('shared spice supply', () => {
     expect(shadowY).toBeLessThan(position[1] + stackTopHeight(piece));
   });
 
-  test('the ordinary local drop flow deletes only the peeled spice at the supply', () => {
+  test('the ordinary local drop flow deletes only the peeled spice at the Spice Bank', () => {
     const state = spawnSpiceInState(freshTableState(), 10, 'Alice');
     const source = state.pieces.find(isSpicePiece)!;
     const draft = draftForGesture(source, 'top')!;
-    const position = spiceSupplySlot().position;
+    const position = spiceBankSlot().position;
     const settled = settleCarryAtPosition(state, draft, position)!;
     expect(settled.position).toEqual(position);
     expect(heldPieceFor(state, settled)?.items.length).toBe(1);
     const returned = applyDraftToState(state, settled, 'Alice');
     expect(returned.pieces.find((piece) => piece.id === source.id)?.items.length).toBe(9);
     expect(returned.pieces.filter(isSpicePiece)).toHaveLength(1);
-    expect(returned.events[0].message).toBe('Alice returned 1 spice to the supply.');
+    expect(returned.events[0].message).toBe('Alice returned 1 spice to the Spice Bank.');
     expect(returned.pieces.filter((piece) => !isSpicePiece(piece))).toEqual(
       state.pieces.filter((piece) => !isSpicePiece(piece))
     );
@@ -126,7 +126,7 @@ describe('shared spice supply', () => {
   test('a locked source and an invalid withdrawal cannot be deleted', () => {
     const state = spawnSpiceInState(freshTableState(), 3);
     const source = state.pieces.find(isSpicePiece)!;
-    const draft = { ...draftForGesture(source, 'top')!, position: spiceSupplySlot().position };
+    const draft = { ...draftForGesture(source, 'top')!, position: spiceBankSlot().position };
     const locked = { ...state, pieces: state.pieces.map((piece) => ({ ...piece, locked: true })) };
     const rejected = applyDraftToState(locked, draft);
     expect(rejected.events[0].status).toBe('rejected');

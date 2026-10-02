@@ -328,7 +328,7 @@ export const BattleSpiceBound = meta.story({
   }),
   play: async ({ canvasElement }) => {
     const page = await expectPlanBound(canvasElement, 'Committed spice', { spice: 2 });
-    await settled(() => expect(page.getByText(/0 available in your bank, 2 reserved/)).toBeVisible());
+    await settled(() => expect(page.getByText(/0 in your spice reserve, 2 set aside/)).toBeVisible());
   },
 });
 
@@ -404,7 +404,7 @@ export const BattleRevealedPiecesStill = meta.story({
     await settled(() => expect(revealed()).toHaveLength(2));
     expect(animatedIn(page.getAllByLabelText(plans))).toEqual([]);
     for (const plan of revealed()) {
-      expect(within(plan).getByText('Force')).toBeVisible();
+      expect(within(plan).getByText('Strength')).toBeVisible();
     }
   },
 });
