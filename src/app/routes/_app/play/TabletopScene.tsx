@@ -608,6 +608,10 @@ function TokenFace({
   );
 }
 
+/*
+ * Layers overlap, so a face between two layers sits inside its neighbour and is never seen.
+ * A stack draws only its top face and its underside, which shows when the whole stack turns over.
+ */
 function TroopStackLayers({ piece }: { piece: TablePiece }) {
   const shownLayers = visibleLayerCount(piece);
   const scale = troopScale(piece);
@@ -631,17 +635,21 @@ function TroopStackLayers({ piece }: { piece: TablePiece }) {
               )}
               <meshStandardMaterial color={piece.color} roughness={0.56} metalness={0.1} />
             </mesh>
-            <TokenFace
-              piece={piece}
-              faceUp={faceUp}
-              itemIndex={stackLayerItemIndex(piece.items.length, shownLayers, index, piece.flipRevision)}
-            />
-            <TokenFace
-              piece={piece}
-              faceUp={!faceUp}
-              underside
-              itemIndex={stackLayerItemIndex(piece.items.length, shownLayers, index, piece.flipRevision)}
-            />
+            {index === shownLayers - 1 ? (
+              <TokenFace
+                piece={piece}
+                faceUp={faceUp}
+                itemIndex={stackLayerItemIndex(piece.items.length, shownLayers, index, piece.flipRevision)}
+              />
+            ) : null}
+            {index === 0 ? (
+              <TokenFace
+                piece={piece}
+                faceUp={!faceUp}
+                underside
+                itemIndex={stackLayerItemIndex(piece.items.length, shownLayers, index, piece.flipRevision)}
+              />
+            ) : null}
           </group>
         );
       })}
@@ -653,11 +661,14 @@ function CardFace({
   piece,
   faceUp,
   underside = false,
+  covered = false,
   itemIndex,
 }: {
   piece: TablePiece;
   faceUp: boolean;
   underside?: boolean;
+  /* A card under another shows only a sliver at its edge, never its centre panel. */
+  covered?: boolean;
   itemIndex: number;
 }) {
   return (
@@ -669,14 +680,20 @@ function CardFace({
         <planeGeometry args={[CARD_WIDTH, CARD_DEPTH]} />
         <meshStandardMaterial color={faceUp ? piece.color : '#2b1a1a'} roughness={0.68} metalness={0.03} />
       </mesh>
-      <mesh position={[0, 0, 0.001]} renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}>
-        <planeGeometry args={[0.58, 0.82]} />
-        <meshBasicMaterial color={piece.accent} transparent depthWrite={false} opacity={faceUp ? 0.74 : 0.38} />
-      </mesh>
+      {covered ? null : (
+        <mesh position={[0, 0, 0.001]} renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}>
+          <planeGeometry args={[0.58, 0.82]} />
+          <meshBasicMaterial color={piece.accent} transparent depthWrite={false} opacity={faceUp ? 0.74 : 0.38} />
+        </mesh>
+      )}
     </PieceFace>
   );
 }
 
+/*
+ * Staggered cards show a sliver of every face, on top and, while the stack turns over, underneath.
+ * Only the centre panel of a covered face is always hidden, so a covered card skips it.
+ */
 function CardStackLayers({ piece }: { piece: TablePiece }) {
   const shownLayers = visibleLayerCount(piece);
   return (
@@ -695,12 +712,14 @@ function CardStackLayers({ piece }: { piece: TablePiece }) {
             <CardFace
               piece={piece}
               faceUp={faceUp}
+              covered={index < shownLayers - 1}
               itemIndex={stackLayerItemIndex(piece.items.length, shownLayers, index, piece.flipRevision)}
             />
             <CardFace
               piece={piece}
               faceUp={!faceUp}
               underside
+              covered={index > 0}
               itemIndex={stackLayerItemIndex(piece.items.length, shownLayers, index, piece.flipRevision)}
             />
           </group>
