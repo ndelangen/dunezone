@@ -37,7 +37,14 @@ import { expireBattle } from './battle';
 import { CaptureStore } from './captures';
 import { Conversations } from './conversations';
 import { DirectoryOutbox } from './directory';
-import { applyDraftAction, assignmentEvents, draftWithCatalogue, draftWithSetAside, unbiased } from './drafting';
+import {
+  applyDraftAction,
+  assignmentEvents,
+  draftWithCatalogue,
+  draftWithSetAside,
+  rewrittenDraft,
+  unbiased,
+} from './drafting';
 import type { SetAsideJudgement } from './drafting';
 import { hostedFixturePlan } from './fixture';
 import type { FixturePlan } from './fixture';
@@ -837,7 +844,7 @@ export class GameSession {
     if (!room?.snapshot.draft || room.snapshot.stage !== 'drafting') {
       return;
     }
-    const next: StoredSnapshot = { ...room.snapshot, draft: rewrite(room.snapshot.draft) };
+    const next = rewrittenDraft(room.snapshot, rewrite(room.snapshot.draft));
     this.storage.transactionSync(() => {
       this.storage.sql.exec('UPDATE current_state SET data=? WHERE id=1', JSON.stringify(next));
     });

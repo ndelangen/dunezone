@@ -154,6 +154,32 @@ export function draftAfterRosterChange(draft: DraftState | undefined, departed?:
   return changed({ ...draft, picks: without(draft.picks), bans: without(draft.bans) });
 }
 
+/** Whether two drafts draft a different pool of factions, whatever order they list them in. */
+function poolChanged(before: DraftState, after: DraftState): boolean {
+  const was = draftedPool(before);
+  const is = draftedPool(after);
+  return was.length !== is.length || is.some((id) => !was.includes(id));
+}
+
+/**
+ * A draft rewritten outside any command, by a catalogue refresh or a set-aside.
+ * One that changes the drafted pool, or clears readiness, commits as a change of its own, so a Ready sent against the pool before it is refused like one crossing a pick.
+ */
+export function rewrittenDraft(snapshot: StoredSnapshot, draft: DraftState): StoredSnapshot {
+  const previous = snapshot.draft;
+  const cleared = (previous?.ready ?? []).some((seat) => !draft.ready.includes(seat));
+  const changedPool = !previous || poolChanged(previous, draft);
+  if (!cleared && !changedPool) {
+    return { ...snapshot, draft };
+  }
+  const table = accepted(
+    tableForViewer(snapshot, SPECTATOR_SEAT),
+    'draft-pool',
+    cleared ? 'The drafted pool changed, so readiness cleared.' : 'The drafted pool changed.'
+  );
+  return { ...nextSnapshot(snapshot, table), draft };
+}
+
 /** What a catalogue refresh found of the factions set aside when it began: those it judged, and which of them stay aside. */
 export type SetAsideJudgement = { judged: readonly string[]; stillAside: Readonly<Record<string, string>> };
 
@@ -176,10 +202,7 @@ export function draftWithCatalogue(
     catalogueAt: now,
     setAside: { ...Object.fromEntries(unjudged), ...setAside.stillAside },
   };
-  const before = draftedPool(draft);
-  const after = draftedPool(refreshed);
-  const changed = before.length !== after.length || after.some((id) => !before.includes(id));
-  return { ...refreshed, ready: changed ? [] : draft.ready };
+  return { ...refreshed, ready: poolChanged(draft, refreshed) ? [] : draft.ready };
 }
 
 /**
