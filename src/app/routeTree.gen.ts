@@ -27,6 +27,7 @@ import { Route as AppAuthLoginRouteRouteImport } from './routes/_app/auth/login.
 import { Route as AppFactionsIndexRouteImport } from './routes/_app/factions/index'
 import { Route as AppFactionsCreateRouteRouteImport } from './routes/_app/factions/create.route'
 import { Route as AppFuturePlansIndexRouteImport } from './routes/_app/future-plans/index'
+import { Route as AppGlossaryIndexRouteImport } from './routes/_app/glossary/index'
 import { Route as AppGroupsCreateRouteRouteImport } from './routes/_app/groups/create.route'
 import { Route as AppMediaSourceRouteRouteImport } from './routes/_app/media/$source/route'
 import { Route as AppPlayIndexRouteImport } from './routes/_app/play/index'
@@ -145,6 +146,11 @@ const AppFactionsCreateRouteRoute = AppFactionsCreateRouteRouteImport.update({
 const AppFuturePlansIndexRoute = AppFuturePlansIndexRouteImport.update({
   id: '/future-plans/',
   path: '/future-plans/',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AppGlossaryIndexRoute = AppGlossaryIndexRouteImport.update({
+  id: '/glossary/',
+  path: '/glossary/',
   getParentRoute: () => AppRouteRoute,
 } as any)
 const AppGroupsCreateRouteRoute = AppGroupsCreateRouteRouteImport.update({
@@ -339,6 +345,7 @@ export interface FileRoutesByFullPath {
   '/auth/': typeof AppAuthIndexRoute
   '/factions/': typeof AppFactionsIndexRoute
   '/future-plans/': typeof AppFuturePlansIndexRoute
+  '/glossary/': typeof AppGlossaryIndexRoute
   '/play/': typeof AppPlayIndexRoute
   '/privacy/': typeof AppPrivacyIndexRoute
   '/profiles/': typeof AppProfilesIndexRoute
@@ -387,6 +394,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AppAuthIndexRoute
   '/factions': typeof AppFactionsIndexRoute
   '/future-plans': typeof AppFuturePlansIndexRoute
+  '/glossary': typeof AppGlossaryIndexRoute
   '/play': typeof AppPlayIndexRoute
   '/privacy': typeof AppPrivacyIndexRoute
   '/profiles': typeof AppProfilesIndexRoute
@@ -438,6 +446,7 @@ export interface FileRoutesById {
   '/_app/auth/': typeof AppAuthIndexRoute
   '/_app/factions/': typeof AppFactionsIndexRoute
   '/_app/future-plans/': typeof AppFuturePlansIndexRoute
+  '/_app/glossary/': typeof AppGlossaryIndexRoute
   '/_app/play/': typeof AppPlayIndexRoute
   '/_app/privacy/': typeof AppPrivacyIndexRoute
   '/_app/profiles/': typeof AppProfilesIndexRoute
@@ -489,6 +498,7 @@ export interface FileRouteTypes {
     | '/auth/'
     | '/factions/'
     | '/future-plans/'
+    | '/glossary/'
     | '/play/'
     | '/privacy/'
     | '/profiles/'
@@ -537,6 +547,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/factions'
     | '/future-plans'
+    | '/glossary'
     | '/play'
     | '/privacy'
     | '/profiles'
@@ -587,6 +598,7 @@ export interface FileRouteTypes {
     | '/_app/auth/'
     | '/_app/factions/'
     | '/_app/future-plans/'
+    | '/_app/glossary/'
     | '/_app/play/'
     | '/_app/privacy/'
     | '/_app/profiles/'
@@ -745,6 +757,13 @@ declare module '@tanstack/react-router' {
       path: '/future-plans'
       fullPath: '/future-plans/'
       preLoaderRoute: typeof AppFuturePlansIndexRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/_app/glossary/': {
+      id: '/_app/glossary/'
+      path: '/glossary'
+      fullPath: '/glossary/'
+      preLoaderRoute: typeof AppGlossaryIndexRouteImport
       parentRoute: typeof AppRouteRoute
     }
     '/_app/groups/create': {
@@ -1018,6 +1037,7 @@ interface AppRouteRouteChildren {
   AppAuthIndexRoute: typeof AppAuthIndexRoute
   AppFactionsIndexRoute: typeof AppFactionsIndexRoute
   AppFuturePlansIndexRoute: typeof AppFuturePlansIndexRoute
+  AppGlossaryIndexRoute: typeof AppGlossaryIndexRoute
   AppPrivacyIndexRoute: typeof AppPrivacyIndexRoute
   AppProfilesIndexRoute: typeof AppProfilesIndexRoute
   AppRulesetsIndexRoute: typeof AppRulesetsIndexRoute
@@ -1061,6 +1081,7 @@ const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppAuthIndexRoute: AppAuthIndexRoute,
   AppFactionsIndexRoute: AppFactionsIndexRoute,
   AppFuturePlansIndexRoute: AppFuturePlansIndexRoute,
+  AppGlossaryIndexRoute: AppGlossaryIndexRoute,
   AppPrivacyIndexRoute: AppPrivacyIndexRoute,
   AppProfilesIndexRoute: AppProfilesIndexRoute,
   AppRulesetsIndexRoute: AppRulesetsIndexRoute,
