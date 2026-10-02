@@ -189,6 +189,28 @@ export const SpectatorAsksForASeat = meta.story({
   },
 });
 
+/** A spectator seated during drafting lands on the drafting tab, not the Log they watched from (#1666). */
+export const SeatedSpectatorLandsOnDrafting = meta.story({
+  beforeEach: install(() => productTransport('neutral', drafting())),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await decisionBar(canvasElement, 'You are watching');
+    /* A spectator's dock holds the Log alone, so that is where it opens. */
+    await shows(() => page.getByRole('button', { name: 'Log' }));
+    expect(page.queryByRole('button', { name: 'Drafting' })).toBeNull();
+    const seated = session.transport.view({
+      ...draftingSnapshot([SIX[0]!, SIX[1]!], 6),
+      revision: drafting().revision + 1,
+    });
+    seated.viewer = { ...seated.viewer, viewerSeat: 'seat-2' };
+    session.transport.deliver(seated);
+    await waitFor(
+      () => expect(page.getByRole('button', { name: 'Drafting' })).toHaveAttribute('aria-current', 'true'),
+      { timeout: 30_000 }
+    );
+  },
+});
+
 /** The requester sees their own request waiting and can take it back. */
 export const WaitingForApproval = meta.story({
   beforeEach: install(() =>
