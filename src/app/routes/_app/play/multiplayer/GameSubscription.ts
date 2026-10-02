@@ -55,6 +55,7 @@ export class GameSubscription {
   /* Keepalive ticks since the socket last delivered any frame, its answers included (#1662). */
   private silentTicks = 0;
   private stopOnline: (() => void) | undefined;
+  private stopVisible: (() => void) | undefined;
   private ticketAttempt: TicketAttempt | undefined;
   /* The ticket request still on the wire: an attempt that gives up waiting leaves it there for the next attempt to take its answer. */
   private ticketRequest: TicketRequest | undefined;
@@ -96,6 +97,8 @@ export class GameSubscription {
   subscribe(listener: (event: GameSubscriptionEvent) => void) {
     this.listener = listener;
     this.stopOnline = this.runtime.onOnline(() => this.networkReturned());
+    /* A tab frozen in the background would otherwise find a dead socket only after two keepalive intervals. */
+    this.stopVisible = this.runtime.onVisible(() => this.networkReturned());
     void this.open();
     let stopped = false;
     return () => {
@@ -111,6 +114,8 @@ export class GameSubscription {
     this.listener = null;
     this.stopOnline?.();
     this.stopOnline = undefined;
+    this.stopVisible?.();
+    this.stopVisible = undefined;
     ++this.generation;
     clearTimeout(this.reconnectTimer);
     this.reconnectTimer = undefined;
@@ -390,7 +395,7 @@ export class GameSubscription {
     this.retryAfterFailure('The table could not be reached. Reconnecting...');
   }
 
-  /* Coming back online reconnects at once when the plain retry is waiting, and otherwise asks the open socket to prove it still works. */
+  /* Coming back online or to the foreground reconnects at once when the plain retry is waiting, and otherwise asks the open socket to prove it still works. */
   private networkReturned() {
     if (!this.listener || this.status === 'denied') {
       return;

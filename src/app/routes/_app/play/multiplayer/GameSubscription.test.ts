@@ -10,7 +10,7 @@ import { frameChange } from '@shared/play/updates';
 import type { RoomView } from '@shared/play/updates';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 
-import { online, runtime, Socket } from './gameRuntime.test.fixture';
+import { online, runtime, Socket, visible } from './gameRuntime.test.fixture';
 import { GameSubscription } from './GameSubscription';
 
 const initial = (): RoomView => ({
@@ -425,6 +425,18 @@ test('a probe on coming back online gets a whole interval to be answered, and a 
   expect(Socket.instances).toHaveLength(1);
   await vi.advanceTimersByTimeAsync(1);
   expect(Socket.instances).toHaveLength(2);
+});
+
+test('a tab coming back to the foreground probes the open socket and drops it after one silent interval', async () => {
+  const { subscription, socket } = await subscribed();
+  socket.answersKeepalives = false;
+  for (const listener of visible) {
+    listener();
+  }
+  expect(socket.keepalives).toBe(1);
+  await vi.advanceTimersByTimeAsync(KEEPALIVE_INTERVAL_MS);
+  expect(socket.readyState).toBe(3);
+  expect(subscription.status).toBe('suspended');
 });
 
 test('a table that never answers keeps saying so through every retry until a view arrives', async () => {
