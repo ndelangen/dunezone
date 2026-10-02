@@ -22,10 +22,18 @@ test('a wait reads as unreachable only once it has lasted the whole timeout, and
   expect(result.current).toBe(true);
   rerender({ waiting: false });
   expect(result.current).toBe(false);
-  /* A new wait starts its own timeout instead of inheriting the last one. */
+});
+
+test('a wait interrupted by an answer starts its own timeout instead of finishing the last one', () => {
+  const { result, rerender } = renderHook(({ waiting }) => useServerUnreachable(waiting), {
+    initialProps: { waiting: true },
+  });
+  act(() => vi.advanceTimersByTime(SERVER_WAIT_MS / 2));
+  rerender({ waiting: false });
   rerender({ waiting: true });
+  act(() => vi.advanceTimersByTime(SERVER_WAIT_MS - 1));
   expect(result.current).toBe(false);
-  act(() => vi.advanceTimersByTime(SERVER_WAIT_MS));
+  act(() => vi.advanceTimersByTime(1));
   expect(result.current).toBe(true);
 });
 

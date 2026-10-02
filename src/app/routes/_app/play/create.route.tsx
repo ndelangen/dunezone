@@ -15,7 +15,7 @@ import type { CreatableRuleset } from '@db/play';
 import { pageHead } from '@app/routes/pageTitle';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
-import { useServerUnreachable } from './useServerUnreachable';
+import { SERVER_RETRYING, SERVER_UNREACHABLE_TITLE, useServerUnreachable } from './useServerUnreachable';
 
 export const Route = createFileRoute('/_app/play/create')({
   head: () => pageHead('Create a game', { noindex: true }),
@@ -51,13 +51,9 @@ function CreateGamePage() {
   switch (data?.access) {
     case undefined:
       return (
-        <PageMessage
-          size="compact"
-          title={TITLE}
-          back={unreachable ? <PageMessage.Back to="/play">Back to lobby</PageMessage.Back> : undefined}
-        >
+        <PageMessage size="compact" title={TITLE} back={<PageMessage.Back to="/">Go back home</PageMessage.Back>}>
           {unreachable ? (
-            <LoadPending title="Can't reach the server">Retrying...</LoadPending>
+            <LoadPending title={SERVER_UNREACHABLE_TITLE}>{SERVER_RETRYING}</LoadPending>
           ) : (
             <LoadPending title="Loading rulesets">
               The rulesets you can start a game with are still loading.

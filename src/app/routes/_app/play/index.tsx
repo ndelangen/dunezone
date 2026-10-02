@@ -76,10 +76,13 @@ function GameList({ entries, empty }: Readonly<{ entries: LobbyEntry[]; empty: s
 }
 
 /* Convex retries on its own; after a while the wait says so and offers the way home. */
-function LobbyWait({ signedOut }: Readonly<{ signedOut: boolean }>) {
-  const unreachable = useServerUnreachable(!signedOut);
-  if (signedOut) {
-    return <Text c="dimmed">Ongoing and past games appear here once you sign in.</Text>;
+function LobbyWait({ status }: Readonly<{ status: 'sign_in_required' | undefined }>) {
+  const unreachable = useServerUnreachable(status === undefined);
+  switch (status) {
+    case 'sign_in_required':
+      return <Text c="dimmed">Ongoing and past games appear here once you sign in.</Text>;
+    case undefined:
+      break;
   }
   if (!unreachable) {
     return <Text c="dimmed">Loading games.</Text>;
@@ -117,7 +120,7 @@ function PlayLobby() {
                 </Anchor>
               </>
             ) : (
-              <LobbyWait signedOut={lobby !== undefined} />
+              <LobbyWait status={lobby?.status} />
             )}
           </Stack>
         </Surface>
