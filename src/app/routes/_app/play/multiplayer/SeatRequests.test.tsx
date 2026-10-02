@@ -19,14 +19,25 @@ window.matchMedia = vi.fn().mockImplementation((query: string) => ({
   dispatchEvent: vi.fn(),
 }));
 
-/* jsdom has no layout; the Seats popover positions itself with a ResizeObserver. */
-globalThis.ResizeObserver = class ResizeObserver {
-  observe() {}
-  unobserve() {}
-  disconnect() {}
-};
-
 afterEach(cleanup);
+
+/* jsdom has no layout; the Seats popover positions itself with a ResizeObserver. */
+vi.stubGlobal(
+  'ResizeObserver',
+  class {
+    observe = vi.fn();
+    unobserve = vi.fn();
+    disconnect = vi.fn();
+  }
+);
+
+/** A press that begins on a button, sees the bar change under it, then ends on that same button. */
+function pressAcross(pressed: HTMLElement, change: () => void) {
+  fireEvent.pointerDown(pressed);
+  change();
+  fireEvent.pointerUp(pressed);
+  fireEvent.click(pressed);
+}
 
 function renderPlayback(stage: 'drafting' | 'play', step: number) {
   const client = { requestHistory: vi.fn(), resumeLive: vi.fn() };
@@ -123,14 +134,9 @@ test('a press that began on one request never approves the request swapped in un
   const second = { id: 'seat-request-2', requesterName: 'Second', seat: null };
   const { rerender } = render(bar(tableWith([first, second])));
   expect(screen.getByText('First asks for a seat')).toBeTruthy();
-  const pressed = screen.getByRole('button', { name: 'Approve' });
-  fireEvent.pointerDown(pressed);
-
   /* Another tab approves the first request before this press ends, so the bar now offers the second. */
-  rerender(bar(tableWith([second])));
+  pressAcross(screen.getByRole('button', { name: 'Approve' }), () => rerender(bar(tableWith([second]))));
   expect(screen.getByText('Second asks for a seat')).toBeTruthy();
-  fireEvent.pointerUp(pressed);
-  fireEvent.click(pressed);
   expect(client.command).not.toHaveBeenCalled();
 
   /* A fresh press on the request now on screen approves that one. */
@@ -158,13 +164,10 @@ test('a spectator press that began on one open seat never requests the seat left
   );
   const { rerender } = render(popover(tableWith(['seat-1', 'seat-3'])));
   fireEvent.click(screen.getByRole('button', { name: 'Seats' }));
-  const pressed = await screen.findByRole('button', { name: 'Request a seat' });
-  fireEvent.pointerDown(pressed);
-
   /* Someone takes seat 2, the one this press would ask for, before the press ends; seat 4 is all that is left. */
-  rerender(popover(tableWith(['seat-1', 'seat-2', 'seat-3'])));
-  fireEvent.pointerUp(pressed);
-  fireEvent.click(pressed);
+  pressAcross(await screen.findByRole('button', { name: 'Request a seat' }), () =>
+    rerender(popover(tableWith(['seat-1', 'seat-2', 'seat-3'])))
+  );
   expect(client.command).not.toHaveBeenCalled();
 
   /* A fresh press asks for the seat now named on the button. jsdom never finishes the popover's transition, hence hidden. */
