@@ -161,8 +161,8 @@ jobs:
       - name: Detect unused files, exports, and dependencies
         if: ${{ !cancelled() }}
         run: bun run knip
-      # Reads bun.lock and package.json only; the script imports nothing from a package for the
-      # same reason. Fails on any advisory at moderate or above; a conscious exception is
+      # Runs after an install that may have failed, so it reads bun.lock and package.json only and
+      # the script imports nothing from a package. Fails on any advisory at moderate or above; a conscious exception is
       # `--ignore=<GHSA-id>` with the reason in the diff, never lowering the level. Fail-closed: an
       # unreachable registry still refuses, after four attempts of thirty seconds with backoff
       # between them, and the last log line names whether the run ended on advisories or on the
