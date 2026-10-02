@@ -140,6 +140,7 @@ function storedProjection({ viewer, snapshot, serverNow }: StoredTable): TablePr
     playback: null,
     historyPending: false,
     canInteract: false,
+    canHandleTable: false,
     reconnecting: true,
     seatCommandPending: false,
     traitorsGathered: 0,
