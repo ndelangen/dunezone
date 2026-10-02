@@ -386,7 +386,7 @@ export const Reconnecting = meta.story({
   beforeEach: install(() => productTransport('seat-2', playingSnapshot())),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await page.findByRole('button', { name: 'Conversation' });
+    await page.findByRole('tab', { name: 'Conversation' });
     session.transport.deliver({ type: 'admission', status: 'suspended' });
     const status = await page.findByRole('status', { name: /^Reconnecting\./ });
     expect(status.closest('.seated-toolbar')).not.toBeNull();
