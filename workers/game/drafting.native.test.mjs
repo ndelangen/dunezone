@@ -296,6 +296,8 @@ describe('Drafting and public assignment on a real game', () => {
     peer.factions.set('fremen', definition('fremen', 'Fremen'));
     await accepted(a, { kind: 'draft-ready', ready: true });
     await eventually(async () => !('fremen' in (await setAside(a))), 'fremen judged again');
+    /* Its return changed the drafted pool, so both players ready again for it. */
+    await accepted(a, { kind: 'draft-ready', ready: true });
     await accepted(b, { kind: 'draft-ready', ready: true });
     await eventually(async () => (await stage(a)) === 'swapping', 'assignment once it can be captured');
     const dealt = await syncView(a);
@@ -356,12 +358,59 @@ describe('Drafting and public assignment on a real game', () => {
     peer.factions.set('fremen', ready('fremen', 'Fremen'));
     await refreshCatalogue(a);
     await eventually(async () => !('fremen' in (await setAside(a))), 'fremen judged ready');
+    /* Its return changed the drafted pool, so both players ready again for it. */
+    await accepted(a, { kind: 'draft-ready', ready: true });
     await accepted(b, { kind: 'draft-ready', ready: true });
     await eventually(async () => (await stage(a)) === 'swapping', 'assignment once published');
     const dealt = await syncView(a);
     expect(dealt.snapshot.roster.seats.map((seat) => seat.faction?.id).sort()).toEqual(['fremen', 'harkonnen']);
     expect((await runtime.captures()).factions.every((capture) => capture.readiness.ready)).toBe(true);
   });
+
+  it('clears readiness when a refresh returns a drafted faction from set-aside, so nobody stays ready for a pool that changed', async () => {
+    await realGame(() => {
+      peer.factions.set('harkonnen', ready('harkonnen', 'Harkonnen'));
+      peer.factions.set('fremen', missingLeaderFace('fremen', 'Fremen'));
+    });
+    const a = await admit('a');
+    const b = await admit('b');
+    await seat(b, a);
+    await accepted(b, { kind: 'draft-pick', factionId: 'harkonnen' });
+    await accepted(a, { kind: 'draft-pick', factionId: 'fremen' });
+    await eventually(async () => 'fremen' in (await setAside(a)), 'fremen judged at the pick');
+    await accepted(b, { kind: 'draft-ready', ready: true });
+
+    /* Fremen publishes; the refresh that returns it to the draft changes the pool Seat 2 readied for. */
+    peer.factions.set('fremen', ready('fremen', 'Fremen'));
+    await refreshCatalogue(a);
+    await eventually(async () => !('fremen' in (await setAside(a))), 'fremen judged ready');
+    const returned = await syncView(a);
+    expect(returned.snapshot.stage).toBe('drafting');
+    expect(returned.snapshot.draft.ready).toEqual([]);
+  });
+
+  it('judges a pick again when a catalogue refresh lands while its judgement runs', async () => {
+    await realGame(() => {
+      peer.factions.set('fremen', missingLeaderFace('fremen', 'Fremen'));
+    });
+    const a = await admit('a');
+    const opened = (await syncView(a)).snapshot.draft.catalogueAt;
+    /* The catalogue is stale, so the pick both starts a judgement and a refresh. */
+    offset += 60_000;
+    await runtime.clock(offset);
+    peer.factionMode = 'hold';
+    await accepted(a, { kind: 'draft-pick', factionId: 'fremen' });
+    const held = () => peer.requests.filter((r) => r.function === 'playCatalogue:factionDefinition' && !r.completedAt);
+    await eventually(() => held().length > 0, 'the pick judgement held open');
+    await eventually(async () => (await syncView(a)).snapshot.draft.catalogueAt > opened, 'refreshed mid-judgement');
+    /* The held verdict is stale once it lands; the pick is judged again on the new catalogue without another command. */
+    peer.factionMode = 'allow';
+    for (const record of held()) {
+      record.release(peer.factions.get(record.args.factionId));
+    }
+    await eventually(async () => 'fremen' in (await setAside(a)), 'fremen judged again after the refresh', 3000);
+    expect(await setAside(a)).toEqual({ fremen: leaderProblem });
+  }, 15_000);
 
   it('never fills with an unready faction: it is set aside, readiness stands, and the deal fills from what remains', async () => {
     await realGame(() => {

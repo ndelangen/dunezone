@@ -157,6 +157,7 @@ export type SetAsideJudgement = { judged: readonly string[]; stillAside: Readonl
  * The catalogue read again: picks and readiness stay, the factions behind them are the latest.
  * A faction the refresh judged stays aside only if it is still refused;
  * one a deal set aside while the refresh ran stays as it is.
+ * A drafted one that returns changes the pool the players readied for, so readiness clears.
  */
 export function draftWithCatalogue(
   draft: DraftState,
@@ -165,11 +166,15 @@ export function draftWithCatalogue(
   setAside: SetAsideJudgement = { judged: [], stillAside: {} }
 ): DraftState {
   const unjudged = Object.entries(draft.setAside ?? {}).filter(([id]) => !setAside.judged.includes(id));
+  const next = { ...Object.fromEntries(unjudged), ...setAside.stillAside };
+  const picked = Object.values(draft.picks).flat();
+  const returned = picked.some((id) => id in (draft.setAside ?? {}) && !(id in next));
   return {
     ...draft,
     factions,
     catalogueAt: now,
-    setAside: { ...Object.fromEntries(unjudged), ...setAside.stillAside },
+    setAside: next,
+    ready: returned ? [] : draft.ready,
   };
 }
 
