@@ -482,6 +482,7 @@ export class GameSubscription {
       previous,
       phaseCooldownMs: message.phaseCooldownMs,
       battleCountdownMs: message.battleCountdownMs,
+      historySteps: message.historySteps,
       snapshotChanged: Boolean(message.snapshot || message.completedCommandId),
     });
   }

@@ -104,7 +104,7 @@ async function loadFactionDetailPageBySlug(ctx: QueryCtx, slug: string) {
     .withIndex('by_slug', (q) => q.eq('slug', slug))
     .unique();
   if (!locatedRow || locatedRow.is_deleted) {
-    throw new Error(`Faction with slug ${slug} not found`);
+    throw new ConvexError({ code: 'NOT_FOUND', message: `Faction with slug ${slug} not found` });
   }
 
   const access = await loadAssetAccessBundle(ctx, { kind: 'faction', row: locatedRow });

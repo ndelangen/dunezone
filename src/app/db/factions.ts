@@ -10,6 +10,7 @@ import type { CatalogueFactionData } from '@shared/factions/schema';
 import type { FactionInput } from '@shared/factions/schema';
 import { useQuery } from 'convex/react';
 import type { FunctionReturnType } from 'convex/server';
+import { ConvexError } from 'convex/values';
 
 import { db } from '@db/core';
 import { parseClientBoundary } from '@app/db/core/clientBoundary';
@@ -365,4 +366,21 @@ export async function loadFaction(slug: string): Promise<FactionDetailPageData> 
 export function useFactionsOwnedForGroupAssign() {
   const liveData = useQuery(api.factions.listOwnedForGroupAssign, {});
   return toLiveQueryResult(liveData);
+}
+
+/** Missing public factions are absent; transport, permission and data failures still throw. */
+export async function loadPublicFaction(slug: string): Promise<FactionDetailPageData | null> {
+  try {
+    return await loadFaction(slug);
+  } catch (error) {
+    if (isFactionNotFound(error)) {
+      return null;
+    }
+    throw error;
+  }
+}
+
+/** Structured absence is distinct from a broken connection or invalid stored data. */
+export function isFactionNotFound(error: unknown): boolean {
+  return error instanceof ConvexError && error.data?.code === 'NOT_FOUND';
 }

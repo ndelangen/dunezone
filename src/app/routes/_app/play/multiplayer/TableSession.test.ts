@@ -918,6 +918,45 @@ describe('hosted table interaction', () => {
     expect(command().expectedRevision).toBe(4);
   });
 
+  test('playback offers the checkpoints the live game saves while a viewer sits at the last one', async () => {
+    const client = await connected();
+    client.requestHistory(2);
+    socket().deliver({ type: 'history', step: 2, lastStep: 2, snapshot: initialSnapshot() });
+    expect(table(client).playback).toEqual({ step: 2, lastStep: 2 });
+    socket().deliver(view({ snapshot: { ...initialSnapshot(), revision: 4, phase: 2 }, historySteps: 3 }));
+    expect(table(client).playback).toEqual({ step: 2, lastStep: 3 });
+  });
+
+  test('playback takes the live checkpoint total from updates, and an update without one keeps it', async () => {
+    const client = await connected();
+    socket().deliver(view({ sequence: 1 }));
+    client.requestHistory(2);
+    socket().deliver({ type: 'history', step: 2, lastStep: 2, snapshot: initialSnapshot() });
+    socket().deliver({
+      type: 'update',
+      epoch: 'epoch-one',
+      baseSequence: 1,
+      sequence: 2,
+      historySteps: 4,
+      activity: noActivity,
+    });
+    expect(table(client).playback).toEqual({ step: 2, lastStep: 4 });
+    socket().deliver({ type: 'update', epoch: 'epoch-one', baseSequence: 2, sequence: 3, activity: noActivity });
+    expect(table(client).playback).toEqual({ step: 2, lastStep: 4 });
+  });
+
+  test('a refused history read stops loading and keeps the checkpoint the viewer was on', async () => {
+    const client = await connected();
+    client.requestHistory(1);
+    socket().deliver({ type: 'history', step: 1, lastStep: 2, snapshot: initialSnapshot() });
+    client.requestHistory(3);
+    expect(table(client).historyPending).toBe(true);
+    socket().deliver({ type: 'rejected', requestId: 'message', message: 'Unknown history step.' });
+    expect(table(client).historyPending).toBe(false);
+    expect(table(client).playback).toEqual({ step: 1, lastStep: 2 });
+    expect(client.getSnapshot().error).toBe('Unknown history step.');
+  });
+
   test('retains the pending flip gate through acceptance and animation completion', async () => {
     const client = await connected();
     const snapshot = table(client).snapshot;

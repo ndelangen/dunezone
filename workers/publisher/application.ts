@@ -1,5 +1,3 @@
-import { isAssetType } from '../../src/shared/assets/types';
-
 /** A deployed version owns its HTML, including the client chunk URLs in that HTML. */
 export function applicationReleaseIdentity(env: Pick<Env, 'CF_VERSION_METADATA' | 'GIT_SHA'>): string {
   return env.CF_VERSION_METADATA?.id ?? env.GIT_SHA;
@@ -15,18 +13,19 @@ function isPublicPage(pathname: string): boolean {
   if (segments.some((segment) => !segment || segment.includes('\\'))) {
     return false;
   }
-  const [root, type] = segments;
+  const [root, type, slug] = segments;
   if (root === 'factions') {
-    return segments.length === 1 || (segments.length === 2 && type !== 'create');
+    return !((segments.length === 2 && type === 'create') || (segments.length === 3 && slug === 'edit'));
   }
   return root === 'assets' && isPublicAssetPage(segments);
 }
 
 function isPublicAssetPage(segments: string[]): boolean {
-  const [, type, slug] = segments;
-  return (
-    segments.length === 1 ||
-    (isAssetType(type ?? '') && (segments.length === 2 || (segments.length === 3 && slug !== 'create')))
+  const [, type, slug, action] = segments;
+  return !(
+    (segments.length === 2 && type === '__presets') ||
+    (segments.length === 3 && slug === 'create') ||
+    (segments.length === 4 && action === 'edit')
   );
 }
 

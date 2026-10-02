@@ -172,6 +172,8 @@ export class TableSession {
   private error: string | null = null;
   private history: Extract<ServerMessage, { type: 'history' }> | null = null;
   private pendingHistory: number | null = null;
+  /* The live room's newest history step, which grows while a viewer sits in playback. */
+  private liveHistorySteps = 0;
   private epoch = '';
   private seq = 0;
   private selectedId: string | null = null;
@@ -435,7 +437,9 @@ export class TableSession {
       viewer,
       snapshot: displayed,
       liveRevision: this.snapshot.revision,
-      playback: this.history ? { step: this.history.step, lastStep: this.history.lastStep } : null,
+      playback: this.history
+        ? { step: this.history.step, lastStep: Math.max(this.history.lastStep, this.liveHistorySteps) }
+        : null,
       historyPending: this.pendingHistory !== null,
       canInteract,
       canHandleTable,
@@ -542,7 +546,10 @@ export class TableSession {
       case 'view':
         this.phaseCooldownUntil = this.runtime.monotonicNow() + (message.phaseCooldownMs ?? 0);
         this.battleCountdownUntil = this.runtime.monotonicNow() + (message.battleCountdownMs ?? 0);
-        if (this.movesOnlyPointers(message)) {
+        const historySteps = message.historySteps ?? this.liveHistorySteps;
+        const historyMoved = historySteps !== this.liveHistorySteps;
+        this.liveHistorySteps = historySteps;
+        if (!historyMoved && this.movesOnlyPointers(message)) {
           this.pointers = message.pointers;
           this.emitPointers();
           this.keepWhilePointersMove();
@@ -650,6 +657,13 @@ export class TableSession {
   }
   private receiveRejection(message: Extract<ServerMessage, { type: 'rejected' }>) {
     this.error = message.message;
+    if (this.pendingHistory !== null && message.requestId === 'message') {
+      /*
+       * A history read carries no id, so the Worker refuses it as 'message'. It never gets a history reply, so the
+       * viewer stays on the checkpoint they were on and sees the reason instead of waiting.
+       */
+      this.pendingHistory = null;
+    }
     if (message.requestId === this.catalogueRequestId) {
       /* A refused catalogue read never gets a catalogue reply; the picker shows the reason instead of waiting. */
       this.catalogueResult = {
@@ -774,6 +788,7 @@ export class TableSession {
     this.spiceHistoryBefore = undefined;
     this.history = null;
     this.pendingHistory = null;
+    this.liveHistorySteps = 0;
     this.carry = null;
     this.carries = [];
     this.pointers = [];
