@@ -22,15 +22,73 @@ const STATIC_ASSIGNMENT_BUNDLES = /\/@react-three\/(?:fiber\/dist\/webgpu|drei\/
 
 type Node = { type: string; start: number; end: number; [key: string]: unknown };
 
+type Edit = { at: number; text: string };
+
 /** `name.property = value;` at the top level of a module, as the name it assigns to. */
 function staticAssignmentTarget(statement: Node): string | undefined {
   const expression = statement.type === 'ExpressionStatement' ? (statement.expression as Node) : undefined;
-  if (expression?.type !== 'AssignmentExpression' || expression.operator !== '=') {
-    return undefined;
-  }
-  const left = expression.left as Node;
-  const object = left.type === 'MemberExpression' && !left.computed ? (left.object as Node) : undefined;
+  const left =
+    expression?.type === 'AssignmentExpression' && expression.operator === '=' ? (expression.left as Node) : undefined;
+  const object = left?.type === 'MemberExpression' && !left.computed ? (left.object as Node) : undefined;
   return object?.type === 'Identifier' ? (object.name as string) : undefined;
+}
+
+/** The names a top-level `const`/`let`/`var` binds, with `''` for a destructuring pattern. */
+function declaredNames(statement: Node): string[] {
+  const declarators = statement.type === 'VariableDeclaration' ? (statement.declarations as Node[]) : [];
+  return declarators.map((declarator) => ((declarator.id as Node).name as string | undefined) ?? '');
+}
+
+/** Whether `code` mentions `name` as a whole identifier, not as a property. */
+function mentions(code: string, name: string): boolean {
+  const escaped = name.replace(/[\\^$.*+?()[\]{}|]/gu, '\\$&');
+  return new RegExp(`(?<![\\w$.])${escaped}(?![\\w$])`, 'u').test(code);
+}
+
+/** The index of the last `name.property = …;` that follows `body[index]`, past nothing but variable declarations. */
+function lastStaticAssignment(body: Node[], index: number, name: string): number {
+  let last = index;
+  for (let next = index + 1; next < body.length; next += 1) {
+    if (staticAssignmentTarget(body[next]) === name) {
+      last = next;
+    } else if (body[next].type !== 'VariableDeclaration') {
+      break;
+    }
+  }
+  return last;
+}
+
+/**
+ * Wraps `function name() {}` at `body[index]` and its statics in one pure call, and returns the index of the last statement it took.
+ * fiber and drei declare `preloadDefaultOptions` between `useEnvironment` and its statics;
+ * such a declaration moves into the call only when nothing else names it.
+ */
+function wrapHookStatics(code: string, body: Node[], index: number, edits: Edit[]): number {
+  const statement = body[index];
+  const name = (statement.id as Node | null)?.name as string | undefined;
+  const last = name ? lastStaticAssignment(body, index, name) : index;
+  if (!name || last === index) {
+    return index;
+  }
+  const outside = code.slice(0, statement.start) + code.slice(body[last].end);
+  const enclosed = body.slice(index + 1, last).flatMap(declaredNames);
+  if (enclosed.some((binding) => binding === '' || mentions(outside, binding))) {
+    return index;
+  }
+  edits.push({ at: statement.start, text: `const ${name} = /* @__PURE__ */ (() => { ` });
+  edits.push({ at: body[last].end, text: ` return ${name}; })();` });
+  return last;
+}
+
+/** drei: `const KTX2LoaderService = globalThis[SERVICE_KEY] || (globalThis[SERVICE_KEY] = new KTX2LoaderServiceImpl());` becomes a pure call. */
+function wrapGlobalSingletons(code: string, statement: Node, edits: Edit[]): void {
+  const declarators = statement.type === 'VariableDeclaration' ? (statement.declarations as Node[]) : [];
+  for (const init of declarators.map((declarator) => declarator.init as Node | null)) {
+    if (init?.type === 'LogicalExpression' && code.startsWith('globalThis[', init.start)) {
+      edits.push({ at: init.start, text: '/* @__PURE__ */ (() => ' });
+      edits.push({ at: init.end, text: ')()' });
+    }
+  }
 }
 
 /**
@@ -42,53 +100,12 @@ function staticAssignmentTarget(statement: Node): string | undefined {
  */
 export function pureStaticAssignments(code: string): string {
   const body = (parseAst(code) as unknown as { body: Node[] }).body;
-  const edits: { at: number; text: string }[] = [];
+  const edits: Edit[] = [];
   for (let index = 0; index < body.length; index += 1) {
-    const statement = body[index];
-    if (statement.type === 'FunctionDeclaration') {
-      const name = (statement.id as Node | null)?.name as string | undefined;
-      /* fiber and drei declare `preloadDefaultOptions` between `useEnvironment` and its statics; such a declaration moves into the call only when nothing else names it. */
-      let last = index;
-      for (let next = index + 1; name && next < body.length; next += 1) {
-        if (staticAssignmentTarget(body[next]) === name) {
-          last = next;
-        } else if (body[next].type !== 'VariableDeclaration') {
-          break;
-        }
-      }
-      const enclosed = body
-        .slice(index + 1, last)
-        .flatMap((inner) =>
-          inner.type === 'VariableDeclaration'
-            ? (inner.declarations as Node[]).map(
-                (declarator) => ((declarator.id as Node).name as string | undefined) ?? ''
-              )
-            : []
-        );
-      const outside = code.slice(0, statement.start) + code.slice(body[last].end);
-      if (
-        name &&
-        last > index &&
-        enclosed.every(
-          (binding) =>
-            binding !== '' && !new RegExp(`(?<![\\w$.])${binding.replace(/\$/gu, '\\$')}(?![\\w$])`, 'u').test(outside)
-        )
-      ) {
-        edits.push({ at: statement.start, text: `const ${name} = /* @__PURE__ */ (() => { ` });
-        edits.push({ at: body[last].end, text: ` return ${name}; })();` });
-        index = last;
-      }
-      continue;
-    }
-    /* drei: `const KTX2LoaderService = globalThis[SERVICE_KEY] || (globalThis[SERVICE_KEY] = new KTX2LoaderServiceImpl());` */
-    if (statement.type === 'VariableDeclaration') {
-      for (const declarator of statement.declarations as Node[]) {
-        const init = declarator.init as Node | null;
-        if (init?.type === 'LogicalExpression' && code.slice(init.start, init.end).startsWith('globalThis[')) {
-          edits.push({ at: init.start, text: '/* @__PURE__ */ (() => ' });
-          edits.push({ at: init.end, text: ')()' });
-        }
-      }
+    if (body[index].type === 'FunctionDeclaration') {
+      index = wrapHookStatics(code, body, index, edits);
+    } else {
+      wrapGlobalSingletons(code, body[index], edits);
     }
   }
   if (edits.length === 0) {
