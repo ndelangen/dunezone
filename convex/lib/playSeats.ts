@@ -53,7 +53,11 @@ async function* candidateGames(ctx: QueryCtx, userId: Id<'users'>, except?: Id<'
     .withIndex('by_user_id', (q) => q.eq('user_id', userId))
     .order('desc')
     .take(PLAY_SEAT_SCAN_LIMIT);
-  for (const { game_id } of entered.filter((row) => !seen.has(row.game_id))) {
+  for (const { game_id } of entered) {
+    if (seen.has(game_id)) {
+      continue;
+    }
+    seen.add(game_id);
     const game = await ctx.db.get(game_id);
     if (game) {
       yield game;
