@@ -112,9 +112,7 @@ export async function retainApplicationAssets(
       continue;
     }
     const bytes = await readPrevious(file.path);
-    if (bytes.length !== file.bytes || digest(bytes) !== file.sha256) {
-      throw new Error(`Retained application asset failed its digest check: ${file.path}`);
-    }
+    assertDownloadedAsset(file, bytes);
     mkdirSync(path.dirname(path.join(directory, file.path)), { recursive: true });
     writeFileSync(path.join(directory, file.path), bytes);
     files.set(file.path, { ...file, current: false, lastUsedAt });
@@ -125,4 +123,10 @@ export async function retainApplicationAssets(
     JSON.stringify({ version: 1, files: [...files.values()] })
   );
   return retained;
+}
+
+function assertDownloadedAsset(file: ApplicationAssetManifest['files'][number], bytes: Uint8Array): void {
+  if (bytes.length !== file.bytes || digest(bytes) !== file.sha256) {
+    throw new Error(`Retained application asset failed its digest check: ${file.path}`);
+  }
 }

@@ -15,14 +15,18 @@ function isPublicPage(pathname: string): boolean {
   if (segments.some((segment) => !segment || segment.includes('\\'))) {
     return false;
   }
-  const [root, type, slug] = segments;
+  const [root, type] = segments;
   if (root === 'factions') {
     return segments.length === 1 || (segments.length === 2 && type !== 'create');
   }
+  return root === 'assets' && isPublicAssetPage(segments);
+}
+
+function isPublicAssetPage(segments: string[]): boolean {
+  const [, type, slug] = segments;
   return (
-    root === 'assets' &&
-    (segments.length === 1 ||
-      (isAssetType(type ?? '') && (segments.length === 2 || (segments.length === 3 && slug !== 'create'))))
+    segments.length === 1 ||
+    (isAssetType(type ?? '') && (segments.length === 2 || (segments.length === 3 && slug !== 'create')))
   );
 }
 
