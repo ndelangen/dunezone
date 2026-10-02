@@ -209,9 +209,6 @@ jobs:
           persist-credentials: false
       - uses: ./.github/actions/setup
       - uses: ./.github/actions/generated-images
-      - uses: ./.github/actions/playwright-chromium
-        with:
-          with-deps: "false"
       - name: Authoring tool tests
         run: bun run tool:test
       - name: Unit tests
@@ -427,13 +424,15 @@ jobs:
           FORCE: ${{ github.event.inputs.force }}
           WORKFLOW_REF: ${{ github.workflow_ref }}
         run: |
-          # The shards run or are skipped, with the reason on the step summary.
+          # The shards run or are skipped, with the reason in the log and on the step summary.
           shards_run() {
             echo "run=true" >> "$GITHUB_OUTPUT"
+            echo "Hosted play shards run: $1"
             printf '### Hosted play shards run\n\n%s\n' "$1" >> "$GITHUB_STEP_SUMMARY"
           }
           shards_skip() {
             echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "Hosted play shards skipped: $1"
             printf '### Hosted play shards skipped\n\n%s\n' "$1" >> "$GITHUB_STEP_SUMMARY"
           }
           # Reads one API path into a file; a reading that fails runs the shards with the reason and ends the step, so no API error fails this job.
@@ -634,6 +633,8 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
+  # The authoring tool's own end-to-end tests and the script tests that launch Chromium, named in
+  # browser-launch-tests.ts, share the one Playwright install, so the unit job needs no browser (#1590).
   tool_e2e:
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -649,6 +650,21 @@ jobs:
           with-deps: "false"
       - name: Authoring tool E2E
         run: bun run tool:test:e2e
+      - name: Browser-launching script tests
+        # Their result is wanted whatever the authoring tool's step found, so a failure there does not hide theirs.
+        if: ${{ !cancelled() }}
+        run: bun run test:browser-launch --reporter=default --reporter=junit --outputFile.junit=test-results/vitest-browser-launch.junit.xml
+      - name: Upload test results to Codecov
+        # Failure results are the point of Test Analytics, so upload unless cancelled.
+        if: ${{ !cancelled() }}
+        uses: codecov/codecov-action@0fb7174895f61a3b6b78fc075e0cd60383518dac # v5
+        with:
+          report_type: test_results
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: test-results/vitest-browser-launch.junit.xml
+          flags: unit
+          disable_search: true
+          fail_ci_if_error: false
 
   # Builds the static Storybook and drives it in Chromium: 52 s that used to run ahead of the story
   # tests on the run's longest job. On its own runner the two proceed side by side. deploy-main.yml
