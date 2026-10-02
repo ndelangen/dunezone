@@ -5,7 +5,7 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { appContentTheme } from '@ui/theme';
 import { afterEach, expect, test, vi } from 'vitest';
 
-import { SeatRequests } from './SeatRequests';
+import { SeatPopover, SeatRequests } from './SeatRequests';
 import type { TableSession } from './TableSession';
 
 window.matchMedia = vi.fn().mockImplementation((query: string) => ({
@@ -18,6 +18,13 @@ window.matchMedia = vi.fn().mockImplementation((query: string) => ({
   removeEventListener: vi.fn(),
   dispatchEvent: vi.fn(),
 }));
+
+/* jsdom has no layout; the Seats popover positions itself with a ResizeObserver. */
+globalThis.ResizeObserver = class ResizeObserver {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+};
 
 afterEach(cleanup);
 
@@ -129,6 +136,40 @@ test('a press that began on one request never approves the request swapped in un
   /* A fresh press on the request now on screen approves that one. */
   fireEvent.click(screen.getByRole('button', { name: 'Approve' }));
   expect(client.command).toHaveBeenCalledExactlyOnceWith({ kind: 'seat-approve', requestId: 'seat-request-2' });
+});
+
+test('a spectator press that began on one open seat never requests the seat left once it is taken', async () => {
+  const client = { command: vi.fn() };
+  const tableWith = (seats: string[]) =>
+    ({
+      viewer: { viewerSeat: 'neutral' },
+      snapshot: {
+        stage: 'play',
+        roster: { seatCount: 4, seats: ['seat-1', 'seat-2', 'seat-3', 'seat-4'].map((id) => ({ id })) },
+        controls: { seats, seatRequests: [] },
+      },
+      playback: null,
+      seatCommandPending: false,
+    }) as unknown as Parameters<typeof SeatPopover>[0]['table'];
+  const popover = (table: Parameters<typeof SeatPopover>[0]['table']) => (
+    <MantineProvider theme={appContentTheme}>
+      <SeatPopover client={client as unknown as TableSession} table={table} error={null} />
+    </MantineProvider>
+  );
+  const { rerender } = render(popover(tableWith(['seat-1', 'seat-3'])));
+  fireEvent.click(screen.getByRole('button', { name: 'Seats' }));
+  const pressed = await screen.findByRole('button', { name: 'Request a seat' });
+  fireEvent.pointerDown(pressed);
+
+  /* Someone takes seat 2, the one this press would ask for, before the press ends; seat 4 is all that is left. */
+  rerender(popover(tableWith(['seat-1', 'seat-2', 'seat-3'])));
+  fireEvent.pointerUp(pressed);
+  fireEvent.click(pressed);
+  expect(client.command).not.toHaveBeenCalled();
+
+  /* A fresh press asks for the seat now named on the button. jsdom never finishes the popover's transition, hence hidden. */
+  fireEvent.click(screen.getByRole('button', { name: /^Request seat 4$/i, hidden: true }));
+  expect(client.command).toHaveBeenCalledExactlyOnceWith({ kind: 'seat-request', seat: 'seat-4' });
 });
 
 test('playback in play leaves the controls to the Phase tab', () => {

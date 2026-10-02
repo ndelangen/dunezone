@@ -154,7 +154,8 @@ function useSpectatorSeat(client: TableSession, table: TableProjection): SeatNot
             comboboxProps={{ withinPortal: false }}
           />
         )}
-        <SeatButton client={client} table={table} action={request}>
+        {/* Keyed by the seat it asks for, so a press that began before that seat was taken never requests another. */}
+        <SeatButton key={request.seat ?? 'any'} client={client} table={table} action={request}>
           {drafting || open.length !== 1 ? 'Request a seat' : `Request ${seatWords(table, open[0]!)}`}
         </SeatButton>
       </Group>
