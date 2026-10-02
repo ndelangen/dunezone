@@ -22,7 +22,7 @@ const defaultFactionInput = {
   },
   leaders: [
     {
-      name: 'Faction leader',
+      name: 'Leader',
       strength: '2',
       image: LEADERS.options[0],
     },
