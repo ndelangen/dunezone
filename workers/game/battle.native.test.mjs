@@ -324,6 +324,18 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
     expect((await sendCommand(a, { kind: 'phase' })).reply.type).not.toBe('rejected');
   });
 
+  it('holds the phase against going back while a battle is open', async () => {
+    const placed = await accepted(a, { kind: 'battle-start', anchor: [0.95, 0.18, -3.05], territory: 'Arrakeen' });
+    expect((await sendCommand(b, { kind: 'phase', direction: -1 })).reply).toMatchObject({
+      type: 'rejected',
+      message: 'A battle is still open. Resolve or cancel it before going back a phase.',
+    });
+    const battleId = placed.snapshot.battle.id;
+    await accepted(a, { kind: 'battle-cancel', battleId });
+    const back = await accepted(b, { kind: 'phase', direction: -1 });
+    expect(back.snapshot.phase).toBe(5);
+  });
+
   it('rejects competing starts and claims, counts exact funding and refunds a mode switch', async () => {
     const battleId = await start();
     expect(
