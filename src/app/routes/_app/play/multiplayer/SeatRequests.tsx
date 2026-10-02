@@ -154,7 +154,8 @@ function useSpectatorSeat(client: TableSession, table: TableProjection): SeatNot
             comboboxProps={{ withinPortal: false }}
           />
         )}
-        <SeatButton client={client} table={table} action={request}>
+        {/* Keyed by the seat it asks for, so a press that began before that seat was taken never requests another. */}
+        <SeatButton key={request.seat ?? 'any'} client={client} table={table} action={request}>
           {drafting || open.length !== 1 ? 'Request a seat' : `Request ${seatWords(table, open[0]!)}`}
         </SeatButton>
       </Group>
@@ -331,7 +332,10 @@ function PlayerBar({ client, table, readiness }: BarProps) {
         grantable ? 'Your approval seats them.' : 'That seat is taken now; the request cannot be granted.'
       }${more > 0 ? ` ${more} more ${more === 1 ? 'request waits' : 'requests wait'}.` : ''}`}
       action={
+        /* Keyed by the request, so a button pressed for one request never approves the next: when an approval elsewhere swaps
+           the next request in between pointerdown and click, the press ends on a new button and sends nothing. */
         <SeatButton
+          key={request.id}
           client={client}
           table={table}
           action={{ kind: 'seat-approve', requestId: request.id }}
