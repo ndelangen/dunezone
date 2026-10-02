@@ -1,7 +1,7 @@
 /* How long a finger rests on a piece before it asks for the piece's menu, about the platform's own long-press delay. */
 export const LONG_PRESS_MS = 500;
-/* A finger drifts while it rests; past this it is moving, not holding. */
-const LONG_PRESS_SLOP_PX = 8;
+/* A finger drifts while it rests; past this it is moving, not holding, and only then does the pointer session start a carry. */
+export const LONG_PRESS_SLOP_PX = 8;
 
 /* The deck menu's shuffle shortcut needs a keyboard and a hovering pointer, so a menu a finger opened leaves the hint out. */
 export function deckShuffleHint(openedByTouch: boolean): string | null {
