@@ -189,7 +189,7 @@ describe('lobby phase index (#1138)', () => {
 describe('captured declarations (#1138)', () => {
   it('reads a stored row the live schema no longer accepts without failing, and leaves it out', () => {
     const renamed = { ...declaration({ id: 'old' }), symbol: '/vector/icon/renamed.svg' };
-    const definition = factionCaptureSchema.shape.definition.shape.extraPhases;
+    const definition = factionCaptureSchema.shape.definition.out.shape.extraPhases;
     expect(definition.safeParse([declaration({ id: 'kept' }), renamed]).success).toBe(true);
     const capture = { definition: { extraPhases: [declaration({ id: 'kept' }), renamed] } } as FactionCapture;
     expect(capturedDeclarations(capture).map((row) => row.id)).toEqual(['kept']);

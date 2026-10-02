@@ -63,7 +63,7 @@ describe('The Play sandbox', () => {
     table.dispose();
   });
 
-  test('viewing as another seat shows that seat its own hand and bank', () => {
+  test('viewing as another seat shows that seat its own hand and spice reserve', () => {
     const table = new SandboxTable({ start: sandboxSteps().at(-1)!, seat: 'seat-1' });
     const delivered: { type: string; viewer?: { viewerSeat: string } }[] = [];
     table.deliver = (message) => delivered.push(message as (typeof delivered)[number]);

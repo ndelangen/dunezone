@@ -90,7 +90,7 @@ export const LongTitleWraps = meta.story({
 
 export const ExpertControls = meta.story({
   args: {
-    title: 'Faction bank',
+    title: 'Spice reserve',
     description: 'Only you see this balance. Withdraw spice onto the table.',
     helpOnly: true,
   },

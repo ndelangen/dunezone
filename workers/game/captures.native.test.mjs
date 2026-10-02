@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { assetPublishingFaction } from '../../src/shared/factions/fixtures/assetPublishingFaction';
+import { toStoredHeroKey } from '../../src/shared/factions/schema';
 import {
   bundlePage,
   cardPage,
@@ -328,7 +329,8 @@ describe('Catalogue capture and retention through the isolated fixture', () => {
 
     const { record } = await runtime.capture('faction', 'faction-one', { provisional: true });
     expect(record.faction).toEqual({ id: 'faction-one', slug: 'atreides', name: assetPublishingFaction.name });
-    expect(record.definition).toEqual(data);
+    /* The glossary term is "Faction leader"; the capture keeps the `hero` literal that stored games hold. */
+    expect(record.definition).toEqual(toStoredHeroKey(data));
     expect(record.components.token).toEqual({
       front: 'http://table.test/published/faction-tokens/faction-one/token.jpg',
       back: 'http://table.test/published/faction-tokens/faction-one.back/token.jpg',
@@ -376,7 +378,7 @@ describe('Catalogue capture and retention through the isolated fixture', () => {
       `leader ${leaders[0].name}`,
       /* The elite troop's authored back has not published, while the regular troop's front serves both sides. */
       'troop Elite troop',
-      /* The shared fixture predates combat authoring, so each of its fighting faces is named for its values. */
+      /* The shared fixture predates battle authoring, so each of its fighting faces is named for its values. */
       'troop Regular troop',
       'troop Elite troop',
       'troop Elite side back',

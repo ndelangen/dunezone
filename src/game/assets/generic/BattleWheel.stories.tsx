@@ -40,7 +40,7 @@ const meta = preview.meta({
   parameters: { layout: 'centered' },
   argTypes: {
     state: { control: 'radio', options: ['unrevealed', 'revealed'] },
-    strength: { description: 'Troop force including adjustment, excluding the leader.' },
+    strength: { description: 'Troop strength including adjustment, excluding the leader.' },
   },
   render: (args) =>
     args.state === 'unrevealed' ? (
@@ -53,7 +53,7 @@ const meta = preview.meta({
 });
 
 export const Revealed = meta.story({ args: revealedArgs });
-export const HighForce = meta.story({
+export const HighStrength = meta.story({
   args: {
     ...revealedArgs,
     troops: [{ ...troop, dialed: 17, undialed: 1 }],
@@ -104,7 +104,7 @@ export const MultipleTroopFaces = meta.story({
     docs: {
       description: {
         story:
-          'Custom elite troops contribute 2 force when funded. Regular troops contribute 1 when funded and 0.5 otherwise. A third reserve face uses regular strength. Twelve regular troops sit beside single-digit elite and reserve counts. Twelve funded troops cost 12 spice; the -0.5 adjustment leaves 13.5 force.',
+          'Custom elite troops contribute 2 strength when supported. Regular troops contribute 1 when supported and 0.5 otherwise. A third reserve face uses regular strength. Twelve regular troops sit beside single-digit elite and reserve counts. Twelve supported troops cost 12 spice; the -0.5 adjustment leaves 13.5 strength.',
       },
     },
   },

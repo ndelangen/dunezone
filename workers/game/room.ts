@@ -1,7 +1,6 @@
 import { randomInt } from 'node:crypto';
 
 import { tableHandlingOpen } from '../../src/shared/play/admission';
-import type { BankAction } from '../../src/shared/play/banks';
 import { isBattleAction } from '../../src/shared/play/battle';
 import { accepted, applyPieceAction, nextSnapshot, requireAccepted } from '../../src/shared/play/commands';
 import type { DraftAction } from '../../src/shared/play/drafting';
@@ -35,7 +34,8 @@ import type { RemovalAction } from '../../src/shared/play/removal';
 import type { ResultAction } from '../../src/shared/play/result';
 import { rosterSeat, SPECTATOR_SEAT } from '../../src/shared/play/schema';
 import { isSetupAction, phaseGate } from '../../src/shared/play/setup';
-import { createSpiceStack, isSpicePiece } from '../../src/shared/play/spiceSupply';
+import { createSpiceStack, isSpicePiece } from '../../src/shared/play/spiceBank';
+import type { SpiceReserveAction } from '../../src/shared/play/spiceReserve';
 import type { SwapAction } from '../../src/shared/play/swapping';
 import { restingPositionAt } from '../../src/shared/play/tableGeometry';
 import { nearestCollisionFreePosition } from '../../src/shared/play/tablePhysics';
@@ -74,7 +74,7 @@ type CarryInput<T extends 'begin' | 'pose' | 'take'> = Omit<Extract<ClientMessag
  * Each names what it changes and is checked against the live table, so another seat acting at the same moment must not turn it away (#1681, #1690).
  * A battle action names its battle and side, and a draft choice or removal ballot names the sender's own pick or vote.
  * A seat request names its seat, an approval its request and a withdrawal the sender's own request, each judged against the live seating.
- * A bank withdrawal stays strict, so two tabs of one player cannot both spend from a bank they saw once.
+ * A spice reserve withdrawal stays strict, so two tabs of one player cannot both spend from a spice reserve they saw once.
  * Leaving stays strict too, since its confirmation said what it costs and a crossed departure may have left the sender the last player.
  */
 const REVISION_TOLERANT_ACTIONS = new Set<string>([
@@ -469,7 +469,7 @@ export class Room {
       throw new GameRejection('Finish the battle and return private pieces to the table before resetting the fixture.');
     }
     if (action.kind === 'bank-withdraw' || action.kind === 'bank-collect') {
-      return this.bankCommand(identity, action);
+      return this.spiceReserveCommand(identity, action);
     }
     if (action.kind === 'flip' && (this.flipUntil.get(action.pieceId) ?? 0) > now) {
       throw new GameRejection('Wait for that piece to finish flipping.');
@@ -538,10 +538,10 @@ export class Room {
     return this.fixtureDeck ? dealFixtureDeck(fresh, this.fixtureDeck) : fresh;
   }
 
-  private bankCommand(identity: Identity, action: BankAction): StoredSnapshot {
+  private spiceReserveCommand(identity: Identity, action: SpiceReserveAction): StoredSnapshot {
     const factionId = this.factionFor(identity.userId);
     if (!factionId || !Object.hasOwn(this.snapshot.factionBanks, factionId)) {
-      throw new GameRejection("Only the faction's current player can use its bank.");
+      throw new GameRejection("Only the faction's current player can use its spice reserve.");
     }
     const balance = this.snapshot.factionBanks[factionId];
     const table = tableForViewer(this.snapshot, identity.viewerSeat);
@@ -555,9 +555,9 @@ export class Room {
 
   private withdrawSpice(table: TableState, balance: number, amount: number, seat: Identity['viewerSeat']) {
     if (amount > balance) {
-      throw new GameRejection('There is not enough banked spice for that withdrawal.');
+      throw new GameRejection('There is not enough spice in the spice reserve for that withdrawal.');
     }
-    const piece = this.bankStack(table, amount, seat);
+    const piece = this.spiceReserveStack(table, amount, seat);
     return {
       balance: balance - amount,
       table: { ...table, pieces: [...table.pieces, piece] },
@@ -571,7 +571,7 @@ export class Room {
       throw new GameRejection('Choose an unlocked spice stack on the table.');
     }
     if (!Number.isSafeInteger(balance + piece.items.length)) {
-      throw new GameRejection('This collection exceeds the bank capacity.');
+      throw new GameRejection('This collection exceeds the spice reserve capacity.');
     }
     return {
       balance: balance + piece.items.length,
@@ -581,7 +581,7 @@ export class Room {
   }
 
   /* A withdrawal lands in front of the acting seat's station, whichever station its seating fixed. */
-  private bankStack(table: TableState, amount: number, seat: Identity['viewerSeat']): TablePiece {
+  private spiceReserveStack(table: TableState, amount: number, seat: Identity['viewerSeat']): TablePiece {
     const piece = createSpiceStack(table.nextEventNumber, 1);
     piece.items = Array.from({ length: amount }, (_, index) => ({ id: `${piece.id}-${index + 1}`, faceUp: true }));
     const roster = this.snapshot.roster;

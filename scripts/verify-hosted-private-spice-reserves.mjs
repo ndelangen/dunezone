@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict';
 
 import { isSpicePiece } from '../src/shared/play/spice.ts';
-import { spiceSupplySlot } from '../src/shared/play/spiceSupply.ts';
+import { spiceBankSlot } from '../src/shared/play/spiceBank.ts';
 import { stackTopHeight } from '../src/shared/play/tableGeometry.ts';
 import { TRACKER_DISC_TOP_Y } from '../src/shared/play/tableTrackers.ts';
 
-/** Manual bank transfers through the isolated hosted app, with raw recipient frames retained as evidence. */
-export async function verifyPrivateBanks(toolkit) {
+/** Manual spice reserve transfers through the isolated hosted app, with raw recipient frames retained as evidence. */
+export async function verifyPrivateSpiceReserves(toolkit) {
   const {
     peer,
     enter,
@@ -17,7 +17,7 @@ export async function verifyPrivateBanks(toolkit) {
     focus,
     openTab,
     point,
-    supplyShortcut,
+    spiceBankShortcut,
     carrySteps,
     capture,
     until,
@@ -54,7 +54,7 @@ export async function verifyPrivateBanks(toolkit) {
     } else {
       await who.page.mouse.click(position.x, position.y, { button: 'right' });
     }
-    const action = who.page.getByRole('menuitem', { name: 'Take into bank', exact: true });
+    const action = who.page.getByRole('menuitem', { name: 'Take into spice reserve', exact: true });
     await until(() => action.isEnabled(), 'The stack collection action did not become enabled.');
     const revision = who.view().snapshot.revision;
     await action.click();
@@ -66,7 +66,7 @@ export async function verifyPrivateBanks(toolkit) {
     await who.page.getByRole('textbox', { name: 'Spice to withdraw' }).fill(String(amount));
     await act(who, 'Withdraw spice');
   }
-  const slot = spiceSupplySlot();
+  const slot = spiceBankSlot();
   await verifyTransfers();
   await verifyTurnBoundaries();
   await verifyDisposal();
@@ -78,12 +78,12 @@ export async function verifyPrivateBanks(toolkit) {
     await capture(a, 'after-hosted-map-1440x1000');
     await openTab(a, 'Spice');
     await openTab(observer, 'Spice');
-    /* No more than the bank holds can be withdrawn. */
+    /* No more than the spice reserve holds can be withdrawn. */
     await a.page.getByRole('textbox', { name: 'Spice to withdraw' }).fill(String(startingSpice + 1));
     assert.equal(await button(a, 'Withdraw spice').isDisabled(), true);
-    assert.equal(await observer.page.getByRole('region', { name: 'Faction bank' }).count(), 0);
-    await supplyShortcut(a, '7');
-    await until(() => spices(a).length === 1, 'Supply did not create spice.');
+    assert.equal(await observer.page.getByRole('region', { name: 'Spice reserve' }).count(), 0);
+    await spiceBankShortcut(a, '7');
+    await until(() => spices(a).length === 1, 'The Spice Bank did not create spice.');
     await collect(a, spices(a)[0]);
     assert.equal(a.view().snapshot.bank.balance, startingSpice + 7);
     assert.equal(b.view().snapshot.bank.balance, startingSpice);
@@ -94,13 +94,13 @@ export async function verifyPrivateBanks(toolkit) {
     assert.equal(b.view().snapshot.bank.balance, startingSpice + 7);
     await openTab(b, 'Spice');
     await b.page.getByRole('separator', { name: 'Resize controls panel' }).press('End');
-    await b.page.getByRole('region', { name: 'Faction bank' }).scrollIntoViewIfNeeded();
-    await capture(b, 'after-own-bank-and-public-transfers');
+    await b.page.getByRole('region', { name: 'Spice reserve' }).scrollIntoViewIfNeeded();
+    await capture(b, 'after-own-spice-reserve-and-public-transfers');
     await b.page.setViewportSize({ width: 900, height: 1000 });
-    await b.page.getByRole('region', { name: 'Faction bank' }).scrollIntoViewIfNeeded();
-    await capture(b, 'after-bank-900x1000');
+    await b.page.getByRole('region', { name: 'Spice reserve' }).scrollIntoViewIfNeeded();
+    await capture(b, 'after-spice-reserve-900x1000');
     await b.page.emulateMedia({ colorScheme: 'light' });
-    await capture(b, 'after-bank-light-900x1000');
+    await capture(b, 'after-spice-reserve-light-900x1000');
     await b.page.emulateMedia({ colorScheme: 'dark' });
     await b.page.setViewportSize({ width: 1440, height: 1000 });
     await withdraw(b, 3);
@@ -123,7 +123,7 @@ export async function verifyPrivateBanks(toolkit) {
     assert.deepEqual(spices(b), physical);
     assert.equal(b.view().snapshot.bank.balance, startingSpice + 4);
     passed(
-      'Two distinct accounts in two browser processes manually collect and withdraw spice from their starting balances; turn end and revisit leave physical spice and both banks unchanged'
+      'Two distinct accounts in two browser processes manually collect and withdraw spice from their starting balances; turn end and revisit leave physical spice and both spice reserves unchanged'
     );
   }
 
@@ -136,8 +136,11 @@ export async function verifyPrivateBanks(toolkit) {
     await a.page.waitForTimeout(350);
     await a.page.mouse.move(target.x, target.y, { steps: carrySteps });
     await a.page.mouse.up();
-    await until(() => spices(a).length === 0, 'Dropping spice on the supply disc did not dispose of it.');
-    /* B's unchanged bank counts only once B's view holds the disposal (#1481). */
+    await until(
+      () => spices(a).length === 0,
+      'Dropping spice on the Spice Bank disc did not return it to the Spice Bank.'
+    );
+    /* B's unchanged spice reserve counts only once B's view holds the disposal (#1481). */
     await converged([a, b, observer]);
     assert.equal(a.view().snapshot.bank.balance, startingSpice);
     assert.equal(b.view().snapshot.bank.balance, startingSpice + 4);
@@ -148,7 +151,7 @@ export async function verifyPrivateBanks(toolkit) {
     await observer.page.getByRole('region', { name: 'Public spice transfers' }).scrollIntoViewIfNeeded();
     await capture(observer, 'after-observer-public-transfers');
     passed(
-      'Dragging spice onto the supply disc destroys it without credit; observers see transfer amounts and no bank control'
+      'Dragging spice onto the Spice Bank disc destroys it without credit; observers see transfer amounts and no spice reserve control'
     );
   }
 
@@ -188,7 +191,7 @@ export async function verifyPrivateBanks(toolkit) {
       assert.deepEqual(await denied.json(), { error: 'Request refused.' });
     }
     passed(
-      'Raw snapshots, compact deltas and historical frames contain only the recipient faction bank; observer and guessed HTTP paths expose no bank; reconnect and a second tab restore the current bank'
+      'Raw snapshots, compact deltas and historical frames contain only the spice reserve of the recipient faction; observer and guessed HTTP paths expose no spice reserve; reconnect and a second tab restore the current spice reserve'
     );
     /* A real game's history starts at drafting, which has no Spice tab; its playback bar returns a viewer to the live table.
        The sign-out step opens the Spice tab on both viewers that replayed here, so both go back. */
@@ -220,11 +223,11 @@ export async function verifyPrivateBanks(toolkit) {
   }
 
   async function verifySignOut(tab) {
-    /* Both tabs show the bank first, so its disappearance below is the sign-out's doing, not a hidden tab's. */
+    /* Both tabs show the spice reserve first, so its disappearance below is the sign-out's doing, not a hidden tab's. */
     await openTab(b, 'Spice');
     await openTab(tab, 'Spice');
-    await b.page.getByRole('region', { name: 'Faction bank' }).waitFor();
-    await tab.page.getByRole('region', { name: 'Faction bank' }).waitFor();
+    await b.page.getByRole('region', { name: 'Spice reserve' }).waitFor();
+    await tab.page.getByRole('region', { name: 'Spice reserve' }).waitFor();
     /* The other two leave the camera and the panel where a freshly mounted table would not put them: Spice is never the first tab (#1418). */
     const others = [a, observer];
     for (const who of others) {
@@ -245,14 +248,14 @@ export async function verifyPrivateBanks(toolkit) {
     );
     await until(
       async () =>
-        (await b.page.getByRole('region', { name: 'Faction bank' }).count()) === 0 &&
-        (await tab.page.getByRole('region', { name: 'Faction bank' }).count()) === 0,
-      'Signed-out bank remained visible.'
+        (await b.page.getByRole('region', { name: 'Spice reserve' }).count()) === 0 &&
+        (await tab.page.getByRole('region', { name: 'Spice reserve' }).count()) === 0,
+      'Signed-out spice reserve remained visible.'
     );
     const counts = [b.rawMessages.length, tab.rawMessages.length];
     await focus(a, 'map');
-    await supplyShortcut(a, '2');
-    await until(() => spices(a).length === 1, 'Post-sign-out supply did not commit.');
+    await spiceBankShortcut(a, '2');
+    await until(() => spices(a).length === 1, 'Post-sign-out Spice Bank spawn did not commit.');
     assert.deepEqual([b.rawMessages.length, tab.rawMessages.length], counts);
     await converged([a, observer]);
     for (const [index, who] of others.entries()) {
@@ -281,7 +284,7 @@ export async function verifyPrivateBanks(toolkit) {
         .some((message) => message.type === 'admission' && message.status === 'denied')
     );
     passed(
-      'Real sign-out removes the bank in every tab and fences subsequent private and public fanout; the other players keep their table, camera and panel',
+      'Real sign-out removes the spice reserve in every tab and fences subsequent private and public fanout; the other players keep their table, camera and panel',
       { workerRefusedSignOut }
     );
   }

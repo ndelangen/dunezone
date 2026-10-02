@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { PLAY_AUTH_RECOVERY_MS } from '../../src/shared/play/admission.ts';
 import { PHASE_CHANGE_COOLDOWN_MS } from '../../src/shared/play/phases.ts';
 import { ADMISSION_UNAVAILABLE_CLOSE_CODE, TICKET_EXPIRED_CLOSE_CODE } from '../../src/shared/play/protocol.ts';
-import { spiceSupplySlot } from '../../src/shared/play/spiceSupply.ts';
+import { spiceBankSlot } from '../../src/shared/play/spiceBank.ts';
 import { tokenPage } from './native-catalogue.fixture.mjs';
 import {
   createPeer,
@@ -248,13 +248,13 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     expect(movedStack.position).not.toEqual(firstStack.position);
     connection.send({
       type: 'command',
-      commandId: 'new-supply-stack',
+      commandId: 'new-spice-bank-stack',
       action: { kind: 'spice-spawn', count: 4 },
       expectedRevision: 5,
     });
     const replenished = await connection.message(
       'view',
-      (message) => message.completedCommandId === 'new-supply-stack'
+      (message) => message.completedCommandId === 'new-spice-bank-stack'
     );
     const newStack = replenished.snapshot.table.pieces.find(
       (piece) => piece.stackKey === 'spice' && piece.id !== firstStack.id
@@ -274,14 +274,14 @@ describe('GameRoom native SQLite and admission boundaries', () => {
       type: 'drop',
       commandId: 'delete-spice',
       carryId: 'return-spice',
-      position: spiceSupplySlot().position,
+      position: spiceBankSlot().position,
       orientation: 0,
     };
     connection.send(returnSpice);
     const returned = await connection.message('view', (message) => message.completedCommandId === 'delete-spice');
     expect(returned.snapshot.table.pieces.find((piece) => piece.id === movedStack.id).items).toHaveLength(11);
     expect(returned.snapshot.table.pieces.find((piece) => piece.id === newStack.id)).toEqual(newStack);
-    expect(returned.snapshot.table.events[0].message).toBe('Harkonnen returned 1 spice to the supply.');
+    expect(returned.snapshot.table.events[0].message).toBe('Harkonnen returned 1 spice to the Spice Bank.');
     connection.messages.length = 0;
     connection.send(returnSpice);
     expect(

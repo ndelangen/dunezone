@@ -1,6 +1,6 @@
 import preview from '@sb/preview';
 import { TABLE_PHASES } from '@shared/play/phases';
-import { spiceSupplySlot } from '@shared/play/spiceSupply';
+import { spiceBankSlot } from '@shared/play/spiceBank';
 import { BOARD_RADIUS, BOARD_SURFACE_Y, stackTopHeight } from '@shared/play/tableGeometry';
 import { TRACKER_DISC_TOP_Y } from '@shared/play/tableTrackers';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
@@ -387,17 +387,17 @@ export const PhaseViews = meta.story({
 
 /**
  * A phase change during a carry marks the new phase's view at once and moves the camera only when the piece lands.
- * The carry is a press on the viewer's own forces and a move past the drag threshold, sent to the canvas `mapViewPoint` projects against.
+ * The carry is a press on the viewer's own troops and a move past the drag threshold, sent to the canvas `mapViewPoint` projects against.
  */
 export const PhaseViewWaitsForTheDrop = meta.story({
   beforeEach: install(() => productTransport()),
   play: async ({ canvasElement }) => {
     const { page, shell, document } = await tablePage(canvasElement);
-    const forces = playingSnapshot().table.pieces.find((piece) => piece.id === 'starting-1-carthag')!;
+    const troops = playingSnapshot().table.pieces.find((piece) => piece.id === 'starting-1-carthag')!;
     const [clientX, clientY] = mapViewPoint(document, [
-      forces.position[0],
-      forces.position[1] + stackTopHeight(forces),
-      forces.position[2],
+      troops.position[0],
+      troops.position[1] + stackTopHeight(troops),
+      troops.position[2],
     ]);
     const scene = document.querySelector('canvas')!;
     const pointer = { bubbles: true, cancelable: true, pointerId: 1, pointerType: 'mouse', button: 0, clientY };
@@ -426,14 +426,14 @@ export const PhaseViewWaitsForTheDrop = meta.story({
 });
 
 /**
- * The spice supply disc answers the number keys again when the pointer leaves the canvas from the disc and comes straight back onto it.
+ * The Spice Bank disc answers the number keys again when the pointer leaves the canvas from the disc and comes straight back onto it.
  * The pointer leaves for the view picker and returns with no move over the rest of the table.
  */
 export const SpiceDiscAnswersOnReturn = meta.story({
   beforeEach: install(() => productTransport()),
   play: async ({ canvasElement }) => {
     const { page, document } = await tablePage(canvasElement);
-    const slot = spiceSupplySlot();
+    const slot = spiceBankSlot();
     const [clientX, clientY] = mapViewPoint(document, [slot.position[0], TRACKER_DISC_TOP_Y + 0.015, slot.position[2]]);
     const scene = document.querySelector('canvas')!;
     const pointer = { bubbles: true, cancelable: true, pointerId: 1, pointerType: 'mouse', clientX, clientY };
@@ -595,7 +595,7 @@ export const SpiceDiscForgetsAPlaybackHover = meta.story({
   play: async ({ canvasElement }) => {
     const { page, document } = await tablePage(canvasElement);
     await openTab(page, 'Phase');
-    const slot = spiceSupplySlot();
+    const slot = spiceBankSlot();
     const [clientX, clientY] = mapViewPoint(document, [slot.position[0], TRACKER_DISC_TOP_Y + 0.015, slot.position[2]]);
     const scene = document.querySelector('canvas')!;
     const pointer = { bubbles: true, cancelable: true, pointerId: 1, pointerType: 'mouse', clientX, clientY };

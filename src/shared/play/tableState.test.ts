@@ -267,7 +267,7 @@ describe('held tabletop groups', () => {
       stackId: 'treachery-deck',
     },
     {
-      label: 'force packet',
+      label: 'troop packet',
       looseId: 'harkonnen-force-loose',
       stackId: 'harkonnen-force-stack',
     },
@@ -425,7 +425,7 @@ describe('held tabletop groups', () => {
 
   test.each([
     { label: 'card deck', stackId: 'treachery-deck' },
-    { label: 'force stack', stackId: 'harkonnen-force-stack' },
+    { label: 'troop stack', stackId: 'harkonnen-force-stack' },
   ])('can carry the entire $label after taking its last item', ({ stackId }) => {
     const state = freshTableState();
     const stack = pieceById(state.pieces, stackId);

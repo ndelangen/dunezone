@@ -85,7 +85,7 @@ export const Empty = meta.story({
     await expect(
       canvas.getByText('This faction adds no phases, so the game runs the standard setup and turn.')
     ).toBeVisible();
-    await expect(sequenceRows(canvasElement, 'Setup')).toEqual(['Traitors', 'Starting forces']);
+    await expect(sequenceRows(canvasElement, 'Setup')).toEqual(['Traitors', 'Starting troops']);
     await expect(sequenceRows(canvasElement, 'Each turn')).toHaveLength(9);
   },
 });
@@ -96,7 +96,7 @@ export const SequenceSetupAndTurn = meta.story({
   play: async ({ canvasElement }) => {
     await openPhases(canvasElement);
     const tie = "Another faction's phase here at the same priority goes in storm order.";
-    await expect(sequenceRows(canvasElement, 'Setup')).toEqual(['Traitors', 'Desert omen', 'Starting forces']);
+    await expect(sequenceRows(canvasElement, 'Setup')).toEqual(['Traitors', 'Desert omen', 'Starting troops']);
     await expect(sequenceRows(canvasElement, 'Each turn').slice(2, 5)).toEqual([
       'CHOAM charity',
       'Guild negotiations',

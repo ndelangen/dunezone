@@ -1,6 +1,10 @@
 import { z } from 'zod';
 
-import { HistoricalFactionPublicationSchema, TroopArtwork } from '../factions/schema';
+import {
+  HistoricalFactionPublicationObject,
+  HistoricalFactionPublicationSchema,
+  TroopArtwork,
+} from '../factions/schema';
 import { FactionTroopIdSchema } from '../factions/troopIdentity';
 import { factionIdSchema } from './componentPublication';
 
@@ -34,7 +38,7 @@ export const factionTroopAssetDataSchema = z.strictObject({
   star: TroopArtwork.shape.star,
   hue: TroopArtwork.shape.hue,
   striped: TroopArtwork.shape.striped,
-  background: HistoricalFactionPublicationSchema.shape.background,
+  background: HistoricalFactionPublicationObject.shape.background,
 });
 export type FactionTroopAssetData = z.infer<typeof factionTroopAssetDataSchema>;
 

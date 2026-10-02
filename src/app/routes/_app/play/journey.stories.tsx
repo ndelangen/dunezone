@@ -102,7 +102,7 @@ export const TraitorsDealt = meta.story({
   },
 });
 
-export const StartingForces = meta.story({
+export const StartingTroops = meta.story({
   args: { step: chapter('Setup complete') },
   play: async ({ canvasElement }) => {
     await atStep(canvasElement, chapter('Setup complete'));

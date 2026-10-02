@@ -17,13 +17,13 @@ describe('table model', () => {
 
   test('does not start pointer capture for a locked piece', () => {
     const state = freshTableState();
-    const force = state.pieces.find((piece) => piece.id === 'harkonnen-force-loose');
+    const troop = state.pieces.find((piece) => piece.id === 'harkonnen-force-loose');
 
-    expect(force).toBeDefined();
-    if (force) {
-      force.locked = true;
+    expect(troop).toBeDefined();
+    if (troop) {
+      troop.locked = true;
     }
-    expect(force ? gestureBlockReason(force) : null).toBe('Unlock Harkonnen force first.');
+    expect(troop ? gestureBlockReason(troop) : null).toBe('Unlock Harkonnen troop first.');
   });
 
   test("starts pointer capture for another seat's piece", () => {

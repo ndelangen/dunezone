@@ -15,7 +15,7 @@ import { useState } from 'react';
 
 import { loadAssetBrowsePage, useAssetBrowsePage } from '@app/db/assets';
 import type { AssetBrowseEntry } from '@app/db/assets';
-import { pageHead } from '@app/routes/pageTitle';
+import { publicPageHead } from '@app/routes/publicPage';
 import { AssetFace } from '@app/widgets/asset-face/AssetFace';
 
 import { applyAssetBrowseSearch, ASSET_BROWSE_SORTS, parseAssetBrowseSearch } from './browse';
@@ -31,6 +31,7 @@ function singularLabel(label: string): string {
 }
 
 export const Route = createFileRoute('/_app/assets/$type/')({
+  ssr: true,
   validateSearch: parseAssetBrowseSearch,
   /* The path param is the only loader input. Search state is applied to what this returns, and this repo uses no `loaderDeps`, so a filter change must never need a refetch. */
   loader: async ({ params }) => {
@@ -40,7 +41,13 @@ export const Route = createFileRoute('/_app/assets/$type/')({
     return await loadAssetBrowsePage(params.type);
   },
   /* Hydration still runs this head for an unknown type, whose match carries the loader's notFound. */
-  head: ({ match, params }) => pageHead(isAssetType(params.type) ? ASSET_TYPES[params.type].label : null, { match }),
+  head: ({ match, params }) =>
+    publicPageHead({
+      name: isAssetType(params.type) ? ASSET_TYPES[params.type].label : 'Assets',
+      pathname: `/assets/${encodeURIComponent(params.type)}`,
+      description: `Browse community ${isAssetType(params.type) ? ASSET_TYPES[params.type].label.toLowerCase() : 'assets'} for Dune.`,
+      match,
+    }),
   component: AssetTypePage,
 });
 

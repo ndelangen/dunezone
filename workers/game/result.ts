@@ -10,7 +10,7 @@ import type { StoredSnapshot } from './state';
 
 /*
  * Determine winner, its declaration and Continue playing. Each is one seated player's act and
- * changes nothing on the table: the phase, pieces, banks, hands and predictions stay as they are,
+ * changes nothing on the table: the phase, pieces, spice reserves, hands and predictions stay as they are,
  * so continuing returns to Mentat pause of the same turn. Continuing clears readiness, so the players
  * agree afresh before the phase moves on. The caller owns the transaction, the log rows and the
  * directory summary.

@@ -99,8 +99,8 @@ export type TableProjection = {
   renderedPieces: TablePiece[];
   selectedPiece: TablePiece | null;
   affordances: Affordance[];
-  /* The piece menu's bank and deck actions, present only while this viewer can act. */
-  bankControls?: {
+  /* The piece menu's spice reserve and deck actions, present only while this viewer can act. */
+  spiceReserveControls?: {
     canCollect(pieceId: string): boolean;
     collect(pieceId: string): void;
   };
@@ -387,7 +387,7 @@ export class TableSession {
       renderedPieces,
       selectedPiece: null,
       affordances: [],
-      bankControls: undefined,
+      spiceReserveControls: undefined,
       deckControls: undefined,
       remoteCarriedIds: new Set(),
       reservedPieceIds: new Set(),
@@ -457,7 +457,7 @@ export class TableSession {
       renderedPieces,
       selectedPiece: renderedPieces.find((piece) => piece.id === state.selectedPieceId) ?? null,
       affordances: affordancesFor({ ...state, pieces: renderedPieces }),
-      bankControls:
+      spiceReserveControls:
         canHandleTable && displayed.bank
           ? {
               canCollect: (pieceId) => !reservedPieceIds.has(pieceId),
@@ -524,7 +524,9 @@ export class TableSession {
   private canSend(message: Exclude<ClientMessage, { type: 'admit' | 'sync' }>): boolean {
     /* A seat command is the spectator's one way to act, so it passes without a seat; `command` holds it to a current view. */
     const seat = message.type === 'command' && isSeatAction(message.action);
-    return this.status === 'authorized' && (isReadRequest(message) || seat || this.canAct());
+    /* Putting a held piece back also passes while a resync pauses the table, so the Worker never keeps a piece the tab let go of. */
+    const release = message.type === 'cancel' && this.carry !== null;
+    return this.status === 'authorized' && (isReadRequest(message) || seat || release || this.canAct());
   }
   private send(message: Exclude<ClientMessage, { type: 'admit' | 'sync' }>): boolean {
     return this.canSend(message) && this.subscription.send(message);
