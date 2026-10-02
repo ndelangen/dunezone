@@ -398,7 +398,7 @@ function battleEntry(result: BattleResult, faction: (id: string) => string, cont
   const [left, right] = result.factions;
   const template =
     result.outcome === 'none'
-      ? `${faction(left)} and ${faction(right)} agreed on no winner.`
+      ? `The battle between ${faction(left)} and ${faction(right)} ended with no winner.`
       : result.outcome === 'left'
         ? `${faction(left)} defeated ${faction(right)}.`
         : `${faction(right)} defeated ${faction(left)}.`;

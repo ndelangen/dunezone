@@ -54,6 +54,16 @@ describe('the phase-advance gate', () => {
     });
   });
 
+  it('keeps the phase while a battle is open', () => {
+    const battle = { id: 'battle-1' };
+    const play = { stage: 'play' as const, roster, seats: ['s1', 's2'] };
+    expect(phaseGate({ ...play, phase: 0, ready: [], battle })).toEqual({
+      needsReady: false,
+      refusal: 'A battle is still open. Resolve or cancel it before moving to the next phase.',
+    });
+    expect(phaseGate({ ...play, phase: 0, ready: [], battle: null }).refusal).toBeNull();
+  });
+
   it('reads an empty seat list as not ready', () => {
     expect(phaseGate({ stage: 'play', phase: MENTAT_PAUSE, ready: [], seats: [] }).refusal).toBe(
       'Every seated player must be ready before advancing.'

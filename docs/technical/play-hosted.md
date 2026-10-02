@@ -48,7 +48,7 @@ It never executes past commands again.
 
 The history table holds two kinds of row (`workers/game/sessionHistory.ts`). A `checkpoint` stores
 the whole snapshot. It is written for a reset, for the step that leaves setup (the Next that opens
-Turn 1), for a battle outcome that settles the battle, and by `GameSession` for the faction
+Turn 1), for a revealed battle that settles (by agreed outcome or by cancel), and by `GameSession` for the faction
 assignment and the setup cleanup. Every other playback step is a `patch` against the step before
 it: phase and turn changes, declaring a result and continuing past it, setup actions, Ready while
 setup gates on it, and a battle's reveal. A restore loads the latest checkpoint at or before the

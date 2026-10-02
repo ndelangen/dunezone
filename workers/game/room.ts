@@ -81,6 +81,7 @@ const REVISION_TOLERANT_ACTIONS = new Set<string>([
   'battle-plan',
   'battle-ready',
   'battle-outcome',
+  'battle-cancel',
   'draft-pick',
   'draft-unpick',
   'draft-ban',
@@ -426,7 +427,8 @@ export class Room {
     if (isBattleAction(action)) {
       const factionId = this.requireFaction(identity);
       const next = battleCommand(this.snapshot, factionId, action, now);
-      if (action.kind !== 'battle-outcome') {
+      /* Settling a revealed battle, by outcome or cancel, moves its overlay pieces even mid-carry; refusing it would let a carry hold the battle open. */
+      if (this.snapshot.battleState?.stage !== 'revealed' || next.battleState) {
         this.assertReservationsUnchanged(this.snapshot.table as TableState, next.table as TableState);
       }
       if (action.kind === 'hand-take' || action.kind === 'hand-play') {
@@ -594,6 +596,7 @@ export class Room {
     }
     const { refusal } = phaseGate({
       ...this.snapshot,
+      battle: this.snapshot.battleState,
       ready: controls.ready,
       seats: this.seatedPlayers(),
       predictions: this.snapshot.privatePredictions,

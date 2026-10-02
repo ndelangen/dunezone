@@ -36,7 +36,8 @@ function requiresCheckpoint(
   if (action.kind === 'reset' || (before.stage === 'setup' && next.stage !== 'setup')) {
     return true;
   }
-  return action.kind === 'battle-outcome' && !next.battleState;
+  /* A revealed battle settles by agreed outcome or by cancel; either is a checkpoint. */
+  return before.battleState?.stage === 'revealed' && !next.battleState;
 }
 
 /* Setup steps change a few entries of the table each, so they are stored as their changes like any other playback step. */

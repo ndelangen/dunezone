@@ -1,5 +1,5 @@
 import { Button, Group, Image, NumberInput, SegmentedControl, Select, Stack, Text } from '@mantine/core';
-import type { NumberInputProps } from '@mantine/core';
+import type { ButtonProps, NumberInputProps } from '@mantine/core';
 import { Html } from '@react-three/drei/webgpu';
 import { useFrame, useThree } from '@react-three/fiber/webgpu';
 import { troopCombatFaces } from '@shared/factions/troopCombat';
@@ -695,21 +695,33 @@ function OutcomeButton({ client, table, battle, own, outcome }: ActiveProps & { 
     </Button>
   );
 }
+/* One cancel for both stages it is offered in, so the two cannot drift; each stage passes its own look. */
+function CancelBattleButton({
+  client,
+  table,
+  battle,
+  size,
+  variant,
+  className,
+  fullWidth,
+}: ActiveProps & Pick<ButtonProps, 'size' | 'variant' | 'className' | 'fullWidth'>) {
+  return (
+    <Button
+      size={size}
+      variant={variant}
+      className={className}
+      fullWidth={fullWidth}
+      disabled={!table.canInteract}
+      onClick={() => client.command({ kind: 'battle-cancel', battleId: battle.id })}
+    >
+      Cancel battle
+    </Button>
+  );
+}
 function BattleActions(props: ActiveProps) {
-  const { client, table, battle } = props;
+  const { battle } = props;
   if (battle.stage === 'preparing') {
-    return (
-      <Button
-        size="xs"
-        className={styles.cancel}
-        variant="default"
-        fullWidth
-        disabled={!table.canInteract}
-        onClick={() => client.command({ kind: 'battle-cancel', battleId: battle.id })}
-      >
-        Cancel battle
-      </Button>
-    );
+    return <CancelBattleButton {...props} size="xs" className={styles.cancel} variant="default" fullWidth />;
   }
   if (battle.stage !== 'revealed') {
     return null;
@@ -723,7 +735,13 @@ function BattleActions(props: ActiveProps) {
 }
 function BattleCentre(props: ActiveProps) {
   if (props.battle.stage === 'revealed') {
-    return <OutcomeButton {...props} outcome="none" />;
+    /* Anyone seated can end a revealed battle the sides cannot agree on; it settles as a battle nobody won. */
+    return (
+      <Stack gap={4} align="center">
+        <OutcomeButton {...props} outcome="none" />
+        <CancelBattleButton {...props} size="compact-xs" variant="subtle" />
+      </Stack>
+    );
   }
   if (props.battle.stage !== 'countdown') {
     return null;

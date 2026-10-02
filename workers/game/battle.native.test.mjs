@@ -78,6 +78,24 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
     await accepted(b, { kind: 'battle-claim', battleId, side: 1 });
     return battleId;
   }
+  /* A revealed battle whose plan put the fixture leader on the table, with player A carrying that leader. */
+  async function revealWithCarriedLeader(carryId) {
+    await accepted(a, { kind: 'hand-take', pieceId: 'fixture-leader' });
+    const battleId = await start();
+    await accepted(a, { kind: 'battle-plan', battleId, plan: plan(1, 0, { leaderId: 'fixture-leader' }) });
+    await ready(battleId);
+    await runtime.clock(6000);
+    const view = await syncView(a);
+    a.send({
+      type: 'begin',
+      carryId,
+      sourcePieceId: 'fixture-leader',
+      expectedVersion: view.snapshot.versions['fixture-leader'],
+      pickup: 'whole',
+    });
+    await a.message('carry', (message) => message.carryId === carryId);
+    return battleId;
+  }
   function plan(troops = 5, spice = 5, extra = {}) {
     return {
       mode: 'max',
@@ -279,6 +297,33 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
     expect((await sendCommand(a, { kind: 'battle-outcome', battleId, outcome: 'right' })).reply.type).toBe('rejected');
   });
 
+  it('holds the phase from the moment a marker is placed, and cancels a revealed battle the sides cannot agree on', async () => {
+    const placed = await accepted(a, { kind: 'battle-start', anchor: [0.95, 0.18, -3.05], territory: 'Arrakeen' });
+    expect((await sendCommand(b, { kind: 'phase' })).reply).toMatchObject({
+      type: 'rejected',
+      message: 'A battle is still open. Resolve or cancel it before moving to the next phase.',
+    });
+    const battleId = placed.snapshot.battle.id;
+    await accepted(a, { kind: 'battle-claim', battleId, side: 0 });
+    await accepted(b, { kind: 'battle-claim', battleId, side: 1 });
+    await accepted(a, { kind: 'battle-plan', battleId, plan: plan() });
+    await ready(battleId);
+    await revealed();
+    const held = await sendCommand(a, { kind: 'phase' });
+    expect(held.reply).toMatchObject({
+      type: 'rejected',
+      message: 'A battle is still open. Resolve or cancel it before moving to the next phase.',
+    });
+    await accepted(a, { kind: 'battle-outcome', battleId, outcome: 'left' });
+    await accepted(b, { kind: 'battle-outcome', battleId, outcome: 'right' });
+    expect((await sendCommand(observer, { kind: 'battle-cancel', battleId })).reply.type).toBe('rejected');
+    const cancelled = await accepted(b, { kind: 'battle-cancel', battleId });
+    expect(cancelled.snapshot.battle).toBeNull();
+    expect(cancelled.snapshot.battleResults[0]).toMatchObject({ id: battleId, outcome: 'none' });
+    expect(cancelled.snapshot.table.pieces.some((piece) => piece.battleOverlay)).toBe(false);
+    expect((await sendCommand(a, { kind: 'phase' })).reply.type).not.toBe('rejected');
+  });
+
   it('rejects competing starts and claims, counts exact funding and refunds a mode switch', async () => {
     const battleId = await start();
     expect(
@@ -291,7 +336,7 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
     expect(switched.snapshot.battlePlan.troops).toEqual([]);
     expect(switched.snapshot.battlePlan.spice).toBe(0);
     expect(switched.snapshot.bank.balance).toBe(10);
-    await accepted(a, { kind: 'phase' });
+    expect((await sendCommand(a, { kind: 'phase' })).reply.type).toBe('rejected');
     expect((await syncView(a)).snapshot.battle.id).toBe(battleId);
     expect((await sendCommand(a, { kind: 'battle-ready', battleId, ready: true })).reply.type).not.toBe('rejected');
   });
@@ -439,21 +484,16 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
     }
   });
 
+  it('cancels a revealed battle while one of its pieces is being carried', async () => {
+    const battleId = await revealWithCarriedLeader('cancel-carry');
+    const cancelled = await accepted(b, { kind: 'battle-cancel', battleId });
+    expect(cancelled.snapshot.battle).toBeNull();
+    expect(cancelled.snapshot.battleResults[0]).toMatchObject({ id: battleId, outcome: 'none' });
+    expect(cancelled.snapshot.table.pieces.some((piece) => piece.battleOverlay)).toBe(false);
+  });
+
   it.each(['movement-first', 'resolution-first'])('serializes overlay movement and resolution: %s', async (order) => {
-    await accepted(a, { kind: 'hand-take', pieceId: 'fixture-leader' });
-    const battleId = await start();
-    await accepted(a, { kind: 'battle-plan', battleId, plan: plan(1, 0, { leaderId: 'fixture-leader' }) });
-    await ready(battleId);
-    await runtime.clock(6000);
-    const view = await syncView(a);
-    a.send({
-      type: 'begin',
-      carryId: 'leader-carry',
-      sourcePieceId: 'fixture-leader',
-      expectedVersion: view.snapshot.versions['fixture-leader'],
-      pickup: 'whole',
-    });
-    await a.message('carry', (message) => message.carryId === 'leader-carry');
+    const battleId = await revealWithCarriedLeader('leader-carry');
     const drop = {
       type: 'drop',
       commandId: 'leader-drop',
