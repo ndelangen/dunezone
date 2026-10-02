@@ -779,12 +779,6 @@ export const ControlsPanelTabs = meta.story({
   },
 });
 
-/**
- * The panel is a dark-scheme island: its title, eyebrow, prose and controls paint the same in both page schemes, and that paint is the dark tokens, the app's and Mantine's alike.
- * The page scheme is flipped on the document mid-story, which is what the app's own scheme bridge does, so one mount proves both schemes.
- * A floating pane opened on the island, a piece's menu and a help tooltip here, paints the island's glass in the light page although it portals out of the shell.
- * (Page stories take their scheme from the app chrome, not from the Storybook global.)
- */
 /* Public spice transfers name each end in words (#1664): a faction's bank by its name, the table and the supply, and a faction gone from the roster as such. */
 export const SpiceTransfers = meta.story({
   beforeEach: install(() => {
@@ -820,6 +814,12 @@ export const SpiceTransfers = meta.story({
   },
 });
 
+/**
+ * The panel is a dark-scheme island: its title, eyebrow, prose and controls paint the same in both page schemes, and that paint is the dark tokens, the app's and Mantine's alike.
+ * The page scheme is flipped on the document mid-story, which is what the app's own scheme bridge does, so one mount proves both schemes.
+ * A floating pane opened on the island, a piece's menu and a help tooltip here, paints the island's glass in the light page although it portals out of the shell.
+ * (Page stories take their scheme from the app chrome, not from the Storybook global.)
+ */
 export const PanelSchemeIsland = meta.story({
   beforeEach: install(() => productTransport()),
   play: async ({ canvasElement }) => {
