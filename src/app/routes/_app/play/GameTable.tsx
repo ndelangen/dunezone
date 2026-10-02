@@ -318,9 +318,13 @@ function TableControlsPanel({
     setStageShown(hasStage);
     setStageOpened(hasStage);
   }
+  /* The stage tab is opened as that overlay too, so tapping it never loses the tab beneath. */
   const choose = (next: string[]) => {
-    setStageOpened(false);
-    setPath(next);
+    const stage = hasStage && next[0] === 'stage';
+    setStageOpened(stage);
+    if (!stage) {
+      setPath(next);
+    }
   };
   /* Each focus token opens its tab once, during render as React adjusts state from a changed prop. */
   const [focused, setFocused] = useState<string | null>(null);
@@ -330,7 +334,7 @@ function TableControlsPanel({
   }
   const chosen = stageOpened ? undefined : tabs.find((tab) => tab.key === path[0]);
   const active = chosen ?? tabs[0] ?? tableTab;
-  const subtab = active.subtabs?.find((tab) => tab.key === path[1]) ?? active.subtabs?.[0];
+  const subtab = (chosen && active.subtabs?.find((tab) => tab.key === path[1])) ?? active.subtabs?.[0];
   if (panelContent && panelTabs.length === 0) {
     return <div className="seated-stage-panel">{panelContent}</div>;
   }
