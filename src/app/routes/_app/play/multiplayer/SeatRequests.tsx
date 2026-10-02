@@ -1,6 +1,6 @@
 import { Button, Group, Menu, Popover, Select, Stack, Text } from '@mantine/core';
 import { emptyPublicControls } from '@shared/play/inventory';
-import { seatLabel } from '@shared/play/participation';
+import { seatLabel, seatSubject } from '@shared/play/participation';
 import type { SeatAction, SeatRequest } from '@shared/play/participation';
 import { rosterSeat, SPECTATOR_SEAT } from '@shared/play/schema';
 import { FormError } from '@ui/block/FormError';
@@ -229,7 +229,7 @@ function leavingWords(table: TableProjection): string {
     case table.snapshot.stage === 'drafting':
       return 'Your place in the roster goes; the other players keep theirs.';
     default:
-      return `${seatLabel(table.viewer.viewerSeat)} stays open with its faction for a replacement.`;
+      return `${seatSubject(table.viewer.viewerSeat)} stays open with its faction for a replacement.`;
   }
 }
 
