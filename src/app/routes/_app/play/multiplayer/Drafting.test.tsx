@@ -7,18 +7,10 @@ import { afterEach, expect, test, vi } from 'vitest';
 
 import { draftingSnapshot, storyPlayer } from '../drafting.stories.fixture';
 import { DraftingNotice, DraftingOverlay } from './Drafting';
+import { stubMatchMedia } from './jsdom.test.fixture';
 import type { TableProjection, TableSession } from './TableSession';
 
-window.matchMedia = vi.fn().mockImplementation((query: string) => ({
-  matches: false,
-  media: query,
-  onchange: null,
-  addListener: vi.fn(),
-  removeListener: vi.fn(),
-  addEventListener: vi.fn(),
-  removeEventListener: vi.fn(),
-  dispatchEvent: vi.fn(),
-}));
+stubMatchMedia();
 
 afterEach(cleanup);
 

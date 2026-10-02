@@ -269,7 +269,8 @@ describe('Drafting and public assignment on a real game', () => {
   }
   const setAside = async (connection) => (await syncView(connection)).snapshot.draft.setAside ?? {};
 
-  it('sets aside a drafted faction that cannot be captured, clears readiness, and takes it back once a refresh finds it', async () => {
+  /** Two players ready a pool holding Fremen, which the catalogue no longer has, so the deal sets it aside and fails. */
+  async function fremenRefusedAtDeal() {
     peer.factions.delete('fremen');
     const a = await admit('a');
     const b = await admit('b');
@@ -279,6 +280,11 @@ describe('Drafting and public assignment on a real game', () => {
     await accepted(a, { kind: 'draft-ready', ready: true });
     await accepted(b, { kind: 'draft-ready', ready: true });
     await eventually(async () => typeof (await syncView(a)).snapshot.draft?.failure === 'string', 'failure recorded');
+    return { a, b };
+  }
+
+  it('sets aside a drafted faction that cannot be captured, clears readiness, and takes it back once a refresh finds it', async () => {
+    const { a, b } = await fremenRefusedAtDeal();
     const failed = await syncView(a);
     expect(failed.snapshot.stage).toBe('drafting');
     expect(failed.snapshot.draft.failure).toBe(
@@ -307,15 +313,7 @@ describe('Drafting and public assignment on a real game', () => {
   });
 
   it('drops the set-aside notice once a refresh brings the faction back, before anyone readies again', async () => {
-    peer.factions.delete('fremen');
-    const a = await admit('a');
-    const b = await admit('b');
-    await seat(b, a);
-    await accepted(a, { kind: 'draft-pick', factionId: 'fremen' });
-    await accepted(a, { kind: 'draft-pick', factionId: 'harkonnen' });
-    await accepted(a, { kind: 'draft-ready', ready: true });
-    await accepted(b, { kind: 'draft-ready', ready: true });
-    await eventually(async () => typeof (await syncView(a)).snapshot.draft?.failure === 'string', 'failure recorded');
+    const { a, b } = await fremenRefusedAtDeal();
 
     /* The refused pick reads the stale catalogue again, which finds Fremen; nobody has readied since. */
     peer.factions.set('fremen', definition('fremen', 'Fremen'));
