@@ -258,19 +258,21 @@ function LeavingBar({ client, table, onStay }: BarProps & Readonly<{ onStay: () 
 function TableLightingSlider() {
   const lighting = useTableLighting();
   const labelId = useId();
+  const percent = (value: number) => `${Math.round(value * 100)}%`;
   return (
-    <Stack gap={4} px="sm" py="xs" miw={200}>
+    <Stack role="group" aria-labelledby={labelId} gap={4} px="sm" py="xs" miw={200}>
       <Text id={labelId} size="sm">
         Table lighting
       </Text>
       <Slider
-        aria-labelledby={labelId}
+        thumbLabel="Table lighting"
+        thumbValueText={percent}
         min={TABLE_LIGHTING_MIN}
         max={TABLE_LIGHTING_MAX}
         step={0.05}
         value={lighting}
         onChange={setTableLighting}
-        label={(value) => `${Math.round(value * 100)}%`}
+        label={percent}
       />
     </Stack>
   );

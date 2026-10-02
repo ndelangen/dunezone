@@ -13,37 +13,63 @@ const TABLE_LIGHTING_DEFAULT = 1;
 
 const listeners = new Set<() => void>();
 
-/* When storage is blocked, the last choice lives here so the slider still works for the page view. */
-let storagelessLighting = TABLE_LIGHTING_DEFAULT;
+/* The current choice, read from storage once; it stays right for the page view even when storage refuses writes. */
+let lighting: number | undefined;
 
 function clampLighting(value: number): number {
   return Math.min(TABLE_LIGHTING_MAX, Math.max(TABLE_LIGHTING_MIN, value));
 }
 
-function readLighting(): number {
+function readStoredLighting(): number {
   try {
     const stored = Number(localStorage.getItem(TABLE_LIGHTING_STORAGE_KEY));
     return stored > 0 ? clampLighting(stored) : TABLE_LIGHTING_DEFAULT;
   } catch {
-    return storagelessLighting;
+    return TABLE_LIGHTING_DEFAULT;
   }
 }
 
-export function setTableLighting(next: number): void {
-  storagelessLighting = clampLighting(next);
-  try {
-    localStorage.setItem(TABLE_LIGHTING_STORAGE_KEY, String(storagelessLighting));
-  } catch {
-    // Storage may be unavailable (private mode); the fallback above keeps this page view right.
-  }
+function readLighting(): number {
+  lighting ??= readStoredLighting();
+  return lighting;
+}
+
+function notify(): void {
   for (const listener of listeners) {
     listener();
   }
 }
 
+export function setTableLighting(next: number): void {
+  lighting = clampLighting(next);
+  try {
+    localStorage.setItem(TABLE_LIGHTING_STORAGE_KEY, String(lighting));
+  } catch {
+    // Storage may be unavailable (private mode); the value above keeps this page view right.
+  }
+  notify();
+}
+
+// Another tab changing the preference reaches this one through the storage event.
+function relayStorage(event: StorageEvent): void {
+  if (event.key !== null && event.key !== TABLE_LIGHTING_STORAGE_KEY) {
+    return;
+  }
+  lighting = readStoredLighting();
+  notify();
+}
+
 function subscribe(listener: () => void): () => void {
+  if (listeners.size === 0) {
+    window.addEventListener('storage', relayStorage);
+  }
   listeners.add(listener);
-  return () => listeners.delete(listener);
+  return () => {
+    listeners.delete(listener);
+    if (listeners.size === 0) {
+      window.removeEventListener('storage', relayStorage);
+    }
+  };
 }
 
 /** The viewer's table lighting, from TABLE_LIGHTING_MIN to TABLE_LIGHTING_MAX. */

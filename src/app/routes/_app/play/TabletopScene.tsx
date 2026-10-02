@@ -1198,6 +1198,18 @@ function ReleaseRendererOnUnmount() {
   return null;
 }
 
+/* The table's lights, scaled by this viewer's lighting choice; only they re-render while the slider moves. */
+function TableLights() {
+  const lighting = useTableLighting();
+  return (
+    <>
+      <ambientLight intensity={1.25 * lighting} />
+      <directionalLight position={[-4, 9, 5]} intensity={3.1 * lighting} color="#ffe2ae" />
+      <pointLight position={[5, 4, -4]} intensity={14 * lighting} distance={16} color="#d67b44" />
+    </>
+  );
+}
+
 function SceneContents({
   cameraView = DEFAULT_CAMERA_VIEW,
   onInteractionActiveChange,
@@ -1219,7 +1231,6 @@ function SceneContents({
   useScenePointerSession(onPointerSessionChange);
   useCanvasHoverReset();
   useCanvasName();
-  const lighting = useTableLighting();
 
   return (
     <>
@@ -1227,9 +1238,7 @@ function SceneContents({
       <fog attach="fog" args={['#130d0a', 10, 22]} />
       <CameraRelativeFog />
       <ScenePresence />
-      <ambientLight intensity={1.25 * lighting} />
-      <directionalLight position={[-4, 9, 5]} intensity={3.1 * lighting} color="#ffe2ae" />
-      <pointLight position={[5, 4, -4]} intensity={14 * lighting} distance={16} color="#d67b44" />
+      <TableLights />
       <group onClick={() => selectPiece(null)}>
         <BoardSurface
           seatCount={seatCount}
