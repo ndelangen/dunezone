@@ -1,4 +1,4 @@
-import { Anchor, Button, Group, List, Loader, NumberInput, Select, Stack, Text } from '@mantine/core';
+import { Anchor, Button, Group, List, Loader, NumberInput, Select, Stack, Text, Tooltip } from '@mantine/core';
 import { snapshotFactionLabels } from '@shared/play/factionLabels';
 import { emptyPublicControls } from '@shared/play/inventory';
 import type { SpawnSelection } from '@shared/play/inventory';
@@ -11,7 +11,6 @@ import { FormError } from '@ui/block/FormError';
 import { Section } from '@ui/block/Section';
 import { InlineFormattedTextSource } from '@ui/content/FormattedText';
 import type { TopicIconTopic } from '@ui/content/TopicIcon';
-import { Surface } from '@ui/surface/Surface';
 import { useContext, useEffect, useReducer, useState, useSyncExternalStore } from 'react';
 import type { ReactNode } from 'react';
 
@@ -612,22 +611,21 @@ function SpiceHistory({ client, table }: Pick<ConnectionControlsProps, 'client' 
 }
 
 /* While a lost connection is restored the last table stays on screen, read-only, under this line. */
-function ReconnectingBar({ table }: Readonly<{ table: TableProjection }>) {
+/* While the table is locked the top bar says so beside the logo in one short line; the sentence behind it is the tooltip and the accessible description, and a phone keeps only the spinner. */
+function ConnectionStatus({ table }: Readonly<{ table: TableProjection }>) {
   if (!table.reconnecting) {
     return null;
   }
+  const detail = 'The table shows its last saved state. Actions are paused until it is back.';
   return (
-    <Surface padding="sm">
-      <Group gap="sm" wrap="nowrap" role="status">
+    <Tooltip label={detail} withinPortal>
+      <Group gap={6} wrap="nowrap" role="status" aria-label={`Reconnecting. ${detail}`}>
         <Loader size="xs" />
-        <Text size="sm" fw={700}>
+        <Text size="sm" fw={700} visibleFrom="sm" aria-hidden>
           Reconnecting
         </Text>
-        <Text size="sm" c="dimmed">
-          The table shows its last saved state. Actions are paused until it is back.
-        </Text>
       </Group>
-    </Surface>
+    </Tooltip>
   );
 }
 
@@ -670,6 +668,7 @@ function ConnectedTable({
           tableProgress={progress}
           stage={stage}
           mapVisible={setupMapVisible(table.snapshot.setup)}
+          connectionStatus={<ConnectionStatus table={table} />}
           toolbarControl={
             inPlay || (stage === 'setup' && table.snapshot.setup) ? (
               <PhaseNavigation client={client} table={table} />
@@ -693,7 +692,6 @@ function ConnectedTable({
           }
           decisionBar={
             <Stack data-decision-bar gap="xs">
-              <ReconnectingBar table={table} />
               <ResultDecisionBar client={client} table={table} />
               <RemovalDecisionBar
                 votes={removalVotes}
