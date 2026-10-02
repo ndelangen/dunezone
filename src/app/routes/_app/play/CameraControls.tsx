@@ -15,6 +15,8 @@ import {
   mapViewTopLimitForViewport,
 } from './playView';
 import type { CameraViewCommand } from './playView';
+import { usePointerSession } from './PointerSessionContext';
+import { watchTwoFingerTilt } from './twoFingerTilt';
 
 const CAMERA_POSE_EPSILON_SQUARED = 0.000001;
 
@@ -145,11 +147,22 @@ function applyCameraDestination(
   return true;
 }
 
-/** The player's tilt, from the approved angle toward top-down, steered by the wheel over the board while the camera is free. */
+/** The player's tilt, from the approved angle toward top-down, steered by the wheel or two fingers over the board while the camera is free. */
 function useWheelTilt(enabled: boolean): number {
   const [tilt, setTilt] = useState(0);
   /* Only the board itself listens, so a scrollable panel or label over the table keeps its own wheel. */
   const surface = useThree((state) => state.renderer.domElement);
+  const pointerSession = usePointerSession();
+
+  useEffect(() => {
+    if (!enabled) {
+      return;
+    }
+    return watchTwoFingerTilt(surface, window, {
+      onStart: () => pointerSession.cancel(),
+      onTilt: (deltaY) => setTilt((current) => cameraTiltAfterWheel(current, deltaY)),
+    });
+  }, [enabled, pointerSession, surface]);
 
   useEffect(() => {
     if (!enabled) {

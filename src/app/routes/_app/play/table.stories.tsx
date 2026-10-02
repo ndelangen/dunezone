@@ -220,6 +220,39 @@ export const WheelTiltsTheCamera = meta.story({
   },
 });
 
+/* Two fingers dragged up over the board tilt the camera toward top-down, and dragged down tilt it back, as the wheel does. */
+export const TwoFingersTiltTheCamera = meta.story({
+  beforeEach: install(() => productTransport()),
+  play: async ({ canvasElement }) => {
+    const { shell, document } = await tablePage(canvasElement);
+    const canvas = shell.querySelector('canvas')!;
+    const deckPlacement = () =>
+      document.querySelector('[data-piece-id="treachery-deck"]')?.closest('div')?.parentElement?.style.transform;
+    const box = canvas.getBoundingClientRect();
+    const x = box.left + box.width / 2;
+    const finger = (type: string, pointerId: number, clientX: number, clientY: number) =>
+      new PointerEvent(type, { bubbles: true, cancelable: true, pointerId, pointerType: 'touch', clientX, clientY });
+    const drag = (fromY: number, toY: number) => {
+      canvas.dispatchEvent(finger('pointerdown', 11, x - 40, fromY));
+      canvas.dispatchEvent(finger('pointerdown', 12, x + 40, fromY));
+      for (let step = 1; step <= 6; step++) {
+        const y = fromY + ((toY - fromY) * step) / 6;
+        window.dispatchEvent(finger('pointermove', 11, x - 40, y));
+        window.dispatchEvent(finger('pointermove', 12, x + 40, y));
+      }
+      window.dispatchEvent(finger('pointerup', 11, x - 40, toY));
+      window.dispatchEvent(finger('pointerup', 12, x + 40, toY));
+    };
+    const approved = deckPlacement();
+    expect(approved).toBeTruthy();
+
+    drag(box.bottom - 10, box.bottom - 10 - 600);
+    await waitFor(() => expect(deckPlacement()).not.toBe(approved));
+    drag(box.bottom - 10 - 600, box.bottom - 10);
+    await waitFor(() => expect(deckPlacement()).toBe(approved));
+  },
+});
+
 /**
  * On a short window the dock keeps its floor by growing up over the scene, to above the header's lower edge.
  * The header still paints above it there, so every control in it takes the pointer at its top, middle and bottom.
