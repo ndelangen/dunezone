@@ -515,11 +515,10 @@ const subscribePublishedFace = sharedPublishedFaces<Texture>({
 
 function PublishedFace({ href, card, ratio }: { href: string; card: boolean; ratio?: number | null }) {
   /* Piece art skips useTexture so a missing publication image retries in place instead of suspending the table. */
-  const [loadedFace, setLoadedFace] = useState<{ href: string; texture: Texture | null } | null>(null);
-  const texture = loadedFace?.href === href ? loadedFace.texture : (subscribePublishedFace.peek(href) ?? null);
-  useEffect(() => {
-    return subscribePublishedFace(href, (value) => setLoadedFace({ href, texture: value }));
-  }, [href]);
+  /* The held texture is always read from the shared store, so a face never draws one released while it showed another image. */
+  const [, setLoaded] = useState<Texture | null>(null);
+  const texture = subscribePublishedFace.peek(href) ?? null;
+  useEffect(() => subscribePublishedFace(href, setLoaded), [href]);
   return (
     <mesh position={[0, 0, 0.002]} renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}>
       {card ? (
@@ -553,9 +552,9 @@ function topFaceHref(piece: TablePiece): string | undefined {
 
 /* Holds the image a piece shows on top and says whether it is loaded, so a flip can wait for a card's revealed face instead of turning up a placeholder. */
 function usePublishedFaceReady(href: string | undefined): boolean {
-  const [loaded, setLoaded] = useState<string | null>(null);
-  useEffect(() => (href ? subscribePublishedFace(href, () => setLoaded(href)) : undefined), [href]);
-  return !href || loaded === href || subscribePublishedFace.peek(href) !== undefined;
+  const [, setLoaded] = useState<Texture | null>(null);
+  useEffect(() => (href ? subscribePublishedFace(href, setLoaded) : undefined), [href]);
+  return !href || subscribePublishedFace.peek(href) !== undefined;
 }
 
 function TokenFace({
