@@ -28,6 +28,7 @@ import { browserGameRuntime } from './gameRuntime';
 import type { GameRuntime } from './gameRuntime';
 import { GameSubscription, isReadRequest } from './GameSubscription';
 import type { GameSubscriptionEvent } from './GameSubscription';
+import type { StoredTable } from './storedTable';
 
 /* Both tabs open on their newest page. */
 function latestLogPages(): Record<LogTab, number> {
@@ -121,6 +122,40 @@ export type ConnectionView = {
 };
 export type LogPage = Extract<ServerMessage, { type: 'log-history' }>;
 
+/* A table a reloaded tab kept from its last visit: read-only, with nothing in hand or in motion, until a fresh view replaces it. */
+function storedProjection({ viewer, snapshot, serverNow }: StoredTable): TableProjection {
+  const state = {
+    ...tableForViewer(snapshot, viewer.viewerSeat),
+    factionTieBreaks: snapshotFactionTieBreaks(snapshot),
+    selectedPieceId: null,
+    draftMove: null,
+  };
+  return {
+    viewer,
+    snapshot,
+    liveRevision: snapshot.revision,
+    playback: null,
+    historyPending: false,
+    canInteract: false,
+    reconnecting: true,
+    seatCommandPending: false,
+    traitorsGathered: 0,
+    phaseCooling: false,
+    battleCountdownSeconds: 0,
+    state,
+    renderedPieces: renderedPiecesFor(state),
+    selectedPiece: null,
+    affordances: [],
+    pointers: [],
+    remoteCarriedIds: new Set(),
+    reservedPieceIds: new Set(),
+    gestureActivePieceId: null,
+    hoveredPieceId: null,
+    flippingPieceIds: new Map(),
+    serverNow: () => serverNow,
+  };
+}
+
 /** Owns local interactions and presentation over the subscribed server view. */
 export class TableSession {
   private readonly listeners = new Set<() => void>();
@@ -152,6 +187,8 @@ export class TableSession {
   private droppedCarryNotice: string | null = null;
   /* The last live table, kept read-only while a lost connection is restored; its clock stops when the connection drops, not at the last update. */
   private lastLive: { table: TableProjection; serverNow?: () => number } | null = null;
+  /* The server's own view of the last live table, which a reload of this tab shows until a fresh view arrives (#1746). */
+  private kept: Omit<StoredTable, 'pending'> | null = null;
   private traitorsGathered = 0;
   private queuedCatalogue: { requestId: string; selection?: SpawnSelection } | null = null;
   private phaseCooldownUntil = 0;
@@ -176,13 +213,47 @@ export class TableSession {
       () => this.emit(),
       runtime.monotonicNow
     );
+    this.restore();
     this.cached = {
       status: 'connecting',
       error: null,
-      table: null,
+      table: this.derive(),
       conversations: this.conversations.view(),
       logHistory: {},
     };
+  }
+  /*
+   * Only into the read-only last table, never into the subscription: a stored base that an update could patch would pass for live.
+   * The subscription's first view replaces it, and its `ready` stays false until then, so nothing is sent from it.
+   */
+  private restore() {
+    const stored = this.lastLive || this.saved ? null : this.runtime.tables?.read(this.game);
+    if (!stored) {
+      return;
+    }
+    this.conversations.resume(stored.snapshot, stored.viewer, stored.pending);
+    this.kept = {
+      viewer: stored.viewer,
+      snapshot: stored.snapshot,
+      serverNow: stored.serverNow,
+      ...(stored.liveAt === undefined ? {} : { liveAt: stored.liveAt }),
+    };
+    this.lastLive = { table: storedProjection(stored), serverNow: () => stored.serverNow };
+  }
+  private keep() {
+    const live = this.subscription.getSnapshot();
+    if (this.status === 'denied') {
+      this.kept = null;
+      this.runtime.tables?.clear(this.game);
+      return;
+    }
+    const isLive = this.status === 'authorized' && live !== null;
+    if (isLive) {
+      this.kept = { viewer: live.viewer, snapshot: live.snapshot, serverNow: this.subscription.serverNow() };
+    }
+    if (this.kept) {
+      this.runtime.tables?.save(this.game, { ...this.kept, pending: this.conversations.unconfirmed() }, isLive);
+    }
   }
   readonly conversations: ConversationSession;
   private readonly subscription: GameSubscription;
@@ -365,6 +436,7 @@ export class TableSession {
     };
   }
   private emit() {
+    this.keep();
     this.cached = {
       status: this.status,
       conversations: this.conversations.view(),
@@ -675,6 +747,10 @@ export class TableSession {
     }
   };
   connect = () => {
+    if (!this.lastLive && !this.kept) {
+      this.restore();
+      this.emit();
+    }
     const stop = this.subscription.subscribe((event) => this.receive(event));
     const stopVisibility = this.runtime.onHidden(() => {
       this.publishPointer(null);
