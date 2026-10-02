@@ -67,6 +67,8 @@ type GameTableProps = {
   /** The game menu in the toolbar, present in every stage: what a player can do about their own seat. Previous and Next stay rightmost. */
   gameMenu?: ReactNode;
   toolbarControl?: ReactNode;
+  /** The connection's state, leftmost in the toolbar, present only while the table is not live. */
+  connectionStatus?: ReactNode;
   showStormControls: boolean;
   seatCount: TableSeatCount;
   tableProgress: TableProgress;
@@ -485,6 +487,7 @@ export function GameTable({
   panelContent,
   playerPanel,
   toolbarControl,
+  connectionStatus,
   showStormControls,
   seatCount,
   tableProgress,
@@ -601,6 +604,7 @@ export function GameTable({
               </div>
 
               <div className="seated-toolbar">
+                {connectionStatus}
                 <TableViewPicker
                   activeView={viewState.activeView}
                   preferredView={viewPhase === null ? undefined : PHASE_VIEWS[viewPhase]}
