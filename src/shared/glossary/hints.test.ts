@@ -2,6 +2,7 @@ import { describe, expect, test } from 'vitest';
 
 import { distinctTermHints, findTermHints } from './hints';
 import { GLOSSARY } from './terms';
+import type { GlossaryTerm } from './terms';
 
 function summary(text: string) {
   return findTermHints(text).map((hint) => [hint.found, hint.term.term]);
@@ -22,16 +23,29 @@ describe('findTermHints', () => {
   });
 
   test('matches a phrase across a line break', () => {
-    expect(summary('Before ship &\nmove begins')).toEqual([['ship &\nmove', 'Shipment and Movement']]);
+    expect(summary('Before ship &\nmove begins')).toEqual([['ship & move', 'Shipment and Movement']]);
   });
 
   test('leaves names and fixed phrases that contain an avoided word alone', () => {
     expect(summary('House Atreides plays Cheap Hero and sends troops to the Tleilaxu Tanks.')).toEqual([]);
-    expect(summary('Every house may send a hero to the tanks.')).toEqual([
+    expect(summary('Every house may send a hero to their tanks.')).toEqual([
       ['house', 'Faction'],
       ['hero', 'Leader'],
       ['tanks', 'Tleilaxu Tanks'],
     ]);
+  });
+
+  test('excuses names in any case, and leaves the site name alone', () => {
+    expect(summary('HOUSE ATREIDES and Houses Atreides and Harkonnen')).toEqual([]);
+    expect(summary('Welcome to Dune Zone, where Dead Cheap Heroes and Desert Power live.')).toEqual([]);
+  });
+
+  test('leaves the verb force alone and still hints the plural noun', () => {
+    expect(summary('You may force your opponent to reveal it. Ship two forces.')).toEqual([['forces', 'Troop']]);
+  });
+
+  test('shows a phrase split over lines as one spaced phrase', () => {
+    expect(distinctTermHints('ship &\nmove, then ship  &  move').map((hint) => hint.found)).toEqual(['ship & move']);
   });
 
   test('skips words the glossary keeps out of hints', () => {
@@ -40,6 +54,41 @@ describe('findTermHints', () => {
 
   test('returns hints in reading order', () => {
     expect(findTermHints('Fight with your forces').map((hint) => hint.index)).toEqual([0, 16]);
+  });
+});
+
+describe('findTermHints with a custom glossary', () => {
+  const custom: GlossaryTerm[] = [
+    {
+      id: 'plan',
+      term: 'Battle plan',
+      topic: 'battle',
+      explanation: '',
+      reason: '',
+      source: 'rulebook',
+      avoid: [{ word: 'combat plan' }, { word: 'a.b (c)+' }, { word: 'quiet', hint: false }],
+    },
+    {
+      id: 'battle',
+      term: 'Battle',
+      topic: 'battle',
+      explanation: '',
+      reason: '',
+      source: 'rulebook',
+      avoid: [{ word: 'combat' }],
+    },
+  ];
+
+  test('lets a longer phrase of one term win over a shorter word of another', () => {
+    expect(findTermHints('Reveal your combat plan.', custom).map((hint) => hint.term.id)).toEqual(['plan']);
+  });
+
+  test('treats regex characters in an avoided word literally', () => {
+    expect(findTermHints('see a.b (c)+ here, not aXb (c)', custom).map((hint) => hint.found)).toEqual(['a.b (c)+']);
+  });
+
+  test('never hints a word marked hint: false', () => {
+    expect(findTermHints('a quiet combat', custom).map((hint) => hint.found)).toEqual(['combat']);
   });
 });
 
@@ -61,6 +110,20 @@ describe('GLOSSARY', () => {
       term.avoid.flatMap((word) => [word.word, ...(word.forms ?? [])].map((form) => form.toLowerCase()))
     );
     expect(avoided.filter((word) => preferred.has(word))).toEqual([]);
+  });
+
+  test('never lets two terms avoid the same word', () => {
+    const avoided = GLOSSARY.flatMap((term) =>
+      term.avoid.flatMap((word) => [word.word, ...(word.forms ?? [])].map((form) => form.toLowerCase()))
+    );
+    expect(avoided.filter((word, index) => avoided.indexOf(word) !== index)).toEqual([]);
+  });
+
+  test('stays fast on a long draft full of matches', () => {
+    const draft = 'house '.repeat(2000) + 'House Atreides '.repeat(500);
+    const started = performance.now();
+    expect(findTermHints(draft)).toHaveLength(2000);
+    expect(performance.now() - started).toBeLessThan(250);
   });
 
   test('never hints against its own preferred terms', () => {

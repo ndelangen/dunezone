@@ -14,8 +14,8 @@ const meta = preview.meta({
 export const TwoHints = meta.story({
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getByRole('link', { name: 'Troop' })).toHaveAttribute('href', '/glossary#troop');
-    await expect(canvas.getByRole('link', { name: 'Battle' })).toHaveAttribute('href', '/glossary#battle');
+    await expect(canvas.getByRole('link', { name: /^Troop\b/ })).toHaveAttribute('href', '/glossary#troop');
+    await expect(canvas.getByRole('link', { name: /^Battle\b/ })).toHaveAttribute('href', '/glossary#battle');
   },
 });
 

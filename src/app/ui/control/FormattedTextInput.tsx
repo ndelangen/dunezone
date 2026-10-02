@@ -4,7 +4,7 @@ import { parseFormattedText } from '@shared/formattedText';
 import type { FormattedTextParseResult, FormattedTextProfile } from '@shared/formattedText';
 import { distinctTermHints } from '@shared/glossary/hints';
 import { Bold, Italic, Underline } from 'lucide-react';
-import { Fragment, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 
 import { TermHints } from '../content/TermHints';
@@ -143,6 +143,26 @@ export function FormattedTextInput({
     onChange(nextValue);
   };
   const hints = useMemo(() => (termHints ? distinctTermHints(value) : []), [termHints, value]);
+  const hintsId = useId();
+  /*
+   * Mantine owns the textarea's aria-describedby and overwrites any value passed in, so the hint id is merged after each render.
+   * React leaves the attribute alone until Mantine's own value changes, and this runs again whenever it does.
+   */
+  useLayoutEffect(() => {
+    const field = fieldRef.current;
+    if (!field) {
+      return;
+    }
+    const ids = (field.getAttribute('aria-describedby') ?? '').split(' ').filter((id) => id && id !== hintsId);
+    if (hints.length > 0) {
+      ids.push(hintsId);
+    }
+    if (ids.length > 0) {
+      field.setAttribute('aria-describedby', ids.join(' '));
+    } else {
+      field.removeAttribute('aria-describedby');
+    }
+  });
   const parsed = parseFormattedText(value, profile);
   const diagnostics = parsed.valid ? [] : parsed.diagnostics;
 
@@ -173,7 +193,7 @@ export function FormattedTextInput({
           </Group>
 
           {props.inputContainer ? props.inputContainer(input) : input}
-          <TermHints hints={hints} />
+          <TermHints hints={hints} id={hintsId} />
         </Stack>
       )}
       ref={fieldRef}

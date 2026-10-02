@@ -1,4 +1,4 @@
-/* Linked headings land below the sticky header instead of under it. */
+/* A heading reached by its anchor keeps some room above it instead of touching the window edge. */
 .topic,
 .term {
   scroll-margin-top: var(--space-xl);

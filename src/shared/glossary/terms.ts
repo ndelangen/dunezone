@@ -59,7 +59,8 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
       'The 2019 rulebook calls these tokens forces. Dune Zone says troop, the word its faction editor and catalogue are built on, so one name runs through the whole site.',
     source: 'house',
     avoid: [
-      { word: 'force', forms: ['forces'] },
+      { word: 'forces' },
+      { word: 'force', hint: false },
       { word: 'unit', forms: ['units'], hint: false },
       { word: 'soldier', forms: ['soldiers'] },
     ],
@@ -87,7 +88,7 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
       'Your troops that are not on the board yet. You ship them from your reserves onto Arrakis during Shipment and Movement.',
     reason: 'The rulebook word. Off-planet and supply describe the same pile less precisely.',
     source: 'rulebook',
-    avoid: [{ word: 'off-planet', forms: ['offworld', 'off-world', 'off planet'] }],
+    avoid: [{ word: 'off-planet', forms: ['offworld', 'off-world', 'off planet', 'off world'] }],
   },
   {
     id: 'tleilaxu-tanks',
@@ -98,7 +99,7 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
     reason: 'The rulebook name. Graveyard and dead pile are borrowed from other games.',
     source: 'rulebook',
     avoid: [
-      { word: 'tanks', exceptions: [/tleilaxu\s+tanks/i] },
+      { word: 'tanks', exceptions: [/tleilaxu\s+tanks/i, /the\s+tanks/i] },
       { word: 'graveyard', forms: ['graveyards'] },
       { word: 'dead pile' },
     ],
@@ -200,8 +201,9 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
     term: 'Aggressor',
     topic: 'battle',
     explanation:
-      'The faction that resolves a battle first, because it comes first in storm order. The other faction in the battle is its opponent.',
-    reason: 'The rulebook word. Attacker suggests the aggressor chose the battle, which it did not.',
+      'The faction whose turn it is in storm order during the Battle phase. It chooses which of its battles to resolve first, and the other faction in each battle is its opponent.',
+    reason:
+      'The rulebook word. Attacker suggests the aggressor started the battle by choice, when storm order decides who it is.',
     source: 'rulebook',
     avoid: [{ word: 'attacker', forms: ['attackers'] }],
   },
@@ -235,7 +237,7 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
     source: 'rulebook',
     avoid: [
       { word: 'region', forms: ['regions'] },
-      { word: 'zone', forms: ['zones'] },
+      { word: 'zone', forms: ['zones'], exceptions: [/dune\s+zone/i] },
       { word: 'area', forms: ['areas'], hint: false },
     ],
   },
@@ -261,7 +263,7 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
     reason: 'The rulebook word, used for cities and sietches alike.',
     source: 'rulebook',
     avoid: [
-      { word: 'city', forms: ['cities'] },
+      { word: 'city', forms: ['cities'], hint: false },
       { word: 'fortress', forms: ['fortresses'] },
     ],
   },
@@ -270,7 +272,7 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
     term: 'Storm',
     topic: 'board',
     explanation:
-      'The great sandstorm that sweeps around the board each turn, destroying troops and spice in the sectors it passes.',
+      'The great sandstorm that sweeps around the board each turn, destroying troops and spice out on the sand in the sectors it passes.',
     reason: 'The rulebook word.',
     source: 'rulebook',
     avoid: [{ word: 'sandstorm', forms: ['sandstorms'], hint: false }],
@@ -355,7 +357,11 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
       'The rulebook word. House is part of some faction names, like House Atreides, but is not a word for factions in general, because the Fremen and the Spacing Guild are not houses.',
     source: 'rulebook',
     avoid: [
-      { word: 'house', forms: ['houses'], exceptions: [/[Hh]ouse\s+[A-Z]/, /great\s+houses?/i, /house\s+rules?/i] },
+      {
+        word: 'house',
+        forms: ['houses'],
+        exceptions: [/(?:[Hh]ouses?|HOUSES?)\s+\p{Lu}/gu, /great\s+houses?/i, /house\s+rules?/i],
+      },
     ],
   },
   {
@@ -368,8 +374,8 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
       'The faction sheets call these advantages. Ability and power describe the same rules with a second and third name.',
     source: 'rulebook',
     avoid: [
-      { word: 'ability', forms: ['abilities'] },
-      { word: 'power', forms: ['powers'] },
+      { word: 'ability', forms: ['abilities'], hint: false },
+      { word: 'power', forms: ['powers'], exceptions: [/desert\s+power/i] },
       { word: 'perk', forms: ['perks'] },
     ],
   },
@@ -378,11 +384,11 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
     term: 'Leader',
     topic: 'factions',
     explanation:
-      'A named character disc a faction can send into battle to add strength. Every faction has one faction leader, shown on its shield, and a roster of supporting leaders.',
+      'A named character disc a faction can send into battle to add strength. On Dune Zone, every faction has one faction leader, shown on its shield, and a roster of supporting leaders.',
     reason: 'The rulebook word. Hero is kept only for the treachery card Cheap Hero, which stands in for a leader.',
     source: 'rulebook',
     avoid: [
-      { word: 'hero', forms: ['heroes'], exceptions: [/cheap\s+hero/i] },
+      { word: 'hero', forms: ['heroes'], exceptions: [/cheap\s+hero(?:es)?/i] },
       { word: 'general', forms: ['generals'], hint: false },
       { word: 'commander', forms: ['commanders'] },
     ],

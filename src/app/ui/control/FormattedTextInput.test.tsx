@@ -147,9 +147,11 @@ it('suggests the glossary word for an avoided one without marking the field inva
 
   const field = screen.getByRole('textbox', { name: 'Text' });
   expect(screen.getByRole('note', { name: 'Wording suggestions' }).textContent).toContain(
-    '“forces”: you may mean Troop.'
+    '“forces”: you may mean Troop (opens in a new tab).'
   );
-  expect(screen.getByRole('link', { name: 'Troop' }).getAttribute('href')).toBe('/glossary#troop');
+  expect(screen.getByRole('link', { name: /^Troop\b/ }).getAttribute('href')).toBe('/glossary#troop');
+  const note = screen.getByRole('note', { name: 'Wording suggestions' });
+  expect(field.getAttribute('aria-describedby')?.split(' ')).toContain(note.id);
   expect(field.getAttribute('aria-invalid')).not.toBe('true');
 });
 

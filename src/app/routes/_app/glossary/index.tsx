@@ -36,9 +36,9 @@ function TermEntry({ term }: { term: GlossaryTerm }) {
         {term.reason}
       </Text>
       {avoided.length > 0 ? (
-        <Group gap="xs" aria-label={`Instead of ${term.term}, avoid`}>
+        <Group gap="xs">
           <Text size="sm" fw={600}>
-            Instead of
+            Say {term.term.toLowerCase()} instead of
           </Text>
           {avoided.map((word) => (
             <Badge key={word} variant="outline" color="gray" size="sm" tt="none" className={styles.avoided}>
