@@ -190,6 +190,29 @@ export const PieceNames = meta.story({
   },
 });
 
+/* The toolbar keeps the stack counts or piece names on, for a touch screen with no Alt or Control to hold, until it turns them off again. */
+export const ToolbarKeepsLabelsOn = meta.story({
+  beforeEach: install(() => productTransport()),
+  play: async ({ canvasElement }) => {
+    const { page, shell } = await tablePage(canvasElement);
+    const labels = within(page.getByRole('group', { name: 'Table labels' }));
+    const counts = labels.getByRole('button', { name: 'Stack counts' });
+    const names = labels.getByRole('button', { name: 'Piece names' });
+    expect(shell).toHaveAttribute('data-show-counts', 'false');
+    expect(shell).toHaveAttribute('data-show-names', 'false');
+
+    await userEvent.click(counts);
+    expect(counts).toHaveAttribute('aria-pressed', 'true');
+    expect(shell).toHaveAttribute('data-show-counts', 'true');
+    await userEvent.click(names);
+    expect(shell).toHaveAttribute('data-show-names', 'true');
+    await userEvent.click(counts);
+    expect(counts).toHaveAttribute('aria-pressed', 'false');
+    expect(shell).toHaveAttribute('data-show-counts', 'false');
+    expect(shell).toHaveAttribute('data-show-names', 'true');
+  },
+});
+
 /* The wheel over the board tilts the camera toward top-down and back; Ctrl with the wheel stays the browser's zoom. */
 export const WheelTiltsTheCamera = meta.story({
   beforeEach: install(() => productTransport()),
