@@ -343,6 +343,25 @@ describe('Drafting and public assignment on a real game', () => {
     return { ...faction, leaders: [{ ...unpublished, front: null }, ...published] };
   }
   const leaderProblem = `leader ${assetPublishingFaction.leaders[0].name}, This leader has no published face.`;
+  /** A real game where B drafted a ready Harkonnen and A a Fremen whose leader face has not published, set aside at the pick. */
+  async function fremenSetAsideAtPick() {
+    await realGame(() => {
+      peer.factions.set('harkonnen', ready('harkonnen', 'Harkonnen'));
+      peer.factions.set('fremen', missingLeaderFace('fremen', 'Fremen'));
+    });
+    const a = await admit('a');
+    const b = await admit('b');
+    await seat(b, a);
+    await accepted(b, { kind: 'draft-pick', factionId: 'harkonnen' });
+    await accepted(a, { kind: 'draft-pick', factionId: 'fremen' });
+    await eventually(async () => 'fremen' in (await setAside(a)), 'fremen judged at the pick');
+    return { a, b };
+  }
+  /** A Ready sent against a revision the draft has since moved past is refused. */
+  async function expectStaleReadyRefused(connection, revision) {
+    const stale = await sendCommand(connection, { kind: 'draft-ready', ready: true }, undefined, revision);
+    expect(stale.reply.message).toBe('The draft changed. Try the action again.');
+  }
 
   it('sets aside a faction whose leader face has not published as soon as a real game drafts it, and deals it once it publishes', async () => {
     await realGame(() => {
@@ -390,16 +409,7 @@ describe('Drafting and public assignment on a real game', () => {
   });
 
   it('clears readiness when a refresh returns a drafted faction from set-aside, so nobody stays ready for a pool that changed', async () => {
-    await realGame(() => {
-      peer.factions.set('harkonnen', ready('harkonnen', 'Harkonnen'));
-      peer.factions.set('fremen', missingLeaderFace('fremen', 'Fremen'));
-    });
-    const a = await admit('a');
-    const b = await admit('b');
-    await seat(b, a);
-    await accepted(b, { kind: 'draft-pick', factionId: 'harkonnen' });
-    await accepted(a, { kind: 'draft-pick', factionId: 'fremen' });
-    await eventually(async () => 'fremen' in (await setAside(a)), 'fremen judged at the pick');
+    const { a, b } = await fremenSetAsideAtPick();
     await accepted(b, { kind: 'draft-ready', ready: true });
     /* Ready found the copy stale and refreshed it; that refresh lands before Fremen publishes, so it keeps Fremen aside. */
     await eventually(async () => (await syncView(a)).snapshot.draft.catalogueAt > 0, 'the refresh Ready started');
@@ -412,6 +422,56 @@ describe('Drafting and public assignment on a real game', () => {
     const returned = await syncView(a);
     expect(returned.snapshot.stage).toBe('drafting');
     expect(returned.snapshot.draft.ready).toEqual([]);
+  });
+
+  it('refuses a Ready sent before a refresh cleared readiness, so nobody readies for a pool they have not seen', async () => {
+    const { a, b } = await fremenSetAsideAtPick();
+
+    /* Fremen publishes; A's Ready reads the stale catalogue again, and its judgement of Fremen is held while B looks at the pool without it. */
+    peer.factions.set('fremen', ready('fremen', 'Fremen'));
+    offset += 60_000;
+    await runtime.clock(offset);
+    peer.factionMode = 'hold';
+    await accepted(a, { kind: 'draft-ready', ready: true });
+    const held = () => peer.requests.filter((r) => r.function === 'playCatalogue:factionDefinition' && !r.completedAt);
+    await eventually(() => held().length > 0, 'the refresh judging Fremen held open');
+    const seen = await syncView(b);
+    expect(seen.snapshot.draft.ready).toEqual(['seat-1']);
+    peer.factionMode = 'allow';
+    for (const record of held()) {
+      record.release(peer.factions.get(record.args.factionId));
+    }
+    await eventually(async () => !('fremen' in (await setAside(a))), 'fremen judged ready');
+    const returned = await syncView(a);
+    expect(returned.snapshot.draft.ready).toEqual([]);
+    expect(returned.snapshot.revision).toBeGreaterThan(seen.snapshot.revision);
+
+    /* B pressed Ready against the pool before Fremen returned: it answers a draft that has since changed. */
+    await expectStaleReadyRefused(b, seen.snapshot.revision);
+    expect((await syncView(a)).snapshot.draft.ready).toEqual([]);
+  });
+
+  it('refuses a Ready sent before a refresh changed the pool, even when nobody was ready for it to clear', async () => {
+    const { a, b } = await fremenSetAsideAtPick();
+    const seen = await syncView(b);
+    expect(seen.snapshot.draft.ready).toEqual([]);
+
+    /* Fremen publishes, and B's refused pick of it reads the stale catalogue again, which returns it to the pool. */
+    peer.factions.set('fremen', ready('fremen', 'Fremen'));
+    offset += 60_000;
+    await runtime.clock(offset);
+    expect(await rejected(b, { kind: 'draft-pick', factionId: 'fremen' })).toBe(
+      `Fremen cannot be dealt yet: ${leaderProblem}`
+    );
+    await eventually(async () => !('fremen' in (await setAside(a))), 'fremen judged ready');
+    const returned = await syncView(a);
+    expect(returned.snapshot.draft.ready).toEqual([]);
+    expect(returned.snapshot.revision).toBeGreaterThan(seen.snapshot.revision);
+    expect(events(returned)[0]).toBe('The drafted pool changed.');
+
+    /* B pressed Ready against the pool without Fremen: it answers a draft that has since changed. */
+    await expectStaleReadyRefused(b, seen.snapshot.revision);
+    expect((await syncView(a)).snapshot.draft.ready).toEqual([]);
   });
 
   it('judges a pick again when a catalogue refresh lands while its judgement runs', async () => {
@@ -504,6 +564,38 @@ describe('Drafting and public assignment on a real game', () => {
     ]);
     await accepted(a, { kind: 'seat-approve', requestId: request.id });
     expect((await syncView(watcher)).viewer.viewerSeat).toBe('seat-2');
+  });
+
+  it('takes a withdrawal of readiness sent before a seat request, so the deal never goes ahead with a player who withdrew', async () => {
+    const a = await admit('a');
+    const b = await admit('b');
+    await seat(b, a);
+    const watcher = await admit('w');
+    const seen = await accepted(a, { kind: 'draft-ready', ready: true });
+    /* A spectator's request moves the revision but leaves the draft as A saw it. */
+    await accepted(watcher, { kind: 'seat-request' });
+    const withdrawn = await sendCommand(a, { kind: 'draft-ready', ready: false }, undefined, seen.snapshot.revision);
+    expect(withdrawn.reply.type).not.toBe('rejected');
+    await accepted(b, { kind: 'draft-ready', ready: true });
+    const view = await syncView(b);
+    expect(view.snapshot.stage).toBe('drafting');
+    expect(view.snapshot.draft.ready).toEqual(['seat-2']);
+  });
+
+  it('leaves the draft as it is when a stale withdrawal finds the seat already not ready', async () => {
+    const a = await admit('a');
+    const b = await admit('b');
+    await seat(b, a);
+    const seen = await accepted(a, { kind: 'draft-ready', ready: true });
+    await accepted(a, { kind: 'draft-ready', ready: false });
+    const before = await syncView(b);
+    /* The same withdrawal again, sent against the table before the first one landed. */
+    const repeated = await sendCommand(a, { kind: 'draft-ready', ready: false }, undefined, seen.snapshot.revision);
+    expect(repeated.reply.type).not.toBe('rejected');
+    const after = await syncView(b);
+    expect(after.snapshot.revision).toBe(before.snapshot.revision);
+    expect(events(after)).toEqual(events(before));
+    expect(after.snapshot.draft.ready).toEqual([]);
   });
 
   it("clears readiness on a roster change, drops a departing player's lists, and reads the catalogue again when stale", async () => {

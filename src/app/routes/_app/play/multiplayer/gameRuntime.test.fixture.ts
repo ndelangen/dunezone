@@ -50,6 +50,7 @@ export class Socket {
 
 export const hidden = new Set<() => void>();
 export const online = new Set<() => void>();
+export const visible = new Set<() => void>();
 export const runtime: GameRuntime = {
   openSocket: (gameId) => new Socket(gameId),
   monotonicNow: () => performance.now(),
@@ -63,6 +64,12 @@ export const runtime: GameRuntime = {
     online.add(listener);
     return () => {
       online.delete(listener);
+    };
+  },
+  onVisible(listener) {
+    visible.add(listener);
+    return () => {
+      visible.delete(listener);
     };
   },
 };

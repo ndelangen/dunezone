@@ -37,7 +37,14 @@ import { expireBattle } from './battle';
 import { CaptureStore } from './captures';
 import { Conversations } from './conversations';
 import { DirectoryOutbox } from './directory';
-import { applyDraftAction, assignmentEvents, draftWithCatalogue, draftWithSetAside, unbiased } from './drafting';
+import {
+  applyDraftAction,
+  assignmentEvents,
+  draftWithCatalogue,
+  draftWithSetAside,
+  rewrittenDraft,
+  unbiased,
+} from './drafting';
 import type { SetAsideJudgement } from './drafting';
 import { hostedFixturePlan } from './fixture';
 import type { FixturePlan } from './fixture';
@@ -710,7 +717,7 @@ export class GameSession {
   private commitSwap(viewer: Viewer, message: CommandMessage & { action: Parameters<Swapping['apply']>[0]['action'] }) {
     const room = this.room!;
     const key = `${viewer.userId}:${message.commandId}`;
-    room.assertRevision(message.action.kind, message.expectedRevision);
+    room.assertRevision(message.action, message.expectedRevision);
     const action = message.action;
     const next = this.storage.transactionSync(() => {
       const swapped = this.withRoster(
@@ -732,7 +739,7 @@ export class GameSession {
   private commitDraft(viewer: Viewer, message: CommandMessage & { action: Parameters<typeof applyDraftAction>[2] }) {
     const room = this.room!;
     const key = `${viewer.userId}:${message.commandId}`;
-    room.assertRevision(message.action.kind, message.expectedRevision, 'The draft changed. Try the action again.');
+    room.assertRevision(message.action, message.expectedRevision, 'The draft changed. Try the action again.');
     const applied = applyDraftAction(
       room.snapshot,
       viewer,
@@ -748,7 +755,7 @@ export class GameSession {
   private commitRemoval(viewer: Viewer, message: CommandMessage & { action: Parameters<RemovalVotes['apply']>[2] }) {
     const room = this.room!;
     const key = `${viewer.userId}:${message.commandId}`;
-    room.assertRevision(message.action.kind, message.expectedRevision);
+    room.assertRevision(message.action, message.expectedRevision);
     const action = message.action;
     const next = this.storage.transactionSync(() => {
       const applied = this.removal.apply(room.snapshot, viewer, action, Date.now());
@@ -764,7 +771,7 @@ export class GameSession {
   private commitResult(viewer: Viewer, message: CommandMessage & { action: Parameters<typeof applyResult>[2] }) {
     const room = this.room!;
     const key = `${viewer.userId}:${message.commandId}`;
-    room.assertRevision(message.action.kind, message.expectedRevision);
+    room.assertRevision(message.action, message.expectedRevision);
     const next = this.withRoster(applyResult(room.snapshot, viewer, message.action, Date.now()));
     const history = this.history.entry(message, room.snapshot, next);
     this.persistCommit({ key, viewer, message, next, history });
@@ -777,7 +784,7 @@ export class GameSession {
   private commitSeat(viewer: Viewer, message: CommandMessage & { action: Parameters<Participation['plan']>[0] }) {
     const room = this.room!;
     const key = `${viewer.userId}:${message.commandId}`;
-    room.assertRevision(message.action.kind, message.expectedRevision);
+    room.assertRevision(message.action, message.expectedRevision);
     const plan = this.participation.plan(message.action, {
       viewer,
       snapshot: room.snapshot,
@@ -837,7 +844,7 @@ export class GameSession {
     if (!room?.snapshot.draft || room.snapshot.stage !== 'drafting') {
       return;
     }
-    const next: StoredSnapshot = { ...room.snapshot, draft: rewrite(room.snapshot.draft) };
+    const next = rewrittenDraft(room.snapshot, rewrite(room.snapshot.draft));
     this.storage.transactionSync(() => {
       this.storage.sql.exec('UPDATE current_state SET data=? WHERE id=1', JSON.stringify(next));
     });
