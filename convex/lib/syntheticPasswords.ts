@@ -5,7 +5,7 @@
  * and a stall of the runner during it ended one sign-in at the limit.
  * The launcher's accounts have random 48-hex-digit passwords, 192 bits of entropy. A key derivation's work factor
  * multiplies the cost of guessing a password by its iteration count (NIST SP 800-132, appendix A.2.2), which matters for a
- * password a person chose and not for one that would take 2^192 guesses. So these accounts use PBKDF2-HMAC-SHA256 at the
+ * password a person chose and not for one that takes up to 2^192 guesses. So these accounts use PBKDF2-HMAC-SHA256 at the
  * 1,000 iterations NIST recommends as a minimum (section 5.2), which takes about a millisecond.
  * Production keeps E2E_LOCAL_AUTH off (docs/deployment.md), so it registers no Password provider at all.
  * A hosted deployment's own URL is never on a loopback host either, so none uses PBKDF2 whatever its settings,

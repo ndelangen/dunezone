@@ -354,13 +354,13 @@ Password stores and checks PBKDF2-HMAC-SHA256 at 1,000 iterations instead of Scr
 (`convex/lib/syntheticPasswords.ts`). Scrypt was most of each sign-in's `auth:store` time on the
 macOS runner, and a stall of that runner during it ended a sign-in at the 2 s limit (#1493). A work
 factor multiplies the cost of each guess, which protects a password a person chose, and the
-synthetic accounts' passwords are 48 random hex digits that would take 2^192 guesses anyway. 1,000
-is the minimum NIST SP 800-132 recommends, and it takes about a millisecond. Only an isolated
-loopback backend honours the variable, and only the launcher sets it, so every other backend keeps
-Scrypt. Production keeps `E2E_LOCAL_AUTH` off and so registers no Password provider at all, and the
-`--load-hosted-backend` copy keeps Scrypt because its own URL is the hosted one. The runners send
-each password to `playTesting:provisionAccounts` both ways, and the control keeps the one the
-backend checks.
+synthetic accounts' passwords are 48 random hex digits that take up to 2^192 guesses anyway. NIST SP
+800-132 recommends 1,000 iterations as a minimum, and they take about a millisecond. Only an
+isolated loopback backend honours the variable, and only the launcher sets it, so every other
+backend keeps Scrypt. Production keeps `E2E_LOCAL_AUTH` off and so registers no Password provider at
+all, and the `--load-hosted-backend` copy keeps Scrypt because its own URL is the hosted one. The
+runners send each password to `playTesting:provisionAccounts` both ways, and the control keeps the
+one the backend checks.
 
 The browser flows play real games. The stack seeds a synthetic ruleset
 (`playTesting:seedRealGameCatalogue`) with both required decks, a treachery deck of treachery cards
