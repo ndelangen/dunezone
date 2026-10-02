@@ -31,6 +31,7 @@ const HOSTED_PLAY_CLOSURE: readonly string[] = [
   'scripts/lib/synthetic-accounts.ts',
   'scripts/node-executable.ts',
   'scripts/lib/publisher-assets.ts',
+  'scripts/lib/application-assets.ts',
   'scripts/lib/reactCompiler.ts',
   'scripts/lib/threeRendererStack.ts',
   'scripts/generate.ts',
