@@ -288,6 +288,19 @@ describe('force stacks', () => {
   });
 });
 
+describe('rotation', () => {
+  test('clockwise as seen from above lowers the orientation, which turns a piece about the up axis', () => {
+    const state = freshTableState();
+    const card = state.pieces.find((candidate) => candidate.kind === 'card')!;
+
+    const clockwise = applyPieceAction(state, { kind: 'rotate', pieceId: card.id, direction: 1 }, 0);
+    const counterclockwise = applyPieceAction(state, { kind: 'rotate', pieceId: card.id, direction: -1 }, 0);
+
+    expect(pieceById(clockwise, card.id)!.orientation).toBeCloseTo(card.orientation - Math.PI / 12);
+    expect(pieceById(counterclockwise, card.id)!.orientation).toBeCloseTo(card.orientation + Math.PI / 12);
+  });
+});
+
 describe('leader discs', () => {
   test('a leader resting on the rim stays there when it is rotated', () => {
     const state = freshTableState();

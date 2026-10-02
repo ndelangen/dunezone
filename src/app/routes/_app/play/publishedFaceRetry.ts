@@ -71,18 +71,32 @@ export function loadPublishedFace<T>({
  * A table draws the same published image on many pieces and on every layer of a stack, and each separate load would be a separate GPU texture with its own upload and mipmaps.
  * The first subscriber starts `loadPublishedFace`, later ones receive the value it already holds, and the last unsubscribe releases it.
  * `peek` returns a key's loaded value, so a face that mounts while its image is held draws it in its first frame instead of a placeholder.
+ * The last unsubscribe releases the value only after `releaseDelayMs`, so a face that hands its image to another in the same commit (a flip swaps the top and underside images) keeps it instead of reloading it behind a placeholder.
  */
-export function sharedPublishedFaces<T>(
-  options: Omit<Parameters<typeof loadPublishedFace<T>>[0], 'load' | 'onLoad'> & {
-    load: (key: string, onLoad: (value: T) => void, onError: () => void) => void;
-    prepare?: (value: T) => void;
-  }
-) {
-  const entries = new Map<string, { value?: T; listeners: Set<(value: T) => void>; stop: () => void }>();
+export function sharedPublishedFaces<T>({
+  releaseDelayMs = 1000,
+  ...options
+}: Omit<Parameters<typeof loadPublishedFace<T>>[0], 'load' | 'onLoad'> & {
+  load: (key: string, onLoad: (value: T) => void, onError: () => void) => void;
+  prepare?: (value: T) => void;
+  releaseDelayMs?: number;
+}) {
+  type Entry = {
+    value?: T;
+    listeners: Set<(value: T) => void>;
+    stop: () => void;
+    releasing?: ReturnType<typeof setTimeout>;
+  };
+  const timer = options.timer ?? browserTimer;
+  const entries = new Map<string, Entry>();
   const subscribe = (key: string, listener: (value: T) => void) => {
     let entry = entries.get(key);
+    if (entry?.releasing !== undefined) {
+      timer.clear(entry.releasing);
+      entry.releasing = undefined;
+    }
     if (!entry) {
-      const created: { value?: T; listeners: Set<(value: T) => void>; stop: () => void } = {
+      const created: Entry = {
         listeners: new Set(),
         stop: () => {},
       };
@@ -106,9 +120,14 @@ export function sharedPublishedFaces<T>(
     held.listeners.add(listener);
     return () => {
       held.listeners.delete(listener);
-      if (held.listeners.size === 0 && entries.get(key) === held) {
-        entries.delete(key);
-        held.stop();
+      if (held.listeners.size === 0 && entries.get(key) === held && held.releasing === undefined) {
+        held.releasing = timer.set(() => {
+          held.releasing = undefined;
+          if (held.listeners.size === 0 && entries.get(key) === held) {
+            entries.delete(key);
+            held.stop();
+          }
+        }, releaseDelayMs);
       }
     };
   };
