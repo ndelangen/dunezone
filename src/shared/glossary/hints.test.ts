@@ -115,6 +115,16 @@ describe('fixTermWording', () => {
     );
   });
 
+  test('points spent and committed troops to dialed ones', () => {
+    expect(summary('I spent troops, then committed troops again.')).toEqual([
+      ['spent troops', 'Dialed'],
+      ['committed troops', 'Dialed'],
+    ]);
+    expect(fixTermWording('Spend troops wisely; never commit troop counts blindly.')).toBe(
+      'Dial troops wisely; never dial troop counts blindly.'
+    );
+  });
+
   test('keeps the preferred spelling of a name', () => {
     expect(fixTermWording('the KH and the spice pool')).toBe('the Kwisatz Haderach and the Spice Bank');
   });

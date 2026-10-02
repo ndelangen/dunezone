@@ -1,8 +1,10 @@
+/* The stage is its own container, so every piece sizes from the column it fills rather than from the window. */
 .stage {
+  container-type: inline-size;
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 100%;
+  width: 100%;
   min-height: 12rem;
 }
 
@@ -23,12 +25,33 @@
   transform: rotate(6deg) translateY(var(--space-xs));
 }
 
+.column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-lg);
+  width: 100%;
+}
+
+.column > .piece {
+  width: 100%;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: end;
+  gap: var(--space-lg) var(--space-md);
+  width: 100%;
+}
+
 .piece {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: var(--space-xs);
   color: var(--color-text);
+  text-align: center;
   text-decoration: none;
 }
 
@@ -47,7 +70,7 @@
 
 .disc {
   display: block;
-  width: 5.5rem;
+  width: clamp(5.5rem, 21cqi, 10rem);
   overflow: hidden;
   border-radius: 50%;
   filter: drop-shadow(0 6px 10px rgb(54 29 8 / 28%));
@@ -55,7 +78,7 @@
 
 .card {
   display: block;
-  width: 7rem;
+  width: clamp(7rem, 29cqi, 13rem);
   border-radius: var(--radius-md);
   filter: drop-shadow(0 6px 10px rgb(54 29 8 / 28%));
 }
@@ -63,8 +86,8 @@
 .glyph {
   display: block;
   flex: 0 0 auto;
-  width: 2rem;
-  height: 2rem;
+  width: clamp(2rem, 8cqi, 3.5rem);
+  height: clamp(2rem, 8cqi, 3.5rem);
   background-color: currentColor;
   mask-position: center;
   mask-repeat: no-repeat;
@@ -74,7 +97,7 @@
 .phases {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--space-sm);
+  gap: var(--space-md) var(--space-sm);
   width: 100%;
   margin: 0;
   padding: 0;
@@ -87,7 +110,7 @@
   align-items: center;
   gap: var(--space-xs);
   padding-block: var(--space-xs);
-  font-size: var(--mantine-font-size-xs);
+  font-size: var(--mantine-font-size-sm);
   font-weight: 600;
   text-align: center;
   color: var(--color-text);
@@ -105,36 +128,114 @@
 }
 
 .wheel {
-  width: min(100%, 16rem);
-  aspect-ratio: 1;
+  width: min(100%, 32rem);
+  filter: drop-shadow(0 8px 14px rgb(54 29 8 / 24%));
 }
 
+/* These two live inside the wheel's own 170px canvas, so they are sized in its pixels and scale with it. */
 .wheelLeader {
-  width: 3.75rem;
+  width: 60px;
 }
 
 .wheelLeader .disc {
   width: 100%;
+  filter: none;
+}
+
+.wheelCard {
+  display: block;
+  width: 60px;
 }
 
 .board {
   display: block;
-  width: min(100%, 18rem);
+  width: min(100%, 40rem);
   height: auto;
 }
 
 .spicePile {
   display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: var(--space-xs);
+  max-width: 12rem;
   color: #b65d12;
 }
 
 .factions {
   display: grid;
-  grid-template-columns: repeat(3, 4.5rem);
-  gap: var(--space-sm);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-md);
+  width: min(100%, 32rem);
 }
 
 .factions .disc {
   width: 100%;
+}
+
+.troopStack {
+  display: flex;
+}
+
+.troopStack .disc {
+  width: clamp(4rem, 15cqi, 7rem);
+}
+
+.troopStack .disc + .disc {
+  margin-inline-start: calc(clamp(4rem, 15cqi, 7rem) * -0.55);
+}
+
+.tanked {
+  filter: grayscale(1);
+  opacity: 0.6;
+}
+
+.pair {
+  display: flex;
+  gap: var(--space-xs);
+}
+
+.pair .card {
+  width: clamp(5rem, 19cqi, 8rem);
+}
+
+.reserve {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.reserve .disc {
+  width: clamp(4rem, 14cqi, 6rem);
+}
+
+/* Tall: phases read down the column as a list, one per line, so the picture runs as long as the terms beside it. */
+.stage[data-look="tall"] .phases {
+  grid-template-columns: 1fr;
+  gap: var(--space-xs);
+}
+
+.stage[data-look="tall"] .phase {
+  flex-direction: row;
+  gap: var(--space-md);
+  font-size: var(--mantine-font-size-md);
+  text-align: start;
+}
+
+.stage[data-look="tall"] .phaseNumber {
+  width: 1.5em;
+  text-align: end;
+}
+
+.stage[data-look="tall"] .row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  justify-items: center;
+  gap: var(--space-lg) var(--space-md);
+  width: 100%;
+}
+
+.stage[data-look="tall"] .factions {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  width: min(100%, 24rem);
 }

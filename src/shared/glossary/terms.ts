@@ -259,6 +259,40 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
     ],
   },
   {
+    id: 'dialed',
+    term: 'Dialed',
+    topic: 'battle',
+    explanation:
+      'A troop is dialed when its faction sets it on the battle wheel for one battle. Dialed troops add to the battle plan’s strength, and they are lost even when their faction wins. The troops left undialed in the territory survive a win.',
+    reason:
+      'The rulebook says forces are dialed on the battle wheel. Spent and committed name the cost; dialed names the act and matches the dialed and undialed counts the battle wheel shows.',
+    source: 'rulebook',
+    avoid: [
+      {
+        word: 'spent troops',
+        forms: ['spent troop', 'spend troops', 'spend troop', 'spending troops'],
+        fixes: {
+          'spent troops': 'dialed troops',
+          'spent troop': 'dialed troop',
+          'spend troops': 'dial troops',
+          'spend troop': 'dial troop',
+          'spending troops': 'dialing troops',
+        },
+      },
+      {
+        word: 'committed troops',
+        forms: ['committed troop', 'commit troops', 'commit troop', 'committing troops'],
+        fixes: {
+          'committed troops': 'dialed troops',
+          'committed troop': 'dialed troop',
+          'commit troops': 'dial troops',
+          'commit troop': 'dial troop',
+          'committing troops': 'dialing troops',
+        },
+      },
+    ],
+  },
+  {
     id: 'supported',
     term: 'Supported',
     topic: 'battle',
@@ -277,7 +311,7 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
     id: 'battle-wheel',
     term: 'Battle wheel',
     topic: 'battle',
-    explanation: 'The dial each faction turns in secret to choose how many troops it commits to a battle.',
+    explanation: 'The dial each faction turns in secret to choose how many troops it dials for a battle.',
     reason: 'The rulebook calls the component the battle wheel; dial is what you do with it.',
     source: 'rulebook',
     avoid: [

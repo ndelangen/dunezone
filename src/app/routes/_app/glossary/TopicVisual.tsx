@@ -19,6 +19,17 @@ import styles from './TopicVisual.module.css';
 
 const atreides = factionTokenFixtures.atreides;
 
+const atreidesTroop = {
+  background: atreides.background,
+  image: '/vector/troop/atreides.svg',
+  star: undefined,
+  hue: undefined,
+  striped: undefined,
+} as const;
+
+/** How the pictures fill their column; the preview compares them before one is kept. */
+export type GlossaryLook = 'fill' | 'tall' | 'lead';
+
 /* A piece of game artwork with the glossary word under it, linking to that word's entry. */
 function Piece({ caption, anchor, children }: { caption: string; anchor: string; children: ReactNode }) {
   return (
@@ -67,7 +78,7 @@ const PHASES = [
   { name: 'Mentat Pause', icon: '/vector/icon/mentat.svg' },
 ] as const;
 
-function PiecesVisual() {
+function PiecesVisual({ look }: { look: GlossaryLook }) {
   return (
     <div className={styles.row}>
       <Piece caption="Troop" anchor="troop">
@@ -108,6 +119,26 @@ function PiecesVisual() {
           <Token {...atreides} />
         </Disc>
       </Piece>
+      {look === 'tall' ? (
+        <>
+          <Piece caption="Reserves" anchor="reserves">
+            <span className={styles.troopStack}>
+              {[0, 1, 2].map((index) => (
+                <Disc key={index}>
+                  <TroopToken {...atreidesTroop} />
+                </Disc>
+              ))}
+            </span>
+          </Piece>
+          <Piece caption="Tleilaxu Tanks" anchor="tleilaxu-tanks">
+            <span className={styles.tanked}>
+              <Disc>
+                <TroopToken {...atreidesTroop} />
+              </Disc>
+            </span>
+          </Piece>
+        </>
+      ) : null}
     </div>
   );
 }
@@ -128,47 +159,113 @@ function TurnVisual() {
   );
 }
 
-function BattleVisual() {
+const WHEEL = { width: 170, cardRoom: 62 };
+
+function WheelCard({ front }: { front: (typeof treacheryCardFixtures)[keyof typeof treacheryCardFixtures] }) {
+  return (
+    <span className={styles.wheelCard}>
+      <CanvasScale canvasWidth={card.width} canvasHeight={card.height}>
+        <TreacheryCard {...front} />
+      </CanvasScale>
+    </span>
+  );
+}
+
+function DuncanIdaho() {
+  return (
+    <LeaderToken
+      background={atreides.background}
+      image="/image/leader/official/duncan.png"
+      logo="/vector/logo/atreides.svg"
+      name="Duncan Idaho"
+      strength="2"
+    />
+  );
+}
+
+/* The wheel draws at its native 170px and scales to the column, with room above it for the plan's cards. */
+function Wheel() {
   return (
     <div className={styles.wheel}>
-      <BattleWheel
-        state="revealed"
-        label="An Atreides battle plan on the battle wheel"
-        background={atreides.background}
-        strength={4}
-        spice={3}
-        adjustment={0}
-        troops={[
-          {
-            id: 'regular',
-            name: 'Troops',
-            dialed: 3,
-            undialed: 2,
-            artwork: {
-              background: atreides.background,
-              image: '/vector/troop/atreides.svg',
-              star: undefined,
-              hue: undefined,
-              striped: undefined,
-            },
-          },
-        ]}
-        leader={
-          <div className={styles.wheelLeader}>
-            <Disc>
-              <LeaderToken
-                background={atreides.background}
-                image="/image/leader/official/duncan.png"
-                logo="/vector/logo/atreides.svg"
-                name="Duncan Idaho"
-                strength="2"
-              />
-            </Disc>
-          </div>
-        }
-        motion={false}
-      />
+      <CanvasScale canvasWidth={WHEEL.width} canvasHeight={WHEEL.width + WHEEL.cardRoom}>
+        <div style={{ paddingTop: WHEEL.cardRoom }}>
+          <BattleWheel
+            state="revealed"
+            label="An Atreides battle plan on the battle wheel"
+            background={atreides.background}
+            strength={4}
+            spice={3}
+            adjustment={0}
+            troops={[{ id: 'regular', name: 'Troops', dialed: 3, undialed: 2, artwork: atreidesTroop }]}
+            cards={[
+              <WheelCard key="weapon" front={treacheryCardFixtures.maulaPistol} />,
+              <WheelCard key="defense" front={treacheryCardFixtures.shield} />,
+            ]}
+            leader={
+              <div className={styles.wheelLeader}>
+                <Disc>
+                  <DuncanIdaho />
+                </Disc>
+              </div>
+            }
+            motion={false}
+          />
+        </div>
+      </CanvasScale>
     </div>
+  );
+}
+
+function BattleVisual({ look }: { look: GlossaryLook }) {
+  if (look !== 'tall') {
+    return <Wheel />;
+  }
+  return (
+    <div className={styles.column}>
+      <a className={styles.piece} href="#battle-wheel">
+        <Wheel />
+        <span className={styles.caption}>Battle wheel</span>
+      </a>
+      <div className={styles.grid}>
+        <Piece caption="Dialed: 3 troops" anchor="dialed">
+          <span className={styles.troopStack}>
+            {[0, 1, 2].map((index) => (
+              <Disc key={index}>
+                <TroopToken {...atreidesTroop} />
+              </Disc>
+            ))}
+          </span>
+        </Piece>
+        <Piece caption="Supported with 3 spice" anchor="supported">
+          <SpicePile count={3} />
+        </Piece>
+        <Piece caption="Battle plan: leader" anchor="battle-plan">
+          <Disc>
+            <DuncanIdaho />
+          </Disc>
+        </Piece>
+        <Piece caption="Battle plan: weapon and defense" anchor="battle-plan">
+          <span className={styles.pair}>
+            <GameCard>
+              <TreacheryCard {...treacheryCardFixtures.maulaPistol} />
+            </GameCard>
+            <GameCard>
+              <TreacheryCard {...treacheryCardFixtures.shield} />
+            </GameCard>
+          </span>
+        </Piece>
+      </div>
+    </div>
+  );
+}
+
+function SpicePile({ count }: { count: number }) {
+  return (
+    <span className={styles.spicePile}>
+      {Array.from({ length: count }, (_, index) => (
+        <Glyph key={index} src="/vector/icon/spice.svg" />
+      ))}
+    </span>
   );
 }
 
@@ -184,7 +281,7 @@ function BoardVisual() {
   );
 }
 
-function SpiceVisual() {
+function SpiceVisual({ look }: { look: GlossaryLook }) {
   return (
     <div className={styles.row}>
       <Piece caption="Spice card" anchor="spice-card">
@@ -192,13 +289,25 @@ function SpiceVisual() {
           <SpiceCard name="Arsunt" subName="Spice mine" icon="spice-mine" highlights={['arsunt']} amount={3} />
         </GameCard>
       </Piece>
-      <Piece caption="Spice" anchor="spice">
-        <span className={styles.spicePile}>
-          <Glyph src="/vector/icon/spice.svg" />
-          <Glyph src="/vector/icon/spice.svg" />
-          <Glyph src="/vector/icon/spice.svg" />
-        </span>
-      </Piece>
+      {look === 'tall' ? (
+        <div className={styles.column}>
+          <Piece caption="Spice Bank" anchor="spice-bank">
+            <SpicePile count={6} />
+          </Piece>
+          <Piece caption="Spice reserve" anchor="spice-reserve">
+            <span className={styles.reserve}>
+              <Disc>
+                <Token {...atreides} />
+              </Disc>
+              <SpicePile count={2} />
+            </span>
+          </Piece>
+        </div>
+      ) : (
+        <Piece caption="Spice" anchor="spice">
+          <SpicePile count={3} />
+        </Piece>
+      )}
     </div>
   );
 }
@@ -246,7 +355,7 @@ function FactionsVisual() {
   );
 }
 
-const VISUALS: Record<GlossaryTopic, () => ReactNode> = {
+const VISUALS: Record<GlossaryTopic, (props: { look: GlossaryLook }) => ReactNode> = {
   pieces: PiecesVisual,
   turn: TurnVisual,
   battle: BattleVisual,
@@ -256,12 +365,12 @@ const VISUALS: Record<GlossaryTopic, () => ReactNode> = {
   factions: FactionsVisual,
 };
 
-/** The picture beside one glossary topic, drawn with the game's own artwork. */
-export function TopicVisual({ topic }: { topic: GlossaryTopic }) {
+/** The picture beside one glossary topic, drawn with the game's own artwork and sized to fill its column. */
+export function TopicVisual({ topic, look = 'fill' }: { topic: GlossaryTopic; look?: GlossaryLook }) {
   const Visual = VISUALS[topic];
   return (
-    <div className={styles.stage}>
-      <Visual />
+    <div className={styles.stage} data-look={look}>
+      <Visual look={look} />
     </div>
   );
 }

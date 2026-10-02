@@ -63,3 +63,8 @@ export const GlossaryPhone = meta.story({
   args: { path: '/glossary' },
   globals: { viewport: { value: 'appMobile' } },
 });
+
+/* Preview only: the ways for the glossary pictures to fill their column, side by side until one is kept. */
+export const GlossaryLookFill = meta.story({ name: 'Glossary look: Fill', args: { path: '/glossary' } });
+export const GlossaryLookTall = meta.story({ name: 'Glossary look: Tall', args: { path: '/glossary?look=tall' } });
+export const GlossaryLookLead = meta.story({ name: 'Glossary look: Lead', args: { path: '/glossary?look=lead' } });
