@@ -26,7 +26,7 @@ export const spaceOrks = {
       scale: 0.5,
     },
   ],
-  hero: {
+  factionLeader: {
     image: '/image/leader/custom/boss.png',
     memberId: 'e8286de0-e879-4c28-aa9d-93701a432c08',
     name: 'Ghazghkull Thraka',

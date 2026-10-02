@@ -9,8 +9,8 @@ import {
   publicationFaceId,
   publishedHref,
 } from '../src/shared/asset-publishing/publicationTargets';
-import { CanonicalFactionStoredSchema } from '../src/shared/factions/schema';
-import { assetSupplySchema, factionDefinitionSchema, rulesetSupplySchema } from '../src/shared/play/capture';
+import { CanonicalFactionStoredSchema, toStoredHeroKey } from '../src/shared/factions/schema';
+import { assetSupplySchema, factionDefinitionWireSchema, rulesetSupplySchema } from '../src/shared/play/capture';
 import { playDraftableFactionsSchema } from '../src/shared/play/drafting';
 import type { Doc } from './_generated/dataModel';
 import type { QueryCtx } from './_generated/server';
@@ -66,7 +66,7 @@ export const rulesetSupply = query({
  */
 export const factionDefinition = query({
   args: { factionId: v.string() },
-  returns: v.union(v.null(), zodToConvex(factionDefinitionSchema)),
+  returns: v.union(v.null(), zodToConvex(factionDefinitionWireSchema)),
   handler: async (ctx, args) => {
     const id = ctx.db.normalizeId('factions', args.factionId);
     const row = id ? await ctx.db.get('factions', id) : null;
@@ -103,7 +103,8 @@ export const factionDefinition = query({
     );
     return {
       faction: { id: row._id, slug: row.slug, name: parsed.success ? parsed.data.name : '' },
-      data: parsed.success ? parsed.data : null,
+      /* The glossary term is "Faction leader"; this answer keeps the `hero` literal so a game Worker one deploy behind still reads it. */
+      data: parsed.success ? toStoredHeroKey(parsed.data) : null,
       token: await publishedFace(ctx, 'faction-token', row._id),
       tokenBack: await publishedFace(ctx, 'faction-token', publicationFaceId(row._id, 'back')),
       cardbacks: {

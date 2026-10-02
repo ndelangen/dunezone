@@ -27,7 +27,7 @@ export const factionMembers = query({
       return null;
     }
     const members = await Promise.all(
-      [parsed.data.hero, ...parsed.data.leaders].flatMap((member, index) => {
+      [parsed.data.factionLeader, ...parsed.data.leaders].flatMap((member, index) => {
         if (!member.memberId) {
           return [];
         }

@@ -6,7 +6,7 @@
 }
 
 /*
- * Above the caption's z-index so the control is never overlapped, and top-left because the token, hero, leaders and
+ * Above the caption's z-index so the control is never overlapped, and top-left because the token, Faction leader, supporting leaders and
  * name already hold the other corners.
  */
 .action {
@@ -59,14 +59,14 @@
 }
 
 .factionToken,
-.hero,
+.factionLeader,
 .leaders > span {
   overflow: hidden;
   border-radius: 50%;
 }
 
 .factionToken > *,
-.hero > *,
+.factionLeader > *,
 .leaders > span > * {
   position: absolute;
   inset: 0;
@@ -88,7 +88,7 @@
   z-index: 2;
 }
 
-.hero {
+.factionLeader {
   position: absolute;
   right: 5%;
   bottom: 0;
@@ -182,7 +182,7 @@
  * than the floor, so it always has the regular caption.
  */
 @container faction-card (width < 11.5rem) {
-  .card:hover .hero {
+  .card:hover .factionLeader {
     transform: translateY(-2px) scale(1.015);
   }
 
@@ -206,7 +206,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .card,
-  .hero {
+  .factionLeader {
     transition: none;
   }
 }

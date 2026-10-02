@@ -2,7 +2,14 @@ import { describe, expect, it } from 'vitest';
 
 import { parsePublicationAssetData } from '../asset-publishing/publication';
 import { assetPublishingFaction, legacyAssetPublishingFaction } from './fixtures/assetPublishingFaction';
-import { Background, CanonicalFactionClientSchema, CanonicalFactionStoredSchema, FactionInputSchema } from './schema';
+import {
+  Background,
+  CanonicalFactionClientSchema,
+  CanonicalFactionStoredSchema,
+  FactionInputSchema,
+  HistoricalFactionPublicationSchema,
+  toStoredHeroKey,
+} from './schema';
 
 describe('faction schema', () => {
   it('requires identities for live records while preserving old imports and frozen publications', () => {
@@ -12,7 +19,10 @@ describe('faction schema', () => {
     expect(CanonicalFactionStoredSchema.safeParse(legacy).success).toBe(false);
     expect(CanonicalFactionClientSchema.safeParse(legacy).success).toBe(false);
     expect(FactionInputSchema.parse(legacy)).toEqual(legacy);
-    expect(parsePublicationAssetData('faction_sheet', publication)).toEqual(publication);
+    expect(parsePublicationAssetData('faction_sheet', publication)).toEqual({
+      ...publication,
+      faction: toStoredHeroKey(legacy),
+    });
 
     const live = structuredClone(assetPublishingFaction);
     expect(CanonicalFactionStoredSchema.parse(live)).toEqual(live);
@@ -21,6 +31,20 @@ describe('faction schema', () => {
       futureField: 'kept',
     });
     expect(FactionInputSchema.parse(live)).toEqual(live);
+  });
+
+  it('reads a faction stored under the old `hero` key as its Faction leader, preferring `factionLeader` when both are present', () => {
+    const live = structuredClone(assetPublishingFaction);
+    const stored = toStoredHeroKey(live);
+
+    expect(CanonicalFactionStoredSchema.parse(stored)).toEqual(live);
+    expect(CanonicalFactionClientSchema.parse(stored)).toEqual(live);
+    expect(FactionInputSchema.parse(stored)).toEqual(live);
+    expect(HistoricalFactionPublicationSchema.parse(toStoredHeroKey(legacyAssetPublishingFaction))).toEqual(
+      legacyAssetPublishingFaction
+    );
+    const renamed = { ...live.factionLeader, name: 'Paul Atreides' };
+    expect(CanonicalFactionStoredSchema.parse({ ...stored, factionLeader: renamed }).factionLeader).toEqual(renamed);
   });
 
   it('rejects the retired legacy background shape', () => {

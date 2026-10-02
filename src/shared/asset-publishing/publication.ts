@@ -1,7 +1,12 @@
 import { z } from 'zod';
 
 import { CardBack, RectangleTokenFace, SpiceAsset, TokenFace, TreacheryAsset } from '../assets/schema';
-import { FactionRowSlugSchema, HistoricalFactionPublicationSchema } from '../factions/schema';
+import {
+  FactionRowSlugSchema,
+  HeroKeyedHistoricalFactionObject,
+  HistoricalFactionPublicationObject,
+  heroKeyedDecoder,
+} from '../factions/schema';
 import { rulebookRenderPageV1Schema } from '../rulebooks/renderDocument';
 import { DEFAULT_RULEBOOK_SETTINGS, rulebookSettingsSchema } from '../rulebooks/settings';
 import { componentGeometrySchema } from './componentGeometry';
@@ -13,7 +18,7 @@ import { PUBLICATION_ASSET_TYPES } from './publicationTargets';
 
 export const FACTION_SHEET_ASSET_TYPE = 'faction_sheet' as const;
 /** The token's `.back` face draws the same artwork with the blocked symbol, so its payload is the front's plus that flag. */
-export const factionTokenAssetDataSchema = HistoricalFactionPublicationSchema.pick({
+export const factionTokenAssetDataSchema = HistoricalFactionPublicationObject.pick({
   logo: true,
   background: true,
 }).extend({
@@ -58,7 +63,8 @@ export const rendererRevisionsSchema = z.record(z.string().trim().min(1).max(128
 export const factionSheetAssetDataSchema = z.strictObject({
   factionId: z.string().min(1),
   slug: FactionRowSlugSchema,
-  faction: HistoricalFactionPublicationSchema,
+  /* The glossary term is "Faction leader"; sheet jobs keep the `hero` literal, which stored jobs hold and a publisher one deploy behind still parses. */
+  faction: heroKeyedDecoder(HeroKeyedHistoricalFactionObject),
 });
 
 /**

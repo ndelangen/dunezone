@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'vitest';
 
 import { assetPublishingFaction } from '../factions/fixtures/assetPublishingFaction';
+import { toStoredHeroKey } from '../factions/schema';
 import type { FactionCapture } from './capture';
 import { applyPieceAction, emptySnapshot, initialSnapshot, nextSnapshot } from './commands';
 import { freshTableState } from './model';
@@ -81,7 +82,7 @@ describe('card decks', () => {
     const capture: FactionCapture = {
       faction: { id: factionId, slug: factionId, name: factionId },
       capturedAt: 0,
-      definition: assetPublishingFaction,
+      definition: toStoredHeroKey(assetPublishingFaction),
       components: {
         token: { front: null, back: null },
         leaders: [],
@@ -211,7 +212,7 @@ describe('force stacks', () => {
     const capture: FactionCapture = {
       faction: ATREIDES,
       capturedAt: 0,
-      definition: assetPublishingFaction,
+      definition: toStoredHeroKey(assetPublishingFaction),
       components: {
         token: { front: null, back: null },
         leaders: [],

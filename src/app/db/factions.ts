@@ -110,7 +110,7 @@ function toFactionCatalogueEntry(entry: FactionCatalogueRow): FactionCatalogueEn
     tokenImages: {
       faction: publishedHref('faction-token', entry._id, entry.updated_at),
       members: Object.fromEntries(
-        [data.hero, ...data.leaders].map((member) => [
+        [data.factionLeader, ...data.leaders].map((member) => [
           member.memberId,
           publishedHref('faction-leader', factionMemberPublicationId(entry._id, member.memberId), entry.updated_at),
         ])

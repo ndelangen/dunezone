@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { assetPublishingFaction } from '../../src/shared/factions/fixtures/assetPublishingFaction';
+import { toStoredHeroKey } from '../../src/shared/factions/schema';
 import {
   bundlePage,
   cardPage,
@@ -328,7 +329,8 @@ describe('Catalogue capture and retention through the isolated fixture', () => {
 
     const { record } = await runtime.capture('faction', 'faction-one', { provisional: true });
     expect(record.faction).toEqual({ id: 'faction-one', slug: 'atreides', name: assetPublishingFaction.name });
-    expect(record.definition).toEqual(data);
+    /* The glossary term is "Faction leader"; the capture keeps the `hero` literal that stored games hold. */
+    expect(record.definition).toEqual(toStoredHeroKey(data));
     expect(record.components.token).toEqual({
       front: 'http://table.test/published/faction-tokens/faction-one/token.jpg',
       back: 'http://table.test/published/faction-tokens/faction-one.back/token.jpg',
