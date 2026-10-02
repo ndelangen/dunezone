@@ -535,6 +535,46 @@ export const TapOnTheBoardClearsTheSelection = meta.story({
 });
 
 /**
+ * A finger has no hover, so a tap's jitter over a piece leaves nothing for the keys to act on once the selection moves.
+ * Tapping the deck with a jitter selects it, so L locks it.
+ * Tapping the empty board then clears the selection, so L sends nothing.
+ */
+export const TapJitterLeavesNoHover = meta.story({
+  beforeEach: install(() => productTransport()),
+  play: async ({ canvasElement }) => {
+    const { page, document } = await tablePage(canvasElement);
+    const deckOnScreen = deckPoint(document);
+    const boardPoint = mapViewPoint(document, [BOARD_RADIUS * 0.3, BOARD_SURFACE_Y, BOARD_RADIUS * 0.3]);
+    const scene = document.querySelector('canvas')!;
+    const tap = ([clientX, clientY]: [number, number], jitter: number) => {
+      const touch = touchAt(2, clientX, clientY);
+      scene.dispatchEvent(new PointerEvent('pointerdown', { ...touch, button: 0, buttons: 1 }));
+      if (jitter) {
+        scene.dispatchEvent(new PointerEvent('pointermove', { ...touch, clientX: clientX + jitter, buttons: 1 }));
+      }
+      scene.dispatchEvent(new PointerEvent('pointerup', { ...touch, button: 0, buttons: 0 }));
+      leaveTheCanvas(page, scene, touch);
+      scene.dispatchEvent(new PointerEvent('click', { ...touch, button: 0 }));
+    };
+    const commands = () => session.transport.messages.filter((message) => message.type === 'command').length;
+
+    await waitFor(
+      async () => {
+        tap(deckOnScreen, 2);
+        await userEvent.keyboard('l');
+        expect(lastCommand()).toMatchObject({ type: 'command', action: { kind: 'lock', pieceId: 'treachery-deck' } });
+      },
+      { timeout: 30_000 }
+    );
+
+    tap(boardPoint, 0);
+    const before = commands();
+    await userEvent.keyboard('l');
+    expect(commands()).toBe(before);
+  },
+});
+
+/**
  * A finger resting on the deck opens the menu a right-click opens, since iOS never sends a context menu for a long press.
  * The menu's Shuffle shuffles that deck, and the finger lifting after the menu opens leaves the menu open.
  */

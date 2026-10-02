@@ -164,7 +164,7 @@ function SelectedPieceControl() {
           aria-describedby={helpId}
           aria-busy={control.isFlipping}
           disabled={control.disabled || !table.canHandleTable}
-          onClick={() => table.flipSelected()}
+          onClick={() => table.flipSelected(control.piece?.id)}
         >
           {control.label}
         </Button>

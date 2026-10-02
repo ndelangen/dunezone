@@ -996,6 +996,10 @@ function usePiecePointerEvents({ piece, interactionBlocked, canHandleTable, carr
     },
     onPointerEnter: (event: ThreeEvent<PointerEvent>) => {
       event.stopPropagation();
+      /* A finger has no hover: its leave is never heard, so a tap's jitter would leave the piece armed for the keys after the selection moves on. */
+      if (event.pointerType === 'touch') {
+        return;
+      }
       const cursor = pieceHoverCursor(canHandleTable, interactionBlocked, Boolean(gestureBlocked));
       if (interactionBlocked) {
         renderer.domElement.style.cursor = cursor;
