@@ -138,12 +138,12 @@ function SpectatorBar({ client, table, readiness }: BarProps) {
     <DecisionBar
       readiness={readiness}
       eyebrow="You are watching"
-      title={full ? 'Every seat is taken' : 'Take a seat in this game?'}
+      title={full ? `All ${seatCount} seats are taken` : 'Take a seat in this game?'}
       context={
         drafting
           ? `${seated} ${seated === 1 ? 'player is' : 'players are'} drafting. One current player's approval seats you; until then you watch.`
           : full
-            ? `All ${seatCount} seats are taken, so you watch. If a seat opens, you can ask for it here.`
+            ? 'You watch. If a seat opens, you can ask for it here.'
             : `${seated} of ${seatCount} seats are taken. One current player's approval seats you; until then you watch.`
       }
       action={
