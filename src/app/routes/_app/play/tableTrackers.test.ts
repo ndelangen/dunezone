@@ -69,14 +69,25 @@ function independentlySampledMapBoundary(slots: readonly TrackerArcSlot[], seatC
   ];
 }
 
-const MAP_FRAMING_CASES = TABLE_SEAT_COUNTS.flatMap((seatCount) =>
-  [0, 1, 9, 12, 18, 24, 30].flatMap((phaseCount) =>
-    [16 / 9, 1, 3 / 4, 390 / 844].map((aspectRatio) => [seatCount, phaseCount, aspectRatio] as const)
+/*
+ * Framing has no threshold in seats, phases or aspect, so each axis keeps its minimum, a middle and its maximum.
+ * Seats snap to eighteen sectors, and two and eighteen seats between them hold the sectors at the frame's edges.
+ * Nine phases is the fixed standard arc, and thirty reaches the smallest-disc branch of a refitted arc.
+ */
+const MAP_FRAMING_CASES = ([2, 9, 18] as const satisfies readonly TableSeatCount[]).flatMap((seatCount) =>
+  [0, 9, 30].flatMap((phaseCount) =>
+    [16 / 9, 1, 390 / 844].map((aspectRatio) => [seatCount, phaseCount, aspectRatio] as const)
   )
 );
 
+/*
+ * Zero phases leaves no pitch, one to eight keep full-size discs, and nine is the fixed standard arc.
+ * Ten to twenty-two shrink discs by the edge gap, and twenty-three onward give up the gap to keep discs positive.
+ */
+const ARC_PHASE_COUNTS = [0, 1, 9, 18, 30];
+
 describe('table trackers', () => {
-  test.each(Array.from({ length: 31 }, (_, index) => index))(
+  test.each(ARC_PHASE_COUNTS)(
     'pins the spice supply and turn tracker and fits %i phase trackers in the standard arc',
     (phaseCount) => {
       const standard = trackerArcSlots(9);
@@ -114,7 +125,7 @@ describe('table trackers', () => {
     });
   });
 
-  test.each(Array.from({ length: 31 }, (_, index) => index))('keeps the %i-phase arc separated', (phaseCount) => {
+  test.each(ARC_PHASE_COUNTS)('keeps the %i-phase arc separated', (phaseCount) => {
     const slots = trackerArcSlots(phaseCount);
 
     slots.forEach((slot) => {

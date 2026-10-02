@@ -246,7 +246,11 @@ html[data-motion="reduce"] .dune-play-stage .dune-play-shell {
 }
 
 :where(.dune-play-shell) .seated-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
   min-width: 0;
+  pointer-events: auto;
 }
 
 :where(.dune-play-shell) .seated-brand__logo {
@@ -352,8 +356,9 @@ html[data-motion="reduce"] .dune-play-stage .dune-play-shell {
 /* Panel frame: the dock below the table that the kit's tabs sit in. The dock paints the ground;
    the tabs bring their own glass, fill the dock's height, and scroll their content inside it so
    the rail stays put. The dock never drops below the height the rail needs for three items and
-   its label, whatever the separator or a short window says: it grows up out of its panel, over
-   the scene and under the header, and the shell clips it. */
+   its label; the split's lower limit is this same floor (CONTROLS_DOCK_MIN_HEIGHT_REM in
+   controlPanelLayout.ts), so the dock never rises out of its panel under the separator. Only a
+   shell too short for the floor and the table lets it rise; the split is fixed there and conceals its separator. */
 :where(.dune-play-shell) .seated-controls-panel {
   position: absolute;
   right: 0;
@@ -369,14 +374,24 @@ html[data-motion="reduce"] .dune-play-stage .dune-play-shell {
   box-shadow: 0 -12px 35px rgba(0, 0, 0, 0.3);
 }
 
-/* With a decision bar above the tabs, the bar takes its own height and the tabs keep the rest. */
-/* A dock whose bar has nothing to say right now collapses, so the tabs keep the whole height. */
-:where(.dune-play-shell) .seated-controls-panel:has(> [data-decision-bar]:not(:empty)) {
-  grid-template-rows: auto minmax(0, 1fr);
+/*
+ * With a decision bar above the tabs, the bar takes its own height and the tabs keep the rest.
+ * Each bar keeps its own wrapper even when it has nothing to say, so the dock is never empty and keeps that row.
+ * A bar taller than the dock, as declaring the result is on a phone, stops at the dock's height and scrolls there,
+ * so its actions stay in reach instead of running past the window's lower edge.
+ */
+:where(.dune-play-shell) .seated-controls-panel:has(> [data-decision-bar]) {
+  grid-template-rows: minmax(0, max-content) minmax(0, 1fr);
 }
 
-:where(.dune-play-shell) .seated-controls-panel > [data-decision-bar]:empty {
-  display: none;
+:where(.dune-play-shell) .seated-controls-panel > [data-decision-bar] {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* Each bar keeps its full height inside that scroll instead of shrinking under its own content. */
+:where(.dune-play-shell) .seated-controls-panel > [data-decision-bar] > * {
+  flex-shrink: 0;
 }
 
 :where(.dune-play-shell) .seated-controls-tabs {

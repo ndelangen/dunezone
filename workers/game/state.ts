@@ -182,7 +182,9 @@ export class RoomProjection {
       const { revision, table, versions, phase, phases, roster, stage, draft, swapping, controls, spiceTransfers } =
         snapshot;
       const battle = snapshot.battleState;
-      const ownSide = battle?.sides.findIndex((side) => side?.factionId === factionId) ?? -1;
+      /* An empty side has no faction, so a viewer without one must not match it. */
+      const ownSide =
+        factionId === undefined ? -1 : (battle?.sides.findIndex((side) => side?.factionId === factionId) ?? -1);
       const plan = (plan: NonNullable<typeof battle>['plans'][number], revealId?: string) => {
         if (!plan) {
           return null;

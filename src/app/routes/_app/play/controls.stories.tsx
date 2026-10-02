@@ -1,6 +1,6 @@
 import preview from '@sb/preview';
 import type { GameSnapshot } from '@shared/play/protocol';
-import { expect, within } from 'storybook/test';
+import { expect, userEvent, within } from 'storybook/test';
 
 import { openPanel, openPlayer } from './controls.stories.fixture';
 import {
@@ -11,6 +11,7 @@ import {
   install,
   predictionSnapshot,
   removalSnapshot,
+  seatPopover,
 } from './game.stories.fixture';
 import { battleStory, pendingRequestTransport } from './playing.stories.fixture';
 import { playingSnapshot, preparedSnapshot, productTransport, setupSnapshot } from './product.stories.fixture';
@@ -85,6 +86,24 @@ export const SetupPredictionLocked = meta.story({
   },
 });
 
+/** Two seats carry factions with one name, so each reads with its player in the prediction's options (#1667). */
+export const SetupPredictionSharedName = meta.story({
+  beforeEach: install(() => {
+    const snapshot = predictionSnapshot();
+    const [first, second] = snapshot.roster!.seats;
+    second!.faction!.name = first!.faction!.name;
+    return productTransport('seat-6', snapshot);
+  }),
+  play: async ({ canvasElement }) => {
+    const page = await openPanel(canvasElement, 'Setup');
+    const [first, second] = predictionSnapshot().controls!.players;
+    const name = predictionSnapshot().roster!.seats[0]!.faction!.name;
+    await userEvent.click(await page.findByRole('combobox', { name: 'Predicted winner' }, WAIT));
+    await expect(page.findByRole('option', { name: `${name} (${first!.name})` }, WAIT)).resolves.toBeVisible();
+    await expect(page.findByRole('option', { name: `${name} (${second!.name})` }, WAIT)).resolves.toBeVisible();
+  },
+});
+
 /** The hand: a leader and a Treachery card, each draggable onto the table. */
 export const Hand = meta.story({
   beforeEach: install(() => productTransport('seat-2', withCardInHand(playingSnapshot()))),
@@ -127,6 +146,21 @@ export const BattleSpectator = meta.story({
   play: async ({ canvasElement }) => {
     const page = await openPanel(canvasElement, 'Battle');
     await expect(page.findByRole('button', { name: 'No winner' }, WAIT)).resolves.toBeDisabled();
+    expect(page.getByText('Both plans are revealed on the table.')).toBeVisible();
+  },
+});
+
+/** A spectator of a full game reads that from the header's seat action; the dock keeps its height for the tabs. */
+export const FullGameSpectatorSeat = meta.story({
+  beforeEach: install(() => productTransport('neutral', battleStory('revealed', true))),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const seat = await seatPopover(canvasElement, 'You are watching');
+    await expect(seat().findByText('All 6 seats are taken')).resolves.toBeVisible();
+    expect(seat().queryByRole('button', { name: /^Request/ })).toBeNull();
+    const dock = canvasElement.ownerDocument.querySelector<HTMLElement>('.seated-controls-panel')!;
+    expect(within(dock).queryByRole('region', { name: 'You are watching' })).toBeNull();
+    expect(page.getAllByRole('region', { name: 'You are watching' })).toHaveLength(1);
   },
 });
 

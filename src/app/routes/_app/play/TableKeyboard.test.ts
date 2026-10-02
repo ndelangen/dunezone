@@ -86,6 +86,59 @@ describe('over the hovered spice disc', () => {
   });
 });
 
+describe('focus elsewhere on the page', () => {
+  function focusable(html: string) {
+    document.body.insertAdjacentHTML('beforeend', html);
+    return document.body.lastElementChild!.querySelector('[data-target]') ?? document.body.lastElementChild!;
+  }
+
+  test.each([
+    ['a link', '<a href="#profile">Profile</a>'],
+    ['something inside a link', '<a href="#profile"><span data-target tabindex="-1">Profile</span></a>'],
+    [
+      'a menu item button',
+      '<div role="menu" tabindex="-1"><button data-target role="menuitem">Draw a card</button></div>',
+    ],
+  ])('%s keeps the table keys', (_name, html) => {
+    const { controls } = table();
+    const target = focusable(html);
+
+    for (const press of ['f', 'l', 'g', 'q', 'e', '2']) {
+      key('keydown', { key: press }, target);
+    }
+    vi.advanceTimersByTime(1000);
+
+    expect(controls.flipSelected).not.toHaveBeenCalled();
+    expect(controls.toggleLockSelected).not.toHaveBeenCalled();
+    expect(controls.stackSelected).not.toHaveBeenCalled();
+    expect(controls.rotateSelected).not.toHaveBeenCalled();
+    expect(controls.splitSelected).not.toHaveBeenCalled();
+  });
+
+  test.each([
+    ['a plain element out of the tab order', '<div tabindex="-1"></div>'],
+    ['a focusable region', '<div role="region" tabindex="0" aria-label="Conversation history"></div>'],
+    ['an open piece menu', '<div role="menu" tabindex="-1"></div>'],
+  ])('%s leaves the table keys working', (_name, html) => {
+    const { controls } = table();
+    const target = focusable(html);
+
+    key('keydown', { key: 'f' }, target);
+
+    expect(controls.flipSelected.mock.calls).toEqual([['harkonnen-force-stack']]);
+  });
+
+  test('the spice disc still answers over a focused link', () => {
+    const { keyboard, controls } = table();
+    const target = focusable('<a href="#profile">Profile</a>');
+
+    keyboard.hoverSupply(true);
+    key('keydown', { key: '5' }, target);
+
+    expect(controls.spawnSpice.mock.calls).toEqual([[5]]);
+  });
+});
+
 describe('number-key stack draws', () => {
   test('hold the original target across hover and state changes and draw only once', () => {
     const { controls } = table();

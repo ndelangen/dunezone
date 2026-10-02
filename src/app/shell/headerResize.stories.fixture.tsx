@@ -42,7 +42,7 @@ export async function playHeaderResize({
   canvasElement: HTMLElement;
   id: string;
 }): Promise<BandResizeReport> {
-  const band = canvasElement.querySelector('header');
+  const band = canvasElement.querySelector<HTMLElement>('[data-app-band]');
   if (band == null) {
     throw new Error('The masthead band never rendered, so the resize cannot be measured.');
   }
@@ -70,7 +70,7 @@ export async function playHeaderResize({
     const to = height();
     const intermediates = seen.filter((sample) => sample !== from && sample !== to);
     jumped = jumped || (to !== from && intermediates.length === 0);
-    remounted = remounted || band !== canvasElement.querySelector('header');
+    remounted = remounted || band !== canvasElement.querySelector<HTMLElement>('[data-app-band]');
     settledHeights.push(to);
   }
 

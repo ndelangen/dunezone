@@ -154,7 +154,9 @@ export class GameSession {
   constructor(
     private readonly storage: DurableObjectStorage,
     /* What a fixture room seats and lays out: the hosted fixture's, unless a load entry supplies its own. */
-    private readonly fixturePlan: FixturePlan = hostedFixturePlan
+    private readonly fixturePlan: FixturePlan = hostedFixturePlan,
+    /* Whether a user is at the seat limit, which the host learns from each admission. */
+    atSeatLimit?: (userId: string) => boolean
   ) {
     this.log = new PublicLog(this.storage, () => (this.room ? logContext(this.room.snapshot) : 'Drafting'));
     this.actors = new ActorDirectory(this.storage, this.log);
@@ -165,7 +167,7 @@ export class GameSession {
     this.captures = new CaptureStore(this.storage);
     const sql = this.storage.sql;
     initializeSessionStorage(sql);
-    this.participation = new Participation(this.storage, this.actors);
+    this.participation = new Participation(this.storage, this.actors, atSeatLimit);
     this.swapping = new Swapping(this.storage, this.actors, new SetupSupply(this.storage, this.captures), this.log);
     this.actors.participation = this.participation;
     this.removal = new RemovalVotes(this.storage, this.actors, this.log);
@@ -442,7 +444,8 @@ export class GameSession {
     if (!next) {
       return;
     }
-    const history = this.history.checkpoint(next);
+    /* The reveal is a playback step between two others, so it stores its change; the outcome after it is the checkpoint. */
+    const history = this.history.patch(next);
     this.storage.transactionSync(() => {
       this.storage.sql.exec('UPDATE current_state SET data=? WHERE id=1', JSON.stringify(next));
       this.history.write(history);
@@ -601,7 +604,14 @@ export class GameSession {
       if (transfer) {
         this.spiceLedger.record(transfer, viewer.userId);
       }
-      this.log.recordCommit({ before: this.room!.snapshot, next, message, viewer, transfer });
+      this.log.recordCommit({
+        before: this.room!.snapshot,
+        next,
+        message,
+        viewer,
+        transfer,
+        holders: this.actors.occupants(),
+      });
       this.storage.sql.exec(
         'INSERT INTO receipts VALUES(?,?,?,?)',
         key,
@@ -700,9 +710,7 @@ export class GameSession {
   private commitSwap(viewer: Viewer, message: CommandMessage & { action: Parameters<Swapping['apply']>[0]['action'] }) {
     const room = this.room!;
     const key = `${viewer.userId}:${message.commandId}`;
-    if (message.expectedRevision !== room.snapshot.revision) {
-      throw new GameRejection('The table changed. Try the action again.');
-    }
+    room.assertRevision(message.action.kind, message.expectedRevision);
     const action = message.action;
     const next = this.storage.transactionSync(() => {
       const swapped = this.withRoster(
@@ -724,9 +732,7 @@ export class GameSession {
   private commitDraft(viewer: Viewer, message: CommandMessage & { action: Parameters<typeof applyDraftAction>[2] }) {
     const room = this.room!;
     const key = `${viewer.userId}:${message.commandId}`;
-    if (message.expectedRevision !== room.snapshot.revision) {
-      throw new GameRejection('The draft changed. Try the action again.');
-    }
+    room.assertRevision(message.action.kind, message.expectedRevision, 'The draft changed. Try the action again.');
     const applied = applyDraftAction(
       room.snapshot,
       viewer,
@@ -742,9 +748,7 @@ export class GameSession {
   private commitRemoval(viewer: Viewer, message: CommandMessage & { action: Parameters<RemovalVotes['apply']>[2] }) {
     const room = this.room!;
     const key = `${viewer.userId}:${message.commandId}`;
-    if (message.expectedRevision !== room.snapshot.revision) {
-      throw new GameRejection('The table changed. Try the action again.');
-    }
+    room.assertRevision(message.action.kind, message.expectedRevision);
     const action = message.action;
     const next = this.storage.transactionSync(() => {
       const applied = this.removal.apply(room.snapshot, viewer, action, Date.now());
@@ -760,9 +764,7 @@ export class GameSession {
   private commitResult(viewer: Viewer, message: CommandMessage & { action: Parameters<typeof applyResult>[2] }) {
     const room = this.room!;
     const key = `${viewer.userId}:${message.commandId}`;
-    if (message.expectedRevision !== room.snapshot.revision) {
-      throw new GameRejection('The table changed. Try the action again.');
-    }
+    room.assertRevision(message.action.kind, message.expectedRevision);
     const next = this.withRoster(applyResult(room.snapshot, viewer, message.action, Date.now()));
     const history = this.history.entry(message, room.snapshot, next);
     this.persistCommit({ key, viewer, message, next, history });
@@ -775,9 +777,7 @@ export class GameSession {
   private commitSeat(viewer: Viewer, message: CommandMessage & { action: Parameters<Participation['plan']>[0] }) {
     const room = this.room!;
     const key = `${viewer.userId}:${message.commandId}`;
-    if (message.expectedRevision !== room.snapshot.revision) {
-      throw new GameRejection('The table changed. Try the action again.');
-    }
+    room.assertRevision(message.action.kind, message.expectedRevision);
     const plan = this.participation.plan(message.action, {
       viewer,
       snapshot: room.snapshot,
@@ -883,7 +883,7 @@ export class GameSession {
         position: entry.position,
       }))
     );
-    const controls = dealt.controls ?? emptyPublicControls();
+    const controls = this.participation.closeRosterRequests(dealt.controls ?? emptyPublicControls(), Date.now());
     return this.withRoster({
       ...dealt,
       stage: 'swapping' as const,
@@ -1017,7 +1017,9 @@ export class GameSession {
     if (this.alreadyCommitted(`${viewer.userId}:${message.commandId}`, message)) {
       return false;
     }
-    this.applyCommand(viewer, message, contents);
+    this.room!.commit(message.type === 'command' ? message.action.kind : undefined, () =>
+      this.applyCommand(viewer, message, contents)
+    );
     this.reloadMetadata();
     return true;
   }

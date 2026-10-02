@@ -14,7 +14,6 @@ import {
   playProvisioningValidationSchema,
   playProvisionRequestSchema,
   playReconcileAccountsResultSchema,
-  playRedeemTicketResultSchema,
   provisionPlaceholderId,
 } from '../../src/shared/play/admission';
 import { playGamePathPattern } from '../../src/shared/play/callbacks';
@@ -28,6 +27,7 @@ import { isDraftAction } from '../../src/shared/play/drafting';
 import type { StoredSpawnContents } from '../../src/shared/play/inventory';
 import type { ClientMessage, PieceAction, ServerClock, ServerMessage, Viewer } from '../../src/shared/play/protocol';
 import {
+  ADMISSION_UNAVAILABLE_CLOSE_CODE,
   KEEPALIVE_PING,
   KEEPALIVE_PONG,
   TICKET_EXPIRED_CLOSE_CODE,
@@ -36,10 +36,11 @@ import {
 import { GameRejection } from '../../src/shared/play/rejection';
 import { playRetireFixtureRequestSchema } from '../../src/shared/play/retire';
 import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
+import { playRedeemTicketOutcomeSchema } from '../../src/shared/play/seatLimit';
 import { setupReadyRequired, setupStep } from '../../src/shared/play/setup';
 import { SPECTATOR_COLOR } from './actors';
 import { handleAlertWebhook } from './alerts';
-import { AuthorizationWatch, gameHttpClient } from './authorization';
+import { AuthorizationWatch, ConvexUnavailable, gameHttpClient } from './authorization';
 import { GameCatalogue } from './catalogue';
 import { RoomDelivery } from './delivery';
 import { GameDiagnostics } from './diagnostics';
@@ -47,6 +48,7 @@ import type { SetAsideJudgement } from './drafting';
 import { FIXTURE_TREACHERY_DECK, hostedFixturePlan } from './fixture';
 import type { FixturePlan } from './fixture';
 import { isLocalIsolatedRuntime } from './localRuntime';
+import { CarryHistoryExhausted } from './room';
 import type { Metadata } from './session';
 import { GameSession, NotReady, readinessProblem } from './session';
 
@@ -62,6 +64,8 @@ type Connection = {
   /* The player's public avatar and profile slug as their admission carried them; the actor directory keeps them. */
   avatarUrl?: string | null;
   profileSlug?: string | null;
+  /* Whether the player already held the most seats one player may when this connection was admitted. */
+  seatLimitReached?: boolean;
   registrationId?: string;
   authorizationRound?: number;
   sessionId?: string;
@@ -74,7 +78,7 @@ type Connection = {
   motionTokens: number;
   refilledAt: number;
 };
-type TicketAdmission = Extract<ReturnType<typeof playRedeemTicketResultSchema.parse>, { ok: true }>;
+type TicketAdmission = Extract<ReturnType<typeof playRedeemTicketOutcomeSchema.parse>, { ok: true }>;
 
 /** A ticket that lapsed or was already redeemed. The socket closes without a refusal, so the browser asks for a new ticket. */
 class ExpiredTicket extends GameRejection {}
@@ -194,6 +198,7 @@ export class GameRoom extends DurableObject<GameEnv> {
   private reconcileUntil = 0;
   private nextReconcileAt = 0;
   private reconcileFailures = 0;
+  private reconcileUnavailable = false;
   private reconcileEpoch = 0;
   /*
    * Open from a watch denial until the account reconciliation started after it settles.
@@ -238,7 +243,9 @@ export class GameRoom extends DurableObject<GameEnv> {
     this.diagnostics = new GameDiagnostics(ctx.id.toString(), env.GIT_SHA);
     try {
       /* A start that fails keeps none of its writes, as a throwing constructor's would not. */
-      this.session = ctx.storage.transactionSync(() => new GameSession(ctx.storage, fixturePlan));
+      this.session = ctx.storage.transactionSync(
+        () => new GameSession(ctx.storage, fixturePlan, (userId) => this.atSeatLimit(userId))
+      );
     } catch (error) {
       this.diagnostics.report('load', error);
       this.closed = true;
@@ -714,8 +721,10 @@ export class GameRoom extends DurableObject<GameEnv> {
     try {
       await this.reconcilePromise;
       this.reconcileFailures = 0;
+      this.reconcileUnavailable = false;
     } catch (error) {
       this.diagnostics.report('account-reconciliation', error);
+      this.reconcileUnavailable = error instanceof ConvexUnavailable;
       this.reconciled = false;
       this.reconcileUntil = 0;
       /* A failed reconciliation retries with backoff; the renewal cadence is too slow to be the recovery path. */
@@ -797,7 +806,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       secret: metadata.secret,
       ticket,
     });
-    const result = playRedeemTicketResultSchema.parse(raw);
+    const result = playRedeemTicketOutcomeSchema.parse(raw);
     if (!result.ok && result.reason === 'expired') {
       throw new ExpiredTicket('Admission ticket expired.');
     }
@@ -805,6 +814,16 @@ export class GameRoom extends DurableObject<GameEnv> {
       throw new GameRejection('Admission refused.');
     }
     return result;
+  }
+
+  /** Whether any admitted connection of this user reported them at the seat limit; a user with no connection here is not. */
+  private atSeatLimit(userId: string) {
+    for (const connection of this.connections.values()) {
+      if (connection.viewer?.userId === userId && connection.seatLimitReached) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private pendingConnection(socket: WebSocket, connection: Connection) {
@@ -833,6 +852,8 @@ export class GameRoom extends DurableObject<GameEnv> {
     /* Absent means the directory did not say; null means no picture. Only an answer updates the stored one. */
     connection.avatarUrl = result.avatarUrl;
     connection.profileSlug = result.profileSlug;
+    /* Absent means a Convex deployment from before the seat limit, which reads as not at it. */
+    connection.seatLimitReached = result.seatLimitReached === true;
     connection.registrationId = result.registrationId;
     connection.sessionId = result.sessionId;
     const metadata = this.metadata!;
@@ -854,9 +875,20 @@ export class GameRoom extends DurableObject<GameEnv> {
       return;
     }
     connection.admitting = true;
+    /* A reconciliation that just failed waits out its backoff; a browser retrying meanwhile must not reach Convex ahead of it. */
+    if (this.reconciliationBackingOff()) {
+      this.closeUnavailable(socket);
+      return;
+    }
     try {
       const result = await this.redeemAdmission(ticket);
-      await this.reconcileAccounts();
+      try {
+        await this.reconcileAccounts();
+      } catch (error) {
+        /* The reconciliation reported its own failure. */
+        this.failAdmission(socket, error, false);
+        return;
+      }
       if (!this.reconciled || !this.pendingConnection(socket, connection)) {
         this.deny(socket);
         return;
@@ -868,16 +900,41 @@ export class GameRoom extends DurableObject<GameEnv> {
       this.registerConnection(connection, result);
       this.authorizationChanged();
     } catch (error) {
-      if (error instanceof ExpiredTicket) {
-        this.disconnect(socket);
-        socket.close(TICKET_EXPIRED_CLOSE_CODE, error.message);
-        return;
-      }
-      if (!(error instanceof GameRejection)) {
-        this.diagnostics.report('admission', error);
-      }
-      this.deny(socket);
+      this.failAdmission(socket, error, true);
     }
+  }
+
+  private reconciliationBackingOff() {
+    return (
+      !this.hasAccountLease() &&
+      !this.reconcilePromise &&
+      this.reconcileUnavailable &&
+      this.reconcileFailures > 0 &&
+      Date.now() < this.nextReconcileAt
+    );
+  }
+
+  /* Only Convex failing to answer leaves the login intact; a refusal, or an answer this Worker cannot use, denies it. */
+  private failAdmission(socket: WebSocket, error: unknown, report: boolean) {
+    if (error instanceof ExpiredTicket) {
+      this.disconnect(socket);
+      socket.close(TICKET_EXPIRED_CLOSE_CODE, error.message);
+      return;
+    }
+    if (report && !(error instanceof GameRejection)) {
+      this.diagnostics.report('admission', error);
+    }
+    if (error instanceof ConvexUnavailable) {
+      this.closeUnavailable(socket);
+      return;
+    }
+    this.deny(socket);
+  }
+
+  /* Nothing was refused, so the browser asks for a new ticket and retries after its backoff. */
+  private closeUnavailable(socket: WebSocket) {
+    this.disconnect(socket);
+    socket.close(ADMISSION_UNAVAILABLE_CLOSE_CODE, 'Admission unavailable.');
   }
 
   private authorized(socket: WebSocket): boolean {
@@ -1072,6 +1129,11 @@ export class GameRoom extends DurableObject<GameEnv> {
       /* A capture that failed while a fence held its connection is refused once the fence lifts. */
       await this.outlastFence(socket, connection, suspensions);
       this.rejectMessage(socket, connection, message, error);
+      if (error instanceof CarryHistoryExhausted) {
+        /* A connection that used every carry ID the room remembers can pick nothing up again, so the browser is sent to reconnect, as after a restart. */
+        this.disconnect(socket);
+        socket.close(1012, 'Reconnect to the table.');
+      }
     }
   }
 
@@ -1670,8 +1732,12 @@ export class GameRoom extends DurableObject<GameEnv> {
         refused[factionId] = problem;
       }
     }
-    /* A refresh since judged against a newer catalogue, so these verdicts are stale; the next command judges again. */
+    /*
+     * A refresh since judged against a newer catalogue, so these verdicts are stale.
+     * The picks still pending are judged again on it, so none waits for another command.
+     */
     if (generation !== this.catalogueGeneration) {
+      this.judgePicksAgain = true;
       return;
     }
     ready.forEach((factionId) => this.readyPicks.add(factionId));

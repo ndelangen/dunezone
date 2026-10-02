@@ -10,7 +10,8 @@ import { createSpiceStack } from '@shared/play/spiceSupply';
 import { stackTopHeight } from '@shared/play/tableGeometry';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
-import { STORYBOOK_NOW } from '@db/storybook';
+import { storedAuthTokenKey, STORED_PLAY_TABLE_PREFIX } from '@db/playTables';
+import { convexNeverAnswers, STORYBOOK_NOW } from '@db/storybook';
 
 import {
   AUDIT_LOG,
@@ -25,6 +26,8 @@ import {
   revealedPredictionSnapshot,
   session,
 } from './game.stories.fixture';
+import { browserGameRuntime } from './multiplayer/gameRuntime';
+import { storedTableText } from './multiplayer/storedTable';
 import {
   expectHeaderPhase,
   mapViewPoint,
@@ -62,7 +65,7 @@ export const RemovalVoting = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await userEvent.click(await page.findByRole('button', { name: 'View vote about Twaffle' }));
-    expect(page.getByRole('button', { name: 'Twaffle, removal vote in progress' })).toBeVisible();
+    expect(page.getByRole('tab', { name: 'Twaffle, removal vote in progress' })).toBeVisible();
     await userEvent.click(page.getByRole('button', { name: 'Withdraw' }));
     expect(lastCommand()).toMatchObject({ action: { kind: 'removal-ballot', voteId: 'removal-12', choice: null } });
     await userEvent.click(page.getByRole('button', { name: 'Keep' }));
@@ -76,7 +79,7 @@ export const LogGame = meta.story({
   ),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await userEvent.click(await page.findByRole('button', { name: 'Log' }));
+    await userEvent.click(await page.findByRole('tab', { name: 'Log' }));
     const log = await page.findByRole('region', { name: 'Game log' });
     await expect(within(log).findByText('Bene Gesserit locked its prediction.')).resolves.toBeVisible();
     expect(
@@ -101,8 +104,8 @@ export const LogAudit = meta.story({
   }),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await userEvent.click(await page.findByRole('button', { name: 'Log' }));
-    await userEvent.click(await page.findByRole('button', { name: 'Audit' }));
+    await userEvent.click(await page.findByRole('tab', { name: 'Log' }));
+    await userEvent.click(await page.findByRole('tab', { name: 'Audit' }));
     const log = await page.findByRole('region', { name: 'Audit log' });
     await expect(within(log).findByText(/Twaffle keeps seat 1/)).resolves.toBeVisible();
     expect(within(log).getByText('[deleted user] left seat 6 when the account was deleted.')).toBeVisible();
@@ -114,7 +117,7 @@ export const LogPagination = meta.story({
   beforeEach: install(() => productTransport('seat-6', revealedPredictionSnapshot(), { holdLogHistory: true })),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await userEvent.click(await page.findByRole('button', { name: 'Log' }));
+    await userEvent.click(await page.findByRole('tab', { name: 'Log' }));
     await waitFor(() => expect(gameLogReads(session.transport.messages).length).toBeGreaterThan(0));
     const latest = GAME_LOG[0]!;
     const older: LogEntry = {
@@ -207,9 +210,9 @@ export const RemovalResolution = meta.story({
     session.transport.deliver(session.transport.view(resolved, command!.commandId));
     await waitFor(() => expect(page.queryByRole('button', { name: 'View vote about Twaffle' })).toBeNull());
     expect(page.queryByRole('heading', { name: 'Remove Twaffle?' })).toBeNull();
-    expect(page.queryByRole('button', { name: 'Twaffle, removal vote in progress' })).toBeNull();
-    await userEvent.click(page.getByRole('button', { name: 'Log' }));
-    await userEvent.click(await page.findByRole('button', { name: 'Audit' }));
+    expect(page.queryByRole('tab', { name: 'Twaffle, removal vote in progress' })).toBeNull();
+    await userEvent.click(page.getByRole('tab', { name: 'Log' }));
+    await userEvent.click(await page.findByRole('tab', { name: 'Audit' }));
     await expect(page.findByText(/Twaffle keeps seat 1/)).resolves.toBeVisible();
   },
 });
@@ -242,10 +245,10 @@ export const ConversationHistory = meta.story({
   ),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await page.findByRole('button', { name: 'Twaffle' });
+    await page.findByRole('tab', { name: 'Twaffle' });
     page.getByRole('separator', { name: 'Resize controls panel' }).focus();
     await userEvent.keyboard('{End}');
-    await userEvent.click(page.getByRole('button', { name: 'Info' }));
+    await userEvent.click(page.getByRole('tab', { name: 'Info' }));
     const { factionId, peerId } = conversationPair();
     session.transport.deliver({
       type: 'conversations',
@@ -253,9 +256,9 @@ export const ConversationHistory = meta.story({
       generation: 0,
       entries: [{ peerId, latest: 55, unread: 55 }],
     });
-    await expect(page.findByRole('button', { name: 'Twaffle, 55 unread' })).resolves.toBeVisible();
+    await expect(page.findByRole('tab', { name: 'Twaffle, 55 unread' })).resolves.toBeVisible();
     expect(session.transport.messages.some((entry) => entry.type === 'conversation-read')).toBe(false);
-    await userEvent.click(page.getByRole('button', { name: 'Conversation' }));
+    await userEvent.click(page.getByRole('tab', { name: 'Conversation' }));
     await page.findByText('Shall we keep the southern route open?');
     const loadedHistory = page.getByRole('region', { name: 'Conversation history' });
     await waitFor(() =>
@@ -295,7 +298,7 @@ export const ConversationHistory = meta.story({
       generation: 0,
       entries: [{ peerId, latest: 56, unread: 1 }],
     });
-    await expect(page.findByRole('button', { name: 'Twaffle, 1 unread' })).resolves.toBeVisible();
+    await expect(page.findByRole('tab', { name: 'Twaffle, 1 unread' })).resolves.toBeVisible();
     expect(session.transport.messages.some((entry) => entry.type === 'conversation-read' && entry.through === 56)).toBe(
       false
     );
@@ -318,12 +321,12 @@ export const ConversationHistory = meta.story({
     await waitFor(() => expect(history.scrollHeight - history.scrollTop - history.clientHeight).toBeLessThan(8));
     expect(page.getByRole('textbox', { name: 'Message' }).getBoundingClientRect().top).toBe(composerTop);
 
-    await userEvent.click(page.getByRole('button', { name: 'Info' }));
+    await userEvent.click(page.getByRole('tab', { name: 'Info' }));
     expect(page.queryByRole('textbox', { name: 'Message' })).toBeNull();
-    await userEvent.click(page.getByRole('button', { name: 'fectumbra' }));
+    await userEvent.click(page.getByRole('tab', { name: 'fectumbra' }));
     await expect(page.findByRole('textbox', { name: 'Message' })).resolves.toBeVisible();
-    await userEvent.click(page.getByRole('button', { name: 'Thialfi' }));
-    expect(page.queryByRole('button', { name: 'Conversation' })).toBeNull();
+    await userEvent.click(page.getByRole('tab', { name: 'Thialfi' }));
+    expect(page.queryByRole('tab', { name: 'Conversation' })).toBeNull();
   },
 });
 
@@ -368,16 +371,71 @@ export const ConversationOffline = meta.story({
   beforeEach: install(() => productTransport('seat-2', playingSnapshot())),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await page.findByRole('button', { name: 'Conversation' });
+    await page.findByRole('tab', { name: 'Conversation' });
     session.transport.deliver({ type: 'admission', status: 'suspended' });
-    await expect(page.findByRole('combobox', { name: 'Faction conversation' })).resolves.toBeVisible();
+    /* The locked table keeps its conversation panel, so a message written while reconnecting waits there. */
+    await expect(
+      page.findByText('Offline. Pending messages will send after your faction access is checked.')
+    ).resolves.toBeVisible();
     await userEvent.type(page.getByRole('textbox', { name: 'Message' }), 'Send once I reconnect.');
     await userEvent.click(page.getByRole('button', { name: /^Send$/ }));
     await expect(page.findByText('Pending', { exact: true })).resolves.toBeVisible();
     expect(session.transport.messages.filter((entry) => entry.type === 'conversation-send')).toHaveLength(0);
-    await userEvent.click(page.getByRole('combobox', { name: 'Faction conversation' }));
-    const peers = await page.findByRole('listbox');
-    expect(peers.closest('[data-scheme-dark]')).not.toBeNull();
+  },
+});
+
+/* A tab that lost its connection keeps the last table on screen, read-only, with a reconnecting status beside the logo, until a fresh view arrives. */
+export const Reconnecting = meta.story({
+  beforeEach: install(() => productTransport('seat-2', playingSnapshot())),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await page.findByRole('tab', { name: 'Conversation' });
+    session.transport.deliver({ type: 'admission', status: 'suspended' });
+    const status = await page.findByRole('status', { name: /^Reconnecting\./ });
+    expect(status.closest('.seated-brand')).not.toBeNull();
+    expect(status.closest('[data-connection]')).toHaveAttribute('data-connection', 'suspended');
+    expect(page.getByText('Reconnecting', { exact: true })).toBeVisible();
+  },
+});
+
+/* A game this tab kept for a reload, at an address the story's directory never answers for. */
+const STORED_GAME = 'stored-game';
+
+/*
+ * A reload while neither the directory nor the table can be reached shows the table this tab kept, locked under the reconnecting bar, instead of the unreachable notice (#1746).
+ * The story stands in for the signed-in tab: an auth token naming the transport's viewer, and the table stored under it.
+ */
+export const ReloadedWhileUnreachable = meta.story({
+  args: { path: `/play/${STORED_GAME}` },
+  decorators: [convexNeverAnswers],
+  beforeEach: () => {
+    const transport = productTransport('seat-2', playingSnapshot(), { unreachable: true });
+    session.transport = transport;
+    session.runtime = transport.runtime;
+    const { viewer, snapshot } = transport.view(playingSnapshot());
+    const subject = btoa(JSON.stringify({ sub: `${viewer.userId}|story-session` }));
+    localStorage.setItem(storedAuthTokenKey(), `story.${subject}.token`);
+    const text = storedTableText(
+      STORED_GAME,
+      { viewer, snapshot, serverNow: STORYBOOK_NOW, pending: [] },
+      { userId: viewer.userId, sessionId: 'story-session' },
+      Date.now()
+    );
+    sessionStorage.setItem(`${STORED_PLAY_TABLE_PREFIX}${STORED_GAME}`, text!);
+    return () => {
+      transport.dispose();
+      localStorage.removeItem(storedAuthTokenKey());
+      sessionStorage.removeItem(`${STORED_PLAY_TABLE_PREFIX}${STORED_GAME}`);
+      session.runtime = browserGameRuntime;
+    };
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const bar = await page.findByText('Reconnecting', { exact: true }, { timeout: 30_000 });
+    expect(bar.closest('[data-connection]')).not.toHaveAttribute('data-connection', 'authorized');
+    await page.findByRole('tab', { name: 'Conversation' });
+    expect(page.queryByText("Can't reach the server. Retrying...")).toBeNull();
+    expect(session.transport.messages.filter((message) => message.type === 'command')).toEqual([]);
   },
 });
 
@@ -412,11 +470,23 @@ export const ConnectingStill = meta.story({
   },
 });
 
+/* A table the browser cannot reach says so through every retry instead of reading as still connecting, and the way back to the lobby stays. */
+export const Unreachable = meta.story({
+  beforeEach: install(() => productTransport('seat-2', initialSnapshot(), { unreachable: true })),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const status = await page.findByText('The table could not be reached. Reconnecting...', {}, { timeout: 30_000 });
+    await waitFor(() => expect(finishTransitions(status)).toBeVisible());
+    expect(page.getByRole('link', { name: 'Back to lobby' })).toBeVisible();
+    expect(page.queryByText('Connecting to the hosted table...')).toBeNull();
+  },
+});
+
 export const SharedPhaseControls = meta.story({
   beforeEach: install(() => productTransport('seat-2')),
   play: async ({ canvasElement }) => {
     const { page, controls, waitForPhase } = phaseControls(canvasElement);
-    await waitForPhase(() => expect(page.getByRole('button', { name: 'Phase' })).toBeVisible());
+    await waitForPhase(() => expect(page.getByRole('tab', { name: 'Phase' })).toBeVisible());
     await openTab(page, 'Phase');
     await waitForPhase(() => {
       expect(controls().getByRole('button', { name: 'Previous phase' })).toBeDisabled();
@@ -465,7 +535,7 @@ export const ObserverPhaseControls = meta.story({
   beforeEach: install(() => productTransport('neutral', { ...initialSnapshot(), phase: 5 })),
   play: async ({ canvasElement }) => {
     const { page, controls, waitForPhase } = phaseControls(canvasElement);
-    await waitForPhase(() => expect(page.getByRole('button', { name: 'Phase' })).toBeVisible());
+    await waitForPhase(() => expect(page.getByRole('tab', { name: 'Phase' })).toBeVisible());
     await openTab(page, 'Phase');
     await waitForPhase(() => {
       expect(controls().getByRole('button', { name: 'Previous phase' })).toBeDisabled();
@@ -482,7 +552,7 @@ export const PlaybackKeepsLivePhaseSeparate = meta.story({
   beforeEach: install(() => productTransport('seat-2', { ...initialSnapshot(), phase: 5 })),
   play: async ({ canvasElement }) => {
     const { page, controls, waitForPhase } = phaseControls(canvasElement);
-    await waitForPhase(() => expect(page.getByRole('button', { name: 'Phase' })).toBeVisible());
+    await waitForPhase(() => expect(page.getByRole('tab', { name: 'Phase' })).toBeVisible());
     await openTab(page, 'Phase');
     await waitForPhase(() => expect(page.getByRole('button', { name: 'Replay from start' })).toBeEnabled());
     await userEvent.click(page.getByRole('button', { name: 'Replay from start' }));
@@ -590,7 +660,7 @@ export const FactionPhase = meta.story({
   beforeEach: install(() => productTransport('seat-2', factionPhaseSnapshot(false))),
   play: async ({ canvasElement }) => {
     const { page, waitForPhase } = phaseControls(canvasElement);
-    await waitForPhase(() => expect(page.getByRole('button', { name: 'Phase' })).toBeVisible());
+    await waitForPhase(() => expect(page.getByRole('tab', { name: 'Phase' })).toBeVisible());
     await openTab(page, 'Phase');
     await waitForPhase(() => expect(page.getByRole('button', { name: 'Help: Guild negotiations' })).toBeVisible());
     await userEvent.hover(page.getByRole('button', { name: 'Help: Guild negotiations' }));
@@ -746,14 +816,14 @@ export const ControlsPanelTabs = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await openTab(page, 'Shared inventory');
-    const rail = () => page.getByRole('navigation', { name: 'Controls' });
+    const rail = () => page.getByRole('tablist', { name: 'Controls' });
     await settled(() => {
       expect(
         within(rail())
-          .getAllByRole('button')
+          .getAllByRole('tab')
           .map((item) => item.getAttribute('aria-label'))
       ).toEqual(['Hand', 'Shared inventory', 'Spice', 'Log', 'Phase']);
-      expect(page.getByRole('button', { name: 'Shared inventory' })).toHaveAttribute('aria-current', 'true');
+      expect(page.getByRole('tab', { name: 'Shared inventory' })).toHaveAttribute('aria-selected', 'true');
       expect(page.getByRole('region', { name: 'Shared inventory' })).toBeVisible();
       expect(page.queryByRole('heading', { name: 'Faction bank' })).toBeNull();
     });
@@ -776,6 +846,41 @@ export const ControlsPanelTabs = meta.story({
     });
     /* The phase controls stay in the header, outside the tabs. */
     expect(page.getByRole('group', { name: 'Phase navigation' }).closest('header')).not.toBeNull();
+  },
+});
+
+/* Public spice transfers name each end in words (#1664): a faction's bank by its name, the table and the supply, and a faction gone from the roster as such. */
+export const SpiceTransfers = meta.story({
+  beforeEach: install(() => {
+    const snapshot = initialSnapshot();
+    const faction = snapshot.roster!.seats[1]!.faction!;
+    return productTransport('seat-2', {
+      ...snapshot,
+      bank: { factionId: faction.id, balance: 4 },
+      spiceTransfers: [
+        { revision: 4, actor: 'Thialfi', kind: 'disposal', amount: 1, source: 'table' },
+        { revision: 3, actor: 'Thialfi', kind: 'collection', amount: 3, source: 'table', destination: 'gone-faction' },
+        { revision: 2, actor: 'Twaffle', kind: 'supply', amount: 6, source: 'supply', destination: 'table' },
+        { revision: 1, actor: 'Thialfi', kind: 'withdrawal', amount: 2, source: faction.id, destination: 'table' },
+      ],
+    });
+  }),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await openTab(page, 'Spice');
+    const faction = initialSnapshot().roster!.seats[1]!.faction!;
+    await settled(() => {
+      expect(
+        within(page.getByRole('region', { name: 'Public spice transfers' }))
+          .getAllByRole('listitem')
+          .map((item) => item.textContent)
+      ).toEqual([
+        'Thialfi: disposal, 1 spice from the table removed from play.',
+        'Thialfi: collection, 3 spice from the table to a faction no longer in the game.',
+        'Twaffle: supply, 6 spice from the supply to the table.',
+        `Thialfi: withdrawal, 2 spice from the ${faction.name} bank to the table.`,
+      ]);
+    });
   },
 });
 
@@ -806,12 +911,18 @@ export const PanelSchemeIsland = meta.story({
     await userEvent.keyboard('{Escape}');
     await waitForFrame(() => expect(page.queryByRole('menu')).toBeNull());
     const help = page.getByRole('button', { name: 'Help: Faction bank' });
+    /* By its words: the tab the panel opened from can show its own name tip at the same time. */
+    const bankTip = () =>
+      page.queryAllByRole('tooltip').find((tip) => tip.textContent?.includes('Only you see this balance')) ?? null;
     await userEvent.hover(help);
-    const tooltip = await waitForFrame(() => page.getByRole('tooltip'));
-    expect(tooltip).toHaveTextContent('Only you see this balance');
+    const tooltip = await waitForFrame(() => {
+      const tip = bankTip();
+      expect(tip).not.toBeNull();
+      return tip!;
+    });
     expect(view.getComputedStyle(tooltip).backgroundColor).toBe(glass);
     await userEvent.unhover(help);
-    await waitForFrame(() => expect(page.queryByRole('tooltip')).toBeNull());
+    await waitForFrame(() => expect(bankTip()).toBeNull());
     root.setAttribute('data-mantine-color-scheme', 'dark');
     expect(paint()).toEqual(light);
   },
@@ -878,7 +989,7 @@ export const Controls = meta.story({
   ),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await waitFor(() => expect(page.getByRole('button', { name: 'Spice' })).toBeVisible(), {
+    await waitFor(() => expect(page.getByRole('tab', { name: 'Spice' })).toBeVisible(), {
       timeout: 30_000,
     });
     await openTab(page, 'Spice');
@@ -921,7 +1032,7 @@ export const ControlsNarrow = meta.story({
   ),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await settled(() => expect(page.getByRole('button', { name: 'Spice' })).toBeVisible());
+    await settled(() => expect(page.getByRole('tab', { name: 'Spice' })).toBeVisible());
     await openTab(page, 'Spice');
     await settled(() => expect(page.getByLabelText('Banked spice')).toBeVisible());
     await userEvent.hover(page.getByRole('button', { name: 'Help: Faction bank' }));
@@ -1025,7 +1136,7 @@ export const PrivateDrawAndDeal = meta.story({
   }),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await userEvent.click(await page.findByRole('button', { name: /^Hand$/ }));
+    await userEvent.click(await page.findByRole('tab', { name: /^Hand$/ }));
     await expect(page.findByRole('button', { name: 'Drag Snooper from hand' })).resolves.toBeVisible();
     expect(page.getByRole('button', { name: 'Drag Feyd Rautha from hand' })).toBeVisible();
   },

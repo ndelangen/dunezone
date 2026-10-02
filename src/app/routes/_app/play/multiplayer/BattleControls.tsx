@@ -1,12 +1,14 @@
 import { Button, Group, Image, NumberInput, SegmentedControl, Select, Stack, Text } from '@mantine/core';
-import type { NumberInputProps } from '@mantine/core';
+import type { ButtonProps, NumberInputProps } from '@mantine/core';
 import { Html } from '@react-three/drei/webgpu';
 import { useFrame, useThree } from '@react-three/fiber/webgpu';
 import { troopCombatFaces } from '@shared/factions/troopCombat';
 import { isBattleLeader } from '@shared/play/battle';
 import type { BattlePlan, BattlePlanInput, CombatFace, PublicBattle } from '@shared/play/battle';
+import { snapshotFactionLabels } from '@shared/play/factionLabels';
 import type { TablePiece, Vector3Tuple } from '@shared/play/model';
 import { phaseAt, STANDARD_PHASES } from '@shared/play/phases';
+import { SPECTATOR_SEAT } from '@shared/play/schema';
 import { BOARD_RADIUS } from '@shared/play/tableGeometry';
 import { trackerArcSlots } from '@shared/play/tableTrackers';
 import { resolveRulebookBoardDefinition } from '@shared/rulebooks/boardDefinitions';
@@ -29,7 +31,9 @@ import { factionTokenFixtures } from '@game/fixtures/factionTokens';
 
 import { DarkSchemeIsland } from '../DarkSchemeIsland';
 import { PointerSessionContext, usePointerSession } from '../PointerSessionContext';
+import { TABLE_PLATE_BOUNDS } from '../tablePlateGeometry';
 import styles from './BattleControls.module.css';
+import { battleCapsuleY, headerInset } from './battlePlacement';
 import { PieceArtwork } from './PieceArtwork';
 import type { TableSession, TableProjection } from './TableSession';
 
@@ -60,7 +64,7 @@ function PieceImage({ piece }: { piece: TablePiece }) {
   }
   if (piece.kind === 'card') {
     return (
-      <div style={{ width: 60 }} aria-label={pieceName(piece)}>
+      <div style={{ width: 60 }} role="img" aria-label={pieceName(piece)}>
         <CanvasScale canvasWidth={card.width} canvasHeight={card.height}>
           <CardBack
             name={pieceName(piece)}
@@ -296,7 +300,7 @@ function PlanInventory({ plan, locked, update, pieces }: PlanEditor & { pieces: 
         data={pieces.filter(isBattleLeader).map((piece) => ({ value: piece.id, label: pieceName(piece) }))}
         onChange={(leaderId) => update({ leaderId })}
       />
-      <div className={styles.hand} aria-label="Cards from your hand">
+      <div className={styles.hand} role="group" aria-label="Cards from your hand">
         {cards.map((piece) => {
           const selected = plan.cardIds.includes(piece.id);
           return (
@@ -404,7 +408,7 @@ function PlanFields({ client, table, plan, battle }: Props & { plan: BattlePlan;
             <BattleWheel
               plan={preview}
               factionId={factionId}
-              factionName={rosterName(factionId, table.state.factionNames)}
+              factionName={rosterName(factionId, snapshotFactionLabels(table.snapshot))}
               artwork={table.snapshot.factionArtwork}
             />
           </div>
@@ -510,6 +514,20 @@ function BattleResults({
   );
 }
 
+/* Without a plan of its own, the panel says why: no battle, the plans are out, or the viewer cannot claim a side. */
+function battleNotice(table: TableProjection, battle: PublicBattle | null | undefined) {
+  if (!battle) {
+    return 'No battle in progress.';
+  }
+  if (battle.stage === 'revealed') {
+    return 'Both plans are revealed on the table.';
+  }
+  if (table.viewer.viewerSeat === SPECTATOR_SEAT || battle.sides.every(Boolean)) {
+    return 'Only the two sides see their plans until the reveal.';
+  }
+  return 'Claim a side on the table to prepare your private plan.';
+}
+
 export function BattleControls({ client, table }: Props) {
   const { battle, battlePlan, hand, battleResults = [] } = table.snapshot;
   return (
@@ -522,9 +540,7 @@ export function BattleControls({ client, table }: Props) {
         {battlePlan && battle ? (
           <PlanFields client={client} table={table} plan={battlePlan} battle={battle} />
         ) : (
-          <Text size="sm">
-            {battle ? 'Claim a side on the table to prepare your private plan.' : 'No battle in progress.'}
-          </Text>
+          <Text size="sm">{battleNotice(table, battle)}</Text>
         )}
       </Section>
       {hand && <HandControls client={client} table={table} hand={hand} />}
@@ -532,7 +548,7 @@ export function BattleControls({ client, table }: Props) {
         <BattleResults
           results={battleResults}
           artwork={table.snapshot.factionArtwork}
-          names={table.state.factionNames}
+          names={snapshotFactionLabels(table.snapshot)}
         />
       )}
     </>
@@ -543,22 +559,18 @@ type Placement = { anchor: [number, number]; capsule: [number, number] };
 function battlePlacement(
   battleAnchor: PublicBattle['anchor'],
   camera: Camera,
-  size: { width: number; height: number }
+  size: { width: number; height: number },
+  canvas: HTMLCanvasElement
 ): Placement {
   const projected = new Vector3(...battleAnchor).project(camera);
   const anchor: [number, number] = [
     Math.round(((projected.x + 1) * size.width) / 2),
     Math.round(((1 - projected.y) * size.height) / 2),
   ];
-  const verticalMidpoint = size.height / 2;
-  const territoryIsAbove = anchor[1] < verticalMidpoint;
-  const capsuleY = territoryIsAbove
-    ? Math.max(verticalMidpoint + 1, Math.min(size.height - 150, anchor[1] + 250))
-    : Math.min(verticalMidpoint - 1, Math.max(160, anchor[1] - 250));
-  return { anchor, capsule: [size.width / 2, capsuleY] };
+  return { anchor, capsule: [size.width / 2, battleCapsuleY(anchor[1], size.height, headerInset(canvas))] };
 }
 function useBattlePlacement(battle: PublicBattle | null | undefined) {
-  const { camera, size } = useThree();
+  const { camera, size, renderer } = useThree();
   const [placement, place] = useReducer(
     (before: Placement, next: Placement) => (JSON.stringify(before) === JSON.stringify(next) ? before : next),
     { anchor: [0, 0], capsule: [0, 0] }
@@ -567,7 +579,7 @@ function useBattlePlacement(battle: PublicBattle | null | undefined) {
     if (!battle) {
       return;
     }
-    place(battlePlacement(battle.anchor, camera, size));
+    place(battlePlacement(battle.anchor, camera, size, renderer.domElement));
   });
   return placement;
 }
@@ -582,10 +594,12 @@ function dropPosition(event: DragEvent, canvas: HTMLCanvasElement, camera: Camer
     camera
   );
   const point = ray.ray.intersectPlane(new Plane(new Vector3(0, 1, 0), -0.18), new Vector3());
-  if (!point || Math.hypot(point.x, point.z) > 5.5) {
-    return null;
-  }
-  return [point.x, 0.18, point.z] as Vector3Tuple;
+  return point && ([point.x, 0.18, point.z] as Vector3Tuple);
+}
+/* The plate reaches past the board to the card bays and shelves, and a hand piece may land anywhere on it. */
+function onTablePlate([x, , z]: Vector3Tuple) {
+  const { minX, maxX, minZ, maxZ } = TABLE_PLATE_BOUNDS;
+  return x >= minX && x <= maxX && z >= minZ && z <= maxZ;
 }
 /* These parts group several territories, and the storm sectors cut across all of them, so none of them names where a battle is. */
 const BOARD_GROUPS = new Set(['strongholds', 'rock', 'sand', 'sectors']);
@@ -612,9 +626,9 @@ function territoryAt(position: Vector3Tuple) {
 }
 function sendDrop(client: TableSession, event: DragEvent, position: Vector3Tuple) {
   const pieceId = event.dataTransfer?.getData('application/dune-hand');
-  if (pieceId) {
+  if (pieceId && onTablePlate(position)) {
     client.command({ kind: 'hand-play', pieceId, position });
-  } else if (event.dataTransfer?.getData('application/dune-battle')) {
+  } else if (event.dataTransfer?.getData('application/dune-battle') && Math.hypot(position[0], position[2]) <= 5.5) {
     client.command({ kind: 'battle-start', anchor: position, territory: territoryAt(position) });
   }
 }
@@ -679,21 +693,33 @@ function OutcomeButton({ client, table, battle, own, outcome }: ActiveProps & { 
     </Button>
   );
 }
+/* One cancel for both stages it is offered in, so the two cannot drift; each stage passes its own look. */
+function CancelBattleButton({
+  client,
+  table,
+  battle,
+  size,
+  variant,
+  className,
+  fullWidth,
+}: ActiveProps & Pick<ButtonProps, 'size' | 'variant' | 'className' | 'fullWidth'>) {
+  return (
+    <Button
+      size={size}
+      variant={variant}
+      className={className}
+      fullWidth={fullWidth}
+      disabled={!table.canInteract}
+      onClick={() => client.command({ kind: 'battle-cancel', battleId: battle.id })}
+    >
+      Cancel battle
+    </Button>
+  );
+}
 function BattleActions(props: ActiveProps) {
-  const { client, table, battle } = props;
+  const { battle } = props;
   if (battle.stage === 'preparing') {
-    return (
-      <Button
-        size="xs"
-        className={styles.cancel}
-        variant="default"
-        fullWidth
-        disabled={!table.canInteract}
-        onClick={() => client.command({ kind: 'battle-cancel', battleId: battle.id })}
-      >
-        Cancel battle
-      </Button>
-    );
+    return <CancelBattleButton {...props} size="xs" className={styles.cancel} variant="default" fullWidth />;
   }
   if (battle.stage !== 'revealed') {
     return null;
@@ -707,7 +733,13 @@ function BattleActions(props: ActiveProps) {
 }
 function BattleCentre(props: ActiveProps) {
   if (props.battle.stage === 'revealed') {
-    return <OutcomeButton {...props} outcome="none" />;
+    /* Anyone seated can end a revealed battle the sides cannot agree on; it settles as a battle nobody won. */
+    return (
+      <Stack gap={4} align="center">
+        <OutcomeButton {...props} outcome="none" />
+        <CancelBattleButton {...props} size="compact-xs" variant="subtle" />
+      </Stack>
+    );
   }
   if (props.battle.stage !== 'countdown') {
     return null;
@@ -733,7 +765,7 @@ function SideContents({
       <BattleWheel
         plan={battle.revealed[index]}
         factionId={side!.factionId}
-        factionName={rosterName(side!.factionId, table.state.factionNames)}
+        factionName={rosterName(side!.factionId, snapshotFactionLabels(table.snapshot))}
         artwork={table.snapshot.factionArtwork}
         client={table.canInteract ? client : undefined}
         active={active}
@@ -745,7 +777,7 @@ function SideContents({
       <BattleWheelAsset
         state="unrevealed"
         motion={motion}
-        label={`${rosterName(side.factionId, table.state.factionNames)}, ${index === 0 ? 'left side, aggressor' : 'right side'}, ${side.ready ? 'Ready' : 'Preparing'}`}
+        label={`${rosterName(side.factionId, snapshotFactionLabels(table.snapshot))}, ${index === 0 ? 'left side, aggressor' : 'right side'}, ${side.ready ? 'Ready' : 'Preparing'}`}
         artwork={factionArtwork(side.factionId, table.snapshot.factionArtwork)}
         ready={side.ready}
       />
@@ -792,8 +824,10 @@ function BattleSides(props: ActiveProps) {
 }
 function BattleCallout({ client, table, battle, placement }: Props & { battle: PublicBattle; placement: Placement }) {
   const pointerSession = usePointerSession();
+  const canvas = useThree((state) => state.renderer.domElement);
   const { anchor, capsule } = placement;
-  const own = battle.sides.findIndex((side) => side?.factionId === table.snapshot.bank?.factionId);
+  const faction = table.snapshot.bank?.factionId;
+  const own = faction ? battle.sides.findIndex((side) => side?.factionId === faction) : -1;
   const props = { client, table, battle, own };
   /* Html reads its position only in its own frame and the table draws on demand, so the capsule is projected in that frame: `capsule` from state commits after the frame that computed it, and Html would not read it until something else asked for a frame. */
   return (
@@ -801,7 +835,7 @@ function BattleCallout({ client, table, battle, placement }: Props & { battle: P
       position={battle.anchor}
       center
       zIndexRange={[10, 0]}
-      calculatePosition={(_, camera, size) => battlePlacement(battle.anchor, camera, size).capsule}
+      calculatePosition={(_, camera, size) => battlePlacement(battle.anchor, camera, size, canvas).capsule}
     >
       <PointerSessionContext value={pointerSession}>
         <DarkSchemeIsland>

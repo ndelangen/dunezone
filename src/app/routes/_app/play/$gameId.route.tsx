@@ -5,13 +5,16 @@ import { LoginGate } from '@ui/block/LoginGate';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import { PageTitle } from '@ui/block/PageTitle';
 import { PageLayout } from '@ui/layout/PageLayout';
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useEffect, useSyncExternalStore } from 'react';
+import type { ReactNode } from 'react';
 
 import { useGameAccess } from '@db/play';
+import { forgetStoredPlayTable, hasStoredPlayTable } from '@db/playTables';
 import { pageHead } from '@app/routes/pageTitle';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 import { TableWait } from './TableWait';
+import { SERVER_UNREACHABLE, useServerUnreachable } from './useServerUnreachable';
 
 const loadHostedTable = () => import('./multiplayer/HostedTable');
 const HostedTable = lazy(loadHostedTable);
@@ -46,6 +49,18 @@ export const Route = createFileRoute('/_app/play/$gameId')({
 function GamePage() {
   const { gameId } = Route.useParams();
   const { data } = useGameAccess(gameId);
+  const unreachable = useServerUnreachable(data === undefined);
+  const stored = useSyncExternalStore(
+    noSubscription,
+    () => hasStoredPlayTable(gameId),
+    () => false
+  );
+  const refused = data !== undefined && data.status !== 'ready' && data.status !== 'preparing';
+  useEffect(() => {
+    if (refused) {
+      forgetStoredPlayTable(gameId);
+    }
+  }, [refused, gameId]);
   const exit = (
     <Button component={Link} to="/play" variant="default" aria-label="Back to lobby">
       Lobby
@@ -53,13 +68,17 @@ function GamePage() {
   );
   switch (data?.status) {
     case undefined:
+      /* A reloaded tab that kept this table shows it, locked, while the directory has not answered (#1746). */
+      if (stored) {
+        return <TablePage title="Game" gameId={gameId} exit={exit} />;
+      }
       return (
         <PageLayout height="fullscreen">
           <PageLayout.Header size="compact">
             <PageTitle title="Game" />
           </PageLayout.Header>
           <PageLayout.Content width="viewport">
-            <TableWait status="Loading the game...">{exit}</TableWait>
+            <TableWait status={unreachable ? SERVER_UNREACHABLE : 'Loading the game...'}>{exit}</TableWait>
           </PageLayout.Content>
         </PageLayout>
       );
@@ -91,22 +110,28 @@ function GamePage() {
           </NotAvailable>
         </PageMessage>
       );
-    case 'ready': {
-      const loading = <TableWait status="Loading the table...">{exit}</TableWait>;
-      return (
-        <PageLayout height="fullscreen">
-          <PageLayout.Header size="compact">
-            <PageTitle title={data.name} />
-          </PageLayout.Header>
-          <PageLayout.Content width="viewport">
-            <ClientOnly fallback={loading}>
-              <Suspense fallback={loading}>
-                <HostedTable key={data.gameId} gameId={data.gameId} exitControl={exit} />
-              </Suspense>
-            </ClientOnly>
-          </PageLayout.Content>
-        </PageLayout>
-      );
-    }
+    case 'ready':
+      return <TablePage title={data.name} gameId={data.gameId} exit={exit} />;
   }
+}
+
+const noSubscription = () => () => {};
+
+/* One element for a ready game and for a kept table, so the table a reload restored stays mounted when the directory answers. */
+function TablePage({ title, gameId, exit }: Readonly<{ title: string; gameId: string; exit: ReactNode }>) {
+  const loading = <TableWait status="Loading the table...">{exit}</TableWait>;
+  return (
+    <PageLayout height="fullscreen">
+      <PageLayout.Header size="compact">
+        <PageTitle title={title} />
+      </PageLayout.Header>
+      <PageLayout.Content width="viewport">
+        <ClientOnly fallback={loading}>
+          <Suspense fallback={loading}>
+            <HostedTable key={gameId} gameId={gameId} exitControl={exit} />
+          </Suspense>
+        </ClientOnly>
+      </PageLayout.Content>
+    </PageLayout>
+  );
 }

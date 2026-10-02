@@ -2,8 +2,10 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { DEFAULT_PHASE_PRIORITY } from '../../src/shared/factions/extraPhases';
 import { PHASE_CHANGE_COOLDOWN_MS } from '../../src/shared/play/phases';
+import { applyPatch } from './history';
 import { draftingRuntime } from './native-drafting.fixture.mjs';
 import { accepted, admitPlayer, eventually, seat, sendCommand, syncView } from './native-runtime.fixture.mjs';
+import { storedSnapshotSchema } from './state';
 
 describe('Real-game setup progression', () => {
   let peer, runtime, offset;
@@ -361,6 +363,65 @@ describe('Real-game setup progression', () => {
     expect(delivered.snapshot.revision).toBe(saved.revision);
     expect(delivered.carries).toEqual([]);
     expect(delivered.snapshot.table.pieces).toEqual((await syncView(b)).snapshot.table.pieces);
+  });
+
+  it('stores each setup step as its change and replays every one to the state the room held', async () => {
+    const players = await enter(true);
+    const views = await Promise.all(players.map(syncView));
+    const ownIndex = views.findIndex(
+      (view) => view.snapshot.roster.seats.find((seat) => seat.id === view.viewer.viewerSeat).faction.id === 'atreides'
+    );
+    const [owner, foreign] = [players[ownIndex], players[1 - ownIndex]];
+    const held = new Map();
+    const keep = async () => {
+      const state = storedSnapshotSchema.parse(await stored());
+      held.set(state.revision, state);
+    };
+    const choice = { factionId: 'harkonnen', turn: 3 };
+    await accepted(owner, { kind: 'prediction-lock', stepId: views[ownIndex].snapshot.setup.steps[0].id, choice });
+    await keep();
+    await next(owner);
+    await keep();
+    await allReady(owner, foreign);
+    await keep();
+    await next(owner);
+    await keep();
+    await allReady(owner, foreign);
+    await keep();
+    expect((await next(owner)).snapshot.stage).toBe('play');
+    await keep();
+
+    const rows = await runtime.exec('SELECT step, kind, revision, data FROM history ORDER BY step');
+    let replayed;
+    let compared = 0;
+    for (const row of rows) {
+      replayed =
+        row.kind === 'checkpoint'
+          ? storedSnapshotSchema.parse(JSON.parse(row.data))
+          : storedSnapshotSchema.parse(applyPatch(replayed, JSON.parse(row.data)));
+      expect(replayed.revision).toBe(row.revision);
+      if (held.has(row.revision)) {
+        expect(replayed).toEqual(held.get(row.revision));
+        compared++;
+      }
+    }
+    expect(compared).toBe(held.size);
+    /* The private prediction travels through the stored steps; setup steps are patches, and Turn 1 is a checkpoint. */
+    const kinds = new Map(rows.map((row) => [row.revision, row.kind]));
+    const revisions = [...held.keys()];
+    expect(Object.values(held.get(revisions[0]).privatePredictions).map((prediction) => prediction.choice)).toEqual([
+      choice,
+    ]);
+    expect(revisions.slice(0, -1).map((revision) => kinds.get(revision))).toEqual(
+      revisions.slice(0, -1).map(() => 'patch')
+    );
+    expect(kinds.get(revisions.at(-1))).toBe('checkpoint');
+    expect(held.get(revisions.at(-1)).stage).toBe('play');
+
+    await runtime.restart();
+    const restored = await syncView(await admit('a'));
+    expect(restored.snapshot.revision).toBe(replayed.revision);
+    expect(restored.snapshot.stage).toBe('play');
   });
 
   it('records readiness changes while repeated readiness and gathering leave history unchanged', async () => {

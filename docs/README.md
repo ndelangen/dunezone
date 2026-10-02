@@ -48,7 +48,7 @@ bun run storybook:test:shard <shard> # One CI shard of the story suite, named in
 bun run storybook        # Storybook dev (port 6006)
 bun run build-storybook  # Static Storybook → storybook-static
 bun run verify:storybook-publication # Public bytes, headers, isolation, and browser runtime
-bun run generate         # Regenerate the asset-id vocabulary in src/shared/assetIds.ts
+bun run generate         # Regenerate the asset-id vocabulary in src/shared/assetIds.ts, already formatted
 bun run publisher:release:verify # Exact pre-PR publisher build, manifest, and dry-run gate
 ```
 
@@ -56,6 +56,9 @@ bun run publisher:release:verify # Exact pre-PR publisher build, manifest, and d
 `typescript` 6.x development dependency remains intentionally installed because Storybook's
 React Component Meta integration still imports the legacy compiler API; it is not the compiler
 used by the application or publisher typecheck scripts.
+
+A fresh checkout or worktree needs `bun run generate:images` once before `bun run typecheck`:
+it writes `src/game/data/assetMap.generated.ts`, which is gitignored and which the app imports.
 
 The pinned Fiber patch removes its ambient Three JSX declarations from React's namespaces.
 Those declarations make even a DOM `React.ElementType` enumerate Three's catalogue, which
@@ -65,6 +68,12 @@ It exports React's unchanged runtime functions and keeps the exact Three prop ty
 The colocated typecheck fixture checks valid and invalid Three props, Mantine attributes,
 and the DOM namespace together. No files are excluded from typechecking.
 Replace the patch and local runtime together when Fiber provides an upstream scoped JSX entry.
+
+The Bun patch for `three@0.185.1` fixes two renderer leaks that grew with every rebuilt piece on the
+Play table. A destroyed bind group is removed from its texture's `bindGroups` set, which three only
+clears when the texture is disposed. The WebGL2 fallback deletes the cached vertex arrays built on a
+buffer when it destroys that buffer. The patch covers `build/three.webgpu.js`,
+`build/three.webgpu.nodes.js` and the matching `src/` files.
 
 The `miniflare` entry in `package.json` `overrides` moves only miniflare's own `undici` to 7.29.1,
 for [GHSA-3wwx-pv8p-q78v](https://github.com/advisories/GHSA-3wwx-pv8p-q78v). miniflare pins

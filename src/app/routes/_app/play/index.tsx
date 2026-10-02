@@ -1,4 +1,4 @@
-import { Anchor, Stack, Text } from '@mantine/core';
+import { Anchor, Button, Group, Stack, Text } from '@mantine/core';
 import type { playLobbyEntrySchema } from '@shared/play/directory';
 import { phaseAt, tableProgressFor } from '@shared/play/phases';
 import { createFileRoute, Link } from '@tanstack/react-router';
@@ -11,6 +11,8 @@ import type { z } from 'zod';
 
 import { useLobbyGames } from '@db/play';
 import { pageHead } from '@app/routes/pageTitle';
+
+import { SERVER_UNREACHABLE, useServerUnreachable } from './useServerUnreachable';
 
 /*
  * The lobby lists what the directory holds and nothing more; it never loads the 3D runtime.
@@ -73,6 +75,28 @@ function GameList({ entries, empty }: Readonly<{ entries: LobbyEntry[]; empty: s
   );
 }
 
+/* Convex retries on its own; after a while the wait says so and offers the way home. */
+function LobbyWait({ status }: Readonly<{ status: 'sign_in_required' | undefined }>) {
+  const unreachable = useServerUnreachable(status === undefined);
+  switch (status) {
+    case 'sign_in_required':
+      return <Text c="dimmed">Ongoing and past games appear here once you sign in.</Text>;
+    case undefined:
+      break;
+  }
+  if (!unreachable) {
+    return <Text c="dimmed">Loading games.</Text>;
+  }
+  return (
+    <Stack gap="xs" role="status">
+      <Text c="dimmed">{SERVER_UNREACHABLE}</Text>
+      <Anchor component={Link} to="/">
+        Go back home
+      </Anchor>
+    </Stack>
+  );
+}
+
 function PlayLobby() {
   const { data: lobby } = useLobbyGames();
   return (
@@ -91,14 +115,14 @@ function PlayLobby() {
                 <Section title="Past" description="Finished games with their declared result.">
                   <GameList entries={lobby.past} empty="No game has finished yet." />
                 </Section>
-                <Anchor component={Link} to="/play/create">
-                  Create a game
-                </Anchor>
+                <Group>
+                  <Button component={Link} to="/play/create">
+                    Create a game
+                  </Button>
+                </Group>
               </>
             ) : (
-              <Text c="dimmed">
-                {lobby === undefined ? 'Loading games.' : 'Ongoing and past games appear here once you sign in.'}
-              </Text>
+              <LobbyWait status={lobby?.status} />
             )}
           </Stack>
         </Surface>

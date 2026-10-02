@@ -70,6 +70,7 @@ export function loadPublishedFace<T>({
  * One load per key, shared by every subscriber while any holds it.
  * A table draws the same published image on many pieces and on every layer of a stack, and each separate load would be a separate GPU texture with its own upload and mipmaps.
  * The first subscriber starts `loadPublishedFace`, later ones receive the value it already holds, and the last unsubscribe releases it.
+ * `peek` returns a key's loaded value, so a face that mounts while its image is held draws it in its first frame instead of a placeholder.
  */
 export function sharedPublishedFaces<T>(
   options: Omit<Parameters<typeof loadPublishedFace<T>>[0], 'load' | 'onLoad'> & {
@@ -78,7 +79,7 @@ export function sharedPublishedFaces<T>(
   }
 ) {
   const entries = new Map<string, { value?: T; listeners: Set<(value: T) => void>; stop: () => void }>();
-  return (key: string, listener: (value: T) => void) => {
+  const subscribe = (key: string, listener: (value: T) => void) => {
     let entry = entries.get(key);
     if (!entry) {
       const created: { value?: T; listeners: Set<(value: T) => void>; stop: () => void } = {
@@ -111,4 +112,5 @@ export function sharedPublishedFaces<T>(
       }
     };
   };
+  return Object.assign(subscribe, { peek: (key: string): T | undefined => entries.get(key)?.value });
 }

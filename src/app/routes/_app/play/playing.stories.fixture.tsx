@@ -30,7 +30,7 @@ export function phaseControls(canvasElement: HTMLElement) {
 }
 
 /**
- * Opens one tab of the controls panel and waits for its item to become the current one.
+ * Opens one tab of the controls panel and waits for it to become the selected one.
  * The panel arrives with the connection, so the click is retried until the tab takes.
  */
 export async function openTab(
@@ -39,9 +39,9 @@ export async function openTab(
 ) {
   await waitFor(
     async () => {
-      const tab = page.getByRole('button', { name });
+      const tab = page.getByRole('tab', { name });
       await userEvent.click(tab);
-      expect(tab).toHaveAttribute('aria-current', 'true');
+      expect(tab).toHaveAttribute('aria-selected', 'true');
     },
     { timeout: 30_000 }
   );

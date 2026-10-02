@@ -270,11 +270,17 @@ function configureAuth(convex: (args: string[]) => void, origin: string) {
   writeFileSync(jwksPath, JSON.stringify({ keys: [{ ...publicKey.export({ format: 'jwk' }), use: 'sig' }] }), {
     mode: 0o600,
   });
+  /*
+   * PLAY_TEST_PASSWORD_HASH makes Password check the synthetic accounts' random passwords with PBKDF2 at 1,000 iterations instead of Scrypt (#1493).
+   * Scrypt was most of each sign-in's `auth:store` time, and a stall of the macOS runner during it ended a sign-in at the function limit.
+   * Only a loopback backend honours the variable (`convex/lib/syntheticPasswords.ts`), so the --load-hosted-backend copy, whose own URL is the hosted one, keeps Scrypt.
+   */
   for (const [name, value] of [
     ['SITE_URL', origin],
     ['PLAY_SERVICE_URL', origin],
     ['IS_TEST', 'true'],
     ['E2E_LOCAL_AUTH', 'true'],
+    ['PLAY_TEST_PASSWORD_HASH', 'pbkdf2'],
   ]) {
     convex(['env', 'set', name!, value!]);
   }

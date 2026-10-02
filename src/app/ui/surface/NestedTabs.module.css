@@ -71,8 +71,15 @@
   grid-template-rows: minmax(0, 1fr) auto;
   min-width: 0;
   min-height: 0;
-  contain: size;
+  container: nested-tabs-level / size;
   background: transparent;
+}
+
+/* A short rail gives its height to the tabs: the vertical name would otherwise leave room for one tab and clip itself. */
+@container nested-tabs-level (height < 15rem) {
+  .levelLabel {
+    display: none;
+  }
 }
 
 .level[data-nested-tabs-level="2"] {

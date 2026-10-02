@@ -2,7 +2,7 @@
  * Single authority for the coverage denominator, imported by vite.config.ts
  * (unit/publisher flags) and vitest.storybook.config.ts (storybook flag).
  * @see https://github.com/ndelangen/dunezone/issues/301 (decision)
- * @see docs/research/combined-coverage-codecov.md §8 (corrections)
+ * @see docs/research/combined-coverage-codecov.md §8 (corrections; local research notes, untracked by design)
  */
 import { coverageConfigDefaults } from 'vitest/config';
 

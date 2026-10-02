@@ -40,11 +40,11 @@ export const TradingOffers = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await page.findByRole('button', { name: 'Accept trade from House Atreides' }, { timeout: 30_000 });
-    await userEvent.click(page.getByRole('button', { name: 'fectumbra' }));
+    await userEvent.click(page.getByRole('tab', { name: 'fectumbra' }));
     expect(page.getByRole('button', { name: 'Offer trade to Emperor' })).toBeDisabled();
-    await userEvent.click(page.getByRole('button', { name: 'Ridwan' }));
+    await userEvent.click(page.getByRole('tab', { name: 'Ridwan' }));
     expect(page.getByRole('button', { name: 'Cancel offer to Fremen' })).toBeEnabled();
-    await userEvent.click(page.getByRole('button', { name: 'Twaffle' }));
+    await userEvent.click(page.getByRole('tab', { name: 'Twaffle' }));
     await userEvent.click(page.getByRole('button', { name: 'Accept trade from House Atreides' }));
     await waitFor(() => expect(lastCommand()).toMatchObject({ action: { kind: 'swap-accept', offerId: 'offer-one' } }));
   },
@@ -61,9 +61,14 @@ export const TradingEndedWithVacancy = meta.story({
   }),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await expect(
-      page.findByText('Trading ended. Waiting for approved replacements.', {}, { timeout: 30_000 })
-    ).resolves.toBeVisible();
+    await waitFor(
+      () =>
+        expect(page.getByLabelText('Trading time remaining')).toHaveTextContent(
+          'Trading ended. Waiting for approved replacements.'
+        ),
+      { timeout: 30_000 }
+    );
+    expect(page.getByLabelText('Trading time remaining')).toBeVisible();
     expect(page.queryByRole('button', { name: /Offer trade to/ })).toBeNull();
     expect(page.getByRole('button', { name: 'Ready to start' })).toBeDisabled();
   },

@@ -199,16 +199,8 @@ export function stepPhase(index: number, direction: -1 | 1 = 1): number {
   return next;
 }
 
-export function phaseForTurn(index: number, turn: number, phaseCount: number = STANDARD_PHASES.length): number {
-  if (!Number.isSafeInteger(turn) || turn < 1) {
-    throw new GameRejection('Choose a whole turn number starting at 1.');
-  }
-  const next = (turn - 1) * phaseCount + (index % phaseCount);
-  if (!Number.isSafeInteger(next)) {
-    throw new GameRejection('The phase counter cannot advance further.');
-  }
-  return next;
-}
+/** Players change the turn only by moving through the phases, so Mentat pause always asks everyone to be ready (#1683). */
+export const TURN_SELECT_REFUSAL = 'The turn changes only by moving through the phases.';
 
 export const PHASE_CHANGE_COOLDOWN_MS = 2000;
 

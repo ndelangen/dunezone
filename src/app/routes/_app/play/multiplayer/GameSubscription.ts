@@ -5,6 +5,7 @@ import {
   PLAY_TICKET_TTL_MS,
 } from '@shared/play/admission';
 import {
+  ADMISSION_UNAVAILABLE_CLOSE_CODE,
   KEEPALIVE_INTERVAL_MS,
   KEEPALIVE_PING,
   KEEPALIVE_PONG,
@@ -47,8 +48,13 @@ export class GameSubscription {
   private socket: GameSocket | null = null;
   private listener: ((event: GameSubscriptionEvent) => void) | null = null;
   private reconnectTimer: ReturnType<typeof setTimeout> | undefined;
+  /* Whether the waiting reconnect is the plain one-second retry, which a returning network may skip; a wait the Worker asked for may not be. */
+  private reconnectSkippable = false;
   private admissionTimer: ReturnType<typeof setTimeout> | undefined;
   private keepaliveTimer: ReturnType<typeof setInterval> | undefined;
+  /* Keepalive ticks since the socket last delivered any frame, its answers included (#1662). */
+  private silentTicks = 0;
+  private stopOnline: (() => void) | undefined;
   private ticketAttempt: TicketAttempt | undefined;
   /* The ticket request still on the wire: an attempt that gives up waiting leaves it there for the next attempt to take its answer. */
   private ticketRequest: TicketRequest | undefined;
@@ -61,8 +67,10 @@ export class GameSubscription {
   private connectionStatus: Status = 'connecting';
   /* Server time less monotonic time, the largest since this attempt connected: transit delay only ever makes a frame's reading smaller. */
   private serverOffset = Number.NEGATIVE_INFINITY;
-  /* Tickets that expired since the table last showed; each one doubles the wait before the next. */
-  private expiredTickets = 0;
+  /* Admissions retried since the table last showed, for a lapsed ticket or a Worker that could not reach Convex; each one doubles the wait before the next. */
+  private admissionRetries = 0;
+  /** Why the last attempt failed before a table showed, kept on screen through the retries so a table that never answers never reads as still connecting. */
+  private retryReason: string | null = null;
 
   constructor(
     private readonly gameId: string,
@@ -85,6 +93,7 @@ export class GameSubscription {
 
   subscribe(listener: (event: GameSubscriptionEvent) => void) {
     this.listener = listener;
+    this.stopOnline = this.runtime.onOnline(() => this.networkReturned());
     void this.open();
     let stopped = false;
     return () => {
@@ -98,8 +107,11 @@ export class GameSubscription {
 
   private stop() {
     this.listener = null;
+    this.stopOnline?.();
+    this.stopOnline = undefined;
     ++this.generation;
     clearTimeout(this.reconnectTimer);
+    this.reconnectTimer = undefined;
     clearTimeout(this.admissionTimer);
     clearInterval(this.keepaliveTimer);
     clearTimeout(this.ticketAttempt?.timer);
@@ -112,7 +124,8 @@ export class GameSubscription {
     this.wireView = null;
     this.resyncing = false;
     this.connectionStatus = 'suspended';
-    this.expiredTickets = 0;
+    this.admissionRetries = 0;
+    this.retryReason = null;
   }
 
   send(message: Exclude<ClientMessage, { type: 'admit' | 'sync' }>): boolean {
@@ -143,12 +156,28 @@ export class GameSubscription {
       return;
     }
     clearTimeout(this.reconnectTimer);
-    this.reconnectTimer = setTimeout(() => void this.open(), delay);
+    this.reconnectSkippable = delay <= 1000;
+    this.reconnectTimer = setTimeout(() => {
+      this.reconnectTimer = undefined;
+      void this.open();
+    }, delay);
+  }
+
+  /* Only a failure before the table showed is kept for the retries; after one, the next attempt reads as the connection opening. */
+  private retryAfterFailure(reason: string, delay = 1000) {
+    this.retryReason = this.sawView ? null : reason;
+    this.changeStatus('suspended', reason);
+    this.scheduleReconnect(delay);
+  }
+
+  /* Every retry asks for a new ticket, so the wait doubles to keep an outage from spending the ticket rate limits. */
+  private admissionRetryDelay() {
+    return Math.min(1000 * 2 ** this.admissionRetries++, PLAY_TICKET_RETRY_MAX_MS);
   }
 
   private renewExpiredTicket() {
     this.changeStatus('suspended');
-    this.scheduleReconnect(Math.min(1000 * 2 ** this.expiredTickets++, PLAY_TICKET_RETRY_MAX_MS));
+    this.scheduleReconnect(this.admissionRetryDelay());
   }
 
   private async open() {
@@ -159,20 +188,18 @@ export class GameSubscription {
     this.ticketAttempt = attempt;
     this.sawView = false;
     this.serverOffset = Number.NEGATIVE_INFINITY;
-    this.changeStatus('connecting');
+    this.changeStatus('connecting', this.retryReason);
     const request = this.pendingTicketRequest();
     const result = await this.acquireTicket(attempt, request);
     if (!this.isCurrentAttempt(attempt) || !result) {
       return;
     }
     if (!result.ok) {
-      this.changeStatus(
-        result.reason === 'not_authorized' ? 'denied' : 'suspended',
-        result.reason === 'not_authorized'
-          ? 'Sign in again to access the table.'
-          : 'The table is temporarily unavailable.'
-      );
-      this.scheduleReconnect(Math.max(1000, result.retryAfterMs ?? 1000));
+      if (result.reason === 'not_authorized') {
+        this.changeStatus('denied', 'Sign in again to access the table.');
+        return;
+      }
+      this.retryAfterFailure('The table is temporarily unavailable.', Math.max(1000, result.retryAfterMs ?? 1000));
       return;
     }
     const expiresAt = request.requestedAt + result.expiresInMs;
@@ -183,8 +210,7 @@ export class GameSubscription {
     try {
       this.openSocket(result.ticket, expiresAt);
     } catch {
-      this.changeStatus('suspended', 'The table could not connect. Reconnecting...');
-      this.scheduleReconnect();
+      this.retryAfterFailure('The table could not connect. Reconnecting...');
     }
   }
 
@@ -230,8 +256,7 @@ export class GameSubscription {
       return result;
     } catch {
       if (this.isCurrentAttempt(attempt)) {
-        this.changeStatus('suspended', 'The table could not verify this login. Reconnecting...');
-        this.scheduleReconnect();
+        this.retryAfterFailure('The table could not be reached. Reconnecting...');
       }
       return null;
     } finally {
@@ -255,14 +280,11 @@ export class GameSubscription {
         this.renewExpiredTicket();
         return;
       }
+      /* The Worker answered, so whatever happens next is not a table that could not be reached. */
+      this.retryReason = null;
       socket.send(JSON.stringify({ type: 'admit', ticket }));
       ticket = '';
-      clearInterval(this.keepaliveTimer);
-      this.keepaliveTimer = setInterval(() => {
-        if (this.isCurrentSocket(socket) && socket.readyState === 1) {
-          socket.send(KEEPALIVE_PING);
-        }
-      }, KEEPALIVE_INTERVAL_MS);
+      this.startKeepalive(socket, 0);
     };
     socket.onmessage = (event) => this.receiveSocketMessage(socket, event.data);
     socket.onclose = (event) => {
@@ -281,8 +303,22 @@ export class GameSubscription {
         this.renewExpiredTicket();
         return;
       }
-      this.changeStatus(event.code === 4401 ? 'denied' : 'suspended');
-      this.scheduleReconnect(event.code === 4413 ? 5000 : 1000);
+      if (event.code === ADMISSION_UNAVAILABLE_CLOSE_CODE) {
+        this.retryAfterFailure('The table is temporarily unavailable.', this.admissionRetryDelay());
+        return;
+      }
+      if (event.code === 4401) {
+        this.changeStatus('denied', 'This login can no longer access the table.');
+        return;
+      }
+      const delay = event.code === 4413 ? 5000 : 1000;
+      /* A socket that closes before its table showed is a Worker that refused, failed or never answered; one that closes after reconnects as the connection opening. */
+      if (this.sawView) {
+        this.changeStatus('suspended');
+        this.scheduleReconnect(delay);
+        return;
+      }
+      this.retryAfterFailure('The table could not be reached. Reconnecting...', delay);
     };
     socket.onerror = () => {
       if (this.isCurrentSocket(socket)) {
@@ -294,6 +330,9 @@ export class GameSubscription {
 
   private receiveSocketMessage(socket: GameSocket, data: string) {
     const receivedAt = this.runtime.monotonicNow();
+    if (this.isCurrentSocket(socket)) {
+      this.silentTicks = 0;
+    }
     if (!this.isCurrentSocket(socket) || this.status === 'denied' || data === KEEPALIVE_PONG) {
       return;
     }
@@ -310,6 +349,59 @@ export class GameSubscription {
       return;
     }
     this.receive(message);
+  }
+
+  /**
+   * Pings the Worker, which answers every ping, and drops a socket that stayed silent for a whole interval after one (#1662).
+   * A connection lost without a close frame never fires the close event, so silence is the only sign the table went away.
+   */
+  private keepAlive(socket: GameSocket) {
+    if (!this.isCurrentSocket(socket) || socket.readyState !== 1) {
+      return;
+    }
+    if (++this.silentTicks >= 2) {
+      this.dropSilentSocket(socket);
+      return;
+    }
+    socket.send(KEEPALIVE_PING);
+  }
+
+  private startKeepalive(socket: GameSocket, silentTicks: number) {
+    clearInterval(this.keepaliveTimer);
+    this.silentTicks = silentTicks;
+    this.keepaliveTimer = setInterval(() => this.keepAlive(socket), KEEPALIVE_INTERVAL_MS);
+  }
+
+  private dropSilentSocket(socket: GameSocket) {
+    this.socket = null;
+    clearTimeout(this.admissionTimer);
+    clearInterval(this.keepaliveTimer);
+    socket.close();
+    if (this.status === 'denied') {
+      return;
+    }
+    this.retryAfterFailure('The table could not be reached. Reconnecting...');
+  }
+
+  /* Coming back online reconnects at once when the plain retry is waiting, and otherwise asks the open socket to prove it still works. */
+  private networkReturned() {
+    if (!this.listener || this.status === 'denied') {
+      return;
+    }
+    const socket = this.socket;
+    if (!socket) {
+      if (this.reconnectTimer !== undefined && this.reconnectSkippable) {
+        clearTimeout(this.reconnectTimer);
+        this.reconnectTimer = undefined;
+        void this.open();
+      }
+      return;
+    }
+    /* The probe counts as a tick already, and the interval restarts so its answer always has a whole interval to arrive. */
+    if (socket.readyState === 1) {
+      this.startKeepalive(socket, 1);
+      socket.send(KEEPALIVE_PING);
+    }
   }
 
   private isCurrentSocket(socket: GameSocket) {
@@ -358,7 +450,8 @@ export class GameSubscription {
 
   private receiveView(message: RoomView) {
     this.sawView = true;
-    this.expiredTickets = 0;
+    this.admissionRetries = 0;
+    this.retryReason = null;
     const previous = this.acceptView(message);
     this.resyncing = false;
     this.connectionStatus = 'authorized';

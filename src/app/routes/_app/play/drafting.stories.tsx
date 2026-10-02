@@ -11,6 +11,7 @@ import {
   lastCommand,
   MIDWAY,
   press,
+  seatPopover,
   session,
   shows,
 } from './game.stories.fixture';
@@ -76,7 +77,7 @@ export const ChoosingFactions = meta.story({
     await waitFor(
       () => {
         const header = canvasElement.ownerDocument.querySelector('.seated-header');
-        expect(within(header as HTMLElement).getByText('Waiting for 5 to ready')).toBeVisible();
+        expect(within(header as HTMLElement).getByText('Waiting for 5 to be ready')).toBeVisible();
         expect(
           within(page.getByRole('region', { name: 'Banned factions' })).getByRole('img', {
             name: /Ixians, banned by Twaffle/,
@@ -86,9 +87,9 @@ export const ChoosingFactions = meta.story({
       },
       { timeout: 30_000 }
     );
-    await userEvent.hover(page.getByLabelText('Draft pool details'));
+    await userEvent.hover(page.getByRole('button', { name: /^Pool / }));
     await waitForFrame(() => expect(page.getByRole('tooltip')).toHaveTextContent('a random 6 of them will be dealt'));
-    await userEvent.unhover(page.getByLabelText('Draft pool details'));
+    await userEvent.unhover(page.getByRole('button', { name: /^Pool / }));
     const list = () => within(page.getByRole('list', { name: 'Factions' }));
     await waitFor(
       async () => {
@@ -108,7 +109,7 @@ export const ChoosingFactions = meta.story({
 export const Observer = meta.story({
   beforeEach: install(() => productTransport('neutral', draftingSnapshot(SIX, 6, MIDWAY))),
   play: async ({ canvasElement }) => {
-    const bar = await decisionBar(canvasElement, 'You are watching');
+    const bar = await seatPopover(canvasElement, 'You are watching');
     await shows(() => bar().getByText('Take a seat in this game?'));
     const page = within(canvasElement.ownerDocument.body);
     await shows(() => page.getByRole('region', { name: 'Drafted factions' }));
@@ -180,12 +181,33 @@ export const FactionSetAside = meta.story({
 export const SpectatorAsksForASeat = meta.story({
   beforeEach: install(() => productTransport('neutral', drafting())),
   play: async ({ canvasElement }) => {
-    const bar = await decisionBar(canvasElement, 'You are watching');
+    const bar = await seatPopover(canvasElement, 'You are watching');
     await shows(() => bar().getByText('Take a seat in this game?'));
     await shows(() => bar().getByText(/1 player is drafting/));
     await press(() => bar().getByRole('button', { name: 'Request a seat' }));
     await waitFor(() => expect(lastCommand()).toMatchObject({ type: 'command', action: { kind: 'seat-request' } }));
     expect(within(canvasElement.ownerDocument.body).queryByRole('button', { name: 'Leave game' })).toBeNull();
+  },
+});
+
+/** A spectator seated during drafting lands on the drafting tab, not the Log they watched from (#1666). */
+export const SeatedSpectatorLandsOnDrafting = meta.story({
+  beforeEach: install(() => productTransport('neutral', drafting())),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await shows(() => page.getByRole('button', { name: 'Seats' }));
+    /* A spectator's dock holds the Log alone, so that is where it opens. */
+    await shows(() => page.getByRole('tab', { name: 'Log' }));
+    expect(page.queryByRole('tab', { name: 'Drafting' })).toBeNull();
+    const seated = session.transport.view({
+      ...draftingSnapshot([SIX[0]!, SIX[1]!], 6),
+      revision: drafting().revision + 1,
+    });
+    seated.viewer = { ...seated.viewer, viewerSeat: 'seat-2' };
+    session.transport.deliver(seated);
+    await waitFor(() => expect(page.getByRole('tab', { name: 'Drafting' })).toHaveAttribute('aria-selected', 'true'), {
+      timeout: 30_000,
+    });
   },
 });
 
@@ -195,7 +217,7 @@ export const WaitingForApproval = meta.story({
     productTransport('neutral', drafting([{ id: 'seat-request-2', requesterName: 'Klyzx', seat: null, own: true }]))
   ),
   play: async ({ canvasElement }) => {
-    const bar = await decisionBar(canvasElement, 'Seat requested');
+    const bar = await seatPopover(canvasElement, 'Seat requested');
     await shows(() => bar().getByText('Waiting for a player to approve you'));
     await press(() => bar().getByRole('button', { name: 'Withdraw' }));
     await waitFor(() => expect(lastCommand()).toMatchObject({ type: 'command', action: { kind: 'seat-withdraw' } }));
@@ -254,12 +276,36 @@ export const PlayerLeavesTheGame = meta.story({
   },
 });
 
+/** A player who left and was seated again holds the new seat without being asked to give it up. */
+export const PlayerRejoinsAfterLeaving = meta.story({
+  beforeEach: install(() => productTransport('seat-2', draftingSnapshot(SIX.slice(0, 2), 6))),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const deliver = (viewerSeat: 'seat-2' | 'neutral') => {
+      const view = session.transport.view(draftingSnapshot(SIX.slice(0, viewerSeat === 'neutral' ? 1 : 2), 6));
+      session.transport.deliver({ ...view, viewer: { ...view.viewer, viewerSeat } });
+    };
+    await press(() => page.getByRole('button', { name: 'Game menu' }));
+    await waitForFrame(() => userEvent.click(page.getByRole('menuitem', { name: 'Give up your seat' })), {
+      timeout: 30_000,
+    });
+    const leaving = await decisionBar(canvasElement, 'Leaving');
+    await press(() => leaving().getByRole('button', { name: 'Leave' }));
+    await waitFor(() => expect(lastCommand()).toMatchObject({ type: 'command', action: { kind: 'seat-depart' } }));
+    deliver('neutral');
+    await seatPopover(canvasElement, 'You are watching');
+    deliver('seat-2');
+    await waitFor(() => expect(page.getByRole('region', { name: 'Your seat' })).toBeVisible(), { timeout: 30_000 });
+    expect(page.queryByRole('region', { name: 'Leaving' })).toBeNull();
+  },
+});
+
 /** A spectator's game menu has nothing to give up. */
 export const SpectatorGameMenu = meta.story({
   beforeEach: install(() => productTransport('neutral', drafting())),
   play: async ({ canvasElement }) => {
-    await decisionBar(canvasElement, 'You are watching');
     const page = within(canvasElement.ownerDocument.body);
+    await shows(() => page.getByRole('button', { name: 'Seats' }));
     await press(() => page.getByRole('button', { name: 'Game menu' }));
     await waitForFrame(() =>
       expect(page.getByRole('menuitem', { name: 'Give up your seat' })).toHaveAttribute('data-disabled')

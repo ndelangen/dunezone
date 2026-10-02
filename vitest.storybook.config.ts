@@ -2,7 +2,7 @@
  * Runs every story as a Vitest browser-mode test in Chromium via
  * @storybook/addon-vitest. Coverage is opt-in (--coverage) and uploads as the
  * `storybook` Codecov flag. Validated on branch prototype/combined-coverage.
- * @see docs/research/combined-coverage-codecov.md §3
+ * @see docs/research/combined-coverage-codecov.md §3 (local research notes, untracked by design)
  */
 import { storybookTest } from '@storybook/addon-vitest/vitest-plugin';
 import viteReact from '@vitejs/plugin-react';
@@ -19,6 +19,7 @@ import {
 } from './.storybook/worker-async-transform.ts';
 import { coverageExclude, coverageIncludeSrc } from './coverage-denominator.ts';
 import { reactCompiler } from './scripts/lib/reactCompiler.ts';
+import { threeRendererStackAliases, threeRendererStackTreeShaking } from './scripts/lib/threeRendererStack.ts';
 
 export default defineConfig({
   oxc: convexWorkerOxc,
@@ -61,12 +62,17 @@ export default defineConfig({
       '@react-three/fiber/webgpu',
       'three',
     ],
+    /* The prebundled table runs the same fiber and drei code as the build. */
+    rolldownOptions: { plugins: [threeRendererStackTreeShaking()] },
   },
   resolve: {
     /* Typings in the current Vite package lag behind docs/runtime support
        (same cast as .storybook/vite.config.ts). */
     ...({ tsconfigPaths: true } as Record<string, unknown>),
-    alias: convexWorkerAliases,
+    alias: [
+      ...Object.entries(convexWorkerAliases).map(([find, replacement]) => ({ find, replacement })),
+      ...threeRendererStackAliases,
+    ],
   },
   plugins: [
     ...convexWorkerServePlugins(),

@@ -1,6 +1,8 @@
-import { Button, Group, Text, Tooltip } from '@mantine/core';
+import { Button, Group, Text, Tooltip, VisuallyHidden } from '@mantine/core';
+import { snapshotFactionLabels } from '@shared/play/factionLabels';
 import { SPECTATOR_SEAT } from '@shared/play/schema';
 import type { SwapAction, SwappingState } from '@shared/play/swapping';
+import { useId } from 'react';
 
 import type { TableProjection, TableSession } from './TableSession';
 import { useServerNow } from './useServerNow';
@@ -55,13 +57,28 @@ function Readiness(props: Swapping) {
   const ready = state.ready.includes(seat);
   const players = table.snapshot.controls?.players.length ?? 0;
   const status = tradingStatus(state, closed, players, (table.snapshot.roster?.seats.length ?? 0) - players);
+  const statusId = useId();
   return (
     <Group justify="space-between" gap="sm">
+      {/* A timer is not live, so the countdown is not read out every second; the tooltip names nothing to assistive technology, so its status also describes the timer until the timer shows that status itself. */}
       <Tooltip label={status} events={{ hover: true, focus: true, touch: true }}>
-        <Text component="output" tabIndex={0} aria-label="Trading time remaining">
+        <Text
+          component="output"
+          role="timer"
+          tabIndex={0}
+          aria-label="Trading time remaining"
+          aria-describedby={closed ? undefined : statusId}
+        >
           {closed ? status : `${Math.floor(remaining / 60)}:${String(remaining % 60).padStart(2, '0')}`}
         </Text>
       </Tooltip>
+      {closed ? null : (
+        <span id={statusId} hidden>
+          {status}
+        </span>
+      )}
+      {/* The timer is not live, so the end of trading is said here, once. */}
+      <VisuallyHidden role="status">{closed ? status : ''}</VisuallyHidden>
       {seat !== SPECTATOR_SEAT && (
         <Button
           disabled={disabled}
@@ -90,7 +107,12 @@ function Seat({ seat, entry, ...props }: Swapping & Readonly<{ seat: string; ent
       <Text size="sm" c="dimmed">
         {!player ? 'Open seat' : trading.state.ready.includes(seat) ? 'Ready' : 'Not ready'}
       </Text>
-      <SeatAction trading={trading} entry={entry} player={player} />
+      <SeatAction
+        trading={trading}
+        entry={entry}
+        player={player}
+        label={(entry.faction && snapshotFactionLabels(props.table.snapshot)[entry.faction.id]) ?? entry.id}
+      />
     </Group>
   );
 }
@@ -127,7 +149,8 @@ function SeatAction({
   trading,
   entry,
   player,
-}: Readonly<{ trading: Trading; entry: RosterSeat; player: Player | undefined }>) {
+  label,
+}: Readonly<{ trading: Trading; entry: RosterSeat; player: Player | undefined; label: string }>) {
   const { state, seat, closed, disabled, send } = trading;
   if (seat === entry.id) {
     return (
@@ -146,7 +169,7 @@ function SeatAction({
       size="xs"
       variant={choice.variant}
       disabled={disabled || ready}
-      aria-label={`${choice.prefix} ${entry.faction?.name ?? entry.id}`}
+      aria-label={`${choice.prefix} ${label}`}
       onClick={() => send(choice.action)}
     >
       {choice.label}

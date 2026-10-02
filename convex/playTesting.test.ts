@@ -57,7 +57,13 @@ describe('isolated Play test controls', () => {
     await expect(t.mutation(internal.playTesting.seedRealGameCatalogue, {})).rejects.toThrow('isolated loopback');
     await expect(
       t.mutation(internal.playTesting.provisionAccounts, {
-        accounts: [{ email: 'player@example.invalid', secret: `${'0'.repeat(32)}:${'0'.repeat(128)}` }],
+        accounts: [
+          {
+            email: 'player@example.invalid',
+            scrypt: `${'0'.repeat(32)}:${'0'.repeat(128)}`,
+            pbkdf2: `pbkdf2-sha256:${'0'.repeat(32)}:${'0'.repeat(64)}`,
+          },
+        ],
       })
     ).rejects.toThrow('isolated loopback');
   });

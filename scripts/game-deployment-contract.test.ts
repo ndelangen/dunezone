@@ -10,6 +10,7 @@ import {
   validateGameDeployContract,
   validateGameHealth,
 } from './game-deployment-contract';
+import { verifyJob } from './lib/verify-workflow';
 import { browserFlows } from './verify-hosted-flows';
 
 const SHA = 'a'.repeat(40);
@@ -48,18 +49,6 @@ const environment = {
   CLOUDFLARE_ACCOUNT_ID: 'b'.repeat(32),
   CLOUDFLARE_API_TOKEN: 'not-a-real-token',
 };
-
-/**
- * One job of the verify workflow, from its key to the next job's key.
- * The next key may hold any character a job id can: a letter, a digit, `_` or `-`, as in `tool_e2e`.
- */
-function verifyJob(id: string): string {
-  const workflow = readFileSync('.github/workflows/reusable-verify.yml', 'utf8');
-  const start = workflow.indexOf(`\n  ${id}:\n`);
-  expect(start, `reusable-verify.yml has no ${id} job`).toBeGreaterThan(0);
-  const length = workflow.slice(start + 1).search(/\n {2}[\w-]+:\n/);
-  return length === -1 ? workflow.slice(start) : workflow.slice(start, start + 1 + length);
-}
 
 describe('game deployment contract', () => {
   test('accepts the reviewed private Worker and refuses public ingress', () => {
