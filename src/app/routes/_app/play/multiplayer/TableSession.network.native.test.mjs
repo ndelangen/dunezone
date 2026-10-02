@@ -12,59 +12,78 @@ import { TableSession } from './TableSession';
 
 const gameId = 'fixture-game';
 
-/** A browser socket over the native runtime; `network.down` swallows frames both ways without a close, as a dead link does. */
+const CLOSED = 3;
+
+/** A browser socket that `network.down` cuts off both ways without a close, as a dead link does. */
+class BridgeSocket {
+  readyState = 0;
+  bufferedAmount = 0;
+  onopen = null;
+  onmessage = null;
+  onclose = null;
+  onerror = null;
+  inner = null;
+
+  constructor(network) {
+    this.network = network;
+  }
+
+  send(data) {
+    if (!this.network.down) {
+      this.inner?.send(data);
+    }
+  }
+
+  close(code = 1000) {
+    if (this.readyState === CLOSED) {
+      return;
+    }
+    this.closed(code);
+    try {
+      this.inner?.close(code);
+    } catch {
+      /* The runtime may already have torn the socket down. */
+    }
+  }
+
+  closed(code) {
+    if (this.readyState !== CLOSED) {
+      this.readyState = CLOSED;
+      this.onclose?.({ code });
+    }
+  }
+
+  attach(inner) {
+    this.inner = inner;
+    inner.accept();
+    inner.addEventListener('message', (event) => {
+      if (!this.network.down && this.readyState === 1) {
+        this.onmessage?.({ data: event.data });
+      }
+    });
+    inner.addEventListener('close', (event) => this.closed(event.code));
+    this.readyState = 1;
+    this.onopen?.();
+  }
+}
+
+/** A game runtime whose sockets reach the native Worker through the bridge. */
 function bridge(runtime, network) {
+  const connect = async (socket) => {
+    const response = await runtime.fetch(`/__play/games/${gameId}/socket`, {
+      headers: { Origin: runtime.origin, Upgrade: 'websocket' },
+    });
+    if (response.status === 101 && socket.readyState !== CLOSED) {
+      socket.attach(response.webSocket);
+    } else {
+      socket.close(1006);
+    }
+  };
   return {
     openSocket() {
-      let inner = null;
-      const socket = {
-        readyState: 0,
-        bufferedAmount: 0,
-        onopen: null,
-        onmessage: null,
-        onclose: null,
-        onerror: null,
-        send(data) {
-          if (!network.down) {
-            inner?.send(data);
-          }
-        },
-        close(code = 1000) {
-          if (socket.readyState === 3) {
-            return;
-          }
-          socket.readyState = 3;
-          try {
-            inner?.close(code);
-          } catch {}
-          socket.onclose?.({ code });
-        },
-      };
+      const socket = new BridgeSocket(network);
       network.sockets.push(socket);
-      runtime
-        .fetch(`/__play/games/${gameId}/socket`, { headers: { Origin: runtime.origin, Upgrade: 'websocket' } })
-        .then((response) => {
-          if (response.status !== 101 || socket.readyState === 3) {
-            socket.close(1006);
-            return;
-          }
-          inner = response.webSocket;
-          inner.accept();
-          inner.addEventListener('message', (event) => {
-            if (!network.down && socket.readyState === 1) {
-              socket.onmessage?.({ data: event.data });
-            }
-          });
-          inner.addEventListener('close', (event) => {
-            if (socket.readyState !== 3) {
-              socket.readyState = 3;
-              socket.onclose?.({ code: event.code });
-            }
-          });
-          socket.readyState = 1;
-          socket.onopen?.();
-        })
-        .catch(() => socket.close(1006));
+      connect(socket).catch(() => socket.close(1006));
       return socket;
     },
     monotonicNow: () => performance.now(),
@@ -95,6 +114,12 @@ describe('A table client on a bad network (#1696)', { timeout: 60_000, hookTimeo
     await peer?.close();
   });
 
+  /* Waits for the client to see the restart, so the next live table is the reconnected one. */
+  const restart = async () => {
+    const opened = network.sockets.length;
+    await runtime.restart();
+    await eventually(() => network.sockets.length > opened, 'reconnect attempt', 15_000);
+  };
   const live = (label = 'live table') =>
     eventually(
       () => {
@@ -104,7 +129,7 @@ describe('A table client on a bad network (#1696)', { timeout: 60_000, hookTimeo
       label,
       15_000
     );
-  const revision = () => client.getSnapshot().table.snapshot.revision;
+  const revision = () => client.getSnapshot().table?.snapshot.revision;
   const server = async () => {
     peer.registrationId = 'registration-b';
     const observer = await admitPlayer(peer, runtime, 'b');
@@ -126,7 +151,7 @@ describe('A table client on a bad network (#1696)', { timeout: 60_000, hookTimeo
 
   it('recovers from a Worker restart without a reload', async () => {
     const before = revision();
-    await runtime.restart();
+    await restart();
     await live('after restart');
     client.spawnSpice(1);
     await eventually(() => revision() === before + 1, 'action after restart', 10_000);
@@ -167,7 +192,7 @@ describe('A table client on a bad network (#1696)', { timeout: 60_000, hookTimeo
       .table.snapshot.table.pieces.find((candidate) => !candidate.inventory && !candidate.locked);
     client.beginGesture(piece.id, 'whole');
     await eventually(() => client.getSnapshot().table?.gestureActivePieceId === piece.id, 'carry', 5000);
-    await runtime.restart();
+    await restart();
     await live('after restart');
     await eventually(() => client.getSnapshot().table?.gestureActivePieceId === null, 'carry ended', 10_000);
     expect(client.getSnapshot().error).toBe(
