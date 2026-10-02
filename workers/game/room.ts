@@ -89,6 +89,12 @@ const REVISION_TOLERANT_ACTIONS = new Set<string>([
   'removal-ballot',
 ]);
 
+/** The carry IDs a connection may use before it reconnects; the room never forgets one while the connection lasts. */
+const CARRY_HISTORY_LIMIT = 1024;
+
+/** The refusal of a carry from a connection that used every carry ID the room remembers; only a new connection may start more. */
+export class CarryHistoryExhausted extends GameRejection {}
+
 /** Readiness confirms the table its sender saw, so it may cross other readiness but never a change it would have answered. */
 const READINESS_ACTIONS = new Set<string>(['ready', 'draft-ready', 'swap-ready']);
 
@@ -229,8 +235,8 @@ export class Room {
     if (used?.has(input.carryId)) {
       throw new GameRejection('That carry ID has ended. Start a new carry.');
     }
-    if (used && used.size >= 1024) {
-      throw new GameRejection('Reconnect to the table before starting another carry.');
+    if (used && used.size >= CARRY_HISTORY_LIMIT) {
+      throw new CarryHistoryExhausted('Reconnect to the table before starting another carry.');
     }
   }
 
@@ -251,8 +257,9 @@ export class Room {
 
   private newCarryDraft(identity: Identity, input: CarryInput<'begin'>): DraftMove {
     const { carryId: id, sourcePieceId: sourceId, pickup } = input;
-    this.assertCarryHistory(identity, input);
+    /* A carry still in hand is refused as such first, so only a connection with nothing left to finish is sent to reconnect. */
     this.assertCarryCapacity(identity);
+    this.assertCarryHistory(identity, input);
     this.available(sourceId);
     const state = tableForViewer(this.snapshot, identity.viewerSeat);
     const source = this.pickupSource(state, input);
