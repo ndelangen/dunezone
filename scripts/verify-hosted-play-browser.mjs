@@ -11,7 +11,7 @@ import sharp from 'sharp';
 
 import { PHASE_VIEWS } from '../src/app/routes/_app/play/playView.ts';
 import { turnTrackerLayout } from '../src/app/routes/_app/play/turnTrackerGeometry.ts';
-import { phaseAt, phaseForTurn, TABLE_PHASES, tableProgressFor } from '../src/shared/play/phases.ts';
+import { phaseAt, TABLE_PHASES, tableProgressFor } from '../src/shared/play/phases.ts';
 import { KEEPALIVE_PING, KEEPALIVE_PONG } from '../src/shared/play/protocol.ts';
 import { setupReadyRequired, setupStep } from '../src/shared/play/setup.ts';
 import { isSpicePiece } from '../src/shared/play/spice.ts';
@@ -1251,24 +1251,6 @@ async function phaseCooldownEnded(who) {
   await until(() => Date.now() >= who.phaseCooldown.receivedAt + who.phaseCooldown.ms, 'Phase cooldown did not end.');
 }
 
-async function sharedTurnChange(sender, recipient, turn, interact) {
-  if (turn > tableProgressFor(sender.view().snapshot.phase).turn) {
-    await readyBeforeAdvance(sender, recipient);
-  }
-  await phaseCooldownEnded(sender);
-  const before = sender.view().snapshot;
-  await interact();
-  await revision(sender, before.revision + 1);
-  await revision(recipient, before.revision + 1);
-  const expectedPhase = phaseForTurn(before.phase, turn);
-  assert.equal(sender.view().snapshot.phase, expectedPhase);
-  samePublicView(sender, recipient);
-  assert.deepEqual(sender.view().snapshot.table.pieces, before.table.pieces);
-  assert.equal(sender.view().snapshot.table.stormSectorIndex, before.table.stormSectorIndex);
-  await displayedPhase(sender, expectedPhase);
-  await displayedPhase(recipient, expectedPhase);
-}
-
 async function goldPixels(png, center) {
   const clip = { left: Math.round(center.x) - 14, top: Math.round(center.y) - 14, width: 28, height: 28 };
   const { data, info } = await sharp(png).extract(clip).removeAlpha().raw().toBuffer({ resolveWithObject: true });
@@ -1369,7 +1351,7 @@ async function sharedSpiceRoundTrip(sender, recipient, count, interact, name) {
   passed(`${name}: the other player drags the full stack onto the supply and both players see it removed`);
 }
 
-/** Clicks the turn wheel's sector for `turn`, which the wheel shows around the current one. */
+/** Clicks the turn wheel's sector for `turn`, which the wheel shows around the current one; the wheel only shows the turn (#1683). */
 async function selectTurn(who, current, turn) {
   /* The page lays the tracker arc out for the game's own turn, which faction phases can lengthen (#1473). */
   const { phase, phases } = who.view().snapshot;
@@ -1392,19 +1374,16 @@ async function sharedTrackerFlow(a, b) {
   const originalTurn = tableProgressFor(originalPhase).turn;
   await focus(a, 'map');
   await focus(b, 'map');
-  await sharedTurnChange(a, b, originalTurn + 1, () => selectTurn(a, originalTurn, originalTurn + 1));
-  await capture(a, 'after-next-turn-player-a');
-  await capture(b, 'after-next-turn-player-b');
-  passed(
-    'Selecting the next turn on the wheel updates both visible headers while preserving phase, pieces and storm position'
-  );
-
-  await focus(a, 'map');
-  await focus(b, 'map');
-  await sharedTurnChange(b, a, originalTurn, () => selectTurn(b, originalTurn + 1, originalTurn));
+  /* Past the cooldown, so a click the wheel still acted on would land. */
+  await phaseCooldownEnded(a);
+  const before = a.view().snapshot.revision;
+  await selectTurn(a, originalTurn, originalTurn + 1);
+  await delay(1000);
+  assert.equal(a.view().snapshot.revision, before);
+  assert.equal(b.view().snapshot.revision, before);
   assert.equal(a.view().snapshot.phase, originalPhase);
-  await capture(a, 'after-turn-wheel-selection');
-  passed('The other player selects the original turn on the real wheel and both headers follow');
+  await displayedPhase(a, originalPhase);
+  passed('Clicking a later turn on the wheel changes nothing: the turn moves only through the phases (#1683)');
 
   await focus(a, 'map');
   await focus(b, 'map');

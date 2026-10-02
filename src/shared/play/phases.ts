@@ -210,21 +210,6 @@ export function phaseForTurn(index: number, turn: number, phaseCount: number = S
   return next;
 }
 
-/**
- * The first phase a forward move from `from` to `to` passes over that asks every player to be ready, if any (#1683).
- * Only phases strictly between the two count: the phase being left has its own gate, and the one landed on asks for readiness itself.
- */
-export function readyPhaseCrossed(from: number, to: number, phases: readonly PhaseEntry[] = STANDARD_PHASES) {
-  const crossed = Math.min(to - from - 1, phases.length);
-  for (let offset = 1; offset <= crossed; offset++) {
-    const entry = phaseAt(from + offset, phases);
-    if (entry.allPlayersMustBeReady) {
-      return entry;
-    }
-  }
-  return null;
-}
-
 export const PHASE_CHANGE_COOLDOWN_MS = 2000;
 
 /** Refuses a phase change before the game's cooldown has run since the last one, naming that cooldown. */

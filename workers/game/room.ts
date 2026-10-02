@@ -14,7 +14,6 @@ import {
   PHASE_CHANGE_COOLDOWN_MS,
   phaseAt,
   phaseForTurn,
-  readyPhaseCrossed,
   requirePhaseCooldownElapsed,
   STANDARD_PHASES,
   stepPhase,
@@ -411,6 +410,10 @@ export class Room {
   command(identity: Identity, action: RoomAction, expectedRevision: number, now = Date.now()): StoredSnapshot {
     this.assertActionStage(action);
     this.assertCommand(identity, action, expectedRevision);
+    /* The turn moves only through the phases, so Mentat pause always asks everyone to be ready (#1683); an older client may still send this. */
+    if (action.kind === 'turn') {
+      throw new GameRejection('The turn changes only by moving through the phases.');
+    }
     if (isSetupAction(action) || (this.snapshot.stage === 'setup' && ['phase', 'ready'].includes(action.kind))) {
       return setupCommand(this.snapshot, action, {
         factionId: this.requireFaction(identity),
@@ -604,13 +607,6 @@ export class Room {
     });
     if (refusal) {
       throw new GameRejection(refusal);
-    }
-    /* A turn jump forward would pass every Mentat pause in between without anyone saying they are ready; going back stays free. */
-    const crossed = readyPhaseCrossed(this.snapshot.phase, phase, this.phases());
-    if (crossed) {
-      throw new GameRejection(
-        `Moving to a later turn passes ${crossed.label}, where every seated player must be ready. Use Next phase to reach it first.`
-      );
     }
   }
 

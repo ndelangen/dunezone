@@ -124,7 +124,6 @@ type TabletopSceneProps = {
   onInteractionActiveChange?(active: boolean): void;
   seatCount?: TableSeatCount;
   tableProgress?: TableProgress;
-  onSelectTurn?(turn: number): void;
   /* Called when the renderer is ready to draw, the moment there is a table to open the shell onto. */
   onSceneReady?(): void;
   /* Absent on the fixture, which has no lifecycle. */
@@ -241,17 +240,8 @@ function BoardRim({ seatCount }: { seatCount: TableSeatCount }) {
   );
 }
 
-function TableTrackers({
-  progress,
-  slots,
-  onSelectTurn,
-}: {
-  progress: TableProgress;
-  slots: readonly TrackerArcSlot[];
-  onSelectTurn?: TabletopSceneProps['onSelectTurn'];
-}) {
+function TableTrackers({ progress, slots }: { progress: TableProgress; slots: readonly TrackerArcSlot[] }) {
   const currentPhaseIndex = activePhaseIndex(progress);
-  const { canInteract } = useTabletop();
 
   return (
     <group>
@@ -279,13 +269,7 @@ function TableTrackers({
               {slot.kind === 'phase' ? (
                 <PhaseSymbol symbol={symbol} radius={slot.radius} faceColor={color} highlighted={highlighted} />
               ) : null}
-              {slot.kind === 'turn' ? (
-                <TurnTracker
-                  radius={slot.radius}
-                  turn={progress.turn}
-                  onSelectTurn={canInteract ? onSelectTurn : undefined}
-                />
-              ) : null}
+              {slot.kind === 'turn' ? <TurnTracker radius={slot.radius} turn={progress.turn} /> : null}
               {slot.kind === 'spice' ? <SpiceSupply radius={slot.radius} /> : null}
             </group>
           </group>
@@ -452,7 +436,6 @@ function BoardSurface({
   mapVisible,
   tableProgress,
   trackerSlots,
-  onSelectTurn,
 }: {
   seatCount: TableSeatCount;
   stormSectorIndex: number;
@@ -460,7 +443,6 @@ function BoardSurface({
   mapVisible?: boolean;
   tableProgress?: TableProgress;
   trackerSlots: readonly TrackerArcSlot[];
-  onSelectTurn?: TabletopSceneProps['onSelectTurn'];
 }) {
   return (
     <group>
@@ -499,9 +481,7 @@ function BoardSurface({
         );
       })}
       <PlayerStations seatCount={seatCount} />
-      {tableProgress ? (
-        <TableTrackers progress={tableProgress} slots={trackerSlots} onSelectTurn={onSelectTurn} />
-      ) : null}
+      {tableProgress ? <TableTrackers progress={tableProgress} slots={trackerSlots} /> : null}
     </group>
   );
 }
@@ -1195,12 +1175,11 @@ function SceneContents({
   tableProgress,
   trackerSlots,
   mapFramingPoints,
-  onSelectTurn,
   stage,
   mapVisible,
 }: Pick<
   TabletopSceneProps,
-  'cameraView' | 'onInteractionActiveChange' | 'seatCount' | 'tableProgress' | 'onSelectTurn' | 'stage' | 'mapVisible'
+  'cameraView' | 'onInteractionActiveChange' | 'seatCount' | 'tableProgress' | 'stage' | 'mapVisible'
 > & {
   trackerSlots: readonly TrackerArcSlot[];
   mapFramingPoints: readonly Vector3Tuple[];
@@ -1228,7 +1207,6 @@ function SceneContents({
           mapVisible={mapVisible}
           tableProgress={tableProgress}
           trackerSlots={trackerSlots}
-          onSelectTurn={onSelectTurn}
         />
         {renderedPieces
           .filter((piece) => !piece.battleOverlay)
@@ -1249,7 +1227,6 @@ export function TabletopScene({
   onInteractionActiveChange,
   seatCount = DEFAULT_TABLE_SEAT_COUNT,
   tableProgress: providedProgress,
-  onSelectTurn,
   onSceneReady,
   stage,
   mapVisible,
@@ -1398,7 +1375,7 @@ export function TabletopScene({
                 onInteractionActiveChange={onInteractionActiveChange}
                 seatCount={seatCount}
                 tableProgress={tableProgress}
-                onSelectTurn={onSelectTurn}
+
                 trackerSlots={trackerSlots}
                 mapFramingPoints={mapFramingPoints}
               />

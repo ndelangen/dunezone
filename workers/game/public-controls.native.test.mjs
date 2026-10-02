@@ -134,14 +134,14 @@ describe('Hosted readiness and shared inventory through native commands', () => 
     expect(state.controls.ready).toEqual([]);
     await act(reconnected, { kind: 'phase' }, 'between phase changes');
     await act(b, { kind: 'phase', direction: -1 }, 'between phase changes');
-    await act(b, { kind: 'turn', turn: 3 }, 'between phase changes');
+    await act(b, { kind: 'turn', turn: 3 }, 'only by moving through the phases');
     await waitPhase();
     state = await act(b, { kind: 'phase', direction: -1 });
     expect(state.phase).toBe(8);
     expect(state.controls.ready).toEqual([]);
     expect(state.table.pieces).toEqual(pieces);
     await waitPhase();
-    await act(b, { kind: 'turn', turn: 3 }, 'Every seated player');
+    await act(b, { kind: 'turn', turn: 3 }, 'only by moving through the phases');
     await runtime.restart();
     const restored = await admit('a');
     expect((await snapshot(restored)).controls.ready).toEqual([]);

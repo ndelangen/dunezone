@@ -602,15 +602,15 @@ describe('hosted table admission', () => {
 });
 
 describe('hosted table interaction', () => {
-  test('turn corrections preserve a carry and use the latest shared revision', async () => {
+  test('phase changes preserve a carry and use the latest shared revision', async () => {
     const { client, source, carried } = await grantedWholeCarry();
     socket().deliver(carried);
-    client.selectTurn(7);
-    expect(command().action).toEqual({ kind: 'turn', turn: 7 });
+    client.command({ kind: 'phase' });
+    expect(command().action).toEqual({ kind: 'phase' });
     socket().deliver({ ...carried, snapshot: { ...carried.snapshot, phase: 54, revision: 1 } });
     expect(table(client).snapshot.phase).toBe(54);
     expect(table(client).gestureActivePieceId).toBe(source.id);
-    client.selectTurn(3);
+    client.command({ kind: 'phase' });
     expect(command().expectedRevision).toBe(1);
     client.finishGesture([0, 0.38, 0]);
     expect(socket().sent.at(-1)).toMatchObject({ type: 'drop', carryId: carried.carries[0].id });
@@ -625,7 +625,7 @@ describe('hosted table interaction', () => {
     const commands = socket().sent.length;
     authorize(initialSnapshot(), { ...viewer, viewerSeat: 'neutral' });
     client.spawnSpice(1);
-    client.selectTurn(4);
+    client.command({ kind: 'phase' });
     expect(socket().sent).toHaveLength(commands);
   });
 
@@ -999,7 +999,7 @@ test('compact update gaps pause commands until a full resync restores the table'
   expect(socket().sent.at(-1)).toEqual({ type: 'sync' });
   expect(table(client).canInteract).toBe(false);
   const sent = socket().sent.length;
-  client.selectTurn(2);
+  client.command({ kind: 'phase' });
   expect(socket().sent).toHaveLength(sent);
   socket().deliver(view({ sequence: 5, snapshot }));
   expect(table(client).canInteract).toBe(true);

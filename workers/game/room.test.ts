@@ -37,30 +37,16 @@ const items = (snapshot: GameSnapshot) =>
   snapshot.table.pieces.flatMap((piece) => piece.items.map((item) => item.id)).sort();
 
 describe('shared phase progression', () => {
-  test('selects any representable turn while preserving the phase, pieces and active carries', () => {
-    const initial = { ...initialSnapshot(), phase: 24 * TABLE_PHASES.length + 3 };
+  test('refuses a turn change, so the turn moves only through the phases (#1683)', () => {
+    const initial = { ...initialSnapshot(), phase: TABLE_PHASES.length + 3 };
     const room = new Room(initial, seated);
-    room.begin(alice, {
-      carryId: 'turn-carry',
-      sourcePieceId: 'harkonnen-force-stack',
-      expectedVersion: 0,
-      pickup: 'top',
-    });
-    const carries = structuredClone(room.publicCarries());
-    room.accept(room.command(bob, { kind: 'turn', turn: 2 }, 0));
-    expect(tableProgressFor(room.snapshot.phase)).toMatchObject({ turn: 2, activePhaseId: 'bidding' });
-    expect(room.snapshot.table.pieces).toEqual(initial.table.pieces);
-    expect(room.snapshot.versions).toEqual(initial.versions);
-    expect(room.publicCarries()).toEqual(carries);
-    expect(() => room.command(bob, { kind: 'turn', turn: 1 }, 0)).toThrow('table changed');
-    expect(() => room.command(spectator, { kind: 'turn', turn: 2 }, 1)).toThrow('Spectators');
-    for (const turn of [0, -1, 1.5, Number.MAX_SAFE_INTEGER]) {
-      expect(() => room.command(alice, { kind: 'turn', turn }, 1)).toThrow();
+    for (const turn of [1, 2, 3, 25]) {
+      expect(() => room.command(bob, { kind: 'turn', turn }, 0, Date.now() + PHASE_CHANGE_COOLDOWN_MS)).toThrow(
+        'The turn changes only by moving through the phases.'
+      );
     }
-    room.accept(room.command(alice, { kind: 'turn', turn: 1 }, 1, Date.now() + PHASE_CHANGE_COOLDOWN_MS));
-    expect(room.snapshot.phase).toBe(3);
-    room.accept(room.drop(alice, 'turn-carry', [0, 0.38, 0], 0), 'turn-carry');
-    expect(room.snapshot.table.pieces.some((piece) => piece.id === 'carry-turn-carry')).toBe(true);
+    expect(() => room.command(spectator, { kind: 'turn', turn: 1 }, 0)).toThrow('Spectators');
+    expect(room.snapshot).toMatchObject(initial);
   });
   test('accepts old forward commands and steps across turn boundaries without replaying tabletop actions', () => {
     const room = new Room(initialSnapshot(), seated);
@@ -119,38 +105,6 @@ describe('shared phase progression', () => {
     expect(room.snapshot.table.pieces).toEqual(table.pieces);
     expect(room.snapshot.table.stormSectorIndex).toBe(table.stormSectorIndex);
     expect(room.snapshot.versions).toEqual(versions);
-  });
-
-  test('a forward turn jump waits for everyone at Mentat pause, and a backward one stays free (#1683)', () => {
-    const battle = TABLE_PHASES.findIndex((phase) => phase.id === 'battle');
-    const mentat = TABLE_PHASES.findIndex((phase) => phase.id === 'mentat-pause');
-    const room = new Room({ ...initialSnapshot(), phase: TABLE_PHASES.length + battle }, seated);
-    let now = Date.now();
-    const later = () => (now += PHASE_CHANGE_COOLDOWN_MS);
-    for (const turn of [3, 9]) {
-      expect(() => room.command(alice, { kind: 'turn', turn }, room.snapshot.revision, later())).toThrow(
-        'Moving to a later turn passes Mentat pause, where every seated player must be ready.'
-      );
-    }
-    expect(tableProgressFor(room.snapshot.phase)).toMatchObject({ turn: 2, activePhaseId: 'battle' });
-
-    room.accept(room.command(bob, { kind: 'turn', turn: 1 }, room.snapshot.revision, later()));
-    expect(tableProgressFor(room.snapshot.phase)).toMatchObject({ turn: 1, activePhaseId: 'battle' });
-
-    while (room.snapshot.phase < mentat) {
-      room.accept(room.command(alice, { kind: 'phase' }, room.snapshot.revision, later()));
-    }
-    room.accept(room.command(alice, { kind: 'ready', ready: true }, room.snapshot.revision));
-    expect(() => room.command(alice, { kind: 'turn', turn: 2 }, room.snapshot.revision, later())).toThrow(
-      'Every seated player must be ready'
-    );
-    room.accept(room.command(bob, { kind: 'ready', ready: true }, room.snapshot.revision));
-    expect(() => room.command(alice, { kind: 'turn', turn: 3 }, room.snapshot.revision, later())).toThrow(
-      'Moving to a later turn passes Mentat pause'
-    );
-    room.accept(room.command(alice, { kind: 'turn', turn: 2 }, room.snapshot.revision, later()));
-    expect(tableProgressFor(room.snapshot.phase)).toMatchObject({ turn: 2, activePhaseId: 'mentat-pause' });
-    expect(room.snapshot.controls?.ready).toEqual([]);
   });
 
   test('public controls refuse a player outside the current roster and a request without captured contents', () => {

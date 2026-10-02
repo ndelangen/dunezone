@@ -11,7 +11,6 @@ import {
   lobbyPhaseIndex,
   phaseAt,
   phaseForTurn,
-  readyPhaseCrossed,
   STANDARD_PHASES,
   tableProgressFor,
 } from './phases';
@@ -203,33 +202,5 @@ describe('captured declarations (#1138)', () => {
     expect(definition.safeParse([declaration({ id: 'kept' }), renamed]).success).toBe(true);
     const capture = { definition: { extraPhases: [declaration({ id: 'kept' }), renamed] } } as FactionCapture;
     expect(capturedDeclarations(capture).map((row) => row.id)).toEqual(['kept']);
-  });
-});
-
-describe('readyPhaseCrossed (#1683)', () => {
-  const mentat = STANDARD_PHASES.findIndex((entry) => entry.id === 'mentat-pause');
-  const count = STANDARD_PHASES.length;
-
-  it('names a ready phase strictly between the two indices, however far the jump', () => {
-    expect(readyPhaseCrossed(0, count)?.id).toBe('mentat-pause');
-    expect(readyPhaseCrossed(3, 3 + 1000 * count)?.id).toBe('mentat-pause');
-  });
-
-  it('ignores the phase being left, the phase landed on, single steps and backward moves', () => {
-    expect(readyPhaseCrossed(mentat, mentat + count)).toBeNull();
-    expect(readyPhaseCrossed(0, mentat)).toBeNull();
-    expect(readyPhaseCrossed(mentat - 1, mentat + 1)?.id).toBe('mentat-pause');
-    expect(readyPhaseCrossed(mentat, mentat + 1)).toBeNull();
-    expect(readyPhaseCrossed(count + 3, 3)).toBeNull();
-  });
-
-  it('counts a faction phase that asks everyone to be ready', () => {
-    const turn = composeTurn(
-      [{ factionId: 'bg', declarations: [declaration({ id: 'vote', allPlayersMustBeReady: true })] }],
-      ['bg']
-    );
-    const vote = turn.findIndex((entry) => entry.id === 'bg:vote');
-    expect(readyPhaseCrossed(0, vote + 1, turn)?.id).toBe('bg:vote');
-    expect(readyPhaseCrossed(vote, vote + 2, turn)).toBeNull();
   });
 });
