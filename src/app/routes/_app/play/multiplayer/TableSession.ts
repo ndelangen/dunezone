@@ -1,5 +1,5 @@
 import type { BattlePlanInput } from '@shared/play/battle';
-import { snapshotFactionLabels } from '@shared/play/factionLabels';
+import { snapshotFactionLabels, snapshotFactionTieBreaks } from '@shared/play/factionLabels';
 import type { SpawnSelection } from '@shared/play/inventory';
 import type { LogTab } from '@shared/play/log';
 import { affordancesFor, gestureBlockReason } from '@shared/play/model';
@@ -243,6 +243,7 @@ export class TableSession {
       : authoritative;
     const state = {
       ...tableForViewer(displayed, this.viewer.viewerSeat),
+      factionTieBreaks: snapshotFactionTieBreaks(displayed),
       selectedPieceId: this.selectedId,
       draftMove: this.carry?.draft ?? null,
     };
@@ -275,7 +276,7 @@ export class TableSession {
           : undefined,
       deckControls: canInteract
         ? {
-            recipients: Object.entries(snapshotFactionLabels(displayed)).map(([id, name]) => ({ id, name: name! })),
+            recipients: Object.entries(snapshotFactionLabels(displayed)).map(([id, name]) => ({ id, name })),
             draw: (pieceId, recipient) => this.command({ kind: 'deck-draw', pieceId, recipient }),
             shuffle: (pieceId) => this.command({ kind: 'deck-shuffle', pieceId }),
           }

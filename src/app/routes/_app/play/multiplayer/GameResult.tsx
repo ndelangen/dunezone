@@ -18,7 +18,7 @@ const KINDS: { value: GameResultKind; label: string }[] = [
 ];
 
 function factionOptions(table: TableProjection) {
-  return Object.entries(snapshotFactionLabels(table.snapshot)).map(([value, label]) => ({ value, label: label! }));
+  return Object.entries(snapshotFactionLabels(table.snapshot)).map(([value, label]) => ({ value, label }));
 }
 
 function factionName(table: TableProjection, id: string) {

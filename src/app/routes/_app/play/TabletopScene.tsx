@@ -1025,10 +1025,21 @@ function PieceLock({ piece }: { piece: TablePiece }) {
   return piece.kind === 'force' ? <group scale={0.5}>{lock}</group> : lock;
 }
 
-/* The faction that owns a piece, by its display name; a shared piece, or an owner the roster does not name, has none. A label that already carries the name ('Atreides forces', 'Atreides alliance') names it once. */
-function pieceOwnerName(piece: TablePiece, factionNames: TableState['factionNames']) {
-  const owner = piece.owner === 'shared' ? undefined : factionNames[piece.owner];
-  return owner && !piece.label.includes(owner) ? owner : undefined;
+/*
+ * The faction that owns a piece, by its display name; a shared piece, or an owner the roster does not name, has none.
+ * A label that already carries the name ('Atreides forces', 'Atreides alliance') names it once, and when another
+ * seat's faction shares that name the badge adds only what tells them apart (#1667).
+ */
+function pieceOwnerName(piece: TablePiece, state: Pick<TableState, 'factionNames' | 'factionTieBreaks'>) {
+  const owner = piece.owner === 'shared' ? undefined : state.factionNames[piece.owner];
+  if (!owner) {
+    return undefined;
+  }
+  const tieBreak = state.factionTieBreaks?.[piece.owner];
+  if (piece.label.includes(owner)) {
+    return tieBreak;
+  }
+  return tieBreak ? `${owner} (${tieBreak})` : owner;
 }
 
 function PieceBadge({
@@ -1132,7 +1143,7 @@ function TablePieceMesh(props: TablePieceMeshProps) {
           <PieceLock piece={piece} />
           <PieceBadge
             piece={piece}
-            owner={pieceOwnerName(piece, state.factionNames)}
+            owner={pieceOwnerName(piece, state)}
             selected={selected}
             labelRef={labelRef}
             badgeRef={badgeRef}

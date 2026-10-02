@@ -42,19 +42,25 @@ export function rosterFactionTitles<P>(
   );
 }
 
+/** What tells a title apart as plain text, "Alice" or "seat 3", or nothing when its name is its own. */
+export function factionTieBreakText(title: FactionTitle): string | undefined {
+  if (!title.tieBreak) {
+    return undefined;
+  }
+  return title.tieBreak.kind === 'player' ? title.tieBreak.player.name : seatLabel(title.tieBreak.seat);
+}
+
 /** A title as plain text: "Harkonnen", or "Harkonnen (Alice)" and "Harkonnen (seat 3)" when two seats share the name. */
 export function factionTitleText(title: FactionTitle): string {
-  if (!title.tieBreak) {
-    return title.name;
-  }
-  return `${title.name} (${title.tieBreak.kind === 'player' ? title.tieBreak.player.name : seatLabel(title.tieBreak.seat)})`;
+  const tieBreak = factionTieBreakText(title);
+  return tieBreak ? `${title.name} (${tieBreak})` : title.name;
 }
 
 /** Every seated faction's label by its id, told apart by its player only where two seated factions share a name. */
 export function rosterFactionLabels(
   roster: TableRoster | undefined,
   holders: readonly { seat: string; name: string }[]
-): Readonly<Partial<Record<string, string>>> {
+): Readonly<Record<string, string>> {
   return Object.fromEntries(
     [...rosterFactionTitles(roster, holders)].map(([id, title]) => [id, factionTitleText(title)])
   );
@@ -64,8 +70,21 @@ export function rosterFactionLabels(
 export function snapshotFactionLabels(snapshot: {
   roster?: TableRoster;
   controls?: { players: readonly { seat: string; name: string }[] };
-}): Readonly<Partial<Record<string, string>>> {
+}): Readonly<Record<string, string>> {
   return rosterFactionLabels(snapshot.roster, snapshot.controls?.players ?? []);
+}
+
+/** Only the tie-breakers a snapshot shows, by faction id, for a place that already names the faction. */
+export function snapshotFactionTieBreaks(snapshot: {
+  roster?: TableRoster;
+  controls?: { players: readonly { seat: string; name: string }[] };
+}): Readonly<Partial<Record<string, string>>> {
+  return Object.fromEntries(
+    [...rosterFactionTitles(snapshot.roster, snapshot.controls?.players ?? [])].flatMap(([id, title]) => {
+      const tieBreak = factionTieBreakText(title);
+      return tieBreak ? [[id, tieBreak]] : [];
+    })
+  );
 }
 
 /** A faction as a table event names it: events name seats and never players, so a shared name carries its seat. */

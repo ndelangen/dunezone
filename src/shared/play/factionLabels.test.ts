@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { rosterFactionEventName, rosterFactionLabels } from './factionLabels';
+import { rosterFactionEventName, rosterFactionLabels, snapshotFactionTieBreaks } from './factionLabels';
 import type { TableRoster } from './schema';
 
 function roster(...names: string[]): TableRoster {
@@ -49,5 +49,13 @@ describe('faction labels', () => {
   it('names a shared faction name by its seat in a table event, which never names a player', () => {
     expect(rosterFactionEventName(roster('Harkonnen', 'Harkonnen'), 'faction-2')).toBe('Harkonnen (seat 2)');
     expect(rosterFactionEventName(roster('Harkonnen', 'Atreides'), 'faction-2')).toBe('Atreides');
+  });
+
+  it('gives only the tie-breakers, for a piece whose label already names its faction', () => {
+    const snapshot = {
+      roster: roster('Harkonnen', 'Atreides', 'Harkonnen'),
+      controls: { players: [{ seat: 'seat-1', name: 'Alice' }] },
+    };
+    expect(snapshotFactionTieBreaks(snapshot)).toEqual({ 'faction-1': 'Alice', 'faction-3': 'seat 3' });
   });
 });

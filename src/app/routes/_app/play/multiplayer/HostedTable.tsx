@@ -248,7 +248,7 @@ function PredictionInput({ client, table, stepId }: SetupControlProps & { stepId
     <Stack gap="sm">
       <Select
         label="Predicted winner"
-        data={Object.entries(snapshotFactionLabels(table.snapshot)).map(([value, label]) => ({ value, label: label! }))}
+        data={Object.entries(snapshotFactionLabels(table.snapshot)).map(([value, label]) => ({ value, label }))}
         value={choice.factionId}
         onChange={(factionId) => change({ factionId })}
         disabled={!table.canInteract}

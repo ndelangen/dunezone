@@ -1,5 +1,4 @@
 import { Avatar, Button, Group, Indicator, Stack, Text } from '@mantine/core';
-import { snapshotFactionLabels } from '@shared/play/factionLabels';
 import type { PublicControls } from '@shared/play/inventory';
 import type { RemovalVote } from '@shared/play/removal';
 import { rosterSeat, SPECTATOR_SEAT } from '@shared/play/schema';
@@ -143,7 +142,8 @@ export function PlayerPanel({
       (seat) =>
         occupants.find((player) => player.seat === seat.id) ?? {
           seat: seat.id,
-          name: (seat.faction && snapshotFactionLabels(table.snapshot)[seat.faction.id]) ?? seat.id,
+          /* A vacant seat's line under the name already gives the seat, which tells a shared faction name apart. */
+          name: seat.faction?.name ?? seat.id,
           avatar: null,
           slug: null,
         }
