@@ -76,6 +76,8 @@ const artworkSchema = z.object({
   backName: z.string().min(1).optional(),
   name: z.string().optional(),
   type: z.string(),
+  /* A prediction card's choice, drawn over its front (#1753); a hidden card's copy leaves it out with the front. */
+  prediction: z.object({ stepId: tableIdSchema, factionId: tableIdSchema, turn: tableCountSchema.min(1) }).optional(),
 });
 const storedItemSchema = z.object({ id: tableIdSchema, faceUp: z.boolean(), artwork: artworkSchema.optional() });
 
@@ -112,6 +114,7 @@ const concealedArtworkSchema = z.strictObject({
   front: z.never().optional(),
   name: z.never().optional(),
   type: z.never().optional(),
+  prediction: z.never().optional(),
 });
 
 /** A piece as a viewer receives it and the table logic reads it: a card the viewer may not see carries only its back and the word on it. */

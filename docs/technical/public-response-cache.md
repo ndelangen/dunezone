@@ -93,7 +93,7 @@ The 20-miss allowance represents about 6.3 seconds of sampled rendering work per
 for this larger local fixture, with room for ordinary bursts at the expected small traffic volume.
 It is an operating throttle, not a worst-case CPU proof. The existing 30-second platform limit remains
 the final ceiling. Hosted cold starts, actual artwork and per-location rates still need measurement
-in [Measure hosted cache behavior and realistic operating costs](https://github.com/ndelangen/dunezone/issues/1721).
+in [Verify hosted previews, live data and operating costs](https://github.com/ndelangen/dunezone/issues/1721).
 
 ## Billing
 

@@ -412,6 +412,11 @@ export class GameCatalogue {
           back: this.publishedFace(source.cardbacks.traitor, 'traitor back', problems),
           cards: traitorCards,
         },
+        /* Prediction cards are optional dressing: a missing face deals no card rather than refusing the faction. */
+        prediction: {
+          front: this.publishedFace(source.prediction ?? null, 'prediction card', []),
+          back: this.publishedFace(source.cardbacks.prediction ?? null, 'prediction back', []),
+        },
       },
       extras: captured,
       readiness: readiness(problems),
