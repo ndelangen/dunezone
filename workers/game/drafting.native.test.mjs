@@ -288,14 +288,18 @@ describe('Drafting and public assignment on a real game', () => {
     /* The pool the players readied for changed, so their readiness went with it. */
     expect(failed.snapshot.draft.ready).toEqual([]);
     expect(failed.snapshot.roster.seats.every((seat) => seat.faction === null)).toBe(true);
+
+    /*
+     * The catalogue has it again. Setting it aside stamped the copy stale, so the next draft command judges it again at once,
+     * even one refused for the set-aside faction itself. The catalogue changes first: a refresh that read it before would
+     * leave the copy fresh, and a later Ready would not read it again.
+     */
+    peer.factions.set('fremen', definition('fremen', 'Fremen'));
     expect(await rejected(b, { kind: 'draft-pick', factionId: 'fremen' })).toBe(
       'Fremen cannot be dealt yet: This faction is not available.'
     );
-
-    /* The catalogue has it again: setting it aside stamped the copy stale, so the next Ready judges it again at once. */
-    peer.factions.set('fremen', definition('fremen', 'Fremen'));
-    await accepted(a, { kind: 'draft-ready', ready: true });
     await eventually(async () => !('fremen' in (await setAside(a))), 'fremen judged again');
+    await accepted(a, { kind: 'draft-ready', ready: true });
     await accepted(b, { kind: 'draft-ready', ready: true });
     await eventually(async () => (await stage(a)) === 'swapping', 'assignment once it can be captured');
     const dealt = await syncView(a);
