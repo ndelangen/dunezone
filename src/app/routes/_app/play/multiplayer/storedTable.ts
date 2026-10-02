@@ -43,10 +43,12 @@ const recordSchema = z.object({
   pending: z.array(z.unknown()),
 });
 
+type StoredRecord = z.infer<typeof recordSchema>;
+
 const storageKey = (gameId: string) => `${STORED_PLAY_TABLE_PREFIX}${gameId}`;
 
 /* The view frame the room sent, rebuilt around the stored parts, so the protocol's own schema decides whether it still parses. */
-function parseTable(record: z.infer<typeof recordSchema>): StoredTable | null {
+function parseTable(record: StoredRecord): StoredTable | null {
   const frame = serverMessageSchema.safeParse(record.frame);
   if (!frame.success || frame.data.type !== 'view') {
     return null;
@@ -85,25 +87,24 @@ export function readStoredTable(
   return table;
 }
 
-function validRecord(text: string, gameId: string, account: TableAccount, now: number): StoredTable | null {
-  let value: unknown;
+function parseRecord(text: string): StoredRecord | null {
   try {
-    value = JSON.parse(text);
+    return recordSchema.safeParse(JSON.parse(text)).data ?? null;
   } catch {
     return null;
   }
-  const record = recordSchema.safeParse(value);
-  if (
-    !record.success ||
-    record.data.gameId !== gameId ||
-    record.data.userId !== account.userId ||
-    record.data.sessionId !== account.sessionId ||
-    now - record.data.savedAt > STORED_TABLE_MAX_AGE_MS ||
-    record.data.savedAt > now
-  ) {
-    return null;
-  }
-  const table = parseTable(record.data);
+}
+
+/* The record names this game, this account and this sign-in, and was written within the last day. */
+function belongs(record: StoredRecord, gameId: string, account: TableAccount, now: number) {
+  const age = now - record.savedAt;
+  const owner = record.userId === account.userId && record.sessionId === account.sessionId;
+  return record.gameId === gameId && owner && age >= 0 && age <= STORED_TABLE_MAX_AGE_MS;
+}
+
+function validRecord(text: string, gameId: string, account: TableAccount, now: number): StoredTable | null {
+  const record = parseRecord(text);
+  const table = record && belongs(record, gameId, account, now) ? parseTable(record) : null;
   return table?.viewer.userId === account.userId ? table : null;
 }
 
