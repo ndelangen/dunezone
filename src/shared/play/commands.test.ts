@@ -288,3 +288,22 @@ describe('force stacks', () => {
     expect(labels(split.pieces)).toEqual(expected);
   });
 });
+
+describe('leader discs', () => {
+  test('a leader resting on the rim stays there when it is rotated', () => {
+    const state = freshTableState();
+    const leader = piece('leader-1', 'Leader', 'atreides', '#2d6f3b', 'force', 'leader:atreides:one');
+    leader.items = [{ id: 'leader-item', faceUp: true }];
+    const placed = place(leader, [0, 0, 4.8]);
+    expect(placed.position[1]).toBeCloseTo(0.125);
+
+    const rotated = applyPieceAction(
+      { ...state, pieces: [...state.pieces, placed] },
+      { kind: 'rotate', pieceId: 'leader-1', direction: 1 },
+      0
+    );
+    const after = pieceById(rotated, 'leader-1')!;
+    expect(after.orientation).not.toBe(placed.orientation);
+    expect(after.position[1]).toBeCloseTo(0.125);
+  });
+});

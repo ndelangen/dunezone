@@ -187,6 +187,11 @@ export const playAckAccountDeletionRequestSchema = z.strictObject({
 /** The lifecycle stage a game is in. Fixtures have none and play from their first view. */
 export const playStageSchema = z.enum(['drafting', 'swapping', 'setup', 'play', 'finished', 'discarded']);
 
+/** Whether players may handle the table's pieces: on a fixture, during setup and in play, but never before setup or once the game is finished or discarded. */
+export function tableHandlingOpen(stage: z.infer<typeof playStageSchema> | undefined) {
+  return stage === undefined || stage === 'setup' || stage === 'play';
+}
+
 export const playCreateGameRequestSchema = z.strictObject({
   rulesetId: identifierSchema,
   minimumPlayers: playMinimumPlayersSchema,

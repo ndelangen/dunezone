@@ -116,13 +116,37 @@ test('publisher activation seeds once and regeneration keeps saved definitions',
   const scan = { assetType: 'cardback-preset', cursor: null, scanned: 0, enqueued: 0 };
   await t.mutation(internal.publicationRegeneration.scan, scan);
   const presets = await t.query(api.cardbackPresets.list, {});
-  expect(presets).toHaveLength(4);
+  expect(presets).toHaveLength(INITIAL_CARDBACK_PRESETS.length);
   await admin.mutation(api.cardbackPresets.save, {
     key: 'traitor',
     cardback: { ...cardback, name: 'Saved design' },
     revision: 1,
   });
   await t.mutation(internal.publicationRegeneration.scan, scan);
+  expect((await t.query(api.cardbackPresets.list, {})).find((entry) => entry.key === 'traitor')?.cardback.name).toBe(
+    'Saved design'
+  );
+});
+
+test('a preset added after activation is seeded by the next scan, beside saved designs', async () => {
+  const { t, admin } = await fixture();
+  const scan = { assetType: 'cardback-preset', cursor: null, scanned: 0, enqueued: 0 };
+  await t.mutation(internal.publicationRegeneration.scan, scan);
+  await t.run(async (ctx) => {
+    const row = await ctx.db
+      .query('cardback_presets')
+      .withIndex('by_key', (q) => q.eq('key', 'prediction'))
+      .unique();
+    await ctx.db.delete(row!._id);
+  });
+  await admin.mutation(api.cardbackPresets.save, {
+    key: 'traitor',
+    cardback: { ...cardback, name: 'Saved design' },
+    revision: 1,
+  });
+  await t.mutation(internal.publicationRegeneration.scan, scan);
+  const keys = await t.run(async (ctx) => (await ctx.db.query('cardback_presets').collect()).map((row) => row.key));
+  expect(new Set(keys)).toEqual(new Set(INITIAL_CARDBACK_PRESETS.map((preset) => preset.key)));
   expect((await t.query(api.cardbackPresets.list, {})).find((entry) => entry.key === 'traitor')?.cardback.name).toBe(
     'Saved design'
   );

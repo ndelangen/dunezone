@@ -596,7 +596,8 @@ async function account(label) {
 }
 /** A spectator asks for a seat and a seated player approves it, through the seat bar. */
 async function seatThrough(approver, who) {
-  /* Drafting asks for any seat; later a spectator asks for the open seat by name. */
+  /* A spectator's seat opens from the header's Seats action. Drafting asks for any seat; later a spectator asks for the open seat by name. */
+  await who.page.getByRole('button', { name: 'Seats', exact: true }).click();
   const request = who.page.getByRole('button', { name: /^Request (a seat|seat \d+)/u });
   await until(() => request.isEnabled(), 'The seat request did not become available.', 20_000);
   const before = who.view().snapshot.revision;
