@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
+import { unsettledArtworkLoads } from './artworkLoads';
 import { loadPublishedFace, sharedPublishedFaces } from './publishedFaceRetry';
 
 /** A loader whose every request stays open until the test settles it. */
@@ -111,6 +112,27 @@ describe('loadPublishedFace', () => {
 
     expect(timer.set).toHaveBeenCalledExactlyOnceWith(expect.any(Function), 5000);
     expect(timer.clear).toHaveBeenCalledExactlyOnceWith(timer.set.mock.results[0]!.value);
+  });
+
+  /* The browser verification waits for every artwork load to settle before it acts on a new table (#1592). */
+  test('the first attempt settles the load whether it fails or succeeds, and disposing settles one still loading', () => {
+    const before = unsettledArtworkLoads();
+    const failing = pendingLoader();
+    const succeeding = pendingLoader();
+    const abandoned = pendingLoader();
+    loadPublishedFace({ load: failing.load, onLoad: vi.fn(), release: vi.fn() });
+    loadPublishedFace({ load: succeeding.load, onLoad: vi.fn(), release: vi.fn() });
+    const dispose = loadPublishedFace({ load: abandoned.load, onLoad: vi.fn(), release: vi.fn() });
+    expect(unsettledArtworkLoads()).toBe(before + 3);
+
+    failing.requests[0]!.fail();
+    succeeding.requests[0]!.succeed('face');
+    dispose();
+
+    expect(unsettledArtworkLoads()).toBe(before);
+    vi.advanceTimersByTime(5000);
+    failing.requests[1]!.fail();
+    expect(unsettledArtworkLoads()).toBe(before);
   });
 });
 

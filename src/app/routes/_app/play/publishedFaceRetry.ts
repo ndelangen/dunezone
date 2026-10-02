@@ -1,3 +1,5 @@
+import { startArtworkLoad } from './artworkLoads';
+
 export type RetryTimer = {
   set: (callback: () => void, delayMs: number) => ReturnType<typeof setTimeout>;
   clear: (handle: ReturnType<typeof setTimeout> | undefined) => void;
@@ -12,6 +14,7 @@ const browserTimer: RetryTimer = {
  * Loads one published image, retrying a failed load in place until it succeeds or the caller disposes it.
  * The first retry waits `firstDelayMs` and each later one doubles, up to `maxDelayMs`.
  * Returns the disposer: it stops retrying, releases the loaded value, and releases one that arrives afterwards.
+ * The first attempt's outcome settles the load for the browser verification, so a retry never holds it up.
  */
 export function loadPublishedFace<T>({
   load,
@@ -32,6 +35,7 @@ export function loadPublishedFace<T>({
   let loaded: T | undefined;
   let retry: ReturnType<typeof setTimeout> | undefined;
   let retryDelay = firstDelayMs;
+  const settle = startArtworkLoad();
   const attempt = () =>
     load(
       (value) => {
@@ -41,8 +45,10 @@ export function loadPublishedFace<T>({
         }
         loaded = value;
         onLoad(value);
+        settle();
       },
       () => {
+        settle();
         if (active) {
           retry = timer.set(attempt, retryDelay);
           retryDelay = Math.min(retryDelay * 2, maxDelayMs);
@@ -52,6 +58,7 @@ export function loadPublishedFace<T>({
   attempt();
   return () => {
     active = false;
+    settle();
     timer.clear(retry);
     if (loaded !== undefined) {
       release(loaded);

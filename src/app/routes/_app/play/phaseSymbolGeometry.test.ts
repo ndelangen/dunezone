@@ -12,6 +12,7 @@ import { SVGLoader } from 'three/examples/jsm/loaders/SVGLoader.js';
 import type { SVGResult } from 'three/examples/jsm/loaders/SVGLoader.js';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
+import { unsettledArtworkLoads } from './artworkLoads';
 import {
   createPhaseRingGeometry,
   createPhaseSymbolGeometry,
@@ -212,5 +213,28 @@ describe('phase symbol loading lifetime', () => {
     await Promise.resolve();
     expect(receive).not.toHaveBeenCalled();
     release();
+  });
+
+  /* The browser verification waits for every artwork load to settle before it acts on a new table (#1592). */
+  test('a symbol load settles once its request answers or fails, or once its owner releases it', async () => {
+    const answered = Promise.withResolvers<SVGResult>();
+    const failed = Promise.withResolvers<SVGResult>();
+    vi.spyOn(SVGLoader.prototype, 'loadAsync')
+      .mockReturnValueOnce(answered.promise)
+      .mockReturnValueOnce(failed.promise)
+      .mockReturnValueOnce(new Promise<SVGResult>(() => {}));
+    const before = unsettledArtworkLoads();
+    const releaseAnswered = loadPhaseSymbolGeometry('/vector/icon/answered.svg', PHASE_TRACKER_RADIUS, vi.fn());
+    const releaseFailed = loadPhaseSymbolGeometry('/vector/icon/failed.svg', PHASE_TRACKER_RADIUS, vi.fn());
+    const releasePending = loadPhaseSymbolGeometry('/vector/icon/pending.svg', PHASE_TRACKER_RADIUS, vi.fn());
+    expect(unsettledArtworkLoads()).toBe(before + 3);
+
+    answered.resolve(triangle());
+    failed.reject(new Error('Image unavailable'));
+    releasePending();
+    await vi.waitFor(() => expect(unsettledArtworkLoads()).toBe(before));
+    releaseAnswered();
+    releaseFailed();
+    expect(unsettledArtworkLoads()).toBe(before);
   });
 });

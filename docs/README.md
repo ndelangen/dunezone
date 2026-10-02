@@ -43,6 +43,7 @@ bun run migrations:run-local-required # Force local required migration catch-up
 bun run check            # Lint and check formatting
 bun run format           # Format files
 bun run test             # Unit, seam and script tests; the Worker suites run through game:test and publisher:test
+bun run test:browser-launch # The script tests that launch Chromium, named in browser-launch-tests.ts; CI runs them in tool_e2e
 bun run storybook:test:shard <shard> # One CI shard of the story suite, named in .storybook/shards.json
 bun run storybook        # Storybook dev (port 6006)
 bun run build-storybook  # Static Storybook → storybook-static

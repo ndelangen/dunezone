@@ -7,6 +7,7 @@ import viteReact from '@vitejs/plugin-react';
 import type { PluginOption } from 'vite';
 import { configDefaults, defineConfig } from 'vitest/config';
 
+import { browserLaunchTests } from './browser-launch-tests.ts';
 import { coverageExclude, coverageInclude } from './coverage-denominator.ts';
 import { reactCompiler } from './scripts/lib/reactCompiler.ts';
 
@@ -47,7 +48,8 @@ function withoutRouteSplittingInVitest(plugins: PluginOption[]): PluginOption[] 
 
 const config = defineConfig({
   test: {
-    exclude: [...configDefaults.exclude, 'e2e/**', '.claude/**', 'tools/**'],
+    /* The script tests that launch Chromium run through vitest.browser-launch.config.ts, where a browser is installed. */
+    exclude: [...configDefaults.exclude, 'e2e/**', '.claude/**', 'tools/**', ...browserLaunchTests],
     coverage: {
       provider: 'v8',
       reporter: ['text-summary', 'lcov'],

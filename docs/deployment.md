@@ -174,11 +174,16 @@ in three shards, each on its own runner with its own stack, and `ci_ok` requires
 `play_closure` job reads the diff since the merge base and matches it against the closure in
 [`scripts/lib/hosted-play-closure.ts`](../scripts/lib/hosted-play-closure.ts), whose unit test holds
 the list to the import graph of the play pages, both Workers, the launcher and the builds it runs.
-Tests, stories and prose never count. A merge queue run, any other event, and a diff the job cannot
-read all run the shards, and the job's own failure fails the run. No workflow runs the shards after a
-merge, so the merge queue, enabled in `main`'s ruleset, is the one place a change outside the closure
-meets them before it lands; while the queue is off, such a change is caught by the next pull request
-that reaches the flows. Each flow in [`scripts/verify-hosted-flows.ts`](../scripts/verify-hosted-flows.ts) names
+Tests, stories and prose never count. A diff the job cannot read runs the shards, and the job's own
+failure fails the run. This repository has no merge queue (GitHub offers none to a personal
+account's repository, and #286 chose the up-to-date rule over one), so a change outside the closure
+meets the flows after it lands: in the next pull request that reaches them, and in the daily run on
+`main`. `.github/workflows/hosted-play-daily.yml` runs the four shards once a day and on manual
+dispatch through the same `play_closure` job, which skips them when `main`'s tree already had them,
+from the last daily run that checked this commit or from the pull request that merged as it when
+that merge was up to date and its diff reached the closure. A red daily run opens or extends one
+issue labelled `hosted-play-daily`.
+Each flow in [`scripts/verify-hosted-flows.ts`](../scripts/verify-hosted-flows.ts) names
 its shard, and each shard runs `--shard <name>`: `regular` runs the regular flow, `catalogue`
 public-controls and battles, and `protocol` private-banks, decks and results. The `regular` and
 `catalogue` shards add `--browser-only`; in the `protocol` shard the protocol verifier runs first on
@@ -397,6 +402,34 @@ run for the commit, so it deploys. A run for the commit that is still queued or 
 gate reads the list, such as a rerun waiting behind the run asking, does not count: the run asking
 deploys, and the waiting run deploys again when it starts, unless it is a first attempt and the run
 before it finished green, in which case it stops at its own gate.
+
+## Recovering from a dashboard edit to `dunezone-game`
+
+Every push deploy runs `wrangler deploy --strict` for `dunezone-game`. When the Worker was last
+changed outside wrangler (adding a secret or variable in the dashboard creates a new version),
+wrangler compares the checked-in config with that version and, under `--strict` in CI, aborts when the
+checked-in config modifies or removes anything in it; an added field alone does not abort. `GIT_SHA` always changes, so every deploy fails at "Deploy exact game Worker release"
+until one deploy replaces the dashboard version. Both Workers keep serving the last good release
+meanwhile, but `Deploy Convex` and its migrations run before that step, so Convex is already on the
+new commit: recover promptly. This happened on 2026-10-01: setting `ALERT_EMAIL_TO` in the
+dashboard blocked run 36934067755, and dispatched run 36937790739 recovered it.
+
+To recover, dispatch the workflow on `main` with the override, which drops `--strict` for that one
+game deploy (Actions > Deploy production > Run workflow, tick `replace_dashboard_game_config`):
+
+```sh
+gh workflow run deploy-main.yml --ref main -f replace_dashboard_game_config=true
+```
+
+Dispatch after a push run has failed this way: `release_gate` stops a dispatch whose commit an
+earlier run already finished green. Without `--strict`, wrangler accepts every remote-conflict
+prompt for that deploy, not only the dashboard diff, so dispatch it only for this case. Secrets
+stay: Cloudflare's Wrangler configuration docs say wrangler does not delete secrets unless
+`wrangler secret delete` runs. Push runs stay strict.
+
+Avoid editing `dunezone-game` in the dashboard. Wrangler also refuses a strict deploy after an edit
+through the script API, and whether `wrangler secret put` counts as one has not been checked. The
+publisher and Storybook deploys use `--strict` too and have no override yet.
 
 ## Publication controls
 

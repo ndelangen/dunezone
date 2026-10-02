@@ -715,6 +715,32 @@ describe('hosted table interaction', () => {
     expect(client.getSnapshot().error).toBe('Already at Turn 1.');
   });
 
+  test('counts only the Traitor gathers of this viewer that the table completed (#1635)', async () => {
+    const client = await connected();
+    const empty = initialSnapshot();
+    const deck = empty.table.pieces.find((piece) => piece.id === 'treachery-deck')!;
+    const snapshot = {
+      ...empty,
+      table: {
+        ...empty.table,
+        pieces: [...empty.table.pieces, { ...deck, id: 'traitors', stackKey: 'cards:traitor' }],
+      },
+    };
+    client.command({ kind: 'traitors-gather' });
+    socket().deliver(view({ sequence: 2, completedCommandId: command().commandId }));
+    expect(table(client).traitorsGathered).toBe(0);
+
+    authorize(snapshot);
+    client.command({ kind: 'traitors-gather' });
+    const first = command().commandId;
+    client.command({ kind: 'traitors-gather' });
+    socket().deliver({ type: 'rejected', requestId: command().commandId, message: 'The table changed.' });
+    socket().deliver(view({ snapshot, sequence: 3, completedCommandId: 'another-command' }));
+    expect(table(client).traitorsGathered).toBe(0);
+    socket().deliver(view({ snapshot, sequence: 4, completedCommandId: first }));
+    expect(table(client).traitorsGathered).toBe(1);
+  });
+
   test('a held carry survives unrelated views until its drop is acknowledged', async () => {
     const { client, source, carried } = await grantedWholeCarry();
     const updatedView = {

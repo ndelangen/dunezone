@@ -134,11 +134,12 @@ function PhaseNavigation({ client, table }: Pick<ConnectionControlsProps, 'clien
   const { needsReady, refusal } = phaseGate({ ...table.snapshot, ready: controls.ready, seats: controls.seats });
   const ready = controls.ready.includes(table.viewer.viewerSeat);
   /* Readiness is a phase control, so it sits with Previous and Next in the header rather than on a
-     tab; the count stays short so the toolbar keeps to one row at desktop widths. */
+     tab; the count stays short so the toolbar keeps to one row at desktop widths, and a phone wraps
+     the group onto a second row instead of pushing its buttons off both edges. */
   return (
-    <Group gap="xs" justify="flex-end" wrap="nowrap" role="group" aria-label="Phase navigation">
+    <Group gap="xs" justify="flex-end" wrap="wrap" role="group" aria-label="Phase navigation">
       {needsReady && (
-        <>
+        <Group gap="xs" wrap="nowrap">
           <Button
             disabled={!table.canInteract}
             variant={ready ? 'default' : 'filled'}
@@ -149,21 +150,23 @@ function PhaseNavigation({ client, table }: Pick<ConnectionControlsProps, 'clien
           <Text role="status" size="xs" c="dimmed">
             {controls.ready.filter((seat) => controls.seats.includes(seat)).length} of {controls.seats.length} ready
           </Text>
-        </>
+        </Group>
       )}
-      <Button
-        variant="subtle"
-        disabled={!table.canInteract || cooling || (setup ? setup.index === 0 : table.snapshot.phase === 0)}
-        onClick={() => client.command({ kind: 'phase', direction: -1 })}
-      >
-        Previous phase
-      </Button>
-      <Button
-        disabled={!table.canInteract || cooling || refusal !== null}
-        onClick={() => client.command({ kind: 'phase' })}
-      >
-        Next phase
-      </Button>
+      <Group gap="xs" wrap="nowrap">
+        <Button
+          variant="subtle"
+          disabled={!table.canInteract || cooling || (setup ? setup.index === 0 : table.snapshot.phase === 0)}
+          onClick={() => client.command({ kind: 'phase', direction: -1 })}
+        >
+          Previous phase
+        </Button>
+        <Button
+          disabled={!table.canInteract || cooling || refusal !== null}
+          onClick={() => client.command({ kind: 'phase' })}
+        >
+          Next phase
+        </Button>
+      </Group>
     </Group>
   );
 }
@@ -319,6 +322,15 @@ function SetupControls({ client, table }: SetupControlProps) {
     return null;
   }
   const step = setupStep(setup);
+  /* The viewer's own starting forces lead, so a narrow dock shows the line that seat has to follow. */
+  const ownFaction = rosterSeat(table.snapshot.roster, table.viewer.viewerSeat)?.faction?.id;
+  const instructions =
+    step.kind === 'forces'
+      ? [
+          ...setup.instructions.filter((entry) => entry.factionId === ownFaction),
+          ...setup.instructions.filter((entry) => entry.factionId !== ownFaction),
+        ]
+      : [];
   return (
     <Stack gap="md">
       {step.kind !== 'prediction' && (
@@ -338,7 +350,7 @@ function SetupControls({ client, table }: SetupControlProps) {
               </Button>
             )}
             {step.kind === 'forces' &&
-              setup.instructions.map((entry) => (
+              instructions.map((entry) => (
                 <Section
                   helpOnly={Boolean(table.snapshot.stage)}
                   key={entry.factionId}
@@ -623,6 +635,8 @@ function ConnectedTable({
             ) : undefined
           }
           onSelectTurn={client.selectTurn}
+          /* The gathered Traitor pile lies under the Tleilaxu tanks, below the Map view's frame on a wide screen (#1635). */
+          requestedView={table.traitorsGathered ? { view: 'bottom', revision: table.traitorsGathered } : undefined}
           showStormControls={inPlay && progress.activePhaseId === 'storm'}
           sceneContent={
             <>

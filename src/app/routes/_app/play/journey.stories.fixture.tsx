@@ -29,6 +29,8 @@ export type JourneyStep = {
   /* The newest public log entry at this step. */
   logSequence: number;
   views: Record<string, RecordedView>;
+  /* The room's stored state, kept from setup on so the sandbox story can run the table from this step. */
+  stored?: unknown;
 };
 type Recording = {
   steps: unknown[];
@@ -74,6 +76,15 @@ export function journeySteps(): JourneyStep[] {
   }
   return cached;
 }
+
+/** The 1-based step of the first recorded step with this title, so a re-recording keeps each story on its moment. */
+export const chapter = (title: string) => {
+  const index = journeySteps().findIndex((step) => step.title === title);
+  if (index < 0) {
+    throw new Error(`The journey recording has no step titled ${title}.`);
+  }
+  return index + 1;
+};
 
 /** The short name a step goes by in feedback: J01 is the first step. */
 export const stepCode = (index: number) => `J${String(index + 1).padStart(2, '0')}`;
