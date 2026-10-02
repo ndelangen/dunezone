@@ -178,7 +178,12 @@ function PhaseNavigation({ client, table }: Pick<ConnectionControlsProps, 'clien
       <Group gap="xs" wrap="nowrap">
         <Button
           variant="subtle"
-          disabled={!table.canInteract || cooling || (setup ? setup.index === 0 : table.snapshot.phase === 0)}
+          disabled={
+            !table.canInteract ||
+            cooling ||
+            Boolean(table.snapshot.ending) ||
+            (setup ? setup.index === 0 : table.snapshot.phase === 0)
+          }
           onClick={() => client.command({ kind: 'phase', direction: -1 })}
         >
           Previous phase

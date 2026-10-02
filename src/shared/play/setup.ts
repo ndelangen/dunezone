@@ -62,7 +62,10 @@ export function setupReadyRequired(setup: SetupState) {
   return step !== undefined && stepNeedsReady(step);
 }
 
-type PhaseGateInput = Pick<GameSnapshot, 'stage' | 'setup' | 'phase' | 'phases' | 'roster' | 'predictions'> & {
+type PhaseGateInput = Pick<
+  GameSnapshot,
+  'stage' | 'setup' | 'phase' | 'phases' | 'roster' | 'predictions' | 'ending'
+> & {
   ready: readonly string[];
   seats: readonly string[];
   /** The open battle, public or stored; while there is one the table stays in its phase. */
@@ -74,13 +77,31 @@ type PhaseGateInput = Pick<GameSnapshot, 'stage' | 'setup' | 'phase' | 'phases' 
  * The Worker passes its private predictions and a view its public ones.
  * The gate reads only whether the current step holds one.
  */
-export function phaseGate({ stage, setup, phase, phases, roster, ready, seats, predictions, battle }: PhaseGateInput) {
+export function phaseGate({
+  stage,
+  setup,
+  phase,
+  phases,
+  roster,
+  ready,
+  seats,
+  predictions,
+  battle,
+  ending,
+}: PhaseGateInput) {
   const allReady = seats.length > 0 && seats.every((seat) => ready.includes(seat));
   if (stage !== 'setup' || !setup) {
     const needsReady = phaseAt(phase, phases).allPlayersMustBeReady;
     /* A battle left open past its phase would block every later battle, so the table waits for it to end. */
     if (battle) {
       return { needsReady, refusal: 'A battle is still open. Resolve or cancel it before moving to the next phase.' };
+    }
+    /* Moving on would close Determine winner under its player, whose declaration would then be refused. */
+    if (ending) {
+      return {
+        needsReady,
+        refusal: 'The winner is being determined. Declare or cancel it before moving to the next phase.',
+      };
     }
     return {
       needsReady,

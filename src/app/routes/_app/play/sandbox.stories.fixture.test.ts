@@ -35,7 +35,11 @@ describe('The Play sandbox', () => {
   });
 
   test('the table changes on a phase command and tells the page, while a result command is refused', () => {
-    const table = new SandboxTable({ start: sandboxSteps().at(-1)!, seat: 'seat-1' });
+    /* The recording ends with the winner being determined, which holds the phase, so the test starts just before. */
+    const start = sandboxSteps()
+      .filter((step) => !journeySteps()[step]!.views['seat-1']!.snapshot.ending)
+      .at(-1)!;
+    const table = new SandboxTable({ start, seat: 'seat-1' });
     const delivered: unknown[] = [];
     table.deliver = (message) => delivered.push(message);
     const revision = table.room.snapshot.revision;
