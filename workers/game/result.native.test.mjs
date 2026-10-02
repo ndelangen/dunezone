@@ -387,13 +387,28 @@ describe('Determine winner and Continue playing', { timeout: 60_000 }, () => {
     expect(await rejected(owner, { kind: 'phase', direction: 1 })).toBe(false);
   });
 
-  it('closes an open sequence when the phase moves on', async () => {
+  it('keeps the phase while the winner is being determined, so the declaration still lands', async () => {
     const { owner, other } = await inPlay();
     await toMentat(owner);
     await accepted(owner, { kind: 'result-open' });
     await accepted(owner, { kind: 'ready', ready: true });
     await accepted(other, { kind: 'ready', ready: true });
-    const moved = await next(other);
+    offset += PHASE_CHANGE_COOLDOWN_MS + 1;
+    await runtime.clock(offset);
+    const refused = await sendCommand(other, { kind: 'phase', direction: 1 });
+    expect(refused.reply).toMatchObject({
+      type: 'rejected',
+      message: 'The winner is being determined. Declare or cancel it before moving to the next phase.',
+    });
+    const declared = await accepted(owner, { kind: 'result-declare', result: 'none', factionIds: [] });
+    expect(declared.snapshot.stage).toBe('finished');
+  });
+
+  it('closes an open sequence when the phase moves back', async () => {
+    const { owner, other } = await inPlay();
+    await toMentat(owner);
+    await accepted(owner, { kind: 'result-open' });
+    const moved = await next(other, -1);
     expect(moved.snapshot.ending).toBeUndefined();
     const texts = (await page(other)).map((entry) => entry.text);
     const opener = (await syncView(owner)).viewer.displayName;
