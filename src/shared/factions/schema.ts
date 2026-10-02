@@ -40,14 +40,45 @@ export const Decal = z.strictObject({
 /**
  * What one troop face contributes to a battle plan (#1062).
  * Strengths may be fractional or negative;
- * the funding cost is whole spice, zero or more, and one when absent.
+ * the support cost is whole spice, zero or more, and one when absent.
  * A face without this object has no authored combat values, which is never read as zero.
+ * Authoring and writes accept only these names;
+ * stored reads go through `StoredTroopCombat`.
  */
 export const TroopCombat = z.strictObject({
   strength: z.number(),
-  fundedStrength: z.number(),
-  fundingCost: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER).optional(),
+  supportedStrength: z.number(),
+  supportCost: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER).optional(),
 });
+
+/**
+ * Troops paid for with spice in battle are supported, not funded.
+ * Rows written before the rename carry `fundedStrength` and `fundingCost`;
+ * this renames them on read, and a value already under the new name wins.
+ */
+export function withSupportNames(value: unknown): unknown {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    return value;
+  }
+  if (!('fundedStrength' in value) && !('fundingCost' in value)) {
+    return value;
+  }
+  const { fundedStrength, fundingCost, ...rest } = value as Record<string, unknown>;
+  return {
+    ...(fundedStrength !== undefined && { supportedStrength: fundedStrength }),
+    ...(fundingCost !== undefined && { supportCost: fundingCost }),
+    ...rest,
+  };
+}
+
+/**
+ * Stored-data reader for the rename's compatibility window: the legacy names read as the new ones, and every write emits only the new ones.
+ * `faction_troop_support_names_v1` rewrites stored factions.
+ * Narrowing the live schemas to `TroopCombat` is a later release, once that migration and its verify have run everywhere;
+ * `HistoricalFactionPublicationSchema` keeps this read even then, because games retain captures taken before the rename.
+ * Like `extras`, a preprocess derives as `v.any()` on the Convex wire, which leaves the shape to the Zod parse.
+ */
+const StoredTroopCombat = z.preprocess(withSupportNames, TroopCombat);
 
 /* `capable` is the face's battle eligibility, separate from its strengths: an authored face without it can fight. */
 const TroopSide = z.strictObject({
@@ -58,7 +89,7 @@ const TroopSide = z.strictObject({
   hue: z.string().optional(),
   striped: z.boolean().optional(),
   capable: z.boolean().optional(),
-  combat: TroopCombat.optional(),
+  combat: StoredTroopCombat.optional(),
 });
 
 const Troop = z.strictObject({
@@ -70,7 +101,7 @@ const Troop = z.strictObject({
   hue: z.string().optional(),
   striped: z.boolean().optional(),
   capable: z.boolean().optional(),
-  combat: TroopCombat.optional(),
+  combat: StoredTroopCombat.optional(),
   back: TroopSide.optional(),
   count: z.number().int().positive(),
   planet: z.string().optional(),
@@ -183,10 +214,11 @@ const AuthoringRule = RULE.extend({
   karama: proseFormattedTextSchema.optional(),
 });
 
-const AuthoringTroopSide = TroopSide.extend({ description: proseFormattedTextSchema });
+const AuthoringTroopSide = TroopSide.extend({ description: proseFormattedTextSchema, combat: TroopCombat.optional() });
 
 const AuthoringTroop = Troop.extend({
   description: proseFormattedTextSchema,
+  combat: TroopCombat.optional(),
   back: AuthoringTroopSide.optional(),
 });
 

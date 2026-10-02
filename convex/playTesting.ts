@@ -192,10 +192,10 @@ const SYNTHETIC_DECK_MEMBERS = {
 } as const;
 
 /*
- * Authored values the browser funding case needs: five troops cost five spice, three troops cost three.
+ * Authored values the browser support case needs: five troops cost five spice, three troops cost three.
  * The Harkonnen colour is a saturated red so the carry checks can find its troop tokens by their pixels.
  */
-const SYNTHETIC_TROOP_COMBAT = { strength: 0.5, fundedStrength: 1, fundingCost: 1 };
+const SYNTHETIC_TROOP_COMBAT = { strength: 0.5, supportedStrength: 1, supportCost: 1 };
 
 /** The Extra one seeded faction supplies at setup; the regular flow finds it in that faction's hand by this name. */
 const SYNTHETIC_EXTRA_NAME = 'Synthetic extra';

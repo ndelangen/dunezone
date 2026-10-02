@@ -51,7 +51,7 @@ export async function verifyBattles(toolkit) {
     () => a.view().snapshot.table.pieces.some((piece) => piece.id === token.id && !piece.inventory),
     'Leader token did not leave shared inventory.'
   );
-  /* Setup credited the faction's starting spice; the funding case counts from it. */
+  /* Setup credited the faction's starting spice; the support case counts from it. */
   const startingSpice = a.view().snapshot.bank.balance;
   await focus(a, 'map');
   await toolkit.supplyShortcut(a, '7');
@@ -124,7 +124,7 @@ export async function verifyBattles(toolkit) {
   );
   assert.equal(observer.view().snapshot.battlePlan, null);
   const cardName = battleCard.items[0].artwork.name;
-  await verifyFunding({ a, b, observer, token, cardName, startingSpice, until, converged, capture });
+  await verifySupport({ a, b, observer, token, cardName, startingSpice, until, converged, capture });
   await act(a, 'Ready for battle');
   await act(b, 'Ready for battle');
   await until(() => a.view().snapshot.battle.stage === 'countdown', 'Both Ready did not start countdown.');
@@ -200,7 +200,7 @@ export async function verifyBattles(toolkit) {
   await focus(a, 'map');
 }
 
-async function verifyFunding({ a, b, observer, token, cardName, startingSpice, until, converged, capture }) {
+async function verifySupport({ a, b, observer, token, cardName, startingSpice, until, converged, capture }) {
   /* One physical troop type renders as the single Troops field since the accepted workbench landed. */
   const count = a.page.getByRole('textbox', { name: 'Troops', exact: true });
   await count.click();

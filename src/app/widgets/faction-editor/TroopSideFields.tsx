@@ -150,14 +150,14 @@ function TroopCombatFields({
       whole: false,
     },
     {
-      key: 'fundedStrength',
-      title: 'Funded strength',
+      key: 'supportedStrength',
+      title: 'Supported strength',
       description: 'What one dialed troop adds instead. May be fractional or negative.',
       whole: false,
     },
     {
-      key: 'fundingCost',
-      title: 'Funding cost',
+      key: 'supportCost',
+      title: 'Support cost',
       description: 'Spice to dial one troop; one when left empty, and zero is free.',
       whole: true,
     },

@@ -91,17 +91,17 @@ export const AuthorsTroopCombatValues = meta.story({
     await userEvent.click(canvas.getByRole('tab', { name: /Forces/ }));
     const strength = canvas.getByRole('textbox', { name: 'Strength' });
     await expect(strength).toHaveValue('1');
-    await expect(canvas.getByRole('textbox', { name: 'Funding cost' })).toHaveValue('');
+    await expect(canvas.getByRole('textbox', { name: 'Support cost' })).toHaveValue('');
 
     await userEvent.clear(strength);
     await userEvent.type(strength, '-0.75');
     await userEvent.tab();
     await expect(strength).toHaveValue('-0.75');
 
-    const funded = canvas.getByRole('textbox', { name: 'Funded strength' });
-    await userEvent.clear(funded);
-    await userEvent.type(funded, '1.5{Enter}');
-    await expect(funded).toHaveValue('1.5');
+    const supported = canvas.getByRole('textbox', { name: 'Supported strength' });
+    await userEvent.clear(supported);
+    await userEvent.type(supported, '1.5{Enter}');
+    await expect(supported).toHaveValue('1.5');
 
     const capable = canvas.getByRole('switch', { name: 'Fights in battle' });
     await userEvent.click(capable);
@@ -110,8 +110,8 @@ export const AuthorsTroopCombatValues = meta.story({
     await expect(canvas.getByRole('textbox', { name: 'Strength' })).toHaveValue('-0.75');
 
     await userEvent.click(canvas.getByRole('radio', { name: 'Back side' }));
-    await expect(canvas.getByRole('textbox', { name: 'Back-side funded strength' })).toHaveValue('-0.5');
-    await expect(canvas.getByRole('textbox', { name: 'Back-side funding cost' })).toHaveValue('0');
+    await expect(canvas.getByRole('textbox', { name: 'Back-side supported strength' })).toHaveValue('-0.5');
+    await expect(canvas.getByRole('textbox', { name: 'Back-side support cost' })).toHaveValue('0');
     const backStrength = canvas.getByRole('textbox', { name: 'Back-side strength' });
     await expect(canvas.queryByText(/Enter both strengths/)).toBeNull();
     await userEvent.clear(backStrength);

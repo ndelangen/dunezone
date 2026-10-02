@@ -11,6 +11,7 @@ import {
   FactionMemberIdSchema,
   factionMembersHaveIds,
 } from '../src/shared/factions/memberIdentity';
+import { withSupportNames } from '../src/shared/factions/schema';
 import {
   assertUniqueFactionTroopIds,
   ensureFactionTroopIds,
@@ -99,6 +100,8 @@ const MIGRATION_IDS: Record<string, MigrationRef> = {
   faction_extras_references_verify_v1: internal.migrations.faction_extras_references_verify_v1,
   faction_troop_ids_v1: internal.migrations.faction_troop_ids_v1,
   faction_troop_ids_verify_v1: internal.migrations.faction_troop_ids_verify_v1,
+  faction_troop_support_names_v1: internal.migrations.faction_troop_support_names_v1,
+  faction_troop_support_names_verify_v1: internal.migrations.faction_troop_support_names_verify_v1,
   play_hosted_fixture_retire_v1: internal.migrations.play_hosted_fixture_retire_v1,
 };
 
@@ -1176,6 +1179,63 @@ export const faction_troop_ids_verify_v1 = migrations.define({
       throw new Error(`Faction ${row._id} has missing troop identities.`);
     }
     namingFaction(row._id, () => assertUniqueFactionTroopIds(parsed.data));
+  },
+});
+
+type StoredTroopFace = { combat?: unknown; back?: StoredTroopFace };
+
+function hasLegacySupportNames(combat: unknown): boolean {
+  return typeof combat === 'object' && combat !== null && ('fundedStrength' in combat || 'fundingCost' in combat);
+}
+
+function troopHasLegacySupportNames(troop: unknown): boolean {
+  const face = troop as StoredTroopFace | null;
+  return hasLegacySupportNames(face?.combat) || hasLegacySupportNames(face?.back?.combat);
+}
+
+/* Only `combat` is rewritten, on the front and on an authored back; every other troop field stays as stored. */
+function troopWithSupportNames(troop: unknown): unknown {
+  if (typeof troop !== 'object' || troop === null) {
+    return troop;
+  }
+  const face = troop as StoredTroopFace;
+  return {
+    ...face,
+    ...(face.combat !== undefined && { combat: withSupportNames(face.combat) }),
+    ...(face.back && typeof face.back === 'object' && face.back.combat !== undefined
+      ? { back: { ...face.back, combat: withSupportNames(face.back.combat) } }
+      : {}),
+  };
+}
+
+/**
+ * Renames each troop face's `fundedStrength` and `fundingCost` to `supportedStrength` and `supportCost`, without changing the faction's edit timestamp.
+ * Troops paid for with spice in battle are supported, not funded.
+ * A value already under the new name wins, so a replay changes nothing.
+ * Not yet listed in migration-guards.json: deploy migrates before the game and publisher Workers ship, so it is listed one release after the widened read, as `faction_troop_ids_v1` was (#1482).
+ * Narrowing, which drops the legacy names from the live faction schema, is a later release gated on this and its verify.
+ */
+export const faction_troop_support_names_v1 = migrations.define({
+  table: 'factions',
+  batchSize: 50,
+  migrateOne: async (_ctx, row) => {
+    const data = row.data as { troops?: unknown } | null;
+    if (!data || !Array.isArray(data.troops) || !data.troops.some(troopHasLegacySupportNames)) {
+      return;
+    }
+    return { data: { ...data, troops: data.troops.map(troopWithSupportNames) } };
+  },
+});
+
+/** Every stored faction, including deleted sources, must carry only the supported names before the schema narrows. */
+export const faction_troop_support_names_verify_v1 = migrations.define({
+  table: 'factions',
+  batchSize: 50,
+  migrateOne: async (_ctx, row) => {
+    const troops = (row.data as { troops?: unknown } | null)?.troops;
+    if (Array.isArray(troops) && troops.some(troopHasLegacySupportNames)) {
+      throw new Error(`Faction ${row._id} still has troop faces with funded names.`);
+    }
   },
 });
 

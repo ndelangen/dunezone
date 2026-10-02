@@ -304,10 +304,10 @@ also cover captured deck and bundle quantities, missing backs, retries, account 
 recovery. The regular browser mode remains available for the broader tabletop interactions.
 
 Run `bun --no-env-file scripts/verify-hosted-play-stack.ts --browser-only --flow battles` for private
-plans, funding refunds, both side assignments, Undo Ready, each player's countdown reconnect,
+plans, support refunds, both side assignments, Undo Ready, each player's countdown reconnect,
 revealed-piece dragging, opposing choices, agreement and cancellation by a seated noncombatant.
 It uses two distinct signed-in browser processes and a spectator, retaining `battles-frames.json`
-for privacy inspection. Native cases additionally cover exact and zero-cost funding, replacement,
+for privacy inspection. Native cases additionally cover exact and zero-cost support, replacement,
 cold restore, stale commands, ordering races and older results.
 
 Run `bun --no-env-file scripts/verify-hosted-play-stack.ts --browser-only --flow decks` for the deck

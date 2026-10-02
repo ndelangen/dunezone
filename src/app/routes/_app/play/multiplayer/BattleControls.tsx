@@ -253,10 +253,10 @@ function TroopFaceFields({
       return total;
     }
     const otherFace = plan.faces.find((candidate) => candidate.id === entry.faceId);
-    return total + entry.dialed * (otherFace?.fundingCost ?? 0);
+    return total + entry.dialed * (otherFace?.supportCost ?? 0);
   }, 0);
-  const dialedMax = face.fundingCost
-    ? Math.max(0, Math.floor((spiceLimit - otherSpice) / face.fundingCost))
+  const dialedMax = face.supportCost
+    ? Math.max(0, Math.floor((spiceLimit - otherSpice) / face.supportCost))
     : undefined;
   return (
     <div className={styles.faceFields}>
@@ -357,8 +357,8 @@ function PlanFields({ client, table, plan, battle }: Props & { plan: BattlePlan;
           <Stack gap="md">
             <div className={styles.editorFields}>
               <SegmentedControl
-                className={styles.fundingMode}
-                aria-label="Funding mode"
+                className={styles.supportMode}
+                aria-label="Support mode"
                 disabled={locked}
                 value={plan.mode}
                 data={[
