@@ -476,7 +476,7 @@ export function DraftingReadiness({ client, table }: Props) {
         disabled={locked(table)}
         onClick={() => client.command({ kind: 'draft-ready', ready: !ready })}
       >
-        {ready ? 'Ready, withdraw' : 'Ready'}
+        {ready ? 'Withdraw readiness' : 'Ready'}
       </Button>
     </Group>
   );

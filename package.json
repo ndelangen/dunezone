@@ -69,6 +69,7 @@
     "storybook:test": "vitest run --config vitest.storybook.config.ts",
     "storybook:test:shard": "bun run ./scripts/storybook-shard.ts",
     "test": "vitest run --exclude 'workers/game/**' --exclude 'workers/publisher/**'",
+    "test:browser-launch": "vitest run --config vitest.browser-launch.config.ts",
     "test:local-convex-isolation": "bun run ./scripts/test-local-convex-isolation.ts",
     "tool:dev": "bun run --cwd tools/svg-authoring dev",
     "tool:test": "bun run --cwd tools/svg-authoring test",

@@ -79,6 +79,8 @@ export type TableProjection = {
   canInteract: boolean;
   /* A seat command is on its way; the bar holds its buttons until the table answers. */
   seatCommandPending: boolean;
+  /* How many of this viewer's own Traitor gathers the table has completed, so the camera can follow the pile they made. */
+  traitorsGathered: number;
   phaseCooling: boolean;
   battleCountdownSeconds: number;
   state: TableState;
@@ -141,6 +143,8 @@ export class TableSession {
   private captureInFlight: string | null = null;
   /* One seat command at a time: a second click before the first settles would only fail the revision gate. */
   private seatCommandInFlight: string | null = null;
+  private traitorGatherInFlight: string | null = null;
+  private traitorsGathered = 0;
   private queuedCatalogue: { requestId: string; selection?: SpawnSelection } | null = null;
   private phaseCooldownUntil = 0;
   private battleCountdownUntil = 0;
@@ -252,6 +256,7 @@ export class TableSession {
       historyPending: this.pendingHistory !== null,
       canInteract,
       seatCommandPending: this.seatCommandInFlight !== null,
+      traitorsGathered: this.traitorsGathered,
       phaseCooling: this.runtime.monotonicNow() < this.phaseCooldownUntil,
       battleCountdownSeconds: Math.max(0, Math.ceil((this.battleCountdownUntil - this.runtime.monotonicNow()) / 1000)),
       state,
@@ -384,6 +389,12 @@ export class TableSession {
     }
     if (this.seatCommandInFlight === id) {
       this.seatCommandInFlight = null;
+    }
+    if (this.traitorGatherInFlight === id) {
+      this.traitorGatherInFlight = null;
+      if (outcome === 'completed') {
+        this.traitorsGathered++;
+      }
     }
     if (this.pendingBattlePlan?.commandId === id) {
       this.pendingBattlePlan = null;
@@ -546,6 +557,7 @@ export class TableSession {
     this.queuedBattlePlan = null;
     this.queuedBattleReady = null;
     this.seatCommandInFlight = null;
+    this.traitorGatherInFlight = null;
     this.spiceHistory = undefined;
     this.spiceHistoryBefore = undefined;
     this.history = null;
@@ -843,9 +855,17 @@ export class TableSession {
       this.seatCommandInFlight = commandId;
     } else if (action.kind === 'spawn-request') {
       this.captureInFlight = commandId;
+    } else if (action.kind === 'traitors-gather' && this.traitorGatherInFlight === null && this.tabletopTraitors()) {
+      /* A second click before the first settles is refused for its stale revision, so the first gather is the one to follow; with no Traitor left on the table there is no pile to look at. */
+      this.traitorGatherInFlight = commandId;
     }
     this.emit();
   };
+  private tabletopTraitors() {
+    return this.snapshot.table.pieces.some(
+      (piece) => piece.kind === 'card' && piece.stackKey === 'cards:traitor' && !piece.inventory
+    );
+  }
   private target(id?: string) {
     return id ?? this.hoveredId ?? this.selectedId;
   }

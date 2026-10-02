@@ -172,7 +172,7 @@ async function verifyHeaders(workerPath: string) {
 }
 
 async function verifyCoverStories(page: Page) {
-  await page.goto(`${origin}/iframe.html?id=pages-rulesets-rulebooks--unsaved-cover-controls&viewMode=story`, {
+  await page.goto(`${origin}/iframe.html?id=pages-rulesets-rulebooks-editing--unsaved-cover-controls&viewMode=story`, {
     waitUntil: 'networkidle',
   });
   await page.getByRole('textbox', { name: 'Background image URL' }).waitFor({ timeout: 45_000 });
@@ -184,9 +184,12 @@ async function verifyCoverStories(page: Page) {
   await background.waitFor();
   await background.evaluate((element: HTMLImageElement) => element.decode());
   await page.getByRole('img', { name: 'Dune', exact: true }).evaluate((element: HTMLImageElement) => element.decode());
-  await page.goto(`${origin}/iframe.html?id=pages-rulesets-rulebooks--cover-presets-and-footer&viewMode=story`, {
-    waitUntil: 'networkidle',
-  });
+  await page.goto(
+    `${origin}/iframe.html?id=pages-rulesets-rulebooks-editing--cover-presets-and-footer&viewMode=story`,
+    {
+      waitUntil: 'networkidle',
+    }
+  );
   await page
     .getByRole('button', { name: 'Choose left faction' })
     .getByText('House Atreides')
