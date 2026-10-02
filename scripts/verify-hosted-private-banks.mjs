@@ -237,7 +237,7 @@ export async function verifyPrivateBanks(toolkit) {
     const accountPage = await b.context.newPage();
     await accountPage.goto(`${origin}/play`, { waitUntil: 'domcontentloaded' });
     await accountPage.getByRole('heading', { name: 'Game lobby' }).waitFor();
-    await accountPage.locator('header button[aria-haspopup="menu"]').last().click();
+    await accountPage.locator('[data-app-band] button[aria-haspopup="menu"]').last().click();
     await accountPage.getByRole('menuitem', { name: 'Sign out', exact: true }).click();
     await until(
       () => [b, tab].every((who) => who.sockets.every((socket) => socket.closed || socket.documentReplaced)),

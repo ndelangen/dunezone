@@ -1652,7 +1652,7 @@ async function verifyRegular() {
   const accountPage = await a.context.newPage();
   await accountPage.goto(`${origin}/play`, { waitUntil: 'domcontentloaded' });
   await accountPage.getByRole('heading', { name: 'Game lobby' }).waitFor();
-  await accountPage.locator('header button[aria-haspopup="menu"]').last().click();
+  await accountPage.locator('[data-app-band] button[aria-haspopup="menu"]').last().click();
   const revokedAt = Date.now();
   signOut = { tabs: [a, aTab], clickedAt: revokedAt };
   await accountPage.getByRole('menuitem', { name: 'Sign out', exact: true }).click();
