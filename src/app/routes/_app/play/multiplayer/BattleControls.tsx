@@ -29,6 +29,7 @@ import { factionTokenFixtures } from '@game/fixtures/factionTokens';
 
 import { DarkSchemeIsland } from '../DarkSchemeIsland';
 import { PointerSessionContext, usePointerSession } from '../PointerSessionContext';
+import { TABLE_PLATE_BOUNDS } from '../tablePlateGeometry';
 import styles from './BattleControls.module.css';
 import { PieceArtwork } from './PieceArtwork';
 import type { TableSession, TableProjection } from './TableSession';
@@ -582,10 +583,12 @@ function dropPosition(event: DragEvent, canvas: HTMLCanvasElement, camera: Camer
     camera
   );
   const point = ray.ray.intersectPlane(new Plane(new Vector3(0, 1, 0), -0.18), new Vector3());
-  if (!point || Math.hypot(point.x, point.z) > 5.5) {
-    return null;
-  }
-  return [point.x, 0.18, point.z] as Vector3Tuple;
+  return point && ([point.x, 0.18, point.z] as Vector3Tuple);
+}
+/* The plate reaches past the board to the card bays and shelves, and a hand piece may land anywhere on it. */
+function onTablePlate([x, , z]: Vector3Tuple) {
+  const { minX, maxX, minZ, maxZ } = TABLE_PLATE_BOUNDS;
+  return x >= minX && x <= maxX && z >= minZ && z <= maxZ;
 }
 /* These parts group several territories, and the storm sectors cut across all of them, so none of them names where a battle is. */
 const BOARD_GROUPS = new Set(['strongholds', 'rock', 'sand', 'sectors']);
@@ -612,9 +615,9 @@ function territoryAt(position: Vector3Tuple) {
 }
 function sendDrop(client: TableSession, event: DragEvent, position: Vector3Tuple) {
   const pieceId = event.dataTransfer?.getData('application/dune-hand');
-  if (pieceId) {
+  if (pieceId && onTablePlate(position)) {
     client.command({ kind: 'hand-play', pieceId, position });
-  } else if (event.dataTransfer?.getData('application/dune-battle')) {
+  } else if (event.dataTransfer?.getData('application/dune-battle') && Math.hypot(position[0], position[2]) <= 5.5) {
     client.command({ kind: 'battle-start', anchor: position, territory: territoryAt(position) });
   }
 }

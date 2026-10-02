@@ -271,6 +271,50 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
     expect((await syncView(a)).snapshot.hand).toHaveLength(0);
   });
 
+  async function playCard(position) {
+    await accepted(a, { kind: 'hand-take', pieceId: 'treachery-card-loose' });
+    const handCard = (await syncView(a)).snapshot.hand[0];
+    return (await accepted(a, { kind: 'hand-play', pieceId: handCard.id, position })).snapshot.table.pieces;
+  }
+  const cardsAt = (pieces, [x, , z]) =>
+    pieces.filter((piece) => piece.kind === 'card' && Math.hypot(piece.position[0] - x, piece.position[2] - z) < 1e-9);
+
+  it('snaps a card played from a hand into the card bay it was dropped on', async () => {
+    const pieces = await playCard([5.85, 0.18, -1.2]);
+    const [card] = cardsAt(pieces, [5.72, 0, -1.32]);
+    expect(card.position[1]).toBeCloseTo(0.005);
+    expect(card.orientation).toBe(0);
+    expect(card.items.map((item) => item.faceUp)).toEqual([false]);
+  });
+
+  it('places a card played from a hand on top of the pile already in that bay', async () => {
+    const rows = await runtime.exec('SELECT data FROM current_state WHERE id=1');
+    const state = JSON.parse(rows[0].data);
+    const pile = state.table.pieces.find((piece) => piece.id === 'treachery-deck');
+    pile.position = [5.72, 0.005, 0];
+    pile.orientation = 0;
+    const back = state.table.pieces.find((piece) => piece.id === 'treachery-card-loose').items[0].artwork;
+    pile.items.forEach((item, index) => {
+      item.artwork = { ...back, front: `https://example.test/pile-${index}.png`, name: `Pile card ${index}` };
+    });
+    const count = pile.items.length;
+    await runtime.exec('UPDATE current_state SET data=? WHERE id=1', [JSON.stringify(state)]);
+    await runtime.restart();
+    a = await admit('a');
+    const pieces = await playCard([5.6, 0.18, 0.1]);
+    const [merged, ...others] = cardsAt(pieces, [5.72, 0, 0]);
+    expect(others).toEqual([]);
+    expect(merged.items).toHaveLength(count + 1);
+    expect(merged.items.every((item) => !item.faceUp)).toBe(true);
+  });
+
+  it('keeps a card played onto the board where it was dropped', async () => {
+    const pieces = await playCard([1, 0.18, -1]);
+    const [card] = cardsAt(pieces, [1, 0, -1]);
+    expect(card.orientation).toBe(0.12);
+    expect(card.items.map((item) => item.faceUp)).toEqual([false]);
+  });
+
   it('maximizes exact funding with zero costs and signed strengths and derives the custom price', async () => {
     const battleId = await start();
     const troops = [
