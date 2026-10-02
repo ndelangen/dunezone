@@ -2,19 +2,14 @@ import { accepted, nextSnapshot } from '../../src/shared/play/commands';
 import { emptyPublicControls } from '../../src/shared/play/inventory';
 import type { StoredControls } from '../../src/shared/play/inventory';
 import type { TableEvent } from '../../src/shared/play/model';
-import {
-  PLAY_ROSTER_LIMIT,
-  PLAY_SEAT_LIMIT_APPROVAL_MESSAGE,
-  PLAY_SEAT_LIMIT_MESSAGE,
-  seatLabel,
-  seatSubject,
-} from '../../src/shared/play/participation';
+import { PLAY_ROSTER_LIMIT, seatLabel, seatSubject } from '../../src/shared/play/participation';
 import type { SeatAction, SeatRequest } from '../../src/shared/play/participation';
 import { tableForViewer } from '../../src/shared/play/protocol';
 import type { Viewer } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
 import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
 import type { TableRoster } from '../../src/shared/play/schema';
+import { PLAY_SEAT_LIMIT_APPROVAL_MESSAGE, PLAY_SEAT_LIMIT_MESSAGE } from '../../src/shared/play/seatLimit';
 import { eventId } from '../../src/shared/play/tableState';
 import type { ActorDirectory } from './actors';
 import { draftAfterRosterChange } from './drafting';

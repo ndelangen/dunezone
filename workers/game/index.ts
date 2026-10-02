@@ -14,7 +14,6 @@ import {
   playProvisioningValidationSchema,
   playProvisionRequestSchema,
   playReconcileAccountsResultSchema,
-  playRedeemTicketResultSchema,
   provisionPlaceholderId,
 } from '../../src/shared/play/admission';
 import { playGamePathPattern } from '../../src/shared/play/callbacks';
@@ -36,6 +35,7 @@ import {
 import { GameRejection } from '../../src/shared/play/rejection';
 import { playRetireFixtureRequestSchema } from '../../src/shared/play/retire';
 import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
+import { playRedeemTicketOutcomeSchema } from '../../src/shared/play/seatLimit';
 import { setupReadyRequired, setupStep } from '../../src/shared/play/setup';
 import { SPECTATOR_COLOR } from './actors';
 import { handleAlertWebhook } from './alerts';
@@ -76,7 +76,7 @@ type Connection = {
   motionTokens: number;
   refilledAt: number;
 };
-type TicketAdmission = Extract<ReturnType<typeof playRedeemTicketResultSchema.parse>, { ok: true }>;
+type TicketAdmission = Extract<ReturnType<typeof playRedeemTicketOutcomeSchema.parse>, { ok: true }>;
 
 /** A ticket that lapsed or was already redeemed. The socket closes without a refusal, so the browser asks for a new ticket. */
 class ExpiredTicket extends GameRejection {}
@@ -801,7 +801,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       secret: metadata.secret,
       ticket,
     });
-    const result = playRedeemTicketResultSchema.parse(raw);
+    const result = playRedeemTicketOutcomeSchema.parse(raw);
     if (!result.ok && result.reason === 'expired') {
       throw new ExpiredTicket('Admission ticket expired.');
     }

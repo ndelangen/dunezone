@@ -1,6 +1,6 @@
 import { Button, NumberInput, Select, Stack, Text } from '@mantine/core';
 import { playCreateGameRequestSchema } from '@shared/play/admission';
-import { PLAY_SEAT_LIMIT_MESSAGE } from '@shared/play/participation';
+import { PLAY_SEAT_LIMIT_MESSAGE } from '@shared/play/seatLimit';
 import { TABLE_SEAT_COUNTS } from '@shared/play/tableSettings';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';

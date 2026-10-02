@@ -1,4 +1,4 @@
-import { PLAY_SEAT_LIMIT } from '../../src/shared/play/participation';
+import { PLAY_SEAT_LIMIT } from '../../src/shared/play/seatLimit';
 import type { Doc, Id } from '../_generated/dataModel';
 import type { QueryCtx } from '../_generated/server';
 import { isRealGame } from './playAuthorization';
@@ -31,29 +31,21 @@ function holdsSeat(game: Doc<'play_games'>, userId: Id<'users'>) {
 }
 
 /**
- * Whether the player holds `PLAY_SEAT_LIMIT` seats, not counting the game named in `except`.
- * Admission leaves out the game being entered, so a player who left a seat there can ask for one again.
- * Candidates are the games the player created and the games they entered;
- * the count stops at the limit.
+ * The games that may hold a seat for the player, each once and without the game named in `except`.
+ * The games they created come first, then the games they entered, both newest first.
+ * @yields Each candidate game.
  */
-export async function atPlaySeatLimit(ctx: QueryCtx, userId: Id<'users'>, except?: Id<'play_games'>) {
+async function* candidateGames(ctx: QueryCtx, userId: Id<'users'>, except?: Id<'play_games'>) {
   const seen = new Set<Id<'play_games'>>(except ? [except] : []);
-  let seats = 0;
-  const count = (game: Doc<'play_games'> | null) => {
-    if (game && !seen.has(game._id)) {
-      seen.add(game._id);
-      seats += holdsSeat(game, userId) ? 1 : 0;
-    }
-    return seats >= PLAY_SEAT_LIMIT;
-  };
   const created = await ctx.db
     .query('play_games')
     .withIndex('by_creator_id', (q) => q.eq('creator_id', userId))
     .order('desc')
     .take(PLAY_SEAT_SCAN_LIMIT);
   for (const game of created) {
-    if (count(game)) {
-      return true;
+    seen.add(game._id);
+    if (game._id !== except) {
+      yield game;
     }
   }
   const entered = await ctx.db
@@ -61,8 +53,24 @@ export async function atPlaySeatLimit(ctx: QueryCtx, userId: Id<'users'>, except
     .withIndex('by_user_id', (q) => q.eq('user_id', userId))
     .order('desc')
     .take(PLAY_SEAT_SCAN_LIMIT);
-  for (const row of entered) {
-    if (!seen.has(row.game_id) && count(await ctx.db.get(row.game_id))) {
+  for (const { game_id } of entered.filter((row) => !seen.has(row.game_id))) {
+    const game = await ctx.db.get(game_id);
+    if (game) {
+      yield game;
+    }
+  }
+}
+
+/**
+ * Whether the player holds `PLAY_SEAT_LIMIT` seats, not counting the game named in `except`.
+ * Admission leaves out the game being entered, so a player who left a seat there can ask for one again.
+ * The count stops at the limit.
+ */
+export async function atPlaySeatLimit(ctx: QueryCtx, userId: Id<'users'>, except?: Id<'play_games'>) {
+  let seats = 0;
+  for await (const game of candidateGames(ctx, userId, except)) {
+    seats += holdsSeat(game, userId) ? 1 : 0;
+    if (seats >= PLAY_SEAT_LIMIT) {
       return true;
     }
   }

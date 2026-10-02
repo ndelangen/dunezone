@@ -1,11 +1,8 @@
 import { zodToConvex } from 'convex-helpers/server/zod4';
 import { v } from 'convex/values';
 
-import {
-  playCreateGameRequestSchema,
-  playCreateGameResultSchema,
-  playGameAccessSchema,
-} from '../src/shared/play/admission';
+import { playCreateGameRequestSchema, playGameAccessSchema } from '../src/shared/play/admission';
+import { playCreateGameOutcomeSchema } from '../src/shared/play/seatLimit';
 import type { Doc, Id } from './_generated/dataModel';
 import { query } from './_generated/server';
 import type { QueryCtx } from './_generated/server';
@@ -106,7 +103,7 @@ export const creatable = query({
  */
 export const createGame = mutation({
   args: zodToConvex(playCreateGameRequestSchema),
-  returns: zodToConvex(playCreateGameResultSchema),
+  returns: zodToConvex(playCreateGameOutcomeSchema),
   handler: async (ctx, args) => {
     const session = await livePlaySession(ctx);
     if (!session) {

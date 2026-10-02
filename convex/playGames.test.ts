@@ -14,7 +14,7 @@ import {
   PLAY_PROFILE_SLUG_MAX_LENGTH,
 } from '../src/shared/play/admission';
 import type { playStageSchema } from '../src/shared/play/admission';
-import { PLAY_SEAT_LIMIT } from '../src/shared/play/participation';
+import { PLAY_SEAT_LIMIT } from '../src/shared/play/seatLimit';
 import { api } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import type { MutationCtx } from './_generated/server';

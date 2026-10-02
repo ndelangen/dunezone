@@ -11,12 +11,12 @@ import {
   playReconcileAccountsRequestSchema,
   playReconcileAccountsResultSchema,
   playRedeemTicketRequestSchema,
-  playRedeemTicketResultSchema,
   playTicketResultSchema,
   playWatchAuthorizationsRequestSchema,
   playWatchAuthorizationsResultSchema,
   isProvisionPlaceholderId,
 } from '../src/shared/play/admission';
+import { playRedeemTicketOutcomeSchema } from '../src/shared/play/seatLimit';
 import { internal } from './_generated/api';
 import type { Doc, Id } from './_generated/dataModel';
 import { query } from './_generated/server';
@@ -157,7 +157,7 @@ const refusedRedemption = { ok: false, reason: 'refused' } as const;
 
 export const redeemTicket = mutation({
   args: zodToConvex(playRedeemTicketRequestSchema),
-  returns: zodToConvex(playRedeemTicketResultSchema),
+  returns: zodToConvex(playRedeemTicketOutcomeSchema),
   handler: async (ctx, input) => {
     const request = await authenticatedPlayRequest(ctx, input, playRedeemTicketRequestSchema);
     if (request?.game.state !== 'ready' || !admitsPlayers(request.game)) {
