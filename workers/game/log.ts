@@ -209,7 +209,7 @@ function commitEntries({
   transfer?: SpiceTransfer;
 }): Entry[] {
   const context = logContext(next);
-  const faction = (id: string) => factionNameIn(next, id);
+  const faction = (id: string) => literal(factionNameIn(next, id));
   const stage = stageEntry(before, next);
   const change = phaseChangeOf(before, next, message);
   const result = next.battleResults[0];
@@ -370,7 +370,7 @@ function phaseEntry(
   phases: readonly PhaseEntry[] = STANDARD_PHASES
 ): Entry {
   const { turn } = tableProgressFor(phase, phases);
-  const label = phaseAt(phase, phases).label;
+  const label = literal(phaseAt(phase, phases).label);
   const template =
     change === 'back'
       ? `Returned to ${label}.`
@@ -398,7 +398,7 @@ function battleEntry(result: BattleResult, faction: (id: string) => string, cont
   const [left, right] = result.factions;
   const template =
     result.outcome === 'none'
-      ? `${faction(left)} and ${faction(right)} agreed on no winner.`
+      ? `The battle between ${faction(left)} and ${faction(right)} ended with no winner.`
       : result.outcome === 'left'
         ? `${faction(left)} defeated ${faction(right)}.`
         : `${faction(right)} defeated ${faction(left)}.`;
@@ -469,6 +469,13 @@ function list(names: string[]): string {
   return names.length <= 1 ? names.join('') : `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`;
 }
 
+/* Names a template carries as text, a faction's or a phase's, keep their braces: `render` reads `{{` back as one brace, never as a player slot. */
+function literal(text: string): string {
+  return text.replaceAll('{', '{{');
+}
+
 function render(template: string, people: Person[]): string {
-  return template.replace(/\{(\d+)\}/g, (_, index: string) => people[Number(index)]?.name ?? DELETED_USER);
+  return template.replace(/\{\{|\{(\d+)\}/g, (_, index: string | undefined) =>
+    index === undefined ? '{' : (people[Number(index)]?.name ?? DELETED_USER)
+  );
 }

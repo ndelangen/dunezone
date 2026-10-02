@@ -366,23 +366,21 @@ describe('table furniture', () => {
     }
   );
 
-  test.each([0, 1, 9, 11, 12, 13, 18, 20, 30])(
-    'keeps the %i-phase crown connected and free of crossed edges',
-    (phaseCount) => {
-      const slots = trackerArcSlots(phaseCount);
-      const contour = createTablePlateShape(slots).extractPoints(1).shape;
+  /* Empty, full-size, standard, edge-gap-shrunk and smallest-disc arcs: the crown only sees disc size and placement. */
+  test.each([0, 1, 9, 12, 30])('keeps the %i-phase crown connected and free of crossed edges', (phaseCount) => {
+    const slots = trackerArcSlots(phaseCount);
+    const contour = createTablePlateShape(slots).extractPoints(1).shape;
 
-      expect(contourCrossesItself(contour)).toBe(false);
-      slots.forEach((slot) => {
-        expect(
-          contourContainsPoint(contour, {
-            x: slot.position[0],
-            y: slot.position[2],
-          })
-        ).toBe(true);
-      });
-    }
-  );
+    expect(contourCrossesItself(contour)).toBe(false);
+    slots.forEach((slot) => {
+      expect(
+        contourContainsPoint(contour, {
+          x: slot.position[0],
+          y: slot.position[2],
+        })
+      ).toBe(true);
+    });
+  });
 
   test.each([0, 1, 9, 20, 30])('rounds both tracker-crown shoulders in a %i-phase layout', (phaseCount) => {
     const slots = trackerArcSlots(phaseCount);

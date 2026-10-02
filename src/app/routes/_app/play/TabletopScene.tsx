@@ -76,6 +76,8 @@ import {
   BufferGeometry,
   EdgesGeometry,
   Float32BufferAttribute,
+  Mesh,
+  MeshBasicMaterial,
   Raycaster,
   RingGeometry,
   SRGBColorSpace,
@@ -85,11 +87,13 @@ import {
 
 import { useMotionAllowed } from '@app/styles/motion';
 
+import { ArtworkPending } from './ArtworkPending';
 import arrakisMapUrl from './assets/arrakis-map.png?url';
 import stormMarkerUrl from './assets/storm-marker.png?url';
 import { boardFurnitureFor } from './boardFurniture';
 import { BOARD_RIM_DEPTH, createBoardRimShape } from './boardRimGeometry';
 import { CameraControls, CameraRelativeFog } from './CameraControls';
+import { swallowLift, watchLongPress } from './longPress';
 import { PhaseSymbol } from './PhaseSymbol';
 import { cameraPoseFor, TABLE_CAMERA_FAR, TABLE_CAMERA_FIELD_OF_VIEW, TABLE_CAMERA_NEAR } from './playView';
 import type { CameraViewCommand } from './playView';
@@ -98,6 +102,7 @@ import { sharedPublishedFaces } from './publishedFaceRetry';
 import { isPublicTablePoint, ScenePresence, useTablePose } from './ScenePresence';
 import { SpiceSupply } from './SpiceSupply';
 import { TableFurniture } from './TableFurniture';
+import { TableGraphicsBoundary, TableGraphicsUnavailable } from './TableGraphicsBoundary';
 import { mapViewFramingPoints } from './tablePlateGeometry';
 import { useTabletop } from './TabletopContext';
 import styles from './TabletopScene.module.css';
@@ -106,6 +111,7 @@ import type { TableProgress } from './tableTrackers';
 import { TurnTracker } from './TurnTracker';
 import { useDeckShuffleAnimation } from './useDeckShuffleAnimation';
 import { usePieceFlipAnimation } from './usePieceFlipAnimation';
+import { useTableGraphics } from './useTableGraphics';
 
 /* The two textures start with the bundle, alongside the connection, so the mounted table has them by the time it needs them. */
 useTexture.preload(arrakisMapUrl);
@@ -118,7 +124,6 @@ type TabletopSceneProps = {
   onInteractionActiveChange?(active: boolean): void;
   seatCount?: TableSeatCount;
   tableProgress?: TableProgress;
-  onSelectTurn?(turn: number): void;
   /* Called when the renderer is ready to draw, the moment there is a table to open the shell onto. */
   onSceneReady?(): void;
   /* Absent on the fixture, which has no lifecycle. */
@@ -235,17 +240,8 @@ function BoardRim({ seatCount }: { seatCount: TableSeatCount }) {
   );
 }
 
-function TableTrackers({
-  progress,
-  slots,
-  onSelectTurn,
-}: {
-  progress: TableProgress;
-  slots: readonly TrackerArcSlot[];
-  onSelectTurn?: TabletopSceneProps['onSelectTurn'];
-}) {
+function TableTrackers({ progress, slots }: { progress: TableProgress; slots: readonly TrackerArcSlot[] }) {
   const currentPhaseIndex = activePhaseIndex(progress);
-  const { canInteract } = useTabletop();
 
   return (
     <group>
@@ -273,13 +269,7 @@ function TableTrackers({
               {slot.kind === 'phase' ? (
                 <PhaseSymbol symbol={symbol} radius={slot.radius} faceColor={color} highlighted={highlighted} />
               ) : null}
-              {slot.kind === 'turn' ? (
-                <TurnTracker
-                  radius={slot.radius}
-                  turn={progress.turn}
-                  onSelectTurn={canInteract ? onSelectTurn : undefined}
-                />
-              ) : null}
+              {slot.kind === 'turn' ? <TurnTracker radius={slot.radius} turn={progress.turn} /> : null}
               {slot.kind === 'spice' ? <SpiceSupply radius={slot.radius} /> : null}
             </group>
           </group>
@@ -446,7 +436,6 @@ function BoardSurface({
   mapVisible,
   tableProgress,
   trackerSlots,
-  onSelectTurn,
 }: {
   seatCount: TableSeatCount;
   stormSectorIndex: number;
@@ -454,7 +443,6 @@ function BoardSurface({
   mapVisible?: boolean;
   tableProgress?: TableProgress;
   trackerSlots: readonly TrackerArcSlot[];
-  onSelectTurn?: TabletopSceneProps['onSelectTurn'];
 }) {
   return (
     <group>
@@ -462,8 +450,8 @@ function BoardSurface({
       <BoardRim seatCount={seatCount} />
       {/* The textured parts suspend while their image loads; the boundary keeps that inside the scene, so the
           rim, the furniture and the pieces stay on screen and the map fills in, instead of the route's
-          placeholder replacing a table the visitor has already seen. */}
-      <Suspense fallback={null}>
+          placeholder replacing a table the visitor has already seen. While it waits it counts as unsettled artwork. */}
+      <Suspense fallback={<ArtworkPending />}>
         {(stage !== 'setup' || mapVisible) && <BoardMap animate={stage === 'setup'} />}
         {boardFurnitureFor(stage).storm && <StormSectorHighlight sectorIndex={stormSectorIndex} />}
       </Suspense>
@@ -493,9 +481,7 @@ function BoardSurface({
         );
       })}
       <PlayerStations seatCount={seatCount} />
-      {tableProgress ? (
-        <TableTrackers progress={tableProgress} slots={trackerSlots} onSelectTurn={onSelectTurn} />
-      ) : null}
+      {tableProgress ? <TableTrackers progress={tableProgress} slots={trackerSlots} /> : null}
     </group>
   );
 }
@@ -527,9 +513,16 @@ const subscribePublishedFace = sharedPublishedFaces<Texture>({
 
 function PublishedFace({ href, card, ratio }: { href: string; card: boolean; ratio?: number | null }) {
   /* Piece art skips useTexture so a missing publication image retries in place instead of suspending the table. */
-  const [loadedFace, setLoadedFace] = useState<{ href: string; texture: Texture } | null>(null);
-  const texture = loadedFace?.href === href ? loadedFace.texture : null;
-  useEffect(() => subscribePublishedFace(href, (value) => setLoadedFace({ href, texture: value })), [href]);
+  const [loadedFace, setLoadedFace] = useState<{ href: string; texture: Texture | null } | null>(null);
+  const texture = loadedFace?.href === href ? loadedFace.texture : (subscribePublishedFace.peek(href) ?? null);
+  useEffect(() => {
+    const unsubscribe = subscribePublishedFace(href, (value) => setLoadedFace({ href, texture: value }));
+    /* The image this face first drew can be released in the same commit, by the last other face that held it; then it shows the placeholder until the reload arrives. */
+    if (subscribePublishedFace.peek(href) === undefined) {
+      setLoadedFace({ href, texture: null });
+    }
+    return unsubscribe;
+  }, [href]);
   return (
     <mesh position={[0, 0, 0.002]} renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}>
       {card ? (
@@ -860,6 +853,18 @@ function useCanvasHoverReset() {
   }, [connected, cancel, internal, renderer]);
 }
 
+/*
+ * Names the drawing surface itself, not R3F's wrapper: drei's `Html` overlays, the battle callout's buttons among them, sit inside the wrapper, and an image role there would hide them from assistive technology.
+ */
+function useCanvasName() {
+  const { renderer } = useThree();
+  useLayoutEffect(() => {
+    const canvas = renderer.domElement;
+    canvas.setAttribute('role', 'img');
+    canvas.setAttribute('aria-label', 'Game table');
+  }, [renderer]);
+}
+
 function pieceHoverCursor(canInteract: boolean, interactionBlocked: boolean, gestureBlocked: boolean) {
   if (interactionBlocked) {
     return canInteract ? 'not-allowed' : 'default';
@@ -875,10 +880,13 @@ function usePiecePointerEvents({ piece }: TablePieceMeshProps, interactionBlocke
   const { renderer } = useThree();
   const pointerSession = usePointerSession();
   const gestureBlocked = gestureBlockReason(piece);
+  const hasMenu = !state.draftMove && (piece.kind === 'card' || isSpicePiece(piece)) && !piece.inventory;
+  const stopLongPress = useRef<(() => void) | null>(null);
+  useEffect(() => () => stopLongPress.current?.(), []);
 
   return {
     onContextMenu: (event: ThreeEvent<MouseEvent>) => {
-      if (!state.draftMove && (piece.kind === 'card' || isSpicePiece(piece)) && !piece.inventory && openPieceMenu) {
+      if (hasMenu && openPieceMenu) {
         event.stopPropagation();
         openPieceMenu(piece.id, event.nativeEvent.clientX, event.nativeEvent.clientY);
       }
@@ -895,6 +903,28 @@ function usePiecePointerEvents({ piece }: TablePieceMeshProps, interactionBlocke
         return;
       }
       selectPiece(piece.id);
+      /*
+       * A touch has no right-click, and iOS never turns a long press into a context menu, so a finger resting on a deck or spice opens the same menu.
+       * A finger that moves first is carrying the piece, and the menu leaves it alone.
+       */
+      stopLongPress.current?.();
+      stopLongPress.current = null;
+      if (event.pointerType === 'touch' && hasMenu && openPieceMenu) {
+        const { clientX, clientY } = event.nativeEvent;
+        stopLongPress.current = watchLongPress(window, event.nativeEvent, () => {
+          stopLongPress.current = null;
+          if (pointerSession.isDragging(piece.id)) {
+            return;
+          }
+          /* Only this finger's press stops; another finger may be carrying another piece. */
+          if (pointerSession.isPressing(piece.id)) {
+            pointerSession.cancel();
+          }
+          stopLongPress.current = swallowLift(window, { clientX, clientY });
+          /* Android also sends a context menu for the long press; opening the same menu twice changes nothing. */
+          openPieceMenu(piece.id, clientX, clientY);
+        });
+      }
       if (gestureBlocked) {
         return;
       }
@@ -918,6 +948,8 @@ function usePiecePointerEvents({ piece }: TablePieceMeshProps, interactionBlocke
     },
   };
 }
+
+const PIECE_SELECTION_RING_MATERIAL = { transparent: true, opacity: 0.92 } as const;
 
 const PIECE_SELECTION_RADII: Record<TablePiece['kind'], [number, number, number]> = {
   card: [0.7, 0.78, 64],
@@ -945,11 +977,32 @@ function PieceSelectionRing({
       <ringGeometry args={isSpicePiece(piece) ? [0.18, 0.205, 64] : PIECE_SELECTION_RADII[piece.kind]} />
       <meshBasicMaterial
         color={stackTargeted ? '#f6bd55' : drafted ? '#f6c879' : '#fff0c9'}
-        transparent
-        opacity={0.92}
+        {...PIECE_SELECTION_RING_MATERIAL}
       />
     </mesh>
   );
+}
+
+/**
+ * Compiles the selection ring's shader while the table loads.
+ * No ring is on the table until a piece is first pressed, so without this the first press waits for a shader compile, the slowest step on a phone's GPU.
+ * The material lives as long as the table: disposing it would release the compiled program with it.
+ */
+function SelectionRingWarmup() {
+  const { renderer, scene, camera } = useThree();
+  useEffect(() => {
+    const geometry = new RingGeometry(...PIECE_SELECTION_RADII.card);
+    const material = new MeshBasicMaterial(PIECE_SELECTION_RING_MATERIAL);
+    const ring = new Mesh(geometry, material);
+    /* Off-screen or not, it must compile. */
+    ring.frustumCulled = false;
+    renderer.compileAsync(ring, camera, scene).catch(() => {});
+    return () => {
+      geometry.dispose();
+      material.dispose();
+    };
+  }, [renderer, scene, camera]);
+  return null;
 }
 
 function PieceLayers({ piece }: { piece: TablePiece }) {
@@ -1122,12 +1175,11 @@ function SceneContents({
   tableProgress,
   trackerSlots,
   mapFramingPoints,
-  onSelectTurn,
   stage,
   mapVisible,
 }: Pick<
   TabletopSceneProps,
-  'cameraView' | 'onInteractionActiveChange' | 'seatCount' | 'tableProgress' | 'onSelectTurn' | 'stage' | 'mapVisible'
+  'cameraView' | 'onInteractionActiveChange' | 'seatCount' | 'tableProgress' | 'stage' | 'mapVisible'
 > & {
   trackerSlots: readonly TrackerArcSlot[];
   mapFramingPoints: readonly Vector3Tuple[];
@@ -1136,6 +1188,7 @@ function SceneContents({
   const { controlsEnabled, onPointerSessionChange } = useSceneInteractions(onInteractionActiveChange);
   useScenePointerSession(onPointerSessionChange);
   useCanvasHoverReset();
+  useCanvasName();
 
   return (
     <>
@@ -1154,7 +1207,6 @@ function SceneContents({
           mapVisible={mapVisible}
           tableProgress={tableProgress}
           trackerSlots={trackerSlots}
-          onSelectTurn={onSelectTurn}
         />
         {renderedPieces
           .filter((piece) => !piece.battleOverlay)
@@ -1163,6 +1215,7 @@ function SceneContents({
           ))}
       </group>
       <CameraControls enabled={controlsEnabled} command={cameraView} mapFramingPoints={mapFramingPoints} />
+      <SelectionRingWarmup />
     </>
   );
 }
@@ -1174,7 +1227,6 @@ export function TabletopScene({
   onInteractionActiveChange,
   seatCount = DEFAULT_TABLE_SEAT_COUNT,
   tableProgress: providedProgress,
-  onSelectTurn,
   onSceneReady,
   stage,
   mapVisible,
@@ -1203,6 +1255,7 @@ export function TabletopScene({
     }),
     [mapFramingPoints]
   );
+  const graphics = useTableGraphics();
 
   return (
     <div
@@ -1299,31 +1352,35 @@ export function TabletopScene({
       <PieceMenuContext.Provider
         value={deckControls || bankControls ? (pieceId, x, y) => setPieceMenu({ pieceId, x, y }) : null}
       >
-        <Canvas
-          camera={camera}
-          dpr={[1, 1.75]}
-          frameloop="demand"
-          renderer={{
-            antialias: true,
-            alpha: false,
-            powerPreference: 'high-performance',
-          }}
-          /* The renderer's creation follows its asynchronous initialisation, which is the long part of a table's arrival; the first frame follows at once. */
-          onCreated={onSceneReady}
-        >
-          {children}
-          <SceneContents
-            stage={stage}
-            mapVisible={mapVisible}
-            cameraView={cameraView}
-            onInteractionActiveChange={onInteractionActiveChange}
-            seatCount={seatCount}
-            tableProgress={tableProgress}
-            onSelectTurn={onSelectTurn}
-            trackerSlots={trackerSlots}
-            mapFramingPoints={mapFramingPoints}
-          />
-        </Canvas>
+        {graphics === 'unavailable' && <TableGraphicsUnavailable onShown={onSceneReady} />}
+        {graphics === 'ready' && (
+          <TableGraphicsBoundary onShown={onSceneReady}>
+            <Canvas
+              camera={camera}
+              dpr={[1, 1.75]}
+              frameloop="demand"
+              renderer={{
+                antialias: true,
+                alpha: false,
+                powerPreference: 'high-performance',
+              }}
+              /* The renderer's creation follows its asynchronous initialisation, which is the long part of a table's arrival; the first frame follows at once. */
+              onCreated={onSceneReady}
+            >
+              {children}
+              <SceneContents
+                stage={stage}
+                mapVisible={mapVisible}
+                cameraView={cameraView}
+                onInteractionActiveChange={onInteractionActiveChange}
+                seatCount={seatCount}
+                tableProgress={tableProgress}
+                trackerSlots={trackerSlots}
+                mapFramingPoints={mapFramingPoints}
+              />
+            </Canvas>
+          </TableGraphicsBoundary>
+        )}
       </PieceMenuContext.Provider>
     </div>
   );

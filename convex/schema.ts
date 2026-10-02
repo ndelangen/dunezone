@@ -54,7 +54,9 @@ export default defineSchema({
     directory_sequence: v.optional(v.number()),
     directory_stage: v.optional(zodToConvex(playStageSchema)),
     directory: v.optional(zodToConvex(playDirectorySummarySchema)),
-  }).index('by_directory_stage', ['directory_stage']),
+  })
+    .index('by_directory_stage', ['directory_stage'])
+    .index('by_creator_id', ['creator_id']),
   play_tickets: defineTable({
     digest: v.string(),
     game_id: v.id('play_games'),

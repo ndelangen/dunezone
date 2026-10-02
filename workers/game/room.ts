@@ -13,10 +13,10 @@ import type { SeatAction } from '../../src/shared/play/participation';
 import {
   PHASE_CHANGE_COOLDOWN_MS,
   phaseAt,
-  phaseForTurn,
   requirePhaseCooldownElapsed,
   STANDARD_PHASES,
   stepPhase,
+  TURN_SELECT_REFUSAL,
 } from '../../src/shared/play/phases';
 import { PIECE_FLIP_DURATION_MS } from '../../src/shared/play/pieceFlip';
 import { carryPieceId, tableForViewer } from '../../src/shared/play/protocol';
@@ -68,9 +68,45 @@ type Carry = Identity & {
 };
 type CarryInput<T extends 'begin' | 'pose' | 'take'> = Omit<Extract<ClientMessage, { type: T }>, 'type'>;
 
+/**
+ * Actions that never rely on the table being exactly as their sender last saw it.
+ * Each names what it changes and is checked against the live table, so another seat acting at the same moment must not turn it away (#1681, #1690).
+ * A battle action names its battle and side, and a draft choice or removal ballot names the sender's own pick or vote.
+ * A bank withdrawal stays strict, so two tabs of one player cannot both spend from a bank they saw once.
+ */
+const REVISION_TOLERANT_ACTIONS = new Set<string>([
+  'spice-spawn',
+  'deck-draw',
+  'battle-claim',
+  'battle-plan',
+  'battle-ready',
+  'battle-outcome',
+  'battle-cancel',
+  'draft-pick',
+  'draft-unpick',
+  'draft-ban',
+  'draft-unban',
+  'removal-ballot',
+]);
+
+/** Readiness confirms the table its sender saw, so it may cross other readiness but never a change it would have answered. */
+const READINESS_ACTIONS = new Set<string>(['ready', 'draft-ready', 'swap-ready']);
+
+/** Whether a commit left the game at the same stage, phase, setup step and trading round. */
+function samePlace(before: GameSnapshot, after: GameSnapshot) {
+  return (
+    before.stage === after.stage &&
+    before.phase === after.phase &&
+    before.setup?.index === after.setup?.index &&
+    before.swapping?.round === after.swapping?.round
+  );
+}
+
 export class Room {
   public snapshot: StoredSnapshot;
   readonly epoch = crypto.randomUUID();
+  /** The revision of the last commit that changed more than who is ready. */
+  private settledRevision: number;
   readonly carries = new Map<string, Carry>();
   readonly reservations = new Map<string, string>();
   readonly pointers = new Map<string, PublicPointer>();
@@ -85,6 +121,29 @@ export class Room {
     private readonly phaseCooldownMs = PHASE_CHANGE_COOLDOWN_MS
   ) {
     this.snapshot = storedSnapshotSchema.parse(snapshot);
+    this.settledRevision = this.snapshot.revision;
+  }
+
+  /** Refuses a command sent against a table that has since changed in a way the command depends on. */
+  assertRevision(kind: string, expectedRevision: number, message = 'The table changed. Try the action again.') {
+    const current = this.snapshot.revision;
+    const crossed =
+      expectedRevision < current &&
+      (REVISION_TOLERANT_ACTIONS.has(kind) ||
+        (READINESS_ACTIONS.has(kind) && expectedRevision >= this.settledRevision));
+    if (expectedRevision !== current && !crossed) {
+      throw new GameRejection(message);
+    }
+  }
+
+  /** Commits one command; readiness that left the game in place keeps the table settled, so another seat's readiness against the same table still lands. */
+  commit(kind: string | undefined, apply: () => void) {
+    const before = this.snapshot;
+    const settled = this.settledRevision;
+    apply();
+    if (kind && READINESS_ACTIONS.has(kind) && samePlace(before, this.snapshot)) {
+      this.settledRevision = settled;
+    }
   }
 
   /** When the current phase's cooldown ends on the Worker's clock. */
@@ -351,6 +410,10 @@ export class Room {
   command(identity: Identity, action: RoomAction, expectedRevision: number, now = Date.now()): StoredSnapshot {
     this.assertActionStage(action);
     this.assertCommand(identity, action, expectedRevision);
+    /* The turn moves only through the phases, so Mentat pause always asks everyone to be ready (#1683); an older client may still send this. */
+    if (action.kind === 'turn') {
+      throw new GameRejection(TURN_SELECT_REFUSAL);
+    }
     if (isSetupAction(action) || (this.snapshot.stage === 'setup' && ['phase', 'ready'].includes(action.kind))) {
       return setupCommand(this.snapshot, action, {
         factionId: this.requireFaction(identity),
@@ -368,14 +431,19 @@ export class Room {
     if (isBattleAction(action)) {
       const factionId = this.requireFaction(identity);
       const next = battleCommand(this.snapshot, factionId, action, now);
-      if (action.kind !== 'battle-outcome') {
+      /* Settling a revealed battle, by outcome or cancel, moves its overlay pieces even mid-carry; refusing it would let a carry hold the battle open. */
+      if (this.snapshot.battleState?.stage !== 'revealed' || next.battleState) {
         this.assertReservationsUnchanged(this.snapshot.table as TableState, next.table as TableState);
       }
       if (action.kind === 'hand-take' || action.kind === 'hand-play') {
-        const pieces = action.kind === 'hand-take' ? next.factionInventories[factionId] : next.table.pieces;
+        /* A played card is taken from the hand it left: one merged onto a pile no longer exists on the table under its own id. */
+        const pieces =
+          action.kind === 'hand-take'
+            ? next.factionInventories[factionId]
+            : this.snapshot.factionInventories[factionId];
         return concealCards(
           next,
-          pieces.filter((piece) => piece.id === action.pieceId),
+          (pieces ?? []).filter((piece) => piece.id === action.pieceId),
           true
         );
       }
@@ -402,7 +470,7 @@ export class Room {
     const guardedNext = this.nextTable(guarded, action, identity);
     // Any command touching a reserved donor or target must be rejected, even
     // when the acting player owns the carry in another tab.
-    if (!['reset', 'phase', 'turn'].includes(action.kind)) {
+    if (!['reset', 'phase'].includes(action.kind)) {
       this.assertReservationsUnchanged(guarded, guardedNext);
     }
     const table = action.kind === 'reset' ? guardedNext : this.restoreReservationLocks(raw, guardedNext);
@@ -519,7 +587,7 @@ export class Room {
   }
 
   private assertPhaseChange(action: PieceAction, now: number) {
-    if (action.kind !== 'phase' && action.kind !== 'turn') {
+    if (action.kind !== 'phase') {
       return;
     }
     const phase = this.nextPhase(action);
@@ -532,6 +600,7 @@ export class Room {
     }
     const { refusal } = phaseGate({
       ...this.snapshot,
+      battle: this.snapshot.battleState,
       ready: controls.ready,
       seats: this.seatedPlayers(),
       predictions: this.snapshot.privatePredictions,
@@ -640,12 +709,7 @@ export class Room {
 
   private assertCommand(identity: Identity, action: PieceAction, expectedRevision: number) {
     this.player(identity);
-    if (
-      expectedRevision !== this.snapshot.revision &&
-      (!['spice-spawn', 'deck-draw'].includes(action.kind) || expectedRevision > this.snapshot.revision)
-    ) {
-      throw new GameRejection('The table changed. Try the action again.');
-    }
+    this.assertRevision(action.kind, expectedRevision);
     if ('pieceId' in action) {
       this.available(action.pieceId);
       if (this.snapshot.table.pieces.find((piece) => piece.id === action.pieceId)?.inventory) {
@@ -667,9 +731,6 @@ export class Room {
   private nextPhase(action: PieceAction): number {
     if (action.kind === 'reset') {
       return 0;
-    }
-    if (action.kind === 'turn') {
-      return phaseForTurn(this.snapshot.phase, action.turn, this.phases().length);
     }
     return action.kind === 'phase' ? stepPhase(this.snapshot.phase, action.direction) : this.snapshot.phase;
   }
@@ -705,6 +766,7 @@ export class Room {
   accept(snapshot: StoredSnapshot, carryId?: string, clearAll = false, now = Date.now()) {
     this.updateFlipDeadlines(snapshot, now);
     this.snapshot = snapshot;
+    this.settledRevision = snapshot.revision;
     this.invalidateChangedCarries(snapshot);
     if (clearAll) {
       for (const id of this.carries.keys()) {

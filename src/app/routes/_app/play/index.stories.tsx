@@ -1,7 +1,7 @@
 import preview from '@sb/preview';
 import { expect, within } from 'storybook/test';
 
-import { db, ref, storybookViewer } from '@db/storybook';
+import { convexNeverAnswers, db, ref, storybookViewer } from '@db/storybook';
 
 import { pageStoryMeta } from '../../storybookConfig';
 import { SIX, factions, productDatabase } from './product.stories.fixture';
@@ -117,5 +117,18 @@ export const SignedIn = meta.story({
       page.getByRole('link', { name: 'Dreamrules · Finished · 6 of 6 seats · winner House Atreides · you hold a seat' })
     ).toBeVisible();
     expect(page.getByRole('link', { name: 'Create a game' })).toBeVisible();
+  },
+});
+
+/** A lobby whose server never answers says so after ten seconds and offers the way home. */
+export const ServerUnreachable = meta.story({
+  decorators: [convexNeverAnswers],
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(
+      page.findByText("Can't reach the server. Retrying...", {}, { timeout: 30_000 })
+    ).resolves.toBeVisible();
+    expect(page.getByRole('link', { name: 'Go back home' })).toHaveAttribute('href', '/');
+    expect(page.queryByText('Loading games.')).toBeNull();
   },
 });

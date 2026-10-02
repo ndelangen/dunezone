@@ -602,15 +602,15 @@ describe('hosted table admission', () => {
 });
 
 describe('hosted table interaction', () => {
-  test('turn corrections preserve a carry and use the latest shared revision', async () => {
+  test('phase changes preserve a carry and use the latest shared revision', async () => {
     const { client, source, carried } = await grantedWholeCarry();
     socket().deliver(carried);
-    client.selectTurn(7);
-    expect(command().action).toEqual({ kind: 'turn', turn: 7 });
+    client.command({ kind: 'phase' });
+    expect(command().action).toEqual({ kind: 'phase' });
     socket().deliver({ ...carried, snapshot: { ...carried.snapshot, phase: 54, revision: 1 } });
     expect(table(client).snapshot.phase).toBe(54);
     expect(table(client).gestureActivePieceId).toBe(source.id);
-    client.selectTurn(3);
+    client.command({ kind: 'phase' });
     expect(command().expectedRevision).toBe(1);
     client.finishGesture([0, 0.38, 0]);
     expect(socket().sent.at(-1)).toMatchObject({ type: 'drop', carryId: carried.carries[0].id });
@@ -625,7 +625,7 @@ describe('hosted table interaction', () => {
     const commands = socket().sent.length;
     authorize(initialSnapshot(), { ...viewer, viewerSeat: 'neutral' });
     client.spawnSpice(1);
-    client.selectTurn(4);
+    client.command({ kind: 'phase' });
     expect(socket().sent).toHaveLength(commands);
   });
 
@@ -999,7 +999,7 @@ test('compact update gaps pause commands until a full resync restores the table'
   expect(socket().sent.at(-1)).toEqual({ type: 'sync' });
   expect(table(client).canInteract).toBe(false);
   const sent = socket().sent.length;
-  client.selectTurn(2);
+  client.command({ kind: 'phase' });
   expect(socket().sent).toHaveLength(sent);
   socket().deliver(view({ sequence: 5, snapshot }));
   expect(table(client).canInteract).toBe(true);
@@ -1196,7 +1196,7 @@ test('discards a paused battle edit when another battle replaces its target', as
 
 describe('fresh reconnect recovery', () => {
   test.each([false, true])(
-    'discards an uncertain drop and accepts the saved server position, committed: %s',
+    'discards an uncertain drop, accepts the saved server position and asks the player to check it, committed: %s',
     async (committed) => {
       const { client, source } = await grantedWholeCarry();
       const snapshot = table(client).snapshot;
@@ -1224,6 +1224,46 @@ describe('fresh reconnect recovery', () => {
         committed ? position : source.position
       );
       expect(socket().sent).toEqual([{ type: 'admit', ticket: 'a'.repeat(64) }]);
+      expect(client.getSnapshot().error).toBe('The connection dropped as you placed a piece. Check where it landed.');
     }
   );
+
+  test('says a piece held through a paused connection went back, after the fresh view (#1696)', async () => {
+    const { client, source } = await grantedWholeCarry();
+    const snapshot = table(client).snapshot;
+    client.updateGesture([1, 0.38, 1]);
+    socket().close(1006);
+    await vi.advanceTimersByTimeAsync(1000);
+    socket().open();
+    authorize(snapshot);
+    expect(table(client).state.draftMove).toBeNull();
+    expect(table(client).renderedPieces.find((piece) => piece.id === source.id)?.position).toEqual(source.position);
+    expect(client.getSnapshot().error).toBe('The table paused while you held a piece. Pick it up again to continue.');
+  });
+
+  test('asks the player to check a drop sent just before the room restarted', async () => {
+    const { client } = await grantedWholeCarry();
+    const snapshot = table(client).snapshot;
+    client.finishGesture([1, 0.38, 1]);
+    socket().deliver(view({ snapshot, epoch: 'epoch-two' }));
+    expect(table(client).state.draftMove).toBeNull();
+    expect(client.getSnapshot().error).toBe('The room resumed as you placed a piece. Check where it landed.');
+  });
+
+  test('says nothing about a drop the server confirmed before the connection dropped', async () => {
+    const { client, source } = await grantedWholeCarry();
+    const saved = table(client).snapshot;
+    client.finishGesture(dropPosition);
+    const drop = socket().sent.find((message) => message.type === 'drop');
+    deliverGap(drop?.commandId ?? '');
+    socket().close(1006);
+    await vi.advanceTimersByTimeAsync(1000);
+    socket().open();
+    const pieces = saved.table.pieces.map((piece) =>
+      piece.id === source.id ? { ...piece, position: dropPosition } : piece
+    );
+    authorize({ ...saved, revision: saved.revision + 1, table: { ...saved.table, pieces } });
+    expect(table(client).state.draftMove).toBeNull();
+    expect(client.getSnapshot().error).toBeNull();
+  });
 });

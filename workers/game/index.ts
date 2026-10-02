@@ -14,7 +14,6 @@ import {
   playProvisioningValidationSchema,
   playProvisionRequestSchema,
   playReconcileAccountsResultSchema,
-  playRedeemTicketResultSchema,
   provisionPlaceholderId,
 } from '../../src/shared/play/admission';
 import { playGamePathPattern } from '../../src/shared/play/callbacks';
@@ -36,6 +35,7 @@ import {
 import { GameRejection } from '../../src/shared/play/rejection';
 import { playRetireFixtureRequestSchema } from '../../src/shared/play/retire';
 import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
+import { playRedeemTicketOutcomeSchema } from '../../src/shared/play/seatLimit';
 import { setupReadyRequired, setupStep } from '../../src/shared/play/setup';
 import { SPECTATOR_COLOR } from './actors';
 import { handleAlertWebhook } from './alerts';
@@ -62,6 +62,8 @@ type Connection = {
   /* The player's public avatar and profile slug as their admission carried them; the actor directory keeps them. */
   avatarUrl?: string | null;
   profileSlug?: string | null;
+  /* Whether the player already held the most seats one player may when this connection was admitted. */
+  seatLimitReached?: boolean;
   registrationId?: string;
   authorizationRound?: number;
   sessionId?: string;
@@ -74,7 +76,7 @@ type Connection = {
   motionTokens: number;
   refilledAt: number;
 };
-type TicketAdmission = Extract<ReturnType<typeof playRedeemTicketResultSchema.parse>, { ok: true }>;
+type TicketAdmission = Extract<ReturnType<typeof playRedeemTicketOutcomeSchema.parse>, { ok: true }>;
 
 /** A ticket that lapsed or was already redeemed. The socket closes without a refusal, so the browser asks for a new ticket. */
 class ExpiredTicket extends GameRejection {}
@@ -238,7 +240,9 @@ export class GameRoom extends DurableObject<GameEnv> {
     this.diagnostics = new GameDiagnostics(ctx.id.toString(), env.GIT_SHA);
     try {
       /* A start that fails keeps none of its writes, as a throwing constructor's would not. */
-      this.session = ctx.storage.transactionSync(() => new GameSession(ctx.storage, fixturePlan));
+      this.session = ctx.storage.transactionSync(
+        () => new GameSession(ctx.storage, fixturePlan, (userId) => this.atSeatLimit(userId))
+      );
     } catch (error) {
       this.diagnostics.report('load', error);
       this.closed = true;
@@ -797,7 +801,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       secret: metadata.secret,
       ticket,
     });
-    const result = playRedeemTicketResultSchema.parse(raw);
+    const result = playRedeemTicketOutcomeSchema.parse(raw);
     if (!result.ok && result.reason === 'expired') {
       throw new ExpiredTicket('Admission ticket expired.');
     }
@@ -805,6 +809,16 @@ export class GameRoom extends DurableObject<GameEnv> {
       throw new GameRejection('Admission refused.');
     }
     return result;
+  }
+
+  /** Whether any admitted connection of this user reported them at the seat limit; a user with no connection here is not. */
+  private atSeatLimit(userId: string) {
+    for (const connection of this.connections.values()) {
+      if (connection.viewer?.userId === userId && connection.seatLimitReached) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private pendingConnection(socket: WebSocket, connection: Connection) {
@@ -833,6 +847,8 @@ export class GameRoom extends DurableObject<GameEnv> {
     /* Absent means the directory did not say; null means no picture. Only an answer updates the stored one. */
     connection.avatarUrl = result.avatarUrl;
     connection.profileSlug = result.profileSlug;
+    /* Absent means a Convex deployment from before the seat limit, which reads as not at it. */
+    connection.seatLimitReached = result.seatLimitReached === true;
     connection.registrationId = result.registrationId;
     connection.sessionId = result.sessionId;
     const metadata = this.metadata!;
@@ -1670,8 +1686,12 @@ export class GameRoom extends DurableObject<GameEnv> {
         refused[factionId] = problem;
       }
     }
-    /* A refresh since judged against a newer catalogue, so these verdicts are stale; the next command judges again. */
+    /*
+     * A refresh since judged against a newer catalogue, so these verdicts are stale.
+     * The picks still pending are judged again on it, so none waits for another command.
+     */
     if (generation !== this.catalogueGeneration) {
+      this.judgePicksAgain = true;
       return;
     }
     ready.forEach((factionId) => this.readyPicks.add(factionId));

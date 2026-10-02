@@ -12,6 +12,7 @@ import { pageHead } from '@app/routes/pageTitle';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 import { TableWait } from './TableWait';
+import { SERVER_UNREACHABLE, useServerUnreachable } from './useServerUnreachable';
 
 const loadHostedTable = () => import('./multiplayer/HostedTable');
 const HostedTable = lazy(loadHostedTable);
@@ -46,6 +47,7 @@ export const Route = createFileRoute('/_app/play/$gameId')({
 function GamePage() {
   const { gameId } = Route.useParams();
   const { data } = useGameAccess(gameId);
+  const unreachable = useServerUnreachable(data === undefined);
   const exit = (
     <Button component={Link} to="/play" variant="default" aria-label="Back to lobby">
       Lobby
@@ -59,7 +61,7 @@ function GamePage() {
             <PageTitle title="Game" />
           </PageLayout.Header>
           <PageLayout.Content width="viewport">
-            <TableWait status="Loading the game...">{exit}</TableWait>
+            <TableWait status={unreachable ? SERVER_UNREACHABLE : 'Loading the game...'}>{exit}</TableWait>
           </PageLayout.Content>
         </PageLayout>
       );

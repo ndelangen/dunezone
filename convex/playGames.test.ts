@@ -5,6 +5,7 @@ import aggregateTest from '@convex-dev/aggregate/test';
 import rateLimiterTest from '@convex-dev/rate-limiter/test';
 import { convexTest } from 'convex-test';
 import { describe, expect, test } from 'vitest';
+import type { z } from 'zod';
 
 import { publishingDeckCardback } from '../src/shared/assets/fixtures/publishingDeckCardback';
 import {
@@ -12,10 +13,13 @@ import {
   PLAY_FIXTURE_KEY,
   PLAY_PROFILE_SLUG_MAX_LENGTH,
 } from '../src/shared/play/admission';
+import type { playStageSchema } from '../src/shared/play/admission';
+import { PLAY_SEAT_LIMIT } from '../src/shared/play/seatLimit';
 import { api } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import type { MutationCtx } from './_generated/server';
 import { insertPendingGame } from './lib/playProvisioningSchedule';
+import { playRateLimiter } from './lib/playRateLimits';
 import schema from './schema';
 
 const modules = import.meta.glob('./**/*.ts');
@@ -94,6 +98,52 @@ async function world() {
     admin: t.withIdentity({ subject: seeded.admin.subject }),
     member: t.withIdentity({ subject: seeded.member.subject }),
   };
+}
+
+function summary(stage: z.infer<typeof playStageSchema>, players: Id<'users'>[]) {
+  return {
+    stage,
+    seatCount: 6 as const,
+    seats: players.map((userId, index) => ({ seat: `seat-${index + 1}`, userId, faction: null })),
+    phase: null,
+    lastActivityAt: Date.now(),
+    result: null,
+  };
+}
+
+/**
+ * A real game the player entered, with the summary its Worker published: the player seated beside the creator.
+ * `summary: false` leaves it unpublished, and a `spectator` entered it without a seat.
+ */
+async function seatedGame(
+  ctx: MutationCtx,
+  options: {
+    player: Id<'users'>;
+    creator: Id<'users'>;
+    stage?: z.infer<typeof playStageSchema>;
+    state?: 'ready' | 'expired';
+    summary?: boolean;
+    spectator?: Id<'users'>;
+  }
+) {
+  const { player, creator, stage = 'play', state = 'ready' } = options;
+  const ruleset = await ctx.db.query('rulesets').first();
+  const players = player === creator ? [creator] : [creator, player];
+  const gameId = await ctx.db.insert('play_games', {
+    ruleset_id: ruleset!._id,
+    minimum_players: 6,
+    creator_id: creator,
+    state,
+    secret: 'a'.repeat(64),
+    attempt_id: 'b'.repeat(64),
+    provision_expires_at: 0,
+    created_at: Date.now(),
+    ...(options.summary === false ? {} : { directory: summary(stage, players), directory_stage: stage }),
+  });
+  for (const userId of options.spectator ? [...players, options.spectator] : players) {
+    await ctx.db.insert('play_game_accounts', { game_id: gameId, user_id: userId });
+  }
+  return gameId;
 }
 
 async function ready(t: ReturnType<typeof setup>, gameId: Id<'play_games'>) {
@@ -210,6 +260,67 @@ describe('real games are created and entered by any signed-in player, Administra
     }
     expect(await member.mutation(api.playGames.createGame, request)).toEqual({ ok: false, reason: 'rate_limited' });
     expect(await admin.mutation(api.playGames.createGame, request)).toMatchObject({ ok: true });
+  });
+
+  test('a player seated in the most games one player may hold is refused a new one without spending the hourly budget', async () => {
+    const { t, member, memberId, adminId, rulesets } = await world();
+    const request = { rulesetId: rulesets.ready, minimumPlayers: 4 as const };
+    await t.run(async (ctx) => {
+      for (let index = 0; index < PLAY_SEAT_LIMIT - 1; index++) {
+        await seatedGame(ctx, { player: memberId, creator: adminId });
+      }
+    });
+    expect(await member.mutation(api.playGames.createGame, request)).toMatchObject({ ok: true });
+    /* The game just created has no summary yet, and its creator's seat counts from creation. */
+    expect(await member.mutation(api.playGames.createGame, request)).toEqual({ ok: false, reason: 'seat_limit' });
+    const budget = await t.run(
+      async (ctx) => await playRateLimiter.check(ctx, 'playCreatePerAccount', { key: memberId, count: 2 })
+    );
+    expect(budget.ok).toBe(true);
+  });
+
+  test('finished, discarded and expired games hold no seat, and the game being entered is not counted', async () => {
+    const { t, admin, member, memberId, adminId, rulesets } = await world();
+    const request = { rulesetId: rulesets.ready, minimumPlayers: 4 as const };
+    await t.run(async (ctx) => {
+      for (let index = 0; index < PLAY_SEAT_LIMIT - 2; index++) {
+        await seatedGame(ctx, { player: memberId, creator: adminId });
+      }
+      await seatedGame(ctx, { player: memberId, creator: adminId, stage: 'finished' });
+      await seatedGame(ctx, { player: memberId, creator: adminId, stage: 'discarded' });
+      await seatedGame(ctx, { player: memberId, creator: adminId, state: 'expired' });
+      await seatedGame(ctx, { player: memberId, creator: memberId, state: 'expired', summary: false });
+      /* A game the player only watched holds no seat either. */
+      await seatedGame(ctx, { player: adminId, creator: adminId, spectator: memberId });
+    });
+    const created = await admin.mutation(api.playGames.createGame, request);
+    if (!created.ok) {
+      throw new Error('The fixture could not create its game.');
+    }
+    await ready(t, created.gameId);
+    const redeem = async () => {
+      const issued = await member.mutation(api.playAdmission.issueTicket, { gameId: created.gameId });
+      if (!issued.ok) {
+        throw new Error('Ticket issuance refused');
+      }
+      const game = (await t.run(async (ctx) => await ctx.db.get(created.gameId)))!;
+      return await t.mutation(api.playAdmission.redeemTicket, {
+        gameId: created.gameId,
+        secret: game.secret,
+        ticket: issued.ticket,
+      });
+    };
+    expect(await redeem()).toMatchObject({ ok: true, seatLimitReached: false });
+
+    /* With a 29th seat elsewhere and one in this game, creation is refused, but entering this game is not: its own seat is not counted, so leaving it there lets the player ask again. */
+    await t.run(async (ctx) => {
+      await seatedGame(ctx, { player: memberId, creator: adminId });
+      await ctx.db.patch(created.gameId, { directory: summary('play', [adminId, memberId]), directory_stage: 'play' });
+    });
+    expect(await member.mutation(api.playGames.createGame, request)).toEqual({ ok: false, reason: 'seat_limit' });
+    expect(await redeem()).toMatchObject({ ok: true, seatLimitReached: false });
+    await t.run(async (ctx) => await seatedGame(ctx, { player: memberId, creator: adminId }));
+    expect(await redeem()).toMatchObject({ ok: true, seatLimitReached: true });
   });
 
   test('admission to a real game ignores the Administrator flag at every step', async () => {

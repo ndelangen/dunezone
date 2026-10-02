@@ -1,4 +1,4 @@
-import { clientMessageSchema, KEEPALIVE_PING } from '@shared/play/protocol';
+import { clientMessageSchema, KEEPALIVE_PING, KEEPALIVE_PONG } from '@shared/play/protocol';
 import type { ClientMessage, ServerMessage } from '@shared/play/protocol';
 
 import type { GameRuntime, GameSocket } from './gameRuntime';
@@ -10,6 +10,8 @@ export class Socket {
   bufferedAmount = 0;
   sent: ClientMessage[] = [];
   keepalives = 0;
+  /* The Worker answers every keepalive on its own; a test turns this off to stand for a connection that went away silently. */
+  answersKeepalives = true;
   onopen: (() => void) | null = null;
   onmessage: ((event: { data: string }) => void) | null = null;
   onclose: ((event: { code: number }) => void) | null = null;
@@ -27,6 +29,9 @@ export class Socket {
   send(data: string) {
     if (data === KEEPALIVE_PING) {
       this.keepalives++;
+      if (this.answersKeepalives) {
+        this.onmessage?.({ data: KEEPALIVE_PONG });
+      }
       return;
     }
     this.sent.push(clientMessageSchema.parse(JSON.parse(data)));
@@ -44,6 +49,7 @@ export class Socket {
 }
 
 export const hidden = new Set<() => void>();
+export const online = new Set<() => void>();
 export const runtime: GameRuntime = {
   openSocket: (gameId) => new Socket(gameId),
   monotonicNow: () => performance.now(),
@@ -51,6 +57,12 @@ export const runtime: GameRuntime = {
     hidden.add(listener);
     return () => {
       hidden.delete(listener);
+    };
+  },
+  onOnline(listener) {
+    online.add(listener);
+    return () => {
+      online.delete(listener);
     };
   },
 };

@@ -5,7 +5,7 @@ import { act, cleanup, render } from '@testing-library/react';
 import { Group, PerspectiveCamera, Scene } from 'three';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
-import { ScenePresence, useTablePose } from './ScenePresence';
+import { isCursorTablePoint, isPublicTablePoint, ScenePresence, useTablePose } from './ScenePresence';
 
 const scheduler = vi.hoisted(() => ({
   frames: new Set<(state: unknown, delta: number) => void>(),
@@ -72,9 +72,9 @@ function renderRemotePose(position: Vector3Tuple) {
 }
 
 describe('remote pose smoothing', () => {
+  /* A smooth frame rate, a slow one, and the slowest two up to the 0.25 s frame clamp. */
   test.each([
     { fps: 60, frames: 12 },
-    { fps: 20, frames: 4 },
     { fps: 10, frames: 2 },
     { fps: 5, frames: 1 },
     { fps: 4, frames: 1 },
@@ -131,5 +131,30 @@ describe('the table diagnostic that browser verification projects through', () =
     renderPresence();
 
     expect(window.__duneTable).toBeUndefined();
+  });
+});
+
+describe('cursor points', () => {
+  function placed<T extends HTMLElement>(element: T, rectangle: DOMRect) {
+    element.getBoundingClientRect = () => rectangle;
+    element.getClientRects = () => [rectangle] as unknown as DOMRectList;
+    document.body.append(element);
+    return element;
+  }
+
+  test('a point under the header is no cursor, though a drag may still pass under it (#1665)', () => {
+    const canvas = placed(document.createElement('canvas'), new DOMRect(0, 0, 800, 600));
+    const header = placed(document.createElement('header'), new DOMRect(0, 0, 800, 80));
+    header.dataset.hidesCursor = '';
+    try {
+      expect(isCursorTablePoint(canvas, 400, 40)).toBe(false);
+      expect(isPublicTablePoint(canvas, 400, 40)).toBe(true);
+      expect(isCursorTablePoint(canvas, 400, 300)).toBe(true);
+      header.hidden = true;
+      expect(isCursorTablePoint(canvas, 400, 40)).toBe(true);
+    } finally {
+      canvas.remove();
+      header.remove();
+    }
   });
 });

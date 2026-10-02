@@ -226,12 +226,12 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     const turnAt = await pastPhaseCooldown(runtime, connection, 'spice-carry', 0);
     connection.send({
       type: 'command',
-      commandId: 'select-turn',
-      action: { kind: 'turn', turn: 20 },
+      commandId: 'step-back',
+      action: { kind: 'phase', direction: -1 },
       expectedRevision: 3,
     });
-    const selected = await connection.message('view', (message) => message.completedCommandId === 'select-turn');
-    expect(selected.snapshot.phase).toBe(172);
+    const selected = await connection.message('view', (message) => message.completedCommandId === 'step-back');
+    expect(selected.snapshot.phase).toBe(0);
     expect(selected.snapshot.table.pieces).toEqual(spawned.snapshot.table.pieces);
     expect(selected.carries[0].id).toBe('spice-carry');
     connection.send({

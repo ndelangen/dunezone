@@ -127,6 +127,7 @@ export const BattleSpectator = meta.story({
   play: async ({ canvasElement }) => {
     const page = await openPanel(canvasElement, 'Battle');
     await expect(page.findByRole('button', { name: 'No winner' }, WAIT)).resolves.toBeDisabled();
+    expect(page.getByText('Both plans are revealed on the table.')).toBeVisible();
   },
 });
 

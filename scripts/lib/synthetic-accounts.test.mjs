@@ -119,7 +119,7 @@ test('a sign-in passes only when the page sent its signIn frame and signed in wi
   );
 }, 30_000);
 
-test('provisioning sends every account, at most six to a mutation', async () => {
+test('provisioning sends every account with both hashes, at most six to a mutation', async () => {
   const sent = [];
   const admin = {
     async mutation(_reference, { accounts }) {
@@ -135,4 +135,8 @@ test('provisioning sends every account, at most six to a mutation', async () => 
 
   expect(sent.every((batch) => batch.length <= 6)).toBe(true);
   expect(sent.flat().map(({ email }) => email)).toEqual(accounts.map(({ email }) => email));
+  for (const { scrypt, pbkdf2 } of sent.flat()) {
+    expect(scrypt).toMatch(/^[a-f0-9]{32}:[a-f0-9]{128}$/);
+    expect(pbkdf2).toMatch(/^pbkdf2-sha256:[a-f0-9]{32}:[a-f0-9]{64}$/);
+  }
 });

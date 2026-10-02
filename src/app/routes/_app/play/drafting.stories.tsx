@@ -86,9 +86,9 @@ export const ChoosingFactions = meta.story({
       },
       { timeout: 30_000 }
     );
-    await userEvent.hover(page.getByLabelText('Draft pool details'));
+    await userEvent.hover(page.getByRole('button', { name: /^Pool / }));
     await waitForFrame(() => expect(page.getByRole('tooltip')).toHaveTextContent('a random 6 of them will be dealt'));
-    await userEvent.unhover(page.getByLabelText('Draft pool details'));
+    await userEvent.unhover(page.getByRole('button', { name: /^Pool / }));
     const list = () => within(page.getByRole('list', { name: 'Factions' }));
     await waitFor(
       async () => {
@@ -186,6 +186,27 @@ export const SpectatorAsksForASeat = meta.story({
     await press(() => bar().getByRole('button', { name: 'Request a seat' }));
     await waitFor(() => expect(lastCommand()).toMatchObject({ type: 'command', action: { kind: 'seat-request' } }));
     expect(within(canvasElement.ownerDocument.body).queryByRole('button', { name: 'Leave game' })).toBeNull();
+  },
+});
+
+/** A spectator seated during drafting lands on the drafting tab, not the Log they watched from (#1666). */
+export const SeatedSpectatorLandsOnDrafting = meta.story({
+  beforeEach: install(() => productTransport('neutral', drafting())),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await decisionBar(canvasElement, 'You are watching');
+    /* A spectator's dock holds the Log alone, so that is where it opens. */
+    await shows(() => page.getByRole('tab', { name: 'Log' }));
+    expect(page.queryByRole('tab', { name: 'Drafting' })).toBeNull();
+    const seated = session.transport.view({
+      ...draftingSnapshot([SIX[0]!, SIX[1]!], 6),
+      revision: drafting().revision + 1,
+    });
+    seated.viewer = { ...seated.viewer, viewerSeat: 'seat-2' };
+    session.transport.deliver(seated);
+    await waitFor(() => expect(page.getByRole('tab', { name: 'Drafting' })).toHaveAttribute('aria-selected', 'true'), {
+      timeout: 30_000,
+    });
   },
 });
 

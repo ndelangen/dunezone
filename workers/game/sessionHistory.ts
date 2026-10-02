@@ -21,20 +21,32 @@ type CommitMessage = Extract<ClientMessage, { type: 'drop' | 'command' }>;
 type RowInput = Pick<HistoryRow, 'kind' | 'data' | 'step' | 'base_revision'>;
 /* Declaring a result and continuing past it are playback steps, as phase and turn changes are. */
 const boundaryActions = new Set(['phase', 'turn', 'result-declare', 'result-continue']);
-const setupActions = new Set(['ready', 'phase']);
+/* Ready is a playback step only while setup gates on it; phase is one everywhere. */
+const setupReady = 'ready';
 
+/*
+ * Kept whole: a reset replaces the table, Turn 1 opening ends setup, and a settled battle closes a run of playback
+ * steps, so no restore replays more than one stretch of patches.
+ */
 function requiresCheckpoint(
   action: Extract<CommitMessage, { type: 'command' }>['action'],
   before: StoredSnapshot,
   next: StoredSnapshot
 ) {
-  if (isSetupAction(action) || action.kind === 'reset') {
+  if (action.kind === 'reset' || (before.stage === 'setup' && next.stage !== 'setup')) {
     return true;
   }
-  if (before.stage === 'setup' && setupActions.has(action.kind)) {
-    return true;
-  }
-  return action.kind === 'battle-outcome' && !next.battleState;
+  /* A revealed battle settles by agreed outcome or by cancel; either is a checkpoint. */
+  return before.battleState?.stage === 'revealed' && !next.battleState;
+}
+
+/* Setup steps change a few entries of the table each, so they are stored as their changes like any other playback step. */
+function isPlaybackStep(action: Extract<CommitMessage, { type: 'command' }>['action'], before: StoredSnapshot) {
+  return (
+    boundaryActions.has(action.kind) ||
+    isSetupAction(action) ||
+    (before.stage === 'setup' && action.kind === setupReady)
+  );
 }
 
 /** Reconstructs private history and prepares its rows; GameSession commits and accepts each boundary. */
@@ -86,14 +98,19 @@ export class SessionHistory {
     if (requiresCheckpoint(message.action, before, next)) {
       return this.checkpoint(next);
     }
-    if (boundaryActions.has(message.action.kind)) {
-      return this.row(next, {
-        kind: 'patch',
-        data: JSON.stringify(diff(this.boundary!, next)),
-        step: this.step + 1,
-        base_revision: this.boundary!.revision,
-      });
+    if (isPlaybackStep(message.action, before)) {
+      return this.patch(next);
     }
+  }
+
+  /** A playback step stored as its change from the last recorded step; restore replays it onto the checkpoint before it. */
+  patch(next: StoredSnapshot): HistoryRow {
+    return this.row(next, {
+      kind: 'patch',
+      data: JSON.stringify(diff(this.boundary!, next)),
+      step: this.step + 1,
+      base_revision: this.boundary!.revision,
+    });
   }
 
   private row(next: StoredSnapshot, input: RowInput): HistoryRow {
