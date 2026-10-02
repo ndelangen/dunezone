@@ -1,10 +1,10 @@
 /*
- * Throwaway diagnostic for #1493, never merged.
+ * Throwaway diagnostic for #1493, never merged. Proof run for the salted SHA-256 fix: provisioning sends both hashes.
  * Runs on the launcher's stack after the Worker is up and before any verifier or browser starts.
  * Times Lucia Scrypt verify in Node, provisions one synthetic account through the test control
  * and signs it in over HTTP with flow signIn, five times, so the backend's function log has idle auth:store times.
  */
-import { randomBytes, scrypt } from 'node:crypto';
+import { createHash, randomBytes, scrypt } from 'node:crypto';
 import { readdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -44,7 +44,9 @@ for (let index = 0; index < 5; index += 1) {
 }
 const admin = new ConvexHttpClient(backendUrl, { logger: false });
 admin.setAdminAuth(adminKey);
-await admin.mutation(anyApi.playTesting.provisionAccounts, { accounts: [{ email: account.email, secret }] });
+const salt = randomBytes(16).toString('hex');
+const sha256 = `sha256:${salt}:${createHash('sha256').update(`${salt}:${account.password}`).digest('hex')}`;
+await admin.mutation(anyApi.playTesting.provisionAccounts, { accounts: [{ email: account.email, scrypt: secret, sha256 }] });
 result.provisionedAt = Date.now();
 for (let index = 0; index < 5; index += 1) {
   await new Promise((resolve) => setTimeout(resolve, 500));
