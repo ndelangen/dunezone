@@ -344,7 +344,10 @@ export class TableSession {
     switch (message.type) {
       case 'connection':
         this.conversations.disconnected(this.status === 'denied');
-        this.noteEndedCarry('The table paused while you held a piece. Pick it up again to continue.');
+        this.noteEndedCarry({
+          held: 'The table paused while you held a piece. Pick it up again to continue.',
+          placing: 'The connection dropped as you placed a piece. Check where it landed.',
+        });
         this.clearDisconnectedActivity();
         this.selectedId = null;
         this.hoveredId = null;
@@ -490,17 +493,18 @@ export class TableSession {
     }
     this.reconcileCarry();
   }
-  /* A drop already sent may or may not have landed, so it asks the player to look rather than to pick the piece up again. */
-  private noteEndedCarry(held: string) {
-    if (this.carry) {
-      this.droppedCarryNotice = this.carry.pendingDrop
-        ? 'The connection dropped as you placed a piece. Check where it landed.'
-        : held;
+  /* A drop already sent may or may not have landed, so it asks the player to look rather than to pick the piece up again; a drop the server confirmed needs no notice. */
+  private noteEndedCarry(notice: { held: string; placing: string }) {
+    if (this.carry && !this.carry.landed) {
+      this.droppedCarryNotice = this.carry.pendingDrop ? notice.placing : notice.held;
     }
   }
   private replaceActivity(message: Extract<GameSubscriptionEvent, { type: 'view' }>) {
     if (this.epoch && message.epoch !== this.epoch) {
-      this.noteEndedCarry('The room resumed. Pick up the piece again to continue.');
+      this.noteEndedCarry({
+        held: 'The room resumed. Pick up the piece again to continue.',
+        placing: 'The room resumed as you placed a piece. Check where it landed.',
+      });
       this.carry = null;
     }
     this.epoch = message.epoch;

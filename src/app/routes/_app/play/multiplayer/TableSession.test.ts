@@ -1240,4 +1240,30 @@ describe('fresh reconnect recovery', () => {
     expect(table(client).renderedPieces.find((piece) => piece.id === source.id)?.position).toEqual(source.position);
     expect(client.getSnapshot().error).toBe('The table paused while you held a piece. Pick it up again to continue.');
   });
+
+  test('asks the player to check a drop sent just before the room restarted', async () => {
+    const { client } = await grantedWholeCarry();
+    const snapshot = table(client).snapshot;
+    client.finishGesture([1, 0.38, 1]);
+    socket().deliver(view({ snapshot, epoch: 'epoch-two' }));
+    expect(table(client).state.draftMove).toBeNull();
+    expect(client.getSnapshot().error).toBe('The room resumed as you placed a piece. Check where it landed.');
+  });
+
+  test('says nothing about a drop the server confirmed before the connection dropped', async () => {
+    const { client, source } = await grantedWholeCarry();
+    const saved = table(client).snapshot;
+    client.finishGesture(dropPosition);
+    const drop = socket().sent.find((message) => message.type === 'drop');
+    deliverGap(drop?.commandId ?? '');
+    socket().close(1006);
+    await vi.advanceTimersByTimeAsync(1000);
+    socket().open();
+    const pieces = saved.table.pieces.map((piece) =>
+      piece.id === source.id ? { ...piece, position: dropPosition } : piece
+    );
+    authorize({ ...saved, revision: saved.revision + 1, table: { ...saved.table, pieces } });
+    expect(table(client).state.draftMove).toBeNull();
+    expect(client.getSnapshot().error).toBeNull();
+  });
 });
