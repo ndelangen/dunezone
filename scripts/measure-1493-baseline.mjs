@@ -4,7 +4,7 @@
  * Times Lucia Scrypt verify in Node, provisions one synthetic account through the test control
  * and signs it in over HTTP with flow signIn, five times, so the backend's function log has idle auth:store times.
  */
-import { createHash, randomBytes, scrypt } from 'node:crypto';
+import { pbkdf2Sync, randomBytes, scrypt } from 'node:crypto';
 import { readdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -45,8 +45,9 @@ for (let index = 0; index < 5; index += 1) {
 const admin = new ConvexHttpClient(backendUrl, { logger: false });
 admin.setAdminAuth(adminKey);
 const salt = randomBytes(16).toString('hex');
-const sha256 = `sha256:${salt}:${createHash('sha256').update(`${salt}:${account.password}`).digest('hex')}`;
-await admin.mutation(anyApi.playTesting.provisionAccounts, { accounts: [{ email: account.email, scrypt: secret, sha256 }] });
+const key = pbkdf2Sync(account.password, salt, 1000, 32, 'sha256').toString('hex');
+const pbkdf2 = `pbkdf2-sha256:${salt}:${key}`;
+await admin.mutation(anyApi.playTesting.provisionAccounts, { accounts: [{ email: account.email, scrypt: secret, pbkdf2 }] });
 result.provisionedAt = Date.now();
 for (let index = 0; index < 5; index += 1) {
   await new Promise((resolve) => setTimeout(resolve, 500));
