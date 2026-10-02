@@ -16,7 +16,8 @@ const DELETED_USER = '[deleted user]';
 
 type CommitMessage = Extract<ClientMessage, { type: 'drop' | 'command' }>;
 type BattleResult = StoredSnapshot['battleResults'][number];
-type Person = { userId: string | null; name: string };
+/* `deletedAs` is what the slot reads once the account is deleted, when `[deleted user]` alone would not tell it apart. */
+type Person = { userId: string | null; name: string; deletedAs?: string };
 type Entry = {
   /* Stable per event, so a producer that runs twice files one row. */
   key: string;
@@ -164,7 +165,7 @@ export class PublicLog {
       )
       .toArray()) {
       const people = (JSON.parse(row.people) as Person[]).map((person) =>
-        person.userId === userId ? { userId: null, name: DELETED_USER } : person
+        person.userId === userId ? { userId: null, name: person.deletedAs ?? DELETED_USER } : person
       );
       this.storage.sql.exec('UPDATE public_log SET people=? WHERE sequence=?', JSON.stringify(people), row.sequence);
     }
@@ -205,7 +206,8 @@ function factionNamer(snapshot: StoredSnapshot, holders: readonly Holder[]): Fac
     if (title?.tieBreak?.kind !== 'player') {
       return literal(title ? factionTitleText(title) : id);
     }
-    people.push({ userId: title.tieBreak.player.userId, name: title.tieBreak.player.name });
+    const { userId, name, seat } = title.tieBreak.player;
+    people.push({ userId, name, deletedAs: seatLabel(seat) });
     return `${literal(title.name)} ({${people.length - 1}})`;
   };
 }

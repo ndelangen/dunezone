@@ -132,7 +132,7 @@ describe('the public log', () => {
     ]);
     log.scrub('user-alice');
     expect(texts()).toEqual([
-      '[deleted user] collected 2 spice from the table into the Harkonnen ([deleted user]) bank.',
+      '[deleted user] collected 2 spice from the table into the Harkonnen (seat 1) bank.',
       'Harkonnen (seat 2) defeated Atreides.',
     ]);
   });

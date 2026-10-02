@@ -23,9 +23,12 @@ export function rosterFactionTitles<P>(
   const tally = (values: readonly string[]) => (value: string) => values.filter((entry) => entry === value).length;
   const nameCount = tally(seats.map(({ faction }) => faction.name));
   const holderOf = (seat: string) => holders.find((holder) => holder.seat === seat);
-  const tied = seats.filter(({ faction }) => nameCount(faction.name) > 1);
+  /* A player's name can repeat, or even read like another seat's label, so a tie-breaker counts by the text it shows. */
+  const shown = (seat: string) => holderOf(seat)?.name ?? seatLabel(seat);
   const pairCount = tally(
-    tied.map(({ seat, faction }) => JSON.stringify([faction.name, holderOf(seat)?.name ?? null]))
+    seats
+      .filter(({ faction }) => nameCount(faction.name) > 1)
+      .map(({ seat, faction }) => JSON.stringify([faction.name, shown(seat)]))
   );
   return new Map(
     seats.map(({ seat, faction }): [string, FactionTitle<P>] => {
@@ -33,7 +36,7 @@ export function rosterFactionTitles<P>(
         return [faction.id, { name: faction.name, tieBreak: null }];
       }
       const player = holderOf(seat);
-      const unique = player && pairCount(JSON.stringify([faction.name, player.name])) === 1;
+      const unique = player && pairCount(JSON.stringify([faction.name, shown(seat)])) === 1;
       return [
         faction.id,
         { name: faction.name, tieBreak: unique ? { kind: 'player', player } : { kind: 'seat', seat } },

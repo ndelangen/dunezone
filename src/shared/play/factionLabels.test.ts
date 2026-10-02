@@ -58,4 +58,12 @@ describe('faction labels', () => {
     };
     expect(snapshotFactionTieBreaks(snapshot)).toEqual({ 'faction-1': 'Alice', 'faction-3': 'seat 3' });
   });
+
+  it('falls back to the seat when a player name reads like the label of another tied seat', () => {
+    expect(rosterFactionLabels(roster('Fremen', 'Fremen', 'Fremen'), [{ seat: 'seat-1', name: 'seat 3' }])).toEqual({
+      'faction-1': 'Fremen (seat 1)',
+      'faction-2': 'Fremen (seat 2)',
+      'faction-3': 'Fremen (seat 3)',
+    });
+  });
 });
