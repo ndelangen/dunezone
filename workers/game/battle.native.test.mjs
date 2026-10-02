@@ -279,13 +279,20 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
     expect((await sendCommand(a, { kind: 'battle-outcome', battleId, outcome: 'right' })).reply.type).toBe('rejected');
   });
 
-  it('holds the phase while a battle is open and cancels a revealed battle the sides cannot agree on', async () => {
-    const battleId = await start();
+  it('holds the phase from the moment a marker is placed, and cancels a revealed battle the sides cannot agree on', async () => {
+    const placed = await accepted(a, { kind: 'battle-start', anchor: [0.95, 0.18, -3.05], territory: 'Arrakeen' });
+    expect((await sendCommand(b, { kind: 'phase' })).reply.type).toBe('rejected');
+    const battleId = placed.snapshot.battle.id;
+    await accepted(a, { kind: 'battle-claim', battleId, side: 0 });
+    await accepted(b, { kind: 'battle-claim', battleId, side: 1 });
     await accepted(a, { kind: 'battle-plan', battleId, plan: plan() });
     await ready(battleId);
     await revealed();
     const held = await sendCommand(a, { kind: 'phase' });
-    expect(held.reply).toMatchObject({ type: 'rejected', message: 'Settle or cancel the battle first.' });
+    expect(held.reply).toMatchObject({
+      type: 'rejected',
+      message: 'A battle is still open. Resolve or cancel it before moving to the next phase.',
+    });
     await accepted(a, { kind: 'battle-outcome', battleId, outcome: 'left' });
     await accepted(b, { kind: 'battle-outcome', battleId, outcome: 'right' });
     expect((await sendCommand(observer, { kind: 'battle-cancel', battleId })).reply.type).toBe('rejected');

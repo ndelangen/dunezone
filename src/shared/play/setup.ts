@@ -79,7 +79,7 @@ export function phaseGate({ stage, setup, phase, phases, roster, ready, seats, p
     const needsReady = phaseAt(phase, phases).allPlayersMustBeReady;
     /* A battle left open past its phase would block every later battle, so the table waits for it to end. */
     if (battle) {
-      return { needsReady, refusal: 'Settle or cancel the battle first.' };
+      return { needsReady, refusal: 'A battle is still open. Resolve or cancel it before moving to the next phase.' };
     }
     return {
       needsReady,

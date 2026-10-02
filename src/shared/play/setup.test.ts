@@ -59,7 +59,7 @@ describe('the phase-advance gate', () => {
     const play = { stage: 'play' as const, roster, seats: ['s1', 's2'] };
     expect(phaseGate({ ...play, phase: 0, ready: [], battle })).toEqual({
       needsReady: false,
-      refusal: 'Settle or cancel the battle first.',
+      refusal: 'A battle is still open. Resolve or cancel it before moving to the next phase.',
     });
     expect(phaseGate({ ...play, phase: 0, ready: [], battle: null }).refusal).toBeNull();
   });
