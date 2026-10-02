@@ -142,6 +142,7 @@ export class TableSession {
   private pointer: Vector3Tuple | null = null;
   private cached: ConnectionView;
   private catalogueRequestId?: string;
+  private catalogueSelection?: SpawnSelection;
   /* The Worker captures one catalogue read or spawn request per connection at a time; this is the id it holds. */
   private captureInFlight: string | null = null;
   /* One seat command at a time: a second click before the first settles would only fail the revision gate. */
@@ -149,8 +150,8 @@ export class TableSession {
   private traitorGatherInFlight: string | null = null;
   /* Set when a held piece went back to the table without a drop; the next view shows it, since a fresh view clears older errors. */
   private droppedCarryNotice: string | null = null;
-  /* The last live table and its server time, kept read-only while a lost connection is restored. */
-  private lastLive: { table: TableProjection; serverNow: () => number } | null = null;
+  /* The last live table, kept read-only while a lost connection is restored; its clock stops when the connection drops, not at the last update. */
+  private lastLive: { table: TableProjection; serverNow?: () => number } | null = null;
   private traitorsGathered = 0;
   private queuedCatalogue: { requestId: string; selection?: SpawnSelection } | null = null;
   private phaseCooldownUntil = 0;
@@ -221,8 +222,7 @@ export class TableSession {
     }
     const table = this.liveTable();
     if (!table.playback && !table.historyPending) {
-      const now = this.subscription.serverNow();
-      this.lastLive = { table, serverNow: () => now };
+      this.lastLive = { table };
     }
     return table;
   }
@@ -231,6 +231,10 @@ export class TableSession {
     if (this.status === 'denied' || !this.lastLive) {
       this.lastLive = null;
       return null;
+    }
+    if (!this.lastLive.serverNow) {
+      const now = this.subscription.serverNow();
+      this.lastLive.serverNow = () => now;
     }
     const { table, serverNow } = this.lastLive;
     const state = { ...table.state, draftMove: null };
@@ -612,7 +616,12 @@ export class TableSession {
     this.logHistoryBefore = latestLogPages();
     /* The Worker holds a capture for the connection, not the seat, so a seat change keeps it and a disconnect frees it. */
     this.captureInFlight = null;
-    this.queuedCatalogue = null;
+    /* A catalogue read still unanswered goes again on the fresh connection, so the picker that stays on screen is not left checking. */
+    const unanswered =
+      this.catalogueRequestId !== undefined && this.catalogueResult?.requestId !== this.catalogueRequestId;
+    this.queuedCatalogue = unanswered
+      ? { requestId: this.catalogueRequestId!, selection: this.catalogueSelection }
+      : null;
     this.clearActivity();
   }
   private clearActivity() {
@@ -831,6 +840,7 @@ export class TableSession {
   catalogue = (selection?: SpawnSelection) => {
     const requestId = crypto.randomUUID();
     this.catalogueRequestId = requestId;
+    this.catalogueSelection = selection;
     this.queuedCatalogue = { requestId, selection };
     this.flushCatalogue();
     return requestId;
