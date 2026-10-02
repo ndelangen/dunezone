@@ -63,9 +63,3 @@ export const GlossaryPhone = meta.story({
   args: { path: '/glossary' },
   globals: { viewport: { value: 'appMobile' } },
 });
-
-/** Prototype look: the picture as a band across the top of each topic. */
-export const GlossaryBanner = meta.story({ args: { path: '/glossary?look=banner' } });
-
-/** Prototype look: every term on its own card beside a tall picture. */
-export const GlossaryCards = meta.story({ args: { path: '/glossary?look=cards' } });

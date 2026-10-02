@@ -1,6 +1,7 @@
+import { Button } from '@mantine/core';
 import preview from '@sb/preview';
 import { distinctTermHints } from '@shared/glossary/hints';
-import { expect, fn, userEvent, within } from 'storybook/test';
+import { expect, within } from 'storybook/test';
 
 import { TermHints } from './TermHints';
 
@@ -27,21 +28,33 @@ export const NoHints = meta.story({
   },
 });
 
-/** With a fix on offer, the callout carries a button that rewrites the draft. */
-export const Fixable = meta.story({
-  args: { onFix: fn() },
-  play: async ({ args, canvasElement }) => {
-    await userEvent.click(within(canvasElement).getByRole('button', { name: 'Fix wording' }));
-    await expect(args.onFix).toHaveBeenCalledOnce();
+/** The field's own buttons sit at the end of the note, wrapping under the words when space runs out. */
+export const WithActions = meta.story({
+  args: {
+    actions: (
+      <Button size="compact-sm" variant="light">
+        Fix wording
+      </Button>
+    ),
+  },
+  play: async ({ canvasElement }) => {
+    const note = within(canvasElement).getByRole('note', { name: 'Wording suggestions' });
+    await expect(within(note).getByRole('button', { name: 'Fix wording' })).toBeVisible();
   },
 });
 
-/** Right after a fix the callout stays, so the author can take it back. */
+/** Right after a fix the note stays, so the field can offer to take it back. */
 export const JustFixed = meta.story({
-  args: { hints: [], onUndo: fn() },
+  args: {
+    hints: [],
+    fixed: true,
+    actions: (
+      <Button size="compact-sm" variant="subtle">
+        Undo
+      </Button>
+    ),
+  },
   play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-    await expect(canvas.getByText('Wording fixed.')).toBeVisible();
-    await expect(canvas.getByRole('button', { name: 'Undo' })).toBeVisible();
+    await expect(within(canvasElement).getByText('Wording fixed.')).toBeVisible();
   },
 });

@@ -13,6 +13,10 @@
   min-width: 0;
 }
 
+.layout[data-stack-first="narrow"] > .narrow {
+  order: -1;
+}
+
 /* Stays off the ladder because Norbert judged the ladder's 62rem worse on 29 September 2026 (#1321). */
 @container asymmetric-split-layout (width >= 61.25rem) {
   .layout {
@@ -22,5 +26,28 @@
   /* The slim rail: a band for a preview and a few cards, not a reading column. */
   .layout.slim {
     grid-template-columns: minmax(0, 1fr) minmax(11rem, 15rem);
+  }
+
+  /* Once split, each column takes its side by placement, so the stacking order never moves it. */
+  .layout > .wide,
+  .layout > .narrow {
+    grid-row: 1;
+  }
+
+  .layout[data-narrow-side="start"] {
+    grid-template-columns: 0.85fr 1.15fr;
+  }
+
+  .layout.slim[data-narrow-side="start"] {
+    grid-template-columns: minmax(11rem, 15rem) minmax(0, 1fr);
+  }
+
+  .layout[data-narrow-side="start"] > .narrow {
+    grid-column: 1;
+  }
+
+  .layout[data-narrow-side="start"] > .wide,
+  .layout[data-narrow-side="end"] > .narrow {
+    grid-column: 2;
   }
 }

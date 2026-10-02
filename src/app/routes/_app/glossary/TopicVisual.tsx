@@ -117,7 +117,9 @@ function TurnVisual() {
     <ol className={styles.phases}>
       {PHASES.map((phase, index) => (
         <li key={phase.name} className={styles.phase}>
-          <span className={styles.phaseNumber}>{index + 1}</span>
+          <span className={styles.phaseNumber} aria-hidden="true">
+            {index + 1}
+          </span>
           <Glyph src={phase.icon} />
           {'anchor' in phase ? <a href={`#${phase.anchor}`}>{phase.name}</a> : <span>{phase.name}</span>}
         </li>

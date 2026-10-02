@@ -1,4 +1,4 @@
-import { Group, Stack, Textarea } from '@mantine/core';
+import { Button, Group, Stack, Textarea } from '@mantine/core';
 import type { TextareaProps } from '@mantine/core';
 import { parseFormattedText } from '@shared/formattedText';
 import type { FormattedTextParseResult, FormattedTextProfile } from '@shared/formattedText';
@@ -147,6 +147,7 @@ export function FormattedTextInput({
   /* The draft from before the last fix, offered back only while the field still holds exactly what the fix wrote. */
   const [lastFix, setLastFix] = useState<{ before: string; after: string } | null>(null);
   const undoable = lastFix?.after === value && !props.disabled && !props.readOnly;
+  const fixable = !props.disabled && !props.readOnly && hints.some((hint) => hint.fix !== undefined);
   const fixWording = () => {
     const after = fixTermWording(value);
     setLastFix({ before: value, after });
@@ -204,8 +205,23 @@ export function FormattedTextInput({
           <TermHints
             hints={hints}
             id={hintsId}
-            onFix={props.disabled || props.readOnly ? undefined : fixWording}
-            onUndo={undoable ? () => onChange(lastFix.before) : undefined}
+            fixed={undoable}
+            actions={
+              (undoable || fixable) && (
+                <>
+                  {undoable ? (
+                    <Button size="compact-sm" variant="subtle" onClick={() => onChange(lastFix.before)}>
+                      Undo
+                    </Button>
+                  ) : null}
+                  {fixable ? (
+                    <Button size="compact-sm" variant="light" onClick={fixWording}>
+                      Fix wording
+                    </Button>
+                  ) : null}
+                </>
+              )
+            }
           />
         </Stack>
       )}

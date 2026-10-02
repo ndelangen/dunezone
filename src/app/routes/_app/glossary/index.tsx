@@ -1,4 +1,4 @@
-import { Badge, Group, Select, SimpleGrid, Stack, Text } from '@mantine/core';
+import { Badge, Group, Select, Stack, Text } from '@mantine/core';
 import { GLOSSARY, GLOSSARY_TOPICS } from '@shared/glossary/terms';
 import type { GlossaryTerm, GlossaryTopic } from '@shared/glossary/terms';
 import { createFileRoute } from '@tanstack/react-router';
@@ -8,9 +8,9 @@ import { StatusBadge } from '@ui/content/StatusBadge';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import type { TopicIconTopic } from '@ui/content/TopicIcon';
 import { SearchRefine } from '@ui/control/SearchRefine';
+import { AsymmetricSplitLayout } from '@ui/layout/AsymmetricSplitLayout';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
-import { Card } from '@ui/surface/Card';
 import { Toolbar } from '@ui/surface/Toolbar';
 import { useState } from 'react';
 
@@ -19,13 +19,8 @@ import { pageHead } from '@app/routes/pageTitle';
 import styles from './index.module.css';
 import { TopicVisual } from './TopicVisual';
 
-const LOOKS = ['alternating', 'banner', 'cards'] as const;
-type Look = (typeof LOOKS)[number];
-
 export const Route = createFileRoute('/_app/glossary/')({
   head: () => pageHead('Glossary'),
-  validateSearch: (search: Record<string, unknown>): { look?: Look } =>
-    LOOKS.includes(search.look as Look) ? { look: search.look as Look } : {},
   component: GlossaryPage,
 });
 
@@ -89,70 +84,31 @@ function TermSection({ term }: { term: GlossaryTerm }) {
   );
 }
 
-type TopicProps = { topic: (typeof GLOSSARY_TOPICS)[number]; terms: GlossaryTerm[]; index: number };
+type TopicProps = { topic: GlossaryTopic; terms: GlossaryTerm[]; flip: boolean };
 
-/* Look 1: the picture and the terms side by side on one pane, swapping sides from one topic to the next. */
-function AlternatingTopic({ topic, terms, index }: TopicProps) {
+/* The topic's picture and its terms side by side on one pane, the picture swapping sides from one topic to the next. */
+function TopicPane({ topic, terms, flip }: TopicProps) {
   return (
     <Surface padding="lg">
-      <div className={styles.split} data-flip={index % 2 === 1 || undefined}>
-        <div className={styles.visual}>
-          <TopicVisual topic={topic.id} />
-        </div>
-        <Stack gap="lg">
-          {terms.map((term) => (
-            <TermSection key={term.id} term={term} />
-          ))}
-        </Stack>
-      </div>
-    </Surface>
-  );
-}
-
-/* Look 2: the picture as a band across the top of the pane, the terms in two columns below it. */
-function BannerTopic({ topic, terms }: TopicProps) {
-  return (
-    <Surface padding="lg">
-      <Stack gap="lg">
-        <div className={styles.band}>
-          <TopicVisual topic={topic.id} />
-        </div>
-        <SimpleGrid cols={{ base: 1, md: 2 }} spacing="xl" verticalSpacing="lg">
-          {terms.map((term) => (
-            <TermSection key={term.id} term={term} />
-          ))}
-        </SimpleGrid>
-      </Stack>
-    </Surface>
-  );
-}
-
-/* Look 3: every term on its own card, with the picture as a tall pane leading the grid on alternating sides. */
-function CardsTopic({ topic, terms, index }: TopicProps) {
-  return (
-    <div className={styles.cardGrid} data-flip={index % 2 === 1 || undefined}>
-      <Surface padding="lg" className={styles.cardVisual}>
-        <TopicVisual topic={topic.id} />
-      </Surface>
-      {terms.map((term) => (
-        <Card key={term.id} title={term.term} action={<SourceBadge term={term} />}>
-          <div id={term.id} className={styles.term}>
-            <TermBody term={term} />
+      <AsymmetricSplitLayout narrowSide={flip ? 'end' : 'start'} stackFirst="narrow">
+        <AsymmetricSplitLayout.Wide>
+          <Stack gap="lg">
+            {terms.map((term) => (
+              <TermSection key={term.id} term={term} />
+            ))}
+          </Stack>
+        </AsymmetricSplitLayout.Wide>
+        <AsymmetricSplitLayout.Narrow>
+          <div className={styles.visual}>
+            <TopicVisual topic={topic} />
           </div>
-        </Card>
-      ))}
-    </div>
+        </AsymmetricSplitLayout.Narrow>
+      </AsymmetricSplitLayout>
+    </Surface>
   );
 }
-
-const TOPIC_LOOKS: Record<Look, (props: TopicProps) => React.ReactNode> = {
-  alternating: AlternatingTopic,
-  banner: BannerTopic,
-  cards: CardsTopic,
-};
 
 function GlossaryPage() {
-  const { look = 'alternating' } = Route.useSearch();
   const [query, setQuery] = useState('');
   const [onlyTopic, setOnlyTopic] = useState<GlossaryTopic | null>(null);
   const needle = query.trim().toLowerCase();
@@ -162,7 +118,6 @@ function GlossaryPage() {
       terms: GLOSSARY.filter((term) => term.topic === topic.id && matches(term, needle)),
     }))
     .filter((entry) => entry.terms.length > 0);
-  const Topic = TOPIC_LOOKS[look];
   const topicSelect = (label?: string) => (
     <Select
       aria-label={label ? undefined : 'Topic'}
@@ -217,7 +172,7 @@ function GlossaryPage() {
               title={topic.label}
               description={topic.summary}
             >
-              <Topic topic={topic} terms={terms} index={index} />
+              <TopicPane topic={topic.id} terms={terms} flip={index % 2 === 1} />
             </Section>
           ))}
         </Stack>

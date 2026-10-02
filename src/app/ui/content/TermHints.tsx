@@ -1,33 +1,37 @@
-import { Alert, Anchor, Button, Group, Text, VisuallyHidden } from '@mantine/core';
+import { Anchor, Group, Text, VisuallyHidden } from '@mantine/core';
 import type { TermHint } from '@shared/glossary/hints';
 import { BookA } from 'lucide-react';
+import type { ReactNode } from 'react';
+
+import styles from './TermHints.module.css';
 
 export interface TermHintsProps {
-  /** One entry per avoided word worth mentioning; with none, nothing renders unless a fix can be undone. */
+  /** One entry per avoided word worth mentioning. */
   hints: readonly TermHint[];
   /** Lets the field it advises name it in `aria-describedby`, so screen readers hear the advice with the field. */
   id?: string;
-  /** Rewrites the draft in the glossary's words; the button shows only when some hint has a fix. */
-  onFix?: () => void;
-  /** Puts back the draft from before the last fix; while it is set, the callout offers to undo. */
-  onUndo?: () => void;
+  /** The draft was just rewritten in the glossary's words; with no hints left, the note says so instead of vanishing. */
+  fixed?: boolean;
+  /** The field's own buttons for the advice, such as fixing the wording or undoing that fix. */
+  actions?: ReactNode;
 }
 
 const label = 'Wording suggestions';
 
 /**
- * Advice beside a text field about words the glossary says differently.
+ * Advice under a text field about words the glossary says differently.
  * It is never an error: the author may keep their wording, and nothing about saving changes.
+ * It paints no pane of its own, because the field it advises already sits on one.
  * Each glossary link opens a new tab so an unsaved draft stays where it is.
  */
-export function TermHints({ hints, id, onFix, onUndo }: TermHintsProps) {
-  const fixable = onFix && hints.some((hint) => hint.fix !== undefined);
-  if (hints.length === 0 && !onUndo) {
+export function TermHints({ hints, id, fixed = false, actions }: TermHintsProps) {
+  if (hints.length === 0 && !fixed) {
     return null;
   }
   return (
-    <Alert variant="light" color="dune" icon={<BookA size={16} />} p="xs" id={id} role="note" aria-label={label}>
-      <Group gap="xs" justify="space-between" wrap="wrap">
+    <Group gap="xs" justify="space-between" wrap="wrap" id={id} role="note" aria-label={label}>
+      <Group gap="xs" wrap="nowrap" align="flex-start" className={styles.message}>
+        <BookA size={16} aria-hidden className={styles.icon} />
         {hints.length > 0 ? (
           <Text size="sm">
             Dune Zone says{' '}
@@ -46,19 +50,8 @@ export function TermHints({ hints, id, onFix, onUndo }: TermHintsProps) {
         ) : (
           <Text size="sm">Wording fixed.</Text>
         )}
-        <Group gap="xs">
-          {onUndo ? (
-            <Button size="compact-sm" variant="subtle" color="dune" onClick={onUndo}>
-              Undo
-            </Button>
-          ) : null}
-          {fixable ? (
-            <Button size="compact-sm" variant="light" color="dune" onClick={onFix}>
-              Fix wording
-            </Button>
-          ) : null}
-        </Group>
       </Group>
-    </Alert>
+      {actions ? <Group gap="xs">{actions}</Group> : null}
+    </Group>
   );
 }
