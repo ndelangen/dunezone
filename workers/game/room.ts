@@ -612,6 +612,10 @@ export class Room {
     if (phase < this.snapshot.phase && this.snapshot.ending) {
       throw new GameRejection('The winner is being determined. Declare or cancel it before going back a phase.');
     }
+    /* Going back would leave the battle open in a phase that has no battles, its marker hidden and the next phase still held. */
+    if (phase < this.snapshot.phase && this.snapshot.battleState) {
+      throw new GameRejection('A battle is still open. Resolve or cancel it before going back a phase.');
+    }
     if (phase <= this.snapshot.phase) {
       return;
     }
