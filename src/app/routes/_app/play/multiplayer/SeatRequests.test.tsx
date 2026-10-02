@@ -92,6 +92,45 @@ test('a player approves the request for an open seat when an earlier request nam
   expect(client.command).toHaveBeenCalledWith({ kind: 'seat-approve', requestId: 'request-open' });
 });
 
+test('a press that began on one request never approves the request swapped in under it', () => {
+  const client = { command: vi.fn() };
+  const tableWith = (seatRequests: { id: string; requesterName: string; seat: null }[]) =>
+    ({
+      viewer: { viewerSeat: 'seat-1' },
+      snapshot: { stage: 'drafting', roster: null, controls: { seats: ['seat-1'], seatRequests } },
+      playback: null,
+      seatCommandPending: false,
+    }) as unknown as Parameters<typeof SeatRequests>[0]['table'];
+  const bar = (table: Parameters<typeof SeatRequests>[0]['table']) => (
+    <MantineProvider theme={appContentTheme}>
+      <SeatRequests
+        client={client as unknown as TableSession}
+        table={table}
+        error={null}
+        leaving={false}
+        onStay={() => {}}
+      />
+    </MantineProvider>
+  );
+  const first = { id: 'seat-request-1', requesterName: 'First', seat: null };
+  const second = { id: 'seat-request-2', requesterName: 'Second', seat: null };
+  const { rerender } = render(bar(tableWith([first, second])));
+  expect(screen.getByText('First asks for a seat')).toBeTruthy();
+  const pressed = screen.getByRole('button', { name: 'Approve' });
+  fireEvent.pointerDown(pressed);
+
+  /* Another tab approves the first request before this press ends, so the bar now offers the second. */
+  rerender(bar(tableWith([second])));
+  expect(screen.getByText('Second asks for a seat')).toBeTruthy();
+  fireEvent.pointerUp(pressed);
+  fireEvent.click(pressed);
+  expect(client.command).not.toHaveBeenCalled();
+
+  /* A fresh press on the request now on screen approves that one. */
+  fireEvent.click(screen.getByRole('button', { name: 'Approve' }));
+  expect(client.command).toHaveBeenCalledExactlyOnceWith({ kind: 'seat-approve', requestId: 'seat-request-2' });
+});
+
 test('playback in play leaves the controls to the Phase tab', () => {
   renderPlayback('play', 2);
   expect(screen.queryByText(/Playback checkpoint/)).toBeNull();

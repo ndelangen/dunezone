@@ -935,6 +935,21 @@ describe('hosted table interaction', () => {
     expect(command()).not.toBe(first);
   });
 
+  test('an approval refused because its request is settled approves nothing else', async () => {
+    const client = await connected();
+    client.command({ kind: 'seat-approve', requestId: 'seat-request-1' });
+    const sent = command();
+    expect(sent.action).toEqual({ kind: 'seat-approve', requestId: 'seat-request-1' });
+    socket().deliver({
+      type: 'rejected',
+      requestId: sent.commandId,
+      message: 'That seat request has already been resolved.',
+    });
+    expect(socket().sent.filter((message) => message.type === 'command')).toHaveLength(1);
+    expect(table(client).seatCommandPending).toBe(false);
+    expect(client.getSnapshot().error).toBe('That seat request has already been resolved.');
+  });
+
   test('a competing carry and a pointer stay on a clock 9 s fast until the Worker removes them', async () => {
     const client = await connected();
     socket().deliver(view({ sequence: 1 }));

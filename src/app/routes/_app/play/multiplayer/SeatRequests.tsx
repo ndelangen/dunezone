@@ -331,7 +331,10 @@ function PlayerBar({ client, table, readiness }: BarProps) {
         grantable ? 'Your approval seats them.' : 'That seat is taken now; the request cannot be granted.'
       }${more > 0 ? ` ${more} more ${more === 1 ? 'request waits' : 'requests wait'}.` : ''}`}
       action={
+        /* Keyed by the request, so a button pressed for one request never approves the next: when an approval elsewhere swaps
+           the next request in between pointerdown and click, the press ends on a new button and sends nothing. */
         <SeatButton
+          key={request.id}
           client={client}
           table={table}
           action={{ kind: 'seat-approve', requestId: request.id }}
