@@ -1225,6 +1225,10 @@ export class GameSession {
     return Boolean(swept || cleaned);
   }
 
+  carryHistoryFull(connectionId: string) {
+    return this.room?.carryHistoryFull(connectionId) ?? false;
+  }
+
   cancelRejectedDrop(viewer: Viewer, carryId: string) {
     if (this.room?.carries.get(carryId)?.connectionId !== viewer.connectionId) {
       return false;

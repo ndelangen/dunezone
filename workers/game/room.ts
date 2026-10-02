@@ -89,6 +89,9 @@ const REVISION_TOLERANT_ACTIONS = new Set<string>([
   'removal-ballot',
 ]);
 
+/** The carry IDs a connection may use before it reconnects; the room never forgets one while the connection lasts. */
+const CARRY_HISTORY_LIMIT = 1024;
+
 /** Readiness confirms the table its sender saw, so it may cross other readiness but never a change it would have answered. */
 const READINESS_ACTIONS = new Set<string>(['ready', 'draft-ready', 'swap-ready']);
 
@@ -229,9 +232,14 @@ export class Room {
     if (used?.has(input.carryId)) {
       throw new GameRejection('That carry ID has ended. Start a new carry.');
     }
-    if (used && used.size >= 1024) {
+    if (this.carryHistoryFull(identity.connectionId)) {
       throw new GameRejection('Reconnect to the table before starting another carry.');
     }
+  }
+
+  /** Whether a connection has started as many carries as the room remembers; only a new connection may start more. */
+  carryHistoryFull(connectionId: string) {
+    return (this.usedCarryIds.get(connectionId)?.size ?? 0) >= CARRY_HISTORY_LIMIT;
   }
 
   private assertCarryCapacity(identity: Identity) {

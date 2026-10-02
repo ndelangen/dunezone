@@ -982,6 +982,40 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     expect(connection.closed).toBe(false);
   });
 
+  it('sends a socket that used up its carry history to reconnect, and the new socket picks pieces up again', async () => {
+    expect((await provision(runtime)).status).toBe(200);
+    peer.expiresAt = () => Date.now() + 3_600_000;
+    const { connection } = await admit();
+    const begin = (socket, carryId) => {
+      const start = socket.messages.length;
+      socket.send({
+        type: 'begin',
+        carryId,
+        sourcePieceId: 'harkonnen-force-stack',
+        expectedVersion: 0,
+        pickup: 'top',
+      });
+      return eventually(
+        () => socket.messages.slice(start).find((message) => [message.carryId, message.requestId].includes(carryId)),
+        `the answer to ${carryId}`
+      );
+    };
+    /* A long session: every pickup ends, and the room's clock moves on so the message budget refills. */
+    for (let index = 0; index < 1024; index++) {
+      if (index % 25 === 0) {
+        await runtime.clock((index / 25 + 1) * 1000);
+      }
+      expect((await begin(connection, `carry-${index}`)).type).toBe('carry');
+      connection.send({ type: 'cancel', carryId: `carry-${index}` });
+    }
+    await runtime.clock(50_000);
+    expect(await begin(connection, 'carry-past-history')).toMatchObject({ type: 'rejected' });
+    await eventually(() => connection.closed, 'the socket closing for a reconnect');
+    expect(connection.closeCode).not.toBe(4401);
+    const { connection: reconnected } = await admit();
+    expect((await begin(reconnected, 'carry-after-reconnect')).type).toBe('carry');
+  }, 60_000);
+
   async function confirmationRequest(index) {
     return eventually(
       () => peer.requests.filter((request) => request.function === 'playProvisioning:confirmProvisioning')[index],
