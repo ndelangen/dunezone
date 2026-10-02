@@ -12,6 +12,8 @@ import type { z } from 'zod';
 import { useLobbyGames } from '@db/play';
 import { pageHead } from '@app/routes/pageTitle';
 
+import { SERVER_UNREACHABLE, useServerUnreachable } from './useServerUnreachable';
+
 /*
  * The lobby lists what the directory holds and nothing more; it never loads the 3D runtime.
  * Any signed-in player sees every listed game. Nothing in the app links here: the lobby stays unlisted
@@ -73,6 +75,25 @@ function GameList({ entries, empty }: Readonly<{ entries: LobbyEntry[]; empty: s
   );
 }
 
+/* Convex retries on its own; after a while the wait says so and offers the way home. */
+function LobbyWait({ signedOut }: Readonly<{ signedOut: boolean }>) {
+  const unreachable = useServerUnreachable(!signedOut);
+  if (signedOut) {
+    return <Text c="dimmed">Ongoing and past games appear here once you sign in.</Text>;
+  }
+  if (!unreachable) {
+    return <Text c="dimmed">Loading games.</Text>;
+  }
+  return (
+    <Stack gap="xs" role="status">
+      <Text c="dimmed">{SERVER_UNREACHABLE}</Text>
+      <Anchor component={Link} to="/">
+        Go back home
+      </Anchor>
+    </Stack>
+  );
+}
+
 function PlayLobby() {
   const { data: lobby } = useLobbyGames();
   return (
@@ -96,9 +117,7 @@ function PlayLobby() {
                 </Anchor>
               </>
             ) : (
-              <Text c="dimmed">
-                {lobby === undefined ? 'Loading games.' : 'Ongoing and past games appear here once you sign in.'}
-              </Text>
+              <LobbyWait signedOut={lobby !== undefined} />
             )}
           </Stack>
         </Surface>
