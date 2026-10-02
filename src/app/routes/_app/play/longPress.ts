@@ -3,6 +3,11 @@ export const LONG_PRESS_MS = 500;
 /* A finger drifts while it rests; past this it is moving, not holding. */
 const LONG_PRESS_SLOP_PX = 8;
 
+/* The deck menu's shuffle shortcut needs a keyboard and a hovering pointer, so a menu a finger opened leaves the hint out. */
+export function deckShuffleHint(openedByTouch: boolean): string | null {
+  return openedByTouch ? null : 'Hover a deck and press R to shuffle.';
+}
+
 type Press = Pick<PointerEvent, 'pointerId' | 'clientX' | 'clientY'>;
 
 /**
