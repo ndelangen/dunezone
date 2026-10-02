@@ -4,20 +4,10 @@
  * so the files that import it run unchanged in that copy.
  */
 import type { MutationCtx } from '../_generated/server';
-
-function isLoopback(value: string | undefined): boolean {
-  try {
-    const url = new URL(value ?? '');
-    return ['http:', 'https:'].includes(url.protocol) && ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname);
-  } catch {
-    return false;
-  }
-}
+import { isIsolatedLoopbackBackend } from './isolatedBackend';
 
 export function isSyntheticBackend() {
-  const enabled = process.env.IS_TEST === 'true' && process.env.E2E_LOCAL_AUTH === 'true';
-  const loopback = isLoopback(process.env.CONVEX_CLOUD_URL) && isLoopback(process.env.SITE_URL);
-  return enabled && loopback;
+  return isIsolatedLoopbackBackend();
 }
 
 export function requireSyntheticBackend() {

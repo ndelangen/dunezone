@@ -3,7 +3,7 @@
  * Both provision every account a run needs before any browser starts, then sign each browser in through the login form, so no browser ever creates an account.
  * It sits in `scripts/lib` because the flow driver imports it directly and the load runner's bundle reaches it from `scripts/play-load`.
  */
-import { randomBytes, scrypt } from 'node:crypto';
+import { createHash, randomBytes, scrypt } from 'node:crypto';
 
 import type { ConvexHttpClient } from 'convex/browser';
 import { anyApi } from 'convex/server';
@@ -12,7 +12,7 @@ import type { Page, WebSocket } from 'playwright';
 type SyntheticAccount = { email: string; password: string };
 
 /**
- * The secret Convex Auth's Password provider stores for `password`: Lucia's Scrypt with N 16384, r 16 and p 1, a 64-byte key, and the hex salt used as text.
+ * The secret Convex Auth's Password provider stores for `password` by default: Lucia's Scrypt with N 16384, r 16 and p 1, a 64-byte key, and the hex salt used as text.
  * Password hashes inside a mutation, which the backend stops at its function limit, so the runner hashes here instead.
  */
 export function passwordSecret(password: string) {
@@ -24,6 +24,12 @@ export function passwordSecret(password: string) {
   });
 }
 
+/** The salted SHA-256 that the hosted-play launcher's backend checks instead of Scrypt, in the form `convex/lib/syntheticPasswords.ts` stores. */
+export function passwordDigest(password: string) {
+  const salt = randomBytes(16).toString('hex');
+  return `sha256:${salt}:${createHash('sha256').update(`${salt}:${password}`).digest('hex')}`;
+}
+
 /**
  * Accounts per provisioning mutation.
  * The load runner creates up to 38, and one mutation writing all of them could itself meet the backend's function limit on a loaded machine.
@@ -31,10 +37,17 @@ export function passwordSecret(password: string) {
  */
 const ACCOUNTS_PER_MUTATION = 6;
 
-/** Creates each account that does not exist yet through the synthetic backend's test control; `admin` carries the admin key. */
+/**
+ * Creates each account that does not exist yet through the synthetic backend's test control; `admin` carries the admin key.
+ * Each password goes as Scrypt and as a salted SHA-256, and the control keeps the one the backend's Password checks.
+ */
 export async function provisionAccounts(admin: ConvexHttpClient, accounts: SyntheticAccount[]) {
   const hashed = await Promise.all(
-    accounts.map(async ({ email, password }) => ({ email, secret: await passwordSecret(password) }))
+    accounts.map(async ({ email, password }) => ({
+      email,
+      scrypt: await passwordSecret(password),
+      sha256: passwordDigest(password),
+    }))
   );
   for (let start = 0; start < hashed.length; start += ACCOUNTS_PER_MUTATION) {
     await admin.mutation(anyApi.playTesting.provisionAccounts, {

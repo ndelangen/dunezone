@@ -21,6 +21,7 @@ import {
 import { insertPendingGame } from './lib/playProvisioningSchedule';
 import { limitLiveGames, requireSyntheticBackend } from './lib/playSynthetic';
 import { ensureProfileForUser, profileSourcesFromUserDoc } from './lib/profileBootstrap';
+import { checksPasswordDigest, isPasswordDigest } from './lib/syntheticPasswords';
 
 function requireShortExpiry(expiresInMs: number) {
   const withinTestWindow = expiresInMs >= 0 && expiresInMs <= 30_000;
@@ -59,23 +60,25 @@ async function requireSyntheticUser(ctx: MutationCtx, userId: Id<'users'>) {
   requireSyntheticEmail((await ctx.db.get(userId))?.email);
 }
 
-/** Password's stored secret: Lucia's Scrypt output, a 16-byte hex salt and a 64-byte hex key. */
-const PASSWORD_SECRET = /^[a-f0-9]{32}:[a-f0-9]{128}$/;
+/** Password's default stored secret: Lucia's Scrypt output, a 16-byte hex salt and a 64-byte hex key. */
+const SCRYPT_SECRET = /^[a-f0-9]{32}:[a-f0-9]{128}$/;
 
 /**
  * Creates synthetic Password accounts before a run's browsers start, so a browser's sign-in finds its account and never creates one.
- * It writes the rows Password's sign-up writes, with a secret the runner already hashed, so no Scrypt runs inside this mutation.
+ * It writes the rows Password's sign-up writes, with a secret the runner already hashed, so no hashing runs inside this mutation.
+ * The runner cannot tell which hash this backend's Password checks, so it sends each password as Scrypt and as a salted SHA-256, and this keeps the one Password checks here (`lib/syntheticPasswords.ts`).
  * An account that already exists keeps its password, as a later run with the same credentials file expects.
  */
 export const provisionAccounts = internalMutation({
-  args: { accounts: v.array(v.object({ email: v.string(), secret: v.string() })) },
+  args: { accounts: v.array(v.object({ email: v.string(), scrypt: v.string(), sha256: v.string() })) },
   returns: v.null(),
   handler: async (ctx, args) => {
     requireSyntheticBackend();
-    for (const { email, secret } of args.accounts) {
+    const checksDigest = checksPasswordDigest();
+    for (const { email, scrypt, sha256 } of args.accounts) {
       requireSyntheticEmail(email);
-      if (!PASSWORD_SECRET.test(secret)) {
-        throw new Error('Synthetic accounts need a Scrypt secret, not a password');
+      if (!SCRYPT_SECRET.test(scrypt) || !isPasswordDigest(sha256)) {
+        throw new Error('Synthetic accounts need a Scrypt secret and a salted SHA-256 digest, not a password');
       }
       const existing = await ctx.db
         .query('authAccounts')
@@ -91,6 +94,7 @@ export const provisionAccounts = internalMutation({
       }
       /* The same profile Auth's afterUserCreatedOrUpdated callback creates for a new Password account. */
       await ensureProfileForUser(ctx, userId, profileSourcesFromUserDoc(user));
+      const secret = checksDigest ? sha256 : scrypt;
       await ctx.db.insert('authAccounts', { userId, provider: 'password', providerAccountId: email, secret });
     }
     return null;

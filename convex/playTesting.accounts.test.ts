@@ -7,7 +7,7 @@ import aggregateTest from '@convex-dev/aggregate/test';
 import { convexTest } from 'convex-test';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 
-import { passwordSecret } from '../scripts/lib/synthetic-accounts';
+import { passwordDigest, passwordSecret } from '../scripts/lib/synthetic-accounts';
 import { api, internal } from './_generated/api';
 import schema from './schema';
 
@@ -59,7 +59,7 @@ function signIn(
 
 async function provision(t: ReturnType<typeof backend>, { email, password }: ReturnType<typeof account>) {
   await t.mutation(internal.playTesting.provisionAccounts, {
-    accounts: [{ email, secret: await passwordSecret(password) }],
+    accounts: [{ email, scrypt: await passwordSecret(password), sha256: passwordDigest(password) }],
   });
 }
 
@@ -116,7 +116,7 @@ test(
 );
 
 test(
-  'a provisioned account keeps its first password and signs in without creating rows, and only synthetic accounts with a Scrypt secret are accepted',
+  'a provisioned account keeps its first password and signs in without creating rows, and only synthetic accounts with both hashes are accepted',
   async () => {
     const t = backend();
     const player = account('player-b');
@@ -131,9 +131,14 @@ test(
     );
     await expect(
       t.mutation(internal.playTesting.provisionAccounts, {
-        accounts: [{ email: account('plain').email, secret: player.password }],
+        accounts: [{ email: account('plain').email, scrypt: player.password, sha256: passwordDigest(player.password) }],
       })
     ).rejects.toThrow('Scrypt secret');
+    await expect(
+      t.mutation(internal.playTesting.provisionAccounts, {
+        accounts: [{ email: account('plain').email, scrypt: await passwordSecret(player.password), sha256: player.password }],
+      })
+    ).rejects.toThrow('SHA-256 digest');
   },
   PASSWORD_TEST_BUDGET_MS
 );

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { randomBytes, randomUUID, scrypt } from 'node:crypto';
+import { createHash, randomBytes, randomUUID, scrypt } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { parseEnv } from 'node:util';
 
@@ -47,8 +47,8 @@ const passed = (name, detail) => {
   console.log(`PASS ${name}`);
 };
 /*
- * passwordSecret's Scrypt from scripts/lib/synthetic-accounts.ts, copied for the same reason as the loopback rule above.
- * A secret that Password does not accept fails the first sign-in.
+ * passwordSecret's Scrypt and passwordDigest's salted SHA-256 from scripts/lib/synthetic-accounts.ts, copied for the same reason as the loopback rule above.
+ * The provisioning control keeps the one the backend's Password checks, and a secret that Password does not accept fails the first sign-in.
  */
 function passwordSecret(password) {
   const salt = randomBytes(16).toString('hex');
@@ -57,6 +57,10 @@ function passwordSecret(password) {
       error ? reject(error) : resolve(`${salt}:${key.toString('hex')}`)
     );
   });
+}
+function passwordDigest(password) {
+  const salt = randomBytes(16).toString('hex');
+  return `sha256:${salt}:${createHash('sha256').update(`${salt}:${password}`).digest('hex')}`;
 }
 /* Every account the checks sign in; they are created before the first sign-in, so no check signs up under the backend's function limit (#1493). */
 const accounts = Object.fromEntries(
@@ -68,7 +72,11 @@ const accounts = Object.fromEntries(
 /* Six accounts, the most scripts/lib/synthetic-accounts.ts sends in one provisioning mutation. */
 async function provisionAccounts() {
   const hashed = await Promise.all(
-    Object.values(accounts).map(async ({ email, password }) => ({ email, secret: await passwordSecret(password) }))
+    Object.values(accounts).map(async ({ email, password }) => ({
+      email,
+      scrypt: await passwordSecret(password),
+      sha256: passwordDigest(password),
+    }))
   );
   await admin.mutation(anyApi.playTesting.provisionAccounts, { accounts: hashed });
 }
