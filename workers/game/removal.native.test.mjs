@@ -55,10 +55,10 @@ describe('Public removal votes', { timeout: 20_000 }, () => {
   }
   const ballot = (player, vote, choice) => accepted(player, { kind: 'removal-ballot', voteId: vote.id, choice });
 
+  /* The smallest table, an even count that rounds the majority up, and a full table. */
   it.each([
     [3, 2],
     [4, 3],
-    [6, 4],
     [18, 10],
   ])('requires %i players to supply %i approvals, including offline voters', async (count, threshold) => {
     const all = await players(count);

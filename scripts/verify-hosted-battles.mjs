@@ -25,8 +25,11 @@ export async function verifyBattles(toolkit) {
   const token = a.view().snapshot.table.pieces.find((piece) => piece.inventory);
   async function drag(who, locator, destination) {
     await locator.scrollIntoViewIfNeeded();
-    const box = await locator.boundingBox();
-    assert.ok(box);
+    /* The battle marker floats over the canvas and is placed on the next rendered frame, so until then its box lies far off screen. */
+    const box = await until(async () => {
+      const found = await locator.boundingBox();
+      return found && found.x >= 0 && found.y >= 0 ? found : null;
+    }, 'Drag source did not come into view.');
     const end = await point(who, destination);
     /* The card fan leaves the upper edge exposed above its wheel. */
     await who.page.mouse.move(box.x + box.width / 2, box.y + Math.min(12, box.height / 2));

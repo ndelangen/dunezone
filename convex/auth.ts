@@ -6,6 +6,7 @@ import { convexAuth } from '@convex-dev/auth/server';
 import { applicationTriggers } from './lib/applicationTriggers';
 import { syntheticIdentity } from './lib/playSynthetic';
 import { ensureProfileForUser, profileSourcesFromUserDoc } from './lib/profileBootstrap';
+import { pbkdf2PasswordCrypto } from './lib/syntheticPasswords';
 
 const gemini = 'https://www.googleapis.com/auth/generative-language.retriever';
 const localE2eAuthEnabled = process.env.E2E_LOCAL_AUTH === 'true';
@@ -72,7 +73,9 @@ if (process.env.AUTH_DISCORD_ID && process.env.AUTH_DISCORD_SECRET) {
 }
 
 if (localE2eAuthEnabled) {
-  providers.push(Password({ profile: syntheticIdentity }));
+  /* The hosted-play launcher's backend checks its synthetic accounts' passwords with PBKDF2, and every other backend keeps Scrypt (#1493). */
+  const pbkdf2Crypto = pbkdf2PasswordCrypto();
+  providers.push(Password({ profile: syntheticIdentity, ...(pbkdf2Crypto ? { crypto: pbkdf2Crypto } : {}) }));
 }
 
 export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({

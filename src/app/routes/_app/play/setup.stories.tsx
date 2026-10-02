@@ -26,11 +26,11 @@ export const TraitorSelection = meta.story({
     await waitFor(() =>
       expect(lastCommand()).toMatchObject({ type: 'command', action: { kind: 'ready', ready: true } })
     );
-    await userEvent.click(page.getByRole('button', { name: /^Spice$/ }));
+    await userEvent.click(page.getByRole('tab', { name: /^Spice$/ }));
     await expect(page.findByLabelText('Banked spice')).resolves.toBeVisible();
-    await userEvent.click(page.getByRole('button', { name: /^Shared inventory$/ }));
+    await userEvent.click(page.getByRole('tab', { name: /^Shared inventory$/ }));
     expect(page.queryByRole('button', { name: 'Add from catalogue' })).toBeNull();
-    await userEvent.click(page.getByRole('button', { name: /^Hand$/ }));
+    await userEvent.click(page.getByRole('tab', { name: /^Hand$/ }));
   },
 });
 

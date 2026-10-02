@@ -52,6 +52,7 @@ export function Section({
   children,
 }: SectionProps) {
   const headingId = useId();
+  const descriptionId = useId();
   const depth = useSectionDepth();
 
   return (
@@ -64,6 +65,8 @@ export function Section({
         <Group className={styles.hint} justify="flex-end" gap="xs">
           <VisuallyHidden>
             <BlockHeading id={headingId} title={title} />
+            {/* The tooltip names nothing to assistive technology, so its guidance also describes the help button. */}
+            {description ? <span id={descriptionId}>{description}</span> : null}
           </VisuallyHidden>
           <Tooltip
             label={[title, description].filter(Boolean).join('. ')}
@@ -72,7 +75,12 @@ export function Section({
             withArrow
             events={{ hover: true, focus: true, touch: true }}
           >
-            <ActionIcon variant="subtle" size="sm" aria-label={`Help: ${title}`}>
+            <ActionIcon
+              variant="subtle"
+              size="sm"
+              aria-label={`Help: ${title}`}
+              aria-describedby={description ? descriptionId : undefined}
+            >
               <CircleHelp size={18} aria-hidden />
             </ActionIcon>
           </Tooltip>

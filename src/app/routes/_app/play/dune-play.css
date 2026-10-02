@@ -369,14 +369,12 @@ html[data-motion="reduce"] .dune-play-stage .dune-play-shell {
   box-shadow: 0 -12px 35px rgba(0, 0, 0, 0.3);
 }
 
-/* With a decision bar above the tabs, the bar takes its own height and the tabs keep the rest. */
-/* A dock whose bar has nothing to say right now collapses, so the tabs keep the whole height. */
-:where(.dune-play-shell) .seated-controls-panel:has(> [data-decision-bar]:not(:empty)) {
+/*
+ * With a decision bar above the tabs, the bar takes its own height and the tabs keep the rest.
+ * Each bar keeps its own wrapper even when it has nothing to say, so the dock is never empty and keeps that row.
+ */
+:where(.dune-play-shell) .seated-controls-panel:has(> [data-decision-bar]) {
   grid-template-rows: auto minmax(0, 1fr);
-}
-
-:where(.dune-play-shell) .seated-controls-panel > [data-decision-bar]:empty {
-  display: none;
 }
 
 :where(.dune-play-shell) .seated-controls-tabs {
@@ -425,6 +423,11 @@ html[data-motion="reduce"] .dune-play-stage .dune-play-shell {
 
   :where(.dune-play-shell) .seated-controls-panel {
     padding: var(--space-xs);
+  }
+
+  /* The header takes a second row here, so a stage's overlay starts under both; this assumes the drafting gates wrap to at most two lines. */
+  :where(.dune-play-shell) .seated-stage-overlay {
+    top: 7.5rem;
   }
 
   :where(.dune-play-shell) .seated-phase-status {

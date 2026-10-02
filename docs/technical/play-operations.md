@@ -19,6 +19,9 @@ rather than describing a tool that does not exist.
 - `asset_delivery_failure`, in Workers Logs for the publisher. A public asset read or cache step
   failed.
 - The `deploy-main.yml` run status in GitHub Actions. Whether the last merge reached production.
+- The `hosted-play-daily` issue. A red run of `.github/workflows/hosted-play-daily.yml`, which runs
+  the hosted play shards on `main` once a day, opens one issue with that label or comments on the
+  open one.
 - Cloudflare's aggregate runtime metrics in its dashboard: requests, errors and CPU, independent of
   logs.
 - Convex function logs in the dashboard for `exuberant-finch-263`: failures in the `playAdmission`,
@@ -32,7 +35,7 @@ the binding routes, not that a game works. The publisher exempts the exact GET h
 Play ingress rate limit (`workers/publisher/index.ts:49-51`).
 
 `game-operation-failed` is the only Play application diagnostic
-(`docs/technical/play-hosted.md:302-324`). The game Worker turns off invocation logs and keeps logs
+(`docs/technical/play-hosted.md:337-359`). The game Worker turns off invocation logs and keeps logs
 at 100% sampling so these failure reports survive (`workers/game/wrangler.jsonc:11-16`). Each record
 carries `operation`, `roomId` (the opaque Durable Object ID), `gitSha`, `errorKind`, `suppressed`
 and `since` (`workers/game/diagnostics.ts:62-70`). The operation names are fixed
@@ -54,21 +57,23 @@ Play is healthy for release when all of these hold:
 
 1. `/__play/health` on `https://dune.zone` answers 200 with `Cache-Control: no-store`, `ok: true`,
    and a `gitSha` and `workerVersionTag` equal to the merged commit, and a `workerVersionId` equal
-   to the active Cloudflare deployment (`scripts/game-deployment-contract.ts:80-95`). The deploy
-   smoke reads it up to 12 times, 5 seconds apart, and only the last read decides (`:97-147`).
+   to the active Cloudflare deployment (`scripts/game-deployment-contract.ts:92-107`). The deploy
+   smoke reads it up to 12 times, 5 seconds apart, and only the last read decides (`:109-159`).
 2. `/__asset-publisher/health` reports the same commit, since the two Workers move together and the
    game Worker is never rolled back on its own (`docs/deployment.md:19-24`).
 3. The game Worker passed its preflight and live contract: no workers.dev, preview or route ingress,
-   one SQLite `GameRoom` namespace, and the exact checked-in configuration
-   (`validateGameDeployContract` in `scripts/game-deployment-contract.ts`,
-   `.github/workflows/deploy-main.yml:113-174`).
+   one SQLite `GameRoom` namespace, the `ALERT_EMAIL` binding, and the exact checked-in configuration
+   (`validateGameDeployContract` in `scripts/game-deployment-contract.ts`, `auditGameWorker` in
+   `scripts/cloudflare-game-drift.ts`, and the `Preflight private game Worker release` and
+   `Require active game Worker before binding publisher` steps of `.github/workflows/deploy-main.yml`).
 4. Convex `PLAY_SERVICE_URL` and `SITE_URL` are both `https://dune.zone`, and the test-only flags
-   `IS_TEST`, `E2E_LOCAL_AUTH`, `PLAY_TEST_PHASE_COOLDOWN_MS` and `PLAY_TEST_START_STAGE` are off or
-   unset in production (`docs/deployment.md:149-152`).
+   `IS_TEST`, `E2E_LOCAL_AUTH`, `PLAY_TEST_PHASE_COOLDOWN_MS`, `PLAY_TEST_START_STAGE` and
+   `PLAY_TEST_PASSWORD_HASH` are off or unset in production (`docs/deployment.md:164-167`).
 5. The deploy run for `main`'s tip finished green, and the commit is on `main` by ancestry, not by
    a merged badge (`docs/technical/operational-traps.md:143-158`).
-6. `ci_ok` passed with the three `hosted_play` shards and `hosted_play_webgpu` on the merged change
-   (`docs/deployment.md:171-211`).
+6. The hosted play flows passed on the merged tree: `ci_ok` with the three `hosted_play` shards and
+   `hosted_play_webgpu` on a pull request whose diff reaches the hosted closure, or else the daily
+   `hosted-play-daily.yml` run on `main` (`docs/deployment.md:186-231`).
 7. No sustained `game-operation-failed` stream for the new `gitSha` in the game Worker's logs. The
    Worker-error alert (section 3) emails when an issue appears; read the logs after a deploy anyway,
    since one email covers ten minutes.
@@ -102,8 +107,12 @@ Live since 2026-10-01:
   `console.warn` `alert-email-failed` and still answered 202, so it cannot feed itself back as a new
   issue faster than the interval. The one Worker secret, `ALERT_EMAIL_TO`, holds the destination so
   the address stays out of the repository; until it is set the route is refused like any unknown
-  path. The deploy contract and the live drift audit allow exactly that binding and that secret on
-  the game Worker.
+  path. The deploy contract requires exactly that `send_email` binding. The live drift audit, which
+  also runs in the deploy's `Require active game Worker before binding publisher` step, requires
+  the binding too and allows `ALERT_EMAIL_TO` as the game Worker's only secret; only the secret may
+  be missing, since it is set by hand (`checkBindings` in `scripts/cloudflare-game-drift.ts`). An
+  isolate that finds another isolate's marker in the cache gives its own claim back, so a marker
+  never stretches the interval past ten minutes (`alreadySent` in `workers/game/alerts.ts`).
 
   Issue detection itself is per Worker and off by default. `observability.issues.enabled` in
   `workers/game/wrangler.jsonc` turns it on at every deploy; the dashboard's Enable issues toggle
@@ -148,17 +157,26 @@ When an alert arrives, start from the matching case in section 4.
 First checks: the `deploy` job's log for the `Smoke game Worker through the canonical publisher
 binding` step, which prints each of its 12 reads and the last reason. Then whether the run's
 `release_gate` deployed at all, and whether `Require active game Worker before binding publisher`
-passed (`.github/workflows/deploy-main.yml:157-203`). A 502 `Game service unavailable` means the
+passed (`.github/workflows/deploy-main.yml`). A 502 `Game service unavailable` means the
 binding answered with a redirect (`workers/publisher/index.ts:78-87`).
+
+What players see: a table whose socket closes before its first view, or whose ticket request fails,
+reads "The table could not be reached. Reconnecting..." and keeps that line through every retry
+until a view arrives; a ticket the game turns away reads "The table is temporarily unavailable."
+A socket that drops after the table has shown reconnects without keeping a failure line, so a
+deploy's cold restart does not read as an outage (`retryAfterFailure` in
+`src/app/routes/_app/play/multiplayer/GameSubscription.ts`).
 
 Recovery: if the smoke failed after both Workers went out, rerun that run. "Re-run failed jobs"
 resumes at the failed job; "Re-run all jobs" deploys the same commit again from the start
-(`docs/deployment.md:378-382`). If the cause is in the code, ship a fix forward. Do not recover by
-rerunning an older run, which redeploys the older commit (`docs/deployment.md:373-376`).
+(`docs/deployment.md:403-408`). If the cause is in the code, ship a fix forward. Do not recover by
+rerunning an older run, which redeploys the older commit (`docs/deployment.md:398-401`).
 
 If no run exists for the merge, follow "Recovering from a dropped push"
-(`docs/deployment.md:341-382`): compare the publisher's reported `gitSha` with `main`, and dispatch
-`deploy-main.yml` on `main` when they differ.
+(`docs/deployment.md:365-419`): compare the publisher's reported `gitSha` with `main`, and dispatch
+`deploy-main.yml` on `main` when they differ. If every push run fails at `Deploy exact game Worker
+release` after a dashboard change to `dunezone-game`, follow "Recovering from a dashboard edit to
+`dunezone-game`" (`docs/deployment.md:421-447`).
 
 ### Spike in `game-operation-failed` for one operation
 
@@ -176,7 +194,7 @@ Operation to likely dependency, from the call sites in `workers/game/index.ts` a
 - `storage-sync`, `load`: the room's SQLite storage. `load` means the stored game no longer opens.
 
 Recovery: reproduce locally with `bun run game:test` or `scripts/verify-hosted-play-stack.ts`
-(`docs/technical/play-hosted.md:326-343`) and ship a fix forward. The repository has no switch that
+(`docs/technical/play-hosted.md:361-378`) and ship a fix forward. The repository has no switch that
 pauses Play or one operation.
 
 ### A room stuck
@@ -188,7 +206,7 @@ What recovers by itself:
 
 - Provisioning confirmation re-arms its alarm before each request: 2 s within the provisioning
   window, 30 s after expiry to find a confirmation committed but lost
-  (`confirmProvisioning` in `workers/game/index.ts`, `docs/technical/play-hosted.md:175-180`).
+  (`confirmProvisioning` in `workers/game/index.ts`, `docs/technical/play-hosted.md:209-214`).
 - Directory delivery retries on the room's alarm with backoff from 2 s up to 30 s, with no player
   connected; a refusal from Convex is terminal for that summary (`deliverDirectoryLoop` in
   `workers/game/index.ts`, `src/shared/play/directory.ts:15-16`). One alarm serves both the battle
@@ -197,43 +215,47 @@ What recovers by itself:
 - A cold restore, including the one every deploy causes, closes old sockets with 1012 so browsers
   reconnect with a new ticket (the `GameRoom` constructor in `workers/game/index.ts`). Carries and
   pointers are lost by design; the table, receipts and history are kept
-  (`docs/technical/play-hosted.md:28-33`).
+  (`docs/technical/play-hosted.md:30-35`).
 
 What does not: a room whose stored game no longer loads is closed and answers only a retirement, and
 its alarm throws so Cloudflare retries it a few times (the `GameRoom` load path and `alarm` in
 `workers/game/index.ts`). Retirement accepts only the hosted fixture and refuses a real game
 (`retire` in `workers/game/index.ts`). There is no operator procedure for a real game in that state;
 a fix ships as a new release. Production rows are never edited by hand
-(`docs/technical/play-hosted.md:297-300`).
+(`docs/technical/play-hosted.md:332-335`).
 
 ### Asset publisher failing
 
 First checks: `asset_publisher_cron` events with `result = failed`
 (`workers/publisher/index.ts:219-228`), and `asset_delivery_failure` filtered by `assetId`
-(`docs/deployment.md:101-121`). Open `/__jobs` as an administrator for the pickup switch and error
-jobs (`docs/deployment.md:384-398`).
+(`docs/deployment.md:110-130`). Open `/__jobs` as an administrator for the pickup switch and error
+jobs (`docs/deployment.md:449-463`).
 
 Recovery: follow "Post-deploy observation" (`docs/deployment.md`). The Cron does not retry a
 failed invocation (`workers/publisher/index.ts:143`); the next one runs five minutes later. Turning
 pickup off at `/__jobs` stops new leases but not leased work. Play depends on published faction and
 deck assets: a real game refuses a faction until its faces are published and sets it aside with the
-reason (`docs/technical/play-hosted.md:285-292`).
+reason (`docs/technical/play-hosted.md:320-327`).
 
 ### Convex auth and authorization failures
 
 First checks: `admission`, `authorization-watch`, `authorization-renewal` and
 `account-reconciliation` records, and the Convex dashboard's function logs for `playAdmission`.
 Confirm `PLAY_SERVICE_URL` and `SITE_URL` are `https://dune.zone` and the test flags are off
-(`docs/deployment.md:149-152`).
+(`docs/deployment.md:164-167`).
 
 Expected behaviour while Convex is unreachable: rooms suspend access rather than extend it. A
 connection loses access by the lease or Auth expiry, whichever comes first, and any denial
 withholds game data until a fresh reconciliation completes
-(`docs/technical/play-hosted.md:120-163`). Players see a paused table, not stale access.
+(`docs/technical/play-hosted.md:145-188`). Players see a paused table, not stale access. A Play
+page whose first Convex query has had no answer for 10 seconds, the lobby, the create page or a
+game link, says "Can't reach the server. Retrying..." in place of its loading line and keeps its
+way out; Convex keeps retrying, and the page fills in when it answers
+(`src/app/routes/_app/play/useServerUnreachable.ts`).
 
 Recovery: none on the Worker side; access returns when Convex answers again. A hosted Convex
 function that takes over 1 s fails where the local stack's 2 s limit passed it
-(`docs/technical/play-hosted.md:345-349`), so a timeout seen only in production can be that.
+(`docs/technical/play-hosted.md:380-384`), so a timeout seen only in production can be that.
 
 ### Account-deletion acknowledgement backlog
 
@@ -260,7 +282,7 @@ There is no rollback procedure. Fixes ship as new forward deployments, and the g
 rolled back or redeployed to an older release on its own, because a page and a game Worker from
 different releases can refuse each other's messages (`docs/deployment.md:19-24`). `release_gate`
 stops any run whose commit is older than what production reports
-(`scripts/deploy-decision.ts:29-53`). To undo a change, revert it on `main` and let the deploy run.
+(`scripts/deploy-decision.ts:39-71`). To undo a change, revert it on `main` and let the deploy run.
 
 ## 5. Known gaps
 

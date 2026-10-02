@@ -5,7 +5,7 @@ import { frameChange } from '@shared/play/updates';
 import type { RoomView } from '@shared/play/updates';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 
-import { runtime, Socket } from './gameRuntime.test.fixture';
+import { online, runtime, Socket } from './gameRuntime.test.fixture';
 import { GameSubscription } from './GameSubscription';
 
 const initial = (): RoomView => ({
@@ -262,7 +262,7 @@ test('a ticket answered after the request timeout is taken by the next attempt i
   await vi.advanceTimersByTimeAsync(PLAY_REQUEST_TIMEOUT_MS);
   expect(listener).toHaveBeenLastCalledWith({
     type: 'connection',
-    error: 'The table could not verify this login. Reconnecting...',
+    error: 'The table could not be reached. Reconnecting...',
   });
   /* The answer lands while the subscription waits to try again, after it stopped waiting for it. */
   await vi.advanceTimersByTimeAsync(500);
@@ -315,4 +315,139 @@ test('an open socket sends a keepalive on an interval, ignores the answer and st
   socket.close(1006);
   await vi.advanceTimersByTimeAsync(KEEPALIVE_INTERVAL_MS * 2);
   expect(socket.keepalives).toBe(1);
+});
+
+test('a socket that stops answering keepalives is dropped and reconnected, while answers keep it (#1662)', async () => {
+  const { subscription, socket, listener } = await subscribed();
+  await vi.advanceTimersByTimeAsync(KEEPALIVE_INTERVAL_MS * 3);
+  expect(socket.keepalives).toBe(3);
+  expect(subscription.ready).toBe(true);
+  socket.answersKeepalives = false;
+  await vi.advanceTimersByTimeAsync(KEEPALIVE_INTERVAL_MS);
+  expect(socket.keepalives).toBe(4);
+  expect(subscription.ready).toBe(true);
+  await vi.advanceTimersByTimeAsync(KEEPALIVE_INTERVAL_MS);
+  expect(socket.readyState).toBe(3);
+  expect(subscription.status).toBe('suspended');
+  expect(listener.mock.lastCall?.[0]).toEqual({
+    type: 'connection',
+    error: 'The table could not be reached. Reconnecting...',
+  });
+  expect(Socket.instances).toHaveLength(1);
+  await vi.advanceTimersByTimeAsync(1000);
+  expect(Socket.instances).toHaveLength(2);
+  /* The table had shown, so the reconnect reads as the connection opening. */
+  expect(listener.mock.lastCall?.[0]).toEqual({ type: 'connection', error: null });
+});
+
+test('coming back online probes the open socket and skips the wait before a reconnect (#1662)', async () => {
+  const { subscription, socket } = await subscribed();
+  socket.answersKeepalives = false;
+  for (const listener of online) {
+    listener();
+  }
+  expect(socket.keepalives).toBe(1);
+  await vi.advanceTimersByTimeAsync(KEEPALIVE_INTERVAL_MS);
+  expect(socket.readyState).toBe(3);
+  expect(subscription.status).toBe('suspended');
+  expect(Socket.instances).toHaveLength(1);
+  for (const listener of online) {
+    listener();
+  }
+  await vi.advanceTimersByTimeAsync(0);
+  expect(Socket.instances).toHaveLength(2);
+});
+
+test('a probe on coming back online gets a whole interval to be answered, and a wait the Worker asked for is kept (#1662)', async () => {
+  const { subscription, socket } = await subscribed();
+  socket.answersKeepalives = false;
+  await vi.advanceTimersByTimeAsync(KEEPALIVE_INTERVAL_MS - 1);
+  for (const listener of online) {
+    listener();
+  }
+  await vi.advanceTimersByTimeAsync(KEEPALIVE_INTERVAL_MS - 1);
+  expect(socket.readyState).toBe(1);
+  socket.onmessage?.({ data: KEEPALIVE_PONG });
+  await vi.advanceTimersByTimeAsync(1);
+  expect(subscription.ready).toBe(true);
+  socket.close(4413);
+  for (const listener of online) {
+    listener();
+  }
+  await vi.advanceTimersByTimeAsync(4999);
+  expect(Socket.instances).toHaveLength(1);
+  await vi.advanceTimersByTimeAsync(1);
+  expect(Socket.instances).toHaveLength(2);
+});
+
+test('a table that never answers keeps saying so through every retry until a view arrives', async () => {
+  const subscription = new GameSubscription(
+    'game',
+    async () => ({ ok: true, ticket: 'a'.repeat(64), expiresInMs: 30_000 }),
+    runtime
+  );
+  const listener = vi.fn();
+  stops.push(subscription.subscribe(listener));
+  await vi.advanceTimersByTimeAsync(0);
+  const unreachable = { type: 'connection', error: 'The table could not be reached. Reconnecting...' };
+  /* A Worker that refuses the upgrade or answers 500 closes the socket abnormally before it ever opens. */
+  Socket.instances.at(-1)!.close(1006);
+  expect(listener.mock.lastCall?.[0]).toEqual(unreachable);
+  await vi.advanceTimersByTimeAsync(1000);
+  expect(subscription.status).toBe('connecting');
+  expect(listener.mock.lastCall?.[0]).toEqual(unreachable);
+  /* A Worker that answers but lets the ticket lapse was reached, so the retry after it reads as connecting. */
+  const lapsed = Socket.instances.at(-1)!;
+  lapsed.open();
+  lapsed.close(TICKET_EXPIRED_CLOSE_CODE);
+  await vi.advanceTimersByTimeAsync(1000);
+  expect(listener.mock.lastCall?.[0]).toEqual({ type: 'connection', error: null });
+  const socket = Socket.instances.at(-1)!;
+  socket.open();
+  socket.deliver(initial());
+  expect(subscription.status).toBe('authorized');
+  /* Once the table has shown, a dropped socket reconnects as the connection opening again. */
+  socket.close(1006);
+  await vi.advanceTimersByTimeAsync(1000);
+  expect(listener.mock.lastCall?.[0]).toEqual({ type: 'connection', error: null });
+});
+
+test('a ticket service that fails or turns the game away keeps its reason through the retry', async () => {
+  const requestTicket = vi
+    .fn()
+    .mockRejectedValueOnce(new Error('Convex is down.'))
+    .mockResolvedValue({ ok: false, reason: 'unavailable' });
+  const subscription = new GameSubscription('game', requestTicket, runtime);
+  const listener = vi.fn();
+  stops.push(subscription.subscribe(listener));
+  await vi.advanceTimersByTimeAsync(0);
+  expect(listener.mock.lastCall?.[0]).toEqual({
+    type: 'connection',
+    error: 'The table could not be reached. Reconnecting...',
+  });
+  await vi.advanceTimersByTimeAsync(1000);
+  expect(listener.mock.lastCall?.[0]).toEqual({ type: 'connection', error: 'The table is temporarily unavailable.' });
+  await vi.advanceTimersByTimeAsync(1000);
+  expect(subscription.status).not.toBe('authorized');
+  /* Only the first attempt, before anything failed, reads as plainly connecting. */
+  expect(listener.mock.calls.filter(([event]) => event.type === 'connection' && event.error === null)).toHaveLength(1);
+});
+
+test('a refusal that arrives only as the close code still says why', async () => {
+  const subscription = new GameSubscription(
+    'game',
+    async () => ({ ok: true, ticket: 'a'.repeat(64), expiresInMs: 30_000 }),
+    runtime
+  );
+  const listener = vi.fn();
+  stops.push(subscription.subscribe(listener));
+  await vi.advanceTimersByTimeAsync(0);
+  const socket = Socket.instances.at(-1)!;
+  socket.open();
+  socket.close(4401);
+  expect(subscription.status).toBe('denied');
+  expect(listener.mock.lastCall?.[0]).toEqual({
+    type: 'connection',
+    error: 'This login can no longer access the table.',
+  });
 });

@@ -20,7 +20,9 @@ nearly every file: `_app` is a **pathless layout route** and contributes no URL 
 
 [`src/app/routes/_app/route.tsx`](../src/app/routes/_app/route.tsx) wraps every visual route in
 `ApplicationChrome`, the Mantine provider plus `AppRoot`, which owns the persistent header, footer,
-and document-level scroll effects. It also owns the 404: `notFoundComponent: AppNotFound`.
+and document-level scroll effects. Its first Tab stop is a "Skip to content" link, hidden until it
+has focus, which moves focus to the page's one `main`, the one `PageLayout` renders with the id
+`PAGE_CONTENT_ID`. It also owns the 404: `notFoundComponent: AppNotFound`.
 
 Two kinds of route live *outside* `_app`, deliberately, because they must not carry application
 chrome: `auth/oauth.route.tsx` (a non-visual hand-off) and

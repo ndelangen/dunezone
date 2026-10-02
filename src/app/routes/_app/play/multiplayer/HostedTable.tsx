@@ -127,6 +127,23 @@ function ConnectionControls({ client, table, error }: ConnectionControlsProps) {
   );
 }
 
+/* A battle the viewer's faction fights in opens the Battle tab once, when that faction takes its side. */
+function battleFocus(table: TableProjection) {
+  const battle = table.snapshot.battle;
+  const own = rosterSeat(table.snapshot.roster, table.viewer.viewerSeat)?.faction?.id;
+  /* The same "in play" test that shows the Battle tab: a hosted game in play, or a table with no stage. */
+  const stage = table.snapshot.stage;
+  if (
+    (stage !== undefined && stage !== 'play') ||
+    !battle ||
+    !own ||
+    !battle.sides.some((side) => side?.factionId === own)
+  ) {
+    return null;
+  }
+  return { key: 'battle', token: battle.id };
+}
+
 function PhaseNavigation({ client, table }: Pick<ConnectionControlsProps, 'client' | 'table'>) {
   const controls = table.snapshot.controls ?? emptyPublicControls();
   const cooling = table.phaseCooling;
@@ -351,8 +368,8 @@ function SetupControls({ client, table }: SetupControlProps) {
             )}
             {step.kind === 'forces' &&
               instructions.map((entry) => (
+                /* A visible heading, not help-only: the faction name is what tells the lines apart. */
                 <Section
-                  helpOnly={Boolean(table.snapshot.stage)}
                   key={entry.factionId}
                   title={
                     table.snapshot.roster?.seats.find((seat) => seat.faction?.id === entry.factionId)?.faction?.name ??
@@ -559,10 +576,20 @@ function FactionBankControls({ client, table }: Pick<ConnectionControlsProps, 'c
   );
 }
 
+/* A transfer's ends are a faction's id, or the table or the supply, as the Worker's spice ledger records them (#1664). */
+function spicePlace(roster: TableProjection['snapshot']['roster'], place: string): string {
+  if (place === 'table' || place === 'supply') {
+    return `the ${place}`;
+  }
+  const name = roster?.seats.find((seat) => seat.faction?.id === place)?.faction?.name;
+  return name ? `the ${name} bank` : 'a faction no longer in the game';
+}
+
 function SpiceHistory({ client, table }: Pick<ConnectionControlsProps, 'client' | 'table'>) {
   const view = useSyncExternalStore(client.subscribe, client.getSnapshot);
   const entries = view.spiceHistory?.entries ?? table.snapshot.spiceTransfers ?? [];
   const more = view.spiceHistory?.more ?? entries.length === 20;
+  const roster = table.snapshot.roster;
   return (
     <Section helpOnly={Boolean(table.snapshot.stage)} title="Public spice transfers">
       <Stack gap="xs">
@@ -570,8 +597,8 @@ function SpiceHistory({ client, table }: Pick<ConnectionControlsProps, 'client' 
         <List type="ordered" size="sm">
           {entries.map((entry) => (
             <List.Item key={entry.revision}>
-              {entry.actor}: {entry.kind}, {entry.amount} spice from {entry.source}
-              {entry.destination ? ` to ${entry.destination}` : ' removed from play'}.
+              {entry.actor}: {entry.kind}, {entry.amount} spice from {spicePlace(roster, entry.source)}
+              {entry.destination ? ` to ${spicePlace(roster, entry.destination)}` : ' removed from play'}.
             </List.Item>
           ))}
         </List>
@@ -713,11 +740,14 @@ function ConnectedTable({
               />
             ) : undefined
           }
+          focusTab={battleFocus(table)}
           panelTabs={[
             ...(!tabled && stage !== 'setup'
               ? []
               : [
-                  ...(table.snapshot.setup
+                  /* Past setup the tab holds predictions only, so a game without them has no empty tab to open on. */
+                  ...(table.snapshot.setup &&
+                  (stage === 'setup' || table.snapshot.setup.steps.some((step) => step.kind === 'prediction'))
                     ? [
                         {
                           key: 'setup',

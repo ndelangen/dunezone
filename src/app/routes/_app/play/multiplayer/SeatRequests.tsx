@@ -32,7 +32,8 @@ export function DecisionBar({
   return (
     <Surface as="section" aria-labelledby={labelId} padding="sm" className={styles.bar}>
       <Group justify="space-between" align="center" wrap="wrap" gap="md">
-        <Stack gap={2} miw={0} className={styles.copy}>
+        {/* The copy is a polite status, so a change to a bar already shown is heard, not only seen; a bar that appears with its copy is not announced. */}
+        <Stack gap={2} miw={0} className={styles.copy} role="status">
           <Eyebrow tone="inverse" id={labelId}>
             {eyebrow}
           </Eyebrow>
@@ -98,8 +99,12 @@ function OwnRequestBar({ client, table, request, readiness }: BarProps & Readonl
     <DecisionBar
       readiness={readiness}
       eyebrow="Seat requested"
-      title="Waiting for a player to approve you"
-      context={`You asked for ${seatWords(table, request.seat)}. Any current player can approve; until then you keep watching.`}
+      {...(table.snapshot.stage === 'finished'
+        ? { title: 'This game has finished', context: 'Nobody can take a seat now. Withdraw the request to clear it.' }
+        : {
+            title: 'Waiting for a player to approve you',
+            context: `You asked for ${seatWords(table, request.seat)}. Any current player can approve; until then you keep watching.`,
+          })}
       action={
         <SeatButton client={client} table={table} action={{ kind: 'seat-withdraw' }} variant="default">
           Withdraw
@@ -117,6 +122,9 @@ function SpectatorBar({ client, table, readiness }: BarProps) {
   const own = controls.seatRequests.find((request) => request.own);
   if (own) {
     return <OwnRequestBar client={client} table={table} request={own} readiness={readiness} />;
+  }
+  if (table.snapshot.stage === 'finished') {
+    return null;
   }
   const seated = controls.seats.length;
   const seatCount = table.snapshot.roster?.seatCount ?? seated;
@@ -236,7 +244,10 @@ function PlayerBar({ client, table, readiness }: BarProps) {
   /* A removal vote or the end of the game has its own bar; "nobody is asking" would only add noise beside it.
      Past drafting it would only take height from the dock's tabs, so the bar comes back with the next request. */
   const otherBar = table.snapshot.removalVotes?.length || table.snapshot.ending || table.snapshot.result;
-  if (!request && (otherBar || table.snapshot.stage !== 'drafting') && !readiness) {
+  if (
+    table.snapshot.stage === 'finished' ||
+    (!request && (otherBar || table.snapshot.stage !== 'drafting') && !readiness)
+  ) {
     return null;
   }
   if (!request) {
@@ -278,6 +289,21 @@ function PlayerBar({ client, table, readiness }: BarProps) {
   );
 }
 
+/* A seated player drafting with others and no seat request to answer: the seat column shows who is at the table, and the seat number only matters once factions are dealt. */
+function draftingIdle(table: TableProjection): boolean {
+  const controls = table.snapshot.controls ?? emptyPublicControls();
+  return table.snapshot.stage === 'drafting' && controls.seatRequests.length === 0 && controls.seats.length > 1;
+}
+
+/* Drafting with nothing to ask, the bar is the draft summary and Ready on one row, so the faction list keeps the dock's height (#1633). */
+function ReadinessBar({ readiness }: Readonly<{ readiness: ReactNode }>) {
+  return (
+    <Surface as="section" aria-label="Your seat" padding="sm" className={styles.bar}>
+      {readiness}
+    </Surface>
+  );
+}
+
 function barFor(
   client: TableSession,
   table: TableProjection,
@@ -298,6 +324,8 @@ function barFor(
       );
     case table.viewer.viewerSeat === SPECTATOR_SEAT:
       return <SpectatorBar client={client} table={table} readiness={readiness} />;
+    case Boolean(readiness) && draftingIdle(table):
+      return <ReadinessBar readiness={readiness} />;
     default:
       return <PlayerBar client={client} table={table} readiness={readiness} />;
   }

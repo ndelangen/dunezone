@@ -5,10 +5,9 @@ import { describe, expect, test } from 'vitest';
 
 import { RULEBOOK_CATALOGUE_VERSION, rulebookContentsV1Schema } from '../src/shared/rulebooks/contents';
 import type { RulebookContentsDraftV1 } from '../src/shared/rulebooks/contents';
-import { rulebookSizeCatalogue, rulebookDesignCatalogue } from '../src/shared/rulebooks/settings';
 import { api, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
-import { rulebookFixture, seedRulebookStarterContents } from './rulebooks.test.fixture';
+import { coveringRulebookSettings, rulebookFixture, seedRulebookStarterContents } from './rulebooks.test.fixture';
 
 type RulebookFixture = Awaited<ReturnType<typeof rulebookFixture>>;
 
@@ -48,9 +47,7 @@ async function clearFirstPageJobs(t: RulebookFixture['t']) {
 }
 
 describe('Rulebook Edition artifact compatibility', () => {
-  test.each(
-    rulebookSizeCatalogue.flatMap(({ id: size }) => rulebookDesignCatalogue.map(({ id: design }) => ({ size, design })))
-  )('carries $size $design into all three publication jobs', async (settings) => {
+  test.each(coveringRulebookSettings())('carries $size $design into all three publication jobs', async (settings) => {
     const { t, owner, ids } = await rulebookFixture();
     const created = await owner.mutation(api.rulebooks.create, {
       catalogue_version: RULEBOOK_CATALOGUE_VERSION,

@@ -121,6 +121,18 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
     expect((await syncView(observer)).snapshot).not.toHaveProperty('bank');
   });
 
+  it('takes a battle action that crossed the opponent action, but no revision from the future (#1681)', async () => {
+    const battleId = await start();
+    const seen = (await syncView(a)).snapshot.revision;
+    await accepted(b, { kind: 'battle-ready', battleId, ready: true });
+    const planned = await sendCommand(a, { kind: 'battle-plan', battleId, plan: plan() }, undefined, seen);
+    expect(planned.reply.type).not.toBe('rejected');
+    const readied = await sendCommand(a, { kind: 'battle-ready', battleId, ready: true }, undefined, seen);
+    expect(readied.reply.type).not.toBe('rejected');
+    const ahead = await sendCommand(b, { kind: 'battle-ready', battleId, ready: false }, undefined, seen + 100);
+    expect(ahead.reply.type).toBe('rejected');
+  });
+
   it('returns an invalidated reserve and spends the rest once, with no private plan in other frames', async () => {
     const battleId = await start();
     a.messages.length = 0;
@@ -147,6 +159,33 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
     expect(result.battle.revealed[0].spice).toBe(3);
     await runtime.alarm(true);
     expect((await syncView(a)).snapshot.bank.balance).toBe(7);
+  });
+
+  it('shows a spectator who joins mid-battle the public battle and countdown but no plan', async () => {
+    const started = await accepted(a, { kind: 'battle-start', anchor: [0.95, 0.18, -3.05], territory: 'Arrakeen' });
+    const battleId = started.snapshot.battle.id;
+    await accepted(a, { kind: 'battle-claim', battleId, side: 0 });
+    await accepted(a, { kind: 'battle-plan', battleId, plan: plan() });
+    const halfClaimed = await admit('d');
+    const early = await syncView(halfClaimed);
+    expect(early.viewer.viewerSeat).toBe('neutral');
+    expect(early.snapshot.battle.sides[1]).toBeNull();
+    expect(early.snapshot.battlePlan).toBeNull();
+    expect(early.snapshot).not.toHaveProperty('bank');
+    await accepted(b, { kind: 'battle-claim', battleId, side: 1 });
+    const countdown = await ready(battleId);
+    const late = await admit('e');
+    const view = await syncView(late);
+    expect(view.snapshot.battle.stage).toBe('countdown');
+    expect(view.snapshot.battle.deadline).toBe(countdown.snapshot.battle.deadline);
+    expect(view.battleCountdownMs).toBeGreaterThan(0);
+    expect(view.snapshot.battlePlan).toBeNull();
+    for (const connection of [halfClaimed, late]) {
+      for (const message of connection.messages) {
+        expect(JSON.stringify(message)).not.toContain('harkonnen-front","undialed');
+      }
+    }
+    expect((await revealed(late)).battle.revealed[0].spice).toBe(5);
   });
 
   it('Undo Ready preserves both plans and reserves, clears only its side and restarts a full countdown', async () => {
@@ -286,6 +325,53 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
     expect(Math.hypot(card.position[0], card.position[2])).toBeLessThan(5.55);
     expect(card.items[0].faceUp).toBe(false);
     expect((await syncView(a)).snapshot.hand).toHaveLength(0);
+  });
+
+  async function playCard(position) {
+    await accepted(a, { kind: 'hand-take', pieceId: 'treachery-card-loose' });
+    const handCard = (await syncView(a)).snapshot.hand[0];
+    const pieces = (await accepted(a, { kind: 'hand-play', pieceId: handCard.id, position })).snapshot.table.pieces;
+    return Object.assign(pieces, { handCard });
+  }
+  const cardsAt = (pieces, [x, , z]) =>
+    pieces.filter((piece) => piece.kind === 'card' && Math.hypot(piece.position[0] - x, piece.position[2] - z) < 1e-9);
+
+  it('snaps a card played from a hand into the card bay it was dropped on', async () => {
+    const pieces = await playCard([5.85, 0.18, -1.2]);
+    const [card] = cardsAt(pieces, [5.72, 0, -1.32]);
+    expect(card.position[1]).toBeCloseTo(0.005);
+    expect(card.orientation).toBe(0);
+    expect(card.items.map((item) => item.faceUp)).toEqual([false]);
+  });
+
+  it('places a card played from a hand on top of the pile already in that bay', async () => {
+    const rows = await runtime.exec('SELECT data FROM current_state WHERE id=1');
+    const state = JSON.parse(rows[0].data);
+    const pile = state.table.pieces.find((piece) => piece.id === 'treachery-deck');
+    pile.position = [5.72, 0.005, 0];
+    pile.orientation = 0;
+    const back = state.table.pieces.find((piece) => piece.id === 'treachery-card-loose').items[0].artwork;
+    pile.items.forEach((item, index) => {
+      item.artwork = { ...back, front: `https://example.test/pile-${index}.png`, name: `Pile card ${index}` };
+    });
+    const count = pile.items.length;
+    await runtime.exec('UPDATE current_state SET data=? WHERE id=1', [JSON.stringify(state)]);
+    await runtime.restart();
+    a = await admit('a');
+    const pieces = await playCard([5.6, 0.18, 0.1]);
+    const [merged, ...others] = cardsAt(pieces, [5.72, 0, 0]);
+    expect(others).toEqual([]);
+    expect(merged.items).toHaveLength(count + 1);
+    expect(merged.items.every((item) => !item.faceUp)).toBe(true);
+    /* The card that joined the pile is not traceable by the id its owner saw in hand. */
+    expect(merged.items.map((item) => item.id)).not.toContain(pieces.handCard.items[0].id);
+  });
+
+  it('keeps a card played onto the board where it was dropped', async () => {
+    const pieces = await playCard([1, 0.18, -1]);
+    const [card] = cardsAt(pieces, [1, 0, -1]);
+    expect(card.orientation).toBe(0.12);
+    expect(card.items.map((item) => item.faceUp)).toEqual([false]);
   });
 
   it('maximizes exact funding with zero costs and signed strengths and derives the custom price', async () => {

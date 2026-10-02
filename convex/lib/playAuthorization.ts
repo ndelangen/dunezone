@@ -118,3 +118,9 @@ export async function currentPlaySession(ctx: QueryCtx) {
   const authorization = await playSessionAuthorization(ctx, userId, sessionId);
   return authorization.allowed ? { userId, sessionId, ...authorization } : null;
 }
+
+/** The session a Play mutation may act for: refused past its idle or total deadline, which only a mutation may read the clock for. */
+export async function livePlaySession(ctx: QueryCtx) {
+  const session = await currentPlaySession(ctx);
+  return session && Date.now() < session.authExpiresAt ? session : null;
+}

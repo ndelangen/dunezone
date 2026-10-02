@@ -442,7 +442,8 @@ export class GameSession {
     if (!next) {
       return;
     }
-    const history = this.history.checkpoint(next);
+    /* The reveal is a playback step between two others, so it stores its change; the outcome after it is the checkpoint. */
+    const history = this.history.patch(next);
     this.storage.transactionSync(() => {
       this.storage.sql.exec('UPDATE current_state SET data=? WHERE id=1', JSON.stringify(next));
       this.history.write(history);
@@ -700,9 +701,7 @@ export class GameSession {
   private commitSwap(viewer: Viewer, message: CommandMessage & { action: Parameters<Swapping['apply']>[0]['action'] }) {
     const room = this.room!;
     const key = `${viewer.userId}:${message.commandId}`;
-    if (message.expectedRevision !== room.snapshot.revision) {
-      throw new GameRejection('The table changed. Try the action again.');
-    }
+    room.assertRevision(message.action.kind, message.expectedRevision);
     const action = message.action;
     const next = this.storage.transactionSync(() => {
       const swapped = this.withRoster(
@@ -724,9 +723,7 @@ export class GameSession {
   private commitDraft(viewer: Viewer, message: CommandMessage & { action: Parameters<typeof applyDraftAction>[2] }) {
     const room = this.room!;
     const key = `${viewer.userId}:${message.commandId}`;
-    if (message.expectedRevision !== room.snapshot.revision) {
-      throw new GameRejection('The draft changed. Try the action again.');
-    }
+    room.assertRevision(message.action.kind, message.expectedRevision, 'The draft changed. Try the action again.');
     const applied = applyDraftAction(
       room.snapshot,
       viewer,
@@ -742,9 +739,7 @@ export class GameSession {
   private commitRemoval(viewer: Viewer, message: CommandMessage & { action: Parameters<RemovalVotes['apply']>[2] }) {
     const room = this.room!;
     const key = `${viewer.userId}:${message.commandId}`;
-    if (message.expectedRevision !== room.snapshot.revision) {
-      throw new GameRejection('The table changed. Try the action again.');
-    }
+    room.assertRevision(message.action.kind, message.expectedRevision);
     const action = message.action;
     const next = this.storage.transactionSync(() => {
       const applied = this.removal.apply(room.snapshot, viewer, action, Date.now());
@@ -760,9 +755,7 @@ export class GameSession {
   private commitResult(viewer: Viewer, message: CommandMessage & { action: Parameters<typeof applyResult>[2] }) {
     const room = this.room!;
     const key = `${viewer.userId}:${message.commandId}`;
-    if (message.expectedRevision !== room.snapshot.revision) {
-      throw new GameRejection('The table changed. Try the action again.');
-    }
+    room.assertRevision(message.action.kind, message.expectedRevision);
     const next = this.withRoster(applyResult(room.snapshot, viewer, message.action, Date.now()));
     const history = this.history.entry(message, room.snapshot, next);
     this.persistCommit({ key, viewer, message, next, history });
@@ -775,9 +768,7 @@ export class GameSession {
   private commitSeat(viewer: Viewer, message: CommandMessage & { action: Parameters<Participation['plan']>[0] }) {
     const room = this.room!;
     const key = `${viewer.userId}:${message.commandId}`;
-    if (message.expectedRevision !== room.snapshot.revision) {
-      throw new GameRejection('The table changed. Try the action again.');
-    }
+    room.assertRevision(message.action.kind, message.expectedRevision);
     const plan = this.participation.plan(message.action, {
       viewer,
       snapshot: room.snapshot,
@@ -1017,7 +1008,9 @@ export class GameSession {
     if (this.alreadyCommitted(`${viewer.userId}:${message.commandId}`, message)) {
       return false;
     }
-    this.applyCommand(viewer, message, contents);
+    this.room!.commit(message.type === 'command' ? message.action.kind : undefined, () =>
+      this.applyCommand(viewer, message, contents)
+    );
     this.reloadMetadata();
     return true;
   }

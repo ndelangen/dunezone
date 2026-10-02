@@ -57,7 +57,11 @@ export const EighteenSeats = meta.story({
     await expect(page.findByText('Waiting for 12 more players', {}, { timeout: 30_000 })).resolves.toBeVisible();
     expect(within(page.getByRole('region', { name: 'Players' })).getAllByTitle('Open seat')).toHaveLength(12);
     await waitFor(() => expect(canvasElement.ownerDocument.defaultView?.__duneTable?.stations()).toHaveLength(18));
-    expect(page.getByText('You hold seat 2')).toBeVisible();
+    /* With others seated and nobody asking for a seat, the bar is the draft summary and Ready on one row (#1633). */
+    const bar = within(page.getByRole('region', { name: 'Your seat' }));
+    expect(bar.getByText('Your draft: nothing yet')).toBeVisible();
+    expect(bar.getByRole('button', { name: 'Ready' })).toBeVisible();
+    expect(bar.queryByText('You hold seat 2')).toBeNull();
   },
 });
 
@@ -72,7 +76,7 @@ export const ChoosingFactions = meta.story({
     await waitFor(
       () => {
         const header = canvasElement.ownerDocument.querySelector('.seated-header');
-        expect(within(header as HTMLElement).getByText('Waiting for 5 to ready')).toBeVisible();
+        expect(within(header as HTMLElement).getByText('Waiting for 5 to be ready')).toBeVisible();
         expect(
           within(page.getByRole('region', { name: 'Banned factions' })).getByRole('img', {
             name: /Ixians, banned by Twaffle/,
@@ -82,9 +86,9 @@ export const ChoosingFactions = meta.story({
       },
       { timeout: 30_000 }
     );
-    await userEvent.hover(page.getByLabelText('Draft pool details'));
+    await userEvent.hover(page.getByRole('button', { name: /^Pool / }));
     await waitForFrame(() => expect(page.getByRole('tooltip')).toHaveTextContent('a random 6 of them will be dealt'));
-    await userEvent.unhover(page.getByLabelText('Draft pool details'));
+    await userEvent.unhover(page.getByRole('button', { name: /^Pool / }));
     const list = () => within(page.getByRole('list', { name: 'Factions' }));
     await waitFor(
       async () => {
@@ -182,6 +186,27 @@ export const SpectatorAsksForASeat = meta.story({
     await press(() => bar().getByRole('button', { name: 'Request a seat' }));
     await waitFor(() => expect(lastCommand()).toMatchObject({ type: 'command', action: { kind: 'seat-request' } }));
     expect(within(canvasElement.ownerDocument.body).queryByRole('button', { name: 'Leave game' })).toBeNull();
+  },
+});
+
+/** A spectator seated during drafting lands on the drafting tab, not the Log they watched from (#1666). */
+export const SeatedSpectatorLandsOnDrafting = meta.story({
+  beforeEach: install(() => productTransport('neutral', drafting())),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await decisionBar(canvasElement, 'You are watching');
+    /* A spectator's dock holds the Log alone, so that is where it opens. */
+    await shows(() => page.getByRole('tab', { name: 'Log' }));
+    expect(page.queryByRole('tab', { name: 'Drafting' })).toBeNull();
+    const seated = session.transport.view({
+      ...draftingSnapshot([SIX[0]!, SIX[1]!], 6),
+      revision: drafting().revision + 1,
+    });
+    seated.viewer = { ...seated.viewer, viewerSeat: 'seat-2' };
+    session.transport.deliver(seated);
+    await waitFor(() => expect(page.getByRole('tab', { name: 'Drafting' })).toHaveAttribute('aria-selected', 'true'), {
+      timeout: 30_000,
+    });
   },
 });
 

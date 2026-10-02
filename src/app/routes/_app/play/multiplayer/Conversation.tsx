@@ -1,4 +1,4 @@
-import { Badge, Button, Group, Select, Stack, Text, Textarea } from '@mantine/core';
+import { Badge, Button, Group, Select, Stack, Text, Textarea, VisuallyHidden } from '@mantine/core';
 import type { ConversationMessage } from '@shared/play/conversations';
 import { Section } from '@ui/block/Section';
 import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
@@ -24,6 +24,7 @@ export function Conversation({ client, peerId }: Readonly<{ client: TableSession
   }, [client, peerId, page, view.online]);
   const { viewport, onScroll } = useConversationScroll(entries, pending.length);
   const newest = useVisibleRead(client, peerId, latest, view);
+  const arrival = useArrivalAnnouncement(peerId, page, view.context?.factionId);
   return (
     <Section helpOnly title="Conversation" description="Sent means saved. No read receipts." className={styles.panel}>
       <Stack gap="sm" className={styles.body}>
@@ -49,6 +50,7 @@ export function Conversation({ client, peerId }: Readonly<{ client: TableSession
             <PendingMessage key={entry.request.requestId} entry={entry} retry={client.conversations.retry} />
           ))}
         </Stack>
+        <VisuallyHidden role="status">{arrival}</VisuallyHidden>
         <Composer submit={(text) => client.conversations.submit({ peerId, text })} />
       </Stack>
     </Section>
@@ -133,6 +135,37 @@ function useVisibleRead(client: TableSession, peerId: string, latest: number, vi
     return observeVisible(target, () => client.conversations.read({ peerId, through: latest }));
   }, [client, peerId, latest, summary?.latest, summary?.unread, view.online]);
   return newest;
+}
+
+/*
+ * The history is a scrollback that also grows at the top when earlier pages load, so it is not itself live.
+ * Only another faction's messages saved after the history first loaded are read out, one polite line per arrival.
+ */
+function useArrivalAnnouncement(
+  peerId: string,
+  page: ConversationView['pages'][string] | undefined,
+  factionId: string | undefined
+) {
+  const seen = useRef<{ peerId: string; sequence: number } | null>(null);
+  const [announcement, setAnnouncement] = useState('');
+  const settled = page !== undefined && page.load.state !== 'loading';
+  const newest = page?.entries.at(-1);
+  useEffect(() => {
+    if (seen.current?.peerId !== peerId) {
+      seen.current = null;
+      setAnnouncement('');
+    }
+    if (!settled) {
+      return;
+    }
+    const sequence = newest?.sequence ?? 0;
+    const previous = seen.current?.sequence;
+    if (previous !== undefined && newest && sequence > previous && newest.senderFactionId !== factionId) {
+      setAnnouncement(`${newest.author}: ${newest.text}`);
+    }
+    seen.current = { peerId, sequence: Math.max(previous ?? 0, sequence) };
+  }, [peerId, settled, newest, factionId]);
+  return announcement;
 }
 
 function SavedMessage({ message, factionId }: Readonly<{ message: ConversationMessage; factionId?: string }>) {
@@ -304,7 +337,9 @@ function PendingStatus({
               Retry
             </Button>
           </Group>
-          <Text size="xs">{delivery.error}</Text>
+          <Text size="xs" role="alert">
+            {delivery.error}
+          </Text>
         </>
       );
   }

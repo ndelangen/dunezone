@@ -9,7 +9,7 @@ import type { RetryTransientOptions } from './retry-transient';
  * failure or a killed attempt retries with backoff, and the last line of the job names which of
  * three outcomes it ended on: clean, advisories, or a registry unreachable after every attempt.
  * Advisories never retry.
- * The job that runs this has no node_modules, so this file imports nothing from a package.
+ * The step that runs this follows an install that may have failed, so this file imports nothing from a package and runs on a bare checkout.
  */
 
 export const AUDIT_LEVEL = 'moderate';

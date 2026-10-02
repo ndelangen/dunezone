@@ -144,6 +144,8 @@ export class TableSession {
   /* One seat command at a time: a second click before the first settles would only fail the revision gate. */
   private seatCommandInFlight: string | null = null;
   private traitorGatherInFlight: string | null = null;
+  /* Set when a held piece went back to the table without a drop; the next view shows it, since a fresh view clears older errors. */
+  private droppedCarryNotice: string | null = null;
   private traitorsGathered = 0;
   private queuedCatalogue: { requestId: string; selection?: SpawnSelection } | null = null;
   private phaseCooldownUntil = 0;
@@ -342,6 +344,10 @@ export class TableSession {
     switch (message.type) {
       case 'connection':
         this.conversations.disconnected(this.status === 'denied');
+        this.noteEndedCarry({
+          held: 'The table paused while you held a piece. Pick it up again to continue.',
+          placing: 'The connection dropped as you placed a piece. Check where it landed.',
+        });
         this.clearDisconnectedActivity();
         this.selectedId = null;
         this.hoveredId = null;
@@ -481,13 +487,24 @@ export class TableSession {
     if (message.snapshotChanged) {
       this.receiveView(message);
     }
+    if (this.droppedCarryNotice) {
+      this.error = this.droppedCarryNotice;
+      this.droppedCarryNotice = null;
+    }
     this.reconcileCarry();
+  }
+  /* A drop already sent may or may not have landed, so it asks the player to look rather than to pick the piece up again; a drop the server confirmed needs no notice. */
+  private noteEndedCarry(notice: { held: string; placing: string }) {
+    if (this.carry && !this.carry.landed) {
+      this.droppedCarryNotice = this.carry.pendingDrop ? notice.placing : notice.held;
+    }
   }
   private replaceActivity(message: Extract<GameSubscriptionEvent, { type: 'view' }>) {
     if (this.epoch && message.epoch !== this.epoch) {
-      if (this.carry) {
-        this.error = 'The room resumed. Pick up the piece again to continue.';
-      }
+      this.noteEndedCarry({
+        held: 'The room resumed. Pick up the piece again to continue.',
+        placing: 'The room resumed as you placed a piece. Check where it landed.',
+      });
       this.carry = null;
     }
     this.epoch = message.epoch;

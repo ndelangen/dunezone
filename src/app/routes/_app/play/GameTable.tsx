@@ -58,6 +58,8 @@ type GameTableProps = {
   sceneContent?: ReactNode;
   /** Tabs the host adds ahead of the fixture's own Table tab, in the accepted order. */
   panelTabs?: readonly PanelTab[];
+  /** A tab to open once per token, as a battle opens on the viewer's side; the player can move away and it stays put. */
+  focusTab?: Readonly<{ key: string; token: string }> | null;
   /** Sections the host adds to the Table tab, above the fixture's trackers. */
   tableControls?: ReactNode;
   /** The important decision of the moment, above the panel's tabs: a seat request, a vote, a result. */
@@ -270,6 +272,7 @@ function stageFrame(stage: GameSnapshot['stage']): StageFrame {
  */
 function TableControlsPanel({
   panelTabs = [],
+  focusTab = null,
   tableControls,
   showStormControls,
   turn,
@@ -278,7 +281,10 @@ function TableControlsPanel({
   tableTab: tableTabLabel,
   panelContent,
 }: Readonly<
-  Pick<GameTableProps, 'panelTabs' | 'tableControls' | 'showStormControls' | 'onSelectTurn' | 'panelContent'> &
+  Pick<
+    GameTableProps,
+    'panelTabs' | 'focusTab' | 'tableControls' | 'showStormControls' | 'onSelectTurn' | 'panelContent'
+  > &
     StageFrame & {
       turn: number;
     }
@@ -304,8 +310,31 @@ function TableControlsPanel({
       ]
     : [...panelTabs, ...(tableTabLabel ? [tableTab] : [])];
   const [path, setPath] = useReducer((_: string[], next: string[]) => next, [tabs[0]?.key ?? tableTab.key]);
-  const active = tabs.find((tab) => tab.key === path[0]) ?? tabs[0] ?? tableTab;
-  const subtab = active.subtabs?.find((tab) => tab.key === path[1]) ?? active.subtabs?.[0];
+  /* The stage tab arriving opens it over the chosen tab, so a spectator seated during drafting lands on the stage, not on the Log they watched from (#1666). The chosen tab is kept beneath: once the stage leaves, as in playback stepping into play, it opens again. */
+  const hasStage = Boolean(panelContent);
+  const [stageShown, setStageShown] = useState(hasStage);
+  const [stageOpened, setStageOpened] = useState(false);
+  if (hasStage !== stageShown) {
+    setStageShown(hasStage);
+    setStageOpened(hasStage);
+  }
+  /* The stage tab is opened as that overlay too, so tapping it never loses the tab beneath. */
+  const choose = (next: string[]) => {
+    const stage = hasStage && next[0] === 'stage';
+    setStageOpened(stage);
+    if (!stage) {
+      setPath(next);
+    }
+  };
+  /* Each focus token opens its tab once, during render as React adjusts state from a changed prop. */
+  const [focused, setFocused] = useState<string | null>(null);
+  if (focusTab && focusTab.token !== focused && tabs.some((tab) => tab.key === focusTab.key)) {
+    setFocused(focusTab.token);
+    choose([focusTab.key]);
+  }
+  const chosen = stageOpened ? undefined : tabs.find((tab) => tab.key === path[0]);
+  const active = chosen ?? tabs[0] ?? tableTab;
+  const subtab = (chosen && active.subtabs?.find((tab) => tab.key === path[1])) ?? active.subtabs?.[0];
   if (panelContent && panelTabs.length === 0) {
     return <div className="seated-stage-panel">{panelContent}</div>;
   }
@@ -328,7 +357,7 @@ function TableControlsPanel({
             path={[tab.key]}
             label={tab.label}
             icon={<TopicIcon topic={tab.topic} size={22} />}
-            onClick={() => setPath([tab.key])}
+            onClick={() => choose([tab.key])}
           />
         ))}
       </NestedTabs.Level>
@@ -342,12 +371,12 @@ function TableControlsPanel({
               path={[active.key, tab.key]}
               label={tab.label}
               icon={<TopicIcon topic={tab.topic} size={22} />}
-              onClick={() => setPath([active.key, tab.key])}
+              onClick={() => choose([active.key, tab.key])}
             />
           ))}
         </NestedTabs.Level>
       )}
-      {/* Unnamed on purpose: the sections inside are the regions, and a second region with a section's own name would double it. */}
+      {/* No label of its own: the panel is the tabs' tabpanel, which NestedTabs names after the selected tab, and the sections inside stay the regions. */}
       <NestedTabs.ContentPanel className="seated-controls-tab-content" padding={(subtab ?? active).padding}>
         <Stack gap="lg">{subtab?.content ?? active.content}</Stack>
       </NestedTabs.ContentPanel>
@@ -470,6 +499,7 @@ function controlsPanelValueText(percent: number) {
 export function GameTable({
   sceneContent,
   panelTabs,
+  focusTab,
   tableControls,
   decisionBar,
   gameMenu,
@@ -549,7 +579,7 @@ export function GameTable({
             data-show-names={heldOverlays.names}
           >
             {/* The header sits outside the split, in the shell's own stacking, so it paints above the dock where the dock's floor grows up over the scene. It comes before the split so its controls lead the reading and Tab order. */}
-            <header className="seated-header" inert={overlaysInert}>
+            <header className="seated-header" inert={overlaysInert} data-hides-cursor>
               <div className="seated-brand">
                 <img className="seated-brand__logo" src="/web/logo.svg" alt="Dune" />
               </div>
@@ -646,6 +676,7 @@ export function GameTable({
                   <PanelPanes secondary={playerPanel}>
                     <TableControlsPanel
                       panelTabs={panelTabs}
+                      focusTab={focusTab}
                       tableControls={tableControls}
                       panelContent={panelContent}
                       word={frame.word}

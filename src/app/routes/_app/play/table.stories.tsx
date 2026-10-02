@@ -8,6 +8,7 @@ import { expect, userEvent, waitFor, within } from 'storybook/test';
 import { gameMeta, install, lastCommand, session } from './game.stories.fixture';
 import { mapViewPoint, openTab } from './playing.stories.fixture';
 import { factions, playingSnapshot, productTransport } from './product.stories.fixture';
+import { resetTableGraphics, TABLE_GRAPHICS_UNAVAILABLE } from './useTableGraphics';
 
 const meta = preview.meta({
   ...gameMeta,
@@ -252,6 +253,55 @@ export const ShortWindow = meta.story({
   },
 });
 
+/* Takes WebGL2 away and puts `gpu` in place of the browser's WebGPU, then restores both and the probe's answer. */
+const withoutGraphics = (gpu: unknown) => () => {
+  resetTableGraphics();
+  const getContext = HTMLCanvasElement.prototype.getContext;
+  HTMLCanvasElement.prototype.getContext = function (this: HTMLCanvasElement, kind: string, ...rest: unknown[]) {
+    return kind === 'webgl2' ? null : Reflect.apply(getContext, this, [kind, ...rest]);
+  } as HTMLCanvasElement['getContext'];
+  Object.defineProperty(navigator, 'gpu', { configurable: true, value: gpu });
+  const uninstall = install(() => productTransport())();
+  return () => {
+    uninstall();
+    HTMLCanvasElement.prototype.getContext = getContext;
+    Reflect.deleteProperty(navigator, 'gpu');
+    resetTableGraphics();
+  };
+};
+
+async function expectGraphicsMessage(canvasElement: HTMLElement) {
+  const page = within(canvasElement.ownerDocument.body);
+  const message = await page.findByRole('alert', {}, { timeout: 30_000 });
+  expect(message).toHaveTextContent(TABLE_GRAPHICS_UNAVAILABLE);
+  const shell = canvasElement.ownerDocument.querySelector<HTMLElement>('.dune-play-shell')!;
+  await waitFor(() => expect(shell.parentElement).toHaveAttribute('data-scene-ready', 'true'));
+  expect(shell.querySelector('canvas')).toBeNull();
+  expect(page.getByRole('button', { name: 'Game menu' })).toBeVisible();
+  expect(page.queryByText('Something went wrong!')).toBeNull();
+}
+
+/* A browser with neither WebGPU nor WebGL2 reads why the table is missing, and the shell around it still opens. */
+export const WithoutGraphics = meta.story({
+  beforeEach: withoutGraphics(undefined),
+  play: async ({ canvasElement }) => expectGraphicsMessage(canvasElement),
+});
+
+/* An adapter that answers but refuses its device sends the renderer to WebGL2, which is missing too; its failed start reads the same. */
+export const WithoutGraphicsDevice = meta.story({
+  beforeEach: withoutGraphics({
+    requestAdapter: async () => ({
+      features: new Set(),
+      limits: {},
+      requestDevice: async () => {
+        throw new Error('The story refuses the device.');
+      },
+    }),
+    getPreferredCanvasFormat: () => 'bgra8unorm',
+  }),
+  play: async ({ canvasElement }) => expectGraphicsMessage(canvasElement),
+});
+
 /**
  * A phase change moves the camera to the view the new phase recommends, and the view picker marks that view.
  * A table opened mid-phase marks its phase's view and stays on the map: the first move waits for the next phase.
@@ -357,12 +407,7 @@ export const DeckShortcutsEndOffTheTable = meta.story({
   beforeEach: install(() => productTransport()),
   play: async ({ canvasElement }) => {
     const { page, document } = await tablePage(canvasElement);
-    const deck = playingSnapshot().table.pieces.find((piece) => piece.id === 'treachery-deck')!;
-    const [clientX, clientY] = mapViewPoint(document, [
-      deck.position[0],
-      deck.position[1] + stackTopHeight(deck),
-      deck.position[2],
-    ]);
+    const [clientX, clientY] = deckPoint(document);
     const scene = document.querySelector('canvas')!;
     const pointer = { bubbles: true, cancelable: true, pointerId: 1, pointerType: 'mouse', clientX, clientY };
     const hoverTheDeck = (offset: number) =>
@@ -390,12 +435,7 @@ export const DeckShortcutsEndOffTheTable = meta.story({
 
     await hoverTheDeck(2);
     await userEvent.keyboard('r');
-    await waitFor(() =>
-      expect(lastCommand()).toMatchObject({
-        type: 'command',
-        action: { kind: 'deck-shuffle', pieceId: 'treachery-deck' },
-      })
-    );
+    await theDeckShuffled();
   },
 });
 
@@ -408,24 +448,11 @@ export const TapOnTheBoardClearsTheSelection = meta.story({
   beforeEach: install(() => productTransport()),
   play: async ({ canvasElement }) => {
     const { page, document } = await tablePage(canvasElement);
-    const deck = playingSnapshot().table.pieces.find((piece) => piece.id === 'treachery-deck')!;
-    const deckPoint = mapViewPoint(document, [
-      deck.position[0],
-      deck.position[1] + stackTopHeight(deck),
-      deck.position[2],
-    ]);
+    const deckOnScreen = deckPoint(document);
     const boardPoint = mapViewPoint(document, [BOARD_RADIUS * 0.3, BOARD_SURFACE_Y, BOARD_RADIUS * 0.3]);
     const scene = document.querySelector('canvas')!;
     const tap = ([clientX, clientY]: [number, number]) => {
-      const touch = {
-        bubbles: true,
-        cancelable: true,
-        pointerId: 2,
-        pointerType: 'touch',
-        isPrimary: true,
-        clientX,
-        clientY,
-      };
+      const touch = touchAt(2, clientX, clientY);
       scene.dispatchEvent(new PointerEvent('pointerdown', { ...touch, button: 0, buttons: 1 }));
       scene.dispatchEvent(new PointerEvent('pointerup', { ...touch, button: 0, buttons: 0 }));
       leaveTheCanvas(page, scene, touch);
@@ -435,7 +462,7 @@ export const TapOnTheBoardClearsTheSelection = meta.story({
 
     await waitFor(
       async () => {
-        tap(deckPoint);
+        tap(deckOnScreen);
         await userEvent.keyboard('l');
         expect(lastCommand()).toMatchObject({ type: 'command', action: { kind: 'lock', pieceId: 'treachery-deck' } });
       },
@@ -448,6 +475,50 @@ export const TapOnTheBoardClearsTheSelection = meta.story({
     expect(commands()).toBe(before);
   },
 });
+
+/**
+ * A finger resting on the deck opens the menu a right-click opens, since iOS never sends a context menu for a long press.
+ * The menu's Shuffle shuffles that deck, and the finger lifting after the menu opens leaves the menu open.
+ */
+export const LongPressOnTheDeckOpensItsMenu = meta.story({
+  beforeEach: install(() => productTransport()),
+  play: async ({ canvasElement }) => {
+    const { page, document } = await tablePage(canvasElement);
+    const [clientX, clientY] = deckPoint(document);
+    const scene = document.querySelector('canvas')!;
+    const touch = touchAt(3, clientX, clientY);
+
+    await waitFor(
+      async () => {
+        scene.dispatchEvent(new PointerEvent('pointerdown', { ...touch, button: 0, buttons: 1 }));
+        await expect(page.findByRole('menuitem', { name: 'Shuffle' }, { timeout: 1500 })).resolves.toBeVisible();
+      },
+      { timeout: 30_000 }
+    );
+    scene.dispatchEvent(new PointerEvent('pointerup', { ...touch, button: 0, buttons: 0 }));
+    await userEvent.click(page.getByRole('menuitem', { name: 'Shuffle' }));
+    await theDeckShuffled();
+  },
+});
+
+/** Where the top of the treachery deck shows on the map view. */
+function deckPoint(document: Document) {
+  const deck = playingSnapshot().table.pieces.find((piece) => piece.id === 'treachery-deck')!;
+  return mapViewPoint(document, [deck.position[0], deck.position[1] + stackTopHeight(deck), deck.position[2]]);
+}
+
+function touchAt(pointerId: number, clientX: number, clientY: number) {
+  return { bubbles: true, cancelable: true, pointerId, pointerType: 'touch', isPrimary: true, clientX, clientY };
+}
+
+function theDeckShuffled() {
+  return waitFor(() =>
+    expect(lastCommand()).toMatchObject({
+      type: 'command',
+      action: { kind: 'deck-shuffle', pieceId: 'treachery-deck' },
+    })
+  );
+}
 
 /** The pointer moves to the view picker, so a pointerleave reaches the canvas and each ancestor that does not contain the picker. */
 function leaveTheCanvas(page: ReturnType<typeof within>, scene: HTMLCanvasElement, pointer: PointerEventInit) {

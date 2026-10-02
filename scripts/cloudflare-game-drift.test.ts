@@ -17,6 +17,7 @@ type GameApiOptions = {
   bindingName?: unknown;
   flags?: readonly unknown[];
   alertRelay?: boolean;
+  alertEmail?: boolean;
   alertEmailType?: string;
   secretName?: string;
 };
@@ -30,12 +31,8 @@ function gameSettings(options: GameApiOptions) {
       { name: 'APPLICATION_ORIGIN', type: 'plain_text', text: 'https://dune.zone' },
       { name: 'GIT_SHA', type: 'plain_text', text: gitSha },
       ...(options.extraBinding ? [{ name: 'EXTRA_SECRET', type: 'secret_text' }] : []),
-      ...(options.alertRelay
-        ? [
-            { name: 'ALERT_EMAIL', type: options.alertEmailType ?? 'send_email' },
-            { name: 'ALERT_EMAIL_TO', type: 'secret_text' },
-          ]
-        : []),
+      ...(options.alertEmail === false ? [] : [{ name: 'ALERT_EMAIL', type: options.alertEmailType ?? 'send_email' }]),
+      ...(options.alertRelay ? [{ name: 'ALERT_EMAIL_TO', type: 'secret_text' }] : []),
     ],
     compatibility_date: '2026-08-11',
     compatibility_flags: options.flags ?? ['nodejs_compat'],
@@ -105,7 +102,7 @@ test('the game audit verifies the bound SQLite namespace and all external ingres
       apiToken: 'read-only-test-token',
       fetcher: api.fetcher,
     })
-  ).resolves.toEqual({ worker: 'dunezone-game', namespaceId, bindingCount: 5 });
+  ).resolves.toEqual({ worker: 'dunezone-game', namespaceId, bindingCount: 6 });
   expect(api.requests).toHaveLength(7);
   expect(api.requests.every((request) => request.startsWith('GET '))).toBe(true);
   expect(api.authorization.every((value) => value === 'Bearer read-only-test-token')).toBe(true);
@@ -124,6 +121,8 @@ test.each([
   [{ bindingName: {} }, /only strings/],
   [{ flags: [{}] }, /only strings/],
   [{ alertRelay: true, alertEmailType: 'secret_text' }, /ALERT_EMAIL binding type/],
+  [{ alertEmail: false }, /bindings/],
+  [{ alertEmail: false, alertRelay: true }, /bindings/],
   [{ secretName: 'OTHER_SECRET' }, /secrets/],
 ] as const)('the game audit refuses live contract drift %j', async (options, error) => {
   const api = gameApi(options);

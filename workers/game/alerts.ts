@@ -42,9 +42,12 @@ async function alreadySent(markers: AlertMarkers, now: number): Promise<boolean>
   if (now - lastSentAt < ALERT_INTERVAL_SECONDS * 1000) {
     return true;
   }
+  const previous = lastSentAt;
   lastSentAt = now;
   try {
     if (await markers.match(ALERT_MARKER)) {
+      /* Another isolate sent; its marker holds the interval, so this isolate gives its claim back rather than extend it. */
+      lastSentAt = previous;
       return true;
     }
     await markers.put(

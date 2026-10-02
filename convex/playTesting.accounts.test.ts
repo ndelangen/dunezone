@@ -1,45 +1,22 @@
 /// <reference types="vite/client" />
 // @vitest-environment edge-runtime
 
-import { generateKeyPairSync, randomBytes } from 'node:crypto';
-
-import aggregateTest from '@convex-dev/aggregate/test';
-import { convexTest } from 'convex-test';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 
-import { passwordSecret } from '../scripts/lib/synthetic-accounts';
-import { api, internal } from './_generated/api';
-import schema from './schema';
+import { passwordSecret, pbkdf2Secret } from '../scripts/lib/synthetic-accounts';
+import { internal } from './_generated/api';
+import type { AccountsBackend, SyntheticAccount } from './syntheticAccounts.test.fixture';
+import {
+  accountsBackend,
+  passwordSignIn,
+  stubIsolatedBackend,
+  syntheticAccount,
+} from './syntheticAccounts.test.fixture';
 
-const modules = import.meta.glob('./**/*.ts');
-
-beforeEach(() => {
-  const { privateKey } = generateKeyPairSync('rsa', { modulusLength: 2048 });
-  vi.stubEnv('IS_TEST', 'true');
-  vi.stubEnv('E2E_LOCAL_AUTH', 'true');
-  vi.stubEnv('CONVEX_CLOUD_URL', 'http://127.0.0.1:3210');
-  vi.stubEnv('CONVEX_SITE_URL', 'http://127.0.0.1:3211');
-  vi.stubEnv('SITE_URL', 'http://127.0.0.1:8787');
-  vi.stubEnv('JWT_PRIVATE_KEY', privateKey.export({ type: 'pkcs8', format: 'pem' }).toString());
-});
+beforeEach(stubIsolatedBackend);
 afterEach(() => {
   vi.unstubAllEnvs();
 });
-
-function backend() {
-  const t = convexTest(schema, modules);
-  aggregateTest.register(t, 'statistics');
-  aggregateTest.register(t, 'profileActivity');
-  aggregateTest.register(t, 'profileDiscovery');
-  return t;
-}
-
-function account(label: string) {
-  return {
-    email: `${label}-${randomBytes(4).toString('hex')}@example.invalid`,
-    password: randomBytes(24).toString('hex'),
-  };
-}
 
 /*
  * Password hashes and checks each password with Lucia's Scrypt, written in JavaScript, and coverage-v8 counts every block of its loop.
@@ -49,17 +26,9 @@ function account(label: string) {
  */
 const PASSWORD_TEST_BUDGET_MS = 15_000;
 
-function signIn(
-  t: ReturnType<typeof backend>,
-  flow: 'signIn' | 'signUp',
-  { email, password }: ReturnType<typeof account>
-) {
-  return t.action(api.auth.signIn, { provider: 'password', params: { flow, email, password } });
-}
-
-async function provision(t: ReturnType<typeof backend>, { email, password }: ReturnType<typeof account>) {
+async function provision(t: AccountsBackend, { email, password }: SyntheticAccount) {
   await t.mutation(internal.playTesting.provisionAccounts, {
-    accounts: [{ email, secret: await passwordSecret(password) }],
+    accounts: [{ email, scrypt: await passwordSecret(password), pbkdf2: pbkdf2Secret(password) }],
   });
 }
 
@@ -71,7 +40,7 @@ function shared(row: object, differing: string[]) {
 }
 
 /** Each account's rows as Password's sign-up leaves them, with the fields every account has its own value for dropped. */
-async function accountRows(t: ReturnType<typeof backend>) {
+async function accountRows(t: AccountsBackend) {
   return await t.run(async (ctx) => {
     const accounts = await ctx.db.query('authAccounts').collect();
     return await Promise.all(
@@ -92,7 +61,7 @@ async function accountRows(t: ReturnType<typeof backend>) {
   });
 }
 
-async function rowCounts(t: ReturnType<typeof backend>) {
+async function rowCounts(t: AccountsBackend) {
   return await t.run(async (ctx) => ({
     users: (await ctx.db.query('users').collect()).length,
     authAccounts: (await ctx.db.query('authAccounts').collect()).length,
@@ -103,11 +72,11 @@ async function rowCounts(t: ReturnType<typeof backend>) {
 test(
   'a provisioned account has the rows a real sign-up writes',
   async () => {
-    const t = backend();
-    await signIn(t, 'signUp', account('signed-up'));
+    const t = accountsBackend();
+    await passwordSignIn(t, 'signUp', syntheticAccount('signed-up'));
     const [signUpRows] = await accountRows(t);
 
-    await provision(t, account('player-a'));
+    await provision(t, syntheticAccount('player-a'));
     const rows = await accountRows(t);
     expect(rows).toHaveLength(2);
     expect(rows[1]).toEqual(signUpRows);
@@ -116,24 +85,37 @@ test(
 );
 
 test(
-  'a provisioned account keeps its first password and signs in without creating rows, and only synthetic accounts with a Scrypt secret are accepted',
+  'a provisioned account keeps its first password and signs in without creating rows, and only synthetic accounts with both hashes are accepted',
   async () => {
-    const t = backend();
-    const player = account('player-b');
+    const t = accountsBackend();
+    const player = syntheticAccount('player-b');
     await provision(t, player);
-    await provision(t, { email: player.email, password: account('other').password });
+    await provision(t, { email: player.email, password: syntheticAccount('other').password });
 
     const before = await rowCounts(t);
-    expect((await signIn(t, 'signIn', player)).tokens?.token).toEqual(expect.any(String));
+    expect((await passwordSignIn(t, 'signIn', player)).tokens?.token).toEqual(expect.any(String));
     expect(await rowCounts(t)).toEqual(before);
     await expect(provision(t, { email: 'player@example.com', password: player.password })).rejects.toThrow(
       'synthetic accounts'
     );
     await expect(
       t.mutation(internal.playTesting.provisionAccounts, {
-        accounts: [{ email: account('plain').email, secret: player.password }],
+        accounts: [
+          { email: syntheticAccount('plain').email, scrypt: player.password, pbkdf2: pbkdf2Secret(player.password) },
+        ],
       })
     ).rejects.toThrow('Scrypt secret');
+    await expect(
+      t.mutation(internal.playTesting.provisionAccounts, {
+        accounts: [
+          {
+            email: syntheticAccount('plain').email,
+            scrypt: await passwordSecret(player.password),
+            pbkdf2: player.password,
+          },
+        ],
+      })
+    ).rejects.toThrow('PBKDF2 secret');
   },
   PASSWORD_TEST_BUDGET_MS
 );

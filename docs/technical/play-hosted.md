@@ -8,7 +8,9 @@ is the specification. The live issue records review, deployment and verification
 ## Scope and ownership
 
 Players reach a game only at `/play/<gameId>`: `/play` is the lobby, and any signed-in player creates a
-real game at `/play/create`. Nothing in the application links to `/play` and the lobby is `noindex`:
+real game at `/play/create`. Nothing in the application links to `/play`, and every play page is
+`noindex`, through a robots meta tag and through the `X-Robots-Tag` header the publisher's `_headers`
+file adds to `/play` and `/play/*` ([deployment](../deployment.md#build-process)):
 real games are an unlisted beta, shared privately, until the public-release decision
 ([#1094](https://github.com/ndelangen/dunezone/issues/1094)). The retired `/play/hosted` and `/play/demo` pages
 ([#1296](https://github.com/ndelangen/dunezone/issues/1296)) no longer exist in the application,
@@ -43,6 +45,29 @@ be retried. Activity ending also runs pending cleanup through the session. Conne
 and released carries settle before delivery; broadcasting only reads the completed state. Replay
 reconstructs stored checkpoints and patches with continuity checks, then applies viewer privacy.
 It never executes past commands again.
+
+The history table holds two kinds of row (`workers/game/sessionHistory.ts`). A `checkpoint` stores
+the whole snapshot. It is written for a reset, for the step that leaves setup (the Next that opens
+Turn 1), for a battle outcome that settles the battle, and by `GameSession` for the faction
+assignment and the setup cleanup. Every other playback step is a `patch` against the step before
+it: phase and turn changes, declaring a result and continuing past it, setup actions, Ready while
+setup gates on it, and a battle's reveal. A restore loads the latest checkpoint at or before the
+step and replays the patches after it, checking that each row's `base_revision` matches. `diff` in
+`workers/game/history.ts` changes an array entry by entry when that is smaller than storing it
+whole: a changed entry by its index, an added one at its new index, and a shorter array by its
+`length`. These are the set and remove operations `applyPatch` has always read, so a room rolled
+back to an earlier release still restores rows the later one wrote. `anonymizeHistory` uses the
+same `diff`, so its first scrub of a room written before entry-by-entry patches rewrites most patch
+rows in the new shape.
+
+Each command names the revision its sender last saw, and `Room.assertRevision` in
+`workers/game/room.ts` refuses one sent against a table that has changed since with "The table
+changed. Try the action again." The actions in `REVISION_TOLERANT_ACTIONS` (spice spawns, deck
+draws, battle actions, draft picks and bans, and removal ballots) name what they change and are
+checked against the live table instead, so seats acting at the same moment do not turn each other
+away. Readiness (`ready`, `draft-ready`, `swap-ready`) may cross other readiness, but not a commit
+that changed more than who is ready. A bank withdrawal stays strict, so two tabs of one player
+cannot both spend from a bank they saw once.
 
 Each socket can start at most 1,024 carries before it must reconnect. Replay history stays
 bounded per connection and is released on disconnect. Ended carry IDs are never evicted while
@@ -167,6 +192,15 @@ pass.
 A real game is provisioned when a signed-in player creates it (`playGames.createGame`). No operator
 step follows a deployment. The directory hides pending fixtures.
 
+`createGame` refuses a session past its idle or total deadline, as `issueTicket` does
+(`livePlaySession` in `convex/lib/playAuthorization.ts`); Play queries read no clock, so a lapsed
+session's sign-in token bounds what it can still read. Creation then draws from two token buckets in
+`convex/lib/playRateLimits.ts`: `playCreatePerAccount` (capacity 3, refilling at 10 an hour) and the
+site-wide `playCreateGlobal` (capacity 20, refilling at 60 an hour). `playCreateQuota` checks both
+before spending either, so a site-wide refusal costs the account none of its own budget. Either
+refusal answers `rate_limited`, and the create page says "Too many games were created recently. Try
+again later."
+
 The game Worker checks the supplied game secret and attempt with the fixed trusted Convex backend
 before creating state. Unknown, duplicate, expired and invalid requests get the same generic
 refusal. Completion confirmation can retry internally without recreating the game, including when
@@ -187,8 +221,8 @@ ingress limits, Worker identity, deployment order and local infrastructure.
 ## Verification
 
 The three `hosted_play` CI shards, `regular`, `catalogue` and `protocol`, are the merge gate for the
-hosted flows: `ci_ok` requires all three on every pull request, as the
-[deployment contract](../deployment.md#hosted-gameplay) describes. Each shard's command also runs
+hosted flows: `ci_ok` requires all three on every pull request whose diff can reach the flows, as
+the [deployment contract](../deployment.md#hosted-gameplay) describes. Each shard's command also runs
 locally with the same launcher:
 
 ```sh
@@ -344,10 +378,23 @@ so every check signs in and none signs up. Retained logs contain check results a
 counters, not credentials.
 
 The launcher's backend lets a query or mutation run for 2 s, where Convex's default, which hosted
-deployments keep, is 1 s. Convex Auth checks a password with Scrypt inside a mutation at every
-sign-in, and on a loaded machine that check alone passed 1 s
+deployments keep, is 1 s. By default Convex Auth checks a password with Scrypt inside a mutation at
+every sign-in, and on a loaded machine that check alone passed 1 s
 ([#1493](https://github.com/ndelangen/dunezone/issues/1493)). A function that takes between 1 and
 2 s therefore passes on this stack and fails on a hosted deployment.
+
+The launcher also sets the test-only `PLAY_TEST_PASSWORD_HASH=pbkdf2` on its backend, and there
+Password stores and checks PBKDF2-HMAC-SHA256 at 1,000 iterations instead of Scrypt
+(`convex/lib/syntheticPasswords.ts`). Scrypt was most of each sign-in's `auth:store` time on the
+macOS runner, and a stall of that runner during it ended a sign-in at the 2 s limit (#1493). A work
+factor multiplies the cost of each guess, which protects a password a person chose, and the
+synthetic accounts' passwords are 48 random hex digits that take up to 2^192 guesses anyway. NIST SP
+800-132 recommends 1,000 iterations as a minimum, and they take about a millisecond. Only an
+isolated loopback backend honours the variable, and only the launcher sets it, so every other
+backend keeps Scrypt. Production keeps `E2E_LOCAL_AUTH` off and so registers no Password provider at
+all, and the `--load-hosted-backend` copy keeps Scrypt because its own URL is the hosted one. The
+runners send each password to `playTesting:provisionAccounts` both ways, and the control keeps the
+one the backend checks.
 
 The browser flows play real games. The stack seeds a synthetic ruleset
 (`playTesting:seedRealGameCatalogue`) with both required decks, a treachery deck of treachery cards

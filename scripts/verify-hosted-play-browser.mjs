@@ -738,7 +738,7 @@ async function converged(peers) {
 }
 /** Opens one tab of the controls panel unless it is already the current one. */
 async function openTab(who, name) {
-  const tab = button(who, name);
+  const tab = who.page.getByRole('tab', { name, exact: true });
   await tab.waitFor({ state: 'attached' }).catch((error) => {
     throw new Error(`${who.label} has no ${name} tab: ${error.message}`);
   });
@@ -748,9 +748,9 @@ async function openTab(who, name) {
     await who.page.getByRole('separator', { name: 'Resize controls panel' }).press('End');
   }
   await tab.waitFor();
-  if ((await tab.getAttribute('aria-current')) !== 'true') {
+  if ((await tab.getAttribute('aria-selected')) !== 'true') {
     await tab.click();
-    await who.page.locator(`[data-nested-tabs-item][aria-label="${name}"][aria-current="true"]`).waitFor();
+    await who.page.locator(`[role="tab"][aria-label="${name}"][aria-selected="true"]`).waitFor();
   }
 }
 const shownView = (who) => who.page.locator('.dune-play-shell').evaluate((element) => element.dataset.tableView);
@@ -1574,7 +1574,7 @@ async function verifyRegular() {
   await b.page.getByText(/Playback checkpoint 0 of/).waitFor();
   /* A real game's first checkpoints are its stages before play, shown with the playback bar; stepping reaches Turn 1. */
   let checkpoint = 0;
-  while ((await button(b, 'Phase').count()) === 0) {
+  while ((await b.page.getByRole('tab', { name: 'Phase', exact: true }).count()) === 0) {
     const later = b.page.getByRole('button', { name: 'Later phase' });
     /* The last checkpoint disables the button; a click there would wait out Playwright's timeout instead of saying why. */
     assert.ok(await later.isEnabled(), `Playback ran out of checkpoints at ${checkpoint} before reaching play.`);
@@ -1652,7 +1652,7 @@ async function verifyRegular() {
   const accountPage = await a.context.newPage();
   await accountPage.goto(`${origin}/play`, { waitUntil: 'domcontentloaded' });
   await accountPage.getByRole('heading', { name: 'Game lobby' }).waitFor();
-  await accountPage.locator('header button[aria-haspopup="menu"]').last().click();
+  await accountPage.locator('[data-app-band] button[aria-haspopup="menu"]').last().click();
   const revokedAt = Date.now();
   signOut = { tabs: [a, aTab], clickedAt: revokedAt };
   await accountPage.getByRole('menuitem', { name: 'Sign out', exact: true }).click();

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { randomBytes, randomUUID, scrypt } from 'node:crypto';
+import { pbkdf2Sync, randomBytes, randomUUID, scrypt } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { parseEnv } from 'node:util';
 
@@ -47,8 +47,8 @@ const passed = (name, detail) => {
   console.log(`PASS ${name}`);
 };
 /*
- * passwordSecret's Scrypt from scripts/lib/synthetic-accounts.ts, copied for the same reason as the loopback rule above.
- * A secret that Password does not accept fails the first sign-in.
+ * passwordSecret's Scrypt and pbkdf2Secret's PBKDF2 from scripts/lib/synthetic-accounts.ts, copied for the same reason as the loopback rule above.
+ * The provisioning control keeps the one the backend's Password checks, and a secret that Password does not accept fails the first sign-in.
  */
 function passwordSecret(password) {
   const salt = randomBytes(16).toString('hex');
@@ -57,6 +57,11 @@ function passwordSecret(password) {
       error ? reject(error) : resolve(`${salt}:${key.toString('hex')}`)
     );
   });
+}
+function pbkdf2Secret(password) {
+  const salt = randomBytes(16).toString('hex');
+  const key = pbkdf2Sync(password, salt, 1000, 32, 'sha256').toString('hex');
+  return `pbkdf2-sha256:${salt}:${key}`;
 }
 /* Every account the checks sign in; they are created before the first sign-in, so no check signs up under the backend's function limit (#1493). */
 const accounts = Object.fromEntries(
@@ -68,7 +73,11 @@ const accounts = Object.fromEntries(
 /* Six accounts, the most scripts/lib/synthetic-accounts.ts sends in one provisioning mutation. */
 async function provisionAccounts() {
   const hashed = await Promise.all(
-    Object.values(accounts).map(async ({ email, password }) => ({ email, secret: await passwordSecret(password) }))
+    Object.values(accounts).map(async ({ email, password }) => ({
+      email,
+      scrypt: await passwordSecret(password),
+      pbkdf2: pbkdf2Secret(password),
+    }))
   );
   await admin.mutation(anyApi.playTesting.provisionAccounts, { accounts: hashed });
 }

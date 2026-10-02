@@ -333,6 +333,33 @@ Run `bun --version` before installing, and install Bun 1.4.2 or later on the mac
 that turns the first lines of `bun.lock` back into `"lockfileVersion": 1` came from an older Bun and
 must not be committed.
 
+## A dashboard edit to `dunezone-game` blocks every strict deploy
+
+Changing the game Worker in the Cloudflare dashboard, even only to add a secret, creates a version
+"last deployed from dash". From then on `wrangler deploy --strict` in CI compares main's
+configuration with that version and aborts, and because `GIT_SHA` differs on every release, every
+push deploy fails at "Deploy exact game Worker release". `Deploy Convex` and its migrations run
+before that step, so Convex is already on the new commit while both Workers stay on the old one.
+
+**What it looks like when it bites:** setting `ALERT_EMAIL_TO` on 2026-10-01 failed run
+36934067755, and every push after it would have failed the same way.
+
+Avoid dashboard edits to `dunezone-game`. To recover, dispatch one deploy with
+`replace_dashboard_game_config`, as
+[Recovering from a dashboard edit](../deployment.md#recovering-from-a-dashboard-edit-to-dunezone-game)
+describes.
+
+## The alert relay answers 202 whether or not an email went out
+
+`POST /__play/alerts/issues` answers `202` when it sent the alert email, when the ten-minute
+interval held it back, and when the send failed (`workers/game/alerts.ts`). An error answer would
+itself become a Workers issue and post to the route again.
+
+**What it looks like when it bites:** a test call that returns `202` and no email arrives. Look for
+`alert-email-failed` in the game Worker's logs, and remember that a second call from the same
+location within ten minutes sends nothing by design. The test procedure is in
+[Play operations](./play-operations.md#3-alert-routing).
+
 ## The shape these share
 
 Most of the entries above have the same shape: **the fast signal is the wrong one**. A port answers,

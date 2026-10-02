@@ -2,13 +2,23 @@
 .overlay {
   position: absolute;
   inset: 0;
-  display: grid;
-  grid-template-columns: minmax(10rem, 15rem) 1fr minmax(10rem, 15rem);
-  gap: 1rem;
-  min-height: 0;
-  padding: 0.9rem 1rem;
+  container: drafting-overlay / size;
   background: rgba(12, 8, 6, 0.72);
   backdrop-filter: blur(3px);
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(10rem, 15rem) 1fr minmax(10rem, 15rem);
+  grid-template-areas: "banned ledger drafted";
+  gap: 1rem;
+  height: 100%;
+  min-height: 0;
+  padding: 0.9rem 1rem;
+}
+
+.zoneBanned {
+  grid-area: banned;
 }
 
 .zone {
@@ -18,6 +28,7 @@
 }
 
 .zoneDrafted {
+  grid-area: drafted;
   text-align: right;
 }
 
@@ -44,6 +55,7 @@
 }
 
 .ledger {
+  grid-area: ledger;
   padding-block-start: 1rem;
   display: grid;
   min-height: 0;
@@ -58,6 +70,23 @@
   margin: 0;
   padding: 0;
   list-style: none;
+}
+
+/* Below the 48rem step the two 15rem zones leave the seat column less than its 15.8rem row, so the seat column leads and the pooled zones share a row under it (#1633); each part scrolls so a large table cannot starve the zones. */
+@container drafting-overlay (width < 48rem) {
+  .layout {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: minmax(0, fit-content(60%)) minmax(0, 1fr);
+    grid-template-areas:
+      "ledger ledger"
+      "banned drafted";
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+  }
+
+  .ledger {
+    padding-block-start: 0;
+  }
 }
 
 /* Bans to the left of the avatar, picks to the right, each side taking the same width so the column stays centred. */
@@ -176,6 +205,7 @@ button.token {
 
 /* Panel */
 .panel {
+  container: drafting-panel / inline-size;
   min-height: 0;
   padding-block: var(--space-xs);
 }
@@ -185,8 +215,10 @@ button.token {
   min-width: 12rem;
 }
 
+/* The summary wraps inside its own line before it pushes Ready onto a second row. */
 .mine {
-  flex: 1 1 12rem;
+  flex: 1 1 8rem;
+  min-width: 0;
 }
 
 .list {
@@ -217,6 +249,28 @@ button.token {
 
 .rowBanned {
   opacity: 0.6;
+}
+
+/* A phone's pane keeps Draft and Ban beside the name and moves who picked or banned it to a line underneath (#1633). */
+@container drafting-panel (width < 30rem) {
+  .row {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    row-gap: 0.15rem;
+  }
+
+  .rowActions {
+    grid-column: 3;
+    grid-row: 1;
+  }
+
+  .rowStatus {
+    grid-column: 2 / -1;
+    grid-row: 2;
+  }
+
+  .rowStatus:empty {
+    display: none;
+  }
 }
 
 .poolHelp {

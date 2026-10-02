@@ -15,6 +15,8 @@ import type { CreatableRuleset } from '@db/play';
 import { pageHead } from '@app/routes/pageTitle';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
+import { SERVER_RETRYING, SERVER_UNREACHABLE_TITLE, useServerUnreachable } from './useServerUnreachable';
+
 export const Route = createFileRoute('/_app/play/create')({
   head: () => pageHead('Create a game', { noindex: true }),
   component: CreateGamePage,
@@ -39,17 +41,24 @@ function draftReducer(state: Draft, event: DraftEvent): Draft {
 
 const REFUSALS = {
   not_authorized: 'Your account cannot create a game while signed out, suspended or deleted.',
-  rate_limited: 'You have created several games recently. Try again later.',
+  rate_limited: 'Too many games were created recently. Try again later.',
   unavailable: 'That ruleset cannot start a game right now.',
 } as const;
 
 function CreateGamePage() {
   const { data } = useCreatableRulesets();
+  const unreachable = useServerUnreachable(data === undefined);
   switch (data?.access) {
     case undefined:
       return (
-        <PageMessage size="compact" title={TITLE}>
-          <LoadPending title="Loading rulesets">The rulesets you can start a game with are still loading.</LoadPending>
+        <PageMessage size="compact" title={TITLE} back={<PageMessage.Back to="/">Go back home</PageMessage.Back>}>
+          {unreachable ? (
+            <LoadPending title={SERVER_UNREACHABLE_TITLE}>{SERVER_RETRYING}</LoadPending>
+          ) : (
+            <LoadPending title="Loading rulesets">
+              The rulesets you can start a game with are still loading.
+            </LoadPending>
+          )}
         </PageMessage>
       );
     case 'unauthenticated':

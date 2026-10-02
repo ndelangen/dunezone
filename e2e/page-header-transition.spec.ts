@@ -9,7 +9,7 @@ const TRANSITION_WAIT_MS = 5000;
 
 test('the persistent page hero contracts when navigating to a headerless route', async ({ page }) => {
   await page.goto('/privacy');
-  const hero = page.getByRole('banner');
+  const hero = page.locator('[data-app-band]');
   await expect(hero).toBeVisible();
 
   const initialHeight = (await hero.boundingBox())?.height ?? 0;
@@ -18,7 +18,7 @@ test('the persistent page hero contracts when navigating to a headerless route',
   const transitionOutcome = page.evaluate(
     (waitMs) =>
       new Promise<string>((resolve) => {
-        const header = document.querySelector('header');
+        const header = document.querySelector<HTMLElement>('[data-app-band]');
         if (!header) {
           resolve('no header element');
           return;

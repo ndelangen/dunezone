@@ -77,7 +77,7 @@ describe('AppRoot page header', () => {
         )
       );
     });
-    const expandedHeader = container.querySelector('header');
+    const expandedHeader = container.querySelector('[data-app-band]');
 
     expect(expandedHeader).not.toBeNull();
     expect(container.querySelector('[data-page-layout-compact="true"]')).toBeNull();
@@ -97,7 +97,7 @@ describe('AppRoot page header', () => {
       );
     });
 
-    expect(container.querySelector('header')).toBe(expandedHeader);
+    expect(container.querySelector('[data-app-band]')).toBe(expandedHeader);
     expect(container.querySelector('[data-page-layout-compact="true"]')).not.toBeNull();
 
     act(() => root.unmount());

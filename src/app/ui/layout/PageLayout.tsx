@@ -16,6 +16,9 @@ type PageContentWidth = 'default' | 'viewport';
 
 type PageLayoutProps = PropsWithChildren<{ height?: 'document' | 'fullscreen' }>;
 
+/** The id of the page's `main`, the target of the shell's skip link. One page mounts one PageLayout, so it is unique. */
+export const PAGE_CONTENT_ID = 'page-content';
+
 const InsidePageHeader = createContext(false);
 
 /**
@@ -53,6 +56,9 @@ function Content(_: PropsWithChildren<{ width?: PageContentWidth }>): null {
  * `height="fullscreen"` removes the shell chrome and gives the content the whole viewport.
  * The header remains accessible but visually hidden;
  * the child owns any scrolling.
+ *
+ * Landmarks: the header content is the page's one `header` (banner), since the shell's band above it is artwork and site navigation;
+ * the toolbar and content are its one `main`, with the id `PAGE_CONTENT_ID` the shell's skip link moves to.
  */
 const PAGE_LAYOUT_SLOTS = ['PageLayout.Header', 'PageLayout.Toolbar', 'PageLayout.Content'] as const;
 
@@ -101,11 +107,11 @@ function PageLayoutBase({ children, height = 'document' }: PageLayoutProps) {
       {/* data-scheme-paper: header content always sits on the light artwork band, so it keeps
           its light-scheme rendering in both schemes (see tokens.css). */}
       {hasHeader && (
-        <div className={styles.headerContent} data-scheme-paper>
+        <header className={styles.headerContent} data-scheme-paper>
           <InsidePageHeader.Provider value>{header}</InsidePageHeader.Provider>
-        </div>
+        </header>
       )}
-      <main className={styles.content}>
+      <main className={styles.content} id={PAGE_CONTENT_ID}>
         {hasToolbarContent && (
           <div className={styles.toolbar} data-page-layout-toolbar>
             {toolbar}

@@ -1,7 +1,7 @@
 import preview from '@sb/preview';
 import { expect, userEvent, within } from 'storybook/test';
 
-import { db, ref, storybookViewer } from '@db/storybook';
+import { convexNeverAnswers, db, ref, storybookViewer } from '@db/storybook';
 
 import { pageStoryMeta } from '../../storybookConfig';
 import { productDatabase } from './product.stories.fixture';
@@ -56,5 +56,18 @@ export const Member = meta.story({
     await expect(page.findByRole('status')).resolves.toHaveTextContent('No spice deck is linked.');
     expect(page.getByLabelText('Minimum players')).toHaveValue('6');
     expect(create).toBeDisabled();
+  },
+});
+
+/** The rulesets never arrive, so after ten seconds the page says the server can't be reached and offers the lobby. */
+export const ServerUnreachable = meta.story({
+  decorators: [convexNeverAnswers],
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(
+      page.findByRole('heading', { name: "Can't reach the server" }, { timeout: 30_000 })
+    ).resolves.toBeVisible();
+    expect(page.getByRole('link', { name: 'Go back home' })).toHaveAttribute('href', '/');
+    expect(page.queryByText('Loading rulesets')).toBeNull();
   },
 });

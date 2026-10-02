@@ -65,14 +65,18 @@ describe('table seating', () => {
   );
 });
 
-describe('every accepted seat count', () => {
-  test.each(TABLE_SEAT_COUNTS)('seats %s players in distinct sectors with near-even gaps', (seatCount) => {
-    const sectorIndices = tableSeatSectorIndices(seatCount);
+describe('seat counts at the edges of the sector arithmetic', () => {
+  /* The ends of TABLE_SEAT_COUNTS; 9 divides the 18 sectors evenly, 10 does not, so its gaps mix 1 and 2, and 12 lands a seat on a rounding tie (#1590). */
+  test.each([TABLE_SEAT_COUNTS[0], 9, 10, 12, TABLE_SEAT_COUNTS[TABLE_SEAT_COUNTS.length - 1]!] as const)(
+    'seats %s players in distinct sectors with near-even gaps',
+    (seatCount) => {
+      const sectorIndices = tableSeatSectorIndices(seatCount);
 
-    expect(sectorIndices).toHaveLength(seatCount);
-    expect(new Set(sectorIndices).size).toBe(seatCount);
-    expect(sectorIndices.every((index) => index >= 0 && index < TABLE_SECTOR_COUNT)).toBe(true);
-    const gaps = counterclockwiseSectorGaps(sectorIndices);
-    expect(Math.max(...gaps) - Math.min(...gaps)).toBeLessThanOrEqual(1);
-  });
+      expect(sectorIndices).toHaveLength(seatCount);
+      expect(new Set(sectorIndices).size).toBe(seatCount);
+      expect(sectorIndices.every((index) => index >= 0 && index < TABLE_SECTOR_COUNT)).toBe(true);
+      const gaps = counterclockwiseSectorGaps(sectorIndices);
+      expect(Math.max(...gaps) - Math.min(...gaps)).toBeLessThanOrEqual(1);
+    }
+  );
 });

@@ -145,29 +145,25 @@ describe('piece flip frames', () => {
   });
 
   for (const kind of ['card', 'force'] as const) {
-    test.each([1, 2, 3, 4, 5, 30, 200])(
-      `keeps all visible ${kind} corners above the board for item count %i`,
-      (count) => {
-        const piece = pieceWithItems(kind, count);
-        const motion = retargetPieceFlipMotion(createPieceFlipMotion(0), 1, 0);
-        const corners = visibleBodyCorners(piece);
-        const height = stackTopHeight(piece);
-        const labelGap = pieceLabelHeight(piece) - height;
+    /* 1 is a single layer, 2 the first stacked one, 4 and 5 the force and card visible caps, and 200 lies far above both caps, where the geometry no longer changes (#1590). */
+    test.each([1, 2, 4, 5, 200])(`keeps all visible ${kind} corners above the board for item count %i`, (count) => {
+      const piece = pieceWithItems(kind, count);
+      const motion = retargetPieceFlipMotion(createPieceFlipMotion(0), 1, 0);
+      const corners = visibleBodyCorners(piece);
+      const height = stackTopHeight(piece);
+      const labelGap = pieceLabelHeight(piece) - height;
 
-        for (let sample = 0; sample <= 520; sample += 1) {
-          const frame = pieceFlipFrame(motion, piece, (PIECE_FLIP_DURATION_MS * sample) / 520);
-          const transformedHeights = corners.map(
-            ([x, y]) => frame.pivotY + x * Math.sin(frame.rotationZ) + (y - height / 2) * Math.cos(frame.rotationZ)
-          );
+      for (let sample = 0; sample <= 520; sample += 1) {
+        const frame = pieceFlipFrame(motion, piece, (PIECE_FLIP_DURATION_MS * sample) / 520);
+        const transformedHeights = corners.map(
+          ([x, y]) => frame.pivotY + x * Math.sin(frame.rotationZ) + (y - height / 2) * Math.cos(frame.rotationZ)
+        );
 
-          expect(Math.min(...transformedHeights)).toBeGreaterThanOrEqual(-1e-12);
-          expect(frame.labelY - Math.max(...transformedHeights)).toBeGreaterThanOrEqual(labelGap - 1e-12);
-          expect(Object.values(frame).every((value) => typeof value === 'boolean' || Number.isFinite(value))).toBe(
-            true
-          );
-        }
+        expect(Math.min(...transformedHeights)).toBeGreaterThanOrEqual(-1e-12);
+        expect(frame.labelY - Math.max(...transformedHeights)).toBeGreaterThanOrEqual(labelGap - 1e-12);
+        expect(Object.values(frame).every((value) => typeof value === 'boolean' || Number.isFinite(value))).toBe(true);
       }
-    );
+    });
   }
 
   test('uses visible deck layers rather than hidden item count for its lift', () => {

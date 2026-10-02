@@ -1,7 +1,7 @@
 import { LOG_PAGE_SIZE } from '@shared/play/log';
 import type { LogEntry, LogTab } from '@shared/play/log';
 import { isSeatAction } from '@shared/play/participation';
-import { clientMessageSchema, KEEPALIVE_PING } from '@shared/play/protocol';
+import { clientMessageSchema, KEEPALIVE_PING, KEEPALIVE_PONG } from '@shared/play/protocol';
 import type { ClientMessage, GameSnapshot, ServerMessage, Viewer } from '@shared/play/protocol';
 import { isSwapAction } from '@shared/play/swapping';
 
@@ -12,6 +12,7 @@ import type { GameRuntime, GameSocket } from './multiplayer/gameRuntime';
 
 /*
  * Scripted transport for route stories. Commands are recorded, never executed here. `holdView` leaves an admitted socket without a view, so a story can show the frame that waits for one.
+ * `unreachable` closes every socket before it opens, as a browser reports a Worker that refused the upgrade or failed with a 500.
  * `admitView` replaces the view built from `snapshot` with a recorded frame, and a `logEntries` callback is read on every page request, so a replayed journey can move its log with its step.
  * `receive` hands the rest of the traffic to a table that runs in the story, as the sandbox does.
  */
@@ -20,6 +21,7 @@ export function storyTransport(
   snapshot: GameSnapshot,
   {
     holdView = false,
+    unreachable = false,
     holdLogHistory = false,
     logEntries = {},
     conversationMessages = [],
@@ -28,6 +30,7 @@ export function storyTransport(
     receive,
   }: {
     holdView?: boolean;
+    unreachable?: boolean;
     holdLogHistory?: boolean;
     /* Newest first, as the table answers; a page is cut at the requested cursor. */
     logEntries?: Partial<Record<LogTab, LogEntry[]>> | (() => Partial<Record<LogTab, LogEntry[]>>);
@@ -80,6 +83,10 @@ export function storyTransport(
         if (this.readyState !== 0) {
           return;
         }
+        if (unreachable) {
+          this.close(1006);
+          return;
+        }
         this.readyState = StorySocket.OPEN;
         this.onopen?.();
       });
@@ -87,6 +94,7 @@ export function storyTransport(
 
     send(data: string) {
       if (data === KEEPALIVE_PING) {
+        queueMicrotask(() => this.answerKeepalive());
         return;
       }
       const message = clientMessageSchema.parse(JSON.parse(data));
@@ -124,6 +132,13 @@ export function storyTransport(
       /* A seat command is answered as the table answers it, with the same view marked complete, so the panel does not wait forever. */
       if (message.type === 'command' && (isSeatAction(message.action) || isSwapAction(message.action))) {
         queueMicrotask(() => this.deliver(view(snapshot, message.commandId)));
+      }
+    }
+
+    /* Answered as the Worker's auto-response does, so an idle story keeps its socket. */
+    answerKeepalive() {
+      if (this.readyState === StorySocket.OPEN) {
+        this.onmessage?.({ data: KEEPALIVE_PONG });
       }
     }
 
