@@ -532,6 +532,7 @@ export class Room {
     }
     const { refusal } = phaseGate({
       ...this.snapshot,
+      battle: this.snapshot.battleState,
       ready: controls.ready,
       seats: this.seatedPlayers(),
       predictions: this.snapshot.privatePredictions,

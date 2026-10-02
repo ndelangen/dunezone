@@ -181,8 +181,12 @@ function editPlan({ snapshot, battle, side, factionId }: Combatant, input: Battl
 }
 
 function cancelBattle(snapshot: StoredSnapshot, battle: StoredBattle) {
+  /* Revealed plans are already public and on the table, so a cancel settles them as a battle nobody won; that also frees a battle whose sides never agree. */
+  if (battle.stage === 'revealed') {
+    return resolveBattle(snapshot, battle, 'none');
+  }
   if (battle.stage !== 'preparing') {
-    return refuse('The battle can only be cancelled during preparation.');
+    return refuse('The battle can only be cancelled during preparation or after the reveal.');
   }
   const factionBanks = { ...snapshot.factionBanks };
   const factionInventories = { ...snapshot.factionInventories };

@@ -707,7 +707,21 @@ function BattleActions(props: ActiveProps) {
 }
 function BattleCentre(props: ActiveProps) {
   if (props.battle.stage === 'revealed') {
-    return <OutcomeButton {...props} outcome="none" />;
+    const { client, table, battle } = props;
+    /* Anyone seated can end a revealed battle the sides cannot agree on; it settles as a battle nobody won. */
+    return (
+      <Stack gap={4} align="center">
+        <OutcomeButton {...props} outcome="none" />
+        <Button
+          size="compact-xs"
+          variant="subtle"
+          disabled={!table.canInteract}
+          onClick={() => client.command({ kind: 'battle-cancel', battleId: battle.id })}
+        >
+          Cancel battle
+        </Button>
+      </Stack>
+    );
   }
   if (props.battle.stage !== 'countdown') {
     return null;

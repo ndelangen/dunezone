@@ -240,6 +240,23 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
     expect((await sendCommand(a, { kind: 'battle-outcome', battleId, outcome: 'right' })).reply.type).toBe('rejected');
   });
 
+  it('holds the phase while a battle is open and cancels a revealed battle the sides cannot agree on', async () => {
+    const battleId = await start();
+    await accepted(a, { kind: 'battle-plan', battleId, plan: plan() });
+    await ready(battleId);
+    await revealed();
+    const held = await sendCommand(a, { kind: 'phase' });
+    expect(held.reply).toMatchObject({ type: 'rejected', message: 'Settle or cancel the battle first.' });
+    await accepted(a, { kind: 'battle-outcome', battleId, outcome: 'left' });
+    await accepted(b, { kind: 'battle-outcome', battleId, outcome: 'right' });
+    expect((await sendCommand(observer, { kind: 'battle-cancel', battleId })).reply.type).toBe('rejected');
+    const cancelled = await accepted(b, { kind: 'battle-cancel', battleId });
+    expect(cancelled.snapshot.battle).toBeNull();
+    expect(cancelled.snapshot.battleResults[0]).toMatchObject({ id: battleId, outcome: 'none' });
+    expect(cancelled.snapshot.table.pieces.some((piece) => piece.battleOverlay)).toBe(false);
+    expect((await sendCommand(a, { kind: 'phase' })).reply.type).not.toBe('rejected');
+  });
+
   it('rejects competing starts and claims, counts exact funding and refunds a mode switch', async () => {
     const battleId = await start();
     expect(
@@ -252,7 +269,7 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
     expect(switched.snapshot.battlePlan.troops).toEqual([]);
     expect(switched.snapshot.battlePlan.spice).toBe(0);
     expect(switched.snapshot.bank.balance).toBe(10);
-    await accepted(a, { kind: 'phase' });
+    expect((await sendCommand(a, { kind: 'phase' })).reply.type).toBe('rejected');
     expect((await syncView(a)).snapshot.battle.id).toBe(battleId);
     expect((await sendCommand(a, { kind: 'battle-ready', battleId, ready: true })).reply.type).not.toBe('rejected');
   });
