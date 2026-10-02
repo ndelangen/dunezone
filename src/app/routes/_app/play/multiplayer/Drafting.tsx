@@ -198,7 +198,7 @@ export function DraftingOverlay({ client, table }: Props) {
     <div className={styles.overlay} data-drafting-overlay="">
       <div className={styles.layout}>
         <section className={clsx(styles.zone, styles.zoneBanned)} aria-label="Banned factions">
-          <h3 className={styles.zoneTitle}>Banned</h3>
+          <h2 className={styles.zoneTitle}>Banned</h2>
           <ul className={styles.zoneList}>
             {bannedIds(draft).map((id) => {
               const faction = factionById(draft, id);
@@ -249,7 +249,7 @@ export function DraftingOverlay({ client, table }: Props) {
           </ol>
         </section>
         <section className={clsx(styles.zone, styles.zoneDrafted)} aria-label="Drafted factions">
-          <h3 className={styles.zoneTitle}>Drafted</h3>
+          <h2 className={styles.zoneTitle}>Drafted</h2>
           <ul className={clsx(styles.zoneList, styles.zoneListEnd)}>
             {draftedPool(draft).map((id) => {
               const faction = factionById(draft, id);

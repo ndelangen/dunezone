@@ -1241,7 +1241,9 @@ export function TabletopScene({
         position="bottom-start"
       >
         <Menu.Target>
+          {/* An empty positioning anchor, not a control: hidden from assistive technology, so Mantine's expanded state on it names nothing. */}
           <span
+            aria-hidden
             style={{
               position: 'fixed',
               left: pieceMenu?.x ?? 0,
