@@ -488,6 +488,22 @@ describe('Drafting and public assignment on a real game', () => {
     expect(view.snapshot.draft.ready).toEqual(['seat-2']);
   });
 
+  it('leaves the draft as it is when a stale withdrawal finds the seat already not ready', async () => {
+    const a = await admit('a');
+    const b = await admit('b');
+    await seat(b, a);
+    const seen = await accepted(a, { kind: 'draft-ready', ready: true });
+    await accepted(a, { kind: 'draft-ready', ready: false });
+    const before = await syncView(b);
+    /* The same withdrawal again, sent against the table before the first one landed. */
+    const repeated = await sendCommand(a, { kind: 'draft-ready', ready: false }, undefined, seen.snapshot.revision);
+    expect(repeated.reply.type).not.toBe('rejected');
+    const after = await syncView(b);
+    expect(after.snapshot.revision).toBe(before.snapshot.revision);
+    expect(events(after)).toEqual(events(before));
+    expect(after.snapshot.draft.ready).toEqual([]);
+  });
+
   it("clears readiness on a roster change, drops a departing player's lists, and reads the catalogue again when stale", async () => {
     const a = await admit('a');
     const b = await admit('b');

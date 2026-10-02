@@ -104,7 +104,11 @@ export class CarryHistoryExhausted extends GameRejection {}
 /** Readiness confirms the table its sender saw, so it may cross other readiness but never a change it would have answered. */
 const READINESS_ACTIONS = new Set<string>(['ready', 'draft-ready', 'swap-ready']);
 
-/** Withdrawing readiness confirms no table, so it never waits on the revision; the stage, round or step it names still judges it. */
+/**
+ * Withdrawing readiness confirms no table, so it never waits on the revision.
+ * A swap withdrawal still names its trading round;
+ * a draft or setup withdrawal is judged by the room's current stage and phase.
+ */
 function withdrawsReadiness(action: { kind: string; ready?: boolean }) {
   return READINESS_ACTIONS.has(action.kind) && action.ready === false;
 }

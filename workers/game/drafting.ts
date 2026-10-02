@@ -131,6 +131,10 @@ export function applyDraftAction(
       return withEvent(snapshot, viewer, next, action.kind, faction);
     }
     case 'draft-ready': {
+      /* Readiness already as asked changes nothing, so a withdrawal that crossed another one leaves no event and keeps the failure. */
+      if (draft.ready.includes(seat) === action.ready) {
+        return snapshot;
+      }
       const ready = draft.ready.filter((candidate) => candidate !== seat);
       const next = { ...draft, ready: action.ready ? [...ready, seat] : ready, failure: null };
       const table = tableForViewer(snapshot, SPECTATOR_SEAT);
