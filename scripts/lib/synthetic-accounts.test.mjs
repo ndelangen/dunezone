@@ -135,8 +135,8 @@ test('provisioning sends every account with both hashes, at most six to a mutati
 
   expect(sent.every((batch) => batch.length <= 6)).toBe(true);
   expect(sent.flat().map(({ email }) => email)).toEqual(accounts.map(({ email }) => email));
-  for (const { scrypt, sha256 } of sent.flat()) {
+  for (const { scrypt, pbkdf2 } of sent.flat()) {
     expect(scrypt).toMatch(/^[a-f0-9]{32}:[a-f0-9]{128}$/);
-    expect(sha256).toMatch(/^sha256:[a-f0-9]{32}:[a-f0-9]{64}$/);
+    expect(pbkdf2).toMatch(/^pbkdf2-sha256:[a-f0-9]{32}:[a-f0-9]{64}$/);
   }
 });

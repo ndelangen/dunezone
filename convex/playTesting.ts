@@ -21,7 +21,7 @@ import {
 import { insertPendingGame } from './lib/playProvisioningSchedule';
 import { limitLiveGames, requireSyntheticBackend } from './lib/playSynthetic';
 import { ensureProfileForUser, profileSourcesFromUserDoc } from './lib/profileBootstrap';
-import { checksPasswordDigest, isPasswordDigest } from './lib/syntheticPasswords';
+import { checksPbkdf2Passwords, isPbkdf2Secret } from './lib/syntheticPasswords';
 
 function requireShortExpiry(expiresInMs: number) {
   const withinTestWindow = expiresInMs >= 0 && expiresInMs <= 30_000;
@@ -66,19 +66,19 @@ const SCRYPT_SECRET = /^[a-f0-9]{32}:[a-f0-9]{128}$/;
 /**
  * Creates synthetic Password accounts before a run's browsers start, so a browser's sign-in finds its account and never creates one.
  * It writes the rows Password's sign-up writes, with a secret the runner already hashed, so no hashing runs inside this mutation.
- * The runner cannot tell which hash this backend's Password checks, so it sends each password as Scrypt and as a salted SHA-256, and this keeps the one Password checks here (`lib/syntheticPasswords.ts`).
+ * The runner cannot tell which hash this backend's Password checks, so it sends each password as Scrypt and as PBKDF2, and this keeps the one Password checks here (`lib/syntheticPasswords.ts`).
  * An account that already exists keeps its password, as a later run with the same credentials file expects.
  */
 export const provisionAccounts = internalMutation({
-  args: { accounts: v.array(v.object({ email: v.string(), scrypt: v.string(), sha256: v.string() })) },
+  args: { accounts: v.array(v.object({ email: v.string(), scrypt: v.string(), pbkdf2: v.string() })) },
   returns: v.null(),
   handler: async (ctx, args) => {
     requireSyntheticBackend();
-    const checksDigest = checksPasswordDigest();
-    for (const { email, scrypt, sha256 } of args.accounts) {
+    const checksPbkdf2 = checksPbkdf2Passwords();
+    for (const { email, scrypt, pbkdf2 } of args.accounts) {
       requireSyntheticEmail(email);
-      if (!SCRYPT_SECRET.test(scrypt) || !isPasswordDigest(sha256)) {
-        throw new Error('Synthetic accounts need a Scrypt secret and a salted SHA-256 digest, not a password');
+      if (!SCRYPT_SECRET.test(scrypt) || !isPbkdf2Secret(pbkdf2)) {
+        throw new Error('Synthetic accounts need a Scrypt secret and a PBKDF2 secret, not a password');
       }
       const existing = await ctx.db
         .query('authAccounts')
@@ -94,7 +94,7 @@ export const provisionAccounts = internalMutation({
       }
       /* The same profile Auth's afterUserCreatedOrUpdated callback creates for a new Password account. */
       await ensureProfileForUser(ctx, userId, profileSourcesFromUserDoc(user));
-      const secret = checksDigest ? sha256 : scrypt;
+      const secret = checksPbkdf2 ? pbkdf2 : scrypt;
       await ctx.db.insert('authAccounts', { userId, provider: 'password', providerAccountId: email, secret });
     }
     return null;

@@ -61,7 +61,7 @@ describe('isolated Play test controls', () => {
           {
             email: 'player@example.invalid',
             scrypt: `${'0'.repeat(32)}:${'0'.repeat(128)}`,
-            sha256: `sha256:${'0'.repeat(32)}:${'0'.repeat(64)}`,
+            pbkdf2: `pbkdf2-sha256:${'0'.repeat(32)}:${'0'.repeat(64)}`,
           },
         ],
       })
