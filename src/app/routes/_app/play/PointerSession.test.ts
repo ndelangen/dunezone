@@ -317,3 +317,29 @@ test('a replaced receiver cannot unregister its successor', () => {
   expect(first).not.toHaveBeenCalled();
   expect(second).toHaveBeenCalledOnce();
 });
+
+test('a parcel and a piece carry refuse each other while one is under way', () => {
+  const { session, piece } = table();
+  stops.push(session.receive(vi.fn()));
+  session.press(pointer('pointerdown'), piece.id);
+  expect(session.deliver(pointer('pointerdown', 10, 2, 0, 'touch'), HAND)).toBe(false);
+  window.dispatchEvent(pointer('pointerup', 10));
+  expect(session.deliver(pointer('pointerdown', 10, 3, 0, 'touch'), HAND)).toBe(true);
+  expect(session.press(pointer('pointerdown', 10, 4), piece.id)).toBe(false);
+});
+
+test('another finger cannot move, drop or cancel a parcel carry', () => {
+  const { session } = table();
+  const receiver = vi.fn();
+  stops.push(session.receive(receiver));
+  const track = { move: vi.fn(), end: vi.fn() };
+  session.deliver(pointer('pointerdown', 10, 1, 0, 'touch'), HAND, track);
+  window.dispatchEvent(pointer('pointermove', 30, 2, 5, 'touch'));
+  window.dispatchEvent(pointer('pointerup', 30, 2, 10, 'touch'));
+  window.dispatchEvent(pointer('pointercancel', 30, 2, 10, 'touch'));
+  expect(track.move).not.toHaveBeenCalled();
+  expect(receiver).not.toHaveBeenCalled();
+  expect(session.busy).toBe(true);
+  window.dispatchEvent(pointer('pointerup', 40, 1, 20, 'touch'));
+  expect(receiver).toHaveBeenCalledExactlyOnceWith(HAND, 40, 10);
+});

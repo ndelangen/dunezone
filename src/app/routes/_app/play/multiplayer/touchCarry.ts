@@ -28,13 +28,16 @@ function ghost(source: HTMLElement, x: number, y: number): ParcelTrack {
   return { move: place, end: () => copy.remove() };
 }
 
+/** A finger's primary contact; mouse and pen presses keep the HTML5 drag. */
+const isFingerPress = (press: Press) => press.pointerType === 'touch' && press.button === 0;
+
 /**
  * Starts a touch carry of a panel parcel onto the table;
  * mouse and pen keep the control's HTML5 drag.
  * Returns whether the press was taken, so the caller can stop the browser treating it as a scroll or click.
  */
 export function startTouchCarry(session: PointerSession, press: Press, source: HTMLElement, parcel: Parcel) {
-  if (press.pointerType !== 'touch' || press.button !== 0 || session.busy) {
+  if (!isFingerPress(press) || session.busy) {
     return false;
   }
   const track = ghost(source, press.clientX, press.clientY);
