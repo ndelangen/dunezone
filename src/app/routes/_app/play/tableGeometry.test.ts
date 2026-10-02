@@ -83,11 +83,11 @@ describe('tabletop contact geometry', () => {
   });
 
   test('raises a circular piece to the highest surface beneath its footprint', () => {
-    const force = { kind: 'force', orientation: 0 } as const;
+    const troop = { kind: 'force', orientation: 0 } as const;
 
-    expect(supportHeightAt([4.4, 0, 0], force)).toBeCloseTo(BOARD_SURFACE_Y, 8);
-    expect(supportHeightAt([4.68, 0, 0], force)).toBeCloseTo(BOARD_RIM_SURFACE_Y, 8);
-    expect(supportHeightAt([4.8, 0, 0], force)).toBeCloseTo(TABLE_SURFACE_Y, 8);
+    expect(supportHeightAt([4.4, 0, 0], troop)).toBeCloseTo(BOARD_SURFACE_Y, 8);
+    expect(supportHeightAt([4.68, 0, 0], troop)).toBeCloseTo(BOARD_RIM_SURFACE_Y, 8);
+    expect(supportHeightAt([4.8, 0, 0], troop)).toBeCloseTo(TABLE_SURFACE_Y, 8);
   });
 
   test('uses card orientation when finding the highest surface beneath it', () => {
@@ -127,13 +127,13 @@ describe('tabletop contact geometry', () => {
     }
   );
 
-  test('settles a rim-straddling force on top of the rim', () => {
+  test('settles a rim-straddling troop on top of the rim', () => {
     const state = freshTableState();
     const piece = pieceFrom(state, 'harkonnen-force-loose');
     const isolatedState = { ...state, pieces: [piece] };
     const draft = draftForGesture(piece, 'whole');
     if (!draft) {
-      throw new Error('Could not begin a force gesture');
+      throw new Error('Could not begin a troop gesture');
     }
 
     const settled = settleCarryAtPosition(isolatedState, draft, [4.68, CARRIED_BASE_Y, 0]);

@@ -351,7 +351,7 @@ export class JourneyRecorder {
     }
   }
 
-  /** Splits `count` forces off the faction's reserve and carries them into the territory; returns the seat index. */
+  /** Splits `count` troops off the faction's reserve and carries them into the territory; returns the seat index. */
   async moveTroops(slug, count, territory) {
     const index = this.indexOf(slug);
     const reserve = (await this.pieces(index)).find(

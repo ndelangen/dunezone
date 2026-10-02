@@ -11,6 +11,7 @@ import {
   piecesCanStack,
   piecesTouchForStack,
 } from './tablePhysics';
+import { isTroopStack } from './troop';
 
 export function eventId(number: number): string {
   return `evt-${String(number).padStart(3, '0')}`;
@@ -41,7 +42,7 @@ function cardStackName(piece: TablePiece): string | undefined {
  * The name a stack takes when its own items change.
  * A card stack is its stable name with the noun for its count: card, cards while held, deck otherwise;
  * without a stable name it reads as plain Card, Cards or Deck, never as its own earlier label.
- * A force stack is named by its owner: the faction's display name, or Shared for a piece no faction owns.
+ * A troop or token stack is named by its owner: the faction's display name, or Shared for a piece no faction owns.
  */
 export function labelForCount(
   piece: TablePiece,
@@ -59,11 +60,16 @@ export function labelForCount(
   }
   if (piece.kind === 'force') {
     const owner = piece.owner === 'shared' ? 'Shared' : factionNames[piece.owner];
-    /* Every faction that owns a piece has a seat, so a missing name reads as plain forces rather than an id. */
-    const [one, many] = owner ? [`${owner} force`, `${owner} forces`] : ['Force', 'Forces'];
+    const [unit, units] = isTroopStack(piece) ? ['troop', 'troops'] : ['token', 'tokens'];
+    /* Every faction that owns a piece has a seat, so a missing name reads as plain troops or tokens rather than an id. */
+    const [one, many] = owner ? [`${owner} ${unit}`, `${owner} ${units}`] : [capitalized(unit), capitalized(units)];
     return count === 1 ? one : many;
   }
   return piece.label;
+}
+
+function capitalized(word: string): string {
+  return word.charAt(0).toUpperCase() + word.slice(1);
 }
 
 function withdrawnIdsFor(draft: DraftMove, sourcePieceId: string): Set<string> {
@@ -593,7 +599,13 @@ function mergeEventFor(application: DraftApplication, target: TablePiece): Table
   const { current, piece } = application;
   const count = pieceCount(piece);
   const units =
-    piece.kind === 'card' ? ['card', 'cards'] : isSpicePiece(piece) ? ['spice', 'spice'] : ['force', 'forces'];
+    piece.kind === 'card'
+      ? ['card', 'cards']
+      : isSpicePiece(piece)
+        ? ['spice', 'spice']
+        : isTroopStack(piece)
+          ? ['troop', 'troops']
+          : ['token', 'tokens'];
   const unit = count === 1 ? units[0] : units[1];
   const placement = piece.kind === 'card' ? 'placed on' : 'stacked with';
   return {

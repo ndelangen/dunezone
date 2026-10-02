@@ -387,17 +387,17 @@ export const PhaseViews = meta.story({
 
 /**
  * A phase change during a carry marks the new phase's view at once and moves the camera only when the piece lands.
- * The carry is a press on the viewer's own forces and a move past the drag threshold, sent to the canvas `mapViewPoint` projects against.
+ * The carry is a press on the viewer's own troops and a move past the drag threshold, sent to the canvas `mapViewPoint` projects against.
  */
 export const PhaseViewWaitsForTheDrop = meta.story({
   beforeEach: install(() => productTransport()),
   play: async ({ canvasElement }) => {
     const { page, shell, document } = await tablePage(canvasElement);
-    const forces = playingSnapshot().table.pieces.find((piece) => piece.id === 'starting-1-carthag')!;
+    const troops = playingSnapshot().table.pieces.find((piece) => piece.id === 'starting-1-carthag')!;
     const [clientX, clientY] = mapViewPoint(document, [
-      forces.position[0],
-      forces.position[1] + stackTopHeight(forces),
-      forces.position[2],
+      troops.position[0],
+      troops.position[1] + stackTopHeight(troops),
+      troops.position[2],
     ]);
     const scene = document.querySelector('canvas')!;
     const pointer = { bubbles: true, cancelable: true, pointerId: 1, pointerType: 'mouse', button: 0, clientY };

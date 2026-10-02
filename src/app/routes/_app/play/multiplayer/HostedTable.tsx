@@ -335,7 +335,7 @@ function SetupControls({ client, table }: SetupControlProps) {
     return null;
   }
   const step = setupStep(setup);
-  /* The viewer's own starting forces lead, so a narrow dock shows the line that seat has to follow. */
+  /* The viewer's own starting troops lead, so a narrow dock shows the line that seat has to follow. */
   const ownFaction = rosterSeat(table.snapshot.roster, table.viewer.viewerSeat)?.faction?.id;
   const instructions =
     step.kind === 'forces'
@@ -371,7 +371,7 @@ function SetupControls({ client, table }: SetupControlProps) {
                 >
                   <Text size="sm" style={{ whiteSpace: 'pre-wrap' }}>
                     <InlineFormattedTextSource
-                      source={entry.text || 'Follow your faction rules for starting forces.'}
+                      source={entry.text || 'Follow your faction rules for starting troops.'}
                     />
                   </Text>
                 </Section>

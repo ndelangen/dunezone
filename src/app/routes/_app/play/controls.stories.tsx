@@ -59,8 +59,8 @@ export const SetupTraitors = meta.story({
   },
 });
 
-/** Setup, starting forces: the kept Traitors are in hand and the table moves on to play. */
-export const SetupStartingForces = meta.story({
+/** Setup, starting troops: the kept Traitors are in hand and the table moves on to play. */
+export const SetupStartingTroops = meta.story({
   beforeEach: install(() => productTransport('seat-2', preparedSnapshot())),
   play: async ({ canvasElement }) => {
     const page = await openPanel(canvasElement, 'Setup');

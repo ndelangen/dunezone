@@ -165,9 +165,9 @@ async function keepTraitors(journey) {
   );
 }
 
-/* Starting forces, following each faction's own setup text. */
-async function startingForces(journey) {
-  await journey.next(0, 'Starting forces', 'The map is revealed and every faction places its starting forces.');
+/* Starting troops, following each faction's own setup text. */
+async function startingTroops(journey) {
+  await journey.next(0, 'Starting troops', 'The map is revealed and every faction places its starting troops.');
   for (const [slug, count, territory] of [
     ['house-atreides', 10, 'arrakeen'],
     ['house-harkonnen', 10, 'carthag'],
@@ -178,17 +178,17 @@ async function startingForces(journey) {
     ['bene-gesserit', 1, 'polar'],
   ]) {
     const index = await journey.moveTroops(slug, count, territory);
-    const forces = `${count} ${count === 1 ? 'force' : 'forces'}`;
+    const troops = `${count} ${count === 1 ? 'troop' : 'troops'}`;
     await journey.record(
-      'Starting forces',
-      `${journey.who(index)} places ${forces} in ${territoryName(territory)}.`,
+      'Starting troops',
+      `${journey.who(index)} places ${troops} in ${territoryName(territory)}.`,
       `seat-${index + 1}`,
       {
         kind: 'drop',
       }
     );
   }
-  await journey.readyAll('Setup complete', 'Every faction has placed its forces and confirmed Ready.');
+  await journey.readyAll('Setup complete', 'Every faction has placed its troops and confirmed Ready.');
 }
 
 /* Turn 1 opens: the storm moves and the Spice blow places 8 spice on Broken Land. */
@@ -269,7 +269,7 @@ async function biddingAndShipment(journey) {
     const index = await journey.moveTroops(slug, count, territory);
     await journey.record(
       'Shipment',
-      `${journey.who(index)} ships ${count} forces to ${territoryName(territory)}.`,
+      `${journey.who(index)} ships ${count} troops to ${territoryName(territory)}.`,
       `seat-${index + 1}`,
       {
         kind: 'drop',
@@ -280,7 +280,7 @@ async function biddingAndShipment(journey) {
 
 /*
  * The fixture troops carry no authored battle values, so no troop can be dialed and no spice can support one.
- * Each side commits a leader alone, and the reveal shows 0 force and 0 spice, as the step text says.
+ * Each side commits a leader alone, and the reveal shows 0 troops and 0 spice, as the step text says.
  */
 async function battlePlan(journey, index) {
   const leader = (await journey.hand(index)).find((piece) => piece.kind === 'force');
@@ -364,7 +364,7 @@ describe.runIf(process.env.RECORD_JOURNEY)('The Play journey recording', { timeo
         trading,
         dealTraitors,
         keepTraitors,
-        startingForces,
+        startingTroops,
         stormAndSpice,
         biddingAndShipment,
         battle,

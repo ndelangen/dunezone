@@ -16,6 +16,7 @@ import {
   labelForCount,
   moveStormInState,
 } from './tableState';
+import { isTroopStack } from './troop';
 
 function durableTable(table: TableState): DurableTable {
   const {
@@ -276,7 +277,7 @@ function splitDescription(piece: TablePiece, count: number) {
   if (isSpicePiece(piece)) {
     return `${count} spice taken from ${piece.label}.`;
   }
-  const unit = piece.kind === 'card' ? 'card' : 'force';
+  const unit = piece.kind === 'card' ? 'card' : isTroopStack(piece) ? 'troop' : 'token';
   const plural = count === 1 ? '' : 's';
   return `${count} ${unit}${plural} taken from ${piece.label}.`;
 }

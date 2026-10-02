@@ -290,7 +290,7 @@ async function grantedWholeCarry() {
   const snapshot = table(client).snapshot;
   const source = snapshot.table.pieces.find((piece) => piece.id === 'harkonnen-force-stack');
   if (!source) {
-    throw new Error('Missing force fixture.');
+    throw new Error('Missing troop fixture.');
   }
   client.beginGesture(source.id, 'whole');
   const begin = socket().sent.find((message) => message.type === 'begin');
@@ -1018,7 +1018,7 @@ describe('hosted table interaction', () => {
     socket().deliver(view({ sequence: 1 }));
     const source = table(client).snapshot.table.pieces.find((piece) => piece.id === 'harkonnen-force-stack');
     if (!source) {
-      throw new Error('Missing force fixture.');
+      throw new Error('Missing troop fixture.');
     }
     client.beginGesture(source.id, 'whole');
     socket().deliver({

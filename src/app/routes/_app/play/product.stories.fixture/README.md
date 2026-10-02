@@ -51,6 +51,6 @@ same definitions. These staged planner inputs do not claim that automatic battle
 individual component publication has shipped. The game runtime and its rules remain authoritative.
 
 `preparedSnapshot` keeps one Traitor per faction and four for Harkonnen, retains only the current
-player's selected cards in the private hand, and places starting forces using the copied starting
+player's selected cards in the private hand, and places starting troops using the copied starting
 instructions and the board's territory geometry. Undealt public cards have opaque ids and only a
 back image. Playing derives from this prepared state.
