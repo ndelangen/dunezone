@@ -39,6 +39,7 @@ import {
   FORCE_LAYER_HEIGHT,
   FORCE_LAYER_PITCH,
   FORCE_TOP_RADIUS,
+  forceScale,
   MARKER_BASE_HEIGHT,
   MARKER_BOTTOM_RADIUS,
   MARKER_CONE_CENTER_Y,
@@ -584,8 +585,9 @@ function TokenFace({
 
 function ForceStackLayers({ piece }: { piece: TablePiece }) {
   const shownLayers = visibleLayerCount(piece);
+  const scale = forceScale(piece);
   return (
-    <group>
+    <group scale={[scale, 1, scale]}>
       {Array.from({ length: shownLayers }, (_, index) => {
         const faceUp = stackLayerFaceUp(piece, index, shownLayers);
         return (
@@ -597,7 +599,7 @@ function ForceStackLayers({ piece }: { piece: TablePiece }) {
             >
               {tokenBoxRatio(piece) != null ? (
                 <boxGeometry
-                  args={[FORCE_BOTTOM_RADIUS * 2, FORCE_LAYER_HEIGHT, FORCE_BOTTOM_RADIUS * 2 * tokenBoxRatio(piece)!]}
+                  args={[FORCE_TOP_RADIUS * 2, FORCE_LAYER_HEIGHT, FORCE_TOP_RADIUS * 2 * tokenBoxRatio(piece)!]}
                 />
               ) : (
                 <cylinderGeometry args={[FORCE_TOP_RADIUS, FORCE_BOTTOM_RADIUS, FORCE_LAYER_HEIGHT, 48]} />
@@ -957,6 +959,12 @@ const PIECE_SELECTION_RADII: Record<TablePiece['kind'], [number, number, number]
   marker: [0.4, 0.47, 64],
 };
 
+function selectionRadii(piece: TablePiece): [number, number, number] {
+  const [inner, outer, segments] = PIECE_SELECTION_RADII[piece.kind];
+  const scale = forceScale(piece);
+  return [inner * scale, outer * scale, segments];
+}
+
 function PieceSelectionRing({
   piece,
   shadowLocalY,
@@ -974,7 +982,7 @@ function PieceSelectionRing({
       renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}
       rotation={[-Math.PI / 2, 0, 0]}
     >
-      <ringGeometry args={isSpicePiece(piece) ? [0.18, 0.205, 64] : PIECE_SELECTION_RADII[piece.kind]} />
+      <ringGeometry args={isSpicePiece(piece) ? [0.18, 0.205, 64] : selectionRadii(piece)} />
       <meshBasicMaterial
         color={stackTargeted ? '#f6bd55' : drafted ? '#f6c879' : '#fff0c9'}
         {...PIECE_SELECTION_RING_MATERIAL}

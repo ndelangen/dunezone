@@ -22,8 +22,11 @@ export const FORCE_LAYER_HEIGHT = 0.09 * 0.5;
 export const FORCE_LAYER_PITCH = 0.075 * 0.5;
 export const FORCE_TOP_RADIUS = 0.31 * 0.5;
 export const FORCE_BOTTOM_RADIUS = 0.33 * 0.5;
-export const FORCE_FACE_RADIUS = 0.23 * 0.5;
+/* A token's published face covers its whole top, so the art is as large as the token. */
+export const FORCE_FACE_RADIUS = FORCE_TOP_RADIUS;
 export const FORCE_FOOTPRINT_RADIUS = 0.175;
+/* A leader disc is twice the diameter of a troop token. */
+export const LEADER_SCALE = 2;
 export const CARD_WIDTH = 0.86;
 export const CARD_DEPTH = 1.18;
 export const CARD_LAYER_HEIGHT = 0.055;
@@ -39,6 +42,16 @@ export const MARKER_CONE_CENTER_Y = 0.21;
 const MARKER_HEIGHT = MARKER_CONE_CENTER_Y + MARKER_CONE_HEIGHT / 2;
 const MAX_VISIBLE_LAYERS = { card: 5, force: 4, marker: 1 } satisfies Record<TablePiece['kind'], number>;
 export const MARKER_FOOTPRINT_RADIUS = 0.5;
+
+/** Leaders keep the stack key their faction's setup supply gave them. */
+export function isLeaderPiece(piece: Partial<Pick<TablePiece, 'kind' | 'stackKey'>>): boolean {
+  return piece.kind === 'force' && (piece.stackKey?.startsWith('leader:') ?? false);
+}
+
+/** How much wider than a troop token a force piece is drawn and occupies the table. */
+export function forceScale(piece: Partial<Pick<TablePiece, 'kind' | 'stackKey'>>): number {
+  return isLeaderPiece(piece) ? LEADER_SCALE : 1;
+}
 
 /** Published square and rectangle tokens retain their whole face and aspect ratio. */
 export function tokenBoxRatio(piece: Pick<TablePiece, 'items'>): number | null {
@@ -63,7 +76,7 @@ function minimumFootprintRadius(position: Vector3Tuple, piece: PieceFootprint): 
       ? SPICE_FOOTPRINT_RADIUS
       : piece.kind === 'marker'
         ? MARKER_FOOTPRINT_RADIUS
-        : FORCE_FOOTPRINT_RADIUS;
+        : FORCE_FOOTPRINT_RADIUS * forceScale(piece);
     return Math.max(0, Math.hypot(position[0], position[2]) - footprintRadius);
   }
 
@@ -125,7 +138,10 @@ function contactShadowBase(piece: TablePiece | TablePiece['kind']): [number, num
   if (kind === 'card') {
     return [CARD_FOOTPRINT_HALF_X * 2, CARD_FOOTPRINT_HALF_Z * 2];
   }
-  const diameter = kind === 'force' ? FORCE_FOOTPRINT_RADIUS * 2 + 0.04 : MARKER_FOOTPRINT_RADIUS * 2;
+  const diameter =
+    kind === 'force'
+      ? FORCE_FOOTPRINT_RADIUS * 2 * (typeof piece === 'string' ? 1 : forceScale(piece)) + 0.04
+      : MARKER_FOOTPRINT_RADIUS * 2;
   return [diameter, diameter];
 }
 
