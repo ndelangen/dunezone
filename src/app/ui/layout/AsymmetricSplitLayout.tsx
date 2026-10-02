@@ -24,7 +24,8 @@ type AsymmetricSplitLayoutProps = PropsWithChildren<{
   /** Which column comes first in reading order, and so on top once they stack. `narrow` leads with it, for a picture that introduces the text beside it. */
   stackFirst?: 'wide' | 'narrow';
   /**
-   * What happens to the columns in a narrow container. `stack` puts them in one reading column below 61.25rem.
+   * What happens to the columns in a narrow container.
+   * `stack` puts them in one reading column below 61.25rem.
    * `hide` keeps them side by side down to the phone step and then drops the narrow column, for a picture that only decorates the text beside it (Norbert, 2026-10-02).
    */
   narrowFallback?: 'stack' | 'hide';
