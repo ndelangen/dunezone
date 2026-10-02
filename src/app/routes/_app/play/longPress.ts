@@ -43,3 +43,32 @@ export function watchLongPress(
   events.addEventListener('pointercancel', end);
   return stop;
 }
+
+/**
+ * Keeps the lift of a press that opened a menu from closing it again.
+ * The lift's compatibility mousedown and click would land outside the menu, so the `touchend` of that finger has its default prevented.
+ * Only the finger near the press counts, a cancelled touch lets go without preventing anything, and the returned function lets go too.
+ */
+export function swallowLift(
+  events: Pick<Window, 'addEventListener' | 'removeEventListener'>,
+  press: Pick<PointerEvent, 'clientX' | 'clientY'>
+): () => void {
+  const stop = () => {
+    events.removeEventListener('touchend', end, true);
+    events.removeEventListener('touchcancel', stop, true);
+  };
+  const end = (event: Event) => {
+    const lifted = Array.from((event as TouchEvent).changedTouches ?? []);
+    if (
+      lifted.some(
+        (touch) => Math.hypot(touch.clientX - press.clientX, touch.clientY - press.clientY) <= LONG_PRESS_SLOP_PX
+      )
+    ) {
+      event.preventDefault();
+      stop();
+    }
+  };
+  events.addEventListener('touchend', end, { capture: true, passive: false });
+  events.addEventListener('touchcancel', stop, true);
+  return stop;
+}

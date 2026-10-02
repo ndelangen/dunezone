@@ -62,6 +62,10 @@ export class PointerSession {
     }
   }
 
+  isPressing(pieceId: string) {
+    return this.active?.pieceId === pieceId;
+  }
+
   isDragging(pieceId: string) {
     return this.active?.pieceId === pieceId && this.active.dragging;
   }

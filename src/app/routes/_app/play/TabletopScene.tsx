@@ -90,7 +90,7 @@ import stormMarkerUrl from './assets/storm-marker.png?url';
 import { boardFurnitureFor } from './boardFurniture';
 import { BOARD_RIM_DEPTH, createBoardRimShape } from './boardRimGeometry';
 import { CameraControls, CameraRelativeFog } from './CameraControls';
-import { watchLongPress } from './longPress';
+import { swallowLift, watchLongPress } from './longPress';
 import { PhaseSymbol } from './PhaseSymbol';
 import { cameraPoseFor, TABLE_CAMERA_FAR, TABLE_CAMERA_FIELD_OF_VIEW, TABLE_CAMERA_NEAR } from './playView';
 import type { CameraViewCommand } from './playView';
@@ -912,13 +912,12 @@ function usePiecePointerEvents({ piece }: TablePieceMeshProps, interactionBlocke
           if (pointerSession.isDragging(piece.id)) {
             return;
           }
-          pointerSession.cancel();
-          /* The lift's compatibility mousedown and click would land outside the menu and close it again. */
-          window.addEventListener('touchend', (lift) => lift.preventDefault(), {
-            once: true,
-            capture: true,
-            passive: false,
-          });
+          /* Only this finger's press stops; another finger may be carrying another piece. */
+          if (pointerSession.isPressing(piece.id)) {
+            pointerSession.cancel();
+          }
+          stopLongPress.current = swallowLift(window, { clientX, clientY });
+          /* Android also sends a context menu for the long press; opening the same menu twice changes nothing. */
           openPieceMenu(piece.id, clientX, clientY);
         });
       }

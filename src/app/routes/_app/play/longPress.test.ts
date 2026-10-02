@@ -1,7 +1,7 @@
 /* @vitest-environment jsdom */
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 
-import { LONG_PRESS_MS, watchLongPress } from './longPress';
+import { LONG_PRESS_MS, swallowLift, watchLongPress } from './longPress';
 
 beforeEach(() => {
   vi.useFakeTimers();
@@ -56,4 +56,36 @@ test('letting go stops the hold', () => {
   stop();
   vi.advanceTimersByTime(LONG_PRESS_MS);
   expect(onHold).not.toHaveBeenCalled();
+});
+
+function touch(type: string, x: number) {
+  const event = new Event(type, { cancelable: true });
+  Object.defineProperty(event, 'changedTouches', { value: [{ clientX: x, clientY: 10 }] });
+  return event;
+}
+
+test('the lift of the held finger is swallowed once, and another finger lifting is not', () => {
+  const events = new EventTarget();
+  swallowLift(events as Window, { clientX: 10, clientY: 10 });
+  const other = touch('touchend', 200);
+  events.dispatchEvent(other);
+  expect(other.defaultPrevented).toBe(false);
+  const lift = touch('touchend', 14);
+  events.dispatchEvent(lift);
+  expect(lift.defaultPrevented).toBe(true);
+  const later = touch('touchend', 10);
+  events.dispatchEvent(later);
+  expect(later.defaultPrevented).toBe(false);
+});
+
+test.each([
+  ['a cancelled touch', (events: EventTarget) => events.dispatchEvent(new Event('touchcancel'))],
+  ['letting go', (_events: EventTarget, stop: () => void) => stop()],
+])('after %s no later lift is swallowed', (_case, end) => {
+  const events = new EventTarget();
+  const stop = swallowLift(events as Window, { clientX: 10, clientY: 10 });
+  end(events, stop);
+  const lift = touch('touchend', 10);
+  events.dispatchEvent(lift);
+  expect(lift.defaultPrevented).toBe(false);
 });
