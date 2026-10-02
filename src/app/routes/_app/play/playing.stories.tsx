@@ -785,6 +785,41 @@ export const ControlsPanelTabs = meta.story({
  * A floating pane opened on the island, a piece's menu and a help tooltip here, paints the island's glass in the light page although it portals out of the shell.
  * (Page stories take their scheme from the app chrome, not from the Storybook global.)
  */
+/* Public spice transfers name each end in words (#1664): a faction's bank by its name, the table and the supply, and a faction gone from the roster as such. */
+export const SpiceTransfers = meta.story({
+  beforeEach: install(() => {
+    const snapshot = initialSnapshot();
+    const faction = snapshot.roster!.seats[1]!.faction!;
+    return productTransport('seat-2', {
+      ...snapshot,
+      bank: { factionId: faction.id, balance: 4 },
+      spiceTransfers: [
+        { revision: 4, actor: 'Thialfi', kind: 'disposal', amount: 1, source: 'table' },
+        { revision: 3, actor: 'Thialfi', kind: 'collection', amount: 3, source: 'table', destination: 'gone-faction' },
+        { revision: 2, actor: 'Twaffle', kind: 'supply', amount: 6, source: 'supply', destination: 'table' },
+        { revision: 1, actor: 'Thialfi', kind: 'withdrawal', amount: 2, source: faction.id, destination: 'table' },
+      ],
+    });
+  }),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await openTab(page, 'Spice');
+    const faction = initialSnapshot().roster!.seats[1]!.faction!;
+    await settled(() => {
+      expect(
+        within(page.getByRole('region', { name: 'Public spice transfers' }))
+          .getAllByRole('listitem')
+          .map((item) => item.textContent)
+      ).toEqual([
+        'Thialfi: disposal, 1 spice from the table removed from play.',
+        'Thialfi: collection, 3 spice from the table to a faction no longer in the game.',
+        'Twaffle: supply, 6 spice from the supply to the table.',
+        `Thialfi: withdrawal, 2 spice from the ${faction.name} bank to the table.`,
+      ]);
+    });
+  },
+});
+
 export const PanelSchemeIsland = meta.story({
   beforeEach: install(() => productTransport()),
   play: async ({ canvasElement }) => {

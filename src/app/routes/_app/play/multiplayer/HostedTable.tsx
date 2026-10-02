@@ -576,10 +576,20 @@ function FactionBankControls({ client, table }: Pick<ConnectionControlsProps, 'c
   );
 }
 
+/* A transfer's ends are a faction's id, or the table or the supply, as the Worker's spice ledger records them (#1664). */
+function spicePlace(roster: TableProjection['snapshot']['roster'], place: string): string {
+  if (place === 'table' || place === 'supply') {
+    return `the ${place}`;
+  }
+  const name = roster?.seats.find((seat) => seat.faction?.id === place)?.faction?.name;
+  return name ? `the ${name} bank` : 'a faction no longer in the game';
+}
+
 function SpiceHistory({ client, table }: Pick<ConnectionControlsProps, 'client' | 'table'>) {
   const view = useSyncExternalStore(client.subscribe, client.getSnapshot);
   const entries = view.spiceHistory?.entries ?? table.snapshot.spiceTransfers ?? [];
   const more = view.spiceHistory?.more ?? entries.length === 20;
+  const roster = table.snapshot.roster;
   return (
     <Section helpOnly={Boolean(table.snapshot.stage)} title="Public spice transfers">
       <Stack gap="xs">
@@ -587,8 +597,8 @@ function SpiceHistory({ client, table }: Pick<ConnectionControlsProps, 'client' 
         <List type="ordered" size="sm">
           {entries.map((entry) => (
             <List.Item key={entry.revision}>
-              {entry.actor}: {entry.kind}, {entry.amount} spice from {entry.source}
-              {entry.destination ? ` to ${entry.destination}` : ' removed from play'}.
+              {entry.actor}: {entry.kind}, {entry.amount} spice from {spicePlace(roster, entry.source)}
+              {entry.destination ? ` to ${spicePlace(roster, entry.destination)}` : ' removed from play'}.
             </List.Item>
           ))}
         </List>
