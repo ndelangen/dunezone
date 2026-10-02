@@ -27,7 +27,7 @@ export const TraitorSelection = meta.story({
       expect(lastCommand()).toMatchObject({ type: 'command', action: { kind: 'ready', ready: true } })
     );
     await userEvent.click(page.getByRole('tab', { name: /^Spice$/ }));
-    await expect(page.findByLabelText('Banked spice')).resolves.toBeVisible();
+    await expect(page.findByLabelText('Spice reserve balance')).resolves.toBeVisible();
     await userEvent.click(page.getByRole('tab', { name: /^Shared inventory$/ }));
     expect(page.queryByRole('button', { name: 'Add from catalogue' })).toBeNull();
     await userEvent.click(page.getByRole('tab', { name: /^Hand$/ }));

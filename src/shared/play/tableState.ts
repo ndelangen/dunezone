@@ -1,6 +1,6 @@
 import { gestureBlockReason, nearestZone, pieceCount, zoneById } from './model';
 import type { DraftMove, TableEvent, TableItem, TablePiece, TableState, Vector3Tuple } from './model';
-import { isSpicePiece, isSpiceSupplyPosition } from './spiceSupply';
+import { isSpicePiece, isSpiceBankPosition } from './spiceBank';
 import { moveStormCounterclockwise } from './stormSector';
 import { placementAnchorAtPosition } from './tableFurnitureLayout';
 import { restingPositionAt, stackPreviewPositionFor } from './tableGeometry';
@@ -273,7 +273,7 @@ export function projectCarryAtPosition(state: TableState, draft: DraftMove, posi
   if (!piece) {
     return null;
   }
-  if (isSpicePiece(piece) && isSpiceSupplyPosition(position)) {
+  if (isSpicePiece(piece) && isSpiceBankPosition(position)) {
     return {
       ...draft,
       operation: 'move',
@@ -364,7 +364,7 @@ export function settleCarryAtPosition(state: TableState, draft: DraftMove, posit
   if (!piece) {
     return null;
   }
-  if (isSpicePiece(piece) && isSpiceSupplyPosition(position)) {
+  if (isSpicePiece(piece) && isSpiceBankPosition(position)) {
     return projected;
   }
   if (projected.operation === 'merge' && projected.targetPieceId) {
@@ -695,7 +695,7 @@ function applyMove(application: DraftApplication): TableState {
   };
 }
 
-function returnSpiceDraftToSupply(current: TableState, draft: DraftMove, actorName = 'A player'): TableState {
+function returnSpiceDraftToSpiceBank(current: TableState, draft: DraftMove, actorName = 'A player'): TableState {
   const application = validateDraftApplication(current, draft);
   if ('rejected' in application) {
     return application.rejected;
@@ -704,10 +704,10 @@ function returnSpiceDraftToSupply(current: TableState, draft: DraftMove, actorNa
   const sources = [draft.sourcePieceId, ...draft.withdrawals.map((withdrawal) => withdrawal.sourcePieceId)];
   if (
     !isSpicePiece(piece) ||
-    !isSpiceSupplyPosition(draft.position) ||
+    !isSpiceBankPosition(draft.position) ||
     sources.some((id) => !isSpicePiece(current.pieces.find((candidate) => candidate.id === id)))
   ) {
-    return rejection(rejectedBase, 'spice.return', 'Only carried spice can be dropped on the spice supply.');
+    return rejection(rejectedBase, 'spice.return', 'Only carried spice can be dropped on the Spice Bank.');
   }
   return {
     ...current,
@@ -717,15 +717,15 @@ function returnSpiceDraftToSupply(current: TableState, draft: DraftMove, actorNa
     ...appendEvent(current, {
       id: eventId(current.nextEventNumber),
       command: 'spice.return',
-      message: `${actorName} returned ${pieceCount(piece)} spice to the supply.`,
+      message: `${actorName} returned ${pieceCount(piece)} spice to the Spice Bank.`,
       status: 'accepted',
     }),
   };
 }
 
 export function applyDraftToState(current: TableState, requestedDraft: DraftMove, actorName = 'A player'): TableState {
-  if (isSpiceSupplyPosition(requestedDraft.position) && isSpicePiece(heldPieceFor(current, requestedDraft))) {
-    return returnSpiceDraftToSupply(current, requestedDraft, actorName);
+  if (isSpiceBankPosition(requestedDraft.position) && isSpicePiece(heldPieceFor(current, requestedDraft))) {
+    return returnSpiceDraftToSpiceBank(current, requestedDraft, actorName);
   }
   const application = resolveDraftApplication(current, requestedDraft);
   if ('rejected' in application) {

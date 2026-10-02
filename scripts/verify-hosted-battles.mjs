@@ -54,13 +54,16 @@ export async function verifyBattles(toolkit) {
   /* Setup credited the faction's starting spice; the support case counts from it. */
   const startingSpice = a.view().snapshot.bank.balance;
   await focus(a, 'map');
-  await toolkit.supplyShortcut(a, '7');
+  await toolkit.spiceBankShortcut(a, '7');
   await until(() => a.view().snapshot.table.pieces.some(isSpicePiece), 'Spice did not spawn.');
   const spice = a.view().snapshot.table.pieces.find(isSpicePiece);
   const at = await point(a, [spice.position[0], spice.position[1] + stackTopHeight(spice), spice.position[2]]);
   await a.page.mouse.click(at.x, at.y, { button: 'right' });
-  await a.page.getByRole('menuitem', { name: 'Take into bank', exact: true }).click();
-  await until(() => a.view().snapshot.bank.balance === startingSpice + 7, 'Manual collection did not fund the bank.');
+  await a.page.getByRole('menuitem', { name: 'Take into spice reserve', exact: true }).click();
+  await until(
+    () => a.view().snapshot.bank.balance === startingSpice + 7,
+    'Manual collection did not fund the spice reserve.'
+  );
   while (a.view().snapshot.phase !== 6) {
     await act(a, 'Next phase');
   }

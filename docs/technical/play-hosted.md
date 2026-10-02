@@ -68,8 +68,8 @@ changed. Try the action again." The actions in `REVISION_TOLERANT_ACTIONS` (spic
 draws, battle actions, draft picks and bans, and removal ballots) name what they change and are
 checked against the live table instead, so seats acting at the same moment do not turn each other
 away. Readiness (`ready`, `draft-ready`, `swap-ready`) may cross other readiness, but not a commit
-that changed more than who is ready. A bank withdrawal stays strict, so two tabs of one player
-cannot both spend from a bank they saw once.
+that changed more than who is ready. A spice reserve withdrawal stays strict, so two tabs of one player
+cannot both spend from a spice reserve they saw once.
 
 Each socket can start at most 1,024 carries before it must reconnect. Replay history stays
 bounded per connection and is released on disconnect. Ended carry IDs are never evicted while
@@ -95,7 +95,7 @@ Each mechanic's contract is its resolution ticket; [CONTEXT.md](../../CONTEXT.md
 - Participation: **Seat request** and **Departure**, [#1215](https://github.com/ndelangen/dunezone/issues/1215).
 - Drafting and public assignment: **Draft list**, **Ban list** and **Public assignment**, [#1216](https://github.com/ndelangen/dunezone/issues/1216).
 - Directory summary: **Directory**, [#1214](https://github.com/ndelangen/dunezone/issues/1214).
-- Private banks and public spice: [#1140](https://github.com/ndelangen/dunezone/issues/1140).
+- Private spice reserves and public spice: [#1140](https://github.com/ndelangen/dunezone/issues/1140).
 - Player-run battles: [#1141](https://github.com/ndelangen/dunezone/issues/1141).
 
 ## The fixture's treachery deck
@@ -288,10 +288,10 @@ game at drafting and stepping through every stage, which is what it proves. The 
 provision a game with either test value unless its `GIT_SHA` is play-local's `local-isolated` and
 its `APPLICATION_ORIGIN` is a loopback origin.
 
-Run `bun --no-env-file scripts/verify-hosted-play-stack.ts --browser-only --flow private-banks` for
+Run `bun --no-env-file scripts/verify-hosted-play-stack.ts --browser-only --flow private-spice-reserves` for
 manual collection, full withdrawal, disposal, phase boundaries, reconnect, history, multi-tab
 sign-out and spectator privacy. This mode uses distinct synthetic accounts in two separate browser
-processes. It retains received game frames in `private-banks-frames.json` for audience inspection.
+processes. It retains received game frames in `private-spice-reserves-frames.json` for audience inspection.
 The fixture refuses seat commands, so the native suites change its faction assignments in SQL to
 exercise replacement.
 
@@ -331,9 +331,9 @@ proves one rule; these prove the rules still hold when one game passes through a
   result and Continue playing. On the way the directory refuses writes twice and the alarm delivers
   the owed summary, the socket drops right after a withdrawal and its identical retries debit once,
   a player reconnects, and the room restarts cold in play and again while finished.
-- Eighteen accounts are each dealt a distinct faction, station and bank, finish as an alliance,
-  restart cold and continue at Mentat pause. A spectator holds no bank and cannot end the game.
-- In a running game a player leaves and a spectator takes the seat with its faction and bank. The
+- Eighteen accounts are each dealt a distinct faction, station and spice reserve, finish as an alliance,
+  restart cold and continue at Mentat pause. A spectator holds no spice reserve and cannot end the game.
+- In a running game a player leaves and a spectator takes the seat with its faction and spice reserve. The
   replacement declares a result and then deletes their account. The result, log and stored history
   name `[deleted user]` through a restart, and the last departure discards the game.
 

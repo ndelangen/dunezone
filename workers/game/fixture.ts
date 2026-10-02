@@ -18,7 +18,7 @@ const HOSTED_FIXTURE_SEATS: TableRoster['seats'] = [
   { id: 'atreides', position: 1, faction: { id: 'atreides', name: 'Atreides', color: '#75d8a7' } },
 ];
 
-/** Every seated house holds a bank and its fixture battle faces; a house that already has them keeps them. */
+/** Every seated house holds a spice reserve and its fixture battle faces; a house that already has them keeps them. */
 function seedFactionState(snapshot: StoredSnapshot, roster: TableRoster): StoredSnapshot {
   const factions = roster.seats.flatMap((seat) => (seat.faction ? [seat.faction.id] : []));
   return {
@@ -71,7 +71,7 @@ export function dealFixtureDeck<Table extends { pieces: TablePiece[] }>(
   };
 }
 
-/** A fixture's first snapshot: its pieces, its seating and an empty bank for each seated house. */
+/** A fixture's first snapshot: its pieces, its seating and an empty spice reserve for each seated house. */
 export function fixtureSnapshot(
   roster: TableRoster,
   first: GameSnapshot = initialSnapshot(),

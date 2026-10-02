@@ -102,7 +102,7 @@ import type { CameraViewCommand } from './playView';
 import { usePointerSession } from './PointerSessionContext';
 import { sharedPublishedFaces } from './publishedFaceRetry';
 import { isPublicTablePoint, ScenePresence, useTablePose } from './ScenePresence';
-import { SpiceSupply } from './SpiceSupply';
+import { SpiceBank } from './SpiceBank';
 import { TableFurniture } from './TableFurniture';
 import { TableGraphicsBoundary, TableGraphicsUnavailable } from './TableGraphicsBoundary';
 import { useTableLighting } from './tableLighting';
@@ -273,7 +273,7 @@ function TableTrackers({ progress, slots }: { progress: TableProgress; slots: re
                 <PhaseSymbol symbol={symbol} radius={slot.radius} faceColor={color} highlighted={highlighted} />
               ) : null}
               {slot.kind === 'turn' ? <TurnTracker radius={slot.radius} turn={progress.turn} /> : null}
-              {slot.kind === 'spice' ? <SpiceSupply radius={slot.radius} /> : null}
+              {slot.kind === 'spice' ? <SpiceBank radius={slot.radius} /> : null}
             </group>
           </group>
         );
@@ -1284,7 +1284,7 @@ export function TabletopScene({
   stage,
   mapVisible,
 }: TabletopSceneProps) {
-  const { takeAdditionalFromTarget, state, deckControls, bankControls } = useTabletop();
+  const { takeAdditionalFromTarget, state, deckControls, spiceReserveControls } = useTabletop();
   const [pieceMenu, setPieceMenu] = useState<{ pieceId: string; x: number; y: number; touch: boolean } | null>(null);
   const menuPiece = state.pieces.find((piece) => piece.id === pieceMenu?.pieceId);
   const pieceMenuName = isSpicePiece(menuPiece) ? 'Spice actions' : 'Deck actions';
@@ -1373,13 +1373,13 @@ export function TabletopScene({
           </span>
           {isSpicePiece(menuPiece) ? (
             <Menu.Item
-              disabled={!bankControls || menuPiece.locked || !bankControls.canCollect(menuPiece.id)}
+              disabled={!spiceReserveControls || menuPiece.locked || !spiceReserveControls.canCollect(menuPiece.id)}
               onClick={() => {
-                bankControls?.collect(menuPiece.id);
+                spiceReserveControls?.collect(menuPiece.id);
                 setPieceMenu(null);
               }}
             >
-              Take into bank
+              Take into spice reserve
             </Menu.Item>
           ) : (
             <>
@@ -1410,7 +1410,7 @@ export function TabletopScene({
       </Menu>
       <PieceMenuContext.Provider
         value={
-          deckControls || bankControls
+          deckControls || spiceReserveControls
             ? (pieceId, x, y, touch) =>
                 /* A long press may also send a context menu; the second opening keeps the finger's menu. */
                 setPieceMenu((current) => ({

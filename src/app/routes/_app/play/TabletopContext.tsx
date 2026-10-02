@@ -10,7 +10,7 @@ import type { TableProjection, TableSession } from './multiplayer/TableSession';
 export type TabletopContextValue = Pick<
   TableProjection,
   | 'affordances'
-  | 'bankControls'
+  | 'spiceReserveControls'
   | 'canHandleTable'
   | 'canInteract'
   | 'deckControls'

@@ -1,7 +1,6 @@
 import type { z } from 'zod';
 
 import type { playGameProvisionSchema } from '../../src/shared/play/admission';
-import type { SpiceTransfer } from '../../src/shared/play/banks';
 import type { CaptureReadiness } from '../../src/shared/play/capture';
 import { emptySnapshot } from '../../src/shared/play/commands';
 import type { PlayDirectorySummary } from '../../src/shared/play/directory';
@@ -26,6 +25,7 @@ import { isRemovalAction } from '../../src/shared/play/removal';
 import { isResultAction } from '../../src/shared/play/result';
 import type { TableRoster } from '../../src/shared/play/schema';
 import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
+import type { SpiceTransfer } from '../../src/shared/play/spiceReserve';
 import { stormOrder } from '../../src/shared/play/stormSector';
 import { isSwapAction, openSwapping } from '../../src/shared/play/swapping';
 import { isTableSeatCount } from '../../src/shared/play/tableSettings';

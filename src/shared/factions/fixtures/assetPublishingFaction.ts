@@ -56,7 +56,7 @@ const assetPublishingFactionInput = {
       },
       {
         title: "Leto's tithe",
-        text: 'During Spice Collection take spice from the bank when you control one or more strongholds.',
+        text: 'During Spice Collection take spice from the Spice Bank when you control one or more strongholds.',
       },
       {
         title: 'Kwisatz Haderach',

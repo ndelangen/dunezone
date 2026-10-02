@@ -140,7 +140,7 @@ describe('A real game provisioned at the play stage', () => {
     expect(seated.snapshot.bank?.factionId).toBe(
       seated.snapshot.roster.seats.find((entry) => entry.id === 'seat-2').faction.id
     );
-    /* A withdrawal from the seat's bank is a command only its faction's player may send. */
+    /* A withdrawal from the seat's spice reserve is a command only its faction's player may send. */
     const { reply } = await sendCommand(b, { kind: 'bank-withdraw', amount: 1 });
     expect(reply).not.toMatchObject({ type: 'rejected' });
     expect((await syncView(a)).snapshot.controls.seats.sort()).toEqual(['seat-1', 'seat-2']);

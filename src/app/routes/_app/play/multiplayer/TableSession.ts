@@ -94,8 +94,8 @@ export type TableProjection = {
   renderedPieces: TablePiece[];
   selectedPiece: TablePiece | null;
   affordances: Affordance[];
-  /* The piece menu's bank and deck actions, present only while this viewer can act. */
-  bankControls?: {
+  /* The piece menu's spice reserve and deck actions, present only while this viewer can act. */
+  spiceReserveControls?: {
     canCollect(pieceId: string): boolean;
     collect(pieceId: string): void;
   };
@@ -325,7 +325,7 @@ export class TableSession {
       renderedPieces,
       selectedPiece: null,
       affordances: [],
-      bankControls: undefined,
+      spiceReserveControls: undefined,
       deckControls: undefined,
       pointers: [],
       remoteCarriedIds: new Set(),
@@ -394,7 +394,7 @@ export class TableSession {
       renderedPieces,
       selectedPiece: renderedPieces.find((piece) => piece.id === state.selectedPieceId) ?? null,
       affordances: affordancesFor({ ...state, pieces: renderedPieces }),
-      bankControls:
+      spiceReserveControls:
         canHandleTable && displayed.bank
           ? {
               canCollect: (pieceId) => !reservedPieceIds.has(pieceId),

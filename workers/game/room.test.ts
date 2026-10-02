@@ -4,7 +4,7 @@ import { initialSnapshot } from '../../src/shared/play/commands';
 import { PHASE_CHANGE_COOLDOWN_MS, phaseAt, TABLE_PHASES, tableProgressFor } from '../../src/shared/play/phases';
 import { clientMessageSchema, gameSnapshotSchema } from '../../src/shared/play/protocol';
 import type { GameSnapshot } from '../../src/shared/play/protocol';
-import { createSpiceStack, isSpicePiece, spiceSupplySlot } from '../../src/shared/play/spiceSupply';
+import { createSpiceStack, isSpicePiece, spiceBankSlot } from '../../src/shared/play/spiceBank';
 import { TABLE_SECTOR_COUNT } from '../../src/shared/play/tableSettings';
 import { hostedFixturePlan } from './fixture';
 import { applyPatch, diff } from './history';
@@ -218,7 +218,7 @@ describe('shared spice commands', () => {
     if (blocked === 'locked') {
       room.accept(room.command(alice, { kind: 'lock', pieceId: first.id }, room.snapshot.revision));
     } else {
-      begin(room, first.id, 'reserved-supply');
+      begin(room, first.id, 'reserved-spice-bank');
     }
     const before = structuredClone(room.snapshot);
     const carries = structuredClone(room.publicCarries());
@@ -226,7 +226,7 @@ describe('shared spice commands', () => {
     expect(room.snapshot).toEqual(before);
     expect(room.publicCarries()).toEqual(carries);
     if (blocked === 'reserved') {
-      room.accept(room.drop(alice, 'reserved-supply', spiceSupplySlot().position, 0), 'reserved-supply');
+      room.accept(room.drop(alice, 'reserved-spice-bank', spiceBankSlot().position, 0), 'reserved-spice-bank');
       expect(room.snapshot.table.pieces.filter(isSpicePiece)).toEqual([]);
     }
   });
@@ -236,7 +236,7 @@ describe('shared spice commands', () => {
     const initial = structuredClone(room.snapshot.table.pieces);
     const spice = spawn(room, 10);
     begin(room, spice.id, 'return-whole');
-    expect(() => room.drop(bob, 'return-whole', spiceSupplySlot().position, 0)).toThrow('carry has ended');
+    expect(() => room.drop(bob, 'return-whole', spiceBankSlot().position, 0)).toThrow('carry has ended');
     expect(() =>
       room.begin(bob, {
         carryId: 'competing',
@@ -245,10 +245,10 @@ describe('shared spice commands', () => {
         pickup: 'whole',
       })
     ).toThrow('Another player is carrying');
-    room.accept(room.drop(alice, 'return-whole', spiceSupplySlot().position, 0), 'return-whole');
+    room.accept(room.drop(alice, 'return-whole', spiceBankSlot().position, 0), 'return-whole');
     expect(room.snapshot.table.pieces).toEqual(initial);
     expect(room.snapshot.versions).not.toHaveProperty(spice.id);
-    expect(room.snapshot.table.events[0].message).toBe('Harkonnen returned 10 spice to the supply.');
+    expect(room.snapshot.table.events[0].message).toBe('Harkonnen returned 10 spice to the Spice Bank.');
     expect(room.publicCarries()).toEqual([]);
   });
 
@@ -267,23 +267,23 @@ describe('shared spice commands', () => {
       expect(() => room.command(bob, { kind: 'split', pieceId: second.id, count: 1 }, before.revision)).toThrow(
         'carrying'
       );
-      room.accept(room.drop(alice, 'two-donors', spiceSupplySlot().position, 0), 'two-donors');
+      room.accept(room.drop(alice, 'two-donors', spiceBankSlot().position, 0), 'two-donors');
       expect(room.snapshot.table.pieces.find((piece) => piece.id === first.id)?.items).toEqual(
         pickup === 'top' ? first.items.slice(0, -1) : undefined
       );
       expect(room.snapshot.table.pieces.find((piece) => piece.id === second.id)?.items).toEqual(
         second.items.slice(0, -1)
       );
-      expect(room.snapshot.table.events[0].message).toBe('Harkonnen returned 2 spice to the supply.');
+      expect(room.snapshot.table.events[0].message).toBe('Harkonnen returned 2 spice to the Spice Bank.');
       expect(room.reservations.size).toBe(0);
     }
   );
 
-  test('dropping other pieces at the supply never deletes them', () => {
+  test('dropping other pieces at the Spice Bank never deletes them', () => {
     const room = new Room(initialSnapshot(), seated);
     const before = items(room.snapshot);
     begin(room, 'harkonnen-force-stack', 'ordinary-piece');
-    room.accept(room.drop(alice, 'ordinary-piece', spiceSupplySlot().position, 0), 'ordinary-piece');
+    room.accept(room.drop(alice, 'ordinary-piece', spiceBankSlot().position, 0), 'ordinary-piece');
     expect(items(room.snapshot)).toEqual(before);
     expect(room.snapshot.table.events[0].command).not.toBe('spice.return');
   });

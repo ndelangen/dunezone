@@ -40,13 +40,13 @@ function render(description?: string) {
   act(() =>
     root.render(
       <MantineProvider theme={appContentTheme}>
-        <Section helpOnly title="Faction bank" description={description}>
+        <Section helpOnly title="Spice reserve" description={description}>
           <p>Content</p>
         </Section>
       </MantineProvider>
     )
   );
-  return container.querySelector<HTMLButtonElement>('button[aria-label="Help: Faction bank"]')!;
+  return container.querySelector<HTMLButtonElement>('button[aria-label="Help: Spice reserve"]')!;
 }
 
 describe('Section help', () => {

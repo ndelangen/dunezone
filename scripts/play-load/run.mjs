@@ -589,7 +589,7 @@ async function durable(peer, action, operation = action.kind, sample) {
   );
 }
 
-/* Every recipient receives the same public snapshot; the bank, hand and battle plan are projected per viewer. */
+/* Every recipient receives the same public snapshot; the spice reserve, hand and battle plan are projected per viewer. */
 const perViewerFields = new Set(['bank', 'hand', 'battlePlan']);
 function publicFixtureSnapshot(snapshot) {
   return Object.fromEntries(Object.entries(snapshot).filter(([key]) => !perViewerFields.has(key)));

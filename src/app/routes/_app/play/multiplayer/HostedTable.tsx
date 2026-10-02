@@ -5,6 +5,7 @@ import type { SpawnSelection } from '@shared/play/inventory';
 import { phaseAt, tableProgressFor } from '@shared/play/phases';
 import { rosterSeat, SPECTATOR_SEAT } from '@shared/play/schema';
 import { phaseGate, setupMapVisible, setupStep } from '@shared/play/setup';
+import type { SpiceTransfer } from '@shared/play/spiceReserve';
 import { DEFAULT_TABLE_SEAT_COUNT } from '@shared/play/tableSettings';
 import { Link } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
@@ -528,23 +529,23 @@ function SharedInventory({ client, table }: Pick<ConnectionControlsProps, 'clien
   );
 }
 
-function FactionBankControls({ client, table }: Pick<ConnectionControlsProps, 'client' | 'table'>) {
+function SpiceReserveControls({ client, table }: Pick<ConnectionControlsProps, 'client' | 'table'>) {
   const [amount, setAmount] = useState<string | number>(1);
-  const bank = table.snapshot.bank;
-  if (!bank) {
+  const reserve = table.snapshot.bank;
+  if (!reserve) {
     return null;
   }
   const validAmount =
-    typeof amount === 'number' && Number.isSafeInteger(amount) && amount > 0 && amount <= bank.balance;
+    typeof amount === 'number' && Number.isSafeInteger(amount) && amount > 0 && amount <= reserve.balance;
   return (
     <Section
       helpOnly={Boolean(table.snapshot.stage)}
-      title="Faction bank"
-      description="Only you see this balance. Withdraw onto the table. Right-click a spice stack to take it into your bank. Drop a stack on the supply disc to dispose of it."
+      title="Spice reserve"
+      description="Only you see this balance. Withdraw onto the table. Right-click a spice stack to take it into your spice reserve. Drop a stack on the Spice Bank disc to return it to the Spice Bank."
     >
       <Stack gap="xs">
-        <Text component="output" aria-label="Banked spice" ff="C_Advokat_Modern, serif" size="64px" lh={1.1}>
-          {bank.balance}
+        <Text component="output" aria-label="Spice reserve balance" ff="C_Advokat_Modern, serif" size="64px" lh={1.1}>
+          {reserve.balance}
         </Text>
         <Group align="center" wrap="nowrap" gap="xs">
           <NumberInput
@@ -570,13 +571,35 @@ function FactionBankControls({ client, table }: Pick<ConnectionControlsProps, 'c
   );
 }
 
-/* A transfer's ends are a faction's id, or the table or the supply, as the Worker's spice ledger records them (#1664). */
+/*
+ * A transfer's ends are a faction's id, the table or the Spice Bank, as the Worker's spice ledger records them (#1664).
+ * The ledger stores the Spice Bank as `supply`; that literal is kept for stored data (see CONTEXT.md).
+ */
 function spicePlace(labels: Readonly<Partial<Record<string, string>>>, place: string): string {
-  if (place === 'table' || place === 'supply') {
-    return `the ${place}`;
+  if (place === 'table') {
+    return 'the table';
+  }
+  if (place === 'supply') {
+    return 'the Spice Bank';
   }
   const name = labels[place];
-  return name ? `the ${name} bank` : 'a faction no longer in the game';
+  return name ? `the ${name} spice reserve` : 'a faction no longer in the game';
+}
+
+/* The verb each stored transfer kind reads as; `supply` and `disposal` stay as stored, and both name the Spice Bank. */
+const SPICE_TRANSFER_VERBS: Readonly<Record<SpiceTransfer['kind'], string>> = {
+  withdrawal: 'withdrew',
+  collection: 'collected',
+  supply: 'took',
+  disposal: 'returned',
+};
+
+function spiceTransferText(labels: Readonly<Partial<Record<string, string>>>, transfer: SpiceTransfer): string {
+  const moved = `${transfer.actor} ${SPICE_TRANSFER_VERBS[transfer.kind]} ${transfer.amount} spice`;
+  if (transfer.kind === 'disposal') {
+    return `${moved} to the Spice Bank.`;
+  }
+  return `${moved} from ${spicePlace(labels, transfer.source)} to ${spicePlace(labels, transfer.destination ?? 'table')}.`;
 }
 
 function SpiceHistory({ client, table }: Pick<ConnectionControlsProps, 'client' | 'table'>) {
@@ -590,10 +613,7 @@ function SpiceHistory({ client, table }: Pick<ConnectionControlsProps, 'client' 
         {entries.length === 0 && <Text size="sm">No spice transfers yet.</Text>}
         <List type="ordered" size="sm">
           {entries.map((entry) => (
-            <List.Item key={entry.revision}>
-              {entry.actor}: {entry.kind}, {entry.amount} spice from {spicePlace(labels, entry.source)}
-              {entry.destination ? ` to ${spicePlace(labels, entry.destination)}` : ' removed from play'}.
-            </List.Item>
+            <List.Item key={entry.revision}>{spiceTransferText(labels, entry)}</List.Item>
           ))}
         </List>
         <Group>
@@ -829,7 +849,7 @@ function ConnectedTable({
                     topic: 'spice' as const,
                     content: (
                       <>
-                        <FactionBankControls client={client} table={table} />
+                        <SpiceReserveControls client={client} table={table} />
                         <SpiceHistory client={client} table={table} />
                       </>
                     ),

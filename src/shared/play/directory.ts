@@ -8,7 +8,7 @@ import { TABLE_SEAT_COUNTS } from './tableSettings';
  * The directory summary: what a game tells Convex about itself so the lobby can list it.
  * The game database owns gameplay; this is its permitted projection, ordered by a sequence the
  * game assigns, so a delayed delivery can never overwrite a newer one. Nothing private travels
- * here: no hands, banks, predictions, plans, messages, seat history or events.
+ * here: no hands, spice reserves, predictions, plans, messages, seat history or events.
  */
 
 /** Retry cadence for an undelivered summary: doubles from the base to the ceiling, then holds. */

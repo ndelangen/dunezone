@@ -83,13 +83,13 @@ function arcRadiusFor(radii: readonly number[]): number {
   return upper;
 }
 
-/* The standard turn's nine phases fix the arc: the spice supply and turn discs never move, whatever a game adds (#1138). */
+/* The standard turn's nine phases fix the arc: the Spice Bank and turn discs never move, whatever a game adds (#1138). */
 const STANDARD_PHASE_COUNT = 9;
 
 /**
- * The tracker arc: the spice supply, the turn disc, then one disc per phase of the turn.
+ * The tracker arc: the Spice Bank, the turn disc, then one disc per phase of the turn.
  * The layout of the standard nine is fixed.
- * A composed turn keeps the spice supply and turn discs where they are, and refits its phase discs evenly into the span the standard nine cover, shrinking them only when they would otherwise touch.
+ * A composed turn keeps the Spice Bank and turn discs where they are, and refits its phase discs evenly into the span the standard nine cover, shrinking them only when they would otherwise touch.
  */
 export function trackerArcSlots(phaseCount: number): TrackerArcSlot[] {
   if (!Number.isInteger(phaseCount) || phaseCount < 0) {

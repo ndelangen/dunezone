@@ -186,14 +186,14 @@ export const SharedInventory = meta.story({
   },
 });
 
-/** Spice: the private faction bank and the public transfers. */
+/** Spice: the private spice reserve and the public transfers. */
 export const Spice = meta.story({
   beforeEach: install(() =>
     productTransport('seat-2', { ...playingSnapshot(), bank: { factionId: 'house-harkonnen', balance: 12 } })
   ),
   play: async ({ canvasElement }) => {
     const page = await openPanel(canvasElement, 'Spice');
-    await expect(page.findByLabelText('Banked spice', {}, WAIT)).resolves.toHaveTextContent('12');
+    await expect(page.findByLabelText('Spice reserve balance', {}, WAIT)).resolves.toHaveTextContent('12');
   },
 });
 

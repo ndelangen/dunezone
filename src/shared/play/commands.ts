@@ -4,7 +4,7 @@ import { phaseAt, STANDARD_PHASES, stepPhase, tableProgressFor, TURN_SELECT_REFU
 import type { PhaseEntry } from './phases';
 import type { DurableTable, GameSnapshot, TableAction } from './protocol';
 import { GameRejection } from './rejection';
-import { createSpiceStack, isSpicePiece } from './spiceSupply';
+import { createSpiceStack, isSpicePiece } from './spiceBank';
 import { restingPositionAt, stackPreviewPositionFor } from './tableGeometry';
 import { isCollisionFreePosition, nearestCollisionFreePosition } from './tablePhysics';
 import {
@@ -159,7 +159,7 @@ export function spawnSpiceInState(state: TableState, count: number, actorName = 
       Math.hypot(candidate.position[0] - piece.position[0], candidate.position[2] - piece.position[2]) < 0.000001
   );
   if (existing?.locked) {
-    throw new GameRejection('The spice at the supply is locked or being moved.');
+    throw new GameRejection('The spice at the Spice Bank is locked or being moved.');
   }
   if (
     !isCollisionFreePosition(
@@ -168,7 +168,7 @@ export function spawnSpiceInState(state: TableState, count: number, actorName = 
       state.pieces.filter((candidate) => candidate !== existing)
     )
   ) {
-    throw new GameRejection('Move the piece blocking the spice supply spawn point first.');
+    throw new GameRejection('Move the piece blocking the Spice Bank spawn point first.');
   }
   piece.zoneId = nearestZone(piece.position)?.id ?? null;
   const pieces = existing

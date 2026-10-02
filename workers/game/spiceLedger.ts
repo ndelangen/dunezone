@@ -1,10 +1,10 @@
-import type { SpiceTransfer } from '../../src/shared/play/banks';
 import type { ClientMessage, GameSnapshot, Viewer } from '../../src/shared/play/protocol';
 import { isSpicePiece } from '../../src/shared/play/spice';
+import type { SpiceTransfer } from '../../src/shared/play/spiceReserve';
 
 type CommitMessage = Extract<ClientMessage, { type: 'command' | 'drop' }>;
 
-/** Public transfer records persist beside the bank, stack and command receipt in one transaction. */
+/** Public transfer records persist beside the spice reserve, stack and command receipt in one transaction. */
 export class SpiceLedger {
   constructor(private readonly storage: DurableObjectStorage) {
     storage.sql.exec(
@@ -30,6 +30,7 @@ export class SpiceLedger {
         return { ...record, kind: 'collection', amount: piece.items.length, source: 'table', destination: factionId! };
       }
       if (action.kind === 'spice-spawn') {
+        /* `supply` names the Spice Bank (see CONTEXT.md); the literal is kept for stored transfer records. */
         return { ...record, kind: 'supply', amount: action.count, source: 'supply', destination: 'table' };
       }
     }
