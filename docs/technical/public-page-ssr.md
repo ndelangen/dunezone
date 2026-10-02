@@ -26,7 +26,7 @@ Cloudflare caches successful anonymous HTML for five minutes, keyed by Worker ve
 URL. Credential-bearing and anonymous visits share the same anonymous rendering. Credentials are
 removed before loading, and responses with Set-Cookie, private cache directives, Vary or non-200
 status cannot enter the cache. Browser responses remain `no-store`, so each visit reaches the Worker
-and existing live subscriptions still start immediately. Cache eviction or failure simply causes
+and existing live subscriptions still start immediately. Cache eviction or failure causes
 a fresh render. See [public response caching](public-response-cache.md) for limits and diagnostics.
 No new client cache, saved snapshot or save-triggered HTML generation exists here.
 
