@@ -86,6 +86,10 @@ export const Route = createFileRoute('/_app/assets/$type/$slug/')({
       pathname: `/assets/${encodeURIComponent(params.type)}/${encodeURIComponent(loaderData?.asset.slug ?? params.slug)}`,
       description: publicDescription(loaderData?.asset.data.about),
       image: loaderData?.asset.previewHref,
+      social: {
+        kind: isAssetType(params.type) ? ASSET_TYPES[params.type].label : 'Asset',
+        shape: params.type === 'token-disc' ? 'round' : params.type === 'token-enhance' ? 'landscape' : 'portrait',
+      },
       match,
     }),
   component: AssetDetailPage,
