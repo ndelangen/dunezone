@@ -562,7 +562,7 @@ export function GameTable({
             data-show-names={heldOverlays.names}
           >
             {/* The header sits outside the split, in the shell's own stacking, so it paints above the dock where the dock's floor grows up over the scene. It comes before the split so its controls lead the reading and Tab order. */}
-            <header className="seated-header" inert={overlaysInert}>
+            <header className="seated-header" inert={overlaysInert} data-hides-cursor>
               <div className="seated-brand">
                 <img className="seated-brand__logo" src="/web/logo.svg" alt="Dune" />
               </div>
