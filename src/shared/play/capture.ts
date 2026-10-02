@@ -38,7 +38,12 @@ export const factionDefinitionSchema = z.object({
   token: z.string().nullable(),
   /* The reversible token's blocked face (#1228); the leaders' shared back is the token's front. Optional so a game Worker still reads a Convex that predates it. */
   tokenBack: z.string().nullish(),
-  cardbacks: z.object({ traitor: z.string().nullable(), alliance: z.string().nullable() }),
+  /* The Prediction back is optional so a game Worker still reads a Convex that predates it (#1753). */
+  cardbacks: z.object({
+    traitor: z.string().nullable(),
+    alliance: z.string().nullable(),
+    prediction: z.string().nullish(),
+  }),
   leaders: z.array(z.object({ memberId: identitySchema, front: z.string().nullable() })),
   /* Each identified troop's published sides (#1228); `back` is read only where the troop authors one. Optional so a game Worker still reads a Convex that predates it. */
   troops: z
@@ -47,6 +52,8 @@ export const factionDefinitionSchema = z.object({
   /* Each supporting leader's traitor front and the alliance front (#1228). Optional so a game Worker still reads a Convex that predates them. */
   traitors: z.array(z.object({ memberId: identitySchema, front: z.string().nullable() })).optional(),
   alliance: z.string().nullish(),
+  /* The shared prediction card's front, the base a prediction is drawn on (#1753). Optional for the same reason. */
+  prediction: z.string().nullish(),
 });
 
 /** A catalogue row as a capture reads it: its identity and its stored data, which the capture validates per type. */
@@ -144,6 +151,8 @@ const factionComponentsSchema = z.object({
     })
   ),
   alliance: z.object({ front: faceSchema, back: faceSchema }),
+  /* Absent in captures taken before prediction cards (#1753); a prediction card is dealt only with a back. */
+  prediction: z.object({ front: faceSchema, back: faceSchema }).optional(),
   traitors: z.object({
     back: faceSchema,
     cards: z.array(z.object({ memberId: identitySchema, name: z.string().max(160), front: faceSchema })),

@@ -134,6 +134,10 @@ function supplyInventory(next: StoredSnapshot, capture: FactionCapture, hand: St
   next.factionBanks[id] = capture.definition.rules.spiceCount;
   /* Faces missing authored values stay out; they never become fixture values, and the capture's verdict names them. */
   next.combatFaces[id] = capturedCombatFaces(capture.definition.troops);
+  const prediction = capture.components.prediction;
+  if (prediction?.back) {
+    next.predictionFaces = { ...next.predictionFaces, [id]: { front: prediction.front, back: prediction.back } };
+  }
 }
 
 /* Artwork is public and drawn by every client; a face's combat values reach the plans through `combatFaces` alone. */

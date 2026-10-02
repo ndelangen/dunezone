@@ -239,6 +239,7 @@ function commitEntries({
       ? resultEntries(before, next, message.action, viewer, faction)
       : [endingClosed(before, next)].filter((entry) => entry !== undefined)),
     ...(message.type === 'command' ? predictionEntries(next, message.action, faction, context) : []),
+    ...placedPredictionEntries(before, next, message, faction, context),
     ...(transfer ? [spiceEntry(transfer, { userId: viewer.userId, name: viewer.displayName }, faction, context)] : []),
     ...(result && result.revision === next.revision ? [battleEntry(result, faction, context)] : []),
   ];
@@ -385,6 +386,34 @@ function predictionEntries(
       context,
     },
   ];
+}
+
+/* A prediction card placed on the table reveals its prediction, by a drop or a play from the hand alike (#1753). */
+function placedPredictionEntries(
+  before: StoredSnapshot,
+  next: StoredSnapshot,
+  message: CommitMessage,
+  faction: FactionNamer,
+  context: string
+): Entry[] {
+  if (message.type === 'command' && message.action.kind === 'prediction-reveal') {
+    return [];
+  }
+  return Object.entries(next.privatePredictions).flatMap(([stepId, prediction]) => {
+    if (prediction.revealedAt === null || before.privatePredictions[stepId]?.revealedAt !== null) {
+      return [];
+    }
+    const people: Person[] = [];
+    return [
+      {
+        key: `prediction:${stepId}:reveal`,
+        class: 'prediction' as const,
+        template: `${faction(prediction.factionId, people)} placed its prediction card: ${faction(prediction.choice.factionId, people)}, turn ${prediction.choice.turn}.`,
+        people,
+        context,
+      },
+    ];
+  });
 }
 
 function phaseEntry(

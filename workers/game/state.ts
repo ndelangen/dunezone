@@ -41,6 +41,10 @@ export const storedSnapshotSchema = gameSnapshotSchema
     pendingTraitors: z.array(tableIdSchema).default([]),
     battleState: storedBattleSchema.nullable().default(null),
     factionInventories: z.record(tableIdSchema, z.array(storedPieceSchema)).default({}),
+    /* The faces a faction's prediction card is dealt with when its prediction locks (#1753); stored only, never projected. */
+    predictionFaces: z
+      .record(tableIdSchema, z.object({ front: z.string().url().nullable(), back: z.string().url() }))
+      .default({}),
     /* Banks and combat faces are seeded per faction when a game fixes its seating, never by the schema. */
     combatFaces: z.record(tableIdSchema, z.array(combatFaceSchema)).default({}),
     battleResults: z.array(storedBattleResultSchema).default([]),

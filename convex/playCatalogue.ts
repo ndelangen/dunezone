@@ -42,6 +42,16 @@ async function publishedFace(ctx: QueryCtx, assetType: PublicationAssetType, ass
   return publication ? publishedHref(assetType, assetId, publication.cache_token) : null;
 }
 
+/**
+ * The shared prediction card's front, the Treachery card an Administrator authored at this slug, or null when it is absent or unpublished (#1753).
+ * Every faction's prediction is drawn over this one base until prediction cards get their own asset type.
+ */
+const PREDICTION_CARD = { type: 'card-treachery', slug: 'prediction' } as const;
+async function predictionFront(ctx: QueryCtx) {
+  const row = await liveAsset(ctx, PREDICTION_CARD.type, PREDICTION_CARD.slug);
+  return row ? await publishedFace(ctx, PREDICTION_CARD.type, row._id) : null;
+}
+
 /** The slotted supply a game captures at creation. A soft-deleted or unknown ruleset reads as absent. */
 export const rulesetSupply = query({
   args: { rulesetId: v.string() },
@@ -109,11 +119,13 @@ export const factionDefinition = query({
       cardbacks: {
         traitor: await publishedFace(ctx, 'cardback-preset', 'traitor'),
         alliance: await publishedFace(ctx, 'cardback-preset', 'alliance'),
+        prediction: await publishedFace(ctx, 'cardback-preset', 'prediction'),
       },
       leaders,
       troops,
       traitors,
       alliance: await publishedFace(ctx, 'faction-alliance', row._id),
+      prediction: await predictionFront(ctx),
     };
   },
 });

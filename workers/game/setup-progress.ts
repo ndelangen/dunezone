@@ -20,6 +20,7 @@ import { stormOrder } from '../../src/shared/play/stormSector';
 import { OTHER_DECK_POSITION } from '../../src/shared/play/tableFurnitureLayout';
 import { restingPositionAt } from '../../src/shared/play/tableGeometry';
 import { labelForCount } from '../../src/shared/play/tableState';
+import { dealPredictionCard } from './predictionCards';
 import type { StoredSnapshot } from './state';
 
 function setupTargetSymbol(id: (typeof SETUP_PHASE_TARGETS)[number]['id']) {
@@ -212,13 +213,16 @@ function lockPrediction(
   }
   requireRetainedFaction(snapshot, action.choice.factionId);
   return event(
-    {
-      ...snapshot,
-      privatePredictions: {
-        ...snapshot.privatePredictions,
-        [step.id]: { factionId: context.factionId, choice: action.choice, lockedAt: context.now, revealedAt: null },
+    dealPredictionCard(
+      {
+        ...snapshot,
+        privatePredictions: {
+          ...snapshot.privatePredictions,
+          [step.id]: { factionId: context.factionId, choice: action.choice, lockedAt: context.now, revealedAt: null },
+        },
       },
-    },
+      step.id
+    ),
     action.kind,
     `${factionName(snapshot, context.factionId)} locked its prediction.`
   );
