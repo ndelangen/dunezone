@@ -374,7 +374,9 @@ export class Room {
       if (action.kind === 'hand-take' || action.kind === 'hand-play') {
         /* A played card is taken from the hand it left: one merged onto a pile no longer exists on the table under its own id. */
         const pieces =
-          action.kind === 'hand-take' ? next.factionInventories[factionId] : this.snapshot.factionInventories[factionId];
+          action.kind === 'hand-take'
+            ? next.factionInventories[factionId]
+            : this.snapshot.factionInventories[factionId];
         return concealCards(
           next,
           (pieces ?? []).filter((piece) => piece.id === action.pieceId),
