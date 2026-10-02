@@ -112,9 +112,9 @@ function RevealedWheel({ background, strength, spice, adjustment, troops, cards 
               </div>
               <span>{troop.undialed + troop.dialed}</span>
               <small>
-                {troop.dialed} dialed
+                {troop.dialed} supported
                 <br />
-                {troop.undialed} undialed
+                {troop.undialed} unsupported
               </small>
             </div>
           ))}

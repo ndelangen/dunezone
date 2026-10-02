@@ -18,13 +18,9 @@ import { pageHead } from '@app/routes/pageTitle';
 
 import styles from './index.module.css';
 import { TopicVisual } from './TopicVisual';
-import type { GlossaryLook } from './TopicVisual';
 
 export const Route = createFileRoute('/_app/glossary/')({
   head: () => pageHead('Glossary'),
-  /* Preview only: compares ways for the pictures to fill their column before one is kept. */
-  validateSearch: (search: Record<string, unknown>): { look?: GlossaryLook } =>
-    search.look === 'tall' || search.look === 'lead' ? { look: search.look } : {},
   component: GlossaryPage,
 });
 
@@ -88,39 +84,31 @@ function TermSection({ term }: { term: GlossaryTerm }) {
   );
 }
 
-type TopicProps = { topic: GlossaryTopic; terms: GlossaryTerm[]; flip: boolean; look: GlossaryLook };
+type TopicProps = { topic: GlossaryTopic; terms: GlossaryTerm[]; flip: boolean };
 
 /* The topic's picture and its terms side by side on one pane, the picture swapping sides from one topic to the next. */
-function TopicPane({ topic, terms, flip, look }: TopicProps) {
-  const termList = (
-    <Stack gap="lg">
-      {terms.map((term) => (
-        <TermSection key={term.id} term={term} />
-      ))}
-    </Stack>
-  );
-  const picture = (
-    <div className={styles.visual}>
-      <TopicVisual topic={topic} look={look} />
-    </div>
-  );
-  /* Lead gives the picture the wide column and the terms the narrow one. */
-  const pictureLeads = look === 'lead';
+function TopicPane({ topic, terms, flip }: TopicProps) {
   return (
     <Surface padding="lg">
-      <AsymmetricSplitLayout
-        narrowSide={flip === pictureLeads ? 'start' : 'end'}
-        stackFirst={pictureLeads ? 'wide' : 'narrow'}
-      >
-        <AsymmetricSplitLayout.Wide>{pictureLeads ? picture : termList}</AsymmetricSplitLayout.Wide>
-        <AsymmetricSplitLayout.Narrow>{pictureLeads ? termList : picture}</AsymmetricSplitLayout.Narrow>
+      <AsymmetricSplitLayout narrowSide={flip ? 'end' : 'start'} stackFirst="narrow">
+        <AsymmetricSplitLayout.Wide>
+          <Stack gap="lg">
+            {terms.map((term) => (
+              <TermSection key={term.id} term={term} />
+            ))}
+          </Stack>
+        </AsymmetricSplitLayout.Wide>
+        <AsymmetricSplitLayout.Narrow>
+          <div className={styles.visual}>
+            <TopicVisual topic={topic} />
+          </div>
+        </AsymmetricSplitLayout.Narrow>
       </AsymmetricSplitLayout>
     </Surface>
   );
 }
 
 function GlossaryPage() {
-  const { look = 'fill' } = Route.useSearch();
   const [query, setQuery] = useState('');
   const [onlyTopic, setOnlyTopic] = useState<GlossaryTopic | null>(null);
   const needle = query.trim().toLowerCase();
@@ -184,7 +172,7 @@ function GlossaryPage() {
               title={topic.label}
               description={topic.summary}
             >
-              <TopicPane topic={topic.id} terms={terms} flip={index % 2 === 1} look={look} />
+              <TopicPane topic={topic.id} terms={terms} flip={index % 2 === 1} />
             </Section>
           ))}
         </Stack>

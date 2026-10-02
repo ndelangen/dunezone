@@ -8,7 +8,17 @@
   min-height: 12rem;
 }
 
+/* Pieces sit in a two-column grid, so the picture grows down with its topic's terms rather than leaving the column empty. */
 .row,
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  justify-items: center;
+  align-items: end;
+  gap: var(--space-lg) var(--space-md);
+  width: 100%;
+}
+
 .fan {
   display: flex;
   flex-wrap: wrap;
@@ -34,14 +44,6 @@
 }
 
 .column > .piece {
-  width: 100%;
-}
-
-.grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  align-items: end;
-  gap: var(--space-lg) var(--space-md);
   width: 100%;
 }
 
@@ -94,10 +96,10 @@
   mask-size: contain;
 }
 
+/* The phases read down the column as a list, one per line. */
 .phases {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--space-md) var(--space-sm);
+  gap: var(--space-xs);
   width: 100%;
   margin: 0;
   padding: 0;
@@ -106,13 +108,11 @@
 
 .phase {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: var(--space-xs);
+  gap: var(--space-md);
   padding-block: var(--space-xs);
-  font-size: var(--mantine-font-size-sm);
+  font-size: var(--mantine-font-size-md);
   font-weight: 600;
-  text-align: center;
   color: var(--color-text);
 }
 
@@ -123,8 +123,10 @@
 }
 
 .phaseNumber {
+  width: 1.5em;
   color: var(--color-muted);
   font-size: var(--mantine-font-size-xs);
+  text-align: end;
 }
 
 .wheel {
@@ -164,9 +166,9 @@
 
 .factions {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-md);
-  width: min(100%, 32rem);
+  width: min(100%, 24rem);
 }
 
 .factions .disc {
@@ -209,33 +211,65 @@
   width: clamp(4rem, 14cqi, 6rem);
 }
 
-/* Tall: phases read down the column as a list, one per line, so the picture runs as long as the terms beside it. */
-.stage[data-look="tall"] .phases {
-  grid-template-columns: 1fr;
-  gap: var(--space-xs);
-}
+/*
+ * Stacked above its terms, the picture only introduces them: it keeps its main pieces at a modest size and drops the extras, instead of pushing the terms a screen down.
+ * The query reads the split layout's own container, and its width is the one at which AsymmetricSplitLayout stops splitting.
+ */
+@container asymmetric-split-layout (width < 61.25rem) {
+  .stage {
+    min-height: 0;
+  }
 
-.stage[data-look="tall"] .phase {
-  flex-direction: row;
-  gap: var(--space-md);
-  font-size: var(--mantine-font-size-md);
-  text-align: start;
-}
+  .extra {
+    display: none;
+  }
 
-.stage[data-look="tall"] .phaseNumber {
-  width: 1.5em;
-  text-align: end;
-}
+  .row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
 
-.stage[data-look="tall"] .row {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  justify-items: center;
-  gap: var(--space-lg) var(--space-md);
-  width: 100%;
-}
+  .disc {
+    width: 5rem;
+  }
 
-.stage[data-look="tall"] .factions {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  width: min(100%, 24rem);
+  .card {
+    width: 6.5rem;
+  }
+
+  .glyph {
+    width: 1.75rem;
+    height: 1.75rem;
+  }
+
+  .phases {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--space-sm);
+  }
+
+  .phase {
+    flex-direction: column;
+    gap: var(--space-xs);
+    font-size: var(--mantine-font-size-xs);
+    text-align: center;
+  }
+
+  .phaseNumber {
+    width: auto;
+    text-align: center;
+  }
+
+  .wheel {
+    width: min(100%, 15rem);
+  }
+
+  .board {
+    width: min(100%, 16rem);
+  }
+
+  .factions {
+    grid-template-columns: repeat(3, 4.5rem);
+    width: auto;
+  }
 }

@@ -1,6 +1,7 @@
 import type { GlossaryTopic } from '@shared/glossary/terms';
 import { RULEBOOK_BOARD_DEFINITIONS } from '@shared/rulebooks/boardDefinitions';
 import { CanvasScale } from '@ui/layout/CanvasScale';
+import clsx from 'clsx';
 import type { ReactNode } from 'react';
 
 import { SpiceCard } from '@game/assets/card/Spice';
@@ -27,13 +28,23 @@ const atreidesTroop = {
   striped: undefined,
 } as const;
 
-/** How the pictures fill their column; the preview compares them before one is kept. */
-export type GlossaryLook = 'fill' | 'tall' | 'lead';
-
-/* A piece of game artwork with the glossary word under it, linking to that word's entry. */
-function Piece({ caption, anchor, children }: { caption: string; anchor: string; children: ReactNode }) {
+/*
+ * A piece of game artwork with the glossary word under it, linking to that word's entry.
+ * An `extra` piece only shows beside the terms; stacked above them on a narrow pane, the picture keeps to its main pieces.
+ */
+function Piece({
+  caption,
+  anchor,
+  extra = false,
+  children,
+}: {
+  caption: string;
+  anchor: string;
+  extra?: boolean;
+  children: ReactNode;
+}) {
   return (
-    <a className={styles.piece} href={`#${anchor}`}>
+    <a className={clsx(styles.piece, extra && styles.extra)} href={`#${anchor}`}>
       <span className={styles.art} aria-hidden="true">
         {children}
       </span>
@@ -78,7 +89,7 @@ const PHASES = [
   { name: 'Mentat Pause', icon: '/vector/icon/mentat.svg' },
 ] as const;
 
-function PiecesVisual({ look }: { look: GlossaryLook }) {
+function PiecesVisual() {
   return (
     <div className={styles.row}>
       <Piece caption="Troop" anchor="troop">
@@ -119,26 +130,22 @@ function PiecesVisual({ look }: { look: GlossaryLook }) {
           <Token {...atreides} />
         </Disc>
       </Piece>
-      {look === 'tall' ? (
-        <>
-          <Piece caption="Reserves" anchor="reserves">
-            <span className={styles.troopStack}>
-              {[0, 1, 2].map((index) => (
-                <Disc key={index}>
-                  <TroopToken {...atreidesTroop} />
-                </Disc>
-              ))}
-            </span>
-          </Piece>
-          <Piece caption="Tleilaxu Tanks" anchor="tleilaxu-tanks">
-            <span className={styles.tanked}>
-              <Disc>
-                <TroopToken {...atreidesTroop} />
-              </Disc>
-            </span>
-          </Piece>
-        </>
-      ) : null}
+      <Piece caption="Reserves" anchor="reserves" extra>
+        <span className={styles.troopStack}>
+          {[0, 1, 2].map((index) => (
+            <Disc key={index}>
+              <TroopToken {...atreidesTroop} />
+            </Disc>
+          ))}
+        </span>
+      </Piece>
+      <Piece caption="Tleilaxu Tanks" anchor="tleilaxu-tanks" extra>
+        <span className={styles.tanked}>
+          <Disc>
+            <TroopToken {...atreidesTroop} />
+          </Disc>
+        </span>
+      </Piece>
     </div>
   );
 }
@@ -216,18 +223,15 @@ function Wheel() {
   );
 }
 
-function BattleVisual({ look }: { look: GlossaryLook }) {
-  if (look !== 'tall') {
-    return <Wheel />;
-  }
+function BattleVisual() {
   return (
     <div className={styles.column}>
       <a className={styles.piece} href="#battle-wheel">
         <Wheel />
         <span className={styles.caption}>Battle wheel</span>
       </a>
-      <div className={styles.grid}>
-        <Piece caption="Dialed: 3 troops" anchor="dialed">
+      <div className={clsx(styles.grid, styles.extra)}>
+        <Piece caption="Dialed troops" anchor="dialed">
           <span className={styles.troopStack}>
             {[0, 1, 2].map((index) => (
               <Disc key={index}>
@@ -281,7 +285,7 @@ function BoardVisual() {
   );
 }
 
-function SpiceVisual({ look }: { look: GlossaryLook }) {
+function SpiceVisual() {
   return (
     <div className={styles.row}>
       <Piece caption="Spice card" anchor="spice-card">
@@ -289,25 +293,19 @@ function SpiceVisual({ look }: { look: GlossaryLook }) {
           <SpiceCard name="Arsunt" subName="Spice mine" icon="spice-mine" highlights={['arsunt']} amount={3} />
         </GameCard>
       </Piece>
-      {look === 'tall' ? (
-        <div className={styles.column}>
-          <Piece caption="Spice Bank" anchor="spice-bank">
-            <SpicePile count={6} />
-          </Piece>
-          <Piece caption="Spice reserve" anchor="spice-reserve">
-            <span className={styles.reserve}>
-              <Disc>
-                <Token {...atreides} />
-              </Disc>
-              <SpicePile count={2} />
-            </span>
-          </Piece>
-        </div>
-      ) : (
-        <Piece caption="Spice" anchor="spice">
-          <SpicePile count={3} />
+      <div className={clsx(styles.column, styles.extra)}>
+        <Piece caption="Spice Bank" anchor="spice-bank">
+          <SpicePile count={6} />
         </Piece>
-      )}
+        <Piece caption="Spice reserve" anchor="spice-reserve">
+          <span className={styles.reserve}>
+            <Disc>
+              <Token {...atreides} />
+            </Disc>
+            <SpicePile count={2} />
+          </span>
+        </Piece>
+      </div>
     </div>
   );
 }
@@ -355,7 +353,7 @@ function FactionsVisual() {
   );
 }
 
-const VISUALS: Record<GlossaryTopic, (props: { look: GlossaryLook }) => ReactNode> = {
+const VISUALS: Record<GlossaryTopic, () => ReactNode> = {
   pieces: PiecesVisual,
   turn: TurnVisual,
   battle: BattleVisual,
@@ -366,11 +364,11 @@ const VISUALS: Record<GlossaryTopic, (props: { look: GlossaryLook }) => ReactNod
 };
 
 /** The picture beside one glossary topic, drawn with the game's own artwork and sized to fill its column. */
-export function TopicVisual({ topic, look = 'fill' }: { topic: GlossaryTopic; look?: GlossaryLook }) {
+export function TopicVisual({ topic }: { topic: GlossaryTopic }) {
   const Visual = VISUALS[topic];
   return (
-    <div className={styles.stage} data-look={look}>
-      <Visual look={look} />
+    <div className={styles.stage}>
+      <Visual />
     </div>
   );
 }

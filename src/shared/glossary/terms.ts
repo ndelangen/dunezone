@@ -265,7 +265,7 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
     explanation:
       'A troop is dialed when its faction sets it on the battle wheel for one battle. Dialed troops add to the battle plan’s strength, and they are lost even when their faction wins. The troops left undialed in the territory survive a win.',
     reason:
-      'The rulebook says forces are dialed on the battle wheel. Spent and committed name the cost; dialed names the act and matches the dialed and undialed counts the battle wheel shows.',
+      'The rulebook says forces are dialed on the battle wheel. Spent and committed name the cost; dialed names the act. Paying spice for a dialed troop is a separate choice, called supported.',
     source: 'rulebook',
     avoid: [
       {
