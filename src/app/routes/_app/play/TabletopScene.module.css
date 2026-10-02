@@ -8,3 +8,13 @@
 .keyboardActions:focus-visible {
   clip-path: none;
 }
+
+/* Where the table would be drawn, when the browser has neither WebGPU nor WebGL2. */
+.graphicsUnavailable {
+  display: grid;
+  height: 100%;
+  place-items: center;
+  padding: var(--space-lg);
+  text-align: center;
+  color: var(--mantine-color-text);
+}

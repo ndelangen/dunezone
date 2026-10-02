@@ -8,6 +8,7 @@ import { expect, userEvent, waitFor, within } from 'storybook/test';
 import { gameMeta, install, lastCommand, session } from './game.stories.fixture';
 import { mapViewPoint, openTab } from './playing.stories.fixture';
 import { factions, playingSnapshot, productTransport } from './product.stories.fixture';
+import { resetTableGraphics, TABLE_GRAPHICS_UNAVAILABLE } from './useTableGraphics';
 
 const meta = preview.meta({
   ...gameMeta,
@@ -250,6 +251,55 @@ export const ShortWindow = meta.story({
       }
     }
   },
+});
+
+/* Takes WebGL2 away and puts `gpu` in place of the browser's WebGPU, then restores both and the probe's answer. */
+const withoutGraphics = (gpu: unknown) => () => {
+  resetTableGraphics();
+  const getContext = HTMLCanvasElement.prototype.getContext;
+  HTMLCanvasElement.prototype.getContext = function (this: HTMLCanvasElement, kind: string, ...rest: unknown[]) {
+    return kind === 'webgl2' ? null : Reflect.apply(getContext, this, [kind, ...rest]);
+  } as HTMLCanvasElement['getContext'];
+  Object.defineProperty(navigator, 'gpu', { configurable: true, value: gpu });
+  const uninstall = install(() => productTransport())();
+  return () => {
+    uninstall();
+    HTMLCanvasElement.prototype.getContext = getContext;
+    Reflect.deleteProperty(navigator, 'gpu');
+    resetTableGraphics();
+  };
+};
+
+async function expectGraphicsMessage(canvasElement: HTMLElement) {
+  const page = within(canvasElement.ownerDocument.body);
+  const message = await page.findByRole('alert', {}, { timeout: 30_000 });
+  expect(message).toHaveTextContent(TABLE_GRAPHICS_UNAVAILABLE);
+  const shell = canvasElement.ownerDocument.querySelector<HTMLElement>('.dune-play-shell')!;
+  await waitFor(() => expect(shell.parentElement).toHaveAttribute('data-scene-ready', 'true'));
+  expect(shell.querySelector('canvas')).toBeNull();
+  expect(page.getByRole('button', { name: 'Game menu' })).toBeVisible();
+  expect(page.queryByText('Something went wrong!')).toBeNull();
+}
+
+/* A browser with neither WebGPU nor WebGL2 reads why the table is missing, and the shell around it still opens. */
+export const WithoutGraphics = meta.story({
+  beforeEach: withoutGraphics(undefined),
+  play: async ({ canvasElement }) => expectGraphicsMessage(canvasElement),
+});
+
+/* An adapter that answers but refuses its device sends the renderer to WebGL2, which is missing too; its failed start reads the same. */
+export const WithoutGraphicsDevice = meta.story({
+  beforeEach: withoutGraphics({
+    requestAdapter: async () => ({
+      features: new Set(),
+      limits: {},
+      requestDevice: async () => {
+        throw new Error('The story refuses the device.');
+      },
+    }),
+    getPreferredCanvasFormat: () => 'bgra8unorm',
+  }),
+  play: async ({ canvasElement }) => expectGraphicsMessage(canvasElement),
 });
 
 /**

@@ -100,6 +100,7 @@ import { sharedPublishedFaces } from './publishedFaceRetry';
 import { isPublicTablePoint, ScenePresence, useTablePose } from './ScenePresence';
 import { SpiceSupply } from './SpiceSupply';
 import { TableFurniture } from './TableFurniture';
+import { TableGraphicsBoundary, TableGraphicsUnavailable } from './TableGraphicsBoundary';
 import { mapViewFramingPoints } from './tablePlateGeometry';
 import { useTabletop } from './TabletopContext';
 import styles from './TabletopScene.module.css';
@@ -108,6 +109,7 @@ import type { TableProgress } from './tableTrackers';
 import { TurnTracker } from './TurnTracker';
 import { useDeckShuffleAnimation } from './useDeckShuffleAnimation';
 import { usePieceFlipAnimation } from './usePieceFlipAnimation';
+import { useTableGraphics } from './useTableGraphics';
 
 /* The two textures start with the bundle, alongside the connection, so the mounted table has them by the time it needs them. */
 useTexture.preload(arrakisMapUrl);
@@ -1243,6 +1245,7 @@ export function TabletopScene({
     }),
     [mapFramingPoints]
   );
+  const graphics = useTableGraphics();
 
   return (
     <div
@@ -1339,31 +1342,36 @@ export function TabletopScene({
       <PieceMenuContext.Provider
         value={deckControls || bankControls ? (pieceId, x, y) => setPieceMenu({ pieceId, x, y }) : null}
       >
-        <Canvas
-          camera={camera}
-          dpr={[1, 1.75]}
-          frameloop="demand"
-          renderer={{
-            antialias: true,
-            alpha: false,
-            powerPreference: 'high-performance',
-          }}
-          /* The renderer's creation follows its asynchronous initialisation, which is the long part of a table's arrival; the first frame follows at once. */
-          onCreated={onSceneReady}
-        >
-          {children}
-          <SceneContents
-            stage={stage}
-            mapVisible={mapVisible}
-            cameraView={cameraView}
-            onInteractionActiveChange={onInteractionActiveChange}
-            seatCount={seatCount}
-            tableProgress={tableProgress}
-            onSelectTurn={onSelectTurn}
-            trackerSlots={trackerSlots}
-            mapFramingPoints={mapFramingPoints}
-          />
-        </Canvas>
+        {graphics === 'unavailable' && <TableGraphicsUnavailable onShown={onSceneReady} />}
+        {graphics === 'ready' && (
+          <TableGraphicsBoundary onShown={onSceneReady}>
+            <Canvas
+              camera={camera}
+              dpr={[1, 1.75]}
+              frameloop="demand"
+              renderer={{
+                antialias: true,
+                alpha: false,
+                powerPreference: 'high-performance',
+              }}
+              /* The renderer's creation follows its asynchronous initialisation, which is the long part of a table's arrival; the first frame follows at once. */
+              onCreated={onSceneReady}
+            >
+              {children}
+              <SceneContents
+                stage={stage}
+                mapVisible={mapVisible}
+                cameraView={cameraView}
+                onInteractionActiveChange={onInteractionActiveChange}
+                seatCount={seatCount}
+                tableProgress={tableProgress}
+                onSelectTurn={onSelectTurn}
+                trackerSlots={trackerSlots}
+                mapFramingPoints={mapFramingPoints}
+              />
+            </Canvas>
+          </TableGraphicsBoundary>
+        )}
       </PieceMenuContext.Provider>
     </div>
   );
