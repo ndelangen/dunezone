@@ -233,7 +233,7 @@ describe('direct manipulation drafts', () => {
     const next = applyDraftToState(state, heldPair);
 
     expect(required(next.events[0]).status).toBe('rejected');
-    expect(required(next.events[0]).message).toBe('Unlock Treachery card first.');
+    expect(required(next.events[0]).message).toBe('Unlock Treachery cards first.');
     expect(pieceById(next.pieces, loose.id).locked).toBe(true);
     expect(itemIds(next)).toEqual(itemIds(state));
   });
@@ -741,25 +741,71 @@ describe('playing from a hand', () => {
   });
 });
 
-test('a card stack with no back word and no name of its own reads as plain cards', () => {
-  const unnamed: TablePiece = {
-    id: 'unnamed',
-    label: '',
-    owner: 'shared',
-    color: '#d5ba8c',
-    accent: '#d5ba8c',
-    kind: 'card',
-    stackKey: 'deck:unnamed',
-    position: [0, 0, 0],
-    orientation: 0,
-    zoneId: null,
-    locked: false,
-    items: [{ id: 'unnamed-0', faceUp: false }],
-  };
+describe('card stack names', () => {
+  /* A homebrew deck on a custom back whose name was cleared in the deck editor: its cards carry artwork but no back word. */
+  function backless(id: string, label: string, count: number, position: Vector3Tuple, backName?: string): TablePiece {
+    return {
+      id,
+      label,
+      owner: 'shared',
+      color: '#d5ba8c',
+      accent: '#d5ba8c',
+      kind: 'card',
+      stackKey: `deck:${id}`,
+      position: restingPositionAt(position, { kind: 'card', orientation: 0 }),
+      orientation: 0,
+      zoneId: null,
+      locked: false,
+      items: Array.from({ length: count }, (_, index) => ({
+        id: `${id}-${index}`,
+        faceUp: false,
+        artwork: {
+          back: 'https://table.test/published/decks/homebrew/cardback.jpg',
+          ...(backName === undefined ? {} : { backName }),
+          type: 'card-spice',
+        },
+      })),
+    };
+  }
 
-  expect([labelForCount(unnamed, 3, {}), labelForCount(unnamed, 3, {}, true), labelForCount(unnamed, 1, {})]).toEqual([
-    'Deck',
-    'Cards',
-    'Card',
-  ]);
+  test('a back-less stack reads by its count and whether it is held, never by its own earlier label', () => {
+    const deck = backless('homebrew', 'Homebrew Spice Deck', 3, [0, 0, 0]);
+
+    expect([
+      labelForCount(deck, 3, {}, true),
+      labelForCount(deck, 2, {}),
+      labelForCount(deck, 1, {}),
+      labelForCount(deck, 1, {}, true),
+    ]).toEqual(['Cards', 'Deck', 'Card', 'Card']);
+  });
+
+  test('a back word of only whitespace names nothing, and a printed back word names the stack as before', () => {
+    const blank = backless('blank', 'Blank Deck', 2, [0, 0, 0], '  ');
+    const treachery = backless('printed', 'Dreamrules Treachery Deck', 2, [0, 0, 0], 'Treachery');
+
+    expect([labelForCount(blank, 2, {}, true), labelForCount(blank, 2, {})]).toEqual(['Cards', 'Deck']);
+    expect([
+      labelForCount(treachery, 1, {}),
+      labelForCount(treachery, 2, {}, true),
+      labelForCount(treachery, 2, {}),
+    ]).toEqual(['Treachery card', 'Treachery cards', 'Treachery deck']);
+  });
+
+  test('two back-less stacks merge under the same name whichever is dropped on the other', () => {
+    const table = (): TableState => ({
+      ...freshTableState(),
+      pieces: [backless('loose', 'Card', 1, [-1, 0, 2]), backless('homebrew', 'Homebrew Spice Deck', 2, [1, 0, 2])],
+    });
+    const merged = (sourceId: string, targetId: string) => {
+      const state = table();
+      const next = applyDraftToState(
+        state,
+        mergeDraft(pieceById(state.pieces, sourceId), pieceById(state.pieces, targetId), 'whole')
+      );
+      expect(required(next.events[0]).status).toBe('accepted');
+      return pieceById(next.pieces, targetId).label;
+    };
+
+    expect([merged('loose', 'homebrew'), merged('homebrew', 'loose')]).toEqual(['Deck', 'Deck']);
+  });
 });

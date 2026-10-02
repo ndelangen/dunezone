@@ -16,9 +16,31 @@ export function eventId(number: number): string {
   return `evt-${String(number).padStart(3, '0')}`;
 }
 
+/*
+ * Hand-built card stacks without artwork (the local demo, a supply whose back is unpublished) stack only by key,
+ * so the key is the one name they carry that no merge, split or deal can change.
+ */
+const CARD_STACK_NAMES: Readonly<Record<string, string>> = {
+  'cards:treachery': 'Treachery',
+  'cards:traitor': 'Traitor',
+};
+
+/*
+ * The stable name of a card stack, if it has one: the word printed on its back, or for a stack without artwork, its key's name.
+ * A blank back word names nothing. Cards with artwork stack by their back, not their key, so their key is never read.
+ */
+function cardStackName(piece: TablePiece): string | undefined {
+  const artwork = piece.items[0]?.artwork;
+  if (artwork) {
+    return artwork.backName?.trim() ? artwork.backName : undefined;
+  }
+  return piece.stackKey ? CARD_STACK_NAMES[piece.stackKey] : undefined;
+}
+
 /**
  * The name a stack takes when its own items change.
- * A card stack is named by the word printed on its back, and cards without one keep the stack's own name.
+ * A card stack is its stable name with the noun for its count: card, cards while held, deck otherwise;
+ * without a stable name it reads as plain Card, Cards or Deck, never as its own earlier label.
  * A force stack is named by its owner: the faction's display name, or Shared for a piece no faction owns.
  */
 export function labelForCount(
@@ -31,15 +53,9 @@ export function labelForCount(
     return 'Spice';
   }
   if (piece.kind === 'card') {
-    const word = piece.items[0]?.artwork?.backName;
-    if (!word) {
-      /* A back without a printed word keeps the stack's own name, and a stack without one reads as plain cards. */
-      return piece.label || (count === 1 ? 'Card' : held ? 'Cards' : 'Deck');
-    }
-    if (count === 1) {
-      return `${word} card`;
-    }
-    return held ? `${word} cards` : `${word} deck`;
+    const noun = count === 1 ? 'card' : held ? 'cards' : 'deck';
+    const name = cardStackName(piece);
+    return name ? `${name} ${noun}` : `${noun.charAt(0).toUpperCase()}${noun.slice(1)}`;
   }
   if (piece.kind === 'force') {
     const owner = piece.owner === 'shared' ? 'Shared' : factionNames[piece.owner];

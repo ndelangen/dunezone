@@ -1,6 +1,7 @@
 import { expect, test } from 'vitest';
 
 import { assetPublishingFaction } from '../../src/shared/factions/fixtures/assetPublishingFaction';
+import { applyPieceAction } from '../../src/shared/play/commands';
 import { factionSupply, piece, place } from '../../src/shared/play/setupSupply';
 import { deckCommand } from './decks';
 import { hostedFixturePlan } from './fixture';
@@ -79,9 +80,9 @@ test('a deal renames the deck it leaves by the word on its back, and a shuffle k
   expect(dealt).toEqual([...Array(traitors.items.length - 2).fill('Traitor deck'), 'Traitor card']);
 });
 
-test('a draw from a deck whose back has no name keeps the deck under its own name', () => {
-  /* A homebrew deck on a custom back whose name was cleared in the deck editor, so its cards carry no back word. */
-  const homebrew = place(
+/* A homebrew deck on a custom back whose name was cleared in the deck editor, so its cards carry no back word. */
+function homebrewDeck(backName?: string) {
+  return place(
     {
       ...piece('homebrew', 'Homebrew Spice Deck', 'shared', '#d5ba8c', 'card', 'deck:homebrew-spice-deck'),
       items: [0, 1, 2].map((index) => ({
@@ -90,6 +91,7 @@ test('a draw from a deck whose back has no name keeps the deck under its own nam
         artwork: {
           front: `https://table.test/published/decks/homebrew-spice-deck/${index}.jpg`,
           back: 'https://table.test/published/decks/homebrew-spice-deck/cardback.jpg',
+          ...(backName ? { backName } : {}),
           name: `Card ${index}`,
           type: 'card-spice',
         },
@@ -97,12 +99,43 @@ test('a draw from a deck whose back has no name keeps the deck under its own nam
     },
     [6, 0, 6]
   );
+}
+
+function tableWith(deck: StoredSnapshot['table']['pieces'][number]): StoredSnapshot {
   const fixture = hostedFixturePlan.snapshot(hostedFixturePlan.roster);
-  let snapshot: StoredSnapshot = { ...fixture, table: { ...fixture.table, pieces: [homebrew] } };
+  return { ...fixture, table: { ...fixture.table, pieces: [deck] } };
+}
+
+test('a deal from a deck whose back has no name leaves a plain deck, never a Treachery one', () => {
+  const homebrew = homebrewDeck();
+  let snapshot = tableWith(homebrew);
   const labels = [1, 2].map(() => {
     snapshot = deckCommand(snapshot, 'atreides', { kind: 'deck-draw', pieceId: homebrew.id, recipient: 'harkonnen' });
     return snapshot.table.pieces.find((candidate) => candidate.id === homebrew.id)?.label;
   });
 
-  expect(labels).toEqual(['Homebrew Spice Deck', 'Homebrew Spice Deck']);
+  expect(labels).toEqual(['Deck', 'Card']);
+});
+
+test.each([
+  ['no back word', undefined, 'Card'],
+  ['a printed back word', 'Spice', 'Spice card'],
+])('a dealt card from a deck with %s is named as a card split off it', (_, backName, expected) => {
+  const deck = homebrewDeck(backName);
+  const snapshot = tableWith(deck);
+  const dealt = deckCommand(snapshot, 'atreides', { kind: 'deck-draw', pieceId: deck.id, recipient: 'harkonnen' });
+  const split = applyPieceAction(
+    {
+      ...snapshot.table,
+      viewerSeat: 'atreides',
+      viewerFaction: 'atreides',
+      factionNames: {},
+      selectedPieceId: null,
+      draftMove: null,
+    },
+    { kind: 'split', pieceId: deck.id, count: 1 },
+    0
+  );
+
+  expect([dealt.factionInventories.harkonnen?.at(-1)?.label, split.pieces.at(-1)?.label]).toEqual([expected, expected]);
 });
