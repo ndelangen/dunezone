@@ -94,7 +94,7 @@ import { PhaseSymbol } from './PhaseSymbol';
 import { cameraPoseFor, TABLE_CAMERA_FAR, TABLE_CAMERA_FIELD_OF_VIEW, TABLE_CAMERA_NEAR } from './playView';
 import type { CameraViewCommand } from './playView';
 import { usePointerSession } from './PointerSessionContext';
-import { loadPublishedFace } from './publishedFaceRetry';
+import { sharedPublishedFaces } from './publishedFaceRetry';
 import { isPublicTablePoint, ScenePresence, useTablePose } from './ScenePresence';
 import { SpiceSupply } from './SpiceSupply';
 import { TableFurniture } from './TableFurniture';
@@ -516,22 +516,20 @@ function PieceFace({ height, underside, children }: { height: number; underside:
   );
 }
 
+/* Every piece and every stack layer that shows the same published image draws one shared texture, so the image is uploaded once rather than once per face. */
+const subscribePublishedFace = sharedPublishedFaces<Texture>({
+  load: (href, onLoad, onError) => new TextureLoader().load(href, onLoad, undefined, onError),
+  prepare: (value) => {
+    value.colorSpace = SRGBColorSpace;
+  },
+  release: (value) => value.dispose(),
+});
+
 function PublishedFace({ href, card, ratio }: { href: string; card: boolean; ratio?: number | null }) {
   /* Piece art skips useTexture so a missing publication image retries in place instead of suspending the table. */
   const [loadedFace, setLoadedFace] = useState<{ href: string; texture: Texture } | null>(null);
   const texture = loadedFace?.href === href ? loadedFace.texture : null;
-  useEffect(
-    () =>
-      loadPublishedFace<Texture>({
-        load: (onLoad, onError) => new TextureLoader().load(href, onLoad, undefined, onError),
-        onLoad: (value) => {
-          value.colorSpace = SRGBColorSpace;
-          setLoadedFace({ href, texture: value });
-        },
-        release: (value) => value.dispose(),
-      }),
-    [href]
-  );
+  useEffect(() => subscribePublishedFace(href, (value) => setLoadedFace({ href, texture: value })), [href]);
   return (
     <mesh position={[0, 0, 0.002]} renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}>
       {card ? (
