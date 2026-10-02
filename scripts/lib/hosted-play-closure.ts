@@ -43,6 +43,7 @@ const HOSTED_PLAY_CLOSURE: readonly string[] = [
   'src/app/print/**',
   'src/shared/**',
   'src/app/router.tsx',
+  'src/app/routes/start.ts',
   'src/app/routes/__root.tsx',
   'src/app/routes/pageTitle.ts',
   'src/app/routes/_app/route.tsx',
