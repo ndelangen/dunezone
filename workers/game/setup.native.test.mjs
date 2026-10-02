@@ -170,7 +170,7 @@ describe('Traitor backs at setup entry', () => {
   });
 
   /* Deals a two-player game whose factions the catalogue serves with these Traitor backs, readies the first player and sends the second player's final readiness. */
-  async function enterSetup(atreides, harkonnen) {
+  async function enterSetup(atreides, harkonnen, afterDeal) {
     ({ peer, runtime } = await draftingRuntime());
     for (const [id, traitor] of [
       ['atreides', atreides],
@@ -180,6 +180,7 @@ describe('Traitor backs at setup entry', () => {
       peer.factions.set(id, { ...faction, cardbacks: { ...faction.cardbacks, traitor } });
     }
     const [a, b] = await dealt(peer, runtime);
+    await afterDeal?.();
     await ready(a, 'ready-a');
     const view = await syncView(b);
     return sendCommand(b, {
@@ -200,6 +201,41 @@ describe('Traitor backs at setup entry', () => {
     const decks = table.pieces.filter((piece) => piece.stackKey === 'cards:traitor');
     expect(decks.map((deck) => deck.label)).toEqual(['Traitor cards', 'Traitor cards']);
     expect(piecesCanStack(decks[0], decks[1])).toBe(true);
+  });
+
+  it("setup refuses a table where one faction's Traitor deck has a back and another's has none", async () => {
+    /* A game dealt before the deal checked backs can hold such captures; setup entry still refuses them. */
+    const back = '/published/cardback-presets/traitor/cardback.jpg?v=traitor-1';
+    const { reply } = await enterSetup(back, back, () =>
+      runtime.exec(
+        "UPDATE captures SET data=json_set(data, '$.components.traitors.back', json('null')) WHERE kind='faction' AND source_id='harkonnen'"
+      )
+    );
+    expect(reply).toMatchObject({ type: 'rejected', message: 'The retained traitor decks need a shared back.' });
+  });
+
+  it('refuses to deal factions whose Traitor decks have different backs, and deals once the content is fixed', async () => {
+    const back = '/published/cardback-presets/traitor/cardback.jpg?v=traitor-1';
+    ({ peer, runtime } = await draftingRuntime());
+    for (const [id, traitor] of [
+      ['atreides', back],
+      ['harkonnen', null],
+    ]) {
+      const faction = peer.factions.get(id);
+      peer.factions.set(id, { ...faction, cardbacks: { ...faction.cardbacks, traitor } });
+    }
+    const a = await admitPlayer(peer, runtime, 'a');
+    const b = await admitPlayer(peer, runtime, 'b');
+    await seat(b, a);
+    await accepted(a, { kind: 'draft-ready', ready: true });
+    await accepted(b, { kind: 'draft-ready', ready: true });
+    await eventually(async () => (await syncView(a)).snapshot.draft?.failure, 'refused deal');
+    expect((await runtime.captures()).factions).toEqual([]);
+    const harkonnen = peer.factions.get('harkonnen');
+    peer.factions.set('harkonnen', { ...harkonnen, cardbacks: { ...harkonnen.cardbacks, traitor: back } });
+    await accepted(b, { kind: 'draft-ready', ready: false });
+    await accepted(b, { kind: 'draft-ready', ready: true });
+    await eventually(async () => (await syncView(a)).snapshot.stage === 'swapping', 'assignment');
   });
 
   it('refuses to deal factions whose Traitor decks have different backs, and deals once the draft changes', async () => {

@@ -46,6 +46,7 @@ import type { FixturePlan } from './fixture';
 import { isLocalIsolatedRuntime } from './localRuntime';
 import type { Metadata } from './session';
 import { GameSession } from './session';
+import { requireSharedTraitorBack } from './setup';
 
 /** The seat a real game's creator holds from creation. */
 
@@ -297,8 +298,15 @@ export class GameRoom extends DurableObject<GameEnv> {
     if (existing) {
       return existing;
     }
-    const capture = await new GameCatalogue(this.env.CONVEX_URL, this.env.APPLICATION_ORIGIN).captureFaction(factionId);
-    return this.session.retainFaction(capture, options);
+    return this.session.retainFaction(await this.factionCapture(factionId), options);
+  }
+
+  /** The record a faction would be dealt with: the one retained, or else the catalogue's current one, which nothing retains yet. */
+  private async factionCapture(factionId: string) {
+    return (
+      this.session.retainedFaction(factionId) ??
+      (await new GameCatalogue(this.env.CONVEX_URL, this.env.APPLICATION_ORIGIN).captureFaction(factionId))
+    );
   }
 
   override async fetch(request: Request): Promise<Response> {
@@ -1596,10 +1604,12 @@ export class GameRoom extends DurableObject<GameEnv> {
   /*
    * Public assignment, by itself, once the roster meets the minimum, every player is ready and the
    * pool holds enough factions: the dealt factions are captured first (a real game refuses unready
-   * content, an isolated backend deals provisional content), then one transaction fixes the seat
-   * count, gives every seat its faction and a random station, ends the draft and opens swapping,
-   * provided nothing about the draft or the roster changed while the captures ran. A failure
-   * before that commit leaves the draft as it was, with its reason, for a gate-checked retry.
+   * content, an isolated backend deals provisional content) and retained only once their Traitor
+   * decks share a back, so that refusal pins nothing and fixed content deals on the next try; then
+   * one transaction fixes the seat count, gives every seat its faction and a random station, ends
+   * the draft and opens swapping, provided nothing about the draft or the roster changed while the
+   * captures ran. A failure before that commit leaves the draft as it was, with its reason, for a
+   * gate-checked retry.
    */
   private async attemptAssignment() {
     if (this.assigning) {
@@ -1611,8 +1621,13 @@ export class GameRoom extends DurableObject<GameEnv> {
     }
     this.assigning = true;
     try {
+      const captures = [];
       for (const faction of prepared.factions) {
-        await this.retainFactionCapture(faction, { provisional: this.metadata?.provisional === true });
+        captures.push(await this.factionCapture(faction));
+      }
+      requireSharedTraitorBack(captures);
+      for (const capture of captures.filter(({ faction }) => !this.session.retainedFaction(faction.id))) {
+        this.session.retainFaction(capture, { provisional: this.metadata?.provisional === true });
       }
       if (this.session.completeAssignment(prepared)) {
         this.deliverDirectorySoon();
