@@ -20,7 +20,8 @@ test('renders bounded PNGs from local publications with zero outbound requests',
   const output = await build({
     stdin: {
       contents: `import { handleSocialImageRequest } from './social-image';
-        export default { fetch(request, env) { return handleSocialImageRequest(request, env); } };`,
+        export default { fetch(request, env) { return handleSocialImageRequest(request, env, undefined,
+          request.headers.has('X-Test-Cache') ? { storage: caches.default, release: 'runtime' } : undefined); } };`,
       resolveDir: import.meta.dirname,
       sourcefile: 'social-runtime.ts',
     },
@@ -98,6 +99,24 @@ test('renders bounded PNGs from local publications with zero outbound requests',
       return png;
     };
     const original = await render(socialCardHref(input));
+    const cachedFetch = (href: string) =>
+      mf.dispatchFetch('https://dune.zone' + href, { headers: { 'X-Test-Cache': '1' } });
+    const cold = await cachedFetch(socialCardHref(input));
+    expect(cold.headers.get('X-Public-Cache')).toBe('miss');
+    expect(cold.headers.get('X-Public-Artwork-Reads')).toBe('1');
+    expect(Buffer.from(await cold.arrayBuffer())).toEqual(original);
+    await bucket.delete(key);
+    const hit = await cachedFetch(socialCardHref(input));
+    expect(hit.headers.get('X-Public-Cache')).toBe('hit');
+    expect(hit.headers.get('X-Public-Renders')).toBe('0');
+    expect(hit.headers.get('X-Public-Artwork-Reads')).toBe('0');
+    expect(Buffer.from(await hit.arrayBuffer())).toEqual(original);
+    const newWords = await cachedFetch(socialCardHref({ ...input, name: 'Other words' }));
+    expect(newWords.headers.get('X-Public-Cache')).toBe('miss');
+    expect(newWords.headers.get('X-Public-Artwork-Cache')).toBe('hit');
+    expect(newWords.headers.get('X-Public-Artwork-Reads')).toBe('0');
+    await newWords.arrayBuffer();
+    await bucket.put(key, artwork);
     const center = await sharp(original).extract({ left: 930, top: 320, width: 1, height: 1 }).raw().toBuffer();
     expect(center[0]).toBeGreaterThan(240);
     expect(center[1]).toBeLessThan(10);

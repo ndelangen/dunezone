@@ -17,7 +17,7 @@ missing-glyph behavior. Text is passed as text nodes, never raw SVG markup.
 The shared `socialCard` contract owns parsing and URL construction. It rejects unknown and duplicate
 fields before any read or rendering work. Text normalizes to NFC with collapsed whitespace. The
 producer truncates long source text; the endpoint rejects text beyond its bounds. The canonical URL
-builder fixes parameter order for the later cache implementation.
+builder fixes parameter order for the edge cache.
 
 | Field | Bound |
 | --- | --- |
@@ -56,9 +56,9 @@ text and layout shapes. It also renders 60 distinct JPEGs near the byte limit in
 `publisher:application-runtime:verify` also follows the actual HTML image URLs through the assembled
 publisher Worker and decodes their PNG headers.
 
-This delivery leaves responses `no-store`. Each image request currently performs one render and at
-most one existing-object R2 read. A missing artwork reference performs no read. Browser page visits
-do not themselves fetch the Open Graph image. There are no additional metadata queries, persisted
-social objects or image transformation service charges on this path. The later Cloudflare cache
-and hosted cost tickets measure cache hits and CPU billing separately; local elapsed time is not
-hosted CPU time.
+Cloudflare caches PNGs for one day, recognized fallbacks for five minutes, and existing artwork for
+one hour. Hits avoid rendering and R2 reads. Misses make at most one existing-object R2 read, and
+cards with different text can share artwork. Missing artwork references perform no read. Browser
+page visits do not themselves fetch the Open Graph image. There are no additional metadata queries,
+persisted social objects or image transformation service charges on this path.
+See [public response caching](public-response-cache.md) for expiration, operating limits and billing.

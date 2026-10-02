@@ -22,9 +22,12 @@ Missing records and unknown public descendants return 404. A faction query repor
 `NOT_FOUND` so a connection failure cannot masquerade as absence. A faction that disappears from
 an open page uses the same absence presentation. Old slugs remain absent after a rename.
 
-Responses currently use `no-store`. The separate
-[Cloudflare cache ticket](https://github.com/ndelangen/dunezone/issues/1719) adds the agreed five-minute
-anonymous HTML cache. It will reduce server query frequency without delaying browser subscriptions.
+Cloudflare caches successful anonymous HTML for five minutes, keyed by Worker version and normalized
+URL. Credential-bearing and anonymous visits share the same anonymous rendering. Credentials are
+removed before loading, and responses with Set-Cookie, private cache directives, Vary or non-200
+status cannot enter the cache. Browser responses remain `no-store`, so each visit reaches the Worker
+and existing live subscriptions still start immediately. Cache eviction or failure simply causes
+a fresh render. See [public response caching](public-response-cache.md) for limits and diagnostics.
 No new client cache, saved snapshot or save-triggered HTML generation exists here.
 
 ## Read-work measurement

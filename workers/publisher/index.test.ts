@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { playCallbackOperations } from '../../src/shared/play/callbacks';
 import { rendererManifest } from './renderer-manifest.generated';
@@ -15,6 +15,10 @@ import publisherWorker from './index';
 
 const NOW = Date.parse('2026-07-17T12:00:00.000Z');
 const GIT_SHA = 'a'.repeat(40);
+
+beforeEach(() => {
+  vi.stubGlobal('caches', { default: { match: vi.fn(), put: vi.fn() } });
+});
 
 function publisherEnv(): Env {
   return {

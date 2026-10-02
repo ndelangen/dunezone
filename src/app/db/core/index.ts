@@ -20,6 +20,11 @@ export const db = {
     fn: Query,
     args: FunctionArgs<Query>
   ): Promise<FunctionReturnType<Query>> => {
+    if (import.meta.env.SSR) {
+      const { getResponseHeader, setResponseHeader } = await import('@tanstack/react-start/server');
+      const queries = Number(getResponseHeader('X-Public-Metadata-Queries') ?? 0);
+      setResponseHeader('X-Public-Metadata-Queries', String(queries + 1));
+    }
     const backend = convexBackendForDb();
     return await backend.query(fn, args as never);
   },
