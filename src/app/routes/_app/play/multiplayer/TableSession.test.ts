@@ -171,8 +171,22 @@ describe('hosted public controls', () => {
     await vi.advanceTimersByTimeAsync(1000);
     socket().open();
     authorize();
+    /* The read the drop cut off goes again, and a newer selection waits behind it as usual. */
+    expect(sentReads()).toEqual([next]);
     const fresh = client.catalogue({ type: 'deck', slug: 'fresh' });
-    expect(sentReads()).toEqual([fresh]);
+    expect(sentReads()).toEqual([next]);
+    socket().deliver({ type: 'catalogue', requestId: next, contents: null });
+    expect(sentReads()).toEqual([next, fresh]);
+  });
+  test('stops the locked table clock when the connection drops, not at the last update', async () => {
+    const client = await connected();
+    await vi.advanceTimersByTimeAsync(27_000);
+    const dropped = Date.now();
+    socket().close();
+    expectLocked(client);
+    expect(table(client).serverNow()).toBe(dropped);
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(table(client).serverNow()).toBe(dropped);
   });
   test('keeps both public log pages through seat and faction changes and resets them on disconnect', async () => {
     const client = await connected();

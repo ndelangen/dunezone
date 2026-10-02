@@ -30,7 +30,7 @@ import { LogEntries } from './Log';
 import { PieceArtwork } from './PieceArtwork';
 import { PlayerPanel, RemovalDecisionBar } from './RemovalVotes';
 import { useResultCelebration } from './resultCelebration';
-import { GameMenu, SeatRequests } from './SeatRequests';
+import { GameMenu, SeatPopover, SeatRequests } from './SeatRequests';
 import { SwappingReadiness } from './Swapping';
 import { SwapScene } from './SwapScene';
 import { TableSession } from './TableSession';
@@ -644,6 +644,12 @@ function ConnectedTable({
   const celebration = useResultCelebration(table);
   /* Giving up a seat starts in the game menu and is confirmed in the decision bar, so the two share one flag. */
   const [leaving, setLeaving] = useState(false);
+  /* The confirmation is about the seat held when it opened: leaving, a removal vote or a new seat closes it, so a player seated again is not asked to give up the new seat. */
+  const [leavingFrom, setLeavingFrom] = useState(table.viewer.viewerSeat);
+  if (leavingFrom !== table.viewer.viewerSeat) {
+    setLeavingFrom(table.viewer.viewerSeat);
+    setLeaving(false);
+  }
   const [playerSelection, selectPlayer] = useReducer(
     (
       _: { seat: string | null; vote: string | null; tab: 'public' | 'conversation' },
@@ -704,8 +710,11 @@ function ConnectedTable({
                 leaving={leaving}
                 onStay={() => setLeaving(false)}
                 readiness={
+                  /* A spectator has no draft to ready, so drafting gives them no readiness row at all. */
                   stage === 'drafting' ? (
-                    <DraftingReadiness client={client} table={table} />
+                    table.viewer.viewerSeat === SPECTATOR_SEAT ? undefined : (
+                      <DraftingReadiness client={client} table={table} />
+                    )
                   ) : stage === 'swapping' ? (
                     <SwappingReadiness client={client} table={table} />
                   ) : undefined
@@ -715,11 +724,14 @@ function ConnectedTable({
             </Stack>
           }
           gameMenu={
-            <GameMenu
-              table={table}
-              onLeave={() => setLeaving(true)}
-              onClearConfetti={celebration.hasConfetti ? celebration.clear : undefined}
-            />
+            <>
+              <SeatPopover client={client} table={table} error={error} />
+              <GameMenu
+                table={table}
+                onLeave={() => setLeaving(true)}
+                onClearConfetti={celebration.hasConfetti ? celebration.clear : undefined}
+              />
+            </>
           }
           stageStatus={
             stage === 'drafting' ? (
