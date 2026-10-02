@@ -52,6 +52,17 @@ function excused(text: string, start: number, end: number, exceptions: readonly 
   });
 }
 
+/* A match is skipped when a longer phrase already claimed its text, or when an exception excuses it. */
+function skipped(
+  text: string,
+  taken: readonly [number, number][],
+  [start, end]: [number, number],
+  exceptions: readonly RegExp[]
+) {
+  const overlaps = taken.some(([from, to]) => start < to && end > from);
+  return overlaps || excused(text, start, end, exceptions);
+}
+
 /**
  * Finds words in free text that the glossary prefers to say differently, in reading order.
  * Hints are advice only: callers show them beside the text and never block a save on them.
@@ -64,7 +75,7 @@ export function findTermHints(text: string, glossary?: readonly GlossaryTerm[]):
     for (const match of text.matchAll(pattern)) {
       const start = match.index;
       const end = start + match[0].length;
-      if (taken.some(([from, to]) => start < to && end > from) || excused(text, start, end, exceptions)) {
+      if (skipped(text, taken, [start, end], exceptions)) {
         continue;
       }
       taken.push([start, end]);
