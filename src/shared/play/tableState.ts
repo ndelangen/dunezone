@@ -355,6 +355,24 @@ export function settleCarryAtPosition(state: TableState, draft: DraftMove, posit
   return settleMoveAtPosition(state, projected, piece, position);
 }
 
+/**
+ * A piece played from a hand onto a placement anchor settles the way a carry released there would.
+ * It takes the anchor's pose, or joins the compatible stack already resting in it with the played items on top.
+ * A drop that misses every anchor returns null so the caller keeps its own placement.
+ */
+export function playFromHandAtAnchor(state: TableState, piece: TablePiece, position: Vector3Tuple): TableState | null {
+  if (!placementAnchorAtPosition(piece, position)) {
+    return null;
+  }
+  const table = { ...state, pieces: [...state.pieces, piece] };
+  const draft = draftForGesture(piece, 'whole');
+  const settled = draft && settleCarryAtPosition(table, draft, position);
+  if (!settled) {
+    return rejection(state, 'piece.move', 'There is no clear space for that object.');
+  }
+  return applyDraftToState(table, settled);
+}
+
 export function appendEvent(state: TableState, event: TableEvent): Pick<TableState, 'events' | 'nextEventNumber'> {
   return {
     events: [event, ...state.events].slice(0, 8),

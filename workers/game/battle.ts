@@ -1,7 +1,7 @@
 import { emptyBattlePlan, BATTLE_COUNTDOWN_MS } from '../../src/shared/play/battle';
 import type { BattleAction, BattlePlanInput, CombatFace, StoredBattlePlan } from '../../src/shared/play/battle';
 import { isBattleLeader } from '../../src/shared/play/battle';
-import { nextSnapshot } from '../../src/shared/play/commands';
+import { nextSnapshot, requireAccepted } from '../../src/shared/play/commands';
 import type { StoredPiece } from '../../src/shared/play/model';
 import { phaseAt } from '../../src/shared/play/phases';
 import { tableForViewer } from '../../src/shared/play/protocol';
@@ -9,6 +9,7 @@ import { GameRejection } from '../../src/shared/play/rejection';
 import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
 import { BOARD_RADIUS, restingPositionAt } from '../../src/shared/play/tableGeometry';
 import { clampPositionToTable, nearestCollisionFreePosition } from '../../src/shared/play/tablePhysics';
+import { playFromHandAtAnchor } from '../../src/shared/play/tableState';
 import type { StoredSnapshot, StoredBattle } from './state';
 
 type BattleActor = { snapshot: StoredSnapshot; battle: StoredBattle; factionId: string };
@@ -241,6 +242,20 @@ function playFromHand(
   if (!piece) {
     return refuse('That piece is not in your inventory.');
   }
+  const faceDown = { ...piece, inventory: undefined, items: piece.items.map((item) => ({ ...item, faceUp: false })) };
+  const factionInventories = {
+    ...snapshot.factionInventories,
+    [factionId]: inventory.filter((piece) => piece.id !== action.pieceId),
+  };
+  const table = tableForViewer(snapshot, SPECTATOR_SEAT);
+  const anchored = playFromHandAtAnchor(
+    table,
+    { ...faceDown, position: restingPositionAt(action.position, piece) },
+    action.position
+  );
+  if (anchored) {
+    return { ...nextSnapshot(snapshot, requireAccepted(table, anchored)), factionInventories };
+  }
   const position = nearestCollisionFreePosition(
     piece,
     clampPositionToTable(piece, action.position),
@@ -249,22 +264,8 @@ function playFromHand(
   if (!position) {
     return refuse('There is no clear space for that object.');
   }
-  const played = {
-    ...piece,
-    inventory: undefined,
-    items: piece.items.map((item) => ({ ...item, faceUp: false })),
-    position: restingPositionAt(position, piece),
-  };
-  return commit(
-    snapshot,
-    {
-      factionInventories: {
-        ...snapshot.factionInventories,
-        [factionId]: inventory.filter((piece) => piece.id !== action.pieceId),
-      },
-    },
-    [...snapshot.table.pieces, played]
-  );
+  const played = { ...faceDown, position: restingPositionAt(position, piece) };
+  return commit(snapshot, { factionInventories }, [...snapshot.table.pieces, played]);
 }
 
 function startBattle(snapshot: StoredSnapshot, action: Extract<BattleAction, { kind: 'battle-start' }>) {

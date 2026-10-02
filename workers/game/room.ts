@@ -385,10 +385,14 @@ export class Room {
         this.assertReservationsUnchanged(this.snapshot.table as TableState, next.table as TableState);
       }
       if (action.kind === 'hand-take' || action.kind === 'hand-play') {
-        const pieces = action.kind === 'hand-take' ? next.factionInventories[factionId] : next.table.pieces;
+        /* A played card is taken from the hand it left: one merged onto a pile no longer exists on the table under its own id. */
+        const pieces =
+          action.kind === 'hand-take'
+            ? next.factionInventories[factionId]
+            : this.snapshot.factionInventories[factionId];
         return concealCards(
           next,
-          pieces.filter((piece) => piece.id === action.pieceId),
+          (pieces ?? []).filter((piece) => piece.id === action.pieceId),
           true
         );
       }
