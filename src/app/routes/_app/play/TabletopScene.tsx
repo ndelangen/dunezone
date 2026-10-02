@@ -532,13 +532,13 @@ function PublishedFace({ href, card, ratio }: { href: string; card: boolean; rat
       ) : (
         <circleGeometry args={[FORCE_FACE_RADIUS, 48]} />
       )}
-      <meshStandardMaterial
+      {/* Printed art keeps its own colours: the warm table light and tone mapping washed out card, leader and token faces (#1756). */}
+      <meshBasicMaterial
         key={texture ? href : 'placeholder'}
         map={texture}
         color={texture ? '#ffffff' : '#d5ba8c'}
         transparent
-        roughness={0.68}
-        metalness={0}
+        toneMapped={false}
       />
     </mesh>
   );
