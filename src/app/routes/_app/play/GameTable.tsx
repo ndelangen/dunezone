@@ -60,6 +60,8 @@ type GameTableProps = {
   panelTabs?: readonly PanelTab[];
   /** A tab to open once per token, as a battle opens on the viewer's side; the player can move away and it stays put. */
   focusTab?: Readonly<{ key: string; token: string }> | null;
+  /** The tabs the panel opens on, in preference, as a spectator opens past tabs whose controls are a seat's; without one present it opens on the first. */
+  openOn?: readonly string[];
   /** Sections the host adds to the Table tab, above the fixture's trackers. */
   tableControls?: ReactNode;
   /** The important decision of the moment, above the panel's tabs: a seat request, a vote, a result. */
@@ -274,13 +276,15 @@ function stageFrame(stage: GameSnapshot['stage']): StageFrame {
 function TableControlsPanel({
   panelTabs = [],
   focusTab = null,
+  openOn = [],
   tableControls,
   showStormControls,
   word,
   tableTab: tableTabLabel,
   panelContent,
 }: Readonly<
-  Pick<GameTableProps, 'panelTabs' | 'focusTab' | 'tableControls' | 'showStormControls' | 'panelContent'> & StageFrame
+  Pick<GameTableProps, 'panelTabs' | 'focusTab' | 'openOn' | 'tableControls' | 'showStormControls' | 'panelContent'> &
+    StageFrame
 >) {
   const tableTab: PanelTab = {
     key: 'table',
@@ -302,7 +306,8 @@ function TableControlsPanel({
         ...panelTabs,
       ]
     : [...panelTabs, ...(tableTabLabel ? [tableTab] : [])];
-  const [path, setPath] = useReducer((_: string[], next: string[]) => next, [tabs[0]?.key ?? tableTab.key]);
+  const opening = openOn.map((key) => tabs.find((tab) => tab.key === key)).find(Boolean) ?? tabs[0];
+  const [path, setPath] = useReducer((_: string[], next: string[]) => next, [opening?.key ?? tableTab.key]);
   /* The stage tab arriving opens it over the chosen tab, so a spectator seated during drafting lands on the stage, not on the Log they watched from (#1666). The chosen tab is kept beneath: once the stage leaves, as in playback stepping into play, it opens again. */
   const hasStage = Boolean(panelContent);
   const [stageShown, setStageShown] = useState(hasStage);
@@ -326,7 +331,7 @@ function TableControlsPanel({
     choose([focusTab.key]);
   }
   const chosen = stageOpened ? undefined : tabs.find((tab) => tab.key === path[0]);
-  const active = chosen ?? tabs[0] ?? tableTab;
+  const active = chosen ?? opening ?? tableTab;
   const subtab = (chosen && active.subtabs?.find((tab) => tab.key === path[1])) ?? active.subtabs?.[0];
   if (panelContent && panelTabs.length === 0) {
     return <div className="seated-stage-panel">{panelContent}</div>;
@@ -477,6 +482,7 @@ export function GameTable({
   sceneContent,
   panelTabs,
   focusTab,
+  openOn,
   tableControls,
   decisionBar,
   gameMenu,
@@ -654,6 +660,7 @@ export function GameTable({
                     <TableControlsPanel
                       panelTabs={panelTabs}
                       focusTab={focusTab}
+                      openOn={openOn}
                       tableControls={tableControls}
                       panelContent={panelContent}
                       word={frame.word}
