@@ -51,3 +51,38 @@
     grid-column: 2;
   }
 }
+
+/*
+ * `narrowFallback="hide"`: the columns split from the phone step up, at the same proportions, and below it the narrow column goes.
+ * Rules above that split from 61.25rem do the rest from there, since they set the same columns and placement.
+ */
+@container asymmetric-split-layout (width >= 30rem) {
+  .layout[data-narrow-fallback="hide"]:not(.slim) {
+    grid-template-columns: 1.15fr 0.85fr;
+  }
+
+  .layout[data-narrow-fallback="hide"]:not(.slim)[data-narrow-side="start"] {
+    grid-template-columns: 0.85fr 1.15fr;
+  }
+
+  .layout[data-narrow-fallback="hide"] > .wide,
+  .layout[data-narrow-fallback="hide"] > .narrow {
+    grid-row: 1;
+  }
+
+  .layout[data-narrow-fallback="hide"][data-narrow-side="start"] > .narrow,
+  .layout[data-narrow-fallback="hide"][data-narrow-side="end"] > .wide {
+    grid-column: 1;
+  }
+
+  .layout[data-narrow-fallback="hide"][data-narrow-side="start"] > .wide,
+  .layout[data-narrow-fallback="hide"][data-narrow-side="end"] > .narrow {
+    grid-column: 2;
+  }
+}
+
+@container asymmetric-split-layout (width < 30rem) {
+  .layout[data-narrow-fallback="hide"] > .narrow {
+    display: none;
+  }
+}
