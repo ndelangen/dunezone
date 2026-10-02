@@ -40,9 +40,9 @@ export const CardBack: FC<z.infer<typeof CardBackType>> = ({ image, background, 
           height: imageScale * 220,
         }}
       >
-        <img src={image} alt="" />
-        <img src={image} alt="" />
-        <img src={image} alt="" />
+        <img src={image} />
+        <img src={image} />
+        <img src={image} />
       </div>
 
       <svg className={styles.svg}>
