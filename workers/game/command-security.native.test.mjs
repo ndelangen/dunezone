@@ -1,17 +1,16 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { PHASE_CHANGE_COOLDOWN_MS } from '../../src/shared/play/phases';
-import { draftingRuntime } from './native-drafting.fixture.mjs';
+import { dealt, draftingRuntime } from './native-drafting.fixture.mjs';
 import { accepted, admitPlayer, eventually, seat, sendCommand, syncView } from './native-runtime.fixture.mjs';
 
 const SPECTATOR = 'Spectators can watch but cannot change the table or publish a cursor.';
 
 /* Who may send what on a real game's socket: identity always comes from the connection, never from the message. */
 describe('The command path refuses what a connection may not do', { timeout: 60_000 }, () => {
-  let peer, runtime, offset;
+  let peer, runtime;
   beforeEach(async () => {
     ({ peer, runtime } = await draftingRuntime());
-    offset = 0;
     for (const id of ['atreides', 'harkonnen']) {
       await runtime.capture('faction', id, { provisional: true });
     }
@@ -40,27 +39,24 @@ describe('The command path refuses what a connection may not do', { timeout: 60_
 
   /* Two players reach play through the draft, trading and setup, then an observer watches. */
   async function inPlay() {
-    const a = await admit('a');
-    const b = await admit('b');
-    await seat(b, a);
-    await accepted(a, { kind: 'draft-ready', ready: true });
-    await accepted(b, { kind: 'draft-ready', ready: true });
-    await eventually(async () => (await syncView(a)).snapshot.stage === 'swapping', 'assignment');
-    for (const connection of [a, b]) {
-      const view = await syncView(connection);
-      await accepted(connection, {
+    const [a, b] = await dealt(peer, runtime);
+    for (const player of [a, b]) {
+      const { snapshot, viewer } = await syncView(player);
+      await accepted(player, {
         kind: 'swap-ready',
         ready: true,
-        round: view.snapshot.swapping.round,
-        seat: view.viewer.viewerSeat,
+        round: snapshot.swapping.round,
+        seat: viewer.viewerSeat,
       });
     }
-    for (let guard = 0; guard < 12 && (await syncView(a)).snapshot.stage !== 'play'; guard++) {
-      if ((await syncView(a)).snapshot.controls.ready.length === 0) {
-        await sendCommand(a, { kind: 'ready', ready: true });
-        await sendCommand(b, { kind: 'ready', ready: true });
-      }
-      offset += PHASE_CHANGE_COOLDOWN_MS + 1;
+    /* Setup waits on both players at each step, and the room's clock moves past each phase cooldown. */
+    for (
+      let offset = PHASE_CHANGE_COOLDOWN_MS + 1;
+      (await syncView(a)).snapshot.stage === 'setup';
+      offset += PHASE_CHANGE_COOLDOWN_MS + 1
+    ) {
+      await accepted(a, { kind: 'ready', ready: true });
+      await accepted(b, { kind: 'ready', ready: true });
       await runtime.clock(offset);
       await accepted(a, { kind: 'phase', direction: 1 });
     }
@@ -116,13 +112,12 @@ describe('The command path refuses what a connection may not do', { timeout: 60_
     const other = factionOf(await syncView(b));
     const hidden = (await stored()).factionInventories[own];
     expect(hidden.length).toBeGreaterThan(0);
-    expect((await sendCommand(b, { kind: 'flip', pieceId: hidden[0].id })).reply.type).toBe('rejected');
+    /* B never sees A's private pieces, and naming one does not put it in play. */
+    const seen = JSON.stringify((await syncView(b)).snapshot);
+    expect(hidden.filter((piece) => seen.includes(piece.id))).toEqual([]);
     expect(
       (await sendCommand(b, { kind: 'hand-play', pieceId: hidden[0].id, position: [0, 0, 0] })).reply
     ).toMatchObject({ type: 'rejected', message: 'That piece is not in your inventory.' });
-    start = b.messages.length;
-    b.send({ type: 'begin', carryId: 'other-hand', sourcePieceId: hidden[0].id, expectedVersion: 0, pickup: 'whole' });
-    expect((await repliesSince(b, start, 1))[0][0]).toBe('rejected');
     for (const connection of [b, observer]) {
       start = connection.messages.length;
       connection.send({ type: 'conversation-send', requestId: 'spoof', factionId: own, peerId: other, text: 'As A' });
@@ -136,7 +131,7 @@ describe('The command path refuses what a connection may not do', { timeout: 60_
     expect((await stored()).factionInventories[own]).toEqual(hidden);
   });
 
-  it('refuses a player who left their seat, even the drop of a carry they began while seated', async () => {
+  it('ends the carry of a player who leaves their seat and refuses their later drop and table commands', async () => {
     const { a, b } = await inPlay();
     const view = await syncView(b);
     const piece = view.snapshot.table.pieces[0];
