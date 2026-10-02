@@ -348,9 +348,6 @@ function SetupControls({ client, table }: SetupControlProps) {
           ...setup.instructions.filter((entry) => entry.factionId !== ownFaction),
         ]
       : [];
-  /* The section title only shows in its help, so each line also names its faction in the panel. */
-  const factionName = (factionId: string) =>
-    table.snapshot.roster?.seats.find((seat) => seat.faction?.id === factionId)?.faction?.name ?? factionId;
   return (
     <Stack gap="md">
       {step.kind !== 'prediction' && (
@@ -371,16 +368,14 @@ function SetupControls({ client, table }: SetupControlProps) {
             )}
             {step.kind === 'forces' &&
               instructions.map((entry) => (
+                /* A visible heading, not help-only: the faction name is what tells the lines apart. */
                 <Section
-                  helpOnly={Boolean(table.snapshot.stage)}
                   key={entry.factionId}
-                  title={factionName(entry.factionId)}
+                  title={
+                    table.snapshot.roster?.seats.find((seat) => seat.faction?.id === entry.factionId)?.faction?.name ??
+                    entry.factionId
+                  }
                 >
-                  {table.snapshot.stage && (
-                    <Text size="sm" fw={600}>
-                      {factionName(entry.factionId)}
-                    </Text>
-                  )}
                   <Text size="sm" style={{ whiteSpace: 'pre-wrap' }}>
                     <InlineFormattedTextSource
                       source={entry.text || 'Follow your faction rules for starting forces.'}
