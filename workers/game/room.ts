@@ -1,5 +1,6 @@
 import { randomInt } from 'node:crypto';
 
+import { tableHandlingOpen } from '../../src/shared/play/admission';
 import { isBattleAction } from '../../src/shared/play/battle';
 import { accepted, applyPieceAction, nextSnapshot, requireAccepted } from '../../src/shared/play/commands';
 import type { DraftAction } from '../../src/shared/play/drafting';
@@ -369,7 +370,7 @@ export class Room {
   }
 
   private assertTableAvailable() {
-    if (this.snapshot.stage !== 'setup') {
+    if (!tableHandlingOpen(this.snapshot.stage)) {
       this.assertPlaying();
     }
   }

@@ -80,6 +80,46 @@ export const Declaring = meta.story({
   },
 });
 
+/* The nearest ancestor a finger can scroll, as overflow hidden is not. */
+function touchScroller(element: Element) {
+  for (let node = element.parentElement; node; node = node.parentElement) {
+    if (/^(auto|scroll)$/.test(getComputedStyle(node).overflowY) && node.scrollHeight > node.clientHeight) {
+      return node;
+    }
+  }
+  return null;
+}
+
+/* On a phone the declaring bar outgrows the dock's floor; it scrolls inside the dock, so Declare is in reach. */
+export const DeclaringOnAPhone = meta.story({
+  globals: { viewport: { value: 'appMobile' }, motion: 'reduce' },
+  beforeEach: install(() => {
+    const snapshot = mentatSnapshot('seat-2');
+    snapshot.ending = { by: { seat: 'seat-2', name: SIX[1]!.name }, startedAt: 1 };
+    return productTransport('seat-2', snapshot);
+  }),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const view = canvasElement.ownerDocument.defaultView!;
+    const bar = (await page.findByText('Declare the result', {}, { timeout: 30_000 })).closest('section')!;
+    await userEvent.click(within(bar).getByText('Alliance'));
+    const declare = within(bar).getByRole('button', { name: 'Declare' });
+    await waitFor(() => {
+      const box = declare.getBoundingClientRect();
+      if (box.bottom > view.innerHeight) {
+        const scroller = touchScroller(declare);
+        expect(scroller, 'Declare sits below the window with nothing to scroll it into view').not.toBeNull();
+        scroller!.scrollTop = scroller!.scrollHeight;
+      }
+      const shown = declare.getBoundingClientRect();
+      expect(shown.bottom).toBeLessThanOrEqual(view.innerHeight);
+      expect(declare.contains(canvasElement.ownerDocument.elementFromPoint(shown.left + 4, shown.top + 4))).toBe(true);
+      /* The bar holds its whole content, so Declare sits inside its frame. */
+      expect(shown.bottom).toBeLessThanOrEqual(bar.getBoundingClientRect().bottom);
+    });
+  },
+});
+
 export const DeterminingElsewhere = meta.story({
   beforeEach: install(() => {
     const snapshot = mentatSnapshot('seat-2', { prediction: true });

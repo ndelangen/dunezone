@@ -48,9 +48,11 @@ It never executes past commands again.
 
 The history table holds two kinds of row (`workers/game/sessionHistory.ts`). A `checkpoint` stores
 the whole snapshot. It is written for a reset, for the step that leaves setup (the Next that opens
-Turn 1), for a revealed battle that settles (by agreed outcome or by cancel), and by `GameSession` for the faction
-assignment and the setup cleanup. Every other playback step is a `patch` against the step before
-it: phase and turn changes, declaring a result and continuing past it, setup actions, Ready while
+Turn 1), for every later phase change that moves into another turn, for a revealed battle that
+settles (by agreed outcome or by cancel), and by `GameSession` for the faction assignment and the
+setup cleanup, so a restore never replays more than one turn of patches however long the table
+plays without a battle. Every other playback step is a `patch` against the step before it: phase
+changes within a turn, declaring a result and continuing past it, setup actions, Ready while
 setup gates on it, and a battle's reveal. A restore loads the latest checkpoint at or before the
 step and replays the patches after it, checking that each row's `base_revision` matches. `diff` in
 `workers/game/history.ts` changes an array entry by entry when that is smaller than storing it

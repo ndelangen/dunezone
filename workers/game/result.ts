@@ -11,8 +11,9 @@ import type { StoredSnapshot } from './state';
 /*
  * Determine winner, its declaration and Continue playing. Each is one seated player's act and
  * changes nothing on the table: the phase, pieces, spice reserves, hands and predictions stay as they are,
- * so continuing returns to Mentat pause of the same turn. The caller owns the transaction, the
- * log rows and the directory summary.
+ * so continuing returns to Mentat pause of the same turn. Continuing clears readiness, so the players
+ * agree afresh before the phase moves on. The caller owns the transaction, the log rows and the
+ * directory summary.
  */
 export function applyResult(snapshot: StoredSnapshot, viewer: Viewer, action: ResultAction, now: number) {
   if (!snapshot.stage || viewer.viewerSeat === SPECTATOR_SEAT) {
@@ -59,7 +60,8 @@ function resume(snapshot: StoredSnapshot) {
   if (snapshot.stage !== 'finished') {
     throw new GameRejection('Only a finished game can continue.');
   }
-  return changed({ ...snapshot, stage: 'play', result: null });
+  const controls = snapshot.controls && { ...snapshot.controls, ready: [] };
+  return changed({ ...snapshot, stage: 'play', result: null, controls });
 }
 
 /** One winner, an alliance of two or more, or none; each named once and each seated at this table. */

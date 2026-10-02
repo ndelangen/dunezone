@@ -8,11 +8,11 @@ import { useTabletop } from './TabletopContext';
 import { SPICE_DISC_COLOR } from './tableTrackers';
 
 export function SpiceBank({ radius }: Readonly<{ radius: number }>) {
-  const { canInteract, setHoveredPiece, state } = useTabletop();
+  const { canHandleTable, setHoveredPiece, state } = useTabletop();
   const keyboard = useTableKeyboard();
   const { renderer } = useThree();
   const [hovered, setHovered] = useState(false);
-  const enabled = canInteract && !state.draftMove;
+  const enabled = canHandleTable && !state.draftMove;
 
   useEffect(() => {
     if (!hovered || !enabled) {

@@ -10,7 +10,8 @@ import { createSpiceStack } from '@shared/play/spiceBank';
 import { stackTopHeight } from '@shared/play/tableGeometry';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
-import { STORYBOOK_NOW } from '@db/storybook';
+import { storedAuthTokenKey, STORED_PLAY_TABLE_PREFIX } from '@db/playTables';
+import { convexNeverAnswers, STORYBOOK_NOW } from '@db/storybook';
 
 import {
   AUDIT_LOG,
@@ -25,6 +26,8 @@ import {
   revealedPredictionSnapshot,
   session,
 } from './game.stories.fixture';
+import { browserGameRuntime } from './multiplayer/gameRuntime';
+import { storedTableText } from './multiplayer/storedTable';
 import {
   expectHeaderPhase,
   mapViewPoint,
@@ -370,14 +373,69 @@ export const ConversationOffline = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     await page.findByRole('tab', { name: 'Conversation' });
     session.transport.deliver({ type: 'admission', status: 'suspended' });
-    await expect(page.findByRole('combobox', { name: 'Faction conversation' })).resolves.toBeVisible();
+    /* The locked table keeps its conversation panel, so a message written while reconnecting waits there. */
+    await expect(
+      page.findByText('Offline. Pending messages will send after your faction access is checked.')
+    ).resolves.toBeVisible();
     await userEvent.type(page.getByRole('textbox', { name: 'Message' }), 'Send once I reconnect.');
     await userEvent.click(page.getByRole('button', { name: /^Send$/ }));
     await expect(page.findByText('Pending', { exact: true })).resolves.toBeVisible();
     expect(session.transport.messages.filter((entry) => entry.type === 'conversation-send')).toHaveLength(0);
-    await userEvent.click(page.getByRole('combobox', { name: 'Faction conversation' }));
-    const peers = await page.findByRole('listbox');
-    expect(peers.closest('[data-scheme-dark]')).not.toBeNull();
+  },
+});
+
+/* A tab that lost its connection keeps the last table on screen, read-only, with a reconnecting status beside the logo, until a fresh view arrives. */
+export const Reconnecting = meta.story({
+  beforeEach: install(() => productTransport('seat-2', playingSnapshot())),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await page.findByRole('tab', { name: 'Conversation' });
+    session.transport.deliver({ type: 'admission', status: 'suspended' });
+    const status = await page.findByRole('status', { name: /^Reconnecting\./ });
+    expect(status.closest('.seated-brand')).not.toBeNull();
+    expect(status.closest('[data-connection]')).toHaveAttribute('data-connection', 'suspended');
+    expect(page.getByText('Reconnecting', { exact: true })).toBeVisible();
+  },
+});
+
+/* A game this tab kept for a reload, at an address the story's directory never answers for. */
+const STORED_GAME = 'stored-game';
+
+/*
+ * A reload while neither the directory nor the table can be reached shows the table this tab kept, locked under the reconnecting bar, instead of the unreachable notice (#1746).
+ * The story stands in for the signed-in tab: an auth token naming the transport's viewer, and the table stored under it.
+ */
+export const ReloadedWhileUnreachable = meta.story({
+  args: { path: `/play/${STORED_GAME}` },
+  decorators: [convexNeverAnswers],
+  beforeEach: () => {
+    const transport = productTransport('seat-2', playingSnapshot(), { unreachable: true });
+    session.transport = transport;
+    session.runtime = transport.runtime;
+    const { viewer, snapshot } = transport.view(playingSnapshot());
+    const subject = btoa(JSON.stringify({ sub: `${viewer.userId}|story-session` }));
+    localStorage.setItem(storedAuthTokenKey(), `story.${subject}.token`);
+    const text = storedTableText(
+      STORED_GAME,
+      { viewer, snapshot, serverNow: STORYBOOK_NOW, pending: [] },
+      { userId: viewer.userId, sessionId: 'story-session' },
+      Date.now()
+    );
+    sessionStorage.setItem(`${STORED_PLAY_TABLE_PREFIX}${STORED_GAME}`, text!);
+    return () => {
+      transport.dispose();
+      localStorage.removeItem(storedAuthTokenKey());
+      sessionStorage.removeItem(`${STORED_PLAY_TABLE_PREFIX}${STORED_GAME}`);
+      session.runtime = browserGameRuntime;
+    };
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const bar = await page.findByText('Reconnecting', { exact: true }, { timeout: 30_000 });
+    expect(bar.closest('[data-connection]')).not.toHaveAttribute('data-connection', 'authorized');
+    await page.findByRole('tab', { name: 'Conversation' });
+    expect(page.queryByText("Can't reach the server. Retrying...")).toBeNull();
+    expect(session.transport.messages.filter((message) => message.type === 'command')).toEqual([]);
   },
 });
 
@@ -853,12 +911,18 @@ export const PanelSchemeIsland = meta.story({
     await userEvent.keyboard('{Escape}');
     await waitForFrame(() => expect(page.queryByRole('menu')).toBeNull());
     const help = page.getByRole('button', { name: 'Help: Spice reserve' });
+    /* By its words: the tab the panel opened from can show its own name tip at the same time. */
+    const spiceReserveTip = () =>
+      page.queryAllByRole('tooltip').find((tip) => tip.textContent?.includes('Only you see this balance')) ?? null;
     await userEvent.hover(help);
-    const tooltip = await waitForFrame(() => page.getByRole('tooltip'));
-    expect(tooltip).toHaveTextContent('Only you see this balance');
+    const tooltip = await waitForFrame(() => {
+      const tip = spiceReserveTip();
+      expect(tip).not.toBeNull();
+      return tip!;
+    });
     expect(view.getComputedStyle(tooltip).backgroundColor).toBe(glass);
     await userEvent.unhover(help);
-    await waitForFrame(() => expect(page.queryByRole('tooltip')).toBeNull());
+    await waitForFrame(() => expect(spiceReserveTip()).toBeNull());
     root.setAttribute('data-mantine-color-scheme', 'dark');
     expect(paint()).toEqual(light);
   },

@@ -7,7 +7,7 @@ const DRAW_HOLD_MS = 1000;
 
 type Controls = Pick<
   TabletopContextValue,
-  | 'canInteract'
+  | 'canHandleTable'
   | 'deckControls'
   | 'flipSelected'
   | 'hoveredPieceId'
@@ -128,9 +128,9 @@ export class TableKeyboard {
     this.drawCode = '';
   };
 
-  /* The hovered disc takes a digit, 0 meaning ten, while the viewer can act and holds no carry. */
-  private spiceBankAnswers(event: KeyboardEvent, { canInteract, state }: Controls) {
-    return this.spiceBankHovered && canInteract && !state.draftMove && !focusKeepsKey(event.target, 'spiceBank');
+  /* The hovered disc takes a digit, 0 meaning ten, while the viewer can handle the table and holds no carry. */
+  private spiceBankAnswers(event: KeyboardEvent, { canHandleTable, state }: Controls) {
+    return this.spiceBankHovered && canHandleTable && !state.draftMove && !focusKeepsKey(event.target, 'spiceBank');
   }
 
   private tableKey(event: KeyboardEvent, controls: Controls) {

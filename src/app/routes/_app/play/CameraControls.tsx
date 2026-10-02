@@ -15,6 +15,8 @@ import {
   mapViewTopLimitForViewport,
 } from './playView';
 import type { CameraViewCommand } from './playView';
+import { usePointerSession } from './PointerSessionContext';
+import { watchTwoFingerTilt } from './twoFingerTilt';
 
 const CAMERA_POSE_EPSILON_SQUARED = 0.000001;
 
@@ -145,11 +147,25 @@ function applyCameraDestination(
   return true;
 }
 
-/** The player's tilt, from the approved angle toward top-down, steered by the wheel over the board while the camera is free. */
+/** The player's tilt, from the approved angle toward top-down, steered by the wheel or two fingers over the board while the camera is free. */
 function useWheelTilt(enabled: boolean): number {
   const [tilt, setTilt] = useState(0);
   /* Only the board itself listens, so a scrollable panel or label over the table keeps its own wheel. */
   const surface = useThree((state) => state.renderer.domElement);
+  const pointerSession = usePointerSession();
+
+  /*
+   * Two fingers listen even while a press holds the table: the first finger usually lands on a piece,
+   * and the second one cancels that press, which frees the camera again.
+   */
+  useEffect(
+    () =>
+      watchTwoFingerTilt(surface, window, {
+        onStart: () => pointerSession.cancel(),
+        onTilt: (deltaY) => setTilt((current) => cameraTiltAfterWheel(current, deltaY)),
+      }),
+    [pointerSession, surface]
+  );
 
   useEffect(() => {
     if (!enabled) {
@@ -170,6 +186,32 @@ function useWheelTilt(enabled: boolean): number {
   return tilt;
 }
 
+/*
+ * The seated header's height, kept current as it grows or shrinks (a status row appearing, a phase's copy wrapping),
+ * so the map view reframes below it without waiting for a resize or a view command.
+ */
+function useSeatedHeaderHeight(canvas: HTMLCanvasElement): number {
+  const [height, setHeight] = useState(0);
+
+  useLayoutEffect(() => {
+    const header = canvas.closest('.dune-play-shell')?.querySelector<HTMLElement>('.seated-header');
+    if (!header) {
+      setHeight(0);
+      return;
+    }
+    const measure = () => setHeight(header.getBoundingClientRect().height);
+    measure();
+    if (typeof ResizeObserver === 'undefined') {
+      return;
+    }
+    const observer = new ResizeObserver(measure);
+    observer.observe(header);
+    return () => observer.disconnect();
+  }, [canvas]);
+
+  return height;
+}
+
 type SeatedCameraProps = {
   command: CameraViewCommand;
   enabled: boolean;
@@ -185,13 +227,10 @@ function useSeatedCameraTransition({ command, enabled, mapFramingPoints }: Seate
 
   useFrame(() => advanceCameraTransition(camera, controlsRef.current, playback.current, invalidate));
 
+  const headerHeight = useSeatedHeaderHeight(renderer.domElement);
+
   useLayoutEffect(() => {
     const controls = controlsRef.current;
-    const headerHeight =
-      renderer.domElement
-        .closest('.dune-play-shell')
-        ?.querySelector<HTMLElement>('.seated-header')
-        ?.getBoundingClientRect().height ?? 0;
     const mapTopLimit = mapViewTopLimitForViewport(size.height, headerHeight);
     const destination = cameraDestinationFor(
       { view: command.view, revision: command.revision },
@@ -217,7 +256,7 @@ function useSeatedCameraTransition({ command, enabled, mapFramingPoints }: Seate
     command.revision,
     command.view,
     enabled,
-    renderer,
+    headerHeight,
     invalidate,
     mapFramingPoints,
     size.height,

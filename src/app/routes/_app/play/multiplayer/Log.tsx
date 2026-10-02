@@ -35,7 +35,7 @@ export function LogEntries({
   const page = view.logHistory[tab];
   useEffect(() => {
     client.readLogHistory(tab);
-  }, [client, tab, table.liveRevision]);
+  }, [client, tab, table.liveRevision, table.reconnecting]);
   return (
     <Section helpOnly title={TITLES[tab]}>
       <Stack gap="md">

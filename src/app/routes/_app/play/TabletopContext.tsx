@@ -11,6 +11,7 @@ export type TabletopContextValue = Pick<
   TableProjection,
   | 'affordances'
   | 'spiceReserveControls'
+  | 'canHandleTable'
   | 'canInteract'
   | 'deckControls'
   | 'flippingPieceIds'

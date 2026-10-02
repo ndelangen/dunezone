@@ -29,6 +29,13 @@ const INITIAL_DESIGNS = [
     image: '/vector/icon/alliance.svg',
     influence: 0.5,
   },
+  {
+    key: 'prediction',
+    label: 'Prediction',
+    colors: ['#4B2A5E', '#2A153C'],
+    image: '/vector/icon/fate.svg',
+    influence: 0.5,
+  },
 ] satisfies {
   key: z.infer<typeof cardbackPresetKeySchema>;
   label: string;

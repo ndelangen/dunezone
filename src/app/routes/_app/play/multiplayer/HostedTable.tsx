@@ -1,4 +1,4 @@
-import { Anchor, Button, Group, List, NumberInput, Select, Stack, Text } from '@mantine/core';
+import { Anchor, Button, Group, List, Loader, NumberInput, Select, Stack, Text, Tooltip } from '@mantine/core';
 import { snapshotFactionLabels } from '@shared/play/factionLabels';
 import { emptyPublicControls } from '@shared/play/inventory';
 import type { SpawnSelection } from '@shared/play/inventory';
@@ -31,7 +31,7 @@ import { LogEntries } from './Log';
 import { PieceArtwork } from './PieceArtwork';
 import { PlayerPanel, RemovalDecisionBar } from './RemovalVotes';
 import { useResultCelebration } from './resultCelebration';
-import { GameMenu, SeatRequests } from './SeatRequests';
+import { GameMenu, SeatPopover, SeatRequests } from './SeatRequests';
 import { SwappingReadiness } from './Swapping';
 import { SwapScene } from './SwapScene';
 import { TableSession } from './TableSession';
@@ -87,7 +87,7 @@ function PlaybackControls({ client, table }: Pick<ConnectionControlsProps, 'clie
         ) : (
           <Button
             variant="default"
-            disabled={historyPending || !!table.state.draftMove}
+            disabled={historyPending || !!table.state.draftMove || table.reconnecting}
             onClick={() => client.requestHistory(0)}
           >
             Replay from start
@@ -410,7 +410,7 @@ function SharedInventory({ client, table }: Pick<ConnectionControlsProps, 'clien
         table.snapshot.stage !== 'setup' && (
           <Button
             variant="default"
-            disabled={!table.canInteract}
+            disabled={!table.canHandleTable}
             onClick={() => {
               if (!picker.open) {
                 client.catalogue();
@@ -427,7 +427,7 @@ function SharedInventory({ client, table }: Pick<ConnectionControlsProps, 'clien
         {table.snapshot.setup && (
           <Button
             variant="default"
-            disabled={!table.canInteract}
+            disabled={!table.canHandleTable}
             onClick={() => client.command({ kind: 'traitors-gather' })}
           >
             Gather tabletop traitors
@@ -438,6 +438,7 @@ function SharedInventory({ client, table }: Pick<ConnectionControlsProps, 'clien
             <Select
               label="Catalogue asset"
               searchable
+              disabled={table.reconnecting}
               placeholder="Choose a deck, bundle or token"
               data={entries.map((entry) => ({ value: `${entry.type}/${entry.slug}`, label: entry.name }))}
               value={picker.selection ? `${picker.selection.type}/${picker.selection.slug}` : null}
@@ -447,7 +448,7 @@ function SharedInventory({ client, table }: Pick<ConnectionControlsProps, 'clien
               }}
             />
             <Button
-              disabled={!table.canInteract || !contents || !picker.selection}
+              disabled={!table.canHandleTable || !contents || !picker.selection}
               onClick={() => {
                 if (picker.selection) {
                   client.command({ kind: 'spawn-request', type: picker.selection.type, slug: picker.selection.slug });
@@ -473,7 +474,7 @@ function SharedInventory({ client, table }: Pick<ConnectionControlsProps, 'clien
             <Stack gap={4} key={piece.id} align="center">
               <Button
                 variant="transparent"
-                disabled={!table.canInteract || table.reservedPieceIds.has(piece.id)}
+                disabled={!table.canHandleTable || table.reservedPieceIds.has(piece.id)}
                 aria-label={`Drag ${piece.label} onto the table`}
                 style={{ height: 100, padding: 0, touchAction: 'none' }}
                 onPointerDown={(event) => {
@@ -505,14 +506,14 @@ function SharedInventory({ client, table }: Pick<ConnectionControlsProps, 'clien
             </Text>
             <Group gap="xs">
               <Button
-                disabled={!table.canInteract || request.requesterSeat === table.viewer.viewerSeat}
+                disabled={!table.canHandleTable || request.requesterSeat === table.viewer.viewerSeat}
                 onClick={() => client.command({ kind: 'spawn-approve', requestId: request.id })}
               >
                 Approve
               </Button>
               <Button
                 variant="default"
-                disabled={!table.canInteract}
+                disabled={!table.canHandleTable}
                 onClick={() => client.command({ kind: 'spawn-dismiss', requestId: request.id })}
               >
                 Dismiss
@@ -553,10 +554,10 @@ function SpiceReserveControls({ client, table }: Pick<ConnectionControlsProps, '
             min={1}
             allowDecimal={false}
             allowNegative={false}
-            disabled={!table.canInteract}
+            disabled={!table.canHandleTable}
           />
           <Button
-            disabled={!table.canInteract || !validAmount}
+            disabled={!table.canHandleTable || !validAmount}
             onClick={() => client.command({ kind: 'bank-withdraw', amount: Number(amount) })}
           >
             Withdraw spice
@@ -629,19 +630,46 @@ function SpiceHistory({ client, table }: Pick<ConnectionControlsProps, 'client' 
   );
 }
 
+/* While a lost connection is restored the last table stays on screen, read-only, under this line. */
+/* While the table is locked the top bar says so beside the logo in one short line; the sentence behind it is the tooltip and the accessible description, and a phone keeps only the spinner. */
+function ConnectionStatus({ table }: Readonly<{ table: TableProjection }>) {
+  if (!table.reconnecting) {
+    return null;
+  }
+  const detail = 'The table shows its last saved state. Actions are paused until it is back.';
+  return (
+    <Tooltip label={detail} withinPortal>
+      <Group gap={6} wrap="nowrap" role="status" aria-label={`Reconnecting. ${detail}`}>
+        <Loader size="xs" />
+        <Text size="sm" fw={700} visibleFrom="sm" aria-hidden>
+          Reconnecting
+        </Text>
+      </Group>
+    </Tooltip>
+  );
+}
+
 function ConnectedTable({
   client,
   table,
   error,
+  connection,
 }: Readonly<{
   client: TableSession;
   table: TableProjection;
   error: string | null;
+  connection: string;
 }>) {
   const progress = tableProgressFor(table.snapshot.phase, table.snapshot.phases);
   const celebration = useResultCelebration(table);
   /* Giving up a seat starts in the game menu and is confirmed in the decision bar, so the two share one flag. */
   const [leaving, setLeaving] = useState(false);
+  /* The confirmation is about the seat held when it opened: leaving, a removal vote or a new seat closes it, so a player seated again is not asked to give up the new seat. */
+  const [leavingFrom, setLeavingFrom] = useState(table.viewer.viewerSeat);
+  if (leavingFrom !== table.viewer.viewerSeat) {
+    setLeavingFrom(table.viewer.viewerSeat);
+    setLeaving(false);
+  }
   const [playerSelection, selectPlayer] = useReducer(
     (
       _: { seat: string | null; vote: string | null; tab: 'public' | 'conversation' },
@@ -660,12 +688,13 @@ function ConnectedTable({
   return (
     <TabletopSessionProvider session={client} table={table}>
       {/* A boxless wrapper carries the connection state the browser verification waits on, whichever tab is open. */}
-      <div data-connection="authorized" data-revision={table.liveRevision} style={{ display: 'contents' }}>
+      <div data-connection={connection} data-revision={table.liveRevision} style={{ display: 'contents' }}>
         <GameTable
           seatCount={table.snapshot.roster?.seatCount ?? DEFAULT_TABLE_SEAT_COUNT}
           tableProgress={progress}
           stage={stage}
           mapVisible={setupMapVisible(table.snapshot.setup)}
+          connectionStatus={<ConnectionStatus table={table} />}
           toolbarControl={
             inPlay || (stage === 'setup' && table.snapshot.setup) ? (
               <PhaseNavigation client={client} table={table} />
@@ -701,8 +730,11 @@ function ConnectedTable({
                 leaving={leaving}
                 onStay={() => setLeaving(false)}
                 readiness={
+                  /* A spectator has no draft to ready, so drafting gives them no readiness row at all. */
                   stage === 'drafting' ? (
-                    <DraftingReadiness client={client} table={table} />
+                    table.viewer.viewerSeat === SPECTATOR_SEAT ? undefined : (
+                      <DraftingReadiness client={client} table={table} />
+                    )
                   ) : stage === 'swapping' ? (
                     <SwappingReadiness client={client} table={table} />
                   ) : undefined
@@ -712,11 +744,14 @@ function ConnectedTable({
             </Stack>
           }
           gameMenu={
-            <GameMenu
-              table={table}
-              onLeave={() => setLeaving(true)}
-              onClearConfetti={celebration.hasConfetti ? celebration.clear : undefined}
-            />
+            <>
+              <SeatPopover client={client} table={table} error={error} />
+              <GameMenu
+                table={table}
+                onLeave={() => setLeaving(true)}
+                onClearConfetti={celebration.hasConfetti ? celebration.clear : undefined}
+              />
+            </>
           }
           stageStatus={
             stage === 'drafting' ? (
@@ -897,7 +932,7 @@ export default function HostedTable({ gameId, exitControl }: Readonly<{ gameId: 
   }
   return (
     <ServerClockContext.Provider value={view.table.serverNow}>
-      <ConnectedTable client={client} table={view.table} error={view.error} />
+      <ConnectedTable client={client} table={view.table} error={view.error} connection={view.status} />
     </ServerClockContext.Provider>
   );
 }
