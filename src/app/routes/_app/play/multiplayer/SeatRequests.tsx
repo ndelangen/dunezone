@@ -122,6 +122,10 @@ function SpectatorBar({ client, table, readiness }: BarProps) {
   const seatCount = table.snapshot.roster?.seatCount ?? seated;
   const selected = chosen && open.includes(chosen) ? chosen : (open[0] ?? null);
   const full = !drafting && open.length === 0;
+  /* With no seat to ask for, the bar gives way to a removal vote or the end of the game, as a player's does. */
+  if (full && !readiness && (table.snapshot.removalVotes?.length || table.snapshot.ending || table.snapshot.result)) {
+    return null;
+  }
   const request: SeatAction =
     drafting || !selected ? { kind: 'seat-request' } : { kind: 'seat-request', seat: selected };
   return (
@@ -132,7 +136,9 @@ function SpectatorBar({ client, table, readiness }: BarProps) {
       context={
         drafting
           ? `${seated} ${seated === 1 ? 'player is' : 'players are'} drafting. One current player's approval seats you; until then you watch.`
-          : `${seated} of ${seatCount} seats are taken. One current player's approval seats you; until then you watch.`
+          : full
+            ? `All ${seatCount} seats are taken, so you watch. If a seat opens, you can ask for it here.`
+            : `${seated} of ${seatCount} seats are taken. One current player's approval seats you; until then you watch.`
       }
       action={
         <Group gap="xs" wrap="nowrap">
@@ -227,9 +233,10 @@ export function GameMenu({
 function PlayerBar({ client, table, readiness }: BarProps) {
   const controls = table.snapshot.controls ?? emptyPublicControls();
   const request = controls.seatRequests[0];
-  /* A removal vote or the end of the game has its own bar; "nobody is asking" would only add noise beside it. */
+  /* A removal vote or the end of the game has its own bar; "nobody is asking" would only add noise beside it.
+     Past drafting it would only take height from the dock's tabs, so the bar comes back with the next request. */
   const otherBar = table.snapshot.removalVotes?.length || table.snapshot.ending || table.snapshot.result;
-  if (!request && otherBar && !readiness) {
+  if (!request && (otherBar || table.snapshot.stage !== 'drafting') && !readiness) {
     return null;
   }
   if (!request) {
