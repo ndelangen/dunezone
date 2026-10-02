@@ -114,6 +114,9 @@ function samePlace(before: GameSnapshot, after: GameSnapshot) {
   );
 }
 
+/** Commits that leave the table a player readied for as it was: readiness itself, and a spectator asking for a seat or withdrawing the request. */
+const SETTLED_ACTIONS = new Set<string>([...READINESS_ACTIONS, 'seat-request', 'seat-withdraw']);
+
 export class Room {
   public snapshot: StoredSnapshot;
   readonly epoch = crypto.randomUUID();
@@ -148,12 +151,12 @@ export class Room {
     }
   }
 
-  /** Commits one command; readiness that left the game in place keeps the table settled, so another seat's readiness against the same table still lands. */
+  /** Commits one command; readiness or a seat request that left the game in place keeps the table settled, so another seat's readiness against the same table still lands. */
   commit(kind: string | undefined, apply: () => void) {
     const before = this.snapshot;
     const settled = this.settledRevision;
     apply();
-    if (kind && READINESS_ACTIONS.has(kind) && samePlace(before, this.snapshot)) {
+    if (kind && SETTLED_ACTIONS.has(kind) && samePlace(before, this.snapshot)) {
       this.settledRevision = settled;
     }
   }

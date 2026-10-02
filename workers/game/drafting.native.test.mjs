@@ -451,6 +451,20 @@ describe('Drafting and public assignment on a real game', () => {
     expect(dealt.snapshot.roster.seats.map((seat) => seat.faction?.id).sort()).toEqual(['emperor', 'harkonnen']);
   });
 
+  it("lets a Ready cross a spectator's seat request and withdrawal, which leave the draft as the player saw it", async () => {
+    const a = await admit('a');
+    const b = await admit('b');
+    await seat(b, a);
+    const watcher = await admit('w');
+    await accepted(a, { kind: 'draft-pick', factionId: 'harkonnen' });
+    const seen = await syncView(b);
+    await accepted(watcher, { kind: 'seat-request' });
+    await accepted(watcher, { kind: 'seat-withdraw' });
+    const crossing = await sendCommand(b, { kind: 'draft-ready', ready: true }, undefined, seen.snapshot.revision);
+    expect(crossing.reply.type).not.toBe('rejected');
+    expect((await syncView(a)).snapshot.draft.ready).toEqual(['seat-2']);
+  });
+
   it('closes a request for a drafting place at the deal, so it cannot hold up a request for a vacant seat', async () => {
     const a = await admit('a');
     const b = await admit('b');
