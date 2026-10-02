@@ -33,6 +33,7 @@ import { DarkSchemeIsland } from '../DarkSchemeIsland';
 import { PointerSessionContext, usePointerSession } from '../PointerSessionContext';
 import { TABLE_PLATE_BOUNDS } from '../tablePlateGeometry';
 import styles from './BattleControls.module.css';
+import { battleCapsuleY, headerInset } from './battlePlacement';
 import { PieceArtwork } from './PieceArtwork';
 import type { TableSession, TableProjection } from './TableSession';
 
@@ -558,22 +559,18 @@ type Placement = { anchor: [number, number]; capsule: [number, number] };
 function battlePlacement(
   battleAnchor: PublicBattle['anchor'],
   camera: Camera,
-  size: { width: number; height: number }
+  size: { width: number; height: number },
+  canvas: HTMLCanvasElement
 ): Placement {
   const projected = new Vector3(...battleAnchor).project(camera);
   const anchor: [number, number] = [
     Math.round(((projected.x + 1) * size.width) / 2),
     Math.round(((1 - projected.y) * size.height) / 2),
   ];
-  const verticalMidpoint = size.height / 2;
-  const territoryIsAbove = anchor[1] < verticalMidpoint;
-  const capsuleY = territoryIsAbove
-    ? Math.max(verticalMidpoint + 1, Math.min(size.height - 150, anchor[1] + 250))
-    : Math.min(verticalMidpoint - 1, Math.max(160, anchor[1] - 250));
-  return { anchor, capsule: [size.width / 2, capsuleY] };
+  return { anchor, capsule: [size.width / 2, battleCapsuleY(anchor[1], size.height, headerInset(canvas))] };
 }
 function useBattlePlacement(battle: PublicBattle | null | undefined) {
-  const { camera, size } = useThree();
+  const { camera, size, renderer } = useThree();
   const [placement, place] = useReducer(
     (before: Placement, next: Placement) => (JSON.stringify(before) === JSON.stringify(next) ? before : next),
     { anchor: [0, 0], capsule: [0, 0] }
@@ -582,7 +579,7 @@ function useBattlePlacement(battle: PublicBattle | null | undefined) {
     if (!battle) {
       return;
     }
-    place(battlePlacement(battle.anchor, camera, size));
+    place(battlePlacement(battle.anchor, camera, size, renderer.domElement));
   });
   return placement;
 }
@@ -827,6 +824,7 @@ function BattleSides(props: ActiveProps) {
 }
 function BattleCallout({ client, table, battle, placement }: Props & { battle: PublicBattle; placement: Placement }) {
   const pointerSession = usePointerSession();
+  const canvas = useThree((state) => state.renderer.domElement);
   const { anchor, capsule } = placement;
   const faction = table.snapshot.bank?.factionId;
   const own = faction ? battle.sides.findIndex((side) => side?.factionId === faction) : -1;
@@ -837,7 +835,7 @@ function BattleCallout({ client, table, battle, placement }: Props & { battle: P
       position={battle.anchor}
       center
       zIndexRange={[10, 0]}
-      calculatePosition={(_, camera, size) => battlePlacement(battle.anchor, camera, size).capsule}
+      calculatePosition={(_, camera, size) => battlePlacement(battle.anchor, camera, size, canvas).capsule}
     >
       <PointerSessionContext value={pointerSession}>
         <DarkSchemeIsland>
