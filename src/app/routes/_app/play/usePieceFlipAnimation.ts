@@ -47,7 +47,7 @@ export function usePieceFlipAnimation(
   const previousPiece = useRef(piece);
   const motion = useRef(createPieceFlipMotion(piece.flipRevision ?? 0));
   const faceReadyRef = useRef(faceReady);
-  const { invalidate } = useThree();
+  const invalidate = useThree((state) => state.invalidate);
   useLayoutEffect(() => {
     faceReadyRef.current = faceReady;
   }, [faceReady]);

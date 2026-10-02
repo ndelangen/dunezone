@@ -10,7 +10,7 @@ export function useDeckShuffleAnimation(piece: TablePiece, interrupted: boolean)
   const group = useRef<Group>(null);
   const previous = useRef(piece.shuffleRevision ?? 0);
   const started = useRef<number | null>(null);
-  const { invalidate } = useThree();
+  const invalidate = useThree((state) => state.invalidate);
   const motionAllowed = useMotionAllowed();
   useLayoutEffect(() => {
     const revision = piece.shuffleRevision ?? 0;

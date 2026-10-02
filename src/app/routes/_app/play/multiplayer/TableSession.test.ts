@@ -2,7 +2,7 @@ import { emptyBattlePlan, fixtureCombatFaces } from '@shared/play/battle';
 import { initialSnapshot, nextSnapshot } from '@shared/play/commands';
 import { PHASE_CHANGE_COOLDOWN_MS } from '@shared/play/phases';
 import { tableForViewer } from '@shared/play/protocol';
-import type { GameSnapshot, ServerMessage, Viewer } from '@shared/play/protocol';
+import type { ActivityChange, GameSnapshot, ServerMessage, Viewer } from '@shared/play/protocol';
 import { flipPieceInState } from '@shared/play/tableState';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
@@ -80,7 +80,8 @@ function deliverGap(completedCommandId?: string) {
 
 /* A tab that lost its connection keeps the last table on screen, read-only, until a fresh view. */
 function expectLocked(client: TableSession) {
-  expect(table(client)).toMatchObject({ reconnecting: true, canInteract: false, affordances: [], pointers: [] });
+  expect(table(client)).toMatchObject({ reconnecting: true, canInteract: false, affordances: [] });
+  expect(client.getPointers()).toEqual([]);
   expect(table(client).state.draftMove).toBeNull();
 }
 
@@ -1087,7 +1088,7 @@ describe('hosted table interaction', () => {
     expect(table(client).renderedPieces.filter((piece) => piece.id === source.id)).toHaveLength(1);
     expect(table(client).renderedPieces.find((piece) => piece.id === source.id)?.position).toEqual([1, 0.38, 1]);
     expect(table(client).reservedPieceIds.has(source.id)).toBe(true);
-    expect(table(client).pointers).toHaveLength(1);
+    expect(client.getPointers()).toHaveLength(1);
     socket().deliver({
       type: 'update',
       epoch: 'epoch-one',
@@ -1097,7 +1098,7 @@ describe('hosted table interaction', () => {
     });
     expect(table(client).reservedPieceIds.size).toBe(0);
     expect(table(client).renderedPieces.find((piece) => piece.id === source.id)?.position).toEqual(source.position);
-    expect(table(client).pointers).toHaveLength(0);
+    expect(client.getPointers()).toHaveLength(0);
   });
 
   test('a clock 60 s fast keeps the own granted carry until a Worker frame no longer holds it', async () => {
@@ -1173,7 +1174,7 @@ test('compact update gaps pause commands until a full resync restores the table'
       ],
     },
   });
-  expect(table(client).pointers).toHaveLength(1);
+  expect(client.getPointers()).toHaveLength(1);
   expect(table(client).snapshot).toEqual(snapshot);
 
   const spectator = { ...viewer, viewerSeat: 'neutral' };
@@ -1416,5 +1417,103 @@ describe('fresh reconnect recovery', () => {
     authorize({ ...saved, revision: saved.revision + 1, table: { ...saved.table, pieces } });
     expect(table(client).state.draftMove).toBeNull();
     expect(client.getSnapshot().error).toBeNull();
+  });
+});
+
+describe('pointer moves', () => {
+  const other = {
+    connectionId: 'other',
+    viewerSeat: 'atreides',
+    displayName: 'Two',
+    color: '#000',
+    position: [1, 0, 0],
+    updatedAt: 1,
+  } satisfies ActivityChange['pointers'][number];
+  const pointerUpdate = (sequence: number, activity: Partial<ActivityChange>) =>
+    socket().deliver({
+      type: 'update',
+      epoch: 'epoch-one',
+      baseSequence: sequence - 1,
+      sequence,
+      activity: { ...noActivity, ...activity },
+    });
+
+  test("another player's pointer moving leaves the table as it was and tells only the pointer listeners", async () => {
+    const client = await connected();
+    socket().deliver(view({ sequence: 1 }));
+    pointerUpdate(2, { pointers: [other] });
+    const before = client.getSnapshot();
+    const tableListener = vi.fn();
+    const pointerListener = vi.fn();
+    client.subscribe(tableListener);
+    client.subscribePointers(pointerListener);
+
+    pointerUpdate(3, { pointerMoves: [{ connectionId: 'other', position: [2, 0, 0], updatedAt: 2 }] });
+
+    expect(client.getSnapshot()).toBe(before);
+    expect(tableListener).not.toHaveBeenCalled();
+    expect(pointerListener).toHaveBeenCalledTimes(1);
+    expect(client.getPointers()).toMatchObject([{ connectionId: 'other', position: [2, 0, 0] }]);
+  });
+
+  test('a pointer that moves with a carried piece still updates the table', async () => {
+    const client = await connected();
+    socket().deliver(view({ sequence: 1 }));
+    const source = table(client).snapshot.table.pieces.find((piece) => piece.id === 'harkonnen-force-stack')!;
+    const carry = {
+      ...viewer,
+      connectionId: 'other',
+      id: 'other-carry',
+      held: { ...source, position: [1, 0.38, 1] },
+      withdrawnCounts: { [source.id]: source.items.length },
+      reservedIds: [source.id],
+      expiresAt: Date.now() + 8000,
+    } satisfies ActivityChange['carries'][number];
+    pointerUpdate(2, { pointers: [other], carries: [carry] });
+    const before = client.getSnapshot();
+
+    pointerUpdate(3, {
+      pointerMoves: [{ connectionId: 'other', position: [2, 0, 0], updatedAt: 2 }],
+      carryMoves: [{ id: 'other-carry', position: [2, 0.38, 2], orientation: 0, expiresAt: Date.now() + 8000 }],
+    });
+
+    expect(client.getSnapshot()).not.toBe(before);
+    expect(table(client).renderedPieces.find((piece) => piece.id === source.id)?.position).toEqual([2, 0.38, 2]);
+  });
+
+  test('a table hearing only pointer moves still re-saves its kept copy, a few seconds apart', async () => {
+    const tables = { read: () => null, save: vi.fn(), clear: vi.fn() };
+    const client = new TableSession('fixture-one', ticket, { ...runtime, tables });
+    disconnect = client.connect();
+    await vi.advanceTimersByTimeAsync(0);
+    socket().open();
+    authorize(initialSnapshot(), viewer);
+    socket().deliver(view({ sequence: 1 }));
+    pointerUpdate(2, { pointers: [other] });
+    const move = (sequence: number) =>
+      pointerUpdate(sequence, {
+        pointerMoves: [{ connectionId: 'other', position: [sequence, 0, 0], updatedAt: sequence }],
+      });
+
+    /* The pointer arriving was itself a pointer-only update, so it saved. */
+    tables.save.mockClear();
+    move(3);
+    move(4);
+    expect(tables.save).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(5000);
+    move(5);
+    expect(tables.save).toHaveBeenCalledTimes(1);
+    expect(tables.save).toHaveBeenLastCalledWith('fixture-one', expect.anything(), true);
+    expect(client.getPointers()).toMatchObject([{ position: [5, 0, 0] }]);
+  });
+
+  test("a pointer move does not hide the phase cooldown's end", async () => {
+    const client = await connected();
+    socket().deliver({ ...view({ sequence: 1 }), phaseCooldownMs: 1500 });
+    expect(table(client).phaseCooling).toBe(true);
+    pointerUpdate(2, { pointers: [other] });
+    vi.advanceTimersByTime(1600);
+    pointerUpdate(3, { pointerMoves: [{ connectionId: 'other', position: [2, 0, 0], updatedAt: 2 }] });
+    expect(table(client).phaseCooling).toBe(false);
   });
 });
