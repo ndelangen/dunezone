@@ -883,7 +883,7 @@ export class GameSession {
         position: entry.position,
       }))
     );
-    const controls = dealt.controls ?? emptyPublicControls();
+    const controls = this.participation.closeRosterRequests(dealt.controls ?? emptyPublicControls(), Date.now());
     return this.withRoster({
       ...dealt,
       stage: 'swapping' as const,

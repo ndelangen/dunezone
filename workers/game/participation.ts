@@ -308,6 +308,18 @@ export class Participation {
     return next;
   }
 
+  /**
+   * The deal fixes the seating, so a request for a drafting place can never be granted after it.
+   * Such requests close with the draft, inside the deal's transaction, and leave the public list.
+   */
+  closeRosterRequests(controls: StoredControls, now: number): StoredControls {
+    this.storage.sql.exec(
+      "UPDATE seat_requests SET state='closed', resolved_at=? WHERE state='pending' AND seat IS NULL",
+      now
+    );
+    return { ...controls, seatRequests: controls.seatRequests.filter((request) => request.seat !== null) };
+  }
+
   /** Every request row that names a deleted user reads `[deleted user]` instead. */
   scrubNames(userId: string) {
     this.storage.sql.exec("UPDATE seat_requests SET display_name='[deleted user]' WHERE user_id=?", userId);

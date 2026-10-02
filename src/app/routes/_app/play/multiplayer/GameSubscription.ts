@@ -5,6 +5,7 @@ import {
   PLAY_TICKET_TTL_MS,
 } from '@shared/play/admission';
 import {
+  ADMISSION_UNAVAILABLE_CLOSE_CODE,
   KEEPALIVE_INTERVAL_MS,
   KEEPALIVE_PING,
   KEEPALIVE_PONG,
@@ -66,8 +67,8 @@ export class GameSubscription {
   private connectionStatus: Status = 'connecting';
   /* Server time less monotonic time, the largest since this attempt connected: transit delay only ever makes a frame's reading smaller. */
   private serverOffset = Number.NEGATIVE_INFINITY;
-  /* Tickets that expired since the table last showed; each one doubles the wait before the next. */
-  private expiredTickets = 0;
+  /* Admissions retried since the table last showed, for a lapsed ticket or a Worker that could not reach Convex; each one doubles the wait before the next. */
+  private admissionRetries = 0;
   /** Why the last attempt failed before a table showed, kept on screen through the retries so a table that never answers never reads as still connecting. */
   private retryReason: string | null = null;
 
@@ -123,7 +124,7 @@ export class GameSubscription {
     this.wireView = null;
     this.resyncing = false;
     this.connectionStatus = 'suspended';
-    this.expiredTickets = 0;
+    this.admissionRetries = 0;
     this.retryReason = null;
   }
 
@@ -169,9 +170,14 @@ export class GameSubscription {
     this.scheduleReconnect(delay);
   }
 
+  /* Every retry asks for a new ticket, so the wait doubles to keep an outage from spending the ticket rate limits. */
+  private admissionRetryDelay() {
+    return Math.min(1000 * 2 ** this.admissionRetries++, PLAY_TICKET_RETRY_MAX_MS);
+  }
+
   private renewExpiredTicket() {
     this.changeStatus('suspended');
-    this.scheduleReconnect(Math.min(1000 * 2 ** this.expiredTickets++, PLAY_TICKET_RETRY_MAX_MS));
+    this.scheduleReconnect(this.admissionRetryDelay());
   }
 
   private async open() {
@@ -295,6 +301,10 @@ export class GameSubscription {
       }
       if (event.code === TICKET_EXPIRED_CLOSE_CODE) {
         this.renewExpiredTicket();
+        return;
+      }
+      if (event.code === ADMISSION_UNAVAILABLE_CLOSE_CODE) {
+        this.retryAfterFailure('The table is temporarily unavailable.', this.admissionRetryDelay());
         return;
       }
       if (event.code === 4401) {
@@ -440,7 +450,7 @@ export class GameSubscription {
 
   private receiveView(message: RoomView) {
     this.sawView = true;
-    this.expiredTickets = 0;
+    this.admissionRetries = 0;
     this.retryReason = null;
     const previous = this.acceptView(message);
     this.resyncing = false;

@@ -67,6 +67,8 @@ type GameTableProps = {
   /** The game menu in the toolbar, present in every stage: what a player can do about their own seat. Previous and Next stay rightmost. */
   gameMenu?: ReactNode;
   toolbarControl?: ReactNode;
+  /** The connection's state, beside the logo where the bar has room, present only while the table is not live. */
+  connectionStatus?: ReactNode;
   showStormControls: boolean;
   seatCount: TableSeatCount;
   tableProgress: TableProgress;
@@ -159,7 +161,7 @@ function SelectedPieceControl() {
           variant="default"
           aria-describedby={helpId}
           aria-busy={control.isFlipping}
-          disabled={control.disabled || !table.canInteract}
+          disabled={control.disabled || !table.canHandleTable}
           onClick={() => table.flipSelected()}
         >
           {control.label}
@@ -175,7 +177,7 @@ function SelectedPieceControl() {
 }
 
 function StormControls({ helpOnly = false }: { helpOnly?: boolean }) {
-  const { canInteract, moveStormBy, state } = useTabletop();
+  const { canHandleTable, moveStormBy, state } = useTabletop();
   return (
     <Section
       helpOnly={helpOnly}
@@ -184,13 +186,13 @@ function StormControls({ helpOnly = false }: { helpOnly?: boolean }) {
       description="Advance the highlighted sector counter-clockwise around Arrakis."
     >
       <Group gap="sm">
-        <Button variant="default" disabled={!canInteract} onClick={() => moveStormBy(-1)}>
+        <Button variant="default" disabled={!canHandleTable} onClick={() => moveStormBy(-1)}>
           Back one
         </Button>
         <Text component="output" aria-live="polite">
           <strong>Sector {state.stormSectorIndex + 1}</strong> of {TABLE_SECTOR_COUNT}
         </Text>
-        <Button disabled={!canInteract} onClick={() => moveStormBy(1)}>
+        <Button disabled={!canHandleTable} onClick={() => moveStormBy(1)}>
           Advance one
         </Button>
       </Group>
@@ -396,7 +398,7 @@ function PanelPanes({ children, secondary }: Readonly<{ children: ReactNode; sec
 }
 
 function SpiceSupplyControls() {
-  const { canInteract, spawnSpice, state } = useTabletop();
+  const { canHandleTable, spawnSpice, state } = useTabletop();
   return (
     <Section
       title="Spice supply"
@@ -408,7 +410,7 @@ function SpiceSupplyControls() {
             key={count}
             variant="default"
             size="compact-sm"
-            disabled={!canInteract || !!state.draftMove}
+            disabled={!canHandleTable || !!state.draftMove}
             aria-label={`Spawn ${count} spice`}
             onClick={() => spawnSpice(count)}
           >
@@ -485,6 +487,7 @@ export function GameTable({
   panelContent,
   playerPanel,
   toolbarControl,
+  connectionStatus,
   showStormControls,
   seatCount,
   tableProgress,
@@ -556,6 +559,7 @@ export function GameTable({
             <header className="seated-header" inert={overlaysInert} data-hides-cursor>
               <div className="seated-brand">
                 <img className="seated-brand__logo" src="/web/logo.svg" alt="Dune" />
+                {connectionStatus}
               </div>
 
               <div className="seated-phase-status" aria-live="polite">
