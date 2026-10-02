@@ -10,7 +10,7 @@ import {
   publishedHref,
 } from '../src/shared/asset-publishing/publicationTargets';
 import { CanonicalFactionStoredSchema, toStoredHeroKey } from '../src/shared/factions/schema';
-import { assetSupplySchema, factionDefinitionSchema, rulesetSupplySchema } from '../src/shared/play/capture';
+import { assetSupplySchema, factionDefinitionWireSchema, rulesetSupplySchema } from '../src/shared/play/capture';
 import { playDraftableFactionsSchema } from '../src/shared/play/drafting';
 import type { Doc } from './_generated/dataModel';
 import type { QueryCtx } from './_generated/server';
@@ -66,7 +66,7 @@ export const rulesetSupply = query({
  */
 export const factionDefinition = query({
   args: { factionId: v.string() },
-  returns: v.union(v.null(), zodToConvex(factionDefinitionSchema)),
+  returns: v.union(v.null(), zodToConvex(factionDefinitionWireSchema)),
   handler: async (ctx, args) => {
     const id = ctx.db.normalizeId('factions', args.factionId);
     const row = id ? await ctx.db.get('factions', id) : null;

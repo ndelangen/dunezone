@@ -17,7 +17,7 @@ const defaultFactionInput = {
   },
   themeColor: '#444444',
   leader: {
-    name: 'Faction leader',
+    name: 'Leader',
     image: LEADERS.options[0],
   },
   leaders: [
