@@ -83,6 +83,10 @@ export class Participation {
     if (!snapshot.stage) {
       throw new GameRejection('The fixture seats its players itself.');
     }
+    /* A finished game seats nobody new; an open request can still be withdrawn and a player can still leave. */
+    if (snapshot.stage === 'finished' && (action.kind === 'seat-request' || action.kind === 'seat-approve')) {
+      throw new GameRejection('The game is finished. Continue playing to take a seat.');
+    }
     const change = { ...command, controls: structuredClone(snapshot.controls ?? emptyPublicControls()) };
     switch (action.kind) {
       case 'seat-request':

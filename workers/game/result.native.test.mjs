@@ -262,8 +262,11 @@ describe('Determine winner and Continue playing', { timeout: 60_000 }, () => {
 
     /* The determiner leaves the seat, which ends the sequence; the other player determines instead. */
     await accepted(owner, { kind: 'result-open' });
+    const vacated = (await syncView(owner)).viewer.viewerSeat;
     await accepted(owner, { kind: 'seat-depart' });
     expect((await syncView(other)).snapshot.ending).toBeUndefined();
+    const asked = await accepted(observer, { kind: 'seat-request', seat: vacated });
+    const requestId = asked.snapshot.controls.seatRequests[0].id;
     await accepted(other, { kind: 'result-open' });
     const declared = await accepted(other, { kind: 'result-declare', result: 'faction', factionIds: ['harkonnen'] });
     const result = declared.snapshot.result;
@@ -318,6 +321,18 @@ describe('Determine winner and Continue playing', { timeout: 60_000 }, () => {
     }
     expect(await rejected(other, { kind: 'result-open' })).toBe(true);
     expect((await syncView(other)).snapshot.revision).toBe(declared.snapshot.revision);
+
+    /* A finished game seats nobody new, though a seat stands open: a request waiting from before the end can only be withdrawn. */
+    const seatRefusal = async (connection, action) => (await sendCommand(connection, action)).reply.message;
+    expect(await seatRefusal(newcomer, { kind: 'seat-request', seat: vacated })).toBe(
+      'The game is finished. Continue playing to take a seat.'
+    );
+    expect(await seatRefusal(other, { kind: 'seat-approve', requestId })).toBe(
+      'The game is finished. Continue playing to take a seat.'
+    );
+    const withdrawn = await accepted(observer, { kind: 'seat-withdraw' });
+    expect(withdrawn.snapshot.controls.seatRequests).toEqual([]);
+    expect(withdrawn.viewer.viewerSeat).toBe('neutral');
 
     /* A cold restart wakes finished, with the same result for a player and a watcher. */
     await runtime.restart();
