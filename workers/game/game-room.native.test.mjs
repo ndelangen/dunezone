@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
+import { PLAY_AUTH_RECOVERY_MS } from '../../src/shared/play/admission.ts';
 import { PHASE_CHANGE_COOLDOWN_MS } from '../../src/shared/play/phases.ts';
-import { TICKET_EXPIRED_CLOSE_CODE } from '../../src/shared/play/protocol.ts';
+import { ADMISSION_UNAVAILABLE_CLOSE_CODE, TICKET_EXPIRED_CLOSE_CODE } from '../../src/shared/play/protocol.ts';
 import { spiceSupplySlot } from '../../src/shared/play/spiceSupply.ts';
 import { tokenPage } from './native-catalogue.fixture.mjs';
 import {
@@ -480,6 +481,64 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     await eventually(() => refused.closed, 'refused ticket close');
     expect(refused.closeCode).toBe(4401);
     expect(refused.messages).toEqual([{ type: 'admission', status: 'denied' }]);
+  });
+
+  it('closes without a refusal when the account check fails at admission, and waits out its backoff before asking again', async () => {
+    expect((await provision(runtime)).status).toBe(200);
+    peer.watchMode = 'allow';
+    await admit();
+    /* A cold room holds no account lease, so the next admission checks every retained account. */
+    await runtime.restart();
+    peer.reconcileMode = 'error';
+    const unavailable = await openGame(runtime);
+    unavailable.send({ type: 'admit', ticket: 'd'.repeat(64) });
+    await eventually(() => unavailable.closed, 'unavailable admission close');
+    expect(unavailable.closeCode).toBe(ADMISSION_UNAVAILABLE_CLOSE_CODE);
+    expect(unavailable.messages).not.toContainEqual({ type: 'admission', status: 'denied' });
+    peer.reconcileMode = 'answer';
+    /* Inside the reconciliation's backoff a retry is closed again without reaching Convex. */
+    const requests = peer.requests.length;
+    const early = await openGame(runtime);
+    early.send({ type: 'admit', ticket: 'e'.repeat(64) });
+    await eventually(() => early.closed, 'admission inside the backoff');
+    expect(early.closeCode).toBe(ADMISSION_UNAVAILABLE_CLOSE_CODE);
+    expect(peer.requests.slice(requests).map((request) => request.function)).not.toContain(
+      'playAdmission:redeemTicket'
+    );
+    await runtime.clock(PLAY_AUTH_RECOVERY_MS + 1);
+    const retried = await openGame(runtime);
+    retried.send({ type: 'admit', ticket: 'f'.repeat(64) });
+    expect((await retried.message('view')).viewer.userId).toBe('user-a');
+  });
+
+  it('closes without a refusal when the ticket redemption fails, so the browser retries', async () => {
+    expect((await provision(runtime)).status).toBe(200);
+    peer.watchMode = 'allow';
+    peer.redemptionMode = 'error';
+    const unavailable = await openGame(runtime);
+    unavailable.send({ type: 'admit', ticket: 'c'.repeat(64) });
+    await eventually(() => unavailable.closed, 'unavailable redemption close');
+    expect(unavailable.closeCode).toBe(ADMISSION_UNAVAILABLE_CLOSE_CODE);
+    expect(unavailable.messages).toEqual([]);
+    peer.redemptionMode = 'busy';
+    const busy = await openGame(runtime);
+    busy.send({ type: 'admit', ticket: 'e'.repeat(64) });
+    await eventually(() => busy.closed, 'rate-limited redemption close');
+    expect(busy.closeCode).toBe(ADMISSION_UNAVAILABLE_CLOSE_CODE);
+    peer.redemptionMode = 'answer';
+    const retried = await openGame(runtime);
+    retried.send({ type: 'admit', ticket: 'd'.repeat(64) });
+    expect((await retried.message('view')).viewer.userId).toBe('user-a');
+  });
+
+  it('still denies an admission whose redemption answer it cannot read', async () => {
+    expect((await provision(runtime)).status).toBe(200);
+    peer.redemptionMode = 'malformed';
+    const malformed = await openGame(runtime);
+    malformed.send({ type: 'admit', ticket: 'c'.repeat(64) });
+    await eventually(() => malformed.closed, 'malformed redemption close');
+    expect(malformed.closeCode).toBe(4401);
+    expect(malformed.messages).toEqual([{ type: 'admission', status: 'denied' }]);
   });
 
   it('closes a redeemed socket that never obtained fresh authorization', async () => {

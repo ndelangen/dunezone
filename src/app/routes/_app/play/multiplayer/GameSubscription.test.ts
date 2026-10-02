@@ -1,6 +1,11 @@
-import { PLAY_REQUEST_TIMEOUT_MS, PLAY_TICKET_TTL_MS } from '@shared/play/admission';
+import { PLAY_REQUEST_TIMEOUT_MS, PLAY_TICKET_RETRY_MAX_MS, PLAY_TICKET_TTL_MS } from '@shared/play/admission';
 import { initialSnapshot } from '@shared/play/commands';
-import { KEEPALIVE_INTERVAL_MS, KEEPALIVE_PONG, TICKET_EXPIRED_CLOSE_CODE } from '@shared/play/protocol';
+import {
+  ADMISSION_UNAVAILABLE_CLOSE_CODE,
+  KEEPALIVE_INTERVAL_MS,
+  KEEPALIVE_PONG,
+  TICKET_EXPIRED_CLOSE_CODE,
+} from '@shared/play/protocol';
 import { frameChange } from '@shared/play/updates';
 import type { RoomView } from '@shared/play/updates';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
@@ -206,6 +211,48 @@ test('an expired ticket reconnects with a new one, waiting longer each time unti
   await vi.advanceTimersByTimeAsync(60_000);
   expect(subscription.status).toBe('denied');
   expect(requestTicket).toHaveBeenCalledTimes(5);
+});
+
+test('a Worker that could not reach Convex at admission is retried in the expired-ticket backoff until a view', async () => {
+  let issued = 0;
+  const requestTicket = vi.fn(async () => ({
+    ok: true as const,
+    ticket: String(++issued).repeat(64),
+    expiresInMs: 30_000,
+  }));
+  const subscription = new GameSubscription('game', requestTicket, runtime);
+  const listener = vi.fn();
+  stops.push(subscription.subscribe(listener));
+  await vi.advanceTimersByTimeAsync(0);
+  const opened = () => {
+    const socket = Socket.instances.at(-1)!;
+    socket.open();
+    return socket;
+  };
+  const unavailable = async (socket: Socket, wait: number) => {
+    socket.close(ADMISSION_UNAVAILABLE_CLOSE_CODE);
+    expect(subscription.status).toBe('suspended');
+    expect(listener.mock.lastCall?.[0]).toEqual({ type: 'connection', error: 'The table is temporarily unavailable.' });
+    const requested = requestTicket.mock.calls.length;
+    await vi.advanceTimersByTimeAsync(wait - 1);
+    expect(requestTicket).toHaveBeenCalledTimes(requested);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(requestTicket).toHaveBeenCalledTimes(requested + 1);
+  };
+  await unavailable(opened(), 1000);
+  await unavailable(opened(), 2000);
+  /* A lapsed ticket and an unavailable admission share one backoff. */
+  opened().close(TICKET_EXPIRED_CLOSE_CODE);
+  await vi.advanceTimersByTimeAsync(4000);
+  await unavailable(opened(), 8000);
+  await unavailable(opened(), 16_000);
+  await unavailable(opened(), PLAY_TICKET_RETRY_MAX_MS);
+  await unavailable(opened(), PLAY_TICKET_RETRY_MAX_MS);
+  const admitted = opened();
+  admitted.deliver(initial());
+  expect(subscription.status).toBe('authorized');
+  /* A view resets the wait. */
+  await unavailable(admitted, 1000);
 });
 
 test('a ticket that lapses before or while the socket opens waits in the same backoff as one the Worker turned away', async () => {
