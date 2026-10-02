@@ -155,7 +155,7 @@ export function draftStatus(gates: DraftGates): string {
     case !gates.enoughFactions:
       return 'Not enough factions in the pool';
     case !gates.allReady:
-      return `Waiting for ${gates.seated - gates.ready} to ready`;
+      return `Waiting for ${gates.seated - gates.ready} to be ready`;
     default:
       return 'Assigning seats';
   }

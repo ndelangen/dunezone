@@ -368,8 +368,8 @@ function SetupControls({ client, table }: SetupControlProps) {
             )}
             {step.kind === 'forces' &&
               instructions.map((entry) => (
+                /* A visible heading, not help-only: the faction name is what tells the lines apart. */
                 <Section
-                  helpOnly={Boolean(table.snapshot.stage)}
                   key={entry.factionId}
                   title={
                     table.snapshot.roster?.seats.find((seat) => seat.faction?.id === entry.factionId)?.faction?.name ??
