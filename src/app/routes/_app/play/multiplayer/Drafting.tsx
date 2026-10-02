@@ -196,74 +196,76 @@ export function DraftingOverlay({ client, table }: Props) {
   };
   return (
     <div className={styles.overlay} data-drafting-overlay="">
-      <section className={styles.zone} aria-label="Banned factions">
-        <h3 className={styles.zoneTitle}>Banned</h3>
-        <ul className={styles.zoneList}>
-          {bannedIds(draft).map((id) => {
-            const faction = factionById(draft, id);
-            return faction ? (
-              <li key={id}>
-                <FactionToken
-                  faction={faction}
-                  size={2.6}
-                  banned
-                  title={`${faction.name}, banned by ${names(players, bannersOf(draft, id))}`}
-                />
+      <div className={styles.layout}>
+        <section className={clsx(styles.zone, styles.zoneBanned)} aria-label="Banned factions">
+          <h3 className={styles.zoneTitle}>Banned</h3>
+          <ul className={styles.zoneList}>
+            {bannedIds(draft).map((id) => {
+              const faction = factionById(draft, id);
+              return faction ? (
+                <li key={id}>
+                  <FactionToken
+                    faction={faction}
+                    size={2.6}
+                    banned
+                    title={`${faction.name}, banned by ${names(players, bannersOf(draft, id))}`}
+                  />
+                </li>
+              ) : null;
+            })}
+          </ul>
+        </section>
+        <section className={styles.ledger} aria-label="Players">
+          <ol className={styles.ledgerList}>
+            {players.map((player) => (
+              <li key={player.seat} className={clsx(styles.ledgerRow, player.seat === own && styles.ledgerRowMine)}>
+                <span className={clsx(styles.side, styles.sideBans)}>
+                  {(draft.bans[player.seat] ?? []).map((id) => token(id, 1.7, player.seat === own, 'ban', player))}
+                </span>
+                <PlayerMark player={player} size={2.6} ready={draft.ready.includes(player.seat)} />
+                <span className={clsx(styles.side, styles.sidePicks)}>
+                  {(draft.picks[player.seat] ?? []).map((id) => token(id, 1.7, player.seat === own, 'pick', player))}
+                </span>
               </li>
-            ) : null;
-          })}
-        </ul>
-      </section>
-      <section className={styles.ledger} aria-label="Players">
-        <ol className={styles.ledgerList}>
-          {players.map((player) => (
-            <li key={player.seat} className={clsx(styles.ledgerRow, player.seat === own && styles.ledgerRowMine)}>
-              <span className={clsx(styles.side, styles.sideBans)}>
-                {(draft.bans[player.seat] ?? []).map((id) => token(id, 1.7, player.seat === own, 'ban', player))}
-              </span>
-              <PlayerMark player={player} size={2.6} ready={draft.ready.includes(player.seat)} />
-              <span className={clsx(styles.side, styles.sidePicks)}>
-                {(draft.picks[player.seat] ?? []).map((id) => token(id, 1.7, player.seat === own, 'pick', player))}
-              </span>
-            </li>
-          ))}
-          {Array.from({ length: open }, (_, index) => (
-            <li key={`open-${index}`} className={styles.ledgerRow}>
-              <span className={styles.side} />
-              <Avatar
-                size="2.6rem"
-                radius="50%"
-                variant="transparent"
-                color="gray"
-                className={styles.openSeat}
-                role="img"
-                aria-label="Open seat"
-                title="Open seat"
-              >
-                +
-              </Avatar>
-              <span className={styles.side} />
-            </li>
-          ))}
-        </ol>
-      </section>
-      <section className={clsx(styles.zone, styles.zoneDrafted)} aria-label="Drafted factions">
-        <h3 className={styles.zoneTitle}>Drafted</h3>
-        <ul className={clsx(styles.zoneList, styles.zoneListEnd)}>
-          {draftedPool(draft).map((id) => {
-            const faction = factionById(draft, id);
-            return faction ? (
-              <li key={id}>
-                <FactionToken
-                  faction={faction}
-                  size={2.6}
-                  title={`${faction.name}, drafted by ${names(players, pickersOf(draft, id))}`}
-                />
+            ))}
+            {Array.from({ length: open }, (_, index) => (
+              <li key={`open-${index}`} className={styles.ledgerRow}>
+                <span className={styles.side} />
+                <Avatar
+                  size="2.6rem"
+                  radius="50%"
+                  variant="transparent"
+                  color="gray"
+                  className={styles.openSeat}
+                  role="img"
+                  aria-label="Open seat"
+                  title="Open seat"
+                >
+                  +
+                </Avatar>
+                <span className={styles.side} />
               </li>
-            ) : null;
-          })}
-        </ul>
-      </section>
+            ))}
+          </ol>
+        </section>
+        <section className={clsx(styles.zone, styles.zoneDrafted)} aria-label="Drafted factions">
+          <h3 className={styles.zoneTitle}>Drafted</h3>
+          <ul className={clsx(styles.zoneList, styles.zoneListEnd)}>
+            {draftedPool(draft).map((id) => {
+              const faction = factionById(draft, id);
+              return faction ? (
+                <li key={id}>
+                  <FactionToken
+                    faction={faction}
+                    size={2.6}
+                    title={`${faction.name}, drafted by ${names(players, pickersOf(draft, id))}`}
+                  />
+                </li>
+              ) : null;
+            })}
+          </ul>
+        </section>
+      </div>
     </div>
   );
 }
@@ -368,11 +370,11 @@ function FactionRow({
           {why ?? factionTag(faction)}
         </Text>
       </div>
-      <Group gap="xs">
+      <Group gap="xs" className={styles.rowStatus}>
         {pickers.length > 0 && <Attribution verb="picked" players={players} seats={pickers} />}
         {banners.length > 0 && <Attribution verb="banned" players={players} seats={banners} />}
       </Group>
-      <Group gap="xs" wrap="nowrap">
+      <Group gap="xs" wrap="nowrap" className={styles.rowActions}>
         <Button
           size="compact-sm"
           variant={picked ? 'filled' : 'default'}
