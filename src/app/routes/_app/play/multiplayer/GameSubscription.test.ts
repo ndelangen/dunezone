@@ -1,4 +1,9 @@
-import { PLAY_REQUEST_TIMEOUT_MS, PLAY_TICKET_RETRY_MAX_MS, PLAY_TICKET_TTL_MS } from '@shared/play/admission';
+import {
+  PLAY_PENDING_TIMEOUT_MS,
+  PLAY_REQUEST_TIMEOUT_MS,
+  PLAY_TICKET_RETRY_MAX_MS,
+  PLAY_TICKET_TTL_MS,
+} from '@shared/play/admission';
 import { initialSnapshot } from '@shared/play/commands';
 import {
   ADMISSION_UNAVAILABLE_CLOSE_CODE,
@@ -437,6 +442,20 @@ test('a tab coming back to the foreground probes the open socket and drops it af
   await vi.advanceTimersByTimeAsync(KEEPALIVE_INTERVAL_MS);
   expect(socket.readyState).toBe(3);
   expect(subscription.status).toBe('suspended');
+});
+
+test('a pause right after a resync request stays a pause and keeps the socket', async () => {
+  const { subscription, socket, view } = await subscribed();
+  socket.deliver({ type: 'update', epoch: view.epoch, baseSequence: 4, sequence: 5, ...frameChange(view, view) });
+  expect(socket.sent.filter((message) => message.type === 'sync')).toHaveLength(1);
+  await vi.advanceTimersByTimeAsync(1000);
+  socket.deliver({ type: 'admission', status: 'suspended' });
+  await vi.advanceTimersByTimeAsync(PLAY_PENDING_TIMEOUT_MS);
+  expect(socket.readyState).toBe(1);
+  expect(Socket.instances).toHaveLength(1);
+  expect(subscription.status).toBe('suspended');
+  socket.deliver({ ...view, sequence: 6 });
+  expect(subscription.ready).toBe(true);
 });
 
 test('a table that never answers keeps saying so through every retry until a view arrives', async () => {
