@@ -189,7 +189,7 @@ export const SpectatorAsksForASeat = meta.story({
   },
 });
 
-/** A spectator seated during drafting lands on the drafting tab: the Log they watched from was never a tab they chose (#1666). */
+/** A spectator seated during drafting lands on the drafting tab, not the Log they watched from (#1666). */
 export const SeatedSpectatorLandsOnDrafting = meta.story({
   beforeEach: install(() => productTransport('neutral', drafting())),
   play: async ({ canvasElement }) => {
@@ -198,6 +198,8 @@ export const SeatedSpectatorLandsOnDrafting = meta.story({
     /* A spectator's dock holds the Log alone, so that is where it opens. */
     await shows(() => page.getByRole('button', { name: 'Log' }));
     expect(page.queryByRole('button', { name: 'Drafting' })).toBeNull();
+    /* Even a Log the spectator picked gives way to the stage once they are seated. */
+    await userEvent.click(page.getByRole('button', { name: 'Log' }));
     const seated = session.transport.view({
       ...draftingSnapshot([SIX[0]!, SIX[1]!], 6),
       revision: drafting().revision + 1,

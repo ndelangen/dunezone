@@ -309,16 +309,22 @@ function TableControlsPanel({
         ...panelTabs,
       ]
     : [...panelTabs, ...(tableTabLabel ? [tableTab] : [])];
-  /* Only a tab the player chose is kept: until they choose, the first tab of the current set opens, so a spectator seated during drafting lands on the stage, not on the Log they had (#1666). */
-  const [path, setPath] = useReducer((_: string[] | null, next: string[]) => next, null);
+  const [path, setPath] = useReducer((_: string[], next: string[]) => next, [tabs[0]?.key ?? tableTab.key]);
+  /* The stage tab arriving or leaving opens the first tab, so a spectator seated during drafting lands on the stage, not on the Log they watched from (#1666). */
+  const hasStage = Boolean(panelContent);
+  const [stageShown, setStageShown] = useState(hasStage);
+  if (hasStage !== stageShown) {
+    setStageShown(hasStage);
+    setPath([tabs[0]?.key ?? tableTab.key]);
+  }
   /* Each focus token opens its tab once, during render as React adjusts state from a changed prop. */
   const [focused, setFocused] = useState<string | null>(null);
   if (focusTab && focusTab.token !== focused && tabs.some((tab) => tab.key === focusTab.key)) {
     setFocused(focusTab.token);
     setPath([focusTab.key]);
   }
-  const active = tabs.find((tab) => tab.key === path?.[0]) ?? tabs[0] ?? tableTab;
-  const subtab = active.subtabs?.find((tab) => tab.key === path?.[1]) ?? active.subtabs?.[0];
+  const active = tabs.find((tab) => tab.key === path[0]) ?? tabs[0] ?? tableTab;
+  const subtab = active.subtabs?.find((tab) => tab.key === path[1]) ?? active.subtabs?.[0];
   if (panelContent && panelTabs.length === 0) {
     return <div className="seated-stage-panel">{panelContent}</div>;
   }
