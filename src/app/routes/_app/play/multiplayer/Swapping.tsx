@@ -59,21 +59,23 @@ function Readiness(props: Swapping) {
   const statusId = useId();
   return (
     <Group justify="space-between" gap="sm">
-      {/* A timer is not live, so the countdown is not read out every second; the tooltip names nothing to assistive technology, so its status also describes the timer. */}
+      {/* A timer is not live, so the countdown is not read out every second; the tooltip names nothing to assistive technology, so its status also describes the timer until the timer shows that status itself. */}
       <Tooltip label={status} events={{ hover: true, focus: true, touch: true }}>
         <Text
           component="output"
           role="timer"
           tabIndex={0}
           aria-label="Trading time remaining"
-          aria-describedby={statusId}
+          aria-describedby={closed ? undefined : statusId}
         >
           {closed ? status : `${Math.floor(remaining / 60)}:${String(remaining % 60).padStart(2, '0')}`}
         </Text>
       </Tooltip>
-      <span id={statusId} hidden>
-        {status}
-      </span>
+      {closed ? null : (
+        <span id={statusId} hidden>
+          {status}
+        </span>
+      )}
       {seat !== SPECTATOR_SEAT && (
         <Button
           disabled={disabled}
