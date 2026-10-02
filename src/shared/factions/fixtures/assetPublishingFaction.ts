@@ -14,7 +14,7 @@ const assetPublishingFactionInput = {
     influence: 1,
   },
   themeColor: '#4b4c0d',
-  leader: {
+  factionLeader: {
     name: 'Lady Jessica',
     image: '/image/leader/official/jessica.png',
   },
@@ -90,7 +90,7 @@ const leaderIds = [
 /** Stable canonical payload for asset-publishing integration and regression coverage. */
 export const assetPublishingFaction = IdentifiedFactionStoredSchema.parse({
   ...legacyAssetPublishingFaction,
-  leader: { ...legacyAssetPublishingFaction.leader, memberId: '10000000-0000-4000-8000-000000000001' },
+  factionLeader: { ...legacyAssetPublishingFaction.factionLeader, memberId: '10000000-0000-4000-8000-000000000001' },
   leaders: legacyAssetPublishingFaction.leaders.map((leader, index) => ({
     ...leader,
     memberId: leaderIds[index],

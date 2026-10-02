@@ -103,7 +103,7 @@ export const factionDefinition = query({
     );
     return {
       faction: { id: row._id, slug: row.slug, name: parsed.success ? parsed.data.name : '' },
-      /* The glossary term is "leader"; this answer keeps the `hero` literal so a game Worker one deploy behind still reads it. */
+      /* The glossary term is "Faction leader"; this answer keeps the `hero` literal so a game Worker one deploy behind still reads it. */
       data: parsed.success ? toStoredHeroKey(parsed.data) : null,
       token: await publishedFace(ctx, 'faction-token', row._id),
       tokenBack: await publishedFace(ctx, 'faction-token', publicationFaceId(row._id, 'back')),

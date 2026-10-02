@@ -39,10 +39,10 @@ function isRecord(input: unknown): input is Record<string, unknown> {
 }
 
 /**
- * Reads the Faction leader from `leader`, falling back to `hero`.
- * The glossary term is "leader" (see the glossary).
- * Factions saved before `faction_leader_key_v1` store it under `hero`, and that migration copies it across.
- * Every faction decoder accepts both keys and hands its caller `leader` alone, so the code writes the new key.
+ * Reads the Faction leader from `factionLeader`, falling back to `hero`.
+ * The glossary term is "Faction leader", kept apart from the supporting `leaders`.
+ * Factions saved before `faction_faction_leader_key_v1` store it under `hero`, and that migration copies it across.
+ * Every faction decoder accepts both keys and hands its caller `factionLeader` alone, so the code writes the new key.
  * Narrowing, which drops `hero` from the stored rows and the live decoders, is left for a later PR once the migration has run everywhere.
  * The historical decoder keeps reading `hero` after that, since game captures and frozen sheet jobs keep the literal.
  */
@@ -51,31 +51,31 @@ function readFactionLeaderKey(input: unknown): unknown {
     return input;
   }
   const { hero, ...rest } = input;
-  return rest.leader === undefined ? { ...rest, leader: hero } : rest;
+  return rest.factionLeader === undefined ? { ...rest, factionLeader: hero } : rest;
 }
 
-/** A faction under the `hero` literal in place of `leader`. */
-export type HeroKeyed<T extends { leader: unknown }> = Omit<T, 'leader'> & { hero: T['leader'] };
+/** A faction under the `hero` literal in place of `factionLeader`. */
+export type HeroKeyed<T extends { factionLeader: unknown }> = Omit<T, 'factionLeader'> & { hero: T['factionLeader'] };
 
 /**
  * The inverse of `readFactionLeaderKey`, for the places that keep the `hero` literal.
- * The glossary term is "leader".
+ * The glossary term is "Faction leader".
  * The literal is kept for stored data and for payloads a Worker one deploy behind still parses: game captures in Durable Object storage, the catalogue answer a game Worker captures from, and faction sheet publication jobs.
  */
-export function toStoredHeroKey<T extends { leader: unknown }>({ leader, ...rest }: T): HeroKeyed<T> {
-  return { ...rest, hero: leader };
+export function toStoredHeroKey<T extends { factionLeader: unknown }>({ factionLeader, ...rest }: T): HeroKeyed<T> {
+  return { ...rest, hero: factionLeader };
 }
 
 /** `toStoredHeroKey` as a preprocess, for a decoder that may meet either key. */
 function writeStoredHeroKey(input: unknown): unknown {
-  if (!isRecord(input) || !('leader' in input)) {
+  if (!isRecord(input) || !('factionLeader' in input)) {
     return input;
   }
-  const { leader, ...rest } = input;
-  return { ...rest, hero: leader ?? rest.hero };
+  const { factionLeader, ...rest } = input;
+  return { ...rest, hero: factionLeader ?? rest.hero };
 }
 
-/** Wraps a `hero`-keyed decoder so it also takes a faction under `leader`, as `toStoredHeroKey` describes. */
+/** Wraps a `hero`-keyed decoder so it also takes a faction under `factionLeader`, as `toStoredHeroKey` describes. */
 export function heroKeyedDecoder<T extends z.ZodType>(schema: T) {
   return z.preprocess(writeStoredHeroKey, schema);
 }
@@ -187,7 +187,7 @@ const factionBaseShape = {
   colors: z.array(TTSColor),
 
   /** The Faction leader, used on the shield. */
-  leader: FactionLeader,
+  factionLeader: FactionLeader,
   leaders: z.array(Leader),
 
   /** Used for alliance-cards */
@@ -311,7 +311,7 @@ export const FactionWriteSchema = FactionInputSchema.refine(
 export const CanonicalFactionStoredObject = z.strictObject({
   ...factionShape,
   name: z.string(),
-  leader: CanonicalFactionLeader,
+  factionLeader: CanonicalFactionLeader,
   leaders: z.array(Leader.extend({ memberId: FactionMemberIdSchema })),
   troops: z.array(Troop.extend({ troopId: FactionTroopIdSchema })),
 });
@@ -323,13 +323,13 @@ export const CanonicalFactionStoredSchema = z.preprocess(readFactionLeaderKey, C
 export const HistoricalFactionPublicationObject = z.strictObject({
   ...factionShape,
   name: z.string(),
-  leader: HistoricalFactionLeader,
+  factionLeader: HistoricalFactionLeader,
   leaders: z.array(Leader.extend({ memberId: FactionMemberIdSchema.optional() })),
 });
 
 /**
  * Frozen sheet jobs and game captures keep the `hero` literal, so this decoder reads it after the live schema narrows too.
- * The glossary term is "leader", and `readFactionLeaderKey` explains the fallback.
+ * The glossary term is "Faction leader", and `readFactionLeaderKey` explains the fallback.
  */
 export const HistoricalFactionPublicationSchema = z.preprocess(
   readFactionLeaderKey,
@@ -338,19 +338,21 @@ export const HistoricalFactionPublicationSchema = z.preprocess(
 
 /**
  * The historical shape under the `hero` literal, for stored game captures and sheet publication jobs.
- * The glossary term is "leader".
+ * The glossary term is "Faction leader".
  * The literal is kept for stored data, as `toStoredHeroKey` describes.
  */
-export const HeroKeyedHistoricalFactionObject = HistoricalFactionPublicationObject.omit({ leader: true }).extend({
-  hero: HistoricalFactionLeader,
-});
+export const HeroKeyedHistoricalFactionObject = HistoricalFactionPublicationObject.omit({ factionLeader: true }).extend(
+  {
+    hero: HistoricalFactionLeader,
+  }
+);
 
 /**
  * The canonical shape under the `hero` literal, for the catalogue answer a game Worker captures from.
- * The glossary term is "leader".
+ * The glossary term is "Faction leader".
  * The literal is kept so a game Worker one deploy behind still reads it, as `toStoredHeroKey` describes.
  */
-export const HeroKeyedCanonicalFactionObject = CanonicalFactionStoredObject.omit({ leader: true }).extend({
+export const HeroKeyedCanonicalFactionObject = CanonicalFactionStoredObject.omit({ factionLeader: true }).extend({
   hero: CanonicalFactionLeader,
 });
 
@@ -374,7 +376,7 @@ const catalogueFactionMask = {
   name: true,
   logo: true,
   background: true,
-  leader: true,
+  factionLeader: true,
   leaders: true,
   complexity: true,
 } as const;
@@ -434,7 +436,7 @@ export const FactionRender = {
   ),
   shield: FactionInputSchema.transform((input) => ({
     name: input.name,
-    leader: input.leader,
+    leader: input.factionLeader,
     background: input.background,
     logo: input.logo,
   })),

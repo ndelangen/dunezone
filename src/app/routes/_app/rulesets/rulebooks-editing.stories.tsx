@@ -186,8 +186,8 @@ export const WrittenRuleEditorDark = meta.story({
 function withLiveReferenceRulebook(baseline: StorybookDatabase) {
   withFinalRulebooks(baseline);
   const faction = baseline.factions.find((row) => row.$key === 'faction:house-atreides')!;
-  const data = faction.data as { leader: { memberId?: string }; leaders: Array<{ memberId?: string }> };
-  data.leader.memberId = '10000000-0000-4000-8000-000000000001';
+  const data = faction.data as { factionLeader: { memberId?: string }; leaders: Array<{ memberId?: string }> };
+  data.factionLeader.memberId = '10000000-0000-4000-8000-000000000001';
   data.leaders.forEach((member, index) => {
     member.memberId = `10000000-0000-4000-8000-${String(index + 2).padStart(12, '0')}`;
   });

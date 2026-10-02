@@ -4,7 +4,7 @@ import type { Faction } from '@db/factions';
 
 export const factionAuthoringChapters = [
   { id: 'identity', label: 'Identity & Appearance' },
-  { id: 'leader', label: 'Faction leader' },
+  { id: 'factionLeader', label: 'Faction leader' },
   { id: 'leaders', label: 'Leaders' },
   /* Two ordering dependencies: Planets precedes Forces because a troop's planet
      reference selects among the planets, and Forces precedes Alliance because
@@ -80,8 +80,8 @@ export function factionNameConflictWarning(complaint: string): FactionAuthoringW
 export function factionAuthoringWarnings(faction: Faction): FactionAuthoringWarning[] {
   const warnings: FactionAuthoringWarning[] = [];
 
-  if (isBlank(faction.leader.name)) {
-    warnings.push(warning('leader.name', 'leader', 'Faction leader', 'name', 'leader-name'));
+  if (isBlank(faction.factionLeader.name)) {
+    warnings.push(warning('factionLeader.name', 'factionLeader', 'Faction leader', 'name', 'faction-leader-name'));
   }
   faction.leaders.forEach((leader, index) => {
     if (isBlank(leader.name)) {
@@ -183,7 +183,7 @@ function coverage(paths: readonly string[], entry: CoverageEntry): Record<string
  * There is no temporary/planned state.
  */
 export const factionAuthoringCoverage: Readonly<Record<string, CoverageEntry>> = {
-  ...coverage(['leader.memberId', 'leaders[].memberId'], {
+  ...coverage(['factionLeader.memberId', 'leaders[].memberId'], {
     state: 'preserved',
     owner: 'Persistent faction member identity assigned on creation and import',
   }),
@@ -220,7 +220,7 @@ export const factionAuthoringCoverage: Readonly<Record<string, CoverageEntry>> =
     ],
     { state: 'control', chapter: 'identity' }
   ),
-  ...coverage(['leader.name', 'leader.image'], { state: 'control', chapter: 'leader' }),
+  ...coverage(['factionLeader.name', 'factionLeader.image'], { state: 'control', chapter: 'factionLeader' }),
   ...coverage(['leaders[].name', 'leaders[].strength', 'leaders[].image'], {
     state: 'control',
     chapter: 'leaders',

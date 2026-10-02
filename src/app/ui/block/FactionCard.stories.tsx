@@ -127,7 +127,7 @@ function withImages(image: string): FactionCatalogueEntry {
     tokenImages: {
       faction: image,
       members: Object.fromEntries(
-        [baseFaction.data.leader, ...baseFaction.data.leaders].map((member) => [member.memberId, image])
+        [baseFaction.data.factionLeader, ...baseFaction.data.leaders].map((member) => [member.memberId, image])
       ),
     },
   };

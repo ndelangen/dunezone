@@ -4,7 +4,7 @@ import { assetPublishingFaction } from '../factions/fixtures/assetPublishingFact
 import { toStoredHeroKey } from '../factions/schema';
 import { factionCaptureSchema, factionDefinitionSchema } from './capture';
 
-/* The glossary term is "leader"; the catalogue answer and stored captures keep the `hero` literal. */
+/* The glossary term is "Faction leader"; the catalogue answer and stored captures keep the `hero` literal. */
 describe('the `hero` literal on captures', () => {
   const definition = {
     faction: { id: 'faction-one', slug: 'atreides', name: assetPublishingFaction.name },
@@ -13,11 +13,11 @@ describe('the `hero` literal on captures', () => {
     leaders: [],
   };
 
-  it('reads a `leader`-keyed catalogue answer and hands it on under `hero`', () => {
+  it('reads a `factionLeader`-keyed catalogue answer and hands it on under `hero`', () => {
     const parsed = factionDefinitionSchema.parse({ ...definition, data: assetPublishingFaction });
 
     expect(parsed.data).toEqual(toStoredHeroKey(assetPublishingFaction));
-    expect(parsed.data).not.toHaveProperty('leader');
+    expect(parsed.data).not.toHaveProperty('factionLeader');
   });
 
   it('keeps a `hero`-keyed catalogue answer as it is', () => {

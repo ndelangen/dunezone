@@ -5,7 +5,7 @@ import { TOPIC_ICON_TOPICS, TopicIcon } from './TopicIcon';
 import type { TopicIconTopic } from './TopicIcon';
 
 const MASK_TOPICS: Array<[TopicIconTopic, string]> = [
-  ['leader', '/vector/generic/ceasar.svg'],
+  ['factionLeader', '/vector/generic/ceasar.svg'],
   ['leaders', '/vector/icon/traitor.svg'],
   ['alliance', '/vector/icon/alliance.svg'],
   ['decals', '/vector/icon/alliance.svg'],

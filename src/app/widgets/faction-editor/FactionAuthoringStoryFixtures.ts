@@ -7,7 +7,7 @@ import { defaultFaction } from './defaultFaction';
 export function representativeFaction(): Faction {
   const faction = structuredClone(defaultFaction);
   faction.name = 'House Meridia';
-  faction.leader = {
+  faction.factionLeader = {
     name: 'Lady Corinne',
     image: LEADERS.options[0],
   };
@@ -69,7 +69,7 @@ export function representativeFaction(): Faction {
 
 export function incompleteFaction(): Faction {
   const faction = representativeFaction();
-  faction.leader.name = '';
+  faction.factionLeader.name = '';
   faction.rules.alliance.text = '';
   faction.troops[0].description = '';
   faction.troops[0].combat = undefined;

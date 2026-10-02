@@ -329,7 +329,7 @@ describe('Catalogue capture and retention through the isolated fixture', () => {
 
     const { record } = await runtime.capture('faction', 'faction-one', { provisional: true });
     expect(record.faction).toEqual({ id: 'faction-one', slug: 'atreides', name: assetPublishingFaction.name });
-    /* The glossary term is "leader"; the capture keeps the `hero` literal that stored games hold. */
+    /* The glossary term is "Faction leader"; the capture keeps the `hero` literal that stored games hold. */
     expect(record.definition).toEqual(toStoredHeroKey(data));
     expect(record.components.token).toEqual({
       front: 'http://table.test/published/faction-tokens/faction-one/token.jpg',

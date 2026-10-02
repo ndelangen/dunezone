@@ -8,7 +8,7 @@ import type { Faction } from '@db/factions';
 
 import { defaultFaction } from './defaultFaction';
 import { FactionFormSectionAlliance } from './FactionFormSectionAlliance';
-import { FactionFormSectionLeader } from './FactionFormSectionLeader';
+import { FactionFormSectionFactionLeader } from './FactionFormSectionFactionLeader';
 import { FactionFormSectionLeaders } from './FactionFormSectionLeaders';
 
 function LeadersAllianceFixture({ faction }: { faction: Faction }) {
@@ -32,7 +32,7 @@ function LeadersAllianceFixture({ faction }: { faction: Faction }) {
   return (
     <Box w="min(78rem, calc(100vw - 2rem))" p="md">
       <Stack gap="xl">
-        <FactionFormSectionLeader form={form} />
+        <FactionFormSectionFactionLeader form={form} />
         <FactionFormSectionLeaders form={form} />
         <FactionFormSectionAlliance form={form} />
       </Stack>
@@ -42,7 +42,7 @@ function LeadersAllianceFixture({ faction }: { faction: Faction }) {
 
 function withLeadersAndDecals(leaderCount: number, decalCount: number): Faction {
   const faction = structuredClone(defaultFaction);
-  faction.leader = {
+  faction.factionLeader = {
     name: 'Lady Corinne',
     image: LEADERS.options[0],
   };
@@ -85,7 +85,7 @@ export const Hivers = meta.story({
   args: {
     faction: {
       ...withLeadersAndDecals(5, 0),
-      leader: { name: 'Hiver court', image: '/image/leader/hivers/hiver-high-crown.png' },
+      factionLeader: { name: 'Hiver court', image: '/image/leader/hivers/hiver-high-crown.png' },
       leaders: [
         { name: 'Amber Pendant', strength: 1, image: '/image/leader/hivers/hiver-amber-pendant.png' },
         { name: 'Fur Mantle', strength: 2, image: '/image/leader/hivers/hiver-fur-mantle.png' },
@@ -101,7 +101,7 @@ export const AdvisoryBlanks = meta.story({
   args: {
     faction: {
       ...withLeadersAndDecals(2, 1),
-      leader: {
+      factionLeader: {
         name: '',
         image: LEADERS.options[0],
       },

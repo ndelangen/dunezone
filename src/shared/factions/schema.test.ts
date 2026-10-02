@@ -33,7 +33,7 @@ describe('faction schema', () => {
     expect(FactionInputSchema.parse(live)).toEqual(live);
   });
 
-  it('reads a faction stored under the old `hero` key as its Faction leader, preferring `leader` when both are present', () => {
+  it('reads a faction stored under the old `hero` key as its Faction leader, preferring `factionLeader` when both are present', () => {
     const live = structuredClone(assetPublishingFaction);
     const stored = toStoredHeroKey(live);
 
@@ -43,8 +43,8 @@ describe('faction schema', () => {
     expect(HistoricalFactionPublicationSchema.parse(toStoredHeroKey(legacyAssetPublishingFaction))).toEqual(
       legacyAssetPublishingFaction
     );
-    const renamed = { ...live.leader, name: 'Paul Atreides' };
-    expect(CanonicalFactionStoredSchema.parse({ ...stored, leader: renamed }).leader).toEqual(renamed);
+    const renamed = { ...live.factionLeader, name: 'Paul Atreides' };
+    expect(CanonicalFactionStoredSchema.parse({ ...stored, factionLeader: renamed }).factionLeader).toEqual(renamed);
   });
 
   it('rejects the retired legacy background shape', () => {

@@ -398,7 +398,7 @@ export class GameCatalogue {
     return factionCaptureSchema.parse({
       faction: { ...source.faction, name: definition.name },
       capturedAt: now,
-      /* The glossary term is "leader"; the capture keeps the `hero` literal, which games already in storage hold. */
+      /* The glossary term is "Faction leader"; the capture keeps the `hero` literal, which games already in storage hold. */
       definition: toStoredHeroKey(definition),
       components: {
         token,

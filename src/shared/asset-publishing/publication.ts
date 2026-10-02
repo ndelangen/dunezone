@@ -63,7 +63,7 @@ export const rendererRevisionsSchema = z.record(z.string().trim().min(1).max(128
 export const factionSheetAssetDataSchema = z.strictObject({
   factionId: z.string().min(1),
   slug: FactionRowSlugSchema,
-  /* The glossary term is "leader"; sheet jobs keep the `hero` literal, which stored jobs hold and a publisher one deploy behind still parses. */
+  /* The glossary term is "Faction leader"; sheet jobs keep the `hero` literal, which stored jobs hold and a publisher one deploy behind still parses. */
   faction: heroKeyedDecoder(HeroKeyedHistoricalFactionObject),
 });
 

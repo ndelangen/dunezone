@@ -38,7 +38,7 @@ export function FactionCard({
    */
   action?: ReactNode;
 }) {
-  const { name, logo, background, leader, leaders } = faction.data;
+  const { name, logo, background, factionLeader, leaders } = faction.data;
   const rulesetLabel = factionRulesetLabel(faction, selectedRulesetSlug);
   const firstColor = background.colors[0];
   const tokenColor = typeof firstColor === 'string' ? firstColor : firstColor.stops[0][0];
@@ -66,13 +66,13 @@ export function FactionCard({
             )}
           </div>
           <div className={styles.cast} aria-hidden>
-            <div className={styles.leader}>
+            <div className={styles.factionLeader}>
               {livePreview ? (
-                <LeaderToken {...leader} strength={undefined} background={background} logo={logo} />
+                <LeaderToken {...factionLeader} strength={undefined} background={background} logo={logo} />
               ) : (
                 <TokenAvatar
-                  src={faction.tokenImages?.members[leader.memberId]}
-                  name={leader.name}
+                  src={faction.tokenImages?.members[factionLeader.memberId]}
+                  name={factionLeader.name}
                   color={tokenColor}
                 />
               )}

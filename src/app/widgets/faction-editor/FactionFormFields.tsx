@@ -28,9 +28,9 @@ import { FactionFormSectionAlliance } from './FactionFormSectionAlliance';
 import { FactionFormSectionBackground } from './FactionFormSectionBackground';
 import { FactionFormSectionComplexity } from './FactionFormSectionComplexity';
 import { FactionExtrasProof, FactionFormSectionExtras } from './FactionFormSectionExtras';
+import { FactionFormSectionFactionLeader } from './FactionFormSectionFactionLeader';
 import { FactionFormSectionIdentity } from './FactionFormSectionIdentity';
 import type { FactionIdentityNameField } from './FactionFormSectionIdentity';
-import { FactionFormSectionLeader } from './FactionFormSectionLeader';
 import { FactionFormSectionLeaders } from './FactionFormSectionLeaders';
 import { FactionFormSectionPhases, phaseRowLabel } from './FactionFormSectionPhases';
 import { FactionFormSectionPlanets } from './FactionFormSectionPlanets';
@@ -49,7 +49,7 @@ const chapterIcons: Record<
   Exclude<FactionAuthoringChapterId, 'identity' | 'forces' | 'worlds' | 'phases' | 'extras' | 'complexity'>,
   Parameters<typeof TopicIcon>[0]['topic']
 > = {
-  leader: 'leader',
+  factionLeader: 'factionLeader',
   leaders: 'leaders',
   alliance: 'alliance',
   rules: 'rules',
@@ -189,15 +189,15 @@ function ArtifactProof({
           </Box>
         );
 
-        if (activeChapter === 'leader') {
+        if (activeChapter === 'factionLeader') {
           title = 'Faction leader token';
           artifact = (
             <Box className={styles.leaderProof}>
               <LeaderToken
                 background={faction.background}
-                image={faction.leader.image}
+                image={faction.factionLeader.image}
                 logo={faction.logo}
-                name={faction.leader.name}
+                name={faction.factionLeader.name}
                 strength={undefined}
               />
             </Box>
@@ -505,7 +505,7 @@ export const FactionFormFields = forwardRef<
           />
         </>
       ) : null}
-      {chapter === 'leader' ? <FactionFormSectionLeader form={form} showPreview={false} /> : null}
+      {chapter === 'factionLeader' ? <FactionFormSectionFactionLeader form={form} showPreview={false} /> : null}
       {chapter === 'leaders' ? (
         <FactionFormSectionLeaders
           form={form}

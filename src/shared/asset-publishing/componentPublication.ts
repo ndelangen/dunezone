@@ -46,7 +46,9 @@ export function factionLeaderAssetData(
   if (!faction.success) {
     return null;
   }
-  const member = [faction.data.leader, ...faction.data.leaders].find((candidate) => candidate.memberId === memberId);
+  const member = [faction.data.factionLeader, ...faction.data.leaders].find(
+    (candidate) => candidate.memberId === memberId
+  );
   if (!member) {
     return null;
   }

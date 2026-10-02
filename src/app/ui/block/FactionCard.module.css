@@ -59,14 +59,14 @@
 }
 
 .factionToken,
-.leader,
+.factionLeader,
 .leaders > span {
   overflow: hidden;
   border-radius: 50%;
 }
 
 .factionToken > *,
-.leader > *,
+.factionLeader > *,
 .leaders > span > * {
   position: absolute;
   inset: 0;
@@ -88,7 +88,7 @@
   z-index: 2;
 }
 
-.leader {
+.factionLeader {
   position: absolute;
   right: 5%;
   bottom: 0;
@@ -182,7 +182,7 @@
  * than the floor, so it always has the regular caption.
  */
 @container faction-card (width < 11.5rem) {
-  .card:hover .leader {
+  .card:hover .factionLeader {
     transform: translateY(-2px) scale(1.015);
   }
 
@@ -206,7 +206,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .card,
-  .leader {
+  .factionLeader {
     transition: none;
   }
 }

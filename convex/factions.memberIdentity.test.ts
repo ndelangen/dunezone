@@ -43,7 +43,7 @@ async function authoringTest() {
 }
 
 function ids(data: typeof assetPublishingFaction) {
-  return [data.leader.memberId, ...data.leaders.map((leader) => leader.memberId)];
+  return [data.factionLeader.memberId, ...data.leaders.map((leader) => leader.memberId)];
 }
 
 describe('persistent faction member identities', () => {
@@ -54,7 +54,7 @@ describe('persistent faction member identities', () => {
     expect(new Set(ids(identified)).size).toBe(identified.leaders.length + 1);
 
     const edited = structuredClone(identified);
-    edited.leader.name = 'Renamed ruler';
+    edited.factionLeader.name = 'Renamed ruler';
     edited.leaders.reverse();
     edited.leaders[0]!.name = 'Renamed leader';
     edited.leaders[0]!.strength = 9;
@@ -71,7 +71,7 @@ describe('persistent faction member identities', () => {
       author.mutation(api.factions.update, { id: created._id, data: legacyAssetPublishingFaction })
     ).rejects.toThrow(/Reload this page/);
     const duplicated = structuredClone(created.data);
-    duplicated.leaders[0]!.memberId = duplicated.leader.memberId;
+    duplicated.leaders[0]!.memberId = duplicated.factionLeader.memberId;
     await expect(author.mutation(api.factions.update, { id: created._id, data: duplicated })).rejects.toThrow(/unique/);
   });
 

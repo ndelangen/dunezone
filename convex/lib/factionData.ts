@@ -11,7 +11,7 @@ import {
  * Zod still owns semantic rules (parsed in handlers via the catalogue helpers);
  * these derived validators give the wire the same structural contract instead of `v.any()`.
  * Exception while `faction_extras_references_v1` retires the old link lists: `extras` reads through a preprocess, which derives as `v.any()`, so the wire leaves its shape to the Zod parse until the narrowing release.
- * Derived from the object rather than the parse schema: handlers return parsed data, so the wire carries the Faction leader as `leader` alone, never the old `hero` key.
+ * Derived from the object rather than the parse schema: handlers return parsed data, so the wire carries the Faction leader as `factionLeader` alone, never the old `hero` key.
  */
 export const factionDataValidator = zodToConvex(CanonicalFactionStoredObject);
 

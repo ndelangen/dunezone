@@ -20,13 +20,13 @@ export type CatalogueFaction = Infer<typeof catalogueFactionValidator>;
  * only what the surfaces draw survives onto the wire.
  */
 export function toCatalogueFaction(row: Doc<'factions'>, rulesets: FactionRulesetSummary[]): CatalogueFaction {
-  const { name, logo, background, leader, leaders, complexity } = parseStoredFactionForRead(row.data);
+  const { name, logo, background, factionLeader, leaders, complexity } = parseStoredFactionForRead(row.data);
   return {
     _id: row._id,
     slug: row.slug,
     created_at: row.created_at,
     updated_at: row.updated_at,
-    data: { name, logo, background, leader, leaders, complexity },
+    data: { name, logo, background, factionLeader, leaders, complexity },
     rulesets,
   };
 }

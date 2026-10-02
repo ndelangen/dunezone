@@ -10,11 +10,11 @@ import { factionTest } from './factions.test.fixture';
 import { applicationTriggers } from './lib/applicationTriggers';
 
 const STAMP = '2026-09-28T00:00:00.000Z';
-const storedLeader = assetPublishingFaction.leader;
+const storedLeader = assetPublishingFaction.factionLeader;
 const renamedLeader = { ...storedLeader, name: 'Paul Atreides' };
 
 /*
- * The glossary term is "leader"; rows saved before `faction_leader_key_v1` store it as `hero`, and migrated rows hold both keys.
+ * The glossary term is "Faction leader"; rows saved before `faction_faction_leader_key_v1` store it as `hero`, and migrated rows hold both keys.
  * Every read that returns faction data must answer with the key its wire contract names.
  */
 async function seed() {
@@ -57,7 +57,7 @@ async function seed() {
         group_id: groupId,
       });
     const heroOnly = await row('hero-only', toStoredHeroKey(assetPublishingFaction));
-    const both = await row('both-keys', { ...toStoredHeroKey(assetPublishingFaction), leader: renamedLeader });
+    const both = await row('both-keys', { ...toStoredHeroKey(assetPublishingFaction), factionLeader: renamedLeader });
     return { ownerId, heroOnly, both };
   });
   return { t, ids, viewer: t.withIdentity({ subject: ids.ownerId }) };
@@ -66,12 +66,12 @@ async function seed() {
 const expected = { 'hero-only': storedLeader, 'both-keys': renamedLeader } as Record<string, unknown>;
 
 function expectLeaderKey(slug: string, data: Record<string, unknown>) {
-  expect(data.leader).toEqual(expected[slug]);
+  expect(data.factionLeader).toEqual(expected[slug]);
   expect(data).not.toHaveProperty('hero');
 }
 
-describe('faction reads across the leader key rename', () => {
-  test('the group page, detail page, list, catalogue and load picker answer with `leader`', async () => {
+describe('faction reads across the Faction leader key rename', () => {
+  test('the group page, detail page, list, catalogue and load picker answer with `factionLeader`', async () => {
     const { viewer } = await seed();
 
     const group = await viewer.query(api.groups.detailBySlug, { slug: 'leaders-group' });
@@ -109,7 +109,7 @@ describe('faction reads across the leader key rename', () => {
     const both = await viewer.query(api.playCatalogue.factionDefinition, { factionId: ids.both });
     expect(heroOnly?.data?.hero).toEqual(storedLeader);
     expect(both?.data?.hero).toEqual(renamedLeader);
-    expect(heroOnly?.data).not.toHaveProperty('leader');
-    expect(both?.data).not.toHaveProperty('leader');
+    expect(heroOnly?.data).not.toHaveProperty('factionLeader');
+    expect(both?.data).not.toHaveProperty('factionLeader');
   });
 });

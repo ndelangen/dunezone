@@ -16,13 +16,13 @@ const defaultFactionInput = {
     influence: 1,
   },
   themeColor: '#444444',
-  leader: {
-    name: 'Leader',
+  factionLeader: {
+    name: 'Faction leader',
     image: LEADERS.options[0],
   },
   leaders: [
     {
-      name: 'Leader',
+      name: 'Faction leader',
       strength: '2',
       image: LEADERS.options[0],
     },

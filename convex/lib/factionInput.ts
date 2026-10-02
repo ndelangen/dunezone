@@ -36,7 +36,7 @@ export function factionInputForWrite(input: unknown, previous?: unknown) {
   if (previous !== undefined) {
     const stored = parseStoredFactionForRead(previous);
     if (
-      [stored.leader, ...stored.leaders].some((member) => member.memberId !== undefined) &&
+      [stored.factionLeader, ...stored.leaders].some((member) => member.memberId !== undefined) &&
       !factionMembersHaveIds(data)
     ) {
       throw new Error('Reload this page before saving. This faction now uses persistent member identities.');

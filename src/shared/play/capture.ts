@@ -44,7 +44,7 @@ export const factionDefinitionSchema = z.object({
   faction: sourceSchema,
   /*
    * Phase declarations are widened here: the capture judges each one alone, so one invalid row names itself rather than refusing the faction (#1138).
-   * The glossary term is "leader"; this answer keeps the `hero` literal so a game Worker one deploy behind still reads it.
+   * The glossary term is "Faction leader"; this answer keeps the `hero` literal so a game Worker one deploy behind still reads it.
    */
   data: heroKeyedDecoder(heroKeyedDefinitionData).nullable(),
   token: z.string().nullable(),
@@ -179,7 +179,7 @@ export const factionCaptureSchema = z.object({
    * Read back through the historical decoder, so a later narrowing of the live faction schema
    * cannot make a game lose a faction it already holds.
    * The declarations are read loosely for the same reason; `capturedDeclarations` keeps the ones the live schema still accepts.
-   * The glossary term is "leader"; captures keep the `hero` literal because games already in Durable Object storage hold it.
+   * The glossary term is "Faction leader"; captures keep the `hero` literal because games already in Durable Object storage hold it.
    */
   definition: heroKeyedDecoder(
     HeroKeyedHistoricalFactionObject.extend({ extraPhases: z.array(z.unknown()).optional() })

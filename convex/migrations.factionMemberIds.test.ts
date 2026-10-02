@@ -46,8 +46,8 @@ function legacyFaction() {
   return {
     ...structuredClone(legacyAssetPublishingFaction),
     background: { ...legacyAssetPublishingFaction.background, image: '/image/texture/retired.jpg' },
-    leader: {
-      ...legacyAssetPublishingFaction.leader,
+    factionLeader: {
+      ...legacyAssetPublishingFaction.factionLeader,
       memberId: '00000000-0000-4000-8000-000000000001',
       legacy: ['kept'],
     },
@@ -109,7 +109,7 @@ describe('faction member identity migration', () => {
     const migrated = await t.run((ctx) => Promise.all(ids.map((id) => ctx.db.get('factions', id))));
     for (const [index, row] of migrated.entries()) {
       const memberIds = [
-        row!.data.leader.memberId,
+        row!.data.factionLeader.memberId,
         ...row!.data.leaders.map((member: { memberId: string }) => member.memberId),
       ];
       expect(memberIds.every((id) => FactionMemberIdSchema.safeParse(id).success)).toBe(true);
@@ -131,12 +131,12 @@ describe('faction member identity migration', () => {
       const data = ensureFactionMemberIds(legacyFaction());
       let invalid: unknown;
       if (kind === 'missing') {
-        const { memberId: _memberId, ...leader } = data.leader;
-        invalid = { ...data, leader };
+        const { memberId: _memberId, ...factionLeader } = data.factionLeader;
+        invalid = { ...data, factionLeader };
       } else if (kind === 'invalid') {
-        invalid = { ...data, leader: { ...data.leader, memberId: 'invalid' } };
+        invalid = { ...data, factionLeader: { ...data.factionLeader, memberId: 'invalid' } };
       } else if (kind === 'duplicate') {
-        invalid = { ...data, leaders: [{ ...data.leaders[0], memberId: data.leader.memberId }] };
+        invalid = { ...data, leaders: [{ ...data.leaders[0], memberId: data.factionLeader.memberId }] };
       } else {
         invalid = { ...data, leaders: [null] };
       }
@@ -152,7 +152,7 @@ describe('faction member identity migration', () => {
     vi.useFakeTimers();
     const t = migrationTest();
     const data = legacyFaction();
-    const id = await seedFaction(t, { ...data, leader: { ...data.leader, memberId: 'invalid' } });
+    const id = await seedFaction(t, { ...data, factionLeader: { ...data.factionLeader, memberId: 'invalid' } });
     await t.mutation(internal.migrations.runRequired, { ids: required });
     await t.finishAllScheduledFunctions(vi.runAllTimers);
     expect(await t.query(internal.migrations.getStatus, { ids: required })).toEqual(

@@ -12,7 +12,7 @@ import type { FactionFormApi } from './factionFormTypes';
 
 const leaderImageOptions = stockAssetOptions(LEADERS.options);
 
-export function FactionFormSectionLeader({
+export function FactionFormSectionFactionLeader({
   form,
   showPreview = true,
 }: {
@@ -24,28 +24,28 @@ export function FactionFormSectionLeader({
       <Grid gap="xl" align="center">
         <Grid.Col span={{ base: 12, sm: showPreview ? 8 : 12 }}>
           <Stack gap="md">
-            <form.Field name="leader.name">
+            <form.Field name="factionLeader.name">
               {(field) => {
                 const blank = field.state.value.trim().length === 0;
                 return (
                   <Stack gap="md">
                     <ControlBlock
                       title="Faction leader name"
-                      description="Printed around the leader portrait on the Faction shield."
+                      description="Printed around the faction leader portrait on the Faction shield."
                       input={
                         <TextInput
-                          id="leader-name"
+                          id="faction-leader-name"
                           aria-label="Faction leader name"
                           value={field.state.value}
-                          aria-describedby={blank ? 'leader-name-warning' : undefined}
+                          aria-describedby={blank ? 'faction-leader-name-warning' : undefined}
                           onBlur={field.handleBlur}
                           onChange={(event) => field.handleChange(event.currentTarget.value)}
                         />
                       }
                     />
                     {blank ? (
-                      <Text id="leader-name-warning" c="var(--color-caution)" size="xs" role="status">
-                        The leader name is empty. This is advisory and does not prevent saving.
+                      <Text id="faction-leader-name-warning" c="var(--color-caution)" size="xs" role="status">
+                        The faction leader name is empty. This is advisory and does not prevent saving.
                       </Text>
                     ) : null}
                   </Stack>
@@ -53,13 +53,13 @@ export function FactionFormSectionLeader({
               }}
             </form.Field>
 
-            <form.Field name="leader.image">
+            <form.Field name="factionLeader.image">
               {(field) => (
                 <ControlBlock
                   title="Faction leader portrait"
                   input={
                     <AssetSelect
-                      id="leader-image"
+                      id="faction-leader-image"
                       aria-label="Faction leader portrait"
                       allowDeselect={false}
                       data={leaderImageOptions}
@@ -67,7 +67,7 @@ export function FactionFormSectionLeader({
                       value={field.state.value}
                       onChange={(value) => {
                         if (value) {
-                          field.handleChange(value as Faction['leader']['image']);
+                          field.handleChange(value as Faction['factionLeader']['image']);
                         }
                       }}
                     />
@@ -83,11 +83,11 @@ export function FactionFormSectionLeader({
             <form.Subscribe
               selector={(state) => ({
                 background: state.values.background,
-                leader: state.values.leader,
+                factionLeader: state.values.factionLeader,
                 logo: state.values.logo,
               })}
             >
-              {({ background, leader, logo }) => (
+              {({ background, factionLeader, logo }) => (
                 <Stack align="center" gap="sm">
                   <Text size="xs" fw={700} tt="uppercase" c="dimmed" ta="center">
                     Used on: Faction shield
@@ -95,9 +95,9 @@ export function FactionFormSectionLeader({
                   <Box w={148} aria-label="Faction leader token preview">
                     <LeaderToken
                       background={background}
-                      image={leader.image}
+                      image={factionLeader.image}
                       logo={logo}
-                      name={leader.name}
+                      name={factionLeader.name}
                       strength={undefined}
                     />
                   </Box>

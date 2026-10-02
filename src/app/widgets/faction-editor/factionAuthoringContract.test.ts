@@ -145,14 +145,14 @@ describe('faction authoring contract', () => {
 
   it('round-trips the complete Leaders and Alliance contract without reordering', () => {
     const faction = structuredClone(defaultFaction);
-    faction.leader = {
+    faction.factionLeader = {
       name: 'Faction leader',
-      image: faction.leader.image,
+      image: faction.factionLeader.image,
     };
     faction.leaders = Array.from({ length: 10 }, (_, index) => ({
       name: `Leader ${index + 1}`,
       strength: index === 0 ? 'A' : index + 1,
-      image: faction.leader.image,
+      image: faction.factionLeader.image,
     }));
     faction.rules.alliance.text = '';
     faction.decals = [
@@ -174,7 +174,7 @@ describe('faction authoring contract', () => {
 
     const parsed = FactionInputSchema.parse(structuredClone(faction));
 
-    expect(parsed.leader).toEqual(faction.leader);
+    expect(parsed.factionLeader).toEqual(faction.factionLeader);
     expect(parsed.leaders).toEqual(faction.leaders);
     expect(parsed.leaders).toHaveLength(10);
     expect(parsed.leaders[0].strength).toBe('A');
@@ -213,7 +213,7 @@ describe('faction authoring contract', () => {
   it('blocks only the faction name among schema-valid authored blanks', () => {
     const faction = structuredClone(defaultFaction);
     faction.name = '   ';
-    faction.leader.name = '';
+    faction.factionLeader.name = '';
     faction.rules.alliance.text = '';
 
     const parsed = FactionInputSchema.safeParse(faction);
@@ -231,7 +231,7 @@ describe('faction authoring contract', () => {
 
   it('keeps likely-incomplete blanks advisory and grouped by chapter', () => {
     const faction = structuredClone(defaultFaction);
-    faction.leader.name = '';
+    faction.factionLeader.name = '';
     faction.rules.alliance.text = '  ';
     faction.rules.startText = '';
 
@@ -239,7 +239,7 @@ describe('faction authoring contract', () => {
 
     expect(warnings).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ path: 'leader.name', chapter: 'leader' }),
+        expect.objectContaining({ path: 'factionLeader.name', chapter: 'factionLeader' }),
         expect.objectContaining({ path: 'rules.alliance.text', chapter: 'alliance' }),
         expect.objectContaining({ path: 'rules.startText', chapter: 'rules' }),
       ])
