@@ -108,7 +108,8 @@ export const createGame = mutation({
   returns: zodToConvex(playCreateGameResultSchema),
   handler: async (ctx, args) => {
     const session = await currentPlaySession(ctx);
-    if (!session) {
+    /* A session past its idle or total deadline creates nothing, as it takes no ticket. */
+    if (!session || Date.now() >= session.authExpiresAt) {
       return { ok: false as const, reason: 'not_authorized' as const };
     }
     const rulesetId = ctx.db.normalizeId('rulesets', args.rulesetId);
