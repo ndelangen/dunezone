@@ -465,6 +465,8 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
     expect(after.bank.balance).toBe(10);
   });
 
+  /* 21 full battles of 7 commands each are needed to overflow the 20 retained results. Alone this takes ~3s, but under
+     the full workers/game run it reached ~20s, past this suite's 15s budget. */
   it('retains every public reveal and result through older history reads after more than twenty battles', async () => {
     let firstId;
     for (let index = 0; index < 21; index++) {
@@ -494,7 +496,7 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
       expect(history.snapshot.battlePlan).toBeNull();
       expect(history.snapshot).not.toHaveProperty('hand');
     }
-  });
+  }, 60_000);
 
   it('cancels a revealed battle while one of its pieces is being carried', async () => {
     const battleId = await revealWithCarriedLeader('cancel-carry');
