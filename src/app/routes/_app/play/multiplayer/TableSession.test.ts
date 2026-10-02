@@ -886,6 +886,26 @@ describe('hosted table interaction', () => {
     });
   });
 
+  test('a piece put back while the table resynchronizes is released on the Worker too', async () => {
+    const { client, carried } = await grantedWholeCarry();
+    socket().deliver(carried);
+    deliverGap();
+    const begin = socket().sent.find((message) => message.type === 'begin');
+    client.cancelDraft();
+    expect(table(client).state.draftMove).toBeNull();
+    expect(socket().sent.at(-1)).toEqual({ type: 'cancel', carryId: begin?.carryId });
+  });
+
+  test('hiding the page while the table resynchronizes releases the held piece on the Worker', async () => {
+    const { carried } = await grantedWholeCarry();
+    socket().deliver(carried);
+    deliverGap();
+    for (const listener of hidden) {
+      listener();
+    }
+    expect(socket().sent.at(-1)).toMatchObject({ type: 'cancel' });
+  });
+
   test('ignores an older snapshot without reverting the saved revision or flip presentation', async () => {
     const client = await connected();
     const original = initialSnapshot();

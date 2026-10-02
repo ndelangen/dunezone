@@ -519,7 +519,9 @@ export class TableSession {
   private canSend(message: Exclude<ClientMessage, { type: 'admit' | 'sync' }>): boolean {
     /* A seat command is the spectator's one way to act, so it passes without a seat; `command` holds it to a current view. */
     const seat = message.type === 'command' && isSeatAction(message.action);
-    return this.status === 'authorized' && (isReadRequest(message) || seat || this.canAct());
+    /* Putting a held piece back also passes while a resync pauses the table, so the Worker never keeps a piece the tab let go of. */
+    const release = message.type === 'cancel' && this.carry !== null;
+    return this.status === 'authorized' && (isReadRequest(message) || seat || release || this.canAct());
   }
   private send(message: Exclude<ClientMessage, { type: 'admit' | 'sync' }>): boolean {
     return this.canSend(message) && this.subscription.send(message);

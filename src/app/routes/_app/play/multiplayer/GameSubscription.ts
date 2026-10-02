@@ -132,7 +132,8 @@ export class GameSubscription {
     if (this.status !== 'authorized' || this.socket?.readyState !== 1) {
       return false;
     }
-    if (!this.ready && !isReadRequest(message)) {
+    /* Putting a held piece back depends on no table state, so it is not held for a resync: the Worker would keep the piece in hand meanwhile. */
+    if (!this.ready && !isReadRequest(message) && message.type !== 'cancel') {
       return false;
     }
     /* Motion can be replaced by a later sample; commands keep their ordering. */
