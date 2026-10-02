@@ -27,7 +27,7 @@ export function DecisionBar({
   context,
   action,
   readiness,
-}: Readonly<{ eyebrow: string; title: string; context: string; action?: ReactNode; readiness?: ReactNode }>) {
+}: Readonly<{ eyebrow: string; title: string; context?: string; action?: ReactNode; readiness?: ReactNode }>) {
   const labelId = useId();
   return (
     <Surface as="section" aria-labelledby={labelId} padding="sm" className={styles.bar}>
@@ -37,9 +37,11 @@ export function DecisionBar({
             {eyebrow}
           </Eyebrow>
           <Text fw={700}>{title}</Text>
-          <Text size="sm" c="dimmed">
-            {context}
-          </Text>
+          {context && (
+            <Text size="sm" c="dimmed">
+              {context}
+            </Text>
+          )}
         </Stack>
         {action}
       </Group>
@@ -128,6 +130,10 @@ function SpectatorBar({ client, table, readiness }: BarProps) {
   }
   const request: SeatAction =
     drafting || !selected ? { kind: 'seat-request' } : { kind: 'seat-request', seat: selected };
+  /* A full game has nothing to ask for, so the notice keeps to its eyebrow and one line and gives the dock its height; it grows back into a request when a seat opens. */
+  if (full && !readiness) {
+    return <DecisionBar eyebrow="You are watching" title={`All ${seatCount} seats are taken`} />;
+  }
   return (
     <DecisionBar
       readiness={readiness}
