@@ -40,7 +40,7 @@ function pressAcross(pressed: HTMLElement, change: () => void) {
   fireEvent.click(pressed);
 }
 
-function renderPlayback(stage: 'drafting' | 'play', step: number) {
+function renderPlayback(stage: 'drafting' | 'play' | 'finished', step: number) {
   const client = { requestHistory: vi.fn(), resumeLive: vi.fn() };
   const table = {
     snapshot: { stage },
@@ -70,6 +70,12 @@ test('playback of a stage before play steps through checkpoints, returns to live
   expect(client.requestHistory).toHaveBeenCalledWith(1);
   fireEvent.click(screen.getByRole('button', { name: 'Return to live' }));
   expect(client.resumeLive).toHaveBeenCalled();
+});
+
+test('playback of a finished game leaves its controls to the Phase tab, as in play', () => {
+  renderPlayback('finished', 3);
+  expect(screen.queryByText('Playback checkpoint 3 of 3')).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Return to live' })).toBeNull();
 });
 
 test('a player approves the request for an open seat when an earlier request names a seat taken since', () => {
