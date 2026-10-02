@@ -304,6 +304,11 @@ export type ServerMessage = z.infer<typeof serverMessageSchema>;
  * Unlike a refusal it is not final: the browser requests a new ticket and reconnects.
  */
 export const TICKET_EXPIRED_CLOSE_CODE = 4410;
+/**
+ * The standard "try again later" code the Worker closes a socket with when Convex could not be reached during admission.
+ * Nothing was refused: the browser requests a new ticket and reconnects, with the same doubling wait as an expired ticket.
+ */
+export const ADMISSION_UNAVAILABLE_CLOSE_CODE = 1013;
 /*
  * Cloudflare closes a WebSocket that carries nothing for 100 seconds, so every client sends this frame while its socket is open.
  * The room answers it without waking, and a client ignores the answer.

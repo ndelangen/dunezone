@@ -19,7 +19,7 @@ import {
 } from './.storybook/worker-async-transform.ts';
 import { coverageExclude, coverageIncludeSrc } from './coverage-denominator.ts';
 import { reactCompiler } from './scripts/lib/reactCompiler.ts';
-import { threeRendererStackAliases } from './scripts/lib/threeRendererStack.ts';
+import { threeRendererStackAliases, threeRendererStackTreeShaking } from './scripts/lib/threeRendererStack.ts';
 
 export default defineConfig({
   oxc: convexWorkerOxc,
@@ -62,6 +62,8 @@ export default defineConfig({
       '@react-three/fiber/webgpu',
       'three',
     ],
+    /* The prebundled table runs the same fiber and drei code as the build. */
+    rolldownOptions: { plugins: [threeRendererStackTreeShaking()] },
   },
   resolve: {
     /* Typings in the current Vite package lag behind docs/runtime support

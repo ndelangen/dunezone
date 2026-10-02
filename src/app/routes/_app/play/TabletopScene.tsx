@@ -39,6 +39,7 @@ import {
   FORCE_LAYER_HEIGHT,
   FORCE_LAYER_PITCH,
   FORCE_TOP_RADIUS,
+  forceScale,
   MARKER_BASE_HEIGHT,
   MARKER_BOTTOM_RADIUS,
   MARKER_CONE_CENTER_Y,
@@ -584,8 +585,9 @@ function TokenFace({
 
 function ForceStackLayers({ piece }: { piece: TablePiece }) {
   const shownLayers = visibleLayerCount(piece);
+  const scale = forceScale(piece);
   return (
-    <group>
+    <group scale={[scale, 1, scale]}>
       {Array.from({ length: shownLayers }, (_, index) => {
         const faceUp = stackLayerFaceUp(piece, index, shownLayers);
         return (
@@ -597,7 +599,7 @@ function ForceStackLayers({ piece }: { piece: TablePiece }) {
             >
               {tokenBoxRatio(piece) != null ? (
                 <boxGeometry
-                  args={[FORCE_BOTTOM_RADIUS * 2, FORCE_LAYER_HEIGHT, FORCE_BOTTOM_RADIUS * 2 * tokenBoxRatio(piece)!]}
+                  args={[FORCE_TOP_RADIUS * 2, FORCE_LAYER_HEIGHT, FORCE_TOP_RADIUS * 2 * tokenBoxRatio(piece)!]}
                 />
               ) : (
                 <cylinderGeometry args={[FORCE_TOP_RADIUS, FORCE_BOTTOM_RADIUS, FORCE_LAYER_HEIGHT, 48]} />
@@ -957,6 +959,12 @@ const PIECE_SELECTION_RADII: Record<TablePiece['kind'], [number, number, number]
   marker: [0.4, 0.47, 64],
 };
 
+function selectionRadii(piece: TablePiece): [number, number, number] {
+  const [inner, outer, segments] = PIECE_SELECTION_RADII[piece.kind];
+  const scale = forceScale(piece);
+  return [inner * scale, outer * scale, segments];
+}
+
 function PieceSelectionRing({
   piece,
   shadowLocalY,
@@ -974,7 +982,7 @@ function PieceSelectionRing({
       renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}
       rotation={[-Math.PI / 2, 0, 0]}
     >
-      <ringGeometry args={isSpicePiece(piece) ? [0.18, 0.205, 64] : PIECE_SELECTION_RADII[piece.kind]} />
+      <ringGeometry args={isSpicePiece(piece) ? [0.18, 0.205, 64] : selectionRadii(piece)} />
       <meshBasicMaterial
         color={stackTargeted ? '#f6bd55' : drafted ? '#f6c879' : '#fff0c9'}
         {...PIECE_SELECTION_RING_MATERIAL}
@@ -1022,7 +1030,7 @@ function PieceLock({ piece }: { piece: TablePiece }) {
       <meshStandardMaterial color="#251912" metalness={0.3} roughness={0.6} />
     </mesh>
   );
-  return piece.kind === 'force' ? <group scale={0.5}>{lock}</group> : lock;
+  return piece.kind === 'force' ? <group scale={0.5 * forceScale(piece)}>{lock}</group> : lock;
 }
 
 /*
@@ -1177,6 +1185,24 @@ function useSceneInteractions(onInteractionActiveChange: TabletopSceneProps['onI
     controlsEnabled: !gestureActivePieceId && !pointerActive,
     onPointerSessionChange,
   };
+}
+
+/**
+ * Frees the renderer, and with it the canvas's WebGL context or GPU device, once the table's canvas has left the page.
+ * R3F does this on unmount only for its legacy WebGLRenderer, so every remount of the table (a reconnect, a reload of the view) otherwise left a live context behind until the browser ran out of them.
+ * A canvas still on the page is a remount of this component alone, as R3F's own teardown assumes, and keeps its renderer.
+ */
+function ReleaseRendererOnUnmount() {
+  const renderer = useThree((state) => state.renderer);
+  useEffect(
+    () => () => {
+      if (!renderer.domElement.isConnected) {
+        renderer.dispose();
+      }
+    },
+    [renderer]
+  );
+  return null;
 }
 
 function SceneContents({
@@ -1378,6 +1404,7 @@ export function TabletopScene({
               /* The renderer's creation follows its asynchronous initialisation, which is the long part of a table's arrival; the first frame follows at once. */
               onCreated={onSceneReady}
             >
+              <ReleaseRendererOnUnmount />
               {children}
               <SceneContents
                 stage={stage}

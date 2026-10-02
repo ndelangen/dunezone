@@ -1,4 +1,4 @@
-import { Anchor, Stack, Text } from '@mantine/core';
+import { Anchor, Button, Group, Stack, Text } from '@mantine/core';
 import type { playLobbyEntrySchema } from '@shared/play/directory';
 import { phaseAt, tableProgressFor } from '@shared/play/phases';
 import { createFileRoute, Link } from '@tanstack/react-router';
@@ -115,9 +115,11 @@ function PlayLobby() {
                 <Section title="Past" description="Finished games with their declared result.">
                   <GameList entries={lobby.past} empty="No game has finished yet." />
                 </Section>
-                <Anchor component={Link} to="/play/create">
-                  Create a game
-                </Anchor>
+                <Group>
+                  <Button component={Link} to="/play/create">
+                    Create a game
+                  </Button>
+                </Group>
               </>
             ) : (
               <LobbyWait status={lobby?.status} />

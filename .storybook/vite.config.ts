@@ -3,7 +3,7 @@ import { defineConfig } from 'vite';
 import type { Plugin } from 'vite';
 
 import { reactCompiler } from '../scripts/lib/reactCompiler.ts';
-import { threeRendererStackAliases } from '../scripts/lib/threeRendererStack.ts';
+import { threeRendererStackAliases, threeRendererStackTreeShaking } from '../scripts/lib/threeRendererStack.ts';
 import { pageStylesheetStaysWithItsStory } from './pageStylesheet.ts';
 import {
   convexWorkerAliases,
@@ -74,6 +74,8 @@ export default defineConfig({
       '@react-three/fiber/webgpu',
       'three',
     ],
+    /* The prebundled table runs the same fiber and drei code as the build. */
+    rolldownOptions: { plugins: [threeRendererStackTreeShaking()] },
   },
   resolve: {
     // Keep Storybook path resolution aligned with the app config.
@@ -88,6 +90,7 @@ export default defineConfig({
     pageStylesheetStaysWithItsStory(),
     viteReact(),
     reactCompiler(),
+    threeRendererStackTreeShaking(),
     quietDeferredAssetWarnings(),
   ],
   worker: {

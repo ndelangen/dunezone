@@ -235,6 +235,8 @@ export const ShortWindow = meta.story({
     const header = shell.querySelector('header')!;
     const dock = shell.querySelector('.seated-controls-panel')!;
     expect(dock.getBoundingClientRect().top).toBeLessThan(header.getBoundingClientRect().bottom);
+    /* The dock grows up over the scene here, so the fixed split draws no separator across it. */
+    expect(shell.querySelector('[role="separator"][aria-orientation="horizontal"]')).not.toBeVisible();
     const picker = within(header).getByRole('group', { name: 'Table view' });
     const controls = [
       ...within(picker).getAllByRole('button'),
@@ -569,5 +571,57 @@ export const SpiceDiscForgetsAPlaybackHover = meta.story({
     await waitFor(() =>
       expect(lastCommand()).toMatchObject({ type: 'command', action: { kind: 'spice-spawn', count: 3 } })
     );
+  },
+});
+
+/* The table canvases' WebGL2 contexts, in the order the renderer created them. */
+const tableContexts: { context: WebGL2RenderingContext; canvas: HTMLCanvasElement }[] = [];
+
+/* Records every WebGL2 context the table creates, then restores the browser's own lookup. */
+const recordTableContexts = () => {
+  tableContexts.length = 0;
+  const getContext = HTMLCanvasElement.prototype.getContext;
+  HTMLCanvasElement.prototype.getContext = function (this: HTMLCanvasElement, kind: string, ...rest: unknown[]) {
+    const context = Reflect.apply(getContext, this, [kind, ...rest]);
+    if (kind === 'webgl2' && context && this.closest('.dune-play-shell')) {
+      if (!tableContexts.some((entry) => entry.context === context)) {
+        tableContexts.push({ context, canvas: this });
+      }
+    }
+    return context;
+  } as HTMLCanvasElement['getContext'];
+  const uninstall = install(() => productTransport())();
+  return () => {
+    uninstall();
+    HTMLCanvasElement.prototype.getContext = getContext;
+  };
+};
+
+/* A dropped socket keeps the table's renderer, since the locked table stays on screen through the reconnect; a table that leaves the page, as it does on a refusal, frees its renderer instead of holding a WebGL context per remount until the browser runs out of them. */
+export const ReleasesItsRendererOnRemount = meta.story({
+  beforeEach: recordTableContexts,
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await tablePage(canvasElement);
+    const first = await waitFor(
+      () => {
+        expect(tableContexts[0]).toBeDefined();
+        return tableContexts[0]!;
+      },
+      { timeout: 30_000 }
+    );
+    session.transport.disconnect();
+    await page.findByRole('status', { name: /^Reconnecting\./ });
+    expect(first.canvas.isConnected).toBe(true);
+    await waitFor(() => expect(page.queryByRole('status', { name: /^Reconnecting\./ })).toBeNull(), {
+      timeout: 30_000,
+    });
+    await tablePage(canvasElement);
+    expect(tableContexts.at(-1)).toBe(first);
+    expect(first.context.isContextLost()).toBe(false);
+
+    session.transport.deliver({ type: 'admission', status: 'denied' });
+    await waitFor(() => expect(first.canvas.isConnected).toBe(false), { timeout: 30_000 });
+    await waitFor(() => expect(first.context.isContextLost()).toBe(true), { timeout: 5000 });
   },
 });
