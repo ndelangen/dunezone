@@ -67,7 +67,7 @@ function drawCard(snapshot: StoredSnapshot, deck: StoredPiece, recipient: string
     ...deck,
     id: randomUUID(),
     /* A dealt card is named as a card split off the deck would be, so a hand and the table agree. */
-    label: labelForCount(deck, 1, rosterFactionNames(snapshot.roster), true),
+    label: labelForCount(deck, 1, rosterFactionNames(snapshot.roster)),
     owner: recipient,
     items: [{ ...deck.items.at(-1)!, faceUp: false }],
     shuffleRevision: undefined,

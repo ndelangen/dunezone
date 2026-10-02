@@ -742,6 +742,13 @@ describe('playing from a hand', () => {
 });
 
 describe('card stack names', () => {
+  test('a stack without artwork is named from its key, as the demo Treachery deck is', () => {
+    const state = freshTableState();
+    const deck = state.pieces.find((piece) => piece.id === 'treachery-deck')!;
+    expect(labelForCount(deck, 1, state.factionNames)).toBe('Treachery card');
+    expect(labelForCount(deck, 2, state.factionNames)).toBe('Treachery deck');
+  });
+
   /* A homebrew deck on a custom back whose name was cleared in the deck editor: its cards carry artwork but no back word. */
   function backless(id: string, label: string, count: number, position: Vector3Tuple, backName?: string): TablePiece {
     return {
