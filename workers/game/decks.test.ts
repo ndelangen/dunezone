@@ -78,3 +78,31 @@ test('a deal renames the deck it leaves by the word on its back, and a shuffle k
   });
   expect(dealt).toEqual([...Array(traitors.items.length - 2).fill('Traitor deck'), 'Traitor card']);
 });
+
+test('a draw from a deck whose back has no name keeps the deck under its own name', () => {
+  /* A homebrew deck on a custom back whose name was cleared in the deck editor, so its cards carry no back word. */
+  const homebrew = place(
+    {
+      ...piece('homebrew', 'Homebrew Spice Deck', 'shared', '#d5ba8c', 'card', 'deck:homebrew-spice-deck'),
+      items: [0, 1, 2].map((index) => ({
+        id: `homebrew-${index}`,
+        faceUp: false,
+        artwork: {
+          front: `https://table.test/published/decks/homebrew-spice-deck/${index}.jpg`,
+          back: 'https://table.test/published/decks/homebrew-spice-deck/cardback.jpg',
+          name: `Card ${index}`,
+          type: 'card-spice',
+        },
+      })),
+    },
+    [6, 0, 6]
+  );
+  const fixture = hostedFixturePlan.snapshot(hostedFixturePlan.roster);
+  let snapshot: StoredSnapshot = { ...fixture, table: { ...fixture.table, pieces: [homebrew] } };
+  const labels = [1, 2].map(() => {
+    snapshot = deckCommand(snapshot, 'atreides', { kind: 'deck-draw', pieceId: homebrew.id, recipient: 'harkonnen' });
+    return snapshot.table.pieces.find((candidate) => candidate.id === homebrew.id)?.label;
+  });
+
+  expect(labels).toEqual(['Homebrew Spice Deck', 'Homebrew Spice Deck']);
+});

@@ -18,7 +18,7 @@ export function eventId(number: number): string {
 
 /**
  * The name a stack takes when its own items change.
- * A card stack is named by the word printed on its back, and cards without one read as Treachery.
+ * A card stack is named by the word printed on its back, and cards without one keep the stack's own name.
  * A force stack is named by its owner: the faction's display name, or Shared for a piece no faction owns.
  */
 export function labelForCount(
@@ -31,7 +31,11 @@ export function labelForCount(
     return 'Spice';
   }
   if (piece.kind === 'card') {
-    const word = piece.items[0]?.artwork?.backName ?? 'Treachery';
+    const word = piece.items[0]?.artwork?.backName;
+    if (!word) {
+      /* A back without a printed word keeps the stack's own name, and a stack without one reads as plain cards. */
+      return piece.label || (count === 1 ? 'Card' : held ? 'Cards' : 'Deck');
+    }
     if (count === 1) {
       return `${word} card`;
     }

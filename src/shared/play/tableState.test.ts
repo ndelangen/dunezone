@@ -9,6 +9,7 @@ import {
   draftForGesture,
   draftWithAdditionalTop,
   heldPieceFor,
+  labelForCount,
   moveStormInState,
   playFromHandAtAnchor,
   projectCarryAtPosition,
@@ -232,7 +233,7 @@ describe('direct manipulation drafts', () => {
     const next = applyDraftToState(state, heldPair);
 
     expect(required(next.events[0]).status).toBe('rejected');
-    expect(required(next.events[0]).message).toBe('Unlock Treachery cards first.');
+    expect(required(next.events[0]).message).toBe('Unlock Treachery card first.');
     expect(pieceById(next.pieces, loose.id).locked).toBe(true);
     expect(itemIds(next)).toEqual(itemIds(state));
   });
@@ -738,4 +739,27 @@ describe('playing from a hand', () => {
 
     expect(playFromHandAtAnchor(table, card, [1, 0.18, -1])).toBeNull();
   });
+});
+
+test('a card stack with no back word and no name of its own reads as plain cards', () => {
+  const unnamed: TablePiece = {
+    id: 'unnamed',
+    label: '',
+    owner: 'shared',
+    color: '#d5ba8c',
+    accent: '#d5ba8c',
+    kind: 'card',
+    stackKey: 'deck:unnamed',
+    position: [0, 0, 0],
+    orientation: 0,
+    zoneId: null,
+    locked: false,
+    items: [{ id: 'unnamed-0', faceUp: false }],
+  };
+
+  expect([labelForCount(unnamed, 3, {}), labelForCount(unnamed, 3, {}, true), labelForCount(unnamed, 1, {})]).toEqual([
+    'Deck',
+    'Cards',
+    'Card',
+  ]);
 });
