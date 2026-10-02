@@ -10,7 +10,7 @@
  */
 import { isIsolatedLoopbackBackend } from './isolatedBackend';
 
-/** The stored form of a digest: `sha256:`, a 16-byte hex salt, a colon and the hex SHA-256 of the salt, a colon and the password. */
+/** The stored form of a digest: `sha256:`, a 16-byte hex salt, a colon, then the hex SHA-256 of the salt and the password joined by a colon. */
 const PASSWORD_DIGEST = /^sha256:([a-f0-9]{32}):([a-f0-9]{64})$/;
 
 /**

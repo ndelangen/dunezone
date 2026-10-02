@@ -30,11 +30,11 @@ afterEach(() => {
 });
 
 /**
- * Production keeps E2E_LOCAL_AUTH off and so registers no Password provider, and this is the guard behind that.
- * Each case leaves one condition unmet, and the hosted URLs stand for any deployment Convex hosts.
+ * Production keeps E2E_LOCAL_AUTH off, so it registers no Password provider, and these cases cover the guard behind that.
+ * Each leaves one condition unmet, and the hosted URLs stand for any deployment Convex hosts.
  */
 describe('which backends check a digest', () => {
-  test('the launcher’s isolated loopback backend does', () => {
+  test('an isolated loopback backend with the variable does', () => {
     expect(checksPasswordDigest()).toBe(true);
     expect(passwordDigestCrypto()).toBeDefined();
   });
@@ -87,7 +87,7 @@ async function storedSecret(t: ReturnType<typeof backend>, email: string) {
 }
 
 /* The digest is made in Node by the runner's own helper and checked by Convex Auth's real Password sign-in. */
-test('a provisioned account keeps the runner’s digest, signs in with its password and is refused with another', async () => {
+test('a provisioned account keeps the digest the runner made, signs in with its password and is refused with another', async () => {
   const t = backend();
   const player = account('player-a');
   await t.mutation(internal.playTesting.provisionAccounts, {
