@@ -21,8 +21,8 @@ flowchart TD
 ```
 
 - **Loader.** [`db.query`](../src/app/db/core/index.ts) from `src/app/db/core/index.ts`, awaited
-  before the route renders. During TanStack Start prerendering it swaps to a `ConvexHttpClient`,
-  since there is no session or socket then.
+  before the route renders. During prerendering and public request-time SSR it uses a fresh anonymous
+  `ConvexHttpClient`. Browser loaders keep the existing authenticated client.
 - **Subscription.** `useQuery` from `convex/react` inside the domain hook, handed the loader's
   result as `initialData` so the first render has data and later renders are live.
 

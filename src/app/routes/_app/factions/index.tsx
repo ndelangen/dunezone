@@ -20,7 +20,7 @@ import { useMemo, useState } from 'react';
 import { loadFactionCataloguePage, useFactionCataloguePage } from '@db/factions';
 import type { FactionCatalogueEntry, FactionCataloguePageData, FactionRulesetSummary } from '@db/factions';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
-import { pageHead } from '@app/routes/pageTitle';
+import { publicPageHead } from '@app/routes/publicPage';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 import {
@@ -33,12 +33,18 @@ import type { FactionCatalogueSearch, FactionComplexityRange } from './catalogue
 import styles from './index.module.css';
 
 export const Route = createFileRoute('/_app/factions/')({
+  ssr: true,
   codeSplitGroupings: [['component', 'pendingComponent', 'errorComponent']],
   validateSearch: parseFactionCatalogueSearch,
   loader: loadFactionCataloguePage,
   pendingComponent: FactionCataloguePending,
   errorComponent: FactionCatalogueError,
-  head: () => pageHead('Factions'),
+  head: () =>
+    publicPageHead({
+      name: 'Factions',
+      pathname: '/factions',
+      description: 'Browse community factions for Dune, with rules, leaders, troops and printable sheets.',
+    }),
   component: FactionsPage,
 });
 

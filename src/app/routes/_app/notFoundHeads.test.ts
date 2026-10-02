@@ -1,3 +1,4 @@
+import { publishingTreacheryCard } from '@shared/assets/fixtures/publishingTreacheryCard';
 import type * as TanStackRouter from '@tanstack/react-router';
 import { createMemoryHistory, createRootRoute, createRoute, createRouter } from '@tanstack/react-router';
 import { hydrate } from '@tanstack/react-router/ssr/client';
@@ -106,7 +107,7 @@ describe('route heads during hydration of a notFound page', () => {
         url: '/assets/card-treachery/karama',
         head: headOf(assetDetail),
         status: 'success',
-        loaderData: { asset: { name: 'Karama' } },
+        loaderData: { asset: { name: 'Karama', slug: 'karama', data: { ...publishingTreacheryCard, name: 'Karama' } } },
       })
     ).resolves.toBe('Karama · Dune Zone');
   });

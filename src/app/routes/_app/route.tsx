@@ -5,6 +5,8 @@ import { ApplicationChrome } from '@app/shell/ApplicationChrome';
 import { AppNotFound } from '@app/shell/AppNotFound';
 
 export const Route = createFileRoute('/_app')({
+  /* Public leaves opt in below this layout; other page loaders remain client-only. */
+  ssr: true,
   codeSplitGroupings: [['component', 'notFoundComponent']],
   /* A notFound thrown anywhere below lands on this layout's notFoundComponent, so this layout names the not-found page.
      The server render and client navigation run no heads below the boundary.
