@@ -309,24 +309,27 @@ function TableControlsPanel({
         ...panelTabs,
       ]
     : [...panelTabs, ...(tableTabLabel ? [tableTab] : [])];
-  const firstKey = tabs[0]?.key ?? tableTab.key;
-  const [path, setPath] = useReducer((_: string[], next: string[]) => next, [firstKey]);
-  /* The stage tab arriving opens it, so a spectator seated during drafting lands on the stage, not on the Log they watched from (#1666). */
+  const [path, setPath] = useReducer((_: string[], next: string[]) => next, [tabs[0]?.key ?? tableTab.key]);
+  /* The stage tab arriving opens it over the chosen tab, so a spectator seated during drafting lands on the stage, not on the Log they watched from (#1666). The chosen tab is kept beneath: once the stage leaves, as in playback stepping into play, it opens again. */
   const hasStage = Boolean(panelContent);
   const [stageShown, setStageShown] = useState(hasStage);
+  const [stageOpened, setStageOpened] = useState(false);
   if (hasStage !== stageShown) {
     setStageShown(hasStage);
-    if (hasStage) {
-      setPath([firstKey]);
-    }
+    setStageOpened(hasStage);
   }
+  const choose = (next: string[]) => {
+    setStageOpened(false);
+    setPath(next);
+  };
   /* Each focus token opens its tab once, during render as React adjusts state from a changed prop. */
   const [focused, setFocused] = useState<string | null>(null);
   if (focusTab && focusTab.token !== focused && tabs.some((tab) => tab.key === focusTab.key)) {
     setFocused(focusTab.token);
-    setPath([focusTab.key]);
+    choose([focusTab.key]);
   }
-  const active = tabs.find((tab) => tab.key === path[0]) ?? tabs[0] ?? tableTab;
+  const chosen = stageOpened ? undefined : tabs.find((tab) => tab.key === path[0]);
+  const active = chosen ?? tabs[0] ?? tableTab;
   const subtab = active.subtabs?.find((tab) => tab.key === path[1]) ?? active.subtabs?.[0];
   if (panelContent && panelTabs.length === 0) {
     return <div className="seated-stage-panel">{panelContent}</div>;
@@ -350,7 +353,7 @@ function TableControlsPanel({
             path={[tab.key]}
             label={tab.label}
             icon={<TopicIcon topic={tab.topic} size={22} />}
-            onClick={() => setPath([tab.key])}
+            onClick={() => choose([tab.key])}
           />
         ))}
       </NestedTabs.Level>
@@ -364,7 +367,7 @@ function TableControlsPanel({
               path={[active.key, tab.key]}
               label={tab.label}
               icon={<TopicIcon topic={tab.topic} size={22} />}
-              onClick={() => setPath([active.key, tab.key])}
+              onClick={() => choose([active.key, tab.key])}
             />
           ))}
         </NestedTabs.Level>
