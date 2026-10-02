@@ -1,4 +1,3 @@
-/// <reference types="node/sqlite" />
 import { DatabaseSync } from 'node:sqlite';
 
 import { describe, expect, it } from 'vitest';
@@ -13,7 +12,7 @@ function memoryStorage() {
     sql: {
       exec: (query: string, ...bindings: (string | number | null)[]) => {
         const statement = database.prepare(query);
-        const rows = /^\s*SELECT/i.test(query) ? statement.all(...bindings) : (statement.run(...bindings), []);
+        const rows = statement.columns().length ? statement.all(...bindings) : (statement.run(...bindings), []);
         return { toArray: () => rows };
       },
     },
@@ -60,7 +59,26 @@ describe('the public log', () => {
       viewer: viewer as never,
       transfer: { kind: 'withdrawal', amount: 3, source: 'fremen', revision: 3 } as never,
     });
+    log.recordCommit({
+      before: snapshot(3),
+      next: snapshot(4, {
+        privatePredictions: {
+          p: { factionId: 'house', lockedAt: 0, revealedAt: 1, choice: { factionId: 'fremen', turn: 3 } },
+        },
+      }),
+      message: { type: 'command', action: { kind: 'prediction-reveal', stepId: 'p' } } as never,
+      viewer: viewer as never,
+    });
+    const phases = [{ label: 'Storm {0}' }, { label: 'Spice {1}' }];
+    log.recordCommit({
+      before: snapshot(4, { phase: 0, phases } as never),
+      next: snapshot(5, { phase: 1, phases } as never),
+      message: { type: 'command', action: { kind: 'phase', direction: 1 } } as never,
+      viewer: viewer as never,
+    });
     expect(log.page('game', Number.MAX_SAFE_INTEGER).entries.map((entry) => entry.text)).toEqual([
+      'Spice {1} began.',
+      'House {0} revealed its prediction: Fremen {1}, turn 3.',
       'Alice withdrew 3 spice from the Fremen {1} bank to the table.',
       'House {0} defeated Fremen {1}.',
     ]);
