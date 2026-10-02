@@ -1,6 +1,7 @@
 /** @vitest-environment jsdom */
 
 import { MantineProvider } from '@mantine/core';
+import { SPECTATOR_SEAT } from '@shared/play/schema';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { appContentTheme } from '@ui/theme';
 import { afterEach, expect, test, vi } from 'vitest';
@@ -178,6 +179,44 @@ test('a spectator press that began on one open seat never requests the seat left
 test('playback in play leaves the controls to the Phase tab', () => {
   renderPlayback('play', 2);
   expect(screen.queryByText(/Playback checkpoint/)).toBeNull();
+});
+
+test('a spectator whose requested seat was taken since is told so and can still withdraw', () => {
+  const client = { command: vi.fn() };
+  const table = {
+    viewer: { viewerSeat: SPECTATOR_SEAT },
+    snapshot: {
+      stage: 'play',
+      roster: {
+        seatCount: 3,
+        seats: ['seat-1', 'seat-2', 'seat-3'].map((id, position) => ({
+          id,
+          position,
+          faction: id === 'seat-2' ? { name: 'Atreides' } : null,
+        })),
+      },
+      controls: {
+        seats: ['seat-1', 'seat-2'],
+        seatRequests: [{ id: 'request-own', requesterName: 'Me', seat: 'seat-2', own: true }],
+      },
+    },
+    playback: null,
+    seatCommandPending: false,
+  } as unknown as Parameters<typeof SeatPopover>[0]['table'];
+  render(
+    <MantineProvider theme={appContentTheme} env="test">
+      <SeatPopover client={client as unknown as TableSession} table={table} error={null} />
+    </MantineProvider>
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Seats' }));
+  expect(screen.getByText('Seat requested')).toBeTruthy();
+  expect(screen.getByText('Seat 2 (Atreides) is taken now')).toBeTruthy();
+  expect(
+    screen.getByText('A player can approve you if it opens again. Withdraw to ask for another seat.')
+  ).toBeTruthy();
+  expect(screen.queryByText('Waiting for a player to approve you')).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: 'Withdraw' }));
+  expect(client.command).toHaveBeenCalledWith({ kind: 'seat-withdraw' });
 });
 
 test('giving up a seat in play names the seat that stays open at the start of the sentence', () => {
