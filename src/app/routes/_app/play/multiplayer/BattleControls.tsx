@@ -460,7 +460,7 @@ export function HandControls({ client, table, hand }: Props & { hand: TablePiece
               styles={{ label: { height: 'auto' } }}
               key={piece.id}
               className={styles.piece}
-              draggable={table.canInteract}
+              draggable={table.canHandleTable}
               aria-label={`Drag ${pieceName(piece)} from hand`}
               onDragStart={(event) => {
                 event.dataTransfer.setData('application/dune-hand', piece.id);
@@ -639,7 +639,7 @@ function useInventoryDrop({ client, table }: Props) {
     const over = (event: DragEvent) => event.preventDefault();
     const drop = (event: DragEvent) => {
       event.preventDefault();
-      if (!table.canInteract) {
+      if (!table.canHandleTable) {
         return;
       }
       const position = dropPosition(event, canvas, camera);
@@ -653,7 +653,7 @@ function useInventoryDrop({ client, table }: Props) {
       canvas.removeEventListener('dragover', over);
       canvas.removeEventListener('drop', drop);
     };
-  }, [camera, renderer, client, table.canInteract]);
+  }, [camera, renderer, client, table.canHandleTable]);
 }
 function BattleMarker({ table }: Props) {
   const phases = table.snapshot.phases ?? STANDARD_PHASES;

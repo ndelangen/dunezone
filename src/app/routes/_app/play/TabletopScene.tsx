@@ -737,7 +737,7 @@ type TablePieceMeshProps = {
 };
 
 function usePieceCarryState(piece: TablePiece) {
-  const { state, gestureActivePieceId, canInteract, remoteCarriedIds, reservedPieceIds } = useTabletop();
+  const { state, gestureActivePieceId, canHandleTable, remoteCarriedIds, reservedPieceIds } = useTabletop();
   const drafted = state.draftMove?.pieceId === piece.id;
   const remoteCarried = remoteCarriedIds.has(piece.id);
   const locallyCarried = drafted && gestureActivePieceId !== null;
@@ -748,7 +748,7 @@ function usePieceCarryState(piece: TablePiece) {
     remoteCarried,
     locallyCarried,
     reserved,
-    interactionBlocked: !canInteract || remoteCarried || (reserved && !localSource),
+    interactionBlocked: !canHandleTable || remoteCarried || (reserved && !localSource),
   };
 }
 
@@ -781,11 +781,12 @@ function useTablePointFromClient() {
 
 function useScenePointerSession(onActiveChange: (active: boolean) => void) {
   const session = usePointerSession();
-  const { state, beginGesture, updateGesture, finishGesture, cancelDraft, canInteract, publishPointer } = useTabletop();
+  const { state, beginGesture, updateGesture, finishGesture, cancelDraft, canHandleTable, publishPointer } =
+    useTabletop();
   const { renderer } = useThree();
   const point = useTablePointFromClient();
   const controls = {
-    canInteract,
+    canInteract: canHandleTable,
     hasDraft: Boolean(state.draftMove),
     piece: (id: string) => state.pieces.find((piece) => piece.id === id),
     point,
@@ -875,7 +876,7 @@ function pieceHoverCursor(canInteract: boolean, interactionBlocked: boolean, ges
 const PieceMenuContext = createContext<((pieceId: string, x: number, y: number) => void) | null>(null);
 
 function usePiecePointerEvents({ piece }: TablePieceMeshProps, interactionBlocked: boolean) {
-  const { state, selectPiece, setHoveredPiece, canInteract } = useTabletop();
+  const { state, selectPiece, setHoveredPiece, canHandleTable } = useTabletop();
   const openPieceMenu = useContext(PieceMenuContext);
   const { renderer } = useThree();
   const pointerSession = usePointerSession();
@@ -932,7 +933,7 @@ function usePiecePointerEvents({ piece }: TablePieceMeshProps, interactionBlocke
     },
     onPointerEnter: (event: ThreeEvent<PointerEvent>) => {
       event.stopPropagation();
-      const cursor = pieceHoverCursor(canInteract, interactionBlocked, Boolean(gestureBlocked));
+      const cursor = pieceHoverCursor(canHandleTable, interactionBlocked, Boolean(gestureBlocked));
       if (interactionBlocked) {
         renderer.domElement.style.cursor = cursor;
         return;
