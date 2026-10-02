@@ -29,9 +29,14 @@ describe('table controls panel layout', () => {
     const limits = controlsPanelLimits(480, 16);
     expect(limits.min).toBeCloseTo((272 / 480) * 100);
     expect(limits.max).toBe(limits.min);
+    expect(limits.concealed).toBeUndefined();
   });
 
   test('a shell too short for both keeps the table and fixes the split, with the dock over the scene', () => {
-    expect(controlsPanelLimits(400, 16)).toEqual({ min: MIN_CONTROLS_PANEL_PERCENT, max: MIN_CONTROLS_PANEL_PERCENT });
+    expect(controlsPanelLimits(400, 16)).toEqual({
+      min: MIN_CONTROLS_PANEL_PERCENT,
+      max: MIN_CONTROLS_PANEL_PERCENT,
+      concealed: true,
+    });
   });
 });

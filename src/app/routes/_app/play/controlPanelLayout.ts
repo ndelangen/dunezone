@@ -38,7 +38,7 @@ const MIN_TABLETOP_SCENE_HEIGHT_PX = 160;
  * The separator never goes above the dock's own floor: below it the dock would rise out of its panel
  * and the separator's line and grip would be drawn across the dock's first row.
  * A shell too short for that floor and the least of the table keeps the table and fixes the split:
- * the dock grows up over the scene to keep its floor, and SplitPanels draws no separator to cross it.
+ * the dock grows up over the scene to keep its floor, and the split conceals its separator so no grip crosses it.
  */
 export function controlsPanelLimits(shellHeight: number, remPx = rootFontSize()): SplitLimits {
   if (!Number.isFinite(shellHeight) || shellHeight <= 0) {
@@ -46,7 +46,7 @@ export function controlsPanelLimits(shellHeight: number, remPx = rootFontSize())
   }
   const dockFloor = CONTROLS_DOCK_MIN_HEIGHT_REM * remPx;
   if (shellHeight - dockFloor < MIN_TABLETOP_SCENE_HEIGHT_PX) {
-    return { min: MIN_CONTROLS_PANEL_PERCENT, max: MIN_CONTROLS_PANEL_PERCENT };
+    return { min: MIN_CONTROLS_PANEL_PERCENT, max: MIN_CONTROLS_PANEL_PERCENT, concealed: true };
   }
   const min = Math.max(MIN_CONTROLS_PANEL_PERCENT, (dockFloor / shellHeight) * 100);
   return { min, max: Math.max(min, maxControlsPanelPercentForHeight(shellHeight)) };

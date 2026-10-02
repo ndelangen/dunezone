@@ -131,8 +131,8 @@
   height: 5.5rem;
 }
 
-/* Limits that leave no room to move leave nothing to drag: the separator keeps its track but draws nothing and leaves the Tab order, so a panel that overflows its share is never crossed by a grip. */
-.layout[data-fixed="true"] > .separator {
+/* A concealed separator keeps its track but draws nothing and leaves the Tab order, so a panel that overflows its share is never crossed by a grip. */
+.layout[data-concealed="true"] > .separator {
   visibility: hidden;
 }
 

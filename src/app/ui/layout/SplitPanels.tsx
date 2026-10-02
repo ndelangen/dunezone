@@ -1,4 +1,4 @@
-import { Children, isValidElement, useId, useLayoutEffect, useReducer, useRef } from 'react';
+import { Children, isValidElement, useEffect, useId, useLayoutEffect, useReducer, useRef } from 'react';
 import type {
   AriaAttributes,
   CSSProperties,
@@ -21,7 +21,12 @@ function Second(_: PropsWithChildren): null {
 }
 
 /** The smallest and largest size of the primary panel, in percent of the room both panels share. */
-export type SplitLimits = Readonly<{ min: number; max: number }>;
+export type SplitLimits = Readonly<{
+  min: number;
+  max: number;
+  /** The caller's word that a panel overflows its share, so the separator would be drawn across it: it then draws nothing and takes no focus. */
+  concealed?: boolean;
+}>;
 
 type SplitPanelsProps = PropsWithChildren<{
   /** The separator's orientation, as ARIA names it: `vertical` sets the panels side by side, `horizontal` stacks them. */
@@ -63,7 +68,11 @@ function clamp(size: number, { min, max }: SplitLimits): number {
 function reduceSplit(state: SplitState, event: SplitEvent): SplitState {
   switch (event.type) {
     case 'limit.changed':
-      if (event.limits.min === state.limits.min && event.limits.max === state.limits.max) {
+      if (
+        event.limits.min === state.limits.min &&
+        event.limits.max === state.limits.max &&
+        event.limits.concealed === state.limits.concealed
+      ) {
         return state;
       }
       return { ...state, limits: event.limits, size: clamp(state.size, event.limits) };
@@ -176,6 +185,13 @@ function SplitPanelsBase({
     return () => observer.disconnect();
   }, [limits, orientation]);
 
+  /* A separator concealed while it holds focus gives it up: not every browser moves focus off a hidden element. */
+  useEffect(() => {
+    if (state.limits.concealed && separatorRef.current === document.activeElement) {
+      separatorRef.current?.blur();
+    }
+  }, [state.limits.concealed]);
+
   /* The pointer marks the middle of the separator, so the panels share the room either side of it. */
   const sizeAtPointer = (event: ReactPointerEvent<HTMLDivElement>) => {
     const layout = layoutRef.current!.getBoundingClientRect();
@@ -223,7 +239,7 @@ function SplitPanelsBase({
         className={styles.layout}
         data-orientation={orientation}
         data-resizing={state.pointerId !== null}
-        data-fixed={state.limits.min === state.limits.max}
+        data-concealed={state.limits.concealed === true}
         style={split}
       >
         <div className={styles.panel} id={primary === 'first' ? primaryId : undefined}>
@@ -233,7 +249,7 @@ function SplitPanelsBase({
           ref={separatorRef}
           className={styles.separator}
           role="separator"
-          tabIndex={0}
+          tabIndex={state.limits.concealed ? -1 : 0}
           aria-label={label}
           aria-orientation={orientation}
           aria-controls={primaryId}
