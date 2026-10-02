@@ -152,7 +152,7 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
     term: 'Phase',
     topic: 'turn',
     explanation:
-      'One of the nine parts of a turn, played in order: Storm, Spice Blow and Nexus, CHOAM Charity, Bidding, Revival, Shipment and Movement, Battle, Spice Harvest and Mentat Pause.',
+      'One of the nine parts of a turn, played in order: Storm, Spice Blow and Nexus, CHOAM Charity, Bidding, Revival, Shipment and Movement, Battle, Spice Collection and Mentat Pause.',
     reason: 'The rulebook word for each part of a turn.',
     source: 'rulebook',
     avoid: [{ word: 'stage', forms: ['stages'], hint: false }],
@@ -210,27 +210,27 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
     ],
   },
   {
-    id: 'spice-harvest',
-    term: 'Spice Harvest',
+    id: 'spice-collection',
+    term: 'Spice Collection',
     topic: 'turn',
     explanation: 'The phase where troops standing on spice collect it from the board.',
-    reason: 'The 2019 rulebook names the phase Spice Harvest; the older rules called it Spice Collection.',
-    source: 'rulebook',
-    avoid: [{ word: 'spice collection', forms: ['collection phase'], fixes: { 'spice collection': 'Spice Harvest' } }],
+    reason:
+      'The 2019 rulebook renamed the phase Spice Harvest, but Dune Zone keeps Spice Collection: the phase is about collecting, and Play already calls it that.',
+    source: 'house',
+    avoid: [{ word: 'spice harvest', forms: ['harvest phase'], fixes: { 'spice harvest': 'Spice Collection' } }],
   },
   {
     id: 'battle',
     term: 'Battle',
     topic: 'battle',
     explanation:
-      'What happens when two factions have troops in the same territory during the Battle phase. Both secretly choose a battle plan, and the loser’s troops go to the Tleilaxu Tanks. Factions battle; they do not fight or do combat.',
+      'What happens when two factions have troops in the same territory during the Battle phase. Both secretly choose a battle plan, and the loser’s troops go to the Tleilaxu Tanks. Factions battle; they do not do combat.',
     reason:
       'The rulebook uses battle for the phase, the event and the act, and never uses combat. One word for all three keeps rules text and code readable.',
     source: 'rulebook',
     avoid: [
       { word: 'combat', forms: ['combats'], fixes: { combat: 'battle', combats: 'battles' } },
       { word: 'combatant', forms: ['combatants', 'noncombatant', 'non-combatant'] },
-      { word: 'fight', forms: ['fights', 'fighting', 'fought'] },
       { word: 'duel', forms: ['duels'], fixes: { duel: 'battle', duels: 'battles' } },
     ],
   },
@@ -256,6 +256,21 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
     avoid: [
       { word: 'battle strategy', fixes: { 'battle strategy': 'battle plan' } },
       { word: 'combat plan', fixes: { 'combat plan': 'battle plan' } },
+    ],
+  },
+  {
+    id: 'supported',
+    term: 'Supported',
+    topic: 'battle',
+    explanation:
+      'A dialed troop is supported when its faction pays spice for it in a battle, so it counts at its full strength. A troop dialed without support counts for less.',
+    reason:
+      'The advanced rules say troops are supported by spice. Dune Zone uses the same word for the strength and the cost: supported strength and support cost.',
+    source: 'rulebook',
+    avoid: [
+      { word: 'funded', fixes: { funded: 'supported' } },
+      { word: 'funded strength', fixes: { 'funded strength': 'supported strength' } },
+      { word: 'funding cost', fixes: { 'funding cost': 'support cost' } },
     ],
   },
   {
@@ -353,6 +368,21 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
     avoid: [
       { word: 'spice supply', fixes: { 'spice supply': 'Spice Bank' } },
       { word: 'spice pool', fixes: { 'spice pool': 'Spice Bank' } },
+    ],
+  },
+  {
+    id: 'spice-reserve',
+    term: 'Spice reserve',
+    topic: 'spice',
+    explanation:
+      'A faction’s personal spice reserve: the spice it owns, kept behind its shield. Short for faction’s personal spice reserve. Spice you collect goes into it, and spice you pay comes out of it.',
+    reason:
+      'Dune Zone’s name, so a faction’s own spice never gets mixed up with the shared Spice Bank. Play used to call it a bank.',
+    source: 'house',
+    avoid: [
+      { word: 'personal bank', fixes: { 'personal bank': 'spice reserve' } },
+      { word: 'faction bank', fixes: { 'faction bank': 'spice reserve' } },
+      { word: 'spice stash', fixes: { 'spice stash': 'spice reserve' } },
     ],
   },
   {

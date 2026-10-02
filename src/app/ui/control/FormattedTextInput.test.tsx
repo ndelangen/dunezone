@@ -168,18 +168,18 @@ it('shows no wording suggestions when the caller turns them off', () => {
 it('fixes the wording on request and can put the draft back', () => {
   render(
     <MantineProvider theme={appContentTheme} forceColorScheme="light">
-      <EditableInput initialValue="Forces fight in combat." />
+      <EditableInput initialValue="Forces deploy for combat." />
     </MantineProvider>
   );
   const field = screen.getByRole('textbox', { name: 'Text' }) as HTMLTextAreaElement;
 
   fireEvent.click(screen.getByRole('button', { name: 'Fix wording' }));
-  expect(field.value).toBe('Troops fight in battle.');
-  expect(screen.getByRole('note', { name: 'Wording suggestions' }).textContent).toContain('rather than “fight”');
+  expect(field.value).toBe('Troops deploy for battle.');
+  expect(screen.getByRole('note', { name: 'Wording suggestions' }).textContent).toContain('rather than “deploy”');
   expect(screen.queryByRole('button', { name: 'Fix wording' })).toBeNull();
 
   fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
-  expect(field.value).toBe('Forces fight in combat.');
+  expect(field.value).toBe('Forces deploy for combat.');
   expect(screen.queryByRole('button', { name: 'Undo' })).toBeNull();
 });
 

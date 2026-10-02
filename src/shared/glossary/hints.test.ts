@@ -53,7 +53,11 @@ describe('findTermHints', () => {
   });
 
   test('returns hints in reading order', () => {
-    expect(findTermHints('Fight with your forces').map((hint) => hint.index)).toEqual([0, 16]);
+    expect(findTermHints('Deploy with your forces').map((hint) => hint.index)).toEqual([0, 17]);
+  });
+
+  test('leaves fight alone, since it is plain English', () => {
+    expect(findTermHints('They fight over Arrakeen and fought again.')).toEqual([]);
   });
 });
 
@@ -133,13 +137,13 @@ describe('fixTermWording', () => {
   });
 
   test('leaves no avoided word behind once it has fixed every hint it can', () => {
-    const draft = 'Forces fight in combat, then the KH ships elite forces from the graveyard.';
+    const draft = 'Forces battle in combat, then the KH ships elite forces from the graveyard.';
     const fixed = fixTermWording(draft);
     expect(findTermHints(fixed).filter((hint) => hint.fix)).toEqual([]);
   });
 
   test('offers a fix on the hint only where it has one', () => {
-    expect(findTermHints('forces fight').map((hint) => hint.fix)).toEqual(['troops', undefined]);
+    expect(findTermHints('forces deploy').map((hint) => hint.fix)).toEqual(['troops', undefined]);
   });
 });
 

@@ -63,7 +63,7 @@ const PHASES = [
   { name: 'Revival', icon: '/vector/icon/revival.svg', anchor: 'revival' },
   { name: 'Shipment and Movement', icon: '/vector/icon/shipment_disc.svg', anchor: 'shipment-and-movement' },
   { name: 'Battle', icon: '/vector/icon/combat_disc.svg', anchor: 'battle' },
-  { name: 'Spice Harvest', icon: '/vector/icon/collection_disc.svg', anchor: 'spice-harvest' },
+  { name: 'Spice Collection', icon: '/vector/icon/collection_disc.svg', anchor: 'spice-collection' },
   { name: 'Mentat Pause', icon: '/vector/icon/mentat.svg' },
 ] as const;
 
