@@ -97,7 +97,9 @@ table, the phase symbol and status, the dock below the table, and the table-view
 `dune-play.css` carries those rules and nothing else. The separators between the table and the dock
 and between the dock's two panes are the kit's `SplitPanels`, so both have its one shape, and the
 shell sets the split's colour properties to the dock's sand and amber. The panel on the dock is
-the kit's `NestedTabs`, in the accepted shape of the play prototype, and its tabs
+the kit's `NestedTabs`, in the accepted shape of the play prototype. When every item is a button,
+as on the dock, each level is a vertical tablist and the panel is their tabpanel; a rail of links,
+such as the rulebook editor's, stays navigation. Its tabs
 hold `Section`, `Eyebrow`, Mantine controls and the rest of the kit, on the dark-scheme island the
 shell declares with `data-scheme-dark` (`tokens.css` gives that subtree the dark block in both page
 schemes, and a nested provider re-emits Mantine's root-scoped scheme variables under it; a
@@ -454,7 +456,10 @@ itself and hands over only real URLs.
 *Convention. The component is [`PublishedImage`](../../src/app/ui/content/PublishedImage.tsx).
 Renderers and publisher captures draw their own images, since they stay isolated from the app kit.
 Play's panel thumbnails in the shared inventory, the hand and the battle plan go through it; the 3D
-table draws its textures directly, and a piece's face stays plain sand until its texture lands.*
+table draws its textures directly, and a piece's face stays plain sand until its texture lands.
+Faces that show the same published image share one texture, loaded once and released when the last
+of them leaves the table (`sharedPublishedFaces` in `src/app/routes/_app/play/publishedFaceRetry.ts`),
+and a face that mounts while its image is already held draws it in its first frame.*
 
 ## Styling and renderers
 

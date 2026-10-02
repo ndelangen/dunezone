@@ -20,6 +20,37 @@ committed drop stays at its new saved position. No action is retried and no inte
 restored. A patch gap on a still-open connection requests a full view and pauses gameplay commands;
 it does not create a second admission or erase a valid command receipt.
 
+Once the table is back, `TableSession` says what happened to a carry the drop ended. A piece still
+held reads "The table paused while you held a piece. Pick it up again to continue.", which also
+covers an authorization pause where no socket drops. A drop that was sent but not confirmed may or
+may not have landed, so it reads "The connection dropped as you placed a piece. Check where it
+landed." When the view arrives with a new room epoch, as after a Worker restart, the same two cases
+read "The room resumed..." instead. A drop the server confirmed gets no notice.
+
+## Connection loss
+
+A connection can die without a close frame, after a Wi-Fi drop or a laptop sleep, and then the
+browser never fires a close event. `GameSubscription` sends a keepalive ping every
+`KEEPALIVE_INTERVAL_MS` (30 s, in `src/shared/play/protocol.ts`), and the Worker answers every ping.
+Any frame the socket delivers, a pong included, resets the count; a socket that stays silent for a
+whole interval after a ping is closed and replaced. When the browser reports it is back online
+(`GameRuntime.onOnline`), a plain one-second reconnect waiting on its timer starts at once (a
+longer wait the Worker or the ticket answer asked for is kept), and an open socket is pinged at once
+with a whole interval for its answer.
+
+A failure before the table has shown keeps its reason on screen through every retry, until a view
+arrives or the subscription stops: a socket that closes before its view, a dropped silent socket or
+a ticket request that fails reads "The table could not be reached. Reconnecting...", and a ticket
+the game turns away reads "The table is temporarily unavailable." A socket closed with 4401 is
+denied with "This login can no longer access the table." and does not retry. A socket that drops
+after the table has shown reconnects without keeping a failure line, so a deploy's cold restart does
+not read as an outage.
+
+The Play pages that wait on Convex rather than the game Worker, the lobby, the create page and a
+game link, say "Can't reach the server. Retrying..." once their first query has had no answer for
+`SERVER_WAIT_MS` (10 s, in `src/app/routes/_app/play/useServerUnreachable.ts`). Convex keeps
+retrying on its own, and each page fills in when it answers.
+
 The server still derives the viewer's seat from the authenticated identity and filters private
 information before computing patches. Saved piece moves arrive as their own smaller patch (see
 Subscription patches).
