@@ -451,6 +451,30 @@ describe('Drafting and public assignment on a real game', () => {
     expect(dealt.snapshot.roster.seats.map((seat) => seat.faction?.id).sort()).toEqual(['emperor', 'harkonnen']);
   });
 
+  it('closes a request for a drafting place at the deal, so it cannot hold up a request for a vacant seat', async () => {
+    const a = await admit('a');
+    const b = await admit('b');
+    await seat(b, a);
+    const watcher = await admit('w');
+    await accepted(watcher, { kind: 'seat-request' });
+    await accepted(a, { kind: 'draft-ready', ready: true });
+    await accepted(b, { kind: 'draft-ready', ready: true });
+    await eventually(async () => (await stage(a)) === 'swapping', 'assignment');
+    expect((await syncView(a)).snapshot.controls.seatRequests).toEqual([]);
+    expect(await runtime.exec("SELECT state FROM seat_requests WHERE user_id='user-w'")).toEqual([
+      { state: 'closed' },
+    ]);
+    await accepted(b, { kind: 'seat-depart' });
+    const asked = await accepted(watcher, { kind: 'seat-request', seat: 'seat-2' });
+    const request = asked.snapshot.controls.seatRequests.find((entry) => entry.own);
+    expect((await syncView(a)).snapshot.controls.seatRequests).toEqual([
+      { id: request.id, requesterName: 'Synthetic W', seat: 'seat-2' },
+    ]);
+    await accepted(a, { kind: 'seat-approve', requestId: request.id });
+    expect((await syncView(watcher)).viewer.viewerSeat).toBe('seat-2');
+  });
+
+
   it("clears readiness on a roster change, drops a departing player's lists, and reads the catalogue again when stale", async () => {
     const a = await admit('a');
     const b = await admit('b');
