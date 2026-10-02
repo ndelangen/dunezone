@@ -46,7 +46,7 @@ const piece = (match: (candidate: { kind: string; stackKey?: string | null }) =>
   shown().table.pieces.find((candidate) => !candidate.inventory && match(candidate))!;
 
 /**
- * Opens at Bidding as seat 1, then plays on the live table: draws a Treachery card into the hand, carries a force stack across the board, and moves to Revival from the page's own phase control.
+ * Opens at Bidding as seat 1, then plays on the live table: draws a Treachery card into the hand, carries a troop stack across the board, and moves to Revival from the page's own phase control.
  * Restarts at the end, so the story opens where the step does.
  */
 export const Sandbox = meta.story({
@@ -75,16 +75,16 @@ export const Sandbox = meta.story({
       deck.items.length - 1
     );
 
-    /* Seat 1 carries one of its force stacks across the board. */
-    const force = piece(
+    /* Seat 1 carries one of its troop stacks across the board. */
+    const troop = piece(
       (candidate) => candidate.kind === 'force' && !!candidate.stackKey?.startsWith(`troops:${faction}:`)
     );
     const target: [number, number, number] = [0, 0.4, 1.5];
-    const versionBefore = shown().versions[force.id]!;
+    const versionBefore = shown().versions[troop.id]!;
     table.receive({
       type: 'begin',
       carryId: 'sandbox-carry',
-      sourcePieceId: force.id,
+      sourcePieceId: troop.id,
       expectedVersion: versionBefore,
       pickup: 'whole',
     });
@@ -96,9 +96,9 @@ export const Sandbox = meta.story({
       orientation: 0,
     });
     expect(table.refusal).toBeUndefined();
-    const moved = shown().table.pieces.find((candidate) => candidate.id === force.id)!;
-    expect(moved.position).not.toEqual(force.position);
-    expect(shown().versions[force.id]).toBeGreaterThan(versionBefore);
+    const moved = shown().table.pieces.find((candidate) => candidate.id === troop.id)!;
+    expect(moved.position).not.toEqual(troop.position);
+    expect(shown().versions[troop.id]).toBeGreaterThan(versionBefore);
     expect(room.carries.size).toBe(0);
 
     /* The page's own Next phase reaches the room, which moves from Bidding to Revival. */

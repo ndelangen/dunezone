@@ -18,12 +18,12 @@ export const TABLE_SURFACE_Y = 0.005;
 export const CARRIED_BASE_Y = 0.38;
 export const CONTACT_SHADOW_EPSILON = 0.003;
 
-export const FORCE_LAYER_HEIGHT = 0.09 * 0.5;
-export const FORCE_LAYER_PITCH = 0.075 * 0.5;
-export const FORCE_TOP_RADIUS = 0.31 * 0.5;
-export const FORCE_BOTTOM_RADIUS = 0.33 * 0.5;
-export const FORCE_FACE_RADIUS = 0.23 * 0.5;
-export const FORCE_FOOTPRINT_RADIUS = 0.175;
+export const TROOP_LAYER_HEIGHT = 0.09 * 0.5;
+export const TROOP_LAYER_PITCH = 0.075 * 0.5;
+export const TROOP_TOP_RADIUS = 0.31 * 0.5;
+export const TROOP_BOTTOM_RADIUS = 0.33 * 0.5;
+export const TROOP_FACE_RADIUS = 0.23 * 0.5;
+export const TROOP_FOOTPRINT_RADIUS = 0.175;
 export const CARD_WIDTH = 0.86;
 export const CARD_DEPTH = 1.18;
 export const CARD_LAYER_HEIGHT = 0.055;
@@ -63,7 +63,7 @@ function minimumFootprintRadius(position: Vector3Tuple, piece: PieceFootprint): 
       ? SPICE_FOOTPRINT_RADIUS
       : piece.kind === 'marker'
         ? MARKER_FOOTPRINT_RADIUS
-        : FORCE_FOOTPRINT_RADIUS;
+        : TROOP_FOOTPRINT_RADIUS;
     return Math.max(0, Math.hypot(position[0], position[2]) - footprintRadius);
   }
 
@@ -103,7 +103,7 @@ export function stackTopHeight(piece: TablePiece): number {
     return CARD_LAYER_HEIGHT + (layers - 1) * CARD_LAYER_PITCH;
   }
   if (piece.kind === 'force') {
-    return FORCE_LAYER_HEIGHT + (layers - 1) * FORCE_LAYER_PITCH;
+    return TROOP_LAYER_HEIGHT + (layers - 1) * TROOP_LAYER_PITCH;
   }
   return MARKER_HEIGHT;
 }
@@ -125,7 +125,7 @@ function contactShadowBase(piece: TablePiece | TablePiece['kind']): [number, num
   if (kind === 'card') {
     return [CARD_FOOTPRINT_HALF_X * 2, CARD_FOOTPRINT_HALF_Z * 2];
   }
-  const diameter = kind === 'force' ? FORCE_FOOTPRINT_RADIUS * 2 + 0.04 : MARKER_FOOTPRINT_RADIUS * 2;
+  const diameter = kind === 'force' ? TROOP_FOOTPRINT_RADIUS * 2 + 0.04 : MARKER_FOOTPRINT_RADIUS * 2;
   return [diameter, diameter];
 }
 

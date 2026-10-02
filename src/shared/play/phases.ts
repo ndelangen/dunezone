@@ -29,13 +29,13 @@ export const TABLE_PHASES = [
     'revival',
     'Revival',
     '/vector/icon/revival_standalone.svg',
-    'Revive forces and leaders according to your ruleset.'
+    'Revive troops and leaders according to your ruleset.'
   ),
   phase(
     'shipment-and-movement',
     'Shipment and movement',
     '/vector/icon/shipment_disc.svg',
-    'Ship and move your forces on the board.'
+    'Ship and move your troops on the board.'
   ),
   phase(
     'battle',
@@ -174,7 +174,7 @@ export function composeTurn(
 /** A declaration placed in setup, with the faction that declared it, in setup order. */
 export type SetupPlacement = { factionId: string; declaration: PhaseDeclaration; before: SetupPhaseTarget };
 
-/** Setup is `[before traitors] + traitors + [before forces] + forces`; this returns the placed declarations for each slot. */
+/** Setup is `[before traitors] + traitors + [before starting troops] + starting troops`; this returns the placed declarations for each slot. */
 export function composeSetup(
   factions: readonly FactionPhaseDeclarations[],
   stormOrder: readonly string[]

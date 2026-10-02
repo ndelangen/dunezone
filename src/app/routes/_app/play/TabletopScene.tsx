@@ -33,12 +33,12 @@ import {
   contactShadowHeightAt,
   contactShadowOpacity,
   contactShadowScale,
-  FORCE_BOTTOM_RADIUS,
-  FORCE_FACE_RADIUS,
+  TROOP_BOTTOM_RADIUS,
+  TROOP_FACE_RADIUS,
   tokenBoxRatio,
-  FORCE_LAYER_HEIGHT,
-  FORCE_LAYER_PITCH,
-  FORCE_TOP_RADIUS,
+  TROOP_LAYER_HEIGHT,
+  TROOP_LAYER_PITCH,
+  TROOP_TOP_RADIUS,
   MARKER_BASE_HEIGHT,
   MARKER_BOTTOM_RADIUS,
   MARKER_CONE_CENTER_Y,
@@ -528,9 +528,9 @@ function PublishedFace({ href, card, ratio }: { href: string; card: boolean; rat
       {card ? (
         <planeGeometry args={[CARD_WIDTH, CARD_DEPTH]} />
       ) : ratio != null ? (
-        <planeGeometry args={[FORCE_FACE_RADIUS * 2, FORCE_FACE_RADIUS * 2 * ratio]} />
+        <planeGeometry args={[TROOP_FACE_RADIUS * 2, TROOP_FACE_RADIUS * 2 * ratio]} />
       ) : (
-        <circleGeometry args={[FORCE_FACE_RADIUS, 48]} />
+        <circleGeometry args={[TROOP_FACE_RADIUS, 48]} />
       )}
       <meshStandardMaterial
         key={texture ? href : 'placeholder'}
@@ -556,7 +556,7 @@ function TokenFace({
   itemIndex: number;
 }) {
   return (
-    <PieceFace height={FORCE_LAYER_HEIGHT} underside={underside}>
+    <PieceFace height={TROOP_LAYER_HEIGHT} underside={underside}>
       {piece.items[itemIndex]?.artwork?.[faceUp ? 'front' : 'back'] && (
         <PublishedFace
           href={piece.items[itemIndex].artwork![faceUp ? 'front' : 'back']!}
@@ -566,15 +566,15 @@ function TokenFace({
       )}
       <mesh renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}>
         {tokenBoxRatio(piece) != null ? (
-          <planeGeometry args={[FORCE_FACE_RADIUS * 2, FORCE_FACE_RADIUS * 2 * tokenBoxRatio(piece)!]} />
+          <planeGeometry args={[TROOP_FACE_RADIUS * 2, TROOP_FACE_RADIUS * 2 * tokenBoxRatio(piece)!]} />
         ) : (
-          <circleGeometry args={[FORCE_FACE_RADIUS, 48]} />
+          <circleGeometry args={[TROOP_FACE_RADIUS, 48]} />
         )}
         <meshStandardMaterial color={faceUp ? piece.accent : '#261c18'} roughness={0.5} metalness={0.08} />
       </mesh>
       {!faceUp && !piece.items[itemIndex]?.artwork ? (
         <mesh position={[0, 0, 0.001]} renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}>
-          <ringGeometry args={[FORCE_FACE_RADIUS * 0.64, FORCE_FACE_RADIUS * 0.78, 48]} />
+          <ringGeometry args={[TROOP_FACE_RADIUS * 0.64, TROOP_FACE_RADIUS * 0.78, 48]} />
           <meshStandardMaterial color={piece.accent} roughness={0.5} metalness={0.08} />
         </mesh>
       ) : null}
@@ -582,25 +582,25 @@ function TokenFace({
   );
 }
 
-function ForceStackLayers({ piece }: { piece: TablePiece }) {
+function TroopStackLayers({ piece }: { piece: TablePiece }) {
   const shownLayers = visibleLayerCount(piece);
   return (
     <group>
       {Array.from({ length: shownLayers }, (_, index) => {
         const faceUp = stackLayerFaceUp(piece, index, shownLayers);
         return (
-          <group key={index} position={[0, index * FORCE_LAYER_PITCH, 0]}>
+          <group key={index} position={[0, index * TROOP_LAYER_PITCH, 0]}>
             <mesh
-              position={[0, FORCE_LAYER_HEIGHT / 2, 0]}
+              position={[0, TROOP_LAYER_HEIGHT / 2, 0]}
               renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}
               rotation={[0, 0, faceUp ? 0 : Math.PI]}
             >
               {tokenBoxRatio(piece) != null ? (
                 <boxGeometry
-                  args={[FORCE_BOTTOM_RADIUS * 2, FORCE_LAYER_HEIGHT, FORCE_BOTTOM_RADIUS * 2 * tokenBoxRatio(piece)!]}
+                  args={[TROOP_BOTTOM_RADIUS * 2, TROOP_LAYER_HEIGHT, TROOP_BOTTOM_RADIUS * 2 * tokenBoxRatio(piece)!]}
                 />
               ) : (
-                <cylinderGeometry args={[FORCE_TOP_RADIUS, FORCE_BOTTOM_RADIUS, FORCE_LAYER_HEIGHT, 48]} />
+                <cylinderGeometry args={[TROOP_TOP_RADIUS, TROOP_BOTTOM_RADIUS, TROOP_LAYER_HEIGHT, 48]} />
               )}
               <meshStandardMaterial color={piece.color} roughness={0.56} metalness={0.1} />
             </mesh>
@@ -1009,7 +1009,7 @@ function PieceLayers({ piece }: { piece: TablePiece }) {
   if (piece.kind === 'marker') {
     return <MarkerLayers piece={piece} />;
   }
-  return piece.kind === 'card' ? <CardStackLayers piece={piece} /> : <ForceStackLayers piece={piece} />;
+  return piece.kind === 'card' ? <CardStackLayers piece={piece} /> : <TroopStackLayers piece={piece} />;
 }
 
 function PieceLock({ piece }: { piece: TablePiece }) {
@@ -1027,7 +1027,7 @@ function PieceLock({ piece }: { piece: TablePiece }) {
 
 /*
  * The faction that owns a piece, by its display name; a shared piece, or an owner the roster does not name, has none.
- * A label that already carries the name ('Atreides forces', 'Atreides alliance') names it once, and when another
+ * A label that already carries the name ('Atreides troops', 'Atreides alliance') names it once, and when another
  * seat's faction shares that name the badge adds only what tells them apart (#1667).
  */
 function pieceOwnerName(piece: TablePiece, state: Pick<TableState, 'factionNames' | 'factionTieBreaks'>) {

@@ -13,7 +13,7 @@ bun run play:record
 
 The recorder is `workers/game/journey.record.native.test.mjs`. It provisions a real game on the same isolated
 Miniflare runtime every native suite uses, seats six synthetic accounts and a spectator, and plays drafting,
-trading, Traitor selection, starting forces and one full turn with a spice blow, two Treachery purchases, a
+trading, Traitor selection, starting troops and one full turn with a spice blow, two Treachery purchases, a
 shipment and a battle, then declares a winner. After each step it keeps the full view each seat and the
 spectator received, and from setup on the room's stored state. Re-record after any change to the game Worker
 or the protocol that the stories should show; `journey.stories.fixture.test.ts` fails when a recorded view no

@@ -19,7 +19,7 @@ export function eventId(number: number): string {
 /**
  * The name a stack takes when its own items change.
  * A card stack is named by the word printed on its back, and cards without one read as Treachery.
- * A force stack is named by its owner: the faction's display name, or Shared for a piece no faction owns.
+ * A troop stack is named by its owner: the faction's display name, or Shared for a piece no faction owns.
  */
 export function labelForCount(
   piece: TablePiece,
@@ -39,8 +39,8 @@ export function labelForCount(
   }
   if (piece.kind === 'force') {
     const owner = piece.owner === 'shared' ? 'Shared' : factionNames[piece.owner];
-    /* Every faction that owns a piece has a seat, so a missing name reads as plain forces rather than an id. */
-    const [one, many] = owner ? [`${owner} force`, `${owner} forces`] : ['Force', 'Forces'];
+    /* Every faction that owns a piece has a seat, so a missing name reads as plain troops rather than an id. */
+    const [one, many] = owner ? [`${owner} troop`, `${owner} troops`] : ['Troop', 'Troops'];
     return count === 1 ? one : many;
   }
   return piece.label;
@@ -573,7 +573,7 @@ function mergeEventFor(application: DraftApplication, target: TablePiece): Table
   const { current, piece } = application;
   const count = pieceCount(piece);
   const units =
-    piece.kind === 'card' ? ['card', 'cards'] : isSpicePiece(piece) ? ['spice', 'spice'] : ['force', 'forces'];
+    piece.kind === 'card' ? ['card', 'cards'] : isSpicePiece(piece) ? ['spice', 'spice'] : ['troop', 'troops'];
   const unit = count === 1 ? units[0] : units[1];
   const placement = piece.kind === 'card' ? 'placed on' : 'stacked with';
   return {

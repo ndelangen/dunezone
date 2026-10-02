@@ -1029,7 +1029,7 @@ async function visibleActivity(sender, recipient, name) {
       await sender.page.mouse.move(destination.senderPoint.x, destination.senderPoint.y, { steps: CARRY_STEPS });
       await until(
         () => sender.sent.slice(sentBefore).some((message) => message.type === 'begin' && message.sourcePieceId === id),
-        `${name}: the native drag did not pick up the force stack.`
+        `${name}: the native drag did not pick up the troop stack.`
       );
       await until(
         async () => (await redPixels(recipient, sender, destination.recipientPoint)) > destination.baseline + 40,

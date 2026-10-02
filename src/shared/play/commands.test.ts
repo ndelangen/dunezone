@@ -200,7 +200,7 @@ describe('card decks', () => {
   });
 });
 
-describe('force stacks', () => {
+describe('troop stacks', () => {
   /* House Atreides as a real game carries it: its pieces are owned by the catalogue's database id, and the roster holds its display name. */
   const ATREIDES = { id: 'k17ag3gr1h60n7mmh88kj56avs8a1j7x', slug: 'house-atreides', name: 'House Atreides' };
   let next = 0;
@@ -241,19 +241,19 @@ describe('force stacks', () => {
 
     const split = applyPieceAction(table, { kind: 'split', pieceId: reserve.id, count: 5 }, 0);
     expect(labels(split.pieces)).toEqual([
-      ['House Atreides forces', 15],
-      ['House Atreides forces', 5],
+      ['House Atreides troops', 15],
+      ['House Atreides troops', 5],
     ]);
 
     const peel = draftForGesture(pieceById(split, reserve.id)!, 'top')!;
     expect(labels(renderedPiecesFor({ ...split, draftMove: peel }))).toEqual([
-      ['House Atreides forces', 14],
-      ['House Atreides forces', 5],
-      ['House Atreides force', 1],
+      ['House Atreides troops', 14],
+      ['House Atreides troops', 5],
+      ['House Atreides troop', 1],
     ]);
 
     const merged = dropOnto(split, split.pieces[1]!.id, reserve.id);
-    expect(labels(merged.pieces)).toEqual([['House Atreides forces', 20]]);
+    expect(labels(merged.pieces)).toEqual([['House Atreides troops', 20]]);
   });
 
   test.each([
@@ -267,8 +267,8 @@ describe('force stacks', () => {
         [3, 0, 6]
       ),
       [
-        ['Shared forces', 2],
-        ['Shared force', 1],
+        ['Shared troops', 2],
+        ['Shared troop', 1],
       ],
     ],
     [

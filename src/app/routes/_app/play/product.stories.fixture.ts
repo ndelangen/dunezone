@@ -174,9 +174,9 @@ export function setupSnapshot(viewerSeat = 'seat-2'): GameSnapshot {
       {
         id: 'forces',
         kind: 'forces',
-        title: 'Starting forces',
+        title: 'Starting troops',
         instructions:
-          'Place your starting forces using your faction instructions. When every player is prepared, Ready enables Next into Turn 1 Storm.',
+          'Place your starting troops using your faction instructions. When every player is prepared, Ready enables Next into Turn 1 Storm.',
         symbol: '/vector/icon/shipment_disc.svg',
       },
     ],
@@ -204,7 +204,7 @@ export function setupSnapshot(viewerSeat = 'seat-2'): GameSnapshot {
   return snapshot;
 }
 
-function placeStartingForces(snapshot: GameSnapshot) {
+function placeStartingTroops(snapshot: GameSnapshot) {
   const placements: Array<[number, number, string]> = [
     [0, 10, 'arrakeen'],
     [1, 10, 'carthag'],
@@ -241,7 +241,7 @@ function placeStartingForces(snapshot: GameSnapshot) {
   }
 }
 
-/* Public state after each faction kept its private Traitors and placed its starting forces. */
+/* Public state after each faction kept its private Traitors and placed its starting troops. */
 export function preparedSnapshot(viewerSeat = 'seat-2'): GameSnapshot {
   const snapshot = setupSnapshot(viewerSeat);
   const leaders = factions.flatMap((faction) =>
@@ -289,7 +289,7 @@ export function preparedSnapshot(viewerSeat = 'seat-2'): GameSnapshot {
   };
   remaining.position = restingPositionAt(OTHER_DECK_POSITION, remaining);
   snapshot.table.pieces = [...snapshot.table.pieces.filter((entry) => entry.kind !== 'card'), remaining];
-  placeStartingForces(snapshot);
+  placeStartingTroops(snapshot);
   snapshot.setup!.index = 1;
   snapshot.setup!.mapRevealed = true;
   snapshot.setup!.completed = ['traitors'];

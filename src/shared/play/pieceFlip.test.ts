@@ -14,9 +14,9 @@ import {
   CARD_LAYER_HEIGHT,
   CARD_LAYER_PITCH,
   CARD_WIDTH,
-  FORCE_BOTTOM_RADIUS,
-  FORCE_FACE_RADIUS,
-  FORCE_TOP_RADIUS,
+  TROOP_BOTTOM_RADIUS,
+  TROOP_FACE_RADIUS,
+  TROOP_TOP_RADIUS,
   pieceLabelHeight,
   stackTopHeight,
   visibleLayerCount,
@@ -59,7 +59,7 @@ function flippedToRevision(piece: TablePiece, revision: number): TablePiece {
 function visibleBodyCorners(piece: TablePiece): [x: number, y: number][] {
   const shown = visibleLayerCount(piece);
   if (piece.kind !== 'card') {
-    const radius = Math.max(FORCE_BOTTOM_RADIUS, FORCE_TOP_RADIUS, FORCE_FACE_RADIUS);
+    const radius = Math.max(TROOP_BOTTOM_RADIUS, TROOP_TOP_RADIUS, TROOP_FACE_RADIUS);
     return [
       [-radius, 0],
       [radius, 0],
@@ -134,7 +134,7 @@ describe('piece flip frames', () => {
     const motion = retargetPieceFlipMotion(createPieceFlipMotion(0), 1, 0);
     const frame = pieceFlipFrame(motion, piece, PIECE_FLIP_DURATION_MS / 2);
     const halfWidth =
-      kind === 'card' ? CARD_WIDTH / 2 : Math.max(FORCE_BOTTOM_RADIUS, FORCE_TOP_RADIUS, FORCE_FACE_RADIUS);
+      kind === 'card' ? CARD_WIDTH / 2 : Math.max(TROOP_BOTTOM_RADIUS, TROOP_TOP_RADIUS, TROOP_FACE_RADIUS);
 
     expect(frame.rotationZ).toBe(-Math.PI / 2);
     expect(frame.lift).toBeCloseTo(halfWidth + 0.06, 12);
@@ -145,7 +145,7 @@ describe('piece flip frames', () => {
   });
 
   for (const kind of ['card', 'force'] as const) {
-    /* 1 is a single layer, 2 the first stacked one, 4 and 5 the force and card visible caps, and 200 lies far above both caps, where the geometry no longer changes (#1590). */
+    /* 1 is a single layer, 2 the first stacked one, 4 and 5 the troop and card visible caps, and 200 lies far above both caps, where the geometry no longer changes (#1590). */
     test.each([1, 2, 4, 5, 200])(`keeps all visible ${kind} corners above the board for item count %i`, (count) => {
       const piece = pieceWithItems(kind, count);
       const motion = retargetPieceFlipMotion(createPieceFlipMotion(0), 1, 0);

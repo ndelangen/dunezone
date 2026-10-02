@@ -34,7 +34,7 @@ export const TraitorSelection = meta.story({
   },
 });
 
-export const StartingForces = meta.story({
+export const StartingTroops = meta.story({
   beforeEach: install(() => productTransport('seat-2', preparedSnapshot())),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);

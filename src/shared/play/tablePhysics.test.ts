@@ -27,12 +27,12 @@ function cardWellFixtures() {
   }
   return {
     deck: fixturePiece(state, 'treachery-deck'),
-    force: fixturePiece(state, 'harkonnen-force-loose'),
+    troop: fixturePiece(state, 'harkonnen-force-loose'),
     anchor,
   };
 }
 
-function forceFixtures() {
+function troopFixtures() {
   const state = freshTableState();
   const stack = fixturePiece(state, 'harkonnen-force-stack');
   const loose = fixturePiece(state, 'harkonnen-force-loose');
@@ -41,23 +41,23 @@ function forceFixtures() {
   return { stack, loose };
 }
 
-describe('half-scale force-token physics', () => {
+describe('half-scale troop-token physics', () => {
   test('uses a 0.175-unit resting radius', () => {
-    const { stack, loose } = forceFixtures();
+    const { stack, loose } = troopFixtures();
 
     expect(piecesOverlapAt(stack, stack.position, loose, [0.349, 0.38, 0])).toBe(true);
     expect(piecesOverlapAt(stack, stack.position, loose, [0.35, 0.38, 0])).toBe(false);
   });
 
-  test('releases a matching force stack just beyond the smaller snap range', () => {
-    const { stack, loose } = forceFixtures();
+  test('releases a matching troop stack just beyond the smaller snap range', () => {
+    const { stack, loose } = troopFixtures();
 
     expect(piecesTouchForStack(loose, [0.36, 0.38, 0], stack)).toBe(true);
     expect(piecesTouchForStack(loose, [0.361, 0.38, 0], stack)).toBe(false);
   });
 
-  test('allows a force-token center within 0.175 units of the table edge', () => {
-    const { loose } = forceFixtures();
+  test('allows a troop-token center within 0.175 units of the table edge', () => {
+    const { loose } = troopFixtures();
     const clamped = clampPositionToTable(loose, [10, 0.38, 0]);
 
     expect(clamped[0]).toBeCloseTo(TABLE_PLAY_RADIUS - 0.175, 8);
@@ -75,15 +75,15 @@ describe('anchored card physics', () => {
   });
 
   test('does not turn the furniture around a well into free placement space', () => {
-    const { deck, force, anchor } = cardWellFixtures();
+    const { deck, troop, anchor } = cardWellFixtures();
 
     const outsideWell = [anchor.position[0], anchor.position[1], anchor.position[2] + 0.8] as const;
     const clampedCard = clampPositionToTable({ ...deck, orientation: anchor.orientation }, [...outsideWell]);
-    const clampedForce = clampPositionToTable(force, anchor.position);
+    const clampedTroop = clampPositionToTable(troop, anchor.position);
 
     expect(clampedCard).not.toEqual(outsideWell);
     expect(Math.hypot(clampedCard[0], clampedCard[2])).toBeLessThan(Math.hypot(outsideWell[0], outsideWell[2]));
-    expect(clampedForce).not.toEqual(anchor.position);
-    expect(isCollisionFreePosition(force, anchor.position, [])).toBe(false);
+    expect(clampedTroop).not.toEqual(anchor.position);
+    expect(isCollisionFreePosition(troop, anchor.position, [])).toBe(false);
   });
 });
