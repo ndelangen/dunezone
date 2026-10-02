@@ -70,7 +70,8 @@ function independentlySampledMapBoundary(slots: readonly TrackerArcSlot[], seatC
 }
 
 /*
- * Framing is continuous in seats, phases and aspect, so each axis keeps its minimum, a middle and its maximum.
+ * Framing has no threshold in seats, phases or aspect, so each axis keeps its minimum, a middle and its maximum.
+ * Seats snap to eighteen sectors, and two and eighteen seats between them hold the sectors at the frame's edges.
  * Nine phases is the fixed standard arc, and thirty reaches the smallest-disc branch of a refitted arc.
  */
 const MAP_FRAMING_CASES = ([2, 9, 18] as const satisfies readonly TableSeatCount[]).flatMap((seatCount) =>
