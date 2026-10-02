@@ -345,7 +345,7 @@ export class TableSession {
       case 'connection':
         this.conversations.disconnected(this.status === 'denied');
         if (this.carry && !this.carry.pendingDrop) {
-          this.droppedCarryNotice = 'The connection dropped while you held a piece. Pick it up again to continue.';
+          this.droppedCarryNotice = 'The table paused while you held a piece. Pick it up again to continue.';
         }
         this.clearDisconnectedActivity();
         this.selectedId = null;

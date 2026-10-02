@@ -39,10 +39,9 @@ class BridgeSocket {
       return;
     }
     this.closed(code);
-    try {
-      this.inner?.close(code);
-    } catch {
-      /* The runtime may already have torn the socket down. */
+    /* The Worker sees the drop too; 1006 is reserved for the browser to report, so it closes as a normal close. */
+    if (this.inner?.readyState === 1) {
+      this.inner.close(code === 1006 ? 1000 : code);
     }
   }
 
@@ -195,8 +194,6 @@ describe('A table client on a bad network (#1696)', { timeout: 60_000, hookTimeo
     await restart();
     await live('after restart');
     await eventually(() => client.getSnapshot().table?.gestureActivePieceId === null, 'carry ended', 10_000);
-    expect(client.getSnapshot().error).toBe(
-      'The connection dropped while you held a piece. Pick it up again to continue.'
-    );
+    expect(client.getSnapshot().error).toBe('The table paused while you held a piece. Pick it up again to continue.');
   });
 });

@@ -1228,7 +1228,7 @@ describe('fresh reconnect recovery', () => {
     }
   );
 
-  test('says a piece held through a dropped connection went back, after the fresh view (#1696)', async () => {
+  test('says a piece held through a paused connection went back, after the fresh view (#1696)', async () => {
     const { client, source } = await grantedWholeCarry();
     const snapshot = table(client).snapshot;
     client.updateGesture([1, 0.38, 1]);
@@ -1238,8 +1238,6 @@ describe('fresh reconnect recovery', () => {
     authorize(snapshot);
     expect(table(client).state.draftMove).toBeNull();
     expect(table(client).renderedPieces.find((piece) => piece.id === source.id)?.position).toEqual(source.position);
-    expect(client.getSnapshot().error).toBe(
-      'The connection dropped while you held a piece. Pick it up again to continue.'
-    );
+    expect(client.getSnapshot().error).toBe('The table paused while you held a piece. Pick it up again to continue.');
   });
 });
