@@ -691,8 +691,8 @@ function CardFace({
 }
 
 /*
- * Staggered cards show a sliver of every top face, but an inner underside faces down inside the card below it.
- * A stack draws its bottom card's underside only, which shows when the whole stack turns over.
+ * Staggered cards show a sliver of every face, on top and, while the stack turns over, underneath.
+ * Only the centre panel of a covered face is always hidden, so a covered card skips it.
  */
 function CardStackLayers({ piece }: { piece: TablePiece }) {
   const shownLayers = visibleLayerCount(piece);
@@ -715,14 +715,13 @@ function CardStackLayers({ piece }: { piece: TablePiece }) {
               covered={index < shownLayers - 1}
               itemIndex={stackLayerItemIndex(piece.items.length, shownLayers, index, piece.flipRevision)}
             />
-            {index === 0 ? (
-              <CardFace
-                piece={piece}
-                faceUp={!faceUp}
-                underside
-                itemIndex={stackLayerItemIndex(piece.items.length, shownLayers, index, piece.flipRevision)}
-              />
-            ) : null}
+            <CardFace
+              piece={piece}
+              faceUp={!faceUp}
+              underside
+              covered={index > 0}
+              itemIndex={stackLayerItemIndex(piece.items.length, shownLayers, index, piece.flipRevision)}
+            />
           </group>
         );
       })}
