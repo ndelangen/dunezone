@@ -603,6 +603,10 @@ export class Room {
     if (phase !== this.snapshot.phase) {
       requirePhaseCooldownElapsed(controls.phaseChangedAt, this.phaseCooldownMs, now);
     }
+    /* Going back would close Determine winner under its player just as going on would. */
+    if (phase < this.snapshot.phase && this.snapshot.ending) {
+      throw new GameRejection('The winner is being determined. Declare or cancel it before going back a phase.');
+    }
     if (phase <= this.snapshot.phase) {
       return;
     }
