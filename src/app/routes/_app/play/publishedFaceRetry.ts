@@ -89,45 +89,55 @@ export function sharedPublishedFaces<T>({
   };
   const timer = options.timer ?? browserTimer;
   const entries = new Map<string, Entry>();
+  const create = (key: string): Entry => {
+    const created: Entry = {
+      listeners: new Set(),
+      stop: () => {},
+    };
+    entries.set(key, created);
+    created.stop = loadPublishedFace<T>({
+      ...options,
+      load: (onLoad, onError) => options.load(key, onLoad, onError),
+      onLoad: (value) => {
+        options.prepare?.(value);
+        created.value = value;
+        for (const notify of created.listeners) {
+          notify(value);
+        }
+      },
+    });
+    return created;
+  };
+  const releaseIfUnheld = (key: string, held: Entry) => {
+    if (held.listeners.size === 0 && entries.get(key) === held) {
+      entries.delete(key);
+      held.stop();
+    }
+  };
+  const scheduleRelease = (key: string, held: Entry) => {
+    if (held.listeners.size > 0 || held.releasing !== undefined) {
+      return;
+    }
+    held.releasing = timer.set(() => {
+      held.releasing = undefined;
+      releaseIfUnheld(key, held);
+    }, releaseDelayMs);
+  };
   const subscribe = (key: string, listener: (value: T) => void) => {
-    let entry = entries.get(key);
-    if (entry?.releasing !== undefined) {
-      timer.clear(entry.releasing);
-      entry.releasing = undefined;
+    const existing = entries.get(key);
+    if (existing) {
+      timer.clear(existing.releasing);
+      existing.releasing = undefined;
+      if (existing.value !== undefined) {
+        listener(existing.value);
+      }
     }
-    if (!entry) {
-      const created: Entry = {
-        listeners: new Set(),
-        stop: () => {},
-      };
-      entries.set(key, created);
-      created.stop = loadPublishedFace<T>({
-        ...options,
-        load: (onLoad, onError) => options.load(key, onLoad, onError),
-        onLoad: (value) => {
-          options.prepare?.(value);
-          created.value = value;
-          for (const notify of created.listeners) {
-            notify(value);
-          }
-        },
-      });
-      entry = created;
-    } else if (entry.value !== undefined) {
-      listener(entry.value);
-    }
-    const held = entry;
+    const held = existing ?? create(key);
     held.listeners.add(listener);
     return () => {
       held.listeners.delete(listener);
-      if (held.listeners.size === 0 && entries.get(key) === held && held.releasing === undefined) {
-        held.releasing = timer.set(() => {
-          held.releasing = undefined;
-          if (held.listeners.size === 0 && entries.get(key) === held) {
-            entries.delete(key);
-            held.stop();
-          }
-        }, releaseDelayMs);
+      if (entries.get(key) === held) {
+        scheduleRelease(key, held);
       }
     };
   };
