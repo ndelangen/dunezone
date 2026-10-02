@@ -14,7 +14,7 @@ export type RendererManifestEntry = {
  * Worker sources that decide how a capture comes out but are not inside the built capture bundle, listed here so their bytes reach the `code` component anyway.
  * The list is maintained by hand and nothing checks it against what the Worker actually imports, so a new file in the capture path that is not added here changes how assets render while Renderer identity stays put.
  * The deployment contract then compares a digest that did not move, and telemetry reports one identity across two builds that render differently.
- * The test that walks these paths and proves each one moves the digest is populated from this same list, so it confirms what is here and can say nothing about what is missing.
+ * The test that perturbs paths from this list and proves the digest moves is populated from this same list, so it confirms what is here and can say nothing about what is missing.
  */
 export const RENDERER_RUNTIME_CLOSURE_PATHS = [
   'workers/publisher/browser.ts',

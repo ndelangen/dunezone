@@ -231,7 +231,7 @@ describe('direct manipulation drafts', () => {
     const next = applyDraftToState(state, heldPair);
 
     expect(required(next.events[0]).status).toBe('rejected');
-    expect(required(next.events[0]).message).toContain('locked');
+    expect(required(next.events[0]).message).toBe('Unlock Treachery cards first.');
     expect(pieceById(next.pieces, loose.id).locked).toBe(true);
     expect(itemIds(next)).toEqual(itemIds(state));
   });

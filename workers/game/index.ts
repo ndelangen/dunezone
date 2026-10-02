@@ -1670,8 +1670,12 @@ export class GameRoom extends DurableObject<GameEnv> {
         refused[factionId] = problem;
       }
     }
-    /* A refresh since judged against a newer catalogue, so these verdicts are stale; the next command judges again. */
+    /*
+     * A refresh since judged against a newer catalogue, so these verdicts are stale.
+     * The picks still pending are judged again on it, so none waits for another command.
+     */
     if (generation !== this.catalogueGeneration) {
+      this.judgePicksAgain = true;
       return;
     }
     ready.forEach((factionId) => this.readyPicks.add(factionId));

@@ -7,19 +7,10 @@ import { RULEBOOK_CATALOGUE_VERSION } from '../src/shared/rulebooks/contents';
 import type { RulebookContentsV1 } from '../src/shared/rulebooks/contents';
 import type { RulebookSettings } from '../src/shared/rulebooks/settings';
 import { api } from './_generated/api';
-import { rulebookFixture } from './rulebooks.test.fixture';
-
-const SETTINGS: RulebookSettings[] = [
-  { size: 'square', design: 'illustrated' },
-  { size: 'square', design: 'restrained' },
-  { size: 'a4', design: 'illustrated' },
-  { size: 'a4', design: 'restrained' },
-  { size: 'tall', design: 'illustrated' },
-  { size: 'tall', design: 'restrained' },
-];
+import { coveringRulebookSettings, rulebookFixture } from './rulebooks.test.fixture';
 
 describe('Rulebook settings', () => {
-  test.each(SETTINGS)('creates and reads $size with $design', async (settings) => {
+  test.each(coveringRulebookSettings())('creates and reads $size with $design', async (settings) => {
     const { owner, ids } = await rulebookFixture();
     const created = await owner.mutation(api.rulebooks.create, {
       catalogue_version: RULEBOOK_CATALOGUE_VERSION,

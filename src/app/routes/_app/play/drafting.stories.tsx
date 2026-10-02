@@ -57,7 +57,11 @@ export const EighteenSeats = meta.story({
     await expect(page.findByText('Waiting for 12 more players', {}, { timeout: 30_000 })).resolves.toBeVisible();
     expect(within(page.getByRole('region', { name: 'Players' })).getAllByTitle('Open seat')).toHaveLength(12);
     await waitFor(() => expect(canvasElement.ownerDocument.defaultView?.__duneTable?.stations()).toHaveLength(18));
-    expect(page.getByText('You hold seat 2')).toBeVisible();
+    /* With others seated and nobody asking for a seat, the bar is the draft summary and Ready on one row (#1633). */
+    const bar = within(page.getByRole('region', { name: 'Your seat' }));
+    expect(bar.getByText('Your draft: nothing yet')).toBeVisible();
+    expect(bar.getByRole('button', { name: 'Ready' })).toBeVisible();
+    expect(bar.queryByText('You hold seat 2')).toBeNull();
   },
 });
 
@@ -72,7 +76,7 @@ export const ChoosingFactions = meta.story({
     await waitFor(
       () => {
         const header = canvasElement.ownerDocument.querySelector('.seated-header');
-        expect(within(header as HTMLElement).getByText('Waiting for 5 to ready')).toBeVisible();
+        expect(within(header as HTMLElement).getByText('Waiting for 5 to be ready')).toBeVisible();
         expect(
           within(page.getByRole('region', { name: 'Banned factions' })).getByRole('img', {
             name: /Ixians, banned by Twaffle/,

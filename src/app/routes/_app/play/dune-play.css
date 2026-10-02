@@ -427,6 +427,11 @@ html[data-motion="reduce"] .dune-play-stage .dune-play-shell {
     padding: var(--space-xs);
   }
 
+  /* The header takes a second row here, so a stage's overlay starts under both; this assumes the drafting gates wrap to at most two lines. */
+  :where(.dune-play-shell) .seated-stage-overlay {
+    top: 7.5rem;
+  }
+
   :where(.dune-play-shell) .seated-phase-status {
     grid-column: 2;
     grid-row: 1;

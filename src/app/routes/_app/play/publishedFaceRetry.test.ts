@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { unsettledArtworkLoads } from './artworkLoads';
-import { loadPublishedFace } from './publishedFaceRetry';
+import { loadPublishedFace, sharedPublishedFaces } from './publishedFaceRetry';
 
 /** A loader whose every request stays open until the test settles it. */
 function pendingLoader() {
@@ -133,5 +133,81 @@ describe('loadPublishedFace', () => {
     vi.advanceTimersByTime(5000);
     failing.requests[1]!.fail();
     expect(unsettledArtworkLoads()).toBe(before);
+  });
+});
+
+describe('sharedPublishedFaces', () => {
+  function sharedLoader() {
+    const requests: { key: string; succeed: (value: string) => void; fail: () => void }[] = [];
+    const load = vi.fn((key: string, onLoad: (value: string) => void, onError: () => void) => {
+      requests.push({ key, succeed: onLoad, fail: onError });
+    });
+    const release = vi.fn();
+    return { load, release, requests, subscribe: sharedPublishedFaces({ load, release }) };
+  }
+
+  test('subscribers of one key share a single load, including one that arrives after it finished', () => {
+    const { load, requests, subscribe } = sharedLoader();
+    const first = vi.fn();
+    const second = vi.fn();
+    subscribe('front', first);
+    subscribe('front', second);
+    requests[0]!.succeed('face');
+    const late = vi.fn();
+    subscribe('front', late);
+
+    expect(load).toHaveBeenCalledOnce();
+    for (const listener of [first, second, late]) {
+      expect(listener).toHaveBeenCalledExactlyOnceWith('face');
+    }
+  });
+
+  test('different keys load separately', () => {
+    const { requests, subscribe } = sharedLoader();
+    subscribe('front', vi.fn());
+    subscribe('back', vi.fn());
+
+    expect(requests.map((request) => request.key)).toEqual(['front', 'back']);
+  });
+
+  test('the face is released only when its last subscriber leaves, and the next subscriber loads it again', () => {
+    const { load, release, requests, subscribe } = sharedLoader();
+    const leaveFirst = subscribe('front', vi.fn());
+    const leaveSecond = subscribe('front', vi.fn());
+    requests[0]!.succeed('face');
+
+    leaveFirst();
+    expect(release).not.toHaveBeenCalled();
+    leaveSecond();
+    expect(release).toHaveBeenCalledExactlyOnceWith('face');
+
+    subscribe('front', vi.fn());
+    expect(load).toHaveBeenCalledTimes(2);
+  });
+
+  test('a shared load retries a failure for every subscriber', () => {
+    const { load, requests, subscribe } = sharedLoader();
+    const first = vi.fn();
+    const second = vi.fn();
+    subscribe('front', first);
+    subscribe('front', second);
+
+    requests[0]!.fail();
+    vi.advanceTimersByTime(5000);
+    requests[1]!.succeed('face');
+
+    expect(load).toHaveBeenCalledTimes(2);
+    expect(first).toHaveBeenCalledExactlyOnceWith('face');
+    expect(second).toHaveBeenCalledExactlyOnceWith('face');
+  });
+
+  test('leaving before the load finishes releases the face when it arrives', () => {
+    const { release, requests, subscribe } = sharedLoader();
+    const listener = vi.fn();
+    subscribe('front', listener)();
+    requests[0]!.succeed('face');
+
+    expect(listener).not.toHaveBeenCalled();
+    expect(release).toHaveBeenCalledExactlyOnceWith('face');
   });
 });
