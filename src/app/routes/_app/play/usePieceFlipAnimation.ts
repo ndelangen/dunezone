@@ -4,6 +4,7 @@ import {
   canAnimatePieceChange,
   createPieceFlipMotion,
   pieceFlipFrame,
+  releasePieceFlipMotion,
   retargetPieceFlipMotion,
 } from '@shared/play/pieceFlip';
 import { useCallback, useLayoutEffect, useRef } from 'react';
@@ -28,10 +29,16 @@ function applyFlipFrame(frame: ReturnType<typeof pieceFlipFrame>, { pivot, label
   }
 }
 
+/**
+ * Turns a piece over when its flip revision moves on by one.
+ * `faceReady` says whether the art of the face it turns up is loaded;
+ * until it is, the flip holds on the old face rather than turning up a placeholder.
+ */
 export function usePieceFlipAnimation(
   piece: TablePiece,
   interrupted: boolean,
-  onFinish: (pieceId: string, revision: number) => void
+  onFinish: (pieceId: string, revision: number) => void,
+  faceReady = true
 ) {
   const pivotRef = useRef<Group>(null);
   const labelRef = useRef<Group>(null);
@@ -39,7 +46,11 @@ export function usePieceFlipAnimation(
   const badgeRef = useRef<HTMLSpanElement>(null);
   const previousPiece = useRef(piece);
   const motion = useRef(createPieceFlipMotion(piece.flipRevision ?? 0));
+  const faceReadyRef = useRef(faceReady);
   const invalidate = useThree((state) => state.invalidate);
+  useLayoutEffect(() => {
+    faceReadyRef.current = faceReady;
+  }, [faceReady]);
 
   const applyPose = useCallback(
     (now: number) => {
@@ -64,12 +75,21 @@ export function usePieceFlipAnimation(
     motion.current =
       interrupted || !canAnimatePieceChange(previousPiece.current, piece)
         ? createPieceFlipMotion(revision)
-        : retargetPieceFlipMotion(motion.current, revision, now);
+        : retargetPieceFlipMotion(motion.current, revision, now, faceReadyRef.current);
     previousPiece.current = piece;
     /* Compensate for the new canonical faces before the first rendered frame. */
     applyPose(now);
     invalidate();
   }, [applyPose, interrupted, invalidate, piece]);
+
+  useLayoutEffect(() => {
+    if (faceReady && motion.current.heldSince !== null) {
+      const now = performance.now();
+      motion.current = releasePieceFlipMotion(motion.current, now, true);
+      applyPose(now);
+      invalidate();
+    }
+  }, [applyPose, faceReady, invalidate]);
 
   useLayoutEffect(
     () => () => {
@@ -81,10 +101,12 @@ export function usePieceFlipAnimation(
   );
 
   useFrame(() => {
-    if (motion.current.startedAt === null) {
+    if (motion.current.startedAt === null && motion.current.heldSince === null) {
       return;
     }
-    if (applyPose(performance.now())) {
+    const now = performance.now();
+    motion.current = releasePieceFlipMotion(motion.current, now, faceReadyRef.current);
+    if (applyPose(now)) {
       invalidate();
     } else {
       motion.current = createPieceFlipMotion(motion.current.targetRevision);

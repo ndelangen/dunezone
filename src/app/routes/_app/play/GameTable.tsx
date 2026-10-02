@@ -234,6 +234,40 @@ function TableViewPicker({
   );
 }
 
+type TableOverlays = Readonly<{ counts: boolean; names: boolean }>;
+
+const TABLE_OVERLAY_OPTIONS = [
+  { id: 'counts', label: 'Counts', name: 'Stack counts', key: 'Alt' },
+  { id: 'names', label: 'Names', name: 'Piece names', key: 'Ctrl' },
+] as const;
+
+/* Keeps the stack counts or piece names on, for a touch screen with no Alt or Control to hold. */
+function TableOverlayToggles({
+  pinned,
+  onToggle,
+}: {
+  pinned: TableOverlays;
+  onToggle(overlay: keyof TableOverlays): void;
+}) {
+  return (
+    <div className="table-view-picker" role="group" aria-label="Table labels">
+      {TABLE_OVERLAY_OPTIONS.map((overlay) => (
+        <button
+          key={overlay.id}
+          type="button"
+          className={pinned[overlay.id] ? 'is-active' : ''}
+          aria-label={overlay.name}
+          aria-pressed={pinned[overlay.id]}
+          title={`${overlay.name}: hold ${overlay.key} to show them for a moment`}
+          onClick={() => onToggle(overlay.id)}
+        >
+          {overlay.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 type StageFrame = Readonly<{
   /** The header's word in place of the turn and phase. */
   word?: string;
@@ -506,6 +540,7 @@ export function GameTable({
   const { gestureActivePieceId } = useTabletop();
   const phaseSymbolClipId = useId();
   const heldOverlays = useHeldOverlays();
+  const [pinnedOverlays, setPinnedOverlays] = useState<TableOverlays>({ counts: false, names: false });
   const frame = stageFrame(stage);
   /* The camera follows the phase while the header names one: in play, and on the fixture. */
   /* A faction phase takes the camera view of the standard phase it precedes (#1138). */
@@ -559,8 +594,8 @@ export function GameTable({
             {...darkSchemeIslandAttributes}
             data-board-gesture-active={overlaysInert}
             data-table-view={viewState.activeView}
-            data-show-counts={heldOverlays.counts}
-            data-show-names={heldOverlays.names}
+            data-show-counts={heldOverlays.counts || pinnedOverlays.counts}
+            data-show-names={heldOverlays.names || pinnedOverlays.names}
           >
             {/* The header sits outside the split, in the shell's own stacking, so it paints above the dock where the dock's floor grows up over the scene. It comes before the split so its controls lead the reading and Tab order. */}
             <header className="seated-header" inert={overlaysInert} data-hides-cursor>
@@ -616,6 +651,10 @@ export function GameTable({
                   activeView={viewState.activeView}
                   preferredView={viewPhase === null ? undefined : PHASE_VIEWS[viewPhase]}
                   onSelect={(view) => dispatchView({ type: 'view.selected', view })}
+                />
+                <TableOverlayToggles
+                  pinned={pinnedOverlays}
+                  onToggle={(overlay) => setPinnedOverlays((current) => ({ ...current, [overlay]: !current[overlay] }))}
                 />
                 {gameMenu}
                 {toolbarControl}

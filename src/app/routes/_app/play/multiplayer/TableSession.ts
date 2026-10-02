@@ -1104,7 +1104,7 @@ export class TableSession {
     if (this.carry && !this.carry.pendingDrop) {
       this.carry = {
         ...this.carry,
-        draft: { ...this.carry.draft, orientation: this.carry.draft.orientation + (direction * Math.PI) / 12 },
+        draft: { ...this.carry.draft, orientation: this.carry.draft.orientation - (direction * Math.PI) / 12 },
       };
       this.updateGesture(this.carry.draft.position);
       this.flushPose();

@@ -82,6 +82,9 @@ test('owner can author a faction through its complete lifecycle', async ({ page 
     await loadFactionDraft(page, factionBName);
 
     await page.getByRole('tab', { name: /^Identity & Appearance/ }).click();
+    /* The name-conflict chip arrives asynchronously and re-centres the strip; wait for it so the click below
+       cannot land on it instead of the leader chip. */
+    await expect(page.getByRole('button', { name: /^Faction identity:/ })).toBeVisible();
     /* The validation header is open whenever a warning exists, so there is no toolbar count to click through;
        the header's per-source chip is what jumps to and focuses the field. */
     await page.getByRole('button', { name: 'Faction leader: missing name' }).click();

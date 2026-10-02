@@ -298,7 +298,7 @@ html[data-motion="reduce"] .dune-play-stage .dune-play-shell {
   white-space: nowrap;
 }
 
-/* Table-view picker: the one segmented control of the chrome, with the phase's recommended view marked. */
+/* Segmented controls of the chrome: the table-view picker, with the phase's recommended view marked, and the label toggles. */
 :where(.dune-play-shell) .table-view-picker {
   display: inline-flex;
   padding: 0.18rem;
