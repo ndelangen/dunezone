@@ -148,8 +148,11 @@ describe('Replay history through the native game boundary', { timeout: 30_000 },
     expect(compared).toBe(held.size);
     /* The reveal stores its change; the settled outcome after it is the battle's one checkpoint. */
     const reveal = kinds.findIndex(([, stage]) => stage === 'revealed');
-    expect(kinds[reveal]).toEqual(['patch', 'revealed']);
-    expect(kinds[reveal + 1]).toEqual(['checkpoint', null]);
+    expect(reveal).toBeGreaterThan(0);
+    expect(kinds.slice(reveal, reveal + 2)).toEqual([
+      ['patch', 'revealed'],
+      ['checkpoint', null],
+    ]);
     expect(elementBytes).toBeLessThan(wholeBytes);
 
     /* A cold restore wakes on the same boundary and current state, and plays on. */

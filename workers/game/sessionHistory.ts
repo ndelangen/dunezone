@@ -91,7 +91,7 @@ export class SessionHistory {
     }
   }
 
-  /** A playback step stored as its change from the last one; restore replays it onto the checkpoint before it. */
+  /** A playback step stored as its change from the last recorded step; restore replays it onto the checkpoint before it. */
   patch(next: StoredSnapshot): HistoryRow {
     return this.row(next, {
       kind: 'patch',
