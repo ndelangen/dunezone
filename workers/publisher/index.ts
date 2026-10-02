@@ -11,6 +11,7 @@ import { imagesJpegEncoder } from './image-encode';
 import { rendererManifest } from './renderer-manifest.generated';
 import { executeRulebookHtmlWork } from './rulebook-html-executor';
 import { executeRulebookPdfWork } from './rulebook-pdf-executor';
+import { handleSocialImageRequest } from './social-image';
 import { boundedPublisherTelemetryEvent, publisherBuildIdentity } from './telemetry';
 import { handleUserImageIngest, handleUserImageRequest } from './user-images';
 
@@ -96,6 +97,10 @@ const publisherWorker = {
     const game = await handleGameIngress(request, url, env);
     if (game) {
       return game;
+    }
+    const socialImage = await handleSocialImageRequest(request, env);
+    if (socialImage) {
+      return socialImage;
     }
     const publicAsset = await handlePublicAssetRequest(request, env, ctx, {
       publicBaseUrl: env.PUBLIC_BASE_URL,

@@ -15,7 +15,7 @@ import { phaseAt, TABLE_PHASES, tableProgressFor } from '../src/shared/play/phas
 import { KEEPALIVE_PING, KEEPALIVE_PONG } from '../src/shared/play/protocol.ts';
 import { setupReadyRequired, setupStep } from '../src/shared/play/setup.ts';
 import { isSpicePiece } from '../src/shared/play/spice.ts';
-import { spiceSupplySlot } from '../src/shared/play/spiceSupply.ts';
+import { spiceBankSlot } from '../src/shared/play/spiceBank.ts';
 import { stackTopHeight } from '../src/shared/play/tableGeometry.ts';
 import { trackerArcSlots, TRACKER_DISC_TOP_Y } from '../src/shared/play/tableTrackers.ts';
 import { applyRoomUpdate } from '../src/shared/play/updates.ts';
@@ -26,7 +26,7 @@ import { verifyBattles } from './verify-hosted-battles.mjs';
 import { cursorBounds, remoteCursor } from './verify-hosted-cursor.mjs';
 import { verifyDecks } from './verify-hosted-decks.mjs';
 import { browserFlows, isBrowserFlow } from './verify-hosted-flows.ts';
-import { verifyPrivateBanks } from './verify-hosted-private-banks.mjs';
+import { verifyPrivateSpiceReserves } from './verify-hosted-private-spice-reserves.mjs';
 import { verifyPublicControls } from './verify-hosted-public-controls.mjs';
 import { parseExpectedRenderer, rendererMismatch, rendererReport, runningChromium } from './verify-hosted-renderer.ts';
 import { verifyResults } from './verify-hosted-results.mjs';
@@ -52,7 +52,7 @@ const flow = browserFlows[values.flow];
 const flows = {
   regular: verifyRegular,
   'public-controls': verifyPublicControls,
-  'private-banks': verifyPrivateBanks,
+  'private-spice-reserves': verifyPrivateSpiceReserves,
   battles: verifyBattles,
   decks: verifyDecks,
   results: verifyResults,
@@ -821,20 +821,20 @@ async function point(who, position) {
   throw new Error(`${who.label}'s table remounted during three projections in a row.`);
 }
 /**
- * Hovers the spice supply disc in the map view until the canvas shows the disc's pointer cursor, then presses `key`.
+ * Hovers the Spice Bank disc in the map view until the canvas shows the disc's pointer cursor, then presses `key`.
  * The scene hit-tests the pointer only when it moves, so a move that reaches a table still mounting never hovers the disc.
  * A table remounts when the Worker re-admits a suspended connection, and one that just opened is still mounting (#1343).
  * So every poll moves onto the disc again, alternating by one pixel so that each move changes the position.
  */
-async function supplyShortcut(who, key) {
-  const slot = spiceSupplySlot();
+async function spiceBankShortcut(who, key) {
+  const slot = spiceBankSlot();
   const canvas = who.page.locator('.dune-play-shell canvas');
   await who.page.getByRole('button', { name: /^Focus on map/ }).focus();
   let nudge = 0;
   await until(async () => {
-    const supply = await point(who, [slot.position[0], TRACKER_DISC_TOP_Y + 0.015, slot.position[2]]);
+    const spiceBank = await point(who, [slot.position[0], TRACKER_DISC_TOP_Y + 0.015, slot.position[2]]);
     nudge = 1 - nudge;
-    await who.page.mouse.move(supply.x + nudge, supply.y);
+    await who.page.mouse.move(spiceBank.x + nudge, spiceBank.y);
     return canvas.evaluate((element) => element.style.cursor === 'pointer');
   }, `The spice disc did not respond to hover before pressing ${key}.`);
   await who.page.keyboard.press(key);
@@ -1030,7 +1030,7 @@ async function visibleActivity(sender, recipient, name) {
       await sender.page.mouse.move(destination.senderPoint.x, destination.senderPoint.y, { steps: CARRY_STEPS });
       await until(
         () => sender.sent.slice(sentBefore).some((message) => message.type === 'begin' && message.sourcePieceId === id),
-        `${name}: the native drag did not pick up the force stack.`
+        `${name}: the native drag did not pick up the troop stack.`
       );
       await until(
         async () => (await redPixels(recipient, sender, destination.recipientPoint)) > destination.baseline + 40,
@@ -1305,8 +1305,12 @@ async function sharedSpiceRoundTrip(sender, recipient, count, interact, name) {
   passed(`${name}: both players receive and render ${count} shared spice`);
 
   const start = await point(recipient, visibleTop);
-  const supply = spiceSupplySlot();
-  const destination = await point(recipient, [supply.position[0], TRACKER_DISC_TOP_Y + 0.015, supply.position[2]]);
+  const spiceBank = spiceBankSlot();
+  const destination = await point(recipient, [
+    spiceBank.position[0],
+    TRACKER_DISC_TOP_Y + 0.015,
+    spiceBank.position[2],
+  ]);
   const sentBefore = recipient.sent.length;
   await recipient.page.mouse.move(start.x, start.y);
   await recipient.page.mouse.down();
@@ -1348,8 +1352,8 @@ async function sharedSpiceRoundTrip(sender, recipient, count, interact, name) {
       `${name}: ${who.label} retained the deleted spice stack.`
     );
   }
-  await capture(sender, `${name}-returned-to-supply`);
-  passed(`${name}: the other player drags the full stack onto the supply and both players see it removed`);
+  await capture(sender, `${name}-returned-to-spice-bank`);
+  passed(`${name}: the other player drags the full stack onto the Spice Bank and both players see it removed`);
 }
 
 /** Clicks the turn wheel's printed `turn`, which the wheel shows around the current one; the click must change nothing (#1683). */
@@ -1388,16 +1392,16 @@ async function sharedTrackerFlow(a, b) {
 
   await focus(a, 'map');
   await focus(b, 'map');
-  await sharedSpiceRoundTrip(a, b, 3, () => supplyShortcut(a, '3'), 'spice-key-3');
+  await sharedSpiceRoundTrip(a, b, 3, () => spiceBankShortcut(a, '3'), 'spice-key-3');
   for (const [key, count] of [
     ['0', 10],
     ['2', 2],
   ]) {
-    await sharedSpiceRoundTrip(b, a, count, () => supplyShortcut(b, key), `spice-key-${key}`);
+    await sharedSpiceRoundTrip(b, a, count, () => spiceBankShortcut(b, key), `spice-key-${key}`);
   }
 }
 
-/** Setup dealt each player's leaders into a private hand; everything but the bank, the hand and a battle plan is the same for both players. */
+/** Setup dealt each player's leaders into a private hand; everything but the spice reserve, the hand and a battle plan is the same for both players. */
 function samePublicView(a, b) {
   const shared = (who) => ({ ...who.view().snapshot, bank: undefined, hand: undefined, battlePlan: undefined });
   assert.deepEqual(shared(a), shared(b));
@@ -1747,7 +1751,7 @@ try {
     focus,
     openTab,
     point,
-    supplyShortcut,
+    spiceBankShortcut,
     carrySteps: CARRY_STEPS,
     capture,
     until,

@@ -23,7 +23,7 @@ export const browserFlows = {
     startsInPlay: true,
     shard: 'catalogue',
   },
-  'private-banks': {
+  'private-spice-reserves': {
     timeoutMs: 480_000,
     separateBrowsers: true,
     keepsFrames: true,

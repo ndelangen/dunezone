@@ -1,13 +1,13 @@
 import { z } from 'zod';
 
-import { HistoricalFactionPublicationSchema } from '../factions/schema';
+import { HistoricalFactionPublicationObject, HistoricalFactionPublicationSchema } from '../factions/schema';
 import type { FactionRender } from '../factions/schema';
 import { factionMemberPublicationId } from './componentPublication';
 
 export const FACTION_TRAITOR_ASSET_TYPE = 'faction-traitor' as const;
 export const FACTION_ALLIANCE_ASSET_TYPE = 'faction-alliance' as const;
 
-const faction = HistoricalFactionPublicationSchema.shape;
+const faction = HistoricalFactionPublicationObject.shape;
 
 /**
  * A traitor card's front names one supporting leader by its identity, `{factionId}.{memberId}`, so renames and reorders keep the URL.

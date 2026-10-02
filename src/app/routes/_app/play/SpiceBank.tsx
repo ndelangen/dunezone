@@ -7,7 +7,7 @@ import { useTableKeyboard } from './TableKeyboardContext';
 import { useTabletop } from './TabletopContext';
 import { SPICE_DISC_COLOR } from './tableTrackers';
 
-export function SpiceSupply({ radius }: Readonly<{ radius: number }>) {
+export function SpiceBank({ radius }: Readonly<{ radius: number }>) {
   const { canHandleTable, setHoveredPiece, state } = useTabletop();
   const keyboard = useTableKeyboard();
   const { renderer } = useThree();
@@ -26,7 +26,7 @@ export function SpiceSupply({ radius }: Readonly<{ radius: number }>) {
   }, [enabled, hovered, renderer]);
 
   /* A disc that unmounts under the pointer hears no leave, so it lets go of the hover itself. */
-  useEffect(() => () => keyboard.hoverSupply(false), [keyboard]);
+  useEffect(() => () => keyboard.hoverSpiceBank(false), [keyboard]);
 
   return (
     <group>
@@ -37,11 +37,11 @@ export function SpiceSupply({ radius }: Readonly<{ radius: number }>) {
         onPointerEnter={() => {
           setHovered(true);
           setHoveredPiece(null);
-          keyboard.hoverSupply(true);
+          keyboard.hoverSpiceBank(true);
         }}
         onPointerLeave={() => {
           setHovered(false);
-          keyboard.hoverSupply(false);
+          keyboard.hoverSpiceBank(false);
         }}
         onClick={(event) => event.stopPropagation()}
       >

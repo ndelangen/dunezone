@@ -5,10 +5,10 @@ import { draftingRuntime } from './native-drafting.fixture.mjs';
 import { accepted, admitPlayer, eventually, seat, sendCommand, syncView } from './native-runtime.fixture.mjs';
 
 /*
- * Authored troop combat values travel from a faction's definition, through its capture at assignment
+ * Authored troop battle values travel from a faction's definition, through its capture at assignment
  * and setup, into a real game's battle plans, using ordinary commands only.
  * Harkonnen's troops carry synthetic authored values; Atreides keeps the shared fixture's troops,
- * which predate combat authoring and so have none.
+ * which predate battle authoring and so have none.
  */
 
 const BATTLE = TABLE_PHASES.findIndex((phase) => phase.id === 'battle');
@@ -19,12 +19,12 @@ const AUTHORED_TROOPS = [
     image: '/vector/troop/harkonnen.svg',
     description: 'Synthetic trooper',
     count: 20,
-    combat: { strength: 0.5, fundedStrength: 1 },
+    combat: { strength: 0.5, supportedStrength: 1 },
     back: {
       name: 'Veteran',
       image: '/vector/troop/harkonnen.svg',
       description: 'Synthetic veteran',
-      combat: { strength: -0.5, fundedStrength: 2.5, fundingCost: 2 },
+      combat: { strength: -0.5, supportedStrength: 2.5, supportCost: 2 },
     },
   },
   {
@@ -38,12 +38,12 @@ const AUTHORED_TROOPS = [
       name: 'Zealot',
       image: '/vector/troop/harkonnen.svg',
       description: 'Synthetic zealot',
-      combat: { strength: 1, fundedStrength: 1.5, fundingCost: 0 },
+      combat: { strength: 1, supportedStrength: 1.5, supportCost: 0 },
     },
   },
 ];
 
-describe('Authored troop combat values in a real game', { timeout: 120_000 }, () => {
+describe('Authored troop battle values in a real game', { timeout: 120_000 }, () => {
   let peer, runtime, offset;
   afterEach(async () => {
     await runtime?.close();
@@ -115,7 +115,7 @@ describe('Authored troop combat values in a real game', { timeout: 120_000 }, ()
     return { harkonnen: players[harkonnen], atreides: players[1 - harkonnen] };
   }
 
-  it('supplies both authored faces, omits noncombatant and unauthored faces, and funds the retained values', async () => {
+  it('supplies both authored faces, omits faces that cannot fight and unauthored faces, and supports the retained values', async () => {
     ({ peer, runtime } = await draftingRuntime());
     offset = 0;
     const harkonnenSource = peer.factions.get('harkonnen');
@@ -129,12 +129,12 @@ describe('Authored troop combat values in a real game', { timeout: 120_000 }, ()
     const problems = Object.fromEntries(
       factions.map((capture) => [
         capture.faction.id,
-        capture.readiness.problems.filter((problem) => problem.reason.includes('combat values')),
+        capture.readiness.problems.filter((problem) => problem.reason.includes('battle values')),
       ])
     );
     expect(problems.harkonnen).toEqual([]);
     expect(problems.atreides).toEqual([
-      { subject: 'troop Regular troop', reason: 'This troop face can fight but has no authored combat values.' },
+      { subject: 'troop Regular troop', reason: 'This troop face can fight but has no authored battle values.' },
     ]);
 
     const state = await stored();
@@ -145,8 +145,8 @@ describe('Authored troop combat values in a real game', { timeout: 120_000 }, ()
           name: 'Trooper',
           capable: true,
           strength: 0.5,
-          fundedStrength: 1,
-          fundingCost: 1,
+          supportedStrength: 1,
+          supportCost: 1,
           image: '/vector/troop/harkonnen.svg',
         },
         {
@@ -154,8 +154,8 @@ describe('Authored troop combat values in a real game', { timeout: 120_000 }, ()
           name: 'Veteran',
           capable: true,
           strength: -0.5,
-          fundedStrength: 2.5,
-          fundingCost: 2,
+          supportedStrength: 2.5,
+          supportCost: 2,
           image: '/vector/troop/harkonnen.svg',
         },
         {
@@ -163,14 +163,14 @@ describe('Authored troop combat values in a real game', { timeout: 120_000 }, ()
           name: 'Zealot',
           capable: true,
           strength: 1,
-          fundedStrength: 1.5,
-          fundingCost: 0,
+          supportedStrength: 1.5,
+          supportCost: 0,
           image: '/vector/troop/harkonnen.svg',
         },
       ],
       atreides: [],
     });
-    /* Artwork is public; combat values reach the plans through combatFaces alone. */
+    /* Artwork is public; battle values reach the plans through combatFaces alone. */
     expect(JSON.stringify(state.factionArtwork)).not.toContain('combat');
     expect(JSON.stringify(state.factionArtwork)).not.toContain('capable');
 
@@ -183,7 +183,7 @@ describe('Authored troop combat values in a real game', { timeout: 120_000 }, ()
     await accepted(harkonnen, { kind: 'battle-claim', battleId, side: 0 });
     const claimed = await accepted(atreides, { kind: 'battle-claim', battleId, side: 1 });
     expect(claimed.snapshot.battlePlan.faces).toEqual([]);
-    const bank = (await syncView(harkonnen)).snapshot.bank.balance;
+    const reserve = (await syncView(harkonnen)).snapshot.bank.balance;
     const plan = (troops, spice, extra = {}) => ({
       mode: 'max',
       troops: [{ faceId: 'troop-0-front', undialed: troops, dialed: 0 }],
@@ -194,16 +194,16 @@ describe('Authored troop combat values in a real game', { timeout: 120_000 }, ()
       ...extra,
     });
 
-    /* The browser funding case: five troops reserve five spice; three return two. */
+    /* The browser support case: five troops reserve five spice; three return two. */
     const five = await accepted(harkonnen, { kind: 'battle-plan', battleId, plan: plan(5, 5) });
-    expect(five.snapshot.bank.balance).toBe(bank - 5);
+    expect(five.snapshot.bank.balance).toBe(reserve - 5);
     expect(five.snapshot.battlePlan.strength).toBe(5);
     const three = await accepted(harkonnen, { kind: 'battle-plan', battleId, plan: plan(3, 5) });
     expect(three.snapshot.battlePlan.spice).toBe(3);
-    expect(three.snapshot.bank.balance).toBe(bank - 3);
+    expect(three.snapshot.bank.balance).toBe(reserve - 3);
     expect(three.snapshot.battlePlan.strength).toBe(3);
 
-    /* Mixed faces, fractional and negative strengths and a zero cost, with exact usable funding. */
+    /* Mixed faces, fractional and negative strengths and a zero cost, with exact usable support. */
     const mixed = (spice) =>
       plan(0, spice, {
         troops: [
@@ -214,11 +214,11 @@ describe('Authored troop combat values in a real game', { timeout: 120_000 }, ()
       });
     const odd = await sendCommand(harkonnen, { kind: 'battle-plan', battleId, plan: mixed(5) });
     expect(odd.reply).toMatchObject({ type: 'rejected' });
-    const funded = await accepted(harkonnen, { kind: 'battle-plan', battleId, plan: mixed(4) });
-    expect(funded.snapshot.battlePlan.spice).toBe(4);
-    expect(funded.snapshot.bank.balance).toBe(bank - 4);
-    /* Two spice lift a veteran by three, one each lifts a trooper by a half, and the zealots fund free. */
-    expect(funded.snapshot.battlePlan.strength).toBe(2 * 1 + 2.5 + 2 * 1.5);
+    const supported = await accepted(harkonnen, { kind: 'battle-plan', battleId, plan: mixed(4) });
+    expect(supported.snapshot.battlePlan.spice).toBe(4);
+    expect(supported.snapshot.bank.balance).toBe(reserve - 4);
+    /* Two spice lift a veteran by three, one each lifts a trooper by a half, and the zealots are supported free. */
+    expect(supported.snapshot.battlePlan.strength).toBe(2 * 1 + 2.5 + 2 * 1.5);
     /* Switching modes resets the declaration and refunds the reserve, so the Custom plan is sent twice. */
     const custom = await accepted(harkonnen, {
       kind: 'battle-plan',
@@ -226,15 +226,15 @@ describe('Authored troop combat values in a real game', { timeout: 120_000 }, ()
       plan: { ...mixed(0), mode: 'custom', troops: [{ faceId: 'troop-0-back', undialed: 1, dialed: 1 }] },
     });
     expect(custom.snapshot.battlePlan.spice).toBe(0);
-    expect(custom.snapshot.bank.balance).toBe(bank);
-    const customFunded = await accepted(harkonnen, {
+    expect(custom.snapshot.bank.balance).toBe(reserve);
+    const customSupported = await accepted(harkonnen, {
       kind: 'battle-plan',
       battleId,
       plan: { ...mixed(0), mode: 'custom', troops: [{ faceId: 'troop-0-back', undialed: 1, dialed: 1 }] },
     });
-    expect(customFunded.snapshot.battlePlan.spice).toBe(2);
-    expect(customFunded.snapshot.battlePlan.strength).toBe(-0.5 + 2.5);
-    expect(customFunded.snapshot.bank.balance).toBe(bank - 2);
+    expect(customSupported.snapshot.battlePlan.spice).toBe(2);
+    expect(customSupported.snapshot.battlePlan.strength).toBe(-0.5 + 2.5);
+    expect(customSupported.snapshot.bank.balance).toBe(reserve - 2);
     for (const faceId of ['troop-1-front', 'Envoy']) {
       const refused = await sendCommand(harkonnen, {
         kind: 'battle-plan',

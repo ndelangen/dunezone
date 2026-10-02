@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { PLAY_AUTH_RECOVERY_MS } from '../../src/shared/play/admission.ts';
 import { PHASE_CHANGE_COOLDOWN_MS } from '../../src/shared/play/phases.ts';
 import { ADMISSION_UNAVAILABLE_CLOSE_CODE, TICKET_EXPIRED_CLOSE_CODE } from '../../src/shared/play/protocol.ts';
-import { spiceSupplySlot } from '../../src/shared/play/spiceSupply.ts';
+import { spiceBankSlot } from '../../src/shared/play/spiceBank.ts';
 import { tokenPage } from './native-catalogue.fixture.mjs';
 import {
   createPeer,
@@ -248,13 +248,13 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     expect(movedStack.position).not.toEqual(firstStack.position);
     connection.send({
       type: 'command',
-      commandId: 'new-supply-stack',
+      commandId: 'new-spice-bank-stack',
       action: { kind: 'spice-spawn', count: 4 },
       expectedRevision: 5,
     });
     const replenished = await connection.message(
       'view',
-      (message) => message.completedCommandId === 'new-supply-stack'
+      (message) => message.completedCommandId === 'new-spice-bank-stack'
     );
     const newStack = replenished.snapshot.table.pieces.find(
       (piece) => piece.stackKey === 'spice' && piece.id !== firstStack.id
@@ -274,14 +274,14 @@ describe('GameRoom native SQLite and admission boundaries', () => {
       type: 'drop',
       commandId: 'delete-spice',
       carryId: 'return-spice',
-      position: spiceSupplySlot().position,
+      position: spiceBankSlot().position,
       orientation: 0,
     };
     connection.send(returnSpice);
     const returned = await connection.message('view', (message) => message.completedCommandId === 'delete-spice');
     expect(returned.snapshot.table.pieces.find((piece) => piece.id === movedStack.id).items).toHaveLength(11);
     expect(returned.snapshot.table.pieces.find((piece) => piece.id === newStack.id)).toEqual(newStack);
-    expect(returned.snapshot.table.events[0].message).toBe('Harkonnen returned 1 spice to the supply.');
+    expect(returned.snapshot.table.events[0].message).toBe('Harkonnen returned 1 spice to the Spice Bank.');
     connection.messages.length = 0;
     connection.send(returnSpice);
     expect(
@@ -663,6 +663,39 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     await metrics(watcher);
     return watcher.messages.slice(before).filter((frame) => frame.type === 'view' || frame.type === 'update');
   }
+
+  it('closes the connection a reconnecting page replaces, so its carry and pointer leave with it, but never one of another player', async () => {
+    expect((await provision(runtime)).status).toBe(200);
+    const { connection: lost, view } = await admit();
+    const { connection: watcher, view: watching } = await admitWatcher();
+    lost.send({
+      type: 'begin',
+      carryId: 'ghost',
+      sourcePieceId: 'harkonnen-force-stack',
+      expectedVersion: 0,
+      pickup: 'top',
+    });
+    await lost.message('carry');
+    lost.send({ type: 'pointer', seq: 0, position: [1, 0.38, 0] });
+    await watcher.message('view', (message) => message.carries.length === 1 && message.pointers.length === 1);
+    /* The network died without a close frame, so the Worker still holds the old socket when the page reconnects. */
+    peer.registrationId = 'registration-a';
+    const before = watcher.messages.length;
+    const reconnected = await openGame(runtime);
+    reconnected.send({ type: 'admit', ticket: 'e'.repeat(64), replaces: view.viewer.connectionId });
+    const rejoined = await reconnected.message('view');
+    expect(rejoined.carries).toEqual([]);
+    expect(rejoined.pointers).toEqual([]);
+    await eventually(() => lost.closed, 'the replaced connection closing');
+    await watcher.message('update', (message) => message.activity.removedCarries.includes('ghost'));
+    expect(watcher.messages.slice(before).filter((message) => message.type === 'admission')).toEqual([]);
+    /* A page can name only a connection of its own player. */
+    const other = await openGame(runtime);
+    other.send({ type: 'admit', ticket: 'f'.repeat(64), replaces: watching.viewer.connectionId });
+    await other.message('view');
+    await syncView(watcher);
+    expect(watcher.closed).toBe(false);
+  });
 
   it('renews a held carry without a frame to other viewers, and the renewals keep it past 8 s', async () => {
     expect((await provision(runtime)).status).toBe(200);

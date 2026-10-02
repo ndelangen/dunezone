@@ -69,7 +69,7 @@ export const Default = meta.story({
         {
           title: "LETO'S TITHE",
           text: [
-            `During Spice Collection phase take 2 spice from the spice bank if you control one stronghold. Take 3 instead if you control at least two strongholds.`,
+            `During Spice Collection phase take 2 spice from the Spice Bank if you control one stronghold. Take 3 instead if you control at least two strongholds.`,
             `You permanently lose this advantage once you gain the Kwisatz Haderach token.`,
           ].join('\n\n'),
         },

@@ -18,13 +18,13 @@ export const TABLE_SURFACE_Y = 0.005;
 export const CARRIED_BASE_Y = 0.38;
 export const CONTACT_SHADOW_EPSILON = 0.003;
 
-export const FORCE_LAYER_HEIGHT = 0.09 * 0.5;
-export const FORCE_LAYER_PITCH = 0.075 * 0.5;
-export const FORCE_TOP_RADIUS = 0.31 * 0.5;
-export const FORCE_BOTTOM_RADIUS = 0.33 * 0.5;
-/* A token's published face is as wide as its top (FORCE_TOP_RADIUS), so the art is as large as the token. */
-export const FORCE_FACE_RADIUS = 0.31 * 0.5;
-export const FORCE_FOOTPRINT_RADIUS = 0.175;
+export const TROOP_LAYER_HEIGHT = 0.09 * 0.5;
+export const TROOP_LAYER_PITCH = 0.075 * 0.5;
+export const TROOP_TOP_RADIUS = 0.31 * 0.5;
+export const TROOP_BOTTOM_RADIUS = 0.33 * 0.5;
+/* A token's published face is as wide as its top (TROOP_TOP_RADIUS), so the art is as large as the token. */
+export const TROOP_FACE_RADIUS = 0.31 * 0.5;
+export const TROOP_FOOTPRINT_RADIUS = 0.175;
 /* A leader disc is twice the diameter of a troop token. */
 const LEADER_SCALE = 2;
 export const CARD_WIDTH = 0.86;
@@ -48,8 +48,8 @@ function isLeaderPiece(piece: Partial<Pick<TablePiece, 'kind' | 'stackKey'>>): b
   return piece.kind === 'force' && (piece.stackKey?.startsWith('leader:') ?? false);
 }
 
-/** How much wider than a troop token a force piece is drawn and occupies the table. */
-export function forceScale(piece: Partial<Pick<TablePiece, 'kind' | 'stackKey'>>): number {
+/** How much wider than a troop token a 'force'-kind piece (a troop or a leader disc) is drawn and occupies the table. */
+export function troopScale(piece: Partial<Pick<TablePiece, 'kind' | 'stackKey'>>): number {
   return isLeaderPiece(piece) ? LEADER_SCALE : 1;
 }
 
@@ -76,7 +76,7 @@ function minimumFootprintRadius(position: Vector3Tuple, piece: PieceFootprint): 
       ? SPICE_FOOTPRINT_RADIUS
       : piece.kind === 'marker'
         ? MARKER_FOOTPRINT_RADIUS
-        : FORCE_FOOTPRINT_RADIUS * forceScale(piece);
+        : TROOP_FOOTPRINT_RADIUS * troopScale(piece);
     return Math.max(0, Math.hypot(position[0], position[2]) - footprintRadius);
   }
 
@@ -116,7 +116,7 @@ export function stackTopHeight(piece: TablePiece): number {
     return CARD_LAYER_HEIGHT + (layers - 1) * CARD_LAYER_PITCH;
   }
   if (piece.kind === 'force') {
-    return FORCE_LAYER_HEIGHT + (layers - 1) * FORCE_LAYER_PITCH;
+    return TROOP_LAYER_HEIGHT + (layers - 1) * TROOP_LAYER_PITCH;
   }
   return MARKER_HEIGHT;
 }
@@ -140,7 +140,7 @@ function contactShadowBase(piece: TablePiece | TablePiece['kind']): [number, num
   }
   const diameter =
     kind === 'force'
-      ? FORCE_FOOTPRINT_RADIUS * 2 * (typeof piece === 'string' ? 1 : forceScale(piece)) + 0.04
+      ? TROOP_FOOTPRINT_RADIUS * 2 * (typeof piece === 'string' ? 1 : troopScale(piece)) + 0.04
       : MARKER_FOOTPRINT_RADIUS * 2;
   return [diameter, diameter];
 }

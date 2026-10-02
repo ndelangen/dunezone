@@ -51,16 +51,19 @@ export async function verifyBattles(toolkit) {
     () => a.view().snapshot.table.pieces.some((piece) => piece.id === token.id && !piece.inventory),
     'Leader token did not leave shared inventory.'
   );
-  /* Setup credited the faction's starting spice; the funding case counts from it. */
+  /* Setup credited the faction's starting spice; the support case counts from it. */
   const startingSpice = a.view().snapshot.bank.balance;
   await focus(a, 'map');
-  await toolkit.supplyShortcut(a, '7');
+  await toolkit.spiceBankShortcut(a, '7');
   await until(() => a.view().snapshot.table.pieces.some(isSpicePiece), 'Spice did not spawn.');
   const spice = a.view().snapshot.table.pieces.find(isSpicePiece);
   const at = await point(a, [spice.position[0], spice.position[1] + stackTopHeight(spice), spice.position[2]]);
   await a.page.mouse.click(at.x, at.y, { button: 'right' });
-  await a.page.getByRole('menuitem', { name: 'Take into bank', exact: true }).click();
-  await until(() => a.view().snapshot.bank.balance === startingSpice + 7, 'Manual collection did not fund the bank.');
+  await a.page.getByRole('menuitem', { name: 'Take into spice reserve', exact: true }).click();
+  await until(
+    () => a.view().snapshot.bank.balance === startingSpice + 7,
+    'Manual collection did not fund the spice reserve.'
+  );
   while (a.view().snapshot.phase !== 6) {
     await act(a, 'Next phase');
   }
@@ -120,11 +123,11 @@ export async function verifyBattles(toolkit) {
   await act(b, 'Claim right side');
   await until(
     () => a.view().snapshot.battlePlan && b.view().snapshot.battlePlan,
-    'Combatants did not receive private plans.'
+    'The factions in the battle did not receive private plans.'
   );
   assert.equal(observer.view().snapshot.battlePlan, null);
   const cardName = battleCard.items[0].artwork.name;
-  await verifyFunding({ a, b, observer, token, cardName, startingSpice, until, converged, capture });
+  await verifySupport({ a, b, observer, token, cardName, startingSpice, until, converged, capture });
   await act(a, 'Ready for battle');
   await act(b, 'Ready for battle');
   await until(() => a.view().snapshot.battle.stage === 'countdown', 'Both Ready did not start countdown.');
@@ -196,11 +199,13 @@ export async function verifyBattles(toolkit) {
   );
   assert.equal(a.view().snapshot.bank.balance, startingSpice + 4);
   await capture(a, 'after-battle-cancellation');
-  passed('A seated noncombatant cancels preparation and restores the private card without a public result');
+  passed(
+    'A seated faction outside the battle cancels preparation and restores the private card without a public result'
+  );
   await focus(a, 'map');
 }
 
-async function verifyFunding({ a, b, observer, token, cardName, startingSpice, until, converged, capture }) {
+async function verifySupport({ a, b, observer, token, cardName, startingSpice, until, converged, capture }) {
   /* One physical troop type renders as the single Troops field since the accepted workbench landed. */
   const count = a.page.getByRole('textbox', { name: 'Troops', exact: true });
   await count.click();

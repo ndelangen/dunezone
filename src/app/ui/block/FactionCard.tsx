@@ -18,7 +18,7 @@ import styles from './FactionCard.module.css';
  *
  * A Block.
  * Callers hand it the faction document;
- * this owns which piece becomes what: the background renders as full-bleed artwork, the hero leads the cast, the first three leaders fan out beside it, the name captions the bottom with the complexity glyph at its right.
+ * this owns which piece becomes what: the background renders as full-bleed artwork, the Faction leader leads the cast, the first three supporting leaders fan out beside it, the name captions the bottom with the complexity glyph at its right.
  * The artwork is game-asset content, not a pane treatment;
  * nothing here is a slot.
  */
@@ -34,11 +34,11 @@ export function FactionCard({
   livePreview?: boolean;
   /**
    * An adornment, not a slot: a control that acts on this faction where it is listed, such as a menu or a remove button.
-   * It renders as a sibling of the link rather than inside it, since a button within an anchor is neither valid nor clickable without navigating, and it is positioned top-left because the other three corners carry the faction's own identity: its token, its hero, its leaders and name.
+   * It renders as a sibling of the link rather than inside it, since a button within an anchor is neither valid nor clickable without navigating, and it is positioned top-left because the other three corners carry the faction's own identity: its token, its Faction leader, its supporting leaders and name.
    */
   action?: ReactNode;
 }) {
-  const { name, logo, background, hero, leaders } = faction.data;
+  const { name, logo, background, factionLeader, leaders } = faction.data;
   const rulesetLabel = factionRulesetLabel(faction, selectedRulesetSlug);
   const firstColor = background.colors[0];
   const tokenColor = typeof firstColor === 'string' ? firstColor : firstColor.stops[0][0];
@@ -66,11 +66,15 @@ export function FactionCard({
             )}
           </div>
           <div className={styles.cast} aria-hidden>
-            <div className={styles.hero}>
+            <div className={styles.factionLeader}>
               {livePreview ? (
-                <LeaderToken {...hero} strength={undefined} background={background} logo={logo} />
+                <LeaderToken {...factionLeader} strength={undefined} background={background} logo={logo} />
               ) : (
-                <TokenAvatar src={faction.tokenImages?.members[hero.memberId]} name={hero.name} color={tokenColor} />
+                <TokenAvatar
+                  src={faction.tokenImages?.members[factionLeader.memberId]}
+                  name={factionLeader.name}
+                  color={tokenColor}
+                />
               )}
             </div>
             <div className={styles.leaders}>

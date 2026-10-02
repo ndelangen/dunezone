@@ -19,7 +19,7 @@ const labels = (groups: ReturnType<typeof phaseSequence>['turnGroups']) =>
 describe('phaseSequence', () => {
   it('shows the standard setup and turn when the faction declares nothing', () => {
     const { setupGroups, turnGroups, omitted } = phaseSequence([]);
-    expect(labels(setupGroups)).toEqual(['Traitors', 'Starting forces']);
+    expect(labels(setupGroups)).toEqual(['Traitors', 'Starting troops']);
     expect(labels(turnGroups)).toHaveLength(9);
     expect([...setupGroups, ...turnGroups].every((group) => group.placed.length === 0)).toBe(true);
     expect(omitted).toEqual([]);
@@ -31,7 +31,7 @@ describe('phaseSequence', () => {
       row('early', 'bidding'),
       row('omen', 'forces'),
     ]);
-    expect(labels(setupGroups)).toEqual(['Traitors', 'Phase omen', 'Starting forces']);
+    expect(labels(setupGroups)).toEqual(['Traitors', 'Phase omen', 'Starting troops']);
     expect(labels(turnGroups).slice(2, 6)).toEqual(['CHOAM charity', 'Phase early', 'Phase late', 'Bidding']);
     const bidding = turnGroups.find((group) => group.step.label === 'Bidding')!;
     expect(bidding.placed.map((entry) => (entry.kind === 'faction' ? entry.rowIndex : -1))).toEqual([1, 0]);
@@ -53,6 +53,6 @@ describe('phaseSequence', () => {
 
   it('orders setup declarations by priority before list order', () => {
     const { setupGroups } = phaseSequence([row('second', 'traitors', { priority: 20 }), row('first', 'traitors')]);
-    expect(labels(setupGroups)).toEqual(['Phase first', 'Phase second', 'Traitors', 'Starting forces']);
+    expect(labels(setupGroups)).toEqual(['Phase first', 'Phase second', 'Traitors', 'Starting troops']);
   });
 });

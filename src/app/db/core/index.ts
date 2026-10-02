@@ -5,21 +5,14 @@ import type { FunctionArgs, FunctionReference, FunctionReturnType } from 'convex
 const convexUrl = import.meta.env.VITE_CONVEX_URL!;
 export const convex = new ConvexReactClient(convexUrl);
 
-/** TanStack Start sets this while generating static HTML; no user session or reliable backend. */
-function isTanStackStartPrerendering(): boolean {
-  return typeof process !== 'undefined' && process.env?.TSS_PRERENDERING === 'true';
-}
-
-let prerenderHttpClient: ConvexHttpClient | null = null;
-
+/** Server reads never share the browser's authenticated client or open a WebSocket. */
 function convexBackendForDb(): ConvexReactClient | ConvexHttpClient {
-  if (isTanStackStartPrerendering()) {
-    if (!prerenderHttpClient) {
-      prerenderHttpClient = new ConvexHttpClient(convexUrl, { logger: false });
-    }
-    return prerenderHttpClient;
+  if (!import.meta.env.SSR) {
+    return convex;
   }
-  return convex;
+  return new ConvexHttpClient(convexUrl, {
+    logger: false,
+  });
 }
 
 export const db = {

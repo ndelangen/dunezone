@@ -52,11 +52,11 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
     });
     state.combatFaces = {
       harkonnen: [
-        { id: 'harkonnen-front', name: 'Front', strength: 0.5, fundedStrength: 1 },
-        { id: 'heavy', name: 'Heavy', strength: -0.5, fundedStrength: 2.5, fundingCost: 2 },
-        { id: 'free', name: 'Free', strength: 0.5, fundedStrength: 1.5, fundingCost: 0 },
-        { id: 'negative', name: 'Negative', strength: 1, fundedStrength: -1, fundingCost: 0 },
-        { id: 'incapable', name: 'Incapable', strength: 1, fundedStrength: 2, capable: false },
+        { id: 'harkonnen-front', name: 'Front', strength: 0.5, supportedStrength: 1 },
+        { id: 'heavy', name: 'Heavy', strength: -0.5, supportedStrength: 2.5, supportCost: 2 },
+        { id: 'free', name: 'Free', strength: 0.5, supportedStrength: 1.5, supportCost: 0 },
+        { id: 'negative', name: 'Negative', strength: 1, supportedStrength: -1, supportCost: 0 },
+        { id: 'incapable', name: 'Incapable', strength: 1, supportedStrength: 2, capable: false },
       ],
       atreides: [],
     };
@@ -122,7 +122,7 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
     );
   }
 
-  it('projects a zero bank for a current faction missing from persisted balances', async () => {
+  it('projects a zero spice reserve for a current faction missing from persisted balances', async () => {
     const rows = await runtime.exec('SELECT data FROM current_state WHERE id=1');
     const state = JSON.parse(rows[0].data);
     state.factionBanks = {};
@@ -324,7 +324,19 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
     expect((await sendCommand(a, { kind: 'phase' })).reply.type).not.toBe('rejected');
   });
 
-  it('rejects competing starts and claims, counts exact funding and refunds a mode switch', async () => {
+  it('holds the phase against going back while a battle is open', async () => {
+    const placed = await accepted(a, { kind: 'battle-start', anchor: [0.95, 0.18, -3.05], territory: 'Arrakeen' });
+    expect((await sendCommand(b, { kind: 'phase', direction: -1 })).reply).toMatchObject({
+      type: 'rejected',
+      message: 'A battle is still open. Resolve or cancel it before going back a phase.',
+    });
+    const battleId = placed.snapshot.battle.id;
+    await accepted(a, { kind: 'battle-cancel', battleId });
+    const back = await accepted(b, { kind: 'phase', direction: -1 });
+    expect(back.snapshot.phase).toBe(5);
+  });
+
+  it('rejects competing starts and claims, counts exact support and refunds a mode switch', async () => {
     const battleId = await start();
     expect(
       (await sendCommand(b, { kind: 'battle-start', anchor: [0, 0, 0], territory: 'Polar Sink' })).reply.type
@@ -402,7 +414,7 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
     expect(card.items.map((item) => item.faceUp)).toEqual([false]);
   });
 
-  it('maximizes exact funding with zero costs and signed strengths and derives the custom price', async () => {
+  it('maximizes exact support with zero costs and signed strengths and derives the custom price', async () => {
     const battleId = await start();
     const troops = [
       { faceId: 'heavy', undialed: 3, dialed: 0 },
@@ -453,6 +465,8 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
     expect(after.bank.balance).toBe(10);
   });
 
+  /* 21 full battles of 7 commands each are needed to overflow the 20 retained results. Alone this takes ~3s, but under
+     the full workers/game run it reached ~20s, past this suite's 15s budget. */
   it('retains every public reveal and result through older history reads after more than twenty battles', async () => {
     let firstId;
     for (let index = 0; index < 21; index++) {
@@ -482,7 +496,7 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
       expect(history.snapshot.battlePlan).toBeNull();
       expect(history.snapshot).not.toHaveProperty('hand');
     }
-  });
+  }, 60_000);
 
   it('cancels a revealed battle while one of its pieces is being carried', async () => {
     const battleId = await revealWithCarriedLeader('cancel-carry');
@@ -536,7 +550,7 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
     );
     const battleId = await start();
     expect((await sendCommand(a, { kind: 'battle-plan', battleId, plan: plan(12, 12) })).reply.message).toBe(
-      'There is not enough banked spice for this plan.'
+      'There is not enough spice in the spice reserve for this plan.'
     );
     const invalid = [
       plan(12, 12),

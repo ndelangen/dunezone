@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { PHASE_CHANGE_COOLDOWN_MS } from '../../src/shared/play/phases';
+import { tokenPage } from './native-catalogue.fixture.mjs';
 import { dealt, draftingRuntime } from './native-drafting.fixture.mjs';
 import { accepted, admitPlayer, eventually, seat, sendCommand, syncView } from './native-runtime.fixture.mjs';
 
@@ -129,6 +130,23 @@ describe('The command path refuses what a connection may not do', { timeout: 60_
     }
     expect(await revision(a)).toBe(held);
     expect((await stored()).factionInventories[own]).toEqual(hidden);
+  });
+
+  it("closes the spawn request of a player who leaves their seat, so the seat's next holder cannot approve it", async () => {
+    peer.catalogue.set('token-disc/recovery', tokenPage('recovery'));
+    const { a, b, observer } = await inPlay();
+    const requested = await accepted(b, { kind: 'spawn-request', type: 'token-disc', slug: 'recovery' });
+    const [request] = requested.snapshot.controls.requests;
+    expect(request.requesterSeat).toBe(requested.viewer.viewerSeat);
+    await accepted(b, { kind: 'seat-depart' });
+    expect((await syncView(a)).snapshot.controls.requests).toEqual([]);
+    /* The watcher who takes the emptied seat finds nothing filed under it. */
+    await seat(observer, a, request.requesterSeat);
+    expect((await syncView(observer)).snapshot.controls.requests).toEqual([]);
+    expect((await sendCommand(observer, { kind: 'spawn-approve', requestId: request.id })).reply).toMatchObject({
+      type: 'rejected',
+      message: 'That spawn request has already been resolved.',
+    });
   });
 
   it('ends the carry of a player who leaves their seat and refuses their later drop and table commands', async () => {

@@ -64,12 +64,17 @@ function settledRequest(message: GameSubscriptionEvent): { id: string; outcome: 
   }
 }
 
+/* A carry the table ended before its piece left the hand; the player has to pick it up again. */
+const pausedWhileHeld = 'The table paused while you held a piece. Pick it up again to continue.';
+
 type LocalCarry = {
   id: string;
   sourceId: string;
   draft: DraftMove;
   granted: boolean;
   pendingDrop?: string;
+  /* The drop was released while the table could not send it, such as during a resync; it goes out once the table can act again. */
+  dropUnsent?: true;
   /* A resync completed the drop before the tab holds its snapshot, so the draft keeps the piece where it landed until the fresh view. */
   landed?: true;
 };
@@ -94,8 +99,8 @@ export type TableProjection = {
   renderedPieces: TablePiece[];
   selectedPiece: TablePiece | null;
   affordances: Affordance[];
-  /* The piece menu's bank and deck actions, present only while this viewer can act. */
-  bankControls?: {
+  /* The piece menu's spice reserve and deck actions, present only while this viewer can act. */
+  spiceReserveControls?: {
     canCollect(pieceId: string): boolean;
     collect(pieceId: string): void;
   };
@@ -172,6 +177,8 @@ export class TableSession {
   private error: string | null = null;
   private history: Extract<ServerMessage, { type: 'history' }> | null = null;
   private pendingHistory: number | null = null;
+  /* The live room's newest history step, which grows while a viewer sits in playback. */
+  private liveHistorySteps = 0;
   private epoch = '';
   private seq = 0;
   private selectedId: string | null = null;
@@ -380,7 +387,7 @@ export class TableSession {
       renderedPieces,
       selectedPiece: null,
       affordances: [],
-      bankControls: undefined,
+      spiceReserveControls: undefined,
       deckControls: undefined,
       remoteCarriedIds: new Set(),
       reservedPieceIds: new Set(),
@@ -435,7 +442,9 @@ export class TableSession {
       viewer,
       snapshot: displayed,
       liveRevision: this.snapshot.revision,
-      playback: this.history ? { step: this.history.step, lastStep: this.history.lastStep } : null,
+      playback: this.history
+        ? { step: this.history.step, lastStep: Math.max(this.history.lastStep, this.liveHistorySteps) }
+        : null,
       historyPending: this.pendingHistory !== null,
       canInteract,
       canHandleTable,
@@ -448,7 +457,7 @@ export class TableSession {
       renderedPieces,
       selectedPiece: renderedPieces.find((piece) => piece.id === state.selectedPieceId) ?? null,
       affordances: affordancesFor({ ...state, pieces: renderedPieces }),
-      bankControls:
+      spiceReserveControls:
         canHandleTable && displayed.bank
           ? {
               canCollect: (pieceId) => !reservedPieceIds.has(pieceId),
@@ -515,7 +524,9 @@ export class TableSession {
   private canSend(message: Exclude<ClientMessage, { type: 'admit' | 'sync' }>): boolean {
     /* A seat command is the spectator's one way to act, so it passes without a seat; `command` holds it to a current view. */
     const seat = message.type === 'command' && isSeatAction(message.action);
-    return this.status === 'authorized' && (isReadRequest(message) || seat || this.canAct());
+    /* Putting a held piece back also passes while a resync pauses the table, so the Worker never keeps a piece the tab let go of. */
+    const release = message.type === 'cancel' && this.carry !== null;
+    return this.status === 'authorized' && (isReadRequest(message) || seat || release || this.canAct());
   }
   private send(message: Exclude<ClientMessage, { type: 'admit' | 'sync' }>): boolean {
     return this.canSend(message) && this.subscription.send(message);
@@ -529,7 +540,7 @@ export class TableSession {
       case 'connection':
         this.conversations.disconnected(this.status === 'denied');
         this.noteEndedCarry({
-          held: 'The table paused while you held a piece. Pick it up again to continue.',
+          held: pausedWhileHeld,
           placing: 'The connection dropped as you placed a piece. Check where it landed.',
         });
         this.clearDisconnectedActivity();
@@ -542,7 +553,10 @@ export class TableSession {
       case 'view':
         this.phaseCooldownUntil = this.runtime.monotonicNow() + (message.phaseCooldownMs ?? 0);
         this.battleCountdownUntil = this.runtime.monotonicNow() + (message.battleCountdownMs ?? 0);
-        if (this.movesOnlyPointers(message)) {
+        const historySteps = message.historySteps ?? this.liveHistorySteps;
+        const historyMoved = historySteps !== this.liveHistorySteps;
+        this.liveHistorySteps = historySteps;
+        if (!historyMoved && this.movesOnlyPointers(message)) {
           this.pointers = message.pointers;
           this.emitPointers();
           this.keepWhilePointersMove();
@@ -604,6 +618,7 @@ export class TableSession {
     if (!this.saved) {
       return;
     }
+    this.flushDrop();
     this.flushCatalogue();
     this.flushBattlePlan();
     this.flushBattleReady();
@@ -650,6 +665,13 @@ export class TableSession {
   }
   private receiveRejection(message: Extract<ServerMessage, { type: 'rejected' }>) {
     this.error = message.message;
+    if (this.pendingHistory !== null && message.requestId === 'message') {
+      /*
+       * A history read carries no id, so the Worker refuses it as 'message'. It never gets a history reply, so the
+       * viewer stays on the checkpoint they were on and sees the reason instead of waiting.
+       */
+      this.pendingHistory = null;
+    }
     if (message.requestId === this.catalogueRequestId) {
       /* A refused catalogue read never gets a catalogue reply; the picker shows the reason instead of waiting. */
       this.catalogueResult = {
@@ -683,10 +705,10 @@ export class TableSession {
     }
     this.reconcileCarry();
   }
-  /* A drop already sent may or may not have landed, so it asks the player to look rather than to pick the piece up again; a drop the server confirmed needs no notice. */
+  /* A drop already sent may or may not have landed, so it asks the player to look; a drop still waiting to go out never left the hand, and one the server confirmed needs no notice. */
   private noteEndedCarry(notice: { held: string; placing: string }) {
     if (this.carry && !this.carry.landed) {
-      this.droppedCarryNotice = this.carry.pendingDrop ? notice.placing : notice.held;
+      this.droppedCarryNotice = this.carry.pendingDrop && !this.carry.dropUnsent ? notice.placing : notice.held;
     }
   }
   private replaceActivity(message: Extract<GameSubscriptionEvent, { type: 'view' }>) {
@@ -740,6 +762,10 @@ export class TableSession {
     }
     if (local.granted) {
       if (!this.carries.some((carry) => carry.id === local.id)) {
+        /* A drop still waiting to go out never reached the Worker, so the piece snaps back and the player is told why. */
+        if (local.dropUnsent) {
+          this.error = pausedWhileHeld;
+        }
         this.carry = null;
       }
       return;
@@ -774,6 +800,7 @@ export class TableSession {
     this.spiceHistoryBefore = undefined;
     this.history = null;
     this.pendingHistory = null;
+    this.liveHistorySteps = 0;
     this.carry = null;
     this.carries = [];
     this.pointers = [];
@@ -945,17 +972,27 @@ export class TableSession {
     }
     this.updateGesture(position);
     this.flushPose();
-    const commandId = crypto.randomUUID();
-    this.carry = { ...this.carry, pendingDrop: commandId };
-    this.send({
-      type: 'drop',
-      carryId: this.carry.id,
-      commandId,
-      position: this.carry.draft.position,
-      orientation: this.carry.draft.orientation,
-    });
+    this.carry = { ...this.carry, pendingDrop: crypto.randomUUID(), dropUnsent: true };
+    this.flushDrop();
     this.emit();
   };
+  private flushDrop() {
+    const carry = this.carry;
+    if (!carry?.pendingDrop || !carry.dropUnsent) {
+      return;
+    }
+    const sent = this.send({
+      type: 'drop',
+      carryId: carry.id,
+      commandId: carry.pendingDrop,
+      position: carry.draft.position,
+      orientation: carry.draft.orientation,
+    });
+    if (sent) {
+      const { dropUnsent: _unsent, ...rest } = carry;
+      this.carry = rest;
+    }
+  }
   cancelDraft = () => {
     if (!this.carry || this.carry.pendingDrop) {
       return;

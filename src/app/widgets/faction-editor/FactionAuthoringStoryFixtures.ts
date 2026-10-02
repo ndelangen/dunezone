@@ -7,7 +7,7 @@ import { defaultFaction } from './defaultFaction';
 export function representativeFaction(): Faction {
   const faction = structuredClone(defaultFaction);
   faction.name = 'House Meridia';
-  faction.hero = {
+  faction.factionLeader = {
     name: 'Lady Corinne',
     image: LEADERS.options[0],
   };
@@ -33,13 +33,13 @@ export function representativeFaction(): Faction {
     striped: true,
     count: 20,
     planet: 'Meridian Prime',
-    combat: { strength: 1, fundedStrength: 2 },
+    combat: { strength: 1, supportedStrength: 2 },
     back: {
       image: faction.troops[0].image,
       name: 'Meridian elite',
       description: 'The reverse side of the same physical supply.',
       striped: false,
-      combat: { strength: 1.5, fundedStrength: -0.5, fundingCost: 0 },
+      combat: { strength: 1.5, supportedStrength: -0.5, supportCost: 0 },
     },
   };
   faction.planet = [
@@ -69,7 +69,7 @@ export function representativeFaction(): Faction {
 
 export function incompleteFaction(): Faction {
   const faction = representativeFaction();
-  faction.hero.name = '';
+  faction.factionLeader.name = '';
   faction.rules.alliance.text = '';
   faction.troops[0].description = '';
   faction.troops[0].combat = undefined;

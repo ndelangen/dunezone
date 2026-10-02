@@ -1,6 +1,6 @@
 import preview from '@sb/preview';
 import { TABLE_PHASES } from '@shared/play/phases';
-import { spiceSupplySlot } from '@shared/play/spiceSupply';
+import { spiceBankSlot } from '@shared/play/spiceBank';
 import { BOARD_RADIUS, BOARD_SURFACE_Y, stackTopHeight } from '@shared/play/tableGeometry';
 import { TRACKER_DISC_TOP_Y } from '@shared/play/tableTrackers';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
@@ -387,17 +387,17 @@ export const PhaseViews = meta.story({
 
 /**
  * A phase change during a carry marks the new phase's view at once and moves the camera only when the piece lands.
- * The carry is a press on the viewer's own forces and a move past the drag threshold, sent to the canvas `mapViewPoint` projects against.
+ * The carry is a press on the viewer's own troops and a move past the drag threshold, sent to the canvas `mapViewPoint` projects against.
  */
 export const PhaseViewWaitsForTheDrop = meta.story({
   beforeEach: install(() => productTransport()),
   play: async ({ canvasElement }) => {
     const { page, shell, document } = await tablePage(canvasElement);
-    const forces = playingSnapshot().table.pieces.find((piece) => piece.id === 'starting-1-carthag')!;
+    const troops = playingSnapshot().table.pieces.find((piece) => piece.id === 'starting-1-carthag')!;
     const [clientX, clientY] = mapViewPoint(document, [
-      forces.position[0],
-      forces.position[1] + stackTopHeight(forces),
-      forces.position[2],
+      troops.position[0],
+      troops.position[1] + stackTopHeight(troops),
+      troops.position[2],
     ]);
     const scene = document.querySelector('canvas')!;
     const pointer = { bubbles: true, cancelable: true, pointerId: 1, pointerType: 'mouse', button: 0, clientY };
@@ -426,14 +426,14 @@ export const PhaseViewWaitsForTheDrop = meta.story({
 });
 
 /**
- * The spice supply disc answers the number keys again when the pointer leaves the canvas from the disc and comes straight back onto it.
+ * The Spice Bank disc answers the number keys again when the pointer leaves the canvas from the disc and comes straight back onto it.
  * The pointer leaves for the view picker and returns with no move over the rest of the table.
  */
 export const SpiceDiscAnswersOnReturn = meta.story({
   beforeEach: install(() => productTransport()),
   play: async ({ canvasElement }) => {
     const { page, document } = await tablePage(canvasElement);
-    const slot = spiceSupplySlot();
+    const slot = spiceBankSlot();
     const [clientX, clientY] = mapViewPoint(document, [slot.position[0], TRACKER_DISC_TOP_Y + 0.015, slot.position[2]]);
     const scene = document.querySelector('canvas')!;
     const pointer = { bubbles: true, cancelable: true, pointerId: 1, pointerType: 'mouse', clientX, clientY };
@@ -535,6 +535,46 @@ export const TapOnTheBoardClearsTheSelection = meta.story({
 });
 
 /**
+ * A finger has no hover, so a tap's jitter over a piece leaves nothing for the keys to act on once the selection moves.
+ * Tapping the deck with a jitter selects it, so L locks it.
+ * Tapping the empty board then clears the selection, so L sends nothing.
+ */
+export const TapJitterLeavesNoHover = meta.story({
+  beforeEach: install(() => productTransport()),
+  play: async ({ canvasElement }) => {
+    const { page, document } = await tablePage(canvasElement);
+    const deckOnScreen = deckPoint(document);
+    const boardPoint = mapViewPoint(document, [BOARD_RADIUS * 0.3, BOARD_SURFACE_Y, BOARD_RADIUS * 0.3]);
+    const scene = document.querySelector('canvas')!;
+    const tap = ([clientX, clientY]: [number, number], jitter: number) => {
+      const touch = touchAt(2, clientX, clientY);
+      scene.dispatchEvent(new PointerEvent('pointerdown', { ...touch, button: 0, buttons: 1 }));
+      if (jitter) {
+        scene.dispatchEvent(new PointerEvent('pointermove', { ...touch, clientX: clientX + jitter, buttons: 1 }));
+      }
+      scene.dispatchEvent(new PointerEvent('pointerup', { ...touch, button: 0, buttons: 0 }));
+      leaveTheCanvas(page, scene, touch);
+      scene.dispatchEvent(new PointerEvent('click', { ...touch, button: 0 }));
+    };
+    const commands = () => session.transport.messages.filter((message) => message.type === 'command').length;
+
+    await waitFor(
+      async () => {
+        tap(deckOnScreen, 2);
+        await userEvent.keyboard('l');
+        expect(lastCommand()).toMatchObject({ type: 'command', action: { kind: 'lock', pieceId: 'treachery-deck' } });
+      },
+      { timeout: 30_000 }
+    );
+
+    tap(boardPoint, 0);
+    const before = commands();
+    await userEvent.keyboard('l');
+    expect(commands()).toBe(before);
+  },
+});
+
+/**
  * A finger resting on the deck opens the menu a right-click opens, since iOS never sends a context menu for a long press.
  * The menu's Shuffle shuffles that deck, and the finger lifting after the menu opens leaves the menu open.
  */
@@ -595,7 +635,7 @@ export const SpiceDiscForgetsAPlaybackHover = meta.story({
   play: async ({ canvasElement }) => {
     const { page, document } = await tablePage(canvasElement);
     await openTab(page, 'Phase');
-    const slot = spiceSupplySlot();
+    const slot = spiceBankSlot();
     const [clientX, clientY] = mapViewPoint(document, [slot.position[0], TRACKER_DISC_TOP_Y + 0.015, slot.position[2]]);
     const scene = document.querySelector('canvas')!;
     const pointer = { bubbles: true, cancelable: true, pointerId: 1, pointerType: 'mouse', clientX, clientY };

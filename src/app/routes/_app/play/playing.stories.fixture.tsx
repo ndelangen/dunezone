@@ -126,7 +126,7 @@ export function paintedColor(element: HTMLElement, value: string) {
 }
 
 export function battleStory(stage: 'preparing' | 'countdown' | 'revealed', observer = false): GameSnapshot {
-  /* Both copied troop descriptions specify half strength, or one strength funded with one spice. */
+  /* Both copied troop descriptions specify half strength, or one strength supported with one spice. */
   const plans = [factions[1]!, factions[0]!].map((faction) =>
     emptyBattlePlan([
       {
@@ -135,8 +135,8 @@ export function battleStory(stage: 'preparing' | 'countdown' | 'revealed', obser
         image: faction.data.troops[0]!.image,
         capable: true,
         strength: 0.5,
-        fundedStrength: 1,
-        fundingCost: 1,
+        supportedStrength: 1,
+        supportCost: 1,
       },
     ])
   );

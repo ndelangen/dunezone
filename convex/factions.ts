@@ -2,7 +2,7 @@ import { ConvexError, v } from 'convex/values';
 
 import { factionExtraKey, storedFactionExtrasSchema } from '../src/shared/factions/extras';
 import type { FactionExtra } from '../src/shared/factions/extras';
-import type { Doc, Id } from './_generated/dataModel';
+import type { Id } from './_generated/dataModel';
 import { query } from './_generated/server';
 import { publicationStatusFor } from './assetPublishingStatus';
 import { liveAsset } from './assets';
@@ -23,7 +23,12 @@ import {
 import { resolveGroupAssignmentForCreation } from './lib/defaultGroupPreference';
 import { loadFactionCatalogue, selectFactionCatalogueSpotlights } from './lib/factionCatalogue';
 import { factionDataValidator } from './lib/factionData';
-import { factionInputForWrite, parseFactionInput, parseStoredFactionForRead } from './lib/factionInput';
+import {
+  factionInputForWrite,
+  factionRowForClient,
+  parseFactionInput,
+  parseStoredFactionForRead,
+} from './lib/factionInput';
 import {
   buildOwnedForGroupAssignRows,
   OWNED_FOR_GROUP_ASSIGN_LIMIT,
@@ -81,13 +86,6 @@ function factionDataForClient(data: unknown) {
   return parseStoredFactionForRead(data);
 }
 
-function factionRowForClient(row: Doc<'factions'>) {
-  return {
-    ...row,
-    data: factionDataForClient(row.data),
-  };
-}
-
 async function listFactionRulesets(ctx: QueryCtx, factionId: Id<'factions'>) {
   const links = await ctx.db
     .query('ruleset_factions')
@@ -106,7 +104,7 @@ async function loadFactionDetailPageBySlug(ctx: QueryCtx, slug: string) {
     .withIndex('by_slug', (q) => q.eq('slug', slug))
     .unique();
   if (!locatedRow || locatedRow.is_deleted) {
-    throw new Error(`Faction with slug ${slug} not found`);
+    throw new ConvexError({ code: 'NOT_FOUND', message: `Faction with slug ${slug} not found` });
   }
 
   const access = await loadAssetAccessBundle(ctx, { kind: 'faction', row: locatedRow });

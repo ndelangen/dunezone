@@ -49,6 +49,16 @@ export const WaitingForPlayers = meta.story({
   },
 });
 
+/** Players left a six-seat table that deals from four: the ledger offers as many open seats as the header still waits for. */
+export const PlayersLeftBelowMinimum = meta.story({
+  beforeEach: install(() => productTransport('seat-1', draftingSnapshot(SIX.slice(0, 2), 6, { minimum: 4 }))),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByText('Waiting for 2 more players', {}, { timeout: 30_000 })).resolves.toBeVisible();
+    expect(within(page.getByRole('region', { name: 'Players' })).getAllByTitle('Open seat')).toHaveLength(2);
+  },
+});
+
 /* The maximum table keeps all eighteen stations visible while six players wait for the remaining seats. */
 export const EighteenSeats = meta.story({
   parameters: parameters('ready', undefined, 18),
@@ -174,6 +184,27 @@ export const FactionSetAside = meta.story({
     await shows(() => list().getByText(`Not ready to deal: ${NOT_READY}`));
     const row = list().getByText('Iduali').closest('li') as HTMLElement;
     expect(within(row).getByRole('button', { name: /^Draft$/ })).toBeDisabled();
+  },
+});
+
+/** A spectator reads why the deal failed; trying the deal again is the players' to do. */
+export const ObserverAfterAFailedDeal = meta.story({
+  beforeEach: install(() =>
+    productTransport(
+      'neutral',
+      draftingSnapshot(SIX, 6, {
+        picks: { 'seat-1': ['house-atreides', 'iduali'], 'seat-2': ['fremen'] },
+        setAside: { iduali: NOT_READY },
+        failure: `Set aside as not ready to deal: Iduali (${NOT_READY.replace(/\.$/, '')}).`,
+      })
+    )
+  ),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await waitFor(() => expect(page.getByRole('alert')).toHaveTextContent('Set aside as not ready to deal: Iduali'), {
+      timeout: 30_000,
+    });
+    expect(page.queryByRole('button', { name: 'Try again' })).toBeNull();
   },
 });
 

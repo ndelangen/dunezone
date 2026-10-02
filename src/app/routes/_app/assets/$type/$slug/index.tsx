@@ -22,7 +22,7 @@ import { OpenableTile } from '@ui/block/OpenableTile';
 import { PageIdentity } from '@ui/block/PageIdentity';
 import { Section } from '@ui/block/Section';
 import { AssetLink } from '@ui/content/AssetLink';
-import { formatRelativeDate } from '@ui/content/dates';
+import { formatStableDate } from '@ui/content/dates';
 import { FormattedTextSource } from '@ui/content/FormattedText';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
@@ -50,7 +50,7 @@ import type { ReactNode } from 'react';
 import { loadAssetPage, useAssetPage } from '@app/db/assets';
 import type { AssetPageData } from '@app/db/assets';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
-import { pageHead } from '@app/routes/pageTitle';
+import { publicDescription, publicPageHead, useLivePageTitle } from '@app/routes/publicPage';
 import { AssetFace } from '@app/widgets/asset-face/AssetFace';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
@@ -61,6 +61,7 @@ import styles from './index.module.css';
 type AssetPage = NonNullable<AssetPageData>;
 
 export const Route = createFileRoute('/_app/assets/$type/$slug/')({
+  ssr: true,
   codeSplitGroupings: [['component', 'pendingComponent', 'errorComponent']],
   /* The container grid's one view choice.
    * Absent is the default, every copy;
@@ -71,11 +72,26 @@ export const Route = createFileRoute('/_app/assets/$type/$slug/')({
     if (!isAssetType(params.type)) {
       throw notFound();
     }
-    return await loadAssetPage(params.type, params.slug);
+    const page = await loadAssetPage(params.type, params.slug);
+    if (!page) {
+      throw notFound();
+    }
+    return page;
   },
   pendingComponent: AssetDetailPending,
   errorComponent: AssetDetailError,
-  head: ({ match, loaderData }) => pageHead(loaderData?.asset.name ?? 'Asset', { match }),
+  head: ({ match, loaderData, params }) =>
+    publicPageHead({
+      name: loaderData?.asset.name ?? 'Asset',
+      pathname: `/assets/${encodeURIComponent(params.type)}/${encodeURIComponent(loaderData?.asset.slug ?? params.slug)}`,
+      description: publicDescription(loaderData?.asset.data.about),
+      image: loaderData?.asset.previewHref,
+      social: {
+        kind: isAssetType(params.type) ? ASSET_TYPES[params.type].label : 'Asset',
+        shape: params.type === 'token-disc' ? 'round' : params.type === 'token-enhance' ? 'landscape' : 'portrait',
+      },
+      match,
+    }),
   component: AssetDetailPage,
 });
 
@@ -453,7 +469,8 @@ function AssetDetailPage() {
   const { type, slug } = Route.useParams();
   const loaderData = Route.useLoaderData();
   const live = useAssetPage(type, slug, { initialData: loaderData });
-  const page = live.data ?? loaderData;
+  const page = live.data;
+  useLivePageTitle(page?.asset.name ?? (page === null ? 'Asset not found' : undefined));
 
   if (!page) {
     return (
@@ -465,7 +482,7 @@ function AssetDetailPage() {
     );
   }
 
-  return <LoadedAssetDetail page={page} />;
+  return <LoadedAssetDetail page={page} pending={live.isPending} />;
 }
 
 /**
@@ -473,7 +490,7 @@ function AssetDetailPage() {
  * Its own component so the management hooks can take a definite asset, which the route component cannot promise before the guard runs.
  * Group assign/remove and delete install from the shared hooks in `-assetEditorStates` rather than repeating here as a fifth copy of the same fifty lines.
  */
-function LoadedAssetDetail({ page }: { page: AssetPage }) {
+function LoadedAssetDetail({ page, pending }: { page: AssetPage; pending: boolean }) {
   const { asset, viewerAccess, assignableGroups, inDecks, assetPublishing, backPublishing } = page;
   const groupActions = useAssetGroupActions({ asset, access: { viewerAccess, assignableGroups } });
   const deletion = useAssetDeletion(asset);
@@ -485,7 +502,12 @@ function LoadedAssetDetail({ page }: { page: AssetPage }) {
   const hasCopies = container && page.members.some(({ count }) => count > 1);
   const memberNoun = asset.type === 'deck' ? 'card' : 'token';
   const memberTotal = page.members.reduce((total, { count }) => total + count, 0);
-  const { capabilities, assignedGroup } = viewerAccess;
+  const assignedGroup = viewerAccess.assignedGroup;
+  const capabilities = {
+    ...viewerAccess.capabilities,
+    edit: !pending && viewerAccess.capabilities.edit,
+    delete: !pending && viewerAccess.capabilities.delete,
+  };
   const definition = isAssetType(asset.type) ? ASSET_TYPES[asset.type] : undefined;
   const collectionLabel = definition?.label ?? 'Assets';
   return (
@@ -514,14 +536,14 @@ function LoadedAssetDetail({ page }: { page: AssetPage }) {
             {
               key: 'created',
               icon: <CalendarPlus size={17} aria-hidden />,
-              value: formatRelativeDate(asset.created_at),
-              label: `Created ${formatRelativeDate(asset.created_at)}`,
+              value: formatStableDate(asset.created_at),
+              label: `Created ${formatStableDate(asset.created_at)}`,
             },
             {
               key: 'updated',
               icon: <History size={17} aria-hidden />,
-              value: formatRelativeDate(asset.updated_at),
-              label: `Updated ${formatRelativeDate(asset.updated_at)}`,
+              value: formatStableDate(asset.updated_at),
+              label: `Updated ${formatStableDate(asset.updated_at)}`,
             },
             /* A container's size, counting every copy, so the Composition heading need not say it. */
             ...(container
@@ -621,7 +643,7 @@ function LoadedAssetDetail({ page }: { page: AssetPage }) {
                 />
               ) : null}
             </Toolbar.Cluster>
-            <Toolbar.Cluster kind="access">{groupActions.accessActions}</Toolbar.Cluster>
+            <Toolbar.Cluster kind="access">{!pending && groupActions.accessActions}</Toolbar.Cluster>
             <Toolbar.Cluster kind="discard">
               {capabilities.delete ? (
                 <ConfirmDeleteAction

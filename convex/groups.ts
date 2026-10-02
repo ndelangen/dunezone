@@ -7,6 +7,7 @@ import { query } from './_generated/server';
 import { mutation } from './functions';
 import { liveGroupOrNull, loadGroupAccessBundle, requireGroupCapability } from './lib/collaborativeAccess';
 import { groupDetailPageValidator } from './lib/collaborativeAccessValidators';
+import { factionRowForClient } from './lib/factionInput';
 import { requireAuthUserId } from './lib/policy';
 import { nowIso, slugify } from './lib/utils';
 
@@ -67,7 +68,7 @@ export const detailBySlug = query({
 
     return {
       group: accessBundle.subject,
-      factions,
+      factions: factions.map(factionRowForClient),
       rulesets,
       owner: accessBundle.owner,
       viewerAccess: accessBundle.viewerAccess,

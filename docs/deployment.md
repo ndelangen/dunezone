@@ -85,9 +85,12 @@ The publisher bundles `dist/server/server.js` alongside its existing capture run
 `application-ssr-runtime` alias points to that build output, so Worker source does not import the
 browser application. The application build still emits `_shell.html` for browser-only pages.
 `src/app/routes/start.ts` makes server rendering opt-in. The document root renders on the server;
-the shared layout and page loaders remain browser-only until the public-page implementation in
-[Serve public faction and asset HTML with live browser data](https://github.com/ndelangen/dunezone/issues/1717).
-This foundation release does not yet make faction content crawlable.
+the shared layout, faction catalogue and detail, asset catalogue, type listings and detail pages
+also render on the server. Their anonymous page result supplies visible content and metadata.
+The browser hydrates that result, then its existing Convex subscription supplies live content and
+permissions. Management controls wait for that live result. Login-required pages stay browser-only.
+Missing records return 404; backend failures remain errors. Unknown public descendants reach the
+router's 404 rather than receiving a successful app shell.
 
 The dispatcher accepts only GET and HEAD on public faction and asset paths. It creates a fresh
 anonymous request, forwarding the URL but no cookies, authorization or caller headers. Other
@@ -116,8 +119,8 @@ seven days after replacement, may still need a refresh. Stable artwork and font 
 `publisher:application-runtime:verify` starts the assembled Worker locally and checks complete HTML,
 hydration-entry availability, public dispatch, browser-only paths and protected capture delivery.
 Both PR CI and deployment run it. It caught truncated output from React's streaming renderer when
-the shared layout was opted into SSR before its child pages. Enable the layout and public page
-rendering together in the page-data ticket, with browser hydration proof.
+the shared layout was opted into SSR before its child pages. Public page rendering and the layout
+now opt in together, with browser hydration checked against the assembled Worker.
 
 ### Forward fixes
 
@@ -256,7 +259,7 @@ that merge was up to date and its diff reached the closure. A red daily run open
 issue labelled `hosted-play-daily`.
 Each flow in [`scripts/verify-hosted-flows.ts`](../scripts/verify-hosted-flows.ts) names
 its shard, and each shard runs `--shard <name>`: `regular` runs the regular flow, `catalogue`
-public-controls and battles, and `protocol` private-banks, decks and results. The `regular` and
+public-controls and battles, and `protocol` private-spice-reserves, decks and results. The `regular` and
 `catalogue` shards add `--browser-only`; in the `protocol` shard the protocol verifier runs first on
 the same stack. Each shard passes `--browser` with Playwright's full Chromium rather than its headless
 shell, and `--expect-renderer webgl2-swiftshader`, the renderer that browser draws with on the Linux

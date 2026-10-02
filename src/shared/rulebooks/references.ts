@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { CanonicalFactionStoredSchema } from '../factions/schema';
+import { CanonicalFactionStoredObject } from '../factions/schema';
 import { getRulebookCoverFooter } from './contents';
 import type { RulebookContentsDraftV1 } from './contents';
 import { rulebookResolvedSourceSchema } from './sources';
@@ -12,7 +12,7 @@ export const rulebookResolvedFactionSchema = z.strictObject({
   color: z.string(),
   emblemUrl: z.string().optional(),
   tokenImageUrl: z.string().optional(),
-  token: CanonicalFactionStoredSchema.pick({ logo: true, background: true }).optional(),
+  token: CanonicalFactionStoredObject.pick({ logo: true, background: true }).optional(),
   ruler: rulebookResolvedSourceSchema.optional(),
   leaders: z.array(rulebookResolvedSourceSchema).optional(),
 });

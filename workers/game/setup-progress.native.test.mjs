@@ -180,7 +180,7 @@ describe('Real-game setup progression', () => {
       allPlayersMustBeReady: false,
     });
 
-    /* The owner locks the prediction; Traitors and Starting forces gate on readiness, then Next opens Turn 1. */
+    /* The owner locks the prediction; Traitors and Starting troops gate on readiness, then Next opens Turn 1. */
     await accepted(owner, {
       kind: 'prediction-lock',
       stepId: steps[0].id,

@@ -8,27 +8,34 @@ const env: Pick<Env, 'CF_VERSION_METADATA' | 'GIT_SHA'> = {
 };
 
 describe('anonymous application dispatch', () => {
-  test.each(['/factions', '/factions/testfaction/', '/assets', '/assets/token-disc', '/assets/card-treachery/lasgun'])(
-    'renders %s without visitor credentials',
-    async (pathname) => {
-      const render = vi.fn(async (request: Request) => {
-        expect([...request.headers]).toEqual([['accept', 'text/html']]);
-        expect(request.url).toBe(`https://dune.zone${pathname}?search=hello`);
-        return new Response('public page', { headers: { 'Set-Cookie': 'unexpected=value' } });
-      });
-      const response = await handleApplicationRequest(
-        new Request(`https://dune.zone${pathname}?search=hello`, {
-          headers: { Cookie: 'auth=private', Authorization: 'Bearer private', 'X-Forwarded-Host': 'other.invalid' },
-        }),
-        env,
-        render
-      );
-      expect(await response?.text()).toBe('public page');
-      expect(response?.headers.get('Set-Cookie')).toBeNull();
-      expect(response?.headers.get('Cache-Control')).toBe('no-store');
-      expect(response?.headers.get('X-Application-Release')).toBe('release-a');
-    }
-  );
+  test.each([
+    '/factions',
+    '/factions/testfaction/',
+    '/assets',
+    '/assets/token-disc',
+    '/assets/card-treachery/lasgun',
+    '/assets/unknown-type/missing',
+    '/assets/create',
+    '/assets/unknown-type/missing/extra',
+    '/factions/missing/extra',
+  ])('renders %s without visitor credentials', async (pathname) => {
+    const render = vi.fn(async (request: Request) => {
+      expect([...request.headers]).toEqual([['accept', 'text/html']]);
+      expect(request.url).toBe(`https://dune.zone${pathname}?search=hello`);
+      return new Response('public page', { headers: { 'Set-Cookie': 'unexpected=value' } });
+    });
+    const response = await handleApplicationRequest(
+      new Request(`https://dune.zone${pathname}?search=hello`, {
+        headers: { Cookie: 'auth=private', Authorization: 'Bearer private', 'X-Forwarded-Host': 'other.invalid' },
+      }),
+      env,
+      render
+    );
+    expect(await response?.text()).toBe('public page');
+    expect(response?.headers.get('Set-Cookie')).toBeNull();
+    expect(response?.headers.get('Cache-Control')).toBe('no-store');
+    expect(response?.headers.get('X-Application-Release')).toBe('release-a');
+  });
 
   test.each([
     '/factions/create',

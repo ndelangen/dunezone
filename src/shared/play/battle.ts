@@ -1,7 +1,8 @@
 import { z } from 'zod';
 
-import type { AuthoredFace, AuthoredTroop } from '../factions/troopCombat';
-import { troopCombatFaces } from '../factions/troopCombat';
+import { withSupportNames } from '../factions/schema';
+import type { AuthoredFace, AuthoredTroop } from '../factions/troopBattle';
+import { troopBattleFaces } from '../factions/troopBattle';
 import {
   storedPieceSchema,
   tableCountSchema as count,
@@ -13,16 +14,23 @@ import {
 export const BATTLE_COUNTDOWN_MS = 5000;
 const battleSideSchema = z.union([z.literal(0), z.literal(1)]);
 const battleOutcomeSchema = z.enum(['left', 'none', 'right']);
-export const combatFaceSchema = z.object({
-  id,
-  name: z.string(),
-  capable: z.boolean().default(true),
-  strength: z.number(),
-  fundedStrength: z.number(),
-  fundingCost: count.default(1),
-  image: z.string().optional(),
-});
-export type CombatFace = z.infer<typeof combatFaceSchema>;
+/**
+ * A game stores its battle faces and plans, so faces stored before the funded-to-supported rename still carry the old names;
+ * the read renames them, and every write carries only the new ones.
+ */
+export const battleFaceSchema = z.preprocess(
+  withSupportNames,
+  z.object({
+    id,
+    name: z.string(),
+    capable: z.boolean().default(true),
+    strength: z.number(),
+    supportedStrength: z.number(),
+    supportCost: count.default(1),
+    image: z.string().optional(),
+  })
+);
+export type BattleFace = z.infer<typeof battleFaceSchema>;
 const troopDeclarationSchema = z.strictObject({ faceId: id, undialed: count, dialed: count });
 const battlePlanInputSchema = z.strictObject({
   mode: z.enum(['max', 'custom']),
@@ -35,7 +43,7 @@ const battlePlanInputSchema = z.strictObject({
 export const battlePlanSchema = battlePlanInputSchema.extend({
   strength: z.number(),
   pieces: z.array(tablePieceSchema),
-  faces: z.array(combatFaceSchema),
+  faces: z.array(battleFaceSchema),
 });
 export const storedBattlePlanSchema = battlePlanSchema.extend({ pieces: z.array(storedPieceSchema) });
 export type BattlePlanInput = z.infer<typeof battlePlanInputSchema>;
@@ -88,15 +96,15 @@ export function isBattleAction(action: { kind: string }): action is BattleAction
 }
 
 /** The hosted fixture's houses have no catalogue definition; a real game reads its captured faction's faces instead. */
-export function fixtureCombatFaces(factionId: string): CombatFace[] {
+export function fixtureBattleFaces(factionId: string): BattleFace[] {
   return [
     {
       id: `${factionId}-front`,
       name: 'Troops',
       capable: true,
       strength: 0.5,
-      fundedStrength: 1,
-      fundingCost: 1,
+      supportedStrength: 1,
+      supportCost: 1,
       image: `/vector/troop/${factionId}.svg`,
     },
   ];
@@ -105,16 +113,16 @@ export function fixtureCombatFaces(factionId: string): CombatFace[] {
 type CapturedFace = AuthoredFace & { image: string };
 
 /**
- * The combat faces a captured faction definition supplies to its battle plans: every face that can fight and has authored values.
- * A noncombatant face has no section, and a face missing its values stays out rather than borrowing any, which the capture's verdict names.
+ * The battle faces a captured faction definition supplies to its battle plans: every face that can fight and has authored values.
+ * A face that cannot fight has no section, and a face missing its values stays out rather than borrowing any, which the capture's verdict names.
  */
-export function capturedCombatFaces(troops: readonly AuthoredTroop<CapturedFace>[]): CombatFace[] {
-  return troopCombatFaces(troops).flatMap(({ id, face, capable, combat }) =>
-    capable && combat ? [{ id, name: face.name, capable: true, ...combat, image: face.image }] : []
+export function capturedBattleFaces(troops: readonly AuthoredTroop<CapturedFace>[]): BattleFace[] {
+  return troopBattleFaces(troops).flatMap(({ id, face, capable, values }) =>
+    capable && values ? [{ id, name: face.name, capable: true, ...values, image: face.image }] : []
   );
 }
 
-export function emptyBattlePlan(faces: CombatFace[]): StoredBattlePlan {
+export function emptyBattlePlan(faces: BattleFace[]): StoredBattlePlan {
   return {
     mode: 'max',
     troops: [],

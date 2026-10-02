@@ -2,9 +2,18 @@ import { ensureFactionComponentIds } from '../../src/shared/factions/componentId
 import { factionMembersHaveIds } from '../../src/shared/factions/memberIdentity';
 import { CanonicalFactionStoredSchema, FactionWriteSchema } from '../../src/shared/factions/schema';
 import { factionTroopsHaveIds } from '../../src/shared/factions/troopIdentity';
+import type { Doc } from '../_generated/dataModel';
 
 export function parseStoredFactionForRead(input: unknown) {
   return CanonicalFactionStoredSchema.parse(input);
+}
+
+/**
+ * A stored faction row as a query returns it: its `data` parsed, so the wire matches `factionDataValidator`.
+ * A raw row could carry the old `hero` key, which that validator refuses.
+ */
+export function factionRowForClient(row: Doc<'factions'>) {
+  return { ...row, data: parseStoredFactionForRead(row.data) };
 }
 
 export function parseFactionInput(
@@ -27,7 +36,7 @@ export function factionInputForWrite(input: unknown, previous?: unknown) {
   if (previous !== undefined) {
     const stored = parseStoredFactionForRead(previous);
     if (
-      [stored.hero, ...stored.leaders].some((member) => member.memberId !== undefined) &&
+      [stored.factionLeader, ...stored.leaders].some((member) => member.memberId !== undefined) &&
       !factionMembersHaveIds(data)
     ) {
       throw new Error('Reload this page before saving. This faction now uses persistent member identities.');

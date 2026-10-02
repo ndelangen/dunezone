@@ -55,6 +55,7 @@ export class GameSubscription {
   /* Keepalive ticks since the socket last delivered any frame, its answers included (#1662). */
   private silentTicks = 0;
   private stopOnline: (() => void) | undefined;
+  private stopVisible: (() => void) | undefined;
   private ticketAttempt: TicketAttempt | undefined;
   /* The ticket request still on the wire: an attempt that gives up waiting leaves it there for the next attempt to take its answer. */
   private ticketRequest: TicketRequest | undefined;
@@ -62,6 +63,8 @@ export class GameSubscription {
   private current: RoomView | null = null;
   /* Whether this attempt has shown the table once: a suspended admission before that is still the first connect, not a pause. */
   private sawView = false;
+  /* The Worker's name for the last connection that showed the table; the next admission asks the Worker to retire it, since a connection lost without a close frame still holds its carry and pointer there. */
+  private connectionId: string | undefined;
   private wireView: RoomView | null = null;
   private resyncing = false;
   private connectionStatus: Status = 'connecting';
@@ -94,6 +97,8 @@ export class GameSubscription {
   subscribe(listener: (event: GameSubscriptionEvent) => void) {
     this.listener = listener;
     this.stopOnline = this.runtime.onOnline(() => this.networkReturned());
+    /* A tab frozen in the background would otherwise find a dead socket only after two keepalive intervals. */
+    this.stopVisible = this.runtime.onVisible(() => this.networkReturned());
     void this.open();
     let stopped = false;
     return () => {
@@ -109,6 +114,8 @@ export class GameSubscription {
     this.listener = null;
     this.stopOnline?.();
     this.stopOnline = undefined;
+    this.stopVisible?.();
+    this.stopVisible = undefined;
     ++this.generation;
     clearTimeout(this.reconnectTimer);
     this.reconnectTimer = undefined;
@@ -132,7 +139,8 @@ export class GameSubscription {
     if (this.status !== 'authorized' || this.socket?.readyState !== 1) {
       return false;
     }
-    if (!this.ready && !isReadRequest(message)) {
+    /* Putting a held piece back depends on no table state, so it is not held for a resync: the Worker would keep the piece in hand meanwhile. */
+    if (!this.ready && !isReadRequest(message) && message.type !== 'cancel') {
       return false;
     }
     /* Motion can be replaced by a later sample; commands keep their ordering. */
@@ -282,7 +290,12 @@ export class GameSubscription {
       }
       /* The Worker answered, so whatever happens next is not a table that could not be reached. */
       this.retryReason = null;
-      socket.send(JSON.stringify({ type: 'admit', ticket }));
+      const admit: ClientMessage = {
+        type: 'admit',
+        ticket,
+        ...(this.connectionId ? { replaces: this.connectionId } : {}),
+      };
+      socket.send(JSON.stringify(admit));
       ticket = '';
       this.startKeepalive(socket, 0);
     };
@@ -383,7 +396,7 @@ export class GameSubscription {
     this.retryAfterFailure('The table could not be reached. Reconnecting...');
   }
 
-  /* Coming back online reconnects at once when the plain retry is waiting, and otherwise asks the open socket to prove it still works. */
+  /* Coming back online or to the foreground reconnects at once when the plain retry is waiting, and otherwise asks the open socket to prove it still works. */
   private networkReturned() {
     if (!this.listener || this.status === 'denied') {
       return;
@@ -438,6 +451,10 @@ export class GameSubscription {
 
   /* The Worker admits every socket as suspended until its authorization is confirmed, so on a first connect the pause is the connection still opening and reads as such. */
   private receiveAdmission(message: Extract<ServerMessage, { type: 'admission' }>) {
+    /* A pause cancels a pending resync, so the wait for its view must not close the socket; the Worker sends a view when the pause lifts. */
+    if (this.sawView) {
+      clearTimeout(this.admissionTimer);
+    }
     this.changeStatus(
       message.status,
       message.status === 'denied'
@@ -450,6 +467,7 @@ export class GameSubscription {
 
   private receiveView(message: RoomView) {
     this.sawView = true;
+    this.connectionId = message.viewer.connectionId;
     this.admissionRetries = 0;
     this.retryReason = null;
     const previous = this.acceptView(message);
@@ -482,6 +500,7 @@ export class GameSubscription {
       previous,
       phaseCooldownMs: message.phaseCooldownMs,
       battleCountdownMs: message.battleCountdownMs,
+      historySteps: message.historySteps,
       snapshotChanged: Boolean(message.snapshot || message.completedCommandId),
     });
   }

@@ -26,6 +26,8 @@
     "run_worker_first": [
       "/__asset-publisher",
       "/__asset-publisher/*",
+      "/social",
+      "/social/*",
       "/published",
       "/published/*",
       "/publisher-capture",
@@ -68,7 +70,7 @@
   "limits": { "cpu_ms": 30000 },
   "rules": [
     { "type": "Text", "globs": ["**/*.css"], "fallthrough": true },
-    { "type": "Data", "globs": ["**/*.woff2"], "fallthrough": true }
+    { "type": "Data", "globs": ["**/*.woff2", "**/*.woff"], "fallthrough": true }
   ],
   "secrets": {
     "required": ["ASSET_PUBLISHER_EXECUTOR_SECRET"]

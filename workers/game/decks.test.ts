@@ -1,6 +1,7 @@
 import { expect, test } from 'vitest';
 
 import { assetPublishingFaction } from '../../src/shared/factions/fixtures/assetPublishingFaction';
+import { toStoredHeroKey } from '../../src/shared/factions/schema';
 import { applyPieceAction } from '../../src/shared/play/commands';
 import { factionSupply, piece, place } from '../../src/shared/play/setupSupply';
 import { deckCommand } from './decks';
@@ -17,7 +18,7 @@ test('a deal renames the deck it leaves by the word on its back, and a shuffle k
     {
       faction: { id: 'atreides', slug: 'atreides', name: 'Atreides' },
       capturedAt: 0,
-      definition: assetPublishingFaction,
+      definition: toStoredHeroKey(assetPublishingFaction),
       components: {
         token: { front: null, back: null },
         leaders: [],
