@@ -240,7 +240,7 @@ describe('Cloudflare live drift check', () => {
     ).resolves.toEqual({
       worker: WORKER,
       domainCount: 1,
-      bindingCount: 19,
+      bindingCount: 20,
       secretCount: 2,
       retiredSecrets: ['ASSET_PUBLISHER_CACHE_TOKEN_SECRET'],
       cronCount: 1,
