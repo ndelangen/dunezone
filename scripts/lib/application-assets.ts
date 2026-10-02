@@ -40,7 +40,7 @@ export async function bootstrapApplicationAssets(
   const bytes = new Map<string, Uint8Array>();
   const discover = (text: string) => {
     /* Vite uses /public URLs in HTML/CSS, public URLs in preload maps, and sibling imports in JS. */
-    for (const match of text.matchAll(/["'(](?:\/?public\/|\.\/)([A-Za-z0-9_~-]+-[A-Za-z0-9_-]+\.[A-Za-z0-9.]+)/g)) {
+    for (const match of text.matchAll(/["'`(](?:\/?public\/|\.\/)([A-Za-z0-9_~-]+-[A-Za-z0-9_-]+\.[A-Za-z0-9.]+)/g)) {
       pending.add(`public/${match[1]}`);
     }
   };
