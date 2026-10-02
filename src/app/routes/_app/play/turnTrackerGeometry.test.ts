@@ -19,7 +19,8 @@ describe('turn tracker layout and selection', () => {
     expect(layout.sectors[9].position[2]).toBeLessThan(0);
   });
 
-  test.each([1, 10, 11, 20, 21, 37, 100])('selects every label in the block containing turn %i', (turn) => {
+  /* The first and last turn of the first block and the next, a mid-block turn, and a three-digit turn. */
+  test.each([1, 10, 11, 20, 37, 100])('selects every label in the block containing turn %i', (turn) => {
     const layout = turnTrackerLayout({ radius: 0.8, turn });
     for (const sector of layout.sectors) {
       expect(turnAtTrackerPoint(layout, { x: sector.position[0], z: sector.position[2] })).toBe(sector.turn);

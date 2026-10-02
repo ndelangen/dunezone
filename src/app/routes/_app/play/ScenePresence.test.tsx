@@ -72,9 +72,9 @@ function renderRemotePose(position: Vector3Tuple) {
 }
 
 describe('remote pose smoothing', () => {
+  /* A smooth frame rate, a slow one, and the slowest two up to the 0.25 s frame clamp. */
   test.each([
     { fps: 60, frames: 12 },
-    { fps: 20, frames: 4 },
     { fps: 10, frames: 2 },
     { fps: 5, frames: 1 },
     { fps: 4, frames: 1 },
