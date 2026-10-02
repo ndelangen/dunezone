@@ -4,7 +4,7 @@
  * persists raw data to the shared outputDir cache across Playwright workers;
  * global-teardown.ts generates the final lcov report.
  * @see docs/research/combined-coverage-codecov.md §4 (recipe validated on
- * branch prototype/combined-coverage)
+ * branch prototype/combined-coverage; local research notes, untracked by design)
  */
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';

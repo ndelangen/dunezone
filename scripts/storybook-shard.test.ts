@@ -1,21 +1,12 @@
-import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 import { describe, expect, test } from 'vitest';
 
 import storybook from '../.storybook/main';
 import { assignShards, byCodeUnit, listStoryFiles, readShardRules, shardOf } from './lib/storybook-shards';
+import { verifyJob } from './lib/verify-workflow';
 
 const root = resolve(import.meta.dirname, '..');
-
-/** The storybook job of the verify workflow, from its key to the next job's key, as the contract tests read jobs. */
-function storybookJob(): string {
-  const workflow = readFileSync(resolve(root, '.github/workflows/reusable-verify.yml'), 'utf8');
-  const start = workflow.indexOf('\n  storybook:\n');
-  expect(start, 'reusable-verify.yml has no storybook job').toBeGreaterThan(0);
-  const length = workflow.slice(start + 1).search(/\n {2}[\w-]+:\n/);
-  return length === -1 ? workflow.slice(start) : workflow.slice(start, start + 1 + length);
-}
 
 /*
  * A tree property no type can say (ADR-0001's narrow exception): every story file the repository holds runs in one CI shard.
@@ -48,7 +39,7 @@ describe('storybook shards', () => {
 
   test('the workflow matrix names exactly the shards the rules define, so a shard added to one is added to the other', async () => {
     const rules = await readShardRules(root);
-    const matrix = /\n {8}shard: \[([^\]]+)\]\n/.exec(storybookJob())?.[1];
+    const matrix = /\n {8}shard: \[([^\]]+)\]\n/.exec(verifyJob('storybook', root))?.[1];
     expect(matrix, 'the storybook job has no shard matrix').toBeDefined();
     expect(matrix?.split(',').map((shard) => shard.trim())).toEqual(Object.keys(rules));
   });

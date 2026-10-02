@@ -9,7 +9,9 @@ name: Hosted play daily
 # its own run executed the shards on this tree.
 on:
   schedule:
-    # Once a day, off the hour. GitHub runs scheduled workflows from the default branch only.
+    # Once a day, off the hour. GitHub runs scheduled workflows from the default branch only, and it
+    # documents that a fire can be delayed or dropped under load, so a missing run is a missing day
+    # of this check rather than a failure the report job can see.
     - cron: "47 3 * * *"
   workflow_dispatch:
     inputs:

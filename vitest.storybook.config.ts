@@ -2,7 +2,7 @@
  * Runs every story as a Vitest browser-mode test in Chromium via
  * @storybook/addon-vitest. Coverage is opt-in (--coverage) and uploads as the
  * `storybook` Codecov flag. Validated on branch prototype/combined-coverage.
- * @see docs/research/combined-coverage-codecov.md §3
+ * @see docs/research/combined-coverage-codecov.md §3 (local research notes, untracked by design)
  */
 import { storybookTest } from '@storybook/addon-vitest/vitest-plugin';
 import viteReact from '@vitejs/plugin-react';
