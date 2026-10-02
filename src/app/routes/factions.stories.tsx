@@ -77,7 +77,7 @@ const withTroopDetails = db((baseline) => {
       troopId: '5a34c071-2399-43c4-9e51-8166a876694f',
       name: 'Recruits',
       count: 8,
-      description: 'Combat values have not been entered yet.',
+      description: 'Battle values have not been entered yet.',
       capable: true,
       combat: undefined,
       back: undefined,
@@ -94,13 +94,13 @@ export const DetailWithTroopStrengths = meta.story({
     const soldiers = within(troops.getByRole('article', { name: 'Soldiers' }));
     expect(soldiers.getByRole('img', { name: 'Strength per troop: 0.5 undialed | 1 dialed' })).toBeVisible();
     expect(soldiers.getByRole('img', { name: 'Funding cost: 1 spice per dialed troop' })).toBeVisible();
-    expect(soldiers.getByRole('img', { name: 'Cannot participate in combat' })).toBeVisible();
+    expect(soldiers.getByRole('img', { name: 'Cannot participate in battle' })).toBeVisible();
     expect(soldiers.getByRole('img', { name: '15 troop tokens' })).toBeVisible();
     const reverse = soldiers.getByRole('img', { name: 'Advisors, reverse side' });
     expect(reverse).toHaveAccessibleDescription('The reverse side supports the faction without joining battles.');
     expect(
       within(troops.getByRole('article', { name: 'Recruits' })).getByRole('img', {
-        name: 'Combat strengths have not been set. This side is unavailable in battle plans.',
+        name: 'Battle strengths have not been set. This side is unavailable in battle plans.',
       })
     ).toBeVisible();
     reverse.focus();
@@ -147,7 +147,7 @@ export const DetailWithIndependentTroopFaces = meta.story({
           combat: { strength: 0, fundedStrength: 1.5, fundingCost: 0 },
           back: {
             image: art.image,
-            description: 'The reverse has its own combat values.',
+            description: 'The reverse has its own battle values.',
             name: 'An independently authored reverse',
             combat: { strength: 0.5, fundedStrength: 1, fundingCost: 2 },
           },

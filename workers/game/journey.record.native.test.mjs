@@ -279,7 +279,7 @@ async function biddingAndShipment(journey) {
 }
 
 /*
- * The fixture troops carry no authored combat values, so no troop can be dialed and no spice can fund one.
+ * The fixture troops carry no authored battle values, so no troop can be dialed and no spice can fund one.
  * Each side commits a leader alone, and the reveal shows 0 force and 0 spice, as the step text says.
  */
 async function battlePlan(journey, index) {
@@ -316,7 +316,7 @@ async function battle(journey) {
       index,
       { kind: 'battle-plan', battleId, plan },
       'Battle plan',
-      `${journey.who(index)} commits a leader; the fixture troops have no combat values to dial.`
+      `${journey.who(index)} commits a leader; the fixture troops have no battle values to dial.`
     );
   }
   await journey.act(

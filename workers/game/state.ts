@@ -4,7 +4,7 @@ import { z } from 'zod';
 
 import {
   publicBattleSchema,
-  combatFaceSchema,
+  battleFaceSchema,
   storedBattlePlanSchema,
   storedBattleResultSchema,
 } from '../../src/shared/play/battle';
@@ -41,8 +41,9 @@ export const storedSnapshotSchema = gameSnapshotSchema
     pendingTraitors: z.array(tableIdSchema).default([]),
     battleState: storedBattleSchema.nullable().default(null),
     factionInventories: z.record(tableIdSchema, z.array(storedPieceSchema)).default({}),
-    /* Banks and combat faces are seeded per faction when a game fixes its seating, never by the schema. */
-    combatFaces: z.record(tableIdSchema, z.array(combatFaceSchema)).default({}),
+    /* Banks and battle faces are seeded per faction when a game fixes its seating, never by the schema. */
+    /* Persisted key in Durable Object storage, kept as `combatFaces`; the glossary says battle. */
+    combatFaces: z.record(tableIdSchema, z.array(battleFaceSchema)).default({}),
     battleResults: z.array(storedBattleResultSchema).default([]),
     factionBanks: z.record(tableIdSchema, tableCountSchema).default({}),
     /* Public card handles change independently of retained card identity. Never serialized. */

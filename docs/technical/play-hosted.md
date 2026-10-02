@@ -298,7 +298,7 @@ recovery. The regular browser mode remains available for the broader tabletop in
 
 Run `bun --no-env-file scripts/verify-hosted-play-stack.ts --browser-only --flow battles` for private
 plans, funding refunds, both side assignments, Undo Ready, each player's countdown reconnect,
-revealed-piece dragging, opposing choices, agreement and cancellation by a seated noncombatant.
+revealed-piece dragging, opposing choices, agreement and cancellation by a seated faction outside the battle.
 It uses two distinct signed-in browser processes and a spectator, retaining `battles-frames.json`
 for privacy inspection. Native cases additionally cover exact and zero-cost funding, replacement,
 cold restore, stale commands, ordering races and older results.
@@ -336,7 +336,7 @@ also finishes and continues one, so the lobby's Create and Past listings and the
 covered by a signed-in browser run as well as by Storybook and the native journeys.
 
 A real game deals only ready content. The catalogue capture (`workers/game/catalogue.ts`) refuses
-a faction until its token faces, leader, troop, traitor and alliance faces, troop combat values
+a faction until its token faces, leader, troop, traitor and alliance faces, troop battle values
 and Extras are all published. A real game judges each drafted faction when it is picked, and the
 deal judges every faction it captures, random fills included. A refused faction is set aside with
 its reason (`DraftState.setAside`): the draft list shows the reason, it cannot be picked or

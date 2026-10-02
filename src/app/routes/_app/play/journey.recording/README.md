@@ -24,7 +24,7 @@ longer parses, and `sandbox.stories.fixture.test.ts` when a stored state no long
 - Content: the six public factions of `../product.stories.fixture/factions.json`, one Treachery deck of
   Snooper cards and one Spice deck of Broken Land cards (`.storybook/static/play-fixtures/dreamrules`).
   Only House Atreides and House Harkonnen have Traitor fronts among the story fixtures, so the other
-  factions' Traitors deal without a face. The fixture troops carry no authored combat values, so the
+  factions' Traitors deal without a face. The fixture troops carry no authored battle values, so the
   battle is fought with leaders and spice.
 - People: the synthetic accounts are renamed to the public profiles the other Play stories seat
   (Twaffle, Thialfi, Fectumbra, Erickenneth, Ridwan, Argelius) and the spectator Klyzx.

@@ -76,12 +76,12 @@ export const spaceOrks = {
     advantages: [
       {
         karama: 'Your leader does not get stronger after a battle. ',
-        text: 'Each time one of your leaders is used in battle that resolves with no traitor call, slide a "Krump Klip" onto the leader disc, permanently adding +1 to their combat strength, even if they are killed.',
+        text: 'Each time one of your leaders is used in battle that resolves with no traitor call, slide a "Krump Klip" onto the leader disc, permanently adding +1 to their battle strength, even if they are killed.',
         title: 'Biggest is Best (Advanced)',
       },
       {
         karama: 'You roll no dice.',
-        text: 'When making a battle plan, for every force you dial you will grab the same number of D6 dice. After plans are revealed, roll these dice and for every two dice that yield a result of 2 or higher, add 0.5 to your combat dial.',
+        text: 'When making a battle plan, for every force you dial you will grab the same number of D6 dice. After plans are revealed, roll these dice and for every two dice that yield a result of 2 or higher, add 0.5 to your battle wheel.',
         title: 'Unbridled Carnage',
       },
       {
@@ -101,13 +101,13 @@ export const spaceOrks = {
       },
     ],
     alliance: {
-      text: 'When making a battle plan, for every force you dial you will grab the same number of D6 dice. After plans are revealed, roll these dice and for every two dice that yield a result of 2 or higher, add 0.5 to your combat dial.',
+      text: 'When making a battle plan, for every force you dial you will grab the same number of D6 dice. After plans are revealed, roll these dice and for every two dice that yield a result of 2 or higher, add 0.5 to your battle wheel.',
     },
     fate: {
       text: 'During your turn in Shipping and Movement, you may move any number of groups of forces up to 4 territories, as long as they all have the same destination (this does not prevent you from also taking your regular movement or using effects like Hajr).',
       title: 'WAAAGGHHH!!!!:',
     },
-    revivalText: 'For every force lost in combat, immediately revive 2 forces.',
+    revivalText: 'For every force lost in battle, immediately revive 2 forces.',
     spiceCount: 10,
     startText: '10 forces Plastic Basin. 10 in Reserve, 10 in Tanks. 10 spice.',
   },

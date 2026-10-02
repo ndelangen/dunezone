@@ -10,7 +10,7 @@ import {
   defaultPlanet,
   defaultTroop,
   nextLeaderFromLast,
-  nextTroopCombat,
+  nextTroopBattle,
 } from './factionFormDefaults';
 
 describe('faction chapter defaults', () => {
@@ -56,29 +56,29 @@ describe('faction chapter defaults', () => {
     expect(back).not.toHaveProperty('planet');
   });
 
-  it('gives a new back the combat values its reverse inherited, as its own copy', () => {
-    const combat = { strength: 0.5, fundedStrength: -1, fundingCost: 0 };
-    const front = { ...defaultTroop(), capable: false, combat };
+  it('gives a new back the battle values its reverse inherited, as its own copy', () => {
+    const battleValues = { strength: 0.5, fundedStrength: -1, fundingCost: 0 };
+    const front = { ...defaultTroop(), capable: false, combat: battleValues };
 
     const back = createTroopBackFromFront(front);
 
-    expect(back).toMatchObject({ capable: false, combat });
-    expect(back.combat).not.toBe(combat);
+    expect(back).toMatchObject({ capable: false, combat: battleValues });
+    expect(back.combat).not.toBe(battleValues);
     expect(defaultTroop()).not.toHaveProperty('combat');
   });
 
-  it('keeps combat values the author entered and never fills the other strength', () => {
-    const strength = nextTroopCombat(undefined, 'strength', 1.5);
+  it('keeps battle values the author entered and never fills the other strength', () => {
+    const strength = nextTroopBattle(undefined, 'strength', 1.5);
     expect(strength).toEqual({ strength: 1.5 });
-    const both = nextTroopCombat(strength, 'fundedStrength', -2);
+    const both = nextTroopBattle(strength, 'fundedStrength', -2);
     expect(both).toEqual({ strength: 1.5, fundedStrength: -2 });
-    expect(nextTroopCombat(both, 'fundingCost', 0)).toEqual({ strength: 1.5, fundedStrength: -2, fundingCost: 0 });
-    expect(nextTroopCombat(both, 'strength', undefined)).toEqual({ fundedStrength: -2 });
-    expect(nextTroopCombat({ strength: 1, fundedStrength: 2 }, 'fundingCost', undefined)).toEqual({
+    expect(nextTroopBattle(both, 'fundingCost', 0)).toEqual({ strength: 1.5, fundedStrength: -2, fundingCost: 0 });
+    expect(nextTroopBattle(both, 'strength', undefined)).toEqual({ fundedStrength: -2 });
+    expect(nextTroopBattle({ strength: 1, fundedStrength: 2 }, 'fundingCost', undefined)).toEqual({
       strength: 1,
       fundedStrength: 2,
     });
-    expect(nextTroopCombat(strength, 'strength', undefined)).toBeUndefined();
+    expect(nextTroopBattle(strength, 'strength', undefined)).toBeUndefined();
   });
 
   it('keeps optional advantage fields absent by default', () => {

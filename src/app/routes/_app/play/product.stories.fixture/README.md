@@ -47,7 +47,7 @@ fewer occupied seats to demonstrate their behavior. Observers retain the game's 
 
 The numeric battle scenarios transcribe the copied Atreides and Harkonnen troop descriptions:
 half strength, or one strength funded with one spice. The face names and artwork come from those
-same definitions. These staged planner inputs do not claim that automatic combat authoring or
+same definitions. These staged planner inputs do not claim that automatic battle authoring or
 individual component publication has shipped. The game runtime and its rules remain authoritative.
 
 `preparedSnapshot` keeps one Traitor per faction and four for Harkonnen, retains only the current

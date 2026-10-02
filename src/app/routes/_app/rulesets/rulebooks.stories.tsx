@@ -20,7 +20,7 @@ const meta = preview.meta({
 });
 
 function withManyRulebooks(baseline: StorybookDatabase) {
-  return withRulebooks(baseline, ['Rules', 'Quick reference', 'Deleted Rulebook', 'Combat reference', 'Appendices']);
+  return withRulebooks(baseline, ['Rules', 'Quick reference', 'Deleted Rulebook', 'Battle reference', 'Appendices']);
 }
 
 function describeFocus(storyDocument: Document) {

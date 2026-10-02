@@ -1,4 +1,4 @@
-import { capturedCombatFaces } from '../../src/shared/play/battle';
+import { capturedBattleFaces } from '../../src/shared/play/battle';
 import type { FactionCapture, RulesetCapture, SlotCapture } from '../../src/shared/play/capture';
 import { accepted, nextSnapshot } from '../../src/shared/play/commands';
 import type { StoredPiece, Vector3Tuple } from '../../src/shared/play/model';
@@ -133,12 +133,12 @@ function supplyInventory(next: StoredSnapshot, capture: FactionCapture, hand: St
   };
   next.factionBanks[id] = capture.definition.rules.spiceCount;
   /* Faces missing authored values stay out; they never become fixture values, and the capture's verdict names them. */
-  next.combatFaces[id] = capturedCombatFaces(capture.definition.troops);
+  next.combatFaces[id] = capturedBattleFaces(capture.definition.troops);
 }
 
-/* Artwork is public and drawn by every client; a face's combat values reach the plans through `combatFaces` alone. */
+/* Artwork is public and drawn by every client; a face's battle values reach the plans through `combatFaces` alone. */
 function troopArtwork<Face extends { capable?: boolean; combat?: unknown }>(face: Face) {
-  const { capable: _capable, combat: _combat, ...artwork } = face;
+  const { capable: _capable, combat: _battleValues, ...artwork } = face;
   return artwork;
 }
 

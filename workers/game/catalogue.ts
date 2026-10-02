@@ -6,7 +6,7 @@ import { authoredCardback, DeckAssetInput } from '../../src/shared/assets/schema
 import { parseAssetDataForWrite } from '../../src/shared/assets/validation';
 import { phaseDeclarationSchema } from '../../src/shared/factions/extraPhases';
 import { IdentifiedFactionStoredSchema } from '../../src/shared/factions/schema';
-import { lacksCombatValues, troopCombatFaces } from '../../src/shared/factions/troopCombat';
+import { lacksBattleValues, troopBattleFaces } from '../../src/shared/factions/troopBattle';
 import type {
   AssetSupply,
   CaptureProblem,
@@ -372,10 +372,10 @@ export class GameCatalogue {
       }
       return { troopId: troop.troopId, name: troop.name, count: troop.count, front, back };
     });
-    for (const face of troopCombatFaces(definition.troops).filter(lacksCombatValues)) {
+    for (const face of troopBattleFaces(definition.troops).filter(lacksBattleValues)) {
       problems.push({
         subject: `troop ${face.face.name}${face.side === 'back' ? ' back' : ''}`,
-        reason: 'This troop face can fight but has no authored combat values.',
+        reason: 'This troop face can fight but has no authored battle values.',
       });
     }
     const allianceFront = this.publishedFace(source.alliance ?? null, 'alliance card', problems);

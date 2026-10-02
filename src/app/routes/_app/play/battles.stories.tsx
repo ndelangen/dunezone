@@ -404,7 +404,7 @@ export const BattleRevealedPiecesStill = meta.story({
     await settled(() => expect(revealed()).toHaveLength(2));
     expect(animatedIn(page.getAllByLabelText(plans))).toEqual([]);
     for (const plan of revealed()) {
-      expect(within(plan).getByText('Force')).toBeVisible();
+      expect(within(plan).getByText('Strength')).toBeVisible();
     }
   },
 });

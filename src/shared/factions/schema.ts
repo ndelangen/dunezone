@@ -41,9 +41,9 @@ export const Decal = z.strictObject({
  * What one troop face contributes to a battle plan (#1062).
  * Strengths may be fractional or negative;
  * the funding cost is whole spice, zero or more, and one when absent.
- * A face without this object has no authored combat values, which is never read as zero.
+ * A face without this object has no authored battle values, which is never read as zero.
  */
-export const TroopCombat = z.strictObject({
+export const TroopBattle = z.strictObject({
   strength: z.number(),
   fundedStrength: z.number(),
   fundingCost: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER).optional(),
@@ -58,7 +58,8 @@ const TroopSide = z.strictObject({
   hue: z.string().optional(),
   striped: z.boolean().optional(),
   capable: z.boolean().optional(),
-  combat: TroopCombat.optional(),
+  /* Stored key: saved faction definitions keep `combat`; the glossary term is battle. */
+  combat: TroopBattle.optional(),
 });
 
 const Troop = z.strictObject({
@@ -70,13 +71,14 @@ const Troop = z.strictObject({
   hue: z.string().optional(),
   striped: z.boolean().optional(),
   capable: z.boolean().optional(),
-  combat: TroopCombat.optional(),
+  /* Stored key, kept as `combat`; see the note on TroopSide. */
+  combat: TroopBattle.optional(),
   back: TroopSide.optional(),
   count: z.number().int().positive(),
   planet: z.string().optional(),
 });
 
-/** A troop as a game table draws it: its artwork alone, since a face's combat values reach the plans on their own path. */
+/** A troop as a game table draws it: its artwork alone, since a face's battle values reach the plans on their own path. */
 export const TroopArtwork = Troop.omit({ capable: true, combat: true }).extend({
   back: TroopSide.omit({ capable: true, combat: true }).optional(),
 });

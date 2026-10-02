@@ -1,5 +1,5 @@
 import { emptyBattlePlan, BATTLE_COUNTDOWN_MS } from '../../src/shared/play/battle';
-import type { BattleAction, BattlePlanInput, CombatFace, StoredBattlePlan } from '../../src/shared/play/battle';
+import type { BattleAction, BattlePlanInput, BattleFace, StoredBattlePlan } from '../../src/shared/play/battle';
 import { isBattleLeader } from '../../src/shared/play/battle';
 import { nextSnapshot, requireAccepted } from '../../src/shared/play/commands';
 import type { StoredPiece } from '../../src/shared/play/model';
@@ -13,7 +13,7 @@ import { playFromHandAtAnchor } from '../../src/shared/play/tableState';
 import type { StoredSnapshot, StoredBattle } from './state';
 
 type BattleActor = { snapshot: StoredSnapshot; battle: StoredBattle; factionId: string };
-type Combatant = BattleActor & { side: 0 | 1 };
+type BattlingFaction = BattleActor & { side: 0 | 1 };
 
 const refuse = (message: string): never => {
   throw new GameRejection(message);
@@ -24,7 +24,7 @@ function commit(snapshot: StoredSnapshot, changes: Partial<StoredSnapshot>, piec
 function sideFor(battle: StoredBattle, factionId: string): 0 | 1 {
   const side = battle.sides.findIndex((side) => side?.factionId === factionId);
   if (side !== 0 && side !== 1) {
-    return refuse('Only a combatant can change its plan or outcome.');
+    return refuse('Only a faction in the battle can change its plan or outcome.');
   }
   return side;
 }
@@ -37,7 +37,7 @@ function sum(a: number, b: number) {
 }
 
 /** Exact funding uses bounded binary groups, including zero-cost and negative-strength faces. */
-function allocations(troops: BattlePlanInput['troops'], faces: Map<string, CombatFace>, limit: number) {
+function allocations(troops: BattlePlanInput['troops'], faces: Map<string, BattleFace>, limit: number) {
   let states = new Map<number, { gain: number; funded: number[] }>([[0, { gain: 0, funded: troops.map(() => 0) }]]);
   troops.forEach((troop, index) => {
     const face = faces.get(troop.faceId)!;
@@ -72,7 +72,7 @@ function allocations(troops: BattlePlanInput['troops'], faces: Map<string, Comba
 
 function fundMaxTroops(
   troops: BattlePlanInput['troops'],
-  faces: Map<string, CombatFace>,
+  faces: Map<string, BattleFace>,
   spice: number,
   before: StoredBattlePlan
 ) {
@@ -93,7 +93,7 @@ function fundMaxTroops(
   return spice;
 }
 
-function declaredStrength(troops: BattlePlanInput['troops'], faces: Map<string, CombatFace>, adjustment: number) {
+function declaredStrength(troops: BattlePlanInput['troops'], faces: Map<string, BattleFace>, adjustment: number) {
   const strength = troops.reduce((total, troop) => {
     const face = faces.get(troop.faceId)!;
     return total + troop.undialed * face.strength + troop.dialed * face.fundedStrength;
@@ -158,7 +158,7 @@ function reservedBalance({ snapshot, factionId }: BattleActor, before: StoredBat
   return balance;
 }
 
-function editPlan({ snapshot, battle, side, factionId }: Combatant, input: BattlePlanInput) {
+function editPlan({ snapshot, battle, side, factionId }: BattlingFaction, input: BattlePlanInput) {
   if (battle.stage !== 'preparing' || battle.sides[side]!.ready) {
     return refuse('Undo Ready before editing your plan.');
   }
@@ -305,7 +305,7 @@ function claimSide({ snapshot, battle, factionId }: BattleActor, side: 0 | 1) {
 }
 
 function setReady(
-  { snapshot, battle, side }: Combatant,
+  { snapshot, battle, side }: BattlingFaction,
   action: Extract<BattleAction, { kind: 'battle-ready' }>,
   now: number
 ) {
@@ -358,7 +358,7 @@ function resolveBattle(snapshot: StoredSnapshot, battle: StoredBattle, outcome: 
 }
 
 function chooseOutcome(
-  { snapshot, battle, side }: Combatant,
+  { snapshot, battle, side }: BattlingFaction,
   action: Extract<BattleAction, { kind: 'battle-outcome' }>
 ) {
   const { outcome } = action;
@@ -372,19 +372,19 @@ function chooseOutcome(
   return commit(snapshot, { battleState: battle });
 }
 
-function combatantCommand(
+function battlingFactionCommand(
   actor: BattleActor,
   action: Extract<BattleAction, { kind: 'battle-plan' | 'battle-ready' | 'battle-outcome' }>,
   now: number
 ) {
-  const combatant = { ...actor, side: sideFor(actor.battle, actor.factionId) };
+  const battlingFaction = { ...actor, side: sideFor(actor.battle, actor.factionId) };
   switch (action.kind) {
     case 'battle-plan':
-      return editPlan(combatant, action.plan);
+      return editPlan(battlingFaction, action.plan);
     case 'battle-ready':
-      return setReady(combatant, action, now);
+      return setReady(battlingFaction, action, now);
     case 'battle-outcome':
-      return chooseOutcome(combatant, action);
+      return chooseOutcome(battlingFaction, action);
   }
 }
 
@@ -413,7 +413,7 @@ export function battleCommand(
   if (action.kind === 'battle-claim') {
     return claimSide({ snapshot, battle, factionId }, action.side);
   }
-  return combatantCommand({ snapshot, battle, factionId }, action, now);
+  return battlingFactionCommand({ snapshot, battle, factionId }, action, now);
 }
 
 /** The caller persists this transition before exposing any revealed contents. */

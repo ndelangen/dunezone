@@ -290,7 +290,7 @@ describe('faction authoring contract', () => {
     expect(FactionInputSchema.safeParse(faction).success).toBe(true);
   });
 
-  it('keeps faces without combat values savable and out of the header', () => {
+  it('keeps faces without battle values savable and out of the header', () => {
     const faction = structuredClone(defaultFaction);
     const image = faction.troops[0].image;
     faction.troops = [
@@ -309,8 +309,8 @@ describe('faction authoring contract', () => {
       { strength: 1, fundedStrength: 2, fundingCost: -1 },
       { strength: Number.POSITIVE_INFINITY, fundedStrength: 2 },
     ];
-    for (const combat of refused) {
-      faction.troops[0].combat = combat as never;
+    for (const battleValues of refused) {
+      faction.troops[0].combat = battleValues as never;
       expect(FactionInputSchema.safeParse(faction).success).toBe(false);
     }
   });

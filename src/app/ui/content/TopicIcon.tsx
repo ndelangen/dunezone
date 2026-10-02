@@ -26,8 +26,8 @@ const TOPIC_ICON_DEFINITIONS = {
   battle: { kind: 'mask', src: '/vector/icon/combat.svg' },
   flip: { kind: 'mask', src: '/vector/icon/flip.svg' },
   strength: { kind: 'component', component: Zap },
-  noncombatant: { kind: 'component', component: ShieldOff },
-  combatUnknown: { kind: 'component', component: TriangleAlert },
+  cannotBattle: { kind: 'component', component: ShieldOff },
+  battleUnknown: { kind: 'component', component: TriangleAlert },
   /* Every authoring surface opens on an Identity chapter: what a thing is called, and what it fundamentally is. */
   identity: { kind: 'component', component: Signature },
   /* Off-face prose (CONTEXT.md: About), on every asset editor and every detail page. */
