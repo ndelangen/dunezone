@@ -149,7 +149,7 @@ export class TableSession {
   /* Set when a held piece went back to the table without a drop; the next view shows it, since a fresh view clears older errors. */
   private droppedCarryNotice: string | null = null;
   /* The last live table and its server time, kept read-only while a lost connection is restored. */
-  private lastLive: { table: TableProjection; serverNow: number } | null = null;
+  private lastLive: { table: TableProjection; serverNow: () => number } | null = null;
   private traitorsGathered = 0;
   private queuedCatalogue: { requestId: string; selection?: SpawnSelection } | null = null;
   private phaseCooldownUntil = 0;
@@ -219,7 +219,10 @@ export class TableSession {
       return null;
     }
     const table = this.liveTable();
-    this.lastLive = { table, serverNow: this.subscription.serverNow() };
+    if (!table.playback && !table.historyPending) {
+      const now = this.subscription.serverNow();
+      this.lastLive = { table, serverNow: () => now };
+    }
     return table;
   }
   /* A refusal shows nothing; any other lost connection keeps the last table on screen with every action paused. */
@@ -249,7 +252,7 @@ export class TableSession {
       gestureActivePieceId: null,
       hoveredPieceId: null,
       flippingPieceIds: new Map(),
-      serverNow: () => serverNow,
+      serverNow,
     };
   }
   private liveTable(): TableProjection {
@@ -664,6 +667,7 @@ export class TableSession {
       stopVisibility();
       clearInterval(this.tickTimer);
       this.clearDisconnectedActivity();
+      this.lastLive = null;
       this.emit();
     };
   };

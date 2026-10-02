@@ -86,7 +86,7 @@ function PlaybackControls({ client, table }: Pick<ConnectionControlsProps, 'clie
         ) : (
           <Button
             variant="default"
-            disabled={historyPending || !!table.state.draftMove}
+            disabled={historyPending || !!table.state.draftMove || table.reconnecting}
             onClick={() => client.requestHistory(0)}
           >
             Replay from start
@@ -448,6 +448,7 @@ function SharedInventory({ client, table }: Pick<ConnectionControlsProps, 'clien
             <Select
               label="Catalogue asset"
               searchable
+              disabled={table.reconnecting}
               placeholder="Choose a deck, bundle or token"
               data={entries.map((entry) => ({ value: `${entry.type}/${entry.slug}`, label: entry.name }))}
               value={picker.selection ? `${picker.selection.type}/${picker.selection.slug}` : null}

@@ -379,6 +379,19 @@ describe('hosted table admission', () => {
     expect(socket().sent.at(-1)).toMatchObject({ type: 'command', action: { kind: 'storm', direction: 1 } });
   });
 
+  test('the locked table keeps one frozen clock and does not outlive the route', async () => {
+    const client = await connected();
+    socket().deliver({ type: 'admission', status: 'suspended' });
+    const clock = table(client).serverNow;
+    const before = client.getSnapshot();
+    client.setHoveredPiece('harkonnen-force-stack');
+    expect(client.getSnapshot()).not.toBe(before);
+    expect(table(client).serverNow).toBe(clock);
+    disconnect?.();
+    disconnect = undefined;
+    expect(client.getSnapshot().table).toBeNull();
+  });
+
   test('a definitive denial cannot be undone by a later view and never reconnects itself', async () => {
     const client = await connected();
     socket().deliver({ type: 'admission', status: 'denied' });

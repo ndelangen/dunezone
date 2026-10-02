@@ -85,7 +85,7 @@ function SeatButton({
     <Button
       variant={variant}
       color={color}
-      disabled={disabled || table.seatCommandPending}
+      disabled={disabled || table.seatCommandPending || table.reconnecting}
       onClick={() => client.command(action)}
     >
       {children}
