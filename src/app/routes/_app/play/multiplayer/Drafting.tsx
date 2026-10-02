@@ -175,8 +175,10 @@ export function DraftingOverlay({ client, table }: Props) {
   }
   const players = playersOf(table);
   const own = table.viewer.viewerSeat;
-  const seatCount = table.snapshot.roster?.seatCount ?? players.length;
-  const open = Math.max(0, seatCount - players.length);
+  /* As many open seats as the header still waits for: the draft's minimum less the seated players, never the table's seat count. */
+  const controls = table.snapshot.controls ?? emptyPublicControls();
+  const gates = draftGates(draft, controls.seats, draft.minimum);
+  const open = Math.max(0, gates.minimum - gates.seated);
   const token = (id: string, size: number, mine: boolean, kind: 'ban' | 'pick', owner: Player) => {
     const faction = factionById(draft, id);
     if (!faction) {
