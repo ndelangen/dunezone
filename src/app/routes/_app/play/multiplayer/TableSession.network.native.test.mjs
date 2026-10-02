@@ -88,6 +88,7 @@ function bridge(runtime, network) {
     monotonicNow: () => performance.now(),
     onHidden: () => () => {},
     onOnline: () => () => {},
+    onVisible: () => () => {},
   };
 }
 
