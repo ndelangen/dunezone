@@ -104,6 +104,35 @@ describe('Seats acting at the same moment (#1690)', { timeout: 30_000 }, () => {
     await eventually(async () => (await stage(a)) === 'setup', 'trading closed');
   });
 
+  it('takes a seat request, its approval and a withdrawal that crossed a draft choice, but not a departure', async () => {
+    const [a, b] = await twoDrafting();
+    const c = await admit('c');
+    expect(await together([a, { kind: 'draft-pick', factionId: 'atreides' }], [c, { kind: 'seat-request' }])).toEqual([
+      'accepted',
+      'accepted',
+    ]);
+    const request = (await syncView(c)).snapshot.controls.seatRequests.find((entry) => entry.own);
+    expect(
+      await together(
+        [b, { kind: 'draft-pick', factionId: 'harkonnen' }],
+        [a, { kind: 'seat-approve', requestId: request.id }]
+      )
+    ).toEqual(['accepted', 'accepted']);
+    expect((await syncView(c)).viewer.viewerSeat).toBe('seat-3');
+    const d = await admit('d');
+    await accepted(d, { kind: 'seat-request' });
+    expect(await together([a, { kind: 'draft-ban', factionId: 'fremen' }], [d, { kind: 'seat-withdraw' }])).toEqual([
+      'accepted',
+      'accepted',
+    ]);
+    expect((await syncView(a)).snapshot.controls.seatRequests).toEqual([]);
+    /* Leaving stays strict: the confirmation said what leaving costs, and a crossed departure may have left the sender the last player. */
+    expect(await together([a, { kind: 'draft-ban', factionId: 'ixians' }], [b, { kind: 'seat-depart' }])).toEqual([
+      'accepted',
+      'The table changed. Try the action again.',
+    ]);
+  });
+
   it('counts removal ballots cast at once toward the threshold', async () => {
     ({ peer, runtime } = await draftingRuntime([['emperor', 'Emperor']]));
     const all = [await admit('a')];
