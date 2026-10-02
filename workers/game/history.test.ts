@@ -11,6 +11,47 @@ const piece = (id: string, x = 0) => ({
   items: [{ id: `${id}-item` }],
 });
 
+/** Seeded random JSON values, and variations of them that change, add and drop entries at every depth. */
+function randomJson(seed: number) {
+  const random = () => (seed = (seed * 1_103_515_245 + 12_345) % 2 ** 31) / 2 ** 31;
+  const below = (count: number) => Math.floor(random() * count);
+  const scalar = () => [null, true, 1, 'text', below(5)][below(5)];
+  const list = (depth: number) => Array.from({ length: below(5) }, () => value(depth - 1));
+  const record = (depth: number) =>
+    Object.fromEntries(Array.from({ length: below(4) }, () => [`k${below(4)}`, value(depth - 1)]));
+  function value(depth: number): unknown {
+    const roll = random();
+    if (depth === 0 || roll < 0.3) {
+      return scalar();
+    }
+    return roll < 0.65 ? list(depth) : record(depth);
+  }
+  const maybeVary = (entry: unknown, depth: number) => (random() < 0.5 ? vary(entry, depth - 1) : entry);
+  function varyList(input: unknown[], depth: number) {
+    const copy = input.map((entry) => maybeVary(entry, depth));
+    if (random() < 0.3) {
+      return copy.slice(0, below(copy.length));
+    }
+    return random() < 0.3 ? [...copy, value(1)] : copy;
+  }
+  const varyRecord = (input: object, depth: number) =>
+    Object.fromEntries(
+      Object.entries(input)
+        .filter(() => random() > 0.2)
+        .map(([key, entry]) => [key, maybeVary(entry, depth)])
+    );
+  function vary(input: unknown, depth: number): unknown {
+    if (random() < 0.3 || depth === 0) {
+      return value(2);
+    }
+    if (Array.isArray(input)) {
+      return varyList(input, depth);
+    }
+    return input && typeof input === 'object' ? varyRecord(input, depth) : value(1);
+  }
+  return { value, vary };
+}
+
 describe('history patches', () => {
   it('stores one moved piece by its index instead of the whole list', () => {
     const before = snapshot({ table: { pieces: [piece('a'), piece('b'), piece('c')] } });
@@ -36,45 +77,13 @@ describe('history patches', () => {
   });
 
   it('replays any change between two JSON values exactly', () => {
-    let seed = 7;
-    const random = () => (seed = (seed * 1_103_515_245 + 12_345) % 2 ** 31) / 2 ** 31;
-    const value = (depth: number): unknown => {
-      const roll = random();
-      if (depth === 0 || roll < 0.3) {
-        return [null, true, 1, 'text', Math.floor(random() * 5)][Math.floor(random() * 5)];
-      }
-      if (roll < 0.65) {
-        return Array.from({ length: Math.floor(random() * 5) }, () => value(depth - 1));
-      }
-      return Object.fromEntries(
-        Array.from({ length: Math.floor(random() * 4) }, () => [`k${Math.floor(random() * 4)}`, value(depth - 1)])
-      );
-    };
-    const vary = (input: unknown, depth: number): unknown => {
-      if (random() < 0.3 || depth === 0) {
-        return value(2);
-      }
-      if (Array.isArray(input)) {
-        const copy = input.map((entry) => (random() < 0.5 ? vary(entry, depth - 1) : entry));
-        return random() < 0.3
-          ? copy.slice(0, Math.floor(random() * copy.length))
-          : [...copy, ...(random() < 0.3 ? [value(1)] : [])];
-      }
-      if (input && typeof input === 'object') {
-        return Object.fromEntries(
-          Object.entries(input)
-            .filter(() => random() > 0.2)
-            .map(([key, entry]) => [key, random() < 0.5 ? vary(entry, depth - 1) : entry])
-        );
-      }
-      return value(1);
-    };
+    const json = randomJson(7);
     for (let run = 0; run < 2000; run++) {
-      const before = snapshot({ root: value(4) });
-      const after = snapshot({ root: vary((before as unknown as { root: unknown }).root, 4) });
-      const patched = applyPatch(before, diff(before, after));
+      const root = json.value(4);
+      const before = snapshot({ root });
+      const after = snapshot({ root: json.vary(root, 4) });
       /* Objects keep their keys' original order through a patch, as they always have; the values are what must match. */
-      expect(patched).toEqual(after);
+      expect(applyPatch(before, diff(before, after))).toEqual(after);
     }
   });
 });
