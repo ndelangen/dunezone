@@ -1179,6 +1179,24 @@ function useSceneInteractions(onInteractionActiveChange: TabletopSceneProps['onI
   };
 }
 
+/**
+ * Frees the renderer, and with it the canvas's WebGL context or GPU device, once the table's canvas has left the page.
+ * R3F does this on unmount only for its legacy WebGLRenderer, so every remount of the table (a reconnect, a reload of the view) otherwise left a live context behind until the browser ran out of them.
+ * A canvas still on the page is a remount of this component alone, as R3F's own teardown assumes, and keeps its renderer.
+ */
+function ReleaseRendererOnUnmount() {
+  const renderer = useThree((state) => state.renderer);
+  useEffect(
+    () => () => {
+      if (!renderer.domElement.isConnected) {
+        renderer.dispose();
+      }
+    },
+    [renderer]
+  );
+  return null;
+}
+
 function SceneContents({
   cameraView = DEFAULT_CAMERA_VIEW,
   onInteractionActiveChange,
@@ -1378,6 +1396,7 @@ export function TabletopScene({
               /* The renderer's creation follows its asynchronous initialisation, which is the long part of a table's arrival; the first frame follows at once. */
               onCreated={onSceneReady}
             >
+              <ReleaseRendererOnUnmount />
               {children}
               <SceneContents
                 stage={stage}
