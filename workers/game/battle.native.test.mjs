@@ -274,7 +274,8 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
   async function playCard(position) {
     await accepted(a, { kind: 'hand-take', pieceId: 'treachery-card-loose' });
     const handCard = (await syncView(a)).snapshot.hand[0];
-    return (await accepted(a, { kind: 'hand-play', pieceId: handCard.id, position })).snapshot.table.pieces;
+    const pieces = (await accepted(a, { kind: 'hand-play', pieceId: handCard.id, position })).snapshot.table.pieces;
+    return Object.assign(pieces, { handCard });
   }
   const cardsAt = (pieces, [x, , z]) =>
     pieces.filter((piece) => piece.kind === 'card' && Math.hypot(piece.position[0] - x, piece.position[2] - z) < 1e-9);
@@ -306,6 +307,8 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
     expect(others).toEqual([]);
     expect(merged.items).toHaveLength(count + 1);
     expect(merged.items.every((item) => !item.faceUp)).toBe(true);
+    /* The card that joined the pile is not traceable by the id its owner saw in hand. */
+    expect(merged.items.map((item) => item.id)).not.toContain(pieces.handCard.items[0].id);
   });
 
   it('keeps a card played onto the board where it was dropped', async () => {
