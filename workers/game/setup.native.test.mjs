@@ -202,8 +202,34 @@ describe('Traitor backs at setup entry', () => {
     expect(piecesCanStack(decks[0], decks[1])).toBe(true);
   });
 
-  it("setup refuses a table where one faction's Traitor deck has a back and another's has none", async () => {
-    const { reply } = await enterSetup('/published/cardback-presets/traitor/cardback.jpg?v=traitor-1', null);
-    expect(reply).toMatchObject({ type: 'rejected', message: 'The retained traitor decks need a shared back.' });
+  it('refuses to deal factions whose Traitor decks have different backs, and deals once the draft changes', async () => {
+    const back = '/published/cardback-presets/traitor/cardback.jpg?v=traitor-1';
+    ({ peer, runtime } = await draftingRuntime());
+    for (const [id, traitor] of [
+      ['atreides', back],
+      ['harkonnen', null],
+      ['fremen', back],
+    ]) {
+      const faction = peer.factions.get(id);
+      peer.factions.set(id, { ...faction, cardbacks: { ...faction.cardbacks, traitor } });
+    }
+    const a = await admitPlayer(peer, runtime, 'a');
+    const b = await admitPlayer(peer, runtime, 'b');
+    await seat(b, a);
+    await accepted(a, { kind: 'draft-ready', ready: true });
+    await accepted(b, { kind: 'draft-ready', ready: true });
+    const refused = await eventually(async () => {
+      const view = await syncView(a);
+      return view.snapshot.draft?.failure && view;
+    }, 'refused deal');
+    expect(refused.snapshot.stage).toBe('drafting');
+    expect(refused.snapshot.draft.failure).toBe('The retained traitor decks need a shared back.');
+    await accepted(a, { kind: 'draft-ban', factionId: 'harkonnen' });
+    await accepted(a, { kind: 'draft-pick', factionId: 'fremen' });
+    await accepted(a, { kind: 'draft-ready', ready: true });
+    await accepted(b, { kind: 'draft-ready', ready: true });
+    await eventually(async () => (await syncView(a)).snapshot.stage === 'swapping', 'assignment');
+    const dealtView = await syncView(a);
+    expect(dealtView.snapshot.roster.seats.map((entry) => entry.faction.id).sort()).toEqual(['atreides', 'fremen']);
   });
 });

@@ -54,11 +54,7 @@ export class SetupSupply {
       }
       return { capture, angle: angles[seat.position]! };
     });
-    /* A Traitor deck with no back stacks with nothing that has one, so a missing back counts as a different back. */
-    const backs = new Set(factions.map(({ capture }) => capture.components.traitors.back));
-    if (backs.size > 1) {
-      throw new GameRejection('The retained traitor decks need a shared back.');
-    }
+    requireSharedTraitorBack(factions.map(({ capture }) => capture));
     return factions;
   }
 
@@ -74,6 +70,19 @@ export class SetupSupply {
         event: supplied.table.events[0],
       })
     );
+  }
+}
+
+/**
+ * Setup gathers every faction's Traitor cards into one deck, so the factions at one table need one Traitor back.
+ * A Traitor deck with no back stacks with nothing that has one, so a missing back counts as a different back.
+ * The deal checks this before it commits, where a refusal leaves the draft open to change;
+ * setup entry checks it again.
+ */
+export function requireSharedTraitorBack(captures: readonly FactionCapture[]) {
+  const backs = new Set(captures.map((capture) => capture.components.traitors.back));
+  if (backs.size > 1) {
+    throw new GameRejection('The retained traitor decks need a shared back.');
   }
 }
 

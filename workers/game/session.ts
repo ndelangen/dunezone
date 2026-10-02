@@ -49,7 +49,7 @@ import { Room } from './room';
 import type { HistoryRow } from './sessionHistory';
 import { SessionHistory } from './sessionHistory';
 import { initializeSessionStorage } from './sessionStorage';
-import { SetupSupply } from './setup';
+import { requireSharedTraitorBack, SetupSupply } from './setup';
 import { initialSetup } from './setup-progress';
 import { SpiceLedger } from './spiceLedger';
 import type { StoredSnapshot } from './state';
@@ -887,6 +887,7 @@ export class GameSession {
       if (!still) {
         return null;
       }
+      requireSharedTraitorBack(factions.flatMap((id) => this.captures.faction(id) ?? []));
       this.installDeal(deal, current);
       this.storage.sql.exec("UPDATE metadata SET data=json_set(data, '$.seatCount', ?) WHERE id=1", seated.length);
       const next = this.recordAssignment(stored, current, deal);
