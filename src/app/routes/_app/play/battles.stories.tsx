@@ -402,7 +402,7 @@ export const BattleRevealedPiecesStill = meta.story({
     /* The viewer is a side, so the dock opens on the Battle tab with its own plan's wheel; the two on the table are the reveal. */
     const revealed = () => page.getAllByLabelText(plans).filter((plan) => !plan.closest('.seated-controls-panel'));
     await settled(() => expect(revealed()).toHaveLength(2));
-    expect(animatedIn(revealed())).toEqual([]);
+    expect(animatedIn(page.getAllByLabelText(plans))).toEqual([]);
     for (const plan of revealed()) {
       expect(within(plan).getByText('Force')).toBeVisible();
     }

@@ -131,7 +131,9 @@ function ConnectionControls({ client, table, error }: ConnectionControlsProps) {
 function battleFocus(table: TableProjection) {
   const battle = table.snapshot.battle;
   const own = rosterSeat(table.snapshot.roster, table.viewer.viewerSeat)?.faction?.id;
-  if (table.snapshot.stage !== 'play' || !battle || !own || !battle.sides.some((side) => side?.factionId === own)) {
+  /* The same "in play" test that shows the Battle tab: a hosted game in play, or a table with no stage. */
+  const stage = table.snapshot.stage;
+  if ((stage !== undefined && stage !== 'play') || !battle || !own || !battle.sides.some((side) => side?.factionId === own)) {
     return null;
   }
   return { key: 'battle', token: battle.id };
