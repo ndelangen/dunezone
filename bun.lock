@@ -146,6 +146,7 @@
     },
   },
   "patchedDependencies": {
+    "three@0.185.1": "patches/three@0.185.1.patch",
     "@storybook/tanstack-react@10.6.0": "patches/@storybook%2Ftanstack-react@10.6.0.patch",
     "@react-three/fiber@10.0.0-alpha.4": "patches/@react-three%2Ffiber@10.0.0-alpha.4.patch",
   },
