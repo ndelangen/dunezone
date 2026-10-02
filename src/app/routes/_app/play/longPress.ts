@@ -13,7 +13,7 @@ type Press = Pick<PointerEvent, 'pointerId' | 'clientX' | 'clientY'>;
 /**
  * Calls `onHold` once the press has rested in place for `LONG_PRESS_MS`, the touch stand-in for a right-click.
  * The press lets go of the hold when its pointer lifts, is cancelled or moves past the slop;
- * the returned function lets go too.
+ * a second finger landing lets go too, since two fingers down are a tilt, not a hold, and so does the returned function.
  */
 export function watchLongPress(
   events: Pick<Window, 'addEventListener' | 'removeEventListener'>,
@@ -25,6 +25,7 @@ export function watchLongPress(
     events.removeEventListener('pointermove', move);
     events.removeEventListener('pointerup', end);
     events.removeEventListener('pointercancel', end);
+    events.removeEventListener('pointerdown', other, true);
   };
   const move = (event: PointerEvent) => {
     if (
@@ -39,6 +40,12 @@ export function watchLongPress(
       stop();
     }
   };
+  /* Captured, so the tilt stopping the second finger at the board cannot hide it. */
+  const other = (event: PointerEvent) => {
+    if (event.pointerId !== press.pointerId) {
+      stop();
+    }
+  };
   const timer = setTimeout(() => {
     stop();
     onHold();
@@ -46,6 +53,7 @@ export function watchLongPress(
   events.addEventListener('pointermove', move);
   events.addEventListener('pointerup', end);
   events.addEventListener('pointercancel', end);
+  events.addEventListener('pointerdown', other, true);
   return stop;
 }
 

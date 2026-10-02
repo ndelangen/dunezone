@@ -8,7 +8,7 @@ const STACK_HOLD_MS = 320;
 type PointerInput = Pick<PointerEvent, 'pointerId' | 'button' | 'clientX' | 'clientY' | 'timeStamp'>;
 type Controls = Pick<
   TabletopContextValue,
-  'beginGesture' | 'updateGesture' | 'finishGesture' | 'cancelDraft' | 'canInteract' | 'publishPointer'
+  'beginGesture' | 'updateGesture' | 'finishGesture' | 'cancelDraft' | 'canHandleTable' | 'publishPointer'
 > & {
   hasDraft: boolean;
   piece(id: string): TablePiece | undefined;
@@ -75,7 +75,7 @@ export class PointerSession {
       return;
     }
     const controls = this.binding.read();
-    if (!controls.canInteract || !controls.piece(this.active.pieceId)) {
+    if (!controls.canHandleTable || !controls.piece(this.active.pieceId)) {
       this.cancel();
     } else if (controls.hasDraft) {
       this.active.draftObserved = true;
@@ -103,7 +103,7 @@ export class PointerSession {
       return false;
     }
     const controls = this.binding.read();
-    if (!controls.canInteract || !controls.piece(pieceId)) {
+    if (!controls.canHandleTable || !controls.piece(pieceId)) {
       return false;
     }
     this.active = { input, pieceId, origin, dragging: false, draftObserved: false };

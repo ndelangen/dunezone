@@ -235,7 +235,7 @@ function leavingWords(table: TableProjection): string {
     case table.snapshot.stage === 'drafting':
       return 'Your place in the roster goes; the other players keep theirs.';
     default:
-      return `${seatLabel(table.viewer.viewerSeat)} stays open with its faction for a replacement.`;
+      return `${seatSubject(table.viewer.viewerSeat)} stays open with its faction for a replacement.`;
   }
 }
 
