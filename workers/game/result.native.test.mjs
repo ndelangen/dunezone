@@ -256,6 +256,93 @@ describe('Determine winner and Continue playing', { timeout: 60_000 }, () => {
     expect(new Set(declared)).toEqual(new Set(['[deleted user]']));
   });
 
+  it('keeps a finished game whole for reconnects, newcomers and a cold restart, and declares again after continuing', async () => {
+    const { owner, other, observer } = await inPlay();
+    await toMentat(owner);
+
+    /* The determiner leaves the seat, which ends the sequence; the other player determines instead. */
+    await accepted(owner, { kind: 'result-open' });
+    await accepted(owner, { kind: 'seat-depart' });
+    expect((await syncView(other)).snapshot.ending).toBeUndefined();
+    await accepted(other, { kind: 'result-open' });
+    const declared = await accepted(other, { kind: 'result-declare', result: 'faction', factionIds: ['harkonnen'] });
+    const result = declared.snapshot.result;
+    expect(result).toMatchObject({
+      kind: 'faction',
+      factionIds: ['harkonnen'],
+      by: { name: declared.viewer.displayName },
+    });
+
+    /* Everyone sees the same finished game: the declarer, a watcher, the player who left and a newcomer. */
+    const [stayed, left] = [declared.viewer.userId, (await syncView(owner)).viewer.userId].map((id) =>
+      id.slice('user-'.length)
+    );
+    const returning = await admit(left);
+    const [first, second] = [(await syncView(returning)).viewer.displayName, declared.viewer.displayName];
+    const newcomer = await admit('late');
+    for (const connection of [other, observer, returning, newcomer]) {
+      const { snapshot } = await syncView(connection);
+      expect(snapshot.stage).toBe('finished');
+      expect(snapshot.result).toEqual(result);
+      expect(snapshot.ending).toBeUndefined();
+    }
+
+    /* The table is held as it ended: a carry and table commands are refused, and so is a new determination. */
+    const view = await syncView(other);
+    const force = view.snapshot.table.pieces.find((piece) => piece.kind === 'force' && !piece.locked);
+    const sent = other.messages.length;
+    other.send({
+      type: 'begin',
+      carryId: 'after-the-end',
+      sourcePieceId: force.id,
+      expectedVersion: view.snapshot.versions[force.id],
+      pickup: 'whole',
+    });
+    const refusal = await eventually(
+      () => other.messages.slice(sent).find((message) => message.type === 'rejected'),
+      'carry refusal'
+    );
+    expect(refusal.message).toBe('The game is finished. Continue playing to change the table.');
+    for (const action of [
+      { kind: 'flip', pieceId: force.id },
+      { kind: 'spice-spawn', count: 1 },
+      { kind: 'ready', ready: true },
+      { kind: 'turn', turn: 2 },
+      { kind: 'result-open' },
+    ]) {
+      expect(await rejected(other, action)).toBe(true);
+    }
+    expect((await syncView(other)).snapshot.revision).toBe(declared.snapshot.revision);
+
+    /* A cold restart wakes finished, with the same result for a player and a watcher. */
+    await runtime.restart();
+    const player = await admit(stayed);
+    const watcher = await admit('observer');
+    for (const connection of [player, watcher]) {
+      const { snapshot } = await syncView(connection);
+      expect(snapshot.stage).toBe('finished');
+      expect(snapshot.result).toEqual(result);
+    }
+
+    /* Continuing returns to the same Mentat pause, where the game can be decided again. */
+    const continued = await accepted(player, { kind: 'result-continue' });
+    expect(continued.snapshot.stage).toBe('play');
+    expect(continued.snapshot.phase).toBe(declared.snapshot.phase);
+    await accepted(player, { kind: 'result-open' });
+    const again = await accepted(player, { kind: 'result-declare', result: 'none', factionIds: [] });
+    expect(again.snapshot.result).toMatchObject({ kind: 'none', factionIds: [] });
+    const texts = (await page(watcher)).slice(0, 7).map((entry) => entry.text);
+    expect(texts).toEqual([
+      `${second} declared the result: No winner.`,
+      `${second} started determining the winner.`,
+      `${second} continued the game.`,
+      `${second} declared the result: Harkonnen won.`,
+      `${second} started determining the winner.`,
+      `Determining the winner by ${first} ended.`,
+      `${first} started determining the winner.`,
+    ]);
+  });
+
   it('closes an open sequence when the phase moves on', async () => {
     const { owner, other } = await inPlay();
     await toMentat(owner);
