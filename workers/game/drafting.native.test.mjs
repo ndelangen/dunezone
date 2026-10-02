@@ -406,11 +406,20 @@ describe('Drafting and public assignment on a real game', () => {
     await accepted(a, { kind: 'draft-pick', factionId: 'fremen' });
     await eventually(async () => 'fremen' in (await setAside(a)), 'fremen judged at the pick');
 
-    /* Fremen publishes; A's Ready reads the stale catalogue again, and B is looking at the pool without Fremen. */
+    /* Fremen publishes; A's Ready reads the stale catalogue again, and its judgement of Fremen is held while B looks at the pool without it. */
     peer.factions.set('fremen', ready('fremen', 'Fremen'));
     offset += 60_000;
     await runtime.clock(offset);
-    const seen = await accepted(a, { kind: 'draft-ready', ready: true });
+    peer.factionMode = 'hold';
+    await accepted(a, { kind: 'draft-ready', ready: true });
+    const held = () => peer.requests.filter((r) => r.function === 'playCatalogue:factionDefinition' && !r.completedAt);
+    await eventually(() => held().length > 0, 'the refresh judging Fremen held open');
+    const seen = await syncView(b);
+    expect(seen.snapshot.draft.ready).toEqual(['seat-1']);
+    peer.factionMode = 'allow';
+    for (const record of held()) {
+      record.release(peer.factions.get(record.args.factionId));
+    }
     await eventually(async () => !('fremen' in (await setAside(a))), 'fremen judged ready');
     const returned = await syncView(a);
     expect(returned.snapshot.draft.ready).toEqual([]);
