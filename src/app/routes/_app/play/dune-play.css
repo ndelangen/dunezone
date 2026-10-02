@@ -352,8 +352,8 @@ html[data-motion="reduce"] .dune-play-stage .dune-play-shell {
 /* Panel frame: the dock below the table that the kit's tabs sit in. The dock paints the ground;
    the tabs bring their own glass, fill the dock's height, and scroll their content inside it so
    the rail stays put. The dock never drops below the height the rail needs for three items and
-   its label, whatever the separator or a short window says: it grows up out of its panel, over
-   the scene and under the header, and the shell clips it. */
+   its label; the split's lower limit is this same floor (CONTROLS_DOCK_MIN_HEIGHT_REM in
+   controlPanelLayout.ts), so the dock never rises out of its panel under the separator. */
 :where(.dune-play-shell) .seated-controls-panel {
   position: absolute;
   right: 0;

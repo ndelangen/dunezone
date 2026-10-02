@@ -706,7 +706,7 @@ function ConnectedTable({
           }
           gameMenu={
             <>
-              <SeatPopover client={client} table={table} />
+              <SeatPopover client={client} table={table} error={error} />
               <GameMenu
                 table={table}
                 onLeave={() => setLeaving(true)}

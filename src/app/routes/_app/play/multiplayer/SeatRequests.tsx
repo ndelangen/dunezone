@@ -166,22 +166,34 @@ function useSpectatorSeat(client: TableSession, table: TableProjection): SeatNot
  * A spectator's seat, behind one action in the header toolbar beside the game menu (Norbert, 2026-10-02).
  * The dock keeps its height for the table's tabs, and the header keeps its one row.
  */
-export function SeatPopover({ client, table }: Readonly<{ client: TableSession; table: TableProjection }>) {
+export function SeatPopover({
+  client,
+  table,
+  error,
+}: Readonly<{ client: TableSession; table: TableProjection; error: string | null }>) {
+  const notice = useSpectatorSeat(client, table);
+  /* The open state lives with the notice, so a seat that comes and goes never brings the popover back already open. */
+  return notice ? <SeatNoticePopover notice={notice} error={error} /> : null;
+}
+
+function SeatNoticePopover({ notice, error }: Readonly<{ notice: SeatNotice; error: string | null }>) {
   const [opened, setOpened] = useState(false);
   const labelId = useId();
-  const notice = useSpectatorSeat(client, table);
-  if (!notice) {
-    return null;
-  }
   return (
-    <Popover opened={opened} onChange={setOpened} position="bottom-end" shadow="md" width={340} withArrow>
+    <Popover
+      opened={opened}
+      onChange={setOpened}
+      position="bottom-end"
+      shadow="md"
+      width="min(340px, calc(100vw - 2rem))"
+      withArrow
+    >
       <Popover.Target>
         <IconAction
           label="Seats"
           emphasis="standard"
           intent="neutral"
           size="sm"
-          aria-expanded={opened}
           onClick={() => setOpened((current) => !current)}
           icon={<Armchair size={15} aria-hidden />}
         />
@@ -190,9 +202,7 @@ export function SeatPopover({ client, table }: Readonly<{ client: TableSession; 
         <Stack component="section" aria-labelledby={labelId} gap="sm">
           {/* The copy is a polite status, so a change while it is open is heard, not only seen. */}
           <Stack gap={2} role="status">
-            <Eyebrow tone="inverse" id={labelId}>
-              {notice.eyebrow}
-            </Eyebrow>
+            <Eyebrow id={labelId}>{notice.eyebrow}</Eyebrow>
             <Text fw={700}>{notice.title}</Text>
             {notice.context && (
               <Text size="sm" c="dimmed">
@@ -200,6 +210,8 @@ export function SeatPopover({ client, table }: Readonly<{ client: TableSession; 
               </Text>
             )}
           </Stack>
+          {/* A refused request shows beside the button that sent it. */}
+          {error && <FormError title="From the table">{error}</FormError>}
           {notice.action}
         </Stack>
       </Popover.Dropdown>
@@ -335,9 +347,9 @@ function draftingIdle(table: TableProjection): boolean {
 }
 
 /* Drafting with nothing to ask, the bar is the draft summary and Ready on one row, so the faction list keeps the dock's height (#1633). */
-function ReadinessBar({ readiness }: Readonly<{ readiness: ReactNode }>) {
+function ReadinessBar({ readiness, label = 'Your seat' }: Readonly<{ readiness: ReactNode; label?: string }>) {
   return (
-    <Surface as="section" aria-label="Your seat" padding="sm" className={styles.bar}>
+    <Surface as="section" aria-label={label} padding="sm" className={styles.bar}>
       {readiness}
     </Surface>
   );
@@ -363,7 +375,7 @@ function barFor(
       );
     /* A spectator's seat lives in the header's seat popover; the dock keeps only the stage's readiness. */
     case table.viewer.viewerSeat === SPECTATOR_SEAT:
-      return readiness ? <ReadinessBar readiness={readiness} /> : null;
+      return readiness ? <ReadinessBar readiness={readiness} label="Readiness" /> : null;
     case Boolean(readiness) && draftingIdle(table):
       return <ReadinessBar readiness={readiness} />;
     default:
@@ -436,7 +448,10 @@ export function SeatRequests({
   }
   return (
     <div className={styles.dock} data-decision-bar="">
-      {error && table.snapshot.stage !== 'play' && <FormError title="From the table">{error}</FormError>}
+      {/* A spectator's only commands are seat requests, so their refusal shows in the seat popover instead. */}
+      {error && table.snapshot.stage !== 'play' && table.viewer.viewerSeat !== SPECTATOR_SEAT && (
+        <FormError title="From the table">{error}</FormError>
+      )}
       {barFor(client, table, leaving, onStay, readiness)}
     </div>
   );

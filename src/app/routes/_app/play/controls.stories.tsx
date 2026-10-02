@@ -140,9 +140,8 @@ export const FullGameSpectatorSeat = meta.story({
     const seat = await seatPopover(canvasElement, 'You are watching');
     await expect(seat().findByText('All 6 seats are taken')).resolves.toBeVisible();
     expect(seat().queryByRole('button', { name: /^Request/ })).toBeNull();
-    expect(
-      canvasElement.ownerDocument.querySelector('.seated-controls-panel [aria-label="You are watching"]')
-    ).toBeNull();
+    const dock = canvasElement.ownerDocument.querySelector<HTMLElement>('.seated-controls-panel')!;
+    expect(within(dock).queryByRole('region', { name: 'You are watching' })).toBeNull();
     expect(page.getAllByRole('region', { name: 'You are watching' })).toHaveLength(1);
   },
 });
