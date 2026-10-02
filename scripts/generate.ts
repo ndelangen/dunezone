@@ -1,5 +1,8 @@
+import { readFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 
+import type { FormatConfig } from 'oxfmt';
+import { format } from 'oxfmt';
 import { recursiveReaddirFiles } from 'recursive-readdir-files';
 
 import stockAssetCollections from '../src/shared/stockAssetCollections.json';
@@ -63,10 +66,7 @@ for (const asset of [...leaders, ...logo, ...planet, ...decal]) {
   }
 }
 
-await Bun.write(
-  join(import.meta.dirname, '..', 'src/shared/assetIds.ts'),
-  `
-import { z } from 'zod';
+const assetIds = `import { z } from 'zod';
 
 ${Object.entries(enums)
   .map(
@@ -83,5 +83,17 @@ export const ${name.toUpperCase()} = z.enum([
 export const ALL = z.union([
   ${['GENERIC', 'LOGO', 'DECAL', 'ICON', 'TROOP'].join(',\n  ')}
 ]);
-`
-);
+`;
+
+/*
+ * Written in the repository's own format, so regenerating leaves the committed file as it is.
+ * The settings are read rather than imported: they shape only whitespace, and the output itself lands under src/shared.
+ */
+const { $schema: _schema, ...formatOptions } = JSON.parse(
+  readFileSync(join(import.meta.dirname, '..', '.oxfmtrc.json'), 'utf8')
+) as FormatConfig & { $schema?: string };
+const formatted = await format('assetIds.ts', assetIds, formatOptions);
+if (formatted.errors.length > 0) {
+  throw new Error(`assetIds.ts did not format: ${formatted.errors.map((error) => error.message).join('; ')}`);
+}
+await Bun.write(join(import.meta.dirname, '..', 'src/shared/assetIds.ts'), formatted.code);
