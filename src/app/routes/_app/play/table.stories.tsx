@@ -449,6 +449,49 @@ export const TapOnTheBoardClearsTheSelection = meta.story({
   },
 });
 
+/**
+ * A finger resting on the deck opens the menu a right-click opens, since iOS never sends a context menu for a long press.
+ * The menu's Shuffle shuffles that deck, and the finger lifting after the menu opens leaves the menu open.
+ */
+export const LongPressOnTheDeckOpensItsMenu = meta.story({
+  beforeEach: install(() => productTransport()),
+  play: async ({ canvasElement }) => {
+    const { page, document } = await tablePage(canvasElement);
+    const deck = playingSnapshot().table.pieces.find((piece) => piece.id === 'treachery-deck')!;
+    const [clientX, clientY] = mapViewPoint(document, [
+      deck.position[0],
+      deck.position[1] + stackTopHeight(deck),
+      deck.position[2],
+    ]);
+    const scene = document.querySelector('canvas')!;
+    const touch = {
+      bubbles: true,
+      cancelable: true,
+      pointerId: 3,
+      pointerType: 'touch',
+      isPrimary: true,
+      clientX,
+      clientY,
+    };
+
+    await waitFor(
+      async () => {
+        scene.dispatchEvent(new PointerEvent('pointerdown', { ...touch, button: 0, buttons: 1 }));
+        await expect(page.findByRole('menuitem', { name: 'Shuffle' }, { timeout: 1500 })).resolves.toBeVisible();
+      },
+      { timeout: 30_000 }
+    );
+    scene.dispatchEvent(new PointerEvent('pointerup', { ...touch, button: 0, buttons: 0 }));
+    await userEvent.click(page.getByRole('menuitem', { name: 'Shuffle' }));
+    await waitFor(() =>
+      expect(lastCommand()).toMatchObject({
+        type: 'command',
+        action: { kind: 'deck-shuffle', pieceId: 'treachery-deck' },
+      })
+    );
+  },
+});
+
 /** The pointer moves to the view picker, so a pointerleave reaches the canvas and each ancestor that does not contain the picker. */
 function leaveTheCanvas(page: ReturnType<typeof within>, scene: HTMLCanvasElement, pointer: PointerEventInit) {
   const picker = page.getByRole('group', { name: 'Table view' });

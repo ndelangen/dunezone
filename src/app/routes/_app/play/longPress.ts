@@ -1,0 +1,45 @@
+/* How long a finger rests on a piece before it asks for the piece's menu, about the platform's own long-press delay. */
+export const LONG_PRESS_MS = 500;
+/* A finger drifts while it rests; past this it is moving, not holding. */
+const LONG_PRESS_SLOP_PX = 8;
+
+type Press = Pick<PointerEvent, 'pointerId' | 'clientX' | 'clientY'>;
+
+/**
+ * Calls `onHold` once the press has rested in place for `LONG_PRESS_MS`, the touch stand-in for a right-click.
+ * The press lets go of the hold when its pointer lifts, is cancelled or moves past the slop;
+ * the returned function lets go too.
+ */
+export function watchLongPress(
+  events: Pick<Window, 'addEventListener' | 'removeEventListener'>,
+  press: Press,
+  onHold: () => void
+): () => void {
+  const stop = () => {
+    clearTimeout(timer);
+    events.removeEventListener('pointermove', move);
+    events.removeEventListener('pointerup', end);
+    events.removeEventListener('pointercancel', end);
+  };
+  const move = (event: PointerEvent) => {
+    if (
+      event.pointerId === press.pointerId &&
+      Math.hypot(event.clientX - press.clientX, event.clientY - press.clientY) > LONG_PRESS_SLOP_PX
+    ) {
+      stop();
+    }
+  };
+  const end = (event: PointerEvent) => {
+    if (event.pointerId === press.pointerId) {
+      stop();
+    }
+  };
+  const timer = setTimeout(() => {
+    stop();
+    onHold();
+  }, LONG_PRESS_MS);
+  events.addEventListener('pointermove', move);
+  events.addEventListener('pointerup', end);
+  events.addEventListener('pointercancel', end);
+  return stop;
+}
