@@ -308,8 +308,7 @@ function PlanInventory({ plan, locked, update, pieces }: PlanEditor & { pieces: 
               h="auto"
               p="xs"
               styles={{ label: { display: 'grid', justifyItems: 'center', gap: 'var(--space-xs)', height: 'auto' } }}
-              /* A toggle keeps one name and lets its pressed state say whether the card is in the plan. */
-              aria-label={`Add ${pieceName(piece)} to battle plan`}
+              aria-label={`${selected ? 'Remove' : 'Add'} ${pieceName(piece)} ${selected ? 'from' : 'to'} battle plan`}
               aria-pressed={selected}
               disabled={locked}
               onClick={() =>
