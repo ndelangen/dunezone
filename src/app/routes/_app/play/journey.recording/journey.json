@@ -2899,9 +2899,9 @@
       "neutral": { "$": "LBX0qXahyzID" }
     },
     "pryQ1PYH0e8a": [
-      { "id": "evt-035", "command": "swap-ready", "message": "seat-3 is ready.", "status": "accepted" },
-      { "id": "evt-034", "command": "swap-ready", "message": "seat-2 is ready.", "status": "accepted" },
-      { "id": "evt-033", "command": "swap-ready", "message": "seat-1 is ready.", "status": "accepted" },
+      { "id": "evt-035", "command": "swap-ready", "message": "Seat 3 is ready.", "status": "accepted" },
+      { "id": "evt-034", "command": "swap-ready", "message": "Seat 2 is ready.", "status": "accepted" },
+      { "id": "evt-033", "command": "swap-ready", "message": "Seat 1 is ready.", "status": "accepted" },
       {
         "id": "evt-032",
         "command": "assignment",
@@ -4259,12 +4259,12 @@
         "status": "accepted"
       },
       { "id": "evt-039", "command": "swap-closed", "message": "Trading ended.", "status": "accepted" },
-      { "id": "evt-038", "command": "swap-ready", "message": "seat-6 is ready.", "status": "accepted" },
-      { "id": "evt-037", "command": "swap-ready", "message": "seat-5 is ready.", "status": "accepted" },
-      { "id": "evt-036", "command": "swap-ready", "message": "seat-4 is ready.", "status": "accepted" },
-      { "id": "evt-035", "command": "swap-ready", "message": "seat-3 is ready.", "status": "accepted" },
-      { "id": "evt-034", "command": "swap-ready", "message": "seat-2 is ready.", "status": "accepted" },
-      { "id": "evt-033", "command": "swap-ready", "message": "seat-1 is ready.", "status": "accepted" }
+      { "id": "evt-038", "command": "swap-ready", "message": "Seat 6 is ready.", "status": "accepted" },
+      { "id": "evt-037", "command": "swap-ready", "message": "Seat 5 is ready.", "status": "accepted" },
+      { "id": "evt-036", "command": "swap-ready", "message": "Seat 4 is ready.", "status": "accepted" },
+      { "id": "evt-035", "command": "swap-ready", "message": "Seat 3 is ready.", "status": "accepted" },
+      { "id": "evt-034", "command": "swap-ready", "message": "Seat 2 is ready.", "status": "accepted" },
+      { "id": "evt-033", "command": "swap-ready", "message": "Seat 1 is ready.", "status": "accepted" }
     ],
     "n2Ha5bTB00gd": {
       "9dcc0e91-e361-4f57-bbe2-53e56a915e17": 32,
@@ -6215,11 +6215,11 @@
         "status": "accepted"
       },
       { "id": "evt-039", "command": "swap-closed", "message": "Trading ended.", "status": "accepted" },
-      { "id": "evt-038", "command": "swap-ready", "message": "seat-6 is ready.", "status": "accepted" },
-      { "id": "evt-037", "command": "swap-ready", "message": "seat-5 is ready.", "status": "accepted" },
-      { "id": "evt-036", "command": "swap-ready", "message": "seat-4 is ready.", "status": "accepted" },
-      { "id": "evt-035", "command": "swap-ready", "message": "seat-3 is ready.", "status": "accepted" },
-      { "id": "evt-034", "command": "swap-ready", "message": "seat-2 is ready.", "status": "accepted" }
+      { "id": "evt-038", "command": "swap-ready", "message": "Seat 6 is ready.", "status": "accepted" },
+      { "id": "evt-037", "command": "swap-ready", "message": "Seat 5 is ready.", "status": "accepted" },
+      { "id": "evt-036", "command": "swap-ready", "message": "Seat 4 is ready.", "status": "accepted" },
+      { "id": "evt-035", "command": "swap-ready", "message": "Seat 3 is ready.", "status": "accepted" },
+      { "id": "evt-034", "command": "swap-ready", "message": "Seat 2 is ready.", "status": "accepted" }
     ],
     "Tji47H2Meiem": {
       "9dcc0e91-e361-4f57-bbe2-53e56a915e17": 32,
@@ -7465,10 +7465,10 @@
         "status": "accepted"
       },
       { "id": "evt-039", "command": "swap-closed", "message": "Trading ended.", "status": "accepted" },
-      { "id": "evt-038", "command": "swap-ready", "message": "seat-6 is ready.", "status": "accepted" },
-      { "id": "evt-037", "command": "swap-ready", "message": "seat-5 is ready.", "status": "accepted" },
-      { "id": "evt-036", "command": "swap-ready", "message": "seat-4 is ready.", "status": "accepted" },
-      { "id": "evt-035", "command": "swap-ready", "message": "seat-3 is ready.", "status": "accepted" }
+      { "id": "evt-038", "command": "swap-ready", "message": "Seat 6 is ready.", "status": "accepted" },
+      { "id": "evt-037", "command": "swap-ready", "message": "Seat 5 is ready.", "status": "accepted" },
+      { "id": "evt-036", "command": "swap-ready", "message": "Seat 4 is ready.", "status": "accepted" },
+      { "id": "evt-035", "command": "swap-ready", "message": "Seat 3 is ready.", "status": "accepted" }
     ],
     "_LMH0d_JGavD": {
       "9dcc0e91-e361-4f57-bbe2-53e56a915e17": 32,
@@ -11520,12 +11520,12 @@
       { "$": "DDYQ56RD7DiZ" }
     ],
     "EVQ1YoHRdcD7": [
-      { "id": "evt-087", "command": "setup-ready", "message": "seat-6 is ready.", "status": "accepted" },
-      { "id": "evt-086", "command": "setup-ready", "message": "seat-5 is ready.", "status": "accepted" },
-      { "id": "evt-085", "command": "setup-ready", "message": "seat-4 is ready.", "status": "accepted" },
-      { "id": "evt-084", "command": "setup-ready", "message": "seat-3 is ready.", "status": "accepted" },
-      { "id": "evt-083", "command": "setup-ready", "message": "seat-2 is ready.", "status": "accepted" },
-      { "id": "evt-082", "command": "setup-ready", "message": "seat-1 is ready.", "status": "accepted" },
+      { "id": "evt-087", "command": "setup-ready", "message": "Seat 6 is ready.", "status": "accepted" },
+      { "id": "evt-086", "command": "setup-ready", "message": "Seat 5 is ready.", "status": "accepted" },
+      { "id": "evt-085", "command": "setup-ready", "message": "Seat 4 is ready.", "status": "accepted" },
+      { "id": "evt-084", "command": "setup-ready", "message": "Seat 3 is ready.", "status": "accepted" },
+      { "id": "evt-083", "command": "setup-ready", "message": "Seat 2 is ready.", "status": "accepted" },
+      { "id": "evt-082", "command": "setup-ready", "message": "Seat 1 is ready.", "status": "accepted" },
       { "id": "evt-081", "command": "stack.merge", "message": "1 card placed on Traitor deck.", "status": "accepted" },
       { "id": "evt-080", "command": "stack.merge", "message": "1 card placed on Traitor deck.", "status": "accepted" }
     ],
@@ -12227,12 +12227,12 @@
     },
     "2XO8uEUKpxYf": [
       { "id": "evt-088", "command": "setup-phase", "message": "Setup: Starting troops.", "status": "accepted" },
-      { "id": "evt-087", "command": "setup-ready", "message": "seat-6 is ready.", "status": "accepted" },
-      { "id": "evt-086", "command": "setup-ready", "message": "seat-5 is ready.", "status": "accepted" },
-      { "id": "evt-085", "command": "setup-ready", "message": "seat-4 is ready.", "status": "accepted" },
-      { "id": "evt-084", "command": "setup-ready", "message": "seat-3 is ready.", "status": "accepted" },
-      { "id": "evt-083", "command": "setup-ready", "message": "seat-2 is ready.", "status": "accepted" },
-      { "id": "evt-082", "command": "setup-ready", "message": "seat-1 is ready.", "status": "accepted" },
+      { "id": "evt-087", "command": "setup-ready", "message": "Seat 6 is ready.", "status": "accepted" },
+      { "id": "evt-086", "command": "setup-ready", "message": "Seat 5 is ready.", "status": "accepted" },
+      { "id": "evt-085", "command": "setup-ready", "message": "Seat 4 is ready.", "status": "accepted" },
+      { "id": "evt-084", "command": "setup-ready", "message": "Seat 3 is ready.", "status": "accepted" },
+      { "id": "evt-083", "command": "setup-ready", "message": "Seat 2 is ready.", "status": "accepted" },
+      { "id": "evt-082", "command": "setup-ready", "message": "Seat 1 is ready.", "status": "accepted" },
       { "id": "evt-081", "command": "stack.merge", "message": "1 card placed on Traitor deck.", "status": "accepted" }
     ],
     "NyMh4ihDylRm": {
@@ -12813,11 +12813,11 @@
         "status": "accepted"
       },
       { "id": "evt-088", "command": "setup-phase", "message": "Setup: Starting troops.", "status": "accepted" },
-      { "id": "evt-087", "command": "setup-ready", "message": "seat-6 is ready.", "status": "accepted" },
-      { "id": "evt-086", "command": "setup-ready", "message": "seat-5 is ready.", "status": "accepted" },
-      { "id": "evt-085", "command": "setup-ready", "message": "seat-4 is ready.", "status": "accepted" },
-      { "id": "evt-084", "command": "setup-ready", "message": "seat-3 is ready.", "status": "accepted" },
-      { "id": "evt-083", "command": "setup-ready", "message": "seat-2 is ready.", "status": "accepted" }
+      { "id": "evt-087", "command": "setup-ready", "message": "Seat 6 is ready.", "status": "accepted" },
+      { "id": "evt-086", "command": "setup-ready", "message": "Seat 5 is ready.", "status": "accepted" },
+      { "id": "evt-085", "command": "setup-ready", "message": "Seat 4 is ready.", "status": "accepted" },
+      { "id": "evt-084", "command": "setup-ready", "message": "Seat 3 is ready.", "status": "accepted" },
+      { "id": "evt-083", "command": "setup-ready", "message": "Seat 2 is ready.", "status": "accepted" }
     ],
     "vZVlAZSM3XcL": {
       "9dcc0e91-e361-4f57-bbe2-53e56a915e17": 32,
@@ -13444,9 +13444,9 @@
         "status": "accepted"
       },
       { "id": "evt-088", "command": "setup-phase", "message": "Setup: Starting troops.", "status": "accepted" },
-      { "id": "evt-087", "command": "setup-ready", "message": "seat-6 is ready.", "status": "accepted" },
-      { "id": "evt-086", "command": "setup-ready", "message": "seat-5 is ready.", "status": "accepted" },
-      { "id": "evt-085", "command": "setup-ready", "message": "seat-4 is ready.", "status": "accepted" }
+      { "id": "evt-087", "command": "setup-ready", "message": "Seat 6 is ready.", "status": "accepted" },
+      { "id": "evt-086", "command": "setup-ready", "message": "Seat 5 is ready.", "status": "accepted" },
+      { "id": "evt-085", "command": "setup-ready", "message": "Seat 4 is ready.", "status": "accepted" }
     ],
     "iXBzehjml2qn": {
       "9dcc0e91-e361-4f57-bbe2-53e56a915e17": 32,
@@ -14084,7 +14084,7 @@
         "status": "accepted"
       },
       { "id": "evt-088", "command": "setup-phase", "message": "Setup: Starting troops.", "status": "accepted" },
-      { "id": "evt-087", "command": "setup-ready", "message": "seat-6 is ready.", "status": "accepted" }
+      { "id": "evt-087", "command": "setup-ready", "message": "Seat 6 is ready.", "status": "accepted" }
     ],
     "bf4IH9y-vPTV": {
       "9dcc0e91-e361-4f57-bbe2-53e56a915e17": 32,
@@ -17246,12 +17246,12 @@
       "pieceHandles": { "$": "kdiwBizyDsWy" }
     },
     "VOGH0r3LAuxi": [
-      { "id": "evt-108", "command": "setup-ready", "message": "seat-6 is ready.", "status": "accepted" },
-      { "id": "evt-107", "command": "setup-ready", "message": "seat-5 is ready.", "status": "accepted" },
-      { "id": "evt-106", "command": "setup-ready", "message": "seat-4 is ready.", "status": "accepted" },
-      { "id": "evt-105", "command": "setup-ready", "message": "seat-3 is ready.", "status": "accepted" },
-      { "id": "evt-104", "command": "setup-ready", "message": "seat-2 is ready.", "status": "accepted" },
-      { "id": "evt-103", "command": "setup-ready", "message": "seat-1 is ready.", "status": "accepted" },
+      { "id": "evt-108", "command": "setup-ready", "message": "Seat 6 is ready.", "status": "accepted" },
+      { "id": "evt-107", "command": "setup-ready", "message": "Seat 5 is ready.", "status": "accepted" },
+      { "id": "evt-106", "command": "setup-ready", "message": "Seat 4 is ready.", "status": "accepted" },
+      { "id": "evt-105", "command": "setup-ready", "message": "Seat 3 is ready.", "status": "accepted" },
+      { "id": "evt-104", "command": "setup-ready", "message": "Seat 2 is ready.", "status": "accepted" },
+      { "id": "evt-103", "command": "setup-ready", "message": "Seat 1 is ready.", "status": "accepted" },
       {
         "id": "evt-102",
         "command": "piece.move",
@@ -17769,12 +17769,12 @@
     },
     "dtJ_TkS6xabs": [
       { "id": "evt-109", "command": "setup-phase", "message": "Setup complete. Turn 1: Storm.", "status": "accepted" },
-      { "id": "evt-108", "command": "setup-ready", "message": "seat-6 is ready.", "status": "accepted" },
-      { "id": "evt-107", "command": "setup-ready", "message": "seat-5 is ready.", "status": "accepted" },
-      { "id": "evt-106", "command": "setup-ready", "message": "seat-4 is ready.", "status": "accepted" },
-      { "id": "evt-105", "command": "setup-ready", "message": "seat-3 is ready.", "status": "accepted" },
-      { "id": "evt-104", "command": "setup-ready", "message": "seat-2 is ready.", "status": "accepted" },
-      { "id": "evt-103", "command": "setup-ready", "message": "seat-1 is ready.", "status": "accepted" },
+      { "id": "evt-108", "command": "setup-ready", "message": "Seat 6 is ready.", "status": "accepted" },
+      { "id": "evt-107", "command": "setup-ready", "message": "Seat 5 is ready.", "status": "accepted" },
+      { "id": "evt-106", "command": "setup-ready", "message": "Seat 4 is ready.", "status": "accepted" },
+      { "id": "evt-105", "command": "setup-ready", "message": "Seat 3 is ready.", "status": "accepted" },
+      { "id": "evt-104", "command": "setup-ready", "message": "Seat 2 is ready.", "status": "accepted" },
+      { "id": "evt-103", "command": "setup-ready", "message": "Seat 1 is ready.", "status": "accepted" },
       {
         "id": "evt-102",
         "command": "piece.move",
@@ -18229,10 +18229,10 @@
       { "id": "evt-111", "command": "storm.move", "message": "Storm advanced to sector 4.", "status": "accepted" },
       { "id": "evt-110", "command": "storm.move", "message": "Storm advanced to sector 5.", "status": "accepted" },
       { "id": "evt-109", "command": "setup-phase", "message": "Setup complete. Turn 1: Storm.", "status": "accepted" },
-      { "id": "evt-108", "command": "setup-ready", "message": "seat-6 is ready.", "status": "accepted" },
-      { "id": "evt-107", "command": "setup-ready", "message": "seat-5 is ready.", "status": "accepted" },
-      { "id": "evt-106", "command": "setup-ready", "message": "seat-4 is ready.", "status": "accepted" },
-      { "id": "evt-105", "command": "setup-ready", "message": "seat-3 is ready.", "status": "accepted" }
+      { "id": "evt-108", "command": "setup-ready", "message": "Seat 6 is ready.", "status": "accepted" },
+      { "id": "evt-107", "command": "setup-ready", "message": "Seat 5 is ready.", "status": "accepted" },
+      { "id": "evt-106", "command": "setup-ready", "message": "Seat 4 is ready.", "status": "accepted" },
+      { "id": "evt-105", "command": "setup-ready", "message": "Seat 3 is ready.", "status": "accepted" }
     ],
     "RWzgH8sz5Uyf": {
       "battle": null,
@@ -18674,9 +18674,9 @@
       { "id": "evt-111", "command": "storm.move", "message": "Storm advanced to sector 4.", "status": "accepted" },
       { "id": "evt-110", "command": "storm.move", "message": "Storm advanced to sector 5.", "status": "accepted" },
       { "id": "evt-109", "command": "setup-phase", "message": "Setup complete. Turn 1: Storm.", "status": "accepted" },
-      { "id": "evt-108", "command": "setup-ready", "message": "seat-6 is ready.", "status": "accepted" },
-      { "id": "evt-107", "command": "setup-ready", "message": "seat-5 is ready.", "status": "accepted" },
-      { "id": "evt-106", "command": "setup-ready", "message": "seat-4 is ready.", "status": "accepted" }
+      { "id": "evt-108", "command": "setup-ready", "message": "Seat 6 is ready.", "status": "accepted" },
+      { "id": "evt-107", "command": "setup-ready", "message": "Seat 5 is ready.", "status": "accepted" },
+      { "id": "evt-106", "command": "setup-ready", "message": "Seat 4 is ready.", "status": "accepted" }
     ],
     "23e1dolfQrcI": {
       "seats": ["seat-1", "seat-2", "seat-3", "seat-4", "seat-5", "seat-6"],
@@ -19194,8 +19194,8 @@
       { "id": "evt-111", "command": "storm.move", "message": "Storm advanced to sector 4.", "status": "accepted" },
       { "id": "evt-110", "command": "storm.move", "message": "Storm advanced to sector 5.", "status": "accepted" },
       { "id": "evt-109", "command": "setup-phase", "message": "Setup complete. Turn 1: Storm.", "status": "accepted" },
-      { "id": "evt-108", "command": "setup-ready", "message": "seat-6 is ready.", "status": "accepted" },
-      { "id": "evt-107", "command": "setup-ready", "message": "seat-5 is ready.", "status": "accepted" }
+      { "id": "evt-108", "command": "setup-ready", "message": "Seat 6 is ready.", "status": "accepted" },
+      { "id": "evt-107", "command": "setup-ready", "message": "Seat 5 is ready.", "status": "accepted" }
     ],
     "3z6G1w3EgXOU": {
       "9dcc0e91-e361-4f57-bbe2-53e56a915e17": 106,
@@ -20509,7 +20509,7 @@
       { "id": "evt-111", "command": "storm.move", "message": "Storm advanced to sector 4.", "status": "accepted" },
       { "id": "evt-110", "command": "storm.move", "message": "Storm advanced to sector 5.", "status": "accepted" },
       { "id": "evt-109", "command": "setup-phase", "message": "Setup complete. Turn 1: Storm.", "status": "accepted" },
-      { "id": "evt-108", "command": "setup-ready", "message": "seat-6 is ready.", "status": "accepted" }
+      { "id": "evt-108", "command": "setup-ready", "message": "Seat 6 is ready.", "status": "accepted" }
     ],
     "wId5bYr8DwtV": {
       "9dcc0e91-e361-4f57-bbe2-53e56a915e17": 106,

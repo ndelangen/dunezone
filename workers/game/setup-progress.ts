@@ -7,6 +7,7 @@ import { accepted, nextSnapshot } from '../../src/shared/play/commands';
 import { rosterFactionEventName } from '../../src/shared/play/factionLabels';
 import { emptyPublicControls } from '../../src/shared/play/inventory';
 import type { StoredPiece } from '../../src/shared/play/model';
+import { seatSubject } from '../../src/shared/play/participation';
 import { composeSetup, phaseAt, requirePhaseCooldownElapsed, tableProgressFor } from '../../src/shared/play/phases';
 import type { SetupPlacement } from '../../src/shared/play/phases';
 import { rosterFactionNames, tableForViewer } from '../../src/shared/play/protocol';
@@ -180,7 +181,7 @@ function readySetup(snapshot: StoredSnapshot, value: boolean, context: Context) 
   return event(
     { ...snapshot, controls: { ...controls, ready } },
     'setup-ready',
-    `${context.seat} ${value ? 'is ready' : 'withdrew readiness'}.`
+    `${seatSubject(context.seat)} ${value ? 'is ready' : 'withdrew readiness'}.`
   );
 }
 

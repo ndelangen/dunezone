@@ -352,7 +352,7 @@ export function storyPlayer(seat: string, slug: string): StoryPlayer {
 export function draftingSnapshot(
   players: StoryPlayer[],
   seatCount: TableSeatCount,
-  draft: Partial<Pick<DraftState, 'picks' | 'bans' | 'ready' | 'failure' | 'setAside'>> = {},
+  draft: Partial<Pick<DraftState, 'minimum' | 'picks' | 'bans' | 'ready' | 'failure' | 'setAside'>> = {},
   seatRequests: NonNullable<GameSnapshot['controls']>['seatRequests'] = []
 ): GameSnapshot {
   return {
@@ -368,7 +368,7 @@ export function draftingSnapshot(
       seatRequests,
     },
     draft: {
-      minimum: seatCount,
+      minimum: draft.minimum ?? seatCount,
       factions: DRAFT_FACTIONS,
       catalogueAt: 1,
       picks: draft.picks ?? {},
