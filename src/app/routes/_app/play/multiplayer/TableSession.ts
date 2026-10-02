@@ -144,6 +144,8 @@ export class TableSession {
   /* One seat command at a time: a second click before the first settles would only fail the revision gate. */
   private seatCommandInFlight: string | null = null;
   private traitorGatherInFlight: string | null = null;
+  /* Set when a held piece went back to the table without a drop; the next view shows it, since a fresh view clears older errors. */
+  private droppedCarryNotice: string | null = null;
   private traitorsGathered = 0;
   private queuedCatalogue: { requestId: string; selection?: SpawnSelection } | null = null;
   private phaseCooldownUntil = 0;
@@ -342,6 +344,9 @@ export class TableSession {
     switch (message.type) {
       case 'connection':
         this.conversations.disconnected(this.status === 'denied');
+        if (this.carry && !this.carry.pendingDrop) {
+          this.droppedCarryNotice = 'The table paused while you held a piece. Pick it up again to continue.';
+        }
         this.clearDisconnectedActivity();
         this.selectedId = null;
         this.hoveredId = null;
@@ -481,12 +486,16 @@ export class TableSession {
     if (message.snapshotChanged) {
       this.receiveView(message);
     }
+    if (this.droppedCarryNotice) {
+      this.error = this.droppedCarryNotice;
+      this.droppedCarryNotice = null;
+    }
     this.reconcileCarry();
   }
   private replaceActivity(message: Extract<GameSubscriptionEvent, { type: 'view' }>) {
     if (this.epoch && message.epoch !== this.epoch) {
-      if (this.carry) {
-        this.error = 'The room resumed. Pick up the piece again to continue.';
+      if (this.carry && !this.carry.pendingDrop) {
+        this.droppedCarryNotice = 'The room resumed. Pick up the piece again to continue.';
       }
       this.carry = null;
     }

@@ -1224,6 +1224,20 @@ describe('fresh reconnect recovery', () => {
         committed ? position : source.position
       );
       expect(socket().sent).toEqual([{ type: 'admit', ticket: 'a'.repeat(64) }]);
+      expect(client.getSnapshot().error).toBeNull();
     }
   );
+
+  test('says a piece held through a paused connection went back, after the fresh view (#1696)', async () => {
+    const { client, source } = await grantedWholeCarry();
+    const snapshot = table(client).snapshot;
+    client.updateGesture([1, 0.38, 1]);
+    socket().close(1006);
+    await vi.advanceTimersByTimeAsync(1000);
+    socket().open();
+    authorize(snapshot);
+    expect(table(client).state.draftMove).toBeNull();
+    expect(table(client).renderedPieces.find((piece) => piece.id === source.id)?.position).toEqual(source.position);
+    expect(client.getSnapshot().error).toBe('The table paused while you held a piece. Pick it up again to continue.');
+  });
 });
