@@ -1,4 +1,4 @@
-import { Button, Group, Text, Tooltip } from '@mantine/core';
+import { Button, Group, Text, Tooltip, VisuallyHidden } from '@mantine/core';
 import { SPECTATOR_SEAT } from '@shared/play/schema';
 import type { SwapAction, SwappingState } from '@shared/play/swapping';
 import { useId } from 'react';
@@ -76,6 +76,8 @@ function Readiness(props: Swapping) {
           {status}
         </span>
       )}
+      {/* The timer is not live, so the end of trading is said here, once. */}
+      <VisuallyHidden role="status">{closed ? status : ''}</VisuallyHidden>
       {seat !== SPECTATOR_SEAT && (
         <Button
           disabled={disabled}

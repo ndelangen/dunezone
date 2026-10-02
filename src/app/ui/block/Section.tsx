@@ -66,7 +66,7 @@ export function Section({
           <VisuallyHidden>
             <BlockHeading id={headingId} title={title} />
             {/* The tooltip names nothing to assistive technology, so its guidance also describes the help button. */}
-            {description == null ? null : <span id={descriptionId}>{description}</span>}
+            {description ? <span id={descriptionId}>{description}</span> : null}
           </VisuallyHidden>
           <Tooltip
             label={[title, description].filter(Boolean).join('. ')}
@@ -79,7 +79,7 @@ export function Section({
               variant="subtle"
               size="sm"
               aria-label={`Help: ${title}`}
-              aria-describedby={description == null ? undefined : descriptionId}
+              aria-describedby={description ? descriptionId : undefined}
             >
               <CircleHelp size={18} aria-hidden />
             </ActionIcon>

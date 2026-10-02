@@ -94,7 +94,6 @@ describe('focus elsewhere on the page', () => {
 
   test.each([
     ['a link', '<a href="#profile">Profile</a>'],
-    ['a focusable region', '<div role="log" tabindex="0" aria-label="Conversation history"></div>'],
     ['an open menu', '<div role="menu" tabindex="-1"><button data-target role="menuitem">Draw a card</button></div>'],
     ['an open menu itself', '<div role="menu" tabindex="-1"></div>'],
     ['a menu item inside an open menu', '<div role="menu"><div data-target role="presentation"></div></div>'],
@@ -114,9 +113,12 @@ describe('focus elsewhere on the page', () => {
     expect(controls.splitSelected).not.toHaveBeenCalled();
   });
 
-  test('a plain element out of the tab order leaves the table keys working', () => {
+  test.each([
+    ['a plain element out of the tab order', '<div tabindex="-1"></div>'],
+    ['a focusable region', '<div role="region" tabindex="0" aria-label="Conversation history"></div>'],
+  ])('%s leaves the table keys working', (_name, html) => {
     const { controls } = table();
-    const target = focusable('<div tabindex="-1"></div>');
+    const target = focusable(html);
 
     key('keydown', { key: 'f' }, target);
 
