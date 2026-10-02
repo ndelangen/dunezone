@@ -5,7 +5,7 @@ export const MIN_CONTROLS_PANEL_PERCENT = 18;
 export const MAX_CONTROLS_PANEL_PERCENT = 50;
 export const PREFERRED_TABLETOP_SCENE_HEIGHT_PX = 320;
 /* The dock's own floor, `.seated-controls-panel { min-height: 17rem }` in dune-play.css. */
-export const CONTROLS_DOCK_MIN_HEIGHT_REM = 17;
+const CONTROLS_DOCK_MIN_HEIGHT_REM = 17;
 
 export const KEYBOARD_STEP_PERCENT = 2;
 export const KEYBOARD_PAGE_STEP_PERCENT = 5;
