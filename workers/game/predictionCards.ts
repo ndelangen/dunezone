@@ -5,7 +5,7 @@ import type { StoredSnapshot } from './state';
 type Prediction = StoredSnapshot['privatePredictions'][string];
 
 /** The card a locked prediction puts in its faction's hand: the shared base, with the choice drawn over it by every client (#1753). */
-export function predictionCard(
+function predictionCard(
   stepId: string,
   prediction: Prediction,
   faces: StoredSnapshot['predictionFaces'][string]

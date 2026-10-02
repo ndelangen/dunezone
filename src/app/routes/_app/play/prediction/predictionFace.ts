@@ -88,7 +88,7 @@ async function drawFace(logo: string, turn: number): Promise<HTMLCanvasElement> 
 }
 
 /** The overlay for one choice, drawn once per logo and turn and shared by every face that shows it. */
-export function predictionFace(logo: string, turn: number): Promise<HTMLCanvasElement> {
+function predictionFace(logo: string, turn: number): Promise<HTMLCanvasElement> {
   const key = `${logo}|${turn}`;
   let face = faces.get(key);
   if (!face) {
