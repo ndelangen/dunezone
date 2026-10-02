@@ -52,11 +52,11 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
     });
     state.combatFaces = {
       harkonnen: [
-        { id: 'harkonnen-front', name: 'Front', strength: 0.5, fundedStrength: 1 },
-        { id: 'heavy', name: 'Heavy', strength: -0.5, fundedStrength: 2.5, fundingCost: 2 },
-        { id: 'free', name: 'Free', strength: 0.5, fundedStrength: 1.5, fundingCost: 0 },
-        { id: 'negative', name: 'Negative', strength: 1, fundedStrength: -1, fundingCost: 0 },
-        { id: 'incapable', name: 'Incapable', strength: 1, fundedStrength: 2, capable: false },
+        { id: 'harkonnen-front', name: 'Front', strength: 0.5, supportedStrength: 1 },
+        { id: 'heavy', name: 'Heavy', strength: -0.5, supportedStrength: 2.5, supportCost: 2 },
+        { id: 'free', name: 'Free', strength: 0.5, supportedStrength: 1.5, supportCost: 0 },
+        { id: 'negative', name: 'Negative', strength: 1, supportedStrength: -1, supportCost: 0 },
+        { id: 'incapable', name: 'Incapable', strength: 1, supportedStrength: 2, capable: false },
       ],
       atreides: [],
     };
@@ -324,7 +324,7 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
     expect((await sendCommand(a, { kind: 'phase' })).reply.type).not.toBe('rejected');
   });
 
-  it('rejects competing starts and claims, counts exact funding and refunds a mode switch', async () => {
+  it('rejects competing starts and claims, counts exact support and refunds a mode switch', async () => {
     const battleId = await start();
     expect(
       (await sendCommand(b, { kind: 'battle-start', anchor: [0, 0, 0], territory: 'Polar Sink' })).reply.type
@@ -402,7 +402,7 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
     expect(card.items.map((item) => item.faceUp)).toEqual([false]);
   });
 
-  it('maximizes exact funding with zero costs and signed strengths and derives the custom price', async () => {
+  it('maximizes exact support with zero costs and signed strengths and derives the custom price', async () => {
     const battleId = await start();
     const troops = [
       { faceId: 'heavy', undialed: 3, dialed: 0 },

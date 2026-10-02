@@ -279,7 +279,7 @@ async function biddingAndShipment(journey) {
 }
 
 /*
- * The fixture troops carry no authored combat values, so no troop can be dialed and no spice can fund one.
+ * The fixture troops carry no authored combat values, so no troop can be dialed and no spice can support one.
  * Each side commits a leader alone, and the reveal shows 0 force and 0 spice, as the step text says.
  */
 async function battlePlan(journey, index) {

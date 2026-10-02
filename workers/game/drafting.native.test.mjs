@@ -18,7 +18,7 @@ import {
 /** A definition a real game deals: every face published, and the fighting troop face carries authored values. */
 function ready(id, name) {
   const base = definition(id, name);
-  const troops = base.data.troops.map((troop) => ({ ...troop, combat: { strength: 1, fundedStrength: 1 } }));
+  const troops = base.data.troops.map((troop) => ({ ...troop, combat: { strength: 1, supportedStrength: 1 } }));
   return {
     ...base,
     data: { ...base.data, troops },

@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { withSupportNames } from '../factions/schema';
 import type { AuthoredFace, AuthoredTroop } from '../factions/troopCombat';
 import { troopCombatFaces } from '../factions/troopCombat';
 import {
@@ -13,15 +14,22 @@ import {
 export const BATTLE_COUNTDOWN_MS = 5000;
 const battleSideSchema = z.union([z.literal(0), z.literal(1)]);
 const battleOutcomeSchema = z.enum(['left', 'none', 'right']);
-export const combatFaceSchema = z.object({
-  id,
-  name: z.string(),
-  capable: z.boolean().default(true),
-  strength: z.number(),
-  fundedStrength: z.number(),
-  fundingCost: count.default(1),
-  image: z.string().optional(),
-});
+/**
+ * A game stores its combat faces and plans, so faces stored before the funded-to-supported rename still carry the old names;
+ * the read renames them, and every write carries only the new ones.
+ */
+export const combatFaceSchema = z.preprocess(
+  withSupportNames,
+  z.object({
+    id,
+    name: z.string(),
+    capable: z.boolean().default(true),
+    strength: z.number(),
+    supportedStrength: z.number(),
+    supportCost: count.default(1),
+    image: z.string().optional(),
+  })
+);
 export type CombatFace = z.infer<typeof combatFaceSchema>;
 const troopDeclarationSchema = z.strictObject({ faceId: id, undialed: count, dialed: count });
 const battlePlanInputSchema = z.strictObject({
@@ -95,8 +103,8 @@ export function fixtureCombatFaces(factionId: string): CombatFace[] {
       name: 'Troops',
       capable: true,
       strength: 0.5,
-      fundedStrength: 1,
-      fundingCost: 1,
+      supportedStrength: 1,
+      supportCost: 1,
       image: `/vector/troop/${factionId}.svg`,
     },
   ];

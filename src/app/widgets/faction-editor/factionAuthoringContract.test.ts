@@ -301,13 +301,13 @@ describe('faction authoring contract', () => {
     expect(FactionInputSchema.safeParse(faction).success).toBe(true);
   });
 
-  it('refuses a face with only one strength or a fractional or negative funding cost', () => {
+  it('refuses a face with only one strength or a fractional or negative support cost', () => {
     const faction = structuredClone(defaultFaction);
     const refused = [
       { strength: 1 },
-      { strength: 1, fundedStrength: 2, fundingCost: 0.5 },
-      { strength: 1, fundedStrength: 2, fundingCost: -1 },
-      { strength: Number.POSITIVE_INFINITY, fundedStrength: 2 },
+      { strength: 1, supportedStrength: 2, supportCost: 0.5 },
+      { strength: 1, supportedStrength: 2, supportCost: -1 },
+      { strength: Number.POSITIVE_INFINITY, supportedStrength: 2 },
     ];
     for (const combat of refused) {
       faction.troops[0].combat = combat as never;

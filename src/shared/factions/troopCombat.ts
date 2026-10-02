@@ -32,10 +32,10 @@ function troopFaceId(troopIndex: number, side: TroopSide): string {
 
 /* An editor draft can hold one strength while the author is still entering the other; that face has no values yet. */
 export function completeCombat(combat: CombatValues | undefined): Required<CombatValues> | null {
-  if (typeof combat?.strength !== 'number' || typeof combat.fundedStrength !== 'number') {
+  if (typeof combat?.strength !== 'number' || typeof combat.supportedStrength !== 'number') {
     return null;
   }
-  return { ...combat, fundingCost: combat.fundingCost ?? 1 };
+  return { ...combat, supportCost: combat.supportCost ?? 1 };
 }
 
 function resolve<Face extends AuthoredFace>(face: Face, troopIndex: number, side: TroopSide): TroopFaceCombat<Face> {

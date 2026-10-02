@@ -57,7 +57,7 @@ describe('faction chapter defaults', () => {
   });
 
   it('gives a new back the combat values its reverse inherited, as its own copy', () => {
-    const combat = { strength: 0.5, fundedStrength: -1, fundingCost: 0 };
+    const combat = { strength: 0.5, supportedStrength: -1, supportCost: 0 };
     const front = { ...defaultTroop(), capable: false, combat };
 
     const back = createTroopBackFromFront(front);
@@ -70,13 +70,13 @@ describe('faction chapter defaults', () => {
   it('keeps combat values the author entered and never fills the other strength', () => {
     const strength = nextTroopCombat(undefined, 'strength', 1.5);
     expect(strength).toEqual({ strength: 1.5 });
-    const both = nextTroopCombat(strength, 'fundedStrength', -2);
-    expect(both).toEqual({ strength: 1.5, fundedStrength: -2 });
-    expect(nextTroopCombat(both, 'fundingCost', 0)).toEqual({ strength: 1.5, fundedStrength: -2, fundingCost: 0 });
-    expect(nextTroopCombat(both, 'strength', undefined)).toEqual({ fundedStrength: -2 });
-    expect(nextTroopCombat({ strength: 1, fundedStrength: 2 }, 'fundingCost', undefined)).toEqual({
+    const both = nextTroopCombat(strength, 'supportedStrength', -2);
+    expect(both).toEqual({ strength: 1.5, supportedStrength: -2 });
+    expect(nextTroopCombat(both, 'supportCost', 0)).toEqual({ strength: 1.5, supportedStrength: -2, supportCost: 0 });
+    expect(nextTroopCombat(both, 'strength', undefined)).toEqual({ supportedStrength: -2 });
+    expect(nextTroopCombat({ strength: 1, supportedStrength: 2 }, 'supportCost', undefined)).toEqual({
       strength: 1,
-      fundedStrength: 2,
+      supportedStrength: 2,
     });
     expect(nextTroopCombat(strength, 'strength', undefined)).toBeUndefined();
   });

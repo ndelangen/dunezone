@@ -36,17 +36,19 @@ function sum(a: number, b: number) {
   return result;
 }
 
-/** Exact funding uses bounded binary groups, including zero-cost and negative-strength faces. */
+/** Exact support uses bounded binary groups, including zero-cost and negative-strength faces. */
 function allocations(troops: BattlePlanInput['troops'], faces: Map<string, CombatFace>, limit: number) {
-  let states = new Map<number, { gain: number; funded: number[] }>([[0, { gain: 0, funded: troops.map(() => 0) }]]);
+  let states = new Map<number, { gain: number; supported: number[] }>([
+    [0, { gain: 0, supported: troops.map(() => 0) }],
+  ]);
   troops.forEach((troop, index) => {
     const face = faces.get(troop.faceId)!;
     let remaining = sum(troop.undialed, troop.dialed);
     for (let batch = 1; remaining > 0; batch *= 2) {
       const quantity = Math.min(batch, remaining);
       remaining -= quantity;
-      const cost = quantity * face.fundingCost;
-      const gain = quantity * (face.fundedStrength - face.strength);
+      const cost = quantity * face.supportCost;
+      const gain = quantity * (face.supportedStrength - face.strength);
       const next = new Map(states);
       for (const [spent, allocation] of states) {
         const total = spent + cost;
@@ -55,14 +57,14 @@ function allocations(troops: BattlePlanInput['troops'], faces: Map<string, Comba
         }
         const previous = next.get(total);
         if (!previous || allocation.gain + gain > previous.gain) {
-          const funded = [...allocation.funded];
-          funded[index] += quantity;
-          next.set(total, { gain: allocation.gain + gain, funded });
+          const supported = [...allocation.supported];
+          supported[index] += quantity;
+          next.set(total, { gain: allocation.gain + gain, supported });
         }
       }
       /* A pathological declaration fails explicitly before consuming unbounded Worker memory. */
       if (next.size > 100_000) {
-        return refuse('This funding calculation is too large. Reduce the declaration.');
+        return refuse('This support calculation is too large. Reduce the declaration.');
       }
       states = next;
     }
@@ -70,7 +72,7 @@ function allocations(troops: BattlePlanInput['troops'], faces: Map<string, Comba
   return states;
 }
 
-function fundMaxTroops(
+function supportMaxTroops(
   troops: BattlePlanInput['troops'],
   faces: Map<string, CombatFace>,
   spice: number,
@@ -80,14 +82,14 @@ function fundMaxTroops(
   if (!states.has(spice)) {
     const troopEdit = JSON.stringify(troops) !== JSON.stringify(before.troops) && spice === before.spice;
     if (!troopEdit) {
-      return refuse('That exact amount of spice cannot fund these troops.');
+      return refuse('That exact amount of spice cannot support these troops.');
     }
     spice = [...states.keys()].reduce((highest, value) => Math.max(highest, value), 0);
   }
   const allocation = states.get(spice)!;
   troops.forEach((troop, index) => {
     const total = sum(troop.undialed, troop.dialed);
-    troop.dialed = allocation.funded[index];
+    troop.dialed = allocation.supported[index];
     troop.undialed = total - troop.dialed;
   });
   return spice;
@@ -96,7 +98,7 @@ function fundMaxTroops(
 function declaredStrength(troops: BattlePlanInput['troops'], faces: Map<string, CombatFace>, adjustment: number) {
   const strength = troops.reduce((total, troop) => {
     const face = faces.get(troop.faceId)!;
-    return total + troop.undialed * face.strength + troop.dialed * face.fundedStrength;
+    return total + troop.undialed * face.strength + troop.dialed * face.supportedStrength;
   }, adjustment);
   if (!Number.isFinite(strength)) {
     return refuse('The declared strength is too large.');
@@ -104,7 +106,7 @@ function declaredStrength(troops: BattlePlanInput['troops'], faces: Map<string, 
   return strength;
 }
 
-function fundedPlan(input: BattlePlanInput, before: StoredBattlePlan) {
+function supportedPlan(input: BattlePlanInput, before: StoredBattlePlan) {
   const faces = new Map(before.faces.filter((face) => face.capable).map((face) => [face.id, face]));
   const troops = input.mode !== before.mode ? [] : input.troops.map((troop) => ({ ...troop }));
   if (
@@ -115,9 +117,9 @@ function fundedPlan(input: BattlePlanInput, before: StoredBattlePlan) {
   }
   let spice = input.mode !== before.mode ? 0 : input.spice;
   if (input.mode === 'custom') {
-    spice = troops.reduce((total, troop) => sum(total, troop.dialed * faces.get(troop.faceId)!.fundingCost), 0);
+    spice = troops.reduce((total, troop) => sum(total, troop.dialed * faces.get(troop.faceId)!.supportCost), 0);
   } else {
-    spice = fundMaxTroops(troops, faces, spice, before);
+    spice = supportMaxTroops(troops, faces, spice, before);
   }
   const strength = declaredStrength(troops, faces, input.adjustment);
   return { ...input, troops, spice, strength, faces: before.faces };
@@ -163,7 +165,7 @@ function editPlan({ snapshot, battle, side, factionId }: Combatant, input: Battl
     return refuse('Undo Ready before editing your plan.');
   }
   const before = battle.plans[side]!;
-  const plan = fundedPlan(input, before);
+  const plan = supportedPlan(input, before);
   const available = [...(snapshot.factionInventories[factionId] ?? []), ...before.pieces];
   const pieces = selectedPlanPieces(plan, available);
   validateCardSlots(pieces, plan);
