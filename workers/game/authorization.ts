@@ -13,19 +13,43 @@ import type { playWatchAuthorizationsRequestSchema } from '../../src/shared/play
 import { GameRejection } from '../../src/shared/play/rejection';
 import type { GameDiagnostics } from './diagnostics';
 
+/**
+ * Convex did not answer: the request timed out or was aborted, the network failed, or the deployment answered with a redirect or a server error other than a function's own failure.
+ * Retrying later may succeed, unlike a refusal or an answer this Worker cannot read.
+ */
+export class ConvexUnavailable extends Error {}
+
+/* Convex reports a function that threw, a ConvexError included, with this status: that is an answer, not an outage. */
+const FUNCTION_FAILED_STATUS = 560;
+
 export function gameHttpClient(url: string): ConvexHttpClient {
   return new ConvexHttpClient(url, {
     logger: false,
     fetch: async (input, init) => {
-      const response = await fetch(input, {
-        ...init,
-        redirect: 'manual',
-        signal: AbortSignal.timeout(PLAY_REQUEST_TIMEOUT_MS),
-      });
-      if (response.status >= 300 && response.status < 400) {
-        throw new Error('Authorization unavailable.');
+      try {
+        const response = await fetch(input, {
+          ...init,
+          redirect: 'manual',
+          signal: AbortSignal.timeout(PLAY_REQUEST_TIMEOUT_MS),
+        });
+        if (
+          (response.status >= 300 && response.status < 400) ||
+          (response.status >= 500 && response.status !== FUNCTION_FAILED_STATUS)
+        ) {
+          throw new ConvexUnavailable(`Convex answered with status ${response.status}.`);
+        }
+        /* Read inside the timeout, so a body that stalls counts as Convex not answering. */
+        const body = await response.arrayBuffer();
+        return new Response(body, {
+          status: response.status,
+          statusText: response.statusText,
+          headers: response.headers,
+        });
+      } catch (error) {
+        throw error instanceof ConvexUnavailable
+          ? error
+          : new ConvexUnavailable('Convex did not answer.', { cause: error });
       }
-      return response;
     },
   });
 }

@@ -123,8 +123,11 @@ re-provisioning.
    browser requests a new ticket and reconnects, with the same wait as a ticket it finds lapsed
    before sending it. That wait doubles from 1 second up to `PLAY_TICKET_RETRY_MAX_MS`, and a view
    resets it. A refused session, account or game stays denied. An admission that failed because
-   Convex did not answer the redemption or the account check refuses nothing: the socket closes
-   with code 1013 and the browser reconnects with a new ticket.
+   Convex did not answer the redemption or the account check (a timeout, a network failure, or a
+   redirect or server error other than a function's own failure) refuses nothing: the socket closes
+   with code 1013 and the browser reconnects with a new ticket after the same doubling wait. While
+   a failed account check waits out its backoff, the room closes a new admission that way at once
+   without asking Convex. Any other failure, such as an answer the Worker cannot read, still denies.
 4. Every command and outgoing game message checks authorization, session expiry and both the
    session and account-reconciliation leases. Timer delays cannot extend these deadlines.
 5. Logout, expiry or a known authorization failure stops game traffic. Reconnection requires a

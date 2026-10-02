@@ -196,8 +196,18 @@ function answerPeerRequest(peer, record) {
       record.release({ ok: true });
       break;
     case 'playAdmission:redeemTicket':
-      /* A test that sets `peer.redemptionRefusal` has Convex refuse the ticket with that reason instead of redeeming it. */
-      record.release(peer.redemptionRefusal ? { ok: false, reason: peer.redemptionRefusal } : redeemedIdentity(peer));
+      /*
+       * A test that sets `peer.redemptionRefusal` has Convex refuse the ticket with that reason instead of redeeming it.
+       * `peer.redemptionMode` set to `error` fails the request as an outage would; `malformed` answers in a shape no deployment sends.
+       */
+      if (peer.redemptionMode === 'error') {
+        record.response.writeHead(503);
+        record.response.end('Redemption unavailable');
+      } else if (peer.redemptionMode === 'malformed') {
+        record.release({ ok: true, registrationId: peer.registrationId });
+      } else {
+        record.release(peer.redemptionRefusal ? { ok: false, reason: peer.redemptionRefusal } : redeemedIdentity(peer));
+      }
       break;
     case 'playAdmission:reconcileAccounts':
       /* The room's account check: `hold` keeps it open until `peer.releaseAccounts()` answers it, `error` fails it. */
@@ -255,6 +265,7 @@ export async function createPeer() {
     expiresAt: () => Date.now() + 60_000,
     registrationId: 'registration-a',
     redemptionRefusal: null,
+    redemptionMode: 'answer',
     provisionExpiresAt: Date.now() + 60_000,
     confirmed: false,
     holdFirstConfirmation: false,

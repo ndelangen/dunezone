@@ -27,6 +27,7 @@ import { isDraftAction } from '../../src/shared/play/drafting';
 import type { StoredSpawnContents } from '../../src/shared/play/inventory';
 import type { ClientMessage, PieceAction, ServerClock, ServerMessage, Viewer } from '../../src/shared/play/protocol';
 import {
+  ADMISSION_UNAVAILABLE_CLOSE_CODE,
   KEEPALIVE_PING,
   KEEPALIVE_PONG,
   TICKET_EXPIRED_CLOSE_CODE,
@@ -39,7 +40,7 @@ import { playRedeemTicketOutcomeSchema } from '../../src/shared/play/seatLimit';
 import { setupReadyRequired, setupStep } from '../../src/shared/play/setup';
 import { SPECTATOR_COLOR } from './actors';
 import { handleAlertWebhook } from './alerts';
-import { AuthorizationWatch, gameHttpClient } from './authorization';
+import { AuthorizationWatch, ConvexUnavailable, gameHttpClient } from './authorization';
 import { GameCatalogue } from './catalogue';
 import { RoomDelivery } from './delivery';
 import { GameDiagnostics } from './diagnostics';
@@ -80,8 +81,6 @@ type TicketAdmission = Extract<ReturnType<typeof playRedeemTicketOutcomeSchema.p
 
 /** A ticket that lapsed or was already redeemed. The socket closes without a refusal, so the browser asks for a new ticket. */
 class ExpiredTicket extends GameRejection {}
-/** The standard "try again later" close: admission failed for want of Convex, which a browser treats as a dropped socket and reconnects. */
-const ADMISSION_UNAVAILABLE_CLOSE_CODE = 1013;
 
 const json = (body: unknown, status = 200) => Response.json(body, { status, headers: { 'Cache-Control': 'no-store' } });
 const refused = () => json({ error: 'Request refused.' }, 403);
@@ -872,9 +871,20 @@ export class GameRoom extends DurableObject<GameEnv> {
       return;
     }
     connection.admitting = true;
+    /* A reconciliation that just failed waits out its backoff; a browser retrying meanwhile must not reach Convex ahead of it. */
+    if (this.reconciliationBackingOff()) {
+      this.closeUnavailable(socket);
+      return;
+    }
     try {
       const result = await this.redeemAdmission(ticket);
-      await this.reconcileAccounts();
+      try {
+        await this.reconcileAccounts();
+      } catch (error) {
+        /* The reconciliation reported its own failure. */
+        this.failAdmission(socket, error, false);
+        return;
+      }
       if (!this.reconciled || !this.pendingConnection(socket, connection)) {
         this.deny(socket);
         return;
@@ -886,20 +896,40 @@ export class GameRoom extends DurableObject<GameEnv> {
       this.registerConnection(connection, result);
       this.authorizationChanged();
     } catch (error) {
-      if (error instanceof ExpiredTicket) {
-        this.disconnect(socket);
-        socket.close(TICKET_EXPIRED_CLOSE_CODE, error.message);
-        return;
-      }
-      if (!(error instanceof GameRejection)) {
-        /* Convex could not be reached or failed: nothing was refused, so the browser asks for a new ticket and retries. */
-        this.diagnostics.report('admission', error);
-        this.disconnect(socket);
-        socket.close(ADMISSION_UNAVAILABLE_CLOSE_CODE, 'Admission unavailable.');
-        return;
-      }
-      this.deny(socket);
+      this.failAdmission(socket, error, true);
     }
+  }
+
+  private reconciliationBackingOff() {
+    return (
+      !this.hasAccountLease() &&
+      !this.reconcilePromise &&
+      this.reconcileFailures > 0 &&
+      Date.now() < this.nextReconcileAt
+    );
+  }
+
+  /* Only Convex failing to answer leaves the login intact; a refusal, or an answer this Worker cannot use, denies it. */
+  private failAdmission(socket: WebSocket, error: unknown, report: boolean) {
+    if (error instanceof ExpiredTicket) {
+      this.disconnect(socket);
+      socket.close(TICKET_EXPIRED_CLOSE_CODE, error.message);
+      return;
+    }
+    if (report && !(error instanceof GameRejection)) {
+      this.diagnostics.report('admission', error);
+    }
+    if (error instanceof ConvexUnavailable) {
+      this.closeUnavailable(socket);
+      return;
+    }
+    this.deny(socket);
+  }
+
+  /* Nothing was refused, so the browser asks for a new ticket and retries after its backoff. */
+  private closeUnavailable(socket: WebSocket) {
+    this.disconnect(socket);
+    socket.close(ADMISSION_UNAVAILABLE_CLOSE_CODE, 'Admission unavailable.');
   }
 
   private authorized(socket: WebSocket): boolean {
