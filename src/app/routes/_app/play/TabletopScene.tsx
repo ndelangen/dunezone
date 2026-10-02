@@ -78,6 +78,7 @@ import {
   Float32BufferAttribute,
   Mesh,
   MeshBasicMaterial,
+  NeutralToneMapping,
   Raycaster,
   RingGeometry,
   SRGBColorSpace,
@@ -103,6 +104,7 @@ import { isPublicTablePoint, ScenePresence, useTablePose } from './ScenePresence
 import { SpiceSupply } from './SpiceSupply';
 import { TableFurniture } from './TableFurniture';
 import { TableGraphicsBoundary, TableGraphicsUnavailable } from './TableGraphicsBoundary';
+import { useTableLighting } from './tableLighting';
 import { mapViewFramingPoints } from './tablePlateGeometry';
 import { useTabletop } from './TabletopContext';
 import styles from './TabletopScene.module.css';
@@ -507,6 +509,7 @@ const subscribePublishedFace = sharedPublishedFaces<Texture>({
   load: (href, onLoad, onError) => new TextureLoader().load(href, onLoad, undefined, onError),
   prepare: (value) => {
     value.colorSpace = SRGBColorSpace;
+    value.anisotropy = 8;
   },
   release: (value) => value.dispose(),
 });
@@ -1216,6 +1219,7 @@ function SceneContents({
   useScenePointerSession(onPointerSessionChange);
   useCanvasHoverReset();
   useCanvasName();
+  const lighting = useTableLighting();
 
   return (
     <>
@@ -1223,9 +1227,9 @@ function SceneContents({
       <fog attach="fog" args={['#130d0a', 10, 22]} />
       <CameraRelativeFog />
       <ScenePresence />
-      <ambientLight intensity={1.25} />
-      <directionalLight position={[-4, 9, 5]} intensity={3.1} color="#ffe2ae" />
-      <pointLight position={[5, 4, -4]} intensity={14} distance={16} color="#d67b44" />
+      <ambientLight intensity={1.25 * lighting} />
+      <directionalLight position={[-4, 9, 5]} intensity={3.1 * lighting} color="#ffe2ae" />
+      <pointLight position={[5, 4, -4]} intensity={14 * lighting} distance={16} color="#d67b44" />
       <group onClick={() => selectPiece(null)}>
         <BoardSurface
           seatCount={seatCount}
@@ -1390,6 +1394,7 @@ export function TabletopScene({
                 antialias: true,
                 alpha: false,
                 powerPreference: 'high-performance',
+                toneMapping: NeutralToneMapping,
               }}
               /* The renderer's creation follows its asynchronous initialisation, which is the long part of a table's arrival; the first frame follows at once. */
               onCreated={onSceneReady}

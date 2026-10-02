@@ -1,4 +1,4 @@
-import { Button, Group, Menu, Popover, Select, Stack, Text } from '@mantine/core';
+import { Button, Group, Menu, Popover, Select, Slider, Stack, Text } from '@mantine/core';
 import { emptyPublicControls } from '@shared/play/inventory';
 import { seatLabel } from '@shared/play/participation';
 import type { SeatAction, SeatRequest } from '@shared/play/participation';
@@ -11,6 +11,7 @@ import { Armchair, EllipsisVertical } from 'lucide-react';
 import { useId, useState } from 'react';
 import type { ReactNode } from 'react';
 
+import { setTableLighting, TABLE_LIGHTING_MAX, TABLE_LIGHTING_MIN, useTableLighting } from '../tableLighting';
 import styles from './SeatRequests.module.css';
 import type { TableProjection, TableSession } from './TableSession';
 
@@ -253,6 +254,28 @@ function LeavingBar({ client, table, onStay }: BarProps & Readonly<{ onStay: () 
   );
 }
 
+/* This viewer's table brightness; it stays in this browser and never reaches the game. */
+function TableLightingSlider() {
+  const lighting = useTableLighting();
+  const labelId = useId();
+  return (
+    <Stack gap={4} px="sm" py="xs" miw={200}>
+      <Text id={labelId} size="sm">
+        Table lighting
+      </Text>
+      <Slider
+        aria-labelledby={labelId}
+        min={TABLE_LIGHTING_MIN}
+        max={TABLE_LIGHTING_MAX}
+        step={0.05}
+        value={lighting}
+        onChange={setTableLighting}
+        label={(value) => `${Math.round(value * 100)}%`}
+      />
+    </Stack>
+  );
+}
+
 /**
  * The game menu in the header toolbar, in every stage, left of the phase controls that stay rightmost.
  * It gives up the viewer's seat, with the confirmation in the decision bar, never in a modal;
@@ -281,6 +304,8 @@ export function GameMenu({
         />
       </Menu.Target>
       <Menu.Dropdown>
+        <TableLightingSlider />
+        <Menu.Divider />
         {onClearConfetti && <Menu.Item onClick={onClearConfetti}>Clear confetti</Menu.Item>}
         <Menu.Item color="red" disabled={!seated} onClick={onLeave}>
           Give up your seat
