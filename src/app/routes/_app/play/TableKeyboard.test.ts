@@ -22,7 +22,7 @@ afterEach(() => {
 function table() {
   const keyboard = new TableKeyboard();
   const controls = {
-    canInteract: true,
+    canHandleTable: true,
     state: freshTableState(),
     hoveredPieceId: null as string | null,
     deckControls: undefined,

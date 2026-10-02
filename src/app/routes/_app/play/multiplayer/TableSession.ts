@@ -1,3 +1,4 @@
+import { tableHandlingOpen } from '@shared/play/admission';
 import type { BattlePlanInput } from '@shared/play/battle';
 import { snapshotFactionLabels, snapshotFactionTieBreaks } from '@shared/play/factionLabels';
 import type { SpawnSelection } from '@shared/play/inventory';
@@ -79,6 +80,8 @@ export type TableProjection = {
   playback: { step: number; lastStep: number } | null;
   historyPending: boolean;
   canInteract: boolean;
+  /* Whether the viewer may handle the table's pieces: acting, at a stage whose table can change. A finished game, or one still drafting or trading, keeps its table as it is. */
+  canHandleTable: boolean;
   /* The connection is being restored: this is the last live table, read-only, until a fresh view replaces it. */
   reconnecting: boolean;
   /* A seat command is on its way; the bar holds its buttons until the table answers. */
@@ -137,6 +140,7 @@ function storedProjection({ viewer, snapshot, serverNow }: StoredTable): TablePr
     playback: null,
     historyPending: false,
     canInteract: false,
+    canHandleTable: false,
     reconnecting: true,
     seatCommandPending: false,
     traitorsGathered: 0,
@@ -314,6 +318,7 @@ export class TableSession {
       ...table,
       reconnecting: true,
       canInteract: false,
+      canHandleTable: false,
       seatCommandPending: false,
       phaseCooling: false,
       state,
@@ -362,12 +367,14 @@ export class TableSession {
     const state = {
       ...tableForViewer(displayed, viewer.viewerSeat),
       factionTieBreaks: snapshotFactionTieBreaks(displayed),
-      selectedPieceId: this.selectedId,
+      /* A selection made before handling closed is not shown, so nothing offers to act on it. */
+      selectedPieceId: tableHandlingOpen(this.snapshot.stage) ? this.selectedId : null,
       draftMove: this.carry?.draft ?? null,
     };
     const { carries: remote, pointers } = this.activityForView();
     const local = this.localProjection(state);
     const canInteract = this.canAct();
+    const canHandleTable = this.canHandle();
     const renderedPieces = projectPublicCarries(local.pieces, remote);
     const reservedPieceIds = new Set(remote.flatMap((carry) => carry.reservedIds));
     return {
@@ -377,6 +384,7 @@ export class TableSession {
       playback: this.history ? { step: this.history.step, lastStep: this.history.lastStep } : null,
       historyPending: this.pendingHistory !== null,
       canInteract,
+      canHandleTable,
       reconnecting: false,
       seatCommandPending: this.seatCommandInFlight !== null,
       traitorsGathered: this.traitorsGathered,
@@ -387,13 +395,13 @@ export class TableSession {
       selectedPiece: renderedPieces.find((piece) => piece.id === state.selectedPieceId) ?? null,
       affordances: affordancesFor({ ...state, pieces: renderedPieces }),
       bankControls:
-        canInteract && displayed.bank
+        canHandleTable && displayed.bank
           ? {
               canCollect: (pieceId) => !reservedPieceIds.has(pieceId),
               collect: (pieceId) => this.command({ kind: 'bank-collect', pieceId }),
             }
           : undefined,
-      deckControls: canInteract
+      deckControls: canHandleTable
         ? {
             recipients: Object.entries(snapshotFactionLabels(displayed)).map(([id, name]) => ({ id, name })),
             draw: (pieceId, recipient) => this.command({ kind: 'deck-draw', pieceId, recipient }),
@@ -772,6 +780,9 @@ export class TableSession {
   private canAct() {
     return this.viewer?.viewerSeat !== SPECTATOR_SEAT && this.current();
   }
+  private canHandle() {
+    return this.canAct() && tableHandlingOpen(this.snapshot.stage);
+  }
   requestHistory = (step: number) => {
     if (this.status !== 'authorized' || this.carry) {
       return;
@@ -793,7 +804,8 @@ export class TableSession {
     this.emit();
   };
   selectPiece = (id: string | null) => {
-    if (!this.canAct()) {
+    /* Clearing a selection sends nothing, so it is allowed even when the table cannot be handled. */
+    if (id !== null && !this.canHandle()) {
       return;
     }
     this.selectedId = id;
@@ -808,7 +820,7 @@ export class TableSession {
   };
   beginGesture = (sourceId: string, pickup: 'top' | 'whole') => {
     if (
-      !this.canAct() ||
+      !this.canHandle() ||
       this.carry ||
       this.requireTable().reservedPieceIds.has(sourceId) ||
       this.requireTable().flippingPieceIds.has(sourceId)
@@ -1012,8 +1024,9 @@ export class TableSession {
       (piece) => piece.kind === 'card' && piece.stackKey === 'cards:traitor' && !piece.inventory
     );
   }
+  /* A piece command names its piece only while the table can be handled, so a finished table never sends one the room refuses. */
   private target(id?: string) {
-    return id ?? this.hoveredId ?? this.selectedId;
+    return this.canHandle() ? (id ?? this.hoveredId ?? this.selectedId) : null;
   }
   splitSelected = (count = 1, id?: string) => {
     const pieceId = this.target(id);

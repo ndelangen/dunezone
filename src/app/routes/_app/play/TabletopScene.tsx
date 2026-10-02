@@ -79,6 +79,7 @@ import {
   Float32BufferAttribute,
   Mesh,
   MeshBasicMaterial,
+  NeutralToneMapping,
   Raycaster,
   RingGeometry,
   SRGBColorSpace,
@@ -104,6 +105,7 @@ import { isPublicTablePoint, ScenePresence, useTablePose } from './ScenePresence
 import { SpiceSupply } from './SpiceSupply';
 import { TableFurniture } from './TableFurniture';
 import { TableGraphicsBoundary, TableGraphicsUnavailable } from './TableGraphicsBoundary';
+import { useTableLighting } from './tableLighting';
 import { mapViewFramingPoints } from './tablePlateGeometry';
 import { useTabletop } from './TabletopContext';
 import styles from './TabletopScene.module.css';
@@ -508,6 +510,7 @@ const subscribePublishedFace = sharedPublishedFaces<Texture>({
   load: (href, onLoad, onError) => new TextureLoader().load(href, onLoad, undefined, onError),
   prepare: (value) => {
     value.colorSpace = SRGBColorSpace;
+    value.anisotropy = 8;
   },
   release: (value) => value.dispose(),
 });
@@ -533,14 +536,12 @@ function PublishedFace({ href, card, ratio }: { href: string; card: boolean; rat
       ) : (
         <circleGeometry args={[FORCE_FACE_RADIUS, 48]} />
       )}
-      <meshStandardMaterial
-        key={texture ? href : 'placeholder'}
-        map={texture}
-        color={texture ? '#ffffff' : '#d5ba8c'}
-        transparent
-        roughness={0.68}
-        metalness={0}
-      />
+      {/* Printed art is drawn unlit: the warm table light washed out card, leader and token faces (#1756). The renderer still tone maps the whole frame in its output pass. The placeholder stays lit, like the piece beneath it. */}
+      {texture ? (
+        <meshBasicMaterial key={href} map={texture} transparent />
+      ) : (
+        <meshStandardMaterial key="placeholder" color="#d5ba8c" transparent roughness={0.68} metalness={0} />
+      )}
     </mesh>
   );
 }
@@ -739,7 +740,7 @@ type TablePieceMeshProps = {
 };
 
 function usePieceCarryState(piece: TablePiece) {
-  const { state, gestureActivePieceId, canInteract, remoteCarriedIds, reservedPieceIds } = useTabletop();
+  const { state, gestureActivePieceId, canHandleTable, remoteCarriedIds, reservedPieceIds } = useTabletop();
   const drafted = state.draftMove?.pieceId === piece.id;
   const remoteCarried = remoteCarriedIds.has(piece.id);
   const locallyCarried = drafted && gestureActivePieceId !== null;
@@ -750,7 +751,7 @@ function usePieceCarryState(piece: TablePiece) {
     remoteCarried,
     locallyCarried,
     reserved,
-    interactionBlocked: !canInteract || remoteCarried || (reserved && !localSource),
+    interactionBlocked: !canHandleTable || remoteCarried || (reserved && !localSource),
   };
 }
 
@@ -783,11 +784,12 @@ function useTablePointFromClient() {
 
 function useScenePointerSession(onActiveChange: (active: boolean) => void) {
   const session = usePointerSession();
-  const { state, beginGesture, updateGesture, finishGesture, cancelDraft, canInteract, publishPointer } = useTabletop();
+  const { state, beginGesture, updateGesture, finishGesture, cancelDraft, canHandleTable, publishPointer } =
+    useTabletop();
   const { renderer } = useThree();
   const point = useTablePointFromClient();
   const controls = {
-    canInteract,
+    canHandleTable,
     hasDraft: Boolean(state.draftMove),
     piece: (id: string) => state.pieces.find((piece) => piece.id === id),
     point,
@@ -877,7 +879,7 @@ function pieceHoverCursor(canInteract: boolean, interactionBlocked: boolean, ges
 const PieceMenuContext = createContext<((pieceId: string, x: number, y: number) => void) | null>(null);
 
 function usePiecePointerEvents({ piece }: TablePieceMeshProps, interactionBlocked: boolean) {
-  const { state, selectPiece, setHoveredPiece, canInteract } = useTabletop();
+  const { state, selectPiece, setHoveredPiece, canHandleTable } = useTabletop();
   const openPieceMenu = useContext(PieceMenuContext);
   const { renderer } = useThree();
   const pointerSession = usePointerSession();
@@ -934,7 +936,7 @@ function usePiecePointerEvents({ piece }: TablePieceMeshProps, interactionBlocke
     },
     onPointerEnter: (event: ThreeEvent<PointerEvent>) => {
       event.stopPropagation();
-      const cursor = pieceHoverCursor(canInteract, interactionBlocked, Boolean(gestureBlocked));
+      const cursor = pieceHoverCursor(canHandleTable, interactionBlocked, Boolean(gestureBlocked));
       if (interactionBlocked) {
         renderer.domElement.style.cursor = cursor;
         return;
@@ -1205,6 +1207,18 @@ function ReleaseRendererOnUnmount() {
   return null;
 }
 
+/* The table's lights, scaled by this viewer's lighting choice; only they re-render while the slider moves. */
+function TableLights() {
+  const lighting = useTableLighting();
+  return (
+    <>
+      <ambientLight intensity={1.25 * lighting} />
+      <directionalLight position={[-4, 9, 5]} intensity={3.1 * lighting} color="#ffe2ae" />
+      <pointLight position={[5, 4, -4]} intensity={14 * lighting} distance={16} color="#d67b44" />
+    </>
+  );
+}
+
 function SceneContents({
   cameraView = DEFAULT_CAMERA_VIEW,
   onInteractionActiveChange,
@@ -1233,9 +1247,7 @@ function SceneContents({
       <fog attach="fog" args={['#130d0a', 10, 22]} />
       <CameraRelativeFog />
       <ScenePresence />
-      <ambientLight intensity={1.25} />
-      <directionalLight position={[-4, 9, 5]} intensity={3.1} color="#ffe2ae" />
-      <pointLight position={[5, 4, -4]} intensity={14} distance={16} color="#d67b44" />
+      <TableLights />
       <group onClick={() => selectPiece(null)}>
         <BoardSurface
           seatCount={seatCount}
@@ -1400,6 +1412,7 @@ export function TabletopScene({
                 antialias: true,
                 alpha: false,
                 powerPreference: 'high-performance',
+                toneMapping: NeutralToneMapping,
               }}
               /* The renderer's creation follows its asynchronous initialisation, which is the long part of a table's arrival; the first frame follows at once. */
               onCreated={onSceneReady}

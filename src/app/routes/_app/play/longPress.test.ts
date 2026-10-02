@@ -51,6 +51,13 @@ test('another pointer leaves the press alone', () => {
   expect(onHold).toHaveBeenCalledOnce();
 });
 
+test('a second finger landing stops the hold, since two fingers are a tilt', () => {
+  const { events, onHold } = press();
+  events.dispatchEvent(pointer('pointerdown', 90, 2));
+  vi.advanceTimersByTime(LONG_PRESS_MS);
+  expect(onHold).not.toHaveBeenCalled();
+});
+
 test('letting go stops the hold', () => {
   const { onHold, stop } = press();
   stop();
