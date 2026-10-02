@@ -116,7 +116,7 @@ test('publisher activation seeds once and regeneration keeps saved definitions',
   const scan = { assetType: 'cardback-preset', cursor: null, scanned: 0, enqueued: 0 };
   await t.mutation(internal.publicationRegeneration.scan, scan);
   const presets = await t.query(api.cardbackPresets.list, {});
-  expect(presets).toHaveLength(4);
+  expect(presets).toHaveLength(INITIAL_CARDBACK_PRESETS.length);
   await admin.mutation(api.cardbackPresets.save, {
     key: 'traitor',
     cardback: { ...cardback, name: 'Saved design' },

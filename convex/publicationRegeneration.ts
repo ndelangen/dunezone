@@ -8,6 +8,7 @@ import {
   SPICE_CARD_ASSET_TYPE,
   TREACHERY_CARD_ASSET_TYPE,
 } from '../src/shared/asset-publishing/publication';
+import { INITIAL_CARDBACK_PRESETS } from '../src/shared/assets/cardbackPresets';
 import { internal } from './_generated/api';
 import type { Doc } from './_generated/dataModel';
 import { internalMutation } from './functions';
@@ -114,7 +115,12 @@ async function scanPage(ctx: MutationCtx, assetType: string, cursor: string | nu
   switch (assetType) {
     case 'cardback-preset':
       await publishCardbackPresets(ctx);
-      return { scanned: 4, enqueued: 4, isDone: true, continueCursor: '' };
+      return {
+        scanned: INITIAL_CARDBACK_PRESETS.length,
+        enqueued: INITIAL_CARDBACK_PRESETS.length,
+        isDone: true,
+        continueCursor: '',
+      };
     case 'faction-token':
       return await scanFactions(ctx, cursor, REGENERATION_BATCH_SIZE, async (ctx, faction) => {
         await enqueueFactionTokenPublication(ctx, faction);
