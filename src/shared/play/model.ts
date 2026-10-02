@@ -12,6 +12,7 @@ import type {
 import { isSpicePiece } from './spice';
 import { DEFAULT_STORM_SECTOR_INDEX } from './stormSector';
 import { restingPositionAt } from './tableGeometry';
+import { isTroopStack } from './troop';
 
 export type Vector3Tuple = z.infer<typeof tablePositionSchema>;
 export type TablePiece = z.infer<typeof tablePieceSchema>;
@@ -266,15 +267,16 @@ export function nearestZone(position: Vector3Tuple): Zone | null {
 function splitAffordance(piece: TablePiece): Affordance {
   const isCard = piece.kind === 'card';
   const isSpice = isSpicePiece(piece);
+  const unit = isTroopStack(piece) ? 'troop' : 'token';
   return {
     id: isCard ? 'draw' : 'split',
     commandType: isCard ? 'deck.draw' : 'stack.split',
-    label: isCard ? 'Draw top card' : isSpice ? 'Split one spice' : 'Split one troop',
+    label: isCard ? 'Draw top card' : isSpice ? 'Split one spice' : `Split one ${unit}`,
     description: isCard
       ? 'Take the top card into a new loose table object.'
       : isSpice
         ? 'Create a separate spice stack beside this stack.'
-        : 'Create a separate one-troop stack beside this stack.',
+        : `Create a separate one-${unit} stack beside this stack.`,
   };
 }
 

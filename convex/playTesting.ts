@@ -224,7 +224,7 @@ const SYNTHETIC_PHASES = [
     before: 'forces',
     priority: 10,
     allPlayersMustBeReady: true,
-    instructions: 'Every player confirms Ready before starting forces.',
+    instructions: 'Every player confirms Ready before starting troops.',
   },
 ] as const;
 

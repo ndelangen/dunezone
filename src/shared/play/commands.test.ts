@@ -3,7 +3,7 @@ import { describe, expect, test } from 'vitest';
 import { assetPublishingFaction } from '../factions/fixtures/assetPublishingFaction';
 import type { FactionCapture } from './capture';
 import { applyPieceAction, emptySnapshot, initialSnapshot, nextSnapshot } from './commands';
-import { freshTableState } from './model';
+import { affordancesFor, freshTableState } from './model';
 import type { TablePiece, TableState, Vector3Tuple } from './model';
 import { tableForViewer } from './protocol';
 import type { GameSnapshot } from './protocol';
@@ -200,6 +200,23 @@ describe('card decks', () => {
   });
 });
 
+/* What a split, a merge and the split affordance say, in wordingStacks order: a troop stack, a card stack, a shared token stack. */
+const SPLIT_WORDING = [
+  '2 troops taken from Normal troop.',
+  '2 cards taken from Treachery deck.',
+  '2 tokens taken from Harvester.',
+];
+const MERGE_WORDING = [
+  '2 troops stacked with House Atreides troops.',
+  '2 cards placed on Treachery card.',
+  '2 tokens stacked with Shared token.',
+];
+const AFFORDANCE_WORDING = [
+  ['Split one troop', 'Create a separate one-troop stack beside this stack.'],
+  ['Draw top card', 'Take the top card into a new loose table object.'],
+  ['Split one token', 'Create a separate one-token stack beside this stack.'],
+];
+
 describe('troop stacks', () => {
   /* House Atreides as a real game carries it: its pieces are owned by the catalogue's database id, and the roster holds its display name. */
   const ATREIDES = { id: 'k17ag3gr1h60n7mmh88kj56avs8a1j7x', slug: 'house-atreides', name: 'House Atreides' };
@@ -267,8 +284,8 @@ describe('troop stacks', () => {
         [3, 0, 6]
       ),
       [
-        ['Shared troops', 2],
-        ['Shared troop', 1],
+        ['Shared tokens', 2],
+        ['Shared token', 1],
       ],
     ],
     [
@@ -286,4 +303,60 @@ describe('troop stacks', () => {
 
     expect(labels(split.pieces)).toEqual(expected);
   });
+
+  /* A troop is told apart by its stack key, not its kind: the Harvester shares the 'force' kind and reads as tokens. */
+  const wordingStacks = (): Array<[string, TablePiece]> => [
+    ['a troop stack', hostedTable().pieces[0]!],
+    [
+      'a card stack',
+      place(
+        {
+          ...piece('deck', 'Treachery deck', 'shared', '#5f4b8b', 'card', 'card:treachery'),
+          items: [0, 1, 2].map((index) => ({ id: `treachery-${index}`, faceUp: false })),
+        },
+        [3, 0, 6]
+      ),
+    ],
+    [
+      'a shared token stack',
+      place(
+        {
+          ...piece('tokens', 'Harvester', 'shared', '#d5ba8c', 'force', 'token:harvester'),
+          items: [0, 1, 2].map((index) => ({ id: `harvester-${index}`, faceUp: true })),
+        },
+        [3, 0, 6]
+      ),
+    ],
+  ];
+  const lastMessage = (state: TableState) => state.events[0]?.message;
+
+  test.each(wordingStacks().map(([name, stack], index) => [name, stack, SPLIT_WORDING[index]!] as const))(
+    'a split of %s describes its unit',
+    (_case, stack, expected) => {
+      const table = { ...hostedTable(), pieces: [stack] };
+      expect(lastMessage(applyPieceAction(table, { kind: 'split', pieceId: stack.id, count: 2 }, 0))).toBe(expected);
+    }
+  );
+
+  test.each(wordingStacks().map(([name, stack], index) => [name, stack, MERGE_WORDING[index]!] as const))(
+    'a merge of %s describes its unit',
+    (_case, stack, expected) => {
+      const split = applyPieceAction(
+        { ...hostedTable(), pieces: [stack] },
+        { kind: 'split', pieceId: stack.id, count: 2 },
+        0
+      );
+      const parted = split.pieces.find((candidate) => candidate.id !== stack.id)!;
+      expect(lastMessage(dropOnto(split, parted.id, stack.id))).toBe(expected);
+    }
+  );
+
+  test.each(wordingStacks().map(([name, stack], index) => [name, stack, AFFORDANCE_WORDING[index]!] as const))(
+    'the split affordance for %s names its unit',
+    (_case, stack, expected) => {
+      const table = { ...hostedTable(), pieces: [stack], selectedPieceId: stack.id };
+      const split = affordancesFor(table).find((affordance) => affordance.id === 'split' || affordance.id === 'draw');
+      expect(split && [split.label, split.description]).toEqual(expected);
+    }
+  );
 });
