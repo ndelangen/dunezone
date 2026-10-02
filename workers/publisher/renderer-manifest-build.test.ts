@@ -108,22 +108,23 @@ describe('current Renderer manifest digest', () => {
     expect(changed.components.contract).not.toBe(digest().components.contract);
   });
 
-  /* The digest hashes the sorted entries alike, so the first, the middle and the last path of the list stand for every path in it (#1590). */
+  /* The digest hashes the sorted entries alike, so the first, the middle and the last path of the list stand for every path in it, and the files are read once for the three rows (#1590). */
+  const runtimeEntries = RENDERER_RUNTIME_CLOSURE_PATHS.map((relativePath) => ({
+    path: relativePath,
+    bytes: readFileSync(path.resolve(process.cwd(), relativePath)),
+  }));
+  const runtimeDigest = digest(runtimeEntries).digest;
   test.each(
     [0, Math.floor(RENDERER_RUNTIME_CLOSURE_PATHS.length / 2), RENDERER_RUNTIME_CLOSURE_PATHS.length - 1].map(
       (index) => RENDERER_RUNTIME_CLOSURE_PATHS[index]!
     )
   )('changes when renderer runtime closure input %s changes', (changedPath) => {
-    const runtimeEntries = RENDERER_RUNTIME_CLOSURE_PATHS.map((relativePath) => ({
-      path: relativePath,
-      bytes: readFileSync(path.resolve(process.cwd(), relativePath)),
-    }));
     const changedEntries = runtimeEntries.map((entry) =>
       entry.path === changedPath
         ? { ...entry, bytes: Buffer.concat([entry.bytes, Buffer.from('\n// changed')]) }
         : entry
     );
-    expect(digest(changedEntries).digest).not.toBe(digest(runtimeEntries).digest);
+    expect(digest(changedEntries).digest).not.toBe(runtimeDigest);
   });
 
   test('rejects ambiguous duplicate paths', () => {

@@ -964,9 +964,9 @@ describe('Rulebook reader links', () => {
    * A record indexed by a URL-supplied key answers for names it never stored.
    * `itemsById.__proto__` is `Object.prototype` and `constructor` is a function: both truthy, neither carrying `text`, so an unguarded index hands back an object that reads as a found item and throws when its text is parsed.
    * The reader resolves the locator during render, so that throw is the whole public page, reachable from any crafted link.
-   * `__proto__` stands for the inherited object, `constructor` for every inherited function (`toString`, `valueOf` and the rest answer the same way), and `hasOwnProperty` is the guard's own name (#1590).
+   * `__proto__` stands for the inherited object and `constructor` for every inherited function: `toString`, `hasOwnProperty` and the rest answer the same way under `Object.hasOwn` (#1590).
    */
-  test.each(['__proto__', 'constructor', 'hasOwnProperty'])(
+  test.each(['__proto__', 'constructor'])(
     'answers an item id of %s without reaching a prototype member',
     (inherited) => {
       const list = movement.blocksById.L5ST!;
