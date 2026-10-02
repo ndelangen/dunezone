@@ -26,7 +26,7 @@ import { accountStateOf } from './lib/accountLifecycle';
 import {
   admitsPlayers,
   authenticatedPlayRequest,
-  currentPlaySession,
+  livePlaySession,
   playCredential,
   playCredentialDigest,
   playSessionAuthorization,
@@ -39,8 +39,8 @@ export const issueTicket = mutation({
   args: zodToConvex(playIssueTicketRequestSchema),
   returns: zodToConvex(playTicketResultSchema),
   handler: async (ctx, args): Promise<ReturnType<typeof playTicketResultSchema.parse>> => {
-    const session = await currentPlaySession(ctx);
-    if (!session || Date.now() >= session.authExpiresAt) {
+    const session = await livePlaySession(ctx);
+    if (!session) {
       return { ok: false as const, reason: 'not_authorized' as const };
     }
     const limited = await playTicketQuota(ctx, session.userId);
