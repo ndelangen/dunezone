@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { renderHook, waitFor } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, expect, test, vi } from 'vitest';
 
 import { resetTableGraphics, useTableGraphics } from './useTableGraphics';
@@ -18,6 +18,7 @@ function stubWebGPU(adapter: Promise<unknown> | undefined) {
 }
 
 afterEach(() => {
+  vi.useRealTimers();
   resetTableGraphics();
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
@@ -55,4 +56,26 @@ test('a browser without WebGPU at all, or whose adapter request fails, cannot dr
   stubWebGPU(Promise.reject(new Error('adapter refused')));
   const refused = renderHook(() => useTableGraphics());
   await waitFor(() => expect(refused.result.current).toBe('unavailable'));
+});
+
+test('a no is asked again on the next mount, so a driver reset that refused once does not stick', async () => {
+  stubWebGL2(false);
+  stubWebGPU(Promise.resolve(null));
+  const first = renderHook(() => useTableGraphics());
+  await waitFor(() => expect(first.result.current).toBe('unavailable'));
+  stubWebGPU(Promise.resolve({}));
+  const second = renderHook(() => useTableGraphics());
+  expect(second.result.current).toBe('checking');
+  await waitFor(() => expect(second.result.current).toBe('ready'));
+});
+
+test('an adapter request that never settles reads as no adapter after its wait', async () => {
+  vi.useFakeTimers();
+  stubWebGL2(false);
+  stubWebGPU(new Promise(() => {}));
+  const { result } = renderHook(() => useTableGraphics());
+  await act(() => vi.advanceTimersByTimeAsync(2999));
+  expect(result.current).toBe('checking');
+  await act(() => vi.advanceTimersByTimeAsync(1));
+  expect(result.current).toBe('unavailable');
 });

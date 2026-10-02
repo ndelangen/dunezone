@@ -1,5 +1,5 @@
 /* @jsxImportSource ./three-jsx */
-import { Button, Menu, Text } from '@mantine/core';
+import { Button, Menu } from '@mantine/core';
 import { Html, Shadow, useTexture } from '@react-three/drei/webgpu';
 import { Canvas, useFrame, useThree } from '@react-three/fiber/webgpu';
 import type { ThreeEvent } from '@react-three/fiber/webgpu';
@@ -100,6 +100,7 @@ import { sharedPublishedFaces } from './publishedFaceRetry';
 import { isPublicTablePoint, ScenePresence, useTablePose } from './ScenePresence';
 import { SpiceSupply } from './SpiceSupply';
 import { TableFurniture } from './TableFurniture';
+import { TableGraphicsBoundary, TableGraphicsUnavailable } from './TableGraphicsBoundary';
 import { mapViewFramingPoints } from './tablePlateGeometry';
 import { useTabletop } from './TabletopContext';
 import styles from './TabletopScene.module.css';
@@ -108,7 +109,7 @@ import type { TableProgress } from './tableTrackers';
 import { TurnTracker } from './TurnTracker';
 import { useDeckShuffleAnimation } from './useDeckShuffleAnimation';
 import { usePieceFlipAnimation } from './usePieceFlipAnimation';
-import { TABLE_GRAPHICS_UNAVAILABLE, useTableGraphics } from './useTableGraphics';
+import { useTableGraphics } from './useTableGraphics';
 
 /* The two textures start with the bundle, alongside the connection, so the mounted table has them by the time it needs them. */
 useTexture.preload(arrakisMapUrl);
@@ -1232,12 +1233,6 @@ export function TabletopScene({
     [mapFramingPoints]
   );
   const graphics = useTableGraphics();
-  /* With nothing to draw with, the shell still opens, so the message, the panel and the way back to the lobby are reachable. */
-  useEffect(() => {
-    if (graphics === 'unavailable') {
-      onSceneReady?.();
-    }
-  }, [graphics, onSceneReady]);
 
   return (
     <div
@@ -1334,37 +1329,35 @@ export function TabletopScene({
       <PieceMenuContext.Provider
         value={deckControls || bankControls ? (pieceId, x, y) => setPieceMenu({ pieceId, x, y }) : null}
       >
-        {graphics === 'unavailable' && (
-          <Text role="alert" className={styles.graphicsUnavailable}>
-            {TABLE_GRAPHICS_UNAVAILABLE}
-          </Text>
-        )}
+        {graphics === 'unavailable' && <TableGraphicsUnavailable onShown={onSceneReady} />}
         {graphics === 'ready' && (
-          <Canvas
-            camera={camera}
-            dpr={[1, 1.75]}
-            frameloop="demand"
-            renderer={{
-              antialias: true,
-              alpha: false,
-              powerPreference: 'high-performance',
-            }}
-            /* The renderer's creation follows its asynchronous initialisation, which is the long part of a table's arrival; the first frame follows at once. */
-            onCreated={onSceneReady}
-          >
-            {children}
-            <SceneContents
-              stage={stage}
-              mapVisible={mapVisible}
-              cameraView={cameraView}
-              onInteractionActiveChange={onInteractionActiveChange}
-              seatCount={seatCount}
-              tableProgress={tableProgress}
-              onSelectTurn={onSelectTurn}
-              trackerSlots={trackerSlots}
-              mapFramingPoints={mapFramingPoints}
-            />
-          </Canvas>
+          <TableGraphicsBoundary onShown={onSceneReady}>
+            <Canvas
+              camera={camera}
+              dpr={[1, 1.75]}
+              frameloop="demand"
+              renderer={{
+                antialias: true,
+                alpha: false,
+                powerPreference: 'high-performance',
+              }}
+              /* The renderer's creation follows its asynchronous initialisation, which is the long part of a table's arrival; the first frame follows at once. */
+              onCreated={onSceneReady}
+            >
+              {children}
+              <SceneContents
+                stage={stage}
+                mapVisible={mapVisible}
+                cameraView={cameraView}
+                onInteractionActiveChange={onInteractionActiveChange}
+                seatCount={seatCount}
+                tableProgress={tableProgress}
+                onSelectTurn={onSelectTurn}
+                trackerSlots={trackerSlots}
+                mapFramingPoints={mapFramingPoints}
+              />
+            </Canvas>
+          </TableGraphicsBoundary>
         )}
       </PieceMenuContext.Provider>
     </div>

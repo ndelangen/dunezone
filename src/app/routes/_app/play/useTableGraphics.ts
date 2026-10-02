@@ -5,8 +5,11 @@ export type TableGraphics = 'checking' | 'ready' | 'unavailable';
 export const TABLE_GRAPHICS_UNAVAILABLE =
   "This browser can't draw the table. Turn on hardware acceleration in its settings, or try another browser.";
 
-/* One answer per page: the browser's graphics do not change while it stays open. */
-let known: Exclude<TableGraphics, 'checking'> | undefined;
+/* A browser that drew once can draw again, so a yes holds for the page; a no is asked again on the next mount, since a driver reset can refuse once. */
+let known: 'ready' | undefined;
+
+/* An adapter request that hangs (some virtualised GPUs) reads as no adapter, so the stage does not open onto nothing. */
+const ADAPTER_WAIT_MS = 3000;
 
 /* The renderer draws with WebGPU when an adapter answers and falls back to WebGL2 otherwise; with neither, its creation throws. */
 function canCreateWebGL2(): boolean {
@@ -15,11 +18,24 @@ function canCreateWebGL2(): boolean {
   return context !== null;
 }
 
+/* The same request three.js makes, so a compatibility-only GPU counts; the installed WebGPU types predate `featureLevel`. */
+const ADAPTER_OPTIONS: GPURequestAdapterOptions & { featureLevel: 'compatibility' } = {
+  featureLevel: 'compatibility',
+  powerPreference: 'high-performance',
+};
+
 async function hasWebGPUAdapter(): Promise<boolean> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
   try {
-    return !!(await navigator.gpu?.requestAdapter());
+    const adapter = navigator.gpu?.requestAdapter(ADAPTER_OPTIONS);
+    const timeout = new Promise<null>((resolve) => {
+      timer = setTimeout(() => resolve(null), ADAPTER_WAIT_MS);
+    });
+    return !!(await Promise.race([adapter, timeout]));
   } catch {
     return false;
+  } finally {
+    clearTimeout(timer);
   }
 }
 
@@ -37,9 +53,11 @@ export function useTableGraphics(): TableGraphics {
     }
     let current = true;
     void hasWebGPUAdapter().then((adapter) => {
-      known = adapter ? 'ready' : 'unavailable';
+      if (adapter) {
+        known = 'ready';
+      }
       if (current) {
-        setGraphics(known);
+        setGraphics(adapter ? 'ready' : 'unavailable');
       }
     });
     return () => {
