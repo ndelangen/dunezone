@@ -2,8 +2,10 @@ import { initialSnapshot } from '@shared/play/commands';
 import type { GameSnapshot, Viewer } from '@shared/play/protocol';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 
+import { forgetStoredPlayTable, keepsPlayTable } from '@db/playTables';
+
 import { runtime, Socket } from './gameRuntime.test.fixture';
-import { sessionTableStore } from './storedTable';
+import { sessionTableStore, STORED_TABLE_MAX_AGE_MS } from './storedTable';
 import type { TableAccount } from './storedTable';
 import { TableSession } from './TableSession';
 
@@ -27,6 +29,7 @@ beforeEach(() => {
   vi.useFakeTimers();
   Socket.instances = [];
   storage.clear();
+  keepsPlayTable('game');
   account = { userId: 'user', sessionId: 'session-one' };
 });
 afterEach(() => {
@@ -160,4 +163,39 @@ test('the kept table is written soon after a change without waiting for the page
   expect(storage.size).toBe(0);
   await vi.advanceTimersByTimeAsync(2000);
   expect(storage.size).toBe(1);
+});
+
+test('a message the room rejected is not carried into the reload', async () => {
+  const client = load();
+  await live();
+  client.conversations.submit({ peerId: 'two', text: 'A plan' });
+  const [request] = socket().sent.filter((message) => message.type === 'conversation-send');
+  socket().deliver({ type: 'rejected', requestId: request!.requestId, message: 'Conversations are closed.' });
+  leave();
+
+  expect(load().getSnapshot().conversations.pending).toEqual([]);
+});
+
+test('a table the directory refused stays forgotten, even with a write still queued', async () => {
+  const client = await visitAndLeave();
+  client.conversations.submit({ peerId: 'two', text: 'Queued' });
+  forgetStoredPlayTable('game');
+  await vi.advanceTimersByTimeAsync(2000);
+  leave();
+
+  expect(storage.size).toBe(0);
+  expect(load().getSnapshot().table).toBeNull();
+});
+
+test('a table kept while offline ages from when it was last live, not from its last write', async () => {
+  await visitAndLeave();
+  vi.setSystemTime(Date.now() + STORED_TABLE_MAX_AGE_MS - 1000);
+  const reloaded = load();
+  await vi.advanceTimersByTimeAsync(0);
+  socket().close();
+  leave();
+  vi.setSystemTime(Date.now() + 2000);
+
+  expect(load().getSnapshot().table).toBeNull();
+  expect(reloaded.getSnapshot().table).not.toBeNull();
 });

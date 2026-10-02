@@ -84,9 +84,9 @@ export class ConversationSession {
       .map((request) => ({ request, delivery: { state: 'unsent' } }));
   }
 
-  /** The messages the room has not confirmed, which a reload should keep. */
+  /** The messages the room has not confirmed, which a reload should keep; one the room rejected stays behind, as across a reconnect. */
   unconfirmed(): Extract<Request, { type: 'conversation-send' }>[] {
-    return this.pending.map((entry) => entry.request);
+    return this.pending.filter((entry) => entry.delivery.state !== 'failed').map((entry) => entry.request);
   }
 
   disconnected(denied: boolean) {

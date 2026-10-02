@@ -231,7 +231,12 @@ export class TableSession {
       return;
     }
     this.conversations.resume(stored.snapshot, stored.viewer, stored.pending);
-    this.kept = { viewer: stored.viewer, snapshot: stored.snapshot, serverNow: stored.serverNow };
+    this.kept = {
+      viewer: stored.viewer,
+      snapshot: stored.snapshot,
+      serverNow: stored.serverNow,
+      ...(stored.liveAt === undefined ? {} : { liveAt: stored.liveAt }),
+    };
     this.lastLive = { table: storedProjection(stored), serverNow: () => stored.serverNow };
   }
   private keep() {
@@ -241,11 +246,12 @@ export class TableSession {
       this.runtime.tables?.clear(this.game);
       return;
     }
-    if (this.status === 'authorized' && live) {
+    const isLive = this.status === 'authorized' && live !== null;
+    if (isLive) {
       this.kept = { viewer: live.viewer, snapshot: live.snapshot, serverNow: this.subscription.serverNow() };
     }
     if (this.kept) {
-      this.runtime.tables?.save(this.game, { ...this.kept, pending: this.conversations.unconfirmed() });
+      this.runtime.tables?.save(this.game, { ...this.kept, pending: this.conversations.unconfirmed() }, isLive);
     }
   }
   readonly conversations: ConversationSession;
@@ -732,7 +738,7 @@ export class TableSession {
     }
   };
   connect = () => {
-    if (!this.lastLive) {
+    if (!this.lastLive && !this.kept) {
       this.restore();
       this.emit();
     }

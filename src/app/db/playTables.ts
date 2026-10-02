@@ -5,8 +5,24 @@
 /** Every key a tab stores its last table under (#1746) starts with this. */
 export const STORED_PLAY_TABLE_PREFIX = 'dunezone-play-table:';
 
+/*
+ * Tables this page was told to forget, which a write the table runtime still has queued must not bring back.
+ * `null` stands for every table, as signing out forgets them all; a fresh live view of a game lets its table be kept again.
+ */
+const forgotten = new Set<string | null>();
+
+/** Whether a queued write for `gameId` must be dropped, because the page forgot that table or every table since it was queued. */
+export const forgetsPlayTable = (gameId: string) => forgotten.has(null) || forgotten.has(gameId);
+
+/** The table for `gameId` is live again, so it may be kept. */
+export function keepsPlayTable(gameId: string) {
+  forgotten.delete(null);
+  forgotten.delete(gameId);
+}
+
 /** Removes the tables this tab kept for a reload, so the next person on this browser never finds them. */
 export function forgetStoredPlayTables() {
+  forgotten.add(null);
   try {
     const keys = Object.keys(sessionStorage).filter((key) => key.startsWith(STORED_PLAY_TABLE_PREFIX));
     for (const key of keys) {
@@ -27,9 +43,7 @@ export const storedAuthTokenKey = () =>
  */
 export function storedAuthToken(): string | null {
   try {
-    return localStorage.getItem(
-      `__convexAuthJWT_${(import.meta.env.VITE_CONVEX_URL ?? '').replace(/[^a-zA-Z0-9]/g, '')}`
-    );
+    return localStorage.getItem(storedAuthTokenKey());
   } catch {
     return null;
   }
@@ -46,6 +60,7 @@ export function hasStoredPlayTable(gameId: string): boolean {
 
 /** Removes the table this tab kept for `gameId`, once the directory says the viewer may no longer open it. */
 export function forgetStoredPlayTable(gameId: string) {
+  forgotten.add(gameId);
   try {
     sessionStorage.removeItem(`${STORED_PLAY_TABLE_PREFIX}${gameId}`);
   } catch {

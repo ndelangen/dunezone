@@ -2,7 +2,7 @@ import { clientMessageSchema, serverMessageSchema } from '@shared/play/protocol'
 import type { ClientMessage, GameSnapshot, Viewer } from '@shared/play/protocol';
 import { z } from 'zod';
 
-import { STORED_PLAY_TABLE_PREFIX } from '@db/playTables';
+import { forgetsPlayTable, keepsPlayTable, STORED_PLAY_TABLE_PREFIX } from '@db/playTables';
 
 type ConversationSend = Extract<ClientMessage, { type: 'conversation-send' }>;
 
@@ -14,6 +14,8 @@ export type StoredTable = {
   serverNow: number;
   /* Chat messages the room has not confirmed; the room saves each request id once, so sending one again after the reload is safe. */
   pending: ConversationSend[];
+  /* When the table was last live, by this browser's clock; the store stamps it, and the day-old backstop counts from it. */
+  liveAt?: number;
 };
 
 /** Who is signed in to this tab, as the auth token names them; `null` when nobody is. */
@@ -21,8 +23,11 @@ export type TableAccount = { userId: string; sessionId: string };
 
 export type TableStore = {
   read(gameId: string): StoredTable | null;
-  /* Keeps the newest table and writes it soon after, and at once when the page is hidden or unloads. */
-  save(gameId: string, table: StoredTable): void;
+  /*
+   * Keeps the newest table and writes it soon after, and at once when the page is hidden or unloads.
+   * `live` says the table came from a live view, which stamps it; a table kept from an earlier visit keeps its stamp.
+   */
+  save(gameId: string, table: StoredTable, live: boolean): void;
   clear(gameId: string): void;
 };
 
@@ -61,7 +66,13 @@ function parseTable(record: StoredRecord): StoredTable | null {
     }
     pending.push(request.data);
   }
-  return { viewer: frame.data.viewer, snapshot: frame.data.snapshot, serverNow: record.serverNow, pending };
+  return {
+    viewer: frame.data.viewer,
+    snapshot: frame.data.snapshot,
+    serverNow: record.serverNow,
+    pending,
+    liveAt: record.savedAt,
+  };
 }
 
 /**
@@ -123,7 +134,7 @@ export function storedTableText(
     gameId,
     userId: account.userId,
     sessionId: account.sessionId,
-    savedAt: now,
+    savedAt: table.liveAt ?? now,
     serverNow: table.serverNow,
     frame: { type: 'view', epoch: 'stored', viewer: table.viewer, snapshot: table.snapshot, carries: [], pointers: [] },
     pending: table.pending,
@@ -163,13 +174,15 @@ type BrowserStore = {
  */
 export function sessionTableStore({ storage, account, now, onLeave }: BrowserStore): TableStore {
   const queued = new Map<string, StoredTable>();
+  /* When each game's table was last live, so a table kept while offline is not re-stamped by every write. */
+  const liveAt = new Map<string, number>();
   let timer: ReturnType<typeof setTimeout> | undefined;
   const flush = () => {
     clearTimeout(timer);
     timer = undefined;
     const target = storage();
     for (const [gameId, table] of queued) {
-      const text = storedTableText(gameId, table, account(), now());
+      const text = forgetsPlayTable(gameId) ? null : storedTableText(gameId, table, account(), now());
       try {
         if (text === null) {
           target?.removeItem(storageKey(gameId));
@@ -192,8 +205,15 @@ export function sessionTableStore({ storage, account, now, onLeave }: BrowserSto
         return null;
       }
     },
-    save(gameId, table) {
-      queued.set(gameId, table);
+    save(gameId, table, live) {
+      if (live) {
+        keepsPlayTable(gameId);
+      }
+      if (live) {
+        liveAt.set(gameId, now());
+      }
+      const stamp = liveAt.get(gameId) ?? table.liveAt;
+      queued.set(gameId, stamp === undefined ? table : { ...table, liveAt: stamp });
       timer ??= setTimeout(flush, WRITE_DELAY_MS);
     },
     clear(gameId) {

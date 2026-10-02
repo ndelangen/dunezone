@@ -21,7 +21,7 @@ function storageWith(text: string | null) {
 
 test('reads back what it stored for the same game, account and session', () => {
   const storage = storageWith(storedTableText('game', table, account, now));
-  expect(readStoredTable(storage, 'game', account, now + 1)).toEqual(table);
+  expect(readStoredTable(storage, 'game', account, now + 1)).toEqual({ ...table, liveAt: now });
 });
 
 test("refuses to store another account's table", () => {
