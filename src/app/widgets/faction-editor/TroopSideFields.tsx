@@ -1,7 +1,7 @@
 import { Box, ColorInput, NumberInput, SimpleGrid, Stack, Switch, Text, TextInput } from '@mantine/core';
 import type { NumberInputProps } from '@mantine/core';
 import { TROOP, TROOP_MODIFIER } from '@shared/assetIds';
-import { completeBattle } from '@shared/factions/troopBattle';
+import { completeBattleValues } from '@shared/factions/troopBattle';
 import { stockAssetOptions } from '@ui/content/stockAssetOptions';
 import { AssetSelect } from '@ui/control/AssetSelect';
 import { ControlBlock } from '@ui/control/ControlBlock';
@@ -11,7 +11,7 @@ import { useEffect, useState } from 'react';
 import type { Faction } from '@db/factions';
 
 import { assetOptionToPreviewSrc, troopStarOptionToLabel } from './factionFormAssetUtils';
-import { nextTroopBattle } from './factionFormDefaults';
+import { nextTroopBattleValues } from './factionFormDefaults';
 import type { FactionFormApi } from './factionFormTypes';
 
 const troopImageOptions = stockAssetOptions(TROOP.options);
@@ -201,7 +201,7 @@ function TroopBattleFields({
                               whole={whole}
                               value={battleValues.state.value?.[key]}
                               onCommit={(value) => {
-                                battleValues.handleChange(nextTroopBattle(battleValues.state.value, key, value));
+                                battleValues.handleChange(nextTroopBattleValues(battleValues.state.value, key, value));
                                 battleValues.handleBlur();
                               }}
                             />
@@ -210,7 +210,7 @@ function TroopBattleFields({
                       );
                     })}
                   </SimpleGrid>
-                  {completeBattle(battleValues.state.value) === null ? (
+                  {completeBattleValues(battleValues.state.value) === null ? (
                     <Text id={`${idBase}-battle-warning`} c="var(--color-caution)" size="xs" role="status">
                       Enter both strengths to use this side in battle. Until then a game leaves it out of battle plans.
                     </Text>

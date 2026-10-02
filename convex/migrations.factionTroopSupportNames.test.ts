@@ -4,7 +4,7 @@
 import { describe, expect, test } from 'vitest';
 
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
-import { TroopBattle, withSupportNames } from '../src/shared/factions/schema';
+import { TroopBattleValues, withSupportNames } from '../src/shared/factions/schema';
 import { battleFaceSchema } from '../src/shared/play/battle';
 import { api, internal } from './_generated/api';
 import { factionTest, insertStoredFactions, storedFactionData } from './factions.test.fixture';
@@ -129,7 +129,7 @@ describe('faction troop support names migration', () => {
       strength: 1,
       supportedStrength: 3,
     });
-    expect(TroopBattle.safeParse({ strength: 1, fundedStrength: 2 }).success).toBe(false);
+    expect(TroopBattleValues.safeParse({ strength: 1, fundedStrength: 2 }).success).toBe(false);
     /* A game's stored faces predate the rename too. */
     expect(
       battleFaceSchema.parse({

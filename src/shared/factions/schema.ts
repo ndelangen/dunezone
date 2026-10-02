@@ -94,9 +94,9 @@ export const Decal = z.strictObject({
  * the support cost is whole spice, zero or more, and one when absent.
  * A face without this object has no authored battle values, which is never read as zero.
  * Authoring and writes accept only these names;
- * stored reads go through `StoredTroopBattle`.
+ * stored reads go through `StoredTroopBattleValues`.
  */
-export const TroopBattle = z.strictObject({
+export const TroopBattleValues = z.strictObject({
   strength: z.number(),
   supportedStrength: z.number(),
   supportCost: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER).optional(),
@@ -125,11 +125,11 @@ export function withSupportNames(value: unknown): unknown {
 /**
  * Stored-data reader for the rename's compatibility window: the legacy names read as the new ones, and every write emits only the new ones.
  * `faction_troop_support_names_v1` rewrites stored factions.
- * Narrowing the live schemas to `TroopBattle` is a later release, once that migration and its verify have run everywhere;
+ * Narrowing the live schemas to `TroopBattleValues` is a later release, once that migration and its verify have run everywhere;
  * `HistoricalFactionPublicationSchema` keeps this read even then, because games retain captures taken before the rename.
  * Like `extras`, a preprocess derives as `v.any()` on the Convex wire, which leaves the shape to the Zod parse.
  */
-const StoredTroopBattle = z.preprocess(withSupportNames, TroopBattle);
+const StoredTroopBattleValues = z.preprocess(withSupportNames, TroopBattleValues);
 
 /* `capable` is the face's battle eligibility, separate from its strengths: an authored face without it can fight. */
 const TroopSide = z.strictObject({
@@ -141,7 +141,7 @@ const TroopSide = z.strictObject({
   striped: z.boolean().optional(),
   capable: z.boolean().optional(),
   /* Stored key: saved faction definitions keep `combat`; the glossary term is battle. */
-  combat: StoredTroopBattle.optional(),
+  combat: StoredTroopBattleValues.optional(),
 });
 
 const Troop = z.strictObject({
@@ -154,7 +154,7 @@ const Troop = z.strictObject({
   striped: z.boolean().optional(),
   capable: z.boolean().optional(),
   /* Stored key, kept as `combat`; see the note on TroopSide. */
-  combat: StoredTroopBattle.optional(),
+  combat: StoredTroopBattleValues.optional(),
   back: TroopSide.optional(),
   count: z.number().int().positive(),
   planet: z.string().optional(),
@@ -267,11 +267,11 @@ const AuthoringRule = RULE.extend({
   karama: proseFormattedTextSchema.optional(),
 });
 
-const AuthoringTroopSide = TroopSide.extend({ description: proseFormattedTextSchema, combat: TroopBattle.optional() });
+const AuthoringTroopSide = TroopSide.extend({ description: proseFormattedTextSchema, combat: TroopBattleValues.optional() });
 
 const AuthoringTroop = Troop.extend({
   description: proseFormattedTextSchema,
-  combat: TroopBattle.optional(),
+  combat: TroopBattleValues.optional(),
   back: AuthoringTroopSide.optional(),
 });
 

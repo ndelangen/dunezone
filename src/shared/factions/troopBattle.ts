@@ -1,8 +1,8 @@
 import type { z } from 'zod';
 
-import type { TroopBattle } from './schema';
+import type { TroopBattleValues } from './schema';
 
-type BattleValues = z.infer<typeof TroopBattle>;
+type BattleValues = z.infer<typeof TroopBattleValues>;
 export type AuthoredFace = { name: string; capable?: boolean; combat?: BattleValues };
 export type AuthoredTroop<Face extends AuthoredFace> = Face & { back?: Face };
 
@@ -10,16 +10,16 @@ type TroopSide = 'front' | 'back';
 
 /**
  * One authored troop face as a battle plan reads it (#1062).
- * `combat`, named after the stored key (the glossary term is battle), is null when the author has not entered the face's values;
+ * `values` is null when the author has not entered the face's values;
  * nothing substitutes a default strength.
  */
-export type TroopFaceBattle<Face extends AuthoredFace = AuthoredFace> = {
+export type TroopFaceBattleValues<Face extends AuthoredFace = AuthoredFace> = {
   id: string;
   troopIndex: number;
   side: TroopSide;
   face: Face;
   capable: boolean;
-  combat: Required<BattleValues> | null;
+  values: Required<BattleValues> | null;
 };
 
 /**
@@ -31,21 +31,25 @@ function troopFaceId(troopIndex: number, side: TroopSide): string {
 }
 
 /* An editor draft can hold one strength while the author is still entering the other; that face has no values yet. */
-export function completeBattle(values: BattleValues | undefined): Required<BattleValues> | null {
+export function completeBattleValues(values: BattleValues | undefined): Required<BattleValues> | null {
   if (typeof values?.strength !== 'number' || typeof values.supportedStrength !== 'number') {
     return null;
   }
   return { ...values, supportCost: values.supportCost ?? 1 };
 }
 
-function resolve<Face extends AuthoredFace>(face: Face, troopIndex: number, side: TroopSide): TroopFaceBattle<Face> {
+function resolve<Face extends AuthoredFace>(
+  face: Face,
+  troopIndex: number,
+  side: TroopSide
+): TroopFaceBattleValues<Face> {
   return {
     id: troopFaceId(troopIndex, side),
     troopIndex,
     side,
     face,
     capable: face.capable ?? true,
-    combat: completeBattle(face.combat),
+    values: completeBattleValues(face.combat),
   };
 }
 
@@ -63,6 +67,6 @@ export function troopBattleFaces<Face extends AuthoredFace>(troops: readonly Aut
 }
 
 /** A face that can fight but has no authored values: the gap authoring warns about and a capture names. */
-export function lacksBattleValues(face: TroopFaceBattle): boolean {
-  return face.capable && face.combat === null;
+export function lacksBattleValues(face: TroopFaceBattleValues): boolean {
+  return face.capable && face.values === null;
 }

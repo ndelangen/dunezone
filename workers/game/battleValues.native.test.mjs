@@ -115,7 +115,7 @@ describe('Authored troop battle values in a real game', { timeout: 120_000 }, ()
     return { harkonnen: players[harkonnen], atreides: players[1 - harkonnen] };
   }
 
-  it('supplies both authored faces, omits faces that cannot battle and unauthored faces, and supports the retained values', async () => {
+  it('supplies both authored faces, omits faces that cannot fight and unauthored faces, and supports the retained values', async () => {
     ({ peer, runtime } = await draftingRuntime());
     offset = 0;
     const harkonnenSource = peer.factions.get('harkonnen');

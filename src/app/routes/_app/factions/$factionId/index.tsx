@@ -1,6 +1,6 @@
 import { Alert, Box, ColorSwatch, Divider, Flex, Group, SimpleGrid, Stack, Text, Title, Tooltip } from '@mantine/core';
 import { troopBattleFaces } from '@shared/factions/troopBattle';
-import type { TroopFaceBattle } from '@shared/factions/troopBattle';
+import type { TroopFaceBattleValues } from '@shared/factions/troopBattle';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { LoadError } from '@ui/block/LoadError';
@@ -111,7 +111,7 @@ function FactionPlanet({ planet }: { readonly planet: NonNullable<FactionData['p
 }
 
 type Troop = FactionData['troops'][number];
-type TroopFace = TroopFaceBattle<NonNullable<Troop['back']>>;
+type TroopFace = TroopFaceBattleValues<NonNullable<Troop['back']>>;
 
 function TroopHint({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -127,7 +127,7 @@ function TroopStrengths({ face }: { face: TroopFace }) {
   if (!face.capable) {
     return <StatusMark label="Cannot participate in battle" icon={<TopicIcon topic="cannotBattle" size={15} />} />;
   }
-  if (!face.combat) {
+  if (!face.values) {
     return (
       <StatusMark
         tone="caution"
@@ -139,16 +139,16 @@ function TroopStrengths({ face }: { face: TroopFace }) {
   return (
     <>
       <TroopHint
-        label={`Strength per troop: ${face.combat.strength} undialed | ${face.combat.supportedStrength} dialed`}
+        label={`Strength per troop: ${face.values.strength} undialed | ${face.values.supportedStrength} dialed`}
       >
         <TopicIcon topic="strength" size={15} />
         <b>
-          {face.combat.strength} | {face.combat.supportedStrength}
+          {face.values.strength} | {face.values.supportedStrength}
         </b>
       </TroopHint>
-      <TroopHint label={`Support cost: ${face.combat.supportCost} spice per dialed troop`}>
+      <TroopHint label={`Support cost: ${face.values.supportCost} spice per dialed troop`}>
         <TopicIcon topic="spice" size={15} />
-        <b>{face.combat.supportCost}</b>
+        <b>{face.values.supportCost}</b>
       </TroopHint>
     </>
   );
