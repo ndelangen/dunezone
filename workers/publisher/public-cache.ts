@@ -2,7 +2,7 @@
 export const PUBLIC_CACHE_SECONDS = { html: 300, artwork: 3600, png: 86_400, fallback: 300 } as const;
 
 export type PublicCache = {
-  storage: Pick<Cache, 'match' | 'put'>;
+  storage: Pick<Cache, 'match' | 'put' | 'delete'>;
   release: string;
 };
 
@@ -67,6 +67,9 @@ function delivery(response: Response, state: string): Response {
     result.headers.set('X-Public-Metadata-Queries', '0');
     result.headers.set('X-Public-Renders', '0');
     result.headers.set('X-Public-Artwork-Reads', '0');
+    if (result.headers.has('X-Public-Artwork-Cache')) {
+      result.headers.set('X-Public-Artwork-Cache', 'not-needed');
+    }
   }
   return result;
 }

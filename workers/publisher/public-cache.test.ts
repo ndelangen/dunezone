@@ -12,6 +12,7 @@ function edgeCache() {
   let now = 0;
   const entries = new Map<string, { bytes: ArrayBuffer; init: ResponseInit; expires: number }>();
   const storage = {
+    delete: vi.fn(async (request: Request) => entries.delete(request.url)),
     match: vi.fn(async (request: Request) => {
       const entry = entries.get(request.url);
       return entry && entry.expires > now ? new Response(entry.bytes, entry.init) : undefined;
@@ -174,6 +175,25 @@ describe('public PNG and artwork edge caches', () => {
     render.mockRejectedValue(new Error('broken'));
     expect((await run())!.status).toBe(503);
     expect((await run())!.status).toBe(503);
+  });
+
+  test('caught artwork failures discard bad cached bytes so fallback expiry can recover', async () => {
+    const edge = edgeCache();
+    const get = vi.fn<R2Bucket['get']>().mockImplementation(async () => jpegObject());
+    let broken = true;
+    const render = vi.fn(async (_input, artwork: ArrayBuffer | null) => {
+      if (broken && artwork) {
+        throw new Error('unreadable artwork');
+      }
+      return pngBytes(1200, 630);
+    });
+    const run = () => handleSocialImageRequest(req(), { ASSET_BUCKET: { get } }, render, edge.cache);
+    expect((await run())!.headers.get('X-Public-Fallback')).toBe('true');
+    expect(edge.storage.delete).toHaveBeenCalledTimes(1);
+    broken = false;
+    edge.advance(PUBLIC_CACHE_SECONDS.fallback);
+    expect((await run())!.headers.get('X-Public-Fallback')).toBe('false');
+    expect(get).toHaveBeenCalledTimes(2);
   });
 
   test('cache hits bypass the render rate limiter and rejected misses do no artwork work', async () => {

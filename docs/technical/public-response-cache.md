@@ -36,6 +36,7 @@ URLs may combine old words with current artwork. A PNG already cached can remain
 rendered PNG can use artwork cached for an hour, so stale artwork can survive for almost 25 hours
 in the worst timing. Revision hints normally avoid this overlap but do not promise historical art.
 Missing or rejected artwork and caught render failures use the five-minute fallback lifetime.
+A caught artwork-render error also evicts that artwork entry so the next attempt can read repaired bytes.
 A JPEG that passes the bounds but silently decodes to nothing can reveal the monogram underlay and
 remain cached for a day. Detecting every malformed JPEG would require more decoding work; this
 retains the agreed best-effort behavior. Social platforms also own caches outside our control.
@@ -73,6 +74,26 @@ checks actual workerd Cache API hits, byte equality, shared artwork and zero out
 `publisher:application-runtime:verify` runs the assembled release and checks five public page shapes:
 one metadata query on a miss, none on the following hit, identical public bodies, live-client script
 availability and unchanged browser-only dispatch. It also follows detail HTML into PNG misses and hits.
+
+
+### Local measurements
+
+A local workerd run on macOS arm64, Node 22.16.0, used maximum-length name, kind and excerpt fields.
+Each case made ten sequential misses, including the first render, followed by five hits. The artwork
+case used a seeded-noise 1,400 by 1,400 JPEG of 1,401,255 bytes, with distinct revision hints to force
+an R2 read on every miss. The inspector sampled at 100 microseconds. Active samples exclude idle,
+program and root frames; sampling overhead and local R2 make these unsuitable as billing figures.
+
+| Case | First miss, elapsed | Nine warm misses, elapsed | Five hits, elapsed | Warm active samples |
+| --- | ---: | ---: | ---: | ---: |
+| No artwork | 264 ms | 124-136 ms | 3-7 ms | 122-133 ms |
+| Bounded large artwork | 499 ms | 311-324 ms | 4-7 ms | 298-316 ms |
+
+The 20-miss allowance represents about 6.3 seconds of sampled rendering work per ten-second window
+for this larger local fixture, with room for ordinary bursts at the expected small traffic volume.
+It is an operating throttle, not a worst-case CPU proof. The existing 30-second platform limit remains
+the final ceiling. Hosted cold starts, actual artwork and per-location rates still need measurement
+in [Measure hosted cache behavior and realistic operating costs](https://github.com/ndelangen/dunezone/issues/1721).
 
 ## Billing
 

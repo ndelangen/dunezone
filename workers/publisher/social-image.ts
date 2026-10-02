@@ -2,7 +2,7 @@ import { publishedR2Key } from '../../src/shared/asset-publishing/publicationTar
 import { parseSocialCard, SOCIAL_CARD_PATH, socialArtwork, socialCardPath } from '../../src/shared/socialCard';
 import type { SocialCardInput } from '../../src/shared/socialCard';
 import { jpegProfile } from './image-inspection';
-import { PUBLIC_CACHE_SECONDS, publicCachedResponse } from './public-cache';
+import { PUBLIC_CACHE_SECONDS, publicCachedResponse, publicCacheKey } from './public-cache';
 import type { PublicCache } from './public-cache';
 
 const MAX_ART_BYTES = 2_000_000;
@@ -93,9 +93,13 @@ export async function handleSocialImageRequest(
             headers: { ...headers, 'Retry-After': '10' },
           });
         }
+        const artworkUrl = new URL(
+          `${input.art || '/social/no-art'}?revision=${encodeURIComponent(input.revision)}`,
+          url.origin
+        );
         const art = await publicCachedResponse(
           input.art ? cache : undefined,
-          new URL(`${input.art || '/social/no-art'}?revision=${encodeURIComponent(input.revision)}`, url.origin),
+          artworkUrl,
           'artwork',
           async () => {
             const data = await artworkData(input, env.ASSET_BUCKET);
@@ -109,9 +113,16 @@ export async function handleSocialImageRequest(
         const artwork = art.ok ? await art.arrayBuffer() : null;
         let fallback = !artwork;
         let renders = 1;
-        const png = await renderer(input, artwork).catch((error: unknown) => {
+        const png = await renderer(input, artwork).catch(async (error: unknown) => {
           if (!artwork) {
             throw error;
+          }
+          if (cache) {
+            try {
+              await cache.storage.delete(await publicCacheKey(artworkUrl, cache, 'artwork'));
+            } catch {
+              /* A cache outage must not prevent the branded fallback from being returned. */
+            }
           }
           fallback = true;
           renders += 1;
