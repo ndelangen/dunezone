@@ -7,7 +7,7 @@ import aggregateTest from '@convex-dev/aggregate/test';
 import { convexTest } from 'convex-test';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 
-import { passwordDigest, passwordSecret } from '../scripts/lib/synthetic-accounts';
+import { passwordSecret, pbkdf2Secret } from '../scripts/lib/synthetic-accounts';
 import { api, internal } from './_generated/api';
 import schema from './schema';
 
@@ -59,7 +59,7 @@ function signIn(
 
 async function provision(t: ReturnType<typeof backend>, { email, password }: ReturnType<typeof account>) {
   await t.mutation(internal.playTesting.provisionAccounts, {
-    accounts: [{ email, scrypt: await passwordSecret(password), sha256: passwordDigest(password) }],
+    accounts: [{ email, scrypt: await passwordSecret(password), pbkdf2: pbkdf2Secret(password) }],
   });
 }
 
@@ -131,16 +131,16 @@ test(
     );
     await expect(
       t.mutation(internal.playTesting.provisionAccounts, {
-        accounts: [{ email: account('plain').email, scrypt: player.password, sha256: passwordDigest(player.password) }],
+        accounts: [{ email: account('plain').email, scrypt: player.password, pbkdf2: pbkdf2Secret(player.password) }],
       })
     ).rejects.toThrow('Scrypt secret');
     await expect(
       t.mutation(internal.playTesting.provisionAccounts, {
         accounts: [
-          { email: account('plain').email, scrypt: await passwordSecret(player.password), sha256: player.password },
+          { email: account('plain').email, scrypt: await passwordSecret(player.password), pbkdf2: player.password },
         ],
       })
-    ).rejects.toThrow('SHA-256 digest');
+    ).rejects.toThrow('PBKDF2 secret');
   },
   PASSWORD_TEST_BUDGET_MS
 );

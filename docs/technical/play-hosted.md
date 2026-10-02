@@ -349,11 +349,13 @@ every sign-in, and on a loaded machine that check alone passed 1 s
 ([#1493](https://github.com/ndelangen/dunezone/issues/1493)). A function that takes between 1 and
 2 s therefore passes on this stack and fails on a hosted deployment.
 
-The launcher also sets the test-only `PLAY_TEST_PASSWORD_DIGEST=sha256` on its backend, and there
-Password stores and checks a salted SHA-256 instead of Scrypt (`convex/lib/syntheticPasswords.ts`).
-Scrypt was most of each sign-in's `auth:store` time on the macOS runner, and a stall of that runner
-during it ended a sign-in at the 2 s limit (#1493). The synthetic accounts' passwords are 48 random
-hex digits, which no hash makes guessable, so the slow hash protected nothing here. Only an isolated
+The launcher also sets the test-only `PLAY_TEST_PASSWORD_HASH=pbkdf2` on its backend, and there
+Password stores and checks PBKDF2-HMAC-SHA256 at 1,000 iterations instead of Scrypt
+(`convex/lib/syntheticPasswords.ts`). Scrypt was most of each sign-in's `auth:store` time on the
+macOS runner, and a stall of that runner during it ended a sign-in at the 2 s limit (#1493). A work
+factor multiplies the cost of each guess, which protects a password a person chose, and the
+synthetic accounts' passwords are 48 random hex digits that would take 2^192 guesses anyway. 1,000
+is the minimum NIST SP 800-132 recommends, and it takes about a millisecond. Only an isolated
 loopback backend honours the variable, and only the launcher sets it, so every other backend keeps
 Scrypt. Production keeps `E2E_LOCAL_AUTH` off and so registers no Password provider at all, and the
 `--load-hosted-backend` copy keeps Scrypt because its own URL is the hosted one. The runners send

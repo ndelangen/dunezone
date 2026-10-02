@@ -271,7 +271,7 @@ function configureAuth(convex: (args: string[]) => void, origin: string) {
     mode: 0o600,
   });
   /*
-   * PLAY_TEST_PASSWORD_DIGEST makes Password check the synthetic accounts' random passwords with a salted SHA-256 instead of Scrypt (#1493).
+   * PLAY_TEST_PASSWORD_HASH makes Password check the synthetic accounts' random passwords with PBKDF2 at 1,000 iterations instead of Scrypt (#1493).
    * Scrypt was most of each sign-in's `auth:store` time, and a stall of the macOS runner during it ended a sign-in at the function limit.
    * Only a loopback backend honours the variable (`convex/lib/syntheticPasswords.ts`), so the --load-hosted-backend copy, whose own URL is the hosted one, keeps Scrypt.
    */
@@ -280,7 +280,7 @@ function configureAuth(convex: (args: string[]) => void, origin: string) {
     ['PLAY_SERVICE_URL', origin],
     ['IS_TEST', 'true'],
     ['E2E_LOCAL_AUTH', 'true'],
-    ['PLAY_TEST_PASSWORD_DIGEST', 'sha256'],
+    ['PLAY_TEST_PASSWORD_HASH', 'pbkdf2'],
   ]) {
     convex(['env', 'set', name!, value!]);
   }
