@@ -1,6 +1,7 @@
 type JsonRecord = Record<string, unknown>;
 type ReadClient = { get(pathname: string): Promise<{ result: unknown; resultInfo?: JsonRecord }> };
-const ALERT_BINDINGS = ['ALERT_EMAIL', 'ALERT_EMAIL_TO'];
+const ALERT_RECIPIENT = 'ALERT_EMAIL_TO';
+const ALERT_BINDINGS = ['ALERT_EMAIL', ALERT_RECIPIENT];
 
 export type GameDriftReport = { worker: string; namespaceId: string; bindingCount: number };
 
@@ -171,10 +172,13 @@ function checkBindings(settings: JsonRecord, config: JsonRecord): { namespaceId:
     bindings.map((binding) => binding.name),
     'binding names'
   );
-  /* The alert relay's binding arrives with the deploy and its recipient secret is set by hand afterwards, so both may be absent. */
+  /*
+   * The alert relay's email binding ships with every deploy, so a Worker without it has drifted and its alerts would fail silently.
+   * Only the recipient secret is set by hand after the deploy, so only it may be absent.
+   */
   exact(
-    names.filter((name) => !ALERT_BINDINGS.includes(name)),
-    ['APPLICATION_ORIGIN', 'CF_VERSION_METADATA', 'CONVEX_URL', 'GAME_ROOMS', 'GIT_SHA'],
+    names.filter((name) => name !== ALERT_RECIPIENT),
+    ['ALERT_EMAIL', 'APPLICATION_ORIGIN', 'CF_VERSION_METADATA', 'CONVEX_URL', 'GAME_ROOMS', 'GIT_SHA'],
     'bindings'
   );
   for (const binding of bindings.filter((value) => ALERT_BINDINGS.includes(value.name as string))) {
@@ -224,7 +228,7 @@ export async function auditGameWorker(client: ReadClient, config: JsonRecord): P
   );
   exact(record(settings.limits, 'limits').cpu_ms, record(config.limits, 'configured limits').cpu_ms, 'CPU limit');
   for (const secret of array(secrets.result, 'secrets')) {
-    exact(record(secret, 'secret').name, 'ALERT_EMAIL_TO', 'secrets');
+    exact(record(secret, 'secret').name, ALERT_RECIPIENT, 'secrets');
   }
   exact(array(record(schedules.result, 'schedules').schedules, 'schedules'), [], 'schedules');
   exact(array(domains.result, 'Custom Domains'), [], 'Custom Domains');

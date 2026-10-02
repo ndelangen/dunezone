@@ -102,6 +102,17 @@ describe('alert webhook relay', () => {
     expect(send).not.toHaveBeenCalled();
   });
 
+  test('a marker from another isolate does not extend the interval in this one', async () => {
+    const { env, send, markers, stored } = relay();
+    const start = laterWindow();
+    await markers.put(ALERT_MARKER, new Response(null));
+    await handleAlertWebhook(webhook(), ALERT_WEBHOOK_PATH, env, { markers, now: start });
+    expect(send).not.toHaveBeenCalled();
+    stored.clear();
+    await handleAlertWebhook(webhook(), ALERT_WEBHOOK_PATH, env, { markers, now: start + INTERVAL_MS / 2 });
+    expect(send).toHaveBeenCalledTimes(1);
+  });
+
   test('logs a failed send as a warning without the address and still answers 202', async () => {
     const { env, markers } = relay({
       ALERT_EMAIL: { send: vi.fn(async () => Promise.reject(new TypeError('unverified'))) } as unknown as SendEmail,
