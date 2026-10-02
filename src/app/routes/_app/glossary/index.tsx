@@ -86,11 +86,11 @@ function TermSection({ term }: { term: GlossaryTerm }) {
 
 type TopicProps = { topic: GlossaryTopic; terms: GlossaryTerm[]; flip: boolean };
 
-/* The topic's picture and its terms side by side on one pane, the picture swapping sides from one topic to the next. */
+/* The topic's picture and its terms side by side on one pane, the picture swapping sides from one topic to the next; on a phone the picture goes and the terms keep the pane. */
 function TopicPane({ topic, terms, flip }: TopicProps) {
   return (
     <Surface padding="lg">
-      <AsymmetricSplitLayout narrowSide={flip ? 'end' : 'start'} stackFirst="narrow">
+      <AsymmetricSplitLayout narrowSide={flip ? 'end' : 'start'} narrowFallback="hide">
         <AsymmetricSplitLayout.Wide>
           <Stack gap="lg">
             {terms.map((term) => (

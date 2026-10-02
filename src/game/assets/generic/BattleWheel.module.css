@@ -117,6 +117,7 @@
   font-family: "C_Candara", Candara, sans-serif;
   font-size: 5.5px;
   line-height: 1.2;
+  white-space: nowrap;
 }
 
 .troop {

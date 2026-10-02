@@ -259,6 +259,34 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
     ],
   },
   {
+    id: 'dialed',
+    term: 'Dialed',
+    topic: 'battle',
+    explanation:
+      'A troop is dialed when its faction sets it on the battle wheel for one battle. Dialed troops add to the battle plan’s strength, and they are lost even when their faction wins. The troops left undialed in the territory survive a win.',
+    reason:
+      'The rulebook says forces are dialed on the battle wheel. Spent and committed name the cost; dialed names the act. Paying spice for a dialed troop is a separate choice, called supported.',
+    source: 'rulebook',
+    avoid: [
+      {
+        word: 'spent troops',
+        forms: ['spent troop', 'spend troops', 'spend troop', 'spending troops'],
+        fixes: {
+          'spent troops': 'dialed troops',
+          'spent troop': 'dialed troop',
+          'spend troops': 'dial troops',
+          'spend troop': 'dial troop',
+          'spending troops': 'dialing troops',
+        },
+      },
+      {
+        word: 'committed troops',
+        forms: ['committed troop', 'commit troops', 'commit troop', 'committing troops'],
+        /* No fixes: committing troops also means sending them to Arrakis, which is not dialing. */
+      },
+    ],
+  },
+  {
     id: 'supported',
     term: 'Supported',
     topic: 'battle',
@@ -277,7 +305,8 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
     id: 'battle-wheel',
     term: 'Battle wheel',
     topic: 'battle',
-    explanation: 'The dial each faction turns in secret to choose how many troops it commits to a battle.',
+    explanation:
+      'The dial each faction turns in secret to choose how many of its troops in the territory fight the battle.',
     reason: 'The rulebook calls the component the battle wheel; dial is what you do with it.',
     source: 'rulebook',
     avoid: [

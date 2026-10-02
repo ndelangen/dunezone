@@ -31,6 +31,7 @@ export const battleFaceSchema = z.preprocess(
   })
 );
 export type BattleFace = z.infer<typeof battleFaceSchema>;
+/* `dialed` counts the spice-supported troops and `undialed` the unsupported ones; in the rulebook's sense both are dialed. */
 const troopDeclarationSchema = z.strictObject({ faceId: id, undialed: count, dialed: count });
 const battlePlanInputSchema = z.strictObject({
   mode: z.enum(['max', 'custom']),

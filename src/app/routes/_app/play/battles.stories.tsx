@@ -307,7 +307,7 @@ export const BattleReady = meta.story({
 
 async function expectPlanBound(
   canvasElement: HTMLElement,
-  field: 'Committed spice' | 'Dialed',
+  field: 'Committed spice' | 'Supported',
   plan: Partial<NonNullable<GameSnapshot['battlePlan']>>
 ) {
   const page = within(canvasElement.ownerDocument.body);
@@ -338,7 +338,7 @@ export const BattleCustomSpiceBound = meta.story({
     snapshot.battlePlan!.mode = 'custom';
   }),
   play: async ({ canvasElement }) => {
-    await expectPlanBound(canvasElement, 'Dialed', {
+    await expectPlanBound(canvasElement, 'Supported', {
       troops: [{ faceId: 'house-harkonnen-front', undialed: 0, dialed: 2 }],
     });
   },

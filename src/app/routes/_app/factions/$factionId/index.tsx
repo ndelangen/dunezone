@@ -156,14 +156,14 @@ function TroopStrengths({ face }: { face: TroopFace }) {
   return (
     <>
       <TroopHint
-        label={`Strength per troop: ${face.values.strength} undialed | ${face.values.supportedStrength} dialed`}
+        label={`Strength per troop: ${face.values.strength} unsupported | ${face.values.supportedStrength} supported`}
       >
         <TopicIcon topic="strength" size={15} />
         <b>
           {face.values.strength} | {face.values.supportedStrength}
         </b>
       </TroopHint>
-      <TroopHint label={`Support cost: ${face.values.supportCost} spice per dialed troop`}>
+      <TroopHint label={`Support cost: ${face.values.supportCost} spice per supported troop`}>
         <TopicIcon topic="spice" size={15} />
         <b>{face.values.supportCost}</b>
       </TroopHint>

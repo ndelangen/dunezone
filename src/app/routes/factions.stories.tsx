@@ -92,8 +92,8 @@ export const DetailWithTroopStrengths = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     const troops = within(await page.findByRole('region', { name: 'Troops' }));
     const soldiers = within(troops.getByRole('article', { name: 'Soldiers' }));
-    expect(soldiers.getByRole('img', { name: 'Strength per troop: 0.5 undialed | 1 dialed' })).toBeVisible();
-    expect(soldiers.getByRole('img', { name: 'Support cost: 1 spice per dialed troop' })).toBeVisible();
+    expect(soldiers.getByRole('img', { name: 'Strength per troop: 0.5 unsupported | 1 supported' })).toBeVisible();
+    expect(soldiers.getByRole('img', { name: 'Support cost: 1 spice per supported troop' })).toBeVisible();
     expect(soldiers.getByRole('img', { name: 'Cannot participate in battle' })).toBeVisible();
     expect(soldiers.getByRole('img', { name: '15 troop tokens' })).toBeVisible();
     const reverse = soldiers.getByRole('img', { name: 'Advisors, reverse side' });
@@ -159,19 +159,19 @@ export const DetailWithIndependentTroopFaces = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     const troops = within(await page.findByRole('region', { name: 'Troops' }));
-    expect(troops.getByRole('img', { name: 'Strength per troop: 0 undialed | 1.5 dialed' })).toBeVisible();
-    expect(troops.getByRole('img', { name: 'Support cost: 0 spice per dialed troop' })).toBeVisible();
-    expect(troops.getByRole('img', { name: 'Strength per troop: 0.5 undialed | 1 dialed' })).toBeVisible();
+    expect(troops.getByRole('img', { name: 'Strength per troop: 0 unsupported | 1.5 supported' })).toBeVisible();
+    expect(troops.getByRole('img', { name: 'Support cost: 0 spice per supported troop' })).toBeVisible();
+    expect(troops.getByRole('img', { name: 'Strength per troop: 0.5 unsupported | 1 supported' })).toBeVisible();
     const card = troops.getByRole('article');
     expect(card.scrollWidth).toBeLessThanOrEqual(card.clientWidth);
     const flip = troops
       .getByRole('img', { name: 'Flip side: An independently authored reverse' })
       .getBoundingClientRect();
     const frontCost = troops
-      .getByRole('img', { name: 'Support cost: 0 spice per dialed troop' })
+      .getByRole('img', { name: 'Support cost: 0 spice per supported troop' })
       .getBoundingClientRect();
     const backCost = troops
-      .getByRole('img', { name: 'Support cost: 2 spice per dialed troop' })
+      .getByRole('img', { name: 'Support cost: 2 spice per supported troop' })
       .getBoundingClientRect();
     const count = troops.getByRole('img', { name: '1 troop token' }).getBoundingClientRect();
     expect(frontCost.right).toBeLessThanOrEqual(flip.left);
