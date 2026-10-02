@@ -54,7 +54,8 @@ export const DefaultMobile = meta.story({
 });
 
 /**
- * The page has one banner, the page's own header, and one main; the band above is artwork and site navigation.
+ * The page has one banner, the page's own header, and one main;
+ * the band above is artwork and site navigation.
  * The first Tab shows a skip link, and following it puts focus on the main, past the navigation.
  */
 export const SkipToContent = meta.story({
