@@ -494,14 +494,17 @@ export function DraftingNotice({ client, table }: Props) {
             <strong>Seats were not dealt. </strong>
             {draft.failure} Fix the content or change the draft, or try the deal again as it stands.
           </Text>
-          <Button
-            size="xs"
-            variant="default"
-            disabled={locked(table)}
-            onClick={() => client.command({ kind: 'draft-ready', ready: true })}
-          >
-            Try again
-          </Button>
+          {/* Only a seated player drafts, so the Worker refuses a spectator's retry. */}
+          {table.viewer.viewerSeat !== SPECTATOR_SEAT && (
+            <Button
+              size="xs"
+              variant="default"
+              disabled={locked(table)}
+              onClick={() => client.command({ kind: 'draft-ready', ready: true })}
+            >
+              Try again
+            </Button>
+          )}
         </Group>
       )}
       {warning.kind === 'short' && (
