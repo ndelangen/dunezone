@@ -23,18 +23,18 @@ type RowInput = Pick<HistoryRow, 'kind' | 'data' | 'step' | 'base_revision'>;
 const boundaryActions = new Set(['phase', 'turn', 'result-declare', 'result-continue']);
 const setupActions = new Set(['ready', 'phase']);
 
-function requiresCheckpoint(
-  action: Extract<CommitMessage, { type: 'command' }>['action'],
-  before: StoredSnapshot,
-  next: StoredSnapshot
-) {
-  if (isSetupAction(action) || action.kind === 'reset') {
-    return true;
-  }
-  if (before.stage === 'setup' && setupActions.has(action.kind)) {
-    return true;
-  }
-  return action.kind === 'battle-outcome' && !next.battleState;
+/* A reset replaces the table and a settled battle closes a run of playback steps, so both are kept whole. */
+function requiresCheckpoint(action: Extract<CommitMessage, { type: 'command' }>['action'], next: StoredSnapshot) {
+  return action.kind === 'reset' || (action.kind === 'battle-outcome' && !next.battleState);
+}
+
+/* Setup steps change a few entries of the table each, so they are stored as their changes like any other playback step. */
+function isPlaybackStep(action: Extract<CommitMessage, { type: 'command' }>['action'], before: StoredSnapshot) {
+  return (
+    boundaryActions.has(action.kind) ||
+    isSetupAction(action) ||
+    (before.stage === 'setup' && setupActions.has(action.kind))
+  );
 }
 
 /** Reconstructs private history and prepares its rows; GameSession commits and accepts each boundary. */
@@ -83,10 +83,10 @@ export class SessionHistory {
     if (next.revision === before.revision || message.type !== 'command') {
       return;
     }
-    if (requiresCheckpoint(message.action, before, next)) {
+    if (requiresCheckpoint(message.action, next)) {
       return this.checkpoint(next);
     }
-    if (boundaryActions.has(message.action.kind)) {
+    if (isPlaybackStep(message.action, before)) {
       return this.patch(next);
     }
   }
