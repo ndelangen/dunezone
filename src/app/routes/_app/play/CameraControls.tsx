@@ -154,15 +154,18 @@ function useWheelTilt(enabled: boolean): number {
   const surface = useThree((state) => state.renderer.domElement);
   const pointerSession = usePointerSession();
 
-  useEffect(() => {
-    if (!enabled) {
-      return;
-    }
-    return watchTwoFingerTilt(surface, window, {
-      onStart: () => pointerSession.cancel(),
-      onTilt: (deltaY) => setTilt((current) => cameraTiltAfterWheel(current, deltaY)),
-    });
-  }, [enabled, pointerSession, surface]);
+  /*
+   * Two fingers listen even while a press holds the table: the first finger usually lands on a piece,
+   * and the second one cancels that press, which frees the camera again.
+   */
+  useEffect(
+    () =>
+      watchTwoFingerTilt(surface, window, {
+        onStart: () => pointerSession.cancel(),
+        onTilt: (deltaY) => setTilt((current) => cameraTiltAfterWheel(current, deltaY)),
+      }),
+    [pointerSession, surface]
+  );
 
   useEffect(() => {
     if (!enabled) {

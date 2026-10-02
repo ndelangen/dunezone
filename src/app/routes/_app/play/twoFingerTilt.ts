@@ -48,7 +48,8 @@ export function watchTwoFingerTilt(
   };
   const up = (event: PointerEvent) => {
     if (fingers.delete(event.pointerId)) {
-      lastMeanY = null;
+      /* A stray third finger lifting leaves a pair that keeps tilting from where it is. */
+      lastMeanY = fingers.size === 2 ? meanY() : null;
     }
   };
 

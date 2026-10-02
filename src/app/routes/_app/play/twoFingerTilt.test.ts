@@ -46,6 +46,17 @@ test('one finger, a mouse, or a finger left after the other lifts does not tilt'
   stop();
 });
 
+test('a third finger lifting leaves the other two tilting', () => {
+  const { surface, onTilt, stop } = board();
+  surface.dispatchEvent(pointer('pointerdown', 1, 300));
+  surface.dispatchEvent(pointer('pointerdown', 2, 300));
+  surface.dispatchEvent(pointer('pointerdown', 3, 500));
+  window.dispatchEvent(pointer('pointerup', 3, 500));
+  window.dispatchEvent(pointer('pointermove', 1, 280));
+  expect(onTilt).toHaveBeenCalledWith(10);
+  stop();
+});
+
 test('stopping lets go of the board', () => {
   const { surface, onStart, stop } = board();
   stop();
