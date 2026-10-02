@@ -1,7 +1,7 @@
 import { LOG_PAGE_SIZE } from '@shared/play/log';
 import type { LogEntry, LogTab } from '@shared/play/log';
 import { isSeatAction } from '@shared/play/participation';
-import { clientMessageSchema, KEEPALIVE_PING } from '@shared/play/protocol';
+import { clientMessageSchema, KEEPALIVE_PING, KEEPALIVE_PONG } from '@shared/play/protocol';
 import type { ClientMessage, GameSnapshot, ServerMessage, Viewer } from '@shared/play/protocol';
 import { isSwapAction } from '@shared/play/swapping';
 
@@ -86,7 +86,13 @@ export function storyTransport(
     }
 
     send(data: string) {
+      /* Answered as the Worker's auto-response does, so an idle story keeps its socket. */
       if (data === KEEPALIVE_PING) {
+        queueMicrotask(() => {
+          if (this.readyState === StorySocket.OPEN) {
+            this.onmessage?.({ data: KEEPALIVE_PONG });
+          }
+        });
         return;
       }
       const message = clientMessageSchema.parse(JSON.parse(data));

@@ -49,6 +49,9 @@ export class GameSubscription {
   private reconnectTimer: ReturnType<typeof setTimeout> | undefined;
   private admissionTimer: ReturnType<typeof setTimeout> | undefined;
   private keepaliveTimer: ReturnType<typeof setInterval> | undefined;
+  /* Keepalive ticks since the socket last delivered any frame, its answers included (#1662). */
+  private silentTicks = 0;
+  private stopOnline: (() => void) | undefined;
   private ticketAttempt: TicketAttempt | undefined;
   /* The ticket request still on the wire: an attempt that gives up waiting leaves it there for the next attempt to take its answer. */
   private ticketRequest: TicketRequest | undefined;
@@ -85,6 +88,7 @@ export class GameSubscription {
 
   subscribe(listener: (event: GameSubscriptionEvent) => void) {
     this.listener = listener;
+    this.stopOnline = this.runtime.onOnline(() => this.networkReturned());
     void this.open();
     let stopped = false;
     return () => {
@@ -98,8 +102,11 @@ export class GameSubscription {
 
   private stop() {
     this.listener = null;
+    this.stopOnline?.();
+    this.stopOnline = undefined;
     ++this.generation;
     clearTimeout(this.reconnectTimer);
+    this.reconnectTimer = undefined;
     clearTimeout(this.admissionTimer);
     clearInterval(this.keepaliveTimer);
     clearTimeout(this.ticketAttempt?.timer);
@@ -143,7 +150,10 @@ export class GameSubscription {
       return;
     }
     clearTimeout(this.reconnectTimer);
-    this.reconnectTimer = setTimeout(() => void this.open(), delay);
+    this.reconnectTimer = setTimeout(() => {
+      this.reconnectTimer = undefined;
+      void this.open();
+    }, delay);
   }
 
   private renewExpiredTicket() {
@@ -230,7 +240,7 @@ export class GameSubscription {
       return result;
     } catch {
       if (this.isCurrentAttempt(attempt)) {
-        this.changeStatus('suspended', 'The table could not verify this login. Reconnecting...');
+        this.changeStatus('suspended', 'The table could not be reached. Reconnecting...');
         this.scheduleReconnect();
       }
       return null;
@@ -258,11 +268,8 @@ export class GameSubscription {
       socket.send(JSON.stringify({ type: 'admit', ticket }));
       ticket = '';
       clearInterval(this.keepaliveTimer);
-      this.keepaliveTimer = setInterval(() => {
-        if (this.isCurrentSocket(socket) && socket.readyState === 1) {
-          socket.send(KEEPALIVE_PING);
-        }
-      }, KEEPALIVE_INTERVAL_MS);
+      this.silentTicks = 0;
+      this.keepaliveTimer = setInterval(() => this.keepAlive(socket), KEEPALIVE_INTERVAL_MS);
     };
     socket.onmessage = (event) => this.receiveSocketMessage(socket, event.data);
     socket.onclose = (event) => {
@@ -294,6 +301,9 @@ export class GameSubscription {
 
   private receiveSocketMessage(socket: GameSocket, data: string) {
     const receivedAt = this.runtime.monotonicNow();
+    if (this.isCurrentSocket(socket)) {
+      this.silentTicks = 0;
+    }
     if (!this.isCurrentSocket(socket) || this.status === 'denied' || data === KEEPALIVE_PONG) {
       return;
     }
@@ -310,6 +320,53 @@ export class GameSubscription {
       return;
     }
     this.receive(message);
+  }
+
+  /**
+   * Pings the Worker, which answers every ping, and drops a socket that stayed silent for a whole interval after one (#1662).
+   * A connection lost without a close frame never fires the close event, so silence is the only sign the table went away.
+   */
+  private keepAlive(socket: GameSocket) {
+    if (!this.isCurrentSocket(socket) || socket.readyState !== 1) {
+      return;
+    }
+    if (++this.silentTicks >= 2) {
+      this.dropSilentSocket(socket);
+      return;
+    }
+    socket.send(KEEPALIVE_PING);
+  }
+
+  private dropSilentSocket(socket: GameSocket) {
+    this.socket = null;
+    clearTimeout(this.admissionTimer);
+    clearInterval(this.keepaliveTimer);
+    socket.close();
+    if (this.status === 'denied') {
+      return;
+    }
+    this.changeStatus('suspended', 'The table could not be reached. Reconnecting...');
+    this.scheduleReconnect();
+  }
+
+  /* Coming back online reconnects at once when a reconnect is waiting, and otherwise asks the open socket to prove it still works. */
+  private networkReturned() {
+    if (!this.listener || this.status === 'denied') {
+      return;
+    }
+    const socket = this.socket;
+    if (!socket) {
+      if (this.reconnectTimer !== undefined) {
+        clearTimeout(this.reconnectTimer);
+        this.reconnectTimer = undefined;
+        void this.open();
+      }
+      return;
+    }
+    if (socket.readyState === 1) {
+      this.silentTicks = 1;
+      socket.send(KEEPALIVE_PING);
+    }
   }
 
   private isCurrentSocket(socket: GameSocket) {

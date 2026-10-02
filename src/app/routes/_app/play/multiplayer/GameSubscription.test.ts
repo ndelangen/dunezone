@@ -5,7 +5,7 @@ import { frameChange } from '@shared/play/updates';
 import type { RoomView } from '@shared/play/updates';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 
-import { runtime, Socket } from './gameRuntime.test.fixture';
+import { online, runtime, Socket } from './gameRuntime.test.fixture';
 import { GameSubscription } from './GameSubscription';
 
 const initial = (): RoomView => ({
@@ -262,7 +262,7 @@ test('a ticket answered after the request timeout is taken by the next attempt i
   await vi.advanceTimersByTimeAsync(PLAY_REQUEST_TIMEOUT_MS);
   expect(listener).toHaveBeenLastCalledWith({
     type: 'connection',
-    error: 'The table could not verify this login. Reconnecting...',
+    error: 'The table could not be reached. Reconnecting...',
   });
   /* The answer lands while the subscription waits to try again, after it stopped waiting for it. */
   await vi.advanceTimersByTimeAsync(500);
@@ -315,4 +315,43 @@ test('an open socket sends a keepalive on an interval, ignores the answer and st
   socket.close(1006);
   await vi.advanceTimersByTimeAsync(KEEPALIVE_INTERVAL_MS * 2);
   expect(socket.keepalives).toBe(1);
+});
+
+test('a socket that stops answering keepalives is dropped and reconnected, while answers keep it (#1662)', async () => {
+  const { subscription, socket, listener } = await subscribed();
+  await vi.advanceTimersByTimeAsync(KEEPALIVE_INTERVAL_MS * 3);
+  expect(socket.keepalives).toBe(3);
+  expect(subscription.ready).toBe(true);
+  socket.answersKeepalives = false;
+  await vi.advanceTimersByTimeAsync(KEEPALIVE_INTERVAL_MS);
+  expect(socket.keepalives).toBe(4);
+  expect(subscription.ready).toBe(true);
+  await vi.advanceTimersByTimeAsync(KEEPALIVE_INTERVAL_MS);
+  expect(socket.readyState).toBe(3);
+  expect(subscription.status).toBe('suspended');
+  expect(listener.mock.lastCall?.[0]).toEqual({
+    type: 'connection',
+    error: 'The table could not be reached. Reconnecting...',
+  });
+  expect(Socket.instances).toHaveLength(1);
+  await vi.advanceTimersByTimeAsync(1000);
+  expect(Socket.instances).toHaveLength(2);
+});
+
+test('coming back online probes the open socket and skips the wait before a reconnect (#1662)', async () => {
+  const { subscription, socket } = await subscribed();
+  socket.answersKeepalives = false;
+  for (const listener of online) {
+    listener();
+  }
+  expect(socket.keepalives).toBe(1);
+  await vi.advanceTimersByTimeAsync(KEEPALIVE_INTERVAL_MS);
+  expect(socket.readyState).toBe(3);
+  expect(subscription.status).toBe('suspended');
+  expect(Socket.instances).toHaveLength(1);
+  for (const listener of online) {
+    listener();
+  }
+  await vi.advanceTimersByTimeAsync(0);
+  expect(Socket.instances).toHaveLength(2);
 });
