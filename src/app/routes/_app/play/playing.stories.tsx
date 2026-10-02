@@ -381,6 +381,19 @@ export const ConversationOffline = meta.story({
   },
 });
 
+/* A tab that lost its connection keeps the last table on screen, read-only, under a reconnecting bar, until a fresh view arrives. */
+export const Reconnecting = meta.story({
+  beforeEach: install(() => productTransport('seat-2', playingSnapshot())),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await page.findByRole('button', { name: 'Conversation' });
+    session.transport.deliver({ type: 'admission', status: 'suspended' });
+    const bar = await page.findByText('Reconnecting', { exact: true });
+    expect(bar.closest('[data-connection]')).toHaveAttribute('data-connection', 'suspended');
+    expect(page.getByText('The table shows its last saved state. Actions are paused until it is back.')).toBeVisible();
+  },
+});
+
 /* The frame a table route shows while a view is still on its way: the status line on the dark ground, the pool of light breathing behind it. */
 export const Connecting = meta.story({
   beforeEach: install(() => productTransport('seat-2', initialSnapshot(), { holdView: true })),

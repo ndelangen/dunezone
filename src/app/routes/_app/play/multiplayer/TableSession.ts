@@ -77,6 +77,8 @@ export type TableProjection = {
   playback: { step: number; lastStep: number } | null;
   historyPending: boolean;
   canInteract: boolean;
+  /* The connection is being restored: this is the last live table, read-only, until a fresh view replaces it. */
+  reconnecting: boolean;
   /* A seat command is on its way; the bar holds its buttons until the table answers. */
   seatCommandPending: boolean;
   /* How many of this viewer's own Traitor gathers the table has completed, so the camera can follow the pile they made. */
@@ -146,6 +148,8 @@ export class TableSession {
   private traitorGatherInFlight: string | null = null;
   /* Set when a held piece went back to the table without a drop; the next view shows it, since a fresh view clears older errors. */
   private droppedCarryNotice: string | null = null;
+  /* The last live table and its server time, kept read-only while a lost connection is restored. */
+  private lastLive: { table: TableProjection; serverNow: number } | null = null;
   private traitorsGathered = 0;
   private queuedCatalogue: { requestId: string; selection?: SpawnSelection } | null = null;
   private phaseCooldownUntil = 0;
@@ -209,11 +213,47 @@ export class TableSession {
   getSnapshot = () => this.cached;
   private derive(): TableProjection | null {
     if (this.status !== 'authorized') {
-      return null;
+      return this.reconnectingTable();
     }
     if (!this.saved || !this.viewer) {
       return null;
     }
+    const table = this.liveTable();
+    this.lastLive = { table, serverNow: this.subscription.serverNow() };
+    return table;
+  }
+  /* A refusal shows nothing; any other lost connection keeps the last table on screen with every action paused. */
+  private reconnectingTable(): TableProjection | null {
+    if (this.status === 'denied' || !this.lastLive) {
+      this.lastLive = null;
+      return null;
+    }
+    const { table, serverNow } = this.lastLive;
+    const state = { ...table.state, draftMove: null };
+    const renderedPieces = renderedPiecesFor(state);
+    return {
+      ...table,
+      reconnecting: true,
+      canInteract: false,
+      seatCommandPending: false,
+      phaseCooling: false,
+      state,
+      renderedPieces,
+      selectedPiece: null,
+      affordances: [],
+      bankControls: undefined,
+      deckControls: undefined,
+      pointers: [],
+      remoteCarriedIds: new Set(),
+      reservedPieceIds: new Set(),
+      gestureActivePieceId: null,
+      hoveredPieceId: null,
+      flippingPieceIds: new Map(),
+      serverNow: () => serverNow,
+    };
+  }
+  private liveTable(): TableProjection {
+    const viewer = this.viewer!;
     const authoritative = this.history?.snapshot ?? this.snapshot;
     const pendingPlan =
       !this.history &&
@@ -241,7 +281,7 @@ export class TableSession {
         }
       : authoritative;
     const state = {
-      ...tableForViewer(displayed, this.viewer.viewerSeat),
+      ...tableForViewer(displayed, viewer.viewerSeat),
       selectedPieceId: this.selectedId,
       draftMove: this.carry?.draft ?? null,
     };
@@ -251,12 +291,13 @@ export class TableSession {
     const renderedPieces = projectPublicCarries(local.pieces, remote);
     const reservedPieceIds = new Set(remote.flatMap((carry) => carry.reservedIds));
     return {
-      viewer: this.viewer,
+      viewer,
       snapshot: displayed,
       liveRevision: this.snapshot.revision,
       playback: this.history ? { step: this.history.step, lastStep: this.history.lastStep } : null,
       historyPending: this.pendingHistory !== null,
       canInteract,
+      reconnecting: false,
       seatCommandPending: this.seatCommandInFlight !== null,
       traitorsGathered: this.traitorsGathered,
       phaseCooling: this.runtime.monotonicNow() < this.phaseCooldownUntil,
