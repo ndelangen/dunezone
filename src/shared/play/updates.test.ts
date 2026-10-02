@@ -210,6 +210,35 @@ describe('game transport reconstruction', () => {
   });
 });
 
+describe('activity identity', () => {
+  it('keeps the carries list when only a pointer moved, and the pointers list when only a carry moved', () => {
+    const viewer = base().viewer;
+    const pointer = { ...viewer, position: [0, 0, 0] as [number, number, number], updatedAt: 1 };
+    const piece = base().snapshot.table.pieces[0];
+    const carry = {
+      ...viewer,
+      id: 'carry',
+      held: piece,
+      withdrawnCounts: {},
+      reservedIds: [piece.id],
+      expiresAt: 10,
+    };
+    const before = { ...base(), carries: [carry], pointers: [pointer] };
+    const pointerMoved = applyRoomUpdate(
+      before,
+      sent(before, { ...before, pointers: [{ ...pointer, position: [1, 0, 0] }] })
+    );
+    expect(pointerMoved?.carries).toBe(before.carries);
+    expect(pointerMoved?.pointers).not.toBe(before.pointers);
+    const carryMoved = applyRoomUpdate(
+      before,
+      sent(before, { ...before, carries: [{ ...carry, held: { ...piece, position: [1, 0, 1] } }] })
+    );
+    expect(carryMoved?.pointers).toBe(before.pointers);
+    expect(carryMoved?.carries[0]?.held.position).toEqual([1, 0, 1]);
+  });
+});
+
 describe('shared frame changes', () => {
   it('match a fresh comparison and compare a pair of shared parts once', () => {
     const before = base();

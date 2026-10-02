@@ -39,7 +39,7 @@ export function usePieceFlipAnimation(
   const badgeRef = useRef<HTMLSpanElement>(null);
   const previousPiece = useRef(piece);
   const motion = useRef(createPieceFlipMotion(piece.flipRevision ?? 0));
-  const { invalidate } = useThree();
+  const invalidate = useThree((state) => state.invalidate);
 
   const applyPose = useCallback(
     (now: number) => {
