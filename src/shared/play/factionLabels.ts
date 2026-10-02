@@ -43,7 +43,7 @@ export function rosterFactionTitles<P>(
 }
 
 /** What tells a title apart as plain text, "Alice" or "seat 3", or nothing when its name is its own. */
-export function factionTieBreakText(title: FactionTitle): string | undefined {
+function factionTieBreakText(title: FactionTitle): string | undefined {
   if (!title.tieBreak) {
     return undefined;
   }
