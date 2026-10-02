@@ -1,4 +1,5 @@
-import type { playCreateGameRequestSchema, playCreateGameResultSchema } from '@shared/play/admission';
+import type { playCreateGameRequestSchema } from '@shared/play/admission';
+import type { playCreateGameOutcomeSchema } from '@shared/play/seatLimit';
 import { useQuery } from 'convex/react';
 import type { FunctionReturnType } from 'convex/server';
 import type { z } from 'zod';
@@ -29,7 +30,7 @@ export function useCreatableRulesets() {
 }
 
 export function useCreateGame() {
-  return useLiveMutation<z.infer<typeof playCreateGameRequestSchema>, z.infer<typeof playCreateGameResultSchema>>(
+  return useLiveMutation<z.infer<typeof playCreateGameRequestSchema>, z.infer<typeof playCreateGameOutcomeSchema>>(
     api.playGames.createGame
   );
 }

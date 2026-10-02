@@ -46,6 +46,7 @@ import type * as lib_isolatedBackend from "../lib/isolatedBackend.js";
 import type * as lib_playAuthorization from "../lib/playAuthorization.js";
 import type * as lib_playProvisioningSchedule from "../lib/playProvisioningSchedule.js";
 import type * as lib_playRateLimits from "../lib/playRateLimits.js";
+import type * as lib_playSeats from "../lib/playSeats.js";
 import type * as lib_playService from "../lib/playService.js";
 import type * as lib_playSynthetic from "../lib/playSynthetic.js";
 import type * as lib_playerSummary from "../lib/playerSummary.js";
@@ -146,6 +147,7 @@ declare const fullApi: ApiFromModules<{
   "lib/playAuthorization": typeof lib_playAuthorization;
   "lib/playProvisioningSchedule": typeof lib_playProvisioningSchedule;
   "lib/playRateLimits": typeof lib_playRateLimits;
+  "lib/playSeats": typeof lib_playSeats;
   "lib/playService": typeof lib_playService;
   "lib/playSynthetic": typeof lib_playSynthetic;
   "lib/playerSummary": typeof lib_playerSummary;

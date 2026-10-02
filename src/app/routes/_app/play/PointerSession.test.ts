@@ -25,7 +25,7 @@ function table() {
   canvas.releasePointerCapture = vi.fn();
   const piece = initialSnapshot().table.pieces[0];
   const controls = {
-    canInteract: true,
+    canHandleTable: true,
     hasDraft: false,
     piece: vi.fn(() => piece),
     point: vi.fn((_piece, x: number, y: number): Vector3Tuple | null => (x < 0 ? null : [x, 0, y])),
@@ -150,7 +150,7 @@ test('a panel drop outside the public table cancels without saving', () => {
 test('permission loss cancels the active carry and refuses another pickup', () => {
   const { session, controls, piece } = table();
   session.carry(pointer('pointerdown'), piece.id, 'whole');
-  controls.canInteract = false;
+  controls.canHandleTable = false;
   session.reconcile();
   expect(controls.cancelDraft).toHaveBeenCalledTimes(1);
   expect(session.press(pointer('pointerdown'), piece.id)).toBe(false);

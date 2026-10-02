@@ -48,9 +48,11 @@ It never executes past commands again.
 
 The history table holds two kinds of row (`workers/game/sessionHistory.ts`). A `checkpoint` stores
 the whole snapshot. It is written for a reset, for the step that leaves setup (the Next that opens
-Turn 1), for a battle outcome that settles the battle, and by `GameSession` for the faction
-assignment and the setup cleanup. Every other playback step is a `patch` against the step before
-it: phase and turn changes, declaring a result and continuing past it, setup actions, Ready while
+Turn 1), for every later phase change that moves into another turn, for a revealed battle that
+settles (by agreed outcome or by cancel), and by `GameSession` for the faction assignment and the
+setup cleanup, so a restore never replays more than one turn of patches however long the table
+plays without a battle. Every other playback step is a `patch` against the step before it: phase
+changes within a turn, declaring a result and continuing past it, setup actions, Ready while
 setup gates on it, and a battle's reveal. A restore loads the latest checkpoint at or before the
 step and replays the patches after it, checking that each row's `base_revision` matches. `diff` in
 `workers/game/history.ts` changes an array entry by entry when that is smaller than storing it
@@ -122,7 +124,12 @@ re-provisioning.
    that lapsed or was already redeemed closes the socket with code 4410 and no refusal; the
    browser requests a new ticket and reconnects, with the same wait as a ticket it finds lapsed
    before sending it. That wait doubles from 1 second up to `PLAY_TICKET_RETRY_MAX_MS`, and a view
-   resets it. A refused session, account or game stays denied.
+   resets it. A refused session, account or game stays denied. An admission that failed because
+   Convex did not answer the redemption or the account check (a timeout, a network failure, or a
+   redirect or server error other than a function's own failure) refuses nothing: the socket closes
+   with code 1013 and the browser reconnects with a new ticket after the same doubling wait. While
+   a failed account check waits out its backoff, the room closes a new admission that way at once
+   without asking Convex. Any other failure, such as an answer the Worker cannot read, still denies.
 4. Every command and outgoing game message checks authorization, session expiry and both the
    session and account-reconciliation leases. Timer delays cannot extend these deadlines.
 5. Logout, expiry or a known authorization failure stops game traffic. Reconnection requires a
@@ -194,12 +201,30 @@ step follows a deployment. The directory hides pending fixtures.
 
 `createGame` refuses a session past its idle or total deadline, as `issueTicket` does
 (`livePlaySession` in `convex/lib/playAuthorization.ts`); Play queries read no clock, so a lapsed
-session's sign-in token bounds what it can still read. Creation then draws from two token buckets in
-`convex/lib/playRateLimits.ts`: `playCreatePerAccount` (capacity 3, refilling at 10 an hour) and the
-site-wide `playCreateGlobal` (capacity 20, refilling at 60 an hour). `playCreateQuota` checks both
-before spending either, so a site-wide refusal costs the account none of its own budget. Either
-refusal answers `rate_limited`, and the create page says "Too many games were created recently. Try
-again later."
+session's sign-in token bounds what it can still read.
+
+A player may be seated in at most `PLAY_SEAT_LIMIT` games, 30, set in
+`src/shared/play/participation.ts`. A game holds a seat for a player when the directory summary its
+Worker published last lists them in a seat, unless the game is finished, discarded or expired. A real
+game with no summary yet holds its creator's seat, because the creator is seated from creation.
+`atPlaySeatLimit` in `convex/lib/playSeats.ts` counts them from the games the player created
+(`play_games.by_creator_id`) and the games they entered (`play_game_accounts.by_user_id`), reading at
+most the newest 200 of each, so a seat in an older game can be missed. `createGame` refuses a player
+at the limit with `seat_limit` before it spends anything, and the create page shows the limit message.
+Joining is refused by the game Worker: `redeemTicket` answers `seatLimitReached` for the player,
+counted without the game being entered, and the room refuses that connection's `seat-request` with the
+same message. It also refuses a `seat-approve` while any admitted connection of the requester's
+reported the limit, telling the approver why. The flag is read once per admission, so a player who
+leaves a seat elsewhere reconnects to ask again, and requests pending in several games at once can
+each be approved, leaving a player a few seats over the limit. A missing flag, as an older Convex
+deployment answers, reads as not at the limit. `watchAuthorizations` does not carry the flag: counting
+for every registration in a batch of 64 would outgrow a query's reads, and the count's read set would
+rerun the watch whenever any of those games published a summary.
+
+Creation also draws from the token bucket `playCreatePerAccount` in `convex/lib/playRateLimits.ts`
+(capacity 3, refilling at 10 an hour). It bounds how fast an account creates games, not how many it
+holds open. A refusal answers `rate_limited`, and the create page says "Too many games were created
+recently. Try again later."
 
 The game Worker checks the supplied game secret and attempt with the fixed trusted Convex backend
 before creating state. Unknown, duplicate, expired and invalid requests get the same generic

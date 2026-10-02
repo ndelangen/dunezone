@@ -67,6 +67,8 @@ type GameTableProps = {
   /** The game menu in the toolbar, present in every stage: what a player can do about their own seat. Previous and Next stay rightmost. */
   gameMenu?: ReactNode;
   toolbarControl?: ReactNode;
+  /** The connection's state, beside the logo where the bar has room, present only while the table is not live. */
+  connectionStatus?: ReactNode;
   showStormControls: boolean;
   seatCount: TableSeatCount;
   tableProgress: TableProgress;
@@ -82,7 +84,6 @@ type GameTableProps = {
   playerPanel?: ReactNode;
   /* A view the host asks for after something the viewer did lands out of frame; each new revision moves the camera once. */
   requestedView?: Readonly<{ view: TableView; revision: number }>;
-  onSelectTurn(turn: number): void;
 };
 
 function flippableSelection(piece: TablePiece | null) {
@@ -160,7 +161,7 @@ function SelectedPieceControl() {
           variant="default"
           aria-describedby={helpId}
           aria-busy={control.isFlipping}
-          disabled={control.disabled || !table.canInteract}
+          disabled={control.disabled || !table.canHandleTable}
           onClick={() => table.flipSelected()}
         >
           {control.label}
@@ -176,7 +177,7 @@ function SelectedPieceControl() {
 }
 
 function StormControls({ helpOnly = false }: { helpOnly?: boolean }) {
-  const { canInteract, moveStormBy, state } = useTabletop();
+  const { canHandleTable, moveStormBy, state } = useTabletop();
   return (
     <Section
       helpOnly={helpOnly}
@@ -185,13 +186,13 @@ function StormControls({ helpOnly = false }: { helpOnly?: boolean }) {
       description="Advance the highlighted sector counter-clockwise around Arrakis."
     >
       <Group gap="sm">
-        <Button variant="default" disabled={!canInteract} onClick={() => moveStormBy(-1)}>
+        <Button variant="default" disabled={!canHandleTable} onClick={() => moveStormBy(-1)}>
           Back one
         </Button>
         <Text component="output" aria-live="polite">
           <strong>Sector {state.stormSectorIndex + 1}</strong> of {TABLE_SECTOR_COUNT}
         </Text>
-        <Button disabled={!canInteract} onClick={() => moveStormBy(1)}>
+        <Button disabled={!canHandleTable} onClick={() => moveStormBy(1)}>
           Advance one
         </Button>
       </Group>
@@ -275,19 +276,11 @@ function TableControlsPanel({
   focusTab = null,
   tableControls,
   showStormControls,
-  turn,
-  onSelectTurn,
   word,
   tableTab: tableTabLabel,
   panelContent,
 }: Readonly<
-  Pick<
-    GameTableProps,
-    'panelTabs' | 'focusTab' | 'tableControls' | 'showStormControls' | 'onSelectTurn' | 'panelContent'
-  > &
-    StageFrame & {
-      turn: number;
-    }
+  Pick<GameTableProps, 'panelTabs' | 'focusTab' | 'tableControls' | 'showStormControls' | 'panelContent'> & StageFrame
 >) {
   const tableTab: PanelTab = {
     key: 'table',
@@ -296,7 +289,7 @@ function TableControlsPanel({
     content: (
       <>
         {tableControls}
-        {tableTabLabel === 'Table' && <TrackerControls turn={turn} onSelectTurn={onSelectTurn} />}
+        {tableTabLabel === 'Table' && <SpiceSupplyControls />}
         {tableTabLabel === 'Table' && <SelectedPieceControl />}
         {showStormControls && <StormControls helpOnly={tableTabLabel === 'Phase'} />}
       </>
@@ -404,44 +397,28 @@ function PanelPanes({ children, secondary }: Readonly<{ children: ReactNode; sec
   );
 }
 
-function TrackerControls({ turn, onSelectTurn }: Readonly<{ turn: number; onSelectTurn: (turn: number) => void }>) {
-  const { canInteract, spawnSpice, state } = useTabletop();
+function SpiceSupplyControls() {
+  const { canHandleTable, spawnSpice, state } = useTabletop();
   return (
-    <>
-      <Section
-        eyebrow="Table trackers"
-        title={`Turn ${turn}`}
-        description="Select a number on the turn wheel. This changes the turn only, without moving pieces or changing the phase."
-      >
-        <Group gap="sm">
-          <Button variant="default" disabled={!canInteract || turn <= 1} onClick={() => onSelectTurn(turn - 1)}>
-            Previous turn
+    <Section
+      title="Spice supply"
+      description="Hover the spice disc left of the turn wheel and press 1 through 9, or 0 for ten. Drop spice onto the disc to delete it."
+    >
+      <Group gap="xs" role="group" aria-label="Spawn spice">
+        {Array.from({ length: 10 }, (_, index) => index + 1).map((count) => (
+          <Button
+            key={count}
+            variant="default"
+            size="compact-sm"
+            disabled={!canHandleTable || !!state.draftMove}
+            aria-label={`Spawn ${count} spice`}
+            onClick={() => spawnSpice(count)}
+          >
+            {count}
           </Button>
-          <Button variant="default" disabled={!canInteract} onClick={() => onSelectTurn(turn + 1)}>
-            Next turn
-          </Button>
-        </Group>
-      </Section>
-      <Section
-        title="Spice supply"
-        description="Hover the spice disc left of the turn wheel and press 1 through 9, or 0 for ten. Drop spice onto the disc to delete it."
-      >
-        <Group gap="xs" role="group" aria-label="Spawn spice">
-          {Array.from({ length: 10 }, (_, index) => index + 1).map((count) => (
-            <Button
-              key={count}
-              variant="default"
-              size="compact-sm"
-              disabled={!canInteract || !!state.draftMove}
-              aria-label={`Spawn ${count} spice`}
-              onClick={() => spawnSpice(count)}
-            >
-              {count}
-            </Button>
-          ))}
-        </Group>
-      </Section>
-    </>
+        ))}
+      </Group>
+    </Section>
   );
 }
 
@@ -510,11 +487,11 @@ export function GameTable({
   panelContent,
   playerPanel,
   toolbarControl,
+  connectionStatus,
   showStormControls,
   seatCount,
   tableProgress,
   requestedView,
-  onSelectTurn,
 }: GameTableProps) {
   const [pointerSession] = useState(() => new PointerSession());
   const [tableKeyboard] = useState(() => new TableKeyboard());
@@ -582,6 +559,7 @@ export function GameTable({
             <header className="seated-header" inert={overlaysInert} data-hides-cursor>
               <div className="seated-brand">
                 <img className="seated-brand__logo" src="/web/logo.svg" alt="Dune" />
+                {connectionStatus}
               </div>
 
               <div className="seated-phase-status" aria-live="polite">
@@ -658,7 +636,6 @@ export function GameTable({
                     tableProgress={tableProgress}
                     stage={stage}
                     mapVisible={mapVisible}
-                    onSelectTurn={onSelectTurn}
                   >
                     {sceneContent}
                   </TabletopScene>
@@ -682,8 +659,6 @@ export function GameTable({
                       word={frame.word}
                       tableTab={frame.tableTab}
                       showStormControls={showStormControls}
-                      turn={tableProgress.turn}
-                      onSelectTurn={onSelectTurn}
                     />
                   </PanelPanes>
                 </div>

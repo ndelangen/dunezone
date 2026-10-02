@@ -2,8 +2,8 @@ import type { TablePiece } from './model';
 import {
   CARD_WIDTH,
   FORCE_BOTTOM_RADIUS,
-  FORCE_FACE_RADIUS,
   FORCE_TOP_RADIUS,
+  forceScale,
   pieceLabelHeight,
   stackTopHeight,
   visibleLayerCount,
@@ -104,7 +104,7 @@ function pieceHalfWidth(piece: TablePiece): number {
   if (piece.kind === 'card') {
     return (CARD_WIDTH + (visibleLayerCount(piece) - 1) * CARD_LAYER_STAGGER) / 2;
   }
-  return Math.max(FORCE_BOTTOM_RADIUS, FORCE_TOP_RADIUS, FORCE_FACE_RADIUS);
+  return Math.max(FORCE_BOTTOM_RADIUS, FORCE_TOP_RADIUS) * forceScale(piece);
 }
 
 export function pieceFlipFrame(motion: PieceFlipMotion, piece: TablePiece, nowMs: number): PieceFlipFrame {

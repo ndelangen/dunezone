@@ -1,4 +1,5 @@
-import { Anchor, Button, Group, List, NumberInput, Select, Stack, Text } from '@mantine/core';
+import { Anchor, Button, Group, List, Loader, NumberInput, Select, Stack, Text, Tooltip } from '@mantine/core';
+import { snapshotFactionLabels } from '@shared/play/factionLabels';
 import { emptyPublicControls } from '@shared/play/inventory';
 import type { SpawnSelection } from '@shared/play/inventory';
 import { phaseAt, tableProgressFor } from '@shared/play/phases';
@@ -29,7 +30,7 @@ import { LogEntries } from './Log';
 import { PieceArtwork } from './PieceArtwork';
 import { PlayerPanel, RemovalDecisionBar } from './RemovalVotes';
 import { useResultCelebration } from './resultCelebration';
-import { GameMenu, SeatRequests } from './SeatRequests';
+import { GameMenu, SeatPopover, SeatRequests } from './SeatRequests';
 import { SwappingReadiness } from './Swapping';
 import { SwapScene } from './SwapScene';
 import { TableSession } from './TableSession';
@@ -85,7 +86,7 @@ function PlaybackControls({ client, table }: Pick<ConnectionControlsProps, 'clie
         ) : (
           <Button
             variant="default"
-            disabled={historyPending || !!table.state.draftMove}
+            disabled={historyPending || !!table.state.draftMove || table.reconnecting}
             onClick={() => client.requestHistory(0)}
           >
             Replay from start
@@ -107,7 +108,8 @@ function seatLabel(table: TableProjection): string {
   if (seat === SPECTATOR_SEAT) {
     return 'Spectator';
   }
-  return rosterSeat(table.snapshot.roster, seat)?.faction?.name ?? seat;
+  const faction = rosterSeat(table.snapshot.roster, seat)?.faction;
+  return (faction && snapshotFactionLabels(table.snapshot)[faction.id]) ?? seat;
 }
 
 function ConnectionControls({ client, table, error }: ConnectionControlsProps) {
@@ -213,19 +215,14 @@ type SetupControlProps = Pick<ConnectionControlsProps, 'client' | 'table'>;
 function PredictionCards({ table, factionId, turn }: { table: TableProjection; factionId: string; turn: number }) {
   const seat = table.snapshot.roster?.seats.find((entry) => entry.faction?.id === factionId);
   const token = seat && table.snapshot.swapping?.tokens[seat.id];
+  const name = snapshotFactionLabels(table.snapshot)[factionId] ?? factionId;
   return (
-    <svg
-      width="300"
-      height="190"
-      viewBox="0 0 300 190"
-      role="img"
-      aria-label={`${seat?.faction?.name ?? factionId}, turn ${turn}`}
-    >
+    <svg width="300" height="190" viewBox="0 0 300 190" role="img" aria-label={`${name}, turn ${turn}`}>
       <rect x="2" y="2" width="142" height="184" rx="10" fill="#dfcbaa" stroke="#66503a" strokeWidth="3" />
       <rect x="156" y="2" width="142" height="184" rx="10" fill="#dfcbaa" stroke="#66503a" strokeWidth="3" />
       {token && <image href={token} x="23" y="20" width="100" height="100" />}
       <text x="73" y="153" textAnchor="middle" fill="#302219" fontSize="13">
-        {seat?.faction?.name ?? factionId}
+        {name}
       </text>
       <text x="227" y="62" textAnchor="middle" fill="#302219" fontSize="20">
         TURN
@@ -251,11 +248,7 @@ function PredictionInput({ client, table, stepId }: SetupControlProps & { stepId
     <Stack gap="sm">
       <Select
         label="Predicted winner"
-        data={
-          table.snapshot.roster?.seats.flatMap((seat) =>
-            seat.faction ? [{ value: seat.faction.id, label: seat.faction.name }] : []
-          ) ?? []
-        }
+        data={Object.entries(snapshotFactionLabels(table.snapshot)).map(([value, label]) => ({ value, label }))}
         value={choice.factionId}
         onChange={(factionId) => change({ factionId })}
         disabled={!table.canInteract}
@@ -371,10 +364,7 @@ function SetupControls({ client, table }: SetupControlProps) {
                 /* A visible heading, not help-only: the faction name is what tells the lines apart. */
                 <Section
                   key={entry.factionId}
-                  title={
-                    table.snapshot.roster?.seats.find((seat) => seat.faction?.id === entry.factionId)?.faction?.name ??
-                    entry.factionId
-                  }
+                  title={snapshotFactionLabels(table.snapshot)[entry.factionId] ?? entry.factionId}
                 >
                   <Text size="sm" style={{ whiteSpace: 'pre-wrap' }}>
                     <InlineFormattedTextSource
@@ -419,7 +409,7 @@ function SharedInventory({ client, table }: Pick<ConnectionControlsProps, 'clien
         table.snapshot.stage !== 'setup' && (
           <Button
             variant="default"
-            disabled={!table.canInteract}
+            disabled={!table.canHandleTable}
             onClick={() => {
               if (!picker.open) {
                 client.catalogue();
@@ -436,7 +426,7 @@ function SharedInventory({ client, table }: Pick<ConnectionControlsProps, 'clien
         {table.snapshot.setup && (
           <Button
             variant="default"
-            disabled={!table.canInteract}
+            disabled={!table.canHandleTable}
             onClick={() => client.command({ kind: 'traitors-gather' })}
           >
             Gather tabletop traitors
@@ -447,6 +437,7 @@ function SharedInventory({ client, table }: Pick<ConnectionControlsProps, 'clien
             <Select
               label="Catalogue asset"
               searchable
+              disabled={table.reconnecting}
               placeholder="Choose a deck, bundle or token"
               data={entries.map((entry) => ({ value: `${entry.type}/${entry.slug}`, label: entry.name }))}
               value={picker.selection ? `${picker.selection.type}/${picker.selection.slug}` : null}
@@ -456,7 +447,7 @@ function SharedInventory({ client, table }: Pick<ConnectionControlsProps, 'clien
               }}
             />
             <Button
-              disabled={!table.canInteract || !contents || !picker.selection}
+              disabled={!table.canHandleTable || !contents || !picker.selection}
               onClick={() => {
                 if (picker.selection) {
                   client.command({ kind: 'spawn-request', type: picker.selection.type, slug: picker.selection.slug });
@@ -482,7 +473,7 @@ function SharedInventory({ client, table }: Pick<ConnectionControlsProps, 'clien
             <Stack gap={4} key={piece.id} align="center">
               <Button
                 variant="transparent"
-                disabled={!table.canInteract || table.reservedPieceIds.has(piece.id)}
+                disabled={!table.canHandleTable || table.reservedPieceIds.has(piece.id)}
                 aria-label={`Drag ${piece.label} onto the table`}
                 style={{ height: 100, padding: 0, touchAction: 'none' }}
                 onPointerDown={(event) => {
@@ -514,14 +505,14 @@ function SharedInventory({ client, table }: Pick<ConnectionControlsProps, 'clien
             </Text>
             <Group gap="xs">
               <Button
-                disabled={!table.canInteract || request.requesterSeat === table.viewer.viewerSeat}
+                disabled={!table.canHandleTable || request.requesterSeat === table.viewer.viewerSeat}
                 onClick={() => client.command({ kind: 'spawn-approve', requestId: request.id })}
               >
                 Approve
               </Button>
               <Button
                 variant="default"
-                disabled={!table.canInteract}
+                disabled={!table.canHandleTable}
                 onClick={() => client.command({ kind: 'spawn-dismiss', requestId: request.id })}
               >
                 Dismiss
@@ -562,10 +553,10 @@ function FactionBankControls({ client, table }: Pick<ConnectionControlsProps, 'c
             min={1}
             allowDecimal={false}
             allowNegative={false}
-            disabled={!table.canInteract}
+            disabled={!table.canHandleTable}
           />
           <Button
-            disabled={!table.canInteract || !validAmount}
+            disabled={!table.canHandleTable || !validAmount}
             onClick={() => client.command({ kind: 'bank-withdraw', amount: Number(amount) })}
           >
             Withdraw spice
@@ -577,11 +568,11 @@ function FactionBankControls({ client, table }: Pick<ConnectionControlsProps, 'c
 }
 
 /* A transfer's ends are a faction's id, or the table or the supply, as the Worker's spice ledger records them (#1664). */
-function spicePlace(roster: TableProjection['snapshot']['roster'], place: string): string {
+function spicePlace(labels: Readonly<Partial<Record<string, string>>>, place: string): string {
   if (place === 'table' || place === 'supply') {
     return `the ${place}`;
   }
-  const name = roster?.seats.find((seat) => seat.faction?.id === place)?.faction?.name;
+  const name = labels[place];
   return name ? `the ${name} bank` : 'a faction no longer in the game';
 }
 
@@ -589,7 +580,7 @@ function SpiceHistory({ client, table }: Pick<ConnectionControlsProps, 'client' 
   const view = useSyncExternalStore(client.subscribe, client.getSnapshot);
   const entries = view.spiceHistory?.entries ?? table.snapshot.spiceTransfers ?? [];
   const more = view.spiceHistory?.more ?? entries.length === 20;
-  const roster = table.snapshot.roster;
+  const labels = snapshotFactionLabels(table.snapshot);
   return (
     <Section helpOnly={Boolean(table.snapshot.stage)} title="Public spice transfers">
       <Stack gap="xs">
@@ -597,8 +588,8 @@ function SpiceHistory({ client, table }: Pick<ConnectionControlsProps, 'client' 
         <List type="ordered" size="sm">
           {entries.map((entry) => (
             <List.Item key={entry.revision}>
-              {entry.actor}: {entry.kind}, {entry.amount} spice from {spicePlace(roster, entry.source)}
-              {entry.destination ? ` to ${spicePlace(roster, entry.destination)}` : ' removed from play'}.
+              {entry.actor}: {entry.kind}, {entry.amount} spice from {spicePlace(labels, entry.source)}
+              {entry.destination ? ` to ${spicePlace(labels, entry.destination)}` : ' removed from play'}.
             </List.Item>
           ))}
         </List>
@@ -619,19 +610,46 @@ function SpiceHistory({ client, table }: Pick<ConnectionControlsProps, 'client' 
   );
 }
 
+/* While a lost connection is restored the last table stays on screen, read-only, under this line. */
+/* While the table is locked the top bar says so beside the logo in one short line; the sentence behind it is the tooltip and the accessible description, and a phone keeps only the spinner. */
+function ConnectionStatus({ table }: Readonly<{ table: TableProjection }>) {
+  if (!table.reconnecting) {
+    return null;
+  }
+  const detail = 'The table shows its last saved state. Actions are paused until it is back.';
+  return (
+    <Tooltip label={detail} withinPortal>
+      <Group gap={6} wrap="nowrap" role="status" aria-label={`Reconnecting. ${detail}`}>
+        <Loader size="xs" />
+        <Text size="sm" fw={700} visibleFrom="sm" aria-hidden>
+          Reconnecting
+        </Text>
+      </Group>
+    </Tooltip>
+  );
+}
+
 function ConnectedTable({
   client,
   table,
   error,
+  connection,
 }: Readonly<{
   client: TableSession;
   table: TableProjection;
   error: string | null;
+  connection: string;
 }>) {
   const progress = tableProgressFor(table.snapshot.phase, table.snapshot.phases);
   const celebration = useResultCelebration(table);
   /* Giving up a seat starts in the game menu and is confirmed in the decision bar, so the two share one flag. */
   const [leaving, setLeaving] = useState(false);
+  /* The confirmation is about the seat held when it opened: leaving, a removal vote or a new seat closes it, so a player seated again is not asked to give up the new seat. */
+  const [leavingFrom, setLeavingFrom] = useState(table.viewer.viewerSeat);
+  if (leavingFrom !== table.viewer.viewerSeat) {
+    setLeavingFrom(table.viewer.viewerSeat);
+    setLeaving(false);
+  }
   const [playerSelection, selectPlayer] = useReducer(
     (
       _: { seat: string | null; vote: string | null; tab: 'public' | 'conversation' },
@@ -650,18 +668,18 @@ function ConnectedTable({
   return (
     <TabletopSessionProvider session={client} table={table}>
       {/* A boxless wrapper carries the connection state the browser verification waits on, whichever tab is open. */}
-      <div data-connection="authorized" data-revision={table.liveRevision} style={{ display: 'contents' }}>
+      <div data-connection={connection} data-revision={table.liveRevision} style={{ display: 'contents' }}>
         <GameTable
           seatCount={table.snapshot.roster?.seatCount ?? DEFAULT_TABLE_SEAT_COUNT}
           tableProgress={progress}
           stage={stage}
           mapVisible={setupMapVisible(table.snapshot.setup)}
+          connectionStatus={<ConnectionStatus table={table} />}
           toolbarControl={
             inPlay || (stage === 'setup' && table.snapshot.setup) ? (
               <PhaseNavigation client={client} table={table} />
             ) : undefined
           }
-          onSelectTurn={client.selectTurn}
           /* The gathered Traitor pile lies under the Tleilaxu tanks, below the Map view's frame on a wide screen (#1635). */
           requestedView={table.traitorsGathered ? { view: 'bottom', revision: table.traitorsGathered } : undefined}
           showStormControls={inPlay && progress.activePhaseId === 'storm'}
@@ -692,8 +710,11 @@ function ConnectedTable({
                 leaving={leaving}
                 onStay={() => setLeaving(false)}
                 readiness={
+                  /* A spectator has no draft to ready, so drafting gives them no readiness row at all. */
                   stage === 'drafting' ? (
-                    <DraftingReadiness client={client} table={table} />
+                    table.viewer.viewerSeat === SPECTATOR_SEAT ? undefined : (
+                      <DraftingReadiness client={client} table={table} />
+                    )
                   ) : stage === 'swapping' ? (
                     <SwappingReadiness client={client} table={table} />
                   ) : undefined
@@ -703,11 +724,14 @@ function ConnectedTable({
             </Stack>
           }
           gameMenu={
-            <GameMenu
-              table={table}
-              onLeave={() => setLeaving(true)}
-              onClearConfetti={celebration.hasConfetti ? celebration.clear : undefined}
-            />
+            <>
+              <SeatPopover client={client} table={table} error={error} />
+              <GameMenu
+                table={table}
+                onLeave={() => setLeaving(true)}
+                onClearConfetti={celebration.hasConfetti ? celebration.clear : undefined}
+              />
+            </>
           }
           stageStatus={
             stage === 'drafting' ? (
@@ -888,7 +912,7 @@ export default function HostedTable({ gameId, exitControl }: Readonly<{ gameId: 
   }
   return (
     <ServerClockContext.Provider value={view.table.serverNow}>
-      <ConnectedTable client={client} table={view.table} error={view.error} />
+      <ConnectedTable client={client} table={view.table} error={view.error} connection={view.status} />
     </ServerClockContext.Provider>
   );
 }

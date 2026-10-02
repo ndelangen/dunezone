@@ -1,5 +1,4 @@
 /* @jsxImportSource ./three-jsx */
-import type { ThreeEvent } from '@react-three/fiber/webgpu';
 import { useEffect, useMemo } from 'react';
 
 import { PHASE_DISC_COLOR, PHASE_INK_COLOR } from './phaseSymbolLayout';
@@ -8,7 +7,6 @@ import {
   createTurnTrackerFrame,
   createTurnTrackerPointer,
   createTurnTrackerWedge,
-  turnAtTrackerPoint,
   turnTrackerLayout,
 } from './turnTrackerGeometry';
 
@@ -16,15 +14,8 @@ function ignoreRaycast() {
   /* Printed numbers and raised artwork never intercept tabletop gestures. */
 }
 
-function stopTablePick(event: ThreeEvent<PointerEvent>) {
-  event.stopPropagation();
-}
-
-export function TurnTracker({
-  radius,
-  turn,
-  onSelectTurn,
-}: Readonly<{ radius: number; turn: number; onSelectTurn?: (turn: number) => void }>) {
+/* The wheel only shows the turn: players change it by moving through the phases (#1683). */
+export function TurnTracker({ radius, turn }: Readonly<{ radius: number; turn: number }>) {
   const layout = useMemo(() => turnTrackerLayout({ radius, turn }), [radius, turn]);
   const frame = useMemo(() => createTurnTrackerFrame(layout), [layout]);
   const pointer = useMemo(() => createTurnTrackerPointer(layout), [layout]);
@@ -32,25 +23,6 @@ export function TurnTracker({
   useEffect(() => () => frame.dispose(), [frame]);
   useEffect(() => () => pointer.dispose(), [pointer]);
   useEffect(() => () => wedge.dispose(), [wedge]);
-
-  function select(event: ThreeEvent<MouseEvent>) {
-    event.stopPropagation();
-    if (!onSelectTurn) {
-      return;
-    }
-    if (event.delta > 4) {
-      return;
-    }
-    const tracker = event.eventObject.parent;
-    if (!tracker) {
-      return;
-    }
-    const point = tracker.worldToLocal(event.point.clone());
-    const selected = turnAtTrackerPoint(layout, point);
-    if (selected !== null) {
-      onSelectTurn(selected);
-    }
-  }
 
   return (
     <group>
@@ -90,12 +62,6 @@ export function TurnTracker({
         <circleGeometry args={[radius * 0.045, 32]} />
         <meshStandardMaterial color={PHASE_INK_COLOR} roughness={1} metalness={0} fog={false} />
       </mesh>
-      {onSelectTurn ? (
-        <mesh position={[0, 0.045, 0]} rotation={[-Math.PI / 2, 0, 0]} onPointerDown={stopTablePick} onClick={select}>
-          <circleGeometry args={[radius, 128]} />
-          <meshBasicMaterial transparent opacity={0} depthWrite={false} colorWrite={false} />
-        </mesh>
-      ) : null}
     </group>
   );
 }

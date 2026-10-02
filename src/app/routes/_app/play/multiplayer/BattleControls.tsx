@@ -1,10 +1,11 @@
 import { Button, Group, Image, NumberInput, SegmentedControl, Select, Stack, Text } from '@mantine/core';
-import type { NumberInputProps } from '@mantine/core';
+import type { ButtonProps, NumberInputProps } from '@mantine/core';
 import { Html } from '@react-three/drei/webgpu';
 import { useFrame, useThree } from '@react-three/fiber/webgpu';
 import { troopCombatFaces } from '@shared/factions/troopCombat';
 import { isBattleLeader } from '@shared/play/battle';
 import type { BattlePlan, BattlePlanInput, CombatFace, PublicBattle } from '@shared/play/battle';
+import { snapshotFactionLabels } from '@shared/play/factionLabels';
 import type { TablePiece, Vector3Tuple } from '@shared/play/model';
 import { phaseAt, STANDARD_PHASES } from '@shared/play/phases';
 import { SPECTATOR_SEAT } from '@shared/play/schema';
@@ -32,6 +33,7 @@ import { DarkSchemeIsland } from '../DarkSchemeIsland';
 import { PointerSessionContext, usePointerSession } from '../PointerSessionContext';
 import { TABLE_PLATE_BOUNDS } from '../tablePlateGeometry';
 import styles from './BattleControls.module.css';
+import { battleCapsuleY, headerInset } from './battlePlacement';
 import { PieceArtwork } from './PieceArtwork';
 import type { TableSession, TableProjection } from './TableSession';
 
@@ -339,7 +341,7 @@ function PlanInventory({ plan, locked, update, pieces }: PlanEditor & { pieces: 
 function PlanFields({ client, table, plan, battle }: Props & { plan: BattlePlan; battle: PublicBattle }) {
   const factionId = table.snapshot.bank!.factionId;
   const side = battle.sides.find((side) => side?.factionId === factionId)!;
-  const locked = !table.canInteract || side.ready || battle.stage !== 'preparing';
+  const locked = !table.canHandleTable || side.ready || battle.stage !== 'preparing';
   const update = (patch: Partial<BattlePlanInput>) => {
     client.editBattlePlan(patch);
   };
@@ -392,7 +394,7 @@ function PlanFields({ client, table, plan, battle }: Props & { plan: BattlePlan;
             </Text>
             {battle.stage !== 'revealed' && (
               <Button
-                disabled={!table.canInteract}
+                disabled={!table.canHandleTable}
                 variant={side.ready ? 'default' : 'filled'}
                 onClick={() => client.command({ kind: 'battle-ready', battleId: battle.id, ready: !side.ready })}
               >
@@ -406,7 +408,7 @@ function PlanFields({ client, table, plan, battle }: Props & { plan: BattlePlan;
             <BattleWheel
               plan={preview}
               factionId={factionId}
-              factionName={rosterName(factionId, table.state.factionNames)}
+              factionName={rosterName(factionId, snapshotFactionLabels(table.snapshot))}
               artwork={table.snapshot.factionArtwork}
             />
           </div>
@@ -443,7 +445,7 @@ export function HandControls({ client, table, hand }: Props & { hand: TablePiece
       <Stack gap="sm">
         <Button
           variant="default"
-          disabled={!table.canInteract || !canTakeSelected(selected)}
+          disabled={!table.canHandleTable || !canTakeSelected(selected)}
           onClick={() => selected && client.command({ kind: 'hand-take', pieceId: selected.id })}
         >
           Take selected piece into hand
@@ -458,7 +460,7 @@ export function HandControls({ client, table, hand }: Props & { hand: TablePiece
               styles={{ label: { height: 'auto' } }}
               key={piece.id}
               className={styles.piece}
-              draggable={table.canInteract}
+              draggable={table.canHandleTable}
               aria-label={`Drag ${pieceName(piece)} from hand`}
               onDragStart={(event) => {
                 event.dataTransfer.setData('application/dune-hand', piece.id);
@@ -546,7 +548,7 @@ export function BattleControls({ client, table }: Props) {
         <BattleResults
           results={battleResults}
           artwork={table.snapshot.factionArtwork}
-          names={table.state.factionNames}
+          names={snapshotFactionLabels(table.snapshot)}
         />
       )}
     </>
@@ -557,22 +559,18 @@ type Placement = { anchor: [number, number]; capsule: [number, number] };
 function battlePlacement(
   battleAnchor: PublicBattle['anchor'],
   camera: Camera,
-  size: { width: number; height: number }
+  size: { width: number; height: number },
+  canvas: HTMLCanvasElement
 ): Placement {
   const projected = new Vector3(...battleAnchor).project(camera);
   const anchor: [number, number] = [
     Math.round(((projected.x + 1) * size.width) / 2),
     Math.round(((1 - projected.y) * size.height) / 2),
   ];
-  const verticalMidpoint = size.height / 2;
-  const territoryIsAbove = anchor[1] < verticalMidpoint;
-  const capsuleY = territoryIsAbove
-    ? Math.max(verticalMidpoint + 1, Math.min(size.height - 150, anchor[1] + 250))
-    : Math.min(verticalMidpoint - 1, Math.max(160, anchor[1] - 250));
-  return { anchor, capsule: [size.width / 2, capsuleY] };
+  return { anchor, capsule: [size.width / 2, battleCapsuleY(anchor[1], size.height, headerInset(canvas))] };
 }
 function useBattlePlacement(battle: PublicBattle | null | undefined) {
-  const { camera, size } = useThree();
+  const { camera, size, renderer } = useThree();
   const [placement, place] = useReducer(
     (before: Placement, next: Placement) => (JSON.stringify(before) === JSON.stringify(next) ? before : next),
     { anchor: [0, 0], capsule: [0, 0] }
@@ -581,7 +579,7 @@ function useBattlePlacement(battle: PublicBattle | null | undefined) {
     if (!battle) {
       return;
     }
-    place(battlePlacement(battle.anchor, camera, size));
+    place(battlePlacement(battle.anchor, camera, size, renderer.domElement));
   });
   return placement;
 }
@@ -641,7 +639,7 @@ function useInventoryDrop({ client, table }: Props) {
     const over = (event: DragEvent) => event.preventDefault();
     const drop = (event: DragEvent) => {
       event.preventDefault();
-      if (!table.canInteract) {
+      if (!table.canHandleTable) {
         return;
       }
       const position = dropPosition(event, canvas, camera);
@@ -655,7 +653,7 @@ function useInventoryDrop({ client, table }: Props) {
       canvas.removeEventListener('dragover', over);
       canvas.removeEventListener('drop', drop);
     };
-  }, [camera, renderer, client, table.canInteract]);
+  }, [camera, renderer, client, table.canHandleTable]);
 }
 function BattleMarker({ table }: Props) {
   const phases = table.snapshot.phases ?? STANDARD_PHASES;
@@ -669,8 +667,8 @@ function BattleMarker({ table }: Props) {
       <DarkSchemeIsland>
         <Button
           aria-label="Drag battle marker onto territory"
-          draggable={table.canInteract}
-          disabled={!table.canInteract}
+          draggable={table.canHandleTable}
+          disabled={!table.canHandleTable}
           onDragStart={(event) => event.dataTransfer.setData('application/dune-battle', 'marker')}
         >
           <TopicIcon topic="battle" />
@@ -688,28 +686,40 @@ function OutcomeButton({ client, table, battle, own, outcome }: ActiveProps & { 
       data-outcome={outcome}
       aria-label={outcomes.find(([choice]) => choice === outcome)![1]}
       variant={own >= 0 && battle.sides[own]?.choice === outcome ? 'filled' : 'default'}
-      disabled={!table.canInteract || own < 0}
+      disabled={!table.canHandleTable || own < 0}
       onClick={() => client.command({ kind: 'battle-outcome', battleId: battle.id, outcome })}
     >
       {outcome === 'none' ? 'No winner' : outcome === 'left' ? 'Left won' : 'Right won'}
     </Button>
   );
 }
+/* One cancel for both stages it is offered in, so the two cannot drift; each stage passes its own look. */
+function CancelBattleButton({
+  client,
+  table,
+  battle,
+  size,
+  variant,
+  className,
+  fullWidth,
+}: ActiveProps & Pick<ButtonProps, 'size' | 'variant' | 'className' | 'fullWidth'>) {
+  return (
+    <Button
+      size={size}
+      variant={variant}
+      className={className}
+      fullWidth={fullWidth}
+      disabled={!table.canHandleTable}
+      onClick={() => client.command({ kind: 'battle-cancel', battleId: battle.id })}
+    >
+      Cancel battle
+    </Button>
+  );
+}
 function BattleActions(props: ActiveProps) {
-  const { client, table, battle } = props;
+  const { battle } = props;
   if (battle.stage === 'preparing') {
-    return (
-      <Button
-        size="xs"
-        className={styles.cancel}
-        variant="default"
-        fullWidth
-        disabled={!table.canInteract}
-        onClick={() => client.command({ kind: 'battle-cancel', battleId: battle.id })}
-      >
-        Cancel battle
-      </Button>
-    );
+    return <CancelBattleButton {...props} size="xs" className={styles.cancel} variant="default" fullWidth />;
   }
   if (battle.stage !== 'revealed') {
     return null;
@@ -723,7 +733,13 @@ function BattleActions(props: ActiveProps) {
 }
 function BattleCentre(props: ActiveProps) {
   if (props.battle.stage === 'revealed') {
-    return <OutcomeButton {...props} outcome="none" />;
+    /* Anyone seated can end a revealed battle the sides cannot agree on; it settles as a battle nobody won. */
+    return (
+      <Stack gap={4} align="center">
+        <OutcomeButton {...props} outcome="none" />
+        <CancelBattleButton {...props} size="compact-xs" variant="subtle" />
+      </Stack>
+    );
   }
   if (props.battle.stage !== 'countdown') {
     return null;
@@ -749,9 +765,9 @@ function SideContents({
       <BattleWheel
         plan={battle.revealed[index]}
         factionId={side!.factionId}
-        factionName={rosterName(side!.factionId, table.state.factionNames)}
+        factionName={rosterName(side!.factionId, snapshotFactionLabels(table.snapshot))}
         artwork={table.snapshot.factionArtwork}
-        client={table.canInteract ? client : undefined}
+        client={table.canHandleTable ? client : undefined}
         active={active}
       />
     );
@@ -761,7 +777,7 @@ function SideContents({
       <BattleWheelAsset
         state="unrevealed"
         motion={motion}
-        label={`${rosterName(side.factionId, table.state.factionNames)}, ${index === 0 ? 'left side, aggressor' : 'right side'}, ${side.ready ? 'Ready' : 'Preparing'}`}
+        label={`${rosterName(side.factionId, snapshotFactionLabels(table.snapshot))}, ${index === 0 ? 'left side, aggressor' : 'right side'}, ${side.ready ? 'Ready' : 'Preparing'}`}
         artwork={factionArtwork(side.factionId, table.snapshot.factionArtwork)}
         ready={side.ready}
       />
@@ -773,7 +789,7 @@ function SideContents({
       aria-label={index ? 'Claim right side' : 'Claim left side'}
       styles={{ label: { whiteSpace: 'normal' } }}
       variant="default"
-      disabled={!table.canInteract || own >= 0}
+      disabled={!table.canHandleTable || own >= 0}
       onClick={() => client.command({ kind: 'battle-claim', battleId: battle.id, side: index })}
     >
       {index ? 'Claim right' : 'Claim left'}
@@ -808,6 +824,7 @@ function BattleSides(props: ActiveProps) {
 }
 function BattleCallout({ client, table, battle, placement }: Props & { battle: PublicBattle; placement: Placement }) {
   const pointerSession = usePointerSession();
+  const canvas = useThree((state) => state.renderer.domElement);
   const { anchor, capsule } = placement;
   const faction = table.snapshot.bank?.factionId;
   const own = faction ? battle.sides.findIndex((side) => side?.factionId === faction) : -1;
@@ -818,7 +835,7 @@ function BattleCallout({ client, table, battle, placement }: Props & { battle: P
       position={battle.anchor}
       center
       zIndexRange={[10, 0]}
-      calculatePosition={(_, camera, size) => battlePlacement(battle.anchor, camera, size).capsule}
+      calculatePosition={(_, camera, size) => battlePlacement(battle.anchor, camera, size, canvas).capsule}
     >
       <PointerSessionContext value={pointerSession}>
         <DarkSchemeIsland>

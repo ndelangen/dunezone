@@ -1,3 +1,4 @@
+import { tableProgressFor } from '../../src/shared/play/phases';
 import type { ClientMessage } from '../../src/shared/play/protocol';
 import { isSetupAction } from '../../src/shared/play/setup';
 import type { ActorDirectory } from './actors';
@@ -24,9 +25,13 @@ const boundaryActions = new Set(['phase', 'turn', 'result-declare', 'result-cont
 /* Ready is a playback step only while setup gates on it; phase is one everywhere. */
 const setupReady = 'ready';
 
+/* The turn a stored state is in, by the turn it plays; a game before play counts as Turn 1. */
+const turnOf = (snapshot: StoredSnapshot) => tableProgressFor(snapshot.phase, snapshot.phases).turn;
+
 /*
- * Kept whole: a reset replaces the table, Turn 1 opening ends setup, and a settled battle closes a run of playback
- * steps, so no restore replays more than one stretch of patches.
+ * Kept whole: a reset replaces the table, Turn 1 opening ends setup, every later turn change starts a new stretch, and a
+ * settled battle closes a run of playback steps, so no restore replays more than one turn of patches however long the
+ * table plays without a battle.
  */
 function requiresCheckpoint(
   action: Extract<CommitMessage, { type: 'command' }>['action'],
@@ -36,7 +41,11 @@ function requiresCheckpoint(
   if (action.kind === 'reset' || (before.stage === 'setup' && next.stage !== 'setup')) {
     return true;
   }
-  return action.kind === 'battle-outcome' && !next.battleState;
+  if (action.kind === 'phase' && turnOf(before) !== turnOf(next)) {
+    return true;
+  }
+  /* A revealed battle settles by agreed outcome or by cancel; either is a checkpoint. */
+  return before.battleState?.stage === 'revealed' && !next.battleState;
 }
 
 /* Setup steps change a few entries of the table each, so they are stored as their changes like any other playback step. */
