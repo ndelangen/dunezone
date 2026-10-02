@@ -512,6 +512,20 @@ function BattleResults({
   );
 }
 
+/* Without a plan of its own, the panel says why: no battle, the plans are out, or the viewer cannot claim a side. */
+function battleNotice(table: TableProjection, battle: PublicBattle | null | undefined) {
+  if (!battle) {
+    return 'No battle in progress.';
+  }
+  if (battle.stage === 'revealed') {
+    return 'Both plans are revealed on the table.';
+  }
+  if (table.viewer.viewerSeat === SPECTATOR_SEAT || battle.sides.every(Boolean)) {
+    return 'Only the two sides see their plans until the reveal.';
+  }
+  return 'Claim a side on the table to prepare your private plan.';
+}
+
 export function BattleControls({ client, table }: Props) {
   const { battle, battlePlan, hand, battleResults = [] } = table.snapshot;
   return (
@@ -524,13 +538,7 @@ export function BattleControls({ client, table }: Props) {
         {battlePlan && battle ? (
           <PlanFields client={client} table={table} plan={battlePlan} battle={battle} />
         ) : (
-          <Text size="sm">
-            {!battle
-              ? 'No battle in progress.'
-              : table.viewer.viewerSeat === SPECTATOR_SEAT
-                ? 'Only the two sides see their plans until the reveal.'
-                : 'Claim a side on the table to prepare your private plan.'}
-          </Text>
+          <Text size="sm">{battleNotice(table, battle)}</Text>
         )}
       </Section>
       {hand && <HandControls client={client} table={table} hand={hand} />}
