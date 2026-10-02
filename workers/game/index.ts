@@ -80,6 +80,8 @@ type TicketAdmission = Extract<ReturnType<typeof playRedeemTicketOutcomeSchema.p
 
 /** A ticket that lapsed or was already redeemed. The socket closes without a refusal, so the browser asks for a new ticket. */
 class ExpiredTicket extends GameRejection {}
+/** The standard "try again later" close: admission failed for want of Convex, which a browser treats as a dropped socket and reconnects. */
+const ADMISSION_UNAVAILABLE_CLOSE_CODE = 1013;
 
 const json = (body: unknown, status = 200) => Response.json(body, { status, headers: { 'Cache-Control': 'no-store' } });
 const refused = () => json({ error: 'Request refused.' }, 403);
@@ -890,7 +892,11 @@ export class GameRoom extends DurableObject<GameEnv> {
         return;
       }
       if (!(error instanceof GameRejection)) {
+        /* Convex could not be reached or failed: nothing was refused, so the browser asks for a new ticket and retries. */
         this.diagnostics.report('admission', error);
+        this.disconnect(socket);
+        socket.close(ADMISSION_UNAVAILABLE_CLOSE_CODE, 'Admission unavailable.');
+        return;
       }
       this.deny(socket);
     }

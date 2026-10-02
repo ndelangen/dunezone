@@ -122,7 +122,9 @@ re-provisioning.
    that lapsed or was already redeemed closes the socket with code 4410 and no refusal; the
    browser requests a new ticket and reconnects, with the same wait as a ticket it finds lapsed
    before sending it. That wait doubles from 1 second up to `PLAY_TICKET_RETRY_MAX_MS`, and a view
-   resets it. A refused session, account or game stays denied.
+   resets it. A refused session, account or game stays denied. An admission that failed because
+   Convex did not answer the redemption or the account check refuses nothing: the socket closes
+   with code 1013 and the browser reconnects with a new ticket.
 4. Every command and outgoing game message checks authorization, session expiry and both the
    session and account-reconciliation leases. Timer delays cannot extend these deadlines.
 5. Logout, expiry or a known authorization failure stops game traffic. Reconnection requires a

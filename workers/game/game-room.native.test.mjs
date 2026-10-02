@@ -482,6 +482,24 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     expect(refused.messages).toEqual([{ type: 'admission', status: 'denied' }]);
   });
 
+  it('closes without a refusal when the account check fails at admission, so the browser retries', async () => {
+    expect((await provision(runtime)).status).toBe(200);
+    peer.watchMode = 'allow';
+    await admit();
+    /* A cold room holds no account lease, so the next admission checks every retained account. */
+    await runtime.restart();
+    peer.reconcileMode = 'error';
+    const unavailable = await openGame(runtime);
+    unavailable.send({ type: 'admit', ticket: 'd'.repeat(64) });
+    await eventually(() => unavailable.closed, 'unavailable admission close');
+    expect(unavailable.closeCode).not.toBe(4401);
+    expect(unavailable.messages).not.toContainEqual({ type: 'admission', status: 'denied' });
+    peer.reconcileMode = 'answer';
+    const retried = await openGame(runtime);
+    retried.send({ type: 'admit', ticket: 'e'.repeat(64) });
+    expect((await retried.message('view')).viewer.userId).toBe('user-a');
+  });
+
   it('closes a redeemed socket that never obtained fresh authorization', async () => {
     expect((await provision(runtime)).status).toBe(200);
     const connection = await openGame(runtime);

@@ -10,6 +10,7 @@ import {
   playWatchAuthorizationsResultSchema,
 } from '../../src/shared/play/admission';
 import type { playWatchAuthorizationsRequestSchema } from '../../src/shared/play/admission';
+import { GameRejection } from '../../src/shared/play/rejection';
 import type { GameDiagnostics } from './diagnostics';
 
 export function gameHttpClient(url: string): ConvexHttpClient {
@@ -202,7 +203,7 @@ export class AuthorizationWatch {
     const previous = this.entries.get(registrationId);
     if (previous) {
       if (!previous.canReuse(principal)) {
-        throw new Error('Admission refused.');
+        throw new GameRejection('Admission refused.');
       }
     } else {
       this.entries.set(registrationId, new AuthorizationGrant({ ...principal }, this.leaseMs));
