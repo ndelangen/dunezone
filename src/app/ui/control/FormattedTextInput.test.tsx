@@ -141,3 +141,24 @@ it('does not mistake delimiters outside a mixed selection for a single enclosing
   expect(field.value).toBe('**Arrakeen* and *Carthag**');
   expect(field.getAttribute('aria-invalid')).not.toBe('true');
 });
+
+it('suggests the glossary word for an avoided one without marking the field invalid', () => {
+  renderInput('Ship three forces.');
+
+  const field = screen.getByRole('textbox', { name: 'Text' });
+  expect(screen.getByRole('note', { name: 'Wording suggestions' }).textContent).toContain(
+    '“forces”: you may mean Troop.'
+  );
+  expect(screen.getByRole('link', { name: 'Troop' }).getAttribute('href')).toBe('/glossary#troop');
+  expect(field.getAttribute('aria-invalid')).not.toBe('true');
+});
+
+it('shows no wording suggestions when the caller turns them off', () => {
+  render(
+    <MantineProvider theme={appContentTheme} forceColorScheme="light">
+      <FormattedTextInput label="Text" value="Ship three forces." onChange={vi.fn()} termHints={false} />
+    </MantineProvider>
+  );
+
+  expect(screen.queryByRole('note', { name: 'Wording suggestions' })).toBeNull();
+});

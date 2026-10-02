@@ -1,0 +1,9 @@
+/* Linked headings land below the sticky header instead of under it. */
+.topic,
+.term {
+  scroll-margin-top: var(--space-xl);
+}
+
+.avoided {
+  text-decoration: line-through;
+}

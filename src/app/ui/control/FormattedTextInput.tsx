@@ -2,10 +2,12 @@ import { Group, Stack, Textarea } from '@mantine/core';
 import type { TextareaProps } from '@mantine/core';
 import { parseFormattedText } from '@shared/formattedText';
 import type { FormattedTextParseResult, FormattedTextProfile } from '@shared/formattedText';
+import { distinctTermHints } from '@shared/glossary/hints';
 import { Bold, Italic, Underline } from 'lucide-react';
-import { Fragment, useLayoutEffect, useRef, useState } from 'react';
+import { Fragment, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 
+import { TermHints } from '../content/TermHints';
 import { IconAction } from './IconAction';
 
 /** The one sentence every formatted field's help can say about what it accepts, kept beside the control that parses it. */
@@ -18,6 +20,8 @@ export interface FormattedTextInputProps extends Omit<TextareaProps, 'defaultVal
   value: string;
   onChange: (value: string) => void;
   profile?: FormattedTextProfile;
+  /** False turns off the glossary's wording suggestions, for text that is not about the game. */
+  termHints?: boolean;
 }
 
 function Diagnostic({ diagnostic }: { diagnostic: FormattedTextDiagnostic }) {
@@ -75,8 +79,17 @@ function isEntireMark(source: string, delimiter: '*' | '-' | '_') {
  *
  * The caller owns the draft and any field-specific validation such as requiredness.
  * This control owns syntax validation so every author sees the same source location, explanation, and suggested repair.
+ * It also suggests the glossary's word wherever the draft uses one the glossary avoids;
+ * the suggestions never block a save.
  */
-export function FormattedTextInput({ value, onChange, error, profile = 'prose', ...props }: FormattedTextInputProps) {
+export function FormattedTextInput({
+  value,
+  onChange,
+  error,
+  profile = 'prose',
+  termHints = true,
+  ...props
+}: FormattedTextInputProps) {
   const fieldRef = useRef<HTMLTextAreaElement>(null);
   const pendingSelection = useRef<{ value: string; start: number; end: number } | null>(null);
   const [hasSelection, setHasSelection] = useState(false);
@@ -129,6 +142,7 @@ export function FormattedTextInput({ value, onChange, error, profile = 'prose', 
     };
     onChange(nextValue);
   };
+  const hints = useMemo(() => (termHints ? distinctTermHints(value) : []), [termHints, value]);
   const parsed = parseFormattedText(value, profile);
   const diagnostics = parsed.valid ? [] : parsed.diagnostics;
 
@@ -159,6 +173,7 @@ export function FormattedTextInput({ value, onChange, error, profile = 'prose', 
           </Group>
 
           {props.inputContainer ? props.inputContainer(input) : input}
+          <TermHints hints={hints} />
         </Stack>
       )}
       ref={fieldRef}

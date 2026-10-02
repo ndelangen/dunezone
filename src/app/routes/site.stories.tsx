@@ -44,3 +44,13 @@ export const PublicationJobsSignedOut = meta.story({
 });
 export const FuturePlans = meta.story({ args: { path: '/future-plans' } });
 export const Privacy = meta.story({ args: { path: '/privacy' } });
+
+/** The hard-coded glossary, one Surface per topic, every term reachable by its anchor. */
+export const Glossary = meta.story({
+  args: { path: '/glossary' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByRole('heading', { name: 'Troop' }, { timeout: 30_000 })).resolves.toBeVisible();
+    expect(canvasElement.ownerDocument.getElementById('battle')).not.toBeNull();
+  },
+});
