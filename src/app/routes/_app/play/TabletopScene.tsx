@@ -862,6 +862,18 @@ function useCanvasHoverReset() {
   }, [connected, cancel, internal, renderer]);
 }
 
+/*
+ * Names the drawing surface itself, not R3F's wrapper: drei's `Html` overlays, the battle callout's buttons among them, sit inside the wrapper, and an image role there would hide them from assistive technology.
+ */
+function useCanvasName() {
+  const { renderer } = useThree();
+  useLayoutEffect(() => {
+    const canvas = renderer.domElement;
+    canvas.setAttribute('role', 'img');
+    canvas.setAttribute('aria-label', 'Game table');
+  }, [renderer]);
+}
+
 function pieceHoverCursor(canInteract: boolean, interactionBlocked: boolean, gestureBlocked: boolean) {
   if (interactionBlocked) {
     return canInteract ? 'not-allowed' : 'default';
@@ -1163,6 +1175,7 @@ function SceneContents({
   const { controlsEnabled, onPointerSessionChange } = useSceneInteractions(onInteractionActiveChange);
   useScenePointerSession(onPointerSessionChange);
   useCanvasHoverReset();
+  useCanvasName();
 
   return (
     <>

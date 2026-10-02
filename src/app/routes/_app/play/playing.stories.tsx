@@ -257,7 +257,7 @@ export const ConversationHistory = meta.story({
     expect(session.transport.messages.some((entry) => entry.type === 'conversation-read')).toBe(false);
     await userEvent.click(page.getByRole('button', { name: 'Conversation' }));
     await page.findByText('Shall we keep the southern route open?');
-    const loadedHistory = page.getByRole('region', { name: 'Conversation history' });
+    const loadedHistory = page.getByRole('log', { name: 'Conversation history' });
     await waitFor(() =>
       expect(loadedHistory.scrollHeight - loadedHistory.scrollTop - loadedHistory.clientHeight).toBeLessThan(8)
     );
@@ -275,7 +275,7 @@ export const ConversationHistory = meta.story({
     await userEvent.click(page.getByRole('button', { name: 'Earlier messages' }));
     await expect(page.findByText('Earlier plan 1')).resolves.toBeInTheDocument();
     page.getByText('Earlier plan 1').scrollIntoView({ block: 'center' });
-    const history = page.getByRole('region', { name: 'Conversation history' });
+    const history = page.getByRole('log', { name: 'Conversation history' });
     const readingPosition = history.scrollTop;
     const composerTop = page.getByRole('textbox', { name: 'Message' }).getBoundingClientRect().top;
     session.transport.deliver({

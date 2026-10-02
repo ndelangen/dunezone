@@ -33,9 +33,13 @@ function hasModifier(event: KeyboardEvent) {
   return event.metaKey || event.ctrlKey || event.altKey;
 }
 
+/* What the keyboard has reached on purpose: a control, a link, a focusable region such as the conversation history, or an open menu. */
+const FOCUSED_CONTROL = "button, a[href], [role='separator'], [tabindex]:not([tabindex='-1'])";
+const OPEN_MENU = "[role='menu']";
+
 /*
  * A focused text field keeps its keys from the table.
- * The table's shortcuts also leave a focused button or the panel divider alone, while the spice disc answers over them.
+ * The table's shortcuts also leave any other focused control, link, focusable region or open menu alone, while the spice disc answers over them.
  */
 function focusKeepsKey(target: EventTarget | null, branch: 'supply' | 'table') {
   if (!(target instanceof HTMLElement)) {
@@ -44,7 +48,7 @@ function focusKeepsKey(target: EventTarget | null, branch: 'supply' | 'table') {
   if (target.isContentEditable || target.matches('input, textarea, select')) {
     return true;
   }
-  return branch === 'table' && target.matches("button, [role='separator']");
+  return branch === 'table' && (target.matches(FOCUSED_CONTROL) || target.closest(OPEN_MENU) !== null);
 }
 
 /**

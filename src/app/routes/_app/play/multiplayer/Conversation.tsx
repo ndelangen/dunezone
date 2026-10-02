@@ -35,7 +35,7 @@ export function Conversation({ client, peerId }: Readonly<{ client: TableSession
           gap="sm"
           className={styles.history}
           style={{ overflowY: 'auto', overflowAnchor: 'none' }}
-          role="region"
+          role="log"
           aria-label="Conversation history"
           tabIndex={0}
           onScroll={onScroll}
@@ -304,7 +304,9 @@ function PendingStatus({
               Retry
             </Button>
           </Group>
-          <Text size="xs">{delivery.error}</Text>
+          <Text size="xs" role="alert">
+            {delivery.error}
+          </Text>
         </>
       );
   }

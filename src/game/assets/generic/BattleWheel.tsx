@@ -48,7 +48,8 @@ export function BattleWheel(props: Props) {
       className={[styles.wheel, props.className].filter(Boolean).join(' ')}
       data-state={props.state}
       data-motion={props.motion === undefined ? undefined : props.motion ? 'ok' : 'reduce'}
-      role={props.state === 'unrevealed' ? 'img' : undefined}
+      /* Revealed, the wheel holds the plan's pieces, so it is a named group rather than one image. */
+      role={props.state === 'unrevealed' ? 'img' : 'group'}
       aria-label={props.label}
     >
       {props.state === 'unrevealed' ? (
@@ -86,10 +87,10 @@ function RevealedWheel({ background, strength, spice, adjustment, troops, cards 
         ))}
       </div>
       <div className={styles.wheelFace}>
-        <div className={styles.wheelArtwork}>
+        <div className={styles.wheelArtwork} aria-hidden="true">
           <BackgroundRenderer background={background} />
         </div>
-        <div className={styles.wheelMaterial}>
+        <div className={styles.wheelMaterial} aria-hidden="true">
           <BackgroundRenderer
             background={{
               image: '/image/texture/004.jpg',
@@ -107,7 +108,7 @@ function RevealedWheel({ background, strength, spice, adjustment, troops, cards 
         <div className={styles.troopReadout}>
           {troops.map((troop) => (
             <div className={styles.troopRow} key={troop.id}>
-              <div className={styles.troop} aria-label={troop.name}>
+              <div className={styles.troop} role="img" aria-label={troop.name}>
                 <TroopToken {...troop.artwork} />
               </div>
               <span>{troop.undialed + troop.dialed}</span>
@@ -121,7 +122,7 @@ function RevealedWheel({ background, strength, spice, adjustment, troops, cards 
         </div>
         <div className={styles.leaderReadout}>
           <div className={styles.spice}>
-            <span className={styles.spiceIcon} aria-hidden />
+            <span className={styles.spiceIcon} role="img" aria-label="Spice" />
             <span className={styles.spiceValue}>{spice}</span>
           </div>
           <div className={styles.leader}>
@@ -143,6 +144,7 @@ function RevealedWheel({ background, strength, spice, adjustment, troops, cards 
         {!!adjustment && (
           <div
             className={clsx(styles.adjustment, adjustment > 0 ? styles.positive : styles.negative)}
+            role="img"
             aria-label={`Force adjustment ${adjustment > 0 ? 'plus' : 'minus'} ${Math.abs(adjustment)}`}
           >
             <span>
