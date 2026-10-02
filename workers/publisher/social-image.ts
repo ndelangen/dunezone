@@ -1,5 +1,3 @@
-import { Buffer } from 'node:buffer';
-
 import { publishedR2Key } from '../../src/shared/asset-publishing/publicationTargets';
 import { publisherErrorMessage } from '../../src/shared/asset-publishing/publisher-diagnostics';
 import { parseSocialCard, SOCIAL_CARD_PATH, socialArtwork } from '../../src/shared/socialCard';
@@ -8,12 +6,12 @@ import { jpegProfile } from './image-inspection';
 
 const MAX_ART_BYTES = 2_000_000;
 const MAX_ART_PIXELS = 2_000_000;
-type Render = (input: SocialCardInput, artwork: string) => Promise<Uint8Array>;
+type Render = (input: SocialCardInput, artwork: ArrayBuffer | null) => Promise<Uint8Array>;
 
-async function artworkData(input: SocialCardInput, bucket: Pick<R2Bucket, 'get'>): Promise<string> {
+async function artworkData(input: SocialCardInput, bucket: Pick<R2Bucket, 'get'>): Promise<ArrayBuffer | null> {
   const target = socialArtwork(input.art);
   if (!target) {
-    return '';
+    return null;
   }
   try {
     /* A bounded direct read cannot call a metadata resolver or follow a caller-provided URL. */
@@ -21,27 +19,28 @@ async function artworkData(input: SocialCardInput, bucket: Pick<R2Bucket, 'get'>
       range: { offset: 0, length: MAX_ART_BYTES + 1 },
     });
     if (!object) {
-      return '';
+      return null;
     }
     if (object.size > MAX_ART_BYTES) {
       await object.body.cancel();
-      return '';
+      return null;
     }
-    const bytes = new Uint8Array(await object.arrayBuffer());
+    const buffer = await object.arrayBuffer();
+    const bytes = new Uint8Array(buffer);
     if (bytes.byteLength > MAX_ART_BYTES) {
-      return '';
+      return null;
     }
     const { widthPx, heightPx } = jpegProfile(bytes);
     if (widthPx < 1 || heightPx < 1 || widthPx > 2048 || heightPx > 2048 || widthPx * heightPx > MAX_ART_PIXELS) {
-      return '';
+      return null;
     }
-    return `data:image/jpeg;base64,${Buffer.from(bytes).toString('base64')}`;
+    return buffer;
   } catch {
-    return '';
+    return null;
   }
 }
 
-async function render(input: SocialCardInput, artwork: string) {
+async function render(input: SocialCardInput, artwork: ArrayBuffer | null) {
   const { renderSocialCard } = await import('./social-renderer');
   return renderSocialCard(input, artwork);
 }
@@ -69,7 +68,12 @@ export async function handleSocialImageRequest(
   }
   try {
     const artwork = await artworkData(input, env.ASSET_BUCKET);
-    const png = await renderer(input, artwork);
+    const png = await renderer(input, artwork).catch((error: unknown) => {
+      if (!artwork) {
+        throw error;
+      }
+      return renderer(input, null);
+    });
     return new Response(request.method === 'HEAD' ? null : png, {
       headers: { ...headers, 'Content-Type': 'image/png', 'Content-Length': String(png.byteLength) },
     });

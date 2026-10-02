@@ -42,14 +42,17 @@ type and less excerpt space. Text need not identify a real faction or belong to 
 
 The revision parameter changes the URL for a new page result. It does not resolve a historical
 publication. Regenerating an old URL reads today's JPEG, as agreed. Nothing writes a social snapshot,
-PNG object, Publication job or save hook. Each resvg renderer and rendered image is freed after use.
+PNG object, Publication job or save hook. Artwork reaches Satori as an ArrayBuffer, bypassing its
+persistent data-URL cache. Each resvg renderer and rendered image is freed after use. A fitted
+monogram sits behind the opaque JPEG, so a silent decoding failure reveals it. If artwork causes a
+render exception, the request retries once without artwork.
 
 ## Verification and operating work
 
 `social-image.runtime.test.ts` bundles the real handler and runs it in workerd with a local R2 bucket.
 Every outbound HTTP request fails and is counted. It checks PNG dimensions, real artwork pixels,
-changed words, replacement artwork at the same URL, deletion, regeneration, long text and layout
-shapes. The expected outbound count is zero. Unit tests cover invalid inputs and artwork bounds.
+changed words, replacement artwork at the same URL, deletion, regeneration, corrupt JPEGs, long
+text and layout shapes. It also renders 60 distinct JPEGs near the byte limit in one isolate. The expected outbound count is zero. Unit tests cover invalid inputs and artwork bounds.
 `publisher:application-runtime:verify` also follows the actual HTML image URLs through the assembled
 publisher Worker and decodes their PNG headers.
 

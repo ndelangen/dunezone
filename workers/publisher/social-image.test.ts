@@ -31,10 +31,7 @@ describe('social PNG delivery', () => {
     expect(get).toHaveBeenCalledExactlyOnceWith('faction-tokens/k171dpxhhgjn9x3qmnhtywn33s848xq7/token.jpg', {
       range: { offset: 0, length: 2_000_001 },
     });
-    expect(render).toHaveBeenCalledWith(
-      expect.objectContaining({ name: 'Test' }),
-      expect.stringMatching(/^data:image\/jpeg;base64,/)
-    );
+    expect(render).toHaveBeenCalledWith(expect.objectContaining({ name: 'Test' }), bytes.buffer);
     expect(response!.status).toBe(200);
     expect(response!.headers.get('Content-Type')).toBe('image/png');
     expect(response!.headers.get('Cache-Control')).toBe('no-store');
@@ -61,7 +58,7 @@ describe('social PNG delivery', () => {
       }
       const render = vi.fn().mockResolvedValue(pngBytes(1200, 630));
       expect((await handleSocialImageRequest(request(), { ASSET_BUCKET: { get } }, render))!.status).toBe(200);
-      expect(render).toHaveBeenCalledWith(expect.anything(), '');
+      expect(render).toHaveBeenCalledWith(expect.anything(), null);
     }
   );
 

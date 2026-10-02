@@ -10,7 +10,7 @@ import { SOCIAL_CARD_WIDTH, SOCIAL_CARD_HEIGHT } from '../../src/shared/socialCa
 import { socialCard } from './social-card';
 
 let ready: Promise<void[]> | undefined;
-export async function renderSocialCard(input: SocialCardInput, artwork: string) {
+export async function renderSocialCard(input: SocialCardInput, artwork: ArrayBuffer | null) {
   ready ??= Promise.all([init(yoga), initWasm(resvgWasm)]);
   await ready;
   const svg = await satori(socialCard({ ...input, artwork }), {

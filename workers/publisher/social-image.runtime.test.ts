@@ -9,6 +9,7 @@ import sharp from 'sharp';
 import { expect, test } from 'vitest';
 
 import { socialCardHref } from '../../src/shared/socialCard';
+import { jpegBytes } from './test-helpers';
 
 /* Real workerd, R2 and WASM; outbound requests fail so a hidden metadata or font fetch cannot pass. */
 test('renders bounded PNGs from local publications with zero outbound requests', async () => {
@@ -113,8 +114,34 @@ test('renders bounded PNGs from local publications with zero outbound requests',
     await bucket.delete(key);
     const missing = await render(socialCardHref(input));
     expect(missing).not.toEqual(original);
+    /* A plausible header can still fail inside Satori or decode to transparent pixels in resvg. */
+    await bucket.put(key, jpegBytes({ widthPx: 600, heightPx: 600, progressive: true }));
+    expect(await render(socialCardHref(input))).toEqual(missing);
+    const sof = artwork.indexOf(Buffer.from([0xff, 0xc0]));
+    expect(sof).toBeGreaterThan(0);
+    await bucket.put(key, artwork.subarray(0, sof + 2 + artwork.readUInt16BE(sof + 2)));
+    const unreadable = await render(socialCardHref(input));
+    const fallbackRegion = { left: 850, top: 250, width: 150, height: 150 };
+    expect(await sharp(unreadable).extract(fallbackRegion).raw().toBuffer()).toEqual(
+      await sharp(missing).extract(fallbackRegion).raw().toBuffer()
+    );
     await bucket.put(key, artwork);
     expect(await render(socialCardHref(input))).toEqual(original);
+    /* Distinct, valid JPEGs near the byte bound exercise repeated requests in one isolate. */
+    const comment = Buffer.alloc(60_004, 32);
+    comment.set([0xff, 0xfe, 0xea, 0x62]);
+    const largeArtwork = Buffer.concat([
+      artwork.subarray(0, 2),
+      ...Array<Buffer>(30).fill(comment),
+      artwork.subarray(2),
+    ]);
+    expect(largeArtwork.byteLength).toBeGreaterThan(1_800_000);
+    expect(largeArtwork.byteLength).toBeLessThan(2_000_000);
+    for (let revision = 0; revision < 60; revision += 1) {
+      largeArtwork[6] = revision;
+      await bucket.put(key, largeArtwork);
+      expect(await render(socialCardHref(input))).toEqual(original);
+    }
     for (const shape of ['round', 'portrait', 'landscape'] as const) {
       await render(
         socialCardHref({ ...input, shape, name: 'A long name '.repeat(15), description: 'Long excerpt '.repeat(25) })
@@ -125,4 +152,4 @@ test('renders bounded PNGs from local publications with zero outbound requests',
     await mf.dispose();
     await rm(directory, { recursive: true, force: true });
   }
-}, 30_000);
+}, 60_000);

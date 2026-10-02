@@ -1,8 +1,11 @@
+import { createElement } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 
+import { clipSocialCardText } from '../../src/shared/socialCard';
 import type { SocialCardInput } from '../../src/shared/socialCard';
+import { jpegProfile } from './image-inspection';
 
-type CardInput = SocialCardInput & { artwork: string };
+type CardInput = SocialCardInput & { artwork: ArrayBuffer | null };
 const ink = '#eee7c4';
 const gold = '#d6c891';
 const base: CSSProperties = {
@@ -17,48 +20,55 @@ const base: CSSProperties = {
 };
 const at = (left: number, top: number): CSSProperties => ({ position: 'absolute', left, top, display: 'flex' });
 const title: CSSProperties = { fontFamily: 'Copperplate', lineHeight: 1.12 };
-function clip(value: string, limit: number) {
-  const normalized = value.replace(/\s+/g, ' ').trim();
-  const chars = Array.from(normalized);
-  return chars.length > limit
-    ? chars
-        .slice(0, limit - 1)
-        .join('')
-        .trimEnd() + '…'
-    : normalized;
-}
-function art(input: CardInput, width: number, height: number, fallbackColor = gold): ReactNode {
-  if (!input.artwork) {
-    return (
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          width,
-          height,
-          border: `2px solid ${fallbackColor}`,
-          color: fallbackColor,
-          fontFamily: 'Copperplate',
-          fontSize: Math.min(width, height) / 3,
-        }}
-      >
-        DZ
-      </div>
-    );
+function art(input: CardInput, width: number, height: number): ReactNode {
+  let fittedWidth = width;
+  let fittedHeight = height;
+  if (input.artwork) {
+    const { widthPx, heightPx } = jpegProfile(new Uint8Array(input.artwork));
+    const scale = Math.min(width / widthPx, height / heightPx);
+    fittedWidth = widthPx * scale;
+    fittedHeight = heightPx * scale;
   }
   return (
-    <img
-      alt=""
-      src={input.artwork}
-      width={width}
-      height={height}
-      style={{ objectFit: 'contain', borderRadius: input.shape === 'round' ? Math.min(width, height) / 2 : 0 }}
-    />
+    <div style={{ display: 'flex', width, height, alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ display: 'flex', position: 'relative', width: fittedWidth, height: fittedHeight }}>
+        {/* Opaque JPEG pixels cover the monogram; failed decoding leaves it visible. */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: fittedWidth,
+            height: fittedHeight,
+            border: `2px solid ${gold}`,
+            color: gold,
+            fontFamily: 'Copperplate',
+            fontSize: Math.min(fittedWidth, fittedHeight) / 3,
+            borderRadius: input.artwork && input.shape === 'round' ? Math.min(width, height) / 2 : 0,
+          }}
+        >
+          DZ
+        </div>
+        {/* Binary sources bypass Satori's persistent URL image cache. */}
+        {input.artwork &&
+          createElement('img', {
+            alt: '',
+            src: input.artwork,
+            width: fittedWidth,
+            height: fittedHeight,
+            style: {
+              position: 'absolute',
+              left: 0,
+              top: 0,
+              borderRadius: input.shape === 'round' ? Math.min(width, height) / 2 : 0,
+            },
+          })}
+      </div>
+    </div>
   );
 }
 export function socialCard(input: CardInput) {
-  const name = clip(input.name, 78);
+  const name = clipSocialCardText(input.name, 78);
   return (
     <div style={base}>
       <div style={{ ...at(24, 24), width: 1152, height: 582, border: '1px solid #d6c89155' }} />
@@ -87,7 +97,7 @@ export function socialCard(input: CardInput) {
               color: '#dedecb',
             }}
           >
-            {clip(input.text, name.length > 46 ? 140 : 180)}
+            {clipSocialCardText(input.text, name.length > 46 ? 140 : 180)}
           </div>
         )}
       </div>

@@ -85,7 +85,7 @@ export function socialCardPath(input: SocialCardInput): string {
   return `${SOCIAL_CARD_PATH}?${query}`;
 }
 
-function clip(value: string, limit: number): string {
+export function clipSocialCardText(value: string, limit: number): string {
   const chars = Array.from(normalize(value));
   return chars.length > limit
     ? `${chars
@@ -108,9 +108,9 @@ export function socialCardHref(input: {
   const revision = artwork.searchParams.get('v') ?? artwork.searchParams.get('componentRevision') ?? '';
   return socialCardPath({
     v: '1',
-    name: clip(input.name, 78),
-    kind: clip(input.kind, 40),
-    text: clip(input.description, 180),
+    name: clipSocialCardText(input.name, 78),
+    kind: clipSocialCardText(input.kind, 40),
+    text: clipSocialCardText(input.description, 180),
     shape: input.shape ?? 'portrait',
     art,
     revision: /^[\w.:-]{0,64}$/.test(revision) ? revision : '',
