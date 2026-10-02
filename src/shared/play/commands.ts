@@ -1,4 +1,4 @@
-import { freshTableState, nearestZone, pieceCount } from './model';
+import { freshTableState, gestureBlockReason, nearestZone, pieceCount } from './model';
 import type { TablePiece, TableState } from './model';
 import { phaseAt, phaseForTurn, STANDARD_PHASES, stepPhase, tableProgressFor } from './phases';
 import type { PhaseEntry } from './phases';
@@ -119,8 +119,9 @@ function actionablePiece(state: TableState, action: Extract<TableAction, { piece
   if (!piece || pieceCount(piece) === 0) {
     throw new GameRejection('That piece is no longer available.');
   }
-  if (piece.locked && action.kind !== 'lock') {
-    throw new GameRejection(`${piece.label} is locked.`);
+  const blocked = action.kind === 'lock' ? null : gestureBlockReason(piece);
+  if (blocked) {
+    throw new GameRejection(blocked);
   }
   return piece;
 }
@@ -208,7 +209,7 @@ function rotatePiece(state: TableState, piece: TablePiece, direction: -1 | 1): T
       state.pieces.filter((candidate) => candidate.id !== piece.id)
     )
   ) {
-    throw new GameRejection(`${piece.label} does not have room to rotate here.`);
+    throw new GameRejection(`There is no room to rotate ${piece.label} here.`);
   }
   return accepted(
     { ...state, pieces: state.pieces.map((candidate) => (candidate.id === piece.id ? rotated : candidate)) },
