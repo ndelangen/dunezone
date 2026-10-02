@@ -20,3 +20,8 @@ test('a battle in the upper half places its callout below the middle', () => {
   expect(battleCapsuleY(100, 800, HEADER)).toBe(401);
   expect(battleCapsuleY(300, 800, HEADER)).toBe(550);
 });
+
+test('on a canvas too short for both, the callout clears the header before staying above the middle', () => {
+  const centre = battleCapsuleY(300, 400, 120);
+  expect(centre - HALF_CALLOUT).toBeGreaterThanOrEqual(120);
+});
