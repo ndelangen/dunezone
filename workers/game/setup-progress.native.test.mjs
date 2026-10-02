@@ -406,10 +406,17 @@ describe('Real-game setup progression', () => {
       }
     }
     expect(compared).toBe(held.size);
-    /* The private prediction is kept in the stored step, and every setup step after the deal is a patch. */
-    expect(replayed.predictions).toEqual(held.get(replayed.revision).predictions);
-    const setupRows = rows.filter((row) => held.has(row.revision));
-    expect(setupRows.map((row) => row.kind)).toEqual(setupRows.map(() => 'patch'));
+    /* The private prediction travels through the stored steps; setup steps are patches, and Turn 1 is a checkpoint. */
+    const kinds = new Map(rows.map((row) => [row.revision, row.kind]));
+    const revisions = [...held.keys()];
+    expect(Object.values(held.get(revisions[0]).privatePredictions).map((prediction) => prediction.choice)).toEqual([
+      choice,
+    ]);
+    expect(revisions.slice(0, -1).map((revision) => kinds.get(revision))).toEqual(
+      revisions.slice(0, -1).map(() => 'patch')
+    );
+    expect(kinds.get(revisions.at(-1))).toBe('checkpoint');
+    expect(held.get(revisions.at(-1)).stage).toBe('play');
 
     await runtime.restart();
     const restored = await syncView(await admit('a'));

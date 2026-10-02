@@ -21,11 +21,22 @@ type CommitMessage = Extract<ClientMessage, { type: 'drop' | 'command' }>;
 type RowInput = Pick<HistoryRow, 'kind' | 'data' | 'step' | 'base_revision'>;
 /* Declaring a result and continuing past it are playback steps, as phase and turn changes are. */
 const boundaryActions = new Set(['phase', 'turn', 'result-declare', 'result-continue']);
-const setupActions = new Set(['ready', 'phase']);
+/* Ready is a playback step only while setup gates on it; phase is one everywhere. */
+const setupReady = 'ready';
 
-/* A reset replaces the table and a settled battle closes a run of playback steps, so both are kept whole. */
-function requiresCheckpoint(action: Extract<CommitMessage, { type: 'command' }>['action'], next: StoredSnapshot) {
-  return action.kind === 'reset' || (action.kind === 'battle-outcome' && !next.battleState);
+/*
+ * Kept whole: a reset replaces the table, Turn 1 opening ends setup, and a settled battle closes a run of playback
+ * steps, so no restore replays more than one stretch of patches.
+ */
+function requiresCheckpoint(
+  action: Extract<CommitMessage, { type: 'command' }>['action'],
+  before: StoredSnapshot,
+  next: StoredSnapshot
+) {
+  if (action.kind === 'reset' || (before.stage === 'setup' && next.stage !== 'setup')) {
+    return true;
+  }
+  return action.kind === 'battle-outcome' && !next.battleState;
 }
 
 /* Setup steps change a few entries of the table each, so they are stored as their changes like any other playback step. */
@@ -33,7 +44,7 @@ function isPlaybackStep(action: Extract<CommitMessage, { type: 'command' }>['act
   return (
     boundaryActions.has(action.kind) ||
     isSetupAction(action) ||
-    (before.stage === 'setup' && setupActions.has(action.kind))
+    (before.stage === 'setup' && action.kind === setupReady)
   );
 }
 
@@ -83,7 +94,7 @@ export class SessionHistory {
     if (next.revision === before.revision || message.type !== 'command') {
       return;
     }
-    if (requiresCheckpoint(message.action, next)) {
+    if (requiresCheckpoint(message.action, before, next)) {
       return this.checkpoint(next);
     }
     if (isPlaybackStep(message.action, before)) {
