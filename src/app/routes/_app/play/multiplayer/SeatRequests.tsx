@@ -484,8 +484,10 @@ export function SeatRequests({
     return null;
   }
   if (table.playback) {
-    /* In play the Phase tab carries playback; any earlier stage's frame has no such tab. */
-    return table.snapshot.stage === 'play' ? null : <PlaybackBar client={client} table={table} error={error} />;
+    /* In play and once finished the Phase tab carries playback; any earlier stage's frame has no such tab. */
+    return table.snapshot.stage === 'play' || table.snapshot.stage === 'finished' ? null : (
+      <PlaybackBar client={client} table={table} error={error} />
+    );
   }
   return (
     <div className={styles.dock} data-decision-bar="">

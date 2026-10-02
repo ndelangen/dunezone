@@ -73,7 +73,9 @@ type CarryInput<T extends 'begin' | 'pose' | 'take'> = Omit<Extract<ClientMessag
  * Actions that never rely on the table being exactly as their sender last saw it.
  * Each names what it changes and is checked against the live table, so another seat acting at the same moment must not turn it away (#1681, #1690).
  * A battle action names its battle and side, and a draft choice or removal ballot names the sender's own pick or vote.
+ * A seat request names its seat, an approval its request and a withdrawal the sender's own request, each judged against the live seating.
  * A bank withdrawal stays strict, so two tabs of one player cannot both spend from a bank they saw once.
+ * Leaving stays strict too, since its confirmation said what it costs and a crossed departure may have left the sender the last player.
  */
 const REVISION_TOLERANT_ACTIONS = new Set<string>([
   'spice-spawn',
@@ -88,6 +90,9 @@ const REVISION_TOLERANT_ACTIONS = new Set<string>([
   'draft-ban',
   'draft-unban',
   'removal-ballot',
+  'seat-request',
+  'seat-withdraw',
+  'seat-approve',
 ]);
 
 /** The carry IDs a connection may use before it reconnects; the room never forgets one while the connection lasts. */
@@ -602,6 +607,10 @@ export class Room {
     const controls = this.snapshot.controls ?? emptyPublicControls();
     if (phase !== this.snapshot.phase) {
       requirePhaseCooldownElapsed(controls.phaseChangedAt, this.phaseCooldownMs, now);
+    }
+    /* Going back would close Determine winner under its player just as going on would. */
+    if (phase < this.snapshot.phase && this.snapshot.ending) {
+      throw new GameRejection('The winner is being determined. Declare or cancel it before going back a phase.');
     }
     if (phase <= this.snapshot.phase) {
       return;

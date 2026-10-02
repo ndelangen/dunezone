@@ -15,7 +15,10 @@ const scheduler = vi.hoisted(() => ({
 vi.mock('@react-three/fiber/webgpu', async () => {
   const { useLayoutEffect } = await import('react');
   return {
-    useThree: () => ({ invalidate: scheduler.invalidate }),
+    useThree: (select?: (state: Record<string, unknown>) => unknown) => {
+      const state = { invalidate: scheduler.invalidate };
+      return select ? select(state) : state;
+    },
     useFrame: (callback: () => void) => {
       useLayoutEffect(() => {
         scheduler.frames.add(callback);

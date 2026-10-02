@@ -266,7 +266,11 @@ function applySnapshot(base: GameSnapshot, change: SnapshotChange): GameSnapshot
   };
 }
 
+/* An update that leaves the carries or the pointers alone keeps the same list, so the tab can tell a pointer-only update from one that moved a piece. */
 function applyCarries(base: PublicCarry[], change: ActivityChange): PublicCarry[] | null {
+  if (!change.removedCarries.length && !change.carries.length && !change.carryMoves.length) {
+    return base;
+  }
   const carries = patchEntries(
     base.map((carry) => [carry.id, carry]),
     change.removedCarries,
@@ -288,6 +292,9 @@ function applyCarries(base: PublicCarry[], change: ActivityChange): PublicCarry[
 }
 
 function applyPointers(base: PublicPointer[], change: ActivityChange): PublicPointer[] | null {
+  if (!change.removedPointers.length && !change.pointers.length && !change.pointerMoves.length) {
+    return base;
+  }
   const pointers = patchEntries(
     base.map((pointer) => [pointer.connectionId, pointer]),
     change.removedPointers,
