@@ -5,15 +5,7 @@ import { capturedDeclarations, factionCaptureSchema } from './capture';
 import type { FactionCapture } from './capture';
 import { applyPieceAction } from './commands';
 import { freshTableState } from './model';
-import {
-  composeSetup,
-  composeTurn,
-  lobbyPhaseIndex,
-  phaseAt,
-  phaseForTurn,
-  STANDARD_PHASES,
-  tableProgressFor,
-} from './phases';
+import { composeSetup, composeTurn, lobbyPhaseIndex, phaseAt, STANDARD_PHASES, tableProgressFor } from './phases';
 import { GameRejection } from './rejection';
 import type { TableRoster } from './schema';
 import { phaseGate } from './setup';
@@ -128,7 +120,6 @@ describe('composition (#1138)', () => {
     const index = turn.findIndex((entry) => entry.id === 'atreides:turn');
     expect(phaseAt(index + turn.length, turn).id).toBe('atreides:turn');
     expect(tableProgressFor(index + turn.length, turn).turn).toBe(2);
-    expect(phaseForTurn(index, 3, turn.length)).toBe(index + 2 * turn.length);
   });
 
   it('keeps the standard nine when nobody declares anything', () => {

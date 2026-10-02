@@ -661,7 +661,6 @@ function ConnectedTable({
               <PhaseNavigation client={client} table={table} />
             ) : undefined
           }
-          onSelectTurn={client.selectTurn}
           /* The gathered Traitor pile lies under the Tleilaxu tanks, below the Map view's frame on a wide screen (#1635). */
           requestedView={table.traitorsGathered ? { view: 'bottom', revision: table.traitorsGathered } : undefined}
           showStormControls={inPlay && progress.activePhaseId === 'storm'}

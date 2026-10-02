@@ -843,11 +843,7 @@ export class TableSession {
     }
     if (
       !(isSeatAction(action) ? this.current() : this.canAct()) ||
-      (this.carry &&
-        action.kind !== 'phase' &&
-        action.kind !== 'turn' &&
-        !isRemovalAction(action) &&
-        !isSeatAction(action))
+      (this.carry && action.kind !== 'phase' && !isRemovalAction(action) && !isSeatAction(action))
     ) {
       return;
     }
@@ -931,7 +927,6 @@ export class TableSession {
     }
   };
   moveStormBy = (direction: -1 | 1 = 1) => this.command({ kind: 'storm', direction });
-  selectTurn = (turn: number) => this.command({ kind: 'turn', turn });
   spawnSpice = (count: number) => this.command({ kind: 'spice-spawn', count });
   finishPieceFlip = (pieceId: string, revision: number) => {
     if (this.flipping.get(pieceId) !== revision) {
