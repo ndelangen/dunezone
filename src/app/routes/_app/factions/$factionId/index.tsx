@@ -1,10 +1,12 @@
 import { Alert, Box, ColorSwatch, Divider, Flex, Group, SimpleGrid, Stack, Text, Title, Tooltip } from '@mantine/core';
-import { troopCombatFaces } from '@shared/factions/troopCombat';
-import type { TroopFaceCombat } from '@shared/factions/troopCombat';
-import { createFileRoute, Link } from '@tanstack/react-router';
+import { publishedHref } from '@shared/asset-publishing/publicationTargets';
+import { troopBattleFaces } from '@shared/factions/troopBattle';
+import type { TroopFaceBattleValues } from '@shared/factions/troopBattle';
+import { createFileRoute, Link, notFound } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { LoadError } from '@ui/block/LoadError';
 import { LoadPending } from '@ui/block/LoadPending';
+import { NotAvailable } from '@ui/block/NotAvailable';
 import { PageIdentity } from '@ui/block/PageIdentity';
 import { Section } from '@ui/block/Section';
 import { factionAssetPublishingCopy } from '@ui/content/assetPublishingStatus';
@@ -26,12 +28,12 @@ import { ArrowLeft, Download, Eye, FileText, Pencil, UserPlus } from 'lucide-rea
 import { Fragment, useId } from 'react';
 import type { ReactNode } from 'react';
 
-import { loadFaction, useFaction } from '@db/factions';
+import { isFactionNotFound, loadPublicFaction, useFaction } from '@db/factions';
 import type { FactionData, PublicAssetPublishingStatusProjection } from '@db/factions';
 import { useGroupMembershipWorkflow } from '@db/members';
 import { profileAvatarUrl } from '@db/profiles';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
-import { pageHead } from '@app/routes/pageTitle';
+import { publicDescription, publicPageHead, useLivePageTitle } from '@app/routes/publicPage';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 import { useAsset } from '@game/assets/assetRenderMode';
 import { LeaderToken } from '@game/assets/faction/leader/Leader';
@@ -42,11 +44,26 @@ import { TTS_COLOR_SWATCHES } from '@game/data/ttsColors';
 import styles from './index.module.css';
 
 export const Route = createFileRoute('/_app/factions/$factionId/')({
+  ssr: true,
   codeSplitGroupings: [['component', 'pendingComponent', 'errorComponent']],
-  loader: async ({ params }) => await loadFaction(params.factionId),
+  loader: async ({ params }) => {
+    const page = await loadPublicFaction(params.factionId);
+    if (!page) {
+      throw notFound();
+    }
+    return page;
+  },
   pendingComponent: FactionDetailPending,
   errorComponent: FactionDetailError,
-  head: ({ loaderData }) => pageHead(loaderData?.faction.data.name ?? 'Faction'),
+  head: ({ match, loaderData, params }) =>
+    publicPageHead({
+      name: loaderData?.faction.data.name ?? 'Faction',
+      pathname: `/factions/${encodeURIComponent(loaderData?.faction.slug ?? params.factionId)}`,
+      description: publicDescription(loaderData?.faction.data.rules.advantages[0]?.text),
+      image: loaderData ? publishedHref('faction-token', loaderData.faction._id, loaderData.faction.updated_at) : null,
+      social: { kind: 'Faction', shape: 'round' },
+      match,
+    }),
   component: FactionDetailPage,
 });
 
@@ -62,9 +79,9 @@ function FactionDetailPending() {
 
 function FactionSidebarOverview({ data }: { data: FactionData }) {
   return (
-    <Section icon={<TopicIcon topic="hero" size={20} />} title="Faction leader">
-      <div className={styles.loreHeroToken}>
-        <LeaderToken {...data.hero} strength={undefined} background={data.background} logo={data.logo} />
+    <Section icon={<TopicIcon topic="factionLeader" size={20} />} title="Faction leader">
+      <div className={styles.loreFactionLeaderToken}>
+        <LeaderToken {...data.factionLeader} strength={undefined} background={data.background} logo={data.logo} />
       </div>
     </Section>
   );
@@ -111,7 +128,7 @@ function FactionPlanet({ planet }: { readonly planet: NonNullable<FactionData['p
 }
 
 type Troop = FactionData['troops'][number];
-type TroopFace = TroopFaceCombat<NonNullable<Troop['back']>>;
+type TroopFace = TroopFaceBattleValues<NonNullable<Troop['back']>>;
 
 function TroopHint({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -125,28 +142,30 @@ function TroopHint({ label, children }: { label: string; children: ReactNode }) 
 
 function TroopStrengths({ face }: { face: TroopFace }) {
   if (!face.capable) {
-    return <StatusMark label="Cannot participate in combat" icon={<TopicIcon topic="noncombatant" size={15} />} />;
+    return <StatusMark label="Cannot participate in battle" icon={<TopicIcon topic="cannotBattle" size={15} />} />;
   }
-  if (!face.combat) {
+  if (!face.values) {
     return (
       <StatusMark
         tone="caution"
-        label="Combat strengths have not been set. This side is unavailable in battle plans."
-        icon={<TopicIcon topic="combatUnknown" size={16} />}
+        label="Battle strengths have not been set. This side is unavailable in battle plans."
+        icon={<TopicIcon topic="battleUnknown" size={16} />}
       />
     );
   }
   return (
     <>
-      <TroopHint label={`Strength per troop: ${face.combat.strength} undialed | ${face.combat.fundedStrength} dialed`}>
+      <TroopHint
+        label={`Strength per troop: ${face.values.strength} undialed | ${face.values.supportedStrength} dialed`}
+      >
         <TopicIcon topic="strength" size={15} />
         <b>
-          {face.combat.strength} | {face.combat.fundedStrength}
+          {face.values.strength} | {face.values.supportedStrength}
         </b>
       </TroopHint>
-      <TroopHint label={`Funding cost: ${face.combat.fundingCost} spice per dialed troop`}>
+      <TroopHint label={`Support cost: ${face.values.supportCost} spice per dialed troop`}>
         <TopicIcon topic="spice" size={15} />
-        <b>{face.combat.fundingCost}</b>
+        <b>{face.values.supportCost}</b>
       </TroopHint>
     </>
   );
@@ -210,7 +229,7 @@ function TroopFaceDetails({ face, background }: { face: TroopFace; background: F
 }
 
 function FactionTroop({ troop, background }: { troop: Troop; background: FactionData['background'] }) {
-  const faces = troopCombatFaces<NonNullable<Troop['back']>>([troop]);
+  const faces = troopBattleFaces<NonNullable<Troop['back']>>([troop]);
   return (
     <Surface as="article" aria-label={troop.name} padding="sm" className={styles.troopTile}>
       <div className={styles.troopFaces}>
@@ -241,6 +260,17 @@ function FactionTroop({ troop, background }: { troop: Troop; background: Faction
 }
 
 function FactionDetailError({ error }: ErrorComponentProps) {
+  const absent = isFactionNotFound(error);
+  useLivePageTitle(absent ? 'Faction not found' : undefined);
+  if (absent) {
+    return (
+      <PageMessage size="compact" title="Faction" back={backToFactions}>
+        <NotAvailable title="Faction not found">
+          This faction does not exist or was deleted. Its address may have changed after a rename.
+        </NotAvailable>
+      </PageMessage>
+    );
+  }
   return (
     <PageMessage size="compact" title="Faction" back={backToFactions}>
       <LoadError title="Faction could not be loaded" stale={isStaleClientData(error)}>
@@ -330,6 +360,7 @@ function FactionDetailPage() {
   });
   const membershipWorkflow = useGroupMembershipWorkflow();
   const page = factionQuery.data;
+  useLivePageTitle(page?.faction.data.name);
 
   if (!page) {
     return <FactionDetailPending />;
@@ -337,7 +368,8 @@ function FactionDetailPage() {
 
   const { faction, viewerAccess, owner, assetPublishing, rulesets } = page;
 
-  const { edit: canEdit, requestMembership: canRequestMembership } = viewerAccess.capabilities;
+  const canEdit = !factionQuery.isPending && viewerAccess.capabilities.edit;
+  const canRequestMembership = !factionQuery.isPending && viewerAccess.capabilities.requestMembership;
   const assignedGroup = viewerAccess.assignedGroup;
   const membershipStatus = viewerAccess.viewer.kind === 'authenticated' ? viewerAccess.viewer.membership : 'none';
 

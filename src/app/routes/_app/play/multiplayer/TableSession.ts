@@ -64,12 +64,17 @@ function settledRequest(message: GameSubscriptionEvent): { id: string; outcome: 
   }
 }
 
+/* A carry the table ended before its piece left the hand; the player has to pick it up again. */
+const pausedWhileHeld = 'The table paused while you held a piece. Pick it up again to continue.';
+
 type LocalCarry = {
   id: string;
   sourceId: string;
   draft: DraftMove;
   granted: boolean;
   pendingDrop?: string;
+  /* The drop was released while the table could not send it, such as during a resync; it goes out once the table can act again. */
+  dropUnsent?: true;
   /* A resync completed the drop before the tab holds its snapshot, so the draft keeps the piece where it landed until the fresh view. */
   landed?: true;
 };
@@ -94,8 +99,8 @@ export type TableProjection = {
   renderedPieces: TablePiece[];
   selectedPiece: TablePiece | null;
   affordances: Affordance[];
-  /* The piece menu's bank and deck actions, present only while this viewer can act. */
-  bankControls?: {
+  /* The piece menu's spice reserve and deck actions, present only while this viewer can act. */
+  spiceReserveControls?: {
     canCollect(pieceId: string): boolean;
     collect(pieceId: string): void;
   };
@@ -104,7 +109,6 @@ export type TableProjection = {
     draw(pieceId: string, recipient?: string): void;
     shuffle(pieceId: string): void;
   };
-  pointers: PublicPointer[];
   remoteCarriedIds: ReadonlySet<string>;
   reservedPieceIds: ReadonlySet<string>;
   gestureActivePieceId: string | null;
@@ -124,6 +128,9 @@ export type ConnectionView = {
   logHistory: Partial<Record<LogTab, LogPage>>;
 };
 export type LogPage = Extract<ServerMessage, { type: 'log-history' }>;
+
+/* How often a table hearing only pointer moves re-saves its kept copy, so a reload knows it was live recently. */
+const POINTER_KEEP_INTERVAL_MS = 5000;
 
 /* A table a reloaded tab kept from its last visit: read-only, with nothing in hand or in motion, until a fresh view replaces it. */
 function storedProjection({ viewer, snapshot, serverNow }: StoredTable): TableProjection {
@@ -150,7 +157,6 @@ function storedProjection({ viewer, snapshot, serverNow }: StoredTable): TablePr
     renderedPieces: renderedPiecesFor(state),
     selectedPiece: null,
     affordances: [],
-    pointers: [],
     remoteCarriedIds: new Set(),
     reservedPieceIds: new Set(),
     gestureActivePieceId: null,
@@ -163,12 +169,16 @@ function storedProjection({ viewer, snapshot, serverNow }: StoredTable): TablePr
 /** Owns local interactions and presentation over the subscribed server view. */
 export class TableSession {
   private readonly listeners = new Set<() => void>();
+  private readonly pointerListeners = new Set<() => void>();
+  private shownPointers: PublicPointer[] = [];
   private tickTimer: ReturnType<typeof setInterval> | undefined;
   private poseTimer: ReturnType<typeof setTimeout> | undefined;
   private pointerTimer: ReturnType<typeof setTimeout> | undefined;
   private error: string | null = null;
   private history: Extract<ServerMessage, { type: 'history' }> | null = null;
   private pendingHistory: number | null = null;
+  /* The live room's newest history step, which grows while a viewer sits in playback. */
+  private liveHistorySteps = 0;
   private epoch = '';
   private seq = 0;
   private selectedId: string | null = null;
@@ -196,6 +206,7 @@ export class TableSession {
   private traitorsGathered = 0;
   private queuedCatalogue: { requestId: string; selection?: SpawnSelection } | null = null;
   private phaseCooldownUntil = 0;
+  private keptOnPointersAt = Number.NEGATIVE_INFINITY;
   private battleCountdownUntil = 0;
   private pendingBattlePlan: { commandId: string; battleId: string; patch: Partial<BattlePlanInput> } | null = null;
   private queuedBattlePlan: { battleId: string; patch: Partial<BattlePlanInput> } | null = null;
@@ -244,6 +255,14 @@ export class TableSession {
     };
     this.lastLive = { table: storedProjection(stored), serverNow: () => stored.serverNow };
   }
+  /* A table that hears only pointers still stamps its saved copy as live, now and then rather than on every move. */
+  private keepWhilePointersMove() {
+    const now = this.runtime.monotonicNow();
+    if (now - this.keptOnPointersAt >= POINTER_KEEP_INTERVAL_MS) {
+      this.keptOnPointersAt = now;
+      this.keep();
+    }
+  }
   private keep() {
     const live = this.subscription.getSnapshot();
     if (this.status === 'denied') {
@@ -288,6 +307,49 @@ export class TableSession {
     return () => this.listeners.delete(listener);
   };
   getSnapshot = () => this.cached;
+  /*
+   * The other players' pointers, apart from the table: they move many times a second, and only the scene's hands follow them,
+   * so an update that moves nothing else leaves the table, and everything that reads it, as it was.
+   */
+  subscribePointers = (listener: () => void) => {
+    this.pointerListeners.add(listener);
+    return () => this.pointerListeners.delete(listener);
+  };
+  getPointers = () => this.shownPointers;
+  private emitPointers() {
+    const next = this.status === 'authorized' ? this.activityForView().pointers : [];
+    if (
+      next.length === this.shownPointers.length &&
+      next.every((pointer, index) => pointer === this.shownPointers[index])
+    ) {
+      return;
+    }
+    this.shownPointers = next;
+    for (const listener of this.pointerListeners) {
+      listener();
+    }
+  }
+  /* An update that moved only pointers: the room, the carries and every countdown the table shows are as the last frame left them. */
+  private movesOnlyPointers(message: Extract<GameSubscriptionEvent, { type: 'view' }>) {
+    const table = this.cached.table;
+    return (
+      !message.snapshotChanged &&
+      message.previous !== null &&
+      this.status === 'authorized' &&
+      table !== null &&
+      !table.reconnecting &&
+      message.epoch === this.epoch &&
+      message.carries === this.carries &&
+      table.phaseCooling === this.phaseCooling() &&
+      table.battleCountdownSeconds === this.battleCountdownSeconds()
+    );
+  }
+  private phaseCooling() {
+    return this.runtime.monotonicNow() < this.phaseCooldownUntil;
+  }
+  private battleCountdownSeconds() {
+    return Math.max(0, Math.ceil((this.battleCountdownUntil - this.runtime.monotonicNow()) / 1000));
+  }
   private derive(): TableProjection | null {
     if (this.status !== 'authorized') {
       return this.reconnectingTable();
@@ -325,9 +387,8 @@ export class TableSession {
       renderedPieces,
       selectedPiece: null,
       affordances: [],
-      bankControls: undefined,
+      spiceReserveControls: undefined,
       deckControls: undefined,
-      pointers: [],
       remoteCarriedIds: new Set(),
       reservedPieceIds: new Set(),
       gestureActivePieceId: null,
@@ -371,7 +432,7 @@ export class TableSession {
       selectedPieceId: tableHandlingOpen(this.snapshot.stage) ? this.selectedId : null,
       draftMove: this.carry?.draft ?? null,
     };
-    const { carries: remote, pointers } = this.activityForView();
+    const { carries: remote } = this.activityForView();
     const local = this.localProjection(state);
     const canInteract = this.canAct();
     const canHandleTable = this.canHandle();
@@ -381,20 +442,22 @@ export class TableSession {
       viewer,
       snapshot: displayed,
       liveRevision: this.snapshot.revision,
-      playback: this.history ? { step: this.history.step, lastStep: this.history.lastStep } : null,
+      playback: this.history
+        ? { step: this.history.step, lastStep: Math.max(this.history.lastStep, this.liveHistorySteps) }
+        : null,
       historyPending: this.pendingHistory !== null,
       canInteract,
       canHandleTable,
       reconnecting: false,
       seatCommandPending: this.seatCommandInFlight !== null,
       traitorsGathered: this.traitorsGathered,
-      phaseCooling: this.runtime.monotonicNow() < this.phaseCooldownUntil,
-      battleCountdownSeconds: Math.max(0, Math.ceil((this.battleCountdownUntil - this.runtime.monotonicNow()) / 1000)),
+      phaseCooling: this.phaseCooling(),
+      battleCountdownSeconds: this.battleCountdownSeconds(),
       state,
       renderedPieces,
       selectedPiece: renderedPieces.find((piece) => piece.id === state.selectedPieceId) ?? null,
       affordances: affordancesFor({ ...state, pieces: renderedPieces }),
-      bankControls:
+      spiceReserveControls:
         canHandleTable && displayed.bank
           ? {
               canCollect: (pieceId) => !reservedPieceIds.has(pieceId),
@@ -408,7 +471,6 @@ export class TableSession {
             shuffle: (pieceId) => this.command({ kind: 'deck-shuffle', pieceId }),
           }
         : undefined,
-      pointers,
       remoteCarriedIds: new Set(remote.map((carry) => carry.held.id)),
       reservedPieceIds,
       gestureActivePieceId: local.gestureActivePieceId,
@@ -457,11 +519,14 @@ export class TableSession {
     for (const listener of this.listeners) {
       listener();
     }
+    this.emitPointers();
   }
   private canSend(message: Exclude<ClientMessage, { type: 'admit' | 'sync' }>): boolean {
     /* A seat command is the spectator's one way to act, so it passes without a seat; `command` holds it to a current view. */
     const seat = message.type === 'command' && isSeatAction(message.action);
-    return this.status === 'authorized' && (isReadRequest(message) || seat || this.canAct());
+    /* Putting a held piece back also passes while a resync pauses the table, so the Worker never keeps a piece the tab let go of. */
+    const release = message.type === 'cancel' && this.carry !== null;
+    return this.status === 'authorized' && (isReadRequest(message) || seat || release || this.canAct());
   }
   private send(message: Exclude<ClientMessage, { type: 'admit' | 'sync' }>): boolean {
     return this.canSend(message) && this.subscription.send(message);
@@ -475,7 +540,7 @@ export class TableSession {
       case 'connection':
         this.conversations.disconnected(this.status === 'denied');
         this.noteEndedCarry({
-          held: 'The table paused while you held a piece. Pick it up again to continue.',
+          held: pausedWhileHeld,
           placing: 'The connection dropped as you placed a piece. Check where it landed.',
         });
         this.clearDisconnectedActivity();
@@ -488,6 +553,15 @@ export class TableSession {
       case 'view':
         this.phaseCooldownUntil = this.runtime.monotonicNow() + (message.phaseCooldownMs ?? 0);
         this.battleCountdownUntil = this.runtime.monotonicNow() + (message.battleCountdownMs ?? 0);
+        const historySteps = message.historySteps ?? this.liveHistorySteps;
+        const historyMoved = historySteps !== this.liveHistorySteps;
+        this.liveHistorySteps = historySteps;
+        if (!historyMoved && this.movesOnlyPointers(message)) {
+          this.pointers = message.pointers;
+          this.emitPointers();
+          this.keepWhilePointersMove();
+          return;
+        }
         this.receiveRoomUpdate(message);
         break;
       default:
@@ -544,6 +618,7 @@ export class TableSession {
     if (!this.saved) {
       return;
     }
+    this.flushDrop();
     this.flushCatalogue();
     this.flushBattlePlan();
     this.flushBattleReady();
@@ -590,6 +665,13 @@ export class TableSession {
   }
   private receiveRejection(message: Extract<ServerMessage, { type: 'rejected' }>) {
     this.error = message.message;
+    if (this.pendingHistory !== null && message.requestId === 'message') {
+      /*
+       * A history read carries no id, so the Worker refuses it as 'message'. It never gets a history reply, so the
+       * viewer stays on the checkpoint they were on and sees the reason instead of waiting.
+       */
+      this.pendingHistory = null;
+    }
     if (message.requestId === this.catalogueRequestId) {
       /* A refused catalogue read never gets a catalogue reply; the picker shows the reason instead of waiting. */
       this.catalogueResult = {
@@ -623,10 +705,10 @@ export class TableSession {
     }
     this.reconcileCarry();
   }
-  /* A drop already sent may or may not have landed, so it asks the player to look rather than to pick the piece up again; a drop the server confirmed needs no notice. */
+  /* A drop already sent may or may not have landed, so it asks the player to look; a drop still waiting to go out never left the hand, and one the server confirmed needs no notice. */
   private noteEndedCarry(notice: { held: string; placing: string }) {
     if (this.carry && !this.carry.landed) {
-      this.droppedCarryNotice = this.carry.pendingDrop ? notice.placing : notice.held;
+      this.droppedCarryNotice = this.carry.pendingDrop && !this.carry.dropUnsent ? notice.placing : notice.held;
     }
   }
   private replaceActivity(message: Extract<GameSubscriptionEvent, { type: 'view' }>) {
@@ -680,6 +762,10 @@ export class TableSession {
     }
     if (local.granted) {
       if (!this.carries.some((carry) => carry.id === local.id)) {
+        /* A drop still waiting to go out never reached the Worker, so the piece snaps back and the player is told why. */
+        if (local.dropUnsent) {
+          this.error = pausedWhileHeld;
+        }
         this.carry = null;
       }
       return;
@@ -714,6 +800,7 @@ export class TableSession {
     this.spiceHistoryBefore = undefined;
     this.history = null;
     this.pendingHistory = null;
+    this.liveHistorySteps = 0;
     this.carry = null;
     this.carries = [];
     this.pointers = [];
@@ -749,7 +836,7 @@ export class TableSession {
     }
     if (
       this.cached.table?.snapshot.battle?.stage === 'countdown' ||
-      (this.cached.table?.phaseCooling && this.runtime.monotonicNow() >= this.phaseCooldownUntil)
+      (this.cached.table?.phaseCooling && !this.phaseCooling())
     ) {
       this.emit();
     }
@@ -885,17 +972,27 @@ export class TableSession {
     }
     this.updateGesture(position);
     this.flushPose();
-    const commandId = crypto.randomUUID();
-    this.carry = { ...this.carry, pendingDrop: commandId };
-    this.send({
-      type: 'drop',
-      carryId: this.carry.id,
-      commandId,
-      position: this.carry.draft.position,
-      orientation: this.carry.draft.orientation,
-    });
+    this.carry = { ...this.carry, pendingDrop: crypto.randomUUID(), dropUnsent: true };
+    this.flushDrop();
     this.emit();
   };
+  private flushDrop() {
+    const carry = this.carry;
+    if (!carry?.pendingDrop || !carry.dropUnsent) {
+      return;
+    }
+    const sent = this.send({
+      type: 'drop',
+      carryId: carry.id,
+      commandId: carry.pendingDrop,
+      position: carry.draft.position,
+      orientation: carry.draft.orientation,
+    });
+    if (sent) {
+      const { dropUnsent: _unsent, ...rest } = carry;
+      this.carry = rest;
+    }
+  }
   cancelDraft = () => {
     if (!this.carry || this.carry.pendingDrop) {
       return;
@@ -1044,7 +1141,7 @@ export class TableSession {
     if (this.carry && !this.carry.pendingDrop) {
       this.carry = {
         ...this.carry,
-        draft: { ...this.carry.draft, orientation: this.carry.draft.orientation + (direction * Math.PI) / 12 },
+        draft: { ...this.carry.draft, orientation: this.carry.draft.orientation - (direction * Math.PI) / 12 },
       };
       this.updateGesture(this.carry.draft.position);
       this.flushPose();

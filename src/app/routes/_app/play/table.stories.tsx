@@ -1,6 +1,6 @@
 import preview from '@sb/preview';
 import { TABLE_PHASES } from '@shared/play/phases';
-import { spiceSupplySlot } from '@shared/play/spiceSupply';
+import { spiceBankSlot } from '@shared/play/spiceBank';
 import { BOARD_RADIUS, BOARD_SURFACE_Y, stackTopHeight } from '@shared/play/tableGeometry';
 import { TRACKER_DISC_TOP_Y } from '@shared/play/tableTrackers';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
@@ -190,6 +190,29 @@ export const PieceNames = meta.story({
   },
 });
 
+/* The toolbar keeps the stack counts or piece names on, for a touch screen with no Alt or Control to hold, until it turns them off again. */
+export const ToolbarKeepsLabelsOn = meta.story({
+  beforeEach: install(() => productTransport()),
+  play: async ({ canvasElement }) => {
+    const { page, shell } = await tablePage(canvasElement);
+    const labels = within(page.getByRole('group', { name: 'Table labels' }));
+    const counts = labels.getByRole('button', { name: 'Stack counts' });
+    const names = labels.getByRole('button', { name: 'Piece names' });
+    expect(shell).toHaveAttribute('data-show-counts', 'false');
+    expect(shell).toHaveAttribute('data-show-names', 'false');
+
+    await userEvent.click(counts);
+    expect(counts).toHaveAttribute('aria-pressed', 'true');
+    expect(shell).toHaveAttribute('data-show-counts', 'true');
+    await userEvent.click(names);
+    expect(shell).toHaveAttribute('data-show-names', 'true');
+    await userEvent.click(counts);
+    expect(counts).toHaveAttribute('aria-pressed', 'false');
+    expect(shell).toHaveAttribute('data-show-counts', 'false');
+    expect(shell).toHaveAttribute('data-show-names', 'true');
+  },
+});
+
 /* The wheel over the board tilts the camera toward top-down and back; Ctrl with the wheel stays the browser's zoom. */
 export const WheelTiltsTheCamera = meta.story({
   beforeEach: install(() => productTransport()),
@@ -217,6 +240,39 @@ export const WheelTiltsTheCamera = meta.story({
     expect(deckPlacement()).toBe(topDown);
 
     turnWheel(-600);
+    await waitFor(() => expect(deckPlacement()).toBe(approved));
+  },
+});
+
+/* Two fingers dragged up over the board tilt the camera toward top-down, and dragged down tilt it back, as the wheel does. */
+export const TwoFingersTiltTheCamera = meta.story({
+  beforeEach: install(() => productTransport()),
+  play: async ({ canvasElement }) => {
+    const { shell, document } = await tablePage(canvasElement);
+    const canvas = shell.querySelector('canvas')!;
+    const deckPlacement = () =>
+      document.querySelector('[data-piece-id="treachery-deck"]')?.closest('div')?.parentElement?.style.transform;
+    const box = canvas.getBoundingClientRect();
+    const x = box.left + box.width / 2;
+    const finger = (type: string, pointerId: number, clientX: number, clientY: number) =>
+      new PointerEvent(type, { bubbles: true, cancelable: true, pointerId, pointerType: 'touch', clientX, clientY });
+    const drag = (fromY: number, toY: number) => {
+      canvas.dispatchEvent(finger('pointerdown', 11, x - 40, fromY));
+      canvas.dispatchEvent(finger('pointerdown', 12, x + 40, fromY));
+      for (let step = 1; step <= 6; step++) {
+        const y = fromY + ((toY - fromY) * step) / 6;
+        window.dispatchEvent(finger('pointermove', 11, x - 40, y));
+        window.dispatchEvent(finger('pointermove', 12, x + 40, y));
+      }
+      window.dispatchEvent(finger('pointerup', 11, x - 40, toY));
+      window.dispatchEvent(finger('pointerup', 12, x + 40, toY));
+    };
+    const approved = deckPlacement();
+    expect(approved).toBeTruthy();
+
+    drag(box.bottom - 10, box.bottom - 10 - 600);
+    await waitFor(() => expect(deckPlacement()).not.toBe(approved));
+    drag(box.bottom - 10 - 600, box.bottom - 10);
     await waitFor(() => expect(deckPlacement()).toBe(approved));
   },
 });
@@ -331,17 +387,17 @@ export const PhaseViews = meta.story({
 
 /**
  * A phase change during a carry marks the new phase's view at once and moves the camera only when the piece lands.
- * The carry is a press on the viewer's own forces and a move past the drag threshold, sent to the canvas `mapViewPoint` projects against.
+ * The carry is a press on the viewer's own troops and a move past the drag threshold, sent to the canvas `mapViewPoint` projects against.
  */
 export const PhaseViewWaitsForTheDrop = meta.story({
   beforeEach: install(() => productTransport()),
   play: async ({ canvasElement }) => {
     const { page, shell, document } = await tablePage(canvasElement);
-    const forces = playingSnapshot().table.pieces.find((piece) => piece.id === 'starting-1-carthag')!;
+    const troops = playingSnapshot().table.pieces.find((piece) => piece.id === 'starting-1-carthag')!;
     const [clientX, clientY] = mapViewPoint(document, [
-      forces.position[0],
-      forces.position[1] + stackTopHeight(forces),
-      forces.position[2],
+      troops.position[0],
+      troops.position[1] + stackTopHeight(troops),
+      troops.position[2],
     ]);
     const scene = document.querySelector('canvas')!;
     const pointer = { bubbles: true, cancelable: true, pointerId: 1, pointerType: 'mouse', button: 0, clientY };
@@ -370,14 +426,14 @@ export const PhaseViewWaitsForTheDrop = meta.story({
 });
 
 /**
- * The spice supply disc answers the number keys again when the pointer leaves the canvas from the disc and comes straight back onto it.
+ * The Spice Bank disc answers the number keys again when the pointer leaves the canvas from the disc and comes straight back onto it.
  * The pointer leaves for the view picker and returns with no move over the rest of the table.
  */
 export const SpiceDiscAnswersOnReturn = meta.story({
   beforeEach: install(() => productTransport()),
   play: async ({ canvasElement }) => {
     const { page, document } = await tablePage(canvasElement);
-    const slot = spiceSupplySlot();
+    const slot = spiceBankSlot();
     const [clientX, clientY] = mapViewPoint(document, [slot.position[0], TRACKER_DISC_TOP_Y + 0.015, slot.position[2]]);
     const scene = document.querySelector('canvas')!;
     const pointer = { bubbles: true, cancelable: true, pointerId: 1, pointerType: 'mouse', clientX, clientY };
@@ -479,6 +535,46 @@ export const TapOnTheBoardClearsTheSelection = meta.story({
 });
 
 /**
+ * A finger has no hover, so a tap's jitter over a piece leaves nothing for the keys to act on once the selection moves.
+ * Tapping the deck with a jitter selects it, so L locks it.
+ * Tapping the empty board then clears the selection, so L sends nothing.
+ */
+export const TapJitterLeavesNoHover = meta.story({
+  beforeEach: install(() => productTransport()),
+  play: async ({ canvasElement }) => {
+    const { page, document } = await tablePage(canvasElement);
+    const deckOnScreen = deckPoint(document);
+    const boardPoint = mapViewPoint(document, [BOARD_RADIUS * 0.3, BOARD_SURFACE_Y, BOARD_RADIUS * 0.3]);
+    const scene = document.querySelector('canvas')!;
+    const tap = ([clientX, clientY]: [number, number], jitter: number) => {
+      const touch = touchAt(2, clientX, clientY);
+      scene.dispatchEvent(new PointerEvent('pointerdown', { ...touch, button: 0, buttons: 1 }));
+      if (jitter) {
+        scene.dispatchEvent(new PointerEvent('pointermove', { ...touch, clientX: clientX + jitter, buttons: 1 }));
+      }
+      scene.dispatchEvent(new PointerEvent('pointerup', { ...touch, button: 0, buttons: 0 }));
+      leaveTheCanvas(page, scene, touch);
+      scene.dispatchEvent(new PointerEvent('click', { ...touch, button: 0 }));
+    };
+    const commands = () => session.transport.messages.filter((message) => message.type === 'command').length;
+
+    await waitFor(
+      async () => {
+        tap(deckOnScreen, 2);
+        await userEvent.keyboard('l');
+        expect(lastCommand()).toMatchObject({ type: 'command', action: { kind: 'lock', pieceId: 'treachery-deck' } });
+      },
+      { timeout: 30_000 }
+    );
+
+    tap(boardPoint, 0);
+    const before = commands();
+    await userEvent.keyboard('l');
+    expect(commands()).toBe(before);
+  },
+});
+
+/**
  * A finger resting on the deck opens the menu a right-click opens, since iOS never sends a context menu for a long press.
  * The menu's Shuffle shuffles that deck, and the finger lifting after the menu opens leaves the menu open.
  */
@@ -539,7 +635,7 @@ export const SpiceDiscForgetsAPlaybackHover = meta.story({
   play: async ({ canvasElement }) => {
     const { page, document } = await tablePage(canvasElement);
     await openTab(page, 'Phase');
-    const slot = spiceSupplySlot();
+    const slot = spiceBankSlot();
     const [clientX, clientY] = mapViewPoint(document, [slot.position[0], TRACKER_DISC_TOP_Y + 0.015, slot.position[2]]);
     const scene = document.querySelector('canvas')!;
     const pointer = { bubbles: true, cancelable: true, pointerId: 1, pointerType: 'mouse', clientX, clientY };

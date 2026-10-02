@@ -60,6 +60,8 @@ type GameTableProps = {
   panelTabs?: readonly PanelTab[];
   /** A tab to open once per token, as a battle opens on the viewer's side; the player can move away and it stays put. */
   focusTab?: Readonly<{ key: string; token: string }> | null;
+  /** The tabs the panel opens on, in preference, as a spectator opens past tabs whose controls are a seat's; without one present it opens on the first. */
+  openOn?: readonly string[];
   /** Sections the host adds to the Table tab, above the fixture's trackers. */
   tableControls?: ReactNode;
   /** The important decision of the moment, above the panel's tabs: a seat request, a vote, a result. */
@@ -162,7 +164,7 @@ function SelectedPieceControl() {
           aria-describedby={helpId}
           aria-busy={control.isFlipping}
           disabled={control.disabled || !table.canHandleTable}
-          onClick={() => table.flipSelected()}
+          onClick={() => table.flipSelected(control.piece?.id)}
         >
           {control.label}
         </Button>
@@ -232,6 +234,40 @@ function TableViewPicker({
   );
 }
 
+type TableOverlays = Readonly<{ counts: boolean; names: boolean }>;
+
+const TABLE_OVERLAY_OPTIONS = [
+  { id: 'counts', label: 'Counts', name: 'Stack counts', key: 'Alt' },
+  { id: 'names', label: 'Names', name: 'Piece names', key: 'Ctrl' },
+] as const;
+
+/* Keeps the stack counts or piece names on, for a touch screen with no Alt or Control to hold. */
+function TableOverlayToggles({
+  pinned,
+  onToggle,
+}: {
+  pinned: TableOverlays;
+  onToggle(overlay: keyof TableOverlays): void;
+}) {
+  return (
+    <div className="table-view-picker" role="group" aria-label="Table labels">
+      {TABLE_OVERLAY_OPTIONS.map((overlay) => (
+        <button
+          key={overlay.id}
+          type="button"
+          className={pinned[overlay.id] ? 'is-active' : ''}
+          aria-label={overlay.name}
+          aria-pressed={pinned[overlay.id]}
+          title={`${overlay.name}: hold ${overlay.key} to show them for a moment`}
+          onClick={() => onToggle(overlay.id)}
+        >
+          {overlay.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 type StageFrame = Readonly<{
   /** The header's word in place of the turn and phase. */
   word?: string;
@@ -274,13 +310,15 @@ function stageFrame(stage: GameSnapshot['stage']): StageFrame {
 function TableControlsPanel({
   panelTabs = [],
   focusTab = null,
+  openOn = [],
   tableControls,
   showStormControls,
   word,
   tableTab: tableTabLabel,
   panelContent,
 }: Readonly<
-  Pick<GameTableProps, 'panelTabs' | 'focusTab' | 'tableControls' | 'showStormControls' | 'panelContent'> & StageFrame
+  Pick<GameTableProps, 'panelTabs' | 'focusTab' | 'openOn' | 'tableControls' | 'showStormControls' | 'panelContent'> &
+    StageFrame
 >) {
   const tableTab: PanelTab = {
     key: 'table',
@@ -289,7 +327,7 @@ function TableControlsPanel({
     content: (
       <>
         {tableControls}
-        {tableTabLabel === 'Table' && <SpiceSupplyControls />}
+        {tableTabLabel === 'Table' && <SpiceBankControls />}
         {tableTabLabel === 'Table' && <SelectedPieceControl />}
         {showStormControls && <StormControls helpOnly={tableTabLabel === 'Phase'} />}
       </>
@@ -302,7 +340,8 @@ function TableControlsPanel({
         ...panelTabs,
       ]
     : [...panelTabs, ...(tableTabLabel ? [tableTab] : [])];
-  const [path, setPath] = useReducer((_: string[], next: string[]) => next, [tabs[0]?.key ?? tableTab.key]);
+  const opening = openOn.map((key) => tabs.find((tab) => tab.key === key)).find(Boolean) ?? tabs[0];
+  const [path, setPath] = useReducer((_: string[], next: string[]) => next, [opening?.key ?? tableTab.key]);
   /* The stage tab arriving opens it over the chosen tab, so a spectator seated during drafting lands on the stage, not on the Log they watched from (#1666). The chosen tab is kept beneath: once the stage leaves, as in playback stepping into play, it opens again. */
   const hasStage = Boolean(panelContent);
   const [stageShown, setStageShown] = useState(hasStage);
@@ -326,7 +365,8 @@ function TableControlsPanel({
     choose([focusTab.key]);
   }
   const chosen = stageOpened ? undefined : tabs.find((tab) => tab.key === path[0]);
-  const active = chosen ?? tabs[0] ?? tableTab;
+  /* The stage overlay shows the stage tab, never the opening one, which only stands in when no tab is chosen. */
+  const active = chosen ?? (stageOpened ? tabs[0] : opening) ?? tableTab;
   const subtab = (chosen && active.subtabs?.find((tab) => tab.key === path[1])) ?? active.subtabs?.[0];
   if (panelContent && panelTabs.length === 0) {
     return <div className="seated-stage-panel">{panelContent}</div>;
@@ -397,12 +437,12 @@ function PanelPanes({ children, secondary }: Readonly<{ children: ReactNode; sec
   );
 }
 
-function SpiceSupplyControls() {
+function SpiceBankControls() {
   const { canHandleTable, spawnSpice, state } = useTabletop();
   return (
     <Section
-      title="Spice supply"
-      description="Hover the spice disc left of the turn wheel and press 1 through 9, or 0 for ten. Drop spice onto the disc to delete it."
+      title="Spice Bank"
+      description="Hover the Spice Bank disc left of the turn wheel and press 1 through 9, or 0 for ten. Drop spice onto the disc to return it to the Spice Bank."
     >
       <Group gap="xs" role="group" aria-label="Spawn spice">
         {Array.from({ length: 10 }, (_, index) => index + 1).map((count) => (
@@ -477,6 +517,7 @@ export function GameTable({
   sceneContent,
   panelTabs,
   focusTab,
+  openOn,
   tableControls,
   decisionBar,
   gameMenu,
@@ -499,6 +540,7 @@ export function GameTable({
   const { gestureActivePieceId } = useTabletop();
   const phaseSymbolClipId = useId();
   const heldOverlays = useHeldOverlays();
+  const [pinnedOverlays, setPinnedOverlays] = useState<TableOverlays>({ counts: false, names: false });
   const frame = stageFrame(stage);
   /* The camera follows the phase while the header names one: in play, and on the fixture. */
   /* A faction phase takes the camera view of the standard phase it precedes (#1138). */
@@ -552,8 +594,8 @@ export function GameTable({
             {...darkSchemeIslandAttributes}
             data-board-gesture-active={overlaysInert}
             data-table-view={viewState.activeView}
-            data-show-counts={heldOverlays.counts}
-            data-show-names={heldOverlays.names}
+            data-show-counts={heldOverlays.counts || pinnedOverlays.counts}
+            data-show-names={heldOverlays.names || pinnedOverlays.names}
           >
             {/* The header sits outside the split, in the shell's own stacking, so it paints above the dock where the dock's floor grows up over the scene. It comes before the split so its controls lead the reading and Tab order. */}
             <header className="seated-header" inert={overlaysInert} data-hides-cursor>
@@ -610,6 +652,10 @@ export function GameTable({
                   preferredView={viewPhase === null ? undefined : PHASE_VIEWS[viewPhase]}
                   onSelect={(view) => dispatchView({ type: 'view.selected', view })}
                 />
+                <TableOverlayToggles
+                  pinned={pinnedOverlays}
+                  onToggle={(overlay) => setPinnedOverlays((current) => ({ ...current, [overlay]: !current[overlay] }))}
+                />
                 {gameMenu}
                 {toolbarControl}
               </div>
@@ -654,6 +700,7 @@ export function GameTable({
                     <TableControlsPanel
                       panelTabs={panelTabs}
                       focusTab={focusTab}
+                      openOn={openOn}
                       tableControls={tableControls}
                       panelContent={panelContent}
                       word={frame.word}

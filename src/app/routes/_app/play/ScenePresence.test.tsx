@@ -15,7 +15,10 @@ const scheduler = vi.hoisted(() => ({
 vi.mock('@react-three/fiber/webgpu', async () => {
   const { useLayoutEffect } = await import('react');
   return {
-    useThree: () => ({ invalidate: () => {}, ...scheduler.three }),
+    useThree: (select?: (state: Record<string, unknown>) => unknown) => {
+      const state = { invalidate: () => {}, ...scheduler.three };
+      return select ? select(state) : state;
+    },
     useFrame: (callback: (state: unknown, delta: number) => void) => {
       useLayoutEffect(() => {
         scheduler.frames.add(callback);
@@ -30,8 +33,10 @@ vi.mock('@react-three/fiber/webgpu', async () => {
 vi.mock('@react-three/drei/webgpu', () => ({ Html: () => null }));
 
 vi.mock('./TabletopContext', () => {
-  const table = { pointers: [], canInteract: true, publishPointer: () => {} };
-  return { useTabletop: () => table };
+  const table = { canInteract: true, publishPointer: () => {} };
+  const pointers: never[] = [];
+  const actions = { subscribePointers: () => () => {}, getPointers: () => pointers };
+  return { useTabletop: () => table, useTabletopActions: () => actions };
 });
 
 afterEach(() => {

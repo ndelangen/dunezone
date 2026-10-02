@@ -1,14 +1,19 @@
 /* How long a finger rests on a piece before it asks for the piece's menu, about the platform's own long-press delay. */
 export const LONG_PRESS_MS = 500;
-/* A finger drifts while it rests; past this it is moving, not holding. */
-const LONG_PRESS_SLOP_PX = 8;
+/* A finger drifts while it rests; past this it is moving, not holding, and only then does the pointer session start a carry. */
+export const LONG_PRESS_SLOP_PX = 8;
+
+/* The deck menu's shuffle shortcut needs a keyboard and a hovering pointer, so a menu a finger opened leaves the hint out. */
+export function deckShuffleHint(openedByTouch: boolean): string | null {
+  return openedByTouch ? null : 'Hover a deck and press R to shuffle.';
+}
 
 type Press = Pick<PointerEvent, 'pointerId' | 'clientX' | 'clientY'>;
 
 /**
  * Calls `onHold` once the press has rested in place for `LONG_PRESS_MS`, the touch stand-in for a right-click.
  * The press lets go of the hold when its pointer lifts, is cancelled or moves past the slop;
- * the returned function lets go too.
+ * a second finger landing lets go too, since two fingers down are a tilt, not a hold, and so does the returned function.
  */
 export function watchLongPress(
   events: Pick<Window, 'addEventListener' | 'removeEventListener'>,
@@ -20,6 +25,7 @@ export function watchLongPress(
     events.removeEventListener('pointermove', move);
     events.removeEventListener('pointerup', end);
     events.removeEventListener('pointercancel', end);
+    events.removeEventListener('pointerdown', other, true);
   };
   const move = (event: PointerEvent) => {
     if (
@@ -34,6 +40,12 @@ export function watchLongPress(
       stop();
     }
   };
+  /* Captured, so the tilt stopping the second finger at the board cannot hide it. */
+  const other = (event: PointerEvent) => {
+    if (event.pointerId !== press.pointerId) {
+      stop();
+    }
+  };
   const timer = setTimeout(() => {
     stop();
     onHold();
@@ -41,6 +53,7 @@ export function watchLongPress(
   events.addEventListener('pointermove', move);
   events.addEventListener('pointerup', end);
   events.addEventListener('pointercancel', end);
+  events.addEventListener('pointerdown', other, true);
   return stop;
 }
 

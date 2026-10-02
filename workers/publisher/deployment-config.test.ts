@@ -48,10 +48,11 @@ describe('scheduled production deployment shape', () => {
   test('loads the shared renderer stylesheet and font files as Worker modules', () => {
     expect(config.rules).toEqual([
       { type: 'Text', globs: ['**/*.css'], fallthrough: true },
-      { type: 'Data', globs: ['**/*.woff2'], fallthrough: true },
+      { type: 'Data', globs: ['**/*.woff2', '**/*.woff'], fallthrough: true },
     ]);
     expect(config.alias).toEqual({
       'rulebook-html-renderer-runtime': './runtime-generated/rulebook-html-renderer.mjs',
+      'application-ssr-runtime': '../../dist/server/server.js',
     });
   });
 
@@ -100,6 +101,8 @@ describe('scheduled production deployment shape', () => {
     expect((config.assets as { run_worker_first?: string[] }).run_worker_first).toEqual([
       '/__asset-publisher',
       '/__asset-publisher/*',
+      '/social',
+      '/social/*',
       '/published',
       '/published/*',
       '/publisher-capture',
@@ -111,6 +114,10 @@ describe('scheduled production deployment shape', () => {
       '/__user-images/*',
       '/__play',
       '/__play/*',
+      '/factions',
+      '/factions/*',
+      '/assets',
+      '/assets/*',
     ]);
   });
 });

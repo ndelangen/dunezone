@@ -88,7 +88,7 @@ const ARC_PHASE_COUNTS = [0, 1, 9, 18, 30];
 
 describe('table trackers', () => {
   test.each(ARC_PHASE_COUNTS)(
-    'pins the spice supply and turn tracker and fits %i phase trackers in the standard arc',
+    'pins the Spice Bank and turn tracker and fits %i phase trackers in the standard arc',
     (phaseCount) => {
       const standard = trackerArcSlots(9);
       const slots = trackerArcSlots(phaseCount);
@@ -101,7 +101,7 @@ describe('table trackers', () => {
       expect(slots[1].kind).toBe('turn');
       expect(slots[0].phaseIndex).toBeNull();
       expect(slots[1].phaseIndex).toBeNull();
-      /* A composed turn never moves the spice supply or the turn disc (#1138). */
+      /* A composed turn never moves the Spice Bank or the turn disc (#1138). */
       expect(slots.slice(0, 2)).toEqual(standard.slice(0, 2));
       expect(slots.slice(2).map((slot) => slot.phaseIndex)).toEqual(
         Array.from({ length: phaseCount }, (_, index) => index)
@@ -195,7 +195,7 @@ describe('table trackers', () => {
     expect(() => trackerArcSlots(2.5)).toThrow();
   });
 
-  test('matches the spice supply and phase disc sizes beside the larger turn disc', () => {
+  test('matches the Spice Bank and phase disc sizes beside the larger turn disc', () => {
     const slots = trackerArcSlots(1);
     expect(TURN_TRACKER_SCALE).toBe(4);
     expect(PHASE_TRACKER_SCALE).toBe(2);
@@ -212,7 +212,7 @@ describe('table trackers', () => {
     expect(slots.slice(2).every((slot) => slot.radius > 0)).toBe(true);
   });
 
-  test('highlights one phase and keeps the spice supply muted', () => {
+  test('highlights one phase and keeps the Spice Bank muted', () => {
     const slots = trackerArcSlots(9);
     const colors = slots.map((slot) => trackerDiscColor(slot, 5));
 

@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'vitest';
 
 import { assetPublishingFaction } from '../factions/fixtures/assetPublishingFaction';
+import { toStoredHeroKey } from '../factions/schema';
 import type { FactionCapture } from './capture';
 import { factionSupply } from './setupSupply';
 import type { SupplyDependencies } from './setupSupply';
@@ -11,7 +12,7 @@ function capture(troops: FactionCapture['components']['troops']): FactionCapture
   return {
     faction: FACTION,
     capturedAt: 0,
-    definition: assetPublishingFaction,
+    definition: toStoredHeroKey(assetPublishingFaction),
     components: {
       token: { front: null, back: null },
       leaders: [],

@@ -6,7 +6,7 @@ import { publishingTokenFace } from '../../src/shared/assets/fixtures/publishing
 import { publishingTreacheryCard } from '../../src/shared/assets/fixtures/publishingTreacheryCard';
 import { assetSupplySchema } from '../../src/shared/play/capture';
 import { PHASE_CHANGE_COOLDOWN_MS } from '../../src/shared/play/phases';
-import { spiceSupplySlot } from '../../src/shared/play/spiceSupply';
+import { spiceBankSlot } from '../../src/shared/play/spiceBank';
 import {
   admitPlayer,
   createPeer,
@@ -528,7 +528,7 @@ describe('Hosted readiness and shared inventory through native commands', () => 
       type: 'drop',
       commandId: 'dispose',
       carryId: 'dispose',
-      position: spiceSupplySlot().position,
+      position: spiceBankSlot().position,
       orientation: 0,
     });
     const dropped = await a.message('view', (message) => message.completedCommandId === 'dispose');
@@ -601,7 +601,7 @@ describe('Hosted readiness and shared inventory through native commands', () => 
     b.send({ type: 'history', step: 1 });
     const events = (await b.message('history', (message) => message.step === 1)).snapshot.table.events;
     expect(events.find((event) => event.command === 'spice.return').message).toBe(
-      'Harkonnen returned 3 spice to the supply.'
+      'Harkonnen returned 3 spice to the Spice Bank.'
     );
     expect(events.find((event) => event.command === 'spice.spawn' && event.message.endsWith('3 spice.')).message).toBe(
       'Harkonnen spawned 3 spice.'

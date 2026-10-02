@@ -1,5 +1,6 @@
 import { publisherFailureFields } from '../../src/shared/asset-publishing/publisher-diagnostics';
 import { playGamePathPattern } from '../../src/shared/play/callbacks';
+import { applicationReleaseIdentity, handleApplicationRequest } from './application';
 import { openPublisherBrowser } from './browser';
 import { handleCaptureRoute } from './capture-route';
 import { EXECUTOR_REQUEST_MARGIN_MS, MAX_ASSIGNED_ITEMS, parsePublisherConfig } from './config';
@@ -10,6 +11,7 @@ import { imagesJpegEncoder } from './image-encode';
 import { rendererManifest } from './renderer-manifest.generated';
 import { executeRulebookHtmlWork } from './rulebook-html-executor';
 import { executeRulebookPdfWork } from './rulebook-pdf-executor';
+import { handleSocialImageRequest } from './social-image';
 import { boundedPublisherTelemetryEvent, publisherBuildIdentity } from './telemetry';
 import { handleUserImageIngest, handleUserImageRequest } from './user-images';
 
@@ -96,6 +98,10 @@ const publisherWorker = {
     if (game) {
       return game;
     }
+    const socialImage = await handleSocialImageRequest(request, env);
+    if (socialImage) {
+      return socialImage;
+    }
     const publicAsset = await handlePublicAssetRequest(request, env, ctx, {
       publicBaseUrl: env.PUBLIC_BASE_URL,
       rulebookHtmlClient: client(env, env.CONVEX_EXECUTOR_BASE_URL),
@@ -127,6 +133,7 @@ const publisherWorker = {
           ok: true,
           maxItems: MAX_ASSIGNED_ITEMS,
           schedule: '*/5 * * * *',
+          application: { release: applicationReleaseIdentity(env), serverRendering: true },
           rendererIdentity: rendererManifest.rendererIdentity,
           identity,
         },
@@ -136,7 +143,11 @@ const publisherWorker = {
     if (isReservedWorkerPath(pathname)) {
       return reservedNotFound();
     }
-    return env.ASSETS.fetch(request);
+    const application = await handleApplicationRequest(request, env, async (anonymousRequest) => {
+      const { default: server } = await import('application-ssr-runtime');
+      return server.fetch(anonymousRequest);
+    });
+    return application ?? env.ASSETS.fetch(request);
   },
 
   async scheduled(controller: ScheduledController, env: Env): Promise<void> {

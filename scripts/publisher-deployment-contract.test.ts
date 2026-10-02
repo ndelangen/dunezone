@@ -35,8 +35,10 @@ function health() {
     ok: true,
     maxItems: 20,
     schedule: '*/5 * * * *',
+    application: { release: 'version-a', serverRendering: true },
     rendererIdentity: rendererManifest.rendererIdentity,
     identity: {
+      workerVersionId: 'version-a',
       workerVersionTag: 'a'.repeat(40),
       gitSha: 'a'.repeat(40),
       rendererIdentity: rendererManifest.rendererIdentity,

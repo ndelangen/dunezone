@@ -3,6 +3,7 @@ import { initialSnapshot } from '@shared/play/commands';
 import type { Vector3Tuple } from '@shared/play/model';
 import { afterEach, expect, test, vi } from 'vitest';
 
+import { LONG_PRESS_SLOP_PX } from './longPress';
 import { PointerSession } from './PointerSession';
 
 const stops: (() => void)[] = [];
@@ -12,8 +13,8 @@ afterEach(() => {
   }
 });
 
-function pointer(type: string, x = 10, pointerId = 1, timeStamp = 0) {
-  const event = Object.assign(new MouseEvent(type, { clientX: x, clientY: 10, button: 0 }), { pointerId });
+function pointer(type: string, x = 10, pointerId = 1, timeStamp = 0, pointerType = 'mouse') {
+  const event = Object.assign(new MouseEvent(type, { clientX: x, clientY: 10, button: 0 }), { pointerId, pointerType });
   Object.defineProperty(event, 'timeStamp', { value: timeStamp });
   return event;
 }
@@ -54,6 +55,17 @@ test('a click captures and releases its pointer without starting a carry', () =>
   expect(controls.finishGesture).not.toHaveBeenCalled();
   expect(canvas.releasePointerCapture).toHaveBeenCalledWith(1);
   expect(session.busy).toBe(false);
+});
+
+/* A finger resting on a deck drifts; within the long-press slop it is still holding for the menu, so it carries nothing. */
+test('a finger drifting within the long-press slop does not start a carry, and moving past it does', () => {
+  const { session, controls, piece } = table();
+  session.press(pointer('pointerdown', 10, 1, 0, 'touch'), piece.id);
+  window.dispatchEvent(pointer('pointermove', 10 + LONG_PRESS_SLOP_PX, 1, 100, 'touch'));
+  expect(controls.beginGesture).not.toHaveBeenCalled();
+  expect(session.isDragging(piece.id)).toBe(false);
+  window.dispatchEvent(pointer('pointermove', 11 + LONG_PRESS_SLOP_PX, 1, 120, 'touch'));
+  expect(controls.beginGesture).toHaveBeenCalledExactlyOnceWith(piece.id, 'top');
 });
 
 test('a press belongs to its own piece until it ends', () => {

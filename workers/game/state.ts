@@ -4,7 +4,7 @@ import { z } from 'zod';
 
 import {
   publicBattleSchema,
-  combatFaceSchema,
+  battleFaceSchema,
   storedBattlePlanSchema,
   storedBattleResultSchema,
 } from '../../src/shared/play/battle';
@@ -25,7 +25,7 @@ export type StoredBattle = z.infer<typeof storedBattleSchema>;
 
 const storedActorSchema = gameResultSchema.shape.by.extend({ userId: tableIdSchema.nullable() });
 
-/** Storage owns the complete bank collection; transport owns only a projected bank. */
+/** Storage owns the complete spice reserve collection; transport owns only a projected spice reserve. */
 export const storedSnapshotSchema = gameSnapshotSchema
   .omit({ bank: true, battle: true, battlePlan: true, hand: true, predictions: true, ending: true, result: true })
   .extend({
@@ -45,9 +45,11 @@ export const storedSnapshotSchema = gameSnapshotSchema
     predictionFaces: z
       .record(tableIdSchema, z.object({ front: z.string().url().nullable(), back: z.string().url() }))
       .default({}),
-    /* Banks and combat faces are seeded per faction when a game fixes its seating, never by the schema. */
-    combatFaces: z.record(tableIdSchema, z.array(combatFaceSchema)).default({}),
+    /* Spice reserves and battle faces are seeded per faction when a game fixes its seating, never by the schema. */
+    /* Persisted key in Durable Object storage, kept as `combatFaces`; the glossary says battle. */
+    combatFaces: z.record(tableIdSchema, z.array(battleFaceSchema)).default({}),
     battleResults: z.array(storedBattleResultSchema).default([]),
+    /* Each faction's spice reserve (see CONTEXT.md); the `factionBanks` key is kept for stored game state. */
     factionBanks: z.record(tableIdSchema, tableCountSchema).default({}),
     /* Public card handles change independently of retained card identity. Never serialized. */
     cardHandles: z.record(tableIdSchema, tableIdSchema).default({}),

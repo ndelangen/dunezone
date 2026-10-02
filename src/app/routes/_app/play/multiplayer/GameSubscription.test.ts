@@ -1,4 +1,9 @@
-import { PLAY_REQUEST_TIMEOUT_MS, PLAY_TICKET_RETRY_MAX_MS, PLAY_TICKET_TTL_MS } from '@shared/play/admission';
+import {
+  PLAY_PENDING_TIMEOUT_MS,
+  PLAY_REQUEST_TIMEOUT_MS,
+  PLAY_TICKET_RETRY_MAX_MS,
+  PLAY_TICKET_TTL_MS,
+} from '@shared/play/admission';
 import { initialSnapshot } from '@shared/play/commands';
 import {
   ADMISSION_UNAVAILABLE_CLOSE_CODE,
@@ -10,7 +15,7 @@ import { frameChange } from '@shared/play/updates';
 import type { RoomView } from '@shared/play/updates';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 
-import { online, runtime, Socket } from './gameRuntime.test.fixture';
+import { online, runtime, Socket, visible } from './gameRuntime.test.fixture';
 import { GameSubscription } from './GameSubscription';
 
 const initial = (): RoomView => ({
@@ -427,6 +432,32 @@ test('a probe on coming back online gets a whole interval to be answered, and a 
   expect(Socket.instances).toHaveLength(2);
 });
 
+test('a tab coming back to the foreground probes the open socket and drops it after one silent interval', async () => {
+  const { subscription, socket } = await subscribed();
+  socket.answersKeepalives = false;
+  for (const listener of visible) {
+    listener();
+  }
+  expect(socket.keepalives).toBe(1);
+  await vi.advanceTimersByTimeAsync(KEEPALIVE_INTERVAL_MS);
+  expect(socket.readyState).toBe(3);
+  expect(subscription.status).toBe('suspended');
+});
+
+test('a pause right after a resync request stays a pause and keeps the socket', async () => {
+  const { subscription, socket, view } = await subscribed();
+  socket.deliver({ type: 'update', epoch: view.epoch, baseSequence: 4, sequence: 5, ...frameChange(view, view) });
+  expect(socket.sent.filter((message) => message.type === 'sync')).toHaveLength(1);
+  await vi.advanceTimersByTimeAsync(1000);
+  socket.deliver({ type: 'admission', status: 'suspended' });
+  await vi.advanceTimersByTimeAsync(PLAY_PENDING_TIMEOUT_MS);
+  expect(socket.readyState).toBe(1);
+  expect(Socket.instances).toHaveLength(1);
+  expect(subscription.status).toBe('suspended');
+  socket.deliver({ ...view, sequence: 6 });
+  expect(subscription.ready).toBe(true);
+});
+
 test('a table that never answers keeps saying so through every retry until a view arrives', async () => {
   const subscription = new GameSubscription(
     'game',
@@ -497,4 +528,14 @@ test('a refusal that arrives only as the close code still says why', async () =>
     type: 'connection',
     error: 'This login can no longer access the table.',
   });
+});
+
+test('a reconnect names the connection that last showed the table, so the Worker can retire it', async () => {
+  const { socket } = await subscribed();
+  expect(socket.sent[0]).toEqual({ type: 'admit', ticket: 'a'.repeat(64) });
+  socket.close(1006);
+  await vi.advanceTimersByTimeAsync(1000);
+  const next = Socket.instances.at(-1)!;
+  next.open();
+  expect(next.sent[0]).toEqual({ type: 'admit', ticket: 'a'.repeat(64), replaces: 'one' });
 });

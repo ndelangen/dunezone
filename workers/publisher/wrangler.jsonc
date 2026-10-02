@@ -4,12 +4,14 @@
   "main": "./index.ts",
   "compatibility_date": "2026-07-17",
   "compatibility_flags": ["nodejs_compat"],
+  "define": { "process.env.NODE_ENV": "\"production\"" },
   "workers_dev": true,
   "preview_urls": false,
   "routes": [{ "pattern": "dune.zone", "custom_domain": true }],
   "upload_source_maps": true,
   "alias": {
-    "rulebook-html-renderer-runtime": "./runtime-generated/rulebook-html-renderer.mjs"
+    "rulebook-html-renderer-runtime": "./runtime-generated/rulebook-html-renderer.mjs",
+    "application-ssr-runtime": "../../dist/server/server.js"
   },
   "observability": {
     "enabled": true,
@@ -24,6 +26,8 @@
     "run_worker_first": [
       "/__asset-publisher",
       "/__asset-publisher/*",
+      "/social",
+      "/social/*",
       "/published",
       "/published/*",
       "/publisher-capture",
@@ -34,7 +38,11 @@
       "/__user-images",
       "/__user-images/*",
       "/__play",
-      "/__play/*"
+      "/__play/*",
+      "/factions",
+      "/factions/*",
+      "/assets",
+      "/assets/*"
     ]
   },
   "browser": { "binding": "BROWSER" },
@@ -62,7 +70,7 @@
   "limits": { "cpu_ms": 30000 },
   "rules": [
     { "type": "Text", "globs": ["**/*.css"], "fallthrough": true },
-    { "type": "Data", "globs": ["**/*.woff2"], "fallthrough": true }
+    { "type": "Data", "globs": ["**/*.woff2", "**/*.woff"], "fallthrough": true }
   ],
   "secrets": {
     "required": ["ASSET_PUBLISHER_EXECUTOR_SECRET"]

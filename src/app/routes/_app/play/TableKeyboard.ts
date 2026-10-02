@@ -43,7 +43,7 @@ const FOCUSED_CONTROL = "button, a[href], [role='separator']";
  * A focused text field keeps its keys from the table.
  * The table's shortcuts also leave any other focused control or link alone, while the spice disc answers over them.
  */
-function focusKeepsKey(target: EventTarget | null, branch: 'supply' | 'table') {
+function focusKeepsKey(target: EventTarget | null, branch: 'spiceBank' | 'table') {
   if (!(target instanceof HTMLElement)) {
     return false;
   }
@@ -54,13 +54,13 @@ function focusKeepsKey(target: EventTarget | null, branch: 'supply' | 'table') {
 }
 
 /**
- * Owns one table's keyboard: the piece shortcuts, the one-second number-key draw, and spice from the hovered supply disc.
+ * Owns one table's keyboard: the piece shortcuts, the one-second number-key draw, and spice from the hovered Spice Bank disc.
  * It binds to the window once and reads the live table through `read()`, so a table update never re-registers a listener.
  * Escape stays with the pointer session, which owns the carry it cancels.
  */
 export class TableKeyboard {
   private binding: Binding | null = null;
-  private supplyHovered = false;
+  private spiceBankHovered = false;
   private drawTimer: ReturnType<typeof setTimeout> | null = null;
   private drawDigit: number | null = null;
   private drawCode = '';
@@ -79,8 +79,8 @@ export class TableKeyboard {
   }
 
   /** The spice disc reports its hover here, and while it holds, a digit spawns spice instead of drawing. */
-  hoverSupply(hovered: boolean) {
-    this.supplyHovered = hovered;
+  hoverSpiceBank(hovered: boolean) {
+    this.spiceBankHovered = hovered;
   }
 
   private release() {
@@ -101,7 +101,7 @@ export class TableKeyboard {
       return;
     }
     const digit = digitOf(event);
-    if (digit !== null && this.supplyAnswers(event, controls)) {
+    if (digit !== null && this.spiceBankAnswers(event, controls)) {
       event.preventDefault();
       if (!event.repeat) {
         controls.spawnSpice(digit === 0 ? 10 : digit);
@@ -129,8 +129,8 @@ export class TableKeyboard {
   };
 
   /* The hovered disc takes a digit, 0 meaning ten, while the viewer can handle the table and holds no carry. */
-  private supplyAnswers(event: KeyboardEvent, { canHandleTable, state }: Controls) {
-    return this.supplyHovered && canHandleTable && !state.draftMove && !focusKeepsKey(event.target, 'supply');
+  private spiceBankAnswers(event: KeyboardEvent, { canHandleTable, state }: Controls) {
+    return this.spiceBankHovered && canHandleTable && !state.draftMove && !focusKeepsKey(event.target, 'spiceBank');
   }
 
   private tableKey(event: KeyboardEvent, controls: Controls) {

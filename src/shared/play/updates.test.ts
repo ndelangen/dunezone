@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { assetPublishingFaction } from '../factions/fixtures/assetPublishingFaction';
-import { emptyBattlePlan, fixtureCombatFaces } from './battle';
+import { emptyBattlePlan, fixtureBattleFaces } from './battle';
 import { initialSnapshot, nextSnapshot } from './commands';
 import { emptyPublicControls } from './inventory';
 import { serverMessageSchema, tableForViewer } from './protocol';
@@ -88,7 +88,7 @@ describe('game transport reconstruction', () => {
 
   it('keeps null for a battle that ended, as the fresh view carries it', () => {
     const before = base();
-    before.snapshot.battlePlan = emptyBattlePlan(fixtureCombatFaces('harkonnen'));
+    before.snapshot.battlePlan = emptyBattlePlan(fixtureBattleFaces('harkonnen'));
     before.snapshot.battle = {
       id: 'battle',
       anchor: [0, 0, 0],
@@ -207,6 +207,35 @@ describe('game transport reconstruction', () => {
       })
     ).toBeNull();
     expect(before.pointers).toEqual([]);
+  });
+});
+
+describe('activity identity', () => {
+  it('keeps the carries list when only a pointer moved, and the pointers list when only a carry moved', () => {
+    const viewer = base().viewer;
+    const pointer = { ...viewer, position: [0, 0, 0] as [number, number, number], updatedAt: 1 };
+    const piece = base().snapshot.table.pieces[0];
+    const carry = {
+      ...viewer,
+      id: 'carry',
+      held: piece,
+      withdrawnCounts: {},
+      reservedIds: [piece.id],
+      expiresAt: 10,
+    };
+    const before = { ...base(), carries: [carry], pointers: [pointer] };
+    const pointerMoved = applyRoomUpdate(
+      before,
+      sent(before, { ...before, pointers: [{ ...pointer, position: [1, 0, 0] }] })
+    );
+    expect(pointerMoved?.carries).toBe(before.carries);
+    expect(pointerMoved?.pointers).not.toBe(before.pointers);
+    const carryMoved = applyRoomUpdate(
+      before,
+      sent(before, { ...before, carries: [{ ...carry, held: { ...piece, position: [1, 0, 1] } }] })
+    );
+    expect(carryMoved?.pointers).toBe(before.pointers);
+    expect(carryMoved?.carries[0]?.held.position).toEqual([1, 0, 1]);
   });
 });
 

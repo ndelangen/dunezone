@@ -29,6 +29,57 @@ const Leader = z.strictObject({
   image: LEADERS,
 });
 
+/** The Faction leader carries no strength of its own; see the glossary. */
+const FactionLeader = Leader.omit({ strength: true });
+const CanonicalFactionLeader = FactionLeader.extend({ memberId: FactionMemberIdSchema });
+const HistoricalFactionLeader = FactionLeader.extend({ memberId: FactionMemberIdSchema.optional() });
+
+function isRecord(input: unknown): input is Record<string, unknown> {
+  return typeof input === 'object' && input !== null && !Array.isArray(input);
+}
+
+/**
+ * Reads the Faction leader from `factionLeader`, falling back to `hero`.
+ * The glossary term is "Faction leader", kept apart from the supporting `leaders`.
+ * Factions saved before `faction_faction_leader_key_v1` store it under `hero`, and that migration copies it across.
+ * Every faction decoder accepts both keys and hands its caller `factionLeader` alone, so the code writes the new key.
+ * Narrowing, which drops `hero` from the stored rows and the live decoders, is left for a later PR once the migration has run everywhere.
+ * The historical decoder keeps reading `hero` after that, since game captures and frozen sheet jobs keep the literal.
+ */
+function readFactionLeaderKey(input: unknown): unknown {
+  if (!isRecord(input) || !('hero' in input)) {
+    return input;
+  }
+  const { hero, ...rest } = input;
+  return rest.factionLeader === undefined ? { ...rest, factionLeader: hero } : rest;
+}
+
+/** A faction under the `hero` literal in place of `factionLeader`. */
+export type HeroKeyed<T extends { factionLeader: unknown }> = Omit<T, 'factionLeader'> & { hero: T['factionLeader'] };
+
+/**
+ * The inverse of `readFactionLeaderKey`, for the places that keep the `hero` literal.
+ * The glossary term is "Faction leader".
+ * The literal is kept for stored data and for payloads a Worker one deploy behind still parses: game captures in Durable Object storage, the catalogue answer a game Worker captures from, and faction sheet publication jobs.
+ */
+export function toStoredHeroKey<T extends { factionLeader: unknown }>({ factionLeader, ...rest }: T): HeroKeyed<T> {
+  return { ...rest, hero: factionLeader };
+}
+
+/** `toStoredHeroKey` as a preprocess, for a decoder that may meet either key. */
+function writeStoredHeroKey(input: unknown): unknown {
+  if (!isRecord(input) || !('factionLeader' in input)) {
+    return input;
+  }
+  const { factionLeader, ...rest } = input;
+  return { ...rest, hero: factionLeader ?? rest.hero };
+}
+
+/** Wraps a `hero`-keyed decoder so it also takes a faction under `factionLeader`, as `toStoredHeroKey` describes. */
+export function heroKeyedDecoder<T extends z.ZodType>(schema: T) {
+  return z.preprocess(writeStoredHeroKey, schema);
+}
+
 export const Decal = z.strictObject({
   id: ALL,
   muted: z.boolean(),
@@ -40,14 +91,45 @@ export const Decal = z.strictObject({
 /**
  * What one troop face contributes to a battle plan (#1062).
  * Strengths may be fractional or negative;
- * the funding cost is whole spice, zero or more, and one when absent.
- * A face without this object has no authored combat values, which is never read as zero.
+ * the support cost is whole spice, zero or more, and one when absent.
+ * A face without this object has no authored battle values, which is never read as zero.
+ * Authoring and writes accept only these names;
+ * stored reads go through `StoredTroopBattleValues`.
  */
-export const TroopCombat = z.strictObject({
+export const TroopBattleValues = z.strictObject({
   strength: z.number(),
-  fundedStrength: z.number(),
-  fundingCost: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER).optional(),
+  supportedStrength: z.number(),
+  supportCost: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER).optional(),
 });
+
+/**
+ * Troops paid for with spice in battle are supported, not funded.
+ * Rows written before the rename carry `fundedStrength` and `fundingCost`;
+ * this renames them on read, and a value already under the new name wins.
+ */
+export function withSupportNames(value: unknown): unknown {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    return value;
+  }
+  if (!('fundedStrength' in value) && !('fundingCost' in value)) {
+    return value;
+  }
+  const { fundedStrength, fundingCost, ...rest } = value as Record<string, unknown>;
+  return {
+    ...(fundedStrength !== undefined && { supportedStrength: fundedStrength }),
+    ...(fundingCost !== undefined && { supportCost: fundingCost }),
+    ...rest,
+  };
+}
+
+/**
+ * Stored-data reader for the rename's compatibility window: the legacy names read as the new ones, and every write emits only the new ones.
+ * `faction_troop_support_names_v1` rewrites stored factions.
+ * Narrowing the live schemas to `TroopBattleValues` is a later release, once that migration and its verify have run everywhere;
+ * `HistoricalFactionPublicationSchema` keeps this read even then, because games retain captures taken before the rename.
+ * Like `extras`, a preprocess derives as `v.any()` on the Convex wire, which leaves the shape to the Zod parse.
+ */
+const StoredTroopBattleValues = z.preprocess(withSupportNames, TroopBattleValues);
 
 /* `capable` is the face's battle eligibility, separate from its strengths: an authored face without it can fight. */
 const TroopSide = z.strictObject({
@@ -58,7 +140,8 @@ const TroopSide = z.strictObject({
   hue: z.string().optional(),
   striped: z.boolean().optional(),
   capable: z.boolean().optional(),
-  combat: TroopCombat.optional(),
+  /* Stored key: saved faction definitions keep `combat`; the glossary term is battle. */
+  combat: StoredTroopBattleValues.optional(),
 });
 
 const Troop = z.strictObject({
@@ -70,13 +153,14 @@ const Troop = z.strictObject({
   hue: z.string().optional(),
   striped: z.boolean().optional(),
   capable: z.boolean().optional(),
-  combat: TroopCombat.optional(),
+  /* Stored key, kept as `combat`; see the note on TroopSide. */
+  combat: StoredTroopBattleValues.optional(),
   back: TroopSide.optional(),
   count: z.number().int().positive(),
   planet: z.string().optional(),
 });
 
-/** A troop as a game table draws it: its artwork alone, since a face's combat values reach the plans on their own path. */
+/** A troop as a game table draws it: its artwork alone, since a face's battle values reach the plans on their own path. */
 export const TroopArtwork = Troop.omit({ capable: true, combat: true }).extend({
   back: TroopSide.omit({ capable: true, combat: true }).optional(),
 });
@@ -135,8 +219,8 @@ const factionBaseShape = {
   /** Closest matching TTS colors */
   colors: z.array(TTSColor),
 
-  /** Used on the shield */
-  hero: Leader.omit({ strength: true }),
+  /** The Faction leader, used on the shield. */
+  factionLeader: FactionLeader,
   leaders: z.array(Leader),
 
   /** Used for alliance-cards */
@@ -183,10 +267,14 @@ const AuthoringRule = RULE.extend({
   karama: proseFormattedTextSchema.optional(),
 });
 
-const AuthoringTroopSide = TroopSide.extend({ description: proseFormattedTextSchema });
+const AuthoringTroopSide = TroopSide.extend({
+  description: proseFormattedTextSchema,
+  combat: TroopBattleValues.optional(),
+});
 
 const AuthoringTroop = Troop.extend({
   description: proseFormattedTextSchema,
+  combat: TroopBattleValues.optional(),
   back: AuthoringTroopSide.optional(),
 });
 
@@ -230,8 +318,13 @@ function refineUniqueComponentIds(data: ComponentRoster, ctx: z.RefinementCtx) {
   }
 }
 
+/** The object behind `FactionInputSchema`, for reaching its fields; parse through `FactionInputSchema`, which also reads the old `hero` key. */
+export const FactionInputObject = z.strictObject(factionAuthoringShape);
+
 /** Rejects unknown keys (e.g. `slug` must live on the Convex row, not in `data`). */
-export const FactionInputSchema = z.strictObject(factionAuthoringShape).superRefine(refineUniqueComponentIds);
+export const FactionInputSchema = z
+  .preprocess(readFactionLeaderKey, FactionInputObject)
+  .superRefine(refineUniqueComponentIds);
 
 /** A faction has zero to ten supporting leaders; five is conventional (#644). */
 export const SUPPORTING_LEADER_LIMIT = 10;
@@ -252,20 +345,52 @@ export const FactionWriteSchema = FactionInputSchema.refine(
 /**
  * Canonical storage is intentionally wider than current authoring semantics: historical rows with a blank name must remain readable while the UI requires a name for all new canonical writes.
  */
-export const CanonicalFactionStoredSchema = z.strictObject({
+export const CanonicalFactionStoredObject = z.strictObject({
   ...factionShape,
   name: z.string(),
-  hero: Leader.omit({ strength: true }).extend({ memberId: FactionMemberIdSchema }),
+  factionLeader: CanonicalFactionLeader,
   leaders: z.array(Leader.extend({ memberId: FactionMemberIdSchema })),
   troops: z.array(Troop.extend({ troopId: FactionTroopIdSchema })),
 });
 
+/** Parses stored canonical data; reads the old `hero` key through `readFactionLeaderKey`. */
+export const CanonicalFactionStoredSchema = z.preprocess(readFactionLeaderKey, CanonicalFactionStoredObject);
+
 /** Frozen sheet jobs and standalone previews may predate persistent member identity. Keep this decoder after live schema narrowing. */
-export const HistoricalFactionPublicationSchema = z.strictObject({
+export const HistoricalFactionPublicationObject = z.strictObject({
   ...factionShape,
   name: z.string(),
-  hero: Leader.omit({ strength: true }).extend({ memberId: FactionMemberIdSchema.optional() }),
+  factionLeader: HistoricalFactionLeader,
   leaders: z.array(Leader.extend({ memberId: FactionMemberIdSchema.optional() })),
+});
+
+/**
+ * Frozen sheet jobs and game captures keep the `hero` literal, so this decoder reads it after the live schema narrows too.
+ * The glossary term is "Faction leader", and `readFactionLeaderKey` explains the fallback.
+ */
+export const HistoricalFactionPublicationSchema = z.preprocess(
+  readFactionLeaderKey,
+  HistoricalFactionPublicationObject
+);
+
+/**
+ * The historical shape under the `hero` literal, for stored game captures and sheet publication jobs.
+ * The glossary term is "Faction leader".
+ * The literal is kept for stored data, as `toStoredHeroKey` describes.
+ */
+export const HeroKeyedHistoricalFactionObject = HistoricalFactionPublicationObject.omit({ factionLeader: true }).extend(
+  {
+    hero: HistoricalFactionLeader,
+  }
+);
+
+/**
+ * The canonical shape under the `hero` literal, for the catalogue answer a game Worker captures from.
+ * The glossary term is "Faction leader".
+ * The literal is kept so a game Worker one deploy behind still reads it, as `toStoredHeroKey` describes.
+ */
+export const HeroKeyedCanonicalFactionObject = CanonicalFactionStoredObject.omit({ factionLeader: true }).extend({
+  hero: CanonicalFactionLeader,
 });
 
 /** Complete canonical data also requires unique member identities across the roster. */
@@ -275,7 +400,8 @@ export const IdentifiedFactionStoredSchema = CanonicalFactionStoredSchema.superR
  * Client read-path variants: tolerate unknown top-level fields so additive server changes never break stale tabs;
  * genuine breaks (missing or mistyped fields) still fail the client boundary (see db/core/clientBoundary).
  */
-export const CanonicalFactionClientSchema = z.looseObject(CanonicalFactionStoredSchema.shape);
+const canonicalFactionClientObject = z.looseObject(CanonicalFactionStoredObject.shape);
+export const CanonicalFactionClientSchema = z.preprocess(readFactionLeaderKey, canonicalFactionClientObject);
 
 /**
  * The faction fields a catalogue-shaped surface actually draws (#642).
@@ -287,15 +413,18 @@ const catalogueFactionMask = {
   name: true,
   logo: true,
   background: true,
-  hero: true,
+  factionLeader: true,
   leaders: true,
   complexity: true,
 } as const;
 
-export const CatalogueFactionStoredSchema = CanonicalFactionStoredSchema.pick(catalogueFactionMask);
+export const CatalogueFactionStoredSchema = CanonicalFactionStoredObject.pick(catalogueFactionMask);
 
 /** Loose like its parent, so an additive server change still never breaks a stale tab. */
-export const CatalogueFactionClientSchema = CanonicalFactionClientSchema.pick(catalogueFactionMask);
+export const CatalogueFactionClientSchema = z.preprocess(
+  readFactionLeaderKey,
+  canonicalFactionClientObject.pick(catalogueFactionMask)
+);
 
 /**
  * Inferred from the strict variant on purpose: `.pick()` carries a `looseObject`'s catchall through, so taking this from the client schema would type every dropped field as `unknown` rather than refusing it, and a later read of `data.rules` would compile and then silently render nothing.
@@ -344,7 +473,7 @@ export const FactionRender = {
   ),
   shield: FactionInputSchema.transform((input) => ({
     name: input.name,
-    leader: input.hero,
+    leader: input.factionLeader,
     background: input.background,
     logo: input.logo,
   })),

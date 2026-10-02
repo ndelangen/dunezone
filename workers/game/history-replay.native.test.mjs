@@ -8,6 +8,7 @@ import {
   createRuntime,
   eventually,
   provision,
+  sendCommand,
   syncView,
 } from './native-runtime.fixture.mjs';
 import { storedSnapshotSchema } from './state';
@@ -164,6 +165,19 @@ describe('Replay history through the native game boundary', { timeout: 30_000 },
     expect(after.snapshot.revision).toBe(before.snapshot.revision);
     await later();
     await accepted(a, { kind: 'phase', direction: 1 });
+  });
+
+  it('tells every viewer the newest history step with each live frame, so playback can reach it', async () => {
+    await later();
+    const { reply } = await sendCommand(a, { kind: 'phase', direction: 1 });
+    const [{ step }] = await runtime.exec('SELECT MAX(step) AS step FROM history');
+    expect(step).toBeGreaterThan(0);
+    expect(reply.historySteps).toBe(step);
+    const seen = await eventually(
+      () => b.messages.findLast((message) => message.type === 'update' && message.historySteps === step),
+      'other viewer update'
+    );
+    expect(seen.historySteps).toBe(step);
   });
 
   it('keeps the opening of every turn whole, so a restore replays at most one turn of phase changes', async () => {

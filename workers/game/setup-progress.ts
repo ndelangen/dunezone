@@ -7,6 +7,7 @@ import { accepted, nextSnapshot } from '../../src/shared/play/commands';
 import { rosterFactionEventName } from '../../src/shared/play/factionLabels';
 import { emptyPublicControls } from '../../src/shared/play/inventory';
 import type { StoredPiece } from '../../src/shared/play/model';
+import { seatSubject } from '../../src/shared/play/participation';
 import { composeSetup, phaseAt, requirePhaseCooldownElapsed, tableProgressFor } from '../../src/shared/play/phases';
 import type { SetupPlacement } from '../../src/shared/play/phases';
 import { rosterFactionNames, tableForViewer } from '../../src/shared/play/protocol';
@@ -36,18 +37,19 @@ const TRAITORS_STEP = {
   allPlayersMustBeReady: true,
 } as const;
 
-const FORCES_STEP = {
+/* The id and kind keep the stored 'forces' literal: Dune Zone says troop (see the glossary). */
+const TROOPS_STEP = {
   id: 'forces',
   kind: 'forces',
-  title: 'Starting forces',
+  title: 'Starting troops',
   instructions:
-    'Place your starting forces using your faction instructions. When every player is prepared, Ready enables Next into Turn 1 Storm.',
+    'Place your starting troops using your faction instructions. When every player is prepared, Ready enables Next into Turn 1 Storm.',
   symbol: setupTargetSymbol('forces'),
   allPlayersMustBeReady: true,
 } as const;
 
 /**
- * Setup is `[before traitors] + traitors + [before forces] + forces`, composed once from the seated factions' declarations (#1138).
+ * Setup is `[before traitors] + traitors + [before starting troops] + starting troops`, composed once from the seated factions' declarations (#1138).
  * Storm order reads the marker where setup finds it, its default sector, since the storm cannot move before Turn 1 Storm.
  */
 export function initialSetup(
@@ -76,7 +78,7 @@ export function initialSetup(
       ...placed.traitors.map((placement, index) => step(placement, index)),
       TRAITORS_STEP,
       ...placed.forces.map((placement, index) => step(placement, placed.traitors.length + index)),
-      FORCES_STEP,
+      TROOPS_STEP,
     ],
     index: 0,
     visit: 1,
@@ -180,7 +182,7 @@ function readySetup(snapshot: StoredSnapshot, value: boolean, context: Context) 
   return event(
     { ...snapshot, controls: { ...controls, ready } },
     'setup-ready',
-    `${context.seat} ${value ? 'is ready' : 'withdrew readiness'}.`
+    `${seatSubject(context.seat)} ${value ? 'is ready' : 'withdrew readiness'}.`
   );
 }
 

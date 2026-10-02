@@ -9,14 +9,20 @@ import type { CSSProperties } from 'react';
 
 import { loadAssetCataloguePage, useAssetCataloguePage } from '@app/db/assets';
 import type { AssetListEntry } from '@app/db/assets';
-import { pageHead } from '@app/routes/pageTitle';
+import { publicPageHead } from '@app/routes/publicPage';
 import { AssetFace, assetFaceAspect } from '@app/widgets/asset-face/AssetFace';
 
 import styles from './index.module.css';
 
 export const Route = createFileRoute('/_app/assets/')({
+  ssr: true,
   loader: loadAssetCataloguePage,
-  head: () => pageHead('Assets'),
+  head: () =>
+    publicPageHead({
+      name: 'Assets',
+      pathname: '/assets',
+      description: 'Browse community cards, decks, tokens and boards for Dune.',
+    }),
   component: AssetsLandingPage,
 });
 

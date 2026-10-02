@@ -1,5 +1,5 @@
 import preview from '@sb/preview';
-import { expect, within } from 'storybook/test';
+import { expect, userEvent, within } from 'storybook/test';
 
 import { pageStoryMeta } from './storybookConfig';
 
@@ -44,3 +44,22 @@ export const PublicationJobsSignedOut = meta.story({
 });
 export const FuturePlans = meta.story({ args: { path: '/future-plans' } });
 export const Privacy = meta.story({ args: { path: '/privacy' } });
+
+/** The hard-coded glossary: one Section per topic with a picture, every term reachable by its anchor and found by the word it replaces. */
+export const Glossary = meta.story({
+  args: { path: '/glossary' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByRole('heading', { name: 'Troop' }, { timeout: 30_000 })).resolves.toBeVisible();
+    expect(canvasElement.ownerDocument.getElementById('battle')).not.toBeNull();
+    await userEvent.type(page.getByRole('textbox', { name: 'Search the glossary' }), 'combat');
+    await expect(page.findByRole('heading', { name: 'Battle', level: 3 })).resolves.toBeVisible();
+    expect(page.queryByRole('heading', { name: 'Troop' })).toBeNull();
+  },
+});
+
+/** The same page at phone width, where each picture sits above its terms. */
+export const GlossaryPhone = meta.story({
+  args: { path: '/glossary' },
+  globals: { viewport: { value: 'appMobile' } },
+});

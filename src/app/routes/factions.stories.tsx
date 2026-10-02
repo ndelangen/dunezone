@@ -53,7 +53,7 @@ const withTroopDetails = db((baseline) => {
       count: 15,
       description: 'The main fighting force.',
       capable: true,
-      combat: { strength: 0.5, fundedStrength: 1 },
+      combat: { strength: 0.5, supportedStrength: 1 },
       back: {
         image: art.image,
         name: 'Advisors',
@@ -70,14 +70,14 @@ const withTroopDetails = db((baseline) => {
       description: 'A smaller force with a stronger dial.',
       capable: true,
       back: undefined,
-      combat: { strength: 1, fundedStrength: 2, fundingCost: 2 },
+      combat: { strength: 1, supportedStrength: 2, supportCost: 2 },
     },
     {
       ...art,
       troopId: '5a34c071-2399-43c4-9e51-8166a876694f',
       name: 'Recruits',
       count: 8,
-      description: 'Combat values have not been entered yet.',
+      description: 'Battle values have not been entered yet.',
       capable: true,
       combat: undefined,
       back: undefined,
@@ -93,14 +93,14 @@ export const DetailWithTroopStrengths = meta.story({
     const troops = within(await page.findByRole('region', { name: 'Troops' }));
     const soldiers = within(troops.getByRole('article', { name: 'Soldiers' }));
     expect(soldiers.getByRole('img', { name: 'Strength per troop: 0.5 undialed | 1 dialed' })).toBeVisible();
-    expect(soldiers.getByRole('img', { name: 'Funding cost: 1 spice per dialed troop' })).toBeVisible();
-    expect(soldiers.getByRole('img', { name: 'Cannot participate in combat' })).toBeVisible();
+    expect(soldiers.getByRole('img', { name: 'Support cost: 1 spice per dialed troop' })).toBeVisible();
+    expect(soldiers.getByRole('img', { name: 'Cannot participate in battle' })).toBeVisible();
     expect(soldiers.getByRole('img', { name: '15 troop tokens' })).toBeVisible();
     const reverse = soldiers.getByRole('img', { name: 'Advisors, reverse side' });
     expect(reverse).toHaveAccessibleDescription('The reverse side supports the faction without joining battles.');
     expect(
       within(troops.getByRole('article', { name: 'Recruits' })).getByRole('img', {
-        name: 'Combat strengths have not been set. This side is unavailable in battle plans.',
+        name: 'Battle strengths have not been set. This side is unavailable in battle plans.',
       })
     ).toBeVisible();
     reverse.focus();
@@ -144,12 +144,12 @@ export const DetailWithIndependentTroopFaces = meta.story({
           ...art,
           name: 'A troop with a long authored name',
           count: 1,
-          combat: { strength: 0, fundedStrength: 1.5, fundingCost: 0 },
+          combat: { strength: 0, supportedStrength: 1.5, supportCost: 0 },
           back: {
             image: art.image,
-            description: 'The reverse has its own combat values.',
+            description: 'The reverse has its own battle values.',
             name: 'An independently authored reverse',
-            combat: { strength: 0.5, fundedStrength: 1, fundingCost: 2 },
+            combat: { strength: 0.5, supportedStrength: 1, supportCost: 2 },
           },
         },
       ];
@@ -160,7 +160,7 @@ export const DetailWithIndependentTroopFaces = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     const troops = within(await page.findByRole('region', { name: 'Troops' }));
     expect(troops.getByRole('img', { name: 'Strength per troop: 0 undialed | 1.5 dialed' })).toBeVisible();
-    expect(troops.getByRole('img', { name: 'Funding cost: 0 spice per dialed troop' })).toBeVisible();
+    expect(troops.getByRole('img', { name: 'Support cost: 0 spice per dialed troop' })).toBeVisible();
     expect(troops.getByRole('img', { name: 'Strength per troop: 0.5 undialed | 1 dialed' })).toBeVisible();
     const card = troops.getByRole('article');
     expect(card.scrollWidth).toBeLessThanOrEqual(card.clientWidth);
@@ -168,10 +168,10 @@ export const DetailWithIndependentTroopFaces = meta.story({
       .getByRole('img', { name: 'Flip side: An independently authored reverse' })
       .getBoundingClientRect();
     const frontCost = troops
-      .getByRole('img', { name: 'Funding cost: 0 spice per dialed troop' })
+      .getByRole('img', { name: 'Support cost: 0 spice per dialed troop' })
       .getBoundingClientRect();
     const backCost = troops
-      .getByRole('img', { name: 'Funding cost: 2 spice per dialed troop' })
+      .getByRole('img', { name: 'Support cost: 2 spice per dialed troop' })
       .getBoundingClientRect();
     const count = troops.getByRole('img', { name: '1 troop token' }).getBoundingClientRect();
     expect(frontCost.right).toBeLessThanOrEqual(flip.left);
@@ -226,7 +226,8 @@ export const DetailWithPlanets = meta.story({
     await userEvent.tab({ shift: true });
     await userEvent.tab();
     expect(planet).toHaveFocus();
-    await expect(page.findByRole('tooltip')).resolves.toHaveTextContent(spaceOrks.planet[0].description);
+    // The troop hint behind Shift+Tab can still be fading out, so wait for the planet's own tooltip.
+    await page.findByRole('tooltip', { name: spaceOrks.planet[0].description });
     await userEvent.keyboard('{Escape}');
     await waitFor(() => expect(page.queryByRole('tooltip')).not.toBeInTheDocument());
   },

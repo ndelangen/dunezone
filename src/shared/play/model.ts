@@ -12,6 +12,7 @@ import type {
 import { isSpicePiece } from './spice';
 import { DEFAULT_STORM_SECTOR_INDEX } from './stormSector';
 import { restingPositionAt } from './tableGeometry';
+import { isTroopStack } from './troop';
 
 export type Vector3Tuple = z.infer<typeof tablePositionSchema>;
 export type TablePiece = z.infer<typeof tablePieceSchema>;
@@ -48,7 +49,7 @@ export type TableState = z.infer<typeof durableTableSchema> & {
   viewerSeat: z.infer<typeof tableSeatSchema>;
   /* The faction the viewer's seat carries, or null for a spectator or an unassigned seat. */
   viewerFaction: string | null;
-  /* Each seated faction's display name by its id: pieces are owned by the id, and a force stack's name reads the display name. */
+  /* Each seated faction's display name by its id: pieces are owned by the id, and a troop stack's name reads the display name. */
   factionNames: Readonly<Partial<Record<string, string>>>;
   /* What tells a faction apart when another seat's faction shares its name (#1667): its player, or its seat. Never stored. */
   factionTieBreaks?: Readonly<Partial<Record<string, string>>>;
@@ -108,10 +109,11 @@ function tableItems(ids: string[], faceUp = true): TableItem[] {
   return ids.map((id) => ({ id, faceUp }));
 }
 
+/* The demo's piece ids and stack keys keep 'force', since a reset writes them into a room's stored table: Dune Zone says troop (see the glossary). */
 const INITIAL_PIECES: TablePiece[] = [
   {
     id: 'harkonnen-force-stack',
-    label: 'Harkonnen forces',
+    label: 'Harkonnen troops',
     owner: 'harkonnen',
     color: '#7d202d',
     accent: '#efac63',
@@ -125,7 +127,7 @@ const INITIAL_PIECES: TablePiece[] = [
   },
   {
     id: 'harkonnen-force-loose',
-    label: 'Harkonnen force',
+    label: 'Harkonnen troop',
     owner: 'harkonnen',
     color: '#7d202d',
     accent: '#efac63',
@@ -139,7 +141,7 @@ const INITIAL_PIECES: TablePiece[] = [
   },
   {
     id: 'atreides-force-stack',
-    label: 'Atreides forces',
+    label: 'Atreides troops',
     owner: 'atreides',
     color: '#176a73',
     accent: '#8bd1c7',
@@ -153,7 +155,7 @@ const INITIAL_PIECES: TablePiece[] = [
   },
   {
     id: 'bene-gesserit-force',
-    label: 'Bene Gesserit force',
+    label: 'Bene Gesserit troop',
     owner: 'bene-gesserit',
     color: '#6d5c99',
     accent: '#d4c5ff',
@@ -265,15 +267,16 @@ export function nearestZone(position: Vector3Tuple): Zone | null {
 function splitAffordance(piece: TablePiece): Affordance {
   const isCard = piece.kind === 'card';
   const isSpice = isSpicePiece(piece);
+  const unit = isTroopStack(piece) ? 'troop' : 'token';
   return {
     id: isCard ? 'draw' : 'split',
     commandType: isCard ? 'deck.draw' : 'stack.split',
-    label: isCard ? 'Draw top card' : isSpice ? 'Split one spice' : 'Split one force',
+    label: isCard ? 'Draw top card' : isSpice ? 'Split one spice' : `Split one ${unit}`,
     description: isCard
       ? 'Take the top card into a new loose table object.'
       : isSpice
         ? 'Create a separate spice stack beside this stack.'
-        : 'Create a separate one-force stack beside this stack.',
+        : `Create a separate one-${unit} stack beside this stack.`,
   };
 }
 

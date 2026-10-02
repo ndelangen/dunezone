@@ -25,7 +25,7 @@ describe('The Play journey recording', () => {
     expect(journeyViewers()).toEqual(['seat-1', 'seat-2', 'seat-3', 'seat-4', 'seat-5', 'seat-6', 'neutral']);
   });
 
-  test('a step shows what its viewer may see: a seat its own bank, a spectator none', () => {
+  test('a step shows what its viewer may see: a seat its own spice reserve, a spectator none', () => {
     const last = journeySteps().length - 1;
     expect(journeyFrame(last, 'seat-2').snapshot.bank).toBeDefined();
     expect(journeyFrame(last, 'neutral').snapshot.bank).toBeUndefined();

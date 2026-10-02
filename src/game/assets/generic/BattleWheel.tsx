@@ -102,7 +102,7 @@ function RevealedWheel({ background, strength, spice, adjustment, troops, cards 
         </div>
         <div className={styles.strength}>
           <span>{strength}</span>
-          <small>Force</small>
+          <small>Strength</small>
         </div>
         <div className={styles.troopReadout}>
           {troops.map((troop) => (
@@ -143,7 +143,7 @@ function RevealedWheel({ background, strength, spice, adjustment, troops, cards 
         {!!adjustment && (
           <div
             className={clsx(styles.adjustment, adjustment > 0 ? styles.positive : styles.negative)}
-            aria-label={`Force adjustment ${adjustment > 0 ? 'plus' : 'minus'} ${Math.abs(adjustment)}`}
+            aria-label={`Strength adjustment ${adjustment > 0 ? 'plus' : 'minus'} ${Math.abs(adjustment)}`}
           >
             <span>
               {adjustment > 0 ? '+' : ''}

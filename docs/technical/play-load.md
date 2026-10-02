@@ -140,7 +140,7 @@ in once for its protocol connections, and each browser once through the login fo
 so no connection or browser creates an account.
 
 `trace` runs two complete action cycles without background motion, checks item conservation and
-compares every recipient's public durable snapshot once each holds the last confirmed revision. Private bank projections are not expected
+compares every recipient's public durable snapshot once each holds the last confirmed revision. Private spice reserve projections are not expected
 to match across factions. `multitab` checks each secondary tab and its primary
 tab independently carrying and cancelling. A preflight checks command replay and durable-snapshot
 convergence. `reconnect` interrupts one connection,

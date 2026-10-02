@@ -6,7 +6,9 @@ import {
   CARD_LAYER_STAGGER,
   createPieceFlipMotion,
   PIECE_FLIP_DURATION_MS,
+  PIECE_FLIP_HOLD_MS,
   pieceFlipFrame,
+  releasePieceFlipMotion,
   retargetPieceFlipMotion,
   stackLayerItemIndex,
 } from './pieceFlip';
@@ -14,9 +16,9 @@ import {
   CARD_LAYER_HEIGHT,
   CARD_LAYER_PITCH,
   CARD_WIDTH,
-  FORCE_BOTTOM_RADIUS,
-  FORCE_FACE_RADIUS,
-  FORCE_TOP_RADIUS,
+  TROOP_BOTTOM_RADIUS,
+  TROOP_FACE_RADIUS,
+  TROOP_TOP_RADIUS,
   pieceLabelHeight,
   stackTopHeight,
   visibleLayerCount,
@@ -59,7 +61,7 @@ function flippedToRevision(piece: TablePiece, revision: number): TablePiece {
 function visibleBodyCorners(piece: TablePiece): [x: number, y: number][] {
   const shown = visibleLayerCount(piece);
   if (piece.kind !== 'card') {
-    const radius = Math.max(FORCE_BOTTOM_RADIUS, FORCE_TOP_RADIUS, FORCE_FACE_RADIUS);
+    const radius = Math.max(TROOP_BOTTOM_RADIUS, TROOP_TOP_RADIUS, TROOP_FACE_RADIUS);
     return [
       [-radius, 0],
       [radius, 0],
@@ -134,7 +136,7 @@ describe('piece flip frames', () => {
     const motion = retargetPieceFlipMotion(createPieceFlipMotion(0), 1, 0);
     const frame = pieceFlipFrame(motion, piece, PIECE_FLIP_DURATION_MS / 2);
     const halfWidth =
-      kind === 'card' ? CARD_WIDTH / 2 : Math.max(FORCE_BOTTOM_RADIUS, FORCE_TOP_RADIUS, FORCE_FACE_RADIUS);
+      kind === 'card' ? CARD_WIDTH / 2 : Math.max(TROOP_BOTTOM_RADIUS, TROOP_TOP_RADIUS, TROOP_FACE_RADIUS);
 
     expect(frame.rotationZ).toBe(-Math.PI / 2);
     expect(frame.lift).toBeCloseTo(halfWidth + 0.06, 12);
@@ -145,7 +147,7 @@ describe('piece flip frames', () => {
   });
 
   for (const kind of ['card', 'force'] as const) {
-    /* 1 is a single layer, 2 the first stacked one, 4 and 5 the force and card visible caps, and 200 lies far above both caps, where the geometry no longer changes (#1590). */
+    /* 1 is a single layer, 2 the first stacked one, 4 and 5 the troop and card visible caps, and 200 lies far above both caps, where the geometry no longer changes (#1590). */
     test.each([1, 2, 4, 5, 200])(`keeps all visible ${kind} corners above the board for item count %i`, (count) => {
       const piece = pieceWithItems(kind, count);
       const motion = retargetPieceFlipMotion(createPieceFlipMotion(0), 1, 0);
@@ -214,7 +216,7 @@ describe('single piece flips', () => {
 
     expect(unchanged).toBe(first);
     expect(pieceFlipFrame(unchanged, flippedToRevision(piece, 1), nowMs)).toEqual(before);
-    expect(first).toEqual({ fromRevision: 0, targetRevision: 1, startedAt: 20 });
+    expect(first).toEqual({ fromRevision: 0, targetRevision: 1, startedAt: 20, heldSince: null });
     expect(initial).toEqual(createPieceFlipMotion(0));
   });
 
@@ -225,7 +227,7 @@ describe('single piece flips', () => {
     const settled = retargetPieceFlipMotion(first, revision, nowMs);
 
     expect(settled).toEqual(createPieceFlipMotion(revision));
-    expect(first).toEqual({ fromRevision: 0, targetRevision: 1, startedAt: 20 });
+    expect(first).toEqual({ fromRevision: 0, targetRevision: 1, startedAt: 20, heldSince: null });
     for (const sampleMs of [nowMs, 20 + PIECE_FLIP_DURATION_MS, 20 + PIECE_FLIP_DURATION_MS * 5]) {
       const frame = pieceFlipFrame(settled, flippedToRevision(piece, revision), sampleMs);
       expect(frame.rotationZ).toBe(0);
@@ -253,15 +255,35 @@ describe('single piece flips', () => {
     const nowMs = 100 + PIECE_FLIP_DURATION_MS;
     const next = retargetPieceFlipMotion(first, 2, nowMs);
 
-    expect(next).toEqual({ fromRevision: 1, targetRevision: 2, startedAt: nowMs });
+    expect(next).toEqual({ fromRevision: 1, targetRevision: 2, startedAt: nowMs, heldSince: null });
     expect(pieceFlipFrame(next, flippedToRevision(piece, 2), nowMs).active).toBe(true);
     expect(pieceFlipFrame(next, flippedToRevision(piece, 2), nowMs + PIECE_FLIP_DURATION_MS).active).toBe(false);
     expect(retargetPieceFlipMotion(next, 2, nowMs + 10)).toBe(next);
   });
 
+  test('a flip waiting for its new face shows the old face until the face is ready', () => {
+    const piece = pieceWithItems('card', 1, 1);
+    const held = retargetPieceFlipMotion(createPieceFlipMotion(0), 1, 100, false);
+
+    expect(pieceFlipFrame(held, piece, 100 + PIECE_FLIP_DURATION_MS * 2).rotationZ).toBeCloseTo(-Math.PI);
+    expect(pieceFlipFrame(held, piece, 100 + PIECE_FLIP_DURATION_MS * 2).active).toBe(true);
+    expect(releasePieceFlipMotion(held, 300, false)).toBe(held);
+
+    const started = releasePieceFlipMotion(held, 300, true);
+    expect(started).toMatchObject({ startedAt: 300, heldSince: null });
+    expect(pieceFlipFrame(started, piece, 300 + PIECE_FLIP_DURATION_MS).active).toBe(false);
+  });
+
+  test('a flip stops waiting for its new face after the hold limit', () => {
+    const held = retargetPieceFlipMotion(createPieceFlipMotion(0), 1, 100, false);
+
+    expect(releasePieceFlipMotion(held, 100 + PIECE_FLIP_HOLD_MS - 1, false)).toBe(held);
+    expect(releasePieceFlipMotion(held, 100 + PIECE_FLIP_HOLD_MS, false).startedAt).toBe(100 + PIECE_FLIP_HOLD_MS);
+  });
+
   test('does not render a saved multi-turn motion', () => {
     const piece = pieceWithItems('card', 5, 3);
-    const motion = { fromRevision: 0, targetRevision: 3, startedAt: 0 };
+    const motion = { fromRevision: 0, targetRevision: 3, startedAt: 0, heldSince: null };
 
     expect(pieceFlipFrame(motion, piece, PIECE_FLIP_DURATION_MS / 2).active).toBe(false);
     expect(pieceFlipFrame(motion, piece, PIECE_FLIP_DURATION_MS / 2).rotationZ).toBe(0);

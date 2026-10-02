@@ -2,9 +2,9 @@ import { Button, Group, Image, NumberInput, SegmentedControl, Select, Stack, Tex
 import type { ButtonProps, NumberInputProps } from '@mantine/core';
 import { Html } from '@react-three/drei/webgpu';
 import { useFrame, useThree } from '@react-three/fiber/webgpu';
-import { troopCombatFaces } from '@shared/factions/troopCombat';
+import { troopBattleFaces } from '@shared/factions/troopBattle';
 import { isBattleLeader } from '@shared/play/battle';
-import type { BattlePlan, BattlePlanInput, CombatFace, PublicBattle } from '@shared/play/battle';
+import type { BattlePlan, BattlePlanInput, BattleFace, PublicBattle } from '@shared/play/battle';
 import { snapshotFactionLabels } from '@shared/play/factionLabels';
 import type { TablePiece, Vector3Tuple } from '@shared/play/model';
 import { phaseAt, STANDARD_PHASES } from '@shared/play/phases';
@@ -139,7 +139,7 @@ function BattleWheel({ plan, factionId, factionName, client, active, artwork }: 
   const leader = plan.pieces.find((piece) => piece.id === plan.leaderId);
   const motion = useMotionAllowed();
   const retained = artwork?.[factionId];
-  const retainedFaces = retained && new Map(troopCombatFaces(retained.troops).map((entry) => [entry.id, entry.face]));
+  const retainedFaces = retained && new Map(troopBattleFaces(retained.troops).map((entry) => [entry.id, entry.face]));
   return (
     <BattleWheelAsset
       state="revealed"
@@ -238,7 +238,7 @@ function TroopFaceFields({
   update,
   single,
   spiceLimit,
-}: PlanEditor & { face: CombatFace; single: boolean; spiceLimit: number }) {
+}: PlanEditor & { face: BattleFace; single: boolean; spiceLimit: number }) {
   const troop = plan.troops.find((troop) => troop.faceId === face.id) ?? {
     faceId: face.id,
     undialed: 0,
@@ -253,10 +253,10 @@ function TroopFaceFields({
       return total;
     }
     const otherFace = plan.faces.find((candidate) => candidate.id === entry.faceId);
-    return total + entry.dialed * (otherFace?.fundingCost ?? 0);
+    return total + entry.dialed * (otherFace?.supportCost ?? 0);
   }, 0);
-  const dialedMax = face.fundingCost
-    ? Math.max(0, Math.floor((spiceLimit - otherSpice) / face.fundingCost))
+  const dialedMax = face.supportCost
+    ? Math.max(0, Math.floor((spiceLimit - otherSpice) / face.supportCost))
     : undefined;
   return (
     <div className={styles.faceFields}>
@@ -357,8 +357,8 @@ function PlanFields({ client, table, plan, battle }: Props & { plan: BattlePlan;
           <Stack gap="md">
             <div className={styles.editorFields}>
               <SegmentedControl
-                className={styles.fundingMode}
-                aria-label="Funding mode"
+                className={styles.supportMode}
+                aria-label="Support mode"
                 disabled={locked}
                 value={plan.mode}
                 data={[
@@ -389,7 +389,7 @@ function PlanFields({ client, table, plan, battle }: Props & { plan: BattlePlan;
             </div>
             <PlanInventory plan={plan} locked={locked} update={update} pieces={pieces} />
             <Text size="sm">
-              {table.snapshot.bank!.balance} available in your bank, {plan.spice} reserved. Troop strength excludes
+              {table.snapshot.bank!.balance} in your spice reserve, {plan.spice} set aside. Troop strength excludes
               leader strength.
             </Text>
             {battle.stage !== 'revealed' && (

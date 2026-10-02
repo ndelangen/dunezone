@@ -315,6 +315,9 @@ jobs:
           with-deps: "false"
       - name: Exercise narrow snapshot contract in Chromium
         run: bun run workers/publisher/capture-contract-regression.ts
+      - name: Verify public application runtime
+        run: bun run publisher:application-runtime:verify
+
       - name: Check Worker startup
         run: bun run publisher:startup
 
@@ -482,7 +485,7 @@ jobs:
     if: needs.play_closure.outputs.run == 'true'
     # Above the launcher's own budgets, so a slow flow ends with its name and its evidence, not a
     # cancelled job. The protocol shard's budgets add up to 27 minutes: 180 s for the protocol
-    # verifier, then 480 s for each of private-banks, decks and results.
+    # verifier, then 480 s for each of private-spice-reserves, decks and results.
     # With a 46 s boot and about 35 s of setup that comes near 28.5 minutes.
     timeout-minutes: 32
     strategy:

@@ -179,10 +179,27 @@ describe('sharedPublishedFaces', () => {
     leaveFirst();
     expect(release).not.toHaveBeenCalled();
     leaveSecond();
+    expect(release).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(1000);
     expect(release).toHaveBeenCalledExactlyOnceWith('face');
 
     subscribe('front', vi.fn());
     expect(load).toHaveBeenCalledTimes(2);
+  });
+
+  test('a subscriber that arrives while the last one is leaving keeps the face without loading it again', () => {
+    const { load, release, requests, subscribe } = sharedLoader();
+    const leave = subscribe('front', vi.fn());
+    requests[0]!.succeed('face');
+    leave();
+    const listener = vi.fn();
+    subscribe('front', listener);
+    vi.advanceTimersByTime(5000);
+
+    expect(load).toHaveBeenCalledOnce();
+    expect(release).not.toHaveBeenCalled();
+    expect(listener).toHaveBeenCalledExactlyOnceWith('face');
+    expect(subscribe.peek('front')).toBe('face');
   });
 
   test('peek returns a held face, and nothing for one still loading or never asked for', () => {
@@ -200,6 +217,8 @@ describe('sharedPublishedFaces', () => {
     const leave = subscribe('front', vi.fn());
     requests[0]!.succeed('face');
     leave();
+    expect(subscribe.peek('front')).toBe('face');
+    vi.advanceTimersByTime(1000);
 
     expect(subscribe.peek('front')).toBeUndefined();
   });
@@ -224,6 +243,7 @@ describe('sharedPublishedFaces', () => {
     const { release, requests, subscribe } = sharedLoader();
     const listener = vi.fn();
     subscribe('front', listener)();
+    vi.advanceTimersByTime(1000);
     requests[0]!.succeed('face');
 
     expect(listener).not.toHaveBeenCalled();

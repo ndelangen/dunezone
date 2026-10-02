@@ -161,6 +161,9 @@ jobs:
         env:
           VITE_CONVEX_URL: ${{ vars.VITE_CONVEX_URL }}
 
+      - name: Retain browser bundles from the previous application release
+        run: bun run publisher:retain-assets
+
       - name: Verify assembled Worker assets
         run: bun run publisher:assets:check
 
@@ -172,6 +175,9 @@ jobs:
 
       - name: Dry-run exact Worker release
         run: bun run publisher:release:dry-run
+
+      - name: Verify public application runtime
+        run: bun run publisher:application-runtime:verify
 
       - name: Dry-run private game Worker release
         run: bun run game:dry-run

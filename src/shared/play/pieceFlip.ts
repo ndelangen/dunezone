@@ -1,9 +1,9 @@
 import type { TablePiece } from './model';
 import {
   CARD_WIDTH,
-  FORCE_BOTTOM_RADIUS,
-  FORCE_TOP_RADIUS,
-  forceScale,
+  TROOP_BOTTOM_RADIUS,
+  TROOP_TOP_RADIUS,
+  troopScale,
   pieceLabelHeight,
   stackTopHeight,
   visibleLayerCount,
@@ -11,6 +11,8 @@ import {
 
 export const CARD_LAYER_STAGGER = 0.012;
 export const PIECE_FLIP_DURATION_MS = 520;
+/** How long a flip waits, still showing its old face, for the art of the face it turns up before it turns anyway. */
+export const PIECE_FLIP_HOLD_MS = 1200;
 
 const FLIP_CLEARANCE = 0.06;
 
@@ -32,6 +34,8 @@ export type PieceFlipMotion = {
   fromRevision: number;
   targetRevision: number;
   startedAt: number | null;
+  /** When a flip began waiting for the art of the face it turns up; it shows the old face until then. */
+  heldSince: number | null;
 };
 
 export type PieceFlipFrame = {
@@ -48,15 +52,22 @@ export function createPieceFlipMotion(revision: number): PieceFlipMotion {
     fromRevision: revision,
     targetRevision: revision,
     startedAt: null,
+    heldSince: null,
   };
 }
 
-export function retargetPieceFlipMotion(motion: PieceFlipMotion, revision: number, nowMs: number): PieceFlipMotion {
+export function retargetPieceFlipMotion(
+  motion: PieceFlipMotion,
+  revision: number,
+  nowMs: number,
+  faceReady = true
+): PieceFlipMotion {
   if (revision === motion.targetRevision) {
     return motion;
   }
 
-  const active = motion.startedAt !== null && nowMs - motion.startedAt < PIECE_FLIP_DURATION_MS;
+  const active =
+    motion.heldSince !== null || (motion.startedAt !== null && nowMs - motion.startedAt < PIECE_FLIP_DURATION_MS);
   if (active || revision !== motion.targetRevision + 1) {
     // Commands block repeated flips. Unexpected snapshots settle to their canonical pose.
     return createPieceFlipMotion(revision);
@@ -65,8 +76,17 @@ export function retargetPieceFlipMotion(motion: PieceFlipMotion, revision: numbe
   return {
     fromRevision: motion.targetRevision,
     targetRevision: revision,
-    startedAt: nowMs,
+    startedAt: faceReady ? nowMs : null,
+    heldSince: faceReady ? null : nowMs,
   };
+}
+
+/** Starts a held flip once the face it turns up is ready, or once it has waited `PIECE_FLIP_HOLD_MS` regardless. */
+export function releasePieceFlipMotion(motion: PieceFlipMotion, nowMs: number, faceReady: boolean): PieceFlipMotion {
+  if (motion.heldSince === null || (!faceReady && nowMs - motion.heldSince < PIECE_FLIP_HOLD_MS)) {
+    return motion;
+  }
+  return { ...motion, startedAt: nowMs, heldSince: null };
 }
 
 function matchingFlipIdentity(previous: TablePiece, next: TablePiece): boolean {
@@ -104,7 +124,7 @@ function pieceHalfWidth(piece: TablePiece): number {
   if (piece.kind === 'card') {
     return (CARD_WIDTH + (visibleLayerCount(piece) - 1) * CARD_LAYER_STAGGER) / 2;
   }
-  return Math.max(FORCE_BOTTOM_RADIUS, FORCE_TOP_RADIUS) * forceScale(piece);
+  return Math.max(TROOP_BOTTOM_RADIUS, TROOP_TOP_RADIUS) * troopScale(piece);
 }
 
 export function pieceFlipFrame(motion: PieceFlipMotion, piece: TablePiece, nowMs: number): PieceFlipFrame {
@@ -120,11 +140,11 @@ export function pieceFlipFrame(motion: PieceFlipMotion, piece: TablePiece, nowMs
   if (piece.kind === 'marker' || piece.items.length === 0) {
     return idle;
   }
-  if (motion.startedAt === null || motion.targetRevision !== motion.fromRevision + 1) {
+  if ((motion.startedAt === null && motion.heldSince === null) || motion.targetRevision !== motion.fromRevision + 1) {
     return idle;
   }
 
-  const fraction = Math.max(0, nowMs - motion.startedAt) / PIECE_FLIP_DURATION_MS;
+  const fraction = motion.startedAt === null ? 0 : Math.max(0, nowMs - motion.startedAt) / PIECE_FLIP_DURATION_MS;
   if (fraction >= 1) {
     return idle;
   }

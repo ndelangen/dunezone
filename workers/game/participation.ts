@@ -296,6 +296,8 @@ export class Participation {
     } else {
       controls.ready = controls.ready.filter((ready) => ready !== seat);
     }
+    /* A spawn request leaves with its requester; the next holder of the seat could never approve it. */
+    controls.requests = controls.requests.filter((request) => request.requesterSeat !== seat);
     let next = this.next(change, event);
     if (this.actors.seated().length === 0) {
       for (const pending of controls.seatRequests) {

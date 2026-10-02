@@ -59,8 +59,8 @@ export const SetupTraitors = meta.story({
   },
 });
 
-/** Setup, starting forces: the kept Traitors are in hand and the table moves on to play. */
-export const SetupStartingForces = meta.story({
+/** Setup, starting troops: the kept Traitors are in hand and the table moves on to play. */
+export const SetupStartingTroops = meta.story({
   beforeEach: install(() => productTransport('seat-2', preparedSnapshot())),
   play: async ({ canvasElement }) => {
     const page = await openPanel(canvasElement, 'Setup');
@@ -140,10 +140,23 @@ export const BattleRevealed = meta.story({
   },
 });
 
-/** Battle, as a spectator sees the revealed plans. */
+/** A spectator's dock opens on the Log, not on the Shared inventory whose every control is a seat's. */
+export const SpectatorOpensOnLog = meta.story({
+  beforeEach: install(() => productTransport('neutral')),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByRole('tab', { name: 'Log' }, WAIT)).resolves.toHaveAttribute('aria-selected', 'true');
+    expect(page.getByRole('tab', { name: 'Shared inventory' })).toHaveAttribute('aria-selected', 'false');
+  },
+});
+
+/** Battle, as a spectator sees the revealed plans; the dock opens on it. */
 export const BattleSpectator = meta.story({
   beforeEach: install(() => productTransport('neutral', battleStory('revealed', true))),
   play: async ({ canvasElement }) => {
+    await expect(
+      within(canvasElement.ownerDocument.body).findByRole('tab', { name: 'Battle' }, WAIT)
+    ).resolves.toHaveAttribute('aria-selected', 'true');
     const page = await openPanel(canvasElement, 'Battle');
     await expect(page.findByRole('button', { name: 'No winner' }, WAIT)).resolves.toBeDisabled();
     expect(page.getByText('Both plans are revealed on the table.')).toBeVisible();
@@ -173,14 +186,14 @@ export const SharedInventory = meta.story({
   },
 });
 
-/** Spice: the private faction bank and the public transfers. */
+/** Spice: the private spice reserve and the public transfers. */
 export const Spice = meta.story({
   beforeEach: install(() =>
     productTransport('seat-2', { ...playingSnapshot(), bank: { factionId: 'house-harkonnen', balance: 12 } })
   ),
   play: async ({ canvasElement }) => {
     const page = await openPanel(canvasElement, 'Spice');
-    await expect(page.findByLabelText('Banked spice', {}, WAIT)).resolves.toHaveTextContent('12');
+    await expect(page.findByLabelText('Spice reserve balance', {}, WAIT)).resolves.toHaveTextContent('12');
   },
 });
 

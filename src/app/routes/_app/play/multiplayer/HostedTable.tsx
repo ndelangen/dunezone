@@ -5,6 +5,7 @@ import type { SpawnSelection } from '@shared/play/inventory';
 import { phaseAt, tableProgressFor } from '@shared/play/phases';
 import { rosterSeat, SPECTATOR_SEAT } from '@shared/play/schema';
 import { phaseGate, setupMapVisible, setupStep } from '@shared/play/setup';
+import type { SpiceTransfer } from '@shared/play/spiceReserve';
 import { DEFAULT_TABLE_SEAT_COUNT } from '@shared/play/tableSettings';
 import { Link } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
@@ -130,6 +131,9 @@ function ConnectionControls({ client, table, error }: ConnectionControlsProps) {
   );
 }
 
+/* A spectator's dock opens on the battle when it loads during one, otherwise on the Log; later the spectator picks. */
+const SPECTATOR_OPENING_TABS = ['battle', 'log'];
+
 /* A battle the viewer's faction fights in opens the Battle tab once, when that faction takes its side. */
 function battleFocus(table: TableProjection) {
   const battle = table.snapshot.battle;
@@ -151,7 +155,11 @@ function PhaseNavigation({ client, table }: Pick<ConnectionControlsProps, 'clien
   const controls = table.snapshot.controls ?? emptyPublicControls();
   const cooling = table.phaseCooling;
   const setup = table.snapshot.stage === 'setup' ? table.snapshot.setup : undefined;
-  const { needsReady, refusal } = phaseGate({ ...table.snapshot, ready: controls.ready, seats: controls.seats });
+  const { needsReady, refusal } = phaseGate({
+    ...table.snapshot,
+    ready: controls.ready,
+    seats: controls.seats,
+  });
   const ready = controls.ready.includes(table.viewer.viewerSeat);
   /* Readiness is a phase control, so it sits with Previous and Next in the header rather than on a
      tab; the count stays short so the toolbar keeps to one row at desktop widths, and a phone wraps
@@ -175,7 +183,13 @@ function PhaseNavigation({ client, table }: Pick<ConnectionControlsProps, 'clien
       <Group gap="xs" wrap="nowrap">
         <Button
           variant="subtle"
-          disabled={!table.canInteract || cooling || (setup ? setup.index === 0 : table.snapshot.phase === 0)}
+          disabled={
+            !table.canInteract ||
+            cooling ||
+            Boolean(table.snapshot.ending) ||
+            Boolean(table.snapshot.battle) ||
+            (setup ? setup.index === 0 : table.snapshot.phase === 0)
+          }
           onClick={() => client.command({ kind: 'phase', direction: -1 })}
         >
           Previous phase
@@ -310,7 +324,12 @@ function Predictions({ client, table }: SetupControlProps) {
                   <Button
                     variant="default"
                     disabled={!table.canInteract}
-                    onClick={() => client.command({ kind: 'prediction-reveal', stepId: step.id })}
+                    onClick={() =>
+                      client.command({
+                        kind: 'prediction-reveal',
+                        stepId: step.id,
+                      })
+                    }
                   >
                     Reveal prediction
                   </Button>
@@ -333,7 +352,7 @@ function SetupControls({ client, table }: SetupControlProps) {
     return null;
   }
   const step = setupStep(setup);
-  /* The viewer's own starting forces lead, so a narrow dock shows the line that seat has to follow. */
+  /* The viewer's own starting troops lead, so a narrow dock shows the line that seat has to follow. */
   const ownFaction = rosterSeat(table.snapshot.roster, table.viewer.viewerSeat)?.faction?.id;
   const instructions =
     step.kind === 'forces'
@@ -369,7 +388,7 @@ function SetupControls({ client, table }: SetupControlProps) {
                 >
                   <Text size="sm" style={{ whiteSpace: 'pre-wrap' }}>
                     <InlineFormattedTextSource
-                      source={entry.text || 'Follow your faction rules for starting forces.'}
+                      source={entry.text || 'Follow your faction rules for starting troops.'}
                     />
                   </Text>
                 </Section>
@@ -382,20 +401,36 @@ function SetupControls({ client, table }: SetupControlProps) {
   );
 }
 
-type PickerState = { open: boolean; selection: SpawnSelection | null; requestId: string | null };
+type PickerState = {
+  open: boolean;
+  selection: SpawnSelection | null;
+  requestId: string | null;
+};
 type PickerEvent =
   | { type: 'open' | 'close' }
-  | { type: 'select'; selection: SpawnSelection | null; requestId: string | null };
+  | {
+      type: 'select';
+      selection: SpawnSelection | null;
+      requestId: string | null;
+    };
 function pickerReducer(_state: PickerState, event: PickerEvent): PickerState {
   if (event.type === 'select') {
-    return { open: true, selection: event.selection, requestId: event.requestId };
+    return {
+      open: true,
+      selection: event.selection,
+      requestId: event.requestId,
+    };
   }
   return { open: event.type === 'open', selection: null, requestId: null };
 }
 
 function SharedInventory({ client, table }: Pick<ConnectionControlsProps, 'client' | 'table'>) {
   const pointerSession = usePointerSession();
-  const [picker, dispatch] = useReducer(pickerReducer, { open: false, selection: null, requestId: null });
+  const [picker, dispatch] = useReducer(pickerReducer, {
+    open: false,
+    selection: null,
+    requestId: null,
+  });
   const view = useSyncExternalStore(client.subscribe, client.getSnapshot);
   const entries = view.catalogue?.entries ?? [];
   const controls = table.snapshot.controls ?? emptyPublicControls();
@@ -440,18 +475,29 @@ function SharedInventory({ client, table }: Pick<ConnectionControlsProps, 'clien
               searchable
               disabled={table.reconnecting}
               placeholder="Choose a deck, bundle or token"
-              data={entries.map((entry) => ({ value: `${entry.type}/${entry.slug}`, label: entry.name }))}
+              data={entries.map((entry) => ({
+                value: `${entry.type}/${entry.slug}`,
+                label: entry.name,
+              }))}
               value={picker.selection ? `${picker.selection.type}/${picker.selection.slug}` : null}
               onChange={(value) => {
                 const selection = entries.find((entry) => `${entry.type}/${entry.slug}` === value) ?? null;
-                dispatch({ type: 'select', selection, requestId: selection ? client.catalogue(selection) : null });
+                dispatch({
+                  type: 'select',
+                  selection,
+                  requestId: selection ? client.catalogue(selection) : null,
+                });
               }}
             />
             <Button
               disabled={!table.canHandleTable || !contents || !picker.selection}
               onClick={() => {
                 if (picker.selection) {
-                  client.command({ kind: 'spawn-request', type: picker.selection.type, slug: picker.selection.slug });
+                  client.command({
+                    kind: 'spawn-request',
+                    type: picker.selection.type,
+                    slug: picker.selection.slug,
+                  });
                 }
               }}
             >
@@ -507,14 +553,24 @@ function SharedInventory({ client, table }: Pick<ConnectionControlsProps, 'clien
             <Group gap="xs">
               <Button
                 disabled={!table.canHandleTable || request.requesterSeat === table.viewer.viewerSeat}
-                onClick={() => client.command({ kind: 'spawn-approve', requestId: request.id })}
+                onClick={() =>
+                  client.command({
+                    kind: 'spawn-approve',
+                    requestId: request.id,
+                  })
+                }
               >
                 Approve
               </Button>
               <Button
                 variant="default"
                 disabled={!table.canHandleTable}
-                onClick={() => client.command({ kind: 'spawn-dismiss', requestId: request.id })}
+                onClick={() =>
+                  client.command({
+                    kind: 'spawn-dismiss',
+                    requestId: request.id,
+                  })
+                }
               >
                 Dismiss
               </Button>
@@ -526,23 +582,23 @@ function SharedInventory({ client, table }: Pick<ConnectionControlsProps, 'clien
   );
 }
 
-function FactionBankControls({ client, table }: Pick<ConnectionControlsProps, 'client' | 'table'>) {
+function SpiceReserveControls({ client, table }: Pick<ConnectionControlsProps, 'client' | 'table'>) {
   const [amount, setAmount] = useState<string | number>(1);
-  const bank = table.snapshot.bank;
-  if (!bank) {
+  const reserve = table.snapshot.bank;
+  if (!reserve) {
     return null;
   }
   const validAmount =
-    typeof amount === 'number' && Number.isSafeInteger(amount) && amount > 0 && amount <= bank.balance;
+    typeof amount === 'number' && Number.isSafeInteger(amount) && amount > 0 && amount <= reserve.balance;
   return (
     <Section
       helpOnly={Boolean(table.snapshot.stage)}
-      title="Faction bank"
-      description="Only you see this balance. Withdraw onto the table. Right-click a spice stack to take it into your bank. Drop a stack on the supply disc to dispose of it."
+      title="Spice reserve"
+      description="Only you see this balance. Withdraw onto the table. Right-click a spice stack to take it into your spice reserve. Drop a stack on the Spice Bank disc to return it to the Spice Bank."
     >
       <Stack gap="xs">
-        <Text component="output" aria-label="Banked spice" ff="C_Advokat_Modern, serif" size="64px" lh={1.1}>
-          {bank.balance}
+        <Text component="output" aria-label="Spice reserve balance" ff="C_Advokat_Modern, serif" size="64px" lh={1.1}>
+          {reserve.balance}
         </Text>
         <Group align="center" wrap="nowrap" gap="xs">
           <NumberInput
@@ -568,13 +624,35 @@ function FactionBankControls({ client, table }: Pick<ConnectionControlsProps, 'c
   );
 }
 
-/* A transfer's ends are a faction's id, or the table or the supply, as the Worker's spice ledger records them (#1664). */
+/*
+ * A transfer's ends are a faction's id, the table or the Spice Bank, as the Worker's spice ledger records them (#1664).
+ * The ledger stores the Spice Bank as `supply`; that literal is kept for stored data (see CONTEXT.md).
+ */
 function spicePlace(labels: Readonly<Partial<Record<string, string>>>, place: string): string {
-  if (place === 'table' || place === 'supply') {
-    return `the ${place}`;
+  if (place === 'table') {
+    return 'the table';
+  }
+  if (place === 'supply') {
+    return 'the Spice Bank';
   }
   const name = labels[place];
-  return name ? `the ${name} bank` : 'a faction no longer in the game';
+  return name ? `the ${name} spice reserve` : 'a faction no longer in the game';
+}
+
+/* The verb each stored transfer kind reads as; `supply` and `disposal` stay as stored, and both name the Spice Bank. */
+const SPICE_TRANSFER_VERBS: Readonly<Record<SpiceTransfer['kind'], string>> = {
+  withdrawal: 'withdrew',
+  collection: 'collected',
+  supply: 'took',
+  disposal: 'returned',
+};
+
+function spiceTransferText(labels: Readonly<Partial<Record<string, string>>>, transfer: SpiceTransfer): string {
+  const moved = `${transfer.actor} ${SPICE_TRANSFER_VERBS[transfer.kind]} ${transfer.amount} spice`;
+  if (transfer.kind === 'disposal') {
+    return `${moved} to the Spice Bank.`;
+  }
+  return `${moved} from ${spicePlace(labels, transfer.source)} to ${spicePlace(labels, transfer.destination ?? 'table')}.`;
 }
 
 function SpiceHistory({ client, table }: Pick<ConnectionControlsProps, 'client' | 'table'>) {
@@ -588,10 +666,7 @@ function SpiceHistory({ client, table }: Pick<ConnectionControlsProps, 'client' 
         {entries.length === 0 && <Text size="sm">No spice transfers yet.</Text>}
         <List type="ordered" size="sm">
           {entries.map((entry) => (
-            <List.Item key={entry.revision}>
-              {entry.actor}: {entry.kind}, {entry.amount} spice from {spicePlace(labels, entry.source)}
-              {entry.destination ? ` to ${spicePlace(labels, entry.destination)}` : ' removed from play'}.
-            </List.Item>
+            <List.Item key={entry.revision}>{spiceTransferText(labels, entry)}</List.Item>
           ))}
         </List>
         <Group>
@@ -653,8 +728,16 @@ function ConnectedTable({
   }
   const [playerSelection, selectPlayer] = useReducer(
     (
-      _: { seat: string | null; vote: string | null; tab: 'public' | 'conversation' },
-      next: { seat: string | null; vote: string | null; tab: 'public' | 'conversation' }
+      _: {
+        seat: string | null;
+        vote: string | null;
+        tab: 'public' | 'conversation';
+      },
+      next: {
+        seat: string | null;
+        vote: string | null;
+        tab: 'public' | 'conversation';
+      }
     ) => next,
     { seat: null, vote: null, tab: 'conversation' }
   );
@@ -708,7 +791,13 @@ function ConnectedTable({
                 <ResultDecisionBar client={client} table={table} />
                 <RemovalDecisionBar
                   votes={removalVotes}
-                  onOpen={(vote) => selectPlayer({ seat: vote.target.seat, vote: vote.id, tab: 'public' })}
+                  onOpen={(vote) =>
+                    selectPlayer({
+                      seat: vote.target.seat,
+                      vote: vote.id,
+                      tab: 'public',
+                    })
+                  }
                 />
                 <SeatRequests
                   client={client}
@@ -772,6 +861,8 @@ function ConnectedTable({
               ) : undefined
             }
             focusTab={battleFocus(table)}
+            /* A spectator's Shared inventory and Spice are a seat's controls, all disabled; the battle or the Log is what they came to watch. */
+            openOn={table.viewer.viewerSeat === SPECTATOR_SEAT ? SPECTATOR_OPENING_TABS : undefined}
             panelTabs={[
               ...(!tabled && stage !== 'setup'
                 ? []
@@ -833,7 +924,7 @@ function ConnectedTable({
                       topic: 'spice' as const,
                       content: (
                         <>
-                          <FactionBankControls client={client} table={table} />
+                          <SpiceReserveControls client={client} table={table} />
                           <SpiceHistory client={client} table={table} />
                         </>
                       ),

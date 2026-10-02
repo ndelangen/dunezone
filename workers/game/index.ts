@@ -67,6 +67,8 @@ type Connection = {
   /* Whether the player already held the most seats one player may when this connection was admitted. */
   seatLimitReached?: boolean;
   registrationId?: string;
+  /* The connection the same page held before it reconnected; it is closed once this one is admitted. */
+  replaces?: string;
   authorizationRound?: number;
   sessionId?: string;
   announced: 'pending' | 'authorized' | 'suspended';
@@ -869,12 +871,13 @@ export class GameRoom extends DurableObject<GameEnv> {
     });
   }
 
-  private async admit(socket: WebSocket, connection: Connection, ticket: string) {
+  private async admit(socket: WebSocket, connection: Connection, ticket: string, replaces?: string) {
     if (connection.admitting || connection.viewer) {
       this.deny(socket);
       return;
     }
     connection.admitting = true;
+    connection.replaces = replaces;
     /* A reconciliation that just failed waits out its backoff; a browser retrying meanwhile must not reach Convex ahead of it. */
     if (this.reconciliationBackingOff()) {
       this.closeUnavailable(socket);
@@ -1066,6 +1069,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       }
       connection.announced = 'authorized';
       connection.everAuthorized = true;
+      this.retireReplaced(connection);
       return 'admitted';
     }
     if (this.fenceFor(socket, connection)) {
@@ -1077,6 +1081,27 @@ export class GameRoom extends DurableObject<GameEnv> {
       this.session.clearActivity(connection.connectionId);
       this.sendAdmission(socket, 'suspended');
       return connection.everAuthorized ? 'activity' : undefined;
+    }
+  }
+
+  /*
+   * A network that died without a close frame leaves the page's old connection here, still holding its carry for up to 8 s and its pointer for up to 3 s.
+   * The reconnected page would see its own piece held by another player, so the old connection of the same user closes as soon as the new one is admitted.
+   * Only the connection the page names is closed, so another live tab of the same player keeps its carry.
+   * The admission that calls this sends every other viewer a frame, which carries the removed activity.
+   */
+  private retireReplaced(connection: Connection) {
+    const replaces = connection.replaces;
+    connection.replaces = undefined;
+    if (!replaces || replaces === connection.connectionId) {
+      return;
+    }
+    for (const [socket, previous] of this.connections) {
+      if (previous.connectionId === replaces && previous.viewer?.userId === connection.viewer!.userId) {
+        this.disconnect(socket, false);
+        socket.close(1000, 'Replaced by a newer connection.');
+        return;
+      }
     }
   }
 
@@ -1100,7 +1125,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       return;
     }
     if (message.type === 'admit') {
-      await this.admit(socket, connection, message.ticket);
+      await this.admit(socket, connection, message.ticket, message.replaces);
       return;
     }
     if (message.type === 'pointer' || message.type === 'pose') {
@@ -1899,6 +1924,7 @@ export class GameRoom extends DurableObject<GameEnv> {
               ...message,
               phaseCooldownMs,
               battleCountdownMs,
+              historySteps: this.session.historySteps,
               ...clock,
             }
           : { ...message, ...clock }

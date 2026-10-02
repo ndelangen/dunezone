@@ -5,7 +5,10 @@ Dune Zone is a community catalogue for Dune board-game factions, rulesets, and t
 ## Language
 
 The product vocabulary. [`AGENTS.md`](AGENTS.md#language) holds the technical vocabulary: kit,
-membrane, organ, doorway, seam, chrome.
+membrane, organ, doorway, seam, chrome. The game vocabulary (troop, battle, territory and the rest)
+lives in [`src/shared/glossary/terms.ts`](src/shared/glossary/terms.ts), which the public `/glossary`
+page renders and prose inputs hint from. New code names game concepts with its preferred terms;
+older names such as the faction `hero` field and troop `combat` values are being renamed to match.
 
 **Group**:
 A collaboration boundary shared by factions, rulesets, and future community assets. Active members may maintain associated content and manage membership intake, while the Group owner alone may rename the Group or remove active members.
@@ -132,8 +135,8 @@ One member of a faction's ordered supporting-leader roster. A faction may have z
 **Troop count**:
 The number of physical tokens supplied for one faction troop type. A reversible troop token has one Troop count shared by its front and back faces.
 
-**Combat values**:
-What one troop face contributes to a battle plan: its strength, its funded strength and its funding cost in spice. Strengths may be fractional or negative; the funding cost is a whole number, zero or more, and one when left out. A separate flag says whether the face fights at all, and an authored face without it does. A troop with no authored back plays both sides as its front; an authored back keeps its own flag and values. A face that fights but has no Combat values is a gap the editor warns about and a game's capture names; nothing reads it as zero.
+**Battle values**:
+What one troop face contributes to a battle plan: its strength, its supported strength and its support cost in spice. Strengths may be fractional or negative; the support cost is a whole number, zero or more, and one when left out. A separate flag says whether the face fights at all, and an authored face without it does. A troop with no authored back plays both sides as its front; an authored back keeps its own flag and values. A face that fights but has no Battle values is a gap the editor warns about and a game's capture names; nothing reads it as zero.
 
 **Starting spice**:
 The amount of spice a faction begins the game with. Starting spice is a structured setup value, distinct from the faction's free-form starting instructions.
@@ -274,8 +277,16 @@ _Avoid_: Custom game, user game
 The retained private messages between two factions in one Real game, available from setup. Each faction's current Player inherits the full history; former occupants and Spectators cannot read or send. A message is Sent once the game database saves it. Unread clears only when the newest messages are visible in the open Conversation tab; there are no recipient read receipts.
 
 **Game log**:
-The retained public record of a Real game, read in the controls panel by every viewer, Spectators included, during and after play. Game holds what happened on the table: phases, spice transfers, battle results and predictions. Audit holds who sat where and how removal votes ended. Every entry is one sentence with its classification and the turn, setup step or stage it happened in; each producer files its entry inside the transaction that commits the event, and a deleted account reads `[deleted user]` wherever it appears. Private cards, unrevealed plans, bank balances, Conversations and territory names never enter it.
+The retained public record of a Real game, read in the controls panel by every viewer, Spectators included, during and after play. Game holds what happened on the table: phases, spice transfers, battle results and predictions. Audit holds who sat where and how removal votes ended. Every entry is one sentence with its classification and the turn, setup step or stage it happened in; each producer files its entry inside the transaction that commits the event, and a deleted account reads `[deleted user]` wherever it appears. Private cards, unrevealed plans, spice reserve balances, Conversations and territory names never enter it.
 _Avoid_: Event log, history feed, activity feed
+
+**Spice Bank**:
+The shared, unlimited pile of spice outside any faction, drawn as the spice disc. Stored data still calls it `supply`.
+_Avoid_: spice supply, the supply, bank
+
+**Spice reserve**:
+One faction's own spice balance. Stored data and the protocol still call it `bank`, `factionBanks`, `bank-withdraw` and `bank-collect`.
+_Avoid_: bank, faction bank, banked spice
 
 **Directory**:
 Convex's record that a Play game exists and what the lobby may show of it: its stage, its seated players with any public faction, its progress, its last activity and its declared result. The game database owns gameplay; the directory holds only this summary, published by the game with a sequence so a late delivery never overwrites a newer one.

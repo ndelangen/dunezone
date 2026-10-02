@@ -12,3 +12,7 @@
 
 /play/*
   X-Robots-Tag: noindex
+
+# Each release reads the previous manifest before retaining its browser bundles.
+/application-assets.json
+  Cache-Control: no-store

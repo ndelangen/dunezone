@@ -365,16 +365,57 @@ describe('Determine winner and Continue playing', { timeout: 60_000 }, () => {
     ]);
   });
 
-  it('closes an open sequence when the phase moves on', async () => {
+  it('continues with nobody ready, so no single player can move the phase on alone', async () => {
+    const { owner, other } = await inPlay();
+    await toMentat(owner);
+    await accepted(owner, { kind: 'ready', ready: true });
+    const allReady = await accepted(other, { kind: 'ready', ready: true });
+    expect(allReady.snapshot.controls.ready).toHaveLength(2);
+    await accepted(owner, { kind: 'result-open' });
+    await accepted(owner, { kind: 'result-declare', result: 'none', factionIds: [] });
+    const continued = await accepted(other, { kind: 'result-continue' });
+    expect(continued.snapshot.controls.ready).toEqual([]);
+    offset += PHASE_CHANGE_COOLDOWN_MS + 1;
+    await runtime.clock(offset);
+    const alone = await sendCommand(owner, { kind: 'phase', direction: 1 });
+    expect(alone.reply).toMatchObject({
+      type: 'rejected',
+      message: 'Every seated player must be ready before advancing.',
+    });
+    await accepted(owner, { kind: 'ready', ready: true });
+    await accepted(other, { kind: 'ready', ready: true });
+    expect(await rejected(owner, { kind: 'phase', direction: 1 })).toBe(false);
+  });
+
+  it('keeps the phase while the winner is being determined, so the declaration still lands', async () => {
     const { owner, other } = await inPlay();
     await toMentat(owner);
     await accepted(owner, { kind: 'result-open' });
     await accepted(owner, { kind: 'ready', ready: true });
     await accepted(other, { kind: 'ready', ready: true });
-    const moved = await next(other);
-    expect(moved.snapshot.ending).toBeUndefined();
-    const texts = (await page(other)).map((entry) => entry.text);
-    const opener = (await syncView(owner)).viewer.displayName;
-    expect(texts).toContain(`Determining the winner by ${opener} ended.`);
+    offset += PHASE_CHANGE_COOLDOWN_MS + 1;
+    await runtime.clock(offset);
+    const refused = await sendCommand(other, { kind: 'phase', direction: 1 });
+    expect(refused.reply).toMatchObject({
+      type: 'rejected',
+      message: 'The winner is being determined. Declare or cancel it before moving to the next phase.',
+    });
+    const declared = await accepted(owner, { kind: 'result-declare', result: 'none', factionIds: [] });
+    expect(declared.snapshot.stage).toBe('finished');
+  });
+
+  it('keeps the phase when another player goes back while the winner is being determined', async () => {
+    const { owner, other } = await inPlay();
+    await toMentat(owner);
+    await accepted(owner, { kind: 'result-open' });
+    offset += PHASE_CHANGE_COOLDOWN_MS + 1;
+    await runtime.clock(offset);
+    const refused = await sendCommand(other, { kind: 'phase', direction: -1 });
+    expect(refused.reply).toMatchObject({
+      type: 'rejected',
+      message: 'The winner is being determined. Declare or cancel it before going back a phase.',
+    });
+    const declared = await accepted(owner, { kind: 'result-declare', result: 'none', factionIds: [] });
+    expect(declared.snapshot.stage).toBe('finished');
   });
 });

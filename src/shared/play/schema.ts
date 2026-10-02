@@ -100,6 +100,7 @@ export const storedPieceSchema = z.object({
   shuffleRevision: tableCountSchema.optional(),
   zoneId: z.string().nullable(),
   locked: z.boolean(),
+  /* 'force' is a stored wire literal: Dune Zone says troop (see the glossary), and leader discs and tokens share this kind. */
   kind: z.enum(['force', 'marker', 'card']),
 });
 

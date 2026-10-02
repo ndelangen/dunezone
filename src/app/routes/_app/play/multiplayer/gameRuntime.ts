@@ -16,6 +16,8 @@ export type GameRuntime = {
   monotonicNow(): number;
   onHidden(listener: () => void): () => void;
   onOnline(listener: () => void): () => void;
+  /* A tab coming back to the foreground, whose socket may have died while its timers were frozen. */
+  onVisible(listener: () => void): () => void;
   /* Where a tab keeps its last table for a reload; a runtime without one starts every load at the connecting frame. */
   tables?: TableStore;
 };
@@ -39,6 +41,15 @@ export const browserGameRuntime: GameRuntime = {
   onOnline(listener) {
     window.addEventListener('online', listener);
     return () => window.removeEventListener('online', listener);
+  },
+  onVisible(listener) {
+    const changed = () => {
+      if (document.visibilityState === 'visible') {
+        listener();
+      }
+    };
+    document.addEventListener('visibilitychange', changed);
+    return () => document.removeEventListener('visibilitychange', changed);
   },
   tables:
     typeof window === 'undefined'

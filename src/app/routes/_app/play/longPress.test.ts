@@ -1,7 +1,7 @@
 /* @vitest-environment jsdom */
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 
-import { LONG_PRESS_MS, swallowLift, watchLongPress } from './longPress';
+import { deckShuffleHint, LONG_PRESS_MS, swallowLift, watchLongPress } from './longPress';
 
 beforeEach(() => {
   vi.useFakeTimers();
@@ -51,6 +51,13 @@ test('another pointer leaves the press alone', () => {
   expect(onHold).toHaveBeenCalledOnce();
 });
 
+test('a second finger landing stops the hold, since two fingers are a tilt', () => {
+  const { events, onHold } = press();
+  events.dispatchEvent(pointer('pointerdown', 90, 2));
+  vi.advanceTimersByTime(LONG_PRESS_MS);
+  expect(onHold).not.toHaveBeenCalled();
+});
+
 test('letting go stops the hold', () => {
   const { onHold, stop } = press();
   stop();
@@ -88,4 +95,9 @@ test.each([
   const lift = touch('touchend', 10);
   events.dispatchEvent(lift);
   expect(lift.defaultPrevented).toBe(false);
+});
+
+test('a deck menu a finger opened leaves out the keyboard shortcut hint', () => {
+  expect(deckShuffleHint(false)).toBe('Hover a deck and press R to shuffle.');
+  expect(deckShuffleHint(true)).toBeNull();
 });

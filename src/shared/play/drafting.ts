@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { Background, CanonicalFactionStoredSchema } from '../factions/schema';
+import { Background, CanonicalFactionStoredObject } from '../factions/schema';
 import { tableCountSchema, tableIdentitySchema, tableSeatSchema } from './schema';
 
 /*
@@ -19,7 +19,7 @@ const draftFactionSchema = z.object({
   id: tableIdentitySchema,
   slug: z.string().max(160),
   name: z.string().max(160),
-  logo: CanonicalFactionStoredSchema.shape.logo,
+  logo: CanonicalFactionStoredObject.shape.logo,
   background: Background,
   color: z.string().regex(/^#[0-9a-f]{6}$/i),
   /* Linked to the game's ruleset: shown first, and the source of random filling. */

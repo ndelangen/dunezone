@@ -1,6 +1,6 @@
 import { gestureBlockReason, nearestZone, pieceCount, zoneById } from './model';
 import type { DraftMove, TableEvent, TableItem, TablePiece, TableState, Vector3Tuple } from './model';
-import { isSpicePiece, isSpiceSupplyPosition } from './spiceSupply';
+import { isSpicePiece, isSpiceBankPosition } from './spiceBank';
 import { moveStormCounterclockwise } from './stormSector';
 import { placementAnchorAtPosition } from './tableFurnitureLayout';
 import { restingPositionAt, stackPreviewPositionFor } from './tableGeometry';
@@ -11,15 +11,38 @@ import {
   piecesCanStack,
   piecesTouchForStack,
 } from './tablePhysics';
+import { isTroopStack } from './troop';
 
 export function eventId(number: number): string {
   return `evt-${String(number).padStart(3, '0')}`;
 }
 
+/*
+ * Hand-built card stacks without artwork (the local demo, a supply whose back is unpublished) stack only by key,
+ * so the key is the one name they carry that no merge, split or deal can change.
+ */
+const CARD_STACK_NAMES: Readonly<Record<string, string>> = {
+  'cards:treachery': 'Treachery',
+  'cards:traitor': 'Traitor',
+};
+
+/*
+ * The stable name of a card stack, if it has one: the word printed on its back, or for a stack without artwork, its key's name.
+ * A blank back word names nothing. Cards with artwork stack by their back, not their key, so their key is never read.
+ */
+function cardStackName(piece: TablePiece): string | undefined {
+  const artwork = piece.items[0]?.artwork;
+  if (artwork) {
+    return artwork.backName?.trim() ? artwork.backName : undefined;
+  }
+  return piece.stackKey ? CARD_STACK_NAMES[piece.stackKey] : undefined;
+}
+
 /**
  * The name a stack takes when its own items change.
- * A card stack is named by the word printed on its back, and cards without one read as Treachery.
- * A force stack is named by its owner: the faction's display name, or Shared for a piece no faction owns.
+ * A card stack is its stable name with the noun for its count: card, cards while held, deck otherwise;
+ * without a stable name it reads as plain Card, Cards or Deck, never as its own earlier label.
+ * A troop or token stack is named by its owner: the faction's display name, or Shared for a piece no faction owns.
  */
 export function labelForCount(
   piece: TablePiece,
@@ -31,19 +54,22 @@ export function labelForCount(
     return 'Spice';
   }
   if (piece.kind === 'card') {
-    const word = piece.items[0]?.artwork?.backName ?? 'Treachery';
-    if (count === 1) {
-      return `${word} card`;
-    }
-    return held ? `${word} cards` : `${word} deck`;
+    const noun = count === 1 ? 'card' : held ? 'cards' : 'deck';
+    const name = cardStackName(piece);
+    return name ? `${name} ${noun}` : `${noun.charAt(0).toUpperCase()}${noun.slice(1)}`;
   }
   if (piece.kind === 'force') {
     const owner = piece.owner === 'shared' ? 'Shared' : factionNames[piece.owner];
-    /* Every faction that owns a piece has a seat, so a missing name reads as plain forces rather than an id. */
-    const [one, many] = owner ? [`${owner} force`, `${owner} forces`] : ['Force', 'Forces'];
+    const [unit, units] = isTroopStack(piece) ? ['troop', 'troops'] : ['token', 'tokens'];
+    /* Every faction that owns a piece has a seat, so a missing name reads as plain troops or tokens rather than an id. */
+    const [one, many] = owner ? [`${owner} ${unit}`, `${owner} ${units}`] : [capitalized(unit), capitalized(units)];
     return count === 1 ? one : many;
   }
   return piece.label;
+}
+
+function capitalized(word: string): string {
+  return word.charAt(0).toUpperCase() + word.slice(1);
 }
 
 function withdrawnIdsFor(draft: DraftMove, sourcePieceId: string): Set<string> {
@@ -247,7 +273,7 @@ export function projectCarryAtPosition(state: TableState, draft: DraftMove, posi
   if (!piece) {
     return null;
   }
-  if (isSpicePiece(piece) && isSpiceSupplyPosition(position)) {
+  if (isSpicePiece(piece) && isSpiceBankPosition(position)) {
     return {
       ...draft,
       operation: 'move',
@@ -338,7 +364,7 @@ export function settleCarryAtPosition(state: TableState, draft: DraftMove, posit
   if (!piece) {
     return null;
   }
-  if (isSpicePiece(piece) && isSpiceSupplyPosition(position)) {
+  if (isSpicePiece(piece) && isSpiceBankPosition(position)) {
     return projected;
   }
   if (projected.operation === 'merge' && projected.targetPieceId) {
@@ -573,7 +599,13 @@ function mergeEventFor(application: DraftApplication, target: TablePiece): Table
   const { current, piece } = application;
   const count = pieceCount(piece);
   const units =
-    piece.kind === 'card' ? ['card', 'cards'] : isSpicePiece(piece) ? ['spice', 'spice'] : ['force', 'forces'];
+    piece.kind === 'card'
+      ? ['card', 'cards']
+      : isSpicePiece(piece)
+        ? ['spice', 'spice']
+        : isTroopStack(piece)
+          ? ['troop', 'troops']
+          : ['token', 'tokens'];
   const unit = count === 1 ? units[0] : units[1];
   const placement = piece.kind === 'card' ? 'placed on' : 'stacked with';
   return {
@@ -663,7 +695,7 @@ function applyMove(application: DraftApplication): TableState {
   };
 }
 
-function returnSpiceDraftToSupply(current: TableState, draft: DraftMove, actorName = 'A player'): TableState {
+function returnSpiceDraftToSpiceBank(current: TableState, draft: DraftMove, actorName = 'A player'): TableState {
   const application = validateDraftApplication(current, draft);
   if ('rejected' in application) {
     return application.rejected;
@@ -672,10 +704,10 @@ function returnSpiceDraftToSupply(current: TableState, draft: DraftMove, actorNa
   const sources = [draft.sourcePieceId, ...draft.withdrawals.map((withdrawal) => withdrawal.sourcePieceId)];
   if (
     !isSpicePiece(piece) ||
-    !isSpiceSupplyPosition(draft.position) ||
+    !isSpiceBankPosition(draft.position) ||
     sources.some((id) => !isSpicePiece(current.pieces.find((candidate) => candidate.id === id)))
   ) {
-    return rejection(rejectedBase, 'spice.return', 'Only carried spice can be dropped on the spice supply.');
+    return rejection(rejectedBase, 'spice.return', 'Only carried spice can be dropped on the Spice Bank.');
   }
   return {
     ...current,
@@ -685,15 +717,15 @@ function returnSpiceDraftToSupply(current: TableState, draft: DraftMove, actorNa
     ...appendEvent(current, {
       id: eventId(current.nextEventNumber),
       command: 'spice.return',
-      message: `${actorName} returned ${pieceCount(piece)} spice to the supply.`,
+      message: `${actorName} returned ${pieceCount(piece)} spice to the Spice Bank.`,
       status: 'accepted',
     }),
   };
 }
 
 export function applyDraftToState(current: TableState, requestedDraft: DraftMove, actorName = 'A player'): TableState {
-  if (isSpiceSupplyPosition(requestedDraft.position) && isSpicePiece(heldPieceFor(current, requestedDraft))) {
-    return returnSpiceDraftToSupply(current, requestedDraft, actorName);
+  if (isSpiceBankPosition(requestedDraft.position) && isSpicePiece(heldPieceFor(current, requestedDraft))) {
+    return returnSpiceDraftToSpiceBank(current, requestedDraft, actorName);
   }
   const application = resolveDraftApplication(current, requestedDraft);
   if ('rejected' in application) {
