@@ -221,6 +221,39 @@ export const WheelTiltsTheCamera = meta.story({
   },
 });
 
+/* Two fingers dragged up over the board tilt the camera toward top-down, and dragged down tilt it back, as the wheel does. */
+export const TwoFingersTiltTheCamera = meta.story({
+  beforeEach: install(() => productTransport()),
+  play: async ({ canvasElement }) => {
+    const { shell, document } = await tablePage(canvasElement);
+    const canvas = shell.querySelector('canvas')!;
+    const deckPlacement = () =>
+      document.querySelector('[data-piece-id="treachery-deck"]')?.closest('div')?.parentElement?.style.transform;
+    const box = canvas.getBoundingClientRect();
+    const x = box.left + box.width / 2;
+    const finger = (type: string, pointerId: number, clientX: number, clientY: number) =>
+      new PointerEvent(type, { bubbles: true, cancelable: true, pointerId, pointerType: 'touch', clientX, clientY });
+    const drag = (fromY: number, toY: number) => {
+      canvas.dispatchEvent(finger('pointerdown', 11, x - 40, fromY));
+      canvas.dispatchEvent(finger('pointerdown', 12, x + 40, fromY));
+      for (let step = 1; step <= 6; step++) {
+        const y = fromY + ((toY - fromY) * step) / 6;
+        window.dispatchEvent(finger('pointermove', 11, x - 40, y));
+        window.dispatchEvent(finger('pointermove', 12, x + 40, y));
+      }
+      window.dispatchEvent(finger('pointerup', 11, x - 40, toY));
+      window.dispatchEvent(finger('pointerup', 12, x + 40, toY));
+    };
+    const approved = deckPlacement();
+    expect(approved).toBeTruthy();
+
+    drag(box.bottom - 10, box.bottom - 10 - 600);
+    await waitFor(() => expect(deckPlacement()).not.toBe(approved));
+    drag(box.bottom - 10 - 600, box.bottom - 10);
+    await waitFor(() => expect(deckPlacement()).toBe(approved));
+  },
+});
+
 /**
  * On a short window the dock keeps its floor by growing up over the scene, to above the header's lower edge.
  * The header still paints above it there, so every control in it takes the pointer at its top, middle and bottom.
@@ -235,6 +268,8 @@ export const ShortWindow = meta.story({
     const header = shell.querySelector('header')!;
     const dock = shell.querySelector('.seated-controls-panel')!;
     expect(dock.getBoundingClientRect().top).toBeLessThan(header.getBoundingClientRect().bottom);
+    /* The dock grows up over the scene here, so the fixed split draws no separator across it. */
+    expect(shell.querySelector('[role="separator"][aria-orientation="horizontal"]')).not.toBeVisible();
     const picker = within(header).getByRole('group', { name: 'Table view' });
     const controls = [
       ...within(picker).getAllByRole('button'),
@@ -569,5 +604,57 @@ export const SpiceDiscForgetsAPlaybackHover = meta.story({
     await waitFor(() =>
       expect(lastCommand()).toMatchObject({ type: 'command', action: { kind: 'spice-spawn', count: 3 } })
     );
+  },
+});
+
+/* The table canvases' WebGL2 contexts, in the order the renderer created them. */
+const tableContexts: { context: WebGL2RenderingContext; canvas: HTMLCanvasElement }[] = [];
+
+/* Records every WebGL2 context the table creates, then restores the browser's own lookup. */
+const recordTableContexts = () => {
+  tableContexts.length = 0;
+  const getContext = HTMLCanvasElement.prototype.getContext;
+  HTMLCanvasElement.prototype.getContext = function (this: HTMLCanvasElement, kind: string, ...rest: unknown[]) {
+    const context = Reflect.apply(getContext, this, [kind, ...rest]);
+    if (kind === 'webgl2' && context && this.closest('.dune-play-shell')) {
+      if (!tableContexts.some((entry) => entry.context === context)) {
+        tableContexts.push({ context, canvas: this });
+      }
+    }
+    return context;
+  } as HTMLCanvasElement['getContext'];
+  const uninstall = install(() => productTransport())();
+  return () => {
+    uninstall();
+    HTMLCanvasElement.prototype.getContext = getContext;
+  };
+};
+
+/* A dropped socket keeps the table's renderer, since the locked table stays on screen through the reconnect; a table that leaves the page, as it does on a refusal, frees its renderer instead of holding a WebGL context per remount until the browser runs out of them. */
+export const ReleasesItsRendererOnRemount = meta.story({
+  beforeEach: recordTableContexts,
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await tablePage(canvasElement);
+    const first = await waitFor(
+      () => {
+        expect(tableContexts[0]).toBeDefined();
+        return tableContexts[0]!;
+      },
+      { timeout: 30_000 }
+    );
+    session.transport.disconnect();
+    await page.findByRole('status', { name: /^Reconnecting\./ });
+    expect(first.canvas.isConnected).toBe(true);
+    await waitFor(() => expect(page.queryByRole('status', { name: /^Reconnecting\./ })).toBeNull(), {
+      timeout: 30_000,
+    });
+    await tablePage(canvasElement);
+    expect(tableContexts.at(-1)).toBe(first);
+    expect(first.context.isContextLost()).toBe(false);
+
+    session.transport.deliver({ type: 'admission', status: 'denied' });
+    await waitFor(() => expect(first.canvas.isConnected).toBe(false), { timeout: 30_000 });
+    await waitFor(() => expect(first.context.isContextLost()).toBe(true), { timeout: 5000 });
   },
 });

@@ -200,7 +200,7 @@ function rotatePiece(state: TableState, piece: TablePiece, direction: -1 | 1): T
   const rotated = {
     ...piece,
     orientation,
-    position: restingPositionAt(piece.position, { kind: piece.kind, orientation }),
+    position: restingPositionAt(piece.position, { ...piece, orientation }),
   };
   if (
     !isCollisionFreePosition(

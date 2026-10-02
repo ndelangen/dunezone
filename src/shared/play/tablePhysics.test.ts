@@ -41,6 +41,16 @@ function troopFixtures() {
   return { stack, loose };
 }
 
+describe('leader disc physics', () => {
+  test('a leader rests on twice the radius of a troop token', () => {
+    const { stack, loose } = troopFixtures();
+    const leader = { ...loose, stackKey: 'leader:harkonnen:feyd' };
+
+    expect(piecesOverlapAt(stack, stack.position, leader, [0.524, 0.38, 0])).toBe(true);
+    expect(piecesOverlapAt(stack, stack.position, leader, [0.525, 0.38, 0])).toBe(false);
+  });
+});
+
 describe('half-scale troop-token physics', () => {
   test('uses a 0.175-unit resting radius', () => {
     const { stack, loose } = troopFixtures();

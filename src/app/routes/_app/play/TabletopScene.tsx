@@ -39,6 +39,7 @@ import {
   TROOP_LAYER_HEIGHT,
   TROOP_LAYER_PITCH,
   TROOP_TOP_RADIUS,
+  troopScale,
   MARKER_BASE_HEIGHT,
   MARKER_BOTTOM_RADIUS,
   MARKER_CONE_CENTER_Y,
@@ -584,8 +585,9 @@ function TokenFace({
 
 function TroopStackLayers({ piece }: { piece: TablePiece }) {
   const shownLayers = visibleLayerCount(piece);
+  const scale = troopScale(piece);
   return (
-    <group>
+    <group scale={[scale, 1, scale]}>
       {Array.from({ length: shownLayers }, (_, index) => {
         const faceUp = stackLayerFaceUp(piece, index, shownLayers);
         return (
@@ -597,7 +599,7 @@ function TroopStackLayers({ piece }: { piece: TablePiece }) {
             >
               {tokenBoxRatio(piece) != null ? (
                 <boxGeometry
-                  args={[TROOP_BOTTOM_RADIUS * 2, TROOP_LAYER_HEIGHT, TROOP_BOTTOM_RADIUS * 2 * tokenBoxRatio(piece)!]}
+                  args={[TROOP_TOP_RADIUS * 2, TROOP_LAYER_HEIGHT, TROOP_TOP_RADIUS * 2 * tokenBoxRatio(piece)!]}
                 />
               ) : (
                 <cylinderGeometry args={[TROOP_TOP_RADIUS, TROOP_BOTTOM_RADIUS, TROOP_LAYER_HEIGHT, 48]} />
@@ -737,7 +739,7 @@ type TablePieceMeshProps = {
 };
 
 function usePieceCarryState(piece: TablePiece) {
-  const { state, gestureActivePieceId, canInteract, remoteCarriedIds, reservedPieceIds } = useTabletop();
+  const { state, gestureActivePieceId, canHandleTable, remoteCarriedIds, reservedPieceIds } = useTabletop();
   const drafted = state.draftMove?.pieceId === piece.id;
   const remoteCarried = remoteCarriedIds.has(piece.id);
   const locallyCarried = drafted && gestureActivePieceId !== null;
@@ -748,7 +750,7 @@ function usePieceCarryState(piece: TablePiece) {
     remoteCarried,
     locallyCarried,
     reserved,
-    interactionBlocked: !canInteract || remoteCarried || (reserved && !localSource),
+    interactionBlocked: !canHandleTable || remoteCarried || (reserved && !localSource),
   };
 }
 
@@ -781,11 +783,12 @@ function useTablePointFromClient() {
 
 function useScenePointerSession(onActiveChange: (active: boolean) => void) {
   const session = usePointerSession();
-  const { state, beginGesture, updateGesture, finishGesture, cancelDraft, canInteract, publishPointer } = useTabletop();
+  const { state, beginGesture, updateGesture, finishGesture, cancelDraft, canHandleTable, publishPointer } =
+    useTabletop();
   const { renderer } = useThree();
   const point = useTablePointFromClient();
   const controls = {
-    canInteract,
+    canHandleTable,
     hasDraft: Boolean(state.draftMove),
     piece: (id: string) => state.pieces.find((piece) => piece.id === id),
     point,
@@ -875,7 +878,7 @@ function pieceHoverCursor(canInteract: boolean, interactionBlocked: boolean, ges
 const PieceMenuContext = createContext<((pieceId: string, x: number, y: number) => void) | null>(null);
 
 function usePiecePointerEvents({ piece }: TablePieceMeshProps, interactionBlocked: boolean) {
-  const { state, selectPiece, setHoveredPiece, canInteract } = useTabletop();
+  const { state, selectPiece, setHoveredPiece, canHandleTable } = useTabletop();
   const openPieceMenu = useContext(PieceMenuContext);
   const { renderer } = useThree();
   const pointerSession = usePointerSession();
@@ -932,7 +935,7 @@ function usePiecePointerEvents({ piece }: TablePieceMeshProps, interactionBlocke
     },
     onPointerEnter: (event: ThreeEvent<PointerEvent>) => {
       event.stopPropagation();
-      const cursor = pieceHoverCursor(canInteract, interactionBlocked, Boolean(gestureBlocked));
+      const cursor = pieceHoverCursor(canHandleTable, interactionBlocked, Boolean(gestureBlocked));
       if (interactionBlocked) {
         renderer.domElement.style.cursor = cursor;
         return;
@@ -957,6 +960,12 @@ const PIECE_SELECTION_RADII: Record<TablePiece['kind'], [number, number, number]
   marker: [0.4, 0.47, 64],
 };
 
+function selectionRadii(piece: TablePiece): [number, number, number] {
+  const [inner, outer, segments] = PIECE_SELECTION_RADII[piece.kind];
+  const scale = troopScale(piece);
+  return [inner * scale, outer * scale, segments];
+}
+
 function PieceSelectionRing({
   piece,
   shadowLocalY,
@@ -974,7 +983,7 @@ function PieceSelectionRing({
       renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}
       rotation={[-Math.PI / 2, 0, 0]}
     >
-      <ringGeometry args={isSpicePiece(piece) ? [0.18, 0.205, 64] : PIECE_SELECTION_RADII[piece.kind]} />
+      <ringGeometry args={isSpicePiece(piece) ? [0.18, 0.205, 64] : selectionRadii(piece)} />
       <meshBasicMaterial
         color={stackTargeted ? '#f6bd55' : drafted ? '#f6c879' : '#fff0c9'}
         {...PIECE_SELECTION_RING_MATERIAL}
@@ -1022,7 +1031,7 @@ function PieceLock({ piece }: { piece: TablePiece }) {
       <meshStandardMaterial color="#251912" metalness={0.3} roughness={0.6} />
     </mesh>
   );
-  return piece.kind === 'force' ? <group scale={0.5}>{lock}</group> : lock;
+  return piece.kind === 'force' ? <group scale={0.5 * troopScale(piece)}>{lock}</group> : lock;
 }
 
 /*
@@ -1177,6 +1186,24 @@ function useSceneInteractions(onInteractionActiveChange: TabletopSceneProps['onI
     controlsEnabled: !gestureActivePieceId && !pointerActive,
     onPointerSessionChange,
   };
+}
+
+/**
+ * Frees the renderer, and with it the canvas's WebGL context or GPU device, once the table's canvas has left the page.
+ * R3F does this on unmount only for its legacy WebGLRenderer, so every remount of the table (a reconnect, a reload of the view) otherwise left a live context behind until the browser ran out of them.
+ * A canvas still on the page is a remount of this component alone, as R3F's own teardown assumes, and keeps its renderer.
+ */
+function ReleaseRendererOnUnmount() {
+  const renderer = useThree((state) => state.renderer);
+  useEffect(
+    () => () => {
+      if (!renderer.domElement.isConnected) {
+        renderer.dispose();
+      }
+    },
+    [renderer]
+  );
+  return null;
 }
 
 function SceneContents({
@@ -1378,6 +1405,7 @@ export function TabletopScene({
               /* The renderer's creation follows its asynchronous initialisation, which is the long part of a table's arrival; the first frame follows at once. */
               onCreated={onSceneReady}
             >
+              <ReleaseRendererOnUnmount />
               {children}
               <SceneContents
                 stage={stage}
