@@ -43,7 +43,11 @@
   width: 100%;
 }
 
-.column > .piece {
+.column > .piece,
+.column > .piece > .art {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   width: 100%;
 }
 
@@ -210,15 +214,8 @@
   width: clamp(4rem, 14cqi, 6rem);
 }
 
-/*
- * Stacked above its terms, the picture only introduces them: it keeps its main pieces at a modest size and drops the extras, instead of pushing the terms a screen down.
- * The query reads the split layout's own container, and its width is the one at which AsymmetricSplitLayout stops splitting.
- */
-@container asymmetric-split-layout (width < 61.25rem) {
-  .stage {
-    min-height: 0;
-  }
-
+/* A column too slim for two pieces side by side keeps its main pieces and drops the extras: 18rem is two of the smallest discs, their gap and room for a caption. */
+@container (width < 18rem) {
   .extra {
     display: none;
   }
@@ -227,48 +224,5 @@
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
-  }
-
-  .disc {
-    width: 5rem;
-  }
-
-  .card {
-    width: 6.5rem;
-  }
-
-  .glyph {
-    width: 1.75rem;
-    height: 1.75rem;
-  }
-
-  .phases {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: var(--space-sm);
-  }
-
-  .phase {
-    flex-direction: column;
-    gap: var(--space-xs);
-    font-size: var(--mantine-font-size-xs);
-    text-align: center;
-  }
-
-  .phaseNumber {
-    width: auto;
-    text-align: center;
-  }
-
-  .wheel {
-    width: min(100%, 15rem);
-  }
-
-  .board {
-    width: min(100%, 16rem);
-  }
-
-  .factions {
-    grid-template-columns: repeat(3, 4.5rem);
-    width: auto;
   }
 }

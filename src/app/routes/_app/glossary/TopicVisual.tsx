@@ -30,7 +30,7 @@ const atreidesTroop = {
 
 /*
  * A piece of game artwork with the glossary word under it, linking to that word's entry.
- * An `extra` piece only shows beside the terms; stacked above them on a narrow pane, the picture keeps to its main pieces.
+ * An `extra` piece drops out when the picture's column is too slim for two pieces side by side.
  */
 function Piece({
   caption,

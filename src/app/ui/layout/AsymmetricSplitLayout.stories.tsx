@@ -131,3 +131,38 @@ export const SlimRail = meta.story({
     </AsymmetricSplitLayout>
   ),
 });
+
+/** `narrowFallback="hide"` keeps the columns side by side where the default would stack them. */
+export const HideFallbackKeepsColumns = meta.story({
+  render: () => (
+    <AsymmetricSplitLayout narrowFallback="hide">
+      <AsymmetricSplitLayout.Wide>
+        <LayoutSlotPlaceholder name="wide" tone="primary" minHeight={360} />
+      </AsymmetricSplitLayout.Wide>
+      <AsymmetricSplitLayout.Narrow>{narrow}</AsymmetricSplitLayout.Narrow>
+    </AsymmetricSplitLayout>
+  ),
+  globals: { viewport: { value: 'appConstrained' } },
+  play: async ({ canvasElement }) => {
+    const wide = within(canvasElement).getByText('wide').getBoundingClientRect();
+    const narrowSlot = within(canvasElement).getByText('narrow').getBoundingClientRect();
+    await expect(narrowSlot.left).toBeGreaterThan(wide.left);
+    await expect(narrowSlot.top).toBe(wide.top);
+  },
+});
+
+/** On a phone the same layout drops the narrow column and the wide one takes the width. */
+export const HideFallbackOnPhone = meta.story({
+  render: () => (
+    <AsymmetricSplitLayout narrowFallback="hide">
+      <AsymmetricSplitLayout.Wide>
+        <LayoutSlotPlaceholder name="wide" tone="primary" minHeight={360} />
+      </AsymmetricSplitLayout.Wide>
+      <AsymmetricSplitLayout.Narrow>{narrow}</AsymmetricSplitLayout.Narrow>
+    </AsymmetricSplitLayout>
+  ),
+  globals: { viewport: { value: 'appMobile' } },
+  play: async ({ canvasElement }) => {
+    await expect(within(canvasElement).getByText('narrow')).not.toBeVisible();
+  },
+});
