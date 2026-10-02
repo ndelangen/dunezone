@@ -11,6 +11,7 @@ import {
   install,
   predictionSnapshot,
   removalSnapshot,
+  seatPopover,
 } from './game.stories.fixture';
 import { battleStory, pendingRequestTransport } from './playing.stories.fixture';
 import { playingSnapshot, preparedSnapshot, productTransport, setupSnapshot } from './product.stories.fixture';
@@ -128,6 +129,21 @@ export const BattleSpectator = meta.story({
     const page = await openPanel(canvasElement, 'Battle');
     await expect(page.findByRole('button', { name: 'No winner' }, WAIT)).resolves.toBeDisabled();
     expect(page.getByText('Both plans are revealed on the table.')).toBeVisible();
+  },
+});
+
+/** A spectator of a full game reads that from the header's seat action; the dock keeps its height for the tabs. */
+export const FullGameSpectatorSeat = meta.story({
+  beforeEach: install(() => productTransport('neutral', battleStory('revealed', true))),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const seat = await seatPopover(canvasElement, 'You are watching');
+    await expect(seat().findByText('All 6 seats are taken')).resolves.toBeVisible();
+    expect(seat().queryByRole('button', { name: /^Request/ })).toBeNull();
+    expect(
+      canvasElement.ownerDocument.querySelector('.seated-controls-panel [aria-label="You are watching"]')
+    ).toBeNull();
+    expect(page.getAllByRole('region', { name: 'You are watching' })).toHaveLength(1);
   },
 });
 

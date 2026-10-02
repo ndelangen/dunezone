@@ -29,7 +29,7 @@ import { LogEntries } from './Log';
 import { PieceArtwork } from './PieceArtwork';
 import { PlayerPanel, RemovalDecisionBar } from './RemovalVotes';
 import { useResultCelebration } from './resultCelebration';
-import { GameMenu, SeatRequests } from './SeatRequests';
+import { GameMenu, SeatPopover, SeatRequests } from './SeatRequests';
 import { SwappingReadiness } from './Swapping';
 import { SwapScene } from './SwapScene';
 import { TableSession } from './TableSession';
@@ -691,8 +691,11 @@ function ConnectedTable({
                 leaving={leaving}
                 onStay={() => setLeaving(false)}
                 readiness={
+                  /* A spectator has no draft to ready, so drafting gives them no readiness row at all. */
                   stage === 'drafting' ? (
-                    <DraftingReadiness client={client} table={table} />
+                    table.viewer.viewerSeat === SPECTATOR_SEAT ? undefined : (
+                      <DraftingReadiness client={client} table={table} />
+                    )
                   ) : stage === 'swapping' ? (
                     <SwappingReadiness client={client} table={table} />
                   ) : undefined
@@ -702,11 +705,14 @@ function ConnectedTable({
             </Stack>
           }
           gameMenu={
-            <GameMenu
-              table={table}
-              onLeave={() => setLeaving(true)}
-              onClearConfetti={celebration.hasConfetti ? celebration.clear : undefined}
-            />
+            <>
+              <SeatPopover client={client} table={table} />
+              <GameMenu
+                table={table}
+                onLeave={() => setLeaving(true)}
+                onClearConfetti={celebration.hasConfetti ? celebration.clear : undefined}
+              />
+            </>
           }
           stageStatus={
             stage === 'drafting' ? (

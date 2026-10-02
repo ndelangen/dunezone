@@ -1,4 +1,4 @@
-import { Button, Group, Stack, Text } from '@mantine/core';
+import { Anchor, Button, Group, Stack, Text } from '@mantine/core';
 import type { playLobbyEntrySchema } from '@shared/play/directory';
 import { phaseAt, tableProgressFor } from '@shared/play/phases';
 import { createFileRoute, Link } from '@tanstack/react-router';
