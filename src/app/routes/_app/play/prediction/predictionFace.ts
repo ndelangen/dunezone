@@ -99,25 +99,31 @@ export function predictionFace(logo: string, turn: number): Promise<HTMLCanvasEl
   return face;
 }
 
+/** The logo and turn a prediction draws, or null when it has none to draw. */
+function faceSource(prediction: CardPrediction | undefined, logos: Readonly<Record<string, string>>) {
+  const logo = prediction && logos[prediction.factionId];
+  return logo ? { logo, turn: prediction.turn, key: `${logo}|${prediction.turn}` } : null;
+}
+
 /** The overlay canvas for a prediction, or null while it draws, when there is none, or when the faction has no logo. */
 export function usePredictionFace(prediction: CardPrediction | undefined): HTMLCanvasElement | null {
-  const logos = useContext(PredictionLogosContext);
-  const logo = prediction ? logos[prediction.factionId] : undefined;
-  const turn = prediction?.turn;
+  const source = faceSource(prediction, useContext(PredictionLogosContext));
   const [face, setFace] = useState<{ key: string; canvas: HTMLCanvasElement } | null>(null);
-  const key = logo && turn ? `${logo}|${turn}` : null;
+  const key = source?.key ?? null;
   useEffect(() => {
-    if (!logo || !turn) {
+    if (!source) {
       return;
     }
     let live = true;
-    predictionFace(logo, turn).then(
-      (canvas) => live && setFace({ key: `${logo}|${turn}`, canvas }),
+    predictionFace(source.logo, source.turn).then(
+      (canvas) => live && setFace({ key: source.key, canvas }),
       () => undefined
     );
     return () => {
       live = false;
     };
-  }, [logo, turn]);
-  return face && face.key === key ? face.canvas : null;
+    // The key names the logo and turn the source carries.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key]);
+  return face?.key === key ? face.canvas : null;
 }

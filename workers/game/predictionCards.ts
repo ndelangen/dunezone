@@ -57,34 +57,31 @@ export function dealPredictionCard(snapshot: StoredSnapshot, stepId: string): St
   };
 }
 
+/** The unrevealed predictions whose cards lie in a piece on the table. */
+function unrevealedIn(snapshot: StoredSnapshot, piece: StoredPiece): string[] {
+  return piece.items.flatMap((item) => {
+    const stepId = item.artwork?.prediction?.stepId;
+    return stepId && snapshot.privatePredictions[stepId]?.revealedAt === null ? [stepId] : [];
+  });
+}
+
 /**
  * Placing a prediction card on the table reveals its prediction, however it got there (#1753).
  * The card itself lands face down, so turning it over stays its own moment.
  */
 export function revealPlacedPredictions(snapshot: StoredSnapshot, now: number): StoredSnapshot {
-  const placed = new Set<string>();
-  const pieces = snapshot.table.pieces.map((piece) => {
-    const stepIds = piece.items.flatMap((item) => {
-      const stepId = item.artwork?.prediction?.stepId;
-      return stepId && snapshot.privatePredictions[stepId]?.revealedAt === null ? [stepId] : [];
-    });
-    if (!stepIds.length) {
-      return piece;
-    }
-    stepIds.forEach((stepId) => placed.add(stepId));
-    return { ...piece, items: piece.items.map((item) => ({ ...item, faceUp: false })) };
-  });
+  const placed = new Set(snapshot.table.pieces.flatMap((piece) => unrevealedIn(snapshot, piece)));
   if (!placed.size) {
     return snapshot;
   }
-  return {
-    ...snapshot,
-    table: { ...snapshot.table, pieces },
-    privatePredictions: Object.fromEntries(
-      Object.entries(snapshot.privatePredictions).map(([id, prediction]) => [
-        id,
-        placed.has(id) ? { ...prediction, revealedAt: now } : prediction,
-      ])
-    ),
-  };
+  const pieces = snapshot.table.pieces.map((piece) =>
+    unrevealedIn(snapshot, piece).length
+      ? { ...piece, items: piece.items.map((item) => ({ ...item, faceUp: false })) }
+      : piece
+  );
+  const privatePredictions = { ...snapshot.privatePredictions };
+  for (const stepId of placed) {
+    privatePredictions[stepId] = { ...privatePredictions[stepId]!, revealedAt: now };
+  }
+  return { ...snapshot, table: { ...snapshot.table, pieces }, privatePredictions };
 }
