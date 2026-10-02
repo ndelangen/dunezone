@@ -281,7 +281,10 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
 
   it('holds the phase from the moment a marker is placed, and cancels a revealed battle the sides cannot agree on', async () => {
     const placed = await accepted(a, { kind: 'battle-start', anchor: [0.95, 0.18, -3.05], territory: 'Arrakeen' });
-    expect((await sendCommand(b, { kind: 'phase' })).reply.type).toBe('rejected');
+    expect((await sendCommand(b, { kind: 'phase' })).reply).toMatchObject({
+      type: 'rejected',
+      message: 'A battle is still open. Resolve or cancel it before moving to the next phase.',
+    });
     const battleId = placed.snapshot.battle.id;
     await accepted(a, { kind: 'battle-claim', battleId, side: 0 });
     await accepted(b, { kind: 'battle-claim', battleId, side: 1 });
@@ -461,6 +464,27 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
       expect(history.snapshot.battlePlan).toBeNull();
       expect(history.snapshot).not.toHaveProperty('hand');
     }
+  });
+
+  it('cancels a revealed battle while one of its pieces is being carried', async () => {
+    await accepted(a, { kind: 'hand-take', pieceId: 'fixture-leader' });
+    const battleId = await start();
+    await accepted(a, { kind: 'battle-plan', battleId, plan: plan(1, 0, { leaderId: 'fixture-leader' }) });
+    await ready(battleId);
+    await runtime.clock(6000);
+    const view = await syncView(a);
+    a.send({
+      type: 'begin',
+      carryId: 'cancel-carry',
+      sourcePieceId: 'fixture-leader',
+      expectedVersion: view.snapshot.versions['fixture-leader'],
+      pickup: 'whole',
+    });
+    await a.message('carry', (message) => message.carryId === 'cancel-carry');
+    const cancelled = await accepted(b, { kind: 'battle-cancel', battleId });
+    expect(cancelled.snapshot.battle).toBeNull();
+    expect(cancelled.snapshot.battleResults[0]).toMatchObject({ id: battleId, outcome: 'none' });
+    expect(cancelled.snapshot.table.pieces.some((piece) => piece.battleOverlay)).toBe(false);
   });
 
   it.each(['movement-first', 'resolution-first'])('serializes overlay movement and resolution: %s', async (order) => {
