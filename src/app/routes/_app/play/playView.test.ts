@@ -105,6 +105,27 @@ describe('table views', () => {
     });
   });
 
+  /* An iPhone 13 and a 360px Android phone in the browser: the seated header takes most of the canvas's upper half. */
+  test.each([
+    [390, 456, 155],
+    [360, 518, 200],
+  ])('fills a %ipx phone canvas with the map below its header', (canvasWidth, canvasHeight, headerHeight) => {
+    const aspectRatio = canvasWidth / canvasHeight;
+    const frame = mapViewFramingPoints(trackerArcSlots(9));
+    const topLimit = mapViewTopLimitForViewport(canvasHeight, headerHeight);
+    const camera = tableCamera(cameraPoseFor('map', aspectRatio, frame, topLimit), aspectRatio);
+    const projected = frame.map((point) => new Vector3(...point).project(camera));
+    const widest = Math.max(...projected.map((point) => Math.abs(point.x)));
+    const headerBottom = 1 - (2 * headerHeight) / canvasHeight;
+
+    expect(widest).toBeGreaterThan(0.6);
+    expect(widest).toBeLessThanOrEqual(MAP_VIEW_HORIZONTAL_LIMIT + 1e-9);
+    projected.forEach((point) => {
+      expect(point.y).toBeLessThan(headerBottom);
+      expect(point.y).toBeGreaterThanOrEqual(-MAP_VIEW_BOTTOM_LIMIT - 1e-9);
+    });
+  });
+
   test('keeps the phase crown close to the header in the standard map view', () => {
     const canvasWidth = 1165;
     const canvasHeight = 920;

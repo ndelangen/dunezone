@@ -170,6 +170,32 @@ function useWheelTilt(enabled: boolean): number {
   return tilt;
 }
 
+/*
+ * The seated header's height, kept current as it grows or shrinks (a status row appearing, a phase's copy wrapping),
+ * so the map view reframes below it without waiting for a resize or a view command.
+ */
+function useSeatedHeaderHeight(canvas: HTMLCanvasElement): number {
+  const [height, setHeight] = useState(0);
+
+  useLayoutEffect(() => {
+    const header = canvas.closest('.dune-play-shell')?.querySelector<HTMLElement>('.seated-header');
+    if (!header) {
+      setHeight(0);
+      return;
+    }
+    const measure = () => setHeight(header.getBoundingClientRect().height);
+    measure();
+    if (typeof ResizeObserver === 'undefined') {
+      return;
+    }
+    const observer = new ResizeObserver(measure);
+    observer.observe(header);
+    return () => observer.disconnect();
+  }, [canvas]);
+
+  return height;
+}
+
 type SeatedCameraProps = {
   command: CameraViewCommand;
   enabled: boolean;
@@ -185,13 +211,10 @@ function useSeatedCameraTransition({ command, enabled, mapFramingPoints }: Seate
 
   useFrame(() => advanceCameraTransition(camera, controlsRef.current, playback.current, invalidate));
 
+  const headerHeight = useSeatedHeaderHeight(renderer.domElement);
+
   useLayoutEffect(() => {
     const controls = controlsRef.current;
-    const headerHeight =
-      renderer.domElement
-        .closest('.dune-play-shell')
-        ?.querySelector<HTMLElement>('.seated-header')
-        ?.getBoundingClientRect().height ?? 0;
     const mapTopLimit = mapViewTopLimitForViewport(size.height, headerHeight);
     const destination = cameraDestinationFor(
       { view: command.view, revision: command.revision },
@@ -217,7 +240,7 @@ function useSeatedCameraTransition({ command, enabled, mapFramingPoints }: Seate
     command.revision,
     command.view,
     enabled,
-    renderer,
+    headerHeight,
     invalidate,
     mapFramingPoints,
     size.height,
