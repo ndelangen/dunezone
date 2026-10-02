@@ -651,6 +651,69 @@ describe('hosted table interaction', () => {
     expect(socket().sent.at(-1)).toMatchObject({ type: 'drop', carryId: carried.carries[0].id });
   });
 
+  test('a finished game keeps its table as it is: nothing picks up, selects or changes a piece, and Continue playing still goes', async () => {
+    const client = await connected();
+    const piece = initialSnapshot().table.pieces[0];
+    socket().deliver(
+      view({
+        snapshot: {
+          ...initialSnapshot(),
+          stage: 'finished',
+          result: { kind: 'none', factionIds: [], by: { seat: 'harkonnen', name: 'One' }, declaredAt: 1 },
+        },
+      })
+    );
+    const sent = socket().sent.length;
+    client.selectPiece(piece.id);
+    client.setHoveredPiece(piece.id);
+    client.beginGesture(piece.id, 'whole');
+    client.flipSelected(piece.id);
+    client.rotateSelected(1, piece.id);
+    client.toggleLockSelected();
+    expect(table(client).state.selectedPieceId).toBeNull();
+    expect(table(client).state.draftMove).toBeNull();
+    expect(socket().sent).toHaveLength(sent);
+    expect(table(client)).toMatchObject({ canInteract: true, canHandleTable: false });
+    expect(table(client).deckControls).toBeUndefined();
+    client.command({ kind: 'result-continue' });
+    expect(command().action).toEqual({ kind: 'result-continue' });
+  });
+
+  test.each(['drafting', 'swapping', 'discarded'] as const)(
+    'a game at the %s stage offers no table handling',
+    async (stage) => {
+      const client = await connected();
+      const piece = initialSnapshot().table.pieces[0];
+      socket().deliver(view({ snapshot: { ...initialSnapshot(), stage } }));
+      const sent = socket().sent.length;
+      client.selectPiece(piece.id);
+      client.beginGesture(piece.id, 'whole');
+      client.flipSelected(piece.id);
+      expect(table(client).state.selectedPieceId).toBeNull();
+      expect(table(client).state.draftMove).toBeNull();
+      expect(socket().sent).toHaveLength(sent);
+      expect(table(client)).toMatchObject({ canHandleTable: false, bankControls: undefined, deckControls: undefined });
+    }
+  );
+
+  test('a selection made before the game finished is no longer shown, and clearing it still works', async () => {
+    const client = await connected();
+    const piece = initialSnapshot().table.pieces[0];
+    client.selectPiece(piece.id);
+    expect(table(client).state.selectedPieceId).toBe(piece.id);
+    const finished = {
+      ...initialSnapshot(),
+      stage: 'finished' as const,
+      result: { kind: 'none' as const, factionIds: [], by: { seat: 'harkonnen', name: 'One' }, declaredAt: 1 },
+    };
+    socket().deliver(view({ snapshot: finished }));
+    expect(table(client).state.selectedPieceId).toBeNull();
+    expect(table(client).selectedPiece).toBeNull();
+    client.selectPiece(null);
+    socket().deliver(view({ snapshot: { ...finished, stage: 'play', result: undefined } }));
+    expect(table(client).state.selectedPieceId).toBeNull();
+  });
+
   test('spice supply emits separate amount commands and observers cannot use trackers', async () => {
     const client = await connected();
     client.spawnSpice(10);
