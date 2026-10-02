@@ -68,6 +68,19 @@ type Carry = Identity & {
 };
 type CarryInput<T extends 'begin' | 'pose' | 'take'> = Omit<Extract<ClientMessage, { type: T }>, 'type'>;
 
+/**
+ * Actions that never rely on the table being exactly as their sender last saw it.
+ * A battle action names its battle and side and is checked against the live battle, so the opponent acting at the same moment must not turn it away (#1681).
+ */
+const REVISION_TOLERANT_ACTIONS = new Set<string>([
+  'spice-spawn',
+  'deck-draw',
+  'battle-claim',
+  'battle-plan',
+  'battle-ready',
+  'battle-outcome',
+]);
+
 export class Room {
   public snapshot: StoredSnapshot;
   readonly epoch = crypto.randomUUID();
@@ -642,7 +655,7 @@ export class Room {
     this.player(identity);
     if (
       expectedRevision !== this.snapshot.revision &&
-      (!['spice-spawn', 'deck-draw'].includes(action.kind) || expectedRevision > this.snapshot.revision)
+      (!REVISION_TOLERANT_ACTIONS.has(action.kind) || expectedRevision > this.snapshot.revision)
     ) {
       throw new GameRejection('The table changed. Try the action again.');
     }
