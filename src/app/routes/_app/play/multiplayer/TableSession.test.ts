@@ -78,6 +78,12 @@ function deliverGap(completedCommandId?: string) {
   });
 }
 
+/* A tab that lost its connection keeps the last table on screen, read-only, until a fresh view. */
+function expectLocked(client: TableSession) {
+  expect(table(client)).toMatchObject({ reconnecting: true, canInteract: false, affordances: [], pointers: [] });
+  expect(table(client).state.draftMove).toBeNull();
+}
+
 function table(client: TableSession) {
   const result = client.getSnapshot().table;
   if (!result) {
@@ -165,8 +171,22 @@ describe('hosted public controls', () => {
     await vi.advanceTimersByTimeAsync(1000);
     socket().open();
     authorize();
+    /* The read the drop cut off goes again, and a newer selection waits behind it as usual. */
+    expect(sentReads()).toEqual([next]);
     const fresh = client.catalogue({ type: 'deck', slug: 'fresh' });
-    expect(sentReads()).toEqual([fresh]);
+    expect(sentReads()).toEqual([next]);
+    socket().deliver({ type: 'catalogue', requestId: next, contents: null });
+    expect(sentReads()).toEqual([next, fresh]);
+  });
+  test('stops the locked table clock when the connection drops, not at the last update', async () => {
+    const client = await connected();
+    await vi.advanceTimersByTimeAsync(27_000);
+    const dropped = Date.now();
+    socket().close();
+    expectLocked(client);
+    expect(table(client).serverNow()).toBe(dropped);
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(table(client).serverNow()).toBe(dropped);
   });
   test('keeps both public log pages through seat and faction changes and resets them on disconnect', async () => {
     const client = await connected();
@@ -358,7 +378,7 @@ describe('hosted table admission', () => {
     client.publishPointer([0, 0.38, 0]);
     socket().deliver({ type: 'admission', status: 'suspended' });
     const messages = socket().sent.length;
-    expect(client.getSnapshot().table).toBeNull();
+    expectLocked(client);
     client.moveStormBy(1);
     client.updateGesture([1, 0.38, 1]);
     client.rotateSelected(1);
@@ -371,6 +391,19 @@ describe('hosted table admission', () => {
     expect(client.getSnapshot().table?.state.draftMove).toBeNull();
     client.moveStormBy(1);
     expect(socket().sent.at(-1)).toMatchObject({ type: 'command', action: { kind: 'storm', direction: 1 } });
+  });
+
+  test('the locked table keeps one frozen clock and does not outlive the route', async () => {
+    const client = await connected();
+    socket().deliver({ type: 'admission', status: 'suspended' });
+    const clock = table(client).serverNow;
+    const before = client.getSnapshot();
+    client.setHoveredPiece('harkonnen-force-stack');
+    expect(client.getSnapshot()).not.toBe(before);
+    expect(table(client).serverNow).toBe(clock);
+    disconnect?.();
+    disconnect = undefined;
+    expect(client.getSnapshot().table).toBeNull();
   });
 
   test('a definitive denial cannot be undone by a later view and never reconnects itself', async () => {
@@ -519,7 +552,7 @@ describe('hosted table admission', () => {
     await vi.advanceTimersByTimeAsync(1000);
     socket().open();
     old.deliver(view({ epoch: 'old' }));
-    expect(client.getSnapshot().table).toBeNull();
+    expectLocked(client);
     expect(issue).toHaveBeenCalledTimes(2);
     expect(socket().sent).toEqual([{ type: 'admit', ticket: '2'.repeat(64) }]);
     authorize(initialSnapshot(), { ...viewer, connectionId: 'connection-two' });
@@ -570,12 +603,13 @@ describe('hosted table admission', () => {
     async (code) => {
       const client = await connected();
       socket().close(code);
-      expect(client.getSnapshot().table).toBeNull();
+      const assertTable = () => (code === 4401 ? expect(client.getSnapshot().table).toBeNull() : expectLocked(client));
+      assertTable();
       await vi.advanceTimersByTimeAsync(code === 4413 ? 4999 : 999);
       expect(Socket.instances).toHaveLength(1);
       await vi.advanceTimersByTimeAsync(1);
       expect(Socket.instances).toHaveLength(code === 4401 ? 1 : 2);
-      expect(client.getSnapshot().table).toBeNull();
+      assertTable();
     }
   );
 
@@ -614,6 +648,69 @@ describe('hosted table interaction', () => {
     expect(command().expectedRevision).toBe(1);
     client.finishGesture([0, 0.38, 0]);
     expect(socket().sent.at(-1)).toMatchObject({ type: 'drop', carryId: carried.carries[0].id });
+  });
+
+  test('a finished game keeps its table as it is: nothing picks up, selects or changes a piece, and Continue playing still goes', async () => {
+    const client = await connected();
+    const piece = initialSnapshot().table.pieces[0];
+    socket().deliver(
+      view({
+        snapshot: {
+          ...initialSnapshot(),
+          stage: 'finished',
+          result: { kind: 'none', factionIds: [], by: { seat: 'harkonnen', name: 'One' }, declaredAt: 1 },
+        },
+      })
+    );
+    const sent = socket().sent.length;
+    client.selectPiece(piece.id);
+    client.setHoveredPiece(piece.id);
+    client.beginGesture(piece.id, 'whole');
+    client.flipSelected(piece.id);
+    client.rotateSelected(1, piece.id);
+    client.toggleLockSelected();
+    expect(table(client).state.selectedPieceId).toBeNull();
+    expect(table(client).state.draftMove).toBeNull();
+    expect(socket().sent).toHaveLength(sent);
+    expect(table(client)).toMatchObject({ canInteract: true, canHandleTable: false });
+    expect(table(client).deckControls).toBeUndefined();
+    client.command({ kind: 'result-continue' });
+    expect(command().action).toEqual({ kind: 'result-continue' });
+  });
+
+  test.each(['drafting', 'swapping', 'discarded'] as const)(
+    'a game at the %s stage offers no table handling',
+    async (stage) => {
+      const client = await connected();
+      const piece = initialSnapshot().table.pieces[0];
+      socket().deliver(view({ snapshot: { ...initialSnapshot(), stage } }));
+      const sent = socket().sent.length;
+      client.selectPiece(piece.id);
+      client.beginGesture(piece.id, 'whole');
+      client.flipSelected(piece.id);
+      expect(table(client).state.selectedPieceId).toBeNull();
+      expect(table(client).state.draftMove).toBeNull();
+      expect(socket().sent).toHaveLength(sent);
+      expect(table(client)).toMatchObject({ canHandleTable: false, bankControls: undefined, deckControls: undefined });
+    }
+  );
+
+  test('a selection made before the game finished is no longer shown, and clearing it still works', async () => {
+    const client = await connected();
+    const piece = initialSnapshot().table.pieces[0];
+    client.selectPiece(piece.id);
+    expect(table(client).state.selectedPieceId).toBe(piece.id);
+    const finished = {
+      ...initialSnapshot(),
+      stage: 'finished' as const,
+      result: { kind: 'none' as const, factionIds: [], by: { seat: 'harkonnen', name: 'One' }, declaredAt: 1 },
+    };
+    socket().deliver(view({ snapshot: finished }));
+    expect(table(client).state.selectedPieceId).toBeNull();
+    expect(table(client).selectedPiece).toBeNull();
+    client.selectPiece(null);
+    socket().deliver(view({ snapshot: { ...finished, stage: 'play', result: undefined } }));
+    expect(table(client).state.selectedPieceId).toBeNull();
   });
 
   test('spice supply emits separate amount commands and observers cannot use trackers', async () => {
@@ -899,6 +996,21 @@ describe('hosted table interaction', () => {
     socket().deliver({ ...carried, completedCommandId: first.commandId });
     client.command({ kind: 'seat-depart' });
     expect(command()).not.toBe(first);
+  });
+
+  test('an approval refused because its request is settled approves nothing else', async () => {
+    const client = await connected();
+    client.command({ kind: 'seat-approve', requestId: 'seat-request-1' });
+    const sent = command();
+    expect(sent.action).toEqual({ kind: 'seat-approve', requestId: 'seat-request-1' });
+    socket().deliver({
+      type: 'rejected',
+      requestId: sent.commandId,
+      message: 'That seat request has already been resolved.',
+    });
+    expect(socket().sent.filter((message) => message.type === 'command')).toHaveLength(1);
+    expect(table(client).seatCommandPending).toBe(false);
+    expect(client.getSnapshot().error).toBe('That seat request has already been resolved.');
   });
 
   test('a competing carry and a pointer stay on a clock 9 s fast until the Worker removes them', async () => {
@@ -1205,7 +1317,7 @@ describe('fresh reconnect recovery', () => {
       const old = socket();
       expect(old.sent.some((message) => message.type === 'drop')).toBe(true);
       old.close(1006);
-      expect(client.getSnapshot().table).toBeNull();
+      expectLocked(client);
       await vi.advanceTimersByTimeAsync(1000);
       socket().open();
       const saved = committed

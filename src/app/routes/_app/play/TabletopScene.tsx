@@ -39,6 +39,7 @@ import {
   FORCE_LAYER_HEIGHT,
   FORCE_LAYER_PITCH,
   FORCE_TOP_RADIUS,
+  forceScale,
   MARKER_BASE_HEIGHT,
   MARKER_BOTTOM_RADIUS,
   MARKER_CONE_CENTER_Y,
@@ -78,6 +79,7 @@ import {
   Float32BufferAttribute,
   Mesh,
   MeshBasicMaterial,
+  NeutralToneMapping,
   Raycaster,
   RingGeometry,
   SRGBColorSpace,
@@ -103,6 +105,7 @@ import { isPublicTablePoint, ScenePresence, useTablePose } from './ScenePresence
 import { SpiceSupply } from './SpiceSupply';
 import { TableFurniture } from './TableFurniture';
 import { TableGraphicsBoundary, TableGraphicsUnavailable } from './TableGraphicsBoundary';
+import { useTableLighting } from './tableLighting';
 import { mapViewFramingPoints } from './tablePlateGeometry';
 import { useTabletop } from './TabletopContext';
 import styles from './TabletopScene.module.css';
@@ -507,6 +510,7 @@ const subscribePublishedFace = sharedPublishedFaces<Texture>({
   load: (href, onLoad, onError) => new TextureLoader().load(href, onLoad, undefined, onError),
   prepare: (value) => {
     value.colorSpace = SRGBColorSpace;
+    value.anisotropy = 8;
   },
   release: (value) => value.dispose(),
 });
@@ -532,14 +536,12 @@ function PublishedFace({ href, card, ratio }: { href: string; card: boolean; rat
       ) : (
         <circleGeometry args={[FORCE_FACE_RADIUS, 48]} />
       )}
-      <meshStandardMaterial
-        key={texture ? href : 'placeholder'}
-        map={texture}
-        color={texture ? '#ffffff' : '#d5ba8c'}
-        transparent
-        roughness={0.68}
-        metalness={0}
-      />
+      {/* Printed art is drawn unlit: the warm table light washed out card, leader and token faces (#1756). The renderer still tone maps the whole frame in its output pass. The placeholder stays lit, like the piece beneath it. */}
+      {texture ? (
+        <meshBasicMaterial key={href} map={texture} transparent />
+      ) : (
+        <meshStandardMaterial key="placeholder" color="#d5ba8c" transparent roughness={0.68} metalness={0} />
+      )}
     </mesh>
   );
 }
@@ -584,8 +586,9 @@ function TokenFace({
 
 function ForceStackLayers({ piece }: { piece: TablePiece }) {
   const shownLayers = visibleLayerCount(piece);
+  const scale = forceScale(piece);
   return (
-    <group>
+    <group scale={[scale, 1, scale]}>
       {Array.from({ length: shownLayers }, (_, index) => {
         const faceUp = stackLayerFaceUp(piece, index, shownLayers);
         return (
@@ -597,7 +600,7 @@ function ForceStackLayers({ piece }: { piece: TablePiece }) {
             >
               {tokenBoxRatio(piece) != null ? (
                 <boxGeometry
-                  args={[FORCE_BOTTOM_RADIUS * 2, FORCE_LAYER_HEIGHT, FORCE_BOTTOM_RADIUS * 2 * tokenBoxRatio(piece)!]}
+                  args={[FORCE_TOP_RADIUS * 2, FORCE_LAYER_HEIGHT, FORCE_TOP_RADIUS * 2 * tokenBoxRatio(piece)!]}
                 />
               ) : (
                 <cylinderGeometry args={[FORCE_TOP_RADIUS, FORCE_BOTTOM_RADIUS, FORCE_LAYER_HEIGHT, 48]} />
@@ -737,7 +740,7 @@ type TablePieceMeshProps = {
 };
 
 function usePieceCarryState(piece: TablePiece) {
-  const { state, gestureActivePieceId, canInteract, remoteCarriedIds, reservedPieceIds } = useTabletop();
+  const { state, gestureActivePieceId, canHandleTable, remoteCarriedIds, reservedPieceIds } = useTabletop();
   const drafted = state.draftMove?.pieceId === piece.id;
   const remoteCarried = remoteCarriedIds.has(piece.id);
   const locallyCarried = drafted && gestureActivePieceId !== null;
@@ -748,7 +751,7 @@ function usePieceCarryState(piece: TablePiece) {
     remoteCarried,
     locallyCarried,
     reserved,
-    interactionBlocked: !canInteract || remoteCarried || (reserved && !localSource),
+    interactionBlocked: !canHandleTable || remoteCarried || (reserved && !localSource),
   };
 }
 
@@ -781,11 +784,12 @@ function useTablePointFromClient() {
 
 function useScenePointerSession(onActiveChange: (active: boolean) => void) {
   const session = usePointerSession();
-  const { state, beginGesture, updateGesture, finishGesture, cancelDraft, canInteract, publishPointer } = useTabletop();
+  const { state, beginGesture, updateGesture, finishGesture, cancelDraft, canHandleTable, publishPointer } =
+    useTabletop();
   const { renderer } = useThree();
   const point = useTablePointFromClient();
   const controls = {
-    canInteract,
+    canHandleTable,
     hasDraft: Boolean(state.draftMove),
     piece: (id: string) => state.pieces.find((piece) => piece.id === id),
     point,
@@ -875,7 +879,7 @@ function pieceHoverCursor(canInteract: boolean, interactionBlocked: boolean, ges
 const PieceMenuContext = createContext<((pieceId: string, x: number, y: number) => void) | null>(null);
 
 function usePiecePointerEvents({ piece }: TablePieceMeshProps, interactionBlocked: boolean) {
-  const { state, selectPiece, setHoveredPiece, canInteract } = useTabletop();
+  const { state, selectPiece, setHoveredPiece, canHandleTable } = useTabletop();
   const openPieceMenu = useContext(PieceMenuContext);
   const { renderer } = useThree();
   const pointerSession = usePointerSession();
@@ -932,7 +936,7 @@ function usePiecePointerEvents({ piece }: TablePieceMeshProps, interactionBlocke
     },
     onPointerEnter: (event: ThreeEvent<PointerEvent>) => {
       event.stopPropagation();
-      const cursor = pieceHoverCursor(canInteract, interactionBlocked, Boolean(gestureBlocked));
+      const cursor = pieceHoverCursor(canHandleTable, interactionBlocked, Boolean(gestureBlocked));
       if (interactionBlocked) {
         renderer.domElement.style.cursor = cursor;
         return;
@@ -957,6 +961,12 @@ const PIECE_SELECTION_RADII: Record<TablePiece['kind'], [number, number, number]
   marker: [0.4, 0.47, 64],
 };
 
+function selectionRadii(piece: TablePiece): [number, number, number] {
+  const [inner, outer, segments] = PIECE_SELECTION_RADII[piece.kind];
+  const scale = forceScale(piece);
+  return [inner * scale, outer * scale, segments];
+}
+
 function PieceSelectionRing({
   piece,
   shadowLocalY,
@@ -974,7 +984,7 @@ function PieceSelectionRing({
       renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}
       rotation={[-Math.PI / 2, 0, 0]}
     >
-      <ringGeometry args={isSpicePiece(piece) ? [0.18, 0.205, 64] : PIECE_SELECTION_RADII[piece.kind]} />
+      <ringGeometry args={isSpicePiece(piece) ? [0.18, 0.205, 64] : selectionRadii(piece)} />
       <meshBasicMaterial
         color={stackTargeted ? '#f6bd55' : drafted ? '#f6c879' : '#fff0c9'}
         {...PIECE_SELECTION_RING_MATERIAL}
@@ -1022,7 +1032,7 @@ function PieceLock({ piece }: { piece: TablePiece }) {
       <meshStandardMaterial color="#251912" metalness={0.3} roughness={0.6} />
     </mesh>
   );
-  return piece.kind === 'force' ? <group scale={0.5}>{lock}</group> : lock;
+  return piece.kind === 'force' ? <group scale={0.5 * forceScale(piece)}>{lock}</group> : lock;
 }
 
 /*
@@ -1179,6 +1189,36 @@ function useSceneInteractions(onInteractionActiveChange: TabletopSceneProps['onI
   };
 }
 
+/**
+ * Frees the renderer, and with it the canvas's WebGL context or GPU device, once the table's canvas has left the page.
+ * R3F does this on unmount only for its legacy WebGLRenderer, so every remount of the table (a reconnect, a reload of the view) otherwise left a live context behind until the browser ran out of them.
+ * A canvas still on the page is a remount of this component alone, as R3F's own teardown assumes, and keeps its renderer.
+ */
+function ReleaseRendererOnUnmount() {
+  const renderer = useThree((state) => state.renderer);
+  useEffect(
+    () => () => {
+      if (!renderer.domElement.isConnected) {
+        renderer.dispose();
+      }
+    },
+    [renderer]
+  );
+  return null;
+}
+
+/* The table's lights, scaled by this viewer's lighting choice; only they re-render while the slider moves. */
+function TableLights() {
+  const lighting = useTableLighting();
+  return (
+    <>
+      <ambientLight intensity={1.25 * lighting} />
+      <directionalLight position={[-4, 9, 5]} intensity={3.1 * lighting} color="#ffe2ae" />
+      <pointLight position={[5, 4, -4]} intensity={14 * lighting} distance={16} color="#d67b44" />
+    </>
+  );
+}
+
 function SceneContents({
   cameraView = DEFAULT_CAMERA_VIEW,
   onInteractionActiveChange,
@@ -1207,9 +1247,7 @@ function SceneContents({
       <fog attach="fog" args={['#130d0a', 10, 22]} />
       <CameraRelativeFog />
       <ScenePresence />
-      <ambientLight intensity={1.25} />
-      <directionalLight position={[-4, 9, 5]} intensity={3.1} color="#ffe2ae" />
-      <pointLight position={[5, 4, -4]} intensity={14} distance={16} color="#d67b44" />
+      <TableLights />
       <group onClick={() => selectPiece(null)}>
         <BoardSurface
           seatCount={seatCount}
@@ -1374,10 +1412,12 @@ export function TabletopScene({
                 antialias: true,
                 alpha: false,
                 powerPreference: 'high-performance',
+                toneMapping: NeutralToneMapping,
               }}
               /* The renderer's creation follows its asynchronous initialisation, which is the long part of a table's arrival; the first frame follows at once. */
               onCreated={onSceneReady}
             >
+              <ReleaseRendererOnUnmount />
               {children}
               <SceneContents
                 stage={stage}

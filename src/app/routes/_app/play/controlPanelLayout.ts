@@ -4,6 +4,8 @@ export const DEFAULT_CONTROLS_PANEL_PERCENT = 30;
 export const MIN_CONTROLS_PANEL_PERCENT = 18;
 export const MAX_CONTROLS_PANEL_PERCENT = 50;
 export const PREFERRED_TABLETOP_SCENE_HEIGHT_PX = 320;
+/* The dock's own floor, `.seated-controls-panel { min-height: 17rem }` in dune-play.css. */
+const CONTROLS_DOCK_MIN_HEIGHT_REM = 17;
 
 export const KEYBOARD_STEP_PERCENT = 2;
 export const KEYBOARD_PAGE_STEP_PERCENT = 5;
@@ -24,6 +26,28 @@ export function maxControlsPanelPercentForHeight(shellHeight: number): number {
   return Math.max(MIN_CONTROLS_PANEL_PERCENT, Math.min(MAX_CONTROLS_PANEL_PERCENT, heightLimitedPercent));
 }
 
-export function controlsPanelLimits(shellHeight: number): SplitLimits {
-  return { min: MIN_CONTROLS_PANEL_PERCENT, max: maxControlsPanelPercentForHeight(shellHeight) };
+function rootFontSize(): number {
+  const size = typeof document === 'undefined' ? NaN : parseFloat(getComputedStyle(document.documentElement).fontSize);
+  return Number.isFinite(size) && size > 0 ? size : 16;
+}
+
+/* The least of the table a shell shows beside a dock at its floor; the canvas stays readable above it. */
+const MIN_TABLETOP_SCENE_HEIGHT_PX = 160;
+
+/*
+ * The separator never goes above the dock's own floor: below it the dock would rise out of its panel
+ * and the separator's line and grip would be drawn across the dock's first row.
+ * A shell too short for that floor and the least of the table keeps the table and fixes the split:
+ * the dock grows up over the scene to keep its floor, and the split conceals its separator so no grip crosses it.
+ */
+export function controlsPanelLimits(shellHeight: number, remPx = rootFontSize()): SplitLimits {
+  if (!Number.isFinite(shellHeight) || shellHeight <= 0) {
+    return { min: MIN_CONTROLS_PANEL_PERCENT, max: MAX_CONTROLS_PANEL_PERCENT };
+  }
+  const dockFloor = CONTROLS_DOCK_MIN_HEIGHT_REM * remPx;
+  if (shellHeight - dockFloor < MIN_TABLETOP_SCENE_HEIGHT_PX) {
+    return { min: MIN_CONTROLS_PANEL_PERCENT, max: MIN_CONTROLS_PANEL_PERCENT, concealed: true };
+  }
+  const min = Math.max(MIN_CONTROLS_PANEL_PERCENT, (dockFloor / shellHeight) * 100);
+  return { min, max: Math.max(min, maxControlsPanelPercentForHeight(shellHeight)) };
 }

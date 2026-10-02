@@ -71,6 +71,8 @@ export const MAP_VIEW_BOTTOM_LIMIT = 0.9;
 export const MAP_VIEW_MINIMUM_CAMERA_SCALE = 0.8;
 const MAP_VIEW_HEADER_PADDING_PX = 12;
 const MAP_VIEW_MINIMUM_TOP_LIMIT = 0.08;
+/* Where the header covers this much of the canvas's upper half, the map view looks wholly at the balanced target. */
+const MAP_VIEW_BALANCED_TOP_LIMIT = 0.38;
 
 const CAMERA_OFFSET: Vector3Tuple = [0, 9.4, 11.2];
 const CAMERA_OFFSET_LENGTH = Math.hypot(...CAMERA_OFFSET);
@@ -159,6 +161,8 @@ function mapCameraScaleFor(
  * Where along the table's depth the tilted map view looks, so the frame sits between header and dock with the camera closest.
  * The required scale is the maximum of functions linear in the target's depth, so it is convex there and a ternary search finds its floor.
  * The approved angle keeps its approved target; a tilt blends toward this one so the map grows as it turns, instead of drifting toward the header.
+ * A header that covers much of the canvas blends toward it too: a phone's header can take most of the canvas's upper half,
+ * and the approved target, at the canvas's middle, would then push the camera far back and leave the lower half empty.
  */
 function tiltedMapTarget(
   aspectRatio: number,
@@ -168,7 +172,12 @@ function tiltedMapTarget(
   tilt: number
 ): Vector3Tuple {
   const approved = TABLE_VIEW_TARGETS.map;
-  if (tilt <= 0) {
+  const headerShare = Math.max(
+    0,
+    Math.min(1, (MAP_VIEW_TOP_LIMIT - topLimit) / (MAP_VIEW_TOP_LIMIT - MAP_VIEW_BALANCED_TOP_LIMIT))
+  );
+  const blend = Math.max(tilt, headerShare);
+  if (blend <= 0) {
     return [...approved];
   }
   const scaleAt = (depth: number) =>
@@ -185,7 +194,7 @@ function tiltedMapTarget(
     }
   }
   const balanced = (near + far) / 2;
-  return [approved[0], approved[1], approved[2] + (balanced - approved[2]) * tilt];
+  return [approved[0], approved[1], approved[2] + (balanced - approved[2]) * blend];
 }
 
 export function mapViewTopLimitForViewport(

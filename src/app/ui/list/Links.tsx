@@ -11,7 +11,8 @@ export interface LinksProps {
 const LinksAnchor = forwardRef<HTMLAnchorElement, ComponentPropsWithoutRef<'a'>>(function LinksAnchor(props, ref) {
   return (
     <List.Item>
-      <Anchor ref={ref} {...props} />
+      {/* Underlined at rest: the themed anchor shares the text colour, so without the line a link reads as plain text (WCAG 1.4.1). */}
+      <Anchor ref={ref} underline="always" {...props} />
     </List.Item>
   );
 });

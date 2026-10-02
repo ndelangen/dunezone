@@ -48,9 +48,11 @@ It never executes past commands again.
 
 The history table holds two kinds of row (`workers/game/sessionHistory.ts`). A `checkpoint` stores
 the whole snapshot. It is written for a reset, for the step that leaves setup (the Next that opens
-Turn 1), for a revealed battle that settles (by agreed outcome or by cancel), and by `GameSession` for the faction
-assignment and the setup cleanup. Every other playback step is a `patch` against the step before
-it: phase and turn changes, declaring a result and continuing past it, setup actions, Ready while
+Turn 1), for every later phase change that moves into another turn, for a revealed battle that
+settles (by agreed outcome or by cancel), and by `GameSession` for the faction assignment and the
+setup cleanup, so a restore never replays more than one turn of patches however long the table
+plays without a battle. Every other playback step is a `patch` against the step before it: phase
+changes within a turn, declaring a result and continuing past it, setup actions, Ready while
 setup gates on it, and a battle's reveal. A restore loads the latest checkpoint at or before the
 step and replays the patches after it, checking that each row's `base_revision` matches. `diff` in
 `workers/game/history.ts` changes an array entry by entry when that is smaller than storing it
@@ -122,7 +124,12 @@ re-provisioning.
    that lapsed or was already redeemed closes the socket with code 4410 and no refusal; the
    browser requests a new ticket and reconnects, with the same wait as a ticket it finds lapsed
    before sending it. That wait doubles from 1 second up to `PLAY_TICKET_RETRY_MAX_MS`, and a view
-   resets it. A refused session, account or game stays denied.
+   resets it. A refused session, account or game stays denied. An admission that failed because
+   Convex did not answer the redemption or the account check (a timeout, a network failure, or a
+   redirect or server error other than a function's own failure) refuses nothing: the socket closes
+   with code 1013 and the browser reconnects with a new ticket after the same doubling wait. While
+   a failed account check waits out its backoff, the room closes a new admission that way at once
+   without asking Convex. Any other failure, such as an answer the Worker cannot read, still denies.
 4. Every command and outgoing game message checks authorization, session expiry and both the
    session and account-reconciliation leases. Timer delays cannot extend these deadlines.
 5. Logout, expiry or a known authorization failure stops game traffic. Reconnection requires a

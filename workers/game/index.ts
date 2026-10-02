@@ -27,6 +27,7 @@ import { isDraftAction } from '../../src/shared/play/drafting';
 import type { StoredSpawnContents } from '../../src/shared/play/inventory';
 import type { ClientMessage, PieceAction, ServerClock, ServerMessage, Viewer } from '../../src/shared/play/protocol';
 import {
+  ADMISSION_UNAVAILABLE_CLOSE_CODE,
   KEEPALIVE_PING,
   KEEPALIVE_PONG,
   TICKET_EXPIRED_CLOSE_CODE,
@@ -39,7 +40,7 @@ import { playRedeemTicketOutcomeSchema } from '../../src/shared/play/seatLimit';
 import { setupReadyRequired, setupStep } from '../../src/shared/play/setup';
 import { SPECTATOR_COLOR } from './actors';
 import { handleAlertWebhook } from './alerts';
-import { AuthorizationWatch, gameHttpClient } from './authorization';
+import { AuthorizationWatch, ConvexUnavailable, gameHttpClient } from './authorization';
 import { GameCatalogue } from './catalogue';
 import { RoomDelivery } from './delivery';
 import { GameDiagnostics } from './diagnostics';
@@ -47,6 +48,7 @@ import type { SetAsideJudgement } from './drafting';
 import { FIXTURE_TREACHERY_DECK, hostedFixturePlan } from './fixture';
 import type { FixturePlan } from './fixture';
 import { isLocalIsolatedRuntime } from './localRuntime';
+import { CarryHistoryExhausted } from './room';
 import type { Metadata } from './session';
 import { GameSession, NotReady, readinessProblem } from './session';
 
@@ -196,6 +198,7 @@ export class GameRoom extends DurableObject<GameEnv> {
   private reconcileUntil = 0;
   private nextReconcileAt = 0;
   private reconcileFailures = 0;
+  private reconcileUnavailable = false;
   private reconcileEpoch = 0;
   /*
    * Open from a watch denial until the account reconciliation started after it settles.
@@ -718,8 +721,10 @@ export class GameRoom extends DurableObject<GameEnv> {
     try {
       await this.reconcilePromise;
       this.reconcileFailures = 0;
+      this.reconcileUnavailable = false;
     } catch (error) {
       this.diagnostics.report('account-reconciliation', error);
+      this.reconcileUnavailable = error instanceof ConvexUnavailable;
       this.reconciled = false;
       this.reconcileUntil = 0;
       /* A failed reconciliation retries with backoff; the renewal cadence is too slow to be the recovery path. */
@@ -870,9 +875,20 @@ export class GameRoom extends DurableObject<GameEnv> {
       return;
     }
     connection.admitting = true;
+    /* A reconciliation that just failed waits out its backoff; a browser retrying meanwhile must not reach Convex ahead of it. */
+    if (this.reconciliationBackingOff()) {
+      this.closeUnavailable(socket);
+      return;
+    }
     try {
       const result = await this.redeemAdmission(ticket);
-      await this.reconcileAccounts();
+      try {
+        await this.reconcileAccounts();
+      } catch (error) {
+        /* The reconciliation reported its own failure. */
+        this.failAdmission(socket, error, false);
+        return;
+      }
       if (!this.reconciled || !this.pendingConnection(socket, connection)) {
         this.deny(socket);
         return;
@@ -884,16 +900,41 @@ export class GameRoom extends DurableObject<GameEnv> {
       this.registerConnection(connection, result);
       this.authorizationChanged();
     } catch (error) {
-      if (error instanceof ExpiredTicket) {
-        this.disconnect(socket);
-        socket.close(TICKET_EXPIRED_CLOSE_CODE, error.message);
-        return;
-      }
-      if (!(error instanceof GameRejection)) {
-        this.diagnostics.report('admission', error);
-      }
-      this.deny(socket);
+      this.failAdmission(socket, error, true);
     }
+  }
+
+  private reconciliationBackingOff() {
+    return (
+      !this.hasAccountLease() &&
+      !this.reconcilePromise &&
+      this.reconcileUnavailable &&
+      this.reconcileFailures > 0 &&
+      Date.now() < this.nextReconcileAt
+    );
+  }
+
+  /* Only Convex failing to answer leaves the login intact; a refusal, or an answer this Worker cannot use, denies it. */
+  private failAdmission(socket: WebSocket, error: unknown, report: boolean) {
+    if (error instanceof ExpiredTicket) {
+      this.disconnect(socket);
+      socket.close(TICKET_EXPIRED_CLOSE_CODE, error.message);
+      return;
+    }
+    if (report && !(error instanceof GameRejection)) {
+      this.diagnostics.report('admission', error);
+    }
+    if (error instanceof ConvexUnavailable) {
+      this.closeUnavailable(socket);
+      return;
+    }
+    this.deny(socket);
+  }
+
+  /* Nothing was refused, so the browser asks for a new ticket and retries after its backoff. */
+  private closeUnavailable(socket: WebSocket) {
+    this.disconnect(socket);
+    socket.close(ADMISSION_UNAVAILABLE_CLOSE_CODE, 'Admission unavailable.');
   }
 
   private authorized(socket: WebSocket): boolean {
@@ -1088,6 +1129,11 @@ export class GameRoom extends DurableObject<GameEnv> {
       /* A capture that failed while a fence held its connection is refused once the fence lifts. */
       await this.outlastFence(socket, connection, suspensions);
       this.rejectMessage(socket, connection, message, error);
+      if (error instanceof CarryHistoryExhausted) {
+        /* A connection that used every carry ID the room remembers can pick nothing up again, so the browser is sent to reconnect, as after a restart. */
+        this.disconnect(socket);
+        socket.close(1012, 'Reconnect to the table.');
+      }
     }
   }
 
