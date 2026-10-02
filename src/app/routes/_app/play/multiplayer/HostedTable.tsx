@@ -1,4 +1,4 @@
-import { Anchor, Button, Group, List, NumberInput, Select, Stack, Text } from '@mantine/core';
+import { Anchor, Button, Group, List, Loader, NumberInput, Select, Stack, Text, Tooltip } from '@mantine/core';
 import { snapshotFactionLabels } from '@shared/play/factionLabels';
 import { emptyPublicControls } from '@shared/play/inventory';
 import type { SpawnSelection } from '@shared/play/inventory';
@@ -86,7 +86,7 @@ function PlaybackControls({ client, table }: Pick<ConnectionControlsProps, 'clie
         ) : (
           <Button
             variant="default"
-            disabled={historyPending || !!table.state.draftMove}
+            disabled={historyPending || !!table.state.draftMove || table.reconnecting}
             onClick={() => client.requestHistory(0)}
           >
             Replay from start
@@ -437,6 +437,7 @@ function SharedInventory({ client, table }: Pick<ConnectionControlsProps, 'clien
             <Select
               label="Catalogue asset"
               searchable
+              disabled={table.reconnecting}
               placeholder="Choose a deck, bundle or token"
               data={entries.map((entry) => ({ value: `${entry.type}/${entry.slug}`, label: entry.name }))}
               value={picker.selection ? `${picker.selection.type}/${picker.selection.slug}` : null}
@@ -609,19 +610,46 @@ function SpiceHistory({ client, table }: Pick<ConnectionControlsProps, 'client' 
   );
 }
 
+/* While a lost connection is restored the last table stays on screen, read-only, under this line. */
+/* While the table is locked the top bar says so beside the logo in one short line; the sentence behind it is the tooltip and the accessible description, and a phone keeps only the spinner. */
+function ConnectionStatus({ table }: Readonly<{ table: TableProjection }>) {
+  if (!table.reconnecting) {
+    return null;
+  }
+  const detail = 'The table shows its last saved state. Actions are paused until it is back.';
+  return (
+    <Tooltip label={detail} withinPortal>
+      <Group gap={6} wrap="nowrap" role="status" aria-label={`Reconnecting. ${detail}`}>
+        <Loader size="xs" />
+        <Text size="sm" fw={700} visibleFrom="sm" aria-hidden>
+          Reconnecting
+        </Text>
+      </Group>
+    </Tooltip>
+  );
+}
+
 function ConnectedTable({
   client,
   table,
   error,
+  connection,
 }: Readonly<{
   client: TableSession;
   table: TableProjection;
   error: string | null;
+  connection: string;
 }>) {
   const progress = tableProgressFor(table.snapshot.phase, table.snapshot.phases);
   const celebration = useResultCelebration(table);
   /* Giving up a seat starts in the game menu and is confirmed in the decision bar, so the two share one flag. */
   const [leaving, setLeaving] = useState(false);
+  /* The confirmation is about the seat held when it opened: leaving, a removal vote or a new seat closes it, so a player seated again is not asked to give up the new seat. */
+  const [leavingFrom, setLeavingFrom] = useState(table.viewer.viewerSeat);
+  if (leavingFrom !== table.viewer.viewerSeat) {
+    setLeavingFrom(table.viewer.viewerSeat);
+    setLeaving(false);
+  }
   const [playerSelection, selectPlayer] = useReducer(
     (
       _: { seat: string | null; vote: string | null; tab: 'public' | 'conversation' },
@@ -640,12 +668,13 @@ function ConnectedTable({
   return (
     <TabletopSessionProvider session={client} table={table}>
       {/* A boxless wrapper carries the connection state the browser verification waits on, whichever tab is open. */}
-      <div data-connection="authorized" data-revision={table.liveRevision} style={{ display: 'contents' }}>
+      <div data-connection={connection} data-revision={table.liveRevision} style={{ display: 'contents' }}>
         <GameTable
           seatCount={table.snapshot.roster?.seatCount ?? DEFAULT_TABLE_SEAT_COUNT}
           tableProgress={progress}
           stage={stage}
           mapVisible={setupMapVisible(table.snapshot.setup)}
+          connectionStatus={<ConnectionStatus table={table} />}
           toolbarControl={
             inPlay || (stage === 'setup' && table.snapshot.setup) ? (
               <PhaseNavigation client={client} table={table} />
@@ -883,7 +912,7 @@ export default function HostedTable({ gameId, exitControl }: Readonly<{ gameId: 
   }
   return (
     <ServerClockContext.Provider value={view.table.serverNow}>
-      <ConnectedTable client={client} table={view.table} error={view.error} />
+      <ConnectedTable client={client} table={view.table} error={view.error} connection={view.status} />
     </ServerClockContext.Provider>
   );
 }

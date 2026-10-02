@@ -246,7 +246,11 @@ html[data-motion="reduce"] .dune-play-stage .dune-play-shell {
 }
 
 :where(.dune-play-shell) .seated-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
   min-width: 0;
+  pointer-events: auto;
 }
 
 :where(.dune-play-shell) .seated-brand__logo {
@@ -373,9 +377,21 @@ html[data-motion="reduce"] .dune-play-stage .dune-play-shell {
 /*
  * With a decision bar above the tabs, the bar takes its own height and the tabs keep the rest.
  * Each bar keeps its own wrapper even when it has nothing to say, so the dock is never empty and keeps that row.
+ * A bar taller than the dock, as declaring the result is on a phone, stops at the dock's height and scrolls there,
+ * so its actions stay in reach instead of running past the window's lower edge.
  */
 :where(.dune-play-shell) .seated-controls-panel:has(> [data-decision-bar]) {
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: minmax(0, max-content) minmax(0, 1fr);
+}
+
+:where(.dune-play-shell) .seated-controls-panel > [data-decision-bar] {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* Each bar keeps its full height inside that scroll instead of shrinking under its own content. */
+:where(.dune-play-shell) .seated-controls-panel > [data-decision-bar] > * {
+  flex-shrink: 0;
 }
 
 :where(.dune-play-shell) .seated-controls-tabs {

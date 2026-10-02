@@ -165,4 +165,44 @@ describe('Replay history through the native game boundary', { timeout: 30_000 },
     await later();
     await accepted(a, { kind: 'phase', direction: 1 });
   });
+
+  it('keeps the opening of every turn whole, so a restore replays at most one turn of phase changes', async () => {
+    /* Three turns with no battle, the stretch that used to grow one patch per phase for the rest of the game. */
+    for (let step = 0; step < 26; step++) {
+      if ((await syncView(a)).snapshot.phase % 9 === 8) {
+        await accepted(a, { kind: 'ready', ready: true });
+        await accepted(b, { kind: 'ready', ready: true });
+      }
+      await later();
+      await accepted(a, { kind: 'phase', direction: 1 });
+    }
+    const rows = await runtime.exec('SELECT step, kind, phase FROM history ORDER BY step');
+    expect(rows.filter((row) => row.phase % 9 === 0 && row.step > 0).map((row) => row.kind)).toEqual([
+      'checkpoint',
+      'checkpoint',
+      'checkpoint',
+    ]);
+    let run = 0;
+    let longest = 0;
+    for (const row of rows) {
+      run = row.kind === 'patch' ? run + 1 : 0;
+      longest = Math.max(longest, run);
+    }
+    expect(longest).toBeLessThan(9);
+    /* Stepping back across a turn keeps that step whole too, and every stored step still restores. */
+    await later();
+    await accepted(a, { kind: 'phase', direction: -1 });
+    await later();
+    await accepted(a, { kind: 'phase', direction: -1 });
+    const [{ step: last }] = await runtime.exec('SELECT MAX(step) AS step FROM history');
+    for (const step of [1, 9, 10, last - 1, last]) {
+      const start = a.messages.length;
+      a.send({ type: 'history', step });
+      const reply = await eventually(
+        () => a.messages.slice(start).find((message) => message.type === 'history'),
+        `history step ${step}`
+      );
+      expect(reply.step).toBe(step);
+    }
+  });
 });

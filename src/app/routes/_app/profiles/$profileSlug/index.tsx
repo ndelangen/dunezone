@@ -34,6 +34,7 @@ import {
   UsersRound,
 } from 'lucide-react';
 
+import { forgetStoredPlayTables } from '@db/playTables';
 import type { ProfilePageData } from '@db/profiles';
 import { loadProfileBySlug, profileAvatarUrl, useCurrentProfile, useProfileBySlug } from '@db/profiles';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
@@ -209,6 +210,7 @@ function ProfileDetailPage() {
       .replace(/[^A-Z]/g, '') || '?';
 
   const handleSignOut = async () => {
+    forgetStoredPlayTables();
     await signOut();
     await navigate({ to: '/auth/login' });
   };
