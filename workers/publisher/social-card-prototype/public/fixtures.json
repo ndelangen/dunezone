@@ -1,0 +1,122 @@
+{
+  "capturedAt": "2026-10-02T15:06:15.832Z",
+  "fixtures": [
+    {
+      "id": "faction",
+      "name": "Test Faction",
+      "kind": "Faction",
+      "type": "faction",
+      "shape": "round",
+      "text": "At the revival phase, count how many turns there have been without any leader deaths. You take that many spice from the spice bank.",
+      "textSource": "First advantage",
+      "source": "https://dune.zone/factions/test-faction",
+      "remoteArtwork": "https://dune.zone/published/faction-tokens/k171dpxhhgjn9x3qmnhtywn33s848xq7/token.jpg",
+      "artwork": "/art/faction.jpg",
+      "note": "Public Test Faction, matching the earlier spike."
+    },
+    {
+      "id": "card",
+      "name": "Small Shirt",
+      "kind": "Treachery card",
+      "type": "card-treachery",
+      "shape": "portrait",
+      "text": "",
+      "textSource": "About",
+      "source": "https://dune.zone/assets/card-treachery/small-shirt",
+      "remoteArtwork": "https://dune.zone/published/cards/ns7685a43r85ahrrf5vfet094d8cyd7r/card.jpg?v=2026-08-22T19%3A42%3A24.890Z",
+      "artwork": "/art/card.jpg",
+      "note": "Public catalogue example. Empty About remains empty."
+    },
+    {
+      "id": "round",
+      "name": "Water",
+      "kind": "Disc token",
+      "type": "token-disc",
+      "shape": "round",
+      "text": "A custom resource called water.\n\nYou can drink it, unlike spice.",
+      "textSource": "About",
+      "source": "https://dune.zone/assets/token-disc/water",
+      "remoteArtwork": "https://dune.zone/published/round-tokens/ns7ek58fysp748w3e39e2yvmkd8d3mfh/token.jpg?v=2026-08-24T15%3A18%3A58.555Z",
+      "artwork": "/art/round.jpg",
+      "note": "Public catalogue example. Empty About remains empty."
+    },
+    {
+      "id": "landscape",
+      "name": "Immunity",
+      "kind": "Enhancement token",
+      "type": "token-enhance",
+      "shape": "landscape",
+      "text": "",
+      "textSource": "About",
+      "source": "https://dune.zone/assets/token-enhance/immunity",
+      "remoteArtwork": "https://dune.zone/published/rectangle-tokens/ns7a8gx10q3p5a3zd2zhcnqmn18cw9gr/token.jpg?v=2026-08-24T15%3A25%3A14.774Z",
+      "artwork": "/art/landscape.jpg",
+      "note": "Public catalogue example. Empty About remains empty."
+    },
+    {
+      "id": "deck",
+      "name": "Dreamrules Spice Deck",
+      "kind": "Deck",
+      "type": "deck",
+      "shape": "portrait",
+      "text": "",
+      "textSource": "About",
+      "source": "https://dune.zone/assets/deck/dreamrules-spice-deck",
+      "remoteArtwork": "https://dune.zone/published/cardback-presets/spice/cardback.jpg?v=ab5f3ecc-5ddd-4fdd-9470-6bc9e11aa2b7",
+      "artwork": "/art/deck.jpg",
+      "note": "Public catalogue example. Empty About remains empty."
+    },
+    {
+      "id": "bundle",
+      "name": "GF9 Techtokens",
+      "kind": "Token bundle",
+      "type": "bundle",
+      "shape": "portrait",
+      "text": "",
+      "textSource": "About",
+      "source": "https://dune.zone/assets/bundle/gf9-techtokens",
+      "remoteArtwork": "",
+      "artwork": "",
+      "note": "Public catalogue example. Empty About remains empty."
+    },
+    {
+      "id": "long",
+      "name": "The Confederation of the Outer Worlds and the Houses Beyond the Great Spice Sea",
+      "kind": "Faction",
+      "type": "faction",
+      "shape": "round",
+      "text": "During the revival phase, count every turn without a leader death, then take that much spice. This deliberately long passage continues beyond the excerpt limit to show how the card cuts text without shrinking every letter until it becomes unreadable. Extra words make the clipping visible.",
+      "textSource": "First advantage",
+      "source": "https://dune.zone/factions/test-faction",
+      "remoteArtwork": "https://dune.zone/published/faction-tokens/k171dpxhhgjn9x3qmnhtywn33s848xq7/token.jpg",
+      "artwork": "/art/faction.jpg",
+      "note": "Synthetic long title and excerpt on real faction artwork. Not saved to the faction."
+    },
+    {
+      "id": "glyphs",
+      "name": "Écuyers de Muad’Dib & House Ørnen",
+      "kind": "Treachery card",
+      "type": "card-treachery",
+      "shape": "portrait",
+      "text": "Arrakis • café • naïve • 10% • “spice” • Æsir • ©",
+      "textSource": "About",
+      "source": "https://dune.zone/assets/card-treachery/small-shirt",
+      "remoteArtwork": "https://dune.zone/published/cards/ns7685a43r85ahrrf5vfet094d8cyd7r/card.jpg?v=2026-08-22T19%3A42%3A24.890Z",
+      "artwork": "/art/card.jpg",
+      "note": "Synthetic Latin glyph and punctuation check on real card artwork."
+    },
+    {
+      "id": "missing",
+      "name": "Test Faction",
+      "kind": "Faction",
+      "type": "faction",
+      "shape": "round",
+      "text": "",
+      "textSource": "First advantage",
+      "source": "https://dune.zone/factions/test-faction",
+      "remoteArtwork": "",
+      "artwork": "",
+      "note": "Synthetic unavailable artwork and empty excerpt. No placeholder publication is created."
+    }
+  ]
+}

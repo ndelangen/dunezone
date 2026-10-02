@@ -1,0 +1,245 @@
+[
+  {
+    "variant": "A",
+    "sample": "faction",
+    "width": 1200,
+    "height": 630,
+    "bytes": 192011,
+    "localRenderMs": 150,
+    "databaseCalls": "0"
+  },
+  {
+    "variant": "A",
+    "sample": "card",
+    "width": 1200,
+    "height": 630,
+    "bytes": 267092,
+    "localRenderMs": 152,
+    "databaseCalls": "0"
+  },
+  {
+    "variant": "A",
+    "sample": "round",
+    "width": 1200,
+    "height": 630,
+    "bytes": 122467,
+    "localRenderMs": 136,
+    "databaseCalls": "0"
+  },
+  {
+    "variant": "A",
+    "sample": "landscape",
+    "width": 1200,
+    "height": 630,
+    "bytes": 160639,
+    "localRenderMs": 111,
+    "databaseCalls": "0"
+  },
+  {
+    "variant": "A",
+    "sample": "deck",
+    "width": 1200,
+    "height": 630,
+    "bytes": 315393,
+    "localRenderMs": 159,
+    "databaseCalls": "0"
+  },
+  {
+    "variant": "A",
+    "sample": "bundle",
+    "width": 1200,
+    "height": 630,
+    "bytes": 25592,
+    "localRenderMs": 87,
+    "databaseCalls": "0"
+  },
+  {
+    "variant": "A",
+    "sample": "long",
+    "width": 1200,
+    "height": 630,
+    "bytes": 209000,
+    "localRenderMs": 160,
+    "databaseCalls": "0"
+  },
+  {
+    "variant": "A",
+    "sample": "glyphs",
+    "width": 1200,
+    "height": 630,
+    "bytes": 281366,
+    "localRenderMs": 162,
+    "databaseCalls": "0"
+  },
+  {
+    "variant": "A",
+    "sample": "missing",
+    "width": 1200,
+    "height": 630,
+    "bytes": 22064,
+    "localRenderMs": 83,
+    "databaseCalls": "0"
+  },
+  {
+    "variant": "B",
+    "sample": "faction",
+    "width": 1200,
+    "height": 630,
+    "bytes": 164387,
+    "localRenderMs": 94,
+    "databaseCalls": "0"
+  },
+  {
+    "variant": "B",
+    "sample": "card",
+    "width": 1200,
+    "height": 630,
+    "bytes": 208480,
+    "localRenderMs": 108,
+    "databaseCalls": "0"
+  },
+  {
+    "variant": "B",
+    "sample": "round",
+    "width": 1200,
+    "height": 630,
+    "bytes": 106002,
+    "localRenderMs": 90,
+    "databaseCalls": "0"
+  },
+  {
+    "variant": "B",
+    "sample": "landscape",
+    "width": 1200,
+    "height": 630,
+    "bytes": 314964,
+    "localRenderMs": 126,
+    "databaseCalls": "0"
+  },
+  {
+    "variant": "B",
+    "sample": "deck",
+    "width": 1200,
+    "height": 630,
+    "bytes": 243019,
+    "localRenderMs": 112,
+    "databaseCalls": "0"
+  },
+  {
+    "variant": "B",
+    "sample": "bundle",
+    "width": 1200,
+    "height": 630,
+    "bytes": 21284,
+    "localRenderMs": 52,
+    "databaseCalls": "0"
+  },
+  {
+    "variant": "B",
+    "sample": "long",
+    "width": 1200,
+    "height": 630,
+    "bytes": 175588,
+    "localRenderMs": 104,
+    "databaseCalls": "0"
+  },
+  {
+    "variant": "B",
+    "sample": "glyphs",
+    "width": 1200,
+    "height": 630,
+    "bytes": 214034,
+    "localRenderMs": 109,
+    "databaseCalls": "0"
+  },
+  {
+    "variant": "B",
+    "sample": "missing",
+    "width": 1200,
+    "height": 630,
+    "bytes": 19579,
+    "localRenderMs": 52,
+    "databaseCalls": "0"
+  },
+  {
+    "variant": "C",
+    "sample": "faction",
+    "width": 1200,
+    "height": 630,
+    "bytes": 63155,
+    "localRenderMs": 59,
+    "databaseCalls": "0"
+  },
+  {
+    "variant": "C",
+    "sample": "card",
+    "width": 1200,
+    "height": 630,
+    "bytes": 48331,
+    "localRenderMs": 62,
+    "databaseCalls": "0"
+  },
+  {
+    "variant": "C",
+    "sample": "round",
+    "width": 1200,
+    "height": 630,
+    "bytes": 42113,
+    "localRenderMs": 45,
+    "databaseCalls": "0"
+  },
+  {
+    "variant": "C",
+    "sample": "landscape",
+    "width": 1200,
+    "height": 630,
+    "bytes": 37862,
+    "localRenderMs": 39,
+    "databaseCalls": "0"
+  },
+  {
+    "variant": "C",
+    "sample": "deck",
+    "width": 1200,
+    "height": 630,
+    "bytes": 56993,
+    "localRenderMs": 80,
+    "databaseCalls": "0"
+  },
+  {
+    "variant": "C",
+    "sample": "bundle",
+    "width": 1200,
+    "height": 630,
+    "bytes": 23237,
+    "localRenderMs": 33,
+    "databaseCalls": "0"
+  },
+  {
+    "variant": "C",
+    "sample": "long",
+    "width": 1200,
+    "height": 630,
+    "bytes": 84871,
+    "localRenderMs": 79,
+    "databaseCalls": "0"
+  },
+  {
+    "variant": "C",
+    "sample": "glyphs",
+    "width": 1200,
+    "height": 630,
+    "bytes": 64728,
+    "localRenderMs": 82,
+    "databaseCalls": "0"
+  },
+  {
+    "variant": "C",
+    "sample": "missing",
+    "width": 1200,
+    "height": 630,
+    "bytes": 19135,
+    "localRenderMs": 32,
+    "databaseCalls": "0"
+  }
+]

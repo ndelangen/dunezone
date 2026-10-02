@@ -1,0 +1,427 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Social card review | Dune Zone</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #101a1b;
+        color: #ece6d0;
+        font:
+          16px/1.5 system-ui,
+          sans-serif;
+        padding: 36px 36px 110px;
+      }
+      main {
+        max-width: 1360px;
+        margin: auto;
+      }
+      header {
+        display: flex;
+        justify-content: space-between;
+        gap: 25px;
+        align-items: start;
+      }
+      h1 {
+        font-size: 32px;
+        font-weight: 550;
+        letter-spacing: -1px;
+        margin: 8px 0;
+      }
+      h2 {
+        font-size: 19px;
+        margin: 0 0 12px;
+        font-weight: 550;
+      }
+      p {
+        margin: 8px 0;
+        color: #b9c4bc;
+      }
+      .eyebrow {
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 3px;
+        color: #d6c891;
+      }
+      a {
+        color: #dccb91;
+      }
+      button,
+      select,
+      input,
+      textarea {
+        font: inherit;
+      }
+      button,
+      select {
+        background: #213232;
+        color: #eee7cf;
+        border: 1px solid #677267;
+        border-radius: 7px;
+        padding: 9px 14px;
+      }
+      button {
+        cursor: pointer;
+      }
+      button:focus-visible,
+      select:focus-visible,
+      input:focus-visible,
+      textarea:focus-visible {
+        outline: 2px solid #e2cc91;
+        outline-offset: 3px;
+      }
+      button[aria-pressed="true"] {
+        background: #d6c891;
+        color: #172e30;
+      }
+      .review {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 360px;
+        gap: 28px;
+        margin-top: 25px;
+      }
+      .large {
+        width: 100%;
+        aspect-ratio: 1200/630;
+        display: block;
+        background: #213332;
+      }
+      .caption {
+        display: flex;
+        justify-content: space-between;
+        font-size: 13px;
+        color: #a7b8ac;
+        margin-top: 10px;
+      }
+      .feed {
+        background: #f7f5f0;
+        color: #1d2929;
+        border-radius: 10px;
+        overflow: hidden;
+      }
+      .feed img {
+        width: 100%;
+        display: block;
+        aspect-ratio: 1200/630;
+      }
+      .feed-copy {
+        padding: 14px;
+      }
+      .feed-copy p {
+        color: #62706b;
+        font-size: 13px;
+      }
+      .feed-copy strong {
+        display: block;
+        font-size: 17px;
+      }
+      .controls {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 24px;
+        margin-top: 28px;
+        border-top: 1px solid #3a4945;
+        padding-top: 24px;
+      }
+      label {
+        display: block;
+        font-size: 13px;
+        color: #cbd4c8;
+        margin-bottom: 6px;
+      }
+      input,
+      textarea {
+        width: 100%;
+        color: #ece6d0;
+        background: #182626;
+        border: 1px solid #52645b;
+        border-radius: 5px;
+        padding: 10px;
+      }
+      textarea {
+        height: 92px;
+        resize: vertical;
+      }
+      .note {
+        font-size: 13px;
+      }
+      details {
+        margin-top: 18px;
+        font-size: 13px;
+      }
+      pre {
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        color: #a7b8ac;
+        font-size: 12px;
+      }
+      nav {
+        position: fixed;
+        z-index: 2;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: #ece5cd;
+        padding: 8px;
+        border-radius: 40px;
+        box-shadow: 0 4px 24px #0008;
+        white-space: nowrap;
+      }
+      nav button {
+        border: 0;
+        background: transparent;
+        color: #192c2b;
+        padding: 10px 17px;
+        border-radius: 25px;
+      }
+      nav button[aria-pressed="true"] {
+        background: #193333;
+        color: #eee7cf;
+      }
+      .variant-title {
+        margin-top: 30px;
+      }
+      .cases {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-top: 14px;
+      }
+      .case {
+        font-size: 13px;
+      }
+      .error {
+        color: #ffb59c;
+      }
+      #renderStatus {
+        font-size: 13px;
+      }
+      #sourceNote {
+        max-width: 880px;
+      }
+      @media (max-width: 850px) {
+        body {
+          padding: 22px 18px 115px;
+        }
+        header {
+          display: block;
+        }
+        .review {
+          grid-template-columns: 1fr;
+        }
+        .feed {
+          max-width: 360px;
+        }
+        .controls {
+          grid-template-columns: 1fr;
+        }
+        nav {
+          gap: 0;
+          max-width: 98vw;
+        }
+        nav button {
+          font-size: 12px;
+          padding: 9px 11px;
+        }
+        .large {
+          min-width: 0;
+        }
+        h1 {
+          font-size: 26px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <div>
+          <div class="eyebrow">Dune Zone / design prototype</div>
+          <h1>What should a shared link look like?</h1>
+          <p>Three layouts, the same content. Nothing here changes a saved faction or asset.</p>
+        </div>
+        <div>
+          <label for="sample">Example</label
+          ><select id="sample"></select>
+        </div>
+      </header>
+      <section class="variant-title">
+        <h2 id="variantTitle"></h2>
+        <p id="variantDescription"></p>
+        <p class="note" id="sourceNote"></p>
+      </section>
+      <div class="review">
+        <section>
+          <img class="large" id="preview" alt="Generated social preview" />
+          <div class="caption">
+            <span>1200 × 630 PNG, fitted to this space</span><a id="full" target="_blank">Open full size</a>
+          </div>
+          <p id="renderStatus" role="status"></p>
+        </section>
+        <aside>
+          <h2>At social-feed size</h2>
+          <div class="feed">
+            <img id="small" alt="The same PNG at 360 pixels wide" />
+            <div class="feed-copy">
+              <p>DUNE.ZONE</p>
+              <strong id="feedName"></strong>
+              <p id="feedDescription"></p>
+            </div>
+          </div>
+          <p class="note">Illustrative link card. Platforms choose their own surrounding text and cache timing.</p>
+        </aside>
+      </div>
+      <div class="controls">
+        <div>
+          <label for="name">Name</label><input id="name" maxlength="180" />
+          <p class="note">The image caps names at 78 characters. Long names keep a readable size.</p>
+        </div>
+        <div>
+          <label for="excerpt">Excerpt</label><textarea id="excerpt" maxlength="500"></textarea>
+          <p class="note">A and C show a bounded excerpt. B leaves the excerpt to the surrounding link card.</p>
+        </div>
+      </div>
+      <div class="cases" id="cases"></div>
+      <details>
+        <summary>Source and rendering details</summary>
+        <p id="source"></p>
+        <p id="textSource"></p>
+        <p>
+          PNG generation uses Satori and resvg WASM in local workerd. No browser capture or database read happens when
+          an image renders. These bundled public fixtures are for visual review only.
+        </p>
+        <pre id="state"></pre>
+      </details>
+    </main>
+    <nav aria-label="Layout variants">
+      <button id="prev" aria-label="Previous layout">←</button><button data-variant="A">A · Text + art</button
+      ><button data-variant="B">B · Artwork</button><button data-variant="C">C · Typography</button
+      ><button id="next" aria-label="Next layout">→</button>
+    </nav>
+    <script type="module">
+      const variants = {
+        A: [
+          "Text and artwork",
+          "A readable name and excerpt beside the complete artwork. Closest to the earlier Test Faction card.",
+        ],
+        B: ["Artwork first", "A large central object with a title band. No rules excerpt inside the image."],
+        C: ["Typography first", "The name leads on a light background. Artwork becomes a small identifying mark."],
+      };
+      const $ = (id) => document.getElementById(id);
+      const keys = Object.keys(variants);
+      const data = await fetch("/fixtures.json").then((r) => r.json());
+      const fixtures = data.fixtures;
+      const params = new URLSearchParams(location.search);
+      let variant = keys.includes(params.get("variant")) ? params.get("variant") : "A";
+      let current = fixtures.find((x) => x.id === params.get("sample")) || fixtures[0];
+      let timer;
+      for (const f of fixtures) {
+        const opt = document.createElement("option");
+        opt.value = f.id;
+        opt.textContent =
+          f.id === "long"
+            ? "Long name and excerpt"
+            : f.id === "glyphs"
+              ? "Latin glyphs and punctuation"
+              : f.id === "missing"
+                ? "Missing artwork"
+                : f.name + " / " + f.kind;
+        $("sample").append(opt);
+        const b = document.createElement("button");
+        b.className = "case";
+        b.textContent = opt.textContent;
+        b.onclick = () => select(f.id);
+        $("cases").append(b);
+      }
+      function render() {
+        const name = $("name").value,
+          text = $("excerpt").value;
+        const art = current.artwork ? current.artwork.split("/").pop().replace(".jpg", "") : "";
+        const input = { variant, name, text, kind: current.kind, shape: current.shape, art };
+        const query = new URLSearchParams(input);
+        const url = "/og.png?" + query;
+        $("variantTitle").textContent = variant + " / " + variants[variant][0];
+        $("variantDescription").textContent = variants[variant][1];
+        $("sourceNote").textContent = current.note;
+        $("feedName").textContent = name;
+        $("feedDescription").textContent = text || current.kind + " on Dune Zone";
+        $("state").textContent = JSON.stringify(
+          { ...input, fixture: current.id, capturedAt: data.capturedAt },
+          null,
+          2
+        );
+        $("source").replaceChildren();
+        const link = document.createElement("a");
+        link.href = current.source;
+        link.target = "_blank";
+        link.textContent = current.source;
+        $("source").append(link);
+        $("textSource").textContent =
+          "Original excerpt source: " + current.textSource + ". Edited fields are local to this page.";
+        const next = new URL(location);
+        next.searchParams.set("variant", variant);
+        next.searchParams.set("sample", current.id);
+        history.replaceState(null, "", next);
+        document
+          .querySelectorAll("[data-variant]")
+          .forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.variant === variant)));
+        $("renderStatus").textContent = "Rendering PNG…";
+        $("renderStatus").className = "";
+        $("preview").onload = () => {
+          $("renderStatus").textContent =
+            "PNG ready · " + $("preview").naturalWidth + " × " + $("preview").naturalHeight;
+          $("small").src = url;
+        };
+        $("preview").onerror = () => {
+          $("renderStatus").textContent = "The image could not render.";
+          $("renderStatus").className = "error";
+        };
+        $("preview").src = url;
+        $("full").href = url;
+      }
+      function select(id) {
+        current = fixtures.find((x) => x.id === id);
+        $("sample").value = id;
+        $("name").value = current.name;
+        $("excerpt").value = current.text;
+        render();
+      }
+      function cycle(direction) {
+        variant = keys[(keys.indexOf(variant) + direction + keys.length) % keys.length];
+        render();
+      }
+      $("prev").onclick = () => cycle(-1);
+      $("next").onclick = () => cycle(1);
+      document.querySelectorAll("[data-variant]").forEach(
+        (b) =>
+          (b.onclick = () => {
+            variant = b.dataset.variant;
+            render();
+          })
+      );
+      addEventListener("keydown", (e) => {
+        if (e.target.closest("input,textarea,select,[contenteditable]")) return;
+        if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+          e.preventDefault();
+          cycle(e.key === "ArrowLeft" ? -1 : 1);
+        }
+      });
+      $("sample").onchange = () => select($("sample").value);
+      for (const id of ["name", "excerpt"])
+        $(id).oninput = () => {
+          clearTimeout(timer);
+          timer = setTimeout(render, 250);
+        };
+      select(current.id);
+    </script>
+  </body>
+</html>
