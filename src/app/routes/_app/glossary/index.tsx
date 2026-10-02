@@ -1,25 +1,43 @@
-import { Anchor, Badge, Group, SimpleGrid, Stack, Text, TextInput, Title } from '@mantine/core';
+import { Badge, Group, Select, SimpleGrid, Stack, Text } from '@mantine/core';
 import { GLOSSARY, GLOSSARY_TOPICS } from '@shared/glossary/terms';
-import type { GlossaryTerm } from '@shared/glossary/terms';
+import type { GlossaryTerm, GlossaryTopic } from '@shared/glossary/terms';
 import { createFileRoute } from '@tanstack/react-router';
 import { PageTitle } from '@ui/block/PageTitle';
+import { Section } from '@ui/block/Section';
+import { StatusBadge } from '@ui/content/StatusBadge';
+import { TopicIcon } from '@ui/content/TopicIcon';
+import type { TopicIconTopic } from '@ui/content/TopicIcon';
+import { SearchRefine } from '@ui/control/SearchRefine';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
-import { Search } from 'lucide-react';
+import { Card } from '@ui/surface/Card';
+import { Toolbar } from '@ui/surface/Toolbar';
 import { useState } from 'react';
 
 import { pageHead } from '@app/routes/pageTitle';
 
 import styles from './index.module.css';
+import { TopicVisual } from './TopicVisual';
+
+const LOOKS = ['alternating', 'banner', 'cards'] as const;
+type Look = (typeof LOOKS)[number];
 
 export const Route = createFileRoute('/_app/glossary/')({
   head: () => pageHead('Glossary'),
+  validateSearch: (search: Record<string, unknown>): { look?: Look } =>
+    LOOKS.includes(search.look as Look) ? { look: search.look as Look } : {},
   component: GlossaryPage,
 });
 
-function avoidedWords(term: GlossaryTerm) {
-  return term.avoid.map((avoided) => avoided.word);
-}
+const TOPIC_ICONS: Record<GlossaryTopic, TopicIconTopic> = {
+  pieces: 'troops',
+  turn: 'turn',
+  battle: 'battle',
+  board: 'board',
+  spice: 'spice',
+  cards: 'cards',
+  factions: 'factions',
+};
 
 /* A search matches the preferred term or any word it replaces, so a reader can look up the word they were about to use. */
 function matches(term: GlossaryTerm, needle: string) {
@@ -30,30 +48,29 @@ function matches(term: GlossaryTerm, needle: string) {
   );
 }
 
-function TermEntry({ term }: { term: GlossaryTerm }) {
-  const avoided = avoidedWords(term);
+function SourceBadge({ term }: { term: GlossaryTerm }) {
   return (
-    <Stack gap="xs" id={term.id} className={styles.term}>
-      <Group gap="sm" align="baseline">
-        <Title order={3} size="h4">
-          {term.term}
-        </Title>
-        <Badge variant="light" color={term.source === 'rulebook' ? 'dune' : 'gray'} size="sm">
-          {term.source === 'rulebook' ? 'Rulebook' : 'Dune Zone'}
-        </Badge>
-      </Group>
+    <StatusBadge tone={term.source === 'rulebook' ? 'neutral' : 'brand'}>
+      {term.source === 'rulebook' ? 'Rulebook' : 'Dune Zone'}
+    </StatusBadge>
+  );
+}
+
+function TermBody({ term }: { term: GlossaryTerm }) {
+  return (
+    <Stack gap="xs">
       <Text>{term.explanation}</Text>
       <Text c="dimmed" size="sm">
         {term.reason}
       </Text>
-      {avoided.length > 0 ? (
+      {term.avoid.length > 0 ? (
         <Group gap="xs">
           <Text size="sm" fw={600}>
             Say {term.term.toLowerCase()} instead of
           </Text>
-          {avoided.map((word) => (
-            <Badge key={word} variant="outline" color="gray" size="sm" tt="none" className={styles.avoided}>
-              {word}
+          {term.avoid.map((avoided) => (
+            <Badge key={avoided.word} variant="outline" color="gray" size="sm" tt="none" className={styles.avoided}>
+              {avoided.word}
             </Badge>
           ))}
         </Group>
@@ -62,75 +79,144 @@ function TermEntry({ term }: { term: GlossaryTerm }) {
   );
 }
 
+function TermSection({ term }: { term: GlossaryTerm }) {
+  return (
+    <Section id={term.id} className={styles.term} title={term.term} action={<SourceBadge term={term} />}>
+      <TermBody term={term} />
+    </Section>
+  );
+}
+
+type TopicProps = { topic: (typeof GLOSSARY_TOPICS)[number]; terms: GlossaryTerm[]; index: number };
+
+/* Look 1: the picture and the terms side by side on one pane, swapping sides from one topic to the next. */
+function AlternatingTopic({ topic, terms, index }: TopicProps) {
+  return (
+    <Surface padding="lg">
+      <div className={styles.split} data-flip={index % 2 === 1 || undefined}>
+        <div className={styles.visual}>
+          <TopicVisual topic={topic.id} />
+        </div>
+        <Stack gap="lg">
+          {terms.map((term) => (
+            <TermSection key={term.id} term={term} />
+          ))}
+        </Stack>
+      </div>
+    </Surface>
+  );
+}
+
+/* Look 2: the picture as a band across the top of the pane, the terms in two columns below it. */
+function BannerTopic({ topic, terms }: TopicProps) {
+  return (
+    <Surface padding="lg">
+      <Stack gap="lg">
+        <div className={styles.band}>
+          <TopicVisual topic={topic.id} />
+        </div>
+        <SimpleGrid cols={{ base: 1, md: 2 }} spacing="xl" verticalSpacing="lg">
+          {terms.map((term) => (
+            <TermSection key={term.id} term={term} />
+          ))}
+        </SimpleGrid>
+      </Stack>
+    </Surface>
+  );
+}
+
+/* Look 3: every term on its own card, with the picture as a tall pane leading the grid on alternating sides. */
+function CardsTopic({ topic, terms, index }: TopicProps) {
+  return (
+    <div className={styles.cardGrid} data-flip={index % 2 === 1 || undefined}>
+      <Surface padding="lg" className={styles.cardVisual}>
+        <TopicVisual topic={topic.id} />
+      </Surface>
+      {terms.map((term) => (
+        <Card key={term.id} title={term.term} action={<SourceBadge term={term} />} className={styles.term}>
+          <div id={term.id}>
+            <TermBody term={term} />
+          </div>
+        </Card>
+      ))}
+    </div>
+  );
+}
+
+const TOPIC_LOOKS: Record<Look, (props: TopicProps) => React.ReactNode> = {
+  alternating: AlternatingTopic,
+  banner: BannerTopic,
+  cards: CardsTopic,
+};
+
 function GlossaryPage() {
+  const { look = 'alternating' } = Route.useSearch();
   const [query, setQuery] = useState('');
+  const [onlyTopic, setOnlyTopic] = useState<GlossaryTopic | null>(null);
   const needle = query.trim().toLowerCase();
-  const topics = GLOSSARY_TOPICS.map((topic) => ({
-    ...topic,
-    terms: GLOSSARY.filter((term) => term.topic === topic.id && matches(term, needle)),
-  })).filter((topic) => topic.terms.length > 0);
+  const topics = GLOSSARY_TOPICS.filter((topic) => !onlyTopic || topic.id === onlyTopic)
+    .map((topic) => ({
+      topic,
+      terms: GLOSSARY.filter((term) => term.topic === topic.id && matches(term, needle)),
+    }))
+    .filter((entry) => entry.terms.length > 0);
+  const Topic = TOPIC_LOOKS[look];
+  const topicSelect = (label?: string) => (
+    <Select
+      aria-label={label ? undefined : 'Topic'}
+      label={label}
+      placeholder="All topics"
+      clearable
+      data={GLOSSARY_TOPICS.map((topic) => ({ value: topic.id, label: topic.label }))}
+      value={onlyTopic}
+      onChange={(value) => setOnlyTopic(value as GlossaryTopic | null)}
+    />
+  );
+
   return (
     <PageLayout>
       <PageLayout.Header>
-        <SimpleGrid cols={{ base: 1, sm: 2 }} maw="58rem" spacing="xl" w="100%">
-          <Stack gap="sm" justify="center">
-            <PageTitle eyebrow="Words we use" title="Glossary" />
-            <Text size="lg">
-              Every game idea on Dune Zone has one name. This page explains each one and why we chose it.
-            </Text>
-          </Stack>
-          <Surface padding="lg">
-            <Stack gap="sm">
-              <Title order={2} size="h3">
-                One word for one idea
-              </Title>
-              <Text>
-                We follow the wording of the 2019 Dune rulebook wherever it has one, so what you read here matches the
-                box on your table. The one exception is troops, which the rulebook calls forces.
-              </Text>
-              <Text c="dimmed" size="sm">
-                When you write rules or answers on Dune Zone, we point out words from the &ldquo;instead of&rdquo;
-                lists. You can always keep your own wording.
-              </Text>
-            </Stack>
-          </Surface>
-        </SimpleGrid>
+        <Stack gap="sm" maw="48rem">
+          <PageTitle eyebrow="Words we use" title="Glossary" />
+          <Text size="lg">
+            Every game idea on Dune Zone has one name. We follow the 2019 rulebook, except that we say troops where it
+            says forces. When you write on Dune Zone we point out the other words, and you can always keep your own.
+          </Text>
+        </Stack>
       </PageLayout.Header>
+      <PageLayout.Toolbar>
+        <Toolbar>
+          <Toolbar.Center>
+            <SearchRefine
+              label="Glossary filters"
+              search={{
+                value: query,
+                onChange: setQuery,
+                onCommit: () => undefined,
+                label: 'Search the glossary',
+                placeholder: 'Search, for example forces or combat',
+              }}
+              refine={{ label: 'Refine glossary', active: onlyTopic ? 1 : 0, content: topicSelect('Topic') }}
+            >
+              {topicSelect()}
+            </SearchRefine>
+          </Toolbar.Center>
+        </Toolbar>
+      </PageLayout.Toolbar>
       <PageLayout.Content>
         <Stack gap="xl">
-          <Surface padding="lg">
-            <Stack gap="sm">
-              <TextInput
-                leftSection={<Search size={16} />}
-                placeholder="Search, for example forces or combat"
-                value={query}
-                onChange={(event) => setQuery(event.currentTarget.value)}
-                aria-label="Search the glossary"
-              />
-              <Group gap="md">
-                {topics.map((topic) => (
-                  <Anchor key={topic.id} href={`#topic-${topic.id}`}>
-                    {topic.label}
-                  </Anchor>
-                ))}
-              </Group>
-            </Stack>
-          </Surface>
           {topics.length === 0 ? <Text c="dimmed">No term matches that search.</Text> : null}
-          {topics.map((topic) => (
-            <Surface key={topic.id} padding="xl">
-              <Stack gap="lg" id={`topic-${topic.id}`} className={styles.topic}>
-                <Stack gap={0}>
-                  <Title order={2}>{topic.label}</Title>
-                  <Text c="dimmed">{topic.summary}</Text>
-                </Stack>
-                <SimpleGrid cols={{ base: 1, md: 2 }} spacing="xl" verticalSpacing="lg">
-                  {topic.terms.map((term) => (
-                    <TermEntry key={term.id} term={term} />
-                  ))}
-                </SimpleGrid>
-              </Stack>
-            </Surface>
+          {topics.map(({ topic, terms }, index) => (
+            <Section
+              key={topic.id}
+              id={`topic-${topic.id}`}
+              className={styles.topic}
+              icon={<TopicIcon topic={TOPIC_ICONS[topic.id]} size={20} />}
+              title={topic.label}
+              description={topic.summary}
+            >
+              <Topic topic={topic} terms={terms} index={index} />
+            </Section>
           ))}
         </Stack>
       </PageLayout.Content>

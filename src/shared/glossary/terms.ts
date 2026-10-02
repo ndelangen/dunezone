@@ -45,7 +45,7 @@ export type GlossaryTerm = {
 
 export const GLOSSARY_TOPICS: readonly { id: GlossaryTopic; label: string; summary: string }[] = [
   { id: 'pieces', label: 'Pieces on the board', summary: 'The tokens each faction moves around Arrakis.' },
-  { id: 'turn', label: 'The turn', summary: 'How one round of play is divided into phases.' },
+  { id: 'turn', label: 'The turn', summary: 'How one turn of play is divided into phases.' },
   { id: 'battle', label: 'Battle', summary: 'How factions settle who stays in a contested territory.' },
   { id: 'board', label: 'The board', summary: 'The places on the map of Arrakis.' },
   { id: 'spice', label: 'Spice', summary: 'The one currency of the game.' },

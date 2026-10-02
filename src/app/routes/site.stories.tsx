@@ -45,7 +45,7 @@ export const PublicationJobsSignedOut = meta.story({
 export const FuturePlans = meta.story({ args: { path: '/future-plans' } });
 export const Privacy = meta.story({ args: { path: '/privacy' } });
 
-/** The hard-coded glossary, one Surface per topic, every term reachable by its anchor and found by the word it replaces. */
+/** The hard-coded glossary: one Section per topic with a picture, every term reachable by its anchor and found by the word it replaces. */
 export const Glossary = meta.story({
   args: { path: '/glossary' },
   play: async ({ canvasElement }) => {
@@ -53,7 +53,19 @@ export const Glossary = meta.story({
     await expect(page.findByRole('heading', { name: 'Troop' }, { timeout: 30_000 })).resolves.toBeVisible();
     expect(canvasElement.ownerDocument.getElementById('battle')).not.toBeNull();
     await userEvent.type(page.getByRole('textbox', { name: 'Search the glossary' }), 'combat');
-    await expect(page.findByRole('heading', { name: 'Battle' })).resolves.toBeVisible();
+    await expect(page.findByRole('heading', { name: 'Battle', level: 3 })).resolves.toBeVisible();
     expect(page.queryByRole('heading', { name: 'Troop' })).toBeNull();
   },
 });
+
+/** The same page at phone width, where each picture sits above its terms. */
+export const GlossaryPhone = meta.story({
+  args: { path: '/glossary' },
+  globals: { viewport: { value: 'appMobile' } },
+});
+
+/** Prototype look: the picture as a band across the top of each topic. */
+export const GlossaryBanner = meta.story({ args: { path: '/glossary?look=banner' } });
+
+/** Prototype look: every term on its own card beside a tall picture. */
+export const GlossaryCards = meta.story({ args: { path: '/glossary?look=cards' } });
