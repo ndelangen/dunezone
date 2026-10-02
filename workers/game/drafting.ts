@@ -150,6 +150,23 @@ export function draftAfterRosterChange(draft: DraftState | undefined, departed?:
   return changed({ ...draft, picks: without(draft.picks), bans: without(draft.bans) });
 }
 
+/**
+ * A draft rewritten outside any command, by a catalogue refresh or a set-aside.
+ * One that clears readiness commits as a change of its own, so a Ready sent against the pool before it is refused like one crossing a pick.
+ */
+export function rewrittenDraft(snapshot: StoredSnapshot, draft: DraftState): StoredSnapshot {
+  const cleared = (snapshot.draft?.ready ?? []).some((seat) => !draft.ready.includes(seat));
+  if (!cleared) {
+    return { ...snapshot, draft };
+  }
+  const table = accepted(
+    tableForViewer(snapshot, SPECTATOR_SEAT),
+    'draft-pool',
+    'The drafted pool changed, so readiness cleared.'
+  );
+  return { ...nextSnapshot(snapshot, table), draft };
+}
+
 /** What a catalogue refresh found of the factions set aside when it began: those it judged, and which of them stay aside. */
 export type SetAsideJudgement = { judged: readonly string[]; stillAside: Readonly<Record<string, string>> };
 
