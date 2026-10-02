@@ -133,7 +133,12 @@ function battleFocus(table: TableProjection) {
   const own = rosterSeat(table.snapshot.roster, table.viewer.viewerSeat)?.faction?.id;
   /* The same "in play" test that shows the Battle tab: a hosted game in play, or a table with no stage. */
   const stage = table.snapshot.stage;
-  if ((stage !== undefined && stage !== 'play') || !battle || !own || !battle.sides.some((side) => side?.factionId === own)) {
+  if (
+    (stage !== undefined && stage !== 'play') ||
+    !battle ||
+    !own ||
+    !battle.sides.some((side) => side?.factionId === own)
+  ) {
     return null;
   }
   return { key: 'battle', token: battle.id };
