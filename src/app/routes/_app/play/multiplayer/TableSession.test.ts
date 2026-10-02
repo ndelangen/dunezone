@@ -78,6 +78,12 @@ function deliverGap(completedCommandId?: string) {
   });
 }
 
+/* A tab that lost its connection keeps the last table on screen, read-only, until a fresh view. */
+function expectLocked(client: TableSession) {
+  expect(table(client)).toMatchObject({ reconnecting: true, canInteract: false, affordances: [], pointers: [] });
+  expect(table(client).state.draftMove).toBeNull();
+}
+
 function table(client: TableSession) {
   const result = client.getSnapshot().table;
   if (!result) {
@@ -358,7 +364,7 @@ describe('hosted table admission', () => {
     client.publishPointer([0, 0.38, 0]);
     socket().deliver({ type: 'admission', status: 'suspended' });
     const messages = socket().sent.length;
-    expect(client.getSnapshot().table).toBeNull();
+    expectLocked(client);
     client.moveStormBy(1);
     client.updateGesture([1, 0.38, 1]);
     client.rotateSelected(1);
@@ -371,6 +377,19 @@ describe('hosted table admission', () => {
     expect(client.getSnapshot().table?.state.draftMove).toBeNull();
     client.moveStormBy(1);
     expect(socket().sent.at(-1)).toMatchObject({ type: 'command', action: { kind: 'storm', direction: 1 } });
+  });
+
+  test('the locked table keeps one frozen clock and does not outlive the route', async () => {
+    const client = await connected();
+    socket().deliver({ type: 'admission', status: 'suspended' });
+    const clock = table(client).serverNow;
+    const before = client.getSnapshot();
+    client.setHoveredPiece('harkonnen-force-stack');
+    expect(client.getSnapshot()).not.toBe(before);
+    expect(table(client).serverNow).toBe(clock);
+    disconnect?.();
+    disconnect = undefined;
+    expect(client.getSnapshot().table).toBeNull();
   });
 
   test('a definitive denial cannot be undone by a later view and never reconnects itself', async () => {
@@ -519,7 +538,7 @@ describe('hosted table admission', () => {
     await vi.advanceTimersByTimeAsync(1000);
     socket().open();
     old.deliver(view({ epoch: 'old' }));
-    expect(client.getSnapshot().table).toBeNull();
+    expectLocked(client);
     expect(issue).toHaveBeenCalledTimes(2);
     expect(socket().sent).toEqual([{ type: 'admit', ticket: '2'.repeat(64) }]);
     authorize(initialSnapshot(), { ...viewer, connectionId: 'connection-two' });
@@ -570,12 +589,13 @@ describe('hosted table admission', () => {
     async (code) => {
       const client = await connected();
       socket().close(code);
-      expect(client.getSnapshot().table).toBeNull();
+      const assertTable = () => (code === 4401 ? expect(client.getSnapshot().table).toBeNull() : expectLocked(client));
+      assertTable();
       await vi.advanceTimersByTimeAsync(code === 4413 ? 4999 : 999);
       expect(Socket.instances).toHaveLength(1);
       await vi.advanceTimersByTimeAsync(1);
       expect(Socket.instances).toHaveLength(code === 4401 ? 1 : 2);
-      expect(client.getSnapshot().table).toBeNull();
+      assertTable();
     }
   );
 
@@ -1205,7 +1225,7 @@ describe('fresh reconnect recovery', () => {
       const old = socket();
       expect(old.sent.some((message) => message.type === 'drop')).toBe(true);
       old.close(1006);
-      expect(client.getSnapshot().table).toBeNull();
+      expectLocked(client);
       await vi.advanceTimersByTimeAsync(1000);
       socket().open();
       const saved = committed

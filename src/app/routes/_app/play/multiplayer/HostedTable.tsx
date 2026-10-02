@@ -1,4 +1,4 @@
-import { Anchor, Button, Group, List, NumberInput, Select, Stack, Text } from '@mantine/core';
+import { Anchor, Button, Group, List, Loader, NumberInput, Select, Stack, Text } from '@mantine/core';
 import { snapshotFactionLabels } from '@shared/play/factionLabels';
 import { emptyPublicControls } from '@shared/play/inventory';
 import type { SpawnSelection } from '@shared/play/inventory';
@@ -11,6 +11,7 @@ import { FormError } from '@ui/block/FormError';
 import { Section } from '@ui/block/Section';
 import { InlineFormattedTextSource } from '@ui/content/FormattedText';
 import type { TopicIconTopic } from '@ui/content/TopicIcon';
+import { Surface } from '@ui/surface/Surface';
 import { useContext, useEffect, useReducer, useState, useSyncExternalStore } from 'react';
 import type { ReactNode } from 'react';
 
@@ -86,7 +87,7 @@ function PlaybackControls({ client, table }: Pick<ConnectionControlsProps, 'clie
         ) : (
           <Button
             variant="default"
-            disabled={historyPending || !!table.state.draftMove}
+            disabled={historyPending || !!table.state.draftMove || table.reconnecting}
             onClick={() => client.requestHistory(0)}
           >
             Replay from start
@@ -437,6 +438,7 @@ function SharedInventory({ client, table }: Pick<ConnectionControlsProps, 'clien
             <Select
               label="Catalogue asset"
               searchable
+              disabled={table.reconnecting}
               placeholder="Choose a deck, bundle or token"
               data={entries.map((entry) => ({ value: `${entry.type}/${entry.slug}`, label: entry.name }))}
               value={picker.selection ? `${picker.selection.type}/${picker.selection.slug}` : null}
@@ -609,14 +611,36 @@ function SpiceHistory({ client, table }: Pick<ConnectionControlsProps, 'client' 
   );
 }
 
+/* While a lost connection is restored the last table stays on screen, read-only, under this line. */
+function ReconnectingBar({ table }: Readonly<{ table: TableProjection }>) {
+  if (!table.reconnecting) {
+    return null;
+  }
+  return (
+    <Surface padding="sm">
+      <Group gap="sm" wrap="nowrap" role="status">
+        <Loader size="xs" />
+        <Text size="sm" fw={700}>
+          Reconnecting
+        </Text>
+        <Text size="sm" c="dimmed">
+          The table shows its last saved state. Actions are paused until it is back.
+        </Text>
+      </Group>
+    </Surface>
+  );
+}
+
 function ConnectedTable({
   client,
   table,
   error,
+  connection,
 }: Readonly<{
   client: TableSession;
   table: TableProjection;
   error: string | null;
+  connection: string;
 }>) {
   const progress = tableProgressFor(table.snapshot.phase, table.snapshot.phases);
   const celebration = useResultCelebration(table);
@@ -640,7 +664,7 @@ function ConnectedTable({
   return (
     <TabletopSessionProvider session={client} table={table}>
       {/* A boxless wrapper carries the connection state the browser verification waits on, whichever tab is open. */}
-      <div data-connection="authorized" data-revision={table.liveRevision} style={{ display: 'contents' }}>
+      <div data-connection={connection} data-revision={table.liveRevision} style={{ display: 'contents' }}>
         <GameTable
           seatCount={table.snapshot.roster?.seatCount ?? DEFAULT_TABLE_SEAT_COUNT}
           tableProgress={progress}
@@ -669,6 +693,7 @@ function ConnectedTable({
           }
           decisionBar={
             <Stack data-decision-bar gap="xs">
+              <ReconnectingBar table={table} />
               <ResultDecisionBar client={client} table={table} />
               <RemovalDecisionBar
                 votes={removalVotes}
@@ -877,7 +902,7 @@ export default function HostedTable({ gameId, exitControl }: Readonly<{ gameId: 
   }
   return (
     <ServerClockContext.Provider value={view.table.serverNow}>
-      <ConnectedTable client={client} table={view.table} error={view.error} />
+      <ConnectedTable client={client} table={view.table} error={view.error} connection={view.status} />
     </ServerClockContext.Provider>
   );
 }
