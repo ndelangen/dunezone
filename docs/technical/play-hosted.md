@@ -194,12 +194,30 @@ step follows a deployment. The directory hides pending fixtures.
 
 `createGame` refuses a session past its idle or total deadline, as `issueTicket` does
 (`livePlaySession` in `convex/lib/playAuthorization.ts`); Play queries read no clock, so a lapsed
-session's sign-in token bounds what it can still read. Creation then draws from two token buckets in
-`convex/lib/playRateLimits.ts`: `playCreatePerAccount` (capacity 3, refilling at 10 an hour) and the
-site-wide `playCreateGlobal` (capacity 20, refilling at 60 an hour). `playCreateQuota` checks both
-before spending either, so a site-wide refusal costs the account none of its own budget. Either
-refusal answers `rate_limited`, and the create page says "Too many games were created recently. Try
-again later."
+session's sign-in token bounds what it can still read.
+
+A player may be seated in at most `PLAY_SEAT_LIMIT` games, 30, set in
+`src/shared/play/participation.ts`. A game holds a seat for a player when the directory summary its
+Worker published last lists them in a seat, unless the game is finished, discarded or expired. A real
+game with no summary yet holds its creator's seat, because the creator is seated from creation.
+`atPlaySeatLimit` in `convex/lib/playSeats.ts` counts them from the games the player created
+(`play_games.by_creator_id`) and the games they entered (`play_game_accounts.by_user_id`), reading at
+most the newest 200 of each, so a seat in an older game can be missed. `createGame` refuses a player
+at the limit with `seat_limit` before it spends anything, and the create page shows the limit message.
+Joining is refused by the game Worker: `redeemTicket` answers `seatLimitReached` for the player,
+counted without the game being entered, and the room refuses that connection's `seat-request` with the
+same message. It also refuses a `seat-approve` while any admitted connection of the requester's
+reported the limit, telling the approver why. The flag is read once per admission, so a player who
+leaves a seat elsewhere reconnects to ask again, and requests pending in several games at once can
+each be approved, leaving a player a few seats over the limit. A missing flag, as an older Convex
+deployment answers, reads as not at the limit. `watchAuthorizations` does not carry the flag: counting
+for every registration in a batch of 64 would outgrow a query's reads, and the count's read set would
+rerun the watch whenever any of those games published a summary.
+
+Creation also draws from the token bucket `playCreatePerAccount` in `convex/lib/playRateLimits.ts`
+(capacity 3, refilling at 10 an hour). It bounds how fast an account creates games, not how many it
+holds open. A refusal answers `rate_limited`, and the create page says "Too many games were created
+recently. Try again later."
 
 The game Worker checks the supplied game secret and attempt with the fixed trusted Convex backend
 before creating state. Unknown, duplicate, expired and invalid requests get the same generic

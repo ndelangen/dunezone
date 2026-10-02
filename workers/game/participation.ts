@@ -9,6 +9,7 @@ import type { Viewer } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
 import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
 import type { TableRoster } from '../../src/shared/play/schema';
+import { PLAY_SEAT_LIMIT_APPROVAL_MESSAGE, PLAY_SEAT_LIMIT_MESSAGE } from '../../src/shared/play/seatLimit';
 import { eventId } from '../../src/shared/play/tableState';
 import type { ActorDirectory } from './actors';
 import { draftAfterRosterChange } from './drafting';
@@ -61,7 +62,13 @@ const seatMessages = {
 export class Participation {
   constructor(
     private readonly storage: DurableObjectStorage,
-    private readonly actors: ActorDirectory
+    private readonly actors: ActorDirectory,
+    /*
+     * Whether a user already holds the most seats one player may, as their admission to this room reported it.
+     * False for a user the room has no admission for, so a requester who has gone offline can still be approved.
+     * Requests pending in several games at once can each be approved, so a player can end up a few seats over the limit.
+     */
+    private readonly atSeatLimit: (userId: string) => boolean = () => false
   ) {
     storage.sql.exec(
       'CREATE TABLE IF NOT EXISTS seat_requests (request_id TEXT PRIMARY KEY, user_id TEXT, display_name TEXT NOT NULL, seat TEXT, state TEXT NOT NULL, created_at INTEGER NOT NULL, resolved_at INTEGER, approver_id TEXT, approver_name TEXT)'
@@ -107,6 +114,9 @@ export class Participation {
     }
     if (this.pendingRequestId(viewer.userId)) {
       throw new GameRejection('You already asked for a seat.');
+    }
+    if (this.atSeatLimit(viewer.userId)) {
+      throw new GameRejection(PLAY_SEAT_LIMIT_MESSAGE);
     }
     const target = this.requestedSeat(change, seat);
     const requestId = `seat-request-${snapshot.revision + 1}`;
@@ -171,6 +181,9 @@ export class Participation {
     /* The requester is re-checked when the approval takes effect: still here, still watching. */
     if (this.actors.seatFor(requester) !== SPECTATOR_SEAT) {
       throw new GameRejection('That player already holds a seat.');
+    }
+    if (this.atSeatLimit(requester)) {
+      throw new GameRejection(PLAY_SEAT_LIMIT_APPROVAL_MESSAGE);
     }
     const granted = this.grantedSeat(change, request.seat);
     const event = this.event(snapshot, 'seat-approve', seatMessages.joined(granted.id, viewer.viewerSeat));

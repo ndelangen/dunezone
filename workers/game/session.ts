@@ -154,7 +154,9 @@ export class GameSession {
   constructor(
     private readonly storage: DurableObjectStorage,
     /* What a fixture room seats and lays out: the hosted fixture's, unless a load entry supplies its own. */
-    private readonly fixturePlan: FixturePlan = hostedFixturePlan
+    private readonly fixturePlan: FixturePlan = hostedFixturePlan,
+    /* Whether a user is at the seat limit, which the host learns from each admission. */
+    atSeatLimit?: (userId: string) => boolean
   ) {
     this.log = new PublicLog(this.storage, () => (this.room ? logContext(this.room.snapshot) : 'Drafting'));
     this.actors = new ActorDirectory(this.storage, this.log);
@@ -165,7 +167,7 @@ export class GameSession {
     this.captures = new CaptureStore(this.storage);
     const sql = this.storage.sql;
     initializeSessionStorage(sql);
-    this.participation = new Participation(this.storage, this.actors);
+    this.participation = new Participation(this.storage, this.actors, atSeatLimit);
     this.swapping = new Swapping(this.storage, this.actors, new SetupSupply(this.storage, this.captures), this.log);
     this.actors.participation = this.participation;
     this.removal = new RemovalVotes(this.storage, this.actors, this.log);
