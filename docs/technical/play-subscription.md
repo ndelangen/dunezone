@@ -40,9 +40,11 @@ with a whole interval for its answer.
 
 A failure before the table has shown keeps its reason on screen through every retry, until a view
 arrives or the subscription stops: a socket that closes before its view, a dropped silent socket or
-a ticket request that fails reads "The table could not be reached. Reconnecting...", and a ticket
-the game turns away reads "The table is temporarily unavailable." A socket closed with 4401 is
-denied with "This login can no longer access the table." and does not retry. A socket that drops
+a ticket request that fails reads "The table could not be reached. Reconnecting...", a socket that
+cannot be opened reads "The table could not connect. Reconnecting...", and a ticket the game turns
+away reads "The table is temporarily unavailable." Two answers end the subscription instead of
+retrying: a `not_authorized` ticket answer is denied with "Sign in again to access the table.", and a
+socket closed with 4401 is denied with "This login can no longer access the table." A socket that drops
 after the table has shown reconnects without keeping a failure line, so a deploy's cold restart does
 not read as an outage.
 
