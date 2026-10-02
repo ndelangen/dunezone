@@ -28,9 +28,9 @@ describe('findTermHints', () => {
 
   test('leaves names and fixed phrases that contain an avoided word alone', () => {
     expect(summary('House Atreides plays Cheap Hero and sends troops to the Tleilaxu Tanks.')).toEqual([]);
-    expect(summary('Every house may send a hero to their tanks.')).toEqual([
+    expect(summary('Every house may send a commander to their tanks.')).toEqual([
       ['house', 'Faction'],
-      ['hero', 'Leader'],
+      ['commander', 'Leader'],
       ['tanks', 'Tleilaxu Tanks'],
     ]);
   });
@@ -54,6 +54,10 @@ describe('findTermHints', () => {
 
   test('returns hints in reading order', () => {
     expect(findTermHints('Deploy with your forces').map((hint) => hint.index)).toEqual([0, 17]);
+  });
+
+  test('leaves hero alone, since it names the leader on the faction shield', () => {
+    expect(findTermHints('Our hero leads two supporting leaders.')).toEqual([]);
   });
 
   test('leaves fight alone, since it is plain English', () => {

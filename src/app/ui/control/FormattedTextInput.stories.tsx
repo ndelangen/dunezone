@@ -85,6 +85,6 @@ export const MarksOnlyRejectsParagraphs = meta.story({
 export const WordingHints = meta.story({
   args: {
     label: 'Answer',
-    value: 'Ship your forces before combat, then fight with your best hero.',
+    value: 'Ship your forces before combat, then fight with your best commander.',
   },
 });
