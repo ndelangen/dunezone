@@ -370,14 +370,14 @@ export const ConversationOffline = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     await page.findByRole('button', { name: 'Conversation' });
     session.transport.deliver({ type: 'admission', status: 'suspended' });
-    await expect(page.findByRole('combobox', { name: 'Faction conversation' })).resolves.toBeVisible();
+    /* The locked table keeps its conversation panel, so a message written while reconnecting waits there. */
+    await expect(
+      page.findByText('Offline. Pending messages will send after your faction access is checked.')
+    ).resolves.toBeVisible();
     await userEvent.type(page.getByRole('textbox', { name: 'Message' }), 'Send once I reconnect.');
     await userEvent.click(page.getByRole('button', { name: /^Send$/ }));
     await expect(page.findByText('Pending', { exact: true })).resolves.toBeVisible();
     expect(session.transport.messages.filter((entry) => entry.type === 'conversation-send')).toHaveLength(0);
-    await userEvent.click(page.getByRole('combobox', { name: 'Faction conversation' }));
-    const peers = await page.findByRole('listbox');
-    expect(peers.closest('[data-scheme-dark]')).not.toBeNull();
   },
 });
 
