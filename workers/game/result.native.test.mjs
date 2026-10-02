@@ -377,7 +377,14 @@ describe('Determine winner and Continue playing', { timeout: 60_000 }, () => {
     expect(continued.snapshot.controls.ready).toEqual([]);
     offset += PHASE_CHANGE_COOLDOWN_MS + 1;
     await runtime.clock(offset);
-    expect(await rejected(owner, { kind: 'phase', direction: 1 })).toBe(true);
+    const alone = await sendCommand(owner, { kind: 'phase', direction: 1 });
+    expect(alone.reply).toMatchObject({
+      type: 'rejected',
+      message: 'Every seated player must be ready before advancing.',
+    });
+    await accepted(owner, { kind: 'ready', ready: true });
+    await accepted(other, { kind: 'ready', ready: true });
+    expect(await rejected(owner, { kind: 'phase', direction: 1 })).toBe(false);
   });
 
   it('closes an open sequence when the phase moves on', async () => {
