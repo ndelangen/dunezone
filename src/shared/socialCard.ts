@@ -5,7 +5,7 @@ import { matchPublishedPath } from './asset-publishing/publicationTargets';
 export const SOCIAL_CARD_PATH = '/social/image.png';
 export const SOCIAL_CARD_WIDTH = 1200;
 export const SOCIAL_CARD_HEIGHT = 630;
-export const SOCIAL_CARD_URL_LIMIT = 4096;
+const SOCIAL_CARD_URL_LIMIT = 4096;
 
 const artworkTypes = new Set([
   'faction-token',
