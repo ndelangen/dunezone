@@ -1,7 +1,7 @@
 import { expect, test } from 'vitest';
 
 import { hostedFixturePlan } from './fixture';
-import { dealPredictionCard, revealPlacedPredictions } from './predictionCards';
+import { dealPredictionCard, holdsPredictionCard, revealPlacedPredictions } from './predictionCards';
 import type { StoredSnapshot } from './state';
 import { RoomProjection } from './state';
 
@@ -87,4 +87,29 @@ test('placing the card on the table reveals its prediction once and lays it face
 test('a card still in the hand reveals nothing', () => {
   const dealt = dealPredictionCard(locked(), 'faction-step-1');
   expect(revealPlacedPredictions(dealt, 50)).toBe(dealt);
+});
+
+test('a game whose prediction card front is unpublished deals no card rather than a blank one', () => {
+  expect(
+    dealPredictionCard(locked({ atreides: { front: null, back: FACES.back } }), 'faction-step-1').factionInventories
+      .atreides
+  ).toEqual([]);
+});
+
+test('a prediction card is never a battle card', () => {
+  const card = dealPredictionCard(locked(), 'faction-step-1').factionInventories.atreides![0]!;
+  expect(holdsPredictionCard(card)).toBe(true);
+  expect(
+    holdsPredictionCard({ ...card, items: [{ ...card.items[0]!, artwork: { ...FACES, type: 'card-treachery' } }] })
+  ).toBe(false);
+});
+
+test('placing a card onto a stack lays only the unrevealed prediction face down', () => {
+  const dealt = dealPredictionCard(locked(), 'faction-step-1');
+  const card = dealt.factionInventories.atreides![0]!;
+  const shown = { ...card.items[0]!, id: 'shown', artwork: { ...card.items[0]!.artwork!, prediction: undefined } };
+  const stack = { ...card, items: [shown, ...card.items] };
+  const placed: StoredSnapshot = { ...dealt, table: { ...dealt.table, pieces: [stack] } };
+  const [piece] = revealPlacedPredictions(placed, 50).table.pieces;
+  expect(piece!.items.map((item) => item.faceUp)).toEqual([true, false]);
 });

@@ -22,7 +22,14 @@ const INK = '#1c140d';
 const OUTLINE = 6;
 const SCALE = 0.5;
 
+const RETRY_MS = 5000;
+
 const faces = new Map<string, Promise<HTMLCanvasElement>>();
+
+/** One overlay per logo and turn; the cache and the hook both name faces by this key. */
+function faceKey(logo: string, turn: number) {
+  return `${logo}|${turn}`;
+}
 
 function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
@@ -89,7 +96,7 @@ async function drawFace(logo: string, turn: number): Promise<HTMLCanvasElement> 
 
 /** The overlay for one choice, drawn once per logo and turn and shared by every face that shows it. */
 function predictionFace(logo: string, turn: number): Promise<HTMLCanvasElement> {
-  const key = `${logo}|${turn}`;
+  const key = faceKey(logo, turn);
   let face = faces.get(key);
   if (!face) {
     face = drawFace(logo, turn);
@@ -102,28 +109,36 @@ function predictionFace(logo: string, turn: number): Promise<HTMLCanvasElement> 
 /** The logo and turn a prediction draws, or null when it has none to draw. */
 function faceSource(prediction: CardPrediction | undefined, logos: Readonly<Record<string, string>>) {
   const logo = prediction && logos[prediction.factionId];
-  return logo ? { logo, turn: prediction.turn, key: `${logo}|${prediction.turn}` } : null;
+  return logo ? { logo, turn: prediction.turn, key: faceKey(logo, prediction.turn) } : null;
 }
 
 /** The overlay canvas for a prediction, or null while it draws, when there is none, or when the faction has no logo. */
 export function usePredictionFace(prediction: CardPrediction | undefined): HTMLCanvasElement | null {
   const source = faceSource(prediction, useContext(PredictionLogosContext));
   const [face, setFace] = useState<{ key: string; canvas: HTMLCanvasElement } | null>(null);
+  /* A logo that failed to load is tried again, as the published face beneath it is. */
+  const [attempt, setAttempt] = useState(0);
   const key = source?.key ?? null;
   useEffect(() => {
     if (!source) {
       return;
     }
     let live = true;
+    let retry: ReturnType<typeof setTimeout> | undefined;
     predictionFace(source.logo, source.turn).then(
       (canvas) => live && setFace({ key: source.key, canvas }),
-      () => undefined
+      () => {
+        if (live) {
+          retry = setTimeout(() => setAttempt((value) => value + 1), RETRY_MS);
+        }
+      }
     );
     return () => {
       live = false;
+      clearTimeout(retry);
     };
     // The key names the logo and turn the source carries.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key]);
+  }, [key, attempt]);
   return face?.key === key ? face.canvas : null;
 }

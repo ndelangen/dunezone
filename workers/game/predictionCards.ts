@@ -44,7 +44,7 @@ function predictionCard(
 export function dealPredictionCard(snapshot: StoredSnapshot, stepId: string): StoredSnapshot {
   const prediction = snapshot.privatePredictions[stepId];
   const faces = prediction && snapshot.predictionFaces[prediction.factionId];
-  if (!prediction || !faces) {
+  if (!prediction || !faces?.front) {
     return snapshot;
   }
   const hand = snapshot.factionInventories[prediction.factionId] ?? [];
@@ -57,12 +57,20 @@ export function dealPredictionCard(snapshot: StoredSnapshot, stepId: string): St
   };
 }
 
+/** The unrevealed prediction a card names, if any. */
+function unrevealedStep(snapshot: StoredSnapshot, item: StoredPiece['items'][number]): string | null {
+  const stepId = item.artwork?.prediction?.stepId;
+  return stepId && snapshot.privatePredictions[stepId]?.revealedAt === null ? stepId : null;
+}
+
 /** The unrevealed predictions whose cards lie in a piece on the table. */
 function unrevealedIn(snapshot: StoredSnapshot, piece: StoredPiece): string[] {
-  return piece.items.flatMap((item) => {
-    const stepId = item.artwork?.prediction?.stepId;
-    return stepId && snapshot.privatePredictions[stepId]?.revealedAt === null ? [stepId] : [];
-  });
+  return piece.items.flatMap((item) => unrevealedStep(snapshot, item) ?? []);
+}
+
+/** Whether a piece holds a prediction card, which never goes into a battle plan. */
+export function holdsPredictionCard(piece: StoredPiece): boolean {
+  return piece.items.some((item) => item.artwork?.prediction);
 }
 
 /**
@@ -76,7 +84,10 @@ export function revealPlacedPredictions(snapshot: StoredSnapshot, now: number): 
   }
   const pieces = snapshot.table.pieces.map((piece) =>
     unrevealedIn(snapshot, piece).length
-      ? { ...piece, items: piece.items.map((item) => ({ ...item, faceUp: false })) }
+      ? {
+          ...piece,
+          items: piece.items.map((item) => (unrevealedStep(snapshot, item) ? { ...item, faceUp: false } : item)),
+        }
       : piece
   );
   const privatePredictions = { ...snapshot.privatePredictions };

@@ -307,7 +307,7 @@ function Predictions({ client, table }: SetupControlProps) {
           helpOnly={Boolean(table.snapshot.stage)}
           key={step.id}
           title={step.title}
-          description={`${step.instructions} ${step.kind === 'prediction' ? 'Locking is final. Only your faction can see the choice until you reveal it.' : ''} Previous changes the setup phase only. Completed actions and pieces stay as they are.`}
+          description={`${step.instructions} ${step.kind === 'prediction' ? 'Locking is final. Only your faction can see the choice until you reveal it or place its card on the table.' : ''} Previous changes the setup phase only. Completed actions and pieces stay as they are.`}
         >
           <Stack gap="sm">
             {prediction ? (

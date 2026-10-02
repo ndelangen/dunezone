@@ -670,7 +670,7 @@ function PredictionOverlay({ prediction }: { prediction: CardPrediction }) {
   return (
     <mesh position={[0, 0, 0.003]} renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}>
       <planeGeometry args={[CARD_WIDTH, CARD_DEPTH]} />
-      <meshStandardMaterial map={texture} transparent depthWrite={false} roughness={0.68} metalness={0} />
+      <meshBasicMaterial map={texture} transparent depthWrite={false} />
     </mesh>
   );
 }
