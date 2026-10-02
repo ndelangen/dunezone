@@ -79,6 +79,7 @@ import {
   Float32BufferAttribute,
   Mesh,
   MeshBasicMaterial,
+  NeutralToneMapping,
   Raycaster,
   RingGeometry,
   SRGBColorSpace,
@@ -94,7 +95,7 @@ import stormMarkerUrl from './assets/storm-marker.png?url';
 import { boardFurnitureFor } from './boardFurniture';
 import { BOARD_RIM_DEPTH, createBoardRimShape } from './boardRimGeometry';
 import { CameraControls, CameraRelativeFog } from './CameraControls';
-import { swallowLift, watchLongPress } from './longPress';
+import { deckShuffleHint, swallowLift, watchLongPress } from './longPress';
 import { PhaseSymbol } from './PhaseSymbol';
 import { cameraPoseFor, TABLE_CAMERA_FAR, TABLE_CAMERA_FIELD_OF_VIEW, TABLE_CAMERA_NEAR } from './playView';
 import type { CameraViewCommand } from './playView';
@@ -104,6 +105,7 @@ import { isPublicTablePoint, ScenePresence, useTablePose } from './ScenePresence
 import { SpiceSupply } from './SpiceSupply';
 import { TableFurniture } from './TableFurniture';
 import { TableGraphicsBoundary, TableGraphicsUnavailable } from './TableGraphicsBoundary';
+import { useTableLighting } from './tableLighting';
 import { mapViewFramingPoints } from './tablePlateGeometry';
 import { useTabletop } from './TabletopContext';
 import styles from './TabletopScene.module.css';
@@ -508,6 +510,7 @@ const subscribePublishedFace = sharedPublishedFaces<Texture>({
   load: (href, onLoad, onError) => new TextureLoader().load(href, onLoad, undefined, onError),
   prepare: (value) => {
     value.colorSpace = SRGBColorSpace;
+    value.anisotropy = 8;
   },
   release: (value) => value.dispose(),
 });
@@ -533,14 +536,12 @@ function PublishedFace({ href, card, ratio }: { href: string; card: boolean; rat
       ) : (
         <circleGeometry args={[TROOP_FACE_RADIUS, 48]} />
       )}
-      <meshStandardMaterial
-        key={texture ? href : 'placeholder'}
-        map={texture}
-        color={texture ? '#ffffff' : '#d5ba8c'}
-        transparent
-        roughness={0.68}
-        metalness={0}
-      />
+      {/* Printed art is drawn unlit: the warm table light washed out card, leader and token faces (#1756). The renderer still tone maps the whole frame in its output pass. The placeholder stays lit, like the piece beneath it. */}
+      {texture ? (
+        <meshBasicMaterial key={href} map={texture} transparent />
+      ) : (
+        <meshStandardMaterial key="placeholder" color="#d5ba8c" transparent roughness={0.68} metalness={0} />
+      )}
     </mesh>
   );
 }
@@ -875,7 +876,8 @@ function pieceHoverCursor(canInteract: boolean, interactionBlocked: boolean, ges
   return gestureBlocked ? 'not-allowed' : 'grab';
 }
 
-const PieceMenuContext = createContext<((pieceId: string, x: number, y: number) => void) | null>(null);
+/* Opens a piece's menu at a point; `touch` says a finger asked for it, which has no keyboard shortcut to offer. */
+const PieceMenuContext = createContext<((pieceId: string, x: number, y: number, touch: boolean) => void) | null>(null);
 
 function usePiecePointerEvents({ piece }: TablePieceMeshProps, interactionBlocked: boolean) {
   const { state, selectPiece, setHoveredPiece, canHandleTable } = useTabletop();
@@ -891,7 +893,10 @@ function usePiecePointerEvents({ piece }: TablePieceMeshProps, interactionBlocke
     onContextMenu: (event: ThreeEvent<MouseEvent>) => {
       if (hasMenu && openPieceMenu) {
         event.stopPropagation();
-        openPieceMenu(piece.id, event.nativeEvent.clientX, event.nativeEvent.clientY);
+        const { clientX, clientY } = event.nativeEvent;
+        /* Android's long-press context menu is a touch pointer event. */
+        const touch = 'pointerType' in event.nativeEvent && event.nativeEvent.pointerType === 'touch';
+        openPieceMenu(piece.id, clientX, clientY, touch);
       }
     },
     onClick: (event: ThreeEvent<MouseEvent>) => {
@@ -925,7 +930,7 @@ function usePiecePointerEvents({ piece }: TablePieceMeshProps, interactionBlocke
           }
           stopLongPress.current = swallowLift(window, { clientX, clientY });
           /* Android also sends a context menu for the long press; opening the same menu twice changes nothing. */
-          openPieceMenu(piece.id, clientX, clientY);
+          openPieceMenu(piece.id, clientX, clientY, true);
         });
       }
       if (gestureBlocked) {
@@ -1206,6 +1211,18 @@ function ReleaseRendererOnUnmount() {
   return null;
 }
 
+/* The table's lights, scaled by this viewer's lighting choice; only they re-render while the slider moves. */
+function TableLights() {
+  const lighting = useTableLighting();
+  return (
+    <>
+      <ambientLight intensity={1.25 * lighting} />
+      <directionalLight position={[-4, 9, 5]} intensity={3.1 * lighting} color="#ffe2ae" />
+      <pointLight position={[5, 4, -4]} intensity={14 * lighting} distance={16} color="#d67b44" />
+    </>
+  );
+}
+
 function SceneContents({
   cameraView = DEFAULT_CAMERA_VIEW,
   onInteractionActiveChange,
@@ -1234,9 +1251,7 @@ function SceneContents({
       <fog attach="fog" args={['#130d0a', 10, 22]} />
       <CameraRelativeFog />
       <ScenePresence />
-      <ambientLight intensity={1.25} />
-      <directionalLight position={[-4, 9, 5]} intensity={3.1} color="#ffe2ae" />
-      <pointLight position={[5, 4, -4]} intensity={14} distance={16} color="#d67b44" />
+      <TableLights />
       <group onClick={() => selectPiece(null)}>
         <BoardSurface
           seatCount={seatCount}
@@ -1270,12 +1285,13 @@ export function TabletopScene({
   mapVisible,
 }: TabletopSceneProps) {
   const { takeAdditionalFromTarget, state, deckControls, bankControls } = useTabletop();
-  const [pieceMenu, setPieceMenu] = useState<{ pieceId: string; x: number; y: number } | null>(null);
+  const [pieceMenu, setPieceMenu] = useState<{ pieceId: string; x: number; y: number; touch: boolean } | null>(null);
   const menuPiece = state.pieces.find((piece) => piece.id === pieceMenu?.pieceId);
   const pieceMenuName = isSpicePiece(menuPiece) ? 'Spice actions' : 'Deck actions';
   const pieceMenuLabelId = useId();
   const deckAvailable =
     !!deckControls && !!menuPiece && !menuPiece.locked && !menuPiece.inventory && menuPiece.items.length > 0;
+  const shuffleHint = deckShuffleHint(pieceMenu?.touch ?? false);
   const { trackers } = boardFurnitureFor(stage);
   const tableProgress = trackers === 'none' ? undefined : providedProgress;
   const phaseCount = tableProgress?.phases.length ?? null;
@@ -1315,7 +1331,12 @@ export function TabletopScene({
             return;
           }
           const bounds = event.currentTarget.getBoundingClientRect();
-          setPieceMenu({ pieceId: piece.id, x: bounds.left, y: bounds.bottom });
+          setPieceMenu({
+            pieceId: piece.id,
+            x: bounds.left,
+            y: bounds.bottom,
+            touch: (event.nativeEvent as Partial<PointerEvent>).pointerType === 'touch',
+          });
         }}
       >
         Selected piece actions
@@ -1382,13 +1403,24 @@ export function TabletopScene({
               >
                 Shuffle
               </Menu.Item>
-              <Menu.Label>Hover a deck and press R to shuffle.</Menu.Label>
+              {shuffleHint && <Menu.Label>{shuffleHint}</Menu.Label>}
             </>
           )}
         </Menu.Dropdown>
       </Menu>
       <PieceMenuContext.Provider
-        value={deckControls || bankControls ? (pieceId, x, y) => setPieceMenu({ pieceId, x, y }) : null}
+        value={
+          deckControls || bankControls
+            ? (pieceId, x, y, touch) =>
+                /* A long press may also send a context menu; the second opening keeps the finger's menu. */
+                setPieceMenu((current) => ({
+                  pieceId,
+                  x,
+                  y,
+                  touch: touch || (current?.pieceId === pieceId && current.touch),
+                }))
+            : null
+        }
       >
         {graphics === 'unavailable' && <TableGraphicsUnavailable onShown={onSceneReady} />}
         {graphics === 'ready' && (
@@ -1401,6 +1433,7 @@ export function TabletopScene({
                 antialias: true,
                 alpha: false,
                 powerPreference: 'high-performance',
+                toneMapping: NeutralToneMapping,
               }}
               /* The renderer's creation follows its asynchronous initialisation, which is the long part of a table's arrival; the first frame follows at once. */
               onCreated={onSceneReady}

@@ -311,7 +311,7 @@ describe('troop stacks', () => {
       'a card stack',
       place(
         {
-          ...piece('deck', 'Treachery deck', 'shared', '#5f4b8b', 'card', 'card:treachery'),
+          ...piece('deck', 'Treachery deck', 'shared', '#5f4b8b', 'card', 'cards:treachery'),
           items: [0, 1, 2].map((index) => ({ id: `treachery-${index}`, faceUp: false })),
         },
         [3, 0, 6]

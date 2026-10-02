@@ -365,6 +365,28 @@ describe('Determine winner and Continue playing', { timeout: 60_000 }, () => {
     ]);
   });
 
+  it('continues with nobody ready, so no single player can move the phase on alone', async () => {
+    const { owner, other } = await inPlay();
+    await toMentat(owner);
+    await accepted(owner, { kind: 'ready', ready: true });
+    const allReady = await accepted(other, { kind: 'ready', ready: true });
+    expect(allReady.snapshot.controls.ready).toHaveLength(2);
+    await accepted(owner, { kind: 'result-open' });
+    await accepted(owner, { kind: 'result-declare', result: 'none', factionIds: [] });
+    const continued = await accepted(other, { kind: 'result-continue' });
+    expect(continued.snapshot.controls.ready).toEqual([]);
+    offset += PHASE_CHANGE_COOLDOWN_MS + 1;
+    await runtime.clock(offset);
+    const alone = await sendCommand(owner, { kind: 'phase', direction: 1 });
+    expect(alone.reply).toMatchObject({
+      type: 'rejected',
+      message: 'Every seated player must be ready before advancing.',
+    });
+    await accepted(owner, { kind: 'ready', ready: true });
+    await accepted(other, { kind: 'ready', ready: true });
+    expect(await rejected(owner, { kind: 'phase', direction: 1 })).toBe(false);
+  });
+
   it('closes an open sequence when the phase moves on', async () => {
     const { owner, other } = await inPlay();
     await toMentat(owner);

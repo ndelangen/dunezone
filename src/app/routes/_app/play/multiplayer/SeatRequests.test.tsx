@@ -1,11 +1,12 @@
 /** @vitest-environment jsdom */
 
 import { MantineProvider } from '@mantine/core';
+import { SPECTATOR_SEAT } from '@shared/play/schema';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { appContentTheme } from '@ui/theme';
 import { afterEach, expect, test, vi } from 'vitest';
 
-import { SeatRequests } from './SeatRequests';
+import { SeatPopover, SeatRequests } from './SeatRequests';
 import type { TableSession } from './TableSession';
 
 window.matchMedia = vi.fn().mockImplementation((query: string) => ({
@@ -20,6 +21,24 @@ window.matchMedia = vi.fn().mockImplementation((query: string) => ({
 }));
 
 afterEach(cleanup);
+
+/* jsdom has no layout; the Seats popover positions itself with a ResizeObserver. */
+vi.stubGlobal(
+  'ResizeObserver',
+  class {
+    observe = vi.fn();
+    unobserve = vi.fn();
+    disconnect = vi.fn();
+  }
+);
+
+/** A press that begins on a button, sees the bar change under it, then ends on that same button. */
+function pressAcross(pressed: HTMLElement, change: () => void) {
+  fireEvent.pointerDown(pressed);
+  change();
+  fireEvent.pointerUp(pressed);
+  fireEvent.click(pressed);
+}
 
 function renderPlayback(stage: 'drafting' | 'play', step: number) {
   const client = { requestHistory: vi.fn(), resumeLive: vi.fn() };
@@ -92,9 +111,112 @@ test('a player approves the request for an open seat when an earlier request nam
   expect(client.command).toHaveBeenCalledWith({ kind: 'seat-approve', requestId: 'request-open' });
 });
 
+test('a press that began on one request never approves the request swapped in under it', () => {
+  const client = { command: vi.fn() };
+  const tableWith = (seatRequests: { id: string; requesterName: string; seat: null }[]) =>
+    ({
+      viewer: { viewerSeat: 'seat-1' },
+      snapshot: { stage: 'drafting', roster: null, controls: { seats: ['seat-1'], seatRequests } },
+      playback: null,
+      seatCommandPending: false,
+    }) as unknown as Parameters<typeof SeatRequests>[0]['table'];
+  const bar = (table: Parameters<typeof SeatRequests>[0]['table']) => (
+    <MantineProvider theme={appContentTheme}>
+      <SeatRequests
+        client={client as unknown as TableSession}
+        table={table}
+        error={null}
+        leaving={false}
+        onStay={() => {}}
+      />
+    </MantineProvider>
+  );
+  const first = { id: 'seat-request-1', requesterName: 'First', seat: null };
+  const second = { id: 'seat-request-2', requesterName: 'Second', seat: null };
+  const { rerender } = render(bar(tableWith([first, second])));
+  expect(screen.getByText('First asks for a seat')).toBeTruthy();
+  /* Another tab approves the first request before this press ends, so the bar now offers the second. */
+  pressAcross(screen.getByRole('button', { name: 'Approve' }), () => rerender(bar(tableWith([second]))));
+  expect(screen.getByText('Second asks for a seat')).toBeTruthy();
+  expect(client.command).not.toHaveBeenCalled();
+
+  /* A fresh press on the request now on screen approves that one. */
+  fireEvent.click(screen.getByRole('button', { name: 'Approve' }));
+  expect(client.command).toHaveBeenCalledExactlyOnceWith({ kind: 'seat-approve', requestId: 'seat-request-2' });
+});
+
+test('a spectator press that began on one open seat never requests the seat left once it is taken', async () => {
+  const client = { command: vi.fn() };
+  const tableWith = (seats: string[]) =>
+    ({
+      viewer: { viewerSeat: 'neutral' },
+      snapshot: {
+        stage: 'play',
+        roster: { seatCount: 4, seats: ['seat-1', 'seat-2', 'seat-3', 'seat-4'].map((id) => ({ id })) },
+        controls: { seats, seatRequests: [] },
+      },
+      playback: null,
+      seatCommandPending: false,
+    }) as unknown as Parameters<typeof SeatPopover>[0]['table'];
+  const popover = (table: Parameters<typeof SeatPopover>[0]['table']) => (
+    <MantineProvider theme={appContentTheme}>
+      <SeatPopover client={client as unknown as TableSession} table={table} error={null} />
+    </MantineProvider>
+  );
+  const { rerender } = render(popover(tableWith(['seat-1', 'seat-3'])));
+  fireEvent.click(screen.getByRole('button', { name: 'Seats' }));
+  /* Someone takes seat 2, the one this press would ask for, before the press ends; seat 4 is all that is left. */
+  pressAcross(await screen.findByRole('button', { name: 'Request a seat' }), () =>
+    rerender(popover(tableWith(['seat-1', 'seat-2', 'seat-3'])))
+  );
+  expect(client.command).not.toHaveBeenCalled();
+
+  /* A fresh press asks for the seat now named on the button. jsdom never finishes the popover's transition, hence hidden. */
+  fireEvent.click(screen.getByRole('button', { name: /^Request seat 4$/i, hidden: true }));
+  expect(client.command).toHaveBeenCalledExactlyOnceWith({ kind: 'seat-request', seat: 'seat-4' });
+});
+
 test('playback in play leaves the controls to the Phase tab', () => {
   renderPlayback('play', 2);
   expect(screen.queryByText(/Playback checkpoint/)).toBeNull();
+});
+
+test('a spectator whose requested seat was taken since is told so and can still withdraw', () => {
+  const client = { command: vi.fn() };
+  const table = {
+    viewer: { viewerSeat: SPECTATOR_SEAT },
+    snapshot: {
+      stage: 'play',
+      roster: {
+        seatCount: 3,
+        seats: ['seat-1', 'seat-2', 'seat-3'].map((id, position) => ({
+          id,
+          position,
+          faction: id === 'seat-2' ? { name: 'Atreides' } : null,
+        })),
+      },
+      controls: {
+        seats: ['seat-1', 'seat-2'],
+        seatRequests: [{ id: 'request-own', requesterName: 'Me', seat: 'seat-2', own: true }],
+      },
+    },
+    playback: null,
+    seatCommandPending: false,
+  } as unknown as Parameters<typeof SeatPopover>[0]['table'];
+  render(
+    <MantineProvider theme={appContentTheme} env="test">
+      <SeatPopover client={client as unknown as TableSession} table={table} error={null} />
+    </MantineProvider>
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Seats' }));
+  expect(screen.getByText('Seat requested')).toBeTruthy();
+  expect(screen.getByText('Seat 2 (Atreides) is taken now')).toBeTruthy();
+  expect(
+    screen.getByText('A player can approve you if it opens again. Withdraw to ask for another seat.')
+  ).toBeTruthy();
+  expect(screen.queryByText('Waiting for a player to approve you')).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: 'Withdraw' }));
+  expect(client.command).toHaveBeenCalledWith({ kind: 'seat-withdraw' });
 });
 
 test('giving up a seat in play names the seat that stays open at the start of the sentence', () => {
