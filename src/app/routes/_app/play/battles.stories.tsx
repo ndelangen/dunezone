@@ -548,9 +548,7 @@ export const BattleWinnerCalled = meta.story({
   }),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await settled(() =>
-      expect(page.getByRole('status')).toHaveTextContent('Waiting for House Atreides to agree')
-    );
+    await settled(() => expect(page.getByRole('status')).toHaveTextContent('Waiting for House Atreides to agree'));
     expect(page.getByRole('button', { name: 'Left side won' })).toBeVisible();
   },
 });

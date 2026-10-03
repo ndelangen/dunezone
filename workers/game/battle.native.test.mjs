@@ -324,6 +324,20 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
     expect((await sendCommand(a, { kind: 'phase' })).reply.type).not.toBe('rejected');
   });
 
+  it('resolves a revealed battle with the winner one side called when the other has not contradicted it', async () => {
+    const placed = await accepted(a, { kind: 'battle-start', anchor: [0.95, 0.18, -3.05], territory: 'Arrakeen' });
+    const battleId = placed.snapshot.battle.id;
+    await accepted(a, { kind: 'battle-claim', battleId, side: 0 });
+    await accepted(b, { kind: 'battle-claim', battleId, side: 1 });
+    await accepted(a, { kind: 'battle-plan', battleId, plan: plan() });
+    await ready(battleId);
+    await revealed();
+    await accepted(a, { kind: 'battle-outcome', battleId, outcome: 'left' });
+    const resolved = await accepted(b, { kind: 'battle-cancel', battleId });
+    expect(resolved.snapshot.battle).toBeNull();
+    expect(resolved.snapshot.battleResults[0]).toMatchObject({ id: battleId, outcome: 'left' });
+  });
+
   it('holds the phase against going back while a battle is open', async () => {
     const placed = await accepted(a, { kind: 'battle-start', anchor: [0.95, 0.18, -3.05], territory: 'Arrakeen' });
     expect((await sendCommand(b, { kind: 'phase', direction: -1 })).reply).toMatchObject({
