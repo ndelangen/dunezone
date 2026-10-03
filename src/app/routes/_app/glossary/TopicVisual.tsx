@@ -141,7 +141,7 @@ function PiecesVisual() {
   );
 }
 
-/* The tanks drawn as the dark well the dead pieces lie in, like the one on the table, with a leader and a troop inside. */
+/* The tanks drawn as the dark well the dead pieces lie in, like the one on the table, with a leader inside. */
 function TanksArt() {
   return (
     <span className={styles.tanks}>
@@ -153,9 +153,6 @@ function TanksArt() {
           name="Feyd-Rautha"
           strength="6"
         />
-      </Disc>
-      <Disc troop>
-        <TroopToken {...atreidesTroop} />
       </Disc>
     </span>
   );
@@ -180,7 +177,8 @@ function TurnVisual() {
   );
 }
 
-const WHEEL = { width: 170, cardRoom: 62 };
+/* The wheel sets its cards 62px above its face; the tilted cards reach a further 14px. */
+const WHEEL = { width: 170, cardRoom: 76 };
 
 function WheelCard({ front }: { front: (typeof treacheryCardFixtures)[keyof typeof treacheryCardFixtures] }) {
   return (
