@@ -1,0 +1,127 @@
+{
+  "generation": "AI adaptations made with the built-in image generation tool, using official franchise references and GF9 planet artwork as style references.",
+  "approval": "The user accepted the revised style in chat on 2026-10-03.",
+  "processing": "Revised transparent PNG bytes copied unchanged. Runtime sizes use the standard proportional image pipeline.",
+  "images": [
+    {
+      "name": "Death Star",
+      "universe": "Star Wars",
+      "asset": "/image/planet/familiar-worlds/death-star.png",
+      "reference": "https://www.starwars.com/databank/death-star",
+      "referenceImage": "https://lumiere-a.akamaihd.net/v1/images/Death-Star-I-copy_36ad2500.jpeg",
+      "sourceSha256": "c820269a121133d196977bbe499a536a7b0769ba7e006b800eabd8d0f9b1bc69"
+    },
+    {
+      "name": "Citadel",
+      "universe": "Mass Effect",
+      "asset": "/image/planet/familiar-worlds/citadel.png",
+      "reference": "https://www.goodfon.com/wallpaper/mass-effect-3-citadel-kosmicheskaia-stantsiia-tsitadel.html",
+      "referenceImage": "https://img.goodfon.com/original/1920x1080/1/e0/mass-effect-3-citadel-kosmicheskaia-stantsiia-tsitadel.jpg",
+      "sourceSha256": "e52864d85a7d8f40acadd33a031ac1aae7e6e65fa926fbeddbf95cd11b5f71da"
+    },
+    {
+      "name": "Omega",
+      "universe": "Mass Effect",
+      "asset": "/image/planet/familiar-worlds/omega.png",
+      "reference": "https://www.mobygames.com/game/61514/mass-effect-3-omega/screenshots/windows/675460/",
+      "referenceImage": "https://cdn.mobygames.com/screenshots/16794964-mass-effect-3-omega-windows-approaching-omega-station.png",
+      "sourceSha256": "52785fc3ead2a03e4dd6cb59085d841a6144bf5f6ef9ec17fff11bebcfe2382d"
+    },
+    {
+      "name": "Coruscant",
+      "universe": "Star Wars",
+      "asset": "/image/planet/familiar-worlds/coruscant.png",
+      "reference": "https://www.starwars.com/databank/coruscant/",
+      "referenceImage": "https://lumiere-a.akamaihd.net/v1/images/Coruscant-Gallery-1_d654d3d0.jpeg?region=0%2C0%2C1280%2C716",
+      "sourceSha256": "304299c09c70837a5788f88c96284af9f0f2d9a2fbe01013281389b3d61c105e"
+    },
+    {
+      "name": "Mustafar",
+      "universe": "Star Wars",
+      "asset": "/image/planet/familiar-worlds/mustafar.png",
+      "reference": "https://www.starwars.com/news/star-wars-inside-intel-mustafar",
+      "referenceImage": "https://lumiere-a.akamaihd.net/v1/images/image_4088cdfb.jpeg",
+      "sourceSha256": "e8f78c00e1ece4f0039cf55e52d70e9cd01501e66313eff3cdc42d0e67b1d9c0"
+    },
+    {
+      "name": "Rannoch",
+      "universe": "Mass Effect",
+      "asset": "/image/planet/familiar-worlds/rannoch.png",
+      "reference": "https://austinbunton.com/writing-universe/maps-directory/milky-way-galaxy-map/mass-effect-worlds/perseus-veil/tikkun-solar-system/",
+      "referenceImage": "https://austinbunton.com/wp-content/uploads/2019/05/Rannoch.png",
+      "sourceSha256": "2a6abb162622861681b7808a40b01202ea57e18dc010f2ad240b7e45e36aed9e"
+    },
+    {
+      "name": "Discworld / Great A'Tuin",
+      "universe": "Discworld",
+      "asset": "/image/planet/familiar-worlds/discworld.png",
+      "reference": "https://terrypratchett.com/explore-discworld/great-atuin-and-the-discworld/",
+      "referenceImage": "https://i0.wp.com/terrypratchett.com/management/wp-content/uploads/2022/03/Great-ATuin-II.jpg?fit=2000%2C1595&ssl=1",
+      "sourceSha256": "1b37bcfaebda1d1c05300eab404b510a77cfaf7b4f7e2f5d4c8efe0f4cc47514"
+    },
+    {
+      "name": "Argus",
+      "universe": "Warcraft",
+      "asset": "/image/planet/familiar-worlds/argus.png",
+      "reference": "https://wow.jeuxonline.info/actualite/53133/world-of-warcraft-73-ombre-argus-sera-deploye-30-aout",
+      "referenceImage": "https://jolstatic.fr/www/captures/2596/8/124978.jpg",
+      "sourceSha256": "29d5a614fd0de072f1fb3e434b693f29fc5e80f368ce2efe86541a81656486ff"
+    },
+    {
+      "name": "Pandora",
+      "universe": "Avatar",
+      "asset": "/image/planet/familiar-worlds/pandora.png",
+      "reference": "https://www.avatar.com/pandorapedia/pandora",
+      "referenceImage": "https://lumiere-a.akamaihd.net/v1/images/a_avatarpandorapedia_pandora_16x9_v2_86352cc0.jpeg",
+      "sourceSha256": "c2cde0a3527751194f2d7c7d2d4af7495c19e2df9e0287d94de0c98f8556fba3"
+    },
+    {
+      "name": "Polyphemus",
+      "universe": "Avatar",
+      "asset": "/image/planet/familiar-worlds/polyphemus.png",
+      "reference": "https://www.avatar.com/pandorapedia/polyphemus",
+      "referenceImage": "https://lumiere-a.akamaihd.net/v1/images/a_avatarpandorapedia_polyphemus_16x9_v2_041dca5a.jpeg",
+      "sourceSha256": "dbf0ea983d946b8b6d5e18782c481419fa04f0e8d9e6adccf43796934c54e942"
+    },
+    {
+      "name": "Zeta Halo / Installation 07",
+      "universe": "Halo",
+      "asset": "/image/planet/familiar-worlds/zeta-halo.png",
+      "reference": "https://www.halowaypoint.com/news/welcome-to-halo-infinite",
+      "referenceImage": "https://wpassets.halowaypoint.com/wp-content/2021/12/ZetaHalo_BrokenRing_Watermarked_1920x1080.jpg",
+      "sourceSha256": "2a763156fc771d3f8c9828169107cfdab192f030b52b953286e4d7de8f352d75"
+    },
+    {
+      "name": "Vulcan",
+      "universe": "Star Trek",
+      "asset": "/image/planet/familiar-worlds/vulcan.png",
+      "reference": "https://www.startrek.com/news/everything-you-need-to-know-about-nero",
+      "referenceImage": "https://images.prismic.io/star-trek-untold/NzNjOWJiZjctOTJiZi00M2E4LWFmM2YtMjdiMmE2OWZkODY4_st_2009_4k_1160.jpeg?auto=compress%2Cformat&h=1592&rect=0%2C0%2C3840%2C1592&w=3840",
+      "sourceSha256": "fc5fa88e4db378a5001af8e51ed186e248f98ebef8974efe60d49b64d14a2cc2"
+    },
+    {
+      "name": "Ego",
+      "universe": "Marvel Cinematic Universe",
+      "asset": "/image/planet/familiar-worlds/ego.png",
+      "reference": "https://www.marvel.com/characters/ego/on-screen/profile",
+      "referenceImage": "https://cdn.marvel.com/content/2x/112ego_ons_mnt_03-xxl.webp",
+      "sourceSha256": "703d8b36c8c174b9518b8de8cbbe39cb217e3e0fb25ff6b5e4d7696c9841803e"
+    },
+    {
+      "name": "Knowhere",
+      "universe": "Marvel Cinematic Universe",
+      "asset": "/image/planet/familiar-worlds/knowhere.png",
+      "reference": "https://www.framestore.com/work/guardians-galaxy",
+      "referenceImage": "https://www.framestore.com/sites/default/files/2022-07/guardians%20of%20the%20galaxy%20art%20department%20header%20image.jpg",
+      "sourceSha256": "be55053016e1aebb4ca88401a6d9ecf63b5f2e235703fccd74181fb4cb40277f"
+    },
+    {
+      "name": "Alderaan",
+      "universe": "Star Wars",
+      "asset": "/image/planet/familiar-worlds/alderaan.png",
+      "reference": "https://www.starwars.com/databank/alderaan",
+      "referenceImage": "https://lumiere-a.akamaihd.net/v1/images/alderaan-3-retina_45d076ff.jpeg",
+      "sourceSha256": "4fbbbecbab3a6fd7047874b2e5c777401ff3fdeabdb43e82045dd39a24570d03"
+    }
+  ]
+}
