@@ -1374,7 +1374,7 @@
   },
   {
     "label": "Familiar worlds",
-    "keywords": "Earth and recognizable worlds from Star Wars, Mass Effect, Avatar, Halo, Star Trek, Marvel, Warcraft and Discworld.",
+    "keywords": "Sol Solar System planets and moons, Earth, Star Wars, Mass Effect, Avatar, Halo, Star Trek, Marvel, Warcraft and Discworld.",
     "assets": [
       "/image/planet/familiar-worlds/earth.png",
       "/image/planet/familiar-worlds/death-star.png",
@@ -1391,7 +1391,27 @@
       "/image/planet/familiar-worlds/vulcan.png",
       "/image/planet/familiar-worlds/ego.png",
       "/image/planet/familiar-worlds/knowhere.png",
-      "/image/planet/familiar-worlds/alderaan.png"
+      "/image/planet/familiar-worlds/alderaan.png",
+      "/image/planet/familiar-worlds/mercury.png",
+      "/image/planet/familiar-worlds/venus.png",
+      "/image/planet/familiar-worlds/mars.png",
+      "/image/planet/familiar-worlds/jupiter.png",
+      "/image/planet/familiar-worlds/saturn.png",
+      "/image/planet/familiar-worlds/uranus.png",
+      "/image/planet/familiar-worlds/neptune.png",
+      "/image/planet/familiar-worlds/pluto.png",
+      "/image/planet/familiar-worlds/luna.png",
+      "/image/planet/familiar-worlds/phobos.png",
+      "/image/planet/familiar-worlds/io.png",
+      "/image/planet/familiar-worlds/europa.png",
+      "/image/planet/familiar-worlds/ganymede.png",
+      "/image/planet/familiar-worlds/callisto.png",
+      "/image/planet/familiar-worlds/titan.png",
+      "/image/planet/familiar-worlds/enceladus.png",
+      "/image/planet/familiar-worlds/mimas.png",
+      "/image/planet/familiar-worlds/iapetus.png",
+      "/image/planet/familiar-worlds/triton.png",
+      "/image/planet/familiar-worlds/charon.png"
     ]
   },
   {
