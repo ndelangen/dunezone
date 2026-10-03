@@ -1,4 +1,4 @@
-import { Button } from '@mantine/core';
+import { Button, CloseButton } from '@mantine/core';
 import type { TablePiece } from '@shared/play/model';
 import { peeksWholeDeck } from '@shared/play/peeking';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -281,10 +281,8 @@ export function PeekView() {
               : 'Only you see this face. Everyone sees that you peeked.'}
           </div>
         </div>
-        <Button ref={done} size="xs" variant="light" onClick={close}>
-          Done
-        </Button>
       </div>
+      <CloseButton ref={done} className={styles.peekClose} aria-label="Stop peeking" onClick={close} />
       {deck ? (
         <DeckRow piece={piece} />
       ) : (

@@ -74,10 +74,15 @@
 }
 
 .peekHeader {
-  display: flex;
-  gap: var(--space-md);
-  align-items: flex-start;
-  justify-content: space-between;
+  padding: 0 var(--space-xl);
+  text-align: center;
+}
+
+.peekClose {
+  position: absolute;
+  top: var(--space-xs);
+  right: var(--space-xs);
+  color: #f4e6c8;
 }
 
 .peekTitle {
