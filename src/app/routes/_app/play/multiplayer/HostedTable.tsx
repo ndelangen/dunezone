@@ -25,6 +25,7 @@ import { PredictionLogosContext } from '../prediction/predictionFace';
 import { TabletopSessionProvider } from '../TabletopContext';
 import { TableWait } from '../TableWait';
 import { BattleControls, BattleScene, HandControls } from './BattleControls';
+import { BidderScene, BidderSettings } from './Bidder';
 import { OfflineConversations } from './Conversation';
 import { DraftingHeader, DraftingNotice, DraftingOverlay, DraftingPanel, DraftingReadiness } from './Drafting';
 import { DetermineWinner, ResultDecisionBar } from './GameResult';
@@ -785,7 +786,10 @@ function ConnectedTable({
                     {stage === 'setup' && <BattleScene client={client} table={table} />}
                   </>
                 ) : (
-                  <BattleScene client={client} table={table} />
+                  <>
+                    <BattleScene client={client} table={table} />
+                    {stage !== 'finished' && <BidderScene client={client} table={table} />}
+                  </>
                 )}
                 {celebration.mounted && <FoilConfetti launch={celebration.launch} />}
               </>
@@ -978,6 +982,7 @@ function ConnectedTable({
                   {stage === 'play' || stage === 'finished' ? (
                     <>
                       <DetermineWinner client={client} table={table} />
+                      {stage === 'play' && <BidderSettings client={client} table={table} />}
                       <PlaybackControls client={client} table={table} />
                       {error && <FormError title="From the table">{error}</FormError>}
                       {stage === 'play' && (table.snapshot.battle || progress.activePhaseId === 'battle') && (

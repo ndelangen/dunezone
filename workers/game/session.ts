@@ -34,6 +34,7 @@ import type { RoomFrame } from '../../src/shared/play/updates';
 import { ActorDirectory } from './actors';
 import { HISTORY_REPAIR_VERSION } from './anonymizeHistory';
 import { expireBattle } from './battle';
+import { expireBidding } from './bidding';
 import { CaptureStore } from './captures';
 import { Conversations } from './conversations';
 import { DirectoryOutbox } from './directory';
@@ -453,6 +454,26 @@ export class GameSession {
       return;
     }
     /* The reveal is a playback step between two others, so it stores its change; the outcome after it is the checkpoint. */
+    const history = this.history.patch(next);
+    this.storage.transactionSync(() => {
+      this.storage.sql.exec('UPDATE current_state SET data=? WHERE id=1', JSON.stringify(next));
+      this.history.write(history);
+      this.stageDirectory(next, Date.now());
+    });
+    this.history.accept(history.step, next);
+    this.room.accept(next);
+    return true;
+  }
+
+  /* The bidder passes for a faction whose time ran out; like any command, the pass is a playback step. */
+  private passDueBid() {
+    if (!this.room) {
+      return;
+    }
+    const next = expireBidding(this.room.snapshot, Date.now());
+    if (!next) {
+      return;
+    }
     const history = this.history.patch(next);
     this.storage.transactionSync(() => {
       this.storage.sql.exec('UPDATE current_state SET data=? WHERE id=1', JSON.stringify(next));
@@ -1013,16 +1034,21 @@ export class GameSession {
     }
     return snapshot.swapping?.deadline ?? 0;
   }
+  get biddingDeadline() {
+    const bidding = this.room?.snapshot.bidding;
+    return bidding?.stage === 'open' ? (bidding.deadline ?? 0) : 0;
+  }
   nextDeadline() {
-    const deadlines = [this.battleDeadline, this.directory.pending()?.retryAt, this.tradingDeadline].filter(
+    const deadlines = [this.battleDeadline, this.biddingDeadline, this.directory.pending()?.retryAt, this.tradingDeadline].filter(
       (deadline): deadline is number => Boolean(deadline)
     );
     return deadlines.length ? Math.min(...deadlines) : undefined;
   }
   advanceDeadlines() {
     const battle = this.revealDueBattle();
+    const bidding = this.passDueBid();
     const trading = this.closeDueTrading();
-    return Boolean(battle || trading);
+    return Boolean(battle || bidding || trading);
   }
   execute(viewer: Viewer, message: CommitMessage, contents?: StoredSpawnContents) {
     if (this.alreadyCommitted(`${viewer.userId}:${message.commandId}`, message)) {
