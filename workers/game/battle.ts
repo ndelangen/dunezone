@@ -187,9 +187,10 @@ function editPlan({ snapshot, battle, side, factionId }: BattleSide, input: Batt
 }
 
 function cancelBattle(snapshot: StoredSnapshot, battle: StoredBattle) {
-  /* Revealed plans are already public and on the table, so a cancel settles them as a battle nobody won; that also frees a battle whose sides never agree. */
+  /* Revealed plans are already public and on the table, so ending the battle settles it: with the winner a side called, or as nobody's win when the sides called different winners or none. */
   if (battle.stage === 'revealed') {
-    return resolveBattle(snapshot, battle, 'none');
+    const calls = new Set(battle.sides.flatMap((side) => (side?.choice ? [side.choice] : [])));
+    return resolveBattle(snapshot, battle, calls.size === 1 ? [...calls][0]! : 'none');
   }
   if (battle.stage !== 'preparing') {
     return refuse('The battle can only be cancelled during preparation or after the reveal.');
