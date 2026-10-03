@@ -1,7 +1,7 @@
 [
   {
-    "label": "Red Alert 1",
-    "keywords": "Command and Conquer C&C Allies Allied Soviet Soviets Counterstrike The Aftermath Retaliation",
+    "label": "red alert",
+    "keywords": "Red Alert 1 Red Alert 2 Red Alert 3 Command and Conquer C&C Allies Allied Soviet Soviets Counterstrike The Aftermath Retaliation Yuri Yuri's Revenge Uprising Commander's Challenge Empire of the Rising Sun",
     "assets": [
       "/image/leader/red-alert-1/carville.png",
       "/image/leader/red-alert-1/chitzkoi.png",
@@ -15,13 +15,7 @@
       "/image/leader/red-alert-1/tanya.png",
       "/image/leader/red-alert-1/topolov.png",
       "/image/leader/red-alert-1/volkov.png",
-      "/image/leader/red-alert-1/von-esling.png"
-    ]
-  },
-  {
-    "label": "Red Alert 2",
-    "keywords": "Command and Conquer C&C Allies Allied Soviet Soviets Yuri Yuri's Revenge",
-    "assets": [
+      "/image/leader/red-alert-1/von-esling.png",
       "/image/leader/red-alert-2/boris.png",
       "/image/leader/red-alert-2/carville.png",
       "/image/leader/red-alert-2/dugan.png",
@@ -31,13 +25,7 @@
       "/image/leader/red-alert-2/tanya.png",
       "/image/leader/red-alert-2/vladimir.png",
       "/image/leader/red-alert-2/yuri.png",
-      "/image/leader/red-alert-2/zofia.png"
-    ]
-  },
-  {
-    "label": "Red Alert 3",
-    "keywords": "Command and Conquer C&C Allies Allied Soviet Soviets Uprising Empire of the Rising Sun",
-    "assets": [
+      "/image/leader/red-alert-2/zofia.png",
       "/image/leader/red-alert-3/ackerman.png",
       "/image/leader/red-alert-3/bingham.png",
       "/image/leader/red-alert-3/brenda.png",
