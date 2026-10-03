@@ -1,0 +1,65 @@
+.face {
+  pointer-events: auto;
+  user-select: none;
+}
+
+.disc {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: #2b2116;
+  border: 2px solid #e3c27a;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 55%);
+  color: #f4e6c4;
+  overflow: hidden;
+}
+
+.disc > svg,
+.disc > div {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.disc[data-mine] {
+  border-color: #ffe39a;
+  box-shadow:
+    0 0 0 3px rgb(255 227 154 / 45%),
+    0 2px 8px rgb(0 0 0 / 55%);
+  cursor: pointer;
+}
+
+.disc:disabled {
+  cursor: default;
+}
+
+.amount {
+  position: relative;
+  z-index: 1;
+  font-family: C_Advokat_Modern, sans-serif;
+  font-size: 30px;
+  line-height: 1;
+  color: #fff;
+  text-shadow:
+    0 0 4px #000,
+    0 0 8px #000;
+}
+
+.prompt {
+  font-weight: 700;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.timer {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: rgb(20 15 10 / 80%);
+  color: #f4e6c4;
+  white-space: nowrap;
+}

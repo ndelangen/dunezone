@@ -1,0 +1,89 @@
+import preview from '@sb/preview';
+import { idleBidding } from '@shared/play/bidding';
+import type { BiddingState } from '@shared/play/bidding';
+import { STANDARD_PHASES } from '@shared/play/phases';
+import type { GameSnapshot } from '@shared/play/protocol';
+import { expect, userEvent, waitFor, within } from 'storybook/test';
+
+import { STORYBOOK_NOW } from '@db/storybook';
+
+import { gameMeta, install, lastCommand } from './game.stories.fixture';
+import { productTransport, playingSnapshot } from './product.stories.fixture';
+
+const meta = preview.meta({
+  ...gameMeta,
+  title: 'Play/Playing/Bidding',
+});
+
+/* Seat 2 holds House Harkonnen; the Emperor's token lies face down, so the Emperor sits this card out. */
+function biddingSetup(bidding: Partial<BiddingState> | null, viewer = 'seat-2') {
+  return install(() => {
+    const snapshot: GameSnapshot = playingSnapshot(viewer);
+    snapshot.phase = (snapshot.phases ?? STANDARD_PHASES).findIndex((entry) => entry.id === 'bidding');
+    const emperor = snapshot.table.pieces.find((piece) => piece.stackKey === 'faction-token:emperor');
+    if (emperor) {
+      emperor.items = emperor.items.map((item) => ({ ...item, faceUp: false }));
+    }
+    if (bidding) {
+      snapshot.bidding = { ...idleBidding(), ...bidding };
+    }
+    return productTransport(viewer, snapshot);
+  });
+}
+
+export const BidderBeforeTheFirstCard = meta.story({
+  beforeEach: biddingSetup(null),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await userEvent.click(await page.findByRole('button', { name: 'Start bidding' }, { timeout: 30_000 }));
+    await waitFor(() => expect(lastCommand()?.action).toEqual({ kind: 'bid-open' }));
+  },
+});
+
+export const BidderOnYourFaction = meta.story({
+  beforeEach: biddingSetup({
+    stage: 'open',
+    round: 1,
+    opener: 'house-atreides',
+    turn: 'house-harkonnen',
+    bid: { factionId: 'house-atreides', amount: 3 },
+    deadline: STORYBOOK_NOW + 30_000,
+  }),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const bidder = await page.findByRole('button', { name: /Raise the bid to 4/ }, { timeout: 30_000 });
+    await userEvent.click(bidder);
+    await waitFor(() => expect(lastCommand()?.action).toEqual({ kind: 'bid-raise', round: 1 }));
+    bidder.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, button: 2 }));
+    await waitFor(() => expect(lastCommand()?.action).toEqual({ kind: 'bid-pass', round: 1 }));
+  },
+});
+
+export const BidderOnAnotherFaction = meta.story({
+  beforeEach: biddingSetup({
+    stage: 'open',
+    round: 1,
+    opener: 'house-atreides',
+    turn: 'fremen',
+    bid: { factionId: 'house-harkonnen', amount: 4 },
+    deadline: STORYBOOK_NOW + 30_000,
+  }),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(await page.findByRole('button', { name: /Waiting for/ }, { timeout: 30_000 })).toBeDisabled();
+  },
+});
+
+export const BidderAfterASale = meta.story({
+  beforeEach: biddingSetup({
+    stage: 'sold',
+    round: 1,
+    opener: 'house-atreides',
+    turn: 'house-harkonnen',
+    bid: { factionId: 'house-harkonnen', amount: 5 },
+  }),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(await page.findByRole('button', { name: 'Next card' }, { timeout: 30_000 })).toBeEnabled();
+  },
+});
