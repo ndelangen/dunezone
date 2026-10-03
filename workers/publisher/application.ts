@@ -1,3 +1,6 @@
+import { PUBLIC_CACHE_SECONDS, publicCachedResponse } from './public-cache';
+import type { PublicCache } from './public-cache';
+
 /** A deployed version owns its HTML, including the client chunk URLs in that HTML. */
 export function applicationReleaseIdentity(env: Pick<Env, 'CF_VERSION_METADATA' | 'GIT_SHA'>): string {
   return env.CF_VERSION_METADATA?.id ?? env.GIT_SHA;
@@ -33,16 +36,28 @@ function isPublicAssetPage(segments: string[]): boolean {
 export async function handleApplicationRequest(
   request: Request,
   env: Pick<Env, 'CF_VERSION_METADATA' | 'GIT_SHA'>,
-  render: (request: Request) => Promise<Response>
+  render: (request: Request) => Promise<Response>,
+  cache?: PublicCache
 ): Promise<Response | null> {
   if (!['GET', 'HEAD'].includes(request.method) || !isPublicPage(new URL(request.url).pathname)) {
     return null;
   }
-  const response = await render(
-    new Request(request.url, {
-      headers: { Accept: 'text/html' },
-      signal: request.signal,
-    })
+  const response = await publicCachedResponse(
+    cache,
+    new URL(request.url),
+    'html',
+    async () => {
+      const result = await render(
+        new Request(request.url, {
+          headers: { Accept: 'text/html' },
+          signal: request.signal,
+        })
+      );
+      const publicResult = new Response(result.body, result);
+      publicResult.headers.set('X-Public-Renders', '1');
+      return publicResult;
+    },
+    () => PUBLIC_CACHE_SECONDS.html
   );
   const headers = new Headers(response.headers);
   headers.delete('Set-Cookie');

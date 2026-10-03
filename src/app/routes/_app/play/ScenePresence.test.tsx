@@ -33,10 +33,15 @@ vi.mock('@react-three/fiber/webgpu', async () => {
 vi.mock('@react-three/drei/webgpu', () => ({ Html: () => null }));
 
 vi.mock('./TabletopContext', () => {
-  const table = { canInteract: true, publishPointer: () => {} };
+  const table = { canInteract: true };
+  const commands = { publishPointer: () => {} };
   const pointers: never[] = [];
   const actions = { subscribePointers: () => () => {}, getPointers: () => pointers };
-  return { useTabletop: () => table, useTabletopActions: () => actions };
+  return {
+    useTabletopSelector: (select: (value: typeof table) => unknown) => select(table),
+    useTabletopCommands: () => commands,
+    useTabletopActions: () => actions,
+  };
 });
 
 afterEach(() => {

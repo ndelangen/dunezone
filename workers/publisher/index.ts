@@ -8,9 +8,11 @@ import { ConvexPublisherClient } from './convex';
 import { handlePublicAssetRequest } from './delivery';
 import { executeItemList } from './executor';
 import { imagesJpegEncoder } from './image-encode';
+import { handlePublicDiscovery } from './public-discovery';
 import { rendererManifest } from './renderer-manifest.generated';
 import { executeRulebookHtmlWork } from './rulebook-html-executor';
 import { executeRulebookPdfWork } from './rulebook-pdf-executor';
+import { handleSocialImageRequest } from './social-image';
 import { boundedPublisherTelemetryEvent, publisherBuildIdentity } from './telemetry';
 import { handleUserImageIngest, handleUserImageRequest } from './user-images';
 
@@ -44,7 +46,10 @@ function isReservedWorkerPath(pathname: string): boolean {
 }
 
 function reservedNotFound(): Response {
-  return Response.json({ error: 'Not found' }, { status: 404, headers: { 'Cache-Control': 'no-store' } });
+  return Response.json(
+    { error: 'Not found' },
+    { status: 404, headers: { 'Cache-Control': 'no-store', 'X-Robots-Tag': 'noindex' } }
+  );
 }
 
 async function allowGameIngress(request: Request, url: URL, env: Env): Promise<boolean> {
@@ -97,6 +102,20 @@ const publisherWorker = {
     if (game) {
       return game;
     }
+    const discovery = await handlePublicDiscovery(request, env, {
+      storage: caches.default,
+      release: applicationReleaseIdentity(env),
+    });
+    if (discovery) {
+      return discovery;
+    }
+    const socialImage = await handleSocialImageRequest(request, env, undefined, {
+      storage: caches.default,
+      release: applicationReleaseIdentity(env),
+    });
+    if (socialImage) {
+      return socialImage;
+    }
     const publicAsset = await handlePublicAssetRequest(request, env, ctx, {
       publicBaseUrl: env.PUBLIC_BASE_URL,
       rulebookHtmlClient: client(env, env.CONVEX_EXECUTOR_BASE_URL),
@@ -132,16 +151,21 @@ const publisherWorker = {
           rendererIdentity: rendererManifest.rendererIdentity,
           identity,
         },
-        { headers: { 'Cache-Control': 'no-store' } }
+        { headers: { 'Cache-Control': 'no-store', 'X-Robots-Tag': 'noindex' } }
       );
     }
     if (isReservedWorkerPath(pathname)) {
       return reservedNotFound();
     }
-    const application = await handleApplicationRequest(request, env, async (anonymousRequest) => {
-      const { default: server } = await import('application-ssr-runtime');
-      return server.fetch(anonymousRequest);
-    });
+    const application = await handleApplicationRequest(
+      request,
+      env,
+      async (anonymousRequest) => {
+        const { default: server } = await import('application-ssr-runtime');
+        return server.fetch(anonymousRequest);
+      },
+      { storage: caches.default, release: applicationReleaseIdentity(env) }
+    );
     return application ?? env.ASSETS.fetch(request);
   },
 

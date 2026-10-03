@@ -95,6 +95,8 @@ export function validatePublisherDeployContract(config: JsonObject, environment:
       run_worker_first: [
         '/__asset-publisher',
         '/__asset-publisher/*',
+        '/social',
+        '/social/*',
         '/published',
         '/published/*',
         '/publisher-capture',
@@ -106,6 +108,7 @@ export function validatePublisherDeployContract(config: JsonObject, environment:
         '/__user-images/*',
         '/__play',
         '/__play/*',
+        '/sitemap*',
         '/factions',
         '/factions/*',
         '/assets',
@@ -152,6 +155,7 @@ export function validatePublisherDeployContract(config: JsonObject, environment:
         namespace_id: '10960001',
         simple: { limit: 120, period: 10 },
       },
+      { name: 'SOCIAL_RENDER_RATE_LIMIT', namespace_id: '17190001', simple: { limit: 20, period: 10 } },
     ],
     'game ingress rate limit'
   );

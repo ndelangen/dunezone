@@ -5,7 +5,7 @@
  * this file holds the words players use about the game itself.
  */
 
-export type GlossaryTopic = 'pieces' | 'turn' | 'battle' | 'board' | 'spice' | 'cards' | 'factions';
+export type GlossaryTopic = 'pieces' | 'turn' | 'battle' | 'board' | 'spice' | 'cards' | 'factions' | 'deals';
 
 /**
  * Where a preferred term comes from.
@@ -51,6 +51,7 @@ export const GLOSSARY_TOPICS: readonly { id: GlossaryTopic; label: string; summa
   { id: 'spice', label: 'Spice', summary: 'The one currency of the game.' },
   { id: 'cards', label: 'Cards', summary: 'The decks every game uses.' },
   { id: 'factions', label: 'Factions and people', summary: 'Who plays, and what they play as.' },
+  { id: 'deals', label: 'Deals', summary: 'What factions promise each other at the table.' },
 ];
 
 export const GLOSSARY: readonly GlossaryTerm[] = [
@@ -106,6 +107,17 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
     reason: 'The rulebook word. Off-planet and supply describe the same pile less precisely.',
     source: 'rulebook',
     avoid: [{ word: 'off-planet', forms: ['offworld', 'off-world', 'off planet', 'off world'] }],
+  },
+  {
+    id: 'flipped-troop',
+    term: 'Flipped troop',
+    topic: 'pieces',
+    explanation:
+      'A troop turned over to its back side. Some factions print a different side on the back of their troops, such as the Bene Gesserit, whose advisors share a territory without fighting until they flip back to fighters. A flipped troop follows the rules of its back side.',
+    reason:
+      'Dune Zone’s word for a troop on its back side, matching the flip side its faction editor gives a troop. The faction names what each side is called.',
+    source: 'house',
+    avoid: [],
   },
   {
     id: 'tleilaxu-tanks',
@@ -259,6 +271,34 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
     ],
   },
   {
+    id: 'dialed',
+    term: 'Dialed',
+    topic: 'battle',
+    explanation:
+      'A troop is dialed when its faction sets it on the battle wheel for one battle. Dialed troops add to the battle plan’s strength, and they are lost even when their faction wins. The troops left undialed in the territory survive a win.',
+    reason:
+      'The rulebook says forces are dialed on the battle wheel. Spent and committed name the cost; dialed names the act. Paying spice for a dialed troop is a separate choice, called supported.',
+    source: 'rulebook',
+    avoid: [
+      {
+        word: 'spent troops',
+        forms: ['spent troop', 'spend troops', 'spend troop', 'spending troops'],
+        fixes: {
+          'spent troops': 'dialed troops',
+          'spent troop': 'dialed troop',
+          'spend troops': 'dial troops',
+          'spend troop': 'dial troop',
+          'spending troops': 'dialing troops',
+        },
+      },
+      {
+        word: 'committed troops',
+        forms: ['committed troop', 'commit troops', 'commit troop', 'committing troops'],
+        /* No fixes: committing troops also means sending them to Arrakis, which is not dialing. */
+      },
+    ],
+  },
+  {
     id: 'supported',
     term: 'Supported',
     topic: 'battle',
@@ -277,7 +317,8 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
     id: 'battle-wheel',
     term: 'Battle wheel',
     topic: 'battle',
-    explanation: 'The dial each faction turns in secret to choose how many troops it commits to a battle.',
+    explanation:
+      'The dial each faction turns in secret to choose how many of its troops in the territory fight the battle.',
     reason: 'The rulebook calls the component the battle wheel; dial is what you do with it.',
     source: 'rulebook',
     avoid: [
@@ -533,5 +574,36 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
       { word: 'team', forms: ['teams'], hint: false },
       { word: 'coalition', forms: ['coalitions'], fixes: { coalition: 'alliance', coalitions: 'alliances' } },
     ],
+  },
+  {
+    id: 'deal',
+    term: 'Deal',
+    topic: 'deals',
+    explanation:
+      'A spoken agreement between factions that are not allies, about spice, secret information or what they will do later. A deal cannot hand over treachery cards, leaders, troops or faction advantages, and cannot break the rules.',
+    reason: 'The rulebook word. Pact names the same thing.',
+    source: 'rulebook',
+    avoid: [{ word: 'pact', forms: ['pacts'], fixes: { pact: 'deal', pacts: 'deals' } }],
+  },
+  {
+    id: 'binding-deal',
+    term: 'Binding deal',
+    topic: 'deals',
+    explanation:
+      'A deal its factions must keep. The rulebook makes every deal binding once it is stated aloud, so no faction can back out of it. Talk that was never stated as a deal, such as a hint about what you might do, binds no one.',
+    reason:
+      'The rulebook says deals must be honored but has no name for that. Dune Zone says binding deal when it matters that the deal is kept, and plain deal otherwise.',
+    source: 'house',
+    avoid: [],
+  },
+  {
+    id: 'bribe',
+    term: 'Bribe',
+    topic: 'deals',
+    explanation:
+      'A deal in which one faction pays another spice for something in return, such as staying out of a territory. Like any deal it must be stated aloud and kept. The spice waits in front of the receiving faction’s shield and joins its Spice reserve during the Mentat Pause.',
+    reason: 'The rulebook word. Every bribe is a deal; a deal without spice paid for it is not a bribe.',
+    source: 'rulebook',
+    avoid: [],
   },
 ];

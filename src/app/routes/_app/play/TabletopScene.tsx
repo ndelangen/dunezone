@@ -77,6 +77,7 @@ import type { ReactNode } from 'react';
 import type { ExtrudeGeometry, Group, Texture } from 'three';
 import {
   BufferGeometry,
+  CanvasTexture,
   EdgesGeometry,
   Float32BufferAttribute,
   Mesh,
@@ -102,6 +103,8 @@ import { PhaseSymbol } from './PhaseSymbol';
 import { cameraPoseFor, TABLE_CAMERA_FAR, TABLE_CAMERA_FIELD_OF_VIEW, TABLE_CAMERA_NEAR } from './playView';
 import type { CameraViewCommand } from './playView';
 import { usePointerSession } from './PointerSessionContext';
+import type { CardPrediction } from './prediction/predictionFace';
+import { usePredictionFace } from './prediction/predictionFace';
 import { sharedPublishedFaces } from './publishedFaceRetry';
 import { isPublicTablePoint, ScenePresence, useTablePose } from './ScenePresence';
 import { SpiceBank } from './SpiceBank';
@@ -109,7 +112,13 @@ import { TableFurniture } from './TableFurniture';
 import { TableGraphicsBoundary, TableGraphicsUnavailable } from './TableGraphicsBoundary';
 import { useTableLighting } from './tableLighting';
 import { mapViewFramingPoints } from './tablePlateGeometry';
-import { useTabletop, useTabletopActions } from './TabletopContext';
+import {
+  useTabletop,
+  useTabletopActions,
+  useTabletopCommands,
+  useTabletopReader,
+  useTabletopSelector,
+} from './TabletopContext';
 import type { TabletopContextValue } from './TabletopContext';
 import styles from './TabletopScene.module.css';
 import { activePhaseIndex, trackerDiscColor } from './tableTrackers';
@@ -608,6 +617,10 @@ function TokenFace({
   );
 }
 
+/*
+ * Layers overlap, so a face between two layers sits inside its neighbour and is never seen.
+ * A stack draws only its top face and its underside, which shows when the whole stack turns over.
+ */
 function TroopStackLayers({ piece }: { piece: TablePiece }) {
   const shownLayers = visibleLayerCount(piece);
   const scale = troopScale(piece);
@@ -631,17 +644,21 @@ function TroopStackLayers({ piece }: { piece: TablePiece }) {
               )}
               <meshStandardMaterial color={piece.color} roughness={0.56} metalness={0.1} />
             </mesh>
-            <TokenFace
-              piece={piece}
-              faceUp={faceUp}
-              itemIndex={stackLayerItemIndex(piece.items.length, shownLayers, index, piece.flipRevision)}
-            />
-            <TokenFace
-              piece={piece}
-              faceUp={!faceUp}
-              underside
-              itemIndex={stackLayerItemIndex(piece.items.length, shownLayers, index, piece.flipRevision)}
-            />
+            {index === shownLayers - 1 ? (
+              <TokenFace
+                piece={piece}
+                faceUp={faceUp}
+                itemIndex={stackLayerItemIndex(piece.items.length, shownLayers, index, piece.flipRevision)}
+              />
+            ) : null}
+            {index === 0 ? (
+              <TokenFace
+                piece={piece}
+                faceUp={!faceUp}
+                underside
+                itemIndex={stackLayerItemIndex(piece.items.length, shownLayers, index, piece.flipRevision)}
+              />
+            ) : null}
           </group>
         );
       })}
@@ -649,15 +666,41 @@ function TroopStackLayers({ piece }: { piece: TablePiece }) {
   );
 }
 
+/* A prediction card's chosen logo and turn, drawn over its published base (#1753). */
+function PredictionOverlay({ prediction }: { prediction: CardPrediction }) {
+  const face = usePredictionFace(prediction);
+  const texture = useMemo(() => {
+    if (!face) {
+      return null;
+    }
+    const value = new CanvasTexture(face);
+    value.colorSpace = SRGBColorSpace;
+    return value;
+  }, [face]);
+  useEffect(() => () => texture?.dispose(), [texture]);
+  if (!texture) {
+    return null;
+  }
+  return (
+    <mesh position={[0, 0, 0.003]} renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}>
+      <planeGeometry args={[CARD_WIDTH, CARD_DEPTH]} />
+      <meshBasicMaterial map={texture} transparent depthWrite={false} />
+    </mesh>
+  );
+}
+
 function CardFace({
   piece,
   faceUp,
   underside = false,
+  covered = false,
   itemIndex,
 }: {
   piece: TablePiece;
   faceUp: boolean;
   underside?: boolean;
+  /* A card under another shows only a sliver at its edge, never its centre panel. */
+  covered?: boolean;
   itemIndex: number;
 }) {
   return (
@@ -665,18 +708,27 @@ function CardFace({
       {piece.items[itemIndex]?.artwork?.[faceUp ? 'front' : 'back'] && (
         <PublishedFace href={piece.items[itemIndex].artwork![faceUp ? 'front' : 'back']!} card />
       )}
+      {faceUp && piece.items[itemIndex]?.artwork?.prediction && (
+        <PredictionOverlay prediction={piece.items[itemIndex].artwork.prediction} />
+      )}
       <mesh renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}>
         <planeGeometry args={[CARD_WIDTH, CARD_DEPTH]} />
         <meshStandardMaterial color={faceUp ? piece.color : '#2b1a1a'} roughness={0.68} metalness={0.03} />
       </mesh>
-      <mesh position={[0, 0, 0.001]} renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}>
-        <planeGeometry args={[0.58, 0.82]} />
-        <meshBasicMaterial color={piece.accent} transparent depthWrite={false} opacity={faceUp ? 0.74 : 0.38} />
-      </mesh>
+      {covered ? null : (
+        <mesh position={[0, 0, 0.001]} renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}>
+          <planeGeometry args={[0.58, 0.82]} />
+          <meshBasicMaterial color={piece.accent} transparent depthWrite={false} opacity={faceUp ? 0.74 : 0.38} />
+        </mesh>
+      )}
     </PieceFace>
   );
 }
 
+/*
+ * Staggered cards show a sliver of every face, on top and, while the stack turns over, underneath.
+ * Only the centre panel of a covered face is always hidden, so a covered card skips it.
+ */
 function CardStackLayers({ piece }: { piece: TablePiece }) {
   const shownLayers = visibleLayerCount(piece);
   return (
@@ -695,12 +747,14 @@ function CardStackLayers({ piece }: { piece: TablePiece }) {
             <CardFace
               piece={piece}
               faceUp={faceUp}
+              covered={index < shownLayers - 1}
               itemIndex={stackLayerItemIndex(piece.items.length, shownLayers, index, piece.flipRevision)}
             />
             <CardFace
               piece={piece}
               faceUp={!faceUp}
               underside
+              covered={index > 0}
               itemIndex={stackLayerItemIndex(piece.items.length, shownLayers, index, piece.flipRevision)}
             />
           </group>
@@ -1222,7 +1276,7 @@ const TablePieceMesh = memo(function TablePieceMesh(props: TablePieceMeshProps) 
 });
 
 function useSceneInteractions(onInteractionActiveChange: TabletopSceneProps['onInteractionActiveChange']) {
-  const { gestureActivePieceId } = useTabletop();
+  const gestureActivePieceId = useTabletopSelector((table) => table.gestureActivePieceId);
   const [pointerActive, setPointerActive] = useState(false);
   const onPointerSessionChange = useCallback(
     (nextActive: boolean) => {
@@ -1327,6 +1381,91 @@ function SceneContents({
   );
 }
 
+type PieceMenuAnchor = { pieceId: string; x: number; y: number; touch: boolean };
+
+/* A deck's or a spice pile's menu, opened from the piece; it follows the live table while open, apart from the canvas. */
+function PieceMenu({ pieceMenu, onClose }: Readonly<{ pieceMenu: PieceMenuAnchor | null; onClose: () => void }>) {
+  const menuPiece = useTabletopSelector((table) =>
+    pieceMenu ? table.state.pieces.find((piece) => piece.id === pieceMenu.pieceId) : undefined
+  );
+  const deckControls = useTabletopSelector((table) => (pieceMenu ? table.deckControls : undefined));
+  const spiceReserveControls = useTabletopSelector((table) => (pieceMenu ? table.spiceReserveControls : undefined));
+  const pieceMenuName = isSpicePiece(menuPiece) ? 'Spice actions' : 'Deck actions';
+  const pieceMenuLabelId = useId();
+  const deckAvailable =
+    !!deckControls && !!menuPiece && !menuPiece.locked && !menuPiece.inventory && menuPiece.items.length > 0;
+  const shuffleHint = deckShuffleHint(pieceMenu?.touch ?? false);
+  return (
+    <Menu
+      opened={!!pieceMenu && !!menuPiece}
+      onChange={(opened) => {
+        if (!opened) {
+          onClose();
+        }
+      }}
+      closeOnItemClick={false}
+      withinPortal
+      position="bottom-start"
+    >
+      <Menu.Target>
+        {/* An empty positioning anchor, not a control: hidden from assistive technology, so Mantine's expanded state on it names nothing. */}
+        <span
+          aria-hidden
+          style={{
+            position: 'fixed',
+            left: pieceMenu?.x ?? 0,
+            top: pieceMenu?.y ?? 0,
+            width: 1,
+            height: 1,
+            pointerEvents: 'none',
+          }}
+        />
+      </Menu.Target>
+      {/* Mantine names the dropdown by its target, here an empty anchor, so the menu points its name at its own hidden label instead. */}
+      <Menu.Dropdown aria-labelledby={pieceMenuLabelId}>
+        <span id={pieceMenuLabelId} hidden>
+          {pieceMenuName}
+        </span>
+        {isSpicePiece(menuPiece) ? (
+          <Menu.Item
+            disabled={!spiceReserveControls || menuPiece.locked || !spiceReserveControls.canCollect(menuPiece.id)}
+            onClick={() => {
+              spiceReserveControls?.collect(menuPiece.id);
+              onClose();
+            }}
+          >
+            Take into spice reserve
+          </Menu.Item>
+        ) : (
+          <>
+            <Menu.Label>{menuPiece ? `${menuPiece.items.length} cards` : 'Deck empty'}</Menu.Label>
+            <Menu.Item disabled={!deckAvailable} onClick={() => pieceMenu && deckControls?.draw(pieceMenu.pieceId)}>
+              Draw a card
+            </Menu.Item>
+            {deckControls?.recipients.map((faction) => (
+              <Menu.Item
+                key={faction.id}
+                disabled={!deckAvailable}
+                onClick={() => pieceMenu && deckControls.draw(pieceMenu.pieceId, faction.id)}
+              >
+                Deal 1 to {faction.name}
+              </Menu.Item>
+            ))}
+            <Menu.Divider />
+            <Menu.Item
+              disabled={!deckAvailable || (menuPiece?.items.length ?? 0) < 2}
+              onClick={() => pieceMenu && deckControls?.shuffle(pieceMenu.pieceId)}
+            >
+              Shuffle
+            </Menu.Item>
+            {shuffleHint && <Menu.Label>{shuffleHint}</Menu.Label>}
+          </>
+        )}
+      </Menu.Dropdown>
+    </Menu>
+  );
+}
+
 export function TabletopScene({
   children,
   className,
@@ -1338,8 +1477,13 @@ export function TabletopScene({
   stage,
   mapVisible,
 }: TabletopSceneProps) {
-  const { takeAdditionalFromTarget, state, deckControls, spiceReserveControls } = useTabletop();
-  const [pieceMenu, setPieceMenu] = useState<{ pieceId: string; x: number; y: number; touch: boolean } | null>(null);
+  const { takeAdditionalFromTarget } = useTabletopCommands();
+  const readTable = useTabletopReader();
+  /* The frame around the canvas follows only what it shows, so a held piece moving renders the pieces and not the canvas. */
+  const hasDraft = useTabletopSelector((table) => table.state.draftMove !== null);
+  const selectedPieceId = useTabletopSelector((table) => table.state.selectedPieceId);
+  const menuAvailable = useTabletopSelector((table) => Boolean(table.deckControls || table.spiceReserveControls));
+  const [pieceMenu, setPieceMenu] = useState<PieceMenuAnchor | null>(null);
   /* One opener for the table's life: a new one on every update would render every piece again. */
   const openPieceMenu = useCallback(
     (pieceId: string, x: number, y: number, touch: boolean) =>
@@ -1352,12 +1496,6 @@ export function TabletopScene({
       })),
     []
   );
-  const menuPiece = state.pieces.find((piece) => piece.id === pieceMenu?.pieceId);
-  const pieceMenuName = isSpicePiece(menuPiece) ? 'Spice actions' : 'Deck actions';
-  const pieceMenuLabelId = useId();
-  const deckAvailable =
-    !!deckControls && !!menuPiece && !menuPiece.locked && !menuPiece.inventory && menuPiece.items.length > 0;
-  const shuffleHint = deckShuffleHint(pieceMenu?.touch ?? false);
   const { trackers } = boardFurnitureFor(stage);
   const tableProgress = trackers === 'none' ? undefined : providedProgress;
   const phaseCount = tableProgress?.phases.length ?? null;
@@ -1382,7 +1520,7 @@ export function TabletopScene({
       className={className}
       onContextMenu={(event) => {
         event.preventDefault();
-        if (state.draftMove) {
+        if (hasDraft) {
           takeAdditionalFromTarget();
           return;
         }
@@ -1390,8 +1528,9 @@ export function TabletopScene({
     >
       <Button
         className={styles.keyboardActions}
-        disabled={!!state.draftMove || !state.selectedPieceId}
+        disabled={hasDraft || !selectedPieceId}
         onClick={(event) => {
+          const { state } = readTable();
           const piece = state.pieces.find((entry) => entry.id === state.selectedPieceId);
           if (!piece || piece.inventory || (piece.kind !== 'card' && !isSpicePiece(piece))) {
             return;
@@ -1407,74 +1546,8 @@ export function TabletopScene({
       >
         Selected piece actions
       </Button>
-      <Menu
-        opened={!!pieceMenu && !!menuPiece}
-        onChange={(opened) => {
-          if (!opened) {
-            setPieceMenu(null);
-          }
-        }}
-        closeOnItemClick={false}
-        withinPortal
-        position="bottom-start"
-      >
-        <Menu.Target>
-          {/* An empty positioning anchor, not a control: hidden from assistive technology, so Mantine's expanded state on it names nothing. */}
-          <span
-            aria-hidden
-            style={{
-              position: 'fixed',
-              left: pieceMenu?.x ?? 0,
-              top: pieceMenu?.y ?? 0,
-              width: 1,
-              height: 1,
-              pointerEvents: 'none',
-            }}
-          />
-        </Menu.Target>
-        {/* Mantine names the dropdown by its target, here an empty anchor, so the menu points its name at its own hidden label instead. */}
-        <Menu.Dropdown aria-labelledby={pieceMenuLabelId}>
-          <span id={pieceMenuLabelId} hidden>
-            {pieceMenuName}
-          </span>
-          {isSpicePiece(menuPiece) ? (
-            <Menu.Item
-              disabled={!spiceReserveControls || menuPiece.locked || !spiceReserveControls.canCollect(menuPiece.id)}
-              onClick={() => {
-                spiceReserveControls?.collect(menuPiece.id);
-                setPieceMenu(null);
-              }}
-            >
-              Take into spice reserve
-            </Menu.Item>
-          ) : (
-            <>
-              <Menu.Label>{menuPiece ? `${menuPiece.items.length} cards` : 'Deck empty'}</Menu.Label>
-              <Menu.Item disabled={!deckAvailable} onClick={() => pieceMenu && deckControls?.draw(pieceMenu.pieceId)}>
-                Draw a card
-              </Menu.Item>
-              {deckControls?.recipients.map((faction) => (
-                <Menu.Item
-                  key={faction.id}
-                  disabled={!deckAvailable}
-                  onClick={() => pieceMenu && deckControls.draw(pieceMenu.pieceId, faction.id)}
-                >
-                  Deal 1 to {faction.name}
-                </Menu.Item>
-              ))}
-              <Menu.Divider />
-              <Menu.Item
-                disabled={!deckAvailable || (menuPiece?.items.length ?? 0) < 2}
-                onClick={() => pieceMenu && deckControls?.shuffle(pieceMenu.pieceId)}
-              >
-                Shuffle
-              </Menu.Item>
-              {shuffleHint && <Menu.Label>{shuffleHint}</Menu.Label>}
-            </>
-          )}
-        </Menu.Dropdown>
-      </Menu>
-      <PieceMenuContext.Provider value={deckControls || spiceReserveControls ? openPieceMenu : null}>
+      <PieceMenu pieceMenu={pieceMenu} onClose={() => setPieceMenu(null)} />
+      <PieceMenuContext.Provider value={menuAvailable ? openPieceMenu : null}>
         {graphics === 'unavailable' && <TableGraphicsUnavailable onShown={onSceneReady} />}
         {graphics === 'ready' && (
           <TableGraphicsBoundary onShown={onSceneReady}>

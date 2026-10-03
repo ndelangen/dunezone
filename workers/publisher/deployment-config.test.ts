@@ -48,7 +48,7 @@ describe('scheduled production deployment shape', () => {
   test('loads the shared renderer stylesheet and font files as Worker modules', () => {
     expect(config.rules).toEqual([
       { type: 'Text', globs: ['**/*.css'], fallthrough: true },
-      { type: 'Data', globs: ['**/*.woff2'], fallthrough: true },
+      { type: 'Data', globs: ['**/*.woff2', '**/*.woff'], fallthrough: true },
     ]);
     expect(config.alias).toEqual({
       'rulebook-html-renderer-runtime': './runtime-generated/rulebook-html-renderer.mjs',
@@ -73,6 +73,7 @@ describe('scheduled production deployment shape', () => {
         namespace_id: '10960001',
         simple: { limit: 120, period: 10 },
       },
+      { name: 'SOCIAL_RENDER_RATE_LIMIT', namespace_id: '17190001', simple: { limit: 20, period: 10 } },
     ]);
   });
 
@@ -101,6 +102,8 @@ describe('scheduled production deployment shape', () => {
     expect((config.assets as { run_worker_first?: string[] }).run_worker_first).toEqual([
       '/__asset-publisher',
       '/__asset-publisher/*',
+      '/social',
+      '/social/*',
       '/published',
       '/published/*',
       '/publisher-capture',
@@ -112,6 +115,7 @@ describe('scheduled production deployment shape', () => {
       '/__user-images/*',
       '/__play',
       '/__play/*',
+      '/sitemap*',
       '/factions',
       '/factions/*',
       '/assets',

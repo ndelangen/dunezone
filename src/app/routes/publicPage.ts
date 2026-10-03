@@ -1,10 +1,11 @@
 import { parseFormattedText } from '@shared/formattedText';
 import type { FormattedTextInlineNode } from '@shared/formattedText';
+import { PUBLIC_SITE_ORIGIN } from '@shared/publicDiscovery';
+import { socialCardHref, SOCIAL_CARD_HEIGHT, SOCIAL_CARD_WIDTH } from '@shared/socialCard';
+import type { SocialCardInput } from '@shared/socialCard';
 import { useEffect } from 'react';
 
 import { pageHead, pageTitle } from './pageTitle';
-
-const SITE_ORIGIN = 'https://dune.zone';
 
 function inlineText(nodes: readonly FormattedTextInlineNode[]): string {
   return nodes
@@ -40,20 +41,24 @@ export function publicPageHead({
   pathname,
   description,
   image,
+  social,
   match,
 }: {
   name: string;
   pathname: string;
   description: string;
   image?: string | null;
+  social?: { kind: string; shape: SocialCardInput['shape'] };
   match?: { status: string };
 }) {
   if (match?.status === 'notFound') {
     return {};
   }
-  const url = new URL(pathname, SITE_ORIGIN).href;
-  /* The social PNG ticket replaces this existing-artwork URL when its renderer is deployed. */
-  const imageUrl = new URL(image || '/video/band-poster.jpg', SITE_ORIGIN).href;
+  const url = new URL(pathname, PUBLIC_SITE_ORIGIN).href;
+  const imagePath = social
+    ? socialCardHref({ name, description, image, ...social })
+    : image || '/video/band-poster.jpg';
+  const imageUrl = new URL(imagePath, PUBLIC_SITE_ORIGIN).href;
   return {
     links: [{ rel: 'canonical', href: url }],
     meta: [
@@ -66,6 +71,13 @@ export function publicPageHead({
       { property: 'og:url', content: url },
       { property: 'og:image', content: imageUrl },
       { property: 'og:image:alt', content: name },
+      ...(social
+        ? [
+            { property: 'og:image:type', content: 'image/png' },
+            { property: 'og:image:width', content: String(SOCIAL_CARD_WIDTH) },
+            { property: 'og:image:height', content: String(SOCIAL_CARD_HEIGHT) },
+          ]
+        : []),
       { name: 'twitter:card', content: 'summary_large_image' },
       { name: 'twitter:title', content: pageTitle(name) },
       { name: 'twitter:description', content: description },

@@ -88,6 +88,7 @@ import type * as profileAvatars from "../profileAvatars.js";
 import type * as profiles from "../profiles.js";
 import type * as provisioning from "../provisioning.js";
 import type * as provisioningChecks from "../provisioningChecks.js";
+import type * as publicSitemap from "../publicSitemap.js";
 import type * as publicationAdmin from "../publicationAdmin.js";
 import type * as publicationJobs from "../publicationJobs.js";
 import type * as publicationRegeneration from "../publicationRegeneration.js";
@@ -189,6 +190,7 @@ declare const fullApi: ApiFromModules<{
   profiles: typeof profiles;
   provisioning: typeof provisioning;
   provisioningChecks: typeof provisioningChecks;
+  publicSitemap: typeof publicSitemap;
   publicationAdmin: typeof publicationAdmin;
   publicationJobs: typeof publicationJobs;
   publicationRegeneration: typeof publicationRegeneration;

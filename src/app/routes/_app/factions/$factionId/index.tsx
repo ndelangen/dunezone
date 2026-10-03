@@ -61,6 +61,7 @@ export const Route = createFileRoute('/_app/factions/$factionId/')({
       pathname: `/factions/${encodeURIComponent(loaderData?.faction.slug ?? params.factionId)}`,
       description: publicDescription(loaderData?.faction.data.rules.advantages[0]?.text),
       image: loaderData ? publishedHref('faction-token', loaderData.faction._id, loaderData.faction.updated_at) : null,
+      social: { kind: 'Faction', shape: 'round' },
       match,
     }),
   component: FactionDetailPage,
@@ -155,14 +156,14 @@ function TroopStrengths({ face }: { face: TroopFace }) {
   return (
     <>
       <TroopHint
-        label={`Strength per troop: ${face.values.strength} undialed | ${face.values.supportedStrength} dialed`}
+        label={`Strength per troop: ${face.values.strength} unsupported | ${face.values.supportedStrength} supported`}
       >
         <TopicIcon topic="strength" size={15} />
         <b>
           {face.values.strength} | {face.values.supportedStrength}
         </b>
       </TroopHint>
-      <TroopHint label={`Support cost: ${face.values.supportCost} spice per dialed troop`}>
+      <TroopHint label={`Support cost: ${face.values.supportCost} spice per supported troop`}>
         <TopicIcon topic="spice" size={15} />
         <b>{face.values.supportCost}</b>
       </TroopHint>

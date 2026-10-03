@@ -1,12 +1,26 @@
+/* The stage is its own container, so every piece sizes from the column it fills rather than from the window. */
 .stage {
+  --leader-size: clamp(6rem, 30cqi, 12rem);
+
+  container-type: inline-size;
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 100%;
+  width: 100%;
   min-height: 12rem;
 }
 
+/* Pieces sit in a two-column grid, so the picture grows down with its topic's terms rather than leaving the column empty. */
 .row,
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  justify-items: center;
+  align-items: end;
+  gap: var(--space-lg) var(--space-md);
+  width: 100%;
+}
+
 .fan {
   display: flex;
   flex-wrap: wrap;
@@ -23,12 +37,29 @@
   transform: rotate(6deg) translateY(var(--space-xs));
 }
 
+.column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-lg);
+  width: 100%;
+}
+
+.column > .piece,
+.column > .piece > .art {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
 .piece {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--space-xs);
+  gap: var(--space-sm);
   color: var(--color-text);
+  text-align: center;
   text-decoration: none;
 }
 
@@ -47,15 +78,20 @@
 
 .disc {
   display: block;
-  width: 5.5rem;
+  width: var(--leader-size);
   overflow: hidden;
   border-radius: 50%;
   filter: drop-shadow(0 6px 10px rgb(54 29 8 / 28%));
 }
 
+/* A troop is half a leader's diameter, as on the table. */
+.disc.troop {
+  width: calc(var(--leader-size) / 2);
+}
+
 .card {
   display: block;
-  width: 7rem;
+  width: clamp(7rem, 29cqi, 13rem);
   border-radius: var(--radius-md);
   filter: drop-shadow(0 6px 10px rgb(54 29 8 / 28%));
 }
@@ -63,18 +99,18 @@
 .glyph {
   display: block;
   flex: 0 0 auto;
-  width: 2rem;
-  height: 2rem;
+  width: clamp(2rem, 8cqi, 3.5rem);
+  height: clamp(2rem, 8cqi, 3.5rem);
   background-color: currentColor;
   mask-position: center;
   mask-repeat: no-repeat;
   mask-size: contain;
 }
 
+/* The phases read down the column as a list, one per line. */
 .phases {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--space-sm);
+  gap: var(--space-xs);
   width: 100%;
   margin: 0;
   padding: 0;
@@ -83,58 +119,145 @@
 
 .phase {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: var(--space-xs);
+  gap: var(--space-md);
   padding-block: var(--space-xs);
-  font-size: var(--mantine-font-size-xs);
+  font-size: var(--mantine-font-size-md);
   font-weight: 600;
-  text-align: center;
   color: var(--color-text);
 }
 
 .phase a {
   color: inherit;
-  text-decoration: underline;
-  text-underline-offset: 0.2em;
+  text-decoration: none;
 }
 
-.phaseNumber {
-  color: var(--color-muted);
-  font-size: var(--mantine-font-size-xs);
+.phase a:hover {
+  text-decoration: underline;
+}
+
+/* Some phase icons come without the circle the others draw, so they get the same circle here. */
+.ring {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  box-sizing: border-box;
+  width: clamp(2rem, 8cqi, 3.5rem);
+  height: clamp(2rem, 8cqi, 3.5rem);
+  border: clamp(0.1rem, 0.4cqi, 0.16rem) solid currentColor;
+  border-radius: 50%;
+}
+
+.ring .glyph {
+  width: 62%;
+  height: 62%;
 }
 
 .wheel {
-  width: min(100%, 16rem);
-  aspect-ratio: 1;
+  width: min(100%, 32rem);
+  filter: drop-shadow(0 8px 14px rgb(54 29 8 / 24%));
 }
 
+/* These two live inside the wheel's own 170px canvas, so they are sized in its pixels and scale with it. */
 .wheelLeader {
-  width: 3.75rem;
+  width: 60px;
 }
 
 .wheelLeader .disc {
   width: 100%;
+  filter: none;
+}
+
+.wheelCard {
+  display: block;
+  width: 60px;
 }
 
 .board {
   display: block;
-  width: min(100%, 18rem);
+  width: min(100%, 40rem);
   height: auto;
 }
 
 .spicePile {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(3, auto);
+  justify-content: center;
   gap: var(--space-xs);
-  color: #b65d12;
+}
+
+/* A spice token is the size of a troop. */
+.spiceToken {
+  display: block;
+  width: calc(var(--leader-size) / 2);
+  height: auto;
+  border-radius: 50%;
+  filter: drop-shadow(0 4px 6px rgb(54 29 8 / 28%));
 }
 
 .factions {
   display: grid;
-  grid-template-columns: repeat(3, 4.5rem);
-  gap: var(--space-sm);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-md);
+  width: min(100%, 24rem);
 }
 
 .factions .disc {
   width: 100%;
+}
+
+.troopStack {
+  display: flex;
+}
+
+/* Two faction tokens with the bribe's spice between them; the tokens shrink before the row would overflow. */
+.deal {
+  display: grid;
+  grid-template-columns: minmax(0, var(--leader-size)) auto minmax(0, var(--leader-size));
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.deal .disc {
+  width: 100%;
+}
+
+.deal .spicePile {
+  grid-template-columns: auto;
+}
+
+.troopStack .disc + .disc {
+  margin-inline-start: calc(var(--leader-size) / 2 * -0.55);
+}
+
+.pair {
+  display: flex;
+  gap: var(--space-xs);
+}
+
+.pair .card {
+  width: clamp(5rem, 19cqi, 8rem);
+}
+
+.reserve {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.reserve .disc {
+  width: calc(var(--leader-size) * 0.75);
+}
+
+/* A column too slim for two pieces side by side keeps its main pieces and drops the extras: below 18rem the Reserves stack no longer fits beside another piece. */
+@container (width < 18rem) {
+  .extra {
+    display: none;
+  }
+
+  .row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
 }

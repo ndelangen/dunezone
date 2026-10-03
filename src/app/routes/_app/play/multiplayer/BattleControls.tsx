@@ -261,7 +261,9 @@ function TroopFaceFields({
   return (
     <div className={styles.faceFields}>
       <BattleNumberInput
-        label={plan.mode === 'max' ? (single ? 'Troops' : face.name) : single ? 'Undialed' : `${face.name} undialed`}
+        label={
+          plan.mode === 'max' ? (single ? 'Troops' : face.name) : single ? 'Unsupported' : `${face.name} unsupported`
+        }
         value={plan.mode === 'max' ? troop.undialed + troop.dialed : troop.undialed}
         min={0}
         allowDecimal={false}
@@ -270,7 +272,7 @@ function TroopFaceFields({
       />
       {plan.mode === 'custom' && (
         <BattleNumberInput
-          label={single ? 'Dialed' : `${face.name} dialed`}
+          label={single ? 'Supported' : `${face.name} supported`}
           value={troop.dialed}
           min={0}
           max={dialedMax}

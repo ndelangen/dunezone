@@ -1,5 +1,8 @@
 # Public page HTML and live data
 
+The [hosted delivery rehearsal](public-delivery-rehearsal.md) records measured CPU, browser behavior,
+external scraper results and the current cost model. It supersedes the preliminary cost assumptions below.
+
 Faction details, asset details, the two catalogues and asset-type listings render anonymous HTML
 in the publisher Worker. Login-required pages keep their browser-only loaders. The Worker strips
 visitor credentials before invoking TanStack Start, and the data doorway creates an unauthenticated
@@ -8,9 +11,9 @@ HTTP client for server reads.
 Each route calls its existing page query once. That result supplies the visible content, title,
 canonical URL, description and social metadata. The faction excerpt comes from its first advantage;
 an asset uses About. Formatting marks become readable text, and empty excerpts remain empty.
-Descriptions stop at 200 Unicode code points. Existing published artwork supplies `og:image` until
-[the social PNG endpoint](https://github.com/ndelangen/dunezone/issues/1718) replaces it with the
-selected card design and bounded URL inputs.
+Descriptions stop at 200 Unicode code points. Faction and asset detail metadata points to [the social PNG endpoint](social-images.md).
+Its URL carries bounded words and the existing published artwork path. Catalogues retain the site
+poster. Image generation adds no metadata query.
 
 The browser hydrates the anonymous result and starts the existing Convex subscriptions. A live
 result replaces the initial data, including a null result after deletion. Edit and membership
@@ -18,13 +21,18 @@ controls wait for current capabilities. Signing out removes them; the initial da
 access while the next subscription result is pending. Live names update the browser title. Asset
 dates use a stable calendar date so the server and browser agree during hydration.
 
+The [public discovery contract](public-discovery.md) covers robots.txt, sitemaps and canonical URL variants.
+
 Missing records and unknown public descendants return 404. A faction query reports structured
 `NOT_FOUND` so a connection failure cannot masquerade as absence. A faction that disappears from
 an open page uses the same absence presentation. Old slugs remain absent after a rename.
 
-Responses currently use `no-store`. The separate
-[Cloudflare cache ticket](https://github.com/ndelangen/dunezone/issues/1719) adds the agreed five-minute
-anonymous HTML cache. It will reduce server query frequency without delaying browser subscriptions.
+Cloudflare caches successful anonymous HTML for five minutes, keyed by Worker version and normalized
+URL. Credential-bearing and anonymous visits share the same anonymous rendering. Credentials are
+removed before loading, and responses with Set-Cookie, private cache directives, Vary or non-200
+status cannot enter the cache. Browser responses remain `no-store`, so each visit reaches the Worker
+and existing live subscriptions still start immediately. Cache eviction or failure causes
+a fresh render. See [public response caching](public-response-cache.md) for limits and diagnostics.
 No new client cache, saved snapshot or save-triggered HTML generation exists here.
 
 ## Read-work measurement

@@ -51,6 +51,7 @@ import type { FixturePlan } from './fixture';
 import { logContext, PublicLog } from './log';
 import type { SeatPlan } from './participation';
 import { ownRequests, Participation } from './participation';
+import { revealPlacedPredictions } from './predictionCards';
 import { PublicActions } from './publicActions';
 import { RemovalVotes } from './removal';
 import { applyResult, settleEnding } from './result';
@@ -808,7 +809,10 @@ export class GameSession {
   private commitTable(viewer: Viewer, message: TableMessage, contents?: StoredSpawnContents) {
     const room = this.room!;
     const key = `${viewer.userId}:${message.commandId}`;
-    const next = this.withRoster(storedSnapshotSchema.parse(this.nextTableSnapshot(viewer, message, contents)));
+    const next = revealPlacedPredictions(
+      this.withRoster(storedSnapshotSchema.parse(this.nextTableSnapshot(viewer, message, contents))),
+      Date.now()
+    );
     const transfer = this.spiceLedger.describe(
       room.snapshot,
       next,

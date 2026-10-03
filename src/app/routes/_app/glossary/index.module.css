@@ -8,8 +8,13 @@
   text-decoration: line-through;
 }
 
-/* The picture stays in view beside a long run of terms; stacked, its cell is its own height, so it never rides over them. */
+/* The picture stays in view beside a long run of terms. */
 .visual {
   position: sticky;
   top: var(--space-md);
+}
+
+/* Joined into the search field, the topic select drops its own border, as the asset shelves' sort does. */
+.topicSegment :is(input, button) {
+  padding-inline: var(--space-sm);
 }

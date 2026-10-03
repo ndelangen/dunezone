@@ -4,15 +4,15 @@ import { useEffect, useState } from 'react';
 
 import { PhaseSymbol } from './PhaseSymbol';
 import { useTableKeyboard } from './TableKeyboardContext';
-import { useTabletop } from './TabletopContext';
+import { useTabletopCommands, useTabletopSelector } from './TabletopContext';
 import { SPICE_DISC_COLOR } from './tableTrackers';
 
 export function SpiceBank({ radius }: Readonly<{ radius: number }>) {
-  const { canHandleTable, setHoveredPiece, state } = useTabletop();
+  const enabled = useTabletopSelector((table) => table.canHandleTable && !table.state.draftMove);
+  const { setHoveredPiece } = useTabletopCommands();
   const keyboard = useTableKeyboard();
   const { renderer } = useThree();
   const [hovered, setHovered] = useState(false);
-  const enabled = canHandleTable && !state.draftMove;
 
   useEffect(() => {
     if (!hovered || !enabled) {
