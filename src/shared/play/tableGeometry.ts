@@ -29,7 +29,7 @@ export const TROOP_FOOTPRINT_RADIUS = 0.175;
 /* A leader disc is twice the diameter of a troop token. */
 const LEADER_SCALE = 2;
 /* A faction token is as wide as the seat token swapping shows (radius 0.42), the largest disc at a seat. */
-const FACTION_TOKEN_SCALE = 0.42 / TROOP_TOP_RADIUS;
+export const FACTION_TOKEN_SCALE = 0.42 / TROOP_TOP_RADIUS;
 export const CARD_WIDTH = 0.86;
 export const CARD_DEPTH = 1.18;
 export const CARD_LAYER_HEIGHT = 0.055;
