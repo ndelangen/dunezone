@@ -17,6 +17,8 @@ export type TabletopContextValue = Pick<
   | 'flippingPieceIds'
   | 'gestureActivePieceId'
   | 'hoveredPieceId'
+  | 'peek'
+  | 'peekControls'
   | 'remoteCarriedIds'
   | 'renderedPieces'
   | 'reservedPieceIds'

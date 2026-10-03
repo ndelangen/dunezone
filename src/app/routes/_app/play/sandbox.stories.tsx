@@ -116,3 +116,58 @@ export const Sandbox = meta.story({
     expect(shown().hand ?? []).toHaveLength(handSize);
   },
 });
+
+/**
+ * Seat 1 peeks at the Treachery deck: its cards open top first, to it alone, for rearranging or pulling one out.
+ * Every other seat's frame carries no peek and none of the deck's faces, only who peeked, under the deck's name.
+ */
+export const PeekAtTheDeck = meta.story({
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByRole('complementary', { name: 'Sandbox' }, { timeout: 30_000 })).resolves.toBeVisible();
+    const table = sandbox.table!;
+    const faction = shown().bank!.factionId;
+    const deck = piece((candidate) => candidate.stackKey === 'deck:treachery-deck');
+    table.receive({
+      type: 'command',
+      commandId: 'sandbox-peek',
+      expectedRevision: table.room.snapshot.revision,
+      action: { kind: 'peek', pieceId: deck.id },
+    });
+    expect(table.refusal).toBeUndefined();
+    const view = await page.findByRole('dialog', { name: /^Peeking at / }, { timeout: 30_000 });
+    expect(within(view).getAllByRole('button', { name: 'Pull out' })).toHaveLength(deck.items.length);
+
+    const other = journeyViewers().find((seat) => seat !== table.seat)!;
+    const seen = table.frame(other).snapshot;
+    expect(seen.peek ?? null).toBeNull();
+    const otherDeck = seen.table.pieces.find((candidate) => candidate.id === deck.id)!;
+    expect(otherDeck.items.every((item) => !item.artwork || !('front' in item.artwork))).toBe(true);
+    expect(otherDeck.items.every((item) => item.peekedBy?.includes(faction))).toBe(true);
+  },
+});
+
+/**
+ * Seat 1 pulls a card out of the Treachery deck while looking through it, closes the deck, and peeks at that one card:
+ * its face opens large, to seat 1 alone.
+ */
+export const PeekAtACard = meta.story({
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByRole('complementary', { name: 'Sandbox' }, { timeout: 30_000 })).resolves.toBeVisible();
+    const table = sandbox.table!;
+    const deck = piece((candidate) => candidate.stackKey === 'deck:treachery-deck');
+    const command = (
+      commandId: string,
+      action: Extract<Parameters<typeof table.receive>[0], { type: 'command' }>['action']
+    ) => table.receive({ type: 'command', commandId, expectedRevision: table.room.snapshot.revision, action });
+    command('sandbox-peek-deck', { kind: 'peek', pieceId: deck.id });
+    command('sandbox-pull', { kind: 'peek-pull', pieceId: deck.id, index: deck.items.length - 1 });
+    command('sandbox-close', { kind: 'peek-close' });
+    const pulled = shown().table.pieces.find((candidate) => candidate.id.startsWith('pulled-'))!;
+    command('sandbox-peek-card', { kind: 'peek', pieceId: pulled.id });
+    expect(table.refusal).toBeUndefined();
+    const view = await page.findByRole('dialog', { name: /^Peeking at / }, { timeout: 30_000 });
+    expect(within(view).queryByRole('button', { name: 'Pull out' })).toBeNull();
+  },
+});

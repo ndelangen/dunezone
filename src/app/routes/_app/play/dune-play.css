@@ -503,3 +503,11 @@ html[data-motion="reduce"] :where(.dune-play-shell) *::after {
     overscroll-behavior: auto;
   }
 }
+
+/* Who peeked at a piece, under its name. */
+:where(.dune-play-shell) .scene-piece-name__peeked {
+  color: #d9c7ff;
+  font-size: 0.58rem;
+  font-style: italic;
+  font-weight: 700;
+}

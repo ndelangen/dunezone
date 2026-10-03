@@ -5,6 +5,7 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber/webgpu';
 import type { ThreeEvent } from '@react-three/fiber/webgpu';
 import { gestureBlockReason, pieceCount, topItemFaceUp } from '@shared/play/model';
 import type { TablePiece, TableState, Vector3Tuple } from '@shared/play/model';
+import { hasHiddenFace, peekersOf, peeksWholeDeck } from '@shared/play/peeking';
 import { CARD_LAYER_STAGGER, stackLayerItemIndex } from '@shared/play/pieceFlip';
 import type { GameSnapshot } from '@shared/play/protocol';
 import { isSpicePiece, SPICE_LAYER_HEIGHT, SPICE_LAYER_PITCH, SPICE_TOKEN_RADIUS } from '@shared/play/spice';
@@ -99,6 +100,7 @@ import { boardFurnitureFor } from './boardFurniture';
 import { BOARD_RIM_DEPTH, createBoardRimShape } from './boardRimGeometry';
 import { CameraControls, CameraRelativeFog } from './CameraControls';
 import { deckShuffleHint, swallowLift, watchLongPress } from './longPress';
+import { PeekView } from './PeekView';
 import { PhaseSymbol } from './PhaseSymbol';
 import { cameraPoseFor, TABLE_CAMERA_FAR, TABLE_CAMERA_FIELD_OF_VIEW, TABLE_CAMERA_NEAR } from './playView';
 import type { CameraViewCommand } from './playView';
@@ -829,6 +831,8 @@ type PieceSceneState = {
   /* No piece opens its menu while a piece is in hand. */
   carrying: boolean;
   owner: string | undefined;
+  /* Who peeked at the piece, as its tag says it under the name. */
+  peeked: string | undefined;
 };
 
 type TablePieceMeshProps = { piece: TablePiece } & PieceSceneState;
@@ -861,7 +865,18 @@ function pieceSceneState(
     canHandleTable,
     carrying: Boolean(state.draftMove),
     owner: pieceOwnerName(piece, state),
+    peeked: peekedLine(piece, state),
   };
+}
+
+/* "Fremen peeked at this", naming every faction that peeked at a card or token of the piece. */
+function peekedLine(piece: TablePiece, state: Pick<TableState, 'factionNames'>) {
+  const names = peekersOf(piece).map((id) => state.factionNames[id] ?? id);
+  if (!names.length) {
+    return undefined;
+  }
+  const who = names.length === 1 ? names[0] : `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`;
+  return `${who} peeked at this`;
 }
 
 function useTablePointFromClient() {
@@ -985,6 +1000,11 @@ function pieceHoverCursor(canInteract: boolean, interactionBlocked: boolean, ges
   return gestureBlocked ? 'not-allowed' : 'grab';
 }
 
+/* A token lying face down, whose other face a faction can peek at; cards always have a menu of their own. */
+function peekableToken(piece: TablePiece) {
+  return piece.kind === 'force' && !isSpicePiece(piece) && hasHiddenFace(piece);
+}
+
 /* Opens a piece's menu at a point; `touch` says a finger asked for it, which has no keyboard shortcut to offer. */
 const PieceMenuContext = createContext<((pieceId: string, x: number, y: number, touch: boolean) => void) | null>(null);
 
@@ -995,7 +1015,8 @@ function usePiecePointerEvents({ piece, interactionBlocked, canHandleTable, carr
   const renderer = useThree((state) => state.renderer);
   const pointerSession = usePointerSession();
   const gestureBlocked = gestureBlockReason(piece);
-  const hasMenu = !carrying && (piece.kind === 'card' || isSpicePiece(piece)) && !piece.inventory;
+  const hasMenu =
+    !carrying && (piece.kind === 'card' || isSpicePiece(piece) || peekableToken(piece)) && !piece.inventory;
   const stopLongPress = useRef<(() => void) | null>(null);
   useEffect(() => () => stopLongPress.current?.(), []);
 
@@ -1173,10 +1194,11 @@ function pieceOwnerName(piece: TablePiece, state: Pick<TableState, 'factionNames
 function PieceBadge({
   piece,
   owner,
+  peeked,
   selected,
   labelRef,
   badgeRef,
-}: { piece: TablePiece; owner: string | undefined; selected: boolean } & Pick<
+}: { piece: TablePiece; owner: string | undefined; peeked: string | undefined; selected: boolean } & Pick<
   ReturnType<typeof usePieceFlipAnimation>,
   'labelRef' | 'badgeRef'
 >) {
@@ -1188,6 +1210,7 @@ function PieceBadge({
           <span className="scene-piece-name">
             <span className="scene-piece-name__label">{piece.label}</span>
             {owner ? <span className="scene-piece-name__owner">{owner}</span> : null}
+            {peeked ? <span className="scene-piece-name__peeked">{peeked}</span> : null}
           </span>
           <span
             ref={badgeRef}
@@ -1206,7 +1229,7 @@ function PieceBadge({
 }
 
 const TablePieceMesh = memo(function TablePieceMesh(props: TablePieceMeshProps) {
-  const { piece, drafted, remoteCarried, locallyCarried, reserved, selected, stackTargeted, owner } = props;
+  const { piece, drafted, remoteCarried, locallyCarried, reserved, selected, stackTargeted, owner, peeked } = props;
   const { finishPieceFlip } = useTabletopActions();
   const pointerEvents = usePiecePointerEvents(props);
   const displayedCount = pieceCount(piece);
@@ -1268,7 +1291,14 @@ const TablePieceMesh = memo(function TablePieceMesh(props: TablePieceMeshProps) 
             </group>
           </group>
           <PieceLock piece={piece} />
-          <PieceBadge piece={piece} owner={owner} selected={selected} labelRef={labelRef} badgeRef={badgeRef} />
+          <PieceBadge
+            piece={piece}
+            owner={owner}
+            peeked={peeked}
+            selected={selected}
+            labelRef={labelRef}
+            badgeRef={badgeRef}
+          />
         </>
       ) : null}
     </group>
@@ -1390,7 +1420,25 @@ function PieceMenu({ pieceMenu, onClose }: Readonly<{ pieceMenu: PieceMenuAnchor
   );
   const deckControls = useTabletopSelector((table) => (pieceMenu ? table.deckControls : undefined));
   const spiceReserveControls = useTabletopSelector((table) => (pieceMenu ? table.spiceReserveControls : undefined));
-  const pieceMenuName = isSpicePiece(menuPiece) ? 'Spice actions' : 'Deck actions';
+  const peekControls = useTabletopSelector((table) => (pieceMenu ? table.peekControls : undefined));
+  const pieceMenuName = isSpicePiece(menuPiece)
+    ? 'Spice actions'
+    : menuPiece?.kind === 'card'
+      ? 'Deck actions'
+      : 'Token actions';
+  const peekAvailable =
+    !!peekControls && !!menuPiece && !menuPiece.inventory && !menuPiece.battleOverlay && hasHiddenFace(menuPiece);
+  const peekItem = menuPiece && (
+    <Menu.Item
+      disabled={!peekAvailable}
+      onClick={() => {
+        peekControls?.peek(menuPiece.id);
+        onClose();
+      }}
+    >
+      {peeksWholeDeck(menuPiece) ? 'Peek at the deck' : 'Peek'}
+    </Menu.Item>
+  );
   const pieceMenuLabelId = useId();
   const deckAvailable =
     !!deckControls && !!menuPiece && !menuPiece.locked && !menuPiece.inventory && menuPiece.items.length > 0;
@@ -1436,9 +1484,12 @@ function PieceMenu({ pieceMenu, onClose }: Readonly<{ pieceMenu: PieceMenuAnchor
           >
             Take into spice reserve
           </Menu.Item>
+        ) : menuPiece && menuPiece.kind !== 'card' ? (
+          peekItem
         ) : (
           <>
             <Menu.Label>{menuPiece ? `${menuPiece.items.length} cards` : 'Deck empty'}</Menu.Label>
+            {peekItem}
             <Menu.Item disabled={!deckAvailable} onClick={() => pieceMenu && deckControls?.draw(pieceMenu.pieceId)}>
               Draw a card
             </Menu.Item>
@@ -1482,7 +1533,9 @@ export function TabletopScene({
   /* The frame around the canvas follows only what it shows, so a held piece moving renders the pieces and not the canvas. */
   const hasDraft = useTabletopSelector((table) => table.state.draftMove !== null);
   const selectedPieceId = useTabletopSelector((table) => table.state.selectedPieceId);
-  const menuAvailable = useTabletopSelector((table) => Boolean(table.deckControls || table.spiceReserveControls));
+  const menuAvailable = useTabletopSelector((table) =>
+    Boolean(table.deckControls || table.spiceReserveControls || table.peekControls)
+  );
   const [pieceMenu, setPieceMenu] = useState<PieceMenuAnchor | null>(null);
   /* One opener for the table's life: a new one on every update would render every piece again. */
   const openPieceMenu = useCallback(
@@ -1532,7 +1585,7 @@ export function TabletopScene({
         onClick={(event) => {
           const { state } = readTable();
           const piece = state.pieces.find((entry) => entry.id === state.selectedPieceId);
-          if (!piece || piece.inventory || (piece.kind !== 'card' && !isSpicePiece(piece))) {
+          if (!piece || piece.inventory || (piece.kind !== 'card' && !isSpicePiece(piece) && !peekableToken(piece))) {
             return;
           }
           const bounds = event.currentTarget.getBoundingClientRect();
@@ -1547,6 +1600,7 @@ export function TabletopScene({
         Selected piece actions
       </Button>
       <PieceMenu pieceMenu={pieceMenu} onClose={() => setPieceMenu(null)} />
+      <PeekView />
       <PieceMenuContext.Provider value={menuAvailable ? openPieceMenu : null}>
         {graphics === 'unavailable' && <TableGraphicsUnavailable onShown={onSceneReady} />}
         {graphics === 'ready' && (

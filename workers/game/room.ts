@@ -10,6 +10,7 @@ import { gestureBlockReason } from '../../src/shared/play/model';
 import type { DraftMove, TablePiece, TableState, Vector3Tuple } from '../../src/shared/play/model';
 import { seatSubject } from '../../src/shared/play/participation';
 import type { SeatAction } from '../../src/shared/play/participation';
+import { isPeekAction } from '../../src/shared/play/peeking';
 import {
   PHASE_CHANGE_COOLDOWN_MS,
   phaseAt,
@@ -51,6 +52,7 @@ import {
 import { battleCommand } from './battle';
 import { concealCards, deckCommand } from './decks';
 import { dealFixtureDeck } from './fixture';
+import { peekCommand } from './peeks';
 import { setupCommand, gatherTraitors } from './setup-progress';
 import { storedSnapshotSchema } from './state';
 import type { StoredSnapshot } from './state';
@@ -80,6 +82,8 @@ type CarryInput<T extends 'begin' | 'pose' | 'take'> = Omit<Extract<ClientMessag
 const REVISION_TOLERANT_ACTIONS = new Set<string>([
   'spice-spawn',
   'deck-draw',
+  'peek',
+  'peek-close',
   'battle-claim',
   'battle-plan',
   'battle-ready',
@@ -399,8 +403,8 @@ export class Room {
   }
 
   private assertActionStage(action: PieceAction) {
-    /* A finished game leaves the table as it was; a locked prediction can still be revealed. */
-    if (this.snapshot.stage === 'finished' && action.kind === 'prediction-reveal') {
+    /* A finished game leaves the table as it was; a locked prediction can still be revealed, and a peek can still be closed. */
+    if (this.snapshot.stage === 'finished' && ['prediction-reveal', 'peek-close'].includes(action.kind)) {
       return;
     }
     this.assertTableAvailable();
@@ -414,6 +418,10 @@ export class Room {
         'rotate',
         'deck-draw',
         'deck-shuffle',
+        'peek',
+        'peek-close',
+        'peek-arrange',
+        'peek-pull',
         'hand-take',
         'hand-play',
         'bank-withdraw',
@@ -458,6 +466,9 @@ export class Room {
     if (action.kind === 'deck-draw' || action.kind === 'deck-shuffle') {
       const factionId = this.requireFaction(identity);
       return deckCommand(this.snapshot, factionId, action);
+    }
+    if (isPeekAction(action)) {
+      return peekCommand(this.snapshot, this.requireFaction(identity), action);
     }
     if (isBattleAction(action)) {
       const factionId = this.requireFaction(identity);
