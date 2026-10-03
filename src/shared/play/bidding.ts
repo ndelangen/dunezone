@@ -7,7 +7,7 @@ import { tableCountSchema as count, tableIdSchema as id } from './schema';
 import { stormOrder } from './stormSector';
 
 /** How long the bidder waits on a faction before it passes for them, unless the table sets another time. */
-export const DEFAULT_BID_SECONDS = 15;
+const DEFAULT_BID_SECONDS = 15;
 export const MIN_BID_SECONDS = 3;
 export const MAX_BID_SECONDS = 120;
 const bidSecondsSchema = z.number().int().min(MIN_BID_SECONDS).max(MAX_BID_SECONDS);
@@ -108,17 +108,48 @@ function open(state: BiddingState, { order, eligible, now }: BiddingContext): Bi
   };
 }
 
+/** Whether a pass to `next` ends the round: back at the high bidder, or every bidding faction passed without a bid. */
+function roundEnds(state: BiddingState, next: string | null, passes: number, eligible: readonly string[]) {
+  if (next === null) {
+    return true;
+  }
+  return state.bid ? next === state.bid.factionId : passes >= eligible.length;
+}
+
 /** Moves the bidder on from the faction it points at; the round ends once it comes back round to the high bidder. */
-export function passBid(state: BiddingState, { order, eligible, now }: Omit<BiddingContext, 'factionId'>): BiddingState {
+function passBid(state: BiddingState, { order, eligible, now }: Omit<BiddingContext, 'factionId'>): BiddingState {
   const passes = state.passes + 1;
   const next = nextBidder(order, eligible, state.turn);
-  if (state.bid && (next === state.bid.factionId || next === null)) {
-    return { ...state, stage: 'won', turn: state.bid.factionId, passes, deadline: null };
+  if (!roundEnds(state, next, passes, eligible)) {
+    return { ...state, turn: next, passes, deadline: now + state.seconds * 1000 };
   }
-  if (!state.bid && (next === null || passes >= eligible.length)) {
-    return { ...state, stage: 'unclaimed', turn: null, passes, deadline: null };
+  return state.bid
+    ? { ...state, stage: 'won', turn: state.bid.factionId, passes, deadline: null }
+    : { ...state, stage: 'unclaimed', turn: null, passes, deadline: null };
+}
+
+/** The raise or pass of the faction the bidder points at, refused for anyone else or a round that has ended. */
+function turnAction(
+  state: BiddingState,
+  action: Extract<BiddingAction, { kind: 'bid-raise' | 'bid-pass' }>,
+  context: BiddingContext
+): BiddingState {
+  if (state.stage !== 'open' || action.round !== state.round) {
+    return refuse('That bidding round has ended.');
   }
-  return { ...state, turn: next, passes, deadline: now + state.seconds * 1000 };
+  const { factionId } = context;
+  if (factionId === null || factionId !== state.turn) {
+    return refuse('Wait until the bidder points at your faction.');
+  }
+  if (action.kind === 'bid-pass') {
+    return passBid(state, context);
+  }
+  return {
+    ...state,
+    bid: { factionId, amount: (state.bid?.amount ?? 0) + 1 },
+    passes: 0,
+    deadline: context.now + state.seconds * 1000,
+  };
 }
 
 /** The bidder after one command; the Worker supplies who acts, the storm order and which tokens are up. */
@@ -128,29 +159,15 @@ export function applyBidding(state: BiddingState, action: BiddingAction, context
       return { ...state, seconds: action.seconds };
     case 'bid-open':
       return open(state, context);
+    default:
+      return turnAction(state, action, context);
   }
-  if (state.stage !== 'open' || action.round !== state.round) {
-    return refuse('That bidding round has ended.');
-  }
-  if (!context.factionId || context.factionId !== state.turn) {
-    return refuse('Wait until the bidder points at your faction.');
-  }
-  if (action.kind === 'bid-pass') {
-    return passBid(state, context);
-  }
-  const amount = (state.bid?.amount ?? 0) + 1;
-  return {
-    ...state,
-    bid: { factionId: context.factionId, amount },
-    passes: 0,
-    deadline: context.now + state.seconds * 1000,
-  };
 }
 
 /** The pass the bidder makes for a faction that let its time run out, or nothing while time remains. */
 export function expireBid(state: BiddingState, context: Omit<BiddingContext, 'factionId'>): BiddingState | undefined {
-  if (state.stage !== 'open' || state.deadline === null || context.now < state.deadline) {
+  if (state.stage !== 'open' || state.deadline === null) {
     return;
   }
-  return passBid(state, context);
+  return context.now < state.deadline ? undefined : passBid(state, context);
 }

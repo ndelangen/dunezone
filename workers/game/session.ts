@@ -1039,9 +1039,12 @@ export class GameSession {
     return bidding?.stage === 'open' ? (bidding.deadline ?? 0) : 0;
   }
   nextDeadline() {
-    const deadlines = [this.battleDeadline, this.biddingDeadline, this.directory.pending()?.retryAt, this.tradingDeadline].filter(
-      (deadline): deadline is number => Boolean(deadline)
-    );
+    const deadlines = [
+      this.battleDeadline,
+      this.biddingDeadline,
+      this.directory.pending()?.retryAt,
+      this.tradingDeadline,
+    ].filter((deadline): deadline is number => Boolean(deadline));
     return deadlines.length ? Math.min(...deadlines) : undefined;
   }
   advanceDeadlines() {

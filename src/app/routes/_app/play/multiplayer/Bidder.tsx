@@ -79,7 +79,10 @@ function useBidderRotation(target: number | null) {
   });
   useLayoutEffect(() => {
     const group = groupRef.current;
-    if (!group || target === null || shown.current === target) {
+    if (target === null || shown.current === target) {
+      return;
+    }
+    if (!group) {
       return;
     }
     /* The shape points along +x, so turning it by -angle about y points it at the Seat at `angle`. */
@@ -88,7 +91,11 @@ function useBidderRotation(target: number | null) {
       group.rotation.y = to;
     } else {
       const from = group.rotation.y;
-      turn.current = { from, to: from + Math.atan2(Math.sin(to - from), Math.cos(to - from)), startedAt: performance.now() };
+      turn.current = {
+        from,
+        to: from + Math.atan2(Math.sin(to - from), Math.cos(to - from)),
+        startedAt: performance.now(),
+      };
     }
     shown.current = target;
     invalidate();
@@ -96,80 +103,88 @@ function useBidderRotation(target: number | null) {
   return groupRef;
 }
 
-function BidderFace({
-  bidding,
-  table,
-  client,
-  remaining,
-}: Props & { bidding: BiddingState; remaining: number | null }) {
-  const own = table.snapshot.bank?.factionId;
-  const artwork = table.snapshot.factionArtwork;
-  const names = table.state.factionNames;
-  const bid = bidding.bid;
-  const bidArtwork = bid ? artwork?.[bid.factionId] : undefined;
-  const canAct = table.canInteract && Boolean(own);
-  if (bidding.stage !== 'open') {
-    return (
-      <Stack gap={4} align="center" className={styles.face}>
-        {bidding.stage === 'won' && bid ? (
-          <div className={styles.disc} data-bidder-result="won">
-            {bidArtwork && <FactionToken logo={bidArtwork.logo} background={bidArtwork.background} />}
-            <span className={styles.amount}>{bid.amount}</span>
-          </div>
-        ) : null}
-        {bidding.stage === 'unclaimed' ? (
-          <Text size="xs" fw={700} className={styles.timer}>
-            No bids
-          </Text>
-        ) : null}
-        {bidding.stage === 'won' && bid ? (
-          <Text size="xs" fw={700} className={styles.timer}>
-            {names[bid.factionId] ?? bid.factionId} wins with {bid.amount}
-          </Text>
-        ) : null}
-        <Button size="compact-xs" disabled={!canAct} onClick={() => client.command({ kind: 'bid-open' })}>
-          Start bidding
-        </Button>
-      </Stack>
-    );
+type FaceProps = Props & { bidding: BiddingState };
+
+/** The high bid: the bidder's faction symbol under the amount. */
+function HighBid({ bid, table }: { bid: NonNullable<BiddingState['bid']>; table: TableProjection }) {
+  const artwork = table.snapshot.factionArtwork?.[bid.factionId];
+  return (
+    <>
+      {artwork && <FactionToken logo={artwork.logo} background={artwork.background} />}
+      <span className={styles.amount}>{bid.amount}</span>
+    </>
+  );
+}
+
+function factionName(table: TableProjection, factionId: string | null) {
+  return factionId ? (table.state.factionNames[factionId] ?? factionId) : '';
+}
+
+/** Between rounds: how the last one went, and the button any player presses to start the next. */
+function RoundResult({ bidding, table, client }: FaceProps) {
+  const bid = bidding.stage === 'won' ? bidding.bid : null;
+  const outcome = bid ? `${factionName(table, bid.factionId)} wins with ${bid.amount}` : 'No bids';
+  return (
+    <Stack gap={4} align="center" className={styles.face}>
+      {bid ? (
+        <div className={styles.disc} data-bidder-result="won">
+          <HighBid bid={bid} table={table} />
+        </div>
+      ) : null}
+      {bidding.stage === 'idle' ? null : (
+        <Text size="xs" fw={700} className={styles.timer}>
+          {outcome}
+        </Text>
+      )}
+      <Button
+        size="compact-xs"
+        disabled={!table.canInteract || !table.snapshot.bank}
+        onClick={() => client.command({ kind: 'bid-open' })}
+      >
+        Start bidding
+      </Button>
+    </Stack>
+  );
+}
+
+function turnLabel(mine: boolean, bid: BiddingState['bid'], turnName: string) {
+  if (!mine) {
+    return `Waiting for ${turnName}`;
   }
-  const mine = canAct && own === bidding.turn;
-  const turnName = bidding.turn ? (names[bidding.turn] ?? bidding.turn) : '';
-  const label = mine
-    ? `${bid ? `Raise the bid to ${bid.amount + 1}` : 'Bid 1'}. Right click to pass.`
-    : `Waiting for ${turnName}`;
+  return `${bid ? `Raise the bid to ${bid.amount + 1}` : 'Bid 1'}. Right click to pass.`;
+}
+
+/** A round in progress: the faction the bidder points at raises with a click and passes with a right click. */
+function OpenRound({ bidding, table, client, remaining }: FaceProps & { remaining: number | null }) {
+  const { bid, round, turn } = bidding;
+  const mine = table.canInteract && turn !== null && table.snapshot.bank?.factionId === turn;
+  const turnName = factionName(table, turn);
+  const label = turnLabel(mine, bid, turnName);
   return (
     <Stack gap={2} align="center" className={styles.face}>
       <UnstyledButton
         className={styles.disc}
-        data-bidder-turn={bidding.turn ?? undefined}
+        data-bidder-turn={turn ?? undefined}
         data-mine={mine || undefined}
         aria-label={label}
         title={label}
         disabled={!mine}
-        onClick={() => client.command({ kind: 'bid-raise', round: bidding.round })}
+        onClick={() => client.command({ kind: 'bid-raise', round })}
         onContextMenu={(event) => {
           event.preventDefault();
           event.stopPropagation();
           if (mine) {
-            void client.command({ kind: 'bid-pass', round: bidding.round });
+            void client.command({ kind: 'bid-pass', round });
           }
         }}
       >
-        {bid ? (
-          <>
-            {bidArtwork && <FactionToken logo={bidArtwork.logo} background={bidArtwork.background} />}
-            <span className={styles.amount}>{bid.amount}</span>
-          </>
-        ) : (
-          <span className={styles.prompt}>{mine ? 'Bid' : 'No bid'}</span>
-        )}
+        {bid ? <HighBid bid={bid} table={table} /> : <span className={styles.prompt}>{mine ? 'Bid' : 'No bid'}</span>}
       </UnstyledButton>
-      {remaining !== null ? (
+      {remaining === null ? null : (
         <Text component="output" role="timer" size="xs" fw={700} className={styles.timer}>
           {remaining}s · {turnName}
         </Text>
-      ) : null}
+      )}
     </Stack>
   );
 }
@@ -201,7 +216,11 @@ function Bidder({ client, table }: Props) {
       </group>
       <Html center zIndexRange={[9, 0]}>
         <DarkSchemeIsland>
-          <BidderFace client={client} table={table} bidding={bidding} remaining={remaining} />
+          {bidding.stage === 'open' ? (
+            <OpenRound client={client} table={table} bidding={bidding} remaining={remaining} />
+          ) : (
+            <RoundResult client={client} table={table} bidding={bidding} />
+          )}
         </DarkSchemeIsland>
       </Html>
     </group>
@@ -214,6 +233,13 @@ export function BidderScene(props: Props) {
     return null;
   }
   return <Bidder {...props} />;
+}
+
+/** A typed time the table accepts and does not already have, or null. */
+function changedSeconds(draft: number | string, current: number) {
+  const next = Number(draft);
+  const valid = Number.isInteger(next) && next >= MIN_BID_SECONDS && next <= MAX_BID_SECONDS;
+  return valid && next !== current ? next : null;
 }
 
 /** The time the bidder gives each faction, set beside the other phase controls. */
@@ -234,12 +260,12 @@ export function BidderSettings({ client, table }: Props) {
         disabled={!table.canInteract || !table.snapshot.bank}
         onChange={setDraft}
         onBlur={() => {
-          const next = Number(draft);
-          if (Number.isInteger(next) && next >= MIN_BID_SECONDS && next <= MAX_BID_SECONDS && next !== seconds) {
-            void client.command({ kind: 'bid-seconds', seconds: next });
-          } else {
+          const next = changedSeconds(draft, seconds);
+          if (next === null) {
             setDraft(seconds);
+            return;
           }
+          void client.command({ kind: 'bid-seconds', seconds: next });
         }}
       />
     </Section>

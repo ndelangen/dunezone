@@ -1,10 +1,4 @@
-import {
-  applyBidding,
-  biddingFactions,
-  BiddingRefusal,
-  expireBid,
-  idleBidding,
-} from '../../src/shared/play/bidding';
+import { applyBidding, biddingFactions, BiddingRefusal, expireBid, idleBidding } from '../../src/shared/play/bidding';
 import type { BiddingAction, BiddingState } from '../../src/shared/play/bidding';
 import { nextSnapshot } from '../../src/shared/play/commands';
 import { phaseAt } from '../../src/shared/play/phases';
@@ -38,7 +32,10 @@ export function biddingCommand(
     throw new GameRejection('The bidder works only during the Bidding phase.');
   }
   try {
-    return commit(snapshot, applyBidding(snapshot.bidding ?? idleBidding(), action, { ...context(snapshot, now), factionId }));
+    return commit(
+      snapshot,
+      applyBidding(snapshot.bidding ?? idleBidding(), action, { ...context(snapshot, now), factionId })
+    );
   } catch (error) {
     if (error instanceof BiddingRefusal) {
       throw new GameRejection(error.message);
