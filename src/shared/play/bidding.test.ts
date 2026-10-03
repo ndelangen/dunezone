@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
 
-import { applyBidding, BiddingRefusal, expireBid, idleBidding } from './bidding';
+import { applyBidding, BiddingRefusal, expireBid, idleBidding, reconcileBidding } from './bidding';
 import type { BiddingState } from './bidding';
 
 const order = ['a', 'b', 'c', 'd'];
@@ -63,5 +63,42 @@ describe('the bidder', () => {
     const state = opened();
     expect(expireBid(state, { order, eligible: order, now: 10_999 })).toBeUndefined();
     expect(expireBid(state, { order, eligible: order, now: 11_000 })).toMatchObject({ turn: 'b', deadline: 21_000 });
+  });
+});
+
+describe('the bidder when a token flips mid-round', () => {
+  const pass = (state: BiddingState, faction: string, eligible: readonly string[]) =>
+    applyBidding(state, { kind: 'bid-pass', round: 1 }, at(faction, eligible));
+
+  test('still ends the round once the high bidder turns its token face down', () => {
+    let state = applyBidding(opened(), { kind: 'bid-raise', round: 1 }, at('a'));
+    state = pass(state, 'a', order);
+    const without = ['b', 'c', 'd'];
+    for (const faction of without) {
+      state = pass(state, faction, without);
+    }
+    expect(state).toMatchObject({ stage: 'won', turn: 'a', bid: { factionId: 'a', amount: 1 } });
+  });
+
+  test('refuses a raise from a faction whose token is face down', () => {
+    expect(() => applyBidding(opened(), { kind: 'bid-raise', round: 1 }, at('a', ['b', 'c', 'd']))).toThrow(
+      BiddingRefusal
+    );
+  });
+
+  test('skips a faction that turns its token face down while the bidder waits on it, without counting a pass', () => {
+    const state = reconcileBidding(opened(), { order, eligible: ['b', 'c', 'd'], now: 5000 });
+    expect(state).toMatchObject({ stage: 'open', turn: 'b', passes: 0, deadline: 15_000 });
+  });
+
+  test('ends the round once nobody is left to outbid the high bid', () => {
+    const state = applyBidding(opened(), { kind: 'bid-raise', round: 1 }, at('a'));
+    expect(reconcileBidding(state, { order, eligible: ['a'], now: 0 })).toMatchObject({ stage: 'won', turn: 'a' });
+    expect(reconcileBidding(state, { order, eligible: [], now: 0 })).toMatchObject({ stage: 'won', turn: 'a' });
+  });
+
+  test('leaves a round alone while the faction it waits on still bids', () => {
+    const state = opened();
+    expect(reconcileBidding(state, { order, eligible: order, now: 5000 })).toBe(state);
   });
 });

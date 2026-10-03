@@ -50,7 +50,7 @@ import {
   settleCarryAtPosition,
 } from '../../src/shared/play/tableState';
 import { battleCommand } from './battle';
-import { biddingAfterPhase, biddingCommand } from './bidding';
+import { biddingAfterTable, biddingCommand } from './bidding';
 import { concealCards, deckCommand } from './decks';
 import { dealFixtureDeck } from './fixture';
 import { setupCommand, gatherTraitors } from './setup-progress';
@@ -515,7 +515,7 @@ export class Room {
     const controls = this.snapshot.controls ?? emptyPublicControls();
     return {
       ...next,
-      ...biddingAfterPhase(this.snapshot, phase),
+      ...biddingAfterTable(this.snapshot, next, now),
       controls: {
         ...controls,
         seats: this.seatedPlayers(),

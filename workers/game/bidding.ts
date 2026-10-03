@@ -1,4 +1,11 @@
-import { applyBidding, biddingFactions, BiddingRefusal, expireBid, idleBidding } from '../../src/shared/play/bidding';
+import {
+  applyBidding,
+  biddingFactions,
+  BiddingRefusal,
+  expireBid,
+  idleBidding,
+  reconcileBidding,
+} from '../../src/shared/play/bidding';
 import type { BiddingAction, BiddingState } from '../../src/shared/play/bidding';
 import { nextSnapshot } from '../../src/shared/play/commands';
 import { phaseAt } from '../../src/shared/play/phases';
@@ -53,10 +60,20 @@ export function expireBidding(snapshot: StoredSnapshot, now: number): StoredSnap
   return next && commit(snapshot, next);
 }
 
-/** Leaving the phase puts the bidder away; the next Bidding phase starts again at its first round, with the same time. */
-export function biddingAfterPhase(snapshot: StoredSnapshot, phase: number): Pick<StoredSnapshot, 'bidding'> {
-  if (phase === snapshot.phase || !snapshot.bidding) {
+/**
+ * The bidder after a table command: leaving the phase puts it away, so the next Bidding phase starts again at its first round with the same time;
+ * within the phase, a token flipped face down takes its faction out of the open round.
+ */
+export function biddingAfterTable(
+  snapshot: StoredSnapshot,
+  next: StoredSnapshot,
+  now: number
+): Pick<StoredSnapshot, 'bidding'> {
+  if (!snapshot.bidding) {
     return {};
   }
-  return { bidding: idleBidding(snapshot.bidding.seconds) };
+  if (next.phase !== snapshot.phase) {
+    return { bidding: idleBidding(snapshot.bidding.seconds) };
+  }
+  return { bidding: reconcileBidding(snapshot.bidding, context(next, now)) };
 }

@@ -108,24 +108,52 @@ function open(state: BiddingState, { order, eligible, now }: BiddingContext): Bi
   };
 }
 
-/** Whether a pass to `next` ends the round: back at the high bidder, or every bidding faction passed without a bid. */
+/**
+ * Whether the round is over: every bidding faction but the high bidder passed since the last raise, or nobody is left to point at.
+ * Counting passes rather than waiting for the bidder to come back round keeps a round from hanging when the high bidder turns its token face down mid-round.
+ */
 function roundEnds(state: BiddingState, next: string | null, passes: number, eligible: readonly string[]) {
   if (next === null) {
     return true;
   }
-  return state.bid ? next === state.bid.factionId : passes >= eligible.length;
+  const rivals = eligible.filter((factionId) => factionId !== state.bid?.factionId);
+  return passes >= rivals.length;
 }
 
-/** Moves the bidder on from the faction it points at; the round ends once it comes back round to the high bidder. */
-function passBid(state: BiddingState, { order, eligible, now }: Omit<BiddingContext, 'factionId'>): BiddingState {
-  const passes = state.passes + 1;
-  const next = nextBidder(order, eligible, state.turn);
+/** Points the bidder at `next` with fresh time, or settles the round once it is over. */
+function settle(
+  state: BiddingState,
+  next: string | null,
+  passes: number,
+  { eligible, now }: Omit<BiddingContext, 'factionId'>
+) {
   if (!roundEnds(state, next, passes, eligible)) {
     return { ...state, turn: next, passes, deadline: now + state.seconds * 1000 };
   }
   return state.bid
-    ? { ...state, stage: 'won', turn: state.bid.factionId, passes, deadline: null }
-    : { ...state, stage: 'unclaimed', turn: null, passes, deadline: null };
+    ? { ...state, stage: 'won' as const, turn: state.bid.factionId, passes, deadline: null }
+    : { ...state, stage: 'unclaimed' as const, turn: null, passes, deadline: null };
+}
+
+/** Moves the bidder on from the faction it points at; the high bidder handing the bidder on after a raise is not a pass. */
+function passBid(state: BiddingState, context: Omit<BiddingContext, 'factionId'>): BiddingState {
+  const passes = state.turn === state.bid?.factionId ? state.passes : state.passes + 1;
+  return settle(state, nextBidder(context.order, context.eligible, state.turn), passes, context);
+}
+
+/**
+ * The open round after tokens flip: the bidder skips a faction that turned its token face down while it waited, without counting a pass for it, and the round ends once nobody is left to outbid the high bid.
+ */
+export function reconcileBidding(state: BiddingState, context: Omit<BiddingContext, 'factionId'>): BiddingState {
+  if (state.stage !== 'open' || state.turn === null) {
+    return state;
+  }
+  if (context.eligible.includes(state.turn)) {
+    return roundEnds(state, state.turn, state.passes, context.eligible)
+      ? settle(state, null, state.passes, context)
+      : state;
+  }
+  return settle(state, nextBidder(context.order, context.eligible, state.turn), state.passes, context);
 }
 
 /** The raise or pass of the faction the bidder points at, refused for anyone else or a round that has ended. */
@@ -143,6 +171,9 @@ function turnAction(
   }
   if (action.kind === 'bid-pass') {
     return passBid(state, context);
+  }
+  if (!context.eligible.includes(factionId)) {
+    return refuse('Turn your faction token face up to bid.');
   }
   return {
     ...state,
