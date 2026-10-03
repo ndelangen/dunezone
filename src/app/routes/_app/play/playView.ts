@@ -263,8 +263,16 @@ export const NO_CAMERA_ZOOM: CameraZoom = { scale: 1, offset: [0, 0, 0] };
 export const CAMERA_ZOOM_MINIMUM_SCALE = 0.2;
 /* How far toward top-down the closest look turns: most of the way, while every wheel notch still brings the board closer. */
 const CAMERA_ZOOM_FULL_TILT = 0.85;
-/* How quickly the pan keys slide a close look, in table units per second at the view's own distance; closer looks slide slower. */
-const CAMERA_PAN_SPEED = 7;
+/*
+ * How quickly the pan keys slide a close look, in table units per second at the view's own distance; closer looks slide slower.
+ * A held key starts at the first speed and builds to the second over the ramp; the look eases into and out of its speed.
+ */
+const CAMERA_PAN_START_SPEED = 10;
+const CAMERA_PAN_TOP_SPEED = 24;
+const CAMERA_PAN_RAMP_S = 1.2;
+const CAMERA_PAN_EASE_S = 0.12;
+/* Within this distance of the edge a close look may reach, sliding further out slows to a stop. */
+const CAMERA_PAN_EDGE_MARGIN = 1.2;
 /* Scroll distance, in pixels, that brings the camera e times closer. */
 const CAMERA_ZOOM_SCROLL_PX = 420;
 /* How far from the table's middle a close look may centre, so it never drifts off the board. */
@@ -393,21 +401,70 @@ export function cameraZoomAfterWheelAt(
   return next;
 }
 
-/** A close look slid by the pan keys for `seconds`, in `direction` on the table: x to the right, z toward the viewer. */
-export function cameraZoomAfterKeys(
+/** A close look's slide under the pan keys: its velocity on the table, in table units per second, and how long a key has been held. */
+export type CameraPanMotion = Readonly<{ velocity: readonly [number, number]; heldSeconds: number }>;
+
+export const CAMERA_PAN_AT_REST: CameraPanMotion = { velocity: [0, 0], heldSeconds: 0 };
+
+/*
+ * The slide after `seconds` with the pan keys pointing `direction` (x to the right, z toward the viewer; zero when none is held).
+ * Holding builds speed toward a top speed, letting go coasts to a stop, and both ease, so the look moves with a little momentum.
+ */
+export function cameraPanMotionAfter(
+  motion: CameraPanMotion,
+  zoom: CameraZoom,
+  direction: readonly [number, number],
+  seconds: number
+): CameraPanMotion {
+  const step = Math.min(Math.max(seconds, 0), 0.1);
+  const length = Math.hypot(direction[0], direction[1]);
+  const heldSeconds = length > 0 ? motion.heldSeconds + step : 0;
+  const ramp = Math.min(1, heldSeconds / CAMERA_PAN_RAMP_S);
+  const speed =
+    length > 0
+      ? zoom.scale * (CAMERA_PAN_START_SPEED + (CAMERA_PAN_TOP_SPEED - CAMERA_PAN_START_SPEED) * ramp * ramp)
+      : 0;
+  const wanted: [number, number] =
+    length > 0 ? [(direction[0] / length) * speed, (direction[1] / length) * speed] : [0, 0];
+  const share = 1 - Math.exp(-step / CAMERA_PAN_EASE_S);
+  const velocity: [number, number] = [
+    motion.velocity[0] + (wanted[0] - motion.velocity[0]) * share,
+    motion.velocity[1] + (wanted[1] - motion.velocity[1]) * share,
+  ];
+  if (length === 0 && Math.hypot(velocity[0], velocity[1]) < 0.001 * zoom.scale) {
+    return CAMERA_PAN_AT_REST;
+  }
+  return { velocity, heldSeconds };
+}
+
+/** A close look slid by its pan velocity for `seconds`; heading out past the edge it slows, so it settles there instead of hitting it. */
+export function cameraZoomAfterPanMotion(
   zoom: CameraZoom,
   basePose: CameraPose,
-  direction: readonly [number, number],
+  velocity: readonly [number, number],
   seconds: number
 ): CameraZoom {
   if (zoom.scale >= 1) {
     return zoom;
   }
-  const length = Math.hypot(direction[0], direction[1]) || 1;
-  const step = (CAMERA_PAN_SPEED * zoom.scale * Math.min(seconds, 0.1)) / length;
+  const step = Math.min(Math.max(seconds, 0), 0.1);
+  let [moveX, moveZ] = [velocity[0] * step, velocity[1] * step];
+  const target = zoomedCameraPose(basePose, zoom).target;
+  const distance = Math.hypot(target[0], target[2]);
+  if (distance > 0) {
+    const outwardX = target[0] / distance;
+    const outwardZ = target[2] / distance;
+    const outward = moveX * outwardX + moveZ * outwardZ;
+    if (outward > 0) {
+      const room = Math.max(0, Math.min(1, (CAMERA_ZOOM_TARGET_RADIUS - distance) / CAMERA_PAN_EDGE_MARGIN));
+      const slowed = outward * room;
+      moveX -= outwardX * (outward - slowed);
+      moveZ -= outwardZ * (outward - slowed);
+    }
+  }
   return keepZoomOverBoard(basePose, {
     scale: zoom.scale,
-    offset: [zoom.offset[0] + direction[0] * step, zoom.offset[1], zoom.offset[2] + direction[1] * step],
+    offset: [zoom.offset[0] + moveX, zoom.offset[1], zoom.offset[2] + moveZ],
   });
 }
 

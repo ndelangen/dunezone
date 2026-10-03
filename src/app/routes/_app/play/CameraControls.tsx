@@ -14,14 +14,16 @@ import {
   cameraViewTransitionProgress,
   cameraZoomAfterPan,
   cameraTiltForZoom,
-  cameraZoomAfterKeys,
+  CAMERA_PAN_AT_REST,
+  cameraPanMotionAfter,
+  cameraZoomAfterPanMotion,
   cameraZoomAfterWheelAt,
   mapViewTopLimitForViewport,
   NO_CAMERA_ZOOM,
   tablePointUnder,
   zoomedCameraPose,
 } from './playView';
-import type { CameraPose, CameraViewCommand, CameraZoom } from './playView';
+import type { CameraPanMotion, CameraPose, CameraViewCommand, CameraZoom } from './playView';
 import { usePointerSession } from './PointerSessionContext';
 import { TableKeyboardContext } from './TableKeyboardContext';
 import { useTableDragPan } from './tablePan';
@@ -212,6 +214,8 @@ function canvasPoint(surface: HTMLElement, clientX: number, clientY: number) {
   };
 }
 
+const NO_PAN_DIRECTION: readonly [number, number] = [0, 0];
+
 type PoseAt = { current: ((tilt: number) => CameraPose) | null };
 
 /*
@@ -293,9 +297,13 @@ function useCloseLook(enabled: boolean, viewKey: string, poseAt: PoseAt): WheelV
     };
   }, [invalidate, keyboard, zoomedIn]);
 
+  /* The pan keys' slide, kept outside React: it changes every frame while it moves. */
+  const panMotion = useRef<CameraPanMotion>(CAMERA_PAN_AT_REST);
   useFrame((_, delta) => {
-    const direction = keyboard?.panDirection();
-    if (!zoomedIn || !direction || (direction[0] === 0 && direction[1] === 0)) {
+    const direction = (zoomedIn && keyboard?.panDirection()) || NO_PAN_DIRECTION;
+    const motion = cameraPanMotionAfter(panMotion.current, view.zoom, direction, delta);
+    panMotion.current = motion;
+    if (motion === CAMERA_PAN_AT_REST || !zoomedIn) {
       return;
     }
     setView((current) => {
@@ -304,7 +312,7 @@ function useCloseLook(enabled: boolean, viewKey: string, poseAt: PoseAt): WheelV
         return current;
       }
       const base = at(cameraTiltForZoom(current.tilt, current.zoom));
-      return { ...current, zoom: cameraZoomAfterKeys(current.zoom, base, direction, delta) };
+      return { ...current, zoom: cameraZoomAfterPanMotion(current.zoom, base, motion.velocity, delta) };
     });
     invalidate();
   });
