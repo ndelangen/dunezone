@@ -563,4 +563,35 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
       { word: 'coalition', forms: ['coalitions'], fixes: { coalition: 'alliance', coalitions: 'alliances' } },
     ],
   },
+  {
+    id: 'deal',
+    term: 'Deal',
+    topic: 'factions',
+    explanation:
+      'A spoken agreement between factions that are not allies, about spice, secret information or what they will do later. A deal cannot hand over treachery cards, leaders, troops or faction advantages, and cannot break the rules.',
+    reason: 'The rulebook word. Pact names the same thing.',
+    source: 'rulebook',
+    avoid: [{ word: 'pact', forms: ['pacts'], fixes: { pact: 'deal', pacts: 'deals' } }],
+  },
+  {
+    id: 'binding-deal',
+    term: 'Binding deal',
+    topic: 'factions',
+    explanation:
+      'A deal its factions must keep. The rulebook makes every deal binding once it is stated aloud, so no faction can back out of it. Talk that was never stated as a deal, such as a hint about what you might do, binds no one.',
+    reason:
+      'The rulebook says deals must be honored but has no name for that. Dune Zone says binding deal when it matters that the deal is kept, and plain deal otherwise.',
+    source: 'house',
+    avoid: [],
+  },
+  {
+    id: 'bribe',
+    term: 'Bribe',
+    topic: 'factions',
+    explanation:
+      'A deal in which one faction pays another spice for something in return, such as staying out of a territory. Like any deal it must be stated aloud and kept. The spice waits in front of the receiving faction’s shield and joins its Spice reserve during the Mentat Pause.',
+    reason: 'The rulebook word. Every bribe is a deal; a deal without spice paid for it is not a bribe.',
+    source: 'rulebook',
+    avoid: [],
+  },
 ];
