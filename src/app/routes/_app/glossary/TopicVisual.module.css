@@ -57,7 +57,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--space-xs);
+  gap: var(--space-sm);
   color: var(--color-text);
   text-align: center;
   text-decoration: none;
@@ -184,7 +184,15 @@
   grid-template-columns: repeat(3, auto);
   justify-content: center;
   gap: var(--space-xs);
-  color: #b65d12;
+}
+
+/* A spice token is the size of a troop. */
+.spiceToken {
+  display: block;
+  width: calc(var(--leader-size) / 2);
+  height: auto;
+  border-radius: 50%;
+  filter: drop-shadow(0 4px 6px rgb(54 29 8 / 28%));
 }
 
 .factions {
@@ -206,20 +214,6 @@
   margin-inline-start: calc(var(--leader-size) / 2 * -0.55);
 }
 
-/* The dark well of the table's tanks, with the dead pieces lying in it; the colours are the Play table's, from TableFurniture.tsx. */
-.tanks {
-  display: block;
-  padding: var(--space-sm);
-  border: 3px solid #806a4c;
-  border-radius: 50%;
-  background: radial-gradient(circle at 50% 40%, #3a2a22, #241a16 70%);
-  box-shadow: inset 0 6px 14px rgb(0 0 0 / 55%);
-}
-
-.tanks .disc {
-  filter: saturate(0.55) brightness(0.85);
-}
-
 .pair {
   display: flex;
   gap: var(--space-xs);
@@ -239,7 +233,7 @@
   width: calc(var(--leader-size) * 0.75);
 }
 
-/* A column too slim for two pieces side by side keeps its main pieces and drops the extras: below 18rem the Reserves stack and the tanks well no longer fit two to a row. */
+/* A column too slim for two pieces side by side keeps its main pieces and drops the extras: below 18rem the Reserves stack no longer fits beside another piece. */
 @container (width < 18rem) {
   .extra {
     display: none;

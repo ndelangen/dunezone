@@ -108,6 +108,17 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
     avoid: [{ word: 'off-planet', forms: ['offworld', 'off-world', 'off planet', 'off world'] }],
   },
   {
+    id: 'flipped-troop',
+    term: 'Flipped troop',
+    topic: 'pieces',
+    explanation:
+      'A troop turned over to its back side. Some factions print a different side on the back of their troops, such as the Bene Gesserit, whose advisors share a territory without fighting until they flip back to fighters. A flipped troop follows the rules of its back side.',
+    reason:
+      'Dune Zone’s word for a troop on its back side, matching the flip side its faction editor gives a troop. The faction names what each side is called.',
+    source: 'house',
+    avoid: [],
+  },
+  {
     id: 'tleilaxu-tanks',
     term: 'Tleilaxu Tanks',
     topic: 'pieces',

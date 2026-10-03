@@ -120,6 +120,8 @@ function GlossaryPage() {
     .filter((entry) => entry.terms.length > 0);
   const topicSelect = (label?: string) => (
     <Select
+      className={label ? undefined : styles.topicSegment}
+      variant={label ? 'default' : 'unstyled'}
       aria-label={label ? undefined : 'Topic'}
       label={label}
       placeholder="All topics"

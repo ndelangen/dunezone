@@ -13,3 +13,8 @@
   position: sticky;
   top: var(--space-md);
 }
+
+/* Joined into the search field, the topic select drops its own border, as the asset shelves' sort does. */
+.topicSegment :is(input, button) {
+  padding-inline: var(--space-sm);
+}
