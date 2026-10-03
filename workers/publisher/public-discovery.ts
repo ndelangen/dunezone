@@ -47,17 +47,22 @@ async function collectionXml(collection: string, load: LoadPage, signal: AbortSi
   const entries: string[] = [];
   const encoder = new TextEncoder();
   let bytes = 0;
+  let count = 0;
   let cursor: string | null = null;
   for (let batch = 0; batch < MAX_BATCHES; batch += 1) {
     const page = await load({ collection, cursor }, signal);
-    for (const entry of page.entries) {
-      const xml = `<url>${location(entry.pathname)}${entry.lastmod ? `<lastmod>${escapeXml(entry.lastmod)}</lastmod>` : ''}</url>`;
-      bytes += encoder.encode(xml).byteLength;
-      entries.push(xml);
-      if (entries.length > MAX_URLS || bytes > MAX_BYTES) {
-        throw new Error('Sitemap capacity exceeded');
-      }
+    const xml = page.entries
+      .map(
+        (entry) =>
+          `<url>${location(entry.pathname)}${entry.lastmod ? `<lastmod>${escapeXml(entry.lastmod)}</lastmod>` : ''}</url>`
+      )
+      .join('');
+    count += page.entries.length;
+    bytes += encoder.encode(xml).byteLength;
+    if (count > MAX_URLS || bytes > MAX_BYTES) {
+      throw new Error('Sitemap capacity exceeded');
     }
+    entries.push(xml);
     if (page.cursor === null) {
       return xmlResponse(document('urlset', entries.join('')), batch + 1);
     }
