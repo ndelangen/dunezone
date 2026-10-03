@@ -32,7 +32,7 @@ import { SERVER_UNREACHABLE, useServerUnreachable } from './useServerUnreachable
  * Every game is a table with its seats drawn round it (direction C of #1739), so a glance tells who sits where, which seats are free and how far the game has come.
  */
 export const Route = createFileRoute('/_app/play/')({
-  head: () => pageHead('Game lobby', { noindex: true }),
+  head: () => pageHead('Play Dune!', { noindex: true }),
   component: PlayLobby,
 });
 
@@ -413,15 +413,18 @@ function PlayLobby() {
 
   return (
     <PageLayout>
-      <PageLayout.Header size="compact">
+      <PageLayout.Header>
         <Group justify="space-between" align="flex-end" wrap="wrap" gap="md">
-          <Stack gap={4} miw={0}>
-            <PageTitle eyebrow="Play" title="Game lobby" />
-            <Text size="sm" c="dimmed">
+          <Stack gap="xs" miw={0}>
+            <PageTitle title="Play Dune!" />
+            <Text size="xl" fw={700}>
+              Welcome to the lobby
+            </Text>
+            <Text size="md" fw={500} maw="34rem">
               Every game is a table. Open one to take a free seat, return to your own, or watch.
             </Text>
           </Stack>
-          <CallToAction direction="start" renderRoot={createLink}>
+          <CallToAction direction="start" size="lg" renderRoot={createLink}>
             Create a game
           </CallToAction>
         </Group>

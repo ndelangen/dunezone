@@ -104,7 +104,7 @@ export async function verifyResults({
   };
   const observerLeft = observer.view().viewer.connectionId;
   await observer.page.goto(`${origin}/play`, { waitUntil: 'domcontentloaded' });
-  await observer.page.getByRole('heading', { name: 'Game lobby' }).waitFor();
+  await observer.page.getByRole('heading', { name: 'Play Dune!' }).waitFor();
   await showGames(observer.page, 'Finished');
   await lobbyCard(observer.page).getByText(`${winner.name} won`).waitFor({ timeout: 20_000 });
   assert.equal(await lobbyCard(observer.page).getByRole('link').getAttribute('href'), `/play/${gameId}`);

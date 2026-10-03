@@ -1635,7 +1635,7 @@ async function verifyRegular() {
   const signedOutFrom = [a.rawMessages.length, aTab.rawMessages.length];
   const accountPage = await a.context.newPage();
   await accountPage.goto(`${origin}/play`, { waitUntil: 'domcontentloaded' });
-  await accountPage.getByRole('heading', { name: 'Game lobby' }).waitFor();
+  await accountPage.getByRole('heading', { name: 'Play Dune!' }).waitFor();
   await accountPage.locator('[data-app-band] button[aria-haspopup="menu"]').last().click();
   const revokedAt = Date.now();
   signOut = { tabs: [a, aTab], clickedAt: revokedAt };
@@ -1716,7 +1716,7 @@ async function verifyRegular() {
     b.page.goto(`${origin}/play`, { waitUntil: 'domcontentloaded' }),
   ]);
   leavingSocket.documentReplaced = true;
-  await b.page.getByRole('heading', { name: 'Game lobby' }).waitFor();
+  await b.page.getByRole('heading', { name: 'Play Dune!' }).waitFor();
   passed('Lobby exit removes public presence before pointer expiry');
 }
 
