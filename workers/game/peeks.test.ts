@@ -2,7 +2,7 @@ import { expect, test } from 'vitest';
 
 import { piece, place } from '../../src/shared/play/setupSupply';
 import { hostedFixturePlan } from './fixture';
-import { peekCommand } from './peeks';
+import { forgetPeekers, peekCommand } from './peeks';
 import { RoomProjection } from './state';
 import type { StoredSnapshot } from './state';
 
@@ -92,4 +92,12 @@ test('a battle plan cannot be peeked at, and a face-up card has nothing to peek 
     table: { ...snapshot.table, pieces: [{ ...deck!, items: deck!.items.map((item) => ({ ...item, faceUp: true })) }] },
   };
   expect(() => peekCommand(faceUp, 'atreides', { kind: 'peek', pieceId: 'deck' })).toThrow('Nothing about');
+});
+
+test('a new phase forgets who peeked, and changes the pieces it clears', () => {
+  const peeked = peekCommand(table(2), 'atreides', { kind: 'peek', pieceId: 'deck' });
+  const forgotten = forgetPeekers({ ...peeked, revision: peeked.revision + 1 });
+  expect(forgotten.table.pieces[0]?.items.some((item) => item.peekedBy)).toBe(false);
+  expect(forgotten.versions.deck).toBe(peeked.revision + 1);
+  expect(forgotten.peeks).toEqual(peeked.peeks);
 });

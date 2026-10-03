@@ -141,3 +141,25 @@ export function peekCommand(snapshot: StoredSnapshot, factionId: string, action:
       return pull(snapshot, factionId, action.pieceId, action.index);
   }
 }
+
+function withoutPeekers(piece: StoredPiece): StoredPiece {
+  return piece.items.some((item) => item.peekedBy)
+    ? { ...piece, items: piece.items.map(({ peekedBy: _peekedBy, ...item }) => item) }
+    : piece;
+}
+
+/** Every card and token, on the table and in hand, forgets who peeked at it; a piece that changes takes the snapshot's revision. */
+export function forgetPeekers(snapshot: StoredSnapshot): StoredSnapshot {
+  const versions = { ...snapshot.versions };
+  const pieces = snapshot.table.pieces.map((piece) => {
+    const forgotten = withoutPeekers(piece);
+    if (forgotten !== piece) {
+      versions[piece.id] = snapshot.revision;
+    }
+    return forgotten;
+  });
+  const factionInventories = Object.fromEntries(
+    Object.entries(snapshot.factionInventories).map(([id, hand]) => [id, hand.map(withoutPeekers)])
+  );
+  return { ...snapshot, table: { ...snapshot.table, pieces }, versions, factionInventories };
+}

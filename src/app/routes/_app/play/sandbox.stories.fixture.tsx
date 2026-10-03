@@ -56,6 +56,38 @@ const clampStart = (index: number) => {
   return steps.includes(index) ? index : (steps.find((candidate) => candidate >= index) ?? steps.at(-1)!);
 };
 
+/* The fixture faces a peek can tell apart: the story Traitor fronts, each a different leader. */
+const VARIED_FRONTS = [
+  ...[0, 1, 2, 3, 4].map((index) => `house-atreides-traitor-${index}`),
+  ...[0, 1, 2, 3].map((index) => `house-harkonnen-traitor-${index}`),
+];
+
+/*
+ * The recording's Treachery deck is all Snooper cards, so a peek through it shows one face over and over.
+ * The sandbox gives its hidden Treachery cards story faces that differ, so rearranging and pulling a card out can be seen.
+ */
+function variedTreachery(stored: StoredSnapshot): StoredSnapshot {
+  let next = 0;
+  const vary = (item: StoredSnapshot['table']['pieces'][number]['items'][number]) => {
+    const front = item.artwork?.front;
+    if (!front?.endsWith('/dreamrules/snooper.jpg') || item.faceUp) {
+      return item;
+    }
+    const face = VARIED_FRONTS[next++ % VARIED_FRONTS.length]!;
+    return {
+      ...item,
+      artwork: { ...item.artwork!, front: front.replace('dreamrules/snooper.jpg', `product/${face}.jpg`), name: face },
+    };
+  };
+  return {
+    ...stored,
+    table: {
+      ...stored.table,
+      pieces: stored.table.pieces.map((piece) => ({ ...piece, items: piece.items.map(vary) })),
+    },
+  };
+}
+
 /** One live table started from a recorded step, answering the messages the page sends as the session would. */
 export class SandboxTable {
   readonly room: Room;
@@ -75,7 +107,7 @@ export class SandboxTable {
   constructor({ start, seat }: SandboxStart) {
     this.start = clampStart(start);
     this.step = journeySteps()[this.start]!;
-    const stored = storedSnapshotSchema.parse(this.step.stored);
+    const stored = variedTreachery(storedSnapshotSchema.parse(this.step.stored));
     /* Every viewer the recording connected, each with a connection of its own so carries keep their owners apart. */
     const last = journeySteps().at(-1)!.views;
     this.viewers = Object.fromEntries(

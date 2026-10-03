@@ -52,7 +52,7 @@ import {
 import { battleCommand } from './battle';
 import { concealCards, deckCommand } from './decks';
 import { dealFixtureDeck } from './fixture';
-import { peekCommand } from './peeks';
+import { forgetPeekers, peekCommand } from './peeks';
 import { setupCommand, gatherTraitors } from './setup-progress';
 import { storedSnapshotSchema } from './state';
 import type { StoredSnapshot } from './state';
@@ -447,6 +447,12 @@ export class Room {
   }
 
   command(identity: Identity, action: RoomAction, expectedRevision: number, now = Date.now()): StoredSnapshot {
+    const next = this.applyCommand(identity, action, expectedRevision, now);
+    /* A new phase forgets who peeked at what; a peek held open stays open. */
+    return next.phase === this.snapshot.phase ? next : forgetPeekers(next);
+  }
+
+  private applyCommand(identity: Identity, action: RoomAction, expectedRevision: number, now: number): StoredSnapshot {
     this.assertActionStage(action);
     this.assertCommand(identity, action, expectedRevision);
     /* The turn moves only through the phases, so Mentat pause always asks everyone to be ready (#1683); an older client may still send this. */
