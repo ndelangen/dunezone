@@ -12,7 +12,6 @@ import {
   cameraPoseFor,
   cameraTiltAfterWheel,
   cameraViewTransitionProgress,
-  cameraZoomAfterPan,
   cameraTiltForZoom,
   CAMERA_PAN_AT_REST,
   cameraPanMotionAfter,
@@ -20,14 +19,11 @@ import {
   cameraZoomAfterWheelAt,
   mapViewTopLimitForViewport,
   NO_CAMERA_ZOOM,
-  tablePointUnder,
   zoomedCameraPose,
 } from './playView';
 import type { CameraPanMotion, CameraPose, CameraViewCommand, CameraZoom } from './playView';
 import { usePointerSession } from './PointerSessionContext';
 import { TableKeyboardContext } from './TableKeyboardContext';
-import { useTableDragPan } from './tablePan';
-import { useTabletopReader } from './TabletopContext';
 import { watchTwoFingerTilt } from './twoFingerTilt';
 
 const CAMERA_POSE_EPSILON_SQUARED = 0.000001;
@@ -221,7 +217,7 @@ type PoseAt = { current: ((tilt: number) => CameraPose) | null };
 /*
  * A close look at the board, steered by the wheel while the camera is free: scrolling down moves in toward the point under the pointer,
  * turning toward top-down as it goes, and scrolling up backs out to the view's own distance and angle.
- * While a close look is open, the pan keys slide it, during a carry too, and a trial switch lets dragging empty board slide it.
+ * While a close look is open, the pan keys slide it, during a carry too.
  * Two fingers over the board still steer the tilt at the view's own distance. `poseAt` is the view's pose at a tilt.
  */
 function useCloseLook(enabled: boolean, viewKey: string, poseAt: PoseAt): WheelView {
@@ -278,11 +274,6 @@ function useCloseLook(enabled: boolean, viewKey: string, poseAt: PoseAt): WheelV
   }, [enabled, poseAt, surface]);
 
   const zoomedIn = view.zoom.scale < 1;
-  /* The look as last drawn, for a grab that starts between renders. */
-  const shownView = useRef(view);
-  useLayoutEffect(() => {
-    shownView.current = view;
-  });
 
   /* The pan keys answer only while a close look is open; otherwise their letters stay free. */
   useEffect(() => {
@@ -316,68 +307,6 @@ function useCloseLook(enabled: boolean, viewKey: string, poseAt: PoseAt): WheelV
     });
     invalidate();
   });
-
-  /* A trial: dragging empty board while zoomed in slides the close look, keeping the grabbed spot under the pointer. */
-  const dragPan = useTableDragPan();
-  const readTable = useTabletopReader();
-  useEffect(() => {
-    if (!enabled || !dragPan || !zoomedIn) {
-      return;
-    }
-    let grab: { pointerId: number; point: Vector3Tuple } | null = null;
-    const pointUnder = (event: PointerEvent, look: WheelView) => {
-      const at = poseAt.current;
-      if (!at) {
-        return null;
-      }
-      const { ndcX, ndcY, aspectRatio } = canvasPoint(surface, event.clientX, event.clientY);
-      const pose = zoomedCameraPose(at(cameraTiltForZoom(look.tilt, look.zoom)), look.zoom);
-      return tablePointUnder(pose, aspectRatio, ndcX, ndcY, ZOOM_ANCHOR_HEIGHT);
-    };
-    const onDown = (event: PointerEvent) => {
-      const table = readTable();
-      if (event.button !== 0 || table.hoveredPieceId || table.state.draftMove) {
-        return;
-      }
-      const point = pointUnder(event, shownView.current);
-      if (point) {
-        grab = { pointerId: event.pointerId, point };
-        surface.style.cursor = 'grabbing';
-      }
-    };
-    const onMove = (event: PointerEvent) => {
-      if (!grab || event.pointerId !== grab.pointerId) {
-        return;
-      }
-      const from = grab.point;
-      setView((current) => {
-        const at = poseAt.current;
-        const to = pointUnder(event, current);
-        if (!at || !to) {
-          return current;
-        }
-        const base = at(cameraTiltForZoom(current.tilt, current.zoom));
-        return { ...current, zoom: cameraZoomAfterPan(current.zoom, base, from, to) };
-      });
-    };
-    const onUp = (event: PointerEvent) => {
-      if (grab && event.pointerId === grab.pointerId) {
-        grab = null;
-        surface.style.cursor = '';
-      }
-    };
-    surface.addEventListener('pointerdown', onDown);
-    window.addEventListener('pointermove', onMove);
-    window.addEventListener('pointerup', onUp);
-    window.addEventListener('pointercancel', onUp);
-    return () => {
-      surface.removeEventListener('pointerdown', onDown);
-      window.removeEventListener('pointermove', onMove);
-      window.removeEventListener('pointerup', onUp);
-      window.removeEventListener('pointercancel', onUp);
-      surface.style.cursor = '';
-    };
-  }, [dragPan, enabled, poseAt, readTable, surface, zoomedIn]);
 
   return view;
 }

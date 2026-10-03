@@ -345,22 +345,6 @@ function keepZoomOverBoard(basePose: CameraPose, zoom: CameraZoom): CameraZoom {
   };
 }
 
-/** A close look slid along the table so that `from`, the table point first grabbed, comes to lie where `to` is now. */
-export function cameraZoomAfterPan(
-  zoom: CameraZoom,
-  basePose: CameraPose,
-  from: Vector3Tuple,
-  to: Vector3Tuple
-): CameraZoom {
-  if (zoom.scale >= 1) {
-    return zoom;
-  }
-  return keepZoomOverBoard(basePose, {
-    scale: zoom.scale,
-    offset: [zoom.offset[0] + from[0] - to[0], zoom.offset[1], zoom.offset[2] + from[2] - to[2]],
-  });
-}
-
 /*
  * The zoom after a wheel turn at a spot on the canvas, given in normalised device coordinates.
  * `poseAt` is the view's pose at a tilt. The camera turns as it closes in, so after scaling about the point under the pointer
