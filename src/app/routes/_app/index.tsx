@@ -9,6 +9,7 @@ import { PageTitle } from '@ui/block/PageTitle';
 import { Section } from '@ui/block/Section';
 import { formatStableDate } from '@ui/content/dates';
 import { Eyebrow } from '@ui/content/Eyebrow';
+import { PublishedImage } from '@ui/content/PublishedImage';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { CallToAction } from '@ui/control/CallToAction';
 import { AsymmetricSplitLayout } from '@ui/layout/AsymmetricSplitLayout';
@@ -23,6 +24,7 @@ import { SiBoardgamegeek, SiDiscord } from 'react-icons/si';
 
 import { loadHomepage, useHomepage } from '@db/homepage';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
+import { AssetFace } from '@app/widgets/asset-face/AssetFace';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 import { LeaderToken } from '@game/assets/faction/leader/Leader';
 import { factionTokenFixtures } from '@game/fixtures/factionTokens';
@@ -54,6 +56,9 @@ const communityLinks = [
 
 export const Route = createFileRoute('/_app/')({
   codeSplitGroupings: [['component', 'pendingComponent', 'errorComponent']],
+  validateSearch: (search: Record<string, unknown>): { variant?: 'A' | 'B' | 'C' } => ({
+    variant: search.variant === 'A' || search.variant === 'B' || search.variant === 'C' ? search.variant : undefined,
+  }),
   loader: loadHomepage,
   pendingComponent: HomepagePending,
   errorComponent: HomepageError,
@@ -61,12 +66,17 @@ export const Route = createFileRoute('/_app/')({
 });
 
 function IndexPage() {
+  const { variant } = Route.useSearch();
   const loaderData = Route.useLoaderData();
   const homepage = useHomepage({ initialData: loaderData });
   const data = homepage.data;
 
   if (!data) {
     return <HomepagePending />;
+  }
+
+  if (import.meta.env.DEV && variant) {
+    return <HomepagePrototype variant={variant} />;
   }
 
   const counts = data.community.counts;
@@ -417,4 +427,454 @@ function HomepageError({ error }: ErrorComponentProps) {
 
 function compactNumber(value: number) {
   return new Intl.NumberFormat('en', { notation: 'compact', maximumFractionDigits: 1 }).format(value);
+}
+
+/* Three throwaway homepage structures, selected by ?variant=A, B or C on the existing route.
+ * The original loader and subscription stay in place; this prototype adds no writes or Play runtime.
+ */
+const prototypeNames = { A: 'The big reveal', B: 'The makers gallery', C: 'Your next move' } as const;
+type PrototypeVariant = keyof typeof prototypeNames;
+const prototypeMedia = '/homepage-prototype/';
+const prototypeAssets = {
+  deck: 'https://dune.zone/published/decks/ns7bpqj41ms5gnwras8223v8zx8cyeyr/cardback.jpg',
+  water: 'https://dune.zone/published/gear-tokens/ns70854wjkwwfthp879v2cbvxh8d189d/token.jpg',
+};
+
+function HomepagePrototype({ variant }: { variant: PrototypeVariant }) {
+  const navigate = Route.useNavigate();
+  const change = (step: number) => {
+    const keys = ['A', 'B', 'C'] as const;
+    const next = keys[(keys.indexOf(variant) + step + keys.length) % keys.length]!;
+    void navigate({ search: { variant: next }, hash: '', replace: true, resetScroll: true });
+  };
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      const target = event.target;
+      if (
+        target instanceof HTMLElement &&
+        target.closest('input, textarea, select, [contenteditable="true"], [role="textbox"]')
+      )
+        return;
+      if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+        event.preventDefault();
+        change(event.key === 'ArrowLeft' ? -1 : 1);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  });
+  return (
+    <PageLayout>
+      <PageLayout.Header size="hero">
+        <Stack align="center" gap="lg">
+          <PageTitle
+            eyebrow="Dune Play · Coming soon"
+            title={variant === 'C' ? 'Your next move' : 'The table is calling'}
+            subtitle="Conquest. Diplomacy. Betrayal."
+          />
+          <Group justify="center">
+            <Button component="a" href="#play-preview">
+              See what's coming
+            </Button>
+            <Button variant="subtle" component="a" href="#make">
+              Make something today <ArrowRight size={16} />
+            </Button>
+          </Group>
+        </Stack>
+      </PageLayout.Header>
+      <PageLayout.Content>
+        <div className={styles.prototype}>
+          {variant === 'A' ? <PrototypeA /> : variant === 'B' ? <PrototypeB /> : <PrototypeC />}
+          <div className={styles.prototypeSwitcher}>
+            <Surface padding="sm">
+              <Group gap="xs" wrap="nowrap" justify="center">
+                <Button size="compact-sm" variant="subtle" aria-label="Previous design" onClick={() => change(-1)}>
+                  ←
+                </Button>
+                <Stack gap={0} align="center">
+                  <Text size="xs" c="dimmed">
+                    PROTOTYPE · {variant} / 3
+                  </Text>
+                  <Text size="sm" fw={700}>
+                    {prototypeNames[variant]}
+                  </Text>
+                </Stack>
+                <Button size="compact-sm" variant="subtle" aria-label="Next design" onClick={() => change(1)}>
+                  →
+                </Button>
+              </Group>
+            </Surface>
+          </div>
+        </div>
+      </PageLayout.Content>
+    </PageLayout>
+  );
+}
+
+function PlayStill() {
+  return (
+    <Stack gap="xs">
+      <img
+        className={styles.prototypePlay}
+        src={`${prototypeMedia}play.jpg`}
+        alt="Dune Play development preview: the Arrakis board, troops, leaders and a player's hand"
+        width={1280}
+        height={720}
+        fetchPriority="high"
+      />
+      <Text size="xs" c="dimmed">
+        Dune Play · Development preview · Coming soon
+      </Text>
+    </Stack>
+  );
+}
+
+function PlayIntroduction() {
+  return (
+    <Section
+      title="A new way to meet on Arrakis"
+      eyebrow="The next chapter"
+      description="The Dune table, in your browser. Dune Play is on its way."
+    >
+      <Text>
+        Choose your faction. Read the table. Make the deal that changes everything. We're bringing the board, cards and
+        conversations together in one place.
+      </Text>
+      <Text c="dimmed" size="sm">
+        While we get the table ready, there's a whole game to make your own.
+      </Text>
+      <Button variant="subtle" component="a" href="#make" w="fit-content">
+        Explore what you can make <ArrowRight size={16} />
+      </Button>
+    </Section>
+  );
+}
+
+function RulebookArt() {
+  return (
+    <Stack gap="sm">
+      <div className={styles.prototypeBooks}>
+        <div className={styles.prototypeBook}>
+          <PublishedImage
+            src={`${prototypeMedia}cover.jpg`}
+            name="Arrakis field guide demonstration cover"
+            aspect={1.414}
+          />
+        </div>
+        <div className={styles.prototypeSpread}>
+          <PublishedImage
+            src={`${prototypeMedia}factions.jpg`}
+            name="Demonstration Rulebook spread introducing the Fremen and Ixians"
+            aspect={1.414}
+          />
+        </div>
+      </div>
+      <Text size="xs" c="dimmed">
+        Arrakis field guide · Demonstration made with the Rulebook editor
+      </Text>
+    </Stack>
+  );
+}
+
+function RulesInvitation() {
+  return (
+    <Section
+      title="Write the rules of your Arrakis"
+      eyebrow="Rulesets & Rulebooks"
+      description="Read another group's take on Dune. Then start shaping your own."
+    >
+      <Text>
+        Bring factions, rulings and an illustrated Rulebook together in a Ruleset your group can keep improving.
+      </Text>
+      <Group>
+        <Button renderRoot={(props) => <Link {...props} to="/rulesets" />}>Browse Rulesets</Button>
+        <Button variant="subtle" renderRoot={(props) => <Link {...props} to="/rulesets/create" />}>
+          Create a Ruleset
+        </Button>
+      </Group>
+      <Text size="sm">
+        Start with <Anchor href="https://dune.zone/rulesets/dreamrules">Dreamrules</Anchor>, maintained by Central and
+        the dreamers Group.
+      </Text>
+    </Section>
+  );
+}
+
+function FactionExample({ orks = false }: { orks?: boolean }) {
+  return (
+    <Stack gap="sm">
+      <PublishedImage
+        src={`${prototypeMedia}${orks ? 'orks' : 'discord'}.jpg`}
+        name={orks ? 'Space Orks leader discs' : 'Discord Legends leader discs'}
+        aspect={215 / 928}
+      />
+      <Group justify="space-between">
+        <Anchor href={`https://dune.zone/factions/${orks ? 'space-orks' : 'discord-legends'}`} fw={700}>
+          {orks ? 'Space Orks' : 'Discord Legends'} <ArrowRight size={14} />
+        </Anchor>
+        <Text size="xs" c="dimmed">
+          Maintained by {orks ? 'BigDave' : 'Eichmal'}
+        </Text>
+      </Group>
+      <Text size="sm">
+        {orks
+          ? 'Dice-fuelled battles and leaders who grow stronger. A homebrew work in progress.'
+          : 'Your community becomes the cast. Familiar faces, with faction advantages that change as you play.'}
+      </Text>
+    </Stack>
+  );
+}
+
+function FactionInvitation() {
+  return (
+    <Section
+      title="Who says a faction has to be familiar?"
+      eyebrow="Community factions"
+      description="Give your friends their own leader discs. Invent an advantage that changes the game."
+    >
+      <div className={styles.prototypeCatalogue}>
+        <FactionExample />
+        <FactionExample orks />
+      </div>
+      <Group>
+        <Button renderRoot={(props) => <Link {...props} to="/factions" />}>Explore factions</Button>
+        <Button variant="subtle" renderRoot={(props) => <Link {...props} to="/factions/create" />}>
+          Create a faction
+        </Button>
+      </Group>
+    </Section>
+  );
+}
+
+function AssetExamples() {
+  return (
+    <div className={styles.prototypeCatalogue}>
+      <Stack align="center" gap="sm">
+        <div className={styles.prototypeAsset}>
+          <AssetFace href={prototypeAssets.deck} type="deck" data={null} name="No Field turquoise and gold cardback" />
+        </div>
+        <Anchor href="https://dune.zone/assets/deck/no-field" fw={700}>
+          No Field
+        </Anchor>
+        <Text size="xs" c="dimmed">
+          Deck · IHasPinecone
+        </Text>
+      </Stack>
+      <Stack align="center" gap="sm">
+        <div className={styles.prototypeAsset}>
+          <AssetFace
+            href={prototypeAssets.water}
+            type="token-tech"
+            data={null}
+            name="Water Extraction gear-shaped token"
+          />
+        </div>
+        <Anchor href="https://dune.zone/assets/token-tech/water-extraction" fw={700}>
+          Water Extraction
+        </Anchor>
+        <Text size="xs" c="dimmed">
+          Token · Amon_Tellur
+        </Text>
+      </Stack>
+    </div>
+  );
+}
+
+function AssetInvitation() {
+  return (
+    <Section
+      title="One card can change the game"
+      eyebrow="Cards, decks & tokens"
+      description="Make the small pieces that bring a big idea to the table."
+    >
+      <Text>
+        Design a deck, write a treachery card or give a new rule a token of its own. Preview your pieces as you build.
+      </Text>
+      <Group>
+        <Button renderRoot={(props) => <Link {...props} to="/assets" />}>Browse Assets</Button>
+        <Button
+          variant="subtle"
+          renderRoot={(props) => <Link {...props} to="/assets/$type/create" params={{ type: 'card-treachery' }} />}
+        >
+          Create a card
+        </Button>
+      </Group>
+    </Section>
+  );
+}
+
+function CollaborateInvitation() {
+  return (
+    <Surface padding="xl">
+      <div className={styles.prototypeSplit}>
+        <Section
+          title="Make it a group effort"
+          eyebrow="Better with your people"
+          description="A Ruleset doesn't have to be one person's project."
+        >
+          <Text>
+            Form a Group to maintain Rulesets, factions and Assets together. Bring the people with strong opinions about
+            Dune. Give those ideas a shared home.
+          </Text>
+        </Section>
+        <Stack align="flex-start" gap="md">
+          <Text size="lg">Write together. Try it at your table. Come back with better rules.</Text>
+          <Group>
+            <Button renderRoot={(props) => <Link {...props} to="/groups/create" />}>Form a Group</Button>
+            <Button variant="subtle" renderRoot={(props) => <Link {...props} to="/groups" />}>
+              Explore Groups
+            </Button>
+          </Group>
+          <Text size="xs" c="dimmed">
+            Log in when you're ready to create. Browsing is open to everyone.
+          </Text>
+        </Stack>
+      </div>
+    </Surface>
+  );
+}
+
+function RecentExamples() {
+  return (
+    <Section
+      title="More ideas to borrow"
+      eyebrow="Recently created"
+      description="Fresh ideas from people making the game their own."
+    >
+      <Group justify="space-between" align="flex-start">
+        <Stack gap={4}>
+          <Anchor href="https://dune.zone/factions/discord-legends">Discord Legends</Anchor>
+          <Text size="xs" c="dimmed">
+            Faction · Eichmal
+          </Text>
+        </Stack>
+        <Stack gap={4}>
+          <Anchor href="https://dune.zone/assets/deck/no-field">No Field</Anchor>
+          <Text size="xs" c="dimmed">
+            Deck · IHasPinecone
+          </Text>
+        </Stack>
+        <Stack gap={4}>
+          <Anchor href="https://dune.zone/assets/token-tech/water-extraction">Water Extraction</Anchor>
+          <Text size="xs" c="dimmed">
+            Token · Amon_Tellur
+          </Text>
+        </Stack>
+        <Button variant="subtle" renderRoot={(props) => <Link {...props} to="/assets" />}>
+          Keep exploring <ArrowRight size={16} />
+        </Button>
+      </Group>
+      <Text size="xs" c="dimmed">
+        Prototype sample: the released page will select eligible recent creations automatically.
+      </Text>
+    </Section>
+  );
+}
+
+function PrototypeA() {
+  return (
+    <div className={styles.prototypeFlow}>
+      <section id="play-preview">
+        <PlayStill />
+      </section>
+      <PlayIntroduction />
+      <div id="make" className={styles.prototypeSplit}>
+        <RulesInvitation />
+        <RulebookArt />
+      </div>
+      <FactionInvitation />
+      <div className={styles.prototypeSplit}>
+        <AssetExamples />
+        <AssetInvitation />
+      </div>
+      <CollaborateInvitation />
+      <RecentExamples />
+    </div>
+  );
+}
+
+function PrototypeB() {
+  return (
+    <div className={styles.prototypeFlow}>
+      <section id="play-preview" className={styles.prototypeSplit}>
+        <PlayStill />
+        <PlayIntroduction />
+      </section>
+      <Section
+        id="make"
+        title="Made by players. Open to your ideas."
+        eyebrow="The makers gallery"
+        description="A Rulebook, an unexpected faction, a deck that didn't exist until someone made it."
+      >
+        <div className={styles.prototypeMosaic}>
+          <RulebookArt />
+          <Stack gap="xl">
+            <FactionExample />
+            <FactionExample orks />
+          </Stack>
+          <AssetExamples />
+        </div>
+      </Section>
+      <div className={styles.prototypeCatalogue}>
+        <RulesInvitation />
+        <AssetInvitation />
+      </div>
+      <Group>
+        <Button renderRoot={(props) => <Link {...props} to="/factions/create" />}>Create a faction</Button>
+        <Button variant="subtle" renderRoot={(props) => <Link {...props} to="/factions" />}>
+          Browse factions
+        </Button>
+      </Group>
+      <CollaborateInvitation />
+      <RecentExamples />
+    </div>
+  );
+}
+
+function PrototypeC() {
+  return (
+    <div className={styles.prototypeFlow}>
+      <section id="play-preview" className={styles.prototypeSplit}>
+        <PlayIntroduction />
+        <PlayStill />
+      </section>
+      <Section
+        id="make"
+        title="Your next great game starts here"
+        eyebrow="Make it yours"
+        description="Start with a rule you want to change. See where it takes you."
+      >
+        <Stack gap="xl">
+          <div className={styles.prototypeChapter}>
+            <Text className={styles.prototypeNumber}>01</Text>
+            <RulesInvitation />
+            <RulebookArt />
+          </div>
+          <div className={styles.prototypeChapter}>
+            <Text className={styles.prototypeNumber}>02</Text>
+            <Section title="Give your idea a faction">
+              <Text>Write its advantages and make its leaders. Your group might be the inspiration.</Text>
+              <Group>
+                <Button renderRoot={(props) => <Link {...props} to="/factions/create" />}>Create a faction</Button>
+                <Button variant="subtle" renderRoot={(props) => <Link {...props} to="/factions" />}>
+                  Browse factions
+                </Button>
+              </Group>
+            </Section>
+            <Stack gap="xl">
+              <FactionExample />
+              <FactionExample orks />
+            </Stack>
+          </div>
+          <div className={styles.prototypeChapter}>
+            <Text className={styles.prototypeNumber}>03</Text>
+            <AssetInvitation />
+            <AssetExamples />
+          </div>
+        </Stack>
+      </Section>
+      <CollaborateInvitation />
+      <RecentExamples />
+    </div>
+  );
 }
