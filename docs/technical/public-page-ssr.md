@@ -1,5 +1,8 @@
 # Public page HTML and live data
 
+The [hosted delivery rehearsal](public-delivery-rehearsal.md) records measured CPU, browser behavior,
+external scraper results and the current cost model. It supersedes the preliminary cost assumptions below.
+
 Faction details, asset details, the two catalogues and asset-type listings render anonymous HTML
 in the publisher Worker. Login-required pages keep their browser-only loaders. The Worker strips
 visitor credentials before invoking TanStack Start, and the data doorway creates an unauthenticated
