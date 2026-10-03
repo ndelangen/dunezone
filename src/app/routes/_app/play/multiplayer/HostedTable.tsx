@@ -20,6 +20,7 @@ import { requestPlayTicket } from '@db/play';
 import { FoilConfetti } from '../FoilConfetti';
 import { GameTable } from '../GameTable';
 import { usePointerSession } from '../PointerSessionContext';
+import { predictionCardInHand } from '../prediction/predictionCardInHand';
 import { PredictionLogosContext } from '../prediction/predictionFace';
 import { TabletopSessionProvider } from '../TabletopContext';
 import { TableWait } from '../TableWait';
@@ -302,6 +303,8 @@ function Predictions({ client, table }: SetupControlProps) {
     .map((step) => {
       const prediction = table.snapshot.predictions?.[step.id];
       const own = step.factionId === ownFaction;
+      /* While its card is in hand, placing the card is the reveal; the panel keeps a button only for a game that dealt none. */
+      const byCard = own && prediction?.revealedAt === null && predictionCardInHand(table, step.id);
       return (
         <Section
           helpOnly={Boolean(table.snapshot.stage)}
@@ -312,15 +315,21 @@ function Predictions({ client, table }: SetupControlProps) {
           <Stack gap="sm">
             {prediction ? (
               <>
-                <Text size="sm">{prediction.revealedAt === null ? 'Prediction locked' : 'Prediction revealed'}</Text>
-                {prediction.choice && (
+                <Text size="sm">
+                  {prediction.revealedAt !== null
+                    ? 'Prediction revealed'
+                    : byCard
+                      ? 'Prediction locked. Place your prediction card on the table to reveal it.'
+                      : 'Prediction locked'}
+                </Text>
+                {prediction.choice && !byCard && (
                   <PredictionCards
                     table={table}
                     factionId={prediction.choice.factionId}
                     turn={prediction.choice.turn}
                   />
                 )}
-                {own && prediction.revealedAt === null && (
+                {own && prediction.revealedAt === null && !byCard && (
                   <Button
                     variant="default"
                     disabled={!table.canInteract}

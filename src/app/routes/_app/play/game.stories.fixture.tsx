@@ -1,5 +1,6 @@
 import type { LogEntry } from '@shared/play/log';
 import type { ClientMessage, GameSnapshot } from '@shared/play/protocol';
+import { item, piece } from '@shared/play/setupSupply';
 import type { Decorator } from '@storybook/tanstack-react';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
@@ -10,7 +11,7 @@ import { draftingSnapshot } from './drafting.stories.fixture';
 import { browserGameRuntime, GameRuntimeContext } from './multiplayer/gameRuntime';
 import type { GameRuntime } from './multiplayer/gameRuntime';
 import type { productTransport } from './product.stories.fixture';
-import { GAME_KEY, parameters, playingSnapshot, setupSnapshot, SIX } from './product.stories.fixture';
+import { cardBack, GAME_KEY, parameters, playingSnapshot, setupSnapshot, SIX } from './product.stories.fixture';
 
 /** The story being rendered: the transport `install` put in place and the runtime the `gameMeta` decorator hands the page. */
 export const session: { runtime: GameRuntime; transport: ReturnType<typeof productTransport> } = {
@@ -106,7 +107,8 @@ export const press = (read: () => HTMLElement) =>
     { timeout: 30_000 }
   );
 
-export function predictionSnapshot(locked = false): GameSnapshot {
+/** Setup on the prediction step; `locked` adds the locked choice, and `card` also deals its prediction card into the hand (#1753). */
+export function predictionSnapshot(locked = false, card = false): GameSnapshot {
   const snapshot = setupSnapshot('seat-6');
   const factionId = snapshot.roster!.seats[5]!.faction!.id;
   snapshot.setup!.steps.unshift({
@@ -126,6 +128,26 @@ export function predictionSnapshot(locked = false): GameSnapshot {
         choice: { factionId: snapshot.roster!.seats[0]!.faction!.id, turn: 6 },
       },
     };
+  }
+  if (locked && card) {
+    const back = cardBack();
+    const dealt = item(
+      'prediction-card',
+      'Prediction',
+      back.replace('cardback', 'snooper'),
+      back,
+      'card-prediction',
+      true,
+      'Prediction'
+    );
+    dealt.artwork!.prediction = { stepId: 'prediction', factionId: snapshot.roster!.seats[0]!.faction!.id, turn: 6 };
+    snapshot.hand = [
+      ...(snapshot.hand ?? []),
+      {
+        ...piece('prediction-prediction', 'Prediction', factionId, '#d5ba8c', 'card', 'prediction:prediction'),
+        items: [dealt],
+      },
+    ];
   }
   return snapshot;
 }
