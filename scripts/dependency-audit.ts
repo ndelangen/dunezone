@@ -13,6 +13,24 @@ import type { RetryTransientOptions } from './retry-transient';
  */
 
 export const AUDIT_LEVEL = 'moderate';
+
+/*
+ * Advisories accepted on purpose, each with why and the date it was accepted.
+ * Only an advisory with no patched release belongs here; drop the entry as soon as a fix ships.
+ */
+export const IGNORED_ADVISORIES: readonly { id: string; package: string; reason: string; accepted: string }[] = [
+  {
+    id: 'GHSA-vfj7-8cjw-p6xm',
+    package: 'braces',
+    reason:
+      'No patched release after 3.0.3; only reached through @codecov/bundle-analyzer at build time, never with user input (Norbert, 2026-10-03).',
+    accepted: '2026-10-03',
+  },
+];
+
+export function ignoreArgs(advisories: typeof IGNORED_ADVISORIES = IGNORED_ADVISORIES): string[] {
+  return advisories.map((advisory) => `--ignore=${advisory.id}`);
+}
 export const ATTEMPT_MS = 30_000;
 export const RETRY_DELAYS_MS: readonly number[] = [5000, 15_000, 45_000];
 
@@ -57,7 +75,7 @@ export function classifyAudit(attempt: AuditAttempt): AuditVerdict {
 /** One bounded `bun audit`, killed after ATTEMPT_MS. */
 function runBunAudit(extraArgs: readonly string[]): AuditAttempt {
   const proc = Bun.spawnSync({
-    cmd: [process.execPath, 'audit', `--audit-level=${AUDIT_LEVEL}`, ...extraArgs],
+    cmd: [process.execPath, 'audit', `--audit-level=${AUDIT_LEVEL}`, ...ignoreArgs(), ...extraArgs],
     stdout: 'pipe',
     stderr: 'pipe',
     timeout: ATTEMPT_MS,

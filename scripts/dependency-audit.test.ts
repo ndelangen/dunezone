@@ -1,6 +1,14 @@
 import { describe, expect, test } from 'vitest';
 
-import { ATTEMPT_MS, RETRY_DELAYS_MS, auditDependencies, classifyAudit, verdictLine } from './dependency-audit';
+import {
+  ATTEMPT_MS,
+  IGNORED_ADVISORIES,
+  RETRY_DELAYS_MS,
+  auditDependencies,
+  classifyAudit,
+  ignoreArgs,
+  verdictLine,
+} from './dependency-audit';
 import type { AuditAttempt } from './dependency-audit';
 import { jobTimeoutMinutes, verifyJob } from './lib/verify-workflow';
 import { TransientError } from './retry-transient';
@@ -134,5 +142,21 @@ describe('auditDependencies', () => {
     expect(job).toContain('run: bun run dependencies:audit');
     const worstCaseMs = (RETRY_DELAYS_MS.length + 1) * ATTEMPT_MS + RETRY_DELAYS_MS.reduce((sum, ms) => sum + ms, 0);
     expect(jobTimeoutMinutes(job) * 60_000).toBeGreaterThan(LINT_STEPS_BEFORE_AUDIT_MS + worstCaseMs);
+  });
+});
+
+describe('IGNORED_ADVISORIES', () => {
+  test('names each advisory by GHSA id with a reason and the date it was accepted', () => {
+    for (const advisory of IGNORED_ADVISORIES) {
+      expect(advisory.id).toMatch(/^GHSA(?:-[23456789cfghjmpqrvwx]{4}){3}$/);
+      expect(advisory.reason.length).toBeGreaterThan(0);
+      expect(advisory.accepted).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    }
+  });
+
+  test('passes each one to bun audit as an ignore flag', () => {
+    expect(ignoreArgs([{ id: 'GHSA-aaaa-bbbb-cccc', package: 'x', reason: 'r', accepted: '2026-01-01' }])).toEqual([
+      '--ignore=GHSA-aaaa-bbbb-cccc',
+    ]);
   });
 });
