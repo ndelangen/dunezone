@@ -10,6 +10,7 @@ import { ExtrudeGeometry, Shape } from 'three';
 
 import { DarkSchemeIsland } from '../DarkSchemeIsland';
 import { OpenRound, RoundResult } from './BidderFace';
+import { faceOnCanvas } from './bidderFacePosition';
 import { useBidderRotation } from './bidderRotation';
 import type { TableProjection, TableSession } from './TableSession';
 import { useServerNow } from './useServerNow';
@@ -76,7 +77,7 @@ function Bidder({ client, table }: Props) {
           <meshStandardMaterial color="#24150a" roughness={0.6} />
         </mesh>
       </group>
-      <Html center zIndexRange={[9, 0]}>
+      <Html center zIndexRange={[9, 0]} calculatePosition={faceOnCanvas}>
         <DarkSchemeIsland>
           {bidding.stage === 'open' ? (
             <OpenRound client={client} table={table} bidding={bidding} remaining={remaining} />

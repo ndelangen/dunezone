@@ -88,7 +88,7 @@ describe('the bidder when a token flips mid-round', () => {
 
   test('skips a faction that turns its token face down while the bidder waits on it, without counting a pass', () => {
     const state = reconcileBidding(opened(), { order, eligible: ['b', 'c', 'd'], now: 5000 });
-    expect(state).toMatchObject({ stage: 'open', turn: 'b', passes: 0, deadline: 15_000 });
+    expect(state).toMatchObject({ stage: 'open', turn: 'b', passed: [], deadline: 15_000 });
   });
 
   test('ends the round once nobody is left to outbid the high bid', () => {
@@ -100,5 +100,17 @@ describe('the bidder when a token flips mid-round', () => {
   test('leaves a round alone while the faction it waits on still bids', () => {
     const state = opened();
     expect(reconcileBidding(state, { order, eligible: order, now: 5000 })).toBe(state);
+  });
+
+  test('keeps the round open when a faction that already passed turns its token face down', () => {
+    let state = applyBidding(opened(), { kind: 'bid-raise', round: 1 }, at('a'));
+    state = pass(state, 'a', order);
+    state = pass(state, 'b', order);
+    const withoutB = ['a', 'c', 'd'];
+    state = reconcileBidding(state, { order, eligible: withoutB, now: 0 });
+    state = pass(state, 'c', withoutB);
+    expect(state).toMatchObject({ stage: 'open', turn: 'd' });
+    state = pass(state, 'd', withoutB);
+    expect(state).toMatchObject({ stage: 'won', turn: 'a' });
   });
 });

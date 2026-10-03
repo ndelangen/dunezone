@@ -26,8 +26,8 @@ export const biddingStateSchema = z.object({
   opener: id.nullable(),
   turn: id.nullable(),
   bid: z.object({ factionId: id, amount: count.min(1) }).nullable(),
-  /* Passes in a row since the round opened or since its last raise. */
-  passes: count,
+  /* The factions that passed since the round opened or since its last raise. */
+  passed: z.array(id),
   deadline: count.nullable(),
 });
 export type BiddingState = z.infer<typeof biddingStateSchema>;
@@ -45,7 +45,7 @@ export function isBiddingAction(action: { kind: string }): action is BiddingActi
 }
 
 export function idleBidding(seconds = DEFAULT_BID_SECONDS): BiddingState {
-  return { seconds, stage: 'idle', round: 0, opener: null, turn: null, bid: null, passes: 0, deadline: null };
+  return { seconds, stage: 'idle', round: 0, opener: null, turn: null, bid: null, passed: [], deadline: null };
 }
 
 /**
@@ -103,42 +103,42 @@ function open(state: BiddingState, { order, eligible, now }: BiddingContext): Bi
     opener,
     turn: opener,
     bid: null,
-    passes: 0,
+    passed: [],
     deadline: now + state.seconds * 1000,
   };
 }
 
 /**
  * Whether the round is over: every bidding faction but the high bidder passed since the last raise, or nobody is left to point at.
- * Counting passes rather than waiting for the bidder to come back round keeps a round from hanging when the high bidder turns its token face down mid-round.
+ * Asking who passed rather than waiting for the bidder to come back round keeps a round from hanging when the high bidder turns its token face down mid-round, and asking who rather than how many keeps a faction that passed and then turned its token face down from ending the round before the others act.
  */
-function roundEnds(state: BiddingState, next: string | null, passes: number, eligible: readonly string[]) {
+function roundEnds(state: BiddingState, next: string | null, passed: readonly string[], eligible: readonly string[]) {
   if (next === null) {
     return true;
   }
-  const rivals = eligible.filter((factionId) => factionId !== state.bid?.factionId);
-  return passes >= rivals.length;
+  return eligible.every((factionId) => factionId === state.bid?.factionId || passed.includes(factionId));
 }
 
 /** Points the bidder at `next` with fresh time, or settles the round once it is over. */
 function settle(
   state: BiddingState,
   next: string | null,
-  passes: number,
+  passed: string[],
   { eligible, now }: Omit<BiddingContext, 'factionId'>
 ) {
-  if (!roundEnds(state, next, passes, eligible)) {
-    return { ...state, turn: next, passes, deadline: now + state.seconds * 1000 };
+  if (!roundEnds(state, next, passed, eligible)) {
+    return { ...state, turn: next, passed, deadline: now + state.seconds * 1000 };
   }
   return state.bid
-    ? { ...state, stage: 'won' as const, turn: state.bid.factionId, passes, deadline: null }
-    : { ...state, stage: 'unclaimed' as const, turn: null, passes, deadline: null };
+    ? { ...state, stage: 'won' as const, turn: state.bid.factionId, passed, deadline: null }
+    : { ...state, stage: 'unclaimed' as const, turn: null, passed, deadline: null };
 }
 
 /** Moves the bidder on from the faction it points at; the high bidder handing the bidder on after a raise is not a pass. */
 function passBid(state: BiddingState, context: Omit<BiddingContext, 'factionId'>): BiddingState {
-  const passes = state.turn === state.bid?.factionId ? state.passes : state.passes + 1;
-  return settle(state, nextBidder(context.order, context.eligible, state.turn), passes, context);
+  const { turn } = state;
+  const passed = turn === null || turn === state.bid?.factionId ? state.passed : [...state.passed, turn];
+  return settle(state, nextBidder(context.order, context.eligible, turn), passed, context);
 }
 
 /**
@@ -149,11 +149,11 @@ export function reconcileBidding(state: BiddingState, context: Omit<BiddingConte
     return state;
   }
   if (context.eligible.includes(state.turn)) {
-    return roundEnds(state, state.turn, state.passes, context.eligible)
-      ? settle(state, null, state.passes, context)
+    return roundEnds(state, state.turn, state.passed, context.eligible)
+      ? settle(state, null, state.passed, context)
       : state;
   }
-  return settle(state, nextBidder(context.order, context.eligible, state.turn), state.passes, context);
+  return settle(state, nextBidder(context.order, context.eligible, state.turn), state.passed, context);
 }
 
 /** The raise or pass of the faction the bidder points at, refused for anyone else or a round that has ended. */
@@ -178,7 +178,7 @@ function turnAction(
   return {
     ...state,
     bid: { factionId, amount: (state.bid?.amount ?? 0) + 1 },
-    passes: 0,
+    passed: [],
     deadline: context.now + state.seconds * 1000,
   };
 }
