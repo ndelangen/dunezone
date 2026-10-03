@@ -60,7 +60,7 @@ A temporary internal probe called the same five anonymous page queries against t
 | Asset catalogue | 17 | 10,903 | 13,044 |
 | Asset type listing | 4 | 2,188 | 2,608 |
 
-The raw counters include the probe's nested invocation bookkeeping. They are not a count of externally billed function calls. The delivery diagnostics showed one metadata function request per HTML miss and none per hit. Image requests made no Convex calls. The cost model uses the mean read bytes above, 6,596, for an explicitly uniform page mix. Returned JSON averages 5,573.2 bytes and is only an estimate for egress; protocol overhead and production catalogue size can change it. Convex bills database I/O separately from result transfer. [Convex limits and usage definitions](https://docs.convex.dev/production/state/limits)
+The raw counters include the probe's nested invocation bookkeeping. They are not a count of externally billed function calls. The delivery diagnostics showed one metadata function request per HTML miss and none per hit. Image requests made no Convex calls. The cost model uses the mean read bytes above, 6,596, for an explicitly uniform page mix. Returned JSON averages 5,573.2 bytes. The model adds a conservative transfer allowance by pricing those bytes at the published data-egress rate; it does not establish that query responses incur that charge. Convex documents egress for file downloads, outgoing fetches and log streams, while database I/O covers document and index reads. Without this allowance, the 10,000-human zero-hit increment is $0.08608 instead of $0.09565. Production catalogue size and read work can change both estimates. [Convex usage definitions](https://docs.convex.dev/production/usage-limits)
 
 ## Browser and failure behavior
 
@@ -108,7 +108,7 @@ Scenario assumptions:
 
 The human increment compares public SSR with the existing static client shell and excludes the unchanged client subscriptions. If shared included usage remains sufficient, these extra metered charges are zero. Otherwise the table values usage at the overage rates, before billing-unit rounding. Do not add a new $5 plan fee for each Worker or each feature; it is an account minimum. Existing account consumption and any Convex developer seats still determine the actual bill.
 
-For each traffic class, misses equal requests × one minus hit ratio. Worker CPU equals misses × mean miss CPU plus hits × mean hit CPU. HTML misses add one Convex call plus the measured database read bytes and estimated egress bytes. Images add no database call, and this scenario adds one R2 read per image miss. The JSON and executable model preserve every component before rounding.
+For each traffic class, misses equal requests × one minus hit ratio. Worker CPU equals misses × mean miss CPU plus hits × mean hit CPU. HTML misses add one Convex call plus the measured database read bytes and the conservative result-transfer allowance. Images add no database call, and this scenario adds one R2 read per image miss. The JSON and executable model preserve every component before rounding.
 
 A visitor's live subscriptions are separate. Existing shell and page queries still subscribe after hydration and can re-execute on updates. As a scale example, 10,000 additional subscribed query executions would cost $0.0286 in function usage at the Starter Ireland rate, plus their actual database I/O and egress. One page load is not necessarily one subscription execution. The table does not claim to price the whole existing application, publication pipeline or stored artwork.
 
