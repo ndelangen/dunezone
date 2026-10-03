@@ -81,13 +81,13 @@ function Glyph({ src }: { src: string }) {
 const PHASES = [
   { name: 'Storm', icon: '/vector/icon/storm_disc.svg' },
   { name: 'Spice Blow', icon: '/vector/icon/spice-blow_disc.svg' },
-  { name: 'CHOAM Charity', icon: '/vector/icon/spice-alt.svg' },
+  { name: 'CHOAM Charity', icon: '/vector/icon/spice-alt.svg', ring: true },
   { name: 'Bidding', icon: '/vector/icon/bidding_disc.svg', anchor: 'bidding' },
-  { name: 'Revival', icon: '/vector/icon/revival.svg', anchor: 'revival' },
+  { name: 'Revival', icon: '/vector/icon/revival.svg', anchor: 'revival', ring: true },
   { name: 'Shipment and Movement', icon: '/vector/icon/shipment_disc.svg', anchor: 'shipment-and-movement' },
   { name: 'Battle', icon: '/vector/icon/combat_disc.svg', anchor: 'battle' },
   { name: 'Spice Collection', icon: '/vector/icon/collection_disc.svg', anchor: 'spice-collection' },
-  { name: 'Mentat Pause', icon: '/vector/icon/mentat.svg' },
+  { name: 'Mentat Pause', icon: '/vector/icon/mentat.svg', ring: true },
 ] as const;
 
 function PiecesVisual() {
@@ -164,12 +164,15 @@ function TanksArt() {
 function TurnVisual() {
   return (
     <ol className={styles.phases}>
-      {PHASES.map((phase, index) => (
+      {PHASES.map((phase) => (
         <li key={phase.name} className={styles.phase}>
-          <span className={styles.phaseNumber} aria-hidden="true">
-            {index + 1}
-          </span>
-          <Glyph src={phase.icon} />
+          {'ring' in phase ? (
+            <span className={styles.ring}>
+              <Glyph src={phase.icon} />
+            </span>
+          ) : (
+            <Glyph src={phase.icon} />
+          )}
           {'anchor' in phase ? <a href={`#${phase.anchor}`}>{phase.name}</a> : <span>{phase.name}</span>}
         </li>
       ))}
