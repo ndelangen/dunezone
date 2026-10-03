@@ -1,5 +1,6 @@
 import { zodToConvex } from 'convex-helpers/server/zod4';
 
+import { CanonicalFactionStoredSchema } from '../src/shared/factions/schema';
 import {
   playDirectorySummarySchema,
   playLobbySchema,
@@ -47,8 +48,23 @@ export const publishSummary = mutation({
   },
 });
 
+type Seat = PlayDirectorySummary['seats'][number];
+/* One read per faction per listing: the same faction often sits at many tables. */
+type TokenMemo = Map<string, ReturnType<typeof factionToken>>;
+
+/** The faction's token as the catalogue draws it today, or null when its row is gone or no longer parses. */
+async function factionToken(ctx: QueryCtx, factionId: string) {
+  const id = ctx.db.normalizeId('factions', factionId);
+  const row = id ? await ctx.db.get('factions', id) : null;
+  if (!row || row.is_deleted) {
+    return null;
+  }
+  const parsed = CanonicalFactionStoredSchema.safeParse(row.data);
+  return parsed.success ? { logo: parsed.data.logo, background: parsed.data.background } : null;
+}
+
 /** Who a seat holds, by current account: a deleted or unknown account leaves the seat unnamed. */
-async function seatedPlayer(ctx: QueryCtx, seat: PlayDirectorySummary['seats'][number]) {
+async function seatedPlayer(ctx: QueryCtx, seat: Seat, viewerId: Id<'users'>, tokens: TokenMemo) {
   const userId = ctx.db.normalizeId('users', seat.userId);
   const profile = userId
     ? await ctx.db
@@ -59,10 +75,19 @@ async function seatedPlayer(ctx: QueryCtx, seat: PlayDirectorySummary['seats'][n
   if (!profile || !isActiveProfile(profile)) {
     return null;
   }
-  return { userId, displayName: profile.username || 'Player', faction: seat.faction?.name ?? null };
+  const faction = seat.faction;
+  if (faction && !tokens.has(faction.id)) {
+    tokens.set(faction.id, factionToken(ctx, faction.id));
+  }
+  return {
+    displayName: profile.username || 'Player',
+    avatarUrl: profile.avatar?.url ?? profile.avatar_url,
+    viewer: userId === viewerId,
+    faction: faction && { name: faction.name, color: faction.color, token: await tokens.get(faction.id)! },
+  };
 }
 
-async function lobbyEntry(ctx: QueryCtx, game: Doc<'play_games'>, viewerId: Id<'users'>) {
+async function lobbyEntry(ctx: QueryCtx, game: Doc<'play_games'>, viewerId: Id<'users'>, tokens: TokenMemo) {
   const parsed = playDirectorySummarySchema.safeParse(game.directory);
   if (!parsed.success) {
     return null;
@@ -71,7 +96,7 @@ async function lobbyEntry(ctx: QueryCtx, game: Doc<'play_games'>, viewerId: Id<'
   const ruleset = game.ruleset_id ? await ctx.db.get('rulesets', game.ruleset_id) : null;
   const seated = [];
   for (const seat of summary.seats) {
-    const player = await seatedPlayer(ctx, seat);
+    const player = await seatedPlayer(ctx, seat, viewerId, tokens);
     if (player) {
       seated.push(player);
     }
@@ -82,8 +107,8 @@ async function lobbyEntry(ctx: QueryCtx, game: Doc<'play_games'>, viewerId: Id<'
     stage: summary.stage,
     seatsFilled: seated.length,
     seatCount: summary.seatCount,
-    viewerSeated: seated.some((player) => player.userId === viewerId),
-    players: seated.map(({ displayName, faction }) => ({ displayName, faction })),
+    viewerSeated: seated.some((player) => player.viewer),
+    players: seated,
     phase: summary.phase,
     lastActivityAt: summary.lastActivityAt,
     result: namedResult(summary),
@@ -114,11 +139,13 @@ export const listGames = query({
     if (!session) {
       return { status: 'sign_in_required' as const };
     }
+    const tokens: TokenMemo = new Map();
     const listed = async (stages: readonly PlayDirectorySummary['stage'][]) => {
       const rows = (await Promise.all(stages.map((stage) => gamesInStage(ctx, stage)))).flat();
       const entries = [];
       for (const game of rows) {
-        const entry = game.state === 'ready' && game.directory ? await lobbyEntry(ctx, game, session.userId) : null;
+        const entry =
+          game.state === 'ready' && game.directory ? await lobbyEntry(ctx, game, session.userId, tokens) : null;
         if (entry) {
           entries.push(entry);
         }

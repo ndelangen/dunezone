@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { Background, CanonicalFactionStoredObject } from '../factions/schema';
 import { playStageSchema } from './admission';
 import { tableSeatCountSchema } from './schema';
 import { TABLE_SEAT_COUNTS } from './tableSettings';
@@ -73,7 +74,21 @@ export const playLobbyEntrySchema = z.object({
   seatsFilled: z.number().int().nonnegative(),
   seatCount: z.number().int().positive(),
   viewerSeated: z.boolean(),
-  players: z.array(z.object({ displayName: z.string(), faction: z.string().nullable() })),
+  /* In seat order. A faction carries its token's render data, absent when the catalogue no longer holds a faction that parses. */
+  players: z.array(
+    z.object({
+      displayName: z.string(),
+      avatarUrl: z.string().nullable(),
+      viewer: z.boolean(),
+      faction: z
+        .object({
+          name: z.string(),
+          color: z.string(),
+          token: z.object({ logo: CanonicalFactionStoredObject.shape.logo, background: Background }).nullable(),
+        })
+        .nullable(),
+    })
+  ),
   phase: z.number().int().nonnegative().nullable(),
   lastActivityAt: timestampSchema,
   /* The declared result with its factions named; no user id reaches the lobby. */
