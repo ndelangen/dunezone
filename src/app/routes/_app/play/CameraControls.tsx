@@ -12,13 +12,22 @@ import {
   cameraPoseFor,
   cameraTiltAfterWheel,
   cameraViewTransitionProgress,
+  cameraZoomAfterWheel,
   mapViewTopLimitForViewport,
+  NO_CAMERA_ZOOM,
+  tablePointUnder,
+  wheelTurnZooms,
+  zoomedCameraPose,
 } from './playView';
-import type { CameraViewCommand } from './playView';
+import type { CameraPose, CameraViewCommand, CameraZoom } from './playView';
 import { usePointerSession } from './PointerSessionContext';
 import { watchTwoFingerTilt } from './twoFingerTilt';
 
 const CAMERA_POSE_EPSILON_SQUARED = 0.000001;
+/* How quickly a close look follows the wheel: the share of the way left after a second's glide is e^(-1/τ). */
+const CAMERA_GLIDE_TIME_CONSTANT_S = 0.07;
+/* The table's surface, where the pointer's anchor for a close look lies. */
+const ZOOM_ANCHOR_HEIGHT = 0.132;
 
 type CameraTransition = {
   commandKey: string;
@@ -50,6 +59,8 @@ type CameraPlayback = {
   appliedCommand: string | null;
   appliedCommandKey: string | null;
   transition: CameraTransition | null;
+  /* A close look the camera glides toward, wheel turn by wheel turn, instead of a timed move. */
+  glide: CameraDestination | null;
 };
 type SeatedOrbitControls = ComponentRef<typeof OrbitControls>;
 
@@ -58,15 +69,18 @@ function cameraDestinationFor(
   aspectRatio: number,
   mapFramingPoints: readonly Vector3Tuple[],
   mapTopLimit: number,
-  tilt: number
+  tilt: number,
+  zoom: CameraZoom
 ): CameraDestination {
-  const pose = cameraPoseFor(command.view, aspectRatio, mapFramingPoints, mapTopLimit, tilt);
+  const pose = zoomedCameraPose(cameraPoseFor(command.view, aspectRatio, mapFramingPoints, mapTopLimit, tilt), zoom);
   return {
     commandKey: `${command.view}:${command.revision}`,
     signature: [
       command.view,
       command.revision,
       tilt.toFixed(4),
+      zoom.scale.toFixed(4),
+      pose.position[0].toFixed(3),
       pose.position[1].toFixed(3),
       pose.position[2].toFixed(3),
       pose.target[0].toFixed(3),
@@ -90,6 +104,32 @@ function settleCameraDestination(
   playback.appliedCommand = destination.signature;
   playback.appliedCommandKey = destination.commandKey;
   playback.transition = null;
+  playback.glide = null;
+}
+
+function advanceCameraGlide(
+  camera: Camera,
+  controls: SeatedOrbitControls | null,
+  playback: CameraPlayback,
+  delta: number,
+  invalidate: () => void
+) {
+  const glide = playback.glide;
+  if (!controls || !glide) {
+    return;
+  }
+  const share = 1 - Math.exp(-Math.min(delta, 0.1) / CAMERA_GLIDE_TIME_CONSTANT_S);
+  camera.position.lerp(glide.toPosition, share);
+  controls.target.lerp(glide.toTarget, share);
+  controls.update();
+  const arrived =
+    camera.position.distanceToSquared(glide.toPosition) <= CAMERA_POSE_EPSILON_SQUARED &&
+    controls.target.distanceToSquared(glide.toTarget) <= CAMERA_POSE_EPSILON_SQUARED;
+  if (arrived) {
+    settleCameraDestination(camera, controls, playback, glide);
+    return;
+  }
+  invalidate();
 }
 
 function advanceCameraTransition(
@@ -117,11 +157,19 @@ function applyCameraDestination(
   camera: Camera,
   controls: SeatedOrbitControls,
   playback: CameraPlayback,
-  destination: CameraDestination
+  destination: CameraDestination,
+  glide: boolean
 ): boolean {
   if (playback.appliedCommand === destination.signature) {
     return false;
   }
+  if (glide && !playback.transition && playback.appliedCommandKey === destination.commandKey) {
+    /* A wheel turn toward or away from the board glides there, so a mouse's notches read as one smooth move. */
+    playback.glide = destination;
+    playback.appliedCommand = destination.signature;
+    return true;
+  }
+  playback.glide = null;
   const atDestination =
     camera.position.distanceToSquared(destination.toPosition) <= CAMERA_POSE_EPSILON_SQUARED &&
     controls.target.distanceToSquared(destination.toTarget) <= CAMERA_POSE_EPSILON_SQUARED;
@@ -147,12 +195,23 @@ function applyCameraDestination(
   return true;
 }
 
-/** The player's tilt, from the approved angle toward top-down, steered by the wheel or two fingers over the board while the camera is free. */
-function useWheelTilt(enabled: boolean): number {
-  const [tilt, setTilt] = useState(0);
+type WheelView = Readonly<{ tilt: number; zoom: CameraZoom; zoomRevision: number }>;
+
+/*
+ * The player's tilt, from the approved angle toward top-down, and then a close look at the board, both steered by the wheel while the camera is free.
+ * Scrolling down tilts to top-down and then moves in toward the point under the pointer; scrolling up backs out and then tilts back.
+ * Two fingers over the board steer the tilt alone. `pose` is the camera's latest destination, which places the point under the pointer.
+ */
+function useWheelView(enabled: boolean, viewKey: string, pose: { current: CameraPose | null }): WheelView {
+  const [view, setView] = useState<WheelView>({ tilt: 0, zoom: NO_CAMERA_ZOOM, zoomRevision: 0 });
   /* Only the board itself listens, so a scrollable panel or label over the table keeps its own wheel. */
   const surface = useThree((state) => state.renderer.domElement);
   const pointerSession = usePointerSession();
+
+  /* A new view, chosen or the phase's, starts from that view's own distance. */
+  useLayoutEffect(() => {
+    setView((current) => (current.zoom === NO_CAMERA_ZOOM ? current : { ...current, zoom: NO_CAMERA_ZOOM }));
+  }, [viewKey]);
 
   /*
    * Two fingers listen even while a press holds the table: the first finger usually lands on a piece,
@@ -162,7 +221,10 @@ function useWheelTilt(enabled: boolean): number {
     () =>
       watchTwoFingerTilt(surface, window, {
         onStart: () => pointerSession.cancel(),
-        onTilt: (deltaY) => setTilt((current) => cameraTiltAfterWheel(current, deltaY)),
+        onTilt: (deltaY) =>
+          setView((current) =>
+            current.zoom.scale < 1 ? current : { ...current, tilt: cameraTiltAfterWheel(current.tilt, deltaY) }
+          ),
       }),
     [pointerSession, surface]
   );
@@ -177,13 +239,39 @@ function useWheelTilt(enabled: boolean): number {
         return;
       }
       event.preventDefault();
-      setTilt((current) => cameraTiltAfterWheel(current, event.deltaY, event.deltaMode));
+      const bounds = surface.getBoundingClientRect();
+      const ndcX = ((event.clientX - bounds.left) / Math.max(1, bounds.width)) * 2 - 1;
+      const ndcY = 1 - ((event.clientY - bounds.top) / Math.max(1, bounds.height)) * 2;
+      const aspectRatio = bounds.width / Math.max(1, bounds.height);
+      setView((current) => {
+        if (!wheelTurnZooms(current.tilt, current.zoom, event.deltaY)) {
+          return { ...current, tilt: cameraTiltAfterWheel(current.tilt, event.deltaY, event.deltaMode) };
+        }
+        const shown = pose.current;
+        if (!shown) {
+          return current;
+        }
+        /* The anchor is found on the pose the camera is heading to, so turns in quick succession agree on what is under the pointer. */
+        const anchor = tablePointUnder(shown, aspectRatio, ndcX, ndcY, ZOOM_ANCHOR_HEIGHT);
+        const unzoomed = {
+          position: shown.position.map((value, axis) => (value - current.zoom.offset[axis]) / current.zoom.scale),
+          target: shown.target.map((value, axis) => (value - current.zoom.offset[axis]) / current.zoom.scale),
+        } as CameraPose;
+        const zoom = cameraZoomAfterWheel(
+          current.zoom,
+          unzoomed,
+          anchor ?? [...shown.target],
+          event.deltaY,
+          event.deltaMode
+        );
+        return { ...current, zoom, zoomRevision: current.zoomRevision + 1 };
+      });
     };
     surface.addEventListener('wheel', onWheel, { passive: false });
     return () => surface.removeEventListener('wheel', onWheel);
-  }, [enabled, surface]);
+  }, [enabled, pose, surface]);
 
-  return tilt;
+  return view;
 }
 
 /*
@@ -220,12 +308,22 @@ type SeatedCameraProps = {
 
 function useSeatedCameraTransition({ command, enabled, mapFramingPoints }: SeatedCameraProps) {
   const controlsRef = useRef<SeatedOrbitControls>(null);
-  const playback = useRef<CameraPlayback>({ appliedCommand: null, appliedCommandKey: null, transition: null });
+  const playback = useRef<CameraPlayback>({
+    appliedCommand: null,
+    appliedCommandKey: null,
+    transition: null,
+    glide: null,
+  });
   const { camera, invalidate, renderer, size } = useThree();
-  const tilt = useWheelTilt(enabled);
+  const destinationPose = useRef<CameraPose | null>(null);
+  const { tilt, zoom, zoomRevision } = useWheelView(enabled, `${command.view}:${command.revision}`, destinationPose);
   const aspectRatio = size.width / Math.max(1, size.height);
+  const glidingRevision = useRef(zoomRevision);
 
-  useFrame(() => advanceCameraTransition(camera, controlsRef.current, playback.current, invalidate));
+  useFrame((_, delta) => {
+    advanceCameraTransition(camera, controlsRef.current, playback.current, invalidate);
+    advanceCameraGlide(camera, controlsRef.current, playback.current, delta, invalidate);
+  });
 
   const headerHeight = useSeatedHeaderHeight(renderer.domElement);
 
@@ -237,8 +335,15 @@ function useSeatedCameraTransition({ command, enabled, mapFramingPoints }: Seate
       aspectRatio,
       mapFramingPoints,
       mapTopLimit,
-      tilt
+      tilt,
+      zoom
     );
+    destinationPose.current = {
+      position: destination.toPosition.toArray(),
+      target: destination.toTarget.toArray(),
+    };
+    const glide = glidingRevision.current !== zoomRevision;
+    glidingRevision.current = zoomRevision;
     if (!enabled) {
       playback.current.transition = null;
       return;
@@ -246,7 +351,7 @@ function useSeatedCameraTransition({ command, enabled, mapFramingPoints }: Seate
     if (!controls) {
       return;
     }
-    const changed = applyCameraDestination(camera, controls, playback.current, destination);
+    const changed = applyCameraDestination(camera, controls, playback.current, destination, glide);
     if (changed) {
       invalidate();
     }
@@ -261,6 +366,8 @@ function useSeatedCameraTransition({ command, enabled, mapFramingPoints }: Seate
     mapFramingPoints,
     size.height,
     tilt,
+    zoom,
+    zoomRevision,
   ]);
 
   return controlsRef;
@@ -278,7 +385,7 @@ export function CameraControls(props: SeatedCameraProps) {
       enablePan={false}
       enableRotate={false}
       enableZoom={false}
-      minDistance={8.5}
+      minDistance={2}
       maxDistance={96}
       minPolarAngle={CAMERA_TOP_DOWN_POLAR_ANGLE}
       maxPolarAngle={1.08}

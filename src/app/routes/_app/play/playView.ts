@@ -1,6 +1,6 @@
 import type { Vector3Tuple } from '@shared/play/model';
 import type { TablePhaseId } from '@shared/play/phases';
-import { PerspectiveCamera } from 'three';
+import { PerspectiveCamera, Vector3 } from 'three';
 
 import { mapViewFramingPoints } from './tablePlateGeometry';
 
@@ -249,6 +249,101 @@ export function cameraPoseFor(
       target[2] + basis.offset[2] * cameraScale,
     ],
   };
+}
+
+/*
+ * A close look at the board: the pose scaled about a point on the table, so that point stays under the pointer.
+ * `scale` is how far the camera is from where it would be (1 is today's view, smaller is closer), and `offset` is where the scaling moved it,
+ * so a zoomed pose is `pose * scale + offset` for both the camera and its target.
+ */
+export type CameraZoom = Readonly<{ scale: number; offset: Vector3Tuple }>;
+
+export const NO_CAMERA_ZOOM: CameraZoom = { scale: 1, offset: [0, 0, 0] };
+/* The closest look, as a share of the view's distance: about three and a half times as close. */
+export const CAMERA_ZOOM_MINIMUM_SCALE = 0.28;
+/* Scroll distance, in pixels, that brings the camera e times closer. */
+const CAMERA_ZOOM_SCROLL_PX = 420;
+/* How far from the table's middle a close look may centre, so it never drifts off the board. */
+const CAMERA_ZOOM_TARGET_RADIUS = 5.6;
+
+function wheelPixels(deltaY: number, deltaMode: number): number {
+  const pixels = deltaY * (deltaMode === 1 ? WHEEL_LINE_PX : deltaMode === 2 ? WHEEL_PAGE_PX : 1);
+  return Number.isFinite(pixels) ? pixels : 0;
+}
+
+/** Whether a wheel turn tilts the camera or moves it closer: scrolling down tilts to top-down first and then zooms in; scrolling up zooms out first and then tilts back. */
+export function wheelTurnZooms(tilt: number, zoom: CameraZoom, deltaY: number): boolean {
+  return deltaY > 0 ? clampCameraTilt(tilt) >= 1 : zoom.scale < 1;
+}
+
+/** The pose seen through a zoom. */
+export function zoomedCameraPose(pose: CameraPose, zoom: CameraZoom): CameraPose {
+  const apply = (point: Vector3Tuple): Vector3Tuple => [
+    point[0] * zoom.scale + zoom.offset[0],
+    point[1] * zoom.scale + zoom.offset[1],
+    point[2] * zoom.scale + zoom.offset[2],
+  ];
+  return { position: apply(pose.position), target: apply(pose.target) };
+}
+
+/*
+ * The zoom after a wheel turn over `anchor`, the table point under the pointer.
+ * Zooming in scales the current pose about the anchor, so what is under the pointer stays there.
+ * Zooming out eases the offset away with the scale, so the camera always arrives back at today's view.
+ */
+export function cameraZoomAfterWheel(
+  zoom: CameraZoom,
+  basePose: CameraPose,
+  anchor: Vector3Tuple,
+  deltaY: number,
+  deltaMode = 0
+): CameraZoom {
+  const step = Math.exp(-wheelPixels(deltaY, deltaMode) / CAMERA_ZOOM_SCROLL_PX);
+  const scale = Math.max(CAMERA_ZOOM_MINIMUM_SCALE, Math.min(1, zoom.scale * step));
+  if (scale >= 1) {
+    return NO_CAMERA_ZOOM;
+  }
+  let offset: Vector3Tuple;
+  if (scale <= zoom.scale) {
+    const applied = scale / zoom.scale;
+    offset = [
+      zoom.offset[0] * applied + anchor[0] * (1 - applied),
+      zoom.offset[1] * applied + anchor[1] * (1 - applied),
+      zoom.offset[2] * applied + anchor[2] * (1 - applied),
+    ];
+  } else {
+    const remaining = (1 - scale) / (1 - zoom.scale);
+    offset = [zoom.offset[0] * remaining, zoom.offset[1] * remaining, zoom.offset[2] * remaining];
+  }
+  /* Keep the close look over the board: a target that would leave it slides back toward the middle. */
+  const target = zoomedCameraPose(basePose, { scale, offset }).target;
+  const distance = Math.hypot(target[0], target[2]);
+  if (distance > CAMERA_ZOOM_TARGET_RADIUS) {
+    const excess = 1 - CAMERA_ZOOM_TARGET_RADIUS / distance;
+    offset = [offset[0] - target[0] * excess, offset[1], offset[2] - target[2] * excess];
+  }
+  return { scale, offset };
+}
+
+/** The table point under a spot on the canvas, given in normalised device coordinates, on the plane at `height`. */
+export function tablePointUnder(
+  pose: CameraPose,
+  aspectRatio: number,
+  ndcX: number,
+  ndcY: number,
+  height: number
+): Vector3Tuple | null {
+  const camera = tableCamera(pose, aspectRatio);
+  const direction = new Vector3(ndcX, ndcY, 0.5).unproject(camera).sub(camera.position).normalize();
+  if (Math.abs(direction.y) < 1e-6) {
+    return null;
+  }
+  const distance = (height - camera.position.y) / direction.y;
+  if (distance <= 0) {
+    return null;
+  }
+  const point = camera.position.clone().addScaledVector(direction, distance);
+  return [point.x, point.y, point.z];
 }
 
 /** The table camera at a pose, with its matrices current for projecting and raycasting. */

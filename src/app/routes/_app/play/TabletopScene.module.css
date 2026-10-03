@@ -18,3 +18,24 @@
   text-align: center;
   color: var(--mantine-color-text);
 }
+
+/* A piece held up to the eye with Alt: flat, large, beside the pointer. */
+.closeUp {
+  position: fixed;
+  z-index: 30;
+  display: grid;
+  gap: var(--space-xs);
+  justify-items: center;
+  padding: var(--space-sm);
+  pointer-events: none;
+  background: rgb(12 10 8 / 88%);
+  border: 1px solid rgb(255 255 255 / 14%);
+  border-radius: 14px;
+  box-shadow: 0 18px 48px rgb(0 0 0 / 55%);
+}
+
+.closeUpCount {
+  font-size: var(--mantine-font-size-sm);
+  font-variant-numeric: tabular-nums;
+  color: #f4e6c8;
+}

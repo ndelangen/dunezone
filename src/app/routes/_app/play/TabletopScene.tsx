@@ -100,6 +100,7 @@ import { BOARD_RIM_DEPTH, createBoardRimShape } from './boardRimGeometry';
 import { CameraControls, CameraRelativeFog } from './CameraControls';
 import { deckShuffleHint, swallowLift, watchLongPress } from './longPress';
 import { PhaseSymbol } from './PhaseSymbol';
+import { PieceCloseUp, topFaceHref } from './PieceCloseUp';
 import { cameraPoseFor, TABLE_CAMERA_FAR, TABLE_CAMERA_FIELD_OF_VIEW, TABLE_CAMERA_NEAR } from './playView';
 import type { CameraViewCommand } from './playView';
 import { usePointerSession } from './PointerSessionContext';
@@ -562,16 +563,6 @@ function PublishedFace({ href, card, ratio }: { href: string; card: boolean; rat
       )}
     </mesh>
   );
-}
-
-/** The published image a piece shows on top: the upper face of its top layer. */
-function topFaceHref(piece: TablePiece): string | undefined {
-  if (piece.kind === 'marker' || piece.items.length === 0) {
-    return undefined;
-  }
-  const shownLayers = visibleLayerCount(piece);
-  const item = piece.items[stackLayerItemIndex(piece.items.length, shownLayers, shownLayers - 1, piece.flipRevision)];
-  return item?.artwork?.[item.faceUp ? 'front' : 'back'];
 }
 
 /* Holds the image a piece shows on top and says whether it is loaded, so a flip can wait for a card's revealed face instead of turning up a placeholder. */
@@ -1514,9 +1505,11 @@ export function TabletopScene({
     [mapFramingPoints]
   );
   const graphics = useTableGraphics();
+  const areaRef = useRef<HTMLDivElement>(null);
 
   return (
     <div
+      ref={areaRef}
       className={className}
       onContextMenu={(event) => {
         event.preventDefault();
@@ -1547,13 +1540,14 @@ export function TabletopScene({
         Selected piece actions
       </Button>
       <PieceMenu pieceMenu={pieceMenu} onClose={() => setPieceMenu(null)} />
+      <PieceCloseUp area={areaRef} />
       <PieceMenuContext.Provider value={menuAvailable ? openPieceMenu : null}>
         {graphics === 'unavailable' && <TableGraphicsUnavailable onShown={onSceneReady} />}
         {graphics === 'ready' && (
           <TableGraphicsBoundary onShown={onSceneReady}>
             <Canvas
               camera={camera}
-              dpr={[1, 1.75]}
+              dpr={[1, 2]}
               frameloop="demand"
               renderer={{
                 antialias: true,
