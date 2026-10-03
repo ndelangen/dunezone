@@ -239,7 +239,7 @@ export async function verifyPrivateSpiceReserves(toolkit) {
     const othersFrom = others.map((who) => who.rawMessages.length);
     const accountPage = await b.context.newPage();
     await accountPage.goto(`${origin}/play`, { waitUntil: 'domcontentloaded' });
-    await accountPage.getByRole('heading', { name: 'Game lobby' }).waitFor();
+    await accountPage.getByRole('heading', { name: 'Play Dune!' }).waitFor();
     await accountPage.locator('[data-app-band] button[aria-haspopup="menu"]').last().click();
     await accountPage.getByRole('menuitem', { name: 'Sign out', exact: true }).click();
     await until(

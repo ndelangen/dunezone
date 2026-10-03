@@ -1,4 +1,4 @@
-import { Anchor, Button, Group, Select, Stack, Text, Title, Tooltip } from '@mantine/core';
+import { Anchor, Button, Select, Stack, Text, Title, Tooltip } from '@mantine/core';
 import type { playLobbyEntrySchema } from '@shared/play/directory';
 import { phaseAt, STANDARD_PHASES, tableProgressFor } from '@shared/play/phases';
 import { createFileRoute, Link } from '@tanstack/react-router';
@@ -32,7 +32,7 @@ import { SERVER_UNREACHABLE, useServerUnreachable } from './useServerUnreachable
  * Every game is a table with its seats drawn round it (direction C of #1739), so a glance tells who sits where, which seats are free and how far the game has come.
  */
 export const Route = createFileRoute('/_app/play/')({
-  head: () => pageHead('Game lobby', { noindex: true }),
+  head: () => pageHead('Play Dune!', { noindex: true }),
   component: PlayLobby,
 });
 
@@ -269,11 +269,16 @@ function RingCentre({ entry }: Readonly<{ entry: LobbyEntry }>) {
   );
 }
 
+/** A game still under way with a seat nobody holds. */
+function hasFreeSeat(entry: LobbyEntry): boolean {
+  return entry.stage !== 'finished' && entry.stage !== 'discarded' && entry.seatsFilled < entry.seatCount;
+}
+
 function cardBadge(entry: LobbyEntry): ReactNode {
   if (entry.viewerSeated) {
     return <StatusBadge tone="brand">{entry.stage === 'finished' ? 'You played' : 'Your seat'}</StatusBadge>;
   }
-  if (entry.stage !== 'finished' && entry.stage !== 'discarded' && entry.seatsFilled < entry.seatCount) {
+  if (hasFreeSeat(entry)) {
     return <StatusBadge tone="positive">Seats open</StatusBadge>;
   }
   return null;
@@ -387,7 +392,7 @@ function LobbyToolbar({
     <Toolbar>
       <Toolbar.Center>
         <SearchRefine
-          label="Game lobby filters"
+          label="Lobby filters"
           search={{
             value: query,
             onChange: onQueryChange,
@@ -413,18 +418,16 @@ function PlayLobby() {
 
   return (
     <PageLayout>
-      <PageLayout.Header size="compact">
-        <Group justify="space-between" align="flex-end" wrap="wrap" gap="md">
-          <Stack gap={4} miw={0}>
-            <PageTitle eyebrow="Play" title="Game lobby" />
-            <Text size="sm" c="dimmed">
-              Every game is a table. Open one to take a free seat, return to your own, or watch.
-            </Text>
-          </Stack>
-          <CallToAction direction="start" renderRoot={createLink}>
+      <PageLayout.Header size="hero">
+        <Stack gap="md" miw={0} align="center" ta="center">
+          <PageTitle title="Play Dune!" subtitle="Welcome to the lobby" />
+          <Text size="lg" fw={500} maw="36rem">
+            Take a seat, choose your faction, and fight for Arrakis.
+          </Text>
+          <CallToAction direction="start" size="lg" renderRoot={createLink}>
             Create a game
           </CallToAction>
-        </Group>
+        </Stack>
       </PageLayout.Header>
       <PageLayout.Toolbar>
         {hasGames ? (

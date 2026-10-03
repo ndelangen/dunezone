@@ -8,7 +8,7 @@ test('the retired Demo and Hosted addresses redirect to the lobby', async ({ pag
   for (const retired of ['/play/demo', '/play/hosted']) {
     await page.goto(retired);
     await expect(page).toHaveURL(/\/play$/u);
-    await expect(page.getByRole('heading', { name: 'Game lobby' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Play Dune!' })).toBeVisible();
   }
   await page.goto('/play/no-such-game');
   await expect(page.getByText('This game is not available', { exact: true })).toBeVisible();

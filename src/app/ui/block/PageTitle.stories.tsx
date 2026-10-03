@@ -46,6 +46,16 @@ export const Hero = meta.story({
   args: { size: 'hero', title: 'Make Dune your own', eyebrow: 'A game of conquest, diplomacy & betrayal' },
 });
 
+/** A hero with a welcome line framed under the name, as the Play lobby uses it. */
+export const HeroWithSubtitle = meta.story({
+  args: { size: 'hero', title: 'Play Dune!', eyebrow: undefined, subtitle: 'Welcome to the lobby' },
+});
+
+/** The framed subtitle under the app's heading face, for a page that is not a hero. */
+export const WithSubtitle = meta.story({
+  args: { eyebrow: undefined, subtitle: 'Every faction, every edition' },
+});
+
 /** Long names wrap balanced rather than leaving a one-word last line. */
 export const LongTitleWraps = meta.story({
   args: { size: 'hero', title: 'A game of conquest, diplomacy and betrayal on Arrakis', eyebrow: undefined },

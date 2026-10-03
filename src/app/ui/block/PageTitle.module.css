@@ -45,3 +45,44 @@
     font-size: clamp(2.4rem, 12vw, 4.5rem);
   }
 }
+
+/*
+ * The subtitle is framed between two thin gilt rules in widely spaced small caps, like a title card.
+ * On a narrow band the rules shorten and the letters close up, and a long subtitle wraps between its rules.
+ */
+.subtitle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  margin: var(--space-xs) 0 0;
+  color: rgb(246 228 190);
+  font-family: "C_Copperplate_Gothic", sans-serif;
+  font-size: 1.2rem;
+  font-variant: small-caps;
+  letter-spacing: 0.18em;
+  text-wrap: balance;
+  text-shadow: 0 2px 8px rgb(0 0 0 / 85%);
+}
+
+.subtitle::before,
+.subtitle::after {
+  content: "";
+  flex: none;
+  width: 3.5rem;
+  height: 1px;
+  background: rgb(242 214 160);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 60%);
+}
+
+@container (width < 30rem) {
+  .subtitle {
+    gap: var(--space-xs);
+    font-size: 0.95rem;
+    letter-spacing: 0.08em;
+  }
+
+  .subtitle::before,
+  .subtitle::after {
+    width: 1rem;
+  }
+}
