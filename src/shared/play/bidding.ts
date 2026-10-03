@@ -14,7 +14,8 @@ const bidSecondsSchema = z.number().int().min(MIN_BID_SECONDS).max(MAX_BID_SECON
 /**
  * The bidder over the board during the Bidding phase (#1007): it points at one faction, which raises or passes.
  * `idle` waits for the first round, `open` runs a round, and `won` or `unclaimed` shows how the last round went until players start the next one.
- * Players start every round; the bidder knows nothing of cards.
+ * Players start every round;
+ * the bidder knows nothing of cards.
  */
 export const biddingStateSchema = z.object({
   seconds: bidSecondsSchema,
