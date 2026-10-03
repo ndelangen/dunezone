@@ -70,6 +70,8 @@ type Carry = {
   /* Each card's centre in the row's coordinates, and the distance between neighbouring cards, measured when the press began. */
   centers: number[];
   step: number;
+  /* The deck's cards when the press began; a draw or a rearrangement from elsewhere ends the carry. */
+  deck: string;
 };
 
 /*
@@ -81,19 +83,22 @@ function DeckRow({ piece }: Readonly<{ piece: TablePiece }>) {
   const peekControls = useTabletopSelector((table) => table.peekControls);
   const row = useRef<HTMLOListElement>(null);
   /* The order this viewer asked for, shown until the room's next frame for the deck replaces it. */
-  const [pending, setPending] = useState<{ items: TablePiece['items']; order: number[] } | null>(null);
-  const [carry, setCarry] = useState<Carry | null>(null);
-  const order = pending?.items === piece.items ? pending.order : topFirst(piece.items.length);
+  const [pending, setPending] = useState<{ deck: string; order: number[] } | null>(null);
+  const [heldCarry, setCarry] = useState<Carry | null>(null);
+  /* The deck's cards as they stand, by id: another frame for the table leaves it as it was, while a change to the deck does not. */
+  const deck = piece.items.map((item) => item.id).join(',');
+  const order = pending?.deck === deck ? pending.order : topFirst(piece.items.length);
+  const carry = heldCarry?.deck === deck ? heldCarry : null;
   const target = carry?.moved ? sortTarget(carry.centers, carry.from, carry.x - carry.startX) : null;
 
   const move = (from: number, to: number) => {
-    if (from === to || !peekControls) {
+    if (from === to || !peekControls || !(from in order) || !(to in order)) {
       return;
     }
     const shown = [...order];
     const [moved] = shown.splice(from, 1);
     shown.splice(to, 0, moved!);
-    setPending({ items: piece.items, order: shown });
+    setPending({ deck, order: shown });
     /* The room takes the order bottom card first. */
     peekControls.arrange(piece.id, [...shown].reverse());
   };
@@ -126,6 +131,7 @@ function DeckRow({ piece }: Readonly<{ piece: TablePiece }>) {
       moved: false,
       centers,
       step: centers.length > 1 ? centers[1]! - centers[0]! : 0,
+      deck,
     });
   };
 
@@ -145,10 +151,10 @@ function DeckRow({ piece }: Readonly<{ piece: TablePiece }>) {
   };
 
   const release = (event: ReactPointerEvent<HTMLDivElement>, cancelled = false) => {
-    if (!carry || event.pointerId !== carry.pointerId) {
+    if (!heldCarry || event.pointerId !== heldCarry.pointerId) {
       return;
     }
-    if (!cancelled && target !== null) {
+    if (carry && !cancelled && target !== null) {
       move(carry.from, target);
     }
     setCarry(null);

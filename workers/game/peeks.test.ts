@@ -101,3 +101,28 @@ test('a new phase forgets who peeked, and changes the pieces it clears', () => {
   expect(forgotten.versions.deck).toBe(peeked.revision + 1);
   expect(forgotten.peeks).toEqual(peeked.peeks);
 });
+
+test('a locked deck can be looked through but not rearranged or pulled from', () => {
+  const snapshot = table(3);
+  const locked = {
+    ...snapshot,
+    table: { ...snapshot.table, pieces: snapshot.table.pieces.map((piece) => ({ ...piece, locked: true })) },
+  };
+  const peeked = peekCommand(locked, 'atreides', { kind: 'peek', pieceId: 'deck' });
+  expect(new RoomProjection('secret').snapshot(peeked, 'atreides').peek?.piece.items).toHaveLength(3);
+  expect(() => peekCommand(peeked, 'atreides', { kind: 'peek-arrange', pieceId: 'deck', order: [2, 1, 0] })).toThrow(
+    'Unlock the deck'
+  );
+  expect(() => peekCommand(peeked, 'atreides', { kind: 'peek-pull', pieceId: 'deck', index: 0 })).toThrow(
+    'Unlock the deck'
+  );
+});
+
+test('a peek does not follow a card through a hand back onto the table', () => {
+  const projection = new RoomProjection('secret');
+  const peeked = peekCommand(table(1), 'atreides', { kind: 'peek', pieceId: 'deck' });
+  /* The card went into a hand and was played back face down under the same stored id, with a new public handle. */
+  const returned = { ...peeked, pieceHandles: { ...peeked.pieceHandles, deck: 'new-handle' } };
+  expect(projection.snapshot(returned, 'atreides').peek).toBeNull();
+  expect(() => peekCommand(returned, 'atreides', { kind: 'peek-arrange', pieceId: 'deck', order: [0, 1] })).toThrow();
+});

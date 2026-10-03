@@ -50,8 +50,11 @@ export const storedSnapshotSchema = gameSnapshotSchema
     pendingTraitors: z.array(tableIdSchema).default([]),
     battleState: storedBattleSchema.nullable().default(null),
     factionInventories: z.record(tableIdSchema, z.array(storedPieceSchema)).default({}),
-    /* The piece each faction holds open by peeking, by its stored id; projected only to that faction. */
-    peeks: z.record(tableIdSchema, tableIdSchema).default({}),
+    /*
+     * The piece each faction holds open by peeking, by its stored id and the public handle it had then; projected only to that faction.
+     * A piece that leaves the table through a hand comes back under a new handle, so an old peek cannot follow it.
+     */
+    peeks: z.record(tableIdSchema, z.object({ pieceId: tableIdSchema, handle: tableIdSchema })).default({}),
     /* The faces a faction's prediction card is dealt with when its prediction locks (#1753); stored only, never projected. */
     predictionFaces: z
       .record(tableIdSchema, z.object({ front: z.string().url().nullable(), back: z.string().url() }))
@@ -100,6 +103,16 @@ export function internalAction<Action extends PieceAction>(snapshot: StoredSnaps
  */
 function concealed({ back, backName }: NonNullable<TableItem['artwork']>) {
   return { back, ...(backName ? { backName } : {}) };
+}
+
+/** The piece a faction holds open by peeking, while it lies on the table under the handle it was peeked at by. */
+export function openPeek(snapshot: StoredSnapshot, factionId: string, pieceId?: string): TablePiece | undefined {
+  const peek = snapshot.peeks[factionId];
+  if (!peek || (pieceId !== undefined && peek.pieceId !== pieceId)) {
+    return undefined;
+  }
+  const piece = snapshot.table.pieces.find((candidate) => candidate.id === peek.pieceId && !candidate.inventory);
+  return piece && (snapshot.pieceHandles[piece.id] ?? piece.id) === peek.handle ? piece : undefined;
 }
 
 /** Every delivery uses this projection before serialization or delta computation. */
@@ -154,9 +167,7 @@ export class RoomProjection {
 
   /** The piece a faction holds open, every face showing, while it still lies on the table. */
   private peek(snapshot: StoredSnapshot, factionId: string) {
-    const pieceId = snapshot.peeks[factionId];
-    const piece =
-      pieceId && snapshot.table.pieces.find((candidate) => candidate.id === pieceId && !candidate.inventory);
+    const piece = openPeek(snapshot, factionId);
     return piece ? { piece: this.piece(piece, true, snapshot.cardHandles, snapshot.pieceHandles) } : null;
   }
 

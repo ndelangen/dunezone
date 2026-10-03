@@ -49,7 +49,7 @@ function hasModifier(event: KeyboardEvent) {
  * What the keyboard has reached on purpose: a control or a link.
  * A focusable region such as the conversation history, and an open piece menu, are left out: the keys keep working over the table while either has focus.
  */
-const FOCUSED_CONTROL = "button, a[href], [role='separator']";
+const FOCUSED_CONTROL = "button, a[href], [role='button'], [role='separator']";
 
 /*
  * A focused text field keeps its keys from the table.
@@ -150,7 +150,8 @@ export class TableKeyboard {
 
   private keyDown = (event: KeyboardEvent) => {
     const controls = this.binding?.read();
-    if (!controls || hasModifier(event)) {
+    /* A key a control already answered, such as an arrow moving a peeked card, is not the table's. */
+    if (!controls || hasModifier(event) || event.defaultPrevented) {
       return;
     }
     if (this.panKeyDown(event)) {

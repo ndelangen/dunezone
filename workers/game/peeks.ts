@@ -11,6 +11,7 @@ import { restingPositionAt } from '../../src/shared/play/tableGeometry';
 import { nearestCollisionFreePosition } from '../../src/shared/play/tablePhysics';
 import { labelForCount } from '../../src/shared/play/tableState';
 import { concealCards } from './decks';
+import { openPeek } from './state';
 import type { StoredSnapshot } from './state';
 
 function requirePeekable(snapshot: StoredSnapshot, pieceId: string): StoredPiece {
@@ -28,8 +29,12 @@ function requirePeekable(snapshot: StoredSnapshot, pieceId: string): StoredPiece
 /* The deck the faction holds open: an arrangement or a pull acts only on what its peeker can see. */
 function requireOpenDeck(snapshot: StoredSnapshot, factionId: string, pieceId: string): StoredPiece {
   const piece = requirePeekable(snapshot, pieceId);
-  if (snapshot.peeks[factionId] !== piece.id || !peeksWholeDeck(piece)) {
+  if (!openPeek(snapshot, factionId, piece.id) || !peeksWholeDeck(piece)) {
     throw new GameRejection('Peek at the deck before changing it.');
+  }
+  /* A locked deck can be looked through, but not rearranged or drawn from, as a draw or a shuffle cannot. */
+  if (piece.locked) {
+    throw new GameRejection('Unlock the deck before changing it.');
   }
   return piece;
 }
@@ -62,7 +67,8 @@ function peek(snapshot: StoredSnapshot, factionId: string, pieceId: string): Sto
     'piece.peek',
     whole ? `${name} looked through ${piece.label}.` : `${name} peeked at ${piece.label}.`
   );
-  return { ...next, peeks: { ...snapshot.peeks, [factionId]: piece.id } };
+  const handle = next.pieceHandles[piece.id] ?? piece.id;
+  return { ...next, peeks: { ...snapshot.peeks, [factionId]: { pieceId: piece.id, handle } } };
 }
 
 function close(snapshot: StoredSnapshot, factionId: string): StoredSnapshot {

@@ -166,7 +166,10 @@ function fillLayer(path: ShapePath, style: Style, opacity: number): Layer {
 }
 
 function strokeLayer(path: ShapePath, style: Style, opacity: number): Layer {
-  const paint = { color: new Color().setStyle(String(style.stroke)), alpha: Number(style.strokeOpacity ?? 1) * opacity };
+  const paint = {
+    color: new Color().setStyle(String(style.stroke)),
+    alpha: Number(style.strokeOpacity ?? 1) * opacity,
+  };
   const pattern = dashPattern(path.userData?.node as Element | undefined);
   const positions = path.subPaths.flatMap((subPath) => {
     const points = subPath.getPoints(CURVE_SEGMENTS);
