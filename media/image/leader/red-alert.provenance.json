@@ -1,0 +1,344 @@
+{
+  "generation": "AI adaptations of Red Alert character references, drawn with the unfinished pen lines and loose colour of the original GF9 leaders.",
+  "approval": "The user approved the art style and requested delivery as a PR on 2026-10-03.",
+  "processing": "Foreground segmentation, exact opaque #CDBA78 background, extra canvas around faces and props where needed for the circular leader crop, then lossless 640 by 640 RGB PNG.",
+  "interpretations": "Volkov and Chitzkoi are portrait interpretations of their original game sprites, not FMV likenesses.",
+  "referencePages": [
+    "https://cncnz.com/games/red-alert-3/characters/",
+    "https://cncnz.com/games/red-alert-3/co-commanders/",
+    "https://cncnz.com/games/red-alert-3-uprising/characters/",
+    "https://cncnz.com/gallery/red-alert-3-actors/",
+    "https://cncnz.com/gallery/yuris-revenge-concept-art/",
+    "https://imperium-ww.pl/red-alert-series/red-alert-2/postacie/",
+    "https://forums.somethingawful.com/showthread.php?threadid=3879498",
+    "https://cnc.fandom.com/wiki/Shinji_Shimada",
+    "https://images.wikia.com/cnc/images/b/b1/CNCRACS_Volkov.png",
+    "https://images.wikia.com/cnc/images/2/22/CNCRACS_Chitzkoi.png"
+  ],
+  "images": [
+    {
+      "name": "Ben Carville",
+      "game": 1,
+      "asset": "/image/leader/red-alert-1/carville.png",
+      "sourceSha256": "a330056a218c7de4ed1b7ed87d701ca17467814ece65e9365aa3022c75b0aa9d"
+    },
+    {
+      "name": "Chitzkoi",
+      "game": 1,
+      "asset": "/image/leader/red-alert-1/chitzkoi.png",
+      "sourceSha256": "1715a67c87e9b5338288b9d25a07ccdff9ec727448252c9a0b80f6826a65f149"
+    },
+    {
+      "name": "Albert Einstein",
+      "game": 1,
+      "asset": "/image/leader/red-alert-1/einstein.png",
+      "sourceSha256": "8bd55ef7f818309aafdf69da151f9f42cd4250f2717956a9cea5025dad707dd2"
+    },
+    {
+      "name": "Radik Gradenko",
+      "game": 1,
+      "asset": "/image/leader/red-alert-1/gradenko.png",
+      "sourceSha256": "08dede36602b6673b39af1ad12da0d28c605a49d9bb5f9955dc67d36a544492b"
+    },
+    {
+      "name": "Kane",
+      "game": 1,
+      "asset": "/image/leader/red-alert-1/kane.png",
+      "sourceSha256": "aaf0e4b3d2806602c5daed04c9be4bd126a471ac6f6406fc041645292fd3713b"
+    },
+    {
+      "name": "Georgi Kukov",
+      "game": 1,
+      "asset": "/image/leader/red-alert-1/kukov.png",
+      "sourceSha256": "7bbb649d711990372b310b239adbb7c9eda8cfacfa0d34f61d3b946f3c907a94"
+    },
+    {
+      "name": "Nadia Zelenkov",
+      "game": 1,
+      "asset": "/image/leader/red-alert-1/nadia.png",
+      "sourceSha256": "19534eba5cf24166c2511484572775375503cd36be91b0e6bba229302940216b"
+    },
+    {
+      "name": "Joseph Stalin",
+      "game": 1,
+      "asset": "/image/leader/red-alert-1/stalin.png",
+      "sourceSha256": "3c9c87fdc7c93e3d17f367c3e4c10b805292c0c4c87261af1c89f8272120ec52"
+    },
+    {
+      "name": "Nikos Stavros",
+      "game": 1,
+      "asset": "/image/leader/red-alert-1/stavros.png",
+      "sourceSha256": "7e7bf3e13f3fb3cf97dda8aafd627aac2521c397fbee9ae84f24cf39e43c51eb"
+    },
+    {
+      "name": "Tanya Adams",
+      "game": 1,
+      "asset": "/image/leader/red-alert-1/tanya.png",
+      "sourceSha256": "1dd79527b0f91376f0209a48dd31979522b983eefb35af6e2fbd064502d52e8e"
+    },
+    {
+      "name": "Topolov",
+      "game": 1,
+      "asset": "/image/leader/red-alert-1/topolov.png",
+      "sourceSha256": "fdeb7c113f9722aa2dde8bf5d792ba225b04c6a865c7bdf016b4a9df6a0bbb68"
+    },
+    {
+      "name": "Volkov",
+      "game": 1,
+      "asset": "/image/leader/red-alert-1/volkov.png",
+      "sourceSha256": "86defc0d2f6755aa9069dc2cf2c4da51bee7872415cc73eda4febcd6c9ba2170"
+    },
+    {
+      "name": "Gunther von Esling",
+      "game": 1,
+      "asset": "/image/leader/red-alert-1/von-esling.png",
+      "sourceSha256": "8e27edfd3a7428f914dfa6ab5455816e3c5d2b5785b81748c2f05d4998c65448"
+    },
+    {
+      "name": "Boris",
+      "game": 2,
+      "asset": "/image/leader/red-alert-2/boris.png",
+      "sourceSha256": "63a04a078e60cce3f779ebca97ac24349745bc79dfc1b969f9f459386de246a7"
+    },
+    {
+      "name": "Ben Carville",
+      "game": 2,
+      "asset": "/image/leader/red-alert-2/carville.png",
+      "sourceSha256": "8538863c11a1bb52d20b8885e0a5dd7d24ba7843286aa1e2fe94834cf19e89f3"
+    },
+    {
+      "name": "Michael Dugan",
+      "game": 2,
+      "asset": "/image/leader/red-alert-2/dugan.png",
+      "sourceSha256": "773707a5e6b255aabe3f730af429d35b0272723582b50e9aec39e7195d580634"
+    },
+    {
+      "name": "Albert Einstein",
+      "game": 2,
+      "asset": "/image/leader/red-alert-2/einstein.png",
+      "sourceSha256": "14d9067b64346844711caef3eddbc58e8f159d938c618f383e5efd5e45d604ff"
+    },
+    {
+      "name": "Eva Lee",
+      "game": 2,
+      "asset": "/image/leader/red-alert-2/eva.png",
+      "sourceSha256": "b07c9ed867b5858e24945aed5a8a36be98f127f517cf43fa1be6c1b37ccfc875"
+    },
+    {
+      "name": "Alexander Romanov",
+      "game": 2,
+      "asset": "/image/leader/red-alert-2/romanov.png",
+      "sourceSha256": "68bff3e38ba18dd055b01e4e9d4b95f0cda877d49e584fb611ed05c2b57feec5"
+    },
+    {
+      "name": "Tanya Adams",
+      "game": 2,
+      "asset": "/image/leader/red-alert-2/tanya.png",
+      "sourceSha256": "df12913d8b54a56eb9ca3fe1ecc71923263f1ed95c094adf67d0fd56be7d7de0"
+    },
+    {
+      "name": "Vladimir",
+      "game": 2,
+      "asset": "/image/leader/red-alert-2/vladimir.png",
+      "sourceSha256": "91bcd90e203a6a10f202fc6258407105c1f1090a819701c3d31c618d19a9e9c0"
+    },
+    {
+      "name": "Yuri",
+      "game": 2,
+      "asset": "/image/leader/red-alert-2/yuri.png",
+      "sourceSha256": "cf3f47d42f2fd92c6a773f91aa036aa604fb7bcb4f39b856d3d173642b1bd5a0"
+    },
+    {
+      "name": "Zofia",
+      "game": 2,
+      "asset": "/image/leader/red-alert-2/zofia.png",
+      "sourceSha256": "1c3b0b6c346d6da3f23615b4b75eb931114bc835d6367785a387356c14d5f3be"
+    },
+    {
+      "name": "Howard T. Ackerman",
+      "game": 3,
+      "asset": "/image/leader/red-alert-3/ackerman.png",
+      "sourceSha256": "a0173b9726cddb685c3859e081676302ae3a6f5e4f90d4048930e16ce293d134"
+    },
+    {
+      "name": "Robert Bingham",
+      "game": 3,
+      "asset": "/image/leader/red-alert-3/bingham.png",
+      "sourceSha256": "032e898d25499ef9732c4175a682613293fb5c050b993578eb0d3d5b002658df"
+    },
+    {
+      "name": "Brenda Snow",
+      "game": 3,
+      "asset": "/image/leader/red-alert-3/brenda.png",
+      "sourceSha256": "7a4a9f7b3d893a200385b94b153aa0a7840c2e4881ebd0b1408a6c6f9710686b"
+    },
+    {
+      "name": "Anatoly Cherdenko",
+      "game": 3,
+      "asset": "/image/leader/red-alert-3/anatoly-cherdenko.png",
+      "sourceSha256": "c2b319879acfb6bdf8dcbe3bfd302cf636b3bfbee9deef200a517e9da5b98012"
+    },
+    {
+      "name": "Dasha Fedorovich",
+      "game": 3,
+      "asset": "/image/leader/red-alert-3/dasha.png",
+      "sourceSha256": "b5a25f2eb3e389dfc503738bbe930eb3521a211e4cd54adf932a95f182e3135d"
+    },
+    {
+      "name": "Eva McKenna",
+      "game": 3,
+      "asset": "/image/leader/red-alert-3/eva.png",
+      "sourceSha256": "1fc95a338d3ad5c0f467f8180a2dfe40a052aca2fc410fa88b78b577e2145973"
+    },
+    {
+      "name": "Giles Price",
+      "game": 3,
+      "asset": "/image/leader/red-alert-3/giles.png",
+      "sourceSha256": "562294039eede973b36db83c5fe72ff25b05f4dc4a7384887e6f06d6af328321"
+    },
+    {
+      "name": "Douglas Hill",
+      "game": 3,
+      "asset": "/image/leader/red-alert-3/hill.png",
+      "sourceSha256": "e2dcd2add50d9cc713ee9d41579df708d00ca6f34799ce853d0dc9a63f57c854"
+    },
+    {
+      "name": "Izumi",
+      "game": 3,
+      "asset": "/image/leader/red-alert-3/izumi.png",
+      "sourceSha256": "f8cc37796542112f72438fb8d8fc75384c06cade04d4d8f391312ff129ff2768"
+    },
+    {
+      "name": "Kelly Weaver",
+      "game": 3,
+      "asset": "/image/leader/red-alert-3/kelly.png",
+      "sourceSha256": "88dcf2889716cc234a98b41aa2cc4a4a274f1a5fdd1be99996ac0bc19e16751a"
+    },
+    {
+      "name": "Kenji Tenzai",
+      "game": 3,
+      "asset": "/image/leader/red-alert-3/kenji.png",
+      "sourceSha256": "1f912987070a3ebec857359e2607ec1146753b3fdd4dd574ebfd002adc1374b3"
+    },
+    {
+      "name": "Nikolai Krukov",
+      "game": 3,
+      "asset": "/image/leader/red-alert-3/krukov.png",
+      "sourceSha256": "fbbe76bab9179ade913db8b4c1988aa044c029196b81b112bc3c4835ecfa350b"
+    },
+    {
+      "name": "Lissette Hanley",
+      "game": 3,
+      "asset": "/image/leader/red-alert-3/lissette.png",
+      "sourceSha256": "f9191a821fbd369897644e42b2ab405952b5750bfe5dc99437359ce50dc905f3"
+    },
+    {
+      "name": "Lydia Winters",
+      "game": 3,
+      "asset": "/image/leader/red-alert-3/lydia.png",
+      "sourceSha256": "de791a853b287e24a0b8e0acc6938ad4738314bbd67a6ea547cf8d0b255adac3"
+    },
+    {
+      "name": "Nikolai Moskvin",
+      "game": 3,
+      "asset": "/image/leader/red-alert-3/moskvin.png",
+      "sourceSha256": "f20af8243b682a0e420689ccda35075dfc6bc551d044016865fd60d79668feed"
+    },
+    {
+      "name": "Naomi Shirada",
+      "game": 3,
+      "asset": "/image/leader/red-alert-3/naomi.png",
+      "sourceSha256": "5e1afe565f5325e04e90180f9f740ab5458f9a1c52709b7dde73fd9ae48af1bf"
+    },
+    {
+      "name": "Natasha Volkova",
+      "game": 3,
+      "asset": "/image/leader/red-alert-3/natasha.png",
+      "sourceSha256": "473b8dfd2b871263c065d6723928c0737b8653117cd2a31ef8312b0276025124"
+    },
+    {
+      "name": "Oleg Vodnik",
+      "game": 3,
+      "asset": "/image/leader/red-alert-3/oleg.png",
+      "sourceSha256": "a713729a3a1d9799330d1dac61609a4440fb012744c982246c97bd45da93d8d3"
+    },
+    {
+      "name": "Shinji Shimada",
+      "game": 3,
+      "asset": "/image/leader/red-alert-3/shimada.png",
+      "sourceSha256": "dad3dd059437ece6dd2c48d185165b7c43655b230559c50975efefdbd42c6ffd"
+    },
+    {
+      "name": "Shinzo Nagama",
+      "game": 3,
+      "asset": "/image/leader/red-alert-3/shinzo.png",
+      "sourceSha256": "836364147da6dbf6007197a70272b3c3c99f6ccc5132c02cb2a241fef02c5899"
+    },
+    {
+      "name": "Suki Toyama",
+      "game": 3,
+      "asset": "/image/leader/red-alert-3/suki.png",
+      "sourceSha256": "a4f0112fa1fd6e15756f347ce1acc6eff77dcc7ce6f7b5114e57ef693e237b2a"
+    },
+    {
+      "name": "Takara Sato",
+      "game": 3,
+      "asset": "/image/leader/red-alert-3/takara.png",
+      "sourceSha256": "df7bd08b56c8288f2d807e2333767afb8faedf19c8c9ed5c33da3d49db54f0f3"
+    },
+    {
+      "name": "Tanya Adams",
+      "game": 3,
+      "asset": "/image/leader/red-alert-3/tanya.png",
+      "sourceSha256": "dc57f81ad1841fb60eea9cbc2a9bac2f66e97568df3eb66b6bbdfb6be0cdd9b2"
+    },
+    {
+      "name": "Crown Prince Tatsu",
+      "game": 3,
+      "asset": "/image/leader/red-alert-3/tatsu.png",
+      "sourceSha256": "37e162bbba451e95d1e01f7f842a8b60c4efac512fe7a8674034407f4449d4a9"
+    },
+    {
+      "name": "Rupert Thornley",
+      "game": 3,
+      "asset": "/image/leader/red-alert-3/thornley.png",
+      "sourceSha256": "c0d4041f61ddba41e7f6f734413002c6fcc28383e588cc118d4b3a1d91474a85"
+    },
+    {
+      "name": "Vera Belova",
+      "game": 3,
+      "asset": "/image/leader/red-alert-3/vera.png",
+      "sourceSha256": "b51b6e62c039fb694eb23ed5488eb150f22fd7cd658aa9d15f816fd32a225231"
+    },
+    {
+      "name": "Warren Fuller",
+      "game": 3,
+      "asset": "/image/leader/red-alert-3/warren.png",
+      "sourceSha256": "6b93e62349f19f3b8431a6d38b61ee5119d01069a44c507538e7f6f97739979a"
+    },
+    {
+      "name": "Emperor Yoshiro",
+      "game": 3,
+      "asset": "/image/leader/red-alert-3/yoshiro.png",
+      "sourceSha256": "4fbbc783542041c1bf795d6e8bc0519bc33b6dcfad1bbafeea62b41b4a9d2a98"
+    },
+    {
+      "name": "Yuriko Omega",
+      "game": 3,
+      "asset": "/image/leader/red-alert-3/yuriko.png",
+      "sourceSha256": "05bd3bd5250d7645307447f30b45ffd70adeb941943e5543637c8444789bd11f"
+    },
+    {
+      "name": "Gregor Zelinsky",
+      "game": 3,
+      "asset": "/image/leader/red-alert-3/zelinsky.png",
+      "sourceSha256": "cbcf2c96479b9c64f911a2ca3ed687ef268d275d2e4225650657e7f17151ed05"
+    },
+    {
+      "name": "Zhana Agonskaya",
+      "game": 3,
+      "asset": "/image/leader/red-alert-3/zhana.png",
+      "sourceSha256": "58cf6c5ffc92a91718a27bf0519ed729d9a23fc6a2c0c9aff35644cc9735b9ba"
+    }
+  ]
+}
