@@ -154,6 +154,7 @@ export function validatePublisherDeployContract(config: JsonObject, environment:
         namespace_id: '10960001',
         simple: { limit: 120, period: 10 },
       },
+      { name: 'SOCIAL_RENDER_RATE_LIMIT', namespace_id: '17190001', simple: { limit: 20, period: 10 } },
     ],
     'game ingress rate limit'
   );

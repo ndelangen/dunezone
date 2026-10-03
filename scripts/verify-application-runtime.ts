@@ -26,7 +26,13 @@ try {
     assert.equal(response.headers.get('X-Application-Release'), health.application.release, pathname);
     assert.equal(response.headers.get('Cache-Control'), 'no-store', pathname);
     assert.equal(response.headers.get('Set-Cookie'), null, pathname);
+    assert.equal(response.headers.get('X-Public-Cache'), 'miss', pathname);
+    assert.equal(response.headers.get('X-Public-Metadata-Queries'), '1', pathname);
     const html = await response.text();
+    const hit = await worker.fetch(pathname);
+    assert.equal(hit.headers.get('X-Public-Cache'), 'hit', pathname);
+    assert.equal(hit.headers.get('X-Public-Metadata-Queries'), '0', pathname);
+    assert.equal(await hit.text(), html, pathname);
     if (pathname === '/factions' || pathname === '/assets/token-disc') {
       const links = [...html.matchAll(/<a[^>]+href="([^"]+)"/g)].map((match) => match[1]!);
       const detail = links.find((href) =>
@@ -50,6 +56,11 @@ try {
       assert.equal(png.status, 200);
       assert.equal(png.headers.get('Content-Type'), 'image/png');
       assert.deepEqual(pngDimensions(new Uint8Array(await png.arrayBuffer())), { widthPx: 1200, heightPx: 630 });
+      const imageHit = await worker.fetch(imageUrl.pathname + imageUrl.search);
+      assert.equal(imageHit.headers.get('X-Public-Cache'), 'hit');
+      assert.equal(imageHit.headers.get('X-Public-Renders'), '0');
+      assert.equal(imageHit.headers.get('X-Public-Artwork-Reads'), '0');
+      await imageHit.arrayBuffer();
     }
 
     const scripts = [...html.matchAll(/<script[^>]+src="([^"]+)"/g)].map((match) => match[1]!);

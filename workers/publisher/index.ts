@@ -98,7 +98,10 @@ const publisherWorker = {
     if (game) {
       return game;
     }
-    const socialImage = await handleSocialImageRequest(request, env);
+    const socialImage = await handleSocialImageRequest(request, env, undefined, {
+      storage: caches.default,
+      release: applicationReleaseIdentity(env),
+    });
     if (socialImage) {
       return socialImage;
     }
@@ -143,10 +146,15 @@ const publisherWorker = {
     if (isReservedWorkerPath(pathname)) {
       return reservedNotFound();
     }
-    const application = await handleApplicationRequest(request, env, async (anonymousRequest) => {
-      const { default: server } = await import('application-ssr-runtime');
-      return server.fetch(anonymousRequest);
-    });
+    const application = await handleApplicationRequest(
+      request,
+      env,
+      async (anonymousRequest) => {
+        const { default: server } = await import('application-ssr-runtime');
+        return server.fetch(anonymousRequest);
+      },
+      { storage: caches.default, release: applicationReleaseIdentity(env) }
+    );
     return application ?? env.ASSETS.fetch(request);
   },
 
