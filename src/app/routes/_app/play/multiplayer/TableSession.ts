@@ -115,10 +115,11 @@ export type TableProjection = {
   /* Peeking at a hidden card, token or deck, and changing a deck held open; present only while this viewer's faction can act. */
   peekControls?: {
     peek(pieceId: string): void;
-    close(): void;
     arrange(pieceId: string, order: number[]): void;
     pull(pieceId: string, index: number): void;
   };
+  /* Letting go of the peek held open; a seated viewer can, even once the game is finished and the table no longer handles. */
+  closePeek?: () => void;
   remoteCarriedIds: ReadonlySet<string>;
   reservedPieceIds: ReadonlySet<string>;
   gestureActivePieceId: string | null;
@@ -179,11 +180,17 @@ function sameForPanels(previous: TableProjection, next: TableProjection) {
     Boolean(previous.spiceReserveControls) === Boolean(next.spiceReserveControls) &&
     Boolean(previous.deckControls) === Boolean(next.deckControls) &&
     Boolean(previous.peekControls) === Boolean(next.peekControls) &&
+    Boolean(previous.closePeek) === Boolean(next.closePeek) &&
     sameMembers(previous.remoteCarriedIds, next.remoteCarriedIds) &&
     sameMembers(previous.reservedPieceIds, next.reservedPieceIds) &&
     sameMembers(previous.flippingPieceIds, next.flippingPieceIds) &&
     [...previous.flippingPieceIds].every(([id, revision]) => next.flippingPieceIds.get(id) === revision)
   );
+}
+
+/* A deck's cards as they stand, by id; the room gives every card a new id whenever it rearranges the deck. */
+function deckKey(piece: TablePiece) {
+  return piece.items.map((item) => item.id).join(',');
 }
 
 function sameConversations(previous: ConversationView, next: ConversationView) {
@@ -273,6 +280,8 @@ export class TableSession {
   private catalogueSelection?: SpawnSelection;
   /* The Worker captures one catalogue read or spawn request per connection at a time; this is the id it holds. */
   private captureInFlight: string | null = null;
+  /* The order this viewer asked for the deck it holds open, shown until the room answers it. */
+  private pendingArrangement: { commandId: string; pieceId: string; deck: string; order: number[] } | null = null;
   /* One seat command at a time: a second click before the first settles would only fail the revision gate. */
   private seatCommandInFlight: string | null = null;
   private traitorGatherInFlight: string | null = null;
@@ -482,6 +491,7 @@ export class TableSession {
       deckControls: undefined,
       peek: null,
       peekControls: undefined,
+      closePeek: undefined,
       remoteCarriedIds: new Set(),
       reservedPieceIds: new Set(),
       gestureActivePieceId: null,
@@ -565,16 +575,16 @@ export class TableSession {
           }
         : undefined,
       /* A look back in time shows no peek: what a faction saw then is not what it holds open now. */
-      peek: this.history ? null : (displayed.peek ?? null),
+      peek: this.history ? null : this.arrangedPeek(displayed.peek ?? null),
       peekControls:
         canHandleTable && displayed.bank
           ? {
               peek: (pieceId) => this.command({ kind: 'peek', pieceId }),
-              close: () => this.command({ kind: 'peek-close' }),
-              arrange: (pieceId, order) => this.command({ kind: 'peek-arrange', pieceId, order }),
-              pull: (pieceId, index) => this.command({ kind: 'peek-pull', pieceId, index }),
+              arrange: this.arrange,
+              pull: this.pull,
             }
           : undefined,
+      closePeek: canInteract && displayed.peek ? () => this.command({ kind: 'peek-close' }) : undefined,
       remoteCarriedIds: new Set(remote.map((carry) => carry.held.id)),
       reservedPieceIds,
       gestureActivePieceId: local.gestureActivePieceId,
@@ -583,6 +593,36 @@ export class TableSession {
       serverNow: this.subscription.serverNow,
     };
   }
+  /* Whether the peeked deck still shows the order this viewer asked for: the room has neither refused it nor sent the deck again. */
+  private arrangementShown(peek: Peek | null) {
+    const pending = this.pendingArrangement;
+    return !!peek && pending?.pieceId === peek.piece.id && pending.deck === deckKey(peek.piece);
+  }
+  private arrangedPeek(peek: Peek | null): Peek | null {
+    if (!peek || !this.arrangementShown(peek)) {
+      return peek;
+    }
+    const { order } = this.pendingArrangement!;
+    return { ...peek, piece: { ...peek.piece, items: order.map((index) => peek.piece.items[index]!) } };
+  }
+  /* One change to a peeked deck at a time: the next waits for the room's frame, so its places count from the deck as the room holds it. */
+  private deckSettled(pieceId: string) {
+    const peek = this.snapshot.peek ?? null;
+    return peek?.piece.id === pieceId && !this.arrangementShown(peek) ? peek : null;
+  }
+  private arrange = (pieceId: string, order: number[]) => {
+    const peek = this.deckSettled(pieceId);
+    const commandId = peek && this.command({ kind: 'peek-arrange', pieceId, order });
+    if (peek && commandId) {
+      this.pendingArrangement = { commandId, pieceId, deck: deckKey(peek.piece), order };
+      this.emit();
+    }
+  };
+  private pull = (pieceId: string, index: number) => {
+    if (this.deckSettled(pieceId)) {
+      this.command({ kind: 'peek-pull', pieceId, index });
+    }
+  };
   private activityForView() {
     if (this.history) {
       return { carries: [], pointers: [] };
@@ -659,6 +699,7 @@ export class TableSession {
     switch (message.type) {
       case 'connection':
         this.conversations.disconnected(this.status === 'denied');
+        this.pendingArrangement = null;
         this.noteEndedCarry({
           held: pausedWhileHeld,
           placing: 'The connection dropped as you placed a piece. Check where it landed.',
@@ -714,6 +755,10 @@ export class TableSession {
       this.carry = null;
     }
     this.pendingFlips.delete(id);
+    /* Refused, the room's order shows again; done, the frame that settles it carries the deck as arranged. */
+    if (this.pendingArrangement?.commandId === id) {
+      this.pendingArrangement = null;
+    }
     if (this.captureInFlight === id) {
       this.captureInFlight = null;
     }
@@ -1191,7 +1236,8 @@ export class TableSession {
       this.command(ready);
     }
   }
-  command = (action: PieceAction) => {
+  /** Sends a table command, and returns its id when it went out. */
+  command = (action: PieceAction): string | undefined => {
     const seatCommand = isSeatAction(action) || isSwapAction(action);
     if (seatCommand && this.seatCommandInFlight) {
       return;
@@ -1232,6 +1278,7 @@ export class TableSession {
       this.traitorGatherInFlight = commandId;
     }
     this.emit();
+    return this.error === null ? commandId : undefined;
   };
   private tabletopTraitors() {
     return this.snapshot.table.pieces.some(

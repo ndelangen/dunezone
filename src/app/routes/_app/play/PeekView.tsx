@@ -104,10 +104,14 @@ function scrollAtEdge(element: HTMLElement, clientX: number) {
   }
 }
 
+/* Whether a move takes a card to another place, both places in the deck. */
+function movesWithin(order: readonly number[], from: number, to: number) {
+  return from !== to && from in order && to in order;
+}
+
 /* The shown order with one card moved, or nothing when either place is not in the deck. */
 function movedOrder(order: readonly number[], from: number, to: number): number[] | null {
-  const inDeck = (index: number) => index in order;
-  if (from === to || !inDeck(from) || !inDeck(to)) {
+  if (!movesWithin(order, from, to)) {
     return null;
   }
   const shown = [...order];
@@ -116,31 +120,65 @@ function movedOrder(order: readonly number[], from: number, to: number): number[
   return shown;
 }
 
-/* The order the deck shows in: the order this viewer asked for, until the room's next frame for the deck replaces it. */
-function useDeckOrder(piece: TablePiece, deck: string, peekControls: PeekControls | undefined) {
-  const [pending, setPending] = useState<{ deck: string; order: number[] } | null>(null);
-  const order = pending?.deck === deck ? pending.order : topFirst(piece.items.length);
+/*
+ * The deck top first, and moving one of its cards; the table shows the order asked for until the room answers.
+ * A locked deck, or a viewer who cannot change the table, gets no move.
+ */
+function useDeckOrder(piece: TablePiece, peekControls: PeekControls | undefined) {
+  const order = topFirst(piece.items.length);
+  const arrange = piece.locked ? undefined : peekControls?.arrange;
   const move = (from: number, to: number) => {
     const shown = movedOrder(order, from, to);
-    if (!shown || !peekControls) {
-      return;
+    if (shown && arrange) {
+      /* The room takes the order bottom card first. */
+      arrange(piece.id, [...shown].reverse());
     }
-    setPending({ deck, order: shown });
-    /* The room takes the order bottom card first. */
-    peekControls.arrange(piece.id, [...shown].reverse());
   };
-  return { order, move };
+  return { order, move: arrange ? move : undefined };
+}
+
+/*
+ * The place the keyboard last moved a card to: the room gives the deck's cards new ids once it arranges them,
+ * so the row puts focus back on whichever card now stands there, and the arrow keys stay with the deck.
+ */
+function useKeptFocus(row: RefObject<HTMLOListElement | null>, deck: string) {
+  const place = useRef<number | null>(null);
+  useEffect(() => {
+    const element = row.current;
+    const handle = place.current === null ? null : element?.children[place.current]?.querySelector('[role="button"]');
+    if (handle instanceof HTMLElement && !element?.contains(document.activeElement)) {
+      handle.focus();
+    }
+  }, [row, deck]);
+  /* Focus leaving for somewhere else lets the place go; a card the room re-keys blurs to nowhere, and keeps it. */
+  useEffect(() => {
+    const element = row.current;
+    const leave = (event: FocusEvent) => {
+      if (event.relatedTarget instanceof Node && !element?.contains(event.relatedTarget)) {
+        place.current = null;
+      }
+    };
+    element?.addEventListener('focusout', leave);
+    return () => element?.removeEventListener('focusout', leave);
+  }, [row]);
+  return (to: number) => {
+    place.current = to;
+  };
 }
 
 /* A card carried along the row by the pointer, and where it would land if let go now. */
-function useDeckCarry(row: RefObject<HTMLOListElement | null>, deck: string, move: (from: number, to: number) => void) {
+function useDeckCarry(
+  row: RefObject<HTMLOListElement | null>,
+  deck: string,
+  move: ((from: number, to: number) => void) | undefined
+) {
   const [held, setHeld] = useState<Carry | null>(null);
   const carry = held?.deck === deck ? held : null;
   const target = carry?.moved ? sortTarget(carry.centers, carry.from, carry.x - carry.startX) : null;
 
   const press = (event: ReactPointerEvent<HTMLDivElement>, from: number) => {
     const element = row.current;
-    if (event.button !== 0 || !element) {
+    if (event.button !== 0 || !element || !move) {
       return;
     }
     /* No text selection and no native image drag: the card is carried by the pointer alone. */
@@ -168,7 +206,7 @@ function useDeckCarry(row: RefObject<HTMLOListElement | null>, deck: string, mov
     }
     const landing = cancelled ? null : target;
     if (carry && landing !== null) {
-      move(carry.from, landing);
+      move?.(carry.from, landing);
     }
     setHeld(null);
   };
@@ -202,11 +240,11 @@ type DeckCardProps = Readonly<{
   count: number;
   placement: Placement;
   carrying: ReturnType<typeof useDeckCarry>;
-  move: (from: number, to: number) => void;
-  peekControls: PeekControls | undefined;
+  move: ((from: number, to: number) => void) | undefined;
+  pull: ((pieceId: string, index: number) => void) | undefined;
 }>;
 
-function DeckCard({ piece, stored, shownIndex, count, placement, carrying, move, peekControls }: DeckCardProps) {
+function DeckCard({ piece, stored, shownIndex, count, placement, carrying, move, pull }: DeckCardProps) {
   const item = piece.items[stored]!;
   const { held, shift, place } = placement;
   return (
@@ -220,16 +258,18 @@ function DeckCard({ piece, stored, shownIndex, count, placement, carrying, move,
       <div
         role="button"
         tabIndex={0}
-        aria-label={`${cardName(piece, item)}, ${placeName(shownIndex, count)}. Arrow keys move it.`}
+        aria-label={`${cardName(piece, item)}, ${placeName(shownIndex, count)}.${move ? ' Arrow keys move it.' : ''}`}
+        aria-disabled={!move || undefined}
         className={styles.peekDeckHandle}
         onKeyDown={(event) => {
           const step = arrowStep(event);
           if (step) {
+            /* The arrows stay with the deck even when it cannot move, rather than sliding the table behind it. */
             event.preventDefault();
-            move(shownIndex, shownIndex + step);
+            move?.(shownIndex, shownIndex + step);
           }
         }}
-        onPointerDown={(event) => peekControls && carrying.press(event, shownIndex)}
+        onPointerDown={(event) => carrying.press(event, shownIndex)}
         onPointerMove={carrying.drag}
         onPointerUp={(event) => carrying.release(event)}
         onPointerCancel={(event) => carrying.release(event, true)}
@@ -237,12 +277,7 @@ function DeckCard({ piece, stored, shownIndex, count, placement, carrying, move,
       >
         <Face piece={piece} item={item} height={DECK_CARD_HEIGHT_PX} />
       </div>
-      <Button
-        size="compact-xs"
-        variant="subtle"
-        disabled={!peekControls}
-        onClick={() => peekControls?.pull(piece.id, stored)}
-      >
+      <Button size="compact-xs" variant="subtle" disabled={!pull} onClick={() => pull?.(piece.id, stored)}>
         Pull out
       </Button>
     </li>
@@ -259,7 +294,14 @@ function DeckRow({ piece }: Readonly<{ piece: TablePiece }>) {
   const row = useRef<HTMLOListElement>(null);
   /* The deck's cards as they stand, by id: another frame for the table leaves it as it was, while a change to the deck does not. */
   const deck = piece.items.map((item) => item.id).join(',');
-  const { order, move } = useDeckOrder(piece, deck, peekControls);
+  const { order, move } = useDeckOrder(piece, peekControls);
+  const keepFocus = useKeptFocus(row, deck);
+  const keyedMove =
+    move &&
+    ((from: number, to: number) => {
+      keepFocus(to);
+      move(from, to);
+    });
   const carrying = useDeckCarry(row, deck, move);
   return (
     <ol
@@ -277,37 +319,16 @@ function DeckRow({ piece }: Readonly<{ piece: TablePiece }>) {
           count={order.length}
           placement={placementOf(shownIndex, carrying.carry, carrying.target)}
           carrying={carrying}
-          move={move}
-          peekControls={peekControls}
+          move={keyedMove}
+          pull={piece.locked ? undefined : peekControls?.pull}
         />
       ))}
     </ol>
   );
 }
 
-/* Closing a peek: it hides at once, before the room's frame confirms it, and Escape inside it closes it too. */
-function usePeekClosing(piece: TablePiece | undefined, peekControls: PeekControls | undefined) {
-  const [closedId, setClosedId] = useState<string | null>(null);
-  const dialog = useRef<HTMLDivElement>(null);
-  const closeButton = useRef<HTMLButtonElement>(null);
-  const open = !!piece && piece.id !== closedId;
-
-  useEffect(() => {
-    if (!piece) {
-      setClosedId(null);
-    }
-  }, [piece]);
-  useEffect(() => {
-    if (open) {
-      closeButton.current?.focus();
-    }
-  }, [open, piece?.id]);
-  const close = useCallback(() => {
-    if (piece) {
-      setClosedId(piece.id);
-      peekControls?.close();
-    }
-  }, [piece, peekControls]);
+/* Escape inside an open peek closes it, before the table hears it. */
+function useEscapeCloses(dialog: RefObject<HTMLDivElement | null>, open: boolean, close: () => void) {
   useEffect(() => {
     const element = dialog.current;
     if (!open || !element) {
@@ -321,9 +342,46 @@ function usePeekClosing(piece: TablePiece | undefined, peekControls: PeekControl
     };
     element.addEventListener('keydown', onKey);
     return () => element.removeEventListener('keydown', onKey);
-  }, [open, close]);
+  }, [dialog, open, close]);
+}
+
+/* A peek that opens takes focus on its close button, so the keyboard reaches it straight away. */
+function useFocusOnOpen(closeButton: RefObject<HTMLButtonElement | null>, open: boolean, pieceId: string | undefined) {
+  useEffect(() => {
+    if (open) {
+      closeButton.current?.focus();
+    }
+  }, [closeButton, open, pieceId]);
+}
+
+/* Closing a peek: it hides at once, before the room's frame confirms it, and Escape inside it closes it too. */
+function usePeekClosing(piece: TablePiece | undefined, closePeek: (() => void) | undefined) {
+  const [closedId, setClosedId] = useState<string | null>(null);
+  const dialog = useRef<HTMLDivElement>(null);
+  const closeButton = useRef<HTMLButtonElement>(null);
+  const open = !!piece && piece.id !== closedId;
+
+  useEffect(() => {
+    if (!piece) {
+      setClosedId(null);
+    }
+  }, [piece]);
+  useFocusOnOpen(closeButton, open, piece?.id);
+  const close = useCallback(() => {
+    if (piece) {
+      setClosedId(piece.id);
+      closePeek?.();
+    }
+  }, [piece, closePeek]);
+  useEscapeCloses(dialog, open, close);
 
   return { open, close, dialog, closeButton };
+}
+
+function deckHint(piece: TablePiece) {
+  return piece.locked
+    ? 'Only you see these cards. Unlock the deck to change it.'
+    : 'Only you see these cards. Drag a card along the row to move it.';
 }
 
 function PeekHeader({ piece, deck }: Readonly<{ piece: TablePiece; deck: boolean }>) {
@@ -331,9 +389,7 @@ function PeekHeader({ piece, deck }: Readonly<{ piece: TablePiece; deck: boolean
     <div className={styles.peekHeader}>
       <div className={styles.peekTitle}>{deck ? `Looking through ${piece.label}` : `Peeking at ${piece.label}`}</div>
       <div className={styles.peekHint}>
-        {deck
-          ? 'Only you see these cards. Drag a card along the row to move it.'
-          : 'Only you see this face. Everyone sees that you peeked.'}
+        {deck ? deckHint(piece) : 'Only you see this face. Everyone sees that you peeked.'}
       </div>
     </div>
   );
@@ -354,8 +410,8 @@ function SingleFace({ piece }: Readonly<{ piece: TablePiece }>) {
  */
 export function PeekView() {
   const piece = useTabletopSelector((table) => table.peek)?.piece;
-  const peekControls = usePeekControls();
-  const { open, close, dialog, closeButton } = usePeekClosing(piece, peekControls);
+  const closePeek = useTabletopSelector((table) => table.closePeek);
+  const { open, close, dialog, closeButton } = usePeekClosing(piece, closePeek);
   if (!open || !piece) {
     return null;
   }
