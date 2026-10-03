@@ -43,6 +43,10 @@ function loadFromConvex(env: Pick<Env, 'CONVEX_CLOUD_BASE_URL'>): LoadPage {
   };
 }
 
+function urlElement(entry: SitemapPage['entries'][number]): string {
+  return `<url>${location(entry.pathname)}${entry.lastmod ? `<lastmod>${escapeXml(entry.lastmod)}</lastmod>` : ''}</url>`;
+}
+
 async function collectionXml(collection: string, load: LoadPage, signal: AbortSignal): Promise<Response> {
   const entries: string[] = [];
   const encoder = new TextEncoder();
@@ -51,12 +55,7 @@ async function collectionXml(collection: string, load: LoadPage, signal: AbortSi
   let cursor: string | null = null;
   for (let batch = 0; batch < MAX_BATCHES; batch += 1) {
     const page = await load({ collection, cursor }, signal);
-    const xml = page.entries
-      .map(
-        (entry) =>
-          `<url>${location(entry.pathname)}${entry.lastmod ? `<lastmod>${escapeXml(entry.lastmod)}</lastmod>` : ''}</url>`
-      )
-      .join('');
+    const xml = page.entries.map(urlElement).join('');
     count += page.entries.length;
     bytes += encoder.encode(xml).byteLength;
     if (count > MAX_URLS || bytes > MAX_BYTES) {
