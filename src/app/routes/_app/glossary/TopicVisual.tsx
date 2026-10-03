@@ -53,9 +53,10 @@ function Piece({
   );
 }
 
-function Disc({ children }: { children: ReactNode }) {
+/* A troop is half the diameter of a leader or faction token, as on the table. */
+function Disc({ troop = false, children }: { troop?: boolean; children: ReactNode }) {
   return (
-    <span className={styles.disc}>
+    <span className={clsx(styles.disc, troop && styles.troop)}>
       <CanvasScale canvasWidth={disc.width} canvasHeight={disc.height}>
         {children}
       </CanvasScale>
@@ -93,12 +94,12 @@ function PiecesVisual() {
   return (
     <div className={styles.row}>
       <Piece caption="Troop" anchor="troop">
-        <Disc>
+        <Disc troop>
           <TroopToken {...atreidesTroop} />
         </Disc>
       </Piece>
       <Piece caption="Elite troop" anchor="elite-troop">
-        <Disc>
+        <Disc troop>
           <TroopToken
             background={backgroundPresets.fremen}
             image="/vector/troop/fremen.svg"
@@ -127,20 +128,36 @@ function PiecesVisual() {
       <Piece caption="Reserves" anchor="reserves" extra>
         <span className={styles.troopStack}>
           {[0, 1, 2].map((index) => (
-            <Disc key={index}>
+            <Disc key={index} troop>
               <TroopToken {...atreidesTroop} />
             </Disc>
           ))}
         </span>
       </Piece>
       <Piece caption="Tleilaxu Tanks" anchor="tleilaxu-tanks" extra>
-        <span className={styles.tanked}>
-          <Disc>
-            <TroopToken {...atreidesTroop} />
-          </Disc>
-        </span>
+        <TanksArt />
       </Piece>
     </div>
+  );
+}
+
+/* The tanks drawn as the dark well the dead pieces lie in, like the one on the table, with a leader and a troop inside. */
+function TanksArt() {
+  return (
+    <span className={styles.tanks}>
+      <Disc>
+        <LeaderToken
+          background={backgroundPresets.harkonnen}
+          image="/image/leader/official/feyd.png"
+          logo="/vector/logo/harkonnen.svg"
+          name="Feyd-Rautha"
+          strength="6"
+        />
+      </Disc>
+      <Disc troop>
+        <TroopToken {...atreidesTroop} />
+      </Disc>
+    </span>
   );
 }
 
@@ -227,7 +244,7 @@ function BattleVisual() {
         <Piece caption="Dialed troops" anchor="dialed">
           <span className={styles.troopStack}>
             {[0, 1, 2].map((index) => (
-              <Disc key={index}>
+              <Disc key={index} troop>
                 <TroopToken {...atreidesTroop} />
               </Disc>
             ))}
