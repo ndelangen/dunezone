@@ -9,6 +9,7 @@ import {
   piecesOverlapAt,
   piecesTouchForStack,
   TABLE_PLAY_RADIUS,
+  TANKS_PLAY_AREA,
 } from './tablePhysics';
 
 function fixturePiece(state: TableState, id: string) {
@@ -95,5 +96,50 @@ describe('anchored card physics', () => {
     expect(Math.hypot(clampedCard[0], clampedCard[2])).toBeLessThan(Math.hypot(outsideWell[0], outsideWell[2]));
     expect(clampedTroop).not.toEqual(anchor.position);
     expect(isCollisionFreePosition(troop, anchor.position, [])).toBe(false);
+  });
+});
+
+describe('Tleilaxu Tanks shelf physics', () => {
+  const inTanks = [0, 0.38, 6.2] as const;
+
+  test('accepts troops, leaders and cards on the Tanks shelf', () => {
+    const { deck, troop } = cardWellFixtures();
+    const leader = { ...troop, stackKey: 'leader:harkonnen:feyd' };
+
+    for (const piece of [troop, leader, deck]) {
+      expect(isCollisionFreePosition(piece, [...inTanks], [])).toBe(true);
+      expect(clampPositionToTable(piece, [...inTanks])).toEqual(inTanks);
+    }
+  });
+
+  test('pulls a piece dropped past the shelf edge back onto the shelf, not onto the board', () => {
+    const { troop } = cardWellFixtures();
+    const clamped = clampPositionToTable(troop, [1, 0.38, 9]);
+
+    expect(clamped[0]).toBe(1);
+    expect(clamped[2]).toBeCloseTo(TANKS_PLAY_AREA.maxZ - 0.175, 8);
+    expect(isCollisionFreePosition(troop, clamped, [])).toBe(true);
+  });
+
+  test('accepts pieces that straddle the join between the board and the shelf', () => {
+    const { deck, troop } = cardWellFixtures();
+    const leader = { ...troop, stackKey: 'leader:harkonnen:feyd' };
+
+    expect(clampPositionToTable(deck, [0, 0.38, 5])).toEqual([0, 0.38, 5]);
+    expect(isCollisionFreePosition(deck, [0, 0.38, 5], [])).toBe(true);
+    expect(clampPositionToTable(leader, [2, 0.38, 4.9])).toEqual([2, 0.38, 4.9]);
+    expect(isCollisionFreePosition(leader, [2, 0.38, 4.9], [])).toBe(true);
+  });
+
+  test('still refuses a piece hanging off the corner where the shelf meets the board', () => {
+    const { troop } = cardWellFixtures();
+
+    expect(isCollisionFreePosition(troop, [2.5, 0.38, 5.2], [])).toBe(false);
+  });
+
+  test('keeps the side card bays closed to troops', () => {
+    const { troop } = cardWellFixtures();
+
+    expect(isCollisionFreePosition(troop, [6.22, 0.38, 0], [])).toBe(false);
   });
 });
