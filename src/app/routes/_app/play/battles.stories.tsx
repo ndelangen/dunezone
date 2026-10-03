@@ -535,7 +535,7 @@ export const BattleRevealedResolve = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     await settled(() => expect(page.getByRole('button', { name: 'Resolve battle' })).toBeEnabled());
     expect(page.queryByRole('button', { name: 'Cancel battle' })).toBeNull();
-    expect(page.queryByRole('status')).toBeNull();
+    expect(page.queryByText(/^Waiting for |says/)).toBeNull();
     await userEvent.click(page.getByRole('button', { name: 'Resolve battle' }));
     expect(lastCommand()?.action).toEqual({ kind: 'battle-cancel', battleId: 'story-battle' });
   },
@@ -548,7 +548,7 @@ export const BattleWinnerCalled = meta.story({
   }),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await settled(() => expect(page.getByRole('status')).toHaveTextContent('Waiting for House Atreides to agree'));
+    await settled(() => expect(page.getByText('Waiting for House Atreides to agree')).toBeVisible());
     expect(page.getByRole('button', { name: 'Left side won' })).toBeVisible();
   },
 });
@@ -561,6 +561,15 @@ export const BattleWinnerCalledByOpponent = meta.story({
   }),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await settled(() => expect(page.getByRole('status')).toHaveTextContent('House Atreides says left side won'));
+    await settled(() => expect(page.getByText('House Atreides says left side won')).toBeVisible());
+  },
+});
+
+/** When the sides call different winners, each sees the other's call rather than a wait. */
+export const BattleWinnerCallsDiffer = meta.story({
+  beforeEach: battleSetup('revealed'),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await settled(() => expect(page.getByText('House Atreides says right side won')).toBeVisible());
   },
 });

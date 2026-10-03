@@ -741,7 +741,8 @@ function waitingOn({ battle, table, own }: ActiveProps) {
   }
   const other = battle.sides[own === 0 ? 1 : 0]!;
   const names = snapshotFactionLabels(table.snapshot);
-  if (battle.sides[own]!.choice) {
+  /* Once the other side has called too, their call is the news: the two calls differ, or the battle would have settled. */
+  if (!other.choice) {
     return `Waiting for ${rosterName(other.factionId, names)} to agree`;
   }
   const call = outcomes.find(([choice]) => choice === other.choice)![1];
