@@ -876,23 +876,14 @@ function ConnectedTable({
               ...(!tabled && stage !== 'setup'
                 ? []
                 : [
-                    /* Past setup the tab holds predictions only, so a game without them has no empty tab to open on. */
-                    ...(table.snapshot.setup &&
-                    (stage === 'setup' || table.snapshot.setup.steps.some((step) => step.kind === 'prediction'))
+                    /* Past setup a locked prediction lives on as its card in hand, so the tab closes with setup (#1753). */
+                    ...(table.snapshot.setup && stage === 'setup'
                       ? [
                           {
                             key: 'setup',
-                            label: stage === 'setup' ? 'Setup' : 'Predictions',
-                            topic:
-                              stage === 'setup'
-                                ? SETUP_TOPICS[setupStep(table.snapshot.setup).kind]
-                                : ('fate' as const),
-                            content:
-                              stage === 'setup' ? (
-                                <SetupControls client={client} table={table} />
-                              ) : (
-                                <Predictions client={client} table={table} />
-                              ),
+                            label: 'Setup',
+                            topic: SETUP_TOPICS[setupStep(table.snapshot.setup).kind],
+                            content: <SetupControls client={client} table={table} />,
                           },
                         ]
                       : []),
