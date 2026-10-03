@@ -1,4 +1,5 @@
 import preview from '@sb/preview';
+import { LEADERS } from '@shared/assetIds';
 import { expect, userEvent, within } from 'storybook/test';
 
 import { pageStoryMeta } from './storybookConfig';
@@ -21,7 +22,7 @@ export const Leaders = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement);
     await expect(page.findByRole('heading', { name: 'Alien portraits / Armored creatures' })).resolves.toBeVisible();
-    await expect(page.getAllByRole('article')).toHaveLength(587);
+    await expect(page.getAllByRole('article')).toHaveLength(LEADERS.options.length);
   },
 });
 export const Decals = meta.story({
