@@ -9832,5 +9832,125 @@
     "tags": ["Star Wars", "Alderaan", "blue", "green", "clouds"],
     "subjects": ["space"],
     "sourceHash": "4fbbbecbab3a6fd7047874b2e5c777401ff3fdeabdb43e82045dd39a24570d03"
+  },
+  "/image/planet/familiar-worlds/mercury.png": {
+    "description": "A grey cratered globe with pale impact rays and a shaded right hemisphere.",
+    "tags": ["Mercury", "Sol", "Solar System", "Planet"],
+    "subjects": ["space"],
+    "sourceHash": "e81f67c0423618d644faa01339340a83d46da870de4af81db400814ee52fcc81"
+  },
+  "/image/planet/familiar-worlds/venus.png": {
+    "description": "A creamy white globe covered by soft clouds, with a shaded right hemisphere.",
+    "tags": ["Venus", "Sol", "Solar System", "Planet"],
+    "subjects": ["space"],
+    "sourceHash": "786ac554bf91d6566dfaed169d89f686ad2e48bcab629cedeaefd93581dbfcd0"
+  },
+  "/image/planet/familiar-worlds/mars.png": {
+    "description": "A rust-orange globe crossed by a broad dark canyon and patches of darker terrain.",
+    "tags": ["Mars", "Sol", "Solar System", "Planet"],
+    "subjects": ["space"],
+    "sourceHash": "175a34c419eb30ede4b968dc301836a31625010176eba259e14e30e229d55ebe"
+  },
+  "/image/planet/familiar-worlds/jupiter.png": {
+    "description": "A banded cream and orange gas giant with a large oval storm.",
+    "tags": ["Jupiter", "Sol", "Solar System", "Planet"],
+    "subjects": ["space"],
+    "sourceHash": "8fb74a972ec6404cc94ac16d1950f5e10201e6f9fc2d905cbfca62b8e223597a"
+  },
+  "/image/planet/familiar-worlds/saturn.png": {
+    "description": "A pale golden gas giant surrounded by a complete broad ring system.",
+    "tags": ["Saturn", "Sol", "Solar System", "Planet"],
+    "subjects": ["space"],
+    "sourceHash": "1f942c0878269b87cce900f02b8a00307ee180ba693397c3763cd30da942f0ae"
+  },
+  "/image/planet/familiar-worlds/uranus.png": {
+    "description": "A pale cyan globe with subtle cloud bands and a dark right hemisphere.",
+    "tags": ["Uranus", "Sol", "Solar System", "Planet"],
+    "subjects": ["space"],
+    "sourceHash": "11ef1996f61f14e430ebbd6f89a81f99a09c88a28d9ccaa83a67a43cc61f8405"
+  },
+  "/image/planet/familiar-worlds/neptune.png": {
+    "description": "A blue globe with a dark oval storm and thin white clouds.",
+    "tags": ["Neptune", "Sol", "Solar System", "Planet"],
+    "subjects": ["space"],
+    "sourceHash": "053f5d5c3a65efc4b1b97de3fde942e3a89fc7358bb68b46a6eddb0bcccee2f0"
+  },
+  "/image/planet/familiar-worlds/pluto.png": {
+    "description": "A pale tan dwarf planet with a bright heart-shaped region and dark brown terrain.",
+    "tags": ["Pluto", "Sol", "Solar System", "Dwarf planet"],
+    "subjects": ["space"],
+    "sourceHash": "8574ff71305ce38916cd847d2a056e6761ce9eef67a75fd0890145cbd162bb7c"
+  },
+  "/image/planet/familiar-worlds/luna.png": {
+    "description": "A grey moon with dark maria, pale highlands and bright impact rays.",
+    "tags": ["Moon (Luna)", "Sol", "Solar System", "moon", "Earth"],
+    "subjects": ["space"],
+    "sourceHash": "cfafd22dc17e2b7144489116385964cad9296b50b27f9edf3476098c80282385"
+  },
+  "/image/planet/familiar-worlds/phobos.png": {
+    "description": "An irregular brown moon with a large impact crater.",
+    "tags": ["Phobos", "Sol", "Solar System", "moon", "Mars"],
+    "subjects": ["space"],
+    "sourceHash": "5b2c1bd27906c6f58260b11b19733142474c3fe8f0218f1efc2e5be178a5d0da"
+  },
+  "/image/planet/familiar-worlds/io.png": {
+    "description": "A yellow and ochre moon dotted with dark volcanic markings.",
+    "tags": ["Io", "Sol", "Solar System", "moon", "Jupiter"],
+    "subjects": ["space"],
+    "sourceHash": "0c646036c2e352bbf2de8c0dfd6ea586d9e62b6472b76f99e01ec4b125c6a77e"
+  },
+  "/image/planet/familiar-worlds/europa.png": {
+    "description": "An ivory icy moon crossed by brown fractures.",
+    "tags": ["Europa", "Sol", "Solar System", "moon", "Jupiter"],
+    "subjects": ["space"],
+    "sourceHash": "5c4a5aed3fb0761155aec1c927fc0f7885ae5ceaf9a77038187b0659e97d6252"
+  },
+  "/image/planet/familiar-worlds/ganymede.png": {
+    "description": "A brown-grey moon with broad pale terrain and bright impact rays.",
+    "tags": ["Ganymede", "Sol", "Solar System", "moon", "Jupiter"],
+    "subjects": ["space"],
+    "sourceHash": "81ea577e68c0f3f2be494ef7c41954fa46019b78f138af7034f739242e1b505e"
+  },
+  "/image/planet/familiar-worlds/callisto.png": {
+    "description": "A dark brown-grey moon dotted with pale impact scars.",
+    "tags": ["Callisto", "Sol", "Solar System", "moon", "Jupiter"],
+    "subjects": ["space"],
+    "sourceHash": "8419deaae8e61a2a1288f10677c063b9d62dab630b8da56520d769a34ae956f9"
+  },
+  "/image/planet/familiar-worlds/titan.png": {
+    "description": "An orange-gold moon covered by smooth opaque haze and a thin blue rim.",
+    "tags": ["Titan", "Sol", "Solar System", "moon", "Saturn"],
+    "subjects": ["space"],
+    "sourceHash": "9ff52c67c30c09fe1f26aaa3a41073ab03fd6e86b76e2379f3dd11efdcb306c5"
+  },
+  "/image/planet/familiar-worlds/enceladus.png": {
+    "description": "A white icy moon crossed by pale blue fissures.",
+    "tags": ["Enceladus", "Sol", "Solar System", "moon", "Saturn"],
+    "subjects": ["space"],
+    "sourceHash": "f1aadf66dd41239d6d7e39526a4a0d935388c6b1ec2c4bcf3804cf812593d41d"
+  },
+  "/image/planet/familiar-worlds/mimas.png": {
+    "description": "A grey cratered moon with a large impact basin and central peak.",
+    "tags": ["Mimas", "Sol", "Solar System", "moon", "Saturn"],
+    "subjects": ["space"],
+    "sourceHash": "a0ae392374e271ebd7e3216aeedc4cd491f0d12d0be4e21178c9894fd28653cd"
+  },
+  "/image/planet/familiar-worlds/iapetus.png": {
+    "description": "A pale cratered moon with a sharply contrasting dark terrain region.",
+    "tags": ["Iapetus", "Sol", "Solar System", "moon", "Saturn"],
+    "subjects": ["space"],
+    "sourceHash": "939524ec3294a79e8c30fb9b24cbb3d7c7e02afbcfe3f045b26e8e92a7e9db92"
+  },
+  "/image/planet/familiar-worlds/triton.png": {
+    "description": "A muted pink and blue-green icy moon with pale fractures and dark streaks.",
+    "tags": ["Triton", "Sol", "Solar System", "moon", "Neptune"],
+    "subjects": ["space"],
+    "sourceHash": "9d46330cd8012862b6231eec3df2bd37771d0f9e0337f4edd6f01eb3757e03b3"
+  },
+  "/image/planet/familiar-worlds/charon.png": {
+    "description": "A grey moon with a rust-colored polar cap and a broad equatorial canyon.",
+    "tags": ["Charon", "Sol", "Solar System", "moon", "Pluto"],
+    "subjects": ["space"],
+    "sourceHash": "5e1ffb2b8641614212402424f35656f487ee9a8b5a79a11ba87314ca6d90d5d9"
   }
 }

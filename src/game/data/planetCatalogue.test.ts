@@ -8,10 +8,10 @@ import { describe, expect, it } from 'vitest';
 import { CURATED_PLANET_IMAGES } from './planetCatalogue';
 
 describe('curated planet image catalogue', () => {
-  it('exposes all seventy-eight planet illustrations', () => {
-    expect(CURATED_PLANET_IMAGES).toHaveLength(78);
+  it('exposes all ninety-eight planet illustrations', () => {
+    expect(CURATED_PLANET_IMAGES).toHaveLength(98);
     expect(CURATED_PLANET_IMAGES.map(({ image }) => image)).toEqual(PLANET.options);
-    expect(new Set(CURATED_PLANET_IMAGES.map(({ id }) => id)).size).toBe(78);
+    expect(new Set(CURATED_PLANET_IMAGES.map(({ id }) => id)).size).toBe(98);
   });
 
   it('preserves original identifiers and groups every planet once', () => {
