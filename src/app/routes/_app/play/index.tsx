@@ -269,11 +269,16 @@ function RingCentre({ entry }: Readonly<{ entry: LobbyEntry }>) {
   );
 }
 
+/** A game still under way with a seat nobody holds. */
+function hasFreeSeat(entry: LobbyEntry): boolean {
+  return entry.stage !== 'finished' && entry.stage !== 'discarded' && entry.seatsFilled < entry.seatCount;
+}
+
 function cardBadge(entry: LobbyEntry): ReactNode {
   if (entry.viewerSeated) {
     return <StatusBadge tone="brand">{entry.stage === 'finished' ? 'You played' : 'Your seat'}</StatusBadge>;
   }
-  if (entry.stage !== 'finished' && entry.stage !== 'discarded' && entry.seatsFilled < entry.seatCount) {
+  if (hasFreeSeat(entry)) {
     return <StatusBadge tone="positive">Seats open</StatusBadge>;
   }
   return null;
@@ -410,19 +415,21 @@ function PlayLobby() {
   const [view, setView] = useState<View>('ongoing');
   const ready = lobby?.status === 'ready' ? lobby : null;
   const hasGames = ready !== null && ready.ongoing.length + ready.past.length > 0;
+  const waiting = ready?.ongoing.filter((entry) => !entry.viewerSeated && hasFreeSeat(entry)).length ?? 0;
 
   return (
     <PageLayout>
       <PageLayout.Header>
-        <Group justify="space-between" align="flex-end" wrap="wrap" gap="md">
+        <Group justify="space-between" align="center" wrap="wrap" gap="md" w="100%">
           <Stack gap="xs" miw={0}>
             <PageTitle title="Play Dune!" />
-            <Text size="xl" fw={700}>
-              Welcome to the lobby
-            </Text>
-            <Text size="md" fw={500} maw="34rem">
-              Every game is a table. Open one to take a free seat, return to your own, or watch.
-            </Text>
+            <p className={styles.subtitle}>Welcome to the lobby</p>
+            {waiting > 0 ? (
+              <p className={styles.invite}>
+                <span className={styles.pulse} aria-hidden />
+                {waiting} {waiting === 1 ? 'table has' : 'tables have'} a free seat
+              </p>
+            ) : null}
           </Stack>
           <CallToAction direction="start" size="lg" renderRoot={createLink}>
             Create a game
