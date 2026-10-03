@@ -1,21 +1,16 @@
 /* @jsxImportSource ../three-jsx */
-import { Button, NumberInput, Stack, Text, UnstyledButton } from '@mantine/core';
 import { Html } from '@react-three/drei/webgpu';
-import { useFrame, useThree } from '@react-three/fiber/webgpu';
-import { MAX_BID_SECONDS, MIN_BID_SECONDS, biddingFactions, idleBidding } from '@shared/play/bidding';
+import { biddingFactions, idleBidding } from '@shared/play/bidding';
 import type { BiddingState } from '@shared/play/bidding';
 import { phaseAt, STANDARD_PHASES } from '@shared/play/phases';
 import { BOARD_RADIUS, BOARD_SURFACE_Y } from '@shared/play/tableGeometry';
 import { PLAYER_RING_RADIUS, tableSeatAngles } from '@shared/play/tableSettings';
-import { Section } from '@ui/block/Section';
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import type { Group } from 'three';
+import { useEffect, useMemo } from 'react';
 import { ExtrudeGeometry, Shape } from 'three';
 
-import { Token as FactionToken } from '@game/assets/faction/token/Token';
-
 import { DarkSchemeIsland } from '../DarkSchemeIsland';
-import styles from './Bidder.module.css';
+import { OpenRound, RoundResult } from './BidderFace';
+import { useBidderRotation } from './bidderRotation';
 import type { TableProjection, TableSession } from './TableSession';
 import { useServerNow } from './useServerNow';
 
@@ -27,9 +22,8 @@ const BIDDER_RADIUS = BOARD_RADIUS * 0.35;
 const BIDDER_TIP = PLAYER_RING_RADIUS - 0.5;
 const BIDDER_DEPTH = 0.08;
 const BIDDER_HOVER_Y = BOARD_SURFACE_Y + 0.35;
-const BIDDER_TURN_MS = 450;
 
-function biddingPhase(table: TableProjection) {
+export function biddingPhase(table: TableProjection) {
   return phaseAt(table.snapshot.phase, table.snapshot.phases ?? STANDARD_PHASES).id === 'bidding';
 }
 
@@ -55,138 +49,6 @@ function pointedFaction(bidding: BiddingState, eligible: readonly string[]) {
     return bidding.bid?.factionId ?? null;
   }
   return bidding.opener ?? eligible[0] ?? null;
-}
-
-function useBidderRotation(target: number | null) {
-  const groupRef = useRef<Group>(null);
-  const turn = useRef<{ from: number; to: number; startedAt: number } | null>(null);
-  const shown = useRef<number | null>(null);
-  const invalidate = useThree((state) => state.invalidate);
-  useFrame(() => {
-    const group = groupRef.current;
-    const active = turn.current;
-    if (!group || !active) {
-      return;
-    }
-    const linear = Math.min(1, (performance.now() - active.startedAt) / BIDDER_TURN_MS);
-    const eased = linear * linear * (3 - 2 * linear);
-    group.rotation.y = active.from + (active.to - active.from) * eased;
-    if (linear >= 1) {
-      turn.current = null;
-      return;
-    }
-    invalidate();
-  });
-  useLayoutEffect(() => {
-    const group = groupRef.current;
-    if (target === null || shown.current === target) {
-      return;
-    }
-    if (!group) {
-      return;
-    }
-    /* The shape points along +x, so turning it by -angle about y points it at the Seat at `angle`. */
-    const to = -target;
-    if (shown.current === null) {
-      group.rotation.y = to;
-    } else {
-      const from = group.rotation.y;
-      turn.current = {
-        from,
-        to: from + Math.atan2(Math.sin(to - from), Math.cos(to - from)),
-        startedAt: performance.now(),
-      };
-    }
-    shown.current = target;
-    invalidate();
-  }, [invalidate, target]);
-  return groupRef;
-}
-
-type FaceProps = Props & { bidding: BiddingState };
-
-/** The high bid: the bidder's faction symbol under the amount. */
-function HighBid({ bid, table }: { bid: NonNullable<BiddingState['bid']>; table: TableProjection }) {
-  const artwork = table.snapshot.factionArtwork?.[bid.factionId];
-  return (
-    <>
-      {artwork && <FactionToken logo={artwork.logo} background={artwork.background} />}
-      <span className={styles.amount}>{bid.amount}</span>
-    </>
-  );
-}
-
-function factionName(table: TableProjection, factionId: string | null) {
-  return factionId ? (table.state.factionNames[factionId] ?? factionId) : '';
-}
-
-/** Between rounds: how the last one went, and the button any player presses to start the next. */
-function RoundResult({ bidding, table, client }: FaceProps) {
-  const bid = bidding.stage === 'won' ? bidding.bid : null;
-  const outcome = bid ? `${factionName(table, bid.factionId)} wins with ${bid.amount}` : 'No bids';
-  return (
-    <Stack gap={4} align="center" className={styles.face}>
-      {bid ? (
-        <div className={styles.disc} data-bidder-result="won">
-          <HighBid bid={bid} table={table} />
-        </div>
-      ) : null}
-      {bidding.stage === 'idle' ? null : (
-        <Text size="xs" fw={700} className={styles.timer}>
-          {outcome}
-        </Text>
-      )}
-      <Button
-        size="compact-xs"
-        disabled={!table.canInteract || !table.snapshot.bank}
-        onClick={() => client.command({ kind: 'bid-open' })}
-      >
-        Start bidding
-      </Button>
-    </Stack>
-  );
-}
-
-function turnLabel(mine: boolean, bid: BiddingState['bid'], turnName: string) {
-  if (!mine) {
-    return `Waiting for ${turnName}`;
-  }
-  return `${bid ? `Raise the bid to ${bid.amount + 1}` : 'Bid 1'}. Right click to pass.`;
-}
-
-/** A round in progress: the faction the bidder points at raises with a click and passes with a right click. */
-function OpenRound({ bidding, table, client, remaining }: FaceProps & { remaining: number | null }) {
-  const { bid, round, turn } = bidding;
-  const mine = table.canInteract && turn !== null && table.snapshot.bank?.factionId === turn;
-  const turnName = factionName(table, turn);
-  const label = turnLabel(mine, bid, turnName);
-  return (
-    <Stack gap={2} align="center" className={styles.face}>
-      <UnstyledButton
-        className={styles.disc}
-        data-bidder-turn={turn ?? undefined}
-        data-mine={mine || undefined}
-        aria-label={label}
-        title={label}
-        disabled={!mine}
-        onClick={() => client.command({ kind: 'bid-raise', round })}
-        onContextMenu={(event) => {
-          event.preventDefault();
-          event.stopPropagation();
-          if (mine) {
-            void client.command({ kind: 'bid-pass', round });
-          }
-        }}
-      >
-        {bid ? <HighBid bid={bid} table={table} /> : <span className={styles.prompt}>{mine ? 'Bid' : 'No bid'}</span>}
-      </UnstyledButton>
-      {remaining === null ? null : (
-        <Text component="output" role="timer" size="xs" fw={700} className={styles.timer}>
-          {remaining}s · {turnName}
-        </Text>
-      )}
-    </Stack>
-  );
 }
 
 function Bidder({ client, table }: Props) {
@@ -233,41 +95,4 @@ export function BidderScene(props: Props) {
     return null;
   }
   return <Bidder {...props} />;
-}
-
-/** A typed time the table accepts and does not already have, or null. */
-function changedSeconds(draft: number | string, current: number) {
-  const next = Number(draft);
-  const valid = Number.isInteger(next) && next >= MIN_BID_SECONDS && next <= MAX_BID_SECONDS;
-  return valid && next !== current ? next : null;
-}
-
-/** The time the bidder gives each faction, set beside the other phase controls. */
-export function BidderSettings({ client, table }: Props) {
-  const seconds = table.snapshot.bidding?.seconds ?? idleBidding().seconds;
-  const [draft, setDraft] = useState<number | string>(seconds);
-  useEffect(() => setDraft(seconds), [seconds]);
-  if (!biddingPhase(table)) {
-    return null;
-  }
-  return (
-    <Section title="Bidder" description="The bidder passes for a faction that has not acted when its time runs out.">
-      <NumberInput
-        label="Seconds per bid"
-        min={MIN_BID_SECONDS}
-        max={MAX_BID_SECONDS}
-        value={draft}
-        disabled={!table.canInteract || !table.snapshot.bank}
-        onChange={setDraft}
-        onBlur={() => {
-          const next = changedSeconds(draft, seconds);
-          if (next === null) {
-            setDraft(seconds);
-            return;
-          }
-          void client.command({ kind: 'bid-seconds', seconds: next });
-        }}
-      />
-    </Section>
-  );
 }
