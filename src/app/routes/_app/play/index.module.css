@@ -263,20 +263,3 @@ html[data-mantine-color-scheme="dark"] .ring {
   width: 70%;
   height: 70%;
 }
-
-/*
- * The welcome under the title, with the live count of tables a viewer could join after it.
- */
-.subtitle {
-  margin: 0;
-  color: rgb(246 228 190);
-  font-family: "Caladea", serif;
-  font-size: 1.6rem;
-  font-style: italic;
-  line-height: 1.2;
-  text-shadow: 0 2px 10px rgb(0 0 0 / 70%);
-}
-
-.count {
-  font-size: 0.8em;
-}

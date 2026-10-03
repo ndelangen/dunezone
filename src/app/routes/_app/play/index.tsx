@@ -415,28 +415,24 @@ function PlayLobby() {
   const [view, setView] = useState<View>('ongoing');
   const ready = lobby?.status === 'ready' ? lobby : null;
   const hasGames = ready !== null && ready.ongoing.length + ready.past.length > 0;
-  const waiting = ready?.ongoing.filter((entry) => !entry.viewerSeated && hasFreeSeat(entry)).length ?? 0;
 
   return (
     <PageLayout>
-      <PageLayout.Header>
-        <Group justify="space-between" align="center" wrap="wrap" gap="md" w="100%">
-          <Stack gap="xs" miw={0}>
-            <PageTitle title="Play Dune!" />
-            <p className={styles.subtitle}>
-              Welcome to the lobby
-              {waiting > 0 ? (
-                <span className={styles.count}>
-                  {' · '}
-                  {waiting} {waiting === 1 ? 'table has' : 'tables have'} a free seat
-                </span>
-              ) : null}
-            </p>
-          </Stack>
-          <CallToAction direction="start" size="lg" renderRoot={createLink}>
-            Create a game
-          </CallToAction>
-        </Group>
+      <PageLayout.Header size="hero">
+        <Stack gap="md" miw={0} align="center" ta="center">
+          <PageTitle title="Play Dune!" />
+          <Text size="xl" fw={700}>
+            Welcome to the lobby
+          </Text>
+          <Text size="lg" fw={500} maw="36rem">
+            Take a seat, choose your faction, and fight for Arrakis.
+          </Text>
+          <Group>
+            <CallToAction direction="start" size="lg" renderRoot={createLink}>
+              Create a game
+            </CallToAction>
+          </Group>
+        </Stack>
       </PageLayout.Header>
       <PageLayout.Toolbar>
         {hasGames ? (
