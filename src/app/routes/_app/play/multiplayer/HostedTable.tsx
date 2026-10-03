@@ -756,7 +756,7 @@ function ConnectedTable({
   );
   return (
     <PredictionLogosContext value={predictionLogos}>
-      <TabletopSessionProvider session={client} table={table}>
+      <TabletopSessionProvider session={client}>
         {/* A boxless wrapper carries the connection state the browser verification waits on, whichever tab is open. */}
         <div data-connection={connection} data-revision={table.liveRevision} style={{ display: 'contents' }}>
           <GameTable

@@ -34,7 +34,7 @@ import { PointerSession } from './PointerSession';
 import { PointerSessionContext } from './PointerSessionContext';
 import { TableKeyboard } from './TableKeyboard';
 import { TableKeyboardContext } from './TableKeyboardContext';
-import { useTabletop } from './TabletopContext';
+import { useTabletop, useTabletopCommands, useTabletopReader, useTabletopSelector } from './TabletopContext';
 import type { TabletopContextValue } from './TabletopContext';
 import { TabletopScene } from './TabletopScene';
 import type { TableProgress } from './tableTrackers';
@@ -179,7 +179,9 @@ function SelectedPieceControl() {
 }
 
 function StormControls({ helpOnly = false }: { helpOnly?: boolean }) {
-  const { canHandleTable, moveStormBy, state } = useTabletop();
+  const canHandleTable = useTabletopSelector((table) => table.canHandleTable);
+  const stormSectorIndex = useTabletopSelector((table) => table.state.stormSectorIndex);
+  const { moveStormBy } = useTabletopCommands();
   return (
     <Section
       helpOnly={helpOnly}
@@ -192,7 +194,7 @@ function StormControls({ helpOnly = false }: { helpOnly?: boolean }) {
           Back one
         </Button>
         <Text component="output" aria-live="polite">
-          <strong>Sector {state.stormSectorIndex + 1}</strong> of {TABLE_SECTOR_COUNT}
+          <strong>Sector {stormSectorIndex + 1}</strong> of {TABLE_SECTOR_COUNT}
         </Text>
         <Button disabled={!canHandleTable} onClick={() => moveStormBy(1)}>
           Advance one
@@ -438,7 +440,8 @@ function PanelPanes({ children, secondary }: Readonly<{ children: ReactNode; sec
 }
 
 function SpiceBankControls() {
-  const { canHandleTable, spawnSpice, state } = useTabletop();
+  const canSpawn = useTabletopSelector((table) => table.canHandleTable && !table.state.draftMove);
+  const { spawnSpice } = useTabletopCommands();
   return (
     <Section
       title="Spice Bank"
@@ -450,7 +453,7 @@ function SpiceBankControls() {
             key={count}
             variant="default"
             size="compact-sm"
-            disabled={!canHandleTable || !!state.draftMove}
+            disabled={!canSpawn}
             aria-label={`Spawn ${count} spice`}
             onClick={() => spawnSpice(count)}
           >
@@ -499,14 +502,10 @@ function useHeldOverlays() {
   return held;
 }
 
-/* Hands the keyboard owner the live table on every render and binds it to the window once. */
+/* Binds the keyboard owner to the window once; it reads the live table when a key needs it. */
 function useTableKeyboardBinding(keyboard: TableKeyboard) {
-  const table = useTabletop();
-  const live = useRef(table);
-  useLayoutEffect(() => {
-    live.current = table;
-  });
-  useLayoutEffect(() => keyboard.bind({ events: window, read: () => live.current }), [keyboard]);
+  const read = useTabletopReader();
+  useLayoutEffect(() => keyboard.bind({ events: window, read }), [keyboard, read]);
 }
 
 function controlsPanelValueText(percent: number) {
@@ -537,7 +536,7 @@ export function GameTable({
   const [pointerSession] = useState(() => new PointerSession());
   const [tableKeyboard] = useState(() => new TableKeyboard());
   useTableKeyboardBinding(tableKeyboard);
-  const { gestureActivePieceId } = useTabletop();
+  const gestureActive = useTabletopSelector((table) => table.gestureActivePieceId !== null);
   const phaseSymbolClipId = useId();
   const heldOverlays = useHeldOverlays();
   const [pinnedOverlays, setPinnedOverlays] = useState<TableOverlays>({ counts: false, names: false });
@@ -551,7 +550,7 @@ export function GameTable({
     /* The phase changed since the last render; the reducer answers it before this render commits. */
     dispatchView({ type: 'phase.changed', phase: viewPhase });
   }
-  const overlaysInert = viewState.interactionActive || gestureActivePieceId !== null;
+  const overlaysInert = viewState.interactionActive || gestureActive;
   const cameraView = useMemo<CameraViewCommand>(
     () => ({
       view: viewState.activeView,
