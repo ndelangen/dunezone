@@ -1,30 +1,30 @@
-import { VisuallyHidden } from "@mantine/core";
-import { publishedHref } from "@shared/asset-publishing/publicationTargets";
-import type { GlossaryTopic } from "@shared/glossary/terms";
-import { RULEBOOK_BOARD_DEFINITIONS } from "@shared/rulebooks/boardDefinitions";
-import { CanvasScale } from "@ui/layout/CanvasScale";
-import clsx from "clsx";
-import type { ReactNode } from "react";
+import { VisuallyHidden } from '@mantine/core';
+import { publishedHref } from '@shared/asset-publishing/publicationTargets';
+import type { GlossaryTopic } from '@shared/glossary/terms';
+import { RULEBOOK_BOARD_DEFINITIONS } from '@shared/rulebooks/boardDefinitions';
+import { CanvasScale } from '@ui/layout/CanvasScale';
+import clsx from 'clsx';
+import type { ReactNode } from 'react';
 
-import { SpiceCard } from "@game/assets/card/Spice";
-import { LeaderToken } from "@game/assets/faction/leader/Leader";
-import { Token } from "@game/assets/faction/token/Token";
-import { TraitorCard } from "@game/assets/faction/traitor/Traitor";
-import { TroopToken } from "@game/assets/faction/troop/Troop";
-import { BattleWheel } from "@game/assets/generic/BattleWheel";
-import { TreacheryCard } from "@game/assets/treachery/Treachery";
-import { backgroundPresets } from "@game/data/backgrounds";
-import { card, disc } from "@game/data/sizes";
-import { factionTokenFixtures } from "@game/fixtures/factionTokens";
-import { treacheryCardFixtures } from "@game/fixtures/treacheryCards";
+import { SpiceCard } from '@game/assets/card/Spice';
+import { LeaderToken } from '@game/assets/faction/leader/Leader';
+import { Token } from '@game/assets/faction/token/Token';
+import { TraitorCard } from '@game/assets/faction/traitor/Traitor';
+import { TroopToken } from '@game/assets/faction/troop/Troop';
+import { BattleWheel } from '@game/assets/generic/BattleWheel';
+import { TreacheryCard } from '@game/assets/treachery/Treachery';
+import { backgroundPresets } from '@game/data/backgrounds';
+import { card, disc } from '@game/data/sizes';
+import { factionTokenFixtures } from '@game/fixtures/factionTokens';
+import { treacheryCardFixtures } from '@game/fixtures/treacheryCards';
 
-import styles from "./TopicVisual.module.css";
+import styles from './TopicVisual.module.css';
 
 const atreides = factionTokenFixtures.atreides;
 
 const atreidesTroop = {
   background: atreides.background,
-  image: "/vector/troop/atreides.svg",
+  image: '/vector/troop/atreides.svg',
   star: undefined,
   hue: undefined,
   striped: undefined,
@@ -32,17 +32,14 @@ const atreidesTroop = {
 
 const beneGesseritTroop = {
   background: backgroundPresets.beneGesserit,
-  image: "/vector/troop/bene-gesserit.svg",
+  image: '/vector/troop/bene-gesserit.svg',
   star: undefined,
   hue: undefined,
   striped: undefined,
 } as const;
 
 /* The spice token the catalogue publishes, so the glossary shows the same piece players use. */
-const SPICE_TOKEN = publishedHref(
-  "token-disc",
-  "ns76wk6vyqcnb1wfn8jb5ggya98cx6k7",
-);
+const SPICE_TOKEN = publishedHref('token-disc', 'ns76wk6vyqcnb1wfn8jb5ggya98cx6k7');
 
 /*
  * A piece of game artwork with the glossary word under it, linking to that word's entry.
@@ -63,30 +60,17 @@ function Piece({
   children: ReactNode;
 }) {
   return (
-    <a
-      className={clsx(styles.piece, extra && styles.extra)}
-      href={`#${anchor}`}
-    >
+    <a className={clsx(styles.piece, extra && styles.extra)} href={`#${anchor}`}>
       <span className={styles.art} aria-hidden="true">
         {children}
       </span>
-      {captionHidden ? (
-        <VisuallyHidden>{caption}</VisuallyHidden>
-      ) : (
-        <span className={styles.caption}>{caption}</span>
-      )}
+      {captionHidden ? <VisuallyHidden>{caption}</VisuallyHidden> : <span className={styles.caption}>{caption}</span>}
     </a>
   );
 }
 
 /* A troop is half the diameter of a leader or faction token, as on the table. */
-function Disc({
-  troop = false,
-  children,
-}: {
-  troop?: boolean;
-  children: ReactNode;
-}) {
+function Disc({ troop = false, children }: { troop?: boolean; children: ReactNode }) {
   return (
     <span className={clsx(styles.disc, troop && styles.troop)}>
       <CanvasScale canvasWidth={disc.width} canvasHeight={disc.height}>
@@ -107,37 +91,19 @@ function GameCard({ children }: { children: ReactNode }) {
 }
 
 function Glyph({ src }: { src: string }) {
-  return (
-    <span
-      className={styles.glyph}
-      style={{ maskImage: `url(${src})`, WebkitMaskImage: `url(${src})` }}
-    />
-  );
+  return <span className={styles.glyph} style={{ maskImage: `url(${src})`, WebkitMaskImage: `url(${src})` }} />;
 }
 
 const PHASES = [
-  { name: "Storm", icon: "/vector/icon/storm_disc.svg" },
-  { name: "Spice Blow", icon: "/vector/icon/spice-blow_disc.svg" },
-  { name: "CHOAM Charity", icon: "/vector/icon/spice-alt.svg", ring: true },
-  { name: "Bidding", icon: "/vector/icon/bidding_disc.svg", anchor: "bidding" },
-  {
-    name: "Revival",
-    icon: "/vector/icon/revival.svg",
-    anchor: "revival",
-    ring: true,
-  },
-  {
-    name: "Shipment and Movement",
-    icon: "/vector/icon/shipment_disc.svg",
-    anchor: "shipment-and-movement",
-  },
-  { name: "Battle", icon: "/vector/icon/combat_disc.svg", anchor: "battle" },
-  {
-    name: "Spice Collection",
-    icon: "/vector/icon/collection_disc.svg",
-    anchor: "spice-collection",
-  },
-  { name: "Mentat Pause", icon: "/vector/icon/mentat.svg", ring: true },
+  { name: 'Storm', icon: '/vector/icon/storm_disc.svg' },
+  { name: 'Spice Blow', icon: '/vector/icon/spice-blow_disc.svg' },
+  { name: 'CHOAM Charity', icon: '/vector/icon/spice-alt.svg', ring: true },
+  { name: 'Bidding', icon: '/vector/icon/bidding_disc.svg', anchor: 'bidding' },
+  { name: 'Revival', icon: '/vector/icon/revival.svg', anchor: 'revival', ring: true },
+  { name: 'Shipment and Movement', icon: '/vector/icon/shipment_disc.svg', anchor: 'shipment-and-movement' },
+  { name: 'Battle', icon: '/vector/icon/combat_disc.svg', anchor: 'battle' },
+  { name: 'Spice Collection', icon: '/vector/icon/collection_disc.svg', anchor: 'spice-collection' },
+  { name: 'Mentat Pause', icon: '/vector/icon/mentat.svg', ring: true },
 ] as const;
 
 function PiecesVisual() {
@@ -198,18 +164,14 @@ function TurnVisual() {
     <ol className={styles.phases}>
       {PHASES.map((phase) => (
         <li key={phase.name} className={styles.phase}>
-          {"ring" in phase ? (
+          {'ring' in phase ? (
             <span className={styles.ring}>
               <Glyph src={phase.icon} />
             </span>
           ) : (
             <Glyph src={phase.icon} />
           )}
-          {"anchor" in phase ? (
-            <a href={`#${phase.anchor}`}>{phase.name}</a>
-          ) : (
-            <span>{phase.name}</span>
-          )}
+          {'anchor' in phase ? <a href={`#${phase.anchor}`}>{phase.name}</a> : <span>{phase.name}</span>}
         </li>
       ))}
     </ol>
@@ -219,11 +181,7 @@ function TurnVisual() {
 /* The wheel sets its cards 62px above its face; the tilted cards reach a further 14px. */
 const WHEEL = { width: 170, cardRoom: 76 };
 
-function WheelCard({
-  front,
-}: {
-  front: (typeof treacheryCardFixtures)[keyof typeof treacheryCardFixtures];
-}) {
+function WheelCard({ front }: { front: (typeof treacheryCardFixtures)[keyof typeof treacheryCardFixtures] }) {
   return (
     <span className={styles.wheelCard}>
       <CanvasScale canvasWidth={card.width} canvasHeight={card.height}>
@@ -249,10 +207,7 @@ function DuncanIdaho() {
 function Wheel() {
   return (
     <div className={styles.wheel}>
-      <CanvasScale
-        canvasWidth={WHEEL.width}
-        canvasHeight={WHEEL.width + WHEEL.cardRoom}
-      >
+      <CanvasScale canvasWidth={WHEEL.width} canvasHeight={WHEEL.width + WHEEL.cardRoom}>
         <div style={{ paddingTop: WHEEL.cardRoom }}>
           <BattleWheel
             state="revealed"
@@ -261,20 +216,9 @@ function Wheel() {
             strength={4}
             spice={3}
             adjustment={0}
-            troops={[
-              {
-                id: "regular",
-                name: "Troops",
-                dialed: 3,
-                undialed: 2,
-                artwork: atreidesTroop,
-              },
-            ]}
+            troops={[{ id: 'regular', name: 'Troops', dialed: 3, undialed: 2, artwork: atreidesTroop }]}
             cards={[
-              <WheelCard
-                key="weapon"
-                front={treacheryCardFixtures.maulaPistol}
-              />,
+              <WheelCard key="weapon" front={treacheryCardFixtures.maulaPistol} />,
               <WheelCard key="defense" front={treacheryCardFixtures.shield} />,
             ]}
             leader={
@@ -335,12 +279,7 @@ function SpicePile({ count }: { count: number }) {
   return (
     <span className={styles.spicePile}>
       {Array.from({ length: count }, (_, index) => (
-        <img
-          key={index}
-          className={styles.spiceToken}
-          src={SPICE_TOKEN}
-          alt=""
-        />
+        <img key={index} className={styles.spiceToken} src={SPICE_TOKEN} alt="" />
       ))}
     </span>
   );
@@ -363,13 +302,7 @@ function SpiceVisual() {
     <div className={styles.row}>
       <Piece caption="Spice card" anchor="spice-card">
         <GameCard>
-          <SpiceCard
-            name="Arsunt"
-            subName="Spice mine"
-            icon="spice-mine"
-            highlights={["arsunt"]}
-            amount={3}
-          />
+          <SpiceCard name="Arsunt" subName="Spice mine" icon="spice-mine" highlights={['arsunt']} amount={3} />
         </GameCard>
       </Piece>
       <div className={clsx(styles.column, styles.extra)}>
@@ -418,14 +351,7 @@ function CardsVisual() {
   );
 }
 
-const BASE_FACTIONS = [
-  "atreides",
-  "harkonnen",
-  "emperor",
-  "fremen",
-  "guild",
-  "beneGesserit",
-] as const;
+const BASE_FACTIONS = ['atreides', 'harkonnen', 'emperor', 'fremen', 'guild', 'beneGesserit'] as const;
 
 function FactionsVisual() {
   return (

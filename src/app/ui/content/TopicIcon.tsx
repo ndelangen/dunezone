@@ -16,81 +16,64 @@ import {
   SlidersHorizontal,
   Type,
   UsersRound,
-} from "lucide-react";
-import type { LucideIcon } from "lucide-react";
+} from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 
 const TOPIC_ICON_DEFINITIONS = {
-  log: { kind: "component", component: ScrollText },
+  log: { kind: 'component', component: ScrollText },
   /* The log's two halves: what happened on the table, and who sat where and how votes ended. */
-  game: { kind: "component", component: Dices },
-  audit: { kind: "component", component: ShieldCheck },
-  battle: { kind: "mask", src: "/vector/icon/combat.svg" },
-  flip: { kind: "mask", src: "/vector/icon/flip.svg" },
-  strength: { kind: "component", component: Zap },
-  cannotBattle: { kind: "component", component: ShieldOff },
-  battleUnknown: { kind: "component", component: TriangleAlert },
+  game: { kind: 'component', component: Dices },
+  audit: { kind: 'component', component: ShieldCheck },
+  battle: { kind: 'mask', src: '/vector/icon/combat.svg' },
+  flip: { kind: 'mask', src: '/vector/icon/flip.svg' },
+  strength: { kind: 'component', component: Zap },
+  cannotBattle: { kind: 'component', component: ShieldOff },
+  battleUnknown: { kind: 'component', component: TriangleAlert },
   /* Every authoring surface opens on an Identity chapter: what a thing is called, and what it fundamentally is. */
-  identity: { kind: "component", component: Signature },
+  identity: { kind: 'component', component: Signature },
   /* Off-face prose (CONTEXT.md: About), on every asset editor and every detail page. */
-  about: { kind: "component", component: Info },
+  about: { kind: 'component', component: Info },
   /* What a container holds. A deck's cards and a bundle's tokens are the same idea at the same place in the tabs. */
-  contents: { kind: "component", component: Boxes },
+  contents: { kind: 'component', component: Boxes },
   /* What a face is composed of, before anything is written on it. Four tabs across the two token editors. */
-  face: { kind: "component", component: ImageIcon },
+  face: { kind: 'component', component: ImageIcon },
   /* Words on an artifact: a card's Head, an enhance token's per-face text. Both editors had hand-picked the same glyph. */
-  text: { kind: "component", component: Type },
-  planets: { kind: "component", component: Globe2 },
-  factionLeader: { kind: "mask", src: "/vector/generic/ceasar.svg" },
-  leaders: { kind: "mask", src: "/vector/icon/traitor.svg" },
-  alliance: { kind: "mask", src: "/vector/icon/alliance.svg" },
-  decals: { kind: "mask", src: "/vector/icon/alliance.svg" },
-  troops: { kind: "mask", src: "/vector/troop/atreides.svg" },
-  rules: { kind: "mask", src: "/vector/icon/balance.svg" },
-  advantages: { kind: "mask", src: "/vector/icon/kwisatz.svg" },
-  spice: { kind: "mask", src: "/vector/icon/spice.svg" },
-  complexityNovice: {
-    kind: "mask",
-    src: "/vector/icon/faction-complexity-1.svg",
-  },
-  complexityIntermediate: {
-    kind: "mask",
-    src: "/vector/icon/faction-complexity-2.svg",
-  },
-  complexityExpert: {
-    kind: "mask",
-    src: "/vector/icon/faction-complexity-3.svg",
-  },
-  complexityMaster: {
-    kind: "mask",
-    src: "/vector/icon/faction-complexity-4.svg",
-  },
-  setup: { kind: "component", component: BookOpen },
-  hand: { kind: "component", component: Hand },
-  karama: { kind: "mask", src: "/vector/icon/karama.svg" },
-  rulesets: { kind: "component", component: BookOpen },
-  fate: { kind: "mask", src: "/vector/icon/fate.svg" },
+  text: { kind: 'component', component: Type },
+  planets: { kind: 'component', component: Globe2 },
+  factionLeader: { kind: 'mask', src: '/vector/generic/ceasar.svg' },
+  leaders: { kind: 'mask', src: '/vector/icon/traitor.svg' },
+  alliance: { kind: 'mask', src: '/vector/icon/alliance.svg' },
+  decals: { kind: 'mask', src: '/vector/icon/alliance.svg' },
+  troops: { kind: 'mask', src: '/vector/troop/atreides.svg' },
+  rules: { kind: 'mask', src: '/vector/icon/balance.svg' },
+  advantages: { kind: 'mask', src: '/vector/icon/kwisatz.svg' },
+  spice: { kind: 'mask', src: '/vector/icon/spice.svg' },
+  complexityNovice: { kind: 'mask', src: '/vector/icon/faction-complexity-1.svg' },
+  complexityIntermediate: { kind: 'mask', src: '/vector/icon/faction-complexity-2.svg' },
+  complexityExpert: { kind: 'mask', src: '/vector/icon/faction-complexity-3.svg' },
+  complexityMaster: { kind: 'mask', src: '/vector/icon/faction-complexity-4.svg' },
+  setup: { kind: 'component', component: BookOpen },
+  hand: { kind: 'component', component: Hand },
+  karama: { kind: 'mask', src: '/vector/icon/karama.svg' },
+  rulesets: { kind: 'component', component: BookOpen },
+  fate: { kind: 'mask', src: '/vector/icon/fate.svg' },
   /* The entity-kind glyphs the mention chips wear. Factions reuse the Faction leader pictogram and assets
      reuse the contents glyph, the way decals reuses alliance: one drawing, two topics. */
-  factions: { kind: "mask", src: "/vector/generic/ceasar.svg" },
-  groups: { kind: "component", component: UsersRound },
-  assets: { kind: "component", component: Boxes },
+  factions: { kind: 'mask', src: '/vector/generic/ceasar.svg' },
+  groups: { kind: 'component', component: UsersRound },
+  assets: { kind: 'component', component: Boxes },
   /* The play table's own controls: trackers, the storm, the selected piece. The Table tab of the play panel. */
-  controls: { kind: "component", component: SlidersHorizontal },
+  controls: { kind: 'component', component: SlidersHorizontal },
   /* The glossary's topics that no editor had named yet: the turn's phases, the map, and the decks. */
-  turn: { kind: "mask", src: "/vector/icon/turn.svg" },
-  board: { kind: "mask", src: "/vector/icon/landscape.svg" },
-  cards: { kind: "mask", src: "/vector/icon/treachery.svg" },
-  deals: { kind: "component", component: Handshake },
-} as const satisfies Record<
-  string,
-  { kind: "mask"; src: string } | { kind: "component"; component: LucideIcon }
->;
+  turn: { kind: 'mask', src: '/vector/icon/turn.svg' },
+  board: { kind: 'mask', src: '/vector/icon/landscape.svg' },
+  cards: { kind: 'mask', src: '/vector/icon/treachery.svg' },
+  deals: { kind: 'component', component: Handshake },
+} as const satisfies Record<string, { kind: 'mask'; src: string } | { kind: 'component'; component: LucideIcon }>;
 
 export type TopicIconTopic = keyof typeof TOPIC_ICON_DEFINITIONS;
 
-export const TOPIC_ICON_TOPICS = Object.keys(
-  TOPIC_ICON_DEFINITIONS,
-) as TopicIconTopic[];
+export const TOPIC_ICON_TOPICS = Object.keys(TOPIC_ICON_DEFINITIONS) as TopicIconTopic[];
 
 export interface TopicIconProps {
   topic: TopicIconTopic;
@@ -105,7 +88,7 @@ export interface TopicIconProps {
 export function TopicIcon({ topic, size = 16, className }: TopicIconProps) {
   const definition = TOPIC_ICON_DEFINITIONS[topic];
 
-  if (definition.kind === "component") {
+  if (definition.kind === 'component') {
     const Icon = definition.component;
     return <Icon className={className} size={size} aria-hidden />;
   }
@@ -115,19 +98,19 @@ export function TopicIcon({ topic, size = 16, className }: TopicIconProps) {
       className={className}
       aria-hidden
       style={{
-        display: "block",
-        flex: "0 0 auto",
+        display: 'block',
+        flex: '0 0 auto',
         width: size,
         height: size,
-        backgroundColor: "currentColor",
+        backgroundColor: 'currentColor',
         maskImage: `url(${definition.src})`,
-        maskPosition: "center",
-        maskRepeat: "no-repeat",
-        maskSize: "contain",
+        maskPosition: 'center',
+        maskRepeat: 'no-repeat',
+        maskSize: 'contain',
         WebkitMaskImage: `url(${definition.src})`,
-        WebkitMaskPosition: "center",
-        WebkitMaskRepeat: "no-repeat",
-        WebkitMaskSize: "contain",
+        WebkitMaskPosition: 'center',
+        WebkitMaskRepeat: 'no-repeat',
+        WebkitMaskSize: 'contain',
       }}
     />
   );

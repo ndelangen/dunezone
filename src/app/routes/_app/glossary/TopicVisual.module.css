@@ -213,10 +213,7 @@
 /* Two faction tokens with the bribe's spice between them; the tokens shrink before the row would overflow. */
 .deal {
   display: grid;
-  grid-template-columns: minmax(0, var(--leader-size)) auto minmax(
-      0,
-      var(--leader-size)
-    );
+  grid-template-columns: minmax(0, var(--leader-size)) auto minmax(0, var(--leader-size));
   align-items: center;
   gap: var(--space-md);
 }
