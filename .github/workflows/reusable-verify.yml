@@ -233,7 +233,7 @@ jobs:
         env:
           VITE_CONVEX_URL: https://example.convex.cloud
       - name: Upload bundle stats to Codecov (per category)
-        # Bundler-agnostic analyzer (@codecov/vite-plugin peers with Vite <=6 only);
+        # Direct Codecov core reporting avoids the analyzer CLI's vulnerable glob dependency;
         # one bundle per asset category so media regeneration can't bury an app-code
         # regression. Skipped on fork PRs (no token); never fails the build.
         if: ${{ env.CODECOV_TOKEN != '' }}
@@ -245,7 +245,7 @@ jobs:
           upload() {
             local name="$1"
             shift
-            if ! bunx @codecov/bundle-analyzer "$@" --bundle-name="$name" --upload-token="$CODECOV_TOKEN"; then
+            if ! bun scripts/codecov-bundle.ts "$@" --bundle-name="$name" --upload-token="$CODECOV_TOKEN"; then
               echo "::warning::bundle upload failed: $name"
               status=1
             fi
