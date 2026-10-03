@@ -8,10 +8,10 @@ The hosted checks found no delivery regression requiring another implementation.
 
 ## Evidence and reproduction
 
-- [Sanitized raw evidence and measurement scripts](https://github.com/ndelangen/dunezone/releases/download/proof-assets/public-delivery-1721-evidence.zip)
+- [Sanitized raw evidence and measurement scripts](https://github.com/ndelangen/dunezone/releases/download/public-delivery-1721/public-delivery-1721-evidence.zip)
 - [Calculated cost inputs and scenarios](public-delivery-rehearsal/cost-model.json)
-- [Test Faction preview](https://github.com/ndelangen/dunezone/releases/download/proof-assets/public-delivery-1721-test-faction.png)
-- [Water preview](https://github.com/ndelangen/dunezone/releases/download/proof-assets/public-delivery-1721-water.png)
+- [Test Faction preview](https://github.com/ndelangen/dunezone/releases/download/public-delivery-1721/public-delivery-1721-test-faction.png)
+- [Water preview](https://github.com/ndelangen/dunezone/releases/download/public-delivery-1721/public-delivery-1721-water.png)
 
 The archive contains request headers, response bodies, SHA-256 digests, provider CPU records, database read counters, scraper responses, browser observations, deployment logs and cleanup results. `python3 cost-model.py` reproduces the monetary estimates from the included JSON. `measure.py` describes the bounded sequential workload. Its temporary origin has been deleted; rerunning the hosted workload requires a fresh isolated deployment. `summarize.py` reads the included Tail export.
 
