@@ -5,7 +5,7 @@ import { useFrame, useThree } from '@react-three/fiber/webgpu';
 import { MAX_BID_SECONDS, MIN_BID_SECONDS, biddingFactions, idleBidding } from '@shared/play/bidding';
 import type { BiddingState } from '@shared/play/bidding';
 import { phaseAt, STANDARD_PHASES } from '@shared/play/phases';
-import { BOARD_SURFACE_Y } from '@shared/play/tableGeometry';
+import { BOARD_RADIUS, BOARD_SURFACE_Y } from '@shared/play/tableGeometry';
 import { PLAYER_RING_RADIUS, tableSeatAngles } from '@shared/play/tableSettings';
 import { Section } from '@ui/block/Section';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
@@ -21,7 +21,8 @@ import { useServerNow } from './useServerNow';
 
 type Props = { client: TableSession; table: TableProjection };
 
-const BIDDER_RADIUS = 0.6;
+/* The round base covers about a third of the planet's radius (Norbert, #1007). */
+const BIDDER_RADIUS = BOARD_RADIUS * 0.35;
 /* The token rests on the Seat's station at the player ring; the point stops a hand's width short of its edge. */
 const BIDDER_TIP = PLAYER_RING_RADIUS - 0.5;
 const BIDDER_DEPTH = 0.08;
@@ -195,7 +196,7 @@ function Bidder({ client, table }: Props) {
     <group position={[0, BIDDER_HOVER_Y, 0]}>
       <group ref={groupRef}>
         <mesh geometry={geometry} castShadow receiveShadow>
-          <meshStandardMaterial color="#5e3818" roughness={0.6} />
+          <meshStandardMaterial color="#24150a" roughness={0.6} />
         </mesh>
       </group>
       <Html center zIndexRange={[9, 0]}>
