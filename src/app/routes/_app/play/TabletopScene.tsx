@@ -93,9 +93,10 @@ import {
 import { useMotionAllowed } from '@app/styles/motion';
 
 import { ArtworkPending } from './ArtworkPending';
-import arrakisMapUrl from './assets/arrakis-map.png?url';
+import arrakisMapSvg from './assets/arrakis-map.svg?raw';
 import stormMarkerUrl from './assets/storm-marker.png?url';
 import { boardFurnitureFor } from './boardFurniture';
+import { boardMapGeometry } from './boardMapGeometry';
 import { BOARD_RIM_DEPTH, createBoardRimShape } from './boardRimGeometry';
 import { CameraControls, CameraRelativeFog } from './CameraControls';
 import { deckShuffleHint, swallowLift, watchLongPress } from './longPress';
@@ -130,7 +131,6 @@ import { usePieceFlipAnimation } from './usePieceFlipAnimation';
 import { useTableGraphics } from './useTableGraphics';
 
 /* The two textures start with the bundle, alongside the connection, so the mounted table has them by the time it needs them. */
-useTexture.preload(arrakisMapUrl);
 useTexture.preload(stormMarkerUrl);
 
 type TabletopSceneProps = {
@@ -148,6 +148,9 @@ type TabletopSceneProps = {
 };
 
 const BOARD_RIM_COLOR = '#15263b';
+/* Under the map's own shapes, the colour of its outer ring, and how far above the disc the shapes lie. */
+const BOARD_MAP_BASE_COLOR = '#000000';
+const BOARD_MAP_LIFT = 0.001;
 const BOARD_RIM_DIVIDER_COLOR = '#050505';
 const BOARD_RIM_DIVIDER_OVERLAP = 0.002;
 const BOARD_RIM_DIVIDER_WIDTH = 0.035;
@@ -428,18 +431,22 @@ function BoardMap({ animate = false }: { animate?: boolean }) {
       }
     }
   });
-  const loadedMapTexture = useTexture(arrakisMapUrl);
-  const mapTexture = useMemo(() => {
-    loadedMapTexture.colorSpace = SRGBColorSpace;
-    loadedMapTexture.anisotropy = 8;
-    loadedMapTexture.needsUpdate = true;
-    return loadedMapTexture;
-  }, [loadedMapTexture]);
+  const mapGeometry = useMemo(() => boardMapGeometry(arrakisMapSvg, BOARD_RADIUS), []);
+  useEffect(() => () => mapGeometry.dispose(), [mapGeometry]);
   return (
     <group ref={group} scale={animate && motion ? 0 : 1}>
       <mesh receiveShadow position={[0, BOARD_SURFACE_Y, 0]} rotation={[-Math.PI / 2, 0, 0]} raycast={ignoreRaycast}>
         <circleGeometry args={[BOARD_RADIUS, 128]} />
-        <meshStandardMaterial map={mapTexture} roughness={0.88} metalness={0} />
+        <meshStandardMaterial color={BOARD_MAP_BASE_COLOR} roughness={0.88} metalness={0} />
+      </mesh>
+      {/* The map's shapes paint over one another in the source's order, so they write no depth; the disc below holds the board's depth. */}
+      <mesh
+        receiveShadow
+        geometry={mapGeometry}
+        position={[0, BOARD_SURFACE_Y + BOARD_MAP_LIFT, 0]}
+        raycast={ignoreRaycast}
+      >
+        <meshStandardMaterial vertexColors transparent depthWrite={false} roughness={0.88} metalness={0} />
       </mesh>
     </group>
   );
