@@ -125,6 +125,10 @@ describe('fixTermWording', () => {
     );
   });
 
+  test('points a pact to a deal', () => {
+    expect(fixTermWording('We made a pact, then two more pacts.')).toBe('We made a deal, then two more deals.');
+  });
+
   test('keeps the preferred spelling of a name', () => {
     expect(fixTermWording('the KH and the spice pool')).toBe('the Kwisatz Haderach and the Spice Bank');
   });

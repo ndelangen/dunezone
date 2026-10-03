@@ -1,5 +1,7 @@
 /* The stage is its own container, so every piece sizes from the column it fills rather than from the window. */
 .stage {
+  --leader-size: clamp(6rem, 30cqi, 12rem);
+
   container-type: inline-size;
   display: flex;
   justify-content: center;
@@ -55,7 +57,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--space-xs);
+  gap: var(--space-sm);
   color: var(--color-text);
   text-align: center;
   text-decoration: none;
@@ -76,10 +78,15 @@
 
 .disc {
   display: block;
-  width: clamp(5.5rem, 21cqi, 10rem);
+  width: var(--leader-size);
   overflow: hidden;
   border-radius: 50%;
   filter: drop-shadow(0 6px 10px rgb(54 29 8 / 28%));
+}
+
+/* A troop is half a leader's diameter, as on the table. */
+.disc.troop {
+  width: calc(var(--leader-size) / 2);
 }
 
 .card {
@@ -122,15 +129,28 @@
 
 .phase a {
   color: inherit;
-  text-decoration: underline;
-  text-underline-offset: 0.2em;
+  text-decoration: none;
 }
 
-.phaseNumber {
-  width: 1.5em;
-  color: var(--color-muted);
-  font-size: var(--mantine-font-size-xs);
-  text-align: end;
+.phase a:hover {
+  text-decoration: underline;
+}
+
+/* Some phase icons come without the circle the others draw, so they get the same circle here. */
+.ring {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  box-sizing: border-box;
+  width: clamp(2rem, 8cqi, 3.5rem);
+  height: clamp(2rem, 8cqi, 3.5rem);
+  border: clamp(0.1rem, 0.4cqi, 0.16rem) solid currentColor;
+  border-radius: 50%;
+}
+
+.ring .glyph {
+  width: 62%;
+  height: 62%;
 }
 
 .wheel {
@@ -164,7 +184,15 @@
   grid-template-columns: repeat(3, auto);
   justify-content: center;
   gap: var(--space-xs);
-  color: #b65d12;
+}
+
+/* A spice token is the size of a troop. */
+.spiceToken {
+  display: block;
+  width: calc(var(--leader-size) / 2);
+  height: auto;
+  border-radius: 50%;
+  filter: drop-shadow(0 4px 6px rgb(54 29 8 / 28%));
 }
 
 .factions {
@@ -182,17 +210,24 @@
   display: flex;
 }
 
-.troopStack .disc {
-  width: clamp(4rem, 15cqi, 7rem);
+/* Two faction tokens with the bribe's spice between them; the tokens shrink before the row would overflow. */
+.deal {
+  display: grid;
+  grid-template-columns: minmax(0, var(--leader-size)) auto minmax(0, var(--leader-size));
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.deal .disc {
+  width: 100%;
+}
+
+.deal .spicePile {
+  grid-template-columns: auto;
 }
 
 .troopStack .disc + .disc {
-  margin-inline-start: calc(clamp(4rem, 15cqi, 7rem) * -0.55);
-}
-
-.tanked {
-  filter: grayscale(1);
-  opacity: 0.6;
+  margin-inline-start: calc(var(--leader-size) / 2 * -0.55);
 }
 
 .pair {
@@ -211,10 +246,10 @@
 }
 
 .reserve .disc {
-  width: clamp(4rem, 14cqi, 6rem);
+  width: calc(var(--leader-size) * 0.75);
 }
 
-/* A column too slim for two pieces side by side keeps its main pieces and drops the extras: 18rem is two of the smallest discs, their gap and room for a caption. */
+/* A column too slim for two pieces side by side keeps its main pieces and drops the extras: below 18rem the Reserves stack no longer fits beside another piece. */
 @container (width < 18rem) {
   .extra {
     display: none;

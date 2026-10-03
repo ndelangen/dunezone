@@ -32,6 +32,7 @@ const TOPIC_ICONS: Record<GlossaryTopic, TopicIconTopic> = {
   spice: 'spice',
   cards: 'cards',
   factions: 'factions',
+  deals: 'deals',
 };
 
 /* A search matches the preferred term or any word it replaces, so a reader can look up the word they were about to use. */
@@ -120,6 +121,8 @@ function GlossaryPage() {
     .filter((entry) => entry.terms.length > 0);
   const topicSelect = (label?: string) => (
     <Select
+      className={label ? undefined : styles.topicSegment}
+      variant={label ? 'default' : 'unstyled'}
       aria-label={label ? undefined : 'Topic'}
       label={label}
       placeholder="All topics"
