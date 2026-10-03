@@ -6,6 +6,7 @@ import type { GameResult, GameResultKind } from '@shared/play/result';
 import { rosterSeat, SPECTATOR_SEAT } from '@shared/play/schema';
 import { useReducer } from 'react';
 
+import { predictionCardInHand } from '../prediction/predictionCardInHand';
 import { DecisionBar } from './SeatRequests';
 import type { TableProjection, TableSession } from './TableSession';
 
@@ -65,11 +66,12 @@ function DeclareBar({ client, table }: Props) {
   const valid = resultFactionCountFits(choice.kind, factionIds.length);
   const options = factionOptions(table);
   const stepId = unrevealedPrediction(table);
+  const byCard = stepId !== undefined && predictionCardInHand(table, stepId);
   return (
     <DecisionBar
       eyebrow="Determine winner"
       title="Declare the result"
-      context="Every player sees that you are determining the winner, and anyone holding a prediction is reminded to reveal it. Declaring finishes the game."
+      context={`Every player sees that you are determining the winner, and anyone holding a prediction is reminded to reveal it. ${byCard ? 'To reveal yours, place its card on the table before declaring. ' : ''}Declaring finishes the game.`}
       readiness={
         <Stack gap="sm">
           <SegmentedControl
@@ -98,7 +100,7 @@ function DeclareBar({ client, table }: Props) {
             />
           )}
           <Group gap="xs" justify="flex-end">
-            {stepId && <RevealButton client={client} table={table} stepId={stepId} />}
+            {stepId && !byCard && <RevealButton client={client} table={table} stepId={stepId} />}
             <Button
               variant="default"
               disabled={!table.canInteract}
@@ -154,15 +156,19 @@ function seated(table: TableProjection) {
 /* Every other panel while one player determines the winner: the reveal reminder, never a block. */
 function DeterminingBar({ client, table, name }: Props & Readonly<{ name: string }>) {
   const stepId = ownUnrevealed(table);
-  const reveal = stepId && <RevealButton client={client} table={table} stepId={stepId} />;
+  /* During play the prediction card in hand is the reveal; placing it on the table shows the choice. */
+  const byCard = stepId !== undefined && predictionCardInHand(table, stepId);
+  const reveal = stepId && !byCard && <RevealButton client={client} table={table} stepId={stepId} />;
   return (
     <DecisionBar
       eyebrow="Determine winner"
       title={`${name} is determining the winner`}
       context={
-        reveal
-          ? 'You hold a locked prediction. Reveal it now if it should count; the result does not wait for it.'
-          : 'Anyone holding a locked prediction can reveal it now.'
+        byCard
+          ? 'You hold a locked prediction. Place its card on the table now if it should count; the result does not wait for it.'
+          : reveal
+            ? 'You hold a locked prediction. Reveal it now if it should count; the result does not wait for it.'
+            : 'Anyone holding a locked prediction can reveal it now.'
       }
       action={reveal}
     />
