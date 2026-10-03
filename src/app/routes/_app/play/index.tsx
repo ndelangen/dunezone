@@ -423,13 +423,15 @@ function PlayLobby() {
         <Group justify="space-between" align="center" wrap="wrap" gap="md" w="100%">
           <Stack gap="xs" miw={0}>
             <PageTitle title="Play Dune!" />
-            <p className={styles.subtitle}>Welcome to the lobby</p>
-            {waiting > 0 ? (
-              <p className={styles.invite}>
-                <span className={styles.pulse} aria-hidden />
-                {waiting} {waiting === 1 ? 'table has' : 'tables have'} a free seat
-              </p>
-            ) : null}
+            <p className={styles.subtitle}>
+              Welcome to the lobby
+              {waiting > 0 ? (
+                <span className={styles.count}>
+                  {' · '}
+                  {waiting} {waiting === 1 ? 'table has' : 'tables have'} a free seat
+                </span>
+              ) : null}
+            </p>
           </Stack>
           <CallToAction direction="start" size="lg" renderRoot={createLink}>
             Create a game

@@ -171,7 +171,7 @@ export const SignedIn = meta.story({
     expect(within(games).getAllByRole('link', { name: /^Open / })).toHaveLength(5);
     expect(page.getAllByText('Your seat')).toHaveLength(2);
     expect(page.getAllByText('Seats open')).toHaveLength(2);
-    expect(page.getByText('2 tables have a free seat')).toBeVisible();
+    expect(page.getByText(/2 tables have a free seat/)).toBeVisible();
     expect(page.getByRole('img', { name: `${SIX[1]!.name} (you), ${factions[1]!.data.name}` })).toBeVisible();
     expect(page.getAllByRole('link', { name: 'Create a game' }).length).toBeGreaterThan(0);
   },
