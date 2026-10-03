@@ -1,5 +1,18 @@
 [
   {
+    "label": "NOD",
+    "keywords": "Brotherhood of Nod Command and Conquer C&C Tiberian Sun Tiberium Wars Kane CABAL Anton Slavik Oxanna Kristos Kilian Qatar Seth Ajay",
+    "assets": [
+      "/image/leader/nod/kane.png",
+      "/image/leader/nod/cabal.png",
+      "/image/leader/nod/anton-slavik.png",
+      "/image/leader/nod/oxanna-kristos.png",
+      "/image/leader/nod/kilian-qatar.png",
+      "/image/leader/nod/seth.png",
+      "/image/leader/nod/ajay.png"
+    ]
+  },
+  {
     "label": "Faction portraits / Atreides",
     "keywords": "House Atreides Caladan",
     "assets": [

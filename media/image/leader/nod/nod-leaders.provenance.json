@@ -1,0 +1,71 @@
+{
+  "backgroundRgb": [205, 186, 120],
+  "sourceSize": [1254, 1254],
+  "gameSize": [640, 640],
+  "generation": "Built-in imagegen, original GF9 Dune style references, simplified after visual feedback",
+  "processing": {
+    "segmentation": "BiRefNet general, PyTorch MPS",
+    "modelRevision": "e2bf8e4460fc8fa32bba5ea4d94b3233d367b0e4",
+    "edgeCleanup": "Connected background remnants removed; fully opaque foreground RGB preserved",
+    "crop": "Tight square crop shifted upward by 7 percent of its side plus four source pixels, doubling the earlier headroom while the bust runs into the bottom of the circular mask",
+    "resize": "Pillow Lanczos; lossless RGB PNG"
+  },
+  "portraits": [
+    {
+      "asset": "/image/leader/nod/kane.png",
+      "referencePage": "https://wallpapertag.com/kane-wallpapers",
+      "referenceImage": "https://wallpapertag.com/wallpaper/middle/e/6/b/794675-kane-wallpapers-1920x1080-for-iphone-5.jpg",
+      "generatedSourceSha256": "cd8802753c80fee74b79d28c960e08506f81f2eb292b3d398e9c5ca47e42c3db",
+      "crop": [46, -26, 1209, 1137],
+      "gamePngSha256": "a7adf4c0d011fe0c28050dd1565c371b6857fafaf61aa06b5958da289db089d5"
+    },
+    {
+      "asset": "/image/leader/nod/cabal.png",
+      "referencePage": "https://nod4life.wordpress.com/cabal-and-legion/",
+      "referenceImage": "https://i0.wp.com/images.wikia.com/cnc/images/c/c9/KWCABAL.jpeg",
+      "generatedSourceSha256": "1b8dd11caab5e8039b77dc242440f80fbf7930e067a1425005318c57642740ee",
+      "crop": [29, -52, 1222, 1141],
+      "gamePngSha256": "53e3bf59406eecd055cb87511ac704424cca37b22fed7e75b770333a80d42272"
+    },
+    {
+      "asset": "/image/leader/nod/anton-slavik.png",
+      "referencePage": "https://www.mobygames.com/game/589/command-conquer-tiberian-sun/screenshots/windows/74520/",
+      "referenceImage": "https://cdn.mobygames.com/screenshots/9679959-command-conquer-tiberian-sun-windows-if-you-select-the-brotherho.jpg",
+      "generatedSourceSha256": "76f86591f5fb397dc1e423560f9a5abc1a7e5fabdcd4fe354e38eb5030b02f18",
+      "crop": [24, -65, 1227, 1138],
+      "gamePngSha256": "0835dcb69dee0010600b80537b2ec3c9e8df3198c363eb6c0a8eb4c0bdf345d5"
+    },
+    {
+      "asset": "/image/leader/nod/oxanna-kristos.png",
+      "referencePage": "https://www.valka.cz/Command-Conquer-Tiberian-Sun-1999-t10391",
+      "referenceImage": "https://www.valka.cz/files/monica_schnerre.jpg",
+      "generatedSourceSha256": "1617bc84e92ac6a77b43746ec54d8a16656fcf87600a12f73117f752b36b2f19",
+      "crop": [26, -57, 1225, 1142],
+      "gamePngSha256": "24eaf9cfab5a7f1c60affdbcc6803573567f1216cfb40cbdf02f7dcee2c37cc1"
+    },
+    {
+      "asset": "/image/leader/nod/kilian-qatar.png",
+      "referencePage": "https://www.zastavki.com/rus/Games/wallpaper-7129.htm",
+      "referenceImage": "https://www.zastavki.com/pictures/1600x1200/2008/Games_Kilian_007129_.jpg",
+      "generatedSourceSha256": "dac45202da418b2c09c9e0a412bf7a74ac9400976e00656a9bf337545d813740",
+      "crop": [54, -57, 1240, 1129],
+      "gamePngSha256": "3da71322e813a6e6c88914816f3e2caa30c26b188706ae1e8e7a0f2df78f8bb1"
+    },
+    {
+      "asset": "/image/leader/nod/seth.png",
+      "referencePage": "https://www.cnc-inside.de/remastered/guide/seth",
+      "referenceImage": "https://db.cnc-inside.com/storage/v1/object/public/article-images/seth-1743370027401-0.jpg",
+      "generatedSourceSha256": "701e3791253448f1180647687369d3bfbd8ef6d70e0bff359c30548d7da031ca",
+      "crop": [28, -58, 1239, 1153],
+      "gamePngSha256": "57396bddb0e0c5bff8ca4ee8599381fee4ea3949f9a01262602a6384f6794df3"
+    },
+    {
+      "asset": "/image/leader/nod/ajay.png",
+      "referencePage": "https://cncnz.com/gallery/command-conquer-3-tiberium-wars-actors/",
+      "referenceImage": "https://cncnz.com/wp-content/uploads/2017/12/tw-holloway01.jpg",
+      "generatedSourceSha256": "ef27a3790795ad17e26b211000ab52d276af5c6a211680715d1e039571688e93",
+      "crop": [45, -45, 1222, 1132],
+      "gamePngSha256": "78d0ccd26d447d029417d1ea88ef216251dd7b9460e3bd015c8959382a074863"
+    }
+  ]
+}

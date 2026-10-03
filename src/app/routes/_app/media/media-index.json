@@ -1,4 +1,46 @@
 {
+  "/image/leader/nod/kane.png": {
+    "description": "A bald man with a dark goatee wearing a black coat over a burgundy high collar.",
+    "tags": ["bald", "goatee", "black coat", "burgundy", "man"],
+    "subjects": ["people"],
+    "sourceHash": "a7adf4c0d011fe0c28050dd1565c371b6857fafaf61aa06b5958da289db089d5"
+  },
+  "/image/leader/nod/cabal.png": {
+    "description": "A floating angular blue face with glowing pale blue eyes and rough brushwork around the jaw.",
+    "tags": ["blue face", "glowing eyes", "artificial intelligence", "computer", "CABAL"],
+    "subjects": ["machines", "people"],
+    "sourceHash": "53e3bf59406eecd055cb87511ac704424cca37b22fed7e75b770333a80d42272"
+  },
+  "/image/leader/nod/anton-slavik.png": {
+    "description": "A stern man with short swept-back brown hair wearing a black military uniform with red collar markings.",
+    "tags": ["man", "brown hair", "military uniform", "red collar"],
+    "subjects": ["people"],
+    "sourceHash": "0835dcb69dee0010600b80537b2ec3c9e8df3198c363eb6c0a8eb4c0bdf345d5"
+  },
+  "/image/leader/nod/oxanna-kristos.png": {
+    "description": "A woman with shoulder-length blonde hair wearing a black high-collared uniform with small red markings.",
+    "tags": ["woman", "blonde hair", "black uniform", "high collar"],
+    "subjects": ["people"],
+    "sourceHash": "24eaf9cfab5a7f1c60affdbcc6803573567f1216cfb40cbdf02f7dcee2c37cc1"
+  },
+  "/image/leader/nod/kilian-qatar.png": {
+    "description": "A woman with a short blonde bob wearing a black jacket over a burgundy V-neck and a fine necklace.",
+    "tags": ["woman", "blonde bob", "black jacket", "burgundy", "necklace"],
+    "subjects": ["people"],
+    "sourceHash": "3da71322e813a6e6c88914816f3e2caa30c26b188706ae1e8e7a0f2df78f8bb1"
+  },
+  "/image/leader/nod/seth.png": {
+    "description": "A man with a moustache and goatee wearing a black beret and military jacket with a red shoulder emblem.",
+    "tags": ["man", "moustache", "goatee", "beret", "military jacket", "red emblem"],
+    "subjects": ["people"],
+    "sourceHash": "57396bddb0e0c5bff8ca4ee8599381fee4ea3949f9a01262602a6384f6794df3"
+  },
+  "/image/leader/nod/ajay.png": {
+    "description": "A man with swept-back brown hair and stubble wearing a dark armored vest over burgundy sleeves.",
+    "tags": ["man", "brown hair", "stubble", "armored vest", "burgundy sleeves"],
+    "subjects": ["people"],
+    "sourceHash": "78d0ccd26d447d029417d1ea88ef216251dd7b9460e3bd015c8959382a074863"
+  },
   "/vector/decal/assassination.svg": {
     "description": "A ring of linked throwing blades with six outward points.",
     "tags": ["ring", "vector", "blade", "weapon"],
