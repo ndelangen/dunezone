@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { factionTokenFaceUp } from './factionToken';
 import type { TablePiece } from './model';
 import type { TableRoster } from './schema';
 import { tableCountSchema as count, tableIdSchema as id } from './schema';
@@ -47,15 +48,6 @@ export function idleBidding(seconds = DEFAULT_BID_SECONDS): BiddingState {
   return { seconds, stage: 'idle', round: 0, opener: null, turn: null, bid: null, passes: 0, deadline: null };
 }
 
-/** The stack key a faction's reversible token carries, so the bidder can read which side is up. */
-export function factionTokenStackKey(factionId: string) {
-  return `faction-token:${factionId}`;
-}
-
-export function isFactionToken(piece: Pick<TablePiece, 'stackKey'>) {
-  return piece.stackKey?.startsWith('faction-token:') ?? false;
-}
-
 /**
  * The factions bidding this round, in storm order: a faction sits out while its token lies face down.
  * A faction whose token is not on the table, in a game set up before tokens were dealt or while it is carried, still bids.
@@ -63,12 +55,9 @@ export function isFactionToken(piece: Pick<TablePiece, 'stackKey'>) {
 export function biddingFactions(
   stormSectorIndex: number,
   roster: TableRoster | undefined,
-  pieces: readonly Pick<TablePiece, 'stackKey' | 'items'>[]
+  pieces: readonly TablePiece[]
 ): string[] {
-  return stormOrder(stormSectorIndex, roster).filter((factionId) => {
-    const token = pieces.find((piece) => piece.stackKey === factionTokenStackKey(factionId));
-    return token?.items.at(-1)?.faceUp ?? true;
-  });
+  return stormOrder(stormSectorIndex, roster).filter((factionId) => factionTokenFaceUp(pieces, factionId));
 }
 
 /** The next faction after `from` in storm order that is still bidding; `from` itself when it is the only one. */
