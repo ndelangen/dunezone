@@ -92,18 +92,26 @@ export async function verifyResults({
   await openTab(b, 'Phase');
   passed('A reloaded player re-enters the finished game with its declared result');
 
-  const pastEntry = (page) =>
-    page.getByRole('region', { name: 'Past', exact: true }).getByRole('link', { name: `winner ${winner.name}` });
-  const ongoingEntry = (page) =>
-    page.getByRole('region', { name: 'Ongoing', exact: true }).locator(`a[href$="/play/${gameId}"]`);
+  /* The lobby shows one view at a time: its toolbar picks Ongoing, Yours or Finished, and each game is a card holding its Open link. */
+  const lobbyCard = (page) =>
+    page
+      .getByRole('list', { name: 'Games' })
+      .getByRole('listitem')
+      .filter({ has: page.locator(`a[href$="/play/${gameId}"]`) });
+  const showGames = async (page, view) => {
+    await page.locator('input[aria-label="Show games"]:visible').first().click();
+    await page.getByRole('option', { name: new RegExp(`^${view}`) }).click();
+  };
   const observerLeft = observer.view().viewer.connectionId;
   await observer.page.goto(`${origin}/play`, { waitUntil: 'domcontentloaded' });
   await observer.page.getByRole('heading', { name: 'Game lobby' }).waitFor();
-  await pastEntry(observer.page).waitFor({ timeout: 20_000 });
-  assert.equal(await ongoingEntry(observer.page).count(), 0);
-  assert.equal(await pastEntry(observer.page).getAttribute('href'), `/play/${gameId}`);
+  await showGames(observer.page, 'Finished');
+  await lobbyCard(observer.page).getByText(`${winner.name} won`).waitFor({ timeout: 20_000 });
+  assert.equal(await lobbyCard(observer.page).getByRole('link').getAttribute('href'), `/play/${gameId}`);
   await capture(observer, 'after-lobby-past-1440x1000');
-  passed('The lobby lists the finished game under Past with its winner');
+  await showGames(observer.page, 'Ongoing');
+  assert.equal(await lobbyCard(observer.page).count(), 0);
+  passed('The lobby lists the finished game under Finished with its winner, and not under Ongoing');
 
   await act(b, 'Continue playing');
   await until(() => [a, b].every((who) => stage(who) === 'play'), 'Continue playing did not resume play.');
@@ -116,8 +124,9 @@ export async function verifyResults({
   }
   passed('Continue playing drops the result and resumes the same turn at Mentat pause');
 
-  await ongoingEntry(observer.page).waitFor({ timeout: 20_000 });
-  assert.equal(await pastEntry(observer.page).count(), 0);
+  /* The observer's lobby still shows Ongoing, so the game returns to it live, without its result. */
+  await lobbyCard(observer.page).waitFor({ timeout: 20_000 });
+  assert.equal(await lobbyCard(observer.page).getByText(`${winner.name} won`).count(), 0);
   /* The observer still holds the finished game's frames, so its return waits for a fresh connection before reading the stage. */
   await observer.page.goto(`${origin}/play/${gameId}`, { waitUntil: 'domcontentloaded' });
   await until(
