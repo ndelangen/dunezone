@@ -3,43 +3,43 @@
     "description": "A smiling bald man with a gray moustache and a thin fringe of hair at the sides, wearing an olive military uniform.",
     "tags": ["Ben Carville", "Red Alert 1", "bald", "gray moustache", "uniform", "Retaliation"],
     "subjects": ["people"],
-    "sourceHash": "a9b736bed878f5065bd1581a7b9ff62d235b76731a50b7b104615da16218c55e"
+    "sourceHash": "576e3b1f4b32116c6073642812b99547b781dd9f4e41ef137b29a7c4f325fb26"
   },
   "/image/leader/red-alert-1/chitzkoi.png": {
     "description": "A black and tan German Shepherd with a mechanical eye and red collar.",
     "tags": ["Chitzkoi", "Red Alert 1", "dog", "cyborg", "Counterstrike"],
     "subjects": ["creatures", "machines"],
-    "sourceHash": "1715a67c87e9b5338288b9d25a07ccdff9ec727448252c9a0b80f6826a65f149"
+    "sourceHash": "25145613f137066b3e41ad1f0b129539b71931481e0acd4b660689d266bf6027"
   },
   "/image/leader/red-alert-1/einstein.png": {
     "description": "An older man with gray hair and a moustache raising an index finger, wearing a tan suit.",
     "tags": ["Albert Einstein", "Red Alert 1", "scientist", "gray hair", "moustache", "raised finger"],
     "subjects": ["people"],
-    "sourceHash": "8bd55ef7f818309aafdf69da151f9f42cd4250f2717956a9cea5025dad707dd2"
+    "sourceHash": "07a5c32a2d9d1291d46afaceda637e745983b0231c873521c1b9ed3e21d7efe9"
   },
   "/image/leader/red-alert-1/gradenko.png": {
     "description": "A dark-haired officer with a moustache and goatee leaning forward in a dark uniform.",
     "tags": ["Radik Gradenko", "Red Alert 1", "dark hair", "goatee", "uniform"],
     "subjects": ["people"],
-    "sourceHash": "08dede36602b6673b39af1ad12da0d28c605a49d9bb5f9955dc67d36a544492b"
+    "sourceHash": "6e4ecc0625a0f403a6b4b7282978f9e15ae57c53b26ae459e08cfd6187a078a1"
   },
   "/image/leader/red-alert-1/kane.png": {
     "description": "A bald man with a dark goatee wearing a gray suit and burgundy tie.",
     "tags": ["Kane", "Red Alert 1", "bald", "goatee", "gray suit"],
     "subjects": ["people"],
-    "sourceHash": "aaf0e4b3d2806602c5daed04c9be4bd126a471ac6f6406fc041645292fd3713b"
+    "sourceHash": "1be92c34e8a2cfa7655e9a4f1a90a7aafa20b2d2b4b674e8dc7ce58361ba34cf"
   },
   "/image/leader/red-alert-1/kukov.png": {
     "description": "A man in an olive coat and red-banded military cap, turned sideways.",
     "tags": ["Georgi Kukov", "Red Alert 1", "peaked cap", "olive coat", "uniform"],
     "subjects": ["people"],
-    "sourceHash": "7bbb649d711990372b310b239adbb7c9eda8cfacfa0d34f61d3b946f3c907a94"
+    "sourceHash": "f67fc63a12cb4e89d79879d2e43c5bad50cac09ad1ff9d0e4fbed4238dd1c701"
   },
   "/image/leader/red-alert-1/nadia.png": {
     "description": "A blonde woman looking over her shoulder in a black uniform with red and gold trim.",
     "tags": ["Nadia Zelenkov", "Red Alert 1", "blonde hair", "black uniform"],
     "subjects": ["people"],
-    "sourceHash": "19534eba5cf24166c2511484572775375503cd36be91b0e6bba229302940216b"
+    "sourceHash": "ac5f4a13822d4b42457e83986cd79ef25a72141eaf46941bec34d0fc9d699727"
   },
   "/image/leader/red-alert-1/stalin.png": {
     "description": "A stern man with swept gray hair and a thick moustache holding a pipe, wearing a beige tunic.",
@@ -51,13 +51,13 @@
     "description": "A man with receding dark hair and a beard in a blue military uniform.",
     "tags": ["Nikos Stavros", "Red Alert 1", "beard", "blue uniform"],
     "subjects": ["people"],
-    "sourceHash": "7e7bf3e13f3fb3cf97dda8aafd627aac2521c397fbee9ae84f24cf39e43c51eb"
+    "sourceHash": "1fd894ed1329f712e03e4678e2d23e2a16991ce8f83aa98462f89e59e1262d49"
   },
   "/image/leader/red-alert-1/tanya.png": {
     "description": "A woman with short dark hair wearing a black sleeveless tactical vest.",
     "tags": ["Tanya Adams", "Red Alert 1", "dark hair", "black vest"],
     "subjects": ["people"],
-    "sourceHash": "1dd79527b0f91376f0209a48dd31979522b983eefb35af6e2fbd064502d52e8e"
+    "sourceHash": "51b7558735288b2dcd811cb3592c71dcfa85ab7ccb51ca4d27071daf89018ae3"
   },
   "/image/leader/red-alert-1/topolov.png": {
     "description": "A gray-haired officer leaning forward with clasped hands in an olive uniform.",
@@ -69,19 +69,19 @@
     "description": "A short-haired man in a red military jacket with a mechanical hand and temple plate.",
     "tags": ["Volkov", "Red Alert 1", "cyborg", "red uniform", "Counterstrike", "Aftermath"],
     "subjects": ["people"],
-    "sourceHash": "86defc0d2f6755aa9069dc2cf2c4da51bee7872415cc73eda4febcd6c9ba2170"
+    "sourceHash": "388466f2a14738a56d7d951b11f811da48f91fa6cb158756e799627b88c381d4"
   },
   "/image/leader/red-alert-1/von-esling.png": {
     "description": "A stern gray-haired man in a gray military uniform.",
     "tags": ["Gunther von Esling", "Red Alert 1", "gray hair", "gray uniform"],
     "subjects": ["people"],
-    "sourceHash": "8e27edfd3a7428f914dfa6ab5455816e3c5d2b5785b81748c2f05d4998c65448"
+    "sourceHash": "e56b1d748f429b8cbd8f1659c61a14a7e98ed6856a5df14a2c28ccb466f3bcda"
   },
   "/image/leader/red-alert-2/boris.png": {
     "description": "A bearded soldier in a fur hat and camouflage coat holding an upright rifle and a pistol.",
     "tags": ["Boris", "Red Alert 2", "fur hat", "beard", "rifle", "camouflage", "Yuri's Revenge"],
     "subjects": ["people"],
-    "sourceHash": "63a04a078e60cce3f779ebca97ac24349745bc79dfc1b969f9f459386de246a7"
+    "sourceHash": "92b7ca1ed835025906b883e9f3178009f6b8dd3cb9ca236dd4e7b6d019c58d71"
   },
   "/image/leader/red-alert-2/carville.png": {
     "description": "A balding man with a moustache holding a telephone to his ear in an olive uniform.",
@@ -93,19 +93,19 @@
     "description": "A stern man in a dark suit and red tie seated behind a desk.",
     "tags": ["Michael Dugan", "Red Alert 2", "president", "dark suit", "red tie"],
     "subjects": ["people"],
-    "sourceHash": "773707a5e6b255aabe3f730af429d35b0272723582b50e9aec39e7195d580634"
+    "sourceHash": "564f253d8936491f368b507aed311745d9b6ad12e383595d1652e769181a9551"
   },
   "/image/leader/red-alert-2/einstein.png": {
     "description": "An older man with unruly white hair and a moustache holding the lapels of his white lab coat.",
     "tags": ["Albert Einstein", "Red Alert 2", "scientist", "white hair", "lab coat"],
     "subjects": ["people"],
-    "sourceHash": "14d9067b64346844711caef3eddbc58e8f159d938c618f383e5efd5e45d604ff"
+    "sourceHash": "05df3dd610ce11cba8c38c1c83c0e874ede87fc6a1496dff4bf0b7c0abea2aba"
   },
   "/image/leader/red-alert-2/eva.png": {
     "description": "A smiling woman with brown hair tied back, wearing a blue uniform and headset.",
     "tags": ["Eva Lee", "Red Alert 2", "brown hair", "headset", "blue uniform"],
     "subjects": ["people"],
-    "sourceHash": "b07c9ed867b5858e24945aed5a8a36be98f127f517cf43fa1be6c1b37ccfc875"
+    "sourceHash": "15ee8fa9ba15df19cd2ad16895c903e76050cb7441439f3ae2b903aafb50177d"
   },
   "/image/leader/red-alert-2/romanov.png": {
     "description": "A man in a white military uniform holding a red telephone and gesturing with his other hand.",
@@ -117,25 +117,25 @@
     "description": "A brown-haired woman in an olive tank top holding two pistols upright.",
     "tags": ["Tanya Adams", "Red Alert 2", "brown hair", "pistols", "olive tank top"],
     "subjects": ["people"],
-    "sourceHash": "df12913d8b54a56eb9ca3fe1ecc71923263f1ed95c094adf67d0fd56be7d7de0"
+    "sourceHash": "6eca91c44da1fb0cdb3478f8b4919d8a6275e0a7db12b1e8729d340efbafc3db"
   },
   "/image/leader/red-alert-2/vladimir.png": {
     "description": "A man with untidy gray hair and a beard wearing a brown uniform with medals.",
     "tags": ["Vladimir", "Red Alert 2", "beard", "brown uniform", "medals"],
     "subjects": ["people"],
-    "sourceHash": "91bcd90e203a6a10f202fc6258407105c1f1090a819701c3d31c618d19a9e9c0"
+    "sourceHash": "704c0ba2150c163b174e6ab540938ab7c1ac5ee8b9a4c512f957d5f2e5873c02"
   },
   "/image/leader/red-alert-2/yuri.png": {
     "description": "A bald man with a forked forehead tattoo, goatee and cables behind his head, wearing a dark high collar.",
     "tags": ["Yuri", "Red Alert 2", "bald", "tattoo", "goatee", "psychic", "Yuri's Revenge"],
     "subjects": ["people"],
-    "sourceHash": "cf3f47d42f2fd92c6a773f91aa036aa604fb7bcb4f39b856d3d173642b1bd5a0"
+    "sourceHash": "83fe1873d29493a843735e847ef60a25635b55a24971dbb7efa373ee4311cd0f"
   },
   "/image/leader/red-alert-2/zofia.png": {
     "description": "A woman with side-parted brown hair in a dark uniform with a red collar and communications earpiece.",
     "tags": ["Zofia", "Red Alert 2", "brown hair", "red collar", "headset"],
     "subjects": ["people"],
-    "sourceHash": "1c3b0b6c346d6da3f23615b4b75eb931114bc835d6367785a387356c14d5f3be"
+    "sourceHash": "ffd4bb2c5b0fce67e88db362c6ed8367cbef97f671fde6f0369db6596fbb4059"
   },
   "/image/leader/red-alert-3/ackerman.png": {
     "description": "A stern balding man in a dark suit and red tie.",
@@ -147,13 +147,13 @@
     "description": "A white-haired officer pointing forward in a blue uniform.",
     "tags": ["Robert Bingham", "Red Alert 3", "white hair", "pointing", "blue uniform"],
     "subjects": ["people"],
-    "sourceHash": "032e898d25499ef9732c4175a682613293fb5c050b993578eb0d3d5b002658df"
+    "sourceHash": "a34063ad8208eaac7c7356412c52eec04a9a7fe37dbf574ce9f2924bb44caa5f"
   },
   "/image/leader/red-alert-3/brenda.png": {
     "description": "A woman with a straight brown bob and white top holding a microphone.",
     "tags": ["Brenda Snow", "Red Alert 3", "reporter", "microphone", "brown hair", "Uprising"],
     "subjects": ["people"],
-    "sourceHash": "7a4a9f7b3d893a200385b94b153aa0a7840c2e4881ebd0b1408a6c6f9710686b"
+    "sourceHash": "37ad9e83396064db9504ca251115dbf3ae2b70d29e1e0cbf441e47097f077dca"
   },
   "/image/leader/red-alert-3/anatoly-cherdenko.png": {
     "description": "A gray-haired man looking upward with his mouth open in the SPACE pose, wearing a gray uniform and red tie.",
@@ -171,7 +171,7 @@
     "description": "A long-haired blonde woman looking sideways in a blue military uniform.",
     "tags": ["Eva McKenna", "Red Alert 3", "blonde hair", "blue uniform"],
     "subjects": ["people"],
-    "sourceHash": "1fc95a338d3ad5c0f467f8180a2dfe40a052aca2fc410fa88b78b577e2145973"
+    "sourceHash": "0980a56ddb2780ddebcc8c138d8590f8219ee82d2847f522c928c3e4a37b4352"
   },
   "/image/leader/red-alert-3/giles.png": {
     "description": "A man with receding brown hair in a blue uniform and dark tie.",
@@ -189,7 +189,7 @@
     "description": "A woman with long dark hair tied high with a red wrap, looking aside in a white robe.",
     "tags": ["Izumi", "Red Alert 3", "dark hair", "white robe", "psychic", "Uprising"],
     "subjects": ["people"],
-    "sourceHash": "f8cc37796542112f72438fb8d8fc75384c06cade04d4d8f391312ff129ff2768"
+    "sourceHash": "54a08be7c8854f18a6b58d303464bb2c12a0f6a4eb65edadd263e99232eef54a"
   },
   "/image/leader/red-alert-3/kelly.png": {
     "description": "A dark-haired woman with clasped hands beneath her chin, wearing a black suit.",
@@ -201,7 +201,7 @@
     "description": "A man with long dark hair in a dark high-collared uniform with gold trim.",
     "tags": ["Kenji Tenzai", "Red Alert 3", "dark hair", "gold trim", "co-commander"],
     "subjects": ["people"],
-    "sourceHash": "1f912987070a3ebec857359e2607ec1146753b3fdd4dd574ebfd002adc1374b3"
+    "sourceHash": "800c09184d2259b25076a6111995a7650b8fa961287bcabd262a7717271249aa"
   },
   "/image/leader/red-alert-3/krukov.png": {
     "description": "A moustached man pointing forward in an olive uniform with red and gold shoulder boards.",
@@ -213,13 +213,13 @@
     "description": "A smiling woman with auburn hair in a blue uniform.",
     "tags": ["Lissette Hanley", "Red Alert 3", "auburn hair", "blue uniform", "co-commander"],
     "subjects": ["people"],
-    "sourceHash": "f9191a821fbd369897644e42b2ab405952b5750bfe5dc99437359ce50dc905f3"
+    "sourceHash": "91550d1de59c6b04c9c1bcc45877c6a3b46b79ecc8ff7b1daa41e8b056fc4864"
   },
   "/image/leader/red-alert-3/lydia.png": {
     "description": "A woman with wavy brown hair looking over rectangular glasses in a blue uniform.",
     "tags": ["Lydia Winters", "Red Alert 3", "glasses", "brown hair", "blue uniform", "Uprising"],
     "subjects": ["people"],
-    "sourceHash": "de791a853b287e24a0b8e0acc6938ad4738314bbd67a6ea547cf8d0b255adac3"
+    "sourceHash": "9b34389b2f6564dcfa29ddefa135b2fc27e22d2f9ea27ba9191282e2f97675f7"
   },
   "/image/leader/red-alert-3/moskvin.png": {
     "description": "A red-haired man with stubble and a tilted head in an olive uniform.",
@@ -231,13 +231,13 @@
     "description": "A woman with a dark bob and pale streaks in a dark high-collared uniform.",
     "tags": ["Naomi Shirada", "Red Alert 3", "dark bob", "blonde streaks", "co-commander"],
     "subjects": ["people"],
-    "sourceHash": "5e1afe565f5325e04e90180f9f740ab5458f9a1c52709b7dde73fd9ae48af1bf"
+    "sourceHash": "f3d92aa1b328eb48179a1a474b90f0bc5dd9e10d2022756f90d3ebc4bb1733bf"
   },
   "/image/leader/red-alert-3/natasha.png": {
     "description": "A dark-haired woman in a red beret and black uniform holding a rifle over her shoulder.",
     "tags": ["Natasha Volkova", "Red Alert 3", "red beret", "rifle", "black uniform"],
     "subjects": ["people"],
-    "sourceHash": "473b8dfd2b871263c065d6723928c0737b8653117cd2a31ef8312b0276025124"
+    "sourceHash": "74363acb5f541b42ce981b0d1f99e3c1a4f1e8419f57849ff5026056c37840d7"
   },
   "/image/leader/red-alert-3/oleg.png": {
     "description": "A smiling man in a black beret and pale olive uniform.",
@@ -249,7 +249,7 @@
     "description": "A man with swept dark hair and oval glasses in a gray lab coat over a black turtleneck.",
     "tags": ["Shinji Shimada", "Red Alert 3", "scientist", "glasses", "lab coat", "Uprising"],
     "subjects": ["people"],
-    "sourceHash": "dad3dd059437ece6dd2c48d185165b7c43655b230559c50975efefdbd42c6ffd"
+    "sourceHash": "c6ba9c3ec492f44864a84224155e5e106f97915335f3859dcfdae22a81b3a0bf"
   },
   "/image/leader/red-alert-3/shinzo.png": {
     "description": "A gray-haired bearded man raising an index finger, wearing black and white robes.",
@@ -261,13 +261,13 @@
     "description": "A woman with long dark hair looking upward in a white collared blouse.",
     "tags": ["Suki Toyama", "Red Alert 3", "dark hair", "white blouse"],
     "subjects": ["people"],
-    "sourceHash": "a4f0112fa1fd6e15756f347ce1acc6eff77dcc7ce6f7b5114e57ef693e237b2a"
+    "sourceHash": "46eee29eea78913543da6123f4b5dd023bbefc19fb003264176197e9dd238f58"
   },
   "/image/leader/red-alert-3/takara.png": {
     "description": "A long-haired woman leaning forward in a red jacket over a dark top.",
     "tags": ["Takara Sato", "Red Alert 3", "brown hair", "red jacket", "Uprising"],
     "subjects": ["people"],
-    "sourceHash": "df7bd08b56c8288f2d807e2333767afb8faedf19c8c9ed5c33da3d49db54f0f3"
+    "sourceHash": "18ac882c75b54675468da50bc75db82c8a6384ed6f247da95f96083abf3c4c34"
   },
   "/image/leader/red-alert-3/tanya.png": {
     "description": "A blonde woman in an olive tank top holding two pistols upright.",
@@ -285,13 +285,13 @@
     "description": "A smiling white-haired man in a dark suit with a lavender tie.",
     "tags": ["Rupert Thornley", "Red Alert 3", "white hair", "suit", "lavender tie", "Uprising"],
     "subjects": ["people"],
-    "sourceHash": "c0d4041f61ddba41e7f6f734413002c6fcc28383e588cc118d4b3a1d91474a85"
+    "sourceHash": "af4db114b6041b7beb72904306cdd3a39011a07b2e0b1d920929d00b15f2a56e"
   },
   "/image/leader/red-alert-3/vera.png": {
     "description": "A brunette woman with her chin raised in an olive cap and uniform with red trim.",
     "tags": ["Vera Belova", "Red Alert 3", "brunette", "olive cap", "red trim", "Uprising"],
     "subjects": ["people"],
-    "sourceHash": "b51b6e62c039fb694eb23ed5488eb150f22fd7cd658aa9d15f816fd32a225231"
+    "sourceHash": "6b1ec305e0304a1736ec19dda6d95989b3dd9c873fcde31173ee806e18ef483b"
   },
   "/image/leader/red-alert-3/warren.png": {
     "description": "A stern man in a blue beret and uniform looking sideways.",
@@ -321,7 +321,7 @@
     "description": "A long-haired blonde woman in a green beret and olive uniform.",
     "tags": ["Zhana Agonskaya", "Red Alert 3", "blonde hair", "green beret", "co-commander"],
     "subjects": ["people"],
-    "sourceHash": "58cf6c5ffc92a91718a27bf0519ed729d9a23fc6a2c0c9aff35644cc9735b9ba"
+    "sourceHash": "f6e2fbe6d1db9ffca3ac0d5b2409493587b37cba322b377775843f336d468054"
   },
   "/image/leader/nod/kane.png": {
     "description": "A bald man with a dark goatee wearing a black coat over a burgundy high collar.",
