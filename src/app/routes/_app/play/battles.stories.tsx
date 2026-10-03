@@ -537,7 +537,8 @@ export const BattleRevealedResolve = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     await settled(() => expect(page.getByRole('button', { name: 'Resolve battle' })).toBeEnabled());
     expect(page.queryByRole('button', { name: 'Cancel battle' })).toBeNull();
-    expect(page.queryByText(/^Waiting for |says/)).toBeNull();
+    expect(page.queryByText(/^Waiting for /)).toBeNull();
+    expect(page.queryByText(/ says /)).toBeNull();
     await userEvent.click(page.getByRole('button', { name: 'Resolve battle' }));
     expect(lastCommand()?.action).toEqual({ kind: 'battle-cancel', battleId: 'story-battle' });
   },
