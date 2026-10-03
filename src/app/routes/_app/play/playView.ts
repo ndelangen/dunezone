@@ -259,8 +259,12 @@ export function cameraPoseFor(
 export type CameraZoom = Readonly<{ scale: number; offset: Vector3Tuple }>;
 
 export const NO_CAMERA_ZOOM: CameraZoom = { scale: 1, offset: [0, 0, 0] };
-/* The closest look, as a share of the view's distance: about three and a half times as close. */
-export const CAMERA_ZOOM_MINIMUM_SCALE = 0.28;
+/* The closest look, as a share of the view's distance. The camera also turns toward top-down as it closes in, which costs some of the gain. */
+export const CAMERA_ZOOM_MINIMUM_SCALE = 0.2;
+/* How far toward top-down the closest look turns: most of the way, while every wheel notch still brings the board closer. */
+const CAMERA_ZOOM_FULL_TILT = 0.85;
+/* How quickly the pan keys slide a close look, in table units per second at the view's own distance; closer looks slide slower. */
+const CAMERA_PAN_SPEED = 7;
 /* Scroll distance, in pixels, that brings the camera e times closer. */
 const CAMERA_ZOOM_SCROLL_PX = 420;
 /* How far from the table's middle a close look may centre, so it never drifts off the board. */
@@ -271,9 +275,10 @@ function wheelPixels(deltaY: number, deltaMode: number): number {
   return Number.isFinite(pixels) ? pixels : 0;
 }
 
-/** Whether a wheel turn tilts the camera or moves it closer: scrolling down tilts to top-down first and then zooms in; scrolling up zooms out first and then tilts back. */
-export function wheelTurnZooms(tilt: number, zoom: CameraZoom, deltaY: number): boolean {
-  return deltaY > 0 ? clampCameraTilt(tilt) >= 1 : zoom.scale < 1;
+/** The tilt a close look adds to the player's own: none at the view's distance, turning toward top-down as the camera closes in. */
+export function cameraTiltForZoom(tilt: number, zoom: CameraZoom): number {
+  const closeness = (1 - zoom.scale) / (1 - CAMERA_ZOOM_MINIMUM_SCALE);
+  return clampCameraTilt(tilt + CAMERA_ZOOM_FULL_TILT * Math.max(0, Math.min(1, closeness)));
 }
 
 /** The pose seen through a zoom. */
@@ -345,6 +350,64 @@ export function cameraZoomAfterPan(
   return keepZoomOverBoard(basePose, {
     scale: zoom.scale,
     offset: [zoom.offset[0] + from[0] - to[0], zoom.offset[1], zoom.offset[2] + from[2] - to[2]],
+  });
+}
+
+/*
+ * The zoom after a wheel turn at a spot on the canvas, given in normalised device coordinates.
+ * `poseAt` is the view's pose at a tilt. The camera turns as it closes in, so after scaling about the point under the pointer
+ * the look is slid until that point is under the pointer again.
+ */
+export function cameraZoomAfterWheelAt(
+  zoom: CameraZoom,
+  tilt: number,
+  poseAt: (tilt: number) => CameraPose,
+  spot: Readonly<{ ndcX: number; ndcY: number; aspectRatio: number; height: number }>,
+  deltaY: number,
+  deltaMode = 0
+): CameraZoom {
+  const pointAt = (look: CameraZoom) =>
+    tablePointUnder(
+      zoomedCameraPose(poseAt(cameraTiltForZoom(tilt, look)), look),
+      spot.aspectRatio,
+      spot.ndcX,
+      spot.ndcY,
+      spot.height
+    );
+  const before = poseAt(cameraTiltForZoom(tilt, zoom));
+  const anchor = pointAt(zoom) ?? zoomedCameraPose(before, zoom).target;
+  let next = cameraZoomAfterWheel(zoom, before, anchor, deltaY, deltaMode);
+  if (next.scale >= zoom.scale) {
+    return next;
+  }
+  for (let pass = 0; pass < 3; pass++) {
+    const landed = pointAt(next);
+    if (!landed) {
+      break;
+    }
+    next = keepZoomOverBoard(poseAt(cameraTiltForZoom(tilt, next)), {
+      scale: next.scale,
+      offset: [next.offset[0] + anchor[0] - landed[0], next.offset[1], next.offset[2] + anchor[2] - landed[2]],
+    });
+  }
+  return next;
+}
+
+/** A close look slid by the pan keys for `seconds`, in `direction` on the table: x to the right, z toward the viewer. */
+export function cameraZoomAfterKeys(
+  zoom: CameraZoom,
+  basePose: CameraPose,
+  direction: readonly [number, number],
+  seconds: number
+): CameraZoom {
+  if (zoom.scale >= 1) {
+    return zoom;
+  }
+  const length = Math.hypot(direction[0], direction[1]) || 1;
+  const step = (CAMERA_PAN_SPEED * zoom.scale * Math.min(seconds, 0.1)) / length;
+  return keepZoomOverBoard(basePose, {
+    scale: zoom.scale,
+    offset: [zoom.offset[0] + direction[0] * step, zoom.offset[1], zoom.offset[2] + direction[1] * step],
   });
 }
 

@@ -29,6 +29,8 @@ type ActivePress = {
   origin: 'table' | 'panel';
   dragging: boolean;
   draftObserved: boolean;
+  /* Where the pointer last was, so a carry can follow the camera moving under a still pointer. */
+  last?: Pick<PointerInput, 'clientX' | 'clientY'>;
 };
 
 /** Owns one table's active pointer from pickup through drop or cancellation. */
@@ -70,6 +72,20 @@ export class PointerSession {
 
   isDragging(pieceId: string) {
     return this.active?.pieceId === pieceId && this.active.dragging;
+  }
+
+  /** Moves a carried piece to the table point now under the still pointer, after the camera moved beneath it. */
+  refreshCarry() {
+    const active = this.active;
+    if (!active?.dragging || !active.last || !this.binding) {
+      return;
+    }
+    const controls = this.binding.read();
+    const piece = controls.piece(active.pieceId);
+    const point = piece ? controls.point(piece, active.last.clientX, active.last.clientY) : null;
+    if (point) {
+      controls.updateGesture(point);
+    }
   }
 
   reconcile() {
@@ -200,6 +216,9 @@ export class PointerSession {
     }
     if (!this.dragAfterThreshold(event)) {
       return;
+    }
+    if (this.active) {
+      this.active.last = { clientX: event.clientX, clientY: event.clientY };
     }
     const point = this.point(event);
     if (point) {

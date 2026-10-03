@@ -1,7 +1,7 @@
 import { pieceCount } from '@shared/play/model';
 import type { TablePiece } from '@shared/play/model';
 import { stackLayerItemIndex } from '@shared/play/pieceFlip';
-import { visibleLayerCount } from '@shared/play/tableGeometry';
+import { tokenBoxRatio, visibleLayerCount } from '@shared/play/tableGeometry';
 import { useEffect, useRef, useState } from 'react';
 import type { RefObject } from 'react';
 
@@ -90,6 +90,8 @@ export function PieceCloseUp({ area }: Readonly<{ area: RefObject<HTMLElement | 
     return null;
   }
   const isCard = piece.kind === 'card';
+  /* A disc token stays a disc, as it lies on the table. */
+  const round = !isCard && tokenBoxRatio(piece) == null;
   const width = isCard ? Math.round((CARD_HEIGHT_PX * card.width) / card.height) : TOKEN_SIZE_PX;
   const height = isCard ? CARD_HEIGHT_PX : TOKEN_SIZE_PX;
   const count = pieceCount(piece);
@@ -99,10 +101,17 @@ export function PieceCloseUp({ area }: Readonly<{ area: RefObject<HTMLElement | 
   const bounds = rect
     ? { left: rect.left, top: Math.max(rect.top, header?.bottom ?? 0), right: rect.right, bottom: rect.bottom }
     : { left: 0, top: 0, right: window.innerWidth, bottom: window.innerHeight };
-  const position = placeBeside(pointer, width, height + (count > 1 ? 40 : 16), bounds);
+  const position = placeBeside(pointer, width, height + (count > 1 && !round ? 40 : 16), bounds);
   return (
-    <div className={styles.closeUp} style={position} aria-hidden>
-      <PieceArtwork piece={piece} src={href} name={piece.label} width={width} height={height} radius="10px" />
+    <div className={styles.closeUp} data-round={round || undefined} style={position} aria-hidden>
+      <PieceArtwork
+        piece={piece}
+        src={href}
+        name={piece.label}
+        width={width}
+        height={height}
+        radius={round ? '50%' : '10px'}
+      />
       {count > 1 ? <div className={styles.closeUpCount}>×{count}</div> : null}
     </div>
   );

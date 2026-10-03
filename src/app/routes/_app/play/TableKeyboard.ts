@@ -24,6 +24,18 @@ type Binding = {
   read(): Controls;
 };
 
+/* The keys that slide a close look of the board, as a direction on the table: x to the right, z toward the viewer. */
+const PAN_KEYS: Record<string, readonly [number, number]> = {
+  w: [0, -1],
+  arrowup: [0, -1],
+  s: [0, 1],
+  arrowdown: [0, 1],
+  a: [-1, 0],
+  arrowleft: [-1, 0],
+  d: [1, 0],
+  arrowright: [1, 0],
+};
+
 /* A digit is the character typed, like every other table shortcut, so AZERTY's top row gives digits only with Shift. */
 function digitOf(event: KeyboardEvent) {
   return /^\d$/.test(event.key) ? Number(event.key) : null;
@@ -64,6 +76,9 @@ export class TableKeyboard {
   private drawTimer: ReturnType<typeof setTimeout> | null = null;
   private drawDigit: number | null = null;
   private drawCode = '';
+  private panAvailable = false;
+  private readonly panHeld = new Set<string>();
+  private readonly panListeners = new Set<() => void>();
 
   bind(binding: Binding) {
     this.release();
@@ -71,12 +86,48 @@ export class TableKeyboard {
     binding.events.addEventListener('keydown', this.keyDown);
     binding.events.addEventListener('keyup', this.keyUp);
     binding.events.addEventListener('blur', this.cancelDraw);
+    binding.events.addEventListener('blur', this.releasePan);
     return () => {
       if (this.binding === binding) {
         this.release();
       }
     };
   }
+
+  /** The camera reports here whether a close look is open, which is when the pan keys slide it. */
+  setPanAvailable(available: boolean) {
+    this.panAvailable = available;
+    if (!available) {
+      this.releasePan();
+    }
+  }
+
+  /** The direction the held pan keys point, on the table: x to the right, z toward the viewer. */
+  panDirection(): [number, number] {
+    let x = 0;
+    let z = 0;
+    for (const key of this.panHeld) {
+      x += PAN_KEYS[key][0];
+      z += PAN_KEYS[key][1];
+    }
+    return [Math.sign(x), Math.sign(z)];
+  }
+
+  /** Hears the pan keys going down or up, so a camera that draws on demand can start drawing. */
+  onPanChange(listener: () => void) {
+    this.panListeners.add(listener);
+    return () => {
+      this.panListeners.delete(listener);
+    };
+  }
+
+  private releasePan = () => {
+    if (this.panHeld.size === 0) {
+      return;
+    }
+    this.panHeld.clear();
+    this.panListeners.forEach((listener) => listener());
+  };
 
   /** The spice disc reports its hover here, and while it holds, a digit spawns spice instead of drawing. */
   hoverSpiceBank(hovered: boolean) {
@@ -89,6 +140,8 @@ export class TableKeyboard {
       return;
     }
     this.cancelDraw();
+    this.releasePan();
+    binding.events.removeEventListener('blur', this.releasePan);
     binding.events.removeEventListener('keydown', this.keyDown);
     binding.events.removeEventListener('keyup', this.keyUp);
     binding.events.removeEventListener('blur', this.cancelDraw);
@@ -98,6 +151,17 @@ export class TableKeyboard {
   private keyDown = (event: KeyboardEvent) => {
     const controls = this.binding?.read();
     if (!controls || hasModifier(event)) {
+      return;
+    }
+    const panKey = event.key.toLowerCase();
+    /* A focused control keeps its arrow keys, as a tab list does; the letters still slide the look, and only a text field keeps them. */
+    const panFocus = panKey.startsWith('arrow') ? 'table' : 'spiceBank';
+    if (this.panAvailable && panKey in PAN_KEYS && !focusKeepsKey(event.target, panFocus)) {
+      event.preventDefault();
+      if (!this.panHeld.has(panKey)) {
+        this.panHeld.add(panKey);
+        this.panListeners.forEach((listener) => listener());
+      }
       return;
     }
     const digit = digitOf(event);
@@ -113,6 +177,10 @@ export class TableKeyboard {
 
   /* The physical key that started the draw ends it, whatever it types by then, as AZERTY's Shift+& does coming up as "&" once Shift is let go; without a code, the typed digit still does. */
   private keyUp = (event: KeyboardEvent) => {
+    /* A key let go after Shift or a layout change may type another case; both forms end the pan. */
+    if (this.panHeld.delete(event.key.toLowerCase())) {
+      this.panListeners.forEach((listener) => listener());
+    }
     const sameKey = this.drawCode !== '' && event.code === this.drawCode;
     if (this.drawDigit !== null && (sameKey || digitOf(event) === this.drawDigit)) {
       this.cancelDraw();

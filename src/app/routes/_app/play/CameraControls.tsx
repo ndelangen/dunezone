@@ -1,7 +1,7 @@
 import { OrbitControls } from '@react-three/drei/webgpu';
 import { useFrame, useThree } from '@react-three/fiber/webgpu';
 import type { Vector3Tuple } from '@shared/play/model';
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useContext, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { ComponentRef } from 'react';
 import { Fog, Vector3 } from 'three';
 import type { Camera } from 'three';
@@ -13,15 +13,17 @@ import {
   cameraTiltAfterWheel,
   cameraViewTransitionProgress,
   cameraZoomAfterPan,
-  cameraZoomAfterWheel,
+  cameraTiltForZoom,
+  cameraZoomAfterKeys,
+  cameraZoomAfterWheelAt,
   mapViewTopLimitForViewport,
   NO_CAMERA_ZOOM,
   tablePointUnder,
-  wheelTurnZooms,
   zoomedCameraPose,
 } from './playView';
 import type { CameraPose, CameraViewCommand, CameraZoom } from './playView';
 import { usePointerSession } from './PointerSessionContext';
+import { TableKeyboardContext } from './TableKeyboardContext';
 import { useTableDragPan } from './tablePan';
 import { useTabletopReader } from './TabletopContext';
 import { watchTwoFingerTilt } from './twoFingerTilt';
@@ -200,16 +202,6 @@ function applyCameraDestination(
 
 type WheelView = Readonly<{ tilt: number; zoom: CameraZoom; zoomRevision: number }>;
 
-/** The pose a zoom was applied to, recovered from the zoomed pose. */
-function unzoomedPose(pose: CameraPose, zoom: CameraZoom): CameraPose {
-  const undo = (point: Vector3Tuple): Vector3Tuple => [
-    (point[0] - zoom.offset[0]) / zoom.scale,
-    (point[1] - zoom.offset[1]) / zoom.scale,
-    (point[2] - zoom.offset[2]) / zoom.scale,
-  ];
-  return { position: undo(pose.position), target: undo(pose.target) };
-}
-
 /** Where a client point lies on the canvas, as normalised device coordinates and the canvas's aspect ratio. */
 function canvasPoint(surface: HTMLElement, clientX: number, clientY: number) {
   const bounds = surface.getBoundingClientRect();
@@ -220,16 +212,21 @@ function canvasPoint(surface: HTMLElement, clientX: number, clientY: number) {
   };
 }
 
+type PoseAt = { current: ((tilt: number) => CameraPose) | null };
+
 /*
- * The player's tilt, from the approved angle toward top-down, and then a close look at the board, both steered by the wheel while the camera is free.
- * Scrolling down tilts to top-down and then moves in toward the point under the pointer; scrolling up backs out and then tilts back.
- * Two fingers over the board steer the tilt alone. `pose` is the camera's latest destination, which places the point under the pointer.
+ * A close look at the board, steered by the wheel while the camera is free: scrolling down moves in toward the point under the pointer,
+ * turning toward top-down as it goes, and scrolling up backs out to the view's own distance and angle.
+ * While a close look is open, the pan keys slide it, during a carry too, and a trial switch lets dragging empty board slide it.
+ * Two fingers over the board still steer the tilt at the view's own distance. `poseAt` is the view's pose at a tilt.
  */
-function useWheelView(enabled: boolean, viewKey: string, pose: { current: CameraPose | null }): WheelView {
+function useCloseLook(enabled: boolean, viewKey: string, poseAt: PoseAt): WheelView {
   const [view, setView] = useState<WheelView>({ tilt: 0, zoom: NO_CAMERA_ZOOM, zoomRevision: 0 });
   /* Only the board itself listens, so a scrollable panel or label over the table keeps its own wheel. */
   const surface = useThree((state) => state.renderer.domElement);
+  const invalidate = useThree((state) => state.invalidate);
   const pointerSession = usePointerSession();
+  const keyboard = useContext(TableKeyboardContext);
 
   /* A new view, chosen or the phase's, starts from that view's own distance. */
   useLayoutEffect(() => {
@@ -262,54 +259,79 @@ function useWheelView(enabled: boolean, viewKey: string, pose: { current: Camera
         return;
       }
       event.preventDefault();
-      const { ndcX, ndcY, aspectRatio } = canvasPoint(surface, event.clientX, event.clientY);
+      const spot = { ...canvasPoint(surface, event.clientX, event.clientY), height: ZOOM_ANCHOR_HEIGHT };
       setView((current) => {
-        if (!wheelTurnZooms(current.tilt, current.zoom, event.deltaY)) {
-          return { ...current, tilt: cameraTiltAfterWheel(current.tilt, event.deltaY, event.deltaMode) };
-        }
-        const shown = pose.current;
-        if (!shown) {
+        const at = poseAt.current;
+        if (!at) {
           return current;
         }
-        /* The anchor is found on the pose the camera is heading to, so turns in quick succession agree on what is under the pointer. */
-        const anchor = tablePointUnder(shown, aspectRatio, ndcX, ndcY, ZOOM_ANCHOR_HEIGHT);
-        const zoom = cameraZoomAfterWheel(
-          current.zoom,
-          unzoomedPose(shown, current.zoom),
-          anchor ?? [...shown.target],
-          event.deltaY,
-          event.deltaMode
-        );
+        const zoom = cameraZoomAfterWheelAt(current.zoom, current.tilt, at, spot, event.deltaY, event.deltaMode);
         return { ...current, zoom, zoomRevision: current.zoomRevision + 1 };
       });
     };
     surface.addEventListener('wheel', onWheel, { passive: false });
     return () => surface.removeEventListener('wheel', onWheel);
-  }, [enabled, pose, surface]);
+  }, [enabled, poseAt, surface]);
+
+  const zoomedIn = view.zoom.scale < 1;
+  /* The look as last drawn, for a grab that starts between renders. */
+  const shownView = useRef(view);
+  useLayoutEffect(() => {
+    shownView.current = view;
+  });
+
+  /* The pan keys answer only while a close look is open; otherwise their letters stay free. */
+  useEffect(() => {
+    if (!keyboard) {
+      return;
+    }
+    keyboard.setPanAvailable(zoomedIn);
+    const stopListening = keyboard.onPanChange(invalidate);
+    return () => {
+      stopListening();
+      keyboard.setPanAvailable(false);
+    };
+  }, [invalidate, keyboard, zoomedIn]);
+
+  useFrame((_, delta) => {
+    const direction = keyboard?.panDirection();
+    if (!zoomedIn || !direction || (direction[0] === 0 && direction[1] === 0)) {
+      return;
+    }
+    setView((current) => {
+      const at = poseAt.current;
+      if (!at) {
+        return current;
+      }
+      const base = at(cameraTiltForZoom(current.tilt, current.zoom));
+      return { ...current, zoom: cameraZoomAfterKeys(current.zoom, base, direction, delta) };
+    });
+    invalidate();
+  });
 
   /* A trial: dragging empty board while zoomed in slides the close look, keeping the grabbed spot under the pointer. */
   const dragPan = useTableDragPan();
   const readTable = useTabletopReader();
-  const zoomedIn = view.zoom.scale < 1;
   useEffect(() => {
     if (!enabled || !dragPan || !zoomedIn) {
       return;
     }
-    const pointUnder = (event: PointerEvent) => {
-      const shown = pose.current;
-      if (!shown) {
+    let grab: { pointerId: number; point: Vector3Tuple } | null = null;
+    const pointUnder = (event: PointerEvent, look: WheelView) => {
+      const at = poseAt.current;
+      if (!at) {
         return null;
       }
       const { ndcX, ndcY, aspectRatio } = canvasPoint(surface, event.clientX, event.clientY);
-      return tablePointUnder(shown, aspectRatio, ndcX, ndcY, ZOOM_ANCHOR_HEIGHT);
+      const pose = zoomedCameraPose(at(cameraTiltForZoom(look.tilt, look.zoom)), look.zoom);
+      return tablePointUnder(pose, aspectRatio, ndcX, ndcY, ZOOM_ANCHOR_HEIGHT);
     };
-    let grab: { pointerId: number; point: Vector3Tuple } | null = null;
     const onDown = (event: PointerEvent) => {
       const table = readTable();
       if (event.button !== 0 || table.hoveredPieceId || table.state.draftMove) {
         return;
       }
-      const point = pointUnder(event);
+      const point = pointUnder(event, shownView.current);
       if (point) {
         grab = { pointerId: event.pointerId, point };
         surface.style.cursor = 'grabbing';
@@ -319,17 +341,15 @@ function useWheelView(enabled: boolean, viewKey: string, pose: { current: Camera
       if (!grab || event.pointerId !== grab.pointerId) {
         return;
       }
-      const to = pointUnder(event);
       const from = grab.point;
-      if (!to) {
-        return;
-      }
       setView((current) => {
-        const shown = pose.current;
-        if (!shown) {
+        const at = poseAt.current;
+        const to = pointUnder(event, current);
+        if (!at || !to) {
           return current;
         }
-        return { ...current, zoom: cameraZoomAfterPan(current.zoom, unzoomedPose(shown, current.zoom), from, to) };
+        const base = at(cameraTiltForZoom(current.tilt, current.zoom));
+        return { ...current, zoom: cameraZoomAfterPan(current.zoom, base, from, to) };
       });
     };
     const onUp = (event: PointerEvent) => {
@@ -349,7 +369,7 @@ function useWheelView(enabled: boolean, viewKey: string, pose: { current: Camera
       window.removeEventListener('pointercancel', onUp);
       surface.style.cursor = '';
     };
-  }, [dragPan, enabled, pose, readTable, surface, zoomedIn]);
+  }, [dragPan, enabled, poseAt, readTable, surface, zoomedIn]);
 
   return view;
 }
@@ -395,8 +415,10 @@ function useSeatedCameraTransition({ command, enabled, mapFramingPoints }: Seate
     glide: null,
   });
   const { camera, invalidate, renderer, size } = useThree();
-  const destinationPose = useRef<CameraPose | null>(null);
-  const { tilt, zoom, zoomRevision } = useWheelView(enabled, `${command.view}:${command.revision}`, destinationPose);
+  const poseAt = useRef<((tilt: number) => CameraPose) | null>(null);
+  const pointerSession = usePointerSession();
+  const { tilt: playerTilt, zoom, zoomRevision } = useCloseLook(enabled, `${command.view}:${command.revision}`, poseAt);
+  const tilt = cameraTiltForZoom(playerTilt, zoom);
   const aspectRatio = size.width / Math.max(1, size.height);
   const glidingRevision = useRef(zoomRevision);
 
@@ -410,6 +432,7 @@ function useSeatedCameraTransition({ command, enabled, mapFramingPoints }: Seate
   useLayoutEffect(() => {
     const controls = controlsRef.current;
     const mapTopLimit = mapViewTopLimitForViewport(size.height, headerHeight);
+    poseAt.current = (atTilt) => cameraPoseFor(command.view, aspectRatio, mapFramingPoints, mapTopLimit, atTilt);
     const destination = cameraDestinationFor(
       { view: command.view, revision: command.revision },
       aspectRatio,
@@ -418,21 +441,22 @@ function useSeatedCameraTransition({ command, enabled, mapFramingPoints }: Seate
       tilt,
       zoom
     );
-    destinationPose.current = {
-      position: destination.toPosition.toArray(),
-      target: destination.toTarget.toArray(),
-    };
     const glide = glidingRevision.current !== zoomRevision;
     glidingRevision.current = zoomRevision;
-    if (!enabled) {
+    /* While a piece is carried the view holds, except that the pan keys may slide a close look of this same view. */
+    const sameView = destination.commandKey === playback.current.appliedCommandKey;
+    if (!enabled && !sameView) {
       playback.current.transition = null;
       return;
     }
     if (!controls) {
       return;
     }
-    const changed = applyCameraDestination(camera, controls, playback.current, destination, glide);
+    const changed = applyCameraDestination(camera, controls, playback.current, destination, glide && enabled);
     if (changed) {
+      camera.updateMatrixWorld();
+      /* A carried piece stays under the still pointer as the board slides beneath it. */
+      pointerSession.refreshCarry();
       invalidate();
     }
   }, [
@@ -444,6 +468,7 @@ function useSeatedCameraTransition({ command, enabled, mapFramingPoints }: Seate
     headerHeight,
     invalidate,
     mapFramingPoints,
+    pointerSession,
     size.height,
     tilt,
     zoom,
