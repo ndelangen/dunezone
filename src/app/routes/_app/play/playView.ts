@@ -261,6 +261,8 @@ export type CameraZoom = Readonly<{ scale: number; offset: Vector3Tuple }>;
 export const NO_CAMERA_ZOOM: CameraZoom = { scale: 1, offset: [0, 0, 0] };
 /* The closest look, as a share of the view's distance. The camera also turns toward top-down as it closes in, which costs some of the gain. */
 const CAMERA_ZOOM_MINIMUM_SCALE = 0.2;
+/* The nearest the orbit controls let the camera come to its target: well inside the closest look of any view, so every look's pose is reached, not clamped short of it. */
+export const CAMERA_CLOSEST_DISTANCE = 1;
 /* How far toward top-down the closest look turns: most of the way, while every wheel notch still brings the board closer. */
 const CAMERA_ZOOM_FULL_TILT = 0.85;
 /*

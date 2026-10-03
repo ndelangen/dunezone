@@ -7,6 +7,7 @@ import { Fog, Vector3 } from 'three';
 import type { Camera } from 'three';
 
 import {
+  CAMERA_CLOSEST_DISTANCE,
   CAMERA_TOP_DOWN_POLAR_ANGLE,
   cameraFogRange,
   cameraPoseFor,
@@ -448,7 +449,7 @@ export function CameraControls(props: SeatedCameraProps) {
       enablePan={false}
       enableRotate={false}
       enableZoom={false}
-      minDistance={2}
+      minDistance={CAMERA_CLOSEST_DISTANCE}
       maxDistance={96}
       minPolarAngle={CAMERA_TOP_DOWN_POLAR_ANGLE}
       maxPolarAngle={1.08}
