@@ -98,41 +98,58 @@ class DashWalk {
   }
 }
 
+/* Lays a dash pattern along a polyline, one segment at a time, collecting the drawn runs. */
+class DashCutter {
+  readonly runs: Vector2[][] = [];
+  private current: Vector2[] | null;
+
+  constructor(
+    private readonly walk: DashWalk,
+    first: Vector2
+  ) {
+    this.current = walk.drawing ? [first.clone()] : null;
+  }
+
+  /* A dash or a gap ends at this point: a dash closes into a run, a gap opens the next dash. */
+  private cut(point: Vector2) {
+    if (this.current) {
+      this.current.push(point);
+      this.finish();
+    } else {
+      this.current = [point];
+    }
+    this.walk.next();
+  }
+
+  along(start: Vector2, end: Vector2) {
+    const length = start.distanceTo(end);
+    let travelled = 0;
+    while (length - travelled > this.walk.remaining) {
+      travelled += this.walk.remaining;
+      this.cut(start.clone().lerp(end, travelled / length));
+    }
+    this.walk.remaining -= length - travelled;
+    this.current?.push(end.clone());
+  }
+
+  finish() {
+    if (this.current && this.current.length > 1) {
+      this.runs.push(this.current);
+    }
+    this.current = null;
+  }
+}
+
 /* Cuts a polyline into its drawn dashes. */
 function dashedRuns(points: readonly Vector2[], pattern: DashPattern): Vector2[][] {
   const walk = new DashWalk(pattern.dashes);
   walk.skip(pattern.offset);
-  const runs: Vector2[][] = [];
-  let current: Vector2[] | null = walk.drawing ? [points[0].clone()] : null;
-  const endRun = (cut: Vector2) => {
-    current?.push(cut);
-    if (current && current.length > 1) {
-      runs.push(current);
-    }
-  };
+  const cutter = new DashCutter(walk, points[0]);
   for (let segment = 1; segment < points.length; segment++) {
-    const start = points[segment - 1];
-    const end = points[segment];
-    const length = start.distanceTo(end);
-    let travelled = 0;
-    while (length - travelled > walk.remaining) {
-      travelled += walk.remaining;
-      const cut = start.clone().lerp(end, travelled / length);
-      if (current) {
-        endRun(cut);
-        current = null;
-      } else {
-        current = [cut];
-      }
-      walk.next();
-    }
-    walk.remaining -= length - travelled;
-    current?.push(end.clone());
+    cutter.along(points[segment - 1], points[segment]);
   }
-  if (current && current.length > 1) {
-    runs.push(current);
-  }
-  return runs;
+  cutter.finish();
+  return cutter.runs;
 }
 
 function shapeTriangles(shape: Shape): number[] {
@@ -166,7 +183,10 @@ function fillLayer(path: ShapePath, style: Style, opacity: number): Layer {
 }
 
 function strokeLayer(path: ShapePath, style: Style, opacity: number): Layer {
-  const paint = { color: new Color().setStyle(String(style.stroke)), alpha: Number(style.strokeOpacity ?? 1) * opacity };
+  const paint = {
+    color: new Color().setStyle(String(style.stroke)),
+    alpha: Number(style.strokeOpacity ?? 1) * opacity,
+  };
   const pattern = dashPattern(path.userData?.node as Element | undefined);
   const positions = path.subPaths.flatMap((subPath) => {
     const points = subPath.getPoints(CURVE_SEGMENTS);
@@ -176,9 +196,17 @@ function strokeLayer(path: ShapePath, style: Style, opacity: number): Layer {
   return { positions, paint };
 }
 
+function shown(style: Style | undefined): style is Style {
+  return style !== undefined && style.visibility !== 'hidden' && style.display !== 'none';
+}
+
+function stroked(style: Style) {
+  return painted(style.stroke) && Number(style.strokeWidth) > 0;
+}
+
 function pathLayers(path: ShapePath): Layer[] {
   const style = path.userData?.style as Style | undefined;
-  if (!style || style.visibility === 'hidden' || style.display === 'none') {
+  if (!shown(style)) {
     return [];
   }
   const opacity = typeof style.opacity === 'number' ? style.opacity : 1;
@@ -186,7 +214,7 @@ function pathLayers(path: ShapePath): Layer[] {
   if (painted(style.fill)) {
     layers.push(fillLayer(path, style, opacity));
   }
-  if (painted(style.stroke) && Number(style.strokeWidth) > 0) {
+  if (stroked(style)) {
     layers.push(strokeLayer(path, style, opacity));
   }
   return layers;
