@@ -47,6 +47,12 @@ function urlElement(entry: SitemapPage['entries'][number]): string {
   return `<url>${location(entry.pathname)}${entry.lastmod ? `<lastmod>${escapeXml(entry.lastmod)}</lastmod>` : ''}</url>`;
 }
 
+function assertCapacity(count: number, bytes: number): void {
+  if (count > MAX_URLS || bytes > MAX_BYTES) {
+    throw new Error('Sitemap capacity exceeded');
+  }
+}
+
 async function collectionXml(collection: string, load: LoadPage, signal: AbortSignal): Promise<Response> {
   const entries: string[] = [];
   const encoder = new TextEncoder();
@@ -58,9 +64,7 @@ async function collectionXml(collection: string, load: LoadPage, signal: AbortSi
     const xml = page.entries.map(urlElement).join('');
     count += page.entries.length;
     bytes += encoder.encode(xml).byteLength;
-    if (count > MAX_URLS || bytes > MAX_BYTES) {
-      throw new Error('Sitemap capacity exceeded');
-    }
+    assertCapacity(count, bytes);
     entries.push(xml);
     if (page.cursor === null) {
       return xmlResponse(document('urlset', entries.join('')), batch + 1);
