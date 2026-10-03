@@ -111,8 +111,27 @@
   cursor: grab;
 }
 
-.peekDeckCard[data-dragging] {
-  opacity: 0.4;
+.peekDeckCard {
+  position: relative;
+  user-select: none;
+}
+
+/* While a card is carried, the cards it passes slide aside; the carried card follows the pointer exactly. */
+.peekDeck[data-sorting] .peekDeckCard:not([data-held]) {
+  transition: transform 140ms ease-out;
+}
+
+.peekDeckCard[data-held] {
+  z-index: 1;
+  scale: 1.05;
+  cursor: grabbing;
+  filter: drop-shadow(0 12px 18px rgb(0 0 0 / 55%));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .peekDeck[data-sorting] .peekDeckCard:not([data-held]) {
+    transition: none;
+  }
 }
 
 .peekDeckPlace {
@@ -123,6 +142,8 @@
 
 .peekDeckHandle {
   border-radius: 10px;
+  touch-action: none;
+  cursor: grab;
 }
 
 .peekDeckHandle:focus-visible {
