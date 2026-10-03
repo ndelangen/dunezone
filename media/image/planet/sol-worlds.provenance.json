@@ -1,0 +1,227 @@
+{
+  "generation": "AI adaptations of official mission imagery using GF9 planet artwork as a style reference. These are not official NASA or GF9 illustrations.",
+  "approval": "The user approved all twenty proposals on 2026-10-03.",
+  "processing": "Approved transparent PNG bytes copied unchanged. Runtime sizes use the standard proportional image pipeline.",
+  "images": [
+    {
+      "name": "Mercury",
+      "type": "Planet",
+      "parent": "Sun",
+      "asset": "/image/planet/familiar-worlds/mercury.png",
+      "reference": "https://science.nasa.gov/mercury/",
+      "referenceImage": "https://science.nasa.gov/wp-content/uploads/2023/11/mercury-messenger-globe-pia15162.jpg",
+      "referenceCredit": "NASA / mission image",
+      "colorNotes": "Mission image adapted to a stylized boardgame palette.",
+      "sourceSha256": "e81f67c0423618d644faa01339340a83d46da870de4af81db400814ee52fcc81"
+    },
+    {
+      "name": "Venus",
+      "type": "Planet",
+      "parent": "Sun",
+      "asset": "/image/planet/familiar-worlds/venus.png",
+      "reference": "https://science.nasa.gov/photojournal/venus-from-mariner-10/",
+      "referenceImage": "https://assets.science.nasa.gov/dynamicimage/assets/science/psd/photojournal/pia/pia23/pia23791/figures/PIA23791_fig1.jpg",
+      "referenceCredit": "NASA/JPL-Caltech",
+      "colorNotes": "Mariner 10 orange and ultraviolet camera data reprocessed to approximate natural appearance. Cloud markings are more visible than to the unaided eye. No radar surface. Use soft creamy white clouds.",
+      "sourceSha256": "786ac554bf91d6566dfaed169d89f686ad2e48bcab629cedeaefd93581dbfcd0"
+    },
+    {
+      "name": "Mars",
+      "type": "Planet",
+      "parent": "Sun",
+      "asset": "/image/planet/familiar-worlds/mars.png",
+      "reference": "https://science.nasa.gov/mars/",
+      "referenceImage": "https://assets.science.nasa.gov/content/dam/science/psd/mars/resources/detail_files/7/7668_Mars-viking-2-orbiter-global-view-partial-valles-marinares-PIA04304-full2.jpg/jcr:content/renditions/cq5dam.web.1280.1280.jpeg",
+      "referenceCredit": "NASA / mission image",
+      "colorNotes": "Mission image adapted to a stylized boardgame palette.",
+      "sourceSha256": "175a34c419eb30ede4b968dc301836a31625010176eba259e14e30e229d55ebe"
+    },
+    {
+      "name": "Jupiter",
+      "type": "Planet",
+      "parent": "Sun",
+      "asset": "/image/planet/familiar-worlds/jupiter.png",
+      "reference": "https://science.nasa.gov/asset/hubble/jupiter-2019/",
+      "referenceImage": "https://assets.science.nasa.gov/content/dam/science/missions/hubble/releases/2019/08/STScI-01EVSV9JYWYARC4A8336KMKNTQ.tif/jcr:content/renditions/cq5dam.web.1280.1280.jpeg",
+      "referenceCredit": "NASA, ESA, A. Simon (Goddard Space Flight Center), and M. H. Wong (University of California, Berkeley)",
+      "colorNotes": "Official Hubble WFC3 composite from visible narrowband filters, June 2019. Equatorial belts and Great Red Spot are visible.",
+      "sourceSha256": "8fb74a972ec6404cc94ac16d1950f5e10201e6f9fc2d905cbfca62b8e223597a"
+    },
+    {
+      "name": "Saturn",
+      "type": "Planet",
+      "parent": "Sun",
+      "asset": "/image/planet/familiar-worlds/saturn.png",
+      "reference": "https://science.nasa.gov/photojournal/saturn-four-years-on/",
+      "referenceImage": "https://images-assets.nasa.gov/image/PIA11141/PIA11141~orig.jpg",
+      "referenceCredit": "NASA/JPL/Space Science Institute",
+      "colorNotes": "Natural-color Cassini mosaic of red, green and blue images from July 23, 2008. Entire planet and rings visible at low ring opening angle. Omit tiny background moons from adaptation.",
+      "sourceSha256": "1f942c0878269b87cce900f02b8a00307ee180ba693397c3763cd30da942f0ae"
+    },
+    {
+      "name": "Uranus",
+      "type": "Planet",
+      "parent": "Sun",
+      "asset": "/image/planet/familiar-worlds/uranus.png",
+      "reference": "https://science.nasa.gov/uranus/",
+      "referenceImage": "https://images-assets.nasa.gov/image/PIA18182/PIA18182~orig.jpg",
+      "referenceCredit": "NASA / mission image",
+      "colorNotes": "Mission image adapted to a stylized boardgame palette.",
+      "sourceSha256": "11ef1996f61f14e430ebbd6f89a81f99a09c88a28d9ccaa83a67a43cc61f8405"
+    },
+    {
+      "name": "Neptune",
+      "type": "Planet",
+      "parent": "Sun",
+      "asset": "/image/planet/familiar-worlds/neptune.png",
+      "reference": "https://science.nasa.gov/neptune/",
+      "referenceImage": "https://assets.science.nasa.gov/content/dam/science/psd/solar/2023/09/p/i/a/0/PIA01492-1.jpg/jcr:content/renditions/cq5dam.web.1280.1280.jpeg",
+      "referenceCredit": "NASA / mission image",
+      "colorNotes": "Voyager reference uses processed colors. The blue artwork is stylized, not a true-color measurement.",
+      "sourceSha256": "053f5d5c3a65efc4b1b97de3fde942e3a89fc7358bb68b46a6eddb0bcccee2f0"
+    },
+    {
+      "name": "Pluto",
+      "type": "Dwarf planet",
+      "parent": "Sun",
+      "asset": "/image/planet/familiar-worlds/pluto.png",
+      "reference": "https://www.nasa.gov/image-article/10-years-ago-nasas-new-horizons-captures-plutos-heart/",
+      "referenceImage": "https://www.nasa.gov/wp-content/uploads/2025/07/big-p-color-2-true-color1.png",
+      "referenceCredit": "NASA / mission image",
+      "colorNotes": "Mission image adapted to a stylized boardgame palette.",
+      "sourceSha256": "8574ff71305ce38916cd847d2a056e6761ce9eef67a75fd0890145cbd162bb7c"
+    },
+    {
+      "name": "Moon (Luna)",
+      "type": "moon",
+      "parent": "Earth",
+      "asset": "/image/planet/familiar-worlds/luna.png",
+      "reference": "https://science.nasa.gov/resource/lunar-near-side/",
+      "referenceImage": "https://assets.science.nasa.gov/content/dam/science/psd/solar/2023/09/l/lro_nearside_800.jpg/jcr:content/renditions/cq5dam.web.1280.1280.jpeg",
+      "referenceCredit": "NASA/Goddard Space Flight Center/Arizona State University",
+      "colorNotes": "LRO camera-data mosaic of the near side.",
+      "sourceSha256": "cfafd22dc17e2b7144489116385964cad9296b50b27f9edf3476098c80282385"
+    },
+    {
+      "name": "Phobos",
+      "type": "moon",
+      "parent": "Mars",
+      "asset": "/image/planet/familiar-worlds/phobos.png",
+      "reference": "https://science.nasa.gov/resource/martian-moon-phobos/",
+      "referenceImage": "https://images-assets.nasa.gov/image/PIA10368/PIA10368~orig.jpg",
+      "referenceCredit": "NASA/JPL-Caltech/University of Arizona",
+      "colorNotes": "Blue-green, red and near-infrared composite; colors accentuate material differences.",
+      "sourceSha256": "5b2c1bd27906c6f58260b11b19733142474c3fe8f0218f1efc2e5be178a5d0da"
+    },
+    {
+      "name": "Io",
+      "type": "moon",
+      "parent": "Jupiter",
+      "asset": "/image/planet/familiar-worlds/io.png",
+      "reference": "https://science.nasa.gov/resource/global-image-of-io-true-color/",
+      "referenceImage": "https://images-assets.nasa.gov/image/PIA02308/PIA02308~orig.jpg",
+      "referenceCredit": "NASA/JPL/University of Arizona",
+      "colorNotes": "Near-infrared, green and violet mosaic approximates human vision.",
+      "sourceSha256": "0c646036c2e352bbf2de8c0dfd6ea586d9e62b6472b76f99e01ec4b125c6a77e"
+    },
+    {
+      "name": "Europa",
+      "type": "moon",
+      "parent": "Jupiter",
+      "asset": "/image/planet/familiar-worlds/europa.png",
+      "reference": "https://science.nasa.gov/photojournal/pj-natural-and-false-color-views-of-europa/",
+      "referenceImage": "https://images-assets.nasa.gov/image/PIA00502/PIA00502~orig.jpg",
+      "referenceCredit": "NASA/JPL/DLR",
+      "colorNotes": "Two panels. Use LEFT panel, approximate natural color; right panel is false color.",
+      "sourceSha256": "5c4a5aed3fb0761155aec1c927fc0f7885ae5ceaf9a77038187b0659e97d6252"
+    },
+    {
+      "name": "Ganymede",
+      "type": "moon",
+      "parent": "Jupiter",
+      "asset": "/image/planet/familiar-worlds/ganymede.png",
+      "reference": "https://science.nasa.gov/resource/ganymede-galileo/",
+      "referenceImage": "https://images-assets.nasa.gov/image/PIA00716/PIA00716~orig.jpg",
+      "referenceCredit": "NASA/JPL",
+      "colorNotes": "Natural-color Galileo composite.",
+      "sourceSha256": "81ea577e68c0f3f2be494ef7c41954fa46019b78f138af7034f739242e1b505e"
+    },
+    {
+      "name": "Callisto",
+      "type": "moon",
+      "parent": "Jupiter",
+      "asset": "/image/planet/familiar-worlds/callisto.png",
+      "reference": "https://science.nasa.gov/photojournal/global-callisto-in-color/",
+      "referenceImage": "https://images-assets.nasa.gov/image/PIA03456/PIA03456~orig.jpg",
+      "referenceCredit": "NASA/JPL/DLR",
+      "colorNotes": "Global color Galileo image; source does not label it true color.",
+      "sourceSha256": "8419deaae8e61a2a1288f10677c063b9d62dab630b8da56520d769a34ae956f9"
+    },
+    {
+      "name": "Titan",
+      "type": "moon",
+      "parent": "Saturn",
+      "asset": "/image/planet/familiar-worlds/titan.png",
+      "reference": "https://www.jpl.nasa.gov/images/pia06230-cassinis-view-of-titan-natural-color-composite/",
+      "referenceImage": "https://images-assets.nasa.gov/image/PIA06230/PIA06230~orig.jpg",
+      "referenceCredit": "NASA/JPL/Space Science Institute",
+      "colorNotes": "Natural-color Cassini composite approximating the human-eye view.",
+      "sourceSha256": "9ff52c67c30c09fe1f26aaa3a41073ab03fd6e86b76e2379f3dd11efdcb306c5"
+    },
+    {
+      "name": "Enceladus",
+      "type": "moon",
+      "parent": "Saturn",
+      "asset": "/image/planet/familiar-worlds/enceladus.png",
+      "reference": "https://photojournal.jpl.nasa.gov/catalog/PIA06254",
+      "referenceImage": "https://images-assets.nasa.gov/image/PIA06254/PIA06254~orig.jpg",
+      "referenceCredit": "NASA/JPL/Space Science Institute",
+      "colorNotes": "False-color Cassini UV-to-infrared mosaic. Blue fractures are emphasized by processing.",
+      "sourceSha256": "f1aadf66dd41239d6d7e39526a4a0d935388c6b1ec2c4bcf3804cf812593d41d"
+    },
+    {
+      "name": "Mimas",
+      "type": "moon",
+      "parent": "Saturn",
+      "asset": "/image/planet/familiar-worlds/mimas.png",
+      "reference": "https://science.nasa.gov/photojournal/flying-by-the-death-star-moon/",
+      "referenceImage": "https://images-assets.nasa.gov/image/PIA12570/PIA12570~orig.jpg",
+      "referenceCredit": "NASA/JPL-Caltech/Space Science Institute",
+      "colorNotes": "Cassini visible-light monochrome mosaic.",
+      "sourceSha256": "a0ae392374e271ebd7e3216aeedc4cd491f0d12d0be4e21178c9894fd28653cd"
+    },
+    {
+      "name": "Iapetus",
+      "type": "moon",
+      "parent": "Saturn",
+      "asset": "/image/planet/familiar-worlds/iapetus.png",
+      "reference": "https://science.nasa.gov/photojournal/the-other-side-of-iapetus/",
+      "referenceImage": "https://images-assets.nasa.gov/image/PIA08384/PIA08384~orig.jpg",
+      "referenceCredit": "NASA/JPL/Space Science Institute",
+      "colorNotes": "False-color Cassini mosaic; dark terrain is less red-brown in true color.",
+      "sourceSha256": "939524ec3294a79e8c30fb9b24cbb3d7c7e02afbcfe3f045b26e8e92a7e9db92"
+    },
+    {
+      "name": "Triton",
+      "type": "moon",
+      "parent": "Neptune",
+      "asset": "/image/planet/familiar-worlds/triton.png",
+      "reference": "https://science.nasa.gov/photojournal/global-color-mosaic-of-triton/",
+      "referenceImage": "https://images-assets.nasa.gov/image/PIA00317/PIA00317~orig.jpg",
+      "referenceCredit": "NASA/JPL/USGS",
+      "colorNotes": "Synthesized color from orange, violet and ultraviolet images; not literal naked-eye color.",
+      "sourceSha256": "9d46330cd8012862b6231eec3df2bd37771d0f9e0337f4edd6f01eb3757e03b3"
+    },
+    {
+      "name": "Charon",
+      "type": "moon",
+      "parent": "Pluto",
+      "asset": "/image/planet/familiar-worlds/charon.png",
+      "reference": "https://science.nasa.gov/photojournal/charon-in-enhanced-color/",
+      "referenceImage": "https://images-assets.nasa.gov/image/PIA19968/PIA19968~orig.jpg",
+      "referenceCredit": "NASA/Johns Hopkins University Applied Physics Laboratory/Southwest Research Institute",
+      "colorNotes": "Enhanced color using blue, red and infrared imagery.",
+      "sourceSha256": "5e1ffb2b8641614212402424f35656f487ee9a8b5a79a11ba87314ca6d90d5d9"
+    }
+  ]
+}
