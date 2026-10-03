@@ -15,6 +15,7 @@ import { publicControlsSchema, publicActionSchema, spawnSelectionSchema, spawnCo
 import { logEntrySchema, logTabSchema } from './log';
 import type { TableState } from './model';
 import { seatActionSchema } from './participation';
+import { peekActionSchema, peekSchema } from './peeking';
 import { TABLE_PHASES } from './phases';
 import type { TablePhaseId } from './phases';
 import { removalActionSchema, removalVoteSchema } from './removal';
@@ -82,6 +83,8 @@ export const gameSnapshotSchema = z.object({
   battle: publicBattleSchema.nullable().optional(),
   battlePlan: battlePlanSchema.nullable().optional(),
   hand: z.array(pieceSchema).optional(),
+  /* The piece the viewer's faction is peeking at, faces showing; no other viewer's frame carries it. */
+  peek: peekSchema.nullable().optional(),
   factionArtwork: factionArtworkSchema.optional(),
   /* Wire key, kept as `combatFaces` for clients and recordings; the glossary says battle. */
   combatFaces: z.record(z.string(), z.array(battleFaceSchema)).optional(),
@@ -141,6 +144,7 @@ const pieceActionSchema = z.discriminatedUnion('kind', [
   ...setupActionSchema.options,
   ...tableActionSchema.options,
   ...deckActionSchema.options,
+  ...peekActionSchema.options,
 ]);
 export type PieceAction = z.infer<typeof pieceActionSchema>;
 export const clientMessageSchema = z.discriminatedUnion('type', [

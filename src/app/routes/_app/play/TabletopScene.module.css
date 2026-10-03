@@ -54,3 +54,78 @@
   font-variant-numeric: tabular-nums;
   color: #f4e6c8;
 }
+
+/* A peek, held up to the peeker alone: flat faces over the table, as a close look shows them. */
+.peek {
+  position: absolute;
+  top: 58%;
+  left: 50%;
+  z-index: 30;
+  display: grid;
+  gap: var(--space-sm);
+  max-width: calc(100% - 2 * var(--space-md));
+  padding: var(--space-sm) var(--space-md) var(--space-md);
+  translate: -50% -50%;
+  color: #f4e6c8;
+  background: rgb(12 10 8 / 92%);
+  border: 1px solid rgb(255 255 255 / 14%);
+  border-radius: 14px;
+  box-shadow: 0 18px 48px rgb(0 0 0 / 55%);
+}
+
+.peekHeader {
+  display: flex;
+  gap: var(--space-md);
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.peekTitle {
+  font-weight: 700;
+}
+
+.peekHint {
+  font-size: var(--mantine-font-size-xs);
+  color: rgb(244 230 200 / 70%);
+}
+
+.peekSingle {
+  display: grid;
+  justify-items: center;
+}
+
+.peekDeck {
+  display: flex;
+  gap: var(--space-sm);
+  margin: 0;
+  padding: 0 0 var(--space-xs);
+  overflow-x: auto;
+  list-style: none;
+}
+
+.peekDeckCard {
+  display: grid;
+  flex: none;
+  gap: 4px;
+  justify-items: center;
+  cursor: grab;
+}
+
+.peekDeckCard[data-dragging] {
+  opacity: 0.4;
+}
+
+.peekDeckPlace {
+  font-size: var(--mantine-font-size-xs);
+  font-variant-numeric: tabular-nums;
+  color: rgb(244 230 200 / 70%);
+}
+
+.peekDeckHandle {
+  border-radius: 10px;
+}
+
+.peekDeckHandle:focus-visible {
+  outline: 2px solid #f6c879;
+  outline-offset: 2px;
+}

@@ -27,7 +27,16 @@ const storedActorSchema = gameResultSchema.shape.by.extend({ userId: tableIdSche
 
 /** Storage owns the complete spice reserve collection; transport owns only a projected spice reserve. */
 export const storedSnapshotSchema = gameSnapshotSchema
-  .omit({ bank: true, battle: true, battlePlan: true, hand: true, predictions: true, ending: true, result: true })
+  .omit({
+    bank: true,
+    battle: true,
+    battlePlan: true,
+    hand: true,
+    peek: true,
+    predictions: true,
+    ending: true,
+    result: true,
+  })
   .extend({
     /* The acting account stays in storage for authorization, the directory and deletion; the wire carries seat and name. */
     ending: gameEndingSchema.extend({ by: storedActorSchema }).nullable().default(null),
@@ -41,6 +50,8 @@ export const storedSnapshotSchema = gameSnapshotSchema
     pendingTraitors: z.array(tableIdSchema).default([]),
     battleState: storedBattleSchema.nullable().default(null),
     factionInventories: z.record(tableIdSchema, z.array(storedPieceSchema)).default({}),
+    /* The piece each faction holds open by peeking, by its stored id; projected only to that faction. */
+    peeks: z.record(tableIdSchema, tableIdSchema).default({}),
     /* The faces a faction's prediction card is dealt with when its prediction locks (#1753); stored only, never projected. */
     predictionFaces: z
       .record(tableIdSchema, z.object({ front: z.string().url().nullable(), back: z.string().url() }))
@@ -128,6 +139,7 @@ export class RoomProjection {
             id: this.cardId(item.id, handles),
             faceUp: !hidden,
             ...(item.artwork ? { artwork: hidden ? concealed(item.artwork) : item.artwork } : {}),
+            ...(item.peekedBy?.length ? { peekedBy: item.peekedBy } : {}),
           };
         }),
       };
@@ -138,6 +150,14 @@ export class RoomProjection {
       }
     }
     return projected;
+  }
+
+  /** The piece a faction holds open, every face showing, while it still lies on the table. */
+  private peek(snapshot: StoredSnapshot, factionId: string) {
+    const pieceId = snapshot.peeks[factionId];
+    const piece =
+      pieceId && snapshot.table.pieces.find((candidate) => candidate.id === pieceId && !candidate.inventory);
+    return piece ? { piece: this.piece(piece, true, snapshot.cardHandles, snapshot.pieceHandles) } : null;
   }
 
   contents(contents: SpawnContents): SpawnContents {
@@ -251,6 +271,7 @@ export class RoomProjection {
               ),
             }
           : {}),
+        ...(factionId ? { peek: this.peek(snapshot, factionId) } : {}),
         ...(snapshot.setup ? { setup: snapshot.setup } : {}),
         ...(snapshot.setup
           ? {

@@ -1,0 +1,95 @@
+import { expect, test } from 'vitest';
+
+import { piece, place } from '../../src/shared/play/setupSupply';
+import { hostedFixturePlan } from './fixture';
+import { peekCommand } from './peeks';
+import { RoomProjection } from './state';
+import type { StoredSnapshot } from './state';
+
+const BACK = 'https://table.test/published/decks/treachery/cardback.jpg';
+const front = (index: number) => `https://table.test/published/decks/treachery/${index}.jpg`;
+
+function table(count: number): StoredSnapshot {
+  const deck = place(
+    {
+      ...piece('deck', 'Treachery deck', 'shared', '#d5ba8c', 'card', 'deck:treachery'),
+      items: Array.from({ length: count }, (_, index) => ({
+        id: `card-${index}`,
+        faceUp: false,
+        artwork: {
+          front: front(index),
+          back: BACK,
+          backName: 'Treachery',
+          name: `Card ${index}`,
+          type: 'card-treachery',
+        },
+      })),
+    },
+    [6, 0, 6]
+  );
+  const fixture = hostedFixturePlan.snapshot(hostedFixturePlan.roster);
+  return { ...fixture, table: { ...fixture.table, pieces: [deck] } };
+}
+
+const fronts = (snapshot: ReturnType<RoomProjection['snapshot']>) =>
+  JSON.stringify(snapshot).match(/treachery\/\d\.jpg/g) ?? [];
+
+test('a peek shows the faces to the peeker alone, and tells everyone who peeked', () => {
+  const projection = new RoomProjection('secret');
+  const peeked = peekCommand(table(1), 'atreides', { kind: 'peek', pieceId: 'deck' });
+
+  expect(projection.snapshot(peeked, 'atreides').peek?.piece.items[0]?.artwork).toMatchObject({ front: front(0) });
+  for (const viewer of ['harkonnen', undefined]) {
+    const seen = projection.snapshot(peeked, viewer);
+    expect(seen.peek ?? null).toBeNull();
+    expect(fronts(seen)).toEqual([]);
+    expect(seen.table.pieces[0]?.items[0]?.peekedBy).toEqual(['atreides']);
+  }
+
+  const closed = peekCommand(peeked, 'atreides', { kind: 'peek-close' });
+  expect(projection.snapshot(closed, 'atreides').peek).toBeNull();
+  expect(closed.table.pieces[0]?.items[0]?.peekedBy).toEqual(['atreides']);
+});
+
+test('a peeked deck can be rearranged and have a card pulled out, by its peeker only', () => {
+  let snapshot = table(3);
+  expect(() => peekCommand(snapshot, 'atreides', { kind: 'peek-arrange', pieceId: 'deck', order: [2, 1, 0] })).toThrow(
+    'Peek at the deck before changing it.'
+  );
+
+  snapshot = peekCommand(snapshot, 'atreides', { kind: 'peek', pieceId: 'deck' });
+  const deck = () => snapshot.table.pieces.find((candidate) => candidate.id === 'deck')!;
+  expect(deck().items.every((item) => item.peekedBy?.includes('atreides'))).toBe(true);
+
+  expect(() => peekCommand(snapshot, 'harkonnen', { kind: 'peek-arrange', pieceId: 'deck', order: [2, 1, 0] })).toThrow(
+    'Peek at the deck before changing it.'
+  );
+  expect(() =>
+    peekCommand(snapshot, 'atreides', { kind: 'peek-arrange', pieceId: 'deck', order: [0, 0, 1] })
+  ).toThrow();
+
+  const handles = snapshot.cardHandles;
+  snapshot = peekCommand(snapshot, 'atreides', { kind: 'peek-arrange', pieceId: 'deck', order: [2, 0, 1] });
+  expect(deck().items.map((item) => item.id)).toEqual(['card-2', 'card-0', 'card-1']);
+  expect(snapshot.cardHandles['card-0']).not.toBe(handles['card-0']);
+
+  snapshot = peekCommand(snapshot, 'atreides', { kind: 'peek-pull', pieceId: 'deck', index: 1 });
+  expect(deck().items.map((item) => item.id)).toEqual(['card-2', 'card-1']);
+  const pulled = snapshot.table.pieces.find((candidate) => candidate.id !== 'deck')!;
+  expect(pulled.items).toMatchObject([{ id: 'card-0', faceUp: false }]);
+  expect(pulled.position).not.toEqual(deck().position);
+});
+
+test('a battle plan cannot be peeked at, and a face-up card has nothing to peek at', () => {
+  const snapshot = table(1);
+  const [deck] = snapshot.table.pieces;
+  const inBattle = { ...snapshot, table: { ...snapshot.table, pieces: [{ ...deck!, battleOverlay: 'battle-1' }] } };
+  expect(() => peekCommand(inBattle, 'atreides', { kind: 'peek', pieceId: 'deck' })).toThrow(
+    'Battle plans stay hidden'
+  );
+  const faceUp = {
+    ...snapshot,
+    table: { ...snapshot.table, pieces: [{ ...deck!, items: deck!.items.map((item) => ({ ...item, faceUp: true })) }] },
+  };
+  expect(() => peekCommand(faceUp, 'atreides', { kind: 'peek', pieceId: 'deck' })).toThrow('Nothing about');
+});

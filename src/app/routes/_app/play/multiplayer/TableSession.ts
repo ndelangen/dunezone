@@ -6,6 +6,7 @@ import type { LogTab } from '@shared/play/log';
 import { affordancesFor, gestureBlockReason } from '@shared/play/model';
 import type { Affordance, DraftMove, TablePiece, TableState, Vector3Tuple } from '@shared/play/model';
 import { isSeatAction } from '@shared/play/participation';
+import type { Peek } from '@shared/play/peeking';
 import { carryPieceId, tableForViewer } from '@shared/play/protocol';
 import type {
   ClientMessage,
@@ -109,6 +110,15 @@ export type TableProjection = {
     draw(pieceId: string, recipient?: string): void;
     shuffle(pieceId: string): void;
   };
+  /* The piece this viewer's faction holds open by peeking, faces showing; only its own frames carry one. */
+  peek: Peek | null;
+  /* Peeking at a hidden card, token or deck, and changing a deck held open; present only while this viewer's faction can act. */
+  peekControls?: {
+    peek(pieceId: string): void;
+    close(): void;
+    arrange(pieceId: string, order: number[]): void;
+    pull(pieceId: string, index: number): void;
+  };
   remoteCarriedIds: ReadonlySet<string>;
   reservedPieceIds: ReadonlySet<string>;
   gestureActivePieceId: string | null;
@@ -168,6 +178,7 @@ function sameForPanels(previous: TableProjection, next: TableProjection) {
     previous.hoveredPieceId === next.hoveredPieceId &&
     Boolean(previous.spiceReserveControls) === Boolean(next.spiceReserveControls) &&
     Boolean(previous.deckControls) === Boolean(next.deckControls) &&
+    Boolean(previous.peekControls) === Boolean(next.peekControls) &&
     sameMembers(previous.remoteCarriedIds, next.remoteCarriedIds) &&
     sameMembers(previous.reservedPieceIds, next.reservedPieceIds) &&
     sameMembers(previous.flippingPieceIds, next.flippingPieceIds) &&
@@ -219,6 +230,7 @@ function storedProjection({ viewer, snapshot, serverNow }: StoredTable): TablePr
     renderedPieces: renderedPiecesFor(state),
     selectedPiece: null,
     affordances: [],
+    peek: null,
     remoteCarriedIds: new Set(),
     reservedPieceIds: new Set(),
     gestureActivePieceId: null,
@@ -468,6 +480,8 @@ export class TableSession {
       affordances: [],
       spiceReserveControls: undefined,
       deckControls: undefined,
+      peek: null,
+      peekControls: undefined,
       remoteCarriedIds: new Set(),
       reservedPieceIds: new Set(),
       gestureActivePieceId: null,
@@ -550,6 +564,17 @@ export class TableSession {
             shuffle: (pieceId) => this.command({ kind: 'deck-shuffle', pieceId }),
           }
         : undefined,
+      /* A look back in time shows no peek: what a faction saw then is not what it holds open now. */
+      peek: this.history ? null : (displayed.peek ?? null),
+      peekControls:
+        canHandleTable && displayed.bank
+          ? {
+              peek: (pieceId) => this.command({ kind: 'peek', pieceId }),
+              close: () => this.command({ kind: 'peek-close' }),
+              arrange: (pieceId, order) => this.command({ kind: 'peek-arrange', pieceId, order }),
+              pull: (pieceId, index) => this.command({ kind: 'peek-pull', pieceId, index }),
+            }
+          : undefined,
       remoteCarriedIds: new Set(remote.map((carry) => carry.held.id)),
       reservedPieceIds,
       gestureActivePieceId: local.gestureActivePieceId,

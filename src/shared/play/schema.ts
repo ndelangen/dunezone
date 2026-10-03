@@ -79,7 +79,13 @@ const artworkSchema = z.object({
   /* A prediction card's choice, drawn over its front (#1753); a hidden card's copy leaves it out with the front. */
   prediction: z.object({ stepId: tableIdSchema, factionId: tableIdSchema, turn: tableCountSchema.min(1) }).optional(),
 });
-const storedItemSchema = z.object({ id: tableIdSchema, faceUp: z.boolean(), artwork: artworkSchema.optional() });
+const storedItemSchema = z.object({
+  id: tableIdSchema,
+  faceUp: z.boolean(),
+  artwork: artworkSchema.optional(),
+  /* The factions that peeked at this card or token while it lay hidden, which every viewer may know; a shuffle forgets them. */
+  peekedBy: z.array(tableIdSchema).optional(),
+});
 
 /** A piece as the game Worker stores it: every item with artwork carries its type. */
 export const storedPieceSchema = z.object({
