@@ -1,12 +1,11 @@
 import { parseFormattedText } from '@shared/formattedText';
 import type { FormattedTextInlineNode } from '@shared/formattedText';
+import { PUBLIC_SITE_ORIGIN } from '@shared/publicDiscovery';
 import { socialCardHref, SOCIAL_CARD_HEIGHT, SOCIAL_CARD_WIDTH } from '@shared/socialCard';
 import type { SocialCardInput } from '@shared/socialCard';
 import { useEffect } from 'react';
 
 import { pageHead, pageTitle } from './pageTitle';
-
-const SITE_ORIGIN = 'https://dune.zone';
 
 function inlineText(nodes: readonly FormattedTextInlineNode[]): string {
   return nodes
@@ -55,11 +54,11 @@ export function publicPageHead({
   if (match?.status === 'notFound') {
     return {};
   }
-  const url = new URL(pathname, SITE_ORIGIN).href;
+  const url = new URL(pathname, PUBLIC_SITE_ORIGIN).href;
   const imagePath = social
     ? socialCardHref({ name, description, image, ...social })
     : image || '/video/band-poster.jpg';
-  const imageUrl = new URL(imagePath, SITE_ORIGIN).href;
+  const imageUrl = new URL(imagePath, PUBLIC_SITE_ORIGIN).href;
   return {
     links: [{ rel: 'canonical', href: url }],
     meta: [
