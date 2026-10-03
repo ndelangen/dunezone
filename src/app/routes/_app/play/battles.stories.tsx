@@ -529,7 +529,9 @@ export const BattleReadinessInRealGame = meta.story({
 /** After the reveal the battle ends as resolved, not cancelled, and it settles with whatever the sides called. */
 export const BattleRevealedResolve = meta.story({
   beforeEach: battleSetup('revealed', 'seat-2', (snapshot) => {
-    snapshot.battle!.sides.forEach((side) => (side!.choice = null));
+    for (const side of snapshot.battle!.sides) {
+      side!.choice = null;
+    }
   }),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);

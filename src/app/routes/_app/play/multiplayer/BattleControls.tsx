@@ -755,7 +755,7 @@ function BattleCentre(props: ActiveProps) {
     return (
       <Stack gap={4} align="center">
         {waiting && (
-          <Text size="xs" ta="center" maw={140} role="status">
+          <Text size="xs" ta="center" maw={140} aria-live="polite">
             {waiting}
           </Text>
         )}
