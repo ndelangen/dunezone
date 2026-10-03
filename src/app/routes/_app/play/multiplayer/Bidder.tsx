@@ -6,11 +6,11 @@ import { MAX_BID_SECONDS, MIN_BID_SECONDS, biddingFactions, idleBidding } from '
 import type { BiddingState } from '@shared/play/bidding';
 import { phaseAt, STANDARD_PHASES } from '@shared/play/phases';
 import { BOARD_SURFACE_Y } from '@shared/play/tableGeometry';
-import { tableSeatAngles } from '@shared/play/tableSettings';
+import { PLAYER_RING_RADIUS, tableSeatAngles } from '@shared/play/tableSettings';
 import { Section } from '@ui/block/Section';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { Group } from 'three';
-import { LatheGeometry, Vector2 } from 'three';
+import { ExtrudeGeometry, Shape } from 'three';
 
 import { Token as FactionToken } from '@game/assets/faction/token/Token';
 
@@ -22,32 +22,26 @@ import { useServerNow } from './useServerNow';
 type Props = { client: TableSession; table: TableProjection };
 
 const BIDDER_RADIUS = 0.6;
-const BIDDER_TIP = 1.9;
-const BIDDER_FLATTEN = 0.7;
-const BIDDER_HOVER_Y = BOARD_SURFACE_Y + 0.5;
+/* The token rests on the Seat's station at the player ring; the point stops a hand's width short of its edge. */
+const BIDDER_TIP = PLAYER_RING_RADIUS - 0.5;
+const BIDDER_DEPTH = 0.08;
+const BIDDER_HOVER_Y = BOARD_SURFACE_Y + 0.35;
 const BIDDER_TURN_MS = 450;
 
 function biddingPhase(table: TableProjection) {
   return phaseAt(table.snapshot.phase, table.snapshot.phases ?? STANDARD_PHASES).id === 'bidding';
 }
 
-/** A solid teardrop lying on its side: a round back at the origin tapering to a point along +x, a little flattened. */
+/** A flat extruded teardrop: a round end at the origin and its point along +x, stopping just short of the faction token. */
 function createTeardropGeometry() {
-  const profile: Vector2[] = [];
-  const steps = 48;
-  for (let step = 0; step <= steps; step += 1) {
-    /* From the tip at +BIDDER_TIP back to the rear pole at -BIDDER_RADIUS. */
-    const along = BIDDER_TIP - (step / steps) * (BIDDER_TIP + BIDDER_RADIUS);
-    const radius =
-      along > 0
-        ? BIDDER_RADIUS * Math.cos((Math.PI / 2) * (along / BIDDER_TIP))
-        : Math.sqrt(Math.max(0, BIDDER_RADIUS ** 2 - along ** 2));
-    profile.push(new Vector2(radius, along));
-  }
-  const geometry = new LatheGeometry(profile, 64);
-  geometry.rotateZ(-Math.PI / 2);
-  geometry.scale(1, BIDDER_FLATTEN, 1);
-  geometry.computeVertexNormals();
+  const tangent = Math.acos(BIDDER_RADIUS / BIDDER_TIP);
+  const shape = new Shape();
+  shape.moveTo(BIDDER_TIP, 0);
+  shape.lineTo(BIDDER_RADIUS * Math.cos(tangent), BIDDER_RADIUS * Math.sin(tangent));
+  shape.absarc(0, 0, BIDDER_RADIUS, tangent, Math.PI * 2 - tangent, false);
+  shape.lineTo(BIDDER_TIP, 0);
+  const geometry = new ExtrudeGeometry(shape, { depth: BIDDER_DEPTH, bevelEnabled: false, curveSegments: 64 });
+  geometry.rotateX(-Math.PI / 2);
   return geometry;
 }
 
@@ -201,7 +195,7 @@ function Bidder({ client, table }: Props) {
     <group position={[0, BIDDER_HOVER_Y, 0]}>
       <group ref={groupRef}>
         <mesh geometry={geometry} castShadow receiveShadow>
-          <meshStandardMaterial color="#5e3818" metalness={0.3} roughness={0.35} />
+          <meshStandardMaterial color="#5e3818" roughness={0.6} />
         </mesh>
       </group>
       <Html center zIndexRange={[9, 0]}>
