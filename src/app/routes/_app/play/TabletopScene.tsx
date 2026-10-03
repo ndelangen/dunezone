@@ -94,14 +94,16 @@ import {
 import { useMotionAllowed } from '@app/styles/motion';
 
 import { ArtworkPending } from './ArtworkPending';
-import arrakisMapUrl from './assets/arrakis-map.png?url';
+import arrakisMapSvg from './assets/arrakis-map.svg?raw';
 import stormMarkerUrl from './assets/storm-marker.png?url';
 import { boardFurnitureFor } from './boardFurniture';
+import { boardMapGeometry } from './boardMapGeometry';
 import { BOARD_RIM_DEPTH, createBoardRimShape } from './boardRimGeometry';
 import { CameraControls, CameraRelativeFog } from './CameraControls';
 import { deckShuffleHint, swallowLift, watchLongPress } from './longPress';
 import { PeekView } from './PeekView';
 import { PhaseSymbol } from './PhaseSymbol';
+import { PieceCloseUp, topFaceHref } from './PieceCloseUp';
 import { cameraPoseFor, TABLE_CAMERA_FAR, TABLE_CAMERA_FIELD_OF_VIEW, TABLE_CAMERA_NEAR } from './playView';
 import type { CameraViewCommand } from './playView';
 import { usePointerSession } from './PointerSessionContext';
@@ -131,7 +133,6 @@ import { usePieceFlipAnimation } from './usePieceFlipAnimation';
 import { useTableGraphics } from './useTableGraphics';
 
 /* The two textures start with the bundle, alongside the connection, so the mounted table has them by the time it needs them. */
-useTexture.preload(arrakisMapUrl);
 useTexture.preload(stormMarkerUrl);
 
 type TabletopSceneProps = {
@@ -149,6 +150,9 @@ type TabletopSceneProps = {
 };
 
 const BOARD_RIM_COLOR = '#15263b';
+/* Under the map's own shapes, the colour of its outer ring, and how far above the disc the shapes lie. */
+const BOARD_MAP_BASE_COLOR = '#000000';
+const BOARD_MAP_LIFT = 0.001;
 const BOARD_RIM_DIVIDER_COLOR = '#050505';
 const BOARD_RIM_DIVIDER_OVERLAP = 0.002;
 const BOARD_RIM_DIVIDER_WIDTH = 0.035;
@@ -429,18 +433,22 @@ function BoardMap({ animate = false }: { animate?: boolean }) {
       }
     }
   });
-  const loadedMapTexture = useTexture(arrakisMapUrl);
-  const mapTexture = useMemo(() => {
-    loadedMapTexture.colorSpace = SRGBColorSpace;
-    loadedMapTexture.anisotropy = 8;
-    loadedMapTexture.needsUpdate = true;
-    return loadedMapTexture;
-  }, [loadedMapTexture]);
+  const mapGeometry = useMemo(() => boardMapGeometry(arrakisMapSvg, BOARD_RADIUS), []);
+  useEffect(() => () => mapGeometry.dispose(), [mapGeometry]);
   return (
     <group ref={group} scale={animate && motion ? 0 : 1}>
       <mesh receiveShadow position={[0, BOARD_SURFACE_Y, 0]} rotation={[-Math.PI / 2, 0, 0]} raycast={ignoreRaycast}>
         <circleGeometry args={[BOARD_RADIUS, 128]} />
-        <meshStandardMaterial map={mapTexture} roughness={0.88} metalness={0} />
+        <meshStandardMaterial color={BOARD_MAP_BASE_COLOR} roughness={0.88} metalness={0} />
+      </mesh>
+      {/* The map's shapes paint over one another in the source's order, so they write no depth; the disc below holds the board's depth. */}
+      <mesh
+        receiveShadow
+        geometry={mapGeometry}
+        position={[0, BOARD_SURFACE_Y + BOARD_MAP_LIFT, 0]}
+        raycast={ignoreRaycast}
+      >
+        <meshStandardMaterial vertexColors transparent depthWrite={false} roughness={0.88} metalness={0} />
       </mesh>
     </group>
   );
@@ -564,16 +572,6 @@ function PublishedFace({ href, card, ratio }: { href: string; card: boolean; rat
       )}
     </mesh>
   );
-}
-
-/** The published image a piece shows on top: the upper face of its top layer. */
-function topFaceHref(piece: TablePiece): string | undefined {
-  if (piece.kind === 'marker' || piece.items.length === 0) {
-    return undefined;
-  }
-  const shownLayers = visibleLayerCount(piece);
-  const item = piece.items[stackLayerItemIndex(piece.items.length, shownLayers, shownLayers - 1, piece.flipRevision)];
-  return item?.artwork?.[item.faceUp ? 'front' : 'back'];
 }
 
 /* Holds the image a piece shows on top and says whether it is loaded, so a flip can wait for a card's revealed face instead of turning up a placeholder. */
@@ -1567,9 +1565,11 @@ export function TabletopScene({
     [mapFramingPoints]
   );
   const graphics = useTableGraphics();
+  const areaRef = useRef<HTMLDivElement>(null);
 
   return (
     <div
+      ref={areaRef}
       className={className}
       onContextMenu={(event) => {
         event.preventDefault();
@@ -1601,13 +1601,14 @@ export function TabletopScene({
       </Button>
       <PieceMenu pieceMenu={pieceMenu} onClose={() => setPieceMenu(null)} />
       <PeekView />
+      <PieceCloseUp area={areaRef} />
       <PieceMenuContext.Provider value={menuAvailable ? openPieceMenu : null}>
         {graphics === 'unavailable' && <TableGraphicsUnavailable onShown={onSceneReady} />}
         {graphics === 'ready' && (
           <TableGraphicsBoundary onShown={onSceneReady}>
             <Canvas
               camera={camera}
-              dpr={[1, 1.75]}
+              dpr={[1, 2]}
               frameloop="demand"
               renderer={{
                 antialias: true,
