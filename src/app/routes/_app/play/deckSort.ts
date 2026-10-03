@@ -17,11 +17,9 @@ export function sortTarget(centers: readonly number[], from: number, offset: num
 
 /** How far a card that is not held slides aside while the held card hovers over `target`: one place, toward the gap the held card left. */
 export function sortShift(index: number, from: number, target: number, step: number): number {
-  if (from < target && index > from && index <= target) {
-    return -step;
-  }
-  if (target < from && index >= target && index < from) {
-    return step;
-  }
-  return 0;
+  /* The cards between where the held card was and where it would land, the landing slot included. */
+  const low = Math.min(from, target);
+  const high = Math.max(from, target);
+  const passed = index !== from && index >= low && index <= high;
+  return passed ? Math.sign(from - target) * step : 0;
 }
