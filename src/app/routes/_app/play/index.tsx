@@ -1,4 +1,4 @@
-import { Anchor, Button, Group, Select, Stack, Text, Title, Tooltip } from '@mantine/core';
+import { Anchor, Button, Select, Stack, Text, Title, Tooltip } from '@mantine/core';
 import type { playLobbyEntrySchema } from '@shared/play/directory';
 import { phaseAt, STANDARD_PHASES, tableProgressFor } from '@shared/play/phases';
 import { createFileRoute, Link } from '@tanstack/react-router';
@@ -392,7 +392,7 @@ function LobbyToolbar({
     <Toolbar>
       <Toolbar.Center>
         <SearchRefine
-          label="Game lobby filters"
+          label="Lobby filters"
           search={{
             value: query,
             onChange: onQueryChange,
@@ -421,17 +421,13 @@ function PlayLobby() {
       <PageLayout.Header size="hero">
         <Stack gap="md" miw={0} align="center" ta="center">
           <PageTitle title="Play Dune!" />
-          <Text size="xl" fw={700}>
-            Welcome to the lobby
-          </Text>
+          <p className={styles.subtitle}>Welcome to the lobby</p>
           <Text size="lg" fw={500} maw="36rem">
             Take a seat, choose your faction, and fight for Arrakis.
           </Text>
-          <Group>
-            <CallToAction direction="start" size="lg" renderRoot={createLink}>
-              Create a game
-            </CallToAction>
-          </Group>
+          <CallToAction direction="start" size="lg" renderRoot={createLink}>
+            Create a game
+          </CallToAction>
         </Stack>
       </PageLayout.Header>
       <PageLayout.Toolbar>
