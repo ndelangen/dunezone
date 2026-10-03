@@ -50,11 +50,12 @@ describe('faction setup supply', () => {
     expect(keys([legacy])).toEqual({ Regular: `troops:${FACTION.id}:0` });
   });
 
-  test('the faction token and its troop reserves are dealt clear of each other, so each can be rotated where it lands', () => {
+  test('the faction token and up to four kinds of troop reserves are dealt clear of each other and on the table, so each can be rotated where it lands', () => {
     let next = 0;
     const dependencies: SupplyDependencies = { id: () => `piece-${next++}`, shuffle: (items) => items };
     const troop = (name: string) => ({ troopId: name, name, count: 2, front: null, back: null });
-    for (const troops of [[troop('Regular')], [troop('Regular'), troop('Elite')]]) {
+    for (const kinds of [1, 2, 3, 4]) {
+      const troops = Array.from({ length: kinds }, (_, index) => troop(`Kind ${index}`));
       for (const angle of tableSeatAngles(6)) {
         const supply = factionSupply(
           capture(troops, { front: 'token-front', back: 'token-back' }),
