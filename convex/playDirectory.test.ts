@@ -144,12 +144,29 @@ describe('the directory keeps the newest published summary and lists it to every
                 name: 'Atreides',
                 color: '#2f7d32',
                 token: { logo: assetPublishingFaction.logo, background: assetPublishingFaction.background },
+                won: false,
               },
             },
-            { faction: { name: 'Retired', token: null } },
+            { faction: { name: 'Retired', token: null, won: false } },
           ],
         },
       ],
+    });
+    /* A winner is matched by faction id, so a namesake at the same table is not crowned. */
+    const finished = summary([ids.admin, ids.member], {
+      stage: 'finished',
+      result: {
+        kind: 'faction',
+        factions: [{ id: factionId, name: 'Atreides' }],
+        declaredBy: ids.admin,
+        declaredAt: 2,
+      },
+    });
+    finished.seats[0]!.faction = { id: factionId, name: 'Atreides', color: '#2f7d32' };
+    finished.seats[1]!.faction = { id: 'namesake', name: 'Atreides', color: '#2f7d32' };
+    await publish(2, finished);
+    expect(await admin.query(api.playDirectory.listGames, {})).toMatchObject({
+      past: [{ players: [{ faction: { won: true } }, { faction: { won: false } }] }],
     });
   });
 });

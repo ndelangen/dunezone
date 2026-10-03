@@ -141,7 +141,10 @@ function lobbyDatabase(baseline: StorybookDatabase) {
       lastActivityAt: STORYBOOK_NOW - 26 * 60 * MINUTE,
       result: {
         kind: 'alliance',
-        factions: [0, 3].map((index) => ({ id: factions[index]!.slug, name: factions[index]!.data.name })),
+        factions: [0, 3].map((index) => ({
+          id: userRef(`lobby:${factions[index]!.slug}`),
+          name: factions[index]!.data.name,
+        })),
         declaredBy: 'story-user',
         declaredAt: STORYBOOK_NOW - 26 * 60 * MINUTE,
       },
@@ -167,7 +170,7 @@ export const SignedIn = meta.story({
     expect(within(games).getAllByRole('listitem')).toHaveLength(5);
     expect(within(games).getAllByRole('link', { name: /^Open / })).toHaveLength(5);
     expect(page.getAllByText('Your seat')).toHaveLength(2);
-    expect(page.getByText('Seats open')).toBeVisible();
+    expect(page.getAllByText('Seats open')).toHaveLength(2);
     expect(page.getByRole('img', { name: `${SIX[1]!.name} (you), ${factions[1]!.data.name}` })).toBeVisible();
     expect(page.getAllByRole('link', { name: 'Create a game' }).length).toBeGreaterThan(0);
   },

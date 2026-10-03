@@ -64,7 +64,17 @@ async function factionToken(ctx: QueryCtx, factionId: string) {
 }
 
 /** Who a seat holds, by current account: a deleted or unknown account leaves the seat unnamed. */
-async function seatedPlayer(ctx: QueryCtx, seat: Seat, viewerId: Id<'users'>, tokens: TokenMemo) {
+async function seatedPlayer(
+  ctx: QueryCtx,
+  seat: Seat,
+  viewerId: Id<'users'>,
+  tokens: TokenMemo,
+  winners: ReadonlySet<string>
+) {
+  const faction = seat.faction;
+  if (faction && !tokens.has(faction.id)) {
+    tokens.set(faction.id, factionToken(ctx, faction.id));
+  }
   const userId = ctx.db.normalizeId('users', seat.userId);
   const profile = userId
     ? await ctx.db
@@ -75,15 +85,17 @@ async function seatedPlayer(ctx: QueryCtx, seat: Seat, viewerId: Id<'users'>, to
   if (!profile || !isActiveProfile(profile)) {
     return null;
   }
-  const faction = seat.faction;
-  if (faction && !tokens.has(faction.id)) {
-    tokens.set(faction.id, factionToken(ctx, faction.id));
-  }
   return {
     displayName: profile.username || 'Player',
     avatarUrl: profile.avatar?.url ?? profile.avatar_url,
     viewer: userId === viewerId,
-    faction: faction && { name: faction.name, color: faction.color, token: await tokens.get(faction.id)! },
+    faction: faction && {
+      name: faction.name,
+      color: faction.color,
+      token: await tokens.get(faction.id)!,
+      /* Matched by id, since two factions may share a display name. */
+      won: winners.has(faction.id),
+    },
   };
 }
 
@@ -94,13 +106,10 @@ async function lobbyEntry(ctx: QueryCtx, game: Doc<'play_games'>, viewerId: Id<'
   }
   const summary = parsed.data;
   const ruleset = game.ruleset_id ? await ctx.db.get('rulesets', game.ruleset_id) : null;
-  const seated = [];
-  for (const seat of summary.seats) {
-    const player = await seatedPlayer(ctx, seat, viewerId, tokens);
-    if (player) {
-      seated.push(player);
-    }
-  }
+  const winners = new Set(summary.result?.kind === 'none' ? [] : (summary.result?.factions ?? []).map(({ id }) => id));
+  const seated = (
+    await Promise.all(summary.seats.map((seat) => seatedPlayer(ctx, seat, viewerId, tokens, winners)))
+  ).filter((player) => player !== null);
   return {
     gameId: game._id,
     name: ruleset?.name ?? 'Game',

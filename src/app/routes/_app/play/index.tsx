@@ -7,14 +7,13 @@ import { formatRelativeDate } from '@ui/content/dates';
 import { nameDiscColor } from '@ui/content/nameDisc';
 import { StatusBadge } from '@ui/content/StatusBadge';
 import { CallToAction } from '@ui/control/CallToAction';
-import { IconAction } from '@ui/control/IconAction';
 import { SearchRefine } from '@ui/control/SearchRefine';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 import { Card } from '@ui/surface/Card';
 import { Toolbar } from '@ui/surface/Toolbar';
 import clsx from 'clsx';
-import { ArrowRight, Clock, Crown, Plus, Trophy } from 'lucide-react';
+import { ArrowRight, Clock, Crown, Trophy } from 'lucide-react';
 import { useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 import type { z } from 'zod';
@@ -206,7 +205,7 @@ function TakenSeat({ player, won, style }: Readonly<{ player: Player; won: boole
 }
 
 function TableRing({ entry }: Readonly<{ entry: LobbyEntry }>) {
-  const winners = entry.result?.kind === 'none' ? [] : (entry.result?.factions ?? []);
+  const seats = Math.max(entry.seatCount, entry.players.length);
   const progress =
     entry.stage === 'play' && entry.phase !== null
       ? Math.min(1, (entry.phase + 1) / (TURNS * STANDARD_PHASES.length))
@@ -221,8 +220,8 @@ function TableRing({ entry }: Readonly<{ entry: LobbyEntry }>) {
       <div className={styles.centre}>
         <RingCentre entry={entry} />
       </div>
-      {Array.from({ length: Math.max(entry.seatCount, entry.players.length) }, (_, index) => {
-        const placement = seatPlacement(index, Math.max(entry.seatCount, entry.players.length));
+      {Array.from({ length: seats }, (_, index) => {
+        const placement = seatPlacement(index, seats);
         const player = entry.players[index];
         if (!player) {
           return (
@@ -235,8 +234,7 @@ function TableRing({ entry }: Readonly<{ entry: LobbyEntry }>) {
             />
           );
         }
-        const won = Boolean(player.faction && winners.includes(player.faction.name));
-        return <TakenSeat key={index} player={player} won={won} style={placement} />;
+        return <TakenSeat key={index} player={player} won={player.faction?.won ?? false} style={placement} />;
       })}
     </div>
   );
@@ -246,7 +244,11 @@ function TableRing({ entry }: Readonly<{ entry: LobbyEntry }>) {
 function RingCentre({ entry }: Readonly<{ entry: LobbyEntry }>) {
   const turn = turnOf(entry);
   if (entry.stage === 'finished') {
-    return <Trophy aria-hidden className={styles.centreGlyph} />;
+    return entry.result?.kind === 'none' ? (
+      <span className={styles.centreWord}>{STAGE_WORDS.finished}</span>
+    ) : (
+      <Trophy aria-hidden className={styles.centreGlyph} />
+    );
   }
   if (turn !== null) {
     return (
@@ -271,7 +273,7 @@ function cardBadge(entry: LobbyEntry): ReactNode {
   if (entry.viewerSeated) {
     return <StatusBadge tone="brand">{entry.stage === 'finished' ? 'You played' : 'Your seat'}</StatusBadge>;
   }
-  if (entry.stage === 'drafting' && entry.seatsFilled < entry.seatCount) {
+  if (entry.stage !== 'finished' && entry.stage !== 'discarded' && entry.seatsFilled < entry.seatCount) {
     return <StatusBadge tone="positive">Seats open</StatusBadge>;
   }
   return null;
@@ -398,16 +400,6 @@ function LobbyToolbar({
           {viewSelect(undefined, true)}
         </SearchRefine>
       </Toolbar.Center>
-      <Toolbar.Right label="Lobby actions">
-        <IconAction
-          label="Create a game"
-          emphasis="strong"
-          intent="positive"
-          size="lg"
-          renderRoot={createLink}
-          icon={<Plus size={17} aria-hidden />}
-        />
-      </Toolbar.Right>
     </Toolbar>
   );
 }
