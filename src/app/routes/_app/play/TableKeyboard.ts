@@ -153,15 +153,7 @@ export class TableKeyboard {
     if (!controls || hasModifier(event)) {
       return;
     }
-    const panKey = event.key.toLowerCase();
-    /* A focused control keeps its arrow keys, as a tab list does; the letters still slide the look, and only a text field keeps them. */
-    const panFocus = panKey.startsWith('arrow') ? 'table' : 'spiceBank';
-    if (this.panAvailable && panKey in PAN_KEYS && !focusKeepsKey(event.target, panFocus)) {
-      event.preventDefault();
-      if (!this.panHeld.has(panKey)) {
-        this.panHeld.add(panKey);
-        this.panListeners.forEach((listener) => listener());
-      }
+    if (this.panKeyDown(event)) {
       return;
     }
     const digit = digitOf(event);
@@ -174,6 +166,21 @@ export class TableKeyboard {
       this.tableKey(event, controls);
     }
   };
+
+  /* A pan key held while a close look is open slides it; a focused control keeps its arrow keys, as a tab list does, while only a text field keeps the letters. */
+  private panKeyDown(event: KeyboardEvent) {
+    const panKey = event.key.toLowerCase();
+    const panFocus = panKey.startsWith('arrow') ? 'table' : 'spiceBank';
+    if (!this.panAvailable || !(panKey in PAN_KEYS) || focusKeepsKey(event.target, panFocus)) {
+      return false;
+    }
+    event.preventDefault();
+    if (!this.panHeld.has(panKey)) {
+      this.panHeld.add(panKey);
+      this.panListeners.forEach((listener) => listener());
+    }
+    return true;
+  }
 
   /* The physical key that started the draw ends it, whatever it types by then, as AZERTY's Shift+& does coming up as "&" once Shift is let go; without a code, the typed digit still does. */
   private keyUp = (event: KeyboardEvent) => {

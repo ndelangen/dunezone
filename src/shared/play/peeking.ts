@@ -42,7 +42,7 @@ export function peeksWholeDeck(piece: { kind: TablePiece['kind']; items: readonl
 }
 
 /** The items a peek shows, bottom first: every card of a deck, or the top card or token alone. */
-export function peekedItems<Item>(piece: { kind: TablePiece['kind']; items: readonly Item[] }): Item[] {
+function peekedItems<Item>(piece: { kind: TablePiece['kind']; items: readonly Item[] }): Item[] {
   return peeksWholeDeck(piece) ? [...piece.items] : piece.items.slice(-1);
 }
 

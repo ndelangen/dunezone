@@ -260,7 +260,7 @@ export type CameraZoom = Readonly<{ scale: number; offset: Vector3Tuple }>;
 
 export const NO_CAMERA_ZOOM: CameraZoom = { scale: 1, offset: [0, 0, 0] };
 /* The closest look, as a share of the view's distance. The camera also turns toward top-down as it closes in, which costs some of the gain. */
-export const CAMERA_ZOOM_MINIMUM_SCALE = 0.2;
+const CAMERA_ZOOM_MINIMUM_SCALE = 0.2;
 /* How far toward top-down the closest look turns: most of the way, while every wheel notch still brings the board closer. */
 const CAMERA_ZOOM_FULL_TILT = 0.85;
 /*
@@ -304,7 +304,7 @@ export function zoomedCameraPose(pose: CameraPose, zoom: CameraZoom): CameraPose
  * Zooming in scales the current pose about the anchor, so what is under the pointer stays there.
  * Zooming out eases the offset away with the scale, so the camera always arrives back at today's view.
  */
-export function cameraZoomAfterWheel(
+function cameraZoomAfterWheel(
   zoom: CameraZoom,
   basePose: CameraPose,
   anchor: Vector3Tuple,

@@ -177,6 +177,7 @@ type StormTransition = {
 };
 
 const STORM_MARKER_HOVER_Y = BOARD_SURFACE_Y + CONTACT_SHADOW_EPSILON;
+const BOARD_MAP_RENDER_ORDER = -3;
 const STORM_MARKER_RENDER_ORDER = 1;
 const PHYSICAL_OBJECT_RENDER_ORDER = 2;
 
@@ -405,6 +406,7 @@ function StormSectorHighlight({ sectorIndex }: { sectorIndex: number }) {
         renderOrder={STORM_MARKER_RENDER_ORDER}
         raycast={ignoreRaycast}
       >
+        {/* See-through, so it draws after the map, which writes no depth either. */}
         <meshBasicMaterial
           alphaTest={0.1}
           alphaToCoverage
@@ -412,6 +414,7 @@ function StormSectorHighlight({ sectorIndex }: { sectorIndex: number }) {
           depthWrite={false}
           map={markerTexture}
           toneMapped={false}
+          transparent
         />
       </mesh>
     </group>
@@ -441,10 +444,14 @@ function BoardMap({ animate = false }: { animate?: boolean }) {
         <circleGeometry args={[BOARD_RADIUS, 128]} />
         <meshStandardMaterial color={BOARD_MAP_BASE_COLOR} roughness={0.88} metalness={0} />
       </mesh>
-      {/* The map's shapes paint over one another in the source's order, so they write no depth; the disc below holds the board's depth. */}
+      {/*
+        The map's shapes paint over one another in the source's order, so they write no depth; the disc below holds the board's depth.
+        It draws first among the see-through things, so the storm's sector and every other overlay land on it.
+      */}
       <mesh
         receiveShadow
         geometry={mapGeometry}
+        renderOrder={BOARD_MAP_RENDER_ORDER}
         position={[0, BOARD_SURFACE_Y + BOARD_MAP_LIFT, 0]}
         raycast={ignoreRaycast}
       >

@@ -47,15 +47,20 @@ type Paint = Readonly<{ color: Color; alpha: number }>;
 
 type Layer = { positions: number[]; paint: Paint };
 
-/* The dash pattern an outline inherits from itself or its groups, in source units, or null for a solid outline. */
-function dashPattern(node: Element | undefined): { dashes: number[]; offset: number } | null {
-  const owner = node?.closest('[stroke-dasharray]');
-  const values = (owner?.getAttribute('stroke-dasharray') ?? '')
+type DashPattern = { dashes: number[]; offset: number };
+
+function dashValues(text: string | null | undefined): number[] {
+  return (text ?? '')
     .split(/[\s,]+/)
     .map(Number.parseFloat)
     .filter((value) => Number.isFinite(value) && value >= 0);
+}
+
+/* The dash pattern an outline inherits from itself or its groups, in source units, or null for a solid outline. */
+function dashPattern(node: Element | undefined): DashPattern | null {
+  const values = dashValues(node?.closest('[stroke-dasharray]')?.getAttribute('stroke-dasharray'));
   const total = values.reduce((sum, value) => sum + value, 0);
-  if (values.length === 0 || total <= 0) {
+  if (total <= 0) {
     return null;
   }
   const dashes = values.length % 2 === 0 ? values : [...values, ...values];
@@ -63,46 +68,65 @@ function dashPattern(node: Element | undefined): { dashes: number[]; offset: num
   return { dashes, offset: Number.isFinite(offset) ? offset : 0 };
 }
 
-/* Cuts a polyline into its drawn dashes. */
-function dashedRuns(points: readonly Vector2[], pattern: { dashes: number[]; offset: number }): Vector2[][] {
-  const period = pattern.dashes.reduce((sum, value) => sum + value, 0);
-  let index = 0;
-  let remaining = pattern.dashes[0];
-  /* Walk the pattern forward by the offset before the line starts. */
-  let skip = ((pattern.offset % period) + period) % period;
-  while (skip > 0) {
-    if (skip >= remaining) {
-      skip -= remaining;
-      index = (index + 1) % pattern.dashes.length;
-      remaining = pattern.dashes[index];
-    } else {
-      remaining -= skip;
-      skip = 0;
-    }
+/* Walks a dash pattern along a line: which entry is current, an even one drawn and an odd one a gap, and how much of it is left. */
+class DashWalk {
+  index = 0;
+  remaining: number;
+
+  constructor(private readonly dashes: readonly number[]) {
+    this.remaining = dashes[0];
   }
+
+  get drawing() {
+    return this.index % 2 === 0;
+  }
+
+  next() {
+    this.index = (this.index + 1) % this.dashes.length;
+    this.remaining = this.dashes[this.index];
+  }
+
+  /* Walk the pattern forward by the offset before the line starts. */
+  skip(offset: number) {
+    const period = this.dashes.reduce((sum, value) => sum + value, 0);
+    let skip = ((offset % period) + period) % period;
+    while (skip >= this.remaining && skip > 0) {
+      skip -= this.remaining;
+      this.next();
+    }
+    this.remaining -= skip;
+  }
+}
+
+/* Cuts a polyline into its drawn dashes. */
+function dashedRuns(points: readonly Vector2[], pattern: DashPattern): Vector2[][] {
+  const walk = new DashWalk(pattern.dashes);
+  walk.skip(pattern.offset);
   const runs: Vector2[][] = [];
-  let current: Vector2[] | null = index % 2 === 0 ? [points[0].clone()] : null;
+  let current: Vector2[] | null = walk.drawing ? [points[0].clone()] : null;
+  const endRun = (cut: Vector2) => {
+    current?.push(cut);
+    if (current && current.length > 1) {
+      runs.push(current);
+    }
+  };
   for (let segment = 1; segment < points.length; segment++) {
     const start = points[segment - 1];
     const end = points[segment];
     const length = start.distanceTo(end);
     let travelled = 0;
-    while (length - travelled > remaining) {
-      travelled += remaining;
+    while (length - travelled > walk.remaining) {
+      travelled += walk.remaining;
       const cut = start.clone().lerp(end, travelled / length);
       if (current) {
-        current.push(cut);
-        if (current.length > 1) {
-          runs.push(current);
-        }
+        endRun(cut);
         current = null;
       } else {
         current = [cut];
       }
-      index = (index + 1) % pattern.dashes.length;
-      remaining = pattern.dashes[index];
+      walk.next();
     }
-    remaining -= length - travelled;
+    walk.remaining -= length - travelled;
     current?.push(end.clone());
   }
   if (current && current.length > 1) {
@@ -130,33 +154,71 @@ function strokeTriangles(points: readonly Vector2[], style: StrokeStyle): number
   return values;
 }
 
+type Style = Record<string, string | number>;
+
+function painted(value: string | number | undefined) {
+  return value !== undefined && value !== '' && value !== 'none' && value !== 'transparent';
+}
+
+function fillLayer(path: ShapePath, style: Style, opacity: number): Layer {
+  const paint = { color: new Color().setStyle(String(style.fill)), alpha: Number(style.fillOpacity ?? 1) * opacity };
+  return { positions: SVGLoader.createShapes(path).flatMap(shapeTriangles), paint };
+}
+
+function strokeLayer(path: ShapePath, style: Style, opacity: number): Layer {
+  const paint = { color: new Color().setStyle(String(style.stroke)), alpha: Number(style.strokeOpacity ?? 1) * opacity };
+  const pattern = dashPattern(path.userData?.node as Element | undefined);
+  const positions = path.subPaths.flatMap((subPath) => {
+    const points = subPath.getPoints(CURVE_SEGMENTS);
+    const runs = pattern ? dashedRuns(points, pattern) : [points];
+    return runs.flatMap((run) => strokeTriangles(run, style as unknown as StrokeStyle));
+  });
+  return { positions, paint };
+}
+
 function pathLayers(path: ShapePath): Layer[] {
-  const style = path.userData?.style as Record<string, string | number> | undefined;
-  const node = path.userData?.node as Element | undefined;
+  const style = path.userData?.style as Style | undefined;
   if (!style || style.visibility === 'hidden' || style.display === 'none') {
     return [];
   }
-  const layers: Layer[] = [];
   const opacity = typeof style.opacity === 'number' ? style.opacity : 1;
-  if (style.fill && style.fill !== 'none' && style.fill !== 'transparent') {
-    const paint = { color: new Color().setStyle(String(style.fill)), alpha: Number(style.fillOpacity ?? 1) * opacity };
-    const positions = SVGLoader.createShapes(path).flatMap(shapeTriangles);
-    layers.push({ positions, paint });
+  const layers: Layer[] = [];
+  if (painted(style.fill)) {
+    layers.push(fillLayer(path, style, opacity));
   }
-  if (style.stroke && style.stroke !== 'none' && Number(style.strokeWidth) > 0) {
-    const paint = {
-      color: new Color().setStyle(String(style.stroke)),
-      alpha: Number(style.strokeOpacity ?? 1) * opacity,
-    };
-    const pattern = dashPattern(node);
-    const positions = path.subPaths.flatMap((subPath) => {
-      const points = subPath.getPoints(CURVE_SEGMENTS);
-      const runs = pattern ? dashedRuns(points, pattern) : [points];
-      return runs.flatMap((run) => strokeTriangles(run, style as unknown as StrokeStyle));
-    });
-    layers.push({ positions, paint });
+  if (painted(style.stroke) && Number(style.strokeWidth) > 0) {
+    layers.push(strokeLayer(path, style, opacity));
   }
   return layers;
+}
+
+type Frame = { minX: number; minY: number; scale: number; radius: number };
+
+function frameOf(xml: unknown, radius: number): Frame {
+  const viewBox =
+    (xml as Element)
+      .getAttribute?.('viewBox')
+      ?.split(/[\s,]+/)
+      .map(Number) ?? [];
+  const [minX = 0, minY = 0, width = 1, height = 1] = viewBox;
+  return { minX, minY, scale: (2 * radius) / Math.max(width, height), radius };
+}
+
+/* One source triangle on the board, cut at its edge where it reaches past: outlines along the edge do, and the picture this replaces was cut there too. */
+function boardPolygon(source: readonly number[], triangle: number, frame: Frame): Point[] {
+  const { minX, minY, scale, radius } = frame;
+  const corners = [0, 1, 2].map((corner): Point => [
+    (source[triangle + corner * 3] - minX) * scale - radius,
+    (source[triangle + corner * 3 + 1] - minY) * scale - radius,
+  ]);
+  const outside = corners.some(([x, z]) => Math.hypot(x, z) > radius);
+  return outside ? clipToBoard(corners, radius) : corners;
+}
+
+/* Seen from above, with the source's y running toward the viewer, a counter-clockwise triangle has a negative signed area here. */
+function upwardFace(a: Point, b: Point, c: Point): Point[] {
+  const area = (b[0] - a[0]) * (c[1] - a[1]) - (c[0] - a[0]) * (b[1] - a[1]);
+  return area > 0 ? [a, c, b] : [a, b, c];
 }
 
 /**
@@ -165,42 +227,24 @@ function pathLayers(path: ShapePath): Layer[] {
  */
 export function boardMapGeometry(svg: string, radius: number): BufferGeometry {
   const data = new SVGLoader().parse(svg);
-  const viewBox =
-    (data.xml as unknown as Element)
-      .getAttribute?.('viewBox')
-      ?.split(/[\s,]+/)
-      .map(Number) ?? [];
-  const [minX = 0, minY = 0, width = 1, height = 1] = viewBox;
-  const scale = (2 * radius) / Math.max(width, height);
+  const frame = frameOf(data.xml, radius);
   const positionValues: number[] = [];
   const colorValues: number[] = [];
   for (const { positions: source, paint } of data.paths.flatMap(pathLayers)) {
     for (let triangle = 0; triangle < source.length; triangle += 9) {
-      const corners = [0, 1, 2].map((corner): Point => [
-        (source[triangle + corner * 3] - minX) * scale - radius,
-        (source[triangle + corner * 3 + 1] - minY) * scale - radius,
-      ]);
-      /* Outlines along the edge reach past it; the picture this replaces was cut at the board's edge too. */
-      const outside = corners.some(([x, z]) => Math.hypot(x, z) > radius);
-      const polygon = outside ? clipToBoard(corners, radius) : corners;
+      const polygon = boardPolygon(source, triangle, frame);
       for (let fan = 1; fan + 1 < polygon.length; fan++) {
-        const face = [polygon[0], polygon[fan], polygon[fan + 1]];
-        /* Seen from above, with the source's y running toward the viewer, a counter-clockwise triangle has a negative signed area here. */
-        const area =
-          (face[1][0] - face[0][0]) * (face[2][1] - face[0][1]) - (face[2][0] - face[0][0]) * (face[1][1] - face[0][1]);
-        for (const corner of area > 0 ? [0, 2, 1] : [0, 1, 2]) {
-          positionValues.push(face[corner][0], 0, face[corner][1]);
+        for (const [x, z] of upwardFace(polygon[0], polygon[fan], polygon[fan + 1])) {
+          positionValues.push(x, 0, z);
           colorValues.push(paint.color.r, paint.color.g, paint.color.b, paint.alpha);
         }
       }
     }
   }
   const count = positionValues.length / 3;
-  const positions = new Float32Array(positionValues);
-  const colors = new Float32Array(colorValues);
   const geometry = new BufferGeometry();
-  geometry.setAttribute('position', new BufferAttribute(positions, 3));
-  geometry.setAttribute('color', new BufferAttribute(colors, 4));
+  geometry.setAttribute('position', new BufferAttribute(new Float32Array(positionValues), 3));
+  geometry.setAttribute('color', new BufferAttribute(new Float32Array(colorValues), 4));
   const normals = new Float32Array(count * 3);
   for (let index = 0; index < count; index++) {
     normals[index * 3 + 1] = 1;

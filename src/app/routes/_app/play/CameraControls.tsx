@@ -288,13 +288,16 @@ function useCloseLook(enabled: boolean, viewKey: string, poseAt: PoseAt): WheelV
     };
   }, [invalidate, keyboard, zoomedIn]);
 
-  /* The pan keys' slide, kept outside React: it changes every frame while it moves. */
+  /* The pan keys' momentum, kept outside React; only the slid look goes through state. */
   const panMotion = useRef<CameraPanMotion>(CAMERA_PAN_AT_REST);
+  /* A pan leaves the tilt and closeness alone, so the view's pose under it is worked out once per pan, not once per frame. */
+  const panBase = useRef<{ at: (tilt: number) => CameraPose; tilt: number; pose: CameraPose } | null>(null);
   useFrame((_, delta) => {
     const direction = (zoomedIn && keyboard?.panDirection()) || NO_PAN_DIRECTION;
     const motion = cameraPanMotionAfter(panMotion.current, view.zoom, direction, delta);
     panMotion.current = motion;
     if (motion === CAMERA_PAN_AT_REST || !zoomedIn) {
+      panBase.current = null;
       return;
     }
     setView((current) => {
@@ -302,8 +305,14 @@ function useCloseLook(enabled: boolean, viewKey: string, poseAt: PoseAt): WheelV
       if (!at) {
         return current;
       }
-      const base = at(cameraTiltForZoom(current.tilt, current.zoom));
-      return { ...current, zoom: cameraZoomAfterPanMotion(current.zoom, base, motion.velocity, delta) };
+      const tilt = cameraTiltForZoom(current.tilt, current.zoom);
+      const cached = panBase.current;
+      const base = cached?.at === at && cached.tilt === tilt ? cached.pose : at(tilt);
+      panBase.current = { at, tilt, pose: base };
+      const zoom = cameraZoomAfterPanMotion(current.zoom, base, motion.velocity, delta);
+      /* Held against the board's edge, the look stays put and nothing re-renders. */
+      const moved = zoom.offset.some((value, index) => value !== current.zoom.offset[index]);
+      return moved ? { ...current, zoom } : current;
     });
     invalidate();
   });
@@ -360,16 +369,27 @@ function useSeatedCameraTransition({ command, enabled, mapFramingPoints }: Seate
   const glidingRevision = useRef(zoomRevision);
 
   useFrame((_, delta) => {
+    const moving = playback.current.transition !== null || playback.current.glide !== null;
     advanceCameraTransition(camera, controlsRef.current, playback.current, invalidate);
     advanceCameraGlide(camera, controlsRef.current, playback.current, delta, invalidate);
+    if (moving) {
+      /* A piece picked up while the camera still moves stays under the pointer as the board slides. */
+      camera.updateMatrixWorld();
+      pointerSession.refreshCarry();
+    }
   });
 
   const headerHeight = useSeatedHeaderHeight(renderer.domElement);
 
+  /* The view's pose at a tilt changes only with the view and the canvas, so a close look's frames reuse it. */
+  useLayoutEffect(() => {
+    const mapTopLimit = mapViewTopLimitForViewport(size.height, headerHeight);
+    poseAt.current = (atTilt) => cameraPoseFor(command.view, aspectRatio, mapFramingPoints, mapTopLimit, atTilt);
+  }, [aspectRatio, command.view, headerHeight, mapFramingPoints, size.height]);
+
   useLayoutEffect(() => {
     const controls = controlsRef.current;
     const mapTopLimit = mapViewTopLimitForViewport(size.height, headerHeight);
-    poseAt.current = (atTilt) => cameraPoseFor(command.view, aspectRatio, mapFramingPoints, mapTopLimit, atTilt);
     const destination = cameraDestinationFor(
       { view: command.view, revision: command.revision },
       aspectRatio,
@@ -378,7 +398,8 @@ function useSeatedCameraTransition({ command, enabled, mapFramingPoints }: Seate
       tilt,
       zoom
     );
-    const glide = glidingRevision.current !== zoomRevision;
+    /* A wheel turn glides, and so does a pan that starts while a glide is still on its way, instead of jumping the rest of it. */
+    const glide = glidingRevision.current !== zoomRevision || playback.current.glide !== null;
     glidingRevision.current = zoomRevision;
     /* While a piece is carried the view holds, except that the pan keys may slide a close look of this same view. */
     const sameView = destination.commandKey === playback.current.appliedCommandKey;
