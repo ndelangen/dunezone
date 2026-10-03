@@ -13,17 +13,17 @@ const bidSecondsSchema = z.number().int().min(MIN_BID_SECONDS).max(MAX_BID_SECON
 
 /**
  * The bidder over the board during the Bidding phase (#1007): it points at one faction, which raises or passes.
- * `idle` waits for the first card, `open` runs a card's bidding, and `sold` or `unsold` shows how the last card went until the next one opens.
+ * `idle` waits for the first round, `open` runs a round, and `won` or `unclaimed` shows how the last round went until players start the next one. Players start every round; the bidder knows nothing of cards.
  */
 export const biddingStateSchema = z.object({
   seconds: bidSecondsSchema,
-  stage: z.enum(['idle', 'open', 'sold', 'unsold']),
-  /* The card being bid on this phase, from 1; 0 before the first. */
+  stage: z.enum(['idle', 'open', 'won', 'unclaimed']),
+  /* The bidding round this phase, from 1; 0 before the first. */
   round: count,
   opener: id.nullable(),
   turn: id.nullable(),
   bid: z.object({ factionId: id, amount: count.min(1) }).nullable(),
-  /* Passes in a row since the card opened or since its last raise. */
+  /* Passes in a row since the round opened or since its last raise. */
   passes: count,
   deadline: count.nullable(),
 });
@@ -55,7 +55,7 @@ export function isFactionToken(piece: Pick<TablePiece, 'stackKey'>) {
 }
 
 /**
- * The factions bidding on this card, in storm order: a faction sits out while its token lies face down.
+ * The factions bidding this round, in storm order: a faction sits out while its token lies face down.
  * A faction whose token is not on the table, in a game set up before tokens were dealt or while it is carried, still bids.
  */
 export function biddingFactions(
@@ -98,9 +98,9 @@ function refuse(message: string): never {
 
 function open(state: BiddingState, { order, eligible, now }: BiddingContext): BiddingState {
   if (state.stage === 'open') {
-    return refuse('A card is already being bid on.');
+    return refuse('Bidding is already open.');
   }
-  /* The first card opens with the first faction in storm order, and each later card with the next one along (#1007). */
+  /* The first round opens with the first faction in storm order, and each later round with the next one along (#1007). */
   const opener = state.opener === null ? (eligible[0] ?? null) : nextBidder(order, eligible, state.opener);
   if (opener === null) {
     return refuse('Every faction token is face down, so nobody is bidding.');
@@ -117,15 +117,15 @@ function open(state: BiddingState, { order, eligible, now }: BiddingContext): Bi
   };
 }
 
-/** Moves the bidder on from the faction it points at; the card sells once it comes back round to the high bidder. */
+/** Moves the bidder on from the faction it points at; the round ends once it comes back round to the high bidder. */
 export function passBid(state: BiddingState, { order, eligible, now }: Omit<BiddingContext, 'factionId'>): BiddingState {
   const passes = state.passes + 1;
   const next = nextBidder(order, eligible, state.turn);
   if (state.bid && (next === state.bid.factionId || next === null)) {
-    return { ...state, stage: 'sold', turn: state.bid.factionId, passes, deadline: null };
+    return { ...state, stage: 'won', turn: state.bid.factionId, passes, deadline: null };
   }
   if (!state.bid && (next === null || passes >= eligible.length)) {
-    return { ...state, stage: 'unsold', turn: null, passes, deadline: null };
+    return { ...state, stage: 'unclaimed', turn: null, passes, deadline: null };
   }
   return { ...state, turn: next, passes, deadline: now + state.seconds * 1000 };
 }
@@ -139,7 +139,7 @@ export function applyBidding(state: BiddingState, action: BiddingAction, context
       return open(state, context);
   }
   if (state.stage !== 'open' || action.round !== state.round) {
-    return refuse('Bidding on that card has ended.');
+    return refuse('That bidding round has ended.');
   }
   if (!context.factionId || context.factionId !== state.turn) {
     return refuse('Wait until the bidder points at your faction.');

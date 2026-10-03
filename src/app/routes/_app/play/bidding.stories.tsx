@@ -15,7 +15,7 @@ const meta = preview.meta({
   title: 'Play/Playing/Bidding',
 });
 
-/* Seat 2 holds House Harkonnen; the Emperor's token lies face down, so the Emperor sits this card out. */
+/* Seat 2 holds House Harkonnen; the Emperor's token lies face down, so the Emperor sits this round out. */
 function biddingSetup(bidding: Partial<BiddingState> | null, viewer = 'seat-2') {
   return install(() => {
     const snapshot: GameSnapshot = playingSnapshot(viewer);
@@ -31,7 +31,7 @@ function biddingSetup(bidding: Partial<BiddingState> | null, viewer = 'seat-2') 
   });
 }
 
-export const BidderBeforeTheFirstCard = meta.story({
+export const BidderBeforeTheFirstRound = meta.story({
   beforeEach: biddingSetup(null),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
@@ -74,9 +74,9 @@ export const BidderOnAnotherFaction = meta.story({
   },
 });
 
-export const BidderAfterASale = meta.story({
+export const BidderAfterAWin = meta.story({
   beforeEach: biddingSetup({
-    stage: 'sold',
+    stage: 'won',
     round: 1,
     opener: 'house-atreides',
     turn: 'house-harkonnen',
@@ -84,6 +84,6 @@ export const BidderAfterASale = meta.story({
   }),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await expect(await page.findByRole('button', { name: 'Next card' }, { timeout: 30_000 })).toBeEnabled();
+    await expect(await page.findByRole('button', { name: 'Start bidding' }, { timeout: 30_000 })).toBeEnabled();
   },
 });

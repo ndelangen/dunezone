@@ -16,17 +16,17 @@ function opened(eligible: readonly string[] = order): BiddingState {
 }
 
 describe('the bidder', () => {
-  test('opens the first card on the first bidding faction in storm order, with its time running', () => {
+  test('opens the first round on the first bidding faction in storm order, with its time running', () => {
     expect(opened()).toMatchObject({ stage: 'open', round: 1, opener: 'a', turn: 'a', bid: null, deadline: 11_000 });
     expect(opened(['b', 'd'])).toMatchObject({ opener: 'b', turn: 'b' });
   });
 
-  test('opens each later card one faction further along', () => {
-    const sold = { ...opened(), stage: 'sold' as const };
-    expect(applyBidding(sold, { kind: 'bid-open' }, at('c'))).toMatchObject({ round: 2, opener: 'b', turn: 'b' });
+  test('opens each later round one faction further along', () => {
+    const won = { ...opened(), stage: 'won' as const };
+    expect(applyBidding(won, { kind: 'bid-open' }, at('c'))).toMatchObject({ round: 2, opener: 'b', turn: 'b' });
   });
 
-  test('raising keeps the bidder on the raiser, a pass moves it on, and the card sells once it comes back round', () => {
+  test('raising keeps the bidder on the raiser, a pass moves it on, and the round is won once it comes back round', () => {
     let state = applyBidding(opened(), { kind: 'bid-raise', round: 1 }, at('a', order, 2000));
     state = applyBidding(state, { kind: 'bid-raise', round: 1 }, at('a', order, 3000));
     expect(state).toMatchObject({ turn: 'a', bid: { factionId: 'a', amount: 2 }, deadline: 13_000 });
@@ -39,7 +39,7 @@ describe('the bidder', () => {
     }
     expect(state.turn).toBe('a');
     state = applyBidding(state, { kind: 'bid-pass', round: 1 }, at('a'));
-    expect(state).toMatchObject({ stage: 'sold', turn: 'b', bid: { factionId: 'b', amount: 3 }, deadline: null });
+    expect(state).toMatchObject({ stage: 'won', turn: 'b', bid: { factionId: 'b', amount: 3 }, deadline: null });
   });
 
   test('skips a faction whose token is face down', () => {
@@ -47,11 +47,11 @@ describe('the bidder', () => {
     expect(state.turn).toBe('c');
   });
 
-  test('a card nobody bids on goes unsold once every bidding faction passed', () => {
+  test('a round nobody bids in ends unclaimed once every bidding faction passed', () => {
     let state = opened(['a', 'b']);
     state = applyBidding(state, { kind: 'bid-pass', round: 1 }, at('a', ['a', 'b']));
     state = applyBidding(state, { kind: 'bid-pass', round: 1 }, at('b', ['a', 'b']));
-    expect(state).toMatchObject({ stage: 'unsold', turn: null });
+    expect(state).toMatchObject({ stage: 'unclaimed', turn: null });
   });
 
   test('only the faction the bidder points at can act', () => {

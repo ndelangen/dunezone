@@ -7,8 +7,8 @@
   position: relative;
   display: grid;
   place-items: center;
-  width: 64px;
-  height: 64px;
+  width: 56px;
+  height: 56px;
   border-radius: 50%;
   background: #2b2116;
   border: 2px solid #e3c27a;
@@ -41,7 +41,7 @@
   position: relative;
   z-index: 1;
   font-family: C_Advokat_Modern, sans-serif;
-  font-size: 30px;
+  font-size: 26px;
   line-height: 1;
   color: #fff;
   text-shadow:

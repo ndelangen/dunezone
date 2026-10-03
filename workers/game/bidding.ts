@@ -56,7 +56,7 @@ export function expireBidding(snapshot: StoredSnapshot, now: number): StoredSnap
   return next && commit(snapshot, next);
 }
 
-/** Leaving the phase puts the bidder away; the next Bidding phase starts again at its first card, with the same time. */
+/** Leaving the phase puts the bidder away; the next Bidding phase starts again at its first round, with the same time. */
 export function biddingAfterPhase(snapshot: StoredSnapshot, phase: number): Pick<StoredSnapshot, 'bidding'> {
   if (phase === snapshot.phase || !snapshot.bidding) {
     return {};

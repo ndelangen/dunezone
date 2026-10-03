@@ -10,7 +10,7 @@ import { tableSeatAngles } from '@shared/play/tableSettings';
 import { Section } from '@ui/block/Section';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { Group } from 'three';
-import { ExtrudeGeometry, Shape } from 'three';
+import { LatheGeometry, Vector2 } from 'three';
 
 import { Token as FactionToken } from '@game/assets/faction/token/Token';
 
@@ -21,41 +21,42 @@ import { useServerNow } from './useServerNow';
 
 type Props = { client: TableSession; table: TableProjection };
 
-const BIDDER_RADIUS = 0.7;
-const BIDDER_TIP = 2.1;
-const BIDDER_HOVER_Y = BOARD_SURFACE_Y + 0.55;
+const BIDDER_RADIUS = 0.6;
+const BIDDER_TIP = 1.9;
+const BIDDER_FLATTEN = 0.7;
+const BIDDER_HOVER_Y = BOARD_SURFACE_Y + 0.5;
 const BIDDER_TURN_MS = 450;
 
 function biddingPhase(table: TableProjection) {
   return phaseAt(table.snapshot.phase, table.snapshot.phases ?? STANDARD_PHASES).id === 'bidding';
 }
 
-/** A flat teardrop whose point lies along +x, extruded into a thin plate. */
+/** A solid teardrop lying on its side: a round back at the origin tapering to a point along +x, a little flattened. */
 function createTeardropGeometry() {
-  const tangent = Math.acos(BIDDER_RADIUS / BIDDER_TIP);
-  const shape = new Shape();
-  shape.moveTo(BIDDER_TIP, 0);
-  shape.lineTo(BIDDER_RADIUS * Math.cos(tangent), BIDDER_RADIUS * Math.sin(tangent));
-  shape.absarc(0, 0, BIDDER_RADIUS, tangent, Math.PI * 2 - tangent, false);
-  shape.lineTo(BIDDER_TIP, 0);
-  const geometry = new ExtrudeGeometry(shape, {
-    depth: 0.05,
-    bevelEnabled: true,
-    bevelThickness: 0.02,
-    bevelSize: 0.03,
-    bevelSegments: 3,
-    curveSegments: 48,
-  });
-  geometry.rotateX(-Math.PI / 2);
+  const profile: Vector2[] = [];
+  const steps = 48;
+  for (let step = 0; step <= steps; step += 1) {
+    /* From the tip at +BIDDER_TIP back to the rear pole at -BIDDER_RADIUS. */
+    const along = BIDDER_TIP - (step / steps) * (BIDDER_TIP + BIDDER_RADIUS);
+    const radius =
+      along > 0
+        ? BIDDER_RADIUS * Math.cos((Math.PI / 2) * (along / BIDDER_TIP))
+        : Math.sqrt(Math.max(0, BIDDER_RADIUS ** 2 - along ** 2));
+    profile.push(new Vector2(radius, along));
+  }
+  const geometry = new LatheGeometry(profile, 64);
+  geometry.rotateZ(-Math.PI / 2);
+  geometry.scale(1, BIDDER_FLATTEN, 1);
+  geometry.computeVertexNormals();
   return geometry;
 }
 
-/** The faction the bidder points at: the one it waits on, the buyer once sold, else the faction that opens the next card. */
+/** The faction the bidder points at: the one it waits on, the winner once a round ends, else the faction that opens the next round. */
 function pointedFaction(bidding: BiddingState, eligible: readonly string[]) {
   if (bidding.stage === 'open') {
     return bidding.turn;
   }
-  if (bidding.stage === 'sold') {
+  if (bidding.stage === 'won') {
     return bidding.bid?.factionId ?? null;
   }
   return bidding.opener ?? eligible[0] ?? null;
@@ -113,27 +114,26 @@ function BidderFace({
   const bidArtwork = bid ? artwork?.[bid.factionId] : undefined;
   const canAct = table.canInteract && Boolean(own);
   if (bidding.stage !== 'open') {
-    const label = bidding.stage === 'idle' ? 'Start bidding' : 'Next card';
     return (
       <Stack gap={4} align="center" className={styles.face}>
-        {bidding.stage === 'sold' && bid ? (
-          <div className={styles.disc} data-bidder-result="sold">
+        {bidding.stage === 'won' && bid ? (
+          <div className={styles.disc} data-bidder-result="won">
             {bidArtwork && <FactionToken logo={bidArtwork.logo} background={bidArtwork.background} />}
             <span className={styles.amount}>{bid.amount}</span>
           </div>
         ) : null}
-        {bidding.stage === 'unsold' ? (
+        {bidding.stage === 'unclaimed' ? (
           <Text size="xs" fw={700} className={styles.timer}>
             No bids
           </Text>
         ) : null}
-        {bidding.stage === 'sold' && bid ? (
+        {bidding.stage === 'won' && bid ? (
           <Text size="xs" fw={700} className={styles.timer}>
-            {names[bid.factionId] ?? bid.factionId} buys for {bid.amount}
+            {names[bid.factionId] ?? bid.factionId} wins with {bid.amount}
           </Text>
         ) : null}
         <Button size="compact-xs" disabled={!canAct} onClick={() => client.command({ kind: 'bid-open' })}>
-          {label}
+          Start bidding
         </Button>
       </Stack>
     );
@@ -200,8 +200,8 @@ function Bidder({ client, table }: Props) {
   return (
     <group position={[0, BIDDER_HOVER_Y, 0]}>
       <group ref={groupRef}>
-        <mesh geometry={geometry} castShadow>
-          <meshStandardMaterial color="#2a1c12" metalness={0.4} roughness={0.45} emissive="#4a2a10" emissiveIntensity={0.25} />
+        <mesh geometry={geometry} castShadow receiveShadow>
+          <meshStandardMaterial color="#5e3818" metalness={0.3} roughness={0.35} />
         </mesh>
       </group>
       <Html center zIndexRange={[9, 0]}>
