@@ -39,6 +39,7 @@
       "/__user-images/*",
       "/__play",
       "/__play/*",
+      "/sitemap*",
       "/factions",
       "/factions/*",
       "/assets",

@@ -7,7 +7,11 @@ export type PublicCache = {
 };
 
 /** Hash normalized public inputs so cache keys do not retain caller-supplied words. */
-export async function publicCacheKey(url: URL, cache: PublicCache, kind: 'html' | 'png' | 'artwork'): Promise<Request> {
+export async function publicCacheKey(
+  url: URL,
+  cache: PublicCache,
+  kind: 'html' | 'png' | 'artwork' | 'sitemap'
+): Promise<Request> {
   const normalized = new URL(url);
   normalized.hash = '';
   normalized.searchParams.sort();
@@ -29,7 +33,7 @@ function canStore(response: Response): boolean {
 export async function publicCachedResponse(
   cache: PublicCache | undefined,
   url: URL,
-  kind: 'html' | 'png' | 'artwork',
+  kind: 'html' | 'png' | 'artwork' | 'sitemap',
   generate: () => Promise<Response>,
   lifetime: (response: Response) => number
 ): Promise<Response> {

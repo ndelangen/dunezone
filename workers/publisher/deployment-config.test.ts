@@ -115,6 +115,7 @@ describe('scheduled production deployment shape', () => {
       '/__user-images/*',
       '/__play',
       '/__play/*',
+      '/sitemap*',
       '/factions',
       '/factions/*',
       '/assets',
