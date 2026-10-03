@@ -1361,8 +1361,25 @@
   },
   {
     "label": "Familiar worlds",
-    "keywords": "Our own homeworld.",
-    "assets": ["/image/planet/familiar-worlds/earth.png"]
+    "keywords": "Earth and recognizable worlds from Star Wars, Mass Effect, Avatar, Halo, Star Trek, Marvel, Warcraft and Discworld.",
+    "assets": [
+      "/image/planet/familiar-worlds/earth.png",
+      "/image/planet/familiar-worlds/death-star.png",
+      "/image/planet/familiar-worlds/citadel.png",
+      "/image/planet/familiar-worlds/omega.png",
+      "/image/planet/familiar-worlds/coruscant.png",
+      "/image/planet/familiar-worlds/mustafar.png",
+      "/image/planet/familiar-worlds/rannoch.png",
+      "/image/planet/familiar-worlds/discworld.png",
+      "/image/planet/familiar-worlds/argus.png",
+      "/image/planet/familiar-worlds/pandora.png",
+      "/image/planet/familiar-worlds/polyphemus.png",
+      "/image/planet/familiar-worlds/zeta-halo.png",
+      "/image/planet/familiar-worlds/vulcan.png",
+      "/image/planet/familiar-worlds/ego.png",
+      "/image/planet/familiar-worlds/knowhere.png",
+      "/image/planet/familiar-worlds/alderaan.png"
+    ]
   },
   {
     "label": "Decals / Blades and melee weapons",
