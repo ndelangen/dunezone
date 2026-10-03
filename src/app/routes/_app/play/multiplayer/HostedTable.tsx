@@ -1,6 +1,5 @@
 import { Anchor, Button, Group, List, Loader, NumberInput, Select, Stack, Text, Tooltip } from '@mantine/core';
 import { snapshotFactionLabels } from '@shared/play/factionLabels';
-import { isFactionToken } from '@shared/play/factionToken';
 import { emptyPublicControls } from '@shared/play/inventory';
 import type { SpawnSelection } from '@shared/play/inventory';
 import { phaseAt, tableProgressFor } from '@shared/play/phases';
@@ -780,10 +779,7 @@ function ConnectedTable({
               <>
                 {stage === 'swapping' || stage === 'setup' ? (
                   <>
-                    {/* Setup deals each faction token onto the table; a game supplied before that keeps the seat tokens. */}
-                    {(stage === 'swapping' || !table.snapshot.table.pieces.some(isFactionToken)) && (
-                      <SwapScene snapshot={table.snapshot} />
-                    )}
+                    <SwapScene snapshot={table.snapshot} />
                     {stage === 'setup' && <BattleScene client={client} table={table} />}
                   </>
                 ) : (
