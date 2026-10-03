@@ -148,8 +148,7 @@ export const PeekAtTheDeck = meta.story({
 });
 
 /**
- * Seat 1 pulls a card out of the Treachery deck while looking through it, closes the deck, and peeks at that one card:
- * its face opens large, to seat 1 alone.
+ * Seat 1 pulls a card out of the Treachery deck while looking through it, closes the deck, and peeks at that one card: its face opens large, to seat 1 alone.
  */
 export const PeekAtACard = meta.story({
   play: async ({ canvasElement }) => {
