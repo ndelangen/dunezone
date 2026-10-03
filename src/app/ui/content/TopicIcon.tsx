@@ -3,6 +3,7 @@ import {
   Dices,
   Globe2,
   Hand,
+  Handshake,
   ScrollText,
   ShieldCheck,
   ShieldOff,
@@ -67,6 +68,7 @@ const TOPIC_ICON_DEFINITIONS = {
   turn: { kind: 'mask', src: '/vector/icon/turn.svg' },
   board: { kind: 'mask', src: '/vector/icon/landscape.svg' },
   cards: { kind: 'mask', src: '/vector/icon/treachery.svg' },
+  deals: { kind: 'component', component: Handshake },
 } as const satisfies Record<string, { kind: 'mask'; src: string } | { kind: 'component'; component: LucideIcon }>;
 
 export type TopicIconTopic = keyof typeof TOPIC_ICON_DEFINITIONS;

@@ -1,3 +1,5 @@
+import { VisuallyHidden } from '@mantine/core';
+import { publishedHref } from '@shared/asset-publishing/publicationTargets';
 import type { GlossaryTopic } from '@shared/glossary/terms';
 import { RULEBOOK_BOARD_DEFINITIONS } from '@shared/rulebooks/boardDefinitions';
 import { CanvasScale } from '@ui/layout/CanvasScale';
@@ -28,6 +30,17 @@ const atreidesTroop = {
   striped: undefined,
 } as const;
 
+const beneGesseritTroop = {
+  background: backgroundPresets.beneGesserit,
+  image: '/vector/troop/bene-gesserit.svg',
+  star: undefined,
+  hue: undefined,
+  striped: undefined,
+} as const;
+
+/* The spice token the catalogue publishes, so the glossary shows the same piece players use. */
+const SPICE_TOKEN = publishedHref('token-disc', 'ns76wk6vyqcnb1wfn8jb5ggya98cx6k7');
+
 /*
  * A piece of game artwork with the glossary word under it, linking to that word's entry.
  * An `extra` piece drops out when the picture's column is too slim for two pieces side by side.
@@ -36,11 +49,14 @@ function Piece({
   caption,
   anchor,
   extra = false,
+  captionHidden = false,
   children,
 }: {
   caption: string;
   anchor: string;
   extra?: boolean;
+  /** For art that already prints its own name, such as a card: the caption still names the link. */
+  captionHidden?: boolean;
   children: ReactNode;
 }) {
   return (
@@ -48,14 +64,15 @@ function Piece({
       <span className={styles.art} aria-hidden="true">
         {children}
       </span>
-      <span className={styles.caption}>{caption}</span>
+      {captionHidden ? <VisuallyHidden>{caption}</VisuallyHidden> : <span className={styles.caption}>{caption}</span>}
     </a>
   );
 }
 
-function Disc({ children }: { children: ReactNode }) {
+/* A troop is half the diameter of a leader or faction token, as on the table. */
+function Disc({ troop = false, children }: { troop?: boolean; children: ReactNode }) {
   return (
-    <span className={styles.disc}>
+    <span className={clsx(styles.disc, troop && styles.troop)}>
       <CanvasScale canvasWidth={disc.width} canvasHeight={disc.height}>
         {children}
       </CanvasScale>
@@ -80,25 +97,25 @@ function Glyph({ src }: { src: string }) {
 const PHASES = [
   { name: 'Storm', icon: '/vector/icon/storm_disc.svg' },
   { name: 'Spice Blow', icon: '/vector/icon/spice-blow_disc.svg' },
-  { name: 'CHOAM Charity', icon: '/vector/icon/spice-alt.svg' },
+  { name: 'CHOAM Charity', icon: '/vector/icon/spice-alt.svg', ring: true },
   { name: 'Bidding', icon: '/vector/icon/bidding_disc.svg', anchor: 'bidding' },
-  { name: 'Revival', icon: '/vector/icon/revival.svg', anchor: 'revival' },
+  { name: 'Revival', icon: '/vector/icon/revival.svg', anchor: 'revival', ring: true },
   { name: 'Shipment and Movement', icon: '/vector/icon/shipment_disc.svg', anchor: 'shipment-and-movement' },
   { name: 'Battle', icon: '/vector/icon/combat_disc.svg', anchor: 'battle' },
   { name: 'Spice Collection', icon: '/vector/icon/collection_disc.svg', anchor: 'spice-collection' },
-  { name: 'Mentat Pause', icon: '/vector/icon/mentat.svg' },
+  { name: 'Mentat Pause', icon: '/vector/icon/mentat.svg', ring: true },
 ] as const;
 
 function PiecesVisual() {
   return (
     <div className={styles.row}>
       <Piece caption="Troop" anchor="troop">
-        <Disc>
+        <Disc troop>
           <TroopToken {...atreidesTroop} />
         </Disc>
       </Piece>
       <Piece caption="Elite troop" anchor="elite-troop">
-        <Disc>
+        <Disc troop>
           <TroopToken
             background={backgroundPresets.fremen}
             image="/vector/troop/fremen.svg"
@@ -107,6 +124,20 @@ function PiecesVisual() {
             striped={undefined}
           />
         </Disc>
+      </Piece>
+      <Piece caption="Flipped troop" anchor="flipped-troop">
+        <Disc troop>
+          <TroopToken {...beneGesseritTroop} striped />
+        </Disc>
+      </Piece>
+      <Piece caption="Reserves" anchor="reserves" extra>
+        <span className={styles.troopStack}>
+          {[0, 1, 2].map((index) => (
+            <Disc key={index} troop>
+              <TroopToken {...atreidesTroop} />
+            </Disc>
+          ))}
+        </span>
       </Piece>
       <Piece caption="Leader" anchor="leader">
         <Disc>
@@ -124,22 +155,6 @@ function PiecesVisual() {
           <Token {...atreides} />
         </Disc>
       </Piece>
-      <Piece caption="Reserves" anchor="reserves" extra>
-        <span className={styles.troopStack}>
-          {[0, 1, 2].map((index) => (
-            <Disc key={index}>
-              <TroopToken {...atreidesTroop} />
-            </Disc>
-          ))}
-        </span>
-      </Piece>
-      <Piece caption="Tleilaxu Tanks" anchor="tleilaxu-tanks" extra>
-        <span className={styles.tanked}>
-          <Disc>
-            <TroopToken {...atreidesTroop} />
-          </Disc>
-        </span>
-      </Piece>
     </div>
   );
 }
@@ -147,12 +162,15 @@ function PiecesVisual() {
 function TurnVisual() {
   return (
     <ol className={styles.phases}>
-      {PHASES.map((phase, index) => (
+      {PHASES.map((phase) => (
         <li key={phase.name} className={styles.phase}>
-          <span className={styles.phaseNumber} aria-hidden="true">
-            {index + 1}
-          </span>
-          <Glyph src={phase.icon} />
+          {'ring' in phase ? (
+            <span className={styles.ring}>
+              <Glyph src={phase.icon} />
+            </span>
+          ) : (
+            <Glyph src={phase.icon} />
+          )}
           {'anchor' in phase ? <a href={`#${phase.anchor}`}>{phase.name}</a> : <span>{phase.name}</span>}
         </li>
       ))}
@@ -160,7 +178,8 @@ function TurnVisual() {
   );
 }
 
-const WHEEL = { width: 170, cardRoom: 62 };
+/* The wheel sets its cards 62px above its face; the tilted cards reach a further 14px. */
+const WHEEL = { width: 170, cardRoom: 76 };
 
 function WheelCard({ front }: { front: (typeof treacheryCardFixtures)[keyof typeof treacheryCardFixtures] }) {
   return (
@@ -227,7 +246,7 @@ function BattleVisual() {
         <Piece caption="Dialed troops" anchor="dialed">
           <span className={styles.troopStack}>
             {[0, 1, 2].map((index) => (
-              <Disc key={index}>
+              <Disc key={index} troop>
                 <TroopToken {...atreidesTroop} />
               </Disc>
             ))}
@@ -260,7 +279,7 @@ function SpicePile({ count }: { count: number }) {
   return (
     <span className={styles.spicePile}>
       {Array.from({ length: count }, (_, index) => (
-        <Glyph key={index} src="/vector/icon/spice.svg" />
+        <img key={index} className={styles.spiceToken} src={SPICE_TOKEN} alt="" />
       ))}
     </span>
   );
@@ -306,17 +325,17 @@ function SpiceVisual() {
 function CardsVisual() {
   return (
     <div className={styles.fan}>
-      <Piece caption="Treachery card" anchor="treachery-card">
+      <Piece captionHidden caption="Treachery card" anchor="treachery-card">
         <GameCard>
           <TreacheryCard {...treacheryCardFixtures.lasgun} />
         </GameCard>
       </Piece>
-      <Piece caption="Karama" anchor="karama">
+      <Piece captionHidden caption="Karama" anchor="karama">
         <GameCard>
           <TreacheryCard {...treacheryCardFixtures.karama} />
         </GameCard>
       </Piece>
-      <Piece caption="Traitor card" anchor="traitor-card">
+      <Piece captionHidden caption="Traitor card" anchor="traitor-card">
         <GameCard>
           <TraitorCard
             background={atreides.background}
@@ -346,6 +365,23 @@ function FactionsVisual() {
   );
 }
 
+/* A bribe on the table: spice passing from one faction to another. */
+function DealsVisual() {
+  return (
+    <Piece caption="Bribe" anchor="bribe">
+      <span className={styles.deal}>
+        <Disc>
+          <Token {...factionTokenFixtures.harkonnen} />
+        </Disc>
+        <SpicePile count={2} />
+        <Disc>
+          <Token {...factionTokenFixtures.atreides} />
+        </Disc>
+      </span>
+    </Piece>
+  );
+}
+
 const VISUALS: Record<GlossaryTopic, () => ReactNode> = {
   pieces: PiecesVisual,
   turn: TurnVisual,
@@ -354,6 +390,7 @@ const VISUALS: Record<GlossaryTopic, () => ReactNode> = {
   spice: SpiceVisual,
   cards: CardsVisual,
   factions: FactionsVisual,
+  deals: DealsVisual,
 };
 
 /** The picture beside one glossary topic, drawn with the game's own artwork and sized to fill its column. */
