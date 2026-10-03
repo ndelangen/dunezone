@@ -1,3 +1,4 @@
+import { isFactionToken } from './factionToken';
 import type { TablePiece, Vector3Tuple } from './model';
 import {
   isSpicePiece,
@@ -27,6 +28,8 @@ export const TROOP_FACE_RADIUS = 0.31 * 0.5;
 export const TROOP_FOOTPRINT_RADIUS = 0.175;
 /* A leader disc is twice the diameter of a troop token. */
 const LEADER_SCALE = 2;
+/* A faction token is as wide as the seat token swapping shows (radius 0.42), the largest disc at a seat. */
+const FACTION_TOKEN_SCALE = 0.42 / TROOP_TOP_RADIUS;
 export const CARD_WIDTH = 0.86;
 export const CARD_DEPTH = 1.18;
 export const CARD_LAYER_HEIGHT = 0.055;
@@ -48,8 +51,11 @@ function isLeaderPiece(piece: Partial<Pick<TablePiece, 'kind' | 'stackKey'>>): b
   return piece.kind === 'force' && (piece.stackKey?.startsWith('leader:') ?? false);
 }
 
-/** How much wider than a troop token a 'force'-kind piece (a troop or a leader disc) is drawn and occupies the table. */
+/** How much wider than a troop token a 'force'-kind piece (a troop, a leader disc or a faction token) is drawn and occupies the table. */
 export function troopScale(piece: Partial<Pick<TablePiece, 'kind' | 'stackKey'>>): number {
+  if (isFactionToken(piece)) {
+    return FACTION_TOKEN_SCALE;
+  }
   return isLeaderPiece(piece) ? LEADER_SCALE : 1;
 }
 

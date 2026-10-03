@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { withSupportNames } from '../factions/schema';
 import type { AuthoredFace, AuthoredTroop } from '../factions/troopBattle';
 import { troopBattleFaces } from '../factions/troopBattle';
+import { isFactionToken } from './factionToken';
 import {
   storedPieceSchema,
   tableCountSchema as count,
@@ -137,7 +138,9 @@ export function emptyBattlePlan(faces: BattleFace[]): StoredBattlePlan {
   };
 }
 
-/** Published disc tokens can be chosen as leaders; physical troop discs stay on the board. */
+/** Published disc tokens can be chosen as leaders; physical troop discs stay on the board, and a faction token is never a leader. */
 export function isBattleLeader(piece: z.infer<typeof tablePieceSchema>): boolean {
-  return piece.kind === 'force' && piece.items.every((item) => item.artwork?.type === 'token-disc');
+  return (
+    piece.kind === 'force' && !isFactionToken(piece) && piece.items.every((item) => item.artwork?.type === 'token-disc')
+  );
 }

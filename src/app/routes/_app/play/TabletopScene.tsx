@@ -59,6 +59,7 @@ import {
 import type { TableSeatCount } from '@shared/play/tableSettings';
 import { trackerArcSlots, TRACKER_DISC_HEIGHT } from '@shared/play/tableTrackers';
 import type { TrackerArcSlot } from '@shared/play/tableTrackers';
+import { isTroopStack } from '@shared/play/troop';
 import {
   createContext,
   memo,
@@ -1370,7 +1371,8 @@ function SceneContents({
           trackerSlots={trackerSlots}
         />
         {renderedPieces
-          .filter((piece) => !piece.battleOverlay)
+          /* Troop reserves arrive with the board: setup keeps them off the table until the map shows. */
+          .filter((piece) => !piece.battleOverlay && (stage !== 'setup' || mapVisible || !isTroopStack(piece)))
           .map((piece) => (
             <TablePieceMesh key={piece.id} piece={piece} {...pieceSceneState(piece, table)} />
           ))}
