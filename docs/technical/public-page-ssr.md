@@ -18,6 +18,8 @@ controls wait for current capabilities. Signing out removes them; the initial da
 access while the next subscription result is pending. Live names update the browser title. Asset
 dates use a stable calendar date so the server and browser agree during hydration.
 
+The [public discovery contract](public-discovery.md) covers robots.txt, sitemaps and canonical URL variants.
+
 Missing records and unknown public descendants return 404. A faction query reports structured
 `NOT_FOUND` so a connection failure cannot masquerade as absence. A faction that disappears from
 an open page uses the same absence presentation. Old slugs remain absent after a rename.

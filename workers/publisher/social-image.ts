@@ -60,7 +60,7 @@ export async function handleSocialImageRequest(
   if (url.pathname !== '/social' && !url.pathname.startsWith('/social/')) {
     return null;
   }
-  const headers = { 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' };
+  const headers = { 'X-Robots-Tag': 'noindex', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' };
   if (url.pathname !== SOCIAL_CARD_PATH) {
     return new Response('Not found', { status: 404, headers });
   }
@@ -130,6 +130,7 @@ export async function handleSocialImageRequest(
         });
         return new Response(png, {
           headers: {
+            'X-Robots-Tag': 'noindex',
             'Content-Type': 'image/png',
             'Content-Length': String(png.byteLength),
             'X-Content-Type-Options': 'nosniff',

@@ -19,6 +19,14 @@ try {
   const healthResponse = await worker.fetch('/__asset-publisher/health');
   assert.equal(healthResponse.status, 200);
   const health = (await healthResponse.json()) as { application: { release: string } };
+  const robots = await worker.fetch('/robots.txt');
+  assert.equal(robots.status, 200);
+  assert.ok((await robots.text()).includes('Sitemap: https://dune.zone/sitemap.xml'));
+  const sitemap = await worker.fetch('/sitemap.xml');
+  assert.equal(sitemap.status, 200);
+  assert.match(sitemap.headers.get('Content-Type') ?? '', /application\/xml/);
+  assert.ok((await sitemap.text()).includes('https://dune.zone/sitemap-factions.xml'));
+  assert.equal((await worker.fetch('/sitemap-missing.xml')).status, 404);
   const pages = ['/factions', '/assets', '/assets/token-disc'];
   for (const pathname of pages) {
     const response = await worker.fetch(pathname, { headers: { Cookie: 'private=must-not-reach-ssr' } });
