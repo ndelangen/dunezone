@@ -121,6 +121,22 @@ describe('Tleilaxu Tanks shelf physics', () => {
     expect(isCollisionFreePosition(troop, clamped, [])).toBe(true);
   });
 
+  test('accepts pieces that straddle the join between the board and the shelf', () => {
+    const { deck, troop } = cardWellFixtures();
+    const leader = { ...troop, stackKey: 'leader:harkonnen:feyd' };
+
+    expect(clampPositionToTable(deck, [0, 0.38, 5])).toEqual([0, 0.38, 5]);
+    expect(isCollisionFreePosition(deck, [0, 0.38, 5], [])).toBe(true);
+    expect(clampPositionToTable(leader, [2, 0.38, 4.9])).toEqual([2, 0.38, 4.9]);
+    expect(isCollisionFreePosition(leader, [2, 0.38, 4.9], [])).toBe(true);
+  });
+
+  test('still refuses a piece hanging off the corner where the shelf meets the board', () => {
+    const { troop } = cardWellFixtures();
+
+    expect(isCollisionFreePosition(troop, [2.5, 0.38, 5.2], [])).toBe(false);
+  });
+
   test('keeps the side card bays closed to troops', () => {
     const { troop } = cardWellFixtures();
 

@@ -215,6 +215,27 @@ function isOnTanksShelf(piece: TablePiece, position: Vector3Tuple): boolean {
   );
 }
 
+const JOIN_SAMPLE_COUNT = 32;
+
+function isPointOnTabletop(x: number, z: number): boolean {
+  return (
+    Math.hypot(x, z) <= TABLE_PLAY_RADIUS ||
+    (x >= TANKS_PLAY_AREA.minX && x <= TANKS_PLAY_AREA.maxX && z >= TANKS_PLAY_AREA.minZ && z <= TANKS_PLAY_AREA.maxZ)
+  );
+}
+
+/** A piece may straddle the join between the round table and the Tanks shelf when its whole reach lies on one or the other. */
+function isAcrossTanksJoin(piece: TablePiece, position: Vector3Tuple): boolean {
+  const reach = footprintTableRadius(piece);
+  for (let sample = 0; sample < JOIN_SAMPLE_COUNT; sample += 1) {
+    const angle = (sample / JOIN_SAMPLE_COUNT) * Math.PI * 2;
+    if (!isPointOnTabletop(position[0] + Math.cos(angle) * reach, position[2] + Math.sin(angle) * reach)) {
+      return false;
+    }
+  }
+  return true;
+}
+
 function clampToRoundTable(piece: TablePiece, position: Vector3Tuple): Vector3Tuple {
   const maxCenterRadius = TABLE_PLAY_RADIUS - footprintTableRadius(piece);
   const distanceFromCenter = Math.hypot(position[0], position[2]);
@@ -249,7 +270,8 @@ function isSupportedPosition(piece: TablePiece, position: Vector3Tuple): boolean
   return (
     placementAnchorForPose(piece, position) !== null ||
     isOnRoundTable(piece, position) ||
-    isOnTanksShelf(piece, position)
+    isOnTanksShelf(piece, position) ||
+    isAcrossTanksJoin(piece, position)
   );
 }
 
