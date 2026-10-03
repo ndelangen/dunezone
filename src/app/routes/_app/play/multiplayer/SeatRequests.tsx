@@ -1,4 +1,4 @@
-import { Button, Group, Menu, Popover, Select, Slider, Stack, Text } from '@mantine/core';
+import { Button, Group, Menu, Popover, Select, Slider, Stack, Switch, Text } from '@mantine/core';
 import { emptyPublicControls } from '@shared/play/inventory';
 import { seatLabel, seatSubject } from '@shared/play/participation';
 import type { SeatAction, SeatRequest } from '@shared/play/participation';
@@ -12,6 +12,7 @@ import { useId, useState } from 'react';
 import type { ReactNode } from 'react';
 
 import { setTableLighting, TABLE_LIGHTING_MAX, TABLE_LIGHTING_MIN, useTableLighting } from '../tableLighting';
+import { setTableDragPan, useTableDragPan } from '../tablePan';
 import styles from './SeatRequests.module.css';
 import type { TableProjection, TableSession } from './TableSession';
 
@@ -285,6 +286,21 @@ function TableLightingSlider() {
   );
 }
 
+/* A trial: whether dragging empty board slides a close look around; it stays in this browser. */
+function TableDragPanSwitch() {
+  const dragPan = useTableDragPan();
+  return (
+    <Switch
+      px="sm"
+      py="xs"
+      size="sm"
+      label="Drag the board to pan when zoomed in"
+      checked={dragPan}
+      onChange={(event) => setTableDragPan(event.currentTarget.checked)}
+    />
+  );
+}
+
 /**
  * The game menu in the header toolbar, in every stage, left of the phase controls that stay rightmost.
  * It gives up the viewer's seat, with the confirmation in the decision bar, never in a modal;
@@ -314,6 +330,7 @@ export function GameMenu({
       </Menu.Target>
       <Menu.Dropdown>
         <TableLightingSlider />
+        <TableDragPanSwitch />
         <Menu.Divider />
         {onClearConfetti && <Menu.Item onClick={onClearConfetti}>Clear confetti</Menu.Item>}
         <Menu.Item color="red" disabled={!seated} onClick={onLeave}>

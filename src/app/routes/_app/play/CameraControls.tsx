@@ -12,6 +12,7 @@ import {
   cameraPoseFor,
   cameraTiltAfterWheel,
   cameraViewTransitionProgress,
+  cameraZoomAfterPan,
   cameraZoomAfterWheel,
   mapViewTopLimitForViewport,
   NO_CAMERA_ZOOM,
@@ -21,6 +22,8 @@ import {
 } from './playView';
 import type { CameraPose, CameraViewCommand, CameraZoom } from './playView';
 import { usePointerSession } from './PointerSessionContext';
+import { useTableDragPan } from './tablePan';
+import { useTabletopReader } from './TabletopContext';
 import { watchTwoFingerTilt } from './twoFingerTilt';
 
 const CAMERA_POSE_EPSILON_SQUARED = 0.000001;
@@ -197,6 +200,26 @@ function applyCameraDestination(
 
 type WheelView = Readonly<{ tilt: number; zoom: CameraZoom; zoomRevision: number }>;
 
+/** The pose a zoom was applied to, recovered from the zoomed pose. */
+function unzoomedPose(pose: CameraPose, zoom: CameraZoom): CameraPose {
+  const undo = (point: Vector3Tuple): Vector3Tuple => [
+    (point[0] - zoom.offset[0]) / zoom.scale,
+    (point[1] - zoom.offset[1]) / zoom.scale,
+    (point[2] - zoom.offset[2]) / zoom.scale,
+  ];
+  return { position: undo(pose.position), target: undo(pose.target) };
+}
+
+/** Where a client point lies on the canvas, as normalised device coordinates and the canvas's aspect ratio. */
+function canvasPoint(surface: HTMLElement, clientX: number, clientY: number) {
+  const bounds = surface.getBoundingClientRect();
+  return {
+    ndcX: ((clientX - bounds.left) / Math.max(1, bounds.width)) * 2 - 1,
+    ndcY: 1 - ((clientY - bounds.top) / Math.max(1, bounds.height)) * 2,
+    aspectRatio: bounds.width / Math.max(1, bounds.height),
+  };
+}
+
 /*
  * The player's tilt, from the approved angle toward top-down, and then a close look at the board, both steered by the wheel while the camera is free.
  * Scrolling down tilts to top-down and then moves in toward the point under the pointer; scrolling up backs out and then tilts back.
@@ -239,10 +262,7 @@ function useWheelView(enabled: boolean, viewKey: string, pose: { current: Camera
         return;
       }
       event.preventDefault();
-      const bounds = surface.getBoundingClientRect();
-      const ndcX = ((event.clientX - bounds.left) / Math.max(1, bounds.width)) * 2 - 1;
-      const ndcY = 1 - ((event.clientY - bounds.top) / Math.max(1, bounds.height)) * 2;
-      const aspectRatio = bounds.width / Math.max(1, bounds.height);
+      const { ndcX, ndcY, aspectRatio } = canvasPoint(surface, event.clientX, event.clientY);
       setView((current) => {
         if (!wheelTurnZooms(current.tilt, current.zoom, event.deltaY)) {
           return { ...current, tilt: cameraTiltAfterWheel(current.tilt, event.deltaY, event.deltaMode) };
@@ -253,13 +273,9 @@ function useWheelView(enabled: boolean, viewKey: string, pose: { current: Camera
         }
         /* The anchor is found on the pose the camera is heading to, so turns in quick succession agree on what is under the pointer. */
         const anchor = tablePointUnder(shown, aspectRatio, ndcX, ndcY, ZOOM_ANCHOR_HEIGHT);
-        const unzoomed = {
-          position: shown.position.map((value, axis) => (value - current.zoom.offset[axis]) / current.zoom.scale),
-          target: shown.target.map((value, axis) => (value - current.zoom.offset[axis]) / current.zoom.scale),
-        } as CameraPose;
         const zoom = cameraZoomAfterWheel(
           current.zoom,
-          unzoomed,
+          unzoomedPose(shown, current.zoom),
           anchor ?? [...shown.target],
           event.deltaY,
           event.deltaMode
@@ -270,6 +286,70 @@ function useWheelView(enabled: boolean, viewKey: string, pose: { current: Camera
     surface.addEventListener('wheel', onWheel, { passive: false });
     return () => surface.removeEventListener('wheel', onWheel);
   }, [enabled, pose, surface]);
+
+  /* A trial: dragging empty board while zoomed in slides the close look, keeping the grabbed spot under the pointer. */
+  const dragPan = useTableDragPan();
+  const readTable = useTabletopReader();
+  const zoomedIn = view.zoom.scale < 1;
+  useEffect(() => {
+    if (!enabled || !dragPan || !zoomedIn) {
+      return;
+    }
+    const pointUnder = (event: PointerEvent) => {
+      const shown = pose.current;
+      if (!shown) {
+        return null;
+      }
+      const { ndcX, ndcY, aspectRatio } = canvasPoint(surface, event.clientX, event.clientY);
+      return tablePointUnder(shown, aspectRatio, ndcX, ndcY, ZOOM_ANCHOR_HEIGHT);
+    };
+    let grab: { pointerId: number; point: Vector3Tuple } | null = null;
+    const onDown = (event: PointerEvent) => {
+      const table = readTable();
+      if (event.button !== 0 || table.hoveredPieceId || table.state.draftMove) {
+        return;
+      }
+      const point = pointUnder(event);
+      if (point) {
+        grab = { pointerId: event.pointerId, point };
+        surface.style.cursor = 'grabbing';
+      }
+    };
+    const onMove = (event: PointerEvent) => {
+      if (!grab || event.pointerId !== grab.pointerId) {
+        return;
+      }
+      const to = pointUnder(event);
+      const from = grab.point;
+      if (!to) {
+        return;
+      }
+      setView((current) => {
+        const shown = pose.current;
+        if (!shown) {
+          return current;
+        }
+        return { ...current, zoom: cameraZoomAfterPan(current.zoom, unzoomedPose(shown, current.zoom), from, to) };
+      });
+    };
+    const onUp = (event: PointerEvent) => {
+      if (grab && event.pointerId === grab.pointerId) {
+        grab = null;
+        surface.style.cursor = '';
+      }
+    };
+    surface.addEventListener('pointerdown', onDown);
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+    window.addEventListener('pointercancel', onUp);
+    return () => {
+      surface.removeEventListener('pointerdown', onDown);
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+      window.removeEventListener('pointercancel', onUp);
+      surface.style.cursor = '';
+    };
+  }, [dragPan, enabled, pose, readTable, surface, zoomedIn]);
 
   return view;
 }

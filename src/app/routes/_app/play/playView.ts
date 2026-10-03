@@ -315,14 +315,37 @@ export function cameraZoomAfterWheel(
     const remaining = (1 - scale) / (1 - zoom.scale);
     offset = [zoom.offset[0] * remaining, zoom.offset[1] * remaining, zoom.offset[2] * remaining];
   }
-  /* Keep the close look over the board: a target that would leave it slides back toward the middle. */
-  const target = zoomedCameraPose(basePose, { scale, offset }).target;
+  return keepZoomOverBoard(basePose, { scale, offset });
+}
+
+/** A close look kept over the board: a target that would leave it slides back toward the middle. */
+function keepZoomOverBoard(basePose: CameraPose, zoom: CameraZoom): CameraZoom {
+  const target = zoomedCameraPose(basePose, zoom).target;
   const distance = Math.hypot(target[0], target[2]);
-  if (distance > CAMERA_ZOOM_TARGET_RADIUS) {
-    const excess = 1 - CAMERA_ZOOM_TARGET_RADIUS / distance;
-    offset = [offset[0] - target[0] * excess, offset[1], offset[2] - target[2] * excess];
+  if (distance <= CAMERA_ZOOM_TARGET_RADIUS) {
+    return zoom;
   }
-  return { scale, offset };
+  const excess = 1 - CAMERA_ZOOM_TARGET_RADIUS / distance;
+  return {
+    scale: zoom.scale,
+    offset: [zoom.offset[0] - target[0] * excess, zoom.offset[1], zoom.offset[2] - target[2] * excess],
+  };
+}
+
+/** A close look slid along the table so that `from`, the table point first grabbed, comes to lie where `to` is now. */
+export function cameraZoomAfterPan(
+  zoom: CameraZoom,
+  basePose: CameraPose,
+  from: Vector3Tuple,
+  to: Vector3Tuple
+): CameraZoom {
+  if (zoom.scale >= 1) {
+    return zoom;
+  }
+  return keepZoomOverBoard(basePose, {
+    scale: zoom.scale,
+    offset: [zoom.offset[0] + from[0] - to[0], zoom.offset[1], zoom.offset[2] + from[2] - to[2]],
+  });
 }
 
 /** The table point under a spot on the canvas, given in normalised device coordinates, on the plane at `height`. */
