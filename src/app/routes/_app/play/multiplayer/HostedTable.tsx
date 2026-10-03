@@ -303,7 +303,7 @@ function Predictions({ client, table }: SetupControlProps) {
     .map((step) => {
       const prediction = table.snapshot.predictions?.[step.id];
       const own = step.factionId === ownFaction;
-      /* While its card is in hand, placing the card is the reveal; the panel keeps a button only for a game that dealt none. */
+      /* While its card is in hand, placing the card is the reveal; a game that dealt none keeps the button during setup and in the winner bars. */
       const byCard = own && prediction?.revealedAt === null && predictionCardInHand(table, step.id);
       return (
         <Section

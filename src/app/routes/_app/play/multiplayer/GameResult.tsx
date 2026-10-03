@@ -66,11 +66,12 @@ function DeclareBar({ client, table }: Props) {
   const valid = resultFactionCountFits(choice.kind, factionIds.length);
   const options = factionOptions(table);
   const stepId = unrevealedPrediction(table);
+  const byCard = stepId !== undefined && predictionCardInHand(table, stepId);
   return (
     <DecisionBar
       eyebrow="Determine winner"
       title="Declare the result"
-      context="Every player sees that you are determining the winner, and anyone holding a prediction is reminded to reveal it. Declaring finishes the game."
+      context={`Every player sees that you are determining the winner, and anyone holding a prediction is reminded to reveal it. ${byCard ? 'To reveal yours, place its card on the table before declaring. ' : ''}Declaring finishes the game.`}
       readiness={
         <Stack gap="sm">
           <SegmentedControl
@@ -99,9 +100,7 @@ function DeclareBar({ client, table }: Props) {
             />
           )}
           <Group gap="xs" justify="flex-end">
-            {stepId && !predictionCardInHand(table, stepId) && (
-              <RevealButton client={client} table={table} stepId={stepId} />
-            )}
+            {stepId && !byCard && <RevealButton client={client} table={table} stepId={stepId} />}
             <Button
               variant="default"
               disabled={!table.canInteract}
