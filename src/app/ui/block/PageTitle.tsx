@@ -9,6 +9,8 @@ export interface PageTitleProps {
   title: string;
   /** Classifier above the name: what kind of thing this page is. Words, not a node. */
   eyebrow?: string;
+  /** Welcome line under the name, framed between two thin gilt rules like a title card. Words, not a node. */
+  subtitle?: string;
 }
 
 /**
@@ -25,7 +27,7 @@ export interface PageTitleProps {
  *
  * It exists because the page title had three spellings and no legal home: a Content component holding an `h1`, a `Title order={1}`, and a bare `h1`, so every page picked one and the outline drifted.
  */
-export function PageTitle({ title, eyebrow }: PageTitleProps) {
+export function PageTitle({ title, eyebrow, subtitle }: PageTitleProps) {
   const insideHeader = useInsidePageHeader();
 
   if (import.meta.env.DEV && !insideHeader) {
@@ -43,6 +45,7 @@ export function PageTitle({ title, eyebrow }: PageTitleProps) {
       <Title order={1} className={styles.title}>
         {title}
       </Title>
+      {subtitle === undefined ? null : <p className={styles.subtitle}>{subtitle}</p>}
     </Stack>
   );
 }

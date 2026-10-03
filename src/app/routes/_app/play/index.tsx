@@ -420,8 +420,7 @@ function PlayLobby() {
     <PageLayout>
       <PageLayout.Header size="hero">
         <Stack gap="md" miw={0} align="center" ta="center">
-          <PageTitle title="Play Dune!" />
-          <p className={styles.subtitle}>Welcome to the lobby</p>
+          <PageTitle title="Play Dune!" subtitle="Welcome to the lobby" />
           <Text size="lg" fw={500} maw="36rem">
             Take a seat, choose your faction, and fight for Arrakis.
           </Text>
