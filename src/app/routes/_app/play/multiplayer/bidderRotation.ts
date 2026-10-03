@@ -41,7 +41,10 @@ export function useBidderRotation(target: number | null) {
   });
   useLayoutEffect(() => {
     const group = groupRef.current;
-    if (!group || target === null || shown.current === target) {
+    if (!group || target === shown.current) {
+      return;
+    }
+    if (target === null) {
       return;
     }
     if (shown.current === null) {
