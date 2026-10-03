@@ -1,9 +1,9 @@
 {
   "/image/leader/red-alert-1/carville.png": {
-    "description": "A smiling man with gray hair and a moustache in an olive military uniform.",
-    "tags": ["Ben Carville", "Red Alert 1", "gray hair", "moustache", "uniform", "Retaliation"],
+    "description": "A smiling bald man with a gray moustache and a thin fringe of hair at the sides, wearing an olive military uniform.",
+    "tags": ["Ben Carville", "Red Alert 1", "bald", "gray moustache", "uniform", "Retaliation"],
     "subjects": ["people"],
-    "sourceHash": "a330056a218c7de4ed1b7ed87d701ca17467814ece65e9365aa3022c75b0aa9d"
+    "sourceHash": "a9b736bed878f5065bd1581a7b9ff62d235b76731a50b7b104615da16218c55e"
   },
   "/image/leader/red-alert-1/chitzkoi.png": {
     "description": "A black and tan German Shepherd with a mechanical eye and red collar.",
@@ -183,7 +183,7 @@
     "description": "A white-haired man shouting and pointing forward, wearing a blue uniform and cap.",
     "tags": ["Douglas Hill", "Red Alert 3", "Ric Flair", "pointing", "blue cap", "Uprising"],
     "subjects": ["people"],
-    "sourceHash": "e2dcd2add50d9cc713ee9d41579df708d00ca6f34799ce853d0dc9a63f57c854"
+    "sourceHash": "ee6f43597318c64c392b3c4539ddf2cb248eb7f4dab72716a09a13678ae33ec9"
   },
   "/image/leader/red-alert-3/izumi.png": {
     "description": "A woman with long dark hair tied high with a red wrap, looking aside in a white robe.",

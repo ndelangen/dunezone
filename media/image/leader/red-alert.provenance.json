@@ -13,14 +13,15 @@
     "https://forums.somethingawful.com/showthread.php?threadid=3879498",
     "https://cnc.fandom.com/wiki/Shinji_Shimada",
     "https://images.wikia.com/cnc/images/b/b1/CNCRACS_Volkov.png",
-    "https://images.wikia.com/cnc/images/2/22/CNCRACS_Chitzkoi.png"
+    "https://images.wikia.com/cnc/images/2/22/CNCRACS_Chitzkoi.png",
+    "https://origin.giantbomb.com/a/uploads/scale_small/0/7465/433118-carville.jpg"
   ],
   "images": [
     {
       "name": "Ben Carville",
       "game": 1,
       "asset": "/image/leader/red-alert-1/carville.png",
-      "sourceSha256": "a330056a218c7de4ed1b7ed87d701ca17467814ece65e9365aa3022c75b0aa9d"
+      "sourceSha256": "a9b736bed878f5065bd1581a7b9ff62d235b76731a50b7b104615da16218c55e"
     },
     {
       "name": "Chitzkoi",
@@ -200,7 +201,7 @@
       "name": "Douglas Hill",
       "game": 3,
       "asset": "/image/leader/red-alert-3/hill.png",
-      "sourceSha256": "e2dcd2add50d9cc713ee9d41579df708d00ca6f34799ce853d0dc9a63f57c854"
+      "sourceSha256": "ee6f43597318c64c392b3c4539ddf2cb248eb7f4dab72716a09a13678ae33ec9"
     },
     {
       "name": "Izumi",
