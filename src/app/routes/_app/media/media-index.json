@@ -9742,5 +9742,95 @@
     "tags": ["background", "parchment"],
     "subjects": ["patterns"],
     "sourceHash": "8636b17960e8ad9fc297f9979c955b74e95a7e25bde4d84550226ca9a98072ae"
+  },
+  "/image/planet/familiar-worlds/death-star.png": {
+    "description": "A grey spherical battle station with a circular laser dish, an equatorial trench and broad panel markings.",
+    "tags": ["Star Wars", "Death Star", "space station", "grey", "sphere", "dish"],
+    "subjects": ["space"],
+    "sourceHash": "c820269a121133d196977bbe499a536a7b0769ba7e006b800eabd8d0f9b1bc69"
+  },
+  "/image/planet/familiar-worlds/citadel.png": {
+    "description": "A grey space station with long tapered arms, a circular central ring and gold illuminated strips.",
+    "tags": ["Mass Effect", "Citadel", "space station", "ring", "arms", "gold lights"],
+    "subjects": ["space"],
+    "sourceHash": "e52864d85a7d8f40acadd33a031ac1aae7e6e65fa926fbeddbf95cd11b5f71da"
+  },
+  "/image/planet/familiar-worlds/omega.png": {
+    "description": "A rocky asteroid above a tapered industrial station with red illuminated bands and a long lower spire.",
+    "tags": ["Mass Effect", "Omega", "asteroid", "space station", "red lights", "spire"],
+    "subjects": ["space"],
+    "sourceHash": "52785fc3ead2a03e4dd6cb59085d841a6144bf5f6ef9ec17fff11bebcfe2382d"
+  },
+  "/image/planet/familiar-worlds/coruscant.png": {
+    "description": "A dark blue city planet crossed by curved geometric bands and gold lights, with a shaded right hemisphere.",
+    "tags": ["Star Wars", "Coruscant", "city planet", "gold lights", "blue"],
+    "subjects": ["space"],
+    "sourceHash": "304299c09c70837a5788f88c96284af9f0f2d9a2fbe01013281389b3d61c105e"
+  },
+  "/image/planet/familiar-worlds/mustafar.png": {
+    "description": "A volcanic red and brown planet with bright orange lava fissures and a dark right hemisphere.",
+    "tags": ["Star Wars", "Mustafar", "lava", "volcanic", "red", "orange"],
+    "subjects": ["space"],
+    "sourceHash": "e8f78c00e1ece4f0039cf55e52d70e9cd01501e66313eff3cdc42d0e67b1d9c0"
+  },
+  "/image/planet/familiar-worlds/rannoch.png": {
+    "description": "A blue planet with dark continents, broad white clouds and a shaded right hemisphere.",
+    "tags": ["Mass Effect", "Rannoch", "blue", "continents", "clouds"],
+    "subjects": ["space"],
+    "sourceHash": "2a6abb162622861681b7808a40b01202ea57e18dc010f2ad240b7e45e36aed9e"
+  },
+  "/image/planet/familiar-worlds/discworld.png": {
+    "description": "A giant turtle carrying elephants beneath a flat blue world disc with water spilling over its rim.",
+    "tags": ["Discworld", "Great ATuin", "turtle", "elephants", "flat world", "water"],
+    "subjects": ["space"],
+    "sourceHash": "1b37bcfaebda1d1c05300eab404b510a77cfaf7b4f7e2f5d4c8efe0f4cc47514"
+  },
+  "/image/planet/familiar-worlds/argus.png": {
+    "description": "A fractured purple-grey planet split by luminous green fissures and a jagged broken upper edge.",
+    "tags": ["Warcraft", "Argus", "broken planet", "green", "fissures"],
+    "subjects": ["space"],
+    "sourceHash": "29d5a614fd0de072f1fb3e434b693f29fc5e80f368ce2efe86541a81656486ff"
+  },
+  "/image/planet/familiar-worlds/pandora.png": {
+    "description": "A blue and green world with broad white cloud swirls and a dark right hemisphere.",
+    "tags": ["Avatar", "Pandora", "moon", "blue", "green", "clouds"],
+    "subjects": ["space"],
+    "sourceHash": "c2cde0a3527751194f2d7c7d2d4af7495c19e2df9e0287d94de0c98f8556fba3"
+  },
+  "/image/planet/familiar-worlds/polyphemus.png": {
+    "description": "A blue gas giant with sweeping pale cloud bands, a large oval storm and a shaded right hemisphere.",
+    "tags": ["Avatar", "Polyphemus", "gas giant", "blue", "storm", "bands"],
+    "subjects": ["space"],
+    "sourceHash": "dbf0ea983d946b8b6d5e18782c481419fa04f0e8d9e6adccf43796934c54e942"
+  },
+  "/image/planet/familiar-worlds/zeta-halo.png": {
+    "description": "A broken tilted ring world with a grey outer shell, blue lights and green land on its inner face.",
+    "tags": ["Halo", "Zeta Halo", "ring world", "broken ring", "green", "blue lights"],
+    "subjects": ["space"],
+    "sourceHash": "2a763156fc771d3f8c9828169107cfdab192f030b52b953286e4d7de8f352d75"
+  },
+  "/image/planet/familiar-worlds/vulcan.png": {
+    "description": "An orange-brown world collapsing toward a blue central fissure, with dark radial cracks.",
+    "tags": ["Star Trek", "Vulcan", "destruction", "orange", "cracks", "blue"],
+    "subjects": ["space"],
+    "sourceHash": "fc5fa88e4db378a5001af8e51ed186e248f98ebef8974efe60d49b64d14a2cc2"
+  },
+  "/image/planet/familiar-worlds/ego.png": {
+    "description": "A red rocky planet with a stern face, glowing turquoise eyes and turquoise surface channels.",
+    "tags": ["Marvel", "Ego", "living planet", "face", "red", "turquoise"],
+    "subjects": ["space"],
+    "sourceHash": "703d8b36c8c174b9518b8de8cbbe39cb217e3e0fb25ff6b5e4d7696c9841803e"
+  },
+  "/image/planet/familiar-worlds/knowhere.png": {
+    "description": "A huge pale skull fitted with brown industrial structures and gold lights inside its eye socket.",
+    "tags": ["Marvel", "Knowhere", "skull", "space station", "gold lights"],
+    "subjects": ["space"],
+    "sourceHash": "be55053016e1aebb4ca88401a6d9ecf63b5f2e235703fccd74181fb4cb40277f"
+  },
+  "/image/planet/familiar-worlds/alderaan.png": {
+    "description": "A blue and green planet covered in broad white cloud swirls, with a dark right hemisphere.",
+    "tags": ["Star Wars", "Alderaan", "blue", "green", "clouds"],
+    "subjects": ["space"],
+    "sourceHash": "4fbbbecbab3a6fd7047874b2e5c777401ff3fdeabdb43e82045dd39a24570d03"
   }
 }
