@@ -86,12 +86,12 @@ function suppliedSnapshot(
   const next = structuredClone(snapshot);
   const table = tableForViewer(next, SPECTATOR_SEAT);
   for (const { capture, angle } of factions) {
-    const { reserves, hand, traitors, tokens } = factionSupply(capture, angle, {
+    const { reserves, hand, traitors } = factionSupply(capture, angle, {
       id: () => crypto.randomUUID(),
       shuffle: shuffledCards,
     });
     hand.push(...capture.extras.flatMap((slot) => slotPieces(slot, capture.faction.id)));
-    table.pieces.push(...tokens, ...reserves, ...traitors);
+    table.pieces.push(...reserves, ...traitors);
     supplyInventory(next, capture, hand);
   }
   table.pieces.push(

@@ -104,7 +104,7 @@ function capture({ slug, data, token, leaders }: (typeof factions)[number]): Fac
     capturedAt: 0,
     definition: toStoredHeroKey(data),
     components: {
-      token: { front: imageHref(token), back: imageHref(token.replace(/\.jpg$/, '-back.jpg')) },
+      token: { front: imageHref(token), back: null },
       leaders: data.leaders.map((leader, index) => ({
         memberId: leader.memberId,
         name: leader.name,
@@ -192,8 +192,7 @@ export function setupSnapshot(viewerSeat = 'seat-2'): GameSnapshot {
   const supply: SupplyDependencies = { id: () => `supply-${next++}`, shuffle: (items) => items };
   const angles = tableSeatAngles(6);
   const supplies = factions.map((faction, index) => factionSupply(capture(faction), angles[index]!, supply));
-  snapshot.table.pieces = supplies.flatMap(({ reserves, traitors, tokens }) => [
-    ...tokens,
+  snapshot.table.pieces = supplies.flatMap(({ reserves, traitors }) => [
     ...reserves,
     ...traitors.map((deck) => projected(deck, supply)),
   ]);

@@ -45,11 +45,7 @@ export const MARKER_FOOTPRINT_RADIUS = 0.5;
 
 /** Leaders keep the stack key their faction's setup supply gave them. */
 function isLeaderPiece(piece: Partial<Pick<TablePiece, 'kind' | 'stackKey'>>): boolean {
-  /* A faction token is a leader-sized disc. */
-  return (
-    piece.kind === 'force' &&
-    ((piece.stackKey?.startsWith('leader:') ?? false) || (piece.stackKey?.startsWith('faction-token:') ?? false))
-  );
+  return piece.kind === 'force' && (piece.stackKey?.startsWith('leader:') ?? false);
 }
 
 /** How much wider than a troop token a 'force'-kind piece (a troop or a leader disc) is drawn and occupies the table. */

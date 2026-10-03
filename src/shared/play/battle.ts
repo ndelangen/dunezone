@@ -139,9 +139,5 @@ export function emptyBattlePlan(faces: BattleFace[]): StoredBattlePlan {
 
 /** Published disc tokens can be chosen as leaders; physical troop discs stay on the board. */
 export function isBattleLeader(piece: z.infer<typeof tablePieceSchema>): boolean {
-  return (
-    piece.kind === 'force' &&
-    !piece.stackKey?.startsWith('faction-token:') &&
-    piece.items.every((item) => item.artwork?.type === 'token-disc')
-  );
+  return piece.kind === 'force' && piece.items.every((item) => item.artwork?.type === 'token-disc');
 }
