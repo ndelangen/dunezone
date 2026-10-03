@@ -3,6 +3,7 @@
 
 import { describe, expect, test } from 'vitest';
 
+import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
 import type { PlayDirectorySummary } from '../src/shared/play/directory';
 import { api } from './_generated/api';
 import { playPerson, playRuleset, playTest } from './play.test.fixture';
@@ -74,8 +75,8 @@ describe('the directory keeps the newest published summary and lists it to every
           seatCount: 4,
           viewerSeated: true,
           players: [
-            { displayName: 'Administrator', faction: null },
-            { displayName: 'Member', faction: null },
+            { displayName: 'Administrator', avatarUrl: null, viewer: true, faction: null },
+            { displayName: 'Member', avatarUrl: null, viewer: false, faction: null },
           ],
           lastActivityAt: 3000,
         },
@@ -114,6 +115,58 @@ describe('the directory keeps the newest published summary and lists it to every
     expect(await admin.query(api.playDirectory.listGames, {})).toMatchObject({
       past: [],
       ongoing: [{ stage: 'play', phase: 12 }],
+    });
+  });
+
+  test('a seated faction carries its catalogue token, and a faction the catalogue no longer holds carries none', async () => {
+    const { t, admin, ids, publish, summary } = await world();
+    const factionId = await t.run(async (ctx) =>
+      ctx.db.insert('factions', {
+        owner_id: ids.admin,
+        slug: 'atreides',
+        data: { ...assetPublishingFaction, name: 'Atreides' },
+        group_id: null,
+        is_deleted: false,
+        created_at: '2026-10-01T00:00:00Z',
+        updated_at: '2026-10-01T00:00:00Z',
+      })
+    );
+    const seated = summary([ids.admin, ids.member]);
+    seated.seats[0]!.faction = { id: factionId, name: 'Atreides', color: '#2f7d32' };
+    seated.seats[1]!.faction = { id: 'retired-faction', name: 'Retired', color: '#444444' };
+    await publish(1, seated);
+    expect(await admin.query(api.playDirectory.listGames, {})).toMatchObject({
+      ongoing: [
+        {
+          players: [
+            {
+              faction: {
+                name: 'Atreides',
+                color: '#2f7d32',
+                token: { logo: assetPublishingFaction.logo, background: assetPublishingFaction.background },
+                won: false,
+              },
+            },
+            { faction: { name: 'Retired', token: null, won: false } },
+          ],
+        },
+      ],
+    });
+    /* A winner is matched by faction id, so a namesake at the same table is not crowned. */
+    const finished = summary([ids.admin, ids.member], {
+      stage: 'finished',
+      result: {
+        kind: 'faction',
+        factions: [{ id: factionId, name: 'Atreides' }],
+        declaredBy: ids.admin,
+        declaredAt: 2,
+      },
+    });
+    finished.seats[0]!.faction = { id: factionId, name: 'Atreides', color: '#2f7d32' };
+    finished.seats[1]!.faction = { id: 'namesake', name: 'Atreides', color: '#2f7d32' };
+    await publish(2, finished);
+    expect(await admin.query(api.playDirectory.listGames, {})).toMatchObject({
+      past: [{ players: [{ faction: { won: true } }, { faction: { won: false } }] }],
     });
   });
 });
