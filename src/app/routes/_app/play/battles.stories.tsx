@@ -525,3 +525,44 @@ export const BattleReadinessInRealGame = meta.story({
     expect(page.getByRole('img', { name: 'House Atreides, right side, Ready' })).toBeVisible();
   },
 });
+
+/** After the reveal the battle ends as resolved, not cancelled, and it settles with whatever the sides called. */
+export const BattleRevealedResolve = meta.story({
+  beforeEach: battleSetup('revealed', 'seat-2', (snapshot) => {
+    snapshot.battle!.sides.forEach((side) => (side!.choice = null));
+  }),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await settled(() => expect(page.getByRole('button', { name: 'Battle resolved' })).toBeEnabled());
+    expect(page.queryByRole('button', { name: 'Cancel battle' })).toBeNull();
+    expect(page.queryByRole('status')).toBeNull();
+    await userEvent.click(page.getByRole('button', { name: 'Battle resolved' }));
+    expect(lastCommand()?.action).toEqual({ kind: 'battle-cancel', battleId: 'story-battle' });
+  },
+});
+
+/** A side that called a winner sees who the battle now waits on. */
+export const BattleWinnerCalled = meta.story({
+  beforeEach: battleSetup('revealed', 'seat-2', (snapshot) => {
+    snapshot.battle!.sides[1]!.choice = null;
+  }),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await settled(() =>
+      expect(page.getByRole('status')).toHaveTextContent('Waiting for House Atreides to agree')
+    );
+    expect(page.getByRole('button', { name: 'Left side won' })).toBeVisible();
+  },
+});
+
+/** The other side's call is lit, so agreeing with it is one click. */
+export const BattleWinnerCalledByOpponent = meta.story({
+  beforeEach: battleSetup('revealed', 'seat-2', (snapshot) => {
+    snapshot.battle!.sides[0]!.choice = null;
+    snapshot.battle!.sides[1]!.choice = 'left';
+  }),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await settled(() => expect(page.getByRole('status')).toHaveTextContent('House Atreides says left side won'));
+  },
+});
