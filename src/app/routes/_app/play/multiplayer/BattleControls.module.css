@@ -69,6 +69,10 @@
   border-radius: 4px 4px 18px 4px;
 }
 
+.resolve {
+  margin-top: 10px;
+}
+
 .choice {
   position: absolute;
   bottom: 4px;

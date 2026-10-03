@@ -714,7 +714,7 @@ function CancelBattleButton({
       disabled={!table.canHandleTable}
       onClick={() => client.command({ kind: 'battle-cancel', battleId: battle.id })}
     >
-      {battle.stage === 'revealed' ? 'Battle resolved' : 'Cancel battle'}
+      {battle.stage === 'revealed' ? 'Resolve battle' : 'Cancel battle'}
     </Button>
   );
 }
@@ -759,7 +759,7 @@ function BattleCentre(props: ActiveProps) {
           </Text>
         )}
         <OutcomeButton {...props} outcome="none" />
-        <CancelBattleButton {...props} size="compact-xs" variant="subtle" />
+        <CancelBattleButton {...props} size="compact-xs" variant="subtle" className={styles.resolve} />
       </Stack>
     );
   }

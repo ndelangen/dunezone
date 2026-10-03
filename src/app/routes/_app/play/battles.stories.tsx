@@ -533,10 +533,10 @@ export const BattleRevealedResolve = meta.story({
   }),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await settled(() => expect(page.getByRole('button', { name: 'Battle resolved' })).toBeEnabled());
+    await settled(() => expect(page.getByRole('button', { name: 'Resolve battle' })).toBeEnabled());
     expect(page.queryByRole('button', { name: 'Cancel battle' })).toBeNull();
     expect(page.queryByRole('status')).toBeNull();
-    await userEvent.click(page.getByRole('button', { name: 'Battle resolved' }));
+    await userEvent.click(page.getByRole('button', { name: 'Resolve battle' }));
     expect(lastCommand()?.action).toEqual({ kind: 'battle-cancel', battleId: 'story-battle' });
   },
 });
