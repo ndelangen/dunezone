@@ -4,6 +4,7 @@ import { describe, expect, test } from 'vitest';
 
 import type { TABLE_VIEW_OPTIONS } from './playView';
 import {
+  CAMERA_CLOSEST_DISTANCE,
   CAMERA_PAN_AT_REST,
   cameraPanMotionAfter,
   cameraPoseFor as cameraPoseForCloseLook,
@@ -364,6 +365,21 @@ describe('close look', () => {
       spot.ndcY,
       spot.height
     )!;
+
+  test('the closest look of every view stays farther out than the controls allow, so its glide arrives', () => {
+    for (const view of ['map', 'left', 'right', 'bottom'] as const) {
+      for (const aspectRatio of [390 / 844, 1, 1.6, 2.4]) {
+        const viewPoseAt = (tilt: number) => cameraPoseForCloseLook(view, aspectRatio, undefined, undefined, tilt);
+        let zoom = NO_CAMERA_ZOOM;
+        for (let turn = 0; turn < 40; turn++) {
+          zoom = cameraZoomAfterWheelAt(zoom, 0, viewPoseAt, { ...spot, aspectRatio }, 100);
+        }
+        const pose = zoomedCameraPose(viewPoseAt(cameraTiltForZoom(0, zoom)), zoom);
+        const distance = new Vector3(...pose.position).distanceTo(new Vector3(...pose.target));
+        expect(distance).toBeGreaterThan(CAMERA_CLOSEST_DISTANCE * 1.5);
+      }
+    }
+  });
 
   test('scrolling down only ever brings the board closer, keeping the point under the pointer', () => {
     const anchor = pointUnderSpot(NO_CAMERA_ZOOM);
