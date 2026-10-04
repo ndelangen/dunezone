@@ -112,14 +112,14 @@ export function useTablePose(position: Vector3Tuple, orientation: number, remote
   return groupRef;
 }
 
-const REMOTE_HAND_HTML_STYLE = { pointerEvents: 'none' } as const;
-const REMOTE_HAND_Z_RANGE = [6, 0];
+const HAND_HTML_STYLE = { pointerEvents: 'none' } as const;
+const HAND_Z_RANGE = [6, 0];
 
 /*
  * A pointer moves many times a second while its label never changes, so the hand follows the position in the scene
  * and keeps one label element: drei's `Html` renders its own React root again whenever its children change.
  */
-const RemoteHand = memo(function RemoteHand({
+const Hand = memo(function Hand({
   position,
   color,
   displayName,
@@ -128,19 +128,19 @@ const RemoteHand = memo(function RemoteHand({
 }: Pick<PublicPointer, 'position' | 'color' | 'displayName' | 'avatarUrl'> & { local?: boolean }) {
   const group = useTablePose(position, 0, !local);
   const label = useMemo(
-    () => <RemoteHandLabel color={color} displayName={displayName} avatarUrl={avatarUrl} local={local} />,
+    () => <HandLabel color={color} displayName={displayName} avatarUrl={avatarUrl} local={local} />,
     [color, displayName, avatarUrl, local]
   );
   return (
     <group ref={group}>
-      <Html zIndexRange={REMOTE_HAND_Z_RANGE} style={REMOTE_HAND_HTML_STYLE}>
+      <Html zIndexRange={HAND_Z_RANGE} style={HAND_HTML_STYLE}>
         {label}
       </Html>
     </group>
   );
 });
 
-function RemoteHandLabel({
+function HandLabel({
   color,
   displayName,
   avatarUrl,
@@ -149,7 +149,7 @@ function RemoteHandLabel({
   return (
     <div
       data-table-hand={local ? 'local' : 'remote'}
-      aria-hidden="true"
+      aria-hidden={displayName ? undefined : true}
       style={{
         position: 'relative',
         display: 'flex',
@@ -316,23 +316,29 @@ export function ScenePresence({ showNames = true, showLocal = false }: { showNam
         clear();
       }
     };
+    const reposition = () => publish.current();
     window.addEventListener('pointermove', move, true);
+    window.addEventListener('scroll', reposition, true);
+    window.addEventListener('resize', reposition);
     window.addEventListener('pointerout', leave, true);
     window.addEventListener('blur', clear);
     document.addEventListener('visibilitychange', visibility);
     return () => {
       window.removeEventListener('pointermove', move, true);
+      window.removeEventListener('scroll', reposition, true);
+      window.removeEventListener('resize', reposition);
       window.removeEventListener('pointerout', leave, true);
       window.removeEventListener('blur', clear);
       document.removeEventListener('visibilitychange', visibility);
       clear();
     };
   }, [publishPointer]);
+  const hasLocalHand = showLocal && localPosition !== null;
   useEffect(() => {
     const canvas = renderer.domElement;
-    canvas.classList.toggle(styles.localCursor, showLocal);
+    canvas.classList.toggle(styles.localCursor, hasLocalHand);
     return () => canvas.classList.remove(styles.localCursor);
-  }, [renderer.domElement, showLocal]);
+  }, [hasLocalHand, renderer.domElement]);
   useEffect(() => {
     if (!canInteract) {
       publishPointer(null);
@@ -405,12 +411,12 @@ export function ScenePresence({ showNames = true, showLocal = false }: { showNam
   return (
     <>
       {showLocal && localPosition && (
-        <RemoteHand position={localPosition} color={viewer.color} displayName="" avatarUrl={viewer.avatarUrl} local />
+        <Hand position={localPosition} color={viewer.color} displayName="" avatarUrl={viewer.avatarUrl} local />
       )}
       {pointers
         .filter((pointer) => pointer.viewerSeat !== SPECTATOR_SEAT)
         .map((pointer) => (
-          <RemoteHand
+          <Hand
             key={pointer.connectionId}
             position={pointer.position}
             color={pointer.color}

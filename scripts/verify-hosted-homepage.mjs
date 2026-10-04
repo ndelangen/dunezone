@@ -7,6 +7,61 @@ const thumbnails = new Map([
   ['ns74r72v6mdmnn8ahdmj27c8gs8cz5t6', 'arrakeen'],
 ]);
 
+/** An already-published local image, stored on the synthetic profile before authentication. */
+export function homepageAvatar(origin) {
+  const url = `${origin}/homepage-table/house-atreides-token.webp`;
+  return { url, source_url: url, width: 512, height: 512 };
+}
+
+async function loadedAvatarBelowHand(who, kind, expectedUrl, until) {
+  const hand = who.page.locator(`[data-table-hand="${kind}"]`);
+  const image = hand.locator('img');
+  await image.waitFor();
+  await until(
+    () => image.evaluate((element) => element.complete && element.naturalWidth > 0),
+    `${who.label}'s ${kind} avatar did not load.`
+  );
+  assert.equal(await image.getAttribute('src'), expectedUrl);
+  const avatar = await image.boundingBox();
+  const glyph = await hand.locator(':scope > svg').boundingBox();
+  assert.ok(avatar && glyph, `${who.label}'s ${kind} hand and avatar need visible bounds.`);
+  assert.ok(avatar.y >= glyph.y + glyph.height, `${who.label}'s ${kind} avatar overlaps the hand.`);
+  assert.ok(Math.abs(avatar.x + avatar.width / 2 - glyph.x - glyph.width / 2) < 3);
+}
+
+async function localHandAtPointer(who, position, until) {
+  const hand = who.page.locator('[data-table-hand="local"] > svg');
+  await hand.waitFor();
+  let bounds;
+  try {
+    await until(async () => {
+      bounds = await hand.boundingBox();
+      return bounds && Math.hypot(bounds.x + 8 - position.x, bounds.y + 2 - position.y) < 3;
+    }, 'The local hand did not reach the stationary pointer.');
+  } catch (cause) {
+    const scrollY = await who.page.evaluate(() => window.scrollY);
+    throw new Error(`Local hand position: ${JSON.stringify({ pointer: position, bounds, scrollY })}`, { cause });
+  }
+  return bounds;
+}
+
+async function scrollUnderPointer(who, position, until) {
+  await who.page.mouse.move(position.x, position.y);
+  const before = await localHandAtPointer(who, position, until);
+  const scrollTop = await who.page.evaluate(() => window.scrollY);
+  await who.page.mouse.wheel(0, 50);
+  await until(() => who.page.evaluate((top) => window.scrollY >= top + 45, scrollTop), 'The board did not scroll.');
+  const after = await localHandAtPointer(who, position, until);
+  assert.ok(Math.hypot(after.x - before.x, after.y - before.y) < 3, 'The local hand drifted while scrolling.');
+  assert.equal(await who.page.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.tagName, position), 'CANVAS');
+  await who.page.mouse.wheel(0, 1600);
+  await until(
+    () => who.page.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.tagName !== 'CANVAS', position),
+    'The board did not scroll out from beneath the pointer.'
+  );
+  await who.page.locator('[data-table-hand="local"] > svg').waitFor({ state: 'detached' });
+}
+
 /** Keeps the homepage's published marketing thumbnails local without opening the runner to external traffic. */
 export async function installHomepageArtwork(context) {
   for (const [id, name] of thumbnails) {
@@ -67,6 +122,9 @@ export async function verifyHomepage({
   );
   await member.page.locator('[data-table-hand="local"]').waitFor();
   await guest.page.locator('[data-table-hand="remote"]').waitFor();
+  await loadedAvatarBelowHand(member, 'local', homepageAvatar(origin).url, until);
+  await loadedAvatarBelowHand(guest, 'remote', homepageAvatar(origin).url, until);
+  passed('Authenticated avatars load below the local and remote hands');
   await member.page.mouse.down();
   await member.page.mouse.move(finish.x, finish.y, { steps: carrySteps });
   await member.page.mouse.up();
@@ -111,4 +169,6 @@ export async function verifyHomepage({
   assert.equal(guest.view().snapshot.revision, revision);
   await capture(guest, 'homepage-observer-after-shared-drag');
   passed('Dragging as an unsigned visitor sends no handling command and leaves the table unchanged');
+  await scrollUnderPointer(guest, guestStart, until);
+  passed('A stationary pointer keeps its local hand while scrolling and loses it when the board leaves');
 }
