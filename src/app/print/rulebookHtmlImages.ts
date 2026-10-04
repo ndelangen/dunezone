@@ -54,6 +54,13 @@ export function rulebookHtmlImages(
             canonicalHref
           ).href;
         }
+        if (block.kind === 'list') {
+          for (const item of block.items) {
+            if (item.icon) {
+              item.icon = new URL(item.icon, canonicalHref).href;
+            }
+          }
+        }
         if (block.kind === 'referenced-illustration' || block.kind === 'card-entry') {
           image(block.source);
         }

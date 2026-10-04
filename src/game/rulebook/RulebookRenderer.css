@@ -977,6 +977,61 @@
   margin-block-end: calc(1 * var(--rulebook-mm));
 }
 
+/* List markers stay inside the block so the tenth item cannot lose its first digit at the region edge. */
+.rulebookList[data-illustrated] > :is(ol, ul) {
+  padding-inline-start: 0;
+  gap: calc(2.5 * var(--rulebook-mm));
+  list-style: none;
+  counter-reset: rulebook-list-item;
+}
+
+.rulebookList[data-illustrated] > :is(ol, ul) > li {
+  display: grid;
+  grid-template-columns: calc(6 * var(--rulebook-mm)) calc(10 * var(--rulebook-mm)) minmax(0, 1fr);
+  gap: calc(2.5 * var(--rulebook-mm));
+  align-items: center;
+  counter-increment: rulebook-list-item;
+}
+
+.rulebookList[data-illustrated] > :is(ol, ul) > li::before {
+  content: "•";
+  text-align: right;
+  font-weight: 700;
+}
+
+.rulebookList[data-illustrated] > ol > li::before {
+  content: counter(rulebook-list-item) ".";
+}
+
+.rulebookListIcon {
+  box-sizing: border-box;
+  width: calc(10 * var(--rulebook-mm));
+  height: calc(10 * var(--rulebook-mm));
+  display: grid;
+  place-items: center;
+}
+
+/* Play draws its phase ring separately from the artwork, with a ring width of 0.07 around an outer radius of 0.89. */
+.rulebookListIcon:has(img) {
+  border: calc(0.39 * var(--rulebook-mm)) solid #111;
+  border-radius: 50%;
+}
+
+.rulebookListIcon img {
+  display: block;
+  width: 70%;
+  height: 70%;
+  object-fit: contain;
+}
+
+.rulebookListCopy {
+  min-width: 0;
+}
+
+.rulebookList[data-illustrated] .rulebookItemName:last-child {
+  margin-block-end: 0;
+}
+
 .rulebookCallout {
   padding: calc(3 * var(--rulebook-mm));
   background: #f1e4bc;
