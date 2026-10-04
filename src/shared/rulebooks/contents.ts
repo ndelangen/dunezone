@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { GENERIC, ICON } from '../assetIds';
 import { normalizeFormattedText, parseFormattedText } from '../formattedText';
 import type { NormalizedFormattedText } from '../formattedText';
 import { userImageSourceUrlSchema } from '../user-images/contract';
@@ -7,6 +8,8 @@ import { rulebookCoverImageSchema } from './coverImage';
 import { rulebookCoverPresetIdSchema } from './coverPresets';
 import type { RulebookSize } from './settings';
 import { rulebookCardSourceReferenceSchema, rulebookSourceReferenceSchema } from './sources';
+
+export const rulebookListIconSchema = z.union([ICON, GENERIC]);
 
 /** Creation callers declare the catalogue they can read before receiving starter or cloned Contents. */
 export const RULEBOOK_CATALOGUE_VERSION = 9;
@@ -140,6 +143,7 @@ function rulebookBlockSchemas<Text extends z.ZodType, Anchor extends z.ZodType, 
   });
   const listItem = z.strictObject({
     id: rulebookItemIdSchema,
+    icon: rulebookListIconSchema.optional(),
     name: z.string().optional(),
     text,
   });

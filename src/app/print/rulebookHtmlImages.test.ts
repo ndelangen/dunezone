@@ -4,8 +4,10 @@ import { describe, expect, test } from 'vitest';
 import { factionMemberPublicationId } from '../../shared/asset-publishing/componentPublication';
 import { publishedHref } from '../../shared/asset-publishing/publicationTargets';
 import { assetPublishingFaction } from '../../shared/factions/fixtures/assetPublishingFaction';
+import type { RulebookContentsDraftV1 } from '../../shared/rulebooks/contents';
 import { rulebookContentsV1Schema } from '../../shared/rulebooks/contents';
 import { rulebookCoverPresetCatalogue } from '../../shared/rulebooks/coverPresets';
+import { createRulebookStarterContents } from '../../shared/rulebooks/fixtures';
 import { projectRulebookRenderDocument } from '../../shared/rulebooks/projectRenderDocument';
 import { rulebookRenderDocumentV1Schema } from '../../shared/rulebooks/renderDocument';
 import { createRulebookRenderDocumentFixture } from '../../shared/rulebooks/renderDocument.fixture';
@@ -17,6 +19,38 @@ const memberId = '10000000-1000-4000-8000-100000000001';
 const memberHref = publishedHref('faction-leader', factionMemberPublicationId(factionId, memberId));
 
 describe('downloaded Rulebook images', () => {
+  test('list icons survive the saved contract and load in downloaded HTML without changing plain items', () => {
+    const contents: RulebookContentsDraftV1 = createRulebookStarterContents();
+    const list = contents.pagesById.RULE!.blocksById.L5ST!;
+    if (list.kind !== 'list') {
+      throw new Error('Expected the starter list');
+    }
+    list.itemOrder = ['STOR', 'PLAIN'];
+    list.itemsById = {
+      STOR: { id: 'STOR', name: 'Storm', icon: '/vector/icon/storrm_standalone.svg', text: '' },
+      PLAIN: { id: 'PLAIN', name: 'Next step', text: 'Keep this step readable without an icon.' },
+    };
+    const saved = rulebookContentsV1Schema.parse(JSON.parse(JSON.stringify(contents)));
+    const document = projectRulebookRenderDocument(saved, {}, { size: 'square', design: 'illustrated' });
+    const before = structuredClone(document);
+    const html = renderRulebookHtmlDocument({
+      document,
+      canonicalHref: 'https://dune.zone/rulesets/dreamrules/rulebooks/test',
+      title: 'Phase icons',
+      label: 'Phase icons',
+      style: rulebookRendererCss,
+    });
+    const parsed = parseHTML(html).document;
+    const items = [...parsed.querySelectorAll('[data-rulebook-block-id="L5ST"] li')];
+    expect(items.map((item) => item.getAttribute('data-rulebook-item-id'))).toEqual(['STOR', 'PLAIN']);
+    expect(items[0].querySelector('img')?.getAttribute('src')).toBe(
+      'https://dune.zone/vector/icon/storrm_standalone.svg'
+    );
+    expect(items[1].querySelector('img')).toBeNull();
+    expect(items[1].textContent).toContain('Keep this step readable');
+    expect(document).toEqual(before);
+  });
+
   test('a preset and both footer emblems resolve from downloaded HTML without exposing inactive URL fields', () => {
     const preset = rulebookCoverPresetCatalogue[0];
     const contents = rulebookContentsV1Schema.parse({
