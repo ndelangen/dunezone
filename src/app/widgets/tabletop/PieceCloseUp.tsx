@@ -7,7 +7,7 @@ import type { RefObject } from 'react';
 
 import { card } from '@game/data/sizes';
 
-import { PieceArtwork } from './multiplayer/PieceArtwork';
+import { PieceArtwork } from './PieceArtwork';
 import { useTabletopSelector } from './TabletopContext';
 import styles from './TabletopScene.module.css';
 

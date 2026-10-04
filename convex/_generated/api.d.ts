@@ -21,6 +21,7 @@ import type * as faq from "../faq.js";
 import type * as functions from "../functions.js";
 import type * as groups from "../groups.js";
 import type * as homepage from "../homepage.js";
+import type * as homepageAdmission from "../homepageAdmission.js";
 import type * as http from "../http.js";
 import type * as ingestTokens from "../ingestTokens.js";
 import type * as lib_accountLifecycle from "../lib/accountLifecycle.js";
@@ -123,6 +124,7 @@ declare const fullApi: ApiFromModules<{
   functions: typeof functions;
   groups: typeof groups;
   homepage: typeof homepage;
+  homepageAdmission: typeof homepageAdmission;
   http: typeof http;
   ingestTokens: typeof ingestTokens;
   "lib/accountLifecycle": typeof lib_accountLifecycle;

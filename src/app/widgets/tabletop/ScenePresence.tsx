@@ -162,20 +162,22 @@ function RemoteHandLabel({ color, displayName }: Pick<PublicPointer, 'color' | '
           strokeLinejoin="round"
         />
       </svg>
-      <span
-        style={{
-          color,
-          background: '#21170de6',
-          border: `1px solid ${color}`,
-          borderRadius: 4,
-          padding: '2px 5px',
-          fontFamily: 'system-ui, sans-serif',
-          fontSize: 11,
-          fontWeight: 650,
-        }}
-      >
-        {displayName}
-      </span>
+      {displayName && (
+        <span
+          style={{
+            color,
+            background: '#21170de6',
+            border: `1px solid ${color}`,
+            borderRadius: 4,
+            padding: '2px 5px',
+            fontFamily: 'system-ui, sans-serif',
+            fontSize: 11,
+            fontWeight: 650,
+          }}
+        >
+          {displayName}
+        </span>
+      )}
     </div>
   );
 }
@@ -206,7 +208,7 @@ declare global {
   }
 }
 
-export function ScenePresence() {
+export function ScenePresence({ showNames = true }: { showNames?: boolean }) {
   const canInteract = useTabletopSelector((table) => table.canInteract);
   const { publishPointer } = useTabletopCommands();
   const { subscribePointers, getPointers } = useTabletopActions();
@@ -365,7 +367,7 @@ export function ScenePresence() {
             key={pointer.connectionId}
             position={pointer.position}
             color={pointer.color}
-            displayName={pointer.displayName}
+            displayName={showNames ? pointer.displayName : ''}
           />
         ))}
     </>

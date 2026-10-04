@@ -15,7 +15,7 @@ const config: KnipConfig = {
         'src/app/routes/start.ts',
         'src/app/routes/**/{index,route,*.route,__root}.tsx',
         /* Scene pragmas load these JSX compiler entries. */
-        'src/app/routes/_app/play/three-jsx/*.{ts,tsx}',
+        'src/app/widgets/tabletop/three-jsx/*.{ts,tsx}',
         /* Type fixtures are checked by tsc without a runtime importer. */
         'src/**/*.typecheck.{ts,tsx}',
         // Built via workers/publisher/vite.config.ts (publisher-capture.html input).
@@ -28,6 +28,7 @@ const config: KnipConfig = {
         /* Native workerd tests bundle these entries with esbuild by filename. */
         'workers/game/authorization.native.fixture.ts',
         'workers/game/game-room.native.fixture.ts',
+        'workers/game/homepage.native.fixture.ts',
         'workers/game/load-limits.native.fixture.ts',
         /* Standalone scripts run ad hoc with `bun run ./scripts/...`. Deliberately
            not scripts/lib/**, where helpers must be imported to count as used. */
@@ -46,6 +47,7 @@ const config: KnipConfig = {
       },
       /* The app's Vite aliases are an array, which knip's Vite plugin does not read; this one names a source file. */
       paths: {
+        '@app/widgets/tabletop/three-jsx': ['src/app/widgets/tabletop/three-jsx/jsx-runtime.ts'],
         'rulebook-html-renderer-runtime': ['src/app/print/rulebookHtmlRuntime.ts'],
         'application-ssr-runtime': ['node_modules/@tanstack/react-start/dist/default-entry/esm/server.js'],
       },

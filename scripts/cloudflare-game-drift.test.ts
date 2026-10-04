@@ -3,10 +3,18 @@ import { expect, test } from 'vitest';
 import { checkGameWorkerLiveDrift } from './cloudflare-live-drift';
 
 const namespaceId = '1234567890abcdef1234567890abcdef';
+const homepageNamespaceId = 'abcdef1234567890abcdef1234567890';
 const gitSha = '0123456789abcdef0123456789abcdef01234567';
 
 type GameApiOptions = {
   sqlite?: boolean;
+  homepageSqlite?: boolean;
+  homepageBinding?: boolean;
+  homepageNamespace?: boolean;
+  homepageNamespaceId?: string;
+  homepageOwner?: string;
+  homepageClass?: string;
+  duplicateHomepage?: boolean;
   route?: boolean;
   public?: boolean;
   extraBinding?: boolean;
@@ -26,6 +34,16 @@ function gameSettings(options: GameApiOptions) {
   return {
     bindings: [
       { name: options.bindingName ?? 'GAME_ROOMS', type: 'durable_object_namespace', namespace_id: namespaceId },
+      ...(options.homepageBinding === false
+        ? []
+        : [
+            {
+              name: 'HOMEPAGE_ROOMS',
+              type: 'durable_object_namespace',
+              namespace_id: homepageNamespaceId,
+              class_name: options.homepageClass ?? 'HomepageRoom',
+            },
+          ]),
       { name: 'CF_VERSION_METADATA', type: 'version_metadata' },
       { name: 'CONVEX_URL', type: 'plain_text', text: 'https://exuberant-finch-263.eu-west-1.convex.cloud' },
       { name: 'APPLICATION_ORIGIN', type: 'plain_text', text: 'https://dune.zone' },
@@ -41,16 +59,24 @@ function gameSettings(options: GameApiOptions) {
 }
 
 function namespacePage(url: URL, options: GameApiOptions) {
-  if (Number(url.searchParams.get('page')) !== (options.namespacePages ?? 1)) {
-    return [{ id: 'unrelated-namespace', class: 'OtherRoom', script: 'other-worker', use_sqlite: true }];
-  }
+  const page = Number(url.searchParams.get('page'));
+  const lastPage = options.namespacePages ?? 1;
+  const game = {
+    id: options.namespaceId ?? namespaceId,
+    class: 'GameRoom',
+    script: options.owner ?? 'dunezone-game',
+    use_sqlite: options.sqlite ?? true,
+  };
+  const homepage = {
+    id: options.homepageNamespaceId ?? homepageNamespaceId,
+    class: 'HomepageRoom',
+    script: options.homepageOwner ?? 'dunezone-game',
+    use_sqlite: options.homepageSqlite ?? true,
+  };
   return [
-    {
-      id: options.namespaceId ?? namespaceId,
-      class: 'GameRoom',
-      script: options.owner ?? 'dunezone-game',
-      use_sqlite: options.sqlite ?? true,
-    },
+    ...(page === lastPage ? [game] : []),
+    ...(page === 1 && options.homepageNamespace !== false ? [homepage] : []),
+    ...(page === 1 && options.duplicateHomepage ? [{ ...homepage, id: 'd'.repeat(32) }] : []),
   ];
 }
 
@@ -94,7 +120,7 @@ function gameApi(options: GameApiOptions = {}) {
   };
 }
 
-test('the game audit verifies the bound SQLite namespace and all external ingress with authenticated GETs', async () => {
+test('the game audit verifies both bound SQLite namespaces and all external ingress with authenticated GETs', async () => {
   const api = gameApi();
   await expect(
     checkGameWorkerLiveDrift({
@@ -102,7 +128,7 @@ test('the game audit verifies the bound SQLite namespace and all external ingres
       apiToken: 'read-only-test-token',
       fetcher: api.fetcher,
     })
-  ).resolves.toEqual({ worker: 'dunezone-game', namespaceId, bindingCount: 6 });
+  ).resolves.toEqual({ worker: 'dunezone-game', namespaceId, homepageNamespaceId, bindingCount: 7 });
   expect(api.requests).toHaveLength(7);
   expect(api.requests.every((request) => request.startsWith('GET '))).toBe(true);
   expect(api.authorization.every((value) => value === 'Bearer read-only-test-token')).toBe(true);
@@ -113,6 +139,13 @@ test('the game audit verifies the bound SQLite namespace and all external ingres
 
 test.each([
   [{ sqlite: false }, /SQLite/],
+  [{ homepageSqlite: false }, /HomepageRoom SQLite/],
+  [{ homepageBinding: false }, /bindings/],
+  [{ homepageNamespace: false }, /owned HomepageRoom/],
+  [{ homepageNamespaceId: namespaceId }, /HomepageRoom SQLite/],
+  [{ homepageOwner: 'other-worker' }, /owned HomepageRoom/],
+  [{ homepageClass: 'GameRoom' }, /class_name/],
+  [{ duplicateHomepage: true }, /owned HomepageRoom/],
   [{ route: true }, /routes/],
   [{ public: true }, /workers.dev/],
   [{ extraBinding: true }, /bindings/],
@@ -143,7 +176,7 @@ test('the game audit accepts the alert relay binding and its one recipient secre
       apiToken: 'read-only-test-token',
       fetcher: api.fetcher,
     })
-  ).resolves.toEqual({ worker: 'dunezone-game', namespaceId, bindingCount: 7 });
+  ).resolves.toEqual({ worker: 'dunezone-game', namespaceId, homepageNamespaceId, bindingCount: 8 });
 });
 
 test('the game audit reads the full namespace inventory before identifying the bound class', async () => {
@@ -154,22 +187,22 @@ test('the game audit reads the full namespace inventory before identifying the b
       apiToken: 'read-only-test-token',
       fetcher: api.fetcher,
     })
-  ).resolves.toMatchObject({ namespaceId });
+  ).resolves.toMatchObject({ namespaceId, homepageNamespaceId });
   expect(api.requests.filter((request) => request.endsWith('/namespaces'))).toHaveLength(2);
 });
 
 test('the game audit accepts the live namespace pagination response without total_pages', async () => {
-  const api = gameApi({ namespaceResultInfo: { page: 1, per_page: 1000, count: 1, total_count: 1 } });
+  const api = gameApi({ namespaceResultInfo: { page: 1, per_page: 1000, count: 2, total_count: 2 } });
   await expect(
     checkGameWorkerLiveDrift({ accountId: namespaceId, apiToken: 'read-only-test-token', fetcher: api.fetcher })
-  ).resolves.toMatchObject({ namespaceId });
+  ).resolves.toMatchObject({ namespaceId, homepageNamespaceId });
 });
 
 test('the game audit accepts consistent namespace totals alongside total_pages', async () => {
-  const api = gameApi({ namespaceResultInfo: { total_pages: 1, page: 1, per_page: 1000, count: 1, total_count: 1 } });
+  const api = gameApi({ namespaceResultInfo: { total_pages: 1, page: 1, per_page: 1000, count: 2, total_count: 2 } });
   await expect(
     checkGameWorkerLiveDrift({ accountId: namespaceId, apiToken: 'read-only-test-token', fetcher: api.fetcher })
-  ).resolves.toMatchObject({ namespaceId });
+  ).resolves.toMatchObject({ namespaceId, homepageNamespaceId });
 });
 
 test.each([
@@ -183,7 +216,7 @@ test.each([
   { total_count: 'invalid' },
   { total_count: -1 },
   { total_count: null },
-  { per_page: 1000, total_count: 2 },
+  { per_page: 1000, total_count: 3 },
   { per_page: 1, total_count: 2 },
 ])('the game audit validates supplied metadata even with total_pages %j', async (metadata) => {
   const api = gameApi({ namespaceResultInfo: { total_pages: 1, ...metadata } });
@@ -199,20 +232,20 @@ test('the game audit derives every page from reported namespace totals', async (
   });
   await expect(
     checkGameWorkerLiveDrift({ accountId: namespaceId, apiToken: 'read-only-test-token', fetcher: api.fetcher })
-  ).resolves.toMatchObject({ namespaceId });
+  ).resolves.toMatchObject({ namespaceId, homepageNamespaceId });
   expect(api.requests.filter((request) => request.endsWith('/namespaces'))).toHaveLength(2);
 });
 
 test.each([
   {},
-  { page: 2, per_page: 1000, count: 1, total_count: 1 },
-  { page: 1, per_page: 0, count: 1, total_count: 1 },
-  { page: 1, per_page: 1001, count: 1, total_count: 1 },
-  { page: 1, per_page: 1000, count: 1, total_count: -1 },
-  { page: 1, per_page: 1000, count: 1, total_count: '1' },
+  { page: 2, per_page: 1000, count: 2, total_count: 2 },
+  { page: 1, per_page: 0, count: 2, total_count: 2 },
+  { page: 1, per_page: 1001, count: 2, total_count: 2 },
+  { page: 1, per_page: 1000, count: 2, total_count: -1 },
+  { page: 1, per_page: 1000, count: 2, total_count: '1' },
   { page: 1, per_page: 1000, count: 2, total_count: 1 },
   { page: 1, per_page: 1000, count: 1, total_count: 2 },
-  { page: 1, per_page: 1000, count: 1, total_count: 1, total_pages: null },
+  { page: 1, per_page: 1000, count: 2, total_count: 2, total_pages: null },
 ])('the game audit refuses incomplete namespace pagination %j', async (namespaceResultInfo) => {
   const api = gameApi({ namespaceResultInfo });
   await expect(

@@ -48,6 +48,9 @@ function withoutRouteSplittingInVitest(plugins: PluginOption[]): PluginOption[] 
 }
 
 const config = defineConfig({
+  server: {
+    proxy: process.env.PLAY_WORKER_URL ? { '/__play': { target: process.env.PLAY_WORKER_URL, ws: true } } : undefined,
+  },
   test: {
     /* The script tests that launch Chromium run through vitest.browser-launch.config.ts, where a browser is installed. */
     exclude: [...configDefaults.exclude, 'e2e/**', '.claude/**', 'tools/**', ...browserLaunchTests],

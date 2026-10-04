@@ -18,6 +18,8 @@ import { applyRoomUpdate } from '@shared/play/updates';
 import type { RoomView } from '@shared/play/updates';
 
 import type { requestPlayTicket } from '@db/play';
+import { isReadRequest } from '@db/tabletop/TableSubscription';
+import type { TableSubscriptionEvent, TableConnectionStatus } from '@db/tabletop/TableSubscription';
 
 import { browserGameRuntime } from './gameRuntime';
 import type { GameRuntime, GameSocket } from './gameRuntime';
@@ -25,28 +27,14 @@ import type { GameRuntime, GameSocket } from './gameRuntime';
 type TicketResult = Awaited<ReturnType<typeof requestPlayTicket>>;
 type TicketAttempt = { readonly generation: number; timer?: ReturnType<typeof setTimeout> };
 type TicketRequest = { readonly result: Promise<TicketResult>; readonly requestedAt: number };
-type Status = 'connecting' | 'authorized' | 'suspended' | 'denied';
-
-/** Reads stay available while gameplay waits for synchronization or shows history. */
-export function isReadRequest(message: ClientMessage) {
-  return ['catalogue', 'history', 'spice-history', 'log-history', 'conversation-history', 'metrics'].includes(
-    message.type
-  );
-}
-
-export type GameSubscriptionEvent =
-  | (RoomView & { snapshotChanged: boolean; previous: RoomView | null })
-  | Exclude<ServerMessage, { type: 'view' | 'update' | 'admission' }>
-  | { type: 'connection'; error: string | null }
-  | { type: 'resync'; completedCommandId?: string };
-
 /**
  * Owns one authenticated player's live view, including admission, patch assembly and reconnects.
  * Local intentions never enter its state and are never replayed after a disconnect.
  */
 export class GameSubscription {
+  supportsCommand = () => true;
   private socket: GameSocket | null = null;
-  private listener: ((event: GameSubscriptionEvent) => void) | null = null;
+  private listener: ((event: TableSubscriptionEvent) => void) | null = null;
   private reconnectTimer: ReturnType<typeof setTimeout> | undefined;
   /* Whether the waiting reconnect is the plain one-second retry, which a returning network may skip; a wait the Worker asked for may not be. */
   private reconnectSkippable = false;
@@ -67,7 +55,7 @@ export class GameSubscription {
   private connectionId: string | undefined;
   private wireView: RoomView | null = null;
   private resyncing = false;
-  private connectionStatus: Status = 'connecting';
+  private connectionStatus: TableConnectionStatus = 'connecting';
   /* Server time less monotonic time, the largest since this attempt connected: transit delay only ever makes a frame's reading smaller. */
   private serverOffset = Number.NEGATIVE_INFINITY;
   /* Admissions retried since the table last showed, for a lapsed ticket or a Worker that could not reach Convex; each one doubles the wait before the next. */
@@ -94,7 +82,7 @@ export class GameSubscription {
   /** The Worker's clock, advanced on the monotonic clock since its newest frame; a view has always set it before a snapshot exists. */
   serverNow = () => this.runtime.monotonicNow() + this.serverOffset;
 
-  subscribe(listener: (event: GameSubscriptionEvent) => void) {
+  subscribe(listener: (event: TableSubscriptionEvent) => void) {
     this.listener = listener;
     this.stopOnline = this.runtime.onOnline(() => this.networkReturned());
     /* A tab frozen in the background would otherwise find a dead socket only after two keepalive intervals. */
@@ -151,7 +139,7 @@ export class GameSubscription {
     return true;
   }
 
-  private changeStatus(status: Status, error: string | null = null) {
+  private changeStatus(status: TableConnectionStatus, error: string | null = null) {
     this.connectionStatus = status;
     this.current = null;
     this.wireView = null;

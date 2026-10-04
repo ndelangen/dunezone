@@ -55,10 +55,22 @@ export function validateGameDeployContract(config: JsonObject, environment: Node
   exact(config.vars, { CONVEX_URL, APPLICATION_ORIGIN, GIT_SHA: 'development' }, 'variables');
   exact(
     config.durable_objects,
-    { bindings: [{ name: 'GAME_ROOMS', class_name: 'GameRoom' }] },
+    {
+      bindings: [
+        { name: 'GAME_ROOMS', class_name: 'GameRoom' },
+        { name: 'HOMEPAGE_ROOMS', class_name: 'HomepageRoom' },
+      ],
+    },
     'Durable Object binding'
   );
-  exact(config.migrations, [{ tag: 'v1', new_sqlite_classes: ['GameRoom'] }], 'SQLite migration');
+  exact(
+    config.migrations,
+    [
+      { tag: 'v1', new_sqlite_classes: ['GameRoom'] },
+      { tag: 'v2', new_sqlite_classes: ['HomepageRoom'] },
+    ],
+    'SQLite migration'
+  );
   exact(config.version_metadata, { binding: 'CF_VERSION_METADATA' }, 'version metadata');
   exact(config.send_email, [{ name: 'ALERT_EMAIL' }], 'alert email binding');
   exact(config.limits, { cpu_ms: 30_000 }, 'CPU bound');
@@ -184,7 +196,9 @@ if (import.meta.main) {
       accountId: required(process.env, 'CLOUDFLARE_ACCOUNT_ID'),
       apiToken: required(process.env, 'CLOUDFLARE_API_TOKEN'),
     });
-    console.log(`Private game Worker and SQLite namespace ${drift.namespaceId} passed the live contract.`);
+    console.log(
+      `Private game Worker and SQLite namespaces ${drift.namespaceId}, ${drift.homepageNamespaceId} passed the live contract.`
+    );
     invariant(/^[0-9a-f-]{36}$/.test(version), 'Active game Worker version ID is invalid');
     if (process.env.GITHUB_OUTPUT) {
       appendFileSync(process.env.GITHUB_OUTPUT, `version_id=${version}\n`);

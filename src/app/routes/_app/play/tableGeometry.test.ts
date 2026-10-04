@@ -22,8 +22,8 @@ import { trackerArcSlots, TRACKER_DISC_TOP_Y } from '@shared/play/tableTrackers'
 import { Raycaster, Vector2, Vector3 } from 'three';
 import { describe, expect, test } from 'vitest';
 
-import { cameraPoseFor, tableCamera } from './playView';
-import { mapViewFramingPoints } from './tablePlateGeometry';
+import { cameraPoseFor, tableCamera } from '../../../widgets/tabletop/playView';
+import { mapViewFramingPoints } from '../../../widgets/tabletop/tablePlateGeometry';
 
 function pieceFrom(state: ReturnType<typeof freshTableState>, pieceId: string): TablePiece {
   const piece = state.pieces.find((candidate) => candidate.id === pieceId);

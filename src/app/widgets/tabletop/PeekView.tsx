@@ -7,7 +7,7 @@ import type { KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerE
 import { card } from '@game/data/sizes';
 
 import { sortShift, sortTarget } from './deckSort';
-import { PieceArtwork } from './multiplayer/PieceArtwork';
+import { PieceArtwork } from './PieceArtwork';
 import { useTabletopSelector } from './TabletopContext';
 import styles from './TabletopScene.module.css';
 

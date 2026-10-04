@@ -23,15 +23,12 @@ import { SPECTATOR_SEAT, tablePositionSchema } from '@shared/play/schema';
 import { isSwapAction } from '@shared/play/swapping';
 import { draftForGesture, projectCarryAtPosition, renderedPiecesFor } from '@shared/play/tableState';
 
-import type { requestPlayTicket } from '@db/play';
-
 import { ConversationSession } from './ConversationSession';
 import type { ConversationView } from './ConversationSession';
-import { browserGameRuntime } from './gameRuntime';
-import type { GameRuntime } from './gameRuntime';
-import { GameSubscription, isReadRequest } from './GameSubscription';
-import type { GameSubscriptionEvent } from './GameSubscription';
+import type { GameRuntime } from './runtime';
 import type { StoredTable } from './storedTable';
+import { isReadRequest } from './TableSubscription';
+import type { TableSubscription, TableSubscriptionEvent } from './TableSubscription';
 
 /* Both tabs open on their newest page. */
 function latestLogPages(): Record<LogTab, number> {
@@ -52,7 +49,7 @@ function projectPublicCarries(pieces: TablePiece[], carries: PublicCarry[]): Tab
   return result;
 }
 
-function settledRequest(message: GameSubscriptionEvent): { id: string; outcome: 'completed' | 'rejected' } | null {
+function settledRequest(message: TableSubscriptionEvent): { id: string; outcome: 'completed' | 'rejected' } | null {
   switch (message.type) {
     case 'view':
     case 'resync':
@@ -131,7 +128,7 @@ export type TableProjection = {
 };
 
 export type ConnectionView = {
-  status: GameSubscription['status'];
+  status: TableSubscription['status'];
   conversations: ConversationView;
   error: string | null;
   table: TableProjection | null;
@@ -313,10 +310,9 @@ export class TableSession {
 
   constructor(
     readonly game: string,
-    requestTicket: typeof requestPlayTicket,
-    private readonly runtime: GameRuntime = browserGameRuntime
+    private readonly subscription: TableSubscription,
+    private readonly runtime: GameRuntime
   ) {
-    this.subscription = new GameSubscription(game, requestTicket, runtime);
     this.conversations = new ConversationSession(
       (message) => this.subscription.send(message),
       () => this.emit(),
@@ -375,7 +371,6 @@ export class TableSession {
     }
   }
   readonly conversations: ConversationSession;
-  private readonly subscription: GameSubscription;
   private get status() {
     return this.subscription.status;
   }
@@ -436,7 +431,7 @@ export class TableSession {
     }
   }
   /* An update that moved only pointers: the room, the carries and every countdown the table shows are as the last frame left them. */
-  private movesOnlyPointers(message: Extract<GameSubscriptionEvent, { type: 'view' }>) {
+  private movesOnlyPointers(message: Extract<TableSubscriptionEvent, { type: 'view' }>) {
     const table = this.table;
     return (
       !message.snapshotChanged &&
@@ -573,13 +568,14 @@ export class TableSession {
               collect: (pieceId) => this.command({ kind: 'bank-collect', pieceId }),
             }
           : undefined,
-      deckControls: canHandleTable
-        ? {
-            recipients: Object.entries(snapshotFactionLabels(displayed)).map(([id, name]) => ({ id, name })),
-            draw: (pieceId, recipient) => this.command({ kind: 'deck-draw', pieceId, recipient }),
-            shuffle: (pieceId) => this.command({ kind: 'deck-shuffle', pieceId }),
-          }
-        : undefined,
+      deckControls:
+        canHandleTable && this.subscription.supportsCommand('deck-draw')
+          ? {
+              recipients: Object.entries(snapshotFactionLabels(displayed)).map(([id, name]) => ({ id, name })),
+              draw: (pieceId, recipient) => this.command({ kind: 'deck-draw', pieceId, recipient }),
+              shuffle: (pieceId) => this.command({ kind: 'deck-shuffle', pieceId }),
+            }
+          : undefined,
       /* A look back in time shows no peek: what a faction saw then is not what it holds open now. */
       peek: this.history ? null : this.arrangedPeek(displayed.peek ?? null),
       peekControls:
@@ -698,7 +694,7 @@ export class TableSession {
   private send(message: Exclude<ClientMessage, { type: 'admit' | 'sync' }>): boolean {
     return this.canSend(message) && this.subscription.send(message);
   }
-  private receive(message: GameSubscriptionEvent) {
+  private receive(message: TableSubscriptionEvent) {
     const settled = settledRequest(message);
     if (settled) {
       this.settle(settled.id, settled.outcome, message.type === 'resync');
@@ -795,7 +791,9 @@ export class TableSession {
     this.flushBattlePlan();
     this.flushBattleReady();
   }
-  private receiveAuthorizedUpdate(message: Exclude<GameSubscriptionEvent, { type: 'connection' | 'resync' | 'view' }>) {
+  private receiveAuthorizedUpdate(
+    message: Exclude<TableSubscriptionEvent, { type: 'connection' | 'resync' | 'view' }>
+  ) {
     if (this.conversations.receive(message)) {
       return;
     }
@@ -866,7 +864,7 @@ export class TableSession {
       draft: { ...message.draft, position: current.position, orientation: current.orientation },
     };
   }
-  private receiveRoomUpdate(message: Extract<GameSubscriptionEvent, { type: 'view' }>) {
+  private receiveRoomUpdate(message: Extract<TableSubscriptionEvent, { type: 'view' }>) {
     this.replaceActivity(message);
     if (message.snapshotChanged) {
       this.receiveView(message);
@@ -883,7 +881,7 @@ export class TableSession {
       this.droppedCarryNotice = this.carry.pendingDrop && !this.carry.dropUnsent ? notice.placing : notice.held;
     }
   }
-  private replaceActivity(message: Extract<GameSubscriptionEvent, { type: 'view' }>) {
+  private replaceActivity(message: Extract<TableSubscriptionEvent, { type: 'view' }>) {
     if (this.epoch && message.epoch !== this.epoch) {
       this.noteEndedCarry({
         held: 'The room resumed. Pick up the piece again to continue.',
@@ -895,7 +893,7 @@ export class TableSession {
     this.carries = message.carries;
     this.pointers = message.pointers;
   }
-  private receiveView(message: Extract<GameSubscriptionEvent, { type: 'view' }>) {
+  private receiveView(message: Extract<TableSubscriptionEvent, { type: 'view' }>) {
     this.conversations.authority(message.snapshot, message.viewer);
     if (
       message.previous?.snapshot.bank?.factionId !== message.snapshot.bank?.factionId ||
@@ -1245,6 +1243,9 @@ export class TableSession {
   }
   /** Sends a table command, and returns its id when it went out. */
   command = (action: PieceAction): string | undefined => {
+    if (!this.subscription.supportsCommand(action.kind)) {
+      return;
+    }
     const seatCommand = isSeatAction(action) || isSwapAction(action);
     if (seatCommand && this.seatCommandInFlight) {
       return;

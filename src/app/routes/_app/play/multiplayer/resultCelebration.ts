@@ -4,9 +4,9 @@ import { useCallback, useState } from 'react';
 
 import { useMotionAllowed } from '@app/styles/motion';
 
+import type { TableProjection } from '../../../../db/tabletop/TableSession';
 import { CONFETTI_STREAM_SECONDS } from '../confettiSimulation';
 import type { ConfettiLaunch } from '../FoilConfetti';
-import type { TableProjection } from './TableSession';
 
 /* The result a finished game declared, with the seating to aim it by. */
 function declared(snapshot: GameSnapshot) {

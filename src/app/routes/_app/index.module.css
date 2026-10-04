@@ -270,3 +270,41 @@
     padding-block: var(--homepage-art-inset);
   }
 }
+
+.liveBoard {
+  position: absolute;
+  width: max(212cqi, 132.5vw);
+  aspect-ratio: 3000 / 1420;
+  left: 50%;
+  top: 0;
+  translate: -50% -20.7%;
+  pointer-events: auto;
+  opacity: 0;
+  transition: opacity 650ms ease;
+}
+.liveScene {
+  position: absolute;
+  inset: 0;
+}
+.boardPreview {
+  transition: opacity 650ms ease;
+}
+[data-live-ready="true"] > .boardPreview {
+  opacity: 0;
+}
+[data-live-ready="true"] > .liveBoard {
+  opacity: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .liveBoard,
+  .boardPreview {
+    transition: none;
+  }
+}
+
+.homepage[data-homepage-motion="off"] {
+  .liveBoard,
+  .boardPreview {
+    transition: none;
+  }
+}

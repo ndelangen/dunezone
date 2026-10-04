@@ -9,9 +9,9 @@ import { Vector3 } from 'three';
 
 import { STORYBOOK_NOW } from '@db/storybook';
 
-import { cameraPoseFor, mapViewTopLimitForViewport, tableCamera } from './playView';
+import { cameraPoseFor, mapViewTopLimitForViewport, tableCamera } from '../../../widgets/tabletop/playView';
+import { mapViewFramingPoints } from '../../../widgets/tabletop/tablePlateGeometry';
 import { productTransport, playingSnapshot as initialSnapshot, SIX, factions } from './product.stories.fixture';
-import { mapViewFramingPoints } from './tablePlateGeometry';
 
 export function phaseControls(canvasElement: HTMLElement) {
   const page = within(canvasElement.ownerDocument.body);

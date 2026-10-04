@@ -57,6 +57,12 @@ export default defineSchema({
   })
     .index('by_directory_stage', ['directory_stage'])
     .index('by_creator_id', ['creator_id']),
+  homepage_tickets: defineTable({
+    digest: v.string(),
+    user_id: v.id('users'),
+    session_id: v.id('authSessions'),
+    expires_at: v.number(),
+  }).index('by_digest', ['digest']),
   play_tickets: defineTable({
     digest: v.string(),
     game_id: v.id('play_games'),

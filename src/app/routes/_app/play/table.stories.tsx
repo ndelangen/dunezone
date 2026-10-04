@@ -5,10 +5,10 @@ import { BOARD_RADIUS, BOARD_SURFACE_Y, stackTopHeight } from '@shared/play/tabl
 import { TRACKER_DISC_TOP_Y } from '@shared/play/tableTrackers';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
+import { resetTableGraphics, TABLE_GRAPHICS_UNAVAILABLE } from '../../../widgets/tabletop/useTableGraphics';
 import { gameMeta, install, lastCommand, session } from './game.stories.fixture';
 import { mapViewPoint, openTab } from './playing.stories.fixture';
 import { factions, playingSnapshot, productTransport } from './product.stories.fixture';
-import { resetTableGraphics, TABLE_GRAPHICS_UNAVAILABLE } from './useTableGraphics';
 
 const meta = preview.meta({
   ...gameMeta,

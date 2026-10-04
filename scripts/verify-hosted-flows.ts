@@ -3,6 +3,15 @@
  * It stays free of side effects, because the browser driver parses arguments and launches Chromium on import.
  */
 export const browserFlows = {
+  homepage: {
+    timeoutMs: 120_000,
+    separateBrowsers: false,
+    keepsFrames: false,
+    needsCatalogue: false,
+    checksPhaseCooldown: false,
+    startsInPlay: true,
+    shard: 'regular',
+  },
   /* The regular flow steps through every phase and readies both players at each Mentat pause, so it has the longest budget. */
   regular: {
     timeoutMs: 600_000,

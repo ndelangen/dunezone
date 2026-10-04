@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useMemo, useSyncExternalStore } from 'react';
 import type { ReactNode } from 'react';
 
-import type { TableProjection, TableSession } from './multiplayer/TableSession';
+import type { TableProjection, TableSession } from '../../db/tabletop/TableSession';
 
 /**
  * What the scene and the table controls read: the session's commands over its latest projection.
@@ -54,8 +54,13 @@ export type TabletopActions = Pick<
   'finishPieceFlip' | 'getPointers' | 'selectPiece' | 'setHoveredPiece' | 'subscribePointers'
 >;
 
+export type TabletopSession = Pick<
+  TableSession,
+  keyof TabletopCommands | keyof TabletopActions | 'getTable' | 'subscribeTable'
+>;
+
 type TabletopStore = {
-  session: TableSession;
+  session: TabletopSession;
   commands: TabletopCommands;
   actions: TabletopActions;
 };
@@ -69,7 +74,7 @@ const TabletopContext = createContext<TabletopStore | null>(null);
 export function TabletopSessionProvider({
   session,
   children,
-}: Readonly<{ session: TableSession; children: ReactNode }>) {
+}: Readonly<{ session: TabletopSession; children: ReactNode }>) {
   const store = useMemo<TabletopStore>(
     () => ({
       session,
@@ -112,7 +117,7 @@ function useTabletopStore(): TabletopStore {
   return value;
 }
 
-function liveTable(session: TableSession): TableProjection {
+function liveTable(session: TabletopSession): TableProjection {
   const table = session.getTable();
   if (!table) {
     throw new Error('The tabletop has no table to show.');

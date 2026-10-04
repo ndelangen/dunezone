@@ -24,7 +24,7 @@ import { ExtrudeGeometry, Mesh, MeshBasicMaterial, Raycaster, Vector3 } from 'th
 import { acceleratedRaycast, MeshBVH } from 'three-mesh-bvh';
 import { describe, expect, test } from 'vitest';
 
-import { cameraPoseFor, tableCamera } from './playView';
+import { cameraPoseFor, tableCamera } from '../../../widgets/tabletop/playView';
 import {
   createTablePlateShape,
   createTablePlateLayers,
@@ -34,7 +34,7 @@ import {
   TABLE_PLATE_JOINS,
   TABLE_PLATE_THICKNESS,
   trackerScallopRadius,
-} from './tablePlateGeometry';
+} from '../../../widgets/tabletop/tablePlateGeometry';
 
 type Point2D = Readonly<{ x: number; y: number }>;
 

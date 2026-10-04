@@ -13,6 +13,7 @@ import { expect, userEvent, waitFor, within } from 'storybook/test';
 import { storedAuthTokenKey, STORED_PLAY_TABLE_PREFIX } from '@db/playTables';
 import { convexNeverAnswers, STORYBOOK_NOW } from '@db/storybook';
 
+import { storedTableText } from '../../../db/tabletop/storedTable';
 import {
   AUDIT_LOG,
   conversationMessages,
@@ -27,7 +28,6 @@ import {
   session,
 } from './game.stories.fixture';
 import { browserGameRuntime } from './multiplayer/gameRuntime';
-import { storedTableText } from './multiplayer/storedTable';
 import {
   expectHeaderPhase,
   mapViewPoint,

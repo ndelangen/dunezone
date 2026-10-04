@@ -95,6 +95,7 @@ import {
 
 import { useMotionAllowed } from '@app/styles/motion';
 
+import { unsettledArtworkLoads } from './artworkLoads';
 import { ArtworkPending } from './ArtworkPending';
 import arrakisMapSvg from './assets/arrakis-map.svg?raw';
 import stormMarkerUrl from './assets/storm-marker.png?url';
@@ -146,6 +147,8 @@ type TabletopSceneProps = {
   tableProgress?: TableProgress;
   /* Called when the renderer is ready to draw, the moment there is a table to open the shell onto. */
   onSceneReady?(): void;
+  onSceneUnavailable?(): void;
+  presentation?: 'play' | 'preview';
   /* Absent on the fixture, which has no lifecycle. */
   stage?: GameSnapshot['stage'];
   mapVisible?: boolean;
@@ -860,7 +863,7 @@ type PieceSceneState = {
   peeked: string | undefined;
 };
 
-type TablePieceMeshProps = { piece: TablePiece } & PieceSceneState;
+type TablePieceMeshProps = { piece: TablePiece; showLabels?: boolean } & PieceSceneState;
 
 function pieceSceneState(
   piece: TablePiece,
@@ -1231,15 +1234,15 @@ function PieceBadge({
     <group ref={labelRef} position={[0, pieceLabelHeight(piece), 0]}>
       <Html center zIndexRange={[5, 0]} style={{ pointerEvents: 'none' }}>
         {/* The tag is as large as the count, so the count sits where it always has; the name hangs above it while Control is held. */}
-        <span className="scene-piece-tag">
-          <span className="scene-piece-name">
+        <span className={`scene-piece-tag ${styles.pieceTag}`}>
+          <span className={`scene-piece-name ${styles.pieceName}`}>
             <span className="scene-piece-name__label">{piece.label}</span>
-            {owner ? <span className="scene-piece-name__owner">{owner}</span> : null}
-            {peeked ? <span className="scene-piece-name__peeked">{peeked}</span> : null}
+            {owner ? <span className={`scene-piece-name__owner ${styles.pieceNameOwner}`}>{owner}</span> : null}
+            {peeked ? <span className={`scene-piece-name__peeked ${styles.pieceNamePeeked}`}>{peeked}</span> : null}
           </span>
           <span
             ref={badgeRef}
-            className={`scene-piece-count ${selected ? 'scene-piece-count--selected' : ''}`}
+            className={`scene-piece-count ${styles.pieceCount} ${selected ? `scene-piece-count--selected ${styles.pieceCountSelected}` : ''}`}
             data-piece-id={piece.id}
             data-face-up={topItemFaceUp(piece)}
             data-flip-revision={piece.flipRevision ?? 0}
@@ -1316,14 +1319,16 @@ const TablePieceMesh = memo(function TablePieceMesh(props: TablePieceMeshProps) 
             </group>
           </group>
           <PieceLock piece={piece} />
-          <PieceBadge
-            piece={piece}
-            owner={owner}
-            peeked={peeked}
-            selected={selected}
-            labelRef={labelRef}
-            badgeRef={badgeRef}
-          />
+          {props.showLabels !== false && (
+            <PieceBadge
+              piece={piece}
+              owner={owner}
+              peeked={peeked}
+              selected={selected}
+              labelRef={labelRef}
+              badgeRef={badgeRef}
+            />
+          )}
         </>
       ) : null}
     </group>
@@ -1394,9 +1399,10 @@ function SceneContents({
   mapFramingPoints,
   stage,
   mapVisible,
+  presentation,
 }: Pick<
   TabletopSceneProps,
-  'cameraView' | 'onInteractionActiveChange' | 'seatCount' | 'tableProgress' | 'stage' | 'mapVisible'
+  'cameraView' | 'onInteractionActiveChange' | 'seatCount' | 'tableProgress' | 'stage' | 'mapVisible' | 'presentation'
 > & {
   trackerSlots: readonly TrackerArcSlot[];
   mapFramingPoints: readonly Vector3Tuple[];
@@ -1410,10 +1416,14 @@ function SceneContents({
 
   return (
     <>
-      <color attach="background" args={['#130d0a']} />
-      <fog attach="fog" args={['#130d0a', 10, 22]} />
-      <CameraRelativeFog />
-      <ScenePresence />
+      {presentation !== 'preview' && (
+        <>
+          <color attach="background" args={['#130d0a']} />
+          <fog attach="fog" args={['#130d0a', 10, 22]} />
+          <CameraRelativeFog />
+        </>
+      )}
+      <ScenePresence showNames={presentation !== 'preview'} />
       <TableLights />
       <group onClick={() => selectPiece(null)}>
         <BoardSurface
@@ -1428,10 +1438,19 @@ function SceneContents({
           /* Troop reserves arrive with the board: setup keeps them off the table until the map shows. */
           .filter((piece) => !piece.battleOverlay && (stage !== 'setup' || mapVisible || !isTroopStack(piece)))
           .map((piece) => (
-            <TablePieceMesh key={piece.id} piece={piece} {...pieceSceneState(piece, table)} />
+            <TablePieceMesh
+              showLabels={presentation !== 'preview'}
+              key={piece.id}
+              piece={piece}
+              {...pieceSceneState(piece, table)}
+            />
           ))}
       </group>
-      <CameraControls enabled={controlsEnabled} command={cameraView} mapFramingPoints={mapFramingPoints} />
+      <CameraControls
+        enabled={presentation !== 'preview' && controlsEnabled}
+        command={cameraView}
+        mapFramingPoints={mapFramingPoints}
+      />
       <SelectionRingWarmup />
     </>
   );
@@ -1551,6 +1570,8 @@ export function TabletopScene({
   seatCount = DEFAULT_TABLE_SEAT_COUNT,
   tableProgress: providedProgress,
   onSceneReady,
+  onSceneUnavailable,
+  presentation = 'play',
   stage,
   mapVisible,
 }: TabletopSceneProps) {
@@ -1607,49 +1628,63 @@ export function TabletopScene({
         }
       }}
     >
-      <Button
-        className={styles.keyboardActions}
-        disabled={hasDraft || !selectedPieceId}
-        onClick={(event) => {
-          const { state } = readTable();
-          const piece = state.pieces.find((entry) => entry.id === state.selectedPieceId);
-          if (!piece || piece.inventory || (piece.kind !== 'card' && !isSpicePiece(piece) && !peekableToken(piece))) {
-            return;
-          }
-          const bounds = event.currentTarget.getBoundingClientRect();
-          setPieceMenu({
-            pieceId: piece.id,
-            x: bounds.left,
-            y: bounds.bottom,
-            touch: (event.nativeEvent as Partial<PointerEvent>).pointerType === 'touch',
-          });
-        }}
-      >
-        Selected piece actions
-      </Button>
-      <PieceMenu pieceMenu={pieceMenu} onClose={() => setPieceMenu(null)} />
-      <PeekView />
-      <PieceCloseUp area={areaRef} />
-      <PieceMenuContext.Provider value={menuAvailable ? openPieceMenu : null}>
-        {graphics === 'unavailable' && <TableGraphicsUnavailable onShown={onSceneReady} />}
+      {presentation === 'play' && (
+        <>
+          <Button
+            className={styles.keyboardActions}
+            disabled={hasDraft || !selectedPieceId}
+            onClick={(event) => {
+              const { state } = readTable();
+              const piece = state.pieces.find((entry) => entry.id === state.selectedPieceId);
+              if (
+                !piece ||
+                piece.inventory ||
+                (piece.kind !== 'card' && !isSpicePiece(piece) && !peekableToken(piece))
+              ) {
+                return;
+              }
+              const bounds = event.currentTarget.getBoundingClientRect();
+              setPieceMenu({
+                pieceId: piece.id,
+                x: bounds.left,
+                y: bounds.bottom,
+                touch: (event.nativeEvent as Partial<PointerEvent>).pointerType === 'touch',
+              });
+            }}
+          >
+            Selected piece actions
+          </Button>
+          <PieceMenu pieceMenu={pieceMenu} onClose={() => setPieceMenu(null)} />
+          <PeekView />
+          <PieceCloseUp area={areaRef} />
+        </>
+      )}
+      <PieceMenuContext.Provider value={presentation === 'play' && menuAvailable ? openPieceMenu : null}>
+        {graphics === 'unavailable' && (
+          <TableGraphicsUnavailable silent={presentation === 'preview'} onShown={onSceneUnavailable ?? onSceneReady} />
+        )}
         {graphics === 'ready' && (
-          <TableGraphicsBoundary onShown={onSceneReady}>
+          <TableGraphicsBoundary silent={presentation === 'preview'} onShown={onSceneUnavailable ?? onSceneReady}>
             <Canvas
               camera={camera}
               dpr={[1, 2]}
               frameloop="demand"
               renderer={{
                 antialias: true,
-                alpha: false,
+                alpha: presentation === 'preview',
                 powerPreference: 'high-performance',
                 toneMapping: NeutralToneMapping,
               }}
               /* The renderer's creation follows its asynchronous initialisation, which is the long part of a table's arrival; the first frame follows at once. */
-              onCreated={onSceneReady}
+              onCreated={presentation === 'play' ? onSceneReady : undefined}
             >
               <ReleaseRendererOnUnmount />
+              {presentation === 'preview' && (
+                <RenderedTable onReady={onSceneReady} onUnavailable={onSceneUnavailable} />
+              )}
               {children}
               <SceneContents
+                presentation={presentation}
                 stage={stage}
                 mapVisible={mapVisible}
                 cameraView={cameraView}
@@ -1665,4 +1700,41 @@ export function TabletopScene({
       </PieceMenuContext.Provider>
     </div>
   );
+}
+
+/* Wait through artwork effects and a painted frame before replacing the homepage's image. */
+function RenderedTable({ onReady, onUnavailable }: { onReady?: () => void; onUnavailable?: () => void }) {
+  const invalidate = useThree((state) => state.invalidate);
+  const pieces = useTabletopSelector((table) => table.renderedPieces);
+  const frames = useRef(0);
+  const started = useRef(performance.now());
+  const complete = useRef(false);
+  const pendingFrame = useRef<number | null>(null);
+  useEffect(
+    () => () => {
+      if (pendingFrame.current !== null) {
+        cancelAnimationFrame(pendingFrame.current);
+      }
+    },
+    []
+  );
+  useFrame(() => {
+    if (complete.current) {
+      return;
+    }
+    const artworkReady = pieces.every((piece) => {
+      const href = topFaceHref(piece);
+      return !href || subscribePublishedFace.peek(href) !== undefined;
+    });
+    if (++frames.current > 3 && artworkReady && unsettledArtworkLoads() === 0) {
+      complete.current = true;
+      pendingFrame.current = requestAnimationFrame(() => onReady?.());
+    } else if (performance.now() - started.current > 10_000) {
+      complete.current = true;
+      pendingFrame.current = requestAnimationFrame(() => onUnavailable?.());
+    } else {
+      invalidate();
+    }
+  });
+  return null;
 }

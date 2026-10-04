@@ -1,4 +1,4 @@
-/* @jsxImportSource ../three-jsx */
+/* @jsxImportSource @app/widgets/tabletop/three-jsx */
 import { useFrame } from '@react-three/fiber/webgpu';
 import { factionTokenStackKey, isFactionToken } from '@shared/play/factionToken';
 import type { GameSnapshot } from '@shared/play/protocol';
@@ -10,7 +10,7 @@ import type { Group, Texture } from 'three';
 
 import { useMotionAllowed } from '@app/styles/motion';
 
-import { loadPublishedFace } from '../publishedFaceRetry';
+import { loadPublishedFace } from '../../../../widgets/tabletop/publishedFaceRetry';
 
 const UP = new Vector3(0, 1, 0);
 

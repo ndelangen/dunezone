@@ -6,6 +6,7 @@ import { describe, expect, test } from 'vitest';
 import { checkCloudflareLiveDrift } from './cloudflare-live-drift';
 
 const ACCOUNT_ID = '0123456789abcdef0123456789abcdef';
+const HOMEPAGE_NAMESPACE_ID = 'abcdef1234567890abcdef1234567890';
 const WORKER = 'faction-sheet-asset-publisher';
 
 function envelope(result: unknown, resultInfo?: unknown, status = 200): Response {
@@ -90,6 +91,7 @@ function gameResponse(url: URL): Response {
     return envelope({
       bindings: [
         { name: 'GAME_ROOMS', type: 'durable_object_namespace', namespace_id: ACCOUNT_ID },
+        { name: 'HOMEPAGE_ROOMS', type: 'durable_object_namespace', namespace_id: HOMEPAGE_NAMESPACE_ID },
         { name: 'CF_VERSION_METADATA', type: 'version_metadata' },
         { name: 'CONVEX_URL', type: 'plain_text', text: 'https://exuberant-finch-263.eu-west-1.convex.cloud' },
         { name: 'APPLICATION_ORIGIN', type: 'plain_text', text: 'https://dune.zone' },
@@ -138,9 +140,15 @@ function liveFetcher(
       return gameResponse(url);
     }
     if (url.pathname.endsWith('/workers/durable_objects/namespaces')) {
-      return envelope([{ id: ACCOUNT_ID, class: 'GameRoom', script: 'dunezone-game', use_sqlite: true }], {
-        total_pages: 1,
-      });
+      return envelope(
+        [
+          { id: ACCOUNT_ID, class: 'GameRoom', script: 'dunezone-game', use_sqlite: true },
+          { id: HOMEPAGE_NAMESPACE_ID, class: 'HomepageRoom', script: 'dunezone-game', use_sqlite: true },
+        ],
+        {
+          total_pages: 1,
+        }
+      );
     }
     if (url.pathname.endsWith(`/workers/scripts/${WORKER}/settings`)) {
       return envelope({
@@ -246,7 +254,12 @@ describe('Cloudflare live drift check', () => {
       cronCount: 1,
       queueCount: 1,
       bucketCount: 2,
-      game: { worker: 'dunezone-game', namespaceId: ACCOUNT_ID, bindingCount: 6 },
+      game: {
+        worker: 'dunezone-game',
+        namespaceId: ACCOUNT_ID,
+        homepageNamespaceId: HOMEPAGE_NAMESPACE_ID,
+        bindingCount: 7,
+      },
     });
     expect(live.requests).toHaveLength(18);
     expect(new Set(live.requests.map((request) => request.method))).toEqual(new Set(['GET']));

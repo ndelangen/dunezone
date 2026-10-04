@@ -31,6 +31,7 @@ export const SNAPSHOT_REBUILD_CONTRACT = {
     'authVerifiers',
     'authRateLimits',
     'play_games',
+    'homepage_tickets',
     'play_tickets',
     'play_auth_registrations',
     'play_game_accounts',

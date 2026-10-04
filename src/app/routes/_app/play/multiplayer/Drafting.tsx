@@ -33,8 +33,8 @@ import type { CSSProperties } from 'react';
 
 import { Token } from '@game/assets/faction/token/Token';
 
+import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
 import styles from './Drafting.module.css';
-import type { TableProjection, TableSession } from './TableSession';
 
 /*
  * Drafting as accepted on #1016 (overlay D, refined) and #1145 (the panel): the ledger over the

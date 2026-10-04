@@ -5,7 +5,7 @@ import { useMemo } from 'react';
 
 import { card } from '@game/data/sizes';
 
-import { usePredictionFace } from '../prediction/predictionFace';
+import { usePredictionFace } from './prediction/predictionFace';
 
 type Props = {
   piece: TablePiece;
