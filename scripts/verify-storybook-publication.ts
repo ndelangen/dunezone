@@ -4,6 +4,7 @@ import path from 'node:path';
 import { chromium, errors } from 'playwright';
 import type { Browser, Page } from 'playwright';
 
+import { rulebookCoverPresetCatalogue } from '../src/shared/rulebooks/coverPresets';
 import { RETRYABLE_BROWSER_CHECK_STATUS, runBrowserCheck } from './storybook-publication-browser';
 
 const repositoryRoot = path.resolve(import.meta.dir, '..');
@@ -196,7 +197,10 @@ async function verifyCoverStories(page: Page) {
     .waitFor({ timeout: 45_000 });
   await page.getByRole('link', { name: 'Page details', exact: true }).click();
   await page.getByRole('combobox', { name: 'Cover preset' }).click();
-  invariant((await page.getByRole('option').count()) === 11, 'The Cover picker did not show all eleven presets.');
+  invariant(
+    (await page.getByRole('option').count()) === rulebookCoverPresetCatalogue.length,
+    'The Cover picker did not show every preset.'
+  );
   for (const image of await page.locator('img[src*="/image/rulebook-cover/"]').all()) {
     await image.evaluate((element: HTMLImageElement) => element.decode());
   }
