@@ -86,7 +86,12 @@ const renderBlockSchemas = {
     kind: z.literal('list'),
     style: z.enum(['bulleted', 'numbered']),
     items: z.array(
-      z.strictObject({ id: renderLocalIdSchema, name: z.string().optional(), text: renderFormattedTextSchema })
+      z.strictObject({
+        id: renderLocalIdSchema,
+        icon: z.string().min(1).optional(),
+        name: z.string().optional(),
+        text: renderFormattedTextSchema,
+      })
     ),
   }),
   callout: z.strictObject({

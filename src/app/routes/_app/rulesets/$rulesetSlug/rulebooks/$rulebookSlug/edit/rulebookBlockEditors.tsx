@@ -2,8 +2,11 @@ import { closestCenter, DndContext, KeyboardSensor, PointerSensor, useSensor, us
 import type { DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { Select, Stack, TextInput } from '@mantine/core';
-import { createRulebookLocalId } from '@shared/rulebooks/contents';
+import { TABLE_PHASES } from '@shared/play/phases';
+import { createRulebookLocalId, rulebookListIconSchema } from '@shared/rulebooks/contents';
 import type { RulebookBlockDraft, RulebookBlockKind } from '@shared/rulebooks/contents';
+import { stockAssetOptions } from '@ui/content/stockAssetOptions';
+import { AssetSelect } from '@ui/control/AssetSelect';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
 import { ListLengthActions } from '@ui/control/ListLengthActions';
@@ -196,6 +199,15 @@ function QuestionAnswerEdit({ value, onChange }: RulebookBlockEditorProps<'quest
   );
 }
 
+const listIconOptions = stockAssetOptions(rulebookListIconSchema.options.flatMap((schema) => schema.options)).map(
+  (option) => {
+    const phase = TABLE_PHASES.find((entry) => entry.symbol === option.value);
+    return phase
+      ? { ...option, label: phase.label, collection: 'Phases', keywords: `${option.keywords} ${phase.label}` }
+      : option;
+  }
+);
+
 function ListBlockEdit({ value, onChange }: RulebookBlockEditorProps<'list'>) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
@@ -255,6 +267,25 @@ function ListBlockEdit({ value, onChange }: RulebookBlockEditorProps<'list'>) {
                                   },
                                 })
                               }
+                            />
+                          }
+                        />
+                        <ControlBlock
+                          title={`${label} icon`}
+                          description="Optional symbol in a circular frame beside this item."
+                          input={
+                            <AssetSelect
+                              aria-label={`${label} icon`}
+                              placeholder="No icon"
+                              data={listIconOptions}
+                              getPreviewSrc={(icon) => icon}
+                              glyphPreviews
+                              clearable
+                              value={item.icon ?? null}
+                              onChange={(selected) => {
+                                const icon = selected === null ? undefined : rulebookListIconSchema.parse(selected);
+                                onChange({ ...value, itemsById: { ...value.itemsById, [itemId]: { ...item, icon } } });
+                              }}
                             />
                           }
                         />

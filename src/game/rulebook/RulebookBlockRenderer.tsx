@@ -1,7 +1,7 @@
 import type { RulebookRenderBlockV1, RulebookRenderSourceV1 } from '@shared/rulebooks/renderDocument';
 import { useId } from 'react';
 
-import { useAsset } from '../assets/assetRenderMode';
+import { useAsset, useAssetResolver } from '../assets/assetRenderMode';
 import { isLight } from '../assets/utils/contrast';
 import { FormattedText } from '../assets/utils/FormattedText';
 import { RulebookAssetExplainer } from './RulebookAssetExplainer';
@@ -186,6 +186,7 @@ function CardGuide({
 
 /** Renders one Block without Page or Region layout. Its caller supplies a Rulebook-sized container. */
 export function RulebookBlockRenderer({ block }: Readonly<{ block: RulebookRenderBlockV1 }>) {
+  const resolveAsset = useAssetResolver();
   if (block.kind === 'asset-explainer') {
     return <RulebookAssetExplainer block={block} />;
   }
@@ -219,13 +220,26 @@ export function RulebookBlockRenderer({ block }: Readonly<{ block: RulebookRende
   }
   if (block.kind === 'list') {
     const List = block.style === 'numbered' ? 'ol' : 'ul';
+    const illustrated = block.items.some((item) => item.icon);
     return (
-      <div {...blockAnchor(block)} className={styles.list} data-rulebook-block-id={block.id}>
-        <List>
+      <div
+        {...blockAnchor(block)}
+        className={styles.list}
+        data-rulebook-block-id={block.id}
+        data-illustrated={illustrated || undefined}
+      >
+        <List role="list">
           {block.items.map((item) => (
             <li data-rulebook-item-id={item.id} key={item.id}>
-              {item.name ? <strong className={styles.itemName}>{item.name}</strong> : null}
-              <FormattedText value={item.text} />
+              {illustrated ? (
+                <span className="rulebookListIcon" aria-hidden="true">
+                  {item.icon ? <img src={resolveAsset(item.icon)} alt="" /> : null}
+                </span>
+              ) : null}
+              <div className="rulebookListCopy">
+                {item.name ? <strong className={styles.itemName}>{item.name}</strong> : null}
+                <FormattedText value={item.text} />
+              </div>
             </li>
           ))}
         </List>
