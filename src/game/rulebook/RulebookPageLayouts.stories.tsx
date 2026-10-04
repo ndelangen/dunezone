@@ -58,6 +58,7 @@ export const ClippedRegion = meta.story({
     const regions = [...canvasElement.querySelectorAll<HTMLElement>('[data-rulebook-region]')];
     expect(regions[0]!.scrollHeight).toBeGreaterThan(regions[0]!.clientHeight);
     expect(getComputedStyle(regions[0]!).overflow).toBe('clip');
+    expect(Number.parseFloat(getComputedStyle(regions[0]!).overflowClipMargin)).toBeGreaterThan(0);
     expect(regions[1]!.textContent).toBe('Column 2');
   },
 });
