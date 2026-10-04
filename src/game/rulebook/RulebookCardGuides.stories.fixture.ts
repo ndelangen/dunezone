@@ -101,3 +101,9 @@ export function cardGuidePage(blocks: Array<CardEntry | CardGroup>): RulebookRen
     ],
   };
 }
+
+const tokenImage = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600"><rect width="600" height="600" fill="#6f4d85"/><circle cx="300" cy="300" r="170" fill="#c2a1d0"/><text x="300" y="320" text-anchor="middle" font-size="64">Tech token</text></svg>')}`;
+
+export const techTokenAssets = {
+  tech: { assetId: 'tech', type: 'token-tech', name: 'Tech token', imageUrl: tokenImage, width: 600, height: 600 },
+} satisfies RulebookResolvedAssetsById;

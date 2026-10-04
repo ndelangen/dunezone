@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import { componentGeometrySchema } from '../asset-publishing/componentGeometry';
 import { BACKGROUND, DECAL, GENERIC, ICON, LEADERS, LOGO, PLANET, TEXTURE, TROOP, TROOP_MODIFIER } from '../assetIds';
+import { GEAR_CLIP } from '../assets/tokenOutline';
 import { FactionMemberIdSchema } from '../factions/memberIdentity';
 import { RULEBOOK_BOARD_DEFINITIONS } from './boardDefinitions';
 
@@ -33,6 +34,7 @@ export const rulebookResolvedSourceSchema = z.discriminatedUnion('status', [
     width: z.number().positive().optional(),
     height: z.number().positive().optional(),
     geometry: componentGeometrySchema.optional(),
+    assetType: z.string().optional(),
     publicationRevision: z.string().min(1).max(256).optional(),
   }),
 ]);
@@ -41,7 +43,7 @@ export type RulebookResolvedSource = z.infer<typeof rulebookResolvedSourceSchema
 /** Database references use the same image metadata contract while publication may still be pending. */
 export const rulebookResolvedAssetsByIdSchema = z.record(
   z.string(),
-  rulebookResolvedSourceSchema.options[2].omit({ status: true, reference: true }).extend({
+  rulebookResolvedSourceSchema.options[2].omit({ status: true, reference: true, assetType: true }).extend({
     assetId: z.string(),
     type: z.string(),
     imageUrl: z.string().nullable(),
@@ -98,4 +100,18 @@ export function resolveRulebookArtworkSource(reference: RulebookSourceReference)
       : { status: 'unavailable', reference };
   }
   return null;
+}
+
+/** Applies the physical token outline to a rectangular published image. */
+export function rulebookSourceClipPath(source: RulebookResolvedSource): string | undefined {
+  if (source.status !== 'ready') {
+    return undefined;
+  }
+  if (source.reference.kind === 'faction-member' || source.assetType === 'token-disc') {
+    return 'circle(50%)';
+  }
+  if (source.assetType === 'token-tech') {
+    return GEAR_CLIP;
+  }
+  return undefined;
 }

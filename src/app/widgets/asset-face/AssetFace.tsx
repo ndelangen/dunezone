@@ -1,3 +1,4 @@
+import { BundleBand } from '@shared/assets/schema';
 /**
  * Defensive asset-face rendering, wherever an Asset has to be shown rather than named.
  *
@@ -13,7 +14,7 @@
  * It was once handed a pixel width instead, which made every caller state a size the face already knew: six of them wrapped it in a `CanvasScale` restating the same 900 and the same ratio, and the landing page ran a `ResizeObserver` whose entire output was that one prop.
  * A surface needing exact pixels still gets them, by giving the face a fixed-size parent, so there is never a second way to say the same thing.
  */
-import { BundleBand } from '@shared/assets/schema';
+import { GEAR_CLIP } from '@shared/assets/tokenOutline';
 import { PublishedImage } from '@ui/content/PublishedImage';
 import { CanvasScale } from '@ui/layout/CanvasScale';
 import type { ReactNode } from 'react';
@@ -68,20 +69,6 @@ function bundleHeadroom(memberCount: number): number {
 
 /** An enhance token is wider than it is tall; every other token shape is square. */
 const RECTANGLE_TOKEN_ASPECT = 0.62;
-
-/** a cog silhouette for the tech token's frame, 10 teeth, alternating outer/inner radius */
-const GEAR_CLIP = (() => {
-  const steps = 20;
-  const points: string[] = [];
-  for (let i = 0; i < steps; i++) {
-    const angle = (i / steps) * 2 * Math.PI;
-    const next = ((i + 0.72) / steps) * 2 * Math.PI;
-    const r = i % 2 === 0 ? 50 : 41;
-    points.push(`${50 + r * Math.cos(angle)}% ${50 + r * Math.sin(angle)}%`);
-    points.push(`${50 + r * Math.cos(next)}% ${50 + r * Math.sin(next)}%`);
-  }
-  return `polygon(${points.join(', ')})`;
-})();
 
 /**
  * The card's corner, as a share of its own box rather than a pixel count read off a width.

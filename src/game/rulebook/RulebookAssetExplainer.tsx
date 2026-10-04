@@ -27,7 +27,7 @@ function AnnotationDrawing({
         width={projection.width}
         height={projection.height}
         preserveAspectRatio="none"
-        clipPath={projection.sourceKind === 'faction-member' ? 'circle(50%)' : undefined}
+        clipPath={projection.sourceClipPath}
       />
       {shapes.map((shape, index) =>
         createElement(
@@ -90,6 +90,7 @@ export function RulebookAssetExplainer({ block }: Readonly<{ block: AssetExplain
             needsMeasurement && !measurement ? (
               <img
                 src={imageUrl}
+                style={{ clipPath: projection.sourceClipPath }}
                 alt={projection.sourceName}
                 onLoad={(event) => {
                   const image = event.currentTarget;

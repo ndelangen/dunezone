@@ -240,10 +240,6 @@
   object-fit: contain;
 }
 
-.rulebookSourceVisual[data-rulebook-source-kind="faction-member"] img {
-  clip-path: circle(closest-side);
-}
-
 .rulebookSourceUnavailable {
   display: grid;
   min-height: calc(20 * var(--rulebook-mm));
@@ -1280,5 +1276,16 @@
   grid-template-columns: minmax(0, min(60 * var(--rulebook-mm), 40%)) minmax(0, 1fr);
 }
 .rulebookCardGuide[data-illustration-size] .rulebookSourceVisual {
+  aspect-ratio: 1;
+}
+
+.rulebookSourceVisual[data-source-clipped] img {
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  margin-inline: auto;
+}
+
+.rulebookCardGuide .rulebookSourceVisual[data-source-clipped] {
   aspect-ratio: 1;
 }

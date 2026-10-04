@@ -1,5 +1,6 @@
 import type { RulebookIllustrationSize } from '@shared/rulebooks/contents';
 import type { RulebookRenderBlockV1, RulebookRenderSourceV1 } from '@shared/rulebooks/renderDocument';
+import { rulebookSourceClipPath } from '@shared/rulebooks/sources';
 import { useId } from 'react';
 
 import { useAsset, useAssetResolver } from '../assets/assetRenderMode';
@@ -69,10 +70,16 @@ function sourceIdentity(source: RulebookRenderSourceV1) {
 
 function SourceVisual({ source }: Readonly<{ source: RulebookRenderSourceV1 }>) {
   const imageUrl = useAsset(source.status === 'ready' ? source.imageUrl : '');
+  const clipPath = rulebookSourceClipPath(source);
   return (
-    <div className={styles.sourceVisual} {...sourceIdentity(source)} data-source-status={source.status}>
+    <div
+      className={styles.sourceVisual}
+      {...sourceIdentity(source)}
+      data-source-status={source.status}
+      data-source-clipped={clipPath ? true : undefined}
+    >
       {source.status === 'ready' ? (
-        <img src={imageUrl} alt={source.name} width={source.width} height={source.height} />
+        <img src={imageUrl} alt={source.name} width={source.width} height={source.height} style={{ clipPath }} />
       ) : (
         <div
           className={styles.sourceUnavailable}

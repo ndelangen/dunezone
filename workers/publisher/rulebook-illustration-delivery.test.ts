@@ -7,6 +7,7 @@ import {
   componentPublicationEnvelopeSchema,
   factionMemberPublicationId,
 } from '../../src/shared/asset-publishing/componentPublication';
+import { GEAR_CLIP } from '../../src/shared/assets/tokenOutline';
 import {
   matchRulebookAnnotatedIllustrationPath,
   rulebookAnnotatedIllustrationPath,
@@ -62,19 +63,22 @@ function resolution(): Extract<RulebookAnnotatedIllustrationResolution, { status
   };
 }
 
-function fixture() {
+function fixture(assetType: 'faction-leader' | 'token-tech' = 'faction-leader', publicationId = assetId) {
   const envelopes = new Map<string, Uint8Array>();
   function put(revision: string, bytes: number[], parts = geometry.parts) {
     const envelope = componentPublicationEnvelopeSchema.parse({
       schemaVersion: 1,
-      assetId,
-      assetType: 'faction-leader',
+      assetId: publicationId,
+      assetType,
       revision,
       payloadHash: revision === revisionA ? 'a'.repeat(64) : 'b'.repeat(64),
       geometry: { ...geometry, parts },
       image: { contentType: 'image/jpeg', base64: Buffer.from(bytes).toString('base64') },
     });
-    envelopes.set(componentEnvelopeKey(assetId, revision), new TextEncoder().encode(JSON.stringify(envelope)));
+    envelopes.set(
+      componentEnvelopeKey(publicationId, revision, assetType),
+      new TextEncoder().encode(JSON.stringify(envelope))
+    );
   }
   const bucket = {
     head: vi.fn(async () => null),
@@ -115,6 +119,28 @@ async function serve(f: ReturnType<typeof fixture>, headers?: HeadersInit, metho
 }
 
 describe('annotated Rulebook illustration delivery', () => {
+  test('tech-token annotations retain their gear outline after loading the published image', async () => {
+    const tokenId = identity.rulebookId;
+    const f = fixture('token-tech', tokenId);
+    const reference = { kind: 'asset' as const, assetId: tokenId };
+    f.set({
+      ...resolution(),
+      source: {
+        status: 'published',
+        reference,
+        name: 'Tech token',
+        assetType: 'token-tech',
+        assetId: tokenId,
+        revision: revisionA,
+        publishedAt: 1000,
+      },
+      configuration: { source: reference, numbering: 'automatic', colorMode: 'automatic', items: [] },
+    });
+    const response = await serve(f);
+    expect(response.status).toBe(200);
+    expect(await response.text()).toContain(`clip-path="${GEAR_CLIP}"`);
+  });
+
   test('the original HTML address follows replacement image bytes and named geometry together', async () => {
     const f = fixture();
     const originalHtml = `<img src="${url}">`;

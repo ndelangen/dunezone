@@ -1,9 +1,12 @@
 // @vitest-environment jsdom
 
+import { GEAR_CLIP } from '@shared/assets/tokenOutline';
 import {
+  composeRulebookAssetExplainerSvg,
   projectRulebookAssetExplainerAnnotations,
   rulebookAnnotationShapes,
 } from '@shared/rulebooks/assetExplainerAnnotations';
+import { projectRulebookSource } from '@shared/rulebooks/projectRenderDocument';
 import { fireEvent, render } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
@@ -29,6 +32,35 @@ describe('Rulebook AssetExplainer rendering', () => {
     expect(container.querySelectorAll('ol')).toHaveLength(1);
     expect(container.querySelectorAll('li')).toHaveLength(4);
     expect(container.querySelectorAll('h2')).toHaveLength(0);
+  });
+
+  it('clips tech-token artwork identically in the live and exported annotation', () => {
+    const block = {
+      ...leaderExplainerFixture(),
+      source: projectRulebookSource(
+        { kind: 'asset', assetId: 'tech' },
+        {
+          tech: {
+            assetId: 'tech',
+            type: 'token-tech',
+            name: 'Tech token',
+            imageUrl: '/tech.jpg',
+            width: 600,
+            height: 600,
+          },
+        }
+      ),
+      items: [],
+    };
+    const { container } = render(<RulebookAssetExplainer block={block} />);
+    expect(container.querySelector('image')?.getAttribute('clip-path')).toBe(GEAR_CLIP);
+    const svg = composeRulebookAssetExplainerSvg({
+      projection: projectRulebookAssetExplainerAnnotations(block),
+      imageDataUrl: 'data:image/jpeg;base64,AAAA',
+    });
+    expect(
+      new DOMParser().parseFromString(svg, 'image/svg+xml').querySelector('image')?.getAttribute('clip-path')
+    ).toBe(GEAR_CLIP);
   });
 
   it('keeps unavailable explanations and custom label contrast alongside the remaining markers', () => {
