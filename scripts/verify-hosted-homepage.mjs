@@ -65,6 +65,8 @@ export async function verifyHomepage({
     () => guest.view().pointers.some((pointer) => pointer.connectionId === member.view().viewer.connectionId),
     'The unsigned visitor did not see the signed-in visitor pointer.'
   );
+  await member.page.locator('[data-table-hand="local"]').waitFor();
+  await guest.page.locator('[data-table-hand="remote"]').waitFor();
   await member.page.mouse.down();
   await member.page.mouse.move(finish.x, finish.y, { steps: carrySteps });
   await member.page.mouse.up();
@@ -94,6 +96,7 @@ export async function verifyHomepage({
   const guestStart = await point(guest, moved.position);
   const sentBefore = guest.sent.length;
   await guest.page.mouse.move(guestStart.x, guestStart.y);
+  await guest.page.locator('[data-table-hand="local"]').waitFor();
   await guest.page.mouse.down();
   await guest.page.mouse.move(guestStart.x + 50, guestStart.y + 25, { steps: carrySteps });
   await guest.page.mouse.up();

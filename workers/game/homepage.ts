@@ -162,7 +162,7 @@ export class HomepageRoom extends DurableObject<GameEnv> {
     connection.generation++;
     connection.userKey = undefined;
     connection.leaseUntil = 0;
-    connection.viewer = { ...connection.viewer, viewerSeat: SPECTATOR_SEAT };
+    connection.viewer = { ...connection.viewer, viewerSeat: SPECTATOR_SEAT, avatarUrl: undefined };
     this.room.clearActivity(connection.viewer.connectionId);
     this.saveConnection(socket, connection);
     return changed;
@@ -256,7 +256,11 @@ export class HomepageRoom extends DurableObject<GameEnv> {
     }
     connection.userKey = admission.userKey;
     connection.leaseUntil = admission.leaseUntil;
-    connection.viewer = { ...connection.viewer, viewerSeat: connection.viewer.connectionId };
+    connection.viewer = {
+      ...connection.viewer,
+      viewerSeat: connection.viewer.connectionId,
+      avatarUrl: admission.avatarUrl ?? null,
+    };
     this.saveConnection(socket, connection);
     return changed;
   }

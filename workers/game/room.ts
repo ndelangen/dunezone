@@ -896,12 +896,14 @@ export class Room {
       !previous ||
       previous.viewerSeat !== identity.viewerSeat ||
       previous.displayName !== identity.displayName ||
+      previous.avatarUrl !== identity.avatarUrl ||
       previous.color !== identity.color ||
       previous.position.some((value, index) => value !== position[index]);
     this.pointers.set(identity.connectionId, {
       connectionId: identity.connectionId,
       viewerSeat: identity.viewerSeat,
       displayName: identity.displayName,
+      ...(identity.avatarUrl === undefined ? {} : { avatarUrl: identity.avatarUrl }),
       color: identity.color,
       position,
       updatedAt: now,
@@ -976,6 +978,7 @@ export class Room {
         connectionId: carry.connectionId,
         viewerSeat: carry.viewerSeat,
         displayName: carry.displayName,
+        ...(carry.avatarUrl === undefined ? {} : { avatarUrl: carry.avatarUrl }),
         color: carry.color,
         held,
         withdrawnCounts: this.withdrawnCounts(carry),

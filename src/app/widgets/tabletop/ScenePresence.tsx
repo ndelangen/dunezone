@@ -5,11 +5,12 @@ import type { Vector3Tuple } from '@shared/play/model';
 import type { PublicPointer } from '@shared/play/protocol';
 import { SPECTATOR_SEAT } from '@shared/play/schema';
 import { CARRIED_BASE_Y, pointOnRayAtHeight } from '@shared/play/tableGeometry';
-import { memo, useEffect, useLayoutEffect, useMemo, useRef, useSyncExternalStore } from 'react';
+import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import type { Group } from 'three';
 import { Raycaster, Vector2, Vector3 } from 'three';
 
 import { unsettledArtworkLoads } from './artworkLoads';
+import styles from './ScenePresence.module.css';
 import { useTabletopActions, useTabletopCommands, useTabletopSelector } from './TabletopContext';
 
 function rectangleContainsPoint(bounds: DOMRect, x: number, y: number) {
@@ -122,9 +123,14 @@ const RemoteHand = memo(function RemoteHand({
   position,
   color,
   displayName,
-}: Pick<PublicPointer, 'position' | 'color' | 'displayName'>) {
-  const group = useTablePose(position, 0, true);
-  const label = useMemo(() => <RemoteHandLabel color={color} displayName={displayName} />, [color, displayName]);
+  avatarUrl,
+  local = false,
+}: Pick<PublicPointer, 'position' | 'color' | 'displayName' | 'avatarUrl'> & { local?: boolean }) {
+  const group = useTablePose(position, 0, !local);
+  const label = useMemo(
+    () => <RemoteHandLabel color={color} displayName={displayName} avatarUrl={avatarUrl} local={local} />,
+    [color, displayName, avatarUrl, local]
+  );
   return (
     <group ref={group}>
       <Html zIndexRange={REMOTE_HAND_Z_RANGE} style={REMOTE_HAND_HTML_STYLE}>
@@ -134,9 +140,16 @@ const RemoteHand = memo(function RemoteHand({
   );
 });
 
-function RemoteHandLabel({ color, displayName }: Pick<PublicPointer, 'color' | 'displayName'>) {
+function RemoteHandLabel({
+  color,
+  displayName,
+  avatarUrl,
+  local,
+}: Pick<PublicPointer, 'color' | 'displayName' | 'avatarUrl'> & { local: boolean }) {
   return (
     <div
+      data-table-hand={local ? 'local' : 'remote'}
+      aria-hidden="true"
       style={{
         display: 'flex',
         alignItems: 'flex-end',
@@ -162,6 +175,25 @@ function RemoteHandLabel({ color, displayName }: Pick<PublicPointer, 'color' | '
           strokeLinejoin="round"
         />
       </svg>
+      {avatarUrl !== undefined && (
+        <span className={styles.avatar} style={{ borderColor: color }}>
+          <svg viewBox="0 0 32 32" aria-hidden="true">
+            <circle cx="16" cy="11" r="6" fill={color} />
+            <path d="M4 32v-5a12 12 0 0 1 24 0v5" fill={color} />
+          </svg>
+          {avatarUrl && (
+            <img
+              key={avatarUrl}
+              src={avatarUrl}
+              alt=""
+              referrerPolicy="no-referrer"
+              onError={(event) => {
+                event.currentTarget.hidden = true;
+              }}
+            />
+          )}
+        </span>
+      )}
       {displayName && (
         <span
           style={{
@@ -208,7 +240,9 @@ declare global {
   }
 }
 
-export function ScenePresence({ showNames = true }: { showNames?: boolean }) {
+export function ScenePresence({ showNames = true, showLocal = false }: { showNames?: boolean; showLocal?: boolean }) {
+  const viewer = useTabletopSelector((table) => table.viewer);
+  const [localPosition, setLocalPosition] = useState<Vector3Tuple | null>(null);
   const canInteract = useTabletopSelector((table) => table.canInteract);
   const { publishPointer } = useTabletopCommands();
   const { subscribePointers, getPointers } = useTabletopActions();
@@ -218,7 +252,7 @@ export function ScenePresence({ showNames = true }: { showNames?: boolean }) {
   const scene = useThree((state) => state.scene);
   const raycaster = useMemo(() => new Raycaster(), []);
   const normalized = useMemo(() => new Vector2(), []);
-  const lastScreenPoint = useRef<{ x: number; y: number } | null>(null);
+  const lastScreenPoint = useRef<{ x: number; y: number; touch: boolean } | null>(null);
   const lastCameraMatrix = useRef('');
   const latestPointers = useRef(pointers);
   useLayoutEffect(() => {
@@ -229,17 +263,20 @@ export function ScenePresence({ showNames = true }: { showNames?: boolean }) {
     publish.current = () => {
       const canvas = renderer.domElement;
       const point = lastScreenPoint.current;
-      const unavailable = !canInteract || document.hidden || !point;
+      const unavailable = (!canInteract && !showLocal) || document.hidden || !point;
       if (unavailable) {
+        setLocalPosition(null);
         publishPointer(null);
         return;
       }
       if (!isCursorTablePoint(canvas, point.x, point.y)) {
+        setLocalPosition(null);
         publishPointer(null);
         return;
       }
       const hit = document.elementFromPoint(point.x, point.y);
       if (hit && hit !== canvas) {
+        setLocalPosition(null);
         publishPointer(null);
         return;
       }
@@ -249,22 +286,23 @@ export function ScenePresence({ showNames = true }: { showNames?: boolean }) {
         -((point.y - bounds.top) / bounds.height) * 2 + 1
       );
       raycaster.setFromCamera(normalized, camera);
-      publishPointer(
-        pointOnRayAtHeight(
-          [raycaster.ray.origin.x, raycaster.ray.origin.y, raycaster.ray.origin.z],
-          [raycaster.ray.direction.x, raycaster.ray.direction.y, raycaster.ray.direction.z],
-          CARRIED_BASE_Y
-        )
+      const position = pointOnRayAtHeight(
+        [raycaster.ray.origin.x, raycaster.ray.origin.y, raycaster.ray.origin.z],
+        [raycaster.ray.direction.x, raycaster.ray.direction.y, raycaster.ray.direction.z],
+        CARRIED_BASE_Y
       );
+      setLocalPosition(showLocal && !point.touch ? position : null);
+      publishPointer(canInteract ? position : null);
     };
-  }, [camera, canInteract, normalized, publishPointer, raycaster, renderer.domElement]);
+  }, [camera, canInteract, normalized, publishPointer, raycaster, renderer.domElement, showLocal]);
   useEffect(() => {
     const move = (event: PointerEvent) => {
-      lastScreenPoint.current = { x: event.clientX, y: event.clientY };
+      lastScreenPoint.current = { x: event.clientX, y: event.clientY, touch: event.pointerType === 'touch' };
       publish.current();
     };
     const clear = () => {
       lastScreenPoint.current = null;
+      setLocalPosition(null);
       publishPointer(null);
     };
     const leave = (event: PointerEvent) => {
@@ -289,6 +327,11 @@ export function ScenePresence({ showNames = true }: { showNames?: boolean }) {
       clear();
     };
   }, [publishPointer]);
+  useEffect(() => {
+    const canvas = renderer.domElement;
+    canvas.classList.toggle(styles.localCursor, showLocal);
+    return () => canvas.classList.remove(styles.localCursor);
+  }, [renderer.domElement, showLocal]);
   useEffect(() => {
     if (!canInteract) {
       publishPointer(null);
@@ -360,6 +403,9 @@ export function ScenePresence({ showNames = true }: { showNames?: boolean }) {
   }, [camera, renderer.domElement, scene]);
   return (
     <>
+      {showLocal && localPosition && (
+        <RemoteHand position={localPosition} color={viewer.color} displayName="" avatarUrl={viewer.avatarUrl} local />
+      )}
       {pointers
         .filter((pointer) => pointer.viewerSeat !== SPECTATOR_SEAT)
         .map((pointer) => (
@@ -367,6 +413,7 @@ export function ScenePresence({ showNames = true }: { showNames?: boolean }) {
             key={pointer.connectionId}
             position={pointer.position}
             color={pointer.color}
+            avatarUrl={pointer.avatarUrl}
             displayName={showNames ? pointer.displayName : ''}
           />
         ))}

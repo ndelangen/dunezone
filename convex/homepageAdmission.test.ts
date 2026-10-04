@@ -22,7 +22,12 @@ test('only a live signed-in visitor can issue a single-use homepage ticket', asy
   const issued = await member.mutation(api.homepageAdmission.issueTicket, {});
   expect(issued).not.toBeNull();
   const admission = await t.mutation(api.homepageAdmission.redeemTicket, issued!);
-  expect(admission).toEqual({ allowed: true, userKey: person.userId, leaseUntil: Date.now() + HOMEPAGE_LEASE_MS });
+  expect(admission).toEqual({
+    allowed: true,
+    avatarUrl: null,
+    userKey: person.userId,
+    leaseUntil: Date.now() + HOMEPAGE_LEASE_MS,
+  });
   expect(await t.mutation(api.homepageAdmission.redeemTicket, issued!)).toEqual({ allowed: false });
   expect(await t.run((ctx) => ctx.db.query('homepage_tickets').collect())).toEqual([]);
 });
@@ -49,6 +54,7 @@ test('the editing lease cannot outlast the auth session', async () => {
   expect(await t.mutation(api.homepageAdmission.redeemTicket, issued!)).toEqual({
     allowed: true,
     userKey: person.userId,
+    avatarUrl: null,
     leaseUntil: expiry,
   });
 });
@@ -62,4 +68,18 @@ test('invalid ticket traffic cannot spend a valid visitor renewal budget', async
   }
   const issued = await member.mutation(api.homepageAdmission.issueTicket, {});
   expect(await t.mutation(api.homepageAdmission.redeemTicket, issued!)).toMatchObject({ allowed: true });
+});
+
+test('the shared hand avatar comes from the authenticated profile', async () => {
+  const { t, person, member } = await visitor();
+  const avatarUrl = 'https://dune.zone/avatar/visitor.webp';
+  await t.run(async (ctx) => {
+    const profile = await ctx.db
+      .query('profiles')
+      .withIndex('by_user_id', (q) => q.eq('user_id', person.userId))
+      .unique();
+    await ctx.db.patch(profile!._id, { avatar_url: avatarUrl });
+  });
+  const issued = await member.mutation(api.homepageAdmission.issueTicket, {});
+  expect(await t.mutation(api.homepageAdmission.redeemTicket, issued!)).toMatchObject({ allowed: true, avatarUrl });
 });
