@@ -247,7 +247,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     this.diagnostics = new GameDiagnostics(ctx.id.toString(), env.GIT_SHA, () => ({
       roomClass: 'GameRoom',
       workerVersionId: env.CF_VERSION_METADATA.id,
-      revision: this.session?.revision,
+      revision: this.session?.ready ? this.session.revision : undefined,
       connections: this.connections.size,
     }));
     try {
