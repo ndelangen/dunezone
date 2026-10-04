@@ -49,9 +49,11 @@ Unknown errors remain `exception` or `unknown`. Messages, stacks, tickets, accou
 SQL values and response bodies are never copied into these application records.
 
 A room emits at most one failure per operation per minute. Reconciliation, confirmation,
-directory delivery, authorization renewal and homepage admission/refresh/message handling also
+directory delivery, authorization renewal and homepage admission and refresh also
 report `game-operation-recovered` when a subsequent attempt succeeds. A recovery includes
 `failures` since the first failed attempt and `outageMs`. Healthy operations emit nothing.
+A successfully handled message alone does not clear a message failure, since a sync or pointer
+update does not prove a previous storage write now works.
 Recoveries are independently limited to one per operation per minute, so a flapping dependency
 cannot bypass the failure limit. These counters live in memory and do not cross an object restart;
 absence of a recovery record does not prove a continuing outage. The failure limit also stays in

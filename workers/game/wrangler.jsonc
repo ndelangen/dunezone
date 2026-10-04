@@ -16,6 +16,9 @@
       "enabled": true,
       "invocation_logs": false
     },
+    "traces": {
+      "enabled": false
+    },
     "issues": {
       "enabled": true
     }

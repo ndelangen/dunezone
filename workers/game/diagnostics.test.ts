@@ -54,7 +54,7 @@ test('diagnostics retain a safe failure category without exception content or cr
   });
 });
 
-test('recovery records the outage once and healthy calls stay silent', async () => {
+test('only explicit operation recovery ends an outage; resolving a handler is not recovery', async () => {
   vi.useFakeTimers();
   vi.setSystemTime(1000);
   vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -74,6 +74,9 @@ test('recovery records the outage once and healthy calls stay silent', async () 
   room.report('admission', error);
   vi.setSystemTime(2000);
   await expect(room.run('admission', async () => 42)).resolves.toBe(42);
+  expect(recovered).not.toHaveBeenCalled();
+  room.recovered('admission');
+  room.recovered('admission');
   await room.run('admission', async () => 42);
   expect(recovered).toHaveBeenCalledExactlyOnceWith({
     event: 'game-operation-recovered',

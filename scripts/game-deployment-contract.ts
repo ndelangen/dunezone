@@ -82,6 +82,7 @@ export function validateGameDeployContract(config: JsonObject, environment: Node
       head_sampling_rate: 1,
       redact_query_string: true,
       logs: { enabled: true, invocation_logs: false },
+      traces: { enabled: false },
       issues: { enabled: true },
     },
     'observability'

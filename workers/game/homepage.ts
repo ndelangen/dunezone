@@ -201,6 +201,7 @@ export class HomepageRoom extends DurableObject<GameEnv> {
       this.broadcast();
     }
     await this.scheduleAlarm();
+    this.diagnostics.recovered('refresh');
   }
 
   private async scheduleAlarm() {

@@ -170,9 +170,7 @@ export class GameDiagnostics {
   async run<T>(operation: Operation, action: () => Promise<T>, attempt: Attempt = {}): Promise<T> {
     const startedAt = Date.now();
     try {
-      const result = await action();
-      this.recovered(operation);
-      return result;
+      return await action();
     } catch (error) {
       this.report(operation, error, { ...attempt, durationMs: Math.max(0, Date.now() - startedAt) });
       throw error;
