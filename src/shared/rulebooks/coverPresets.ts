@@ -16,6 +16,10 @@ export const rulebookCoverPresetCatalogue = (
       label: 'Sandworm',
     },
     {
+      id: 'dreamrules-rainbow',
+      label: 'Dreamrules rainbow',
+    },
+    {
       id: 'desert-citadel',
       label: 'Desert citadel',
     },

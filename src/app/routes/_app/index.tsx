@@ -9,6 +9,7 @@ import { ArrowRight } from 'lucide-react';
 import { lazy, Suspense, useEffect, useRef } from 'react';
 import type { CSSProperties } from 'react';
 
+import { publicPageHead } from '@app/routes/publicPage';
 import { useMotionAllowed } from '@app/styles/motion';
 import { AssetFace } from '@app/widgets/asset-face/AssetFace';
 import { AllianceCard } from '@game/assets/faction/alliance/Alliance';
@@ -22,7 +23,25 @@ import styles from './index.module.css';
 
 const LiveDemo = lazy(() => import('./homepage-live-prototype/LiveDemo'));
 
-export const Route = createFileRoute('/_app/')({ component: IndexPage });
+export const Route = createFileRoute('/_app/')({
+  /* Share metadata runs on the server; the game artwork keeps its browser-owned SVG IDs. */
+  ssr: 'data-only',
+  head: () =>
+    publicPageHead({
+      name: '',
+      pathname: '/',
+      description: 'Dune Play is coming soon. Read Rulebooks, create factions and assets, and build with your allies.',
+      image: '/web/homepage-social-play-large.jpg',
+      imageDetails: {
+        alt: 'Dune Play is coming soon, with a preview of the board, Rulebook pages and homebrew leader portraits.',
+        type: 'image/jpeg',
+        width: 1200,
+        height: 630,
+      },
+    }),
+  component: IndexPage,
+});
+
 
 function IndexPage() {
   const root = useRef<HTMLDivElement>(null);

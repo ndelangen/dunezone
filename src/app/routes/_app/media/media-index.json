@@ -9995,6 +9995,12 @@
     "subjects": ["places", "space"],
     "sourceHash": "f526995d0b274b1d2f24814842463dc9aed51efb560ae15fcc1e162d7d58bcd3"
   },
+  "/image/rulebook-cover/dreamrules-rainbow.png": {
+    "description": "Sandworm rising from orange desert dunes beneath a rainbow sky and two moons, with robed figures and distant black towers.",
+    "tags": ["landscape", "illustration", "dreamrules", "rainbow"],
+    "subjects": ["places", "space", "creatures", "people"],
+    "sourceHash": "2e338d90d3955422622b3987ae9a7c1185c5f790386ef9802ad6547d767ea1d9"
+  },
   "/image/rulebook-cover/rock-passages.png": {
     "description": "Desert canyon with natural rock arches and small robed figures.",
     "tags": ["landscape", "illustration"],
@@ -10276,6 +10282,12 @@
     "tags": ["Charon", "Sol", "Solar System", "moon", "Pluto"],
     "subjects": ["space"],
     "sourceHash": "5e1ffb2b8641614212402424f35656f487ee9a8b5a79a11ba87314ca6d90d5d9"
+  },
+  "/web/homepage-social-play.jpg": {
+    "description": "The Dune Zone social preview announces Dune Play as coming soon beside the game board, demonstration Rulebook pages and three circular homebrew portraits.",
+    "tags": ["Dune Zone", "Dune Play", "homepage", "social preview", "coming soon", "Rulebook"],
+    "subjects": ["people", "places", "symbols"],
+    "sourceHash": "024c5aaa0f9ae27f1243b7b8a39716cd3f012ccbf832e8c77b267c08519ac44b"
   },
   "/web/homepage/board.png": {
     "description": "An angled Arrakis game board with troops, six faction tokens, cards and a turn track on a transparent background.",

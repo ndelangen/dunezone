@@ -85,6 +85,14 @@ async function expectCoverBounds({ canvasElement }: { canvasElement: HTMLElement
 }
 
 export const BackgroundImage = meta.story({ play: expectCoverBounds });
+export const DreamrulesRainbow = meta.story({
+  args: {
+    backgroundImageUrl: getRulebookCoverPreset('dreamrules-rainbow').imageUrl,
+    title: 'dream rulebook',
+    showSubtitle: false,
+  },
+  play: expectCoverBounds,
+});
 export const WithoutLogo = meta.story({ args: { showDuneLogo: false }, play: expectCoverBounds });
 export const LogoOnBlankCover = meta.story({ args: { backgroundImageUrl: '' }, play: expectCoverBounds });
 export const ArtworkOnly = meta.story({

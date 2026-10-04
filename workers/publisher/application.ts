@@ -7,6 +7,9 @@ export function applicationReleaseIdentity(env: Pick<Env, 'CF_VERSION_METADATA' 
 }
 
 function isPublicPage(pathname: string): boolean {
+  if (pathname === '/') {
+    return true;
+  }
   let segments: string[];
   try {
     segments = decodeURIComponent(pathname).replace(/\/$/, '').split('/').slice(1);

@@ -1,0 +1,15 @@
+{
+  "source": "dune-assets/cover/dreams-b.png",
+  "sourceSha256": "85f359b446199ae830cbefd43cefb977e6b1891e4e7ad6a510169a7f6292ca3b",
+  "confirmedBy": "Norbert",
+  "confirmedOn": "2026-10-04",
+  "preparation": "AI extended the artwork to 4:3 landscape without cropping the source composition. Follow-up edits corrected the large moon and the rainbow arcs. The original source remains untouched.",
+  "issue": "https://github.com/ndelangen/dunezone/issues/1832",
+  "approvedAssetSha256": "2e338d90d3955422622b3987ae9a7c1185c5f790386ef9802ad6547d767ea1d9",
+  "approvedDimensions": {
+    "width": 1448,
+    "height": 1086
+  },
+  "approval": "Norbert approved the revised rainbow arcs on 4 October 2026.",
+  "generationMethod": "Built-in image generation"
+}

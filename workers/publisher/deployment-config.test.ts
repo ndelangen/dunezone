@@ -100,6 +100,7 @@ describe('scheduled production deployment shape', () => {
       not_found_handling: 'single-page-application',
     });
     expect((config.assets as { run_worker_first?: string[] }).run_worker_first).toEqual([
+      '/',
       '/__asset-publisher',
       '/__asset-publisher/*',
       '/social',

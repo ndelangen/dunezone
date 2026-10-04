@@ -9,6 +9,7 @@ const env: Pick<Env, 'CF_VERSION_METADATA' | 'GIT_SHA'> = {
 
 describe('anonymous application dispatch', () => {
   test.each([
+    '/',
     '/factions',
     '/factions/testfaction/',
     '/assets',
