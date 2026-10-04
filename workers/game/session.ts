@@ -34,7 +34,7 @@ import type { RoomFrame } from '../../src/shared/play/updates';
 import { ActorDirectory } from './actors';
 import { HISTORY_REPAIR_VERSION } from './anonymizeHistory';
 import { expireBattle } from './battle';
-import { expireBidding } from './bidding';
+import { biddingDeadline, expireBidding } from './bidding';
 import { CaptureStore } from './captures';
 import { Conversations } from './conversations';
 import { DirectoryOutbox } from './directory';
@@ -1035,8 +1035,7 @@ export class GameSession {
     return snapshot.swapping?.deadline ?? 0;
   }
   get biddingDeadline() {
-    const bidding = this.room?.snapshot.bidding;
-    return bidding?.stage === 'open' ? (bidding.deadline ?? 0) : 0;
+    return this.room ? biddingDeadline(this.room.snapshot) : 0;
   }
   nextDeadline() {
     const deadlines = [
