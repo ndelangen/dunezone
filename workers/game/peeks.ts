@@ -17,6 +17,8 @@ import type { StoredSnapshot } from './state';
 /* Who is peeking, at which table: every transition here acts for one faction on one stored snapshot. */
 type Peeker = Readonly<{ snapshot: StoredSnapshot; factionId: string }>;
 type StoredItem = StoredPiece['items'][number];
+/* What a peek reads of a piece, stored or as the projection hands it on. */
+type PeekedPiece = Readonly<{ kind: StoredPiece['kind']; items: readonly Readonly<{ peekedBy?: string[] }>[] }>;
 
 function liesOnTable(piece: StoredPiece | undefined): piece is StoredPiece {
   return !!piece && !piece.inventory && piece.items.length > 0;
@@ -72,9 +74,19 @@ function commit(
   return nextSnapshot(snapshot, accepted({ ...table, pieces }, event.command, event.message));
 }
 
-/* The piece with its peeker named on what the peek shows: every card of a deck, or the top card or token. */
+/* Where what a peek shows begins, bottom first: every card of a deck, or the top card or token. */
+function shownFrom(piece: PeekedPiece) {
+  return peeksWholeDeck(piece) ? 0 : piece.items.length - 1;
+}
+
+/* Whether everything a peek shows names its peeker, as it does from the peek until a new phase forgets it. */
+function namesPeeker(piece: PeekedPiece, factionId: string) {
+  return piece.items.slice(shownFrom(piece)).every((item) => item.peekedBy?.includes(factionId));
+}
+
+/* The piece with its peeker named on what the peek shows. */
 function markPeeked(piece: StoredPiece, factionId: string): StoredPiece {
-  const shown = peeksWholeDeck(piece) ? 0 : piece.items.length - 1;
+  const shown = shownFrom(piece);
   return {
     ...piece,
     items: piece.items.map((item, index) => (index >= shown ? withPeeker(item, factionId) : item)),
@@ -178,6 +190,27 @@ export function peekCommand(snapshot: StoredSnapshot, factionId: string, action:
     case 'peek-pull':
       return pull(peeker, action);
   }
+}
+
+/* A peek whose piece no longer names its peeker since the last command: a shuffle forgot it, or a card joined the deck unseen. */
+function lostSince(previous: StoredSnapshot, next: StoredSnapshot, factionId: string) {
+  const before = openPeek(previous, factionId);
+  const after = openPeek(next, factionId);
+  if (!before || !after) {
+    return false;
+  }
+  return namesPeeker(before, factionId) && !namesPeeker(after, factionId);
+}
+
+/**
+ * Closes every peek a command took the public mark from, so nobody looks on at a deck nobody can see them holding: a shuffle closes the peek at that deck, and a card laid on a peeked deck closes it rather than showing that card.
+ */
+export function closeLostPeeks(previous: StoredSnapshot, next: StoredSnapshot): StoredSnapshot {
+  const lost = Object.keys(next.peeks).filter((factionId) => lostSince(previous, next, factionId));
+  if (lost.length === 0) {
+    return next;
+  }
+  return { ...next, peeks: Object.fromEntries(Object.entries(next.peeks).filter(([id]) => !lost.includes(id))) };
 }
 
 function withoutPeekers(piece: StoredPiece): StoredPiece {

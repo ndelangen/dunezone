@@ -1,8 +1,9 @@
 import { expect, test } from 'vitest';
 
 import { piece, place } from '../../src/shared/play/setupSupply';
+import { deckCommand } from './decks';
 import { hostedFixturePlan } from './fixture';
-import { forgetPeekers, peekCommand } from './peeks';
+import { closeLostPeeks, forgetPeekers, peekCommand } from './peeks';
 import { RoomProjection } from './state';
 import type { StoredSnapshot } from './state';
 
@@ -125,4 +126,17 @@ test('a peek does not follow a card through a hand back onto the table', () => {
   const returned = { ...peeked, pieceHandles: { ...peeked.pieceHandles, deck: 'new-handle' } };
   expect(projection.snapshot(returned, 'atreides').peek).toBeNull();
   expect(() => peekCommand(returned, 'atreides', { kind: 'peek-arrange', pieceId: 'deck', order: [0, 1] })).toThrow();
+});
+
+test('a shuffle closes the peek at the deck, while a peek a new phase forgot the mark of stays open', () => {
+  const projection = new RoomProjection('secret');
+  const peeked = peekCommand(table(3), 'atreides', { kind: 'peek', pieceId: 'deck' });
+  expect(closeLostPeeks(table(3), peeked).peeks).toEqual(peeked.peeks);
+
+  const shuffled = closeLostPeeks(peeked, deckCommand(peeked, 'harkonnen', { kind: 'deck-shuffle', pieceId: 'deck' }));
+  expect(projection.snapshot(shuffled, 'atreides').peek).toBeNull();
+
+  const forgotten = forgetPeekers(peeked);
+  const later = closeLostPeeks(forgotten, deckCommand(forgotten, 'harkonnen', { kind: 'deck-draw', pieceId: 'deck' }));
+  expect(projection.snapshot(later, 'atreides').peek?.piece.items).toHaveLength(2);
 });

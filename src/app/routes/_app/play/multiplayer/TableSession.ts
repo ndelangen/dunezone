@@ -188,6 +188,11 @@ function sameForPanels(previous: TableProjection, next: TableProjection) {
   );
 }
 
+/* Commands a held piece does not hold back: a phase change, a removal, a seat, and letting go of a peek, which the room allows mid-carry. */
+function passesCarry(action: PieceAction) {
+  return action.kind === 'phase' || action.kind === 'peek-close' || isRemovalAction(action) || isSeatAction(action);
+}
+
 /* A deck's cards as they stand, by id; the room gives every card a new id whenever it rearranges the deck. */
 function deckKey(piece: TablePiece) {
   return piece.items.map((item) => item.id).join(',');
@@ -1246,10 +1251,7 @@ export class TableSession {
       this.queuedBattleReady = action;
       return;
     }
-    if (
-      !(isSeatAction(action) ? this.current() : this.canAct()) ||
-      (this.carry && action.kind !== 'phase' && !isRemovalAction(action) && !isSeatAction(action))
-    ) {
+    if (!(isSeatAction(action) ? this.current() : this.canAct()) || (this.carry && !passesCarry(action))) {
       return;
     }
     if (action.kind === 'flip' && this.requireTable().flippingPieceIds.has(action.pieceId)) {

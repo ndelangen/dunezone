@@ -52,7 +52,7 @@ import {
 import { battleCommand } from './battle';
 import { concealCards, deckCommand } from './decks';
 import { dealFixtureDeck } from './fixture';
-import { forgetPeekers, peekCommand } from './peeks';
+import { closeLostPeeks, forgetPeekers, peekCommand } from './peeks';
 import { setupCommand, gatherTraitors } from './setup-progress';
 import { storedSnapshotSchema } from './state';
 import type { StoredSnapshot } from './state';
@@ -447,7 +447,7 @@ export class Room {
   }
 
   command(identity: Identity, action: RoomAction, expectedRevision: number, now = Date.now()): StoredSnapshot {
-    const next = this.applyCommand(identity, action, expectedRevision, now);
+    const next = closeLostPeeks(this.snapshot, this.applyCommand(identity, action, expectedRevision, now));
     /* A new phase forgets who peeked at what; a peek held open stays open. */
     return next.phase === this.snapshot.phase ? next : forgetPeekers(next);
   }
