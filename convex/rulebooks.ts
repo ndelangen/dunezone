@@ -270,8 +270,7 @@ function cloneBlock(source: RulebookBlock, id: string): RulebookBlock {
   return clone as RulebookBlock;
 }
 
-function clonePage(source: RulebookPage, id: string): RulebookPage {
-  const blockIds = freshIdentityMap(Object.keys(source.blocksById));
+function clonePage(source: RulebookPage, id: string, blockIds: ReadonlyMap<string, string>): RulebookPage {
   return {
     ...structuredClone(source),
     id,
@@ -292,13 +291,27 @@ function clonePage(source: RulebookPage, id: string): RulebookPage {
 
 function cloneContentsWithFreshIds(contents: RulebookContentsV1): RulebookContentsV1 {
   const pageIds = freshIdentityMap(contents.pageOrder);
+  const blockIdsByPage = new Map(
+    contents.pageOrder.map((pageId) => [pageId, freshIdentityMap(Object.keys(contents.pagesById[pageId].blocksById))])
+  );
   return parseContents({
     schemaVersion: 1,
     pageOrder: contents.pageOrder.map((pageId) => pageIds.get(pageId)!),
     pagesById: Object.fromEntries(
       contents.pageOrder.map((sourcePageId) => {
         const pageId = pageIds.get(sourcePageId)!;
-        return [pageId, clonePage(contents.pagesById[sourcePageId], pageId)];
+        const page = clonePage(contents.pagesById[sourcePageId], pageId, blockIdsByPage.get(sourcePageId)!);
+        for (const block of Object.values(page.blocksById)) {
+          if (block.kind === 'text' && block.references) {
+            block.references = block.references.map((reference) => ({
+              pageId: pageIds.get(reference.pageId) ?? reference.pageId,
+              ...(reference.blockId
+                ? { blockId: blockIdsByPage.get(reference.pageId)?.get(reference.blockId) ?? reference.blockId }
+                : {}),
+            }));
+          }
+        }
+        return [pageId, page];
       })
     ),
   });

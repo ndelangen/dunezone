@@ -5,6 +5,8 @@ import { describe, expect, test } from 'vitest';
 
 import { RULEBOOK_CATALOGUE_VERSION } from '../src/shared/rulebooks/contents';
 import type { RulebookContentsV1, RulebookContentsDraftV1 } from '../src/shared/rulebooks/contents';
+import { createRulebookStarterContents } from '../src/shared/rulebooks/fixtures';
+import { projectRulebookRenderDocument } from '../src/shared/rulebooks/projectRenderDocument';
 import { api } from './_generated/api';
 import { rulebookFixture } from './rulebooks.test.fixture';
 
@@ -141,6 +143,68 @@ describe('Rulebook creation', () => {
     expect(clone.edition.contents).toEqual(clone.draft.contents);
     const sourceIds = new Set(localIds(savedContents));
     expect(localIds(clone.draft.contents).every((id) => !sourceIds.has(id))).toBe(true);
+  });
+
+  test('cloned related rules keep their page and block destinations', async () => {
+    const { ids, owner } = await rulebookFixture();
+    const source = await owner.mutation(api.rulebooks.create, {
+      catalogue_version: RULEBOOK_CATALOGUE_VERSION,
+      ruleset_id: ids.rulesetId,
+      name: 'Linked Manual',
+      source: { kind: 'starter' },
+    });
+    const contents = createRulebookStarterContents();
+    contents.pagesById.RULE = {
+      ...contents.pagesById.RULE,
+      layoutId: 'single-column',
+      controlValues: {},
+      blockOrderByRegion: { content: ['MVVE', 'TEXT', 'ASST', 'L5ST'] },
+    };
+    const text = contents.pagesById.RULE.blocksById.MVVE;
+    if (text.kind !== 'text') {
+      throw new Error('Expected the movement text');
+    }
+    text.references = [
+      { pageId: 'RULE' },
+      { pageId: 'REFS', blockId: 'TEXT' },
+      { pageId: 'GONE', blockId: 'TEXT' },
+      { pageId: 'REFS', blockId: 'GONE' },
+    ];
+    await owner.mutation(api.rulebooks.save, {
+      rulebook_id: source.rulebook._id,
+      expected_revision: 1,
+      contents,
+    });
+    const cloned = await owner.mutation(api.rulebooks.create, {
+      catalogue_version: RULEBOOK_CATALOGUE_VERSION,
+      ruleset_id: ids.rulesetId,
+      name: 'Linked Manual Copy',
+      source: { kind: 'clone', rulebook_id: source.rulebook._id },
+    });
+    const clone = cloned.draft.contents as RulebookContentsV1;
+    const movementPage = clone.pagesById[clone.pageOrder[1]];
+    const referencePage = clone.pagesById[clone.pageOrder[2]];
+    const clonedText = Object.values(movementPage.blocksById).find(
+      (block) => block.kind === 'text' && block.name === 'Movement sequence'
+    );
+    expect(clonedText).toMatchObject({
+      references: [
+        { pageId: movementPage.id },
+        { pageId: referencePage.id, blockId: Object.keys(referencePage.blocksById)[0] },
+        { pageId: 'GONE', blockId: 'TEXT' },
+        { pageId: referencePage.id, blockId: 'GONE' },
+      ],
+    });
+    const rendered = projectRulebookRenderDocument(clone, {}, cloned.rulebook.settings);
+    expect(rendered.pagesById[movementPage.id].regions[0]!.blocks[0]).toMatchObject({
+      references: [
+        { label: 'Movement', anchor: 'movement', pageNumber: 2 },
+        { label: 'marker-note', anchor: 'marker-note', pageNumber: 3 },
+        { label: 'Reference unavailable' },
+        { label: 'Reference unavailable' },
+      ],
+    });
+    expect(cloned.edition.contents).toEqual(clone);
   });
 
   test('requires current catalogue capability for both starter and clone creation after authorization', async () => {
