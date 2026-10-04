@@ -9,13 +9,17 @@ import { useEffect, useMemo } from 'react';
 import { ExtrudeGeometry, Shape } from 'three';
 
 import { DarkSchemeIsland } from '../DarkSchemeIsland';
+import styles from './Bidder.module.css';
 import { OpenRound, RoundResult } from './BidderFace';
 import { faceOnCanvas } from './bidderFacePosition';
 import { useBidderRotation } from './bidderRotation';
 import type { TableProjection, TableSession } from './TableSession';
 import { useServerNow } from './useServerNow';
 
-type Props = { client: TableSession; table: TableProjection };
+type Props = { client: TableSession; table: TableProjection; faded?: boolean };
+
+/* How much of the bidder a player who faded it still sees. */
+const FADED_OPACITY = 0.1;
 
 /* The round base covers about a third of the planet's radius (Norbert, #1007). */
 const BIDDER_RADIUS = BOARD_RADIUS * 0.35;
@@ -52,7 +56,7 @@ function pointedFaction(bidding: BiddingState, eligible: readonly string[]) {
   return bidding.opener ?? eligible[0] ?? null;
 }
 
-function Bidder({ client, table }: Props) {
+function Bidder({ client, table, faded = false }: Props) {
   const roster = table.snapshot.roster;
   const bidding = table.snapshot.bidding ?? idleBidding();
   const eligible = useMemo(
@@ -73,17 +77,27 @@ function Bidder({ client, table }: Props) {
   return (
     <group position={[0, BIDDER_HOVER_Y, 0]}>
       <group ref={groupRef}>
-        <mesh geometry={geometry} castShadow receiveShadow>
-          <meshStandardMaterial color="#24150a" roughness={0.6} />
+        <mesh geometry={geometry} castShadow={!faded} receiveShadow>
+          {/* Three compiles transparency into the material, so fading swaps in a new one. */}
+          <meshStandardMaterial
+            key={faded ? 'faded' : 'solid'}
+            color="#24150a"
+            roughness={0.6}
+            transparent={faded}
+            opacity={faded ? FADED_OPACITY : 1}
+            depthWrite={!faded}
+          />
         </mesh>
       </group>
       <Html center zIndexRange={[9, 0]} calculatePosition={faceOnCanvas}>
         <DarkSchemeIsland>
-          {bidding.stage === 'open' ? (
-            <OpenRound client={client} table={table} bidding={bidding} remaining={remaining} />
-          ) : (
-            <RoundResult client={client} table={table} bidding={bidding} />
-          )}
+          <div className={faded ? styles.faded : undefined}>
+            {bidding.stage === 'open' ? (
+              <OpenRound client={client} table={table} bidding={bidding} remaining={remaining} />
+            ) : (
+              <RoundResult client={client} table={table} bidding={bidding} eligible={eligible} />
+            )}
+          </div>
         </DarkSchemeIsland>
       </Html>
     </group>

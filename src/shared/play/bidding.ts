@@ -33,7 +33,8 @@ export const biddingStateSchema = z.object({
 export type BiddingState = z.infer<typeof biddingStateSchema>;
 
 export const biddingActionSchema = z.discriminatedUnion('kind', [
-  z.strictObject({ kind: z.literal('bid-open') }),
+  z.strictObject({ kind: z.literal('bid-start'), factionId: id }),
+  z.strictObject({ kind: z.literal('bid-reset') }),
   z.strictObject({ kind: z.literal('bid-raise'), round: count }),
   z.strictObject({ kind: z.literal('bid-pass'), round: count }),
   z.strictObject({ kind: z.literal('bid-seconds'), seconds: bidSecondsSchema }),
@@ -87,21 +88,20 @@ function refuse(message: string): never {
   throw new BiddingRefusal(message);
 }
 
-function open(state: BiddingState, { order, eligible, now }: BiddingContext): BiddingState {
-  if (state.stage === 'open') {
-    return refuse('Bidding is already open.');
-  }
-  /* The first round opens with the first faction in storm order, and each later round with the next one along (#1007). */
-  const opener = state.opener === null ? (eligible[0] ?? null) : nextBidder(order, eligible, state.opener);
-  if (opener === null) {
-    return refuse('Every faction token is face down, so nobody is bidding.');
+/**
+ * Starts a round on the faction the players pick, any time in the phase: a round still open is dropped, so the same choice also corrects a bidder that went wrong (#1007).
+ * The round number still counts up, so a raise or pass sent for the dropped round is refused.
+ */
+function start(state: BiddingState, factionId: string, { eligible, now }: BiddingContext): BiddingState {
+  if (!eligible.includes(factionId)) {
+    return refuse('That faction token is face down, so it is not bidding.');
   }
   return {
     ...state,
     stage: 'open',
     round: state.round + 1,
-    opener,
-    turn: opener,
+    opener: factionId,
+    turn: factionId,
     bid: null,
     passed: [],
     deadline: now + state.seconds * 1000,
@@ -188,8 +188,10 @@ export function applyBidding(state: BiddingState, action: BiddingAction, context
   switch (action.kind) {
     case 'bid-seconds':
       return { ...state, seconds: action.seconds };
-    case 'bid-open':
-      return open(state, context);
+    case 'bid-start':
+      return start(state, action.factionId, context);
+    case 'bid-reset':
+      return { ...idleBidding(state.seconds), round: state.round };
     default:
       return turnAction(state, action, context);
   }

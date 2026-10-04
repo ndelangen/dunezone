@@ -1,4 +1,4 @@
-import { Button, Stack, Text, UnstyledButton } from '@mantine/core';
+import { Group, Stack, Text, UnstyledButton } from '@mantine/core';
 import type { BiddingState } from '@shared/play/bidding';
 
 import { Token as FactionToken } from '@game/assets/faction/token/Token';
@@ -24,8 +24,37 @@ function factionName(table: TableProjection, factionId: string | null) {
   return factionId ? (table.state.factionNames[factionId] ?? factionId) : '';
 }
 
-/** Between rounds: how the last one went, and the button any player presses to start the next. */
-export function RoundResult({ bidding, table, client }: FaceProps) {
+/** One button per bidding faction, in storm order: players choose who opens the next round (#1007). */
+function StartAt({ client, table, eligible }: Props & { eligible: readonly string[] }) {
+  return (
+    <Stack gap={2} align="center">
+      <Text size="xs" fw={700} className={styles.timer}>
+        Start new bidding starting at:
+      </Text>
+      <Group gap={4} wrap="nowrap" role="group" aria-label="Start new bidding starting at">
+        {eligible.map((factionId) => {
+          const artwork = table.snapshot.factionArtwork?.[factionId];
+          const name = factionName(table, factionId);
+          return (
+            <UnstyledButton
+              key={factionId}
+              className={styles.pick}
+              aria-label={`Start bidding at ${name}`}
+              title={name}
+              disabled={!table.canInteract}
+              onClick={() => client.command({ kind: 'bid-start', factionId })}
+            >
+              {artwork ? <FactionToken logo={artwork.logo} background={artwork.background} /> : name.slice(0, 2)}
+            </UnstyledButton>
+          );
+        })}
+      </Group>
+    </Stack>
+  );
+}
+
+/** Between rounds: how the last one went, and a button per bidding faction to start the next one there. */
+export function RoundResult({ bidding, table, client, eligible }: FaceProps & { eligible: readonly string[] }) {
   const bid = bidding.stage === 'won' ? bidding.bid : null;
   const outcome = bid ? `${factionName(table, bid.factionId)} wins with ${bid.amount}` : 'No bids';
   return (
@@ -40,13 +69,7 @@ export function RoundResult({ bidding, table, client }: FaceProps) {
           {outcome}
         </Text>
       )}
-      <Button
-        size="compact-xs"
-        disabled={!table.canInteract || !table.snapshot.bank}
-        onClick={() => client.command({ kind: 'bid-open' })}
-      >
-        Start bidding
-      </Button>
+      <StartAt client={client} table={table} eligible={eligible} />
     </Stack>
   );
 }
