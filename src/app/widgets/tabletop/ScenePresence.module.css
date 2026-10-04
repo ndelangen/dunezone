@@ -2,7 +2,10 @@
   cursor: none !important;
 }
 .avatar {
-  position: relative;
+  position: absolute;
+  top: 35px;
+  left: -4px;
+  box-sizing: border-box;
   display: block;
   width: 34px;
   height: 34px;

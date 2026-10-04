@@ -151,6 +151,7 @@ function RemoteHandLabel({
       data-table-hand={local ? 'local' : 'remote'}
       aria-hidden="true"
       style={{
+        position: 'relative',
         display: 'flex',
         alignItems: 'flex-end',
         gap: 3,
