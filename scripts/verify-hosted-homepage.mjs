@@ -29,7 +29,7 @@ async function loadedAvatarBelowHand(who, kind, expectedUrl, until) {
   assert.ok(Math.abs(avatar.x + avatar.width / 2 - glyph.x - glyph.width / 2) < 3);
 }
 
-async function localHandAtPointer(who, position, until) {
+async function assertLocalHandAtPointer(who, position, until) {
   const hand = who.page.locator('[data-table-hand="local"] > svg');
   await hand.waitFor();
   let bounds;
@@ -42,18 +42,15 @@ async function localHandAtPointer(who, position, until) {
     const scrollY = await who.page.evaluate(() => window.scrollY);
     throw new Error(`Local hand position: ${JSON.stringify({ pointer: position, bounds, scrollY })}`, { cause });
   }
-  assert.ok(bounds, 'The local hand needs visible bounds.');
-  return bounds;
 }
 
 async function scrollUnderPointer(who, position, until) {
   await who.page.mouse.move(position.x, position.y);
-  const before = await localHandAtPointer(who, position, until);
+  await assertLocalHandAtPointer(who, position, until);
   const scrollTop = await who.page.evaluate(() => window.scrollY);
   await who.page.mouse.wheel(0, 50);
   await until(() => who.page.evaluate((top) => window.scrollY >= top + 45, scrollTop), 'The board did not scroll.');
-  const after = await localHandAtPointer(who, position, until);
-  assert.ok(Math.hypot(after.x - before.x, after.y - before.y) < 3, 'The local hand drifted while scrolling.');
+  await assertLocalHandAtPointer(who, position, until);
   assert.equal(await who.page.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.tagName, position), 'CANVAS');
   await who.page.mouse.wheel(0, 1600);
   await until(
