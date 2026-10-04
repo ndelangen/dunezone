@@ -105,10 +105,12 @@ export const BidderFaded = meta.story({
   }),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await userEvent.click(await page.findByRole('button', { name: 'Fade bidder' }, { timeout: 30_000 }));
+    /* The bidder's face draws with the table, after the top bar, so the story waits for it before fading. */
+    const bidder = await page.findByRole('button', { name: /Raise the bid to 4/ }, { timeout: 30_000 });
+    await userEvent.click(page.getByRole('button', { name: 'Fade bidder' }));
     await expect(page.getByRole('button', { name: 'Show bidder' })).toHaveAttribute('aria-pressed', 'true');
     /* A faded bidder still takes the raise. */
-    await userEvent.click(page.getByRole('button', { name: /Raise the bid to 4/ }));
+    await userEvent.click(bidder);
     await waitFor(() => expect(lastCommand()?.action).toEqual({ kind: 'bid-raise', round: 1 }));
   },
 });

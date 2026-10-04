@@ -781,12 +781,12 @@ function ConnectedTable({
             connectionStatus={<ConnectionStatus table={table} />}
             toolbarControl={
               inPlay || (stage === 'setup' && table.snapshot.setup) ? (
-                <Group gap="xs" justify="flex-end" wrap="wrap">
+                <>
                   {inPlay && (
                     <BidderToolbar client={client} table={table} faded={bidderFaded} onFadedChange={setBidderFaded} />
                   )}
                   <PhaseNavigation client={client} table={table} />
-                </Group>
+                </>
               ) : undefined
             }
             /* The gathered Traitor pile lies under the Tleilaxu tanks, below the Map view's frame on a wide screen (#1635). */
