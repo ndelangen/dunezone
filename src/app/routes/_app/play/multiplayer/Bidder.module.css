@@ -33,6 +33,11 @@
   cursor: pointer;
 }
 
+.picks {
+  /* Six 36px buttons and their 4px gaps: a larger table wraps onto more lines (`bidderFacePosition.ts`). */
+  max-width: 236px;
+}
+
 .pick {
   position: relative;
   width: 36px;

@@ -12,7 +12,7 @@ import { ExtrudeGeometry, Shape } from 'three';
 import { DarkSchemeIsland } from '../DarkSchemeIsland';
 import styles from './Bidder.module.css';
 import { OpenRound, RoundResult } from './BidderFace';
-import { faceHalfWidth, faceOnCanvas } from './bidderFacePosition';
+import { faceHalfHeight, faceHalfWidth, faceOnCanvas } from './bidderFacePosition';
 import { useBidderRotation } from './bidderRotation';
 import type { TableProjection, TableSession } from './TableSession';
 import { useServerNow } from './useServerNow';
@@ -72,8 +72,10 @@ function Bidder({ client, table, faded = false }: Props) {
   const geometry = useMemo(createTeardropGeometry, []);
   useEffect(() => () => geometry.dispose(), [geometry]);
   /* Between rounds the face holds a button per faction, so it needs more room from the canvas edge than a round's disc. */
-  const halfWidth = faceHalfWidth(bidding.stage === 'open' ? null : order.length);
-  const placeFace = useMemo(() => faceOnCanvas(halfWidth), [halfWidth]);
+  const factions = bidding.stage === 'open' ? null : order.length;
+  const halfWidth = faceHalfWidth(factions);
+  const halfHeight = faceHalfHeight(factions);
+  const placeFace = useMemo(() => faceOnCanvas(halfWidth, halfHeight), [halfWidth, halfHeight]);
   const now = useServerNow();
   const remaining =
     bidding.stage === 'open' && bidding.deadline !== null

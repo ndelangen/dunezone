@@ -2,7 +2,7 @@ import { Object3D } from 'three';
 import { describe, expect, test } from 'vitest';
 
 import { cameraPoseFor, tableCamera } from '../playView';
-import { faceHalfWidth, faceOnCanvas } from './bidderFacePosition';
+import { faceHalfHeight, faceHalfWidth, faceOnCanvas, PICKS_PER_LINE } from './bidderFacePosition';
 
 const centre = new Object3D();
 centre.updateMatrixWorld();
@@ -25,13 +25,19 @@ describe("the bidder's face", () => {
   });
 
   test('keeps the whole start-at row on the canvas, however many factions it holds', () => {
-    const size = { width: 900, height: 1200 };
-    for (const factions of [2, 6, 10]) {
-      const halfWidth = faceHalfWidth(factions);
-      const row = factions * 36 + (factions - 1) * 4;
-      const [x] = faceOnCanvas(halfWidth)(centre, tableCamera(cameraPoseFor('left', 0.75), 0.75), size);
+    const size = { width: 600, height: 700 };
+    for (const factions of [2, 6, 10, 18]) {
+      const perLine = Math.min(factions, PICKS_PER_LINE);
+      const row = perLine * 36 + (perLine - 1) * 4;
+      const lines = Math.ceil(factions / PICKS_PER_LINE);
+      const [x, y] = faceOnCanvas(faceHalfWidth(factions), faceHalfHeight(factions))(
+        centre,
+        tableCamera(cameraPoseFor('left', 600 / 700), 600 / 700),
+        size
+      );
       expect(x + row / 2).toBeLessThanOrEqual(size.width);
-      expect(x + 115).toBeLessThanOrEqual(size.width);
+      expect(x - row / 2).toBeGreaterThanOrEqual(0);
+      expect(y + 96 + ((lines - 1) * 40) / 2).toBeLessThanOrEqual(size.height);
     }
   });
 });

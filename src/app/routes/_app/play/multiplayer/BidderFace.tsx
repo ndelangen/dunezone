@@ -39,7 +39,7 @@ function StartAt({
       <Text size="xs" fw={700} className={styles.timer}>
         Start new bidding starting at:
       </Text>
-      <Group gap={4} wrap="nowrap" role="group" aria-label="Start new bidding starting at">
+      <Group gap={4} justify="center" className={styles.picks} role="group" aria-label="Start new bidding starting at">
         {order.map((factionId) => {
           const artwork = table.snapshot.factionArtwork?.[factionId];
           const name = factionName(table, factionId);
