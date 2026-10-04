@@ -27,7 +27,6 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { Menu, Switch, Stack, Text, TextInput, UnstyledButton } from '@mantine/core';
-import { TABLE_PHASES } from '@shared/play/phases';
 import { rulebookHeadingIconSchema, rulebookBlockKindLabels, rulebookBlockKinds } from '@shared/rulebooks/contents';
 import type {
   RulebookBlockDraft,
@@ -35,7 +34,6 @@ import type {
   RulebookBlockRegionKey,
   RulebookPageDraft,
 } from '@shared/rulebooks/contents';
-import { stockAssetOptions } from '@ui/content/stockAssetOptions';
 import { AssetSelect } from '@ui/control/AssetSelect';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { ControlBlock } from '@ui/control/ControlBlock';
@@ -54,18 +52,10 @@ import {
   useCoalescedDragPosition,
 } from './rulebookDragCollision';
 import { rulebookBlockIcon, rulebookRegionIcon } from './rulebookEditorIcons';
+import { rulebookIconOptions } from './rulebookIconOptions';
 import styles from './rulebookPageDetailsEdit.module.css';
 
-const headingIconOptions = stockAssetOptions(rulebookHeadingIconSchema.options.flatMap((schema) => schema.options)).map(
-  (option) => {
-    const phase = TABLE_PHASES.find((candidate) => candidate.symbol === option.value);
-    return phase
-      ? { ...option, label: phase.label, collection: 'Phases' }
-      : option.value === '/vector/icon/alliance.svg'
-        ? { ...option, label: 'Nexus', collection: 'Phases' }
-        : option;
-  }
-);
+const headingIconOptions = rulebookIconOptions(rulebookHeadingIconSchema.options.flatMap((schema) => schema.options));
 
 export type RulebookPageDetailsValue = Readonly<
   Pick<RulebookPageDraft, 'title' | 'anchor' | 'showHeading' | 'headingIcon'>

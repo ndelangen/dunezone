@@ -2,11 +2,9 @@ import { closestCenter, DndContext, KeyboardSensor, PointerSensor, useSensor, us
 import type { DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { MultiSelect, Select, Stack, TextInput } from '@mantine/core';
-import { TABLE_PHASES } from '@shared/play/phases';
 import { createRulebookLocalId, rulebookListIconSchema } from '@shared/rulebooks/contents';
 import type { RulebookBlockDraft, RulebookBlockKind } from '@shared/rulebooks/contents';
 import { rulebookReferenceTargets } from '@shared/rulebooks/projectRenderDocument';
-import { stockAssetOptions } from '@ui/content/stockAssetOptions';
 import { AssetSelect } from '@ui/control/AssetSelect';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
@@ -18,6 +16,7 @@ import type { ComponentType } from 'react';
 import { AssetExplainerEdit } from './rulebookAssetExplainerEdit';
 import styles from './rulebookBlockEditors.module.css';
 import { CardEntryEdit, CardGroupEdit } from './rulebookCardBlockEditors';
+import { rulebookIconOptions } from './rulebookIconOptions';
 import { CreditsEdit, movedOrder, ReferenceTableEdit } from './rulebookReferenceBlockEditors';
 import {
   ReferencedIllustrationEdit,
@@ -237,14 +236,7 @@ function QuestionAnswerEdit({ value, onChange }: RulebookBlockEditorProps<'quest
   );
 }
 
-const listIconOptions = stockAssetOptions(rulebookListIconSchema.options.flatMap((schema) => schema.options)).map(
-  (option) => {
-    const phase = TABLE_PHASES.find((entry) => entry.symbol === option.value);
-    return phase
-      ? { ...option, label: phase.label, collection: 'Phases', keywords: `${option.keywords} ${phase.label}` }
-      : option;
-  }
-);
+const listIconOptions = rulebookIconOptions(rulebookListIconSchema.options.flatMap((schema) => schema.options));
 
 function ListBlockEdit({ value, onChange }: RulebookBlockEditorProps<'list'>) {
   const sensors = useSensors(

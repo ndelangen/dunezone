@@ -6,8 +6,8 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { Box, Button, Group, Loader, NumberInput, Select, Stack, Switch, Text, TextInput } from '@mantine/core';
-import type { RulebookContentsDraftV1 } from '@shared/rulebooks/contents';
-import { createRulebookLocalId } from '@shared/rulebooks/contents';
+import type { RulebookContentsDraftV1, RulebookIllustrationSize } from '@shared/rulebooks/contents';
+import { createRulebookLocalId, rulebookIllustrationSizeSchema } from '@shared/rulebooks/contents';
 import { projectRulebookSource } from '@shared/rulebooks/projectRenderDocument';
 import type { RulebookResolvedAssetsById, RulebookResolvedFactionsById } from '@shared/rulebooks/projectRenderDocument';
 import type { RulebookSourceReference } from '@shared/rulebooks/sources';
@@ -92,8 +92,8 @@ export function IllustrationSizeControl({
   value,
   onChange,
 }: {
-  value?: 'small' | 'medium' | 'large';
-  onChange: (value: 'small' | 'medium' | 'large' | undefined) => void;
+  value?: RulebookIllustrationSize;
+  onChange: (value: RulebookIllustrationSize | undefined) => void;
 }) {
   return (
     <ControlBlock
@@ -110,11 +110,7 @@ export function IllustrationSizeControl({
             { value: 'medium', label: 'Medium' },
             { value: 'large', label: 'Large' },
           ]}
-          onChange={(next) => {
-            if (next === null || next === 'small' || next === 'medium' || next === 'large') {
-              onChange(next ?? undefined);
-            }
-          }}
+          onChange={(next) => onChange(rulebookIllustrationSizeSchema.optional().parse(next ?? undefined))}
         />
       }
     />

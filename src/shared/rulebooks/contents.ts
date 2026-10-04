@@ -12,6 +12,7 @@ import { rulebookCardSourceReferenceSchema, rulebookSourceReferenceSchema } from
 export const rulebookListIconSchema = z.union([ICON, GENERIC]);
 export const rulebookHeadingIconSchema = z.union([ICON, GENERIC, LOGO]);
 export const rulebookIllustrationSizeSchema = z.enum(['small', 'medium', 'large']);
+export type RulebookIllustrationSize = z.infer<typeof rulebookIllustrationSizeSchema>;
 export const rulebookTextReferencesSchema = z.array(
   z.strictObject({
     pageId: z.string().min(1),

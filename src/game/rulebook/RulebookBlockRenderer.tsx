@@ -1,3 +1,4 @@
+import type { RulebookIllustrationSize } from '@shared/rulebooks/contents';
 import type { RulebookRenderBlockV1, RulebookRenderSourceV1 } from '@shared/rulebooks/renderDocument';
 import { useId } from 'react';
 
@@ -173,7 +174,7 @@ function CardGuide({
   quantity?: number;
   grouped?: boolean;
   name?: string;
-  size?: string;
+  size?: RulebookIllustrationSize;
 }>) {
   const Heading = grouped ? 'h4' : 'h3';
   return (
