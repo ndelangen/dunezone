@@ -1,5 +1,6 @@
 import { expect, test } from 'vitest';
 
+import { PEEK_DECK_LIMIT, peekActionSchema } from '../../src/shared/play/peeking';
 import { piece, place } from '../../src/shared/play/setupSupply';
 import { deckCommand } from './decks';
 import { hostedFixturePlan } from './fixture';
@@ -137,4 +138,18 @@ test('a shuffle closes the peek at the deck: its faces go with the public mark',
   /* Even before the room tidies the stored peek away, the projection shows no faces without the mark. */
   expect(projection.snapshot(shuffled, 'atreides').peek).toBeNull();
   expect(closeLostPeeks(shuffled).peeks).toEqual({});
+});
+
+test('a deck over the limit can be looked through, but not rearranged or pulled from', () => {
+  const peeked = peekCommand(table(PEEK_DECK_LIMIT + 1), 'atreides', { kind: 'peek', pieceId: 'deck' });
+  expect(new RoomProjection('secret').snapshot(peeked, 'atreides').peek?.piece.items).toHaveLength(PEEK_DECK_LIMIT + 1);
+  expect(() => peekCommand(peeked, 'atreides', { kind: 'peek-pull', pieceId: 'deck', index: 0 })).toThrow(
+    'can only be looked through'
+  );
+  expect(peekActionSchema.safeParse({ kind: 'peek-pull', pieceId: 'deck', index: PEEK_DECK_LIMIT - 1 }).success).toBe(
+    true
+  );
+  expect(peekActionSchema.safeParse({ kind: 'peek-pull', pieceId: 'deck', index: PEEK_DECK_LIMIT }).success).toBe(
+    false
+  );
 });

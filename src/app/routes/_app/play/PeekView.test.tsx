@@ -3,6 +3,7 @@
 import { MantineProvider } from '@mantine/core';
 import { initialSnapshot } from '@shared/play/commands';
 import type { TablePiece } from '@shared/play/model';
+import { PEEK_DECK_LIMIT } from '@shared/play/peeking';
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { appContentTheme } from '@ui/theme';
 import { afterEach, expect, test, vi } from 'vitest';
@@ -73,4 +74,15 @@ test('a locked deck can be looked through, but offers no move and no pull', () =
   for (const pull of screen.getAllByRole<HTMLButtonElement>('button', { name: 'Pull out' })) {
     expect(pull.disabled).toBe(true);
   }
+});
+
+test('a deck over the limit can only be looked through', () => {
+  const items = Array.from({ length: PEEK_DECK_LIMIT + 1 }, (_, index) => ({ ...deck.items[0]!, id: `card-${index}` }));
+  const { controls } = liveTable({ ...deck, items });
+  expect(screen.getByText(/can only be looked through/)).toBeTruthy();
+  fireEvent.keyDown(handles()[0]!, { key: 'ArrowRight' });
+  expect(controls.arrange).not.toHaveBeenCalled();
+  expect(screen.getAllByRole<HTMLButtonElement>('button', { name: 'Pull out' }).every((pull) => pull.disabled)).toBe(
+    true
+  );
 });

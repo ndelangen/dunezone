@@ -2,7 +2,7 @@ import { accepted, nextSnapshot } from '../../src/shared/play/commands';
 import { rosterFactionEventName } from '../../src/shared/play/factionLabels';
 import type { StoredPiece } from '../../src/shared/play/model';
 import { nearestZone } from '../../src/shared/play/model';
-import { hasHiddenFace, peeksWholeDeck } from '../../src/shared/play/peeking';
+import { hasHiddenFace, PEEK_DECK_LIMIT, peeksWholeDeck, rearrangeable } from '../../src/shared/play/peeking';
 import type { PeekAction } from '../../src/shared/play/peeking';
 import { rosterFactionNames, tableForViewer } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
@@ -47,6 +47,9 @@ function requireOpenDeck(peeker: Peeker, pieceId: string): StoredPiece {
   /* A locked deck can be looked through, but not rearranged or drawn from, as a draw or a shuffle cannot. */
   if (deck.locked) {
     throw new GameRejection('Unlock the deck before changing it.');
+  }
+  if (!rearrangeable(deck)) {
+    throw new GameRejection(`A deck of more than ${PEEK_DECK_LIMIT} cards can only be looked through.`);
   }
   return deck;
 }

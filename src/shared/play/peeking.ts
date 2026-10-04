@@ -10,7 +10,22 @@ import { tableIdSchema as id, tablePieceSchema } from './schema';
  */
 
 /* A deck past this many cards is still peeked whole; the order an arrangement names is bounded so a frame stays small. */
-const MAX_DECK_CARDS = 200;
+/**
+ * The most cards a deck held open can be rearranged or pulled from;
+ * a bigger deck can only be looked through.
+ * It keeps an arrangement well inside the Worker's message size, and the controls offer nothing above it, so no player sends a message the room would refuse at the door.
+ */
+export const PEEK_DECK_LIMIT = 200;
+const deckIndex = z
+  .number()
+  .int()
+  .min(0)
+  .max(PEEK_DECK_LIMIT - 1);
+
+/** Whether a deck held open is small enough to rearrange and pull from. */
+export function rearrangeable(piece: { items: readonly unknown[] }): boolean {
+  return piece.items.length <= PEEK_DECK_LIMIT;
+}
 
 export const peekActionSchema = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('peek'), pieceId: id }),
@@ -19,10 +34,10 @@ export const peekActionSchema = z.discriminatedUnion('kind', [
   z.strictObject({
     kind: z.literal('peek-arrange'),
     pieceId: id,
-    order: z.array(z.number().int().min(0).max(MAX_DECK_CARDS)).min(2).max(MAX_DECK_CARDS),
+    order: z.array(deckIndex).min(2).max(PEEK_DECK_LIMIT),
   }),
   /* The card at this index of the deck's current order, bottom card first, comes out face down beside the deck. */
-  z.strictObject({ kind: z.literal('peek-pull'), pieceId: id, index: z.number().int().min(0).max(MAX_DECK_CARDS) }),
+  z.strictObject({ kind: z.literal('peek-pull'), pieceId: id, index: deckIndex }),
 ]);
 export type PeekAction = z.infer<typeof peekActionSchema>;
 

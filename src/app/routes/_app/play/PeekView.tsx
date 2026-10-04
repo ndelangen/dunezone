@@ -1,6 +1,6 @@
 import { Button, CloseButton } from '@mantine/core';
 import type { TablePiece } from '@shared/play/model';
-import { peeksWholeDeck } from '@shared/play/peeking';
+import { PEEK_DECK_LIMIT, peeksWholeDeck, rearrangeable } from '@shared/play/peeking';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent, RefObject } from 'react';
 
@@ -130,13 +130,18 @@ function movedOrder(order: readonly number[], move: Move): number[] | null {
   return shown;
 }
 
+/* Whether a deck held open can be rearranged and pulled from: unlocked, and no bigger than the room takes. */
+function changeable(piece: TablePiece) {
+  return !piece.locked && rearrangeable(piece);
+}
+
 /*
  * The deck top first, and moving one of its cards; the table shows the order asked for until the room answers.
  * A locked deck, or a viewer who cannot change the table, gets no move.
  */
 function useDeckOrder(piece: TablePiece, peekControls: PeekControls | undefined) {
   const order = topFirst(piece.items.length);
-  const arrange = piece.locked ? undefined : peekControls?.arrange;
+  const arrange = changeable(piece) ? peekControls?.arrange : undefined;
   const move = (asked: Move) => {
     const shown = movedOrder(order, asked);
     if (shown && arrange) {
@@ -352,7 +357,7 @@ function DeckRow({ piece }: Readonly<{ piece: TablePiece }>) {
           placement={placementOf(shownIndex, carrying.carry, carrying.target)}
           carrying={carrying}
           move={keyedMove}
-          pull={piece.locked ? undefined : peekControls?.pull}
+          pull={changeable(piece) ? peekControls?.pull : undefined}
         />
       ))}
     </ol>
@@ -412,9 +417,13 @@ function usePeekClosing(piece: TablePiece | undefined, closePeek: (() => void) |
 }
 
 function deckHint(piece: TablePiece) {
-  return piece.locked
-    ? 'Only you see these cards. Unlock the deck to change it.'
-    : 'Only you see these cards. Drag a card along the row to move it.';
+  if (piece.locked) {
+    return 'Only you see these cards. Unlock the deck to change it.';
+  }
+  if (!rearrangeable(piece)) {
+    return `Only you see these cards. A deck of more than ${PEEK_DECK_LIMIT} cards can only be looked through.`;
+  }
+  return 'Only you see these cards. Drag a card along the row to move it.';
 }
 
 function PeekHeader({ piece, deck }: Readonly<{ piece: TablePiece; deck: boolean }>) {

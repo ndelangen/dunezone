@@ -1,5 +1,6 @@
 import { emptyBattlePlan, fixtureBattleFaces } from '@shared/play/battle';
 import { initialSnapshot, nextSnapshot } from '@shared/play/commands';
+import { PEEK_DECK_LIMIT } from '@shared/play/peeking';
 import { PHASE_CHANGE_COOLDOWN_MS } from '@shared/play/phases';
 import { tableForViewer } from '@shared/play/protocol';
 import type { ActivityChange, GameSnapshot, ServerMessage, Viewer } from '@shared/play/protocol';
@@ -1680,6 +1681,20 @@ describe('peeking', () => {
     expect(shownIds(client)).toEqual(ids);
     table(client).peekControls!.pull('treachery-deck', 0);
     expect(command().action).toEqual({ kind: 'peek-pull', pieceId: 'treachery-deck', index: 0 });
+  });
+
+  test('a deck over the limit sends no arrangement or pull, which the room would refuse at the door', async () => {
+    const client = await connected();
+    const snapshot = peeked();
+    const big = Array.from({ length: PEEK_DECK_LIMIT + 1 }, (_, index) => ({
+      ...snapshot.peek.piece.items[0]!,
+      id: `card-${index}`,
+    }));
+    socket().deliver(view({ snapshot: { ...snapshot, peek: { piece: { ...snapshot.peek.piece, items: big } } } }));
+    const sent = socket().sent.length;
+    table(client).peekControls!.arrange('treachery-deck', big.map((_, index) => index).reverse());
+    table(client).peekControls!.pull('treachery-deck', 0);
+    expect(socket().sent).toHaveLength(sent);
   });
 
   test('the room sending the deck again replaces the order asked for', async () => {

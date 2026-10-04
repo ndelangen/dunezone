@@ -41,6 +41,11 @@ function digitOf(event: KeyboardEvent) {
   return /^\d$/.test(event.key) ? Number(event.key) : null;
 }
 
+/* The key on the keyboard, or what it types when the browser does not say which key it is. */
+function physicalKey(event: KeyboardEvent) {
+  return event.code && event.code !== 'Unidentified' ? event.code : event.key.toLowerCase();
+}
+
 function hasModifier(event: KeyboardEvent) {
   return event.metaKey || event.ctrlKey || event.altKey;
 }
@@ -77,7 +82,8 @@ export class TableKeyboard {
   private drawDigit: number | null = null;
   private drawCode = '';
   private panAvailable = false;
-  private readonly panHeld = new Set<string>();
+  /* The held pan keys, by the physical key that went down, with the direction it typed then. */
+  private readonly panHeld = new Map<string, string>();
   private readonly panListeners = new Set<() => void>();
 
   bind(binding: Binding) {
@@ -106,7 +112,7 @@ export class TableKeyboard {
   panDirection(): [number, number] {
     let x = 0;
     let z = 0;
-    for (const key of this.panHeld) {
+    for (const key of new Set(this.panHeld.values())) {
       x += PAN_KEYS[key][0];
       z += PAN_KEYS[key][1];
     }
@@ -176,8 +182,9 @@ export class TableKeyboard {
       return false;
     }
     event.preventDefault();
-    if (!this.panHeld.has(panKey)) {
-      this.panHeld.add(panKey);
+    const held = physicalKey(event);
+    if (!this.panHeld.has(held)) {
+      this.panHeld.set(held, panKey);
       this.panListeners.forEach((listener) => listener());
     }
     return true;
@@ -185,8 +192,8 @@ export class TableKeyboard {
 
   /* The physical key that started the draw ends it, whatever it types by then, as AZERTY's Shift+& does coming up as "&" once Shift is let go; without a code, the typed digit still does. */
   private keyUp = (event: KeyboardEvent) => {
-    /* A key let go after Shift or a layout change may type another case; both forms end the pan. */
-    if (this.panHeld.delete(event.key.toLowerCase())) {
+    /* The physical key ends its pan, whatever it types by then: macOS's Option turns a held W into "∑" before it comes up. */
+    if (this.panHeld.delete(physicalKey(event))) {
       this.panListeners.forEach((listener) => listener());
     }
     const sameKey = this.drawCode !== '' && event.code === this.drawCode;

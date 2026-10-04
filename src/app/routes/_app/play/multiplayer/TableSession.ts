@@ -6,6 +6,7 @@ import type { LogTab } from '@shared/play/log';
 import { affordancesFor, gestureBlockReason } from '@shared/play/model';
 import type { Affordance, DraftMove, TablePiece, TableState, Vector3Tuple } from '@shared/play/model';
 import { isSeatAction } from '@shared/play/participation';
+import { rearrangeable } from '@shared/play/peeking';
 import type { Peek } from '@shared/play/peeking';
 import { carryPieceId, tableForViewer } from '@shared/play/protocol';
 import type {
@@ -613,7 +614,8 @@ export class TableSession {
   /* One change to a peeked deck at a time: the next waits for the room's frame, so its places count from the deck as the room holds it. */
   private deckSettled(pieceId: string) {
     const peek = this.snapshot.peek ?? null;
-    return peek?.piece.id === pieceId && !this.arrangementShown(peek) ? peek : null;
+    /* A deck over the limit is only looked through: an arrangement of it would be refused before the room reads it. */
+    return peek?.piece.id === pieceId && rearrangeable(peek.piece) && !this.arrangementShown(peek) ? peek : null;
   }
   private arrange = (pieceId: string, order: number[]) => {
     const peek = this.deckSettled(pieceId);
