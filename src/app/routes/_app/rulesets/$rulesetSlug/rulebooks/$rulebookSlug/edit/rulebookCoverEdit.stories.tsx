@@ -1,40 +1,20 @@
-import { Box } from '@mantine/core';
 import preview from '@sb/preview';
 import { waitForFrame } from '@sb/storyWaits';
-import { useState } from 'react';
-import type { ComponentType } from 'react';
-import { expect, fn, userEvent, within } from 'storybook/test';
+import { expect, userEvent, within } from 'storybook/test';
 
-import { CoverEdit, CoverFooterEdit } from './rulebookControlRegionEditors';
-
-function createControlRegionEditorStory<Value>(
-  Editor: ComponentType<{ value: Value; onChange: (nextValue: Value) => void }>,
-  reportChange: (nextValue: Value) => void
-) {
-  return function ControlRegionEditorStory({ initialValue }: { initialValue: Value }) {
-    const [value, setValue] = useState(initialValue);
-    return (
-      <Box w="min(35rem, calc(100vw - 2rem))">
-        <Editor
-          value={value}
-          onChange={(nextValue) => {
-            reportChange(nextValue);
-            setValue(nextValue);
-          }}
-        />
-      </Box>
-    );
-  };
-}
+import {
+  coverChange,
+  CoverStory,
+  coverFooterChange,
+  CoverFooterStory,
+} from './rulebookControlRegionEditors.shared.stories.fixture';
 
 const meta = preview.meta({
-  title: 'Rulebooks/Control-region edit counterparts',
+  title: 'Page/Cover/Editing',
   globals: { colorScheme: 'dark' },
   parameters: { layout: 'centered' },
 });
 
-const coverChange = fn();
-const CoverStory = createControlRegionEditorStory(CoverEdit, coverChange);
 export const Cover = meta.story({
   render: () => (
     <CoverStory
@@ -109,9 +89,6 @@ export const CoverPresets = meta.story({
     expect(coverChange.mock.lastCall?.[0].backgroundImageUrl).toBe('');
   },
 });
-
-const coverFooterChange = fn();
-const CoverFooterStory = createControlRegionEditorStory(CoverFooterEdit, coverFooterChange);
 
 export const CoverFooter = meta.story({
   render: () => <CoverFooterStory initialValue={{ enabled: false, title: '', label: '' }} />,

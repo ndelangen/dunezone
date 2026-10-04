@@ -178,7 +178,7 @@ async function verifyCoverStories(page: Page) {
   });
   await page.getByRole('textbox', { name: 'Background image URL' }).waitFor({ timeout: 45_000 });
   await page.getByRole('button', { name: 'Save', exact: true }).and(page.locator(':enabled')).waitFor();
-  await page.goto(`${origin}/iframe.html?id=rulebook-covers--background-image&viewMode=story`, {
+  await page.goto(`${origin}/iframe.html?id=rulebook-page-cover-rendered--background-image&viewMode=story`, {
     waitUntil: 'networkidle',
   });
   const background = page.locator('.rulebookCoverBackground');
@@ -204,7 +204,7 @@ async function verifyCoverStories(page: Page) {
   for (const image of await page.locator('img[src*="/image/rulebook-cover/"]').all()) {
     await image.evaluate((element: HTMLImageElement) => element.decode());
   }
-  await page.goto(`${origin}/iframe.html?id=rulebook-covers--footer&viewMode=story`, {
+  await page.goto(`${origin}/iframe.html?id=rulebook-page-cover-rendered--footer&viewMode=story`, {
     waitUntil: 'networkidle',
   });
   await page.locator('.rulebookCoverFooter').waitFor();
@@ -223,7 +223,7 @@ function isPublishedFactionImage(url: URL) {
 }
 
 async function verifyPublishedFactionImages(page: Page) {
-  await page.goto(`${origin}/iframe.html?id=rulebook-blocks-faction-introduction--wide&viewMode=story`, {
+  await page.goto(`${origin}/iframe.html?id=rulebook-blocks-faction-introduction-rendered--wide&viewMode=story`, {
     waitUntil: 'networkidle',
   });
   const images = page.locator('.rulebookFactionIntroduction img');
@@ -261,7 +261,7 @@ async function verifyBrowser(browser: Browser, workerPath: string) {
   await page.getByRole('heading', { name: 'Create ruleset' }).waitFor({ timeout: 45_000 });
   await page.waitForTimeout(1000);
 
-  await page.goto(`${origin}/iframe.html?id=rulebook-card-guides--gallery-group&viewMode=story`, {
+  await page.goto(`${origin}/iframe.html?id=rulebook-blocks-card-group-rendered--gallery-group&viewMode=story`, {
     waitUntil: 'networkidle',
   });
   await page.getByRole('heading', { name: 'The Supplies! cache' }).waitFor();

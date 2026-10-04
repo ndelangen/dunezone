@@ -4,6 +4,7 @@ import { expect, waitFor } from 'storybook/test';
 
 import { RulebookBlockRenderer } from './RulebookBlockRenderer';
 import { factionIntroductionFixture } from './RulebookFactionIntroduction.stories.fixture';
+import { LiveReferenceStory, expectContainedReferences } from './RulebookLiveReferences.shared.stories.fixture';
 
 function FactionIntroductionStory({
   width,
@@ -28,7 +29,7 @@ function FactionIntroductionStory({
 }
 
 const meta = preview.meta({
-  title: 'Blocks/Faction introduction',
+  title: 'Blocks/Faction introduction/Rendered',
   component: FactionIntroductionStory,
   args: { width: 1000, narrow: false, block: factionIntroductionFixture() },
   parameters: { layout: 'centered' },
@@ -121,4 +122,13 @@ export const ShortIntroduction = meta.story({
     expect(body.height / body.width).toBeGreaterThan(0.2);
     expect(body.height / body.width).toBeLessThan(0.23);
   },
+});
+
+export const UnavailableFactionComponents = meta.story({
+  render: () => <LiveReferenceStory index={2} />,
+  play: expectContainedReferences,
+});
+export const SquareFactionIntroduction = meta.story({
+  render: () => <LiveReferenceStory index={2} size="square" />,
+  play: expectContainedReferences,
 });

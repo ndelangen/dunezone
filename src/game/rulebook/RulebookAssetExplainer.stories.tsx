@@ -29,7 +29,7 @@ function ExplainerStory({
 }
 
 const meta = preview.meta({
-  title: 'Asset explainer',
+  title: 'Blocks/Annotated component/Rendered',
   component: ExplainerStory,
   args: { specimen: 'board', size: 'a4', design: 'illustrated' },
   parameters: { layout: 'centered' },

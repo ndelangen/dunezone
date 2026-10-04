@@ -49,7 +49,7 @@ function CoverExample({
 }
 
 const meta = preview.meta({
-  title: 'Covers',
+  title: 'Page/Cover/Rendered',
   component: CoverExample,
   args: { size: 'a4' as const, design: 'illustrated' as const },
   argTypes: {

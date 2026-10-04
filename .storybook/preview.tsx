@@ -67,6 +67,58 @@ export default definePreview({
     );
   },
   parameters: {
+    options: {
+      storySort: {
+        order: [
+          'Rulebook',
+          [
+            'Document',
+            ['Complete book', 'Sizes and styles'],
+            'Page',
+            [
+              'Cover',
+              ['Rendered', 'Editing'],
+              'Details',
+              ['Rendered', 'Editing'],
+              'Layouts',
+              ['Rendered', 'Editing'],
+              'Composition',
+              ['Rendered', 'Editing'],
+            ],
+            'Blocks',
+            [
+              'Annotated component',
+              ['Rendered', 'Editing'],
+              'Callout',
+              ['Rendered', 'Editing'],
+              'Card group',
+              ['Rendered', 'Editing'],
+              'Component entry',
+              ['Rendered', 'Editing'],
+              'Credits',
+              ['Rendered', 'Editing'],
+              'Faction introduction',
+              ['Rendered', 'Editing'],
+              'Illustration',
+              ['Rendered', 'Editing'],
+              'Inventory',
+              ['Rendered', 'Editing'],
+              'List',
+              ['Rendered', 'Editing'],
+              'Question and answer',
+              ['Rendered', 'Editing'],
+              'Section heading',
+              ['Rendered', 'Editing'],
+              'Table',
+              ['Rendered', 'Editing'],
+              'Text',
+              ['Rendered', 'Editing'],
+            ],
+          ],
+          '*',
+        ],
+      },
+    },
     layout: 'centered',
     viewport: {
       options: {

@@ -18,7 +18,7 @@ function DesignPages({ size, design }: RulebookSettings) {
 }
 
 const meta = preview.meta({
-  title: 'Designs',
+  title: 'Document/Sizes and styles',
   component: DesignPages,
   args: { size: 'a4', design: 'illustrated' },
   argTypes: {

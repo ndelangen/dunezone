@@ -3,6 +3,7 @@ import { rulebookContentsV1Schema } from '@shared/rulebooks/contents';
 import type { RulebookBlockDraft, RulebookContentsDraftV1, RulebookPageDraft } from '@shared/rulebooks/contents';
 import { projectRulebookDraftRenderDocument } from '@shared/rulebooks/projectRenderDocument';
 import { DocumentEditorLayout } from '@ui/layout/DocumentEditorLayout';
+import type { ReactNode } from 'react';
 import { useReducer } from 'react';
 import { fn } from 'storybook/test';
 
@@ -32,7 +33,7 @@ function page(
   };
 }
 
-export function referenceToolsContents(): RulebookContentsDraftV1 {
+export function createIllustratedBook(): RulebookContentsDraftV1 {
   return rulebookContentsV1Schema.parse({
     schemaVersion: 1,
     pageOrder: ['BTTL', 'CMPT', 'SPCE'],
@@ -109,7 +110,6 @@ export function referenceToolsContents(): RulebookContentsDraftV1 {
   });
 }
 
-type Example = 'heading' | 'component' | 'illustration' | 'references' | 'table';
 type Action =
   | { kind: 'page'; page: RulebookPageDraft }
   | { kind: 'block'; pageId: string; block: RulebookBlockDraft }
@@ -143,90 +143,157 @@ function reduce(contents: RulebookContentsDraftV1, action: Action): RulebookCont
 }
 const noAction = fn();
 
-/** These controls edit the same authored values as the rulebook route; the preview uses the publication projection. */
-export function ReferenceToolsStory({ example }: { example: Example }) {
-  const [contents, dispatch] = useReducer(reduce, undefined, referenceToolsContents);
+type EditorContext = {
+  contents: RulebookContentsDraftV1;
+  current: RulebookPageDraft;
+  dispatch: (action: Action) => void;
+};
+
+/** Each example edits the same authored values as the route and renders through the publication projection. */
+function IllustratedBookPreview({
+  pageId,
+  renderEditor,
+  showDestinations = false,
+}: {
+  pageId: string;
+  renderEditor: (context: EditorContext) => ReactNode;
+  showDestinations?: boolean;
+}) {
+  const [contents, dispatch] = useReducer(reduce, undefined, createIllustratedBook);
   const { document } = projectRulebookDraftRenderDocument(contents, {}, { size: 'square', design: 'illustrated' });
-  const pageId = example === 'component' ? 'CMPT' : example === 'illustration' ? 'SPCE' : 'BTTL';
   const current = contents.pagesById[pageId]!;
-  const shield = current.blocksById.SHLD;
-  const figure = current.blocksById.FGRR;
-  const text = current.blocksById.PLAN;
-  const TextEdit = rulebookBlockEditors.text;
-  const TableEdit = rulebookBlockEditors['reference-table'];
+  const previewPages = showDestinations ? [pageId, ...contents.pageOrder.filter((id) => id !== pageId)] : [pageId];
   return (
     <Box p="lg">
       <DocumentEditorLayout ratio={1} fit="width">
-        <DocumentEditorLayout.Sidebar>
-          {example === 'heading' ? (
-            <PageDetailsEdit
-              value={current}
-              onChange={(value) => dispatch({ kind: 'page', page: { ...current, ...value } })}
-              regions={[]}
-              onNavigateBlock={noAction}
-              onDeleteBlock={noAction}
-              onAddBlock={noAction}
-              onToggleBlockRegion={noAction}
-              getBlockDropStatus={() => ({ allowed: true, reason: '' })}
-              onBlockDrag={noAction}
-            />
-          ) : null}
-          {example === 'component' && shield?.kind === 'card-entry' ? (
-            <CardEntryEdit
-              value={shield}
-              onChange={(value) => dispatch({ kind: 'block', pageId, block: { ...shield, ...value } })}
-              references={{ assetsById: {}, factionsById: {} }}
-            />
-          ) : null}
-          {example === 'illustration' && figure?.kind === 'referenced-illustration' ? (
-            <ReferencedIllustrationEdit
-              value={figure}
-              onChange={(value) => dispatch({ kind: 'block', pageId, block: { ...figure, ...value } })}
-            />
-          ) : null}
-          {example === 'references' && text?.kind === 'text' ? (
-            <Stack gap="md">
-              <TextEdit
-                value={text}
-                onChange={(value) => dispatch({ kind: 'block', pageId, block: { ...text, ...value } })}
-                references={{ assetsById: {}, factionsById: {}, contents }}
-              />
-              <Button onClick={() => dispatch({ kind: 'move' })} disabled={!contents.pagesById.CMPT}>
-                Move component page
-              </Button>
-              <Button variant="subtle" onClick={() => dispatch({ kind: 'remove' })} disabled={!contents.pagesById.CMPT}>
-                Remove component page
-              </Button>
-            </Stack>
-          ) : null}
-          {example === 'table' && current.blocksById.TABL?.kind === 'reference-table' ? (
-            <TableEdit
-              value={current.blocksById.TABL}
-              onChange={(value) =>
-                dispatch({
-                  kind: 'block',
-                  pageId,
-                  block: { ...current.blocksById.TABL!, ...value, id: 'TABL', kind: 'reference-table' },
-                })
-              }
-            />
-          ) : null}
-        </DocumentEditorLayout.Sidebar>
+        <DocumentEditorLayout.Sidebar>{renderEditor({ contents, current, dispatch })}</DocumentEditorLayout.Sidebar>
         <DocumentEditorLayout.Preview>
           <Stack gap="lg">
-            {(example === 'references' ? [pageId, ...contents.pageOrder.filter((id) => id !== pageId)] : [pageId]).map(
-              (id) => (
-                <RulebookPageRenderer
-                  key={id}
-                  page={document.pagesById[id]!}
-                  pageNumber={contents.pageOrder.indexOf(id) + 1}
-                  settings={{ size: 'square', design: 'illustrated' }}
-                />
-              )
-            )}
+            {previewPages.map((id) => (
+              <RulebookPageRenderer
+                key={id}
+                page={document.pagesById[id]!}
+                pageNumber={contents.pageOrder.indexOf(id) + 1}
+                settings={{ size: 'square', design: 'illustrated' }}
+              />
+            ))}
           </Stack>
         </DocumentEditorLayout.Preview>
       </DocumentEditorLayout>
     </Box>
+  );
+}
+
+export function HeadingIconStory() {
+  return (
+    <IllustratedBookPreview
+      pageId="BTTL"
+      renderEditor={({ current, dispatch }) => (
+        <PageDetailsEdit
+          value={current}
+          onChange={(value) => dispatch({ kind: 'page', page: { ...current, ...value } })}
+          regions={[]}
+          onNavigateBlock={noAction}
+          onDeleteBlock={noAction}
+          onAddBlock={noAction}
+          onToggleBlockRegion={noAction}
+          getBlockDropStatus={() => ({ allowed: true, reason: '' })}
+          onBlockDrag={noAction}
+        />
+      )}
+    />
+  );
+}
+
+export function StockComponentStory() {
+  return (
+    <IllustratedBookPreview
+      pageId="CMPT"
+      renderEditor={({ current, dispatch }) => {
+        const block = current.blocksById.SHLD!;
+        if (block.kind !== 'card-entry') {
+          throw new Error('Expected a component entry');
+        }
+        return (
+          <CardEntryEdit
+            value={block}
+            onChange={(value) => dispatch({ kind: 'block', pageId: current.id, block: { ...block, ...value } })}
+            references={{ assetsById: {}, factionsById: {} }}
+          />
+        );
+      }}
+    />
+  );
+}
+
+export function IllustrationSizeStory() {
+  return (
+    <IllustratedBookPreview
+      pageId="SPCE"
+      renderEditor={({ current, dispatch }) => {
+        const block = current.blocksById.FGRR!;
+        if (block.kind !== 'referenced-illustration') {
+          throw new Error('Expected an illustration');
+        }
+        return (
+          <ReferencedIllustrationEdit
+            value={block}
+            onChange={(value) => dispatch({ kind: 'block', pageId: current.id, block: { ...block, ...value } })}
+          />
+        );
+      }}
+    />
+  );
+}
+
+export function RelatedRulesStory() {
+  const Editor = rulebookBlockEditors.text;
+  return (
+    <IllustratedBookPreview
+      pageId="BTTL"
+      showDestinations
+      renderEditor={({ contents, current, dispatch }) => {
+        const block = current.blocksById.PLAN!;
+        if (block.kind !== 'text') {
+          throw new Error('Expected text');
+        }
+        return (
+          <Stack gap="md">
+            <Editor
+              value={block}
+              onChange={(value) => dispatch({ kind: 'block', pageId: current.id, block: { ...block, ...value } })}
+              references={{ assetsById: {}, factionsById: {}, contents }}
+            />
+            <Button onClick={() => dispatch({ kind: 'move' })} disabled={!contents.pagesById.CMPT}>
+              Move component page
+            </Button>
+            <Button variant="subtle" onClick={() => dispatch({ kind: 'remove' })} disabled={!contents.pagesById.CMPT}>
+              Remove component page
+            </Button>
+          </Stack>
+        );
+      }}
+    />
+  );
+}
+
+export function WeaponTableStory() {
+  const Editor = rulebookBlockEditors['reference-table'];
+  return (
+    <IllustratedBookPreview
+      pageId="BTTL"
+      renderEditor={({ current, dispatch }) => {
+        const block = current.blocksById.TABL!;
+        if (block.kind !== 'reference-table') {
+          throw new Error('Expected a table');
+        }
+        return (
+          <Editor
+            value={block}
+            onChange={(value) => dispatch({ kind: 'block', pageId: current.id, block: { ...block, ...value } })}
+          />
+        );
+      }}
+    />
   );
 }
