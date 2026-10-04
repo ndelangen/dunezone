@@ -11,6 +11,7 @@ import {
   playCredentialDigest,
   playSessionAuthorization,
 } from './lib/playAuthorization';
+import { playerSummary } from './lib/playerSummary';
 
 /* Homepage renewal traffic has its own budget so it cannot consume real-game admission capacity. */
 const limiter = new RateLimiter(components.rateLimiter, {
@@ -86,8 +87,13 @@ export const redeemTicket = mutation({
     if (!(await limiter.limit(ctx, 'homepageRedeem')).ok) {
       return { allowed: false as const };
     }
+    const profile = await ctx.db
+      .query('profiles')
+      .withIndex('by_user_id', (q) => q.eq('user_id', ticket.user_id))
+      .unique();
     return {
       allowed: true as const,
+      avatarUrl: playerSummary(profile).avatarUrl,
       userKey: ticket.user_id,
       leaseUntil: Math.min(now + HOMEPAGE_LEASE_MS, auth.authExpiresAt),
     };

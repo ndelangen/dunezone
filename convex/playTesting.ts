@@ -20,6 +20,7 @@ import {
 } from './lib/playAuthorization';
 import { insertPendingGame } from './lib/playProvisioningSchedule';
 import { limitLiveGames, requireSyntheticBackend } from './lib/playSynthetic';
+import { patchStoredAvatar, profileAvatarValidator } from './lib/profileAvatar';
 import { ensureProfileForUser, profileSourcesFromUserDoc } from './lib/profileBootstrap';
 import { checksPbkdf2Passwords, isPbkdf2Secret } from './lib/syntheticPasswords';
 
@@ -70,12 +71,21 @@ const SCRYPT_SECRET = /^[a-f0-9]{32}:[a-f0-9]{128}$/;
  * An account that already exists keeps its password, as a later run with the same credentials file expects.
  */
 export const provisionAccounts = internalMutation({
-  args: { accounts: v.array(v.object({ email: v.string(), scrypt: v.string(), pbkdf2: v.string() })) },
+  args: {
+    accounts: v.array(
+      v.object({
+        email: v.string(),
+        scrypt: v.string(),
+        pbkdf2: v.string(),
+        avatar: v.optional(profileAvatarValidator),
+      })
+    ),
+  },
   returns: v.null(),
   handler: async (ctx, args) => {
     requireSyntheticBackend();
     const checksPbkdf2 = checksPbkdf2Passwords();
-    for (const { email, scrypt, pbkdf2 } of args.accounts) {
+    for (const { email, scrypt, pbkdf2, avatar } of args.accounts) {
       requireSyntheticEmail(email);
       if (!SCRYPT_SECRET.test(scrypt) || !isPbkdf2Secret(pbkdf2)) {
         throw new Error('Synthetic accounts need a Scrypt secret and a PBKDF2 secret, not a password');
@@ -84,16 +94,22 @@ export const provisionAccounts = internalMutation({
         .query('authAccounts')
         .withIndex('providerAndAccountId', (q) => q.eq('provider', 'password').eq('providerAccountId', email))
         .unique();
-      if (existing) {
+      if (existing && !avatar) {
         continue;
       }
-      const userId = await ctx.db.insert('users', { email });
+      const userId = existing?.userId ?? (await ctx.db.insert('users', { email }));
       const user = await ctx.db.get(userId);
       if (!user) {
         throw new Error('Failed to read the synthetic user after insert');
       }
       /* The same profile Auth's afterUserCreatedOrUpdated callback creates for a new Password account. */
-      await ensureProfileForUser(ctx, userId, profileSourcesFromUserDoc(user));
+      const profile = await ensureProfileForUser(ctx, userId, profileSourcesFromUserDoc(user));
+      if (avatar) {
+        await patchStoredAvatar(ctx, profile._id, avatar);
+      }
+      if (existing) {
+        continue;
+      }
       const secret = checksPbkdf2 ? pbkdf2 : scrypt;
       await ctx.db.insert('authAccounts', { userId, provider: 'password', providerAccountId: email, secret });
     }

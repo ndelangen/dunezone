@@ -27,7 +27,12 @@ async function visitor(member = false) {
   sockets.push(connection);
   await connection.message('view');
   if (member) {
-    peer.homepageAdmission = { allowed: true, userKey: crypto.randomUUID(), leaseUntil: Date.now() + 30_000 };
+    peer.homepageAdmission = {
+      allowed: true,
+      userKey: crypto.randomUUID(),
+      leaseUntil: Date.now() + 30_000,
+      avatarUrl: 'https://dune.zone/avatar/test.webp',
+    };
     connection.send({ type: 'authenticate', ticket: 'a'.repeat(64) });
     await connection.message('view', (view) => view.viewer.viewerSeat !== SPECTATOR_SEAT);
   }
@@ -62,6 +67,22 @@ describe('the public homepage table', () => {
     );
     expect((await guest.message('rejected')).requestId).toBe('denied');
     expect((await syncView(guest)).snapshot.revision).toBe(0);
+  });
+
+  it('shares authenticated profile avatars without names and clears them when admission ends', async () => {
+    const member = await visitor(true);
+    const observer = await visitor();
+    const view = await syncView(member);
+    expect(view.viewer.avatarUrl).toBe(peer.homepageAdmission.avatarUrl);
+    await act(member, { type: 'pointer', position: [1, 1, 1], seq: 1 }, view);
+    const shared = await observer.message('view', (next) =>
+      next.pointers.some((pointer) => pointer.connectionId === view.viewer.connectionId)
+    );
+    expect(shared.pointers).toMatchObject([{ avatarUrl: peer.homepageAdmission.avatarUrl, displayName: '' }]);
+    member.send({ type: 'anonymous' });
+    const anonymous = await syncView(member);
+    expect(anonymous.viewer.avatarUrl).toBeUndefined();
+    expect((await syncView(observer)).pointers).toEqual([]);
   });
 
   it('shares physical rotation and flipping with another visitor through compact updates', async () => {

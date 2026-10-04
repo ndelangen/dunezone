@@ -26,7 +26,7 @@ import { verifyBattles } from './verify-hosted-battles.mjs';
 import { cursorBounds, remoteCursor } from './verify-hosted-cursor.mjs';
 import { verifyDecks } from './verify-hosted-decks.mjs';
 import { browserFlows, isBrowserFlow } from './verify-hosted-flows.ts';
-import { installHomepageArtwork, verifyHomepage } from './verify-hosted-homepage.mjs';
+import { homepageAvatar, installHomepageArtwork, verifyHomepage } from './verify-hosted-homepage.mjs';
 import { verifyPrivateSpiceReserves } from './verify-hosted-private-spice-reserves.mjs';
 import { verifyPublicControls } from './verify-hosted-public-controls.mjs';
 import { parseExpectedRenderer, rendererMismatch, rendererReport, runningChromium } from './verify-hosted-renderer.ts';
@@ -124,7 +124,10 @@ const admin = new ConvexHttpClient(backend, {
 admin.setAdminAuth(environment.CONVEX_SELF_HOSTED_ADMIN_KEY);
 await provisionAccounts(
   admin,
-  SIGNED_IN.map((label) => credentials[label])
+  SIGNED_IN.map((label) => ({
+    ...credentials[label],
+    ...(values.flow === 'homepage' && label === 'player-a' ? { avatar: homepageAvatar(origin) } : {}),
+  }))
 );
 const runDirectory = path.join(outputDirectory, `${values.flow}-${Date.now()}`);
 const directory = pathToFileURL(runDirectory + path.sep);

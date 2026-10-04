@@ -13,7 +13,12 @@ export const HOMEPAGE_FRAME_LIMIT = 2048;
 export const homepageTicketSchema = z.string().regex(/^[a-f0-9]{64}$/);
 export const homepageAdmissionSchema = z.discriminatedUnion('allowed', [
   z.object({ allowed: z.literal(false) }),
-  z.object({ allowed: z.literal(true), userKey: z.string(), leaseUntil: z.number().finite() }),
+  z.object({
+    allowed: z.literal(true),
+    userKey: z.string(),
+    leaseUntil: z.number().finite(),
+    avatarUrl: z.string().max(2048).nullable().optional(),
+  }),
 ]);
 
 /* The homepage grants physical table handling only. Game lifecycle and private content stay in Play. */
