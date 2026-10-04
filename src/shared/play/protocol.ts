@@ -9,6 +9,7 @@ import {
   battleResultSchema,
   battleFaceSchema,
 } from './battle';
+import { biddingActionSchema, biddingStateSchema } from './bidding';
 import { conversationMessageSchema, conversationSummarySchema, conversationTextSchema } from './conversations';
 import { draftActionSchema, draftStateSchema } from './drafting';
 import { publicControlsSchema, publicActionSchema, spawnSelectionSchema, spawnContentsSchema } from './inventory';
@@ -80,6 +81,8 @@ export const gameSnapshotSchema = z.object({
   controls: publicControlsSchema.optional(),
   /* The glossary term is "spice reserve" (see CONTEXT.md); the `bank` field is kept for the protocol and recorded frames. */
   bank: spiceReserveSchema.optional(),
+  /* The bidder during the Bidding phase; absent until a game first reaches it. */
+  bidding: biddingStateSchema.optional(),
   battle: publicBattleSchema.nullable().optional(),
   battlePlan: battlePlanSchema.nullable().optional(),
   hand: z.array(pieceSchema).optional(),
@@ -134,6 +137,7 @@ const deckActionSchema = z.discriminatedUnion('kind', [
 export type DeckAction = z.infer<typeof deckActionSchema>;
 const pieceActionSchema = z.discriminatedUnion('kind', [
   ...battleActionSchema.options,
+  ...biddingActionSchema.options,
   ...spiceReserveActionSchema.options,
   ...publicActionSchema.options,
   ...seatActionSchema.options,
