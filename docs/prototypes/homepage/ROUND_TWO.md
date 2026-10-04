@@ -72,3 +72,14 @@ Typecheck and focused lint passed. Browser checks confirmed the removed heading,
 ![Board before refinement](proof/e-refinement/before.jpg)
 ![Floating board after refinement](proof/e-refinement/after-board.jpg)
 ![Portrait shadows](proof/e-refinement/shadows.jpg)
+
+## Closer sneak peek
+
+E scales the transparent board image to twice the frame width with automatic height, preserving its source aspect ratio. The frame retains its previous height and clips the larger image. The bottom fade now belongs to the frame, and the preview copy overlaps that faded edge. No source image was changed.
+
+Browser measurements at desktop size were 2088 by 988 pixels for the image inside the unchanged 1044 by 494 frame, with an 84-pixel copy overlap. At a 390-pixel phone viewport, the image was 732 by 346 inside a 366 by 173 frame. Neither size had horizontal page overflow. Formatting and whitespace checks passed.
+
+![Closer desktop preview](proof/e-crop/after.jpg)
+![Closer phone preview](proof/e-crop/mobile.jpg)
+
+[Preview before the crop](proof/e-crop/before.jpg).

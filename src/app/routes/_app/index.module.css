@@ -597,7 +597,11 @@
 }
 .cinemaOpening {
   display: grid;
-  gap: 3.5rem;
+  gap: 0;
+}
+.cinemaOpening > .centerCopy {
+  position: relative;
+  margin-top: clamp(-6rem, -8cqi, -3rem);
 }
 .boardPreview {
   display: block;
@@ -606,11 +610,19 @@
   object-fit: cover;
 }
 .wideBoard {
-  transform: perspective(1200px) rotateX(3deg);
+  position: relative;
+  aspect-ratio: 3000 / 1420;
+  overflow: clip;
   filter: drop-shadow(0 24px 24px rgb(0 0 0 / 25%));
+  mask-image: linear-gradient(to bottom, black 55%, rgb(0 0 0 / 50%) 75%, transparent);
 }
 .wideBoard .boardPreview {
-  mask-image: linear-gradient(to bottom, black 58%, rgb(0 0 0 / 85%) 70%, transparent 89%);
+  position: absolute;
+  width: 200%;
+  max-width: none;
+  height: auto;
+  left: -50%;
+  top: -10%;
 }
 
 .newBookFan {
