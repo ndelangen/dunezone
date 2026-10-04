@@ -6,7 +6,7 @@ let pieces = demoPieces();
 const clients = new Set<any>();
 const held = new Map<string, string>();
 let revision = 0;
-let resetAt = Date.now() + 5 * 60_000;
+let resetAt = Date.now() + 60 * 60_000;
 const colors = ['#66d1cf', '#ecac69', '#d09bff', '#b8dc83'];
 function send(ws: any, message: unknown) {
   ws.send(JSON.stringify(message));
@@ -21,7 +21,7 @@ function reset() {
   pieces = demoPieces();
   held.clear();
   revision++;
-  resetAt = Date.now() + 5 * 60_000;
+  resetAt = Date.now() + 60 * 60_000;
   broadcast(frame());
 }
 function presence() {

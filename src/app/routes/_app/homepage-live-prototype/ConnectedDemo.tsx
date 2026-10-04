@@ -1,7 +1,6 @@
 /* One interactive spike: can the real Play renderer make a shared homepage sandbox inviting? */
-import { Button, Text } from '@mantine/core';
 import { tableProgressFor } from '@shared/play/phases';
-import { useEffect, useState, useSyncExternalStore } from 'react';
+import { useEffect, useState } from 'react';
 
 import { PointerSession } from '../play/PointerSession';
 import { PointerSessionContext } from '../play/PointerSessionContext';
@@ -19,10 +18,13 @@ export default function ConnectedDemo({ member }: { member: boolean }) {
   );
   const [pointer] = useState(() => new PointerSession());
   const [keyboard] = useState(() => new TableKeyboard());
-  const table = useSyncExternalStore(room.subscribeTable, room.getTable);
   const [ready, setReady] = useState(false);
-  const [start] = useState(performance.now());
-  const [ms, setMs] = useState(0);
+  useEffect(() => {
+    if (!ready) return;
+    const frame = document.querySelector('#play-preview > div');
+    frame?.setAttribute('data-live-ready', 'true');
+    return () => frame?.removeAttribute('data-live-ready');
+  }, [ready]);
   useEffect(() => room.connect(), [room]);
   return (
     <>
@@ -33,27 +35,11 @@ export default function ConnectedDemo({ member }: { member: boolean }) {
               className={styles.scene}
               stage="play"
               tableProgress={tableProgressFor(0)}
-              onSceneReady={() => {
-                setReady(true);
-                setMs(Math.round(performance.now() - start));
-              }}
+              onSceneReady={() => setReady(true)}
             />
           </TabletopSessionProvider>
         </TableKeyboardContext>
       </PointerSessionContext>
-      <div className={styles.status}>
-        <Text size="xs">
-          {ready
-            ? `${room.visitors} here · ${table.renderedPieces.length} pieces · revision ${room.revision} · ready in ${ms} ms`
-            : 'Opening the real 3D table…'}
-        </Text>
-        {room.error && <Text size="xs">{room.error}</Text>}
-        {member && (
-          <Button variant="subtle" size="compact-xs" onClick={() => room.send({ type: 'reset' })}>
-            Reset demo
-          </Button>
-        )}
-      </div>
     </>
   );
 }

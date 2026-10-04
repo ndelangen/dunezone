@@ -42,7 +42,6 @@ export const Route = createFileRoute('/_app/')({
   component: IndexPage,
 });
 
-
 function IndexPage() {
   const root = useRef<HTMLDivElement>(null);
   const motionAllowed = useMotionAllowed();
@@ -486,21 +485,15 @@ function HomepageChapters() {
   return (
     <div className={styles.cinemaFlow}>
       <section id="play-preview" className={styles.cinemaOpening} data-marketing-arrival>
-        {import.meta.env.DEV && new URLSearchParams(location.search).has('liveDemo') ? (
-          <Suspense fallback={<BoardPreview />}>
-            <LiveDemo />
-          </Suspense>
-        ) : (
-          <div className={styles.wideBoard}>
-            <BoardPreview />
-          </div>
-        )}
-        <div
-          className={styles.previewCopy}
-          style={
-            import.meta.env.DEV && new URLSearchParams(location.search).has('liveDemo') ? { marginTop: 64 } : undefined
-          }
-        >
+        <div className={styles.wideBoard}>
+          <BoardPreview />
+          {import.meta.env.DEV && new URLSearchParams(location.search).has('liveDemo') && (
+            <Suspense fallback={null}>
+              <LiveDemo />
+            </Suspense>
+          )}
+        </div>
+        <div className={styles.previewCopy}>
           <PreviewCopy />
         </div>
       </section>

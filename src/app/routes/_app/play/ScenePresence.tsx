@@ -163,6 +163,7 @@ function RemoteHandLabel({ color, displayName }: Pick<PublicPointer, 'color' | '
         />
       </svg>
       <span
+        className="scene-remote-name"
         style={{
           color,
           background: '#21170de6',

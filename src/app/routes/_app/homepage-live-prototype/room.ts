@@ -14,6 +14,7 @@ export class DemoRoom {
   id = '';
   visitors = 1;
   revision = 0;
+  resetAt = 0;
   ready = false;
   error = '';
   lastSent = 0;
@@ -44,7 +45,13 @@ export class DemoRoom {
         this.ready = true;
       }
       if (m.type === 'state') {
-        this.state = { ...this.state, pieces: m.pieces };
+        const reset = this.resetAt !== 0 && this.resetAt !== m.resetAt;
+        this.resetAt = m.resetAt;
+        this.state = {
+          ...this.state,
+          pieces: m.pieces,
+          ...(reset ? { draftMove: null, selectedPieceId: null } : {}),
+        };
         this.held = new Map(m.held);
         this.visitors = m.visitors;
         this.revision = m.revision;
