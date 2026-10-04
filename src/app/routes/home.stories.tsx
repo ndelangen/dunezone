@@ -17,6 +17,7 @@ export const Default = meta.story({
     await expect(page.getByRole('link', { name: 'Take a sneak peek' })).toHaveAttribute('href', '#play-preview');
     await expect(page.getByRole('link', { name: 'Write your own' })).toHaveAttribute('href', '/rulesets/create');
     await expect(page.getByRole('link', { name: 'Form an alliance' })).toHaveAttribute('href', '/groups/create');
+    await expect(page.getByRole('link', { name: 'Meet the dreamers' })).toHaveAttribute('href', '/groups/dreamers');
     expect(page.queryByRole('link', { name: 'Play now' })).toBeNull();
   },
 });

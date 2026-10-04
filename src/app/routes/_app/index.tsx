@@ -366,8 +366,11 @@ function AllianceInvitation() {
       <Text>Pool your ideas, debate the details, and make something worth bringing to the table.</Text>
       <Group>
         <Button renderRoot={(props) => <Link {...props} to="/groups/create" />}>Form an alliance</Button>
-        <Button variant="subtle" renderRoot={(props) => <Link {...props} to="/groups" />}>
-          Explore Groups
+        <Button
+          variant="subtle"
+          renderRoot={(props) => <Link {...props} to="/groups/$groupSlug" params={{ groupSlug: 'dreamers' }} />}
+        >
+          Meet the dreamers
         </Button>
       </Group>
     </Section>
