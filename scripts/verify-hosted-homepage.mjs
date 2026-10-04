@@ -42,6 +42,7 @@ async function localHandAtPointer(who, position, until) {
     const scrollY = await who.page.evaluate(() => window.scrollY);
     throw new Error(`Local hand position: ${JSON.stringify({ pointer: position, bounds, scrollY })}`, { cause });
   }
+  assert.ok(bounds, 'The local hand needs visible bounds.');
   return bounds;
 }
 

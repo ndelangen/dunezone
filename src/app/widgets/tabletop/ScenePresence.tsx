@@ -241,7 +241,13 @@ declare global {
   }
 }
 
-export function ScenePresence({ showNames = true, showLocal = false }: { showNames?: boolean; showLocal?: boolean }) {
+export function ScenePresence({
+  showNames = true,
+  showLocal = false,
+}: {
+  readonly showNames?: boolean;
+  readonly showLocal?: boolean;
+}) {
   const viewer = useTabletopSelector((table) => table.viewer);
   const [localPosition, setLocalPosition] = useState<Vector3Tuple | null>(null);
   const canInteract = useTabletopSelector((table) => table.canInteract);
