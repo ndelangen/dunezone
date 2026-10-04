@@ -351,15 +351,19 @@ export class HomepageRoom extends DurableObject<GameEnv> {
       }
       await this.act(socket, connection.viewer, action);
     } catch (error) {
-      if (!(error instanceof GameRejection)) {
-        throw error;
-      }
-      const requestId = actionRequestId(action);
-      if (requestId) {
-        this.send(socket, { type: 'rejected', requestId, message: error.message });
-      }
-      this.resync(socket, connection);
+      this.rejectAction(socket, connection, action, error);
     }
+  }
+
+  private rejectAction(socket: WebSocket, connection: Connection, action: HomepageAction, error: unknown) {
+    if (!(error instanceof GameRejection)) {
+      throw error;
+    }
+    const requestId = actionRequestId(action);
+    if (requestId) {
+      this.send(socket, { type: 'rejected', requestId, message: error.message });
+    }
+    this.resync(socket, connection);
   }
 
   private async act(socket: WebSocket, viewer: Viewer, message: HomepageAction) {
