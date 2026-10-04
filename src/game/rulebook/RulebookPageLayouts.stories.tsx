@@ -57,7 +57,7 @@ export const ClippedRegion = meta.story({
   play: ({ canvasElement }) => {
     const regions = [...canvasElement.querySelectorAll<HTMLElement>('[data-rulebook-region]')];
     expect(regions[0]!.scrollHeight).toBeGreaterThan(regions[0]!.clientHeight);
-    expect(getComputedStyle(regions[0]!).overflow).toBe('hidden');
+    expect(getComputedStyle(regions[0]!).overflow).toBe('clip');
     expect(regions[1]!.textContent).toBe('Column 2');
   },
 });

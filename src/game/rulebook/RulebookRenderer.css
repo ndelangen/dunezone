@@ -192,7 +192,8 @@
 .rulebookRegion {
   min-width: 0;
   min-height: 0;
-  overflow: hidden;
+  overflow: clip;
+  overflow-clip-margin: calc(3.2 * var(--rulebook-mm));
 }
 
 .rulebookRegionBlocks {
