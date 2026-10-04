@@ -10,7 +10,8 @@ import {
 } from '../../src/shared/play/battle';
 import { storedControlsSchema } from '../../src/shared/play/inventory';
 import type { SpawnContents } from '../../src/shared/play/inventory';
-import type { DraftMove, TableItem, TablePiece } from '../../src/shared/play/model';
+import type { DraftMove, StoredPiece, TableItem, TablePiece } from '../../src/shared/play/model';
+import { showsPeeker } from '../../src/shared/play/peeking';
 import { gameSnapshotSchema } from '../../src/shared/play/protocol';
 import type { GameSnapshot, PublicCarry, PieceAction } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
@@ -26,6 +27,19 @@ export type StoredBattle = z.infer<typeof storedBattleSchema>;
 const storedActorSchema = gameResultSchema.shape.by.extend({ userId: tableIdSchema.nullable() });
 
 /** Storage owns the complete spice reserve collection; transport owns only a projected spice reserve. */
+/*
+ * A peek as it was granted: the piece by its stored id and public handle, its cards by id in order, and its shuffle.
+ * The faces show only while all of it still holds, so no command, drop or restore can show the peeker a card it was not granted.
+ * A piece that leaves the table through a hand comes back under a new handle, so an old peek cannot follow it.
+ */
+const peekGrantSchema = z.object({
+  pieceId: tableIdSchema,
+  handle: tableIdSchema,
+  items: z.array(tableIdSchema).default([]),
+  shuffleRevision: z.number().int().nullable().default(null),
+});
+export type PeekGrant = z.infer<typeof peekGrantSchema>;
+
 export const storedSnapshotSchema = gameSnapshotSchema
   .omit({
     bank: true,
@@ -50,11 +64,8 @@ export const storedSnapshotSchema = gameSnapshotSchema
     pendingTraitors: z.array(tableIdSchema).default([]),
     battleState: storedBattleSchema.nullable().default(null),
     factionInventories: z.record(tableIdSchema, z.array(storedPieceSchema)).default({}),
-    /*
-     * The piece each faction holds open by peeking, by its stored id and the public handle it had then; projected only to that faction.
-     * A piece that leaves the table through a hand comes back under a new handle, so an old peek cannot follow it.
-     */
-    peeks: z.record(tableIdSchema, z.object({ pieceId: tableIdSchema, handle: tableIdSchema })).default({}),
+    /* The piece each faction holds open by peeking, as it was granted; projected only to that faction. */
+    peeks: z.record(tableIdSchema, peekGrantSchema).default({}),
     /* The faces a faction's prediction card is dealt with when its prediction locks (#1753); stored only, never projected. */
     predictionFaces: z
       .record(tableIdSchema, z.object({ front: z.string().url().nullable(), back: z.string().url() }))
@@ -105,14 +116,39 @@ function concealed({ back, backName }: NonNullable<TableItem['artwork']>) {
   return { back, ...(backName ? { backName } : {}) };
 }
 
-/** The piece a faction holds open by peeking, while it lies on the table under the handle it was peeked at by. */
-export function openPeek(snapshot: StoredSnapshot, factionId: string, pieceId?: string): TablePiece | undefined {
-  const peek = snapshot.peeks[factionId];
-  if (!peek || (pieceId !== undefined && peek.pieceId !== pieceId)) {
+/** The grant a peek at a piece holds: what the faction may see of it, exactly as the piece stands now. */
+export function peekGrant(snapshot: StoredSnapshot, piece: StoredPiece): PeekGrant {
+  return {
+    pieceId: piece.id,
+    handle: snapshot.pieceHandles[piece.id] ?? piece.id,
+    items: piece.items.map((item) => item.id),
+    shuffleRevision: piece.shuffleRevision ?? null,
+  };
+}
+
+function sameOrder(left: readonly string[], right: readonly string[]) {
+  return left.length === right.length && left.every((id, index) => id === right[index]);
+}
+
+/* Whether a piece still stands as its peek was granted, with everyone able to see that the faction peeked. */
+function grantHolds(snapshot: StoredSnapshot, grant: PeekGrant, piece: StoredPiece, factionId: string) {
+  const now = peekGrant(snapshot, piece);
+  const samePiece = now.handle === grant.handle && now.shuffleRevision === grant.shuffleRevision;
+  return samePiece && sameOrder(now.items, grant.items) && showsPeeker(piece, factionId);
+}
+
+/**
+ * The piece a faction holds open by peeking, while it lies on the table exactly as the peek was granted.
+ * A shuffle, a card added, drawn or moved, a new handle or a new phase each end it;
+ * the peeker's own arrangement and pull renew the grant.
+ */
+export function openPeek(snapshot: StoredSnapshot, factionId: string, pieceId?: string): StoredPiece | undefined {
+  const grant = snapshot.peeks[factionId];
+  if (!grant || (pieceId !== undefined && grant.pieceId !== pieceId)) {
     return undefined;
   }
-  const piece = snapshot.table.pieces.find((candidate) => candidate.id === peek.pieceId && !candidate.inventory);
-  return piece && (snapshot.pieceHandles[piece.id] ?? piece.id) === peek.handle ? piece : undefined;
+  const piece = snapshot.table.pieces.find((candidate) => candidate.id === grant.pieceId && !candidate.inventory);
+  return piece && grantHolds(snapshot, grant, piece, factionId) ? piece : undefined;
 }
 
 /** Every delivery uses this projection before serialization or delta computation. */

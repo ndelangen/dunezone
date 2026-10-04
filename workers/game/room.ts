@@ -133,7 +133,14 @@ function samePlace(before: GameSnapshot, after: GameSnapshot) {
 const SETTLED_ACTIONS = new Set<string>([...READINESS_ACTIONS, 'seat-request', 'seat-withdraw']);
 
 export class Room {
-  public snapshot: StoredSnapshot;
+  private current!: StoredSnapshot;
+  /** The room's table. Every state it takes, accepted, restored or re-rostered, closes the peeks whose piece changed since their grant. */
+  get snapshot(): StoredSnapshot {
+    return this.current;
+  }
+  set snapshot(snapshot: StoredSnapshot) {
+    this.current = closeLostPeeks(snapshot);
+  }
   readonly epoch = crypto.randomUUID();
   /** The revision of the last commit that changed more than who is ready. */
   private settledRevision: number;
@@ -449,8 +456,8 @@ export class Room {
   }
 
   command(identity: Identity, action: RoomAction, expectedRevision: number, now = Date.now()): StoredSnapshot {
-    const next = closeLostPeeks(this.snapshot, this.applyCommand(identity, action, expectedRevision, now));
-    /* A new phase forgets who peeked at what; a peek held open stays open. */
+    const next = this.applyCommand(identity, action, expectedRevision, now);
+    /* A new phase forgets who peeked at what, and closes every peek. */
     return next.phase === this.snapshot.phase ? next : forgetPeekers(next);
   }
 

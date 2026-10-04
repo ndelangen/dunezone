@@ -11,14 +11,12 @@ import { restingPositionAt } from '../../src/shared/play/tableGeometry';
 import { nearestCollisionFreePosition } from '../../src/shared/play/tablePhysics';
 import { labelForCount } from '../../src/shared/play/tableState';
 import { concealCards } from './decks';
-import { openPeek } from './state';
+import { openPeek, peekGrant } from './state';
 import type { StoredSnapshot } from './state';
 
 /* Who is peeking, at which table: every transition here acts for one faction on one stored snapshot. */
 type Peeker = Readonly<{ snapshot: StoredSnapshot; factionId: string }>;
 type StoredItem = StoredPiece['items'][number];
-/* What a peek reads of a piece, stored or as the projection hands it on. */
-type PeekedPiece = Readonly<{ kind: StoredPiece['kind']; items: readonly Readonly<{ peekedBy?: string[] }>[] }>;
 
 function liesOnTable(piece: StoredPiece | undefined): piece is StoredPiece {
   return !!piece && !piece.inventory && piece.items.length > 0;
@@ -74,19 +72,9 @@ function commit(
   return nextSnapshot(snapshot, accepted({ ...table, pieces }, event.command, event.message));
 }
 
-/* Where what a peek shows begins, bottom first: every card of a deck, or the top card or token. */
-function shownFrom(piece: PeekedPiece) {
-  return peeksWholeDeck(piece) ? 0 : piece.items.length - 1;
-}
-
-/* Whether everything a peek shows names its peeker, as it does from the peek until a new phase forgets it. */
-function namesPeeker(piece: PeekedPiece, factionId: string) {
-  return piece.items.slice(shownFrom(piece)).every((item) => item.peekedBy?.includes(factionId));
-}
-
-/* The piece with its peeker named on what the peek shows. */
+/* The piece with its peeker named on what the peek shows: every card of a deck, or the top card or token. */
 function markPeeked(piece: StoredPiece, factionId: string): StoredPiece {
-  const shown = shownFrom(piece);
+  const shown = peeksWholeDeck(piece) ? 0 : piece.items.length - 1;
   return {
     ...piece,
     items: piece.items.map((item, index) => (index >= shown ? withPeeker(item, factionId) : item)),
@@ -104,13 +92,25 @@ function peek(peeker: Peeker, pieceId: string): StoredSnapshot {
     command: 'piece.peek',
     message: `${peekerName(peeker)} ${verb} ${piece.label}.`,
   });
-  const handle = next.pieceHandles[piece.id] ?? piece.id;
-  return { ...next, peeks: { ...snapshot.peeks, [factionId]: { pieceId: piece.id, handle } } };
+  return granted(next, factionId, piece.id);
+}
+
+function withoutPeek(snapshot: StoredSnapshot, factionId: string): StoredSnapshot {
+  const { [factionId]: _closed, ...peeks } = snapshot.peeks;
+  return { ...snapshot, peeks };
+}
+
+/* The faction's peek granted on the piece as it now stands, or closed when the piece is gone. */
+function granted(snapshot: StoredSnapshot, factionId: string, pieceId: string): StoredSnapshot {
+  const piece = snapshot.table.pieces.find((candidate) => candidate.id === pieceId);
+  if (!piece) {
+    return withoutPeek(snapshot, factionId);
+  }
+  return { ...snapshot, peeks: { ...snapshot.peeks, [factionId]: peekGrant(snapshot, piece) } };
 }
 
 function close({ snapshot, factionId }: Peeker): StoredSnapshot {
-  const { [factionId]: _closed, ...peeks } = snapshot.peeks;
-  return { ...nextSnapshot(snapshot, tableForViewer(snapshot, SPECTATOR_SEAT)), peeks };
+  return withoutPeek(nextSnapshot(snapshot, tableForViewer(snapshot, SPECTATOR_SEAT)), factionId);
 }
 
 /* Whether an order names every card of the deck exactly once. */
@@ -130,8 +130,8 @@ function arrange(peeker: Peeker, action: Extract<PeekAction, { kind: 'peek-arran
     command: 'deck.arrange',
     message: `${peekerName(peeker)} rearranged ${deck.label}.`,
   });
-  /* New handles, so nobody else can follow a card to its new place in the deck. */
-  return concealCards(next, [arranged]);
+  /* New handles, so nobody else can follow a card to its new place in the deck; the peek goes on, granted on the new order. */
+  return granted(concealCards(next, [arranged]), peeker.factionId, deck.id);
 }
 
 /* One card out of a deck, face down beside it, placed clear of every other piece. */
@@ -174,7 +174,7 @@ function pull(peeker: Peeker, action: Extract<PeekAction, { kind: 'peek-pull' }>
     message: `${peekerName(peeker)} pulled a card out of ${deck.label}.`,
   });
   /* The deck's handles change too, so where in it the card came from stays with its peeker. */
-  return concealCards(next, [...rest, pulled]);
+  return granted(concealCards(next, [...rest, pulled]), peeker.factionId, deck.id);
 }
 
 /** The room checks the current actor, stage and carry reservations before this transition. */
@@ -192,25 +192,19 @@ export function peekCommand(snapshot: StoredSnapshot, factionId: string, action:
   }
 }
 
-/* A peek whose piece no longer names its peeker since the last command: a shuffle forgot it, or a card joined the deck unseen. */
-function lostSince(previous: StoredSnapshot, next: StoredSnapshot, factionId: string) {
-  const before = openPeek(previous, factionId);
-  const after = openPeek(next, factionId);
-  if (!before || !after) {
-    return false;
-  }
-  return namesPeeker(before, factionId) && !namesPeeker(after, factionId);
-}
-
 /**
- * Closes every peek a command took the public mark from, so nobody looks on at a deck nobody can see them holding: a shuffle closes the peek at that deck, and a card laid on a peeked deck closes it rather than showing that card.
+ * Closes every peek that no longer shows anything: its piece left the table, changed handle, or lost its peeker's public mark to a shuffle or a card laid on it.
+ * The room calls it after every command and drop, so a stored peek always names what its faction can see.
  */
-export function closeLostPeeks(previous: StoredSnapshot, next: StoredSnapshot): StoredSnapshot {
-  const lost = Object.keys(next.peeks).filter((factionId) => lostSince(previous, next, factionId));
+export function closeLostPeeks(snapshot: StoredSnapshot): StoredSnapshot {
+  const lost = Object.keys(snapshot.peeks).filter((factionId) => !openPeek(snapshot, factionId));
   if (lost.length === 0) {
-    return next;
+    return snapshot;
   }
-  return { ...next, peeks: Object.fromEntries(Object.entries(next.peeks).filter(([id]) => !lost.includes(id))) };
+  return {
+    ...snapshot,
+    peeks: Object.fromEntries(Object.entries(snapshot.peeks).filter(([id]) => !lost.includes(id))),
+  };
 }
 
 function withoutPeekers(piece: StoredPiece): StoredPiece {
@@ -219,7 +213,7 @@ function withoutPeekers(piece: StoredPiece): StoredPiece {
     : piece;
 }
 
-/** Every card and token, on the table and in hand, forgets who peeked at it; a piece that changes takes the snapshot's revision. */
+/** Every card and token, on the table and in hand, forgets who peeked at it, and every peek closes with it; a piece that changes takes the snapshot's revision. */
 export function forgetPeekers(snapshot: StoredSnapshot): StoredSnapshot {
   const versions = { ...snapshot.versions };
   const pieces = snapshot.table.pieces.map((piece) => {
@@ -232,5 +226,5 @@ export function forgetPeekers(snapshot: StoredSnapshot): StoredSnapshot {
   const factionInventories = Object.fromEntries(
     Object.entries(snapshot.factionInventories).map(([id, hand]) => [id, hand.map(withoutPeekers)])
   );
-  return { ...snapshot, table: { ...snapshot.table, pieces }, versions, factionInventories };
+  return { ...snapshot, table: { ...snapshot.table, pieces }, versions, factionInventories, peeks: {} };
 }

@@ -95,12 +95,12 @@ test('a battle plan cannot be peeked at, and a face-up card has nothing to peek 
   expect(() => peekCommand(faceUp, 'atreides', { kind: 'peek', pieceId: 'deck' })).toThrow('Nothing about');
 });
 
-test('a new phase forgets who peeked, and changes the pieces it clears', () => {
+test('a new phase forgets who peeked, closes every peek, and changes the pieces it clears', () => {
   const peeked = peekCommand(table(2), 'atreides', { kind: 'peek', pieceId: 'deck' });
   const forgotten = forgetPeekers({ ...peeked, revision: peeked.revision + 1 });
   expect(forgotten.table.pieces[0]?.items.some((item) => item.peekedBy)).toBe(false);
   expect(forgotten.versions.deck).toBe(peeked.revision + 1);
-  expect(forgotten.peeks).toEqual(peeked.peeks);
+  expect(forgotten.peeks).toEqual({});
 });
 
 test('a locked deck can be looked through but not rearranged or pulled from', () => {
@@ -128,15 +128,13 @@ test('a peek does not follow a card through a hand back onto the table', () => {
   expect(() => peekCommand(returned, 'atreides', { kind: 'peek-arrange', pieceId: 'deck', order: [0, 1] })).toThrow();
 });
 
-test('a shuffle closes the peek at the deck, while a peek a new phase forgot the mark of stays open', () => {
+test('a shuffle closes the peek at the deck: its faces go with the public mark', () => {
   const projection = new RoomProjection('secret');
   const peeked = peekCommand(table(3), 'atreides', { kind: 'peek', pieceId: 'deck' });
-  expect(closeLostPeeks(table(3), peeked).peeks).toEqual(peeked.peeks);
+  expect(closeLostPeeks(peeked).peeks).toEqual(peeked.peeks);
 
-  const shuffled = closeLostPeeks(peeked, deckCommand(peeked, 'harkonnen', { kind: 'deck-shuffle', pieceId: 'deck' }));
+  const shuffled = deckCommand(peeked, 'harkonnen', { kind: 'deck-shuffle', pieceId: 'deck' });
+  /* Even before the room tidies the stored peek away, the projection shows no faces without the mark. */
   expect(projection.snapshot(shuffled, 'atreides').peek).toBeNull();
-
-  const forgotten = forgetPeekers(peeked);
-  const later = closeLostPeeks(forgotten, deckCommand(forgotten, 'harkonnen', { kind: 'deck-draw', pieceId: 'deck' }));
-  expect(projection.snapshot(later, 'atreides').peek?.piece.items).toHaveLength(2);
+  expect(closeLostPeeks(shuffled).peeks).toEqual({});
 });

@@ -46,6 +46,14 @@ function peekedItems<Item>(piece: { kind: TablePiece['kind']; items: readonly It
   return peeksWholeDeck(piece) ? [...piece.items] : piece.items.slice(-1);
 }
 
+/** Whether everything a peek shows names its peeker in public: a faction sees faces only where everyone sees that it peeked. */
+export function showsPeeker(
+  piece: { kind: TablePiece['kind']; items: readonly Readonly<{ peekedBy?: readonly string[] }>[] },
+  factionId: string
+): boolean {
+  return peekedItems(piece).every((item) => item.peekedBy?.includes(factionId));
+}
+
 /** Whether a piece has a hidden face to peek at: a face-down card anywhere in it, or a face-down token on top. */
 export function hasHiddenFace(piece: Pick<TablePiece, 'kind' | 'items'>): boolean {
   return peekedItems(piece).some((item) => !item.faceUp);

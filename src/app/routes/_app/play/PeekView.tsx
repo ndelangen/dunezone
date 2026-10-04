@@ -160,9 +160,16 @@ function useKeptFocus(row: RefObject<HTMLOListElement | null>, deck: string) {
   };
 }
 
+function focusInside(element: HTMLElement) {
+  return element.contains(document.activeElement);
+}
+
 /* The card at a place in the row takes focus back, unless focus already sits in the row. */
 function refocus(element: HTMLOListElement | null, place: number | null) {
-  if (!element || place === null || element.contains(document.activeElement)) {
+  if (!element || place === null) {
+    return;
+  }
+  if (focusInside(element)) {
     return;
   }
   const handle = element.children[place]?.querySelector('[role="button"]');
