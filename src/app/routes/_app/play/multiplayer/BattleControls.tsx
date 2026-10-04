@@ -695,7 +695,7 @@ function OutcomeButton({ client, table, battle, own, outcome }: ActiveProps & { 
     </Button>
   );
 }
-/* One cancel for both stages it is offered in, so the two cannot drift; each stage passes its own look. */
+/* One button ends the battle at both stages it is offered in: before the reveal it cancels, after it the battle is resolved. */
 function CancelBattleButton({
   client,
   table,
@@ -714,7 +714,7 @@ function CancelBattleButton({
       disabled={!table.canHandleTable}
       onClick={() => client.command({ kind: 'battle-cancel', battleId: battle.id })}
     >
-      Cancel battle
+      {battle.stage === 'revealed' ? 'Resolve battle' : 'Cancel battle'}
     </Button>
   );
 }
@@ -733,13 +733,34 @@ function BattleActions(props: ActiveProps) {
     </>
   );
 }
+/* After one side calls a winner, the battle stays open until the other side agrees; this says who it waits on. */
+function waitingOn({ battle, table, own }: ActiveProps) {
+  const called = battle.sides.findIndex((side) => side?.choice);
+  if (called < 0 || own < 0) {
+    return null;
+  }
+  const other = battle.sides[own === 0 ? 1 : 0]!;
+  const names = snapshotFactionLabels(table.snapshot);
+  /* Once the other side has called too, their call is the news: the two calls differ, or the battle would have settled. */
+  if (!other.choice) {
+    return `Waiting for ${rosterName(other.factionId, names)} to agree`;
+  }
+  const call = outcomes.find(([choice]) => choice === other.choice)![1];
+  return `${rosterName(other.factionId, names)} says ${call.toLowerCase()}`;
+}
 function BattleCentre(props: ActiveProps) {
   if (props.battle.stage === 'revealed') {
-    /* Anyone seated can end a revealed battle the sides cannot agree on; it settles as a battle nobody won. */
+    /* Anyone seated can end a revealed battle; it settles with the winner a side called, unless the sides called different winners. */
+    const waiting = waitingOn(props);
     return (
       <Stack gap={4} align="center">
+        {waiting && (
+          <Text size="xs" ta="center" maw={140} aria-live="polite">
+            {waiting}
+          </Text>
+        )}
         <OutcomeButton {...props} outcome="none" />
-        <CancelBattleButton {...props} size="compact-xs" variant="subtle" />
+        <CancelBattleButton {...props} size="compact-xs" variant="subtle" className={styles.resolve} />
       </Stack>
     );
   }

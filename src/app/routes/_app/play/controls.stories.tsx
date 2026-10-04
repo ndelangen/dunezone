@@ -86,6 +86,18 @@ export const SetupPredictionLocked = meta.story({
   },
 });
 
+/** Setup, the locked prediction whose card is in hand: placing the card is the reveal, so the panel offers no button (#1753). */
+export const SetupPredictionCardInHand = meta.story({
+  beforeEach: install(() => productTransport('seat-6', predictionSnapshot(true, true))),
+  play: async ({ canvasElement }) => {
+    const page = await openPanel(canvasElement, 'Setup');
+    await expect(
+      page.findByText('Prediction locked. Place your prediction card on the table to reveal it.', undefined, WAIT)
+    ).resolves.toBeVisible();
+    expect(page.queryByRole('button', { name: 'Reveal prediction' })).toBeNull();
+  },
+});
+
 /** Two seats carry factions with one name, so each reads with its player in the prediction's options (#1667). */
 export const SetupPredictionSharedName = meta.story({
   beforeEach: install(() => {

@@ -20,6 +20,7 @@ import { requestPlayTicket } from '@db/play';
 import { FoilConfetti } from '../FoilConfetti';
 import { GameTable } from '../GameTable';
 import { usePointerSession } from '../PointerSessionContext';
+import { predictionCardInHand } from '../prediction/predictionCardInHand';
 import { PredictionLogosContext } from '../prediction/predictionFace';
 import { TabletopSessionProvider } from '../TabletopContext';
 import { TableWait } from '../TableWait';
@@ -304,6 +305,8 @@ function Predictions({ client, table }: SetupControlProps) {
     .map((step) => {
       const prediction = table.snapshot.predictions?.[step.id];
       const own = step.factionId === ownFaction;
+      /* While its card is in hand, placing the card is the reveal; a game that dealt none keeps the button during setup and in the winner bars. */
+      const byCard = own && prediction?.revealedAt === null && predictionCardInHand(table, step.id);
       return (
         <Section
           helpOnly={Boolean(table.snapshot.stage)}
@@ -314,15 +317,21 @@ function Predictions({ client, table }: SetupControlProps) {
           <Stack gap="sm">
             {prediction ? (
               <>
-                <Text size="sm">{prediction.revealedAt === null ? 'Prediction locked' : 'Prediction revealed'}</Text>
-                {prediction.choice && (
+                <Text size="sm">
+                  {prediction.revealedAt !== null
+                    ? 'Prediction revealed'
+                    : byCard
+                      ? 'Prediction locked. Place your prediction card on the table to reveal it.'
+                      : 'Prediction locked'}
+                </Text>
+                {prediction.choice && !byCard && (
                   <PredictionCards
                     table={table}
                     factionId={prediction.choice.factionId}
                     turn={prediction.choice.turn}
                   />
                 )}
-                {own && prediction.revealedAt === null && (
+                {own && prediction.revealedAt === null && !byCard && (
                   <Button
                     variant="default"
                     disabled={!table.canInteract}
@@ -872,23 +881,14 @@ function ConnectedTable({
               ...(!tabled && stage !== 'setup'
                 ? []
                 : [
-                    /* Past setup the tab holds predictions only, so a game without them has no empty tab to open on. */
-                    ...(table.snapshot.setup &&
-                    (stage === 'setup' || table.snapshot.setup.steps.some((step) => step.kind === 'prediction'))
+                    /* Past setup a locked prediction lives on as its card in hand, so the tab closes with setup (#1753). */
+                    ...(table.snapshot.setup && stage === 'setup'
                       ? [
                           {
                             key: 'setup',
-                            label: stage === 'setup' ? 'Setup' : 'Predictions',
-                            topic:
-                              stage === 'setup'
-                                ? SETUP_TOPICS[setupStep(table.snapshot.setup).kind]
-                                : ('fate' as const),
-                            content:
-                              stage === 'setup' ? (
-                                <SetupControls client={client} table={table} />
-                              ) : (
-                                <Predictions client={client} table={table} />
-                              ),
+                            label: 'Setup',
+                            topic: SETUP_TOPICS[setupStep(table.snapshot.setup).kind],
+                            content: <SetupControls client={client} table={table} />,
                           },
                         ]
                       : []),

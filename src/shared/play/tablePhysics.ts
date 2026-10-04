@@ -1,6 +1,6 @@
 import type { TablePiece, Vector3Tuple } from './model';
 import { isSpicePiece, SPICE_FOOTPRINT_RADIUS } from './spice';
-import { placementAnchorForPose } from './tableFurnitureLayout';
+import { BOTTOM_SHELF_POSITION, BOTTOM_SHELF_SIZE, placementAnchorForPose } from './tableFurnitureLayout';
 import {
   CARD_FOOTPRINT_HALF_X,
   CARD_FOOTPRINT_HALF_Z,
@@ -36,6 +36,16 @@ type BoxPose = {
 };
 
 export const TABLE_PLAY_RADIUS = 5.55;
+/*
+ * The Tleilaxu Tanks shelf below the board takes any piece. Its play area starts inside the round table, where
+ * the shelf joins it, so a piece can slide from the table onto the shelf without a gap between the two areas.
+ */
+export const TANKS_PLAY_AREA = {
+  minX: BOTTOM_SHELF_POSITION[0] - BOTTOM_SHELF_SIZE[0] / 2,
+  maxX: BOTTOM_SHELF_POSITION[0] + BOTTOM_SHELF_SIZE[0] / 2,
+  minZ: 4.6,
+  maxZ: BOTTOM_SHELF_POSITION[2] + BOTTOM_SHELF_SIZE[2] / 2,
+} as const;
 const SEARCH_STEP = 0.08;
 const SEARCH_RING_COUNT = 96;
 const SEARCH_DIRECTIONS = 32;
@@ -191,10 +201,42 @@ function footprintTableRadius(piece: TablePiece): number {
   return Math.hypot(footprint.halfX, footprint.halfZ);
 }
 
-export function clampPositionToTable(piece: TablePiece, position: Vector3Tuple): Vector3Tuple {
-  if (placementAnchorForPose(piece, position)) {
-    return [...position];
+function isOnRoundTable(piece: TablePiece, position: Vector3Tuple): boolean {
+  return Math.hypot(position[0], position[2]) + footprintTableRadius(piece) <= TABLE_PLAY_RADIUS;
+}
+
+function isOnTanksShelf(piece: TablePiece, position: Vector3Tuple): boolean {
+  const reach = footprintTableRadius(piece);
+  return (
+    position[0] - reach >= TANKS_PLAY_AREA.minX &&
+    position[0] + reach <= TANKS_PLAY_AREA.maxX &&
+    position[2] - reach >= TANKS_PLAY_AREA.minZ &&
+    position[2] + reach <= TANKS_PLAY_AREA.maxZ
+  );
+}
+
+const JOIN_SAMPLE_COUNT = 32;
+
+function isPointOnTabletop(x: number, z: number): boolean {
+  return (
+    Math.hypot(x, z) <= TABLE_PLAY_RADIUS ||
+    (x >= TANKS_PLAY_AREA.minX && x <= TANKS_PLAY_AREA.maxX && z >= TANKS_PLAY_AREA.minZ && z <= TANKS_PLAY_AREA.maxZ)
+  );
+}
+
+/** A piece may straddle the join between the round table and the Tanks shelf when its whole reach lies on one or the other. */
+function isAcrossTanksJoin(piece: TablePiece, position: Vector3Tuple): boolean {
+  const reach = footprintTableRadius(piece);
+  for (let sample = 0; sample < JOIN_SAMPLE_COUNT; sample += 1) {
+    const angle = (sample / JOIN_SAMPLE_COUNT) * Math.PI * 2;
+    if (!isPointOnTabletop(position[0] + Math.cos(angle) * reach, position[2] + Math.sin(angle) * reach)) {
+      return false;
+    }
   }
+  return true;
+}
+
+function clampToRoundTable(piece: TablePiece, position: Vector3Tuple): Vector3Tuple {
   const maxCenterRadius = TABLE_PLAY_RADIUS - footprintTableRadius(piece);
   const distanceFromCenter = Math.hypot(position[0], position[2]);
   if (distanceFromCenter <= maxCenterRadius) {
@@ -204,10 +246,32 @@ export function clampPositionToTable(piece: TablePiece, position: Vector3Tuple):
   return [position[0] * scale, position[1], position[2] * scale];
 }
 
+function clampToTanksShelf(piece: TablePiece, position: Vector3Tuple): Vector3Tuple {
+  const reach = footprintTableRadius(piece);
+  const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
+  return [
+    clamp(position[0], TANKS_PLAY_AREA.minX + reach, TANKS_PLAY_AREA.maxX - reach),
+    position[1],
+    clamp(position[2], TANKS_PLAY_AREA.minZ + reach, TANKS_PLAY_AREA.maxZ - reach),
+  ];
+}
+
+export function clampPositionToTable(piece: TablePiece, position: Vector3Tuple): Vector3Tuple {
+  if (isSupportedPosition(piece, position)) {
+    return [...position];
+  }
+  const onTable = clampToRoundTable(piece, position);
+  const onTanks = clampToTanksShelf(piece, position);
+  const distance = (candidate: Vector3Tuple) => Math.hypot(candidate[0] - position[0], candidate[2] - position[2]);
+  return distance(onTanks) < distance(onTable) ? onTanks : onTable;
+}
+
 function isSupportedPosition(piece: TablePiece, position: Vector3Tuple): boolean {
   return (
     placementAnchorForPose(piece, position) !== null ||
-    Math.hypot(position[0], position[2]) + footprintTableRadius(piece) <= TABLE_PLAY_RADIUS
+    isOnRoundTable(piece, position) ||
+    isOnTanksShelf(piece, position) ||
+    isAcrossTanksJoin(piece, position)
   );
 }
 
