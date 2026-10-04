@@ -101,6 +101,7 @@ const publicIdentitySchema = z.object({
   connectionId: id,
   viewerSeat: seat,
   displayName: z.string().max(160),
+  avatarUrl: z.string().max(2048).nullable().optional(),
   color: z.string(),
 });
 const viewerSchema = publicIdentitySchema.extend({ userId: id });

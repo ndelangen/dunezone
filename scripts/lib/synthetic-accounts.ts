@@ -9,7 +9,9 @@ import type { ConvexHttpClient } from 'convex/browser';
 import { anyApi } from 'convex/server';
 import type { Page, WebSocket } from 'playwright';
 
-type SyntheticAccount = { email: string; password: string };
+import type { ProfileAvatar } from '../../convex/lib/profileAvatar';
+
+type SyntheticAccount = { email: string; password: string; avatar?: ProfileAvatar };
 
 /**
  * The secret Convex Auth's Password provider stores for `password` by default: Lucia's Scrypt with N 16384, r 16 and p 1, a 64-byte key, and the hex salt used as text.
@@ -44,8 +46,9 @@ const ACCOUNTS_PER_MUTATION = 6;
  */
 export async function provisionAccounts(admin: ConvexHttpClient, accounts: SyntheticAccount[]) {
   const hashed = await Promise.all(
-    accounts.map(async ({ email, password }) => ({
+    accounts.map(async ({ email, password, avatar }) => ({
       email,
+      ...(avatar ? { avatar } : {}),
       scrypt: await passwordSecret(password),
       pbkdf2: pbkdf2Secret(password),
     }))

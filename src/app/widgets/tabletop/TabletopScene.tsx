@@ -1423,7 +1423,7 @@ function SceneContents({
           <CameraRelativeFog />
         </>
       )}
-      <ScenePresence showNames={presentation !== 'preview'} />
+      <ScenePresence showNames={presentation !== 'preview'} showLocal={presentation === 'preview'} />
       <TableLights />
       <group onClick={() => selectPiece(null)}>
         <BoardSurface
