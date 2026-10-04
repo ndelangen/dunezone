@@ -364,7 +364,7 @@ function AllianceInvitation() {
         Find your allies. Form a Group to create and maintain Rulesets, factions and Assets together.
       </Text>
       <Text>Pool your ideas, debate the details, and make something worth bringing to the table.</Text>
-      <Group justify="center">
+      <Group>
         <Button renderRoot={(props) => <Link {...props} to="/groups/create" />}>Form an alliance</Button>
         <Button variant="subtle" renderRoot={(props) => <Link {...props} to="/groups" />}>
           Explore Groups
