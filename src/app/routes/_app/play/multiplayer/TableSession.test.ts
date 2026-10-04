@@ -1,5 +1,6 @@
 import { emptyBattlePlan, fixtureBattleFaces } from '@shared/play/battle';
 import { initialSnapshot, nextSnapshot } from '@shared/play/commands';
+import { PEEK_DECK_LIMIT } from '@shared/play/peeking';
 import { PHASE_CHANGE_COOLDOWN_MS } from '@shared/play/phases';
 import { tableForViewer } from '@shared/play/protocol';
 import type { ActivityChange, GameSnapshot, ServerMessage, Viewer } from '@shared/play/protocol';
@@ -1646,5 +1647,90 @@ describe('pointer moves', () => {
     vi.advanceTimersByTime(1600);
     pointerUpdate(3, { pointerMoves: [{ connectionId: 'other', position: [2, 0, 0], updatedAt: 2 }] });
     expect(table(client).phaseCooling).toBe(false);
+  });
+});
+
+describe('peeking', () => {
+  const peeked = () => {
+    const snapshot = initialSnapshot();
+    const deck = snapshot.table.pieces.find((piece) => piece.id === 'treachery-deck')!;
+    return { ...snapshot, bank: { factionId: 'harkonnen', balance: 20 }, peek: { piece: deck } };
+  };
+  const shownIds = (client: TableSession) => table(client).peek?.piece.items.map((item) => item.id);
+
+  test('a rearranged deck shows the new order until the room refuses it, and takes one change at a time', async () => {
+    const client = await connected();
+    socket().deliver(view({ snapshot: peeked() }));
+    const ids = shownIds(client)!;
+    table(client).peekControls!.arrange('treachery-deck', [3, 2, 1, 0]);
+    const arranged = command();
+    expect(arranged.action).toEqual({ kind: 'peek-arrange', pieceId: 'treachery-deck', order: [3, 2, 1, 0] });
+    expect(shownIds(client)).toEqual([...ids].reverse());
+
+    /* Its places would count from an order the room does not hold yet. */
+    const sent = socket().sent.length;
+    table(client).peekControls!.arrange('treachery-deck', [1, 0, 2, 3]);
+    table(client).peekControls!.pull('treachery-deck', 0);
+    expect(socket().sent).toHaveLength(sent);
+
+    socket().deliver({
+      type: 'rejected',
+      requestId: arranged.commandId,
+      message: 'Unlock the deck before changing it.',
+    });
+    expect(shownIds(client)).toEqual(ids);
+    table(client).peekControls!.pull('treachery-deck', 0);
+    expect(command().action).toEqual({ kind: 'peek-pull', pieceId: 'treachery-deck', index: 0 });
+  });
+
+  test('a deck over the limit sends no arrangement or pull, which the room would refuse at the door', async () => {
+    const client = await connected();
+    const snapshot = peeked();
+    const big = Array.from({ length: PEEK_DECK_LIMIT + 1 }, (_, index) => ({
+      ...snapshot.peek.piece.items[0]!,
+      id: `card-${index}`,
+    }));
+    socket().deliver(view({ snapshot: { ...snapshot, peek: { piece: { ...snapshot.peek.piece, items: big } } } }));
+    const sent = socket().sent.length;
+    table(client).peekControls!.arrange('treachery-deck', big.map((_, index) => index).reverse());
+    table(client).peekControls!.pull('treachery-deck', 0);
+    expect(socket().sent).toHaveLength(sent);
+  });
+
+  test('the room sending the deck again replaces the order asked for', async () => {
+    const client = await connected();
+    const snapshot = peeked();
+    socket().deliver(view({ snapshot }));
+    table(client).peekControls!.arrange('treachery-deck', [3, 2, 1, 0]);
+    const items = snapshot.peek.piece.items.map((item, index) => ({ ...item, id: `rekeyed-${index}` }));
+    socket().deliver(
+      view({ snapshot: { ...snapshot, revision: 1, peek: { piece: { ...snapshot.peek.piece, items } } } })
+    );
+    expect(shownIds(client)).toEqual(items.map((item) => item.id));
+  });
+
+  test('a peek can be closed while a piece is held', async () => {
+    const { client, carried } = await grantedWholeCarry();
+    const deck = initialSnapshot().table.pieces.find((piece) => piece.id === 'treachery-deck')!;
+    socket().deliver({ ...carried, snapshot: { ...carried.snapshot, peek: { piece: deck } } });
+    expect(table(client).gestureActivePieceId).not.toBeNull();
+    table(client).closePeek!();
+    expect(command().action).toEqual({ kind: 'peek-close' });
+  });
+
+  test('a peek held open when the game finishes can still be closed', async () => {
+    const client = await connected();
+    socket().deliver(
+      view({
+        snapshot: {
+          ...peeked(),
+          stage: 'finished',
+          result: { kind: 'none', factionIds: [], by: { seat: 'harkonnen', name: 'One' }, declaredAt: 1 },
+        },
+      })
+    );
+    expect(table(client).peekControls).toBeUndefined();
+    table(client).closePeek!();
+    expect(command().action).toEqual({ kind: 'peek-close' });
   });
 });

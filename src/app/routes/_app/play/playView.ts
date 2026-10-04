@@ -1,6 +1,6 @@
 import type { Vector3Tuple } from '@shared/play/model';
 import type { TablePhaseId } from '@shared/play/phases';
-import { PerspectiveCamera } from 'three';
+import { PerspectiveCamera, Vector3 } from 'three';
 
 import { mapViewFramingPoints } from './tablePlateGeometry';
 
@@ -249,6 +249,230 @@ export function cameraPoseFor(
       target[2] + basis.offset[2] * cameraScale,
     ],
   };
+}
+
+/*
+ * A close look at the board: the pose scaled about a point on the table, so that point stays under the pointer.
+ * `scale` is how far the camera is from where it would be (1 is today's view, smaller is closer), and `offset` is where the scaling moved it,
+ * so a zoomed pose is `pose * scale + offset` for both the camera and its target.
+ */
+export type CameraZoom = Readonly<{ scale: number; offset: Vector3Tuple }>;
+
+export const NO_CAMERA_ZOOM: CameraZoom = { scale: 1, offset: [0, 0, 0] };
+/* The closest look, as a share of the view's distance. The camera also turns toward top-down as it closes in, which costs some of the gain. */
+const CAMERA_ZOOM_MINIMUM_SCALE = 0.2;
+/* The nearest the orbit controls let the camera come to its target: well inside the closest look of any view, so every look's pose is reached, not clamped short of it. */
+export const CAMERA_CLOSEST_DISTANCE = 1;
+/* How far toward top-down the closest look turns: most of the way, while every wheel notch still brings the board closer. */
+const CAMERA_ZOOM_FULL_TILT = 0.85;
+/*
+ * How quickly the pan keys slide a close look, in table units per second at the view's own distance; closer looks slide slower.
+ * A held key starts at the first speed and builds to the second over the ramp; the look eases into and out of its speed.
+ */
+const CAMERA_PAN_START_SPEED = 10;
+const CAMERA_PAN_TOP_SPEED = 24;
+const CAMERA_PAN_RAMP_S = 1.2;
+const CAMERA_PAN_EASE_S = 0.12;
+/* Within this distance of the edge a close look may reach, sliding further out slows to a stop. */
+const CAMERA_PAN_EDGE_MARGIN = 1.2;
+/* Scroll distance, in pixels, that brings the camera e times closer. */
+const CAMERA_ZOOM_SCROLL_PX = 420;
+/* How far from the table's middle a close look may centre, so it never drifts off the board. */
+const CAMERA_ZOOM_TARGET_RADIUS = 5.6;
+
+function wheelPixels(deltaY: number, deltaMode: number): number {
+  const pixels = deltaY * (deltaMode === 1 ? WHEEL_LINE_PX : deltaMode === 2 ? WHEEL_PAGE_PX : 1);
+  return Number.isFinite(pixels) ? pixels : 0;
+}
+
+/** The tilt a close look adds to the player's own: none at the view's distance, turning toward top-down as the camera closes in. */
+export function cameraTiltForZoom(tilt: number, zoom: CameraZoom): number {
+  const closeness = (1 - zoom.scale) / (1 - CAMERA_ZOOM_MINIMUM_SCALE);
+  return clampCameraTilt(tilt + CAMERA_ZOOM_FULL_TILT * Math.max(0, Math.min(1, closeness)));
+}
+
+/** The pose seen through a zoom. */
+export function zoomedCameraPose(pose: CameraPose, zoom: CameraZoom): CameraPose {
+  const apply = (point: Vector3Tuple): Vector3Tuple => [
+    point[0] * zoom.scale + zoom.offset[0],
+    point[1] * zoom.scale + zoom.offset[1],
+    point[2] * zoom.scale + zoom.offset[2],
+  ];
+  return { position: apply(pose.position), target: apply(pose.target) };
+}
+
+/*
+ * The zoom after a wheel turn over `anchor`, the table point under the pointer.
+ * Zooming in scales the current pose about the anchor, so what is under the pointer stays there.
+ * Zooming out eases the offset away with the scale, so the camera always arrives back at today's view.
+ */
+function cameraZoomAfterWheel(
+  zoom: CameraZoom,
+  basePose: CameraPose,
+  anchor: Vector3Tuple,
+  deltaY: number,
+  deltaMode = 0
+): CameraZoom {
+  const step = Math.exp(-wheelPixels(deltaY, deltaMode) / CAMERA_ZOOM_SCROLL_PX);
+  const scale = Math.max(CAMERA_ZOOM_MINIMUM_SCALE, Math.min(1, zoom.scale * step));
+  if (scale >= 1) {
+    return NO_CAMERA_ZOOM;
+  }
+  let offset: Vector3Tuple;
+  if (scale <= zoom.scale) {
+    const applied = scale / zoom.scale;
+    offset = [
+      zoom.offset[0] * applied + anchor[0] * (1 - applied),
+      zoom.offset[1] * applied + anchor[1] * (1 - applied),
+      zoom.offset[2] * applied + anchor[2] * (1 - applied),
+    ];
+  } else {
+    const remaining = (1 - scale) / (1 - zoom.scale);
+    offset = [zoom.offset[0] * remaining, zoom.offset[1] * remaining, zoom.offset[2] * remaining];
+  }
+  return keepZoomOverBoard(basePose, { scale, offset });
+}
+
+/** A close look kept over the board: a target that would leave it slides back toward the middle. */
+function keepZoomOverBoard(basePose: CameraPose, zoom: CameraZoom): CameraZoom {
+  const target = zoomedCameraPose(basePose, zoom).target;
+  const distance = Math.hypot(target[0], target[2]);
+  if (distance <= CAMERA_ZOOM_TARGET_RADIUS) {
+    return zoom;
+  }
+  const excess = 1 - CAMERA_ZOOM_TARGET_RADIUS / distance;
+  return {
+    scale: zoom.scale,
+    offset: [zoom.offset[0] - target[0] * excess, zoom.offset[1], zoom.offset[2] - target[2] * excess],
+  };
+}
+
+/*
+ * The zoom after a wheel turn at a spot on the canvas, given in normalised device coordinates.
+ * `poseAt` is the view's pose at a tilt. The camera turns as it closes in, so after scaling about the point under the pointer
+ * the look is slid until that point is under the pointer again.
+ */
+export function cameraZoomAfterWheelAt(
+  zoom: CameraZoom,
+  tilt: number,
+  poseAt: (tilt: number) => CameraPose,
+  spot: Readonly<{ ndcX: number; ndcY: number; aspectRatio: number; height: number }>,
+  deltaY: number,
+  deltaMode = 0
+): CameraZoom {
+  const pointAt = (look: CameraZoom) =>
+    tablePointUnder(
+      zoomedCameraPose(poseAt(cameraTiltForZoom(tilt, look)), look),
+      spot.aspectRatio,
+      spot.ndcX,
+      spot.ndcY,
+      spot.height
+    );
+  const before = poseAt(cameraTiltForZoom(tilt, zoom));
+  const anchor = pointAt(zoom) ?? zoomedCameraPose(before, zoom).target;
+  let next = cameraZoomAfterWheel(zoom, before, anchor, deltaY, deltaMode);
+  if (next.scale >= zoom.scale) {
+    return next;
+  }
+  for (let pass = 0; pass < 3; pass++) {
+    const landed = pointAt(next);
+    if (!landed) {
+      break;
+    }
+    next = keepZoomOverBoard(poseAt(cameraTiltForZoom(tilt, next)), {
+      scale: next.scale,
+      offset: [next.offset[0] + anchor[0] - landed[0], next.offset[1], next.offset[2] + anchor[2] - landed[2]],
+    });
+  }
+  return next;
+}
+
+/** A close look's slide under the pan keys: its velocity on the table, in table units per second, and how long a key has been held. */
+export type CameraPanMotion = Readonly<{ velocity: readonly [number, number]; heldSeconds: number }>;
+
+export const CAMERA_PAN_AT_REST: CameraPanMotion = { velocity: [0, 0], heldSeconds: 0 };
+
+/*
+ * The slide after `seconds` with the pan keys pointing `direction` (x to the right, z toward the viewer; zero when none is held).
+ * Holding builds speed toward a top speed, letting go coasts to a stop, and both ease, so the look moves with a little momentum.
+ */
+export function cameraPanMotionAfter(
+  motion: CameraPanMotion,
+  zoom: CameraZoom,
+  direction: readonly [number, number],
+  seconds: number
+): CameraPanMotion {
+  const step = Math.min(Math.max(seconds, 0), 0.1);
+  const length = Math.hypot(direction[0], direction[1]);
+  const heldSeconds = length > 0 ? motion.heldSeconds + step : 0;
+  const ramp = Math.min(1, heldSeconds / CAMERA_PAN_RAMP_S);
+  const speed =
+    length > 0
+      ? zoom.scale * (CAMERA_PAN_START_SPEED + (CAMERA_PAN_TOP_SPEED - CAMERA_PAN_START_SPEED) * ramp * ramp)
+      : 0;
+  const wanted: [number, number] =
+    length > 0 ? [(direction[0] / length) * speed, (direction[1] / length) * speed] : [0, 0];
+  const share = 1 - Math.exp(-step / CAMERA_PAN_EASE_S);
+  const velocity: [number, number] = [
+    motion.velocity[0] + (wanted[0] - motion.velocity[0]) * share,
+    motion.velocity[1] + (wanted[1] - motion.velocity[1]) * share,
+  ];
+  if (length === 0 && Math.hypot(velocity[0], velocity[1]) < 0.001 * zoom.scale) {
+    return CAMERA_PAN_AT_REST;
+  }
+  return { velocity, heldSeconds };
+}
+
+/** A close look slid by its pan velocity for `seconds`; heading out past the edge it slows, so it settles there instead of hitting it. */
+export function cameraZoomAfterPanMotion(
+  zoom: CameraZoom,
+  basePose: CameraPose,
+  velocity: readonly [number, number],
+  seconds: number
+): CameraZoom {
+  if (zoom.scale >= 1) {
+    return zoom;
+  }
+  const step = Math.min(Math.max(seconds, 0), 0.1);
+  let [moveX, moveZ] = [velocity[0] * step, velocity[1] * step];
+  const target = zoomedCameraPose(basePose, zoom).target;
+  const distance = Math.hypot(target[0], target[2]);
+  if (distance > 0) {
+    const outwardX = target[0] / distance;
+    const outwardZ = target[2] / distance;
+    const outward = moveX * outwardX + moveZ * outwardZ;
+    if (outward > 0) {
+      const room = Math.max(0, Math.min(1, (CAMERA_ZOOM_TARGET_RADIUS - distance) / CAMERA_PAN_EDGE_MARGIN));
+      const slowed = outward * room;
+      moveX -= outwardX * (outward - slowed);
+      moveZ -= outwardZ * (outward - slowed);
+    }
+  }
+  return keepZoomOverBoard(basePose, {
+    scale: zoom.scale,
+    offset: [zoom.offset[0] + moveX, zoom.offset[1], zoom.offset[2] + moveZ],
+  });
+}
+
+/** The table point under a spot on the canvas, given in normalised device coordinates, on the plane at `height`. */
+export function tablePointUnder(
+  pose: CameraPose,
+  aspectRatio: number,
+  ndcX: number,
+  ndcY: number,
+  height: number
+): Vector3Tuple | null {
+  const camera = tableCamera(pose, aspectRatio);
+  const direction = new Vector3(ndcX, ndcY, 0.5).unproject(camera).sub(camera.position).normalize();
+  if (Math.abs(direction.y) < 1e-6) {
+    return null;
+  }
+  const distance = (height - camera.position.y) / direction.y;
+  if (distance <= 0) {
+    return null;
+  }
+  const point = camera.position.clone().addScaledVector(direction, distance);
+  return [point.x, point.y, point.z];
 }
 
 /** The table camera at a pose, with its matrices current for projecting and raycasting. */

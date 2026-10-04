@@ -4,6 +4,16 @@ import { describe, expect, test } from 'vitest';
 
 import type { TABLE_VIEW_OPTIONS } from './playView';
 import {
+  CAMERA_CLOSEST_DISTANCE,
+  CAMERA_PAN_AT_REST,
+  cameraPanMotionAfter,
+  cameraPoseFor as cameraPoseForCloseLook,
+  cameraZoomAfterPanMotion,
+  cameraZoomAfterWheelAt,
+  cameraTiltForZoom,
+  tablePointUnder,
+  zoomedCameraPose,
+  NO_CAMERA_ZOOM,
   cameraFogRange,
   cameraPoseFor,
   cameraTiltAfterWheel,
@@ -334,5 +344,89 @@ describe('table views', () => {
 
     expect(state.activeView).toBe('bottom');
     expect(state.cameraRevision).toBe(1);
+  });
+});
+
+describe('close look', () => {
+  const poseAt = (tilt: number) => cameraPoseForCloseLook('map', 1.6, undefined, undefined, tilt);
+  const spot = { ndcX: 0.3, ndcY: 0.2, aspectRatio: 1.6, height: 0.132 };
+  const zoomIn = (turns: number) => {
+    let zoom = NO_CAMERA_ZOOM;
+    for (let turn = 0; turn < turns; turn++) {
+      zoom = cameraZoomAfterWheelAt(zoom, 0, poseAt, spot, 100);
+    }
+    return zoom;
+  };
+  const pointUnderSpot = (zoom: typeof NO_CAMERA_ZOOM) =>
+    tablePointUnder(
+      zoomedCameraPose(poseAt(cameraTiltForZoom(0, zoom)), zoom),
+      1.6,
+      spot.ndcX,
+      spot.ndcY,
+      spot.height
+    )!;
+
+  test('the closest look of every view stays farther out than the controls allow, so its glide arrives', () => {
+    for (const view of ['map', 'left', 'right', 'bottom'] as const) {
+      for (const aspectRatio of [390 / 844, 1, 1.6, 2.4]) {
+        const viewPoseAt = (tilt: number) => cameraPoseForCloseLook(view, aspectRatio, undefined, undefined, tilt);
+        let zoom = NO_CAMERA_ZOOM;
+        for (let turn = 0; turn < 40; turn++) {
+          zoom = cameraZoomAfterWheelAt(zoom, 0, viewPoseAt, { ...spot, aspectRatio }, 100);
+        }
+        const pose = zoomedCameraPose(viewPoseAt(cameraTiltForZoom(0, zoom)), zoom);
+        const distance = new Vector3(...pose.position).distanceTo(new Vector3(...pose.target));
+        expect(distance).toBeGreaterThan(CAMERA_CLOSEST_DISTANCE * 1.5);
+      }
+    }
+  });
+
+  test('scrolling down only ever brings the board closer, keeping the point under the pointer', () => {
+    const anchor = pointUnderSpot(NO_CAMERA_ZOOM);
+    let distance = Infinity;
+    for (let turns = 1; turns <= 6; turns++) {
+      const zoom = zoomIn(turns);
+      const pose = zoomedCameraPose(poseAt(cameraTiltForZoom(0, zoom)), zoom);
+      const nextDistance = new Vector3(...pose.position).distanceTo(new Vector3(...anchor));
+      expect(nextDistance).toBeLessThan(distance);
+      distance = nextDistance;
+      const landed = pointUnderSpot(zoom);
+      expect(Math.hypot(landed[0] - anchor[0], landed[2] - anchor[2])).toBeLessThan(0.05);
+    }
+  });
+
+  test('scrolling back up returns to the view itself', () => {
+    let zoom = zoomIn(5);
+    for (let turn = 0; turn < 20; turn++) {
+      zoom = cameraZoomAfterWheelAt(zoom, 0, poseAt, spot, -100);
+    }
+    expect(zoom).toBe(NO_CAMERA_ZOOM);
+  });
+
+  test('a held pan key builds speed up to a top speed, and coasts to rest when let go', () => {
+    const zoom = zoomIn(5);
+    let motion = CAMERA_PAN_AT_REST;
+    const speeds: number[] = [];
+    for (let frame = 0; frame < 180; frame++) {
+      motion = cameraPanMotionAfter(motion, zoom, [1, 0], 1 / 60);
+      speeds.push(motion.velocity[0]);
+    }
+    expect(speeds[30]).toBeGreaterThan(speeds[5]);
+    expect(speeds[179]).toBeGreaterThan(speeds[60]);
+    expect(speeds[179] - speeds[170]).toBeLessThan(0.01);
+    for (let frame = 0; frame < 120 && motion !== CAMERA_PAN_AT_REST; frame++) {
+      motion = cameraPanMotionAfter(motion, zoom, [0, 0], 1 / 60);
+    }
+    expect(motion).toBe(CAMERA_PAN_AT_REST);
+  });
+
+  test('sliding out toward the edge slows to a stop instead of running past it', () => {
+    let zoom = zoomIn(5);
+    const base = () => poseAt(cameraTiltForZoom(0, zoom));
+    for (let frame = 0; frame < 600; frame++) {
+      zoom = cameraZoomAfterPanMotion(zoom, base(), [20 * zoom.scale, 0], 1 / 60);
+    }
+    const target = zoomedCameraPose(base(), zoom).target;
+    expect(Math.hypot(target[0], target[2])).toBeLessThanOrEqual(5.6 + 1e-6);
   });
 });

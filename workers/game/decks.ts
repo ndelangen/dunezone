@@ -36,7 +36,8 @@ type DeckTransition = {
 
 /** Initial supply and later shuffles both sever the public catalogue order. */
 export function shuffledCards(source: StoredPiece['items']): StoredPiece['items'] {
-  const items = source.map((item) => ({ ...item, faceUp: false }));
+  /* A shuffle loses track of every card, so who peeked at which is forgotten with the order. */
+  const items = source.map(({ peekedBy: _peekedBy, ...item }) => ({ ...item, faceUp: false }));
   for (let index = items.length - 1; index > 0; index--) {
     const other = randomInt(index + 1);
     [items[index], items[other]] = [items[other], items[index]];
