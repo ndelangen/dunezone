@@ -2,6 +2,7 @@ import { randomInt } from 'node:crypto';
 
 import { tableHandlingOpen } from '../../src/shared/play/admission';
 import { isBattleAction } from '../../src/shared/play/battle';
+import { isBiddingAction } from '../../src/shared/play/bidding';
 import { accepted, applyPieceAction, nextSnapshot, requireAccepted } from '../../src/shared/play/commands';
 import type { DraftAction } from '../../src/shared/play/drafting';
 import { emptyPublicControls, isPublicAction } from '../../src/shared/play/inventory';
@@ -49,6 +50,7 @@ import {
   settleCarryAtPosition,
 } from '../../src/shared/play/tableState';
 import { battleCommand } from './battle';
+import { biddingAfterTable, biddingCommand } from './bidding';
 import { concealCards, deckCommand } from './decks';
 import { dealFixtureDeck } from './fixture';
 import { setupCommand, gatherTraitors } from './setup-progress';
@@ -480,6 +482,9 @@ export class Room {
       }
       return next;
     }
+    if (isBiddingAction(action)) {
+      return biddingCommand(this.snapshot, this.requireFaction(identity), action, now);
+    }
     if (
       action.kind === 'reset' &&
       (this.snapshot.battleState || Object.values(this.snapshot.factionInventories).some((pieces) => pieces.length))
@@ -510,6 +515,7 @@ export class Room {
     const controls = this.snapshot.controls ?? emptyPublicControls();
     return {
       ...next,
+      ...biddingAfterTable(this.snapshot, next, now),
       controls: {
         ...controls,
         seats: this.seatedPlayers(),

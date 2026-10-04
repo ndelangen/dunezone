@@ -1,5 +1,6 @@
 /* @jsxImportSource ../three-jsx */
 import { useFrame } from '@react-three/fiber/webgpu';
+import { factionTokenStackKey, isFactionToken } from '@shared/play/factionToken';
 import type { GameSnapshot } from '@shared/play/protocol';
 import { BOARD_RIM_SURFACE_Y } from '@shared/play/tableGeometry';
 import { PLAYER_RING_RADIUS, tableSeatAngles } from '@shared/play/tableSettings';
@@ -112,17 +113,26 @@ function OfferArrow({ a, b, color }: Readonly<{ a: Vector3; b: Vector3; color: s
   );
 }
 
+function tokenKeys(pieces: GameSnapshot['table']['pieces']) {
+  return new Set(pieces.filter(isFactionToken).map((piece) => piece.stackKey));
+}
+
 export function SwapScene({ snapshot }: Readonly<{ snapshot: GameSnapshot }>) {
   const roster = snapshot.roster;
   const swapping = snapshot.swapping;
   const angles = useMemo(() => tableSeatAngles(roster?.seatCount ?? 6), [roster?.seatCount]);
   const positions = useMemo(() => seatPositions(roster, angles), [roster, angles]);
+  const tokens = useMemo(() => tokenKeys(snapshot.table.pieces), [snapshot.table.pieces]);
   if (!roster || !swapping) {
     return null;
   }
+  // Setup deals each faction token onto the table, replacing that seat's marker; a faction without one (or a game supplied before tokens) keeps it.
+  const seats = roster.seats.filter(
+    (seat) => snapshot.stage === 'swapping' || !seat.faction || !tokens.has(factionTokenStackKey(seat.faction.id))
+  );
   return (
     <group>
-      {roster.seats.map((seat) => (
+      {seats.map((seat) => (
         <SeatToken
           key={seat.id}
           position={positions.get(seat.id)!}

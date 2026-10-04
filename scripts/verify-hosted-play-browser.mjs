@@ -1493,8 +1493,9 @@ async function verifyRegular() {
   await visibleActivity(a, b, 'player-a-to-player-b');
   await rejectTransparentCursor(b, a);
   await visibleActivity(b, a, 'player-b-to-player-a');
-  await focus(a, 'left');
-  await focus(b, 'left');
+  /* The troop reserves stand behind each faction token, beyond the top edge of the Left view, so the carry starts in the Map view. */
+  await focus(a, 'map');
+  await focus(b, 'map');
 
   const id = troopStack(a);
   const start = await point(

@@ -285,6 +285,7 @@ export class RoomProjection {
         ...(stage ? { stage } : {}),
         ...(draft ? { draft } : {}),
         ...(swapping ? { swapping } : {}),
+        ...(snapshot.bidding ? { bidding: snapshot.bidding } : {}),
         controls: controls && {
           ...controls,
           requests: controls.requests.map((request) => ({ ...request, contents: this.contents(request.contents) })),
