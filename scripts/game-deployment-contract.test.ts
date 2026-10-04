@@ -58,6 +58,54 @@ describe('game deployment contract', () => {
     );
   });
 
+  test('requires both owned room bindings and the incremental SQLite migration', () => {
+    const config = readGameConfig();
+    expect(() =>
+      validateGameDeployContract(
+        {
+          ...config,
+          durable_objects: { bindings: [{ name: 'GAME_ROOMS', class_name: 'GameRoom' }] },
+        },
+        environment
+      )
+    ).toThrow(/Durable Object binding/);
+    expect(() =>
+      validateGameDeployContract(
+        {
+          ...config,
+          durable_objects: {
+            bindings: [
+              { name: 'GAME_ROOMS', class_name: 'GameRoom' },
+              { name: 'HOMEPAGE_ROOMS', class_name: 'GameRoom' },
+            ],
+          },
+        },
+        environment
+      )
+    ).toThrow(/Durable Object binding/);
+    expect(() =>
+      validateGameDeployContract(
+        {
+          ...config,
+          migrations: [{ tag: 'v1', new_sqlite_classes: ['GameRoom'] }],
+        },
+        environment
+      )
+    ).toThrow(/SQLite migration/);
+    expect(() =>
+      validateGameDeployContract(
+        {
+          ...config,
+          migrations: [
+            { tag: 'v1', new_sqlite_classes: ['GameRoom'] },
+            { tag: 'v2', new_classes: ['HomepageRoom'] },
+          ],
+        },
+        environment
+      )
+    ).toThrow(/SQLite migration/);
+  });
+
   test('allows only the reviewed alert email binding', () => {
     expect(() =>
       validateGameDeployContract({ ...readGameConfig(), send_email: [{ name: 'OTHER_EMAIL' }] }, environment)

@@ -168,6 +168,23 @@ describe('the public homepage table', () => {
     expect((await member.message('rejected')).requestId).toBe('after-expiry');
   });
 
+  it('keeps anonymous downgrades quiet and limits full-table requests separately from motion', async () => {
+    const guest = await visitor();
+    const observer = await visitor();
+    const received = observer.messages.length;
+    for (let n = 0; n < 60; n++) {
+      guest.send({ type: 'anonymous' });
+    }
+    await syncView(guest);
+    expect(observer.messages).toHaveLength(received);
+    for (let n = 0; n < 10; n++) {
+      guest.send({ type: 'sync' });
+    }
+    await eventually(() => guest.closed, 'control flood closed');
+    expect(guest.closeCode).toBe(1008);
+    expect(guest.messages.filter((message) => message.type === 'view').length).toBeLessThanOrEqual(9);
+  });
+
   it('resets the prepared table hourly and rejects a gesture from the previous hour', async () => {
     const member = await visitor(true);
     const before = await syncView(member);

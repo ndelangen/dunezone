@@ -61,7 +61,7 @@ export const redeemTicket = mutation({
   args: { ticket: v.string() },
   returns: zodToConvex(homepageAdmissionSchema),
   handler: async (ctx, args) => {
-    if (!homepageTicketSchema.safeParse(args.ticket).success || !(await limiter.limit(ctx, 'homepageRedeem')).ok) {
+    if (!homepageTicketSchema.safeParse(args.ticket).success) {
       return { allowed: false as const };
     }
     const digest = await playCredentialDigest(args.ticket);
@@ -78,7 +78,7 @@ export const redeemTicket = mutation({
       return { allowed: false as const };
     }
     const auth = await playSessionAuthorization(ctx, ticket.user_id, ticket.session_id);
-    if (!auth.allowed || auth.authExpiresAt <= now) {
+    if (!auth.allowed || auth.authExpiresAt <= now || !(await limiter.limit(ctx, 'homepageRedeem')).ok) {
       return { allowed: false as const };
     }
     return {

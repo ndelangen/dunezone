@@ -52,3 +52,14 @@ test('the editing lease cannot outlast the auth session', async () => {
     leaseUntil: expiry,
   });
 });
+
+test('invalid ticket traffic cannot spend a valid visitor renewal budget', async () => {
+  const { t, member } = await visitor();
+  for (let n = 0; n < 60; n++) {
+    expect(await t.mutation(api.homepageAdmission.redeemTicket, { ticket: n.toString(16).padStart(64, '0') })).toEqual({
+      allowed: false,
+    });
+  }
+  const issued = await member.mutation(api.homepageAdmission.issueTicket, {});
+  expect(await t.mutation(api.homepageAdmission.redeemTicket, issued!)).toMatchObject({ allowed: true });
+});

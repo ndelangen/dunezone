@@ -599,7 +599,14 @@ function LiveBoardPreview({ viewer }: { viewer: SessionViewer }) {
       <BoardPreview />
       {state.active && !state.failed && (
         <Suspense fallback={null}>
-          <ConnectedHomepageTable key={identity} member={member} onReady={ready} onUnavailable={unavailable} />
+          <ConnectedHomepageTable
+            key={identity}
+            member={member}
+            className={styles.liveBoard}
+            sceneClassName={styles.liveScene}
+            onReady={ready}
+            onUnavailable={unavailable}
+          />
         </Suspense>
       )}
     </div>

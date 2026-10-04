@@ -3,7 +3,12 @@ type ReadClient = { get(pathname: string): Promise<{ result: unknown; resultInfo
 const ALERT_RECIPIENT = 'ALERT_EMAIL_TO';
 const ALERT_BINDINGS = ['ALERT_EMAIL', ALERT_RECIPIENT];
 
-export type GameDriftReport = { worker: string; namespaceId: string; bindingCount: number };
+export type GameDriftReport = {
+  worker: string;
+  namespaceId: string;
+  homepageNamespaceId: string;
+  bindingCount: number;
+};
 
 function record(value: unknown, label: string): JsonRecord {
   if (value === null || typeof value !== 'object') {
@@ -149,13 +154,13 @@ function checkVariable(binding: JsonRecord, variable: { name: string; expected: 
   }
 }
 
-function checkRoomBinding(room: JsonRecord, config: JsonRecord): string {
+function checkRoomBinding(room: JsonRecord, config: JsonRecord, className: string): string {
   exact(room.type, 'durable_object_namespace', 'Durable Object binding type');
   if (typeof room.namespace_id !== 'string' || !/^[0-9a-f]{32}$/u.test(room.namespace_id)) {
     throw new Error('Game namespace ID is invalid');
   }
   for (const [field, expected] of Object.entries({
-    class_name: 'GameRoom',
+    class_name: className,
     script_name: config.name,
     environment: 'production',
   })) {
@@ -166,7 +171,7 @@ function checkRoomBinding(room: JsonRecord, config: JsonRecord): string {
   return room.namespace_id;
 }
 
-function checkBindings(settings: JsonRecord, config: JsonRecord): { namespaceId: string; bindingCount: number } {
+function checkBindings(settings: JsonRecord, config: JsonRecord): Omit<GameDriftReport, 'worker'> {
   const bindings = array(settings.bindings, 'bindings').map((value) => record(value, 'binding'));
   const names = sortedStrings(
     bindings.map((binding) => binding.name),
@@ -178,7 +183,15 @@ function checkBindings(settings: JsonRecord, config: JsonRecord): { namespaceId:
    */
   exact(
     names.filter((name) => name !== ALERT_RECIPIENT),
-    ['ALERT_EMAIL', 'APPLICATION_ORIGIN', 'CF_VERSION_METADATA', 'CONVEX_URL', 'GAME_ROOMS', 'GIT_SHA'],
+    [
+      'ALERT_EMAIL',
+      'APPLICATION_ORIGIN',
+      'CF_VERSION_METADATA',
+      'CONVEX_URL',
+      'GAME_ROOMS',
+      'GIT_SHA',
+      'HOMEPAGE_ROOMS',
+    ],
     'bindings'
   );
   for (const binding of bindings.filter((value) => ALERT_BINDINGS.includes(value.name as string))) {
@@ -191,19 +204,28 @@ function checkBindings(settings: JsonRecord, config: JsonRecord): { namespaceId:
     'version metadata'
   );
   const room = bindings.find((binding) => binding.name === 'GAME_ROOMS')!;
-  return { namespaceId: checkRoomBinding(room, config), bindingCount: bindings.length };
+  const homepage = bindings.find((binding) => binding.name === 'HOMEPAGE_ROOMS')!;
+  return {
+    namespaceId: checkRoomBinding(room, config, 'GameRoom'),
+    homepageNamespaceId: checkRoomBinding(homepage, config, 'HomepageRoom'),
+    bindingCount: bindings.length,
+  };
 }
 
-function checkOwnedNamespace(inventory: JsonRecord[], binding: Pick<GameDriftReport, 'worker' | 'namespaceId'>) {
-  const owned = inventory.filter((namespace) => namespace.script === binding.worker && namespace.class === 'GameRoom');
-  exact(owned.length, 1, 'owned GameRoom namespaces');
+function checkOwnedNamespace(
+  inventory: JsonRecord[],
+  binding: Pick<GameDriftReport, 'worker' | 'namespaceId'>,
+  className: string
+) {
+  const owned = inventory.filter((namespace) => namespace.script === binding.worker && namespace.class === className);
+  exact(owned.length, 1, `owned ${className} namespaces`);
   const [namespace] = owned;
   if (namespace!.id !== binding.namespaceId || namespace!.use_sqlite !== true) {
-    throw new Error('Game bound namespace must be the unique GameRoom SQLite namespace owned by dunezone-game');
+    throw new Error(`Game bound namespace must be the unique ${className} SQLite namespace owned by dunezone-game`);
   }
 }
 
-/** Proves the private Worker owns its bound SQLite namespace before the publisher routes traffic to it. */
+/** Proves the private Worker owns both bound SQLite namespaces before the publisher routes traffic to it. */
 export async function auditGameWorker(client: ReadClient, config: JsonRecord): Promise<GameDriftReport> {
   if (config.name !== 'dunezone-game') {
     throw new Error('Game Worker name differs from the deployment contract');
@@ -236,6 +258,7 @@ export async function auditGameWorker(client: ReadClient, config: JsonRecord): P
   const ingress = record(subdomain.result, 'workers.dev ingress');
   exact(ingress.enabled, false, 'workers.dev ingress');
   exact(ingress.previews_enabled, false, 'preview ingress');
-  checkOwnedNamespace(inventory, { worker, namespaceId: binding.namespaceId });
+  checkOwnedNamespace(inventory, { worker, namespaceId: binding.namespaceId }, 'GameRoom');
+  checkOwnedNamespace(inventory, { worker, namespaceId: binding.homepageNamespaceId }, 'HomepageRoom');
   return { worker, ...binding };
 }

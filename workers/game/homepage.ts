@@ -29,6 +29,8 @@ type Connection = {
   messages: number;
   windowAt: number;
   authenticating: boolean;
+  controlTokens: number;
+  controlUpdatedAt: number;
 };
 type Saved = { resetAt: number; snapshot: StoredSnapshot };
 const COLORS = ['#d7b65c', '#73bb9d', '#7fa8e8', '#d89481', '#c2a0e1', '#9fc774'];
@@ -53,6 +55,8 @@ export class HomepageRoom extends DurableObject<GameEnv> {
       for (const socket of ctx.getWebSockets()) {
         const connection: Connection = socket.deserializeAttachment();
         connection.authenticating = false;
+        connection.controlTokens ??= 8;
+        connection.controlUpdatedAt ??= Date.now();
         this.connections.set(socket, connection);
       }
       await this.refresh();
@@ -82,6 +86,8 @@ export class HomepageRoom extends DurableObject<GameEnv> {
       messages: 0,
       windowAt: Date.now(),
       authenticating: false,
+      controlTokens: 8,
+      controlUpdatedAt: Date.now(),
     };
     this.ctx.acceptWebSocket(socket);
     this.connections.set(socket, connection);
@@ -145,12 +151,14 @@ export class HomepageRoom extends DurableObject<GameEnv> {
   }
 
   private makeAnonymous(socket: WebSocket, connection: Connection) {
+    const changed = connection.viewer.viewerSeat !== SPECTATOR_SEAT;
     connection.generation++;
     connection.userKey = undefined;
     connection.leaseUntil = 0;
     connection.viewer = { ...connection.viewer, viewerSeat: SPECTATOR_SEAT };
     this.room.clearActivity(connection.viewer.connectionId);
     this.saveConnection(socket, connection);
+    return changed;
   }
 
   private async refresh() {
@@ -209,10 +217,12 @@ export class HomepageRoom extends DurableObject<GameEnv> {
       const editors = [...this.connections.values()].filter(
         (other) => other.leaseUntil > Date.now() && other !== connection
       );
+      let changed = false;
       if (!admission.allowed || admission.leaseUntil <= Date.now() || editors.length >= HOMEPAGE_EDITOR_LIMIT) {
-        this.makeAnonymous(socket, connection);
+        changed = this.makeAnonymous(socket, connection);
       } else {
         if (connection.userKey && connection.userKey !== admission.userKey) {
+          changed = true;
           this.room.clearActivity(connection.viewer.connectionId);
         }
         connection.userKey = admission.userKey;
@@ -221,7 +231,9 @@ export class HomepageRoom extends DurableObject<GameEnv> {
         this.saveConnection(socket, connection);
       }
       this.sendView(socket, connection);
-      this.broadcast();
+      if (changed) {
+        this.broadcast();
+      }
       await this.scheduleAlarm();
     } catch {
       /* An unavailable admission service grants no new lease. An existing lease still ends at its original deadline. */
@@ -231,6 +243,21 @@ export class HomepageRoom extends DurableObject<GameEnv> {
         this.saveConnection(socket, connection);
       }
     }
+  }
+
+  /* Full views and admission calls have a separate budget from smooth pointer and carry motion. */
+  private allowControl(socket: WebSocket, connection: Connection) {
+    const now = Date.now();
+    connection.controlTokens = Math.min(8, connection.controlTokens + (now - connection.controlUpdatedAt) / 1000);
+    connection.controlUpdatedAt = now;
+    if (connection.controlTokens < 1) {
+      socket.close(1008, 'Too many control messages.');
+      this.disconnected(socket);
+      return false;
+    }
+    connection.controlTokens--;
+    this.saveConnection(socket, connection);
+    return true;
   }
 
   async webSocketMessage(socket: WebSocket, input: string | ArrayBuffer) {
@@ -266,15 +293,22 @@ export class HomepageRoom extends DurableObject<GameEnv> {
     await this.refresh();
     const message = parsed.data;
     if (message.type === 'authenticate') {
+      if (!this.allowControl(socket, connection)) {
+        return;
+      }
       await this.authenticate(socket, connection, message.ticket);
       return;
     }
     if (message.type === 'anonymous') {
-      this.makeAnonymous(socket, connection);
-      this.broadcast();
+      if (this.makeAnonymous(socket, connection)) {
+        this.broadcast();
+      }
       return;
     }
     if (message.type === 'sync') {
+      if (!this.allowControl(socket, connection)) {
+        return;
+      }
       this.sendView(socket, connection);
       return;
     }
@@ -302,7 +336,9 @@ export class HomepageRoom extends DurableObject<GameEnv> {
       if (requestId) {
         this.send(socket, { type: 'rejected', requestId, message: error.message });
       }
-      this.sendView(socket, connection);
+      if (this.allowControl(socket, connection)) {
+        this.sendView(socket, connection);
+      }
     }
   }
 

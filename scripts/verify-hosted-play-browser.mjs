@@ -26,6 +26,7 @@ import { verifyBattles } from './verify-hosted-battles.mjs';
 import { cursorBounds, remoteCursor } from './verify-hosted-cursor.mjs';
 import { verifyDecks } from './verify-hosted-decks.mjs';
 import { browserFlows, isBrowserFlow } from './verify-hosted-flows.ts';
+import { installHomepageArtwork, verifyHomepage } from './verify-hosted-homepage.mjs';
 import { verifyPrivateSpiceReserves } from './verify-hosted-private-spice-reserves.mjs';
 import { verifyPublicControls } from './verify-hosted-public-controls.mjs';
 import { parseExpectedRenderer, rendererMismatch, rendererReport, runningChromium } from './verify-hosted-renderer.ts';
@@ -50,6 +51,7 @@ assert.ok(isBrowserFlow(values.flow), `--flow must be one of ${Object.keys(brows
 const expectedRenderer = parseExpectedRenderer(values['expect-renderer']);
 const flow = browserFlows[values.flow];
 const flows = {
+  homepage: verifyHomepage,
   regular: verifyRegular,
   'public-controls': verifyPublicControls,
   'private-spice-reserves': verifyPrivateSpiceReserves,
@@ -295,8 +297,8 @@ function holdToExpectedRenderer() {
  * Records the backend of the first table this flow opens and holds it to `--expect-renderer`.
  * The renderer initialises asynchronously and can still be doing so when the shell opens, so this reads until it names a backend or 15 s pass.
  */
-async function recordRenderer(who) {
-  const canvas = who.page.locator('.dune-play-shell canvas');
+async function recordRenderer(who, selector = '.dune-play-shell canvas') {
+  const canvas = who.page.locator(selector);
   const deadline = Date.now() + 15_000;
   let observation = await canvas.evaluate(readTableRenderer);
   while ('unidentified' in observation && Date.now() < deadline) {
@@ -332,6 +334,9 @@ async function peer(label, context) {
         await route.abort('blockedbyclient');
       }
     );
+    if (values.flow === 'homepage') {
+      await installHomepageArtwork(context);
+    }
     await context.routeWebSocket(
       (url) => !allowedSocketOrigins.has(url.origin),
       async (socket) => {
@@ -367,7 +372,8 @@ async function peer(label, context) {
       observeAdmission(state, socket);
       return;
     }
-    if (!socket.url().includes('/__play/games/')) {
+    const tableSocket = values.flow === 'homepage' ? '/__play/homepage/socket' : '/__play/games/';
+    if (!socket.url().includes(tableSocket)) {
       return;
     }
     assert.equal(new URL(socket.url()).search, '');
@@ -383,7 +389,11 @@ async function peer(label, context) {
         return;
       }
       const message = JSON.parse(frame.payload.toString());
-      state.sent.push(message.type === 'admit' ? { type: 'admit', ticketLength: message.ticket.length } : message);
+      state.sent.push(
+        message.type === 'admit' || message.type === 'authenticate'
+          ? { type: message.type, ticketLength: message.ticket.length }
+          : message
+      );
     });
     socket.on('framereceived', (frame) => {
       if (frame.payload.toString() === KEEPALIVE_PONG) {
@@ -1752,6 +1762,8 @@ try {
     focus,
     openTab,
     point,
+    tableLoaded,
+    recordRenderer,
     spiceBankShortcut,
     carrySteps: CARRY_STEPS,
     capture,

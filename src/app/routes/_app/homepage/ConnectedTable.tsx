@@ -12,7 +12,6 @@ import { TableKeyboardContext } from '@app/widgets/tabletop/TableKeyboardContext
 import { TabletopSessionProvider, useTabletopReader } from '@app/widgets/tabletop/TabletopContext';
 import { TabletopScene } from '@app/widgets/tabletop/TabletopScene';
 
-import styles from '../index.module.css';
 import { HomepageSubscription } from './HomepageSubscription';
 
 const runtime: GameRuntime = {
@@ -68,10 +67,14 @@ function KeyboardBinding({ keyboard }: { keyboard: TableKeyboard }) {
 
 export default function ConnectedTable({
   member,
+  className,
+  sceneClassName,
   onReady,
   onUnavailable,
 }: {
   member: boolean;
+  className: string;
+  sceneClassName: string;
   onReady(): void;
   onUnavailable(): void;
 }) {
@@ -91,13 +94,13 @@ export default function ConnectedTable({
     return null;
   }
   return (
-    <div className={styles.liveBoard}>
+    <div className={className}>
       <PointerSessionContext value={pointer}>
         <TableKeyboardContext value={keyboard}>
           <TabletopSessionProvider session={session}>
             <KeyboardBinding keyboard={keyboard} />
             <TabletopScene
-              className={styles.liveScene}
+              className={sceneClassName}
               presentation="preview"
               stage="play"
               tableProgress={tableProgressFor(0)}
