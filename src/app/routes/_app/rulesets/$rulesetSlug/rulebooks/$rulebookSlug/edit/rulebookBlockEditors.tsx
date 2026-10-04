@@ -1,10 +1,11 @@
 import { closestCenter, DndContext, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import type { DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { Select, Stack, TextInput } from '@mantine/core';
+import { MultiSelect, Select, Stack, TextInput } from '@mantine/core';
 import { TABLE_PHASES } from '@shared/play/phases';
 import { createRulebookLocalId, rulebookListIconSchema } from '@shared/rulebooks/contents';
 import type { RulebookBlockDraft, RulebookBlockKind } from '@shared/rulebooks/contents';
+import { rulebookReferenceTargets } from '@shared/rulebooks/projectRenderDocument';
 import { stockAssetOptions } from '@ui/content/stockAssetOptions';
 import { AssetSelect } from '@ui/control/AssetSelect';
 import { ControlBlock } from '@ui/control/ControlBlock';
@@ -44,7 +45,20 @@ type RulebookBlockEditorRegistry = {
   [Kind in RulebookBlockKind]: ComponentType<RulebookBlockEditorProps<Kind>>;
 };
 
-function TextBlockEdit({ value, onChange }: RulebookBlockEditorProps<'text'>) {
+function TextBlockEdit({ value, onChange, references }: RulebookBlockEditorProps<'text'>) {
+  const targets = references?.contents
+    ? rulebookReferenceTargets(references.contents, references.assetsById, references.factionsById)
+    : [];
+  const selected = (value.references ?? []).map((target) => `${target.pageId}/${target.blockId ?? ''}`);
+  const options = targets.map((target) => ({
+    value: `${target.pageId}/${'blockId' in target ? target.blockId : ''}`,
+    label: `${target.label} (page ${target.pageNumber})`,
+  }));
+  for (const id of selected) {
+    if (!options.some((option) => option.value === id)) {
+      options.push({ value: id, label: 'Reference unavailable' });
+    }
+  }
   return (
     <Stack gap="md">
       <ControlBlock
@@ -55,6 +69,30 @@ function TextBlockEdit({ value, onChange }: RulebookBlockEditorProps<'text'>) {
             aria-label="Name"
             value={value.name ?? ''}
             onChange={(event) => onChange({ ...value, name: event.currentTarget.value || undefined })}
+          />
+        }
+      />
+      <ControlBlock
+        title="Related rules"
+        description="Links follow their destination and show the current page number in print."
+        input={
+          <MultiSelect
+            aria-label="Related rules"
+            searchable
+            clearable
+            data={options}
+            value={selected}
+            onChange={(next) =>
+              onChange({
+                ...value,
+                references: next.length
+                  ? next.map((key) => {
+                      const [pageId, blockId] = key.split('/');
+                      return { pageId: pageId!, ...(blockId ? { blockId } : {}) };
+                    })
+                  : undefined,
+              })
+            }
           />
         }
       />

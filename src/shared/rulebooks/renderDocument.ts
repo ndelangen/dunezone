@@ -3,6 +3,8 @@ import { z } from 'zod';
 import { parseFormattedText } from '../formattedText';
 import type { NormalizedFormattedText } from '../formattedText';
 import {
+  rulebookHeadingIconSchema,
+  rulebookIllustrationSizeSchema,
   assetExplainerBlockSchema,
   assetExplainerItemSchema,
   duplicateValues,
@@ -73,6 +75,15 @@ const renderBlockSchemas = {
     ...renderBlockBase,
     kind: z.literal('text'),
     name: z.string().optional(),
+    references: z
+      .array(
+        z.strictObject({
+          label: z.string(),
+          anchor: z.string().optional(),
+          pageNumber: z.number().int().positive().optional(),
+        })
+      )
+      .optional(),
     text: renderFormattedTextSchema,
   }),
   'section-heading': z.strictObject({
@@ -105,6 +116,7 @@ const renderBlockSchemas = {
   'referenced-illustration': z.strictObject({
     ...renderBlockBase,
     kind: z.literal('referenced-illustration'),
+    size: rulebookIllustrationSizeSchema.optional(),
     source: rulebookResolvedSourceSchema,
     caption: z.string(),
   }),
@@ -134,6 +146,8 @@ const renderBlockSchemas = {
     ...renderBlockBase,
     kind: z.literal('card-entry'),
     ...renderCardGuideFields,
+    name: z.string().optional(),
+    size: rulebookIllustrationSizeSchema.optional(),
   }),
   'card-group': z.strictObject({
     ...renderBlockBase,
@@ -228,6 +242,7 @@ type RenderPage<Layout extends RulebookLayout = RulebookLayout> = Layout extends
       controlValues: RenderControlValues<Layout>;
       regions: RenderRegions<Layout['regions']>;
       showHeading: boolean;
+      headingIcon?: z.infer<typeof rulebookHeadingIconSchema>;
     }
   : never;
 
@@ -270,6 +285,7 @@ function renderPageSchema<const Layout extends RulebookLayout>(layout: Layout) {
     anchor: rulebookAnchorSchema,
     title: z.string(),
     showHeading: z.boolean().default(true),
+    headingIcon: rulebookHeadingIconSchema.optional(),
     layoutId: z.literal(layout.id),
     controlValues: renderControlValuesSchema(layout),
     regions: renderRegionsSchema(layout),

@@ -27,6 +27,48 @@ function ready(value: RulebookEditorResult | { readonly result: RulebookEditorRe
 }
 
 describe('Rulebook editor state manager', () => {
+  it('saves title icons, related rules and stock component artwork through the editor intent pipeline', () => {
+    const manager = createRulebookEditorStateManager(createCleanSavedRevision());
+    const draft = structuredClone(ready(manager).draft);
+    const page = draft.pagesById.RULE!;
+    page.headingIcon = '/vector/icon/combat.svg';
+    const text = page.blocksById.TEXT!;
+    if (text.kind !== 'text') {
+      throw new Error('Expected text fixture');
+    }
+    text.references = [{ pageId: 'REFS', blockId: 'TEXT' }];
+    page.blocksById.ASST = {
+      id: 'ASST',
+      kind: 'card-entry',
+      name: 'Shield',
+      size: 'small',
+      source: { kind: 'stock', artworkId: '/vector/decal/shield.svg' },
+      text: 'Stops a projectile weapon.',
+    };
+    manager.dispatch({ kind: 'replace-draft', draft });
+    const request = ready(manager.dispatch({ kind: 'begin-save' })).saveRequest!;
+    expect(request.contents.pagesById.RULE).toMatchObject({
+      headingIcon: page.headingIcon,
+      blocksById: {
+        TEXT: { references: text.references },
+        ASST: { name: 'Shield', size: 'small', source: { kind: 'stock', artworkId: '/vector/decal/shield.svg' } },
+      },
+    });
+    manager.dispatch({ kind: 'save-succeeded', saved: { revision: 'revision-2', contents: request.contents } });
+    const edited = structuredClone(ready(manager).draft);
+    const entry = edited.pagesById.RULE!.blocksById.ASST!;
+    if (entry.kind !== 'card-entry') {
+      throw new Error('Expected saved component entry');
+    }
+    entry.name = 'Storm marker';
+    entry.size = 'large';
+    entry.source = { kind: 'stock', artworkId: '/vector/icon/storrm_standalone.svg' };
+    manager.dispatch({ kind: 'replace-draft', draft: edited });
+    expect(
+      ready(manager.dispatch({ kind: 'begin-save' })).saveRequest?.contents.pagesById.RULE?.blocksById.ASST
+    ).toMatchObject({ name: 'Storm marker', size: 'large', text: 'Stops a projectile weapon.', source: entry.source });
+  });
+
   it('saves nested marks in their canonical form now that normalisation holds still', () => {
     const manager = createRulebookEditorStateManager(createCleanSavedRevision());
     const draft = structuredClone(ready(manager).draft);

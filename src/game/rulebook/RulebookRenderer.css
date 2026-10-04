@@ -1223,3 +1223,62 @@
   font-size: calc(3.3 * var(--rulebook-mm));
   font-style: italic;
 }
+
+.rulebookInterior > header h1:has(.rulebookHeadingIcon) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: calc(3 * var(--rulebook-mm));
+}
+
+.rulebookHeadingIcon {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: calc(8 * var(--rulebook-mm));
+  height: calc(8 * var(--rulebook-mm));
+  border: calc(0.3 * var(--rulebook-mm)) solid currentColor;
+  border-radius: 50%;
+  background: #fffaee;
+}
+
+.rulebookHeadingIcon img {
+  width: 75%;
+  height: 75%;
+  object-fit: contain;
+}
+
+.rulebookReferencedIllustration[data-illustration-size="small"] img {
+  max-height: calc(32 * var(--rulebook-mm));
+}
+.rulebookReferencedIllustration[data-illustration-size="medium"] img {
+  max-height: calc(60 * var(--rulebook-mm));
+}
+.rulebookReferencedIllustration[data-illustration-size="large"] img {
+  max-height: calc(90 * var(--rulebook-mm));
+}
+.rulebookCardGuide[data-illustration-size="small"] {
+  grid-template-columns: minmax(0, min(32 * var(--rulebook-mm), 35%)) minmax(0, 1fr);
+}
+.rulebookCardGuide[data-illustration-size="large"] {
+  grid-template-columns: minmax(0, min(90 * var(--rulebook-mm), 50%)) minmax(0, 1fr);
+}
+.rulebookCardGuide .rulebookSourceVisual[data-rulebook-source-kind="stock"],
+.rulebookCardGuide .rulebookSourceVisual[data-rulebook-source-kind="faction"] {
+  aspect-ratio: 1;
+}
+.rulebookTextReferences {
+  font-size: calc(3.5 * var(--rulebook-mm));
+}
+.rulebookTextReferences a {
+  color: #24465b;
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+.rulebookCardGuide[data-illustration-size="medium"] {
+  grid-template-columns: minmax(0, min(60 * var(--rulebook-mm), 40%)) minmax(0, 1fr);
+}
+.rulebookCardGuide[data-illustration-size] .rulebookSourceVisual {
+  aspect-ratio: 1;
+}

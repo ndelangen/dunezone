@@ -62,9 +62,9 @@ export const CardEntry = meta.story({
     const canvas = within(canvasElement);
     const guidance = canvas.getByRole('textbox', { name: 'Guidance' });
     const original = (guidance as HTMLTextAreaElement).value;
-    await userEvent.click(canvas.getByRole('button', { name: 'Clear Card' }));
+    await userEvent.click(canvas.getByRole('button', { name: 'Clear source' }));
     await expect(guidance).toHaveValue(original);
-    await expect(canvas.getByRole('button', { name: 'Choose Card' })).toBeVisible();
+    await expect(canvas.getByRole('button', { name: 'Choose source' })).toBeVisible();
     await userEvent.clear(canvas.getByRole('textbox', { name: 'Quantity' }));
     await expect(canvas.getByRole('textbox', { name: 'Quantity' })).toHaveValue('');
   },

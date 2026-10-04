@@ -54,7 +54,7 @@ import type {
 import { RULEBOOK_EDITION_ARTIFACT_KINDS } from '@shared/rulebooks/editionArtifacts';
 import type { RulebookEditionArtifactKind } from '@shared/rulebooks/editionArtifacts';
 import { rulebookNameSchema } from '@shared/rulebooks/metadata';
-import { projectRulebookDraftRenderPage } from '@shared/rulebooks/projectRenderDocument';
+import { projectRulebookDraftRenderPage, rulebookReferenceTargets } from '@shared/rulebooks/projectRenderDocument';
 import type { RulebookResolvedAssetsById, RulebookResolvedFactionsById } from '@shared/rulebooks/projectRenderDocument';
 import { collectRulebookReferenceIds } from '@shared/rulebooks/references';
 import { getRulebookSize } from '@shared/rulebooks/settings';
@@ -471,6 +471,7 @@ const noClipping: RulebookPageClipping = { blocks: [], footerFields: [] };
  */
 const ClippingMeasurementPage = memo(
   function ClippingMeasurementPage({
+    contents,
     page,
     settings,
     pageNumber,
@@ -479,6 +480,7 @@ const ClippingMeasurementPage = memo(
     enabled,
     onMeasure,
   }: Readonly<{
+    contents: RulebookContentsDraftV1;
     page: RulebookPageDraft;
     settings: RulebookSettings;
     pageNumber: number;
@@ -489,8 +491,8 @@ const ClippingMeasurementPage = memo(
   }>) {
     const rootRef = useRef<HTMLDivElement>(null);
     const rendered = useMemo(
-      () => projectRulebookDraftRenderPage(page, assetsById, factionsById),
-      [assetsById, factionsById, page]
+      () => projectRulebookDraftRenderPage(page, assetsById, factionsById, contents),
+      [assetsById, factionsById, page, contents]
     );
 
     useLayoutEffect(() => {
@@ -557,7 +559,8 @@ const ClippingMeasurementPage = memo(
     deepEqual(previous.settings, next.settings) &&
     deepEqual(previous.assetsById, next.assetsById) &&
     deepEqual(previous.factionsById, next.factionsById) &&
-    deepEqual(previous.page, next.page)
+    deepEqual(previous.page, next.page) &&
+    deepEqual(rulebookReferenceTargets(previous.contents), rulebookReferenceTargets(next.contents))
 );
 
 function withPageMeasurement(
@@ -1195,7 +1198,8 @@ function blockEditorPanel(
   block: RulebookBlockDraft,
   replaceBlock: (block: RulebookBlockDraft) => void,
   factionsById: RulebookResolvedFactionsById,
-  assetsById: RulebookResolvedAssetsById
+  assetsById: RulebookResolvedAssetsById,
+  contents: RulebookContentsDraftV1
 ) {
   const anchorControl = (
     <ControlBlock
@@ -1246,7 +1250,13 @@ function blockEditorPanel(
       break;
     }
     case 'text':
-      editor = <rulebookBlockEditors.text value={block} onChange={change} />;
+      editor = (
+        <rulebookBlockEditors.text
+          value={block}
+          onChange={change}
+          references={{ assetsById, factionsById, contents }}
+        />
+      );
       break;
     case 'section-heading': {
       const Edit = rulebookBlockEditors['section-heading'];
@@ -1388,8 +1398,10 @@ function RulebookWorkspace({
       : activePage;
   const previewPage = useMemo(
     () =>
-      projectedActivePage ? projectRulebookDraftRenderPage(projectedActivePage, assetsById, factionsById) : undefined,
-    [assetsById, factionsById, projectedActivePage]
+      projectedActivePage
+        ? projectRulebookDraftRenderPage(projectedActivePage, assetsById, factionsById, result.draft)
+        : undefined,
+    [assetsById, factionsById, projectedActivePage, result.draft]
   );
   const { clipped, previewRef, receiveMeasurement } = useRulebookClipping(
     result.draft.pageOrder,
@@ -1756,6 +1768,7 @@ function RulebookWorkspace({
           anchor: page.anchor,
           title: page.title,
           showHeading: page.showHeading,
+          headingIcon: page.headingIcon,
         }}
         diagnostics={{
           anchor: pageDiagnostic('anchor'),
@@ -1787,7 +1800,7 @@ function RulebookWorkspace({
       controlRegionPanel(page, active.regionKey, replacePage, factionsById)
     ) : (
       <Stack gap="md">
-        {blockEditorPanel(page.blocksById[active.blockId]!, replaceBlock, factionsById, assetsById)}
+        {blockEditorPanel(page.blocksById[active.blockId]!, replaceBlock, factionsById, assetsById, result.draft)}
         <Group justify="flex-end">
           <ConfirmDeleteAction
             key={active.blockId}
@@ -1996,6 +2009,7 @@ function RulebookWorkspace({
                 const measurementPage = result.draft.pagesById[measurementPageId];
                 return measurementPage ? (
                   <ClippingMeasurementPage
+                    contents={result.draft}
                     page={measurementPage}
                     settings={settings}
                     pageNumber={index + 1}
