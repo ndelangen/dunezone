@@ -9,12 +9,14 @@ import {
   battleResultSchema,
   battleFaceSchema,
 } from './battle';
+import { biddingActionSchema, biddingStateSchema } from './bidding';
 import { conversationMessageSchema, conversationSummarySchema, conversationTextSchema } from './conversations';
 import { draftActionSchema, draftStateSchema } from './drafting';
 import { publicControlsSchema, publicActionSchema, spawnSelectionSchema, spawnContentsSchema } from './inventory';
 import { logEntrySchema, logTabSchema } from './log';
 import type { TableState } from './model';
 import { seatActionSchema } from './participation';
+import { peekActionSchema, peekSchema } from './peeking';
 import { TABLE_PHASES } from './phases';
 import type { TablePhaseId } from './phases';
 import { removalActionSchema, removalVoteSchema } from './removal';
@@ -79,9 +81,13 @@ export const gameSnapshotSchema = z.object({
   controls: publicControlsSchema.optional(),
   /* The glossary term is "spice reserve" (see CONTEXT.md); the `bank` field is kept for the protocol and recorded frames. */
   bank: spiceReserveSchema.optional(),
+  /* The bidder during the Bidding phase; absent until a game first reaches it. */
+  bidding: biddingStateSchema.optional(),
   battle: publicBattleSchema.nullable().optional(),
   battlePlan: battlePlanSchema.nullable().optional(),
   hand: z.array(pieceSchema).optional(),
+  /* The piece the viewer's faction is peeking at, faces showing; no other viewer's frame carries it. */
+  peek: peekSchema.nullable().optional(),
   factionArtwork: factionArtworkSchema.optional(),
   /* Wire key, kept as `combatFaces` for clients and recordings; the glossary says battle. */
   combatFaces: z.record(z.string(), z.array(battleFaceSchema)).optional(),
@@ -131,6 +137,7 @@ const deckActionSchema = z.discriminatedUnion('kind', [
 export type DeckAction = z.infer<typeof deckActionSchema>;
 const pieceActionSchema = z.discriminatedUnion('kind', [
   ...battleActionSchema.options,
+  ...biddingActionSchema.options,
   ...spiceReserveActionSchema.options,
   ...publicActionSchema.options,
   ...seatActionSchema.options,
@@ -141,6 +148,7 @@ const pieceActionSchema = z.discriminatedUnion('kind', [
   ...setupActionSchema.options,
   ...tableActionSchema.options,
   ...deckActionSchema.options,
+  ...peekActionSchema.options,
 ]);
 export type PieceAction = z.infer<typeof pieceActionSchema>;
 export const clientMessageSchema = z.discriminatedUnion('type', [

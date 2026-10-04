@@ -206,3 +206,40 @@ describe('number-key stack draws', () => {
     expect(controls.splitSelected.mock.calls).toEqual([[1, 'harkonnen-force-stack']]);
   });
 });
+
+describe('a peeked card moved with the arrow keys', () => {
+  test('moves the card and leaves the zoomed table where it is', () => {
+    const { keyboard } = table();
+    keyboard.setPanAvailable(true);
+    document.body.innerHTML = '<div role="button" tabindex="0" data-card></div>';
+    const card = document.querySelector<HTMLElement>('[data-card]')!;
+    card.addEventListener('keydown', (event) => event.preventDefault());
+
+    key('keydown', { key: 'ArrowRight', code: 'ArrowRight' }, card);
+    expect(keyboard.panDirection()).toEqual([0, 0]);
+
+    key('keydown', { key: 'ArrowRight', code: 'ArrowRight' });
+    expect(keyboard.panDirection()).not.toEqual([0, 0]);
+  });
+});
+
+describe('a held pan key', () => {
+  test('stops panning when its physical key comes up, whatever it types by then', () => {
+    const { keyboard } = table();
+    keyboard.setPanAvailable(true);
+    key('keydown', { key: 'w', code: 'KeyW' });
+    expect(keyboard.panDirection()).toEqual([0, -1]);
+    /* macOS: Option held after W makes the same key come up as "∑". */
+    key('keyup', { key: '∑', code: 'KeyW', altKey: true });
+    expect(keyboard.panDirection()).toEqual([0, 0]);
+  });
+
+  test('pans by what the key types, so a layout where Z sits on KeyW still pans with its own W', () => {
+    const { keyboard } = table();
+    keyboard.setPanAvailable(true);
+    key('keydown', { key: 'w', code: 'KeyZ' });
+    expect(keyboard.panDirection()).toEqual([0, -1]);
+    key('keyup', { key: 'w', code: 'KeyZ' });
+    expect(keyboard.panDirection()).toEqual([0, 0]);
+  });
+});

@@ -213,8 +213,8 @@ export const ToolbarKeepsLabelsOn = meta.story({
   },
 });
 
-/* The wheel over the board tilts the camera toward top-down and back; Ctrl with the wheel stays the browser's zoom. */
-export const WheelTiltsTheCamera = meta.story({
+/* The wheel over the board moves in for a close look and backs out to the view's own pose; Ctrl with the wheel stays the browser's zoom. */
+export const WheelTakesACloseLook = meta.story({
   beforeEach: install(() => productTransport()),
   play: async ({ canvasElement }) => {
     const { shell, document } = await tablePage(canvasElement);
@@ -222,29 +222,41 @@ export const WheelTiltsTheCamera = meta.story({
     /* The deck's tag follows the camera, so its placement shows where the camera stands. */
     const deckPlacement = () =>
       document.querySelector('[data-piece-id="treachery-deck"]')?.closest('div')?.parentElement?.style.transform;
+    const box = canvas.getBoundingClientRect();
     const turnWheel = (deltaY: number, ctrlKey = false) => {
-      const event = new WheelEvent('wheel', { deltaY, ctrlKey, bubbles: true, cancelable: true });
+      const event = new WheelEvent('wheel', {
+        deltaY,
+        ctrlKey,
+        bubbles: true,
+        cancelable: true,
+        clientX: box.left + box.width / 2,
+        clientY: box.top + box.height / 2,
+      });
       canvas.dispatchEvent(event);
       return event.defaultPrevented;
     };
     const approved = deckPlacement();
     expect(approved).toBeTruthy();
 
-    expect(turnWheel(600, true)).toBe(false);
-    expect(turnWheel(600)).toBe(true);
+    expect(turnWheel(300, true)).toBe(false);
+    expect(turnWheel(300)).toBe(true);
     await waitFor(() => expect(deckPlacement()).not.toBe(approved));
-    const topDown = deckPlacement();
-    /* Past either end the tilt holds. */
-    turnWheel(600);
-    await new Promise((resolve) => setTimeout(resolve, 100));
-    expect(deckPlacement()).toBe(topDown);
+    const closer = deckPlacement();
+    turnWheel(300);
+    await waitFor(() => expect(deckPlacement()).not.toBe(closer));
 
-    turnWheel(-600);
+    /* Backing out ends at the view's own pose, and holds there however far the wheel turns. */
+    for (let turn = 0; turn < 4; turn++) {
+      turnWheel(-600);
+    }
     await waitFor(() => expect(deckPlacement()).toBe(approved));
+    turnWheel(-600);
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect(deckPlacement()).toBe(approved);
   },
 });
 
-/* Two fingers dragged up over the board tilt the camera toward top-down, and dragged down tilt it back, as the wheel does. */
+/* Two fingers dragged up over the board tilt the camera toward top-down, and dragged down tilt it back. */
 export const TwoFingersTiltTheCamera = meta.story({
   beforeEach: install(() => productTransport()),
   play: async ({ canvasElement }) => {

@@ -2,6 +2,7 @@ import { randomInt } from 'node:crypto';
 
 import { tableHandlingOpen } from '../../src/shared/play/admission';
 import { isBattleAction } from '../../src/shared/play/battle';
+import { isBiddingAction } from '../../src/shared/play/bidding';
 import { accepted, applyPieceAction, nextSnapshot, requireAccepted } from '../../src/shared/play/commands';
 import type { DraftAction } from '../../src/shared/play/drafting';
 import { emptyPublicControls, isPublicAction } from '../../src/shared/play/inventory';
@@ -10,6 +11,7 @@ import { gestureBlockReason } from '../../src/shared/play/model';
 import type { DraftMove, TablePiece, TableState, Vector3Tuple } from '../../src/shared/play/model';
 import { seatSubject } from '../../src/shared/play/participation';
 import type { SeatAction } from '../../src/shared/play/participation';
+import { isPeekAction } from '../../src/shared/play/peeking';
 import {
   PHASE_CHANGE_COOLDOWN_MS,
   phaseAt,
@@ -49,8 +51,10 @@ import {
   settleCarryAtPosition,
 } from '../../src/shared/play/tableState';
 import { battleCommand } from './battle';
+import { biddingAfterTable, biddingCommand } from './bidding';
 import { concealCards, deckCommand } from './decks';
 import { dealFixtureDeck } from './fixture';
+import { closeLostPeeks, forgetPeekers, peekCommand } from './peeks';
 import { setupCommand, gatherTraitors } from './setup-progress';
 import { storedSnapshotSchema } from './state';
 import type { StoredSnapshot } from './state';
@@ -80,6 +84,8 @@ type CarryInput<T extends 'begin' | 'pose' | 'take'> = Omit<Extract<ClientMessag
 const REVISION_TOLERANT_ACTIONS = new Set<string>([
   'spice-spawn',
   'deck-draw',
+  'peek',
+  'peek-close',
   'battle-claim',
   'battle-plan',
   'battle-ready',
@@ -127,7 +133,14 @@ function samePlace(before: GameSnapshot, after: GameSnapshot) {
 const SETTLED_ACTIONS = new Set<string>([...READINESS_ACTIONS, 'seat-request', 'seat-withdraw']);
 
 export class Room {
-  public snapshot: StoredSnapshot;
+  private current!: StoredSnapshot;
+  /** The room's table. Every state it takes, accepted, restored or re-rostered, closes the peeks whose piece changed since their grant. */
+  get snapshot(): StoredSnapshot {
+    return this.current;
+  }
+  set snapshot(snapshot: StoredSnapshot) {
+    this.current = closeLostPeeks(snapshot);
+  }
   readonly epoch = crypto.randomUUID();
   /** The revision of the last commit that changed more than who is ready. */
   private settledRevision: number;
@@ -399,8 +412,8 @@ export class Room {
   }
 
   private assertActionStage(action: PieceAction) {
-    /* A finished game leaves the table as it was; a locked prediction can still be revealed. */
-    if (this.snapshot.stage === 'finished' && action.kind === 'prediction-reveal') {
+    /* A finished game leaves the table as it was; a locked prediction can still be revealed, and a peek can still be closed. */
+    if (this.snapshot.stage === 'finished' && ['prediction-reveal', 'peek-close'].includes(action.kind)) {
       return;
     }
     this.assertTableAvailable();
@@ -414,6 +427,10 @@ export class Room {
         'rotate',
         'deck-draw',
         'deck-shuffle',
+        'peek',
+        'peek-close',
+        'peek-arrange',
+        'peek-pull',
         'hand-take',
         'hand-play',
         'bank-withdraw',
@@ -439,6 +456,12 @@ export class Room {
   }
 
   command(identity: Identity, action: RoomAction, expectedRevision: number, now = Date.now()): StoredSnapshot {
+    const next = this.applyCommand(identity, action, expectedRevision, now);
+    /* A new phase forgets who peeked at what, and closes every peek. */
+    return next.phase === this.snapshot.phase ? next : forgetPeekers(next);
+  }
+
+  private applyCommand(identity: Identity, action: RoomAction, expectedRevision: number, now: number): StoredSnapshot {
     this.assertActionStage(action);
     this.assertCommand(identity, action, expectedRevision);
     /* The turn moves only through the phases, so Mentat pause always asks everyone to be ready (#1683); an older client may still send this. */
@@ -458,6 +481,9 @@ export class Room {
     if (action.kind === 'deck-draw' || action.kind === 'deck-shuffle') {
       const factionId = this.requireFaction(identity);
       return deckCommand(this.snapshot, factionId, action);
+    }
+    if (isPeekAction(action)) {
+      return peekCommand(this.snapshot, this.requireFaction(identity), action);
     }
     if (isBattleAction(action)) {
       const factionId = this.requireFaction(identity);
@@ -479,6 +505,9 @@ export class Room {
         );
       }
       return next;
+    }
+    if (isBiddingAction(action)) {
+      return biddingCommand(this.snapshot, this.requireFaction(identity), action, now);
     }
     if (
       action.kind === 'reset' &&
@@ -510,6 +539,7 @@ export class Room {
     const controls = this.snapshot.controls ?? emptyPublicControls();
     return {
       ...next,
+      ...biddingAfterTable(this.snapshot, next, now),
       controls: {
         ...controls,
         seats: this.seatedPlayers(),

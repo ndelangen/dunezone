@@ -24,9 +24,26 @@ type Binding = {
   read(): Controls;
 };
 
+/* The keys that slide a close look of the board, as a direction on the table: x to the right, z toward the viewer. */
+const PAN_KEYS: Record<string, readonly [number, number]> = {
+  w: [0, -1],
+  arrowup: [0, -1],
+  s: [0, 1],
+  arrowdown: [0, 1],
+  a: [-1, 0],
+  arrowleft: [-1, 0],
+  d: [1, 0],
+  arrowright: [1, 0],
+};
+
 /* A digit is the character typed, like every other table shortcut, so AZERTY's top row gives digits only with Shift. */
 function digitOf(event: KeyboardEvent) {
   return /^\d$/.test(event.key) ? Number(event.key) : null;
+}
+
+/* The key on the keyboard, or what it types when the browser does not say which key it is. */
+function physicalKey(event: KeyboardEvent) {
+  return event.code && event.code !== 'Unidentified' ? event.code : event.key.toLowerCase();
 }
 
 function hasModifier(event: KeyboardEvent) {
@@ -37,7 +54,7 @@ function hasModifier(event: KeyboardEvent) {
  * What the keyboard has reached on purpose: a control or a link.
  * A focusable region such as the conversation history, and an open piece menu, are left out: the keys keep working over the table while either has focus.
  */
-const FOCUSED_CONTROL = "button, a[href], [role='separator']";
+const FOCUSED_CONTROL = "button, a[href], [role='button'], [role='separator']";
 
 /*
  * A focused text field keeps its keys from the table.
@@ -64,6 +81,10 @@ export class TableKeyboard {
   private drawTimer: ReturnType<typeof setTimeout> | null = null;
   private drawDigit: number | null = null;
   private drawCode = '';
+  private panAvailable = false;
+  /* The held pan keys, by the physical key that went down, with the direction it typed then. */
+  private readonly panHeld = new Map<string, string>();
+  private readonly panListeners = new Set<() => void>();
 
   bind(binding: Binding) {
     this.release();
@@ -71,12 +92,48 @@ export class TableKeyboard {
     binding.events.addEventListener('keydown', this.keyDown);
     binding.events.addEventListener('keyup', this.keyUp);
     binding.events.addEventListener('blur', this.cancelDraw);
+    binding.events.addEventListener('blur', this.releasePan);
     return () => {
       if (this.binding === binding) {
         this.release();
       }
     };
   }
+
+  /** The camera reports here whether a close look is open, which is when the pan keys slide it. */
+  setPanAvailable(available: boolean) {
+    this.panAvailable = available;
+    if (!available) {
+      this.releasePan();
+    }
+  }
+
+  /** The direction the held pan keys point, on the table: x to the right, z toward the viewer. */
+  panDirection(): [number, number] {
+    let x = 0;
+    let z = 0;
+    for (const key of new Set(this.panHeld.values())) {
+      x += PAN_KEYS[key][0];
+      z += PAN_KEYS[key][1];
+    }
+    return [Math.sign(x), Math.sign(z)];
+  }
+
+  /** Hears the pan keys going down or up, so a camera that draws on demand can start drawing. */
+  onPanChange(listener: () => void) {
+    this.panListeners.add(listener);
+    return () => {
+      this.panListeners.delete(listener);
+    };
+  }
+
+  private releasePan = () => {
+    if (this.panHeld.size === 0) {
+      return;
+    }
+    this.panHeld.clear();
+    this.panListeners.forEach((listener) => listener());
+  };
 
   /** The spice disc reports its hover here, and while it holds, a digit spawns spice instead of drawing. */
   hoverSpiceBank(hovered: boolean) {
@@ -89,6 +146,8 @@ export class TableKeyboard {
       return;
     }
     this.cancelDraw();
+    this.releasePan();
+    binding.events.removeEventListener('blur', this.releasePan);
     binding.events.removeEventListener('keydown', this.keyDown);
     binding.events.removeEventListener('keyup', this.keyUp);
     binding.events.removeEventListener('blur', this.cancelDraw);
@@ -97,7 +156,11 @@ export class TableKeyboard {
 
   private keyDown = (event: KeyboardEvent) => {
     const controls = this.binding?.read();
-    if (!controls || hasModifier(event)) {
+    /* A key a control already answered, such as an arrow moving a peeked card, is not the table's. */
+    if (!controls || hasModifier(event) || event.defaultPrevented) {
+      return;
+    }
+    if (this.panKeyDown(event)) {
       return;
     }
     const digit = digitOf(event);
@@ -111,8 +174,28 @@ export class TableKeyboard {
     }
   };
 
+  /* A pan key held while a close look is open slides it; a focused control keeps its arrow keys, as a tab list does, while only a text field keeps the letters. */
+  private panKeyDown(event: KeyboardEvent) {
+    const panKey = event.key.toLowerCase();
+    const panFocus = panKey.startsWith('arrow') ? 'table' : 'spiceBank';
+    if (!this.panAvailable || !(panKey in PAN_KEYS) || focusKeepsKey(event.target, panFocus)) {
+      return false;
+    }
+    event.preventDefault();
+    const held = physicalKey(event);
+    if (!this.panHeld.has(held)) {
+      this.panHeld.set(held, panKey);
+      this.panListeners.forEach((listener) => listener());
+    }
+    return true;
+  }
+
   /* The physical key that started the draw ends it, whatever it types by then, as AZERTY's Shift+& does coming up as "&" once Shift is let go; without a code, the typed digit still does. */
   private keyUp = (event: KeyboardEvent) => {
+    /* The physical key ends its pan, whatever it types by then: macOS's Option turns a held W into "∑" before it comes up. */
+    if (this.panHeld.delete(physicalKey(event))) {
+      this.panListeners.forEach((listener) => listener());
+    }
     const sameKey = this.drawCode !== '' && event.code === this.drawCode;
     if (this.drawDigit !== null && (sameKey || digitOf(event) === this.drawDigit)) {
       this.cancelDraw();

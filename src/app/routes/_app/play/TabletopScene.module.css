@@ -18,3 +18,140 @@
   text-align: center;
   color: var(--mantine-color-text);
 }
+
+/* A piece held up to the eye with Alt: flat, large, beside the pointer. */
+.closeUp {
+  position: fixed;
+  z-index: 30;
+  display: grid;
+  gap: var(--space-xs);
+  justify-items: center;
+  padding: var(--space-sm);
+  pointer-events: none;
+  background: rgb(12 10 8 / 88%);
+  border: 1px solid rgb(255 255 255 / 14%);
+  border-radius: 14px;
+  box-shadow: 0 18px 48px rgb(0 0 0 / 55%);
+}
+
+/* A disc token sits in a round frame, with its count on the frame's lower edge. */
+.closeUp[data-round] {
+  border-radius: 50%;
+}
+
+.closeUp[data-round] .closeUpCount {
+  position: absolute;
+  bottom: var(--space-xs);
+  left: 50%;
+  padding: 0 var(--space-xs);
+  background: rgb(12 10 8 / 88%);
+  border-radius: 999px;
+  transform: translateX(-50%);
+}
+
+.closeUpCount {
+  font-size: var(--mantine-font-size-sm);
+  font-variant-numeric: tabular-nums;
+  color: #f4e6c8;
+}
+
+/* A peek, held up to the peeker alone: flat faces over the table, as a close look shows them. */
+.peek {
+  position: absolute;
+  top: 58%;
+  left: 50%;
+  z-index: 30;
+  display: grid;
+  gap: var(--space-sm);
+  max-width: calc(100% - 2 * var(--space-md));
+  padding: var(--space-sm) var(--space-md) var(--space-md);
+  translate: -50% -50%;
+  color: #f4e6c8;
+  background: rgb(12 10 8 / 92%);
+  border: 1px solid rgb(255 255 255 / 14%);
+  border-radius: 14px;
+  box-shadow: 0 18px 48px rgb(0 0 0 / 55%);
+}
+
+.peekHeader {
+  padding: 0 var(--space-xl);
+  text-align: center;
+}
+
+.peekClose {
+  position: absolute;
+  top: var(--space-xs);
+  right: var(--space-xs);
+  color: #f4e6c8;
+}
+
+.peekTitle {
+  font-weight: 700;
+}
+
+.peekHint {
+  font-size: var(--mantine-font-size-xs);
+  color: rgb(244 230 200 / 70%);
+}
+
+.peekSingle {
+  display: grid;
+  justify-items: center;
+}
+
+.peekDeck {
+  display: flex;
+  gap: var(--space-sm);
+  margin: 0;
+  padding: 0 0 var(--space-xs);
+  overflow-x: auto;
+  list-style: none;
+}
+
+.peekDeckCard {
+  display: grid;
+  flex: none;
+  gap: 4px;
+  justify-items: center;
+  cursor: grab;
+}
+
+.peekDeckCard {
+  position: relative;
+  user-select: none;
+}
+
+/* While a card is carried, the cards it passes slide aside; the carried card follows the pointer exactly. */
+.peekDeck[data-sorting] .peekDeckCard:not([data-held]) {
+  transition: transform 140ms ease-out;
+}
+
+.peekDeckCard[data-held] {
+  z-index: 1;
+  scale: 1.05;
+  cursor: grabbing;
+  filter: drop-shadow(0 12px 18px rgb(0 0 0 / 55%));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .peekDeck[data-sorting] .peekDeckCard:not([data-held]) {
+    transition: none;
+  }
+}
+
+.peekDeckPlace {
+  font-size: var(--mantine-font-size-xs);
+  font-variant-numeric: tabular-nums;
+  color: rgb(244 230 200 / 70%);
+}
+
+.peekDeckHandle {
+  border-radius: 10px;
+  touch-action: none;
+  cursor: grab;
+}
+
+.peekDeckHandle:focus-visible {
+  outline: 2px solid #f6c879;
+  outline-offset: 2px;
+}

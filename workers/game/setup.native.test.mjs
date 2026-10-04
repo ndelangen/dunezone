@@ -76,18 +76,29 @@ describe('Retained supply at setup entry', () => {
     for (const capture of captures.factions) {
       const faction = capture.faction.id;
       expect(initial.factionBanks[faction]).toBe(capture.definition.rules.spiceCount);
+      const token = initial.table.pieces.find((piece) => piece.stackKey === `faction-token:${faction}`);
+      expect(token.items).toEqual([
+        expect.objectContaining({
+          faceUp: true,
+          artwork: expect.objectContaining({
+            front: capture.components.token.front,
+            back: capture.components.token.back,
+          }),
+        }),
+      ]);
       expect(
         initial.table.pieces
-          .filter((piece) => piece.owner === faction)
+          .filter((piece) => piece.owner === faction && piece !== token)
           .reduce((sum, piece) => sum + piece.items.length, 0)
       ).toBe(capture.components.troops.reduce((sum, troop) => sum + troop.count, 0));
       expect(initial.factionInventories[faction].map((piece) => piece.label)).toEqual([
         ...capture.components.leaders.map((leader) => leader.name),
         'shared-extra',
       ]);
-      expect(initial.table.pieces.filter((piece) => piece.owner === faction).map((piece) => piece.label)).toEqual(
-        capture.components.troops.map((troop) => troop.name)
-      );
+      expect(initial.table.pieces.filter((piece) => piece.owner === faction).map((piece) => piece.label)).toEqual([
+        `${capture.faction.name} token`,
+        ...capture.components.troops.map((troop) => troop.name),
+      ]);
     }
     b.socket.send(JSON.stringify(last));
     await syncView(b);

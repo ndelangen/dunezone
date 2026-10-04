@@ -1,5 +1,6 @@
 import { cardbackPresetLabel } from '../assets/cardbackPresets';
 import type { FactionCapture } from './capture';
+import { factionTokenStackKey } from './factionToken';
 import type { StoredPiece, TablePiece, Vector3Tuple } from './model';
 import { factionSupplyLayout } from './setupLayout';
 import { restingPositionAt } from './tableGeometry';
@@ -66,7 +67,7 @@ export function place<Piece extends TablePiece>(piece: Piece, position: Vector3T
 }
 
 /**
- * One faction's setup supply from its capture, laid out for the Seat at `angle`: troop reserves and the face-down Traitor deck on the table, leaders and the alliance card in hand.
+ * One faction's setup supply from its capture, laid out for the Seat at `angle`: its faction token, troop reserves and the face-down Traitor deck on the table, leaders and the alliance card in hand.
  * The caller appends the faction's Extras to the hand.
  */
 export function factionSupply(capture: FactionCapture, angle: number, { id, shuffle }: SupplyDependencies) {
@@ -81,6 +82,19 @@ export function factionSupply(capture: FactionCapture, angle: number, { id, shuf
     );
     return place(stack, layout.reserves[index]!);
   });
+  /* The token stays on the table all game; turning it face down says the faction sits out, as in a bidding round. */
+  const token = components.token.back
+    ? [
+        place(
+          {
+            ...piece(id(), `${faction.name} token`, faction.id, color, 'force', factionTokenStackKey(faction.id)),
+            items: [item(id(), faction.name, components.token.front, components.token.back, 'token-disc', true)],
+          },
+          layout.token.position,
+          layout.token.orientation
+        ),
+      ]
+    : [];
   const hand = components.leaders.map((leader) => {
     const token = piece(id(), leader.name, faction.id, color, 'force', `leader:${faction.id}:${leader.memberId}`);
     token.items = [item(id(), leader.name, leader.front, leader.back, 'token-disc', true)];
@@ -108,5 +122,5 @@ export function factionSupply(capture: FactionCapture, angle: number, { id, shuf
     )
   );
   const traitors = deck.items.length ? [place(deck, layout.traitors.position, layout.traitors.orientation)] : [];
-  return { reserves, hand, traitors };
+  return { token, reserves, hand, traitors };
 }
