@@ -10277,6 +10277,12 @@
     "subjects": ["space"],
     "sourceHash": "5e1ffb2b8641614212402424f35656f487ee9a8b5a79a11ba87314ca6d90d5d9"
   },
+  "/web/homepage-social-play.jpg": {
+    "description": "The Dune Zone social preview announces Dune Play as coming soon beside the game board, demonstration Rulebook pages and three circular homebrew portraits.",
+    "tags": ["Dune Zone", "Dune Play", "homepage", "social preview", "coming soon", "Rulebook"],
+    "subjects": ["people", "places", "symbols"],
+    "sourceHash": "024c5aaa0f9ae27f1243b7b8a39716cd3f012ccbf832e8c77b267c08519ac44b"
+  },
   "/web/homepage/board.png": {
     "description": "An angled Arrakis game board with troops, six faction tokens, cards and a turn track on a transparent background.",
     "tags": ["Dune Play", "board", "homepage", "development preview", "faction tokens"],
