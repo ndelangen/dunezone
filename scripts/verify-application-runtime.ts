@@ -3,7 +3,7 @@ import path from 'node:path';
 
 import { unstable_dev } from 'wrangler';
 
-import { pngDimensions } from '../workers/publisher/image-inspection.ts';
+import { jpegProfile, pngDimensions } from '../workers/publisher/image-inspection.ts';
 
 /* Exercise the assembled Worker, including Static Assets precedence and the real TanStack entry. */
 process.chdir(path.resolve(import.meta.dirname, '../workers/publisher'));
@@ -27,7 +27,7 @@ try {
   assert.match(sitemap.headers.get('Content-Type') ?? '', /application\/xml/);
   assert.ok((await sitemap.text()).includes('https://dune.zone/sitemap-factions.xml'));
   assert.equal((await worker.fetch('/sitemap-missing.xml')).status, 404);
-  const pages = ['/factions', '/assets', '/assets/token-disc'];
+  const pages = ['/', '/factions', '/assets', '/assets/token-disc'];
   for (const pathname of pages) {
     const response = await worker.fetch(pathname, { headers: { Cookie: 'private=must-not-reach-ssr' } });
     assert.equal(response.status, 200, pathname);
@@ -35,7 +35,7 @@ try {
     assert.equal(response.headers.get('Cache-Control'), 'no-store', pathname);
     assert.equal(response.headers.get('Set-Cookie'), null, pathname);
     assert.equal(response.headers.get('X-Public-Cache'), 'miss', pathname);
-    assert.equal(response.headers.get('X-Public-Metadata-Queries'), '1', pathname);
+    assert.equal(Number(response.headers.get('X-Public-Metadata-Queries') ?? 0), pathname === '/' ? 0 : 1, pathname);
     const html = await response.text();
     const hit = await worker.fetch(pathname);
     assert.equal(hit.headers.get('X-Public-Cache'), 'hit', pathname);
@@ -51,11 +51,32 @@ try {
       assert.ok(detail, `${pathname} has no ordinary detail link`);
       pages.push(detail);
     }
-    assert.match(html, /<h1[\s>]/, `${pathname} has no rendered heading`);
+    if (pathname !== '/') {
+      assert.match(html, /<h1[\s>]/, `${pathname} has no rendered heading`);
+    }
     assert.match(html, /rel="canonical"/, `${pathname} has no canonical URL`);
     assert.match(html, /property="og:title"/, `${pathname} has no social metadata`);
     assert.ok(html.endsWith('</html>'), `${pathname} returned a truncated document`);
-    if (pathname !== '/factions' && pathname !== '/assets' && pathname !== '/assets/token-disc') {
+    if (pathname === '/') {
+      assert.match(html, /Dune Play is coming soon/i);
+      const image = /property="og:image" content="([^"]+)"/.exec(html)?.[1];
+      assert.ok(image, 'The homepage has no social image');
+      assert.equal(new URL(image).origin, 'https://dune.zone');
+      assert.match(html, /property="og:image:width" content="1200"/);
+      assert.match(html, /property="og:image:height" content="630"/);
+      assert.match(html, /name="twitter:card" content="summary_large_image"/);
+      assert.ok(html.includes(`name="twitter:image" content="${image}"`));
+      const jpeg = await worker.fetch(new URL(image).pathname);
+      assert.equal(jpeg.status, 200);
+      assert.match(jpeg.headers.get('Content-Type') ?? '', /image\/jpeg/);
+      const profile = jpegProfile(new Uint8Array(await jpeg.arrayBuffer()));
+      assert.equal(profile.widthPx, 1200);
+      assert.equal(profile.heightPx, 630);
+      const head = await worker.fetch('/', { method: 'HEAD', headers: { 'User-Agent': 'Twitterbot/1.0' } });
+      assert.equal(head.status, 200);
+      assert.equal(head.headers.get('X-Public-Cache'), 'hit');
+      assert.equal(await head.text(), '');
+    } else if (pathname !== '/factions' && pathname !== '/assets' && pathname !== '/assets/token-disc') {
       const image = /property="og:image" content="([^"]+)"/.exec(html)?.[1]?.replaceAll('&amp;', '&');
       assert.ok(image, `${pathname} has no social image URL`);
       const imageUrl = new URL(image);

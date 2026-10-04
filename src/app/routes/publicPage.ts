@@ -41,6 +41,7 @@ export function publicPageHead({
   pathname,
   description,
   image,
+  imageDetails,
   social,
   match,
 }: {
@@ -48,6 +49,7 @@ export function publicPageHead({
   pathname: string;
   description: string;
   image?: string | null;
+  imageDetails?: { alt: string; type: string; width: number; height: number };
   social?: { kind: string; shape: SocialCardInput['shape'] };
   match?: { status: string };
 }) {
@@ -59,6 +61,9 @@ export function publicPageHead({
     ? socialCardHref({ name, description, image, ...social })
     : image || '/video/band-poster.jpg';
   const imageUrl = new URL(imagePath, PUBLIC_SITE_ORIGIN).href;
+  const details = social
+    ? { alt: name, type: 'image/png', width: SOCIAL_CARD_WIDTH, height: SOCIAL_CARD_HEIGHT }
+    : imageDetails;
   return {
     links: [{ rel: 'canonical', href: url }],
     meta: [
@@ -70,19 +75,19 @@ export function publicPageHead({
       { property: 'og:description', content: description },
       { property: 'og:url', content: url },
       { property: 'og:image', content: imageUrl },
-      { property: 'og:image:alt', content: name },
-      ...(social
+      { property: 'og:image:alt', content: details?.alt ?? name },
+      ...(details
         ? [
-            { property: 'og:image:type', content: 'image/png' },
-            { property: 'og:image:width', content: String(SOCIAL_CARD_WIDTH) },
-            { property: 'og:image:height', content: String(SOCIAL_CARD_HEIGHT) },
+            { property: 'og:image:type', content: details.type },
+            { property: 'og:image:width', content: String(details.width) },
+            { property: 'og:image:height', content: String(details.height) },
           ]
         : []),
       { name: 'twitter:card', content: 'summary_large_image' },
       { name: 'twitter:title', content: pageTitle(name) },
       { name: 'twitter:description', content: description },
       { name: 'twitter:image', content: imageUrl },
-      { name: 'twitter:image:alt', content: name },
+      { name: 'twitter:image:alt', content: details?.alt ?? name },
     ],
   };
 }
