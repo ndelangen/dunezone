@@ -598,6 +598,7 @@
 .cinemaOpening {
   display: grid;
   gap: 0;
+  margin-top: calc(-5.5rem - 4cqi);
 }
 .cinemaOpening > .centerCopy {
   position: relative;
@@ -611,18 +612,21 @@
 }
 .wideBoard {
   position: relative;
-  aspect-ratio: 3000 / 1420;
+  width: 100vw;
+  height: calc(100cqi * 1420 / 3000);
+  margin-inline: calc(50% - 50vw);
   overflow: clip;
   filter: drop-shadow(0 24px 24px rgb(0 0 0 / 25%));
   mask-image: linear-gradient(to bottom, black 55%, rgb(0 0 0 / 50%) 75%, transparent);
 }
 .wideBoard .boardPreview {
   position: absolute;
-  width: 200%;
+  width: max(200cqi, 125vw);
   max-width: none;
   height: auto;
-  left: -50%;
-  top: -10%;
+  left: 50%;
+  translate: -50% -5%;
+  top: 0;
 }
 
 .newBookFan {

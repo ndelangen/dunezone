@@ -83,3 +83,15 @@ Browser measurements at desktop size were 2088 by 988 pixels for the image insid
 ![Closer phone preview](proof/e-crop/mobile.jpg)
 
 [Preview before the crop](proof/e-crop/before.jpg).
+
+## Preview reaches the window edges
+
+E lets the enlarged board escape the page-width container. Its presentation spans the full viewport, while the frame retains the previous height. The image preserves its source aspect ratio and remains at least twice the content width. On wider windows it grows with the viewport. The window bounds replace the previous page-container clipping, and the lower mask still fades the board beneath the copy.
+
+The top of the board overlaps the header artwork slightly, without covering the header actions. Browser review at 1084, 1920 and 390 pixels confirmed that the preview bounds meet both window edges with no horizontal page overflow. Formatting and whitespace checks passed.
+
+![Header overlap and full-width preview](proof/e-edges/after.jpg)
+![Wide desktop preview](proof/e-edges/wide.jpg)
+![Phone preview](proof/e-edges/mobile.jpg)
+
+[Before this adjustment](proof/e-edges/before.jpg).
