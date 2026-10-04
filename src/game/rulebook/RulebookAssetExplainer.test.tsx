@@ -61,6 +61,12 @@ describe('Rulebook AssetExplainer rendering', () => {
     expect(
       new DOMParser().parseFromString(svg, 'image/svg+xml').querySelector('image')?.getAttribute('clip-path')
     ).toBe(GEAR_CLIP);
+    const exported = new DOMParser().parseFromString(svg, 'image/svg+xml');
+    expect(exported.querySelector('g')?.getAttribute('filter')).toBe(
+      container.querySelector('g')?.getAttribute('filter')
+    );
+    expect(exported.querySelector('g')?.getAttribute('filter')).toMatch(/^drop-shadow\(/);
+    expect(exported.querySelector('[style]')).toBeNull();
   });
 
   it('keeps unavailable explanations and custom label contrast alongside the remaining markers', () => {

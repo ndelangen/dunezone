@@ -39,6 +39,7 @@ export type RulebookAnnotationProjection = Readonly<{
   sourceKind?: RulebookSourceReference['kind'];
   sourceName: string;
   sourceClipPath?: string;
+  sourceShadow?: string;
   width: number;
   height: number;
   design: RulebookDesign;
@@ -172,6 +173,10 @@ export function projectRulebookAssetExplainerAnnotations(
   return {
     sourceStatus: source.status,
     sourceClipPath: rulebookSourceClipPath(source),
+    sourceShadow:
+      source.status === 'ready' && (source.reference.kind === 'asset' || source.reference.kind === 'faction-member')
+        ? `drop-shadow(0 ${Math.min(width, height) * 0.008}px ${Math.min(width, height) * 0.008}px rgb(0 0 0 / 45%))`
+        : undefined,
     sourceKind: source.status === 'unselected' ? undefined : source.reference.kind,
     sourceName:
       source.status === 'ready'
@@ -384,7 +389,7 @@ export function composeRulebookAssetExplainerSvg({
   const description = unavailable
     .map((entry) => `${entry.label} ${entry.title}: ${rulebookAnnotationUnavailableText(entry.status)}`)
     .join('; ');
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${canvas.width}" height="${canvas.height}" viewBox="${canvas.viewBox}" role="img"><title>${escapeXml(title)}</title><desc>${escapeXml(description)}</desc>${image}${overlay}</svg>`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${canvas.width}" height="${canvas.height}" viewBox="${canvas.viewBox}" role="img"><title>${escapeXml(title)}</title><desc>${escapeXml(description)}</desc>${projection.sourceShadow ? `<g filter="${escapeXml(projection.sourceShadow)}">${image}</g>` : image}${overlay}</svg>`;
   if (new TextEncoder().encode(svg).byteLength > RULEBOOK_ANNOTATION_MAX_BYTES) {
     throw new Error('Annotated illustration exceeds the delivery limit');
   }
