@@ -82,13 +82,16 @@ export function factionSupply(capture: FactionCapture, angle: number, { id, shuf
     );
     return place(stack, layout.reserves[index]!);
   });
-  /* The token stays on the table all game; turning it face down says the faction sits out, as in a bidding round. */
-  const token = components.token.back
+  /*
+   * The token stays on the table all game; turning it face down says the faction sits out, as in a bidding round.
+   * It has no back of its own: the table draws a face-down token as its front under a black prohibition sign, so both sides carry the front.
+   */
+  const token = components.token.front
     ? [
         place(
           {
             ...piece(id(), `${faction.name} token`, faction.id, color, 'force', factionTokenStackKey(faction.id)),
-            items: [item(id(), faction.name, components.token.front, components.token.back, 'token-disc', true)],
+            items: [item(id(), faction.name, components.token.front, components.token.front, 'token-disc', true)],
           },
           layout.token.position,
           layout.token.orientation

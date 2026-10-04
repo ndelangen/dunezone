@@ -104,8 +104,7 @@ function capture({ slug, data, token, leaders }: (typeof factions)[number]): Fac
     capturedAt: 0,
     definition: toStoredHeroKey(data),
     components: {
-      /* No token back is among the fixtures, so the troop face stands in for its blocked face. */
-      token: { front: imageHref(token), back: face('troop-0') },
+      token: { front: imageHref(token), back: null },
       leaders: data.leaders.map((leader, index) => ({
         memberId: leader.memberId,
         name: leader.name,

@@ -11,19 +11,30 @@ const at = (factionId: string | null, eligible: readonly string[] = order, now =
   now,
 });
 
-function opened(eligible: readonly string[] = order): BiddingState {
-  return applyBidding(idleBidding(10), { kind: 'bid-open' }, at('c', eligible, 1000));
+function opened(eligible: readonly string[] = order, factionId = eligible[0]!): BiddingState {
+  return applyBidding(idleBidding(10), { kind: 'bid-start', factionId }, at('c', eligible, 1000));
 }
 
 describe('the bidder', () => {
-  test('opens the first round on the first bidding faction in storm order, with its time running', () => {
+  test('starts a round on the faction the players pick, with its time running', () => {
     expect(opened()).toMatchObject({ stage: 'open', round: 1, opener: 'a', turn: 'a', bid: null, deadline: 11_000 });
-    expect(opened(['b', 'd'])).toMatchObject({ opener: 'b', turn: 'b' });
+    expect(opened(order, 'c')).toMatchObject({ opener: 'c', turn: 'c' });
   });
 
-  test('opens each later round one faction further along', () => {
-    const won = { ...opened(), stage: 'won' as const };
-    expect(applyBidding(won, { kind: 'bid-open' }, at('c'))).toMatchObject({ round: 2, opener: 'b', turn: 'b' });
+  test('will not start on a faction whose token is face down', () => {
+    expect(() => opened(['b', 'd'], 'a')).toThrow(BiddingRefusal);
+  });
+
+  test('starting again drops the open round, and a raise sent for it is refused', () => {
+    const raised = applyBidding(opened(), { kind: 'bid-raise', round: 1 }, at('a'));
+    const restarted = applyBidding(raised, { kind: 'bid-start', factionId: 'd' }, at('b'));
+    expect(restarted).toMatchObject({ stage: 'open', round: 2, turn: 'd', bid: null, passed: [] });
+    expect(() => applyBidding(restarted, { kind: 'bid-raise', round: 1 }, at('d'))).toThrow(BiddingRefusal);
+  });
+
+  test('a reset puts the bidder away and keeps its time and round count', () => {
+    const reset = applyBidding(opened(), { kind: 'bid-reset' }, at('b'));
+    expect(reset).toEqual({ ...idleBidding(10), round: 1 });
   });
 
   test('raising keeps the bidder on the raiser, a pass moves it on, and the round is won once it comes back round', () => {

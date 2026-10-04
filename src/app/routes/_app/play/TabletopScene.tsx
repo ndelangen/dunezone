@@ -3,6 +3,7 @@ import { Button, Menu } from '@mantine/core';
 import { Html, Shadow, useTexture } from '@react-three/drei/webgpu';
 import { Canvas, useFrame, useThree } from '@react-three/fiber/webgpu';
 import type { ThreeEvent } from '@react-three/fiber/webgpu';
+import { isFactionToken } from '@shared/play/factionToken';
 import { gestureBlockReason, pieceCount, topItemFaceUp } from '@shared/play/model';
 import type { TablePiece, TableState, Vector3Tuple } from '@shared/play/model';
 import { hasHiddenFace, peekersOf, peeksWholeDeck } from '@shared/play/peeking';
@@ -587,6 +588,26 @@ function usePublishedFaceReady(href: string | undefined): boolean {
   return usePublishedFace(href) !== undefined || !href;
 }
 
+/* A face-down faction token wears a solid black prohibition sign over its front: a ring and the slash across it, the slash as thick as the ring (#1007). */
+const SITTING_OUT_OUTER = TROOP_FACE_RADIUS * 0.86;
+const SITTING_OUT_INNER = TROOP_FACE_RADIUS * 0.66;
+const SITTING_OUT_STROKE = SITTING_OUT_OUTER - SITTING_OUT_INNER;
+
+function SittingOutSign() {
+  return (
+    <group position={[0, 0, 0.003]}>
+      <mesh renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}>
+        <ringGeometry args={[SITTING_OUT_INNER, SITTING_OUT_OUTER, 64]} />
+        <meshBasicMaterial color="#000000" />
+      </mesh>
+      <mesh rotation={[0, 0, Math.PI / 4]} renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}>
+        <planeGeometry args={[SITTING_OUT_INNER * 2, SITTING_OUT_STROKE]} />
+        <meshBasicMaterial color="#000000" />
+      </mesh>
+    </group>
+  );
+}
+
 function TokenFace({
   piece,
   faceUp,
@@ -598,15 +619,13 @@ function TokenFace({
   underside?: boolean;
   itemIndex: number;
 }) {
+  /* A faction token has no back of its own: face down, it shows its front under a black prohibition sign. */
+  const blocked = !faceUp && isFactionToken(piece);
+  const href = piece.items[itemIndex]?.artwork?.[faceUp || blocked ? 'front' : 'back'];
   return (
     <PieceFace height={TROOP_LAYER_HEIGHT} underside={underside}>
-      {piece.items[itemIndex]?.artwork?.[faceUp ? 'front' : 'back'] && (
-        <PublishedFace
-          href={piece.items[itemIndex].artwork![faceUp ? 'front' : 'back']!}
-          card={false}
-          ratio={tokenBoxRatio(piece)}
-        />
-      )}
+      {href && <PublishedFace href={href} card={false} ratio={tokenBoxRatio(piece)} />}
+      {blocked && <SittingOutSign />}
       <mesh renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}>
         {tokenBoxRatio(piece) != null ? (
           <planeGeometry args={[TROOP_FACE_RADIUS * 2, TROOP_FACE_RADIUS * 2 * tokenBoxRatio(piece)!]} />

@@ -27,6 +27,7 @@ import { TableWait } from '../TableWait';
 import { BattleControls, BattleScene, HandControls } from './BattleControls';
 import { BidderScene } from './Bidder';
 import { BidderSettings } from './BidderSettings';
+import { BidderToolbar } from './BidderToolbar';
 import { OfflineConversations } from './Conversation';
 import { DraftingHeader, DraftingNotice, DraftingOverlay, DraftingPanel, DraftingReadiness } from './Drafting';
 import { DetermineWinner, ResultDecisionBar } from './GameResult';
@@ -731,6 +732,8 @@ function ConnectedTable({
   const celebration = useResultCelebration(table);
   /* Giving up a seat starts in the game menu and is confirmed in the decision bar, so the two share one flag. */
   const [leaving, setLeaving] = useState(false);
+  /* Each player fades the bidder for themselves, so the choice stays in this tab. */
+  const [bidderFaded, setBidderFaded] = useState(false);
   /* The confirmation is about the seat held when it opened: leaving, a removal vote or a new seat closes it, so a player seated again is not asked to give up the new seat. */
   const [leavingFrom, setLeavingFrom] = useState(table.viewer.viewerSeat);
   if (leavingFrom !== table.viewer.viewerSeat) {
@@ -778,7 +781,12 @@ function ConnectedTable({
             connectionStatus={<ConnectionStatus table={table} />}
             toolbarControl={
               inPlay || (stage === 'setup' && table.snapshot.setup) ? (
-                <PhaseNavigation client={client} table={table} />
+                <>
+                  {inPlay && (
+                    <BidderToolbar client={client} table={table} faded={bidderFaded} onFadedChange={setBidderFaded} />
+                  )}
+                  <PhaseNavigation client={client} table={table} />
+                </>
               ) : undefined
             }
             /* The gathered Traitor pile lies under the Tleilaxu tanks, below the Map view's frame on a wide screen (#1635). */
@@ -794,7 +802,7 @@ function ConnectedTable({
                 ) : (
                   <>
                     <BattleScene client={client} table={table} />
-                    {stage !== 'finished' && <BidderScene client={client} table={table} />}
+                    {stage !== 'finished' && <BidderScene client={client} table={table} faded={bidderFaded} />}
                   </>
                 )}
                 {celebration.mounted && <FoilConfetti launch={celebration.launch} />}
