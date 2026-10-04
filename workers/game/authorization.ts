@@ -11,13 +11,14 @@ import {
 } from '../../src/shared/play/admission';
 import type { playWatchAuthorizationsRequestSchema } from '../../src/shared/play/admission';
 import { GameRejection } from '../../src/shared/play/rejection';
+import { DependencyFailure } from './diagnostics';
 import type { GameDiagnostics } from './diagnostics';
 
 /**
  * Convex did not answer: the request timed out or was aborted, the network failed, or the deployment answered with a redirect or a server error other than a function's own failure.
  * Retrying later may succeed, unlike a refusal or an answer this Worker cannot read.
  */
-export class ConvexUnavailable extends Error {}
+export class ConvexUnavailable extends DependencyFailure {}
 
 /* Convex reports a function that threw, a ConvexError included, with this status: that is an answer, not an outage. */
 const FUNCTION_FAILED_STATUS = 560;
@@ -28,18 +29,24 @@ export function gameHttpClient(url: string): ConvexHttpClient {
   return new ConvexHttpClient(url, {
     logger: false,
     fetch: async (input, init) => {
+      const startedAt = Date.now();
+      const signal = AbortSignal.timeout(PLAY_REQUEST_TIMEOUT_MS);
       try {
         const response = await fetch(input, {
           ...init,
           redirect: 'manual',
-          signal: AbortSignal.timeout(PLAY_REQUEST_TIMEOUT_MS),
+          signal,
         });
         if (
           (response.status >= 300 && response.status < 400) ||
           BUSY_STATUSES.has(response.status) ||
           (response.status >= 500 && response.status !== FUNCTION_FAILED_STATUS)
         ) {
-          throw new ConvexUnavailable(`Convex answered with status ${response.status}.`);
+          throw new ConvexUnavailable('Convex did not answer successfully.', {
+            failureCategory: 'http',
+            httpStatus: response.status,
+            durationMs: Date.now() - startedAt,
+          });
         }
         /* Read inside the timeout, so a body that stalls counts as Convex not answering. */
         const body = await response.arrayBuffer();
@@ -51,7 +58,18 @@ export function gameHttpClient(url: string): ConvexHttpClient {
       } catch (error) {
         throw error instanceof ConvexUnavailable
           ? error
-          : new ConvexUnavailable('Convex did not answer.', { cause: error });
+          : new ConvexUnavailable(
+              'Convex did not answer.',
+              {
+                failureCategory: signal.aborted
+                  ? 'timeout'
+                  : error instanceof DOMException && error.name === 'AbortError'
+                    ? 'aborted'
+                    : 'network',
+                durationMs: Date.now() - startedAt,
+              },
+              { cause: error }
+            );
       }
     },
   });
@@ -506,6 +524,7 @@ export class AuthorizationWatch {
         /* The failure streak ends only when a grant is authorized again: fresh result plus its validation. */
         if ([...this.entries.values()].some((entry) => entry.validatedFor(request.batch.round))) {
           this.recoveryAttempts = 0;
+          this.diagnostics?.recovered('authorization-renewal');
         }
       }
     } catch (error) {

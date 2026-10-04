@@ -17,6 +17,7 @@ import { GameRejection } from '../../src/shared/play/rejection';
 import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
 import { gameHttpClient } from './authorization';
 import { RoomDelivery } from './delivery';
+import { GameDiagnostics } from './diagnostics';
 import { Room } from './room';
 import { storedSnapshotSchema } from './state';
 import type { StoredSnapshot } from './state';
@@ -41,6 +42,7 @@ const COLORS = ['#d7b65c', '#73bb9d', '#7fa8e8', '#d89481', '#c2a0e1', '#9fc774'
 /* One public table, with private games' physical rules and its own admission and hourly lifetime. */
 export class HomepageRoom extends DurableObject<GameEnv> {
   private room!: Room;
+  private readonly diagnostics: GameDiagnostics;
   private resetAt = 0;
   private scheduledAlarm = 0;
   private delivery = new RoomDelivery();
@@ -49,28 +51,36 @@ export class HomepageRoom extends DurableObject<GameEnv> {
 
   constructor(ctx: DurableObjectState, env: GameEnv) {
     super(ctx, env);
+    this.diagnostics = new GameDiagnostics(ctx.id.toString(), env.GIT_SHA, () => ({
+      roomClass: 'HomepageRoom',
+      workerVersionId: env.CF_VERSION_METADATA.id,
+      revision: this.room?.snapshot.revision,
+      connections: this.connections.size,
+    }));
     ctx.setWebSocketAutoResponse(new WebSocketRequestResponsePair(KEEPALIVE_PING, KEEPALIVE_PONG));
     /* The Durable Object runtime gates incoming events on this promise and resets the object if it rejects. */
-    void ctx.blockConcurrencyWhile(async () => {
-      const saved = await ctx.storage.get<Saved>('table');
-      const parsed = saved && storedSnapshotSchema.safeParse(saved.snapshot);
-      this.resetAt = saved?.resetAt ?? 0;
-      this.room = new Room(parsed?.success ? parsed.data : homepageSnapshot(env.APPLICATION_ORIGIN), () => []);
-      for (const socket of ctx.getWebSockets()) {
-        const connection: Connection = socket.deserializeAttachment();
-        connection.authenticating = false;
-        connection.controlTokens ??= 8;
-        connection.controlUpdatedAt ??= Date.now();
-        this.connections.set(socket, connection);
-      }
-      await this.refresh();
-      /* Hibernation keeps settled pieces. A new epoch tells clients to forget old gestures and patch baselines. */
-      this.broadcast();
-    });
+    void ctx.blockConcurrencyWhile(() =>
+      this.diagnostics.run('load', async () => {
+        const saved = await ctx.storage.get<Saved>('table');
+        const parsed = saved && storedSnapshotSchema.safeParse(saved.snapshot);
+        this.resetAt = saved?.resetAt ?? 0;
+        this.room = new Room(parsed?.success ? parsed.data : homepageSnapshot(env.APPLICATION_ORIGIN), () => []);
+        for (const socket of ctx.getWebSockets()) {
+          const connection: Connection = socket.deserializeAttachment();
+          connection.authenticating = false;
+          connection.controlTokens ??= 8;
+          connection.controlUpdatedAt ??= Date.now();
+          this.connections.set(socket, connection);
+        }
+        await this.diagnostics.run('refresh', () => this.refresh());
+        /* Hibernation keeps settled pieces. A new epoch tells clients to forget old gestures and patch baselines. */
+        this.broadcast();
+      })
+    );
   }
 
   async fetch(_request: Request) {
-    await this.refresh();
+    await this.diagnostics.run('refresh', () => this.refresh());
     if (this.connections.size >= HOMEPAGE_CONNECTION_LIMIT) {
       return new Response('Table busy.', { status: 503 });
     }
@@ -107,7 +117,8 @@ export class HomepageRoom extends DurableObject<GameEnv> {
   private send(socket: WebSocket, message: ServerMessage) {
     try {
       socket.send(JSON.stringify({ ...message, serverNow: Date.now() }));
-    } catch {
+    } catch (error) {
+      this.diagnostics.report('socket-send', error);
       this.disconnected(socket);
     }
   }
@@ -205,7 +216,7 @@ export class HomepageRoom extends DurableObject<GameEnv> {
 
   async alarm() {
     this.scheduledAlarm = 0;
-    await this.refresh();
+    await this.diagnostics.run('refresh', () => this.refresh());
   }
 
   private async authenticate(socket: WebSocket, connection: Connection, ticket: string) {
@@ -217,6 +228,7 @@ export class HomepageRoom extends DurableObject<GameEnv> {
     }
     connection.authenticating = true;
     const generation = ++connection.generation;
+    const startedAt = Date.now();
     try {
       const admission = homepageAdmissionSchema.parse(
         await gameHttpClient(this.env.CONVEX_URL).mutation(api.homepageAdmission.redeemTicket, { ticket })
@@ -230,7 +242,9 @@ export class HomepageRoom extends DurableObject<GameEnv> {
         this.broadcast();
       }
       await this.scheduleAlarm();
-    } catch {
+      this.diagnostics.recovered('admission');
+    } catch (error) {
+      this.diagnostics.report('admission', error, { durationMs: Date.now() - startedAt });
       /* An unavailable admission service grants no new lease. An existing lease still ends at its original deadline. */
     } finally {
       connection.authenticating = false;
@@ -321,22 +335,28 @@ export class HomepageRoom extends DurableObject<GameEnv> {
     if (!message) {
       return;
     }
-    await this.refresh();
-    switch (message.type) {
-      case 'authenticate':
-        await this.authenticate(socket, connection, message.ticket);
-        return;
-      case 'anonymous':
-        if (this.makeAnonymous(socket, connection)) {
-          this.broadcast();
+    await this.diagnostics.run('refresh', () => this.refresh());
+    await this.diagnostics.run(
+      'message',
+      async () => {
+        switch (message.type) {
+          case 'authenticate':
+            await this.authenticate(socket, connection, message.ticket);
+            return;
+          case 'anonymous':
+            if (this.makeAnonymous(socket, connection)) {
+              this.broadcast();
+            }
+            return;
+          case 'sync':
+            this.resync(socket, connection);
+            return;
+          case 'act':
+            await this.authorizedAction(socket, connection, message.epoch, message.message);
         }
-        return;
-      case 'sync':
-        this.resync(socket, connection);
-        return;
-      case 'act':
-        await this.authorizedAction(socket, connection, message.epoch, message.message);
-    }
+      },
+      { messageType: message.type === 'act' ? message.message.type : message.type }
+    );
   }
 
   private resync(socket: WebSocket, connection: Connection) {
@@ -425,7 +445,8 @@ export class HomepageRoom extends DurableObject<GameEnv> {
   webSocketClose(socket: WebSocket) {
     this.disconnected(socket);
   }
-  webSocketError(socket: WebSocket) {
+  webSocketError(socket: WebSocket, error: unknown) {
+    this.diagnostics.report('socket-error', error);
     this.disconnected(socket);
   }
 }
