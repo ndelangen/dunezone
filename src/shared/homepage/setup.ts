@@ -8,7 +8,7 @@ import { tableSeatAngles } from '../play/tableSettings';
 import board from '../rulebooks/boards/arrakis.json';
 import artworkManifest from './artwork.json';
 
-export function homepagePieces(origin: string): StoredPiece[] {
+function homepagePieces(origin: string): StoredPiece[] {
   const artwork = (path: string) => new URL(path, origin).href;
   const pieces: StoredPiece[] = [];
   const angles = tableSeatAngles(6);
@@ -39,6 +39,11 @@ export function homepagePieces(origin: string): StoredPiece[] {
       );
     });
   });
+  placeStartingForces(pieces);
+  return [...pieces, ...treacheryPieces(artwork)];
+}
+
+function placeStartingForces(pieces: StoredPiece[]) {
   const placements: Array<[number, number, string]> = [
     [0, 10, 'arrakeen'],
     [1, 10, 'carthag'],
@@ -61,9 +66,12 @@ export function homepagePieces(origin: string): StoredPiece[] {
     );
     Object.assign(reserve, place(reserve, reserve.position));
   }
+}
+
+function treacheryPieces(artwork: (path: string) => string): StoredPiece[] {
   const back = artwork(artworkManifest.cardback);
   const deck = piece('treachery-deck', 'Treachery deck', 'shared', '#ad8a45', 'card', 'cards:treachery');
-  pieces.push(
+  return [
     place(
       {
         ...deck,
@@ -73,9 +81,7 @@ export function homepagePieces(origin: string): StoredPiece[] {
         }),
       },
       [6.3, 0, 0]
-    )
-  );
-  pieces.push(
+    ),
     place(
       {
         ...deck,
@@ -83,9 +89,8 @@ export function homepagePieces(origin: string): StoredPiece[] {
         items: [item('snooper', 'Snooper', artwork(artworkManifest.snooper), back, 'card-treachery', true)],
       },
       [4, 0, 1]
-    )
-  );
-  return pieces;
+    ),
+  ];
 }
 
 export function homepageSnapshot(origin: string) {

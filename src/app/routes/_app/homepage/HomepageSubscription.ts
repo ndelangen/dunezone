@@ -6,7 +6,7 @@ import {
   serverClockSchema,
   serverMessageSchema,
 } from '@shared/play/protocol';
-import type { ClientMessage } from '@shared/play/protocol';
+import type { ClientMessage, ServerMessage } from '@shared/play/protocol';
 import { applyRoomUpdate } from '@shared/play/updates';
 import type { RoomView } from '@shared/play/updates';
 
@@ -87,80 +87,93 @@ export class HomepageSubscription implements TableSubscription {
     }
     this.socket = socket;
     this.connectionDeadline = setTimeout(() => this.closed(socket), 10_000);
-    const live = () => this.listener !== null && this.socket === socket && generation === this.generation;
-    socket.onopen = () => {
-      if (!live()) {
-        return;
-      }
-      this.silentTicks = 0;
-      void this.authenticate(socket, generation);
-      this.admission = setInterval(() => {
-        void this.authenticate(socket, generation);
-      }, HOMEPAGE_RENEW_MS);
-      this.keepalive = setInterval(() => {
-        if (!live() || socket.readyState !== 1) {
-          return;
-        }
-        if (++this.silentTicks >= 2) {
-          this.closed(socket);
-          return;
-        }
-        socket.send(KEEPALIVE_PING);
-      }, KEEPALIVE_INTERVAL_MS);
-    };
+    socket.onopen = () => this.opened(socket, generation);
     socket.onmessage = (event) => {
-      if (!live()) {
-        return;
+      if (this.isCurrent(socket, generation)) {
+        this.receive(socket, event.data);
       }
-      this.silentTicks = 0;
-      if (event.data === KEEPALIVE_PONG) {
-        return;
-      }
-      try {
-        const raw: unknown = JSON.parse(event.data);
-        const message = serverMessageSchema.parse(raw);
-        this.offset = Math.max(this.offset, serverClockSchema.parse(raw).serverNow - this.runtime.monotonicNow());
-        if (message.type === 'view' || message.type === 'update') {
-          const previous = this.current;
-          const view =
-            message.type === 'view'
-              ? message
-              : applyRoomUpdate(this.resyncing ? undefined : (previous ?? undefined), message);
-          if (!view) {
-            this.listener?.({ type: 'resync', completedCommandId: message.completedCommandId });
-            if (!this.resyncing) {
-              socket.send(JSON.stringify({ type: 'sync' }));
-            }
-            this.resyncing = true;
-            return;
-          }
-          clearTimeout(this.connectionDeadline);
-          this.current = view;
-          this.resyncing = false;
-          this.connectionStatus = 'authorized';
-          this.backoff = 1000;
-          this.listener?.({
-            ...view,
-            previous,
-            snapshotChanged: message.type === 'view' || Boolean(message.snapshot || message.completedCommandId),
-          });
-        } else if (message.type !== 'admission') {
-          this.listener?.(message);
-        }
-      } catch {
+    };
+    const close = () => {
+      if (this.isCurrent(socket, generation)) {
         this.closed(socket);
       }
     };
-    socket.onclose = () => {
-      if (live()) {
-        this.closed(socket);
+    socket.onclose = close;
+    socket.onerror = close;
+  }
+
+  private isCurrent(socket: GameSocket, generation: number) {
+    return this.listener !== null && this.socket === socket && generation === this.generation;
+  }
+
+  private opened(socket: GameSocket, generation: number) {
+    if (!this.isCurrent(socket, generation)) {
+      return;
+    }
+    this.silentTicks = 0;
+    void this.authenticate(socket, generation);
+    this.admission = setInterval(() => {
+      void this.authenticate(socket, generation);
+    }, HOMEPAGE_RENEW_MS);
+    this.keepalive = setInterval(() => this.ping(socket, generation), KEEPALIVE_INTERVAL_MS);
+  }
+
+  private ping(socket: GameSocket, generation: number) {
+    if (!this.isCurrent(socket, generation) || socket.readyState !== 1) {
+      return;
+    }
+    if (++this.silentTicks >= 2) {
+      this.closed(socket);
+      return;
+    }
+    socket.send(KEEPALIVE_PING);
+  }
+
+  private receive(socket: GameSocket, data: string) {
+    this.silentTicks = 0;
+    if (data === KEEPALIVE_PONG) {
+      return;
+    }
+    try {
+      const raw: unknown = JSON.parse(data);
+      const message = serverMessageSchema.parse(raw);
+      this.offset = Math.max(this.offset, serverClockSchema.parse(raw).serverNow - this.runtime.monotonicNow());
+      if (message.type === 'view' || message.type === 'update') {
+        this.receiveTable(socket, message);
+      } else if (message.type !== 'admission') {
+        this.listener?.(message);
       }
-    };
-    socket.onerror = () => {
-      if (live()) {
-        this.closed(socket);
-      }
-    };
+    } catch {
+      this.closed(socket);
+    }
+  }
+
+  private receiveTable(socket: GameSocket, message: Extract<ServerMessage, { type: 'view' | 'update' }>) {
+    const previous = this.current;
+    const baseline = this.resyncing ? undefined : (previous ?? undefined);
+    const view = message.type === 'view' ? message : applyRoomUpdate(baseline, message);
+    if (!view) {
+      this.requestResync(socket, message.completedCommandId);
+      return;
+    }
+    clearTimeout(this.connectionDeadline);
+    this.current = view;
+    this.resyncing = false;
+    this.connectionStatus = 'authorized';
+    this.backoff = 1000;
+    this.listener?.({
+      ...view,
+      previous,
+      snapshotChanged: message.type === 'view' || Boolean(message.snapshot || message.completedCommandId),
+    });
+  }
+
+  private requestResync(socket: GameSocket, completedCommandId?: string) {
+    this.listener?.({ type: 'resync', completedCommandId });
+    if (!this.resyncing) {
+      socket.send(JSON.stringify({ type: 'sync' }));
+    }
+    this.resyncing = true;
   }
 
   private async authenticate(socket: GameSocket, generation: number) {
@@ -170,7 +183,10 @@ export class HomepageSubscription implements TableSubscription {
     this.authPending = true;
     try {
       const result = await this.requestTicket();
-      if (generation === this.generation && this.socket === socket && socket.readyState === 1 && result) {
+      if (!result) {
+        return;
+      }
+      if (this.isCurrent(socket, generation) && socket.readyState === 1) {
         socket.send(JSON.stringify({ type: 'authenticate', ticket: result.ticket }));
       }
     } catch {
@@ -206,7 +222,10 @@ export class HomepageSubscription implements TableSubscription {
   }
 
   send(message: Exclude<ClientMessage, { type: 'admit' | 'sync' }>) {
-    if (!this.ready || !this.current || this.socket?.readyState !== 1) {
+    if (!this.ready || !this.current) {
+      return false;
+    }
+    if (this.socket?.readyState !== 1) {
       return false;
     }
     const parsed = homepageActionSchema.safeParse(message);

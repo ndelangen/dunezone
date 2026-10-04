@@ -33,6 +33,9 @@ type Connection = {
   controlUpdatedAt: number;
 };
 type Saved = { resetAt: number; snapshot: StoredSnapshot };
+type Admission = ReturnType<typeof homepageAdmissionSchema.parse>;
+type Settlement = Extract<HomepageAction, { type: 'drop' | 'command' }>;
+type Gesture = Exclude<HomepageAction, Settlement>;
 const COLORS = ['#d7b65c', '#73bb9d', '#7fa8e8', '#d89481', '#c2a0e1', '#9fc774'];
 
 /* One public table, with private games' physical rules and its own admission and hourly lifetime. */
@@ -47,11 +50,12 @@ export class HomepageRoom extends DurableObject<GameEnv> {
   constructor(ctx: DurableObjectState, env: GameEnv) {
     super(ctx, env);
     ctx.setWebSocketAutoResponse(new WebSocketRequestResponsePair(KEEPALIVE_PING, KEEPALIVE_PONG));
-    ctx.blockConcurrencyWhile(async () => {
+    /* The Durable Object runtime gates incoming events on this promise and resets the object if it rejects. */
+    void ctx.blockConcurrencyWhile(async () => {
       const saved = await ctx.storage.get<Saved>('table');
       const parsed = saved && storedSnapshotSchema.safeParse(saved.snapshot);
       this.resetAt = saved?.resetAt ?? 0;
-      this.room = new Room(parsed && parsed.success ? parsed.data : homepageSnapshot(env.APPLICATION_ORIGIN), () => []);
+      this.room = new Room(parsed?.success ? parsed.data : homepageSnapshot(env.APPLICATION_ORIGIN), () => []);
       for (const socket of ctx.getWebSockets()) {
         const connection: Connection = socket.deserializeAttachment();
         connection.authenticating = false;
@@ -138,7 +142,10 @@ export class HomepageRoom extends DurableObject<GameEnv> {
   }
 
   private watchActivity() {
-    if (this.activityTimer || (!this.room.carries.size && !this.room.pointers.size)) {
+    if (this.activityTimer) {
+      return;
+    }
+    if (!this.room.carries.size && !this.room.pointers.size) {
       return;
     }
     this.activityTimer = setTimeout(() => {
@@ -202,6 +209,9 @@ export class HomepageRoom extends DurableObject<GameEnv> {
   }
 
   private async authenticate(socket: WebSocket, connection: Connection, ticket: string) {
+    if (!this.allowControl(socket, connection)) {
+      return;
+    }
     if (connection.authenticating) {
       return;
     }
@@ -214,22 +224,7 @@ export class HomepageRoom extends DurableObject<GameEnv> {
       if (this.connections.get(socket) !== connection || generation !== connection.generation) {
         return;
       }
-      const editors = [...this.connections.values()].filter(
-        (other) => other.leaseUntil > Date.now() && other !== connection
-      );
-      let changed = false;
-      if (!admission.allowed || admission.leaseUntil <= Date.now() || editors.length >= HOMEPAGE_EDITOR_LIMIT) {
-        changed = this.makeAnonymous(socket, connection);
-      } else {
-        if (connection.userKey && connection.userKey !== admission.userKey) {
-          changed = true;
-          this.room.clearActivity(connection.viewer.connectionId);
-        }
-        connection.userKey = admission.userKey;
-        connection.leaseUntil = admission.leaseUntil;
-        connection.viewer = { ...connection.viewer, viewerSeat: connection.viewer.connectionId };
-        this.saveConnection(socket, connection);
-      }
+      const changed = this.applyAdmission(socket, connection, admission);
       this.sendView(socket, connection);
       if (changed) {
         this.broadcast();
@@ -243,6 +238,27 @@ export class HomepageRoom extends DurableObject<GameEnv> {
         this.saveConnection(socket, connection);
       }
     }
+  }
+
+  private applyAdmission(socket: WebSocket, connection: Connection, admission: Admission) {
+    if (!admission.allowed) {
+      return this.makeAnonymous(socket, connection);
+    }
+    const editors = [...this.connections.values()].filter(
+      (other) => other.leaseUntil > Date.now() && other !== connection
+    );
+    if (admission.leaseUntil <= Date.now() || editors.length >= HOMEPAGE_EDITOR_LIMIT) {
+      return this.makeAnonymous(socket, connection);
+    }
+    const changed = Boolean(connection.userKey && connection.userKey !== admission.userKey);
+    if (changed) {
+      this.room.clearActivity(connection.viewer.connectionId);
+    }
+    connection.userKey = admission.userKey;
+    connection.leaseUntil = admission.leaseUntil;
+    connection.viewer = { ...connection.viewer, viewerSeat: connection.viewer.connectionId };
+    this.saveConnection(socket, connection);
+    return changed;
   }
 
   /* Full views and admission calls have a separate budget from smooth pointer and carry motion. */
@@ -260,16 +276,24 @@ export class HomepageRoom extends DurableObject<GameEnv> {
     return true;
   }
 
-  async webSocketMessage(socket: WebSocket, input: string | ArrayBuffer) {
-    const connection = this.connections.get(socket);
-    if (!connection) {
-      return;
-    }
+  private readMessage(socket: WebSocket, connection: Connection, input: string | ArrayBuffer) {
     if (typeof input !== 'string' || input.length > HOMEPAGE_FRAME_LIMIT) {
       socket.close(1009, 'Message too large.');
       this.disconnected(socket);
       return;
     }
+    if (!this.allowMessage(socket, connection)) {
+      return;
+    }
+    try {
+      const parsed = homepageMessageSchema.safeParse(JSON.parse(input));
+      return parsed.success ? parsed.data : undefined;
+    } catch {
+      return;
+    }
+  }
+
+  private allowMessage(socket: WebSocket, connection: Connection) {
     const now = Date.now();
     if (now - connection.windowAt >= 1000) {
       connection.messages = 0;
@@ -278,43 +302,48 @@ export class HomepageRoom extends DurableObject<GameEnv> {
     if (++connection.messages > 80) {
       socket.close(1008, 'Too many messages.');
       this.disconnected(socket);
-      return;
+      return false;
     }
     this.saveConnection(socket, connection);
-    let parsed;
-    try {
-      parsed = homepageMessageSchema.safeParse(JSON.parse(input));
-    } catch {
+    return true;
+  }
+
+  async webSocketMessage(socket: WebSocket, input: string | ArrayBuffer) {
+    const connection = this.connections.get(socket);
+    if (!connection) {
       return;
     }
-    if (!parsed.success) {
+    const message = this.readMessage(socket, connection, input);
+    if (!message) {
       return;
     }
     await this.refresh();
-    const message = parsed.data;
-    if (message.type === 'authenticate') {
-      if (!this.allowControl(socket, connection)) {
+    switch (message.type) {
+      case 'authenticate':
+        await this.authenticate(socket, connection, message.ticket);
         return;
-      }
-      await this.authenticate(socket, connection, message.ticket);
-      return;
-    }
-    if (message.type === 'anonymous') {
-      if (this.makeAnonymous(socket, connection)) {
-        this.broadcast();
-      }
-      return;
-    }
-    if (message.type === 'sync') {
-      if (!this.allowControl(socket, connection)) {
+      case 'anonymous':
+        if (this.makeAnonymous(socket, connection)) {
+          this.broadcast();
+        }
         return;
-      }
+      case 'sync':
+        this.resync(socket, connection);
+        return;
+      case 'act':
+        await this.authorizedAction(socket, connection, message.epoch, message.message);
+    }
+  }
+
+  private resync(socket: WebSocket, connection: Connection) {
+    if (this.allowControl(socket, connection)) {
       this.sendView(socket, connection);
-      return;
     }
-    const action = message.message;
+  }
+
+  private async authorizedAction(socket: WebSocket, connection: Connection, epoch: string, action: HomepageAction) {
     try {
-      if (message.epoch !== this.room.epoch) {
+      if (epoch !== this.room.epoch) {
         throw new GameRejection('The table reset. Pick the piece up again.');
       }
       if (connection.leaseUntil <= Date.now()) {
@@ -325,24 +354,34 @@ export class HomepageRoom extends DurableObject<GameEnv> {
       if (!(error instanceof GameRejection)) {
         throw error;
       }
-      const requestId =
-        'commandId' in action
-          ? action.commandId
-          : 'requestId' in action
-            ? action.requestId
-            : 'carryId' in action
-              ? action.carryId
-              : null;
+      const requestId = actionRequestId(action);
       if (requestId) {
         this.send(socket, { type: 'rejected', requestId, message: error.message });
       }
-      if (this.allowControl(socket, connection)) {
-        this.sendView(socket, connection);
-      }
+      this.resync(socket, connection);
     }
   }
 
   private async act(socket: WebSocket, viewer: Viewer, message: HomepageAction) {
+    if (message.type === 'drop' || message.type === 'command') {
+      await this.settle(socket, viewer, message);
+      return;
+    }
+    this.gesture(socket, viewer, message);
+    this.broadcast();
+  }
+
+  private async settle(socket: WebSocket, viewer: Viewer, message: Settlement) {
+    const next =
+      message.type === 'drop'
+        ? this.room.drop(viewer, message.carryId, message.position, message.orientation)
+        : this.room.command(viewer, message.action, message.expectedRevision);
+    await this.ctx.storage.put<Saved>('table', { resetAt: this.resetAt, snapshot: next });
+    this.room.accept(next, message.type === 'drop' ? message.carryId : undefined);
+    this.broadcast({ socket, commandId: message.commandId });
+  }
+
+  private gesture(socket: WebSocket, viewer: Viewer, message: Gesture) {
     switch (message.type) {
       case 'begin':
         this.send(socket, { type: 'carry', carryId: message.carryId, draft: this.room.begin(viewer, message) });
@@ -362,19 +401,7 @@ export class HomepageRoom extends DurableObject<GameEnv> {
       case 'renew':
         this.room.renew(viewer, message.carryId);
         break;
-      case 'drop':
-      case 'command': {
-        const next =
-          message.type === 'drop'
-            ? this.room.drop(viewer, message.carryId, message.position, message.orientation)
-            : this.room.command(viewer, message.action, message.expectedRevision);
-        await this.ctx.storage.put<Saved>('table', { resetAt: this.resetAt, snapshot: next });
-        this.room.accept(next, message.type === 'drop' ? message.carryId : undefined);
-        this.broadcast({ socket, commandId: message.commandId });
-        return;
-      }
     }
-    this.broadcast();
   }
 
   private disconnected(socket: WebSocket) {
@@ -393,4 +420,14 @@ export class HomepageRoom extends DurableObject<GameEnv> {
   webSocketError(socket: WebSocket) {
     this.disconnected(socket);
   }
+}
+
+function actionRequestId(action: HomepageAction) {
+  if ('commandId' in action) {
+    return action.commandId;
+  }
+  if ('requestId' in action) {
+    return action.requestId;
+  }
+  return 'carryId' in action ? action.carryId : null;
 }

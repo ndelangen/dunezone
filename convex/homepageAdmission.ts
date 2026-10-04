@@ -24,11 +24,13 @@ export const issueTicket = mutation({
   returns: v.union(v.null(), v.object({ ticket: v.string() })),
   handler: async (ctx) => {
     const session = await livePlaySession(ctx);
-    if (
-      !session ||
-      !(await limiter.limit(ctx, 'homepageAccount', { key: session.userId })).ok ||
-      !(await limiter.limit(ctx, 'homepageIssue')).ok
-    ) {
+    if (!session) {
+      return null;
+    }
+    if (!(await limiter.limit(ctx, 'homepageAccount', { key: session.userId })).ok) {
+      return null;
+    }
+    if (!(await limiter.limit(ctx, 'homepageIssue')).ok) {
       return null;
     }
     const ticket = playCredential();
@@ -78,7 +80,10 @@ export const redeemTicket = mutation({
       return { allowed: false as const };
     }
     const auth = await playSessionAuthorization(ctx, ticket.user_id, ticket.session_id);
-    if (!auth.allowed || auth.authExpiresAt <= now || !(await limiter.limit(ctx, 'homepageRedeem')).ok) {
+    if (!auth.allowed || auth.authExpiresAt <= now) {
+      return { allowed: false as const };
+    }
+    if (!(await limiter.limit(ctx, 'homepageRedeem')).ok) {
       return { allowed: false as const };
     }
     return {
