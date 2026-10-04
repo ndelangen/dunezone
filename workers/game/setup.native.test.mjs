@@ -81,7 +81,7 @@ describe('Retained supply at setup entry', () => {
         expect.objectContaining({
           faceUp: true,
           artwork: expect.objectContaining({
-            /* A faction token has no back of its own; the table draws the blocked symbol over its front. */
+            /* A faction token has no back of its own; the table shades its front. */
             front: capture.components.token.front,
             back: capture.components.token.front,
           }),

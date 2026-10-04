@@ -102,7 +102,6 @@ import { boardFurnitureFor } from './boardFurniture';
 import { boardMapGeometry } from './boardMapGeometry';
 import { BOARD_RIM_DEPTH, createBoardRimShape } from './boardRimGeometry';
 import { CameraControls, CameraRelativeFog } from './CameraControls';
-import { useBlockedDecal } from './factionToken/blockedDecal';
 import { deckShuffleHint, swallowLift, watchLongPress } from './longPress';
 import { PeekView } from './PeekView';
 import { PhaseSymbol } from './PhaseSymbol';
@@ -589,25 +588,15 @@ function usePublishedFaceReady(href: string | undefined): boolean {
   return usePublishedFace(href) !== undefined || !href;
 }
 
-/* A face-down faction token's blocked symbol, drawn over the front it shows (#1007). */
-function BlockedOverlay() {
-  const decal = useBlockedDecal();
-  const texture = useMemo(() => {
-    if (!decal) {
-      return null;
-    }
-    const value = new CanvasTexture(decal);
-    value.colorSpace = SRGBColorSpace;
-    return value;
-  }, [decal]);
-  useEffect(() => () => texture?.dispose(), [texture]);
-  if (!texture) {
-    return null;
-  }
+/* How much a face-down faction token darkens its front: dark enough to read as sitting out, light enough to still name the faction. */
+const SITTING_OUT_SHADE = 0.8;
+
+/* A face-down faction token's shade over the front it shows (#1007). */
+function SittingOutShade() {
   return (
     <mesh position={[0, 0, 0.003]} renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}>
       <circleGeometry args={[TROOP_FACE_RADIUS, 48]} />
-      <meshBasicMaterial map={texture} transparent depthWrite={false} />
+      <meshBasicMaterial color="#000000" transparent opacity={SITTING_OUT_SHADE} depthWrite={false} />
     </mesh>
   );
 }
@@ -623,13 +612,13 @@ function TokenFace({
   underside?: boolean;
   itemIndex: number;
 }) {
-  /* A faction token has no back of its own: face down, it shows its front under the blocked symbol. */
+  /* A faction token has no back of its own: face down, it shows its front under a dark shade. */
   const blocked = !faceUp && isFactionToken(piece);
   const href = piece.items[itemIndex]?.artwork?.[faceUp || blocked ? 'front' : 'back'];
   return (
     <PieceFace height={TROOP_LAYER_HEIGHT} underside={underside}>
       {href && <PublishedFace href={href} card={false} ratio={tokenBoxRatio(piece)} />}
-      {blocked && <BlockedOverlay />}
+      {blocked && <SittingOutShade />}
       <mesh renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}>
         {tokenBoxRatio(piece) != null ? (
           <planeGeometry args={[TROOP_FACE_RADIUS * 2, TROOP_FACE_RADIUS * 2 * tokenBoxRatio(piece)!]} />
