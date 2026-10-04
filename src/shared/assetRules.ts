@@ -78,6 +78,14 @@ export const ASSET_RULES: Record<string, CategoryRule> = {
     safetyCapPx: 2048,
     quality: 80,
   },
+  /* Homepage captures keep the board's transparent background and its original detail. */
+  'web/homepage': {
+    format: 'webp',
+    transparent: true,
+    sizes: { small: 1080, large: 3000 },
+    safetyCapPx: 3000,
+    quality: 84,
+  },
   web: {
     format: 'jpeg',
     transparent: false,

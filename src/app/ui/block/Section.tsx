@@ -26,6 +26,8 @@ export interface SectionProps {
   className?: string;
   /** Keep the name and guidance in a focusable help tooltip for expert controls. */
   helpOnly?: boolean;
+  /** Where the heading and prose align within the section. */
+  alignment?: 'start' | 'center';
   children: ReactNode;
 }
 
@@ -49,6 +51,7 @@ export function Section({
   id,
   className,
   helpOnly = false,
+  alignment = 'start',
   children,
 }: SectionProps) {
   const headingId = useId();
@@ -59,7 +62,12 @@ export function Section({
     <section
       id={id}
       aria-labelledby={headingId}
-      className={clsx(styles.section, helpOnly && styles.hintOnly, className)}
+      className={clsx(
+        styles.section,
+        alignment === 'center' && styles.centered,
+        helpOnly && styles.hintOnly,
+        className
+      )}
     >
       {helpOnly ? (
         <Group className={styles.hint} justify="flex-end" gap="xs">
@@ -86,8 +94,13 @@ export function Section({
           </Tooltip>
         </Group>
       ) : (
-        <Group justify="space-between" align={description == null ? 'end' : 'flex-start'} wrap="wrap" gap="md">
-          <Stack gap={4} align="flex-start" miw={0}>
+        <Group
+          justify={alignment === 'center' ? 'center' : 'space-between'}
+          align={description == null ? 'end' : 'flex-start'}
+          wrap="wrap"
+          gap="md"
+        >
+          <Stack gap={4} align={alignment === 'center' ? 'center' : 'flex-start'} miw={0}>
             {eyebrow == null ? null : <Eyebrow tone="accent">{eyebrow}</Eyebrow>}
             <BlockHeading id={headingId} title={title} icon={icon} />
             {description == null ? null : (

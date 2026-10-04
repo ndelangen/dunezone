@@ -1,420 +1,507 @@
-import { Anchor, Avatar, Badge, Box, Button, Group, SimpleGrid, Stack, Text, Title, Tooltip } from '@mantine/core';
-import { useReducedMotion } from '@mantine/hooks';
+import { Anchor, Button, Group, Stack, Text } from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
-import type { ErrorComponentProps } from '@tanstack/react-router';
-import { FactionCatalogueSpotlight } from '@ui/block/FactionCatalogueSpotlight';
-import { LoadError } from '@ui/block/LoadError';
-import { LoadPending } from '@ui/block/LoadPending';
 import { PageTitle } from '@ui/block/PageTitle';
 import { Section } from '@ui/block/Section';
-import { formatStableDate } from '@ui/content/dates';
-import { Eyebrow } from '@ui/content/Eyebrow';
-import { TopicIcon } from '@ui/content/TopicIcon';
-import { CallToAction } from '@ui/control/CallToAction';
-import { AsymmetricSplitLayout } from '@ui/layout/AsymmetricSplitLayout';
+import { PublishedImage } from '@ui/content/PublishedImage';
+import { CanvasScale } from '@ui/layout/CanvasScale';
 import { PageLayout } from '@ui/layout/PageLayout';
-import { TriptychLayout } from '@ui/layout/TriptychLayout';
-import { Bullets } from '@ui/list/Bullets';
-import { Surface } from '@ui/surface';
-import { ArrowRight, ExternalLink, MessageCircle, Printer, Trophy } from 'lucide-react';
-import { useEffect, useState } from 'react';
-import { FaRedditAlien } from 'react-icons/fa6';
-import { SiBoardgamegeek, SiDiscord } from 'react-icons/si';
+import { ArrowRight } from 'lucide-react';
+import { useEffect, useRef } from 'react';
+import type { CSSProperties } from 'react';
 
-import { loadHomepage, useHomepage } from '@db/homepage';
-import { isStaleClientData } from '@app/db/core/clientBoundary';
-import { PageMessage } from '@app/widgets/page-message/PageMessage';
+import { useMotionAllowed } from '@app/styles/motion';
+import { AssetFace } from '@app/widgets/asset-face/AssetFace';
+import { AllianceCard } from '@game/assets/faction/alliance/Alliance';
 import { LeaderToken } from '@game/assets/faction/leader/Leader';
-import { factionTokenFixtures } from '@game/fixtures/factionTokens';
+import { TroopToken } from '@game/assets/faction/troop/Troop';
+import { resolveAsset } from '@game/assets/resolveAsset';
+import { backgroundPresets } from '@game/data/backgrounds';
+import { card as cardSize } from '@game/data/sizes';
 
 import styles from './index.module.css';
 
-/* Brand logos are drawn edge-to-edge in their viewBox where lucide insets its glyphs by ~2 of 24
-   units, so the same nominal size renders them noticeably heavier than the page's other icons.
-   This row is sized to sit level with a lucide icon at 22 rather than to that number itself. */
-const BRAND_GLYPH = 18;
-
-const communityLinks = [
-  {
-    href: 'https://discord.com/invite/dune-tabletop-624609341886169117',
-    label: 'Dune Discord server',
-    Icon: SiDiscord,
-  },
-  {
-    href: 'https://www.reddit.com/r/DuneBoardGame/',
-    label: 'r/DuneBoardGame on Reddit',
-    Icon: FaRedditAlien,
-  },
-  {
-    href: 'https://boardgamegeek.com/boardgame/283355/dune/forums/69',
-    label: 'Dune forums on BoardGameGeek',
-    Icon: SiBoardgamegeek,
-  },
-] as const;
-
-export const Route = createFileRoute('/_app/')({
-  codeSplitGroupings: [['component', 'pendingComponent', 'errorComponent']],
-  loader: loadHomepage,
-  pendingComponent: HomepagePending,
-  errorComponent: HomepageError,
-  component: IndexPage,
-});
+export const Route = createFileRoute('/_app/')({ component: IndexPage });
 
 function IndexPage() {
-  const loaderData = Route.useLoaderData();
-  const homepage = useHomepage({ initialData: loaderData });
-  const data = homepage.data;
-
-  if (!data) {
-    return <HomepagePending />;
-  }
-
-  const counts = data.community.counts;
-  const metrics = [
-    { value: compactNumber(counts.factions), label: 'factions' },
-    { value: compactNumber(counts.rulesets), label: 'rulesets' },
-    { value: compactNumber(counts.members), label: 'members' },
-    { value: compactNumber(counts.questions), label: 'questions' },
-    { value: compactNumber(counts.answers), label: 'answers' },
-  ];
-
+  const root = useRef<HTMLDivElement>(null);
+  const motionAllowed = useMotionAllowed();
+  useEffect(() => {
+    if (!motionAllowed || typeof IntersectionObserver === 'undefined') {
+      return;
+    }
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            entry.target.setAttribute('data-entered', 'true');
+            observer.unobserve(entry.target);
+          }
+        }
+      },
+      { threshold: 0.12 }
+    );
+    root.current
+      ?.querySelectorAll('[data-marketing-arrival]:not([data-entered])')
+      .forEach((element) => observer.observe(element));
+    return () => observer.disconnect();
+  }, [motionAllowed]);
   return (
     <PageLayout>
       <PageLayout.Header size="hero">
-        <Stack className={styles.hero} align="center" justify="center" gap="sm">
-          <PageTitle eyebrow="A game of conquest, diplomacy & betrayal" title="Make Dune your own" />
-          <Text className={styles.heroDeck}>
-            Discover what people are playing today—or make the thing they play tomorrow.
-          </Text>
-          <Group justify="center" mt="xs">
-            <Button size="sm" renderRoot={(props) => <Link {...props} to="/rulesets" />}>
-              Discover the game
+        <Stack align="center" gap="lg">
+          <PageTitle
+            eyebrow="A first look at our next chapter"
+            title="Dune Play is coming soon"
+            subtitle="Soon, your next game of Dune will be right here."
+          />
+          <Group justify="center">
+            <Button component="a" href="#play-preview">
+              Take a sneak peek
             </Button>
-            <CallToAction
-              size="sm"
-              direction="forward"
-              renderRoot={(rootProps) => <Link {...rootProps} to="/factions/create" />}
-            >
-              Start creating
-            </CallToAction>
+            <Button variant="subtle" component="a" href="#make">
+              Make something today <ArrowRight size={16} aria-hidden />
+            </Button>
           </Group>
         </Stack>
       </PageLayout.Header>
       <PageLayout.Content>
-        <Stack gap="xl">
-          <TriptychLayout className={styles.storyLayout}>
-            <TriptychLayout.Left>
-              <Box className={styles.storyColumn}>
-                <Stack justify="space-between" h="100%" gap="xl">
-                  <Box>
-                    <Badge color="dune">Start here</Badge>
-                    <Title order={2} mt="sm" className={styles.storyTitle}>
-                      A game where every player breaks the rules differently
-                    </Title>
-                    <Text c="dimmed" size="lg" mt="md" className={styles.storyCopy}>
-                      Dune turns conquest into conversation. Your strongest weapon may be an alliance, a threat, a
-                      promise—or knowing exactly when to betray one.
-                    </Text>
-                  </Box>
-                  <Group>
-                    <Button renderRoot={(props) => <Link {...props} to="/rulesets" />}>Discover Dune</Button>
-                    <Button
-                      component="a"
-                      href="https://treachery.online/"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      variant="subtle"
-                      rightSection={<ExternalLink size={15} aria-hidden />}
-                    >
-                      Play online
-                    </Button>
-                  </Group>
-                </Stack>
-              </Box>
-            </TriptychLayout.Left>
-            <TriptychLayout.Center className={styles.storyPreview}>
-              <AnimatedLeaderToken />
-            </TriptychLayout.Center>
-            <TriptychLayout.Right>
-              <Box className={styles.storyColumn}>
-                <Stack gap="md">
-                  <Badge color="confirm" w="fit-content">
-                    Make it yours
-                  </Badge>
-                  <Title order={2}>Your idea belongs at the table</Title>
-                  <Text c="dimmed">
-                    Remix a familiar edition, learn from community homebrew, or invent a faction nobody has seen before.
-                    Watch every piece take shape, then preview, print, and share it with friends.
-                  </Text>
-                  <Group mt="sm">
-                    <CallToAction
-                      direction="forward"
-                      renderRoot={(rootProps) => <Link {...rootProps} to="/factions/create" />}
-                    >
-                      Start creating
-                    </CallToAction>
-                    <Button variant="subtle" color="confirm" renderRoot={(props) => <Link {...props} to="/factions" />}>
-                      Browse homebrew
-                    </Button>
-                  </Group>
-                </Stack>
-              </Box>
-            </TriptychLayout.Right>
-          </TriptychLayout>
-
-          <Surface className={styles.communityBand}>
-            <SimpleGrid cols={{ base: 1, md: 2 }} spacing="xl" verticalSpacing="xl">
-              <Stack gap="sm">
-                <Eyebrow tone="accent">Built by people around the table</Eyebrow>
-                <Title order={2}>A living game needs a living community</Title>
-                <Text c="dimmed">
-                  Find the people making factions, answering edge cases, and bringing new players into the fold.
-                </Text>
-              </Stack>
-              <Stack gap="md">
-                <SimpleGrid cols={{ base: 2, sm: 5 }} spacing="sm">
-                  {metrics.map((metric) => (
-                    <Box key={metric.label}>
-                      <Text fw={900} size="xl">
-                        {metric.value}
-                      </Text>
-                      <Text size="xs" c="dimmed">
-                        {metric.label}
-                      </Text>
-                    </Box>
-                  ))}
-                </SimpleGrid>
-                <Group justify="space-between" align="center">
-                  {data.community.newestMembers.length > 0 ? (
-                    <Avatar.Group>
-                      {data.community.newestMembers.map((member) => (
-                        <Link
-                          key={member.id}
-                          to="/profiles/$profileSlug"
-                          params={{ profileSlug: member.slug }}
-                          className={styles.avatarLink}
-                          aria-label={`View ${member.username} profile`}
-                        >
-                          <Avatar src={member.avatarUrl} alt={member.username} />
-                        </Link>
-                      ))}
-                    </Avatar.Group>
-                  ) : (
-                    <Text size="sm" c="dimmed">
-                      New makers will appear here.
-                    </Text>
-                  )}
-                  <Button variant="subtle" renderRoot={(props) => <Link {...props} to="/profiles" />}>
-                    Meet the community
-                  </Button>
-                </Group>
-                <Group gap="md">
-                  {communityLinks.map(({ href, label, Icon }) => (
-                    <Tooltip key={href} label={label}>
-                      <Anchor
-                        href={href}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        aria-label={label}
-                        underline="never"
-                        className={styles.communityIconLink}
-                      >
-                        <Icon size={BRAND_GLYPH} aria-hidden />
-                      </Anchor>
-                    </Tooltip>
-                  ))}
-                </Group>
-              </Stack>
-            </SimpleGrid>
-          </Surface>
-
-          <AsymmetricSplitLayout className={styles.discoveryLayout}>
-            <AsymmetricSplitLayout.Wide>
-              <Section
-                className={styles.discoveryColumn}
-                eyebrow="From the catalogue"
-                title="New ideas are arriving"
-                action={
-                  <Anchor component={Link} to="/factions" fw={700} className={styles.headingLink}>
-                    See every faction <ArrowRight size={15} aria-hidden />
-                  </Anchor>
-                }
-              >
-                <Stack gap="sm">
-                  {data.spotlights.newArrival ? (
-                    <FactionCatalogueSpotlight
-                      faction={data.spotlights.newArrival}
-                      label="New arrival"
-                      meta={`Created ${formatStableDate(data.spotlights.newArrival.created_at)}`}
-                    />
-                  ) : null}
-                  {data.spotlights.freshlyUpdated ? (
-                    <FactionCatalogueSpotlight
-                      faction={data.spotlights.freshlyUpdated}
-                      label="Freshly updated"
-                      meta={`Updated ${formatStableDate(data.spotlights.freshlyUpdated.updated_at)}`}
-                    />
-                  ) : null}
-                  {!data.spotlights.newArrival && !data.spotlights.freshlyUpdated ? (
-                    <Text c="dimmed">The catalogue is waiting for its first faction.</Text>
-                  ) : null}
-                </Stack>
-              </Section>
-            </AsymmetricSplitLayout.Wide>
-            <AsymmetricSplitLayout.Narrow>
-              <Section
-                className={styles.discoveryColumn}
-                eyebrow="Planned"
-                title="What we’ll make next"
-                action={
-                  <Anchor component={Link} to="/future-plans" fw={700} className={styles.headingLink}>
-                    Future plans <ArrowRight size={15} aria-hidden />
-                  </Anchor>
-                }
-              >
-                <Stack gap="md">
-                  <Bullets>
-                    <Bullets.Item icon={<TopicIcon topic="rules" size={20} />} title="Web-native rulebooks" />
-                    <Bullets.Item icon={<Printer size={20} />} title="PDF and TTS output" />
-                    <Bullets.Item icon={<Trophy size={20} />} title="Results and leaderboards" />
-                    <Bullets.Item icon={<MessageCircle size={20} />} title="An Atreides card tracker" />
-                  </Bullets>
-                  <Anchor component={Link} to="/future-plans" fw={700}>
-                    What should we make after that?
-                  </Anchor>
-                </Stack>
-              </Section>
-            </AsymmetricSplitLayout.Narrow>
-          </AsymmetricSplitLayout>
-        </Stack>
+        <div ref={root} className={styles.homepage} data-homepage-motion={motionAllowed ? 'on' : 'off'}>
+          <HomepageChapters />
+        </div>
       </PageLayout.Content>
     </PageLayout>
   );
 }
 
-/* The three portraits and three edits the token cycles through. Baked in because they are this
-   page's illustration rather than anyone's data. */
-const LEADER_PORTRAITS = [
-  '/image/leader/ilya/ecaz.jpg',
-  '/image/leader/ilya/hundro.jpg',
-  '/image/leader/ilya/korba.png',
-] as const;
-
-const LEADER_EDITS = [
-  { name: 'Lady Siona', strength: '4', ...factionTokenFixtures.ecaz },
-  { name: 'Duke Maros', strength: '2', ...factionTokenFixtures.moritani },
-  { name: 'Farok', strength: '5', ...factionTokenFixtures.fremen },
-] as const;
-
-type LeaderAnimationPhase = 'hold' | 'transition' | 'typing';
-
-/**
- * A real leader token demonstrating gradual edits while keeping its portrait.
- *
- * It lives here rather than in the kit because it has no membrane to judge a kind at: no props, both data sets baked in, and one page that renders it.
- */
-function AnimatedLeaderToken() {
-  const reduceMotion = useReducedMotion();
-  const [portrait, setPortrait] = useState<(typeof LEADER_PORTRAITS)[number]>(LEADER_PORTRAITS[0]);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [previousIndex, setPreviousIndex] = useState<number | null>(null);
-  const [phase, setPhase] = useState<LeaderAnimationPhase>('hold');
-  const [typedLength, setTypedLength] = useState(LEADER_EDITS[0].name.length);
-  const leader = LEADER_EDITS[currentIndex];
-
-  useEffect(() => {
-    setPortrait(LEADER_PORTRAITS[Math.floor(Math.random() * LEADER_PORTRAITS.length)]);
-  }, []);
-
-  useEffect(() => {
-    if (reduceMotion) {
-      return;
-    }
-
-    let delay = 1800;
-    const advance = () => {
-      if (phase === 'hold') {
-        setPreviousIndex(currentIndex);
-        setCurrentIndex((current) => (current + 1) % LEADER_EDITS.length);
-        setTypedLength(0);
-        setPhase('transition');
-        return;
-      }
-      if (phase === 'transition') {
-        setPreviousIndex(null);
-        setPhase('typing');
-        return;
-      }
-      if (typedLength < leader.name.length) {
-        setTypedLength((current) => current + 1);
-        return;
-      }
-      setPhase('hold');
-    };
-
-    if (phase === 'transition') {
-      delay = 850;
-    }
-    if (phase === 'typing') {
-      delay = typedLength < leader.name.length ? 90 : 700;
-    }
-    const timer = window.setTimeout(advance, delay);
-    return () => window.clearTimeout(timer);
-  }, [currentIndex, leader.name.length, phase, reduceMotion, typedLength]);
-
-  const displayedName = (() => {
-    switch (phase) {
-      case 'hold':
-        return leader.name;
-      case 'typing':
-        return leader.name.slice(0, typedLength);
-      /* Mid-transition the name is empty, so the outgoing token fades without its label sliding. */
-      default:
-        return '';
-    }
-  })();
-
+function BoardPreview() {
   return (
-    <div className={styles.leaderToken} role="img" aria-label="An example leader token changing as it is edited">
-      {previousIndex !== null ? (
-        <div className={styles.leaderTokenPrevious}>
-          <LeaderToken {...LEADER_EDITS[previousIndex]} image={portrait} />
+    <img
+      className={styles.boardPreview}
+      src={resolveAsset('/web/homepage/board.png', 'large')}
+      srcSet={`${resolveAsset('/web/homepage/board.png', 'small')} 1080w, ${resolveAsset('/web/homepage/board.png', 'large')} 3000w`}
+      sizes="200vw"
+      width={3000}
+      height={1420}
+      alt="The current Dune Play board with six faction tokens and troops on the table, without play controls"
+      loading="eager"
+      fetchPriority="high"
+    />
+  );
+}
+
+function fanStyle(x: string, y: string, turn: string, delay: string): CSSProperties {
+  return { '--fan-x': x, '--fan-y': y, '--fan-turn': turn, '--arrival-delay': delay } as CSSProperties;
+}
+
+const cloudArtwork = [
+  { portrait: 'house-nereth/varda-nereth', troop: 'resonance-adept', x: 12, y: 23, size: 18 },
+  { portrait: 'pale-chorus/nela', troop: 'blade-dancer', x: 35, y: 36, size: 22 },
+  { portrait: 'korven-night/koraun', troop: 'suspensor-lancer', x: 62, y: 30, size: 18 },
+  { portrait: 'calar-flint/sera', troop: 'water-keeper', x: 85, y: 42, size: 23 },
+  { portrait: 'house-calven/maren-calven', troop: 'mantis-guard', x: 49, y: 67, size: 23 },
+  { portrait: 'velnar-choir/vela', troop: 'juggernaut', x: 22, y: 77, size: 15 },
+  { portrait: 'house-osem/senna-osem', troop: 'court-duelist', x: 71, y: 78, size: 18 },
+  { portrait: 'talar-coil/tala', troop: 'needle-sniper', x: 8, y: 62, size: 12 },
+  { portrait: 'avel-lattice/avela', troop: 'salvage-warden', x: 29, y: 10, size: 12 },
+  { portrait: 'morrow-strain/nali', troop: 'veiled-adept', x: 51, y: 12, size: 15 },
+  { portrait: 'house-ardent/kessa-ardent', troop: 'spice-driller', x: 76, y: 10, size: 13 },
+  { portrait: 'kelor-mantle/kelor', troop: 'raptor-keeper', x: 92, y: 17, size: 10 },
+  { portrait: 'seam-bound/mella', troop: 'masked-saboteur', x: 43, y: 91, size: 10 },
+  { portrait: 'sere-reservoir/arel', troop: 'drum-herald', x: 91, y: 85, size: 13 },
+  { portrait: 'khelt-dynasty/khelra', troop: 'furnace-bearer', x: 56, y: 47, size: 11 },
+  { portrait: 'house-nereth/eren-nereth', troop: 'wire-hunter', x: 17, y: 48, size: 9 },
+  { portrait: 'pale-chorus/vessa', troop: 'crescent-executioner', x: 71, y: 51, size: 14 },
+  { portrait: 'calar-flint/hema', troop: 'ixian-engineer', x: 38, y: 64, size: 10 },
+  { portrait: 'house-calven/tovan-calven', troop: 'void-walker', x: 10, y: 88, size: 9 },
+  { portrait: 'velnar-choir/sorel', troop: 'hook-climber', x: 26, y: 54, size: 13 },
+  { portrait: 'avel-lattice/orsa', troop: 'desert-pathfinder', x: 61, y: 92, size: 11 },
+  { portrait: 'morrow-strain/tessa', troop: 'shield-rammer', x: 39, y: 17, size: 8 },
+  { portrait: 'house-ardent/oren-ardent', troop: 'gene-forged-brute', x: 80, y: 65, size: 10 },
+  { portrait: 'talar-coil/iva', troop: 'house-bulwark', x: 53, y: 33, size: 9 },
+  { portrait: 'kelor-mantle/vaska', troop: 'banner-marshal', x: 7, y: 8, size: 8 },
+  { portrait: 'seam-bound/verren', troop: 'siege-gunner', x: 94, y: 60, size: 9 },
+  { portrait: 'sere-reservoir/sava', troop: undefined, x: 24, y: 29, size: 9 },
+  { portrait: 'khelt-dynasty/nera', troop: undefined, x: 68, y: 6, size: 7 },
+] as const;
+const troopBackgrounds = [
+  backgroundPresets.atreides,
+  backgroundPresets.fremen,
+  backgroundPresets.emperor,
+  backgroundPresets.beneGesserit,
+  backgroundPresets.ixian,
+  backgroundPresets.guild,
+  backgroundPresets.beneTleilaxu,
+];
+const showcaseCards = [
+  { name: 'Supplies!', slug: 'supplies', id: 'ns78nmym3qpth6sm9wsfj3ka9s8cw350', credit: 'Central' },
+  { name: 'Trishula!', slug: 'trishula', id: 'ns7cgwf2xm2ppj3c5jtpnnehf98cxcbq', credit: 'Central' },
+  { name: 'Arrakeen', slug: 'arrakeen', id: 'ns74r72v6mdmnn8ahdmj27c8gs8cz5t6', credit: 'IHasPinecone' },
+];
+
+function AssetInvitation() {
+  return (
+    <Section
+      className={styles.editorialCopy}
+      title="One card can change the game"
+      eyebrow="Cards, decks & tokens"
+      description="Make the small pieces that bring a big idea to the table."
+    >
+      <Text>
+        Design a deck, write a treachery card or give a new rule a token of its own. Preview your pieces as you build.
+      </Text>
+      <Group>
+        <Button renderRoot={(props) => <Link {...props} to="/assets" />}>Browse Assets</Button>
+        <Button
+          variant="subtle"
+          renderRoot={(props) => <Link {...props} to="/assets/$type/create" params={{ type: 'card-treachery' }} />}
+        >
+          Create a card
+        </Button>
+      </Group>
+    </Section>
+  );
+}
+
+function PreviewCopy() {
+  return (
+    <Section alignment="center" eyebrow="A sneak peek · Coming soon" title="Your next game is taking shape.">
+      <Text size="lg">
+        The board. Your faction. The deal that changes everything. Soon you'll be able to play Dune right here.
+      </Text>
+      <Text size="sm" c="dimmed">
+        A development preview of the new table. Play is not available yet.
+      </Text>
+    </Section>
+  );
+}
+
+function OnlineRulebooks() {
+  return (
+    <Section alignment="center" eyebrow="Rulesets & Rulebooks" title="Your rules. Always within reach.">
+      <Text size="lg">
+        Read Rulebooks online and refer back to them during a game. Download a PDF for your table, your tablet or your
+        printer.
+      </Text>
+      <Text>Find a Ruleset you love, or build one with your own rulings, factions and illustrated Rulebook.</Text>
+      <Group justify="center">
+        <Button renderRoot={(props) => <Link {...props} to="/rulesets" />}>Read the Rulesets</Button>
+        <Button variant="subtle" renderRoot={(props) => <Link {...props} to="/rulesets/create" />}>
+          Write your own
+        </Button>
+      </Group>
+      <Text size="sm">
+        Try{' '}
+        <Anchor
+          renderRoot={(props) => <Link {...props} to="/rulesets/$rulesetSlug" params={{ rulesetSlug: 'dreamrules' }} />}
+        >
+          Dreamrules
+        </Anchor>
+        , maintained by Central and the dreamers Group.
+      </Text>
+    </Section>
+  );
+}
+
+function BookCloud() {
+  return (
+    <div className={styles.newBookFan}>
+      {['map', 'factions', 'cover'].map((file, index) => (
+        <div
+          className={styles.fanPiece}
+          key={file}
+          style={fanStyle(
+            `${(index === 2 ? 0 : index === 0 ? -1 : 1) * 40}%`,
+            `${index === 2 ? -7 : 2}%`,
+            `${index === 2 ? -3 : index === 0 ? -17 : 14}deg`,
+            `${index * 120}ms`
+          )}
+        >
+          <PublishedImage
+            src={resolveAsset(`/web/homepage/${file}.jpg`, 'large')}
+            name={`Arrakis field guide demonstration ${file}`}
+            aspect={1.414}
+          />
         </div>
-      ) : null}
-      <div className={previousIndex === null ? styles.leaderTokenStable : styles.leaderTokenCurrent}>
-        <LeaderToken {...leader} image={portrait} name={displayedName || '\u00a0'} />
-      </div>
+      ))}
     </div>
   );
 }
 
-/*
- * No way back on either: the landing page is the top of every branch, so a link here would point at
- * the page the reader is already on.
- *
- * These were half-converted before, which is the failure mode the widget's own doc warns about: the
- * error frame used the body and not the frame, so its alert sat straight on the page background
- * while every other caller's sat on a pane, and the pending frame used neither, hand-rolling a
- * `Surface` whose missing padding prop resolved to none against the frame's xl.
- */
-function HomepagePending() {
+function ArtworkCloud({ vectors = false }: { vectors?: boolean }) {
+  const entries = vectors ? cloudArtwork.filter((entry) => entry.troop) : cloudArtwork;
   return (
-    <PageMessage size="hero" title="Make Dune your own">
-      <LoadPending title="Setting the table">The latest work from the community is loading.</LoadPending>
-    </PageMessage>
+    <div
+      className={styles.artworkCloud}
+      aria-label={`A cloud of ${entries.length} ${vectors ? 'new troop designs' : 'homebrew leader portraits'}`}
+    >
+      {entries.map(({ portrait, troop, x, y, size }, index) => {
+        const key = vectors ? troop : portrait;
+        if (!key) {
+          return null;
+        }
+        const name = key.split('/').at(-1)!.replaceAll('-', ' ');
+        return (
+          <div
+            className={styles.cloudPiece}
+            key={key}
+            style={
+              {
+                left: `${x}%`,
+                top: `${y}%`,
+                width: `${size}%`,
+                '--cloud-turn': `${((index * 7) % 25) - 12}deg`,
+                '--arrival-delay': `${(index % 8) * 70}ms`,
+                zIndex: index < 7 ? 3 : 1,
+              } as CSSProperties
+            }
+          >
+            {vectors ? (
+              <div className={styles.vectorDisc} role="img" aria-label={name}>
+                <TroopToken
+                  background={troopBackgrounds[index % troopBackgrounds.length]!}
+                  image={`/vector/troop/${troop!}.svg`}
+                  star={undefined}
+                  hue={undefined}
+                  striped={false}
+                />
+              </div>
+            ) : (
+              <img
+                src={resolveAsset(`/image/leader/custom/${key}.png`, 'large')}
+                alt={`${name}, homebrew portrait`}
+                width={640}
+                height={640}
+                loading="lazy"
+              />
+            )}
+          </div>
+        );
+      })}
+    </div>
   );
 }
 
-function HomepageError({ error }: ErrorComponentProps) {
+function PortraitCopy() {
   return (
-    <PageMessage size="hero" title="Make Dune your own">
-      <LoadError title="The homepage could not be loaded" stale={isStaleClientData(error)}>
-        {error.message}
-      </LoadError>
-    </PageMessage>
+    <Section alignment="center" eyebrow="A whole new cast" title="So many faces. So many terrible plans.">
+      <Text size="lg">
+        Strange houses. Familiar schemers. People who definitely know something you don't. Our growing portrait library
+        is ready for your homebrew.
+      </Text>
+      <Group justify="center">
+        <Button renderRoot={(props) => <Link {...props} to="/media" />}>Meet the whole cast</Button>
+        <Button variant="subtle" renderRoot={(props) => <Link {...props} to="/factions/create" />}>
+          Create a faction
+        </Button>
+      </Group>
+    </Section>
   );
 }
 
-function compactNumber(value: number) {
-  return new Intl.NumberFormat('en', { notation: 'compact', maximumFractionDigits: 1 }).format(value);
+function VectorCopy() {
+  return (
+    <Section alignment="center" eyebrow="New vectors, ready to use" title="An army of possibilities.">
+      <Text size="lg">
+        Blade dancers, gene-forged brutes and water keepers. Pick the forces that belong in your world.
+      </Text>
+      <Text>Combine the artwork with your faction's colours to make tokens of your own.</Text>
+      <Button className={styles.centerAction} w="fit-content" renderRoot={(props) => <Link {...props} to="/media" />}>
+        Explore the vector library
+      </Button>
+    </Section>
+  );
+}
+
+function QualityCards() {
+  return (
+    <div className={styles.cardShowcase}>
+      <div className={styles.qualityCardFan}>
+        {showcaseCards.map((card, index) => (
+          <div
+            key={card.id}
+            className={styles.showcaseCard}
+            style={fanStyle(
+              `${(index - 1) * 65}%`,
+              `${index === 1 ? -8 : 7}%`,
+              `${(index - 1) * 13}deg`,
+              `${index * 150}ms`
+            )}
+          >
+            <AssetFace
+              href={`https://dune.zone/published/cards/${card.id}/card.jpg`}
+              type="card-treachery"
+              data={null}
+              name={card.name}
+            />
+          </div>
+        ))}
+      </div>
+      <Group justify="center" gap="xl" className={styles.cardCredits}>
+        {showcaseCards.map((card) => (
+          <div key={card.id} className={styles.cardCredit}>
+            <Anchor
+              renderRoot={(props) => (
+                <Link {...props} to="/assets/$type/$slug" params={{ type: 'card-treachery', slug: card.slug }} />
+              )}
+              fw={700}
+            >
+              {card.name}
+            </Anchor>
+            <Text size="xs" c="dimmed">
+              {card.credit}
+            </Text>
+          </div>
+        ))}
+      </Group>
+    </div>
+  );
+}
+
+function AllianceInvitation() {
+  return (
+    <Section className={styles.editorialCopy} eyebrow="Groups" title="Some alliances are worth keeping.">
+      <Text size="lg">
+        Find your allies. Form a Group to create and maintain Rulesets, factions and Assets together.
+      </Text>
+      <Text>Pool your ideas, debate the details, and make something worth bringing to the table.</Text>
+      <Group>
+        <Button renderRoot={(props) => <Link {...props} to="/groups/create" />}>Form an alliance</Button>
+        <Button variant="subtle" renderRoot={(props) => <Link {...props} to="/groups" />}>
+          Explore Groups
+        </Button>
+      </Group>
+    </Section>
+  );
+}
+
+function GroupAllianceCard() {
+  return (
+    <div className={styles.allianceCard}>
+      <CanvasScale canvasWidth={cardSize.width} canvasHeight={cardSize.height} rounded>
+        <AllianceCard
+          background={backgroundPresets.atreides}
+          logo="/vector/generic/alliance.svg"
+          title="Your Group"
+          troop="/vector/troop/banner-marshal.svg"
+          decals={[]}
+          text={
+            'Pool your ideas.\nBuild Rulesets, factions and Assets together.\n\nYour shared victory condition:\nmake the game you want to play.'
+          }
+        />
+      </CanvasScale>
+      <Text size="xs" ta="center" mt="md">
+        An alliance card made for this invitation.
+      </Text>
+    </div>
+  );
+}
+
+function OrkLeaders() {
+  const leaders = [
+    { image: '/image/leader/alien/buzcle.png', name: 'Mad Dok Grotsnik', strength: '2' },
+    { image: '/image/leader/alien/eeloo.png', name: 'Ufthak Blackhawk', strength: '4' },
+    { image: '/image/leader/alien/eeriva.png', name: 'Kaptin Badrukk', strength: '6' },
+  ] as const;
+  return (
+    <div className={styles.orkLeaders}>
+      {leaders.map((leader, index) => (
+        <div
+          className={styles.orkDisc}
+          key={leader.name}
+          style={fanStyle(
+            `${(index - 1) * 79}%`,
+            `${index === 1 ? -13 : 9}%`,
+            `${(index - 1) * 12}deg`,
+            `${index * 130}ms`
+          )}
+        >
+          <div className={styles.vectorDisc}>
+            <LeaderToken
+              {...leader}
+              logo="/vector/generic/axes.svg"
+              background={{
+                colors: ['#52a32b', '#52a32b'],
+                definition: 0.5,
+                image: '/image/texture/021.jpg',
+                influence: 1,
+                invert: true,
+              }}
+            />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function CommunityCopy() {
+  return (
+    <Section className={styles.editorialCopy} eyebrow="Made by players" title="Yes, someone put Space Orks on Arrakis.">
+      <Text size="lg">
+        Dice-fuelled battles. Leaders who get stronger. BigDave's Space Orks take homebrew in a rather different
+        direction.
+      </Text>
+      <Text size="sm" c="dimmed">
+        A community faction in progress, maintained by BigDave.
+      </Text>
+      <Group>
+        <Button
+          renderRoot={(props) => <Link {...props} to="/factions/$factionId" params={{ factionId: 'space-orks' }} />}
+        >
+          Meet the Space Orks
+        </Button>
+        <Button variant="subtle" renderRoot={(props) => <Link {...props} to="/factions" />}>
+          Explore more factions
+        </Button>
+      </Group>
+    </Section>
+  );
+}
+
+function HomepageChapters() {
+  return (
+    <div className={styles.cinemaFlow}>
+      <section id="play-preview" className={styles.cinemaOpening} data-marketing-arrival>
+        <div className={styles.wideBoard}>
+          <BoardPreview />
+        </div>
+        <div className={styles.previewCopy}>
+          <PreviewCopy />
+        </div>
+      </section>
+      <section id="make" className={styles.cinemaFeature} data-marketing-arrival>
+        <div className={styles.centerCopy}>
+          <OnlineRulebooks />
+        </div>
+        <BookCloud />
+        <Text size="xs" c="dimmed" ta="center">
+          A few pages from the demonstration Rulebook.
+        </Text>
+      </section>
+      <section className={styles.cinemaFeature} data-marketing-arrival>
+        <div className={styles.centerCopy}>
+          <PortraitCopy />
+        </div>
+        <ArtworkCloud />
+      </section>
+      <section className={styles.cinemaFeature} data-marketing-arrival>
+        <div className={styles.centerCopy}>
+          <VectorCopy />
+        </div>
+        <ArtworkCloud vectors />
+      </section>
+      <section className={styles.editorialRow} data-marketing-arrival>
+        <AssetInvitation />
+        <QualityCards />
+      </section>
+      <section className={styles.editorialRow} data-marketing-arrival>
+        <OrkLeaders />
+        <CommunityCopy />
+      </section>
+      <section className={styles.allianceRow} data-marketing-arrival>
+        <GroupAllianceCard />
+        <AllianceInvitation />
+      </section>
+    </div>
+  );
 }

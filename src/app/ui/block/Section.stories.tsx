@@ -95,3 +95,13 @@ export const ExpertControls = meta.story({
     helpOnly: true,
   },
 });
+
+export const Centered = meta.story({
+  args: {
+    alignment: 'center',
+    eyebrow: 'Rulesets & Rulebooks',
+    title: 'Your rules. Always within reach.',
+    description: 'Read online or download a PDF for your table.',
+    icon: undefined,
+  },
+});

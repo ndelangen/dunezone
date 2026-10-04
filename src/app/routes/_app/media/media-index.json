@@ -10276,5 +10276,29 @@
     "tags": ["Charon", "Sol", "Solar System", "moon", "Pluto"],
     "subjects": ["space"],
     "sourceHash": "5e1ffb2b8641614212402424f35656f487ee9a8b5a79a11ba87314ca6d90d5d9"
+  },
+  "/web/homepage/board.png": {
+    "description": "An angled Arrakis game board with troops, six faction tokens, cards and a turn track on a transparent background.",
+    "tags": ["Dune Play", "board", "homepage", "development preview", "faction tokens"],
+    "subjects": ["symbols", "places"],
+    "sourceHash": "485676b8ef2cf7cddf6b504f663242ddfb8d2ec2ca913b16e90037a57ae306b6"
+  },
+  "/web/homepage/cover.jpg": {
+    "description": "An Arrakis field guide demonstration cover with desert cliffs, a cloaked traveller, a moon and a distant fortress.",
+    "tags": ["Rulebook", "demonstration", "cover", "Arrakis", "desert"],
+    "subjects": ["places", "people", "space"],
+    "sourceHash": "8b30c75089a1093b54a68ac2c2ea0591290f73b6dcf80e84528f2cc52898ce1b"
+  },
+  "/web/homepage/map.jpg": {
+    "description": "A demonstration Rulebook page with a circular Arrakis map, four numbered landmarks and a route-planning checklist.",
+    "tags": ["Rulebook", "demonstration", "map", "Arrakis", "strongholds"],
+    "subjects": ["places", "symbols"],
+    "sourceHash": "cb40fdb7c100e6e472eef06b84a29bd845c10455357abce5d41c56c1057314b2"
+  },
+  "/web/homepage/factions.jpg": {
+    "description": "A demonstration Rulebook page comparing Fremen and Ixians, with circular leader portraits, faction emblems and a sandworm.",
+    "tags": ["Rulebook", "demonstration", "Fremen", "Ixians", "leaders", "sandworm"],
+    "subjects": ["people", "symbols", "creatures"],
+    "sourceHash": "5b73b4701741d8f7d50e64c9028587b489577336e157d30c9fd5ecf68e0b04f0"
   }
 }
