@@ -19,6 +19,28 @@ const memberId = '10000000-1000-4000-8000-100000000001';
 const memberHref = publishedHref('faction-leader', factionMemberPublicationId(factionId, memberId));
 
 describe('downloaded Rulebook images', () => {
+  test('page title icons load in downloaded HTML without changing headings that have no icon', () => {
+    const contents = createRulebookStarterContents();
+    contents.pagesById.RULE!.headingIcon = '/vector/icon/storrm_standalone.svg';
+    const saved = rulebookContentsV1Schema.parse(JSON.parse(JSON.stringify(contents)));
+    const document = projectRulebookRenderDocument(saved, {}, { size: 'square', design: 'illustrated' });
+    const before = structuredClone(document);
+    const html = renderRulebookHtmlDocument({
+      document,
+      canonicalHref: 'https://dune.zone/rulesets/dreamrules/rulebooks/test',
+      title: 'Phase headings',
+      label: 'Phase headings',
+      style: rulebookRendererCss,
+    });
+    const parsed = parseHTML(html).document;
+    const icons = [...parsed.querySelectorAll('h1 img')];
+    expect(icons).toHaveLength(1);
+    expect(icons[0].getAttribute('src')).toBe('https://dune.zone/vector/icon/storrm_standalone.svg');
+    const exported = rulebookRenderDocumentV1Schema.parse(rulebookHtmlImages(document, 'https://dune.zone'));
+    expect(exported.pagesById.RULE!.headingIcon).toBe('https://dune.zone/vector/icon/storrm_standalone.svg');
+    expect(document).toEqual(before);
+  });
+
   test('list icons survive the saved contract and load in downloaded HTML without changing plain items', () => {
     const contents: RulebookContentsDraftV1 = createRulebookStarterContents();
     const list = contents.pagesById.RULE!.blocksById.L5ST!;

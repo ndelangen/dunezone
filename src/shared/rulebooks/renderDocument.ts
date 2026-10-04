@@ -3,7 +3,6 @@ import { z } from 'zod';
 import { parseFormattedText } from '../formattedText';
 import type { NormalizedFormattedText } from '../formattedText';
 import {
-  rulebookHeadingIconSchema,
   rulebookIllustrationSizeSchema,
   assetExplainerBlockSchema,
   assetExplainerItemSchema,
@@ -242,7 +241,7 @@ type RenderPage<Layout extends RulebookLayout = RulebookLayout> = Layout extends
       controlValues: RenderControlValues<Layout>;
       regions: RenderRegions<Layout['regions']>;
       showHeading: boolean;
-      headingIcon?: z.infer<typeof rulebookHeadingIconSchema>;
+      headingIcon?: string;
     }
   : never;
 
@@ -285,7 +284,7 @@ function renderPageSchema<const Layout extends RulebookLayout>(layout: Layout) {
     anchor: rulebookAnchorSchema,
     title: z.string(),
     showHeading: z.boolean().default(true),
-    headingIcon: rulebookHeadingIconSchema.optional(),
+    headingIcon: z.string().optional(),
     layoutId: z.literal(layout.id),
     controlValues: renderControlValuesSchema(layout),
     regions: renderRegionsSchema(layout),

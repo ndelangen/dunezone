@@ -32,6 +32,9 @@ export function rulebookHtmlImages(
     }
   }
   for (const page of Object.values(copy.pagesById)) {
+    if (page.headingIcon) {
+      page.headingIcon = new URL(page.headingIcon, canonicalHref).href;
+    }
     if (page.layoutId === 'cover') {
       const cover = page.controlValues.cover;
       image(cover.artwork);
