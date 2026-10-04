@@ -3,6 +3,7 @@ import { Button, Menu } from '@mantine/core';
 import { Html, Shadow, useTexture } from '@react-three/drei/webgpu';
 import { Canvas, useFrame, useThree } from '@react-three/fiber/webgpu';
 import type { ThreeEvent } from '@react-three/fiber/webgpu';
+import { isFactionToken } from '@shared/play/factionToken';
 import { gestureBlockReason, pieceCount, topItemFaceUp } from '@shared/play/model';
 import type { TablePiece, TableState, Vector3Tuple } from '@shared/play/model';
 import { hasHiddenFace, peekersOf, peeksWholeDeck } from '@shared/play/peeking';
@@ -101,6 +102,7 @@ import { boardFurnitureFor } from './boardFurniture';
 import { boardMapGeometry } from './boardMapGeometry';
 import { BOARD_RIM_DEPTH, createBoardRimShape } from './boardRimGeometry';
 import { CameraControls, CameraRelativeFog } from './CameraControls';
+import { useBlockedDecal } from './factionToken/blockedDecal';
 import { deckShuffleHint, swallowLift, watchLongPress } from './longPress';
 import { PeekView } from './PeekView';
 import { PhaseSymbol } from './PhaseSymbol';
@@ -587,6 +589,29 @@ function usePublishedFaceReady(href: string | undefined): boolean {
   return usePublishedFace(href) !== undefined || !href;
 }
 
+/* A face-down faction token's blocked symbol, drawn over the front it shows (#1007). */
+function BlockedOverlay() {
+  const decal = useBlockedDecal();
+  const texture = useMemo(() => {
+    if (!decal) {
+      return null;
+    }
+    const value = new CanvasTexture(decal);
+    value.colorSpace = SRGBColorSpace;
+    return value;
+  }, [decal]);
+  useEffect(() => () => texture?.dispose(), [texture]);
+  if (!texture) {
+    return null;
+  }
+  return (
+    <mesh position={[0, 0, 0.003]} renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}>
+      <circleGeometry args={[TROOP_FACE_RADIUS, 48]} />
+      <meshBasicMaterial map={texture} transparent depthWrite={false} />
+    </mesh>
+  );
+}
+
 function TokenFace({
   piece,
   faceUp,
@@ -598,15 +623,13 @@ function TokenFace({
   underside?: boolean;
   itemIndex: number;
 }) {
+  /* A faction token has no back of its own: face down, it shows its front under the blocked symbol. */
+  const blocked = !faceUp && isFactionToken(piece);
+  const href = piece.items[itemIndex]?.artwork?.[faceUp || blocked ? 'front' : 'back'];
   return (
     <PieceFace height={TROOP_LAYER_HEIGHT} underside={underside}>
-      {piece.items[itemIndex]?.artwork?.[faceUp ? 'front' : 'back'] && (
-        <PublishedFace
-          href={piece.items[itemIndex].artwork![faceUp ? 'front' : 'back']!}
-          card={false}
-          ratio={tokenBoxRatio(piece)}
-        />
-      )}
+      {href && <PublishedFace href={href} card={false} ratio={tokenBoxRatio(piece)} />}
+      {blocked && <BlockedOverlay />}
       <mesh renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}>
         {tokenBoxRatio(piece) != null ? (
           <planeGeometry args={[TROOP_FACE_RADIUS * 2, TROOP_FACE_RADIUS * 2 * tokenBoxRatio(piece)!]} />

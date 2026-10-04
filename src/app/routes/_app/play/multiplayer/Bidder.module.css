@@ -67,6 +67,11 @@
   cursor: default;
 }
 
+.pick[data-sitting-out] {
+  filter: grayscale(1);
+  opacity: 0.4;
+}
+
 /* A player who wants the board back fades the bidder for themselves; it still works through the fade. */
 .faded {
   opacity: 0.1;

@@ -36,8 +36,8 @@ export const BidderBeforeTheFirstRound = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     const startAt = await page.findByRole('group', { name: 'Start new bidding starting at' }, { timeout: 30_000 });
-    /* The Emperor's token lies face down, so the Emperor is not offered. */
-    await expect(within(startAt).queryByRole('button', { name: /Emperor/ })).not.toBeInTheDocument();
+    /* The Emperor's token lies face down: its button stays in place, greyed out, so flipping a token never moves the others. */
+    await expect(within(startAt).getByRole('button', { name: /Emperor/ })).toBeDisabled();
     await userEvent.click(within(startAt).getByRole('button', { name: /Start bidding at .*Fremen/ }));
     await waitFor(() => expect(lastCommand()?.action).toEqual({ kind: 'bid-start', factionId: 'fremen' }));
   },

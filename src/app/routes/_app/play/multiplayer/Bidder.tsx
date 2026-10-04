@@ -3,6 +3,7 @@ import { Html } from '@react-three/drei/webgpu';
 import { biddingFactions, idleBidding } from '@shared/play/bidding';
 import type { BiddingState } from '@shared/play/bidding';
 import { phaseAt, STANDARD_PHASES } from '@shared/play/phases';
+import { stormOrder } from '@shared/play/stormSector';
 import { BOARD_RADIUS, BOARD_SURFACE_Y } from '@shared/play/tableGeometry';
 import { PLAYER_RING_RADIUS, tableSeatAngles } from '@shared/play/tableSettings';
 import { useEffect, useMemo } from 'react';
@@ -59,6 +60,7 @@ function pointedFaction(bidding: BiddingState, eligible: readonly string[]) {
 function Bidder({ client, table, faded = false }: Props) {
   const roster = table.snapshot.roster;
   const bidding = table.snapshot.bidding ?? idleBidding();
+  const order = useMemo(() => stormOrder(table.state.stormSectorIndex, roster), [table.state.stormSectorIndex, roster]);
   const eligible = useMemo(
     () => biddingFactions(table.state.stormSectorIndex, roster, table.state.pieces),
     [table.state.stormSectorIndex, roster, table.state.pieces]
@@ -95,7 +97,7 @@ function Bidder({ client, table, faded = false }: Props) {
             {bidding.stage === 'open' ? (
               <OpenRound client={client} table={table} bidding={bidding} remaining={remaining} />
             ) : (
-              <RoundResult client={client} table={table} bidding={bidding} eligible={eligible} />
+              <RoundResult client={client} table={table} bidding={bidding} order={order} eligible={eligible} />
             )}
           </div>
         </DarkSchemeIsland>
