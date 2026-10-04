@@ -54,7 +54,11 @@ import type {
 import { RULEBOOK_EDITION_ARTIFACT_KINDS } from '@shared/rulebooks/editionArtifacts';
 import type { RulebookEditionArtifactKind } from '@shared/rulebooks/editionArtifacts';
 import { rulebookNameSchema } from '@shared/rulebooks/metadata';
-import { projectRulebookDraftRenderPage, rulebookReferenceTargets } from '@shared/rulebooks/projectRenderDocument';
+import {
+  projectRulebookDraftRenderPage,
+  projectRulebookTextReferences,
+  rulebookReferenceTargets,
+} from '@shared/rulebooks/projectRenderDocument';
 import type { RulebookResolvedAssetsById, RulebookResolvedFactionsById } from '@shared/rulebooks/projectRenderDocument';
 import { collectRulebookReferenceIds } from '@shared/rulebooks/references';
 import { getRulebookSize } from '@shared/rulebooks/settings';
@@ -460,6 +464,13 @@ type ClippingReporter = (pageId: string, measurement: RulebookPageClipping | nul
 
 const noClipping: RulebookPageClipping = { blocks: [], footerFields: [] };
 
+function pageReferenceTargets(page: RulebookPageDraft, targets: ReturnType<typeof rulebookReferenceTargets>) {
+  return projectRulebookTextReferences(
+    Object.values(page.blocksById).flatMap((block) => (block.kind === 'text' ? (block.references ?? []) : [])),
+    targets
+  );
+}
+
 /**
  * One hidden Page of the clipping measurement.
  * The state manager hands the editor a fresh clone of the draft after every edit, and the live query hands it a fresh Asset map after every push, so an unchanged Page is recognised structurally rather than by identity.
@@ -481,6 +492,7 @@ const ClippingMeasurementPage = memo(
     onMeasure,
   }: Readonly<{
     contents: RulebookContentsDraftV1;
+    referenceTargets: ReturnType<typeof pageReferenceTargets>;
     page: RulebookPageDraft;
     settings: RulebookSettings;
     pageNumber: number;
@@ -560,7 +572,7 @@ const ClippingMeasurementPage = memo(
     deepEqual(previous.assetsById, next.assetsById) &&
     deepEqual(previous.factionsById, next.factionsById) &&
     deepEqual(previous.page, next.page) &&
-    deepEqual(rulebookReferenceTargets(previous.contents), rulebookReferenceTargets(next.contents))
+    deepEqual(previous.referenceTargets, next.referenceTargets)
 );
 
 function withPageMeasurement(
@@ -1396,6 +1408,10 @@ function RulebookWorkspace({
     activePage && dragState.kind === 'block' && dragState.pageId === activePage.id
       ? projectBlockPlacement(activePage, dragState.blockId, dragState.candidate)
       : activePage;
+  const referenceTargets = useMemo(
+    () => rulebookReferenceTargets(result.draft, assetsById, factionsById),
+    [result.draft, assetsById, factionsById]
+  );
   const previewPage = useMemo(
     () =>
       projectedActivePage
@@ -2010,6 +2026,7 @@ function RulebookWorkspace({
                 return measurementPage ? (
                   <ClippingMeasurementPage
                     contents={result.draft}
+                    referenceTargets={pageReferenceTargets(measurementPage, referenceTargets)}
                     page={measurementPage}
                     settings={settings}
                     pageNumber={index + 1}

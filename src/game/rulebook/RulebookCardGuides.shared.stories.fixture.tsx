@@ -7,7 +7,7 @@ import { RulebookPageRenderer } from './RulebookRenderer';
 
 type GroupVariant = Extract<RulebookBlockDraft, { kind: 'card-group' }>['variant'];
 
-export function CardGuideStory({
+function CardGuideStory({
   treatment = 'entry',
   size = 'a4',
 }: Readonly<{ treatment?: 'entry' | GroupVariant | 'incomplete'; size?: RulebookSize }>) {

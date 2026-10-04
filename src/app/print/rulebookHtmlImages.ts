@@ -1,6 +1,10 @@
 import { resolveAsset } from '../../game/assets/resolveAsset';
 import { rulebookAnnotatedIllustrationPath } from '../../shared/rulebooks/annotatedIllustration';
-import type { RulebookRenderDocumentV1, RulebookRenderFactionV1 } from '../../shared/rulebooks/renderDocument';
+import type {
+  RulebookRenderBlockV1,
+  RulebookRenderDocumentV1,
+  RulebookRenderFactionV1,
+} from '../../shared/rulebooks/renderDocument';
 
 /** Downloaded HTML needs absolute image addresses while its section links remain local to the file. */
 export function rulebookHtmlImages(
@@ -31,6 +35,32 @@ export function rulebookHtmlImages(
       image(leader);
     }
   }
+  function resolveBlockImages(block: RulebookRenderBlockV1, pageId: string) {
+    if (block.kind === 'asset-explainer' && edition) {
+      block.illustrationUrl = new URL(
+        rulebookAnnotatedIllustrationPath({ ...edition, pageId, blockId: block.id }),
+        canonicalHref
+      ).href;
+    }
+    if (block.kind === 'list') {
+      for (const item of block.items) {
+        if (item.icon) {
+          item.icon = new URL(item.icon, canonicalHref).href;
+        }
+      }
+    }
+    if (block.kind === 'referenced-illustration' || block.kind === 'card-entry') {
+      image(block.source);
+    }
+    if (block.kind === 'illustrated-inventory' || block.kind === 'card-group') {
+      for (const item of block.items) {
+        image(item.source);
+      }
+    }
+    if (block.kind === 'faction-introduction' || block.kind === 'section-heading') {
+      faction(block.faction);
+    }
+  }
   for (const page of Object.values(copy.pagesById)) {
     if (page.headingIcon) {
       page.headingIcon = new URL(page.headingIcon, canonicalHref).href;
@@ -51,30 +81,7 @@ export function rulebookHtmlImages(
     }
     for (const region of page.regions) {
       for (const block of region.blocks) {
-        if (block.kind === 'asset-explainer' && edition) {
-          block.illustrationUrl = new URL(
-            rulebookAnnotatedIllustrationPath({ ...edition, pageId: page.id, blockId: block.id }),
-            canonicalHref
-          ).href;
-        }
-        if (block.kind === 'list') {
-          for (const item of block.items) {
-            if (item.icon) {
-              item.icon = new URL(item.icon, canonicalHref).href;
-            }
-          }
-        }
-        if (block.kind === 'referenced-illustration' || block.kind === 'card-entry') {
-          image(block.source);
-        }
-        if (block.kind === 'illustrated-inventory' || block.kind === 'card-group') {
-          for (const item of block.items) {
-            image(item.source);
-          }
-        }
-        if (block.kind === 'faction-introduction' || block.kind === 'section-heading') {
-          faction(block.faction);
-        }
+        resolveBlockImages(block, page.id);
       }
     }
   }

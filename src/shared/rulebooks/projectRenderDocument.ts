@@ -148,6 +148,22 @@ export function rulebookReferenceTargets(
   });
 }
 
+/** Resolves the labels and page numbers that a text block displays for its authored destinations. */
+export function projectRulebookTextReferences(
+  references: NonNullable<Extract<RulebookBlockDraft, { kind: 'text' }>['references']>,
+  targets: ReturnType<typeof rulebookReferenceTargets>
+) {
+  return references.map((reference) => {
+    const target = targets.find(
+      (target) =>
+        target.pageId === reference.pageId && ('blockId' in target ? target.blockId : undefined) === reference.blockId
+    );
+    return target
+      ? { label: target.label, anchor: target.anchor, pageNumber: target.pageNumber }
+      : { label: 'Reference unavailable' };
+  });
+}
+
 /** Projects one draft Block to the same render contract used by Pages and publications. */
 export function projectRulebookDraftRenderBlock(
   block: RulebookBlockDraft,
@@ -163,18 +179,10 @@ export function projectRulebookDraftRenderBlock(
       ...(block.name === undefined ? {} : { name: block.name }),
       ...(block.references
         ? {
-            references: block.references.map((reference) => {
-              const target = contents
-                ? rulebookReferenceTargets(contents, assetsById, factionsById).find(
-                    (target) =>
-                      target.pageId === reference.pageId &&
-                      ('blockId' in target ? target.blockId : undefined) === reference.blockId
-                  )
-                : undefined;
-              return target
-                ? { label: target.label, anchor: target.anchor, pageNumber: target.pageNumber }
-                : { label: 'Reference unavailable' };
-            }),
+            references: projectRulebookTextReferences(
+              block.references,
+              contents ? rulebookReferenceTargets(contents, assetsById, factionsById) : []
+            ),
           }
         : {}),
       text: block.text,

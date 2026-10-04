@@ -327,27 +327,45 @@ export const PublishedEdition = meta.story({
 export const ThirtyPageEditor = meta.story({
   args: { path: '/rulesets/classicrules/rulebooks/book-0/edit' },
   parameters: { database: db(withThirtyPages) },
-  play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    const view = canvasElement.ownerDocument.defaultView;
-    if (!view) {
-      throw new Error('Thirty-Page Story needs a browser Window');
-    }
-    const title = await page.findByRole('textbox', { name: 'Title' }, { timeout: 30_000 });
-    await waitFor(() => expect(renderedPageCount(canvasElement)).toBe(31), { timeout: 30_000 });
-
-    const measured = recordMeasuredPages(view);
-    try {
-      await userEvent.type(title, 'x');
-      /* One keystroke re-measures the Page it edited and no other, which is what the memo comparator on the hidden Pages buys.
-       * Retrying the whole set rather than waiting for it to be non-empty first means an observer that never arrives reports the Pages it measured, not a count of nothing. */
-      await waitFor(() => expect([...measured.observed]).toEqual(['CHAP']), { timeout: 30_000 });
-      expect(renderedPageCount(canvasElement)).toBe(31);
-    } finally {
-      measured.restore();
-    }
-  },
+  play: async ({ canvasElement }) => checkTitleMeasurements(canvasElement, ['CHAP']),
 });
+
+export const ThirtyPageReferencedDestination = meta.story({
+  args: { path: '/rulesets/classicrules/rulebooks/book-0/edit' },
+  parameters: {
+    database: db((baseline) => {
+      withThirtyPages(baseline);
+      const text = baseline.rulebook_drafts[0]?.contents.pagesById.REFS?.blocksById.TEXT;
+      if (text?.kind !== 'text') {
+        throw new Error('Referenced destination story needs its reference text');
+      }
+      text.references = [{ pageId: 'CHAP' }];
+      return baseline;
+    }),
+  },
+  play: async ({ canvasElement }) => checkTitleMeasurements(canvasElement, ['CHAP', 'REFS']),
+});
+
+async function checkTitleMeasurements(canvasElement: HTMLElement, expectedPages: string[]) {
+  const page = within(canvasElement.ownerDocument.body);
+  const view = canvasElement.ownerDocument.defaultView;
+  if (!view) {
+    throw new Error('Thirty-Page Story needs a browser Window');
+  }
+  const title = await page.findByRole('textbox', { name: 'Title' }, { timeout: 30_000 });
+  await waitFor(() => expect(renderedPageCount(canvasElement)).toBe(31), { timeout: 30_000 });
+
+  const measured = recordMeasuredPages(view);
+  try {
+    await userEvent.type(title, 'x');
+    /* One keystroke re-measures the edited Page and any Page that displays a reference to its title.
+     * Retrying the whole set rather than waiting for it to be non-empty first means an observer that never arrives reports the Pages it measured, not a count of nothing. */
+    await waitFor(() => expect([...measured.observed].sort()).toEqual(expectedPages), { timeout: 30_000 });
+    expect(renderedPageCount(canvasElement)).toBe(31);
+  } finally {
+    measured.restore();
+  }
+}
 
 function ReferenceSubscriptionStory({ path }: { path: string }) {
   const client = useStorybookDatabaseClient();

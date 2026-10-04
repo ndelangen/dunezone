@@ -33,7 +33,7 @@ function page(
   };
 }
 
-export function createIllustratedBook(): RulebookContentsDraftV1 {
+function createIllustratedBook(): RulebookContentsDraftV1 {
   return rulebookContentsV1Schema.parse({
     schemaVersion: 1,
     pageOrder: ['BTTL', 'CMPT', 'SPCE'],
@@ -149,6 +149,22 @@ type EditorContext = {
   dispatch: (action: Action) => void;
 };
 
+function blockEditorProps<Kind extends RulebookBlockDraft['kind']>(
+  { current, dispatch }: EditorContext,
+  blockId: string,
+  kind: Kind
+) {
+  const block = current.blocksById[blockId];
+  if (!block || block.kind !== kind) {
+    throw new Error(`Expected ${kind} block ${blockId}`);
+  }
+  return {
+    value: block as Extract<RulebookBlockDraft, { kind: Kind }>,
+    onChange: (value: Partial<Extract<RulebookBlockDraft, { kind: Kind }>>) =>
+      dispatch({ kind: 'block', pageId: current.id, block: { ...block, ...value } }),
+  };
+}
+
 /** Each example edits the same authored values as the route and renders through the publication projection. */
 function IllustratedBookPreview({
   pageId,
@@ -209,19 +225,12 @@ export function StockComponentStory() {
   return (
     <IllustratedBookPreview
       pageId="CMPT"
-      renderEditor={({ current, dispatch }) => {
-        const block = current.blocksById.SHLD!;
-        if (block.kind !== 'card-entry') {
-          throw new Error('Expected a component entry');
-        }
-        return (
-          <CardEntryEdit
-            value={block}
-            onChange={(value) => dispatch({ kind: 'block', pageId: current.id, block: { ...block, ...value } })}
-            references={{ assetsById: {}, factionsById: {} }}
-          />
-        );
-      }}
+      renderEditor={(context) => (
+        <CardEntryEdit
+          {...blockEditorProps(context, 'SHLD', 'card-entry')}
+          references={{ assetsById: {}, factionsById: {} }}
+        />
+      )}
     />
   );
 }
@@ -230,18 +239,9 @@ export function IllustrationSizeStory() {
   return (
     <IllustratedBookPreview
       pageId="SPCE"
-      renderEditor={({ current, dispatch }) => {
-        const block = current.blocksById.FGRR!;
-        if (block.kind !== 'referenced-illustration') {
-          throw new Error('Expected an illustration');
-        }
-        return (
-          <ReferencedIllustrationEdit
-            value={block}
-            onChange={(value) => dispatch({ kind: 'block', pageId: current.id, block: { ...block, ...value } })}
-          />
-        );
-      }}
+      renderEditor={(context) => (
+        <ReferencedIllustrationEdit {...blockEditorProps(context, 'FGRR', 'referenced-illustration')} />
+      )}
     />
   );
 }
@@ -252,16 +252,12 @@ export function RelatedRulesStory() {
     <IllustratedBookPreview
       pageId="BTTL"
       showDestinations
-      renderEditor={({ contents, current, dispatch }) => {
-        const block = current.blocksById.PLAN!;
-        if (block.kind !== 'text') {
-          throw new Error('Expected text');
-        }
+      renderEditor={(context) => {
+        const { contents, dispatch } = context;
         return (
           <Stack gap="md">
             <Editor
-              value={block}
-              onChange={(value) => dispatch({ kind: 'block', pageId: current.id, block: { ...block, ...value } })}
+              {...blockEditorProps(context, 'PLAN', 'text')}
               references={{ assetsById: {}, factionsById: {}, contents }}
             />
             <Button onClick={() => dispatch({ kind: 'move' })} disabled={!contents.pagesById.CMPT}>
@@ -282,18 +278,7 @@ export function WeaponTableStory() {
   return (
     <IllustratedBookPreview
       pageId="BTTL"
-      renderEditor={({ current, dispatch }) => {
-        const block = current.blocksById.TABL!;
-        if (block.kind !== 'reference-table') {
-          throw new Error('Expected a table');
-        }
-        return (
-          <Editor
-            value={block}
-            onChange={(value) => dispatch({ kind: 'block', pageId: current.id, block: { ...block, ...value } })}
-          />
-        );
-      }}
+      renderEditor={(context) => <Editor {...blockEditorProps(context, 'TABL', 'reference-table')} />}
     />
   );
 }
