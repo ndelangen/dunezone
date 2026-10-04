@@ -588,16 +588,23 @@ function usePublishedFaceReady(href: string | undefined): boolean {
   return usePublishedFace(href) !== undefined || !href;
 }
 
-/* How much a face-down faction token darkens its front: dark enough to read as sitting out, light enough to still name the faction. */
-const SITTING_OUT_SHADE = 0.8;
+/* A face-down faction token wears a solid black prohibition sign over its front: a ring and the slash across it, the slash as thick as the ring (#1007). */
+const SITTING_OUT_OUTER = TROOP_FACE_RADIUS * 0.86;
+const SITTING_OUT_INNER = TROOP_FACE_RADIUS * 0.66;
+const SITTING_OUT_STROKE = SITTING_OUT_OUTER - SITTING_OUT_INNER;
 
-/* A face-down faction token's shade over the front it shows (#1007). */
-function SittingOutShade() {
+function SittingOutSign() {
   return (
-    <mesh position={[0, 0, 0.003]} renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}>
-      <circleGeometry args={[TROOP_FACE_RADIUS, 48]} />
-      <meshBasicMaterial color="#000000" transparent opacity={SITTING_OUT_SHADE} depthWrite={false} />
-    </mesh>
+    <group position={[0, 0, 0.003]}>
+      <mesh renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}>
+        <ringGeometry args={[SITTING_OUT_INNER, SITTING_OUT_OUTER, 64]} />
+        <meshBasicMaterial color="#000000" />
+      </mesh>
+      <mesh rotation={[0, 0, Math.PI / 4]} renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}>
+        <planeGeometry args={[SITTING_OUT_INNER * 2, SITTING_OUT_STROKE]} />
+        <meshBasicMaterial color="#000000" />
+      </mesh>
+    </group>
   );
 }
 
@@ -612,13 +619,13 @@ function TokenFace({
   underside?: boolean;
   itemIndex: number;
 }) {
-  /* A faction token has no back of its own: face down, it shows its front under a dark shade. */
+  /* A faction token has no back of its own: face down, it shows its front under a black prohibition sign. */
   const blocked = !faceUp && isFactionToken(piece);
   const href = piece.items[itemIndex]?.artwork?.[faceUp || blocked ? 'front' : 'back'];
   return (
     <PieceFace height={TROOP_LAYER_HEIGHT} underside={underside}>
       {href && <PublishedFace href={href} card={false} ratio={tokenBoxRatio(piece)} />}
-      {blocked && <SittingOutShade />}
+      {blocked && <SittingOutSign />}
       <mesh renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}>
         {tokenBoxRatio(piece) != null ? (
           <planeGeometry args={[TROOP_FACE_RADIUS * 2, TROOP_FACE_RADIUS * 2 * tokenBoxRatio(piece)!]} />
