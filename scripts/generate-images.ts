@@ -104,7 +104,7 @@ rmSync(path.join(publicRoot, 'image'), { recursive: true, force: true });
 const committedWebFiles = new Set<string>(COMMITTED_WEB_FILES);
 for (const entry of readdirSync(path.join(publicRoot, 'web'))) {
   if (!committedWebFiles.has(entry)) {
-    rmSync(path.join(publicRoot, 'web', entry), { force: true });
+    rmSync(path.join(publicRoot, 'web', entry), { recursive: true, force: true });
   }
 }
 

@@ -11,8 +11,8 @@
   --homepage-art-inset: calc(var(--space-lg) * 2);
   --homepage-footer-space: calc(var(--space-xl) * 3);
   /* These overlaps place the board inside the header and its copy inside the fading image. */
-  --homepage-header-overlap: calc(-5.5rem - 4cqi);
-  --homepage-copy-overlap: clamp(-6rem, -8cqi, -3rem);
+  --homepage-header-overlap: calc(var(--space-xs) * -11 - 4cqi);
+  --homepage-copy-overlap: clamp(calc(var(--space-xs) * -12), -8cqi, calc(var(--space-xs) * -6));
   padding-block: calc(var(--space-xs) * 4) var(--homepage-footer-space);
 }
 

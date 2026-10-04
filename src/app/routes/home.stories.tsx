@@ -31,6 +31,7 @@ export const QuietMobile = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     const board = await page.findByRole('img', { name: /current Dune Play board/ });
     await expect(board).toBeVisible();
+    expect(getComputedStyle(board.parentElement!).animationName).toBe('none');
     expect(canvasElement.ownerDocument.documentElement.scrollWidth).toBeLessThanOrEqual(window.innerWidth);
     await expect(page.getByText('A development preview of the new table. Play is not available yet.')).toBeVisible();
   },

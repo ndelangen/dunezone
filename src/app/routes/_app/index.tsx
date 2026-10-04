@@ -93,94 +93,36 @@ function fanStyle(x: string, y: string, turn: string, delay: string): CSSPropert
   return { '--fan-x': x, '--fan-y': y, '--fan-turn': turn, '--arrival-delay': delay } as CSSProperties;
 }
 
-const cloudPortraits = [
-  'house-nereth/varda-nereth',
-  'pale-chorus/nela',
-  'korven-night/koraun',
-  'calar-flint/sera',
-  'house-calven/maren-calven',
-  'velnar-choir/vela',
-  'house-osem/senna-osem',
-  'talar-coil/tala',
-  'avel-lattice/avela',
-  'morrow-strain/nali',
-  'house-ardent/kessa-ardent',
-  'kelor-mantle/kelor',
-  'seam-bound/mella',
-  'sere-reservoir/arel',
-  'khelt-dynasty/khelra',
-  'house-nereth/eren-nereth',
-  'pale-chorus/vessa',
-  'calar-flint/hema',
-  'house-calven/tovan-calven',
-  'velnar-choir/sorel',
-  'avel-lattice/orsa',
-  'morrow-strain/tessa',
-  'house-ardent/oren-ardent',
-  'talar-coil/iva',
-  'kelor-mantle/vaska',
-  'seam-bound/verren',
-  'sere-reservoir/sava',
-  'khelt-dynasty/nera',
-];
-const cloudTroops = [
-  'resonance-adept',
-  'blade-dancer',
-  'suspensor-lancer',
-  'water-keeper',
-  'mantis-guard',
-  'juggernaut',
-  'court-duelist',
-  'needle-sniper',
-  'salvage-warden',
-  'veiled-adept',
-  'spice-driller',
-  'raptor-keeper',
-  'masked-saboteur',
-  'drum-herald',
-  'furnace-bearer',
-  'wire-hunter',
-  'crescent-executioner',
-  'ixian-engineer',
-  'void-walker',
-  'hook-climber',
-  'desert-pathfinder',
-  'shield-rammer',
-  'gene-forged-brute',
-  'house-bulwark',
-  'banner-marshal',
-  'siege-gunner',
+const cloudArtwork = [
+  { portrait: 'house-nereth/varda-nereth', troop: 'resonance-adept', x: 12, y: 23, size: 18 },
+  { portrait: 'pale-chorus/nela', troop: 'blade-dancer', x: 35, y: 36, size: 22 },
+  { portrait: 'korven-night/koraun', troop: 'suspensor-lancer', x: 62, y: 30, size: 18 },
+  { portrait: 'calar-flint/sera', troop: 'water-keeper', x: 85, y: 42, size: 23 },
+  { portrait: 'house-calven/maren-calven', troop: 'mantis-guard', x: 49, y: 67, size: 23 },
+  { portrait: 'velnar-choir/vela', troop: 'juggernaut', x: 22, y: 77, size: 15 },
+  { portrait: 'house-osem/senna-osem', troop: 'court-duelist', x: 71, y: 78, size: 18 },
+  { portrait: 'talar-coil/tala', troop: 'needle-sniper', x: 8, y: 62, size: 12 },
+  { portrait: 'avel-lattice/avela', troop: 'salvage-warden', x: 29, y: 10, size: 12 },
+  { portrait: 'morrow-strain/nali', troop: 'veiled-adept', x: 51, y: 12, size: 15 },
+  { portrait: 'house-ardent/kessa-ardent', troop: 'spice-driller', x: 76, y: 10, size: 13 },
+  { portrait: 'kelor-mantle/kelor', troop: 'raptor-keeper', x: 92, y: 17, size: 10 },
+  { portrait: 'seam-bound/mella', troop: 'masked-saboteur', x: 43, y: 91, size: 10 },
+  { portrait: 'sere-reservoir/arel', troop: 'drum-herald', x: 91, y: 85, size: 13 },
+  { portrait: 'khelt-dynasty/khelra', troop: 'furnace-bearer', x: 56, y: 47, size: 11 },
+  { portrait: 'house-nereth/eren-nereth', troop: 'wire-hunter', x: 17, y: 48, size: 9 },
+  { portrait: 'pale-chorus/vessa', troop: 'crescent-executioner', x: 71, y: 51, size: 14 },
+  { portrait: 'calar-flint/hema', troop: 'ixian-engineer', x: 38, y: 64, size: 10 },
+  { portrait: 'house-calven/tovan-calven', troop: 'void-walker', x: 10, y: 88, size: 9 },
+  { portrait: 'velnar-choir/sorel', troop: 'hook-climber', x: 26, y: 54, size: 13 },
+  { portrait: 'avel-lattice/orsa', troop: 'desert-pathfinder', x: 61, y: 92, size: 11 },
+  { portrait: 'morrow-strain/tessa', troop: 'shield-rammer', x: 39, y: 17, size: 8 },
+  { portrait: 'house-ardent/oren-ardent', troop: 'gene-forged-brute', x: 80, y: 65, size: 10 },
+  { portrait: 'talar-coil/iva', troop: 'house-bulwark', x: 53, y: 33, size: 9 },
+  { portrait: 'kelor-mantle/vaska', troop: 'banner-marshal', x: 7, y: 8, size: 8 },
+  { portrait: 'seam-bound/verren', troop: 'siege-gunner', x: 94, y: 60, size: 9 },
+  { portrait: 'sere-reservoir/sava', troop: undefined, x: 24, y: 29, size: 9 },
+  { portrait: 'khelt-dynasty/nera', troop: undefined, x: 68, y: 6, size: 7 },
 ] as const;
-const cloudPlaces = [
-  [12, 23, 18],
-  [35, 36, 22],
-  [62, 30, 18],
-  [85, 42, 23],
-  [49, 67, 23],
-  [22, 77, 15],
-  [71, 78, 18],
-  [8, 62, 12],
-  [29, 10, 12],
-  [51, 12, 15],
-  [76, 10, 13],
-  [92, 17, 10],
-  [43, 91, 10],
-  [91, 85, 13],
-  [56, 47, 11],
-  [17, 48, 9],
-  [71, 51, 14],
-  [38, 64, 10],
-  [10, 88, 9],
-  [26, 54, 13],
-  [61, 92, 11],
-  [39, 17, 8],
-  [80, 65, 10],
-  [53, 33, 9],
-  [7, 8, 8],
-  [94, 60, 9],
-  [24, 29, 9],
-  [68, 6, 7],
-];
 const troopBackgrounds = [
   backgroundPresets.atreides,
   backgroundPresets.fremen,
@@ -286,14 +228,17 @@ function BookCloud() {
 }
 
 function ArtworkCloud({ vectors = false }: { vectors?: boolean }) {
-  const entries = vectors ? cloudTroops : cloudPortraits;
+  const entries = vectors ? cloudArtwork.filter((entry) => entry.troop) : cloudArtwork;
   return (
     <div
       className={styles.artworkCloud}
-      aria-label={vectors ? 'A cloud of 26 new troop designs' : 'A cloud of 28 homebrew leader portraits'}
+      aria-label={`A cloud of ${entries.length} ${vectors ? 'new troop designs' : 'homebrew leader portraits'}`}
     >
-      {entries.map((key, index) => {
-        const [x, y, size] = cloudPlaces[index]!;
+      {entries.map(({ portrait, troop, x, y, size }, index) => {
+        const key = vectors ? troop : portrait;
+        if (!key) {
+          return null;
+        }
         const name = key.split('/').at(-1)!.replaceAll('-', ' ');
         return (
           <div
@@ -314,7 +259,7 @@ function ArtworkCloud({ vectors = false }: { vectors?: boolean }) {
               <div className={styles.vectorDisc} role="img" aria-label={name}>
                 <TroopToken
                   background={troopBackgrounds[index % troopBackgrounds.length]!}
-                  image={`/vector/troop/${cloudTroops[index]!}.svg`}
+                  image={`/vector/troop/${troop!}.svg`}
                   star={undefined}
                   hue={undefined}
                   striped={false}
