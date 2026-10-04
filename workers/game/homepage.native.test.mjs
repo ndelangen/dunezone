@@ -75,7 +75,9 @@ describe('the public homepage table', () => {
     const view = await syncView(member);
     expect(view.viewer.avatarUrl).toBe(peer.homepageAdmission.avatarUrl);
     await act(member, { type: 'pointer', position: [1, 1, 1], seq: 1 }, view);
-    const shared = await syncView(observer);
+    const shared = await observer.message('view', (next) =>
+      next.pointers.some((pointer) => pointer.connectionId === view.viewer.connectionId)
+    );
     expect(shared.pointers).toMatchObject([{ avatarUrl: peer.homepageAdmission.avatarUrl, displayName: '' }]);
     member.send({ type: 'anonymous' });
     const anonymous = await syncView(member);
