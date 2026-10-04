@@ -19,7 +19,7 @@ const entries: Array<{
   icon: (typeof TABLE_PHASES)[number]['symbol'] | '/vector/icon/alliance.svg';
   text: string;
 }> = TABLE_PHASES.map((phase) => ({ id: phase.id, name: phaseNames[phase.id], icon: phase.symbol, text: '' }));
-entries.splice(1, 0, { id: 'nexus', name: 'Nexus check', icon: '/vector/icon/alliance.svg', text: '' });
+entries.splice(1, 0, { id: 'nexus', name: 'Nexus', icon: '/vector/icon/alliance.svg', text: '' });
 
 export function createPhaseListPage() {
   const page: RulebookPageDraft = {

@@ -1,11 +1,10 @@
 import { closestCenter, DndContext, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import type { DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { Select, Stack, TextInput } from '@mantine/core';
-import { TABLE_PHASES } from '@shared/play/phases';
+import { MultiSelect, Select, Stack, TextInput } from '@mantine/core';
 import { createRulebookLocalId, rulebookListIconSchema } from '@shared/rulebooks/contents';
 import type { RulebookBlockDraft, RulebookBlockKind } from '@shared/rulebooks/contents';
-import { stockAssetOptions } from '@ui/content/stockAssetOptions';
+import { rulebookReferenceTargets } from '@shared/rulebooks/projectRenderDocument';
 import { AssetSelect } from '@ui/control/AssetSelect';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
@@ -17,6 +16,7 @@ import type { ComponentType } from 'react';
 import { AssetExplainerEdit } from './rulebookAssetExplainerEdit';
 import styles from './rulebookBlockEditors.module.css';
 import { CardEntryEdit, CardGroupEdit } from './rulebookCardBlockEditors';
+import { rulebookIconOptions } from './rulebookIconOptions';
 import { CreditsEdit, movedOrder, ReferenceTableEdit } from './rulebookReferenceBlockEditors';
 import {
   ReferencedIllustrationEdit,
@@ -44,7 +44,20 @@ type RulebookBlockEditorRegistry = {
   [Kind in RulebookBlockKind]: ComponentType<RulebookBlockEditorProps<Kind>>;
 };
 
-function TextBlockEdit({ value, onChange }: RulebookBlockEditorProps<'text'>) {
+function TextBlockEdit({ value, onChange, references }: RulebookBlockEditorProps<'text'>) {
+  const targets = references?.contents
+    ? rulebookReferenceTargets(references.contents, references.assetsById, references.factionsById)
+    : [];
+  const selected = (value.references ?? []).map((target) => `${target.pageId}/${target.blockId ?? ''}`);
+  const options = targets.map((target) => ({
+    value: `${target.pageId}/${'blockId' in target ? target.blockId : ''}`,
+    label: `${target.label} (page ${target.pageNumber})`,
+  }));
+  for (const id of selected) {
+    if (!options.some((option) => option.value === id)) {
+      options.push({ value: id, label: 'Reference unavailable' });
+    }
+  }
   return (
     <Stack gap="md">
       <ControlBlock
@@ -55,6 +68,30 @@ function TextBlockEdit({ value, onChange }: RulebookBlockEditorProps<'text'>) {
             aria-label="Name"
             value={value.name ?? ''}
             onChange={(event) => onChange({ ...value, name: event.currentTarget.value || undefined })}
+          />
+        }
+      />
+      <ControlBlock
+        title="Related rules"
+        description="Links follow their destination and show the current page number in print."
+        input={
+          <MultiSelect
+            aria-label="Related rules"
+            searchable
+            clearable
+            data={options}
+            value={selected}
+            onChange={(next) =>
+              onChange({
+                ...value,
+                references: next.length
+                  ? next.map((key) => {
+                      const [pageId, blockId] = key.split('/');
+                      return { pageId: pageId!, ...(blockId ? { blockId } : {}) };
+                    })
+                  : undefined,
+              })
+            }
           />
         }
       />
@@ -199,14 +236,7 @@ function QuestionAnswerEdit({ value, onChange }: RulebookBlockEditorProps<'quest
   );
 }
 
-const listIconOptions = stockAssetOptions(rulebookListIconSchema.options.flatMap((schema) => schema.options)).map(
-  (option) => {
-    const phase = TABLE_PHASES.find((entry) => entry.symbol === option.value);
-    return phase
-      ? { ...option, label: phase.label, collection: 'Phases', keywords: `${option.keywords} ${phase.label}` }
-      : option;
-  }
-);
+const listIconOptions = rulebookIconOptions(rulebookListIconSchema.options.flatMap((schema) => schema.options));
 
 function ListBlockEdit({ value, onChange }: RulebookBlockEditorProps<'list'>) {
   const sensors = useSensors(

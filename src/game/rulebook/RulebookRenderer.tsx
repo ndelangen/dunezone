@@ -11,6 +11,7 @@ import { DEFAULT_RULEBOOK_SETTINGS, getRulebookSize } from '@shared/rulebooks/se
 import type { RulebookSettings } from '@shared/rulebooks/settings';
 import type { ComponentType, CSSProperties } from 'react';
 
+import { useAssetResolver } from '../assets/assetRenderMode';
 import { Token } from '../assets/faction/token/Token';
 import { RulebookBlockRenderer } from './RulebookBlockRenderer';
 import { RulebookDesignContext } from './RulebookDesignContext';
@@ -84,11 +85,19 @@ type PageLayoutProps<LayoutId extends RulebookPageLayoutId> = Readonly<{
 type InteriorLayoutId = 'single-column' | 'two-columns' | 'wide-narrow' | 'outer-rail' | 'band-columns';
 
 function InteriorPage({ BlockRenderer, page, pageNumber }: PageLayoutProps<InteriorLayoutId>) {
+  const resolveAsset = useAssetResolver();
   return (
     <div className={styles.interior} data-rulebook-show-heading={page.showHeading}>
       {page.showHeading ? (
         <header>
-          <h1>{page.title}</h1>
+          <h1>
+            {page.headingIcon ? (
+              <span className="rulebookHeadingIcon" aria-hidden>
+                <img src={resolveAsset(page.headingIcon)} alt="" />
+              </span>
+            ) : null}
+            {page.title}
+          </h1>
         </header>
       ) : null}
       <div

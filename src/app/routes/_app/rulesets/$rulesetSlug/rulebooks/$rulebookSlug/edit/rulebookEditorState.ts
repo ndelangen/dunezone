@@ -27,6 +27,11 @@ import type {
   RulebookPageDraft,
   RulebookPageV1,
 } from '@shared/rulebooks/contents';
+import {
+  rulebookHeadingIconSchema,
+  rulebookIllustrationSizeSchema,
+  rulebookTextReferencesSchema,
+} from '@shared/rulebooks/contents';
 import { rulebookCardSourceReferenceSchema, rulebookSourceReferenceSchema } from '@shared/rulebooks/sources';
 import type { RulebookSourceReference } from '@shared/rulebooks/sources';
 import { userImageSourceUrlSchema } from '@shared/user-images/contract';
@@ -115,6 +120,24 @@ const deleteIntentSchema = z.strictObject({
 type RulebookDeleteIntent = z.infer<typeof deleteIntentSchema>;
 
 const setIntentSchema = z.union([
+  z.strictObject({
+    kind: z.literal('set'),
+    target: pageRefSchema,
+    field: z.literal('heading-icon'),
+    value: rulebookHeadingIconSchema.optional(),
+  }),
+  z.strictObject({
+    kind: z.literal('set'),
+    target: blockRefSchema,
+    field: z.literal('size'),
+    value: rulebookIllustrationSizeSchema.optional(),
+  }),
+  z.strictObject({
+    kind: z.literal('set'),
+    target: blockRefSchema,
+    field: z.literal('references'),
+    value: rulebookTextReferencesSchema.optional(),
+  }),
   z.strictObject({
     kind: z.literal('set'),
     target: blockRefSchema,
@@ -1082,6 +1105,10 @@ function setPageField(
     page.title = value;
     return;
   }
+  if (field === 'heading-icon') {
+    page.headingIcon = rulebookHeadingIconSchema.optional().parse(value);
+    return;
+  }
   if (field === 'show-heading' && typeof value === 'boolean') {
     page.showHeading = value;
     return;
@@ -1108,6 +1135,18 @@ function setPageField(
 
 function setBlockField(block: RulebookBlockDraft, field: RulebookFieldName, value: unknown): void {
   const optionalText = typeof value === 'string' ? value : undefined;
+  if (field === 'size' && (block.kind === 'card-entry' || block.kind === 'referenced-illustration')) {
+    block.size = rulebookIllustrationSizeSchema.optional().parse(value);
+    return;
+  }
+  if (field === 'references' && block.kind === 'text') {
+    block.references = rulebookTextReferencesSchema.optional().parse(value);
+    return;
+  }
+  if (field === 'name' && block.kind === 'card-entry') {
+    block.name = optionalText;
+    return;
+  }
   if (block.kind === 'asset-explainer') {
     if (field === 'numbering' && (value === 'automatic' || value === 'custom')) {
       block.numbering = value;
@@ -1119,7 +1158,7 @@ function setBlockField(block: RulebookBlockDraft, field: RulebookFieldName, valu
     }
   }
   if (field === 'source' && block.kind === 'card-entry') {
-    block.source = rulebookCardSourceReferenceSchema.optional().parse(value);
+    block.source = rulebookSourceReferenceSchema.optional().parse(value);
     return;
   }
   if (field === 'quantity' && block.kind === 'card-entry') {
@@ -1524,6 +1563,7 @@ function fieldRecords(contents: RulebookContentsDraftV1): FieldRecord[] {
     records.push({ target, field: 'title', value: page.title });
     records.push({ target, field: 'control-values', value: clone(page.controlValues) });
     records.push({ target, field: 'show-heading', value: page.showHeading });
+    records.push({ target, field: 'heading-icon', value: page.headingIcon });
   }
   for (const { pageId, block } of allBlockEntries(contents)) {
     const target = { kind: 'block', pageId, blockId: block.id } as const;
@@ -1536,6 +1576,7 @@ function fieldRecords(contents: RulebookContentsDraftV1): FieldRecord[] {
       add('text', block.text);
     }
     if (block.kind === 'text') {
+      add('references', block.references);
       add('name', block.name);
     }
     if (block.kind === 'section-heading' || block.kind === 'faction-introduction') {
@@ -1547,7 +1588,11 @@ function fieldRecords(contents: RulebookContentsDraftV1): FieldRecord[] {
     if (block.kind === 'list') {
       add('style', block.style);
     }
+    if (block.kind === 'card-entry' || block.kind === 'referenced-illustration') {
+      add('size', block.size);
+    }
     if (block.kind === 'card-entry') {
+      add('name', block.name);
       add('source', block.source);
       add('quantity', block.quantity);
     }

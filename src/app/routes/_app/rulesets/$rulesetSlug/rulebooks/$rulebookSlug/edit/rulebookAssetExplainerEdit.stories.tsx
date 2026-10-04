@@ -49,7 +49,7 @@ function ExplainerStory({ initial, unavailable = false }: { initial: Explainer; 
   );
 }
 const meta = preview.meta({
-  title: 'Blocks/AssetExplainer',
+  title: 'Blocks/Annotated component/Editing',
   globals: { colorScheme: 'dark' },
   parameters: { layout: 'fullscreen' },
 });

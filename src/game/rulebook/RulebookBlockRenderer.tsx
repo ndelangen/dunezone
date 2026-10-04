@@ -1,3 +1,4 @@
+import type { RulebookIllustrationSize } from '@shared/rulebooks/contents';
 import type { RulebookRenderBlockV1, RulebookRenderSourceV1 } from '@shared/rulebooks/renderDocument';
 import { useId } from 'react';
 
@@ -165,18 +166,24 @@ function CardGuide({
   text,
   quantity,
   grouped = false,
+  name,
+  size,
 }: Readonly<{
   source: RulebookRenderSourceV1;
   text: string;
   quantity?: number;
   grouped?: boolean;
+  name?: string;
+  size?: RulebookIllustrationSize;
 }>) {
   const Heading = grouped ? 'h4' : 'h3';
   return (
-    <div className={styles.cardGuide}>
+    <div className={styles.cardGuide} data-illustration-size={size}>
       <SourceVisual source={source} />
       <div className={styles.cardGuidance}>
-        {source.status === 'ready' && source.name ? <Heading>{source.name}</Heading> : null}
+        {name || (source.status === 'ready' && source.name) ? (
+          <Heading>{name || (source.status === 'ready' ? source.name : '')}</Heading>
+        ) : null}
         {quantity !== undefined ? <p className={styles.cardQuantity}>Quantity: {quantity}</p> : null}
         <FormattedText value={text} />
       </div>
@@ -195,6 +202,23 @@ export function RulebookBlockRenderer({ block }: Readonly<{ block: RulebookRende
       <div {...blockAnchor(block)} className={styles.textBlock} data-rulebook-block-id={block.id}>
         {block.name ? <h3>{block.name}</h3> : null}
         <FormattedText value={block.text} />
+        {block.references?.length ? (
+          <nav className="rulebookTextReferences" aria-label="Related rules">
+            See{' '}
+            {block.references.map((reference, index) => (
+              <span key={index}>
+                {index > 0 ? '; ' : ''}
+                {reference.anchor ? (
+                  <a href={`#${reference.anchor}`}>
+                    {reference.label}, page {reference.pageNumber}
+                  </a>
+                ) : (
+                  reference.label
+                )}
+              </span>
+            ))}
+          </nav>
+        ) : null}
       </div>
     );
   }
@@ -283,7 +307,12 @@ export function RulebookBlockRenderer({ block }: Readonly<{ block: RulebookRende
   }
   if (block.kind === 'referenced-illustration') {
     return (
-      <figure {...blockAnchor(block)} className={styles.referencedIllustration} data-rulebook-block-id={block.id}>
+      <figure
+        {...blockAnchor(block)}
+        className={styles.referencedIllustration}
+        data-illustration-size={block.size}
+        data-rulebook-block-id={block.id}
+      >
         <SourceVisual source={block.source} />
         {block.caption ? <figcaption>{block.caption}</figcaption> : null}
       </figure>
@@ -321,7 +350,13 @@ export function RulebookBlockRenderer({ block }: Readonly<{ block: RulebookRende
   if (block.kind === 'card-entry') {
     return (
       <section {...blockAnchor(block)} className={styles.cardEntry} data-rulebook-block-id={block.id}>
-        <CardGuide source={block.source} text={block.text} quantity={block.quantity} />
+        <CardGuide
+          source={block.source}
+          text={block.text}
+          quantity={block.quantity}
+          name={block.name}
+          size={block.size}
+        />
       </section>
     );
   }

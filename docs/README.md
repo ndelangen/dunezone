@@ -256,8 +256,14 @@ unpushable.
   Application root. See the component taxonomy in [`AGENTS.md`](../AGENTS.md#component-taxonomy).
 - Game Assets stories belong under Faction, Cards, Tokens, Generic, or Composition. Comparative asset
   catalogues may remain exhaustive when side-by-side inspection is the story's purpose.
-- Rulebook layout stories and the tabletop-owned Block editor previews file under one Rulebook root:
-  `Layouts` and `Blocks/<Block name>`. Other Rulebook route stories remain under Pages.
+- Rulebook stories have three homes: `Document` for whole books, sizes and styles; `Page` for layouts,
+  covers, Page details and compositions of several Blocks; `Blocks/<subject>` for one authored Block
+  kind. A subject keeps its `Rendered` and `Editing` examples together, with one story file owning
+  each leaf. Error states stay beside the subject they affect. Do not create feature-batch groups.
+- Isolated Rulebook editors use `rulebook*Edit.stories.tsx` beside the editing route. Their explicit
+  registration places them under Rulebook and excludes that filename convention from Pages.
+  Full application route stories remain under Pages. Renderer stories stay in `src/game/rulebook`;
+  sidebar proximity never requires a renderer to import app code.
 - Prefer args-only stories. Use wrappers, custom rendering, or interactions only when they
   demonstrate behavior or comparison that args cannot.
 - CI runs the story suite as four shards, balanced by measured file time and defined as prefix

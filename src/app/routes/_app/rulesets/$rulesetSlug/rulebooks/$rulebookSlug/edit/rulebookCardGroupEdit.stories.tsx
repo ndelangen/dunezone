@@ -1,73 +1,14 @@
-import { Box } from '@mantine/core';
 import preview from '@sb/preview';
-import type { RulebookResolvedAssetsById } from '@shared/rulebooks/projectRenderDocument';
-import { projectRulebookDraftRenderBlock } from '@shared/rulebooks/projectRenderDocument';
-import { DocumentEditorLayout } from '@ui/layout/DocumentEditorLayout';
-import { useState } from 'react';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
-import { RulebookBlockCanvas } from '@game/rulebook/RulebookBlockRenderer';
-import { cardEntryFixture, cardGroupFixture, cardGuideAssets } from '@game/rulebook/RulebookCardGuides.stories.fixture';
+import { cardGroupFixture, cardGuideAssets } from '@game/rulebook/RulebookCardGuides.stories.fixture';
 
-import type { RulebookBlockEditorValue } from './rulebookBlockEditors';
-import { CardEntryEdit, CardGroupEdit } from './rulebookCardBlockEditors';
+import { CardGroupStory } from './rulebookCardBlockEditors.shared.stories.fixture';
 
-function CardGroupStory({ assets = cardGuideAssets }: { assets?: RulebookResolvedAssetsById }) {
-  const [value, setValue] = useState<RulebookBlockEditorValue<'card-group'>>(cardGroupFixture());
-  return (
-    <Box p="lg">
-      <DocumentEditorLayout ratio={4 / 3} fit="width">
-        <DocumentEditorLayout.Sidebar>
-          <CardGroupEdit value={value} onChange={setValue} references={{ assetsById: assets, factionsById: {} }} />
-        </DocumentEditorLayout.Sidebar>
-        <DocumentEditorLayout.Preview>
-          <RulebookBlockCanvas
-            block={projectRulebookDraftRenderBlock({ ...value, id: 'CRDS', kind: 'card-group' }, assets)}
-          />
-        </DocumentEditorLayout.Preview>
-      </DocumentEditorLayout>
-    </Box>
-  );
-}
-function CardEntryStory() {
-  const [value, setValue] = useState<RulebookBlockEditorValue<'card-entry'>>(cardEntryFixture());
-  return (
-    <Box p="lg">
-      <DocumentEditorLayout ratio={4 / 3} fit="width">
-        <DocumentEditorLayout.Sidebar>
-          <CardEntryEdit
-            value={value}
-            onChange={setValue}
-            references={{ assetsById: cardGuideAssets, factionsById: {} }}
-          />
-        </DocumentEditorLayout.Sidebar>
-        <DocumentEditorLayout.Preview>
-          <RulebookBlockCanvas
-            block={projectRulebookDraftRenderBlock({ ...value, id: 'CARD', kind: 'card-entry' }, cardGuideAssets)}
-          />
-        </DocumentEditorLayout.Preview>
-      </DocumentEditorLayout>
-    </Box>
-  );
-}
 const meta = preview.meta({
-  title: 'Blocks/Card guides',
+  title: 'Blocks/Card group/Editing',
   globals: { colorScheme: 'dark' },
   parameters: { layout: 'fullscreen' },
-});
-
-export const CardEntry = meta.story({
-  render: () => <CardEntryStory />,
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-    const guidance = canvas.getByRole('textbox', { name: 'Guidance' });
-    const original = (guidance as HTMLTextAreaElement).value;
-    await userEvent.click(canvas.getByRole('button', { name: 'Clear Card' }));
-    await expect(guidance).toHaveValue(original);
-    await expect(canvas.getByRole('button', { name: 'Choose Card' })).toBeVisible();
-    await userEvent.clear(canvas.getByRole('textbox', { name: 'Quantity' }));
-    await expect(canvas.getByRole('textbox', { name: 'Quantity' })).toHaveValue('');
-  },
 });
 
 export const CardGroup = meta.story({

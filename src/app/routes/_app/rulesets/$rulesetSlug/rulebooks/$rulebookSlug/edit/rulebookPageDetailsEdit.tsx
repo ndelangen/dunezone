@@ -27,13 +27,14 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { Menu, Switch, Stack, Text, TextInput, UnstyledButton } from '@mantine/core';
-import { rulebookBlockKindLabels, rulebookBlockKinds } from '@shared/rulebooks/contents';
+import { rulebookHeadingIconSchema, rulebookBlockKindLabels, rulebookBlockKinds } from '@shared/rulebooks/contents';
 import type {
   RulebookBlockDraft,
   RulebookBlockKind,
   RulebookBlockRegionKey,
   RulebookPageDraft,
 } from '@shared/rulebooks/contents';
+import { AssetSelect } from '@ui/control/AssetSelect';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { IconAction } from '@ui/control/IconAction';
@@ -51,9 +52,14 @@ import {
   useCoalescedDragPosition,
 } from './rulebookDragCollision';
 import { rulebookBlockIcon, rulebookRegionIcon } from './rulebookEditorIcons';
+import { rulebookIconOptions } from './rulebookIconOptions';
 import styles from './rulebookPageDetailsEdit.module.css';
 
-export type RulebookPageDetailsValue = Readonly<Pick<RulebookPageDraft, 'title' | 'anchor' | 'showHeading'>>;
+const headingIconOptions = rulebookIconOptions(rulebookHeadingIconSchema.options.flatMap((schema) => schema.options));
+
+export type RulebookPageDetailsValue = Readonly<
+  Pick<RulebookPageDraft, 'title' | 'anchor' | 'showHeading' | 'headingIcon'>
+>;
 
 export type RulebookPageDetailsDiagnostics = Readonly<{
   title?: string;
@@ -795,6 +801,27 @@ export function PageDetailsEdit({
                   value={value.title}
                   error={diagnostics?.title}
                   onChange={(event) => onChange({ ...value, title: event.currentTarget.value })}
+                />
+              }
+            />
+            <ControlBlock
+              title="Title icon"
+              description="Use the same symbol as the board or faction. The printed title frames it in a circle."
+              input={
+                <AssetSelect
+                  aria-label="Title icon"
+                  placeholder="No icon"
+                  data={headingIconOptions}
+                  getPreviewSrc={(icon) => icon}
+                  glyphPreviews
+                  clearable
+                  value={value.headingIcon ?? null}
+                  onChange={(headingIcon) =>
+                    onChange({
+                      ...value,
+                      headingIcon: headingIcon === null ? undefined : rulebookHeadingIconSchema.parse(headingIcon),
+                    })
+                  }
                 />
               }
             />

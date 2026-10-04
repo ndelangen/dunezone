@@ -5,7 +5,7 @@ import { createPhaseListPage } from './RulebookPhaseList.stories.fixture';
 import { RulebookPageRenderer } from './RulebookRenderer';
 
 const meta = preview.meta({
-  title: 'Phase list',
+  title: 'Blocks/List/Rendered',
   parameters: { layout: 'centered' },
   decorators: [
     (Story) => (
@@ -16,7 +16,7 @@ const meta = preview.meta({
   ],
 });
 
-export const Square = meta.story({
+export const PhaseList = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement).getByRole('article', { name: 'Rulebook page: A turn and the Nexus' });
     await document.fonts.ready;

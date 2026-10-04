@@ -139,11 +139,13 @@ async function createGuideCards() {
   return names;
 }
 
-async function chooseGuideCard(page: Page, name: string) {
-  await page.getByRole('button', { name: 'Choose Card', exact: true }).click();
-  await page.getByRole('searchbox', { name: 'Find Card', exact: true }).fill(name);
+async function chooseGuideCard(page: Page, name: string, kind: 'entry' | 'group') {
+  const button = kind === 'entry' ? 'Choose source' : 'Choose Card';
+  const search = kind === 'entry' ? 'Find Asset' : 'Find Card';
+  await page.getByRole('button', { name: button, exact: true }).click();
+  await page.getByRole('searchbox', { name: search, exact: true }).fill(name);
   await page.getByRole('option', { name: new RegExp(name) }).click();
-  await expect(page.getByRole('searchbox', { name: 'Find Card', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('searchbox', { name: search, exact: true })).toHaveCount(0);
 }
 
 async function authorCardGuides(page: Page, cardNames: string[]) {
@@ -153,7 +155,7 @@ async function authorCardGuides(page: Page, cardNames: string[]) {
   await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Treachery cards');
   await structure.getByRole('button', { name: 'Add Block', exact: true }).click();
   await page.getByRole('menuitem', { name: 'Card entry', exact: true }).click();
-  await chooseGuideCard(page, cardNames[0]!);
+  await chooseGuideCard(page, cardNames[0]!, 'entry');
   await page.getByRole('textbox', { name: 'Quantity', exact: true }).fill('1');
   await page.getByRole('textbox', { name: 'Guidance', exact: true }).fill('Explain this Card before the first battle.');
   await structure.getByRole('button', { name: 'Add Block', exact: true }).click();
@@ -162,7 +164,7 @@ async function authorCardGuides(page: Page, cardNames: string[]) {
   await page.getByRole('textbox', { name: 'Shared guidance', exact: true }).fill('Explain their interaction together.');
   for (const [index, name] of cardNames.entries()) {
     await page.getByRole('button', { name: 'Add Card', exact: true }).click();
-    await chooseGuideCard(page, name);
+    await chooseGuideCard(page, name, 'group');
     await page.getByRole('textbox', { name: 'Quantity', exact: true }).fill(String(index + 1));
     await page.getByRole('textbox', { name: 'Guidance', exact: true }).fill(`Guidance for ${name}.`);
   }

@@ -117,11 +117,59 @@ function projectRulebookCardSource(
   return projectRulebookSource(reference, assetsById);
 }
 
+/** Names an authored destination without copying its label or position into the referring text. */
+export function rulebookReferenceTargets(
+  contents: RulebookContentsDraftV1,
+  assetsById: RulebookResolvedAssetsById = {},
+  factionsById: RulebookResolvedFactionsById = {}
+) {
+  return contents.pageOrder.flatMap((pageId, index) => {
+    const page = contents.pagesById[pageId];
+    if (!page) {
+      return [];
+    }
+    const pageTarget = { pageId, label: page.title, anchor: page.anchor, pageNumber: index + 1 };
+    return [
+      pageTarget,
+      ...Object.values(page.blocksById).flatMap((block) => {
+        if (!block.anchor) {
+          return [];
+        }
+        const source =
+          block.kind === 'card-entry' ? projectRulebookSource(block.source, assetsById, factionsById) : undefined;
+        const label =
+          ('name' in block && block.name) ||
+          ('title' in block && block.title) ||
+          (source?.status === 'ready' && source.name) ||
+          block.anchor;
+        return [{ ...pageTarget, blockId: block.id, label, anchor: block.anchor }];
+      }),
+    ];
+  });
+}
+
+/** Resolves the labels and page numbers that a text block displays for its authored destinations. */
+export function projectRulebookTextReferences(
+  references: NonNullable<Extract<RulebookBlockDraft, { kind: 'text' }>['references']>,
+  targets: ReturnType<typeof rulebookReferenceTargets>
+) {
+  return references.map((reference) => {
+    const target = targets.find(
+      (target) =>
+        target.pageId === reference.pageId && ('blockId' in target ? target.blockId : undefined) === reference.blockId
+    );
+    return target
+      ? { label: target.label, anchor: target.anchor, pageNumber: target.pageNumber }
+      : { label: 'Reference unavailable' };
+  });
+}
+
 /** Projects one draft Block to the same render contract used by Pages and publications. */
 export function projectRulebookDraftRenderBlock(
   block: RulebookBlockDraft,
   assetsById: RulebookResolvedAssetsById,
-  factionsById: RulebookResolvedFactionsById = {}
+  factionsById: RulebookResolvedFactionsById = {},
+  contents?: RulebookContentsDraftV1
 ): RulebookRenderBlockV1 {
   const identity = { id: block.id, ...(block.anchor ? { anchor: block.anchor } : {}) };
   if (block.kind === 'text') {
@@ -129,6 +177,14 @@ export function projectRulebookDraftRenderBlock(
       ...identity,
       kind: block.kind,
       ...(block.name === undefined ? {} : { name: block.name }),
+      ...(block.references
+        ? {
+            references: projectRulebookTextReferences(
+              block.references,
+              contents ? rulebookReferenceTargets(contents, assetsById, factionsById) : []
+            ),
+          }
+        : {}),
       text: block.text,
     };
   }
@@ -160,6 +216,7 @@ export function projectRulebookDraftRenderBlock(
     return {
       ...identity,
       kind: block.kind,
+      size: block.size,
       source: projectRulebookSource(block.source, assetsById, factionsById),
       caption: block.caption,
     };
@@ -191,7 +248,9 @@ export function projectRulebookDraftRenderBlock(
     return {
       ...identity,
       kind: block.kind,
-      source: projectRulebookCardSource(block.source, assetsById),
+      source: projectRulebookSource(block.source, assetsById, factionsById),
+      name: block.name,
+      size: block.size,
       text: block.text,
       quantity: block.quantity,
     };
@@ -284,7 +343,8 @@ function projectCoverImageUrl(cover: Extract<RulebookPageDraft, { layoutId: 'cov
 export function projectRulebookDraftRenderPage(
   page: RulebookPageDraft,
   assetsById: RulebookResolvedAssetsById,
-  factionsById: RulebookResolvedFactionsById = {}
+  factionsById: RulebookResolvedFactionsById = {},
+  contents?: RulebookContentsDraftV1
 ): RulebookRenderPageV1 {
   const layout = getRulebookLayout(page.layoutId);
   const footer = page.layoutId === 'cover' ? getRulebookCoverFooter(page.controlValues) : undefined;
@@ -295,6 +355,7 @@ export function projectRulebookDraftRenderPage(
     title: page.title,
     layoutId: page.layoutId,
     showHeading: page.showHeading,
+    headingIcon: page.headingIcon,
     controlValues:
       page.layoutId === 'cover'
         ? {
@@ -343,7 +404,7 @@ export function projectRulebookDraftRenderPage(
               key: region.key,
               blocks: (blockOrderByRegion[region.key] ?? []).flatMap((blockId) => {
                 const block = page.blocksById[blockId];
-                return block ? [projectRulebookDraftRenderBlock(block, assetsById, factionsById)] : [];
+                return block ? [projectRulebookDraftRenderBlock(block, assetsById, factionsById, contents)] : [];
               }),
             },
           ]
@@ -425,7 +486,7 @@ export function projectRulebookDraftRenderDocument(
       pagesById: Object.fromEntries(
         contents.pageOrder.flatMap((pageId) => {
           const page = contents.pagesById[pageId];
-          return page ? [[pageId, projectRulebookDraftRenderPage(page, assetsById, factionsById)]] : [];
+          return page ? [[pageId, projectRulebookDraftRenderPage(page, assetsById, factionsById, contents)]] : [];
         })
       ),
     },

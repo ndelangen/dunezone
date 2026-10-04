@@ -5,8 +5,9 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { Box, Button, Group, Loader, NumberInput, Stack, Switch, Text, TextInput } from '@mantine/core';
-import { createRulebookLocalId } from '@shared/rulebooks/contents';
+import { Box, Button, Group, Loader, NumberInput, Select, Stack, Switch, Text, TextInput } from '@mantine/core';
+import type { RulebookContentsDraftV1, RulebookIllustrationSize } from '@shared/rulebooks/contents';
+import { createRulebookLocalId, rulebookIllustrationSizeSchema } from '@shared/rulebooks/contents';
 import { projectRulebookSource } from '@shared/rulebooks/projectRenderDocument';
 import type { RulebookResolvedAssetsById, RulebookResolvedFactionsById } from '@shared/rulebooks/projectRenderDocument';
 import type { RulebookSourceReference } from '@shared/rulebooks/sources';
@@ -29,6 +30,7 @@ import styles from './rulebookVisualBlockEditors.module.css';
 
 const emptyReferences = { assetsById: {}, factionsById: {} };
 export type RulebookEditorReferences = {
+  contents?: RulebookContentsDraftV1;
   assetsById: RulebookResolvedAssetsById;
   factionsById: RulebookResolvedFactionsById;
 };
@@ -86,6 +88,35 @@ export function RulebookSourceControl({
   );
 }
 
+export function IllustrationSizeControl({
+  value,
+  onChange,
+}: {
+  value?: RulebookIllustrationSize;
+  onChange: (value: RulebookIllustrationSize | undefined) => void;
+}) {
+  return (
+    <ControlBlock
+      title="Illustration size"
+      description="Fit the whole image within a small, medium or large area."
+      input={
+        <Select
+          aria-label="Illustration size"
+          clearable
+          placeholder="Original size"
+          value={value ?? null}
+          data={[
+            { value: 'small', label: 'Small' },
+            { value: 'medium', label: 'Medium' },
+            { value: 'large', label: 'Large' },
+          ]}
+          onChange={(next) => onChange(rulebookIllustrationSizeSchema.optional().parse(next ?? undefined))}
+        />
+      }
+    />
+  );
+}
+
 export function ReferencedIllustrationEdit({
   value,
   onChange,
@@ -98,6 +129,7 @@ export function ReferencedIllustrationEdit({
         references={references}
         onChange={(source) => onChange({ ...value, source })}
       />
+      <IllustrationSizeControl value={value.size} onChange={(size) => onChange({ ...value, size })} />
       <ControlBlock
         title="Caption"
         input={

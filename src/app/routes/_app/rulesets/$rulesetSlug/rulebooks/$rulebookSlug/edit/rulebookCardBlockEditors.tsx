@@ -17,6 +17,7 @@ import { lazy, Suspense, useState } from 'react';
 
 import type { RulebookBlockEditorProps } from './rulebookBlockEditors';
 import styles from './rulebookCardBlockEditors.module.css';
+import { IllustrationSizeControl, RulebookSourceControl } from './rulebookVisualBlockEditors';
 import type { RulebookEditorReferences } from './rulebookVisualBlockEditors';
 
 const RulebookSourcePicker = lazy(() =>
@@ -125,11 +126,23 @@ export function CardEntryEdit({
 }: RulebookBlockEditorProps<'card-entry'>) {
   return (
     <Stack gap="md">
-      <CardSourceControl
+      <RulebookSourceControl
         source={value.source}
         references={references}
         onChange={(source) => onChange({ ...value, source })}
       />
+      <ControlBlock
+        title="Name"
+        description="Optional name when using artwork instead of a saved Card."
+        input={
+          <TextInput
+            aria-label="Name"
+            value={value.name ?? ''}
+            onChange={(event) => onChange({ ...value, name: event.currentTarget.value || undefined })}
+          />
+        }
+      />
+      <IllustrationSizeControl value={value.size} onChange={(size) => onChange({ ...value, size })} />
       <CardGuidanceFields
         text={value.text}
         quantity={value.quantity}

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { GENERIC, ICON } from '../assetIds';
+import { GENERIC, ICON, LOGO } from '../assetIds';
 import { normalizeFormattedText, parseFormattedText } from '../formattedText';
 import type { NormalizedFormattedText } from '../formattedText';
 import { userImageSourceUrlSchema } from '../user-images/contract';
@@ -10,9 +10,18 @@ import type { RulebookSize } from './settings';
 import { rulebookCardSourceReferenceSchema, rulebookSourceReferenceSchema } from './sources';
 
 export const rulebookListIconSchema = z.union([ICON, GENERIC]);
+export const rulebookHeadingIconSchema = z.union([ICON, GENERIC, LOGO]);
+export const rulebookIllustrationSizeSchema = z.enum(['small', 'medium', 'large']);
+export type RulebookIllustrationSize = z.infer<typeof rulebookIllustrationSizeSchema>;
+export const rulebookTextReferencesSchema = z.array(
+  z.strictObject({
+    pageId: z.string().min(1),
+    blockId: z.string().min(1).optional(),
+  })
+);
 
 /** Creation callers declare the catalogue they can read before receiving starter or cloned Contents. */
-export const RULEBOOK_CATALOGUE_VERSION = 9;
+export const RULEBOOK_CATALOGUE_VERSION = 10;
 
 export const rulebookLocalIdAlphabet = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ' as const;
 const rulebookLocalIdPattern = new RegExp(`^[${rulebookLocalIdAlphabet}]{4}$`);
@@ -132,6 +141,7 @@ function rulebookBlockSchemas<Text extends z.ZodType, Anchor extends z.ZodType, 
     kind: z.literal('text'),
     name: z.string().optional(),
     anchor: anchor.optional(),
+    references: rulebookTextReferencesSchema.optional(),
     text,
   });
   const sectionHeadingBlock = z.strictObject({
@@ -178,6 +188,7 @@ function rulebookBlockSchemas<Text extends z.ZodType, Anchor extends z.ZodType, 
     kind: z.literal('referenced-illustration'),
     anchor: anchor.optional(),
     source: rulebookSourceReferenceSchema.optional(),
+    size: rulebookIllustrationSizeSchema.optional(),
     caption: z.string(),
   });
   const illustratedInventoryItem = z.strictObject({
@@ -215,6 +226,9 @@ function rulebookBlockSchemas<Text extends z.ZodType, Anchor extends z.ZodType, 
     kind: z.literal('card-entry'),
     anchor: anchor.optional(),
     ...cardGuideFields,
+    source: rulebookSourceReferenceSchema.optional(),
+    name: z.string().optional(),
+    size: rulebookIllustrationSizeSchema.optional(),
   });
   const cardGroupItem = z.strictObject({ id: rulebookItemIdSchema, ...cardGuideFields });
   const cardGroupBlock = z.strictObject({
@@ -482,6 +496,7 @@ function pageSchema<
     blockOrderByRegion,
     blocksById: z.record(rulebookLocalIdSchema, savedBlockSchemas.block),
     showHeading: z.boolean().default(true),
+    headingIcon: rulebookHeadingIconSchema.optional(),
   });
 }
 

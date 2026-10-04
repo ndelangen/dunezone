@@ -10,6 +10,7 @@ import type { ReactNode } from 'react';
 import { expect, fn, userEvent, within } from 'storybook/test';
 
 import { rulebookBlockIcon, rulebookLayoutIcon, rulebookRegionIcon } from './rulebookEditorIcons';
+import { HeadingIconStory } from './rulebookIllustratedBook.stories.fixture';
 import { PageDetailsEdit, rulebookBlockLabel } from './rulebookPageDetailsEdit';
 import type {
   RulebookPageDetailsBlockDragEvent,
@@ -325,7 +326,7 @@ const populatedRulesRegions: readonly RulebookPageDetailsBlockRegion[] = [
 ];
 
 const meta = preview.meta({
-  title: 'Rulebooks/Page details editor',
+  title: 'Page/Details/Editing',
   globals: { colorScheme: 'dark' },
   parameters: { layout: 'centered' },
 });
@@ -347,7 +348,7 @@ export const PopulatedRulesPage = meta.story({
     const anchor = canvas.getByRole('textbox', { name: 'Anchor' });
     await expect(canvas.getAllByRole('textbox').slice(0, 2)).toEqual([anchor, title]);
     await expect(anchor.parentElement?.querySelector('svg')).not.toBeNull();
-    await expect(canvas.getAllByRole('img', { name: 'Help' })).toHaveLength(3);
+    await expect(canvas.getAllByRole('img', { name: 'Help' })).toHaveLength(4);
     await userEvent.clear(title);
     await userEvent.type(title, 'Advanced movement');
     await expect(onPageChange).toHaveBeenLastCalledWith({
@@ -584,3 +585,5 @@ export const InteriorHeadingVisibility = meta.story({
     expect(canvas.getByRole('textbox', { name: 'Title' })).toHaveValue('Movement');
   },
 });
+
+export const HeadingIcon = meta.story({ render: () => <HeadingIconStory /> });
