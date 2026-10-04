@@ -1296,11 +1296,11 @@ function NextHomepagePrototype({ variant }: { variant: 'E' | 'F' | 'G' }) {
   );
 }
 
-function BoardPreview({ detail = false }: { detail?: boolean }) {
+function BoardPreview({ detail = false, floating = false }: { detail?: boolean; floating?: boolean }) {
   return (
     <img
       className={styles.boardPreview}
-      src={`${prototypeMedia}board-${detail ? 'detail' : 'wide'}.jpg`}
+      src={`${prototypeMedia}${floating ? 'board-floating.png' : `board-${detail ? 'detail' : 'wide'}.jpg`}`}
       width={detail ? 1600 : 3000}
       height={detail ? 1000 : 1420}
       alt={
@@ -1601,7 +1601,7 @@ function PrototypeE() {
     <div className={styles.cinemaFlow}>
       <section id="play-preview" className={styles.cinemaOpening} data-marketing-arrival>
         <div className={styles.wideBoard}>
-          <BoardPreview />
+          <BoardPreview floating />
         </div>
         <div className={styles.centerCopy}>
           <PreviewCopy />
@@ -1640,7 +1640,6 @@ function PrototypeE() {
         <GroupAllianceCard />
         <AllianceInvitation />
       </section>
-      <RecentExamples />
     </div>
   );
 }

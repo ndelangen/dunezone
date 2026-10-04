@@ -1,6 +1,6 @@
 # Three designs inspired by D
 
-Review material for [Choose the Play-first homepage composition and visual direction](https://github.com/ndelangen/dunezone/issues/1817). No design has been accepted. The branch remains a throwaway prototype.
+Review material for [Choose the Play-first homepage composition and visual direction](https://github.com/ndelangen/dunezone/issues/1817). Norbert prefers E and requested the refinement below. The revised design remains a throwaway prototype for review.
 
 | Design | Composition |
 | --- | --- |
@@ -60,3 +60,15 @@ The recent section is still a labelled fixed sample. The existing shell backgrou
 ![Portrait cloud on a phone](proof/round-two/E-mobile-cloud.jpg)
 ![Space Orks in dark mode](proof/round-two/community-dark.jpg)
 ![The Group alliance invitation](proof/round-two/alliance.jpg)
+
+## E refinement
+
+E now uses a transparent 3000 by 1420 board capture with a CSS mask fading its bottom edge. The capture comes directly from the existing Playing fixture renderer with alpha enabled and its scene background omitted. The temporary capture control and renderer changes were removed after capture; production Play code is unchanged. The PNG contains real alpha, so dark board details retain their original opacity. The earlier JPEGs remain available for F and G.
+
+Rulebook pages, portrait discs, troop discs, cards and the alliance example share a two-part drop shadow. Ork discs clip their artwork inside the element casting the shadow, so the shadow is no longer clipped. Hover retains each piece's stacking order. E ends after the Group alliance section; "More ideas to borrow" is removed from E.
+
+Typecheck and focused lint passed. Browser checks confirmed the removed heading, the gradient mask, shadows and unchanged computed stacking before and during hover. E fits a 390-pixel phone viewport without horizontal overflow. Temporary viewport and hover overrides were cleared.
+
+![Board before refinement](proof/e-refinement/before.jpg)
+![Floating board after refinement](proof/e-refinement/after-board.jpg)
+![Portrait shadows](proof/e-refinement/shadows.jpg)

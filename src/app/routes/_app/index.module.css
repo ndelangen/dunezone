@@ -375,7 +375,6 @@
   translate: 0 -0.8rem;
 }
 .fanPiece:hover {
-  z-index: 5;
   filter: drop-shadow(0 20px 16px rgb(35 20 8 / 32%));
 }
 
@@ -423,7 +422,6 @@
 .portraitPiece:hover {
   translate: 0 -1rem;
   scale: 1.06;
-  z-index: 5;
 }
 
 .troopParade {
@@ -608,10 +606,11 @@
   object-fit: cover;
 }
 .wideBoard {
-  overflow: hidden;
-  border-radius: 1rem;
   transform: perspective(1200px) rotateX(3deg);
   filter: drop-shadow(0 24px 24px rgb(0 0 0 / 25%));
+}
+.wideBoard .boardPreview {
+  mask-image: linear-gradient(to bottom, black 58%, rgb(0 0 0 / 85%) 70%, transparent 89%);
 }
 
 .newBookFan {
@@ -654,7 +653,6 @@
 .cloudPiece:hover {
   scale: 1.16;
   translate: 0 -0.6rem;
-  z-index: 10 !important;
 }
 .vectorDisc {
   overflow: hidden;
@@ -689,7 +687,6 @@
 }
 .showcaseCard:hover {
   translate: 0 -1rem;
-  z-index: 5;
 }
 .cardCredit {
   text-align: center;
@@ -738,10 +735,21 @@
 .orkDisc {
   grid-area: 1 / 1;
   width: 34%;
-  overflow: hidden;
-  border-radius: 50%;
   transform: translate(var(--fan-x), var(--fan-y)) rotate(var(--fan-turn));
   filter: drop-shadow(0 12px 10px rgb(0 0 0 / 25%));
+}
+.orkDisc > * {
+  overflow: hidden;
+  border-radius: 50%;
+}
+
+/* Each physical piece casts its own shadow without changing its place in the stack. */
+.nextHomepage .fanPiece,
+.nextHomepage .cloudPiece,
+.nextHomepage .showcaseCard,
+.nextHomepage .allianceCard,
+.nextHomepage .orkDisc {
+  filter: drop-shadow(0 3px 3px rgb(0 0 0 / 35%)) drop-shadow(0 16px 14px rgb(0 0 0 / 32%));
 }
 
 .journalOpening {
