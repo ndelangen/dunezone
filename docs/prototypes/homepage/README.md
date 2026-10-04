@@ -20,13 +20,15 @@ Open these versions of the existing homepage:
 
 The floating bar and left/right arrow keys switch versions. Search parameters survive reload. Switching clears the previous section anchor. Keyboard cycling ignores text fields. With no variant parameter, the original homepage renders. The comparison is gated to development builds.
 
-## Recommendation
+## Earlier comparison
+
+The initial recommendation was B. Norbert asked for a clearer coming-soon announcement, more space, one concept at a time, larger media and playful animation. Version D responds to that feedback. No direction has been accepted yet.
 
 B makes the range of creations visible sooner while keeping Play first. A gives the gameplay image the most attention, at the cost of a longer introduction. C explains the creation process most directly, but the numbered steps can suggest an order that visitors do not have to follow. The user can choose a version or combine parts after review.
 
 ## Content and ownership
 
-The route owns the three compositions and its switcher. All prototype functions are local to `src/app/routes/_app/index.tsx`, with page-specific composition in the adjacent stylesheet. The existing homepage loader and subscription remain intact. PageLayout, PageTitle, Section, Surface, PublishedImage and AssetFace provide the existing frame, headings, pane and artwork behavior. No new kit vocabulary or backend contract is proposed by this prototype.
+The route owns the four compositions and its switcher. All prototype functions are local to `src/app/routes/_app/index.tsx`, with page-specific composition in the adjacent stylesheet. The existing homepage loader and subscription remain intact. PageLayout, PageTitle, Section, Surface, PublishedImage and AssetFace provide the existing frame, headings, pane and artwork behavior. No new kit vocabulary or backend contract is proposed by this prototype.
 
 The shared chrome, navigation and footer are unchanged. Both signed-in and signed-out readers receive the same editorial page. Creation links use the existing routes; a signed-out browser was checked through Create a faction and reached the existing login gate. Other creation paths retain the same route contracts and were inspected in source.
 
@@ -38,7 +40,7 @@ Maintainer credits accompany real examples. Dreamrules is linked as a Ruleset an
 
 ## Loading and motion
 
-Play uses a still with fixed dimensions and high fetch priority. Rulebook and faction images use PublishedImage, and Assets use AssetFace, which owns their shape and PublishedImage arrival. These reserve their space and retain existing loading, failure and reduced-motion behavior. No video downloads or autoplay occur. The book arrangement also removes its tilt under reduced motion. The browser was observed with PublishedImage's reduced-motion state active and all seven images decoded.
+Play uses a still with fixed dimensions and high fetch priority. Rulebook and faction images use PublishedImage, and Assets use AssetFace, which owns their shape and PublishedImage arrival. These reserve their space and retain existing loading, failure and reduced-motion behavior. No video downloads or autoplay occur. Static book tilts remain under reduced motion. The browser was observed with PublishedImage's reduced-motion state active and all seven images decoded.
 
 For production, use a properly sized compressed Play still and responsive media sizes. Keep below-fold artwork lazy, preserve aspect ratios, and use the accepted missing-preview policy. A film is optional future work, not necessary to evaluate or implement these compositions.
 
@@ -66,3 +68,26 @@ The desktop captures preserve the real application frame; the mobile captures sh
 ![Signed-out creation gate](proof/create-signed-out.jpg)
 
 [Original homepage baseline](proof/baseline.jpg).
+
+
+## Revision D
+
+[Open D: Coming soon. Make it yours.](http://localhost:3014/?variant=D)
+
+The opening now says "Dune Play is coming soon". The sneak peek leads to the development still, followed by an explicit notice that Play is not available yet. No secret route or release date appears.
+
+Each following section gives one idea room: Rulebooks, homebrew leader portraits, new troop vectors, cards and tokens, existing community factions, then collaboration. Rulebook pages and cardbacks overlap into fans. Four portraits from the current media library appear at large scale. Five troop silhouettes get a separate section. The collaboration section uses illustrative leader discs, labelled as examples made with the artwork library.
+
+The artwork arrives on scroll. Fans unfold over one second with staggered starts, portraits spread out, and troops move into position. Hover lifts individual pieces. These are finite entrances, with no looping animation. Reduced motion disables entrances and hover movement while retaining static overlaps and tilts. Original artwork files are unchanged.
+
+Verified at 1280 by 720 and 390 by 844: one main heading, no horizontal page overflow, working creation-section anchor, all 19 HTML images decoded after scrolling the page. All seven section entrances were triggered. Normal-motion styles select the fan animation; reduced-motion styles select none and retain the final transforms. Temporary browser overrides were reset. Typecheck and focused lint passed.
+
+The existing shell background still changes contrast near the bottom of the viewport, most visibly in the recent examples. That remains a production readability concern. The recent section remains a fixed labelled sample. D is a prototype for design review, not a deployed homepage.
+
+![D opening](proof/D-opening.png)
+![D leader portraits](proof/D-portraits.png)
+![D card fan](proof/D-cards.png)
+![D mobile opening](proof/D-mobile-opening.png)
+![D mobile Rulebook fan](proof/D-mobile-books.png)
+
+[Complete D desktop capture](proof/D-desktop.png).

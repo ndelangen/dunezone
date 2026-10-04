@@ -291,9 +291,273 @@
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .prototypeBook,
-  .prototypeSpread {
-    transform: none;
+/* Each chapter gives one idea and its artwork a full stretch of the page. */
+.marketingFlow {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(7rem, 16cqi, 13rem);
+  padding-block: 2rem 5rem;
+}
+
+.marketingPreview {
+  display: grid;
+  gap: 4rem;
+  justify-items: center;
+  scroll-margin-top: 2rem;
+}
+
+.marketingScreen {
+  width: min(100%, 66rem);
+  transform: rotate(-1deg);
+  filter: drop-shadow(0 22px 22px rgb(40 23 9 / 22%));
+}
+
+.marketingIntro {
+  max-width: 39rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  text-align: center;
+}
+
+.marketingIntro > section > :first-child,
+.marketingIntro > section > :first-child > :first-child {
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.marketingChapter {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+  align-items: center;
+  gap: clamp(3rem, 7cqi, 7rem);
+  min-height: 31rem;
+  scroll-margin-top: 5rem;
+}
+
+.marketingCopy {
+  max-width: 30rem;
+}
+.marketingVisual {
+  min-width: 0;
+}
+
+.marketingGallery {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3.5rem;
+}
+
+.bookFan,
+.cardFan {
+  display: grid;
+  place-items: center;
+  padding-block: 2.5rem;
+  isolation: isolate;
+}
+
+.fanPiece {
+  grid-area: 1 / 1;
+  width: 44%;
+  transform: translate(var(--fan-x), var(--fan-y)) rotate(var(--fan-turn));
+  transform-origin: 50% 95%;
+  filter: drop-shadow(0 12px 10px rgb(35 20 8 / 25%));
+  transition:
+    translate 450ms ease,
+    filter 450ms ease;
+}
+
+.bookFan:hover .fanPiece,
+.cardFan:hover .fanPiece {
+  translate: 0 -0.8rem;
+}
+.fanPiece:hover {
+  z-index: 5;
+  filter: drop-shadow(0 20px 16px rgb(35 20 8 / 32%));
+}
+
+.cardFan {
+  position: relative;
+  padding-block: 3rem;
+}
+.cardFan .fanPiece {
+  width: 39%;
+}
+.fanToken {
+  position: absolute;
+  width: 29%;
+  right: 1%;
+  bottom: 1%;
+  transform: rotate(12deg);
+  filter: drop-shadow(0 8px 6px rgb(35 20 8 / 25%));
+  z-index: 6;
+}
+
+.portraitFan {
+  width: min(100%, 64rem);
+  display: grid;
+  place-items: center;
+  padding-block: 2rem;
+}
+
+.portraitPiece {
+  grid-area: 1 / 1;
+  width: 27%;
+  transform: translate(var(--fan-x), var(--fan-y)) rotate(var(--fan-turn));
+  filter: drop-shadow(0 15px 12px rgb(35 20 8 / 22%));
+  transition:
+    translate 450ms ease,
+    scale 450ms ease;
+}
+
+.portraitPiece img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 45% 45% 5% 5%;
+}
+
+.portraitPiece:hover {
+  translate: 0 -1rem;
+  scale: 1.06;
+  z-index: 5;
+}
+
+.troopParade {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 22rem;
+  gap: 0.25rem;
+}
+.troopPiece {
+  width: 20%;
+  transform: translate(var(--fan-x), var(--fan-y)) rotate(var(--fan-turn));
+  transition: translate 350ms ease;
+}
+.troopPiece img {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 0.65;
+  object-fit: contain;
+}
+.troopPiece:hover {
+  translate: 0 -1rem;
+}
+
+.marketingExamples {
+  width: min(100%, 52rem);
+  display: grid;
+  gap: 4rem;
+}
+.marketingExamples > :first-child {
+  transform: rotate(-2deg);
+}
+.marketingExamples > :last-child {
+  transform: rotate(2deg);
+}
+
+.groupTokens {
+  display: grid;
+  place-items: center;
+  width: min(100%, 34rem);
+  padding-block: 1.5rem;
+}
+.groupToken {
+  overflow: hidden;
+  border-radius: 50%;
+  grid-area: 1 / 1;
+  width: 34%;
+  transform: translate(var(--fan-x), var(--fan-y)) rotate(var(--fan-turn));
+  filter: drop-shadow(0 10px 9px rgb(35 20 8 / 20%));
+}
+
+/* Static arrangements stay fanned when motion is reduced. */
+@media (prefers-reduced-motion: no-preference) {
+  [data-entered] .fanPiece,
+  [data-entered] .portraitPiece,
+  [data-entered] .groupToken,
+  [data-entered] .troopPiece {
+    animation: marketing-fan 1000ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+    animation-delay: var(--arrival-delay, 0ms);
   }
+  [data-entered] .marketingScreen {
+    animation: marketing-screen 1000ms ease-out backwards;
+  }
+}
+
+@keyframes marketing-fan {
+  from {
+    opacity: 0.15;
+    transform: translate(0, 20%) rotate(0deg) scale(0.88);
+  }
+  to {
+    opacity: 1;
+    transform: translate(var(--fan-x), var(--fan-y)) rotate(var(--fan-turn));
+  }
+}
+@keyframes marketing-screen {
+  from {
+    opacity: 0.2;
+    transform: translateY(2rem) rotate(1deg) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) rotate(-1deg) scale(1);
+  }
+}
+
+@container homepage-prototype (width < 48rem) {
+  .marketingFlow {
+    gap: 7rem;
+  }
+  .marketingChapter {
+    grid-template-columns: 1fr;
+    gap: 3rem;
+    min-height: auto;
+  }
+  .marketingCopy {
+    max-width: none;
+  }
+  .marketingGallery {
+    gap: 2rem;
+  }
+  .marketingPreview {
+    gap: 2.5rem;
+  }
+  .marketingIntro {
+    max-width: 100%;
+  }
+  .troopParade {
+    min-height: 12rem;
+    order: 2;
+  }
+  .portraitFan {
+    padding-block: 1.5rem;
+  }
+  .marketingExamples {
+    gap: 3rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fanPiece,
+  .portraitPiece,
+  .troopPiece {
+    transition: none;
+  }
+  .bookFan:hover .fanPiece,
+  .cardFan:hover .fanPiece,
+  .portraitPiece:hover,
+  .troopPiece:hover {
+    translate: none;
+    scale: none;
+  }
+}
+
+:global([data-mantine-color-scheme="dark"]) .troopPiece img {
+  filter: invert(0.9) sepia(0.2);
 }

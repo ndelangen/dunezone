@@ -18,7 +18,8 @@ import { TriptychLayout } from '@ui/layout/TriptychLayout';
 import { Bullets } from '@ui/list/Bullets';
 import { Surface } from '@ui/surface';
 import { ArrowRight, ExternalLink, MessageCircle, Printer, Trophy } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import type { CSSProperties } from 'react';
 import { FaRedditAlien } from 'react-icons/fa6';
 import { SiBoardgamegeek, SiDiscord } from 'react-icons/si';
 
@@ -27,6 +28,7 @@ import { isStaleClientData } from '@app/db/core/clientBoundary';
 import { AssetFace } from '@app/widgets/asset-face/AssetFace';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 import { LeaderToken } from '@game/assets/faction/leader/Leader';
+import { resolveAsset } from '@game/assets/resolveAsset';
 import { factionTokenFixtures } from '@game/fixtures/factionTokens';
 
 import styles from './index.module.css';
@@ -56,8 +58,11 @@ const communityLinks = [
 
 export const Route = createFileRoute('/_app/')({
   codeSplitGroupings: [['component', 'pendingComponent', 'errorComponent']],
-  validateSearch: (search: Record<string, unknown>): { variant?: 'A' | 'B' | 'C' } => ({
-    variant: search.variant === 'A' || search.variant === 'B' || search.variant === 'C' ? search.variant : undefined,
+  validateSearch: (search: Record<string, unknown>): { variant?: 'A' | 'B' | 'C' | 'D' } => ({
+    variant:
+      search.variant === 'A' || search.variant === 'B' || search.variant === 'C' || search.variant === 'D'
+        ? search.variant
+        : undefined,
   }),
   loader: loadHomepage,
   pendingComponent: HomepagePending,
@@ -429,10 +434,15 @@ function compactNumber(value: number) {
   return new Intl.NumberFormat('en', { notation: 'compact', maximumFractionDigits: 1 }).format(value);
 }
 
-/* Three throwaway homepage structures, selected by ?variant=A, B or C on the existing route.
+/* Throwaway homepage structures, selected by the variant search parameter on the existing route.
  * The original loader and subscription stay in place; this prototype adds no writes or Play runtime.
  */
-const prototypeNames = { A: 'The big reveal', B: 'The makers gallery', C: 'Your next move' } as const;
+const prototypeNames = {
+  A: 'The big reveal',
+  B: 'The makers gallery',
+  C: 'Your next move',
+  D: 'Coming soon. Make it yours.',
+} as const;
 type PrototypeVariant = keyof typeof prototypeNames;
 const prototypeMedia = '/homepage-prototype/';
 const prototypeAssets = {
@@ -443,7 +453,7 @@ const prototypeAssets = {
 function HomepagePrototype({ variant }: { variant: PrototypeVariant }) {
   const navigate = Route.useNavigate();
   const change = (step: number) => {
-    const keys = ['A', 'B', 'C'] as const;
+    const keys = ['A', 'B', 'C', 'D'] as const;
     const next = keys[(keys.indexOf(variant) + step + keys.length) % keys.length]!;
     void navigate({ search: { variant: next }, hash: '', replace: true, resetScroll: true });
   };
@@ -453,8 +463,9 @@ function HomepagePrototype({ variant }: { variant: PrototypeVariant }) {
       if (
         target instanceof HTMLElement &&
         target.closest('input, textarea, select, [contenteditable="true"], [role="textbox"]')
-      )
+      ) {
         return;
+      }
       if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
         event.preventDefault();
         change(event.key === 'ArrowLeft' ? -1 : 1);
@@ -468,13 +479,17 @@ function HomepagePrototype({ variant }: { variant: PrototypeVariant }) {
       <PageLayout.Header size="hero">
         <Stack align="center" gap="lg">
           <PageTitle
-            eyebrow="Dune Play · Coming soon"
-            title={variant === 'C' ? 'Your next move' : 'The table is calling'}
-            subtitle="Conquest. Diplomacy. Betrayal."
+            eyebrow={variant === 'D' ? 'A first look at our next chapter' : 'Dune Play · Coming soon'}
+            title={
+              variant === 'D' ? 'Dune Play is coming soon' : variant === 'C' ? 'Your next move' : 'The table is calling'
+            }
+            subtitle={
+              variant === 'D' ? 'Soon, your next game of Dune will be right here.' : 'Conquest. Diplomacy. Betrayal.'
+            }
           />
           <Group justify="center">
             <Button component="a" href="#play-preview">
-              See what's coming
+              {variant === 'D' ? 'Take a sneak peek' : "See what's coming"}
             </Button>
             <Button variant="subtle" component="a" href="#make">
               Make something today <ArrowRight size={16} />
@@ -484,7 +499,15 @@ function HomepagePrototype({ variant }: { variant: PrototypeVariant }) {
       </PageLayout.Header>
       <PageLayout.Content>
         <div className={styles.prototype}>
-          {variant === 'A' ? <PrototypeA /> : variant === 'B' ? <PrototypeB /> : <PrototypeC />}
+          {variant === 'A' ? (
+            <PrototypeA />
+          ) : variant === 'B' ? (
+            <PrototypeB />
+          ) : variant === 'C' ? (
+            <PrototypeC />
+          ) : (
+            <PrototypeD />
+          )}
           <div className={styles.prototypeSwitcher}>
             <Surface padding="sm">
               <Group gap="xs" wrap="nowrap" justify="center">
@@ -493,7 +516,7 @@ function HomepagePrototype({ variant }: { variant: PrototypeVariant }) {
                 </Button>
                 <Stack gap={0} align="center">
                   <Text size="xs" c="dimmed">
-                    PROTOTYPE · {variant} / 3
+                    PROTOTYPE · {variant} / 4
                   </Text>
                   <Text size="sm" fw={700}>
                     {prototypeNames[variant]}
@@ -874,6 +897,248 @@ function PrototypeC() {
         </Stack>
       </Section>
       <CollaborateInvitation />
+      <RecentExamples />
+    </div>
+  );
+}
+
+const homebrewPortraits = [
+  { key: 'house-nereth/varda-nereth', name: 'Varda Nereth', faction: 'atreides' },
+  { key: 'pale-chorus/nela', name: 'Nela', faction: 'beneTleilaxu' },
+  { key: 'korven-night/koraun', name: 'Koraun', faction: 'harkonnen' },
+  { key: 'calar-flint/sera', name: 'Sera', faction: 'fremen' },
+] as const;
+const homebrewTroops = ['resonance-adept', 'blade-dancer', 'suspensor-lancer', 'water-keeper', 'mantis-guard'] as const;
+
+function fanStyle(x: string, y: string, turn: string, delay: string): CSSProperties {
+  return { '--fan-x': x, '--fan-y': y, '--fan-turn': turn, '--arrival-delay': delay } as CSSProperties;
+}
+
+function PrototypeD() {
+  const root = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            entry.target.setAttribute('data-entered', 'true');
+            observer.unobserve(entry.target);
+          }
+        }
+      },
+      { threshold: 0.22 }
+    );
+    root.current?.querySelectorAll('[data-marketing-arrival]').forEach((element) => observer.observe(element));
+    return () => observer.disconnect();
+  }, []);
+  return (
+    <div ref={root} className={styles.marketingFlow}>
+      <section id="play-preview" className={styles.marketingPreview} data-marketing-arrival>
+        <div className={styles.marketingScreen}>
+          <PlayStill />
+        </div>
+        <div className={styles.marketingIntro}>
+          <Badge size="lg" color="dune">
+            Coming soon to Dune Zone
+          </Badge>
+          <Section title="Your browser. Your friends. Arrakis.">
+            <Text size="lg">We're building a new place to play Dune online. Here's a first look at the table.</Text>
+            <Text size="sm" c="dimmed">
+              Development preview. Play isn't available yet.
+            </Text>
+          </Section>
+          <Button component="a" href="#make" variant="subtle" rightSection={<ArrowRight size={16} />}>
+            In the meantime, make it yours
+          </Button>
+        </div>
+      </section>
+
+      <section id="make" className={styles.marketingChapter} data-marketing-arrival>
+        <div className={styles.marketingCopy}>
+          <RulesInvitation />
+        </div>
+        <div className={styles.marketingVisual}>
+          <div className={styles.bookFan}>
+            {[
+              { file: 'map', name: 'An illustrated map of Arrakis', x: '-38%', y: '3%', turn: '-17deg' },
+              { file: 'factions', name: 'Fremen and Ixian faction rules', x: '39%', y: '1%', turn: '14deg' },
+              { file: 'cover', name: 'Arrakis field guide demonstration cover', x: '0%', y: '-3%', turn: '-3deg' },
+            ].map((page, index) => (
+              <div
+                key={page.file}
+                className={styles.fanPiece}
+                style={fanStyle(page.x, page.y, page.turn, `${index * 110}ms`)}
+              >
+                <PublishedImage src={`${prototypeMedia}${page.file}.jpg`} name={page.name} aspect={1.414} />
+              </div>
+            ))}
+          </div>
+          <Text size="xs" c="dimmed" ta="center">
+            Made in the Rulebook editor. A few pages from our demonstration.
+          </Text>
+        </div>
+      </section>
+
+      <section className={styles.marketingGallery} data-marketing-arrival>
+        <div className={styles.marketingIntro}>
+          <Section eyebrow="New artwork, ready for your homebrew" title="Meet your next troublemakers.">
+            <Text size="lg">
+              A new cast of leaders is waiting for a faction to call home. Pick a portrait. Give them a name. Make them
+              dangerous.
+            </Text>
+          </Section>
+        </div>
+        <div className={styles.portraitFan}>
+          {homebrewPortraits.map((portrait, index) => (
+            <div
+              key={portrait.key}
+              className={styles.portraitPiece}
+              style={fanStyle(
+                `${(index - 1.5) * 77}%`,
+                `${index % 2 ? -5 : 8}%`,
+                `${(index - 1.5) * 7}deg`,
+                `${index * 120}ms`
+              )}
+            >
+              <img
+                src={resolveAsset(`/image/leader/custom/${portrait.key}.png`, 'large')}
+                width={640}
+                height={640}
+                alt={`${portrait.name}, homebrew leader portrait`}
+                loading="lazy"
+              />
+            </div>
+          ))}
+        </div>
+        <Group justify="center">
+          <Button renderRoot={(props) => <Link {...props} to="/media" />}>Explore the artwork</Button>
+          <Button variant="subtle" renderRoot={(props) => <Link {...props} to="/factions/create" />}>
+            Create a faction
+          </Button>
+        </Group>
+      </section>
+
+      <section className={styles.marketingChapter} data-marketing-arrival>
+        <div className={styles.troopParade} aria-label="New troop vector artwork">
+          {homebrewTroops.map((troop, index) => (
+            <div
+              key={troop}
+              className={styles.troopPiece}
+              style={fanStyle('0%', `${index % 2 ? -15 : 10}%`, `${index % 2 ? 5 : -5}deg`, `${index * 100}ms`)}
+            >
+              <img
+                src={`/vector/troop/${troop}.svg`}
+                alt={troop.replaceAll('-', ' ')}
+                width={160}
+                height={200}
+                loading="lazy"
+              />
+            </div>
+          ))}
+        </div>
+        <div className={styles.marketingCopy}>
+          <Section eyebrow="Fresh vectors" title="Send in the unusual suspects.">
+            <Text size="lg">
+              Blade dancers. Water keepers. Suspensor lancers. Give your forces a silhouette of their own.
+            </Text>
+            <Text>Our growing library of troop artwork is ready to use in your factions.</Text>
+            <Button w="fit-content" renderRoot={(props) => <Link {...props} to="/media" />}>
+              Find your forces
+            </Button>
+          </Section>
+        </div>
+      </section>
+
+      <section className={styles.marketingChapter} data-marketing-arrival>
+        <div className={styles.marketingCopy}>
+          <AssetInvitation />
+        </div>
+        <div className={styles.marketingVisual}>
+          <div className={styles.cardFan}>
+            {[-1, 0, 1].map((offset, index) => (
+              <div
+                key={offset}
+                className={styles.fanPiece}
+                style={fanStyle(`${offset * 48}%`, `${Math.abs(offset) * 7}%`, `${offset * 17}deg`, `${index * 100}ms`)}
+              >
+                <AssetFace href={prototypeAssets.deck} type="deck" data={null} name="No Field cardback" />
+              </div>
+            ))}
+            <div className={styles.fanToken}>
+              <AssetFace href={prototypeAssets.water} type="token-tech" data={null} name="Water Extraction token" />
+            </div>
+          </div>
+          <Text size="xs" c="dimmed" ta="center">
+            <Anchor inherit href="https://dune.zone/assets/deck/no-field">
+              No Field
+            </Anchor>{' '}
+            · IHasPinecone
+            <br />
+            <Anchor inherit href="https://dune.zone/assets/token-tech/water-extraction">
+              Water Extraction
+            </Anchor>{' '}
+            · Amon_Tellur
+          </Text>
+        </div>
+      </section>
+
+      <section className={styles.marketingGallery} data-marketing-arrival>
+        <div className={styles.marketingIntro}>
+          <Section eyebrow="Already out there" title="It gets wonderfully weird.">
+            <Text size="lg">
+              Your Discord friends as leaders. Space Orks on Arrakis. See where other players took their ideas.
+            </Text>
+          </Section>
+        </div>
+        <div className={styles.marketingExamples}>
+          <FactionExample />
+          <FactionExample orks />
+        </div>
+        <Group justify="center">
+          <Button renderRoot={(props) => <Link {...props} to="/factions" />}>Explore community factions</Button>
+        </Group>
+      </section>
+
+      <section className={styles.marketingGallery} data-marketing-arrival>
+        <div className={styles.groupTokens} aria-label="Illustrative leaders made with homebrew portraits">
+          {homebrewPortraits.slice(0, 3).map((portrait, index) => (
+            <div
+              key={portrait.key}
+              className={styles.groupToken}
+              style={fanStyle(
+                `${(index - 1) * 80}%`,
+                `${index === 1 ? -8 : 5}%`,
+                `${(index - 1) * 13}deg`,
+                `${index * 130}ms`
+              )}
+            >
+              <LeaderToken
+                {...factionTokenFixtures[portrait.faction]}
+                image={`/image/leader/custom/${portrait.key}.png`}
+                name={portrait.name}
+                strength={String(index + 3)}
+              />
+            </div>
+          ))}
+        </div>
+        <div className={styles.marketingIntro}>
+          <Section eyebrow="Made with your people" title="Good ideas deserve accomplices.">
+            <Text size="lg">
+              Form a Group. Build your Ruleset, factions and Assets together. Bring your wildest house rule and the
+              friend who'll argue about it.
+            </Text>
+          </Section>
+          <Group justify="center">
+            <Button renderRoot={(props) => <Link {...props} to="/groups/create" />}>Form a Group</Button>
+            <Button variant="subtle" renderRoot={(props) => <Link {...props} to="/groups" />}>
+              Find your people
+            </Button>
+          </Group>
+          <Text size="xs" c="dimmed">
+            Illustrative leader discs using the homebrew artwork library.
+          </Text>
+        </div>
+      </section>
       <RecentExamples />
     </div>
   );
