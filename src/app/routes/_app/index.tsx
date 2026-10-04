@@ -5,11 +5,13 @@ import { Section } from '@ui/block/Section';
 import { PublishedImage } from '@ui/content/PublishedImage';
 import { CanvasScale } from '@ui/layout/CanvasScale';
 import { PageLayout } from '@ui/layout/PageLayout';
-import { ArrowRight } from 'lucide-react';
-import { lazy, Suspense, useCallback, useEffect, useReducer, useRef } from 'react';
+import { Surface } from '@ui/surface';
+import { ArrowRight, Hand } from 'lucide-react';
+import { lazy, Suspense, useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 
 import { useSessionViewer } from '@db/profiles';
+import type { SessionViewer } from '@db/profiles';
 import { publicPageHead } from '@app/routes/publicPage';
 import { useMotionAllowed } from '@app/styles/motion';
 import { AssetFace } from '@app/widgets/asset-face/AssetFace';
@@ -44,6 +46,8 @@ export const Route = createFileRoute('/_app/')({
 });
 
 function IndexPage() {
+  const [invitation, setInvitation] = useState(false);
+  const viewer = useSessionViewer();
   const root = useRef<HTMLDivElement>(null);
   const motionAllowed = useMotionAllowed();
   useEffect(() => {
@@ -76,7 +80,7 @@ function IndexPage() {
             subtitle="Soon, your next game of Dune will be right here."
           />
           <Group justify="center">
-            <Button component="a" href="#play-preview">
+            <Button component="a" href="#play-preview" onClick={() => setInvitation(true)}>
               Take a sneak peek
             </Button>
             <Button variant="subtle" component="a" href="#make">
@@ -87,7 +91,7 @@ function IndexPage() {
       </PageLayout.Header>
       <PageLayout.Content>
         <div ref={root} className={styles.homepage} data-homepage-motion={motionAllowed ? 'on' : 'off'}>
-          <HomepageChapters />
+          <HomepageChapters invitation={invitation} viewer={viewer} />
         </div>
       </PageLayout.Content>
     </PageLayout>
@@ -183,7 +187,7 @@ function AssetInvitation() {
   );
 }
 
-function PreviewCopy() {
+function PreviewCopy({ invitation, viewer }: { invitation: boolean; viewer: SessionViewer }) {
   return (
     <Section alignment="center" eyebrow="A sneak peek · Coming soon" title="Your next game is taking shape.">
       <Text size="lg">
@@ -192,6 +196,19 @@ function PreviewCopy() {
       <Text size="sm" c="dimmed">
         A development preview of the new table. Play is not available yet.
       </Text>
+      {invitation && (
+        <div role="status">
+          <Surface padding="md">
+            <Group justify="center" gap="sm">
+              <Hand size={20} aria-hidden />
+              <Text fw={700}>Try moving one of the pieces!</Text>
+              {viewer.kind === 'signed-out' && (
+                <Anchor renderRoot={(props) => <Link {...props} to="/auth/login" />}>Sign in to join in.</Anchor>
+              )}
+            </Group>
+          </Surface>
+        </div>
+      )}
     </Section>
   );
 }
@@ -482,13 +499,13 @@ function CommunityCopy() {
   );
 }
 
-function HomepageChapters() {
+function HomepageChapters({ invitation, viewer }: { invitation: boolean; viewer: SessionViewer }) {
   return (
     <div className={styles.cinemaFlow}>
       <section id="play-preview" className={styles.cinemaOpening} data-marketing-arrival>
-        <LiveBoardPreview />
+        <LiveBoardPreview viewer={viewer} />
         <div className={styles.previewCopy}>
-          <PreviewCopy />
+          <PreviewCopy invitation={invitation} viewer={viewer} />
         </div>
       </section>
       <section id="make" className={styles.cinemaFeature} data-marketing-arrival>
@@ -528,8 +545,7 @@ function HomepageChapters() {
   );
 }
 
-function LiveBoardPreview() {
-  const viewer = useSessionViewer();
+function LiveBoardPreview({ viewer }: { viewer: SessionViewer }) {
   const member = viewer.kind === 'profile';
   const identity = member ? viewer.profile._id : 'observer';
   const region = useRef<HTMLDivElement>(null);
