@@ -35,8 +35,11 @@ export const BidderBeforeTheFirstRound = meta.story({
   beforeEach: biddingSetup(null),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await userEvent.click(await page.findByRole('button', { name: 'Start bidding' }, { timeout: 30_000 }));
-    await waitFor(() => expect(lastCommand()?.action).toEqual({ kind: 'bid-open' }));
+    const startAt = await page.findByRole('group', { name: 'Start new bidding starting at' }, { timeout: 30_000 });
+    /* The Emperor's token lies face down: its button stays in place, greyed out, so flipping a token never moves the others. */
+    await expect(within(startAt).getByRole('button', { name: /Emperor/ })).toBeDisabled();
+    await userEvent.click(within(startAt).getByRole('button', { name: /Start bidding at .*Fremen/ }));
+    await waitFor(() => expect(lastCommand()?.action).toEqual({ kind: 'bid-start', factionId: 'fremen' }));
   },
 });
 
@@ -84,6 +87,30 @@ export const BidderAfterAWin = meta.story({
   }),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await expect(await page.findByRole('button', { name: 'Start bidding' }, { timeout: 30_000 })).toBeEnabled();
+    const startAt = await page.findByRole('group', { name: 'Start new bidding starting at' }, { timeout: 30_000 });
+    await expect(within(startAt).getByRole('button', { name: /Harkonnen/ })).toBeEnabled();
+    await userEvent.click(page.getByRole('button', { name: 'Reset bidder' }));
+    await waitFor(() => expect(lastCommand()?.action).toEqual({ kind: 'bid-reset' }));
+  },
+});
+
+export const BidderFaded = meta.story({
+  beforeEach: biddingSetup({
+    stage: 'open',
+    round: 1,
+    opener: 'house-atreides',
+    turn: 'house-harkonnen',
+    bid: { factionId: 'house-atreides', amount: 3 },
+    deadline: STORYBOOK_NOW + 30_000,
+  }),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    /* The bidder's face draws with the table, after the top bar, so the story waits for it before fading. */
+    const bidder = await page.findByRole('button', { name: /Raise the bid to 4/ }, { timeout: 30_000 });
+    await userEvent.click(page.getByRole('button', { name: 'Fade bidder' }));
+    await expect(page.getByRole('button', { name: 'Show bidder' })).toHaveAttribute('aria-pressed', 'true');
+    /* A faded bidder still takes the raise. */
+    await userEvent.click(bidder);
+    await waitFor(() => expect(lastCommand()?.action).toEqual({ kind: 'bid-raise', round: 1 }));
   },
 });

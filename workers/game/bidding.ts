@@ -51,9 +51,18 @@ export function biddingCommand(
   }
 }
 
+/** When the bidder next passes for a faction whose time runs out, or 0: never once the game is finished or the phase has moved on. */
+export function biddingDeadline(snapshot: StoredSnapshot): number {
+  const { bidding } = snapshot;
+  if (bidding?.stage !== 'open' || snapshot.stage === 'finished') {
+    return 0;
+  }
+  return phaseAt(snapshot.phase, snapshot.phases).id === 'bidding' ? (bidding.deadline ?? 0) : 0;
+}
+
 /** The pass the bidder makes once a faction's time runs out. */
 export function expireBidding(snapshot: StoredSnapshot, now: number): StoredSnapshot | undefined {
-  if (!snapshot.bidding || phaseAt(snapshot.phase, snapshot.phases).id !== 'bidding') {
+  if (!snapshot.bidding || !biddingDeadline(snapshot)) {
     return;
   }
   const next = expireBid(snapshot.bidding, context(snapshot, now));

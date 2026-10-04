@@ -3,19 +3,24 @@ import { Html } from '@react-three/drei/webgpu';
 import { biddingFactions, idleBidding } from '@shared/play/bidding';
 import type { BiddingState } from '@shared/play/bidding';
 import { phaseAt, STANDARD_PHASES } from '@shared/play/phases';
+import { stormOrder } from '@shared/play/stormSector';
 import { BOARD_RADIUS, BOARD_SURFACE_Y } from '@shared/play/tableGeometry';
 import { PLAYER_RING_RADIUS, tableSeatAngles } from '@shared/play/tableSettings';
 import { useEffect, useMemo } from 'react';
 import { ExtrudeGeometry, Shape } from 'three';
 
 import { DarkSchemeIsland } from '../DarkSchemeIsland';
+import styles from './Bidder.module.css';
 import { OpenRound, RoundResult } from './BidderFace';
-import { faceOnCanvas } from './bidderFacePosition';
+import { faceHalfHeight, faceHalfWidth, faceOnCanvas } from './bidderFacePosition';
 import { useBidderRotation } from './bidderRotation';
 import type { TableProjection, TableSession } from './TableSession';
 import { useServerNow } from './useServerNow';
 
-type Props = { client: TableSession; table: TableProjection };
+type Props = { client: TableSession; table: TableProjection; faded?: boolean };
+
+/* How much of the bidder a player who faded it still sees. */
+const FADED_OPACITY = 0.1;
 
 /* The round base covers about a third of the planet's radius (Norbert, #1007). */
 const BIDDER_RADIUS = BOARD_RADIUS * 0.35;
@@ -52,9 +57,10 @@ function pointedFaction(bidding: BiddingState, eligible: readonly string[]) {
   return bidding.opener ?? eligible[0] ?? null;
 }
 
-function Bidder({ client, table }: Props) {
+function Bidder({ client, table, faded = false }: Props) {
   const roster = table.snapshot.roster;
   const bidding = table.snapshot.bidding ?? idleBidding();
+  const order = useMemo(() => stormOrder(table.state.stormSectorIndex, roster), [table.state.stormSectorIndex, roster]);
   const eligible = useMemo(
     () => biddingFactions(table.state.stormSectorIndex, roster, table.state.pieces),
     [table.state.stormSectorIndex, roster, table.state.pieces]
@@ -65,6 +71,11 @@ function Bidder({ client, table }: Props) {
   const groupRef = useBidderRotation(angle);
   const geometry = useMemo(createTeardropGeometry, []);
   useEffect(() => () => geometry.dispose(), [geometry]);
+  /* Between rounds the face holds a button per faction, so it needs more room from the canvas edge than a round's disc. */
+  const factions = bidding.stage === 'open' ? null : order.length;
+  const halfWidth = faceHalfWidth(factions);
+  const halfHeight = faceHalfHeight(factions);
+  const placeFace = useMemo(() => faceOnCanvas(halfWidth, halfHeight), [halfWidth, halfHeight]);
   const now = useServerNow();
   const remaining =
     bidding.stage === 'open' && bidding.deadline !== null
@@ -73,17 +84,27 @@ function Bidder({ client, table }: Props) {
   return (
     <group position={[0, BIDDER_HOVER_Y, 0]}>
       <group ref={groupRef}>
-        <mesh geometry={geometry} castShadow receiveShadow>
-          <meshStandardMaterial color="#24150a" roughness={0.6} />
+        <mesh geometry={geometry} castShadow={!faded} receiveShadow>
+          {/* Three compiles transparency into the material, so fading swaps in a new one. */}
+          <meshStandardMaterial
+            key={faded ? 'faded' : 'solid'}
+            color="#24150a"
+            roughness={0.6}
+            transparent={faded}
+            opacity={faded ? FADED_OPACITY : 1}
+            depthWrite={!faded}
+          />
         </mesh>
       </group>
-      <Html center zIndexRange={[9, 0]} calculatePosition={faceOnCanvas}>
+      <Html center zIndexRange={[9, 0]} calculatePosition={placeFace}>
         <DarkSchemeIsland>
-          {bidding.stage === 'open' ? (
-            <OpenRound client={client} table={table} bidding={bidding} remaining={remaining} />
-          ) : (
-            <RoundResult client={client} table={table} bidding={bidding} />
-          )}
+          <div className={faded ? styles.faded : undefined}>
+            {bidding.stage === 'open' ? (
+              <OpenRound client={client} table={table} bidding={bidding} remaining={remaining} />
+            ) : (
+              <RoundResult client={client} table={table} bidding={bidding} order={order} eligible={eligible} />
+            )}
+          </div>
         </DarkSchemeIsland>
       </Html>
     </group>
