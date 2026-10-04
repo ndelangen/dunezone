@@ -389,7 +389,7 @@ function GroupAllianceCard() {
           }
         />
       </CanvasScale>
-      <Text size="xs" c="dimmed" ta="center" mt="md">
+      <Text size="xs" ta="center" mt="md">
         An alliance card made for this invitation.
       </Text>
     </div>
