@@ -93,6 +93,7 @@ export function validatePublisherDeployContract(config: JsonObject, environment:
       html_handling: 'none',
       not_found_handling: 'single-page-application',
       run_worker_first: [
+        '/',
         '/__asset-publisher',
         '/__asset-publisher/*',
         '/social',
