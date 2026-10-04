@@ -13,6 +13,7 @@ import { PublishedImage } from '@ui/content/PublishedImage';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { CallToAction } from '@ui/control/CallToAction';
 import { AsymmetricSplitLayout } from '@ui/layout/AsymmetricSplitLayout';
+import { CanvasScale } from '@ui/layout/CanvasScale';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { TriptychLayout } from '@ui/layout/TriptychLayout';
 import { Bullets } from '@ui/list/Bullets';
@@ -27,8 +28,12 @@ import { loadHomepage, useHomepage } from '@db/homepage';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
 import { AssetFace } from '@app/widgets/asset-face/AssetFace';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
+import { AllianceCard } from '@game/assets/faction/alliance/Alliance';
 import { LeaderToken } from '@game/assets/faction/leader/Leader';
+import { TroopToken } from '@game/assets/faction/troop/Troop';
 import { resolveAsset } from '@game/assets/resolveAsset';
+import { backgroundPresets } from '@game/data/backgrounds';
+import { card as cardSize } from '@game/data/sizes';
 import { factionTokenFixtures } from '@game/fixtures/factionTokens';
 
 import styles from './index.module.css';
@@ -58,9 +63,15 @@ const communityLinks = [
 
 export const Route = createFileRoute('/_app/')({
   codeSplitGroupings: [['component', 'pendingComponent', 'errorComponent']],
-  validateSearch: (search: Record<string, unknown>): { variant?: 'A' | 'B' | 'C' | 'D' } => ({
+  validateSearch: (search: Record<string, unknown>): { variant?: PrototypeVariant } => ({
     variant:
-      search.variant === 'A' || search.variant === 'B' || search.variant === 'C' || search.variant === 'D'
+      search.variant === 'A' ||
+      search.variant === 'B' ||
+      search.variant === 'C' ||
+      search.variant === 'D' ||
+      search.variant === 'E' ||
+      search.variant === 'F' ||
+      search.variant === 'G'
         ? search.variant
         : undefined,
   }),
@@ -442,6 +453,9 @@ const prototypeNames = {
   B: 'The makers gallery',
   C: 'Your next move',
   D: 'Coming soon. Make it yours.',
+  E: 'The grand reveal',
+  F: 'The field journal',
+  G: 'Worlds within worlds',
 } as const;
 type PrototypeVariant = keyof typeof prototypeNames;
 const prototypeMedia = '/homepage-prototype/';
@@ -452,8 +466,9 @@ const prototypeAssets = {
 
 function HomepagePrototype({ variant }: { variant: PrototypeVariant }) {
   const navigate = Route.useNavigate();
+  const nextGeneration = variant === 'E' || variant === 'F' || variant === 'G';
   const change = (step: number) => {
-    const keys = ['A', 'B', 'C', 'D'] as const;
+    const keys: readonly PrototypeVariant[] = nextGeneration ? ['E', 'F', 'G'] : ['A', 'B', 'C', 'D'];
     const next = keys[(keys.indexOf(variant) + step + keys.length) % keys.length]!;
     void navigate({ search: { variant: next }, hash: '', replace: true, resetScroll: true });
   };
@@ -479,17 +494,23 @@ function HomepagePrototype({ variant }: { variant: PrototypeVariant }) {
       <PageLayout.Header size="hero">
         <Stack align="center" gap="lg">
           <PageTitle
-            eyebrow={variant === 'D' ? 'A first look at our next chapter' : 'Dune Play · Coming soon'}
+            eyebrow={variant === 'D' || nextGeneration ? 'A first look at our next chapter' : 'Dune Play · Coming soon'}
             title={
-              variant === 'D' ? 'Dune Play is coming soon' : variant === 'C' ? 'Your next move' : 'The table is calling'
+              variant === 'D' || nextGeneration
+                ? 'Dune Play is coming soon'
+                : variant === 'C'
+                  ? 'Your next move'
+                  : 'The table is calling'
             }
             subtitle={
-              variant === 'D' ? 'Soon, your next game of Dune will be right here.' : 'Conquest. Diplomacy. Betrayal.'
+              variant === 'D' || nextGeneration
+                ? 'Soon, your next game of Dune will be right here.'
+                : 'Conquest. Diplomacy. Betrayal.'
             }
           />
           <Group justify="center">
             <Button component="a" href="#play-preview">
-              {variant === 'D' ? 'Take a sneak peek' : "See what's coming"}
+              {variant === 'D' || nextGeneration ? 'Take a sneak peek' : "See what's coming"}
             </Button>
             <Button variant="subtle" component="a" href="#make">
               Make something today <ArrowRight size={16} />
@@ -505,8 +526,10 @@ function HomepagePrototype({ variant }: { variant: PrototypeVariant }) {
             <PrototypeB />
           ) : variant === 'C' ? (
             <PrototypeC />
-          ) : (
+          ) : variant === 'D' ? (
             <PrototypeD />
+          ) : (
+            <NextHomepagePrototype key={variant} variant={variant} />
           )}
           <div className={styles.prototypeSwitcher}>
             <Surface padding="sm">
@@ -516,7 +539,8 @@ function HomepagePrototype({ variant }: { variant: PrototypeVariant }) {
                 </Button>
                 <Stack gap={0} align="center">
                   <Text size="xs" c="dimmed">
-                    PROTOTYPE · {variant} / 4
+                    PROTOTYPE · {variant} ·{' '}
+                    {nextGeneration ? `${['E', 'F', 'G'].indexOf(variant) + 1} / 3 new designs` : 'Earlier round'}
                   </Text>
                   <Text size="sm" fw={700}>
                     {prototypeNames[variant]}
@@ -1138,6 +1162,583 @@ function PrototypeD() {
             Illustrative leader discs using the homebrew artwork library.
           </Text>
         </div>
+      </section>
+      <RecentExamples />
+    </div>
+  );
+}
+
+/* Three new compositions explore the accepted qualities of D, not a production homepage. */
+const cloudPortraits = [
+  'house-nereth/varda-nereth',
+  'pale-chorus/nela',
+  'korven-night/koraun',
+  'calar-flint/sera',
+  'house-calven/maren-calven',
+  'velnar-choir/vela',
+  'house-osem/senna-osem',
+  'talar-coil/tala',
+  'avel-lattice/avela',
+  'morrow-strain/nali',
+  'house-ardent/kessa-ardent',
+  'kelor-mantle/kelor',
+  'seam-bound/mella',
+  'sere-reservoir/arel',
+  'khelt-dynasty/khelra',
+  'house-nereth/eren-nereth',
+  'pale-chorus/vessa',
+  'calar-flint/hema',
+  'house-calven/tovan-calven',
+  'velnar-choir/sorel',
+  'avel-lattice/orsa',
+  'morrow-strain/tessa',
+  'house-ardent/oren-ardent',
+  'talar-coil/iva',
+  'kelor-mantle/vaska',
+  'seam-bound/verren',
+  'sere-reservoir/sava',
+  'khelt-dynasty/nera',
+];
+const cloudTroops = [
+  'resonance-adept',
+  'blade-dancer',
+  'suspensor-lancer',
+  'water-keeper',
+  'mantis-guard',
+  'juggernaut',
+  'court-duelist',
+  'needle-sniper',
+  'salvage-warden',
+  'veiled-adept',
+  'spice-driller',
+  'raptor-keeper',
+  'masked-saboteur',
+  'drum-herald',
+  'furnace-bearer',
+  'wire-hunter',
+  'crescent-executioner',
+  'ixian-engineer',
+  'void-walker',
+  'hook-climber',
+  'desert-pathfinder',
+  'shield-rammer',
+  'gene-forged-brute',
+  'house-bulwark',
+  'banner-marshal',
+  'siege-gunner',
+] as const;
+const cloudPlaces = [
+  [12, 23, 18],
+  [35, 36, 22],
+  [62, 30, 18],
+  [85, 42, 23],
+  [49, 67, 23],
+  [22, 77, 15],
+  [71, 78, 18],
+  [8, 62, 12],
+  [29, 10, 12],
+  [51, 12, 15],
+  [76, 10, 13],
+  [92, 17, 10],
+  [43, 91, 10],
+  [91, 85, 13],
+  [56, 47, 11],
+  [17, 48, 9],
+  [71, 51, 14],
+  [38, 64, 10],
+  [10, 88, 9],
+  [26, 54, 13],
+  [61, 92, 11],
+  [39, 17, 8],
+  [80, 65, 10],
+  [53, 33, 9],
+  [7, 8, 8],
+  [94, 60, 9],
+  [24, 29, 9],
+  [68, 6, 7],
+];
+const troopBackgrounds = [
+  backgroundPresets.atreides,
+  backgroundPresets.fremen,
+  backgroundPresets.emperor,
+  backgroundPresets.beneGesserit,
+  backgroundPresets.ixian,
+  backgroundPresets.guild,
+  backgroundPresets.beneTleilaxu,
+];
+const showcaseCards = [
+  { name: 'Supplies!', slug: 'supplies', id: 'ns78nmym3qpth6sm9wsfj3ka9s8cw350', credit: 'Central' },
+  { name: 'Trishula!', slug: 'trishula', id: 'ns7cgwf2xm2ppj3c5jtpnnehf98cxcbq', credit: 'Central' },
+  { name: 'Arrakeen', slug: 'arrakeen', id: 'ns74r72v6mdmnn8ahdmj27c8gs8cz5t6', credit: 'IHasPinecone' },
+];
+
+function NextHomepagePrototype({ variant }: { variant: 'E' | 'F' | 'G' }) {
+  const root = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            entry.target.setAttribute('data-entered', 'true');
+            observer.unobserve(entry.target);
+          }
+        }
+      },
+      { threshold: 0.12 }
+    );
+    root.current?.querySelectorAll('[data-marketing-arrival]').forEach((element) => observer.observe(element));
+    return () => observer.disconnect();
+  }, []);
+  return (
+    <div ref={root} className={styles.nextHomepage}>
+      {variant === 'E' ? <PrototypeE /> : variant === 'F' ? <PrototypeF /> : <PrototypeG />}
+    </div>
+  );
+}
+
+function BoardPreview({ detail = false }: { detail?: boolean }) {
+  return (
+    <img
+      className={styles.boardPreview}
+      src={`${prototypeMedia}board-${detail ? 'detail' : 'wide'}.jpg`}
+      width={detail ? 1600 : 3000}
+      height={detail ? 1000 : 1420}
+      alt={
+        detail
+          ? 'Close-up of troops and faction tokens on the current Dune Play board'
+          : 'The current Dune Play board with six faction tokens and troops on the table, without play controls'
+      }
+      loading={detail ? 'lazy' : 'eager'}
+      fetchPriority={detail ? 'auto' : 'high'}
+    />
+  );
+}
+
+function PreviewCopy() {
+  return (
+    <Section eyebrow="A sneak peek · Coming soon" title="Your next game is taking shape.">
+      <Text size="lg">
+        The board. Your faction. The deal that changes everything. Soon you'll be able to play Dune right here.
+      </Text>
+      <Text size="sm" c="dimmed">
+        A development preview of the new table. Play is not available yet.
+      </Text>
+    </Section>
+  );
+}
+
+function OnlineRulebooks() {
+  return (
+    <Section eyebrow="Rulesets & Rulebooks" title="Your rules. Always within reach.">
+      <Text size="lg">
+        Read Rulebooks online and refer back to them during a game. Download a PDF for your table, your tablet or your
+        printer.
+      </Text>
+      <Text>Find a Ruleset you love, or build one with your own rulings, factions and illustrated Rulebook.</Text>
+      <Group>
+        <Button renderRoot={(props) => <Link {...props} to="/rulesets" />}>Read the Rulesets</Button>
+        <Button variant="subtle" renderRoot={(props) => <Link {...props} to="/rulesets/create" />}>
+          Write your own
+        </Button>
+      </Group>
+      <Text size="sm">
+        Try <Anchor href="https://dune.zone/rulesets/dreamrules">Dreamrules</Anchor>, maintained by Central and the
+        dreamers Group.
+      </Text>
+    </Section>
+  );
+}
+
+function BookCloud() {
+  return (
+    <div className={styles.newBookFan}>
+      {['map', 'factions', 'cover'].map((file, index) => (
+        <div
+          className={styles.fanPiece}
+          key={file}
+          style={fanStyle(
+            `${(index === 2 ? 0 : index === 0 ? -1 : 1) * 40}%`,
+            `${index === 2 ? -7 : 2}%`,
+            `${index === 2 ? -3 : index === 0 ? -17 : 14}deg`,
+            `${index * 120}ms`
+          )}
+        >
+          <PublishedImage
+            src={`${prototypeMedia}${file}.jpg`}
+            name={`Arrakis field guide demonstration ${file}`}
+            aspect={1.414}
+          />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ArtworkCloud({ vectors = false }: { vectors?: boolean }) {
+  const entries = vectors ? cloudTroops : cloudPortraits;
+  return (
+    <div
+      className={styles.artworkCloud}
+      aria-label={vectors ? 'A cloud of 26 new troop designs' : 'A cloud of 28 homebrew leader portraits'}
+    >
+      {entries.map((key, index) => {
+        const [x, y, size] = cloudPlaces[index]!;
+        const name = key.split('/').at(-1)!.replaceAll('-', ' ');
+        return (
+          <div
+            className={styles.cloudPiece}
+            key={key}
+            style={
+              {
+                '--cloud-x': `${x}%`,
+                '--cloud-size': `${size}%`,
+                '--wing-x': `${x! < 50 ? 8 + x! * 0.32 : 76 + (x! - 50) * 0.32}%`,
+                left: 'var(--cloud-x)',
+                top: `${y}%`,
+                width: 'var(--cloud-size)',
+                '--cloud-turn': `${((index * 7) % 25) - 12}deg`,
+                '--arrival-delay': `${(index % 8) * 70}ms`,
+                zIndex: index < 7 ? 3 : 1,
+              } as CSSProperties
+            }
+          >
+            {vectors ? (
+              <div className={styles.vectorDisc} role="img" aria-label={name}>
+                <TroopToken
+                  background={troopBackgrounds[index % troopBackgrounds.length]!}
+                  image={`/vector/troop/${cloudTroops[index]!}.svg`}
+                  star={undefined}
+                  hue={undefined}
+                  striped={false}
+                />
+              </div>
+            ) : (
+              <img
+                src={resolveAsset(`/image/leader/custom/${key}.png`, 'large')}
+                alt={`${name}, homebrew portrait`}
+                width={640}
+                height={640}
+                loading="lazy"
+              />
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function PortraitCopy() {
+  return (
+    <Section eyebrow="A whole new cast" title="So many faces. So many terrible plans.">
+      <Text size="lg">
+        Strange houses. Familiar schemers. People who definitely know something you don't. Our growing portrait library
+        is ready for your homebrew.
+      </Text>
+      <Group>
+        <Button renderRoot={(props) => <Link {...props} to="/media" />}>Meet the whole cast</Button>
+        <Button variant="subtle" renderRoot={(props) => <Link {...props} to="/factions/create" />}>
+          Create a faction
+        </Button>
+      </Group>
+    </Section>
+  );
+}
+
+function VectorCopy() {
+  return (
+    <Section eyebrow="New vectors, ready to use" title="An army of possibilities.">
+      <Text size="lg">
+        Blade dancers, gene-forged brutes and water keepers. Pick the forces that belong in your world.
+      </Text>
+      <Text>Combine the artwork with your faction's colours to make tokens of your own.</Text>
+      <Button w="fit-content" renderRoot={(props) => <Link {...props} to="/media" />}>
+        Explore the vector library
+      </Button>
+    </Section>
+  );
+}
+
+function QualityCards({ spread = false }: { spread?: boolean }) {
+  return (
+    <div className={styles.cardShowcase}>
+      <div className={spread ? styles.cardExhibition : styles.qualityCardFan}>
+        {showcaseCards.map((card, index) => (
+          <div
+            key={card.id}
+            className={styles.showcaseCard}
+            style={fanStyle(
+              `${(index - 1) * 65}%`,
+              `${index === 1 ? -8 : 7}%`,
+              `${(index - 1) * 13}deg`,
+              `${index * 150}ms`
+            )}
+          >
+            <AssetFace
+              href={`https://dune.zone/published/cards/${card.id}/card.jpg`}
+              type="card-treachery"
+              data={null}
+              name={card.name}
+            />
+          </div>
+        ))}
+      </div>
+      <Group justify="center" gap="xl" className={styles.cardCredits}>
+        {showcaseCards.map((card) => (
+          <div key={card.id} className={styles.cardCredit}>
+            <Anchor href={`https://dune.zone/assets/card-treachery/${card.slug}`} fw={700}>
+              {card.name}
+            </Anchor>
+            <Text size="xs" c="dimmed">
+              {card.credit}
+            </Text>
+          </div>
+        ))}
+      </Group>
+    </div>
+  );
+}
+
+function AllianceInvitation() {
+  return (
+    <Section eyebrow="Groups" title="Some alliances are worth keeping.">
+      <Text size="lg">
+        Find your allies. Form a Group to create and maintain Rulesets, factions and Assets together.
+      </Text>
+      <Text>Pool your ideas, debate the details, and make something worth bringing to the table.</Text>
+      <Group>
+        <Button renderRoot={(props) => <Link {...props} to="/groups/create" />}>Form an alliance</Button>
+        <Button variant="subtle" renderRoot={(props) => <Link {...props} to="/groups" />}>
+          Explore Groups
+        </Button>
+      </Group>
+    </Section>
+  );
+}
+
+function GroupAllianceCard() {
+  return (
+    <div className={styles.allianceCard}>
+      <CanvasScale canvasWidth={cardSize.width} canvasHeight={cardSize.height} rounded>
+        <AllianceCard
+          background={backgroundPresets.atreides}
+          logo="/vector/generic/alliance.svg"
+          title="Your Group"
+          troop="/vector/troop/banner-marshal.svg"
+          decals={[]}
+          text={
+            'Pool your ideas.\nBuild Rulesets, factions and Assets together.\n\nYour shared victory condition:\nmake the game you want to play.'
+          }
+        />
+      </CanvasScale>
+      <Text size="xs" c="dimmed" ta="center" mt="md">
+        An alliance card made for this invitation.
+      </Text>
+    </div>
+  );
+}
+
+function OrkLeaders() {
+  const leaders = [
+    { image: '/image/leader/alien/buzcle.png', name: 'Mad Dok Grotsnik', strength: '2' },
+    { image: '/image/leader/alien/eeloo.png', name: 'Ufthak Blackhawk', strength: '4' },
+    { image: '/image/leader/alien/eeriva.png', name: 'Kaptin Badrukk', strength: '6' },
+  ] as const;
+  return (
+    <div className={styles.orkLeaders}>
+      {leaders.map((leader, index) => (
+        <div
+          className={styles.orkDisc}
+          key={leader.name}
+          style={fanStyle(
+            `${(index - 1) * 79}%`,
+            `${index === 1 ? -13 : 9}%`,
+            `${(index - 1) * 12}deg`,
+            `${index * 130}ms`
+          )}
+        >
+          <LeaderToken
+            {...leader}
+            logo="/vector/generic/axes.svg"
+            background={{
+              colors: ['#52a32b', '#52a32b'],
+              definition: 0.5,
+              image: '/image/texture/021.jpg',
+              influence: 1,
+              invert: true,
+            }}
+          />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function CommunityCopy() {
+  return (
+    <Section eyebrow="Made by players" title="Yes, someone put Space Orks on Arrakis.">
+      <Text size="lg">
+        Dice-fuelled battles. Leaders who get stronger. BigDave's Space Orks take homebrew in a rather different
+        direction.
+      </Text>
+      <Text size="sm" c="dimmed">
+        A community faction in progress, maintained by BigDave.
+      </Text>
+      <Group>
+        <Button component="a" href="https://dune.zone/factions/space-orks">
+          Meet the Space Orks
+        </Button>
+        <Button variant="subtle" renderRoot={(props) => <Link {...props} to="/factions" />}>
+          Explore more factions
+        </Button>
+      </Group>
+    </Section>
+  );
+}
+
+function PrototypeE() {
+  return (
+    <div className={styles.cinemaFlow}>
+      <section id="play-preview" className={styles.cinemaOpening} data-marketing-arrival>
+        <div className={styles.wideBoard}>
+          <BoardPreview />
+        </div>
+        <div className={styles.centerCopy}>
+          <PreviewCopy />
+        </div>
+      </section>
+      <section id="make" className={styles.cinemaFeature} data-marketing-arrival>
+        <div className={styles.centerCopy}>
+          <OnlineRulebooks />
+        </div>
+        <BookCloud />
+        <Text size="xs" c="dimmed" ta="center">
+          A few pages from the demonstration Rulebook.
+        </Text>
+      </section>
+      <section className={styles.cinemaFeature} data-marketing-arrival>
+        <div className={styles.centerCopy}>
+          <PortraitCopy />
+        </div>
+        <ArtworkCloud />
+      </section>
+      <section className={styles.cinemaFeature} data-marketing-arrival>
+        <div className={styles.centerCopy}>
+          <VectorCopy />
+        </div>
+        <ArtworkCloud vectors />
+      </section>
+      <section className={styles.editorialRow} data-marketing-arrival>
+        <AssetInvitation />
+        <QualityCards />
+      </section>
+      <section className={styles.editorialRow} data-marketing-arrival>
+        <OrkLeaders />
+        <CommunityCopy />
+      </section>
+      <section className={styles.allianceRow} data-marketing-arrival>
+        <GroupAllianceCard />
+        <AllianceInvitation />
+      </section>
+      <RecentExamples />
+    </div>
+  );
+}
+
+function PrototypeF() {
+  return (
+    <div className={styles.journalFlow}>
+      <section id="play-preview" className={styles.journalOpening} data-marketing-arrival>
+        <div className={styles.journalBoard}>
+          <BoardPreview />
+        </div>
+        <div className={styles.journalDetail}>
+          <BoardPreview detail />
+        </div>
+        <div className={styles.journalLead}>
+          <PreviewCopy />
+        </div>
+      </section>
+      <section id="make" className={styles.editorialRow} data-marketing-arrival>
+        <BookCloud />
+        <OnlineRulebooks />
+      </section>
+      <section className={styles.cloudEditorial} data-marketing-arrival>
+        <ArtworkCloud />
+        <PortraitCopy />
+      </section>
+      <section className={styles.cloudEditorialReverse} data-marketing-arrival>
+        <VectorCopy />
+        <ArtworkCloud vectors />
+      </section>
+      <section className={styles.cinemaFeature} data-marketing-arrival>
+        <div className={styles.centerCopy}>
+          <AssetInvitation />
+        </div>
+        <QualityCards spread />
+      </section>
+      <section className={styles.editorialRow} data-marketing-arrival>
+        <CommunityCopy />
+        <OrkLeaders />
+      </section>
+      <section className={styles.journalAlliance} data-marketing-arrival>
+        <div className={styles.centerCopy}>
+          <AllianceInvitation />
+        </div>
+        <GroupAllianceCard />
+      </section>
+      <RecentExamples />
+    </div>
+  );
+}
+
+function PrototypeG() {
+  return (
+    <div className={styles.orbitFlow}>
+      <section id="play-preview" className={styles.orbitOpening} data-marketing-arrival>
+        <div className={styles.orbitLead}>
+          <PreviewCopy />
+        </div>
+        <div className={styles.orbitBoard}>
+          <BoardPreview />
+        </div>
+        <div className={styles.orbitDetail}>
+          <BoardPreview detail />
+        </div>
+      </section>
+      <section id="make" className={styles.orbitChapter} data-marketing-arrival>
+        <div className={styles.orbitCopy}>
+          <OnlineRulebooks />
+        </div>
+        <BookCloud />
+      </section>
+      <section className={styles.orbitCloudChapter} data-marketing-arrival>
+        <ArtworkCloud />
+        <div className={styles.centerCopy}>
+          <PortraitCopy />
+        </div>
+      </section>
+      <section className={styles.orbitCloudChapter} data-marketing-arrival>
+        <ArtworkCloud vectors />
+        <div className={styles.centerCopy}>
+          <VectorCopy />
+        </div>
+      </section>
+      <section className={styles.orbitCards} data-marketing-arrival>
+        <QualityCards />
+        <div className={styles.centerCopy}>
+          <AssetInvitation />
+        </div>
+      </section>
+      <section className={styles.cinemaFeature} data-marketing-arrival>
+        <OrkLeaders />
+        <div className={styles.centerCopy}>
+          <CommunityCopy />
+        </div>
+      </section>
+      <section className={styles.allianceRow} data-marketing-arrival>
+        <AllianceInvitation />
+        <GroupAllianceCard />
       </section>
       <RecentExamples />
     </div>

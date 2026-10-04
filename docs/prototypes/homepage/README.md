@@ -2,6 +2,8 @@
 
 Throwaway visual work for [Choose the Play-first homepage composition and visual direction](https://github.com/ndelangen/dunezone/issues/1817). Norbert has not selected a direction. This branch is review material, not production implementation.
 
+[Latest comparison: E, F and G](ROUND_TWO.md) builds on D with board-only captures, larger artwork clouds and new examples.
+
 ## Run
 
 From this checkout, with the normal app dependencies and generated images available:
@@ -28,7 +30,7 @@ B makes the range of creations visible sooner while keeping Play first. A gives 
 
 ## Content and ownership
 
-The route owns the four compositions and its switcher. All prototype functions are local to `src/app/routes/_app/index.tsx`, with page-specific composition in the adjacent stylesheet. The existing homepage loader and subscription remain intact. PageLayout, PageTitle, Section, Surface, PublishedImage and AssetFace provide the existing frame, headings, pane and artwork behavior. No new kit vocabulary or backend contract is proposed by this prototype.
+The route owns the seven compositions and its switcher. All prototype functions are local to `src/app/routes/_app/index.tsx`, with page-specific composition in the adjacent stylesheet. The existing homepage loader and subscription remain intact. PageLayout, PageTitle, Section, Surface, PublishedImage and AssetFace provide the existing frame, headings, pane and artwork behavior. No new kit vocabulary or backend contract is proposed by this prototype.
 
 The shared chrome, navigation and footer are unchanged. Both signed-in and signed-out readers receive the same editorial page. Creation links use the existing routes; a signed-out browser was checked through Create a faction and reached the existing login gate. Other creation paths retain the same route contracts and were inspected in source.
 
