@@ -78,6 +78,7 @@ export function projectRulebookSource(
           status: 'ready',
           reference,
           name: asset.name,
+          assetType: asset.type,
           imageUrl: asset.imageUrl,
           width: asset.width,
           height: asset.height,

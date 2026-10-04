@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 
+import { GEAR_CLIP } from '@shared/assets/tokenOutline';
 import { projectRulebookDraftRenderBlock } from '@shared/rulebooks/projectRenderDocument';
 import type { RulebookRenderBlockV1 } from '@shared/rulebooks/renderDocument';
 import { render } from '@testing-library/react';
@@ -9,6 +10,19 @@ import { RulebookBlockCanvas } from './RulebookBlockRenderer';
 import { cardEntryFixture, cardGroupFixture, cardGuideAssets } from './RulebookCardGuides.stories.fixture';
 
 describe('Rulebook Card guides', () => {
+  it.each([
+    ['token-tech', GEAR_CLIP],
+    ['token-disc', 'circle(50%)'],
+    ['card-treachery', ''],
+  ])('preserves the %s outline through source resolution and rendering', (type, clipPath) => {
+    const block = projectRulebookDraftRenderBlock(
+      { id: 'TOKN', kind: 'card-entry', source: { kind: 'asset', assetId: 'token' }, text: 'Trigger' },
+      { token: { assetId: 'token', type, name: 'Token', imageUrl: '/token.jpg', width: 600, height: 600 } }
+    );
+    const { container } = render(<RulebookBlockCanvas block={block} />);
+    expect(container.querySelector('img')?.style.clipPath).toBe(clipPath);
+  });
+
   it('keeps member headings at Block depth when the group heading is empty', () => {
     const block = projectRulebookDraftRenderBlock({ ...cardGroupFixture(), title: '' }, cardGuideAssets);
     const { container } = render(<RulebookBlockCanvas block={block} />);

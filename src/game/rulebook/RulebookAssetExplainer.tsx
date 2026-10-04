@@ -22,13 +22,15 @@ function AnnotationDrawing({
   const canvas = rulebookAnnotationCanvas(projection);
   return (
     <svg viewBox={canvas.viewBox} role="img" aria-label={projection.sourceName}>
-      <image
-        href={imageUrl}
-        width={projection.width}
-        height={projection.height}
-        preserveAspectRatio="none"
-        clipPath={projection.sourceKind === 'faction-member' ? 'circle(50%)' : undefined}
-      />
+      <g filter={projection.sourceShadow}>
+        <image
+          href={imageUrl}
+          width={projection.width}
+          height={projection.height}
+          preserveAspectRatio="none"
+          clipPath={projection.sourceClipPath}
+        />
+      </g>
       {shapes.map((shape, index) =>
         createElement(
           shape.tag,
@@ -90,6 +92,7 @@ export function RulebookAssetExplainer({ block }: Readonly<{ block: AssetExplain
             needsMeasurement && !measurement ? (
               <img
                 src={imageUrl}
+                style={{ clipPath: projection.sourceClipPath }}
                 alt={projection.sourceName}
                 onLoad={(event) => {
                   const image = event.currentTarget;

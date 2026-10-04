@@ -192,7 +192,8 @@
 .rulebookRegion {
   min-width: 0;
   min-height: 0;
-  overflow: hidden;
+  overflow: clip;
+  overflow-clip-margin: padding-box calc(3.2 * var(--rulebook-mm));
 }
 
 .rulebookRegionBlocks {
@@ -238,10 +239,6 @@
   height: auto;
   max-height: calc(90 * var(--rulebook-mm));
   object-fit: contain;
-}
-
-.rulebookSourceVisual[data-rulebook-source-kind="faction-member"] img {
-  clip-path: circle(closest-side);
 }
 
 .rulebookSourceUnavailable {
@@ -1281,4 +1278,20 @@
 }
 .rulebookCardGuide[data-illustration-size] .rulebookSourceVisual {
   aspect-ratio: 1;
+}
+
+.rulebookSourceVisual[data-source-clipped] img {
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  margin-inline: auto;
+}
+
+.rulebookCardGuide .rulebookSourceVisual[data-source-clipped] {
+  aspect-ratio: 1;
+}
+
+.rulebookSourceVisual[data-source-status="ready"][data-rulebook-source-kind="asset"],
+.rulebookSourceVisual[data-source-status="ready"][data-rulebook-source-kind="faction-member"] {
+  filter: drop-shadow(0 calc(0.8 * var(--rulebook-mm)) calc(0.8 * var(--rulebook-mm)) rgb(0 0 0 / 45%));
 }
