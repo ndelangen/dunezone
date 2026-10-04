@@ -11,9 +11,14 @@ import { Armchair, EllipsisVertical } from 'lucide-react';
 import { useId, useState } from 'react';
 import type { ReactNode } from 'react';
 
-import { setTableLighting, TABLE_LIGHTING_MAX, TABLE_LIGHTING_MIN, useTableLighting } from '../tableLighting';
+import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
+import {
+  setTableLighting,
+  TABLE_LIGHTING_MAX,
+  TABLE_LIGHTING_MIN,
+  useTableLighting,
+} from '../../../../widgets/tabletop/tableLighting';
 import styles from './SeatRequests.module.css';
-import type { TableProjection, TableSession } from './TableSession';
 
 /*
  * The important-decision bar for participation, in the accepted arrangement (#1016): who is

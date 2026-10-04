@@ -110,6 +110,7 @@ export const snapshotPolicy = {
    */
   profiles: { drop: "profiles belong to accounts, and the placeholder owner's profile stands in for every one" },
   play_games: { drop: 'Play games carry provisioning secrets and are not published content' },
+  homepage_tickets: { drop: 'Homepage editing tickets' },
   play_tickets: { drop: 'Play admission tickets' },
   play_auth_registrations: { drop: 'Play sign-in registrations' },
   play_game_accounts: { drop: 'Play account links' },

@@ -778,7 +778,12 @@ const DENIED_FIELDS = new Set([
   'attempt_id',
 ]);
 
-const SIGN_IN_TABLES = new Set(['play_tickets', 'play_auth_registrations', 'user_image_ingest_tokens']);
+const SIGN_IN_TABLES = new Set([
+  'homepage_tickets',
+  'play_tickets',
+  'play_auth_registrations',
+  'user_image_ingest_tokens',
+]);
 
 function isSignInTable(table: string) {
   return /^auth[A-Z]/.test(table) || SIGN_IN_TABLES.has(table);

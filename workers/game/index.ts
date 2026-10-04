@@ -1,6 +1,8 @@
+export { HomepageRoom } from './homepage';
 import { DurableObject } from 'cloudflare:workers';
 
 import { api } from '../../convex/_generated/api';
+import { HOMEPAGE_SOCKET_PATH } from '../../src/shared/homepage/protocol';
 import {
   PLAY_AUTH_LEASE_MS,
   PLAY_AUTH_RECOVERY_MS,
@@ -2124,6 +2126,13 @@ export default {
           workerVersionTag: env.CF_VERSION_METADATA.tag,
         },
       });
+    }
+    if (
+      url.pathname === HOMEPAGE_SOCKET_PATH &&
+      request.method === 'GET' &&
+      isApplicationSocket(request, env.APPLICATION_ORIGIN)
+    ) {
+      return env.HOMEPAGE_ROOMS.getByName('public-homepage').fetch(request);
     }
     const route = gameRequest(request, env.APPLICATION_ORIGIN);
     if (!route) {

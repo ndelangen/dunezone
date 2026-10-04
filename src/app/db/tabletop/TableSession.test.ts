@@ -7,11 +7,13 @@ import type { ActivityChange, GameSnapshot, ServerMessage, Viewer } from '@share
 import { flipPieceInState } from '@shared/play/tableState';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
-import { hidden, runtime, Socket } from './gameRuntime.test.fixture';
+import { GameSubscription } from '@app/routes/_app/play/multiplayer/GameSubscription';
+
+import { hidden, runtime, Socket } from '../../routes/_app/play/multiplayer/gameRuntime.test.fixture';
 import { TableSession } from './TableSession';
 
-function connection(gameId: string, request: ConstructorParameters<typeof TableSession>[1]) {
-  return new TableSession(gameId, request, runtime);
+function connection(gameId: string, request: ConstructorParameters<typeof GameSubscription>[1]) {
+  return new TableSession(gameId, new GameSubscription(gameId, request, runtime), runtime);
 }
 
 let disconnect: (() => void) | undefined;
@@ -1615,7 +1617,11 @@ describe('pointer moves', () => {
 
   test('a table hearing only pointer moves still re-saves its kept copy, a few seconds apart', async () => {
     const tables = { read: () => null, save: vi.fn(), clear: vi.fn() };
-    const client = new TableSession('fixture-one', ticket, { ...runtime, tables });
+    const client = new TableSession(
+      'fixture-one',
+      new GameSubscription('fixture-one', ticket, { ...runtime, tables }),
+      { ...runtime, tables }
+    );
     disconnect = client.connect();
     await vi.advanceTimersByTimeAsync(0);
     socket().open();

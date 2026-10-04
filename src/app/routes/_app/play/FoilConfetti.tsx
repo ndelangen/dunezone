@@ -1,4 +1,4 @@
-/* @jsxImportSource ./three-jsx */
+/* @jsxImportSource @app/widgets/tabletop/three-jsx */
 import { useFrame, useThree } from '@react-three/fiber/webgpu';
 import { pieceCount } from '@shared/play/model';
 import type { TablePiece } from '@shared/play/model';
@@ -23,9 +23,9 @@ import {
   Vector3,
 } from 'three';
 
+import { useTabletop } from '../../../widgets/tabletop/TabletopContext';
 import { ConfettiField, DISC_RADIUS, DISC_THICKNESS, FOIL_COLORS } from './confettiSimulation';
 import type { ConfettiSupport } from './confettiSimulation';
-import { useTabletop } from './TabletopContext';
 
 /** One stream to fire: its identity, the table angles of the slots it fires from, and how far into it the viewer arrives. */
 export type ConfettiLaunch = Readonly<{ id: number; angles: readonly number[]; elapsed: number }>;

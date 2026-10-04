@@ -16,13 +16,17 @@ import { useContext, useEffect, useMemo, useReducer, useState, useSyncExternalSt
 import type { ReactNode } from 'react';
 
 import { requestPlayTicket } from '@db/play';
+import { GameSubscription } from '@app/routes/_app/play/multiplayer/GameSubscription';
 
+import { TableSession } from '../../../../db/tabletop/TableSession';
+import type { TableProjection } from '../../../../db/tabletop/TableSession';
+import { PieceArtwork } from '../../../../widgets/tabletop/PieceArtwork';
+import { usePointerSession } from '../../../../widgets/tabletop/PointerSessionContext';
+import { PredictionLogosContext } from '../../../../widgets/tabletop/prediction/predictionFace';
+import { TabletopSessionProvider } from '../../../../widgets/tabletop/TabletopContext';
 import { FoilConfetti } from '../FoilConfetti';
 import { GameTable } from '../GameTable';
-import { usePointerSession } from '../PointerSessionContext';
 import { predictionCardInHand } from '../prediction/predictionCardInHand';
-import { PredictionLogosContext } from '../prediction/predictionFace';
-import { TabletopSessionProvider } from '../TabletopContext';
 import { TableWait } from '../TableWait';
 import { BattleControls, BattleScene, HandControls } from './BattleControls';
 import { BidderScene } from './Bidder';
@@ -33,14 +37,11 @@ import { DraftingHeader, DraftingNotice, DraftingOverlay, DraftingPanel, Draftin
 import { DetermineWinner, ResultDecisionBar } from './GameResult';
 import { GameRuntimeContext } from './gameRuntime';
 import { LogEntries } from './Log';
-import { PieceArtwork } from './PieceArtwork';
 import { PlayerPanel, RemovalDecisionBar } from './RemovalVotes';
 import { useResultCelebration } from './resultCelebration';
 import { GameMenu, SeatPopover, SeatRequests } from './SeatRequests';
 import { SwappingReadiness } from './Swapping';
 import { SwapScene } from './SwapScene';
-import { TableSession } from './TableSession';
-import type { TableProjection } from './TableSession';
 import { ServerClockContext } from './useServerNow';
 import '../dune-play.css';
 
@@ -1009,7 +1010,9 @@ function ConnectedTable({
 
 export default function HostedTable({ gameId, exitControl }: Readonly<{ gameId: string; exitControl: ReactNode }>) {
   const runtime = useContext(GameRuntimeContext);
-  const [client] = useState(() => new TableSession(gameId, requestPlayTicket, runtime));
+  const [client] = useState(
+    () => new TableSession(gameId, new GameSubscription(gameId, requestPlayTicket, runtime), runtime)
+  );
   const view = useSyncExternalStore(client.subscribe, client.getSnapshot);
   useEffect(() => client.connect(), [client]);
   if (!view.table) {

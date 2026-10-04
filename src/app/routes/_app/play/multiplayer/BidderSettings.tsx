@@ -3,8 +3,8 @@ import { MAX_BID_SECONDS, MIN_BID_SECONDS, idleBidding } from '@shared/play/bidd
 import { Section } from '@ui/block/Section';
 import { useEffect, useState } from 'react';
 
+import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
 import { biddingPhase } from './Bidder';
-import type { TableProjection, TableSession } from './TableSession';
 
 type Props = { client: TableSession; table: TableProjection };
 

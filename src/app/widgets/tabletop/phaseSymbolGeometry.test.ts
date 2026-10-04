@@ -21,7 +21,7 @@ import {
 } from './phaseSymbolGeometry';
 import { PHASE_RING_INNER_RADIUS, PHASE_RING_OUTER_RADIUS, PHASE_SYMBOL_MAX_RADIUS } from './phaseSymbolLayout';
 
-const mediaDirectory = resolve(dirname(fileURLToPath(import.meta.url)), '../../../../../media');
+const mediaDirectory = resolve(dirname(fileURLToPath(import.meta.url)), '../../../../media');
 
 afterEach(() => vi.restoreAllMocks());
 

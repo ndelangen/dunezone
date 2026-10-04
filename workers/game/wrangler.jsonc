@@ -11,16 +11,47 @@
   "observability": {
     "enabled": true,
     "head_sampling_rate": 1,
-    "logs": { "enabled": true, "invocation_logs": false },
-    "issues": { "enabled": true }
+    "logs": {
+      "enabled": true,
+      "invocation_logs": false
+    },
+    "issues": {
+      "enabled": true
+    }
   },
   "durable_objects": {
-    "bindings": [{ "name": "GAME_ROOMS", "class_name": "GameRoom" }]
+    "bindings": [
+      {
+        "name": "GAME_ROOMS",
+        "class_name": "GameRoom"
+      },
+      {
+        "name": "HOMEPAGE_ROOMS",
+        "class_name": "HomepageRoom"
+      }
+    ]
   },
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["GameRoom"] }],
-  "version_metadata": { "binding": "CF_VERSION_METADATA" },
-  "send_email": [{ "name": "ALERT_EMAIL" }],
-  "limits": { "cpu_ms": 30000 },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["GameRoom"]
+    },
+    {
+      "tag": "v2",
+      "new_sqlite_classes": ["HomepageRoom"]
+    }
+  ],
+  "version_metadata": {
+    "binding": "CF_VERSION_METADATA"
+  },
+  "send_email": [
+    {
+      "name": "ALERT_EMAIL"
+    }
+  ],
+  "limits": {
+    "cpu_ms": 30000
+  },
   "vars": {
     "CONVEX_URL": "https://exuberant-finch-263.eu-west-1.convex.cloud",
     "APPLICATION_ORIGIN": "https://dune.zone",

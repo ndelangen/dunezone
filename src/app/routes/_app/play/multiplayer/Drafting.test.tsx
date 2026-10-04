@@ -5,10 +5,10 @@ import { cleanup, render, screen } from '@testing-library/react';
 import { appContentTheme } from '@ui/theme';
 import { afterEach, expect, test, vi } from 'vitest';
 
+import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
 import { draftingSnapshot, storyPlayer } from '../drafting.stories.fixture';
 import { DraftingNotice, DraftingOverlay } from './Drafting';
 import { stubMatchMedia } from './jsdom.test.fixture';
-import type { TableProjection, TableSession } from './TableSession';
 
 stubMatchMedia();
 

@@ -1,7 +1,7 @@
 import { Button, Group } from '@mantine/core';
 
+import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
 import { biddingPhase } from './Bidder';
-import type { TableProjection, TableSession } from './TableSession';
 
 type Props = {
   client: TableSession;

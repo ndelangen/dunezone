@@ -3,8 +3,9 @@ import type { GameSnapshot, Viewer } from '@shared/play/protocol';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 
 import { forgetStoredPlayTable, keepsPlayTable } from '@db/playTables';
+import { GameSubscription } from '@app/routes/_app/play/multiplayer/GameSubscription';
 
-import { runtime, Socket } from './gameRuntime.test.fixture';
+import { runtime, Socket } from '../../routes/_app/play/multiplayer/gameRuntime.test.fixture';
 import { sessionTableStore, STORED_TABLE_MAX_AGE_MS } from './storedTable';
 import type { TableAccount } from './storedTable';
 import { TableSession } from './TableSession';
@@ -72,10 +73,17 @@ function load() {
       leave = listener;
     },
   });
-  const client = new TableSession('game', async () => ({ ok: true, ticket: 'a'.repeat(64), expiresInMs: 30_000 }), {
-    ...runtime,
-    tables,
-  });
+  const client = new TableSession(
+    'game',
+    new GameSubscription('game', async () => ({ ok: true, ticket: 'a'.repeat(64), expiresInMs: 30_000 }), {
+      ...runtime,
+      tables,
+    }),
+    {
+      ...runtime,
+      tables,
+    }
+  );
   stops.push(client.connect());
   return client;
 }

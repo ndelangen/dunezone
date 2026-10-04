@@ -1,14 +1,15 @@
-/** @vitest-environment jsdom */
-
 import { MantineProvider } from '@mantine/core';
+/** @vitest-environment jsdom */
 import { initialSnapshot } from '@shared/play/commands';
 import { act, cleanup, render, screen } from '@testing-library/react';
 import { appContentTheme } from '@ui/theme';
 import { afterEach, expect, test, vi } from 'vitest';
 
+import { GameSubscription } from '@app/routes/_app/play/multiplayer/GameSubscription';
+
+import { TableSession } from '../../../../db/tabletop/TableSession';
 import { runtime, Socket } from './gameRuntime.test.fixture';
 import { SwappingReadiness } from './Swapping';
-import { TableSession } from './TableSession';
 import { ServerClockContext } from './useServerNow';
 
 window.matchMedia = vi.fn().mockImplementation((query: string) => ({
@@ -34,7 +35,11 @@ test('the countdown starts at 4:00 and trading ends at the first tick past the W
   const serverNow = 1_800_000_000_700;
   const client = new TableSession(
     'fixture-one',
-    async () => ({ ok: true, ticket: 'a'.repeat(64), expiresInMs: 30_000 }),
+    new GameSubscription(
+      'fixture-one',
+      async () => ({ ok: true, ticket: 'a'.repeat(64), expiresInMs: 30_000 }),
+      runtime
+    ),
     runtime
   );
   const disconnect = client.connect();

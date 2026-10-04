@@ -3,8 +3,8 @@ import type { BiddingState } from '@shared/play/bidding';
 
 import { Token as FactionToken } from '@game/assets/faction/token/Token';
 
+import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
 import styles from './Bidder.module.css';
-import type { TableProjection, TableSession } from './TableSession';
 
 type Props = { client: TableSession; table: TableProjection };
 type FaceProps = Props & { bidding: BiddingState };

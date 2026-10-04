@@ -458,7 +458,7 @@ Renderers and publisher captures draw their own images, since they stay isolated
 Play's panel thumbnails in the shared inventory, the hand and the battle plan go through it; the 3D
 table draws its textures directly, and a piece's face stays plain sand until its texture lands.
 Faces that show the same published image share one texture, loaded once and released when the last
-of them leaves the table (`sharedPublishedFaces` in `src/app/routes/_app/play/publishedFaceRetry.ts`),
+of them leaves the table (`sharedPublishedFaces` in `src/app/widgets/tabletop/publishedFaceRetry.ts`),
 and a face that mounts while its image is already held draws it in its first frame.*
 
 ## Styling and renderers

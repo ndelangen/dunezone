@@ -62,8 +62,8 @@ it writes `src/game/data/assetMap.generated.ts`, which is gitignored and which t
 
 The pinned Fiber patch removes its ambient Three JSX declarations from React's namespaces.
 Those declarations make even a DOM `React.ElementType` enumerate Three's catalogue, which
-stalls the native checker. Play's scene files opt into a route-owned
-[`three-jsx` runtime](../src/app/routes/_app/play/three-jsx/jsx-runtime.ts) instead.
+stalls the native checker. Play's scene files opt into a tabletop-owned
+[`three-jsx` runtime](../src/app/widgets/tabletop/three-jsx/jsx-runtime.ts) instead.
 It exports React's unchanged runtime functions and keeps the exact Three prop types local.
 The colocated typecheck fixture checks valid and invalid Three props, Mantine attributes,
 and the DOM namespace together. No files are excluded from typechecking.
@@ -256,7 +256,7 @@ unpushable.
   Application root. See the component taxonomy in [`AGENTS.md`](../AGENTS.md#component-taxonomy).
 - Game Assets stories belong under Faction, Cards, Tokens, Generic, or Composition. Comparative asset
   catalogues may remain exhaustive when side-by-side inspection is the story's purpose.
-- Rulebook layout stories and the route-owned Block editor previews file under one Rulebook root:
+- Rulebook layout stories and the tabletop-owned Block editor previews file under one Rulebook root:
   `Layouts` and `Blocks/<Block name>`. Other Rulebook route stories remain under Pages.
 - Prefer args-only stories. Use wrappers, custom rendering, or interactions only when they
   demonstrate behavior or comparison that args cannot.

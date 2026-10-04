@@ -64,6 +64,10 @@ export default defineMain({
       titlePrefix: 'Rulebook',
     },
     {
+      directory: '../src/app/widgets/tabletop',
+      titlePrefix: 'Widgets/Tabletop',
+    },
+    {
       directory: '../src/app/widgets/faction-editor',
       titlePrefix: 'Widgets/Faction Editor',
     },

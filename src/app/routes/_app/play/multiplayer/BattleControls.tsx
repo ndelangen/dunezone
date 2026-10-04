@@ -29,13 +29,13 @@ import { backgroundPresets } from '@game/data/backgrounds';
 import { card } from '@game/data/sizes';
 import { factionTokenFixtures } from '@game/fixtures/factionTokens';
 
+import type { TableSession, TableProjection } from '../../../../db/tabletop/TableSession';
+import { PieceArtwork } from '../../../../widgets/tabletop/PieceArtwork';
+import { PointerSessionContext, usePointerSession } from '../../../../widgets/tabletop/PointerSessionContext';
+import { TABLE_PLATE_BOUNDS } from '../../../../widgets/tabletop/tablePlateGeometry';
 import { DarkSchemeIsland } from '../DarkSchemeIsland';
-import { PointerSessionContext, usePointerSession } from '../PointerSessionContext';
-import { TABLE_PLATE_BOUNDS } from '../tablePlateGeometry';
 import styles from './BattleControls.module.css';
 import { battleCapsuleY, headerInset } from './battlePlacement';
-import { PieceArtwork } from './PieceArtwork';
-import type { TableSession, TableProjection } from './TableSession';
 
 type Props = { client: TableSession; table: TableProjection };
 const outcomes = [

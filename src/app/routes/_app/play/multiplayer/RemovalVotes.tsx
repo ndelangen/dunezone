@@ -11,9 +11,9 @@ import { Surface } from '@ui/surface/Surface';
 import { MessageCircle } from 'lucide-react';
 import { useSyncExternalStore } from 'react';
 
+import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
 import { Conversation } from './Conversation';
 import { SwappingSeat } from './Swapping';
-import type { TableProjection, TableSession } from './TableSession';
 import { useServerNow } from './useServerNow';
 
 type Props = Readonly<{ client: TableSession; table: TableProjection }>;

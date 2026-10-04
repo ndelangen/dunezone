@@ -6,8 +6,8 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { appContentTheme } from '@ui/theme';
 import { afterEach, expect, test, vi } from 'vitest';
 
+import type { TableSession } from '../../../../db/tabletop/TableSession';
 import { SeatPopover, SeatRequests } from './SeatRequests';
-import type { TableSession } from './TableSession';
 
 window.matchMedia = vi.fn().mockImplementation((query: string) => ({
   matches: false,

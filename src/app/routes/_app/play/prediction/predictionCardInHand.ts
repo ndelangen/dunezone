@@ -1,4 +1,4 @@
-import type { TableProjection } from '../multiplayer/TableSession';
+import type { TableProjection } from '../../../../db/tabletop/TableSession';
 
 /**
  * Whether the viewer holds the card dealt for a locked prediction (#1753).

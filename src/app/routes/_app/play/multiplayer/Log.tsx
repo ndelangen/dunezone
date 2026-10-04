@@ -3,8 +3,8 @@ import type { LogClass, LogTab } from '@shared/play/log';
 import { Section } from '@ui/block/Section';
 import { useEffect, useSyncExternalStore } from 'react';
 
+import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
 import styles from './Log.module.css';
-import type { TableProjection, TableSession } from './TableSession';
 
 /*
  * The six classifications and their hues as the accepted log fixed them (issue 1149, comment 5654361805): cyan, orange, red and purple for the Game classes, blue and green for Seat and Vote.

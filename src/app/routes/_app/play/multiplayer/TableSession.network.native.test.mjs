@@ -8,7 +8,8 @@ import {
   provision,
   syncView,
 } from '../../../../../../workers/game/native-runtime.fixture.mjs';
-import { TableSession } from './TableSession';
+import { TableSession } from '../../../../db/tabletop/TableSession';
+import { GameSubscription } from './GameSubscription';
 
 const gameId = 'fixture-game';
 
@@ -104,7 +105,11 @@ describe('A table client on a bad network (#1696)', { timeout: 60_000, hookTimeo
     peer.registrationId = 'registration-a';
     network = { down: false, sockets: [] };
     const ticket = async () => ({ ok: true, ticket: 'c'.repeat(64), expiresInMs: 600_000 });
-    client = new TableSession(gameId, ticket, bridge(runtime, network));
+    client = new TableSession(
+      gameId,
+      new GameSubscription(gameId, ticket, bridge(runtime, network)),
+      bridge(runtime, network)
+    );
     stop = client.connect();
     await live();
   });

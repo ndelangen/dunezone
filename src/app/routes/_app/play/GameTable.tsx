@@ -14,6 +14,33 @@ import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useReducer, us
 import type { ReactNode } from 'react';
 
 import {
+  PHASE_DISC_COLOR,
+  PHASE_INK_COLOR,
+  PHASE_RING_INNER_RADIUS,
+  PHASE_RING_OUTER_RADIUS,
+  PHASE_SYMBOL_MAX_RADIUS,
+} from '../../../widgets/tabletop/phaseSymbolLayout';
+import {
+  createTableViewState,
+  PHASE_VIEWS,
+  reduceTableView,
+  TABLE_VIEW_OPTIONS,
+} from '../../../widgets/tabletop/playView';
+import type { CameraViewCommand, TableView } from '../../../widgets/tabletop/playView';
+import { PointerSession } from '../../../widgets/tabletop/PointerSession';
+import { PointerSessionContext } from '../../../widgets/tabletop/PointerSessionContext';
+import { TableKeyboard } from '../../../widgets/tabletop/TableKeyboard';
+import { TableKeyboardContext } from '../../../widgets/tabletop/TableKeyboardContext';
+import {
+  useTabletop,
+  useTabletopCommands,
+  useTabletopReader,
+  useTabletopSelector,
+} from '../../../widgets/tabletop/TabletopContext';
+import type { TabletopContextValue } from '../../../widgets/tabletop/TabletopContext';
+import { TabletopScene } from '../../../widgets/tabletop/TabletopScene';
+import type { TableProgress } from '../../../widgets/tabletop/tableTrackers';
+import {
   controlsPanelLimits,
   DEFAULT_CONTROLS_PANEL_PERCENT,
   KEYBOARD_PAGE_STEP_PERCENT,
@@ -21,23 +48,6 @@ import {
   paneLimits,
 } from './controlPanelLayout';
 import { DarkSchemeIsland, darkSchemeIslandAttributes } from './DarkSchemeIsland';
-import {
-  PHASE_DISC_COLOR,
-  PHASE_INK_COLOR,
-  PHASE_RING_INNER_RADIUS,
-  PHASE_RING_OUTER_RADIUS,
-  PHASE_SYMBOL_MAX_RADIUS,
-} from './phaseSymbolLayout';
-import { createTableViewState, PHASE_VIEWS, reduceTableView, TABLE_VIEW_OPTIONS } from './playView';
-import type { CameraViewCommand, TableView } from './playView';
-import { PointerSession } from './PointerSession';
-import { PointerSessionContext } from './PointerSessionContext';
-import { TableKeyboard } from './TableKeyboard';
-import { TableKeyboardContext } from './TableKeyboardContext';
-import { useTabletop, useTabletopCommands, useTabletopReader, useTabletopSelector } from './TabletopContext';
-import type { TabletopContextValue } from './TabletopContext';
-import { TabletopScene } from './TabletopScene';
-import type { TableProgress } from './tableTrackers';
 import { TableWait } from './TableWait';
 
 /* How long the shell waits for the renderer before opening anyway. */

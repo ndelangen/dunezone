@@ -8,8 +8,8 @@ import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { appContentTheme } from '@ui/theme';
 import { afterEach, expect, test, vi } from 'vitest';
 
-import { stubMatchMedia } from './multiplayer/jsdom.test.fixture';
-import type { TableProjection, TableSession } from './multiplayer/TableSession';
+import type { TableProjection, TableSession } from '../../db/tabletop/TableSession';
+import { stubMatchMedia } from '../../routes/_app/play/multiplayer/jsdom.test.fixture';
 import { PeekView } from './PeekView';
 import { TabletopSessionProvider } from './TabletopContext';
 

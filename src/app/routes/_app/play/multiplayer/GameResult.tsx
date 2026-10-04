@@ -6,9 +6,9 @@ import type { GameResult, GameResultKind } from '@shared/play/result';
 import { rosterSeat, SPECTATOR_SEAT } from '@shared/play/schema';
 import { useReducer } from 'react';
 
+import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
 import { predictionCardInHand } from '../prediction/predictionCardInHand';
 import { DecisionBar } from './SeatRequests';
-import type { TableProjection, TableSession } from './TableSession';
 
 type Props = Readonly<{ client: TableSession; table: TableProjection }>;
 

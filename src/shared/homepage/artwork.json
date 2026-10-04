@@ -1,0 +1,112 @@
+{
+  "factions": [
+    {
+      "slug": "house-atreides",
+      "name": "House Atreides",
+      "color": "#4a4c08",
+      "token": "/homepage-table/house-atreides-token.webp",
+      "troops": [
+        {
+          "name": "Normal troop",
+          "count": 20,
+          "face": "/homepage-table/house-atreides-troop-0.webp"
+        }
+      ]
+    },
+    {
+      "slug": "house-harkonnen",
+      "name": "House Harkonnen",
+      "color": "#151315",
+      "token": "/homepage-table/house-harkonnen-token.webp",
+      "troops": [
+        {
+          "name": "Harkonnen Troop",
+          "count": 20,
+          "face": "/homepage-table/house-harkonnen-troop-0.webp"
+        }
+      ]
+    },
+    {
+      "slug": "emperor",
+      "name": "Emperor",
+      "color": "#be1010",
+      "token": "/homepage-table/emperor-token.webp",
+      "troops": [
+        {
+          "name": "Normal troop",
+          "count": 15,
+          "face": "/homepage-table/emperor-troop-0.webp"
+        },
+        {
+          "name": "Saudarkar",
+          "count": 5,
+          "face": "/homepage-table/emperor-troop-1.webp"
+        }
+      ]
+    },
+    {
+      "slug": "spacing-guild",
+      "name": "Spacing Guild",
+      "color": "#dc5317",
+      "token": "/homepage-table/spacing-guild-token.webp",
+      "troops": [
+        {
+          "name": "Troop",
+          "count": 20,
+          "face": "/homepage-table/spacing-guild-troop-0.webp"
+        }
+      ]
+    },
+    {
+      "slug": "fremen",
+      "name": "Fremen",
+      "color": "#e4942e",
+      "token": "/homepage-table/fremen-token.webp",
+      "troops": [
+        {
+          "name": "Normal troop",
+          "count": 17,
+          "face": "/homepage-table/fremen-troop-0.webp"
+        },
+        {
+          "name": "Fedaykin",
+          "count": 3,
+          "face": "/homepage-table/fremen-troop-1.webp"
+        }
+      ]
+    },
+    {
+      "slug": "bene-gesserit",
+      "name": "Bene Gesserit",
+      "color": "#253b82",
+      "token": "/homepage-table/bene-gesserit-token.webp",
+      "troops": [
+        {
+          "name": "Fighter",
+          "count": 20,
+          "face": "/homepage-table/bene-gesserit-troop-0.webp"
+        }
+      ]
+    }
+  ],
+  "cardback": "/homepage-table/cardback.webp",
+  "snooper": "/homepage-table/snooper.webp",
+  "cards": [
+    {
+      "name": "Snooper",
+      "face": "/homepage-table/snooper.webp"
+    },
+    {
+      "name": "Supplies!",
+      "face": "/homepage-table/supplies.webp"
+    },
+    {
+      "name": "Trishula!",
+      "face": "/homepage-table/trishula.webp"
+    },
+    {
+      "name": "Arrakeen",
+      "face": "/homepage-table/arrakeen.webp"
+    }
+  ]
+}

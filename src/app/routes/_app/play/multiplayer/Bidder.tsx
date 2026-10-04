@@ -1,4 +1,4 @@
-/* @jsxImportSource ../three-jsx */
+/* @jsxImportSource @app/widgets/tabletop/three-jsx */
 import { Html } from '@react-three/drei/webgpu';
 import { biddingFactions, idleBidding } from '@shared/play/bidding';
 import type { BiddingState } from '@shared/play/bidding';
@@ -9,12 +9,12 @@ import { PLAYER_RING_RADIUS, tableSeatAngles } from '@shared/play/tableSettings'
 import { useEffect, useMemo } from 'react';
 import { ExtrudeGeometry, Shape } from 'three';
 
+import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
 import { DarkSchemeIsland } from '../DarkSchemeIsland';
 import styles from './Bidder.module.css';
 import { OpenRound, RoundResult } from './BidderFace';
 import { faceHalfHeight, faceHalfWidth, faceOnCanvas } from './bidderFacePosition';
 import { useBidderRotation } from './bidderRotation';
-import type { TableProjection, TableSession } from './TableSession';
 import { useServerNow } from './useServerNow';
 
 type Props = { client: TableSession; table: TableProjection; faded?: boolean };

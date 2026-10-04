@@ -3,9 +3,9 @@ import type { ConversationMessage } from '@shared/play/conversations';
 import { Section } from '@ui/block/Section';
 import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
 
+import type { ConversationView } from '../../../../db/tabletop/ConversationSession';
+import type { TableSession } from '../../../../db/tabletop/TableSession';
 import styles from './Conversation.module.css';
-import type { ConversationView } from './ConversationSession';
-import type { TableSession } from './TableSession';
 import { useServerNow } from './useServerNow';
 
 const EMPTY_MESSAGES: ConversationMessage[] = [];

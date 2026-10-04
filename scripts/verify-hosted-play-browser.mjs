@@ -9,8 +9,8 @@ import { ConvexHttpClient } from 'convex/browser';
 import { chromium, errors } from 'playwright';
 import sharp from 'sharp';
 
-import { PHASE_VIEWS } from '../src/app/routes/_app/play/playView.ts';
-import { turnTrackerLayout } from '../src/app/routes/_app/play/turnTrackerGeometry.ts';
+import { PHASE_VIEWS } from '../src/app/widgets/tabletop/playView';
+import { turnTrackerLayout } from '../src/app/widgets/tabletop/turnTrackerGeometry';
 import { phaseAt, TABLE_PHASES, tableProgressFor } from '../src/shared/play/phases.ts';
 import { KEEPALIVE_PING, KEEPALIVE_PONG } from '../src/shared/play/protocol.ts';
 import { setupReadyRequired, setupStep } from '../src/shared/play/setup.ts';

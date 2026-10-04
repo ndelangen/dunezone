@@ -17,6 +17,14 @@ flowchart TD
 Each domain file follows this structure: types → loaders → live query hooks → mutation hooks. There
 are no query keys and no cache; see [State Management](./state-management.md).
 
+## Live table state
+
+`src/app/db/tabletop` owns the live table projection and outgoing physical intentions shared by Play
+and the homepage. Its `TableSession` takes a subscription and runtime from its caller. Play supplies
+its game admission and retained-table storage; the homepage supplies public observation and short
+editing leases, with no retained table. The tabletop widget receives that session through its
+membrane and does not open a connection.
+
 ## The only doorway to Convex
 
 `src/app/db` is the only place in `src/**` that may import Convex: the generated API, the types

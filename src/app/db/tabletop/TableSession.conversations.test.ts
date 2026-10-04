@@ -2,7 +2,9 @@ import { initialSnapshot } from '@shared/play/commands';
 import type { GameSnapshot, ServerMessage, Viewer } from '@shared/play/protocol';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 
-import { hidden, runtime, Socket } from './gameRuntime.test.fixture';
+import { GameSubscription } from '@app/routes/_app/play/multiplayer/GameSubscription';
+
+import { hidden, runtime, Socket } from '../../routes/_app/play/multiplayer/gameRuntime.test.fixture';
 import { TableSession } from './TableSession';
 
 let stop: (() => void) | undefined;
@@ -47,7 +49,7 @@ function authorize(identity = viewer) {
 async function connect() {
   const client = new TableSession(
     'game',
-    async () => ({ ok: true, ticket: 'a'.repeat(64), expiresInMs: 30_000 }),
+    new GameSubscription('game', async () => ({ ok: true, ticket: 'a'.repeat(64), expiresInMs: 30_000 }), runtime),
     runtime
   );
   stop = client.connect();

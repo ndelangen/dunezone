@@ -6,9 +6,10 @@ import { PublishedImage } from '@ui/content/PublishedImage';
 import { CanvasScale } from '@ui/layout/CanvasScale';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { ArrowRight } from 'lucide-react';
-import { useEffect, useRef } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useReducer, useRef } from 'react';
 import type { CSSProperties } from 'react';
 
+import { useSessionViewer } from '@db/profiles';
 import { publicPageHead } from '@app/routes/publicPage';
 import { useMotionAllowed } from '@app/styles/motion';
 import { AssetFace } from '@app/widgets/asset-face/AssetFace';
@@ -20,6 +21,8 @@ import { backgroundPresets } from '@game/data/backgrounds';
 import { card as cardSize } from '@game/data/sizes';
 
 import styles from './index.module.css';
+
+const ConnectedHomepageTable = lazy(() => import('./homepage/ConnectedTable').catch(() => ({ default: () => null })));
 
 export const Route = createFileRoute('/_app/')({
   /* Share metadata runs on the server; the game artwork keeps its browser-owned SVG IDs. */
@@ -483,9 +486,7 @@ function HomepageChapters() {
   return (
     <div className={styles.cinemaFlow}>
       <section id="play-preview" className={styles.cinemaOpening} data-marketing-arrival>
-        <div className={styles.wideBoard}>
-          <BoardPreview />
-        </div>
+        <LiveBoardPreview />
         <div className={styles.previewCopy}>
           <PreviewCopy />
         </div>
@@ -523,6 +524,68 @@ function HomepageChapters() {
         <GroupAllianceCard />
         <AllianceInvitation />
       </section>
+    </div>
+  );
+}
+
+function LiveBoardPreview() {
+  const viewer = useSessionViewer();
+  const member = viewer.kind === 'profile';
+  const identity = member ? viewer.profile._id : 'observer';
+  const region = useRef<HTMLDivElement>(null);
+  const [state, dispatch] = useReducer(
+    (
+      state: { active: boolean; readyFor: string | null; failed: boolean },
+      event: { type: 'enter' | 'leave' | 'failed' } | { type: 'ready'; identity: string }
+    ) => {
+      switch (event.type) {
+        case 'enter':
+          return { ...state, active: true };
+        case 'leave':
+          return { ...state, active: false, readyFor: null };
+        case 'ready':
+          return { ...state, readyFor: event.identity };
+        case 'failed':
+          return { active: false, readyFor: null, failed: true };
+      }
+    },
+    { active: false, readyFor: null, failed: false }
+  );
+  const ready = useCallback(() => dispatch({ type: 'ready', identity }), [identity]);
+  const unavailable = useCallback(() => dispatch({ type: 'failed' }), []);
+  useEffect(() => {
+    const element = region.current;
+    if (!element) {
+      return;
+    }
+    let inView = false;
+    const sync = () => dispatch({ type: inView && !document.hidden ? 'enter' : 'leave' });
+    const observer = new IntersectionObserver(
+      (entries) => {
+        inView = entries.some((entry) => entry.isIntersecting);
+        sync();
+      },
+      { rootMargin: '150px' }
+    );
+    observer.observe(element);
+    document.addEventListener('visibilitychange', sync);
+    return () => {
+      observer.disconnect();
+      document.removeEventListener('visibilitychange', sync);
+    };
+  }, []);
+  return (
+    <div
+      ref={region}
+      className={styles.wideBoard}
+      data-live-ready={state.readyFor === identity && state.active ? 'true' : undefined}
+    >
+      <BoardPreview />
+      {state.active && !state.failed && (
+        <Suspense fallback={null}>
+          <ConnectedHomepageTable key={identity} member={member} onReady={ready} onUnavailable={unavailable} />
+        </Suspense>
+      )}
     </div>
   );
 }

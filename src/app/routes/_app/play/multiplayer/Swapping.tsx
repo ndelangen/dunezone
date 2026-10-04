@@ -4,7 +4,7 @@ import { SPECTATOR_SEAT } from '@shared/play/schema';
 import type { SwapAction, SwappingState } from '@shared/play/swapping';
 import { useId } from 'react';
 
-import type { TableProjection, TableSession } from './TableSession';
+import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
 import { useServerNow } from './useServerNow';
 
 type Props = Readonly<{ client: TableSession; table: TableProjection }>;

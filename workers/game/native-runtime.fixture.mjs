@@ -195,6 +195,9 @@ function answerPeerRequest(peer, record) {
     case 'playProvisioning:failProvisioning':
       record.release({ ok: true });
       break;
+    case 'homepageAdmission:redeemTicket':
+      record.release(peer.homepageAdmission ?? { allowed: false });
+      break;
     case 'playAdmission:redeemTicket':
       /*
        * A test that sets `peer.redemptionRefusal` has Convex refuse the ticket with that reason instead of redeeming it.
@@ -403,6 +406,7 @@ export async function createRuntime(peer, kind = 'probe', bindings = {}) {
           probe: 'authorization.native.fixture.ts',
           game: 'game-room.native.fixture.ts',
           load: 'load-limits.native.fixture.ts',
+          homepage: 'homepage.native.fixture.ts',
         }[kind]
       ),
     ],
@@ -425,7 +429,9 @@ export async function createRuntime(peer, kind = 'probe', bindings = {}) {
       durableObjects:
         kind === 'probe'
           ? { PROBE: { className: 'AuthorizationProbe', useSQLite: true } }
-          : { GAME_ROOMS: { className: 'GameRoom', useSQLite: true } },
+          : kind === 'homepage'
+            ? { HOMEPAGE_ROOMS: { className: 'HomepageRoom', useSQLite: true } }
+            : { GAME_ROOMS: { className: 'GameRoom', useSQLite: true } },
       bindings: {
         PEER_URL: peer.url,
         CONVEX_URL: peer.url,
@@ -553,8 +559,8 @@ export const isFullView = (message) => message.type === 'view' && !applied.has(m
  * An update that does not apply to the view before it goes to `unapplied` instead.
  * A test then waits for a table state whichever frame carried it.
  */
-export async function openGame(runtime) {
-  const response = await runtime.fetch(`/__play/games/${gameId}/socket`, {
+export async function openGame(runtime, path = `/__play/games/${gameId}/socket`) {
+  const response = await runtime.fetch(path, {
     headers: { Origin: runtime.origin, Upgrade: 'websocket' },
   });
   if (response.status !== 101) {

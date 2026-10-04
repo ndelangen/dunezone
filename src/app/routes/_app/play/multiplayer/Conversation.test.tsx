@@ -5,9 +5,9 @@ import { act, cleanup, render, screen } from '@testing-library/react';
 import { appContentTheme } from '@ui/theme';
 import { afterEach, expect, test, vi } from 'vitest';
 
+import type { ConversationView } from '../../../../db/tabletop/ConversationSession';
+import type { TableSession } from '../../../../db/tabletop/TableSession';
 import { Conversation } from './Conversation';
-import type { ConversationView } from './ConversationSession';
-import type { TableSession } from './TableSession';
 import { ServerClockContext } from './useServerNow';
 
 window.matchMedia = vi.fn().mockImplementation((query: string) => ({
