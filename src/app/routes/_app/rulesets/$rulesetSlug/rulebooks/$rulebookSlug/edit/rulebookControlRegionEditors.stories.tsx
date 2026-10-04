@@ -82,17 +82,17 @@ export const CoverPresets = meta.story({
     const preset = canvas.getByRole('combobox', { name: 'Cover preset' });
     expect(preset).toHaveValue('Sandworm');
     await userEvent.click(preset);
-    const option = await page.findByRole('option', { name: 'Spice harvester' });
-    await userEvent.hover(within(option).getByText('Spice harvester'));
+    const option = await page.findByRole('option', { name: 'Dreamrules rainbow' });
+    await userEvent.hover(within(option).getByText('Dreamrules rainbow'));
     const preview = await waitForFrame(() => page.getByRole('dialog', { name: 'Artwork preview' }));
-    expect(preview.querySelector('img')).toHaveAttribute('src', '/image/rulebook-cover/spice-harvester-small.jpg');
+    expect(preview.querySelector('img')).toHaveAttribute('src', '/image/rulebook-cover/dreamrules-rainbow-small.jpg');
     await userEvent.keyboard('{Escape}');
     expect(preset).toHaveValue('Sandworm');
     await userEvent.click(preset);
-    await userEvent.click(await page.findByRole('option', { name: 'Spice harvester' }));
-    expect(preset).toHaveValue('Spice harvester');
+    await userEvent.click(await page.findByRole('option', { name: 'Dreamrules rainbow' }));
+    expect(preset).toHaveValue('Dreamrules rainbow');
     expect(coverChange.mock.lastCall?.[0]).toMatchObject({
-      backgroundSource: { kind: 'preset', presetId: 'spice-harvester' },
+      backgroundSource: { kind: 'preset', presetId: 'dreamrules-rainbow' },
       backgroundImageUrl: '',
     });
     await userEvent.click(canvas.getByRole('radio', { name: 'Image URL' }));

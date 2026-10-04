@@ -1,0 +1,8 @@
+{
+  "source": "dune-assets/cover/dreams-b.png",
+  "sourceSha256": "85f359b446199ae830cbefd43cefb977e6b1891e4e7ad6a510169a7f6292ca3b",
+  "confirmedBy": "Norbert",
+  "confirmedOn": "2026-10-04",
+  "preparation": "Composited the source alpha over white for the opaque cover-image category. Original dimensions and artwork retained.",
+  "issue": "https://github.com/ndelangen/dunezone/issues/1832"
+}
