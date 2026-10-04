@@ -1,0 +1,44 @@
+.demo {
+  width: 100vw;
+  margin-inline: calc(50% - 50vw);
+  position: relative;
+}
+.table {
+  height: clamp(340px, 43vw, 560px);
+  position: relative;
+}
+.scene {
+  position: absolute;
+  inset: 0;
+}
+.status {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  translate: -50% 0;
+  text-align: center;
+  pointer-events: none;
+  color: var(--mantine-color-text);
+}
+.status button {
+  pointer-events: auto;
+}
+.demo :global(.scene-piece-name) {
+  display: none;
+}
+.demo :global(.scene-piece-count) {
+  display: inline-grid;
+  place-items: center;
+  min-width: 17px;
+  height: 17px;
+  padding: 1px 4px;
+  border-radius: 10px;
+  background: #20170ecc;
+  color: #fff3d4;
+  font: 600 11px sans-serif;
+}
+.status {
+  background: #f5eedad9;
+  border-radius: 8px;
+  padding: 5px 14px;
+}

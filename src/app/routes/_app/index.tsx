@@ -6,7 +6,7 @@ import { PublishedImage } from '@ui/content/PublishedImage';
 import { CanvasScale } from '@ui/layout/CanvasScale';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { ArrowRight } from 'lucide-react';
-import { useEffect, useRef } from 'react';
+import { lazy, Suspense, useEffect, useRef } from 'react';
 import type { CSSProperties } from 'react';
 
 import { useMotionAllowed } from '@app/styles/motion';
@@ -19,6 +19,8 @@ import { backgroundPresets } from '@game/data/backgrounds';
 import { card as cardSize } from '@game/data/sizes';
 
 import styles from './index.module.css';
+
+const LiveDemo = lazy(() => import('./homepage-live-prototype/LiveDemo'));
 
 export const Route = createFileRoute('/_app/')({ component: IndexPage });
 
@@ -465,10 +467,21 @@ function HomepageChapters() {
   return (
     <div className={styles.cinemaFlow}>
       <section id="play-preview" className={styles.cinemaOpening} data-marketing-arrival>
-        <div className={styles.wideBoard}>
-          <BoardPreview />
-        </div>
-        <div className={styles.previewCopy}>
+        {import.meta.env.DEV && new URLSearchParams(location.search).has('liveDemo') ? (
+          <Suspense fallback={<BoardPreview />}>
+            <LiveDemo />
+          </Suspense>
+        ) : (
+          <div className={styles.wideBoard}>
+            <BoardPreview />
+          </div>
+        )}
+        <div
+          className={styles.previewCopy}
+          style={
+            import.meta.env.DEV && new URLSearchParams(location.search).has('liveDemo') ? { marginTop: 64 } : undefined
+          }
+        >
           <PreviewCopy />
         </div>
       </section>

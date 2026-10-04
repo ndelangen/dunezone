@@ -1403,14 +1403,14 @@ function SceneContents({
 }) {
   const table = useTabletop();
   const { state, renderedPieces, selectPiece } = table;
-  const { controlsEnabled, onPointerSessionChange } = useSceneInteractions(onInteractionActiveChange);
+  const { onPointerSessionChange } = useSceneInteractions(onInteractionActiveChange);
   useScenePointerSession(onPointerSessionChange);
   useCanvasHoverReset();
   useCanvasName();
 
   return (
     <>
-      <color attach="background" args={['#130d0a']} />
+      {/* Prototype only: let the homepage show through the real scene. */}
       <fog attach="fog" args={['#130d0a', 10, 22]} />
       <CameraRelativeFog />
       <ScenePresence />
@@ -1431,7 +1431,7 @@ function SceneContents({
             <TablePieceMesh key={piece.id} piece={piece} {...pieceSceneState(piece, table)} />
           ))}
       </group>
-      <CameraControls enabled={controlsEnabled} command={cameraView} mapFramingPoints={mapFramingPoints} />
+      <CameraControls enabled={false} command={cameraView} mapFramingPoints={mapFramingPoints} />
       <SelectionRingWarmup />
     </>
   );
@@ -1640,7 +1640,7 @@ export function TabletopScene({
               frameloop="demand"
               renderer={{
                 antialias: true,
-                alpha: false,
+                alpha: true,
                 powerPreference: 'high-performance',
                 toneMapping: NeutralToneMapping,
               }}
