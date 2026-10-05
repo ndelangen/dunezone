@@ -792,19 +792,15 @@ function actions(): Page[] {
     columns(
       'actions-limits',
       'Other movement restrictions',
-      [
-        heading('allowed-heading', 'One faction: entry allowed'),
-        strongholdLimit('stronghold-open', false),
-        note(
-          'ally',
-          'Leave your ally immediately',
-          "You may ship into your ally's territory, but must immediately move out in that same shipment-and-movement action. You cannot end the action together. The Polar Sink and explicit abilities are exceptions."
-        ),
-      ],
+      [heading('allowed-heading', 'One faction: entry allowed'), strongholdLimit('stronghold-open', false)],
       [
         heading('blocked-heading', 'Two factions: entry blocked'),
         strongholdLimit('stronghold-full', true),
-        note('wall', 'Shield Wall is still rock', rules.wall),
+        text(
+          'ally',
+          "You may ship into your ally's territory, but must immediately move out in that same shipment-and-movement action. You cannot end the action together. The Polar Sink and explicit abilities are exceptions.",
+          'Allied troops'
+        ),
       ],
       [text('restrictions-introduction', rules.occupancy + ' Opposing troops otherwise do not block your passage.')]
     ),
