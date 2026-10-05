@@ -541,21 +541,21 @@ function actions(): Page[] {
           ),
           {
             ...scene(
-              'ship-tueks',
+              'ship-habbanya',
               [
-                [0.965, 0.91, 3],
-                [0.845, 0.695, 3],
+                [0.01, 0.9, 3],
+                [0.14, 0.71, 3],
               ],
-              ['tueks']
+              ['habbanya']
             ),
             routes: [
               {
                 id: 'shipment',
-                label: "Reserves to Tuek's Sietch: 3 troops, 3 spice",
+                label: 'Reserves to Habbanya Sietch: 3 troops, 3 spice',
                 direction: 'forward',
                 showWaypoints: false,
                 color: '#387968',
-                waypoints: [{ position: { x: 0.95, y: 0.92 } }, { territory: 'tueks' }],
+                waypoints: [{ position: { x: 0.065, y: 0.88 } }, { territory: 'habbanya' }],
               },
             ],
           },
@@ -567,13 +567,16 @@ function actions(): Page[] {
             'Move some or all troops from one territory to one adjacent territory for free. Move the group together; you cannot split it between destinations. You may move troops just shipped onto the board or a group already there.'
           ),
           {
-            ...scene('tueks-south-mesa', [[0.84, 0.76, 3]], ['tueks', 'south-mesa']),
+            ...scene('habbanya-ridge-flat', [[0.228, 0.832, 3]], ['habbanya', 'habbanya-ridge-flat']),
             routes: [
               {
                 id: 'movement',
-                label: "Tuek's Sietch to South Mesa: 1 territory",
+                label: 'Habbanya Sietch to Habbanya Ridge Flat: 1 territory',
                 direction: 'forward',
-                waypoints: [{ territory: 'tueks' }, { territory: 'south-mesa', position: { x: 0.82, y: 0.8 } }],
+                waypoints: [
+                  { territory: 'habbanya' },
+                  { territory: 'habbanya-ridge-flat', position: { x: 0.25, y: 0.89 } },
+                ],
               },
             ],
           },
