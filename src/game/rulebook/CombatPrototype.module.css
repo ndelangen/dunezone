@@ -1,0 +1,368 @@
+.book {
+  width: min(940px, 100%);
+  margin: 0 auto;
+  display: grid;
+  gap: 28px;
+  padding: 24px 0 60px;
+}
+.page {
+  container-type: inline-size;
+  box-sizing: border-box;
+  aspect-ratio: 1;
+  padding: 34px;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 20px;
+  color: #21170f;
+  background: #fffaee;
+  font:
+    18px/1.27 "C_Candara",
+    Candara,
+    sans-serif;
+  box-shadow: 0 6px 18px #0005;
+}
+.body {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.footer {
+  display: flex;
+  justify-content: space-between;
+  border-top: 5px solid #b3a574;
+  padding-top: 8px;
+  font-size: 12px;
+  letter-spacing: 1px;
+}
+.intro {
+  margin: 0;
+  font-size: 19px;
+}
+.rows {
+  display: grid;
+  grid-template-rows: repeat(3, minmax(0, 1fr));
+  flex: 1;
+  gap: 18px;
+}
+.step {
+  display: grid;
+  grid-template-columns: 37% minmax(0, 1fr);
+  align-items: center;
+  gap: 20px;
+  min-height: 0;
+}
+.copy {
+  display: grid;
+  align-content: start;
+  gap: 9px;
+}
+.copy p {
+  margin: 0;
+}
+.copy[data-compact] {
+  font-size: 17px;
+  gap: 12px;
+}
+.number {
+  display: inline-grid;
+  place-items: center;
+  background: #203648;
+  color: #fff;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  font:
+    17px/1 "C_Candara",
+    sans-serif;
+}
+.example {
+  color: #644827;
+}
+.legend {
+  font-size: 15px;
+  color: #655a4b;
+}
+.pair {
+  display: flex;
+  gap: 10px;
+  align-items: start;
+  width: 100%;
+}
+.wheelFrame {
+  flex: 1;
+  min-width: 0;
+  aspect-ratio: 190/250;
+  container-type: inline-size;
+  position: relative;
+}
+.wheelCanvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 190px;
+  height: 250px;
+  box-sizing: border-box;
+  padding: 70px 10px 10px;
+  transform: scale(calc(100cqw / 190px));
+  transform-origin: top left;
+  filter: drop-shadow(2px 4px 3px #21170f66);
+}
+.wheelCanvas[data-facing="left"] {
+  rotate: 5deg;
+}
+.wheelCanvas[data-facing="right"] {
+  rotate: -5deg;
+}
+.hiddenWheel {
+  width: 170px;
+  height: 170px;
+}
+.hiddenCards {
+  display: flex;
+  position: absolute;
+  top: 10px;
+  left: 45px;
+  gap: 0;
+}
+.hiddenCards .card + .card {
+  margin-left: -20px;
+  transform: rotate(12deg);
+}
+.card {
+  display: block;
+  position: relative;
+  width: 60px;
+  height: 84px;
+  flex: none;
+}
+.card > img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 3px;
+}
+.piece {
+  display: block;
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+.piece > img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.cross {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 42px;
+  line-height: 1;
+  text-shadow: 0 1px 3px #fff;
+}
+.troops {
+  display: inline-flex;
+  gap: 3px;
+  flex-wrap: wrap;
+}
+.troops[data-lost] {
+  opacity: 0.55;
+}
+.troop {
+  display: inline-block;
+  width: 25px;
+  height: 25px;
+  filter: drop-shadow(1px 2px 1px #0006);
+}
+.calculation {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  gap: 9px;
+}
+.calculation > div {
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+  text-align: center;
+}
+.calculation strong {
+  font-size: 21px;
+}
+.calculation span {
+  font-size: 16px;
+}
+.calculation .dialNumber {
+  font:
+    56px "C_Advokat_Modern",
+    serif;
+}
+.losses {
+  display: grid;
+  gap: 22px;
+}
+.losses > div {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+.losses span {
+  font-size: 15px;
+}
+.exchange {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  justify-content: center;
+}
+.cardSet {
+  display: flex;
+  gap: 6px;
+  filter: drop-shadow(2px 4px 3px #21170f66);
+}
+.arrow {
+  font-size: 36px;
+  color: #806c3f;
+}
+.columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 28px;
+}
+.columns p {
+  margin: 0 0 14px;
+}
+.threeColumns {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+}
+.hero {
+  width: 57%;
+  margin: 0 auto;
+}
+.hero:has(.calculation) {
+  width: 95%;
+  padding: 60px 0;
+}
+.twoVisuals {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 50px;
+  padding: 35px 10px;
+}
+.ribbon {
+  margin: auto 0 0;
+  padding: 15px;
+  background: #ebdfbd;
+  font-size: 20px;
+  text-align: center;
+}
+.ties {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 40px;
+  margin: 15px 0 30px;
+}
+.ties p {
+  margin: 14px 0;
+}
+.score {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 32px 0;
+  border-bottom: 2px solid #b3a574;
+  color: #203648;
+  font:
+    45px "C_Advokat_Modern",
+    serif;
+}
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 17px;
+}
+.table td,
+.table th {
+  text-align: left;
+  padding: 12px 8px;
+  border-bottom: 1px solid #cbbd95;
+}
+.table th {
+  background: #ebdfbd;
+}
+.exceptionGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px 30px;
+}
+.exception {
+  font-size: 16px;
+}
+.exception p {
+  margin: 0 0 10px;
+}
+.tableStage {
+  display: grid;
+  grid-template-columns: 50% 1fr;
+  align-items: center;
+  gap: 32px;
+}
+.total {
+  display: grid;
+  gap: 12px;
+}
+.total strong {
+  font:
+    38px "C_Advokat_Modern",
+    serif;
+  margin-bottom: 16px;
+}
+.aftermathColumns {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 28px;
+  height: 100%;
+}
+.aftermathColumns > section {
+  display: grid;
+  grid-template-rows: 190px 1fr;
+  gap: 24px;
+}
+@container (width < 700px) {
+  .page {
+    font-size: 15px;
+    padding: 22px;
+  }
+}
+
+.preparation {
+  display: grid;
+  grid-template-rows: 1.6fr 1fr;
+  flex: 1;
+  gap: 18px;
+  min-height: 0;
+}
+.preparationCopy {
+  display: grid;
+  gap: 16px;
+}
+
+.troopLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mapFull {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  flex: 1;
+  gap: 20px;
+}
