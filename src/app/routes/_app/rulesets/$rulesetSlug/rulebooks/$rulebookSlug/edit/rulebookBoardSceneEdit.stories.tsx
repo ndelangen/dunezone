@@ -19,7 +19,7 @@ export const MarkersAndAnnotations = meta.story({
     await userEvent.tab();
     await expect(angle).toHaveValue('45');
     await userEvent.click(canvas.getByRole('button', { name: 'Annotations (0)' }));
-    await userEvent.click(canvas.getByRole('button', { name: 'Add annotation' }));
+    await userEvent.click(await canvas.findByRole('button', { name: 'Add annotation' }));
     await userEvent.type(canvas.getByRole('textbox', { name: 'Annotation 1 title' }), 'Shared territory');
     await userEvent.type(
       canvas.getByRole('textbox', { name: 'Annotation 1 explanation' }),
@@ -54,7 +54,7 @@ export const RoutesAndSizing = meta.story({
     await userEvent.click(portal.getByRole('option', { name: 'Automatic' }));
     await expect(canvasElement.querySelector('.rulebookTerritoryScene')).toHaveAttribute('data-size', 'large');
     await userEvent.click(canvas.getByRole('button', { name: 'Routes (0)' }));
-    await userEvent.click(canvas.getByRole('button', { name: 'Add route' }));
+    await userEvent.click(await canvas.findByRole('button', { name: 'Add route' }));
     await userEvent.click(canvas.getByRole('button', { name: 'Add waypoint' }));
     await userEvent.click(canvas.getByRole('combobox', { name: 'Blocked segment' }));
     await userEvent.click(portal.getByRole('option', { name: 'Waypoint 1 to 2' }));

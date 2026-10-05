@@ -262,6 +262,86 @@ describe('Final Rulebook reading order', () => {
     });
   });
 
+  test.each([
+    'missing territory',
+    'missing territory with annotations',
+    'unavailable board',
+    'missing geometry',
+  ] as const)('round-trips board fallback text with %s', (failure) => {
+    const contents = rulebookContentsV1Schema.parse({
+      schemaVersion: 1,
+      pageOrder: ['PAGE'],
+      pagesById: {
+        PAGE: {
+          id: 'PAGE',
+          anchor: 'route-fallback',
+          title: '',
+          showHeading: false,
+          layoutId: 'sequence',
+          controlValues: {},
+          blockOrderByRegion: { content: ['BRDD'] },
+          blocksById: {
+            BRDD: {
+              id: 'BRDD',
+              kind: 'board-scene',
+              boardId: failure === 'unavailable board' ? 'retired-board' : 'arrakis',
+              caption: 'Follow this route.',
+              players: [],
+              troops: [],
+              highlights: [],
+              annotations:
+                failure === 'missing territory'
+                  ? []
+                  : [
+                      {
+                        id: 'NOTE',
+                        title: 'Pass the storm',
+                        text: 'Keep this *instruction* available.',
+                        x: 0.2,
+                        y: 0.3,
+                      },
+                    ],
+              routes: [
+                {
+                  id: 'PATH',
+                  label: 'Safe path',
+                  direction: 'forward',
+                  waypoints: [{ territory: 'carthag' }, { territory: 'retired-territory' }],
+                },
+              ],
+            },
+          },
+        },
+      },
+    });
+    const projected = projectRulebookRenderDocument(contents, {}, DEFAULT_RULEBOOK_SETTINGS);
+    const block = projected.pagesById.PAGE!.regions[0]!.blocks[0]!;
+    if (failure === 'missing geometry' && block.kind === 'board-scene' && block.board.status === 'ready') {
+      delete block.board.geometry;
+    }
+    const markup = renderToStaticMarkup(
+      createElement(RulebookPageRenderer, { page: projected.pagesById.PAGE!, settings: DEFAULT_RULEBOOK_SETTINGS })
+    );
+    document.body.innerHTML = `<main data-rulebook-reader-document>${markup.replaceAll('><', '> <')}</main>`;
+    const range = document.createRange();
+    range.selectNodeContents(document.querySelector('[data-rulebook-block-id="BRDD"]')!);
+    const selection = window.getSelection()!;
+    selection.removeAllRanges();
+    selection.addRange(range);
+    const built = locatorFromRulebookSelection(selection);
+    if (!built.ok) {
+      throw new Error(built.message);
+    }
+    expect(built.locator.exact).toContain('Safe path (route position unavailable)');
+    if (failure === 'unavailable board' || failure === 'missing geometry') {
+      expect(built.locator.exact).toContain('Pass the storm Keep this *instruction* available.');
+    }
+    expect(resolveRulebookTextLocator(contents, projected, { status: 'valid', locator: built.locator })).toMatchObject({
+      status: 'matched',
+      blockId: 'BRDD',
+    });
+  });
+
   test('shares board annotation prose and movement explanations at their rendered scopes', () => {
     const scene = {
       boardId: 'arrakis',

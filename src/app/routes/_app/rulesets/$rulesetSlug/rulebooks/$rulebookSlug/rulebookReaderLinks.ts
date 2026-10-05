@@ -281,8 +281,22 @@ function projectedBoardAnnotationText(annotation: BoardAnnotation, index: number
 }
 
 function projectedBoardText(board: RenderBoardScene) {
-  if (board.board.status !== 'ready' || !board.board.geometry) {
-    return normalizeRulebookText(`Board unavailable ${board.caption}`);
+  const geometry = board.board.status === 'ready' ? board.board.geometry : undefined;
+  const routeLegend = (board.routes ?? []).map((route) => {
+    const unavailable = route.waypoints.some(
+      (point) => !point.position && !geometry?.parts.some((part) => part.key === point.territory)
+    );
+    return `${route.label}${unavailable ? ' (route position unavailable)' : ''}`;
+  });
+  if (!geometry) {
+    return normalizeRulebookText(
+      [
+        'Board unavailable',
+        board.caption,
+        ...routeLegend,
+        ...board.annotations.flatMap((annotation) => [annotation.title, annotation.text]),
+      ].join(' ')
+    );
   }
   return normalizeRulebookText(
     [
@@ -306,10 +320,10 @@ function projectedBoardText(board: RenderBoardScene) {
       ]),
       ...board.players.flatMap((player) => (player.faction.status === 'ready' && player.faction.token ? [] : ['?'])),
       ...board.annotations.map((_, index) => String(index + 1)),
-      ...(board.annotations.length ? [] : (board.routes ?? []).map((route) => route.label)),
+      ...(board.annotations.length ? [] : routeLegend),
       board.caption,
       ...board.annotations.map(projectedBoardAnnotationText),
-      ...(board.annotations.length ? (board.routes ?? []).map((route) => route.label) : []),
+      ...(board.annotations.length ? routeLegend : []),
     ].join(' ')
   );
 }
