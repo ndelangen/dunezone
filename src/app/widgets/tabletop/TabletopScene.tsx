@@ -1732,10 +1732,14 @@ function RenderedTable({ onReady }: { onReady?: () => void }) {
       const href = topFaceHref(piece);
       return !href || subscribePublishedFace.peek(href) !== undefined;
     });
-    if (++frames.current > 3 && artworkReady && unsettledArtworkLoads() === 0) {
+    if (!artworkReady || unsettledArtworkLoads() > 0) {
+      frames.current = 0;
+      return;
+    }
+    if (++frames.current > 3) {
       complete.current = true;
       pendingFrame.current = requestAnimationFrame(() => onReady?.());
-    } else if (frames.current <= 3) {
+    } else {
       invalidate();
     }
   });

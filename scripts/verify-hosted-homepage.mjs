@@ -88,29 +88,33 @@ export async function verifyHomepage({
 }) {
   const member = await account('player-a');
   const guest = await peer('unsigned');
-  const artworkDelayMs = 12_000;
-  let delayedArtworkLoaded = false;
-  /* A slow scene image must leave startup active until its artwork arrives. */
+  const artworkRequested = Promise.withResolvers();
+  const releaseArtwork = Promise.withResolvers();
+  /* Hold a scene image until the driver has checked the still-loading preview. */
   await member.context.route('**/homepage-table/snooper.webp', async (route) => {
-    await new Promise((resolve) => setTimeout(resolve, artworkDelayMs));
+    artworkRequested.resolve();
+    await releaseArtwork.promise;
     await route.continue();
-    delayedArtworkLoaded = true;
   });
   for (const who of [member, guest]) {
     await who.page.goto(origin, { waitUntil: 'domcontentloaded' });
     await who.page.getByRole('link', { name: 'Take a sneak peek', exact: true }).click();
     await who.page.getByText('Try moving one of the pieces!', { exact: true }).waitFor();
-    /* The injected network delay adds to the ordinary thirty-second startup budget. */
-    await who.page.locator('[data-live-ready="true"]').waitFor({
-      timeout: 30_000 + (who === member ? artworkDelayMs : 0),
-    });
+    if (who === member) {
+      await artworkRequested.promise;
+      await new Promise((resolve) => setTimeout(resolve, 12_000));
+      assert.equal(await who.page.locator('[data-live-ready="true"]').count(), 0);
+      releaseArtwork.resolve();
+    }
+    await who.page.locator('[data-live-ready="true"]').waitFor();
     await tableLoaded(who);
     await until(() => who.view(), `${who.label} received no homepage table.`);
+    if (who === member) {
+      await capture(member, 'homepage-member-ready-after-slow-artwork');
+    }
   }
-  assert.ok(delayedArtworkLoaded, 'The homepage must finish startup after its delayed scene artwork arrives.');
   passed('The homepage becomes interactive after scene artwork takes longer than ten seconds');
   await recordRenderer(member, '#play-preview canvas');
-  await capture(member, 'homepage-member-ready-after-slow-artwork');
   await until(() => member.view().viewer.viewerSeat !== spectator, 'Signing in did not grant table handling.');
   assert.equal(guest.view().viewer.viewerSeat, spectator);
   assert.ok(member.sent.some((message) => message.type === 'authenticate' && message.ticketLength === 64));
