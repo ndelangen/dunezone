@@ -526,23 +526,37 @@ const pages = [
   leaders(),
   preparingPlans(),
   single('reveal', 'Reveal and resolve', [revealed, revealExample, resultRule, resultTable]),
-  columns(
-    'cards',
-    'Settle the battle',
-    [spite, spiteExample, cardRule, cardExample],
-    [
-      {
-        id: 'losses-heading',
-        kind: 'section-heading',
-        title: 'Pay and remove troops',
-        faction: { status: 'unselected' },
-      },
-      losses,
-      lossExample,
-      leaderCommitment,
-      continueBattle,
-    ]
-  ),
+  {
+    ...columns(
+      'cards',
+      'Settle the battle',
+      [
+        {
+          id: 'cards-heading',
+          kind: 'section-heading',
+          title: 'Settle abilities and cards',
+          faction: { status: 'unselected' },
+        },
+        spite,
+        spiteExample,
+        cardRule,
+        cardExample,
+      ],
+      [
+        {
+          id: 'losses-heading',
+          kind: 'section-heading',
+          title: 'Pay and remove troops',
+          faction: { status: 'unselected' },
+        },
+        losses,
+        lossExample,
+        leaderCommitment,
+        continueBattle,
+      ]
+    ),
+    showHeading: false,
+  },
   ties(),
   traitors(),
   specials(),
