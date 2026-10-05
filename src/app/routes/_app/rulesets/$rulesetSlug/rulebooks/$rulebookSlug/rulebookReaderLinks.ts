@@ -293,7 +293,6 @@ function projectedBoardText(board: RenderBoardScene) {
           (troop.face === 'front' ? troop.artwork : troop.artwork?.back);
         return available ? [] : Array.from({ length: troop.count }, () => '?');
       }),
-      board.storm ? 'STORM' : '',
       ...(board.routes ?? []).flatMap((route) => [
         route.label,
         ...route.waypoints.flatMap((point, index) =>

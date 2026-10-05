@@ -196,6 +196,72 @@ describe('Final Rulebook reading order', () => {
     }
   );
 
+  test('round-trips a selection across a storm illustration without inventing icon text', () => {
+    const contents = rulebookContentsV1Schema.parse({
+      schemaVersion: 1,
+      pageOrder: ['PAGE'],
+      pagesById: {
+        PAGE: {
+          id: 'PAGE',
+          anchor: 'storm-route',
+          title: '',
+          showHeading: false,
+          layoutId: 'sequence',
+          controlValues: {},
+          blockOrderByRegion: { content: ['TEXT', 'BRDD', 'NEXT'] },
+          blocksById: {
+            TEXT: { id: 'TEXT', kind: 'text', text: 'Take the route.' },
+            NEXT: {
+              id: 'NEXT',
+              kind: 'text',
+              text: 'Continue through the clear territories. The storm blocks the direct crossing, but this longer route stays clear.',
+            },
+            BRDD: {
+              id: 'BRDD',
+              kind: 'board-scene',
+              boardId: 'arrakis',
+              caption: 'Go around.',
+              storm: { angle: 70 },
+              players: [],
+              troops: [],
+              highlights: [],
+              annotations: [],
+              routes: [
+                {
+                  id: 'PATH',
+                  label: 'Safe path',
+                  direction: 'forward',
+                  showWaypoints: false,
+                  waypoints: [{ territory: 'carthag' }, { territory: 'arsunt' }],
+                },
+              ],
+            },
+          },
+        },
+      },
+    });
+    const projected = projectRulebookRenderDocument(contents, {}, DEFAULT_RULEBOOK_SETTINGS);
+    const markup = renderToStaticMarkup(
+      createElement(RulebookPageRenderer, { page: projected.pagesById.PAGE!, settings: DEFAULT_RULEBOOK_SETTINGS })
+    );
+    /* Whitespace between elements lets jsdom reproduce the word boundaries a browser selection supplies. */
+    const selection = selectRange(
+      `<main data-rulebook-reader-document>${markup.replaceAll('><', '> <')}</main>`,
+      '[data-rulebook-block-id="TEXT"] p',
+      '[data-rulebook-block-id="BRDD"] figcaption'
+    );
+    const built = locatorFromRulebookSelection(selection);
+    if (!built.ok) {
+      throw new Error(built.message);
+    }
+    expect(document.querySelector('[aria-label="Storm"] image')).not.toBeNull();
+    expect(built.locator.exact).not.toContain('STORM');
+    expect(resolveRulebookTextLocator(contents, projected, { status: 'valid', locator: built.locator })).toMatchObject({
+      status: 'matched',
+      pageId: 'PAGE',
+    });
+  });
+
   test('shares board annotation prose and movement explanations at their rendered scopes', () => {
     const scene = {
       boardId: 'arrakis',

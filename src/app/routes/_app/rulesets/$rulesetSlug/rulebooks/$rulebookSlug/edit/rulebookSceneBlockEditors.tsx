@@ -724,13 +724,16 @@ function BoardSceneFields({ value, references, onChange }: BoardSceneFieldsProps
       />
       <Select
         label="Board size"
-        value={value.size ?? 'compact'}
+        value={value.size ?? 'automatic'}
         data={[
+          { value: 'automatic', label: 'Automatic' },
           { value: 'compact', label: 'Compact' },
           { value: 'fit-width', label: 'Fill available width' },
         ]}
         onChange={(size) => {
-          if (size === 'compact' || size === 'fit-width') {
+          if (size === 'automatic') {
+            onChange({ ...value, size: undefined });
+          } else if (size === 'compact' || size === 'fit-width') {
             onChange({ ...value, size });
           }
         }}
