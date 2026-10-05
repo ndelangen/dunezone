@@ -19,7 +19,12 @@ import styles from './rulebookBlockEditors.module.css';
 import { CardEntryEdit, CardGroupEdit } from './rulebookCardBlockEditors';
 import { rulebookIconOptions } from './rulebookIconOptions';
 import { CreditsEdit, movedOrder, ReferenceTableEdit } from './rulebookReferenceBlockEditors';
-import { BoardSceneEdit, PieceMovementEdit, BattleComparisonEdit } from './rulebookSceneBlockEditors';
+import {
+  BoardSceneEdit,
+  PieceMovementEdit,
+  PieceTransferEdit,
+  BattleComparisonEdit,
+} from './rulebookSceneBlockEditors';
 import {
   ReferencedIllustrationEdit,
   IllustratedInventoryEdit,
@@ -392,6 +397,7 @@ export const rulebookBlockEditors = {
   'battle-plans': BattlePlansEdit,
   'board-scene': BoardSceneEdit,
   'piece-movement': PieceMovementEdit,
+  'piece-transfer': PieceTransferEdit,
   'battle-comparison': BattleComparisonEdit,
   'asset-explainer': AssetExplainerEdit,
   'card-entry': CardEntryEdit,

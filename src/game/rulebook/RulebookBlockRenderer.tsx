@@ -10,6 +10,7 @@ import { RulebookAssetExplainer } from './RulebookAssetExplainer';
 import { RulebookBattleComparisonBlock, RulebookBattleStep, RulebookBattlePlans } from './RulebookBattlePlan';
 import { RulebookBoardSceneBlock } from './RulebookBoardScene';
 import { RulebookPieceMovementBlock } from './RulebookPieceMovementBlock';
+import { RulebookPieceTransferBlock } from './RulebookPieceTransferBlock';
 import './RulebookRenderer.css';
 
 const styles = {
@@ -210,6 +211,9 @@ export function RulebookBlockRenderer({ block }: Readonly<{ block: RulebookRende
   const resolveAsset = useAssetResolver();
   if (block.kind === 'board-scene') {
     return <RulebookBoardSceneBlock block={block} />;
+  }
+  if (block.kind === 'piece-transfer') {
+    return <RulebookPieceTransferBlock block={block} />;
   }
   if (block.kind === 'piece-movement') {
     return <RulebookPieceMovementBlock block={block} />;

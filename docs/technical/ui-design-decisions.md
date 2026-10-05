@@ -536,6 +536,17 @@ explanation and illustration are useful. Standalone battle plans fill the width 
 with equal space for each side, instead of imposing a fixed printed width. Neither block dictates
 the page layout.
 
+Piece transfers follow the same separation: the standalone block takes referenced piece groups and
+a direction; the piece-movement block adds its numbered explanation and optional board. Neither
+requires empty strings to suppress unwanted narrative furniture. Board scenes accept author-supplied
+routes, using ordered territory references and optional positions. They draw paths and blocked segments;
+they do not calculate game legality. Compact sizing preserves existing scenes, while fit-width uses
+the available column at the board's natural proportions.
+
+Ordinary illustrated layouts share a 35 mm bottom clearance, including paired rows. Decoration may
+extend behind that content area. The compact sequence layout retains its 13 mm clearance, and the
+restrained design retains its own margin. A chapter must not introduce a stylesheet to alter these rules.
+
 ### Renderers stay isolated
 
 Game-asset renderers must paint identically in a Worker, in print, and in the browser, and none of

@@ -1,5 +1,6 @@
 import type { RulebookAnnotationProjection } from '@shared/rulebooks/assetExplainerAnnotations';
 import type { RulebookRenderBlockV1 } from '@shared/rulebooks/renderDocument';
+import { useId } from 'react';
 
 import { Token } from '../assets/faction/token/Token';
 import { RulebookAnnotationMarks } from './RulebookAnnotationMarks';
@@ -116,6 +117,113 @@ function BoardAnnotations({
   );
 }
 
+function BoardRoutes({ scene, width, height }: Readonly<{ scene: RulebookBoardScene; width: number; height: number }>) {
+  const markerPrefix = useId().replaceAll(':', '');
+  const geometry = scene.board.status === 'ready' ? scene.board.geometry : undefined;
+  return (scene.routes ?? []).map((route, routeIndex) => {
+    const points = route.waypoints.map((waypoint) => {
+      const part = geometry?.parts.find((entry) => entry.key === waypoint.territory);
+      const position =
+        waypoint.position ?? (part ? { x: part.x + part.width / 2, y: part.y + part.height / 2 } : undefined);
+      return position ? { x: position.x * width, y: position.y * height } : undefined;
+    });
+    const color = route.color ?? '#215f89';
+    const markerId = `${markerPrefix}-route-${routeIndex}`;
+    return (
+      <g key={route.id} data-rulebook-route={route.id}>
+        <title>{route.label}</title>
+        <defs>
+          <marker
+            id={markerId}
+            viewBox="0 0 10 10"
+            refX="9"
+            refY="5"
+            markerWidth="4"
+            markerHeight="4"
+            orient="auto-start-reverse"
+          >
+            <path d="M 0 0 L 10 5 L 0 10 Z" fill={color} />
+          </marker>
+        </defs>
+        {points.slice(0, -1).map((from, index) => {
+          const to = points[index + 1];
+          if (!from || !to) {
+            return null;
+          }
+          const blocked = route.blockedAfter === index;
+          const distance = Math.hypot(to.x - from.x, to.y - from.y);
+          const inset = Math.min(width * 0.023, distance / 3);
+          const dx = distance ? ((to.x - from.x) / distance) * inset : 0;
+          const dy = distance ? ((to.y - from.y) / distance) * inset : 0;
+          const d = `M ${from.x + dx} ${from.y + dy} L ${to.x - dx} ${to.y - dy}`;
+          const midpoint = { x: (from.x + to.x) / 2, y: (from.y + to.y) / 2 };
+          return (
+            <g key={index} data-route-segment={index} data-blocked={blocked || undefined}>
+              <path d={d} fill="none" stroke="#fff9eb" strokeWidth={width * 0.012} strokeLinecap="round" />
+              <path
+                d={d}
+                fill="none"
+                stroke={color}
+                strokeWidth={width * 0.006}
+                strokeDasharray={blocked ? `${width * 0.014} ${width * 0.012}` : undefined}
+                markerEnd={route.direction !== 'none' ? `url(#${markerId})` : undefined}
+                markerStart={route.direction === 'both' ? `url(#${markerId})` : undefined}
+              />
+              {blocked ? (
+                <g aria-label="Blocked segment" transform={`translate(${midpoint.x} ${midpoint.y})`}>
+                  <circle r={width * 0.023} fill="#fff9eb" stroke="#a22c20" strokeWidth={width * 0.004} />
+                  <path
+                    d={`M ${-width * 0.012} ${-width * 0.012} L ${width * 0.012} ${width * 0.012} M ${-width * 0.012} ${width * 0.012} L ${width * 0.012} ${-width * 0.012}`}
+                    stroke="#a22c20"
+                    strokeWidth={width * 0.005}
+                  />
+                </g>
+              ) : null}
+            </g>
+          );
+        })}
+        {points.map((point, index) =>
+          point ? (
+            <g key={index} transform={`translate(${point.x} ${point.y})`}>
+              <circle r={width * 0.018} fill={color} stroke="#fff9eb" strokeWidth={width * 0.003} />
+              <text
+                textAnchor="middle"
+                dominantBaseline="central"
+                fill="#fff9eb"
+                fontWeight="bold"
+                fontSize={width * 0.024}
+              >
+                {index}
+              </text>
+            </g>
+          ) : null
+        )}
+      </g>
+    );
+  });
+}
+
+function RouteLegend({ scene }: Readonly<{ scene: RulebookBoardScene }>) {
+  const geometry = scene.board.status === 'ready' ? scene.board.geometry : undefined;
+  return scene.routes?.length ? (
+    <ul className="rulebookRouteLegend" aria-label="Routes">
+      {scene.routes.map((route) => (
+        <li key={route.id}>
+          <span className="rulebookRouteKey" style={{ backgroundColor: route.color ?? '#215f89' }} aria-hidden="true" />
+          <span>
+            <strong>{route.label}</strong>
+            {route.waypoints.some(
+              (point) => !point.position && !geometry?.parts.some((part) => part.key === point.territory)
+            )
+              ? ' (route position unavailable)'
+              : ''}
+          </span>
+        </li>
+      ))}
+    </ul>
+  ) : null;
+}
+
 function TableOverlay({
   scene,
   width,
@@ -131,6 +239,7 @@ function TableOverlay({
           <StormDirection angle={scene.storm.angle} players={scene.players} geometry={geometry} />
         </>
       ) : null}
+      <BoardRoutes scene={scene} width={width} height={height} />
       <PlayerMarkers players={scene.players} geometry={geometry} />
       {projection ? <BoardAnnotations annotations={scene.annotations} projection={projection} /> : null}
     </>
@@ -145,6 +254,7 @@ export function RulebookBoardSceneVisual({ scene }: Readonly<{ scene: RulebookBo
       <div className="rulebookBoardUnavailable">
         <p>Board unavailable</p>
         {scene.caption ? <p>{scene.caption}</p> : null}
+        <RouteLegend scene={scene} />
         {scene.annotations.length ? (
           <ol aria-label="Explanations">
             {scene.annotations.map((annotation) => (
@@ -164,7 +274,7 @@ export function RulebookBoardSceneVisual({ scene }: Readonly<{ scene: RulebookBo
     <RulebookTerritoryScene
       board={{ imageUrl: source.imageUrl, geometry }}
       label={source.name}
-      size={scene.annotations.length ? 'large' : 'compact'}
+      size={scene.size ?? (scene.annotations.length ? 'large' : 'compact')}
       viewport={{
         x: viewport.x * geometry.width,
         y: viewport.y * geometry.height,
@@ -188,6 +298,7 @@ export function RulebookBoardSceneVisual({ scene }: Readonly<{ scene: RulebookBo
     return (
       <figure className="rulebookBoardPlain">
         {draw()}
+        <RouteLegend scene={scene} />
         {scene.caption ? <figcaption>{scene.caption}</figcaption> : null}
       </figure>
     );
@@ -224,6 +335,7 @@ export function RulebookBoardSceneVisual({ scene }: Readonly<{ scene: RulebookBo
   return (
     <div className="rulebookBoardAnnotated">
       <RulebookAssetExplainer block={block} embedded renderIllustration={draw} />
+      <RouteLegend scene={scene} />
     </div>
   );
 }

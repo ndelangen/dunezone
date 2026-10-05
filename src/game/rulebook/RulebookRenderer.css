@@ -110,7 +110,7 @@
 .rulebookPageContent {
   height: 100%;
   padding: var(--rulebook-page-margin);
-  padding-bottom: calc(var(--rulebook-artwork-height) + 5 * var(--rulebook-mm));
+  padding-bottom: calc(35 * var(--rulebook-mm));
 }
 
 .rulebookPage[data-rulebook-design="restrained"] .rulebookPageContent {
@@ -1631,9 +1631,6 @@
 .rulebookBattleWheelCanvas {
   filter: drop-shadow(0 4px 4px rgb(0 0 0 / 45%));
 }
-.rulebookPage[data-rulebook-layout="paired-rows"] .rulebookPageContent {
-  padding-bottom: calc(35 * var(--rulebook-mm));
-}
 .rulebookPairedRows {
   display: flex;
   flex-direction: column;
@@ -1694,4 +1691,25 @@
 .rulebookGrid[data-rulebook-grid="content-strip"] > [data-rulebook-region="strip"] > .rulebookRegionBlocks > * {
   flex: 1 1 0;
   min-width: 0;
+}
+
+.rulebookTerritoryScene[data-size="fit-width"] {
+  height: auto;
+  display: block;
+}
+.rulebookRouteLegend {
+  list-style: none;
+  padding: 0;
+  margin: calc(2 * var(--rulebook-mm)) 0 0;
+}
+.rulebookRouteLegend li {
+  display: flex;
+  gap: calc(2 * var(--rulebook-mm));
+  align-items: baseline;
+}
+.rulebookRouteKey {
+  display: inline-block;
+  width: calc(5 * var(--rulebook-mm));
+  height: calc(1 * var(--rulebook-mm));
+  flex: none;
 }

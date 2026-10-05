@@ -294,10 +294,21 @@ function projectedBoardText(board: RenderBoardScene) {
         return available ? [] : Array.from({ length: troop.count }, () => '?');
       }),
       board.storm ? 'STORM' : '',
+      ...(board.routes ?? []).flatMap((route) => [
+        route.label,
+        ...route.waypoints.flatMap((point, index) =>
+          point.position ||
+          (board.board.status === 'ready' && board.board.geometry?.parts.some((part) => part.key === point.territory))
+            ? [String(index)]
+            : []
+        ),
+      ]),
       ...board.players.flatMap((player) => (player.faction.status === 'ready' && player.faction.token ? [] : ['?'])),
       ...board.annotations.map((_, index) => String(index + 1)),
+      ...(board.annotations.length ? [] : (board.routes ?? []).map((route) => route.label)),
       board.caption,
       ...board.annotations.map(projectedBoardAnnotationText),
+      ...(board.annotations.length ? (board.routes ?? []).map((route) => route.label) : []),
     ].join(' ')
   );
 }
@@ -350,6 +361,9 @@ function projectedBlockText(block: RulebookRenderBlockV1) {
   }
   if (block.kind === 'board-scene') {
     return projectedBoardText(block);
+  }
+  if (block.kind === 'piece-transfer') {
+    return projectedMovementText({ ...block, kind: 'piece-movement', step: '', title: '', caption: '' });
   }
   if (block.kind === 'piece-movement') {
     return projectedMovementText(block);

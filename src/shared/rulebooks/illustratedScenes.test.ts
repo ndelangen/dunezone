@@ -9,6 +9,20 @@ import { rulebookRenderDocumentV1Schema } from './renderDocument';
 
 const board = {
   boardId: 'arrakis',
+  size: 'fit-width' as const,
+  routes: [
+    {
+      id: 'PATH',
+      label: 'Two steps',
+      direction: 'forward' as const,
+      waypoints: [
+        { territory: 'tueks' },
+        { territory: 'pasty-mesa', position: { x: 0.8, y: 0.5 } },
+        { territory: 'shield-wall' },
+      ],
+      blockedAfter: 1,
+    },
+  ],
   caption: 'Shared territory',
   viewport: { x: -0.03, y: -0.03, width: 1.06, height: 1.06 },
   storm: { angle: 45 },
@@ -68,6 +82,19 @@ function blocks(): RulebookBlockDraft[] {
       notes: [{ id: 'reward', label: 'Spice gained', source: { kind: 'asset', assetId: 'spice' }, count: 6 }],
       board,
     },
+    {
+      id: 'XFER',
+      kind: 'piece-transfer',
+      direction: 'exchange',
+      left: {
+        label: 'Supply',
+        pieces: [{ id: 'CARD', kind: 'source', source: { kind: 'asset', assetId: 'transfer-card' }, count: 1 }],
+      },
+      right: {
+        label: 'Player',
+        pieces: [{ id: 'UNIT', kind: 'troops', factionId: 'transfer-faction', face: 'front', count: 2 }],
+      },
+    },
     { id: 'CMPR', kind: 'battle-comparison', examples: [example, structuredClone(example)] },
   ];
 }
@@ -99,11 +126,13 @@ describe('Rulebook illustrated scenes', () => {
     const rendered = projectRulebookRenderDocument(value, {}, { size: 'square', design: 'illustrated' });
     expect(rulebookRenderDocumentV1Schema.parse(rendered)).toEqual(rendered);
     expect(collectRulebookReferenceIds(value)).toEqual({
-      assetIds: ['spice', 'weapon'],
-      factionIds: ['left', 'right'],
+      assetIds: ['spice', 'transfer-card', 'weapon'],
+      factionIds: ['left', 'right', 'transfer-faction'],
     });
     expect(rendered.pagesById.PAGE!.regions[0]!.blocks[0]).toMatchObject({
       kind: 'board-scene',
+      routes: board.routes,
+      size: 'fit-width',
       board: { status: 'ready', reference: { kind: 'board', boardId: 'arrakis' } },
       players: [{ faction: { status: 'unavailable', factionId: 'left' } }],
       troops: [{ count: 4, faction: { status: 'unavailable', factionId: 'right' } }],
@@ -115,6 +144,26 @@ describe('Rulebook illustrated scenes', () => {
       notes: [{ count: 6, source: { status: 'unavailable', reference: { kind: 'asset', assetId: 'spice' } } }],
       board: { board: { status: 'ready' } },
     });
+  });
+
+  test('routes reject out-of-board positions and non-existent segments', () => {
+    const route = board.routes[0]!;
+    expect(rulebookBoardSceneSchema.safeParse({ ...board, routes: [{ ...route, blockedAfter: 2 }] }).success).toBe(
+      false
+    );
+    expect(
+      rulebookBoardSceneSchema.safeParse({ ...board, routes: [{ ...route, waypoints: [{ territory: 'tueks' }] }] })
+        .success
+    ).toBe(false);
+    expect(
+      rulebookBoardSceneSchema.safeParse({
+        ...board,
+        routes: [
+          { ...route, waypoints: [{ territory: 'tueks', position: { x: -0.1, y: 0.5 } }, { territory: 'pasty-mesa' }] },
+        ],
+      }).success
+    ).toBe(false);
+    expect(rulebookBoardSceneSchema.safeParse({ ...board, routes: [route, route] }).success).toBe(false);
   });
 
   test('missing boards and empty selections remain explicit without losing authored explanations', () => {

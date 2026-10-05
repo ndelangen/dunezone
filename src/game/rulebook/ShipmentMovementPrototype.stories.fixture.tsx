@@ -11,7 +11,7 @@ type Block = RulebookRenderBlockV1;
 type Page = RulebookRenderPageV1;
 type Board = Extract<Block, { kind: 'board-scene' }>;
 type Explainer = Extract<Block, { kind: 'asset-explainer' }>;
-type Movement = Extract<Block, { kind: 'piece-movement' }>;
+type Movement = Extract<Block, { kind: 'piece-transfer' }>;
 export type ShipmentOutline = 'turn' | 'actions' | 'atlas' | 'decisions' | 'blocks';
 const board = resolveRulebookBoardDefinition('arrakis')!;
 const boardSource: Board['board'] = {
@@ -119,6 +119,7 @@ function scene(id: string, positions: [number, number, number][], highlights: st
     kind: 'board-scene',
     boardId: board.id,
     board: boardSource,
+    size: 'fit-width',
     caption: '',
     players: [],
     annotations: [],
@@ -153,10 +154,7 @@ function transfer(id: string, from: string, to: string, count = 3): Movement {
   ];
   return {
     id,
-    kind: 'piece-movement',
-    step: '',
-    title: '',
-    caption: '',
+    kind: 'piece-transfer',
     direction: 'right',
     left: { label: from, pieces },
     right: { label: to, pieces },
@@ -451,15 +449,42 @@ function turn(): Page[] {
         ),
       ]
     ),
-    single('turn-move', 'Then, use ornithopters', [
-      text('ornithopters', rules.ornithopters),
-      routeMap('route'),
-      example(
-        'route-example',
-        'Three territories, one movement',
-        "The three troops travel from Tuek's Sietch through Pasty Mesa and Shield Wall to Imperial Basin. The troop in Arrakeen stays put. No spice is paid for this movement."
-      ),
-    ]),
+    wide(
+      'turn-move',
+      'Then, use ornithopters',
+      [
+        {
+          ...scene('ornithopter-route', [[0.65, 0.14, 1]]),
+          highlights: ['tueks', 'pasty-mesa', 'shield-wall', 'imperial-basin'].map((territory) => ({
+            territory,
+            color: '#215f89',
+            opacity: 0.2,
+          })),
+          routes: [
+            {
+              id: 'flight',
+              label: '0 to 3: one movement',
+              direction: 'forward',
+              waypoints: ['tueks', 'pasty-mesa', 'shield-wall', 'imperial-basin'].map((territory) => ({ territory })),
+            },
+          ],
+        },
+        example(
+          'route-example',
+          'Three territories, one movement',
+          "The group leaves Tuek's Sietch (0), crosses Pasty Mesa (1) and Shield Wall (2), then stops in Imperial Basin (3). The troop in Arrakeen stays put."
+        ),
+      ],
+      [
+        text('ordinary-move', rules.movement, 'Choose one group'),
+        text('ornithopters', rules.ornithopters, 'Extend its range'),
+        text(
+          'counting',
+          'Count each territory entered. Your starting territory is 0. Sector lines do not add steps.',
+          'Count the route'
+        ),
+      ]
+    ),
     columns(
       'turn-check',
       'Check the whole route',
@@ -787,7 +812,7 @@ function blockReview(): Page[] {
     single('block-plan', 'What the layouts reveal', [
       text(
         'scope',
-        'Authoring review, not player-facing rules. All four outlines use the existing square-page renderer, blocks and layouts. No block contracts or styles have been changed.'
+        'Authoring review, not player-facing rules. The four outlines use the square-page renderer and registered rulebook blocks. A now uses the approved route, board-sizing and piece-transfer additions. B, C and D remain alternative outlines.'
       ),
       table(
         'inventory',
@@ -801,37 +826,37 @@ function blockReview(): Page[] {
           ['Custom explainer labels', 'The route map labels its start 0, entered territories 1 to 3 and the city A.'],
         ]
       ),
-      heading('proposal', 'Proposed adjustment: routes on a board scene'),
+      heading('proposal', 'Board scene: route inputs'),
       text(
         'route-api',
-        'Keep board, storm, troops, highlights and annotations. Add an optional routes list. Each route has an id, ordered waypoints, a direction and a legend label. Each waypoint identifies a territory and may specify a point within it. The author supplies the route; the block draws it.'
+        'Keep board, storm, troops, highlights and annotations. An optional routes list supplies the path. Each route has an id, ordered waypoints, a direction and a legend label. Each waypoint identifies a territory and may specify a point within it. The author supplies the route; the block draws it.'
       ),
       text(
         'route-reason',
-        'The current maps can number and highlight destinations, but cannot connect them as a travel path. A route would make adjacency, direction and a blocked segment visible. The same input could explain worm rides, a moving Surveyor or travel in another rulebook.'
+        'Numbered highlights identify places; route lines connect them as a travel path. A route makes the order, direction and a blocked segment visible. The same input could explain worm rides, a moving Surveyor or travel in another rulebook.'
       ),
       note(
         'boundary',
         'Keep the block a renderer',
-        'It would not calculate legality, range or shipping prices. Those remain supplied rules and examples. Existing scenes without routes would look unchanged.'
+        'It does not calculate legality, range or shipping prices. Those remain supplied rules and examples. Existing scenes without routes keep their original rendering.'
       ),
     ]),
-    single('block-options', 'What I would keep or defer', [
+    single('block-options', 'Blocks used by this chapter', [
       table(
         'decisions',
-        ['Need found while composing', 'Recommendation'],
+        ['Need found while composing', 'Decision'],
         [
           ['Price calculation', 'Keep the existing reference table. No shipping calculator block.'],
           ['Before / after placement', 'Keep two board scenes in existing columns when comparison earns the space.'],
           [
             'Troops travelling between places',
-            'Piece movement reserves space for a numbered explanation. Propose a piece-transfer visual with left and right groups (labels, piece references, counts) plus direction.',
+            'Piece transfer takes left and right groups (labels, piece references, counts) plus direction. It adds no step or explanation; those belong in neighbouring text blocks.',
           ],
           ['Flexible prose beside a map', 'Use band-columns or wide-narrow. No new layout yet.'],
-          ['Route with several stops', 'Extend board scene with optional route data, after product agreement.'],
+          ['Route with several stops', 'Board scene now accepts optional route data.'],
           [
             'Unannotated map is too small',
-            'Propose a board-scene size input: compact or fit-width. The current fixed height leaves unused column space.',
+            'Board scene accepts compact or fit-width. Existing scenes keep compact sizing; this chapter fills its columns.',
           ],
           [
             'Hajr and faction ability details',
@@ -840,7 +865,7 @@ function blockReview(): Page[] {
         ]
       ),
     ]),
-    single('block-inputs', 'Inputs for the next pass', [
+    single('block-inputs', 'Inputs in use', [
       heading('route-example', 'Routes on a board scene'),
       table(
         'route-input',
@@ -848,7 +873,7 @@ function blockReview(): Page[] {
         [
           ['Board', 'Arrakis reference.'],
           ['Waypoints', "Tuek's Sietch > Pasty Mesa > Shield Wall > Imperial Basin."],
-          ['Direction', 'Forward, with an arrow at the destination.'],
+          ['Direction', 'Forward, both directions or no arrows.'],
           ['Legend', 'Ornithopter movement: three territories entered.'],
           ['Optional segment emphasis', 'Mark a supplied segment as blocked, with the reason in the legend.'],
         ]
@@ -856,12 +881,12 @@ function blockReview(): Page[] {
       heading('board-size-heading', 'Board scene sizing'),
       text(
         'board-size',
-        'Add size: compact or fit-width. Compact preserves current scenes. Fit-width keeps the complete board at its natural proportions and fills the supplied column. This is a presentation choice, not a separate map block.'
+        'Size: compact or fit-width. Compact preserves current scenes. Fit-width keeps the complete board at its natural proportions and fills the supplied column. This is a presentation choice, not a separate map block.'
       ),
       heading('clearance-heading', 'Page decoration clearance'),
       text(
         'clearance',
-        'Older layouts reserve the full artwork height at the bottom; paired-rows already allows a smaller clearance. Agree one shared page rule for decoration overlap before adding layout-specific fixes. No new content block is needed.'
+        'Ordinary illustrated layouts now share the same bottom clearance as paired rows, allowing some artwork overlap. The compact sequence layout keeps its existing tighter clearance. No new content block is needed.'
       ),
       text(
         'choice',

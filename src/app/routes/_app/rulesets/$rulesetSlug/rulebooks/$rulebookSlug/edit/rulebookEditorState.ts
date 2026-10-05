@@ -139,6 +139,18 @@ const setIntentSchema = z.union([
   z.strictObject({
     kind: z.literal('set'),
     target: blockRefSchema,
+    field: z.literal('board-size'),
+    value: rulebookBoardSceneSchema.shape.size,
+  }),
+  z.strictObject({
+    kind: z.literal('set'),
+    target: blockRefSchema,
+    field: z.literal('board-routes'),
+    value: rulebookBoardSceneSchema.shape.routes,
+  }),
+  z.strictObject({
+    kind: z.literal('set'),
+    target: blockRefSchema,
     field: z.literal('board-viewport'),
     value: rulebookBoardSceneSchema.shape.viewport,
   }),
@@ -1272,6 +1284,14 @@ function setBlockField(block: RulebookBlockDraft, field: RulebookFieldName, valu
       block.boardId = rulebookBoardSceneSchema.shape.boardId.parse(value);
       return;
     }
+    if (field === 'board-size') {
+      block.size = rulebookBoardSceneSchema.shape.size.parse(value);
+      return;
+    }
+    if (field === 'board-routes') {
+      block.routes = rulebookBoardSceneSchema.shape.routes.parse(value);
+      return;
+    }
     if (field === 'board-viewport') {
       block.viewport = rulebookBoardSceneSchema.shape.viewport.parse(value);
       return;
@@ -1297,7 +1317,7 @@ function setBlockField(block: RulebookBlockDraft, field: RulebookFieldName, valu
       return;
     }
   }
-  if (block.kind === 'piece-movement') {
+  if (block.kind === 'piece-movement' || block.kind === 'piece-transfer') {
     if (field === 'movement-left') {
       block.left = rulebookPieceMovementSchema.shape.left.parse(value);
       return;
@@ -1310,6 +1330,8 @@ function setBlockField(block: RulebookBlockDraft, field: RulebookFieldName, valu
       block.direction = rulebookPieceMovementSchema.shape.direction.parse(value);
       return;
     }
+  }
+  if (block.kind === 'piece-movement') {
     if (field === 'movement-board') {
       block.board = rulebookPieceMovementSchema.shape.board.parse(value);
       return;
@@ -1801,6 +1823,8 @@ function fieldRecords(contents: RulebookContentsDraftV1): FieldRecord[] {
     if (block.kind === 'board-scene') {
       add('caption', block.caption);
       add('board-id', block.boardId === undefined ? undefined : clone(block.boardId));
+      add('board-size', block.size === undefined ? undefined : clone(block.size));
+      add('board-routes', block.routes === undefined ? undefined : clone(block.routes));
       add('board-viewport', block.viewport === undefined ? undefined : clone(block.viewport));
       add('board-storm', block.storm === undefined ? undefined : clone(block.storm));
       add('board-players', block.players === undefined ? undefined : clone(block.players));
@@ -1812,9 +1836,13 @@ function fieldRecords(contents: RulebookContentsDraftV1): FieldRecord[] {
       add('step', block.step);
       add('caption', block.caption);
       add('outcome', block.outcome);
+    }
+    if (block.kind === 'piece-movement' || block.kind === 'piece-transfer') {
       add('movement-left', block.left === undefined ? undefined : clone(block.left));
       add('movement-right', block.right === undefined ? undefined : clone(block.right));
       add('movement-direction', block.direction === undefined ? undefined : clone(block.direction));
+    }
+    if (block.kind === 'piece-movement') {
       add('movement-board', block.board === undefined ? undefined : clone(block.board));
       add('movement-notes', block.notes === undefined ? undefined : clone(block.notes));
     }

@@ -837,6 +837,8 @@ function createBlock(kind: RulebookBlockKind, id: string): RulebookBlockDraft {
   switch (kind) {
     case 'board-scene':
       return { id, kind, boardId: 'arrakis', caption: '', players: [], troops: [], highlights: [], annotations: [] };
+    case 'piece-transfer':
+      return { id, kind, left: { label: '', pieces: [] }, right: { label: '', pieces: [] } };
     case 'piece-movement':
       return {
         id,
@@ -1272,6 +1274,11 @@ function blockEditorPanel(
   switch (block.kind) {
     case 'board-scene': {
       const Edit = rulebookBlockEditors['board-scene'];
+      editor = <Edit value={block} onChange={change} references={{ assetsById, factionsById }} />;
+      break;
+    }
+    case 'piece-transfer': {
+      const Edit = rulebookBlockEditors['piece-transfer'];
       editor = <Edit value={block} onChange={change} references={{ assetsById, factionsById }} />;
       break;
     }

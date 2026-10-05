@@ -32,3 +32,22 @@ export const MarkersAndAnnotations = meta.story({
     await expect(canvas.getByRole('textbox', { name: 'Crop x' })).toHaveValue('0');
   },
 });
+
+export const RoutesAndSizing = meta.story({
+  render: () => <SceneEditorStory kind="board" />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const portal = within(canvasElement.ownerDocument.body);
+    await userEvent.click(canvas.getByRole('combobox', { name: 'Board size' }));
+    await userEvent.click(portal.getByRole('option', { name: 'Fill available width' }));
+    await userEvent.click(canvas.getByRole('button', { name: 'Routes (0)' }));
+    await userEvent.click(canvas.getByRole('button', { name: 'Add route' }));
+    await userEvent.click(canvas.getByRole('button', { name: 'Add waypoint' }));
+    await userEvent.click(canvas.getByRole('combobox', { name: 'Blocked segment' }));
+    await userEvent.click(portal.getByRole('option', { name: 'Waypoint 1 to 2' }));
+    expect(canvasElement.querySelectorAll('[data-route-segment]')).toHaveLength(2);
+    expect(canvasElement.querySelectorAll('[data-route-segment][data-blocked]')).toHaveLength(1);
+    await userEvent.click(canvas.getByRole('button', { name: 'Remove last route' }));
+    expect(canvasElement.querySelectorAll('[data-route-segment]')).toHaveLength(0);
+  },
+});

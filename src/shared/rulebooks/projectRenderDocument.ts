@@ -160,6 +160,8 @@ function projectBoardScene(
   return {
     boardId: value.boardId,
     caption: value.caption,
+    ...(value.size ? { size: value.size } : {}),
+    ...(value.routes ? { routes: value.routes } : {}),
     ...(value.viewport ? { viewport: value.viewport } : {}),
     ...(value.storm ? { storm: value.storm } : {}),
     board: projectRulebookSource({ kind: 'board', boardId: value.boardId }, assetsById, factionsById),
@@ -259,6 +261,13 @@ export function projectRulebookDraftRenderBlock(
   }
   if (block.kind === 'board-scene') {
     return { ...identity, kind: block.kind, ...projectBoardScene(block, assetsById, factionsById) };
+  }
+  if (block.kind === 'piece-transfer') {
+    return {
+      ...block,
+      left: projectMovementGroup(block.left, assetsById, factionsById),
+      right: projectMovementGroup(block.right, assetsById, factionsById),
+    };
   }
   if (block.kind === 'piece-movement') {
     const { board, notes, ...value } = block;
@@ -547,6 +556,7 @@ function blockTextDiagnostics(pageId: string, blockId: string, block: RulebookBl
     block.kind === 'battle-plans' ||
     block.kind === 'board-scene' ||
     block.kind === 'piece-movement' ||
+    block.kind === 'piece-transfer' ||
     block.kind === 'battle-comparison'
   ) {
     return [];

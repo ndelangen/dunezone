@@ -95,7 +95,7 @@ export function collectRulebookReferenceIds(
       if (block.kind === 'board-scene') {
         collectBoard(block);
       }
-      if (block.kind === 'piece-movement') {
+      if (block.kind === 'piece-movement' || block.kind === 'piece-transfer') {
         for (const group of [block.left, block.right]) {
           for (const piece of group.pieces) {
             if (piece.kind === 'source') {
@@ -105,6 +105,8 @@ export function collectRulebookReferenceIds(
             }
           }
         }
+      }
+      if (block.kind === 'piece-movement') {
         for (const note of block.notes ?? []) {
           collectSource(note.source);
         }

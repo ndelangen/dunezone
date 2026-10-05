@@ -105,6 +105,10 @@ export function rulebookHtmlImages(
     if (block.kind === 'board-scene') {
       boardScene(block);
     }
+    if (block.kind === 'piece-transfer') {
+      movementGroup(block.left);
+      movementGroup(block.right);
+    }
     if (block.kind === 'piece-movement') {
       pieceMovement(block);
     }
