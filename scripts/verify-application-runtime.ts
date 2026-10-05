@@ -57,9 +57,8 @@ try {
       const rulebook = [...html.matchAll(/<a[^>]+href="([^"]+)"/g)]
         .map((match) => match[1]!)
         .find((href) => /^\/rulesets\/[^/]+\/rulebooks\/(?!create(?:\/|$))[^/?]+\/?$/.test(href));
-      if (rulebook) {
-        pages.push(rulebook, `${rulebook}?edition=1`);
-      }
+      assert.ok(rulebook, `${pathname} has no published Rulebook link`);
+      pages.push(rulebook, `${rulebook}?edition=1`);
     }
     if (pathname !== '/') {
       assert.match(html, /<h1[\s>]/, `${pathname} has no rendered heading`);
@@ -111,7 +110,7 @@ try {
       await asset.body?.cancel();
     }
   }
-  for (const pathname of [
+  const browserOnlyPages = [
     '/factions/create',
     '/factions/testfaction/edit',
     '/assets/token-disc/create',
@@ -121,7 +120,8 @@ try {
     '/rulesets/dreamrules/rulebooks/dream-rulebook/edit',
     '/auth/login',
     '/play',
-  ]) {
+  ];
+  for (const pathname of browserOnlyPages) {
     const response = await worker.fetch(pathname);
     assert.equal(response.status, 200, pathname);
     assert.equal(response.headers.get('X-Application-Release'), null, pathname);
@@ -141,7 +141,14 @@ try {
   const capture = await worker.fetch('/publisher-capture.html');
   assert.equal(capture.status, 404);
   await capture.body?.cancel();
-  console.log(JSON.stringify({ ok: true, publicPages: pages.length, browserOnlyPages: 5, captureProtected: true }));
+  console.log(
+    JSON.stringify({
+      ok: true,
+      publicPages: pages.length,
+      browserOnlyPages: browserOnlyPages.length,
+      captureProtected: true,
+    })
+  );
 } finally {
   await worker.stop();
 }
