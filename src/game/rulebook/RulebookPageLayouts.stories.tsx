@@ -101,3 +101,22 @@ export const PairedRows = meta.story({
     </div>
   ),
 });
+
+export const ContentWithBottomStrip = meta.story({
+  render: () => (
+    <div style={{ width: 'min(960px, 100%)' }}>
+      <RulebookPageRenderer
+        page={(() => {
+          const page = createCataloguePage('content-strip');
+          page.regions[1]!.blocks = ['First', 'Second', 'Third'].map((name, index) => ({
+            id: `item-${index}`,
+            kind: 'text',
+            text: `${name} supporting block`,
+          }));
+          return page;
+        })()}
+        settings={{ size: 'square', design: 'illustrated' }}
+      />
+    </div>
+  ),
+});

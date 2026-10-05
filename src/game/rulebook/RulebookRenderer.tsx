@@ -82,7 +82,14 @@ type PageLayoutProps<LayoutId extends RulebookPageLayoutId> = Readonly<{
   coverLogoHref: string;
 }>;
 
-type InteriorLayoutId = 'sequence' | 'single-column' | 'two-columns' | 'wide-narrow' | 'outer-rail' | 'band-columns';
+type InteriorLayoutId =
+  | 'content-strip'
+  | 'sequence'
+  | 'single-column'
+  | 'two-columns'
+  | 'wide-narrow'
+  | 'outer-rail'
+  | 'band-columns';
 
 function InteriorPage({ BlockRenderer, page, pageNumber }: PageLayoutProps<InteriorLayoutId>) {
   return (
@@ -229,6 +236,7 @@ const rulebookPageRenderers = {
   sequence: InteriorPage,
   'paired-rows': PairedRowsPage,
   'single-column': InteriorPage,
+  'content-strip': InteriorPage,
   'two-columns': InteriorPage,
   'wide-narrow': InteriorPage,
   'outer-rail': InteriorPage,

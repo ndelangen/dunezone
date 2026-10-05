@@ -49,6 +49,7 @@ const OuterRail = createLucideIcon('OuterRail', [
 
 const layoutIcons = {
   'single-column': RectangleVertical,
+  'content-strip': PanelBottom,
   sequence: List,
   'paired-rows': LayoutGrid,
   'two-columns': Columns2,
@@ -81,6 +82,7 @@ const blockIcons = {
 
 const regionIcons = {
   content: SquareDashed,
+  strip: GalleryHorizontalEnd,
   opening: PanelTopDashed,
   closing: PanelBottom,
   upperLeft: PanelLeftDashed,

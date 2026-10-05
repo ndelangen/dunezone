@@ -518,6 +518,10 @@ justifying additions remain review obligations.
 
 ### Page composition belongs to layouts
 
+The `content-strip` layout keeps the main reading flow above a horizontal bottom strip.
+The strip divides its width among the supplied blocks with flex layout.
+It can hold decorative illustrations or other supporting blocks, without adding row placement options to each block.
+
 When prose and illustrations need independent placement, the page layout owns their slots,
 column widths, row alignment and spacing. Do not add empty illustration columns or procedure
 layout to ordinary text blocks. The paired-rows layout provides opening and closing bands around

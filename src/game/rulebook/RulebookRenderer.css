@@ -1675,3 +1675,23 @@
 .rulebookList > ol > li {
   padding-inline-start: calc(2 * var(--rulebook-mm));
 }
+
+/* Main content keeps its reading flow; the bottom strip arranges its blocks in one row. */
+.rulebookGrid[data-rulebook-grid="content-strip"] {
+  grid-template-areas: "content" "strip";
+  grid-template-rows: minmax(0, 1fr) max-content;
+}
+.rulebookGrid[data-rulebook-grid="content-strip"] > [data-rulebook-region="strip"] {
+  grid-area: strip;
+}
+.rulebookGrid[data-rulebook-grid="content-strip"] > [data-rulebook-region="strip"] > .rulebookRegionBlocks {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-evenly;
+  gap: calc(4 * var(--rulebook-mm));
+}
+.rulebookGrid[data-rulebook-grid="content-strip"] > [data-rulebook-region="strip"] > .rulebookRegionBlocks > * {
+  flex: 1 1 0;
+  min-width: 0;
+}

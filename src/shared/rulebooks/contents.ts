@@ -450,6 +450,12 @@ export const rulebookLayoutCatalogue = [
     regions: [blockRegion('content', 'Content')],
   },
   {
+    id: 'content-strip',
+    label: 'Content with bottom strip',
+    supportedSizes: ['square', 'a4', 'tall'],
+    regions: [blockRegion('content', 'Content'), blockRegion('strip', 'Bottom strip')],
+  },
+  {
     id: 'sequence',
     label: 'Step-by-step',
     supportedSizes: ['square', 'a4'],
@@ -604,6 +610,11 @@ const singleColumnPageSchema = pageSchema(
   emptyControlValuesSchema,
   z.strictObject({ content: z.array(rulebookLocalIdSchema) })
 );
+const contentStripPageSchema = pageSchema(
+  'content-strip',
+  emptyControlValuesSchema,
+  z.strictObject({ content: z.array(rulebookLocalIdSchema), strip: z.array(rulebookLocalIdSchema) })
+);
 const sequencePageSchema = pageSchema(
   'sequence',
   emptyControlValuesSchema,
@@ -642,6 +653,7 @@ const coverPageSchema = pageSchema('cover', coverControlValuesSchema, z.strictOb
 /** One Page on its own; the Contents-level rules between Pages live in `refineRulebookContentsV1`. */
 export const rulebookPageV1Schema = z.discriminatedUnion('layoutId', [
   singleColumnPageSchema,
+  contentStripPageSchema,
   sequencePageSchema,
   pairedRowsPageSchema,
   twoColumnsPageSchema,
@@ -971,6 +983,7 @@ function draftPageSchema<Schema extends z.ZodRawShape, ControlShape extends z.Zo
 export const rulebookDraftEntitySchemas = {
   page: z.discriminatedUnion('layoutId', [
     draftPageSchema(singleColumnPageSchema, emptyControlValuesSchema),
+    draftPageSchema(contentStripPageSchema, emptyControlValuesSchema),
     draftPageSchema(sequencePageSchema, emptyControlValuesSchema),
     draftPageSchema(pairedRowsPageSchema, emptyControlValuesSchema),
     draftPageSchema(twoColumnsPageSchema, emptyControlValuesSchema),
@@ -1001,6 +1014,7 @@ function editionPageSchema<Schema extends z.ZodRawShape, ControlShape extends z.
 
 const rulebookEditionPageV1Schema = z.discriminatedUnion('layoutId', [
   editionPageSchema(singleColumnPageSchema, emptyControlValuesSchema),
+  editionPageSchema(contentStripPageSchema, emptyControlValuesSchema),
   editionPageSchema(sequencePageSchema, emptyControlValuesSchema),
   editionPageSchema(pairedRowsPageSchema, emptyControlValuesSchema),
   editionPageSchema(twoColumnsPageSchema, emptyControlValuesSchema),

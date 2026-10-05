@@ -207,6 +207,18 @@ const resultTable = table(
     ['Harkonnen', '4', 'Feyd killed: 0', '4'],
   ]
 );
+const specialTable = table(
+  'troop-strengths',
+  ['Troop', 'Unsupported', 'With 1 spice', 'Exception'],
+  [
+    ['Ordinary', '½', '1', 'Standard support'],
+    ['Sardaukar', '1', '2', 'Ordinary strength against Fremen'],
+    ['Fremen ordinary / Fedaykin', '1 / 2', 'Not needed', 'Free Spice Dialing; apply Karama first'],
+    ['Cyborg', '1', '2', 'Immune to Karama'],
+    ['Suboid', '½', 'Cannot support', 'May replace a Cyborg loss after winning'],
+    ['Patched Cyborg', '2', 'Not needed', 'Survives a winning commitment; flips back'],
+  ]
+);
 const specialText = text(
   'patching',
   'When Ix wins, an uncommitted Suboid may die in place of a committed Cyborg. Flip the saved Cyborg to its patched side. A patched Cyborg can be dialed in a later winning battle without dying, then flips back. These rules do not save troops from an ordinary defeat.',
@@ -402,53 +414,31 @@ function ties(): Page {
   return band('ties', 'How to resolve ties?', [tieRules], [ordinary, ordinaryTie], [mercenaries, mercenaryTie]);
 }
 function specials(): Page {
-  const inventory = (id: string, entries: [keyof typeof data.troopSources, string][]): Block => ({
-    id,
-    kind: 'illustrated-inventory',
-    title: '',
-    introduction: '',
-    items: entries.map(([name, copy]) => ({
-      id: name,
-      source: data.troopSources[name] as Extract<Block, { kind: 'referenced-illustration' }>['source'],
-      text: copy,
-    })),
-  });
-  return band(
-    'special-troops',
-    'Special troops',
-    [
-      text(
-        'special-intro',
-        'A troop worth 2 strength is still one troop token. Use these exceptions when calculating your dial and removing losses.'
-      ),
+  const page = single('special-troops', 'Special troops', [
+    text(
+      'special-intro',
+      'Apply these exceptions after learning the ordinary battle. A troop worth 2 strength is still one troop token. Karama can suppress Fedaykin or Free Spice Dialing for the whole phase.'
+    ),
+    specialTable,
+    specialText,
+  ]);
+  return {
+    ...page,
+    layoutId: 'content-strip',
+    regions: [
+      ...page.regions,
+      {
+        key: 'strip',
+        blocks: Object.entries(data.troopSources).map(([id, source]): Block => ({
+          id: `decoration-${id}`,
+          kind: 'referenced-illustration',
+          source: source as Extract<Block, { kind: 'referenced-illustration' }>['source'],
+          size: 'small',
+          caption: '',
+        })),
+      },
     ],
-    [
-      inventory('special-troops-emperor-fremen', [
-        [
-          'Saudarkar',
-          '*1 strength unsupported* or *2 with 1 spice*. Against Fremen, use ordinary troop strength instead.',
-        ],
-        [
-          'Fedaykin',
-          '*2 strength without support spice*. Ordinary Fremen give 1. Apply any Karama suppression of Fedaykin or Free Spice Dialing first; it lasts the whole phase.',
-        ],
-        [
-          'Suboid',
-          '*½ strength*. Cannot be supported. After an Ixian victory, an uncommitted Suboid may replace a committed Cyborg loss.',
-        ],
-      ]),
-    ],
-    [
-      inventory('special-troops-cyborgs', [
-        ['Cyborg', '*1 strength unsupported* or *2 with 1 spice*. Immune to Karama.'],
-        [
-          'Patched Cyborg',
-          '*2 strength without support spice*. Survives a winning commitment, then flips back to its Cyborg face.',
-        ],
-      ]),
-      specialText,
-    ]
-  );
+  };
 }
 function traitors(): Page {
   return {
