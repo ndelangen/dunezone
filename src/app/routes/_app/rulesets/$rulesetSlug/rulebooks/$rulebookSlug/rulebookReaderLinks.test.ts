@@ -81,7 +81,7 @@ describe('Final Rulebook reading order', () => {
     ).toBe('matched');
   });
 
-  test('shares revealed uncommitted counts without inventing a readout for hidden plans', () => {
+  test('does not project removed uncommitted counts for revealed or hidden plans', () => {
     const side = { role: '', revealed: false, dial: 0, spice: 0, cards: [], troops: [] };
     const makePage = (revealed: boolean, uncommitted: number): RulebookContentsDraft['pagesById'][string] => ({
       id: 'PAGE',
@@ -116,10 +116,85 @@ describe('Final Rulebook reading order', () => {
         },
       },
     });
-    expect(resolveFinalPageSelection(makePage(true, 2), 'Uncommitted: ? 2').status).toBe('matched');
-    expect(resolveFinalPageSelection(makePage(true, 0), 'Uncommitted: 0').status).toBe('matched');
+    expect(resolveFinalPageSelection(makePage(true, 2), 'Uncommitted: ? 2').status).toBe('stale');
+    expect(resolveFinalPageSelection(makePage(true, 0), 'Uncommitted: 0').status).toBe('stale');
     expect(resolveFinalPageSelection(makePage(false, 2), 'Uncommitted: ? 2').status).toBe('stale');
   });
+
+  test.each(['battle-step', 'battle-plans', 'piece-movement'] as const)(
+    'round-trips selected %s text with its rendered neighboring content',
+    (kind) => {
+      const side = {
+        factionId: 'left',
+        role: '',
+        revealed: true,
+        dial: 0,
+        spice: 0,
+        cards: [],
+        troops: [],
+        leaderKilled: true,
+        result: 'Leader lost.',
+      };
+      const explanation = { step: '5', title: 'Reveal', caption: 'Resolve weapons.', outcome: 'Then settle.' };
+      const block =
+        kind === 'piece-movement'
+          ? {
+              id: 'BTLE',
+              kind,
+              ...explanation,
+              left: { label: 'Played cards', pieces: [] },
+              right: { label: 'Discard pile', pieces: [] },
+              direction: 'none',
+            }
+          : {
+              id: 'BTLE',
+              kind,
+              ...(kind === 'battle-step' ? explanation : {}),
+              showSideLabels: false,
+              left: side,
+              right: { ...side, result: undefined, leaderKilled: false },
+            };
+      const contents = rulebookContentsV1Schema.parse({
+        schemaVersion: 1,
+        pageOrder: ['PAGE'],
+        pagesById: {
+          PAGE: {
+            id: 'PAGE',
+            anchor: 'battle',
+            title: '',
+            showHeading: false,
+            layoutId: 'single-column',
+            controlValues: {},
+            blockOrderByRegion: { content: ['BTLE'] },
+            blocksById: { BTLE: block },
+          },
+        },
+      });
+      const projected = projectRulebookRenderDocument(contents, {}, DEFAULT_RULEBOOK_SETTINGS, {
+        left: { factionId: 'left', name: 'CHOAM', color: '#981b28', token: factionTokenFixtures.choam },
+      });
+      const markup = renderToStaticMarkup(
+        createElement(RulebookPageRenderer, { page: projected.pagesById.PAGE!, settings: DEFAULT_RULEBOOK_SETTINGS })
+      );
+      const selection = selectRange(
+        `<main data-rulebook-reader-document>${markup}</main>`,
+        kind === 'battle-plans' ? '.rulebookBattleSideResult' : '.rulebookBattleCopy p'
+      );
+      const built = locatorFromRulebookSelection(selection);
+      if (!built.ok) {
+        throw new Error(built.message);
+      }
+      expect(
+        resolveRulebookTextLocator(contents, projected, { status: 'valid', locator: built.locator })
+      ).toMatchObject({
+        status: 'matched',
+        blockId: 'BTLE',
+      });
+      if (kind !== 'piece-movement') {
+        expect(document.querySelector('[role="img"][aria-label="Killed"]')).not.toBeNull();
+      }
+    }
+  );
 
   test('shares board annotation prose and movement explanations at their rendered scopes', () => {
     const scene = {
