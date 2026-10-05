@@ -50,6 +50,7 @@ const OuterRail = createLucideIcon('OuterRail', [
 const layoutIcons = {
   'single-column': RectangleVertical,
   sequence: List,
+  'paired-rows': LayoutGrid,
   'two-columns': Columns2,
   'wide-narrow': PanelRight,
   'outer-rail': OuterRail,
@@ -61,6 +62,7 @@ const blockIcons = {
   'section-heading': Heading,
   text: AlignLeft,
   'battle-step': Swords,
+  'battle-plans': Swords,
   'board-scene': Map,
   'piece-movement': ArrowRightLeft,
   'battle-comparison': Columns2,
@@ -79,6 +81,12 @@ const blockIcons = {
 
 const regionIcons = {
   content: SquareDashed,
+  opening: PanelTopDashed,
+  closing: PanelBottom,
+  upperLeft: PanelLeftDashed,
+  upperRight: PanelRightDashed,
+  lowerLeft: PanelLeftDashed,
+  lowerRight: PanelRightDashed,
   column1: PanelLeftDashed,
   column2: PanelRightDashed,
   wide: PanelLeftDashed,

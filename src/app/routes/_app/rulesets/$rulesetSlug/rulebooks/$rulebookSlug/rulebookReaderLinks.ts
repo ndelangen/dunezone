@@ -351,6 +351,9 @@ function projectedMovementText(block: Extract<RulebookRenderBlockV1, { kind: 'pi
 }
 
 function projectedBlockText(block: RulebookRenderBlockV1) {
+  if (block.kind === 'battle-plans') {
+    return projectedBattleText({ ...block, step: '', title: '', caption: '' });
+  }
   if (block.kind === 'battle-step') {
     return projectedBattleText(block);
   }

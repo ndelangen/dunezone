@@ -18,25 +18,17 @@ const meta = preview.meta({
     await document.fonts.ready;
     const preparation = canvasElement.querySelector('[data-rulebook-page-id="prepare"]');
     if (preparation) {
-      const steps = [...preparation.querySelectorAll('.rulebookBattleScene')];
-      expect(steps).toHaveLength(3);
-      const expectedHeading = getComputedStyle(steps[0]!.querySelector('h3')!);
-      const gaps = steps
-        .slice(1)
-        .map((step, index) => step.getBoundingClientRect().top - steps[index]!.getBoundingClientRect().bottom);
-      expect(gaps[0]).toBeGreaterThan(10);
-      expect(Math.abs(gaps[0]! - gaps[1]!)).toBeLessThan(1);
-      for (const step of steps) {
-        const visual = step.querySelector('.rulebookBattleVisual')!.getBoundingClientRect();
-        const narrative = step.querySelector('.rulebookBattleNarrative')!.getBoundingClientRect();
-        expect(visual.left).toBeGreaterThanOrEqual(narrative.right);
-        expect(visual.top).toBe(narrative.top);
-        const heading = getComputedStyle(step.querySelector('h3')!);
-        expect(heading.fontFamily).toBe(expectedHeading.fontFamily);
-        expect(heading.fontSize).toBe(expectedHeading.fontSize);
-        expect(heading.lineHeight).toBe(expectedHeading.lineHeight);
-        expect(narrative.left).toBe(steps[0]!.getBoundingClientRect().left);
-      }
+      const upperText = preparation.querySelector('[data-rulebook-region="upperLeft"]')!.getBoundingClientRect();
+      const upperVisual = preparation.querySelector('[data-rulebook-region="upperRight"]')!.getBoundingClientRect();
+      const lowerText = preparation.querySelector('[data-rulebook-region="lowerLeft"]')!.getBoundingClientRect();
+      const lowerVisual = preparation.querySelector('[data-rulebook-region="lowerRight"]')!.getBoundingClientRect();
+      expect(upperVisual.left).toBeGreaterThan(upperText.right);
+      expect(lowerVisual.left).toBe(upperVisual.left);
+      expect(lowerText.left).toBe(upperText.left);
+      expect(lowerText.top).toBeGreaterThan(upperText.bottom);
+      expect(preparation.querySelectorAll('.rulebookBattlePlans')).toHaveLength(2);
+      expect(preparation.querySelectorAll('.rulebookBattleScene')).toHaveLength(0);
+      expect(preparation.querySelector('ol[start="3"]')).not.toBeNull();
     }
     for (const region of canvasElement.querySelectorAll<HTMLElement>('[data-rulebook-region]')) {
       const bounds = region.getBoundingClientRect();

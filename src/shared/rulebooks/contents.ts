@@ -27,7 +27,7 @@ export const rulebookTextReferencesSchema = z.array(
 );
 
 /** Creation callers declare the catalogue they can read before receiving starter or cloned Contents. */
-export const RULEBOOK_CATALOGUE_VERSION = 12;
+export const RULEBOOK_CATALOGUE_VERSION = 13;
 
 export const rulebookLocalIdAlphabet = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ' as const;
 const rulebookLocalIdPattern = new RegExp(`^[${rulebookLocalIdAlphabet}]{4}$`);
@@ -66,6 +66,7 @@ export const rulebookBlockKinds = [
   'faction-introduction',
   'card-entry',
   'battle-step',
+  'battle-plans',
   'board-scene',
   'piece-movement',
   'battle-comparison',
@@ -85,6 +86,7 @@ export const rulebookBlockKindLabels = {
   'illustrated-inventory': 'Illustrated inventory',
   'card-entry': 'Card entry',
   'battle-step': 'Battle step',
+  'battle-plans': 'Battle plans',
   'board-scene': 'Board scene',
   'piece-movement': 'Piece movement',
   'battle-comparison': 'Battle comparison',
@@ -152,7 +154,6 @@ function rulebookBlockSchemas<Text extends z.ZodType, Anchor extends z.ZodType, 
   const textBlock = z.strictObject({
     id: rulebookLocalIdSchema,
     kind: z.literal('text'),
-    step: z.string().optional(),
     name: z.string().optional(),
     anchor: anchor.optional(),
     references: rulebookTextReferencesSchema.optional(),
@@ -176,6 +177,7 @@ function rulebookBlockSchemas<Text extends z.ZodType, Anchor extends z.ZodType, 
     kind: z.literal('list'),
     anchor: anchor.optional(),
     style: z.enum(['bulleted', 'numbered']),
+    start: z.number().int().positive().optional(),
     itemOrder: z.array(rulebookItemIdSchema),
     itemsById: z.record(rulebookItemIdSchema, listItem),
   });
@@ -235,6 +237,15 @@ function rulebookBlockSchemas<Text extends z.ZodType, Anchor extends z.ZodType, 
     kind: z.literal('battle-step'),
     anchor: anchor.optional(),
     ...rulebookBattleStepFields,
+  });
+
+  const battlePlansBlock = z.strictObject({
+    id: rulebookLocalIdSchema,
+    kind: z.literal('battle-plans'),
+    anchor: anchor.optional(),
+    left: rulebookBattleStepFields.left,
+    right: rulebookBattleStepFields.right,
+    showSideLabels: rulebookBattleStepFields.showSideLabels,
   });
 
   const boardSceneBlock = rulebookBoardSceneSchema.extend({
@@ -351,6 +362,7 @@ function rulebookBlockSchemas<Text extends z.ZodType, Anchor extends z.ZodType, 
       factionIntroductionBlock,
       cardEntryBlock,
       battleStepBlock,
+      battlePlansBlock,
       boardSceneBlock,
       pieceMovementBlock,
       battleComparisonBlock,
@@ -442,6 +454,19 @@ export const rulebookLayoutCatalogue = [
     label: 'Step-by-step',
     supportedSizes: ['square', 'a4'],
     regions: [blockRegion('content', 'Content')],
+  },
+  {
+    id: 'paired-rows',
+    label: 'Paired rows with opening and closing bands',
+    supportedSizes: ['square', 'a4'],
+    regions: [
+      blockRegion('opening', 'Opening'),
+      blockRegion('upperLeft', 'Upper left'),
+      blockRegion('upperRight', 'Upper right'),
+      blockRegion('lowerLeft', 'Lower left'),
+      blockRegion('lowerRight', 'Lower right'),
+      blockRegion('closing', 'Closing'),
+    ],
   },
   {
     id: 'two-columns',
@@ -584,6 +609,18 @@ const sequencePageSchema = pageSchema(
   emptyControlValuesSchema,
   z.strictObject({ content: z.array(rulebookLocalIdSchema) })
 );
+const pairedRowsPageSchema = pageSchema(
+  'paired-rows',
+  emptyControlValuesSchema,
+  z.strictObject({
+    opening: z.array(rulebookLocalIdSchema),
+    upperLeft: z.array(rulebookLocalIdSchema),
+    upperRight: z.array(rulebookLocalIdSchema),
+    lowerLeft: z.array(rulebookLocalIdSchema),
+    lowerRight: z.array(rulebookLocalIdSchema),
+    closing: z.array(rulebookLocalIdSchema),
+  })
+);
 const twoColumnsPageSchema = pageSchema('two-columns', emptyControlValuesSchema, columnBlockOrderSchema);
 const wideNarrowPageSchema = pageSchema(
   'wide-narrow',
@@ -606,6 +643,7 @@ const coverPageSchema = pageSchema('cover', coverControlValuesSchema, z.strictOb
 export const rulebookPageV1Schema = z.discriminatedUnion('layoutId', [
   singleColumnPageSchema,
   sequencePageSchema,
+  pairedRowsPageSchema,
   twoColumnsPageSchema,
   wideNarrowPageSchema,
   outerRailPageSchema,
@@ -934,6 +972,7 @@ export const rulebookDraftEntitySchemas = {
   page: z.discriminatedUnion('layoutId', [
     draftPageSchema(singleColumnPageSchema, emptyControlValuesSchema),
     draftPageSchema(sequencePageSchema, emptyControlValuesSchema),
+    draftPageSchema(pairedRowsPageSchema, emptyControlValuesSchema),
     draftPageSchema(twoColumnsPageSchema, emptyControlValuesSchema),
     draftPageSchema(wideNarrowPageSchema, wideControlValuesSchema),
     draftPageSchema(outerRailPageSchema, emptyControlValuesSchema),
@@ -963,6 +1002,7 @@ function editionPageSchema<Schema extends z.ZodRawShape, ControlShape extends z.
 const rulebookEditionPageV1Schema = z.discriminatedUnion('layoutId', [
   editionPageSchema(singleColumnPageSchema, emptyControlValuesSchema),
   editionPageSchema(sequencePageSchema, emptyControlValuesSchema),
+  editionPageSchema(pairedRowsPageSchema, emptyControlValuesSchema),
   editionPageSchema(twoColumnsPageSchema, emptyControlValuesSchema),
   editionPageSchema(wideNarrowPageSchema, wideControlValuesSchema),
   editionPageSchema(outerRailPageSchema, emptyControlValuesSchema),

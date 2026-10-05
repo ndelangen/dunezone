@@ -68,7 +68,7 @@ export function createCataloguePage(
   const blocks = options.written
     ? writtenRuleBlocks()
     : definitions.map((region, index) => ({
-        id: ['AAAA', 'BBBB', 'CCCC'][index]!,
+        id: ['AAAA', 'BBBB', 'CCCC', 'DDDD', 'EEEE', 'FFFF'][index]!,
         kind: 'text' as const,
         text: region.label,
       }));

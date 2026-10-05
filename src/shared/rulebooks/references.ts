@@ -77,7 +77,7 @@ export function collectRulebookReferenceIds(
       if (block.kind === 'referenced-illustration' || block.kind === 'card-entry' || block.kind === 'asset-explainer') {
         collectSource(block.source);
       }
-      if (block.kind === 'battle-step') {
+      if (block.kind === 'battle-step' || block.kind === 'battle-plans') {
         collectBattleSide(block.left);
         collectBattleSide(block.right);
       }

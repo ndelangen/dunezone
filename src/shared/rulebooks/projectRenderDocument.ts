@@ -239,7 +239,7 @@ export function projectRulebookDraftRenderBlock(
   contents?: RulebookContentsDraftV1
 ): RulebookRenderBlockV1 {
   const identity = { id: block.id, ...(block.anchor ? { anchor: block.anchor } : {}) };
-  if (block.kind === 'battle-step') {
+  if (block.kind === 'battle-step' || block.kind === 'battle-plans') {
     return {
       ...block,
       ...identity,
@@ -285,7 +285,6 @@ export function projectRulebookDraftRenderBlock(
       ...identity,
       kind: block.kind,
       ...(block.name === undefined ? {} : { name: block.name }),
-      ...(block.step === undefined ? {} : { step: block.step }),
       ...(block.references
         ? {
             references: projectRulebookTextReferences(
@@ -305,6 +304,7 @@ export function projectRulebookDraftRenderBlock(
       ...identity,
       kind: block.kind,
       style: block.style,
+      ...(block.start === undefined ? {} : { start: block.start }),
       items: block.itemOrder.flatMap((id) => block.itemsById[id] ?? []),
     };
   }
@@ -534,6 +534,7 @@ function blockTextDiagnostics(pageId: string, blockId: string, block: RulebookBl
     block.kind === 'referenced-illustration' ||
     block.kind === 'credits' ||
     block.kind === 'battle-step' ||
+    block.kind === 'battle-plans' ||
     block.kind === 'board-scene' ||
     block.kind === 'piece-movement' ||
     block.kind === 'battle-comparison'

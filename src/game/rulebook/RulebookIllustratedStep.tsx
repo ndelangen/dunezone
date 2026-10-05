@@ -1,13 +1,12 @@
 import type { ReactNode } from 'react';
 
-import { FormattedText } from '../assets/utils/FormattedText';
 import './RulebookRenderer.css';
 
 export type RulebookIllustratedStepProps = Readonly<{
   step: string;
   title: string;
   caption: string;
-  visual?: ReactNode;
+  visual: ReactNode;
   dialogue?: readonly { speaker: string; text: string }[];
   outcome?: string;
   anchor?: string;
@@ -38,7 +37,7 @@ export function RulebookIllustratedStep({
           <span className="rulebookBattleStep">{step}</span>
           <div className="rulebookBattleCopy">
             <h3>{title}</h3>
-            {caption ? <FormattedText value={caption} /> : null}
+            {caption ? <p>{caption}</p> : null}
             {dialogue.map((line, index) => (
               <blockquote className="rulebookBattleSpeech" key={index}>
                 <span>{line.speaker}:</span> {line.text}

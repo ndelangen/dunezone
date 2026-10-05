@@ -1439,6 +1439,9 @@
 .rulebookGrid[data-rulebook-grid="sequence"] {
   grid-template-areas: "content";
 }
+.rulebookPage[data-rulebook-layout="sequence"] .rulebookRegionBlocks {
+  gap: calc(1 * var(--rulebook-mm));
+}
 .rulebookPage .rulebookBattlePanel p + p {
   margin-top: 0;
 }
@@ -1649,4 +1652,45 @@
   overflow: hidden;
   border-radius: 50%;
   filter: drop-shadow(0 calc(0.2 * var(--rulebook-mm)) calc(0.2 * var(--rulebook-mm)) rgb(0 0 0 / 35%));
+}
+
+.rulebookPage[data-rulebook-layout="paired-rows"] .rulebookPageContent {
+  padding-bottom: calc(35 * var(--rulebook-mm));
+}
+.rulebookPairedRows {
+  display: flex;
+  flex-direction: column;
+  gap: calc(4 * var(--rulebook-mm));
+  min-height: 0;
+}
+.rulebookPairedRow {
+  display: flex;
+  gap: calc(6 * var(--rulebook-mm));
+  align-items: start;
+  min-height: 0;
+}
+.rulebookPairedRow > :first-child {
+  flex: 1.3 1 0;
+}
+.rulebookPairedRow > :last-child {
+  flex: 1 1 0;
+}
+.rulebookPairedRows .rulebookRegionBlocks {
+  padding-block-start: 0;
+}
+.rulebookBattlePlans {
+  margin: 0;
+}
+.rulebookList > ol > li h3 {
+  margin: 0 0 calc(2 * var(--rulebook-mm));
+}
+.rulebookList > ol {
+  gap: calc(4 * var(--rulebook-mm));
+}
+
+.rulebookPairedRow:first-of-type > :last-child {
+  align-self: end;
+}
+.rulebookList > ol > li {
+  padding-inline-start: calc(2 * var(--rulebook-mm));
 }

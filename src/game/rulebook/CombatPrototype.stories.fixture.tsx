@@ -228,16 +228,7 @@ const specialText = text(
   'When Ix wins, an uncommitted Suboid may die in place of a committed Cyborg. Flip the saved Cyborg to its patched side. A patched Cyborg can be dialed in a later winning battle without dying, then flips back. These rules do not save troops from an ordinary defeat.',
   'Cyborg losses'
 );
-function stepText(id: string, step: number, title: string, copy: string): Block {
-  return { id, kind: 'text', step: String(step), name: title, text: copy };
-}
-const preparation = stepText(
-  'preparation',
-  1,
-  'Resolve preparation effects',
-  'Resolve Supplies and the last opportunity for an Ixian alliance card exchange before building plans.'
-);
-const dialRule = stepText('dial-rule', 4, 'Dial troop strength', scenes.dial.rule);
+const dialRule = text('dial-rule', scenes.dial.rule, '4. Dial troop strength');
 const hiddenExample = example(
   'prescience-example',
   scenes.prescience.example,
@@ -248,9 +239,9 @@ const revealExample = example(
   scenes.reveal.example + ' ' + scenes.weapons.example,
   'Example: the plans are revealed'
 );
-const resultRule = stepText('result-rule', 6, 'Determine the winner', scenes.total.rule);
+const resultRule = text('result-rule', scenes.total.rule, '6. Determine the winner');
 const spiteExample = example('spite-example', scenes.spite.example, "Example: Vladimir's Spite");
-const cardRule = stepText('card-rule', 8, 'Settle cards and the leader reward', scenes.cards.rule);
+const cardRule = text('card-rule', scenes.cards.rule, '8. Settle cards and the leader reward');
 const cardExample = example('card-example', scenes.cards.example, 'Example: cards and reward');
 const lossExample = example('loss-example', scenes.losses.example, 'Example: troop losses');
 const tieRules = text(
@@ -324,18 +315,65 @@ const continueBattle = text(
   'Continue the Battle phase'
 );
 function preparingPlans(): Page {
+  const plans = (block: typeof preparing): Block => ({
+    id: block.id,
+    kind: 'battle-plans',
+    left: block.left,
+    right: block.right,
+    showSideLabels: false,
+  });
   return {
-    ...single('prepare', 'Build your plans', [
-      text(
-        'visual-orientation',
-        'Throughout these illustrations, the aggressor is on the left and the defender on the right. Here, that is Atreides and Harkonnen.'
-      ),
-      preparation,
-      preparing,
-      beforeReveal,
-      hiddenExample,
-    ]),
-    layoutId: 'sequence',
+    id: 'prepare',
+    anchor: 'prepare',
+    title: 'Build your plans',
+    showHeading: true,
+    headingIcon: '/vector/icon/combat.svg',
+    layoutId: 'paired-rows',
+    controlValues: {},
+    regions: [
+      {
+        key: 'opening',
+        blocks: [
+          text(
+            'visual-orientation',
+            'Throughout these illustrations, the aggressor is on the left and the defender on the right. Here, that is Atreides and Harkonnen.'
+          ),
+        ],
+      },
+      {
+        key: 'upperLeft',
+        blocks: [
+          {
+            id: 'preparation-rules',
+            kind: 'list',
+            style: 'numbered',
+            items: [
+              {
+                id: 'supplies',
+                name: 'Resolve preparation effects',
+                text: 'Resolve Supplies and the last opportunity for an Ixian alliance card exchange before building plans.',
+              },
+              { id: 'plan', name: 'Prepare a battle plan', text: scenes.hidden.rule },
+            ],
+          },
+        ],
+      },
+      { key: 'upperRight', blocks: [plans(preparing)] },
+      {
+        key: 'lowerLeft',
+        blocks: [
+          {
+            id: 'pre-reveal-rules',
+            kind: 'list',
+            style: 'numbered',
+            start: 3,
+            items: [{ id: 'advantages', name: 'Resolve pre-reveal advantages', text: scenes.prescience.rule }],
+          },
+        ],
+      },
+      { key: 'lowerRight', blocks: [plans(beforeReveal)] },
+      { key: 'closing', blocks: [hiddenExample] },
+    ],
   };
 }
 function chapter(variant: CombatVariant): Page[] {

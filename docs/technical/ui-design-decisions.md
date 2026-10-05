@@ -516,16 +516,17 @@ typography and footer. The revised chapter stories parse the render document con
 that every page region fits. Contract validation and fit are automated; choosing real blocks and
 justifying additions remain review obligations.
 
-### Procedure steps share their typography and alignment
+### Page composition belongs to layouts
 
-A text block with a step number and an illustrated step use `RulebookIllustratedStep` for the
-number, heading, body and column alignment. An ordinary numbered list is for list items, not a
-substitute for a procedure step. Adding or removing an illustration must not change the heading
-style or move the text column. Sequence pages use the standard block gap; they do not compress
-unrelated steps to make a crowded page fit.
+When prose and illustrations need independent placement, the page layout owns their slots,
+column widths, row alignment and spacing. Do not add empty illustration columns or procedure
+layout to ordinary text blocks. The paired-rows layout provides opening and closing bands around
+two pairs of content slots. Flex rows take their height from the taller content and keep their
+column proportions aligned. Every slot accepts ordinary rulebook blocks.
 
-The combat chapter stories compare step headings, text alignment and the gaps between successive
-steps, alongside their page-fit checks.
+Battle plans have a standalone visual block so a page can place them beside a numbered list,
+example or other explanation. The existing battle-step block remains available when its combined
+explanation and illustration are useful. Neither block dictates the page layout.
 
 ### Renderers stay isolated
 

@@ -263,6 +263,25 @@ function resolvedSide(side: BattleStep['left']): RulebookBattleSide {
   };
 }
 
+/** A standalone pair of plans leaves prose and placement to other blocks and the page layout. */
+export function RulebookBattlePlans({
+  block,
+}: Readonly<{ block: Extract<RulebookRenderBlockV1, { kind: 'battle-plans' }> }>) {
+  return (
+    <figure
+      id={block.anchor}
+      data-rulebook-block-id={block.id}
+      className="rulebookBattlePlans"
+      aria-label="Battle plans"
+    >
+      <div className="rulebookBattleWheels">
+        <Side side={resolvedSide(block.left)} facing="left" showLabel={block.showSideLabels !== false} />
+        <Side side={resolvedSide(block.right)} facing="right" showLabel={block.showSideLabels !== false} />
+      </div>
+    </figure>
+  );
+}
+
 /** Resolves a saved teaching step into the same battle wheels used at the game table. */
 export function RulebookBattleStep({ block }: Readonly<{ block: BattleStep }>) {
   return (

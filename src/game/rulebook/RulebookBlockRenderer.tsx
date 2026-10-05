@@ -7,9 +7,8 @@ import { useAsset, useAssetResolver } from '../assets/assetRenderMode';
 import { isLight } from '../assets/utils/contrast';
 import { FormattedText } from '../assets/utils/FormattedText';
 import { RulebookAssetExplainer } from './RulebookAssetExplainer';
-import { RulebookBattleComparisonBlock, RulebookBattleStep } from './RulebookBattlePlan';
+import { RulebookBattleComparisonBlock, RulebookBattleStep, RulebookBattlePlans } from './RulebookBattlePlan';
 import { RulebookBoardSceneBlock } from './RulebookBoardScene';
-import { RulebookIllustratedStep } from './RulebookIllustratedStep';
 import { RulebookPieceMovementBlock } from './RulebookPieceMovementBlock';
 import './RulebookRenderer.css';
 
@@ -220,17 +219,14 @@ export function RulebookBlockRenderer({ block }: Readonly<{ block: RulebookRende
   if (block.kind === 'asset-explainer') {
     return <RulebookAssetExplainer block={block} />;
   }
+  if (block.kind === 'battle-plans') {
+    return <RulebookBattlePlans block={block} />;
+  }
   if (block.kind === 'text') {
     return (
       <div {...blockAnchor(block)} className={styles.textBlock} data-rulebook-block-id={block.id}>
-        {block.step ? (
-          <RulebookIllustratedStep step={block.step} title={block.name ?? ''} caption={block.text} />
-        ) : (
-          <>
-            {block.name ? <h3>{block.name}</h3> : null}
-            <FormattedText value={block.text} />
-          </>
-        )}
+        {block.name ? <h3>{block.name}</h3> : null}
+        <FormattedText value={block.text} />
         {block.references?.length ? (
           <nav className="rulebookTextReferences" aria-label="Related rules">
             See{' '}
@@ -281,7 +277,7 @@ export function RulebookBlockRenderer({ block }: Readonly<{ block: RulebookRende
         data-rulebook-block-id={block.id}
         data-illustrated={illustrated || undefined}
       >
-        <List role="list">
+        <List role="list" start={block.style === 'numbered' ? block.start : undefined}>
           {block.items.map((item) => (
             <li data-rulebook-item-id={item.id} key={item.id}>
               {illustrated ? (
@@ -290,7 +286,13 @@ export function RulebookBlockRenderer({ block }: Readonly<{ block: RulebookRende
                 </span>
               ) : null}
               <div className="rulebookListCopy">
-                {item.name ? <strong className={styles.itemName}>{item.name}</strong> : null}
+                {item.name ? (
+                  block.style === 'numbered' ? (
+                    <h3>{item.name}</h3>
+                  ) : (
+                    <strong className={styles.itemName}>{item.name}</strong>
+                  )
+                ) : null}
                 <FormattedText value={item.text} />
               </div>
             </li>

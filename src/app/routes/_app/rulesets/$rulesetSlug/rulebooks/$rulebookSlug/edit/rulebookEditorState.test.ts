@@ -27,6 +27,66 @@ function ready(value: RulebookEditorResult | { readonly result: RulebookEditorRe
 }
 
 describe('Rulebook editor state manager', () => {
+  it('saves paired slots, standalone plans and continued numbering through editor intents', () => {
+    const manager = createRulebookEditorStateManager(createCleanSavedRevision());
+    const draft = structuredClone(ready(manager).draft);
+    const page = draft.pagesById.RULE!;
+    draft.pageOrder.push('PAAR');
+    draft.pagesById.PAAR = {
+      ...page,
+      id: 'PAAR',
+      anchor: 'paired-page',
+      layoutId: 'paired-rows',
+      controlValues: {},
+      blockOrderByRegion: {
+        opening: [],
+        upperLeft: [],
+        upperRight: ['PLAN'],
+        lowerLeft: ['LSTS'],
+        lowerRight: [],
+        closing: [],
+      },
+      blocksById: {
+        PLAN: {
+          id: 'PLAN',
+          kind: 'battle-plans',
+          showSideLabels: false,
+          left: { role: '', revealed: false, dial: 0, spice: 0, cards: [], troops: [] },
+          right: { role: '', revealed: false, dial: 0, spice: 0, cards: [], troops: [] },
+        },
+        LSTS: {
+          id: 'LSTS',
+          kind: 'list',
+          style: 'numbered',
+          start: 3,
+          itemOrder: ['AAAA'],
+          itemsById: { AAAA: { id: 'AAAA', name: 'Continue', text: 'Resolve the next step.' } },
+        },
+      },
+    };
+    manager.dispatch({ kind: 'replace-draft', draft });
+    const saving = ready(manager.dispatch({ kind: 'begin-save' }));
+    expect(saving.diagnostics).toEqual([]);
+    const saved = saving.saveRequest!.contents;
+    expect(saved.pagesById.PAAR).toMatchObject({
+      layoutId: 'paired-rows',
+      blocksById: { PLAN: { kind: 'battle-plans', showSideLabels: false }, LSTS: { start: 3 } },
+    });
+    manager.dispatch({ kind: 'save-succeeded', saved: { revision: 'revision-paired', contents: saved } });
+    const edited = structuredClone(ready(manager).draft);
+    const plans = edited.pagesById.PAAR!.blocksById.PLAN!;
+    const list = edited.pagesById.PAAR!.blocksById.LSTS!;
+    if (plans.kind !== 'battle-plans' || list.kind !== 'list') {
+      throw new Error('Expected the saved blocks');
+    }
+    plans.left.dial = 3;
+    list.start = 4;
+    manager.dispatch({ kind: 'replace-draft', draft: edited });
+    expect(ready(manager.dispatch({ kind: 'begin-save' })).saveRequest!.contents.pagesById.PAAR).toMatchObject({
+      blocksById: { PLAN: { left: { dial: 3 } }, LSTS: { start: 4 } },
+    });
+  });
+
   it('saves title icons, related rules and stock component artwork through the editor intent pipeline', () => {
     const manager = createRulebookEditorStateManager(createCleanSavedRevision());
     const draft = structuredClone(ready(manager).draft);
@@ -37,7 +97,6 @@ describe('Rulebook editor state manager', () => {
       throw new Error('Expected text fixture');
     }
     text.references = [{ pageId: 'REFS', blockId: 'TEXT' }];
-    text.step = '1';
     page.blocksById.ASST = {
       id: 'ASST',
       kind: 'card-entry',
@@ -51,7 +110,7 @@ describe('Rulebook editor state manager', () => {
     expect(request.contents.pagesById.RULE).toMatchObject({
       headingIcon: page.headingIcon,
       blocksById: {
-        TEXT: { references: text.references, step: '1' },
+        TEXT: { references: text.references },
         ASST: { name: 'Shield', size: 'small', source: { kind: 'stock', artworkId: '/vector/decal/shield.svg' } },
       },
     });

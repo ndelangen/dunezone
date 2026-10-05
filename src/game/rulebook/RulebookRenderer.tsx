@@ -102,6 +102,29 @@ function InteriorPage({ BlockRenderer, page, pageNumber }: PageLayoutProps<Inter
   );
 }
 
+function PairedRowsPage({ BlockRenderer, page }: PageLayoutProps<'paired-rows'>) {
+  const region = (regionKey: RulebookBlockRegionKey) => (
+    <Region BlockRenderer={BlockRenderer} page={page} regionKey={regionKey} />
+  );
+  return (
+    <div className={styles.interior} data-rulebook-show-heading={page.showHeading}>
+      {page.showHeading ? <RulebookInteriorHeading title={page.title} icon={page.headingIcon} /> : null}
+      <div className="rulebookPairedRows">
+        {region('opening')}
+        <div className="rulebookPairedRow">
+          {region('upperLeft')}
+          {region('upperRight')}
+        </div>
+        <div className="rulebookPairedRow">
+          {region('lowerLeft')}
+          {region('lowerRight')}
+        </div>
+        {region('closing')}
+      </div>
+    </div>
+  );
+}
+
 function usesImageCover(page: RulebookRenderPageV1) {
   return (
     page.layoutId === 'cover' &&
@@ -204,6 +227,7 @@ type RulebookPageRendererRegistry = {
 
 const rulebookPageRenderers = {
   sequence: InteriorPage,
+  'paired-rows': PairedRowsPage,
   'single-column': InteriorPage,
   'two-columns': InteriorPage,
   'wide-narrow': InteriorPage,

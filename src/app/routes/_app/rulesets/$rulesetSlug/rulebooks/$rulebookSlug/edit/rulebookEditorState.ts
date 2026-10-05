@@ -127,6 +127,12 @@ const setIntentSchema = z.union([
   z.strictObject({
     kind: z.literal('set'),
     target: blockRefSchema,
+    field: z.literal('list-start'),
+    value: z.number().int().positive().optional(),
+  }),
+  z.strictObject({
+    kind: z.literal('set'),
+    target: blockRefSchema,
     field: z.literal('board-id'),
     value: rulebookBoardSceneSchema.shape.boardId,
   }),
@@ -1325,6 +1331,20 @@ function setBlockField(block: RulebookBlockDraft, field: RulebookFieldName, valu
     block.examples[field === 'comparison-first' ? 0 : 1] = rulebookBattleExampleSchema.parse(value);
     return;
   }
+  if (block.kind === 'battle-plans') {
+    if (field === 'battle-left' || field === 'battle-right') {
+      block[field === 'battle-left' ? 'left' : 'right'] = rulebookBattleSideSchema.parse(value);
+      return;
+    }
+    if (field === 'show-side-labels') {
+      block.showSideLabels = z.boolean().optional().parse(value);
+      return;
+    }
+  }
+  if (field === 'list-start' && block.kind === 'list') {
+    block.start = z.number().int().positive().optional().parse(value);
+    return;
+  }
   if (block.kind === 'battle-step') {
     if (field === 'battle-left' || field === 'battle-right') {
       block[field === 'battle-left' ? 'left' : 'right'] = rulebookBattleSideSchema.parse(value);
@@ -1423,10 +1443,6 @@ function setBlockField(block: RulebookBlockDraft, field: RulebookFieldName, valu
   }
   if (field === 'faction-id' && (block.kind === 'section-heading' || block.kind === 'faction-introduction')) {
     block.factionId = optionalText;
-    return;
-  }
-  if (field === 'step' && block.kind === 'text') {
-    block.step = optionalText;
     return;
   }
   if (field === 'name' && block.kind === 'text') {
@@ -1814,6 +1830,11 @@ function fieldRecords(contents: RulebookContentsDraftV1): FieldRecord[] {
       add('comparison-second', clone(block.examples[1]));
     }
 
+    if (block.kind === 'battle-plans') {
+      add('battle-left', block.left);
+      add('battle-right', block.right);
+      add('show-side-labels', block.showSideLabels);
+    }
     if (block.kind === 'battle-step') {
       add('step', block.step);
       add('caption', block.caption);
@@ -1832,7 +1853,6 @@ function fieldRecords(contents: RulebookContentsDraftV1): FieldRecord[] {
     if (block.kind === 'text') {
       add('references', block.references);
       add('name', block.name);
-      add('step', block.step);
     }
     if (block.kind === 'section-heading' || block.kind === 'faction-introduction') {
       add('faction-id', block.factionId);
@@ -1842,6 +1862,7 @@ function fieldRecords(contents: RulebookContentsDraftV1): FieldRecord[] {
     }
     if (block.kind === 'list') {
       add('style', block.style);
+      add('list-start', block.start);
     }
     if (block.kind === 'card-entry' || block.kind === 'referenced-illustration') {
       add('size', block.size);
