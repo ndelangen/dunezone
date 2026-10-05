@@ -1,17 +1,18 @@
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server.edge';
 
+import interiorHeadingCss from '../../game/rulebook/RulebookInteriorHeading.module.css?inline';
 import {
   RULEBOOK_ARTWORK_HREF,
   RULEBOOK_COVER_LOGO_HREF,
   RulebookDocumentRenderer,
 } from '../../game/rulebook/RulebookRenderer';
-import rulebookRendererCss from '../../game/rulebook/RulebookRenderer.css?inline';
+import documentCss from '../../game/rulebook/RulebookRenderer.css?inline';
 import type { RulebookRenderDocumentV1 } from '../../shared/rulebooks/renderDocument';
 import { rulebookHtmlImages } from './rulebookHtmlImages';
 import { rulebookHtmlSvg } from './rulebookHtmlSvg';
 
-export { rulebookRendererCss };
+export const rulebookRendererCss = `${documentCss}\n${interiorHeadingCss}`;
 
 type StaticRulebookDocument = Readonly<{
   canonicalHref: string;

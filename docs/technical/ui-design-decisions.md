@@ -475,6 +475,30 @@ orphaned or unimported stylesheets, modules and the plain stylesheet a route imp
 `composes` itself; the one-owner rule is convention.
 Canonical in [`ui-component-hierarchy.md`](./ui-component-hierarchy.md) (Styling).*
 
+### Layouts arrange content; they do not restyle it
+
+This applies to application components and document renderers. A layout owns placement, dimensions,
+order and spacing between its children. The child owns its typography, colour, background, border
+and icon treatment. A parent selector must not reach into a child's markup or classes to change
+that appearance. Renaming the selector or routing the override through an appearance variable does
+not change the ownership.
+
+The existing placement/appearance principle lacked an explicit renderer rule and regression check.
+The Rulebook sequence layout exposed that gap by selecting `header h1` and replacing the shared
+blue heading bar with smaller, left-aligned text. The intent was to fit more content, but changing
+layout also changed the book's visual identity. Interior headings now belong to `RulebookInteriorHeading`
+and its CSS Module. Cover titles have a separate owner. Layouts may change the space around a
+heading, not how the heading paints. Solve a crowded page through composition or content density;
+a deliberate visual variant belongs to the child and requires product approval.
+
+*Enforced for Rulebook headings by the `HeadingConsistency` browser story in
+[`RulebookPageLayouts.stories.tsx`](../../src/game/rulebook/RulebookPageLayouts.stories.tsx): it compares
+rendered heading appearance across every registered interior layout, page size and design, with and
+without an icon. A new layout enters that matrix automatically.
+[`rulebookHtmlHeading.test.ts`](../../src/app/print/rulebookHtmlHeading.test.ts) checks the exported
+document using only its emitted styles. The broader ownership rule is convention, not a claim of
+complete static enforcement.*
+
 ### Renderers stay isolated
 
 Game-asset renderers must paint identically in a Worker, in print, and in the browser, and none of

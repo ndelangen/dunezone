@@ -43,6 +43,8 @@ does not: ownership rules that sit around it.
   ([`scripts/assert-no-orphan-css-classes.mjs`](../../scripts/assert-no-orphan-css-classes.mjs)).
   `src/game` is out of scope there, by design.
 - Placement (`className`) may be passed into kit components; appearance may not.
+- Layouts may not restyle child content through descendant selectors or appearance variables. This
+  applies to document renderers too. See [Layouts arrange content](ui-design-decisions.md#layouts-arrange-content-they-do-not-restyle-it).
 - TanStack Router's typed `Link` owns navigation; Mantine and kit components reach it through
   `renderRoot` at the call site.
 
