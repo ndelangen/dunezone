@@ -2078,6 +2078,19 @@
       "publicationRevision": "3a3ed9de-0671-4497-9abe-1fd79dbeb7cb",
       "width": 900,
       "height": 1263
+    },
+    "breakConditioning": {
+      "status": "ready",
+      "reference": {
+        "kind": "asset",
+        "assetId": "ns7f7psmdqgae5e0v301nj5mc18fn7rx"
+      },
+      "name": "Break Conditioning",
+      "imageUrl": "https://dune.zone/published/cards/ns7f7psmdqgae5e0v301nj5mc18fn7rx/card.jpg?v=31b9647f-d52a-45ad-adaa-cfc3915ff648",
+      "assetType": "card-treachery",
+      "publicationRevision": "31b9647f-d52a-45ad-adaa-cfc3915ff648",
+      "width": 900,
+      "height": 1263
     }
   }
 }

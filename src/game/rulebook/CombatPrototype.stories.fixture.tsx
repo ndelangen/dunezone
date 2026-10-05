@@ -510,7 +510,14 @@ function exceptions(): Page {
   return columns(
     'other-outcomes',
     'Other battle outcomes',
-    data.special.BSPC.slice(1, 2) as Block[],
+    [
+      {
+        id: 'break-conditioning-card',
+        kind: 'card-entry',
+        source: data.sources.breakConditioning as (typeof revealed.left)['leader'],
+        text: data.special.BSPC[1]!.text,
+      },
+    ],
     [
       ...data.special.BSPC.slice(2),
       {
