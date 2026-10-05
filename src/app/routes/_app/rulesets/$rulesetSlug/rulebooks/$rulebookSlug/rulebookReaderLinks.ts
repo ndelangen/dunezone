@@ -234,7 +234,7 @@ function projectedBattleText(block: RenderBattleExample, comparison = false) {
       hasArtwork && (troop.face === 'back' ? troop.artwork?.back : troop.artwork);
     return [
       ...(block.showSideLabels !== false ? [name(side), side.role] : []),
-      ...(!side.revealed && side.knownCard ? [pieceText(side.knownCard)] : []),
+      ...(!side.revealed && side.cards.length > 0 && side.knownCard ? [pieceText(side.knownCard)] : []),
       ...(!hasArtwork
         ? ['Faction artwork unavailable', side.revealed ? `${side.dial} troop strength, ${side.spice} spice` : '']
         : side.revealed
@@ -249,22 +249,10 @@ function projectedBattleText(block: RenderBattleExample, comparison = false) {
                 ),
               String(side.spice),
               pieceText(side.leader),
-              side.leaderKilled ? 'Killed' : '',
+              side.leaderKilled ? '❌' : '',
               side.adjustment ? `${side.adjustment > 0 ? '+' : ''}${side.adjustment} adj.` : '',
             ]
           : []),
-      ...(side.revealed
-        ? [
-            `Uncommitted: ${
-              side.troops.some((troop) => troop.uncommitted > 0)
-                ? side.troops
-                    .filter((troop) => troop.uncommitted > 0)
-                    .map((troop) => `${troopAvailable(troop) ? '' : '? '}${troop.uncommitted}`)
-                    .join(' ')
-                : '0'
-            }`,
-          ]
-        : []),
       ...(side.revealed
         ? side.troops
             .filter((troop) => !troopAvailable(troop))
@@ -275,16 +263,16 @@ function projectedBattleText(block: RenderBattleExample, comparison = false) {
       side.result ?? '',
     ].join(' ');
   };
+  const explanation = [
+    block.caption,
+    ...(block.dialogue ?? []).map((line) => `${name(block[line.speaker])}: ${line.text}`),
+    block.outcome ?? '',
+  ];
+  const plans = [sideText(block.left), sideText(block.right)];
   return normalizeRulebookText(
-    [
-      ...(comparison ? [block.title] : []),
-      sideText(block.left),
-      sideText(block.right),
-      ...(comparison ? [] : [block.step, block.title]),
-      block.caption,
-      ...(block.dialogue ?? []).map((line) => `${name(block[line.speaker])}: ${line.text}`),
-      block.outcome ?? '',
-    ].join(' ')
+    (comparison ? [block.title, ...plans, ...explanation] : [block.step, block.title, ...explanation, ...plans]).join(
+      ' '
+    )
   );
 }
 
@@ -334,6 +322,10 @@ function projectedMovementText(block: Extract<RulebookRenderBlockV1, { kind: 'pi
     ].join(' ');
   return normalizeRulebookText(
     [
+      block.step,
+      block.title,
+      block.caption,
+      block.outcome ?? '',
       block.board ? projectedBoardText(block.board) : '',
       groupText(block.left),
       block.direction === 'exchange' ? '⇄' : block.direction === 'right' ? '→' : '',
@@ -342,15 +334,14 @@ function projectedMovementText(block: Extract<RulebookRenderBlockV1, { kind: 'pi
         (note) =>
           `${note.label} ${note.source.status === 'unavailable' ? `${note.count} pieces; source unavailable` : ''}`
       ),
-      block.step,
-      block.title,
-      block.caption,
-      block.outcome ?? '',
     ].join(' ')
   );
 }
 
 function projectedBlockText(block: RulebookRenderBlockV1) {
+  if (block.kind === 'battle-plans') {
+    return projectedBattleText({ ...block, step: '', title: '', caption: '' });
+  }
   if (block.kind === 'battle-step') {
     return projectedBattleText(block);
   }

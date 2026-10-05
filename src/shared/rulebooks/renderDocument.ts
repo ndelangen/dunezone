@@ -131,6 +131,13 @@ const renderBlockSchemas = {
     kind: z.literal('battle-comparison'),
     examples: z.tuple([renderBattleExampleSchema, renderBattleExampleSchema]),
   }),
+  'battle-plans': z.strictObject({
+    ...renderBlockBase,
+    kind: z.literal('battle-plans'),
+    left: renderBattleSideSchema,
+    right: renderBattleSideSchema,
+    showSideLabels: z.boolean().optional(),
+  }),
   'battle-step': z.strictObject({
     ...renderBlockBase,
     kind: z.literal('battle-step'),
@@ -163,6 +170,7 @@ const renderBlockSchemas = {
     ...renderBlockBase,
     kind: z.literal('list'),
     style: z.enum(['bulleted', 'numbered']),
+    start: z.number().int().positive().optional(),
     items: z.array(
       z.strictObject({
         id: renderLocalIdSchema,
@@ -273,6 +281,7 @@ const renderBlockSchemas = {
 export const renderBlockSchema = z.discriminatedUnion('kind', [
   renderBlockSchemas.text,
   renderBlockSchemas['battle-step'],
+  renderBlockSchemas['battle-plans'],
   renderBlockSchemas['board-scene'],
   renderBlockSchemas['piece-movement'],
   renderBlockSchemas['battle-comparison'],

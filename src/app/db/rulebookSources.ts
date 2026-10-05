@@ -9,3 +9,9 @@ export function useRulebookFactionMembers(factionId: string) {
   const data = useQuery(api.rulebookSources.factionMembers, { faction_id: factionId as Id<'factions'> });
   return toLiveQueryResult(data);
 }
+
+/* Mounted only while the source picker is choosing a troop of this faction. */
+export function useRulebookFactionTroops(factionId: string) {
+  const data = useQuery(api.rulebookSources.factionTroops, { faction_id: factionId as Id<'factions'> });
+  return toLiveQueryResult(data);
+}

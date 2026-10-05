@@ -7,7 +7,7 @@ import { useAsset, useAssetResolver } from '../assets/assetRenderMode';
 import { isLight } from '../assets/utils/contrast';
 import { FormattedText } from '../assets/utils/FormattedText';
 import { RulebookAssetExplainer } from './RulebookAssetExplainer';
-import { RulebookBattleComparisonBlock, RulebookBattleStep } from './RulebookBattlePlan';
+import { RulebookBattleComparisonBlock, RulebookBattleStep, RulebookBattlePlans } from './RulebookBattlePlan';
 import { RulebookBoardSceneBlock } from './RulebookBoardScene';
 import { RulebookPieceMovementBlock } from './RulebookPieceMovementBlock';
 import './RulebookRenderer.css';
@@ -64,7 +64,11 @@ function sourceIdentity(source: RulebookRenderSourceV1) {
     'data-rulebook-source-kind': reference.kind,
     'data-asset-id': reference.kind === 'asset' ? reference.assetId : undefined,
     'data-faction-id':
-      reference.kind === 'faction' || reference.kind === 'faction-member' ? reference.factionId : undefined,
+      reference.kind === 'faction' || reference.kind === 'faction-member' || reference.kind === 'faction-troop'
+        ? reference.factionId
+        : undefined,
+    'data-troop-id': reference.kind === 'faction-troop' ? reference.troopId : undefined,
+    'data-troop-face': reference.kind === 'faction-troop' ? reference.face : undefined,
     'data-member-id': reference.kind === 'faction-member' ? reference.memberId : undefined,
     'data-artwork-id': reference.kind === 'stock' ? reference.artworkId : undefined,
     'data-board-id': reference.kind === 'board' ? reference.boardId : undefined,
@@ -219,6 +223,9 @@ export function RulebookBlockRenderer({ block }: Readonly<{ block: RulebookRende
   if (block.kind === 'asset-explainer') {
     return <RulebookAssetExplainer block={block} />;
   }
+  if (block.kind === 'battle-plans') {
+    return <RulebookBattlePlans block={block} />;
+  }
   if (block.kind === 'text') {
     return (
       <div {...blockAnchor(block)} className={styles.textBlock} data-rulebook-block-id={block.id}>
@@ -274,7 +281,7 @@ export function RulebookBlockRenderer({ block }: Readonly<{ block: RulebookRende
         data-rulebook-block-id={block.id}
         data-illustrated={illustrated || undefined}
       >
-        <List role="list">
+        <List role="list" start={block.style === 'numbered' ? block.start : undefined}>
           {block.items.map((item) => (
             <li data-rulebook-item-id={item.id} key={item.id}>
               {illustrated ? (
@@ -283,7 +290,13 @@ export function RulebookBlockRenderer({ block }: Readonly<{ block: RulebookRende
                 </span>
               ) : null}
               <div className="rulebookListCopy">
-                {item.name ? <strong className={styles.itemName}>{item.name}</strong> : null}
+                {item.name ? (
+                  block.style === 'numbered' ? (
+                    <h3>{item.name}</h3>
+                  ) : (
+                    <strong className={styles.itemName}>{item.name}</strong>
+                  )
+                ) : null}
                 <FormattedText value={item.text} />
               </div>
             </li>

@@ -53,7 +53,9 @@ export function RulebookAssetExplainer({
     source.status === 'ready' &&
     source.geometry &&
     source.publicationRevision &&
-    (source.reference.kind === 'asset' || source.reference.kind === 'faction-member')
+    (source.reference.kind === 'asset' ||
+      source.reference.kind === 'faction-member' ||
+      source.reference.kind === 'faction-troop')
       ? `${sourceUrl}${sourceUrl.includes('?') ? '&' : '?'}componentRevision=${encodeURIComponent(source.publicationRevision)}`
       : sourceUrl;
   const imageUrl = useAsset(alignedUrl);

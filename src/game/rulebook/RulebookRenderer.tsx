@@ -82,7 +82,14 @@ type PageLayoutProps<LayoutId extends RulebookPageLayoutId> = Readonly<{
   coverLogoHref: string;
 }>;
 
-type InteriorLayoutId = 'sequence' | 'single-column' | 'two-columns' | 'wide-narrow' | 'outer-rail' | 'band-columns';
+type InteriorLayoutId =
+  | 'content-strip'
+  | 'sequence'
+  | 'single-column'
+  | 'two-columns'
+  | 'wide-narrow'
+  | 'outer-rail'
+  | 'band-columns';
 
 function InteriorPage({ BlockRenderer, page, pageNumber }: PageLayoutProps<InteriorLayoutId>) {
   return (
@@ -97,6 +104,29 @@ function InteriorPage({ BlockRenderer, page, pageNumber }: PageLayoutProps<Inter
         {getRulebookRegionOrder(page, pageNumber).map((key) => (
           <Region BlockRenderer={BlockRenderer} page={page} regionKey={key} key={key} />
         ))}
+      </div>
+    </div>
+  );
+}
+
+function PairedRowsPage({ BlockRenderer, page }: PageLayoutProps<'paired-rows'>) {
+  const region = (regionKey: RulebookBlockRegionKey) => (
+    <Region BlockRenderer={BlockRenderer} page={page} regionKey={regionKey} />
+  );
+  return (
+    <div className={styles.interior} data-rulebook-show-heading={page.showHeading}>
+      {page.showHeading ? <RulebookInteriorHeading title={page.title} icon={page.headingIcon} /> : null}
+      <div className="rulebookPairedRows">
+        {region('opening')}
+        <div className="rulebookPairedRow">
+          {region('upperLeft')}
+          {region('upperRight')}
+        </div>
+        <div className="rulebookPairedRow">
+          {region('lowerLeft')}
+          {region('lowerRight')}
+        </div>
+        {region('closing')}
       </div>
     </div>
   );
@@ -204,7 +234,9 @@ type RulebookPageRendererRegistry = {
 
 const rulebookPageRenderers = {
   sequence: InteriorPage,
+  'paired-rows': PairedRowsPage,
   'single-column': InteriorPage,
+  'content-strip': InteriorPage,
   'two-columns': InteriorPage,
   'wide-narrow': InteriorPage,
   'outer-rail': InteriorPage,
@@ -267,7 +299,7 @@ export function RulebookPageRenderer({
       data-rulebook-page-side={pageNumber % 2 === 0 ? 'left' : 'right'}
       style={pageDimensions(settings)}
     >
-      {settings.design === 'illustrated' && !usesImageCover(page) && page.layoutId !== 'sequence' ? (
+      {settings.design === 'illustrated' && !usesImageCover(page) ? (
         <div className={styles.artwork} aria-hidden="true">
           <img src={artworkHref} alt="" />
         </div>

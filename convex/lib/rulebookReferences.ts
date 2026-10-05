@@ -15,6 +15,7 @@ import { collectRulebookReferenceIds } from '../../src/shared/rulebooks/referenc
 import type { RulebookResolvedSource } from '../../src/shared/rulebooks/sources';
 import type { MutationCtx, QueryCtx } from '../types';
 import { assetDisplayName } from './assetInput';
+import { resolveRulebookTroopSource, rulebookTroopReferences } from './rulebookTroopSources';
 
 type ReadCtx = Pick<QueryCtx, 'db'> | Pick<MutationCtx, 'db'>;
 
@@ -24,7 +25,7 @@ export async function resolveRulebookReferences(
   contents: RulebookEditionContentsV1,
   requested: { assetIds?: readonly string[]; factionIds?: readonly string[]; factionTokenImages?: boolean } = {}
 ) {
-  const { assetIds, factionIds } = collectRulebookReferenceIds(contents, requested);
+  const { assetIds, factionIds, troopSources = [] } = collectRulebookReferenceIds(contents, requested);
   const [assets, factions] = await Promise.all([
     Promise.all(
       assetIds.map(async (assetId): Promise<readonly [string, RulebookResolvedAssetsById[string]] | null> => {
@@ -124,6 +125,12 @@ export async function resolveRulebookReferences(
               const { capable: _backCapable, combat: _backCombat, ...backArtwork } = back;
               return TroopArtwork.parse({ ...artwork, back: backArtwork });
             }),
+            troopSources: await Promise.all(
+              (requested.factionIds?.includes(factionId)
+                ? rulebookTroopReferences(factionId, parsed.data.troops)
+                : troopSources.filter((source) => source.factionId === factionId)
+              ).map((source) => resolveRulebookTroopSource(ctx, parsed.data.troops, source))
+            ),
             ruler: members[0]!,
             leaders: members.slice(1),
           },

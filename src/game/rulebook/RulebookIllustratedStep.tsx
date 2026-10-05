@@ -33,20 +33,20 @@ export function RulebookIllustratedStep({
       aria-label={`Step ${step}: ${title}`}
     >
       <div className="rulebookBattleScene">
-        {visual}
         <div className="rulebookBattleNarrative">
-          <header>
-            <span className="rulebookBattleStep">{step}</span>
+          <span className="rulebookBattleStep">{step}</span>
+          <div className="rulebookBattleCopy">
             <h3>{title}</h3>
-          </header>
-          {caption ? <p>{caption}</p> : null}
-          {dialogue.map((line, index) => (
-            <blockquote className="rulebookBattleSpeech" key={index}>
-              <span>{line.speaker}:</span> {line.text}
-            </blockquote>
-          ))}
-          {outcome ? <p className="rulebookBattleOutcome">{outcome}</p> : null}
+            {caption ? <p>{caption}</p> : null}
+            {dialogue.map((line, index) => (
+              <blockquote className="rulebookBattleSpeech" key={index}>
+                <span>{line.speaker}:</span> {line.text}
+              </blockquote>
+            ))}
+            {outcome ? <p className="rulebookBattleOutcome">{outcome}</p> : null}
+          </div>
         </div>
+        <div className="rulebookBattleVisual">{visual}</div>
       </div>
     </section>
   );

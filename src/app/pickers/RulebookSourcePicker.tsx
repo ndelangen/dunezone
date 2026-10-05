@@ -7,7 +7,7 @@ import { AssetSelect } from '@ui/control/AssetSelect';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { useReducer } from 'react';
 
-import { useRulebookFactionMembers } from '@db/rulebookSources';
+import { useRulebookFactionMembers, useRulebookFactionTroops } from '@db/rulebookSources';
 
 import { AssetPicker } from './AssetPicker';
 import { FactionPicker } from './FactionPicker';
@@ -69,6 +69,63 @@ function FactionMemberChoices({
   );
 }
 
+function FactionTroopChoices({
+  factionId,
+  onPick,
+}: {
+  factionId: string;
+  onPick: (reference: RulebookSourceReference) => void;
+}) {
+  const result = useRulebookFactionTroops(factionId);
+  if (result.isPending) {
+    return (
+      <Center>
+        <Loader size="sm" aria-label="Loading troops" />
+      </Center>
+    );
+  }
+  if (!result.data) {
+    return <Text size="sm">This faction is unavailable.</Text>;
+  }
+  return (
+    <ControlBlock
+      title={result.data.name}
+      input={
+        <Stack gap="sm">
+          {result.data.troops.length === 0 ? <Text size="sm">No troops are available.</Text> : null}
+          {result.data.troops.map(({ name, source }) => {
+            if (source.status === 'unselected' || source.reference.kind !== 'faction-troop') {
+              return null;
+            }
+            const reference = source.reference;
+            return (
+              <Button
+                key={`${reference.troopId}.${reference.face}`}
+                variant="subtle"
+                justify="start"
+                h="auto"
+                onClick={() => onPick(reference)}
+              >
+                <Group gap="sm" wrap="nowrap">
+                  {source.status === 'ready' ? (
+                    <Box w={44} miw={44} aria-hidden>
+                      <PublishedImage src={source.imageUrl} name={name} aspect={1} radius="50%" />
+                    </Box>
+                  ) : null}
+                  <Text size="sm">
+                    {name}
+                    {reference.face === 'back' ? ' · Back' : ''}
+                  </Text>
+                </Group>
+              </Button>
+            );
+          })}
+        </Stack>
+      }
+    />
+  );
+}
+
 /** Callers gate mounting; only the chosen source catalogue holds a subscription. */
 export function RulebookSourcePicker({
   initialKind = 'asset',
@@ -114,6 +171,7 @@ export function RulebookSourcePicker({
               { value: 'board', label: 'Board' },
               { value: 'faction', label: 'Faction emblem' },
               { value: 'faction-member', label: 'Leader' },
+              { value: 'faction-troop', label: 'Troop token' },
             ]}
             onChange={(kind) => {
               if (kind) {
@@ -175,13 +233,17 @@ export function RulebookSourcePicker({
           }
         />
       ) : null}
-      {state.kind === 'faction' || state.kind === 'faction-member' ? (
+      {state.kind === 'faction' || state.kind === 'faction-member' || state.kind === 'faction-troop' ? (
         state.factionId ? (
           <Stack gap="sm">
             <Button variant="subtle" onClick={() => dispatch({ type: 'faction' })}>
               Choose another faction
             </Button>
-            <FactionMemberChoices factionId={state.factionId} onPick={onPick} />
+            {state.kind === 'faction-troop' ? (
+              <FactionTroopChoices factionId={state.factionId} onPick={onPick} />
+            ) : (
+              <FactionMemberChoices factionId={state.factionId} onPick={onPick} />
+            )}
           </Stack>
         ) : (
           <FactionPicker
@@ -190,11 +252,18 @@ export function RulebookSourcePicker({
               intro:
                 state.kind === 'faction-member'
                   ? 'Choose the faction whose Leader you want to show.'
-                  : "Show the faction's current emblem.",
+                  : state.kind === 'faction-troop'
+                    ? 'Choose the faction whose troop token you want to show.'
+                    : "Show the faction's current emblem.",
               errorTitle: 'Faction could not be loaded',
               emptyMessage: 'No factions are available.',
               confirmTitle: 'Selected faction',
-              confirmLabel: state.kind === 'faction-member' ? 'Choose Leader' : 'Use faction',
+              confirmLabel:
+                state.kind === 'faction-member'
+                  ? 'Choose Leader'
+                  : state.kind === 'faction-troop'
+                    ? 'Choose troop'
+                    : 'Use faction',
               confirmIntent: 'positive',
             }}
             onPick={(picked) => {
@@ -208,7 +277,8 @@ export function RulebookSourcePicker({
           />
         )
       ) : null}
-      {state.kind !== 'faction' && !(state.kind === 'faction-member' && !state.factionId) ? (
+      {state.kind !== 'faction' &&
+      !((state.kind === 'faction-member' || state.kind === 'faction-troop') && !state.factionId) ? (
         <Button variant="default" onClick={onCancel}>
           Cancel
         </Button>

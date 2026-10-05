@@ -126,6 +126,14 @@ export const harkonnenSide = {
   },
 } satisfies RulebookBattleSide;
 
+export const preparationPanel = {
+  step: '2',
+  title: 'Prepare a battle plan',
+  caption: 'Harkonnen prepares its cards. Atreides waits for the Battle Prescience answer before choosing its own.',
+  left: { ...atreidesSide, plan: { ...atreidesSide.plan, cards: [] } },
+  right: harkonnenSide,
+} satisfies RulebookBattlePlanProps;
+
 export const presciencePanel = {
   step: '3',
   title: 'Ask with Battle Prescience',

@@ -8,7 +8,7 @@ import { useState } from 'react';
 import { factionTokenFixtures } from '@game/fixtures/factionTokens';
 import { RulebookBlockCanvas } from '@game/rulebook/RulebookBlockRenderer';
 
-import { BattleStepEdit } from './rulebookBattleStepEdit';
+import { BattleStepEdit, BattlePlansEdit } from './rulebookBattleStepEdit';
 import type { RulebookBlockEditorValue } from './rulebookBlockEditors';
 
 const troopId = 'bf38706d-eae7-462b-9808-9d54eeaf61b6';
@@ -58,6 +58,28 @@ export function BattleStepStory() {
         <DocumentEditorLayout.Preview>
           <RulebookBlockCanvas
             block={projectRulebookDraftRenderBlock({ ...value, kind: 'battle-step', id: 'STEP' }, {}, factions)}
+          />
+        </DocumentEditorLayout.Preview>
+      </DocumentEditorLayout>
+    </Box>
+  );
+}
+
+export function BattlePlansStory() {
+  const [value, setValue] = useState<RulebookBlockEditorValue<'battle-plans'>>({
+    left: initial.left,
+    right: initial.right,
+    showSideLabels: false,
+  });
+  return (
+    <Box p="lg">
+      <DocumentEditorLayout ratio={1} fit="width">
+        <DocumentEditorLayout.Sidebar>
+          <BattlePlansEdit value={value} onChange={setValue} references={{ factionsById: factions, assetsById: {} }} />
+        </DocumentEditorLayout.Sidebar>
+        <DocumentEditorLayout.Preview>
+          <RulebookBlockCanvas
+            block={projectRulebookDraftRenderBlock({ ...value, kind: 'battle-plans', id: 'PLAN' }, {}, factions)}
           />
         </DocumentEditorLayout.Preview>
       </DocumentEditorLayout>
