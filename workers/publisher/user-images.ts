@@ -14,7 +14,7 @@ import {
   USER_IMAGE_TOKEN_CONSUME_FUNCTION,
   userImageIngestRequestSchema,
   userImagePublicPath,
-  userImageSourceUrlSchema,
+  userImageFetchUrlSchema,
   userImageTokenCheckAnswerSchema,
 } from '../../src/shared/user-images/contract';
 import type { UserImageIngestKind } from '../../src/shared/user-images/contract';
@@ -83,7 +83,7 @@ function jsonError(status: number, message: string): Response {
 async function fetchSourceImage(sourceUrl: string): Promise<FetchedSource> {
   let current = sourceUrl;
   for (let hop = 0; hop <= USER_IMAGE_MAX_REDIRECTS; hop += 1) {
-    const source = userImageSourceUrlSchema.safeParse(current);
+    const source = userImageFetchUrlSchema.safeParse(current);
     if (!source.success) {
       return { ok: false, message: source.error.issues[0]?.message ?? 'The image URL is not allowed' };
     }

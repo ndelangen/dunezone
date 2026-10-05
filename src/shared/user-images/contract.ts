@@ -99,9 +99,8 @@ export const USER_IMAGE_JPEG_QUALITY = 82;
 const USER_IMAGE_KEY_PATTERN = /^[0-9a-f]{64}\.jpg$/;
 
 /**
- * What an author may supply as an image source: a full https URL on a DNS hostname with no embedded credentials.
- * Literal addresses and local names are refused here;
- * the Worker's public egress policy governs DNS resolution.
+ * Image source syntax, including provenance retained after rehosting: a full https URL with no embedded credentials.
+ * Permission to fetch a source is checked separately, so policy changes do not invalidate stored images.
  * The noun only changes the messages, so both pipelines share one floor while each edit form speaks about its own field.
  */
 function makeUserImageSourceUrlSchema(noun: string) {
@@ -120,17 +119,6 @@ function makeUserImageSourceUrlSchema(noun: string) {
         if (url.username !== '' || url.password !== '') {
           ctx.addIssue({ code: 'custom', message: `${noun} URL must not carry credentials` });
         }
-        const hostname = url.hostname.replace(/\.$/, '');
-        if (
-          !hostname.includes('.') ||
-          hostname.startsWith('[') ||
-          /^\d+\.\d+\.\d+\.\d+$/.test(hostname) ||
-          ['localhost', 'local', 'internal', 'home.arpa'].some(
-            (local) => hostname === local || hostname.endsWith(`.${local}`)
-          )
-        ) {
-          ctx.addIssue({ code: 'custom', message: `${noun} must use a public HTTPS hostname` });
-        }
       } catch {
         ctx.addIssue({ code: 'custom', message: `${noun} must be a full https:// URL` });
       }
@@ -139,7 +127,8 @@ function makeUserImageSourceUrlSchema(noun: string) {
 
 /**
  * The cover source floor.
- * The same schema runs in the edit form for feedback and in the Convex action as the authoritative gate.
+ * The same syntax schema runs in edit forms, stored documents and Convex actions.
+ * The Worker applies the fetch policy before opening a connection.
  */
 export const userImageSourceUrlSchema = makeUserImageSourceUrlSchema('Cover image');
 
@@ -150,8 +139,34 @@ export const userImageSourceUrlSchema = makeUserImageSourceUrlSchema('Cover imag
  */
 export const userAvatarSourceUrlSchema = makeUserImageSourceUrlSchema('Avatar image');
 
+/**
+ * Outbound image requests refuse literal addresses and local names at every hop.
+ * Workers network isolation governs DNS resolution;
+ * this check only classifies the URL hostname.
+ * Stored source metadata keeps the syntax policy above because its bytes have already been rehosted.
+ */
+export const userImageFetchUrlSchema = userImageSourceUrlSchema.superRefine((value, ctx) => {
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    return;
+  }
+  const hostname = url.hostname.replace(/\.$/, '');
+  if (
+    !hostname.includes('.') ||
+    hostname.startsWith('[') ||
+    /^\d+\.\d+\.\d+\.\d+$/.test(hostname) ||
+    ['localhost', 'local', 'internal', 'home.arpa'].some(
+      (local) => hostname === local || hostname.endsWith(`.${local}`)
+    )
+  ) {
+    ctx.addIssue({ code: 'custom', message: 'Image must use a public HTTPS hostname' });
+  }
+});
+
 export const userImageIngestRequestSchema = z.strictObject({
-  source_url: userImageSourceUrlSchema,
+  source_url: userImageFetchUrlSchema,
   /** The minted ledger token, which is the entire credential: there is no other way to command an ingest. */
   token: userImageIngestTokenSchema,
 });
