@@ -528,25 +528,10 @@ function turn(): Page[] {
   ];
 }
 function stormRestrictions(): Page {
-  const start = { territory: 'imperial-basin', position: { x: 0.54, y: 0.23 } };
+  const start = { territory: 'carthag' };
   const destination = { territory: 'false-wall-east', position: { x: 0.6, y: 0.46 } };
   function stormMap(id: string): Board {
-    const map = scene(
-      id,
-      [
-        [0.535, 0.145, 3],
-        [0.578, 0.378, 1],
-        [0.473, 0.175, 1],
-      ],
-      ['imperial-basin', 'false-wall-east'],
-      70
-    );
-    return {
-      ...map,
-      troops: map.troops.map((troop, index) =>
-        index === 0 ? { ...troop, columns: 1, size: 0.017, gap: 0.003 } : { ...troop, size: 0.018 }
-      ),
-    };
+    return scene(id, [[0.47, 0.145, 3]], ['carthag', 'false-wall-east'], 70);
   }
   return columns(
     'actions-storm',
@@ -558,31 +543,31 @@ function stormRestrictions(): Page {
         routes: [
           {
             id: 'blocked',
-            label: 'Imperial Basin to False Wall East: blocked',
+            label: 'Through Imperial Basin: blocked',
             direction: 'forward',
             color: '#a22c20',
-            waypoints: [start, destination],
-            blockedAfter: 0,
+            waypoints: [start, { territory: 'imperial-basin', position: { x: 0.54, y: 0.23 } }, destination],
+            blockedAfter: 1,
           },
         ],
       },
       example(
         'blocked-example',
         'Clear endpoints are not enough',
-        'The northern troops cannot cross the storm to reach False Wall East. The separate troop in Imperial Basin cannot join them across the storm.'
+        'From Carthag, the route through Imperial Basin crosses the storm before reaching False Wall East. You cannot take this route, even though its start and destination are clear.'
       ),
     ],
     [
       heading('detour-heading', 'Go around with ornithopters'),
       {
-        ...scene('storm-detour', [[0.47, 0.145, 3]], ['carthag', 'false-wall-east'], 70),
+        ...stormMap('storm-detour'),
         routes: [
           {
             id: 'detour',
             label: 'A clear route: 3 territories entered',
             direction: 'forward',
             waypoints: [
-              { territory: 'carthag' },
+              start,
               { territory: 'arsunt', position: { x: 0.48, y: 0.34 } },
               { territory: 'polar', position: { x: 0.5, y: 0.53 } },
               destination,
