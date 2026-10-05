@@ -68,6 +68,7 @@ import type * as lib_rulebookList from "../lib/rulebookList.js";
 import type * as lib_rulebookPublication from "../lib/rulebookPublication.js";
 import type * as lib_rulebookReferences from "../lib/rulebookReferences.js";
 import type * as lib_rulebookSettings from "../lib/rulebookSettings.js";
+import type * as lib_rulebookTroopSources from "../lib/rulebookTroopSources.js";
 import type * as lib_rulesetCover from "../lib/rulesetCover.js";
 import type * as lib_rulesetDetailPage from "../lib/rulesetDetailPage.js";
 import type * as lib_rulesetSlots from "../lib/rulesetSlots.js";
@@ -171,6 +172,7 @@ declare const fullApi: ApiFromModules<{
   "lib/rulebookPublication": typeof lib_rulebookPublication;
   "lib/rulebookReferences": typeof lib_rulebookReferences;
   "lib/rulebookSettings": typeof lib_rulebookSettings;
+  "lib/rulebookTroopSources": typeof lib_rulebookTroopSources;
   "lib/rulesetCover": typeof lib_rulesetCover;
   "lib/rulesetDetailPage": typeof lib_rulesetDetailPage;
   "lib/rulesetSlots": typeof lib_rulesetSlots;
