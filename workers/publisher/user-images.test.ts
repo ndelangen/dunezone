@@ -156,6 +156,71 @@ afterEach(() => {
 });
 
 describe('user image ingest', () => {
+  test.each([
+    'https://127.0.0.1/image.png',
+    'https://2130706433/image.png',
+    'https://10.0.0.1/image.png',
+    'https://169.254.169.254/image.png',
+    'https://[::1]/image.png',
+    'https://[::ffff:127.0.0.1]/image.png',
+    'https://localhost./image.png',
+    'https://host.docker.internal/image.png',
+  ])('refuses a non-public image destination before fetching %s', async (sourceUrl) => {
+    const { mock } = ledgerFetch();
+    vi.stubGlobal('fetch', mock);
+    const response = await handleUserImageIngest(ingestRequest({ body: { source_url: sourceUrl, token: TOKEN } }), {
+      USER_IMAGE_BUCKET: memoryBucket(),
+      CONVEX_CLOUD_BASE_URL: CONVEX_BASE,
+      IMAGES: imagesStub([]),
+    });
+    expect(response?.status).toBe(400);
+    expect(mock).not.toHaveBeenCalled();
+  });
+
+  test.each([
+    'https://127.0.0.1/image.png',
+    'https://user:password@images.example/image.png',
+    'https://localhost/image.png',
+  ])('refuses an unsafe redirect destination without contacting it: %s', async (destination) => {
+    const { mock } = ledgerFetch({
+      source: () => new Response(null, { status: 302, headers: { Location: destination } }),
+    });
+    vi.stubGlobal('fetch', mock);
+    const bucket = memoryBucket();
+    const response = await handleUserImageIngest(ingestRequest(), {
+      USER_IMAGE_BUCKET: bucket,
+      CONVEX_CLOUD_BASE_URL: CONVEX_BASE,
+      IMAGES: imagesStub([]),
+    });
+    expect(response?.status).toBe(422);
+    expect(mock).toHaveBeenCalledTimes(2);
+    expect(bucket.objects.size).toBe(0);
+  });
+
+  test('follows a public HTTPS redirect and stores the image', async () => {
+    const destination = 'https://cdn.example/cover.png';
+    const { mock, ledgerCalls } = ledgerFetch();
+    vi.stubGlobal('fetch', async (input: string | URL | Request, init?: RequestInit) => {
+      if (String(input) === SOURCE_URL) {
+        return new Response(null, { status: 302, headers: { Location: destination } });
+      }
+      return await mock(input, init);
+    });
+    const bucket = memoryBucket();
+    const response = await handleUserImageIngest(ingestRequest(), {
+      USER_IMAGE_BUCKET: bucket,
+      CONVEX_CLOUD_BASE_URL: CONVEX_BASE,
+      IMAGES: imagesStub([
+        jpegBytes({ widthPx: 800, heightPx: 600, progressive: true }),
+        jpegBytes({ widthPx: 320, heightPx: 240, progressive: true }),
+      ]),
+    });
+    expect(response?.status).toBe(200);
+    expect(mock).toHaveBeenCalledWith(destination, expect.objectContaining({ redirect: 'manual' }));
+    expect(bucket.objects.size).toBe(2);
+    expect(ledgerCalls).toHaveLength(2);
+  });
+
   test('stores both renditions under their content hashes and hands the delivery URLs to the ledger', async () => {
     const { mock: fetchMock, ledgerCalls } = ledgerFetch();
     vi.stubGlobal('fetch', fetchMock);

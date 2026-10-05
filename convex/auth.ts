@@ -84,18 +84,21 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
     async redirect({ redirectTo }) {
       const siteUrl = process.env.SITE_URL;
       if (!siteUrl) {
-        return redirectTo.startsWith('/') ? redirectTo : '/';
+        throw new Error('SITE_URL must be configured for sign-in redirects');
       }
-
-      if (redirectTo.startsWith('/')) {
-        return new URL(redirectTo, siteUrl).toString();
+      const site = new URL(siteUrl);
+      if (!['http:', 'https:'].includes(site.protocol) || site.username || site.password) {
+        throw new Error('SITE_URL must be an HTTP or HTTPS URL without credentials');
       }
-
-      if (redirectTo.startsWith(siteUrl)) {
-        return redirectTo;
+      try {
+        const destination = new URL(redirectTo, site);
+        if (destination.origin === site.origin && !destination.username && !destination.password) {
+          return destination.toString();
+        }
+      } catch {
+        /* An invalid destination falls back to the configured site. */
       }
-
-      return siteUrl;
+      return site.toString();
     },
     async afterUserCreatedOrUpdated(ctx, { userId }) {
       const triggerCtx = applicationTriggers.wrapDB(ctx);
