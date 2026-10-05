@@ -10,7 +10,7 @@ type Explainer = Extract<RulebookRenderBlockV1, { kind: 'asset-explainer' }>;
 type Point = Readonly<{ x: number; y: number }>;
 type Part = ComponentGeometry['parts'][number];
 
-export const RULEBOOK_ANNOTATION_COMPOSITOR_REVISION = 'asset-explainer-2';
+export const RULEBOOK_ANNOTATION_COMPOSITOR_REVISION = 'asset-explainer-3';
 const RULEBOOK_ANNOTATION_MAX_BYTES = 4_000_000;
 export const RULEBOOK_ANNOTATION_COLORS = ['#9c2920', '#76500c', '#565d16', '#265e3a', '#244d7c', '#663182'] as const;
 
@@ -64,14 +64,18 @@ function sameSource(left: RulebookSourceReference | undefined, right: RulebookSo
   }
 }
 
-/** Chooses black or white by measured relative luminance, including manually selected colors. */
+/*
+ * Choose white on midtone badges until the background is perceptually light enough for black.
+ * The 0.179 equal-ratio cutoff switched brown labels to black too early.
+ * The 0.36 luminance switch follows https://gist.github.com/Myndex/e1025706436736166561d339fd667493.
+ */
 function rulebookAnnotationForeground(color: string): '#000000' | '#ffffff' {
   const channels = [1, 3, 5].map((offset) => {
     const channel = Number.parseInt(color.slice(offset, offset + 2), 16) / 255;
     return channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
   });
   const luminance = channels[0]! * 0.2126 + channels[1]! * 0.7152 + channels[2]! * 0.0722;
-  return luminance > 0.179 ? '#000000' : '#ffffff';
+  return luminance >= 0.36 ? '#000000' : '#ffffff';
 }
 
 function namedMarker(part: Part, kind: RulebookSourceReference['kind']): { marker: Point; connector?: Point } {

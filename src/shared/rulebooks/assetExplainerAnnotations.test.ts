@@ -120,6 +120,18 @@ describe('AssetExplainer annotation projection', () => {
 });
 
 describe('AssetExplainer SVG composition', () => {
+  it('uses white on the reported brown badge and black on light badges in the legend and exported drawing', () => {
+    const original = block();
+    original.colorMode = 'manual';
+    original.items[0]!.color = '#a87924';
+    original.items[1]!.color = '#f8dc24';
+    const projection = projectRulebookAssetExplainerAnnotations(original);
+    expect(projection.entries.map(({ foreground }) => foreground)).toEqual(['#ffffff', '#000000']);
+    const svg = composeRulebookAssetExplainerSvg({ projection, imageDataUrl: 'data:image/jpeg;base64,AAAA' });
+    expect(svg).toMatch(/<text\b[^>]*fill="#ffffff"[^>]*>1<\/text>/);
+    expect(svg).toMatch(/<text\b[^>]*fill="#000000"[^>]*>2<\/text>/);
+  });
+
   it('escapes source text and labels and never embeds a supplied external image URL', () => {
     const original = block();
     original.numbering = 'custom';

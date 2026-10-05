@@ -4,6 +4,7 @@ import { expect } from 'storybook/test';
 
 import {
   boardExplainerFixture,
+  customColorExplainerFixture,
   explainerPage,
   incompleteExplainerFixture,
   leaderExplainerFixture,
@@ -14,13 +15,15 @@ function ExplainerStory({
   specimen = 'board',
   size = 'a4',
   design = 'illustrated',
-}: Readonly<Partial<RulebookSettings> & { specimen?: 'board' | 'leader' | 'unavailable' }>) {
+}: Readonly<Partial<RulebookSettings> & { specimen?: 'board' | 'custom-colors' | 'leader' | 'unavailable' }>) {
   const block =
     specimen === 'board'
       ? boardExplainerFixture()
-      : specimen === 'leader'
-        ? leaderExplainerFixture()
-        : incompleteExplainerFixture();
+      : specimen === 'custom-colors'
+        ? customColorExplainerFixture()
+        : specimen === 'leader'
+          ? leaderExplainerFixture()
+          : incompleteExplainerFixture();
   return (
     <div style={{ width: size === 'tall' ? 'min(24rem, 92vw)' : 'min(44rem, 92vw)' }}>
       <RulebookPageRenderer page={explainerPage(block)} settings={{ size, design }} />
@@ -52,6 +55,10 @@ export const Strongholds = meta.story({
     expect(context.canvasElement.querySelectorAll('[data-rulebook-highlight]')).not.toHaveLength(0);
   },
 });
+export const CustomMarkerColors = meta.story({
+  args: { specimen: 'custom-colors' },
+});
+
 export const LeaderAnatomy = meta.story({
   args: { specimen: 'leader', size: 'square' },
   play: async (context) => {
