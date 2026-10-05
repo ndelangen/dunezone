@@ -1,0 +1,89 @@
+{
+  "troopId": "ba1b0692-e338-4852-936b-1bf581b79a40",
+  "faction": {
+    "factionId": "k17ag3gr1h60n7mmh88kj56avs8a1j7x",
+    "name": "House Atreides",
+    "color": "#393d05",
+    "emblemUrl": "/vector/logo/atreides.svg",
+    "tokenImageUrl": "https://dune.zone/published/faction-tokens/k17ag3gr1h60n7mmh88kj56avs8a1j7x/token.jpg?v=b256bad7-4e16-488b-b30b-4df138147c82",
+    "token": {
+      "logo": "/vector/logo/atreides.svg",
+      "background": {
+        "image": "/image/texture/082.jpg",
+        "colors": ["#393d05", "#5c5d10"],
+        "invert": true,
+        "definition": 0.5,
+        "influence": 1
+      }
+    },
+    "status": "ready"
+  },
+  "artwork": {
+    "troopId": "ba1b0692-e338-4852-936b-1bf581b79a40",
+    "image": "/vector/troop/atreides.svg",
+    "name": "Normal troop",
+    "description": "0.5 strength when undialed, 1 strength when dialed",
+    "count": 20
+  },
+  "hajr": {
+    "status": "ready",
+    "reference": {
+      "kind": "asset",
+      "assetId": "ns763s677pz40tsx5j4m9m0f398fm9xq"
+    },
+    "name": "Hajr",
+    "imageUrl": "https://dune.zone/published/cards/ns763s677pz40tsx5j4m9m0f398fm9xq/card.jpg?v=d353d7e9-34a3-48ab-9e51-cd8c81c636c4",
+    "width": 900,
+    "height": 1263,
+    "geometry": {
+      "width": 900,
+      "height": 1263,
+      "parts": [
+        {
+          "key": "decals",
+          "x": 0.2212621392144097,
+          "y": 0.23309492894985898,
+          "width": 0.5574733479817708,
+          "height": 0.2780529031277835
+        },
+        {
+          "key": "head",
+          "x": 0,
+          "y": 0,
+          "width": 1,
+          "height": 0.1583531274742676
+        },
+        {
+          "key": "icon",
+          "x": 0.7444444444444445,
+          "y": 0.07442596991290577,
+          "width": 0.14333333333333334,
+          "height": 0.1021377672209026
+        },
+        {
+          "key": "name",
+          "x": 0.10555555555555556,
+          "y": 0.05779889152810768,
+          "width": 0.6222222222222222,
+          "height": 0.06809184481393507
+        },
+        {
+          "key": "type",
+          "x": 0.10333333333333333,
+          "y": 0.1393507521773555,
+          "width": 0.5222222222222223,
+          "height": 0.05304829770387965
+        },
+        {
+          "key": "body",
+          "x": 0.09888888888888889,
+          "y": 0.557403008709422,
+          "width": 0.8155555555555556,
+          "height": 0.3950910530482977
+        }
+      ]
+    },
+    "assetType": "card-treachery",
+    "publicationRevision": "d353d7e9-34a3-48ab-9e51-cd8c81c636c4"
+  }
+}
