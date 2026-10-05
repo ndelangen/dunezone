@@ -16,7 +16,7 @@ import { FAQ_TAG_VALUES } from '@shared/faq/tags';
 import type { FaqTag } from '@shared/faq/tags';
 import { isRouteNoticeCode } from '@shared/routeNotices';
 import type { RouteNoticeCode } from '@shared/routeNotices';
-import { Link, createFileRoute, useNavigate } from '@tanstack/react-router';
+import { Link, createFileRoute, notFound, useNavigate } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { FactionCard } from '@ui/block/FactionCard';
 import { LoadError } from '@ui/block/LoadError';
@@ -24,7 +24,7 @@ import { LoadPending } from '@ui/block/LoadPending';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import { PageIdentity } from '@ui/block/PageIdentity';
 import { Section } from '@ui/block/Section';
-import { formatRelativeDate } from '@ui/content/dates';
+import { formatStableDate } from '@ui/content/dates';
 import { FAQ_TAG_LABELS } from '@ui/content/faqTagLabels';
 import { FormattedTextSource } from '@ui/content/FormattedText';
 import { RulebookPreview } from '@ui/content/RulebookPreview';
@@ -70,7 +70,7 @@ import {
 } from '@db/rulesets';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
 import { FactionPicker } from '@app/pickers/FactionPicker';
-import { pageHead } from '@app/routes/pageTitle';
+import { publicDescription, publicPageHead, useLivePageTitle } from '@app/routes/publicPage';
 import { resolveRouteNotice } from '@app/routes/routeNotices';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
@@ -148,9 +148,9 @@ function RulesetRulebooks({
                         Updated{' '}
                         <time
                           dateTime={rulebook.edition_published_at}
-                          title={new Date(rulebook.edition_published_at).toLocaleString()}
+                          title={formatStableDate(rulebook.edition_published_at)}
                         >
-                          {formatRelativeDate(rulebook.edition_published_at)}
+                          {formatStableDate(rulebook.edition_published_at)}
                         </time>
                       </>
                     ) : (
@@ -353,6 +353,7 @@ function FactionCardMenu({
 }
 
 export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/')({
+  ssr: true,
   codeSplitGroupings: [['component', 'pendingComponent', 'errorComponent']],
   validateSearch: (params: Record<string, unknown>): { q?: string; tag?: FaqTag; notice?: RouteNoticeCode } => {
     const q = params?.q;
@@ -367,15 +368,23 @@ export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/')({
   loader: async ({ params }) => {
     const detailPage = await loadRulesetDetailPage(params.rulesetSlug);
     if (!detailPage) {
-      return { notFound: true as const };
+      throw notFound();
     }
-    return { notFound: false as const, detailPage };
+    return detailPage;
   },
   pendingComponent: RulesetDetailPending,
   errorComponent: RulesetDetailError,
-  /* The loader answers a missing ruleset with `notFound: true` rather than throwing, so the head names that page itself. */
-  head: ({ loaderData }) =>
-    pageHead(!loaderData ? 'Ruleset' : loaderData.notFound ? 'Page not found' : loaderData.detailPage.ruleset.name),
+  head: ({ loaderData, params, match }) =>
+    publicPageHead({
+      name: loaderData?.ruleset.name ?? 'Ruleset',
+      pathname: `/rulesets/${encodeURIComponent(loaderData?.ruleset.slug ?? params.rulesetSlug)}`,
+      description:
+        publicDescription(loaderData?.ruleset.about) ||
+        `Explore ${loaderData?.ruleset.name ?? 'this ruleset'} and its published Rulebooks.`,
+      image: loaderData?.ruleset.coverThumbUrl,
+      social: { kind: 'Ruleset', shape: 'portrait' },
+      match,
+    }),
   component: RulesetDetailPage,
 });
 
@@ -404,8 +413,7 @@ function RulesetDetailPage() {
   const search = Route.useSearch();
   const loaderData = Route.useLoaderData();
   const navigate = useNavigate();
-  const detailSeed = loaderData.notFound ? undefined : loaderData.detailPage;
-  const pageQuery = useRulesetDetailPage(rulesetSlug, { initialData: detailSeed });
+  const pageQuery = useRulesetDetailPage(rulesetSlug, { initialData: loaderData });
   const page = pageQuery.data;
   const profile = useCurrentProfile();
   const deleteRuleset = useDeleteRuleset();
@@ -414,7 +422,9 @@ function RulesetDetailPage() {
   const removeFaction = useRemoveRulesetFaction();
   const routeNotice = resolveRouteNotice(search.notice);
 
-  if (loaderData.notFound || !page) {
+  useLivePageTitle(page?.ruleset.name);
+
+  if (!page) {
     return (
       <PageMessage size="compact" title="Ruleset" back={backToRulesets}>
         <NotAvailable title="Ruleset not found">This ruleset does not exist or was deleted.</NotAvailable>

@@ -42,7 +42,7 @@ import {
   rulebookMetadataValidator,
   rulebookListEntryValidator,
 } from './lib/rulebookList';
-import { enqueueRulebookFirstPagePublication } from './lib/rulebookPublication';
+import { enqueueRulebookFirstPagePublication, rulebookFirstPagePublicationStatus } from './lib/rulebookPublication';
 import { resolveRulebookReferences } from './lib/rulebookReferences';
 import { rulebookDesignValidator, rulebookSettingsValidator } from './lib/rulebookSettings';
 import { loadPublicRulesetBySlug } from './lib/rulesetDetailPage';
@@ -572,6 +572,7 @@ export const editorBySlugs = query({
 });
 
 const readerEditionValidator = v.object({
+  first_page_image_url: v.union(v.string(), v.null()),
   settings: rulebookSettingsValidator,
   edition_number: v.number(),
   contents: v.any(),
@@ -662,10 +663,12 @@ export const readerPage = query({
       .collect();
     const contents = parseEditionContents(await contentsForRulebookEdition(ctx, selected));
     const summary = await rulebookEditionSummary(ctx, selected);
+    const firstPage = await rulebookFirstPagePublicationStatus(ctx, selected._id);
     return {
       ruleset: { name: ruleset.name, slug: ruleset.slug },
       rulebook: metadataFrom(rulebook),
       edition: {
+        first_page_image_url: firstPage.imageUrl,
         edition_number: selected.edition_number,
         settings: selected.settings ?? DEFAULT_RULEBOOK_SETTINGS,
         contents: readerContents(contents),

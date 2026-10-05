@@ -83,3 +83,29 @@ describe('social PNG delivery', () => {
     expect(await response!.text()).toBe('');
   });
 });
+
+test.each([
+  {
+    image: '/published/rulebooks/abcdefghijklmnop/first-page.jpg',
+    key: 'rulebooks/abcdefghijklmnop/first-page.jpg',
+    userImage: false,
+  },
+  { image: '/user-images/' + 'a'.repeat(64) + '.jpg', key: 'a'.repeat(64) + '.jpg', userImage: true },
+])('reads the cover from its own bucket: $image', async ({ image, key, userImage }) => {
+  const bytes = jpegBytes({ widthPx: 840, heightPx: 1188, progressive: true });
+  const publishedGet = vi.fn<R2Bucket['get']>().mockResolvedValue(object(bytes));
+  const userGet = vi.fn<R2Bucket['get']>().mockResolvedValue(object(bytes));
+  const render = vi.fn().mockResolvedValue(pngBytes(1200, 630));
+  const href = socialCardHref({ name: 'Dreamrules', kind: 'Rulebook', description: 'Edition 2', image });
+  const response = await handleSocialImageRequest(
+    request(href),
+    { ASSET_BUCKET: { get: publishedGet }, USER_IMAGE_BUCKET: { get: userGet } },
+    render
+  );
+  expect(response?.headers.get('X-Public-Fallback')).toBe('false');
+  expect(userImage ? userGet : publishedGet).toHaveBeenCalledExactlyOnceWith(key, {
+    range: { offset: 0, length: 2_000_001 },
+  });
+  expect(userImage ? publishedGet : userGet).not.toHaveBeenCalled();
+  expect(render).toHaveBeenCalledWith(expect.objectContaining({ name: 'Dreamrules' }), bytes.buffer);
+});

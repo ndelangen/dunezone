@@ -1,6 +1,6 @@
 # Social images
 
-Public faction and asset detail HTML points `og:image` and `twitter:image` at `/social/image.png`.
+Public faction, asset, ruleset and Rulebook detail HTML points `og:image` and `twitter:image` at `/social/image.png`.
 The page's existing anonymous result supplies every URL field. The endpoint reads the current JPEG
 from the existing publication bucket, lays out the selected A card as SVG, and rasterizes a 1200 by
 630 PNG. It makes no Convex call, follows no external image URL, and launches no browser.
@@ -31,7 +31,10 @@ builder fixes parameter order for the edge cache.
 | Revision hint | Up to 64 letters, digits, underscores, dots, colons or hyphens |
 
 Artwork is limited to faction tokens, treachery and spice cards, deck cardbacks, cardback presets,
-and the four token types. The shared publication contract validates the identity and constructs the
+the four token types, published Rulebook first pages and content-addressed user-image JPEGs.
+Rulebooks use the selected published Edition's first page, including historical Edition links.
+Rulesets use their stored cover thumbnail. User images are read from their existing bucket;
+published first pages use the publication bucket. Neither path fetches external cover URLs. The shared publication contract validates the identity and constructs the
 R2 key. PDFs, private component envelopes and arbitrary URLs are rejected. One direct R2 range read
 is capped at 2,000,001 bytes; objects over 2,000,000 bytes use the fallback. JPEG headers must declare
 positive dimensions no greater than 2,048 per axis and 2,000,000 total pixels before decoding starts.

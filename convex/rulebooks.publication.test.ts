@@ -99,7 +99,7 @@ describe('Rulebook first-page publication', () => {
   });
 
   test('a completed image appears without a Rulebook publication action and survives draft changes and reordering', async () => {
-    const { created, complete, jobs, owner, ids } = await rulebookPublicationFixture();
+    const { t, created, complete, jobs, owner, ids } = await rulebookPublicationFixture();
     const editionDate = created.edition.created_at;
     await complete();
 
@@ -123,6 +123,12 @@ describe('Rulebook first-page publication', () => {
       first_page_capture_status: null,
     });
     expect(listed.first_page_image_url).toContain(`/published/rulebooks/${created.edition._id}/first-page.jpg`);
+    const reader = await t.query(api.rulebooks.readerPage, {
+      ruleset_slug: 'rulebook-test-rules',
+      rulebook_slug: created.rulebook.slug,
+    });
+    expect(reader?.edition.first_page_image_url).toBe(listed.first_page_image_url);
+    expect(reader?.edition.contents.pagesById[contents.pageOrder[0]].title).not.toBe('Unsaved Edition title');
     await expect(jobs()).resolves.toEqual([]);
   });
 
@@ -233,6 +239,15 @@ describe('Rulebook first-page publication', () => {
         }),
       }),
     ]);
+
+    const locator = { ruleset_slug: 'rulebook-test-rules', rulebook_slug: created.rulebook.slug };
+    const current = await t.query(api.rulebooks.readerPage, locator);
+    expect(current?.edition.edition_number).toBe(2);
+    expect(current?.edition.first_page_image_url).toBeNull();
+    const historical = await t.query(api.rulebooks.readerPage, { ...locator, edition_number: 1 });
+    expect(historical?.edition.first_page_image_url).toContain(
+      `/published/rulebooks/${created.edition._id}/first-page.jpg`
+    );
 
     await owner.mutation(api.rulebooks.softDelete, { rulebook_id: created.rulebook._id });
     await expect(

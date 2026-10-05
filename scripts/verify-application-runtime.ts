@@ -27,7 +27,7 @@ try {
   assert.match(sitemap.headers.get('Content-Type') ?? '', /application\/xml/);
   assert.ok((await sitemap.text()).includes('https://dune.zone/sitemap-factions.xml'));
   assert.equal((await worker.fetch('/sitemap-missing.xml')).status, 404);
-  const pages = ['/', '/factions', '/assets', '/assets/token-disc'];
+  const pages = ['/', '/factions', '/assets', '/assets/token-disc', '/rulesets'];
   for (const pathname of pages) {
     const response = await worker.fetch(pathname, { headers: { Cookie: 'private=must-not-reach-ssr' } });
     assert.equal(response.status, 200, pathname);
@@ -41,15 +41,25 @@ try {
     assert.equal(hit.headers.get('X-Public-Cache'), 'hit', pathname);
     assert.equal(hit.headers.get('X-Public-Metadata-Queries'), '0', pathname);
     assert.equal(await hit.text(), html, pathname);
-    if (pathname === '/factions' || pathname === '/assets/token-disc') {
+    if (pathname === '/factions' || pathname === '/assets/token-disc' || pathname === '/rulesets') {
       const links = [...html.matchAll(/<a[^>]+href="([^"]+)"/g)].map((match) => match[1]!);
       const detail = links.find((href) =>
         pathname === '/factions'
           ? /^\/factions\/(?!create(?:\/|$))[^/?]+\/?$/.test(href)
-          : /^\/assets\/token-disc\/(?!create(?:\/|$))[^/?]+\/?$/.test(href)
+          : pathname === '/rulesets'
+            ? /^\/rulesets\/(?!create(?:\/|$))[^/?]+\/?$/.test(href)
+            : /^\/assets\/token-disc\/(?!create(?:\/|$))[^/?]+\/?$/.test(href)
       );
       assert.ok(detail, `${pathname} has no ordinary detail link`);
       pages.push(detail);
+    }
+    if (/^\/rulesets\/[^/]+\/?$/.test(pathname)) {
+      const rulebook = [...html.matchAll(/<a[^>]+href="([^"]+)"/g)]
+        .map((match) => match[1]!)
+        .find((href) => /^\/rulesets\/[^/]+\/rulebooks\/(?!create(?:\/|$))[^/?]+\/?$/.test(href));
+      if (rulebook) {
+        pages.push(rulebook, `${rulebook}?edition=1`);
+      }
     }
     if (pathname !== '/') {
       assert.match(html, /<h1[\s>]/, `${pathname} has no rendered heading`);
@@ -105,6 +115,10 @@ try {
     '/factions/create',
     '/factions/testfaction/edit',
     '/assets/token-disc/create',
+    '/rulesets/create',
+    '/rulesets/dreamrules/edit',
+    '/rulesets/dreamrules/rulebooks/create',
+    '/rulesets/dreamrules/rulebooks/dream-rulebook/edit',
     '/auth/login',
     '/play',
   ]) {
@@ -115,6 +129,8 @@ try {
   }
   for (const pathname of [
     '/assets/token-disc/__ssr_missing_asset__',
+    '/rulesets/__ssr_missing_ruleset__',
+    '/rulesets/__ssr_missing_ruleset__/rulebooks/__ssr_missing_rulebook__',
     '/factions/missing/extra',
     '/assets/unknown-type/missing/extra',
   ]) {
