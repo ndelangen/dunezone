@@ -244,16 +244,17 @@ refuses to start when that output is missing; the OBJ pieces are always regenera
 
 The `hosted_play` CI job runs `bun --no-env-file scripts/verify-hosted-play-stack.ts --skip-generate`
 in three shards, each on its own runner with its own stack, and `ci_ok` requires all three through
-`verify`. On a pull request the shards run only when a changed file can reach the flows: the
-`play_closure` job reads the diff since the merge base and matches it against the closure in
+`verify`. On a pull request the shards run their flows only when a changed file can reach them: each shard
+first runs the `.github/actions/play-closure` action, which reads the diff since the merge base and matches it against the closure in
 [`scripts/lib/hosted-play-closure.ts`](../scripts/lib/hosted-play-closure.ts), whose unit test holds
 the list to the import graph of the play pages, both Workers, the launcher and the builds it runs.
-Tests, stories and prose never count. A diff the job cannot read runs the shards, and the job's own
-failure fails the run. This repository has no merge queue (GitHub offers none to a personal
+Tests, stories and prose never count. A skipping shard passes with no flow run, a diff the action
+cannot read runs the flows, and the action's own failure fails its shard and so the run. The shards
+are created with every other job rather than after a gate job, so they queue for a runner once. This repository has no merge queue (GitHub offers none to a personal
 account's repository, and #286 chose the up-to-date rule over one), so a change outside the closure
 meets the flows after it lands: in the next pull request that reaches them, and in the daily run on
 `main`. `.github/workflows/hosted-play-daily.yml` runs the four shards once a day and on manual
-dispatch through the same `play_closure` job, which skips them when `main`'s tree already had them,
+dispatch through the same action, which skips them when `main`'s tree already had them,
 from the last daily run that checked this commit or from the pull request that merged as it when
 that merge was up to date and its diff reached the closure. A red daily run opens or extends one
 issue labelled `hosted-play-daily`.

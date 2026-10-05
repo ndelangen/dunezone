@@ -266,8 +266,8 @@ and the job passes `--expect-renderer webgpu` in place of `webgl2-swiftshader`. 
 for [#1272](https://github.com/ndelangen/dunezone/issues/1272), a vertex buffer validation error only
 WebGPU reports, turned most of this job's runs red while the Linux shards stayed green.
 
-In CI the hosted shards run on a pull request only when its diff can reach the flows, decided by
-the `play_closure` job from the closure in `scripts/lib/hosted-play-closure.ts`; a daily run on
+In CI the hosted shards run on a pull request only when its diff can reach the flows, decided at
+the start of each shard by the `play-closure` action from the closure in `scripts/lib/hosted-play-closure.ts`; a daily run on
 `main` runs them once more when the tree at its tip has not had them
 ([deployment](../deployment.md#hosted-gameplay)).
 
