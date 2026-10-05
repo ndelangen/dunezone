@@ -530,7 +530,18 @@ const pages = [
     'cards',
     'Settle the battle',
     [spite, spiteExample, cardRule, cardExample],
-    [losses, lossExample, leaderCommitment, continueBattle]
+    [
+      {
+        id: 'losses-heading',
+        kind: 'section-heading',
+        title: 'Pay and remove troops',
+        faction: { status: 'unselected' },
+      },
+      losses,
+      lossExample,
+      leaderCommitment,
+      continueBattle,
+    ]
   ),
   ties(),
   traitors(),
