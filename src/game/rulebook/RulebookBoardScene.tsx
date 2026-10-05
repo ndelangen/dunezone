@@ -1,3 +1,4 @@
+import type { ComponentGeometry } from '@shared/asset-publishing/componentGeometry';
 import type { RulebookAnnotationProjection } from '@shared/rulebooks/assetExplainerAnnotations';
 import type { RulebookRenderBlockV1 } from '@shared/rulebooks/renderDocument';
 import { useId } from 'react';
@@ -21,15 +22,43 @@ function pointOnRing(geometry: TableGeometry, angle: number, distance = geometry
   };
 }
 
-function StormSector({ angle, geometry }: Readonly<{ angle: number; geometry: TableGeometry }>) {
-  const { width, height, radius } = geometry;
-  const stormRadius = radius * 0.895;
+function StormSector({
+  angle,
+  geometry,
+  shelteredArea,
+}: Readonly<{
+  angle: number;
+  geometry: TableGeometry;
+  shelteredArea?: ComponentGeometry['parts'][number]['highlight'];
+}>) {
+  const shelterMask = useId().replaceAll(':', '');
+  const { width, height } = geometry;
+  const stormRadius = Math.min(width, height) / 2;
   const first = pointOnRing(geometry, angle - 10, stormRadius);
   const last = pointOnRing(geometry, angle + 10, stormRadius);
-  const position = pointOnRing(geometry, angle, stormRadius);
+  const position = pointOnRing(geometry, angle, stormRadius * 0.9);
+  const iconSize = width * 0.045;
   return (
     <>
+      {shelteredArea ? (
+        <defs>
+          <mask id={shelterMask} maskUnits="userSpaceOnUse" x="0" y="0" width={width} height={height}>
+            <rect width={width} height={height} fill="white" />
+            <g transform={`scale(${width} ${height})`}>
+              {shelteredArea.paths.map((path, index) => (
+                <path
+                  key={index}
+                  d={path.d}
+                  transform={path.transform ? `matrix(${path.transform.join(' ')})` : undefined}
+                  fill="black"
+                />
+              ))}
+            </g>
+          </mask>
+        </defs>
+      ) : null}
       <path
+        mask={shelteredArea ? `url(#${shelterMask})` : undefined}
         d={`M ${width / 2} ${height / 2} L ${first.x} ${first.y} A ${stormRadius} ${stormRadius} 0 0 0 ${last.x} ${last.y} Z`}
         fill="#8b3628"
         fillOpacity=".27"
@@ -37,10 +66,14 @@ function StormSector({ angle, geometry }: Readonly<{ angle: number; geometry: Ta
         strokeWidth={width * 0.003}
       />
       <g transform={`translate(${position.x} ${position.y})`} aria-label="Storm">
-        <circle r={width * 0.0308} fill="#8b3628" stroke="#fff9eb" strokeWidth={width * 0.004} />
-        <text textAnchor="middle" dy={width * 0.0072} fontSize={width * 0.0185} fontWeight="bold" fill="#fff9eb">
-          STORM
-        </text>
+        <circle r={width * 0.0308} fill="#fff9eb" stroke="#8b3628" strokeWidth={width * 0.004} />
+        <image
+          href="/vector/icon/storrm_standalone.svg"
+          x={-iconSize / 2}
+          y={-iconSize / 2}
+          width={iconSize}
+          height={iconSize}
+        />
       </g>
     </>
   );
@@ -254,7 +287,15 @@ function TableOverlay({
     <>
       {scene.storm ? (
         <>
-          <StormSector angle={scene.storm.angle} geometry={geometry} />
+          <StormSector
+            angle={scene.storm.angle}
+            geometry={geometry}
+            shelteredArea={
+              scene.board.status === 'ready'
+                ? scene.board.geometry?.parts.find((part) => part.key === 'polar')?.highlight
+                : undefined
+            }
+          />
           <StormDirection angle={scene.storm.angle} players={scene.players} geometry={geometry} />
         </>
       ) : null}

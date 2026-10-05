@@ -527,6 +527,84 @@ function turn(): Page[] {
     exceptions(),
   ];
 }
+function stormRestrictions(): Page {
+  const start = { territory: 'imperial-basin', position: { x: 0.54, y: 0.23 } };
+  const destination = { territory: 'false-wall-east', position: { x: 0.6, y: 0.46 } };
+  function stormMap(id: string): Board {
+    const map = scene(
+      id,
+      [
+        [0.535, 0.145, 3],
+        [0.578, 0.378, 1],
+        [0.473, 0.175, 1],
+      ],
+      ['imperial-basin', 'false-wall-east'],
+      70
+    );
+    return {
+      ...map,
+      troops: map.troops.map((troop, index) =>
+        index === 0 ? { ...troop, columns: 1, size: 0.017, gap: 0.003 } : { ...troop, size: 0.018 }
+      ),
+    };
+  }
+  return columns(
+    'actions-storm',
+    'The storm can divide a territory',
+    [
+      heading('blocked-heading', 'The direct crossing is blocked'),
+      {
+        ...stormMap('storm-blocked'),
+        routes: [
+          {
+            id: 'blocked',
+            label: 'Imperial Basin to False Wall East: blocked',
+            direction: 'forward',
+            color: '#a22c20',
+            waypoints: [start, destination],
+            blockedAfter: 0,
+          },
+        ],
+      },
+      example(
+        'blocked-example',
+        'Clear endpoints are not enough',
+        'The northern troops cannot cross the storm to reach False Wall East. The separate troop in Imperial Basin cannot join them across the storm.'
+      ),
+    ],
+    [
+      heading('detour-heading', 'Go around with ornithopters'),
+      {
+        ...scene('storm-detour', [[0.47, 0.145, 3]], ['carthag', 'false-wall-east'], 70),
+        routes: [
+          {
+            id: 'detour',
+            label: 'A clear route: 3 territories entered',
+            direction: 'forward',
+            waypoints: [
+              { territory: 'carthag' },
+              { territory: 'arsunt', position: { x: 0.48, y: 0.34 } },
+              { territory: 'polar', position: { x: 0.5, y: 0.53 } },
+              destination,
+            ],
+          },
+        ],
+      },
+      example(
+        'detour-example',
+        'From Carthag to False Wall East',
+        'Start in Carthag with ornithopters. Move through Arsunt (1) and the Polar Sink (2) to False Wall East (3), going around the storm. The Polar Sink is never in storm.'
+      ),
+    ],
+    [
+      text(
+        'storm-introduction',
+        'Ordinary troops cannot ship into, enter, leave or cross a sector in storm. Other sectors of that territory remain usable, but troops separated by the storm cannot combine into one moving group. Ornithopters extend your range; they do not let you cross the storm.'
+      ),
+    ]
+  );
+}
+
 function actions(): Page[] {
   return [
     {
@@ -590,44 +668,6 @@ function actions(): Page[] {
       ),
       controlValues: { bandPosition: 'top' },
     },
-    columns(
-      'actions-limits',
-      'Shipment and movement restrictions',
-      [
-        heading('destination-heading', 'Check the landing place'),
-        list(
-          'landing',
-          [
-            ['Storm', 'Your chosen sector must be clear of the storm.'],
-            ['Stronghold', 'It cannot already contain two other factions. Advisors do not count.'],
-            ['Ally', rules.ally],
-          ],
-          true
-        ),
-        text('wall', rules.wall),
-
-        note(
-          'no-flight-route',
-          'Shipment has no on-board route',
-          'You do not count territories between reserves and the destination.'
-        ),
-      ],
-      [
-        heading('route-heading', 'Check every territory passed'),
-        text('storm', rules.storm),
-        text('occupancy', rules.occupancy),
-        text(
-          'opponents',
-          'Opposing troops otherwise do not block your passage. Choose the destination sector when you finish.'
-        ),
-        example(
-          'blocked',
-          'An occupied stronghold',
-          'If two other factions occupy Carthag, it cannot be your destination or a shortcut through the map.'
-        ),
-      ],
-      [text('sectors', rules.sectors)]
-    ),
     columns(
       'actions-ornithopters',
       'Ornithopters: move up to three territories',
@@ -714,6 +754,48 @@ function actions(): Page[] {
         text(
           'ornithopter-introduction',
           'Troops in Carthag or Arrakeen when movement begins grant ornithopters: up to three territories. Shipping into either city unlocks this immediately, making them the most important territories for mobility. Choose one move below.'
+        ),
+      ]
+    ),
+    stormRestrictions(),
+    columns(
+      'actions-limits',
+      'Other movement restrictions',
+      [
+        heading('destination-heading', 'Check the landing place'),
+        list(
+          'landing',
+          [
+            ['Stronghold', 'It cannot already contain two other factions. Advisors do not count.'],
+            ['Ally', rules.ally],
+          ],
+          true
+        ),
+        text('wall', rules.wall),
+
+        note(
+          'no-flight-route',
+          'Shipment has no on-board route',
+          'You do not count territories between reserves and the destination.'
+        ),
+      ],
+      [
+        heading('route-heading', 'Check every territory passed'),
+        text('occupancy', rules.occupancy),
+        text(
+          'opponents',
+          'Opposing troops otherwise do not block your passage. Choose the destination sector when you finish.'
+        ),
+        example(
+          'blocked',
+          'An occupied stronghold',
+          'If two other factions occupy Carthag, it cannot be your destination or a shortcut through the map.'
+        ),
+      ],
+      [
+        text(
+          'restrictions-introduction',
+          'A clear route must also respect stronghold occupancy and your ally. Check the landing place before shipment, and every territory you enter during movement.'
         ),
       ]
     ),
