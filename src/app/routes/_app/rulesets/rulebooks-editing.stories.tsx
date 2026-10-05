@@ -55,7 +55,11 @@ export const TallPageCatalogue = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     await userEvent.click(await page.findByRole('button', { name: 'Add Page' }, { timeout: 30_000 }));
     await waitForFrame(() => page.getByRole('menuitem', { name: 'Single column' }), { timeout: 30_000 });
-    expect(page.getAllByRole('menuitem').map((item) => item.textContent)).toEqual(['Single column', 'Cover']);
+    expect(page.getAllByRole('menuitem').map((item) => item.textContent)).toEqual([
+      'Single column',
+      'Content with bottom strip',
+      'Cover',
+    ]);
   },
 });
 

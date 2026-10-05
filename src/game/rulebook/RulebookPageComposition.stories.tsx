@@ -1,5 +1,5 @@
 import preview from '@sb/preview';
-import { expect } from 'storybook/test';
+import { expect, within } from 'storybook/test';
 
 import { createCataloguePage } from './RulebookCatalogue.stories.fixture';
 import { ReferenceMatterStory, expectContained } from './RulebookReferenceMatter.shared.stories.fixture';
@@ -33,7 +33,7 @@ export const WrittenRules = meta.story({
   play: async ({ canvasElement }) => {
     await document.fonts.ready;
     expect(canvasElement.querySelectorAll('[data-rulebook-block-id]')).toHaveLength(7);
-    expect(canvasElement.querySelector('ol > li strong')?.textContent).toBe('Choose a group');
+    expect(within(canvasElement).getByRole('heading', { name: 'Choose a group', level: 3 })).toBeVisible();
     expect(canvasElement.querySelector('[data-faction-id="atreides"]')?.textContent).toBe('Shipment and movement');
     expect(canvasElement.querySelectorAll('blockquote')).toHaveLength(1);
     for (const region of canvasElement.querySelectorAll<HTMLElement>('[data-rulebook-region]')) {
