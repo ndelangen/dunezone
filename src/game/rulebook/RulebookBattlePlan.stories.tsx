@@ -166,3 +166,29 @@ export const IndependentExamples = meta.story({
     expect(canvas.queryByRole('region', { name: /^Step / })).not.toBeInTheDocument();
   },
 });
+
+export const HiddenCardCounts = meta.story({
+  render: () => {
+    const page = battleSequencePage([]);
+    page.title = 'Hidden card information';
+    page.regions[0].blocks = [0, 2].map((count, index) => {
+      const block = renderedBattleStep(presciencePanel, index);
+      block.left.cards = block.left.cards.slice(0, count);
+      block.right.cards = block.right.cards.slice(0, index + 1);
+      return block;
+    });
+    return <RulebookPageRenderer page={page} settings={{ size: 'square', design: 'illustrated' }} />;
+  },
+  play: async ({ canvas, canvasElement }) => {
+    await expectSquarePage(canvasElement);
+    await expect(
+      canvas.getAllByRole('img', { name: 'Atreides: other cards, if any, and their count are unknown' })
+    ).toHaveLength(2);
+    await expect(
+      canvas.getAllByRole('img', { name: 'Harkonnen: other cards, if any, and their count are unknown' })
+    ).toHaveLength(2);
+    await expect(canvas.getAllByAltText('Gom Jabbar')).toHaveLength(2);
+    await expect(canvas.queryByAltText('Snooper')).not.toBeInTheDocument();
+    await expect(canvas.queryByAltText('Maula Pistol')).not.toBeInTheDocument();
+  },
+});

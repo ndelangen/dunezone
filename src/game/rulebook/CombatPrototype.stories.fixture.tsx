@@ -20,15 +20,15 @@ const scenes: Record<Scene, { n: number; lead: string; rule: string; example: st
   hidden: {
     n: 2,
     lead: 'Prepare a battle plan.',
-    rule: 'Choose in secret: an available leader or a 0-strength Cheap Hero, up to one weapon and one defense. Either card slot may be empty. A leader used in another territory this phase is unavailable. With neither leader nor Cheap Hero, announce it: you fight without Treachery Cards.',
+    rule: 'Choose in secret: an available leader or a 0-strength Cheap Hero, up to one weapon and one defense. Either card slot may be empty. Keep both the cards and their number secret until reveal, except for information disclosed by an advantage. A leader used in another territory this phase is unavailable. With neither leader nor Cheap Hero, announce it: you fight without Treachery Cards.',
     example: '',
   },
   prescience: {
     n: 3,
     lead: 'Resolve pre-reveal advantages.',
-    rule: "Follow each applicable faction advantage's timing and conditions. The Voice precedes Battle Prescience. Blackmail, Stone Burner, Fanatical Tactics and Infiltration also act before reveal.",
+    rule: "Follow each applicable faction advantage's timing and conditions. The Voice precedes Battle Prescience. A card back marked ? represents unknown cards, including none. Blackmail, Stone Burner, Fanatical Tactics and Infiltration also act before reveal.",
     example:
-      'Atreides uses Prescience: "Which weapon will you play?" Harkonnen answers "Gom Jabbar." That answer is binding; its other card stays face down.',
+      'Atreides uses Prescience: "Which weapon will you play?" Harkonnen answers "Gom Jabbar." That answer is binding. Its other cards, if any, remain unknown until reveal.',
   },
   dial: {
     n: 4,
