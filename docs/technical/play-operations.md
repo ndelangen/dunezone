@@ -34,22 +34,56 @@ touching a Durable Object or Convex. The publisher's endpoint is the same kind o
 the binding routes, not that a game works. The publisher exempts the exact GET health path from the
 Play ingress rate limit (`workers/publisher/index.ts:49-51`).
 
-`game-operation-failed` is the only Play application diagnostic
-(`docs/technical/play-hosted.md:337-359`). The game Worker turns off invocation logs and keeps logs
-at 100% sampling so these failure reports survive (`workers/game/wrangler.jsonc:11-16`). Each record
-carries `operation`, `roomId` (the opaque Durable Object ID), `gitSha`, `errorKind`, `suppressed`
-and `since` (`workers/game/diagnostics.ts:62-70`). The operation names are fixed
-(`workers/game/diagnostics.ts:1-20`): `provision`, `confirmation`, `battle-alarm`, `directory`,
-`fixture-deck`, `account-deletion`, `account-reconciliation`, `admission`, `authorization-watch`,
-`authorization-renewal`, `message`, `socket-send`, `socket-error`, `authorization-close`,
-`draft-catalogue`, `assignment`, `storage-sync`, `load` and `retire`. A room emits at most one
-record per operation per 60 seconds, and the next one carries the count suppressed meanwhile. A
-final suppressed count is never flushed, and the limit resets when the Durable Object is recreated.
-Messages, stacks, identities and payloads are omitted, so the record locates the path and the
-release; exception detail comes from reproducing locally.
+`game-operation-failed` reports unexpected failures in GameRoom and HomepageRoom. Invocation logs
+remain off and application logs retain 100% sampling. Each report includes the opaque `roomId`,
+`roomClass`, `gitSha`, `workerVersionId`, current `revision` when loaded, connection count and
+`uptimeMs` since this object instance started. Uptime restarts after deployment, eviction or
+hibernation; a low value alone does not prove that a deployment caused a failure.
 
-Expected refusals, malformed requests and successful commands produce no record. A quiet log
-therefore means no unexpected failure was reported, not that players are being served.
+The fixed operation names live in `workers/game/diagnostics.ts`. Reports include `errorKind`, a
+safe `failureCategory`, `suppressed` and `since`. Convex transport failures distinguish HTTP
+status, timeout, abort and network failure, with request duration. Invalid parsed responses get
+an `invalid-response` category. The exact Cloudflare storage-reset message yields only its opaque
+`storageReference`; boolean `retryable`, `overloaded` and `remote` flags are retained when present.
+Unknown errors remain `exception` or `unknown`. Messages, stacks, tickets, account identities,
+SQL values and response bodies are never copied into these application records.
+
+A room emits at most one failure per operation per minute. Reconciliation, confirmation,
+directory delivery, authorization renewal and homepage admission and refresh also
+report `game-operation-recovered` when a subsequent attempt succeeds. A recovery includes
+`failures` since the first failed attempt and `outageMs`. Healthy operations emit nothing.
+A successfully handled message alone does not clear a message failure, since a sync or pointer
+update does not prove a previous storage write now works.
+Recoveries are independently limited to one per operation per minute, so a flapping dependency
+cannot bypass the failure limit. These counters live in memory and do not cross an object restart;
+absence of a recovery record does not prove a continuing outage. The failure limit also stays in
+place across recovery, and its next failure record includes suppressed failures from earlier attempts.
+
+Unexpected homepage failures retain their existing propagation or handling. Expected game
+refusals and malformed client messages remain quiet. A quiet log means no unexpected failure was
+reported, not that players are being served.
+
+### Tracing and the initial baseline
+
+Source maps and Cloudflare Issues remain enabled. URL query strings are redacted from logs and
+traces. Automatic tracing stays disabled because Cloudflare includes
+`cloudflare.durable_object.query.bindings` in SQL spans, and GameRoom writes private state and
+room secrets as SQL parameters. The current Wrangler schema provides URL-query redaction but no
+SQL-value filter. Do not enable automatic tracing until those values can be excluded before
+persistence. See [Cloudflare's span attributes](https://developers.cloudflare.com/workers/observability/traces/spans-and-attributes/).
+
+The October 4 dashboard reading showed 83,000 account-wide events over 30 days, including 9,400
+for dunezone-game. This predates these diagnostics and the latest homepage traffic, so it is a
+comparison baseline, not a measured forecast. This change adds no success-path logs, tracing
+spans, timers, storage writes or external monitoring service. At most one failure and one recovery
+per operation per room per minute are emitted; a fleet of rooms can still produce substantial volume.
+
+At the next check, record the elapsed hours and deployment SHA, compare account-wide and game
+Worker event totals, and inspect each failure's category, duration, room uptime and recovery.
+Correlate `gitSha`/`workerVersionId` with deployment times. The October 4 account-reconciliation
+issue had fingerprint `70e2104d16cb4a01d1e138edfcf95148`; the homepage storage-reset issue had
+fingerprint `4205c6a6b814c422ac77011aa169ae33` and reference `5oamf4t48n2la7egi58douuu`.
+This release collects evidence; it does not claim to fix either failure.
 
 ## 2. Release requirements
 
@@ -302,7 +336,7 @@ stops any run whose commit is older than what production reports
 - The deletion backlog has no metric, count query or log line; it is visible only by reading the
   table.
 - A real game whose stored state no longer loads has no recovery path short of a code fix.
-- The final suppressed diagnostic count is never flushed, so totals are a lower bound.
+- Final suppressed failure counts are not flushed. Recovery records count their own outage, but are also rate limited and lost on restart, so logs are not a complete error census.
 - No kill switch for Play or for one operation.
 - Capacity targets and load verification belong to
   [#1022](https://github.com/ndelangen/dunezone/issues/1022) and are not covered here.

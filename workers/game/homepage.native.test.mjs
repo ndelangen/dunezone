@@ -234,3 +234,33 @@ describe('the public homepage table', () => {
     expect((await member.message('rejected', (message) => message.requestId === 'stale')).message).toContain('reset');
   });
 });
+
+it('reports invalid admission responses and recovery without tickets or response content', async () => {
+  const guest = await visitor();
+  peer.homepageAdmission = { allowed: 'private backend detail' };
+  guest.send({ type: 'authenticate', ticket: 'a'.repeat(64) });
+  const failure = await eventually(
+    () => runtime.logs.find((log) => log.message.includes('game-operation-failed')),
+    'homepage admission diagnostic'
+  );
+  expect(failure.message).toContain("failureCategory: 'invalid-response'");
+  expect(failure.message).toContain("roomClass: 'HomepageRoom'");
+  expect(failure.message).toContain("workerVersionId: 'native-test'");
+  expect(failure.message).toContain('connections: 1');
+  expect(failure.message).toContain('revision: 0');
+  expect(failure.message).toContain('durationMs:');
+  expect(JSON.stringify(runtime.logs)).not.toContain('private backend detail');
+  expect(JSON.stringify(runtime.logs)).not.toContain('a'.repeat(64));
+  peer.homepageAdmission = { allowed: false };
+  guest.send({ type: 'authenticate', ticket: 'b'.repeat(64) });
+  await guest.message('view');
+  const recovery = await eventually(
+    () => runtime.logs.find((log) => log.message.includes('game-operation-recovered')),
+    'homepage admission recovery'
+  );
+  expect(recovery.message).toContain('failures: 1');
+  expect(recovery.message).toContain('outageMs:');
+  const count = runtime.logs.length;
+  await syncView(guest);
+  expect(runtime.logs).toHaveLength(count);
+});
