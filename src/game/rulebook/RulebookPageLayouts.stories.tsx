@@ -41,8 +41,11 @@ export const EmptyRegionsAndHiddenHeading = meta.story({
     expect(canvasElement.querySelectorAll('[data-rulebook-block-id]')).toHaveLength(0);
     for (const { key, rect } of regionRects(canvasElement)) {
       expect(rect.width).toBeGreaterThan(0);
-      if (key === 'band') expect(rect.height).toBe(0);
-      else expect(rect.height).toBeGreaterThan(0);
+      if (key === 'band') {
+        expect(rect.height).toBe(0);
+      } else {
+        expect(rect.height).toBeGreaterThan(0);
+      }
     }
   },
 });
