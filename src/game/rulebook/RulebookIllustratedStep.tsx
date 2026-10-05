@@ -33,7 +33,6 @@ export function RulebookIllustratedStep({
       aria-label={`Step ${step}: ${title}`}
     >
       <div className="rulebookBattleScene">
-        {visual}
         <div className="rulebookBattleNarrative">
           <span className="rulebookBattleStep">{step}</span>
           <div className="rulebookBattleCopy">
@@ -47,6 +46,7 @@ export function RulebookIllustratedStep({
             {outcome ? <p className="rulebookBattleOutcome">{outcome}</p> : null}
           </div>
         </div>
+        <div className="rulebookBattleVisual">{visual}</div>
       </div>
     </section>
   );

@@ -33,7 +33,7 @@ const scenes: Record<Scene, { n: number; lead: string; rule: string; example: st
     lead: 'Resolve pre-reveal advantages.',
     rule: "Follow each applicable faction advantage's timing and conditions. The Voice precedes Battle Prescience, followed by Blackmail and Stone Burner. Fanatical Tactics and Infiltration act during commitment. Emperor and Ixian Fates cannot be used during commitment.",
     example:
-      'Here, Harkonnen has chosen its cards; Atreides waits. Atreides uses Prescience: "Which weapon will you play?" Harkonnen answers "Gom Jabbar." *That part* of Harkonnen\'s battle plan is now locked, and cannot be changed. The rest of its battle plan can still change until reveal. Atreides now chooses two cards using that information. Any other cards and the number committed remain unknown to the opponent until reveal.',
+      'Atreides asks: "Which weapon will you play?" Harkonnen answers "Gom Jabbar." *That part* of Harkonnen\'s battle plan is now locked, and cannot be changed. The rest can change until reveal. Atreides uses the answer to choose two cards. Other cards and their number remain secret.',
   },
   dial: {
     n: 4,

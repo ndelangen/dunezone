@@ -25,9 +25,10 @@ const meta = preview.meta({
       expect(next.top).toBeGreaterThanOrEqual(first.bottom);
       expect(next.left).toBe(first.left);
       for (const step of steps) {
-        const visual = step.firstElementChild!.getBoundingClientRect();
+        const visual = step.querySelector('.rulebookBattleVisual')!.getBoundingClientRect();
         const narrative = step.querySelector('.rulebookBattleNarrative')!.getBoundingClientRect();
-        expect(narrative.left).toBeGreaterThanOrEqual(visual.right);
+        expect(visual.left).toBeGreaterThanOrEqual(narrative.right);
+        expect(visual.top).toBe(narrative.top);
       }
     }
     for (const region of canvasElement.querySelectorAll<HTMLElement>('[data-rulebook-region]')) {

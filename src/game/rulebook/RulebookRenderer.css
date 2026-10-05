@@ -1296,9 +1296,9 @@
   display: flex;
   flex-wrap: wrap;
   gap: calc(5 * var(--rulebook-mm));
-  align-items: center;
+  align-items: start;
 }
-.rulebookBattleScene > :first-child {
+.rulebookBattleVisual {
   flex: 0.8 1 calc(80 * var(--rulebook-mm));
   min-width: 0;
 }
