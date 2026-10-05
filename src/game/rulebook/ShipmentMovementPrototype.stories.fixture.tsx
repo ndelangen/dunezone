@@ -407,7 +407,7 @@ function exceptions(): Page {
 }
 function turn(): Page[] {
   return [
-    single('turn-start', 'One turn, two actions', [
+    single('turn-start', 'Shipment and movement', [
       text(
         'turn-sequence',
         'In storm order, finish your shipment, then your movement, before the next player acts. You may do either, both or neither.'
@@ -532,12 +532,12 @@ function actions(): Page[] {
     {
       ...columns(
         'actions-overview',
-        'Two actions, in this order',
+        'Shipment and movement',
         [
           heading('ship-heading', '1. Shipment'),
           text(
             'ship-rule',
-            'In storm order, each player may ship, then move. To ship, bring any number of troops from reserves to one legal territory. Pay 1 spice per troop to a stronghold, or 2 elsewhere. Either action is optional.'
+            'Bring any number of troops from reserves to one legal territory and choose their sector. Pay 1 spice per troop to a stronghold, or 2 elsewhere. Pay the Spacing Guild if its Shipping Payments advantage applies; otherwise pay the Spice Bank.'
           ),
           {
             ...scene(
@@ -564,7 +564,7 @@ function actions(): Page[] {
           heading('move-heading', '2. On-planet movement'),
           text(
             'move-rule',
-            'Then move some or all troops from one territory to another for free. Range is one territory, or two as Fremen. Troops in Carthag or Arrakeen when movement begins give you a range of three.'
+            'Move some or all troops from one territory to another for free: one territory, or two as Fremen. Having troops in Carthag or Arrakeen when movement begins increases this to three, even if they just shipped there and all now leave.'
           ),
           {
             ...scene('carthag-cielago', [[0.51, 0.69, 3]], ['carthag', 'imperial-basin', 'polar', 'cielago-north']),
@@ -584,14 +584,13 @@ function actions(): Page[] {
           },
         ],
         [
-          example(
-            'ship-then-move',
-            'Ship in, then fly out',
-            'Ship three troops to Carthag, then move them through Imperial Basin (1) and the Polar Sink (2) to Cielago North (3). They give you ornithopters because they are in Carthag when your on-planet movement begins. You may move all three; you do not have to leave one behind.'
+          text(
+            'phase-introduction',
+            'Position your troops to collect spice, contest strongholds and prevent rivals from winning. In storm order, each player may make one shipment followed by one on-planet movement. Both are optional. Finish your turn before the next player acts.'
           ),
         ]
       ),
-      controlValues: { bandPosition: 'bottom' },
+      controlValues: { bandPosition: 'top' },
     },
     columns(
       'actions-limits',
@@ -608,10 +607,7 @@ function actions(): Page[] {
           true
         ),
         text('wall', rules.wall),
-        text(
-          'payment',
-          'Pay shipment spice to the Spacing Guild when its Shipping Payments advantage applies; otherwise pay the Spice Bank.'
-        ),
+
         note(
           'no-flight-route',
           'Shipment has no on-board route',
@@ -669,7 +665,7 @@ function actions(): Page[] {
 }
 function atlas(): Page[] {
   return [
-    single('atlas-land', 'Where can you arrive?', [
+    single('atlas-land', 'Shipment and movement', [
       text('purpose', rules.purpose),
       text('sequence', rules.sequence),
       marks('landing-map', [
@@ -744,7 +740,7 @@ function decisions(): Page[] {
   return [
     columns(
       'decisions-goal',
-      'Choose what this turn achieves',
+      'Shipment and movement',
       [
         text('purpose', rules.purpose),
         list(

@@ -511,6 +511,10 @@ to general rulebook authoring. Explain that purpose and give the block its norma
 renderer and editor support. An isolated block story may exercise the component directly; a chapter
 story may not substitute its own page body. Examples use the example callout block.
 
+A chapter teaching a game phase uses the phase name as its opening page title, such as
+"Shipment and movement". Put its introduction between that title and the first subsections.
+Later pages may use descriptive titles for the part of the phase they explain.
+
 This follows the rejected combat prototypes, which ran in Storybook but used their own page bodies,
 typography and footer. The revised chapter stories parse the render document contract and check
 that every page region fits. Contract validation and fit are automated; choosing real blocks and
