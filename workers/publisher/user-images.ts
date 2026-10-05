@@ -14,6 +14,7 @@ import {
   USER_IMAGE_TOKEN_CONSUME_FUNCTION,
   userImageIngestRequestSchema,
   userImagePublicPath,
+  userImageSourceUrlSchema,
   userImageTokenCheckAnswerSchema,
 } from '../../src/shared/user-images/contract';
 import type { UserImageIngestKind } from '../../src/shared/user-images/contract';
@@ -76,21 +77,17 @@ function jsonError(status: number, message: string): Response {
 }
 
 /**
- * Follows redirects by hand so every hop stays https.
- * `redirect: 'follow'` would happily cross to http mid-chain, and the whole point of the fetch is that its origin is untrusted.
+ * Checks every redirect against the same source policy before sending the next request.
+ * The Worker's global_fetch_strictly_public flag keeps same-zone requests on the public route too.
  */
 async function fetchSourceImage(sourceUrl: string): Promise<FetchedSource> {
   let current = sourceUrl;
   for (let hop = 0; hop <= USER_IMAGE_MAX_REDIRECTS; hop += 1) {
-    let parsed: URL;
-    try {
-      parsed = new URL(current);
-    } catch {
-      return { ok: false, message: 'The image URL could not be parsed' };
+    const source = userImageSourceUrlSchema.safeParse(current);
+    if (!source.success) {
+      return { ok: false, message: source.error.issues[0]?.message ?? 'The image URL is not allowed' };
     }
-    if (parsed.protocol !== 'https:') {
-      return { ok: false, message: 'The image must be served over https://' };
-    }
+    const parsed = new URL(source.data);
     let response: Response;
     try {
       response = await fetch(parsed.toString(), {
@@ -107,7 +104,11 @@ async function fetchSourceImage(sourceUrl: string): Promise<FetchedSource> {
       if (!location) {
         return { ok: false, message: 'The image host redirected without a destination' };
       }
-      current = new URL(location, parsed).toString();
+      try {
+        current = new URL(location, parsed).toString();
+      } catch {
+        return { ok: false, message: 'The image host redirected to an invalid URL' };
+      }
       continue;
     }
     if (!response.ok) {

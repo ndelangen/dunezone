@@ -64,7 +64,7 @@ export const USER_IMAGE_FETCH_TIMEOUT_MS = 10_000;
  */
 export const USER_IMAGE_INGEST_TIMEOUT_MS = 25_000;
 
-/** How many redirect hops the ingest fetch follows, each one re-checked to be https. */
+/** How many redirect hops the ingest fetch follows, each one checked against the source URL policy. */
 export const USER_IMAGE_MAX_REDIRECTS = 3;
 
 /**
@@ -99,7 +99,9 @@ export const USER_IMAGE_JPEG_QUALITY = 82;
 const USER_IMAGE_KEY_PATTERN = /^[0-9a-f]{64}\.jpg$/;
 
 /**
- * What an author may supply as an image source: a full https URL with no embedded credentials.
+ * What an author may supply as an image source: a full https URL on a DNS hostname with no embedded credentials.
+ * Literal addresses and local names are refused here;
+ * the Worker's public egress policy governs DNS resolution.
  * The noun only changes the messages, so both pipelines share one floor while each edit form speaks about its own field.
  */
 function makeUserImageSourceUrlSchema(noun: string) {
@@ -117,6 +119,17 @@ function makeUserImageSourceUrlSchema(noun: string) {
         }
         if (url.username !== '' || url.password !== '') {
           ctx.addIssue({ code: 'custom', message: `${noun} URL must not carry credentials` });
+        }
+        const hostname = url.hostname.replace(/\.$/, '');
+        if (
+          !hostname.includes('.') ||
+          hostname.startsWith('[') ||
+          /^\d+\.\d+\.\d+\.\d+$/.test(hostname) ||
+          ['localhost', 'local', 'internal', 'home.arpa'].some(
+            (local) => hostname === local || hostname.endsWith(`.${local}`)
+          )
+        ) {
+          ctx.addIssue({ code: 'custom', message: `${noun} must use a public HTTPS hostname` });
         }
       } catch {
         ctx.addIssue({ code: 'custom', message: `${noun} must be a full https:// URL` });
