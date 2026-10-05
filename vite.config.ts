@@ -52,6 +52,8 @@ const config = defineConfig({
     proxy: process.env.PLAY_WORKER_URL ? { '/__play': { target: process.env.PLAY_WORKER_URL, ws: true } } : undefined,
   },
   test: {
+    /* Standalone HTML exports need the compiled CSS Module classes and declarations, as they have no browser module loader. */
+    css: { include: [/\.module\.css(?:\?.*)?$/, /\.css\?inline$/], modules: { classNameStrategy: 'scoped' } },
     /* The script tests that launch Chromium run through vitest.browser-launch.config.ts, where a browser is installed. */
     exclude: [...configDefaults.exclude, 'e2e/**', '.claude/**', 'tools/**', ...browserLaunchTests],
     coverage: {

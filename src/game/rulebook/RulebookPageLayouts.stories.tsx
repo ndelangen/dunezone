@@ -10,6 +10,7 @@ import {
 } from './RulebookBattlePlan.stories.fixture';
 import { geometryCases, GeometryMatrix, regionRects, verifyGeometry } from './RulebookCatalogue.shared.stories.fixture';
 import { createCataloguePage } from './RulebookCatalogue.stories.fixture';
+import { HeadingMatrix, verifyHeadingConsistency } from './RulebookHeading.stories.fixture';
 import { RulebookPageRenderer } from './RulebookRenderer';
 
 const meta = preview.meta({ title: 'Page/Layouts/Rendered', parameters: { layout: 'fullscreen' } });
@@ -84,5 +85,13 @@ export const StepByStep = meta.story({
     const region = canvasElement.querySelector<HTMLElement>('[data-rulebook-region]')!;
     expect(region.scrollHeight).toBeLessThanOrEqual(region.clientHeight + 1);
     expect(region.querySelectorAll('[data-rulebook-block-id]')).toHaveLength(4);
+  },
+});
+
+export const HeadingConsistency = meta.story({
+  render: () => <HeadingMatrix />,
+  play: async ({ canvasElement }) => {
+    await document.fonts.ready;
+    verifyHeadingConsistency(canvasElement);
   },
 });
