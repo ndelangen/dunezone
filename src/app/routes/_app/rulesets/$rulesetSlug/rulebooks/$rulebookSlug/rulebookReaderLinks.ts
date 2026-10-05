@@ -297,8 +297,10 @@ function projectedBoardText(board: RenderBoardScene) {
       ...(board.routes ?? []).flatMap((route) => [
         route.label,
         ...route.waypoints.flatMap((point, index) =>
-          point.position ||
-          (board.board.status === 'ready' && board.board.geometry?.parts.some((part) => part.key === point.territory))
+          route.showWaypoints !== false &&
+          (point.position ||
+            (board.board.status === 'ready' &&
+              board.board.geometry?.parts.some((part) => part.key === point.territory)))
             ? [String(index)]
             : []
         ),

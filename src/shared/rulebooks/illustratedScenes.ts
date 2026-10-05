@@ -72,12 +72,17 @@ export const rulebookBoardRouteSchema = z
     label: z.string(),
     color: color.optional(),
     direction: z.enum(['forward', 'both', 'none']),
+    showWaypoints: z.boolean().optional(),
     waypoints: z
       .array(
-        z.strictObject({
-          territory: z.string().min(1),
-          position: z.strictObject({ x: coordinate, y: coordinate }).optional(),
-        })
+        z
+          .strictObject({
+            territory: z.string().min(1).optional(),
+            position: z.strictObject({ x: coordinate, y: coordinate }).optional(),
+          })
+          .refine((point) => point.territory !== undefined || point.position !== undefined, {
+            message: 'A waypoint needs a territory or position',
+          })
       )
       .min(2)
       .max(64),

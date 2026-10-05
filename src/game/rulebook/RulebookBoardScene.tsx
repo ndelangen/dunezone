@@ -183,7 +183,7 @@ function BoardRoutes({ scene, width, height }: Readonly<{ scene: RulebookBoardSc
           );
         })}
         {points.map((point, index) =>
-          point ? (
+          point && route.showWaypoints !== false ? (
             <g key={index} transform={`translate(${point.x} ${point.y})`}>
               <circle r={width * 0.018} fill={color} stroke="#fff9eb" strokeWidth={width * 0.003} />
               <text

@@ -146,6 +146,23 @@ describe('Rulebook illustrated scenes', () => {
     });
   });
 
+  test('a route can start beside the board without inventing a territory', () => {
+    const route = {
+      id: 'SHIP',
+      label: 'Reserves to Carthag',
+      direction: 'forward',
+      showWaypoints: false,
+      waypoints: [{ position: { x: 0.1, y: 0.05 } }, { territory: 'carthag' }],
+    };
+    expect(rulebookBoardSceneSchema.parse({ ...board, routes: [route] }).routes).toEqual([route]);
+    expect(
+      rulebookBoardSceneSchema.safeParse({
+        ...board,
+        routes: [{ ...route, waypoints: [{}, { territory: 'carthag' }] }],
+      }).success
+    ).toBe(false);
+  });
+
   test('routes reject out-of-board positions and non-existent segments', () => {
     const route = board.routes[0]!;
     expect(rulebookBoardSceneSchema.safeParse({ ...board, routes: [{ ...route, blockedAfter: 2 }] }).success).toBe(

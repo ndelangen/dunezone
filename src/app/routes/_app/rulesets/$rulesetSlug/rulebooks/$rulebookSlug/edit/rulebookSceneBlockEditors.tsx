@@ -1140,18 +1140,26 @@ function BoardRouteFields({ value, onChange }: BoardSceneFieldsProps) {
                   }
                 }}
               />
+              <Switch
+                label="Number the waypoints"
+                checked={route.showWaypoints !== false}
+                onChange={(event) => update(routeIndex, { ...route, showWaypoints: event.currentTarget.checked })}
+              />
               {route.waypoints.map((point, pointIndex) => (
                 <Stack gap="xs" key={pointIndex}>
                   <Select
                     label={`Waypoint ${pointIndex + 1}`}
                     searchable
                     data={territoryOptions}
-                    value={point.territory}
+                    clearable={Boolean(point.position)}
+                    value={point.territory ?? null}
                     onChange={(territory) => {
-                      if (territory) {
+                      if (territory || point.position) {
                         update(routeIndex, {
                           ...route,
-                          waypoints: route.waypoints.map((entry, i) => (i === pointIndex ? { territory } : entry)),
+                          waypoints: route.waypoints.map((entry, i) =>
+                            i === pointIndex ? (territory ? { territory } : { position: point.position }) : entry
+                          ),
                         });
                       }
                     }}
@@ -1159,6 +1167,7 @@ function BoardRouteFields({ value, onChange }: BoardSceneFieldsProps) {
                   <Switch
                     label={`Position waypoint ${pointIndex + 1} manually`}
                     checked={Boolean(point.position)}
+                    disabled={!point.territory}
                     onChange={(event) => {
                       const part = parts.find((entry) => entry.key === point.territory);
                       const position = event.currentTarget.checked

@@ -47,6 +47,10 @@ export const RoutesAndSizing = meta.story({
     await userEvent.click(portal.getByRole('option', { name: 'Waypoint 1 to 2' }));
     expect(canvasElement.querySelectorAll('[data-route-segment]')).toHaveLength(2);
     expect(canvasElement.querySelectorAll('[data-route-segment][data-blocked]')).toHaveLength(1);
+    await userEvent.click(canvas.getByRole('switch', { name: 'Number the waypoints' }));
+    expect(canvasElement.querySelectorAll('[data-rulebook-route] text')).toHaveLength(0);
+    await userEvent.click(canvas.getByRole('switch', { name: 'Position waypoint 1 manually' }));
+    await expect(canvas.getByRole('textbox', { name: 'Waypoint 1 x' })).toBeVisible();
     await userEvent.click(canvas.getByRole('button', { name: 'Remove last route' }));
     expect(canvasElement.querySelectorAll('[data-route-segment]')).toHaveLength(0);
   },

@@ -74,7 +74,13 @@ const base = (id: string, title: string) => ({ id, anchor: id, title, showHeadin
 function single(id: string, title: string, blocks: Block[]): Page {
   return { ...base(id, title), layoutId: 'single-column', controlValues: {}, regions: [{ key: 'content', blocks }] };
 }
-function columns(id: string, title: string, left: Block[], right: Block[], band: Block[] = []): Page {
+function columns(
+  id: string,
+  title: string,
+  left: Block[],
+  right: Block[],
+  band: Block[] = []
+): Extract<Page, { layoutId: 'band-columns' }> {
   return {
     ...base(id, title),
     layoutId: 'band-columns',
@@ -523,29 +529,70 @@ function turn(): Page[] {
 }
 function actions(): Page[] {
   return [
-    columns(
-      'actions-overview',
-      'Two actions, in this order',
-      [
-        heading('ship-heading', '1. Shipment'),
-        transfer('ship-transfer', 'Reserves', 'One territory'),
-        text('ship-rule', rules.shipment),
-        text('ship-price', rules.cost),
-        example('ship-price-example', 'Three troops', 'To Arrakeen: 3 spice. To Imperial Basin: 6 spice.'),
-      ],
-      [
-        heading('move-heading', '2. On-planet movement'),
-        transfer('move-transfer', "Tuek's Sietch", 'Pasty Mesa'),
-        text('move-rule', rules.movement),
-        text('move-distance', rules.sectors),
-        example(
-          'move-example',
-          'One group',
-          "Three troops leave Tuek's Sietch together. They may stop in adjacent Pasty Mesa; they cannot split between destinations."
-        ),
-      ],
-      [text('purpose', rules.purpose), text('sequence', rules.sequence)]
-    ),
+    {
+      ...columns(
+        'actions-overview',
+        'Two actions, in this order',
+        [
+          heading('ship-heading', '1. Shipment'),
+          text(
+            'ship-rule',
+            'In storm order, each player may ship, then move. To ship, bring any number of troops from reserves to one legal territory. Pay 1 spice per troop to a stronghold, or 2 elsewhere. Either action is optional.'
+          ),
+          {
+            ...scene(
+              'ship-carthag',
+              [
+                [0.07, 0.04, 3],
+                [0.455, 0.17, 3],
+              ],
+              ['carthag']
+            ),
+            routes: [
+              {
+                id: 'shipment',
+                label: 'Reserves to Carthag: 3 troops, 3 spice',
+                direction: 'forward',
+                showWaypoints: false,
+                color: '#387968',
+                waypoints: [{ position: { x: 0.15, y: 0.065 } }, { territory: 'carthag' }],
+              },
+            ],
+          },
+        ],
+        [
+          heading('move-heading', '2. On-planet movement'),
+          text(
+            'move-rule',
+            'Then move some or all troops from one territory to another for free. Range is one territory, or two as Fremen. Troops in Carthag or Arrakeen when movement begins give you a range of three.'
+          ),
+          {
+            ...scene('carthag-cielago', [[0.51, 0.69, 3]], ['carthag', 'imperial-basin', 'polar', 'cielago-north']),
+            routes: [
+              {
+                id: 'movement',
+                label: 'Carthag to Cielago North: 3 territories',
+                direction: 'forward',
+                waypoints: [
+                  { territory: 'carthag' },
+                  { territory: 'imperial-basin', position: { x: 0.55, y: 0.34 } },
+                  { territory: 'polar' },
+                  { territory: 'cielago-north' },
+                ],
+              },
+            ],
+          },
+        ],
+        [
+          example(
+            'ship-then-move',
+            'Ship in, then fly out',
+            'Ship three troops to Carthag, then move them through Imperial Basin (1) and the Polar Sink (2) to Cielago North (3). They give you ornithopters because they are in Carthag when your on-planet movement begins. You may move all three; you do not have to leave one behind.'
+          ),
+        ]
+      ),
+      controlValues: { bandPosition: 'bottom' },
+    },
     columns(
       'actions-limits',
       'Destination or route?',
@@ -561,6 +608,10 @@ function actions(): Page[] {
           true
         ),
         text('wall', rules.wall),
+        text(
+          'payment',
+          'Pay shipment spice to the Spacing Guild when its Shipping Payments advantage applies; otherwise pay the Spice Bank.'
+        ),
         note(
           'no-flight-route',
           'Shipment has no on-board route',
@@ -581,7 +632,7 @@ function actions(): Page[] {
           'If two other factions occupy Carthag, it cannot be your destination or a shortcut through the map.'
         ),
       ],
-      []
+      [text('purpose', rules.purpose)]
     ),
     single('actions-range', 'One, two or three territories', [
       table(
@@ -594,6 +645,7 @@ function actions(): Page[] {
         ]
       ),
       routeMap('range-map'),
+      text('sectors', rules.sectors),
     ]),
     single('actions-cities', 'Why the two cities matter', [
       text('ornithopters', rules.ornithopters),
@@ -829,7 +881,7 @@ function blockReview(): Page[] {
       heading('proposal', 'Board scene: route inputs'),
       text(
         'route-api',
-        'Keep board, storm, troops, highlights and annotations. An optional routes list supplies the path. Each route has an id, ordered waypoints, a direction and a legend label. Each waypoint identifies a territory and may specify a point within it. The author supplies the route; the block draws it.'
+        'Keep board, storm, troops, highlights and annotations. An optional routes list supplies the path. Each route has an id, ordered waypoints, a direction and a legend label. Each waypoint identifies a territory or an explicit position, such as reserves beside the board. Position overrides can place a point within a chosen territory. Waypoint numbers can be hidden for shipment arrows. The author supplies the route; the block draws it.'
       ),
       text(
         'route-reason',
