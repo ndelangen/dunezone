@@ -62,16 +62,16 @@ const scenes: Record<Scene, { n: number; lead: string; rule: string; example: st
   spite: {
     n: 7,
     lead: 'Resolve post-reveal advantages at their stated time.',
-    rule: "Other factions may act after reveal or after the result, sometimes only under specific conditions. Check each ability's window before continuing.",
+    rule: "Faction advantages may act after reveal or after the result. Check each ability's timing and conditions before continuing.",
     example:
-      "Feyd died, allowing Vladimir's Spite. After the result, Harkonnen exchanges Gom Jabbar for Atreides' Snooper. The battle remains 7 to 4; neither plan changes.",
+      "Feyd died, allowing Vladimir's Spite. Harkonnen exchanges Gom Jabbar for Atreides' Snooper. The result stays 7 to 4.",
   },
   cards: {
     n: 8,
     lead: 'Settle cards and the leader reward.',
     rule: "The ordinary winner may keep or discard played cards; the loser discards them. The winner collects the killed opposing leader's strength in spice.",
     example:
-      'Atreides collects 6 spice and keeps its Pistol and new Gom Jabbar. The received card cannot be discarded immediately. Harkonnen discards both Snoopers.',
+      'Atreides collects 6 spice and keeps its Pistol and new Gom Jabbar, which cannot be discarded immediately. Harkonnen discards both Snoopers.',
   },
   losses: {
     n: 9,
@@ -526,8 +526,12 @@ const pages = [
   leaders(),
   preparingPlans(),
   single('reveal', 'Reveal and resolve', [revealed, revealExample, resultRule, resultTable]),
-  columns('cards', 'Settle abilities and cards', [spite, spiteExample], [cardRule, cardExample]),
-  columns('losses', 'Pay and remove troops', [losses], [lossExample, leaderCommitment, continueBattle]),
+  columns(
+    'cards',
+    'Settle the battle',
+    [spite, spiteExample, cardRule, cardExample],
+    [losses, lossExample, leaderCommitment, continueBattle]
+  ),
   ties(),
   traitors(),
   specials(),
