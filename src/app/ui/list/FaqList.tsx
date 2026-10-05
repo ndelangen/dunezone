@@ -1,7 +1,7 @@
 import { Anchor, Badge, Group, Stack, Text, Tooltip } from '@mantine/core';
 import type { FaqTag } from '@shared/faq/tags';
 import { Link } from '@tanstack/react-router';
-import { formatRelativeDate } from '@ui/content/dates';
+import { formatStableDate } from '@ui/content/dates';
 import { FAQ_TAG_LABELS } from '@ui/content/faqTagLabels';
 import { InlineFormattedTextSource } from '@ui/content/FormattedText';
 import { ProfileLink } from '@ui/content/ProfileLink';
@@ -137,7 +137,7 @@ export function FaqList({
                         />
                       ) : null}
                       <Text component="time" dateTime={item.created_at} size="xs" c="dimmed">
-                        {formatRelativeDate(item.created_at)}
+                        {formatStableDate(item.created_at)}
                       </Text>
                     </Group>
                   </Group>

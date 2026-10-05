@@ -19,7 +19,7 @@ import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'r
 
 import { loadRulebookReader, useRulebookReader } from '@db/rulebooks';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
-import { publicPageHead } from '@app/routes/publicPage';
+import { publicPageHead, useLivePageTitle } from '@app/routes/publicPage';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 import { RulebookDocumentRenderer } from '@game/rulebook/RulebookRenderer';
 
@@ -245,6 +245,7 @@ function RulebookReaderPage() {
     editionNumber: search.edition,
     initialData,
   });
+  useLivePageTitle(data?.rulebook.name);
   if (!data) {
     return (
       <PageMessage
