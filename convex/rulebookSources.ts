@@ -6,7 +6,7 @@ import { publishedHref } from '../src/shared/asset-publishing/publicationTargets
 import { CanonicalFactionStoredSchema } from '../src/shared/factions/schema';
 import { rulebookResolvedSourceSchema } from '../src/shared/rulebooks/sources';
 import { query } from './_generated/server';
-import { resolveRulebookTroopSource } from './lib/rulebookTroopSources';
+import { resolveRulebookTroopSource, rulebookTroopReferences } from './lib/rulebookTroopSources';
 
 /** The Leader picker subscribes only after a faction has been chosen. */
 export const factionMembers = query({
@@ -77,16 +77,7 @@ export const factionTroops = query({
     if (!parsed.success) {
       return null;
     }
-    const references = parsed.data.troops.flatMap((troop) =>
-      troop.troopId
-        ? (troop.back ? (['front', 'back'] as const) : (['front'] as const)).map((face) => ({
-            kind: 'faction-troop' as const,
-            factionId: faction_id,
-            troopId: troop.troopId!,
-            face,
-          }))
-        : []
-    );
+    const references = rulebookTroopReferences(faction_id, parsed.data.troops);
     const troops = await Promise.all(
       references.map(async (reference) => {
         const troop = parsed.data.troops.find((troop) => troop.troopId === reference.troopId)!;

@@ -15,7 +15,7 @@ import { collectRulebookReferenceIds } from '../../src/shared/rulebooks/referenc
 import type { RulebookResolvedSource } from '../../src/shared/rulebooks/sources';
 import type { MutationCtx, QueryCtx } from '../types';
 import { assetDisplayName } from './assetInput';
-import { resolveRulebookTroopSource } from './rulebookTroopSources';
+import { resolveRulebookTroopSource, rulebookTroopReferences } from './rulebookTroopSources';
 
 type ReadCtx = Pick<QueryCtx, 'db'> | Pick<MutationCtx, 'db'>;
 
@@ -127,16 +127,7 @@ export async function resolveRulebookReferences(
             }),
             troopSources: await Promise.all(
               (requested.factionIds?.includes(factionId)
-                ? parsed.data.troops.flatMap((troop) =>
-                    troop.troopId
-                      ? (troop.back ? (['front', 'back'] as const) : (['front'] as const)).map((face) => ({
-                          kind: 'faction-troop' as const,
-                          factionId,
-                          troopId: troop.troopId!,
-                          face,
-                        }))
-                      : []
-                  )
+                ? rulebookTroopReferences(factionId, parsed.data.troops)
                 : troopSources.filter((source) => source.factionId === factionId)
               ).map((source) => resolveRulebookTroopSource(ctx, parsed.data.troops, source))
             ),

@@ -1,11 +1,28 @@
+import type { z } from 'zod';
+
 import { componentGeometrySchema } from '../../src/shared/asset-publishing/componentGeometry';
 import { factionTroopPublicationId } from '../../src/shared/asset-publishing/factionTroopPublication';
 import { publishedHref } from '../../src/shared/asset-publishing/publicationTargets';
+import type { CanonicalFactionStoredSchema } from '../../src/shared/factions/schema';
 import type { RulebookResolvedSource, RulebookSourceReference } from '../../src/shared/rulebooks/sources';
 import type { QueryCtx } from '../types';
 
 type TroopReference = Extract<RulebookSourceReference, { kind: 'faction-troop' }>;
-type Troop = { troopId?: string; name: string; back?: { name: string } };
+type Troop = z.infer<typeof CanonicalFactionStoredSchema>['troops'][number];
+
+/** Lists the stable references available from a faction's current troop faces. */
+export function rulebookTroopReferences(
+  factionId: TroopReference['factionId'],
+  troops: readonly Troop[]
+): TroopReference[] {
+  return troops.flatMap(({ troopId, back }) => {
+    if (!troopId) {
+      return [];
+    }
+    const faces = back ? (['front', 'back'] as const) : (['front'] as const);
+    return faces.map((face) => ({ kind: 'faction-troop', factionId, troopId, face }));
+  });
+}
 
 /* Both the picker and the reader resolve the selected face against the current troop roster. */
 export async function resolveRulebookTroopSource(
