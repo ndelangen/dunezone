@@ -57,7 +57,7 @@ const scenes: Record<Scene, { n: number; lead: string; rule: string; example: st
     n: 6,
     lead: 'Add strength and determine the winner.',
     rule: 'Add the troop dial, surviving leader and permitted bonuses. Higher strength wins. The aggressor normally wins ties; Mercenaries can change that. Settle the result before cards and losses.',
-    example: "Atreides has 3 + Gurney\'s 4 = 7. Harkonnen has 4 + 0 = 4. Atreides wins.",
+    example: "Atreides has 3 + Gurney's 4 = 7. Harkonnen has 4 + 0 = 4. Atreides wins.",
   },
   spite: {
     n: 7,
@@ -424,28 +424,87 @@ function specials(): Page {
   ]);
 }
 function traitors(): Page {
-  return single('traitors', 'Traitors', [
-    text(
-      'traitor-timing',
-      'Call traitors after both battle plans are revealed, before resolving weapons or comparing strength. A successful call replaces the ordinary battle result.',
-      'When to call a traitor'
-    ),
-    text(
-      'traitor-call',
-      "If the opposing leader matches your traitor, you may reveal the card and call treachery. A faction may always call its own leader traitor when an opponent uses that leader against it. Harkonnen may call traitor in its ally's battle.",
-      'Who can call'
-    ),
-    text(
-      'traitor-victory',
-      "With one successful call, the caller wins without losing troops or committed spice. The opposing leader dies, its owner loses all troops in the territory and discards its played cards. The caller receives the traitorous leader's strength in spice. The winner keeps its played cards and may not discard them. Its leader is not committed by this battle.",
-      'One successful call'
-    ),
-    text(
-      'mutual-traitors',
-      'If both sides successfully call traitor, both sides lose their troops, played cards and leaders. Neither side receives spice.',
-      'Two successful calls'
-    ),
-  ]);
+  return {
+    id: 'traitors',
+    anchor: 'traitors',
+    title: 'Traitors',
+    showHeading: true,
+    headingIcon: '/vector/icon/traitor.svg',
+    layoutId: 'paired-rows',
+    controlValues: {},
+    regions: [
+      {
+        key: 'opening',
+        blocks: [
+          text(
+            'traitor-timing',
+            'Call traitors after both battle plans are revealed, before resolving weapons or comparing strength. A successful call replaces the ordinary battle result.',
+            'When to call a traitor'
+          ),
+          text(
+            'traitor-call',
+            "If the opposing leader matches your traitor, you may reveal the card and call treachery. A faction may always call its own leader traitor when an opponent uses that leader against it. Harkonnen may call traitor in its ally's battle.",
+            'Who can call'
+          ),
+        ],
+      },
+      {
+        key: 'upperLeft',
+        blocks: [
+          text(
+            'traitor-victory',
+            "With one successful call, the caller wins without losing troops or committed spice. The opposing leader dies, its owner loses all troops in the territory and discards its played cards. The caller receives the traitorous leader's strength in spice. The winner keeps its played cards and may not discard them. Its leader is not committed by this battle.",
+            'One successful call'
+          ),
+          example(
+            'traitor-win-example',
+            "Only Atreides calls a traitor, revealing Feyd's Traitor Card. Atreides keeps all six troops and its 2 committed spice, and collects 6 spice for Feyd. Harkonnen loses Feyd and all five troops.",
+            'Example: Feyd betrays Harkonnen'
+          ),
+        ],
+      },
+      {
+        key: 'upperRight',
+        blocks: [
+          {
+            id: 'traitor-win-plans',
+            kind: 'battle-plans',
+            showSideLabels: false,
+            left: revealed.left,
+            right: revealed.right,
+          },
+        ],
+      },
+      {
+        key: 'lowerLeft',
+        blocks: [
+          text(
+            'mutual-traitors',
+            'If both sides successfully call traitor, both sides lose their troops, played cards and leaders. Neither side receives spice.',
+            'Two successful calls'
+          ),
+          example(
+            'mutual-traitor-example',
+            "Atreides reveals Feyd's Traitor Card and Harkonnen reveals Gurney's. Both leaders die and both armies are lost. Neither side wins a spice bounty.",
+            'Example: both leaders betray their factions'
+          ),
+        ],
+      },
+      {
+        key: 'lowerRight',
+        blocks: [
+          {
+            id: 'mutual-traitor-plans',
+            kind: 'battle-plans',
+            showSideLabels: false,
+            left: { ...revealed.left, leaderKilled: true },
+            right: revealed.right,
+          },
+        ],
+      },
+      { key: 'closing', blocks: [] },
+    ],
+  };
 }
 function exceptions(): Page {
   return columns(
