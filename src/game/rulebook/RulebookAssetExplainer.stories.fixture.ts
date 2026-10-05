@@ -1,4 +1,5 @@
 import { componentGeometrySchema } from '@shared/asset-publishing/componentGeometry';
+import { RULEBOOK_ANNOTATION_COLORS } from '@shared/rulebooks/assetExplainerAnnotations';
 import { resolveRulebookBoardDefinition } from '@shared/rulebooks/boardDefinitions';
 import type { RulebookRenderBlockV1, RulebookRenderPageV1 } from '@shared/rulebooks/renderDocument';
 import type { RulebookSourceReference } from '@shared/rulebooks/sources';
@@ -120,6 +121,18 @@ export function boardExplainerFixture(): Explainer {
         text: 'In Dreamrules, this becomes a stronghold for victory after the fourth Shai-Hulud card.',
       },
     ],
+  };
+}
+
+export function customColorExplainerFixture(): Explainer {
+  const block = boardExplainerFixture();
+  return {
+    ...block,
+    colorMode: 'manual',
+    items: block.items.map((item, index) => ({
+      ...item,
+      color: index === 2 ? '#a87924' : index === 3 ? '#f8dc24' : RULEBOOK_ANNOTATION_COLORS[index],
+    })),
   };
 }
 
