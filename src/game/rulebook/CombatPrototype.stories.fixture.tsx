@@ -261,7 +261,7 @@ function introduction(): Page {
   return single('battle-introduction', 'Introduction to battles', [
     text(
       'battle-purpose',
-      'Battles decide which faction can remain in a contested territory. They let you drive opponents away from spice, clear a route or contest a stronghold. A battle can advance your position even when it costs you troops.',
+      'Battles decide which faction can remain in a contested territory. Use them to take strongholds and prevent other players from winning. A player with troops in three strongholds is contesting a win. If the other players do not prevent it, that player wins in the Mentat phase.\n\nBattles also affect the spice economy. You can deny opponents spice collection, or attack to earn a spice bounty for killing an opposing leader and winning the battle. That bounty can make an attack cost-efficient. Even a defeat can serve your interests if securing victory costs your opponent valuable spice, troops or cards.',
       'What battles are for'
     ),
     text(
