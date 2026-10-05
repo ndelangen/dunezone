@@ -4,6 +4,7 @@ import type { RulebookRenderBlockV1, RulebookRenderPageV1 } from '@shared/rulebo
 import { rulebookRenderDocumentV1Schema } from '@shared/rulebooks/renderDocument';
 import { rulebookResolvedSourceSchema } from '@shared/rulebooks/sources';
 
+import { factionTokenFixtures } from '../fixtures/factionTokens';
 import { RulebookDocumentRenderer } from './RulebookRenderer';
 import troopData from './ShipmentMovementPrototype.stories.fixture.json';
 
@@ -527,6 +528,51 @@ function turn(): Page[] {
     exceptions(),
   ];
 }
+function strongholdLimit(id: string, blocked: boolean): Board {
+  const map = scene(id, [[0.57, 0.26, 3]], ['carthag']);
+  const occupants: Board['troops'] = (blocked ? (['harkonnen', 'emperor'] as const) : (['harkonnen'] as const)).map(
+    (name, index) => ({
+      ...map.troops[0]!,
+      id: `${id}-${name}`,
+      faction: {
+        status: 'ready',
+        factionId: name,
+        name: name === 'emperor' ? 'Emperor' : 'Harkonnen',
+        color: name === 'emperor' ? '#a52126' : '#171717',
+        token: factionTokenFixtures[name],
+      },
+      artwork: TroopArtwork.parse({
+        ...troopData.artwork,
+        troopId: troopData.troopId,
+        image: `/vector/troop/${name}.svg`,
+      }),
+      troopId: troopData.troopId,
+      count: 1,
+      x: 0.47,
+      y: 0.155 + index * 0.038,
+      size: 0.03,
+    })
+  );
+  return {
+    ...map,
+    troops: [...map.troops, ...occupants],
+    routes: [
+      {
+        id: `${id}-entry`,
+        label: blocked ? 'Harkonnen + Emperor: Atreides cannot enter' : 'Harkonnen alone: Atreides may enter',
+        direction: 'forward',
+        color: blocked ? '#a22c20' : '#387968',
+        showWaypoints: false,
+        waypoints: [
+          { territory: 'imperial-basin', position: { x: 0.57, y: 0.32 } },
+          { territory: 'carthag', position: { x: 0.5, y: 0.21 } },
+        ],
+        ...(blocked ? { blockedAfter: 0 } : {}),
+      },
+    ],
+  };
+}
+
 function stormRestrictions(): Page {
   const start = { territory: 'carthag' };
   const destination = { territory: 'false-wall-east', position: { x: 0.6, y: 0.46 } };
@@ -747,42 +793,20 @@ function actions(): Page[] {
       'actions-limits',
       'Other movement restrictions',
       [
-        heading('destination-heading', 'Check the landing place'),
-        list(
-          'landing',
-          [
-            ['Stronghold', 'It cannot already contain two other factions. Advisors do not count.'],
-            ['Ally', rules.ally],
-          ],
-          true
-        ),
-        text('wall', rules.wall),
-
+        heading('allowed-heading', 'One faction: entry allowed'),
+        strongholdLimit('stronghold-open', false),
         note(
-          'no-flight-route',
-          'Shipment has no on-board route',
-          'You do not count territories between reserves and the destination.'
+          'ally',
+          'Leave your ally immediately',
+          "You may ship into your ally's territory, but must immediately move out in that same shipment-and-movement action. You cannot end the action together. The Polar Sink and explicit abilities are exceptions."
         ),
       ],
       [
-        heading('route-heading', 'Check every territory passed'),
-        text('occupancy', rules.occupancy),
-        text(
-          'opponents',
-          'Opposing troops otherwise do not block your passage. Choose the destination sector when you finish.'
-        ),
-        example(
-          'blocked',
-          'An occupied stronghold',
-          'If two other factions occupy Carthag, it cannot be your destination or a shortcut through the map.'
-        ),
+        heading('blocked-heading', 'Two factions: entry blocked'),
+        strongholdLimit('stronghold-full', true),
+        note('wall', 'Shield Wall is still rock', rules.wall),
       ],
-      [
-        text(
-          'restrictions-introduction',
-          'A clear route must also respect stronghold occupancy and your ally. Check the landing place before shipment, and every territory you enter during movement.'
-        ),
-      ]
+      [text('restrictions-introduction', rules.occupancy + ' Opposing troops otherwise do not block your passage.')]
     ),
     deployment(),
     timing(),
