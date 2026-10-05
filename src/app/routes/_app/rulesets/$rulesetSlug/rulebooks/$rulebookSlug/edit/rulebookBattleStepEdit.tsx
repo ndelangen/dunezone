@@ -358,12 +358,12 @@ function BattleTroopRow({
         />
       </Group>
       <Group grow>
-        {(['supported', 'unsupported', 'uncommitted'] as const).map((field) => (
+        {(['supported', 'unsupported'] as const).map((field) => (
           <NumberInput
             clampBehavior="strict"
             allowLeadingZeros={false}
             key={field}
-            label={field === 'supported' ? 'Supported' : field === 'unsupported' ? 'Unsupported' : 'Uncommitted'}
+            label={field === 'supported' ? 'Supported' : 'Unsupported'}
             aria-label={`${label} troop ${index + 1} ${field}`}
             min={0}
             max={100}

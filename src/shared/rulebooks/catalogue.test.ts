@@ -67,7 +67,7 @@ function onePage(page: RulebookPageDraft): RulebookContentsDraftV1 {
 
 describe('Rulebook production catalogue', () => {
   it('offers only the grids the Size supports', () => {
-    expect(getRulebookLayoutsForSize('tall').map(({ id }) => id)).toEqual(['single-column', 'cover']);
+    expect(getRulebookLayoutsForSize('tall').map(({ id }) => id)).toEqual(['single-column', 'content-strip', 'cover']);
     expect(getRulebookLayoutsForSize('square')).toEqual(getRulebookLayoutsForSize('a4'));
     expect(getRulebookLayoutsForSize('a4').map(({ id }) => id)).toContain('sequence');
     expect(isRulebookLayoutSupported('sequence', 'tall')).toBe(false);
