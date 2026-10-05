@@ -1,23 +1,10 @@
 import type { RulebookResolvedSource } from '@shared/rulebooks/sources';
 
-import type { RulebookBattlePlanProps } from './RulebookBattlePlan';
+import { factionTokenFixtures } from '../fixtures/factionTokens';
+import type { RulebookBattlePlanProps, RulebookBattleSide } from './RulebookBattlePlan';
 
 /* These five captured components supply teaching specimens, not a card catalogue. */
 const pieces = {
-  caid: {
-    height: 600,
-    imageUrl:
-      'https://dune.zone/published/leaders/k17dhptwywynwmpvx18965b97h8a0abp.3fbddb6f-f500-40aa-91c6-fb7a1d154c34/leader.jpg?v=95f050fe-f145-4f72-9054-d5d17b8c71eb',
-    name: 'Caid',
-    publicationRevision: '95f050fe-f145-4f72-9054-d5d17b8c71eb',
-    reference: {
-      factionId: 'k17dhptwywynwmpvx18965b97h8a0abp',
-      kind: 'faction-member',
-      memberId: '3fbddb6f-f500-40aa-91c6-fb7a1d154c34',
-    },
-    status: 'ready',
-    width: 600,
-  },
   gurney: {
     height: 600,
     imageUrl:
@@ -81,28 +68,119 @@ const pieces = {
   },
 } satisfies Record<string, RulebookResolvedSource>;
 
-export const atreidesPlan = {
-  title: 'Atreides',
-  color: '#72812e',
-  troopIcon: '/vector/troop/atreides.svg',
-  troops: [
-    { label: 'Supported', count: 2, strengthEach: 1, spiceEach: 1 },
-    { label: 'Unsupported', count: 2, strengthEach: 0.5, spiceEach: 0 },
+export const atreidesSide = {
+  name: 'Atreides',
+  role: 'Aggressor',
+  artwork: factionTokenFixtures.atreides,
+  revealed: false,
+  plan: {
+    strength: 3,
+    spice: 2,
+    adjustment: 0,
+    troops: [
+      {
+        id: 'ordinary',
+        name: 'Ordinary troops',
+        dialed: 2,
+        undialed: 2,
+        artwork: {
+          background: factionTokenFixtures.atreides.background,
+          image: '/vector/troop/atreides.svg',
+          star: undefined,
+          hue: undefined,
+          striped: undefined,
+        },
+      },
+    ],
+    leader: pieces.gurney,
+    cards: [pieces.pistol, pieces.snooper],
+  },
+} satisfies RulebookBattleSide;
+export const harkonnenSide = {
+  name: 'Harkonnen',
+  role: 'Defender',
+  artwork: factionTokenFixtures.harkonnen,
+  revealed: false,
+  plan: {
+    strength: 4,
+    spice: 4,
+    adjustment: 0,
+    troops: [
+      {
+        id: 'ordinary',
+        name: 'Ordinary troops',
+        dialed: 4,
+        undialed: 0,
+        artwork: {
+          background: factionTokenFixtures.harkonnen.background,
+          image: '/vector/troop/harkonnen.svg',
+          star: undefined,
+          hue: undefined,
+          striped: undefined,
+        },
+      },
+    ],
+    leader: pieces.feyd,
+    cards: [pieces.poison, pieces.snooper],
+  },
+} satisfies RulebookBattleSide;
+
+export const presciencePanel = {
+  step: '3',
+  title: 'Ask with Battle Prescience',
+  caption: 'Atreides asks which weapon Harkonnen will play. The answer is binding. Everything else stays secret.',
+  left: atreidesSide,
+  right: { ...harkonnenSide, knownCard: pieces.poison },
+  dialogue: [
+    { speaker: 'left', text: 'Which weapon will you play?' },
+    { speaker: 'right', text: 'Gom Jabbar.' },
   ],
-  uncommitted: 2,
-  leader: { source: pieces.gurney, strength: 4, killed: false },
-  weapon: pieces.pistol,
-  defense: pieces.snooper,
-} satisfies RulebookBattlePlanProps;
-export const harkonnenPlan = {
-  title: 'Harkonnen',
-  color: '#333333',
-  troopIcon: '/vector/troop/harkonnen.svg',
-  troops: [{ label: 'Supported', count: 4, strengthEach: 1, spiceEach: 1 }],
-  uncommitted: 1,
-  leader: { source: pieces.feyd, strength: 6, killed: true },
-  weapon: pieces.poison,
-  defense: pieces.snooper,
 } satisfies RulebookBattlePlanProps;
 
-export const emperorLeader = { source: pieces.caid, strength: 3, killed: false };
+export const planningPanel = {
+  step: '4',
+  title: 'Atreides plans in secret',
+  caption:
+    'Knowing the poison weapon, Atreides chooses a Snooper. Four troops are committed: two supported and two unsupported.',
+  left: { ...atreidesSide, revealed: true },
+  right: { ...harkonnenSide, knownCard: pieces.poison },
+  outcome: "Atreides dials 3 strength and commits 2 spice. This panel shows the Atreides player's private plan.",
+} satisfies RulebookBattlePlanProps;
+
+export const revealPanel = {
+  step: '5',
+  title: 'Reveal together',
+  caption:
+    'Both players reveal their plans at the same time. Neither calls a traitor. Now compare the weapons with the opposing defenses.',
+  left: { ...atreidesSide, revealed: true },
+  right: { ...harkonnenSide, revealed: true },
+  dialogue: [
+    { speaker: 'left', text: 'No traitor.' },
+    { speaker: 'right', text: 'No traitor.' },
+  ],
+} satisfies RulebookBattlePlanProps;
+
+export const deathPanel = {
+  step: '6',
+  title: 'Resolve the weapons',
+  caption:
+    'The Atreides Snooper stops Gom Jabbar. The Harkonnen Snooper cannot stop the Maula Pistol. Feyd is killed; Gurney survives.',
+  left: { ...atreidesSide, revealed: true, result: 'Gurney survives' },
+  right: {
+    ...harkonnenSide,
+    revealed: true,
+    plan: { ...harkonnenSide.plan, leaderKilled: true },
+    result: 'Feyd goes to the Tanks',
+  },
+  outcome: 'A killed leader contributes no strength. The troops still contribute their dialed strength.',
+} satisfies RulebookBattlePlanProps;
+
+export const resultPanel = {
+  step: '7',
+  title: 'Add strength and find the winner',
+  caption:
+    "Atreides adds Gurney's 4 strength to the dial of 3. Harkonnen adds nothing for the killed leader to the dial of 4.",
+  left: { ...atreidesSide, revealed: true, result: '3 + 4 = 7' },
+  right: { ...harkonnenSide, revealed: true, plan: { ...harkonnenSide.plan, leaderKilled: true }, result: '4 + 0 = 4' },
+  outcome: 'Atreides wins, 7 to 4. Settle troop losses, spice and other aftermath effects next.',
+} satisfies RulebookBattlePlanProps;
