@@ -1,4 +1,5 @@
 import { normalizeFormattedText as normalizeFormattedTextUncached } from '@shared/formattedText';
+import { rulebookBattleSideSchema, rulebookBattleDialogueSchema } from '@shared/rulebooks/battleStep';
 import {
   isRulebookCollectionBlock,
   canonicalRulebookCoverControlValues,
@@ -19,7 +20,6 @@ import {
 } from '@shared/rulebooks/contents';
 import type {
   RulebookBlockDraft,
-  RulebookAssetExplainerTarget,
   RulebookBlockRegionKey,
   RulebookContentsDraftV1,
   RulebookContentsV1,
@@ -32,8 +32,12 @@ import {
   rulebookIllustrationSizeSchema,
   rulebookTextReferencesSchema,
 } from '@shared/rulebooks/contents';
+import {
+  rulebookBoardSceneSchema,
+  rulebookPieceMovementSchema,
+  rulebookBattleExampleSchema,
+} from '@shared/rulebooks/illustratedScenes';
 import { rulebookCardSourceReferenceSchema, rulebookSourceReferenceSchema } from '@shared/rulebooks/sources';
-import type { RulebookSourceReference } from '@shared/rulebooks/sources';
 import { userImageSourceUrlSchema } from '@shared/user-images/contract';
 import { graphemeSegments } from 'unicode-segmenter/grapheme';
 import { z } from 'zod';
@@ -120,6 +124,114 @@ const deleteIntentSchema = z.strictObject({
 type RulebookDeleteIntent = z.infer<typeof deleteIntentSchema>;
 
 const setIntentSchema = z.union([
+  z.strictObject({
+    kind: z.literal('set'),
+    target: blockRefSchema,
+    field: z.literal('board-id'),
+    value: rulebookBoardSceneSchema.shape.boardId,
+  }),
+  z.strictObject({
+    kind: z.literal('set'),
+    target: blockRefSchema,
+    field: z.literal('board-viewport'),
+    value: rulebookBoardSceneSchema.shape.viewport,
+  }),
+  z.strictObject({
+    kind: z.literal('set'),
+    target: blockRefSchema,
+    field: z.literal('board-storm'),
+    value: rulebookBoardSceneSchema.shape.storm,
+  }),
+  z.strictObject({
+    kind: z.literal('set'),
+    target: blockRefSchema,
+    field: z.literal('board-players'),
+    value: rulebookBoardSceneSchema.shape.players,
+  }),
+  z.strictObject({
+    kind: z.literal('set'),
+    target: blockRefSchema,
+    field: z.literal('board-troops'),
+    value: rulebookBoardSceneSchema.shape.troops,
+  }),
+  z.strictObject({
+    kind: z.literal('set'),
+    target: blockRefSchema,
+    field: z.literal('board-highlights'),
+    value: rulebookBoardSceneSchema.shape.highlights,
+  }),
+  z.strictObject({
+    kind: z.literal('set'),
+    target: blockRefSchema,
+    field: z.literal('board-annotations'),
+    value: rulebookBoardSceneSchema.shape.annotations,
+  }),
+  z.strictObject({
+    kind: z.literal('set'),
+    target: blockRefSchema,
+    field: z.literal('movement-left'),
+    value: rulebookPieceMovementSchema.shape.left,
+  }),
+  z.strictObject({
+    kind: z.literal('set'),
+    target: blockRefSchema,
+    field: z.literal('movement-right'),
+    value: rulebookPieceMovementSchema.shape.right,
+  }),
+  z.strictObject({
+    kind: z.literal('set'),
+    target: blockRefSchema,
+    field: z.literal('movement-direction'),
+    value: rulebookPieceMovementSchema.shape.direction,
+  }),
+  z.strictObject({
+    kind: z.literal('set'),
+    target: blockRefSchema,
+    field: z.literal('movement-board'),
+    value: rulebookPieceMovementSchema.shape.board,
+  }),
+  z.strictObject({
+    kind: z.literal('set'),
+    target: blockRefSchema,
+    field: z.literal('movement-notes'),
+    value: rulebookPieceMovementSchema.shape.notes,
+  }),
+  z.strictObject({
+    kind: z.literal('set'),
+    target: blockRefSchema,
+    field: z.literal('comparison-first'),
+    value: rulebookBattleExampleSchema,
+  }),
+  z.strictObject({
+    kind: z.literal('set'),
+    target: blockRefSchema,
+    field: z.literal('comparison-second'),
+    value: rulebookBattleExampleSchema,
+  }),
+  z.strictObject({
+    kind: z.literal('set'),
+    target: blockRefSchema,
+    field: z.enum(['battle-left', 'battle-right']),
+    value: rulebookBattleSideSchema,
+  }),
+  z.strictObject({
+    kind: z.literal('set'),
+    target: blockRefSchema,
+    field: z.literal('battle-dialogue'),
+    value: rulebookBattleDialogueSchema.optional(),
+  }),
+  z.strictObject({
+    kind: z.literal('set'),
+    target: blockRefSchema,
+    field: z.literal('show-side-labels'),
+    value: z.boolean().optional(),
+  }),
+  z.strictObject({
+    kind: z.literal('set'),
+    target: blockRefSchema,
+    field: z.enum(['step', 'outcome']),
+    value: z.string().optional(),
+  }),
   z.strictObject({
     kind: z.literal('set'),
     target: pageRefSchema,
@@ -380,7 +492,7 @@ type RulebookResolutionOutcome =
   | { readonly kind: 'text'; readonly value: string }
   | {
       readonly kind: 'field-value';
-      readonly value: string | boolean | number | RulebookSourceReference | RulebookAssetExplainerTarget | undefined;
+      readonly value: Exclude<RulebookSetIntent, { field: 'control-values' }>['value'];
     }
   | { readonly kind: 'control-values'; readonly value: Readonly<Record<string, unknown>> }
   | { readonly kind: 'placement'; readonly destination: RulebookPlacement }
@@ -393,6 +505,20 @@ type RulebookResolutionOutcome =
   | { readonly kind: 'restore-local-subtree' }
   | { readonly kind: 'keep-local-deletion' }
   | { readonly kind: 'accept-latest-subtree' };
+
+export function rulebookFieldResolution(
+  difference: Pick<RulebookFieldIncompatibility, 'target' | 'field'>,
+  value: unknown
+): RulebookResolutionOutcome {
+  const intent = setIntentSchema.parse({ kind: 'set', target: difference.target, field: difference.field, value });
+  if (intent.field === 'control-values') {
+    return { kind: 'control-values', value: intent.value };
+  }
+  if (intent.field === 'anchor') {
+    return { kind: 'anchor', value: intent.value };
+  }
+  return { kind: 'field-value', value: intent.value };
+}
 
 type RulebookResolutionApproval = {
   readonly incompatibilityId: string;
@@ -1135,6 +1261,92 @@ function setPageField(
 
 function setBlockField(block: RulebookBlockDraft, field: RulebookFieldName, value: unknown): void {
   const optionalText = typeof value === 'string' ? value : undefined;
+  if (block.kind === 'board-scene') {
+    if (field === 'board-id') {
+      block.boardId = rulebookBoardSceneSchema.shape.boardId.parse(value);
+      return;
+    }
+    if (field === 'board-viewport') {
+      block.viewport = rulebookBoardSceneSchema.shape.viewport.parse(value);
+      return;
+    }
+    if (field === 'board-storm') {
+      block.storm = rulebookBoardSceneSchema.shape.storm.parse(value);
+      return;
+    }
+    if (field === 'board-players') {
+      block.players = rulebookBoardSceneSchema.shape.players.parse(value);
+      return;
+    }
+    if (field === 'board-troops') {
+      block.troops = rulebookBoardSceneSchema.shape.troops.parse(value);
+      return;
+    }
+    if (field === 'board-highlights') {
+      block.highlights = rulebookBoardSceneSchema.shape.highlights.parse(value);
+      return;
+    }
+    if (field === 'board-annotations') {
+      block.annotations = rulebookBoardSceneSchema.shape.annotations.parse(value);
+      return;
+    }
+  }
+  if (block.kind === 'piece-movement') {
+    if (field === 'movement-left') {
+      block.left = rulebookPieceMovementSchema.shape.left.parse(value);
+      return;
+    }
+    if (field === 'movement-right') {
+      block.right = rulebookPieceMovementSchema.shape.right.parse(value);
+      return;
+    }
+    if (field === 'movement-direction') {
+      block.direction = rulebookPieceMovementSchema.shape.direction.parse(value);
+      return;
+    }
+    if (field === 'movement-board') {
+      block.board = rulebookPieceMovementSchema.shape.board.parse(value);
+      return;
+    }
+    if (field === 'movement-notes') {
+      block.notes = rulebookPieceMovementSchema.shape.notes.parse(value);
+      return;
+    }
+    if (field === 'step' && typeof value === 'string') {
+      block.step = value;
+      return;
+    }
+    if (field === 'outcome') {
+      block.outcome = optionalText;
+      return;
+    }
+  }
+  if (block.kind === 'battle-comparison' && (field === 'comparison-first' || field === 'comparison-second')) {
+    block.examples[field === 'comparison-first' ? 0 : 1] = rulebookBattleExampleSchema.parse(value);
+    return;
+  }
+  if (block.kind === 'battle-step') {
+    if (field === 'battle-left' || field === 'battle-right') {
+      block[field === 'battle-left' ? 'left' : 'right'] = rulebookBattleSideSchema.parse(value);
+      return;
+    }
+    if (field === 'battle-dialogue') {
+      block.dialogue = rulebookBattleDialogueSchema.optional().parse(value);
+      return;
+    }
+    if (field === 'show-side-labels') {
+      block.showSideLabels = z.boolean().optional().parse(value);
+      return;
+    }
+    if (field === 'step' && typeof value === 'string') {
+      block.step = value;
+      return;
+    }
+    if (field === 'outcome') {
+      block.outcome = optionalText;
+      return;
+    }
+  }
   if (field === 'size' && (block.kind === 'card-entry' || block.kind === 'referenced-illustration')) {
     block.size = rulebookIllustrationSizeSchema.optional().parse(value);
     return;
@@ -1183,7 +1395,11 @@ function setBlockField(block: RulebookBlockDraft, field: RulebookFieldName, valu
   }
   if (
     field === 'caption' &&
-    (block.kind === 'referenced-illustration' || block.kind === 'asset-explainer') &&
+    (block.kind === 'referenced-illustration' ||
+      block.kind === 'asset-explainer' ||
+      block.kind === 'battle-step' ||
+      block.kind === 'board-scene' ||
+      block.kind === 'piece-movement') &&
     typeof value === 'string'
   ) {
     block.caption = value;
@@ -1569,6 +1785,40 @@ function fieldRecords(contents: RulebookContentsDraftV1): FieldRecord[] {
     const target = { kind: 'block', pageId, blockId: block.id } as const;
     const add = (field: RulebookFieldName, value: unknown) => records.push({ target, field, value });
     add('anchor', block.anchor);
+    if (block.kind === 'board-scene') {
+      add('caption', block.caption);
+      add('board-id', block.boardId === undefined ? undefined : clone(block.boardId));
+      add('board-viewport', block.viewport === undefined ? undefined : clone(block.viewport));
+      add('board-storm', block.storm === undefined ? undefined : clone(block.storm));
+      add('board-players', block.players === undefined ? undefined : clone(block.players));
+      add('board-troops', block.troops === undefined ? undefined : clone(block.troops));
+      add('board-highlights', block.highlights === undefined ? undefined : clone(block.highlights));
+      add('board-annotations', block.annotations === undefined ? undefined : clone(block.annotations));
+    }
+    if (block.kind === 'piece-movement') {
+      add('step', block.step);
+      add('caption', block.caption);
+      add('outcome', block.outcome);
+      add('movement-left', block.left === undefined ? undefined : clone(block.left));
+      add('movement-right', block.right === undefined ? undefined : clone(block.right));
+      add('movement-direction', block.direction === undefined ? undefined : clone(block.direction));
+      add('movement-board', block.board === undefined ? undefined : clone(block.board));
+      add('movement-notes', block.notes === undefined ? undefined : clone(block.notes));
+    }
+    if (block.kind === 'battle-comparison') {
+      add('comparison-first', clone(block.examples[0]));
+      add('comparison-second', clone(block.examples[1]));
+    }
+
+    if (block.kind === 'battle-step') {
+      add('step', block.step);
+      add('caption', block.caption);
+      add('outcome', block.outcome);
+      add('battle-left', clone(block.left));
+      add('battle-right', clone(block.right));
+      add('battle-dialogue', block.dialogue ? clone(block.dialogue) : undefined);
+      add('show-side-labels', block.showSideLabels);
+    }
     if ('title' in block || block.kind === 'callout' || block.kind === 'illustrated-inventory') {
       add('title', block.title);
     }

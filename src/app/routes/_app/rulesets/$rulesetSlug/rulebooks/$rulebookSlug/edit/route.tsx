@@ -35,7 +35,6 @@ import {
   getRulebookLayoutsForSize,
   getRulebookRegionOrder,
   isRulebookCollectionBlock,
-  rulebookAssetExplainerTargetSchema,
   rulebookBlockKindLabels,
   rulebookBlockKinds,
   rulebookDraftEntitySchemas,
@@ -63,7 +62,6 @@ import type { RulebookResolvedAssetsById, RulebookResolvedFactionsById } from '@
 import { collectRulebookReferenceIds } from '@shared/rulebooks/references';
 import { getRulebookSize } from '@shared/rulebooks/settings';
 import type { RulebookSettings } from '@shared/rulebooks/settings';
-import { rulebookSourceReferenceSchema } from '@shared/rulebooks/sources';
 import { createFileRoute, deepEqual, Link, useNavigate } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { LoadError } from '@ui/block/LoadError';
@@ -159,7 +157,7 @@ import {
 import { rulebookBlockIcon, rulebookLayoutIcon, rulebookRegionIcon } from './rulebookEditorIcons';
 import type { RulebookEditorIconArrangement } from './rulebookEditorIcons';
 import { receiveRulebookEditorQuery } from './rulebookEditorQueryState';
-import { createRulebookEditorStateManager } from './rulebookEditorState';
+import { createRulebookEditorStateManager, rulebookFieldResolution } from './rulebookEditorState';
 import type { RulebookEditorResult, RulebookEditorStateManager } from './rulebookEditorState';
 import { PageDetailsEdit, rulebookBlockLabel } from './rulebookPageDetailsEdit';
 import type {
@@ -825,8 +823,42 @@ function createPage(choice: PageChoice, id: string, anchor: string): RulebookPag
   });
 }
 
+function emptyBattleExample() {
+  return {
+    step: '',
+    title: '',
+    caption: '',
+    left: { role: '', revealed: false, dial: 0, spice: 0, cards: [], troops: [] },
+    right: { role: '', revealed: false, dial: 0, spice: 0, cards: [], troops: [] },
+  };
+}
+
 function createBlock(kind: RulebookBlockKind, id: string): RulebookBlockDraft {
   switch (kind) {
+    case 'board-scene':
+      return { id, kind, boardId: 'arrakis', caption: '', players: [], troops: [], highlights: [], annotations: [] };
+    case 'piece-movement':
+      return {
+        id,
+        kind,
+        step: '',
+        title: '',
+        caption: '',
+        left: { label: '', pieces: [] },
+        right: { label: '', pieces: [] },
+      };
+    case 'battle-comparison':
+      return { id, kind, examples: [emptyBattleExample(), emptyBattleExample()] };
+    case 'battle-step':
+      return {
+        id,
+        kind,
+        step: '',
+        title: '',
+        caption: '',
+        left: { role: '', revealed: false, dial: 0, spice: 0, cards: [], troops: [] },
+        right: { role: '', revealed: false, dial: 0, spice: 0, cards: [], troops: [] },
+      };
     case 'asset-explainer':
       return { id, kind, caption: '', numbering: 'automatic', colorMode: 'automatic', itemOrder: [], itemsById: {} };
     case 'card-entry':
@@ -1231,6 +1263,26 @@ function blockEditorPanel(
   const change = (value: object) => replaceBlock({ ...block, ...value });
   let editor: ReactNode;
   switch (block.kind) {
+    case 'board-scene': {
+      const Edit = rulebookBlockEditors['board-scene'];
+      editor = <Edit value={block} onChange={change} references={{ assetsById, factionsById }} />;
+      break;
+    }
+    case 'piece-movement': {
+      const Edit = rulebookBlockEditors['piece-movement'];
+      editor = <Edit value={block} onChange={change} references={{ assetsById, factionsById }} />;
+      break;
+    }
+    case 'battle-comparison': {
+      const Edit = rulebookBlockEditors['battle-comparison'];
+      editor = <Edit value={block} onChange={change} references={{ assetsById, factionsById }} />;
+      break;
+    }
+    case 'battle-step': {
+      const Edit = rulebookBlockEditors['battle-step'];
+      editor = <Edit value={block} onChange={change} references={{ assetsById, factionsById }} />;
+      break;
+    }
     case 'asset-explainer': {
       const Edit = rulebookBlockEditors['asset-explainer'];
       editor = <Edit value={block} onChange={change} references={{ assetsById, factionsById }} />;
@@ -2197,30 +2249,13 @@ function entityReview(contents: RulebookContentsDraftV1, target: EntityRef): Rea
                   ? { topic: block.topic, question: block.question, answer: block.answer }
                   : block.kind === 'referenced-illustration'
                     ? { source: block.source, caption: block.caption }
-                    : block.title
+                    : 'title' in block
+                      ? block.title
+                      : block
             )}
       {block.kind === 'reference-table' && block.note ? reviewValue({ note: block.note }) : null}
     </Stack>
   );
-}
-
-function fieldResolution(field: Extract<Difference, { kind: 'field' }>['field'], value: unknown): Resolution {
-  if (field === 'target') {
-    return { kind: 'field-value', value: rulebookAssetExplainerTargetSchema.parse(value) };
-  }
-  if (field === 'source') {
-    return { kind: 'field-value', value: rulebookSourceReferenceSchema.optional().parse(value) };
-  }
-  if (field === 'quantity') {
-    return { kind: 'field-value', value: typeof value === 'number' ? value : undefined };
-  }
-  if (field === 'control-values') {
-    return { kind: 'control-values', value: Object.fromEntries(Object.entries(value as Record<string, unknown>)) };
-  }
-  if (field === 'anchor') {
-    return { kind: 'anchor', value: typeof value === 'string' ? value : undefined };
-  }
-  return { kind: 'field-value', value: typeof value === 'string' || typeof value === 'boolean' ? value : undefined };
 }
 
 function reviewPlacementContainers(
@@ -2322,8 +2357,8 @@ function RulebookDifferenceReview({
             name = `${entityName(result.draft, difference.target)} / ${difference.field.replaceAll('-', ' ')}`;
             local = reviewValue(difference.localValue);
             latest = reviewValue(difference.latestValue);
-            localOutcome = fieldResolution(difference.field, difference.localValue);
-            latestOutcome = fieldResolution(difference.field, difference.latestValue);
+            localOutcome = rulebookFieldResolution(difference, difference.localValue);
+            latestOutcome = rulebookFieldResolution(difference, difference.latestValue);
           } else if (difference.kind === 'deletion') {
             name = entityName(
               difference.direction === 'saved-deletion' ? result.draft : result.latest.contents,

@@ -3,7 +3,8 @@
  * The globs name the game and publisher Workers, the backend, the shared modules, the play pages and the app code they import, the launcher with its flows, and the builds, generators and checks it runs as subprocesses with the configuration they read.
  * `scripts/hosted-play-closure.test.ts` holds the list to the import graph: a file the play entry points or the launcher's subprocess inputs import from outside these globs fails the unit job, so the list widens with the code rather than drifting from it.
  * What the flows consume without importing is listed by hand: the workflow and action files, the dependency manifest with its lockfile and patches, the Convex project file, the compose file, and the tracked files under `public` the pages load by URL (the generated output there is ignored by git and never appears in a diff).
- * `media` stays out: the flows play a synthetic catalogue built from the fixtures under `src/shared`, and the `generate_and_build` job checks the generators against the media on every pull request.
+ * Most `media` stays out: the flows play a synthetic catalogue built from the fixtures under `src/shared`, and the `generate_and_build` job checks the generators against the media on every pull request.
+ * The spice mask is imported directly into the rulebook export module, so its source belongs to the imported closure.
  */
 const HOSTED_PLAY_CLOSURE: readonly string[] = [
   '.github/workflows/ci-pr.yml',
@@ -65,6 +66,7 @@ const HOSTED_PLAY_CLOSURE: readonly string[] = [
   'src/game/fixtures/**',
   'src/game/rulebook/**',
   'public/**',
+  'media/vector/icon/spice.svg',
 ];
 
 /** Files no hosted flow can observe wherever they sit: tests, stories, prose. */

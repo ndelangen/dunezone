@@ -1,6 +1,13 @@
 import preview from '@sb/preview';
 import { expect, waitFor } from 'storybook/test';
 
+import {
+  battleSequencePage,
+  deathPanel,
+  planningPanel,
+  presciencePanel,
+  revealPanel,
+} from './RulebookBattlePlan.stories.fixture';
 import { geometryCases, GeometryMatrix, regionRects, verifyGeometry } from './RulebookCatalogue.shared.stories.fixture';
 import { createCataloguePage } from './RulebookCatalogue.stories.fixture';
 import { RulebookPageRenderer } from './RulebookRenderer';
@@ -60,5 +67,22 @@ export const ClippedRegion = meta.story({
     expect(getComputedStyle(regions[0]!).overflow).toBe('clip');
     expect(Number.parseFloat(getComputedStyle(regions[0]!).overflowClipMargin)).toBeGreaterThan(0);
     expect(regions[1]!.textContent).toBe('Column 2');
+  },
+});
+
+export const StepByStep = meta.story({
+  render: () => (
+    <div style={{ width: 'min(960px, 100%)' }}>
+      <RulebookPageRenderer
+        page={battleSequencePage([presciencePanel, planningPanel, revealPanel, deathPanel])}
+        settings={{ size: 'square', design: 'illustrated' }}
+      />
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    await document.fonts.ready;
+    const region = canvasElement.querySelector<HTMLElement>('[data-rulebook-region]')!;
+    expect(region.scrollHeight).toBeLessThanOrEqual(region.clientHeight + 1);
+    expect(region.querySelectorAll('[data-rulebook-block-id]')).toHaveLength(4);
   },
 });

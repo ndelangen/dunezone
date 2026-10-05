@@ -179,7 +179,8 @@ type CollectionBlock = Extract<
   RulebookBlock,
   { kind: 'list' | 'illustrated-inventory' | 'card-group' | 'asset-explainer' }
 >;
-type CollectionItem = CollectionBlock['itemsById'][string] | RulebookItemDraft;
+type BoardAnnotation = Extract<RulebookBlock, { kind: 'board-scene' }>['annotations'][number];
+type CollectionItem = CollectionBlock['itemsById'][string] | RulebookItemDraft | BoardAnnotation;
 
 function projectedItemText(item: { text: string; name?: string }) {
   return normalizeRulebookText(`${item.name ?? ''} ${formattedText(item.text)}`);
@@ -219,7 +220,149 @@ function projectedAnnotationEntryText(entry: RulebookAnnotationProjection['entri
   );
 }
 
+type RenderBattleExample = Omit<Extract<RulebookRenderBlockV1, { kind: 'battle-step' }>, 'id' | 'kind' | 'anchor'>;
+type RenderBoardScene = Omit<Extract<RulebookRenderBlockV1, { kind: 'board-scene' }>, 'id' | 'kind' | 'anchor'>;
+
+function projectedBattleText(block: RenderBattleExample, comparison = false) {
+  const name = (side: typeof block.left) =>
+    side.faction.status === 'ready' ? side.faction.name : 'Faction unavailable';
+  const pieceText = (source: RulebookRenderSourceV1) =>
+    source.status === 'ready' ? '' : source.status === 'unselected' ? 'None' : 'Image unavailable';
+  const sideText = (side: typeof block.left) => {
+    const hasArtwork = side.faction.status === 'ready' && side.faction.token;
+    const troopAvailable = (troop: (typeof side.troops)[number]) =>
+      hasArtwork && (troop.face === 'back' ? troop.artwork?.back : troop.artwork);
+    return [
+      ...(block.showSideLabels !== false ? [name(side), side.role] : []),
+      ...(!side.revealed && side.knownCard ? [pieceText(side.knownCard)] : []),
+      ...(!hasArtwork
+        ? ['Faction artwork unavailable', side.revealed ? `${side.dial} troop strength, ${side.spice} spice` : '']
+        : side.revealed
+          ? [
+              ...side.cards.map(pieceText),
+              `${side.dial} Strength`,
+              ...side.troops
+                .filter(troopAvailable)
+                .map(
+                  (troop) =>
+                    `${troop.supported + troop.unsupported} ${troop.supported} supported ${troop.unsupported} unsupported`
+                ),
+              String(side.spice),
+              pieceText(side.leader),
+              side.leaderKilled ? 'Killed' : '',
+              side.adjustment ? `${side.adjustment > 0 ? '+' : ''}${side.adjustment} adj.` : '',
+            ]
+          : []),
+      ...(side.revealed
+        ? [
+            `Uncommitted: ${
+              side.troops.some((troop) => troop.uncommitted > 0)
+                ? side.troops
+                    .filter((troop) => troop.uncommitted > 0)
+                    .map((troop) => `${troopAvailable(troop) ? '' : '? '}${troop.uncommitted}`)
+                    .join(' ')
+                : '0'
+            }`,
+          ]
+        : []),
+      ...(side.revealed
+        ? side.troops
+            .filter((troop) => !troopAvailable(troop))
+            .map(
+              (troop) => `Troop artwork unavailable: ${troop.supported} supported, ${troop.unsupported} unsupported.`
+            )
+        : []),
+      side.result ?? '',
+    ].join(' ');
+  };
+  return normalizeRulebookText(
+    [
+      ...(comparison ? [block.title] : []),
+      sideText(block.left),
+      sideText(block.right),
+      ...(comparison ? [] : [block.step, block.title]),
+      block.caption,
+      ...(block.dialogue ?? []).map((line) => `${name(block[line.speaker])}: ${line.text}`),
+      block.outcome ?? '',
+    ].join(' ')
+  );
+}
+
+function projectedBoardAnnotationText(annotation: BoardAnnotation, index: number) {
+  return normalizeRulebookText(`${index + 1} ${annotation.title} ${formattedText(annotation.text)}`);
+}
+
+function projectedBoardText(board: RenderBoardScene) {
+  if (board.board.status !== 'ready' || !board.board.geometry) {
+    return normalizeRulebookText(`Board unavailable ${board.caption}`);
+  }
+  return normalizeRulebookText(
+    [
+      ...board.troops.flatMap((troop) => {
+        const available =
+          troop.faction.status === 'ready' &&
+          troop.faction.token &&
+          (troop.face === 'front' ? troop.artwork : troop.artwork?.back);
+        return available ? [] : Array.from({ length: troop.count }, () => '?');
+      }),
+      board.storm ? 'STORM' : '',
+      ...board.players.flatMap((player) => (player.faction.status === 'ready' && player.faction.token ? [] : ['?'])),
+      ...board.annotations.map((_, index) => String(index + 1)),
+      board.caption,
+      ...board.annotations.map(projectedBoardAnnotationText),
+    ].join(' ')
+  );
+}
+
+function projectedMovementText(block: Extract<RulebookRenderBlockV1, { kind: 'piece-movement' }>) {
+  const groupText = (group: typeof block.left) =>
+    [
+      group.label,
+      ...group.pieces.flatMap((piece) => {
+        const text =
+          piece.kind === 'source'
+            ? piece.source.status === 'ready'
+              ? []
+              : [piece.source.status === 'unselected' ? 'No source selected' : 'Source unavailable']
+            : piece.faction.status === 'ready' &&
+                piece.faction.token &&
+                (piece.face === 'front' ? piece.artwork : piece.artwork?.back)
+              ? []
+              : Array.from({ length: piece.count }, () => '?');
+        return [...text, piece.label ?? ''];
+      }),
+    ].join(' ');
+  return normalizeRulebookText(
+    [
+      block.board ? projectedBoardText(block.board) : '',
+      groupText(block.left),
+      block.direction === 'exchange' ? '⇄' : block.direction === 'right' ? '→' : '',
+      groupText(block.right),
+      ...(block.notes ?? []).map(
+        (note) =>
+          `${note.label} ${note.source.status === 'unavailable' ? `${note.count} pieces; source unavailable` : ''}`
+      ),
+      block.step,
+      block.title,
+      block.caption,
+      block.outcome ?? '',
+    ].join(' ')
+  );
+}
+
 function projectedBlockText(block: RulebookRenderBlockV1) {
+  if (block.kind === 'battle-step') {
+    return projectedBattleText(block);
+  }
+  if (block.kind === 'battle-comparison') {
+    return normalizeRulebookText(block.examples.map((example) => projectedBattleText(example, true)).join(' '));
+  }
+  if (block.kind === 'board-scene') {
+    return projectedBoardText(block);
+  }
+  if (block.kind === 'piece-movement') {
+    return projectedMovementText(block);
+  }
   if (block.kind === 'list') {
     return normalizeRulebookText(block.items.map(projectedItemText).join(' '));
   }
@@ -407,6 +550,11 @@ function resolveLocatorPath(contents: RulebookContentsV1, locator: RulebookTextL
   if (!itemEntry) {
     return { page, block };
   }
+  if (block.kind === 'board-scene' || block.kind === 'piece-movement') {
+    const annotations = block.kind === 'board-scene' ? block.annotations : block.board?.annotations;
+    const item = annotations?.find((annotation) => annotation.id === itemEntry.id);
+    return item ? { page, block, item } : undefined;
+  }
   if (block.kind === 'reference-table' || block.kind === 'credits') {
     const located = findRulebookItem(block, itemEntry.id);
     return located ? { page, block, item: located.item } : undefined;
@@ -427,6 +575,15 @@ function resolveLocatorPath(contents: RulebookContentsV1, locator: RulebookTextL
 }
 
 function textForLocatorPath(renderDocument: RulebookRenderDocumentV1, path: ResolvedLocatorPath) {
+  if (path.item && (path.block?.kind === 'board-scene' || path.block?.kind === 'piece-movement')) {
+    const block = projectedBlockAt(renderDocument, path.page.id, path.block.id);
+    const board = block?.kind === 'board-scene' ? block : block?.kind === 'piece-movement' ? block.board : undefined;
+    const index = board?.annotations.findIndex((annotation) => annotation.id === path.item!.id) ?? -1;
+    return board && board.board.status === 'ready' && board.board.geometry && index >= 0
+      ? projectedBoardAnnotationText(board.annotations[index]!, index)
+      : '';
+  }
+
   if (path.item && path.block?.kind === 'asset-explainer') {
     const block = projectedBlockAt(renderDocument, path.page.id, path.block.id);
     const entry =

@@ -356,3 +356,119 @@ describe('downloaded Rulebook images', () => {
     expect(JSON.stringify(document)).not.toContain('https://');
   });
 });
+
+test('battle plans freeze leader, card and revealed-knowledge images without changing the saved plan', () => {
+  const document = createRulebookRenderDocumentFixture();
+  const side = {
+    faction: { status: 'unavailable' as const, factionId: 'missing' },
+    role: 'Aggressor',
+    revealed: true,
+    dial: 3,
+    spice: 2,
+    troops: [],
+    leader: {
+      status: 'ready' as const,
+      reference: { kind: 'faction-member' as const, factionId, memberId },
+      name: 'Gurney',
+      imageUrl: '/published/gurney.jpg?v=one',
+    },
+    cards: [
+      {
+        status: 'ready' as const,
+        reference: { kind: 'asset' as const, assetId: 'pistol' },
+        name: 'Pistol',
+        imageUrl: '/published/pistol.jpg?v=two',
+      },
+    ],
+    knownCard: {
+      status: 'ready' as const,
+      reference: { kind: 'asset' as const, assetId: 'snooper' },
+      name: 'Snooper',
+      imageUrl: '/published/snooper.jpg?v=three',
+    },
+  };
+  const block = {
+    id: 'BTTL',
+    kind: 'battle-step' as const,
+    step: '4',
+    title: 'Reveal',
+    caption: '',
+    left: side,
+    right: { ...side, role: 'Defender' },
+  };
+  document.pagesById.RULE!.regions[0]!.blocks.push(block);
+  const before = structuredClone(document);
+  const exported = rulebookRenderDocumentV1Schema.parse(rulebookHtmlImages(document, 'https://dune.zone'));
+  expect(exported.pagesById.RULE!.regions[0]!.blocks.at(-1)).toMatchObject({
+    left: {
+      leader: { imageUrl: 'https://dune.zone/published/gurney.jpg?v=one' },
+      cards: [{ imageUrl: 'https://dune.zone/published/pistol.jpg?v=two' }],
+      knownCard: { imageUrl: 'https://dune.zone/published/snooper.jpg?v=three' },
+    },
+  });
+  expect(document).toEqual(before);
+});
+
+test('illustrated scenes freeze nested board, movement and comparison images', () => {
+  const value: RulebookContentsDraftV1 = createRulebookStarterContents();
+  const scene = { boardId: 'arrakis', caption: '', players: [], troops: [], highlights: [], annotations: [] };
+  const side = {
+    role: '',
+    revealed: false,
+    dial: 0,
+    spice: 0,
+    cards: [{ kind: 'asset' as const, assetId: 'card' }],
+    troops: [],
+  };
+  const example = { step: '', title: '', caption: '', left: side, right: side };
+  value.pagesById.SCEN = {
+    id: 'SCEN',
+    anchor: 'scenes',
+    title: 'Scenes',
+    layoutId: 'sequence',
+    showHeading: true,
+    controlValues: {},
+    blockOrderByRegion: { content: ['BRDD', 'MVMT', 'CMPR'] },
+    blocksById: {
+      BRDD: { id: 'BRDD', kind: 'board-scene', ...scene },
+      MVMT: {
+        id: 'MVMT',
+        kind: 'piece-movement',
+        step: '11',
+        title: '',
+        caption: '',
+        board: scene,
+        left: {
+          label: '',
+          pieces: [{ id: 'card', kind: 'source', source: { kind: 'asset', assetId: 'card' }, count: 1 }],
+        },
+        right: { label: '', pieces: [] },
+        notes: [{ id: 'reward', label: 'Spice', source: { kind: 'asset', assetId: 'card' }, count: 1 }],
+      },
+      CMPR: { id: 'CMPR', kind: 'battle-comparison', examples: [example, example] },
+    },
+  };
+  value.pageOrder.push('SCEN');
+  const projected = projectRulebookRenderDocument(
+    value,
+    { card: { assetId: 'card', type: 'card-treachery', name: 'Card', imageUrl: '/published/card.jpg?v=frozen' } },
+    { size: 'square', design: 'illustrated' }
+  );
+  const before = structuredClone(projected);
+  const exported = rulebookRenderDocumentV1Schema.parse(rulebookHtmlImages(projected, 'https://dune.zone'));
+  expect(exported.pagesById.SCEN!.regions[0]!.blocks).toMatchObject([
+    { board: { imageUrl: expect.stringMatching(/^https:\/\/dune.zone\/page\/arrakis-/) } },
+    {
+      board: { board: { imageUrl: expect.stringMatching(/^https:\/\/dune.zone\/page\/arrakis-/) } },
+      left: { pieces: [{ source: { imageUrl: 'https://dune.zone/published/card.jpg?v=frozen' } }] },
+      notes: [{ source: { imageUrl: 'https://dune.zone/published/card.jpg?v=frozen' } }],
+    },
+    {
+      examples: [
+        { left: { cards: [{ imageUrl: 'https://dune.zone/published/card.jpg?v=frozen' }] } },
+        { right: { cards: [{ imageUrl: 'https://dune.zone/published/card.jpg?v=frozen' }] } },
+      ],
+    },
+  ]);
+  expect(projected).toEqual(before);
+});

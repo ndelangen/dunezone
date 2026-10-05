@@ -143,6 +143,7 @@ describe('the hosted play closure', () => {
     ['AGENTS.md', false],
     ['.oxlintrc.json', false],
     ['public/web/no-deck-back.svg', true],
+    ['media/vector/icon/spice.svg', true],
     ['public/page/map.svg', true],
     ['src/game/rulebook/RulebookRenderer.tsx', true],
     ['src/game/rulebook/RulebookRenderer.stories.tsx', false],
@@ -154,7 +155,7 @@ describe('the hosted play closure', () => {
   });
 
   test('a diff outside the closure skips the shards, one inside runs them, and no diff at all runs them', () => {
-    expect(decideHostedPlay(['docs/deployment.md', 'media/vector/icon/spice.svg'])).toMatchObject({
+    expect(decideHostedPlay(['docs/deployment.md', 'media/vector/icon/drup.svg'])).toMatchObject({
       run: false,
       reaching: [],
     });
@@ -174,7 +175,7 @@ describe('the hosted play closure', () => {
   });
 
   test.each([
-    ['docs/deployment.md\nmedia/vector/icon/spice.svg\n', 'false'],
+    ['docs/deployment.md\nmedia/vector/icon/drup.svg\n', 'false'],
     ['docs/deployment.md\nworkers/game/index.ts\n', 'true'],
     ['', 'true'],
   ])('the script writes the decision for %j to the job outputs: run=%s', (list, run) => {

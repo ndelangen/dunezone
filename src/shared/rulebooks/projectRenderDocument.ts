@@ -1,8 +1,10 @@
 import { parseFormattedText } from '../formattedText';
 import { userImageSourceUrlSchema } from '../user-images/contract';
+import type { RulebookBattleSideValue } from './battleStep';
 import { getRulebookCoverFooter, getRulebookLayout, isRulebookCollectionBlock } from './contents';
 import type { RulebookBlockDraft, RulebookContentsDraftV1, RulebookPageDraft } from './contents';
 import { getRulebookCoverPreset } from './coverPresets';
+import type { RulebookBoardSceneValue, RulebookPieceMovementValue } from './illustratedScenes';
 import type { RulebookResolvedFactionsById } from './references';
 import { rulebookRenderDocumentV1Schema } from './renderDocument';
 import type {
@@ -118,6 +120,70 @@ function projectRulebookCardSource(
   return projectRulebookSource(reference, assetsById);
 }
 
+function projectTroopArtwork(faction: RulebookRenderFactionV1, troopId: string | undefined, face: 'front' | 'back') {
+  const artwork =
+    faction.status === 'ready' && troopId ? faction.troops?.find((troop) => troop.troopId === troopId) : undefined;
+  return artwork && (face === 'front' || artwork.back) ? { artwork } : {};
+}
+
+function projectBattleSide(
+  { factionId, leader, cards, knownCard, troops, ...value }: RulebookBattleSideValue,
+  assetsById: RulebookResolvedAssetsById,
+  factionsById: RulebookResolvedFactionsById
+) {
+  const faction = renderFaction(factionId, factionsById);
+  return {
+    ...value,
+    faction,
+    leader: projectRulebookSource(leader, assetsById, factionsById),
+    cards: cards.map((card) => projectRulebookCardSource(card, assetsById)),
+    ...(knownCard ? { knownCard: projectRulebookCardSource(knownCard, assetsById) } : {}),
+    troops: troops.map((troop) => ({ ...troop, ...projectTroopArtwork(faction, troop.troopId, troop.face) })),
+  };
+}
+
+function projectBoardScene(
+  value: RulebookBoardSceneValue,
+  assetsById: RulebookResolvedAssetsById,
+  factionsById: RulebookResolvedFactionsById
+) {
+  return {
+    boardId: value.boardId,
+    caption: value.caption,
+    ...(value.viewport ? { viewport: value.viewport } : {}),
+    ...(value.storm ? { storm: value.storm } : {}),
+    board: projectRulebookSource({ kind: 'board', boardId: value.boardId }, assetsById, factionsById),
+    players: value.players.map(({ factionId, ...player }) => ({
+      ...player,
+      faction: renderFaction(factionId, factionsById),
+    })),
+    troops: value.troops.map(({ factionId, ...troop }) => {
+      const faction = renderFaction(factionId, factionsById);
+      return { ...troop, faction, ...projectTroopArtwork(faction, troop.troopId, troop.face) };
+    }),
+    highlights: value.highlights,
+    annotations: value.annotations,
+  };
+}
+
+function projectMovementGroup(
+  group: RulebookPieceMovementValue['left'],
+  assetsById: RulebookResolvedAssetsById,
+  factionsById: RulebookResolvedFactionsById
+) {
+  return {
+    label: group.label,
+    pieces: group.pieces.map((piece) => {
+      if (piece.kind === 'source') {
+        return { ...piece, source: projectRulebookSource(piece.source, assetsById, factionsById) };
+      }
+      const { factionId, ...troop } = piece;
+      const faction = renderFaction(factionId, factionsById);
+      return { ...troop, faction, ...projectTroopArtwork(faction, troop.troopId, troop.face) };
+    }),
+  };
+}
+
 /** Names an authored destination without copying its label or position into the referring text. */
 export function rulebookReferenceTargets(
   contents: RulebookContentsDraftV1,
@@ -173,6 +239,47 @@ export function projectRulebookDraftRenderBlock(
   contents?: RulebookContentsDraftV1
 ): RulebookRenderBlockV1 {
   const identity = { id: block.id, ...(block.anchor ? { anchor: block.anchor } : {}) };
+  if (block.kind === 'battle-step') {
+    return {
+      ...block,
+      ...identity,
+      left: projectBattleSide(block.left, assetsById, factionsById),
+      right: projectBattleSide(block.right, assetsById, factionsById),
+    };
+  }
+  if (block.kind === 'board-scene') {
+    return { ...identity, kind: block.kind, ...projectBoardScene(block, assetsById, factionsById) };
+  }
+  if (block.kind === 'piece-movement') {
+    const { board, notes, ...value } = block;
+    return {
+      ...value,
+      ...identity,
+      left: projectMovementGroup(block.left, assetsById, factionsById),
+      right: projectMovementGroup(block.right, assetsById, factionsById),
+      ...(board ? { board: projectBoardScene(board, assetsById, factionsById) } : {}),
+      ...(notes
+        ? {
+            notes: notes.map((note) => ({
+              ...note,
+              source: projectRulebookSource(note.source, assetsById, factionsById),
+            })),
+          }
+        : {}),
+    };
+  }
+  if (block.kind === 'battle-comparison') {
+    const projectExample = (example: (typeof block.examples)[number]) => ({
+      ...example,
+      left: projectBattleSide(example.left, assetsById, factionsById),
+      right: projectBattleSide(example.right, assetsById, factionsById),
+    });
+    return {
+      ...identity,
+      kind: block.kind,
+      examples: [projectExample(block.examples[0]), projectExample(block.examples[1])],
+    };
+  }
   if (block.kind === 'text') {
     return {
       ...identity,
@@ -421,7 +528,15 @@ function formattedTextDiagnostics(value: string, path: readonly (string | number
 
 function blockTextDiagnostics(pageId: string, blockId: string, block: RulebookBlockDraft): RulebookRenderDiagnostic[] {
   const path = ['pagesById', pageId, 'blocksById', blockId];
-  if (block.kind === 'section-heading' || block.kind === 'referenced-illustration' || block.kind === 'credits') {
+  if (
+    block.kind === 'section-heading' ||
+    block.kind === 'referenced-illustration' ||
+    block.kind === 'credits' ||
+    block.kind === 'battle-step' ||
+    block.kind === 'board-scene' ||
+    block.kind === 'piece-movement' ||
+    block.kind === 'battle-comparison'
+  ) {
     return [];
   }
   if (block.kind === 'reference-table') {

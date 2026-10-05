@@ -1,6 +1,8 @@
 import type { RulebookBlockKind, rulebookLayoutCatalogue, RulebookPageLayoutId } from '@shared/rulebooks/contents';
 import {
   AlignLeft,
+  Map,
+  ArrowRightLeft,
   BookImage,
   Columns2,
   createLucideIcon,
@@ -26,6 +28,7 @@ import {
   ScanEye,
   SquareDashed,
   Table,
+  Swords,
   Users,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -46,6 +49,7 @@ const OuterRail = createLucideIcon('OuterRail', [
 
 const layoutIcons = {
   'single-column': RectangleVertical,
+  sequence: List,
   'two-columns': Columns2,
   'wide-narrow': PanelRight,
   'outer-rail': OuterRail,
@@ -56,6 +60,10 @@ const layoutIcons = {
 const blockIcons = {
   'section-heading': Heading,
   text: AlignLeft,
+  'battle-step': Swords,
+  'board-scene': Map,
+  'piece-movement': ArrowRightLeft,
+  'battle-comparison': Columns2,
   list: List,
   callout: MessageSquareQuote,
   'question-answer': MessagesSquare,

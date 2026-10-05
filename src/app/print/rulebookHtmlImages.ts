@@ -35,6 +35,41 @@ export function rulebookHtmlImages(
       image(leader);
     }
   }
+  function battleSide(side: Extract<RulebookRenderBlockV1, { kind: 'battle-step' }>['left']) {
+    faction(side.faction);
+    image(side.leader);
+    for (const card of side.cards) {
+      image(card);
+    }
+    if (side.knownCard) {
+      image(side.knownCard);
+    }
+  }
+  function boardScene(board: Omit<Extract<RulebookRenderBlockV1, { kind: 'board-scene' }>, 'kind' | 'id'>) {
+    image(board.board);
+    for (const item of [...board.players, ...board.troops]) {
+      faction(item.faction);
+    }
+  }
+  function movementGroup(group: Extract<RulebookRenderBlockV1, { kind: 'piece-movement' }>['left']) {
+    for (const piece of group.pieces) {
+      if (piece.kind === 'source') {
+        image(piece.source);
+      } else {
+        faction(piece.faction);
+      }
+    }
+  }
+  function pieceMovement(block: Extract<RulebookRenderBlockV1, { kind: 'piece-movement' }>) {
+    movementGroup(block.left);
+    movementGroup(block.right);
+    for (const note of block.notes ?? []) {
+      image(note.source);
+    }
+    if (block.board) {
+      boardScene(block.board);
+    }
+  }
   function resolveBlockImages(block: RulebookRenderBlockV1, pageId: string) {
     if (block.kind === 'asset-explainer' && edition) {
       block.illustrationUrl = new URL(
@@ -56,6 +91,22 @@ export function rulebookHtmlImages(
       for (const item of block.items) {
         image(item.source);
       }
+    }
+    if (block.kind === 'battle-step') {
+      battleSide(block.left);
+      battleSide(block.right);
+    }
+    if (block.kind === 'battle-comparison') {
+      for (const example of block.examples) {
+        battleSide(example.left);
+        battleSide(example.right);
+      }
+    }
+    if (block.kind === 'board-scene') {
+      boardScene(block);
+    }
+    if (block.kind === 'piece-movement') {
+      pieceMovement(block);
     }
     if (block.kind === 'faction-introduction' || block.kind === 'section-heading') {
       faction(block.faction);

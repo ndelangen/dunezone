@@ -69,7 +69,8 @@ describe('Rulebook production catalogue', () => {
   it('offers only the grids the Size supports', () => {
     expect(getRulebookLayoutsForSize('tall').map(({ id }) => id)).toEqual(['single-column', 'cover']);
     expect(getRulebookLayoutsForSize('square')).toEqual(getRulebookLayoutsForSize('a4'));
-    expect(getRulebookLayoutsForSize('a4')).toHaveLength(6);
+    expect(getRulebookLayoutsForSize('a4').map(({ id }) => id)).toContain('sequence');
+    expect(isRulebookLayoutSupported('sequence', 'tall')).toBe(false);
     expect(isRulebookLayoutSupported('two-columns', 'tall')).toBe(false);
   });
 

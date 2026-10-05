@@ -14,10 +14,12 @@ import { SortableReorderHandle } from '@ui/control/SortableReorderHandle';
 import type { ComponentType } from 'react';
 
 import { AssetExplainerEdit } from './rulebookAssetExplainerEdit';
+import { BattleStepEdit } from './rulebookBattleStepEdit';
 import styles from './rulebookBlockEditors.module.css';
 import { CardEntryEdit, CardGroupEdit } from './rulebookCardBlockEditors';
 import { rulebookIconOptions } from './rulebookIconOptions';
 import { CreditsEdit, movedOrder, ReferenceTableEdit } from './rulebookReferenceBlockEditors';
+import { BoardSceneEdit, PieceMovementEdit, BattleComparisonEdit } from './rulebookSceneBlockEditors';
 import {
   ReferencedIllustrationEdit,
   IllustratedInventoryEdit,
@@ -377,6 +379,10 @@ function ListBlockEdit({ value, onChange }: RulebookBlockEditorProps<'list'>) {
 /** Every supported Block kind must have one editor with its exact value type. */
 export const rulebookBlockEditors = {
   text: TextBlockEdit,
+  'battle-step': BattleStepEdit,
+  'board-scene': BoardSceneEdit,
+  'piece-movement': PieceMovementEdit,
+  'battle-comparison': BattleComparisonEdit,
   'asset-explainer': AssetExplainerEdit,
   'card-entry': CardEntryEdit,
   'card-group': CardGroupEdit,

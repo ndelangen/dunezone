@@ -86,6 +86,128 @@ async function publishReferences(fixture: Awaited<ReturnType<typeof referenceFix
 }
 
 describe('Rulebook live faction and Cover references', () => {
+  test('a battle step resolves its faction troop identities and artwork through the saved draft', async () => {
+    const { owner, contents, references, created, locator } = await referenceFixture();
+    const troop = assetPublishingFaction.troops[0]!;
+    const side = {
+      factionId: references.factionId,
+      role: 'Aggressor',
+      revealed: true,
+      dial: 1.5,
+      spice: 1,
+      cards: [],
+      troops: [
+        {
+          id: 'ordinary',
+          troopId: troop.troopId,
+          face: 'front' as const,
+          supported: 1,
+          unsupported: 1,
+          uncommitted: 2,
+        },
+      ],
+    };
+    contents.pagesById.BTTL = {
+      id: 'BTTL',
+      anchor: 'battle',
+      title: 'Battle',
+      layoutId: 'sequence',
+      showHeading: true,
+      controlValues: {},
+      blockOrderByRegion: { content: ['STEP'] },
+      blocksById: {
+        STEP: {
+          id: 'STEP',
+          kind: 'battle-step',
+          step: '1',
+          title: 'Build a plan',
+          caption: '',
+          left: side,
+          right: { ...side, role: 'Defender' },
+        },
+      },
+    };
+    contents.pageOrder.push('BTTL');
+    await owner.mutation(api.rulebooks.save, { rulebook_id: created.rulebook._id, expected_revision: 1, contents });
+    const page = await owner.query(api.rulebooks.editorPage, locator);
+    expect(page).toMatchObject({
+      draft: {
+        contents: { pagesById: { BTTL: { layoutId: 'sequence', blocksById: { STEP: { kind: 'battle-step' } } } } },
+      },
+      factionsById: {
+        [references.factionId]: { troops: [{ troopId: troop.troopId, image: troop.image, name: troop.name }] },
+      },
+    });
+  });
+
+  test('saves board scenes, piece movements and paired battle examples as ordinary draft blocks', async () => {
+    const { owner, contents, references, created, locator } = await referenceFixture();
+    const scene = {
+      boardId: 'arrakis',
+      caption: 'Battle order',
+      players: [{ id: 'player', factionId: references.factionId, angle: 90 }],
+      troops: [],
+      highlights: [],
+      annotations: [],
+    };
+    const side = {
+      factionId: references.factionId,
+      role: 'Aggressor',
+      revealed: false,
+      dial: 0,
+      spice: 0,
+      cards: [],
+      troops: [],
+    };
+    const example = { step: '', title: 'Tie', caption: 'Compare these plans.', left: side, right: side };
+    contents.pagesById.SCEN = {
+      id: 'SCEN',
+      anchor: 'illustrated-scenes',
+      title: 'Illustrated scenes',
+      layoutId: 'sequence',
+      showHeading: true,
+      controlValues: {},
+      blockOrderByRegion: { content: ['BRDD', 'MVMT', 'CMPR'] },
+      blocksById: {
+        BRDD: { id: 'BRDD', kind: 'board-scene', ...scene },
+        MVMT: {
+          id: 'MVMT',
+          kind: 'piece-movement',
+          step: '11',
+          title: 'Move pieces',
+          caption: '',
+          left: {
+            label: 'Before',
+            pieces: [{ id: 'piece', kind: 'source', source: { kind: 'asset', assetId: references.assetId }, count: 1 }],
+          },
+          right: { label: 'After', pieces: [] },
+          board: scene,
+        },
+        CMPR: { id: 'CMPR', kind: 'battle-comparison', examples: [example, example] },
+      },
+    };
+    contents.pageOrder.push('SCEN');
+    await owner.mutation(api.rulebooks.save, { rulebook_id: created.rulebook._id, expected_revision: 1, contents });
+    const saved = await owner.query(api.rulebooks.editorPage, locator);
+    expect(saved).toMatchObject({
+      draft: {
+        contents: {
+          pagesById: {
+            SCEN: {
+              blocksById: {
+                BRDD: { kind: 'board-scene', boardId: 'arrakis' },
+                MVMT: { kind: 'piece-movement', board: { boardId: 'arrakis' } },
+                CMPR: { kind: 'battle-comparison', examples: [example, example] },
+              },
+            },
+          },
+        },
+      },
+      assetsById: { [references.assetId]: { assetId: references.assetId } },
+      factionsById: { [references.factionId]: { factionId: references.factionId } },
+    });
+  });
+
   test('Cover footer factions resolve live across reader and publication while disabled selections stay dormant', async () => {
     const fixture = await referenceFixture();
     const { t, owner, contents, references, locator, created } = fixture;
