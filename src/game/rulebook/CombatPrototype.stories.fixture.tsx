@@ -6,7 +6,12 @@ import type {
 import { rulebookRenderDocumentV1Schema } from '@shared/rulebooks/renderDocument';
 
 import data from './CombatPrototype.stories.fixture.json';
-import { deathPanel, presciencePanel, renderedBattleStep } from './RulebookBattlePlan.stories.fixture';
+import {
+  deathPanel,
+  preparationPanel,
+  presciencePanel,
+  renderedBattleStep,
+} from './RulebookBattlePlan.stories.fixture';
 import { RulebookDocumentRenderer } from './RulebookRenderer';
 
 /* These chapter alternatives use the saved rulebook contract and its normal renderer.
@@ -28,7 +33,7 @@ const scenes: Record<Scene, { n: number; lead: string; rule: string; example: st
     lead: 'Resolve pre-reveal advantages.',
     rule: "Follow each applicable faction advantage's timing and conditions. The Voice precedes Battle Prescience. Blackmail, Stone Burner, Fanatical Tactics and Infiltration also act before reveal.",
     example:
-      'Atreides uses Prescience: "Which weapon will you play?" Harkonnen answers "Gom Jabbar." That answer is binding. Its other cards, if any, remain unknown until reveal.',
+      'Here, Harkonnen has chosen its cards; Atreides waits. Atreides uses Prescience: "Which weapon will you play?" Harkonnen answers "Gom Jabbar." That answer is binding. Atreides now chooses two cards using that information. Any other cards and the number committed remain unknown to the opponent until reveal.',
   },
   dial: {
     n: 4,
@@ -145,6 +150,11 @@ function band(id: string, title: string, top: Block[], left: Block[], right: Blo
 
 const board = data.board as Extract<Block, { kind: 'board-scene' }>;
 const sourceBlocks = data.blocks as unknown as Record<string, Block>;
+const preparing = {
+  ...renderedBattleStep(preparationPanel, 2),
+  caption: scenes.hidden.rule,
+  showSideLabels: true,
+};
 const beforeReveal = {
   ...renderedBattleStep(presciencePanel, 3),
   title: 'Resolve pre-reveal advantages',
@@ -226,11 +236,14 @@ const preparation: Block = {
       name: 'Resolve preparation effects.',
       text: 'Resolve Supplies and the last opportunity for an Ixian alliance card exchange before building plans.',
     },
-    { id: 'plan', name: scenes.hidden.lead, text: scenes.hidden.rule },
   ],
 };
 const dialRule = text('dial-rule', scenes.dial.rule, '4. Dial troop strength');
-const hiddenExample = example('prescience-example', scenes.prescience.example, 'Example: Battle Prescience');
+const hiddenExample = example(
+  'prescience-example',
+  scenes.prescience.example,
+  'Example: choosing cards after Prescience'
+);
 const revealExample = example(
   'reveal-example',
   scenes.reveal.example + ' ' + scenes.weapons.example,
@@ -302,18 +315,27 @@ const continueBattle = text(
   'Leaders remain committed to this territory for the phase, even after revival. A surviving leader may fight again here. The aggressor finishes all of its battles before the next eligible player chooses.',
   'Continue the Battle phase'
 );
+function preparingPlans(): Page {
+  return columns('prepare', 'Build your plans', [preparation, preparing], [beforeReveal, hiddenExample]);
+}
 function chapter(variant: CombatVariant): Page[] {
   const pages = [opening()];
   if (variant === 'lesson') {
-    pages.push(columns('prepare', 'Build your plans', [preparation, timing], [beforeReveal, hiddenExample]));
+    pages.push(preparingPlans());
     pages.push(
-      band('dial', 'Dial troop strength', [dialRule], [dialTable], [example('dial-example', scenes.dial.example)])
+      band(
+        'dial',
+        'Dial troop strength',
+        [dialRule],
+        [dialTable],
+        [example('dial-example', scenes.dial.example), timing]
+      )
     );
     pages.push(single('reveal', 'Reveal and resolve', [revealed, revealExample, resultRule, resultTable]));
     pages.push(columns('cards', 'Settle abilities and cards', [spite, spiteExample], [cardRule, cardExample]));
     pages.push(columns('losses', 'Pay and remove troops', [losses], [lossExample, continueBattle]));
   } else {
-    pages.push(single('prepare', 'Build your plans', [preparation, beforeReveal, hiddenExample]));
+    pages.push(preparingPlans());
     pages.push(
       single('dial', 'Dial troop strength', [dialRule, dialTable, example('dial-example', scenes.dial.example), timing])
     );

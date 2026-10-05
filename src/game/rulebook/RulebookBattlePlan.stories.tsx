@@ -5,6 +5,7 @@ import {
   battleSequencePage,
   deathPanel,
   planningPanel,
+  preparationPanel,
   presciencePanel,
   resultPanel,
   renderedBattleStep,
@@ -167,28 +168,30 @@ export const IndependentExamples = meta.story({
   },
 });
 
-export const HiddenCardCounts = meta.story({
-  render: () => {
-    const page = battleSequencePage([]);
-    page.title = 'Hidden card information';
-    page.regions[0].blocks = [0, 2].map((count, index) => {
-      const block = renderedBattleStep(presciencePanel, index);
-      block.left.cards = block.left.cards.slice(0, count);
-      block.right.cards = block.right.cards.slice(0, index + 1);
-      return block;
-    });
-    return <RulebookPageRenderer page={page} settings={{ size: 'square', design: 'illustrated' }} />;
-  },
+export const PreparingThenUsingPrescience = meta.story({
+  render: () => (
+    <RulebookPageRenderer
+      page={battleSequencePage([preparationPanel, presciencePanel])}
+      settings={{ size: 'square', design: 'illustrated' }}
+    />
+  ),
   play: async ({ canvas, canvasElement }) => {
     await expectSquarePage(canvasElement);
-    await expect(
-      canvas.getAllByRole('img', { name: 'Atreides: other cards, if any, and their count are unknown' })
+    const preparation = within(canvas.getByRole('region', { name: 'Step 2: Prepare a battle plan' }));
+    const prescience = within(canvas.getByRole('region', { name: 'Step 3: Ask with Battle Prescience' }));
+    expect(
+      preparation.queryByLabelText('Atreides: illustrative hidden cards; the opponent does not know their number')
+    ).not.toBeInTheDocument();
+    expect(preparation.getAllByAltText('Hidden card')).toHaveLength(2);
+    expect(preparation.queryByAltText('Gom Jabbar')).not.toBeInTheDocument();
+    expect(
+      within(
+        prescience.getByLabelText('Atreides: illustrative hidden cards; the opponent does not know their number')
+      ).getAllByAltText('Hidden card')
     ).toHaveLength(2);
-    await expect(
-      canvas.getAllByRole('img', { name: 'Harkonnen: other cards, if any, and their count are unknown' })
-    ).toHaveLength(2);
-    await expect(canvas.getAllByAltText('Gom Jabbar')).toHaveLength(2);
-    await expect(canvas.queryByAltText('Snooper')).not.toBeInTheDocument();
-    await expect(canvas.queryByAltText('Maula Pistol')).not.toBeInTheDocument();
+    expect(prescience.getAllByAltText('Hidden card')).toHaveLength(3);
+    expect(prescience.getByAltText('Gom Jabbar')).toBeVisible();
+    expect(prescience.queryByAltText('Maula Pistol')).not.toBeInTheDocument();
+    expect(prescience.queryByAltText('Snooper')).not.toBeInTheDocument();
   },
 });

@@ -143,20 +143,20 @@ function Side({
       ) : null}
       <div className="rulebookBattleWheelFrame" data-with-uncommitted={side.revealed || undefined}>
         <div className="rulebookBattleWheelCanvas">
-          {!side.revealed ? (
-            <div className="rulebookBattleHiddenCards">
-              {side.knownCard ? (
-                <span className="rulebookBattleWheelCard">
-                  <Piece source={side.knownCard} />
+          {!side.revealed && side.plan.cards.length > 0 ? (
+            <div
+              className="rulebookBattleHiddenCards"
+              aria-label={`${side.name}: illustrative hidden cards; the opponent does not know their number`}
+            >
+              {side.plan.cards.map((_, index) => (
+                <span className="rulebookBattleWheelCard" key={index}>
+                  {index === 0 && side.knownCard ? (
+                    <Piece source={side.knownCard} />
+                  ) : (
+                    <img src={cardBack} alt="Hidden card" />
+                  )}
                 </span>
-              ) : null}
-              <span
-                className="rulebookBattleWheelCard"
-                role="img"
-                aria-label={`${side.name}: other cards, if any, and their count are unknown`}
-              >
-                <img src={cardBack} alt="" />
-              </span>
+              ))}
             </div>
           ) : null}
           <PlanWheel side={side} />
