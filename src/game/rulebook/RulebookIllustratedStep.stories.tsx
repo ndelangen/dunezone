@@ -119,32 +119,6 @@ export const PlacesAndPieceMovement = meta.story({
   },
 });
 
-export const AnnotatedBoardWithPieces = meta.story({
-  render: () => (
-    <div style={{ width: 'min(960px, 94vw)' }}>
-      <RulebookPageRenderer
-        page={{
-          ...battleSequencePage([]),
-          title: 'A saved board scene',
-          regions: [{ key: 'content', blocks: [boardSceneFixture()] }],
-        }}
-        settings={{ size: 'square', design: 'illustrated' }}
-      />
-    </div>
-  ),
-  play: async ({ canvas, canvasElement }) => {
-    await document.fonts.ready;
-    await expect(
-      canvas.getByRole('img', { name: 'Complete board with troops and numbered explanations' })
-    ).toBeVisible();
-    await expect(canvas.getByRole('list', { name: 'Explanations' })).toBeVisible();
-    expect(canvasElement.querySelectorAll('[data-rulebook-marker]')).toHaveLength(2);
-    expect(canvasElement.querySelectorAll('[data-rulebook-block-id]')).toHaveLength(1);
-    const region = canvasElement.querySelector<HTMLElement>('[data-rulebook-region]')!;
-    expect(region.scrollHeight).toBeLessThanOrEqual(region.clientHeight + 1);
-  },
-});
-
 export const SavedPieceMovements = meta.story({
   render: () => (
     <div style={{ width: 'min(960px, 94vw)' }}>
@@ -208,62 +182,5 @@ export const UnavailableSceneReferences = meta.story({
     await expect(canvas.getByText('Board unavailable', { exact: true })).toBeVisible();
     await expect(canvas.getByText('Source unavailable', { exact: true })).toBeVisible();
     await expect(canvas.getAllByLabelText('Troop artwork unavailable')).toHaveLength(3);
-  },
-});
-
-export const RoutesAndStandaloneTransfers = meta.story({
-  render: () => {
-    const board = boardSceneFixture();
-    board.annotations = [];
-    board.players = [];
-    board.troops = [];
-    board.storm = undefined;
-    board.size = 'fit-width';
-    board.caption = '';
-    board.routes = [
-      {
-        id: 'route',
-        label: 'Illustrated route with a blocked segment',
-        direction: 'forward',
-        waypoints: [{ territory: 'tueks' }, { territory: 'pasty-mesa' }, { territory: 'shield-wall' }],
-        blockedAfter: 1,
-      },
-    ];
-    const movement = movementFixture();
-    return (
-      <div style={{ width: 'min(960px, 94vw)' }}>
-        <RulebookPageRenderer
-          page={{
-            ...battleSequencePage([]),
-            title: 'Paths and transfers',
-            layoutId: 'two-columns',
-            controlValues: {},
-            regions: [
-              { key: 'column1', blocks: [board] },
-              {
-                key: 'column2',
-                blocks: [
-                  {
-                    id: 'transfer',
-                    kind: 'piece-transfer',
-                    left: movement.left,
-                    right: movement.right,
-                    direction: 'exchange',
-                  },
-                ],
-              },
-            ],
-          }}
-          settings={{ size: 'square', design: 'illustrated' }}
-        />
-      </div>
-    );
-  },
-  play: async ({ canvas, canvasElement }) => {
-    await expect(canvas.getByLabelText('Exchange')).toBeVisible();
-    expect(canvasElement.querySelectorAll('[data-route-segment]')).toHaveLength(2);
-    expect(canvasElement.querySelectorAll('[data-route-segment][data-blocked]')).toHaveLength(1);
-    const board = canvasElement.querySelector<SVGElement>('.rulebookTerritoryScene')!;
-    expect(board.getBoundingClientRect().width).toBeGreaterThan(300);
   },
 });

@@ -5,6 +5,7 @@ import {
   rulebookAnnotationUnavailableText,
 } from '@shared/rulebooks/assetExplainerAnnotations';
 import type { RulebookAnnotationProjection } from '@shared/rulebooks/assetExplainerAnnotations';
+import { projectRulebookBoardRoutes } from '@shared/rulebooks/boardRoutes';
 import {
   findRulebookItem,
   getRulebookRegionOrder,
@@ -282,12 +283,8 @@ function projectedBoardAnnotationText(annotation: BoardAnnotation, index: number
 
 function projectedBoardText(board: RenderBoardScene) {
   const geometry = board.board.status === 'ready' ? board.board.geometry : undefined;
-  const routeLegend = (board.routes ?? []).map((route) => {
-    const unavailable = route.waypoints.some(
-      (point) => !point.position && !geometry?.parts.some((part) => part.key === point.territory)
-    );
-    return `${route.label}${unavailable ? ' (route position unavailable)' : ''}`;
-  });
+  const routes = projectRulebookBoardRoutes(board.routes, geometry);
+  const routeLegend = routes.map((route) => route.legendLabel);
   if (!geometry) {
     return normalizeRulebookText(
       [
@@ -307,16 +304,9 @@ function projectedBoardText(board: RenderBoardScene) {
           (troop.face === 'front' ? troop.artwork : troop.artwork?.back);
         return available ? [] : Array.from({ length: troop.count }, () => '?');
       }),
-      ...(board.routes ?? []).flatMap((route) => [
+      ...routes.flatMap((route) => [
         route.label,
-        ...route.waypoints.flatMap((point, index) =>
-          route.showWaypoints !== false &&
-          (point.position ||
-            (board.board.status === 'ready' &&
-              board.board.geometry?.parts.some((part) => part.key === point.territory)))
-            ? [String(index)]
-            : []
-        ),
+        ...route.points.flatMap((point) => (point?.label === undefined ? [] : [point.label])),
       ]),
       ...board.players.flatMap((player) => (player.faction.status === 'ready' && player.faction.token ? [] : ['?'])),
       ...board.annotations.map((_, index) => String(index + 1)),

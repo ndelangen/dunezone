@@ -1,5 +1,6 @@
 import type { ComponentGeometry } from '@shared/asset-publishing/componentGeometry';
 import type { RulebookAnnotationProjection } from '@shared/rulebooks/assetExplainerAnnotations';
+import { projectRulebookBoardRoutes } from '@shared/rulebooks/boardRoutes';
 import type { RulebookRenderBlockV1 } from '@shared/rulebooks/renderDocument';
 import { useId } from 'react';
 
@@ -153,13 +154,10 @@ function BoardAnnotations({
 function BoardRoutes({ scene, width, height }: Readonly<{ scene: RulebookBoardScene; width: number; height: number }>) {
   const markerPrefix = useId().replaceAll(':', '');
   const geometry = scene.board.status === 'ready' ? scene.board.geometry : undefined;
-  return (scene.routes ?? []).map((route, routeIndex) => {
-    const points = route.waypoints.map((waypoint) => {
-      const part = geometry?.parts.find((entry) => entry.key === waypoint.territory);
-      const position =
-        waypoint.position ?? (part ? { x: part.x + part.width / 2, y: part.y + part.height / 2 } : undefined);
-      return position ? { x: position.x * width, y: position.y * height } : undefined;
-    });
+  return projectRulebookBoardRoutes(scene.routes, geometry).map((route, routeIndex) => {
+    const points = route.points.map((point) =>
+      point ? { ...point, x: point.x * width, y: point.y * height } : undefined
+    );
     const color = route.color ?? '#215f89';
     const markerId = `${markerPrefix}-route-${routeIndex}`;
     return (
@@ -235,7 +233,7 @@ function BoardRoutes({ scene, width, height }: Readonly<{ scene: RulebookBoardSc
           );
         })}
         {points.map((point, index) =>
-          point && route.showWaypoints !== false ? (
+          point?.label !== undefined ? (
             <g key={index} transform={`translate(${point.x} ${point.y})`}>
               <circle r={width * 0.018} fill={color} stroke="#fff9eb" strokeWidth={width * 0.003} />
               <text
@@ -245,7 +243,7 @@ function BoardRoutes({ scene, width, height }: Readonly<{ scene: RulebookBoardSc
                 fontWeight="bold"
                 fontSize={width * 0.024}
               >
-                {index}
+                {point.label}
               </text>
             </g>
           ) : null
@@ -259,16 +257,12 @@ function RouteLegend({ scene }: Readonly<{ scene: RulebookBoardScene }>) {
   const geometry = scene.board.status === 'ready' ? scene.board.geometry : undefined;
   return scene.routes?.length ? (
     <ul className="rulebookRouteLegend" aria-label="Routes">
-      {scene.routes.map((route) => (
+      {projectRulebookBoardRoutes(scene.routes, geometry).map((route) => (
         <li key={route.id}>
           <span className="rulebookRouteKey" style={{ backgroundColor: route.color ?? '#215f89' }} aria-hidden="true" />
           <span>
             <strong>{route.label}</strong>
-            {route.waypoints.some(
-              (point) => !point.position && !geometry?.parts.some((part) => part.key === point.territory)
-            )
-              ? ' (route position unavailable)'
-              : ''}
+            {route.legendLabel.slice(route.label.length)}
           </span>
         </li>
       ))}
