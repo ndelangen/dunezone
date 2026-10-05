@@ -92,7 +92,7 @@ export function rulebookHtmlImages(
         image(item.source);
       }
     }
-    if (block.kind === 'battle-step') {
+    if (block.kind === 'battle-step' || block.kind === 'battle-plans') {
       battleSide(block.left);
       battleSide(block.right);
     }
