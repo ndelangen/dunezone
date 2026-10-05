@@ -713,6 +713,7 @@ function actions(): Page[] {
             ],
             ['carthag', 'imperial-basin', 'polar', 'cielago-north']
           ),
+          viewport: { x: -0.15, y: -0.03, width: 1.3, height: 1.06 },
           routes: [
             {
               id: 'shipment',
@@ -735,10 +736,10 @@ function actions(): Page[] {
             },
           ],
         },
-        example(
+        text(
           'new-stack-example',
-          'The city may be left empty',
-          'Cross Imperial Basin (1) and the Polar Sink (2) to Cielago North (3). All three may leave Carthag: they were there when movement began.'
+          'Cross Imperial Basin (1) and the Polar Sink (2) to Cielago North (3). All three may leave Carthag: they were there when movement began.',
+          'The city may be left empty'
         ),
       ],
       [
@@ -753,6 +754,7 @@ function actions(): Page[] {
             ],
             ['carthag', 'tueks', 'south-mesa', 'cielago-east', 'cielago-south']
           ),
+          viewport: { x: -0.15, y: -0.03, width: 1.3, height: 1.06 },
           routes: [
             {
               id: 'shipment',
@@ -775,10 +777,10 @@ function actions(): Page[] {
             },
           ],
         },
-        example(
+        text(
           'existing-stack-example',
-          'Ornithopters help a group anywhere',
-          "Leave the new troops in Carthag. Move from Tuek's Sietch (0) through South Mesa (1) and Cielago East (2) to Cielago South (3)."
+          "Leave the new troops in Carthag. Move from Tuek's Sietch (0) through South Mesa (1) and Cielago East (2) to Cielago South (3).",
+          'Ornithopters help a group anywhere'
         ),
       ],
       [
