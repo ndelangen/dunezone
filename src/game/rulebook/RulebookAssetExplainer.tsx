@@ -1,15 +1,16 @@
 import {
   projectRulebookAssetExplainerAnnotations,
   rulebookAnnotationCanvas,
-  rulebookAnnotationShapes,
   rulebookAnnotationUnavailableText,
 } from '@shared/rulebooks/assetExplainerAnnotations';
 import type { RulebookAnnotationProjection } from '@shared/rulebooks/assetExplainerAnnotations';
 import type { RulebookRenderBlockV1 } from '@shared/rulebooks/renderDocument';
-import { createElement, useContext, useState } from 'react';
+import { useContext, useState } from 'react';
+import type { ReactNode } from 'react';
 
 import { useAsset } from '../assets/assetRenderMode';
 import { FormattedText } from '../assets/utils/FormattedText';
+import { RulebookAnnotationMarks } from './RulebookAnnotationMarks';
 import { RulebookDesignContext } from './RulebookDesignContext';
 
 type AssetExplainer = Extract<RulebookRenderBlockV1, { kind: 'asset-explainer' }>;
@@ -18,7 +19,6 @@ function AnnotationDrawing({
   projection,
   imageUrl,
 }: Readonly<{ projection: RulebookAnnotationProjection; imageUrl: string }>) {
-  const shapes = rulebookAnnotationShapes(projection);
   const canvas = rulebookAnnotationCanvas(projection);
   return (
     <svg viewBox={canvas.viewBox} role="img" aria-label={projection.sourceName}>
@@ -31,29 +31,19 @@ function AnnotationDrawing({
           clipPath={projection.sourceClipPath}
         />
       </g>
-      {shapes.map((shape, index) =>
-        createElement(
-          shape.tag,
-          {
-            key: index,
-            ...Object.fromEntries(
-              Object.entries(shape.attributes).map(([name, value]) => [
-                name.startsWith('data-')
-                  ? name
-                  : name.replace(/-([a-z])/g, (_, letter: string) => letter.toUpperCase()),
-                value,
-              ])
-            ),
-          },
-          shape.text
-        )
-      )}
+      <RulebookAnnotationMarks projection={projection} />
     </svg>
   );
 }
 
 /** Draws the referenced image and one full explanation legend from the Page's supplied data. */
-export function RulebookAssetExplainer({ block }: Readonly<{ block: AssetExplainer }>) {
+export function RulebookAssetExplainer({
+  block,
+  renderIllustration,
+}: Readonly<{
+  block: AssetExplainer;
+  renderIllustration?: (projection: RulebookAnnotationProjection) => ReactNode;
+}>) {
   const design = useContext(RulebookDesignContext);
   const source = block.source;
   const sourceUrl = source.status === 'ready' ? source.imageUrl : '';
@@ -86,7 +76,9 @@ export function RulebookAssetExplainer({ block }: Readonly<{ block: AssetExplain
     >
       <figure>
         <div className="rulebookExplainerIllustration">
-          {block.illustrationUrl ? (
+          {renderIllustration ? (
+            renderIllustration(projection)
+          ) : block.illustrationUrl ? (
             <img src={block.illustrationUrl} alt={projection.sourceName} width={canvas.width} height={canvas.height} />
           ) : block.source.status === 'ready' ? (
             needsMeasurement && !measurement ? (

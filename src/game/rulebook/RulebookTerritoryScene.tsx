@@ -1,5 +1,5 @@
 import type { ComponentGeometry } from '@shared/asset-publishing/componentGeometry';
-import type { ComponentProps } from 'react';
+import type { ComponentProps, ReactNode } from 'react';
 
 import { useAsset } from '../assets/assetRenderMode';
 import { TroopToken } from '../assets/faction/troop/Troop';
@@ -21,6 +21,7 @@ export type RulebookTerritorySceneProps = Readonly<{
     size: number;
     gap: number;
   })[];
+  overlay?: ReactNode;
   labels: readonly (Point & { text: string; width: number })[];
 }>;
 
@@ -33,6 +34,7 @@ export function RulebookTerritoryScene({
   highlights,
   troops,
   labels,
+  overlay,
 }: RulebookTerritorySceneProps) {
   const imageUrl = useAsset(board.imageUrl);
   const { width, height } = board.geometry;
@@ -86,6 +88,7 @@ export function RulebookTerritoryScene({
           </text>
         </g>
       ))}
+      {overlay}
     </svg>
   );
 }
