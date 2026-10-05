@@ -30,7 +30,7 @@ export const Decals = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement);
     await expect(page.findByRole('heading', { name: 'Decals / Blades and melee weapons' })).resolves.toBeVisible();
-    await expect(page.getAllByRole('article')).toHaveLength(292);
+    await expect(page.getAllByRole('article')).toHaveLength(293);
   },
 });
 export const LeaderLink = meta.story({

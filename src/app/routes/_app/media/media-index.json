@@ -2261,6 +2261,18 @@
     "subjects": ["symbols"],
     "sourceHash": "e3f7ec9e351402cae5bfc50fe779bfe160d54301930be4caebbbc3d99570d8f4"
   },
+  "/vector/decal/battlewheel.svg": {
+    "description": "A Battle Wheel wordmark beneath a city skyline, with a diagonal cut between the two Ts.",
+    "tags": ["battle", "wheel", "wordmark", "lettering", "city", "skyline", "vector"],
+    "subjects": ["symbols", "places"],
+    "sourceHash": "981a48bd0c285ac2ebadeeac55a32f6e1759becfcc0005525f06f5beb3bdf5ba"
+  },
+  "/vector/decal/battlewheel-multicolor.svg": {
+    "description": "A white Battle Wheel wordmark and city skyline on a black backing, with a diagonal cut between the two Ts.",
+    "tags": ["battle", "wheel", "wordmark", "lettering", "city", "skyline", "multicolor"],
+    "subjects": ["symbols", "places"],
+    "sourceHash": "96f44394b2f6f4bbe818015ab662498345d0aff4f492e1b2e8aca6563e55035f"
+  },
   "/vector/decal/block.svg": {
     "description": "A round symbol divided by horizontal bars.",
     "tags": ["symbol", "vector"],

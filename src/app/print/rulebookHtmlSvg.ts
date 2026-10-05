@@ -6,6 +6,7 @@ const tokenSymbols = import.meta.glob<string>(
     '../../../media/vector/generic/*.svg',
     '../../../media/vector/troop/*.svg',
     '../../../media/vector/troop_modifier/*.svg',
+    '../../../media/vector/decal/battlewheel-multicolor.svg',
     '../../../media/vector/decal/combatwheel-multicolor.svg',
   ],
   { query: '?raw', import: 'default', eager: true }
