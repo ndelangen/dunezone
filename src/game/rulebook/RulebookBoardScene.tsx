@@ -133,17 +133,28 @@ function BoardRoutes({ scene, width, height }: Readonly<{ scene: RulebookBoardSc
       <g key={route.id} data-rulebook-route={route.id}>
         <title>{route.label}</title>
         <defs>
-          <marker
-            id={markerId}
-            viewBox="0 0 10 10"
-            refX="9"
-            refY="5"
-            markerWidth="4"
-            markerHeight="4"
-            orient="auto-start-reverse"
-          >
-            <path d="M 0 0 L 10 5 L 0 10 Z" fill={color} />
-          </marker>
+          {[false, true].map((outline) => (
+            <marker
+              key={String(outline)}
+              id={outline ? `${markerId}-outline` : markerId}
+              viewBox="0 0 10 10"
+              refX="9"
+              refY="5"
+              markerUnits="userSpaceOnUse"
+              markerWidth={width * 0.024}
+              markerHeight={width * 0.024}
+              orient="auto-start-reverse"
+              overflow="visible"
+            >
+              <path
+                d="M 0 0 L 10 5 L 0 10 Z"
+                fill={outline ? '#fff9eb' : color}
+                stroke={outline ? '#fff9eb' : undefined}
+                strokeWidth={outline ? 2.5 : undefined}
+                strokeLinejoin="round"
+              />
+            </marker>
+          ))}
         </defs>
         {points.slice(0, -1).map((from, index) => {
           const to = points[index + 1];
@@ -159,7 +170,15 @@ function BoardRoutes({ scene, width, height }: Readonly<{ scene: RulebookBoardSc
           const midpoint = { x: (from.x + to.x) / 2, y: (from.y + to.y) / 2 };
           return (
             <g key={index} data-route-segment={index} data-blocked={blocked || undefined}>
-              <path d={d} fill="none" stroke="#fff9eb" strokeWidth={width * 0.012} strokeLinecap="round" />
+              <path
+                d={d}
+                fill="none"
+                stroke="#fff9eb"
+                strokeWidth={width * 0.012}
+                strokeLinecap="round"
+                markerEnd={route.direction !== 'none' ? `url(#${markerId}-outline)` : undefined}
+                markerStart={route.direction === 'both' ? `url(#${markerId}-outline)` : undefined}
+              />
               <path
                 d={d}
                 fill="none"
