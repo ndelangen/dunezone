@@ -522,11 +522,15 @@ When prose and illustrations need independent placement, the page layout owns th
 column widths, row alignment and spacing. Do not add empty illustration columns or procedure
 layout to ordinary text blocks. The paired-rows layout provides opening and closing bands around
 two pairs of content slots. Flex rows take their height from the taller content and keep their
-column proportions aligned. Every slot accepts ordinary rulebook blocks.
+column proportions aligned. Every slot accepts ordinary rulebook blocks. The band-columns layout
+sizes its band to its content and gives the remaining height to the columns; an empty band
+collapses instead of reserving a fraction of the page.
 
 Battle plans have a standalone visual block so a page can place them beside a numbered list,
 example or other explanation. The existing battle-step block remains available when its combined
-explanation and illustration are useful. Neither block dictates the page layout.
+explanation and illustration are useful. Standalone battle plans fill the width of their slot,
+with equal space for each side, instead of imposing a fixed printed width. Neither block dictates
+the page layout.
 
 ### Renderers stay isolated
 

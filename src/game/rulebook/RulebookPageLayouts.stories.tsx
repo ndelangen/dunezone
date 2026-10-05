@@ -39,9 +39,10 @@ export const EmptyRegionsAndHiddenHeading = meta.story({
     expect(canvasElement.querySelector('h1')).toBeNull();
     expect(canvasElement.querySelectorAll('[data-rulebook-region]')).toHaveLength(3);
     expect(canvasElement.querySelectorAll('[data-rulebook-block-id]')).toHaveLength(0);
-    for (const { rect } of regionRects(canvasElement)) {
+    for (const { key, rect } of regionRects(canvasElement)) {
       expect(rect.width).toBeGreaterThan(0);
-      expect(rect.height).toBeGreaterThan(0);
+      if (key === 'band') expect(rect.height).toBe(0);
+      else expect(rect.height).toBeGreaterThan(0);
     }
   },
 });

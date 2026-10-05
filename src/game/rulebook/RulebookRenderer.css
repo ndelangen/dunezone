@@ -683,12 +683,12 @@
 .rulebookGrid[data-rulebook-grid="band-columns"] {
   grid-template-areas: "band band" "column1 column2";
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  grid-template-rows: minmax(0, 1fr) minmax(0, 3fr);
+  grid-template-rows: max-content minmax(0, 1fr);
 }
 
 .rulebookGrid[data-band-position="bottom"] {
   grid-template-areas: "column1 column2" "band band";
-  grid-template-rows: minmax(0, 3fr) minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) max-content;
 }
 
 .rulebookGrid > [data-rulebook-region="content"] {
@@ -1656,6 +1656,10 @@
 }
 .rulebookBattlePlans {
   margin: 0;
+}
+.rulebookBattlePlans .rulebookBattleSide {
+  flex: 1 1 0;
+  width: auto;
 }
 .rulebookList > ol > li h3 {
   margin: 0 0 calc(2 * var(--rulebook-mm));
