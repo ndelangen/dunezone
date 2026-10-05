@@ -1911,6 +1911,8 @@
     "keywords": "symbol glyph sign icon pattern target cog ring geometry",
     "assets": [
       "/vector/decal/balance.svg",
+      "/vector/decal/battlewheel.svg",
+      "/vector/decal/battlewheel-multicolor.svg",
       "/vector/decal/block.svg",
       "/vector/decal/break-conditioning.svg",
       "/vector/decal/cog.svg",

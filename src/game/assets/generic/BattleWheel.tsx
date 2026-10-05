@@ -141,7 +141,7 @@ function RevealedWheel({ background, strength, spice, adjustment, troops, cards 
           </div>
         </div>
         <svg className={styles.wordmark} viewBox="0 0 100 100" aria-hidden="true">
-          <use href="/vector/decal/combatwheel-multicolor.svg#root" />
+          <use href="/vector/decal/battlewheel-multicolor.svg#root" />
         </svg>
         {!!adjustment && (
           <div

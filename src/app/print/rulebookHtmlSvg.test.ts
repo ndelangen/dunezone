@@ -63,7 +63,7 @@ test('a complete exported wheel embeds its decal and spice mask', () => {
   });
   const parsed = parseHTML(html).document;
   const uses = [...parsed.querySelectorAll('use')];
-  expect(uses.some((use) => use.getAttribute('href')?.includes('combatwheel-multicolor'))).toBe(true);
+  expect(uses.some((use) => use.getAttribute('href')?.includes('battlewheel-multicolor'))).toBe(true);
   for (const use of uses) {
     const href = use.getAttribute('href') ?? use.getAttribute('xlink:href');
     expect(href?.startsWith('#')).toBe(true);
