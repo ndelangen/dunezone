@@ -220,6 +220,58 @@ function projectedAnnotationEntryText(entry: RulebookAnnotationProjection['entri
 }
 
 function projectedBlockText(block: RulebookRenderBlockV1) {
+  if (block.kind === 'battle-step') {
+    const name = (side: typeof block.left) =>
+      side.faction.status === 'ready' ? side.faction.name : 'Faction unavailable';
+    const pieceText = (source: RulebookRenderSourceV1) =>
+      source.status === 'ready' ? '' : source.status === 'unselected' ? 'None' : 'Image unavailable';
+    const sideText = (side: typeof block.left) => {
+      const hasArtwork = side.faction.status === 'ready' && side.faction.token;
+      const troopAvailable = (troop: (typeof side.troops)[number]) =>
+        hasArtwork && (troop.face === 'back' ? troop.artwork?.back : troop.artwork);
+      return [
+        ...(block.showSideLabels !== false ? [name(side), side.role] : []),
+        ...(!side.revealed && side.knownCard ? [pieceText(side.knownCard)] : []),
+        ...(!hasArtwork
+          ? ['Faction artwork unavailable', side.revealed ? `${side.dial} troop strength, ${side.spice} spice` : '']
+          : side.revealed
+            ? [
+                ...side.cards.map(pieceText),
+                `${side.dial} Strength`,
+                ...side.troops
+                  .filter(troopAvailable)
+                  .map(
+                    (troop) =>
+                      `${troop.supported + troop.unsupported} ${troop.supported} supported ${troop.unsupported} unsupported`
+                  ),
+                String(side.spice),
+                pieceText(side.leader),
+                side.leaderKilled ? 'Killed' : '',
+                side.adjustment ? `${side.adjustment > 0 ? '+' : ''}${side.adjustment} adj.` : '',
+              ]
+            : []),
+        ...(side.revealed
+          ? side.troops
+              .filter((troop) => !troopAvailable(troop))
+              .map(
+                (troop) => `Troop artwork unavailable: ${troop.supported} supported, ${troop.unsupported} unsupported.`
+              )
+          : []),
+        side.result ?? '',
+      ].join(' ');
+    };
+    return normalizeRulebookText(
+      [
+        sideText(block.left),
+        sideText(block.right),
+        block.step,
+        block.title,
+        block.caption,
+        ...(block.dialogue ?? []).map((line) => `${name(block[line.speaker])}: ${line.text}`),
+        block.outcome ?? '',
+      ].join(' ')
+    );
+  }
   if (block.kind === 'list') {
     return normalizeRulebookText(block.items.map(projectedItemText).join(' '));
   }

@@ -1,17 +1,17 @@
 import preview from '@sb/preview';
-import type { CSSProperties } from 'react';
 import { expect, within } from 'storybook/test';
 
-import { RulebookBattlePlan } from './RulebookBattlePlan';
 import {
+  battleSequencePage,
   deathPanel,
   planningPanel,
   presciencePanel,
   resultPanel,
   revealPanel,
 } from './RulebookBattlePlan.stories.fixture';
+import { RulebookPageRenderer } from './RulebookRenderer';
 
-type Specimen = 'private' | 'reveal' | 'resolution';
+type Specimen = 'private' | 'reveal' | 'resolution' | 'troops';
 
 function BattleComicStory({ specimen = 'private' }: Readonly<{ specimen?: Specimen }>) {
   const panels =
@@ -20,34 +20,47 @@ function BattleComicStory({ specimen = 'private' }: Readonly<{ specimen?: Specim
       : specimen === 'reveal'
         ? [planningPanel, revealPanel, deathPanel]
         : [revealPanel, deathPanel, resultPanel];
+  const page = battleSequencePage(panels);
+  if (specimen === 'troops') {
+    const front = battleSequencePage([revealPanel]).regions[0]!.blocks[0]!;
+    if (front.kind === 'battle-step') {
+      front.title = 'Mixed troop groups';
+      front.caption = 'Supported starred troops and unsupported ordinary troops have separate readouts.';
+      const ordinary = front.left.troops[0]!;
+      front.left.troops = [
+        { ...ordinary, supported: 0, unsupported: 2 },
+        {
+          ...ordinary,
+          id: 'starred',
+          supported: 1,
+          unsupported: 0,
+          artwork: {
+            ...ordinary.artwork!,
+            name: 'Starred troops',
+            star: '/vector/troop_modifier/star-right.svg',
+            back: { image: '/vector/troop/atreides.svg', name: 'Reverse face', description: '', striped: true },
+          },
+        },
+      ];
+      const reverse = structuredClone(front);
+      reverse.id = 'reverse';
+      reverse.step = '2';
+      reverse.title = 'A selected reverse face';
+      reverse.caption = 'The troop group keeps its own counts when its reverse artwork is selected.';
+      reverse.left.troops[1]!.face = 'back';
+      const missing = structuredClone(reverse);
+      missing.id = 'unavailable';
+      missing.step = '3';
+      missing.title = 'Unavailable artwork';
+      missing.caption = 'Missing artwork is identified, while the authored support counts remain readable.';
+      missing.left.troops[1]!.artwork = undefined;
+      missing.right.faction = { status: 'unavailable', factionId: 'removed-faction' };
+      page.regions[0]!.blocks = [front, reverse, missing];
+    }
+  }
   return (
-    <div style={{ width: 'min(960px, 94vw)', containerType: 'inline-size' }}>
-      <article
-        data-battle-specimen={specimen}
-        style={
-          {
-            '--rulebook-mm': '0.3921568627cqw',
-            background: '#fffaee',
-            color: '#21170f',
-            boxSizing: 'border-box',
-            minHeight: '99.6cqw',
-            padding: '3.125cqw',
-            fontFamily: 'Caladea, Georgia, serif',
-          } as CSSProperties
-        }
-      >
-        <header style={{ marginBottom: '1.6cqw' }}>
-          <p style={{ margin: 0, fontSize: '1.26cqw', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-            An illustrated battle
-          </p>
-          <h2 style={{ margin: '0.5cqw 0', fontSize: '2.5cqw' }}>Atreides against Harkonnen</h2>
-        </header>
-        <div style={{ display: 'grid', gap: '0.8cqw' }}>
-          {panels.map((panel, index) => (
-            <RulebookBattlePlan key={panel.step} {...panel} showSideLabels={index === 0} />
-          ))}
-        </div>
-      </article>
+    <div style={{ width: 'min(960px, 94vw)' }}>
+      <RulebookPageRenderer page={page} settings={{ size: 'square', design: 'illustrated' }} />
     </div>
   );
 }
@@ -61,7 +74,13 @@ const meta = preview.meta({
 
 async function expectSquarePage(canvasElement: HTMLElement) {
   await document.fonts.ready;
-  const page = canvasElement.querySelector('[data-battle-specimen]')!.getBoundingClientRect();
+  const page = canvasElement.querySelector('[data-rulebook-page]')!.getBoundingClientRect();
+  const region = canvasElement.querySelector<HTMLElement>('[data-rulebook-region]')!;
+  expect(region.scrollHeight).toBeLessThanOrEqual(region.clientHeight + 1);
+  const bottom = region.getBoundingClientRect().bottom;
+  for (const block of region.querySelectorAll('[data-rulebook-block-id]')) {
+    expect(block.getBoundingClientRect().bottom).toBeLessThanOrEqual(bottom + 1);
+  }
   expect(page.height).toBeLessThanOrEqual((page.width * 254) / 255 + 1);
 }
 
@@ -88,5 +107,16 @@ export const LeaderDeathAndResult = meta.story({
     await expect(canvas.getByText('3 + 4 = 7')).toBeVisible();
     await expect(canvas.getByText('4 + 0 = 4')).toBeVisible();
     await expect(canvas.getAllByText('Killed', { exact: true })).toHaveLength(2);
+  },
+});
+
+export const TroopGroupsAndReverseFaces = meta.story({
+  args: { specimen: 'troops' },
+  play: async ({ canvas, canvasElement }) => {
+    await expectSquarePage(canvasElement);
+    await expect(canvas.getByLabelText('Starred troops')).toBeVisible();
+    await expect(canvas.getByLabelText('Reverse face')).toBeVisible();
+    await expect(canvas.getByText('Troop artwork unavailable: 1 supported, 0 unsupported.')).toBeVisible();
+    await expect(canvas.getByText('Faction artwork unavailable')).toBeVisible();
   },
 });

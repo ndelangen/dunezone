@@ -82,7 +82,7 @@ type PageLayoutProps<LayoutId extends RulebookPageLayoutId> = Readonly<{
   coverLogoHref: string;
 }>;
 
-type InteriorLayoutId = 'single-column' | 'two-columns' | 'wide-narrow' | 'outer-rail' | 'band-columns';
+type InteriorLayoutId = 'sequence' | 'single-column' | 'two-columns' | 'wide-narrow' | 'outer-rail' | 'band-columns';
 
 function InteriorPage({ BlockRenderer, page, pageNumber }: PageLayoutProps<InteriorLayoutId>) {
   const resolveAsset = useAssetResolver();
@@ -215,6 +215,7 @@ type RulebookPageRendererRegistry = {
 };
 
 const rulebookPageRenderers = {
+  sequence: InteriorPage,
   'single-column': InteriorPage,
   'two-columns': InteriorPage,
   'wide-narrow': InteriorPage,
@@ -278,7 +279,7 @@ export function RulebookPageRenderer({
       data-rulebook-page-side={pageNumber % 2 === 0 ? 'left' : 'right'}
       style={pageDimensions(settings)}
     >
-      {settings.design === 'illustrated' && !usesImageCover(page) ? (
+      {settings.design === 'illustrated' && !usesImageCover(page) && page.layoutId !== 'sequence' ? (
         <div className={styles.artwork} aria-hidden="true">
           <img src={artworkHref} alt="" />
         </div>

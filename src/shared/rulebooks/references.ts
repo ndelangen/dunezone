@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { CanonicalFactionStoredObject } from '../factions/schema';
+import { CanonicalFactionStoredObject, TroopArtwork } from '../factions/schema';
 import { getRulebookCoverFooter } from './contents';
 import type { RulebookContentsDraftV1 } from './contents';
 import { rulebookResolvedSourceSchema } from './sources';
@@ -13,6 +13,7 @@ export const rulebookResolvedFactionSchema = z.strictObject({
   emblemUrl: z.string().optional(),
   tokenImageUrl: z.string().optional(),
   token: CanonicalFactionStoredObject.pick({ logo: true, background: true }).optional(),
+  troops: z.array(TroopArtwork).optional(),
   ruler: rulebookResolvedSourceSchema.optional(),
   leaders: z.array(rulebookResolvedSourceSchema).optional(),
 });
@@ -56,6 +57,18 @@ export function collectRulebookReferenceIds(
       }
       if (block.kind === 'referenced-illustration' || block.kind === 'card-entry' || block.kind === 'asset-explainer') {
         collectSource(block.source);
+      }
+      if (block.kind === 'battle-step') {
+        for (const side of [block.left, block.right]) {
+          if (side.factionId) {
+            factionIds.add(side.factionId);
+          }
+          collectSource(side.leader);
+          collectSource(side.knownCard);
+          for (const card of side.cards) {
+            collectSource(card);
+          }
+        }
       }
       if (block.kind === 'illustrated-inventory' || block.kind === 'card-group') {
         for (const item of Object.values(block.itemsById)) {

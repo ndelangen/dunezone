@@ -86,6 +86,60 @@ async function publishReferences(fixture: Awaited<ReturnType<typeof referenceFix
 }
 
 describe('Rulebook live faction and Cover references', () => {
+  test('a battle step resolves its faction troop identities and artwork through the saved draft', async () => {
+    const { owner, contents, references, created, locator } = await referenceFixture();
+    const troop = assetPublishingFaction.troops[0]!;
+    const side = {
+      factionId: references.factionId,
+      role: 'Aggressor',
+      revealed: true,
+      dial: 1.5,
+      spice: 1,
+      cards: [],
+      troops: [
+        {
+          id: 'ordinary',
+          troopId: troop.troopId,
+          face: 'front' as const,
+          supported: 1,
+          unsupported: 1,
+          uncommitted: 2,
+        },
+      ],
+    };
+    contents.pagesById.BTTL = {
+      id: 'BTTL',
+      anchor: 'battle',
+      title: 'Battle',
+      layoutId: 'sequence',
+      showHeading: true,
+      controlValues: {},
+      blockOrderByRegion: { content: ['STEP'] },
+      blocksById: {
+        STEP: {
+          id: 'STEP',
+          kind: 'battle-step',
+          step: '1',
+          title: 'Build a plan',
+          caption: '',
+          left: side,
+          right: { ...side, role: 'Defender' },
+        },
+      },
+    };
+    contents.pageOrder.push('BTTL');
+    await owner.mutation(api.rulebooks.save, { rulebook_id: created.rulebook._id, expected_revision: 1, contents });
+    const page = await owner.query(api.rulebooks.editorPage, locator);
+    expect(page).toMatchObject({
+      draft: {
+        contents: { pagesById: { BTTL: { layoutId: 'sequence', blocksById: { STEP: { kind: 'battle-step' } } } } },
+      },
+      factionsById: {
+        [references.factionId]: { troops: [{ troopId: troop.troopId, image: troop.image, name: troop.name }] },
+      },
+    });
+  });
+
   test('Cover footer factions resolve live across reader and publication while disabled selections stay dormant', async () => {
     const fixture = await referenceFixture();
     const { t, owner, contents, references, locator, created } = fixture;

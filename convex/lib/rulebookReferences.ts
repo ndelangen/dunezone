@@ -5,7 +5,7 @@ import {
   publishedHref,
   resolvePublicationCapture,
 } from '../../src/shared/asset-publishing/publicationTargets';
-import { CanonicalFactionStoredSchema } from '../../src/shared/factions/schema';
+import { CanonicalFactionStoredSchema, TroopArtwork } from '../../src/shared/factions/schema';
 import type { RulebookEditionContentsV1 } from '../../src/shared/rulebooks/contents';
 import type {
   RulebookResolvedAssetsById,
@@ -116,6 +116,14 @@ export async function resolveRulebookReferences(
               ? { tokenImageUrl: publishedHref('faction-token', factionId, tokenPublication.cache_token) }
               : {}),
             token: { logo: parsed.data.logo, background: parsed.data.background },
+            troops: parsed.data.troops.map((troop) => {
+              const { capable: _capable, combat: _combat, back, ...artwork } = troop;
+              if (!back) {
+                return TroopArtwork.parse(artwork);
+              }
+              const { capable: _backCapable, combat: _backCombat, ...backArtwork } = back;
+              return TroopArtwork.parse({ ...artwork, back: backArtwork });
+            }),
             ruler: members[0]!,
             leaders: members.slice(1),
           },

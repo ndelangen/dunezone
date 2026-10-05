@@ -1,4 +1,5 @@
 import { normalizeFormattedText as normalizeFormattedTextUncached } from '@shared/formattedText';
+import { rulebookBattleSideSchema, rulebookBattleDialogueSchema } from '@shared/rulebooks/battleStep';
 import {
   isRulebookCollectionBlock,
   canonicalRulebookCoverControlValues,
@@ -120,6 +121,30 @@ const deleteIntentSchema = z.strictObject({
 type RulebookDeleteIntent = z.infer<typeof deleteIntentSchema>;
 
 const setIntentSchema = z.union([
+  z.strictObject({
+    kind: z.literal('set'),
+    target: blockRefSchema,
+    field: z.enum(['battle-left', 'battle-right']),
+    value: rulebookBattleSideSchema,
+  }),
+  z.strictObject({
+    kind: z.literal('set'),
+    target: blockRefSchema,
+    field: z.literal('battle-dialogue'),
+    value: rulebookBattleDialogueSchema.optional(),
+  }),
+  z.strictObject({
+    kind: z.literal('set'),
+    target: blockRefSchema,
+    field: z.literal('show-side-labels'),
+    value: z.boolean().optional(),
+  }),
+  z.strictObject({
+    kind: z.literal('set'),
+    target: blockRefSchema,
+    field: z.enum(['step', 'outcome']),
+    value: z.string().optional(),
+  }),
   z.strictObject({
     kind: z.literal('set'),
     target: pageRefSchema,
@@ -1135,6 +1160,28 @@ function setPageField(
 
 function setBlockField(block: RulebookBlockDraft, field: RulebookFieldName, value: unknown): void {
   const optionalText = typeof value === 'string' ? value : undefined;
+  if (block.kind === 'battle-step') {
+    if (field === 'battle-left' || field === 'battle-right') {
+      block[field === 'battle-left' ? 'left' : 'right'] = rulebookBattleSideSchema.parse(value);
+      return;
+    }
+    if (field === 'battle-dialogue') {
+      block.dialogue = rulebookBattleDialogueSchema.optional().parse(value);
+      return;
+    }
+    if (field === 'show-side-labels') {
+      block.showSideLabels = z.boolean().optional().parse(value);
+      return;
+    }
+    if (field === 'step' && typeof value === 'string') {
+      block.step = value;
+      return;
+    }
+    if (field === 'outcome') {
+      block.outcome = optionalText;
+      return;
+    }
+  }
   if (field === 'size' && (block.kind === 'card-entry' || block.kind === 'referenced-illustration')) {
     block.size = rulebookIllustrationSizeSchema.optional().parse(value);
     return;
@@ -1183,7 +1230,7 @@ function setBlockField(block: RulebookBlockDraft, field: RulebookFieldName, valu
   }
   if (
     field === 'caption' &&
-    (block.kind === 'referenced-illustration' || block.kind === 'asset-explainer') &&
+    (block.kind === 'referenced-illustration' || block.kind === 'asset-explainer' || block.kind === 'battle-step') &&
     typeof value === 'string'
   ) {
     block.caption = value;
@@ -1569,6 +1616,15 @@ function fieldRecords(contents: RulebookContentsDraftV1): FieldRecord[] {
     const target = { kind: 'block', pageId, blockId: block.id } as const;
     const add = (field: RulebookFieldName, value: unknown) => records.push({ target, field, value });
     add('anchor', block.anchor);
+    if (block.kind === 'battle-step') {
+      add('step', block.step);
+      add('caption', block.caption);
+      add('outcome', block.outcome);
+      add('battle-left', clone(block.left));
+      add('battle-right', clone(block.right));
+      add('battle-dialogue', block.dialogue ? clone(block.dialogue) : undefined);
+      add('show-side-labels', block.showSideLabels);
+    }
     if ('title' in block || block.kind === 'callout' || block.kind === 'illustrated-inventory') {
       add('title', block.title);
     }

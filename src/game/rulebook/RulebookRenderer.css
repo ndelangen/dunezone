@@ -1347,9 +1347,6 @@
   gap: calc(0.5 * var(--rulebook-mm));
   font-size: calc(3.4 * var(--rulebook-mm));
 }
-.rulebookBattleSide figcaption[hidden] {
-  display: none;
-}
 .rulebookBattleSide figcaption strong {
   font-family: "C_Copperplate_Gothic", serif;
 }
@@ -1443,13 +1440,113 @@
   font-style: normal;
   margin-right: calc(1.5 * var(--rulebook-mm));
 }
-.rulebookBattleSpeech > span::after {
-  content: ":";
-}
 .rulebookBattleSideResult {
   font-size: calc(4 * var(--rulebook-mm));
   font-weight: bold;
 }
 .rulebookBattleOutcome {
   font-weight: bold;
+}
+
+.rulebookPage[data-rulebook-layout="sequence"] .rulebookPageContent {
+  padding-bottom: calc(17 * var(--rulebook-mm));
+}
+.rulebookPage[data-rulebook-layout="sequence"] .rulebookInterior {
+  gap: calc(3 * var(--rulebook-mm));
+}
+.rulebookPage[data-rulebook-layout="sequence"] .rulebookInterior > header h1 {
+  background: transparent;
+  color: #21170f;
+  padding: 0;
+  text-align: left;
+  font-size: calc(6 * var(--rulebook-mm));
+}
+.rulebookGrid[data-rulebook-grid="sequence"] {
+  grid-template-areas: "content";
+}
+.rulebookPage[data-rulebook-layout="sequence"] .rulebookRegionBlocks {
+  gap: calc(1 * var(--rulebook-mm));
+}
+.rulebookPage .rulebookBattlePanel p + p {
+  margin-top: 0;
+}
+.rulebookBattleMissingFaction {
+  display: grid;
+  place-items: center;
+  width: 170px;
+  height: 170px;
+  font-size: 20px;
+}
+
+.rulebookTerritoryScene {
+  display: block;
+  width: 100%;
+  height: calc(51 * var(--rulebook-mm));
+}
+.rulebookTerritoryTroop {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  overflow: hidden;
+}
+.rulebookTerritoryLabel {
+  font-family: "Caladea", Georgia, serif;
+  font-size: 8px;
+  font-weight: bold;
+  text-anchor: middle;
+}
+.rulebookTerritoryLabel rect {
+  fill: #fffaee;
+}
+.rulebookPieceMovement {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: calc(5 * var(--rulebook-mm));
+  text-align: center;
+}
+.rulebookMovementGroup > strong {
+  display: block;
+  font-size: calc(3.1 * var(--rulebook-mm));
+  margin-bottom: calc(2 * var(--rulebook-mm));
+}
+.rulebookMovementPieces,
+.rulebookMovementSources,
+.rulebookMovementTroops {
+  display: flex;
+  justify-content: center;
+  gap: calc(1.5 * var(--rulebook-mm));
+}
+.rulebookMovementPieces figure {
+  margin: 0;
+}
+.rulebookMovementSources img {
+  display: block;
+  width: calc(19 * var(--rulebook-mm));
+  height: calc(26.67 * var(--rulebook-mm));
+  object-fit: contain;
+  filter: drop-shadow(0 calc(0.5 * var(--rulebook-mm)) calc(0.8 * var(--rulebook-mm)) rgb(0 0 0 / 40%));
+}
+.rulebookMovementPieces figcaption {
+  font-size: calc(2.7 * var(--rulebook-mm));
+  margin-top: calc(1 * var(--rulebook-mm));
+}
+.rulebookMovementArrow {
+  font-size: calc(7 * var(--rulebook-mm));
+}
+.rulebookMovementTroops {
+  flex-wrap: wrap;
+  gap: calc(0.5 * var(--rulebook-mm));
+  max-width: calc(30 * var(--rulebook-mm));
+}
+.rulebookMovementTroops > span {
+  display: block;
+  border-radius: 50%;
+  overflow: hidden;
+  width: calc(5 * var(--rulebook-mm));
+  height: calc(5 * var(--rulebook-mm));
+}
+
+.rulebookTerritoryScene[data-size="large"] {
+  height: calc(100 * var(--rulebook-mm));
 }

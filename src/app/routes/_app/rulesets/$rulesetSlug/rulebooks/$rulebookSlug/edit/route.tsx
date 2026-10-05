@@ -827,6 +827,16 @@ function createPage(choice: PageChoice, id: string, anchor: string): RulebookPag
 
 function createBlock(kind: RulebookBlockKind, id: string): RulebookBlockDraft {
   switch (kind) {
+    case 'battle-step':
+      return {
+        id,
+        kind,
+        step: '',
+        title: '',
+        caption: '',
+        left: { role: '', revealed: false, dial: 0, spice: 0, cards: [], troops: [] },
+        right: { role: '', revealed: false, dial: 0, spice: 0, cards: [], troops: [] },
+      };
     case 'asset-explainer':
       return { id, kind, caption: '', numbering: 'automatic', colorMode: 'automatic', itemOrder: [], itemsById: {} };
     case 'card-entry':
@@ -1231,6 +1241,11 @@ function blockEditorPanel(
   const change = (value: object) => replaceBlock({ ...block, ...value });
   let editor: ReactNode;
   switch (block.kind) {
+    case 'battle-step': {
+      const Edit = rulebookBlockEditors['battle-step'];
+      editor = <Edit value={block} onChange={change} references={{ assetsById, factionsById }} />;
+      break;
+    }
     case 'asset-explainer': {
       const Edit = rulebookBlockEditors['asset-explainer'];
       editor = <Edit value={block} onChange={change} references={{ assetsById, factionsById }} />;

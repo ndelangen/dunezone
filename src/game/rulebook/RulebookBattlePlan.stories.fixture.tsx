@@ -1,3 +1,4 @@
+import type { RulebookRenderBlockV1, RulebookRenderPageV1 } from '@shared/rulebooks/renderDocument';
 import type { RulebookResolvedSource } from '@shared/rulebooks/sources';
 
 import { factionTokenFixtures } from '../fixtures/factionTokens';
@@ -184,3 +185,66 @@ export const resultPanel = {
   right: { ...harkonnenSide, revealed: true, plan: { ...harkonnenSide.plan, leaderKilled: true }, result: '4 + 0 = 4' },
   outcome: 'Atreides wins, 7 to 4. Settle troop losses, spice and other aftermath effects next.',
 } satisfies RulebookBattlePlanProps;
+
+function renderedSide(side: RulebookBattleSide): Extract<RulebookRenderBlockV1, { kind: 'battle-step' }>['left'] {
+  return {
+    faction: { status: 'ready', factionId: side.name, name: side.name, color: '#736448', token: side.artwork },
+    role: side.role,
+    revealed: side.revealed,
+    dial: side.plan.strength,
+    spice: side.plan.spice,
+    adjustment: side.plan.adjustment,
+    leader: side.plan.leader,
+    leaderKilled: side.plan.leaderKilled,
+    cards: [...side.plan.cards],
+    knownCard: side.knownCard,
+    result: side.result,
+    troops: side.plan.troops.map((troop) => ({
+      id: troop.id,
+      troopId: '01234567-89ab-4cde-8f01-234567890abc',
+      face: 'front',
+      supported: troop.dialed,
+      unsupported: troop.undialed,
+      uncommitted: 0,
+      artwork: {
+        image: troop.artwork.image,
+        star: troop.artwork.star,
+        hue: troop.artwork.hue,
+        striped: troop.artwork.striped,
+        name: troop.name,
+        description: '',
+        count: 20,
+      },
+    })),
+  };
+}
+
+export function renderedBattleStep(
+  panel: RulebookBattlePlanProps,
+  index: number
+): Extract<RulebookRenderBlockV1, { kind: 'battle-step' }> {
+  return {
+    id: `step-${index}`,
+    kind: 'battle-step',
+    step: panel.step,
+    title: panel.title,
+    caption: panel.caption,
+    dialogue: panel.dialogue ? [...panel.dialogue] : undefined,
+    outcome: panel.outcome,
+    showSideLabels: index === 0,
+    left: renderedSide(panel.left),
+    right: renderedSide(panel.right),
+  };
+}
+
+export function battleSequencePage(panels: RulebookBattlePlanProps[]): RulebookRenderPageV1 {
+  return {
+    id: 'battle-sequence',
+    anchor: 'battle-sequence',
+    title: 'An illustrated battle',
+    layoutId: 'sequence',
+    showHeading: true,
+    controlValues: {},
+    regions: [{ key: 'content', blocks: panels.map(renderedBattleStep) }],
+  };
+}

@@ -1,7 +1,9 @@
 import { z } from 'zod';
 
+import { TroopArtwork } from '../factions/schema';
 import { parseFormattedText } from '../formattedText';
 import type { NormalizedFormattedText } from '../formattedText';
+import { rulebookBattleSideSchema, rulebookBattleStepFields, rulebookBattleTroopSchema } from './battleStep';
 import {
   rulebookIllustrationSizeSchema,
   assetExplainerBlockSchema,
@@ -41,6 +43,16 @@ const renderFactionSchema = z.discriminatedUnion('status', [
   z.strictObject({ status: z.literal('unavailable'), factionId: z.string().min(1) }),
   rulebookResolvedFactionSchema.extend({ status: z.literal('ready'), factionId: z.string().min(1) }),
 ]);
+const renderBattleSideSchema = rulebookBattleSideSchema
+  .omit({ factionId: true, leader: true, cards: true, knownCard: true, troops: true })
+  .extend({
+    faction: renderFactionSchema,
+    leader: rulebookResolvedSourceSchema,
+    cards: z.array(rulebookResolvedSourceSchema),
+    knownCard: rulebookResolvedSourceSchema.optional(),
+    troops: z.array(rulebookBattleTroopSchema.extend({ artwork: TroopArtwork.optional() })),
+  });
+
 const renderCoverControlSchema = z.strictObject({
   footer: rulebookCoverFooterSchema
     .omit({ leftFactionId: true, rightFactionId: true })
@@ -70,6 +82,13 @@ const renderCardGuideFields = {
 };
 
 const renderBlockSchemas = {
+  'battle-step': z.strictObject({
+    ...renderBlockBase,
+    kind: z.literal('battle-step'),
+    ...rulebookBattleStepFields,
+    left: renderBattleSideSchema,
+    right: renderBattleSideSchema,
+  }),
   text: z.strictObject({
     ...renderBlockBase,
     kind: z.literal('text'),
@@ -204,6 +223,7 @@ const renderBlockSchemas = {
  */
 export const renderBlockSchema = z.discriminatedUnion('kind', [
   renderBlockSchemas.text,
+  renderBlockSchemas['battle-step'],
   renderBlockSchemas['section-heading'],
   renderBlockSchemas.list,
   renderBlockSchemas.callout,

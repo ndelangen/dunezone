@@ -57,6 +57,18 @@ export function rulebookHtmlImages(
         image(item.source);
       }
     }
+    if (block.kind === 'battle-step') {
+      for (const side of [block.left, block.right]) {
+        faction(side.faction);
+        image(side.leader);
+        for (const card of side.cards) {
+          image(card);
+        }
+        if (side.knownCard) {
+          image(side.knownCard);
+        }
+      }
+    }
     if (block.kind === 'faction-introduction' || block.kind === 'section-heading') {
       faction(block.faction);
     }

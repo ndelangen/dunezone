@@ -356,3 +356,55 @@ describe('downloaded Rulebook images', () => {
     expect(JSON.stringify(document)).not.toContain('https://');
   });
 });
+
+test('battle plans freeze leader, card and revealed-knowledge images without changing the saved plan', () => {
+  const document = createRulebookRenderDocumentFixture();
+  const side = {
+    faction: { status: 'unavailable' as const, factionId: 'missing' },
+    role: 'Aggressor',
+    revealed: true,
+    dial: 3,
+    spice: 2,
+    troops: [],
+    leader: {
+      status: 'ready' as const,
+      reference: { kind: 'faction-member' as const, factionId, memberId },
+      name: 'Gurney',
+      imageUrl: '/published/gurney.jpg?v=one',
+    },
+    cards: [
+      {
+        status: 'ready' as const,
+        reference: { kind: 'asset' as const, assetId: 'pistol' },
+        name: 'Pistol',
+        imageUrl: '/published/pistol.jpg?v=two',
+      },
+    ],
+    knownCard: {
+      status: 'ready' as const,
+      reference: { kind: 'asset' as const, assetId: 'snooper' },
+      name: 'Snooper',
+      imageUrl: '/published/snooper.jpg?v=three',
+    },
+  };
+  const block = {
+    id: 'BTTL',
+    kind: 'battle-step' as const,
+    step: '4',
+    title: 'Reveal',
+    caption: '',
+    left: side,
+    right: { ...side, role: 'Defender' },
+  };
+  document.pagesById.RULE!.regions[0]!.blocks.push(block);
+  const before = structuredClone(document);
+  const exported = rulebookRenderDocumentV1Schema.parse(rulebookHtmlImages(document, 'https://dune.zone'));
+  expect(exported.pagesById.RULE!.regions[0]!.blocks.at(-1)).toMatchObject({
+    left: {
+      leader: { imageUrl: 'https://dune.zone/published/gurney.jpg?v=one' },
+      cards: [{ imageUrl: 'https://dune.zone/published/pistol.jpg?v=two' }],
+      knownCard: { imageUrl: 'https://dune.zone/published/snooper.jpg?v=three' },
+    },
+  });
+  expect(document).toEqual(before);
+});

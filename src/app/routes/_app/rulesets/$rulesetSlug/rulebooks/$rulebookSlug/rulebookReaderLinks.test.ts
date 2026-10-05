@@ -50,6 +50,37 @@ function resolveFinalPageSelection(page: RulebookContentsDraft['pagesById'][stri
 }
 
 describe('Final Rulebook reading order', () => {
+  test('keeps a battle explanation shareable across its caption, dialogue and outcome', () => {
+    const side = { role: '', revealed: false, dial: 0, spice: 0, cards: [], troops: [] };
+    expect(
+      resolveFinalPageSelection(
+        {
+          id: 'PAGE',
+          anchor: 'battle-example',
+          title: 'Battle example',
+          layoutId: 'sequence',
+          showHeading: false,
+          controlValues: {},
+          blockOrderByRegion: { content: ['BTLE'] },
+          blocksById: {
+            BTLE: {
+              id: 'BTLE',
+              kind: 'battle-step',
+              step: '2',
+              title: 'Ask for the weapon',
+              caption: 'The weapon is revealed early.',
+              left: side,
+              right: side,
+              dialogue: [{ speaker: 'right', text: 'Gom Jabbar.' }],
+              outcome: 'The rest of the plan stays hidden.',
+            },
+          },
+        },
+        'The weapon is revealed early. Faction unavailable: Gom Jabbar. The rest of the plan stays hidden.'
+      ).status
+    ).toBe('matched');
+  });
+
   const base = { id: 'PAGE', anchor: 'rules', title: 'Rules', showHeading: false };
   const blocksById = {
     AAAA: { id: 'AAAA', kind: 'text' as const, text: 'First column.' },

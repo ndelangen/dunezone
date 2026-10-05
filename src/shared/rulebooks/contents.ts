@@ -4,6 +4,7 @@ import { GENERIC, ICON, LOGO } from '../assetIds';
 import { normalizeFormattedText, parseFormattedText } from '../formattedText';
 import type { NormalizedFormattedText } from '../formattedText';
 import { userImageSourceUrlSchema } from '../user-images/contract';
+import { rulebookBattleStepFields } from './battleStep';
 import { rulebookCoverImageSchema } from './coverImage';
 import { rulebookCoverPresetIdSchema } from './coverPresets';
 import type { RulebookSize } from './settings';
@@ -21,7 +22,7 @@ export const rulebookTextReferencesSchema = z.array(
 );
 
 /** Creation callers declare the catalogue they can read before receiving starter or cloned Contents. */
-export const RULEBOOK_CATALOGUE_VERSION = 10;
+export const RULEBOOK_CATALOGUE_VERSION = 11;
 
 export const rulebookLocalIdAlphabet = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ' as const;
 const rulebookLocalIdPattern = new RegExp(`^[${rulebookLocalIdAlphabet}]{4}$`);
@@ -59,6 +60,7 @@ export const rulebookBlockKinds = [
   'illustrated-inventory',
   'faction-introduction',
   'card-entry',
+  'battle-step',
   'card-group',
   'asset-explainer',
   'reference-table',
@@ -74,6 +76,7 @@ export const rulebookBlockKindLabels = {
   'referenced-illustration': 'Referenced illustration',
   'illustrated-inventory': 'Illustrated inventory',
   'card-entry': 'Card entry',
+  'battle-step': 'Battle step',
   'card-group': 'Card group',
   'asset-explainer': 'AssetExplainer',
   'faction-introduction': 'Faction introduction',
@@ -216,6 +219,13 @@ function rulebookBlockSchemas<Text extends z.ZodType, Anchor extends z.ZodType, 
     text,
   });
 
+  const battleStepBlock = z.strictObject({
+    id: rulebookLocalIdSchema,
+    kind: z.literal('battle-step'),
+    anchor: anchor.optional(),
+    ...rulebookBattleStepFields,
+  });
+
   const cardGuideFields = {
     source: rulebookCardSourceReferenceSchema.optional(),
     text,
@@ -313,6 +323,7 @@ function rulebookBlockSchemas<Text extends z.ZodType, Anchor extends z.ZodType, 
       illustratedInventoryBlock,
       factionIntroductionBlock,
       cardEntryBlock,
+      battleStepBlock,
       cardGroupBlock,
       assetExplainerBlock,
       referenceTableBlock,
@@ -388,12 +399,18 @@ const coverControlSchema = z.strictObject({
   subtitle: z.string(),
   supportingText: z.string(),
 });
-/** The five fixed interior grids and Cover; every Block region accepts the whole catalogue. */
+/** Fixed interior grids and Cover; every Block region accepts the whole catalogue. */
 export const rulebookLayoutCatalogue = [
   {
     id: 'single-column',
     label: 'Single column',
     supportedSizes: ['square', 'a4', 'tall'],
+    regions: [blockRegion('content', 'Content')],
+  },
+  {
+    id: 'sequence',
+    label: 'Step-by-step',
+    supportedSizes: ['square', 'a4'],
     regions: [blockRegion('content', 'Content')],
   },
   {
@@ -532,6 +549,11 @@ const singleColumnPageSchema = pageSchema(
   emptyControlValuesSchema,
   z.strictObject({ content: z.array(rulebookLocalIdSchema) })
 );
+const sequencePageSchema = pageSchema(
+  'sequence',
+  emptyControlValuesSchema,
+  z.strictObject({ content: z.array(rulebookLocalIdSchema) })
+);
 const twoColumnsPageSchema = pageSchema('two-columns', emptyControlValuesSchema, columnBlockOrderSchema);
 const wideNarrowPageSchema = pageSchema(
   'wide-narrow',
@@ -553,6 +575,7 @@ const coverPageSchema = pageSchema('cover', coverControlValuesSchema, z.strictOb
 /** One Page on its own; the Contents-level rules between Pages live in `refineRulebookContentsV1`. */
 export const rulebookPageV1Schema = z.discriminatedUnion('layoutId', [
   singleColumnPageSchema,
+  sequencePageSchema,
   twoColumnsPageSchema,
   wideNarrowPageSchema,
   outerRailPageSchema,
@@ -880,6 +903,7 @@ function draftPageSchema<Schema extends z.ZodRawShape, ControlShape extends z.Zo
 export const rulebookDraftEntitySchemas = {
   page: z.discriminatedUnion('layoutId', [
     draftPageSchema(singleColumnPageSchema, emptyControlValuesSchema),
+    draftPageSchema(sequencePageSchema, emptyControlValuesSchema),
     draftPageSchema(twoColumnsPageSchema, emptyControlValuesSchema),
     draftPageSchema(wideNarrowPageSchema, wideControlValuesSchema),
     draftPageSchema(outerRailPageSchema, emptyControlValuesSchema),
@@ -908,6 +932,7 @@ function editionPageSchema<Schema extends z.ZodRawShape, ControlShape extends z.
 
 const rulebookEditionPageV1Schema = z.discriminatedUnion('layoutId', [
   editionPageSchema(singleColumnPageSchema, emptyControlValuesSchema),
+  editionPageSchema(sequencePageSchema, emptyControlValuesSchema),
   editionPageSchema(twoColumnsPageSchema, emptyControlValuesSchema),
   editionPageSchema(wideNarrowPageSchema, wideControlValuesSchema),
   editionPageSchema(outerRailPageSchema, emptyControlValuesSchema),

@@ -1,5 +1,6 @@
 import { parseFormattedText } from '../formattedText';
 import { userImageSourceUrlSchema } from '../user-images/contract';
+import type { RulebookBattleSideValue } from './battleStep';
 import { getRulebookCoverFooter, getRulebookLayout, isRulebookCollectionBlock } from './contents';
 import type { RulebookBlockDraft, RulebookContentsDraftV1, RulebookPageDraft } from './contents';
 import { getRulebookCoverPreset } from './coverPresets';
@@ -173,6 +174,27 @@ export function projectRulebookDraftRenderBlock(
   contents?: RulebookContentsDraftV1
 ): RulebookRenderBlockV1 {
   const identity = { id: block.id, ...(block.anchor ? { anchor: block.anchor } : {}) };
+  if (block.kind === 'battle-step') {
+    const side = ({ factionId, leader, cards, knownCard, troops, ...value }: RulebookBattleSideValue) => {
+      const faction = renderFaction(factionId, factionsById);
+      return {
+        ...value,
+        faction,
+        leader: projectRulebookSource(leader, assetsById, factionsById),
+        cards: cards.map((card) => projectRulebookCardSource(card, assetsById)),
+        ...(knownCard ? { knownCard: projectRulebookCardSource(knownCard, assetsById) } : {}),
+        troops: troops.map((troop) => {
+          const artwork =
+            faction.status === 'ready' ? faction.troops?.find(({ troopId }) => troopId === troop.troopId) : undefined;
+          return {
+            ...troop,
+            ...(artwork && (troop.face === 'front' || artwork.back) ? { artwork } : {}),
+          };
+        }),
+      };
+    };
+    return { ...block, ...identity, left: side(block.left), right: side(block.right) };
+  }
   if (block.kind === 'text') {
     return {
       ...identity,
@@ -421,7 +443,12 @@ function formattedTextDiagnostics(value: string, path: readonly (string | number
 
 function blockTextDiagnostics(pageId: string, blockId: string, block: RulebookBlockDraft): RulebookRenderDiagnostic[] {
   const path = ['pagesById', pageId, 'blocksById', blockId];
-  if (block.kind === 'section-heading' || block.kind === 'referenced-illustration' || block.kind === 'credits') {
+  if (
+    block.kind === 'section-heading' ||
+    block.kind === 'referenced-illustration' ||
+    block.kind === 'credits' ||
+    block.kind === 'battle-step'
+  ) {
     return [];
   }
   if (block.kind === 'reference-table') {
