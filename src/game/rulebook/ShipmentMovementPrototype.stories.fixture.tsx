@@ -380,7 +380,7 @@ function exceptions(): Page {
       heading('fremen-heading', 'Fremen'),
       text(
         'fremen-rules',
-        'Your troops may enter, leave and cross the storm. Use the deployment-zone map for Rallying Shipment and the timing page for Zensunni Path.'
+        'Your ordinary movement has a range of two territories. Your troops may enter, leave and cross the storm. Use the deployment-zone map for Rallying Shipment and the timing page for Zensunni Path.'
       ),
     ],
     [
@@ -541,21 +541,21 @@ function actions(): Page[] {
           ),
           {
             ...scene(
-              'ship-carthag',
+              'ship-tueks',
               [
-                [0.07, 0.04, 3],
-                [0.455, 0.17, 3],
+                [0.965, 0.91, 3],
+                [0.845, 0.695, 3],
               ],
-              ['carthag']
+              ['tueks']
             ),
             routes: [
               {
                 id: 'shipment',
-                label: 'Reserves to Carthag: 3 troops, 3 spice',
+                label: "Reserves to Tuek's Sietch: 3 troops, 3 spice",
                 direction: 'forward',
                 showWaypoints: false,
                 color: '#387968',
-                waypoints: [{ position: { x: 0.15, y: 0.065 } }, { territory: 'carthag' }],
+                waypoints: [{ position: { x: 0.95, y: 0.92 } }, { territory: 'tueks' }],
               },
             ],
           },
@@ -564,21 +564,16 @@ function actions(): Page[] {
           heading('move-heading', '2. On-planet movement'),
           text(
             'move-rule',
-            'Move some or all troops from one territory to another for free: one territory, or two as Fremen. Having troops in Carthag or Arrakeen when movement begins increases this to three, even if they just shipped there and all now leave.'
+            'Move some or all troops from one territory to one adjacent territory for free. Move the group together; you cannot split it between destinations. You may move troops just shipped onto the board or a group already there.'
           ),
           {
-            ...scene('carthag-cielago', [[0.51, 0.69, 3]], ['carthag', 'imperial-basin', 'polar', 'cielago-north']),
+            ...scene('tueks-south-mesa', [[0.84, 0.76, 3]], ['tueks', 'south-mesa']),
             routes: [
               {
                 id: 'movement',
-                label: 'Carthag to Cielago North: 3 territories',
+                label: "Tuek's Sietch to South Mesa: 1 territory",
                 direction: 'forward',
-                waypoints: [
-                  { territory: 'carthag' },
-                  { territory: 'imperial-basin', position: { x: 0.55, y: 0.34 } },
-                  { territory: 'polar' },
-                  { territory: 'cielago-north' },
-                ],
+                waypoints: [{ territory: 'tueks' }, { territory: 'south-mesa', position: { x: 0.82, y: 0.8 } }],
               },
             ],
           },
@@ -594,7 +589,7 @@ function actions(): Page[] {
     },
     columns(
       'actions-limits',
-      'Destination or route?',
+      'Shipment and movement restrictions',
       [
         heading('destination-heading', 'Check the landing place'),
         list(
@@ -628,36 +623,97 @@ function actions(): Page[] {
           'If two other factions occupy Carthag, it cannot be your destination or a shortcut through the map.'
         ),
       ],
-      [text('purpose', rules.purpose)]
+      [text('sectors', rules.sectors)]
     ),
-    single('actions-range', 'One, two or three territories', [
-      table(
-        'ranges',
-        ['Movement', 'Range'],
-        [
-          ['Ordinary troops', '1 territory'],
-          ['Fremen; Cyborgs with accompanying Suboids', '2 territories'],
-          ['Ornithopters from Arrakeen or Carthag', 'Up to 3 territories'],
-        ]
-      ),
-      routeMap('range-map'),
-      text('sectors', rules.sectors),
-    ]),
-    single('actions-cities', 'Why the two cities matter', [
-      text('ornithopters', rules.ornithopters),
-      marks('cities-map', [
-        ['arrakeen', 'Holding Arrakeen unlocks ornithopter movement for troops anywhere on the board.'],
-        [
-          'carthag',
-          'Carthag gives the same access. These are the most important territories for mobility; you need either city, not both.',
-        ],
-      ]),
-      example(
-        'allied-city',
-        'An allied city is a transit stop',
-        'You may ship into allied Arrakeen, but must immediately leave in that same shipment-and-movement action. You cannot finish your action sharing it with your ally.'
-      ),
-    ]),
+    columns(
+      'actions-ornithopters',
+      'Ornithopters: move up to three territories',
+      [
+        heading('new-stack-heading', 'Move the new stack'),
+        {
+          ...scene(
+            'new-stack-flight',
+            [
+              [0.07, 0.04, 3],
+              [0.51, 0.69, 3],
+            ],
+            ['carthag', 'imperial-basin', 'polar', 'cielago-north']
+          ),
+          routes: [
+            {
+              id: 'shipment',
+              label: 'Ship 3 troops to Carthag',
+              direction: 'forward',
+              showWaypoints: false,
+              color,
+              waypoints: [{ position: { x: 0.15, y: 0.065 } }, { territory: 'carthag' }],
+            },
+            {
+              id: 'movement',
+              label: 'Move that stack to Cielago North',
+              direction: 'forward',
+              waypoints: [
+                { territory: 'carthag' },
+                { territory: 'imperial-basin', position: { x: 0.55, y: 0.34 } },
+                { territory: 'polar' },
+                { territory: 'cielago-north' },
+              ],
+            },
+          ],
+        },
+        example(
+          'new-stack-example',
+          'The city may be left empty',
+          'Cross Imperial Basin (1) and the Polar Sink (2) to Cielago North (3). All three may leave Carthag: they were there when movement began.'
+        ),
+      ],
+      [
+        heading('existing-stack-heading', 'Move an existing stack'),
+        {
+          ...scene(
+            'existing-stack-flight',
+            [
+              [0.07, 0.04, 3],
+              [0.455, 0.17, 3],
+              [0.55, 0.9, 3],
+            ],
+            ['carthag', 'tueks', 'south-mesa', 'cielago-east', 'cielago-south']
+          ),
+          routes: [
+            {
+              id: 'shipment',
+              label: 'Ship 3 troops to Carthag',
+              direction: 'forward',
+              showWaypoints: false,
+              color,
+              waypoints: [{ position: { x: 0.15, y: 0.065 } }, { territory: 'carthag' }],
+            },
+            {
+              id: 'movement',
+              label: "Move the stack from Tuek's Sietch",
+              direction: 'forward',
+              waypoints: [
+                { territory: 'tueks' },
+                { territory: 'south-mesa', position: { x: 0.82, y: 0.8 } },
+                { territory: 'cielago-east' },
+                { territory: 'cielago-south' },
+              ],
+            },
+          ],
+        },
+        example(
+          'existing-stack-example',
+          'Ornithopters help a group anywhere',
+          "Leave the new troops in Carthag. Move from Tuek's Sietch (0) through South Mesa (1) and Cielago East (2) to Cielago South (3)."
+        ),
+      ],
+      [
+        text(
+          'ornithopter-introduction',
+          'Troops in Carthag or Arrakeen when movement begins grant ornithopters: up to three territories. Shipping into either city unlocks this immediately, making them the most important territories for mobility. Choose one move below.'
+        ),
+      ]
+    ),
     deployment(),
     timing(),
     exceptions(),

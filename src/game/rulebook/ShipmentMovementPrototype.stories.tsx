@@ -24,7 +24,11 @@ const meta = preview.meta({
   },
 });
 export const FollowOneTurn = meta.story({ name: 'A: Follow one turn', args: { outline: 'turn' } });
-export const CompareTwoActions = meta.story({ name: 'B: Compare two actions', args: { outline: 'actions' } });
+export const CompareTwoActions = meta.story({
+  name: 'B: Compare two actions',
+  args: { outline: 'actions' },
+  argTypes: { page: { control: { type: 'range', min: 0, max: 6, step: 1 } } },
+});
 export const MapAtlas = meta.story({ name: 'C: Map atlas', args: { outline: 'atlas' } });
 export const DecisionGuide = meta.story({ name: 'D: Decision guide', args: { outline: 'decisions' } });
 export const BlockReview = meta.story({ name: 'Block review: inputs in use', args: { outline: 'blocks' } });
