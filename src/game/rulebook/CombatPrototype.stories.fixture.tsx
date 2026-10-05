@@ -57,7 +57,7 @@ const scenes: Record<Scene, { n: number; lead: string; rule: string; example: st
     n: 6,
     lead: 'Add strength and determine the winner.',
     rule: 'Add the troop dial, surviving leader and permitted bonuses. Higher strength wins. The aggressor normally wins ties; Mercenaries can change that. Settle the result before cards and losses.',
-    example: "Atreides has 3 + Gurney's 4 = 7. Harkonnen has 4 + 0 = 4. Atreides wins.",
+    example: "Atreides has 3 + Gurney\'s 4 = 7. Harkonnen has 4 + 0 = 4. Atreides wins.",
   },
   spite: {
     n: 7,
@@ -245,12 +245,12 @@ const tieRules = text(
 );
 const ordinaryTie = example(
   'ordinary-tie',
-  'The aggressor totals 7 and the defender totals 7. Neither uses Mercenaries. The aggressor wins.',
+  "Atreides has 3 troop strength + Gurney's 4 = 7. Harkonnen has 1 troop strength + Feyd's 6 = 7. Neither plays Mercenaries, so Atreides wins as aggressor.",
   'Example: an ordinary tie'
 );
 const mercenaryTie = example(
   'mercenary-tie',
-  'The aggressor totals 7. The defender has 6 plus 1 from Mercenaries, for 7. The defender wins.',
+  "Atreides again totals 7. Harkonnen dials 0, adds Feyd's 6 and 1 from Mercenaries, for 7. Mercenaries wins the tie for Harkonnen, the defender.",
   'Example: Mercenaries wins the tie'
 );
 
@@ -375,7 +375,43 @@ function opening(): Page {
   ]);
 }
 function ties(): Page {
-  return band('ties', 'How to resolve ties?', [tieRules], [ordinaryTie], [mercenaryTie]);
+  const left = {
+    ...revealed.left,
+    cards: [],
+    leaderKilled: false,
+    troops: revealed.left.troops.map((troop) => ({ ...troop, supported: 3, unsupported: 0, uncommitted: 3 })),
+    spice: 3,
+  };
+  const right = {
+    ...revealed.right,
+    cards: [],
+    leaderKilled: false,
+    dial: 1,
+    spice: 1,
+    troops: revealed.right.troops.map((troop) => ({ ...troop, supported: 1, unsupported: 0, uncommitted: 4 })),
+  };
+  const ordinary: Block = {
+    id: 'ordinary-tie-plans',
+    kind: 'battle-plans',
+    showSideLabels: false,
+    left,
+    right,
+  };
+  const mercenaries: Block = {
+    id: 'mercenary-tie-plans',
+    kind: 'battle-plans',
+    showSideLabels: false,
+    left,
+    right: {
+      ...right,
+      dial: 0,
+      spice: 0,
+      adjustment: 1,
+      cards: [data.sources.mercenaries as (typeof right)['leader']],
+      troops: right.troops.map((troop) => ({ ...troop, supported: 0, uncommitted: 5 })),
+    },
+  };
+  return band('ties', 'How to resolve ties?', [tieRules], [ordinary, ordinaryTie], [mercenaries, mercenaryTie]);
 }
 function specials(): Page {
   return single('special-troops', 'Special troops', [

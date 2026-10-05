@@ -1690,7 +1690,7 @@
         "id": "FQ83",
         "kind": "text",
         "name": "Sardaukar",
-        "text": "An Emperor Sardaukar supplies 2 strength with 1 spice of support, or 1 strength unsupported. Against Fremen it counts as an ordinary troop, supplying 1 with support or \u00bd without it."
+        "text": "An Emperor Sardaukar supplies 2 strength with 1 spice of support, or 1 strength unsupported. Against Fremen it counts as an ordinary troop, supplying 1 with support or ½ without it."
       },
       {
         "id": "JPGZ",
@@ -1702,7 +1702,7 @@
         "id": "SXH8",
         "kind": "text",
         "name": "Cyborgs, Suboids and patched Cyborgs",
-        "text": "An ordinary Cyborg supplies 2 strength with 1 spice of support, or 1 strength unsupported. Suboids always supply \u00bd strength and cannot be supported with spice. Cyborgs are immune to Karama.\n\nWhen Ix wins, an uncommitted Suboid may die in place of a committed Cyborg. The saved Cyborg flips to its patched side. A patched Cyborg supplies 2 strength without support spice. It can be dialed in a later winning battle without dying, then flips back. These rules do not save Ixian troops from an ordinary defeat."
+        "text": "An ordinary Cyborg supplies 2 strength with 1 spice of support, or 1 strength unsupported. Suboids always supply ½ strength and cannot be supported with spice. Cyborgs are immune to Karama.\n\nWhen Ix wins, an uncommitted Suboid may die in place of a committed Cyborg. The saved Cyborg flips to its patched side. A patched Cyborg supplies 2 strength without support spice. It can be dialed in a later winning battle without dying, then flips back. These rules do not save Ixian troops from an ordinary defeat."
       }
     ],
     "BSPC": [
@@ -2063,6 +2063,21 @@
           "count": 4
         }
       ]
+    }
+  },
+  "sources": {
+    "mercenaries": {
+      "status": "ready",
+      "reference": {
+        "kind": "asset",
+        "assetId": "ns75q03jc0a875zxdswzxq9fwn8fnx0v"
+      },
+      "name": "Mercenaries",
+      "imageUrl": "https://dune.zone/published/cards/ns75q03jc0a875zxdswzxq9fwn8fnx0v/card.jpg?v=3a3ed9de-0671-4497-9abe-1fd79dbeb7cb",
+      "assetType": "card-treachery",
+      "publicationRevision": "3a3ed9de-0671-4497-9abe-1fd79dbeb7cb",
+      "width": 900,
+      "height": 1263
     }
   }
 }

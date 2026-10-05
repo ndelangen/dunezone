@@ -23,6 +23,13 @@ const meta = preview.meta({
       await Promise.all(images.map((image) => image.decode()));
       for (const image of images) expect(image.naturalWidth).toBeGreaterThan(0);
     }
+    const ties = canvasElement.querySelector('[data-rulebook-page-id="ties"]');
+    if (ties) {
+      expect(ties.querySelectorAll('.rulebookBattlePlans')).toHaveLength(2);
+      const mercenaries = ties.querySelector<HTMLImageElement>('img[alt="Mercenaries"]');
+      expect(mercenaries).not.toBeNull();
+      await mercenaries!.decode();
+    }
     const preparation = canvasElement.querySelector('[data-rulebook-page-id="prepare"]');
     if (preparation) {
       const upperText = preparation.querySelector('[data-rulebook-region="upperLeft"]')!.getBoundingClientRect();
