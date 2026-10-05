@@ -14,57 +14,63 @@ import { RulebookPageRenderer } from './RulebookRenderer';
 
 type Specimen = 'private' | 'reveal' | 'resolution' | 'troops';
 
+const specimenPanels = {
+  private: [presciencePanel, planningPanel, revealPanel, deathPanel],
+  reveal: [planningPanel, revealPanel, deathPanel],
+  resolution: [revealPanel, deathPanel, resultPanel],
+};
+
+function battleSpecimenPage(specimen: Exclude<Specimen, 'troops'>) {
+  const page = battleSequencePage([]);
+  page.regions[0].blocks = specimenPanels[specimen].map((panel, index) => {
+    const block = renderedBattleStep(panel, index);
+    block.left.troops[0]!.uncommitted = 2;
+    block.right.troops[0]!.uncommitted = 1;
+    return block;
+  });
+  return page;
+}
+
+function troopSpecimenPage() {
+  const front = renderedBattleStep(revealPanel, 0);
+  front.title = 'Mixed troop groups';
+  front.caption = 'Supported starred troops and unsupported ordinary troops have separate readouts.';
+  const ordinary = front.left.troops[0]!;
+  front.left.troops = [
+    { ...ordinary, supported: 0, unsupported: 2 },
+    {
+      ...ordinary,
+      id: 'starred',
+      supported: 1,
+      unsupported: 0,
+      artwork: {
+        ...ordinary.artwork!,
+        name: 'Starred troops',
+        star: '/vector/troop_modifier/star-right.svg',
+        back: { image: '/vector/troop/atreides.svg', name: 'Reverse face', description: '', striped: true },
+      },
+    },
+  ];
+  const reverse = structuredClone(front);
+  reverse.id = 'reverse';
+  reverse.step = '2';
+  reverse.title = 'A selected reverse face';
+  reverse.caption = 'The troop group keeps its own counts when its reverse artwork is selected.';
+  reverse.left.troops[1]!.face = 'back';
+  const missing = structuredClone(reverse);
+  missing.id = 'unavailable';
+  missing.step = '3';
+  missing.title = 'Unavailable artwork';
+  missing.caption = 'Missing artwork is identified, while the authored support counts remain readable.';
+  missing.left.troops[1]!.artwork = undefined;
+  missing.right.faction = { status: 'unavailable', factionId: 'removed-faction' };
+  const page = battleSequencePage([]);
+  page.regions[0].blocks = [front, reverse, missing];
+  return page;
+}
+
 function BattleComicStory({ specimen = 'private' }: Readonly<{ specimen?: Specimen }>) {
-  const panels =
-    specimen === 'private'
-      ? [presciencePanel, planningPanel, revealPanel, deathPanel]
-      : specimen === 'reveal'
-        ? [planningPanel, revealPanel, deathPanel]
-        : [revealPanel, deathPanel, resultPanel];
-  const page = battleSequencePage(panels);
-  for (const block of page.regions[0].blocks) {
-    if (block.kind === 'battle-step') {
-      block.left.troops[0]!.uncommitted = 2;
-      block.right.troops[0]!.uncommitted = 1;
-    }
-  }
-  if (specimen === 'troops') {
-    const front = battleSequencePage([revealPanel]).regions[0]!.blocks[0]!;
-    if (front.kind === 'battle-step') {
-      front.title = 'Mixed troop groups';
-      front.caption = 'Supported starred troops and unsupported ordinary troops have separate readouts.';
-      const ordinary = front.left.troops[0]!;
-      front.left.troops = [
-        { ...ordinary, supported: 0, unsupported: 2 },
-        {
-          ...ordinary,
-          id: 'starred',
-          supported: 1,
-          unsupported: 0,
-          artwork: {
-            ...ordinary.artwork!,
-            name: 'Starred troops',
-            star: '/vector/troop_modifier/star-right.svg',
-            back: { image: '/vector/troop/atreides.svg', name: 'Reverse face', description: '', striped: true },
-          },
-        },
-      ];
-      const reverse = structuredClone(front);
-      reverse.id = 'reverse';
-      reverse.step = '2';
-      reverse.title = 'A selected reverse face';
-      reverse.caption = 'The troop group keeps its own counts when its reverse artwork is selected.';
-      reverse.left.troops[1]!.face = 'back';
-      const missing = structuredClone(reverse);
-      missing.id = 'unavailable';
-      missing.step = '3';
-      missing.title = 'Unavailable artwork';
-      missing.caption = 'Missing artwork is identified, while the authored support counts remain readable.';
-      missing.left.troops[1]!.artwork = undefined;
-      missing.right.faction = { status: 'unavailable', factionId: 'removed-faction' };
-      page.regions[0]!.blocks = [front, reverse, missing];
-    }
-  }
+  const page = specimen === 'troops' ? troopSpecimenPage() : battleSpecimenPage(specimen);
   return (
     <div style={{ width: 'min(960px, 94vw)' }}>
       <RulebookPageRenderer page={page} settings={{ size: 'square', design: 'illustrated' }} />

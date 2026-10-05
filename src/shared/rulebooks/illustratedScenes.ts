@@ -45,7 +45,7 @@ export const rulebookBoardTroopSchema = z.strictObject({
   gap: coordinate,
 });
 
-export const rulebookBoardAnnotationSchema = z
+const rulebookBoardAnnotationSchema = z
   .strictObject({
     id,
     title: z.string(),
@@ -59,7 +59,7 @@ export const rulebookBoardAnnotationSchema = z
   .refine((annotation) => (annotation.targetX === undefined) === (annotation.targetY === undefined), {
     message: 'A connector needs both target coordinates',
   });
-export const rulebookBoardHighlightSchema = z.strictObject({
+const rulebookBoardHighlightSchema = z.strictObject({
   territory: z.string().min(1),
   color,
   opacity: coordinate.optional(),
@@ -97,7 +97,7 @@ export const rulebookMovementTroopSchema = z.strictObject({
   ...troopSelectionFields,
   label: z.string().optional(),
 });
-export const rulebookMovementPieceSchema = z.discriminatedUnion('kind', [
+const rulebookMovementPieceSchema = z.discriminatedUnion('kind', [
   rulebookMovementSourceSchema,
   rulebookMovementTroopSchema,
 ]);

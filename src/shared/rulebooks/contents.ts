@@ -138,7 +138,6 @@ export const rulebookAssetExplainerTargetSchema = z.discriminatedUnion('kind', [
     source: rulebookSourceReferenceSchema.optional(),
   }),
 ]);
-export type RulebookAssetExplainerTarget = z.infer<typeof rulebookAssetExplainerTargetSchema>;
 export const rulebookAssetExplainerColorSchema = z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Use a six-digit hex color');
 
 /**

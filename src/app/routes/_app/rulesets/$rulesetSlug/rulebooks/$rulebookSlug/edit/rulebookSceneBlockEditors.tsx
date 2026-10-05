@@ -220,35 +220,417 @@ function NamedPosition({
   );
 }
 
-function BoardSceneFields({
-  value,
-  references,
-  onChange,
-}: {
+type BoardSceneFieldsProps = {
   value: RulebookBoardSceneValue;
   references: RulebookEditorReferences;
   onChange: (value: RulebookBoardSceneValue) => void;
+};
+
+function BoardTroopRow({
+  troop,
+  index,
+  boardId,
+  onChange,
+  references,
+}: {
+  troop: RulebookBoardSceneValue['troops'][number];
+  index: number;
+  boardId: string;
+  onChange: (fields: Partial<RulebookBoardSceneValue['troops'][number]>) => void;
+  references: RulebookEditorReferences;
 }) {
-  const parts = resolveRulebookBoardDefinition(value.boardId)?.geometry.parts ?? [];
   return (
-    <Stack gap="md">
+    <Stack gap="sm">
+      <TroopFields label={`Board group ${index + 1}`} value={troop} references={references} onChange={onChange} />
+      <NamedPosition boardId={boardId} label={`Board group ${index + 1}`} onChange={onChange} />
+      <PositionFields label={`Board group ${index + 1}`} x={troop.x} y={troop.y} onChange={onChange} />
+      <Group grow>
+        <NumberInput
+          clampBehavior="strict"
+          allowLeadingZeros={false}
+          label="Columns"
+          min={1}
+          max={20}
+          allowDecimal={false}
+          value={troop.columns}
+          onChange={(columns) => onChange({ columns: typeof columns === 'number' ? columns : 1 })}
+        />
+        <NumberInput
+          clampBehavior="strict"
+          allowLeadingZeros={false}
+          label="Token size (%)"
+          min={0.1}
+          max={20}
+          value={troop.size * 100}
+          onChange={(size) => onChange({ size: (typeof size === 'number' ? size : 1) / 100 })}
+        />
+        <NumberInput
+          clampBehavior="strict"
+          allowLeadingZeros={false}
+          label="Gap (%)"
+          min={0}
+          max={10}
+          value={troop.gap * 100}
+          onChange={(gap) => onChange({ gap: (typeof gap === 'number' ? gap : 0) / 100 })}
+        />
+      </Group>
+    </Stack>
+  );
+}
+
+function BoardHighlightRow({
+  highlight,
+  index,
+  boardId,
+  onChange,
+}: {
+  highlight: RulebookBoardSceneValue['highlights'][number];
+  index: number;
+  boardId: string;
+  onChange: (fields: Partial<RulebookBoardSceneValue['highlights'][number]>) => void;
+}) {
+  const parts = resolveRulebookBoardDefinition(boardId)?.geometry.parts ?? [];
+  return (
+    <Group grow align="start">
       <Select
-        label="Board"
-        data={RULEBOOK_BOARD_DEFINITIONS.map((board) => ({ value: board.id, label: board.name }))}
-        value={value.boardId}
-        onChange={(boardId) => {
-          if (boardId) {
-            onChange({ ...value, boardId });
+        label="Board feature"
+        aria-label={`Highlight ${index + 1} feature`}
+        searchable
+        data={parts.map((part) => ({ value: part.key, label: part.label ?? part.key }))}
+        value={highlight.territory}
+        onChange={(territory) => {
+          if (territory) {
+            onChange({ territory });
           }
         }}
       />
-      <Textarea
-        label="Caption"
-        autosize
-        minRows={2}
-        value={value.caption}
-        onChange={(event) => onChange({ ...value, caption: event.currentTarget.value })}
+      <ColorInput
+        label="Colour"
+        aria-label={`Highlight ${index + 1} colour`}
+        value={highlight.color}
+        onChange={(color) => {
+          if (/^#[0-9a-fA-F]{6}$/.test(color)) {
+            onChange({ color });
+          }
+        }}
       />
+      <NumberInput
+        clampBehavior="strict"
+        allowLeadingZeros={false}
+        label="Opacity (%)"
+        min={0}
+        max={100}
+        value={(highlight.opacity ?? 0.4) * 100}
+        onChange={(opacity) => onChange({ opacity: (typeof opacity === 'number' ? opacity : 0) / 100 })}
+      />
+    </Group>
+  );
+}
+
+function BoardAnnotationRow({
+  annotation,
+  index,
+  boardId,
+  onChange,
+}: {
+  annotation: RulebookBoardSceneValue['annotations'][number];
+  index: number;
+  boardId: string;
+  onChange: (fields: Partial<RulebookBoardSceneValue['annotations'][number]>) => void;
+}) {
+  return (
+    <Stack gap="sm">
+      <TextInput
+        label="Title"
+        aria-label={`Annotation ${index + 1} title`}
+        value={annotation.title}
+        onChange={(event) => onChange({ title: event.currentTarget.value })}
+      />
+      <Textarea
+        label="Explanation"
+        aria-label={`Annotation ${index + 1} explanation`}
+        value={annotation.text}
+        onChange={(event) => onChange({ text: event.currentTarget.value })}
+      />
+      <NamedPosition boardId={boardId} label={`Annotation ${index + 1}`} onChange={onChange} />
+      <PositionFields label={`Annotation ${index + 1}`} x={annotation.x} y={annotation.y} onChange={onChange} />
+      <Switch
+        label="Point at another location"
+        checked={annotation.targetX !== undefined && annotation.targetY !== undefined}
+        onChange={(event) =>
+          onChange({
+            targetX: event.currentTarget.checked ? annotation.x : undefined,
+            targetY: event.currentTarget.checked ? annotation.y : undefined,
+          })
+        }
+      />
+      {annotation.targetX !== undefined && annotation.targetY !== undefined ? (
+        <PositionFields
+          label={`Annotation ${index + 1} target`}
+          x={annotation.targetX}
+          y={annotation.targetY}
+          onChange={({ x, y }) =>
+            onChange({
+              ...(x !== undefined ? { targetX: x } : {}),
+              ...(y !== undefined ? { targetY: y } : {}),
+            })
+          }
+        />
+      ) : null}
+      <ColorInput
+        label="Colour"
+        aria-label={`Annotation ${index + 1} colour`}
+        value={annotation.color ?? ''}
+        onChange={(color) => {
+          if (!color || /^#[0-9a-fA-F]{6}$/.test(color)) {
+            onChange({ color: color || undefined });
+          }
+        }}
+      />
+    </Stack>
+  );
+}
+
+function BoardPlayerFields({ value, onChange, references }: BoardSceneFieldsProps) {
+  return (
+    <Accordion.Item value="players">
+      <Accordion.Control>Player markers ({value.players.length})</Accordion.Control>
+      <Accordion.Panel>
+        <ControlBlock
+          title="Player markers"
+          tool={
+            <ListLengthActions
+              addLabel="Add player marker"
+              addDisabled={value.players.length >= 64}
+              removeLabel="Remove last player marker"
+              removeDisabled={!value.players.length}
+              onAdd={() =>
+                onChange({
+                  ...value,
+                  players: [
+                    ...value.players,
+                    { id: createRulebookLocalId(value.players.map((entry) => entry.id)), angle: 0 },
+                  ],
+                })
+              }
+              onRemove={() => onChange({ ...value, players: value.players.slice(0, -1) })}
+            />
+          }
+          input={
+            <Stack gap="md">
+              {value.players.map((player, index) => (
+                <Stack key={player.id} gap="sm">
+                  <FactionControl
+                    label={`player ${index + 1}`}
+                    factionId={player.factionId}
+                    references={references}
+                    onChange={(factionId) =>
+                      onChange({
+                        ...value,
+                        players: value.players.map((entry) =>
+                          entry.id === player.id ? { ...entry, factionId } : entry
+                        ),
+                      })
+                    }
+                  />
+                  <NumberInput
+                    clampBehavior="strict"
+                    allowLeadingZeros={false}
+                    label="Position angle"
+                    aria-label={`Player ${index + 1} angle`}
+                    min={-360}
+                    max={360}
+                    value={player.angle}
+                    onChange={(angle) =>
+                      onChange({
+                        ...value,
+                        players: value.players.map((entry) =>
+                          entry.id === player.id ? { ...entry, angle: typeof angle === 'number' ? angle : 0 } : entry
+                        ),
+                      })
+                    }
+                  />
+                </Stack>
+              ))}
+            </Stack>
+          }
+        />
+      </Accordion.Panel>
+    </Accordion.Item>
+  );
+}
+
+function BoardTroopFields({ value, onChange, references }: BoardSceneFieldsProps) {
+  return (
+    <Accordion.Item value="troops">
+      <Accordion.Control>Troop groups ({value.troops.length})</Accordion.Control>
+      <Accordion.Panel>
+        <ControlBlock
+          title="Troop groups"
+          tool={
+            <ListLengthActions
+              addLabel="Add board troop group"
+              addDisabled={value.troops.length >= 64}
+              removeLabel="Remove last board troop group"
+              removeDisabled={!value.troops.length}
+              onAdd={() =>
+                onChange({
+                  ...value,
+                  troops: [
+                    ...value.troops,
+                    {
+                      id: createRulebookLocalId(value.troops.map((entry) => entry.id)),
+                      face: 'front',
+                      count: 1,
+                      x: 0.5,
+                      y: 0.5,
+                      columns: 3,
+                      size: 0.04,
+                      gap: 0.005,
+                    },
+                  ],
+                })
+              }
+              onRemove={() => onChange({ ...value, troops: value.troops.slice(0, -1) })}
+            />
+          }
+          input={
+            <Stack gap="md">
+              {value.troops.map((troop, index) => (
+                <BoardTroopRow
+                  key={troop.id}
+                  troop={troop}
+                  index={index}
+                  boardId={value.boardId}
+                  references={references}
+                  onChange={(fields) =>
+                    onChange({
+                      ...value,
+                      troops: value.troops.map((entry) => (entry.id === troop.id ? { ...entry, ...fields } : entry)),
+                    })
+                  }
+                />
+              ))}
+            </Stack>
+          }
+        />
+      </Accordion.Panel>
+    </Accordion.Item>
+  );
+}
+
+function BoardHighlightFields({ value, onChange }: BoardSceneFieldsProps) {
+  const parts = resolveRulebookBoardDefinition(value.boardId)?.geometry.parts ?? [];
+  return (
+    <Accordion.Item value="highlights">
+      <Accordion.Control>Highlights ({value.highlights.length})</Accordion.Control>
+      <Accordion.Panel>
+        <ControlBlock
+          title="Highlights"
+          tool={
+            <ListLengthActions
+              addLabel="Add highlight"
+              addDisabled={value.highlights.length >= 64}
+              removeLabel="Remove last highlight"
+              removeDisabled={!value.highlights.length}
+              onAdd={() =>
+                onChange({
+                  ...value,
+                  highlights: [
+                    ...value.highlights,
+                    { territory: parts[0]?.key ?? 'strongholds', color: '#e9bb42', opacity: 0.4 },
+                  ],
+                })
+              }
+              onRemove={() => onChange({ ...value, highlights: value.highlights.slice(0, -1) })}
+            />
+          }
+          input={
+            <Stack gap="md">
+              {value.highlights.map((highlight, index) => (
+                <BoardHighlightRow
+                  key={index}
+                  highlight={highlight}
+                  index={index}
+                  boardId={value.boardId}
+                  onChange={(fields) =>
+                    onChange({
+                      ...value,
+                      highlights: value.highlights.map((entry, position) =>
+                        position === index ? { ...entry, ...fields } : entry
+                      ),
+                    })
+                  }
+                />
+              ))}
+            </Stack>
+          }
+        />
+      </Accordion.Panel>
+    </Accordion.Item>
+  );
+}
+
+function BoardAnnotationFields({ value, onChange }: BoardSceneFieldsProps) {
+  return (
+    <Accordion.Item value="annotations">
+      <Accordion.Control>Annotations ({value.annotations.length})</Accordion.Control>
+      <Accordion.Panel>
+        <ControlBlock
+          title="Annotations"
+          tool={
+            <ListLengthActions
+              addLabel="Add annotation"
+              addDisabled={value.annotations.length >= 64}
+              removeLabel="Remove last annotation"
+              removeDisabled={!value.annotations.length}
+              onAdd={() =>
+                onChange({
+                  ...value,
+                  annotations: [
+                    ...value.annotations,
+                    {
+                      id: createRulebookLocalId(value.annotations.map((entry) => entry.id)),
+                      title: '',
+                      text: '',
+                      x: 0.5,
+                      y: 0.5,
+                    },
+                  ],
+                })
+              }
+              onRemove={() => onChange({ ...value, annotations: value.annotations.slice(0, -1) })}
+            />
+          }
+          input={
+            <Stack gap="md">
+              {value.annotations.map((annotation, index) => (
+                <BoardAnnotationRow
+                  key={annotation.id}
+                  annotation={annotation}
+                  index={index}
+                  boardId={value.boardId}
+                  onChange={(fields) =>
+                    onChange({
+                      ...value,
+                      annotations: value.annotations.map((entry) =>
+                        entry.id === annotation.id ? { ...entry, ...fields } : entry
+                      ),
+                    })
+                  }
+                />
+              ))}
+            </Stack>
+          }
+        />
+      </Accordion.Panel>
+    </Accordion.Item>
+  );
+}
+
+function BoardViewportFields({ value, onChange }: BoardSceneFieldsProps) {
+  return (
+    <>
       <Switch
         label="Focus on part of the board"
         checked={Boolean(value.viewport)}
@@ -292,6 +674,13 @@ function BoardSceneFields({
           </Group>
         </Stack>
       ) : null}
+    </>
+  );
+}
+
+function BoardStormFields({ value, onChange }: BoardSceneFieldsProps) {
+  return (
+    <>
       <Switch
         label="Show storm"
         checked={Boolean(value.storm)}
@@ -309,336 +698,37 @@ function BoardSceneFields({
           onChange={(angle) => onChange({ ...value, storm: { angle: typeof angle === 'number' ? angle : 0 } })}
         />
       ) : null}
+    </>
+  );
+}
+
+function BoardSceneFields({ value, references, onChange }: BoardSceneFieldsProps) {
+  return (
+    <Stack gap="md">
+      <Select
+        label="Board"
+        data={RULEBOOK_BOARD_DEFINITIONS.map((board) => ({ value: board.id, label: board.name }))}
+        value={value.boardId}
+        onChange={(boardId) => {
+          if (boardId) {
+            onChange({ ...value, boardId });
+          }
+        }}
+      />
+      <Textarea
+        label="Caption"
+        autosize
+        minRows={2}
+        value={value.caption}
+        onChange={(event) => onChange({ ...value, caption: event.currentTarget.value })}
+      />
+      <BoardViewportFields value={value} references={references} onChange={onChange} />
+      <BoardStormFields value={value} references={references} onChange={onChange} />
       <Accordion multiple>
-        <Accordion.Item value="players">
-          <Accordion.Control>Player markers ({value.players.length})</Accordion.Control>
-          <Accordion.Panel>
-            <ControlBlock
-              title="Player markers"
-              tool={
-                <ListLengthActions
-                  addLabel="Add player marker"
-                  addDisabled={value.players.length >= 64}
-                  removeLabel="Remove last player marker"
-                  removeDisabled={!value.players.length}
-                  onAdd={() =>
-                    onChange({
-                      ...value,
-                      players: [
-                        ...value.players,
-                        { id: createRulebookLocalId(value.players.map((entry) => entry.id)), angle: 0 },
-                      ],
-                    })
-                  }
-                  onRemove={() => onChange({ ...value, players: value.players.slice(0, -1) })}
-                />
-              }
-              input={
-                <Stack gap="md">
-                  {value.players.map((player, index) => (
-                    <Stack key={player.id} gap="sm">
-                      <FactionControl
-                        label={`player ${index + 1}`}
-                        factionId={player.factionId}
-                        references={references}
-                        onChange={(factionId) =>
-                          onChange({
-                            ...value,
-                            players: value.players.map((entry) =>
-                              entry.id === player.id ? { ...entry, factionId } : entry
-                            ),
-                          })
-                        }
-                      />
-                      <NumberInput
-                        clampBehavior="strict"
-                        allowLeadingZeros={false}
-                        label="Position angle"
-                        aria-label={`Player ${index + 1} angle`}
-                        min={-360}
-                        max={360}
-                        value={player.angle}
-                        onChange={(angle) =>
-                          onChange({
-                            ...value,
-                            players: value.players.map((entry) =>
-                              entry.id === player.id
-                                ? { ...entry, angle: typeof angle === 'number' ? angle : 0 }
-                                : entry
-                            ),
-                          })
-                        }
-                      />
-                    </Stack>
-                  ))}
-                </Stack>
-              }
-            />
-          </Accordion.Panel>
-        </Accordion.Item>
-        <Accordion.Item value="troops">
-          <Accordion.Control>Troop groups ({value.troops.length})</Accordion.Control>
-          <Accordion.Panel>
-            <ControlBlock
-              title="Troop groups"
-              tool={
-                <ListLengthActions
-                  addLabel="Add board troop group"
-                  addDisabled={value.troops.length >= 64}
-                  removeLabel="Remove last board troop group"
-                  removeDisabled={!value.troops.length}
-                  onAdd={() =>
-                    onChange({
-                      ...value,
-                      troops: [
-                        ...value.troops,
-                        {
-                          id: createRulebookLocalId(value.troops.map((entry) => entry.id)),
-                          face: 'front',
-                          count: 1,
-                          x: 0.5,
-                          y: 0.5,
-                          columns: 3,
-                          size: 0.04,
-                          gap: 0.005,
-                        },
-                      ],
-                    })
-                  }
-                  onRemove={() => onChange({ ...value, troops: value.troops.slice(0, -1) })}
-                />
-              }
-              input={
-                <Stack gap="md">
-                  {value.troops.map((troop, index) => {
-                    const update = (fields: Partial<typeof troop>) =>
-                      onChange({
-                        ...value,
-                        troops: value.troops.map((entry) => (entry.id === troop.id ? { ...entry, ...fields } : entry)),
-                      });
-                    return (
-                      <Stack gap="sm" key={troop.id}>
-                        <TroopFields
-                          label={`Board group ${index + 1}`}
-                          value={troop}
-                          references={references}
-                          onChange={update}
-                        />
-                        <NamedPosition boardId={value.boardId} label={`Board group ${index + 1}`} onChange={update} />
-                        <PositionFields label={`Board group ${index + 1}`} x={troop.x} y={troop.y} onChange={update} />
-                        <Group grow>
-                          <NumberInput
-                            clampBehavior="strict"
-                            allowLeadingZeros={false}
-                            label="Columns"
-                            min={1}
-                            max={20}
-                            allowDecimal={false}
-                            value={troop.columns}
-                            onChange={(columns) => update({ columns: typeof columns === 'number' ? columns : 1 })}
-                          />
-                          <NumberInput
-                            clampBehavior="strict"
-                            allowLeadingZeros={false}
-                            label="Token size (%)"
-                            min={0.1}
-                            max={20}
-                            value={troop.size * 100}
-                            onChange={(size) => update({ size: (typeof size === 'number' ? size : 1) / 100 })}
-                          />
-                          <NumberInput
-                            clampBehavior="strict"
-                            allowLeadingZeros={false}
-                            label="Gap (%)"
-                            min={0}
-                            max={10}
-                            value={troop.gap * 100}
-                            onChange={(gap) => update({ gap: (typeof gap === 'number' ? gap : 0) / 100 })}
-                          />
-                        </Group>
-                      </Stack>
-                    );
-                  })}
-                </Stack>
-              }
-            />
-          </Accordion.Panel>
-        </Accordion.Item>
-        <Accordion.Item value="highlights">
-          <Accordion.Control>Highlights ({value.highlights.length})</Accordion.Control>
-          <Accordion.Panel>
-            <ControlBlock
-              title="Highlights"
-              tool={
-                <ListLengthActions
-                  addLabel="Add highlight"
-                  addDisabled={value.highlights.length >= 64}
-                  removeLabel="Remove last highlight"
-                  removeDisabled={!value.highlights.length}
-                  onAdd={() =>
-                    onChange({
-                      ...value,
-                      highlights: [
-                        ...value.highlights,
-                        { territory: parts[0]?.key ?? 'strongholds', color: '#e9bb42', opacity: 0.4 },
-                      ],
-                    })
-                  }
-                  onRemove={() => onChange({ ...value, highlights: value.highlights.slice(0, -1) })}
-                />
-              }
-              input={
-                <Stack gap="md">
-                  {value.highlights.map((highlight, index) => {
-                    const update = (fields: Partial<typeof highlight>) =>
-                      onChange({
-                        ...value,
-                        highlights: value.highlights.map((entry, position) =>
-                          position === index ? { ...entry, ...fields } : entry
-                        ),
-                      });
-                    return (
-                      <Group grow align="start" key={index}>
-                        <Select
-                          label="Board feature"
-                          aria-label={`Highlight ${index + 1} feature`}
-                          searchable
-                          data={parts.map((part) => ({ value: part.key, label: part.label ?? part.key }))}
-                          value={highlight.territory}
-                          onChange={(territory) => {
-                            if (territory) {
-                              update({ territory });
-                            }
-                          }}
-                        />
-                        <ColorInput
-                          label="Colour"
-                          aria-label={`Highlight ${index + 1} colour`}
-                          value={highlight.color}
-                          onChange={(color) => {
-                            if (/^#[0-9a-fA-F]{6}$/.test(color)) {
-                              update({ color });
-                            }
-                          }}
-                        />
-                        <NumberInput
-                          clampBehavior="strict"
-                          allowLeadingZeros={false}
-                          label="Opacity (%)"
-                          min={0}
-                          max={100}
-                          value={(highlight.opacity ?? 0.4) * 100}
-                          onChange={(opacity) => update({ opacity: (typeof opacity === 'number' ? opacity : 0) / 100 })}
-                        />
-                      </Group>
-                    );
-                  })}
-                </Stack>
-              }
-            />
-          </Accordion.Panel>
-        </Accordion.Item>
-        <Accordion.Item value="annotations">
-          <Accordion.Control>Annotations ({value.annotations.length})</Accordion.Control>
-          <Accordion.Panel>
-            <ControlBlock
-              title="Annotations"
-              tool={
-                <ListLengthActions
-                  addLabel="Add annotation"
-                  addDisabled={value.annotations.length >= 64}
-                  removeLabel="Remove last annotation"
-                  removeDisabled={!value.annotations.length}
-                  onAdd={() =>
-                    onChange({
-                      ...value,
-                      annotations: [
-                        ...value.annotations,
-                        {
-                          id: createRulebookLocalId(value.annotations.map((entry) => entry.id)),
-                          title: '',
-                          text: '',
-                          x: 0.5,
-                          y: 0.5,
-                        },
-                      ],
-                    })
-                  }
-                  onRemove={() => onChange({ ...value, annotations: value.annotations.slice(0, -1) })}
-                />
-              }
-              input={
-                <Stack gap="md">
-                  {value.annotations.map((annotation, index) => {
-                    const update = (fields: Partial<typeof annotation>) =>
-                      onChange({
-                        ...value,
-                        annotations: value.annotations.map((entry) =>
-                          entry.id === annotation.id ? { ...entry, ...fields } : entry
-                        ),
-                      });
-                    return (
-                      <Stack key={annotation.id} gap="sm">
-                        <TextInput
-                          label="Title"
-                          aria-label={`Annotation ${index + 1} title`}
-                          value={annotation.title}
-                          onChange={(event) => update({ title: event.currentTarget.value })}
-                        />
-                        <Textarea
-                          label="Explanation"
-                          aria-label={`Annotation ${index + 1} explanation`}
-                          value={annotation.text}
-                          onChange={(event) => update({ text: event.currentTarget.value })}
-                        />
-                        <NamedPosition boardId={value.boardId} label={`Annotation ${index + 1}`} onChange={update} />
-                        <PositionFields
-                          label={`Annotation ${index + 1}`}
-                          x={annotation.x}
-                          y={annotation.y}
-                          onChange={update}
-                        />
-                        <Switch
-                          label="Point at another location"
-                          checked={annotation.targetX !== undefined && annotation.targetY !== undefined}
-                          onChange={(event) =>
-                            update({
-                              targetX: event.currentTarget.checked ? annotation.x : undefined,
-                              targetY: event.currentTarget.checked ? annotation.y : undefined,
-                            })
-                          }
-                        />
-                        {annotation.targetX !== undefined && annotation.targetY !== undefined ? (
-                          <PositionFields
-                            label={`Annotation ${index + 1} target`}
-                            x={annotation.targetX}
-                            y={annotation.targetY}
-                            onChange={({ x, y }) =>
-                              update({
-                                ...(x !== undefined ? { targetX: x } : {}),
-                                ...(y !== undefined ? { targetY: y } : {}),
-                              })
-                            }
-                          />
-                        ) : null}
-                        <ColorInput
-                          label="Colour"
-                          aria-label={`Annotation ${index + 1} colour`}
-                          value={annotation.color ?? ''}
-                          onChange={(color) => {
-                            if (!color || /^#[0-9a-fA-F]{6}$/.test(color)) {
-                              update({ color: color || undefined });
-                            }
-                          }}
-                        />
-                      </Stack>
-                    );
-                  })}
-                </Stack>
-              }
-            />
-          </Accordion.Panel>
-        </Accordion.Item>
+        <BoardPlayerFields value={value} references={references} onChange={onChange} />
+        <BoardTroopFields value={value} references={references} onChange={onChange} />
+        <BoardHighlightFields value={value} references={references} onChange={onChange} />
+        <BoardAnnotationFields value={value} references={references} onChange={onChange} />
       </Accordion>
     </Stack>
   );
@@ -832,65 +922,7 @@ export function PieceMovementEdit({
           onChange={(board) => onChange({ ...value, board })}
         />
       ) : null}
-      <ControlBlock
-        title="Notes"
-        tool={
-          <ListLengthActions
-            addLabel="Add movement note"
-            addDisabled={(value.notes?.length ?? 0) >= 64}
-            removeLabel="Remove last movement note"
-            removeDisabled={!value.notes?.length}
-            onAdd={() =>
-              onChange({
-                ...value,
-                notes: [
-                  ...(value.notes ?? []),
-                  { id: createRulebookLocalId((value.notes ?? []).map((note) => note.id)), label: '', count: 1 },
-                ],
-              })
-            }
-            onRemove={() => onChange({ ...value, notes: value.notes?.slice(0, -1) })}
-          />
-        }
-        input={
-          <Stack gap="md">
-            {value.notes?.map((note, index) => {
-              const update = (fields: Partial<typeof note>) =>
-                onChange({
-                  ...value,
-                  notes: value.notes?.map((entry) => (entry.id === note.id ? { ...entry, ...fields } : entry)),
-                });
-              return (
-                <Stack gap="sm" key={note.id}>
-                  <Textarea
-                    label="Note"
-                    aria-label={`Movement note ${index + 1}`}
-                    value={note.label}
-                    onChange={(event) => update({ label: event.currentTarget.value })}
-                  />
-                  <BattleSourceControl
-                    title={`Note ${index + 1} illustration`}
-                    source={note.source}
-                    references={references}
-                    onChange={(source) => update({ source })}
-                  />
-                  <NumberInput
-                    clampBehavior="strict"
-                    allowLeadingZeros={false}
-                    label="Count"
-                    aria-label={`Note ${index + 1} count`}
-                    min={0}
-                    max={100}
-                    allowDecimal={false}
-                    value={note.count}
-                    onChange={(count) => update({ count: typeof count === 'number' ? count : 0 })}
-                  />
-                </Stack>
-              );
-            })}
-          </Stack>
-        }
-      />
+      <MovementNotesFields value={value} references={references} onChange={onChange} />
     </Stack>
   );
 }
@@ -921,5 +953,77 @@ export function BattleComparisonEdit({
         </Accordion.Item>
       ))}
     </Accordion>
+  );
+}
+
+function MovementNotesFields({
+  value,
+  references,
+  onChange,
+}: {
+  value: RulebookPieceMovementValue;
+  references: RulebookEditorReferences;
+  onChange: (value: RulebookPieceMovementValue) => void;
+}) {
+  return (
+    <ControlBlock
+      title="Notes"
+      tool={
+        <ListLengthActions
+          addLabel="Add movement note"
+          addDisabled={(value.notes?.length ?? 0) >= 64}
+          removeLabel="Remove last movement note"
+          removeDisabled={!value.notes?.length}
+          onAdd={() =>
+            onChange({
+              ...value,
+              notes: [
+                ...(value.notes ?? []),
+                { id: createRulebookLocalId((value.notes ?? []).map((note) => note.id)), label: '', count: 1 },
+              ],
+            })
+          }
+          onRemove={() => onChange({ ...value, notes: value.notes?.slice(0, -1) })}
+        />
+      }
+      input={
+        <Stack gap="md">
+          {value.notes?.map((note, index) => {
+            const update = (fields: Partial<typeof note>) =>
+              onChange({
+                ...value,
+                notes: value.notes?.map((entry) => (entry.id === note.id ? { ...entry, ...fields } : entry)),
+              });
+            return (
+              <Stack gap="sm" key={note.id}>
+                <Textarea
+                  label="Note"
+                  aria-label={`Movement note ${index + 1}`}
+                  value={note.label}
+                  onChange={(event) => update({ label: event.currentTarget.value })}
+                />
+                <BattleSourceControl
+                  title={`Note ${index + 1} illustration`}
+                  source={note.source}
+                  references={references}
+                  onChange={(source) => update({ source })}
+                />
+                <NumberInput
+                  clampBehavior="strict"
+                  allowLeadingZeros={false}
+                  label="Count"
+                  aria-label={`Note ${index + 1} count`}
+                  min={0}
+                  max={100}
+                  allowDecimal={false}
+                  value={note.count}
+                  onChange={(count) => update({ count: typeof count === 'number' ? count : 0 })}
+                />
+              </Stack>
+            );
+          })}
+        </Stack>
+      }
+    />
   );
 }

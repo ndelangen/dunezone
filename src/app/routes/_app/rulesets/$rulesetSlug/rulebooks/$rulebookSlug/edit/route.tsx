@@ -35,7 +35,6 @@ import {
   getRulebookLayoutsForSize,
   getRulebookRegionOrder,
   isRulebookCollectionBlock,
-  rulebookAssetExplainerTargetSchema,
   rulebookBlockKindLabels,
   rulebookBlockKinds,
   rulebookDraftEntitySchemas,
@@ -63,7 +62,6 @@ import type { RulebookResolvedAssetsById, RulebookResolvedFactionsById } from '@
 import { collectRulebookReferenceIds } from '@shared/rulebooks/references';
 import { getRulebookSize } from '@shared/rulebooks/settings';
 import type { RulebookSettings } from '@shared/rulebooks/settings';
-import { rulebookSourceReferenceSchema } from '@shared/rulebooks/sources';
 import { createFileRoute, deepEqual, Link, useNavigate } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { LoadError } from '@ui/block/LoadError';
@@ -159,7 +157,7 @@ import {
 import { rulebookBlockIcon, rulebookLayoutIcon, rulebookRegionIcon } from './rulebookEditorIcons';
 import type { RulebookEditorIconArrangement } from './rulebookEditorIcons';
 import { receiveRulebookEditorQuery } from './rulebookEditorQueryState';
-import { createRulebookEditorStateManager } from './rulebookEditorState';
+import { createRulebookEditorStateManager, rulebookFieldResolution } from './rulebookEditorState';
 import type { RulebookEditorResult, RulebookEditorStateManager } from './rulebookEditorState';
 import { PageDetailsEdit, rulebookBlockLabel } from './rulebookPageDetailsEdit';
 import type {
@@ -2260,25 +2258,6 @@ function entityReview(contents: RulebookContentsDraftV1, target: EntityRef): Rea
   );
 }
 
-function fieldResolution(field: Extract<Difference, { kind: 'field' }>['field'], value: unknown): Resolution {
-  if (field === 'target') {
-    return { kind: 'field-value', value: rulebookAssetExplainerTargetSchema.parse(value) };
-  }
-  if (field === 'source') {
-    return { kind: 'field-value', value: rulebookSourceReferenceSchema.optional().parse(value) };
-  }
-  if (field === 'quantity') {
-    return { kind: 'field-value', value: typeof value === 'number' ? value : undefined };
-  }
-  if (field === 'control-values') {
-    return { kind: 'control-values', value: Object.fromEntries(Object.entries(value as Record<string, unknown>)) };
-  }
-  if (field === 'anchor') {
-    return { kind: 'anchor', value: typeof value === 'string' ? value : undefined };
-  }
-  return { kind: 'field-value', value: typeof value === 'string' || typeof value === 'boolean' ? value : undefined };
-}
-
 function reviewPlacementContainers(
   contents: RulebookContentsDraftV1,
   target: EntityRef
@@ -2378,8 +2357,8 @@ function RulebookDifferenceReview({
             name = `${entityName(result.draft, difference.target)} / ${difference.field.replaceAll('-', ' ')}`;
             local = reviewValue(difference.localValue);
             latest = reviewValue(difference.latestValue);
-            localOutcome = fieldResolution(difference.field, difference.localValue);
-            latestOutcome = fieldResolution(difference.field, difference.latestValue);
+            localOutcome = rulebookFieldResolution(difference, difference.localValue);
+            latestOutcome = rulebookFieldResolution(difference, difference.latestValue);
           } else if (difference.kind === 'deletion') {
             name = entityName(
               difference.direction === 'saved-deletion' ? result.draft : result.latest.contents,

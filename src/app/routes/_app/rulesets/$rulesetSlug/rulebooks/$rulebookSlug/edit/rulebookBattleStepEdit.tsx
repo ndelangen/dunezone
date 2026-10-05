@@ -83,25 +83,29 @@ export function BattleSourceControl({
   );
 }
 
-function BattleSideEdit({
-  label,
-  value,
-  references,
-  onChange,
-}: {
+type BattleSideFieldsProps = {
   label: string;
   value: RulebookBattleSideValue;
   references: RulebookEditorReferences;
   onChange: (next: RulebookBattleSideValue) => void;
-}) {
-  const [openPicker, setOpenPicker] = useState<'faction' | 'card' | null>(null);
+};
+type BattlePickerProps = {
+  openPicker: 'faction' | 'card' | null;
+  setOpenPicker: (picker: 'faction' | 'card' | null) => void;
+};
+
+function BattleFactionFields({
+  label,
+  value,
+  references,
+  onChange,
+  openPicker,
+  setOpenPicker,
+}: BattleSideFieldsProps & BattlePickerProps) {
   const faction = value.factionId ? references.factionsById[value.factionId] : undefined;
-  const troopOptions = (faction?.troops ?? []).flatMap((troop) =>
-    troop.troopId ? [{ value: troop.troopId, label: troop.name || 'Unnamed troop' }] : []
-  );
   const update = (fields: Partial<RulebookBattleSideValue>) => onChange({ ...value, ...fields });
   return (
-    <Stack gap="md">
+    <>
       <ControlBlock
         title="Faction"
         input={
@@ -143,21 +147,17 @@ function BattleSideEdit({
           </Stack>
         }
       />
-      <TextInput
-        label="Role"
-        aria-label={`${label} role`}
-        placeholder="Aggressor or defender"
-        value={value.role}
-        onChange={(event) => update({ role: event.currentTarget.value })}
-      />
-      <Switch
-        label="Reveal this battle plan"
-        aria-label={`Reveal ${label.toLowerCase()} battle plan`}
-        checked={value.revealed}
-        onChange={(event) => update({ revealed: event.currentTarget.checked })}
-      />
+    </>
+  );
+}
+
+function BattleStrengthFields({ label, value, onChange }: BattleSideFieldsProps) {
+  const update = (fields: Partial<RulebookBattleSideValue>) => onChange({ ...value, ...fields });
+  return (
+    <>
       <Group grow align="start">
         <NumberInput
+          clampBehavior="strict"
           allowLeadingZeros={false}
           label="Dial"
           aria-label={`${label} dial`}
@@ -166,9 +166,16 @@ function BattleSideEdit({
           step={0.5}
           decimalScale={1}
           value={value.dial}
-          onChange={(dial) => update({ dial: typeof dial === 'number' ? dial : 0 })}
+          onChange={(dial) => {
+            if (typeof dial === 'number') {
+              update({ dial: Math.round(dial * 2) / 2 });
+            } else if (dial === '') {
+              update({ dial: 0 });
+            }
+          }}
         />
         <NumberInput
+          clampBehavior="strict"
           allowLeadingZeros={false}
           label="Spice"
           aria-label={`${label} spice`}
@@ -179,6 +186,7 @@ function BattleSideEdit({
           onChange={(spice) => update({ spice: typeof spice === 'number' ? spice : 0 })}
         />
         <NumberInput
+          clampBehavior="strict"
           allowLeadingZeros={false}
           label="Adjustment"
           aria-label={`${label} adjustment`}
@@ -187,13 +195,27 @@ function BattleSideEdit({
           step={0.5}
           decimalScale={1}
           value={value.adjustment ?? ''}
-          onChange={(adjustment) => update({ adjustment: typeof adjustment === 'number' ? adjustment : undefined })}
+          onChange={(adjustment) => {
+            if (typeof adjustment === 'number') {
+              update({ adjustment: Math.round(adjustment * 2) / 2 });
+            } else if (adjustment === '') {
+              update({ adjustment: undefined });
+            }
+          }}
         />
       </Group>
       <Text size="sm" c="dimmed">
         The dial is the troop strength shown in this step, including any adjustment. Hidden plans keep these values
         private.
       </Text>
+    </>
+  );
+}
+
+function BattleLeaderFields({ label, value, references, onChange }: BattleSideFieldsProps) {
+  const update = (fields: Partial<RulebookBattleSideValue>) => onChange({ ...value, ...fields });
+  return (
+    <>
       <BattleSourceControl
         title={`${label} leader`}
         source={value.leader}
@@ -208,6 +230,21 @@ function BattleSideEdit({
           onChange={(event) => update({ leaderKilled: event.currentTarget.checked })}
         />
       ) : null}
+    </>
+  );
+}
+
+function BattleCardFields({
+  label,
+  value,
+  references,
+  onChange,
+  openPicker,
+  setOpenPicker,
+}: BattleSideFieldsProps & BattlePickerProps) {
+  const update = (fields: Partial<RulebookBattleSideValue>) => onChange({ ...value, ...fields });
+  return (
+    <>
       <ControlBlock
         title="Played cards"
         description="These appear when the plan is revealed."
@@ -266,6 +303,88 @@ function BattleSideEdit({
           onChange={(next) => update({ knownCard: next?.kind === 'asset' ? next : undefined })}
         />
       ) : null}
+    </>
+  );
+}
+
+function BattleTroopRow({
+  label,
+  group,
+  index,
+  faction,
+  troopOptions,
+  onChange,
+}: {
+  label: string;
+  group: RulebookBattleSideValue['troops'][number];
+  index: number;
+  faction: RulebookEditorReferences['factionsById'][string] | undefined;
+  troopOptions: { value: string; label: string }[];
+  onChange: (fields: Partial<RulebookBattleSideValue['troops'][number]>) => void;
+}) {
+  const selected = faction?.troops?.find((troop) => troop.troopId === group.troopId);
+  const options = troopOptions.some((option) => option.value === group.troopId)
+    ? troopOptions
+    : [...troopOptions, { value: group.troopId, label: 'Unavailable troop' }];
+  return (
+    <Stack gap="sm">
+      <Group grow>
+        <Select
+          label="Troop"
+          aria-label={`${label} troop ${index + 1}`}
+          data={options}
+          value={group.troopId}
+          onChange={(troopId) => {
+            if (troopId) {
+              onChange({ troopId, face: 'front' });
+            }
+          }}
+        />
+        <Select
+          label="Face"
+          aria-label={`${label} troop ${index + 1} face`}
+          data={[
+            { value: 'front', label: selected?.name || 'Front' },
+            ...(selected?.back || group.face === 'back'
+              ? [{ value: 'back', label: selected?.back?.name || 'Back' }]
+              : []),
+          ]}
+          value={group.face}
+          onChange={(face) => {
+            if (face === 'front' || face === 'back') {
+              onChange({ face });
+            }
+          }}
+        />
+      </Group>
+      <Group grow>
+        {(['supported', 'unsupported', 'uncommitted'] as const).map((field) => (
+          <NumberInput
+            clampBehavior="strict"
+            allowLeadingZeros={false}
+            key={field}
+            label={field === 'supported' ? 'Supported' : field === 'unsupported' ? 'Unsupported' : 'Uncommitted'}
+            aria-label={`${label} troop ${index + 1} ${field}`}
+            min={0}
+            max={100}
+            allowDecimal={false}
+            value={group[field]}
+            onChange={(count) => onChange({ [field]: typeof count === 'number' ? count : 0 })}
+          />
+        ))}
+      </Group>
+    </Stack>
+  );
+}
+
+function BattleTroopFields({ label, value, references, onChange }: BattleSideFieldsProps) {
+  const faction = value.factionId ? references.factionsById[value.factionId] : undefined;
+  const troopOptions = (faction?.troops ?? []).flatMap((troop) =>
+    troop.troopId ? [{ value: troop.troopId, label: troop.name || 'Unnamed troop' }] : []
+  );
+  const update = (fields: Partial<RulebookBattleSideValue>) => onChange({ ...value, ...fields });
+  return (
+    <>
       <ControlBlock
         title="Troops"
         description="Choose troop faces and the counts visible at this point in the example."
@@ -299,69 +418,65 @@ function BattleSideEdit({
         input={
           <Stack gap="md">
             {!faction ? <Text size="sm">Choose a faction to add its troops.</Text> : null}
-            {value.troops.map((group, index) => {
-              const selected = faction?.troops?.find((troop) => troop.troopId === group.troopId);
-              const options = troopOptions.some((option) => option.value === group.troopId)
-                ? troopOptions
-                : [...troopOptions, { value: group.troopId, label: 'Unavailable troop' }];
-              const change = (fields: Partial<typeof group>) =>
-                update({
-                  troops: value.troops.map((troop) => (troop.id === group.id ? { ...troop, ...fields } : troop)),
-                });
-              return (
-                <Stack gap="sm" key={group.id}>
-                  <Group grow>
-                    <Select
-                      label="Troop"
-                      aria-label={`${label} troop ${index + 1}`}
-                      data={options}
-                      value={group.troopId}
-                      onChange={(troopId) => {
-                        if (troopId) {
-                          change({ troopId, face: 'front' });
-                        }
-                      }}
-                    />
-                    <Select
-                      label="Face"
-                      aria-label={`${label} troop ${index + 1} face`}
-                      data={[
-                        { value: 'front', label: selected?.name || 'Front' },
-                        ...(selected?.back || group.face === 'back'
-                          ? [{ value: 'back', label: selected?.back?.name || 'Back' }]
-                          : []),
-                      ]}
-                      value={group.face}
-                      onChange={(face) => {
-                        if (face === 'front' || face === 'back') {
-                          change({ face });
-                        }
-                      }}
-                    />
-                  </Group>
-                  <Group grow>
-                    {(['supported', 'unsupported', 'uncommitted'] as const).map((field) => (
-                      <NumberInput
-                        allowLeadingZeros={false}
-                        key={field}
-                        label={
-                          field === 'supported' ? 'Supported' : field === 'unsupported' ? 'Unsupported' : 'Uncommitted'
-                        }
-                        aria-label={`${label} troop ${index + 1} ${field}`}
-                        min={0}
-                        max={100}
-                        allowDecimal={false}
-                        value={group[field]}
-                        onChange={(count) => change({ [field]: typeof count === 'number' ? count : 0 })}
-                      />
-                    ))}
-                  </Group>
-                </Stack>
-              );
-            })}
+            {value.troops.map((group, index) => (
+              <BattleTroopRow
+                key={group.id}
+                label={label}
+                group={group}
+                index={index}
+                faction={faction}
+                troopOptions={troopOptions}
+                onChange={(fields) =>
+                  update({
+                    troops: value.troops.map((troop) => (troop.id === group.id ? { ...troop, ...fields } : troop)),
+                  })
+                }
+              />
+            ))}
           </Stack>
         }
       />
+    </>
+  );
+}
+
+function BattleSideEdit({ label, value, references, onChange }: BattleSideFieldsProps) {
+  const [openPicker, setOpenPicker] = useState<'faction' | 'card' | null>(null);
+  const update = (fields: Partial<RulebookBattleSideValue>) => onChange({ ...value, ...fields });
+  return (
+    <Stack gap="md">
+      <BattleFactionFields
+        label={label}
+        value={value}
+        references={references}
+        onChange={onChange}
+        openPicker={openPicker}
+        setOpenPicker={setOpenPicker}
+      />
+      <TextInput
+        label="Role"
+        aria-label={`${label} role`}
+        placeholder="Aggressor or defender"
+        value={value.role}
+        onChange={(event) => update({ role: event.currentTarget.value })}
+      />
+      <Switch
+        label="Reveal this battle plan"
+        aria-label={`Reveal ${label.toLowerCase()} battle plan`}
+        checked={value.revealed}
+        onChange={(event) => update({ revealed: event.currentTarget.checked })}
+      />
+      <BattleStrengthFields label={label} value={value} references={references} onChange={onChange} />
+      <BattleLeaderFields label={label} value={value} references={references} onChange={onChange} />
+      <BattleCardFields
+        label={label}
+        value={value}
+        references={references}
+        onChange={onChange}
+        openPicker={openPicker}
+        setOpenPicker={setOpenPicker}
+      />
+      <BattleTroopFields label={label} value={value} references={references} onChange={onChange} />
       <TextInput
         label="Result"
         aria-label={`${label} result`}
@@ -433,61 +548,73 @@ export function BattleStepEdit({
           </Accordion.Item>
         ))}
       </Accordion>
-      <ControlBlock
-        title="Dialogue"
-        tool={
-          <ListLengthActions
-            addLabel={`${labelPrefix}Add dialogue`}
-            addDisabled={(value.dialogue?.length ?? 0) >= 8}
-            removeLabel={`${labelPrefix}Remove last dialogue`}
-            removeDisabled={!value.dialogue?.length}
-            onAdd={() => onChange({ ...value, dialogue: [...(value.dialogue ?? []), { speaker: 'left', text: '' }] })}
-            onRemove={() => onChange({ ...value, dialogue: value.dialogue?.slice(0, -1) })}
-          />
-        }
-        input={
-          <Stack gap="sm">
-            {value.dialogue?.map((line, index) => (
-              <Group key={index} grow align="start">
-                <Select
-                  label="Speaker"
-                  aria-label={`${labelPrefix}Dialogue ${index + 1} speaker`}
-                  data={[
-                    { value: 'left', label: 'Left faction' },
-                    { value: 'right', label: 'Right faction' },
-                  ]}
-                  value={line.speaker}
-                  onChange={(speaker) => {
-                    if (speaker === 'left' || speaker === 'right') {
-                      onChange({
-                        ...value,
-                        dialogue: value.dialogue?.map((entry, position) =>
-                          position === index ? { ...entry, speaker } : entry
-                        ),
-                      });
-                    }
-                  }}
-                />
-                <Textarea
-                  label="Speech"
-                  aria-label={`${labelPrefix}Dialogue ${index + 1} speech`}
-                  autosize
-                  minRows={2}
-                  value={line.text}
-                  onChange={(event) =>
-                    onChange({
-                      ...value,
-                      dialogue: value.dialogue?.map((entry, position) =>
-                        position === index ? { ...entry, text: event.currentTarget.value } : entry
-                      ),
-                    })
-                  }
-                />
-              </Group>
-            ))}
-          </Stack>
-        }
+      <BattleDialogueFields
+        labelPrefix={labelPrefix}
+        value={value.dialogue}
+        onChange={(dialogue) => onChange({ ...value, dialogue })}
       />
     </Stack>
+  );
+}
+
+function BattleDialogueFields({
+  labelPrefix,
+  value,
+  onChange,
+}: {
+  labelPrefix: string;
+  value: RulebookBlockEditorProps<'battle-step'>['value']['dialogue'];
+  onChange: (value: RulebookBlockEditorProps<'battle-step'>['value']['dialogue']) => void;
+}) {
+  return (
+    <ControlBlock
+      title="Dialogue"
+      tool={
+        <ListLengthActions
+          addLabel={`${labelPrefix}Add dialogue`}
+          addDisabled={(value?.length ?? 0) >= 8}
+          removeLabel={`${labelPrefix}Remove last dialogue`}
+          removeDisabled={!value?.length}
+          onAdd={() => onChange([...(value ?? []), { speaker: 'left', text: '' }])}
+          onRemove={() => onChange(value?.slice(0, -1))}
+        />
+      }
+      input={
+        <Stack gap="sm">
+          {value?.map((line, index) => (
+            <Group key={index} grow align="start">
+              <Select
+                label="Speaker"
+                aria-label={`${labelPrefix}Dialogue ${index + 1} speaker`}
+                data={[
+                  { value: 'left', label: 'Left faction' },
+                  { value: 'right', label: 'Right faction' },
+                ]}
+                value={line.speaker}
+                onChange={(speaker) => {
+                  if (speaker === 'left' || speaker === 'right') {
+                    onChange(value?.map((entry, position) => (position === index ? { ...entry, speaker } : entry)));
+                  }
+                }}
+              />
+              <Textarea
+                label="Speech"
+                aria-label={`${labelPrefix}Dialogue ${index + 1} speech`}
+                autosize
+                minRows={2}
+                value={line.text}
+                onChange={(event) =>
+                  onChange(
+                    value?.map((entry, position) =>
+                      position === index ? { ...entry, text: event.currentTarget.value } : entry
+                    )
+                  )
+                }
+              />
+            </Group>
+          ))}
+        </Stack>
+      }
+    />
   );
 }

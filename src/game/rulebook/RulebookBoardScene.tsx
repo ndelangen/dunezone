@@ -11,94 +11,128 @@ type BoardBlock = Extract<RulebookRenderBlockV1, { kind: 'board-scene' }>;
 export type RulebookBoardScene = Omit<BoardBlock, 'id' | 'anchor' | 'kind'>;
 type Explainer = Extract<RulebookRenderBlockV1, { kind: 'asset-explainer' }>;
 
+type TableGeometry = Readonly<{ width: number; height: number; radius: number }>;
+
+function pointOnRing(geometry: TableGeometry, angle: number, distance = geometry.radius) {
+  return {
+    x: geometry.width / 2 + distance * Math.cos((angle * Math.PI) / 180),
+    y: geometry.height / 2 - distance * Math.sin((angle * Math.PI) / 180),
+  };
+}
+
+function StormSector({ angle, geometry }: Readonly<{ angle: number; geometry: TableGeometry }>) {
+  const { width, height, radius } = geometry;
+  const stormRadius = radius * 0.895;
+  const first = pointOnRing(geometry, angle - 10, stormRadius);
+  const last = pointOnRing(geometry, angle + 10, stormRadius);
+  const position = pointOnRing(geometry, angle, stormRadius);
+  return (
+    <>
+      <path
+        d={`M ${width / 2} ${height / 2} L ${first.x} ${first.y} A ${stormRadius} ${stormRadius} 0 0 0 ${last.x} ${last.y} Z`}
+        fill="#8b3628"
+        fillOpacity=".27"
+        stroke="#8b3628"
+        strokeWidth={width * 0.003}
+      />
+      <g transform={`translate(${position.x} ${position.y})`} aria-label="Storm">
+        <circle r={width * 0.0308} fill="#8b3628" stroke="#fff9eb" strokeWidth={width * 0.004} />
+        <text textAnchor="middle" dy={width * 0.0072} fontSize={width * 0.0185} fontWeight="bold" fill="#fff9eb">
+          STORM
+        </text>
+      </g>
+    </>
+  );
+}
+
+function StormDirection({
+  angle,
+  players,
+  geometry,
+}: Readonly<{ angle: number; players: RulebookBoardScene['players']; geometry: TableGeometry }>) {
+  const nextDistance = Math.min(...players.map((player) => (player.angle - angle + 720) % 360));
+  if (!Number.isFinite(nextDistance) || nextDistance <= 23) {
+    return null;
+  }
+  const { width, radius } = geometry;
+  const start = pointOnRing(geometry, angle + 13);
+  const end = pointOnRing(geometry, angle + nextDistance - 10);
+  return (
+    <g className="rulebookStormDirection">
+      <path d={`M ${start.x} ${start.y} A ${radius} ${radius} 0 ${nextDistance > 203 ? 1 : 0} 0 ${end.x} ${end.y}`} />
+      <path
+        transform={`translate(${end.x} ${end.y}) rotate(${-(angle + nextDistance - 10)})`}
+        d={`M ${width * 0.02} ${width * 0.012} L 0 0 L ${-width * 0.014} ${width * 0.018}`}
+      />
+    </g>
+  );
+}
+
+function PlayerMarkers({
+  players,
+  geometry,
+}: Readonly<{ players: RulebookBoardScene['players']; geometry: TableGeometry }>) {
+  const markerSize = geometry.width * 0.0657;
+  return players.map((player) => {
+    const position = pointOnRing(geometry, player.angle);
+    const faction = player.faction.status === 'ready' ? player.faction : undefined;
+    return (
+      <foreignObject
+        key={player.id}
+        x={position.x - markerSize / 2}
+        y={position.y - markerSize / 2}
+        width={markerSize}
+        height={markerSize}
+      >
+        <div className="rulebookTerritoryTroop" aria-label={`${faction?.name ?? 'Unavailable faction'} player marker`}>
+          {faction?.token ? <Token {...faction.token} /> : <span className="rulebookTerritoryMissingTroop">?</span>}
+        </div>
+      </foreignObject>
+    );
+  });
+}
+
+function BoardAnnotations({
+  annotations,
+  projection,
+}: Readonly<{ annotations: RulebookBoardScene['annotations']; projection: RulebookAnnotationProjection }>) {
+  return (
+    <RulebookAnnotationMarks
+      projection={{
+        ...projection,
+        entries: projection.entries.map((entry, index) => {
+          const annotation = annotations[index]!;
+          return {
+            ...entry,
+            marker: { x: annotation.x, y: annotation.y },
+            connector:
+              annotation.targetX !== undefined && annotation.targetY !== undefined
+                ? { x: annotation.targetX, y: annotation.targetY }
+                : undefined,
+          };
+        }),
+      }}
+    />
+  );
+}
+
 function TableOverlay({
   scene,
   width,
   height,
   projection,
 }: Readonly<{ scene: RulebookBoardScene; width: number; height: number; projection?: RulebookAnnotationProjection }>) {
-  const radius = Math.min(width, height) * 0.475;
-  const polar = (angle: number, distance = radius) => ({
-    x: width / 2 + distance * Math.cos((angle * Math.PI) / 180),
-    y: height / 2 - distance * Math.sin((angle * Math.PI) / 180),
-  });
-  const storm = scene.storm;
-  const stormRadius = radius * 0.895;
-  const first = storm && polar(storm.angle - 10, stormRadius);
-  const last = storm && polar(storm.angle + 10, stormRadius);
-  const stormPosition = storm && polar(storm.angle, stormRadius);
-  const nextDistance = storm && Math.min(...scene.players.map((player) => (player.angle - storm.angle + 720) % 360));
-  const arrowStart = storm && polar(storm.angle + 13);
-  const arrowEnd = storm && nextDistance !== undefined && polar(storm.angle + nextDistance - 10);
-  const markerSize = width * 0.0657;
+  const geometry = { width, height, radius: Math.min(width, height) * 0.475 };
   return (
     <>
-      {storm && first && last && stormPosition ? (
+      {scene.storm ? (
         <>
-          <path
-            d={`M ${width / 2} ${height / 2} L ${first.x} ${first.y} A ${stormRadius} ${stormRadius} 0 0 0 ${last.x} ${last.y} Z`}
-            fill="#8b3628"
-            fillOpacity=".27"
-            stroke="#8b3628"
-            strokeWidth={width * 0.003}
-          />
-          <g transform={`translate(${stormPosition.x} ${stormPosition.y})`} aria-label="Storm">
-            <circle r={width * 0.0308} fill="#8b3628" stroke="#fff9eb" strokeWidth={width * 0.004} />
-            <text textAnchor="middle" dy={width * 0.0072} fontSize={width * 0.0185} fontWeight="bold" fill="#fff9eb">
-              STORM
-            </text>
-          </g>
+          <StormSector angle={scene.storm.angle} geometry={geometry} />
+          <StormDirection angle={scene.storm.angle} players={scene.players} geometry={geometry} />
         </>
       ) : null}
-      {arrowStart && arrowEnd && nextDistance !== undefined && Number.isFinite(nextDistance) && nextDistance > 23 ? (
-        <g className="rulebookStormDirection">
-          <path
-            d={`M ${arrowStart.x} ${arrowStart.y} A ${radius} ${radius} 0 ${nextDistance > 203 ? 1 : 0} 0 ${arrowEnd.x} ${arrowEnd.y}`}
-          />
-          <path
-            transform={`translate(${arrowEnd.x} ${arrowEnd.y}) rotate(${-(storm!.angle + nextDistance - 10)})`}
-            d={`M ${width * 0.02} ${width * 0.012} L 0 0 L ${-width * 0.014} ${width * 0.018}`}
-          />
-        </g>
-      ) : null}
-      {scene.players.map((player) => {
-        const position = polar(player.angle);
-        const faction = player.faction.status === 'ready' ? player.faction : undefined;
-        return (
-          <foreignObject
-            key={player.id}
-            x={position.x - markerSize / 2}
-            y={position.y - markerSize / 2}
-            width={markerSize}
-            height={markerSize}
-          >
-            <div
-              className="rulebookTerritoryTroop"
-              aria-label={`${faction?.name ?? 'Unavailable faction'} player marker`}
-            >
-              {faction?.token ? <Token {...faction.token} /> : <span className="rulebookTerritoryMissingTroop">?</span>}
-            </div>
-          </foreignObject>
-        );
-      })}
-      {projection ? (
-        <RulebookAnnotationMarks
-          projection={{
-            ...projection,
-            entries: projection.entries.map((entry, index) => {
-              const annotation = scene.annotations[index]!;
-              return {
-                ...entry,
-                marker: { x: annotation.x, y: annotation.y },
-                connector:
-                  annotation.targetX !== undefined && annotation.targetY !== undefined
-                    ? { x: annotation.targetX, y: annotation.targetY }
-                    : undefined,
-              };
-            }),
-          }}
-        />
-      ) : null}
+      <PlayerMarkers players={scene.players} geometry={geometry} />
+      {projection ? <BoardAnnotations annotations={scene.annotations} projection={projection} /> : null}
     </>
   );
 }

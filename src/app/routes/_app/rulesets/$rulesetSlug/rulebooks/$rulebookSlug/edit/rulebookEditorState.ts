@@ -20,7 +20,6 @@ import {
 } from '@shared/rulebooks/contents';
 import type {
   RulebookBlockDraft,
-  RulebookAssetExplainerTarget,
   RulebookBlockRegionKey,
   RulebookContentsDraftV1,
   RulebookContentsV1,
@@ -39,7 +38,6 @@ import {
   rulebookBattleExampleSchema,
 } from '@shared/rulebooks/illustratedScenes';
 import { rulebookCardSourceReferenceSchema, rulebookSourceReferenceSchema } from '@shared/rulebooks/sources';
-import type { RulebookSourceReference } from '@shared/rulebooks/sources';
 import { userImageSourceUrlSchema } from '@shared/user-images/contract';
 import { graphemeSegments } from 'unicode-segmenter/grapheme';
 import { z } from 'zod';
@@ -494,7 +492,7 @@ type RulebookResolutionOutcome =
   | { readonly kind: 'text'; readonly value: string }
   | {
       readonly kind: 'field-value';
-      readonly value: string | boolean | number | RulebookSourceReference | RulebookAssetExplainerTarget | undefined;
+      readonly value: Exclude<RulebookSetIntent, { field: 'control-values' }>['value'];
     }
   | { readonly kind: 'control-values'; readonly value: Readonly<Record<string, unknown>> }
   | { readonly kind: 'placement'; readonly destination: RulebookPlacement }
@@ -507,6 +505,20 @@ type RulebookResolutionOutcome =
   | { readonly kind: 'restore-local-subtree' }
   | { readonly kind: 'keep-local-deletion' }
   | { readonly kind: 'accept-latest-subtree' };
+
+export function rulebookFieldResolution(
+  difference: Pick<RulebookFieldIncompatibility, 'target' | 'field'>,
+  value: unknown
+): RulebookResolutionOutcome {
+  const intent = setIntentSchema.parse({ kind: 'set', target: difference.target, field: difference.field, value });
+  if (intent.field === 'control-values') {
+    return { kind: 'control-values', value: intent.value };
+  }
+  if (intent.field === 'anchor') {
+    return { kind: 'anchor', value: intent.value };
+  }
+  return { kind: 'field-value', value: intent.value };
+}
 
 type RulebookResolutionApproval = {
   readonly incompatibilityId: string;

@@ -1,4 +1,5 @@
 import { Box } from '@mantine/core';
+import { rulebookBattleSideSchema } from '@shared/rulebooks/battleStep';
 import type { RulebookResolvedFactionsById } from '@shared/rulebooks/projectRenderDocument';
 import { projectRulebookDraftRenderBlock } from '@shared/rulebooks/projectRenderDocument';
 import { DocumentEditorLayout } from '@ui/layout/DocumentEditorLayout';
@@ -44,7 +45,15 @@ export function BattleStepStory() {
     <Box p="lg">
       <DocumentEditorLayout ratio={1} fit="width">
         <DocumentEditorLayout.Sidebar>
-          <BattleStepEdit value={value} onChange={setValue} references={{ factionsById: factions, assetsById: {} }} />
+          <BattleStepEdit
+            value={value}
+            onChange={(next) => {
+              rulebookBattleSideSchema.parse(next.left);
+              rulebookBattleSideSchema.parse(next.right);
+              setValue(next);
+            }}
+            references={{ factionsById: factions, assetsById: {} }}
+          />
         </DocumentEditorLayout.Sidebar>
         <DocumentEditorLayout.Preview>
           <RulebookBlockCanvas

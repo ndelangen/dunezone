@@ -60,6 +60,69 @@ function Piece({ source, killed = false }: Readonly<{ source: RulebookResolvedSo
   );
 }
 
+function PlanWheel({ side }: Readonly<{ side: RulebookBattleSide }>) {
+  if (!side.artwork) {
+    return (
+      <div className="rulebookBattleMissingFaction">
+        <span>Faction artwork unavailable</span>
+        {side.revealed ? (
+          <span>
+            {side.plan.strength} troop strength, {side.plan.spice} spice
+          </span>
+        ) : null}
+      </div>
+    );
+  }
+  if (!side.revealed) {
+    return (
+      <div className="rulebookBattleHiddenWheel">
+        <BattleWheel
+          state="unrevealed"
+          motion={false}
+          label={`${side.name}: battle plan hidden`}
+          artwork={side.artwork}
+          ready={false}
+        />
+      </div>
+    );
+  }
+  return (
+    <BattleWheel
+      {...side.plan}
+      state="revealed"
+      motion={false}
+      label={`${side.name}: ${side.plan.strength} troop strength, ${side.plan.spice} spice`}
+      background={side.artwork.background}
+      cards={side.plan.cards.map((source, index) => (
+        <span className="rulebookBattleWheelCard" key={index}>
+          <Piece source={source} />
+        </span>
+      ))}
+      leader={<Piece source={side.plan.leader} killed={side.plan.leaderKilled} />}
+    />
+  );
+}
+
+function UncommittedTroops({ side }: Readonly<{ side: RulebookBattleSide }>) {
+  return (
+    <div className="rulebookBattleUncommitted" aria-label={`${side.name}: uncommitted troops`}>
+      <span>Uncommitted:</span>{' '}
+      {side.uncommittedTroops?.length ? (
+        side.uncommittedTroops.map((troop) => (
+          <span className="rulebookBattleUncommittedGroup" key={troop.id}>
+            <span className="rulebookBattleUncommittedToken" aria-label={troop.name}>
+              {troop.artwork ? <TroopToken {...troop.artwork} /> : '?'}
+            </span>{' '}
+            <span>{troop.count}</span>{' '}
+          </span>
+        ))
+      ) : (
+        <span>0</span>
+      )}
+    </div>
+  );
+}
+
 function Side({
   side,
   facing,
@@ -80,61 +143,10 @@ function Side({
               <Piece source={side.knownCard} />
             </div>
           ) : null}
-          {!side.artwork ? (
-            <div className="rulebookBattleMissingFaction">
-              <span>Faction artwork unavailable</span>
-              {side.revealed ? (
-                <span>
-                  {side.plan.strength} troop strength, {side.plan.spice} spice
-                </span>
-              ) : null}
-            </div>
-          ) : side.revealed ? (
-            <BattleWheel
-              {...side.plan}
-              state="revealed"
-              motion={false}
-              label={`${side.name}: ${side.plan.strength} troop strength, ${side.plan.spice} spice`}
-              background={side.artwork.background}
-              cards={side.plan.cards.map((source, index) => (
-                <span className="rulebookBattleWheelCard" key={index}>
-                  <Piece source={source} />
-                </span>
-              ))}
-              leader={<Piece source={side.plan.leader} killed={side.plan.leaderKilled} />}
-            />
-          ) : (
-            <>
-              <div className="rulebookBattleHiddenWheel">
-                <BattleWheel
-                  state="unrevealed"
-                  motion={false}
-                  label={`${side.name}: battle plan hidden`}
-                  artwork={side.artwork}
-                  ready={false}
-                />
-              </div>
-            </>
-          )}
+          <PlanWheel side={side} />
         </div>
       </div>
-      {side.revealed ? (
-        <div className="rulebookBattleUncommitted" aria-label={`${side.name}: uncommitted troops`}>
-          <span>Uncommitted:</span>{' '}
-          {side.uncommittedTroops?.length ? (
-            side.uncommittedTroops.map((troop) => (
-              <span className="rulebookBattleUncommittedGroup" key={troop.id}>
-                <span className="rulebookBattleUncommittedToken" aria-label={troop.name}>
-                  {troop.artwork ? <TroopToken {...troop.artwork} /> : '?'}
-                </span>{' '}
-                <span>{troop.count}</span>{' '}
-              </span>
-            ))
-          ) : (
-            <span>0</span>
-          )}
-        </div>
-      ) : null}
+      {side.revealed ? <UncommittedTroops side={side} /> : null}
       {side.revealed && side.unavailableTroops?.map((text, index) => <p key={index}>{text}</p>)}
       {side.result ? <p className="rulebookBattleSideResult">{side.result}</p> : null}
     </figure>
@@ -249,7 +261,7 @@ export function RulebookBattleStep({ block }: Readonly<{ block: BattleStep }>) {
 }
 
 /** Callers supply two independent examples; equal columns separate them from a numbered sequence. */
-export function RulebookBattleComparison({ examples }: Readonly<{ examples: readonly [BattleStep, BattleStep] }>) {
+function RulebookBattleComparison({ examples }: Readonly<{ examples: readonly [BattleStep, BattleStep] }>) {
   return (
     <div className="rulebookBattleComparison">
       {examples.map((example) => (

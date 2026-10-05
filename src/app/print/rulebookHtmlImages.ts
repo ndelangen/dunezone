@@ -51,6 +51,25 @@ export function rulebookHtmlImages(
       faction(item.faction);
     }
   }
+  function movementGroup(group: Extract<RulebookRenderBlockV1, { kind: 'piece-movement' }>['left']) {
+    for (const piece of group.pieces) {
+      if (piece.kind === 'source') {
+        image(piece.source);
+      } else {
+        faction(piece.faction);
+      }
+    }
+  }
+  function pieceMovement(block: Extract<RulebookRenderBlockV1, { kind: 'piece-movement' }>) {
+    movementGroup(block.left);
+    movementGroup(block.right);
+    for (const note of block.notes ?? []) {
+      image(note.source);
+    }
+    if (block.board) {
+      boardScene(block.board);
+    }
+  }
   function resolveBlockImages(block: RulebookRenderBlockV1, pageId: string) {
     if (block.kind === 'asset-explainer' && edition) {
       block.illustrationUrl = new URL(
@@ -87,21 +106,7 @@ export function rulebookHtmlImages(
       boardScene(block);
     }
     if (block.kind === 'piece-movement') {
-      for (const group of [block.left, block.right]) {
-        for (const piece of group.pieces) {
-          if (piece.kind === 'source') {
-            image(piece.source);
-          } else {
-            faction(piece.faction);
-          }
-        }
-      }
-      for (const note of block.notes ?? []) {
-        image(note.source);
-      }
-      if (block.board) {
-        boardScene(block.board);
-      }
+      pieceMovement(block);
     }
     if (block.kind === 'faction-introduction' || block.kind === 'section-heading') {
       faction(block.faction);

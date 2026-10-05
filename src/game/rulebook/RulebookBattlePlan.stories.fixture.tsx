@@ -247,6 +247,6 @@ export function battleSequencePage(
     layoutId: 'sequence',
     showHeading: true,
     controlValues: {},
-    regions: [{ key: 'content', blocks: panels.map(renderedBattleStep) }],
+    regions: [{ key: 'content', blocks: panels.map((panel, index) => renderedBattleStep(panel, index)) }],
   };
 }

@@ -31,3 +31,32 @@ export const PlansAndDialogue = meta.story({
     await expect(canvas.getByRole('textbox', { name: 'Left troop 1 supported' })).toHaveValue('0');
   },
 });
+
+export const ValidBattleNumbers = meta.story({
+  render: () => <BattleStepStory />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const dial = canvas.getByRole('textbox', { name: 'Left dial' });
+    await userEvent.clear(dial);
+    await userEvent.type(dial, '2.3');
+    await userEvent.tab();
+    await expect(dial).toHaveValue('2.5');
+    await userEvent.clear(dial);
+    await userEvent.type(dial, '250');
+    await userEvent.tab();
+    await expect(dial).toHaveValue('25');
+    const adjustment = canvas.getByRole('textbox', { name: 'Left adjustment' });
+    await userEvent.clear(adjustment);
+    await userEvent.type(adjustment, '-1.7');
+    await userEvent.tab();
+    await expect(adjustment).toHaveValue('-1.5');
+    await userEvent.clear(adjustment);
+    await userEvent.tab();
+    await expect(adjustment).toHaveValue('');
+    const spice = canvas.getByRole('textbox', { name: 'Left spice' });
+    await userEvent.clear(spice);
+    await userEvent.type(spice, '250');
+    await userEvent.tab();
+    await expect(spice).toHaveValue('25');
+  },
+});

@@ -1,7 +1,8 @@
 import { rulebookContentsV1Schema } from '@shared/rulebooks/contents';
+import type { RulebookContentsDraftV1 } from '@shared/rulebooks/contents';
 import { describe, expect, it } from 'vitest';
 
-import { createRulebookEditorStateManager } from './rulebookEditorState';
+import { createRulebookEditorStateManager, rulebookFieldResolution } from './rulebookEditorState';
 import { draftBlock, replaceDraft } from './rulebookEditorState.fixtures';
 
 function initialRevision() {
@@ -19,7 +20,7 @@ function initialRevision() {
           title: 'Illustrations',
           layoutId: 'sequence',
           controlValues: {},
-          blockOrderByRegion: { content: ['BRDD', 'MVMT', 'CMPR'] },
+          blockOrderByRegion: { content: ['BRDD', 'MVMT', 'CMPR', 'BTLE'] },
           blocksById: {
             BRDD: {
               id: 'BRDD',
@@ -41,6 +42,7 @@ function initialRevision() {
               right: { label: 'Loser', pieces: [] },
             },
             CMPR: { id: 'CMPR', kind: 'battle-comparison', examples: [example, example] },
+            BTLE: { id: 'BTLE', kind: 'battle-step', ...example },
           },
         },
       },
@@ -133,5 +135,143 @@ describe('Illustrated scene reconciliation', () => {
       throw new Error('Expected ready editor');
     }
     expect(conflict.incompatibilities).toMatchObject([{ kind: 'field', field: 'comparison-first' }]);
+  });
+});
+
+const structuredChoices: Array<{
+  name: string;
+  change: (draft: RulebookContentsDraftV1, version: number) => void;
+}> = [
+  {
+    name: 'battle plan',
+    change: (draft, version) => {
+      draftBlock(draft, 'SCNE', 'BTLE', 'battle-step').left.dial = version;
+    },
+  },
+  {
+    name: 'comparison example',
+    change: (draft, version) => {
+      draftBlock(draft, 'SCNE', 'CMPR', 'battle-comparison').examples[0].title = `Example ${version}`;
+    },
+  },
+  {
+    name: 'player markers',
+    change: (draft, version) => {
+      draftBlock(draft, 'SCNE', 'BRDD', 'board-scene').players = [{ id: 'PLYR', angle: version * 45 }];
+    },
+  },
+  {
+    name: 'optional board crop',
+    change: (draft, version) => {
+      draftBlock(draft, 'SCNE', 'BRDD', 'board-scene').viewport = {
+        x: version / 10,
+        y: 0,
+        width: 0.5,
+        height: 0.5,
+      };
+    },
+  },
+  {
+    name: 'optional storm',
+    change: (draft, version) => {
+      draftBlock(draft, 'SCNE', 'BRDD', 'board-scene').storm = { angle: version * 45 };
+    },
+  },
+  {
+    name: 'optional aftermath board',
+    change: (draft, version) => {
+      const { id: _id, kind: _kind, ...board } = draftBlock(draft, 'SCNE', 'BRDD', 'board-scene');
+      draftBlock(draft, 'SCNE', 'MVMT', 'piece-movement').board = {
+        ...board,
+        caption: `Aftermath ${version}`,
+      };
+    },
+  },
+  {
+    name: 'optional movement notes',
+    change: (draft, version) => {
+      draftBlock(draft, 'SCNE', 'MVMT', 'piece-movement').notes = [{ id: 'NOTE', label: 'Spice', count: version }];
+    },
+  },
+];
+
+describe.each(['local', 'saved'] as const)('Structured conflict choices: keep %s', (choice) => {
+  it.each(structuredChoices)('retains the chosen $name through the review action', ({ change }) => {
+    const initial = initialRevision();
+    const manager = createRulebookEditorStateManager(initial);
+    manager.dispatch(
+      replaceDraft(manager.result, (draft) => {
+        change(draft, 1);
+        draft.pagesById.SCNE!.title = 'Revised illustrations';
+      })
+    );
+    const latest = structuredClone(initial);
+    latest.revision = 'revision-2';
+    change(latest.contents, 2);
+    const review = manager.dispatch({ kind: 'receive-latest', latest });
+    if (review.status !== 'ready') {
+      throw new Error('Expected ready editor');
+    }
+    expect(review.incompatibilities).toHaveLength(1);
+    const conflict = review.incompatibilities[0];
+    if (conflict?.kind !== 'field') {
+      throw new Error('Expected field conflict');
+    }
+    const result = manager.dispatch({
+      kind: 'resolve',
+      approval: {
+        incompatibilityId: conflict.id,
+        dependencyFingerprint: conflict.dependencyFingerprint,
+        outcome: rulebookFieldResolution(conflict, choice === 'local' ? conflict.localValue : conflict.latestValue),
+      },
+    });
+    if (result.status !== 'ready') {
+      throw new Error('Expected ready editor');
+    }
+    const expected = structuredClone(initial.contents);
+    change(expected, choice === 'local' ? 1 : 2);
+    expected.pagesById.SCNE!.title = 'Revised illustrations';
+    expect(result.incompatibilities).toEqual([]);
+    expect(result.canSave).toBe(true);
+    expect(result.saveCandidate).toEqual(expected);
+  });
+
+  it('can choose either clearing or retaining an optional scene', () => {
+    const initial = initialRevision();
+    structuredChoices.find((entry) => entry.name === 'optional aftermath board')!.change(initial.contents, 0);
+    const manager = createRulebookEditorStateManager(initial);
+    manager.dispatch(
+      replaceDraft(manager.result, (draft) => {
+        delete draftBlock(draft, 'SCNE', 'MVMT', 'piece-movement').board;
+        draft.pagesById.SCNE!.title = 'Revised illustrations';
+      })
+    );
+    const latest = structuredClone(initial);
+    latest.revision = 'revision-2';
+    draftBlock(latest.contents, 'SCNE', 'MVMT', 'piece-movement').board!.caption = 'New aftermath';
+    const review = manager.dispatch({ kind: 'receive-latest', latest });
+    if (review.status !== 'ready') {
+      throw new Error('Expected ready editor');
+    }
+    const conflict = review.incompatibilities[0];
+    if (conflict?.kind !== 'field') {
+      throw new Error('Expected field conflict');
+    }
+    const result = manager.dispatch({
+      kind: 'resolve',
+      approval: {
+        incompatibilityId: conflict.id,
+        dependencyFingerprint: conflict.dependencyFingerprint,
+        outcome: rulebookFieldResolution(conflict, choice === 'local' ? conflict.localValue : conflict.latestValue),
+      },
+    });
+    if (result.status !== 'ready') {
+      throw new Error('Expected ready editor');
+    }
+    expect(result.canSave).toBe(true);
+    expect(result.incompatibilities).toEqual([]);
+    expect(draftBlock(result.saveCandidate!, 'SCNE', 'MVMT', 'piece-movement').board).toEqual(
+      choice === 'local' ? undefined : draftBlock(latest.contents, 'SCNE', 'MVMT', 'piece-movement').board
+    );
   });
 });
