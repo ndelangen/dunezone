@@ -48,9 +48,9 @@ export function rulebookHtmlSvg(markup: string, canonicalHref: string): string {
       }
     )
   );
-  const withAbsoluteImages = withLocalSymbols.replace(/<image\b[^>]*>/g, (image) =>
+  const withAbsoluteImages = withLocalSymbols.replace(/<(?:image|img)\b[^>]*>/g, (image) =>
     image.replace(
-      /(xlink:href|href)="(\/[^"#]+)"/,
+      /(\s(?:xlink:href|href|src))="(\/[^"#]+)"/,
       (_, attribute, href) =>
         `${attribute}="${new URL(href, canonicalHref).href.replaceAll('&', '&amp;').replaceAll('"', '&quot;')}"`
     )
