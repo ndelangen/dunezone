@@ -99,6 +99,31 @@ afterEach(() => {
 });
 
 describe('Rulebook cover image staging', () => {
+  test('stored covers with historical IP source metadata remain editable and readable', async () => {
+    const sourceUrl = 'https://8.8.8.8/cover.png';
+    const { f, contents, locator } = await publishedCoverFixture({
+      backgroundImageUrl: sourceUrl,
+      backgroundImage: { ...IMAGE, sourceUrl },
+    });
+    const editor = await f.owner.query(api.rulebooks.editorPage, locator);
+    expect(editor).toMatchObject({ kind: 'editable', draft: { contents } });
+    const reader = await f.t.query(api.rulebooks.readerPage, locator);
+    expect(reader?.edition.contents.pagesById.CVER).toHaveProperty('controlValues.cover.backgroundImageUrl', IMAGE.url);
+    await expect(
+      f.owner.mutation(api.rulebooks.save, {
+        rulebook_id: f.created.rulebook._id,
+        expected_revision: 2,
+        contents,
+      })
+    ).resolves.toMatchObject({ kind: 'saved' });
+    await completeInitialPublication(f);
+    const work = await f.t.mutation(internal.rulebookEditionArtifactWork.take, { artifactKind: 'html' });
+    expect(work.find((item) => item.editionNumber === 2)?.document.pagesById.CVER).toHaveProperty(
+      'controlValues.cover.backgroundImageUrl',
+      IMAGE.url
+    );
+  });
+
   test('presets keep inactive sources private and require rehosting again when URL mode is selected', async () => {
     const preset = rulebookCoverPresetCatalogue[0];
     const { f, contents, locator, cover } = await publishedCoverFixture({

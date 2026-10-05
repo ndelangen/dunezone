@@ -158,7 +158,7 @@ function liveFetcher(
             : binding
         ),
         compatibility_date: '2026-07-17',
-        compatibility_flags: ['nodejs_compat'],
+        compatibility_flags: ['nodejs_compat', 'global_fetch_strictly_public'],
         limits: { cpu_ms: 30_000 },
       });
     }
