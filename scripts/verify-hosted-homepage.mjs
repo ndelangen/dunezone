@@ -88,14 +88,32 @@ export async function verifyHomepage({
 }) {
   const member = await account('player-a');
   const guest = await peer('unsigned');
+  let artworkRequested = false;
+  const releaseArtwork = Promise.withResolvers();
+  /* Hold a scene image until the driver has checked the still-loading preview. */
+  await member.context.route('**/homepage-table/snooper.webp', async (route) => {
+    artworkRequested = true;
+    await releaseArtwork.promise;
+    await route.continue();
+  });
   for (const who of [member, guest]) {
     await who.page.goto(origin, { waitUntil: 'domcontentloaded' });
     await who.page.getByRole('link', { name: 'Take a sneak peek', exact: true }).click();
     await who.page.getByText('Try moving one of the pieces!', { exact: true }).waitFor();
+    if (who === member) {
+      await until(() => artworkRequested, 'The homepage did not request its scene artwork.');
+      await new Promise((resolve) => setTimeout(resolve, 12_000));
+      assert.equal(await who.page.locator('[data-live-ready="true"]').count(), 0);
+      releaseArtwork.resolve();
+    }
     await who.page.locator('[data-live-ready="true"]').waitFor();
     await tableLoaded(who);
     await until(() => who.view(), `${who.label} received no homepage table.`);
+    if (who === member) {
+      await capture(member, 'homepage-member-ready-after-slow-artwork');
+    }
   }
+  passed('The homepage becomes interactive after scene artwork takes longer than ten seconds');
   await recordRenderer(member, '#play-preview canvas');
   await until(() => member.view().viewer.viewerSeat !== spectator, 'Signing in did not grant table handling.');
   assert.equal(guest.view().viewer.viewerSeat, spectator);

@@ -95,7 +95,7 @@ import {
 
 import { useMotionAllowed } from '@app/styles/motion';
 
-import { unsettledArtworkLoads } from './artworkLoads';
+import { subscribeArtworkLoads, unsettledArtworkLoads } from './artworkLoads';
 import { ArtworkPending } from './ArtworkPending';
 import arrakisMapSvg from './assets/arrakis-map.svg?raw';
 import stormMarkerUrl from './assets/storm-marker.png?url';
@@ -1679,9 +1679,7 @@ export function TabletopScene({
               onCreated={presentation === 'play' ? onSceneReady : undefined}
             >
               <ReleaseRendererOnUnmount />
-              {presentation === 'preview' && (
-                <RenderedTable onReady={onSceneReady} onUnavailable={onSceneUnavailable} />
-              )}
+              {presentation === 'preview' && <RenderedTable onReady={onSceneReady} />}
               {children}
               <SceneContents
                 presentation={presentation}
@@ -1703,13 +1701,21 @@ export function TabletopScene({
 }
 
 /* Wait through artwork effects and a painted frame before replacing the homepage's image. */
-function RenderedTable({ onReady, onUnavailable }: { onReady?: () => void; onUnavailable?: () => void }) {
+function RenderedTable({ onReady }: { onReady?: () => void }) {
   const invalidate = useThree((state) => state.invalidate);
   const pieces = useTabletopSelector((table) => table.renderedPieces);
   const frames = useRef(0);
-  const started = useRef(performance.now());
   const complete = useRef(false);
   const pendingFrame = useRef<number | null>(null);
+  useEffect(
+    () =>
+      subscribeArtworkLoads(() => {
+        if (!complete.current) {
+          invalidate();
+        }
+      }),
+    [invalidate]
+  );
   useEffect(
     () => () => {
       if (pendingFrame.current !== null) {
@@ -1726,12 +1732,13 @@ function RenderedTable({ onReady, onUnavailable }: { onReady?: () => void; onUna
       const href = topFaceHref(piece);
       return !href || subscribePublishedFace.peek(href) !== undefined;
     });
-    if (++frames.current > 3 && artworkReady && unsettledArtworkLoads() === 0) {
+    if (!artworkReady || unsettledArtworkLoads() > 0) {
+      frames.current = 0;
+      return;
+    }
+    if (++frames.current > 3) {
       complete.current = true;
       pendingFrame.current = requestAnimationFrame(() => onReady?.());
-    } else if (performance.now() - started.current > 10_000) {
-      complete.current = true;
-      pendingFrame.current = requestAnimationFrame(() => onUnavailable?.());
     } else {
       invalidate();
     }
