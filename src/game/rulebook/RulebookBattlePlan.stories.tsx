@@ -106,12 +106,7 @@ export const PrivateInformation = meta.story({
       within(canvas.getByRole('region', { name: 'Step 3: Ask with Battle Prescience' })).queryByAltText('Feyd Rautha')
     ).not.toBeInTheDocument();
     await expect(canvas.getAllByAltText('Gom Jabbar')).toHaveLength(3);
-    await expect(canvas.getAllByLabelText('Atreides: uncommitted troops')).toHaveLength(2);
-    await expect(canvas.getAllByLabelText('Harkonnen: uncommitted troops')).toHaveLength(1);
-    await expect(canvas.getAllByLabelText('Atreides: uncommitted troops')[0]).toHaveTextContent('Uncommitted: 2');
-    await expect(
-      within(canvas.getByRole('region', { name: 'Step 3: Ask with Battle Prescience' })).queryByText('Uncommitted:')
-    ).not.toBeInTheDocument();
+    await expect(canvas.queryByText('Uncommitted:')).not.toBeInTheDocument();
   },
 });
 export const RevealAndWeapons = meta.story({

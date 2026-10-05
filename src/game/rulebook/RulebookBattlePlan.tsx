@@ -4,7 +4,6 @@ import { rulebookSourceClipPath } from '@shared/rulebooks/sources';
 import type { ComponentProps } from 'react';
 
 import { useAsset } from '../assets/assetRenderMode';
-import { TroopToken } from '../assets/faction/troop/Troop';
 import { BattleWheel } from '../assets/generic/BattleWheel';
 import { RulebookIllustratedStep } from './RulebookIllustratedStep';
 
@@ -17,12 +16,6 @@ export type RulebookBattleSide = Readonly<{
   role: string;
   artwork?: HiddenWheel['artwork'];
   unavailableTroops?: readonly string[];
-  uncommittedTroops?: readonly {
-    id: string;
-    name: string;
-    count: number;
-    artwork?: ComponentProps<typeof TroopToken>;
-  }[];
   plan: Pick<RevealedWheel, 'strength' | 'spice' | 'adjustment' | 'troops'> & {
     leader: RulebookResolvedSource;
     cards: readonly RulebookResolvedSource[];
@@ -106,26 +99,6 @@ function PlanWheel({ side }: Readonly<{ side: RulebookBattleSide }>) {
   );
 }
 
-function UncommittedTroops({ side }: Readonly<{ side: RulebookBattleSide }>) {
-  return (
-    <div className="rulebookBattleUncommitted" aria-label={`${side.name}: uncommitted troops`}>
-      <span>Uncommitted:</span>{' '}
-      {side.uncommittedTroops?.length ? (
-        side.uncommittedTroops.map((troop) => (
-          <span className="rulebookBattleUncommittedGroup" key={troop.id}>
-            <span className="rulebookBattleUncommittedToken" aria-label={troop.name}>
-              {troop.artwork ? <TroopToken {...troop.artwork} /> : '?'}
-            </span>{' '}
-            <span>{troop.count}</span>{' '}
-          </span>
-        ))
-      ) : (
-        <span>0</span>
-      )}
-    </div>
-  );
-}
-
 function Side({
   side,
   facing,
@@ -140,7 +113,7 @@ function Side({
           <span>{side.role}</span>
         </figcaption>
       ) : null}
-      <div className="rulebookBattleWheelFrame" data-with-uncommitted={side.revealed || undefined}>
+      <div className="rulebookBattleWheelFrame" data-revealed={side.revealed || undefined}>
         <div className="rulebookBattleWheelCanvas">
           {!side.revealed && side.plan.cards.length > 0 ? (
             <div
@@ -161,7 +134,6 @@ function Side({
           <PlanWheel side={side} />
         </div>
       </div>
-      {side.revealed ? <UncommittedTroops side={side} /> : null}
       {side.revealed && side.unavailableTroops?.map((text, index) => <p key={index}>{text}</p>)}
       {side.result ? <p className="rulebookBattleSideResult">{side.result}</p> : null}
     </figure>
@@ -237,17 +209,6 @@ function resolvedSide(side: BattleStep['left']): RulebookBattleSide {
     role: side.role,
     artwork: token,
     unavailableTroops,
-    uncommittedTroops: side.troops
-      .filter((troop) => troop.uncommitted > 0)
-      .map((troop) => {
-        const rendered = troops.find(({ id }) => id === troop.id);
-        return {
-          id: troop.id,
-          count: troop.uncommitted,
-          name: rendered?.name ?? 'Troop artwork unavailable',
-          artwork: rendered?.artwork,
-        };
-      }),
     revealed: side.revealed,
     knownCard: side.knownCard,
     result: side.result,

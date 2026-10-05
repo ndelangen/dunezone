@@ -14,10 +14,7 @@ import {
 } from './RulebookBattlePlan.stories.fixture';
 import { RulebookDocumentRenderer } from './RulebookRenderer';
 
-/* These chapter alternatives use the saved rulebook contract and its normal renderer.
- * Storybook varies the page arrangements, never the blocks' rendering or typography.
- */
-export type CombatVariant = 'comic' | 'lesson' | 'table';
+/* The chapter uses the saved rulebook contract and its normal renderer. */
 type Block = RulebookRenderBlockV1;
 type Page = RulebookRenderPageV1;
 type Scene = 'hidden' | 'prescience' | 'dial' | 'reveal' | 'weapons' | 'total' | 'spite' | 'cards' | 'losses';
@@ -45,9 +42,9 @@ const scenes: Record<Scene, { n: number; lead: string; rule: string; example: st
   reveal: {
     n: 5,
     lead: 'Reveal both final plans together.',
-    rule: 'Finish pre-reveal abilities, then reveal both plans simultaneously. Resolve traitor calls first; a successful call replaces the ordinary result.',
+    rule: 'Finish pre-reveal abilities, then reveal both plans simultaneously.',
     example:
-      'Neither calls a traitor. Atreides reveals dial 3, 2 spice and Gurney. Harkonnen reveals dial 4, 4 spice and Feyd. Both reveal their weapon and defense.',
+      'Atreides reveals dial 3, 2 spice and Gurney. Harkonnen reveals dial 4, 4 spice and Feyd. Both reveal their weapon and defense.',
   },
   weapons: {
     n: 5,
@@ -390,11 +387,35 @@ function specials(): Page {
     specialText,
   ]);
 }
+function traitors(): Page {
+  return single('traitors', 'Traitors', [
+    text(
+      'traitor-timing',
+      'Call traitors after both battle plans are revealed, before resolving weapons or comparing strength. A successful call replaces the ordinary battle result.',
+      'When to call a traitor'
+    ),
+    text(
+      'traitor-call',
+      "If the opposing leader matches your traitor, you may reveal the card and call treachery. A faction may always call its own leader traitor when an opponent uses that leader against it. Harkonnen may call traitor in its ally's battle.",
+      'Who can call'
+    ),
+    text(
+      'traitor-victory',
+      "With one successful call, the caller wins without losing troops or committed spice. The opposing leader dies, its owner loses all troops in the territory and discards its played cards. The caller receives the traitorous leader's strength in spice. The winner keeps its played cards and may not discard them. Its leader is not committed by this battle.",
+      'One successful call'
+    ),
+    text(
+      'mutual-traitors',
+      'If both sides successfully call traitor, both sides lose their troops, played cards and leaders. Neither side receives spice.',
+      'Two successful calls'
+    ),
+  ]);
+}
 function exceptions(): Page {
   return columns(
     'other-outcomes',
     'Other battle outcomes',
-    data.special.BSPC.slice(0, 2) as Block[],
+    data.special.BSPC.slice(1, 2) as Block[],
     [
       ...data.special.BSPC.slice(2),
       {
@@ -498,64 +519,28 @@ function preparingPlans(): Page {
     ],
   };
 }
-function chapter(variant: CombatVariant): Page[] {
-  const pages = [introduction(), opening(), troopStrength(), leaders()];
-  if (variant === 'lesson') {
-    pages.push(preparingPlans());
+const pages = [
+  introduction(),
+  opening(),
+  troopStrength(),
+  leaders(),
+  preparingPlans(),
+  single('reveal', 'Reveal and resolve', [revealed, revealExample, resultRule, resultTable]),
+  columns('cards', 'Settle abilities and cards', [spite, spiteExample], [cardRule, cardExample]),
+  columns('losses', 'Pay and remove troops', [losses], [lossExample, leaderCommitment, continueBattle]),
+  ties(),
+  traitors(),
+  specials(),
+  exceptions(),
+];
+const chapter: RulebookRenderPreviewDocumentV1 = rulebookRenderDocumentV1Schema.parse({
+  schemaVersion: 1,
+  settings: { size: 'square', design: 'illustrated' },
+  pageOrder: pages.map((page) => page.id),
+  pagesById: Object.fromEntries(pages.map((page) => [page.id, page])),
+});
 
-    pages.push(single('reveal', 'Reveal and resolve', [revealed, revealExample, resultRule, resultTable]));
-    pages.push(columns('cards', 'Settle abilities and cards', [spite, spiteExample], [cardRule, cardExample]));
-    pages.push(columns('losses', 'Pay and remove troops', [losses], [lossExample, leaderCommitment, continueBattle]));
-  } else {
-    pages.push(preparingPlans());
-
-    pages.push(single('reveal', 'Reveal and resolve', [revealed, revealExample, resultRule, resultTable]));
-    if (variant === 'table') {
-      pages.push({
-        ...single('settle', 'Settle the battle', [
-          table(
-            'settlement-order',
-            ['Order', 'What to do'],
-            [
-              ['7. Abilities', scenes.spite.rule],
-              ['8. Cards and reward', scenes.cards.rule],
-            ]
-          ),
-          example(
-            'settlement-example',
-            scenes.spite.example + ' ' + scenes.cards.example,
-            'Example: Spite, cards and reward'
-          ),
-          losses,
-          lossExample,
-          leaderCommitment,
-          continueBattle,
-        ]),
-        layoutId: 'sequence',
-      });
-    } else {
-      pages.push(single('cards', 'Settle abilities and cards', [spite, spiteExample, cardRule, cardExample]));
-      pages.push(single('losses', 'Pay and remove troops', [losses, lossExample, leaderCommitment, continueBattle]));
-    }
-  }
-  return [...pages, ties(), specials(), exceptions()];
-}
-
-const documents = Object.fromEntries(
-  (['comic', 'lesson', 'table'] as const).map((variant) => {
-    const pages = chapter(variant);
-    const document: RulebookRenderPreviewDocumentV1 = {
-      schemaVersion: 1,
-      settings: { size: 'square', design: 'illustrated' },
-      pageOrder: pages.map((page) => page.id),
-      pagesById: Object.fromEntries(pages.map((page) => [page.id, page])),
-    };
-    return [variant, rulebookRenderDocumentV1Schema.parse(document)];
-  })
-) as Record<CombatVariant, RulebookRenderPreviewDocumentV1>;
-
-export function CombatPrototype({ variant, page = 0 }: { variant: CombatVariant; page?: number }) {
-  const chapter = documents[variant];
+export function CombatPrototype({ page = 0 }: { page?: number }) {
   const pageId = page > 0 ? chapter.pageOrder[page - 1] : undefined;
   const document = pageId
     ? { ...chapter, pageOrder: [pageId], pagesById: { [pageId]: chapter.pagesById[pageId]! } }

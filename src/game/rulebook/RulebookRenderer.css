@@ -1336,6 +1336,9 @@
   margin-inline: auto;
   aspect-ratio: 190 / 262;
 }
+.rulebookBattleWheelFrame[data-revealed] {
+  aspect-ratio: 190 / 246;
+}
 .rulebookBattleWheelCanvas {
   position: absolute;
   left: 0;
@@ -1627,33 +1630,6 @@
 .rulebookBattleWheelCanvas {
   filter: drop-shadow(0 4px 4px rgb(0 0 0 / 45%));
 }
-.rulebookBattleWheelFrame[data-with-uncommitted] {
-  aspect-ratio: 190 / 246;
-}
-.rulebookBattleUncommitted {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: calc(0.6 * var(--rulebook-mm));
-  min-height: calc(2.95 * var(--rulebook-mm));
-  font-size: calc(2.6 * var(--rulebook-mm));
-  line-height: 1;
-}
-.rulebookBattleUncommittedGroup {
-  display: inline-flex;
-  align-items: center;
-  gap: calc(0.5 * var(--rulebook-mm));
-}
-.rulebookBattleUncommittedToken {
-  display: block;
-  flex: none;
-  width: calc(2.8 * var(--rulebook-mm));
-  height: calc(2.8 * var(--rulebook-mm));
-  overflow: hidden;
-  border-radius: 50%;
-  filter: drop-shadow(0 calc(0.2 * var(--rulebook-mm)) calc(0.2 * var(--rulebook-mm)) rgb(0 0 0 / 35%));
-}
-
 .rulebookPage[data-rulebook-layout="paired-rows"] .rulebookPageContent {
   padding-bottom: calc(35 * var(--rulebook-mm));
 }
