@@ -25,20 +25,20 @@ const scenes: Record<Scene, { n: number; lead: string; rule: string; example: st
   hidden: {
     n: 2,
     lead: 'Prepare a battle plan.',
-    rule: 'You must play an available leader or a 0-strength Cheap Hero if you can. A leader used in another territory this phase is unavailable. If neither is available, announce this publicly before reveal; you fight without Treachery Cards. Otherwise, choose up to one weapon and one defense in secret. Either card slot may be empty. Keep both the cards and their number secret until reveal, except for information disclosed by an advantage.',
+    rule: 'Your battle plan must include a leader or Cheap Hero if you are able to play one. If neither is available, you must announce this publicly prior to reveal. When you play no leader or Cheap Hero, you cannot include any Treachery Cards in your battle plan. With a leader or Cheap Hero, you may include up to one weapon, one defense and one Mercenaries card.',
     example: '',
   },
   prescience: {
     n: 3,
     lead: 'Resolve pre-reveal advantages.',
-    rule: "Follow each applicable faction advantage's timing and conditions. The Voice precedes Battle Prescience. Blackmail, Stone Burner, Fanatical Tactics and Infiltration also act before reveal.",
+    rule: "Follow each applicable faction advantage's timing and conditions. The Voice precedes Battle Prescience, followed by Blackmail and Stone Burner. Fanatical Tactics and Infiltration act during commitment. Emperor and Ixian Fates cannot be used during commitment.",
     example:
       'Here, Harkonnen has chosen its cards; Atreides waits. Atreides uses Prescience: "Which weapon will you play?" Harkonnen answers "Gom Jabbar." *That part* of Harkonnen\'s battle plan is now locked, and cannot be changed. The rest of its battle plan can still change until reveal. Atreides now chooses two cards using that information. Any other cards and the number committed remain unknown to the opponent until reveal.',
   },
   dial: {
     n: 4,
     lead: 'Dial troop strength; set aside support spice.',
-    rule: 'An ordinary troop gives \u00bd strength unsupported, or 1 with 1 spice of support. Dial a total your troops and spice can supply, excluding the leader. For a half point, align the mark between whole numbers with the window. Keep the plan hidden.',
+    rule: 'An ordinary troop gives \u00bd strength unsupported, or 1 with 1 spice of support. Dial a total your troops and spice can supply, excluding the leader. For a half point, align the mark between whole numbers with the window.',
     example:
       'Two supported troops plus two unsupported supply 3 strength for 2 spice. The other two Atreides troops contribute nothing.',
   },
@@ -50,36 +50,36 @@ const scenes: Record<Scene, { n: number; lead: string; rule: string; example: st
       'Neither calls a traitor. Atreides reveals dial 3, 2 spice and Gurney. Harkonnen reveals dial 4, 4 spice and Feyd. Both reveal their weapon and defense.',
   },
   weapons: {
-    n: 6,
+    n: 5,
     lead: 'Resolve both weapons against the opposing defenses.',
     rule: 'An unblocked weapon kills the opposing leader. A killed leader contributes 0 strength; its troops still count. Winning does not itself save your leader.',
     example:
       "Gurney's Snooper stops Gom Jabbar. Feyd's Snooper cannot stop the Maula Pistol, so Feyd dies. The red cross marks his death.",
   },
   total: {
-    n: 7,
+    n: 6,
     lead: 'Add strength and determine the winner.',
     rule: 'Add the troop dial, surviving leader and permitted bonuses. Higher strength wins. The aggressor normally wins ties; Mercenaries can change that. Settle the result before cards and losses.',
     example: "Atreides has 3 + Gurney's 4 = 7. Harkonnen has 4 + 0 = 4. Atreides wins.",
   },
   spite: {
-    n: 8,
+    n: 7,
     lead: 'Resolve post-reveal advantages at their stated time.',
     rule: "Other factions may act after reveal or after the result, sometimes only under specific conditions. Check each ability's window before continuing.",
     example:
       "Feyd died, allowing Vladimir's Spite. After the result, Harkonnen exchanges Gom Jabbar for Atreides' Snooper. The battle remains 7 to 4; neither plan changes.",
   },
   cards: {
-    n: 9,
+    n: 8,
     lead: 'Settle cards and the leader reward.',
-    rule: "The ordinary winner may keep or discard played cards; the loser discards them. The winner collects the killed opposing leader's strength in spice. Leaders remain committed to this territory for the phase, even after revival.",
+    rule: "The ordinary winner may keep or discard played cards; the loser discards them. The winner collects the killed opposing leader's strength in spice.",
     example:
       'Atreides collects 6 spice and keeps its Pistol and new Gom Jabbar. The received card cannot be discarded immediately. Harkonnen discards both Snoopers.',
   },
   losses: {
-    n: 10,
+    n: 9,
     lead: 'Pay support and remove troops last.',
-    rule: 'Both pay committed spice. The winner loses troops matching its dial and payment; the loser loses all troops in the territory. Resolve any Harkonnen capture, then choose the next battle. A surviving leader may fight again here.',
+    rule: 'Both pay committed spice. The winner loses troops matching its dial and payment; the loser loses all troops in the territory. Resolve any Harkonnen capture, then choose the next battle.',
     example:
       'Atreides pays 2 spice, loses four troops and keeps two. Harkonnen pays 4 spice and loses all five troops.',
   },
@@ -164,7 +164,7 @@ const beforeReveal = {
 };
 const revealed = {
   ...renderedBattleStep(deathPanel, 5),
-  step: '5–6',
+  step: '5',
   title: 'Reveal and resolve weapons',
   caption: scenes.reveal.rule + ' ' + scenes.weapons.rule,
   dialogue: [],
@@ -177,6 +177,7 @@ revealed.left.troops[0]!.uncommitted = 2;
 revealed.right.troops[0]!.uncommitted = 1;
 const spite = {
   ...sourceBlocks.SPTE,
+  step: '7',
   outcome: undefined,
   title: 'Resolve post-reveal advantages',
   caption: scenes.spite.rule,
@@ -184,6 +185,7 @@ const spite = {
 } as Block;
 const losses = {
   ...sourceBlocks.LSES,
+  step: '9',
   outcome: undefined,
   title: 'Pay support and remove troops last',
   caption: scenes.losses.rule,
@@ -249,19 +251,14 @@ const revealExample = example(
   scenes.reveal.example + ' ' + scenes.weapons.example,
   'Example: the plans are revealed'
 );
-const resultRule = text('result-rule', scenes.total.rule, '7. Determine the winner');
+const resultRule = text('result-rule', scenes.total.rule, '6. Determine the winner');
 const spiteExample = example('spite-example', scenes.spite.example, "Example: Vladimir's Spite");
-const cardRule = text('card-rule', scenes.cards.rule, '9. Settle cards and the leader reward');
+const cardRule = text('card-rule', scenes.cards.rule, '8. Settle cards and the leader reward');
 const cardExample = example('card-example', scenes.cards.example, 'Example: cards and reward');
 const lossExample = example('loss-example', scenes.losses.example, 'Example: troop losses');
-const timing = text(
-  'timing',
-  'After The Voice and Battle Prescience come Blackmail and Stone Burner. Fanatical Tactics and Infiltration act during commitment. Apply each stated condition and deadline. Emperor and Ixian Fates cannot be used during commitment.',
-  'Other faction windows'
-);
 const tieRules = text(
   'tie-rules',
-  'The aggressor wins an ordinary tie. One Mercenaries card may be added without using a weapon, defense or leader slot. It adds 1 strength and wins ties. If both sides play Mercenaries and remain tied, the aggressor wins.'
+  'The aggressor wins an ordinary tie. Mercenaries adds 1 strength and wins ties. If both sides play Mercenaries and remain tied, the aggressor wins.'
 );
 const ordinaryTie = example(
   'ordinary-tie',
@@ -319,9 +316,14 @@ function exceptions(): Page {
   );
 }
 
-const continueBattle = text(
+const leaderCommitment = text(
   'leader-commitment',
-  'Leaders remain committed to this territory for the phase, even after revival. A surviving leader may fight again here. The aggressor finishes all of its battles before the next eligible player chooses.',
+  'Leaders used in battle remain committed to that territory for the rest of the Battle phase. A surviving leader may fight again there, but cannot fight in another territory. A killed leader sent to the Tleilaxu Tanks remains committed to that territory even if revived during the same phase.',
+  'Leaders stay committed to the territory'
+);
+const continueBattle = text(
+  'continue-battle',
+  'The aggressor finishes all of its battles before the next eligible player chooses.',
   'Continue the Battle phase'
 );
 function preparingPlans(): Page {
@@ -344,32 +346,26 @@ function chapter(variant: CombatVariant): Page[] {
   if (variant === 'lesson') {
     pages.push(preparingPlans());
     pages.push(
-      band(
-        'dial',
-        'Dial troop strength',
-        [dialRule],
-        [dialTable],
-        [example('dial-example', scenes.dial.example), timing]
-      )
+      band('dial', 'Dial troop strength', [dialRule], [dialTable], [example('dial-example', scenes.dial.example)])
     );
     pages.push(single('reveal', 'Reveal and resolve', [revealed, revealExample, resultRule, resultTable]));
     pages.push(columns('cards', 'Settle abilities and cards', [spite, spiteExample], [cardRule, cardExample]));
-    pages.push(columns('losses', 'Pay and remove troops', [losses], [lossExample, continueBattle]));
+    pages.push(columns('losses', 'Pay and remove troops', [losses], [lossExample, leaderCommitment, continueBattle]));
   } else {
     pages.push(preparingPlans());
     pages.push(
-      single('dial', 'Dial troop strength', [dialRule, dialTable, example('dial-example', scenes.dial.example), timing])
+      single('dial', 'Dial troop strength', [dialRule, dialTable, example('dial-example', scenes.dial.example)])
     );
     pages.push(single('reveal', 'Reveal and resolve', [revealed, revealExample, resultRule, resultTable]));
     if (variant === 'table') {
-      pages.push(
-        single('settle', 'Settle the battle', [
+      pages.push({
+        ...single('settle', 'Settle the battle', [
           table(
             'settlement-order',
             ['Order', 'What to do'],
             [
-              ['8. Abilities', scenes.spite.rule],
-              ['9. Cards and reward', scenes.cards.rule],
+              ['7. Abilities', scenes.spite.rule],
+              ['8. Cards and reward', scenes.cards.rule],
             ]
           ),
           example(
@@ -379,11 +375,14 @@ function chapter(variant: CombatVariant): Page[] {
           ),
           losses,
           lossExample,
-        ])
-      );
+          leaderCommitment,
+          continueBattle,
+        ]),
+        layoutId: 'sequence',
+      });
     } else {
       pages.push(single('cards', 'Settle abilities and cards', [spite, spiteExample, cardRule, cardExample]));
-      pages.push(single('losses', 'Pay and remove troops', [losses, lossExample, continueBattle]));
+      pages.push(single('losses', 'Pay and remove troops', [losses, lossExample, leaderCommitment, continueBattle]));
     }
   }
   return [...pages, ties(), specials(), exceptions()];
