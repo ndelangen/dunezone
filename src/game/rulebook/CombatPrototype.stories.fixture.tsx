@@ -113,7 +113,7 @@ function single(id: string, title: string, blocks: Block[]): Extract<Page, { lay
     regions: [{ key: 'content', blocks }],
   };
 }
-function columns(id: string, title: string, left: Block[], right: Block[]): Page {
+function columns(id: string, title: string, left: Block[], right: Block[]): Extract<Page, { layoutId: 'two-columns' }> {
   return {
     id,
     anchor: id,
@@ -123,22 +123,6 @@ function columns(id: string, title: string, left: Block[], right: Block[]): Page
     layoutId: 'two-columns',
     controlValues: {},
     regions: [
-      { key: 'column1', blocks: left },
-      { key: 'column2', blocks: right },
-    ],
-  };
-}
-function band(id: string, title: string, top: Block[], left: Block[], right: Block[]): Page {
-  return {
-    id,
-    anchor: id,
-    title,
-    showHeading: true,
-    headingIcon: '/vector/icon/combat.svg',
-    layoutId: 'band-columns',
-    controlValues: { bandPosition: 'top' },
-    regions: [
-      { key: 'band', blocks: top },
       { key: 'column1', blocks: left },
       { key: 'column2', blocks: right },
     ],
@@ -411,7 +395,13 @@ function ties(): Page {
       troops: right.troops.map((troop) => ({ ...troop, supported: 0, uncommitted: 5 })),
     },
   };
-  return band('ties', 'How to resolve ties?', [tieRules], [ordinary, ordinaryTie], [mercenaries, mercenaryTie]);
+  const page = columns('ties', 'How to resolve ties?', [ordinary, ordinaryTie], [mercenaries, mercenaryTie]);
+  return {
+    ...page,
+    layoutId: 'band-columns',
+    controlValues: { bandPosition: 'top' },
+    regions: [{ key: 'band', blocks: [tieRules] }, ...page.regions],
+  };
 }
 function specials(): Page {
   const page = single('special-troops', 'Special troops', [

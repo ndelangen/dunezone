@@ -1331,31 +1331,24 @@ function setBlockField(block: RulebookBlockDraft, field: RulebookFieldName, valu
     block.examples[field === 'comparison-first' ? 0 : 1] = rulebookBattleExampleSchema.parse(value);
     return;
   }
-  if (block.kind === 'battle-plans') {
-    if (field === 'battle-left' || field === 'battle-right') {
-      block[field === 'battle-left' ? 'left' : 'right'] = rulebookBattleSideSchema.parse(value);
-      return;
-    }
-    if (field === 'show-side-labels') {
-      block.showSideLabels = z.boolean().optional().parse(value);
-      return;
-    }
+  if (
+    (block.kind === 'battle-plans' || block.kind === 'battle-step') &&
+    (field === 'battle-left' || field === 'battle-right')
+  ) {
+    block[field === 'battle-left' ? 'left' : 'right'] = rulebookBattleSideSchema.parse(value);
+    return;
+  }
+  if ((block.kind === 'battle-plans' || block.kind === 'battle-step') && field === 'show-side-labels') {
+    block.showSideLabels = z.boolean().optional().parse(value);
+    return;
   }
   if (field === 'list-start' && block.kind === 'list') {
     block.start = z.number().int().positive().optional().parse(value);
     return;
   }
   if (block.kind === 'battle-step') {
-    if (field === 'battle-left' || field === 'battle-right') {
-      block[field === 'battle-left' ? 'left' : 'right'] = rulebookBattleSideSchema.parse(value);
-      return;
-    }
     if (field === 'battle-dialogue') {
       block.dialogue = rulebookBattleDialogueSchema.optional().parse(value);
-      return;
-    }
-    if (field === 'show-side-labels') {
-      block.showSideLabels = z.boolean().optional().parse(value);
       return;
     }
     if (field === 'step' && typeof value === 'string') {

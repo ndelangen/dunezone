@@ -3,6 +3,64 @@ import { expect } from 'storybook/test';
 
 import { CombatPrototype } from './CombatPrototype.stories.fixture';
 
+async function verifyExchangeImages(canvasElement: HTMLElement) {
+  const exchange = canvasElement.querySelector('[data-rulebook-block-id="SPTE"]');
+  if (!exchange) {
+    return;
+  }
+  const images = Array.from(exchange.querySelectorAll('img'));
+  expect(images).toHaveLength(2);
+  await Promise.all(images.map((image) => image.decode()));
+  for (const image of images) {
+    expect(image.naturalWidth).toBeGreaterThan(0);
+  }
+}
+
+async function verifyTieIllustrations(canvasElement: HTMLElement) {
+  const ties = canvasElement.querySelector('[data-rulebook-page-id="ties"]');
+  if (!ties) {
+    return;
+  }
+  expect(ties.querySelectorAll('.rulebookBattlePlans')).toHaveLength(2);
+  const mercenaries = ties.querySelector<HTMLImageElement>('img[alt="Mercenaries"]');
+  expect(mercenaries).not.toBeNull();
+  await mercenaries!.decode();
+}
+
+async function verifyTroopIllustrations(canvasElement: HTMLElement) {
+  const specialTroops = canvasElement.querySelector('[data-rulebook-page-id="special-troops"]');
+  if (!specialTroops) {
+    return;
+  }
+  const tokens = Array.from(
+    specialTroops.querySelectorAll<HTMLImageElement>('[data-rulebook-source-kind="faction-troop"] img')
+  );
+  expect(tokens).toHaveLength(5);
+  await Promise.all(tokens.map((image) => image.decode()));
+  for (const token of tokens) {
+    expect(getComputedStyle(token).clipPath).toBe('circle(50%)');
+  }
+  expect(specialTroops.querySelectorAll('[data-troop-face="back"]')).toHaveLength(1);
+}
+
+function verifyPreparationLayout(canvasElement: HTMLElement) {
+  const preparation = canvasElement.querySelector('[data-rulebook-page-id="prepare"]');
+  if (!preparation) {
+    return;
+  }
+  const upperText = preparation.querySelector('[data-rulebook-region="upperLeft"]')!.getBoundingClientRect();
+  const upperVisual = preparation.querySelector('[data-rulebook-region="upperRight"]')!.getBoundingClientRect();
+  const lowerText = preparation.querySelector('[data-rulebook-region="lowerLeft"]')!.getBoundingClientRect();
+  const lowerVisual = preparation.querySelector('[data-rulebook-region="lowerRight"]')!.getBoundingClientRect();
+  expect(upperVisual.left).toBeGreaterThan(upperText.right);
+  expect(lowerVisual.left).toBe(upperVisual.left);
+  expect(lowerText.left).toBe(upperText.left);
+  expect(lowerText.top).toBeGreaterThan(upperText.bottom);
+  expect(preparation.querySelectorAll('.rulebookBattlePlans')).toHaveLength(2);
+  expect(preparation.querySelectorAll('.rulebookBattleScene')).toHaveLength(0);
+  expect(preparation.querySelector('ol[start="3"]')).not.toBeNull();
+}
+
 const meta = preview.meta({
   title: 'Prototypes/Combat chapter',
   component: CombatPrototype,
@@ -16,48 +74,10 @@ const meta = preview.meta({
   parameters: { layout: 'fullscreen' },
   play: async ({ canvasElement }) => {
     await document.fonts.ready;
-    const exchange = canvasElement.querySelector('[data-rulebook-block-id="SPTE"]');
-    if (exchange) {
-      const images = Array.from(exchange.querySelectorAll('img'));
-      expect(images).toHaveLength(2);
-      await Promise.all(images.map((image) => image.decode()));
-      for (const image of images) {
-        expect(image.naturalWidth).toBeGreaterThan(0);
-      }
-    }
-    const ties = canvasElement.querySelector('[data-rulebook-page-id="ties"]');
-    if (ties) {
-      expect(ties.querySelectorAll('.rulebookBattlePlans')).toHaveLength(2);
-      const mercenaries = ties.querySelector<HTMLImageElement>('img[alt="Mercenaries"]');
-      expect(mercenaries).not.toBeNull();
-      await mercenaries!.decode();
-    }
-    const specialTroops = canvasElement.querySelector('[data-rulebook-page-id="special-troops"]');
-    if (specialTroops) {
-      const tokens = Array.from(
-        specialTroops.querySelectorAll<HTMLImageElement>('[data-rulebook-source-kind="faction-troop"] img')
-      );
-      expect(tokens).toHaveLength(5);
-      await Promise.all(tokens.map((image) => image.decode()));
-      for (const token of tokens) {
-        expect(getComputedStyle(token).clipPath).toBe('circle(50%)');
-      }
-      expect(specialTroops.querySelectorAll('[data-troop-face="back"]')).toHaveLength(1);
-    }
-    const preparation = canvasElement.querySelector('[data-rulebook-page-id="prepare"]');
-    if (preparation) {
-      const upperText = preparation.querySelector('[data-rulebook-region="upperLeft"]')!.getBoundingClientRect();
-      const upperVisual = preparation.querySelector('[data-rulebook-region="upperRight"]')!.getBoundingClientRect();
-      const lowerText = preparation.querySelector('[data-rulebook-region="lowerLeft"]')!.getBoundingClientRect();
-      const lowerVisual = preparation.querySelector('[data-rulebook-region="lowerRight"]')!.getBoundingClientRect();
-      expect(upperVisual.left).toBeGreaterThan(upperText.right);
-      expect(lowerVisual.left).toBe(upperVisual.left);
-      expect(lowerText.left).toBe(upperText.left);
-      expect(lowerText.top).toBeGreaterThan(upperText.bottom);
-      expect(preparation.querySelectorAll('.rulebookBattlePlans')).toHaveLength(2);
-      expect(preparation.querySelectorAll('.rulebookBattleScene')).toHaveLength(0);
-      expect(preparation.querySelector('ol[start="3"]')).not.toBeNull();
-    }
+    await verifyExchangeImages(canvasElement);
+    await verifyTieIllustrations(canvasElement);
+    await verifyTroopIllustrations(canvasElement);
+    verifyPreparationLayout(canvasElement);
     for (const region of canvasElement.querySelectorAll<HTMLElement>('[data-rulebook-region]')) {
       const bounds = region.getBoundingClientRect();
       const content = region.querySelector('.rulebookRegionBlocks')!.getBoundingClientRect();
