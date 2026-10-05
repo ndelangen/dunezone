@@ -85,7 +85,6 @@ function PlanWheel({ side }: Readonly<{ side: RulebookBattleSide }>) {
           motion={false}
           label={`${side.name}: battle plan hidden`}
           artwork={side.artwork}
-          ready={false}
         />
       </div>
     );

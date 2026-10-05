@@ -267,7 +267,7 @@ export function RulebookPageRenderer({
       data-rulebook-page-side={pageNumber % 2 === 0 ? 'left' : 'right'}
       style={pageDimensions(settings)}
     >
-      {settings.design === 'illustrated' && !usesImageCover(page) && page.layoutId !== 'sequence' ? (
+      {settings.design === 'illustrated' && !usesImageCover(page) ? (
         <div className={styles.artwork} aria-hidden="true">
           <img src={artworkHref} alt="" />
         </div>

@@ -33,7 +33,7 @@ const scenes: Record<Scene, { n: number; lead: string; rule: string; example: st
     lead: 'Resolve pre-reveal advantages.',
     rule: "Follow each applicable faction advantage's timing and conditions. The Voice precedes Battle Prescience. Blackmail, Stone Burner, Fanatical Tactics and Infiltration also act before reveal.",
     example:
-      'Here, Harkonnen has chosen its cards; Atreides waits. Atreides uses Prescience: "Which weapon will you play?" Harkonnen answers "Gom Jabbar." That answer is binding. Atreides now chooses two cards using that information. Any other cards and the number committed remain unknown to the opponent until reveal.',
+      'Here, Harkonnen has chosen its cards; Atreides waits. Atreides uses Prescience: "Which weapon will you play?" Harkonnen answers "Gom Jabbar." *That part* of Harkonnen\'s battle plan is now locked, and cannot be changed. The rest of its battle plan can still change until reveal. Atreides now chooses two cards using that information. Any other cards and the number committed remain unknown to the opponent until reveal.',
   },
   dial: {
     n: 4,
@@ -45,7 +45,7 @@ const scenes: Record<Scene, { n: number; lead: string; rule: string; example: st
   reveal: {
     n: 5,
     lead: 'Reveal both final plans together.',
-    rule: 'Finish pre-reveal abilities, then reveal both plans simultaneously. Resolve traitor calls first; a successful call replaces the ordinary result. The illustration shows Atreides at left and Harkonnen at right.',
+    rule: 'Finish pre-reveal abilities, then reveal both plans simultaneously. Resolve traitor calls first; a successful call replaces the ordinary result.',
     example:
       'Neither calls a traitor. Atreides reveals dial 3, 2 spice and Gurney. Harkonnen reveals dial 4, 4 spice and Feyd. Both reveal their weapon and defense.',
   },
@@ -104,7 +104,7 @@ function table(id: string, labels: string[], rows: string[][], note = ''): Block
     note,
   };
 }
-function single(id: string, title: string, blocks: Block[]): Page {
+function single(id: string, title: string, blocks: Block[]): Extract<Page, { layoutId: 'single-column' }> {
   return {
     id,
     anchor: id,
@@ -153,14 +153,14 @@ const sourceBlocks = data.blocks as unknown as Record<string, Block>;
 const preparing = {
   ...renderedBattleStep(preparationPanel, 2),
   caption: scenes.hidden.rule,
-  showSideLabels: true,
+  showSideLabels: false,
 };
 const beforeReveal = {
   ...renderedBattleStep(presciencePanel, 3),
   title: 'Resolve pre-reveal advantages',
   caption: scenes.prescience.rule,
   dialogue: [],
-  showSideLabels: true,
+  showSideLabels: false,
 };
 const revealed = {
   ...renderedBattleStep(deathPanel, 5),
@@ -169,7 +169,7 @@ const revealed = {
   caption: scenes.reveal.rule + ' ' + scenes.weapons.rule,
   dialogue: [],
   outcome: undefined,
-  showSideLabels: true,
+  showSideLabels: false,
   left: { ...renderedBattleStep(deathPanel, 5).left, result: undefined },
   right: { ...renderedBattleStep(deathPanel, 5).right, result: undefined },
 };
@@ -316,7 +316,19 @@ const continueBattle = text(
   'Continue the Battle phase'
 );
 function preparingPlans(): Page {
-  return columns('prepare', 'Build your plans', [preparation, preparing], [beforeReveal, hiddenExample]);
+  return {
+    ...single('prepare', 'Build your plans', [
+      text(
+        'visual-orientation',
+        'Throughout these illustrations, the aggressor is on the left and the defender on the right. Here, that is Atreides and Harkonnen.'
+      ),
+      preparation,
+      preparing,
+      beforeReveal,
+      hiddenExample,
+    ]),
+    layoutId: 'sequence',
+  };
 }
 function chapter(variant: CombatVariant): Page[] {
   const pages = [opening()];

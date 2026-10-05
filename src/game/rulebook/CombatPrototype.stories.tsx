@@ -16,6 +16,20 @@ const meta = preview.meta({
   parameters: { layout: 'fullscreen' },
   play: async ({ canvasElement }) => {
     await document.fonts.ready;
+    const preparation = canvasElement.querySelector('[data-rulebook-page-id="prepare"]');
+    if (preparation) {
+      const steps = [...preparation.querySelectorAll('.rulebookBattleScene')];
+      expect(steps).toHaveLength(2);
+      const first = steps[0]!.getBoundingClientRect();
+      const next = steps[1]!.getBoundingClientRect();
+      expect(next.top).toBeGreaterThanOrEqual(first.bottom);
+      expect(next.left).toBe(first.left);
+      for (const step of steps) {
+        const visual = step.firstElementChild!.getBoundingClientRect();
+        const narrative = step.querySelector('.rulebookBattleNarrative')!.getBoundingClientRect();
+        expect(narrative.left).toBeGreaterThanOrEqual(visual.right);
+      }
+    }
     for (const region of canvasElement.querySelectorAll<HTMLElement>('[data-rulebook-region]')) {
       const bounds = region.getBoundingClientRect();
       const content = region.querySelector('.rulebookRegionBlocks')!.getBoundingClientRect();
