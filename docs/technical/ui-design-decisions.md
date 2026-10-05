@@ -499,6 +499,23 @@ without an icon. A new layout enters that matrix automatically.
 document using only its emitted styles. The broader ownership rule is convention, not a claim of
 complete static enforcement.*
 
+### Rulebook prototypes use real pages and blocks
+
+A page or chapter prototype in Storybook is a Rulebook document rendered through
+`RulebookDocumentRenderer`, using the supported page layouts and registered blocks. The page size,
+content regions, typography, decoration and clipping limits are part of what the user reviews.
+A custom JSX page, prototype stylesheet or replacement `blockRenderer` would bypass those limits.
+
+Compose existing blocks first. A missing capability may earn a new block when its purpose applies
+to general rulebook authoring. Explain that purpose and give the block its normal data contract,
+renderer and editor support. An isolated block story may exercise the component directly; a chapter
+story may not substitute its own page body. Examples use the example callout block.
+
+This follows the rejected combat prototypes, which ran in Storybook but used their own page bodies,
+typography and footer. The revised chapter stories parse the render document contract and check
+that every page region fits. Contract validation and fit are automated; choosing real blocks and
+justifying additions remain review obligations.
+
 ### Renderers stay isolated
 
 Game-asset renderers must paint identically in a Worker, in print, and in the browser, and none of

@@ -55,7 +55,11 @@ function Piece({ source, killed = false }: Readonly<{ source: RulebookResolvedSo
       ) : (
         <span>{source.status === 'unselected' ? 'None' : 'Image unavailable'}</span>
       )}
-      {killed ? <strong className="rulebookBattleDeath">Killed</strong> : null}
+      {killed ? (
+        <span className="rulebookBattleDeath" role="img" aria-label="Killed">
+          ❌
+        </span>
+      ) : null}
     </span>
   );
 }
@@ -128,6 +132,7 @@ function Side({
   facing,
   showLabel,
 }: Readonly<{ side: RulebookBattleSide; facing: 'left' | 'right'; showLabel: boolean }>) {
+  const cardBack = useAsset('/homepage-table/cardback.webp');
   return (
     <figure className="rulebookBattleSide" data-facing={facing}>
       {showLabel ? (
@@ -138,9 +143,17 @@ function Side({
       ) : null}
       <div className="rulebookBattleWheelFrame" data-with-uncommitted={side.revealed || undefined}>
         <div className="rulebookBattleWheelCanvas">
-          {!side.revealed && side.knownCard ? (
-            <div className="rulebookBattleKnownCard">
-              <Piece source={side.knownCard} />
+          {!side.revealed && side.plan.cards.length > 0 ? (
+            <div className="rulebookBattleHiddenCards">
+              {side.plan.cards.map((_, index) => (
+                <span className="rulebookBattleWheelCard" key={index}>
+                  {index === 0 && side.knownCard ? (
+                    <Piece source={side.knownCard} />
+                  ) : (
+                    <img src={cardBack} alt="Face-down Treachery Card" />
+                  )}
+                </span>
+              ))}
             </div>
           ) : null}
           <PlanWheel side={side} />

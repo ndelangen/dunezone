@@ -15,7 +15,7 @@ import { RulebookPageRenderer } from './RulebookRenderer';
 type Specimen = 'private' | 'reveal' | 'resolution' | 'troops';
 
 const specimenPanels = {
-  private: [presciencePanel, planningPanel, revealPanel, deathPanel],
+  private: [presciencePanel, planningPanel, revealPanel],
   reveal: [planningPanel, revealPanel, deathPanel],
   resolution: [revealPanel, deathPanel, resultPanel],
 };
@@ -104,9 +104,9 @@ export const PrivateInformation = meta.story({
     await expect(
       within(canvas.getByRole('region', { name: 'Step 3: Ask with Battle Prescience' })).queryByAltText('Feyd Rautha')
     ).not.toBeInTheDocument();
-    await expect(canvas.getAllByAltText('Gom Jabbar')).toHaveLength(4);
-    await expect(canvas.getAllByLabelText('Atreides: uncommitted troops')).toHaveLength(3);
-    await expect(canvas.getAllByLabelText('Harkonnen: uncommitted troops')).toHaveLength(2);
+    await expect(canvas.getAllByAltText('Gom Jabbar')).toHaveLength(3);
+    await expect(canvas.getAllByLabelText('Atreides: uncommitted troops')).toHaveLength(2);
+    await expect(canvas.getAllByLabelText('Harkonnen: uncommitted troops')).toHaveLength(1);
     await expect(canvas.getAllByLabelText('Atreides: uncommitted troops')[0]).toHaveTextContent('Uncommitted: 2');
     await expect(
       within(canvas.getByRole('region', { name: 'Step 3: Ask with Battle Prescience' })).queryByText('Uncommitted:')
@@ -125,7 +125,7 @@ export const LeaderDeathAndResult = meta.story({
     await expectSquarePage(canvasElement);
     await expect(canvas.getByText('3 + 4 = 7')).toBeVisible();
     await expect(canvas.getByText('4 + 0 = 4')).toBeVisible();
-    await expect(canvas.getAllByText('Killed', { exact: true })).toHaveLength(2);
+    await expect(canvas.getAllByRole('img', { name: 'Killed' })).toHaveLength(2);
   },
 });
 
