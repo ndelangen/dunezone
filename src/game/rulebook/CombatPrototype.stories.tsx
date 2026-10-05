@@ -16,6 +16,13 @@ const meta = preview.meta({
   parameters: { layout: 'fullscreen' },
   play: async ({ canvasElement }) => {
     await document.fonts.ready;
+    const exchange = canvasElement.querySelector('[data-rulebook-block-id="SPTE"]');
+    if (exchange) {
+      const images = Array.from(exchange.querySelectorAll('img'));
+      expect(images).toHaveLength(2);
+      await Promise.all(images.map((image) => image.decode()));
+      for (const image of images) expect(image.naturalWidth).toBeGreaterThan(0);
+    }
     const preparation = canvasElement.querySelector('[data-rulebook-page-id="prepare"]');
     if (preparation) {
       const upperText = preparation.querySelector('[data-rulebook-region="upperLeft"]')!.getBoundingClientRect();
