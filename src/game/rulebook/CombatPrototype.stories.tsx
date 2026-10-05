@@ -9,7 +9,7 @@ const meta = preview.meta({
   args: { variant: 'comic', page: 0 },
   argTypes: {
     page: {
-      control: { type: 'range', min: 0, max: 9, step: 1 },
+      control: { type: 'range', min: 0, max: 11, step: 1 },
       description: '0 shows the whole chapter. Select a page for closer inspection.',
     },
   },

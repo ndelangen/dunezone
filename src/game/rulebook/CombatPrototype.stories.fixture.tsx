@@ -25,7 +25,7 @@ const scenes: Record<Scene, { n: number; lead: string; rule: string; example: st
   hidden: {
     n: 2,
     lead: 'Prepare a battle plan.',
-    rule: 'Your battle plan must include a leader or Cheap Hero if you are able to play one. If neither is available, you must announce this publicly prior to reveal. When you play no leader or Cheap Hero, you cannot include any Treachery Cards in your battle plan. With a leader or Cheap Hero, you may include up to one weapon, one defense and one Mercenaries card.',
+    rule: 'Your plan may include up to one weapon, one defense and one Mercenaries card. Each has its own slot, and any slot may be empty. Keep the cards and their number secret until reveal, except for information disclosed by an advantage.',
     example: '',
   },
   prescience: {
@@ -33,7 +33,7 @@ const scenes: Record<Scene, { n: number; lead: string; rule: string; example: st
     lead: 'Resolve pre-reveal advantages.',
     rule: "Follow each applicable faction advantage's timing and conditions. The Voice precedes Battle Prescience, followed by Blackmail and Stone Burner. Fanatical Tactics and Infiltration act during commitment. Emperor and Ixian Fates cannot be used during commitment.",
     example:
-      'Atreides asks: "Which weapon will you play?" Harkonnen answers "Gom Jabbar." *That part* of Harkonnen\'s battle plan is now locked, and cannot be changed. The rest can change until reveal. Atreides uses the answer to choose two cards. Other cards and their number remain secret.',
+      'Atreides asks: "Which weapon will you play?" Harkonnen answers "Gom Jabbar." *That part* of Harkonnen\'s battle plan is now locked, and cannot be changed. The rest can change until reveal. Atreides uses the answer to choose two cards.',
   },
   dial: {
     n: 4,
@@ -200,8 +200,7 @@ const dialTable = table(
     ['2 unsupported', '½', '1', '0'],
     ['2 uncommitted', '0', '0', '0'],
     ['Total', '', 'Dial 3', '2 spice'],
-  ],
-  'The dial is troop strength. Add the surviving leader only after reveal.'
+  ]
 );
 const resultTable = table(
   'strength-totals',
@@ -228,7 +227,6 @@ const specialText = text(
   'When Ix wins, an uncommitted Suboid may die in place of a committed Cyborg. Flip the saved Cyborg to its patched side. A patched Cyborg can be dialed in a later winning battle without dying, then flips back. These rules do not save troops from an ordinary defeat.',
   'Cyborg losses'
 );
-const dialRule = text('dial-rule', scenes.dial.rule, '4. Dial troop strength');
 const hiddenExample = example(
   'prescience-example',
   scenes.prescience.example,
@@ -258,6 +256,112 @@ const mercenaryTie = example(
   'The aggressor totals 7. The defender has 6 plus 1 from Mercenaries, for 7. The defender wins.',
   'Example: Mercenaries wins the tie'
 );
+
+function introduction(): Page {
+  return single('battle-introduction', 'Introduction to battles', [
+    text(
+      'battle-purpose',
+      'Battles decide which faction can remain in a contested territory. They let you drive opponents away from spice, clear a route or contest a stronghold. A battle can advance your position even when it costs you troops.',
+      'What battles are for'
+    ),
+    text(
+      'battle-victory',
+      'There can be only one victor in a battle; the two sides cannot share a victory. In an ordinary battle, the defeated faction loses all its troops in the territory. The victor also pays its battle costs and takes losses, so winning does not guarantee that it will have troops left to hold the territory.',
+      'What winning means'
+    ),
+    table(
+      'battle-glossary',
+      ['Part of a battle', 'What it means'],
+      [
+        ['Battle plan', 'The choices you prepare for the battle and reveal to your opponent.'],
+        ['Troop dial', 'The strength committed by your troops. Spice can support troops to make them count more.'],
+        ['Leader', 'A character whose strength can add to your total. A Cheap Hero fills this role with 0 strength.'],
+        ['Weapons and defenses', 'Cards that threaten your opponent or protect your own leader.'],
+        ['Faction advantages', 'Abilities that affect the choices, information or outcome, at specified times.'],
+        ['Resolution and settlement', 'Determine the victor, then settle cards, rewards, payments and losses.'],
+      ]
+    ),
+    text(
+      'chapter-route',
+      'The following pages explain when battles happen, then troops and leaders in turn. The example between Atreides and Harkonnen brings these parts together: prepare plans, use advantages, reveal, determine the victor and settle the battle.'
+    ),
+  ]);
+}
+
+function troopStrength(): Page {
+  return single('dial', 'Dial troop strength', [
+    text(
+      'dial-meaning',
+      'The number on the battle wheel is the strength your troops contribute, not a count of troop tokens. Add the strength of the troops you choose to commit.',
+      'What you are dialing'
+    ),
+    text(
+      'ordinary-support',
+      'Each ordinary troop contributes ½ strength without spice, or 1 strength when supported with 1 spice. An uncommitted troop contributes 0.',
+      'Supported and unsupported troops'
+    ),
+    text(
+      'dial-budget',
+      'Use only troops in the battle territory and spice you can commit to this battle. Each troop contributes once. You may leave some troops uncommitted; you do not have to dial the highest strength you can afford.',
+      'Choose your commitment'
+    ),
+    example(
+      'dial-example',
+      'Atreides has six ordinary troops and chooses to spend 2 spice. It supports two troops and commits two more without support. Two troops remain uncommitted.',
+      'Example: six troops, a dial of 3'
+    ),
+    dialTable,
+    text(
+      'set-the-wheel',
+      'The total is 2 + 1 = 3, so set the wheel to 3 and set aside 2 spice. For a half point, align the mark between whole numbers with the window.',
+      'Set the wheel'
+    ),
+  ]);
+}
+
+function leaders(): Page {
+  return columns(
+    'leaders',
+    'Leaders',
+    [
+      text(
+        'leader-strength',
+        'A leader adds the strength printed on its token to your troop dial if it survives the battle. Its strength is separate from the number on your battle wheel. Weapons and defenses determine whether the leader survives; the reveal example shows how.',
+        'What a leader contributes'
+      ),
+      text(
+        'leader-required',
+        'Your battle plan must include a leader or Cheap Hero if you are able to play one. A Cheap Hero has 0 strength, but still lets you play Treachery Cards.',
+        'Choose a leader'
+      ),
+      text(
+        'no-leader',
+        'If you have no leader or Cheap Hero available, you must announce this publicly prior to reveal. When you play neither, you cannot include any Treachery Cards in your battle plan.',
+        'When none is available'
+      ),
+      text(
+        'leader-availability',
+        'Use a leader that is available for this territory. The settlement section explains how fighting in one territory commits a leader for the rest of the phase.'
+      ),
+    ],
+    [
+      {
+        id: 'example-leaders',
+        kind: 'illustrated-inventory',
+        introduction: '',
+        items: [
+          { id: 'gurney', source: revealed.left.leader, text: 'Gurney Halleck has 4 strength.' },
+          { id: 'feyd', source: revealed.right.leader, text: 'Feyd Rautha has 6 strength.' },
+        ],
+      },
+      example(
+        'leader-example',
+        'Harkonnen chooses the stronger leader, Feyd. Atreides chooses Gurney. The stronger leader alone does not decide who wins.',
+        'The leaders in our example'
+      ),
+    ]
+  );
+}
 
 function opening(): Page {
   return single('choose-battle', 'Choose the battle', [
@@ -369,28 +473,42 @@ function preparingPlans(): Page {
             start: 3,
             items: [{ id: 'advantages', name: 'Resolve pre-reveal advantages', text: scenes.prescience.rule }],
           },
+          hiddenExample,
         ],
       },
       { key: 'lowerRight', blocks: [plans(beforeReveal)] },
-      { key: 'closing', blocks: [hiddenExample] },
+      {
+        key: 'closing',
+        blocks: [
+          {
+            id: 'finalize-plan',
+            kind: 'list',
+            style: 'numbered',
+            start: 4,
+            items: [
+              {
+                id: 'finalize',
+                name: 'Finalize your plan',
+                text: 'After pre-reveal advantages are resolved, finalize your cards, dial your chosen troop strength and set aside the matching support spice.',
+              },
+            ],
+          },
+        ],
+      },
     ],
   };
 }
 function chapter(variant: CombatVariant): Page[] {
-  const pages = [opening()];
+  const pages = [introduction(), opening(), troopStrength(), leaders()];
   if (variant === 'lesson') {
     pages.push(preparingPlans());
-    pages.push(
-      band('dial', 'Dial troop strength', [dialRule], [dialTable], [example('dial-example', scenes.dial.example)])
-    );
+
     pages.push(single('reveal', 'Reveal and resolve', [revealed, revealExample, resultRule, resultTable]));
     pages.push(columns('cards', 'Settle abilities and cards', [spite, spiteExample], [cardRule, cardExample]));
     pages.push(columns('losses', 'Pay and remove troops', [losses], [lossExample, leaderCommitment, continueBattle]));
   } else {
     pages.push(preparingPlans());
-    pages.push(
-      single('dial', 'Dial troop strength', [dialRule, dialTable, example('dial-example', scenes.dial.example)])
-    );
+
     pages.push(single('reveal', 'Reveal and resolve', [revealed, revealExample, resultRule, resultTable]));
     if (variant === 'table') {
       pages.push({
