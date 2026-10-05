@@ -511,6 +511,10 @@ to general rulebook authoring. Explain that purpose and give the block its norma
 renderer and editor support. An isolated block story may exercise the component directly; a chapter
 story may not substitute its own page body. Examples use the example callout block.
 
+A chapter teaching a game phase uses the phase name as its opening page title, such as
+"Shipment and movement". Put its introduction between that title and the first subsections.
+Later pages may use descriptive titles for the part of the phase they explain.
+
 This follows the rejected combat prototypes, which ran in Storybook but used their own page bodies,
 typography and footer. The revised chapter stories parse the render document contract and check
 that every page region fits. Contract validation and fit are automated; choosing real blocks and
@@ -535,6 +539,19 @@ example or other explanation. The existing battle-step block remains available w
 explanation and illustration are useful. Standalone battle plans fill the width of their slot,
 with equal space for each side, instead of imposing a fixed printed width. Neither block dictates
 the page layout.
+
+Piece transfers follow the same separation: the standalone block takes referenced piece groups and
+a direction; the piece-movement block adds its numbered explanation and optional board. Neither
+requires empty strings to suppress unwanted narrative furniture. Board scenes accept author-supplied
+routes, using ordered territory references and optional positions. They draw paths and blocked segments;
+they do not calculate game legality. Compact sizing preserves existing scenes, while fit-width uses
+the available column at the board's natural proportions.
+
+Ordinary illustrated layouts cap bottom clearance at 35 mm. Tall pages retain their smaller
+artwork-based clearance of about 25.7 mm. Paired rows keep their existing 35 mm clearance in either
+design. Decoration may extend behind the content area. The compact sequence layout retains its
+13 mm clearance, and other restrained layouts retain their own margin. A chapter must not introduce
+a stylesheet to alter these rules.
 
 ### Renderers stay isolated
 

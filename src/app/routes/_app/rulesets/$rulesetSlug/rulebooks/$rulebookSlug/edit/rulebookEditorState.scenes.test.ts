@@ -20,7 +20,7 @@ function initialRevision() {
           title: 'Illustrations',
           layoutId: 'sequence',
           controlValues: {},
-          blockOrderByRegion: { content: ['BRDD', 'MVMT', 'CMPR', 'BTLE'] },
+          blockOrderByRegion: { content: ['BRDD', 'MVMT', 'CMPR', 'BTLE', 'XFER'] },
           blocksById: {
             BRDD: {
               id: 'BRDD',
@@ -41,6 +41,12 @@ function initialRevision() {
               left: { label: 'Winner', pieces: [] },
               right: { label: 'Loser', pieces: [] },
             },
+            XFER: {
+              id: 'XFER',
+              kind: 'piece-transfer',
+              left: { label: 'Reserves', pieces: [] },
+              right: { label: 'Board', pieces: [] },
+            },
             CMPR: { id: 'CMPR', kind: 'battle-comparison', examples: [example, example] },
             BTLE: { id: 'BTLE', kind: 'battle-step', ...example },
           },
@@ -51,6 +57,48 @@ function initialRevision() {
 }
 
 describe('Illustrated scene reconciliation', () => {
+  it('retains route and transfer edits when another editor changes the caption and destination', () => {
+    const initial = initialRevision();
+    const manager = createRulebookEditorStateManager(initial);
+    manager.dispatch(
+      replaceDraft(manager.result, (draft) => {
+        const board = draftBlock(draft, 'SCNE', 'BRDD', 'board-scene');
+        board.size = 'fit-width';
+        board.routes = [
+          {
+            id: 'PATH',
+            label: 'One step',
+            direction: 'forward',
+            waypoints: [{ territory: 'tueks' }, { territory: 'pasty-mesa' }],
+          },
+        ];
+        const transfer = draftBlock(draft, 'SCNE', 'XFER', 'piece-transfer');
+        transfer.direction = 'right';
+        transfer.left.pieces = [{ id: 'UNIT', kind: 'troops', factionId: 'atreides', face: 'front', count: 3 }];
+      })
+    );
+    const latest = structuredClone(initial);
+    latest.revision = 'revision-2';
+    draftBlock(latest.contents, 'SCNE', 'BRDD', 'board-scene').caption = 'A route';
+    draftBlock(latest.contents, 'SCNE', 'XFER', 'piece-transfer').right.label = 'Arrakeen';
+    const result = manager.dispatch({ kind: 'receive-latest', latest });
+    if (result.status !== 'ready') {
+      throw new Error('Expected ready editor');
+    }
+    expect(result.canSave).toBe(true);
+    expect(result.incompatibilities).toEqual([]);
+    expect(result.saveCandidate?.pagesById.SCNE?.blocksById.BRDD).toMatchObject({
+      size: 'fit-width',
+      caption: 'A route',
+      routes: [{ id: 'PATH', label: 'One step' }],
+    });
+    expect(result.saveCandidate?.pagesById.SCNE?.blocksById.XFER).toMatchObject({
+      direction: 'right',
+      left: { pieces: [{ count: 3 }] },
+      right: { label: 'Arrakeen' },
+    });
+  });
+
   it('merges board markers and annotations independently and retains the crop', () => {
     const initial = initialRevision();
     const manager = createRulebookEditorStateManager(initial);

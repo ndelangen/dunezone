@@ -65,9 +65,38 @@ const rulebookBoardHighlightSchema = z.strictObject({
   opacity: coordinate.optional(),
 });
 
+/** Routes illustrate an author-supplied path; they do not calculate legal movement. */
+export const rulebookBoardRouteSchema = z
+  .strictObject({
+    id,
+    label: z.string(),
+    color: color.optional(),
+    direction: z.enum(['forward', 'both', 'none']),
+    showWaypoints: z.boolean().optional(),
+    waypoints: z
+      .array(
+        z
+          .strictObject({
+            territory: z.string().min(1).optional(),
+            position: z.strictObject({ x: coordinate, y: coordinate }).optional(),
+          })
+          .refine((point) => point.territory !== undefined || point.position !== undefined, {
+            message: 'A waypoint needs a territory or position',
+          })
+      )
+      .min(2)
+      .max(64),
+    blockedAfter: z.number().int().min(0).optional(),
+  })
+  .refine((route) => route.blockedAfter === undefined || route.blockedAfter < route.waypoints.length - 1, {
+    message: 'A blocked segment must join two waypoints',
+  });
+
 export const rulebookBoardSceneSchema = z.strictObject({
   boardId: z.string().min(1),
   caption: z.string(),
+  size: z.enum(['compact', 'fit-width']).optional(),
+  routes: identifiedItems(rulebookBoardRouteSchema).optional(),
   viewport: z
     .strictObject({
       x: z.number().min(-1).max(2),
@@ -111,14 +140,16 @@ export const rulebookMovementNoteSchema = z.strictObject({
   source: rulebookSourceReferenceSchema.optional(),
   count,
 });
-export const rulebookPieceMovementSchema = z.strictObject({
+export const rulebookPieceTransferSchema = z.strictObject({
+  left: rulebookMovementGroupSchema,
+  right: rulebookMovementGroupSchema,
+  direction: z.enum(['exchange', 'right', 'none']).optional(),
+});
+export const rulebookPieceMovementSchema = rulebookPieceTransferSchema.extend({
   step: z.string(),
   title: z.string(),
   caption: z.string(),
   outcome: z.string().optional(),
-  left: rulebookMovementGroupSchema,
-  right: rulebookMovementGroupSchema,
-  direction: z.enum(['exchange', 'right', 'none']).optional(),
   board: rulebookBoardSceneSchema.optional(),
   notes: identifiedItems(rulebookMovementNoteSchema).optional(),
 });

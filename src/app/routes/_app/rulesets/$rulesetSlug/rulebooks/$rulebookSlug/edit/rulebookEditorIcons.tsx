@@ -66,6 +66,7 @@ const blockIcons = {
   'battle-plans': Swords,
   'board-scene': Map,
   'piece-movement': ArrowRightLeft,
+  'piece-transfer': ArrowRightLeft,
   'battle-comparison': Columns2,
   list: List,
   callout: MessageSquareQuote,

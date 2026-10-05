@@ -1,31 +1,12 @@
 import type { RulebookRenderBlockV1 } from '@shared/rulebooks/renderDocument';
 import { rulebookSourceClipPath } from '@shared/rulebooks/sources';
-import type { ComponentProps } from 'react';
 
 import { useAsset } from '../assets/assetRenderMode';
 import { RulebookBoardSceneVisual } from './RulebookBoardScene';
 import { RulebookIllustratedStep } from './RulebookIllustratedStep';
-import { RulebookPieceMovement } from './RulebookPieceMovement';
-import { rulebookTroopArtwork } from './rulebookTroopArtwork';
+import { RulebookPieceTransferVisual } from './RulebookPieceTransferBlock';
 
 type Movement = Extract<RulebookRenderBlockV1, { kind: 'piece-movement' }>;
-
-function movementGroup(group: Movement['left']): ComponentProps<typeof RulebookPieceMovement>['left'] {
-  return {
-    label: group.label,
-    pieces: group.pieces.map((piece) =>
-      piece.kind === 'source'
-        ? piece
-        : {
-            id: piece.id,
-            kind: 'troops',
-            label: piece.label,
-            count: piece.count,
-            artwork: rulebookTroopArtwork(piece),
-          }
-    ),
-  };
-}
 
 function MovementNote({ note }: Readonly<{ note: NonNullable<Movement['notes']>[number] }>) {
   const source = note.source;
@@ -60,11 +41,7 @@ export function RulebookPieceMovementBlock({ block }: Readonly<{ block: Movement
         <div className="rulebookMovementVisual" data-with-board={Boolean(block.board) || undefined}>
           {block.board ? <RulebookBoardSceneVisual scene={block.board} /> : null}
           <div>
-            <RulebookPieceMovement
-              left={movementGroup(block.left)}
-              right={movementGroup(block.right)}
-              direction={block.direction === 'none' ? undefined : block.direction}
-            />
+            <RulebookPieceTransferVisual value={block} />
             {block.notes?.length ? (
               <div className="rulebookMovementNotes">
                 {block.notes.map((note) => (

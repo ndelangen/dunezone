@@ -152,3 +152,23 @@ export function lossMovementFixture(): Extract<RulebookRenderBlockV1, { kind: 'p
     ],
   };
 }
+
+export function boardRouteFixture() {
+  const board = boardSceneFixture();
+  board.annotations = [];
+  board.players = [];
+  board.troops = [];
+  board.storm = undefined;
+  board.size = 'fit-width';
+  board.caption = '';
+  board.routes = [
+    {
+      id: 'route',
+      label: 'Illustrated route with a blocked segment',
+      direction: 'forward',
+      waypoints: [{ territory: 'tueks' }, { territory: 'pasty-mesa' }, { territory: 'shield-wall' }],
+      blockedAfter: 1,
+    },
+  ];
+  return board;
+}

@@ -21,6 +21,7 @@ import {
   rulebookBoardPlayerSchema,
   rulebookBoardTroopSchema,
   rulebookPieceMovementSchema,
+  rulebookPieceTransferSchema,
   rulebookMovementGroupSchema,
   rulebookMovementSourceSchema,
   rulebookMovementTroopSchema,
@@ -118,6 +119,12 @@ const renderCardGuideFields = {
 
 const renderBlockSchemas = {
   'board-scene': renderBoardSceneSchema.extend({ ...renderBlockBase, kind: z.literal('board-scene') }),
+  'piece-transfer': rulebookPieceTransferSchema.omit({ left: true, right: true }).extend({
+    ...renderBlockBase,
+    kind: z.literal('piece-transfer'),
+    left: renderMovementGroupSchema,
+    right: renderMovementGroupSchema,
+  }),
   'piece-movement': rulebookPieceMovementSchema.omit({ left: true, right: true, board: true, notes: true }).extend({
     ...renderBlockBase,
     kind: z.literal('piece-movement'),
@@ -284,6 +291,7 @@ export const renderBlockSchema = z.discriminatedUnion('kind', [
   renderBlockSchemas['battle-plans'],
   renderBlockSchemas['board-scene'],
   renderBlockSchemas['piece-movement'],
+  renderBlockSchemas['piece-transfer'],
   renderBlockSchemas['battle-comparison'],
   renderBlockSchemas['section-heading'],
   renderBlockSchemas.list,

@@ -5,6 +5,7 @@ import {
   rulebookAnnotationUnavailableText,
 } from '@shared/rulebooks/assetExplainerAnnotations';
 import type { RulebookAnnotationProjection } from '@shared/rulebooks/assetExplainerAnnotations';
+import { projectRulebookBoardRoutes } from '@shared/rulebooks/boardRoutes';
 import {
   findRulebookItem,
   getRulebookRegionOrder,
@@ -281,8 +282,18 @@ function projectedBoardAnnotationText(annotation: BoardAnnotation, index: number
 }
 
 function projectedBoardText(board: RenderBoardScene) {
-  if (board.board.status !== 'ready' || !board.board.geometry) {
-    return normalizeRulebookText(`Board unavailable ${board.caption}`);
+  const geometry = board.board.status === 'ready' ? board.board.geometry : undefined;
+  const routes = projectRulebookBoardRoutes(board.routes, geometry);
+  const routeLegend = routes.map((route) => route.legendLabel);
+  if (!geometry) {
+    return normalizeRulebookText(
+      [
+        'Board unavailable',
+        board.caption,
+        ...routeLegend,
+        ...board.annotations.flatMap((annotation) => [annotation.title, annotation.text]),
+      ].join(' ')
+    );
   }
   return normalizeRulebookText(
     [
@@ -293,11 +304,16 @@ function projectedBoardText(board: RenderBoardScene) {
           (troop.face === 'front' ? troop.artwork : troop.artwork?.back);
         return available ? [] : Array.from({ length: troop.count }, () => '?');
       }),
-      board.storm ? 'STORM' : '',
+      ...routes.flatMap((route) => [
+        route.label,
+        ...route.points.flatMap((point) => (point?.label === undefined ? [] : [point.label])),
+      ]),
       ...board.players.flatMap((player) => (player.faction.status === 'ready' && player.faction.token ? [] : ['?'])),
       ...board.annotations.map((_, index) => String(index + 1)),
+      ...(board.annotations.length ? [] : routeLegend),
       board.caption,
       ...board.annotations.map(projectedBoardAnnotationText),
+      ...(board.annotations.length ? routeLegend : []),
     ].join(' ')
   );
 }
@@ -350,6 +366,9 @@ function projectedBlockText(block: RulebookRenderBlockV1) {
   }
   if (block.kind === 'board-scene') {
     return projectedBoardText(block);
+  }
+  if (block.kind === 'piece-transfer') {
+    return projectedMovementText({ ...block, kind: 'piece-movement', step: '', title: '', caption: '' });
   }
   if (block.kind === 'piece-movement') {
     return projectedMovementText(block);

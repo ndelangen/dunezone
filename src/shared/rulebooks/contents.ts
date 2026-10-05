@@ -10,6 +10,7 @@ import { rulebookCoverPresetIdSchema } from './coverPresets';
 import {
   rulebookBoardSceneSchema,
   rulebookPieceMovementSchema,
+  rulebookPieceTransferSchema,
   rulebookBattleComparisonSchema,
 } from './illustratedScenes';
 import type { RulebookSize } from './settings';
@@ -27,7 +28,7 @@ export const rulebookTextReferencesSchema = z.array(
 );
 
 /** Creation callers declare the catalogue they can read before receiving starter or cloned Contents. */
-export const RULEBOOK_CATALOGUE_VERSION = 13;
+export const RULEBOOK_CATALOGUE_VERSION = 14;
 
 export const rulebookLocalIdAlphabet = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ' as const;
 const rulebookLocalIdPattern = new RegExp(`^[${rulebookLocalIdAlphabet}]{4}$`);
@@ -69,6 +70,7 @@ export const rulebookBlockKinds = [
   'battle-plans',
   'board-scene',
   'piece-movement',
+  'piece-transfer',
   'battle-comparison',
   'card-group',
   'asset-explainer',
@@ -89,6 +91,7 @@ export const rulebookBlockKindLabels = {
   'battle-plans': 'Battle plans',
   'board-scene': 'Board scene',
   'piece-movement': 'Piece movement',
+  'piece-transfer': 'Piece transfer',
   'battle-comparison': 'Battle comparison',
   'card-group': 'Card group',
   'asset-explainer': 'AssetExplainer',
@@ -253,6 +256,11 @@ function rulebookBlockSchemas<Text extends z.ZodType, Anchor extends z.ZodType, 
     kind: z.literal('board-scene'),
     anchor: anchor.optional(),
   });
+  const pieceTransferBlock = rulebookPieceTransferSchema.extend({
+    id: rulebookLocalIdSchema,
+    kind: z.literal('piece-transfer'),
+    anchor: anchor.optional(),
+  });
   const pieceMovementBlock = rulebookPieceMovementSchema.extend({
     id: rulebookLocalIdSchema,
     kind: z.literal('piece-movement'),
@@ -365,6 +373,7 @@ function rulebookBlockSchemas<Text extends z.ZodType, Anchor extends z.ZodType, 
       battlePlansBlock,
       boardSceneBlock,
       pieceMovementBlock,
+      pieceTransferBlock,
       battleComparisonBlock,
       cardGroupBlock,
       assetExplainerBlock,

@@ -9,7 +9,7 @@ type Point = { x: number; y: number };
 
 export type RulebookTerritorySceneProps = Readonly<{
   label: string;
-  size?: 'compact' | 'large';
+  size?: 'compact' | 'large' | 'fit-width';
   board: { imageUrl: string; geometry: ComponentGeometry };
   viewport: Point & { width: number; height: number };
   highlights: readonly { territory: string; color: string; opacity?: number }[];

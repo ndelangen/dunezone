@@ -722,12 +722,29 @@ function BoardSceneFields({ value, references, onChange }: BoardSceneFieldsProps
         value={value.caption}
         onChange={(event) => onChange({ ...value, caption: event.currentTarget.value })}
       />
+      <Select
+        label="Board size"
+        value={value.size ?? 'automatic'}
+        data={[
+          { value: 'automatic', label: 'Automatic' },
+          { value: 'compact', label: 'Compact' },
+          { value: 'fit-width', label: 'Fill available width' },
+        ]}
+        onChange={(size) => {
+          if (size === 'automatic') {
+            onChange({ ...value, size: undefined });
+          } else if (size === 'compact' || size === 'fit-width') {
+            onChange({ ...value, size });
+          }
+        }}
+      />
       <BoardViewportFields value={value} references={references} onChange={onChange} />
       <BoardStormFields value={value} references={references} onChange={onChange} />
       <Accordion multiple>
         <BoardPlayerFields value={value} references={references} onChange={onChange} />
         <BoardTroopFields value={value} references={references} onChange={onChange} />
         <BoardHighlightFields value={value} references={references} onChange={onChange} />
+        <BoardRouteFields value={value} references={references} onChange={onChange} />
         <BoardAnnotationFields value={value} references={references} onChange={onChange} />
       </Accordion>
     </Stack>
@@ -881,35 +898,11 @@ export function PieceMovementEdit({
         value={value.outcome ?? ''}
         onChange={(event) => onChange({ ...value, outcome: event.currentTarget.value || undefined })}
       />
-      <Select
-        label="Movement"
-        value={value.direction ?? 'none'}
-        data={[
-          { value: 'none', label: 'No arrow' },
-          { value: 'right', label: 'Move right' },
-          { value: 'exchange', label: 'Exchange' },
-        ]}
-        onChange={(direction) => {
-          if (direction === 'none' || direction === 'right' || direction === 'exchange') {
-            onChange({ ...value, direction });
-          }
-        }}
+      <PieceTransferFields
+        value={value}
+        references={references}
+        onChange={(fields) => onChange({ ...value, ...fields })}
       />
-      <Accordion multiple defaultValue={['left']}>
-        {(['left', 'right'] as const).map((side) => (
-          <Accordion.Item key={side} value={side}>
-            <Accordion.Control>{side === 'left' ? 'Left group' : 'Right group'}</Accordion.Control>
-            <Accordion.Panel>
-              <MovementGroupEdit
-                label={side}
-                value={value[side]}
-                references={references}
-                onChange={(group) => onChange({ ...value, [side]: group })}
-              />
-            </Accordion.Panel>
-          </Accordion.Item>
-        ))}
-      </Accordion>
       <Switch
         label="Include board scene"
         checked={Boolean(value.board)}
@@ -1025,5 +1018,222 @@ function MovementNotesFields({
         </Stack>
       }
     />
+  );
+}
+
+function PieceTransferFields({
+  value,
+  onChange,
+  references,
+}: {
+  value: Pick<RulebookPieceMovementValue, 'left' | 'right' | 'direction'>;
+  references: RulebookEditorReferences;
+  onChange: (value: Pick<RulebookPieceMovementValue, 'left' | 'right' | 'direction'>) => void;
+}) {
+  return (
+    <Stack gap="md">
+      {' '}
+      <Select
+        label="Movement"
+        value={value.direction ?? 'none'}
+        data={[
+          { value: 'none', label: 'No arrow' },
+          { value: 'right', label: 'Move right' },
+          { value: 'exchange', label: 'Exchange' },
+        ]}
+        onChange={(direction) => {
+          if (direction === 'none' || direction === 'right' || direction === 'exchange') {
+            onChange({ ...value, direction });
+          }
+        }}
+      />
+      <Accordion multiple defaultValue={['left']}>
+        {(['left', 'right'] as const).map((side) => (
+          <Accordion.Item key={side} value={side}>
+            <Accordion.Control>{side === 'left' ? 'Left group' : 'Right group'}</Accordion.Control>
+            <Accordion.Panel>
+              <MovementGroupEdit
+                label={side}
+                value={value[side]}
+                references={references}
+                onChange={(group) => onChange({ ...value, [side]: group })}
+              />
+            </Accordion.Panel>
+          </Accordion.Item>
+        ))}
+      </Accordion>
+    </Stack>
+  );
+}
+
+export function PieceTransferEdit({
+  value,
+  onChange,
+  references = emptyReferences,
+}: RulebookBlockEditorProps<'piece-transfer'>) {
+  return (
+    <PieceTransferFields
+      value={value}
+      references={references}
+      onChange={(fields) => onChange({ ...value, ...fields })}
+    />
+  );
+}
+
+function BoardRouteFields({ value, onChange }: BoardSceneFieldsProps) {
+  const routes = value.routes ?? [];
+  const parts = resolveRulebookBoardDefinition(value.boardId)?.geometry.parts ?? [];
+  const territoryOptions = parts.map((part) => ({ value: part.key, label: part.label ?? part.key }));
+  const update = (index: number, route: NonNullable<RulebookBoardSceneValue['routes']>[number]) =>
+    onChange({ ...value, routes: routes.map((entry, i) => (i === index ? route : entry)) });
+  return (
+    <Accordion.Item value="routes">
+      <Accordion.Control>Routes ({routes.length})</Accordion.Control>
+      <Accordion.Panel>
+        <Stack gap="md">
+          <ListLengthActions
+            addLabel="Add route"
+            addDisabled={routes.length >= 64 || !parts.length}
+            removeLabel="Remove last route"
+            removeDisabled={!routes.length}
+            onAdd={() =>
+              onChange({
+                ...value,
+                routes: [
+                  ...routes,
+                  {
+                    id: createRulebookLocalId(routes.map((route) => route.id)),
+                    label: 'Route',
+                    direction: 'forward',
+                    waypoints: [{ territory: parts[0]!.key }, { territory: (parts[1] ?? parts[0])!.key }],
+                  },
+                ],
+              })
+            }
+            onRemove={() => onChange({ ...value, routes: routes.slice(0, -1) })}
+          />
+          {routes.map((route, routeIndex) => (
+            <Stack gap="sm" key={route.id}>
+              <TextInput
+                label={`Route ${routeIndex + 1} label`}
+                value={route.label}
+                onChange={(event) => update(routeIndex, { ...route, label: event.currentTarget.value })}
+              />
+              <ColorInput
+                label="Route color"
+                format="hex"
+                value={route.color ?? '#215f89'}
+                onChange={(color) => {
+                  if (/^#[0-9a-fA-F]{6}$/.test(color)) {
+                    update(routeIndex, { ...route, color });
+                  }
+                }}
+              />
+              <Select
+                label="Arrows"
+                value={route.direction}
+                data={[
+                  { value: 'forward', label: 'Forward' },
+                  { value: 'both', label: 'Both directions' },
+                  { value: 'none', label: 'No arrows' },
+                ]}
+                onChange={(direction) => {
+                  if (direction === 'forward' || direction === 'both' || direction === 'none') {
+                    update(routeIndex, { ...route, direction });
+                  }
+                }}
+              />
+              <Switch
+                label="Number the waypoints"
+                checked={route.showWaypoints !== false}
+                onChange={(event) => update(routeIndex, { ...route, showWaypoints: event.currentTarget.checked })}
+              />
+              {route.waypoints.map((point, pointIndex) => (
+                <Stack gap="xs" key={pointIndex}>
+                  <Select
+                    label={`Waypoint ${pointIndex + 1}`}
+                    searchable
+                    data={territoryOptions}
+                    clearable={Boolean(point.position)}
+                    value={point.territory ?? null}
+                    onChange={(territory) => {
+                      if (territory || point.position) {
+                        update(routeIndex, {
+                          ...route,
+                          waypoints: route.waypoints.map((entry, i) =>
+                            i === pointIndex ? (territory ? { territory } : { position: point.position }) : entry
+                          ),
+                        });
+                      }
+                    }}
+                  />
+                  <Switch
+                    label={`Position waypoint ${pointIndex + 1} manually`}
+                    checked={Boolean(point.position)}
+                    disabled={!point.territory}
+                    onChange={(event) => {
+                      const part = parts.find((entry) => entry.key === point.territory);
+                      const position = event.currentTarget.checked
+                        ? { x: part ? part.x + part.width / 2 : 0.5, y: part ? part.y + part.height / 2 : 0.5 }
+                        : undefined;
+                      update(routeIndex, {
+                        ...route,
+                        waypoints: route.waypoints.map((entry, i) =>
+                          i === pointIndex ? { ...entry, position } : entry
+                        ),
+                      });
+                    }}
+                  />
+                  {point.position ? (
+                    <PositionFields
+                      label={`Waypoint ${pointIndex + 1}`}
+                      {...point.position}
+                      onChange={(position) =>
+                        update(routeIndex, {
+                          ...route,
+                          waypoints: route.waypoints.map((entry, i) =>
+                            i === pointIndex ? { ...entry, position: { ...point.position!, ...position } } : entry
+                          ),
+                        })
+                      }
+                    />
+                  ) : null}
+                </Stack>
+              ))}
+              <ListLengthActions
+                addLabel="Add waypoint"
+                addDisabled={route.waypoints.length >= 64 || !parts.length}
+                removeLabel="Remove last waypoint"
+                removeDisabled={route.waypoints.length <= 2}
+                onAdd={() =>
+                  update(routeIndex, { ...route, waypoints: [...route.waypoints, { territory: parts[0]!.key }] })
+                }
+                onRemove={() =>
+                  update(routeIndex, {
+                    ...route,
+                    waypoints: route.waypoints.slice(0, -1),
+                    blockedAfter:
+                      route.blockedAfter !== undefined && route.blockedAfter >= route.waypoints.length - 2
+                        ? undefined
+                        : route.blockedAfter,
+                  })
+                }
+              />
+              <Select
+                label="Blocked segment"
+                clearable
+                value={route.blockedAfter === undefined ? null : String(route.blockedAfter)}
+                data={route.waypoints
+                  .slice(0, -1)
+                  .map((_, i) => ({ value: String(i), label: `Waypoint ${i + 1} to ${i + 2}` }))}
+                onChange={(segment) =>
+                  update(routeIndex, { ...route, blockedAfter: segment === null ? undefined : Number(segment) })
+                }
+              />
+            </Stack>
+          ))}
+        </Stack>
+      </Accordion.Panel>
+    </Accordion.Item>
   );
 }
