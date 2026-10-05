@@ -25,7 +25,7 @@ const scenes: Record<Scene, { n: number; lead: string; rule: string; example: st
   hidden: {
     n: 2,
     lead: 'Prepare a battle plan.',
-    rule: 'Choose in secret: an available leader or a 0-strength Cheap Hero, up to one weapon and one defense. Either card slot may be empty. Keep both the cards and their number secret until reveal, except for information disclosed by an advantage. A leader used in another territory this phase is unavailable. With neither leader nor Cheap Hero, announce it: you fight without Treachery Cards.',
+    rule: 'You must play an available leader or a 0-strength Cheap Hero if you can. A leader used in another territory this phase is unavailable. If neither is available, announce this publicly before reveal; you fight without Treachery Cards. Otherwise, choose up to one weapon and one defense in secret. Either card slot may be empty. Keep both the cards and their number secret until reveal, except for information disclosed by an advantage.',
     example: '',
   },
   prescience: {
@@ -306,7 +306,16 @@ function exceptions(): Page {
     'other-outcomes',
     'Other battle outcomes',
     data.special.BSPC.slice(0, 2) as Block[],
-    data.special.BSPC.slice(2) as Block[]
+    [
+      ...data.special.BSPC.slice(2),
+      {
+        id: 'before-reveal-timing',
+        kind: 'callout',
+        variant: 'note',
+        title: 'What does "prior to reveal" mean?',
+        text: 'Make the announcement early enough for your opponent to hear it and have a reasonable opportunity to react, including changing any part of their plan that is not already locked. If you have no available leader or Cheap Hero, say so publicly and allow that opportunity before revealing. An announcement made as the plans are revealed is too late.',
+      },
+    ] as Block[]
   );
 }
 
