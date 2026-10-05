@@ -1,6 +1,8 @@
 import type { RulebookBlockKind, rulebookLayoutCatalogue, RulebookPageLayoutId } from '@shared/rulebooks/contents';
 import {
   AlignLeft,
+  Map,
+  ArrowRightLeft,
   BookImage,
   Columns2,
   createLucideIcon,
@@ -59,6 +61,9 @@ const blockIcons = {
   'section-heading': Heading,
   text: AlignLeft,
   'battle-step': Swords,
+  'board-scene': Map,
+  'piece-movement': ArrowRightLeft,
+  'battle-comparison': Columns2,
   list: List,
   callout: MessageSquareQuote,
   'question-answer': MessagesSquare,

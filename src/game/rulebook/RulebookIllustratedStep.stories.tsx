@@ -2,10 +2,8 @@ import preview from '@sb/preview';
 import { RULEBOOK_BOARD_DEFINITIONS } from '@shared/rulebooks/boardDefinitions';
 import { expect } from 'storybook/test';
 
-import { RulebookAnnotationMarks } from './RulebookAnnotationMarks';
-import { RulebookAssetExplainer } from './RulebookAssetExplainer';
-import { boardExplainerFixture } from './RulebookAssetExplainer.stories.fixture';
 import { atreidesSide, battleSequencePage, harkonnenSide } from './RulebookBattlePlan.stories.fixture';
+import { boardSceneFixture, movementFixture, lossMovementFixture } from './RulebookIllustratedScenes.stories.fixture';
 import { RulebookIllustratedStep } from './RulebookIllustratedStep';
 import { RulebookPieceMovement } from './RulebookPieceMovement';
 import { RulebookPageRenderer } from './RulebookRenderer';
@@ -122,53 +120,93 @@ export const PlacesAndPieceMovement = meta.story({
 });
 
 export const AnnotatedBoardWithPieces = meta.story({
-  render: () => {
-    const block = boardExplainerFixture();
-    block.items = block.items.slice(0, 2);
-    return (
-      <div style={{ width: 'min(960px, 94vw)' }}>
-        <RulebookPageRenderer
-          page={{
-            ...battleSequencePage([]),
-            layoutId: 'sequence',
-            controlValues: {},
-            title: 'A board scene with a legend',
-            regions: [{ key: 'content', blocks: [block] }],
-          }}
-          settings={{ size: 'square', design: 'illustrated' }}
-          blockRenderer={() => (
-            <RulebookAssetExplainer
-              block={block}
-              renderIllustration={(projection) => (
-                <RulebookTerritoryScene
-                  label="Complete board with troops and numbered explanations"
-                  board={board}
-                  viewport={{ x: 0, y: 0, width: board.geometry.width, height: board.geometry.height }}
-                  highlights={[]}
-                  troops={[
-                    { id: 'left', artwork: leftTroop, count: 4, x: 162, y: 126, columns: 2, size: 9, gap: 1 },
-                    { id: 'right', artwork: rightTroop, count: 3, x: 178, y: 162, columns: 2, size: 9, gap: 1 },
-                  ]}
-                  labels={[]}
-                  overlay={<RulebookAnnotationMarks projection={projection} />}
-                />
-              )}
-            />
-          )}
-        />
-      </div>
-    );
-  },
+  render: () => (
+    <div style={{ width: 'min(960px, 94vw)' }}>
+      <RulebookPageRenderer
+        page={{
+          ...battleSequencePage([]),
+          title: 'A saved board scene',
+          regions: [{ key: 'content', blocks: [boardSceneFixture()] }],
+        }}
+        settings={{ size: 'square', design: 'illustrated' }}
+      />
+    </div>
+  ),
   play: async ({ canvas, canvasElement }) => {
     await document.fonts.ready;
     await expect(
       canvas.getByRole('img', { name: 'Complete board with troops and numbered explanations' })
     ).toBeVisible();
-    const legend = canvas.getByRole('list', { name: 'Explanations' });
-    await expect(legend).toBeVisible();
+    await expect(canvas.getByRole('list', { name: 'Explanations' })).toBeVisible();
     expect(canvasElement.querySelectorAll('[data-rulebook-marker]')).toHaveLength(2);
-    expect(canvasElement.querySelectorAll('[data-target-status="ready"]')).toHaveLength(2);
+    expect(canvasElement.querySelectorAll('[data-rulebook-block-id]')).toHaveLength(1);
     const region = canvasElement.querySelector<HTMLElement>('[data-rulebook-region]')!;
     expect(region.scrollHeight).toBeLessThanOrEqual(region.clientHeight + 1);
+  },
+});
+
+export const SavedPieceMovements = meta.story({
+  render: () => (
+    <div style={{ width: 'min(960px, 94vw)' }}>
+      <RulebookPageRenderer
+        page={{
+          ...battleSequencePage([]),
+          title: 'Saved piece movements',
+          regions: [{ key: 'content', blocks: [movementFixture(), lossMovementFixture()] }],
+        }}
+        settings={{ size: 'square', design: 'illustrated' }}
+      />
+    </div>
+  ),
+  play: async ({ canvas, canvasElement }) => {
+    await document.fonts.ready;
+    await expect(canvas.getByLabelText('Exchange')).toBeVisible();
+    await expect(canvas.getByText('Support paid')).toBeVisible();
+    expect(canvasElement.querySelectorAll('[data-rulebook-block-id]')).toHaveLength(2);
+    const region = canvasElement.querySelector<HTMLElement>('[data-rulebook-region]')!;
+    expect(region.scrollHeight).toBeLessThanOrEqual(region.clientHeight + 1);
+  },
+});
+
+export const UnavailableSceneReferences = meta.story({
+  render: () => {
+    const board = boardSceneFixture();
+    board.board = { status: 'unavailable', reference: { kind: 'board', boardId: board.boardId } };
+    const movement = lossMovementFixture();
+    movement.board = undefined;
+    movement.left.pieces = [
+      {
+        id: 'missing-card',
+        kind: 'source',
+        source: { status: 'unavailable', reference: { kind: 'asset', assetId: 'missing' } },
+        count: 1,
+      },
+    ];
+    movement.right.pieces = [
+      {
+        id: 'missing-troop',
+        kind: 'troops',
+        faction: { status: 'unavailable', factionId: 'missing' },
+        face: 'front',
+        count: 3,
+      },
+    ];
+    return (
+      <div style={{ width: 'min(960px, 94vw)' }}>
+        <RulebookPageRenderer
+          page={{
+            ...battleSequencePage([]),
+            title: 'Unavailable sources',
+            regions: [{ key: 'content', blocks: [board, movement] }],
+          }}
+          settings={{ size: 'square', design: 'illustrated' }}
+        />
+      </div>
+    );
+  },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByText('Board unavailable', { exact: true })).toBeVisible();
+    await expect(canvas.getByText('Source unavailable', { exact: true })).toBeVisible();
+    await expect(canvas.getAllByLabelText('Troop artwork unavailable')).toHaveLength(3);
   },
 });

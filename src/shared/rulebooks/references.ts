@@ -1,8 +1,10 @@
 import { z } from 'zod';
 
 import { CanonicalFactionStoredObject, TroopArtwork } from '../factions/schema';
+import type { RulebookBattleSideValue } from './battleStep';
 import { getRulebookCoverFooter } from './contents';
 import type { RulebookContentsDraftV1 } from './contents';
+import type { RulebookBoardSceneValue } from './illustratedScenes';
 import { rulebookResolvedSourceSchema } from './sources';
 import type { RulebookSourceReference } from './sources';
 
@@ -37,6 +39,23 @@ export function collectRulebookReferenceIds(
       factionIds.add(source.factionId);
     }
   };
+  const collectBattleSide = (side: RulebookBattleSideValue) => {
+    if (side.factionId) {
+      factionIds.add(side.factionId);
+    }
+    collectSource(side.leader);
+    collectSource(side.knownCard);
+    for (const card of side.cards) {
+      collectSource(card);
+    }
+  };
+  const collectBoard = (board: RulebookBoardSceneValue) => {
+    for (const item of [...board.players, ...board.troops]) {
+      if (item.factionId) {
+        factionIds.add(item.factionId);
+      }
+    }
+  };
   for (const page of Object.values(contents.pagesById)) {
     const footer = page.layoutId === 'cover' ? getRulebookCoverFooter(page.controlValues) : undefined;
     if (footer?.enabled) {
@@ -59,15 +78,33 @@ export function collectRulebookReferenceIds(
         collectSource(block.source);
       }
       if (block.kind === 'battle-step') {
-        for (const side of [block.left, block.right]) {
-          if (side.factionId) {
-            factionIds.add(side.factionId);
+        collectBattleSide(block.left);
+        collectBattleSide(block.right);
+      }
+      if (block.kind === 'battle-comparison') {
+        for (const example of block.examples) {
+          collectBattleSide(example.left);
+          collectBattleSide(example.right);
+        }
+      }
+      if (block.kind === 'board-scene') {
+        collectBoard(block);
+      }
+      if (block.kind === 'piece-movement') {
+        for (const group of [block.left, block.right]) {
+          for (const piece of group.pieces) {
+            if (piece.kind === 'source') {
+              collectSource(piece.source);
+            } else if (piece.factionId) {
+              factionIds.add(piece.factionId);
+            }
           }
-          collectSource(side.leader);
-          collectSource(side.knownCard);
-          for (const card of side.cards) {
-            collectSource(card);
-          }
+        }
+        for (const note of block.notes ?? []) {
+          collectSource(note.source);
+        }
+        if (block.board) {
+          collectBoard(block.board);
         }
       }
       if (block.kind === 'illustrated-inventory' || block.kind === 'card-group') {

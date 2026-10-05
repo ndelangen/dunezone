@@ -51,10 +51,7 @@ export const rulebookBattleStepFields = {
   caption: z.string(),
   left: rulebookBattleSideSchema,
   right: rulebookBattleSideSchema,
-  dialogue: z
-    .array(z.strictObject({ speaker: z.enum(['left', 'right']), text: z.string() }))
-    .max(8)
-    .optional(),
+  dialogue: rulebookBattleDialogueSchema.optional(),
   outcome: z.string().optional(),
   showSideLabels: z.boolean().optional(),
 };

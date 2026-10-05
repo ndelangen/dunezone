@@ -40,8 +40,10 @@ function AnnotationDrawing({
 export function RulebookAssetExplainer({
   block,
   renderIllustration,
+  embedded = false,
 }: Readonly<{
   block: AssetExplainer;
+  embedded?: boolean;
   renderIllustration?: (projection: RulebookAnnotationProjection) => ReactNode;
 }>) {
   const design = useContext(RulebookDesignContext);
@@ -66,9 +68,9 @@ export function RulebookAssetExplainer({
   const canvas = rulebookAnnotationCanvas(projection);
   return (
     <section
-      id={block.anchor}
-      data-rulebook-block-anchor={block.anchor}
-      data-rulebook-block-id={block.id}
+      id={embedded ? undefined : block.anchor}
+      data-rulebook-block-anchor={embedded ? undefined : block.anchor}
+      data-rulebook-block-id={embedded ? undefined : block.id}
       data-rulebook-explainer
       data-source-status={block.source.status}
       data-rulebook-source-kind={projection.sourceKind}

@@ -8,7 +8,7 @@ import './RulebookRenderer.css';
 
 type Piece = { id: string; label?: string } & (
   | { kind: 'source'; source: RulebookResolvedSource; count?: number }
-  | { kind: 'troops'; artwork: ComponentProps<typeof TroopToken>; count: number }
+  | { kind: 'troops'; artwork?: ComponentProps<typeof TroopToken>; count: number }
 );
 type Group = { label: string; pieces: readonly Piece[] };
 export type RulebookPieceMovementProps = Readonly<{
@@ -43,7 +43,13 @@ function PieceGroup({ group }: Readonly<{ group: Group }>) {
               <div className="rulebookMovementTroops">
                 {Array.from({ length: piece.count }, (_, index) => (
                   <span key={index}>
-                    <TroopToken {...piece.artwork} />
+                    {piece.artwork ? (
+                      <TroopToken {...piece.artwork} />
+                    ) : (
+                      <span className="rulebookTerritoryMissingTroop" aria-label="Troop artwork unavailable">
+                        ?
+                      </span>
+                    )}
                   </span>
                 ))}
               </div>

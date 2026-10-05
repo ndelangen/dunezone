@@ -408,3 +408,67 @@ test('battle plans freeze leader, card and revealed-knowledge images without cha
   });
   expect(document).toEqual(before);
 });
+
+test('illustrated scenes freeze nested board, movement and comparison images', () => {
+  const value: RulebookContentsDraftV1 = createRulebookStarterContents();
+  const scene = { boardId: 'arrakis', caption: '', players: [], troops: [], highlights: [], annotations: [] };
+  const side = {
+    role: '',
+    revealed: false,
+    dial: 0,
+    spice: 0,
+    cards: [{ kind: 'asset' as const, assetId: 'card' }],
+    troops: [],
+  };
+  const example = { step: '', title: '', caption: '', left: side, right: side };
+  value.pagesById.SCEN = {
+    id: 'SCEN',
+    anchor: 'scenes',
+    title: 'Scenes',
+    layoutId: 'sequence',
+    showHeading: true,
+    controlValues: {},
+    blockOrderByRegion: { content: ['BRDD', 'MVMT', 'CMPR'] },
+    blocksById: {
+      BRDD: { id: 'BRDD', kind: 'board-scene', ...scene },
+      MVMT: {
+        id: 'MVMT',
+        kind: 'piece-movement',
+        step: '11',
+        title: '',
+        caption: '',
+        board: scene,
+        left: {
+          label: '',
+          pieces: [{ id: 'card', kind: 'source', source: { kind: 'asset', assetId: 'card' }, count: 1 }],
+        },
+        right: { label: '', pieces: [] },
+        notes: [{ id: 'reward', label: 'Spice', source: { kind: 'asset', assetId: 'card' }, count: 1 }],
+      },
+      CMPR: { id: 'CMPR', kind: 'battle-comparison', examples: [example, example] },
+    },
+  };
+  value.pageOrder.push('SCEN');
+  const projected = projectRulebookRenderDocument(
+    value,
+    { card: { assetId: 'card', type: 'card-treachery', name: 'Card', imageUrl: '/published/card.jpg?v=frozen' } },
+    { size: 'square', design: 'illustrated' }
+  );
+  const before = structuredClone(projected);
+  const exported = rulebookRenderDocumentV1Schema.parse(rulebookHtmlImages(projected, 'https://dune.zone'));
+  expect(exported.pagesById.SCEN!.regions[0]!.blocks).toMatchObject([
+    { board: { imageUrl: expect.stringMatching(/^https:\/\/dune.zone\/page\/arrakis-/) } },
+    {
+      board: { board: { imageUrl: expect.stringMatching(/^https:\/\/dune.zone\/page\/arrakis-/) } },
+      left: { pieces: [{ source: { imageUrl: 'https://dune.zone/published/card.jpg?v=frozen' } }] },
+      notes: [{ source: { imageUrl: 'https://dune.zone/published/card.jpg?v=frozen' } }],
+    },
+    {
+      examples: [
+        { left: { cards: [{ imageUrl: 'https://dune.zone/published/card.jpg?v=frozen' }] } },
+        { right: { cards: [{ imageUrl: 'https://dune.zone/published/card.jpg?v=frozen' }] } },
+      ],
+    },
+  ]);
+  expect(projected).toEqual(before);
+});

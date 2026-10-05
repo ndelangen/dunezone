@@ -19,6 +19,7 @@ import styles from './rulebookBlockEditors.module.css';
 import { CardEntryEdit, CardGroupEdit } from './rulebookCardBlockEditors';
 import { rulebookIconOptions } from './rulebookIconOptions';
 import { CreditsEdit, movedOrder, ReferenceTableEdit } from './rulebookReferenceBlockEditors';
+import { BoardSceneEdit, PieceMovementEdit, BattleComparisonEdit } from './rulebookSceneBlockEditors';
 import {
   ReferencedIllustrationEdit,
   IllustratedInventoryEdit,
@@ -379,6 +380,9 @@ function ListBlockEdit({ value, onChange }: RulebookBlockEditorProps<'list'>) {
 export const rulebookBlockEditors = {
   text: TextBlockEdit,
   'battle-step': BattleStepEdit,
+  'board-scene': BoardSceneEdit,
+  'piece-movement': PieceMovementEdit,
+  'battle-comparison': BattleComparisonEdit,
   'asset-explainer': AssetExplainerEdit,
   'card-entry': CardEntryEdit,
   'card-group': CardGroupEdit,

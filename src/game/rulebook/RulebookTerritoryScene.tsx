@@ -15,7 +15,7 @@ export type RulebookTerritorySceneProps = Readonly<{
   highlights: readonly { territory: string; color: string; opacity?: number }[];
   troops: readonly (Point & {
     id: string;
-    artwork: ComponentProps<typeof TroopToken>;
+    artwork?: ComponentProps<typeof TroopToken>;
     count: number;
     columns: number;
     size: number;
@@ -75,7 +75,13 @@ export function RulebookTerritoryScene({
             height={group.size}
           >
             <div className="rulebookTerritoryTroop">
-              <TroopToken {...group.artwork} />
+              {group.artwork ? (
+                <TroopToken {...group.artwork} />
+              ) : (
+                <span className="rulebookTerritoryMissingTroop" aria-label="Troop artwork unavailable">
+                  ?
+                </span>
+              )}
             </div>
           </foreignObject>
         ))

@@ -16,6 +16,16 @@ import {
 } from './contents';
 import type { EditableValue, RulebookBlockKind, RulebookBlockRegionDefinition, RulebookPageV1 } from './contents';
 import { rulebookCoverImageSchema } from './coverImage';
+import {
+  rulebookBoardSceneSchema,
+  rulebookBoardPlayerSchema,
+  rulebookBoardTroopSchema,
+  rulebookPieceMovementSchema,
+  rulebookMovementGroupSchema,
+  rulebookMovementSourceSchema,
+  rulebookMovementTroopSchema,
+  rulebookMovementNoteSchema,
+} from './illustratedScenes';
 import { rulebookResolvedFactionSchema } from './references';
 import { DEFAULT_RULEBOOK_SETTINGS, rulebookSettingsSchema } from './settings';
 import { rulebookResolvedSourceSchema } from './sources';
@@ -53,6 +63,31 @@ const renderBattleSideSchema = rulebookBattleSideSchema
     troops: z.array(rulebookBattleTroopSchema.extend({ artwork: TroopArtwork.optional() })),
   });
 
+const renderBoardSceneSchema = rulebookBoardSceneSchema.omit({ players: true, troops: true }).extend({
+  board: rulebookResolvedSourceSchema,
+  players: z.array(rulebookBoardPlayerSchema.omit({ factionId: true }).extend({ faction: renderFactionSchema })),
+  troops: z.array(
+    rulebookBoardTroopSchema
+      .omit({ factionId: true })
+      .extend({ faction: renderFactionSchema, artwork: TroopArtwork.optional() })
+  ),
+});
+const renderMovementGroupSchema = rulebookMovementGroupSchema.omit({ pieces: true }).extend({
+  pieces: z.array(
+    z.discriminatedUnion('kind', [
+      rulebookMovementSourceSchema.extend({ source: rulebookResolvedSourceSchema }),
+      rulebookMovementTroopSchema
+        .omit({ factionId: true })
+        .extend({ faction: renderFactionSchema, artwork: TroopArtwork.optional() }),
+    ])
+  ),
+});
+const renderBattleExampleSchema = z.strictObject({
+  ...rulebookBattleStepFields,
+  left: renderBattleSideSchema,
+  right: renderBattleSideSchema,
+});
+
 const renderCoverControlSchema = z.strictObject({
   footer: rulebookCoverFooterSchema
     .omit({ leftFactionId: true, rightFactionId: true })
@@ -82,6 +117,20 @@ const renderCardGuideFields = {
 };
 
 const renderBlockSchemas = {
+  'board-scene': renderBoardSceneSchema.extend({ ...renderBlockBase, kind: z.literal('board-scene') }),
+  'piece-movement': rulebookPieceMovementSchema.omit({ left: true, right: true, board: true, notes: true }).extend({
+    ...renderBlockBase,
+    kind: z.literal('piece-movement'),
+    left: renderMovementGroupSchema,
+    right: renderMovementGroupSchema,
+    board: renderBoardSceneSchema.optional(),
+    notes: z.array(rulebookMovementNoteSchema.extend({ source: rulebookResolvedSourceSchema })).optional(),
+  }),
+  'battle-comparison': z.strictObject({
+    ...renderBlockBase,
+    kind: z.literal('battle-comparison'),
+    examples: z.tuple([renderBattleExampleSchema, renderBattleExampleSchema]),
+  }),
   'battle-step': z.strictObject({
     ...renderBlockBase,
     kind: z.literal('battle-step'),
@@ -224,6 +273,9 @@ const renderBlockSchemas = {
 export const renderBlockSchema = z.discriminatedUnion('kind', [
   renderBlockSchemas.text,
   renderBlockSchemas['battle-step'],
+  renderBlockSchemas['board-scene'],
+  renderBlockSchemas['piece-movement'],
+  renderBlockSchemas['battle-comparison'],
   renderBlockSchemas['section-heading'],
   renderBlockSchemas.list,
   renderBlockSchemas.callout,

@@ -825,8 +825,32 @@ function createPage(choice: PageChoice, id: string, anchor: string): RulebookPag
   });
 }
 
+function emptyBattleExample() {
+  return {
+    step: '',
+    title: '',
+    caption: '',
+    left: { role: '', revealed: false, dial: 0, spice: 0, cards: [], troops: [] },
+    right: { role: '', revealed: false, dial: 0, spice: 0, cards: [], troops: [] },
+  };
+}
+
 function createBlock(kind: RulebookBlockKind, id: string): RulebookBlockDraft {
   switch (kind) {
+    case 'board-scene':
+      return { id, kind, boardId: 'arrakis', caption: '', players: [], troops: [], highlights: [], annotations: [] };
+    case 'piece-movement':
+      return {
+        id,
+        kind,
+        step: '',
+        title: '',
+        caption: '',
+        left: { label: '', pieces: [] },
+        right: { label: '', pieces: [] },
+      };
+    case 'battle-comparison':
+      return { id, kind, examples: [emptyBattleExample(), emptyBattleExample()] };
     case 'battle-step':
       return {
         id,
@@ -1241,6 +1265,21 @@ function blockEditorPanel(
   const change = (value: object) => replaceBlock({ ...block, ...value });
   let editor: ReactNode;
   switch (block.kind) {
+    case 'board-scene': {
+      const Edit = rulebookBlockEditors['board-scene'];
+      editor = <Edit value={block} onChange={change} references={{ assetsById, factionsById }} />;
+      break;
+    }
+    case 'piece-movement': {
+      const Edit = rulebookBlockEditors['piece-movement'];
+      editor = <Edit value={block} onChange={change} references={{ assetsById, factionsById }} />;
+      break;
+    }
+    case 'battle-comparison': {
+      const Edit = rulebookBlockEditors['battle-comparison'];
+      editor = <Edit value={block} onChange={change} references={{ assetsById, factionsById }} />;
+      break;
+    }
     case 'battle-step': {
       const Edit = rulebookBlockEditors['battle-step'];
       editor = <Edit value={block} onChange={change} references={{ assetsById, factionsById }} />;
@@ -2212,7 +2251,9 @@ function entityReview(contents: RulebookContentsDraftV1, target: EntityRef): Rea
                   ? { topic: block.topic, question: block.question, answer: block.answer }
                   : block.kind === 'referenced-illustration'
                     ? { source: block.source, caption: block.caption }
-                    : block.title
+                    : 'title' in block
+                      ? block.title
+                      : block
             )}
       {block.kind === 'reference-table' && block.note ? reviewValue({ note: block.note }) : null}
     </Stack>

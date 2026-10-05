@@ -7,7 +7,9 @@ import { useAsset, useAssetResolver } from '../assets/assetRenderMode';
 import { isLight } from '../assets/utils/contrast';
 import { FormattedText } from '../assets/utils/FormattedText';
 import { RulebookAssetExplainer } from './RulebookAssetExplainer';
-import { RulebookBattleStep } from './RulebookBattlePlan';
+import { RulebookBattleComparisonBlock, RulebookBattleStep } from './RulebookBattlePlan';
+import { RulebookBoardSceneBlock } from './RulebookBoardScene';
+import { RulebookPieceMovementBlock } from './RulebookPieceMovementBlock';
 import './RulebookRenderer.css';
 
 const styles = {
@@ -202,6 +204,15 @@ function CardGuide({
 /** Renders one Block without Page or Region layout. Its caller supplies a Rulebook-sized container. */
 export function RulebookBlockRenderer({ block }: Readonly<{ block: RulebookRenderBlockV1 }>) {
   const resolveAsset = useAssetResolver();
+  if (block.kind === 'board-scene') {
+    return <RulebookBoardSceneBlock block={block} />;
+  }
+  if (block.kind === 'piece-movement') {
+    return <RulebookPieceMovementBlock block={block} />;
+  }
+  if (block.kind === 'battle-comparison') {
+    return <RulebookBattleComparisonBlock block={block} />;
+  }
   if (block.kind === 'battle-step') {
     return <RulebookBattleStep block={block} />;
   }

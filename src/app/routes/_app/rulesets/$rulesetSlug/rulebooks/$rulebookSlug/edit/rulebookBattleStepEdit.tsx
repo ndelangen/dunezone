@@ -30,7 +30,7 @@ const RulebookSourcePicker = lazy(() =>
 );
 const emptyReferences = { assetsById: {}, factionsById: {} };
 
-function BattleSourceControl({
+export function BattleSourceControl({
   title,
   source,
   references,
@@ -377,23 +377,30 @@ export function BattleStepEdit({
   value,
   references = emptyReferences,
   onChange,
-}: RulebookBlockEditorProps<'battle-step'>) {
+  hideStep = false,
+  labelPrefix = '',
+}: RulebookBlockEditorProps<'battle-step'> & { hideStep?: boolean; labelPrefix?: string }) {
   return (
     <Stack gap="md">
       <Group grow align="start">
-        <TextInput
-          label="Step"
-          value={value.step}
-          onChange={(event) => onChange({ ...value, step: event.currentTarget.value })}
-        />
+        {hideStep ? null : (
+          <TextInput
+            label="Step"
+            aria-label={`${labelPrefix}Step`}
+            value={value.step}
+            onChange={(event) => onChange({ ...value, step: event.currentTarget.value })}
+          />
+        )}
         <TextInput
           label="Title"
+          aria-label={`${labelPrefix}Title`}
           value={value.title}
           onChange={(event) => onChange({ ...value, title: event.currentTarget.value })}
         />
       </Group>
       <Textarea
         label="Explanation"
+        aria-label={`${labelPrefix}Explanation`}
         autosize
         minRows={2}
         value={value.caption}
@@ -401,21 +408,23 @@ export function BattleStepEdit({
       />
       <TextInput
         label="Outcome"
+        aria-label={`${labelPrefix}Outcome`}
         value={value.outcome ?? ''}
         onChange={(event) => onChange({ ...value, outcome: event.currentTarget.value || undefined })}
       />
       <Switch
         label="Show faction names and roles"
+        aria-label={`${labelPrefix}Show faction names and roles`}
         checked={value.showSideLabels ?? true}
         onChange={(event) => onChange({ ...value, showSideLabels: event.currentTarget.checked })}
       />
       <Accordion multiple defaultValue={['left']}>
         {(['left', 'right'] as const).map((side) => (
           <Accordion.Item key={side} value={side}>
-            <Accordion.Control>{side === 'left' ? 'Left battle plan' : 'Right battle plan'}</Accordion.Control>
+            <Accordion.Control>{`${labelPrefix}${side === 'left' ? 'Left battle plan' : 'Right battle plan'}`}</Accordion.Control>
             <Accordion.Panel>
               <BattleSideEdit
-                label={side === 'left' ? 'Left' : 'Right'}
+                label={`${labelPrefix}${side === 'left' ? 'Left' : 'Right'}`}
                 value={value[side]}
                 references={references}
                 onChange={(next) => onChange({ ...value, [side]: next })}
@@ -428,9 +437,9 @@ export function BattleStepEdit({
         title="Dialogue"
         tool={
           <ListLengthActions
-            addLabel="Add dialogue"
+            addLabel={`${labelPrefix}Add dialogue`}
             addDisabled={(value.dialogue?.length ?? 0) >= 8}
-            removeLabel="Remove last dialogue"
+            removeLabel={`${labelPrefix}Remove last dialogue`}
             removeDisabled={!value.dialogue?.length}
             onAdd={() => onChange({ ...value, dialogue: [...(value.dialogue ?? []), { speaker: 'left', text: '' }] })}
             onRemove={() => onChange({ ...value, dialogue: value.dialogue?.slice(0, -1) })}
@@ -442,7 +451,7 @@ export function BattleStepEdit({
               <Group key={index} grow align="start">
                 <Select
                   label="Speaker"
-                  aria-label={`Dialogue ${index + 1} speaker`}
+                  aria-label={`${labelPrefix}Dialogue ${index + 1} speaker`}
                   data={[
                     { value: 'left', label: 'Left faction' },
                     { value: 'right', label: 'Right faction' },
@@ -461,7 +470,7 @@ export function BattleStepEdit({
                 />
                 <Textarea
                   label="Speech"
-                  aria-label={`Dialogue ${index + 1} speech`}
+                  aria-label={`${labelPrefix}Dialogue ${index + 1} speech`}
                   autosize
                   minRows={2}
                   value={line.text}

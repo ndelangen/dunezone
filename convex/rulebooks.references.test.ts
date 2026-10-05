@@ -140,6 +140,74 @@ describe('Rulebook live faction and Cover references', () => {
     });
   });
 
+  test('saves board scenes, piece movements and paired battle examples as ordinary draft blocks', async () => {
+    const { owner, contents, references, created, locator } = await referenceFixture();
+    const scene = {
+      boardId: 'arrakis',
+      caption: 'Battle order',
+      players: [{ id: 'player', factionId: references.factionId, angle: 90 }],
+      troops: [],
+      highlights: [],
+      annotations: [],
+    };
+    const side = {
+      factionId: references.factionId,
+      role: 'Aggressor',
+      revealed: false,
+      dial: 0,
+      spice: 0,
+      cards: [],
+      troops: [],
+    };
+    const example = { step: '', title: 'Tie', caption: 'Compare these plans.', left: side, right: side };
+    contents.pagesById.SCEN = {
+      id: 'SCEN',
+      anchor: 'illustrated-scenes',
+      title: 'Illustrated scenes',
+      layoutId: 'sequence',
+      showHeading: true,
+      controlValues: {},
+      blockOrderByRegion: { content: ['BRDD', 'MVMT', 'CMPR'] },
+      blocksById: {
+        BRDD: { id: 'BRDD', kind: 'board-scene', ...scene },
+        MVMT: {
+          id: 'MVMT',
+          kind: 'piece-movement',
+          step: '11',
+          title: 'Move pieces',
+          caption: '',
+          left: {
+            label: 'Before',
+            pieces: [{ id: 'piece', kind: 'source', source: { kind: 'asset', assetId: references.assetId }, count: 1 }],
+          },
+          right: { label: 'After', pieces: [] },
+          board: scene,
+        },
+        CMPR: { id: 'CMPR', kind: 'battle-comparison', examples: [example, example] },
+      },
+    };
+    contents.pageOrder.push('SCEN');
+    await owner.mutation(api.rulebooks.save, { rulebook_id: created.rulebook._id, expected_revision: 1, contents });
+    const saved = await owner.query(api.rulebooks.editorPage, locator);
+    expect(saved).toMatchObject({
+      draft: {
+        contents: {
+          pagesById: {
+            SCEN: {
+              blocksById: {
+                BRDD: { kind: 'board-scene', boardId: 'arrakis' },
+                MVMT: { kind: 'piece-movement', board: { boardId: 'arrakis' } },
+                CMPR: { kind: 'battle-comparison', examples: [example, example] },
+              },
+            },
+          },
+        },
+      },
+      assetsById: { [references.assetId]: { assetId: references.assetId } },
+      factionsById: { [references.factionId]: { factionId: references.factionId } },
+    });
+  });
+
   test('Cover footer factions resolve live across reader and publication while disabled selections stay dormant', async () => {
     const fixture = await referenceFixture();
     const { t, owner, contents, references, locator, created } = fixture;

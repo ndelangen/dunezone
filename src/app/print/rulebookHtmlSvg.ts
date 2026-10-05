@@ -1,9 +1,12 @@
+import spiceMask from '../../../media/vector/icon/spice.svg?raw';
+
 const tokenSymbols = import.meta.glob<string>(
   [
     '../../../media/vector/logo/*.svg',
     '../../../media/vector/generic/*.svg',
     '../../../media/vector/troop/*.svg',
     '../../../media/vector/troop_modifier/*.svg',
+    '../../../media/vector/decal/combatwheel-multicolor.svg',
   ],
   { query: '?raw', import: 'default', eager: true }
 );
@@ -11,9 +14,16 @@ const tokenSymbols = import.meta.glob<string>(
 /** Downloaded HTML cannot use remote SVG fragments, so trusted token symbols travel inside the document. */
 export function rulebookHtmlSvg(markup: string, canonicalHref: string): string {
   const symbols = new Map<string, string>();
-  const withLocalSymbols = markup.replace(/<use\b[^>]*>/g, (use) =>
+  /* CSS masks need embedded bytes: a downloaded file cannot fetch a root-relative or cross-origin mask. */
+  const withLocalMasks = markup.replace(/<style\b[^>]*>[\s\S]*?<\/style>/g, (style) =>
+    style.replace(
+      /url\(\s*(["']?)\/vector\/icon\/spice\.svg\1\s*\)/g,
+      () => `url("data:image/svg+xml,${encodeURIComponent(spiceMask)}")`
+    )
+  );
+  const withLocalSymbols = withLocalMasks.replace(/<use\b[^>]*>/g, (use) =>
     use.replace(
-      /(xlink:href|href)="(\/vector\/(?:logo|generic|troop|troop_modifier)\/[^"#]+\.svg)#(root|star|outline)"/,
+      /(xlink:href|href)="(\/vector\/(?:logo|generic|troop|troop_modifier|decal)\/[^"#]+\.svg)#(root|star|outline)"/,
       (_, attribute, href, fragment) => {
         const id = `rulebook-token-${href.replace(/[^a-z0-9]/gi, '-')}`;
         if (!symbols.has(id)) {

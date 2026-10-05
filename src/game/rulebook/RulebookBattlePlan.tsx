@@ -4,6 +4,7 @@ import { rulebookSourceClipPath } from '@shared/rulebooks/sources';
 import type { ComponentProps } from 'react';
 
 import { useAsset } from '../assets/assetRenderMode';
+import { TroopToken } from '../assets/faction/troop/Troop';
 import { BattleWheel } from '../assets/generic/BattleWheel';
 import { RulebookIllustratedStep } from './RulebookIllustratedStep';
 
@@ -16,6 +17,12 @@ export type RulebookBattleSide = Readonly<{
   role: string;
   artwork?: HiddenWheel['artwork'];
   unavailableTroops?: readonly string[];
+  uncommittedTroops?: readonly {
+    id: string;
+    name: string;
+    count: number;
+    artwork?: ComponentProps<typeof TroopToken>;
+  }[];
   plan: Pick<RevealedWheel, 'strength' | 'spice' | 'adjustment' | 'troops'> & {
     leader: RulebookResolvedSource;
     cards: readonly RulebookResolvedSource[];
@@ -66,7 +73,7 @@ function Side({
           <span>{side.role}</span>
         </figcaption>
       ) : null}
-      <div className="rulebookBattleWheelFrame">
+      <div className="rulebookBattleWheelFrame" data-with-uncommitted={side.revealed || undefined}>
         <div className="rulebookBattleWheelCanvas">
           {!side.revealed && side.knownCard ? (
             <div className="rulebookBattleKnownCard">
@@ -111,6 +118,23 @@ function Side({
           )}
         </div>
       </div>
+      {side.revealed ? (
+        <div className="rulebookBattleUncommitted" aria-label={`${side.name}: uncommitted troops`}>
+          <span>Uncommitted:</span>{' '}
+          {side.uncommittedTroops?.length ? (
+            side.uncommittedTroops.map((troop) => (
+              <span className="rulebookBattleUncommittedGroup" key={troop.id}>
+                <span className="rulebookBattleUncommittedToken" aria-label={troop.name}>
+                  {troop.artwork ? <TroopToken {...troop.artwork} /> : '?'}
+                </span>{' '}
+                <span>{troop.count}</span>{' '}
+              </span>
+            ))
+          ) : (
+            <span>0</span>
+          )}
+        </div>
+      ) : null}
       {side.revealed && side.unavailableTroops?.map((text, index) => <p key={index}>{text}</p>)}
       {side.result ? <p className="rulebookBattleSideResult">{side.result}</p> : null}
     </figure>
@@ -186,6 +210,17 @@ function resolvedSide(side: BattleStep['left']): RulebookBattleSide {
     role: side.role,
     artwork: token,
     unavailableTroops,
+    uncommittedTroops: side.troops
+      .filter((troop) => troop.uncommitted > 0)
+      .map((troop) => {
+        const rendered = troops.find(({ id }) => id === troop.id);
+        return {
+          id: troop.id,
+          count: troop.uncommitted,
+          name: rendered?.name ?? 'Troop artwork unavailable',
+          artwork: rendered?.artwork,
+        };
+      }),
     revealed: side.revealed,
     knownCard: side.knownCard,
     result: side.result,
@@ -221,13 +256,34 @@ export function RulebookBattleComparison({ examples }: Readonly<{ examples: read
         <section key={example.id} aria-label={example.title}>
           <h3>{example.title}</h3>
           <div className="rulebookBattleWheels">
-            <Side side={resolvedSide(example.left)} facing="left" showLabel />
-            <Side side={resolvedSide(example.right)} facing="right" showLabel />
+            <Side side={resolvedSide(example.left)} facing="left" showLabel={example.showSideLabels !== false} />
+            <Side side={resolvedSide(example.right)} facing="right" showLabel={example.showSideLabels !== false} />
           </div>
           <p>{example.caption}</p>
+          {example.dialogue?.map((line, index) => (
+            <blockquote className="rulebookBattleSpeech" key={index}>
+              <span>{resolvedSide(line.speaker === 'left' ? example.left : example.right).name}:</span> {line.text}
+            </blockquote>
+          ))}
           {example.outcome ? <p className="rulebookBattleOutcome">{example.outcome}</p> : null}
         </section>
       ))}
     </div>
+  );
+}
+
+/** Saved comparisons give each independent example a stable identity within the parent block. */
+export function RulebookBattleComparisonBlock({
+  block,
+}: Readonly<{ block: Extract<RulebookRenderBlockV1, { kind: 'battle-comparison' }> }>) {
+  const examples = block.examples.map((example, index) => ({
+    ...example,
+    id: `${block.id}-${index + 1}`,
+    kind: 'battle-step' as const,
+  })) as [BattleStep, BattleStep];
+  return (
+    <section id={block.anchor} data-rulebook-block-anchor={block.anchor} data-rulebook-block-id={block.id}>
+      <RulebookBattleComparison examples={examples} />
+    </section>
   );
 }

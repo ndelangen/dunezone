@@ -1424,7 +1424,6 @@
   height: 84.2px;
   z-index: 1;
   transform: rotate(-8deg);
-  filter: drop-shadow(0 2px 3px rgb(0 0 0 / 30%));
 }
 .rulebookBattleNarrative {
   display: grid;
@@ -1575,4 +1574,106 @@
 }
 .rulebookBattleComparison .rulebookBattleSide {
   width: calc(40 * var(--rulebook-mm));
+}
+
+.rulebookTerritoryMissingTroop {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  color: #663322;
+  background: #eadcc2;
+  font-family: sans-serif;
+  font-size: 70%;
+}
+.rulebookStormDirection {
+  fill: none;
+  stroke: #8b3628;
+  stroke-width: 3;
+}
+.rulebookBoardAnnotated .rulebookAssetExplainer {
+  grid-template-columns: minmax(0, 1.65fr) minmax(0, 1fr);
+  gap: calc(4 * var(--rulebook-mm));
+  align-items: center;
+}
+.rulebookBoardAnnotated .rulebookTerritoryScene {
+  height: auto;
+}
+.rulebookBoardAnnotated .rulebookExplainerLegend {
+  gap: calc(4 * var(--rulebook-mm));
+}
+.rulebookBoardAnnotated .rulebookExplainerLegend p {
+  font-size: calc(3.5 * var(--rulebook-mm));
+  line-height: 1.3;
+}
+.rulebookBoardPlain {
+  margin: 0;
+}
+.rulebookBoardPlain figcaption {
+  font-size: calc(3 * var(--rulebook-mm));
+  text-align: center;
+}
+.rulebookMovementVisual[data-with-board] {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+  gap: calc(3 * var(--rulebook-mm));
+}
+.rulebookMovementVisual[data-with-board] .rulebookPieceMovement {
+  gap: calc(2 * var(--rulebook-mm));
+}
+.rulebookMovementVisual[data-with-board] .rulebookMovementGroup > strong {
+  font-size: calc(2.7 * var(--rulebook-mm));
+}
+.rulebookMovementNotes {
+  display: grid;
+  gap: calc(1 * var(--rulebook-mm));
+  margin-top: calc(2 * var(--rulebook-mm));
+}
+.rulebookMovementNote {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: calc(2 * var(--rulebook-mm));
+  font-size: calc(3 * var(--rulebook-mm));
+}
+.rulebookMovementNotePieces {
+  display: inline-flex;
+  gap: calc(0.3 * var(--rulebook-mm));
+  flex-wrap: wrap;
+}
+.rulebookMovementNotePieces img {
+  width: calc(4 * var(--rulebook-mm));
+  height: calc(4 * var(--rulebook-mm));
+  object-fit: contain;
+}
+
+.rulebookBattleWheelCanvas {
+  filter: drop-shadow(0 4px 4px rgb(0 0 0 / 45%));
+}
+.rulebookBattleWheelFrame[data-with-uncommitted] {
+  aspect-ratio: 190 / 246;
+}
+.rulebookBattleUncommitted {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: calc(0.6 * var(--rulebook-mm));
+  min-height: calc(2.95 * var(--rulebook-mm));
+  font-size: calc(2.6 * var(--rulebook-mm));
+  line-height: 1;
+}
+.rulebookBattleUncommittedGroup {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(0.5 * var(--rulebook-mm));
+}
+.rulebookBattleUncommittedToken {
+  display: block;
+  flex: none;
+  width: calc(2.8 * var(--rulebook-mm));
+  height: calc(2.8 * var(--rulebook-mm));
+  overflow: hidden;
+  border-radius: 50%;
+  filter: drop-shadow(0 calc(0.2 * var(--rulebook-mm)) calc(0.2 * var(--rulebook-mm)) rgb(0 0 0 / 35%));
 }

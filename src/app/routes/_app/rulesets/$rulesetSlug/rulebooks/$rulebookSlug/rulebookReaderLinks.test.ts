@@ -81,6 +81,152 @@ describe('Final Rulebook reading order', () => {
     ).toBe('matched');
   });
 
+  test('shares revealed uncommitted counts without inventing a readout for hidden plans', () => {
+    const side = { role: '', revealed: false, dial: 0, spice: 0, cards: [], troops: [] };
+    const makePage = (revealed: boolean, uncommitted: number): RulebookContentsDraft['pagesById'][string] => ({
+      id: 'PAGE',
+      anchor: 'uncommitted',
+      title: '',
+      layoutId: 'sequence',
+      showHeading: false,
+      controlValues: {},
+      blockOrderByRegion: { content: ['STEP'] },
+      blocksById: {
+        STEP: {
+          id: 'STEP',
+          kind: 'battle-step',
+          step: '3',
+          title: 'Plan',
+          caption: '',
+          right: side,
+          left: {
+            ...side,
+            revealed,
+            troops: [
+              {
+                id: 'regular',
+                troopId: '10000000-1000-4000-8000-100000000001',
+                face: 'front',
+                supported: 0,
+                unsupported: 0,
+                uncommitted,
+              },
+            ],
+          },
+        },
+      },
+    });
+    expect(resolveFinalPageSelection(makePage(true, 2), 'Uncommitted: ? 2').status).toBe('matched');
+    expect(resolveFinalPageSelection(makePage(true, 0), 'Uncommitted: 0').status).toBe('matched');
+    expect(resolveFinalPageSelection(makePage(false, 2), 'Uncommitted: ? 2').status).toBe('stale');
+  });
+
+  test('shares board annotation prose and movement explanations at their rendered scopes', () => {
+    const scene = {
+      boardId: 'arrakis',
+      caption: 'A shared territory.',
+      players: [],
+      troops: [],
+      highlights: [],
+      annotations: [{ id: 'order', title: 'Battle order', text: 'Choose the *next* battle.', x: 0.1, y: 0.2 }],
+    };
+    const draft = rulebookContentsV1Schema.parse({
+      schemaVersion: 1,
+      pageOrder: ['PAGE'],
+      pagesById: {
+        PAGE: {
+          id: 'PAGE',
+          anchor: 'battle-scenes',
+          title: '',
+          layoutId: 'sequence',
+          showHeading: false,
+          controlValues: {},
+          blockOrderByRegion: { content: ['BRDD', 'MVMT'] },
+          blocksById: {
+            BRDD: { id: 'BRDD', kind: 'board-scene', ...scene },
+            MVMT: {
+              id: 'MVMT',
+              kind: 'piece-movement',
+              step: '11',
+              title: 'Discard cards',
+              caption: 'Discard before removing troops.',
+              outcome: 'Then remove the losses.',
+              board: scene,
+              left: { label: 'Your played cards', pieces: [] },
+              right: { label: 'The discard pile', pieces: [] },
+              notes: [{ id: 'reward', label: 'Collect the reward', count: 6 }],
+            },
+          },
+        },
+      },
+    });
+    const projected = projectRulebookRenderDocument(draft, {}, DEFAULT_RULEBOOK_SETTINGS);
+    for (const blockId of ['BRDD', 'MVMT']) {
+      expect(
+        resolveRulebookTextLocator(draft, projected, {
+          status: 'valid',
+          locator: {
+            v: 1,
+            path: [
+              { kind: 'page', id: 'PAGE' },
+              { kind: 'block', id: blockId },
+              { kind: 'item', id: 'order' },
+            ],
+            exact: '1 Battle order Choose the next battle.',
+          },
+        })
+      ).toMatchObject({ status: 'matched', blockId, itemId: 'order' });
+    }
+    for (const exact of [
+      'Your played cards The discard pile Collect the reward',
+      'Discard before removing troops. Then remove the losses.',
+    ]) {
+      expect(
+        resolveRulebookTextLocator(draft, projected, {
+          status: 'valid',
+          locator: {
+            v: 1,
+            path: [
+              { kind: 'page', id: 'PAGE' },
+              { kind: 'block', id: 'MVMT' },
+            ],
+            exact,
+          },
+        })
+      ).toMatchObject({ status: 'matched', blockId: 'MVMT' });
+    }
+  });
+
+  test('paired battle examples expose their titles and prose but do not expose hidden step numbers', () => {
+    const side = { role: '', revealed: false, dial: 0, spice: 0, cards: [], troops: [] };
+    const example = {
+      step: 'Hidden step marker',
+      title: 'An ordinary tie',
+      caption: 'The aggressor wins.',
+      left: side,
+      right: side,
+    };
+    const page: RulebookContentsDraft['pagesById'][string] = {
+      id: 'PAGE',
+      anchor: 'comparison',
+      title: '',
+      layoutId: 'sequence',
+      showHeading: false,
+      controlValues: {},
+      blockOrderByRegion: { content: ['CMPR'] },
+      blocksById: {
+        CMPR: {
+          id: 'CMPR',
+          kind: 'battle-comparison',
+          examples: [example, { ...example, title: 'Mercenaries', caption: 'Apply their exception.' }],
+        },
+      },
+    };
+    expect(resolveFinalPageSelection(page, 'The aggressor wins. Mercenaries').status).toBe('matched');
+    expect(resolveFinalPageSelection(page, 'Apply their exception.').status).toBe('matched');
+    expect(resolveFinalPageSelection(page, 'Hidden step marker').status).toBe('stale');
+  });
+
   const base = { id: 'PAGE', anchor: 'rules', title: 'Rules', showHeading: false };
   const blocksById = {
     AAAA: { id: 'AAAA', kind: 'text' as const, text: 'First column.' },

@@ -7,6 +7,11 @@ import { userImageSourceUrlSchema } from '../user-images/contract';
 import { rulebookBattleStepFields } from './battleStep';
 import { rulebookCoverImageSchema } from './coverImage';
 import { rulebookCoverPresetIdSchema } from './coverPresets';
+import {
+  rulebookBoardSceneSchema,
+  rulebookPieceMovementSchema,
+  rulebookBattleComparisonSchema,
+} from './illustratedScenes';
 import type { RulebookSize } from './settings';
 import { rulebookCardSourceReferenceSchema, rulebookSourceReferenceSchema } from './sources';
 
@@ -22,7 +27,7 @@ export const rulebookTextReferencesSchema = z.array(
 );
 
 /** Creation callers declare the catalogue they can read before receiving starter or cloned Contents. */
-export const RULEBOOK_CATALOGUE_VERSION = 11;
+export const RULEBOOK_CATALOGUE_VERSION = 12;
 
 export const rulebookLocalIdAlphabet = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ' as const;
 const rulebookLocalIdPattern = new RegExp(`^[${rulebookLocalIdAlphabet}]{4}$`);
@@ -61,6 +66,9 @@ export const rulebookBlockKinds = [
   'faction-introduction',
   'card-entry',
   'battle-step',
+  'board-scene',
+  'piece-movement',
+  'battle-comparison',
   'card-group',
   'asset-explainer',
   'reference-table',
@@ -77,6 +85,9 @@ export const rulebookBlockKindLabels = {
   'illustrated-inventory': 'Illustrated inventory',
   'card-entry': 'Card entry',
   'battle-step': 'Battle step',
+  'board-scene': 'Board scene',
+  'piece-movement': 'Piece movement',
+  'battle-comparison': 'Battle comparison',
   'card-group': 'Card group',
   'asset-explainer': 'AssetExplainer',
   'faction-introduction': 'Faction introduction',
@@ -226,6 +237,22 @@ function rulebookBlockSchemas<Text extends z.ZodType, Anchor extends z.ZodType, 
     ...rulebookBattleStepFields,
   });
 
+  const boardSceneBlock = rulebookBoardSceneSchema.extend({
+    id: rulebookLocalIdSchema,
+    kind: z.literal('board-scene'),
+    anchor: anchor.optional(),
+  });
+  const pieceMovementBlock = rulebookPieceMovementSchema.extend({
+    id: rulebookLocalIdSchema,
+    kind: z.literal('piece-movement'),
+    anchor: anchor.optional(),
+  });
+  const battleComparisonBlock = rulebookBattleComparisonSchema.extend({
+    id: rulebookLocalIdSchema,
+    kind: z.literal('battle-comparison'),
+    anchor: anchor.optional(),
+  });
+
   const cardGuideFields = {
     source: rulebookCardSourceReferenceSchema.optional(),
     text,
@@ -324,6 +351,9 @@ function rulebookBlockSchemas<Text extends z.ZodType, Anchor extends z.ZodType, 
       factionIntroductionBlock,
       cardEntryBlock,
       battleStepBlock,
+      boardSceneBlock,
+      pieceMovementBlock,
+      battleComparisonBlock,
       cardGroupBlock,
       assetExplainerBlock,
       referenceTableBlock,

@@ -237,7 +237,9 @@ export function renderedBattleStep(
   };
 }
 
-export function battleSequencePage(panels: RulebookBattlePlanProps[]): RulebookRenderPageV1 {
+export function battleSequencePage(
+  panels: RulebookBattlePlanProps[]
+): Extract<RulebookRenderPageV1, { layoutId: 'sequence' }> {
   return {
     id: 'battle-sequence',
     anchor: 'battle-sequence',

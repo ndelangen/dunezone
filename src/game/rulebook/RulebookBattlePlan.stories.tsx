@@ -1,7 +1,6 @@
 import preview from '@sb/preview';
 import { expect, within } from 'storybook/test';
 
-import { RulebookBattleComparison } from './RulebookBattlePlan';
 import {
   battleSequencePage,
   deathPanel,
@@ -23,6 +22,12 @@ function BattleComicStory({ specimen = 'private' }: Readonly<{ specimen?: Specim
         ? [planningPanel, revealPanel, deathPanel]
         : [revealPanel, deathPanel, resultPanel];
   const page = battleSequencePage(panels);
+  for (const block of page.regions[0].blocks) {
+    if (block.kind === 'battle-step') {
+      block.left.troops[0]!.uncommitted = 2;
+      block.right.troops[0]!.uncommitted = 1;
+    }
+  }
   if (specimen === 'troops') {
     const front = battleSequencePage([revealPanel]).regions[0]!.blocks[0]!;
     if (front.kind === 'battle-step') {
@@ -94,6 +99,12 @@ export const PrivateInformation = meta.story({
       within(canvas.getByRole('region', { name: 'Step 3: Ask with Battle Prescience' })).queryByAltText('Feyd Rautha')
     ).not.toBeInTheDocument();
     await expect(canvas.getAllByAltText('Gom Jabbar')).toHaveLength(4);
+    await expect(canvas.getAllByLabelText('Atreides: uncommitted troops')).toHaveLength(3);
+    await expect(canvas.getAllByLabelText('Harkonnen: uncommitted troops')).toHaveLength(2);
+    await expect(canvas.getAllByLabelText('Atreides: uncommitted troops')[0]).toHaveTextContent('Uncommitted: 2');
+    await expect(
+      within(canvas.getByRole('region', { name: 'Step 3: Ask with Battle Prescience' })).queryByText('Uncommitted:')
+    ).not.toBeInTheDocument();
   },
 });
 export const RevealAndWeapons = meta.story({
@@ -129,14 +140,10 @@ export const IndependentExamples = meta.story({
     const right = { ...renderedBattleStep(deathPanel, 1), title: 'A killed leader' };
     const page = battleSequencePage([]);
     page.title = 'Comparing independent examples';
-    page.regions[0]!.blocks = [{ id: 'comparison', kind: 'text', text: '' }];
+    page.regions[0]!.blocks = [{ id: 'comparison', kind: 'battle-comparison', examples: [left, right] }];
     return (
       <div style={{ width: 'min(960px, 94vw)' }}>
-        <RulebookPageRenderer
-          page={page}
-          settings={{ size: 'square', design: 'illustrated' }}
-          blockRenderer={() => <RulebookBattleComparison examples={[left, right]} />}
-        />
+        <RulebookPageRenderer page={page} settings={{ size: 'square', design: 'illustrated' }} />
       </div>
     );
   },

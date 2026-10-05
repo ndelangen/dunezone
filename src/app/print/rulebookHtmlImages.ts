@@ -35,6 +35,22 @@ export function rulebookHtmlImages(
       image(leader);
     }
   }
+  function battleSide(side: Extract<RulebookRenderBlockV1, { kind: 'battle-step' }>['left']) {
+    faction(side.faction);
+    image(side.leader);
+    for (const card of side.cards) {
+      image(card);
+    }
+    if (side.knownCard) {
+      image(side.knownCard);
+    }
+  }
+  function boardScene(board: Omit<Extract<RulebookRenderBlockV1, { kind: 'board-scene' }>, 'kind' | 'id'>) {
+    image(board.board);
+    for (const item of [...board.players, ...board.troops]) {
+      faction(item.faction);
+    }
+  }
   function resolveBlockImages(block: RulebookRenderBlockV1, pageId: string) {
     if (block.kind === 'asset-explainer' && edition) {
       block.illustrationUrl = new URL(
@@ -58,15 +74,33 @@ export function rulebookHtmlImages(
       }
     }
     if (block.kind === 'battle-step') {
-      for (const side of [block.left, block.right]) {
-        faction(side.faction);
-        image(side.leader);
-        for (const card of side.cards) {
-          image(card);
+      battleSide(block.left);
+      battleSide(block.right);
+    }
+    if (block.kind === 'battle-comparison') {
+      for (const example of block.examples) {
+        battleSide(example.left);
+        battleSide(example.right);
+      }
+    }
+    if (block.kind === 'board-scene') {
+      boardScene(block);
+    }
+    if (block.kind === 'piece-movement') {
+      for (const group of [block.left, block.right]) {
+        for (const piece of group.pieces) {
+          if (piece.kind === 'source') {
+            image(piece.source);
+          } else {
+            faction(piece.faction);
+          }
         }
-        if (side.knownCard) {
-          image(side.knownCard);
-        }
+      }
+      for (const note of block.notes ?? []) {
+        image(note.source);
+      }
+      if (block.board) {
+        boardScene(block.board);
       }
     }
     if (block.kind === 'faction-introduction' || block.kind === 'section-heading') {
