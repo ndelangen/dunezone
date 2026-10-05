@@ -1550,3 +1550,29 @@
 .rulebookTerritoryScene[data-size="large"] {
   height: calc(100 * var(--rulebook-mm));
 }
+
+.rulebookBattleComparison {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: calc(10 * var(--rulebook-mm));
+  align-items: start;
+}
+.rulebookBattleComparison > section {
+  display: grid;
+  gap: calc(5 * var(--rulebook-mm));
+  min-width: 0;
+}
+.rulebookBattleComparison h3 {
+  margin: 0;
+  font-family: "C_Trebuchet", sans-serif;
+  font-size: calc(4.8 * var(--rulebook-mm));
+  text-align: center;
+}
+.rulebookBattleComparison p {
+  margin: 0;
+  font-size: calc(3.8 * var(--rulebook-mm));
+  line-height: 1.4;
+}
+.rulebookBattleComparison .rulebookBattleSide {
+  width: calc(40 * var(--rulebook-mm));
+}

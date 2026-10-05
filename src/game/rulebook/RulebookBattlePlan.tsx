@@ -212,3 +212,22 @@ export function RulebookBattleStep({ block }: Readonly<{ block: BattleStep }>) {
     />
   );
 }
+
+/** Callers supply two independent examples; equal columns separate them from a numbered sequence. */
+export function RulebookBattleComparison({ examples }: Readonly<{ examples: readonly [BattleStep, BattleStep] }>) {
+  return (
+    <div className="rulebookBattleComparison">
+      {examples.map((example) => (
+        <section key={example.id} aria-label={example.title}>
+          <h3>{example.title}</h3>
+          <div className="rulebookBattleWheels">
+            <Side side={resolvedSide(example.left)} facing="left" showLabel />
+            <Side side={resolvedSide(example.right)} facing="right" showLabel />
+          </div>
+          <p>{example.caption}</p>
+          {example.outcome ? <p className="rulebookBattleOutcome">{example.outcome}</p> : null}
+        </section>
+      ))}
+    </div>
+  );
+}

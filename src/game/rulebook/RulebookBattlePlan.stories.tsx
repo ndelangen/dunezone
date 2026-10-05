@@ -1,12 +1,14 @@
 import preview from '@sb/preview';
 import { expect, within } from 'storybook/test';
 
+import { RulebookBattleComparison } from './RulebookBattlePlan';
 import {
   battleSequencePage,
   deathPanel,
   planningPanel,
   presciencePanel,
   resultPanel,
+  renderedBattleStep,
   revealPanel,
 } from './RulebookBattlePlan.stories.fixture';
 import { RulebookPageRenderer } from './RulebookRenderer';
@@ -118,5 +120,36 @@ export const TroopGroupsAndReverseFaces = meta.story({
     await expect(canvas.getByLabelText('Reverse face')).toBeVisible();
     await expect(canvas.getByText('Troop artwork unavailable: 1 supported, 0 unsupported.')).toBeVisible();
     await expect(canvas.getByText('Faction artwork unavailable')).toBeVisible();
+  },
+});
+
+export const IndependentExamples = meta.story({
+  render: () => {
+    const left = { ...renderedBattleStep(revealPanel, 0), title: 'A living leader' };
+    const right = { ...renderedBattleStep(deathPanel, 1), title: 'A killed leader' };
+    const page = battleSequencePage([]);
+    page.title = 'Comparing independent examples';
+    page.regions[0]!.blocks = [{ id: 'comparison', kind: 'text', text: '' }];
+    return (
+      <div style={{ width: 'min(960px, 94vw)' }}>
+        <RulebookPageRenderer
+          page={page}
+          settings={{ size: 'square', design: 'illustrated' }}
+          blockRenderer={() => <RulebookBattleComparison examples={[left, right]} />}
+        />
+      </div>
+    );
+  },
+  play: async ({ canvas, canvasElement }) => {
+    await expectSquarePage(canvasElement);
+    const left = canvas.getByRole('region', { name: 'A living leader' });
+    const right = canvas.getByRole('region', { name: 'A killed leader' });
+    await expect(left).toBeVisible();
+    await expect(right).toBeVisible();
+    const leftBox = left.getBoundingClientRect();
+    const rightBox = right.getBoundingClientRect();
+    expect(Math.abs(leftBox.top - rightBox.top)).toBeLessThan(1);
+    expect(leftBox.right).toBeLessThan(rightBox.left);
+    expect(canvas.queryByRole('region', { name: /^Step / })).not.toBeInTheDocument();
   },
 });
