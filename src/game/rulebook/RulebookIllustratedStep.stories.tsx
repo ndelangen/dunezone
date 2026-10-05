@@ -141,7 +141,7 @@ export const AnnotatedBoardWithPieces = meta.story({
               block={block}
               renderIllustration={(projection) => (
                 <RulebookTerritoryScene
-                  label="Complete board with forces and numbered explanations"
+                  label="Complete board with troops and numbered explanations"
                   board={board}
                   viewport={{ x: 0, y: 0, width: board.geometry.width, height: board.geometry.height }}
                   highlights={[]}
@@ -162,7 +162,7 @@ export const AnnotatedBoardWithPieces = meta.story({
   play: async ({ canvas, canvasElement }) => {
     await document.fonts.ready;
     await expect(
-      canvas.getByRole('img', { name: 'Complete board with forces and numbered explanations' })
+      canvas.getByRole('img', { name: 'Complete board with troops and numbered explanations' })
     ).toBeVisible();
     const legend = canvas.getByRole('list', { name: 'Explanations' });
     await expect(legend).toBeVisible();
