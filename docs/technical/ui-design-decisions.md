@@ -547,9 +547,11 @@ routes, using ordered territory references and optional positions. They draw pat
 they do not calculate game legality. Compact sizing preserves existing scenes, while fit-width uses
 the available column at the board's natural proportions.
 
-Ordinary illustrated layouts share a 35 mm bottom clearance, including paired rows. Decoration may
-extend behind that content area. The compact sequence layout retains its 13 mm clearance, and the
-restrained design retains its own margin. A chapter must not introduce a stylesheet to alter these rules.
+Ordinary illustrated layouts cap bottom clearance at 35 mm. Tall pages retain their smaller
+artwork-based clearance of about 25.7 mm. Paired rows keep their existing 35 mm clearance in either
+design. Decoration may extend behind the content area. The compact sequence layout retains its
+13 mm clearance, and other restrained layouts retain their own margin. A chapter must not introduce
+a stylesheet to alter these rules.
 
 ### Renderers stay isolated
 

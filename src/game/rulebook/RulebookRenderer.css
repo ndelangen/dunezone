@@ -110,7 +110,7 @@
 .rulebookPageContent {
   height: 100%;
   padding: var(--rulebook-page-margin);
-  padding-bottom: calc(35 * var(--rulebook-mm));
+  padding-bottom: min(calc(35 * var(--rulebook-mm)), calc(var(--rulebook-artwork-height) + 5 * var(--rulebook-mm)));
 }
 
 .rulebookPage[data-rulebook-design="restrained"] .rulebookPageContent {
@@ -1634,6 +1634,9 @@
 
 .rulebookBattleWheelCanvas {
   filter: drop-shadow(0 4px 4px rgb(0 0 0 / 45%));
+}
+.rulebookPage[data-rulebook-layout="paired-rows"] .rulebookPageContent {
+  padding-bottom: calc(35 * var(--rulebook-mm));
 }
 .rulebookPairedRows {
   display: flex;
