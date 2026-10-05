@@ -431,7 +431,7 @@ function exceptions(): Page {
 
 const leaderCommitment = text(
   'leader-commitment',
-  'Leaders used in battle remain committed to that territory for the rest of the Battle phase. A surviving leader may fight again there, but cannot fight in another territory. A killed leader sent to the Tleilaxu Tanks remains committed to that territory even if revived during the same phase.',
+  'A surviving leader remains committed to that territory for the rest of the Battle phase. It may fight again there, but cannot fight in another territory. A killed leader goes to the Tleilaxu Tanks. If revived with Ghola, it may fight again, including in another territory. Ghola must be played prior to reveal.',
   'Leaders stay committed to the territory'
 );
 const continueBattle = text(
