@@ -64,7 +64,11 @@ function sourceIdentity(source: RulebookRenderSourceV1) {
     'data-rulebook-source-kind': reference.kind,
     'data-asset-id': reference.kind === 'asset' ? reference.assetId : undefined,
     'data-faction-id':
-      reference.kind === 'faction' || reference.kind === 'faction-member' ? reference.factionId : undefined,
+      reference.kind === 'faction' || reference.kind === 'faction-member' || reference.kind === 'faction-troop'
+        ? reference.factionId
+        : undefined,
+    'data-troop-id': reference.kind === 'faction-troop' ? reference.troopId : undefined,
+    'data-troop-face': reference.kind === 'faction-troop' ? reference.face : undefined,
     'data-member-id': reference.kind === 'faction-member' ? reference.memberId : undefined,
     'data-artwork-id': reference.kind === 'stock' ? reference.artworkId : undefined,
     'data-board-id': reference.kind === 'board' ? reference.boardId : undefined,

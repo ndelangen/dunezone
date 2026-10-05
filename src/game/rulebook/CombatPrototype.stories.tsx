@@ -21,7 +21,9 @@ const meta = preview.meta({
       const images = Array.from(exchange.querySelectorAll('img'));
       expect(images).toHaveLength(2);
       await Promise.all(images.map((image) => image.decode()));
-      for (const image of images) expect(image.naturalWidth).toBeGreaterThan(0);
+      for (const image of images) {
+        expect(image.naturalWidth).toBeGreaterThan(0);
+      }
     }
     const ties = canvasElement.querySelector('[data-rulebook-page-id="ties"]');
     if (ties) {
@@ -29,6 +31,18 @@ const meta = preview.meta({
       const mercenaries = ties.querySelector<HTMLImageElement>('img[alt="Mercenaries"]');
       expect(mercenaries).not.toBeNull();
       await mercenaries!.decode();
+    }
+    const specialTroops = canvasElement.querySelector('[data-rulebook-page-id="special-troops"]');
+    if (specialTroops) {
+      const tokens = Array.from(
+        specialTroops.querySelectorAll<HTMLImageElement>('[data-rulebook-source-kind="faction-troop"] img')
+      );
+      expect(tokens).toHaveLength(5);
+      await Promise.all(tokens.map((image) => image.decode()));
+      for (const token of tokens) {
+        expect(getComputedStyle(token).clipPath).toBe('circle(50%)');
+      }
+      expect(specialTroops.querySelectorAll('[data-troop-face="back"]')).toHaveLength(1);
     }
     const preparation = canvasElement.querySelector('[data-rulebook-page-id="prepare"]');
     if (preparation) {

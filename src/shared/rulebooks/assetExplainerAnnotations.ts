@@ -59,6 +59,13 @@ function sameSource(left: RulebookSourceReference | undefined, right: RulebookSo
       return right.kind === 'stock' && left.artworkId === right.artworkId;
     case 'faction':
       return right.kind === 'faction' && left.factionId === right.factionId;
+    case 'faction-troop':
+      return (
+        right.kind === 'faction-troop' &&
+        left.factionId === right.factionId &&
+        left.troopId === right.troopId &&
+        left.face === right.face
+      );
     case 'faction-member':
       return right.kind === 'faction-member' && left.factionId === right.factionId && left.memberId === right.memberId;
   }
@@ -178,7 +185,10 @@ export function projectRulebookAssetExplainerAnnotations(
     sourceStatus: source.status,
     sourceClipPath: rulebookSourceClipPath(source),
     sourceShadow:
-      source.status === 'ready' && (source.reference.kind === 'asset' || source.reference.kind === 'faction-member')
+      source.status === 'ready' &&
+      (source.reference.kind === 'asset' ||
+        source.reference.kind === 'faction-member' ||
+        source.reference.kind === 'faction-troop')
         ? `drop-shadow(0 ${Math.min(width, height) * 0.008}px ${Math.min(width, height) * 0.008}px rgb(0 0 0 / 45%))`
         : undefined,
     sourceKind: source.status === 'unselected' ? undefined : source.reference.kind,

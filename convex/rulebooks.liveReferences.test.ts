@@ -3,6 +3,7 @@
 import { describe, expect, test, vi } from 'vitest';
 
 import { factionMemberPublicationId } from '../src/shared/asset-publishing/componentPublication';
+import { factionTroopPublicationId } from '../src/shared/asset-publishing/factionTroopPublication';
 import { publishedHref } from '../src/shared/asset-publishing/publicationTargets';
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
 import { createFactionMemberId, ensureFactionMemberIds } from '../src/shared/factions/memberIdentity';
@@ -126,6 +127,69 @@ async function liveReferenceFixture() {
 }
 
 describe('Rulebook component references', () => {
+  test('troop references retain their face through renames and become unavailable when that face is removed', async () => {
+    const { t, owner, refs, data, contents, locator } = await liveReferenceFixture();
+    const troop = data.troops[0]!;
+    const troopId = troop.troopId!;
+    const source = { kind: 'faction-troop', factionId: refs.factionId, troopId, face: 'back' } as const;
+    const publicationId = factionTroopPublicationId(refs.factionId, troopId) + '.back';
+    await t.run(async (ctx) => {
+      await ctx.db.patch('factions', refs.factionId, {
+        data: { ...data, troops: [{ ...troop, back: { name: 'Patched', image: troop.image, description: '' } }] },
+      });
+      await ctx.db.insert('publication_assets', {
+        asset_type: 'faction-troop',
+        asset_id: publicationId,
+        cache_token: 'back-one',
+        published_at: 1,
+      });
+    });
+    const block = contents.pagesById.RULE!.blocksById.ARTW!;
+    if (block.kind !== 'referenced-illustration') {
+      throw new Error('Expected illustration');
+    }
+    block.source = source;
+    const saved = rulebookContentsV1Schema.parse(contents);
+    const resolve = () => t.run((ctx) => resolveRulebookReferences(ctx, saved));
+    const resolved = await resolve();
+    expect(projectRulebookSource(source, {}, resolved.factionsById)).toMatchObject({
+      status: 'ready',
+      name: 'Patched',
+      reference: source,
+      imageUrl: publishedHref('faction-troop', publicationId, 'back-one'),
+    });
+    const picker = await t.query(api.rulebookSources.factionTroops, { faction_id: refs.factionId });
+    expect(picker?.troops.find((item) => item.name === 'Patched')?.source).toMatchObject({
+      status: 'ready',
+      reference: source,
+    });
+    const editor = await owner.query(api.rulebooks.editorPage, { ...locator, reference_faction_ids: [refs.factionId] });
+    if (editor?.kind !== 'editable') {
+      throw new Error('Expected editable rulebook');
+    }
+    expect(projectRulebookSource(source, {}, editor.factionsById).status).toBe('ready');
+    await t.run((ctx) =>
+      ctx.db.patch('factions', refs.factionId, {
+        data: {
+          ...data,
+          troops: [
+            { ...troop, name: 'Renamed front', back: { name: 'Renamed back', image: troop.image, description: '' } },
+          ],
+        },
+      })
+    );
+    expect(projectRulebookSource(source, {}, (await resolve()).factionsById)).toMatchObject({
+      status: 'ready',
+      name: 'Renamed back',
+      reference: source,
+    });
+    await t.run((ctx) => ctx.db.patch('factions', refs.factionId, { data }));
+    expect(projectRulebookSource(source, {}, (await resolve()).factionsById)).toEqual({
+      status: 'unavailable',
+      reference: source,
+    });
+  });
+
   test.each([undefined, true])(
     'reader and editor token images require client opt-in: %s',
     async (factionTokenImages) => {

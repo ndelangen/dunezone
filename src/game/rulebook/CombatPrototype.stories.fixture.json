@@ -2092,5 +2092,72 @@
       "width": 900,
       "height": 1263
     }
+  },
+  "troopSources": {
+    "Saudarkar": {
+      "status": "ready",
+      "reference": {
+        "kind": "faction-troop",
+        "factionId": "k17dhptwywynwmpvx18965b97h8a0abp",
+        "troopId": "1257c66a-9f7c-41c1-a253-372e740469a2",
+        "face": "front"
+      },
+      "name": "Sardaukar",
+      "imageUrl": "https://dune.zone/published/faction-troops/k17dhptwywynwmpvx18965b97h8a0abp.1257c66a-9f7c-41c1-a253-372e740469a2/troop.jpg",
+      "width": 600,
+      "height": 600
+    },
+    "Fedaykin": {
+      "status": "ready",
+      "reference": {
+        "kind": "faction-troop",
+        "factionId": "k176nq542xz747341fc42341e18a0t45",
+        "troopId": "8eefca28-56bf-4bce-bde4-687a390908b7",
+        "face": "front"
+      },
+      "name": "Fedaykin",
+      "imageUrl": "https://dune.zone/published/faction-troops/k176nq542xz747341fc42341e18a0t45.8eefca28-56bf-4bce-bde4-687a390908b7/troop.jpg",
+      "width": 600,
+      "height": 600
+    },
+    "Suboid": {
+      "status": "ready",
+      "reference": {
+        "kind": "faction-troop",
+        "factionId": "k175em553h4wfwgqhhmey5774x8a0q1k",
+        "troopId": "3b6300c7-75ad-4ad1-a7fb-a1c6d2403fa2",
+        "face": "front"
+      },
+      "name": "Suboid",
+      "imageUrl": "https://dune.zone/published/faction-troops/k175em553h4wfwgqhhmey5774x8a0q1k.3b6300c7-75ad-4ad1-a7fb-a1c6d2403fa2/troop.jpg",
+      "width": 600,
+      "height": 600
+    },
+    "Cyborg": {
+      "status": "ready",
+      "reference": {
+        "kind": "faction-troop",
+        "factionId": "k175em553h4wfwgqhhmey5774x8a0q1k",
+        "troopId": "6725e3a9-5ef1-459a-b372-f9ea9b81a808",
+        "face": "front"
+      },
+      "name": "Cyborg",
+      "imageUrl": "https://dune.zone/published/faction-troops/k175em553h4wfwgqhhmey5774x8a0q1k.6725e3a9-5ef1-459a-b372-f9ea9b81a808/troop.jpg",
+      "width": 600,
+      "height": 600
+    },
+    "Patched Cyborg": {
+      "status": "ready",
+      "reference": {
+        "kind": "faction-troop",
+        "factionId": "k175em553h4wfwgqhhmey5774x8a0q1k",
+        "troopId": "6725e3a9-5ef1-459a-b372-f9ea9b81a808",
+        "face": "back"
+      },
+      "name": "Patched Cyborg",
+      "imageUrl": "https://dune.zone/published/faction-troops/k175em553h4wfwgqhhmey5774x8a0q1k.6725e3a9-5ef1-459a-b372-f9ea9b81a808.back/troop.jpg",
+      "width": 600,
+      "height": 600
+    }
   }
 }

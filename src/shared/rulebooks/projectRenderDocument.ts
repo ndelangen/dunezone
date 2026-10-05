@@ -95,6 +95,16 @@ export function projectRulebookSource(
       ? { status: 'ready', reference, name: faction.name, imageUrl: faction.emblemUrl }
       : { status: 'unavailable', reference };
   }
+  if (reference.kind === 'faction-troop') {
+    const troop = factionsById[reference.factionId]?.troopSources?.find(
+      (source) =>
+        source.status !== 'unselected' &&
+        source.reference.kind === 'faction-troop' &&
+        source.reference.troopId === reference.troopId &&
+        source.reference.face === reference.face
+    );
+    return troop ?? { status: 'unavailable', reference };
+  }
   if (reference.kind === 'faction-member') {
     const faction = factionsById[reference.factionId];
     const member = [faction?.ruler, ...(faction?.leaders ?? [])].find(

@@ -1268,7 +1268,8 @@
 }
 
 .rulebookSourceVisual[data-source-status="ready"][data-rulebook-source-kind="asset"],
-.rulebookSourceVisual[data-source-status="ready"][data-rulebook-source-kind="faction-member"] {
+.rulebookSourceVisual[data-source-status="ready"][data-rulebook-source-kind="faction-member"],
+.rulebookSourceVisual[data-source-status="ready"][data-rulebook-source-kind="faction-troop"] {
   filter: drop-shadow(0 calc(0.8 * var(--rulebook-mm)) calc(0.8 * var(--rulebook-mm)) rgb(0 0 0 / 45%));
 }
 
