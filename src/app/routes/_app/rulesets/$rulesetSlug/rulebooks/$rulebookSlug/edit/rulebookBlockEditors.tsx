@@ -74,6 +74,17 @@ function TextBlockEdit({ value, onChange, references }: RulebookBlockEditorProps
         }
       />
       <ControlBlock
+        title="Step number"
+        description="Optional marker for a step in a procedure. Uses the same heading and alignment as illustrated steps."
+        input={
+          <TextInput
+            aria-label="Step number"
+            value={value.step ?? ''}
+            onChange={(event) => onChange({ ...value, step: event.currentTarget.value || undefined })}
+          />
+        }
+      />
+      <ControlBlock
         title="Related rules"
         description="Links follow their destination and show the current page number in print."
         input={

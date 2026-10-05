@@ -516,6 +516,17 @@ typography and footer. The revised chapter stories parse the render document con
 that every page region fits. Contract validation and fit are automated; choosing real blocks and
 justifying additions remain review obligations.
 
+### Procedure steps share their typography and alignment
+
+A text block with a step number and an illustrated step use `RulebookIllustratedStep` for the
+number, heading, body and column alignment. An ordinary numbered list is for list items, not a
+substitute for a procedure step. Adding or removing an illustration must not change the heading
+style or move the text column. Sequence pages use the standard block gap; they do not compress
+unrelated steps to make a crowded page fit.
+
+The combat chapter stories compare step headings, text alignment and the gaps between successive
+steps, alongside their page-fit checks.
+
 ### Renderers stay isolated
 
 Game-asset renderers must paint identically in a Worker, in print, and in the browser, and none of

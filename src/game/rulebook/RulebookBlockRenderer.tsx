@@ -9,6 +9,7 @@ import { FormattedText } from '../assets/utils/FormattedText';
 import { RulebookAssetExplainer } from './RulebookAssetExplainer';
 import { RulebookBattleComparisonBlock, RulebookBattleStep } from './RulebookBattlePlan';
 import { RulebookBoardSceneBlock } from './RulebookBoardScene';
+import { RulebookIllustratedStep } from './RulebookIllustratedStep';
 import { RulebookPieceMovementBlock } from './RulebookPieceMovementBlock';
 import './RulebookRenderer.css';
 
@@ -222,8 +223,14 @@ export function RulebookBlockRenderer({ block }: Readonly<{ block: RulebookRende
   if (block.kind === 'text') {
     return (
       <div {...blockAnchor(block)} className={styles.textBlock} data-rulebook-block-id={block.id}>
-        {block.name ? <h3>{block.name}</h3> : null}
-        <FormattedText value={block.text} />
+        {block.step ? (
+          <RulebookIllustratedStep step={block.step} title={block.name ?? ''} caption={block.text} />
+        ) : (
+          <>
+            {block.name ? <h3>{block.name}</h3> : null}
+            <FormattedText value={block.text} />
+          </>
+        )}
         {block.references?.length ? (
           <nav className="rulebookTextReferences" aria-label="Related rules">
             See{' '}

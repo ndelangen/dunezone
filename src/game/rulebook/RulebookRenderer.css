@@ -1439,9 +1439,6 @@
 .rulebookGrid[data-rulebook-grid="sequence"] {
   grid-template-areas: "content";
 }
-.rulebookPage[data-rulebook-layout="sequence"] .rulebookRegionBlocks {
-  gap: calc(1 * var(--rulebook-mm));
-}
 .rulebookPage .rulebookBattlePanel p + p {
   margin-top: 0;
 }

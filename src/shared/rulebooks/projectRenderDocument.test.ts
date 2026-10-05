@@ -41,6 +41,18 @@ describe('Rulebook render-document projection', () => {
     expect(rendered.pagesById.RULE?.regions[0]?.blocks[0]).toMatchObject({ id: 'MVVE', text: '__a__' });
   });
 
+  it('preserves an optional text step through saved and rendered documents', () => {
+    const contents = createRulebookStarterContents();
+    const block = contents.pagesById.RULE!.blocksById.MVVE!;
+    if (block.kind !== 'text') {
+      throw new Error('Expected a text block');
+    }
+    block.step = '1';
+    const saved = rulebookContentsV1Schema.parse(contents);
+    const rendered = projectRulebookRenderDocument(saved, assets, DEFAULT_RULEBOOK_SETTINGS);
+    expect(rendered.pagesById.RULE!.regions[0]!.blocks[0]).toMatchObject({ id: 'MVVE', step: '1' });
+  });
+
   it('orders Pages, regions, Blocks, repeated items, and resolved source display data', () => {
     const rendered = projectRulebookRenderDocument(
       withStormMarker(createRulebookStarterContents()),

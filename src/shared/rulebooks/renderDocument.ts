@@ -141,6 +141,7 @@ const renderBlockSchemas = {
   text: z.strictObject({
     ...renderBlockBase,
     kind: z.literal('text'),
+    step: z.string().optional(),
     name: z.string().optional(),
     references: z
       .array(

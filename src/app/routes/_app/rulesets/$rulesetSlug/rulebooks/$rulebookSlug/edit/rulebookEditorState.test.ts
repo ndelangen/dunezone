@@ -37,6 +37,7 @@ describe('Rulebook editor state manager', () => {
       throw new Error('Expected text fixture');
     }
     text.references = [{ pageId: 'REFS', blockId: 'TEXT' }];
+    text.step = '1';
     page.blocksById.ASST = {
       id: 'ASST',
       kind: 'card-entry',
@@ -50,7 +51,7 @@ describe('Rulebook editor state manager', () => {
     expect(request.contents.pagesById.RULE).toMatchObject({
       headingIcon: page.headingIcon,
       blocksById: {
-        TEXT: { references: text.references },
+        TEXT: { references: text.references, step: '1' },
         ASST: { name: 'Shield', size: 'small', source: { kind: 'stock', artworkId: '/vector/decal/shield.svg' } },
       },
     });

@@ -19,16 +19,23 @@ const meta = preview.meta({
     const preparation = canvasElement.querySelector('[data-rulebook-page-id="prepare"]');
     if (preparation) {
       const steps = [...preparation.querySelectorAll('.rulebookBattleScene')];
-      expect(steps).toHaveLength(2);
-      const first = steps[0]!.getBoundingClientRect();
-      const next = steps[1]!.getBoundingClientRect();
-      expect(next.top).toBeGreaterThanOrEqual(first.bottom);
-      expect(next.left).toBe(first.left);
+      expect(steps).toHaveLength(3);
+      const expectedHeading = getComputedStyle(steps[0]!.querySelector('h3')!);
+      const gaps = steps
+        .slice(1)
+        .map((step, index) => step.getBoundingClientRect().top - steps[index]!.getBoundingClientRect().bottom);
+      expect(gaps[0]).toBeGreaterThan(10);
+      expect(Math.abs(gaps[0]! - gaps[1]!)).toBeLessThan(1);
       for (const step of steps) {
         const visual = step.querySelector('.rulebookBattleVisual')!.getBoundingClientRect();
         const narrative = step.querySelector('.rulebookBattleNarrative')!.getBoundingClientRect();
         expect(visual.left).toBeGreaterThanOrEqual(narrative.right);
         expect(visual.top).toBe(narrative.top);
+        const heading = getComputedStyle(step.querySelector('h3')!);
+        expect(heading.fontFamily).toBe(expectedHeading.fontFamily);
+        expect(heading.fontSize).toBe(expectedHeading.fontSize);
+        expect(heading.lineHeight).toBe(expectedHeading.lineHeight);
+        expect(narrative.left).toBe(steps[0]!.getBoundingClientRect().left);
       }
     }
     for (const region of canvasElement.querySelectorAll<HTMLElement>('[data-rulebook-region]')) {

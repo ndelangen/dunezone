@@ -285,6 +285,7 @@ export function projectRulebookDraftRenderBlock(
       ...identity,
       kind: block.kind,
       ...(block.name === undefined ? {} : { name: block.name }),
+      ...(block.step === undefined ? {} : { step: block.step }),
       ...(block.references
         ? {
             references: projectRulebookTextReferences(

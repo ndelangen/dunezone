@@ -1425,6 +1425,10 @@ function setBlockField(block: RulebookBlockDraft, field: RulebookFieldName, valu
     block.factionId = optionalText;
     return;
   }
+  if (field === 'step' && block.kind === 'text') {
+    block.step = optionalText;
+    return;
+  }
   if (field === 'name' && block.kind === 'text') {
     block.name = optionalText;
     return;
@@ -1828,6 +1832,7 @@ function fieldRecords(contents: RulebookContentsDraftV1): FieldRecord[] {
     if (block.kind === 'text') {
       add('references', block.references);
       add('name', block.name);
+      add('step', block.step);
     }
     if (block.kind === 'section-heading' || block.kind === 'faction-introduction') {
       add('faction-id', block.factionId);

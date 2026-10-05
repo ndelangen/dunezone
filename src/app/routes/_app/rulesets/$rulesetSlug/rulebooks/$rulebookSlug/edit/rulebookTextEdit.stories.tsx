@@ -59,3 +59,15 @@ export const RelatedRules = meta.story({
     await expect(canvas.getByRole('link', { name: 'Shield, page 2' })).toBeVisible();
   },
 });
+
+export const ProcedureStep = meta.story({
+  render: () => <TextBlockStory initialValue={{ name: 'Prepare the deck', text: 'Shuffle the cards.' }} />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.type(canvas.getByRole('textbox', { name: 'Step number' }), '1');
+    await expect(canvas.getByRole('region', { name: 'Step 1: Prepare the deck' })).toBeVisible();
+    await userEvent.clear(canvas.getByRole('textbox', { name: 'Step number' }));
+    await expect(canvas.queryByRole('region', { name: 'Step 1: Prepare the deck' })).not.toBeInTheDocument();
+    await expect(canvas.getByRole('heading', { name: 'Prepare the deck' })).toBeVisible();
+  },
+});

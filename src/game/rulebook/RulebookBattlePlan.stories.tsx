@@ -35,6 +35,7 @@ function battleSpecimenPage(specimen: Exclude<Specimen, 'troops'>) {
 function troopSpecimenPage() {
   const front = renderedBattleStep(revealPanel, 0);
   front.title = 'Mixed troop groups';
+  front.showSideLabels = false;
   front.caption = 'Supported starred troops and unsupported ordinary troops have separate readouts.';
   const ordinary = front.left.troops[0]!;
   front.left.troops = [

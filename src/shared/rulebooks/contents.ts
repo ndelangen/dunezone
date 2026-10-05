@@ -152,6 +152,7 @@ function rulebookBlockSchemas<Text extends z.ZodType, Anchor extends z.ZodType, 
   const textBlock = z.strictObject({
     id: rulebookLocalIdSchema,
     kind: z.literal('text'),
+    step: z.string().optional(),
     name: z.string().optional(),
     anchor: anchor.optional(),
     references: rulebookTextReferencesSchema.optional(),
