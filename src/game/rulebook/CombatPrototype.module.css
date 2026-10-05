@@ -172,6 +172,8 @@
   opacity: 0.55;
 }
 .troop {
+  border-radius: 50%;
+  overflow: hidden;
   display: inline-block;
   width: 25px;
   height: 25px;
