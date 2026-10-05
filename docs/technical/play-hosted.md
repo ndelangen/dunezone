@@ -374,9 +374,11 @@ identities and game payloads are omitted. Use the operation and release to locat
 then reproduce locally for exception details. Expected refusals retain their useful player-facing
 message; unexpected command failures return a generic message.
 
-Each room emits at most one custom diagnostic per operation every 60 seconds. The next eligible
+Each room emits at most one failure and one recovery diagnostic per operation every 60 seconds. The next eligible
 failure includes the number suppressed since the previous report. A final suppressed count is not
-flushed when failures stop. This uses bounded memory and no new timer, database write or background
+flushed when failures stop. Tracked recovery paths emit one `game-operation-recovered` record
+with the outage duration and failure count. See [the operations runbook](play-operations.md) for
+context fields, recovery limits and the automatic-tracing privacy restriction. This uses bounded memory and no new timer, database write or background
 request. The limit resets when the Durable Object is recreated; it is not an account billing cap
 and does not govern Cloudflare's own runtime exception records.
 

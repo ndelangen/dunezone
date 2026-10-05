@@ -495,6 +495,19 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     await eventually(() => unavailable.closed, 'unavailable admission close');
     expect(unavailable.closeCode).toBe(ADMISSION_UNAVAILABLE_CLOSE_CODE);
     expect(unavailable.messages).not.toContainEqual({ type: 'admission', status: 'denied' });
+    const failure = await eventually(
+      () =>
+        runtime.logs.find(
+          (log) => log.message.includes('game-operation-failed') && log.message.includes('account-reconciliation')
+        ),
+      'account failure diagnostic'
+    );
+    expect(failure.message).toContain("failureCategory: 'http'");
+    expect(failure.message).toContain('httpStatus: 500');
+    expect(failure.message).toContain("roomClass: 'GameRoom'");
+    expect(failure.message).toContain('durationMs:');
+    expect(failure.message).not.toContain('d'.repeat(64));
+
     peer.reconcileMode = 'answer';
     /* Inside the reconciliation's backoff a retry is closed again without reaching Convex. */
     const requests = peer.requests.length;
@@ -509,6 +522,15 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     const retried = await openGame(runtime);
     retried.send({ type: 'admit', ticket: 'f'.repeat(64) });
     expect((await retried.message('view')).viewer.userId).toBe('user-a');
+    const recovery = await eventually(
+      () =>
+        runtime.logs.find(
+          (log) => log.message.includes('game-operation-recovered') && log.message.includes('account-reconciliation')
+        ),
+      'account recovery diagnostic'
+    );
+    expect(recovery.message).toContain('failures: 1');
+    expect(recovery.message).toContain('outageMs:');
   });
 
   it('closes without a refusal when the ticket redemption fails, so the browser retries', async () => {

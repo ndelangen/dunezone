@@ -244,7 +244,12 @@ export class GameRoom extends DurableObject<GameEnv> {
   ) {
     super(ctx, env);
     this.ctx.setWebSocketAutoResponse(new WebSocketRequestResponsePair(KEEPALIVE_PING, KEEPALIVE_PONG));
-    this.diagnostics = new GameDiagnostics(ctx.id.toString(), env.GIT_SHA);
+    this.diagnostics = new GameDiagnostics(ctx.id.toString(), env.GIT_SHA, () => ({
+      roomClass: 'GameRoom',
+      workerVersionId: env.CF_VERSION_METADATA.id,
+      revision: this.session?.ready ? this.session.revision : undefined,
+      connections: this.connections.size,
+    }));
     try {
       /* A start that fails keeps none of its writes, as a throwing constructor's would not. */
       this.session = ctx.storage.transactionSync(
@@ -668,6 +673,9 @@ export class GameRoom extends DurableObject<GameEnv> {
         } else {
           this.session.acknowledgeDirectory(pending.sequence);
         }
+        if (result.ok) {
+          this.diagnostics.recovered('directory');
+        }
       } catch (error) {
         this.diagnostics.report('directory', error);
         const wait = Math.min(PLAY_DIRECTORY_RETRY_CEILING_MS, PLAY_DIRECTORY_RETRY_MS * 2 ** pending.attempts);
@@ -707,9 +715,10 @@ export class GameRoom extends DurableObject<GameEnv> {
       await this.ctx.storage.deleteAlarm();
       /* The opening summary waited for confirmation: only a confirmed game is listed. */
       this.deliverDirectorySoon();
+      this.diagnostics.recovered('confirmation');
     } catch (error) {
       /* A superseded attempt still reports, so a first request that outlives its alarm stays visible. */
-      this.diagnostics.report('confirmation', error);
+      this.diagnostics.report('confirmation', error, { durationMs: Date.now() - startedAt });
       /* The pre-armed alarm retries the acknowledgement without reinitializing the game. */
     }
   }
@@ -721,13 +730,15 @@ export class GameRoom extends DurableObject<GameEnv> {
     if (this.reconcilePromise) {
       return this.reconcilePromise;
     }
+    const startedAt = Date.now();
     this.reconcilePromise = this.reconcileDirectory(this.metadata!);
     try {
       await this.reconcilePromise;
       this.reconcileFailures = 0;
       this.reconcileUnavailable = false;
+      this.diagnostics.recovered('account-reconciliation');
     } catch (error) {
-      this.diagnostics.report('account-reconciliation', error);
+      this.diagnostics.report('account-reconciliation', error, { durationMs: Date.now() - startedAt });
       this.reconcileUnavailable = error instanceof ConvexUnavailable;
       this.reconciled = false;
       this.reconcileUntil = 0;
@@ -1473,7 +1484,7 @@ export class GameRoom extends DurableObject<GameEnv> {
 
   private rejectMessage(socket: WebSocket, connection: Connection, message: ClientMessage, error: unknown) {
     if (!(error instanceof GameRejection)) {
-      this.diagnostics.report('message', error);
+      this.diagnostics.report('message', error, { messageType: message.type });
     }
     if (
       message.type === 'drop' &&
