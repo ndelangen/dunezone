@@ -1403,18 +1403,6 @@
   height: 100%;
   object-fit: contain;
 }
-.rulebookBattleUnknownCards {
-  position: relative;
-}
-.rulebookBattleUnknownCards strong {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  color: #fff9e9;
-  font-size: 44px;
-  text-shadow: 0 1px 3px #000;
-}
 .rulebookBattleNarrative {
   display: grid;
   grid-template-columns: max-content minmax(0, 1fr);

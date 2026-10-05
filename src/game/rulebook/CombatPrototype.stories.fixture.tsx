@@ -26,7 +26,7 @@ const scenes: Record<Scene, { n: number; lead: string; rule: string; example: st
   prescience: {
     n: 3,
     lead: 'Resolve pre-reveal advantages.',
-    rule: "Follow each applicable faction advantage's timing and conditions. The Voice precedes Battle Prescience. A card back marked ? represents unknown cards, including none. Blackmail, Stone Burner, Fanatical Tactics and Infiltration also act before reveal.",
+    rule: "Follow each applicable faction advantage's timing and conditions. The Voice precedes Battle Prescience. Blackmail, Stone Burner, Fanatical Tactics and Infiltration also act before reveal.",
     example:
       'Atreides uses Prescience: "Which weapon will you play?" Harkonnen answers "Gom Jabbar." That answer is binding. Its other cards, if any, remain unknown until reveal.',
   },

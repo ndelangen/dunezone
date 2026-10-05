@@ -151,12 +151,11 @@ function Side({
                 </span>
               ) : null}
               <span
-                className="rulebookBattleWheelCard rulebookBattleUnknownCards"
+                className="rulebookBattleWheelCard"
                 role="img"
                 aria-label={`${side.name}: other cards, if any, and their count are unknown`}
               >
                 <img src={cardBack} alt="" />
-                <strong aria-hidden="true">?</strong>
               </span>
             </div>
           ) : null}
