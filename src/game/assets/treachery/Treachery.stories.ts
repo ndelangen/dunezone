@@ -1,4 +1,5 @@
 import preview from '@sb/preview';
+import { publishingTreacheryCard } from '@shared/assets/fixtures/publishingTreacheryCard';
 import { expect } from 'storybook/test';
 
 import { treacheryCardFixtures } from '../../fixtures/treacheryCards';
@@ -38,3 +39,7 @@ export const FactionIcon = meta.story({ args: treacheryCardFixtures.richeseKaram
 export const ScaledIcon = meta.story({ args: treacheryCardFixtures.shaiHulud });
 export const Voice = meta.story({ args: treacheryCardFixtures.noSnooper });
 export const LayeredDecals = meta.story({ args: treacheryCardFixtures.layeredDecals });
+
+export const ConversionSource = meta.story({ args: publishingTreacheryCard });
+
+export const FullWidthTitle = meta.story({ args: { ...treacheryCardFixtures.lasgun, name: '沙漠'.repeat(20) } });

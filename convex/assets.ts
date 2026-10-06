@@ -10,12 +10,16 @@ import {
   publishedHref,
 } from '../src/shared/asset-publishing/publicationTargets';
 import { cardbackPresetSchema } from '../src/shared/assets/cardbackPresets';
+import { CustomCardTokens, CustomCardTokenResolution } from '../src/shared/assets/schema';
+import { treacheryToCustomCard } from '../src/shared/assets/treacheryToCustomCard';
 import { ASSET_TYPE_KEYS } from '../src/shared/assets/types';
 import { parseAssetDataForWrite } from '../src/shared/assets/validation';
+import { internal } from './_generated/api';
 import type { Doc, Id } from './_generated/dataModel';
 import { query } from './_generated/server';
 import { publicationStatusFor } from './assetPublishingStatus';
-import { mutation } from './functions';
+import { internalMutation, mutation } from './functions';
+import { optionalActiveUserId } from './lib/accountLifecycle';
 import {
   assertReferenceableDeckCardback,
   assertReferenceableTokenBack,
@@ -40,9 +44,16 @@ import {
   assetViewerAccessValidator,
   assignedGroupSummaryValidator,
 } from './lib/collaborativeAccessValidators';
-import { requireAuthUserId } from './lib/policy';
+import {
+  CUSTOM_CARD_TOKEN_RELATION,
+  customCardTokenIds,
+  resolveCustomCardTokens,
+  syncCustomCardTokenRelations,
+  validateCustomCardTokens,
+} from './lib/customCardTokens';
+import { requireAdminUserId, requireAuthUserId } from './lib/policy';
 import { profileSummary } from './lib/profileSummary';
-import { enqueueAssetPublication } from './lib/publication';
+import { enqueueAssetPublication, supersedePendingPublication } from './lib/publication';
 import { nowIso, slugify } from './lib/utils';
 import type { MutationCtx, QueryCtx } from './types';
 
@@ -260,11 +271,14 @@ const rulesetSlotReferenceValidator = v.object({
 });
 
 export const getPage = query({
-  args: { type: v.string(), slug: v.string() },
+  args: { type: v.string(), slug: v.string(), embeddedTokenIds: v.optional(v.array(v.id('assets'))) },
   returns: v.union(
     v.null(),
     v.object({
       asset: assetListEntryValidator,
+      cardTokens: v.optional(zodToConvex(CustomCardTokens)),
+      cardTokensError: v.optional(v.union(v.string(), v.null())),
+      canConvertToCustom: v.boolean(),
       cardbackPresets: v.array(zodToConvex(cardbackPresetSchema)),
       viewerAccess: assetViewerAccessValidator,
       assignableGroups: v.array(assignedGroupSummaryValidator),
@@ -319,8 +333,14 @@ export const getPage = query({
     const backDeckRow = await referencedCardbackDeck(ctx, row);
     /* The entry, the preset list and the resolved back all ask for presets; one memo reads each once. */
     const presets: CardbackPresetMemo = new Map();
+    const resolvedTokens =
+      row.type === 'card-custom'
+        ? await resolveCustomCardTokens(ctx, args.embeddedTokenIds ?? customCardTokenIds(row.data))
+        : null;
     return {
       asset: await toListEntry(ctx, row, { presets }),
+      canConvertToCustom: await canConvertTreachery(ctx, row.type),
+      ...(resolvedTokens ? { cardTokens: resolvedTokens.tokens, cardTokensError: resolvedTokens.error } : {}),
       cardbackPresets: row.type === 'deck' ? await listCardbackPresets(ctx, presets) : [],
       viewerAccess: access.viewerAccess,
       assignableGroups: access.assignableGroups,
@@ -494,6 +514,9 @@ export const create = mutation({
     assertKnownAssetType(args.type);
     const parsed = parseAssetDataForWrite(args.type, args.data);
     parsed.data = await withValidatedBack(ctx, { type: args.type }, parsed.data as Record<string, unknown>);
+    if (args.type === 'card-custom') {
+      await validateCustomCardTokens(ctx, parsed.data);
+    }
     const slug = slugify(parsed.name);
     if (!slug) {
       throw new ConvexError('An asset name is required; it determines the asset URL');
@@ -510,6 +533,9 @@ export const create = mutation({
       is_deleted: false,
       group_id: null,
     });
+    if (args.type === 'card-custom') {
+      await syncCustomCardTokenRelations(ctx, id, parsed.data);
+    }
     await enqueueAssetPublication(ctx, { _id: id, type: args.type, slug, data: parsed.data });
     return { id, slug };
   },
@@ -527,6 +553,9 @@ export const update = mutation({
     const parsed = parseAssetDataForWrite(row.type, args.data);
     parsed.data = await withValidatedBack(ctx, row, parsed.data as Record<string, unknown>);
     await requireAssetUpdate(ctx, args.id, parsed.name);
+    if (row.type === 'card-custom') {
+      await validateCustomCardTokens(ctx, parsed.data, row.data);
+    }
     const slug = slugify(parsed.name);
     if (!slug) {
       throw new ConvexError('An asset name is required; it determines the asset URL');
@@ -535,8 +564,49 @@ export const update = mutation({
       await assertAssetSlugAvailable(ctx, row.type, slug);
     }
     await ctx.db.patch(args.id, { data: parsed.data, slug, updated_at: nowIso() });
+    if (row.type === 'card-custom') {
+      await syncCustomCardTokenRelations(ctx, args.id, parsed.data);
+    }
     await enqueueAssetPublication(ctx, { _id: args.id, type: row.type, slug, data: parsed.data });
+    if (TOKEN_TYPES.has(row.type)) {
+      await ctx.scheduler.runAfter(0, internal.assets.refreshEmbeddedCards, { tokenId: args.id, cursor: null });
+    }
     return { id: args.id, slug };
+  },
+});
+
+/** Only an active administrator can change a treachery card's asset type. */
+async function canConvertTreachery(ctx: QueryCtx, type: string): Promise<boolean> {
+  if (type !== 'card-treachery') {
+    return false;
+  }
+  const viewerId = await optionalActiveUserId(ctx);
+  return viewerId ? (await ctx.db.get('users', viewerId))?.isAdmin === true : false;
+}
+
+/** Converts one card in place; ownership, deck references and completed publications retain their identity. */
+export const convertTreacheryToCustom = mutation({
+  args: { id: v.id('assets') },
+  returns: v.object({ id: v.id('assets'), slug: v.string() }),
+  handler: async (ctx, args) => {
+    await requireAdminUserId(ctx);
+    const row = await ctx.db.get('assets', args.id);
+    if (!row || row.is_deleted || row.type !== 'card-treachery') {
+      throw new ConvexError('Only a live treachery card can be converted.');
+    }
+    let data;
+    try {
+      data = treacheryToCustomCard(row.data);
+    } catch {
+      throw new ConvexError(
+        'This card cannot fit into custom-card layers. Check its artwork and text before converting.'
+      );
+    }
+    await assertAssetSlugAvailable(ctx, 'card-custom', row.slug);
+    await ctx.db.patch(row._id, { type: 'card-custom', data, updated_at: nowIso() });
+    await supersedePendingPublication(ctx, 'card-treachery', row._id);
+    await enqueueAssetPublication(ctx, { ...row, type: 'card-custom', data });
+    return { id: row._id, slug: row.slug };
   },
 });
 
@@ -555,6 +625,9 @@ export const softDelete = mutation({
       is_deleted: true,
       updated_at: nowIso(),
     });
+    if (TOKEN_TYPES.has(access.subject.type)) {
+      await ctx.scheduler.runAfter(0, internal.assets.refreshEmbeddedCards, { tokenId: args.id, cursor: null });
+    }
   },
 });
 
@@ -875,4 +948,55 @@ export const browsePage = query({
 
     return { entries, truncated };
   },
+});
+
+/** Refreshes linked cards in bounded batches; token saves never traverse an entire reverse index. */
+export const refreshEmbeddedCards = internalMutation({
+  args: { tokenId: v.id('assets'), cursor: v.union(v.string(), v.null()) },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const page = await ctx.db
+      .query('asset_relations')
+      .withIndex('by_to_kind', (q) => q.eq('to_asset_id', args.tokenId).eq('kind', CUSTOM_CARD_TOKEN_RELATION))
+      .paginate({ cursor: args.cursor, numItems: 20 });
+    for (const relation of page.page) {
+      await ctx.scheduler.runAfter(0, internal.assets.refreshEmbeddedCard, {
+        tokenId: args.tokenId,
+        cardId: relation.from_asset_id,
+      });
+    }
+    if (!page.isDone) {
+      await ctx.scheduler.runAfter(0, internal.assets.refreshEmbeddedCards, {
+        tokenId: args.tokenId,
+        cursor: page.continueCursor,
+      });
+    }
+    return null;
+  },
+});
+
+/** Each dependent card refreshes in its own transaction, so a failed card cannot stop the others. */
+export const refreshEmbeddedCard = internalMutation({
+  args: { tokenId: v.id('assets'), cardId: v.id('assets') },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const card = await ctx.db.get('assets', args.cardId);
+    if (
+      card &&
+      !card.is_deleted &&
+      card.type === 'card-custom' &&
+      customCardTokenIds(card.data).includes(args.tokenId)
+    ) {
+      await ctx.db.patch(card._id, { updated_at: nowIso() });
+      await enqueueAssetPublication(ctx, card);
+    }
+    return null;
+  },
+});
+
+/** The create page's live token resolution, held only while its draft embeds tokens. */
+export const customCardTokens = query({
+  args: { ids: v.array(v.id('assets')) },
+  returns: zodToConvex(CustomCardTokenResolution),
+  handler: async (ctx, args) => await resolveCustomCardTokens(ctx, args.ids),
 });

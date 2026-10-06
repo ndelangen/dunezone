@@ -17,7 +17,7 @@ import { AssetEditorMessage, SaveErrorAlert } from '../../assetEditorStates';
  * Each page keeps its own authoring state and reducer (D7 on «Work the editors wave»).
  */
 
-type CardType = 'card-treachery' | 'card-spice';
+type CardType = 'card-treachery' | 'card-spice' | 'card-custom';
 
 /** Posts a new card and opens its edit page once it has an address. */
 export function useCardCreate(type: CardType) {
@@ -58,7 +58,7 @@ export function CardCreateFrame({
   /** The page title before the card has a name, e.g. "New spice card". */
   title: string;
   headerSlot: ReactNode;
-  status: { isDirty: boolean; isNameBlank: boolean; saveState: AuthoringSaveState };
+  status: { isDirty: boolean; isNameBlank: boolean; saveState: AuthoringSaveState; invalid?: string };
   onSave: () => void;
   onReset: () => void;
   saveError: Error | null;

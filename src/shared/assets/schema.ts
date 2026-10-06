@@ -107,17 +107,20 @@ export const Spice = z.strictObject({
   amount: z.number().int().positive(),
 });
 
-export const Treachery = z.strictObject({
+export const CardHead = z.strictObject({
   name: z.string(),
   subName: z.string(),
   head: Background,
   icon: z.tuple([Background, ALL]),
   iconOffset: z.tuple([z.number(), z.number()]).optional(),
-  iconScale: SCALE.optional(),
+  iconScale: z.number().min(0).max(2).optional(),
   /** Flips the icon vector from dark to light artwork. */
   iconInvert: z.boolean().optional(),
   /** Fades the icon vector; 1 (the default) is fully opaque. */
   iconOpacity: SCALE.optional(),
+});
+
+export const Treachery = CardHead.extend({
   decals: z.array(Decal),
   text: z.string(),
 });
@@ -275,7 +278,7 @@ export const BundleAsset = z.strictObject({
 
 /**
  * The seven faces the project ships, declared in `src/app/styles/fonts.css`.
- * A rectangle token is the only Asset type that lets an author pick one, so the list lives here rather than in a renderer, and both the schema and the renderer read it.
+ * Rectangle tokens and custom cards let authors pick a face, so their schemas share this list.
  */
 export const RECTANGLE_TOKEN_FONTS = [
   'C_Copperplate_Gothic',
@@ -369,3 +372,70 @@ export const DeckAssetInput = DeckAsset.extend({ about: FormattedAbout });
 export const BundleAssetInput = BundleAsset.extend({ about: FormattedAbout });
 export const TokenAssetInput = TokenAsset.extend({ about: FormattedAbout });
 export const RectangleTokenAssetInput = RectangleTokenAsset.extend({ about: FormattedAbout });
+
+export const CUSTOM_CARD_MAX_LAYERS = 256;
+export const CUSTOM_CARD_MAX_TEXT_LENGTH = 16_384;
+const CUSTOM_CARD_MAX_COMPOSITION_BYTES = 262_144;
+
+/** A token's current front, resolved separately from the card's stored references. */
+export const CustomCardToken = z.discriminatedUnion('type', [
+  z.strictObject({ type: z.enum(['token-disc', 'token-tech', 'token-plate']), name: z.string(), face: TokenFace }),
+  z.strictObject({ type: z.literal('token-enhance'), name: z.string(), face: RectangleTokenFace }),
+]);
+export const CustomCardTokens = z.record(z.string(), CustomCardToken.nullable());
+export const CustomCardTokenResolution = z.object({
+  tokens: CustomCardTokens,
+  error: z.string().nullable(),
+});
+
+/** A custom card's authored layers, painted from first to last. */
+export const CustomCardLayer = z.discriminatedUnion('kind', [
+  z.strictObject({
+    kind: z.literal('token'),
+    layerId: z.uuid(),
+    asset_id: z.string().min(1),
+    offset: OFFSET,
+    scale: z.number().min(0.05).max(3),
+    opacity: OPACITY,
+    rotation: z.number().min(-360).max(360),
+  }),
+  Decal.extend({
+    kind: z.literal('decal'),
+    layerId: z.uuid(),
+    behindFrame: z.boolean().optional(),
+    opacity: OPACITY,
+    rotation: z.number().min(-360).max(360),
+  }),
+  z.strictObject({
+    kind: z.literal('text'),
+    layerId: z.uuid(),
+    content: proseFormattedTextSchema.refine((content) => content.length <= CUSTOM_CARD_MAX_TEXT_LENGTH, {
+      message: `A text layer can hold at most ${CUSTOM_CARD_MAX_TEXT_LENGTH} characters`,
+    }),
+    offset: OFFSET,
+    width: z.number().min(1).max(900),
+    height: z.number().min(1).max(1263),
+    size: z.number().min(1).max(200),
+    font: z.enum(RECTANGLE_TOKEN_FONTS),
+    color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
+    align: z.enum(['left', 'center', 'right']),
+    opacity: OPACITY,
+    rotation: z.number().min(-360).max(360),
+  }),
+]);
+
+/** The standard Head stays fixed; the rest of the card is a free composition. */
+export const CustomCard = CardHead.extend({
+  format: z.enum(['decal-window', 'plain']),
+  layers: z
+    .array(CustomCardLayer)
+    .max(CUSTOM_CARD_MAX_LAYERS, `A card can hold at most ${CUSTOM_CARD_MAX_LAYERS} layers`)
+    .refine((layers) => new TextEncoder().encode(JSON.stringify(layers)).length <= CUSTOM_CARD_MAX_COMPOSITION_BYTES, {
+      message: 'The layers are too large to save. Shorten text or remove layers.',
+    })
+    .refine((layers) => new Set(layers.map((layer) => layer.layerId)).size === layers.length, {
+      message: 'Each layer must have its own identity',
+    }),
+});
+export const CustomCardAsset = CustomCard.extend({ about: About });
+export const CustomCardAssetInput = CustomCardAsset.extend({ about: FormattedAbout });

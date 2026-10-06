@@ -6,6 +6,7 @@ import { pageHead } from '@app/routes/pageTitle';
 
 import { NoEditorYet } from '../../../assetEditorStates';
 import { BundleEditPage } from './bundleEdit';
+import { CustomEditPage } from './customEdit';
 import { DeckEditPage } from './deckEdit';
 import { RectangleEditPage } from './rectangleEdit';
 import { SpiceEditPage } from './spiceEdit';
@@ -34,6 +35,8 @@ function EditAssetPage() {
   switch (type) {
     case 'card-treachery':
       return <TreacheryEditPage slug={slug} loaderData={loaderData} />;
+    case 'card-custom':
+      return <CustomEditPage slug={slug} loaderData={loaderData} />;
     case 'card-spice':
       return <SpiceEditPage slug={slug} loaderData={loaderData} />;
     case 'token-disc':

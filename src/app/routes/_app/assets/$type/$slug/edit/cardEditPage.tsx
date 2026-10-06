@@ -27,7 +27,7 @@ import {
  * Each page keeps its own authoring state and reducer (D7 on «Work the editors wave»).
  */
 
-type CardType = 'card-treachery' | 'card-spice';
+type CardType = 'card-treachery' | 'card-spice' | 'card-custom';
 
 type CardAsset = NonNullable<AssetPageData>['asset'];
 
@@ -37,28 +37,42 @@ type CardEditAccess = {
   assignableGroups: NonNullable<AssetPageData>['assignableGroups'];
 };
 
-export type CardEditSessionProps<Draft> = { asset: CardAsset; initialDraft: Draft; access: CardEditAccess };
+export type CardEditSessionProps<Draft> = {
+  asset: CardAsset;
+  initialDraft: Draft;
+  access: CardEditAccess;
+  tokens?: NonNullable<AssetPageData>['cardTokens'];
+  tokensError?: NonNullable<AssetPageData>['cardTokensError'];
+};
 
 /** Opens the session only for a card that exists, a viewer who may edit it, and stored data that still parses. */
-export function CardEditGate<Draft>({
-  type,
-  schemaName,
-  schema,
-  slug,
-  loaderData,
-  session,
-}: {
+type CardEditGateProps<Draft> = {
   type: CardType;
   /** The card type as a sentence names it, e.g. "spice card". */
   schemaName: string;
   schema: z.ZodType<Draft>;
   slug: string;
   loaderData: AssetPageData;
+  embeddedTokenIds?: string[];
   session: (props: CardEditSessionProps<Draft>) => ReactNode;
-}) {
-  const query = useAssetPage(type, slug, { initialData: loaderData });
-  const data = query.data ?? loaderData;
+};
 
+export function CardEditGate<Draft>(props: CardEditGateProps<Draft>) {
+  const query = useAssetPage(props.type, props.slug, {
+    initialData: props.loaderData,
+    embeddedTokenIds: props.embeddedTokenIds,
+  });
+  return <CardEditChecks {...props} data={query.data === undefined ? props.loaderData : query.data} />;
+}
+
+/** The custom page owns the live read because its unsaved Token layers determine that read's arguments. */
+export function CardEditChecks<Draft>({
+  type,
+  schemaName,
+  schema,
+  data,
+  session,
+}: Omit<CardEditGateProps<Draft>, 'slug' | 'loaderData' | 'embeddedTokenIds'> & { data: AssetPageData }) {
   if (data === null) {
     return (
       <AssetEditorMessage type={type} title="Edit card">
@@ -102,6 +116,8 @@ export function CardEditGate<Draft>({
       {session({
         asset: data.asset,
         initialDraft: parsed.data,
+        tokens: data.cardTokens,
+        tokensError: data.cardTokensError,
         access: { viewerAccess: data.viewerAccess, assignableGroups: data.assignableGroups },
       })}
     </Fragment>
@@ -151,7 +167,7 @@ export function CardEditFrame({
   asset: CardAsset;
   access: CardEditAccess;
   headerSlot: ReactNode;
-  status: { isDirty: boolean; isNameBlank: boolean; saveState: AuthoringSaveState };
+  status: { isDirty: boolean; isNameBlank: boolean; saveState: AuthoringSaveState; invalid?: string };
   onSave: () => void;
   onReset: () => void;
   saveError: Error | null;
