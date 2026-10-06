@@ -52,8 +52,10 @@ async function inflate(stream: PDFRawStream, maximum: number): Promise<Uint8Arra
 }
 
 function parseObject(bytes: Uint8Array, context: PDFContext): { object: PDFObject; end: number } {
-  const cursor = ByteStream.of(bytes);
-  const object = PDFObjectParser.forByteStream(cursor, context).parseObject();
+  type ParserCursor = Parameters<typeof PDFObjectParser.forByteStream>[0];
+  const cursor: Pick<ParserCursor, keyof ParserCursor> = ByteStream.of(bytes);
+  /* PDF-lib declares its parser against the CJS cursor, but the Worker bundles its identical ESM implementation. */
+  const object = PDFObjectParser.forByteStream(cursor as ParserCursor, context).parseObject();
   return { object, end: cursor.offset() };
 }
 

@@ -1,4 +1,4 @@
-# Full Rulebook PDF capture
+# Full rulebook PDF capture
 
 Rulebooks use one Chromium capture for up to 100 Pages. Capturing the whole document lets Chromium share fonts and images and keeps its tagged reading order and document links together. The private capture protocol retains its existing batch name for compatibility, but a new job contains exactly one complete document.
 
@@ -10,7 +10,7 @@ The browser removes unreachable objects and emits a densely numbered classic cro
 
 Failure closes the CDP stream and browser context. Capture and browser compression share a 180-second budget, bounded by the remaining publication work window.
 
-## Evidence from the 82-page Dream Rulebook
+## Evidence from the 82-page manuscript
 
 On 6 October 2026, Cloudflare Chromium captured the complete square Rulebook through the publisher capture bundle. The final capture and compression took 115.7 seconds and produced **4,494,704 bytes**. The run used the frozen manuscript, sequential image settlement, the CDP transfer function, and Edition finalization. No broken images were reported. This is a real Cloudflare browser run with assets delivered through a local route fixture, rather than evidence of a deployed publication job.
 
