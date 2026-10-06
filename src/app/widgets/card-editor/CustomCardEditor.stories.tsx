@@ -173,3 +173,22 @@ export const TokenLayer = meta.story({
 export const TokenShapes = meta.story({
   args: { preset: 'full-text', name: 'Linked token reference', layers: publishingCustomCardTokenLayers },
 });
+
+export const BehindFrame = meta.story({
+  args: {
+    layers: [
+      { ...CUSTOM_CARD_PRESETS[0].layers[0], behindFrame: false },
+      CUSTOM_CARD_PRESETS[0].layers[1],
+    ] as CustomCardDraft['layers'],
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(canvas.getByRole('tab', { name: '1. Decal' }));
+    const control = canvas.getByRole('switch', { name: 'Behind frame' });
+    await expect(control).not.toBeChecked();
+    await userEvent.click(control);
+    await expect(control).toBeChecked();
+    await userEvent.click(canvas.getByRole('button', { name: 'Duplicate layer' }));
+    await expect(canvas.getByRole('switch', { name: 'Behind frame' })).toBeChecked();
+  },
+});

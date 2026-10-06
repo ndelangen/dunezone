@@ -25,6 +25,7 @@ import { AssetLink } from '@ui/content/AssetLink';
 import { formatStableDate } from '@ui/content/dates';
 import { FormattedTextSource } from '@ui/content/FormattedText';
 import { TopicIcon } from '@ui/content/TopicIcon';
+import { ConfirmConvertAction } from '@ui/control/ConfirmConvertAction';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { IconAction } from '@ui/control/IconAction';
 import { AsymmetricSplitLayout } from '@ui/layout/AsymmetricSplitLayout';
@@ -47,7 +48,7 @@ import {
 } from 'lucide-react';
 import type { ReactNode } from 'react';
 
-import { loadAssetPage, useAssetPage } from '@app/db/assets';
+import { loadAssetPage, useAssetPage, useConvertTreacheryToCustom } from '@app/db/assets';
 import type { AssetPageData } from '@app/db/assets';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
 import { publicDescription, publicPageHead, useLivePageTitle } from '@app/routes/publicPage';
@@ -494,6 +495,7 @@ function LoadedAssetDetail({ page, pending }: { page: AssetPage; pending: boolea
   const { asset, viewerAccess, assignableGroups, inDecks, assetPublishing, backPublishing } = page;
   const groupActions = useAssetGroupActions({ asset, access: { viewerAccess, assignableGroups } });
   const deletion = useAssetDeletion(asset);
+  const conversion = useConvertTreacheryToCustom();
   const { copies } = Route.useSearch();
   const navigate = Route.useNavigate();
   const container = isContainerType(asset.type);
@@ -645,6 +647,24 @@ function LoadedAssetDetail({ page, pending }: { page: AssetPage; pending: boolea
             </Toolbar.Cluster>
             <Toolbar.Cluster kind="access">{!pending && groupActions.accessActions}</Toolbar.Cluster>
             <Toolbar.Cluster kind="discard">
+              {page.canConvertToCustom ? (
+                <ConfirmConvertAction
+                  pending={conversion.isPending}
+                  disabled={pending}
+                  onConfirm={() =>
+                    conversion.mutate(
+                      { id: asset.id },
+                      {
+                        onSuccess: ({ slug }) =>
+                          void navigate({
+                            to: capabilities.edit ? '/assets/$type/$slug/edit' : '/assets/$type/$slug',
+                            params: { type: 'card-custom', slug },
+                          }),
+                      }
+                    )
+                  }
+                />
+              ) : null}
               {capabilities.delete ? (
                 <ConfirmDeleteAction
                   label={`Delete ${asset.name}`}
@@ -659,6 +679,11 @@ function LoadedAssetDetail({ page, pending }: { page: AssetPage; pending: boolea
 
       <PageLayout.Content>
         {groupActions.error}
+        {conversion.error ? (
+          <Alert color="red" role="alert" title="Could not convert card">
+            {conversion.error.message}
+          </Alert>
+        ) : null}
         {deletion.error ? (
           <Alert color="red" variant="light" role="alert" title="Could not delete">
             {deletion.error.message}

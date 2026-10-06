@@ -7,8 +7,8 @@ import type { Treachery } from '../../data/objects';
 import { card } from '../../data/sizes';
 import styles from '../card/Card.module.css';
 import { CardHeadBackground, CardHeadContents } from '../card/CardHead';
+import { CardText } from '../card/CardText';
 import { FrontDecals } from '../card/Decals';
-import { FormattedText } from '../utils/FormattedText';
 import { useCountId } from '../utils/useCountId';
 import unique from './Treachery.module.css';
 
@@ -53,12 +53,11 @@ export const TreacheryCard: FC<z.infer<typeof Treachery>> = ({
         measureParts
       />
 
-      <div
+      <CardText
+        value={text}
         className={styles.body}
         {...{ [COMPONENT_GEOMETRY_PROTOCOL.partAttribute]: text.trim() ? 'body' : undefined }}
-      >
-        <FormattedText value={text} />
-      </div>
+      />
     </div>
   );
 };

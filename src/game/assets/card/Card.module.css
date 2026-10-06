@@ -91,64 +91,6 @@
   font-size: 40px;
   color: #0b0503;
   opacity: 0.937;
-  white-space: pre-wrap;
-  line-height: 1.25em;
-}
-
-.body h1,
-.body h2,
-.body h3,
-.body h4,
-.body h5,
-.body h6,
-.body p,
-.body img,
-.body hr,
-.body ul,
-.body ol,
-.body li {
-  margin-top: 0;
-  padding-top: 0;
-  margin-bottom: 0;
-  padding-bottom: 0;
-}
-
-.body h1 + *,
-.body h2 + *,
-.body h3 + *,
-.body h4 + *,
-.body h5 + *,
-.body h6 + *,
-.body p + *,
-.body img + *,
-.body hr + *,
-.body ul + *,
-.body ol + *,
-.body li + * {
-  margin-top: 0.3em;
-}
-
-.body h1 {
-  font-family: "C_Copperplate_Gothic", sans-serif;
-  font-size: 35px;
-}
-
-.body h2,
-.body h3,
-.body h4,
-.body h5,
-.body h6 {
-  font-family: "C_Trebuchet", sans-serif;
-}
-
-.body hr {
-  margin: 0;
-  padding: 0;
-  border-top: 0 none;
-  border-left: 0 none;
-  border-right: 0 none;
-  height: 0;
-  border-bottom: 1px solid silver;
 }
 
 .type {

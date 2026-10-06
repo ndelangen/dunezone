@@ -16,7 +16,7 @@ export function cardTitleFontSize(name: string, width = 560) {
     if (/\s/.test(character)) {
       return width + 0.35;
     }
-    return width + 0.7;
+    return width + (character.codePointAt(0)! > 255 ? 1.2 : 0.7);
   }, 0);
   return Math.min(60, width / Math.max(1, estimatedWidth));
 }

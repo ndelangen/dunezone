@@ -1,4 +1,4 @@
-import { Alert, Button, ColorInput, Group, NumberInput, Select, Slider, Stack, Text } from '@mantine/core';
+import { Alert, Button, ColorInput, Group, NumberInput, Select, Slider, Stack, Switch, Text } from '@mantine/core';
 import { CUSTOM_CARD_MAX_LAYERS, CUSTOM_CARD_MAX_TEXT_LENGTH, RECTANGLE_TOKEN_FONTS } from '@shared/assets/schema';
 import type { CustomCardTokens } from '@shared/assets/schema';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
@@ -222,6 +222,15 @@ function LayerFields({
           <TextLayerFields layer={layer} label={label.toLowerCase()} onChange={onChange} />
         </>
       )}
+      {layer.kind === 'decal' ? (
+        <Switch
+          label="Behind frame"
+          aria-label="Behind frame"
+          description="Draw this decal under the frame, which hides artwork outside its window."
+          checked={layer.behindFrame ?? false}
+          onChange={(event) => onChange({ ...layer, behindFrame: event.currentTarget.checked })}
+        />
+      ) : null}
       {layer.kind !== 'decal' ? <LayerPlacement layer={layer} format={format} onChange={onChange} /> : null}
       {(
         [
@@ -480,7 +489,7 @@ export function CustomCardLayers({
         {draft.layers.length} of {CUSTOM_CARD_MAX_LAYERS} layers
       </Text>
       <Text size="sm" c="dimmed">
-        Each layer has its own tab. Later layers sit above earlier layers. The Head stays above them all.
+        Each layer has its own tab. Layers stack in tab order on each side of the frame. The Head stays on top.
       </Text>
       {draft.layers.length === 0 ? (
         <Alert title="No layers" color="gray">

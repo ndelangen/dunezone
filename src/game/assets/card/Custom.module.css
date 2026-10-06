@@ -22,17 +22,7 @@
 .text {
   position: absolute;
   overflow: hidden;
-  line-height: 1.25;
-  overflow-wrap: anywhere;
   transform-origin: center;
-}
-.text p,
-.text ul {
-  margin: 0;
-}
-.text p + *,
-.text ul + * {
-  margin-top: 0.3em;
 }
 
 .token {

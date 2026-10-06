@@ -402,6 +402,7 @@ export const CustomCardLayer = z.discriminatedUnion('kind', [
   Decal.extend({
     kind: z.literal('decal'),
     layerId: z.uuid(),
+    behindFrame: z.boolean().optional(),
     opacity: OPACITY,
     rotation: z.number().min(-360).max(360),
   }),

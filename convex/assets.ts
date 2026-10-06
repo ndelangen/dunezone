@@ -11,6 +11,7 @@ import {
 } from '../src/shared/asset-publishing/publicationTargets';
 import { cardbackPresetSchema } from '../src/shared/assets/cardbackPresets';
 import { CustomCardTokens, CustomCardTokenResolution } from '../src/shared/assets/schema';
+import { treacheryToCustomCard } from '../src/shared/assets/treacheryToCustomCard';
 import { ASSET_TYPE_KEYS } from '../src/shared/assets/types';
 import { parseAssetDataForWrite } from '../src/shared/assets/validation';
 import { internal } from './_generated/api';
@@ -18,6 +19,7 @@ import type { Doc, Id } from './_generated/dataModel';
 import { query } from './_generated/server';
 import { publicationStatusFor } from './assetPublishingStatus';
 import { internalMutation, mutation } from './functions';
+import { optionalActiveUserId } from './lib/accountLifecycle';
 import {
   assertReferenceableDeckCardback,
   assertReferenceableTokenBack,
@@ -49,9 +51,9 @@ import {
   syncCustomCardTokenRelations,
   validateCustomCardTokens,
 } from './lib/customCardTokens';
-import { requireAuthUserId } from './lib/policy';
+import { requireAdminUserId, requireAuthUserId } from './lib/policy';
 import { profileSummary } from './lib/profileSummary';
-import { enqueueAssetPublication } from './lib/publication';
+import { enqueueAssetPublication, supersedePendingPublication } from './lib/publication';
 import { nowIso, slugify } from './lib/utils';
 import type { MutationCtx, QueryCtx } from './types';
 
@@ -276,6 +278,7 @@ export const getPage = query({
       asset: assetListEntryValidator,
       cardTokens: v.optional(zodToConvex(CustomCardTokens)),
       cardTokensError: v.optional(v.union(v.string(), v.null())),
+      canConvertToCustom: v.boolean(),
       cardbackPresets: v.array(zodToConvex(cardbackPresetSchema)),
       viewerAccess: assetViewerAccessValidator,
       assignableGroups: v.array(assignedGroupSummaryValidator),
@@ -336,6 +339,7 @@ export const getPage = query({
         : null;
     return {
       asset: await toListEntry(ctx, row, { presets }),
+      canConvertToCustom: await canConvertTreachery(ctx, row.type),
       ...(resolvedTokens ? { cardTokens: resolvedTokens.tokens, cardTokensError: resolvedTokens.error } : {}),
       cardbackPresets: row.type === 'deck' ? await listCardbackPresets(ctx, presets) : [],
       viewerAccess: access.viewerAccess,
@@ -568,6 +572,41 @@ export const update = mutation({
       await ctx.scheduler.runAfter(0, internal.assets.refreshEmbeddedCards, { tokenId: args.id, cursor: null });
     }
     return { id: args.id, slug };
+  },
+});
+
+/** Only an active administrator can change a treachery card's asset type. */
+async function canConvertTreachery(ctx: QueryCtx, type: string): Promise<boolean> {
+  if (type !== 'card-treachery') {
+    return false;
+  }
+  const viewerId = await optionalActiveUserId(ctx);
+  return viewerId ? (await ctx.db.get('users', viewerId))?.isAdmin === true : false;
+}
+
+/** Converts one card in place; ownership, deck references and completed publications retain their identity. */
+export const convertTreacheryToCustom = mutation({
+  args: { id: v.id('assets') },
+  returns: v.object({ id: v.id('assets'), slug: v.string() }),
+  handler: async (ctx, args) => {
+    await requireAdminUserId(ctx);
+    const row = await ctx.db.get('assets', args.id);
+    if (!row || row.is_deleted || row.type !== 'card-treachery') {
+      throw new ConvexError('Only a live treachery card can be converted.');
+    }
+    let data;
+    try {
+      data = treacheryToCustomCard(row.data);
+    } catch {
+      throw new ConvexError(
+        'This card cannot fit into custom-card layers. Check its artwork and text before converting.'
+      );
+    }
+    await assertAssetSlugAvailable(ctx, 'card-custom', row.slug);
+    await ctx.db.patch(row._id, { type: 'card-custom', data, updated_at: nowIso() });
+    await supersedePendingPublication(ctx, 'card-treachery', row._id);
+    await enqueueAssetPublication(ctx, { ...row, type: 'card-custom', data });
+    return { id: row._id, slug: row.slug };
   },
 });
 

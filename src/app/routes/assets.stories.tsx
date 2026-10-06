@@ -1,4 +1,5 @@
 import preview from '@sb/preview';
+import { install } from '@sinonjs/fake-timers';
 import { expect, userEvent, within } from 'storybook/test';
 
 import { db } from '@db/storybook';
@@ -415,3 +416,41 @@ export const CreateCustomCard = meta.story({ args: { path: '/assets/card-custom/
 export const EditCustomCard = meta.story({ args: { path: '/assets/card-custom/battle-reference/edit' } });
 export const CustomCards = meta.story({ args: { path: '/assets/card-custom' } });
 export const CustomCard = meta.story({ args: { path: '/assets/card-custom/battle-reference' } });
+
+/** An administrator converts the existing card and arrives at its editable layers. */
+export const ConvertTreacheryCard = meta.story({
+  args: { path: '/assets/card-treachery/lasgun' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const trigger = await page.findByRole('button', { name: 'Convert to custom card' }, { timeout: 30_000 });
+    const clock = install({ toFake: ['setInterval', 'clearInterval'], shouldClearNativeTimers: true });
+    try {
+      await userEvent.pointer({ target: trigger, keys: '[MouseLeft>]' });
+      await clock.tickAsync(5000);
+    } finally {
+      await userEvent.pointer({ target: trigger, keys: '[/MouseLeft]' });
+      clock.uninstall();
+    }
+    await expect(
+      page.findByRole('tablist', { name: 'Custom card chapters' }, { timeout: 30_000 })
+    ).resolves.toBeVisible();
+    await userEvent.click(page.getByRole('tab', { name: '1. Decal' }));
+    await expect(page.getByRole('switch', { name: 'Behind frame' })).toBeChecked();
+    await expect(page.getByRole('tab', { name: '2. Text' })).toBeVisible();
+    await userEvent.click(page.getByRole('tab', { name: 'About' }));
+    await expect(page.getByRole('textbox', { name: 'About' })).toHaveValue(
+      'A lasgun-shield interaction destroys both players and everything in the territory.'
+    );
+  },
+});
+export const TreacheryConversionUnavailable = meta.story({
+  args: { path: '/assets/card-treachery/lasgun' },
+  parameters: {
+    database: db((baseline) => ({ ...baseline, users: baseline.users!.map((user) => ({ ...user, isAdmin: false })) })),
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await page.findByRole('heading', { name: 'Lasgun' }, { timeout: 30_000 });
+    expect(page.queryByRole('button', { name: 'Convert to custom card' })).toBeNull();
+  },
+});

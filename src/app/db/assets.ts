@@ -109,3 +109,10 @@ export function useSetMemberCount() {
 export function useCustomCardTokens(ids: string[]) {
   return useQuery(api.assets.customCardTokens, { ids: ids as AssetListEntry['id'][] });
 }
+
+/** Changes a treachery card into editable custom-card layers without creating another asset. */
+export function useConvertTreacheryToCustom() {
+  return useLiveMutation<{ id: AssetListEntry['id'] }, { id: string; slug: string }>(
+    api.assets.convertTreacheryToCustom
+  );
+}
