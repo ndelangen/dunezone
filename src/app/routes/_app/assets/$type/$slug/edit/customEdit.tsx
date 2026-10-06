@@ -13,7 +13,7 @@ import {
 import type { CustomCardChapter, CustomCardDraft, CustomCardMemory } from '@app/widgets/card-editor/CustomCardEditor';
 import { CustomCardAsset, CustomCardAssetInput } from '@game/data/objects';
 
-import { useAssetNameField } from '../../../assetEditorStates';
+import { assetNameField } from '../../../assetEditorStates';
 import { CardEditFrame, CardEditChecks, useCardSave } from './cardEditPage';
 import type { CardEditSessionProps } from './cardEditPage';
 
@@ -110,18 +110,14 @@ function CardEditSession({
   const saving = useCardSave('card-custom', asset);
   const [chapter, setChapter] = useState<CustomCardChapter>('head');
   const patch = (update: Partial<CustomCardDraft>) => dispatch({ kind: 'patch', update });
-  const { nameField, conflictWarnings } = useAssetNameField({
-    type: 'card-custom',
+  const nameField = assetNameField({
     name: state.data.name,
     onName: (name) => patch({ name }),
-    currentSlug: asset.slug,
-    source: 'Head',
-    chapter: 'head' as CustomCardChapter,
     canRename: access.viewerAccess.capabilities.rename,
     noun: 'card',
   });
   const header = useEditPageHeader({
-    warnings: [...customCardDraftWarnings(state.data), ...conflictWarnings],
+    warnings: [...customCardDraftWarnings(state.data)],
     onFocusWarning: (warning) => setChapter(warning.chapter),
   });
   const validation = CustomCardAssetInput.safeParse(state.data);

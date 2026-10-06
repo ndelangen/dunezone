@@ -16,7 +16,7 @@ import {
 import type { CustomCardChapter, CustomCardDraft, CustomCardMemory } from '@app/widgets/card-editor/CustomCardEditor';
 import { CustomCardAssetInput } from '@game/data/objects';
 
-import { useAssetNameField } from '../../assetEditorStates';
+import { assetNameField } from '../../assetEditorStates';
 import { CardCreateFrame, useCardCreate } from './cardCreatePage';
 
 type CustomCardState = { data: CustomCardDraft; memory: CustomCardMemory; baseline: CustomCardDraft };
@@ -62,16 +62,13 @@ export function CustomCreatePage() {
     openingState(INITIAL_CUSTOM_CARD_DRAFT, INITIAL_CUSTOM_CARD_DRAFT)
   );
   const patch = (update: Partial<CustomCardDraft>) => dispatch({ kind: 'patch', update });
-  const { nameField, conflictWarnings } = useAssetNameField({
+  const nameField = assetNameField({
     canRename: true,
-    type: 'card-custom',
     name: state.data.name,
     onName: (name) => patch({ name }),
-    source: 'Head',
-    chapter: 'head' as CustomCardChapter,
   });
   const header = useEditPageHeader({
-    warnings: [...customCardDraftWarnings(state.data), ...conflictWarnings],
+    warnings: [...customCardDraftWarnings(state.data)],
     onFocusWarning: (warning) => setChapter(warning.chapter),
   });
   const validation = CustomCardAssetInput.safeParse(state.data);

@@ -423,38 +423,41 @@ async function rulesetsSlotting(ctx: QueryCtx, assetId: Id<'assets'>) {
   return entries;
 }
 
-/**
- * Who holds the slug for this type: a living asset, a soft-deleted one whose address stays reserved, or nobody.
- * One rule read twice: the save guard refuses on it, and the editors' live conflict check subscribes to it, so the warning and the refusal can never disagree.
- * The take is safe because per-type uniqueness is guarded on every write, deleted rows included: a slug is held by at most one row per type, so the set is bounded by the type registry's size, far under fifty.
- */
-async function assetSlugHolder(ctx: QueryCtx, type: string, slug: string): Promise<'live' | 'deleted' | null> {
+/** A slug has at most one holder per registered asset type, including deleted assets. */
+async function assetSlugHolder(ctx: QueryCtx, type: string, slug: string): Promise<Doc<'assets'> | null> {
   const holders = await ctx.db
     .query('assets')
     .withIndex('by_slug', (q) => q.eq('slug', slug))
     .take(50);
-  const holder = holders.find((row) => row.type === type);
-  if (!holder) {
-    return null;
-  }
-  return holder.is_deleted ? 'deleted' : 'live';
+  return holders.find((row) => row.type === type) ?? null;
 }
 
-/** The editors' live name-conflict check: the save guard's rule as a subscription, holder kind included, so the warning can speak the refusal's own words. */
+/** Retained for older deployed editors that check name conflicts before saving. */
 export const slugTaken = query({
   args: { type: v.string(), slug: v.string() },
   returns: v.union(v.literal('live'), v.literal('deleted'), v.null()),
-  handler: async (ctx, args) => await assetSlugHolder(ctx, args.type, args.slug),
+  handler: async (ctx, args) => {
+    const holder = await assetSlugHolder(ctx, args.type, args.slug);
+    return holder ? (holder.is_deleted ? 'deleted' : 'live') : null;
+  },
 });
 
-async function assertAssetSlugAvailable(ctx: MutationCtx, type: string, slug: string) {
-  /* A ConvexError, so the words reach the editor's banner in production; a plain Error is redacted to "Server Error" (Norbert hit exactly that, 2026-08-22). No type noun: the registry's labels are plural pile captions, not singular nouns, and borrowing one produced "another decks". */
-  const holder = await assetSlugHolder(ctx, type, slug);
-  if (holder === 'live') {
-    throw new ConvexError(`The name is taken: another one already lives at "${slug}". Pick a different name.`);
+/**
+ * Names may repeat;
+ * URL slugs remain unique within an asset type.
+ * The indexed reads and write share a mutation, so concurrent claims retry through Convex's conflict detection.
+ * Deleted assets keep reserving their slugs, and a rename may keep its own address.
+ */
+async function allocateAssetSlug(ctx: MutationCtx, type: string, base: string, ownId?: Id<'assets'>): Promise<string> {
+  if (!base) {
+    throw new ConvexError('An asset name is required; it determines the asset URL');
   }
-  if (holder === 'deleted') {
-    throw new ConvexError(`The name is taken: "${slug}" stays reserved by a deleted asset. Pick a different name.`);
+  for (let suffix = 0; ; suffix += 1) {
+    const slug = suffix === 0 ? base : `${base}-${suffix}`;
+    const holder = await assetSlugHolder(ctx, type, slug);
+    if (!holder || holder._id === ownId) {
+      return slug;
+    }
   }
 }
 
@@ -517,11 +520,7 @@ export const create = mutation({
     if (args.type === 'card-custom') {
       await validateCustomCardTokens(ctx, parsed.data);
     }
-    const slug = slugify(parsed.name);
-    if (!slug) {
-      throw new ConvexError('An asset name is required; it determines the asset URL');
-    }
-    await assertAssetSlugAvailable(ctx, args.type, slug);
+    const slug = await allocateAssetSlug(ctx, args.type, slugify(parsed.name));
     const now = nowIso();
     const id = await ctx.db.insert('assets', {
       owner_id: userId,
@@ -556,13 +555,8 @@ export const update = mutation({
     if (row.type === 'card-custom') {
       await validateCustomCardTokens(ctx, parsed.data, row.data);
     }
-    const slug = slugify(parsed.name);
-    if (!slug) {
-      throw new ConvexError('An asset name is required; it determines the asset URL');
-    }
-    if (slug !== row.slug) {
-      await assertAssetSlugAvailable(ctx, row.type, slug);
-    }
+    const slug =
+      parsed.name === nameOf(row) ? row.slug : await allocateAssetSlug(ctx, row.type, slugify(parsed.name), row._id);
     await ctx.db.patch(args.id, { data: parsed.data, slug, updated_at: nowIso() });
     if (row.type === 'card-custom') {
       await syncCustomCardTokenRelations(ctx, args.id, parsed.data);
@@ -602,17 +596,17 @@ export const convertTreacheryToCustom = mutation({
         'This card cannot fit into custom-card layers. Check its artwork and text before converting.'
       );
     }
-    await assertAssetSlugAvailable(ctx, 'card-custom', row.slug);
-    await ctx.db.patch(row._id, { type: 'card-custom', data, updated_at: nowIso() });
+    const slug = await allocateAssetSlug(ctx, 'card-custom', row.slug);
+    await ctx.db.patch(row._id, { type: 'card-custom', data, slug, updated_at: nowIso() });
     await supersedePendingPublication(ctx, 'card-treachery', row._id);
-    await enqueueAssetPublication(ctx, { ...row, type: 'card-custom', data });
-    return { id: row._id, slug: row.slug };
+    await enqueueAssetPublication(ctx, { ...row, type: 'card-custom', data, slug });
+    return { id: row._id, slug };
   },
 });
 
 /**
  * Retires an Asset without removing it: `is_deleted` is the only column that moves.
- * Every read filters on it, the slug stays reserved by `assertAssetSlugAvailable`, and `asset_relations` rows are deliberately left alone.
+ * Every read filters on it, the slug stays reserved by `allocateAssetSlug`, and `asset_relations` rows are deliberately left alone.
  * A deleted card stops appearing in the decks that reference it (decision on the assets map: Deck→card reference mechanism and deletion semantics).
  * Idempotent, the faction convention: deleting twice is not an error.
  */

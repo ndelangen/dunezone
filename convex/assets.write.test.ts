@@ -2,7 +2,6 @@
 // @vitest-environment edge-runtime
 
 import { convexTest } from 'convex-test';
-import { ConvexError } from 'convex/values';
 import { describe, expect, test } from 'vitest';
 
 import { publicationFaceId } from '../src/shared/asset-publishing/publicationTargets';
@@ -77,16 +76,20 @@ describe('asset update', () => {
     expect(page?.viewerAccess.capabilities.edit).toBe(false);
   });
 
-  test('a rename cannot take a slug already reserved in the category', async () => {
+  test('a rename keeps the requested name and allocates an available slug', async () => {
     const t = convexTest(schema, modules);
     const { ownerId, created } = await seedCard(t);
     await t
       .withIdentity({ subject: ownerId })
       .mutation(api.assets.create, { type: 'card-treachery', data: cardData('Stunner') });
 
-    await expect(
-      t.withIdentity({ subject: ownerId }).mutation(api.assets.update, { id: created.id, data: cardData('Stunner') })
-    ).rejects.toThrow('already lives at');
+    const renamed = await t
+      .withIdentity({ subject: ownerId })
+      .mutation(api.assets.update, { id: created.id, data: cardData('Stunner') });
+    expect(renamed.slug).toBe('stunner-1');
+    expect((await t.query(api.assets.getPage, { type: 'card-treachery', slug: renamed.slug }))?.asset.name).toBe(
+      'Stunner'
+    );
   });
 });
 
@@ -99,11 +102,10 @@ describe('asset soft delete', () => {
 
     expect(await t.query(api.assets.getPage, { type: 'card-treachery', slug: 'lasgun' })).toBeNull();
     expect(await t.query(api.assets.listByTypes, { types: ['card-treachery'] })).toEqual([]);
-    await expect(
-      t
-        .withIdentity({ subject: ownerId })
-        .mutation(api.assets.create, { type: 'card-treachery', data: cardData('Lasgun') })
-    ).rejects.toThrow('stays reserved by a deleted asset');
+    const replacement = await t
+      .withIdentity({ subject: ownerId })
+      .mutation(api.assets.create, { type: 'card-treachery', data: cardData('Lasgun') });
+    expect(replacement.slug).toBe('lasgun-1');
     expect(await t.query(api.assets.slugTaken, { type: 'card-treachery', slug: 'lasgun' })).toBe('deleted');
   });
 
@@ -912,22 +914,38 @@ describe('deck cardback references', () => {
   });
 });
 
-describe('name conflicts', () => {
-  test('a colliding name is refused with words that reach the client, and the live check agrees', async () => {
+describe('slug allocation', () => {
+  test('repeated names and normalized collisions skip occupied suffixes and keep content saves stable', async () => {
     const t = convexTest(schema, modules);
     const { ownerId } = await seedCard(t);
-
-    /* The refusal must be a ConvexError: a plain Error is redacted to "Server Error" in production, which is how finding 19 was born. */
-    const attempt = t
-      .withIdentity({ subject: ownerId })
-      .mutation(api.assets.create, { type: 'card-treachery', data: cardData('Lasgun!') });
-    await expect(attempt).rejects.toThrow(ConvexError);
-    await expect(attempt).rejects.toThrow('another one already lives at "lasgun"');
-
-    /* The editors' subscription reads the same rule, holder kind included, so the warning and the refusal cannot disagree, not even about whether the holder lives. */
+    const owner = t.withIdentity({ subject: ownerId });
+    await owner.mutation(api.assets.create, { type: 'card-treachery', data: cardData('Lasgun 1') });
+    const copy = await owner.mutation(api.assets.create, { type: 'card-treachery', data: cardData('Lasgun') });
+    expect(copy.slug).toBe('lasgun-2');
+    const collision = await owner.mutation(api.assets.create, { type: 'card-treachery', data: cardData('Lasgun!') });
+    expect(collision.slug).toBe('lasgun-3');
+    await owner.mutation(api.assets.softDelete, { id: copy.id });
+    const next = await owner.mutation(api.assets.create, { type: 'card-treachery', data: cardData('Lasgun') });
+    expect(next.slug).toBe('lasgun-4');
+    const changed = { ...cardData('Lasgun'), text: 'Changed content' };
+    expect(await owner.mutation(api.assets.update, { id: next.id, data: changed })).toEqual(next);
+    expect((await t.query(api.assets.getPage, { type: 'card-treachery', slug: next.slug }))?.asset.data).toEqual(
+      changed
+    );
+    const renamed = await owner.mutation(api.assets.update, { id: collision.id, data: cardData('Lasgun') });
+    expect(renamed.slug).toBe(collision.slug);
+    expect(await t.query(api.assets.slugTaken, { type: 'card-treachery', slug: 'lasgun-2' })).toBe('deleted');
     expect(await t.query(api.assets.slugTaken, { type: 'card-treachery', slug: 'lasgun' })).toBe('live');
-    expect(await t.query(api.assets.slugTaken, { type: 'card-treachery', slug: 'free-name' })).toBeNull();
-    /* Another type may hold the same slug; the reservation is per type. */
-    expect(await t.query(api.assets.slugTaken, { type: 'deck', slug: 'lasgun' })).toBeNull();
+  });
+
+  test('different asset types may use the same slug and tokens accept repeated names', async () => {
+    const t = convexTest(schema, modules);
+    const { ownerId } = await seedCard(t);
+    const owner = t.withIdentity({ subject: ownerId });
+    const token = await owner.mutation(api.assets.create, { type: 'token-disc', data: tokenData('Lasgun') });
+    expect(token.slug).toBe('lasgun');
+    const copy = await owner.mutation(api.assets.create, { type: 'token-disc', data: tokenData('Lasgun') });
+    expect(copy.slug).toBe('lasgun-1');
+    expect((await t.query(api.assets.getPage, { type: 'token-disc', slug: copy.slug }))?.asset.name).toBe('Lasgun');
   });
 });

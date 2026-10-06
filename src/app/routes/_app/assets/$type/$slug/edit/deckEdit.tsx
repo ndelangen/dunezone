@@ -38,7 +38,7 @@ import {
   SaveErrorAlert,
   useAssetDeletion,
   useAssetGroupActions,
-  useAssetNameField,
+  assetNameField,
 } from '../../../assetEditorStates';
 
 /**
@@ -193,20 +193,14 @@ function DeckEditSession({
    * The dangling complaint rides the widened validation header beside the widget's own warnings
    * («How a dangling back reference presents»), routed to Identity, the chapter the back tiles live in.
    */
-  /* The save guard's rule, live while the author types: a colliding name warns here instead of dying as a save error (finding 19). */
-  const { nameField, conflictWarnings } = useAssetNameField({
-    type: 'deck',
+  const nameField = assetNameField({
     name: state.data.name,
     onName: (name) => patch({ name }),
-    currentSlug: asset.slug,
-    source: 'Identity',
-    chapter: 'identity' as DeckChapter,
     canRename: access.viewerAccess.capabilities.rename,
     noun: 'deck',
   });
   const warnings: (DeckWarning | { source: string; complaint: string; chapter: DeckChapter })[] = [
     ...deckDraftWarnings(state.data, cards),
-    ...conflictWarnings,
     ...(danglingBack && state.data.cardback.mode === 'reference'
       ? [{ source: 'Cardback', complaint: 'its referenced cardback is gone', chapter: 'identity' as DeckChapter }]
       : []),

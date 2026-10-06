@@ -46,14 +46,6 @@ export function useAssetBrowsePage(type: string, options?: { initialData?: Asset
 }
 
 /**
- * The save guard's slug rule as a live subscription, for the editors' name-conflict warning.
- * Always real args: the caller mounts and unmounts the component holding this, which is how a domain read stays conditional without a skip.
- */
-export function useAssetSlugTaken(args: { type: string; slug: string }) {
-  return useQuery(api.assets.slugTaken, args);
-}
-
-/**
  * Creates an asset of a given type.
  * Unlike the faction and ruleset mutations, this is the raw live mutation: it takes the Convex argument names and sends `data` through untouched.
  * The authoritative parse is the Convex handler's, per the validation standard in `docs/data-layer.md`, so a draft the schema rejects fails at the round trip rather than at this call.
