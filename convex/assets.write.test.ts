@@ -945,7 +945,7 @@ describe('slug allocation', () => {
     const large = { ...cardData('Reference'), text: `${'x'.repeat(1000)}\n\n`.repeat(245) };
     const first = await owner.mutation(api.assets.create, { type: 'card-treachery', data: large });
     const stored = await t.run((ctx) => ctx.db.get('assets', first.id));
-    const copies = [];
+    const copies: (typeof first)[] = [];
     for (let index = 1; index < 75; index += 1) {
       const copy = await owner.mutation(api.assets.create, { type: 'card-treachery', data: cardData('Reference') });
       expect(copy.slug).toBe(`reference-${index}`);
