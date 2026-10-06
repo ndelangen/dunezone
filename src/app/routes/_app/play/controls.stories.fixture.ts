@@ -1,5 +1,7 @@
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
+import { press } from './gameInteractions.stories.fixture';
+
 /*
  * The shortcut the Play/Controls stories share: open the page straight on one panel of the controls,
  * so a story shows a panel in one state without clicking there first.
@@ -11,7 +13,7 @@ type Page = ReturnType<typeof within>;
 const whole = (name: string, suffix = '$') => new RegExp(`^${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}${suffix}`);
 
 /**
- * Clicks a control by name until the click takes, since the panel arrives with the table chunk and the connection, and the pane can remount under the click.
+ * Waits for a control, completes its click, and reads the current panel to prove selection.
  * `took` proves the click landed: by default the control becomes the selected tab.
  */
 async function choose(
@@ -19,15 +21,8 @@ async function choose(
   name: RegExp,
   took: (button: HTMLElement) => void = (button) => expect(button).toHaveAttribute('aria-selected', 'true')
 ) {
-  const selected = await waitFor(
-    async () => {
-      const button = page.getByRole('tab', { name });
-      await userEvent.click(button);
-      took(button);
-      return button;
-    },
-    { timeout: 30_000 }
-  );
+  const selected = await press(() => page.getByRole('tab', { name }));
+  await waitFor(() => took(page.getByRole('tab', { name })), { timeout: 30_000 });
   /* Pointer cleanup follows the completed selection, so a slow unhover cannot expire its wait. */
   await userEvent.unhover(selected);
 }
