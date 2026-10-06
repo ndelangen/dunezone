@@ -54,7 +54,8 @@ assets also read members, related containers, publication state and maintaining-
 The existing queries keep their bounds. Metadata adds no lookup of its own. A browser additionally
 starts its normal live page and session subscriptions, whose work is separate from this table.
 
-`publisher:application-runtime:verify` checks the assembled Worker against five public page shapes,
+`publisher:application-runtime:verify` checks the assembled Worker against public catalogues, entity details, Rulesets and published Rulebooks,
+profiles, Groups and FAQ questions,
 including detail links discovered from catalogue HTML. It also verifies complete documents, metadata,
 hydration scripts, real 404s, browser-only paths and protected capture delivery. Local browser checks
 exercise hydration and live updates against a disposable backend; production checks remain read-only.
@@ -64,3 +65,16 @@ name the ruleset and the selected Edition. The reader query adds the selected Ed
 first-page URL; it never reads draft content for that image. Explicit Edition links retain their
 Edition in the canonical URL, while text-selection locators and page anchors do not change it.
 Ruleset and Rulebook dates use fixed calendar labels so cached HTML and hydration agree.
+
+## Community pages
+
+Profile details, the profile directory, Group details and FAQ questions use the same anonymous
+HTML cache and live subscriptions. Profile cards use the stored avatar when present; Group cards
+include public member, faction and Ruleset counts. FAQ cards use the question and accepted-answer
+status. Dates use fixed calendar labels so cached markup hydrates consistently.
+
+Missing profiles, Groups and FAQ questions return structured `NOT_FOUND` errors. Their loaders
+translate only that code to HTTP 404; permission, transport and data failures remain errors.
+Deploy these additive backend errors before the browser release. The assembled release check uses
+the currently deployed backend, so it checks successful community pages before rollout; missing
+community records are also verified against the new backend during release validation.

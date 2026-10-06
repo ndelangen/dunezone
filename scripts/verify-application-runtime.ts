@@ -27,9 +27,16 @@ try {
   assert.match(sitemap.headers.get('Content-Type') ?? '', /application\/xml/);
   assert.ok((await sitemap.text()).includes('https://dune.zone/sitemap-factions.xml'));
   assert.equal((await worker.fetch('/sitemap-missing.xml')).status, 404);
-  const pages = ['/', '/factions', '/assets', '/assets/token-disc', '/rulesets'];
+  const pages = ['/', '/factions', '/assets', '/assets/token-disc', '/rulesets', '/profiles'];
   let rulebookPage: string | undefined;
+  let groupPage: string | undefined;
+  let faqPage: string | undefined;
+  let verifiedPages = 0;
   for (const pathname of pages) {
+    if (pathname.startsWith('/profiles/') && groupPage && faqPage) {
+      continue;
+    }
+    verifiedPages += 1;
     const response = await worker.fetch(pathname, { headers: { Cookie: 'private=must-not-reach-ssr' } });
     assert.equal(response.status, 200, pathname);
     assert.equal(response.headers.get('X-Application-Release'), health.application.release, pathname);
@@ -64,6 +71,26 @@ try {
         .find((href) => /^\/rulesets\/[^/]+\/rulebooks\/(?!create(?:\/|$))[^/?]+\/?$/.test(href));
       if (rulebookPage) {
         pages.push(rulebookPage, `${rulebookPage}?edition=1`);
+      }
+    }
+    const publicLinks = [...html.matchAll(/<a[^>]+href="([^"]+)"/g)].map((match) => match[1]!);
+    if (pathname === '/profiles') {
+      const profiles = [...new Set(publicLinks.filter((href) => /^\/profiles\/[^/?]+\/?$/.test(href)))];
+      assert.ok(profiles.length, 'The profile directory has no profile links');
+      pages.push(...profiles);
+    }
+    if (pathname.startsWith('/profiles/')) {
+      if (!groupPage) {
+        groupPage = publicLinks.find((href) => /^\/groups\/(?!create(?:\/|$))[^/?]+\/?$/.test(href));
+        if (groupPage) {
+          pages.push(groupPage);
+        }
+      }
+      if (!faqPage) {
+        faqPage = publicLinks.find((href) => /^\/rulesets\/[^/]+\/faq\/(?!create(?:\/|$))[^/?]+\/?$/.test(href));
+        if (faqPage) {
+          pages.push(faqPage);
+        }
       }
     }
     if (pathname !== '/') {
@@ -117,7 +144,13 @@ try {
     }
   }
   assert.ok(rulebookPage, 'No Ruleset has a published Rulebook link');
+  assert.ok(groupPage, 'No profile has a Group link');
+  assert.ok(faqPage, 'No profile has a FAQ question link');
   const browserOnlyPages = [
+    '/groups/create',
+    '/groups/dreamers/edit',
+    '/profiles/central/edit',
+    '/rulesets/dreamrules/faq/create',
     '/factions/create',
     '/factions/testfaction/edit',
     '/assets/token-disc/create',
@@ -152,7 +185,7 @@ try {
   console.log(
     JSON.stringify({
       ok: true,
-      publicPages: pages.length,
+      publicPages: verifiedPages,
       browserOnlyPages: browserOnlyPages.length,
       captureProtected: true,
     })

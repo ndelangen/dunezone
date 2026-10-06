@@ -8,7 +8,7 @@ import { Surface } from '@ui/surface';
 import { CircleHelp, MessageCircleReply, Shield, UsersRound } from 'lucide-react';
 
 import { loadProfilesAll, profileAvatarUrl, useProfilesAll } from '@db/profiles';
-import { pageHead } from '@app/routes/pageTitle';
+import { publicPageHead } from '@app/routes/publicPage';
 
 import styles from './index.module.css';
 
@@ -20,8 +20,15 @@ const EMPTY_ACTIVITY = {
 };
 
 export const Route = createFileRoute('/_app/profiles/')({
+  ssr: true,
   loader: async () => ({ profiles: await loadProfilesAll() }),
-  head: () => pageHead('Profiles'),
+  head: () =>
+    publicPageHead({
+      name: 'Profiles',
+      pathname: '/profiles',
+      description: 'Meet the people creating factions, maintaining Rulesets and answering questions on Dune Zone.',
+      social: { kind: 'Community', shape: 'round' },
+    }),
   component: ProfilesPage,
 });
 

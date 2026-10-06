@@ -280,7 +280,9 @@ describe('profile detail projection (api.profiles.getBySlug)', () => {
     const t = convexTest(schema, modules);
     await seedProfileDetail(t);
 
-    await expect(t.query(api.profiles.getBySlug, { slug: 'missing' })).rejects.toThrow(/not found/);
+    await expect(t.query(api.profiles.getBySlug, { slug: 'missing' })).rejects.toMatchObject({
+      data: { code: 'NOT_FOUND' },
+    });
   });
 
   test('only active memberships contribute to the public group list', async () => {

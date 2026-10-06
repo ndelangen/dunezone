@@ -121,6 +121,9 @@ describe('scheduled production deployment shape', () => {
       '/factions/*',
       '/rulesets',
       '/rulesets/*',
+      '/profiles',
+      '/profiles/*',
+      '/groups/*',
       '/assets',
       '/assets/*',
     ]);
