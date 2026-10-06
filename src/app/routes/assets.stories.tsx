@@ -2,7 +2,7 @@ import preview from '@sb/preview';
 import { install } from '@sinonjs/fake-timers';
 import { expect, userEvent, within } from 'storybook/test';
 
-import { db } from '@db/storybook';
+import { db, ref } from '@db/storybook';
 
 import { expectToolbarOnOneLine, findSave } from './authoringToolbarPlay';
 import {
@@ -451,6 +451,38 @@ export const TreacheryConversionUnavailable = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await page.findByRole('heading', { name: 'Lasgun' }, { timeout: 30_000 });
+    expect(page.queryByRole('button', { name: 'Convert to custom card' })).toBeNull();
+  },
+});
+
+/** Converting another creator's card keeps its owner and opens the public card rather than an unauthorized editor. */
+export const ConvertAnotherCreatorsCard = meta.story({
+  args: { path: '/assets/card-treachery/lasgun' },
+  parameters: {
+    database: db((baseline) => ({
+      ...baseline,
+      users: [...baseline.users!, { $key: 'other-card-owner', name: 'Another creator' }],
+      assets: baseline.assets!.map((asset) =>
+        asset.type === 'card-treachery' && asset.slug === 'lasgun'
+          ? { ...asset, owner_id: ref('other-card-owner'), group_id: null }
+          : asset
+      ),
+    })),
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const trigger = await page.findByRole('button', { name: 'Convert to custom card' }, { timeout: 30_000 });
+    const clock = install({ toFake: ['setInterval', 'clearInterval'], shouldClearNativeTimers: true });
+    try {
+      await userEvent.pointer({ target: trigger, keys: '[MouseLeft>]' });
+      await clock.tickAsync(5000);
+    } finally {
+      await userEvent.pointer({ target: trigger, keys: '[/MouseLeft]' });
+      clock.uninstall();
+    }
+    await expect(page.findByRole('link', { name: /^Custom cards$/ }, { timeout: 30_000 })).resolves.toBeVisible();
+    await expect(page.getByRole('link', { name: 'House Treachery ×3' })).toBeVisible();
+    expect(page.queryByRole('link', { name: 'Edit Lasgun' })).toBeNull();
     expect(page.queryByRole('button', { name: 'Convert to custom card' })).toBeNull();
   },
 });
