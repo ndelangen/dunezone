@@ -3,63 +3,25 @@ import { z } from 'zod';
 /** Cover artwork uses progressive JPEG tiers generated from the original PNGs in media/. */
 export const rulebookCoverPresetCatalogue = (
   [
-    {
-      id: 'stone-circle',
-      label: 'Stone circle',
-    },
-    {
-      id: 'worm-cavern',
-      label: 'Worm cavern',
-    },
-    {
-      id: 'sandworm',
-      label: 'Sandworm',
-    },
-    {
-      id: 'dreamrules-rainbow',
-      label: 'Dreamrules rainbow',
-    },
-    {
-      id: 'kiss-planet',
-      label: 'KISS planet',
-    },
-    {
-      id: 'desert-citadel',
-      label: 'Desert citadel',
-    },
-    {
-      id: 'ancient-bones',
-      label: 'Ancient bones',
-    },
-    {
-      id: 'desert-lookout',
-      label: 'Desert lookout',
-    },
-    {
-      id: 'cavern',
-      label: 'Cavern',
-    },
-    {
-      id: 'rock-passages',
-      label: 'Rock passages',
-    },
-    {
-      id: 'shielded-city',
-      label: 'Shielded city',
-    },
-    {
-      id: 'worm-riders',
-      label: 'Worm riders',
-    },
-    {
-      id: 'spice-harvester',
-      label: 'Spice harvester',
-    },
+    ['stone-circle', 'Stone circle'],
+    ['worm-cavern', 'Worm cavern'],
+    ['sandworm', 'Sandworm'],
+    ['dreamrules-rainbow', 'Dreamrules rainbow'],
+    ['kiss-planet', 'KISS planet'],
+    ['desert-citadel', 'Desert citadel'],
+    ['ancient-bones', 'Ancient bones'],
+    ['desert-lookout', 'Desert lookout'],
+    ['cavern', 'Cavern'],
+    ['rock-passages', 'Rock passages'],
+    ['shielded-city', 'Shielded city'],
+    ['worm-riders', 'Worm riders'],
+    ['spice-harvester', 'Spice harvester'],
   ] as const
-).map((preset) => ({
-  ...preset,
-  imageUrl: `/image/rulebook-cover/${preset.id}-print.jpg`,
-  thumbnailUrl: `/image/rulebook-cover/${preset.id}-small.jpg`,
+).map(([id, label]) => ({
+  id,
+  label,
+  imageUrl: `/image/rulebook-cover/${id}-print.jpg`,
+  thumbnailUrl: `/image/rulebook-cover/${id}-small.jpg`,
 }));
 
 export const rulebookCoverPresetIdSchema = z.enum(rulebookCoverPresetCatalogue.map(({ id }) => id));
