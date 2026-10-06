@@ -409,3 +409,9 @@ export const EditSpiceCardReadsTheStoredCard = meta.story({
     await expect(page.findByRole('textbox', { name: 'Amount' })).resolves.toHaveValue('6');
   },
 });
+
+export const CreateCustomCard = meta.story({ args: { path: '/assets/card-custom/create' } });
+
+export const EditCustomCard = meta.story({ args: { path: '/assets/card-custom/battle-reference/edit' } });
+export const CustomCards = meta.story({ args: { path: '/assets/card-custom' } });
+export const CustomCard = meta.story({ args: { path: '/assets/card-custom/battle-reference' } });

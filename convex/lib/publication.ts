@@ -21,6 +21,7 @@ import {
   factionSheetAssetDataSchema,
   factionTokenAssetDataSchema,
   parsePublicationAssetData,
+  CUSTOM_CARD_ASSET_TYPE,
   SPICE_CARD_ASSET_TYPE,
   TREACHERY_CARD_ASSET_TYPE,
 } from '../../src/shared/asset-publishing/publication';
@@ -203,6 +204,7 @@ export async function enqueueAssetPublication(
   switch (asset.type) {
     case TREACHERY_CARD_ASSET_TYPE:
     case SPICE_CARD_ASSET_TYPE:
+    case CUSTOM_CARD_ASSET_TYPE:
       return await enqueuePublicationJob(ctx, {
         assetType: asset.type,
         assetId: asset._id,

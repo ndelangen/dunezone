@@ -5,6 +5,7 @@ import { pageHead } from '@app/routes/pageTitle';
 
 import { NoEditorYet } from '../../assetEditorStates';
 import { BundleCreatePage } from './bundleCreate';
+import { CustomCreatePage } from './customCreate';
 import { DeckCreatePage } from './deckCreate';
 import { RectangleCreatePage } from './rectangleCreate';
 import { SpiceCreatePage } from './spiceCreate';
@@ -35,6 +36,8 @@ function CreateAssetPage() {
   switch (type) {
     case 'card-treachery':
       return <TreacheryCreatePage />;
+    case 'card-custom':
+      return <CustomCreatePage />;
     case 'card-spice':
       return <SpiceCreatePage />;
     /* One editor for all three shapes: shape is the type, and only the proof's clip differs. */

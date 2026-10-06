@@ -5,6 +5,7 @@ import {
   FACTION_SHEET_ASSET_TYPE,
   RECTANGLE_TOKEN_ASSET_TYPE,
   RULEBOOK_FIRST_PAGE_ASSET_TYPE,
+  CUSTOM_CARD_ASSET_TYPE,
   SPICE_CARD_ASSET_TYPE,
   TREACHERY_CARD_ASSET_TYPE,
 } from '../src/shared/asset-publishing/publication';
@@ -149,6 +150,7 @@ async function scanPage(ctx: MutationCtx, assetType: string, cursor: string | nu
      */
     case TREACHERY_CARD_ASSET_TYPE:
     case SPICE_CARD_ASSET_TYPE:
+    case CUSTOM_CARD_ASSET_TYPE:
     case DECK_ASSET_TYPE:
     case 'token-disc':
     case 'token-tech':

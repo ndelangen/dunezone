@@ -1,0 +1,96 @@
+.card {
+  position: relative;
+  width: 900px;
+  height: 1263px;
+  overflow: hidden;
+}
+.windowBackground,
+.frame,
+.headShade,
+.decal {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.windowBackground {
+  background: url("/image/card/front-decal-bg-large.webp") top center / cover no-repeat;
+}
+.frame,
+.headShade {
+  background-size: 100% 100%;
+}
+.headShade {
+  background-image: url("/image/card/head-shade-large.webp");
+  mix-blend-mode: soft-light;
+  opacity: 0.8;
+}
+.head {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 200px;
+}
+.title,
+.subtitle,
+.text {
+  position: absolute;
+  overflow: hidden;
+}
+.title {
+  left: 95px;
+  top: 73px;
+  width: 560px;
+  height: 86px;
+  font-family: "C_Copperplate_Gothic", sans-serif;
+  color: white;
+  line-height: 86px;
+  white-space: nowrap;
+  opacity: 0.937;
+}
+.subtitle {
+  left: 93px;
+  top: 176px;
+  width: 650px;
+  height: 67px;
+  font-family: "C_Trebuchet", sans-serif;
+  font-weight: bold;
+  font-size: 40px;
+  line-height: 67px;
+  color: #0b0503;
+  opacity: 0.937;
+}
+.text {
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+  transform-origin: center;
+}
+.text p,
+.text ul {
+  margin: 0;
+}
+.text p + *,
+.text ul + * {
+  margin-top: 0.3em;
+}
+
+.icon {
+  position: absolute;
+  top: 94px;
+  right: 101px;
+  width: 125px;
+  height: 125px;
+  border-radius: 50%;
+  border: 2px solid black;
+  box-shadow: inset 0 0 4px 2px black;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+}
+.iconImage {
+  width: 85px;
+  height: 85px;
+  mix-blend-mode: overlay;
+}

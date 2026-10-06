@@ -22,7 +22,7 @@ type AssetTypeDefinition = {
 export const ASSET_TYPES = {
   'card-treachery': { category: 'cards', label: 'Treachery cards', shortLabel: 'Treachery', status: 'live' },
   'card-spice': { category: 'cards', label: 'Spice cards', shortLabel: 'Spice', status: 'live' },
-  'card-custom': { category: 'cards', label: 'Custom cards', shortLabel: 'Custom', status: 'planned' },
+  'card-custom': { category: 'cards', label: 'Custom cards', shortLabel: 'Custom', status: 'live' },
   'card-leaderability': {
     category: 'cards',
     label: 'Leader ability cards',

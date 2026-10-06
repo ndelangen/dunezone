@@ -27,6 +27,7 @@ export const PUBLICATION_ASSET_TYPES = [
   'faction-alliance',
   'card-treachery',
   'card-spice',
+  'card-custom',
   'deck',
   'cardback-preset',
   'token-disc',
@@ -162,6 +163,7 @@ export const PUBLICATION_TARGETS: Record<PublicationAssetType, PublicationTarget
   /* 900x1263 is the treachery renderer's own size, from `@game/data/sizes`. */
   'card-treachery': cardTarget('cards', 'card.jpg', 'treachery-card.jpg'),
   /* A spice card draws at the same 900x1263 card size, under its own collection so the two card types never share an address. */
+  'card-custom': cardTarget('custom-cards', 'card.jpg', 'custom-card.jpg'),
   'card-spice': cardTarget('spice-cards', 'card.jpg', 'spice-card.jpg'),
   /*
    * A deck publishes its Cardback and nothing else (wayfinder #495), so the row is a card in every dimension that matters.

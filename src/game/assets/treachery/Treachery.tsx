@@ -6,37 +6,14 @@ import type { z } from 'zod';
 import type { Treachery } from '../../data/objects';
 import { card } from '../../data/sizes';
 import styles from '../card/Card.module.css';
+import { cardTitleFontSize } from '../card/cardTitleFontSize';
 import { FrontDecals } from '../card/Decals';
 import { BackgroundRenderer } from '../utils/BackgroundRenderer';
 import { FormattedText } from '../utils/FormattedText';
 import { useCountId } from '../utils/useCountId';
 import unique from './Treachery.module.css';
 
-/* The remaining header width belongs to the card-type icon. */
 const TITLE_WIDTH = 560;
-
-/* Conservative Copperplate width estimates in em units keep sizing independent of font loading. */
-function titleFontSize(name: string) {
-  const estimatedWidth = Array.from(name).reduce((width, character) => {
-    if (/[MW]/.test(character)) {
-      return width + 1.2;
-    }
-    if (/[A-Z]/.test(character)) {
-      return width + 0.95;
-    }
-    if (/[mw]/.test(character)) {
-      return width + 0.9;
-    }
-    if (/[il]/.test(character)) {
-      return width + 0.4;
-    }
-    if (/\s/.test(character)) {
-      return width + 0.35;
-    }
-    return width + 0.7;
-  }, 0);
-  return Math.min(60, TITLE_WIDTH / Math.max(1, estimatedWidth));
-}
 
 export const TreacheryCard: FC<z.infer<typeof Treachery>> = ({
   name,
@@ -106,7 +83,7 @@ export const TreacheryCard: FC<z.infer<typeof Treachery>> = ({
       </BackgroundRenderer>
       <div
         className={styles.title}
-        style={{ width: TITLE_WIDTH, fontSize: titleFontSize(name) }}
+        style={{ width: TITLE_WIDTH, fontSize: cardTitleFontSize(name) }}
         {...{ [COMPONENT_GEOMETRY_PROTOCOL.partAttribute]: name.trim() ? 'name' : undefined }}
       >
         <span className={unique.titleText}>{name}</span>

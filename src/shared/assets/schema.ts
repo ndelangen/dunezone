@@ -275,7 +275,7 @@ export const BundleAsset = z.strictObject({
 
 /**
  * The seven faces the project ships, declared in `src/app/styles/fonts.css`.
- * A rectangle token is the only Asset type that lets an author pick one, so the list lives here rather than in a renderer, and both the schema and the renderer read it.
+ * Rectangle tokens and custom cards let authors pick a face, so their schemas share this list.
  */
 export const RECTANGLE_TOKEN_FONTS = [
   'C_Copperplate_Gothic',
@@ -369,3 +369,43 @@ export const DeckAssetInput = DeckAsset.extend({ about: FormattedAbout });
 export const BundleAssetInput = BundleAsset.extend({ about: FormattedAbout });
 export const TokenAssetInput = TokenAsset.extend({ about: FormattedAbout });
 export const RectangleTokenAssetInput = RectangleTokenAsset.extend({ about: FormattedAbout });
+
+/** A custom card's authored layers, painted from first to last. */
+export const CustomCardLayer = z.discriminatedUnion('kind', [
+  Decal.extend({
+    kind: z.literal('decal'),
+    layerId: z.uuid(),
+    opacity: OPACITY,
+    rotation: z.number().min(-360).max(360),
+  }),
+  z.strictObject({
+    kind: z.literal('text'),
+    layerId: z.uuid(),
+    content: proseFormattedTextSchema,
+    offset: OFFSET,
+    width: z.number().min(1).max(900),
+    height: z.number().min(1).max(1263),
+    size: z.number().min(1).max(200),
+    font: z.enum(RECTANGLE_TOKEN_FONTS),
+    color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
+    align: z.enum(['left', 'center', 'right']),
+    opacity: OPACITY,
+    rotation: z.number().min(-360).max(360),
+  }),
+]);
+
+/** The standard Head stays fixed; the rest of the card is a free composition. */
+export const CustomCard = z.strictObject({
+  name: z.string(),
+  subName: z.string(),
+  format: z.enum(['decal-window', 'plain']),
+  icon: Treachery.shape.icon.optional(),
+  head: Background,
+  layers: z
+    .array(CustomCardLayer)
+    .refine((layers) => new Set(layers.map((layer) => layer.layerId)).size === layers.length, {
+      message: 'Each layer must have its own identity',
+    }),
+});
+export const CustomCardAsset = CustomCard.extend({ about: About });
+export const CustomCardAssetInput = CustomCardAsset.extend({ about: FormattedAbout });

@@ -12,6 +12,7 @@ const artworkTypes = new Set([
   'faction-token',
   'card-treachery',
   'card-spice',
+  'card-custom',
   'deck',
   'cardback-preset',
   'token-disc',

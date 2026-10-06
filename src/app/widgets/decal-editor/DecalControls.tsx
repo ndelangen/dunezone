@@ -3,6 +3,7 @@ import type { Decal } from '@shared/assets/schema';
 import { stockAssetOptions } from '@ui/content/stockAssetOptions';
 import { AssetSelect } from '@ui/control/AssetSelect';
 import { ControlBlock } from '@ui/control/ControlBlock';
+import type { ReactNode } from 'react';
 import type { z } from 'zod';
 
 import { assetOptionToPreviewSrc, decalAssetOptions } from '@app/widgets/faction-editor/factionFormAssetUtils';
@@ -21,6 +22,7 @@ export function DecalControls({
   onChange,
   label,
   offsetRange,
+  placement,
 }: {
   value: DecalData;
   onChange: (decal: DecalData) => void;
@@ -28,6 +30,8 @@ export function DecalControls({
   label: string;
   /** Center-to-edge slider span per axis in card-space pixels; number inputs stay unclamped for legacy values. */
   offsetRange: readonly [number, number];
+  /** Caller-supplied placement controls when the card uses a different coordinate system. */
+  placement?: ReactNode;
 }) {
   return (
     <Stack gap="md">
@@ -112,66 +116,68 @@ export function DecalControls({
         }
       />
 
-      <Grid>
-        <Grid.Col span={{ base: 12, xs: 6 }}>
-          <ControlBlock
-            title="Horizontal offset"
-            description="Move left with a negative value or right with a positive value."
-            tool={
-              <NumberInput
-                aria-label={`Horizontal offset for ${label}`}
-                w={96}
-                step={1}
-                value={value.offset[0]}
-                onChange={(next) => {
-                  if (typeof next === 'number') {
-                    onChange({ ...value, offset: [next, value.offset[1]] });
-                  }
-                }}
-              />
-            }
-            input={
-              <Slider
-                aria-label={`Horizontal offset slider for ${label}`}
-                min={-offsetRange[0]}
-                max={offsetRange[0]}
-                step={1}
-                value={value.offset[0]}
-                onChange={(next) => onChange({ ...value, offset: [next, value.offset[1]] })}
-              />
-            }
-          />
-        </Grid.Col>
-        <Grid.Col span={{ base: 12, xs: 6 }}>
-          <ControlBlock
-            title="Vertical offset"
-            description="Move up with a negative value or down with a positive value."
-            tool={
-              <NumberInput
-                aria-label={`Vertical offset for ${label}`}
-                w={96}
-                step={1}
-                value={value.offset[1]}
-                onChange={(next) => {
-                  if (typeof next === 'number') {
-                    onChange({ ...value, offset: [value.offset[0], next] });
-                  }
-                }}
-              />
-            }
-            input={
-              <Slider
-                aria-label={`Vertical offset slider for ${label}`}
-                min={-offsetRange[1]}
-                max={offsetRange[1]}
-                step={1}
-                value={value.offset[1]}
-                onChange={(next) => onChange({ ...value, offset: [value.offset[0], next] })}
-              />
-            }
-          />
-        </Grid.Col>
-      </Grid>
+      {placement ?? (
+        <Grid>
+          <Grid.Col span={{ base: 12, xs: 6 }}>
+            <ControlBlock
+              title="Horizontal offset"
+              description="Move left with a negative value or right with a positive value."
+              tool={
+                <NumberInput
+                  aria-label={`Horizontal offset for ${label}`}
+                  w={96}
+                  step={1}
+                  value={value.offset[0]}
+                  onChange={(next) => {
+                    if (typeof next === 'number') {
+                      onChange({ ...value, offset: [next, value.offset[1]] });
+                    }
+                  }}
+                />
+              }
+              input={
+                <Slider
+                  aria-label={`Horizontal offset slider for ${label}`}
+                  min={-offsetRange[0]}
+                  max={offsetRange[0]}
+                  step={1}
+                  value={value.offset[0]}
+                  onChange={(next) => onChange({ ...value, offset: [next, value.offset[1]] })}
+                />
+              }
+            />
+          </Grid.Col>
+          <Grid.Col span={{ base: 12, xs: 6 }}>
+            <ControlBlock
+              title="Vertical offset"
+              description="Move up with a negative value or down with a positive value."
+              tool={
+                <NumberInput
+                  aria-label={`Vertical offset for ${label}`}
+                  w={96}
+                  step={1}
+                  value={value.offset[1]}
+                  onChange={(next) => {
+                    if (typeof next === 'number') {
+                      onChange({ ...value, offset: [value.offset[0], next] });
+                    }
+                  }}
+                />
+              }
+              input={
+                <Slider
+                  aria-label={`Vertical offset slider for ${label}`}
+                  min={-offsetRange[1]}
+                  max={offsetRange[1]}
+                  step={1}
+                  value={value.offset[1]}
+                  onChange={(next) => onChange({ ...value, offset: [value.offset[0], next] })}
+                />
+              }
+            />
+          </Grid.Col>
+        </Grid>
+      )}
     </Stack>
   );
 }

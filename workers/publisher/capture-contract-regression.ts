@@ -13,6 +13,7 @@ import {
 } from '../../src/shared/asset-publishing/componentGeometry';
 import { resolvePublicationCapture } from '../../src/shared/asset-publishing/publicationTargets';
 import { INITIAL_CARDBACK_PRESETS } from '../../src/shared/assets/cardbackPresets';
+import { publishingCustomCard } from '../../src/shared/assets/fixtures/publishingCustomCard';
 import { publishingDeckCardback } from '../../src/shared/assets/fixtures/publishingDeckCardback';
 import { publishingRectangleTokenFace } from '../../src/shared/assets/fixtures/publishingRectangleTokenFace';
 import { publishingSpiceCard } from '../../src/shared/assets/fixtures/publishingSpiceCard';
@@ -431,6 +432,7 @@ async function checkPublisherImageCapture(
   assetType:
     | 'card-treachery'
     | 'card-spice'
+    | 'card-custom'
     | 'faction-troop'
     | 'faction-traitor'
     | 'faction-alliance'
@@ -519,6 +521,18 @@ try {
     }
   }
   await checkPublisherImageCapture(browser, 'card-treachery', cardSnapshot, 'card');
+  for (const format of ['plain', 'decal-window'] as const) {
+    await checkPublisherImageCapture(
+      browser,
+      'card-custom',
+      envelope('card-custom', {
+        assetId: 'k17publisherCustomCard',
+        slug: 'custom-card',
+        card: { ...publishingCustomCard, format },
+      }),
+      `custom card ${format}`
+    );
+  }
   await checkPublisherImageCapture(browser, 'card-spice', spiceSnapshot, 'spice card');
   await checkPublisherImageCapture(browser, 'deck', deckSnapshot, 'deck cardback');
   await checkPublisherImageCapture(

@@ -1,4 +1,5 @@
 import {
+  CUSTOM_CARD_ASSET_TYPE,
   DECK_ASSET_TYPE,
   FACTION_SHEET_ASSET_TYPE,
   RECTANGLE_TOKEN_ASSET_TYPE,
@@ -28,6 +29,7 @@ export const CHECKED_IN_RENDERER_REVISIONS = {
   [TREACHERY_CARD_ASSET_TYPE]: 3,
   // 1: spice cards join the pipeline with their editor (#1229).
   [SPICE_CARD_ASSET_TYPE]: 1,
+  [CUSTOM_CARD_ASSET_TYPE]: 1,
   // 1: deck cardbacks join the pipeline (wayfinder #546). Activating this is also the backfill for decks that predate it.
   [DECK_ASSET_TYPE]: 1,
   /* Revision 2 publishes the Prediction preset added for prediction cards (#1753); saved designs are kept. */
