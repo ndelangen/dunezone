@@ -1,3 +1,4 @@
+import { finishTransitions, waitForFrame } from '@sb/storyWaits';
 import type { LogEntry } from '@shared/play/log';
 import type { ClientMessage, GameSnapshot } from '@shared/play/protocol';
 import { item, piece } from '@shared/play/setupSupply';
@@ -91,7 +92,9 @@ export async function seatPopover(canvasElement: HTMLElement, name: string) {
     page.findByRole('heading', { name: 'Dreamrules', level: 1 }, { timeout: 30_000 })
   ).resolves.toBeVisible();
   await press(() => page.getByRole('button', { name: 'Seats' }));
-  await waitFor(() => expect(page.getByRole('region', { name })).toBeVisible(), { timeout: 30_000 });
+  await waitForFrame(() => expect(finishTransitions(page.getByRole('region', { name }))).toBeVisible(), {
+    timeout: 30_000,
+  });
   return () => within(page.getByRole('region', { name }));
 }
 
