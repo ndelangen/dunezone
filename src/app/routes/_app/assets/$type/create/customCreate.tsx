@@ -123,6 +123,13 @@ export function CustomCreatePage() {
       status={{ isDirty, isNameBlank: !state.data.name.trim(), saveState: saving.saveState, invalid }}
       onSave={save}
       onReset={header.releasing(() => dispatch({ kind: 'replace', data: state.baseline }))}
+      load={{
+        schema: CustomCardAssetInput,
+        onLoaded: header.releasing((data) => {
+          dispatch({ kind: 'replace', data });
+          setChapter('head');
+        }),
+      }}
       saveError={saving.error}
     >
       {tokenIds.length ? <DraftTokenRead ids={tokenIds} render={editor} /> : editor({ tokens: {}, error: null })}

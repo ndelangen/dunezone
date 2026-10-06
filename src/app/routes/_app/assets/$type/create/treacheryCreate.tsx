@@ -85,6 +85,13 @@ export function TreacheryCreatePage() {
       status={{ isDirty, isNameBlank: !state.data.name.trim(), saveState: saving.saveState }}
       onSave={save}
       onReset={header.releasing(() => dispatch({ kind: 'replace', data: state.baseline }))}
+      load={{
+        schema: TreacheryAsset,
+        onLoaded: header.releasing((data) => {
+          dispatch({ kind: 'replace', data });
+          setChapter('head');
+        }),
+      }}
       saveError={saving.error}
     >
       <TreacheryCardEditor
