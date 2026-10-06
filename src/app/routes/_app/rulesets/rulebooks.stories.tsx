@@ -1,6 +1,7 @@
 /* The Ruleset's Rulebooks page, the reader and the edition history, as the owner, a member, a reader and a signed-out visitor see them (#1590). */
 import preview from '@sb/preview';
 import { waitForFrame } from '@sb/storyWaits';
+import { install } from '@sinonjs/fake-timers';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { SEED_REF_TOKEN, db } from '@db/storybook';
@@ -193,6 +194,39 @@ export const Viewer = meta.story({
     expect(page.getByText('Edition 1', { exact: true })).toBeVisible();
     expect(page.getAllByRole('article', { name: /Rulebook page:/ })).toHaveLength(3);
     expect(page.queryByRole('button', { name: 'Save' })).toBeNull();
+    expect(page.queryByRole('button', { name: 'Delete Rulebook' })).toBeNull();
+  },
+});
+
+export const DeleteFromReader = meta.story({
+  args: { path: '/rulesets/classicrules/rulebooks/book-0' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const remove = await page.findByRole('button', { name: 'Delete Rulebook' }, { timeout: 30_000 });
+    const clock = install({ toFake: ['setInterval', 'clearInterval'], shouldClearNativeTimers: true });
+    try {
+      await userEvent.pointer({ target: remove, keys: '[MouseLeft>]' });
+      await clock.tickAsync(5000);
+    } finally {
+      try {
+        await userEvent.pointer({ target: remove, keys: '[/MouseLeft]' });
+      } finally {
+        clock.uninstall();
+      }
+    }
+    const list = await page.findByRole('list', { name: 'Rulebooks' }, { timeout: 30_000 });
+    expect(within(list).queryByRole('link', { name: 'Read Rules' })).toBeNull();
+    expect(within(list).getByRole('link', { name: 'Read Quick reference' })).toBeVisible();
+  },
+});
+
+export const MemberReader = meta.story({
+  args: { path: '/rulesets/classicrules/rulebooks/book-0' },
+  parameters: { identity: { subjectKey: 'member', name: 'Member' } },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await page.findByRole('region', { name: 'Rules contents' }, { timeout: 30_000 });
+    expect(page.queryByRole('button', { name: 'Delete Rulebook' })).toBeNull();
   },
 });
 

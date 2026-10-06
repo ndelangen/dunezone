@@ -9,6 +9,7 @@ import { PageIdentity } from '@ui/block/PageIdentity';
 import { formatRelativeDate, formatStableDate } from '@ui/content/dates';
 import { EditionArtifactLink } from '@ui/content/EditionArtifactLink';
 import { StatusBadge } from '@ui/content/StatusBadge';
+import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import type { StatsItem } from '@ui/list/Stats';
@@ -17,7 +18,7 @@ import { Toolbar } from '@ui/surface/Toolbar';
 import { ArrowLeft, CalendarPlus, Check, FileText, History, Link2, Pin, PinOff } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 
-import { loadRulebookReader, useRulebookReader } from '@db/rulebooks';
+import { loadRulebookReader, useRulebookReader, useSoftDeleteRulebook } from '@db/rulebooks';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
 import { pageHead } from '@app/routes/pageTitle';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
@@ -246,6 +247,7 @@ function RulebookReaderPage() {
 }
 
 function RulebookReader({ data }: Readonly<{ data: ReaderData }>) {
+  const remove = useSoftDeleteRulebook();
   const params = Route.useParams();
   const search = Route.useSearch();
   const navigate = Route.useNavigate();
@@ -583,6 +585,27 @@ function RulebookReader({ data }: Readonly<{ data: ReaderData }>) {
               icon={<Link2 size={17} aria-hidden />}
               onClick={() => void createSelectionLink()}
             />
+            {data.canDelete ? (
+              <Toolbar.Cluster kind="discard">
+                <ConfirmDeleteAction
+                  label="Delete Rulebook"
+                  pending={remove.isPending}
+                  onConfirm={() =>
+                    remove.mutate(
+                      { rulebookId: data.rulebook._id },
+                      {
+                        onSuccess: () => {
+                          void navigate({
+                            to: '/rulesets/$rulesetSlug',
+                            params: { rulesetSlug: params.rulesetSlug },
+                          });
+                        },
+                      }
+                    )
+                  }
+                />
+              </Toolbar.Cluster>
+            ) : null}
           </Toolbar.Right>
         </Toolbar>
       </PageLayout.Toolbar>
@@ -593,6 +616,11 @@ function RulebookReader({ data }: Readonly<{ data: ReaderData }>) {
           </VisuallyHidden>
           <Stack gap="sm" className={styles.statuses}>
             <ReaderStatus locatorStatus={locatorStatus} targetMissing={targetMissing} />
+            {remove.error ? (
+              <Alert color="red" title="Rulebook could not be deleted" role="alert">
+                {remove.error.message}
+              </Alert>
+            ) : null}
             {view.selectionMessage ? (
               <Text size="sm" aria-hidden="true">
                 {view.selectionMessage}
