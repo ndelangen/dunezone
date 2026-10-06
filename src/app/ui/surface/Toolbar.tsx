@@ -2,7 +2,17 @@ import { Popover } from '@mantine/core';
 import { Surface } from '@ui/surface';
 import clsx from 'clsx';
 import { Ellipsis } from 'lucide-react';
-import { Children, Fragment, isValidElement, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import {
+  Children,
+  Fragment,
+  createContext,
+  isValidElement,
+  useContext,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
 import type { PropsWithChildren, ReactElement, ReactNode, RefObject } from 'react';
 
 import { IconAction } from '../control/IconAction';
@@ -25,6 +35,13 @@ const CLUSTER_ORDER: readonly ToolbarClusterKind[] = ['about', 'content', 'acces
 
 /* Which runs give way first when the band runs out of room: the rarest first, and never the commit run, which is why an editor is open at all, nor the one action that holds the page's statuses. */
 const OVERFLOW_ORDER: readonly ToolbarClusterKind[] = ['discard', 'access', 'content'];
+
+const OverflowDismissContext = createContext<(() => void) | null>(null);
+
+/** A folded action can dismiss its menu before reporting an intent that opens another pane. */
+export function useDismissToolbarOverflow() {
+  return useContext(OverflowDismissContext);
+}
 
 type ToolbarClusterProps = PropsWithChildren<{ kind: ToolbarClusterKind }>;
 
@@ -197,7 +214,9 @@ function OverflowMenu({ runs }: { runs: ClusterRun[] }) {
       </Popover.Target>
       {/* A row of actions, not a dialog: it is named as a group, like the edges it came from, while the trigger keeps its expanded state. */}
       <Popover.Dropdown role="group" aria-label="More actions" className={styles.overflow}>
-        <Runs runs={runs} />
+        <OverflowDismissContext.Provider value={() => setOpened(false)}>
+          <Runs runs={runs} />
+        </OverflowDismissContext.Provider>
       </Popover.Dropdown>
     </Popover>
   );
