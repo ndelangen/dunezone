@@ -90,10 +90,42 @@ export const CoverPageDetails = meta.story({
     expect(page.getByRole('switch', { name: 'Show Dune logo' })).toBeInTheDocument();
     expect(page.getByRole('textbox', { name: 'Subtitle' })).toHaveValue('Rules for Arrakis');
     expect(page.getByRole('textbox', { name: 'Supporting text' })).toBeVisible();
-    expect(page.queryByRole('textbox', { name: 'Title' })).not.toBeInTheDocument();
-    expect(page.queryByRole('switch', { name: 'Show page heading' })).not.toBeInTheDocument();
+    expect(page.getByRole('textbox', { name: 'Title' })).toHaveValue('Dreamrules');
+    expect(page.getByRole('switch', { name: 'Show page heading' })).toBeChecked();
     expect(page.queryByRole('link', { name: 'Cover details' })).not.toBeInTheDocument();
     expect(page.getByRole('link', { name: 'Cover footer' })).toBeVisible();
+  },
+});
+
+export const NewCoverNaming = meta.story({
+  args: { path: '/rulesets/classicrules/rulebooks/book-0/edit#RULE/details' },
+  parameters: { database: db(withFinalRulebooks) },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await userEvent.click(await page.findByRole('button', { name: 'Add Page' }, { timeout: 30_000 }));
+    await userEvent.click(await page.findByRole('menuitem', { name: 'Cover' }));
+    const title = await page.findByRole('textbox', { name: 'Title' });
+    expect(title).toHaveValue('New cover');
+    await userEvent.clear(title);
+    await userEvent.type(title, 'Kiss Rules');
+    const cover = page.getByRole('article', { name: 'Rulebook page: Kiss Rules' });
+    expect(within(cover).getByRole('heading', { name: 'Kiss Rules' })).toBeVisible();
+    await userEvent.click(page.getByRole('radio', { name: 'Preset' }));
+    await userEvent.click(page.getByRole('combobox', { name: 'Cover preset' }));
+    await userEvent.click(await page.findByRole('option', { name: 'KISS planet' }));
+    expect(cover.querySelector('.rulebookCoverBackground')).toHaveAttribute(
+      'src',
+      '/image/rulebook-cover/kiss-planet-print.jpg'
+    );
+    await userEvent.click(page.getByRole('switch', { name: 'Show page heading' }));
+    expect(within(cover).queryByRole('heading', { name: 'Kiss Rules' })).not.toBeInTheDocument();
+    expect(title).toHaveValue('Kiss Rules');
+    await userEvent.click(page.getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(page.getByRole('button', { name: 'Saved' })).toBeDisabled());
+    await userEvent.click(page.getByRole('link', { name: 'Cover footer' }));
+    await userEvent.click(page.getByRole('link', { name: 'Page details' }));
+    expect(page.getByRole('textbox', { name: 'Title' })).toHaveValue('Kiss Rules');
+    expect(page.getByRole('switch', { name: 'Show page heading' })).not.toBeChecked();
   },
 });
 
@@ -106,8 +138,8 @@ export const UnsavedCoverControls = meta.story({
     expect(page.getByRole('textbox', { name: 'Anchor' })).toHaveValue('cover');
     expect(page.getByRole('link', { name: 'Page details' })).toHaveAttribute('aria-current', 'page');
     expect(page.queryByRole('link', { name: 'Cover details' })).not.toBeInTheDocument();
-    expect(page.queryByRole('textbox', { name: 'Title' })).not.toBeInTheDocument();
-    expect(page.queryByRole('switch', { name: 'Show page heading' })).not.toBeInTheDocument();
+    expect(page.getByRole('textbox', { name: 'Title' })).toHaveValue('Dreamrules');
+    expect(page.getByRole('switch', { name: 'Show page heading' })).toBeChecked();
     await userEvent.type(input, '/page/cover-a.svg');
     expect(page.getByText('Cover image must be a full https:// URL')).toBeVisible();
     const cover = page.getByRole('article', { name: 'Rulebook page: Dreamrules' });
@@ -315,7 +347,7 @@ export const DeletePagesAndBlocks = meta.story({
     await userEvent.click(page.getByRole('button', { name: 'Add Page' }));
     await userEvent.click(await waitForFrame(() => page.getByRole('menuitem', { name: 'Cover' })));
     await expect(page.findByRole('switch', { name: 'Show Dune logo' })).resolves.toBeChecked();
-    expect(page.queryByRole('textbox', { name: 'Title' })).not.toBeInTheDocument();
+    expect(page.getByRole('textbox', { name: 'Title' })).toHaveValue('New cover');
     await userEvent.click(page.getByRole('button', { name: 'Save' }));
     await expect(page.findByRole('button', { name: 'Saved' }, { timeout: 30_000 })).resolves.toBeDisabled();
   },

@@ -1,0 +1,14 @@
+{
+  "source": "KISS rules 0.4.compressed.pdf, page 1",
+  "sourceSha256": "90ebe20217350ee6b32f8fafd485ba848e86717887e1060d99e4aa1a1afc85a0",
+  "confirmedBy": "Norbert",
+  "confirmedOn": "2026-10-06",
+  "preparation": "AI removed the lettering, repainted the orbital planet and paired moons in the existing covers' angular navy-and-ochre style, and expanded the scene to 4:3 landscape. The source PDF remains untouched.",
+  "approvedAssetSha256": "2881652c9105d5b366bebb0efa930e5bc189fb8ad08e713df94235d49b89f2e7",
+  "approvedDimensions": {
+    "width": 1448,
+    "height": 1086
+  },
+  "approval": "Norbert approved the revised artwork on 6 October 2026.",
+  "generationMethod": "Built-in image generation"
+}

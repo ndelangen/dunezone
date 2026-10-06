@@ -20,6 +20,10 @@ export const rulebookCoverPresetCatalogue = (
       label: 'Dreamrules rainbow',
     },
     {
+      id: 'kiss-planet',
+      label: 'KISS planet',
+    },
+    {
       id: 'desert-citadel',
       label: 'Desert citadel',
     },

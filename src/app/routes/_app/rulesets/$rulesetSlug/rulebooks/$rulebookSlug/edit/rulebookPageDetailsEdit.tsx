@@ -790,54 +790,53 @@ export function PageDetailsEdit({
             />
           }
         />
-        {coverControls ?? (
-          <>
-            <ControlBlock
-              title="Title"
-              description="Name this Page in the editor and Rulebook."
-              input={
-                <TextInput
-                  aria-label="Title"
-                  value={value.title}
-                  error={diagnostics?.title}
-                  onChange={(event) => onChange({ ...value, title: event.currentTarget.value })}
-                />
-              }
+        <ControlBlock
+          title="Title"
+          description="Name this Page in the editor and Rulebook."
+          input={
+            <TextInput
+              aria-label="Title"
+              value={value.title}
+              error={diagnostics?.title}
+              onChange={(event) => onChange({ ...value, title: event.currentTarget.value })}
             />
-            <ControlBlock
-              title="Title icon"
-              description="Use the same symbol as the board or faction. The printed title frames it in a circle."
-              input={
-                <AssetSelect
-                  aria-label="Title icon"
-                  placeholder="No icon"
-                  data={headingIconOptions}
-                  getPreviewSrc={(icon) => icon}
-                  glyphPreviews
-                  clearable
-                  value={value.headingIcon ?? null}
-                  onChange={(headingIcon) =>
-                    onChange({
-                      ...value,
-                      headingIcon: headingIcon === null ? undefined : rulebookHeadingIconSchema.parse(headingIcon),
-                    })
-                  }
-                />
-              }
-            />
-            <ControlBlock
-              title="Page heading"
-              description="Show the Page title on the printed page. The title remains available for navigation when hidden."
-              input={
-                <Switch
-                  aria-label="Show page heading"
-                  checked={value.showHeading}
-                  onChange={(event) => onChange({ ...value, showHeading: event.currentTarget.checked })}
-                />
-              }
-            />
-          </>
+          }
+        />
+        {!coverControls && (
+          <ControlBlock
+            title="Title icon"
+            description="Use the same symbol as the board or faction. The printed title frames it in a circle."
+            input={
+              <AssetSelect
+                aria-label="Title icon"
+                placeholder="No icon"
+                data={headingIconOptions}
+                getPreviewSrc={(icon) => icon}
+                glyphPreviews
+                clearable
+                value={value.headingIcon ?? null}
+                onChange={(headingIcon) =>
+                  onChange({
+                    ...value,
+                    headingIcon: headingIcon === null ? undefined : rulebookHeadingIconSchema.parse(headingIcon),
+                  })
+                }
+              />
+            }
+          />
         )}
+        <ControlBlock
+          title="Page heading"
+          description="Show the Page title on the printed page. The title remains available for navigation when hidden."
+          input={
+            <Switch
+              aria-label="Show page heading"
+              checked={value.showHeading}
+              onChange={(event) => onChange({ ...value, showHeading: event.currentTarget.checked })}
+            />
+          }
+        />
+        {coverControls}
       </Stack>
 
       {regions.length > 0 ? (
