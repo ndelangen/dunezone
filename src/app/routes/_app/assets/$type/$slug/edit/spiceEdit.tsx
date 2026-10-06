@@ -7,7 +7,7 @@ import { SpiceCardEditor, spiceDraftWarnings } from '@app/widgets/card-editor/Sp
 import type { SpiceChapter, SpiceDraft } from '@app/widgets/card-editor/SpiceCardEditor';
 import { SpiceAsset } from '@game/data/objects';
 
-import { useAssetNameField } from '../../../assetEditorStates';
+import { assetNameField } from '../../../assetEditorStates';
 import { CardEditFrame, CardEditGate, useCardSave } from './cardEditPage';
 import type { CardEditSessionProps } from './cardEditPage';
 
@@ -52,18 +52,14 @@ function CardEditSession({ asset, initialDraft, access }: CardEditSessionProps<S
   const [chapter, setChapter] = useState<SpiceChapter>('head');
   const [state, dispatch] = useReducer(reduce, { data: initialDraft, baseline: initialDraft });
   const patch = (update: Partial<SpiceDraft>) => dispatch({ kind: 'patch', update });
-  const { nameField, conflictWarnings } = useAssetNameField({
-    type: 'card-spice',
+  const nameField = assetNameField({
     name: state.data.name,
     onName: (name) => patch({ name }),
-    currentSlug: asset.slug,
-    source: 'Head',
-    chapter: 'head' as SpiceChapter,
     canRename: access.viewerAccess.capabilities.rename,
     noun: 'card',
   });
   const header = useEditPageHeader({
-    warnings: [...spiceDraftWarnings(state.data), ...conflictWarnings],
+    warnings: [...spiceDraftWarnings(state.data)],
     onFocusWarning: (warning) => setChapter(warning.chapter),
   });
   const isDirty = JSON.stringify(state.data) !== JSON.stringify(state.baseline);

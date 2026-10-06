@@ -21,7 +21,7 @@ import {
 } from '@app/widgets/token-editor/RectangleTokenEditor';
 import type { RectangleChapter, RectangleDraft, RectangleMemory } from '@app/widgets/token-editor/RectangleTokenEditor';
 
-import { AssetEditorMessage, SaveErrorAlert, useAssetNameField } from '../../assetEditorStates';
+import { AssetEditorMessage, SaveErrorAlert, assetNameField } from '../../assetEditorStates';
 
 const TYPE = 'token-enhance';
 
@@ -78,20 +78,16 @@ export function RectangleCreatePage() {
   );
   const patch = (update: Partial<RectangleDraft>) => dispatch({ kind: 'patch', update });
   const pickless = state.data.back.mode === 'reference' && state.data.back.asset_id === null;
-  /* The save guard's rule, live while the author types: a colliding name warns here instead of dying as a save error (finding 19). */
-  const { nameField, conflictWarnings } = useAssetNameField({
+  const nameField = assetNameField({
     /* The viewer is this asset's owner-to-be, so there is nobody to lock out. */
     canRename: true,
-    type: TYPE,
     name: state.data.name,
     onName: (name) => patch({ name }),
-    source: 'Identity',
-    chapter: 'identity' as RectangleChapter,
   });
   const warnings: (
     | ReturnType<typeof rectangleDraftWarnings>[number]
     | { source: string; complaint: string; chapter: RectangleChapter }
-  )[] = [...rectangleDraftWarnings(state.data), ...conflictWarnings];
+  )[] = [...rectangleDraftWarnings(state.data)];
   /* Dirty reads the draft alone and never the memory beside it (D6): memory is never posted, so counting it would arm a Save that writes an identical payload. */
   const isDirty = JSON.stringify(state.data) !== JSON.stringify(state.baseline);
   const isNameBlank = !state.data.name.trim();

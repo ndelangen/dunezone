@@ -34,7 +34,7 @@ import {
   SaveErrorAlert,
   useAssetDeletion,
   useAssetGroupActions,
-  useAssetNameField,
+  assetNameField,
 } from '../../../assetEditorStates';
 import { referencedRectangleBackFace } from './referencedBackFace';
 
@@ -182,20 +182,14 @@ function RectangleEditSession({
    * («How a dangling back reference presents»): a signpost, never a second set of mode controls.
    * It routes to Identity, the chapter the back tiles live in.
    */
-  /* The save guard's rule, live while the author types: a colliding name warns here instead of dying as a save error (finding 19). */
-  const { nameField, conflictWarnings } = useAssetNameField({
-    type,
+  const nameField = assetNameField({
     name: state.data.name,
     onName: (name) => patch({ name }),
-    currentSlug: asset.slug,
-    source: 'Identity',
-    chapter: 'identity' as RectangleChapter,
     canRename: access.viewerAccess.capabilities.rename,
     noun: 'token',
   });
   const warnings: (RectangleWarning | { source: string; complaint: string; chapter: RectangleChapter })[] = [
     ...rectangleDraftWarnings(state.data),
-    ...conflictWarnings,
     ...(danglingBack && state.data.back.mode === 'reference'
       ? [{ source: 'Backside', complaint: 'its referenced back is gone', chapter: 'identity' as RectangleChapter }]
       : []),

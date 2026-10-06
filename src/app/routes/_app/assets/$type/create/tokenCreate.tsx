@@ -22,7 +22,7 @@ import {
 } from '@app/widgets/token-editor/TokenEditor';
 import type { TokenChapter, TokenDraft, TokenMemory } from '@app/widgets/token-editor/TokenEditor';
 
-import { AssetEditorMessage, SaveErrorAlert, useAssetNameField } from '../../assetEditorStates';
+import { AssetEditorMessage, SaveErrorAlert, assetNameField } from '../../assetEditorStates';
 
 /**
  * This page's authoring state, and the four things that happen to it.
@@ -73,20 +73,16 @@ export function TokenCreatePage({ type }: { type: string }) {
   const [state, dispatch] = useReducer(reduce, undefined, () => openingState(initialDraft, initialDraft, null));
   const patch = (update: Partial<TokenDraft>) => dispatch({ kind: 'patch', update });
   const pickless = state.data.back.mode === 'reference' && state.data.back.asset_id === null;
-  /* The save guard's rule, live while the author types: a colliding name warns here instead of dying as a save error (finding 19). */
-  const { nameField, conflictWarnings } = useAssetNameField({
+  const nameField = assetNameField({
     /* The viewer is this asset's owner-to-be, so there is nobody to lock out. */
     canRename: true,
-    type,
     name: state.data.name,
     onName: (name) => patch({ name }),
-    source: 'Identity',
-    chapter: 'identity' as TokenChapter,
   });
   const warnings: (
     | ReturnType<typeof tokenDraftWarnings>[number]
     | { source: string; complaint: string; chapter: TokenChapter }
-  )[] = [...tokenDraftWarnings(state.data), ...conflictWarnings];
+  )[] = [...tokenDraftWarnings(state.data)];
   /* Dirty reads the draft alone and never the memory beside it (D6): memory is never posted, so counting it would arm a Save that writes an identical payload. */
   const isDirty = JSON.stringify(state.data) !== JSON.stringify(state.baseline);
   const isNameBlank = !state.data.name.trim();

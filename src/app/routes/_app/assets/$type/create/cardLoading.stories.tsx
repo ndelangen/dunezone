@@ -45,16 +45,11 @@ export const CustomCardCopy = meta.story({
     const loadedName = page.getByRole('textbox', { name: 'Name' });
     await expect(loadedName).toHaveValue('Battle reference');
     await expect(page.getByRole('tab', { name: '4. Token' })).toBeVisible();
-    await userEvent.clear(loadedName);
-    await userEvent.type(loadedName, 'Battle reference copy');
     await userEvent.click(page.getByRole('button', { name: 'Save card' }));
     await expect(page.findByRole('button', { name: 'Delete card' })).resolves.toBeVisible();
-    const copy = await loadAssetPage('card-custom', 'battle-reference-copy');
+    const copy = await loadAssetPage('card-custom', 'battle-reference-1');
     expect(copy?.asset.id).not.toEqual(source?.asset.id);
-    expect(copy?.asset.data).toEqual({
-      ...source?.asset.data,
-      name: 'Battle reference copy',
-    });
+    expect(copy?.asset.data).toEqual(source?.asset.data);
     expect(copy?.viewerAccess.assignedGroup).toBeNull();
     expect(copy?.inDecks).toEqual([]);
     expect((await loadAssetPage('card-custom', 'battle-reference'))?.asset.data).toEqual(source?.asset.data);
@@ -91,14 +86,11 @@ export const TreacheryCardCopy = meta.story({
     expect(page.queryByRole('option', { name: /Arsunt|Battle reference/ })).toBeNull();
     await userEvent.click(page.getByRole('button', { name: /^Load card$/ }));
     await expect(name).toHaveValue('Lasgun');
-    await userEvent.clear(name);
-    await userEvent.type(name, 'Lasgun copy');
     await userEvent.click(page.getByRole('button', { name: 'Save card' }));
     await expect(page.findByRole('button', { name: 'Delete card' })).resolves.toBeVisible();
-    expect((await loadAssetPage('card-treachery', 'lasgun-copy'))?.asset.data).toEqual({
-      ...(await loadAssetPage('card-treachery', 'lasgun'))?.asset.data,
-      name: 'Lasgun copy',
-    });
+    expect((await loadAssetPage('card-treachery', 'lasgun-1'))?.asset.data).toEqual(
+      (await loadAssetPage('card-treachery', 'lasgun'))?.asset.data
+    );
   },
 });
 
@@ -111,14 +103,9 @@ export const SpiceCardCopy = meta.story({
     await userEvent.click(await waitForFrame(() => page.getByRole('option', { name: /Arsunt/ })));
     await userEvent.click(page.getByRole('button', { name: /^Load card$/ }));
     await expect(name).toHaveValue('Arsunt');
-    await userEvent.clear(name);
-    await userEvent.type(name, 'Arsunt copy');
     await userEvent.click(page.getByRole('button', { name: 'Save card' }));
     await expect(page.findByRole('button', { name: 'Delete card' })).resolves.toBeVisible();
-    expect((await loadAssetPage('card-spice', 'arsunt-copy'))?.asset.data).toEqual({
-      ...publishingSpiceCard,
-      name: 'Arsunt copy',
-    });
+    expect((await loadAssetPage('card-spice', 'arsunt-1'))?.asset.data).toEqual(publishingSpiceCard);
   },
 });
 
