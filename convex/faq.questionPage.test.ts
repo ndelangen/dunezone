@@ -183,11 +183,11 @@ describe('FAQ question page projection (api.faq.questionPage)', () => {
     const t = convexTest(schema, modules);
     await seedQuestionPage(t);
 
-    await expect(t.query(api.faq.questionPage, { rulesetSlug: 'advanced', questionSlug: '99' })).rejects.toThrow(
-      /not found/
-    );
-    await expect(t.query(api.faq.questionPage, { rulesetSlug: 'missing', questionSlug: '1' })).rejects.toThrow(
-      /not found/
-    );
+    await expect(t.query(api.faq.questionPage, { rulesetSlug: 'advanced', questionSlug: '99' })).rejects.toMatchObject({
+      data: { code: 'NOT_FOUND' },
+    });
+    await expect(t.query(api.faq.questionPage, { rulesetSlug: 'missing', questionSlug: '1' })).rejects.toMatchObject({
+      data: { code: 'NOT_FOUND' },
+    });
   });
 });

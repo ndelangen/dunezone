@@ -1,12 +1,12 @@
 import { Badge, Group, Stack, Text } from '@mantine/core';
 import type { ErrorComponentProps } from '@tanstack/react-router';
-import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
+import { createFileRoute, notFound, Link, useNavigate } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
 import { LoadError } from '@ui/block/LoadError';
 import { LoadPending } from '@ui/block/LoadPending';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import { PageIdentity } from '@ui/block/PageIdentity';
-import { formatRelativeDate } from '@ui/content/dates';
+import { formatStableDate } from '@ui/content/dates';
 import { FAQ_TAG_LABELS } from '@ui/content/faqTagLabels';
 import { FormattedTextSource } from '@ui/content/FormattedText';
 import { ProfileLink } from '@ui/content/ProfileLink';
@@ -21,9 +21,10 @@ import { Toolbar } from '@ui/surface/Toolbar';
 import { ArrowLeft, Check, MessageCircleReply, MessageSquarePlus, Pencil, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
+import { isPublicPageNotFound, loadPublicPage } from '@db/core/publicPage';
 import { loadFaqQuestionPage, useFaqQuestionPage } from '@db/faq';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
-import { pageHead } from '@app/routes/pageTitle';
+import { publicPageHead, publicDescription, useLivePageTitle } from '@app/routes/publicPage';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 import styles from './$questionSlug.module.css';
@@ -32,37 +33,45 @@ import type { FaqEditingSession } from './faqEditingSession';
 import { questionTitle } from './questionTitle';
 
 export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/faq/$questionSlug')({
+  ssr: true,
   loader: async ({ params }) => {
-    try {
-      const page = await loadFaqQuestionPage({
-        rulesetSlug: params.rulesetSlug,
-        questionSlug: params.questionSlug,
-      });
-      return { notFound: false, page };
-    } catch {
-      return { notFound: true };
+    const page = await loadPublicPage(loadFaqQuestionPage(params));
+    if (!page) {
+      throw notFound();
     }
+    return { page };
   },
   errorComponent: FaqDetailError,
-  /* A missing question comes back as `notFound: true`, not a thrown notFound, so the head names that page itself. */
-  head: ({ loaderData }) =>
-    pageHead(
-      loaderData?.notFound
-        ? 'Page not found'
-        : loaderData?.page?.question
-          ? questionTitle(loaderData.page.question.text)
-          : 'FAQ question'
-    ),
+  head: ({ loaderData, params, match }) =>
+    publicPageHead({
+      name: loaderData ? questionTitle(loaderData.page.question.text) : 'FAQ question',
+      pathname: `/rulesets/${encodeURIComponent(params.rulesetSlug)}/faq/${encodeURIComponent(params.questionSlug)}`,
+      description: loaderData
+        ? `${loaderData.page.ruleset.name}. ${loaderData.page.answers.some((answer) => answer.accepted) ? 'Accepted answer available.' : 'Open question.'} ${publicDescription(loaderData.page.question.text)}`
+        : '',
+      social: { kind: 'FAQ question', shape: 'portrait' },
+      match,
+    }),
   component: FaqDetailPage,
 });
 
-/**
- * The frame for a load that failed.
- * Unlike its siblings this route's loader already catches, returning `notFound`;
- * what escapes is the live query, which throws after mount when the question is not there, so the reader met the router's unstyled default with a page half-built behind it.
- */
+/** Backend failures remain errors; a live deletion has its own absence message. */
 function FaqDetailError({ error }: ErrorComponentProps) {
   const { rulesetSlug } = Route.useParams();
+  if (isPublicPageNotFound(error)) {
+    return (
+      <PageMessage
+        title="FAQ"
+        back={
+          <PageMessage.Back to="/rulesets/$rulesetSlug" params={{ rulesetSlug }}>
+            Back to ruleset
+          </PageMessage.Back>
+        }
+      >
+        <NotAvailable title="Question not found">This FAQ question does not exist in this ruleset.</NotAvailable>
+      </PageMessage>
+    );
+  }
   return (
     <PageMessage
       title="FAQ"
@@ -77,37 +86,6 @@ function FaqDetailError({ error }: ErrorComponentProps) {
       </LoadError>
     </PageMessage>
   );
-}
-
-/**
- * The absent case, decided before anything subscribes.
- *
- * It has to live above the body: the question page's hook calls `useQuery` unconditionally, and a
- * Convex query for a question that is not there throws while rendering, which the route's
- * `errorComponent` would catch before any guard further down the body could run.
- * So the guard that was written inside the body could never fire, and a missing question read as a failed load.
- * `AssetDetailPage` splits for the same reason: a guard that must run before a subscription cannot share a component with it.
- */
-function FaqDetailPage() {
-  const { rulesetSlug } = Route.useParams();
-  const loaderData = Route.useLoaderData();
-
-  if (loaderData?.notFound) {
-    return (
-      <PageMessage
-        title="FAQ"
-        back={
-          <PageMessage.Back to="/rulesets/$rulesetSlug" params={{ rulesetSlug }}>
-            Back to ruleset
-          </PageMessage.Back>
-        }
-      >
-        <NotAvailable title="Question not found">This FAQ question does not exist in this ruleset.</NotAvailable>
-      </PageMessage>
-    );
-  }
-
-  return <LoadedFaqQuestion />;
 }
 
 type FaqQuestionCommands = ReturnType<typeof useFaqQuestionPage>;
@@ -156,16 +134,18 @@ function AddAnswerForm({ createAnswer }: { createAnswer: FaqQuestionCommands['cr
   );
 }
 
-function LoadedFaqQuestion() {
+function FaqDetailPage() {
   const { rulesetSlug, questionSlug } = Route.useParams();
   const loaderData = Route.useLoaderData();
   const navigate = useNavigate();
   const faq = useFaqQuestionPage(
     { rulesetSlug, questionSlug },
     {
-      initialPage: 'page' in loaderData ? loaderData.page : undefined,
+      initialPage: loaderData.page,
     }
   );
+
+  useLivePageTitle(faq.page ? questionTitle(faq.page.question.text) : undefined);
 
   const [editing, setEditing] = useState(INITIAL_FAQ_EDITING_STATE);
   const editingSessionRef = useRef<FaqEditingSession>(undefined);
@@ -218,8 +198,8 @@ function LoadedFaqQuestion() {
     );
   }
 
-  const showAddAnswerForm = page.viewer.answerQuestion;
-  const hasUserAnswered = !showAddAnswerForm && answers.some((a) => a.capabilities.editAnswer);
+  const showAddAnswerForm = !faq.isPending && page.viewer.answerQuestion;
+  const hasUserAnswered = !showAddAnswerForm && answers.some((a) => !faq.isPending && a.capabilities.editAnswer);
 
   const handleDeleteQuestion = () => {
     void faq.deleteQuestion
@@ -266,8 +246,8 @@ function LoadedFaqQuestion() {
           stats={headerStats}
         >
           <Text size="sm" c="dimmed">
-            <time dateTime={item.createdAt} title={new Date(item.createdAt).toLocaleString()}>
-              {formatRelativeDate(item.createdAt)}
+            <time dateTime={item.createdAt} title={item.createdAt}>
+              {formatStableDate(item.createdAt)}
             </time>
           </Text>
           {hasAcceptedAnswer ? <StatusBadge tone="positive">Answered</StatusBadge> : null}
@@ -291,7 +271,7 @@ function LoadedFaqQuestion() {
               )}
               icon={<ArrowLeft size={17} aria-hidden />}
             />
-            {item.capabilities.editQuestion ? (
+            {!faq.isPending && item.capabilities.editQuestion ? (
               <IconAction
                 label="Edit question"
                 emphasis="standard"
@@ -305,7 +285,7 @@ function LoadedFaqQuestion() {
           </Toolbar.Left>
           <Toolbar.Right label="Question actions">
             <Toolbar.Cluster kind="discard">
-              {item.capabilities.deleteQuestion ? (
+              {!faq.isPending && item.capabilities.deleteQuestion ? (
                 <ConfirmDeleteAction
                   label="Delete question"
                   pending={faq.deleteQuestion.isPending}
@@ -370,7 +350,7 @@ function LoadedFaqQuestion() {
               <ul className={styles.answerList}>
                 {answers.map((a) => {
                   const isEditing = editing.editingAnswerId === a.id;
-                  const isUserAnswer = a.capabilities.editAnswer;
+                  const isUserAnswer = !faq.isPending && a.capabilities.editAnswer;
                   const isAccepted = a.accepted;
                   return (
                     <li
@@ -425,7 +405,7 @@ function LoadedFaqQuestion() {
                             <FormattedTextSource source={a.text} />
                           </div>
                           <Group gap="xs" wrap="nowrap">
-                            {a.capabilities.acceptAnswer && (
+                            {!faq.isPending && a.capabilities.acceptAnswer && (
                               <IconAction
                                 label="Mark as accepted answer"
                                 emphasis="strong"
@@ -438,7 +418,7 @@ function LoadedFaqQuestion() {
                                 icon={<Check size={16} aria-hidden />}
                               />
                             )}
-                            {a.capabilities.unacceptAnswer && (
+                            {!faq.isPending && a.capabilities.unacceptAnswer && (
                               <IconAction
                                 label="Unmark accepted answer"
                                 emphasis="standard"
@@ -451,7 +431,7 @@ function LoadedFaqQuestion() {
                                 icon={<X size={16} aria-hidden />}
                               />
                             )}
-                            {a.capabilities.editAnswer && (
+                            {!faq.isPending && a.capabilities.editAnswer && (
                               <IconAction
                                 label="Edit your answer"
                                 emphasis="strong"
@@ -461,7 +441,7 @@ function LoadedFaqQuestion() {
                                 icon={<Pencil size={16} aria-hidden />}
                               />
                             )}
-                            {a.capabilities.deleteAnswer && (
+                            {!faq.isPending && a.capabilities.deleteAnswer && (
                               <ConfirmDeleteAction
                                 label="Delete answer"
                                 pending={faq.deleteAnswer.isPending}

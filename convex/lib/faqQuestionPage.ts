@@ -1,4 +1,4 @@
-import { v } from 'convex/values';
+import { ConvexError, v } from 'convex/values';
 
 import type { QueryCtx } from '../types';
 import { optionalActiveUserId } from './accountLifecycle';
@@ -68,14 +68,17 @@ export async function loadFaqQuestionPage(ctx: QueryCtx, args: { rulesetSlug: st
     .withIndex('by_slug', (q) => q.eq('slug', args.rulesetSlug))
     .unique();
   if (!ruleset || ruleset.is_deleted) {
-    throw new Error(`Ruleset with slug ${args.rulesetSlug} not found`);
+    throw new ConvexError({ code: 'NOT_FOUND', message: `Ruleset with slug ${args.rulesetSlug} not found` });
   }
   const item = await ctx.db
     .query('faq_items')
     .withIndex('by_ruleset_slug', (q) => q.eq('ruleset_id', ruleset._id).eq('slug', args.questionSlug))
     .unique();
   if (!item) {
-    throw new Error(`FAQ item with slug ${args.questionSlug} not found in ruleset ${args.rulesetSlug}`);
+    throw new ConvexError({
+      code: 'NOT_FOUND',
+      message: `FAQ item with slug ${args.questionSlug} not found in ruleset ${args.rulesetSlug}`,
+    });
   }
   const answers = await ctx.db
     .query('faq_answers')

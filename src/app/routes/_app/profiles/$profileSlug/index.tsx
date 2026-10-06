@@ -1,13 +1,13 @@
 import { useAuthActions } from '@convex-dev/auth/react';
 import { Stack, Text } from '@mantine/core';
 import type { ErrorComponentProps } from '@tanstack/react-router';
-import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
+import { createFileRoute, notFound, Link, useNavigate } from '@tanstack/react-router';
 import { LoadError } from '@ui/block/LoadError';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import { PageIdentity } from '@ui/block/PageIdentity';
 import { ProposedContent } from '@ui/block/ProposedContent';
 import { Section } from '@ui/block/Section';
-import { formatRelativeDate } from '@ui/content/dates';
+import { formatStableDate } from '@ui/content/dates';
 import { FormattedTextSource, InlineFormattedTextSource } from '@ui/content/FormattedText';
 import { GroupLink } from '@ui/content/GroupLink';
 import { ProfileLink } from '@ui/content/ProfileLink';
@@ -34,23 +34,35 @@ import {
   UsersRound,
 } from 'lucide-react';
 
+import { isPublicPageNotFound, loadPublicPage } from '@db/core/publicPage';
 import { forgetStoredPlayTables } from '@db/playTables';
 import type { ProfilePageData } from '@db/profiles';
 import { loadProfileBySlug, profileAvatarUrl, useCurrentProfile, useProfileBySlug } from '@db/profiles';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
-import { pageHead } from '@app/routes/pageTitle';
+import { publicPageHead, useLivePageTitle } from '@app/routes/publicPage';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 import styles from './index.module.css';
 
 export const Route = createFileRoute('/_app/profiles/$profileSlug/')({
+  ssr: true,
   loader: async ({ params }) => {
-    const profilePage = await loadProfileBySlug(params.profileSlug);
+    const profilePage = await loadPublicPage(loadProfileBySlug(params.profileSlug));
+    if (!profilePage) {
+      throw notFound();
+    }
     return { profilePage };
   },
   errorComponent: ProfileDetailError,
-  /* The same fallback the page heading uses, for a profile with no username. */
-  head: ({ loaderData }) => pageHead(loaderData ? (loaderData.profilePage.profile.username ?? 'Unknown') : 'Profile'),
+  head: ({ loaderData, params, match }) =>
+    publicPageHead({
+      name: loaderData?.profilePage.profile.username ?? 'Profile',
+      pathname: `/profiles/${encodeURIComponent(params.profileSlug)}`,
+      description: "Explore this Dune Zone member's factions, Groups and FAQ contributions.",
+      image: loaderData?.profilePage.profile.avatar?.url,
+      social: { kind: 'Profile', shape: 'round' },
+      match,
+    }),
   component: ProfileDetailPage,
 });
 
@@ -61,6 +73,13 @@ const backToProfiles = <PageMessage.Back to="/profiles">Back to profiles</PageMe
  * The loader throws rather than returning nothing, so the component's absent branch below never sees that case and the reader met the router's unstyled default instead.
  */
 function ProfileDetailError({ error }: ErrorComponentProps) {
+  if (isPublicPageNotFound(error)) {
+    return (
+      <PageMessage size="compact" title="Profile" back={backToProfiles}>
+        <NotAvailable title="Profile not found">This profile does not exist or was deleted.</NotAvailable>
+      </PageMessage>
+    );
+  }
   return (
     <PageMessage size="compact" title="Profile" back={backToProfiles}>
       <LoadError title="Profile could not be loaded" stale={isStaleClientData(error)}>
@@ -112,7 +131,7 @@ function FaqQuestionsAsked({ items }: { items: FaqQuestionAsked[] }) {
           <div className={styles.contextStrip}>
             <RulesetLink slug={item.ruleset.slug} name={item.ruleset.name} image={item.ruleset.coverThumbUrl} />
             <span aria-hidden>·</span>
-            <time dateTime={item.created_at}>{formatRelativeDate(item.created_at)}</time>
+            <time dateTime={item.created_at}>{formatStableDate(item.created_at)}</time>
           </div>
           <Link
             to="/rulesets/$rulesetSlug/faq/$questionSlug"
@@ -155,7 +174,7 @@ function FaqAnswersGiven({ items, viewedProfileId }: { items: FaqAnswerGiven[]; 
                 <span>Unknown asker</span>
               )}
               <span aria-hidden>·</span>
-              <time dateTime={row.created_at}>{formatRelativeDate(row.created_at)}</time>
+              <time dateTime={row.created_at}>{formatStableDate(row.created_at)}</time>
             </div>
 
             <p className={styles.parentQuestion}>
@@ -189,6 +208,7 @@ function ProfileDetailPage() {
   const loaderData = Route.useLoaderData();
   const profileQuery = useProfileBySlug(profileSlug, { initialData: loaderData.profilePage });
   const page = profileQuery.data;
+  useLivePageTitle(page?.profile.username ?? undefined);
   const currentProfile = useCurrentProfile();
   const { signOut } = useAuthActions();
   const navigate = useNavigate();
@@ -324,6 +344,7 @@ function ProfileDetailPage() {
               {new Intl.DateTimeFormat('en', {
                 month: 'short',
                 year: 'numeric',
+                timeZone: 'UTC',
               }).format(new Date(page.profile.created_at))}
             </time>
           </Text>

@@ -1,4 +1,4 @@
-import { v } from 'convex/values';
+import { ConvexError, v } from 'convex/values';
 
 import { groupInputSchema } from '../src/shared/groups/validation';
 import type { Id } from './_generated/dataModel';
@@ -51,7 +51,7 @@ export const detailBySlug = query({
         .unique()
     );
     if (!group) {
-      throw new Error(`Group with slug ${args.slug} not found`);
+      throw new ConvexError({ code: 'NOT_FOUND', message: `Group with slug ${args.slug} not found` });
     }
 
     const accessBundle = await loadGroupAccessBundle(ctx, group);
