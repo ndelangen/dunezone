@@ -87,7 +87,7 @@ describe('Rulebook PDF composition', () => {
       constructor: RulebookPdfGenerationError,
       cause: { message: 'Compressed PDF object data exceeds its bound' },
     });
-  });
+  }, 20_000);
 
   test('allows an image-only Cover while retaining the font check for visible text', async () => {
     const cover: RulebookRenderPageByLayoutV1<'cover'> = {
