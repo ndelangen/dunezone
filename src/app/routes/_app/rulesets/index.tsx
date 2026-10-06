@@ -6,13 +6,20 @@ import { PageLayout } from '@ui/layout/PageLayout';
 import { TileGrid } from '@ui/list/TileGrid';
 
 import { loadRulesetsAll, useRulesetsAll } from '@db/rulesets';
-import { pageHead } from '@app/routes/pageTitle';
+import { publicPageHead } from '@app/routes/publicPage';
 
 import styles from './index.module.css';
 
 export const Route = createFileRoute('/_app/rulesets/')({
+  ssr: true,
   loader: async () => ({ rulesets: await loadRulesetsAll() }),
-  head: () => pageHead('Rulesets'),
+  head: () =>
+    publicPageHead({
+      name: 'Rulesets',
+      pathname: '/rulesets',
+      description: 'Explore Dune rulesets and their published Rulebooks.',
+      social: { kind: 'Rulesets', shape: 'portrait' },
+    }),
   component: RulesetsPage,
 });
 

@@ -18,7 +18,7 @@ vi.mock('convex/react', () => ({
 import { db } from '@db/core';
 
 import { isStaleClientData } from './core/clientBoundary';
-import { loadRulebookEditor, useSaveRulebook } from './rulebooks';
+import { loadRulebookEditor, loadRulebookReader, useSaveRulebook } from './rulebooks';
 import type { RulebookMetadata } from './rulebooks';
 
 const SOURCE_URL = 'https://images.example/cover.png';
@@ -177,4 +177,21 @@ describe('Rulebook client version mismatches', () => {
     expect(isStaleClientData(error)).toBe(true);
     expect(mocks.save).not.toHaveBeenCalled();
   });
+});
+
+describe('Rulebook reader missing Editions', () => {
+  const locator = { rulesetSlug: 'test', rulebookSlug: 'my-first-rulebook', editionNumber: 999 };
+
+  test('a missing requested Edition is a missing page', async () => {
+    vi.mocked(db.query).mockRejectedValue(new ConvexError('Rulebook Edition 999 does not exist'));
+    await expect(loadRulebookReader(locator)).resolves.toBeNull();
+  });
+
+  test.each([new Error('Connection failed'), new ConvexError('Access denied')])(
+    'other failures still reach the error page: %s',
+    async (error) => {
+      vi.mocked(db.query).mockRejectedValue(error);
+      await expect(loadRulebookReader(locator)).rejects.toBe(error);
+    }
+  );
 });

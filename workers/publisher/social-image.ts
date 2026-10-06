@@ -1,4 +1,3 @@
-import { publishedR2Key } from '../../src/shared/asset-publishing/publicationTargets';
 import { parseSocialCard, SOCIAL_CARD_PATH, socialArtwork, socialCardPath } from '../../src/shared/socialCard';
 import type { SocialCardInput } from '../../src/shared/socialCard';
 import { jpegProfile } from './image-inspection';
@@ -12,14 +11,17 @@ let activeRenders = 0;
 const MAX_ACTIVE_RENDERS = 2;
 type Render = (input: SocialCardInput, artwork: ArrayBuffer | null) => Promise<Uint8Array>;
 
-async function artworkData(input: SocialCardInput, bucket: Pick<R2Bucket, 'get'>): Promise<ArrayBuffer | null> {
+type ArtworkBuckets = { ASSET_BUCKET: Pick<R2Bucket, 'get'>; USER_IMAGE_BUCKET?: Pick<R2Bucket, 'get'> };
+
+async function artworkData(input: SocialCardInput, buckets: ArtworkBuckets): Promise<ArrayBuffer | null> {
   const target = socialArtwork(input.art);
-  if (!target) {
+  const bucket = target ? buckets[target.bucket] : undefined;
+  if (!target || !bucket) {
     return null;
   }
   try {
     /* A bounded direct read cannot call a metadata resolver or follow a caller-provided URL. */
-    const object = await bucket.get(publishedR2Key(target.assetType, target.assetId), {
+    const object = await bucket.get(target.key, {
       range: { offset: 0, length: MAX_ART_BYTES + 1 },
     });
     if (!object) {
@@ -52,7 +54,7 @@ async function render(input: SocialCardInput, artwork: ArrayBuffer | null) {
 /** The PNG request needs only validated words, an existing JPEG and bundled fonts. */
 export async function handleSocialImageRequest(
   request: Request,
-  env: { ASSET_BUCKET: Pick<R2Bucket, 'get'>; SOCIAL_RENDER_RATE_LIMIT?: Pick<RateLimit, 'limit'> },
+  env: ArtworkBuckets & { SOCIAL_RENDER_RATE_LIMIT?: Pick<RateLimit, 'limit'> },
   renderer: Render = render,
   cache?: PublicCache
 ): Promise<Response | null> {
@@ -102,7 +104,7 @@ export async function handleSocialImageRequest(
           artworkUrl,
           'artwork',
           async () => {
-            const data = await artworkData(input, env.ASSET_BUCKET);
+            const data = await artworkData(input, env);
             return new Response(data, {
               status: data ? 200 : 404,
               headers: { 'X-Public-Artwork-Reads': input.art ? '1' : '0' },

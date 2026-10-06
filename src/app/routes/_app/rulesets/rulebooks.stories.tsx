@@ -266,7 +266,7 @@ export const ViewerDeleted = meta.story({
   parameters: { identity: null },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await expect(page.findByText('Rulebook not found', undefined, { timeout: 30_000 })).resolves.toBeVisible();
+    await expect(page.findByRole('heading', { name: 'Page not found' }, { timeout: 30_000 })).resolves.toBeVisible();
     expect(page.queryByRole('article', { name: /Rulebook page:/ })).toBeNull();
   },
 });
