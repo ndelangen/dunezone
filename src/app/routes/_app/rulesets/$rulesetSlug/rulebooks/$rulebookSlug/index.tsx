@@ -15,7 +15,7 @@ import { PageLayout } from '@ui/layout/PageLayout';
 import type { StatsItem } from '@ui/list/Stats';
 import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
-import { ArrowLeft, CalendarPlus, Check, FileText, History, Link2, Pin, PinOff } from 'lucide-react';
+import { ArrowLeft, CalendarPlus, Check, FileText, History, Link2, Pencil, Pin, PinOff } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 
 import { loadRulebookReader, useRulebookReader, useSoftDeleteRulebook } from '@db/rulebooks';
@@ -560,6 +560,18 @@ function RulebookReader({ data }: Readonly<{ data: ReaderData }>) {
                 <Link {...props} to="/rulesets/$rulesetSlug" params={{ rulesetSlug: params.rulesetSlug }} />
               )}
             />
+            {data.canEdit ? (
+              <IconAction
+                label="Edit Rulebook"
+                emphasis="standard"
+                intent="neutral"
+                size="lg"
+                icon={<Pencil size={17} aria-hidden />}
+                renderRoot={(rootProps) => (
+                  <Link {...rootProps} to="/rulesets/$rulesetSlug/rulebooks/$rulebookSlug/edit" params={params} />
+                )}
+              />
+            ) : null}
           </Toolbar.Left>
           <Toolbar.Right label="Rulebook actions">
             {/* A menu behind a glyph rather than a worded select: the header already names the Edition on screen, so the toolbar only offers the change. */}

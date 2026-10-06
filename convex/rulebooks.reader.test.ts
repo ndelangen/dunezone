@@ -49,11 +49,12 @@ describe('Rulebook current-Edition reader', () => {
     expect((await t.query(api.rulebooks.readerPage, locator))?.edition.contents).toEqual(created.edition.contents);
   });
 
-  test('offers deletion only to the Ruleset owner', async () => {
+  test('offers editing to maintainers and deletion only to the Ruleset owner', async () => {
     const { t, owner, member, outsider, locator } = await readerFixture();
-    expect((await owner.query(api.rulebooks.readerPage, locator))?.canDelete).toBe(true);
-    for (const reader of [t, member, outsider]) {
-      expect((await reader.query(api.rulebooks.readerPage, locator))?.canDelete).toBe(false);
+    expect(await owner.query(api.rulebooks.readerPage, locator)).toMatchObject({ canEdit: true, canDelete: true });
+    expect(await member.query(api.rulebooks.readerPage, locator)).toMatchObject({ canEdit: true, canDelete: false });
+    for (const reader of [t, outsider]) {
+      expect(await reader.query(api.rulebooks.readerPage, locator)).toMatchObject({ canEdit: false, canDelete: false });
     }
   });
 

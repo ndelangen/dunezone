@@ -195,6 +195,18 @@ export const Viewer = meta.story({
     expect(page.getAllByRole('article', { name: /Rulebook page:/ })).toHaveLength(3);
     expect(page.queryByRole('button', { name: 'Save' })).toBeNull();
     expect(page.queryByRole('button', { name: 'Delete Rulebook' })).toBeNull();
+    expect(page.queryByRole('link', { name: 'Edit Rulebook' })).toBeNull();
+  },
+});
+
+export const EditFromReader = meta.story({
+  args: { path: '/rulesets/classicrules/rulebooks/book-0' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const edit = await page.findByRole('link', { name: 'Edit Rulebook' }, { timeout: 30_000 });
+    expect(edit).toHaveAttribute('href', '/rulesets/classicrules/rulebooks/book-0/edit');
+    await userEvent.hover(edit);
+    await waitForFrame(() => expect(page.getByRole('tooltip')).toHaveTextContent('Edit Rulebook'));
   },
 });
 
@@ -227,6 +239,10 @@ export const MemberReader = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     await page.findByRole('region', { name: 'Rules contents' }, { timeout: 30_000 });
     expect(page.queryByRole('button', { name: 'Delete Rulebook' })).toBeNull();
+    expect(page.getByRole('link', { name: 'Edit Rulebook' })).toHaveAttribute(
+      'href',
+      '/rulesets/classicrules/rulebooks/book-0/edit'
+    );
   },
 });
 

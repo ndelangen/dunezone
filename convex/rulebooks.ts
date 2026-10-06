@@ -21,7 +21,6 @@ import { rulebookResolvedAssetsByIdSchema } from '../src/shared/rulebooks/source
 import type { Doc, Id } from './_generated/dataModel';
 import { query } from './_generated/server';
 import { mutation } from './functions';
-import { optionalActiveUserId } from './lib/accountLifecycle';
 import { loadRulesetAccessForLoadedSubject, requireRulesetMaintenance } from './lib/collaborativeAccess';
 import { rulesetViewerAccessValidator } from './lib/collaborativeAccessValidators';
 import { requireAuthUserId } from './lib/policy';
@@ -630,6 +629,7 @@ export const readerPage = query({
     v.object({
       ruleset: v.object({ name: v.string(), slug: v.string() }),
       rulebook: rulebookMetadataValidator,
+      canEdit: v.boolean(),
       canDelete: v.boolean(),
       edition: readerEditionValidator,
       editions: v.array(readerEditionOptionValidator),
@@ -666,10 +666,12 @@ export const readerPage = query({
     const contents = parseEditionContents(await contentsForRulebookEdition(ctx, selected));
     const summary = await rulebookEditionSummary(ctx, selected);
     const firstPage = await rulebookFirstPagePublicationStatus(ctx, selected._id);
+    const { viewerId, viewerAccess } = await loadRulesetAccessForLoadedSubject(ctx, ruleset);
     return {
       ruleset: { name: ruleset.name, slug: ruleset.slug },
       rulebook: metadataFrom(rulebook),
-      canDelete: (await optionalActiveUserId(ctx)) === ruleset.owner_id,
+      canEdit: viewerAccess.capabilities.edit,
+      canDelete: viewerId === ruleset.owner_id,
       edition: {
         first_page_image_url: firstPage.imageUrl,
         edition_number: selected.edition_number,
