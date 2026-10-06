@@ -1135,6 +1135,8 @@
   .rulebookDocument {
     display: block;
     width: var(--rulebook-page-width);
+    /* The first sheet needs the named page on its container in Cloudflare's Chromium. */
+    page: rulebook;
   }
 
   .rulebookDocument > .rulebookPage {

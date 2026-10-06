@@ -128,7 +128,10 @@ export async function settleSvgResources(signal: AbortSignal): Promise<void> {
 }
 
 export async function settleHtmlImages(signal: AbortSignal): Promise<void> {
-  await Promise.all(Array.from(document.images, (image) => settleImage(image, signal)));
+  /* Large documents can exhaust Chromium decoding capacity when every image decodes at once. */
+  for (const image of Array.from(document.images)) {
+    await settleImage(image, signal);
+  }
 }
 
 export function afterPaint(): Promise<void> {

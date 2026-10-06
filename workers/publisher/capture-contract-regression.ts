@@ -1,6 +1,7 @@
 import { mkdir } from 'node:fs/promises';
 import path from 'node:path';
 
+import { PDFDocument } from 'pdf-lib';
 import { chromium } from 'playwright';
 import type { Browser, Page } from 'playwright';
 
@@ -36,10 +37,11 @@ import {
   waitForCaptureMarkerSettled,
 } from './capture-lifecycle';
 import { pngDimensions } from './image-inspection';
-import { inspectChromiumPdf } from './pdf-inspection';
+import { inspectChromiumPdf, inspectPublishedRulebookPdf } from './pdf-inspection';
 import { RECOMPRESSED_PDF_MAX_BYTES, recompressCapturedPdf } from './pdf-recompress';
 import { PUBLISHER_RENDERER_CONTRACT } from './renderer-contract';
 import { composeRulebookPdf } from './rulebook-pdf';
+import { captureCompressedRulebookPdf } from './rulebook-pdf-stream';
 
 const repositoryRoot = path.resolve(import.meta.dirname, '../..');
 const publisherDist = path.join(repositoryRoot, 'workers/publisher/dist');
@@ -315,7 +317,7 @@ async function checkRulebookEditionPdf(browser: Browser, settings: RulebookSetti
     },
     job.document
   );
-  invariant(batches.length === 2, 'Rulebook PDF fixture must cross a capture batch boundary');
+  invariant(batches.length === 1, 'Rulebook PDF must capture the complete document once');
   const captures = [];
   const startedAt = performance.now();
   const { widthMm, heightMm } = getRulebookSize(settings.size);
@@ -340,6 +342,19 @@ async function checkRulebookEditionPdf(browser: Browser, settings: RulebookSetti
       invariant(result.payloadHash === snapshot.payloadHash, 'Rulebook PDF capture hash changed');
       invariant(errors.length === 0, `Rulebook PDF capture emitted errors: ${errors.join(' | ')}`);
       await assertRulebookPdfBatchBounds(page, batch.document.pageOrder.length, settings.size);
+      await page.emulateMedia({ media: 'print' });
+      const printPages = await page.locator('[data-rulebook-document]').evaluate((document) => {
+        const firstPage = document.querySelector('[data-rulebook-page]');
+        return {
+          document: getComputedStyle(document).page,
+          firstPage: firstPage ? getComputedStyle(firstPage).page : undefined,
+        };
+      });
+      /* Chromium 128 uses the container's page context for the first sheet, before its child's named page. */
+      invariant(
+        printPages.document !== 'auto' && printPages.document === printPages.firstPage,
+        `Rulebook ${settings.size} print container and first Page must select the same paper size`
+      );
       const numbers = await page
         .locator('[data-rulebook-page]')
         .evaluateAll((pages) => pages.map((element) => element.getAttribute('data-rulebook-page-number')));
@@ -347,16 +362,13 @@ async function checkRulebookEditionPdf(browser: Browser, settings: RulebookSetti
         numbers.join(',') === batch.document.pageOrder.map((_, index) => batch.pageOffset + index + 1).join(','),
         'Rulebook Page numbering restarted at a batch boundary'
       );
-      const captured = await page.pdf({
-        displayHeaderFooter: PUBLISHER_RENDERER_CONTRACT.pdf.displayHeaderFooter,
-        margin: PUBLISHER_RENDERER_CONTRACT.pdf.marginMm,
-        outline: true,
-        width: `${widthMm}mm`,
-        height: `${heightMm}mm`,
-        preferCSSPageSize: PUBLISHER_RENDERER_CONTRACT.pdf.preferCssPageSize,
-        printBackground: PUBLISHER_RENDERER_CONTRACT.pdf.printBackground,
-        tagged: true,
-      });
+      const captured = await captureCompressedRulebookPdf(
+        page.context(),
+        page,
+        settings.size,
+        batch.document.pageOrder.length,
+        performance.now() + 45_000
+      );
       captures.push({ batch, bytes: new Uint8Array(captured) });
       const elapsedMs = Math.round(performance.now() - batchStartedAt);
       invariant(elapsedMs < 45_000, 'Rulebook PDF batch exceeded its capture budget');
@@ -369,7 +381,23 @@ async function checkRulebookEditionPdf(browser: Browser, settings: RulebookSetti
     }
   }
   const composed = await composeRulebookPdf(job, captures);
-  const inspection = await inspectChromiumPdf(composed);
+  await inspectPublishedRulebookPdf(composed);
+  const parsed = await PDFDocument.load(composed, { updateMetadata: false, throwOnInvalidObject: true });
+  const inspection = {
+    pageCount: parsed.getPageCount(),
+    pageWidthMm: parsed.getPage(0).getWidth() / (72 / 25.4),
+    pageHeightMm: parsed.getPage(0).getHeight() / (72 / 25.4),
+  };
+  invariant(
+    parsed
+      .getPages()
+      .every(
+        (page) =>
+          Math.abs(page.getWidth() / (72 / 25.4) - widthMm) < 0.001 &&
+          Math.abs(page.getHeight() / (72 / 25.4) - heightMm) < 0.001
+      ),
+    'Compressed Rulebook Pages retain their dimensions'
+  );
   invariant(
     inspection.pageCount === job.document.pageOrder.length,
     `Rulebook Edition PDF produced ${inspection.pageCount} Pages`

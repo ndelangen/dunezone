@@ -185,9 +185,10 @@
     "picomatch": "4.0.5",
     "postcss": "8.5.25",
     "probe-image-size": "7.4.0",
-    "seroval": "1.5.6",
+    "seroval": "1.6.8",
     "sharp": "0.35.4",
     "shell-quote": "1.10.0",
+    "tinypool": "2.1.2",
     "ws": "8.21.2"
   },
   "packageManager": "bun@1.4.2",
