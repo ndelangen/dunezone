@@ -938,6 +938,37 @@ describe('slug allocation', () => {
     expect(await t.query(api.assets.slugTaken, { type: 'card-treachery', slug: 'lasgun' })).toBe('live');
   });
 
+  test('many large copies allocate without rescanning their contents, and crowded legacy suffixes remain usable', async () => {
+    const t = convexTest(schema, modules);
+    const { ownerId } = await seedCard(t);
+    const owner = t.withIdentity({ subject: ownerId });
+    const large = { ...cardData('Reference'), text: `${'x'.repeat(1000)}\n\n`.repeat(245) };
+    const first = await owner.mutation(api.assets.create, { type: 'card-treachery', data: large });
+    const stored = await t.run((ctx) => ctx.db.get('assets', first.id));
+    const copies = [];
+    for (let index = 1; index < 75; index += 1) {
+      const copy = await owner.mutation(api.assets.create, { type: 'card-treachery', data: cardData('Reference') });
+      expect(copy.slug).toBe(`reference-${index}`);
+      copies.push(copy);
+    }
+    await t.run(async (ctx) => {
+      for (const copy of copies) {
+        await ctx.db.patch(copy.id, { data: stored!.data });
+      }
+    });
+    expect((await owner.mutation(api.assets.create, { type: 'card-treachery', data: large })).slug).toBe(
+      'reference-75'
+    );
+    for (let index = 1; index <= 4; index += 1) {
+      await owner.mutation(api.assets.create, { type: 'card-treachery', data: cardData(`Lasgun ${index}`) });
+    }
+    const crowded = await owner.mutation(api.assets.create, { type: 'card-treachery', data: cardData('Lasgun') });
+    expect(crowded.slug).toMatch(/^lasgun-[a-z0-9]{12,}$/);
+    expect((await t.query(api.assets.getPage, { type: 'card-treachery', slug: crowded.slug }))?.asset.name).toBe(
+      'Lasgun'
+    );
+  });
+
   test('different asset types may use the same slug and tokens accept repeated names', async () => {
     const t = convexTest(schema, modules);
     const { ownerId } = await seedCard(t);

@@ -423,13 +423,12 @@ async function rulesetsSlotting(ctx: QueryCtx, assetId: Id<'assets'>) {
   return entries;
 }
 
-/** A slug has at most one holder per registered asset type, including deleted assets. */
+/** Exact lookup avoids reading assets of other types that share a slug. */
 async function assetSlugHolder(ctx: QueryCtx, type: string, slug: string): Promise<Doc<'assets'> | null> {
-  const holders = await ctx.db
+  return await ctx.db
     .query('assets')
-    .withIndex('by_slug', (q) => q.eq('slug', slug))
-    .take(50);
-  return holders.find((row) => row.type === type) ?? null;
+    .withIndex('by_type_and_slug', (q) => q.eq('type', type).eq('slug', slug))
+    .first();
 }
 
 /** Retained for older deployed editors that check name conflicts before saving. */
@@ -443,22 +442,52 @@ export const slugTaken = query({
 });
 
 /**
- * Names may repeat;
- * URL slugs remain unique within an asset type.
- * The indexed reads and write share a mutation, so concurrent claims retry through Convex's conflict detection.
- * Deleted assets keep reserving their slugs, and a rename may keep its own address.
+ * A per-name cursor avoids rereading every earlier copy on each save.
+ * Indexed claims and cursor advances share the asset's write transaction.
+ * A short random suffix handles crowded legacy numeric ranges without exhausting the transaction's read budget.
  */
-async function allocateAssetSlug(ctx: MutationCtx, type: string, base: string, ownId?: Id<'assets'>): Promise<string> {
+async function allocateAssetSlug(ctx: MutationCtx, type: string, base: string, own?: Doc<'assets'>): Promise<string> {
   if (!base) {
     throw new ConvexError('An asset name is required; it determines the asset URL');
   }
-  for (let suffix = 0; ; suffix += 1) {
-    const slug = suffix === 0 ? base : `${base}-${suffix}`;
-    const holder = await assetSlugHolder(ctx, type, slug);
-    if (!holder || holder._id === ownId) {
-      return slug;
+  const baseHolder = await assetSlugHolder(ctx, type, base);
+  if (!baseHolder || baseHolder._id === own?._id) {
+    return base;
+  }
+  /* A spelling-only rename keeps its own suffix, even when the cursor has advanced past it. */
+  if (own && slugify(nameOf(own)) === base) {
+    return own.slug;
+  }
+  const key = `asset-slug:${JSON.stringify([type, base])}`;
+  const counter = await ctx.db
+    .query('counters')
+    .withIndex('by_key', (q) => q.eq('key', key))
+    .unique();
+  let next = (counter?.value ?? 0) + 1;
+  let chosen: string | undefined;
+  for (let probe = 0; probe < 4; probe += 1) {
+    const candidate = `${base}-${next}`;
+    next += 1;
+    if (!(await assetSlugHolder(ctx, type, candidate))) {
+      chosen = candidate;
+      break;
     }
   }
+  for (let probe = 0; !chosen && probe < 2; probe += 1) {
+    const candidate = `${base}-${Math.random().toString(36).slice(2)}${Math.random().toString(36).slice(2)}`;
+    if (!(await assetSlugHolder(ctx, type, candidate))) {
+      chosen = candidate;
+    }
+  }
+  if (!chosen) {
+    throw new ConvexError('Could not assign a unique asset URL. Please save again.');
+  }
+  if (counter) {
+    await ctx.db.patch(counter._id, { value: next - 1 });
+  } else {
+    await ctx.db.insert('counters', { key, value: next - 1 });
+  }
+  return chosen;
 }
 
 /**
@@ -556,7 +585,7 @@ export const update = mutation({
       await validateCustomCardTokens(ctx, parsed.data, row.data);
     }
     const slug =
-      parsed.name === nameOf(row) ? row.slug : await allocateAssetSlug(ctx, row.type, slugify(parsed.name), row._id);
+      parsed.name === nameOf(row) ? row.slug : await allocateAssetSlug(ctx, row.type, slugify(parsed.name), row);
     await ctx.db.patch(args.id, { data: parsed.data, slug, updated_at: nowIso() });
     if (row.type === 'card-custom') {
       await syncCustomCardTokenRelations(ctx, args.id, parsed.data);

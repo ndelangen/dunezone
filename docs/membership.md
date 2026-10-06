@@ -113,9 +113,10 @@ Groups are collaboration boundaries shared by factions, rulesets, and future com
   rulebook. A rename recalculates the slug and moves the public URL with no redirect behind it, so it
   is an identity change rather than an edit, which is why an active member keeps every other control
   and loses this one.
-- Asset display names may repeat. Creating or renaming an asset uses its name's slug, then the first
-  available numeric suffix within its type: `lasgun`, `lasgun-1`, `lasgun-2`. Content saves keep the
-  current URL when the name is unchanged. Treachery conversion keeps its slug when available in the
+- Asset display names may repeat. Creating or renaming an asset uses its name's slug, then an increasing
+  numeric suffix within its type: `lasgun`, `lasgun-1`, `lasgun-2`. Content saves keep the
+  current URL when the name is unchanged. A crowded range of existing numbered slugs uses a short
+  random suffix to keep saves bounded. Treachery conversion keeps its slug when available in the
   custom-card type and adds a suffix when occupied.
 - Renaming releases the former slug. A soft-deleted entity keeps its current slug reserved.
 - Active members may add or remove factions from a ruleset without deleting either asset.
