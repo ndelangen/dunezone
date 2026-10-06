@@ -1,6 +1,6 @@
 import preview from '@sb/preview';
 import { install } from '@sinonjs/fake-timers';
-import { expect, userEvent, within } from 'storybook/test';
+import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { db, ref } from '@db/storybook';
 
@@ -423,6 +423,7 @@ export const ConvertTreacheryCard = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     const trigger = await page.findByRole('button', { name: 'Convert to custom card' }, { timeout: 30_000 });
+    await waitFor(() => expect(trigger).toBeEnabled());
     const clock = install({ toFake: ['setInterval', 'clearInterval'], shouldClearNativeTimers: true });
     try {
       await userEvent.pointer({ target: trigger, keys: '[MouseLeft>]' });
@@ -472,6 +473,7 @@ export const ConvertAnotherCreatorsCard = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     const trigger = await page.findByRole('button', { name: 'Convert to custom card' }, { timeout: 30_000 });
+    await waitFor(() => expect(trigger).toBeEnabled());
     const clock = install({ toFake: ['setInterval', 'clearInterval'], shouldClearNativeTimers: true });
     try {
       await userEvent.pointer({ target: trigger, keys: '[MouseLeft>]' });

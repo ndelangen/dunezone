@@ -657,7 +657,7 @@ function LoadedAssetDetail({ page, pending }: { page: AssetPage; pending: boolea
                       {
                         onSuccess: ({ slug }) =>
                           void navigate({
-                            to: capabilities.edit ? '/assets/$type/$slug/edit' : '/assets/$type/$slug',
+                            to: viewerAccess.capabilities.edit ? '/assets/$type/$slug/edit' : '/assets/$type/$slug',
                             params: { type: 'card-custom', slug },
                           }),
                       }

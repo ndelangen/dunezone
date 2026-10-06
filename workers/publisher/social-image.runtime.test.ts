@@ -12,7 +12,11 @@ import { socialCardHref } from '../../src/shared/socialCard';
 import { jpegBytes } from './test-helpers';
 
 /* Real workerd, R2 and WASM; outbound requests fail so a hidden metadata or font fetch cannot pass. */
-test('renders bounded PNGs from local publications with zero outbound requests', async () => {
+/* Sixty near-limit artwork revisions share one isolate; CI averages 46 seconds and reached the old 60-second deadline (#1909). */
+test('renders bounded PNGs from local publications with zero outbound requests', async ({ onTestFailed }) => {
+  let phase = 'bundle';
+  let completedRenders = 0;
+  onTestFailed(() => console.error('Social image runtime failure', { phase, completedRenders }));
   const directory = await mkdtemp(path.join(tmpdir(), 'social-runtime-'));
   let outboundRequests = 0;
   const require = createRequire(import.meta.url);
@@ -63,6 +67,7 @@ test('renders bounded PNGs from local publications with zero outbound requests',
   modules.push(...binaryModules);
   /* The entry must be first when the module list is explicit. */
   modules.sort((a, b) => Number(b.path.endsWith('index.js')) - Number(a.path.endsWith('index.js')));
+  phase = 'startup';
   const mf = new Miniflare(
     convertV4MiniflareOptions({
       modules,
@@ -96,8 +101,10 @@ test('renders bounded PNGs from local publications with zero outbound requests',
       expect(response.headers.get('Content-Type')).toBe('image/png');
       const png = Buffer.from(await response.arrayBuffer());
       expect(await sharp(png).metadata()).toMatchObject({ format: 'png', width: 1200, height: 630 });
+      completedRenders += 1;
       return png;
     };
+    phase = 'publications and cache';
     const cover = await sharp({ create: { width: 840, height: 1188, channels: 3, background: '#ff0000' } })
       .jpeg()
       .toBuffer();
@@ -176,19 +183,22 @@ test('renders bounded PNGs from local publications with zero outbound requests',
     ]);
     expect(largeArtwork.byteLength).toBeGreaterThan(1_800_000);
     expect(largeArtwork.byteLength).toBeLessThan(2_000_000);
+    phase = 'near-limit artwork revisions';
     for (let revision = 0; revision < 60; revision += 1) {
       largeArtwork[6] = revision;
       await bucket.put(key, largeArtwork);
       expect(await render(socialCardHref(input))).toEqual(original);
     }
+    phase = 'shapes';
     for (const shape of ['round', 'portrait', 'landscape'] as const) {
       await render(
         socialCardHref({ ...input, shape, name: 'A long name '.repeat(15), description: 'Long excerpt '.repeat(25) })
       );
     }
     expect(outboundRequests).toBe(0);
+    phase = 'cleanup';
   } finally {
     await mf.dispose();
     await rm(directory, { recursive: true, force: true });
   }
-}, 60_000);
+}, 120_000);
