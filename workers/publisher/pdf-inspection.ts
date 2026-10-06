@@ -1,5 +1,7 @@
 import { PDFDocument } from 'pdf-lib';
 
+import { inspectCompressedObjects } from './pdf-object-stream-inspection';
+
 const POINTS_PER_MM = 72 / 25.4;
 const MAX_PROOF_PDF_BYTES = 32 * 1024 * 1024;
 const MAX_TRAILER_SCAN_BYTES = 4096;
@@ -212,8 +214,32 @@ function sameDimensions(left: { width: number; height: number }, right: { width:
 
 /** Fully parses a bounded PDF and inspects the reachable page tree and MediaBoxes. */
 export async function inspectChromiumPdf(bytes: Uint8Array): Promise<PdfInspection> {
+  return inspectPdf(bytes, false);
+}
+
+export async function inspectPublishedRulebookPdf(bytes: Uint8Array): Promise<PdfInspection> {
+  return inspectPdf(bytes, true);
+}
+
+async function inspectPdf(bytes: Uint8Array, allowObjectStreams: boolean): Promise<PdfInspection> {
   const envelope = assertCompletePdfEnvelope(bytes);
-  const xref = parseStrictClassicXref(bytes, envelope);
+  const compressed =
+    allowObjectStreams && decoder.decode(bytes.subarray(envelope.xrefOffset, envelope.xrefOffset + 4)) !== 'xref'
+      ? await inspectCompressedObjects(bytes, envelope.xrefOffset, envelope.startxrefOffset)
+      : undefined;
+  const xref = compressed
+    ? {
+        entries: new Map(
+          Array.from(compressed.expected, ([number, generationNumber]) => [
+            number,
+            { inUse: true, generationNumber, offset: 0 },
+          ])
+        ),
+        size: compressed.size,
+        rootObjectNumber: compressed.root.objectNumber,
+        rootGenerationNumber: compressed.root.generationNumber,
+      }
+    : parseStrictClassicXref(bytes, envelope);
 
   let document: PDFDocument;
   try {

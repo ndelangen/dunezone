@@ -36,6 +36,7 @@ import {
 import { pngDimensions } from './image-inspection';
 import { inspectChromiumPdf } from './pdf-inspection';
 import { PUBLISHER_RENDERER_CONTRACT } from './renderer-contract';
+import { captureCompressedRulebookPdf, RulebookPdfOutputError } from './rulebook-pdf-stream';
 
 const { pdf: PDF_CONTRACT, viewport: VIEWPORT_CONTRACT } = PUBLISHER_RENDERER_CONTRACT;
 
@@ -422,16 +423,7 @@ export class PublisherBrowserSession {
       await assertRulebookPdfBatchBounds(page, pageCount, size, () => remaining(deadline));
       assertCaptureDiagnostics(diagnostics);
       phase = 'output';
-      const bytes = await page.pdf({
-        displayHeaderFooter: PDF_CONTRACT.displayHeaderFooter,
-        margin: PDF_CONTRACT.marginMm,
-        outline: true,
-        width: `${dimensions.widthMm}mm`,
-        height: `${dimensions.heightMm}mm`,
-        preferCSSPageSize: PDF_CONTRACT.preferCssPageSize,
-        printBackground: PDF_CONTRACT.printBackground,
-        tagged: true,
-      });
+      const bytes = await captureCompressedRulebookPdf(context, page, size, pageCount, deadline);
       const inspection = await inspectRulebookPdfBatch(bytes);
       if (inspection.pageCount !== pageCount) {
         throw new TargetRenderError(`Captured Rulebook PDF batch must contain exactly ${pageCount} Pages`);
@@ -447,6 +439,9 @@ export class PublisherBrowserSession {
       assertCaptureDiagnostics(diagnostics);
       return { bytes, payloadHash, output: 'pdf' };
     } catch (error) {
+      if (error instanceof RulebookPdfOutputError) {
+        throw new TargetRenderError(error.message, { cause: error });
+      }
       if (error instanceof TargetRenderError) {
         throw error;
       }

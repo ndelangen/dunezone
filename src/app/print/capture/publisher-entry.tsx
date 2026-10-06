@@ -1,3 +1,4 @@
+import { CAPTURE_PROTOCOL } from '@shared/asset-publishing/capture-protocol';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 
@@ -11,6 +12,11 @@ import '@fontsource/caladea/latin-700.css';
 import '@fontsource/caladea/latin-700-italic.css';
 import './capture-page.css';
 import { PublisherCapture } from './PublisherCapture';
+
+if (new URLSearchParams(location.search).has(CAPTURE_PROTOCOL.query.rulebookPdfBatch)) {
+  const { createRulebookPdfOptimizer } = await import('./pdf/optimizer');
+  globalThis.rulebookPdfOptimizer = createRulebookPdfOptimizer();
+}
 
 const root = document.querySelector('#root');
 if (!root) {

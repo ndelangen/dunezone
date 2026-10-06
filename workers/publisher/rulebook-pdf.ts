@@ -5,7 +5,7 @@ import { RULEBOOK_PDF_MAX_BYTES } from '../../src/shared/rulebooks/pdfPublicatio
 import type { RulebookPdfCaptureBatch } from '../../src/shared/rulebooks/pdfPublication';
 import { getRulebookSize } from '../../src/shared/rulebooks/settings';
 import type { RulebookSize } from '../../src/shared/rulebooks/settings';
-import { inspectChromiumPdf } from './pdf-inspection';
+import { inspectChromiumPdf, inspectPublishedRulebookPdf } from './pdf-inspection';
 import { PUBLISHER_RENDERER_CONTRACT } from './renderer-contract';
 
 const { pdf: PDF_CONTRACT } = PUBLISHER_RENDERER_CONTRACT;
@@ -106,8 +106,8 @@ function fixedEditionDate(value: string) {
   return date;
 }
 
-/** Copies each captured batch into one deterministic PDF and proves that every Page resource survived the merge. */
-export async function composeRulebookPdf(
+/** Finalizes one complete capture while retaining its catalog, tagged reading order, and links. */
+async function finalizeCapturedRulebookPdf(
   job: AssignedRulebookArtifactJob<'pdf'>,
   capturedBatches: CapturedRulebookPdfBatch[]
 ): Promise<Uint8Array> {
@@ -115,15 +115,10 @@ export async function composeRulebookPdf(
     throw new RulebookPdfGenerationError('Rulebook PDF has no captured batches');
   }
 
-  const output = await PDFDocument.create({ updateMetadata: false });
-  output.setTitle(job.rulebookName);
-  output.setAuthor('Dune Zone');
-  output.setCreator('Dune Zone Rulebook publisher');
-  output.setProducer('Dune Zone Rulebook publisher');
-  const editionDate = fixedEditionDate(job.editionCreatedAt);
-  output.setCreationDate(editionDate);
-  output.setModificationDate(editionDate);
-
+  if (capturedBatches.length !== 1) {
+    throw new RulebookPdfGenerationError('Rulebook PDFs require one complete capture');
+  }
+  let output: PDFDocument | undefined;
   const expectedProfiles: PageResourceProfile[] = [];
   let expectedPageOffset = 0;
   try {
@@ -140,11 +135,10 @@ export async function composeRulebookPdf(
         updateMetadata: false,
       });
       expectedProfiles.push(...pageResourceProfile(source));
-      for (const page of await output.copyPages(source, source.getPageIndices())) {
-        /* Chromium rounds physical units; the composed document keeps the exact authored Page dimensions. */
+      output = source;
+      for (const page of output.getPages()) {
         const dimensions = getRulebookSize(job.document.settings.size);
         page.setMediaBox(0, 0, (dimensions.widthMm * 72) / 25.4, (dimensions.heightMm * 72) / 25.4);
-        output.addPage(page);
       }
       expectedPageOffset += inspection.pageCount;
     }
@@ -159,16 +153,39 @@ export async function composeRulebookPdf(
     throw new RulebookPdfGenerationError('Rulebook PDF batches do not cover every frozen Edition Page');
   }
 
-  const bytes = await output.save({ addDefaultPage: false, useObjectStreams: false });
+  if (!output) {
+    throw new RulebookPdfGenerationError('Rulebook PDF has no captured document');
+  }
+  output.setTitle(job.rulebookName);
+  output.setAuthor('Dune Zone');
+  output.setCreator('Dune Zone Rulebook publisher');
+  output.setProducer('Dune Zone Rulebook publisher');
+  const editionDate = fixedEditionDate(job.editionCreatedAt);
+  output.setCreationDate(editionDate);
+  output.setModificationDate(editionDate);
+
+  const bytes = await output.save({ addDefaultPage: false, useObjectStreams: true });
+  const inspection = await inspectPublishedRulebookPdf(bytes);
   if (bytes.byteLength === 0 || bytes.byteLength > RULEBOOK_PDF_MAX_BYTES) {
     throw new RulebookPdfGenerationError(`Rulebook PDF must be between 1 and ${RULEBOOK_PDF_MAX_BYTES} bytes`);
   }
-  const inspection = await inspectChromiumPdf(bytes);
   if (inspection.pageCount !== job.document.pageOrder.length) {
     throw new RulebookPdfGenerationError('Composed Rulebook PDF page count does not match its frozen Edition');
   }
   assertSize(inspection, job.document.settings.size);
-  const composed = await PDFDocument.load(bytes, { updateMetadata: false });
+  const composed = await PDFDocument.load(bytes, {
+    updateMetadata: false,
+    throwOnInvalidObject: true,
+    ignoreEncryption: false,
+  });
+  if (
+    composed.getPageCount() !== output.getPageCount() ||
+    composed
+      .getPages()
+      .some((page, index) => JSON.stringify(page.getMediaBox()) !== JSON.stringify(output.getPage(index).getMediaBox()))
+  ) {
+    throw new RulebookPdfGenerationError('Rulebook PDF object compression changed its Pages');
+  }
   if (JSON.stringify(pageResourceProfile(composed)) !== JSON.stringify(expectedProfiles)) {
     throw new RulebookPdfGenerationError('Rulebook PDF merge changed Page fonts, images, or links');
   }
@@ -206,4 +223,19 @@ export async function composeRulebookPdf(
     throw new RulebookPdfGenerationError('Every Rulebook PDF Page with text must carry an embedded font resource');
   }
   return bytes;
+}
+
+/** Classifies every deterministic capture-finalization failure before the executor decides whether to retry. */
+export async function composeRulebookPdf(
+  job: AssignedRulebookArtifactJob<'pdf'>,
+  capturedBatches: CapturedRulebookPdfBatch[]
+): Promise<Uint8Array> {
+  try {
+    return await finalizeCapturedRulebookPdf(job, capturedBatches);
+  } catch (error) {
+    if (error instanceof RulebookPdfGenerationError) {
+      throw error;
+    }
+    throw new RulebookPdfGenerationError('Rulebook PDF finalization failed', { cause: error });
+  }
 }

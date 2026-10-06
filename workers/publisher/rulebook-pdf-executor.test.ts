@@ -137,26 +137,48 @@ describe('Rulebook PDF executor', () => {
     expect(putImmutableRulebookArtifact).not.toHaveBeenCalled();
   });
 
-  test('defers an Edition whose batches outlast the work window instead of abandoning the invocation', async () => {
-    const secondBatch = { ...snapshot, payload: { ...snapshot.payload, batchIndex: 1, pageOffset: 1 } };
-    vi.mocked(stageRulebookPdfCapture).mockResolvedValue({
-      token: 'b'.repeat(64),
-      bundle: { schemaVersion: 1, expiresAt: Date.now() + 300_000, batches: [snapshot, secondBatch] },
+  test('fails rejected final output and continues with the next Edition', async () => {
+    const current = dependencies();
+    const next = { ...job, artifactId: 'artifact-two', editionId: 'edition-two', editionNumber: 2 };
+    const failure = new rulebookPdf.RulebookPdfGenerationError('Rulebook PDF finalization failed', {
+      cause: new Error('Compressed PDF object data exceeds its bound'),
     });
-    let clock = 0;
-    /* The first batch consumes the whole window, so the second never starts. */
-    const current = dependencies(
-      vi.fn(async () => {
-        clock = config.workWindowMs + 1;
-        return { bytes: new Uint8Array([1]), payloadHash: 'a'.repeat(64), output: 'pdf' as const };
-      })
+    vi.mocked(rulebookPdf.composeRulebookPdf).mockRejectedValueOnce(failure);
+    await expect(executeRulebookPdfWork(config, [job, next], current.dependencies)).resolves.toMatchObject({
+      completed: 1,
+      failed: 1,
+      unprocessed: 0,
+      browserClosed: true,
+    });
+    expect(current.failRulebookPdf).toHaveBeenCalledExactlyOnceWith('pdf', job.artifactId, failure, expect.any(Number));
+    expect(current.completeRulebookPdf).toHaveBeenCalledExactlyOnceWith('pdf', next.artifactId, expect.any(Number));
+    expect(putImmutableRulebookArtifact).toHaveBeenCalledExactlyOnceWith(
+      {},
+      'pdf',
+      next,
+      new Uint8Array([1, 2, 3]),
+      'renderer-one'
     );
+    expect(removeRulebookPdfCapture).toHaveBeenCalledTimes(2);
+    expect(current.close).toHaveBeenCalledOnce();
+  });
+
+  test('defers an Edition when staging consumes the remaining work window', async () => {
+    let clock = 0;
+    vi.mocked(stageRulebookPdfCapture).mockImplementation(async () => {
+      clock = config.workWindowMs + 1;
+      return {
+        token: 'b'.repeat(64),
+        bundle: { schemaVersion: 1, expiresAt: Date.now() + 300_000, batches: [snapshot] },
+      };
+    });
+    const current = dependencies();
 
     const result = await executeRulebookPdfWork(config, [job], { ...current.dependencies, now: () => clock });
 
     expect(result.deferred).toBe(1);
     expect(result.unprocessed).toBe(1);
-    expect(current.capture).toHaveBeenCalledOnce();
+    expect(current.capture).not.toHaveBeenCalled();
     expect(current.completeRulebookPdf).not.toHaveBeenCalled();
     expect(current.failRulebookPdf).not.toHaveBeenCalled();
     expect(rulebookPdf.composeRulebookPdf).not.toHaveBeenCalled();

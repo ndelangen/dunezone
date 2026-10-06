@@ -1,12 +1,11 @@
 import { z } from 'zod';
 
+import { RULEBOOK_PDF_MAX_PAGES } from './pdfOptimization';
 import { rulebookRenderDocumentV1Schema } from './renderDocument';
 import type { RulebookRenderDocumentV1 } from './renderDocument';
 
-/** Captures at most three image-bearing Pages per Chromium batch. */
-export const RULEBOOK_PDF_BATCH_SIZE = 3;
-const RULEBOOK_PDF_MAX_BATCHES = 256;
-export const RULEBOOK_PDF_MAX_BYTES = 8_000_000;
+const RULEBOOK_PDF_MAX_BATCHES = 1;
+export const RULEBOOK_PDF_MAX_BYTES = 16_000_000;
 export const RULEBOOK_PDF_CAPTURE_TTL_MS = 360_000;
 
 const rulebookPdfCaptureBatchSchema = z.strictObject({
@@ -41,35 +40,21 @@ export const rulebookPdfCaptureBundleSchema = z.strictObject({
 
 export type RulebookPdfCaptureBundle = z.infer<typeof rulebookPdfCaptureBundleSchema>;
 
-/** Splits one frozen document without changing Page identity or order. */
+/** Plans one complete frozen document without changing Page identity or order. */
 export function planRulebookPdfBatches(
   identity: Omit<RulebookPdfCaptureBatch, 'batchIndex' | 'document' | 'pageOffset' | 'schemaVersion'>,
   document: RulebookRenderDocumentV1
 ): RulebookPdfCaptureBatch[] {
-  const batches: RulebookPdfCaptureBatch[] = [];
-  for (let pageOffset = 0; pageOffset < document.pageOrder.length; pageOffset += RULEBOOK_PDF_BATCH_SIZE) {
-    const pageOrder = document.pageOrder.slice(pageOffset, pageOffset + RULEBOOK_PDF_BATCH_SIZE);
-    const pagesById = Object.fromEntries(
-      pageOrder.map((pageId) => {
-        const page = document.pagesById[pageId];
-        if (!page) {
-          throw new Error(`Rulebook PDF Page ${pageId} is missing from the render document`);
-        }
-        return [pageId, page];
-      })
-    );
-    batches.push(
-      rulebookPdfCaptureBatchSchema.parse({
-        schemaVersion: 1,
-        ...identity,
-        batchIndex: batches.length,
-        pageOffset,
-        document: { schemaVersion: 1, settings: document.settings, pageOrder, pagesById },
-      })
-    );
+  if (document.pageOrder.length === 0 || document.pageOrder.length > RULEBOOK_PDF_MAX_PAGES) {
+    throw new Error(`Rulebook PDFs require between 1 and ${RULEBOOK_PDF_MAX_PAGES} Pages`);
   }
-  if (batches.length > RULEBOOK_PDF_MAX_BATCHES) {
-    throw new Error(`Rulebook PDF requires more than ${RULEBOOK_PDF_MAX_BATCHES} capture batches`);
-  }
-  return batches;
+  return [
+    rulebookPdfCaptureBatchSchema.parse({
+      schemaVersion: 1,
+      ...identity,
+      batchIndex: 0,
+      pageOffset: 0,
+      document,
+    }),
+  ];
 }

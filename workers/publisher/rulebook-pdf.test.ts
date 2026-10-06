@@ -7,8 +7,8 @@ import type { RulebookRenderPageByLayoutV1 } from '../../src/shared/rulebooks/re
 import { createRulebookRenderDocumentFixture } from '../../src/shared/rulebooks/renderDocument.fixture';
 import { getRulebookSize } from '../../src/shared/rulebooks/settings';
 import type { RulebookSize } from '../../src/shared/rulebooks/settings';
-import { inspectChromiumPdf } from './pdf-inspection';
-import { composeRulebookPdf } from './rulebook-pdf';
+import { inspectPublishedRulebookPdf } from './pdf-inspection';
+import { composeRulebookPdf, RulebookPdfGenerationError } from './rulebook-pdf';
 
 function fivePageDocument(size: RulebookSize = 'a4') {
   const fixture = createRulebookRenderDocumentFixture();
@@ -78,6 +78,17 @@ function jobFor(size: RulebookSize = 'a4') {
 }
 
 describe('Rulebook PDF composition', () => {
+  test('classifies a bounded capture rejected by final object-stream inspection as a document failure', async () => {
+    const { job, batches } = jobFor();
+    const source = await PDFDocument.load(await capturedPdf(job.document.pageOrder));
+    source.catalog.set(PDFName.of('CaptureNote'), PDFString.of('x'.repeat(8 * 1024 * 1024 + 1)));
+    const bytes = await source.save({ useObjectStreams: false });
+    await expect(composeRulebookPdf(job, [{ batch: batches[0], bytes }])).rejects.toMatchObject({
+      constructor: RulebookPdfGenerationError,
+      cause: { message: 'Compressed PDF object data exceeds its bound' },
+    });
+  }, 20_000);
+
   test('allows an image-only Cover while retaining the font check for visible text', async () => {
     const cover: RulebookRenderPageByLayoutV1<'cover'> = {
       id: 'CVER',
@@ -109,7 +120,7 @@ describe('Rulebook PDF composition', () => {
     const [batch] = planRulebookPdfBatches(identity, document);
     const bytes = await capturedPdf([null]);
     const composed = await composeRulebookPdf(coverJob, [{ batch, bytes }]);
-    expect((await inspectChromiumPdf(composed)).pageCount).toBe(1);
+    expect((await inspectPublishedRulebookPdf(composed)).pageCount).toBe(1);
     const parsed = await PDFDocument.load(composed);
     expect(parsed.getPage(0).node.Resources()!.lookup(PDFName.XObject, PDFDict).keys()).toHaveLength(1);
 
@@ -190,11 +201,13 @@ describe('Rulebook PDF composition', () => {
         )
       );
       const dimensions = getRulebookSize(size);
-      const inspection = await inspectChromiumPdf(bytes);
-      expect(inspection.pageCount).toBe(5);
-      expect(inspection.pageWidthMm).toBeCloseTo(dimensions.widthMm, 12);
-      expect(inspection.pageHeightMm).toBeCloseTo(dimensions.heightMm, 12);
-      const parsed = await PDFDocument.load(bytes, { updateMetadata: false });
+      expect((await inspectPublishedRulebookPdf(bytes)).pageCount).toBe(5);
+      const parsed = await PDFDocument.load(bytes, { updateMetadata: false, throwOnInvalidObject: true });
+      expect(parsed.getPageCount()).toBe(5);
+      for (const page of parsed.getPages()) {
+        expect(page.getWidth() / (72 / 25.4)).toBeCloseTo(dimensions.widthMm, 12);
+        expect(page.getHeight() / (72 / 25.4)).toBeCloseTo(dimensions.heightMm, 12);
+      }
       expect(parsed.getTitle()).toBe('Field manual');
       expect(
         parsed.getPages().map((page) => {
@@ -212,10 +225,18 @@ describe('Rulebook PDF composition', () => {
     }
   );
 
-  test('rejects a missing batch and malformed bytes before publishing', async () => {
+  test('rejects missing Pages and malformed bytes before publishing', async () => {
     const { job, batches } = jobFor();
     await expect(
-      composeRulebookPdf(job, [{ batch: batches[0], bytes: await capturedPdf(batches[0].document.pageOrder) }])
+      composeRulebookPdf(job, [
+        {
+          batch: {
+            ...batches[0],
+            document: { ...batches[0].document, pageOrder: batches[0].document.pageOrder.slice(0, 3) },
+          },
+          bytes: await capturedPdf(batches[0].document.pageOrder.slice(0, 3)),
+        },
+      ])
     ).rejects.toThrow('do not cover every frozen Edition Page');
     await expect(composeRulebookPdf(job, [{ batch: batches[0], bytes: new Uint8Array([1, 2, 3]) }])).rejects.toThrow(
       'batch merge failed'
