@@ -40,6 +40,7 @@ import { inspectChromiumPdf } from './pdf-inspection';
 import { RECOMPRESSED_PDF_MAX_BYTES, recompressCapturedPdf } from './pdf-recompress';
 import { PUBLISHER_RENDERER_CONTRACT } from './renderer-contract';
 import { composeRulebookPdf } from './rulebook-pdf';
+import { captureCompressedRulebookPdf } from './rulebook-pdf-stream';
 
 const repositoryRoot = path.resolve(import.meta.dirname, '../..');
 const publisherDist = path.join(repositoryRoot, 'workers/publisher/dist');
@@ -315,7 +316,7 @@ async function checkRulebookEditionPdf(browser: Browser, settings: RulebookSetti
     },
     job.document
   );
-  invariant(batches.length === 2, 'Rulebook PDF fixture must cross a capture batch boundary');
+  invariant(batches.length === 1, 'Rulebook PDF must capture the complete document once');
   const captures = [];
   const startedAt = performance.now();
   const { widthMm, heightMm } = getRulebookSize(settings.size);
@@ -360,16 +361,13 @@ async function checkRulebookEditionPdf(browser: Browser, settings: RulebookSetti
         numbers.join(',') === batch.document.pageOrder.map((_, index) => batch.pageOffset + index + 1).join(','),
         'Rulebook Page numbering restarted at a batch boundary'
       );
-      const captured = await page.pdf({
-        displayHeaderFooter: PUBLISHER_RENDERER_CONTRACT.pdf.displayHeaderFooter,
-        margin: PUBLISHER_RENDERER_CONTRACT.pdf.marginMm,
-        outline: true,
-        width: `${widthMm}mm`,
-        height: `${heightMm}mm`,
-        preferCSSPageSize: PUBLISHER_RENDERER_CONTRACT.pdf.preferCssPageSize,
-        printBackground: PUBLISHER_RENDERER_CONTRACT.pdf.printBackground,
-        tagged: true,
-      });
+      const captured = await captureCompressedRulebookPdf(
+        page.context(),
+        page,
+        settings.size,
+        batch.document.pageOrder.length,
+        performance.now() + 45_000
+      );
       captures.push({ batch, bytes: new Uint8Array(captured) });
       const elapsedMs = Math.round(performance.now() - batchStartedAt);
       invariant(elapsedMs < 45_000, 'Rulebook PDF batch exceeded its capture budget');

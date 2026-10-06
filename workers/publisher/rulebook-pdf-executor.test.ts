@@ -137,26 +137,22 @@ describe('Rulebook PDF executor', () => {
     expect(putImmutableRulebookArtifact).not.toHaveBeenCalled();
   });
 
-  test('defers an Edition whose batches outlast the work window instead of abandoning the invocation', async () => {
-    const secondBatch = { ...snapshot, payload: { ...snapshot.payload, batchIndex: 1, pageOffset: 1 } };
-    vi.mocked(stageRulebookPdfCapture).mockResolvedValue({
-      token: 'b'.repeat(64),
-      bundle: { schemaVersion: 1, expiresAt: Date.now() + 300_000, batches: [snapshot, secondBatch] },
-    });
+  test('defers an Edition when staging consumes the remaining work window', async () => {
     let clock = 0;
-    /* The first batch consumes the whole window, so the second never starts. */
-    const current = dependencies(
-      vi.fn(async () => {
-        clock = config.workWindowMs + 1;
-        return { bytes: new Uint8Array([1]), payloadHash: 'a'.repeat(64), output: 'pdf' as const };
-      })
-    );
+    vi.mocked(stageRulebookPdfCapture).mockImplementation(async () => {
+      clock = config.workWindowMs + 1;
+      return {
+        token: 'b'.repeat(64),
+        bundle: { schemaVersion: 1, expiresAt: Date.now() + 300_000, batches: [snapshot] },
+      };
+    });
+    const current = dependencies();
 
     const result = await executeRulebookPdfWork(config, [job], { ...current.dependencies, now: () => clock });
 
     expect(result.deferred).toBe(1);
     expect(result.unprocessed).toBe(1);
-    expect(current.capture).toHaveBeenCalledOnce();
+    expect(current.capture).not.toHaveBeenCalled();
     expect(current.completeRulebookPdf).not.toHaveBeenCalled();
     expect(current.failRulebookPdf).not.toHaveBeenCalled();
     expect(rulebookPdf.composeRulebookPdf).not.toHaveBeenCalled();

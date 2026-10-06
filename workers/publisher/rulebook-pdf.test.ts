@@ -212,10 +212,18 @@ describe('Rulebook PDF composition', () => {
     }
   );
 
-  test('rejects a missing batch and malformed bytes before publishing', async () => {
+  test('rejects missing Pages and malformed bytes before publishing', async () => {
     const { job, batches } = jobFor();
     await expect(
-      composeRulebookPdf(job, [{ batch: batches[0], bytes: await capturedPdf(batches[0].document.pageOrder) }])
+      composeRulebookPdf(job, [
+        {
+          batch: {
+            ...batches[0],
+            document: { ...batches[0].document, pageOrder: batches[0].document.pageOrder.slice(0, 3) },
+          },
+          bytes: await capturedPdf(batches[0].document.pageOrder.slice(0, 3)),
+        },
+      ])
     ).rejects.toThrow('do not cover every frozen Edition Page');
     await expect(composeRulebookPdf(job, [{ batch: batches[0], bytes: new Uint8Array([1, 2, 3]) }])).rejects.toThrow(
       'batch merge failed'

@@ -1,4 +1,5 @@
 import type { AssignedRulebookArtifactJob } from '../../src/shared/rulebooks/editionArtifactWork';
+import { RULEBOOK_PDF_MAX_PAGES } from '../../src/shared/rulebooks/pdfOptimization';
 import {
   planRulebookPdfBatches,
   RULEBOOK_PDF_CAPTURE_TTL_MS,
@@ -32,6 +33,9 @@ async function buildRulebookPdfCaptureBundle(
   job: AssignedRulebookArtifactJob<'pdf'>,
   now: number
 ): Promise<RulebookPdfCaptureBundle> {
+  if (job.document.pageOrder.length < 1 || job.document.pageOrder.length > RULEBOOK_PDF_MAX_PAGES) {
+    throw new RulebookPdfGenerationError(`Rulebook PDFs require between 1 and ${RULEBOOK_PDF_MAX_PAGES} Pages`);
+  }
   const planned = planRulebookPdfBatches(
     {
       artifactId: job.artifactId,

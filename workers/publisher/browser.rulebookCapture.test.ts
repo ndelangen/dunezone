@@ -7,7 +7,9 @@ import { createRulebookRenderDocumentFixture } from '../../src/shared/rulebooks/
 import { getRulebookSize } from '../../src/shared/rulebooks/settings';
 import type { RulebookSize } from '../../src/shared/rulebooks/settings';
 import { PublisherBrowserSession } from './browser';
+import { captureCompressedRulebookPdf } from './rulebook-pdf-stream';
 import { pngBytes } from './test-helpers';
+vi.mock('./rulebook-pdf-stream', () => ({ captureCompressedRulebookPdf: vi.fn() }));
 
 const HASH = 'a'.repeat(64);
 
@@ -118,22 +120,22 @@ describe('Rulebook browser capture', () => {
     'prints a %s PDF batch with the selected physical dimensions',
     async (size) => {
       const bytes = await pdfBytes(size);
-      const dimensions = getRulebookSize(size);
       const { session, page, context } = captureBrowser(size, bytes, true);
+      vi.mocked(captureCompressedRulebookPdf).mockResolvedValue(bytes);
       await expect(session.captureRulebookPdfBatch('token', snapshot(size), 30_000)).resolves.toEqual({
         bytes,
         payloadHash: HASH,
         output: 'pdf',
       });
-      expect(page.pdf).toHaveBeenCalledWith(
-        expect.objectContaining({ width: `${dimensions.widthMm}mm`, height: `${dimensions.heightMm}mm` })
-      );
+      expect(captureCompressedRulebookPdf).toHaveBeenCalledWith(context, page, size, 3, expect.any(Number));
       expect(context.close).toHaveBeenCalledOnce();
     }
   );
 
   test('rejects PDF bytes with MediaBoxes from another Size', async () => {
-    const { session, context } = captureBrowser('tall', await pdfBytes('a4'), true);
+    const wrongSize = await pdfBytes('a4');
+    vi.mocked(captureCompressedRulebookPdf).mockResolvedValue(wrongSize);
+    const { session, context } = captureBrowser('tall', wrongSize, true);
     await expect(session.captureRulebookPdfBatch('token', snapshot('tall'), 30_000)).rejects.toThrow(
       '105 x 297 mm MediaBoxes'
     );
