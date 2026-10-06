@@ -10,6 +10,8 @@ on:
 
 permissions:
   contents: read
+  # Granted for reusable-verify.yml, whose prior-pass steps read earlier runs' records.
+  actions: read
 
 concurrency:
   group: pr-ci-${{ github.event.pull_request.number || github.ref }}
