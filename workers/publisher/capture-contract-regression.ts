@@ -340,6 +340,19 @@ async function checkRulebookEditionPdf(browser: Browser, settings: RulebookSetti
       invariant(result.payloadHash === snapshot.payloadHash, 'Rulebook PDF capture hash changed');
       invariant(errors.length === 0, `Rulebook PDF capture emitted errors: ${errors.join(' | ')}`);
       await assertRulebookPdfBatchBounds(page, batch.document.pageOrder.length, settings.size);
+      await page.emulateMedia({ media: 'print' });
+      const printPages = await page.locator('[data-rulebook-document]').evaluate((document) => {
+        const firstPage = document.querySelector('[data-rulebook-page]');
+        return {
+          document: getComputedStyle(document).page,
+          firstPage: firstPage ? getComputedStyle(firstPage).page : undefined,
+        };
+      });
+      /* Chromium 128 uses the container's page context for the first sheet, before its child's named page. */
+      invariant(
+        printPages.document !== 'auto' && printPages.document === printPages.firstPage,
+        `Rulebook ${settings.size} print container and first Page must select the same paper size`
+      );
       const numbers = await page
         .locator('[data-rulebook-page]')
         .evaluateAll((pages) => pages.map((element) => element.getAttribute('data-rulebook-page-number')));
