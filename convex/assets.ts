@@ -463,29 +463,31 @@ async function allocateAssetSlug(ctx: MutationCtx, type: string, base: string, o
     .query('counters')
     .withIndex('by_key', (q) => q.eq('key', key))
     .unique();
-  let next = (counter?.value ?? 0) + 1;
+  const first = (counter?.value ?? 0) + 1;
+  const candidates = [
+    ...Array.from({ length: 4 }, (_, index) => `${base}-${first + index}`),
+    ...Array.from(
+      { length: 2 },
+      () => `${base}-${Math.random().toString(36).slice(2)}${Math.random().toString(36).slice(2)}`
+    ),
+  ];
   let chosen: string | undefined;
-  for (let probe = 0; probe < 4; probe += 1) {
-    const candidate = `${base}-${next}`;
-    next += 1;
-    if (!(await assetSlugHolder(ctx, type, candidate))) {
-      chosen = candidate;
-      break;
+  let value = first;
+  for (const [index, candidate] of candidates.entries()) {
+    if (await assetSlugHolder(ctx, type, candidate)) {
+      continue;
     }
-  }
-  for (let probe = 0; !chosen && probe < 2; probe += 1) {
-    const candidate = `${base}-${Math.random().toString(36).slice(2)}${Math.random().toString(36).slice(2)}`;
-    if (!(await assetSlugHolder(ctx, type, candidate))) {
-      chosen = candidate;
-    }
+    chosen = candidate;
+    value = first + Math.min(index, 3);
+    break;
   }
   if (!chosen) {
     throw new ConvexError('Could not assign a unique asset URL. Please save again.');
   }
   if (counter) {
-    await ctx.db.patch(counter._id, { value: next - 1 });
+    await ctx.db.patch(counter._id, { value });
   } else {
-    await ctx.db.insert('counters', { key, value: next - 1 });
+    await ctx.db.insert('counters', { key, value });
   }
   return chosen;
 }
