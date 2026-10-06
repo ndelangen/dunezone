@@ -11,7 +11,7 @@ import {
 import type { TreacheryChapter, TreacheryDraft, TreacheryMemory } from '@app/widgets/card-editor/TreacheryCardEditor';
 import { TreacheryAsset } from '@game/data/objects';
 
-import { useAssetNameField } from '../../assetEditorStates';
+import { assetNameField } from '../../assetEditorStates';
 import { CardCreateFrame, useCardCreate } from './cardCreatePage';
 
 /**
@@ -54,18 +54,14 @@ export function TreacheryCreatePage() {
     openingState(INITIAL_TREACHERY_DRAFT, INITIAL_TREACHERY_DRAFT)
   );
   const patch = (update: Partial<TreacheryDraft>) => dispatch({ kind: 'patch', update });
-  /* The save guard's rule, live while the author types: a colliding name warns here instead of dying as a save error (finding 19). */
-  const { nameField, conflictWarnings } = useAssetNameField({
+  const nameField = assetNameField({
     /* The viewer is this asset's owner-to-be, so there is nobody to lock out. */
     canRename: true,
-    type: 'card-treachery',
     name: state.data.name,
     onName: (name) => patch({ name }),
-    source: 'Head',
-    chapter: 'head' as TreacheryChapter,
   });
   const header = useEditPageHeader({
-    warnings: [...treacheryDraftWarnings(state.data), ...conflictWarnings],
+    warnings: [...treacheryDraftWarnings(state.data)],
     onFocusWarning: (warning) => setChapter(warning.chapter),
   });
   /* Dirty reads the draft alone and never the memory beside it (D6): memory is never posted, so counting it would arm a Save that writes an identical payload. */

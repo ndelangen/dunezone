@@ -280,7 +280,7 @@ function CardLoadPicker<Draft>({
             Load {state.selected.name}?
           </Text>
           <Text size="sm" c="dimmed">
-            Loading replaces every unsaved change. Rename the copy before saving it as a new card.
+            Loading replaces every unsaved change. Saving creates a separate card.
           </Text>
         </Stack>
       ) : null}

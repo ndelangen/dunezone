@@ -24,7 +24,7 @@ import {
 } from '@app/widgets/deck-editor/DeckEditor';
 import { DeckAsset as DeckAssetSchema } from '@game/data/objects';
 
-import { AssetEditorMessage, SaveErrorAlert, useAssetNameField } from '../../assetEditorStates';
+import { AssetEditorMessage, SaveErrorAlert, assetNameField } from '../../assetEditorStates';
 
 /**
  * This page's authoring state, and the four things that happen to it.
@@ -81,20 +81,16 @@ export function DeckCreatePage() {
   );
   const patch = (update: Partial<DeckDraft>) => dispatch({ kind: 'patch', update });
   const pickless = state.data.cardback.mode === 'reference' && state.data.cardback.asset_id === null;
-  /* The save guard's rule, live while the author types: a colliding name warns here instead of dying as a save error (finding 19). */
-  const { nameField, conflictWarnings } = useAssetNameField({
+  const nameField = assetNameField({
     /* The viewer is this asset's owner-to-be, so there is nobody to lock out. */
     canRename: true,
-    type: 'deck',
     name: state.data.name,
     onName: (name) => patch({ name }),
-    source: 'Identity',
-    chapter: 'identity' as DeckChapter,
   });
   const warnings: (
     | ReturnType<typeof deckDraftWarnings>[number]
     | { source: string; complaint: string; chapter: DeckChapter }
-  )[] = [...deckDraftWarnings(state.data, []).filter((warning) => warning.chapter !== 'cards'), ...conflictWarnings];
+  )[] = deckDraftWarnings(state.data, []).filter((warning) => warning.chapter !== 'cards');
   /* Dirty reads the draft alone and never the memory beside it (D6): memory is never posted, so counting it would arm a Save that writes an identical payload. */
   const isDirty = JSON.stringify(state.data) !== JSON.stringify(state.baseline);
   const isNameBlank = !state.data.name.trim();

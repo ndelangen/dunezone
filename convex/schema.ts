@@ -199,6 +199,7 @@ export default defineSchema({
     group_id: v.union(v.id('groups'), v.null()),
   })
     .index('by_slug', ['slug'])
+    .index('by_type_and_slug', ['type', 'slug'])
     .index('by_deleted', ['is_deleted'])
     .index('by_type_deleted', ['type', 'is_deleted'])
     .index('by_owner_deleted', ['owner_id', 'is_deleted'])

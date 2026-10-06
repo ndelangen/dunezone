@@ -19,16 +19,17 @@ async function choose(
   name: RegExp,
   took: (button: HTMLElement) => void = (button) => expect(button).toHaveAttribute('aria-selected', 'true')
 ) {
-  await waitFor(
+  const selected = await waitFor(
     async () => {
       const button = page.getByRole('tab', { name });
       await userEvent.click(button);
       took(button);
-      /* The pointer leaves again, so the tab's tooltip does not cover the panel the story shows. */
-      await userEvent.unhover(button);
+      return button;
     },
     { timeout: 30_000 }
   );
+  /* Pointer cleanup follows the completed selection, so a slow unhover cannot expire its wait. */
+  await userEvent.unhover(selected);
 }
 
 /** Opens a tab of the controls panel and, for a tab with its own tabs (the Log), one of those. */

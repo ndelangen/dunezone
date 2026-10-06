@@ -100,20 +100,31 @@ test('conversion requires an active administrator even when the caller owns the 
   );
 });
 
-test('slug collisions reject conversion without changing the source card', async () => {
-  const { t, owner, admin, card } = await setup();
-  const conflicting = await owner.mutation(api.assets.create, {
-    type: 'card-custom',
-    data: { ...publishingCustomCard, name: publishingTreacheryCard.name },
-  });
-  for (const deleted of [false, true]) {
+test.each([false, true])(
+  'conversion allocates a new slug when the destination is occupied, deleted=%s',
+  async (deleted) => {
+    const { t, owner, admin, card } = await setup();
+    const conflicting = await owner.mutation(api.assets.create, {
+      type: 'card-custom',
+      data: { ...publishingCustomCard, name: publishingTreacheryCard.name },
+    });
     if (deleted) {
       await owner.mutation(api.assets.softDelete, { id: conflicting.id });
     }
-    await expect(admin.mutation(api.assets.convertTreacheryToCustom, { id: card.id })).rejects.toThrow('name');
-    expect((await t.run((ctx) => ctx.db.get('assets', card.id)))?.type).toBe('card-treachery');
+    const converted = await admin.mutation(api.assets.convertTreacheryToCustom, { id: card.id });
+    expect(converted).toEqual({ id: card.id, slug: `${card.slug}-1` });
+    const row = await t.run((ctx) => ctx.db.get('assets', card.id));
+    expect(row).toMatchObject({
+      type: 'card-custom',
+      slug: converted.slug,
+      data: { name: publishingTreacheryCard.name },
+    });
+    const jobs = await t.run((ctx) => ctx.db.query('publication_jobs').collect());
+    expect(jobs.find((job) => job.asset_id === card.id && job.asset_type === 'card-custom')?.asset_data).toMatchObject({
+      slug: converted.slug,
+    });
   }
-});
+);
 
 test('deleted or oversized treachery cards are left intact', async () => {
   const { t, owner, admin, card } = await setup();
