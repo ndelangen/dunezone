@@ -6,10 +6,14 @@ import { planRulebookPdfBatches } from '../../src/shared/rulebooks/pdfPublicatio
 import { createRulebookRenderDocumentFixture } from '../../src/shared/rulebooks/renderDocument.fixture';
 import { getRulebookSize } from '../../src/shared/rulebooks/settings';
 import type { RulebookSize } from '../../src/shared/rulebooks/settings';
-import { PublisherBrowserSession } from './browser';
-import { captureCompressedRulebookPdf } from './rulebook-pdf-stream';
+import { PublisherBrowserSession, TargetRenderError } from './browser';
+import { captureCompressedRulebookPdf, RulebookPdfOutputError } from './rulebook-pdf-stream';
+import type * as RulebookPdfStream from './rulebook-pdf-stream';
 import { pngBytes } from './test-helpers';
-vi.mock('./rulebook-pdf-stream', () => ({ captureCompressedRulebookPdf: vi.fn() }));
+vi.mock('./rulebook-pdf-stream', async (importOriginal) => ({
+  ...(await importOriginal<typeof RulebookPdfStream>()),
+  captureCompressedRulebookPdf: vi.fn(),
+}));
 
 const HASH = 'a'.repeat(64);
 
@@ -131,6 +135,17 @@ describe('Rulebook browser capture', () => {
       expect(context.close).toHaveBeenCalledOnce();
     }
   );
+
+  test('reports deterministic optimizer rejection as a target failure', async () => {
+    vi.mocked(captureCompressedRulebookPdf).mockRejectedValue(
+      new RulebookPdfOutputError('Compressed PDF exceeds the publication size bound')
+    );
+    const { session, context } = captureBrowser('square', new Uint8Array(), true);
+    await expect(session.captureRulebookPdfBatch('token', snapshot('square'), 30_000)).rejects.toBeInstanceOf(
+      TargetRenderError
+    );
+    expect(context.close).toHaveBeenCalledOnce();
+  });
 
   test('rejects PDF bytes with MediaBoxes from another Size', async () => {
     const wrongSize = await pdfBytes('a4');

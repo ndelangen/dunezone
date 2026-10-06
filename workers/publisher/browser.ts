@@ -36,7 +36,7 @@ import {
 import { pngDimensions } from './image-inspection';
 import { inspectChromiumPdf } from './pdf-inspection';
 import { PUBLISHER_RENDERER_CONTRACT } from './renderer-contract';
-import { captureCompressedRulebookPdf } from './rulebook-pdf-stream';
+import { captureCompressedRulebookPdf, RulebookPdfOutputError } from './rulebook-pdf-stream';
 
 const { pdf: PDF_CONTRACT, viewport: VIEWPORT_CONTRACT } = PUBLISHER_RENDERER_CONTRACT;
 
@@ -439,6 +439,9 @@ export class PublisherBrowserSession {
       assertCaptureDiagnostics(diagnostics);
       return { bytes, payloadHash, output: 'pdf' };
     } catch (error) {
+      if (error instanceof RulebookPdfOutputError) {
+        throw new TargetRenderError(error.message, { cause: error });
+      }
       if (error instanceof TargetRenderError) {
         throw error;
       }

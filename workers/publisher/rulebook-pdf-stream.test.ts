@@ -1,10 +1,9 @@
 import { Buffer } from 'node:buffer';
 
-import type { BrowserContext, Page } from '@cloudflare/playwright';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
 import { RULEBOOK_PDF_TRANSFER_BYTES } from '../../src/shared/rulebooks/pdfOptimization';
-import { captureCompressedRulebookPdf } from './rulebook-pdf-stream';
+import { captureCompressedRulebookPdf, RulebookPdfOutputError } from './rulebook-pdf-stream';
 
 function capture(input: Uint8Array, output: Uint8Array) {
   let offset = 0;
@@ -26,11 +25,11 @@ function capture(input: Uint8Array, output: Uint8Array) {
     return {};
   });
   const detach = vi.fn(async () => {});
-  const context = { newCDPSession: async () => ({ send, detach }) } as unknown as BrowserContext;
+  const context = { newCDPSession: async () => ({ send, detach }) } as never;
   const page = {
     emulateMedia: async () => {},
     evaluate: async (callback: (argument: unknown) => unknown, argument: unknown) => await callback(argument),
-  } as unknown as Page;
+  } as never;
   return { context, page, send, detach, chunks };
 }
 
@@ -69,6 +68,21 @@ describe('Rulebook PDF streaming', () => {
     ).rejects.toThrow('Rejected input');
     expect(fixture.send).toHaveBeenLastCalledWith('IO.close', { handle: 'raw-pdf' });
     expect(fixture.detach).toHaveBeenCalledOnce();
+  });
+
+  test('distinguishes document rejection from transport failures', async () => {
+    const fixture = capture(new Uint8Array([1]), new Uint8Array([2]));
+    globalThis.rulebookPdfOptimizer!.finish = async () => {
+      throw new Error('Compressed PDF exceeds the publication size bound');
+    };
+    await expect(
+      captureCompressedRulebookPdf(fixture.context, fixture.page, 'square', 1, performance.now() + 10_000)
+    ).rejects.toBeInstanceOf(RulebookPdfOutputError);
+    const offline = capture(new Uint8Array([1]), new Uint8Array([2]));
+    offline.send.mockRejectedValue(new Error('Browser disconnected'));
+    await expect(
+      captureCompressedRulebookPdf(offline.context, offline.page, 'square', 1, performance.now() + 10_000)
+    ).rejects.not.toBeInstanceOf(RulebookPdfOutputError);
   });
 
   test('rejects truncated optimized output', async () => {
