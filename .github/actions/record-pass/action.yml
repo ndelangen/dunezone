@@ -1,0 +1,31 @@
+name: Record pass
+description: >-
+  Uploads the record prior-pass looks for: the job's coverage files at their workspace paths and the run's URL.
+  Use it as the job's last step, only when every earlier step passed and the job did not reuse a record.
+
+inputs:
+  name:
+    description: The record's full name, from prior-pass's `name` output
+    required: true
+  files:
+    description: Coverage files to keep, one workspace-relative path per line; empty for a job that collects none
+    required: false
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - name: Stage the record
+      shell: bash
+      env:
+        FILES: ${{ inputs.files }}
+        RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      run: bash "$GITHUB_ACTION_PATH/stage.sh"
+    - name: Upload the record
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      with:
+        name: ${{ inputs.name }}
+        path: ${{ runner.temp }}/ci-pass-record/
+        include-hidden-files: true
+        if-no-files-found: error
+        retention-days: 30

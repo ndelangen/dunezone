@@ -22,6 +22,8 @@ on:
 
 permissions:
   contents: read
+  # reusable-verify.yml asks for it, and a called workflow gets no permission its caller withholds.
+  actions: read
 
 concurrency:
   group: hosted-play-daily
