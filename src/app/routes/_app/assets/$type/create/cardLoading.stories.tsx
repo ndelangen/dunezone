@@ -1,5 +1,5 @@
 import preview from '@sb/preview';
-import { waitForFrame } from '@sb/storyWaits';
+import { finishTransitions, waitForFrame } from '@sb/storyWaits';
 import { publishingSpiceCard } from '@shared/assets/fixtures/publishingSpiceCard';
 import { useNavigate } from '@tanstack/react-router';
 import { expect, mocked, userEvent, waitFor, within } from 'storybook/test';
@@ -28,8 +28,13 @@ export const CustomCardCopy = meta.story({
     await userEvent.click(page.getByRole('button', { name: 'Save card' }));
     await waitFor(() => expect(page.getByRole('button', { name: 'Save card' })).toHaveAccessibleDescription(/Saved/));
     /* Storybook intercepts Link clicks; move the setup card's memory router to the create page. */
-    const navigate = mocked(useNavigate).mock.results.findLast((result) => result.type === 'return')!.value;
-    await navigate({ to: '/assets/$type/create', params: { type: 'card-custom' } });
+    const navigate = mocked(useNavigate)
+      .mock.results.filter((result) => result.type === 'return')
+      .at(-1)!.value;
+    await navigate({
+      to: '/assets/$type/create',
+      params: { type: 'card-custom' },
+    });
     const name = await page.findByRole('textbox', { name: 'Name' });
     await userEvent.type(name, 'Unsaved card');
     const source = await loadAssetPage('card-custom', 'battle-reference');
@@ -46,7 +51,10 @@ export const CustomCardCopy = meta.story({
     await expect(page.findByRole('button', { name: 'Delete card' })).resolves.toBeVisible();
     const copy = await loadAssetPage('card-custom', 'battle-reference-copy');
     expect(copy?.asset.id).not.toEqual(source?.asset.id);
-    expect(copy?.asset.data).toEqual({ ...source?.asset.data, name: 'Battle reference copy' });
+    expect(copy?.asset.data).toEqual({
+      ...source?.asset.data,
+      name: 'Battle reference copy',
+    });
     expect(copy?.viewerAccess.assignedGroup).toBeNull();
     expect(copy?.inDecks).toEqual([]);
     expect((await loadAssetPage('card-custom', 'battle-reference'))?.asset.data).toEqual(source?.asset.data);
@@ -131,7 +139,9 @@ export const EmptyCatalogue = meta.story({
 export const NarrowToolbar = meta.story({
   globals: { viewport: { value: 'appMobileNarrow' } },
   play: async ({ canvasElement }) => {
-    await expectToolbarOnOneLine(canvasElement, { statusDescribes: ['No unsaved changes'] });
+    await expectToolbarOnOneLine(canvasElement, {
+      statusDescribes: ['No unsaved changes'],
+    });
     const page = within(canvasElement.ownerDocument.body);
     const overflow = page.queryByRole('button', { name: 'More actions' });
     if (overflow) {
@@ -144,5 +154,49 @@ export const NarrowToolbar = meta.story({
     const box = search.getBoundingClientRect();
     expect(box.left).toBeGreaterThanOrEqual(0);
     expect(box.right).toBeLessThanOrEqual(canvasElement.ownerDocument.documentElement.clientWidth);
+  },
+});
+
+/** The loader survives the overflow handoff and restores focus to the persistent menu trigger. */
+export const OverflowHandoff = meta.story({
+  globals: { viewport: { value: 'appMobileNarrow' } },
+  decorators: [
+    (Story) => (
+      <div style={{ width: 260 }}>
+        <Story />
+      </div>
+    ),
+  ],
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const more = await waitForFrame(() => page.getByRole('button', { name: 'More actions' }));
+    await userEvent.click(more);
+    const load = await waitForFrame(() =>
+      within(page.getByRole('group', { name: 'More actions' })).getByRole('button', { name: 'Load existing card' })
+    );
+    await userEvent.click(load);
+    const search = await waitForFrame(() => page.getByRole('searchbox', { name: 'Search cards' }));
+    await expect(finishTransitions(search)).toBeVisible();
+    await waitForFrame(() => expect(more).toHaveAttribute('aria-expanded', 'false'));
+    await waitForFrame(() => expect(search).toHaveFocus());
+    await userEvent.click(page.getByRole('button', { name: 'Cancel' }));
+    await waitForFrame(() => expect(more).toHaveFocus());
+    await userEvent.click(more);
+    await userEvent.click(await waitForFrame(() => page.getByRole('button', { name: 'Load existing card' })));
+    await waitForFrame(() => page.getByRole('searchbox', { name: 'Search cards' }));
+    await userEvent.keyboard('{Escape}');
+    await waitForFrame(() => expect(more).toHaveFocus());
+    await expect(more).toHaveAttribute('aria-expanded', 'false');
+    await userEvent.click(more);
+    await userEvent.click(await waitForFrame(() => page.getByRole('button', { name: 'Load existing card' })));
+    await waitForFrame(() => expect(page.getByRole('searchbox', { name: 'Search cards' })).toHaveFocus());
+    await userEvent.click(more);
+    await waitForFrame(() => expect(page.queryByRole('dialog', { name: 'Load existing card' })).toBeNull());
+    await expect(more).toHaveAttribute('aria-expanded', 'true');
+    await waitForFrame(() =>
+      expect(
+        page.getByRole('group', { name: 'More actions' }).contains(canvasElement.ownerDocument.activeElement)
+      ).toBe(true)
+    );
   },
 });
