@@ -1,12 +1,12 @@
 import { Alert, Badge, Group, Menu, Stack, Text, VisuallyHidden } from '@mantine/core';
 import { projectRulebookRenderDocument } from '@shared/rulebooks/projectRenderDocument';
-import { createFileRoute, Link } from '@tanstack/react-router';
+import { createFileRoute, Link, notFound } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { LoadError } from '@ui/block/LoadError';
 import { LoadPending } from '@ui/block/LoadPending';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import { PageIdentity } from '@ui/block/PageIdentity';
-import { formatRelativeDate, formatStableDate } from '@ui/content/dates';
+import { formatStableDate } from '@ui/content/dates';
 import { EditionArtifactLink } from '@ui/content/EditionArtifactLink';
 import { StatusBadge } from '@ui/content/StatusBadge';
 import { IconAction } from '@ui/control/IconAction';
@@ -19,7 +19,7 @@ import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'r
 
 import { loadRulebookReader, useRulebookReader } from '@db/rulebooks';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
-import { pageHead } from '@app/routes/pageTitle';
+import { publicPageHead, useLivePageTitle } from '@app/routes/publicPage';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 import { RulebookDocumentRenderer } from '@game/rulebook/RulebookRenderer';
 
@@ -53,10 +53,27 @@ function parseReaderSearch(input: Record<string, unknown>): RulebookReaderSearch
 }
 
 export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/rulebooks/$rulebookSlug/')({
+  ssr: true,
   validateSearch: parseReaderSearch,
   loaderDeps: ({ search }) => ({ editionNumber: search.edition }),
-  loader: ({ params, deps }) => loadRulebookReader({ ...params, editionNumber: deps.editionNumber }),
-  head: ({ loaderData }) => pageHead(loaderData?.rulebook.name ?? 'Rulebook'),
+  loader: async ({ params, deps }) => {
+    const page = await loadRulebookReader({ ...params, editionNumber: deps.editionNumber });
+    if (!page) {
+      throw notFound();
+    }
+    return page;
+  },
+  head: ({ loaderData, params, match }) =>
+    publicPageHead({
+      name: loaderData?.rulebook.name ?? 'Rulebook',
+      pathname: `/rulesets/${encodeURIComponent(loaderData?.ruleset.slug ?? params.rulesetSlug)}/rulebooks/${encodeURIComponent(loaderData?.rulebook.slug ?? params.rulebookSlug)}${match.loaderDeps.editionNumber === undefined ? '' : `?edition=${match.loaderDeps.editionNumber}`}`,
+      description: loaderData
+        ? `${loaderData.ruleset.name}. Edition ${loaderData.edition.edition_number}. Read the published Rulebook on Dune Zone.`
+        : '',
+      image: loaderData?.edition.first_page_image_url,
+      social: { kind: 'Rulebook', shape: 'portrait' },
+      match,
+    }),
   pendingComponent: () => (
     <PageMessage title="Rulebook">
       <LoadPending title="Loading Rulebook">Loading the selected Edition.</LoadPending>
@@ -228,6 +245,7 @@ function RulebookReaderPage() {
     editionNumber: search.edition,
     initialData,
   });
+  useLivePageTitle(data?.rulebook.name);
   if (!data) {
     return (
       <PageMessage
@@ -500,7 +518,7 @@ function RulebookReader({ data }: Readonly<{ data: ReaderData }>) {
     {
       key: 'published',
       icon: <CalendarPlus size={17} aria-hidden />,
-      value: formatRelativeDate(data.edition.created_at),
+      value: formatStableDate(data.edition.created_at),
       label: `Published ${formatStableDate(data.edition.created_at)}`,
     },
     {

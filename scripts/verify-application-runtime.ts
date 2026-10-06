@@ -27,7 +27,8 @@ try {
   assert.match(sitemap.headers.get('Content-Type') ?? '', /application\/xml/);
   assert.ok((await sitemap.text()).includes('https://dune.zone/sitemap-factions.xml'));
   assert.equal((await worker.fetch('/sitemap-missing.xml')).status, 404);
-  const pages = ['/', '/factions', '/assets', '/assets/token-disc'];
+  const pages = ['/', '/factions', '/assets', '/assets/token-disc', '/rulesets'];
+  let rulebookPage: string | undefined;
   for (const pathname of pages) {
     const response = await worker.fetch(pathname, { headers: { Cookie: 'private=must-not-reach-ssr' } });
     assert.equal(response.status, 200, pathname);
@@ -41,15 +42,29 @@ try {
     assert.equal(hit.headers.get('X-Public-Cache'), 'hit', pathname);
     assert.equal(hit.headers.get('X-Public-Metadata-Queries'), '0', pathname);
     assert.equal(await hit.text(), html, pathname);
-    if (pathname === '/factions' || pathname === '/assets/token-disc') {
+    if (pathname === '/factions' || pathname === '/assets/token-disc' || pathname === '/rulesets') {
       const links = [...html.matchAll(/<a[^>]+href="([^"]+)"/g)].map((match) => match[1]!);
-      const detail = links.find((href) =>
-        pathname === '/factions'
-          ? /^\/factions\/(?!create(?:\/|$))[^/?]+\/?$/.test(href)
-          : /^\/assets\/token-disc\/(?!create(?:\/|$))[^/?]+\/?$/.test(href)
-      );
-      assert.ok(detail, `${pathname} has no ordinary detail link`);
-      pages.push(detail);
+      if (pathname === '/rulesets') {
+        const details = [...new Set(links.filter((href) => /^\/rulesets\/(?!create(?:\/|$))[^/?]+\/?$/.test(href)))];
+        assert.ok(details.length, `${pathname} has no ordinary detail link`);
+        pages.push(...details);
+      } else {
+        const detail = links.find((href) =>
+          pathname === '/factions'
+            ? /^\/factions\/(?!create(?:\/|$))[^/?]+\/?$/.test(href)
+            : /^\/assets\/token-disc\/(?!create(?:\/|$))[^/?]+\/?$/.test(href)
+        );
+        assert.ok(detail, `${pathname} has no ordinary detail link`);
+        pages.push(detail);
+      }
+    }
+    if (/^\/rulesets\/[^/]+\/?$/.test(pathname) && !rulebookPage) {
+      rulebookPage = [...html.matchAll(/<a[^>]+href="([^"]+)"/g)]
+        .map((match) => match[1]!)
+        .find((href) => /^\/rulesets\/[^/]+\/rulebooks\/(?!create(?:\/|$))[^/?]+\/?$/.test(href));
+      if (rulebookPage) {
+        pages.push(rulebookPage, `${rulebookPage}?edition=1`);
+      }
     }
     if (pathname !== '/') {
       assert.match(html, /<h1[\s>]/, `${pathname} has no rendered heading`);
@@ -101,20 +116,29 @@ try {
       await asset.body?.cancel();
     }
   }
-  for (const pathname of [
+  assert.ok(rulebookPage, 'No Ruleset has a published Rulebook link');
+  const browserOnlyPages = [
     '/factions/create',
     '/factions/testfaction/edit',
     '/assets/token-disc/create',
+    '/rulesets/create',
+    '/rulesets/dreamrules/edit',
+    '/rulesets/dreamrules/rulebooks/create',
+    '/rulesets/dreamrules/rulebooks/dream-rulebook/edit',
     '/auth/login',
     '/play',
-  ]) {
+  ];
+  for (const pathname of browserOnlyPages) {
     const response = await worker.fetch(pathname);
     assert.equal(response.status, 200, pathname);
     assert.equal(response.headers.get('X-Application-Release'), null, pathname);
     await response.body?.cancel();
   }
   for (const pathname of [
+    `${rulebookPage}?edition=${Number.MAX_SAFE_INTEGER}`,
     '/assets/token-disc/__ssr_missing_asset__',
+    '/rulesets/__ssr_missing_ruleset__',
+    '/rulesets/__ssr_missing_ruleset__/rulebooks/__ssr_missing_rulebook__',
     '/factions/missing/extra',
     '/assets/unknown-type/missing/extra',
   ]) {
@@ -125,7 +149,14 @@ try {
   const capture = await worker.fetch('/publisher-capture.html');
   assert.equal(capture.status, 404);
   await capture.body?.cancel();
-  console.log(JSON.stringify({ ok: true, publicPages: pages.length, browserOnlyPages: 5, captureProtected: true }));
+  console.log(
+    JSON.stringify({
+      ok: true,
+      publicPages: pages.length,
+      browserOnlyPages: browserOnlyPages.length,
+      captureProtected: true,
+    })
+  );
 } finally {
   await worker.stop();
 }

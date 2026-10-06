@@ -1,4 +1,5 @@
 import preview from '@sb/preview';
+import { waitForFrame } from '@sb/storyWaits';
 import { TABLE_PHASES } from '@shared/play/phases';
 import { spiceBankSlot } from '@shared/play/spiceBank';
 import { BOARD_RADIUS, BOARD_SURFACE_Y, stackTopHeight } from '@shared/play/tableGeometry';
@@ -240,16 +241,17 @@ export const WheelTakesACloseLook = meta.story({
 
     expect(turnWheel(300, true)).toBe(false);
     expect(turnWheel(300)).toBe(true);
-    await waitFor(() => expect(deckPlacement()).not.toBe(approved));
+    await waitForFrame(() => expect(deckPlacement()).not.toBe(approved));
     const closer = deckPlacement();
     turnWheel(300);
-    await waitFor(() => expect(deckPlacement()).not.toBe(closer));
+    await waitForFrame(() => expect(deckPlacement()).not.toBe(closer));
 
     /* Backing out ends at the view's own pose, and holds there however far the wheel turns. */
     for (let turn = 0; turn < 4; turn++) {
       turnWheel(-600);
     }
-    await waitFor(() => expect(deckPlacement()).toBe(approved));
+    /* The glide needs frames to finish even when the runner draws them late (#1900). */
+    await waitForFrame(() => expect(deckPlacement()).toBe(approved));
     turnWheel(-600);
     await new Promise((resolve) => setTimeout(resolve, 100));
     expect(deckPlacement()).toBe(approved);

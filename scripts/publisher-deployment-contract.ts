@@ -112,6 +112,8 @@ export function validatePublisherDeployContract(config: JsonObject, environment:
         '/sitemap*',
         '/factions',
         '/factions/*',
+        '/rulesets',
+        '/rulesets/*',
         '/assets',
         '/assets/*',
       ],

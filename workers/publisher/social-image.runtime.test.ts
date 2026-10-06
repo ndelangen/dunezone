@@ -69,7 +69,7 @@ test('renders bounded PNGs from local publications with zero outbound requests',
       modulesRoot: directory,
       compatibilityDate: '2026-07-17',
       compatibilityFlags: ['nodejs_compat'],
-      r2Buckets: ['ASSET_BUCKET'],
+      r2Buckets: ['ASSET_BUCKET', 'USER_IMAGE_BUCKET'],
       outboundService: () => {
         outboundRequests += 1;
         return new Response('Unexpected network', { status: 500 });
@@ -98,6 +98,26 @@ test('renders bounded PNGs from local publications with zero outbound requests',
       expect(await sharp(png).metadata()).toMatchObject({ format: 'png', width: 1200, height: 630 });
       return png;
     };
+    const cover = await sharp({ create: { width: 840, height: 1188, channels: 3, background: '#ff0000' } })
+      .jpeg()
+      .toBuffer();
+    const coverKey = 'rulebooks/abcdefghijklmnop/first-page.jpg';
+    await bucket.put(coverKey, cover);
+    const userImages = await mf.getR2Bucket('USER_IMAGE_BUCKET');
+    const userKey = 'a'.repeat(64) + '.jpg';
+    await userImages.put(userKey, cover);
+    for (const image of [`/published/${coverKey}`, `/user-images/${userKey}`]) {
+      const png = await render(
+        socialCardHref({ name: 'Dream Rulebook', kind: 'Rulebook', description: 'Dreamrules. Edition 2.', image })
+      );
+      const pixel = await sharp(png)
+        .extract({ left: 920, top: 300, width: 1, height: 1 })
+        .removeAlpha()
+        .raw()
+        .toBuffer();
+      expect(pixel[0]).toBeGreaterThan(240);
+      expect(pixel[1]).toBeLessThan(15);
+    }
     const original = await render(socialCardHref(input));
     const cachedFetch = (href: string) =>
       mf.dispatchFetch('https://dune.zone' + href, { headers: { 'X-Test-Cache': '1' } });
