@@ -177,6 +177,7 @@ export const OverflowHandoff = meta.story({
     await userEvent.click(load);
     const search = await waitForFrame(() => page.getByRole('searchbox', { name: 'Search cards' }));
     await expect(finishTransitions(search)).toBeVisible();
+    await expect(page.getByRole('dialog', { name: 'Load existing card' })).toBeVisible();
     await waitForFrame(() => expect(more).toHaveAttribute('aria-expanded', 'false'));
     await waitForFrame(() => expect(search).toHaveFocus());
     await userEvent.click(page.getByRole('button', { name: 'Cancel' }));

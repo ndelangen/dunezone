@@ -127,6 +127,7 @@ export function CardCreateFrame<Draft>({
           styles={{ dropdown: { maxWidth: 'calc(100vw - 16px)' } }}
           shadow="md"
           withArrow
+          withRoles={false}
           trapFocus
           returnFocus={false}
         >
@@ -169,7 +170,7 @@ export function CardCreateFrame<Draft>({
               />
             </div>
           </Popover.Target>
-          <Popover.Dropdown role="dialog" aria-label="Load existing card">
+          <Popover.Dropdown id={`${loadId}-dropdown`} role="dialog" aria-label="Load existing card" tabIndex={-1}>
             {loading ? (
               <CardLoadPicker type={type} disabled={status.saveState === 'saving'} load={load} onClose={closeLoad} />
             ) : null}
