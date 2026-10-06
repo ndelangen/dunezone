@@ -1,5 +1,5 @@
 import preview from '@sb/preview';
-import { fn } from 'storybook/test';
+import { expect, fn, within } from 'storybook/test';
 
 import { backgroundPresets } from '@game/data/backgrounds';
 
@@ -33,7 +33,26 @@ const meta = preview.meta({
 });
 
 /** A stored value matching a preset selects that preset's tile. */
-export const OnAPreset = meta.story({});
+export const OnAPreset = meta.story({
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const choices = canvas.getAllByRole('radio');
+    const bounds = choices.map((choice) => choice.parentElement!.getBoundingClientRect());
+    for (const box of bounds) {
+      await expect(Math.abs(box.width - bounds[0].width)).toBeLessThan(1);
+      await expect(Math.abs(box.height - bounds[0].height)).toBeLessThan(1);
+    }
+    const selected = canvas.getByRole('radio', { name: 'Weapon' });
+    const tile = selected.parentElement!;
+    const frame = tile.querySelector('div')!;
+    const picture = frame.querySelector('svg')!;
+    const edge = frame.getBoundingClientRect();
+    const art = picture.getBoundingClientRect();
+    const border = Number.parseFloat(getComputedStyle(frame).borderLeftWidth);
+    await expect(art.left).toBeGreaterThanOrEqual(edge.left + border - 0.1);
+    await expect(art.right).toBeLessThanOrEqual(edge.right - border + 0.1);
+  },
+});
 
 /** Five tiles, the count that made the row wrap before it became a shared `1fr` grid. */
 export const FiveTiles = meta.story({

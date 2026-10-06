@@ -38,9 +38,8 @@ test('custom cards save their ordered composition, publish it and join mixed dec
       }),
     ])
   );
-  const { icon: _icon, ...withoutIcon } = publishingCustomCard;
   const updated = {
-    ...withoutIcon,
+    ...publishingCustomCard,
     name: 'Window reference',
     format: 'decal-window',
     layers: [...publishingCustomCard.layers].reverse(),
@@ -64,6 +63,7 @@ test('custom card writes enforce author access and reject invalid layer content'
   ).rejects.toThrow('Not authorized');
   for (const update of [
     { format: 'square' },
+    { icon: undefined },
     { layers: [publishingCustomCard.layers[0], publishingCustomCard.layers[0]] },
     { layers: [{ ...publishingCustomCard.layers[0], color: 'url(https://example.com)' }] },
     { layers: [{ ...publishingCustomCard.layers[0], width: 0 }] },
@@ -71,6 +71,27 @@ test('custom card writes enforce author access and reject invalid layer content'
   ]) {
     await expect(
       owner.mutation(api.assets.update, { id: created.id, data: { ...publishingCustomCard, ...update } })
+    ).rejects.toThrow();
+  }
+  expect((await t.query(api.assets.getPage, { type: 'card-custom', slug: created.slug }))?.asset.data).toEqual(
+    publishingCustomCard
+  );
+});
+
+test('custom card composition limits reject oversized saves without changing the asset', async () => {
+  const t = convexTest(schema, modules);
+  const ownerId = await t.run((ctx) => ctx.db.insert('users', { name: 'Creator' }));
+  const owner = t.withIdentity({ subject: ownerId });
+  const created = await owner.mutation(api.assets.create, { type: 'card-custom', data: publishingCustomCard });
+  const decal = publishingCustomCard.layers[1];
+  const text = publishingCustomCard.layers[0];
+  for (const layers of [
+    Array.from({ length: 257 }, () => ({ ...decal, layerId: crypto.randomUUID() })),
+    [{ ...text, content: 'a'.repeat(16_385) }],
+    Array.from({ length: 20 }, () => ({ ...text, layerId: crypto.randomUUID(), content: 'a'.repeat(16_384) })),
+  ]) {
+    await expect(
+      owner.mutation(api.assets.update, { id: created.id, data: { ...publishingCustomCard, layers } })
     ).rejects.toThrow();
   }
   expect((await t.query(api.assets.getPage, { type: 'card-custom', slug: created.slug }))?.asset.data).toEqual(

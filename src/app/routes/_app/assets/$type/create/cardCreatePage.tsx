@@ -58,7 +58,7 @@ export function CardCreateFrame({
   /** The page title before the card has a name, e.g. "New spice card". */
   title: string;
   headerSlot: ReactNode;
-  status: { isDirty: boolean; isNameBlank: boolean; saveState: AuthoringSaveState };
+  status: { isDirty: boolean; isNameBlank: boolean; saveState: AuthoringSaveState; invalid?: string };
   onSave: () => void;
   onReset: () => void;
   saveError: Error | null;

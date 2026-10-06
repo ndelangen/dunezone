@@ -93,7 +93,10 @@ function captureSubject(snapshot: PublisherCaptureSnapshot): CaptureSubject {
     case 'card-treachery':
       return printedImage(snapshot.assetType, <TreacheryCard {...snapshot.payload.card} />);
     case 'card-custom':
-      return printedImage(snapshot.assetType, <CustomCard {...snapshot.payload.card} />);
+      return printedImage(
+        snapshot.assetType,
+        <CustomCard {...snapshot.payload.card} tokens={snapshot.payload.tokens} />
+      );
     case 'card-spice':
       return printedImage(snapshot.assetType, <SpiceCard {...snapshot.payload.card} />);
     case 'faction-token':

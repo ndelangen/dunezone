@@ -11,6 +11,10 @@ export const publishingCustomCard: z.infer<typeof CustomCardAsset> = {
   format: 'plain',
   head: publishingTreacheryCard.head,
   icon: publishingTreacheryCard.icon,
+  iconScale: 1.5,
+  iconOffset: [10, -7],
+  iconInvert: true,
+  iconOpacity: 0.8,
   layers: [
     {
       kind: 'text',

@@ -1,20 +1,32 @@
+import type { CustomCardTokens } from '@shared/assets/schema';
 import type { z } from 'zod';
 
 import type { CustomCard as CustomCardSchema } from '../../data/objects';
 import { card } from '../../data/sizes';
-import { BackgroundRenderer } from '../utils/BackgroundRenderer';
 import { FormattedText } from '../utils/FormattedText';
 import { StrokedUse } from '../utils/StrokedUse';
-import { cardTitleFontSize } from './cardTitleFontSize';
+import { CardHeadBackground, CardHeadContents } from './CardHead';
+import { CardToken } from './CardToken';
 import styles from './Custom.module.css';
 
 /** Draws the standard Head over the selected frame and the author's ordered layers. */
-export function CustomCard({ name, subName, format, head, icon, layers }: z.infer<typeof CustomCardSchema>) {
+export function CustomCard({
+  name,
+  subName,
+  format,
+  head,
+  icon,
+  iconScale = 1,
+  iconOffset = [0, 0],
+  iconInvert,
+  iconOpacity = 1,
+  layers,
+  tokens = {},
+}: z.infer<typeof CustomCardSchema> & { tokens?: z.infer<typeof CustomCardTokens> }) {
   return (
     <div className={styles.card}>
       <div className={styles.windowBackground} />
-      <BackgroundRenderer className={styles.head} background={head} />
-      <div className={styles.headShade} />
+      <CardHeadBackground head={head} />
       <div
         className={styles.frame}
         style={{ backgroundImage: `url('/image/card/${format === 'plain' ? 'base-full' : 'base-decal'}-large.webp')` }}
@@ -41,6 +53,23 @@ export function CustomCard({ name, subName, format, head, icon, layers }: z.infe
               />
             </g>
           </svg>
+        ) : layer.kind === 'token' ? (
+          tokens[layer.asset_id] ? (
+            <div
+              key={layer.layerId}
+              className={styles.token}
+              style={{
+                left: card.width / 2 + layer.offset[0],
+                top: card.height / 2 + layer.offset[1],
+                width: 300 * layer.scale,
+                height: (tokens[layer.asset_id]!.type === 'token-enhance' ? 186 : 300) * layer.scale,
+                opacity: layer.opacity,
+                transform: `translate(-50%, -50%) rotate(${layer.rotation}deg)`,
+              }}
+            >
+              <CardToken token={tokens[layer.asset_id]!} />
+            </div>
+          ) : null
         ) : (
           <div
             key={layer.layerId}
@@ -62,15 +91,15 @@ export function CustomCard({ name, subName, format, head, icon, layers }: z.infe
           </div>
         )
       )}
-      {icon ? (
-        <BackgroundRenderer className={styles.icon} background={icon[0]}>
-          <img className={styles.iconImage} src={icon[1]} alt="" />
-        </BackgroundRenderer>
-      ) : null}
-      <div className={styles.title} style={{ fontSize: cardTitleFontSize(name) }}>
-        {name}
-      </div>
-      <div className={styles.subtitle}>{subName}</div>
+      <CardHeadContents
+        name={name}
+        subName={subName}
+        icon={icon}
+        iconOffset={iconOffset}
+        iconScale={iconScale}
+        iconInvert={iconInvert}
+        iconOpacity={iconOpacity}
+      />
     </div>
   );
 }

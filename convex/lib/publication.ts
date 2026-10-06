@@ -32,6 +32,7 @@ import { authoredCardback, DeckAsset, RectangleTokenAsset, TokenAsset } from '..
 import { HistoricalFactionPublicationSchema } from '../../src/shared/factions/schema';
 import type { Id } from '../_generated/dataModel';
 import type { MutationCtx, QueryCtx } from '../_generated/server';
+import { customCardTokenIds, customCardPublicationError, resolveCustomCardTokens } from './customCardTokens';
 
 type PublicationReadCtx = Pick<QueryCtx, 'db'> | Pick<MutationCtx, 'db'>;
 
@@ -204,13 +205,43 @@ export async function enqueueAssetPublication(
   switch (asset.type) {
     case TREACHERY_CARD_ASSET_TYPE:
     case SPICE_CARD_ASSET_TYPE:
-    case CUSTOM_CARD_ASSET_TYPE:
       return await enqueuePublicationJob(ctx, {
         assetType: asset.type,
         assetId: asset._id,
         assetData: { assetId: asset._id, slug: asset.slug, card: asset.data },
         now,
       });
+    case CUSTOM_CARD_ASSET_TYPE: {
+      const ids = customCardTokenIds(asset.data);
+      const resolved = ids.length ? await resolveCustomCardTokens(ctx, ids) : undefined;
+      const error = resolved ? customCardPublicationError(asset.data, resolved) : null;
+      if (error) {
+        const jobs = await publicationJobsForAsset(ctx, asset.type, asset._id);
+        for (const job of jobs) {
+          if (job.status !== 'in_progress') {
+            await ctx.db.delete(job._id);
+          }
+        }
+        const timestamp = now ?? Date.now();
+        return await ctx.db.insert('publication_jobs', {
+          asset_type: asset.type,
+          asset_id: asset._id,
+          asset_data: { assetId: asset._id, slug: asset.slug, card: asset.data },
+          status: 'error',
+          error,
+          attempt_counter: 0,
+          created_at: timestamp,
+          updated_at: timestamp,
+        });
+      }
+      const tokens = resolved?.tokens;
+      return await enqueuePublicationJob(ctx, {
+        assetType: asset.type,
+        assetId: asset._id,
+        assetData: { assetId: asset._id, slug: asset.slug, card: asset.data, ...(tokens ? { tokens } : {}) },
+        now,
+      });
+    }
     /*
      * The Cardback is lifted out of the stored deck here rather than carried whole, so the payload is exactly the publication's input.
      * `parseAssetDataForWrite` already validated this row on the way in, so the parse is a total function rather than a guard.

@@ -40,6 +40,18 @@ export function newCardDecal(layerId = crypto.randomUUID()): Extract<CardLayer, 
   };
 }
 
+export function newCardToken(asset_id: string): Extract<CardLayer, { kind: 'token' }> {
+  return {
+    kind: 'token',
+    layerId: crypto.randomUUID(),
+    asset_id,
+    offset: [0, -161.5],
+    scale: 1,
+    opacity: 1,
+    rotation: 0,
+  };
+}
+
 export const CUSTOM_CARD_PRESETS = [
   {
     key: 'treachery',

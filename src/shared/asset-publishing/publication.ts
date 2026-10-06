@@ -1,6 +1,14 @@
 import { z } from 'zod';
 
-import { CustomCardAsset, CardBack, RectangleTokenFace, SpiceAsset, TokenFace, TreacheryAsset } from '../assets/schema';
+import {
+  CustomCardAsset,
+  CustomCardTokens,
+  CardBack,
+  RectangleTokenFace,
+  SpiceAsset,
+  TokenFace,
+  TreacheryAsset,
+} from '../assets/schema';
 import {
   FactionRowSlugSchema,
   HeroKeyedHistoricalFactionObject,
@@ -82,6 +90,7 @@ export const customCardAssetDataSchema = z.strictObject({
   assetId: z.string().min(1),
   slug: z.string().min(1),
   card: CustomCardAsset,
+  tokens: CustomCardTokens.optional(),
 });
 
 /** The same envelope for a spice card, whose stored shape is the renderer's props plus its About. */

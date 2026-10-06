@@ -14,6 +14,10 @@ import {
 import { resolvePublicationCapture } from '../../src/shared/asset-publishing/publicationTargets';
 import { INITIAL_CARDBACK_PRESETS } from '../../src/shared/assets/cardbackPresets';
 import { publishingCustomCard } from '../../src/shared/assets/fixtures/publishingCustomCard';
+import {
+  publishingCustomCardTokens,
+  publishingCustomCardTokenLayers,
+} from '../../src/shared/assets/fixtures/publishingCustomCardTokens';
 import { publishingDeckCardback } from '../../src/shared/assets/fixtures/publishingDeckCardback';
 import { publishingRectangleTokenFace } from '../../src/shared/assets/fixtures/publishingRectangleTokenFace';
 import { publishingSpiceCard } from '../../src/shared/assets/fixtures/publishingSpiceCard';
@@ -528,7 +532,12 @@ try {
       envelope('card-custom', {
         assetId: 'k17publisherCustomCard',
         slug: 'custom-card',
-        card: { ...publishingCustomCard, format },
+        card: {
+          ...publishingCustomCard,
+          format,
+          layers: [...publishingCustomCard.layers, ...publishingCustomCardTokenLayers],
+        },
+        tokens: publishingCustomCardTokens,
       }),
       `custom card ${format}`
     );

@@ -44,6 +44,7 @@
  * does to the stacking order. That is why this is `pointer-events` and not `z-index`.
  */
 .frame {
+  position: relative;
   display: flex;
   overflow: hidden;
   flex-direction: column;
