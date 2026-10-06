@@ -5,7 +5,7 @@ import { RULEBOOK_PDF_MAX_BYTES } from '../../src/shared/rulebooks/pdfPublicatio
 import type { RulebookPdfCaptureBatch } from '../../src/shared/rulebooks/pdfPublication';
 import { getRulebookSize } from '../../src/shared/rulebooks/settings';
 import type { RulebookSize } from '../../src/shared/rulebooks/settings';
-import { inspectChromiumPdf } from './pdf-inspection';
+import { inspectChromiumPdf, inspectPublishedRulebookPdf } from './pdf-inspection';
 import { PUBLISHER_RENDERER_CONTRACT } from './renderer-contract';
 
 const { pdf: PDF_CONTRACT } = PUBLISHER_RENDERER_CONTRACT;
@@ -164,16 +164,28 @@ export async function composeRulebookPdf(
   output.setCreationDate(editionDate);
   output.setModificationDate(editionDate);
 
-  const bytes = await output.save({ addDefaultPage: false, useObjectStreams: false });
+  const bytes = await output.save({ addDefaultPage: false, useObjectStreams: true });
+  const inspection = await inspectPublishedRulebookPdf(bytes);
   if (bytes.byteLength === 0 || bytes.byteLength > RULEBOOK_PDF_MAX_BYTES) {
     throw new RulebookPdfGenerationError(`Rulebook PDF must be between 1 and ${RULEBOOK_PDF_MAX_BYTES} bytes`);
   }
-  const inspection = await inspectChromiumPdf(bytes);
   if (inspection.pageCount !== job.document.pageOrder.length) {
     throw new RulebookPdfGenerationError('Composed Rulebook PDF page count does not match its frozen Edition');
   }
   assertSize(inspection, job.document.settings.size);
-  const composed = await PDFDocument.load(bytes, { updateMetadata: false });
+  const composed = await PDFDocument.load(bytes, {
+    updateMetadata: false,
+    throwOnInvalidObject: true,
+    ignoreEncryption: false,
+  });
+  if (
+    composed.getPageCount() !== output.getPageCount() ||
+    composed
+      .getPages()
+      .some((page, index) => JSON.stringify(page.getMediaBox()) !== JSON.stringify(output.getPage(index).getMediaBox()))
+  ) {
+    throw new RulebookPdfGenerationError('Rulebook PDF object compression changed its Pages');
+  }
   if (JSON.stringify(pageResourceProfile(composed)) !== JSON.stringify(expectedProfiles)) {
     throw new RulebookPdfGenerationError('Rulebook PDF merge changed Page fonts, images, or links');
   }

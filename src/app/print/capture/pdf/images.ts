@@ -8,7 +8,7 @@ import type { Matrix } from './geometry';
 const name = PDFName.of;
 const MAX_IMAGE_PIXELS = 16_000_000;
 const IMAGE_PPI = 150;
-const IMAGE_QUALITY = 0.78;
+const IMAGE_QUALITY = 0.7;
 
 /** Uses each image's largest printed occurrence, including images inside transparency groups. */
 function imageResolutions(document: PDFDocument): Map<string, number> {
@@ -104,6 +104,26 @@ function dimensions(stream: PDFRawStream) {
   return { width: Number(stream.dict.get(name('Width'))), height: Number(stream.dict.get(name('Height'))) };
 }
 
+function hasColorSpace(stream: PDFRawStream, color: string): boolean {
+  const space = stream.dict.lookup(PDFName.of('ColorSpace'));
+  if (space === name(color)) {
+    return true;
+  }
+  if (
+    color !== 'DeviceRGB' ||
+    !(space instanceof PDFArray) ||
+    space.size() !== 2 ||
+    space.get(0) !== name('ICCBased') ||
+    stream.dict.get(name('Filter')) !== name('FlateDecode')
+  ) {
+    return false;
+  }
+  const profile = space.lookup(1);
+  return (
+    profile instanceof PDFRawStream && Number(profile.dict.get(name('N'))) === 3 && !profile.dict.has(name('Range'))
+  );
+}
+
 function eligibleImage(stream: PDFRawStream, color: string): boolean {
   const { width, height } = dimensions(stream);
   return (
@@ -113,7 +133,7 @@ function eligibleImage(stream: PDFRawStream, color: string): boolean {
     height > 0 &&
     width * height <= MAX_IMAGE_PIXELS &&
     Number(stream.dict.get(name('BitsPerComponent'))) === 8 &&
-    stream.dict.get(name('ColorSpace')) === name(color) &&
+    hasColorSpace(stream, color) &&
     ['DecodeParms', 'Decode', 'Matte', 'ImageMask', 'Mask'].every((key) => !stream.dict.has(name(key)))
   );
 }

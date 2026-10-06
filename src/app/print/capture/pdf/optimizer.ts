@@ -11,6 +11,7 @@ import { binaryBytes, binaryText } from './content';
 import { shareDrawings } from './drawings';
 import { compressImages } from './images';
 import { compactObjects, shareImages } from './objects';
+import { shareFilledPaths } from './paths';
 
 /** The browser owns the large input; the driver exchanges bounded chunks and receives only the compressed PDF. */
 export function createRulebookPdfOptimizer(): RulebookPdfOptimizer {
@@ -61,6 +62,7 @@ export function createRulebookPdfOptimizer(): RulebookPdfOptimizer {
         throw new Error('PDF capture has the wrong page count');
       }
       await shareDrawings(document);
+      await shareFilledPaths(document);
       await compressImages(document);
       await shareImages(document);
       await shareImages(document);

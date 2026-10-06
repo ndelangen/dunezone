@@ -35,6 +35,7 @@ export const RENDERER_RUNTIME_CLOSURE_PATHS = [
   'workers/publisher/rulebook-artifact-r2.ts',
   'workers/publisher/renderer-contract.ts',
   'workers/publisher/pdf-inspection.ts',
+  'workers/publisher/pdf-object-stream-inspection.ts',
   'workers/publisher/pdf-recompress.ts',
   'workers/publisher/image-encode.ts',
   'workers/publisher/image-inspection.ts',

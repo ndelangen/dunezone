@@ -1,6 +1,7 @@
 import { mkdir } from 'node:fs/promises';
 import path from 'node:path';
 
+import { PDFDocument } from 'pdf-lib';
 import { chromium } from 'playwright';
 import type { Browser, Page } from 'playwright';
 
@@ -36,7 +37,7 @@ import {
   waitForCaptureMarkerSettled,
 } from './capture-lifecycle';
 import { pngDimensions } from './image-inspection';
-import { inspectChromiumPdf } from './pdf-inspection';
+import { inspectChromiumPdf, inspectPublishedRulebookPdf } from './pdf-inspection';
 import { RECOMPRESSED_PDF_MAX_BYTES, recompressCapturedPdf } from './pdf-recompress';
 import { PUBLISHER_RENDERER_CONTRACT } from './renderer-contract';
 import { composeRulebookPdf } from './rulebook-pdf';
@@ -380,7 +381,23 @@ async function checkRulebookEditionPdf(browser: Browser, settings: RulebookSetti
     }
   }
   const composed = await composeRulebookPdf(job, captures);
-  const inspection = await inspectChromiumPdf(composed);
+  await inspectPublishedRulebookPdf(composed);
+  const parsed = await PDFDocument.load(composed, { updateMetadata: false, throwOnInvalidObject: true });
+  const inspection = {
+    pageCount: parsed.getPageCount(),
+    pageWidthMm: parsed.getPage(0).getWidth() / (72 / 25.4),
+    pageHeightMm: parsed.getPage(0).getHeight() / (72 / 25.4),
+  };
+  invariant(
+    parsed
+      .getPages()
+      .every(
+        (page) =>
+          Math.abs(page.getWidth() / (72 / 25.4) - widthMm) < 0.001 &&
+          Math.abs(page.getHeight() / (72 / 25.4) - heightMm) < 0.001
+      ),
+    'Compressed Rulebook Pages retain their dimensions'
+  );
   invariant(
     inspection.pageCount === job.document.pageOrder.length,
     `Rulebook Edition PDF produced ${inspection.pageCount} Pages`

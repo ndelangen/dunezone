@@ -7,7 +7,7 @@ import type { RulebookRenderPageByLayoutV1 } from '../../src/shared/rulebooks/re
 import { createRulebookRenderDocumentFixture } from '../../src/shared/rulebooks/renderDocument.fixture';
 import { getRulebookSize } from '../../src/shared/rulebooks/settings';
 import type { RulebookSize } from '../../src/shared/rulebooks/settings';
-import { inspectChromiumPdf } from './pdf-inspection';
+import { inspectPublishedRulebookPdf } from './pdf-inspection';
 import { composeRulebookPdf } from './rulebook-pdf';
 
 function fivePageDocument(size: RulebookSize = 'a4') {
@@ -109,7 +109,7 @@ describe('Rulebook PDF composition', () => {
     const [batch] = planRulebookPdfBatches(identity, document);
     const bytes = await capturedPdf([null]);
     const composed = await composeRulebookPdf(coverJob, [{ batch, bytes }]);
-    expect((await inspectChromiumPdf(composed)).pageCount).toBe(1);
+    expect((await inspectPublishedRulebookPdf(composed)).pageCount).toBe(1);
     const parsed = await PDFDocument.load(composed);
     expect(parsed.getPage(0).node.Resources()!.lookup(PDFName.XObject, PDFDict).keys()).toHaveLength(1);
 
@@ -190,11 +190,13 @@ describe('Rulebook PDF composition', () => {
         )
       );
       const dimensions = getRulebookSize(size);
-      const inspection = await inspectChromiumPdf(bytes);
-      expect(inspection.pageCount).toBe(5);
-      expect(inspection.pageWidthMm).toBeCloseTo(dimensions.widthMm, 12);
-      expect(inspection.pageHeightMm).toBeCloseTo(dimensions.heightMm, 12);
-      const parsed = await PDFDocument.load(bytes, { updateMetadata: false });
+      expect((await inspectPublishedRulebookPdf(bytes)).pageCount).toBe(5);
+      const parsed = await PDFDocument.load(bytes, { updateMetadata: false, throwOnInvalidObject: true });
+      expect(parsed.getPageCount()).toBe(5);
+      for (const page of parsed.getPages()) {
+        expect(page.getWidth() / (72 / 25.4)).toBeCloseTo(dimensions.widthMm, 12);
+        expect(page.getHeight() / (72 / 25.4)).toBeCloseTo(dimensions.heightMm, 12);
+      }
       expect(parsed.getTitle()).toBe('Field manual');
       expect(
         parsed.getPages().map((page) => {
