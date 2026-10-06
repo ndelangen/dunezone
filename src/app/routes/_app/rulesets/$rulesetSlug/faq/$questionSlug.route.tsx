@@ -47,7 +47,9 @@ export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/faq/$questionS
       name: loaderData ? questionTitle(loaderData.page.question.text) : 'FAQ question',
       pathname: `/rulesets/${encodeURIComponent(params.rulesetSlug)}/faq/${encodeURIComponent(params.questionSlug)}`,
       description: loaderData
-        ? `${loaderData.page.ruleset.name}. ${loaderData.page.answers.some((answer) => answer.accepted) ? 'Accepted answer available.' : 'Open question.'} ${publicDescription(loaderData.page.question.text)}`
+        ? publicDescription(
+            `${loaderData.page.ruleset.name}. ${loaderData.page.answers.some((answer) => answer.accepted) ? 'Accepted answer available.' : 'Open question.'} ${loaderData.page.question.text}`
+          )
         : '',
       social: { kind: 'FAQ question', shape: 'portrait' },
       match,

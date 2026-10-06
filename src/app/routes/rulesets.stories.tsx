@@ -44,7 +44,8 @@ export const Question = meta.story({
     ).resolves.toBeVisible();
     const navigation = within(page.getByRole('group', { name: 'Navigation' }));
     await expect(navigation.getByRole('link', { name: 'Back to ruleset' })).toBeVisible();
-    await expect(navigation.getByRole('button', { name: 'Edit question' })).toBeVisible();
+    /* Public loader data renders first; editing waits for the live viewer's capabilities. */
+    await expect(navigation.findByRole('button', { name: 'Edit question' })).resolves.toBeVisible();
     await expect(
       within(page.getByRole('group', { name: 'Question actions' })).getByRole('button', { name: 'Delete question' })
     ).toBeVisible();
