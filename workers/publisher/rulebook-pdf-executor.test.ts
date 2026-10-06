@@ -137,6 +137,32 @@ describe('Rulebook PDF executor', () => {
     expect(putImmutableRulebookArtifact).not.toHaveBeenCalled();
   });
 
+  test('fails rejected final output and continues with the next Edition', async () => {
+    const current = dependencies();
+    const next = { ...job, artifactId: 'artifact-two', editionId: 'edition-two', editionNumber: 2 };
+    const failure = new rulebookPdf.RulebookPdfGenerationError('Rulebook PDF finalization failed', {
+      cause: new Error('Compressed PDF object data exceeds its bound'),
+    });
+    vi.mocked(rulebookPdf.composeRulebookPdf).mockRejectedValueOnce(failure);
+    await expect(executeRulebookPdfWork(config, [job, next], current.dependencies)).resolves.toMatchObject({
+      completed: 1,
+      failed: 1,
+      unprocessed: 0,
+      browserClosed: true,
+    });
+    expect(current.failRulebookPdf).toHaveBeenCalledExactlyOnceWith('pdf', job.artifactId, failure, expect.any(Number));
+    expect(current.completeRulebookPdf).toHaveBeenCalledExactlyOnceWith('pdf', next.artifactId, expect.any(Number));
+    expect(putImmutableRulebookArtifact).toHaveBeenCalledExactlyOnceWith(
+      {},
+      'pdf',
+      next,
+      new Uint8Array([1, 2, 3]),
+      'renderer-one'
+    );
+    expect(removeRulebookPdfCapture).toHaveBeenCalledTimes(2);
+    expect(current.close).toHaveBeenCalledOnce();
+  });
+
   test('defers an Edition when staging consumes the remaining work window', async () => {
     let clock = 0;
     vi.mocked(stageRulebookPdfCapture).mockImplementation(async () => {

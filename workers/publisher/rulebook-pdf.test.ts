@@ -8,7 +8,7 @@ import { createRulebookRenderDocumentFixture } from '../../src/shared/rulebooks/
 import { getRulebookSize } from '../../src/shared/rulebooks/settings';
 import type { RulebookSize } from '../../src/shared/rulebooks/settings';
 import { inspectPublishedRulebookPdf } from './pdf-inspection';
-import { composeRulebookPdf } from './rulebook-pdf';
+import { composeRulebookPdf, RulebookPdfGenerationError } from './rulebook-pdf';
 
 function fivePageDocument(size: RulebookSize = 'a4') {
   const fixture = createRulebookRenderDocumentFixture();
@@ -78,6 +78,17 @@ function jobFor(size: RulebookSize = 'a4') {
 }
 
 describe('Rulebook PDF composition', () => {
+  test('classifies a bounded capture rejected by final object-stream inspection as a document failure', async () => {
+    const { job, batches } = jobFor();
+    const source = await PDFDocument.load(await capturedPdf(job.document.pageOrder));
+    source.catalog.set(PDFName.of('CaptureNote'), PDFString.of('x'.repeat(8 * 1024 * 1024 + 1)));
+    const bytes = await source.save({ useObjectStreams: false });
+    await expect(composeRulebookPdf(job, [{ batch: batches[0], bytes }])).rejects.toMatchObject({
+      constructor: RulebookPdfGenerationError,
+      cause: { message: 'Compressed PDF object data exceeds its bound' },
+    });
+  });
+
   test('allows an image-only Cover while retaining the font check for visible text', async () => {
     const cover: RulebookRenderPageByLayoutV1<'cover'> = {
       id: 'CVER',

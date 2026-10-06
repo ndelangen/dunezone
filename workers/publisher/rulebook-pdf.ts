@@ -107,7 +107,7 @@ function fixedEditionDate(value: string) {
 }
 
 /** Finalizes one complete capture while retaining its catalog, tagged reading order, and links. */
-export async function composeRulebookPdf(
+async function finalizeCapturedRulebookPdf(
   job: AssignedRulebookArtifactJob<'pdf'>,
   capturedBatches: CapturedRulebookPdfBatch[]
 ): Promise<Uint8Array> {
@@ -223,4 +223,19 @@ export async function composeRulebookPdf(
     throw new RulebookPdfGenerationError('Every Rulebook PDF Page with text must carry an embedded font resource');
   }
   return bytes;
+}
+
+/** Classifies every deterministic capture-finalization failure before the executor decides whether to retry. */
+export async function composeRulebookPdf(
+  job: AssignedRulebookArtifactJob<'pdf'>,
+  capturedBatches: CapturedRulebookPdfBatch[]
+): Promise<Uint8Array> {
+  try {
+    return await finalizeCapturedRulebookPdf(job, capturedBatches);
+  } catch (error) {
+    if (error instanceof RulebookPdfGenerationError) {
+      throw error;
+    }
+    throw new RulebookPdfGenerationError('Rulebook PDF finalization failed', { cause: error });
+  }
 }
