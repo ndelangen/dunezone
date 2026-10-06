@@ -5,6 +5,25 @@
   aspect-ratio: 1;
 }
 
+.rulebooks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--mantine-spacing-xl) var(--mantine-spacing-lg);
+  container-type: inline-size;
+}
+
+.rulebookItem {
+  --rulebook-cover-width: calc(clamp(10rem, 40cqw, 16rem) * var(--rulebook-aspect));
+  flex: 0 0 auto;
+  width: max(8rem, var(--rulebook-cover-width));
+  min-width: 0;
+}
+
+.rulebookCover {
+  width: var(--rulebook-cover-width);
+  margin-inline: auto;
+}
+
 .rulebookCard {
   height: 100%;
   overflow: hidden;

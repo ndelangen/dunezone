@@ -49,6 +49,14 @@ describe('Rulebook current-Edition reader', () => {
     expect((await t.query(api.rulebooks.readerPage, locator))?.edition.contents).toEqual(created.edition.contents);
   });
 
+  test('offers deletion only to the Ruleset owner', async () => {
+    const { t, owner, member, outsider, locator } = await readerFixture();
+    expect((await owner.query(api.rulebooks.readerPage, locator))?.canDelete).toBe(true);
+    for (const reader of [t, member, outsider]) {
+      expect((await reader.query(api.rulebooks.readerPage, locator))?.canDelete).toBe(false);
+    }
+  });
+
   test('reads current and selected historical Editions without falling back to another Edition or draft', async () => {
     const { t, created, locator } = await readerFixture();
     const contents = structuredClone(created.edition.contents) as RulebookContentsV1;
