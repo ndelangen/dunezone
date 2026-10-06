@@ -437,7 +437,10 @@ export const slugTaken = query({
   returns: v.union(v.literal('live'), v.literal('deleted'), v.null()),
   handler: async (ctx, args) => {
     const holder = await assetSlugHolder(ctx, args.type, args.slug);
-    return holder ? (holder.is_deleted ? 'deleted' : 'live') : null;
+    if (!holder) {
+      return null;
+    }
+    return holder.is_deleted ? 'deleted' : 'live';
   },
 });
 
@@ -468,7 +471,8 @@ async function allocateAssetSlug(ctx: MutationCtx, type: string, base: string, o
     ...Array.from({ length: 4 }, (_, index) => `${base}-${first + index}`),
     ...Array.from(
       { length: 2 },
-      () => `${base}-${Math.random().toString(36).slice(2)}${Math.random().toString(36).slice(2)}`
+      () =>
+        `${base}-${Array.from(crypto.getRandomValues(new Uint8Array(12)), (byte) => byte.toString(16).padStart(2, '0')).join('')}`
     ),
   ];
   let chosen: string | undefined;
