@@ -216,23 +216,7 @@ export async function enqueueAssetPublication(
       const resolved = ids.length ? await resolveCustomCardTokens(ctx, ids) : undefined;
       const error = resolved ? customCardPublicationError(asset.data, resolved) : null;
       if (error) {
-        const jobs = await publicationJobsForAsset(ctx, asset.type, asset._id);
-        for (const job of jobs) {
-          if (job.status !== 'in_progress') {
-            await ctx.db.delete(job._id);
-          }
-        }
-        const timestamp = now ?? Date.now();
-        return await ctx.db.insert('publication_jobs', {
-          asset_type: asset.type,
-          asset_id: asset._id,
-          asset_data: { assetId: asset._id, slug: asset.slug, card: asset.data },
-          status: 'error',
-          error,
-          attempt_counter: 0,
-          created_at: timestamp,
-          updated_at: timestamp,
-        });
+        return await recordCardPublicationError(ctx, asset, error, now);
       }
       const tokens = resolved?.tokens;
       return await enqueuePublicationJob(ctx, {
@@ -277,6 +261,32 @@ export async function enqueueAssetPublication(
     default:
       return null;
   }
+}
+
+/** A failed dependency keeps its diagnostic without replacing an active capture or publishing incomplete artwork. */
+async function recordCardPublicationError(
+  ctx: MutationCtx,
+  asset: { _id: Id<'assets'>; type: string; slug: string; data: unknown },
+  error: string,
+  now?: number
+) {
+  const jobs = await publicationJobsForAsset(ctx, asset.type, asset._id);
+  for (const job of jobs) {
+    if (job.status !== 'in_progress') {
+      await ctx.db.delete(job._id);
+    }
+  }
+  const timestamp = now ?? Date.now();
+  return await ctx.db.insert('publication_jobs', {
+    asset_type: asset.type,
+    asset_id: asset._id,
+    asset_data: { assetId: asset._id, slug: asset.slug, card: asset.data },
+    status: 'error',
+    error,
+    attempt_counter: 0,
+    created_at: timestamp,
+    updated_at: timestamp,
+  });
 }
 
 /** Both token models store their faces the same way, so scheduling them is one function over whatever a face happens to be. */

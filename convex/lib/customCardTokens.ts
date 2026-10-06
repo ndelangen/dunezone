@@ -8,7 +8,7 @@ import {
   TokenAsset,
 } from '../../src/shared/assets/schema';
 import type { CustomCardTokens, CustomCardTokenResolution } from '../../src/shared/assets/schema';
-import type { Id } from '../_generated/dataModel';
+import type { Doc, Id } from '../_generated/dataModel';
 import type { MutationCtx, QueryCtx } from '../types';
 
 export const CUSTOM_CARD_TOKEN_RELATION = 'custom-card-token';
@@ -35,6 +35,26 @@ export function customCardTokenIds(data: unknown): string[] {
     : [];
 }
 
+function tokenFront(row: Doc<'assets'> | null): z.infer<typeof CustomCardTokens>[string] {
+  if (!row || row.is_deleted) {
+    return null;
+  }
+  switch (row.type) {
+    case 'token-enhance': {
+      const parsed = RectangleTokenAsset.safeParse(row.data);
+      return parsed.success ? { type: row.type, name: parsed.data.name, face: parsed.data.front } : null;
+    }
+    case 'token-disc':
+    case 'token-tech':
+    case 'token-plate': {
+      const parsed = TokenAsset.safeParse(row.data);
+      return parsed.success ? { type: row.type, name: parsed.data.name, face: parsed.data.front } : null;
+    }
+    default:
+      return null;
+  }
+}
+
 /** Missing targets stay explicit so editors can offer a replacement without losing the layer. */
 export async function resolveCustomCardTokens(
   ctx: Pick<QueryCtx, 'db'>,
@@ -49,24 +69,10 @@ export async function resolveCustomCardTokens(
   for (const raw of new Set(ids)) {
     const id = ctx.db.normalizeId('assets', raw);
     const row = id ? await ctx.db.get('assets', id) : null;
-    tokens[raw] = null;
-    if (!row || row.is_deleted) {
-      continue;
-    }
-    readBytes += new TextEncoder().encode(JSON.stringify(row.data)).length;
+    tokens[raw] = tokenFront(row);
+    readBytes += new TextEncoder().encode(JSON.stringify(row?.data ?? null)).length;
     if (readBytes > MAX_TOKEN_READ_BYTES) {
       return { tokens: {}, error: TOKEN_SIZE_ERROR };
-    }
-    if (row.type === 'token-enhance') {
-      const parsed = RectangleTokenAsset.safeParse(row.data);
-      if (parsed.success) {
-        tokens[raw] = { type: row.type, name: parsed.data.name, face: parsed.data.front };
-      }
-    } else if (row.type === 'token-disc' || row.type === 'token-tech' || row.type === 'token-plate') {
-      const parsed = TokenAsset.safeParse(row.data);
-      if (parsed.success) {
-        tokens[raw] = { type: row.type, name: parsed.data.name, face: parsed.data.front };
-      }
     }
     bytes += new TextEncoder().encode(JSON.stringify({ [raw]: tokens[raw] })).length;
     if (bytes > MAX_RESOLVED_TOKEN_BYTES) {
@@ -108,15 +114,16 @@ export async function syncCustomCardTokenRelations(ctx: MutationCtx, cardId: Id<
       await ctx.db.delete(relation._id);
     }
   }
-  for (const raw of ids) {
+  const additions = [...ids].flatMap((raw) => {
     const id = ctx.db.normalizeId('assets', raw);
-    if (id) {
-      await ctx.db.insert('asset_relations', {
-        from_asset_id: cardId,
-        to_asset_id: id,
-        kind: CUSTOM_CARD_TOKEN_RELATION,
-        count: 1,
-      });
-    }
+    return id ? [id] : [];
+  });
+  for (const id of additions) {
+    await ctx.db.insert('asset_relations', {
+      from_asset_id: cardId,
+      to_asset_id: id,
+      kind: CUSTOM_CARD_TOKEN_RELATION,
+      count: 1,
+    });
   }
 }

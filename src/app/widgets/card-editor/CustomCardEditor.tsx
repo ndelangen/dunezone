@@ -30,6 +30,11 @@ export type CustomCardMemory = CardHeadMemory;
 export const INITIAL_CUSTOM_CARD_MEMORY: CustomCardMemory = initialCardHeadMemory();
 
 type Patch = (update: Partial<CustomCardDraft>) => void;
+const LAYER_PRESENTATION = {
+  decal: { label: 'Decal', topic: 'decals' },
+  token: { label: 'Token', topic: 'token' },
+  text: { label: 'Text', topic: 'text' },
+} as const;
 
 function CardProof({ draft, tokens }: { draft: CustomCardDraft; tokens: z.infer<typeof CustomCardTokens> }) {
   return (
@@ -164,15 +169,8 @@ export function CustomCardEditor({
               },
               ...draft.layers.map((layer, index) => ({
                 value: `layer:${layer.layerId}` as CustomCardChapter,
-                label: `${index + 1}. ${layer.kind === 'decal' ? 'Decal' : layer.kind === 'token' ? 'Token' : 'Text'}`,
-                icon:
-                  layer.kind === 'decal' ? (
-                    <TopicIcon topic="decals" size={21} />
-                  ) : layer.kind === 'token' ? (
-                    <TopicIcon topic="token" size={21} />
-                  ) : (
-                    <TopicIcon topic="text" size={21} />
-                  ),
+                label: `${index + 1}. ${LAYER_PRESENTATION[layer.kind].label}`,
+                icon: <TopicIcon topic={LAYER_PRESENTATION[layer.kind].topic} size={21} />,
                 panel: (
                   <CustomCardLayerPanel
                     tokens={tokens}

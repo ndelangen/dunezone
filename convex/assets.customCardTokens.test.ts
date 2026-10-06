@@ -10,6 +10,18 @@ import schema from './schema';
 
 const modules = import.meta.glob('./**/*.ts');
 
+function tokenLayer(asset_id: string) {
+  return {
+    kind: 'token',
+    layerId: crypto.randomUUID(),
+    asset_id,
+    offset: [0, 0],
+    scale: 1,
+    opacity: 1,
+    rotation: 0,
+  };
+}
+
 test('linked token layers resolve current fronts and refresh immutable card captures', async () => {
   vi.useFakeTimers();
   try {
@@ -46,16 +58,16 @@ test('linked token layers resolve current fronts and refresh immutable card capt
     await owner.mutation(api.assets.update, { id: token.id, data: changed });
     await t.finishAllScheduledFunctions(vi.runAllTimers);
     const page = await owner.query(api.assets.getPage, { type: 'card-custom', slug: card.slug });
-    expect(page?.asset.data).toEqual(cardData);
-    expect(page?.cardTokens?.[token.id]?.face).toEqual(changed.front);
+    expect(page!.asset.data).toEqual(cardData);
+    expect(page!.cardTokens![token.id]!.face).toEqual(changed.front);
     const jobs = await t.run((ctx) =>
       ctx.db
         .query('publication_jobs')
         .withIndex('by_asset_type_and_asset_id', (q) => q.eq('asset_type', 'card-custom').eq('asset_id', card.id))
         .take(10)
     );
-    expect(jobs.find((job) => job._id === first._id)?.asset_data.tokens[token.id].face).toEqual(publishingTokenFace);
-    expect(jobs.find((job) => job.status === 'pending')?.asset_data.tokens[token.id].face).toEqual(changed.front);
+    expect(jobs.find((job) => job._id === first._id)!.asset_data.tokens[token.id].face).toEqual(publishingTokenFace);
+    expect(jobs.find((job) => job.status === 'pending')!.asset_data.tokens[token.id].face).toEqual(changed.front);
     await owner.mutation(api.assets.softDelete, { id: token.id });
     await t.finishAllScheduledFunctions(vi.runAllTimers);
     expect(
@@ -121,21 +133,13 @@ test('oversized linked artwork reports an error while other dependent cards keep
       type: 'token-disc',
       data: { ...tokenData, name: 'Large token', front: { ...publishingTokenFace, top: 'x'.repeat(270_000) } },
     });
-    const layer = (asset_id: string) => ({
-      kind: 'token',
-      layerId: crypto.randomUUID(),
-      asset_id,
-      offset: [0, 0],
-      scale: 1,
-      opacity: 1,
-      rotation: 0,
-    });
+
     const oversized = await owner.mutation(api.assets.create, {
       type: 'card-custom',
       data: {
         ...publishingCustomCard,
         name: 'Oversized after token edit',
-        layers: [layer(growing.id), layer(large.id)],
+        layers: [tokenLayer(growing.id), tokenLayer(large.id)],
       },
     });
     const cards: (typeof growing)[] = [];
@@ -143,7 +147,7 @@ test('oversized linked artwork reports an error while other dependent cards keep
       cards.push(
         await owner.mutation(api.assets.create, {
           type: 'card-custom',
-          data: { ...publishingCustomCard, name: `Dependent card ${index}`, layers: [layer(growing.id)] },
+          data: { ...publishingCustomCard, name: `Dependent card ${index}`, layers: [tokenLayer(growing.id)] },
         })
       );
     }
@@ -151,12 +155,16 @@ test('oversized linked artwork reports an error while other dependent cards keep
     await owner.mutation(api.assets.update, { id: growing.id, data: changed });
     await t.finishAllScheduledFunctions(vi.runAllTimers);
     const page = await owner.query(api.assets.getPage, { type: 'card-custom', slug: oversized.slug });
-    expect(page?.cardTokens).toEqual({});
-    expect(page?.cardTokensError).toContain('too large');
+    expect(page!.cardTokens).toEqual({});
+    expect(page!.cardTokensError).toContain('too large');
     await expect(
       owner.mutation(api.assets.create, {
         type: 'card-custom',
-        data: { ...publishingCustomCard, name: 'Too large to save', layers: [layer(growing.id), layer(large.id)] },
+        data: {
+          ...publishingCustomCard,
+          name: 'Too large to save',
+          layers: [tokenLayer(growing.id), tokenLayer(large.id)],
+        },
       })
     ).rejects.toThrow('too large');
     await t.run(async (ctx) => {
@@ -164,15 +172,15 @@ test('oversized linked artwork reports an error while other dependent cards keep
         .query('publication_jobs')
         .withIndex('by_asset_type_and_asset_id', (q) => q.eq('asset_type', 'card-custom').eq('asset_id', oversized.id))
         .unique();
-      expect(failed?.status).toBe('error');
-      expect(failed?.error).toContain('too large');
+      expect(failed!.status).toBe('error');
+      expect(failed!.error).toContain('too large');
       for (const card of cards) {
         const job = await ctx.db
           .query('publication_jobs')
           .withIndex('by_asset_type_and_asset_id', (q) => q.eq('asset_type', 'card-custom').eq('asset_id', card.id))
           .unique();
-        expect(job?.status).toBe('pending');
-        expect(job?.asset_data.tokens[growing.id].face).toEqual(changed.front);
+        expect(job!.status).toBe('pending');
+        expect(job!.asset_data.tokens[growing.id].face).toEqual(changed.front);
       }
     });
   } finally {
