@@ -2,7 +2,7 @@ import { ConvexError, v } from 'convex/values';
 
 import { factionExtraKey, storedFactionExtrasSchema } from '../src/shared/factions/extras';
 import type { FactionExtra } from '../src/shared/factions/extras';
-import type { Id } from './_generated/dataModel';
+import type { Doc, Id } from './_generated/dataModel';
 import { query } from './_generated/server';
 import { publicationStatusFor } from './assetPublishingStatus';
 import { liveAsset } from './assets';
@@ -41,6 +41,7 @@ import {
   enqueueFactionTokenPublication,
   enqueueFactionFaces,
 } from './lib/publication';
+import { allocateCounterSlug } from './lib/slugCounters';
 import { nowIso, slugify } from './lib/utils';
 import type { MutationCtx, QueryCtx } from './types';
 
@@ -68,7 +69,7 @@ async function factionSlugHolder(
 export const slugTaken = query({
   args: { slug: v.string() },
   returns: v.union(v.literal('live'), v.literal('deleted'), v.null()),
-  handler: async (ctx, args) => await factionSlugHolder(ctx, args.slug),
+  handler: async (ctx, args) => (args.slug === 'create' ? null : await factionSlugHolder(ctx, args.slug)),
 });
 
 async function assertFactionSlugAvailable(ctx: MutationCtx, slug: string, factionId?: Id<'factions'>) {
@@ -80,6 +81,26 @@ async function assertFactionSlugAvailable(ctx: MutationCtx, slug: string, factio
   if (holder === 'deleted') {
     throw new ConvexError(`The name is taken: "${slug}" stays reserved by a deleted faction. Pick a different name.`);
   }
+}
+
+async function resolveFactionSlug(ctx: MutationCtx, name: string, own?: Doc<'factions'>) {
+  const base = slugify(name);
+  if (base !== 'create') {
+    await assertFactionSlugAvailable(ctx, base, own?._id);
+    return base;
+  }
+  /* The creation route owns the base; keep an allocated address on later saves, and repair legacy holders of the base. */
+  if (own) {
+    if (slugify(own.data.name) === base && own.slug !== base) {
+      return own.slug;
+    }
+  }
+  return await allocateCounterSlug(ctx, `faction-slug:${JSON.stringify([base])}`, base, async (slug) => {
+    if (slug === 'create') {
+      return false;
+    }
+    return (await factionSlugHolder(ctx, slug, own?._id)) === null;
+  });
 }
 
 function factionDataForClient(data: unknown) {
@@ -327,8 +348,7 @@ export const create = mutation({
 
     const data = factionInputForWrite(args.data);
     await assertAddedFactionExtrasExist(ctx, data.extras, []);
-    const slug = slugify(data.name);
-    await assertFactionSlugAvailable(ctx, slug);
+    const slug = await resolveFactionSlug(ctx, data.name);
 
     const now = nowIso();
     const _id = await ctx.db.insert('factions', {
@@ -364,8 +384,7 @@ export const update = mutation({
     const access = await requireFactionUpdate(ctx, args.id, data);
     const identifiedData = factionInputForWrite(data, access.subject.data);
     await assertAddedFactionExtrasExist(ctx, data.extras, savedFactionExtras(access.subject.data));
-    const slug = slugify(data.name);
-    await assertFactionSlugAvailable(ctx, slug, args.id);
+    const slug = await resolveFactionSlug(ctx, data.name, access.subject);
 
     await ctx.db.patch(access.subject._id, {
       data: identifiedData,

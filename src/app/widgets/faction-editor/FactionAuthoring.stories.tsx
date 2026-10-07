@@ -1,6 +1,8 @@
 import { Box, Stack } from '@mantine/core';
 import preview from '@sb/preview';
+import { waitForFrame } from '@sb/storyWaits';
 import { useRef } from 'react';
+import { expect, userEvent, within } from 'storybook/test';
 
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
 
@@ -81,6 +83,32 @@ const meta = preview.meta({
 });
 
 export const Desktop = meta.story({});
+
+export const NameMustFormUrl = meta.story({
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const name = canvas.getByRole('textbox', { name: 'Faction name' });
+    const save = canvas.getByRole('button', { name: 'Save faction' });
+    const message = 'Faction name must contain at least one letter A-Z or number 0-9 to form its URL';
+    const openReview = async () => {
+      await userEvent.click(canvas.getByRole('button', { name: 'Review faction sheet' }));
+      await waitForFrame(() => expect(canvas.getByRole('img', { name: 'Faction shield preview' })).toBeVisible());
+    };
+    await openReview();
+    await userEvent.click(canvas.getByRole('button', { name: 'Return to editing' }));
+    await userEvent.clear(name);
+    await expect(name).toHaveValue('');
+    await expect(save).toHaveAttribute('aria-disabled', 'true');
+    await userEvent.type(name, '家族');
+    await expect(canvas.getByText(message, { exact: true })).toBeVisible();
+    await expect(save).toHaveAttribute('aria-disabled', 'true');
+    await openReview();
+    await userEvent.click(canvas.getByRole('button', { name: 'Return to editing' }));
+    await userEvent.type(name, ' 2');
+    await expect(canvas.queryByText(message, { exact: true })).not.toBeInTheDocument();
+    await expect(save).not.toHaveAttribute('aria-disabled', 'true');
+  },
+});
 
 export const Mobile = meta.story({
   name: 'Mobile authoring',

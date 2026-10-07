@@ -70,6 +70,17 @@ describe('faction authoring session', () => {
     expect(session.savedBaseline.name).toBe(baseline.name);
   });
 
+  test('a name without URL characters reports its field error before attempting a save', async () => {
+    const saveSpy = vi.fn(async (draft: unknown) => ({ data: draft, slug: 'saved' }) as FactionEntry);
+    const { session, savedEntries, errorsLog } = makeHarness({ save: saveSpy });
+    await session.persistDraft({ ...structuredClone(assetPublishingFaction), name: '家族' });
+    expect(saveSpy).not.toHaveBeenCalled();
+    expect(savedEntries).toHaveLength(0);
+    expect(errorsLog.at(-1)).toEqual([
+      'name: Faction name must contain at least one letter A-Z or number 0-9 to form its URL',
+    ]);
+  });
+
   test('loading a draft stays local: marks dirty, resets errors, never saves', () => {
     const { session, form, formResets, persistenceReset, savedEntries } = makeHarness();
     const loaded = { ...structuredClone(assetPublishingFaction), name: 'Loaded B' };

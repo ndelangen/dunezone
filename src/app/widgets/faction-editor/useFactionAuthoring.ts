@@ -1,4 +1,5 @@
 import { ensureFactionComponentIds } from '@shared/factions/componentIdentity';
+import { FactionNameSchema } from '@shared/factions/schema';
 import { useForm, useStore } from '@tanstack/react-form';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -113,12 +114,19 @@ export function useFactionAuthoring({
     session.switchSource(initialData);
   }, [initialData, session, sessionKey]);
 
-  const editing = useStore(form.store, (state) => ({
-    isDirty: state.isDirty,
-    isNameBlank: state.values.name.trim().length === 0,
-    invalid: invalidPhasesMessage(invalidPhaseRowCount(state.values)),
-    warnings: factionAuthoringWarnings(state.values),
-  }));
+  const editing = useStore(form.store, (state) => {
+    const isNameBlank = state.values.name.trim().length === 0;
+    const parsedName = FactionNameSchema.safeParse(state.values.name);
+    return {
+      isDirty: state.isDirty,
+      isNameBlank,
+      invalid:
+        !isNameBlank && !parsedName.success
+          ? parsedName.error.issues[0]?.message
+          : invalidPhasesMessage(invalidPhaseRowCount(state.values)),
+      warnings: factionAuthoringWarnings(state.values),
+    };
+  });
 
   const loadDraft = useCallback((draft: Faction) => session.loadDraft(draft), [session]);
   const reset = useCallback(() => session.reset(), [session]);

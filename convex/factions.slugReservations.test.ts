@@ -20,7 +20,9 @@ async function authenticatedTest() {
   const userId = await t.run(
     async (ctx) => await ctx.db.insert('users', { name: 'Faction slug reservation test user' })
   );
-  return { t, asUser: t.withIdentity({ subject: userId }) };
+  const asUser = t.withIdentity({ subject: userId });
+  await asUser.mutation(api.profiles.bootstrapCurrent, {});
+  return { t, asUser };
 }
 
 async function createFaction(asUser: Awaited<ReturnType<typeof authenticatedTest>>['asUser'], name: string) {
@@ -31,6 +33,52 @@ async function createFaction(asUser: Awaited<ReturnType<typeof authenticatedTest
 }
 
 describe('faction slug reservations', () => {
+  test('creation and rename allocate usable addresses around the reserved create route', async () => {
+    const { asUser } = await authenticatedTest();
+    const occupied = await createFaction(asUser, 'Create 1');
+    await asUser.mutation(api.factions.softDelete, { id: occupied._id });
+    const created = await createFaction(asUser, 'Create');
+    expect(created.slug).toBe('create-2');
+    expect((await asUser.query(api.factions.getBySlug, { slug: created.slug })).faction._id).toBe(created._id);
+    const updated = await asUser.mutation(api.factions.update, {
+      id: created._id,
+      data: { ...created.data, name: 'CREATE' },
+    });
+    expect(updated.slug).toBe(created.slug);
+    const renamed = await createFaction(asUser, 'Another Faction');
+    expect(
+      (await asUser.mutation(api.factions.update, { id: renamed._id, data: { ...renamed.data, name: 'create!' } })).slug
+    ).toBe('create-3');
+    expect(await asUser.query(api.factions.slugTaken, { slug: 'create' })).toBeNull();
+  });
+
+  test('names without a URL slug are refused clearly on create and rename without changing stored data', async () => {
+    const { asUser } = await authenticatedTest();
+    const message = 'Faction name must contain at least one letter A-Z or number 0-9 to form its URL';
+    await expect(createFaction(asUser, '家族')).rejects.toThrow(message);
+    const faction = await createFaction(asUser, 'Named Faction');
+    await expect(
+      asUser.mutation(api.factions.update, { id: faction._id, data: { ...faction.data, name: '☀️' } })
+    ).rejects.toThrow(message);
+    expect((await asUser.query(api.factions.getBySlug, { slug: faction.slug })).faction.data.name).toBe(
+      'Named Faction'
+    );
+  });
+
+  test('saving a legacy faction at the creation address repairs its URL without renaming it', async () => {
+    const { t, asUser } = await authenticatedTest();
+    const faction = await createFaction(asUser, 'Legacy Faction');
+    await t.run(async (ctx) => {
+      await ctx.db.patch(faction._id, { slug: 'create', data: { ...faction.data, name: 'Create' } });
+    });
+    const updated = await asUser.mutation(api.factions.update, {
+      id: faction._id,
+      data: { ...faction.data, name: 'Create' },
+    });
+    expect(updated.slug).toBe('create-1');
+    expect((await asUser.query(api.factions.getBySlug, { slug: updated.slug })).faction.data.name).toBe('Create');
+  });
+
   test('create rejects a blank faction name at the authoritative boundary', async () => {
     const { asUser } = await authenticatedTest();
 

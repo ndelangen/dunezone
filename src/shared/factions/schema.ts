@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import { ALL, BACKGROUND, GENERIC, LEADERS, LOGO, PLANET, TEXTURE, TROOP, TROOP_MODIFIER } from '../assetIds';
 import { marksOnlyFormattedTextSchema, proseFormattedTextSchema } from '../formattedText';
+import { slugify } from '../slugify';
 import { extraPhasesSchema } from './extraPhases';
 import { factionExtrasSchema, storedFactionExtrasSchema } from './extras';
 import { assertUniqueFactionMemberIds, FactionMemberIdSchema } from './memberIdentity';
@@ -208,10 +209,17 @@ const FactionComplexitySchema = z.strictObject({
   manual: SCALE.optional(),
 });
 
+const NonblankFactionNameSchema = z.string().refine((name) => name.trim().length > 0, {
+  message: 'Faction name is required because it determines the faction URL',
+});
+
+export const FactionNameSchema = NonblankFactionNameSchema.refine(
+  (name) => name.trim().length === 0 || slugify(name).length > 0,
+  { message: 'Faction name must contain at least one letter A-Z or number 0-9 to form its URL' }
+);
+
 const factionBaseShape = {
-  name: z.string().refine((name) => name.trim().length > 0, {
-    message: 'Faction name is required because it determines the faction URL',
-  }),
+  name: NonblankFactionNameSchema,
   logo: LOGO.or(GENERIC),
   background: Background,
   themeColor: HEXCOLOR,
@@ -330,17 +338,16 @@ export const FactionInputSchema = z
 export const SUPPORTING_LEADER_LIMIT = 10;
 
 /**
- * What a save accepts: authoring semantics plus the supporting-leader cap.
- * Reads and renders keep `FactionInputSchema`, so a stored faction over the cap still loads and renders;
- * it just cannot be saved until trimmed.
+ * What a save accepts: URL name semantics plus the supporting-leader cap.
+ * Reads and renders keep `FactionInputSchema`, so draft names without URL characters and stored factions over the cap still render.
  */
-export const FactionWriteSchema = FactionInputSchema.refine(
-  (faction) => faction.leaders.length <= SUPPORTING_LEADER_LIMIT,
-  {
+export const FactionWriteSchema = z
+  .preprocess(readFactionLeaderKey, FactionInputObject.extend({ name: FactionNameSchema }))
+  .superRefine(refineUniqueComponentIds)
+  .refine((faction) => faction.leaders.length <= SUPPORTING_LEADER_LIMIT, {
     message: `A faction can have at most ${SUPPORTING_LEADER_LIMIT} supporting leaders.`,
     path: ['leaders'],
-  }
-);
+  });
 
 /**
  * Canonical storage is intentionally wider than current authoring semantics: historical rows with a blank name must remain readable while the UI requires a name for all new canonical writes.
