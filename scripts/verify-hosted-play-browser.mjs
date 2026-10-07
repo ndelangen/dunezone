@@ -9,8 +9,10 @@ import { ConvexHttpClient } from 'convex/browser';
 import { chromium, errors } from 'playwright';
 import sharp from 'sharp';
 
+import { acceptsPlayGameAddress, hasLocalPlayGameProfanity } from '../convex/lib/playGameNameChecks.ts';
 import { PHASE_VIEWS } from '../src/app/widgets/tabletop/playView';
 import { turnTrackerLayout } from '../src/app/widgets/tabletop/turnTrackerGeometry';
+import { normalizePlayGameSlug } from '../src/shared/play/gameNames.ts';
 import { phaseAt, TABLE_PHASES, tableProgressFor } from '../src/shared/play/phases.ts';
 import { KEEPALIVE_PING, KEEPALIVE_PONG } from '../src/shared/play/protocol.ts';
 import { setupReadyRequired, setupStep } from '../src/shared/play/setup.ts';
@@ -584,6 +586,10 @@ async function createGame(who) {
   await who.page.getByRole('button', { name: 'Create game', exact: true }).click();
   await who.page.waitForURL((url) => /^\/play\/(?!create$)[^/]+$/u.test(url.pathname));
   gameId = new URL(who.page.url()).pathname.split('/').at(-1);
+  const [created] = await admin.query('playGameNamesTesting:inspect', { gameIds: [gameId] });
+  assert.ok(created.name && created.slug, 'Compatible creation must assign the game name and address.');
+  assert.equal(hasLocalPlayGameProfanity(created.name), false);
+  assert.equal(acceptsPlayGameAddress(normalizePlayGameSlug(created.name), created.slug), true);
   await admitted(who);
   assert.notEqual(who.view().viewer.viewerSeat, SPECTATOR);
   /*

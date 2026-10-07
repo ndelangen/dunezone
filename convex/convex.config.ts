@@ -2,8 +2,9 @@ import aggregate from '@convex-dev/aggregate/convex.config';
 import migrations from '@convex-dev/migrations/convex.config';
 import rateLimiter from '@convex-dev/rate-limiter/convex.config';
 import { defineApp } from 'convex/server';
+import { v } from 'convex/values';
 
-const app = defineApp();
+const app = defineApp({ env: { TYPESAFE_API_KEY: v.optional(v.string()) } });
 app.use(migrations);
 app.use(rateLimiter);
 app.use(aggregate, { name: 'statistics' });

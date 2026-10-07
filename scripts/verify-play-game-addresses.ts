@@ -72,7 +72,12 @@ async function proveAllocation(
   absentGameId: Id<'play_games'>
 ) {
   async function named(client: ConvexHttpClient, name: string): Promise<Id<'play_games'>> {
-    const result = await client.mutation(httpReference(internal.playGames.createNamedGame), { ...request, name });
+    const result = await client.mutation(httpReference(internal.playGames.createNamedGame), {
+      ...request,
+      name,
+      base: normalizePlayGameSlug(name),
+      check: { outcome: 'no_profanity_detected' },
+    });
     assert(result.ok, `Creation refused: ${JSON.stringify(result)}`);
     return result.gameId;
   }
@@ -177,6 +182,8 @@ async function proveRecovery(
       viewer.mutation(httpReference(internal.playGames.createNamedGame), {
         ...request,
         name: 'Caladan dense picnic',
+        base: 'caladan-dense-picnic',
+        check: { outcome: 'no_profanity_detected' },
       })
     )
   );
@@ -215,6 +222,54 @@ async function proveRecovery(
   console.log(JSON.stringify({ dense, policy }, null, 2));
 }
 
+/** The public action keeps custom wording during complete checking unavailability on this keyless backend. */
+async function proveModeration(
+  admin: ConvexHttpClient,
+  viewers: ConvexHttpClient[],
+  request: FunctionArgs<typeof api.playGames.createGame>
+) {
+  for (const name of ['Dune \u{1f595}', 'W a n k e r s choose dessert', 'Tw@t with the crossword']) {
+    assert.deepEqual(await viewers[0]!.action(api.playGames.createGameWithName, { ...request, name }), {
+      ok: false,
+      reason: 'profanity_detected',
+    });
+  }
+  assert.deepEqual(await viewers[0]!.action(api.playGames.createGameWithName, { ...request, name: '你好' }), {
+    ok: false,
+    reason: 'invalid_name',
+  });
+  const results = [];
+  for (let index = 0; index < 3; index += 1) {
+    const result = await viewers[0]!.action(api.playGames.createGameWithName, {
+      ...request,
+      name: 'Dune soirée \u{1f44d}',
+    });
+    assert(result.ok);
+    assert.equal(result.name, 'Dune soirée \u{1f44d}');
+    assert.equal(result.moderation, 'check_unavailable');
+    assert.equal(result.slug, `dune-soiree${index ? `-${index}` : ''}`);
+    results.push(result);
+  }
+  assert.deepEqual(
+    await viewers[0]!.action(api.playGames.createGameWithName, { ...request, name: 'Dune soirée \u{1f44d}' }),
+    {
+      ok: false,
+      reason: 'rate_limited',
+    }
+  );
+  const stored = await admin.query(httpReference(internal.playGameNamesTesting.inspect), {
+    gameIds: results.map(({ gameId }) => gameId),
+  });
+  assert.deepEqual(
+    stored.map(({ name, slug }) => ({ name, slug })),
+    results.map(({ name, slug }) => ({ name, slug }))
+  );
+  console.log(
+    'PASS: public custom-name creation blocks local profanity, preserves names during checking failure and leaves refusal quota untouched.'
+  );
+  console.log(JSON.stringify({ moderation: results, stored }, null, 2));
+}
+
 async function main() {
   const instance = createLocalDevelopmentInstance({});
   const environment = commandEnvironment(
@@ -238,6 +293,12 @@ async function main() {
     await proveRecovery(
       admin,
       fresh.subjects.map((subject) => localClient(deployment.url, deployment.adminKey, subject)),
+      request
+    );
+    const moderation = await admin.mutation(httpReference(internal.playGameNamesTesting.seed), {});
+    await proveModeration(
+      admin,
+      moderation.subjects.map((subject) => localClient(deployment.url, deployment.adminKey, subject)),
       request
     );
   } finally {

@@ -1,16 +1,22 @@
 import { zodToConvex } from 'convex-helpers/server/zod4';
 import { v } from 'convex/values';
+import type { Infer } from 'convex/values';
 import type { z } from 'zod';
 
 import { playCreateGameRequestSchema, playGameAccessSchema } from '../src/shared/play/admission';
+import { playNamedGameOutcomeSchema, playNamedGameRequestSchema } from '../src/shared/play/gameCreation';
+import { normalizePlayGameSlug, playGameNameSchema } from '../src/shared/play/gameNames';
 import { playCreateGameOutcomeSchema } from '../src/shared/play/seatLimit';
+import { internal } from './_generated/api';
 import type { Doc, Id } from './_generated/dataModel';
-import { query } from './_generated/server';
+import { action, query } from './_generated/server';
 import type { MutationCtx, QueryCtx } from './_generated/server';
 import { internalMutation, mutation } from './functions';
 import { admitsPlayers, currentPlaySession, isRealGame, livePlaySession } from './lib/playAuthorization';
+import { hasLocalPlayGameProfanity } from './lib/playGameNameChecks';
+import { checkPlayGameName, PLAY_NAME_CHECK_MODEL, playNameCheckSchema } from './lib/playGameNameProvider';
 import { createPendingGame } from './lib/playProvisioningSchedule';
-import { playCreateQuota } from './lib/playRateLimits';
+import { playCreateQuota, playNameCheckCapacity, playRateLimiter } from './lib/playRateLimits';
 import { atPlaySeatLimit } from './lib/playSeats';
 
 /*
@@ -108,20 +114,104 @@ export const createGame = mutation({
   handler: async (ctx, args) => await createAuthorizedGame(ctx, args),
 });
 
-/** Only the future server-side moderation action may supply a custom name. */
-export const createNamedGame = internalMutation({
-  args: { ...zodToConvex(playCreateGameRequestSchema).fields, name: v.string() },
-  returns: zodToConvex(playCreateGameOutcomeSchema),
-  handler: async (ctx, args) => await createAuthorizedGame(ctx, args, args.name),
+type NamedGameContract = z.infer<typeof playNamedGameOutcomeSchema>;
+type NamedGameOutcome =
+  | Extract<NamedGameContract, { ok: false }>
+  | (Extract<NamedGameContract, { ok: true }> & { gameId: Id<'play_games'> });
+const preparationValidator = v.union(
+  zodToConvex(playNamedGameOutcomeSchema.options[1]),
+  v.object({ ok: v.literal(true), name: v.string(), base: v.string(), checkProvider: v.boolean() })
+);
+type PreparedName = Infer<typeof preparationValidator>;
+
+/** Authentication, ordinary validation and local refusals precede any paid request. */
+export const prepareNamedGame = internalMutation({
+  args: zodToConvex(playNamedGameRequestSchema),
+  returns: preparationValidator,
+  handler: async (ctx, args): Promise<PreparedName> => {
+    const eligible = await gameCreationEligibility(ctx, args);
+    if (!eligible.ok) {
+      return eligible;
+    }
+    const parsed = playGameNameSchema.safeParse(args.name);
+    if (!parsed.success) {
+      return { ok: false, reason: 'invalid_name' };
+    }
+    const name = parsed.data;
+    const base = normalizePlayGameSlug(name);
+    if (hasLocalPlayGameProfanity(name) || hasLocalPlayGameProfanity(base)) {
+      return { ok: false, reason: 'profanity_detected' };
+    }
+    if (!(await playRateLimiter.check(ctx, 'playCreatePerAccount', { key: eligible.userId })).ok) {
+      return { ok: false, reason: 'rate_limited' };
+    }
+    return { ok: true, name, base, checkProvider: await playNameCheckCapacity(ctx, eligible.userId) };
+  },
 });
 
-/** Authorization, ruleset readiness, seats, quota, allocation and scheduling share one transaction. */
-export async function createAuthorizedGame(
-  ctx: MutationCtx,
-  args: z.infer<typeof playCreateGameRequestSchema>,
-  name?: string,
-  accept?: (slug: string) => boolean
-) {
+/** A supplied name is classified once at submission; clients cannot supply a check result. */
+export const createGameWithName = action({
+  args: zodToConvex(playNamedGameRequestSchema),
+  returns: zodToConvex(playNamedGameOutcomeSchema),
+  handler: async (ctx, args): Promise<NamedGameOutcome> => {
+    const prepared: PreparedName = await ctx.runMutation(internal.playGames.prepareNamedGame, args);
+    if (!prepared.ok) {
+      return prepared;
+    }
+    const check = prepared.checkProvider
+      ? await checkPlayGameName(prepared.name, prepared.base)
+      : { outcome: 'check_unavailable' as const, reason: 'rate_limit' as const };
+    return await ctx.runMutation(internal.playGames.createNamedGame, {
+      rulesetId: args.rulesetId,
+      minimumPlayers: args.minimumPlayers,
+      name: prepared.name,
+      base: prepared.base,
+      check,
+    });
+  },
+});
+
+/** Only the server action supplies the exact checked wording and its derived outcome. */
+export const createNamedGame = internalMutation({
+  args: {
+    ...zodToConvex(playNamedGameRequestSchema).fields,
+    base: v.string(),
+    check: zodToConvex(playNameCheckSchema),
+  },
+  returns: zodToConvex(playNamedGameOutcomeSchema),
+  handler: async (ctx, args): Promise<NamedGameOutcome> => {
+    const parsed = playGameNameSchema.safeParse(args.name);
+    if (!parsed.success || parsed.data !== args.name || normalizePlayGameSlug(parsed.data) !== args.base) {
+      return { ok: false, reason: 'invalid_name' };
+    }
+    if (
+      args.check.outcome === 'profanity_detected' ||
+      hasLocalPlayGameProfanity(args.name) ||
+      hasLocalPlayGameProfanity(args.base)
+    ) {
+      return { ok: false, reason: 'profanity_detected' };
+    }
+    const result = await createAuthorizedGame(ctx, args, args.name);
+    if (!result.ok) {
+      return result;
+    }
+    const game = await ctx.db.get('play_games', result.gameId);
+    if (!game?.name || !game.slug) {
+      throw new Error('A newly created game must have its checked name and allocated address');
+    }
+    if (args.check.outcome === 'check_unavailable') {
+      console.info({
+        event: 'play_name_check_unavailable_accepted',
+        model: PLAY_NAME_CHECK_MODEL,
+        reason: args.check.reason,
+      });
+    }
+    return { ...result, name: game.name, slug: game.slug, moderation: args.check.outcome };
+  },
+});
+
+/** The same current session, readiness and seat checks run before spending and again when committing. */
+async function gameCreationEligibility(ctx: MutationCtx, args: z.infer<typeof playCreateGameRequestSchema>) {
   const session = await livePlaySession(ctx);
   if (!session) {
     return { ok: false as const, reason: 'not_authorized' as const };
@@ -131,20 +221,34 @@ export async function createAuthorizedGame(
   if (!ruleset || ruleset.is_deleted || (await rulesetObjection(ctx, ruleset._id)) !== null) {
     return { ok: false as const, reason: 'unavailable' as const };
   }
-  /* The creator holds the new game's first seat, so a player at the seat limit is refused before the hourly budget is spent. */
   if (await atPlaySeatLimit(ctx, session.userId)) {
     return { ok: false as const, reason: 'seat_limit' as const };
   }
-  const limited = await playCreateQuota(ctx, session.userId);
+  return { ok: true as const, userId: session.userId, rulesetId: ruleset._id };
+}
+
+/** Authorization, ruleset readiness, seats, quota, allocation and scheduling share one transaction. */
+export async function createAuthorizedGame(
+  ctx: MutationCtx,
+  args: z.infer<typeof playCreateGameRequestSchema>,
+  name?: string,
+  accept?: (slug: string) => boolean
+) {
+  const eligible = await gameCreationEligibility(ctx, args);
+  if (!eligible.ok) {
+    return eligible;
+  }
+  /* The creator holds the new game's first seat, so a player at the seat limit is refused before the hourly budget is spent. */
+  const limited = await playCreateQuota(ctx, eligible.userId);
   if (limited) {
     return limited;
   }
   const gameId = await createPendingGame(
     ctx,
     {
-      ruleset_id: ruleset._id,
+      ruleset_id: eligible.rulesetId,
       minimum_players: args.minimumPlayers,
-      creator_id: session.userId,
+      creator_id: eligible.userId,
       name,
     },
     accept
