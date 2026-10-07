@@ -3,12 +3,13 @@ import type { LogEntry } from '@shared/play/log';
 import type { ClientMessage, GameSnapshot } from '@shared/play/protocol';
 import { item, piece } from '@shared/play/setupSupply';
 import type { Decorator } from '@storybook/tanstack-react';
-import { expect, userEvent, waitFor, within } from 'storybook/test';
+import { expect, waitFor, within } from 'storybook/test';
 
 import { refText, SEED_REF_TOKEN, STORYBOOK_NOW } from '@db/storybook';
 
 import { pageStoryMeta } from '../../storybookConfig';
 import { draftingSnapshot } from './drafting.stories.fixture';
+import { press } from './gameInteractions.stories.fixture';
 import { browserGameRuntime, GameRuntimeContext } from './multiplayer/gameRuntime';
 import type { GameRuntime } from './multiplayer/gameRuntime';
 import type { productTransport } from './product.stories.fixture';
@@ -101,14 +102,7 @@ export async function seatPopover(canvasElement: HTMLElement, name: string) {
 /** Reads text under a fresh query until the remounting scene lets it settle. */
 export const shows = (read: () => HTMLElement) => waitFor(() => expect(read()).toBeVisible(), { timeout: 30_000 });
 
-/** Clicks a control by a fresh query, retried until the click takes on a settled node. */
-export const press = (read: () => HTMLElement) =>
-  waitFor(
-    async () => {
-      await userEvent.click(read());
-    },
-    { timeout: 30_000 }
-  );
+export { press };
 
 /** Setup on the prediction step; `locked` adds the locked choice, and `card` also deals its prediction card into the hand (#1753). */
 export function predictionSnapshot(locked = false, card = false): GameSnapshot {
