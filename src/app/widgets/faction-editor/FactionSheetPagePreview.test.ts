@@ -8,6 +8,12 @@ import { defaultPhaseDeclaration } from './factionFormDefaults';
 import { factionDraftForRenderer } from './FactionSheetPagePreview';
 
 describe('factionDraftForRenderer', () => {
+  it.each(['', '家族', 'Ééé'])('keeps sheet and shield review renderable while the name is %j', (name) => {
+    const draft = factionDraftForRenderer({ ...representativeFaction(), name });
+    expect(() => FactionRender.shield.parse(draft)).not.toThrow();
+    expect(() => FactionRender.sheet.parse(draft)).not.toThrow();
+  });
+
   it('keeps the review renderable while a phase row is still blank', () => {
     const draft: Faction = { ...representativeFaction(), extraPhases: [defaultPhaseDeclaration()] };
     expect(() => FactionRender.shield.parse(draft)).toThrow();
