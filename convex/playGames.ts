@@ -1,12 +1,13 @@
 import { zodToConvex } from 'convex-helpers/server/zod4';
 import { v } from 'convex/values';
+import type { z } from 'zod';
 
 import { playCreateGameRequestSchema, playGameAccessSchema } from '../src/shared/play/admission';
 import { playCreateGameOutcomeSchema } from '../src/shared/play/seatLimit';
 import type { Doc, Id } from './_generated/dataModel';
 import { query } from './_generated/server';
-import type { QueryCtx } from './_generated/server';
-import { mutation } from './functions';
+import type { MutationCtx, QueryCtx } from './_generated/server';
+import { internalMutation, mutation } from './functions';
 import { admitsPlayers, currentPlaySession, isRealGame, livePlaySession } from './lib/playAuthorization';
 import { createPendingGame } from './lib/playProvisioningSchedule';
 import { playCreateQuota } from './lib/playRateLimits';
@@ -104,32 +105,47 @@ export const creatable = query({
 export const createGame = mutation({
   args: zodToConvex(playCreateGameRequestSchema),
   returns: zodToConvex(playCreateGameOutcomeSchema),
-  handler: async (ctx, args) => {
-    const session = await livePlaySession(ctx);
-    if (!session) {
-      return { ok: false as const, reason: 'not_authorized' as const };
-    }
-    const rulesetId = ctx.db.normalizeId('rulesets', args.rulesetId);
-    const ruleset = rulesetId ? await ctx.db.get('rulesets', rulesetId) : null;
-    if (!ruleset || ruleset.is_deleted || (await rulesetObjection(ctx, ruleset._id)) !== null) {
-      return { ok: false as const, reason: 'unavailable' as const };
-    }
-    /* The creator holds the new game's first seat, so a player at the seat limit is refused before the hourly budget is spent. */
-    if (await atPlaySeatLimit(ctx, session.userId)) {
-      return { ok: false as const, reason: 'seat_limit' as const };
-    }
-    const limited = await playCreateQuota(ctx, session.userId);
-    if (limited) {
-      return limited;
-    }
-    const gameId = await createPendingGame(ctx, {
-      ruleset_id: ruleset._id,
-      minimum_players: args.minimumPlayers,
-      creator_id: session.userId,
-    });
-    return { ok: true as const, gameId };
-  },
+  handler: async (ctx, args) => await createAuthorizedGame(ctx, args),
 });
+
+/** Only the future server-side moderation action may supply a custom name. */
+export const createNamedGame = internalMutation({
+  args: { ...zodToConvex(playCreateGameRequestSchema).fields, name: v.string() },
+  returns: zodToConvex(playCreateGameOutcomeSchema),
+  handler: async (ctx, args) => await createAuthorizedGame(ctx, args, args.name),
+});
+
+/** Authorization, ruleset readiness, seats, quota, allocation and scheduling share one transaction. */
+async function createAuthorizedGame(
+  ctx: MutationCtx,
+  args: z.infer<typeof playCreateGameRequestSchema>,
+  name?: string
+) {
+  const session = await livePlaySession(ctx);
+  if (!session) {
+    return { ok: false as const, reason: 'not_authorized' as const };
+  }
+  const rulesetId = ctx.db.normalizeId('rulesets', args.rulesetId);
+  const ruleset = rulesetId ? await ctx.db.get('rulesets', rulesetId) : null;
+  if (!ruleset || ruleset.is_deleted || (await rulesetObjection(ctx, ruleset._id)) !== null) {
+    return { ok: false as const, reason: 'unavailable' as const };
+  }
+  /* The creator holds the new game's first seat, so a player at the seat limit is refused before the hourly budget is spent. */
+  if (await atPlaySeatLimit(ctx, session.userId)) {
+    return { ok: false as const, reason: 'seat_limit' as const };
+  }
+  const limited = await playCreateQuota(ctx, session.userId);
+  if (limited) {
+    return limited;
+  }
+  const gameId = await createPendingGame(ctx, {
+    ruleset_id: ruleset._id,
+    minimum_players: args.minimumPlayers,
+    creator_id: session.userId,
+    name,
+  });
+  return { ok: true as const, gameId };
+}
 
 /** What a game page learns before it opens a socket: any signed-in player may enter a game that admits players, and an unknown id or the closed hosted fixture reads as not found. */
 export const getGame = query({

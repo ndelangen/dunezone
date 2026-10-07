@@ -1,0 +1,126 @@
+import { ConvexError } from 'convex/values';
+
+import {
+  normalizePlayGameSlug,
+  PLAY_RESERVED_GAME_ADDRESSES,
+  playGameNameSchema,
+} from '../../src/shared/play/gameNames';
+import type { MutationCtx, QueryCtx } from '../_generated/server';
+import { generatePlayGameName } from './playGameNames';
+
+const GENERATED_NAME_DRAWS = 4;
+export const PLAY_GAME_ADDRESS_PROBES = 32;
+
+function retryAllocation(): never {
+  throw new ConvexError({
+    code: 'PLAY_GAME_ADDRESS_RETRY',
+    retryable: true,
+    message: 'Please try creating the game again.',
+  });
+}
+
+/** Exact indexed absence reads participate in the same transaction as reservation and game insertion. */
+export async function playGameAddressAvailable(ctx: Pick<QueryCtx, 'db'>, slug: string): Promise<boolean> {
+  if ((PLAY_RESERVED_GAME_ADDRESSES as readonly string[]).includes(slug) || ctx.db.normalizeId('play_games', slug)) {
+    return false;
+  }
+  const reservation = await ctx.db
+    .query('play_game_slug_reservations')
+    .withIndex('by_slug', (q) => q.eq('slug', slug))
+    .unique();
+  if (reservation) {
+    return false;
+  }
+  const game = await ctx.db
+    .query('play_games')
+    .withIndex('by_slug', (q) => q.eq('slug', slug))
+    .unique();
+  return game === null;
+}
+
+/** Nearby canonical suffixes advance their parent cursor; distant name endings cannot jump it. */
+async function catchUpSuffixCursor(ctx: MutationCtx, slug: string) {
+  const match = /^(.*)-([1-9a-z][0-9a-z]*)$/.exec(slug);
+  if (!match) {
+    return;
+  }
+  const [, base, digits] = match;
+  const suffix = Number.parseInt(digits!, 36);
+  if (!Number.isSafeInteger(suffix) || suffix >= Number.MAX_SAFE_INTEGER || suffix.toString(36) !== digits) {
+    return;
+  }
+  const cursor = await ctx.db
+    .query('play_game_slug_cursors')
+    .withIndex('by_base', (q) => q.eq('base', base!))
+    .unique();
+  const next = Math.max(1, cursor?.next_suffix ?? 1);
+  if (suffix < next || suffix - next >= PLAY_GAME_ADDRESS_PROBES) {
+    return;
+  }
+  await advanceSuffixCursor(ctx, base!, suffix + 1);
+}
+
+async function advanceSuffixCursor(ctx: MutationCtx, base: string, next: number) {
+  const cursor = await ctx.db
+    .query('play_game_slug_cursors')
+    .withIndex('by_base', (q) => q.eq('base', base))
+    .unique();
+  if (cursor) {
+    if (cursor.next_suffix < next) {
+      await ctx.db.patch('play_game_slug_cursors', cursor._id, { next_suffix: next });
+    }
+  } else {
+    await ctx.db.insert('play_game_slug_cursors', { base, next_suffix: next });
+  }
+}
+
+async function reserve(ctx: MutationCtx, slug: string) {
+  await ctx.db.insert('play_game_slug_reservations', { slug });
+  await catchUpSuffixCursor(ctx, slug);
+  return slug;
+}
+
+async function allocateSlug(ctx: MutationCtx, base: string): Promise<string> {
+  if (await playGameAddressAvailable(ctx, base)) {
+    return await reserve(ctx, base);
+  }
+  const cursor = await ctx.db
+    .query('play_game_slug_cursors')
+    .withIndex('by_base', (q) => q.eq('base', base))
+    .unique();
+  let suffix = Math.max(1, cursor?.next_suffix ?? 1);
+  for (let probe = 0; probe < PLAY_GAME_ADDRESS_PROBES; probe += 1, suffix += 1) {
+    if (!Number.isSafeInteger(suffix) || suffix >= Number.MAX_SAFE_INTEGER) {
+      retryAllocation();
+    }
+    const candidate = `${base}-${suffix.toString(36)}`;
+    if (await playGameAddressAvailable(ctx, candidate)) {
+      await advanceSuffixCursor(ctx, base, suffix + 1);
+      return await reserve(ctx, candidate);
+    }
+  }
+  return retryAllocation();
+}
+
+async function generateAvailableName(ctx: MutationCtx) {
+  let name = generatePlayGameName();
+  for (let draw = 1; draw < GENERATED_NAME_DRAWS; draw += 1) {
+    if (await playGameAddressAvailable(ctx, normalizePlayGameSlug(name))) {
+      break;
+    }
+    name = generatePlayGameName();
+  }
+  return name;
+}
+
+/** A supplied name has already passed moderation in its caller; no public creation call accepts it yet. */
+export async function allocatePlayGameName(ctx: MutationCtx, suppliedName?: string) {
+  const parsed = playGameNameSchema.safeParse(suppliedName ?? (await generateAvailableName(ctx)));
+  if (!parsed.success) {
+    throw new ConvexError({
+      code: 'PLAY_GAME_NAME_INVALID',
+      message: parsed.error.issues.map((issue) => issue.message).join(' '),
+    });
+  }
+  return { name: parsed.data, slug: await allocateSlug(ctx, normalizePlayGameSlug(parsed.data)) };
+}
