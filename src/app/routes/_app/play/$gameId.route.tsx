@@ -5,14 +5,15 @@ import { LoginGate } from '@ui/block/LoginGate';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import { PageTitle } from '@ui/block/PageTitle';
 import { PageLayout } from '@ui/layout/PageLayout';
-import { lazy, Suspense, useEffect, useSyncExternalStore } from 'react';
+import { lazy, Suspense, useContext, useEffect, useReducer, useSyncExternalStore } from 'react';
 import type { ReactNode } from 'react';
 
 import { useGameAccess } from '@db/play';
-import { forgetStoredPlayTable, hasStoredPlayTable } from '@db/playTables';
+import { forgetStoredPlayTable } from '@db/playTables';
 import { pageHead } from '@app/routes/pageTitle';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
+import { GameRuntimeContext } from './multiplayer/gameRuntime';
 import { TableWait } from './TableWait';
 import { SERVER_UNREACHABLE, useServerUnreachable } from './useServerUnreachable';
 
@@ -47,20 +48,64 @@ export const Route = createFileRoute('/_app/play/$gameId')({
  * expired one could not be prepared, and each of those is its own page.
  */
 function GamePage() {
-  const { gameId } = Route.useParams();
-  const { data } = useGameAccess(gameId);
+  const { gameId: address } = Route.useParams();
+  const navigate = Route.useNavigate();
+  const runtime = useContext(GameRuntimeContext);
+  const { data } = useGameAccess(address);
+  const [known, remember] = useReducer((_previous: KnownGame | null, event: GamePageEvent) => event.game, null);
+  const authorized = data && 'gameId' in data ? data : null;
+  if (
+    authorized &&
+    (known?.gameId !== authorized.gameId ||
+      known.slug !== authorized.slug ||
+      known.name !== authorized.name ||
+      known.status !== authorized.status)
+  ) {
+    remember({
+      type: 'resolved',
+      game: {
+        gameId: authorized.gameId,
+        slug: authorized.slug,
+        name: authorized.name,
+        status: authorized.status,
+      },
+    });
+  }
+  const current = authorized ?? (known && (address === known.gameId || address === known.slug) ? known : null);
   const unreachable = useServerUnreachable(data === undefined);
   const stored = useSyncExternalStore(
     noSubscription,
-    () => hasStoredPlayTable(gameId),
-    () => false
+    () => runtime.tables?.findGame(address) ?? null,
+    () => null
   );
   const refused = data !== undefined && data.status !== 'ready' && data.status !== 'preparing';
   useEffect(() => {
-    if (refused) {
-      forgetStoredPlayTable(gameId);
+    if (stored && (refused || (authorized && authorized.gameId !== stored))) {
+      forgetStoredPlayTable(stored);
+      runtime.tables?.clear(stored);
     }
-  }, [refused, gameId]);
+    if (refused && current) {
+      forgetStoredPlayTable(current.gameId);
+      runtime.tables?.clear(current.gameId);
+    }
+  }, [refused, stored, authorized, current, runtime]);
+  useEffect(() => {
+    if (!authorized?.slug) {
+      return;
+    }
+    runtime.tables?.rememberAddress(authorized.gameId, authorized.slug);
+    if (address === authorized.slug) {
+      return;
+    }
+    void navigate({
+      to: '/play/$gameId',
+      params: { gameId: authorized.slug },
+      search: true,
+      hash: true,
+      replace: true,
+      resetScroll: false,
+    });
+  }, [authorized, address, navigate, runtime]);
   const exit = (
     <Button component={Link} to="/play" variant="default" aria-label="Back to lobby">
       Lobby
@@ -69,8 +114,8 @@ function GamePage() {
   switch (data?.status) {
     case undefined:
       /* A reloaded tab that kept this table shows it, locked, while the directory has not answered (#1746). */
-      if (stored) {
-        return <TablePage title="Game" gameId={gameId} exit={exit} />;
+      if (current?.status === 'ready' || stored) {
+        return <TablePage title={current?.name ?? 'Game'} gameId={current?.gameId ?? stored!} exit={exit} />;
       }
       return (
         <PageLayout height="fullscreen">
@@ -96,7 +141,7 @@ function GamePage() {
       );
     case 'preparing':
       return (
-        <PageMessage size="compact" title="Game" back={exit}>
+        <PageMessage size="compact" title={data.name} back={exit}>
           <LoadPending title="Preparing the table">
             The game is being set up. This page opens the table as soon as it is ready.
           </LoadPending>
@@ -104,7 +149,7 @@ function GamePage() {
       );
     case 'unavailable':
       return (
-        <PageMessage size="compact" title="Game" back={exit}>
+        <PageMessage size="compact" title={data.name} back={exit}>
           <NotAvailable title="This game could not be prepared">
             {data.reason ?? 'The table was not ready in time. Create the game again from the lobby.'}
           </NotAvailable>
@@ -116,6 +161,11 @@ function GamePage() {
 }
 
 const noSubscription = () => () => {};
+type KnownGame = Pick<
+  Extract<NonNullable<ReturnType<typeof useGameAccess>['data']>, { gameId: string }>,
+  'gameId' | 'slug' | 'name' | 'status'
+>;
+type GamePageEvent = { type: 'resolved'; game: KnownGame };
 
 /* One element for a ready game and for a kept table, so the table a reload restored stays mounted when the directory answers. */
 function TablePage({ title, gameId, exit }: Readonly<{ title: string; gameId: string; exit: ReactNode }>) {

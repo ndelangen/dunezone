@@ -1616,7 +1616,7 @@ describe('pointer moves', () => {
   });
 
   test('a table hearing only pointer moves still re-saves its kept copy, a few seconds apart', async () => {
-    const tables = { read: () => null, save: vi.fn(), clear: vi.fn() };
+    const tables = { read: () => null, findGame: () => null, rememberAddress: vi.fn(), save: vi.fn(), clear: vi.fn() };
     const client = new TableSession(
       'fixture-one',
       new GameSubscription('fixture-one', ticket, { ...runtime, tables }),
