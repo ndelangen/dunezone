@@ -3,8 +3,11 @@ import { internal } from '../_generated/api';
 import type { Doc, Id } from '../_generated/dataModel';
 import type { MutationCtx } from '../_generated/server';
 import { playCredential } from './playAuthorization';
+import { allocatePlayGameName } from './playGameAddresses';
 
-type PendingGameFields = Pick<Doc<'play_games'>, 'fixture_key' | 'ruleset_id' | 'minimum_players' | 'creator_id'>;
+type PendingGameFields = Pick<Doc<'play_games'>, 'fixture_key' | 'ruleset_id' | 'minimum_players' | 'creator_id'> & {
+  name?: string;
+};
 
 /**
  * One pending game record with fresh server-only credentials and its expiry, whether the record is a fixture or a real game.
@@ -12,11 +15,14 @@ type PendingGameFields = Pick<Doc<'play_games'>, 'fixture_key' | 'ruleset_id' | 
  * It schedules no provisioning request, so a caller that provisions the game itself, as the test control does, sends the only one.
  */
 export async function insertPendingGame(ctx: MutationCtx, fields: PendingGameFields) {
+  const { name: suppliedName, ...gameFields } = fields;
+  const namedAddress = await allocatePlayGameName(ctx, suppliedName);
   const secret = playCredential();
   const attemptId = playCredential();
   const expiresAt = Date.now() + PLAY_PROVISION_TIMEOUT_MS;
   const gameId = await ctx.db.insert('play_games', {
-    ...fields,
+    ...gameFields,
+    ...namedAddress,
     state: 'pending',
     secret,
     attempt_id: attemptId,
