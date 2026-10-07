@@ -42,6 +42,19 @@ function unavailable(reason: Extract<PlayNameCheck, { outcome: 'check_unavailabl
   return { outcome: 'check_unavailable', reason };
 }
 
+function httpFailureReason(status: number): Extract<PlayNameCheck, { outcome: 'check_unavailable' }>['reason'] {
+  if (status === 402) {
+    return 'billing';
+  }
+  if (status === 401 || status === 403) {
+    return 'credentials';
+  }
+  if (status === 429) {
+    return 'rate_limit';
+  }
+  return status >= 500 ? 'transport' : 'unusable_response';
+}
+
 /** One server-only request, with a deadline that also bounds a stalled response body. */
 export async function checkPlayGameName(name: string, base: string): Promise<PlayNameCheck> {
   const key = env.TYPESAFE_API_KEY;
@@ -73,17 +86,7 @@ export async function checkPlayGameName(name: string, base: string): Promise<Pla
       return unavailable(controller.signal.aborted ? 'timeout' : 'transport');
     }
     if (!response.ok) {
-      const reason =
-        response.status === 402
-          ? 'billing'
-          : response.status === 401 || response.status === 403
-            ? 'credentials'
-            : response.status === 429
-              ? 'rate_limit'
-              : response.status >= 500
-                ? 'transport'
-                : 'unusable_response';
-      return unavailable(reason);
+      return unavailable(httpFailureReason(response.status));
     }
     try {
       const text = await response.text();

@@ -228,7 +228,7 @@ async function proveModeration(
   viewers: ConvexHttpClient[],
   request: FunctionArgs<typeof api.playGames.createGame>
 ) {
-  for (const name of ['Dune 🖕', 'W a n k e r s choose dessert', 'Tw@t with the crossword']) {
+  for (const name of ['Dune \u{1f595}', 'W a n k e r s choose dessert', 'Tw@t with the crossword']) {
     assert.deepEqual(await viewers[0]!.action(api.playGames.createGameWithName, { ...request, name }), {
       ok: false,
       reason: 'profanity_detected',
@@ -240,17 +240,23 @@ async function proveModeration(
   });
   const results = [];
   for (let index = 0; index < 3; index += 1) {
-    const result = await viewers[0]!.action(api.playGames.createGameWithName, { ...request, name: 'Dune soirée 👍' });
+    const result = await viewers[0]!.action(api.playGames.createGameWithName, {
+      ...request,
+      name: 'Dune soirée \u{1f44d}',
+    });
     assert(result.ok);
-    assert.equal(result.name, 'Dune soirée 👍');
+    assert.equal(result.name, 'Dune soirée \u{1f44d}');
     assert.equal(result.moderation, 'check_unavailable');
     assert.equal(result.slug, `dune-soiree${index ? `-${index}` : ''}`);
     results.push(result);
   }
-  assert.deepEqual(await viewers[0]!.action(api.playGames.createGameWithName, { ...request, name: 'Dune soirée 👍' }), {
-    ok: false,
-    reason: 'rate_limited',
-  });
+  assert.deepEqual(
+    await viewers[0]!.action(api.playGames.createGameWithName, { ...request, name: 'Dune soirée \u{1f44d}' }),
+    {
+      ok: false,
+      reason: 'rate_limited',
+    }
+  );
   const stored = await admin.query(httpReference(internal.playGameNamesTesting.inspect), {
     gameIds: results.map(({ gameId }) => gameId),
   });
