@@ -16,6 +16,7 @@ import {
   rulebookCoverControlValuesDraftSchema,
   rulebookDraftEntitySchemas,
   rulebookLayoutCatalogue,
+  rulebookListIconSchema,
   rulebookPageV1Schema,
 } from '@shared/rulebooks/contents';
 import type {
@@ -124,6 +125,12 @@ const deleteIntentSchema = z.strictObject({
 type RulebookDeleteIntent = z.infer<typeof deleteIntentSchema>;
 
 const setIntentSchema = z.union([
+  z.strictObject({
+    kind: z.literal('set'),
+    target: itemRefSchema,
+    field: z.literal('icon'),
+    value: rulebookListIconSchema.optional(),
+  }),
   z.strictObject({
     kind: z.literal('set'),
     target: blockRefSchema,
@@ -1552,6 +1559,10 @@ function setItemField(
     block.itemsById[target.itemId]!.name = typeof value === 'string' ? value : undefined;
     return;
   }
+  if (item && field === 'icon' && block?.kind === 'list') {
+    block.itemsById[target.itemId]!.icon = rulebookListIconSchema.optional().parse(value);
+    return;
+  }
   if (item && block?.kind === 'asset-explainer') {
     const entry = block.itemsById[target.itemId]!;
     if (field === 'label') {
@@ -1957,6 +1968,7 @@ function fieldRecords(contents: RulebookContentsDraftV1): FieldRecord[] {
         records.push({ target: itemTarget, field: 'text', value: item.text });
         if (block.kind === 'list') {
           records.push({ target: itemTarget, field: 'name', value: 'name' in item ? item.name : undefined });
+          records.push({ target: itemTarget, field: 'icon', value: block.itemsById[item.id]!.icon });
         }
         if (block.kind === 'asset-explainer') {
           const entry = block.itemsById[item.id]!;
