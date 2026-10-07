@@ -5,7 +5,7 @@ import path from 'node:path';
 
 import { ConvexHttpClient } from 'convex/browser';
 import { getFunctionName, makeFunctionReference } from 'convex/server';
-import type { DefaultFunctionArgs, FunctionReference } from 'convex/server';
+import type { DefaultFunctionArgs, FunctionArgs, FunctionReference } from 'convex/server';
 
 import { api, internal } from '../convex/_generated/api';
 import type { Id } from '../convex/_generated/dataModel';
@@ -51,6 +51,63 @@ function localClient(url: string, adminKey: string, subject?: string) {
   });
 }
 
+/** The allocation cases share one fresh catalogue and independently issued requests. */
+async function proveAllocation(
+  admin: ConvexHttpClient,
+  viewers: ConvexHttpClient[],
+  request: FunctionArgs<typeof api.playGames.createGame>,
+  absentGameId: Id<'play_games'>
+) {
+  async function named(client: ConvexHttpClient, name: string): Promise<Id<'play_games'>> {
+    const result = await client.mutation(httpReference(internal.playGames.createNamedGame), { ...request, name });
+    assert(result.ok, `Creation refused: ${JSON.stringify(result)}`);
+    return result.gameId;
+  }
+  const gameIds: Id<'play_games'>[] = [];
+  for (let round = 0; round < 2; round += 1) {
+    /* A separate HTTP client per request prevents the SDK's per-client mutation queue from serializing this proof. */
+    const batch = await Promise.all(viewers.map((viewer) => named(viewer, 'Arrakeen surprise party')));
+    gameIds.push(...batch);
+  }
+  const simultaneous = await admin.query(httpReference(internal.playGameNamesTesting.inspect), { gameIds });
+  assert.equal(new Set(simultaneous.map(({ slug }) => slug)).size, 16);
+  assert(simultaneous.every(({ name }) => name === 'Arrakeen surprise party'));
+  const expected = Array.from({ length: 16 }, (_, suffix) => `arrakeen-surprise-party${suffix ? `-${suffix}` : ''}`);
+  assert.deepEqual(simultaneous.map(({ slug }) => slug).sort(), expected.sort());
+  console.log(
+    'PASS: two simultaneous batches of eight creations committed 16 distinct addresses with one display name.'
+  );
+
+  const existingId = gameIds[0]!;
+  const existingNamedId = await named(viewers[0]!, existingId);
+  const absentNamedId = await named(viewers[1]!, absentGameId);
+  const legacy = await admin.query(httpReference(internal.playGameNamesTesting.inspect), {
+    gameIds: [existingId, absentGameId, existingNamedId, absentNamedId],
+  });
+  assert(legacy[0]!.legacyToken && legacy[1]!.legacyToken);
+  assert.equal(legacy[1]!.name, undefined);
+  assert.equal(legacy[2]!.slug, `${existingId}-1`);
+  assert.equal(legacy[3]!.slug, `${absentGameId}-1`);
+  assert.equal(legacy[2]!.name, existingId);
+  assert.equal(legacy[3]!.name, absentGameId);
+  console.log('PASS: an existing legacy game ID and an accepted ID token without a record both received -1.');
+
+  const generatedIds = await Promise.all(
+    viewers.slice(2).map(async (viewer) => {
+      const result = await viewer.mutation(api.playGames.createGame, request);
+      assert(result.ok);
+      return result.gameId;
+    })
+  );
+  const generated = await admin.query(httpReference(internal.playGameNamesTesting.inspect), {
+    gameIds: generatedIds,
+  });
+  const vocabulary = new Set(playGameNameVocabulary().map(({ name }) => name));
+  assert(generated.every(({ name, slug }) => vocabulary.has(name!) && slug?.startsWith(normalizePlayGameSlug(name!))));
+  console.log('PASS: six legacy creation requests kept their response shape and received reviewed names.');
+  console.log(JSON.stringify({ simultaneous, legacy, generated }, null, 2));
+}
+
 async function main() {
   const instance = createLocalDevelopmentInstance({});
   const environment = commandEnvironment(
@@ -68,56 +125,7 @@ async function main() {
     const { subjects, absentGameId } = await admin.mutation(httpReference(internal.playGameNamesTesting.seed), {});
     const viewers = subjects.map((subject) => localClient(deployment.url, deployment.adminKey, subject));
     const request = { rulesetId, minimumPlayers: 4 as const };
-    async function named(client: ConvexHttpClient, name: string): Promise<Id<'play_games'>> {
-      const result = await client.mutation(httpReference(internal.playGames.createNamedGame), { ...request, name });
-      assert(result.ok, `Creation refused: ${JSON.stringify(result)}`);
-      return result.gameId;
-    }
-    const gameIds: Id<'play_games'>[] = [];
-    for (let round = 0; round < 2; round += 1) {
-      /* A separate HTTP client per request prevents the SDK's per-client mutation queue from serializing this proof. */
-      const batch = await Promise.all(viewers.map((viewer) => named(viewer, 'Arrakeen surprise party')));
-      gameIds.push(...batch);
-    }
-    const simultaneous = await admin.query(httpReference(internal.playGameNamesTesting.inspect), { gameIds });
-    assert.equal(new Set(simultaneous.map(({ slug }) => slug)).size, 16);
-    assert(simultaneous.every(({ name }) => name === 'Arrakeen surprise party'));
-    const expected = Array.from({ length: 16 }, (_, suffix) => `arrakeen-surprise-party${suffix ? `-${suffix}` : ''}`);
-    assert.deepEqual(simultaneous.map(({ slug }) => slug).sort(), expected.sort());
-    console.log(
-      'PASS: two simultaneous batches of eight creations committed 16 distinct addresses with one display name.'
-    );
-
-    const existingId = gameIds[0]!;
-    const existingNamedId = await named(viewers[0]!, existingId);
-    const absentNamedId = await named(viewers[1]!, absentGameId);
-    const legacy = await admin.query(httpReference(internal.playGameNamesTesting.inspect), {
-      gameIds: [existingId, absentGameId, existingNamedId, absentNamedId],
-    });
-    assert(legacy[0]!.legacyToken && legacy[1]!.legacyToken);
-    assert.equal(legacy[1]!.name, undefined);
-    assert.equal(legacy[2]!.slug, `${existingId}-1`);
-    assert.equal(legacy[3]!.slug, `${absentGameId}-1`);
-    assert.equal(legacy[2]!.name, existingId);
-    assert.equal(legacy[3]!.name, absentGameId);
-    console.log('PASS: an existing legacy game ID and an accepted ID token without a record both received -1.');
-
-    const generatedIds = await Promise.all(
-      viewers.slice(2).map(async (viewer) => {
-        const result = await viewer.mutation(api.playGames.createGame, request);
-        assert(result.ok);
-        return result.gameId;
-      })
-    );
-    const generated = await admin.query(httpReference(internal.playGameNamesTesting.inspect), {
-      gameIds: generatedIds,
-    });
-    const vocabulary = new Set(playGameNameVocabulary().map(({ name }) => name));
-    assert(
-      generated.every(({ name, slug }) => vocabulary.has(name!) && slug?.startsWith(normalizePlayGameSlug(name!)))
-    );
-    console.log('PASS: six legacy creation requests kept their response shape and received reviewed names.');
-    console.log(JSON.stringify({ simultaneous, legacy, generated }, null, 2));
+    await proveAllocation(admin, viewers, request, absentGameId);
   } finally {
     try {
       composeDown(environment);

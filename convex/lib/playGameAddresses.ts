@@ -94,26 +94,25 @@ async function allocateSlug(ctx: MutationCtx, base: string): Promise<string> {
   return retryAllocation();
 }
 
+async function generateAvailableName(ctx: MutationCtx) {
+  let name = generatePlayGameName();
+  for (let draw = 1; draw < GENERATED_NAME_DRAWS; draw += 1) {
+    if (await playGameAddressAvailable(ctx, normalizePlayGameSlug(name))) {
+      break;
+    }
+    name = generatePlayGameName();
+  }
+  return name;
+}
+
 /** A supplied name has already passed moderation in its caller; no public creation call accepts it yet. */
 export async function allocatePlayGameName(ctx: MutationCtx, suppliedName?: string) {
-  let name: string;
-  if (suppliedName !== undefined) {
-    const parsed = playGameNameSchema.safeParse(suppliedName);
-    if (!parsed.success) {
-      throw new ConvexError({
-        code: 'PLAY_GAME_NAME_INVALID',
-        message: parsed.error.issues.map((issue) => issue.message).join(' '),
-      });
-    }
-    name = parsed.data;
-  } else {
-    name = generatePlayGameName();
-    for (let draw = 1; draw < GENERATED_NAME_DRAWS; draw += 1) {
-      if (await playGameAddressAvailable(ctx, normalizePlayGameSlug(name))) {
-        break;
-      }
-      name = generatePlayGameName();
-    }
+  const parsed = playGameNameSchema.safeParse(suppliedName ?? (await generateAvailableName(ctx)));
+  if (!parsed.success) {
+    throw new ConvexError({
+      code: 'PLAY_GAME_NAME_INVALID',
+      message: parsed.error.issues.map((issue) => issue.message).join(' '),
+    });
   }
-  return { name, slug: await allocateSlug(ctx, normalizePlayGameSlug(name)) };
+  return { name: parsed.data, slug: await allocateSlug(ctx, normalizePlayGameSlug(parsed.data)) };
 }
