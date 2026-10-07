@@ -1,6 +1,7 @@
 import { Box, Stack } from '@mantine/core';
 import preview from '@sb/preview';
 import { useRef } from 'react';
+import { expect, userEvent, within } from 'storybook/test';
 
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
 
@@ -81,6 +82,22 @@ const meta = preview.meta({
 });
 
 export const Desktop = meta.story({});
+
+export const NameMustFormUrl = meta.story({
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const name = canvas.getByRole('textbox', { name: 'Faction name' });
+    const save = canvas.getByRole('button', { name: 'Save faction' });
+    const message = 'Faction name must contain at least one letter A-Z or number 0-9 to form its URL';
+    await userEvent.clear(name);
+    await userEvent.type(name, '家族');
+    await expect(canvas.getByText(message, { exact: true })).toBeVisible();
+    await expect(save).toHaveAttribute('aria-disabled', 'true');
+    await userEvent.type(name, ' 2');
+    await expect(canvas.queryByText(message, { exact: true })).not.toBeInTheDocument();
+    await expect(save).not.toHaveAttribute('aria-disabled', 'true');
+  },
+});
 
 export const Mobile = meta.story({
   name: 'Mobile authoring',

@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import { ALL, BACKGROUND, GENERIC, LEADERS, LOGO, PLANET, TEXTURE, TROOP, TROOP_MODIFIER } from '../assetIds';
 import { marksOnlyFormattedTextSchema, proseFormattedTextSchema } from '../formattedText';
+import { slugify } from '../slugify';
 import { extraPhasesSchema } from './extraPhases';
 import { factionExtrasSchema, storedFactionExtrasSchema } from './extras';
 import { assertUniqueFactionMemberIds, FactionMemberIdSchema } from './memberIdentity';
@@ -208,10 +209,17 @@ const FactionComplexitySchema = z.strictObject({
   manual: SCALE.optional(),
 });
 
-const factionBaseShape = {
-  name: z.string().refine((name) => name.trim().length > 0, {
+export const FactionNameSchema = z
+  .string()
+  .refine((name) => name.trim().length > 0, {
     message: 'Faction name is required because it determines the faction URL',
-  }),
+  })
+  .refine((name) => name.trim().length === 0 || slugify(name).length > 0, {
+    message: 'Faction name must contain at least one letter A-Z or number 0-9 to form its URL',
+  });
+
+const factionBaseShape = {
+  name: FactionNameSchema,
   logo: LOGO.or(GENERIC),
   background: Background,
   themeColor: HEXCOLOR,

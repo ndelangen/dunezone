@@ -1,3 +1,5 @@
+import { ConvexError } from 'convex/values';
+
 import { ensureFactionComponentIds } from '../../src/shared/factions/componentIdentity';
 import { factionMembersHaveIds } from '../../src/shared/factions/memberIdentity';
 import { CanonicalFactionStoredSchema, FactionWriteSchema } from '../../src/shared/factions/schema';
@@ -25,7 +27,11 @@ export function parseFactionInput(
     const firstIssue = parsed.error.issues[0];
     const issuePath = firstIssue?.path.join('.') ?? 'data';
     const issueMessage = firstIssue?.message ?? 'Invalid faction data';
-    throw new Error(`Invalid faction data at ${issuePath}: ${issueMessage}`);
+    const message = `Invalid faction data at ${issuePath}: ${issueMessage}`;
+    if (issuePath === 'name') {
+      throw new ConvexError(message);
+    }
+    throw new Error(message);
   }
   return parsed.data;
 }
