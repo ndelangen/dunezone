@@ -90,19 +90,21 @@ function GamePage() {
     }
   }, [refused, stored, authorized, current, runtime]);
   useEffect(() => {
-    if (authorized?.slug) {
-      runtime.tables?.rememberAddress(authorized.gameId, authorized.slug);
-      if (address !== authorized.slug) {
-        void navigate({
-          to: '/play/$gameId',
-          params: { gameId: authorized.slug },
-          search: true,
-          hash: true,
-          replace: true,
-          resetScroll: false,
-        });
-      }
+    if (!authorized?.slug) {
+      return;
     }
+    runtime.tables?.rememberAddress(authorized.gameId, authorized.slug);
+    if (address === authorized.slug) {
+      return;
+    }
+    void navigate({
+      to: '/play/$gameId',
+      params: { gameId: authorized.slug },
+      search: true,
+      hash: true,
+      replace: true,
+      resetScroll: false,
+    });
   }, [authorized, address, navigate, runtime]);
   const exit = (
     <Button component={Link} to="/play" variant="default" aria-label="Back to lobby">

@@ -241,13 +241,14 @@ export function sessionTableStore({ storage, account, now, onLeave }: BrowserSto
             continue;
           }
           const gameId = key.slice(STORED_PLAY_TABLE_PREFIX.length);
-          if (!forgetsPlayTable(gameId) && readStoredTable(target, gameId, account(), now())) {
-            /* Ambiguous hints cannot choose which private table to restore. */
-            if (found !== null && found !== gameId) {
-              return null;
-            }
-            found = gameId;
+          if (forgetsPlayTable(gameId) || !readStoredTable(target, gameId, account(), now())) {
+            continue;
           }
+          /* Ambiguous hints cannot choose which private table to restore. */
+          if (found !== null && found !== gameId) {
+            return null;
+          }
+          found = gameId;
         }
         return found;
       } catch {
