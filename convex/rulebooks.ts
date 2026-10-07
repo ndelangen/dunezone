@@ -46,6 +46,7 @@ import { enqueueRulebookFirstPagePublication, rulebookFirstPagePublicationStatus
 import { resolveRulebookReferences } from './lib/rulebookReferences';
 import { rulebookDesignValidator, rulebookSettingsValidator } from './lib/rulebookSettings';
 import { loadPublicRulesetBySlug } from './lib/rulesetDetailPage';
+import { allocateCounterSlug } from './lib/slugCounters';
 import { nowIso, slugify } from './lib/utils';
 import type { MutationCtx, QueryCtx } from './types';
 
@@ -196,22 +197,21 @@ async function assertAvailableName(ctx: AnyCtx, rulesetId: Id<'rulesets'>, name:
   return key;
 }
 
-async function resolveUniqueSlug(ctx: AnyCtx, rulesetId: Id<'rulesets'>, name: string, excludeId?: Id<'rulebooks'>) {
-  const baseSlug = slugify(name) || 'rulebook';
-  /* The creation route occupies /rulebooks/create, so no reader may receive that slug. */
-  let suffix = baseSlug === 'create' ? 2 : 1;
-  let slug = suffix === 1 ? baseSlug : `${baseSlug}-${suffix}`;
-  while (true) {
+async function resolveUniqueSlug(ctx: MutationCtx, rulesetId: Id<'rulesets'>, name: string, own?: Doc<'rulebooks'>) {
+  const base = slugify(name) || 'rulebook';
+  if (own && (slugify(own.name) || 'rulebook') === base) {
+    return own.slug;
+  }
+  return await allocateCounterSlug(ctx, `rulebook-slug:${JSON.stringify([rulesetId, base])}`, base, async (slug) => {
+    if (slug === 'create') {
+      return false;
+    }
     const existing = await ctx.db
       .query('rulebooks')
       .withIndex('by_ruleset_and_slug', (q) => q.eq('ruleset_id', rulesetId).eq('slug', slug))
       .unique();
-    if (!existing || existing._id === excludeId) {
-      return slug;
-    }
-    suffix += 1;
-    slug = `${baseSlug}-${suffix}`;
-  }
+    return !existing || existing._id === own?._id;
+  });
 }
 
 type RulebookPage = RulebookContentsV1['pagesById'][string];
@@ -994,7 +994,7 @@ export const rename = mutation({
     const { rulebook } = await requireRulebookOwner(ctx, args.rulebook_id);
     const name = parseName(args.name);
     const nameKey = await assertAvailableName(ctx, rulebook.ruleset_id, name, rulebook._id);
-    const slug = await resolveUniqueSlug(ctx, rulebook.ruleset_id, name, rulebook._id);
+    const slug = await resolveUniqueSlug(ctx, rulebook.ruleset_id, name, rulebook);
     const updatedAt = nowIso();
     await ctx.db.patch('rulebooks', rulebook._id, {
       name,

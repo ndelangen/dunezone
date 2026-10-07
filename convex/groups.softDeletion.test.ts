@@ -227,7 +227,7 @@ describe('Group soft deletion lifecycle', () => {
       'Group name already exists'
     );
     const shadow = await owner.mutation(api.groups.create, { name: 'DUNEDESIGNERS' });
-    expect(shadow.slug).toBe('dunedesigners-2');
+    expect(shadow.slug).toBe('dunedesigners-1');
   });
 
   test('dangling references from historical hard deletions project to null', async () => {

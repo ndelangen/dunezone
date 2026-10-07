@@ -23,7 +23,39 @@ describe('Ruleset naming', () => {
       group_id: null,
       image_cover: null,
     });
-    expect(again.slug).toBe('test-ruleset-2');
+    expect(again.slug).toBe('test-ruleset-1');
+  });
+
+  test('reserved paths, deleted holders and legacy suffixes survive ordinary saves', async () => {
+    const { t, owner } = await rulesetOwner();
+    const create = async (name: string) =>
+      await owner.mutation(api.rulesets.create, {
+        name,
+        about: VALID_ABOUT,
+        group_id: null,
+        image_cover: null,
+      });
+    expect((await create('Create')).slug).toBe('create-1');
+    const holder = await create('Legacy rules');
+    await owner.mutation(api.rulesets.softDelete, { id: holder._id });
+    const copy = await create('Legacy rules');
+    expect(copy.slug).toBe('legacy-rules-1');
+    await t.run(async (ctx) => await ctx.db.patch(copy._id, { slug: 'legacy-rules-deadbeef' }));
+    const saved = await owner.mutation(api.rulesets.update, {
+      id: copy._id,
+      name: 'Legacy rules!',
+      about: VALID_ABOUT,
+    });
+    expect(saved.slug).toBe('legacy-rules-deadbeef');
+    expect(
+      (
+        await owner.mutation(api.rulesets.update, {
+          id: copy._id,
+          name: 'Fresh rules',
+          about: VALID_ABOUT,
+        })
+      ).slug
+    ).toBe('fresh-rules');
   });
 
   test('a blank name is refused in product language', async () => {

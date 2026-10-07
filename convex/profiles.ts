@@ -18,6 +18,7 @@ import { scheduleAvatarRehostIfPending } from './lib/profileAvatar';
 import { ensureProfileForUser } from './lib/profileBootstrap';
 import { loadProfileDetailBySlug } from './lib/profileDetail';
 import { discoverableProfileValidator, loadNewestDiscoverableProfiles } from './lib/profileDiscovery';
+import { allocateProfileSlug } from './lib/profileSlugs';
 import { nowIso, slugify } from './lib/utils';
 
 async function createProfileIfMissing(ctx: MutationCtx, userId: Id<'users'>) {
@@ -212,19 +213,7 @@ export const updateCurrent = mutation({
     if (nextSlugBase.length === 0) {
       throw new Error('Failed to generate slug from display name');
     }
-    let nextSlug = nextSlugBase;
-    let suffix = 1;
-    while (true) {
-      const slugOwner = await ctx.db
-        .query('profiles')
-        .withIndex('by_slug', (q) => q.eq('slug', nextSlug))
-        .unique();
-      if (!slugOwner || slugOwner.user_id === userId) {
-        break;
-      }
-      suffix += 1;
-      nextSlug = `${nextSlugBase}-${suffix}`;
-    }
+    const nextSlug = await allocateProfileSlug(ctx, nextSlugBase, profile);
 
     await ctx.db.patch(profile._id, {
       username: normalizedUsername,

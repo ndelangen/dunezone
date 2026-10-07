@@ -948,7 +948,7 @@ describe('slug allocation', () => {
     const copies: (typeof first)[] = [];
     for (let index = 1; index < 75; index += 1) {
       const copy = await owner.mutation(api.assets.create, { type: 'card-treachery', data: cardData('Reference') });
-      expect(copy.slug).toBe(`reference-${index}`);
+      expect(copy.slug).toBe(`reference-${index.toString(36)}`);
       copies.push(copy);
     }
     await t.run(async (ctx) => {
@@ -957,7 +957,7 @@ describe('slug allocation', () => {
       }
     });
     expect((await owner.mutation(api.assets.create, { type: 'card-treachery', data: large })).slug).toBe(
-      'reference-75'
+      `reference-${(75).toString(36)}`
     );
     for (let index = 1; index <= 4; index += 1) {
       await owner.mutation(api.assets.create, { type: 'card-treachery', data: cardData(`Lasgun ${index}`) });
@@ -966,6 +966,41 @@ describe('slug allocation', () => {
     expect(crowded.slug).toMatch(/^lasgun-[a-z0-9]{12,}$/);
     expect((await t.query(api.assets.getPage, { type: 'card-treachery', slug: crowded.slug }))?.asset.name).toBe(
       'Lasgun'
+    );
+  });
+
+  test('reserved creation paths and legacy addresses stay usable across spelling and genuine renames', async () => {
+    const t = convexTest(schema, modules);
+    const { ownerId } = await seedCard(t);
+    const owner = t.withIdentity({ subject: ownerId });
+    const reserved = await owner.mutation(api.assets.create, { type: 'card-treachery', data: cardData('Create') });
+    expect(reserved.slug).toBe('create-1');
+    const legacy = await owner.mutation(api.assets.create, { type: 'card-treachery', data: cardData('Legacy') });
+    await t.run(async (ctx) => await ctx.db.patch(legacy.id, { slug: 'legacy-0123456789abcdef01234567' }));
+    const saved = await owner.mutation(api.assets.update, { id: legacy.id, data: cardData('Legacy!') });
+    expect(saved.slug).toBe('legacy-0123456789abcdef01234567');
+    expect((await t.query(api.assets.getPage, { type: 'card-treachery', slug: saved.slug }))?.asset.id).toBe(legacy.id);
+    expect((await owner.mutation(api.assets.update, { id: legacy.id, data: cardData('Renamed') })).slug).toBe(
+      'renamed'
+    );
+  });
+
+  test('existing Asset counters keep their consumed ordinal while new suffixes use base 36', async () => {
+    const t = convexTest(schema, modules);
+    const { ownerId } = await seedCard(t);
+    const owner = t.withIdentity({ subject: ownerId });
+    await owner.mutation(api.assets.create, { type: 'card-treachery', data: cardData('Lasgun 10') });
+    await t.run(
+      async (ctx) =>
+        await ctx.db.insert('counters', {
+          key: `asset-slug:${JSON.stringify(['card-treachery', 'lasgun'])}`,
+          value: 35,
+        })
+    );
+    const copy = await owner.mutation(api.assets.create, { type: 'card-treachery', data: cardData('Lasgun') });
+    expect(copy.slug).toBe('lasgun-11');
+    expect((await t.query(api.assets.getPage, { type: 'card-treachery', slug: 'lasgun-10' }))?.asset.name).toBe(
+      'Lasgun 10'
     );
   });
 

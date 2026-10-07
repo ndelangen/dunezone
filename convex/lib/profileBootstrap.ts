@@ -2,7 +2,8 @@ import type { Doc, Id } from '../_generated/dataModel';
 import type { MutationCtx } from '../_generated/server';
 import { accountStateOf } from './accountLifecycle';
 import { scheduleAvatarRehostIfPending } from './profileAvatar';
-import { nowIso, slugify } from './utils';
+import { allocateProfileSlug, profileBootstrapSlug } from './profileSlugs';
+import { nowIso } from './utils';
 
 export type ProfileBootstrapSources = {
   displayName: string | null;
@@ -30,26 +31,6 @@ export function profileSourcesFromUserDoc(user: Doc<'users'>): ProfileBootstrapS
     displayName: trimNonEmptyName(user.name as string | undefined),
     imageUrl: nonEmptyImage(user.image as string | undefined),
   };
-}
-
-async function allocateUniqueProfileSlug(ctx: MutationCtx, usernameForSlug: string): Promise<string> {
-  /*
-   * Fold decorative letters and decomposable accents only for a new profile's URL.
-   * Names without an ASCII equivalent still need a URL so profile creation cannot reject a valid OAuth account.
-   */
-  const baseSlug = slugify(usernameForSlug.normalize('NFKD').replace(/\p{M}/gu, '')) || 'player';
-  let slug = baseSlug;
-  let suffix = 1;
-  while (
-    await ctx.db
-      .query('profiles')
-      .withIndex('by_slug', (q) => q.eq('slug', slug))
-      .unique()
-  ) {
-    suffix += 1;
-    slug = `${baseSlug}-${suffix}`;
-  }
-  return slug;
 }
 
 async function refreshExistingProfile(
@@ -114,7 +95,7 @@ export async function ensureProfileForUser(
   }
 
   const username = displayName ?? 'nameless';
-  const slug = await allocateUniqueProfileSlug(ctx, username);
+  const slug = await allocateProfileSlug(ctx, profileBootstrapSlug(username));
   const now = nowIso();
   const inserted = await ctx.db.insert('profiles', {
     user_id: userId,

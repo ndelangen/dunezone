@@ -8,7 +8,6 @@ import { describe, expect, test, vi } from 'vitest';
 import { publishingDeckCardback } from '../src/shared/assets/fixtures/publishingDeckCardback';
 import { normalizePlayGameSlug, playGameNameSchema } from '../src/shared/play/gameNames';
 import { api, internal } from './_generated/api';
-import { PLAY_GAME_ADDRESS_PROBES } from './lib/playGameAddresses';
 import { playGameNameVocabulary } from './lib/playGameNames';
 import { playRateLimiter } from './lib/playRateLimits';
 import schema from './schema';
@@ -92,7 +91,7 @@ describe('permanent Play names and addresses', () => {
     expect(second).toMatchObject({ name: 'Pauls gomjabbar party', slug: 'pauls-gomjabbar-party-1' });
   });
 
-  test('nearby independently entered suffixes advance their parent cursor and duplicates keep display wording', async () => {
+  test('independently entered suffixes are occupied addresses without interpreting their endings', async () => {
     const { create } = await world();
     expect((await create('Arrakeen party-1')).slug).toBe('arrakeen-party-1');
     expect((await create('Arrakeen party')).slug).toBe('arrakeen-party');
@@ -163,6 +162,22 @@ describe('permanent Play names and addresses', () => {
     expect((await create('Arrakeen dinner')).slug).toBe('arrakeen-dinner-4');
   });
 
+  test('dense out-of-order addresses recover without committing a failed creation', async () => {
+    const { t, create } = await world();
+    await create('Arrakeen dinner');
+    await t.run(async (ctx) => {
+      for (let suffix = 64; suffix >= 1; suffix -= 1) {
+        await ctx.db.insert('play_game_slug_reservations', { slug: `arrakeen-dinner-${suffix.toString(36)}` });
+      }
+      await ctx.db.insert('play_game_slug_cursors', { base: 'arrakeen-dinner', next_suffix: 33 });
+    });
+    const recovered = await create('Arrakeen dinner');
+    const next = await create('Arrakeen dinner');
+    expect(recovered.name).toBe('Arrakeen dinner');
+    expect(recovered.slug).toMatch(/^arrakeen-dinner-[a-z0-9]{13}$/);
+    expect(next.slug).not.toBe(recovered.slug);
+  });
+
   test('expiration, display/ruleset edits and hard deletion retain the allocated reservation', async () => {
     const { t, request, create } = await world();
     const original = await create('Caladan picnic');
@@ -180,13 +195,19 @@ describe('permanent Play names and addresses', () => {
   test('bounded allocation failure rolls back creation, reservations, schedules and quota', async () => {
     const { t, viewer, request, create } = await world();
     await t.run(async (ctx) => {
-      for (let suffix = 0; suffix <= PLAY_GAME_ADDRESS_PROBES; suffix += 1) {
+      for (let suffix = 0; suffix <= 4; suffix += 1) {
         await ctx.db.insert('play_game_slug_reservations', {
           slug: suffix ? `blocked-${suffix.toString(36)}` : 'blocked',
         });
       }
     });
-    await expect(create('Blocked')).rejects.toThrow('PLAY_GAME_ADDRESS_RETRY');
+    await t.run(async (ctx) => await ctx.db.insert('play_game_slug_reservations', { slug: 'blocked-0000000000000' }));
+    const random = vi.spyOn(crypto, 'getRandomValues').mockReturnValue(new Uint32Array(2));
+    try {
+      await expect(create('Blocked')).rejects.toThrow('PLAY_GAME_ADDRESS_RETRY');
+    } finally {
+      random.mockRestore();
+    }
     const after = await t.run(async (ctx) => ({
       games: await ctx.db.query('play_games').collect(),
       cursors: await ctx.db.query('play_game_slug_cursors').collect(),
@@ -196,11 +217,54 @@ describe('permanent Play names and addresses', () => {
     expect(after.games).toEqual([]);
     expect(after.cursors).toEqual([]);
     expect(after.schedules).toEqual([]);
-    expect(after.reservations).toHaveLength(PLAY_GAME_ADDRESS_PROBES + 1);
+    expect(after.reservations).toHaveLength(6);
     for (const name of ['One', 'Two', 'Three']) {
       await create(name);
     }
     expect(await viewer.mutation(api.playGames.createGame, request)).toEqual({ ok: false, reason: 'rate_limited' });
+  });
+
+  test('server candidate policies cover generated creation and roll back a rejected creation budget', async () => {
+    vi.stubEnv('IS_TEST', 'true');
+    vi.stubEnv('E2E_LOCAL_AUTH', 'true');
+    vi.stubEnv('CONVEX_CLOUD_URL', 'http://127.0.0.1:3210');
+    vi.stubEnv('SITE_URL', 'http://127.0.0.1:5173');
+    const random = vi.spyOn(Math, 'random').mockReturnValue(0);
+    try {
+      const { t, viewer, request } = await world();
+      await viewer.mutation(internal.slugAllocationTesting.seedPolicy, {});
+      await expect(
+        viewer.mutation(internal.slugAllocationTesting.createWithPolicy, {
+          ...request,
+          policy: 'reject',
+        })
+      ).rejects.toThrow('PLAY_GAME_ADDRESS_RETRY');
+      const failed = await t.run(async (ctx) => ({
+        games: await ctx.db.query('play_games').collect(),
+        reservations: await ctx.db.query('play_game_slug_reservations').collect(),
+        cursors: await ctx.db.query('play_game_slug_cursors').collect(),
+        schedules: await ctx.db.system.query('_scheduled_functions').collect(),
+      }));
+      expect(failed.games).toEqual([]);
+      expect(failed.reservations).toEqual([]);
+      expect(failed.cursors.map(({ base }) => base)).toEqual(['policy-dinner']);
+      expect(failed.schedules).toEqual([]);
+      for (const policy of ['word', 'generated', 'window'] as const) {
+        const result = await viewer.mutation(internal.slugAllocationTesting.createWithPolicy, { ...request, policy });
+        if (!result.ok) {
+          throw new Error(`Creation refused: ${result.reason}`);
+        }
+        const game = await t.run(async (ctx) => await ctx.db.get(result.gameId));
+        expect(game?.slug).toMatch(policy === 'word' ? /^policy-dinner-bae$/ : /-[a-z0-9]{13}$/);
+        if (policy === 'generated') {
+          expect(game?.name).toBe('Arrakeen surprise party');
+        }
+      }
+      expect(await viewer.mutation(api.playGames.createGame, request)).toEqual({ ok: false, reason: 'rate_limited' });
+    } finally {
+      random.mockRestore();
+      vi.unstubAllEnvs();
+    }
   });
 
   test('invalid names fail atomically and long names retain display wording with bounded addresses', async () => {

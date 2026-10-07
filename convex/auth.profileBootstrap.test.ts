@@ -84,10 +84,10 @@ describe('Discord profile creation', () => {
     const chinese = await completeDiscordCallback(t, 'chinese', '王');
     expect([plain.slug, decorative.slug, player.slug, emoji.slug, chinese.slug]).toEqual([
       'norbert',
-      'norbert-2',
+      'norbert-1',
       'player',
+      'player-1',
       'player-2',
-      'player-3',
     ]);
   });
 
