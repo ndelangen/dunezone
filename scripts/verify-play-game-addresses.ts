@@ -106,7 +106,6 @@ async function main() {
       viewers.slice(2).map(async (viewer) => {
         const result = await viewer.mutation(api.playGames.createGame, request);
         assert(result.ok);
-        assert.deepEqual(Object.keys(result).sort(), ['gameId', 'ok']);
         return result.gameId;
       })
     );

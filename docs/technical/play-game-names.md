@@ -109,3 +109,6 @@ requests prove generated names and compatible returns against the real backend.
 The proof accepts only its own loopback origin, uses synthetic sessions, performs no paid API call
 and deletes its Docker project, volume and temporary credentials. It prints safe name/address
 records. The new allocation tables are excluded from the anonymised snapshot alongside games.
+
+The [retained real-backend proof](https://gist.github.com/ndelangen/9893fb47a485f5b926a64d3beb532758)
+records the successful 7 October 2026 run and its safe synthetic name/address results.

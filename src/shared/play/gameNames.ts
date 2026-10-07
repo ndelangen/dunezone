@@ -1,8 +1,7 @@
 import { z } from 'zod';
 
-export const PLAY_GAME_NAME_MAX_LENGTH = 80;
-export const PLAY_GAME_SLUG_BASE_MAX_LENGTH = 64;
-export const PLAY_GAME_SLUG_MAX_LENGTH = 81;
+const PLAY_GAME_NAME_MAX_LENGTH = 80;
+const PLAY_GAME_SLUG_BASE_MAX_LENGTH = 64;
 export const PLAY_RESERVED_GAME_ADDRESSES = ['create', 'demo', 'hosted'] as const;
 
 /** The same spelling rule applies to typed names, generated names and availability checks. */

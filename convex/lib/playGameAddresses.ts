@@ -98,7 +98,14 @@ async function allocateSlug(ctx: MutationCtx, base: string): Promise<string> {
 export async function allocatePlayGameName(ctx: MutationCtx, suppliedName?: string) {
   let name: string;
   if (suppliedName !== undefined) {
-    name = playGameNameSchema.parse(suppliedName);
+    const parsed = playGameNameSchema.safeParse(suppliedName);
+    if (!parsed.success) {
+      throw new ConvexError({
+        code: 'PLAY_GAME_NAME_INVALID',
+        message: parsed.error.issues.map((issue) => issue.message).join(' '),
+      });
+    }
+    name = parsed.data;
   } else {
     name = generatePlayGameName();
     for (let draw = 1; draw < GENERATED_NAME_DRAWS; draw += 1) {
