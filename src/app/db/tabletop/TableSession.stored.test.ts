@@ -64,7 +64,7 @@ const snapshot: GameSnapshot = {
 const socket = () => Socket.instances.at(-1)!;
 
 /* Each load of the page builds its runtime afresh, as a reload does. */
-function load() {
+function load(address = 'game', slug?: string) {
   const tables = sessionTableStore({
     storage: () => tabStorage,
     account: () => account,
@@ -73,9 +73,13 @@ function load() {
       leave = listener;
     },
   });
+  const gameId = tables.findGame(address) ?? address;
+  if (slug) {
+    tables.rememberAddress(gameId, slug);
+  }
   const client = new TableSession(
-    'game',
-    new GameSubscription('game', async () => ({ ok: true, ticket: 'a'.repeat(64), expiresInMs: 30_000 }), {
+    gameId,
+    new GameSubscription(gameId, async () => ({ ok: true, ticket: 'a'.repeat(64), expiresInMs: 30_000 }), {
       ...runtime,
       tables,
     }),
@@ -87,6 +91,29 @@ function load() {
   stops.push(client.connect());
   return client;
 }
+
+test('a friendly reload restores the same locked ID table, unlocks on a fresh view and clears on refusal', async () => {
+  load('game', 'hidden-sietch');
+  await live();
+  socket().close();
+  leave();
+  const reloaded = load('hidden-sietch');
+  expect(reloaded.game).toBe('game');
+  expect(reloaded.getSnapshot().table).toMatchObject({
+    reconnecting: true,
+    canInteract: false,
+    snapshot: { bank: { balance: 7 } },
+  });
+  await live({ snapshot: { ...snapshot, bank: { factionId: 'one', balance: 9 } } });
+  expect(reloaded.getSnapshot().table).toMatchObject({
+    reconnecting: false,
+    canInteract: true,
+    snapshot: { bank: { balance: 9 } },
+  });
+  socket().deliver({ type: 'admission', status: 'denied' });
+  expect(storage.size).toBe(0);
+  expect(reloaded.getSnapshot().table).toBeNull();
+});
 
 async function live(frame: Partial<{ snapshot: GameSnapshot; viewer: Viewer }> = {}) {
   await vi.advanceTimersByTimeAsync(0);

@@ -219,3 +219,13 @@ export const playGameAccessSchema = z.union([
     minimumPlayers: playMinimumPlayersSchema.nullable(),
   }),
 ]);
+
+/* The legacy ID query retains its deployed response; only the address query carries canonical metadata. */
+const gameAddress = { gameId: identifierSchema, name: z.string(), slug: z.string().nullable() };
+export const playGameAddressAccessSchema = z.union([
+  playGameAccessSchema.options[0],
+  playGameAccessSchema.options[1],
+  playGameAccessSchema.options[2].extend(gameAddress),
+  playGameAccessSchema.options[3].extend(gameAddress),
+  playGameAccessSchema.options[4].extend(gameAddress),
+]);

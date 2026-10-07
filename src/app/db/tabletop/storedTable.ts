@@ -23,6 +23,10 @@ export type TableAccount = { userId: string; sessionId: string };
 
 export type TableStore = {
   read(gameId: string): StoredTable | null;
+  /** Finds an existing ID record by its known address, using the same restoration guards as read. */
+  findGame(address: string): string | null;
+  /** Keeps authorized address metadata on the ID record, without extending its age or creating a snapshot. */
+  rememberAddress(gameId: string, slug: string): void;
   /*
    * Keeps the newest table and writes it soon after, and at once when the page is hidden or unloads.
    * `live` says the table came from a live view, which stamps it; a table kept from an earlier visit keeps its stamp.
@@ -40,6 +44,7 @@ const WRITE_DELAY_MS = 2000;
 const recordSchema = z.object({
   format: z.literal(FORMAT),
   gameId: z.string(),
+  slug: z.string().optional(),
   userId: z.string(),
   sessionId: z.string(),
   savedAt: z.number(),
@@ -124,7 +129,8 @@ export function storedTableText(
   gameId: string,
   table: StoredTable,
   account: TableAccount | null,
-  now: number
+  now: number,
+  slug?: string
 ): string | null {
   if (!account || account.userId !== table.viewer.userId) {
     return null;
@@ -132,6 +138,7 @@ export function storedTableText(
   return JSON.stringify({
     format: FORMAT,
     gameId,
+    ...(slug === undefined ? {} : { slug }),
     userId: account.userId,
     sessionId: account.sessionId,
     savedAt: table.liveAt ?? now,
@@ -174,6 +181,7 @@ type BrowserStore = {
  */
 export function sessionTableStore({ storage, account, now, onLeave }: BrowserStore): TableStore {
   const queued = new Map<string, StoredTable>();
+  const addresses = new Map<string, string>();
   /* When each game's table was last live, so a table kept while offline is not re-stamped by every write. */
   const liveAt = new Map<string, number>();
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -182,7 +190,9 @@ export function sessionTableStore({ storage, account, now, onLeave }: BrowserSto
     timer = undefined;
     const target = storage();
     for (const [gameId, table] of queued) {
-      const text = forgetsPlayTable(gameId) ? null : storedTableText(gameId, table, account(), now());
+      const text = forgetsPlayTable(gameId)
+        ? null
+        : storedTableText(gameId, table, account(), now(), addresses.get(gameId));
       try {
         if (text === null) {
           target?.removeItem(storageKey(gameId));
@@ -200,9 +210,63 @@ export function sessionTableStore({ storage, account, now, onLeave }: BrowserSto
     read(gameId) {
       const target = storage();
       try {
-        return target ? readStoredTable(target, gameId, account(), now()) : null;
+        const table = target ? readStoredTable(target, gameId, account(), now()) : null;
+        const record = table && target ? parseRecord(target.getItem(storageKey(gameId))!) : null;
+        if (record?.slug) {
+          addresses.set(gameId, record.slug);
+        }
+        return table;
       } catch {
         return null;
+      }
+    },
+    findGame(address) {
+      const target = storage();
+      if (!target) {
+        return null;
+      }
+      try {
+        if (!forgetsPlayTable(address) && readStoredTable(target, address, account(), now())) {
+          return address;
+        }
+        const keys = Array.from({ length: target.length }, (_, index) => target.key(index));
+        let found: string | null = null;
+        for (const key of keys) {
+          if (!key?.startsWith(STORED_PLAY_TABLE_PREFIX)) {
+            continue;
+          }
+          const text = target.getItem(key);
+          const record = text === null ? null : parseRecord(text);
+          if (record?.slug !== address) {
+            continue;
+          }
+          const gameId = key.slice(STORED_PLAY_TABLE_PREFIX.length);
+          if (!forgetsPlayTable(gameId) && readStoredTable(target, gameId, account(), now())) {
+            /* Ambiguous hints cannot choose which private table to restore. */
+            if (found !== null && found !== gameId) {
+              return null;
+            }
+            found = gameId;
+          }
+        }
+        return found;
+      } catch {
+        return null;
+      }
+    },
+    rememberAddress(gameId, slug) {
+      addresses.set(gameId, slug);
+      const target = storage();
+      try {
+        const table = target ? readStoredTable(target, gameId, account(), now()) : null;
+        if (table && !forgetsPlayTable(gameId)) {
+          const text = storedTableText(gameId, table, account(), now(), slug);
+          if (text !== null) {
+            target?.setItem(storageKey(gameId), text);
+          }
+        }
+      } catch {
+        /* A blocked storage only costs the next reload its address hint. */
       }
     },
     save(gameId, table, live) {
@@ -218,6 +282,7 @@ export function sessionTableStore({ storage, account, now, onLeave }: BrowserSto
     },
     clear(gameId) {
       queued.delete(gameId);
+      addresses.delete(gameId);
       try {
         storage()?.removeItem(storageKey(gameId));
       } catch {

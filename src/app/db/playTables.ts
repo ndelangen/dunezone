@@ -49,15 +49,6 @@ export function storedAuthToken(): string | null {
   }
 }
 
-/** Whether this tab kept a table for `gameId` while someone is signed in; the table itself checks whose it is before showing it. */
-export function hasStoredPlayTable(gameId: string): boolean {
-  try {
-    return storedAuthToken() !== null && sessionStorage.getItem(`${STORED_PLAY_TABLE_PREFIX}${gameId}`) !== null;
-  } catch {
-    return false;
-  }
-}
-
 /** Removes the table this tab kept for `gameId`, once the directory says the viewer may no longer open it. */
 export function forgetStoredPlayTable(gameId: string) {
   forgotten.add(gameId);

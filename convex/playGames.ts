@@ -3,9 +3,13 @@ import { v } from 'convex/values';
 import type { Infer } from 'convex/values';
 import type { z } from 'zod';
 
-import { playCreateGameRequestSchema, playGameAccessSchema } from '../src/shared/play/admission';
+import {
+  playCreateGameRequestSchema,
+  playGameAccessSchema,
+  playGameAddressAccessSchema,
+} from '../src/shared/play/admission';
 import { playNamedGameOutcomeSchema, playNamedGameRequestSchema } from '../src/shared/play/gameCreation';
-import { normalizePlayGameSlug, playGameNameSchema } from '../src/shared/play/gameNames';
+import { normalizePlayGameSlug, playGameNameSchema, PLAY_RESERVED_GAME_ADDRESSES } from '../src/shared/play/gameNames';
 import { playCreateGameOutcomeSchema } from '../src/shared/play/seatLimit';
 import { internal } from './_generated/api';
 import type { Doc, Id } from './_generated/dataModel';
@@ -271,6 +275,38 @@ export const getGame = query({
       return { status: 'not_found' as const };
     }
     return await gameAccess(ctx, game);
+  },
+});
+
+/** Resolves a friendly address or legacy ID without granting access or changing the game's identity. */
+export const getGameByAddress = query({
+  args: { address: v.string() },
+  returns: zodToConvex(playGameAddressAccessSchema),
+  handler: async (ctx, { address }) => {
+    if (!(await currentPlaySession(ctx))) {
+      return { status: 'sign_in_required' as const };
+    }
+    if ((PLAY_RESERVED_GAME_ADDRESSES as readonly string[]).includes(address)) {
+      return { status: 'not_found' as const };
+    }
+    /* Every token the old resolver accepts stays in its namespace, even when its game no longer exists. */
+    const id = ctx.db.normalizeId('play_games', address);
+    const game = id
+      ? await ctx.db.get(id)
+      : await ctx.db
+          .query('play_games')
+          .withIndex('by_slug', (q) => q.eq('slug', address))
+          .unique();
+    if (!game || !admitsPlayers(game)) {
+      return { status: 'not_found' as const };
+    }
+    const access = await gameAccess(ctx, game);
+    return {
+      ...access,
+      gameId: game._id,
+      name: game.name ?? ('name' in access ? access.name : 'Game'),
+      slug: game.slug ?? null,
+    };
   },
 });
 
