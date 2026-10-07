@@ -5,7 +5,7 @@ import type { GameSnapshot, Viewer } from '@shared/play/protocol';
 import { rosterFactionNames } from '@shared/play/protocol';
 import type { SupplyDependencies } from '@shared/play/setupSupply';
 import { factionSupply, item, piece, place } from '@shared/play/setupSupply';
-import { OTHER_DECK_POSITION } from '@shared/play/tableFurnitureLayout';
+import { cardBaySlotPositions, OTHER_DECK_POSITION } from '@shared/play/tableFurnitureLayout';
 import { BOARD_RADIUS, restingPositionAt } from '@shared/play/tableGeometry';
 import type { TableSeatCount } from '@shared/play/tableSettings';
 import { tableSeatAngles } from '@shared/play/tableSettings';
@@ -332,7 +332,7 @@ export function playingSnapshot(viewerSeat = 'seat-2'): GameSnapshot {
   const factionNames = rosterFactionNames(snapshot.roster);
   /* A Snooper was drawn off the deck and turned face up. The draw changed both stacks' cards, so each takes the name its back gives it, as a split names them. */
   snapshot.table.pieces.push(
-    place({ ...deck, label: labelForCount(deck, deck.items.length, factionNames) }, [6.3, 0, 0]),
+    place({ ...deck, label: labelForCount(deck, deck.items.length, factionNames) }, cardBaySlotPositions('right')[2]!),
     place(
       {
         ...deck,
