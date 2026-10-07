@@ -52,7 +52,7 @@ function GamePage() {
   const navigate = Route.useNavigate();
   const runtime = useContext(GameRuntimeContext);
   const { data } = useGameAccess(address);
-  const [known, remember] = useReducer((_previous: KnownGame | null, next: KnownGame) => next, null);
+  const [known, remember] = useReducer((_previous: KnownGame | null, event: GamePageEvent) => event.game, null);
   const authorized = data && 'gameId' in data ? data : null;
   if (
     authorized &&
@@ -62,10 +62,13 @@ function GamePage() {
       known.status !== authorized.status)
   ) {
     remember({
-      gameId: authorized.gameId,
-      slug: authorized.slug,
-      name: authorized.name,
-      status: authorized.status,
+      type: 'resolved',
+      game: {
+        gameId: authorized.gameId,
+        slug: authorized.slug,
+        name: authorized.name,
+        status: authorized.status,
+      },
     });
   }
   const current = authorized ?? (known && (address === known.gameId || address === known.slug) ? known : null);
@@ -160,6 +163,7 @@ type KnownGame = Pick<
   Extract<NonNullable<ReturnType<typeof useGameAccess>['data']>, { gameId: string }>,
   'gameId' | 'slug' | 'name' | 'status'
 >;
+type GamePageEvent = { type: 'resolved'; game: KnownGame };
 
 /* One element for a ready game and for a kept table, so the table a reload restored stays mounted when the directory answers. */
 function TablePage({ title, gameId, exit }: Readonly<{ title: string; gameId: string; exit: ReactNode }>) {
