@@ -1506,10 +1506,11 @@ async function verifyRegular() {
     'Canonical replacement must leave Back pointing to the page before entry.'
   );
   passed('An ID entry preserves search and fragment, opens one ID socket and replaces history for Back');
+  const visitorSocketsBeforeUnknown = visitor.sockets.length;
   await visitor.page.goto(`${origin}/play/not-a-game`, { waitUntil: 'domcontentloaded' });
   await visitor.page.getByText('This game is not available', { exact: true }).waitFor();
   assert.equal(await visitor.page.locator('canvas').count(), 0);
-  assert.equal(visitor.sockets.length, 0);
+  assert.equal(visitor.sockets.length, visitorSocketsBeforeUnknown);
   await visitor.page.close();
   passed('A signed-in account finds an unknown game id unavailable and opens no socket');
   for (const view of ['left', 'right', 'bottom', 'map']) {
