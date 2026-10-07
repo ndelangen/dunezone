@@ -7,8 +7,10 @@ is the specification. The live issue records review, deployment and verification
 
 ## Scope and ownership
 
-Players reach a game only at `/play/<gameId>`: `/play` is the lobby, and any signed-in player creates a
-real game at `/play/create`. Nothing in the application links to `/play`, and every play page is
+Players reach a named game at `/play/<slug>`. The ID address `/play/<gameId>` opens the same game
+and replaces itself with its friendly address, retaining query parameters and the fragment.
+`/play` is the lobby, and any signed-in player creates a real game at `/play/create`.
+Nothing in the application links to `/play`, and every play page is
 `noindex`, through a robots meta tag and through the `X-Robots-Tag` header the publisher's `_headers`
 file adds to `/play` and `/play/*` ([deployment](../deployment.md#build-process)):
 real games are an unlisted beta, shared privately, until the public-release decision
@@ -26,6 +28,16 @@ Harkonnen and Atreides seats, and later users are spectators. A user's other tab
 but have independent connections and carries. The expanded load profiles run the Worker's load
 entry, `workers/game/load-entry.ts`, whose fixtures seat eighteen load players instead. The
 production Worker never imports it.
+
+`playGames.getGameByAddress` resolves either address through the existing session and admission
+checks. Tokens accepted as IDs stay in the ID namespace even after their row disappears.
+The deployed `getGame` query remains available for earlier browser bundles. Database IDs still name
+the table session, admission request and game socket; replacing the browser address keeps that
+session mounted. The tab's existing saved-table record keeps its known slug under the ID key.
+A friendly-link reload can find that record only through the same account, sign-in session, age
+and payload checks. It shows a locked table until a fresh authorized socket view arrives. A refusal
+clears it, and a conflicting live resolution discards the stored hint.
+The [routing ticket](https://github.com/ndelangen/dunezone/issues/1937) records delivery evidence.
 
 Convex stores the fixture directory record, provisioning status, server-only game secrets, ticket hashes, session
 registrations and account-deletion delivery records. It does not store table actions or seats.
