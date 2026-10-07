@@ -7,6 +7,7 @@ import { GameRejection } from '../../src/shared/play/rejection';
 import type { TableRoster } from '../../src/shared/play/schema';
 import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
 import { factionSupply, place } from '../../src/shared/play/setupSupply';
+import { cardBaySlotPositions } from '../../src/shared/play/tableFurnitureLayout';
 import { tableSeatAngles } from '../../src/shared/play/tableSettings';
 import type { CaptureStore } from './captures';
 import { concealCards, shuffledCards } from './decks';
@@ -95,8 +96,8 @@ function suppliedSnapshot(
     supplyInventory(next, capture, hand);
   }
   table.pieces.push(
-    ...slotPieces(ruleset.decks.treachery, 'shared', [-5.9, 0, -1.45]),
-    ...slotPieces(ruleset.decks.spice, 'shared', [5.9, 0, -1.45]),
+    ...slotPieces(ruleset.decks.treachery, 'shared', cardBaySlotPositions('left')[0]!),
+    ...slotPieces(ruleset.decks.spice, 'shared', cardBaySlotPositions('right')[0]!),
     ...[...ruleset.decks.custom, ruleset.bundles.techToken, ...ruleset.bundles.custom].flatMap((slot) =>
       slotPieces(slot, 'shared')
     )

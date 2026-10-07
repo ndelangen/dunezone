@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { piecesCanStack } from '../../src/shared/play/tablePhysics';
+import { placementAnchorForPose } from '../../src/shared/play/tableFurnitureLayout';
+import { isCollisionFreePosition, piecesCanStack } from '../../src/shared/play/tablePhysics';
 import { cardPage, tokenPage } from './native-catalogue.fixture.mjs';
 import { dealt, draftingRuntime } from './native-drafting.fixture.mjs';
 import { accepted, admitPlayer, eventually, seat, sendCommand, syncView } from './native-runtime.fixture.mjs';
@@ -60,6 +61,17 @@ describe('Retained supply at setup entry', () => {
     expect(first.snapshot.bank.balance).toBeGreaterThan(0);
     const initial = await stored();
     const treachery = initial.table.pieces.find((piece) => piece.stackKey === 'deck:treachery-deck');
+    for (const stackKey of ['deck:treachery-deck', 'deck:spice-deck']) {
+      const suppliedDeck = initial.table.pieces.find((piece) => piece.stackKey === stackKey);
+      expect(placementAnchorForPose(suppliedDeck, suppliedDeck.position)).not.toBeNull();
+      expect(
+        isCollisionFreePosition(
+          suppliedDeck,
+          suppliedDeck.position,
+          initial.table.pieces.filter((piece) => piece !== suppliedDeck)
+        )
+      ).toBe(true);
+    }
     expect(new Set(treachery.items.map((item) => item.artwork.front)).size).toBe(12);
     const publicDeck = first.snapshot.table.pieces.find((piece) => piece.stackKey === 'deck:treachery-deck');
     expect(publicDeck.items.every((item) => !item.faceUp && !item.artwork.front && !item.artwork.name)).toBe(true);
