@@ -18,14 +18,20 @@ function listIcon(result: RulebookEditorResult) {
   return draftBlock(ready(result).draft, 'RULE', 'L5ST', 'list').itemsById['item-example']!.icon;
 }
 
+function editorWithLocalIcon() {
+  const saved = createCleanSavedRevision();
+  const manager = createRulebookEditorStateManager(saved);
+  manager.dispatch(
+    replaceDraft(manager.result, (draft) => {
+      draftBlock(draft, 'RULE', 'L5ST', 'list').itemsById['item-example']!.icon = stormIcon;
+    })
+  );
+  return { manager, saved };
+}
+
 describe('Rulebook list item icons', () => {
   it('saves and clears an existing item icon without another field edit', () => {
-    const manager = createRulebookEditorStateManager(createCleanSavedRevision());
-    manager.dispatch(
-      replaceDraft(manager.result, (draft) => {
-        draftBlock(draft, 'RULE', 'L5ST', 'list').itemsById['item-example']!.icon = stormIcon;
-      })
-    );
+    const { manager } = editorWithLocalIcon();
     expect(ready(manager.result).canSave).toBe(true);
     const saving = ready(manager.dispatch({ kind: 'begin-save' }));
     const saved = { revision: 'revision-2', contents: saving.saveRequest!.contents };
@@ -46,18 +52,9 @@ describe('Rulebook list item icons', () => {
   });
 
   it('keeps a local icon when a collaborator changes another field on the item', () => {
-    const saved = createCleanSavedRevision();
-    const manager = createRulebookEditorStateManager(saved);
-    manager.dispatch(
-      replaceDraft(manager.result, (draft) => {
-        draftBlock(draft, 'RULE', 'L5ST', 'list').itemsById['item-example']!.icon = stormIcon;
-      })
-    );
+    const { manager, saved } = editorWithLocalIcon();
     const contents = structuredClone(saved.contents);
-    const list = contents.pagesById.RULE!.blocksById.L5ST!;
-    if (list.kind !== 'list') {
-      throw new Error('Expected a list');
-    }
+    const list = draftBlock(contents, 'RULE', 'L5ST', 'list');
     list.itemsById['item-example']!.name = 'A collaborator names this step';
     manager.dispatch({ kind: 'receive-latest', latest: { revision: 'revision-2', contents } });
     expect(listIcon(manager.result)).toBe(stormIcon);
@@ -70,18 +67,9 @@ describe('Rulebook list item icons', () => {
   });
 
   it('requires a choice when two authors select different icons for the same item', () => {
-    const saved = createCleanSavedRevision();
-    const manager = createRulebookEditorStateManager(saved);
-    manager.dispatch(
-      replaceDraft(manager.result, (draft) => {
-        draftBlock(draft, 'RULE', 'L5ST', 'list').itemsById['item-example']!.icon = stormIcon;
-      })
-    );
+    const { manager, saved } = editorWithLocalIcon();
     const contents = structuredClone(saved.contents);
-    const list = contents.pagesById.RULE!.blocksById.L5ST!;
-    if (list.kind !== 'list') {
-      throw new Error('Expected a list');
-    }
+    const list = draftBlock(contents, 'RULE', 'L5ST', 'list');
     list.itemsById['item-example']!.icon = combatIcon;
     manager.dispatch({ kind: 'receive-latest', latest: { revision: 'revision-2', contents } });
     const conflicted = ready(manager.result);
