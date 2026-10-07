@@ -10013,6 +10013,12 @@
     "subjects": ["places", "space", "creatures", "people"],
     "sourceHash": "2e338d90d3955422622b3987ae9a7c1185c5f790386ef9802ad6547d767ea1d9"
   },
+  "/image/rulebook-cover/kiss-planet.png": {
+    "description": "Curved golden desert planet seen from orbit beneath two overlapping moons and a dark blue star field.",
+    "tags": ["landscape", "illustration", "kiss", "planet", "moons", "orbit"],
+    "subjects": ["places", "space"],
+    "sourceHash": "2881652c9105d5b366bebb0efa930e5bc189fb8ad08e713df94235d49b89f2e7"
+  },
   "/image/rulebook-cover/rock-passages.png": {
     "description": "Desert canyon with natural rock arches and small robed figures.",
     "tags": ["landscape", "illustration"],

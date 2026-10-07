@@ -93,6 +93,14 @@ export const DreamrulesRainbow = meta.story({
   },
   play: expectCoverBounds,
 });
+export const KissPlanet = meta.story({
+  args: {
+    backgroundImageUrl: getRulebookCoverPreset('kiss-planet').imageUrl,
+    title: 'Kiss Rules',
+    showSubtitle: false,
+  },
+  play: expectCoverBounds,
+});
 export const WithoutLogo = meta.story({ args: { showDuneLogo: false }, play: expectCoverBounds });
 export const LogoOnBlankCover = meta.story({ args: { backgroundImageUrl: '' }, play: expectCoverBounds });
 export const ArtworkOnly = meta.story({
