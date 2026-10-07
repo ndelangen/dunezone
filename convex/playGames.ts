@@ -116,10 +116,11 @@ export const createNamedGame = internalMutation({
 });
 
 /** Authorization, ruleset readiness, seats, quota, allocation and scheduling share one transaction. */
-async function createAuthorizedGame(
+export async function createAuthorizedGame(
   ctx: MutationCtx,
   args: z.infer<typeof playCreateGameRequestSchema>,
-  name?: string
+  name?: string,
+  accept?: (slug: string) => boolean
 ) {
   const session = await livePlaySession(ctx);
   if (!session) {
@@ -138,12 +139,16 @@ async function createAuthorizedGame(
   if (limited) {
     return limited;
   }
-  const gameId = await createPendingGame(ctx, {
-    ruleset_id: ruleset._id,
-    minimum_players: args.minimumPlayers,
-    creator_id: session.userId,
-    name,
-  });
+  const gameId = await createPendingGame(
+    ctx,
+    {
+      ruleset_id: ruleset._id,
+      minimum_players: args.minimumPlayers,
+      creator_id: session.userId,
+      name,
+    },
+    accept
+  );
   return { ok: true as const, gameId };
 }
 

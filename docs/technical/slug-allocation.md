@@ -20,6 +20,7 @@ values during its own transaction retry. Nothing interprets arbitrary name endin
 `convex/lib/slugAllocation.ts` owns this selection policy without knowing tables or record kinds.
 The callbacks carry exact indexed checks and an optional deterministic, server-owned final-candidate
 predicate. The predicate runs inside the mutation and cannot contact a moderation provider.
+Creation carries it through authorization, quota, pending insertion and scheduling.
 Positive name/base moderation must still refuse creation in its caller. This extension does not
 implement or bypass the separate public custom-name moderation ticket.
 
@@ -61,7 +62,7 @@ rollback of quota, rows, schedules, reservations and cursors. The disposable bac
 both cursor adapters through independent concurrent HTTP mutations.
 
 The isolated 7 October 2026 proof passed two batches of eight same-name Play creations, four batches
-of four same-name Asset creations, eight dense-window Play creations, policy rejection recovery,
+of four same-name Asset creations, eight dense-window Play creations, policy rejection recovery for supplied and generated creation,
 legacy game-ID protection and six old-shape public creations. An earlier batch of eight concurrent
 same-name Asset creates exhausted Convex's OCC retries on `counters`. The Asset call graph identifies
 its per-name allocation counter as the shared write; publication does not use that table. The failed

@@ -50,6 +50,20 @@ function localClient(url: string, adminKey: string, subject?: string) {
   });
 }
 
+/** Settle every issued request before cleanup, preserving successful results when a batch fails. */
+async function completeBatch<T>(label: string, requests: Promise<T>[]): Promise<T[]> {
+  const results = await Promise.allSettled(requests);
+  const failures = results.filter((result) => result.status === 'rejected');
+  const successes = results.filter((result) => result.status === 'fulfilled').map((result) => result.value);
+  if (failures.length) {
+    console.error(
+      JSON.stringify({ label, successes, errors: failures.map((result) => String(result.reason)) }, null, 2)
+    );
+    throw new Error(`${label}: ${failures.length} of ${results.length} requests failed`);
+  }
+  return successes;
+}
+
 /** The allocation cases share one fresh catalogue and independently issued requests. */
 async function proveAllocation(
   admin: ConvexHttpClient,
@@ -65,7 +79,10 @@ async function proveAllocation(
   const gameIds: Id<'play_games'>[] = [];
   for (let round = 0; round < 2; round += 1) {
     /* A separate HTTP client per request prevents the SDK's per-client mutation queue from serializing this proof. */
-    const batch = await Promise.all(viewers.map((viewer) => named(viewer, 'Arrakeen surprise party')));
+    const batch = await completeBatch(
+      'Play same-name contention',
+      viewers.map((viewer) => named(viewer, 'Arrakeen surprise party'))
+    );
     gameIds.push(...batch);
   }
   const simultaneous = await admin.query(httpReference(internal.playGameNamesTesting.inspect), { gameIds });
@@ -96,7 +113,8 @@ async function proveAllocation(
   assert.equal(legacy[3]!.name, absentGameId);
   console.log('PASS: an existing legacy game ID and an accepted ID token without a record both received -1.');
 
-  const generatedIds = await Promise.all(
+  const generatedIds = await completeBatch(
+    'Legacy public creation',
     viewers.slice(2).map(async (viewer) => {
       const result = await viewer.mutation(api.playGames.createGame, request);
       assert(result.ok);
@@ -117,7 +135,8 @@ async function proveCounterAllocation(viewers: ConvexHttpClient[]) {
   const allocated = [];
   for (let round = 0; round < 4; round += 1) {
     allocated.push(
-      ...(await Promise.all(
+      ...(await completeBatch(
+        'Asset same-name contention',
         viewers.slice(0, 4).map((viewer) =>
           viewer.mutation(api.assets.create, {
             type: 'card-spice',
@@ -152,7 +171,8 @@ async function proveRecovery(
   request: FunctionArgs<typeof api.playGames.createGame>
 ) {
   await admin.mutation(httpReference(internal.slugAllocationTesting.seedDense), {});
-  const results = await Promise.all(
+  const results = await completeBatch(
+    'Dense Play recovery',
     viewers.map((viewer) =>
       viewer.mutation(httpReference(internal.playGames.createNamedGame), {
         ...request,
@@ -171,9 +191,24 @@ async function proveRecovery(
       ({ slug, name }) => /^caladan-dense-picnic-[a-z0-9]{13}$/.test(slug!) && name === 'Caladan dense picnic'
     )
   );
-  const policy = await admin.mutation(httpReference(internal.slugAllocationTesting.policySelection), {});
-  assert.equal(policy.word, 'policy-dinner-bae');
-  assert.match(policy.window, /^policy-window-[a-z0-9]{13}$/);
+  await admin.mutation(httpReference(internal.slugAllocationTesting.seedPolicy), {});
+  const policies = ['word', 'window', 'generated'] as const;
+  const policyIds = await completeBatch(
+    'Server policy creation',
+    policies.map(async (policy, index) => {
+      const result = await viewers[index]!.mutation(httpReference(internal.slugAllocationTesting.createWithPolicy), {
+        ...request,
+        policy,
+      });
+      assert(result.ok);
+      return result.gameId;
+    })
+  );
+  const policy = await admin.query(httpReference(internal.playGameNamesTesting.inspect), { gameIds: policyIds });
+  assert.equal(policy[0]!.slug, 'policy-dinner-bae');
+  assert.match(policy[1]!.slug!, /^policy-window-[a-z0-9]{13}$/);
+  assert.match(policy[2]!.slug!, /-[a-z0-9]{13}$/);
+  assert(playGameNameVocabulary().some(({ name }) => name === policy[2]!.name));
   console.log(
     'PASS: eight simultaneous creations recovered a dense out-of-order window; server policy skipped a rejected counter word and a full window.'
   );

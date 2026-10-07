@@ -224,6 +224,49 @@ describe('permanent Play names and addresses', () => {
     expect(await viewer.mutation(api.playGames.createGame, request)).toEqual({ ok: false, reason: 'rate_limited' });
   });
 
+  test('server candidate policies cover generated creation and roll back a rejected creation budget', async () => {
+    vi.stubEnv('IS_TEST', 'true');
+    vi.stubEnv('E2E_LOCAL_AUTH', 'true');
+    vi.stubEnv('CONVEX_CLOUD_URL', 'http://127.0.0.1:3210');
+    vi.stubEnv('SITE_URL', 'http://127.0.0.1:5173');
+    const random = vi.spyOn(Math, 'random').mockReturnValue(0);
+    try {
+      const { t, viewer, request } = await world();
+      await viewer.mutation(internal.slugAllocationTesting.seedPolicy, {});
+      await expect(
+        viewer.mutation(internal.slugAllocationTesting.createWithPolicy, {
+          ...request,
+          policy: 'reject',
+        })
+      ).rejects.toThrow('PLAY_GAME_ADDRESS_RETRY');
+      const failed = await t.run(async (ctx) => ({
+        games: await ctx.db.query('play_games').collect(),
+        reservations: await ctx.db.query('play_game_slug_reservations').collect(),
+        cursors: await ctx.db.query('play_game_slug_cursors').collect(),
+        schedules: await ctx.db.system.query('_scheduled_functions').collect(),
+      }));
+      expect(failed.games).toEqual([]);
+      expect(failed.reservations).toEqual([]);
+      expect(failed.cursors.map(({ base }) => base)).toEqual(['policy-dinner']);
+      expect(failed.schedules).toEqual([]);
+      for (const policy of ['word', 'generated', 'window'] as const) {
+        const result = await viewer.mutation(internal.slugAllocationTesting.createWithPolicy, { ...request, policy });
+        if (!result.ok) {
+          throw new Error(`Creation refused: ${result.reason}`);
+        }
+        const game = await t.run(async (ctx) => await ctx.db.get(result.gameId));
+        expect(game?.slug).toMatch(policy === 'word' ? /^policy-dinner-bae$/ : /-[a-z0-9]{13}$/);
+        if (policy === 'generated') {
+          expect(game?.name).toBe('Arrakeen surprise party');
+        }
+      }
+      expect(await viewer.mutation(api.playGames.createGame, request)).toEqual({ ok: false, reason: 'rate_limited' });
+    } finally {
+      random.mockRestore();
+      vi.unstubAllEnvs();
+    }
+  });
+
   test('invalid names fail atomically and long names retain display wording with bounded addresses', async () => {
     const { create } = await world();
     for (const name of ['', '   ', '\u200bhidden', 'a'.repeat(81), '東京', '😀']) {
