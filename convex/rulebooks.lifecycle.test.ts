@@ -133,7 +133,7 @@ describe('Rulebook lifecycle', () => {
     ).rejects.toThrow('Rulebook not found');
 
     const replacement = await create('Archive Manual');
-    expect(replacement.rulebook.slug).toBe('archive-manual-2');
+    expect(replacement.rulebook.slug).toBe('archive-manual-1');
     const listed = await owner.query(api.rulebooks.listByRulesetSlug, {
       ruleset_slug: 'rulebook-test-rules',
     });

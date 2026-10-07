@@ -2,7 +2,7 @@ import { v } from 'convex/values';
 
 import { RULESET_ASSET_SLOTS } from '../src/shared/rulesets/assetSlots';
 import { rulesetInputSchema } from '../src/shared/rulesets/validation';
-import type { Id } from './_generated/dataModel';
+import type { Doc, Id } from './_generated/dataModel';
 import { query } from './_generated/server';
 import { mutation } from './functions';
 import {
@@ -20,6 +20,7 @@ import {
 } from './lib/groupAssignPicker';
 import { requireAuthUserId } from './lib/policy';
 import { loadRulesetDetailPageBySlug, loadRulesetPublicBundleBySlug } from './lib/rulesetDetailPage';
+import { allocateCounterSlug } from './lib/slugCounters';
 import { nowIso, slugify } from './lib/utils';
 import type { MutationCtx, QueryCtx } from './types';
 
@@ -53,21 +54,21 @@ function parseRulesetInput(input: { name: string; about: string }) {
   return parsed.data;
 }
 
-async function resolveUniqueRulesetSlug(ctx: QueryCtx | MutationCtx, name: string, excludeId?: Id<'rulesets'>) {
-  const baseSlug = slugify(name) || 'ruleset';
-  let slug = baseSlug;
-  let suffix = 1;
-  while (true) {
+async function resolveUniqueRulesetSlug(ctx: MutationCtx, name: string, own?: Doc<'rulesets'>) {
+  const base = slugify(name) || 'ruleset';
+  if (own && (slugify(own.name) || 'ruleset') === base) {
+    return own.slug;
+  }
+  return await allocateCounterSlug(ctx, `ruleset-slug:${JSON.stringify([base])}`, base, async (slug) => {
+    if (slug === 'create') {
+      return false;
+    }
     const existing = await ctx.db
       .query('rulesets')
       .withIndex('by_slug', (q) => q.eq('slug', slug))
       .unique();
-    if (!existing || (excludeId && existing._id === excludeId)) {
-      return slug;
-    }
-    suffix += 1;
-    slug = `${baseSlug}-${suffix}`;
-  }
+    return !existing || existing._id === own?._id;
+  });
 }
 
 export const list = query({
@@ -207,7 +208,7 @@ export const update = mutation({
       ruleset._id,
       rulesetUpdatePatch({
         name: normalizedName,
-        slug: await resolveUniqueRulesetSlug(ctx, normalizedName, args.id),
+        slug: await resolveUniqueRulesetSlug(ctx, normalizedName, ruleset),
         about: input.about,
         image_cover: imageCoverIntent,
       })

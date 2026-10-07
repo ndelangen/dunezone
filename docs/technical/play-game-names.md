@@ -32,9 +32,9 @@ normalization or a digit to produce an address. Emoji-only and non-Latin-only na
 Addresses use NFKD, lowercase ASCII letters and digits. Combining marks disappear, apostrophes
 are removed, and other characters become hyphens. `Gom Jabbar`, `Gom-Jabbar` and `gomjabbar` all
 become `gomjabbar`; `Paul's` becomes `pauls`. The base is at most 64 ASCII characters and never ends
-in a hyphen. A base-36 suffix can bring the final address to 76 characters. Truncation can create a
-duplicate base, which receives the same suffix allocation as any other collision. The suffix encodes
-a per-base counter in lowercase base 36; it never copies an asset slug. Asset naming semantics are unchanged.
+in a hyphen. A base-36 suffix can bring the final address to 78 characters. Truncation can create a
+duplicate base, which receives the same suffix allocation as any other collision. The suffix uses the [shared collision selector](slug-allocation.md).
+Each domain keeps its own normalization, namespace and address retention rules.
 
 ## Vocabulary review
 
@@ -81,19 +81,13 @@ or not. They can receive a counter suffix.
 A supplied name keeps its display wording when its base is occupied. A per-base cursor chooses
 `-1` or a higher counter encoded in lowercase base 36, so the sequence continues through `-9`,
 `-a`, `-z` and `-10`. Every complete candidate receives an exact indexed check.
-An independently allocated name with a canonical base-36 ending advances its parent's cursor
-only when it falls within the next 32 candidates. Distant endings, leading zeroes and unsafe
-values cannot jump the cursor. Nearby endings can skip unused numbers; addresses are unique,
-never promised contiguous. Exact candidate checks catch up a stale cursor.
-
-Generated names redraw at most four times, then use suffix allocation for the last phrase.
-A numbered allocation probes at most 32 candidates. Unsafe or exhausted suffixes, or exhausting
-that probe budget, throw `PLAY_GAME_ADDRESS_RETRY` with `retryable: true`. The caller can retry
-creation; a persistent stale cursor may require repair. Dense, out-of-order independently entered
-suffixes can leave the cursor behind more than 32 occupied candidates.
-[Share collision suffix allocation across Play and other domains](https://github.com/ndelangen/dunezone/issues/1943)
-must provide recovery before public custom naming opens. The transaction rolls
-back the game, reservations, cursor writes, schedules and rate-limiter consumption on failure.
+Independently entered name endings never advance another base's cursor. Generated names redraw
+at most four times, then use suffix allocation for the last phrase. Selection probes four counter
+candidates, then two 64-bit random base-36 candidates padded to 13 characters. Random candidates
+recover dense occupied windows without a repair or unsafe cursor jump. Exhausted or unsafe counters
+use the same random recovery. Complete failure throws `PLAY_GAME_ADDRESS_RETRY` with `retryable: true`;
+a new mutation attempt draws fresh candidates. The transaction rolls back the game, reservations,
+cursor writes, schedules and rate-limiter consumption on failure.
 No exception is caught after quota consumption. Different bases do not share an allocation cursor.
 
 ## Verification

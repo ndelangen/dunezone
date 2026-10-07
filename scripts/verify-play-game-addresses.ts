@@ -10,6 +10,7 @@ import type { DefaultFunctionArgs, FunctionArgs, FunctionReference } from 'conve
 import { api, internal } from '../convex/_generated/api';
 import type { Id } from '../convex/_generated/dataModel';
 import { playGameNameVocabulary } from '../convex/lib/playGameNames';
+import { publishingSpiceCard } from '../src/shared/assets/fixtures/publishingSpiceCard';
 import { normalizePlayGameSlug } from '../src/shared/play/gameNames';
 import { createLocalDevelopmentInstance, localDevelopmentEnvironmentOverrides } from './local-dev-instance';
 import {
@@ -111,6 +112,74 @@ async function proveAllocation(
   console.log(JSON.stringify({ simultaneous, legacy, generated }, null, 2));
 }
 
+/** The existing Asset counter adapter faces the same independent HTTP contention as Play. */
+async function proveCounterAllocation(viewers: ConvexHttpClient[]) {
+  const allocated = [];
+  for (let round = 0; round < 4; round += 1) {
+    allocated.push(
+      ...(await Promise.all(
+        viewers.slice(0, 4).map((viewer) =>
+          viewer.mutation(api.assets.create, {
+            type: 'card-spice',
+            data: { ...publishingSpiceCard, name: 'Shared suffix proof' },
+          })
+        )
+      ))
+    );
+  }
+  assert.equal(new Set(allocated.map(({ slug }) => slug)).size, 16);
+  assert.deepEqual(
+    allocated.map(({ slug }) => slug).sort(),
+    Array.from({ length: 16 }, (_, suffix) =>
+      suffix ? `shared-suffix-proof-${suffix.toString(36)}` : 'shared-suffix-proof'
+    ).sort()
+  );
+  const legacy = allocated[0]!;
+  const saved = await viewers[0]!.mutation(api.assets.update, {
+    id: legacy.id,
+    data: { ...publishingSpiceCard, name: 'Shared suffix proof!' },
+  });
+  assert.equal(saved.slug, legacy.slug);
+  console.log(
+    'PASS: the common counter adapter committed 16 distinct Asset addresses and preserved a spelling-only save.'
+  );
+  console.log(JSON.stringify({ assets: allocated, saved }, null, 2));
+}
+
+async function proveRecovery(
+  admin: ConvexHttpClient,
+  viewers: ConvexHttpClient[],
+  request: FunctionArgs<typeof api.playGames.createGame>
+) {
+  await admin.mutation(httpReference(internal.slugAllocationTesting.seedDense), {});
+  const results = await Promise.all(
+    viewers.map((viewer) =>
+      viewer.mutation(httpReference(internal.playGames.createNamedGame), {
+        ...request,
+        name: 'Caladan dense picnic',
+      })
+    )
+  );
+  const gameIds = results.map((result) => {
+    assert(result.ok);
+    return result.gameId;
+  });
+  const dense = await admin.query(httpReference(internal.playGameNamesTesting.inspect), { gameIds });
+  assert.equal(new Set(dense.map(({ slug }) => slug)).size, 8);
+  assert(
+    dense.every(
+      ({ slug, name }) => /^caladan-dense-picnic-[a-z0-9]{13}$/.test(slug!) && name === 'Caladan dense picnic'
+    )
+  );
+  const policy = await admin.mutation(httpReference(internal.slugAllocationTesting.policySelection), {});
+  assert.equal(policy.word, 'policy-dinner-bae');
+  assert.match(policy.window, /^policy-window-[a-z0-9]{13}$/);
+  console.log(
+    'PASS: eight simultaneous creations recovered a dense out-of-order window; server policy skipped a rejected counter word and a full window.'
+  );
+  console.log(JSON.stringify({ dense, policy }, null, 2));
+}
+
 async function main() {
   const instance = createLocalDevelopmentInstance({});
   const environment = commandEnvironment(
@@ -129,6 +198,13 @@ async function main() {
     const viewers = subjects.map((subject) => localClient(deployment.url, deployment.adminKey, subject));
     const request = { rulesetId, minimumPlayers: 4 as const };
     await proveAllocation(admin, viewers, request, absentGameId);
+    await proveCounterAllocation(viewers);
+    const fresh = await admin.mutation(httpReference(internal.playGameNamesTesting.seed), {});
+    await proveRecovery(
+      admin,
+      fresh.subjects.map((subject) => localClient(deployment.url, deployment.adminKey, subject)),
+      request
+    );
   } finally {
     try {
       composeDown(environment);

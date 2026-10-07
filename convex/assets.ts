@@ -54,6 +54,7 @@ import {
 import { requireAdminUserId, requireAuthUserId } from './lib/policy';
 import { profileSummary } from './lib/profileSummary';
 import { enqueueAssetPublication, supersedePendingPublication } from './lib/publication';
+import { allocateCounterSlug } from './lib/slugCounters';
 import { nowIso, slugify } from './lib/utils';
 import type { MutationCtx, QueryCtx } from './types';
 
@@ -444,56 +445,22 @@ export const slugTaken = query({
   },
 });
 
-/**
- * A per-name cursor avoids rereading every earlier copy on each save.
- * Indexed claims and cursor advances share the asset's write transaction.
- * A short random suffix handles crowded legacy numeric ranges without exhausting the transaction's read budget.
- */
+/** Indexed claims and cursor advances share the asset's write transaction. */
 async function allocateAssetSlug(ctx: MutationCtx, type: string, base: string, own?: Doc<'assets'>): Promise<string> {
   if (!base) {
     throw new ConvexError('An asset name is required; it determines the asset URL');
   }
-  const baseHolder = await assetSlugHolder(ctx, type, base);
-  if (!baseHolder || baseHolder._id === own?._id) {
-    return base;
-  }
-  /* A spelling-only rename keeps its own suffix, even when the cursor has advanced past it. */
+  /* Preserve its existing address even when the unsuffixed address has become free. */
   if (own && slugify(nameOf(own)) === base) {
     return own.slug;
   }
-  const key = `asset-slug:${JSON.stringify([type, base])}`;
-  const counter = await ctx.db
-    .query('counters')
-    .withIndex('by_key', (q) => q.eq('key', key))
-    .unique();
-  const first = (counter?.value ?? 0) + 1;
-  const candidates = [
-    ...Array.from({ length: 4 }, (_, index) => `${base}-${first + index}`),
-    ...Array.from(
-      { length: 2 },
-      () =>
-        `${base}-${Array.from(crypto.getRandomValues(new Uint8Array(12)), (byte) => byte.toString(16).padStart(2, '0')).join('')}`
-    ),
-  ];
-  let chosen: string | undefined;
-  let value = first;
-  for (const [index, candidate] of candidates.entries()) {
-    if (await assetSlugHolder(ctx, type, candidate)) {
-      continue;
+  return await allocateCounterSlug(ctx, `asset-slug:${JSON.stringify([type, base])}`, base, async (slug) => {
+    if (slug === 'create') {
+      return false;
     }
-    chosen = candidate;
-    value = first + Math.min(index, 3);
-    break;
-  }
-  if (!chosen) {
-    throw new ConvexError('Could not assign a unique asset URL. Please save again.');
-  }
-  if (counter) {
-    await ctx.db.patch(counter._id, { value });
-  } else {
-    await ctx.db.insert('counters', { key, value });
-  }
-  return chosen;
+    const holder = await assetSlugHolder(ctx, type, slug);
+    return !holder || holder._id === own?._id;
+  });
 }
 
 /**
