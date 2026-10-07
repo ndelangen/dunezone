@@ -1,6 +1,7 @@
 import { HOUR, MINUTE, RateLimiter } from '@convex-dev/rate-limiter';
 
 import { components } from '../_generated/api';
+import type { Id } from '../_generated/dataModel';
 import type { MutationCtx } from '../_generated/server';
 
 export const playRateLimiter = new RateLimiter(components.rateLimiter, {
@@ -16,7 +17,7 @@ export const playRateLimiter = new RateLimiter(components.rateLimiter, {
 });
 
 /** No provider request is issued without capacity in both checking buckets. */
-export async function playNameCheckCapacity(ctx: MutationCtx, userId: string): Promise<boolean> {
+export async function playNameCheckCapacity(ctx: MutationCtx, userId: Id<'users'>): Promise<boolean> {
   if (
     !(await playRateLimiter.check(ctx, 'playNameCheckPerAccount', { key: userId })).ok ||
     !(await playRateLimiter.check(ctx, 'playNameCheckGlobal')).ok

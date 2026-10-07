@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { env } from '../_generated/server';
+
 /*
  * Frozen fuller policy D, evaluated at 0.80 with jev-1.13.0.
  * Evidence: https://gist.github.com/ndelangen/ad5850fb2a7a9c523fceafacecc8b5ce/068324e69696f227595d0e000dc2e2e041320c3d
@@ -42,7 +44,7 @@ function unavailable(reason: Extract<PlayNameCheck, { outcome: 'check_unavailabl
 
 /** One server-only request, with a deadline that also bounds a stalled response body. */
 export async function checkPlayGameName(name: string, base: string): Promise<PlayNameCheck> {
-  const key = process.env.TYPESAFE_API_KEY;
+  const key = env.TYPESAFE_API_KEY;
   if (!key) {
     return unavailable('credentials');
   }

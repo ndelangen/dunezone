@@ -241,6 +241,36 @@ describe('server-owned game-name moderation', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  test('unavailable checking still skips a profane collision suffix without changing the supplied name', async () => {
+    vi.stubEnv('TYPESAFE_API_KEY', 'private-test-key');
+    const { t, viewer, request } = await world();
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response('', { status: 402 }))
+    );
+    vi.spyOn(console, 'info').mockImplementation(() => {});
+    expect(await viewer.action(api.playGames.createGameWithName, request)).toMatchObject({
+      ok: true,
+      slug: 'dune-lantern-parade',
+      moderation: 'check_unavailable',
+    });
+    await t.run(async (ctx) => {
+      await ctx.db.insert('play_game_slug_cursors', {
+        base: 'dune-lantern-parade',
+        next_suffix: Number.parseInt('fuck', 36),
+      });
+    });
+    expect(await viewer.action(api.playGames.createGameWithName, request)).toMatchObject({
+      ok: true,
+      name: request.name,
+      slug: 'dune-lantern-parade-fucl',
+      moderation: 'check_unavailable',
+    });
+    const saved = await writes(t);
+    expect(saved.games).toHaveLength(2);
+    expect(saved.reservations.map(({ slug }) => slug)).not.toContain('dune-lantern-parade-fuck');
+  });
+
   test('authorization, invalid names and unavailable rulesets refuse before paid checking', async () => {
     vi.stubEnv('TYPESAFE_API_KEY', 'private-test-key');
     const { t, viewer, person, request } = await world();
