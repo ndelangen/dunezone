@@ -148,10 +148,10 @@ async function proveCounterAllocation(viewers: ConvexHttpClient[]) {
   }
   assert.equal(new Set(allocated.map(({ slug }) => slug)).size, 16);
   assert.deepEqual(
-    allocated.map(({ slug }) => slug).sort(),
+    allocated.map(({ slug }) => slug).sort((a, b) => a.localeCompare(b)),
     Array.from({ length: 16 }, (_, suffix) =>
       suffix ? `shared-suffix-proof-${suffix.toString(36)}` : 'shared-suffix-proof'
-    ).sort()
+    ).sort((a, b) => a.localeCompare(b))
   );
   const legacy = allocated[0]!;
   const saved = await viewers[0]!.mutation(api.assets.update, {
