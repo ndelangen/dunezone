@@ -3,12 +3,14 @@ import worker from './index';
 
 const realNow = Date.now;
 let offset = 0;
-Date.now = () => realNow() + offset;
+let fixedNow: number | undefined;
+Date.now = () => fixedNow ?? realNow() + offset;
 
 export class HomepageRoom extends ProductionHomepageRoom {
   override async fetch(request: Request) {
     const url = new URL(request.url);
     if (url.pathname === '/native-test/clock') {
+      fixedNow = url.searchParams.has('now') ? Number(url.searchParams.get('now')) : undefined;
       offset = Number(url.searchParams.get('offset'));
       await this.alarm();
       return Response.json({ now: Date.now() });

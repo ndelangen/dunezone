@@ -22,7 +22,7 @@ afterEach(async () => {
   await peer?.close();
 });
 
-async function visitor(member = false) {
+async function visitor(member = false, now) {
   const connection = await openGame(runtime, '/__play/homepage/socket');
   sockets.push(connection);
   await connection.message('view');
@@ -30,7 +30,7 @@ async function visitor(member = false) {
     peer.homepageAdmission = {
       allowed: true,
       userKey: crypto.randomUUID(),
-      leaseUntil: Date.now() + 30_000,
+      leaseUntil: (now ?? Date.now()) + 30_000,
       avatarUrl: 'https://dune.zone/avatar/test.webp',
     };
     connection.send({ type: 'authenticate', ticket: 'a'.repeat(64) });
@@ -162,32 +162,60 @@ describe('the public homepage table', () => {
     expect(JSON.stringify(shared)).not.toContain(peer.homepageAdmission.userKey);
   });
 
-  it('ends handling permission and releases a held piece when its sign-in lease expires', async () => {
-    const member = await visitor(true);
-    await act(member, {
-      type: 'begin',
-      carryId: 'expired',
-      sourcePieceId: 'starting-1-carthag',
-      expectedVersion: 0,
-      pickup: 'top',
-    });
-    await member.message('carry');
-    await runtime.fetch('/native-test/clock?offset=31000');
-    const expired = await syncView(member);
-    expect(expired.viewer.viewerSeat).toBe(SPECTATOR_SEAT);
-    expect(expired.carries).toEqual([]);
-    await act(
-      member,
-      {
-        type: 'command',
-        commandId: 'after-expiry',
-        expectedRevision: expired.snapshot.revision,
-        action: { kind: 'flip', pieceId: 'treachery-card-loose' },
-      },
-      expired
-    );
-    expect((await member.message('rejected')).requestId).toBe('after-expiry');
-  });
+  it.each([
+    ['', false],
+    [' across the hourly reset', true],
+  ])(
+    'ends handling permission and releases a held piece when its sign-in lease expires%s',
+    async (_suffix, beforeReset) => {
+      const nextHour = (Math.floor(Date.now() / 3_600_000) + 2) * 3_600_000;
+      const now = nextHour + (beforeReset ? -15_000 : 300_000);
+      await runtime.fetch(`/native-test/clock?now=${now}`);
+      const member = await visitor(true, now);
+      if (!beforeReset) {
+        /* Keep the carry younger than its own eight-second expiry when the sign-in lease ends. */
+        await runtime.fetch(`/native-test/clock?now=${now + 25_000}`);
+      }
+      const held = await act(member, {
+        type: 'begin',
+        carryId: 'expired',
+        sourcePieceId: 'starting-1-carthag',
+        expectedVersion: 0,
+        pickup: 'top',
+      });
+      await member.message('carry');
+      expect((await syncView(member)).carries).toHaveLength(1);
+      const before = member.messages.length;
+      await runtime.fetch(`/native-test/clock?now=${now + 31_000}`);
+      /*
+       * The reset and lease expiry can send separate views.
+       * Observe the downgrade after this clock change.
+       */
+      const expired = await eventually(
+        () =>
+          member.messages
+            .slice(before)
+            .find((frame) => frame.type === 'view' && frame.viewer.viewerSeat === SPECTATOR_SEAT),
+        'lease expiry view'
+      );
+      expect(expired.viewer.viewerSeat).toBe(SPECTATOR_SEAT);
+      expect(expired.carries).toEqual([]);
+      expect(expired.epoch === held.epoch).toBe(!beforeReset);
+      await act(
+        member,
+        {
+          type: 'command',
+          commandId: 'after-expiry',
+          expectedRevision: expired.snapshot.revision,
+          action: { kind: 'flip', pieceId: 'treachery-card-loose' },
+        },
+        expired
+      );
+      const rejected = await member.message('rejected');
+      expect(rejected.requestId).toBe('after-expiry');
+      expect(rejected.message).toContain('Sign in');
+    }
+  );
 
   it('keeps anonymous downgrades quiet and limits full-table requests separately from motion', async () => {
     const guest = await visitor();
