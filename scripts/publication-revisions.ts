@@ -5,7 +5,15 @@ import { CHECKED_IN_RENDERER_REVISIONS } from '../src/shared/asset-publishing/re
 
 const REVISIONS_URL = 'https://exuberant-finch-263.eu-west-1.convex.site/asset-publishing/revisions';
 
-function activationSecret(): string {
+export function publicationActivationHeader(output: string): string {
+  const secret = output.trim();
+  if (!/^[\x21-\x7E]+$/u.test(secret)) {
+    throw new Error('Publication activation credential command returned unexpected output');
+  }
+  return `Bearer ${secret}`;
+}
+
+function activationHeader(): string {
   const result = spawnSync('bunx', ['convex', 'env', 'get', 'ASSET_PUBLISHER_ACTIVATION_SECRET', '--prod'], {
     encoding: 'utf8',
     env: process.env,
@@ -13,18 +21,14 @@ function activationSecret(): string {
   if (result.status !== 0) {
     throw new Error('Unable to read the Publication activation secret from Convex');
   }
-  const secret = result.stdout.trim();
-  if (!secret) {
-    throw new Error('Publication activation secret is empty');
-  }
-  return secret;
+  return publicationActivationHeader(result.stdout);
 }
 
 async function request(body: unknown) {
   const response = await fetch(REVISIONS_URL, {
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${activationSecret()}`,
+      Authorization: activationHeader(),
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(body),
