@@ -1659,7 +1659,13 @@ async function verifyRegular() {
   passed('Reload gets a fresh admitted connection while retaining seat and durable revision');
 
   const blockDirectory = (url) => url.origin === backendSocketOrigin;
-  await b.page.routeWebSocket(blockDirectory, (socket) => socket.close());
+  let directoryOffline = true;
+  await b.page.routeWebSocket(blockDirectory, (socket) => {
+    if (directoryOffline) {
+      return socket.close();
+    }
+    socket.connectToServer();
+  });
   const sentBeforeOfflineReload = b.sent.length;
   await b.page.reload({ waitUntil: 'domcontentloaded' });
   await b.page.getByText('Reconnecting', { exact: true }).waitFor();
@@ -1668,7 +1674,7 @@ async function verifyRegular() {
   assert.equal(await b.page.locator('[data-connection="authorized"]').count(), 0);
   assert.equal(b.sent.slice(sentBeforeOfflineReload).filter((message) => message.type === 'command').length, 0);
   await capture(b, 'after-friendly-reload-directory-unreachable');
-  await b.page.unrouteWebSocket(blockDirectory);
+  directoryOffline = false;
   await b.page.reload({ waitUntil: 'domcontentloaded' });
   await admitted(b);
   passed(
