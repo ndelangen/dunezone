@@ -6,6 +6,7 @@ import {
   playGameNameSchema,
 } from '../../src/shared/play/gameNames';
 import type { MutationCtx, QueryCtx } from '../_generated/server';
+import { acceptsPlayGameAddress, hasLocalPlayGameProfanity } from './playGameNameChecks';
 import { generatePlayGameName } from './playGameNames';
 import { selectSlug } from './slugAllocation';
 
@@ -74,7 +75,7 @@ async function generateAvailableName(ctx: MutationCtx) {
   return name;
 }
 
-/** A supplied name has already passed moderation in its caller; no public creation call accepts it yet. */
+/** Name and final-address checks apply to every writer, including generated and synthetic games. */
 export async function allocatePlayGameName(
   ctx: MutationCtx,
   suppliedName?: string,
@@ -87,5 +88,16 @@ export async function allocatePlayGameName(
       message: parsed.error.issues.map((issue) => issue.message).join(' '),
     });
   }
-  return { name: parsed.data, slug: await allocateSlug(ctx, normalizePlayGameSlug(parsed.data), accept) };
+  const base = normalizePlayGameSlug(parsed.data);
+  if (hasLocalPlayGameProfanity(parsed.data) || hasLocalPlayGameProfanity(base)) {
+    throw new ConvexError({ code: 'PLAY_GAME_NAME_PROFANITY', message: 'Choose a game name without profanity.' });
+  }
+  return {
+    name: parsed.data,
+    slug: await allocateSlug(
+      ctx,
+      base,
+      (candidate) => acceptsPlayGameAddress(base, candidate) && (accept?.(candidate) ?? true)
+    ),
+  };
 }

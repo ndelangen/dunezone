@@ -47,6 +47,8 @@ import type * as lib_ingestTokens from "../lib/ingestTokens.js";
 import type * as lib_isolatedBackend from "../lib/isolatedBackend.js";
 import type * as lib_playAuthorization from "../lib/playAuthorization.js";
 import type * as lib_playGameAddresses from "../lib/playGameAddresses.js";
+import type * as lib_playGameNameChecks from "../lib/playGameNameChecks.js";
+import type * as lib_playGameNameProvider from "../lib/playGameNameProvider.js";
 import type * as lib_playGameNames from "../lib/playGameNames.js";
 import type * as lib_playProvisioningSchedule from "../lib/playProvisioningSchedule.js";
 import type * as lib_playRateLimits from "../lib/playRateLimits.js";
@@ -159,6 +161,8 @@ declare const fullApi: ApiFromModules<{
   "lib/isolatedBackend": typeof lib_isolatedBackend;
   "lib/playAuthorization": typeof lib_playAuthorization;
   "lib/playGameAddresses": typeof lib_playGameAddresses;
+  "lib/playGameNameChecks": typeof lib_playGameNameChecks;
+  "lib/playGameNameProvider": typeof lib_playGameNameProvider;
   "lib/playGameNames": typeof lib_playGameNames;
   "lib/playProvisioningSchedule": typeof lib_playProvisioningSchedule;
   "lib/playRateLimits": typeof lib_playRateLimits;

@@ -8,6 +8,7 @@ import { describe, expect, test, vi } from 'vitest';
 import { publishingDeckCardback } from '../src/shared/assets/fixtures/publishingDeckCardback';
 import { normalizePlayGameSlug, playGameNameSchema } from '../src/shared/play/gameNames';
 import { api, internal } from './_generated/api';
+import { hasLocalPlayGameProfanity } from './lib/playGameNameChecks';
 import { playGameNameVocabulary } from './lib/playGameNames';
 import { playRateLimiter } from './lib/playRateLimits';
 import schema from './schema';
@@ -62,7 +63,12 @@ async function world() {
   const viewer = t.withIdentity({ subject: seeded.subject });
   const request = { rulesetId: seeded.rulesetId, minimumPlayers: 4 as const };
   async function create(name: string) {
-    const result = await viewer.mutation(internal.playGames.createNamedGame, { ...request, name });
+    const result = await viewer.mutation(internal.playGames.createNamedGame, {
+      ...request,
+      name,
+      base: normalizePlayGameSlug(name),
+      check: { outcome: 'no_profanity_detected' },
+    });
     if (!result.ok) {
       throw new Error(`Creation refused: ${result.reason}`);
     }
@@ -80,6 +86,7 @@ describe('permanent Play names and addresses', () => {
     for (const { name, slug } of vocabulary) {
       expect(playGameNameSchema.parse(name)).toBe(name);
       expect(normalizePlayGameSlug(name)).toBe(slug);
+      expect(hasLocalPlayGameProfanity(name)).toBe(false);
     }
   });
 
@@ -89,6 +96,56 @@ describe('permanent Play names and addresses', () => {
     const second = await create('Pauls gomjabbar party');
     expect(first).toMatchObject({ name: "Pául's Gom Jabbar party!", slug: 'pauls-gomjabbar-party' });
     expect(second).toMatchObject({ name: 'Pauls gomjabbar party', slug: 'pauls-gomjabbar-party-1' });
+  });
+
+  test('local profanity and middle-finger variants refuse creation without spending its quota', async () => {
+    const { t, create, viewer, request } = await world();
+    for (const name of [
+      'Fuck the spice harvest',
+      'W a n k e r s choose dessert',
+      'Tw@t with the crossword',
+      'Fúck the rules',
+      'Dune 🖕',
+      'Dune 🖕🏻',
+      'Dune 🖕🏼',
+      'Dune 🖕🏽',
+      'Dune 🖕🏾',
+      'Dune 🖕🏿',
+      'Dune 🖕️',
+    ]) {
+      await expect(create(name)).rejects.toThrow('profanity_detected');
+    }
+    const refused = await t.run(async (ctx) => ({
+      games: await ctx.db.query('play_games').collect(),
+      reservations: await ctx.db.query('play_game_slug_reservations').collect(),
+      schedules: await ctx.db.system.query('_scheduled_functions').collect(),
+    }));
+    expect(refused).toEqual({ games: [], reservations: [], schedules: [] });
+    for (const name of ['Scunthorpe astronomy club', 'Assassin butterfly collection', 'Dune 🍑🍆👍']) {
+      expect((await create(name)).name).toBe(name);
+    }
+    expect(await viewer.mutation(api.playGames.createGame, request)).toEqual({ ok: false, reason: 'rate_limited' });
+  });
+
+  test('allocation skips a profane base-36 suffix before reserving the final URL', async () => {
+    const { t, create } = await world();
+    const original = await create('Dune lantern club');
+    await t.run(async (ctx) => {
+      await ctx.db.insert('play_game_slug_cursors', {
+        base: original.slug!,
+        next_suffix: Number.parseInt('fuck', 36),
+      });
+    });
+    expect((await create('Dune lantern club')).slug).toBe('dune-lantern-club-fucl');
+    expect(
+      await t.run(
+        async (ctx) =>
+          await ctx.db
+            .query('play_game_slug_reservations')
+            .withIndex('by_slug', (q) => q.eq('slug', 'dune-lantern-club-fuck'))
+            .unique()
+      )
+    ).toBeNull();
   });
 
   test('independently entered suffixes are occupied addresses without interpreting their endings', async () => {
