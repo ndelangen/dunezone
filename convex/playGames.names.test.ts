@@ -10,6 +10,7 @@ import { normalizePlayGameSlug, playGameNameSchema } from '../src/shared/play/ga
 import { api, internal } from './_generated/api';
 import { PLAY_GAME_ADDRESS_PROBES } from './lib/playGameAddresses';
 import { playGameNameVocabulary } from './lib/playGameNames';
+import { playRateLimiter } from './lib/playRateLimits';
 import schema from './schema';
 
 const modules = import.meta.glob('./**/*.ts');
@@ -91,11 +92,45 @@ describe('permanent Play names and addresses', () => {
     expect(second).toMatchObject({ name: 'Pauls gomjabbar party', slug: 'pauls-gomjabbar-party-1' });
   });
 
-  test('numeric names advance their parent cursor and duplicates keep display wording', async () => {
+  test('nearby independently entered suffixes advance their parent cursor and duplicates keep display wording', async () => {
     const { create } = await world();
     expect((await create('Arrakeen party-1')).slug).toBe('arrakeen-party-1');
     expect((await create('Arrakeen party')).slug).toBe('arrakeen-party');
     expect(await create('Arrakeen party')).toMatchObject({ name: 'Arrakeen party', slug: 'arrakeen-party-2' });
+  });
+
+  test('an extreme sparse numeric name cannot strand the plain base or its later duplicates', async () => {
+    const { t, create } = await world();
+    const original = await create('Arrakeen surprise party');
+    const numericName = 'Arrakeen surprise party-9007199254740991';
+    expect(await create(numericName)).toMatchObject({
+      name: numericName,
+      slug: 'arrakeen-surprise-party-9007199254740991',
+    });
+    /* Refill this fixture's creation budget so the test reaches both duplicate allocations. */
+    await t.run(async (ctx) => await playRateLimiter.reset(ctx, 'playCreatePerAccount', { key: original.creator_id! }));
+    expect((await create('Arrakeen surprise party')).slug).toBe('arrakeen-surprise-party-1');
+    expect((await create('Arrakeen surprise party')).slug).toBe('arrakeen-surprise-party-2');
+  });
+
+  test('duplicate suffixes stay compact across base-36 digit boundaries', async () => {
+    const { t, create } = await world();
+    const original = await create('Caladan dance');
+    const cursorId = await t.run(
+      async (ctx) =>
+        await ctx.db.insert('play_game_slug_cursors', {
+          base: 'caladan-dance',
+          next_suffix: 9,
+        })
+    );
+    expect((await create('Caladan dance')).slug).toBe('caladan-dance-9');
+    expect((await create('Caladan dance')).slug).toBe('caladan-dance-a');
+    await t.run(async (ctx) => {
+      await playRateLimiter.reset(ctx, 'playCreatePerAccount', { key: original.creator_id! });
+      await ctx.db.patch(cursorId, { next_suffix: 35 });
+    });
+    expect((await create('Caladan dance')).slug).toBe('caladan-dance-z');
+    expect((await create('Caladan dance')).slug).toBe('caladan-dance-10');
   });
 
   test('reserved routes receive suffixes', async () => {
@@ -146,7 +181,9 @@ describe('permanent Play names and addresses', () => {
     const { t, viewer, request, create } = await world();
     await t.run(async (ctx) => {
       for (let suffix = 0; suffix <= PLAY_GAME_ADDRESS_PROBES; suffix += 1) {
-        await ctx.db.insert('play_game_slug_reservations', { slug: `blocked${suffix ? `-${suffix}` : ''}` });
+        await ctx.db.insert('play_game_slug_reservations', {
+          slug: suffix ? `blocked-${suffix.toString(36)}` : 'blocked',
+        });
       }
     });
     await expect(create('Blocked')).rejects.toThrow('PLAY_GAME_ADDRESS_RETRY');

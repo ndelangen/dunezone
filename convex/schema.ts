@@ -62,7 +62,7 @@ export default defineSchema({
     .index('by_creator_id', ['creator_id']),
   /** Permanent reservations survive a future hard deletion of a game. */
   play_game_slug_reservations: defineTable({ slug: v.string() }).index('by_slug', ['slug']),
-  /** Each base has its own monotonically increasing numeric suffix, never a global allocation lock. */
+  /** Each base has its own monotonically increasing suffix counter, never a global allocation lock. */
   play_game_slug_cursors: defineTable({ base: v.string(), next_suffix: v.number() }).index('by_base', ['base']),
   homepage_tickets: defineTable({
     digest: v.string(),

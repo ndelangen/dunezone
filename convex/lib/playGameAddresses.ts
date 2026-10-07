@@ -38,15 +38,23 @@ export async function playGameAddressAvailable(ctx: Pick<QueryCtx, 'db'>, slug: 
   return game === null;
 }
 
-/** Explicit numeric names advance the parent base's high-water mark, even when entered before that base. */
+/** Nearby canonical suffixes advance their parent cursor; distant name endings cannot jump it. */
 async function catchUpSuffixCursor(ctx: MutationCtx, slug: string) {
-  const match = /^(.*)-([1-9][0-9]*)$/.exec(slug);
+  const match = /^(.*)-([1-9a-z][0-9a-z]*)$/.exec(slug);
   if (!match) {
     return;
   }
   const [, base, digits] = match;
-  const suffix = Number(digits);
-  if (!Number.isSafeInteger(suffix)) {
+  const suffix = Number.parseInt(digits!, 36);
+  if (!Number.isSafeInteger(suffix) || suffix >= Number.MAX_SAFE_INTEGER || suffix.toString(36) !== digits) {
+    return;
+  }
+  const cursor = await ctx.db
+    .query('play_game_slug_cursors')
+    .withIndex('by_base', (q) => q.eq('base', base!))
+    .unique();
+  const next = Math.max(1, cursor?.next_suffix ?? 1);
+  if (suffix < next || suffix - next >= PLAY_GAME_ADDRESS_PROBES) {
     return;
   }
   await advanceSuffixCursor(ctx, base!, suffix + 1);
@@ -85,7 +93,7 @@ async function allocateSlug(ctx: MutationCtx, base: string): Promise<string> {
     if (!Number.isSafeInteger(suffix) || suffix >= Number.MAX_SAFE_INTEGER) {
       retryAllocation();
     }
-    const candidate = `${base}-${suffix}`;
+    const candidate = `${base}-${suffix.toString(36)}`;
     if (await playGameAddressAvailable(ctx, candidate)) {
       await advanceSuffixCursor(ctx, base, suffix + 1);
       return await reserve(ctx, candidate);

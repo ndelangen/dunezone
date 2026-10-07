@@ -32,9 +32,9 @@ normalization or a digit to produce an address. Emoji-only and non-Latin-only na
 Addresses use NFKD, lowercase ASCII letters and digits. Combining marks disappear, apostrophes
 are removed, and other characters become hyphens. `Gom Jabbar`, `Gom-Jabbar` and `gomjabbar` all
 become `gomjabbar`; `Paul's` becomes `pauls`. The base is at most 64 ASCII characters and never ends
-in a hyphen. A numeric suffix can bring the final address to 81 characters. Truncation can create a
-duplicate base, which receives the same numeric allocation as any other collision. There is no
-hexadecimal or asset-slug fallback. Asset naming semantics are unchanged.
+in a hyphen. A base-36 suffix can bring the final address to 76 characters. Truncation can create a
+duplicate base, which receives the same suffix allocation as any other collision. The suffix encodes
+a per-base counter in lowercase base 36; it never copies an asset slug. Asset naming semantics are unchanged.
 
 ## Vocabulary review
 
@@ -76,26 +76,31 @@ same transaction as allocation. No lifecycle filter releases an expired, finishe
 address. The separate reservation survives a future hard deletion of its game; deletion code must
 never remove it. `create`, `demo`, `hosted` and every token accepted by
 `normalizeId('play_games', candidate)` are unavailable as base addresses, whether that ID has a row
-or not. They can receive a numeric suffix.
+or not. They can receive a counter suffix.
 
 A supplied name keeps its display wording when its base is occupied. A per-base cursor chooses
-`-1` or a higher suffix, and each complete candidate still receives an exact indexed check.
-An independently allocated name ending in a positive, canonical decimal suffix advances its
-parent's cursor past that suffix. Leading-zero and out-of-safe-integer endings cannot be generated
-by the cursor and do not advance it. A stale cursor catches up across exact occupied candidates.
-The high-water mark can skip unused lower numbers; addresses are unique, never promised contiguous.
+`-1` or a higher counter encoded in lowercase base 36, so the sequence continues through `-9`,
+`-a`, `-z` and `-10`. Every complete candidate receives an exact indexed check.
+An independently allocated name with a canonical base-36 ending advances its parent's cursor
+only when it falls within the next 32 candidates. Distant endings, leading zeroes and unsafe
+values cannot jump the cursor. Nearby endings can skip unused numbers; addresses are unique,
+never promised contiguous. Exact candidate checks catch up a stale cursor.
 
-Generated names redraw at most four times, then use numeric allocation for the last phrase.
+Generated names redraw at most four times, then use suffix allocation for the last phrase.
 A numbered allocation probes at most 32 candidates. Unsafe or exhausted suffixes, or exhausting
 that probe budget, throw `PLAY_GAME_ADDRESS_RETRY` with `retryable: true`. The caller can retry
-creation; a persistent stale cursor may require the later migration's repair. The transaction rolls
+creation; a persistent stale cursor may require repair. Dense, out-of-order independently entered
+suffixes can leave the cursor behind more than 32 occupied candidates.
+[Share collision suffix allocation across Play and other domains](https://github.com/ndelangen/dunezone/issues/1943)
+must provide recovery before public custom naming opens. The transaction rolls
 back the game, reservations, cursor writes, schedules and rate-limiter consumption on failure.
 No exception is caught after quota consumption. Different bases do not share an allocation cursor.
 
 ## Verification
 
 `convex/playGames.names.test.ts` covers wording and URL equivalence, the complete vocabulary,
-reserved routes, numeric custom names, stale cursors, retained reservations, length limits,
+reserved routes, independently entered suffixes and base-36 boundaries, stale cursors, retained
+reservations, length limits,
 bounded redraws, atomic rollback and legacy request/return compatibility. Existing creation,
 security and provisioning suites cover the surrounding authorization and lifecycle contracts.
 

@@ -13,12 +13,12 @@ export function normalizePlayGameSlug(name: string): string {
     .replace(/['’ʼ]/gu, '')
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/\bgom-jabbar\b/g, 'gomjabbar')
-    .replace(/^-+|-+$/g, '')
+    .replace(/^-|-$/g, '')
     .slice(0, PLAY_GAME_SLUG_BASE_MAX_LENGTH)
-    .replace(/-+$/g, '');
+    .replace(/-$/g, '');
 }
 
-/** Display wording stays independent of the allocated address and its numeric suffix. */
+/** Display wording stays independent of the allocated address and its counter suffix. */
 export const playGameNameSchema = z
   .string()
   .refine((value) => !/\p{C}/u.test(value), 'Game names cannot contain control or invisible characters.')

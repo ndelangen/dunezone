@@ -38,12 +38,10 @@ function localClient(url: string, adminKey: string, subject?: string) {
     logger: false,
     fetch: Object.assign(
       (input: Parameters<typeof fetch>[0], init: Parameters<typeof fetch>[1]) => {
-        assert.equal(
-          new URL(typeof input === 'string' ? input : input instanceof URL ? input.href : input.url).origin,
-          url
-        );
+        assert.equal(new URL(input instanceof Request ? input.url : input).origin, url);
         const headers = new Headers(init?.headers);
-        headers.set('Authorization', `Convex ${adminKey}${identity ? `:${identity}` : ''}`);
+        const credentials = identity ? `${adminKey}:${identity}` : adminKey;
+        headers.set('Authorization', `Convex ${credentials}`);
         return fetch(input, { ...init, headers });
       },
       { preconnect: fetch.preconnect }
@@ -72,8 +70,13 @@ async function proveAllocation(
   const simultaneous = await admin.query(httpReference(internal.playGameNamesTesting.inspect), { gameIds });
   assert.equal(new Set(simultaneous.map(({ slug }) => slug)).size, 16);
   assert(simultaneous.every(({ name }) => name === 'Arrakeen surprise party'));
-  const expected = Array.from({ length: 16 }, (_, suffix) => `arrakeen-surprise-party${suffix ? `-${suffix}` : ''}`);
-  assert.deepEqual(simultaneous.map(({ slug }) => slug).sort(), expected.sort());
+  const expected = Array.from({ length: 16 }, (_, suffix) =>
+    suffix ? `arrakeen-surprise-party-${suffix.toString(36)}` : 'arrakeen-surprise-party'
+  );
+  const actual = simultaneous.map(({ slug }) => slug!);
+  actual.sort((a, b) => a.localeCompare(b));
+  expected.sort((a, b) => a.localeCompare(b));
+  assert.deepEqual(actual, expected);
   console.log(
     'PASS: two simultaneous batches of eight creations committed 16 distinct addresses with one display name.'
   );
