@@ -10019,6 +10019,12 @@
     "subjects": ["places", "space"],
     "sourceHash": "2881652c9105d5b366bebb0efa930e5bc189fb8ad08e713df94235d49b89f2e7"
   },
+  "/image/rulebook-cover/military-assembly.png": {
+    "description": "Rows of soldiers and dark banners flank a ceremonial avenue beneath a massive tiered structure and rust-colored mountains.",
+    "tags": ["landscape", "illustration", "army", "ceremony"],
+    "subjects": ["places", "people", "machines"],
+    "sourceHash": "47035579ab2c56a8e894e067bf4f43daeec08eb3caf9fe9d40e0371156f8b5cc"
+  },
   "/image/rulebook-cover/rock-passages.png": {
     "description": "Desert canyon with natural rock arches and small robed figures.",
     "tags": ["landscape", "illustration"],
@@ -10030,6 +10036,12 @@
     "tags": ["landscape", "illustration"],
     "subjects": ["places", "space", "creatures"],
     "sourceHash": "c975f0c9bced027e6f7422e1776cebc8da871aea5ea80088dff739cf28ddc589"
+  },
+  "/image/rulebook-cover/sandworm-riding.png": {
+    "description": "A lone rider braces on a giant open-mouthed sandworm, with aircraft trailing through golden dust beneath a navy sky.",
+    "tags": ["landscape", "illustration", "sandworm", "riding"],
+    "subjects": ["places", "space", "creatures", "people", "transport"],
+    "sourceHash": "2431371644fdaa00d06a06c771879301dea44d009ef41df4a3d883ddfee6d4c7"
   },
   "/image/rulebook-cover/shielded-city.png": {
     "description": "Desert city enclosed by a transparent blue dome beneath two moons.",
@@ -10048,6 +10060,12 @@
     "tags": ["landscape", "illustration"],
     "subjects": ["places", "space"],
     "sourceHash": "f7dac45b1268979d91e5a58b3e8af5f1e77c1c528e959592dadff8c50a12944c"
+  },
+  "/image/rulebook-cover/warm-sand-desert.png": {
+    "description": "A lone cloaked figure stands on a sweeping golden dune beneath two pale moons and a dark blue sky.",
+    "tags": ["landscape", "illustration", "desert", "moons"],
+    "subjects": ["places", "space", "people"],
+    "sourceHash": "23404585aac123f653148c57a9655801c12cf09eb0bab5fa35f101708b00612c"
   },
   "/image/rulebook-cover/worm-cavern.png": {
     "description": "Sandworm emerging from a rocky cavern into moonlit desert dunes.",

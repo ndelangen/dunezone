@@ -1,0 +1,15 @@
+{
+  "source": "https://wallpapers.com/images/hd/dune-2021-warm-sand-desert-hcvze75amyqw02wg.jpg",
+  "sourceSha256": "a69e4361f45a21feca959c9b0b6e9c8a96cdf22daf6c4eed361acfae5d32ad42",
+  "confirmedBy": "Norbert",
+  "confirmedOn": "2026-10-07",
+  "preparation": "AI recreated the supplied lone figure and dune composition in the existing covers' angular navy-and-amber style. Follow-up edits corrected the large moon's outline. The reference and earlier drafts remain untouched.",
+  "approvedAssetSha256": "23404585aac123f653148c57a9655801c12cf09eb0bab5fa35f101708b00612c",
+  "approvedDimensions": {
+    "width": 1448,
+    "height": 1086
+  },
+  "approval": "Norbert approved the revised moon artwork on 7 October 2026.",
+  "generationMethod": "Built-in image generation",
+  "issue": "https://github.com/ndelangen/dunezone/issues/1929"
+}
