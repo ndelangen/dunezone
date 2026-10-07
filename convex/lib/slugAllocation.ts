@@ -7,6 +7,20 @@ function randomSuffix() {
   return value.toString(36).padStart(13, '0');
 }
 
+function* slugCandidates(base: string, nextSuffix: number) {
+  yield { slug: base, nextSuffix: null };
+  /* Exhausted or unsafe cursors recover through random candidates without unsafe arithmetic. */
+  let next = Number.isSafeInteger(nextSuffix) && nextSuffix >= 1 ? nextSuffix : Number.MAX_SAFE_INTEGER;
+  for (let probe = 0; probe < COUNTER_PROBES && next < Number.MAX_SAFE_INTEGER; probe += 1) {
+    const slug = `${base}-${next.toString(36)}`;
+    next += 1;
+    yield { slug, nextSuffix: next };
+  }
+  for (let probe = 0; probe < RANDOM_PROBES; probe += 1) {
+    yield { slug: `${base}-${randomSuffix()}`, nextSuffix: next };
+  }
+}
+
 /**
  * Selection makes at most seven availability checks, including the plain base.
  * The caller owns normalization, policy, indexed absence reads and the transaction that claims the result.
@@ -24,25 +38,10 @@ export async function selectSlug({
   available: (slug: string) => Promise<boolean>;
   accept?: (slug: string) => boolean;
 }): Promise<{ slug: string; nextSuffix: number | null } | null> {
-  async function usable(slug: string) {
-    return (accept?.(slug) ?? true) && (await available(slug));
-  }
-  if (await usable(base)) {
-    return { slug: base, nextSuffix: null };
-  }
-  /* Exhausted or unsafe cursors recover through random candidates without unsafe arithmetic. */
-  let next = Number.isSafeInteger(nextSuffix) && nextSuffix >= 1 ? nextSuffix : Number.MAX_SAFE_INTEGER;
-  for (let probe = 0; probe < COUNTER_PROBES && next < Number.MAX_SAFE_INTEGER; probe += 1) {
-    const candidate = `${base}-${next.toString(36)}`;
-    next += 1;
-    if (await usable(candidate)) {
-      return { slug: candidate, nextSuffix: next };
-    }
-  }
-  for (let probe = 0; probe < RANDOM_PROBES; probe += 1) {
-    const candidate = `${base}-${randomSuffix()}`;
-    if (await usable(candidate)) {
-      return { slug: candidate, nextSuffix: next };
+  for (const candidate of slugCandidates(base, nextSuffix)) {
+    const accepted = accept?.(candidate.slug) ?? true;
+    if (accepted && (await available(candidate.slug))) {
+      return candidate;
     }
   }
   return null;
