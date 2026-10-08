@@ -31,7 +31,7 @@ Add boundary point inserts a point on an existing edge while preserving its curv
 
 Remove connection deletes the edge between two points and keeps both points visible and editable, including points left with no connections. The circular rim stays connected. Undo restores a removed edge.
 
-Every line endpoint is selectable, including open cuts that do not form a territory. Interior points and curve controls stay inside the circular board. Rim points slide along the circle between their neighbors; the rim's center, radius and full circumference stay fixed. The same constraints apply to dragging, coordinate sliders, keyboard moves and point placement. The recovered Arrakis fixture uses approximate elliptical outer arcs, whose reference endpoints remain fixed.
+Every line endpoint is selectable, including open cuts that do not form a territory. Interior points and curve controls stay inside the circular board. Rim points slide along the circle between their neighbors; the rim's center, radius and full circumference stay fixed. The same constraints apply to dragging, coordinate sliders, keyboard moves and point placement. The Arrakis preset keeps the maintained map's elliptical outer arcs and their reference endpoints fixed.
 
 Snapping uses a 20-screen-pixel magnetic range, adjusted for canvas size and zoom. Existing points take priority, followed by shared edges and the sector or circular guide. The actual visible guide segments supply snapping coordinates, including the intersections with the circular rim. Dragged points exclude themselves and their incident edges from attraction. With snapping off, only an exact join within half a board unit connects points.
 
@@ -47,12 +47,30 @@ Snapping uses a 20-screen-pixel magnetic range, adjusted for canvas size and zoo
 
 Screenshots, the actual clipping SVGs and the pixel report are linked on the ticket.
 
-## Arrakis feasibility remains open
+## Arrakis preset
 
-The maintained map contains 42 source territory outlines. The recovered graph has 412 nodes and 463 shared edges. Its current polygonization produces 47 regions, including five slivers smaller than one square board unit. None are silently discarded.
+The user confirmed on 8 October 2026 that Arrakis conversion is a one-time operation. Quick-load should give authors the board made now, rather than repeat the conversion. Load board offers Arrakis and a blank board beside the map tools. Loading either can be undone.
 
-The source recovery merges nearly identical endpoints, with a largest adjustment of 0.002219 board units. The disposable Arrakis graph also uses a 0.01-unit precision grid. Original arcs and cubic controls remain editable and generate SVG curves, but topology uses sampled geometry. Exact intersections and tangencies remain unproved.
+The saved Arrakis preset contains 412 points, 452 shared edges and 42 territories. Loading it clones the complete board, including names, types, inset contours, paint order and five decals. The conversion tool does not run in the editor.
 
-The visible comparison differs in generated insets and some symbol sizing. It therefore does not establish exact Arrakis reproduction. One earlier browser computation took 194 ms; this is a single observation, not a latency or frame-rate result.
+The extra territories came from neighboring source outlines dividing the same straight border at different vertices. Twelve intermediate points lay on long neighboring edges without being connected to them. Their largest perpendicular discrepancy was 0.000495 board units. Connecting those junctions and sharing the resulting segments removes the narrow regions. No area filter discards territories.
 
-The rough editor still leaves robust split and merge identity, complete keyboard interaction and pathological geometry for later work. Its recovered Arrakis outer arcs also need reconciliation with the fixed-circle contract. These limits must be resolved before production implementation and Stage 1 verification. The layout decision is confirmed; the ticket remains open for the geometry decision.
+A controlled comparison produced 47 regions with the original graph and its precision grid, and 60 without the grid. The connected graph produces 42 both with and without the grid. The editor no longer needs the fixture-specific grid.
+
+Every generated territory has exactly the complete edge set of its source territory. Habbanya Ridge Flat retains its enclosed hole. Independent masks from the maintained SVG found zero fully filled interior mismatches for all 42 territories at 1,948 and 3,896 pixels. Fractional boundary coverage differs slightly because nearly identical source endpoints were joined. The largest endpoint adjustment remains 0.002219 board units.
+
+The preset stores the original inset contours as editable points anchored to shared borders. Moving a boundary moves its associated contours; inserting a boundary point preserves the contour. Removing its supporting geometry falls back to the generated inset. Changing territory type applies the new type's default treatment. Source stroke treatment and paint order preserve the original appearance.
+
+Arrakis city and sietch are two reusable catalogue vectors, shared by the five placements. They retain the source outline, which can be turned off per decal. There are no per-placement reference-symbol vectors.
+
+Four Arrakis regression tests cover complete territory correspondence and holes, moving shared geometry, inserting a point without altering the inset, and a board JSON round trip. The existing seven circle and sector tests also pass. Native browser checks verified quick-load, moving a shared junction, keeping 42 tabs and restoring geometry with undo.
+
+Run the saved SVG comparison with:
+
+```bash
+bun scripts/board-arrakis-proof.ts <editor-svg> <proof-directory>
+```
+
+The report binds the actual editor SVG, board draft and maintained source by SHA-256. Source masks are independent of the editor's crop geometry. It saves both rendered maps and reports full-image differences as well as territory coverage. The recreated artwork is not a byte-identical legacy raster; residual stroke and antialiasing differences are recorded rather than hidden.
+
+The study remains on its throwaway branch for visual review. General split and merge identity, complete keyboard interaction, pathological intersections and production save/publication remain later work. The one-time Arrakis preset does not require a general SVG conversion service.

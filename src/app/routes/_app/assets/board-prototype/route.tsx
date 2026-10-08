@@ -1,4 +1,4 @@
-import { Button, Group, Stack, Text, Select, TextInput, Switch, Slider, Divider } from '@mantine/core';
+import { Button, Group, Stack, Text, Select, TextInput, Switch, Slider, Divider, Menu } from '@mantine/core';
 import { Link, createFileRoute } from '@tanstack/react-router';
 import { PageTitle } from '@ui/block/PageTitle';
 import { Section } from '@ui/block/Section';
@@ -46,6 +46,7 @@ import {
   defaults,
   reconcile,
   connectPoint,
+  contourPath,
   snapPoint,
   edgePath,
   contains,
@@ -443,6 +444,31 @@ function BoardPrototypePage() {
 
   const tools = (
     <Group gap="xs" wrap="nowrap">
+      <Menu position="bottom-start" withinPortal>
+        <Menu.Target>
+          <Button variant="subtle" size="xs">
+            Load board
+          </Button>
+        </Menu.Target>
+        <Menu.Dropdown>
+          <Menu.Item
+            onClick={() => {
+              dispatch({ type: 'board.edited', board: arrakisBoard(), message: 'Arrakis preset loaded' });
+              view({ tool: 'select', points: [], edge: null, activeNode: null, pan: [0, 0], zoom: 1 });
+            }}
+          >
+            Arrakis
+          </Menu.Item>
+          <Menu.Item
+            onClick={() => {
+              dispatch({ type: 'board.edited', board: blankBoard(), message: 'Blank board loaded' });
+              view({ tool: 'select', points: [], edge: null, activeNode: null, pan: [0, 0], zoom: 1 });
+            }}
+          >
+            Blank board
+          </Menu.Item>
+        </Menu.Dropdown>
+      </Menu>
       {(
         [
           ['select', MousePointer2, 'Select territories'],
@@ -544,6 +570,7 @@ function BoardPrototypePage() {
                   patchProperty({
                     type: value as Properties['type'],
                     insetLine: defaults('', value as Properties['type']).insetLine,
+                    appearance: undefined,
                   });
                 }
               }}
@@ -1090,10 +1117,13 @@ function DecalArtwork({ decal, svg }: { decal: Decal; svg?: string }) {
     return null;
   }
   const viewBox = svg.match(/viewBox="([^"]+)"/)?.[1] || '0 0 100 100';
-  const inner = svg.replace(/^[\s\S]*?<svg[^>]*>/, '').replace(/<\/svg>[\s\S]*$/, '');
+  const inner = svg
+    .replace(/^[\s\S]*?<svg[^>]*>/, '')
+    .replace(/<\/svg>[\s\S]*$/, '')
+    .replace(/<path[^>]*data-decal-outline[^>]*\/>/g, (path) => (decal.outline ? path : ''));
   return (
     <g transform={`translate(${decal.x} ${decal.y}) rotate(${decal.rotation})`}>
-      {decal.outline && (
+      {decal.outline && !svg.includes('data-decal-outline') && (
         <defs>
           <filter id={outlineId} x="-50%" y="-50%" width="200%" height="200%" colorInterpolationFilters="sRGB">
             <feMorphology in="SourceAlpha" operator="dilate" radius="1.4" result="expanded" />
@@ -1106,7 +1136,7 @@ function DecalArtwork({ decal, svg }: { decal: Decal; svg?: string }) {
           </filter>
         </defs>
       )}
-      <g filter={decal.outline ? `url(#${outlineId})` : undefined}>
+      <g filter={decal.outline && !svg.includes('data-decal-outline') ? `url(#${outlineId})` : undefined}>
         <svg
           x={-decal.scale / 2}
           y={-decal.scale / 2}
@@ -1130,42 +1160,78 @@ function BoardArtwork({ board, faces, artwork }: { board: Board; faces: Face[]; 
           </clipPath>
         ))}
       </defs>
-      {faces.map((face, i) => {
-        const p = board.properties[face.key] || defaults('');
-        return (
-          <g key={face.key}>
-            <path d={face.path} fill={baseColors[p.type]} fillRule="evenodd" />
-            {p.type === 'stronghold' && (
+      {faces
+        .map((face, i) => ({ face, i }))
+        .sort(
+          (a, b) =>
+            (board.properties[a.face.key]?.paintOrder ?? a.i) - (board.properties[b.face.key]?.paintOrder ?? b.i)
+        )
+        .map(({ face, i }) => {
+          const p = board.properties[face.key] || defaults('');
+          const contours = p.appearance?.map((contour) => ({ contour, path: contourPath(board, contour) }));
+          const customAppearance = !!contours?.length && contours.every((value) => value.path !== null);
+          return (
+            <g key={face.key}>
               <path
                 d={face.path}
-                fill="none"
-                stroke={decorationColors.stronghold}
-                strokeWidth="13.2"
-                clipPath={`url(#${prefix}-face-${i})`}
+                fill={baseColors[p.type]}
+                fillRule="evenodd"
+                stroke={p.border ? '#000' : undefined}
+                strokeWidth={p.border?.width}
+                strokeLinecap={p.border?.linecap}
+                strokeLinejoin={p.border?.linejoin}
               />
-            )}
-            {p.insetLine !== 'none' && (
-              <path
-                d={face.inset}
-                fill="none"
-                stroke={p.type === 'stronghold' ? '#F7BA7A' : decorationColors[p.type]}
-                strokeWidth="1.1"
-                strokeDasharray={p.insetLine === 'dashed' ? '6.6 3.3' : undefined}
-                strokeLinejoin="round"
-              />
-            )}
-            <g clipPath={`url(#${prefix}-face-${i})`} data-clipped-territory={p.name}>
-              {p.decals.map((decal) => (
-                <DecalArtwork key={decal.id} decal={decal} svg={artwork[decal.artwork]} />
-              ))}
+              {!customAppearance && p.type === 'stronghold' && (
+                <path
+                  d={face.path}
+                  fill="none"
+                  stroke={decorationColors.stronghold}
+                  strokeWidth="13.2"
+                  clipPath={`url(#${prefix}-face-${i})`}
+                />
+              )}
+              {!customAppearance && p.insetLine !== 'none' && (
+                <path
+                  d={face.inset}
+                  fill="none"
+                  stroke={p.type === 'stronghold' ? '#F7BA7A' : decorationColors[p.type]}
+                  strokeWidth="1.1"
+                  strokeDasharray={p.insetLine === 'dashed' ? '6.6 3.3' : undefined}
+                  strokeLinejoin="round"
+                />
+              )}
+              {customAppearance &&
+                contours.map(({ contour, path }, index) =>
+                  contour.role === 'band' || p.insetLine !== 'none' ? (
+                    <path
+                      key={index}
+                      d={path!}
+                      fill={contour.fill}
+                      fillRule="evenodd"
+                      stroke={contour.stroke}
+                      strokeWidth={contour.strokeWidth}
+                      strokeLinecap={contour.strokeLinecap}
+                      strokeLinejoin={contour.strokeLinejoin}
+                      strokeDasharray={p.insetLine === 'dashed' ? contour.strokeDasharray || '6.6 3.3' : undefined}
+                      strokeDashoffset={p.insetLine === 'dashed' ? contour.strokeDashoffset : undefined}
+                      clipPath={`url(#${prefix}-face-${i})`}
+                    />
+                  ) : null
+                )}
+              <g clipPath={`url(#${prefix}-face-${i})`} data-clipped-territory={p.name}>
+                {p.decals.map((decal) => (
+                  <DecalArtwork key={decal.id} decal={decal} svg={artwork[decal.artwork]} />
+                ))}
+              </g>
             </g>
-          </g>
-        );
-      })}
+          );
+        })}
       <g fill="none" stroke="#000" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-        {board.edges.map((edge) => (
-          <path key={edge.id} d={edgePath(board, edge)} />
-        ))}
+        {board.edges
+          .filter((edge) => !faces.some((face) => board.properties[face.key]?.border && face.edges.includes(edge.id)))
+          .map((edge) => (
+            <path key={edge.id} d={edgePath(board, edge)} strokeWidth={edge.strokeWidth} />
+          ))}
       </g>
     </g>
   );

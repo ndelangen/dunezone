@@ -1,11 +1,7 @@
-import ArrayList from 'jsts/java/util/ArrayList.js';
 import InteriorPointArea from 'jsts/org/locationtech/jts/algorithm/InteriorPointArea.js';
 import Coordinate from 'jsts/org/locationtech/jts/geom/Coordinate.js';
 import GeometryFactory from 'jsts/org/locationtech/jts/geom/GeometryFactory.js';
 import type Polygon from 'jsts/org/locationtech/jts/geom/Polygon.js';
-import PrecisionModel from 'jsts/org/locationtech/jts/geom/PrecisionModel.js';
-import NodedSegmentString from 'jsts/org/locationtech/jts/noding/NodedSegmentString.js';
-import MCIndexSnapRounder from 'jsts/org/locationtech/jts/noding/snapround/MCIndexSnapRounder.js';
 import BufferOp from 'jsts/org/locationtech/jts/operation/buffer/BufferOp.js';
 import Polygonizer from 'jsts/org/locationtech/jts/operation/polygonize/Polygonizer.js';
 import UnaryUnionOp from 'jsts/org/locationtech/jts/operation/union/UnaryUnionOp.js';
@@ -21,6 +17,7 @@ export type Edge = {
   c1?: Point;
   c2?: Point;
   arc?: number[];
+  strokeWidth?: number;
 };
 export type Decal = {
   id: string;
@@ -31,11 +28,26 @@ export type Decal = {
   rotation: number;
   outline: boolean;
 };
+export type ContourAnchor = { edge: string; t: number; offset: Point };
+export type AppearanceContour = {
+  role: 'band' | 'inset';
+  segments: { kind: string; values: (number | ContourAnchor)[] }[];
+  fill: string;
+  stroke: string;
+  strokeWidth: number;
+  strokeLinecap: 'round' | 'square' | 'butt';
+  strokeLinejoin: 'round' | 'bevel' | 'miter';
+  strokeDasharray?: string;
+  strokeDashoffset?: string;
+};
 export type Properties = {
   name: string;
   type: 'sand' | 'rock' | 'stronghold' | 'polar';
   insetLine: 'none' | 'solid' | 'dashed';
   decals: Decal[];
+  appearance?: AppearanceContour[];
+  paintOrder?: number;
+  border?: { width: number; linecap: 'round' | 'square' | 'butt'; linejoin: 'round' | 'bevel' | 'miter' };
 };
 export type Board = {
   nodes: Record<string, Point>;
@@ -59,6 +71,8 @@ export const commonArtwork = {
   city: '../../../../../../media/vector/icon/city.svg',
   sietch: '../../../../../../media/vector/icon/seitch.svg',
   ornithopter: '../../../../../../media/vector/icon/ornithopter.svg',
+  arrakisCity: '../../../../../../media/vector/icon/arrakis-city.svg',
+  arrakisSietch: '../../../../../../media/vector/icon/arrakis-sietch.svg',
 };
 export const CENTER: Point = [243.53, 243.53];
 export const RADIUS = 240;
@@ -248,29 +262,7 @@ export function derive(board: Board) {
     return factory.createLineString(points.map((p) => new Coordinate(p[0], p[1])));
   });
   const polygonizer = new Polygonizer();
-  let linework = factory.createMultiLineString(lines);
-  if (board.fixture === 'Arrakis recreation') {
-    /* Legacy neighboring outlines differ in their last decimal; this fixture-only study uses a 0.01-unit graph grid. */
-    const noder = new MCIndexSnapRounder(new PrecisionModel(100));
-    const strings = new ArrayList(undefined);
-    lines.forEach((line) =>
-      strings.add(
-        new NodedSegmentString(
-          line
-            .getCoordinates()
-            .map((p: Coordinate) => new Coordinate(Math.round(p.x * 100) / 100, Math.round(p.y * 100) / 100)),
-          null
-        )
-      )
-    );
-    noder.computeNodes(strings);
-    linework = factory.createMultiLineString(
-      noder
-        .getNodedSubstrings()
-        .toArray()
-        .map((s: NodedSegmentString) => factory.createLineString(s.getCoordinates()))
-    );
-  }
+  const linework = factory.createMultiLineString(lines);
   polygonizer.add(UnaryUnionOp.union(linework));
   const polygons = polygonizer.getPolygons().toArray() as Polygon[];
   let unrecoveredSegments = 0;
@@ -280,6 +272,7 @@ export function derive(board: Board) {
       const owners = new Set<string>();
       const path = rings
         .map((ring) => {
+          const failuresBeforeRing = unrecoveredSegments;
           const intervals: { edge: Edge; t0: number; t1: number; a: Point; b: Point }[] = [];
           for (let i = 0; i < ring.length - 1; i++) {
             const a = ring[i],
@@ -312,7 +305,7 @@ export function derive(board: Board) {
               intervals.push({ edge: sample.edge, t0, t1, a, b });
             }
           }
-          if (intervals.length === 0) {
+          if (intervals.length === 0 || unrecoveredSegments !== failuresBeforeRing) {
             return straightPath([ring]);
           }
           return (
@@ -352,6 +345,32 @@ export function derive(board: Board) {
     unrecoveredSegments,
   };
 }
+export function contourPath(board: Board, contour: AppearanceContour): string | null {
+  const edges = new Map(board.edges.map((edge) => [edge.id, edge]));
+  if (
+    contour.segments.some((segment) =>
+      segment.values.some((value) => typeof value !== 'number' && !edges.has(value.edge))
+    )
+  ) {
+    return null;
+  }
+  return contour.segments
+    .map(
+      (segment) =>
+        segment.kind +
+        segment.values
+          .map((value) => {
+            if (typeof value === 'number') {
+              return value;
+            }
+            const origin = at(board, edges.get(value.edge)!, value.t);
+            return xy([origin[0] + value.offset[0], origin[1] + value.offset[1]]);
+          })
+          .join(' ')
+    )
+    .join('');
+}
+
 export function defaults(name: string, type: Properties['type'] = 'sand'): Properties {
   return { name, type, insetLine: type === 'stronghold' ? 'dashed' : type === 'sand' ? 'none' : 'solid', decals: [] };
 }
@@ -375,48 +394,7 @@ export function reconcile(board: Board, previous: Board, oldFaces: Face[], faces
   return { ...board, properties };
 }
 export function arrakisBoard(): Board {
-  const board: Board = {
-    nodes: Object.fromEntries(Object.entries(arrakis.nodes).map(([key, p]) => [key, [p[0], p[1]] as Point])),
-    edges: structuredClone(arrakis.edges) as Edge[],
-    properties: {},
-    fixture: 'Arrakis recreation',
-  };
-  const faces = derive(board).faces;
-  const used = new Set<string>();
-  for (const face of faces) {
-    const shape = arrakis.shapes
-      .map((shape) => ({ shape, hits: face.edges.filter((id) => shape.edges.includes(id)).length }))
-      .sort((a, b) => b.hits - a.hits)[0].shape;
-    let name = shape.name;
-    for (let suffix = 2; used.has(name); suffix++) {
-      name = `${shape.name}-${suffix}`;
-    }
-    used.add(name);
-    board.properties[face.key] = {
-      ...defaults(name, shape.type as Properties['type']),
-      insetLine: shape.insetLine as Properties['insetLine'],
-    };
-  }
-  arrakis.symbols.forEach((symbol) => {
-    const face = faces.find((face) => contains(face.rings, [symbol.x, symbol.y]));
-    if (face) {
-      board.properties[face.key].decals.push({
-        id: symbol.id,
-        artwork:
-          commonArtwork[
-            board.properties[face.key].name === 'arrakeen' || board.properties[face.key].name.startsWith('carthag')
-              ? 'city'
-              : 'sietch'
-          ],
-        x: symbol.x,
-        y: symbol.y,
-        scale: symbol.scale,
-        rotation: 0,
-        outline: true,
-      });
-    }
-  });
-  return board;
+  return structuredClone(arrakis.board) as unknown as Board;
 }
 export function studyBoard(): Board {
   const nodes: Board['nodes'] = {
@@ -582,6 +560,7 @@ export function connectPoint(
   const node = `point-${crypto.randomUUID()}`;
   const nodes = { ...board.nodes, [node]: point };
   let edges = board.edges;
+  let properties = board.properties;
   if (connects) {
     const { edge, t } = closest;
     const first: Edge = { ...edge, id: `${edge.id}:a`, b: node },
@@ -603,9 +582,36 @@ export function connectPoint(
       second.arc[3] = angle * (1 - t) > Math.PI ? 1 : 0;
     }
     edges = board.edges.flatMap((v) => (v === edge ? [first, second] : [v]));
+    properties = Object.fromEntries(
+      Object.entries(board.properties).map(([key, value]) => [
+        key,
+        {
+          ...value,
+          ...(value.appearance
+            ? {
+                appearance: value.appearance.map((contour) => ({
+                  ...contour,
+                  segments: contour.segments.map((segment) => ({
+                    ...segment,
+                    values: segment.values.map((anchor) =>
+                      typeof anchor === 'number' || anchor.edge !== edge.id
+                        ? anchor
+                        : {
+                            ...anchor,
+                            edge: anchor.t <= t ? first.id : second.id,
+                            t: anchor.t <= t ? anchor.t / t : (anchor.t - t) / (1 - t),
+                          }
+                    ),
+                  })),
+                })),
+              }
+            : {}),
+        },
+      ])
+    );
   }
   return {
-    board: { ...board, nodes, edges },
+    board: { ...board, nodes, edges, properties },
     node,
     point,
     feedback: connects ? `${snapped.feedback} · Connected to shared boundary` : snapped.feedback,
