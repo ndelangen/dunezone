@@ -67,6 +67,55 @@ const xy = (p: Point) => `${round(p[0])} ${round(p[1])}`;
 export const distance = (a: Point, b: Point) => Math.hypot(a[0] - b[0], a[1] - b[1]);
 const lerp = (a: Point, b: Point, t: number): Point => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
 
+export function boundPoint(point: Point): Point {
+  const radius = distance(point, CENTER);
+  return radius > RADIUS ? lerp(CENTER, point, RADIUS / radius) : point;
+}
+
+export function movePoint(board: Board, node: string, input: Point): Board {
+  const attached = board.edges.filter((edge) => edge.a === node || edge.b === node);
+  /* The recovered reference uses approximate ellipses; its outer boundary stays fixed. */
+  if (
+    (board.fixture === 'Arrakis recreation' && distance(board.nodes[node], CENTER) > RADIUS - 1) ||
+    attached.some((edge) => edge.kind === 'arc' && edge.arc![0] > 200 && !edge.id.startsWith('rim'))
+  ) {
+    return board;
+  }
+  const rim = attached.filter((edge) => edge.id.startsWith('rim'));
+  let point = boundPoint(input);
+  let edges = board.edges;
+  if (rim.length) {
+    const tau = Math.PI * 2;
+    const angle = (p: Point) => Math.atan2(p[1] - CENTER[1], p[0] - CENTER[0]);
+    const positive = (value: number) => ((value % tau) + tau) % tau;
+    const current = angle(board.nodes[node]);
+    let lower = -Math.PI * 2,
+      upper = Math.PI * 2;
+    for (const edge of rim) {
+      const other = board.nodes[edge.a === node ? edge.b : edge.a];
+      const clockwise = edge.a === node ? edge.arc![4] === 1 : edge.arc![4] === 0;
+      if (clockwise) {
+        upper = Math.min(upper, positive(angle(other) - current));
+      } else {
+        lower = Math.max(lower, -positive(current - angle(other)));
+      }
+    }
+    const desired = distance(input, CENTER) < 1e-6 ? 0 : positive(angle(input) - current + Math.PI) - Math.PI;
+    const next = current + Math.max(lower + 1e-5, Math.min(upper - 1e-5, desired));
+    point = [CENTER[0] + RADIUS * Math.cos(next), CENTER[1] + RADIUS * Math.sin(next)];
+    edges = board.edges.map((edge) => {
+      if (!rim.includes(edge)) {
+        return edge;
+      }
+      const a = edge.a === node ? point : board.nodes[edge.a];
+      const b = edge.b === node ? point : board.nodes[edge.b];
+      const delta = positive(edge.arc![4] === 1 ? angle(b) - angle(a) : angle(a) - angle(b));
+      return { ...edge, arc: [RADIUS, RADIUS, 0, delta > Math.PI ? 1 : 0, edge.arc![4]] };
+    });
+  }
+  return { ...board, nodes: { ...board.nodes, [node]: point }, edges };
+}
+
 /* Native SVG arcs remain arcs in artwork; chords are used only for the disposable face graph. */
 function arcParameters(board: Board, edge: Edge) {
   const a = board.nodes[edge.a],
@@ -520,7 +569,7 @@ export function connectPoint(
   radius = 12,
   targetEdge?: string
 ): { board: Board; node: string; point: Point; feedback: string } {
-  const snapped = snapPoint(board, input, snapping, radius);
+  const snapped = snapPoint(board, boundPoint(input), snapping, radius);
   if (snapped.node && !targetEdge) {
     return { board, node: snapped.node, point: snapped.point, feedback: snapped.feedback };
   }
@@ -529,7 +578,7 @@ export function connectPoint(
     snapped.point
   );
   const connects = closest && (targetEdge || closest.distance < (snapping ? radius : 0.5));
-  const point = connects ? closest.point : snapped.point;
+  const point = boundPoint(connects ? closest.point : snapped.point);
   const node = `point-${crypto.randomUUID()}`;
   const nodes = { ...board.nodes, [node]: point };
   let edges = board.edges;

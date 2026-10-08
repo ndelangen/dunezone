@@ -55,6 +55,8 @@ import {
   commonArtwork,
   removePoint,
   pointRemovalReason,
+  boundPoint,
+  movePoint,
 } from './geometry';
 import type { Board, Point, Face, Properties, Decal } from './geometry';
 import styles from './route.module.css';
@@ -231,10 +233,10 @@ function BoardPrototypePage() {
       ? {
           ...state.board,
           edges: state.board.edges.map((edge) =>
-            edge.id === state.dragNode ? { ...edge, [state.dragHandle!]: state.dragPoint } : edge
+            edge.id === state.dragNode ? { ...edge, [state.dragHandle!]: boundPoint(state.dragPoint!) } : edge
           ),
         }
-      : { ...state.board, nodes: { ...state.board.nodes, [state.dragNode]: state.dragPoint } };
+      : movePoint(state.board, state.dragNode, state.dragPoint);
   }, [state.board, state.dragNode, state.dragPoint, state.dragHandle]);
   const result = useMemo(() => {
     try {
@@ -670,11 +672,7 @@ function BoardPrototypePage() {
                     onChange={(value) => {
                       const point: Point = [...state.board.nodes[edge.a]];
                       point[axis] = value;
-                      commit(
-                        { ...state.board, nodes: { ...state.board.nodes, [edge.a]: point } },
-                        'Shared point moved',
-                        true
-                      );
+                      commit(movePoint(state.board, edge.a, point), 'Point moved', true);
                     }}
                   />
                 }
@@ -691,16 +689,8 @@ function BoardPrototypePage() {
       )}
     </Stack>
   );
-  const editableEdges = state.board.edges.filter(
-    (edge) => state.tool !== 'select' || state.edge === edge.id || selectedFace?.edges.includes(edge.id)
-  );
-  const connectedPoints = new Set(state.board.edges.flatMap((edge) => [edge.a, edge.b]));
-  const visiblePoints = new Set(editableEdges.flatMap((edge) => [edge.a, edge.b]));
-  Object.keys(state.board.nodes).forEach((point) => {
-    if (!connectedPoints.has(point)) {
-      visiblePoints.add(point);
-    }
-  });
+  const editableEdges = state.board.edges;
+  const visiblePoints = Object.keys(state.board.nodes);
   const pointControl = (key: string) => (
     <circle
       key={key}
@@ -733,14 +723,8 @@ function BoardPrototypePage() {
         const p = state.board.nodes[key],
           step = event.shiftKey ? 5 : 1;
         commit(
-          {
-            ...state.board,
-            nodes: {
-              ...state.board.nodes,
-              [key]: [p[0] + delta[0] * step, p[1] + delta[1] * step],
-            },
-          },
-          'Boundary point moved with keyboard',
+          movePoint(state.board, key, [p[0] + delta[0] * step, p[1] + delta[1] * step]),
+          'Point moved with keyboard',
           true
         );
       }}
@@ -843,14 +827,17 @@ function BoardPrototypePage() {
           if (state.dragNode) {
             view({ dragPoint: snapped.point, message: snapped.feedback });
           } else {
-            view({ hover: snapped.point, message: state.tool !== 'select' ? snapped.feedback : state.message });
+            view({
+              hover: boundPoint(snapped.point),
+              message: state.tool !== 'select' ? snapped.feedback : state.message,
+            });
           }
         }}
         onPointerUp={() => {
           panStart.current = null;
           if (state.dragNode) {
             try {
-              commit(drawBoard, 'Shared boundary moved; territory crops updated', true);
+              commit(drawBoard, 'Point moved', true);
             } catch (error) {
               view({ dragNode: null, dragPoint: null, message: String(error) });
             }
@@ -895,6 +882,7 @@ function BoardPrototypePage() {
                   data-edge={e.id}
                 />
                 {e.kind === 'cubic' &&
+                  state.edge === e.id &&
                   (['c1', 'c2'] as const).map((key) => (
                     <g key={key}>
                       <path
