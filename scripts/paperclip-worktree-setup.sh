@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-expected_path="${PAPERCLIP_WORKSPACE_PATH:?Paperclip must supply its task worktree path.}"
+expected_path="${PAPERCLIP_WORKSPACE_WORKTREE_PATH:?Paperclip must supply its task worktree path.}"
 expected_branch="${PAPERCLIP_WORKSPACE_BRANCH:?Paperclip must supply its task branch.}"
 repository_root="$(git rev-parse --show-toplevel)"
 actual_path="$(pwd -P)"

@@ -63,7 +63,7 @@ The project execution policy is:
 
 Enable isolated workspaces and worktree execution in Paperclip's experimental settings. Automatic branch reconciliation and dirty-worktree repair are disabled for this pilot. A failed freshness check needs an explicit resolution that preserves the task's work.
 
-[Paperclip provisioning](../../scripts/paperclip-worktree-setup.sh) verifies the supplied task path and branch, runs the repository's freshness preflight, installs the frozen dependencies and prepares missing generated images, vectors and objects. It runs again when Paperclip reuses a task workspace. The agent also runs it at the beginning of each Dune Zone run.
+[Paperclip provisioning](../../scripts/paperclip-worktree-setup.sh) verifies the supplied task path and branch, runs the repository's freshness preflight, installs the frozen dependencies and prepares missing generated images, vectors and objects. It runs again when Paperclip reuses a task workspace. Engineer also runs the core freshness preflight at the beginning of each Dune Zone run. Read-only roles rely on successful host provisioning and inspect the assigned path and branch without installing dependencies or fetching inside their file sandbox.
 
 [The freshness preflight](../../scripts/codex-worktree-setup.sh) fetches before checking the remote default branch. It accepts a task branch with its own commits when that branch contains the current fetched base. It preserves dirty edits. When upstream has advanced beyond the task's base, it refuses a dirty, attached or divergent checkout. Only a clean detached checkout can advance automatically by fast-forward. A failed fetch always stops the run.
 

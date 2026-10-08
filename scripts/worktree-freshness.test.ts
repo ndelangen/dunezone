@@ -130,7 +130,7 @@ describe('Paperclip provisioning', () => {
           ...process.env,
           PATH: `${bin}:${process.env.PATH}`,
           BUN_CALL_LOG: log,
-          PAPERCLIP_WORKSPACE_PATH: expectedPath,
+          PAPERCLIP_WORKSPACE_WORKTREE_PATH: expectedPath,
           PAPERCLIP_WORKSPACE_BRANCH: branch,
         },
       });
