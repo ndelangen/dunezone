@@ -1,5 +1,6 @@
 import preview from '@sb/preview';
 import { BoardAsset } from '@shared/boards/schema';
+import type { BoardAssetData } from '@shared/boards/schema';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { loadAssetPage } from '@db/assets';
@@ -43,6 +44,9 @@ export const SaveAndReopen = meta.story({
     await expect(page.findByRole('button', { name: 'Delete board' })).resolves.toBeVisible();
     const saved = await loadAssetPage('board', 'authored-arrakis');
     expect(saved?.assetPublishing?.captureStatus).toBe('scheduled');
+    expect(
+      Object.values((saved!.asset.data as BoardAssetData).board.properties).find((p) => p.name === 'Arrakeen')?.id
+    ).toBe('arrakeen');
     const properties = BoardAsset.parse(saved!.asset.data).board.properties;
     expect(Object.keys(properties)).toHaveLength(42);
     expect(JSON.stringify(saved?.asset.data)).not.toContain('ghosts');
@@ -86,6 +90,10 @@ export const TerritoryNames = meta.story({
     await expect(page.findByRole('button', { name: 'Delete board' })).resolves.toBeVisible();
     await expect(page.getByRole('textbox', { name: 'Territory name' })).toHaveValue('Arrakeen city');
     await expect(page.getByRole('textbox', { name: 'Territory ID' })).toHaveValue('arrakeen_city');
+    const saved = await loadAssetPage('board', 'arrakis');
+    expect(
+      Object.values((saved!.asset.data as BoardAssetData).board.properties).find((p) => p.name === 'Arrakeen city')?.id
+    ).toBe('arrakeen_city');
   },
 });
 

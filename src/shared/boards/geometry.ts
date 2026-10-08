@@ -10,7 +10,7 @@ import arrakis from './arrakis.json';
 import { at, arcParameters } from './curves';
 export { at } from './curves';
 import type { Board, Point, Edge, Properties, AppearanceContour } from './schema';
-import { territoryId } from './schema';
+import { territoryId, TERRITORY_NAME_LIMIT } from './schema';
 export type { Board, Point, Edge, Properties, Decal, AppearanceContour } from './schema';
 export type Face = {
   key: string;
@@ -329,9 +329,10 @@ export function defaults(name: string, type: Properties['type'] = 'sand'): Prope
 export function reconcile(board: Board, previous: Board, oldFaces: Face[], faces: Face[]): Board {
   const properties: Board['properties'] = {};
   const used = new Set<string>();
-  const reserved = new Set(
-    faces.filter((face) => previous.properties[face.key]).map((face) => territoryId(previous.properties[face.key].name))
+  const assigned = new Set(
+    faces.filter((face) => board.properties[face.key] || previous.properties[face.key]).map((face) => face.key)
   );
+  const reserved = new Set(Object.values(previous.properties).map((p) => territoryId(p.name)));
   for (const face of faces) {
     const same = board.properties[face.key] || previous.properties[face.key];
     const candidates = oldFaces
@@ -339,10 +340,16 @@ export function reconcile(board: Board, previous: Board, oldFaces: Face[], faces
       .sort((a, b) => a.key.localeCompare(b.key));
     const value =
       same || (candidates[0] && (board.properties[candidates[0].key] || previous.properties[candidates[0].key]));
+    const source = same ? face.key : candidates[0]?.key;
+    const generated = !value || (!same && source !== undefined && assigned.has(source));
+    if (source) {
+      assigned.add(source);
+    }
     let name = value?.name ?? 'Territory 1';
     const base = name;
-    for (let suffix = 2; !same && (used.has(territoryId(name)) || reserved.has(territoryId(name))); suffix++) {
-      name = `${base} ${suffix}`;
+    for (let suffix = 2; generated && (used.has(territoryId(name)) || reserved.has(territoryId(name))); suffix++) {
+      const ending = ` ${suffix}`;
+      name = `${base.slice(0, TERRITORY_NAME_LIMIT - ending.length).trimEnd()}${ending}`;
     }
     used.add(territoryId(name));
     properties[face.key] = value ? { ...value, name, id: territoryId(name) } : defaults(name);

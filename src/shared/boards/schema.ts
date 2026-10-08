@@ -76,11 +76,12 @@ export function territoryId(name: string): string {
     .replace(/^_|_$/g, '');
 }
 
+export const TERRITORY_NAME_LIMIT = 128;
 const territoryName = z
   .string()
   .trim()
   .min(1, 'Enter a territory name')
-  .max(128, 'Use at most 128 characters')
+  .max(TERRITORY_NAME_LIMIT, `Use at most ${TERRITORY_NAME_LIMIT} characters`)
   .refine((name) => !!territoryId(name), { message: 'Include a letter or number in the territory name' });
 
 export function territoryNameError(name: string, otherNames: string[]): string | undefined {
