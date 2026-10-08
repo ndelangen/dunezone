@@ -10,7 +10,7 @@ import arrakis from './arrakis.json';
 import { at, arcParameters } from './curves';
 export { at } from './curves';
 import type { Board, Point, Edge, Properties, AppearanceContour } from './schema';
-export type { Board, Point, Edge, Properties, Decal, ContourAnchor, AppearanceContour } from './schema';
+export type { Board, Point, Edge, Properties, Decal, AppearanceContour } from './schema';
 export type Face = {
   key: string;
   path: string;
@@ -141,8 +141,7 @@ function polygonRings(polygon: Polygon): Point[][] {
 }
 const straightPath = (rings: Point[][]) => rings.map((ring) => `M${ring.map(xy).join('L')}Z`).join('');
 
-export function derive(board: Board) {
-  const started = performance.now();
+function sampleLinework(board: Board) {
   const samples: Sample[] = [];
   const lines = board.edges.map((edge) => {
     const count =
@@ -160,114 +159,137 @@ export function derive(board: Board) {
     }
     return factory.createLineString(points.map((p) => new Coordinate(p[0], p[1])));
   });
-  const polygonizer = new Polygonizer();
-  const linework = factory.createMultiLineString(lines);
-  polygonizer.add(UnaryUnionOp.union(linework));
-  const polygons = polygonizer.getPolygons().toArray() as Polygon[];
-  const sampleCells = new Map<string, Sample[]>();
-  const cell = (value: number) => Math.floor(value / 8);
-  for (const sample of samples) {
+  return { samples, lines };
+}
+
+const sampleCell = (value: number) => Math.floor(value / 8);
+function sampleCellKeys(sample: Sample) {
+  const keys: string[] = [];
+  for (
+    let x = sampleCell(Math.min(sample.a[0], sample.b[0]) - 0.02);
+    x <= sampleCell(Math.max(sample.a[0], sample.b[0]) + 0.02);
+    x++
+  ) {
     for (
-      let x = cell(Math.min(sample.a[0], sample.b[0]) - 0.02);
-      x <= cell(Math.max(sample.a[0], sample.b[0]) + 0.02);
-      x++
+      let y = sampleCell(Math.min(sample.a[1], sample.b[1]) - 0.02);
+      y <= sampleCell(Math.max(sample.a[1], sample.b[1]) + 0.02);
+      y++
     ) {
-      for (
-        let y = cell(Math.min(sample.a[1], sample.b[1]) - 0.02);
-        y <= cell(Math.max(sample.a[1], sample.b[1]) + 0.02);
-        y++
-      ) {
-        const key = `${x}:${y}`;
-        const entries = sampleCells.get(key) || [];
-        entries.push(sample);
-        sampleCells.set(key, entries);
-      }
+      keys.push(`${x}:${y}`);
     }
   }
-  let unrecoveredSegments = 0;
-  const faces: Face[] = polygons
-    .map((polygon) => {
-      const rings = polygonRings(polygon);
-      const owners = new Set<string>();
-      const boundaries: Face['boundaries'] = [];
-      const path = rings
-        .map((ring) => {
-          const failuresBeforeRing = unrecoveredSegments;
-          const intervals: { edge: Edge; t0: number; t1: number; a: Point; b: Point }[] = [];
-          for (let i = 0; i < ring.length - 1; i++) {
-            const a = ring[i],
-              b = ring[i + 1];
-            let best: { sample: Sample; ta: number; tb: number; score: number } | undefined;
-            const candidates = sampleCells.get(`${cell((a[0] + b[0]) / 2)}:${cell((a[1] + b[1]) / 2)}`) || samples;
-            for (const sample of candidates) {
-              const pa = project(a, sample.a, sample.b),
-                pb = project(b, sample.a, sample.b);
-              const score = pa.distance + pb.distance;
-              if (!best || score < best.score) {
-                best = { sample, ta: pa.t, tb: pb.t, score };
-              }
-              if (score < 1e-8) {
-                break;
-              }
-            }
-            if (!best || best.score > 0.02) {
-              unrecoveredSegments++;
-              continue;
-            }
-            const { sample, ta, tb } = best;
-            owners.add(sample.edge.id);
-            const t0 = sample.t0 + ta * (sample.t1 - sample.t0),
-              t1 = sample.t0 + tb * (sample.t1 - sample.t0);
-            const previous = intervals.at(-1);
-            if (previous?.edge.id === sample.edge.id && Math.abs(previous.t1 - t0) < 1e-5) {
-              previous.t1 = t1;
-              previous.b = b;
-            } else {
-              intervals.push({ edge: sample.edge, t0, t1, a, b });
-            }
-          }
-          boundaries.push(intervals.map(({ edge, t0, t1 }) => ({ edge: edge.id, t0, t1 })));
-          if (intervals.length === 0 || unrecoveredSegments !== failuresBeforeRing) {
-            return straightPath([ring]);
-          }
-          return (
-            `M${xy(at(board, intervals[0].edge, intervals[0].t0))}` +
-            intervals.map((v) => command(board, v.edge, v.t0, v.t1)).join('') +
-            'Z'
-          );
-        })
-        .join('');
-      const edgeIds = [...owners].sort();
-      const point = InteriorPointArea.getInteriorPoint(polygon) as Coordinate;
-      const buffer = BufferOp.bufferOp(polygon, -2.8);
-      let inset = '';
-      for (let i = 0; i < buffer.getNumGeometries(); i++) {
-        const p = buffer.getGeometryN(i) as Polygon;
-        if (!p.isEmpty()) {
-          inset += straightPath(polygonRings(p));
-        }
-      }
-      return {
-        key: edgeIds.join('|'),
-        edges: edgeIds,
-        path,
-        rings,
-        inset,
-        area: polygon.getArea(),
-        center: [point.x, point.y] as Point,
-        polygon,
-        boundaries,
-      };
-    })
-    .sort((a, b) => a.key.localeCompare(b.key));
+  return keys;
+}
+function indexSamples(samples: Sample[]) {
+  const cells = new Map<string, Sample[]>();
+  for (const sample of samples) {
+    for (const key of sampleCellKeys(sample)) {
+      const entries = cells.get(key) || [];
+      entries.push(sample);
+      cells.set(key, entries);
+    }
+  }
+  return cells;
+}
+function recoverSegment(a: Point, b: Point, candidates: Sample[]) {
+  let best: { sample: Sample; ta: number; tb: number; score: number } | undefined;
+  for (const sample of candidates) {
+    const pa = project(a, sample.a, sample.b),
+      pb = project(b, sample.a, sample.b);
+    const score = pa.distance + pb.distance;
+    if (!best || score < best.score) {
+      best = { sample, ta: pa.t, tb: pb.t, score };
+    }
+    if (score < 1e-8) {
+      break;
+    }
+  }
+  return best;
+}
+type Interval = { edge: Edge; t0: number; t1: number };
+function appendInterval(intervals: Interval[], next: Interval) {
+  const previous = intervals.at(-1);
+  if (previous?.edge.id === next.edge.id && Math.abs(previous.t1 - next.t0) < 1e-5) {
+    previous.t1 = next.t1;
+  } else {
+    intervals.push(next);
+  }
+}
+function recoverRing(board: Board, ring: Point[], samples: Sample[], cells: Map<string, Sample[]>) {
+  const intervals: Interval[] = [];
+  let failures = 0;
+  for (let i = 0; i < ring.length - 1; i++) {
+    const a = ring[i],
+      b = ring[i + 1];
+    const key = `${sampleCell((a[0] + b[0]) / 2)}:${sampleCell((a[1] + b[1]) / 2)}`;
+    const best = recoverSegment(a, b, cells.get(key) || samples);
+    if (!best || best.score > 0.02) {
+      failures++;
+      continue;
+    }
+    const { sample, ta, tb } = best;
+    appendInterval(intervals, {
+      edge: sample.edge,
+      t0: sample.t0 + ta * (sample.t1 - sample.t0),
+      t1: sample.t0 + tb * (sample.t1 - sample.t0),
+    });
+  }
+  const path =
+    intervals.length === 0 || failures > 0
+      ? straightPath([ring])
+      : `M${xy(at(board, intervals[0].edge, intervals[0].t0))}` +
+        intervals.map((part) => command(board, part.edge, part.t0, part.t1)).join('') +
+        'Z';
+  return { path, failures, intervals };
+}
+function insetPath(polygon: Polygon) {
+  const buffer = BufferOp.bufferOp(polygon, -2.8);
+  let inset = '';
+  for (let i = 0; i < buffer.getNumGeometries(); i++) {
+    const p = buffer.getGeometryN(i) as Polygon;
+    if (!p.isEmpty()) {
+      inset += straightPath(polygonRings(p));
+    }
+  }
+  return inset;
+}
+function recoverFace(board: Board, polygon: Polygon, samples: Sample[], cells: Map<string, Sample[]>) {
+  const rings = polygonRings(polygon);
+  const recovered = rings.map((ring) => recoverRing(board, ring, samples, cells));
+  const edgeIds = [...new Set(recovered.flatMap((ring) => ring.intervals.map((part) => part.edge.id)))].sort();
+  const point = InteriorPointArea.getInteriorPoint(polygon) as Coordinate;
+  const face: Face = {
+    key: edgeIds.join('|'),
+    edges: edgeIds,
+    path: recovered.map((ring) => ring.path).join(''),
+    rings,
+    inset: insetPath(polygon),
+    area: polygon.getArea(),
+    center: [point.x, point.y],
+    polygon,
+    boundaries: recovered.map((ring) => ring.intervals.map(({ edge, t0, t1 }) => ({ edge: edge.id, t0, t1 }))),
+  };
+  return { face, failures: recovered.reduce((count, ring) => count + ring.failures, 0) };
+}
+
+const geometryClock = () => (typeof performance === 'undefined' ? Date.now() : performance.now());
+export function derive(board: Board) {
+  const started = geometryClock();
+  const { samples, lines } = sampleLinework(board);
+  const polygonizer = new Polygonizer();
+  polygonizer.add(UnaryUnionOp.union(factory.createMultiLineString(lines)));
+  const cells = indexSamples(samples);
+  const polygons = polygonizer.getPolygons().toArray() as Polygon[];
+  const recovered = polygons.map((polygon) => recoverFace(board, polygon, samples, cells));
   return {
-    faces,
-    milliseconds: performance.now() - started,
+    faces: recovered.map((value) => value.face).sort((a, b) => a.key.localeCompare(b.key)),
+    milliseconds: geometryClock() - started,
     samples: samples.length,
     dangles: polygonizer.getDangles().size(),
-    unrecoveredSegments,
+    unrecoveredSegments: recovered.reduce((count, value) => count + value.failures, 0),
   };
 }
+
 export function contourPath(board: Board, contour: AppearanceContour): string | null {
   const edges = new Map(board.edges.map((edge) => [edge.id, edge]));
   if (
@@ -384,19 +406,7 @@ export function snapPoint(
   }
   if (Math.abs(distance(next, CENTER) - RADIUS) < radius) {
     if (feedback === 'Snapped to sector guide') {
-      const dx = sector.b[0] - sector.a[0],
-        dy = sector.b[1] - sector.a[1];
-      const x = sector.a[0] - CENTER[0],
-        y = sector.a[1] - CENTER[1];
-      const a = dx * dx + dy * dy,
-        b = 2 * (x * dx + y * dy),
-        c = x * x + y * y - RADIUS * RADIUS;
-      const root = Math.sqrt(b * b - 4 * a * c);
-      next =
-        [(-b + root) / (2 * a), (-b - root) / (2 * a)]
-          .filter((t) => t >= 0 && t <= 1)
-          .map((t) => lerp(sector.a, sector.b, t))
-          .sort((a, b) => distance(a, next) - distance(b, next))[0] || next;
+      next = sector.b;
     } else {
       const theta = Math.atan2(next[1] - CENTER[1], next[0] - CENTER[0]);
       next = [CENTER[0] + RADIUS * Math.cos(theta), CENTER[1] + RADIUS * Math.sin(theta)];
@@ -405,7 +415,7 @@ export function snapPoint(
   }
   return { point: next, feedback };
 }
-export const sectorLines: [Point, Point][] = arrakis.sectorLines.map(([a, b]) => {
+const sectorLines: [Point, Point][] = arrakis.sectorLines.map(([a, b]) => {
   const outer = distance(a as Point, CENTER) > distance(b as Point, CENTER) ? (a as Point) : (b as Point);
   return [CENTER, lerp(CENTER, outer, RADIUS / distance(CENTER, outer))];
 });
@@ -415,7 +425,57 @@ export const referenceSectors = sectorLines
       `<path d="M${a.join(' ')}L${b.join(' ')}" fill="none" stroke="#705327" stroke-width="1.1" stroke-dasharray="5 2"/>`
   )
   .join('');
-export const referenceAdjustment = arrakis.greatestAdjustment;
+
+function splitEdge(board: Board, edge: Edge, t: number, node: string, point: Point): [Edge, Edge] {
+  const first: Edge = { ...edge, id: `${edge.id}:a`, b: node },
+    second: Edge = { ...edge, id: `${edge.id}:b`, a: node };
+  if (edge.kind === 'cubic') {
+    const a = board.nodes[edge.a],
+      b = board.nodes[edge.b],
+      d = derivative(board, edge, t);
+    first.c1 = lerp(a, edge.c1!, t);
+    first.c2 = [point[0] - (d[0] * t) / 3, point[1] - (d[1] * t) / 3];
+    second.c1 = [point[0] + (d[0] * (1 - t)) / 3, point[1] + (d[1] * (1 - t)) / 3];
+    second.c2 = lerp(edge.c2!, b, t);
+  }
+  if (edge.kind === 'arc') {
+    const parameters = arcParameters(board, edge),
+      angle = Math.abs(parameters.delta);
+    first.arc = [parameters.rx, parameters.ry, edge.arc![2], 0, edge.arc![4]];
+    first.arc[3] = angle * t > Math.PI ? 1 : 0;
+    second.arc = [parameters.rx, parameters.ry, edge.arc![2], 0, edge.arc![4]];
+    second.arc[3] = angle * (1 - t) > Math.PI ? 1 : 0;
+  }
+
+  return [first, second];
+}
+
+function remapAppearance(properties: Board['properties'], edge: Edge, t: number, first: Edge, second: Edge) {
+  return Object.fromEntries(
+    Object.entries(properties).map(([key, value]) => {
+      if (!value.appearance) {
+        return [key, value];
+      }
+      const appearance = value.appearance.map((contour) => ({
+        ...contour,
+        segments: contour.segments.map((segment) => ({
+          ...segment,
+          values: segment.values.map((anchor) => {
+            if (typeof anchor === 'number' || anchor.edge !== edge.id) {
+              return anchor;
+            }
+            return {
+              ...anchor,
+              edge: anchor.t <= t ? first.id : second.id,
+              t: anchor.t <= t ? anchor.t / t : (anchor.t - t) / (1 - t),
+            };
+          }),
+        })),
+      }));
+      return [key, { ...value, appearance }];
+    })
+  );
+}
 
 export function connectPoint(
   board: Board,
@@ -440,52 +500,9 @@ export function connectPoint(
   let properties = board.properties;
   if (connects) {
     const { edge, t } = closest;
-    const first: Edge = { ...edge, id: `${edge.id}:a`, b: node },
-      second: Edge = { ...edge, id: `${edge.id}:b`, a: node };
-    if (edge.kind === 'cubic') {
-      const a = board.nodes[edge.a],
-        b = board.nodes[edge.b],
-        d = derivative(board, edge, t);
-      first.c1 = lerp(a, edge.c1!, t);
-      first.c2 = [point[0] - (d[0] * t) / 3, point[1] - (d[1] * t) / 3];
-      second.c1 = [point[0] + (d[0] * (1 - t)) / 3, point[1] + (d[1] * (1 - t)) / 3];
-      second.c2 = lerp(edge.c2!, b, t);
-    }
-    if (edge.kind === 'arc') {
-      const angle = Math.abs(arcParameters(board, edge).delta);
-      first.arc = [...edge.arc!];
-      first.arc[3] = angle * t > Math.PI ? 1 : 0;
-      second.arc = [...edge.arc!];
-      second.arc[3] = angle * (1 - t) > Math.PI ? 1 : 0;
-    }
+    const [first, second] = splitEdge(board, edge, t, node, point);
     edges = board.edges.flatMap((v) => (v === edge ? [first, second] : [v]));
-    properties = Object.fromEntries(
-      Object.entries(board.properties).map(([key, value]) => [
-        key,
-        {
-          ...value,
-          ...(value.appearance
-            ? {
-                appearance: value.appearance.map((contour) => ({
-                  ...contour,
-                  segments: contour.segments.map((segment) => ({
-                    ...segment,
-                    values: segment.values.map((anchor) =>
-                      typeof anchor === 'number' || anchor.edge !== edge.id
-                        ? anchor
-                        : {
-                            ...anchor,
-                            edge: anchor.t <= t ? first.id : second.id,
-                            t: anchor.t <= t ? anchor.t / t : (anchor.t - t) / (1 - t),
-                          }
-                    ),
-                  })),
-                })),
-              }
-            : {}),
-        },
-      ])
-    );
+    properties = remapAppearance(board.properties, edge, t, first, second);
   }
   return {
     board: { ...board, nodes, edges, properties },

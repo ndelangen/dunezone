@@ -122,10 +122,10 @@ export function AssetSelect({
   });
   const combobox = useCombobox({
     opened: dropdownOpened,
-    onDropdownClose: () => {
+    onDropdownClose: (eventSource) => {
       dispatch({ type: 'close' });
       combobox.resetSelectedOption();
-      if (trigger) {
+      if (trigger && eventSource === 'keyboard') {
         combobox.focusTarget();
       }
     },
@@ -188,6 +188,9 @@ export function AssetSelect({
           onChange?.(allowDeselect && next === value ? null : next, option);
         }
         combobox.closeDropdown();
+        if (trigger) {
+          combobox.focusTarget();
+        }
       }}
     >
       {trigger ? (

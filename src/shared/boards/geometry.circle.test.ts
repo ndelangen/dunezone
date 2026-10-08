@@ -90,3 +90,26 @@ it('removes interior connections while keeping open endpoints movable', () => {
   expect(cut.nodes).toEqual(board.nodes);
   expect(movePoint(cut, 'tip', [200, 200]).nodes.tip).toEqual([200, 200]);
 });
+
+it('preserves the effective ellipse when inserting a point into an undersized arc', () => {
+  const board = blankBoard();
+  board.nodes.a = [200, 200];
+  board.nodes.b = [300, 200];
+  const edge = {
+    id: 'short-radii',
+    a: 'a',
+    b: 'b',
+    kind: 'arc' as const,
+    arc: [10, 10, 0, 0, 1] as [number, number, number, 0, 1],
+  };
+  board.edges.push(edge);
+  const t = 0.37;
+  const result = connectPoint(board, at(board, edge, t), false, 0.5, edge.id).board;
+  const first = result.edges.find((part) => part.id === `${edge.id}:a`)!;
+  const second = result.edges.find((part) => part.id === `${edge.id}:b`)!;
+  for (let sample = 0; sample <= 20; sample++) {
+    const step = sample / 20;
+    expect(distance(at(result, first, step), at(board, edge, step * t))).toBeLessThan(0.001);
+    expect(distance(at(result, second, step), at(board, edge, t + step * (1 - t)))).toBeLessThan(0.001);
+  }
+});

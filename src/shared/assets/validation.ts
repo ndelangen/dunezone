@@ -1,3 +1,4 @@
+import { derive } from '../boards/geometry';
 import { BoardAsset } from '../boards/schema';
 import {
   BundleAssetInput,
@@ -16,6 +17,10 @@ export function parseAssetDataForWrite(type: string, data: unknown): { data: unk
   switch (type) {
     case 'board': {
       const parsed = BoardAsset.parse(data);
+      const geometry = derive(parsed.board);
+      if (!geometry.faces.length || geometry.unrecoveredSegments) {
+        throw new Error('The board needs closed, renderable territory boundaries');
+      }
       return { data: parsed, name: parsed.name };
     }
     case 'card-treachery': {

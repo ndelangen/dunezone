@@ -137,6 +137,5 @@ export type Point = z.infer<typeof point>;
 export type Edge = z.infer<typeof edge>;
 export type Properties = z.infer<typeof properties>;
 export type Decal = z.infer<typeof decal>;
-export type ContourAnchor = z.infer<typeof anchor>;
 export type AppearanceContour = z.infer<typeof contour>;
 export type BoardAssetData = z.infer<typeof BoardAsset>;

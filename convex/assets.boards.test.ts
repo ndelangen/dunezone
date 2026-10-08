@@ -63,3 +63,32 @@ describe('authored board Assets', () => {
     expect((await owner.query(api.assets.getPage, { type: 'board', slug: created.slug }))?.asset.name).toBe('Board');
   });
 });
+
+test('rejects face-less writes while accepting unfinished cuts inside the circular rim', async () => {
+  const t = convexTest(schema, modules);
+  const ownerId = await t.run((ctx) => ctx.db.insert('users', { name: 'Owner' }));
+  const owner = t.withIdentity({ subject: ownerId });
+  const open = {
+    nodes: { a: [200, 200], b: [220, 230] },
+    edges: [{ id: 'open', a: 'a', b: 'b', kind: 'line' }],
+    properties: {},
+  };
+  for (const board of [{ nodes: {}, edges: [], properties: {} }, open]) {
+    await expect(
+      owner.mutation(api.assets.create, { type: 'board', data: { name: 'Invalid', about: '', board } })
+    ).rejects.toThrow('closed, renderable');
+  }
+  const board = blankBoard();
+  Object.assign(board.nodes, open.nodes);
+  board.edges.push({ id: 'open', a: 'a', b: 'b', kind: 'line' });
+  const created = await owner.mutation(api.assets.create, {
+    type: 'board',
+    data: { name: 'Open cut', about: '', board },
+  });
+  await expect(
+    owner.mutation(api.assets.update, { id: created.id, data: { name: 'Invalid update', about: '', board: open } })
+  ).rejects.toThrow('closed, renderable');
+  expect((await owner.query(api.assets.getPage, { type: 'board', slug: created.slug }))?.asset.data).toMatchObject({
+    board,
+  });
+});

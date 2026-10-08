@@ -23,6 +23,7 @@ import {
   removeConnection,
   pointRemovalReason,
   boundPoint,
+  distance,
   movePoint,
 } from '@shared/boards/geometry';
 import type { Board, Point, Face, Properties, Decal } from '@shared/boards/geometry';
@@ -145,6 +146,10 @@ export function BoardEditor({
   const view = (patch: Extract<BoardEditorEvent, { type: 'view.changed' }>['patch']) =>
     dispatch({ type: 'view.changed', patch });
   const commit = (board: Board, message: string, topology = false, group?: string) => {
+    if (board === state.board) {
+      view({ dragNode: null, dragPoint: null, dragHandle: null });
+      return;
+    }
     const next = topology ? reconcile(board, state.board, baselineFaces, derive(board).faces) : board;
     dispatch({ type: 'board.edited', board: next, message, group });
   };
@@ -167,30 +172,42 @@ export function BoardEditor({
       if ((event.target as HTMLElement)?.closest('input,textarea,select,[contenteditable],svg [tabindex]')) {
         return;
       }
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'z') {
-        event.preventDefault();
-        dispatch({ type: event.shiftKey ? 'history.redo' : 'history.undo' });
-      } else if (!event.metaKey && !event.ctrlKey && !event.altKey && TOOL_SHORTCUTS[event.key.toLowerCase()]) {
-        event.preventDefault();
-        view({ tool: TOOL_SHORTCUTS[event.key.toLowerCase()], points: [], edge: null });
-      } else if (!event.metaKey && !event.ctrlKey && !event.altKey && event.key.toLowerCase() === 'g') {
-        view({ guide: !state.guide });
-      } else if (event.key.toLowerCase() === 's' && !event.metaKey && !event.ctrlKey) {
-        view({ snap: !state.snap });
-      } else if (!event.metaKey && !event.ctrlKey && !event.altKey && event.key.toLowerCase() === 'p') {
-        view({ compare: !state.compare });
-      } else if (!event.metaKey && !event.ctrlKey && !event.altKey && event.key === '0') {
-        view({ zoom: 1, pan: [0, 0] });
-      } else if (event.key === 'Escape') {
-        view({
-          tool: 'select',
-          points: [],
-          edge: null,
-          dragNode: null,
-          dragPoint: null,
-          message: 'Drawing finished. Open cuts remain visible.',
-        });
+      if (event.defaultPrevented) {
+        return;
       }
+      const key = event.key.toLowerCase();
+      if (event.metaKey || event.ctrlKey) {
+        if (key === 'z') {
+          event.preventDefault();
+          dispatch({ type: event.shiftKey ? 'history.redo' : 'history.undo' });
+        }
+        return;
+      }
+      if (event.altKey) {
+        return;
+      }
+      const tool = TOOL_SHORTCUTS[key];
+      if (tool) {
+        event.preventDefault();
+        view({ tool, points: [], edge: null });
+        return;
+      }
+      const settings: Record<string, () => void> = {
+        g: () => view({ guide: !state.guide }),
+        s: () => view({ snap: !state.snap }),
+        p: () => view({ compare: !state.compare }),
+        '0': () => view({ zoom: 1, pan: [0, 0] }),
+        escape: () =>
+          view({
+            tool: 'select',
+            points: [],
+            edge: null,
+            dragNode: null,
+            dragPoint: null,
+            message: 'Drawing finished. Open cuts remain visible.',
+          }),
+      };
+      settings[key]?.();
     };
     window.addEventListener('keydown', keyboard);
     return () => window.removeEventListener('keydown', keyboard);
@@ -272,14 +289,25 @@ export function BoardEditor({
     view({ edge: null, activeNode: null });
   }
   function placePoint(point: Point) {
+    const isControl =
+      (state.tool === 'cubic' && [1, 2].includes(state.points.length)) ||
+      (state.tool === 'arc' && state.points.length === 1);
+    if (isControl) {
+      const snapped = snapPoint(state.board, boundPoint(point), state.snap, magnetRadius());
+      view({ points: [...state.points, { point: snapped.point }], message: snapped.feedback });
+      return;
+    }
     const connection = connectPoint(state.board, point, state.snap, magnetRadius()),
       { node } = connection;
-    const points = [...state.points, node];
+    const points = [...state.points, { node, point: connection.point }];
     let board = connection.board;
-    if (state.tool === 'line' && state.points.length && state.points.at(-1) !== node) {
+    if (state.tool === 'line' && state.points.length && state.points.at(-1)?.node !== node) {
       board = {
         ...board,
-        edges: [...board.edges, { id: `cut-${crypto.randomUUID()}`, a: state.points.at(-1)!, b: node, kind: 'line' }],
+        edges: [
+          ...board.edges,
+          { id: `cut-${crypto.randomUUID()}`, a: state.points.at(-1)!.node!, b: node, kind: 'line' },
+        ],
       };
     }
     if (state.tool === 'cubic' && points.length === 4) {
@@ -289,17 +317,17 @@ export function BoardEditor({
           ...board.edges,
           {
             id: `curve-${crypto.randomUUID()}`,
-            a: points[0],
-            b: points[3],
+            a: points[0].node!,
+            b: points[3].node!,
             kind: 'cubic',
-            c1: board.nodes[points[1]],
-            c2: board.nodes[points[2]],
+            c1: points[1].point,
+            c2: points[2].point,
           },
         ],
       };
     }
     if (state.tool === 'arc' && points.length === 3) {
-      const [a, m, b] = points.map((p) => board.nodes[p]),
+      const [a, m, b] = points.map((p) => p.point),
         ab = Math.hypot(a[0] - b[0], a[1] - b[1]),
         am = Math.hypot(a[0] - m[0], a[1] - m[1]),
         mb = Math.hypot(m[0] - b[0], m[1] - b[1]);
@@ -316,8 +344,8 @@ export function BoardEditor({
           ...board.edges,
           {
             id: `arc-${crypto.randomUUID()}`,
-            a: points[0],
-            b: points[2],
+            a: points[0].node!,
+            b: points[2].node!,
             kind: 'arc',
             arc: [radius, radius, 0, dot > 0 ? 1 : 0, cross > 0 ? 1 : 0],
           },
@@ -330,7 +358,7 @@ export function BoardEditor({
         points:
           (state.tool === 'cubic' && points.length === 4) ||
           (state.tool === 'arc' && points.length === 3) ||
-          (state.tool === 'line' && points.length > 2 && node === points[0])
+          (state.tool === 'line' && points.length > 2 && node === points[0].node)
             ? []
             : points,
       });
@@ -486,7 +514,8 @@ export function BoardEditor({
                 ? 'Use a unique name'
                 : undefined
             }
-            onChange={(e) => patchProperty({ name: e.currentTarget.value })}
+            onChange={(e) => patchProperty({ name: e.currentTarget.value }, 'territory-name')}
+            onBlur={() => dispatch({ type: 'history.group-ended' })}
           />
           <Select
             label="Territory type"
@@ -657,8 +686,9 @@ export function BoardEditor({
                     onChange={(value) => {
                       const point: Point = [...state.board.nodes[edge.a]];
                       point[axis] = value;
-                      commit(movePoint(state.board, edge.a, point), 'Point moved', true);
+                      commit(movePoint(state.board, edge.a, point), 'Point moved', true, `edge-${edge.id}-${axis}`);
                     }}
+                    onChangeEnd={() => dispatch({ type: 'history.group-ended' })}
                   />
                 }
               />
@@ -821,6 +851,13 @@ export function BoardEditor({
         onPointerUp={() => {
           panStart.current = null;
           if (state.dragNode) {
+            const start = state.dragHandle
+              ? state.board.edges.find((edge) => edge.id === state.dragNode)![state.dragHandle]!
+              : state.board.nodes[state.dragNode];
+            if (!state.dragPoint || distance(start, state.dragPoint) < 1e-6) {
+              view({ dragNode: null, dragPoint: null, dragHandle: null });
+              return;
+            }
             try {
               commit(drawBoard, 'Point moved', true);
             } catch (error) {
@@ -889,12 +926,12 @@ export function BoardEditor({
             ['select', 'add-point', 'remove-point', 'remove-edge'].includes(state.tool) &&
             [...visiblePoints].map(pointControl)}
           {!state.compare &&
-            state.points.map((key, i) => (
-              <g key={`${key}-${i}`}>
-                <circle cx={state.board.nodes[key][0]} cy={state.board.nodes[key][1]} r="3" fill="#386c8e" />
+            state.points.map(({ point }, i) => (
+              <g key={i}>
+                <circle cx={point[0]} cy={point[1]} r="3" fill="#386c8e" />
                 {i > 0 && state.tool !== 'line' && (
                   <path
-                    d={`M${state.board.nodes[state.points[i - 1]].join(' ')}L${state.board.nodes[key].join(' ')}`}
+                    d={`M${state.points[i - 1].point.join(' ')}L${point.join(' ')}`}
                     fill="none"
                     stroke="#386c8e"
                     strokeDasharray="3 3"
@@ -904,7 +941,7 @@ export function BoardEditor({
             ))}
           {!state.compare && state.points.length > 0 && state.hover && (
             <path
-              d={`M${state.board.nodes[state.points.at(-1)!].join(' ')}L${state.hover.join(' ')}`}
+              d={`M${state.points.at(-1)!.point.join(' ')}L${state.hover.join(' ')}`}
               fill="none"
               stroke="#386c8e"
               strokeDasharray="3 3"

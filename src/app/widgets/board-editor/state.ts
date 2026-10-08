@@ -8,7 +8,7 @@ export type BoardEditorState = {
   selected: string | null;
   edge: string | null;
   tool: Tool;
-  points: string[];
+  points: { node?: string; point: Point }[];
   guide: boolean;
   snap: boolean;
   ghosts: boolean;
@@ -28,72 +28,68 @@ export type BoardEditorEvent =
   | { type: 'history.undo' | 'history.redo' }
   | { type: 'history.group-ended' }
   | { type: 'view.changed'; patch: Partial<Omit<BoardEditorState, 'board' | 'past' | 'future' | 'editGroup'>> };
-export function boardEditorReducer(state: BoardEditorState, event: BoardEditorEvent): BoardEditorState {
-  if (event.type === 'history.group-ended') {
-    return { ...state, editGroup: null };
+function selectedAfterEdit(state: BoardEditorState, board: Board) {
+  if (state.selected && board.properties[state.selected]) {
+    return state.selected;
   }
-  if (event.type === 'view.changed') {
-    return { ...state, ...event.patch, editGroup: event.patch.selected !== undefined ? null : state.editGroup };
-  }
-  if (event.type === 'board.edited') {
-    const name = state.selected && state.board.properties[state.selected]?.name;
-    const selected =
-      state.selected && event.board.properties[state.selected]
-        ? state.selected
-        : Object.keys(event.board.properties).find((key) => event.board.properties[key].name === name) ||
-          Object.keys(event.board.properties)[0] ||
-          null;
-    return {
-      ...state,
-      board: event.board,
-      past: event.group && state.editGroup === event.group ? state.past : [...state.past.slice(-29), state.board],
-      editGroup: event.group || null,
-      future: [],
-      selected,
-      message: event.message,
-      dragNode: null,
-      dragPoint: null,
-      dragHandle: null,
-    };
-  }
-  if (event.type === 'history.undo') {
-    if (!state.past.length) {
-      return state;
-    }
-    return {
-      ...state,
-      board: state.past.at(-1)!,
-      past: state.past.slice(0, -1),
-      future: [state.board, ...state.future],
-      selected: null,
-      activeNode: null,
-      edge: null,
-      points: [],
-      dragNode: null,
-      dragHandle: null,
-      dragPoint: null,
-      editGroup: null,
-      message: 'Undid the last edit',
-    };
-  }
-  if (!state.future.length) {
+  const name = state.selected && state.board.properties[state.selected]?.name;
+  return (
+    Object.keys(board.properties).find((key) => board.properties[key].name === name) ||
+    Object.keys(board.properties)[0] ||
+    null
+  );
+}
+function editedState(
+  state: BoardEditorState,
+  event: Extract<BoardEditorEvent, { type: 'board.edited' }>
+): BoardEditorState {
+  return {
+    ...state,
+    board: event.board,
+    past: event.group && state.editGroup === event.group ? state.past : [...state.past.slice(-29), state.board],
+    editGroup: event.group || null,
+    future: [],
+    selected: selectedAfterEdit(state, event.board),
+    message: event.message,
+    dragNode: null,
+    dragPoint: null,
+    dragHandle: null,
+  };
+}
+function restoredState(state: BoardEditorState, undo: boolean): BoardEditorState {
+  const available = undo ? state.past : state.future;
+  if (!available.length) {
     return state;
   }
   return {
     ...state,
-    board: state.future[0],
-    past: [...state.past.slice(-29), state.board],
-    future: state.future.slice(1),
+    board: undo ? available.at(-1)! : available[0],
+    past: undo ? state.past.slice(0, -1) : [...state.past.slice(-29), state.board],
+    future: undo ? [state.board, ...state.future] : state.future.slice(1),
     selected: null,
+    activeNode: null,
     edge: null,
     points: [],
-    activeNode: null,
     dragNode: null,
     dragHandle: null,
     dragPoint: null,
     editGroup: null,
-    message: 'Restored the edit',
+    message: undo ? 'Undid the last edit' : 'Restored the edit',
   };
+}
+export function boardEditorReducer(state: BoardEditorState, event: BoardEditorEvent): BoardEditorState {
+  switch (event.type) {
+    case 'history.group-ended':
+      return { ...state, editGroup: null };
+    case 'view.changed':
+      return { ...state, ...event.patch, editGroup: event.patch.selected !== undefined ? null : state.editGroup };
+    case 'board.edited':
+      return editedState(state, event);
+    case 'history.undo':
+      return restoredState(state, true);
+    case 'history.redo':
+      return restoredState(state, false);
+  }
 }
 
 export function initialBoardEditorState(board: Board): BoardEditorState {

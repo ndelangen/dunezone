@@ -10353,14 +10353,14 @@
     "description": "City silhouette with an optional white outline for the Arrakis board.",
     "tags": ["city", "towers", "vector"],
     "subjects": ["places"],
-    "sourceHash": "07bb1c25a40e118ed87a902769f74fbc48dec9001f38f03c8625a4ef3f8adc77",
+    "sourceHash": "dc09537d3a733de26cf2ad54d293ab3aa3ef5f682517771aba7bfc2629b96c14",
     "label": "Arrakis city"
   },
   "/vector/icon/arrakis-sietch.svg": {
     "description": "Sietch silhouette with an optional white outline for the Arrakis board.",
     "tags": ["arch", "cave", "vector"],
     "subjects": ["places"],
-    "sourceHash": "a7949d472ad8092d285d2c62f9083f29fe61d8a7172b78e92bd921610e45d7cc",
+    "sourceHash": "5ab59d9fc91fdf8d41fa074ff83b7bab1995c37abe9fec31f603ac9b3e242d0c",
     "label": "Arrakis sietch"
   }
 }
