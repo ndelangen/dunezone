@@ -75,6 +75,15 @@ bun x vitest run scripts/worktree-freshness.test.ts
 
 For backend work use `bun run app:dev --local`, as described in [the development workflow](../README.md). Each task owns its development services and must clean them up. Follow the existing focused checks, publisher release verification and browser-proof requirements. Paperclip's `done` status alone does not prove merge, deployment or production health.
 
+## Native pilot validation
+
+On 8 October 2026, Engineer completed phase one of [GitHub issue #1967](https://github.com/ndelangen/dunezone/issues/1967) in the native Paperclip run using the connected OpenAI subscription.
+The assigned worktree was `/Users/me/Projects/Dune/paperclip-worktrees/norbert/paperclip-NOR-1-validate-dune-zone-provisioning-and-commit-resumption`, on branch `norbert/paperclip-NOR-1-validate-dune-zone-provisioning-and-commit-resumption`, starting at `647fa27179756fe1fc47fb42ae07b2838ed1df79`.
+
+`bash scripts/codex-worktree-setup.sh` passed after fetching `real-origin/main` and confirmed that the task commits contain the current base, `c00cfd01b0e28ff37b873db5b9c31bc9a730ebc3`.
+`bun x vitest run scripts/worktree-freshness.test.ts` passed all six tests in one file in 2.12 seconds.
+Phase two, verifying workspace reuse and preservation of this local documentation commit, awaits a board follow-up.
+
 ## Add another project
 
 Register a separate project with its repository URL, current purpose, entry documents, worktree base, provisioning command and delivery rules. Validate a read-only task before allowing implementation. The Coordinator must receive a project brief that identifies that repository's tracker and claim rules.
