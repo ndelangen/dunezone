@@ -104,6 +104,7 @@ export function AuthoringToolbar({
   statuses,
   destructiveActions,
   centerIndicator,
+  navigationActions,
 }: {
   status: AuthoringStatus;
   copy: AuthoringCopy;
@@ -118,6 +119,8 @@ export function AuthoringToolbar({
   statuses?: readonly (StatusInfoItem | null | undefined | false)[];
   destructiveActions?: ReactNode;
   centerIndicator?: ReactNode;
+  /** Navigation supplied by the page, beside Back. */
+  navigationActions?: ReactNode;
 }) {
   const { isDirty, isNameBlank, saveState, invalid } = status;
   const { onSave, onReset, onBack } = actions;
@@ -157,6 +160,7 @@ export function AuthoringToolbar({
             onClick={onBack}
             icon={<ArrowLeft size={17} aria-hidden />}
           />
+          {navigationActions}
         </Toolbar.Left>
 
         <Toolbar.Center>{centerIndicator}</Toolbar.Center>

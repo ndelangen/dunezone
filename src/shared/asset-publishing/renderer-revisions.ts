@@ -13,6 +13,7 @@ import {
  * It never selects a historical Renderer implementation.
  */
 export const CHECKED_IN_RENDERER_REVISIONS = {
+  board: 1,
   /* Revision 2 records measured part metadata for existing Leader publications. */
   'faction-leader': 2,
   /* The first activation publishes tokens for existing factions; revision 2 adds the blocked `.back` face (#1228). */

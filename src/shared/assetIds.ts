@@ -768,6 +768,8 @@ export const DECAL = z.enum([
 export const ICON = z.enum([
   '/vector/icon/alliance.svg',
   '/vector/icon/ambassador.svg',
+  '/vector/icon/arrakis-city.svg',
+  '/vector/icon/arrakis-sietch.svg',
   '/vector/icon/balance.svg',
   '/vector/icon/bidding_disc.svg',
   '/vector/icon/bidding_standalone.svg',

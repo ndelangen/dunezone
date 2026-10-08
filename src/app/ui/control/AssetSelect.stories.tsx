@@ -1,8 +1,9 @@
 import preview from '@sb/preview';
 import { ALL, LOGO } from '@shared/assetIds';
 import { stockAssetOptions } from '@ui/content/stockAssetOptions';
+import { Plus } from 'lucide-react';
 import { useState } from 'react';
-import { expect, screen, within } from 'storybook/test';
+import { expect, screen, userEvent, waitFor, within } from 'storybook/test';
 
 import { resolveAsset } from '@game/assets/resolveAsset';
 
@@ -152,5 +153,19 @@ export const AllSymbols = meta.story({
     await expect(newDecal.querySelector('img')).toHaveStyle({ filter: 'none' });
     await userEvent.click(newDecal);
     await expect(canvas.getByRole('combobox', { name: 'Symbol' })).toHaveValue('Pulse Examiner Multicolor');
+  },
+});
+
+export const IconPicker = meta.story({
+  args: { value: null, trigger: { label: 'Add decal', icon: <Plus size={17} /> } },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(canvas.getByRole('button', { name: 'Add decal' }));
+    const search = await screen.findByRole('textbox', { name: 'Search artwork' });
+    await expect(search).toHaveFocus();
+    await userEvent.type(search, 'ocean');
+    await userEvent.click(await screen.findByRole('option', { name: 'Ocean emblem' }));
+    await expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+    await waitFor(() => expect(canvas.getByRole('button', { name: 'Add decal' })).toHaveFocus());
   },
 });

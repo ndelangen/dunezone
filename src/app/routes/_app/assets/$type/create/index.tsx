@@ -4,6 +4,7 @@ import { createFileRoute, notFound } from '@tanstack/react-router';
 import { pageHead } from '@app/routes/pageTitle';
 
 import { NoEditorYet } from '../../assetEditorStates';
+import { BoardCreatePage } from './boardCreate';
 import { BundleCreatePage } from './bundleCreate';
 import { CustomCreatePage } from './customCreate';
 import { DeckCreatePage } from './deckCreate';
@@ -34,6 +35,8 @@ function CreateAssetPage() {
 
   /* One branch per type with a landed editor. Everything else says so rather than pretending the type is unknown. */
   switch (type) {
+    case 'board':
+      return <BoardCreatePage />;
     case 'card-treachery':
       return <TreacheryCreatePage />;
     case 'card-custom':

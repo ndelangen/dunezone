@@ -156,6 +156,9 @@ const bundleFaceSchema = z.object({
  * A caller that passes none gets the container's own ratio, which is what every other type and every memberless bundle draws.
  */
 export function assetFaceAspect(type: string, memberCount = 0): number {
+  if (type === 'board') {
+    return 1;
+  }
   if (type === 'bundle') {
     return BUNDLE_ASPECT + bundleHeadroom(memberCount);
   }
@@ -307,7 +310,7 @@ export function AssetFace({
         src={href}
         name={name}
         aspect={assetFaceAspect(type)}
-        {...publishedOutline(tokenShapeOfType(type))}
+        {...publishedOutline(type === 'board' ? 'round' : tokenShapeOfType(type))}
       />
     );
   }

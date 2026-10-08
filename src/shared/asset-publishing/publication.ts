@@ -9,6 +9,7 @@ import {
   TokenFace,
   TreacheryAsset,
 } from '../assets/schema';
+import { BoardDefinition } from '../boards/schema';
 import {
   FactionRowSlugSchema,
   HeroKeyedHistoricalFactionObject,
@@ -146,7 +147,14 @@ export const rulebookFirstPageAssetDataSchema = z.strictObject({
  * The one place a Publication asset type is turned back into the shape its capture page expects.
  * Convex parses through it before serving a snapshot, and the capture page parses the same schemas on receipt, so a job whose stored `asset_data` no longer satisfies its type fails at the boundary rather than rendering something half-formed.
  */
+export const boardAssetDataSchema = z.strictObject({
+  assetId: z.string().min(1),
+  slug: z.string().min(1),
+  board: BoardDefinition,
+});
+
 const PUBLICATION_ASSET_DATA_SCHEMAS = {
+  board: boardAssetDataSchema,
   [FACTION_SHEET_ASSET_TYPE]: factionSheetAssetDataSchema,
   'faction-leader': factionLeaderAssetDataSchema,
   'faction-token': factionTokenAssetDataSchema,

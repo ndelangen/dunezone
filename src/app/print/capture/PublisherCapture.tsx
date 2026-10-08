@@ -13,6 +13,7 @@ import { useEffect, useState } from 'react';
 
 import { FactionSheetView } from '@app/print/sheet/FactionSheetView';
 import { AssetRenderModeProvider } from '@game/assets/assetRenderMode';
+import { BoardMap } from '@game/assets/board/Board';
 import { CardBack } from '@game/assets/card/Back';
 import { CustomCard } from '@game/assets/card/Custom';
 import { SpiceCard } from '@game/assets/card/Spice';
@@ -81,6 +82,8 @@ type CaptureSubject = { documentFlag?: string; node: ReactNode };
 
 function captureSubject(snapshot: PublisherCaptureSnapshot): CaptureSubject {
   switch (snapshot.assetType) {
+    case 'board':
+      return printedImage('board', <BoardMap board={snapshot.payload.board} />);
     case 'faction_sheet':
       return {
         documentFlag: 'factionSheet',

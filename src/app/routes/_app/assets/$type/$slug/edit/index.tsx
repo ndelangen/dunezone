@@ -5,6 +5,7 @@ import { loadAssetPage } from '@app/db/assets';
 import { pageHead } from '@app/routes/pageTitle';
 
 import { NoEditorYet } from '../../../assetEditorStates';
+import { BoardEditPage } from './boardEdit';
 import { BundleEditPage } from './bundleEdit';
 import { CustomEditPage } from './customEdit';
 import { DeckEditPage } from './deckEdit';
@@ -33,6 +34,8 @@ function EditAssetPage() {
   const loaderData = Route.useLoaderData();
 
   switch (type) {
+    case 'board':
+      return <BoardEditPage slug={slug} loaderData={loaderData} />;
     case 'card-treachery':
       return <TreacheryEditPage slug={slug} loaderData={loaderData} />;
     case 'card-custom':

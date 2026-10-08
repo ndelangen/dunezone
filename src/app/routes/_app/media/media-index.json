@@ -10348,5 +10348,19 @@
     "tags": ["Rulebook", "demonstration", "Fremen", "Ixians", "leaders", "sandworm"],
     "subjects": ["people", "symbols", "creatures"],
     "sourceHash": "5b73b4701741d8f7d50e64c9028587b489577336e157d30c9fd5ecf68e0b04f0"
+  },
+  "/vector/icon/arrakis-city.svg": {
+    "description": "City silhouette with an optional white outline for the Arrakis board.",
+    "tags": ["city", "towers", "vector"],
+    "subjects": ["places"],
+    "sourceHash": "dc09537d3a733de26cf2ad54d293ab3aa3ef5f682517771aba7bfc2629b96c14",
+    "label": "Arrakis city"
+  },
+  "/vector/icon/arrakis-sietch.svg": {
+    "description": "Sietch silhouette with an optional white outline for the Arrakis board.",
+    "tags": ["arch", "cave", "vector"],
+    "subjects": ["places"],
+    "sourceHash": "5ab59d9fc91fdf8d41fa074ff83b7bab1995c37abe9fec31f603ac9b3e242d0c",
+    "label": "Arrakis sietch"
   }
 }

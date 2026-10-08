@@ -148,6 +148,7 @@ async function scanPage(ctx: MutationCtx, assetType: string, cursor: string | nu
      * Both asset types scan identically, because the branch reads `assetType` rather than a literal and every publishable Asset lives in one table under its own type.
      * A new publishable Asset type joins this list rather than copying the body.
      */
+    case 'board':
     case TREACHERY_CARD_ASSET_TYPE:
     case SPICE_CARD_ASSET_TYPE:
     case CUSTOM_CARD_ASSET_TYPE:
