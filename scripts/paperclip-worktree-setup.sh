@@ -29,7 +29,7 @@ if [[ "$actual_branch" != "$expected_branch" ]]; then
 fi
 
 bash ./scripts/codex-worktree-setup.sh
-bun install --frozen-lockfile
+bun install --frozen-lockfile --ignore-scripts
 
 if [[ ! -f src/game/data/assetMap.generated.ts ]]; then
   bun run generate:images

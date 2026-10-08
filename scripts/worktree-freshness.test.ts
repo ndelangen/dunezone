@@ -138,7 +138,7 @@ describe('Paperclip provisioning', () => {
     expect(run('norbert/paperclip-other').status).not.toBe(0);
     expect(run('norbert/paperclip-test', upstream).status).not.toBe(0);
     expect(run().status).toBe(0);
-    expect(readFileSync(log, 'utf8')).toContain('install --frozen-lockfile');
+    expect(readFileSync(log, 'utf8')).toContain('install --frozen-lockfile --ignore-scripts');
     expect(git(checkout, 'rev-parse', 'HEAD')).toBe(taskHead);
     expect(readFileSync(join(checkout, 'tracked.txt'), 'utf8')).toBe('unfinished task\n');
 
