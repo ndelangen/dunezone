@@ -15,13 +15,13 @@ export function DecalArtwork({ decal, svg }: { decal: Decal; svg?: string }) {
   const inner = source
     .replace(/^[\s\S]*?<svg[^>]*>/, '')
     .replace(/<\/svg>[\s\S]*$/, '')
-    .replace(/<path[^>]*data-decal-outline[^>]*\/>/g, (path) => (decal.outline ? path : ''));
+    .replace(/<path[^>]*data-decal-outline[^>]*\/>/g, '');
   return (
     <g transform={`translate(${decal.x} ${decal.y}) rotate(${decal.rotation})`}>
-      {decal.outline && !svg?.includes('data-decal-outline') && (
+      {decal.outline && (
         <defs>
           <filter id={outlineId} x="-50%" y="-50%" width="200%" height="200%" colorInterpolationFilters="sRGB">
-            <feMorphology in="SourceAlpha" operator="dilate" radius="1.4" result="expanded" />
+            <feMorphology in="SourceAlpha" operator="dilate" radius="0.5" result="expanded" />
             <feFlood floodColor="#fff" result="white" />
             <feComposite in="white" in2="expanded" operator="in" result="outline" />
             <feMerge>
@@ -31,7 +31,7 @@ export function DecalArtwork({ decal, svg }: { decal: Decal; svg?: string }) {
           </filter>
         </defs>
       )}
-      <g filter={decal.outline && !svg?.includes('data-decal-outline') ? `url(#${outlineId})` : undefined}>
+      <g filter={decal.outline ? `url(#${outlineId})` : undefined}>
         {svg ? (
           <svg
             x={-decal.scale / 2}
