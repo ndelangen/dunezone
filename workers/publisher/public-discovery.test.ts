@@ -34,7 +34,7 @@ test('the index and landing sitemap enumerate supported canonical paths without 
   const body = await index!.text();
   expect(body).toContain('<loc>https://dune.zone/sitemap-factions.xml</loc>');
   expect(body).toContain('<loc>https://dune.zone/sitemap-token-disc.xml</loc>');
-  expect(body).not.toContain('sitemap-board');
+  expect(body).toContain('<loc>https://dune.zone/sitemap-board.xml</loc>');
   const pages = await handlePublicDiscovery(request('/sitemap-pages.xml'), env, undefined, load);
   expect(await pages!.text()).toContain('<loc>https://dune.zone/assets/token-disc</loc>');
   expect(load).not.toHaveBeenCalled();
@@ -82,7 +82,7 @@ test('failed and non-advancing scans return retryable errors without caching par
 
 test('unsupported discovery paths and methods never fall through to the app shell', async () => {
   const load = vi.fn();
-  expect((await handlePublicDiscovery(request('/sitemap-board.xml'), env, undefined, load))!.status).toBe(404);
+  expect((await handlePublicDiscovery(request('/sitemap-battle-wheel.xml'), env, undefined, load))!.status).toBe(404);
   expect((await handlePublicDiscovery(request('/sitemap.xml', 'POST'), env, undefined, load))!.status).toBe(405);
   expect(await handlePublicDiscovery(request('/factions'), env, undefined, load)).toBeNull();
   expect(load).not.toHaveBeenCalled();

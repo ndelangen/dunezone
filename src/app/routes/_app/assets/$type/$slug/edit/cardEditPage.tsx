@@ -27,7 +27,7 @@ import {
  * Each page keeps its own authoring state and reducer (D7 on «Work the editors wave»).
  */
 
-type CardType = 'card-treachery' | 'card-spice' | 'card-custom';
+type CardType = 'card-treachery' | 'card-spice' | 'card-custom' | 'board';
 
 type CardAsset = NonNullable<AssetPageData>['asset'];
 
@@ -73,10 +73,13 @@ export function CardEditChecks<Draft>({
   data,
   session,
 }: Omit<CardEditGateProps<Draft>, 'slug' | 'loaderData' | 'embeddedTokenIds'> & { data: AssetPageData }) {
+  const noun = type === 'board' ? 'board' : 'card';
   if (data === null) {
     return (
-      <AssetEditorMessage type={type} title="Edit card">
-        <NotAvailable title="Card not found">{`No ${schemaName} lives at this address.`}</NotAvailable>
+      <AssetEditorMessage type={type} title={`Edit ${noun}`}>
+        <NotAvailable
+          title={type === 'board' ? 'Board not found' : 'Card not found'}
+        >{`No ${schemaName} lives at this address.`}</NotAvailable>
       </AssetEditorMessage>
     );
   }
@@ -84,7 +87,7 @@ export function CardEditChecks<Draft>({
   if (data.viewerAccess.viewer.kind === 'anonymous') {
     return (
       <AssetEditorMessage type={type} title={`Edit ${data.asset.name}`}>
-        <LoginGate action="edit cards" />
+        <LoginGate action={`edit ${noun}s`} />
       </AssetEditorMessage>
     );
   }
@@ -92,10 +95,10 @@ export function CardEditChecks<Draft>({
   if (!data.viewerAccess.capabilities.edit) {
     return (
       <AssetEditorMessage type={type} title={`Edit ${data.asset.name}`}>
-        <NotAvailable title="You cannot edit this card">
+        <NotAvailable title={`You cannot edit this ${noun}`}>
           {data.viewerAccess.assignedGroup
-            ? 'Only the card owner or an active member of its group can edit this card.'
-            : 'Only the card owner can edit this card.'}
+            ? `Only the ${noun} owner or an active member of its group can edit this ${noun}.`
+            : `Only the ${noun} owner can edit this ${noun}.`}
         </NotAvailable>
       </AssetEditorMessage>
     );
@@ -104,8 +107,8 @@ export function CardEditChecks<Draft>({
   const parsed = schema.safeParse(data.asset.data);
   if (!parsed.success) {
     return (
-      <DriftedAssetPage asset={data.asset} noun="card" canDelete={data.viewerAccess.capabilities.delete}>
-        {`This card's stored data no longer matches the ${schemaName} schema, so it cannot be edited here.`}
+      <DriftedAssetPage asset={data.asset} noun={noun} canDelete={data.viewerAccess.capabilities.delete}>
+        {`This ${noun}'s stored data no longer matches the ${schemaName} schema, so it cannot be edited here.`}
       </DriftedAssetPage>
     );
   }

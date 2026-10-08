@@ -23,6 +23,7 @@ import { publishingRectangleTokenFace } from '../../src/shared/assets/fixtures/p
 import { publishingSpiceCard } from '../../src/shared/assets/fixtures/publishingSpiceCard';
 import { publishingTokenFace } from '../../src/shared/assets/fixtures/publishingTokenFace';
 import { publishingTreacheryCard } from '../../src/shared/assets/fixtures/publishingTreacheryCard';
+import { arrakisBoard } from '../../src/shared/boards/geometry';
 import { assetPublishingFaction } from '../../src/shared/factions/fixtures/assetPublishingFaction';
 import { createRulebookEditorialStarterContents } from '../../src/shared/rulebooks/fixtures';
 import { planRulebookPdfBatches } from '../../src/shared/rulebooks/pdfPublication';
@@ -434,6 +435,7 @@ async function checkRulebookEditionPdf(browser: Browser, settings: RulebookSetti
 async function checkPublisherImageCapture(
   browser: Browser,
   assetType:
+    | 'board'
     | 'card-treachery'
     | 'card-spice'
     | 'card-custom'
@@ -523,6 +525,15 @@ try {
         size
       );
     }
+  }
+  const boardCapture = await checkPublisherImageCapture(
+    browser,
+    'board',
+    envelope('board', { assetId: 'k17publisherBoard', slug: 'arrakis', board: arrakisBoard() }),
+    'Arrakis board'
+  );
+  if (process.env.BOARD_PROOF_PATH) {
+    await Bun.write(process.env.BOARD_PROOF_PATH, boardCapture);
   }
   await checkPublisherImageCapture(browser, 'card-treachery', cardSnapshot, 'card');
   for (const format of ['plain', 'decal-window'] as const) {

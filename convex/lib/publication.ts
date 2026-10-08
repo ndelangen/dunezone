@@ -29,6 +29,7 @@ import type { FactionSheetAssetData } from '../../src/shared/asset-publishing/pu
 import { publicationFaceId } from '../../src/shared/asset-publishing/publicationTargets';
 import type { PublicationAssetType } from '../../src/shared/asset-publishing/publicationTargets';
 import { authoredCardback, DeckAsset, RectangleTokenAsset, TokenAsset } from '../../src/shared/assets/schema';
+import { BoardAsset } from '../../src/shared/boards/schema';
 import { HistoricalFactionPublicationSchema } from '../../src/shared/factions/schema';
 import type { Id } from '../_generated/dataModel';
 import type { MutationCtx, QueryCtx } from '../_generated/server';
@@ -203,6 +204,13 @@ export async function enqueueAssetPublication(
   now?: number
 ) {
   switch (asset.type) {
+    case 'board':
+      return await enqueuePublicationJob(ctx, {
+        assetType: 'board',
+        assetId: asset._id,
+        assetData: { assetId: asset._id, slug: asset.slug, board: BoardAsset.parse(asset.data).board },
+        now,
+      });
     case TREACHERY_CARD_ASSET_TYPE:
     case SPICE_CARD_ASSET_TYPE:
       return await enqueuePublicationJob(ctx, {

@@ -28,6 +28,7 @@ export const PUBLICATION_ASSET_TYPES = [
   'card-treachery',
   'card-spice',
   'card-custom',
+  'board',
   'deck',
   'cardback-preset',
   'token-disc',
@@ -163,6 +164,13 @@ export const PUBLICATION_TARGETS: Record<PublicationAssetType, PublicationTarget
   /* 900x1263 is the treachery renderer's own size, from `@game/data/sizes`. */
   'card-treachery': cardTarget('cards', 'card.jpg', 'treachery-card.jpg'),
   /* A spice card draws at the same 900x1263 card size, under its own collection so the two card types never share an address. */
+  board: {
+    collection: 'boards',
+    file: 'board.jpg',
+    contentType: 'image/jpeg',
+    downloadFilename: 'board.jpg',
+    capture: { output: 'image', widthPx: 1948, heightPx: 1948, jpegQuality: 95, maxBytes: 3_000_000 },
+  },
   'card-custom': cardTarget('custom-cards', 'card.jpg', 'custom-card.jpg'),
   'card-spice': cardTarget('spice-cards', 'card.jpg', 'spice-card.jpg'),
   /*

@@ -166,3 +166,20 @@ export const LandscapePreview = meta.story({
   args: { ratio: 16 / 9, sidebarContentHeight: 520 },
   globals: { viewport: { value: 'appLarge' } },
 });
+
+export const CompactPreviewWithTools = meta.story({
+  args: { ratio: 1, fit: 'width', sidebarContentHeight: 540 },
+  render: () => (
+    <DocumentEditorLayout ratio={1} fit="width" sidebarSize="compact">
+      <DocumentEditorLayout.Sidebar>
+        <LayoutSlotPlaceholder name="Sidebar" tone="secondary" minHeight={540} />
+      </DocumentEditorLayout.Sidebar>
+      <DocumentEditorLayout.PreviewTools>
+        <LayoutSlotPlaceholder name="Preview tools" tone="tertiary" minHeight={48} />
+      </DocumentEditorLayout.PreviewTools>
+      <DocumentEditorLayout.Preview>
+        <LayoutSlotPlaceholder name="Preview" tone="primary" minHeight={0} />
+      </DocumentEditorLayout.Preview>
+    </DocumentEditorLayout>
+  ),
+});

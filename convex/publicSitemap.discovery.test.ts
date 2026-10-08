@@ -51,5 +51,8 @@ test('discovery crosses page bounds, omits deleted records and keeps type-scoped
     entries: [{ pathname: '/assets/card-treachery/same-name', lastmod: null }],
     cursor: null,
   });
-  await expect(t.query(api.publicSitemap.page, { collection: 'board', cursor: null })).rejects.toThrow();
+  await expect(t.query(api.publicSitemap.page, { collection: 'board', cursor: null })).resolves.toEqual({
+    entries: [],
+    cursor: null,
+  });
 });

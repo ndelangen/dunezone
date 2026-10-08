@@ -67,6 +67,11 @@ const HOSTED_PLAY_CLOSURE: readonly string[] = [
   'src/game/rulebook/**',
   'public/**',
   'media/vector/icon/spice.svg',
+  'media/vector/icon/arrakis-city.svg',
+  'media/vector/icon/arrakis-sietch.svg',
+  'media/vector/icon/city.svg',
+  'media/vector/icon/seitch.svg',
+  'media/vector/icon/ornithopter.svg',
 ];
 
 /** Files no hosted flow can observe wherever they sit: tests, stories, prose. */

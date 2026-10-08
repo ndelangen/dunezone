@@ -1,3 +1,4 @@
+import { BoardAsset } from '../boards/schema';
 import {
   BundleAssetInput,
   CustomCardAssetInput,
@@ -13,6 +14,10 @@ import {
  */
 export function parseAssetDataForWrite(type: string, data: unknown): { data: unknown; name: string } {
   switch (type) {
+    case 'board': {
+      const parsed = BoardAsset.parse(data);
+      return { data: parsed, name: parsed.name };
+    }
     case 'card-treachery': {
       const parsed = TreacheryAssetInput.parse(data);
       return { data: parsed, name: parsed.name };

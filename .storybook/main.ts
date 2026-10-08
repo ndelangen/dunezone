@@ -39,6 +39,10 @@ export default defineMain({
       titlePrefix: 'Game Assets/Faction',
     },
     {
+      directory: '../src/game/assets/board',
+      titlePrefix: 'Game Assets/Boards',
+    },
+    {
       directory: '../src/game/assets/card',
       titlePrefix: 'Game Assets/Cards',
     },
