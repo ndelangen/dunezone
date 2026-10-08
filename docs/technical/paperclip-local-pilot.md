@@ -1,6 +1,6 @@
 # Paperclip local pilot
 
-Paperclip runs locally on Norbert's Mac and coordinates work across projects. One company, Norbert Studio, shares a Coordinator, Engineer and Reviewer. Each project has its own repository, brief and task worktrees. GitHub remains the source of scope, blockers, claims, pull requests and delivery evidence.
+Paperclip runs locally on Norbert's Mac and coordinates work across projects. One company, NoBird, shares a Coordinator, Engineer and Reviewer. Each project has its own repository, brief and task worktrees. GitHub remains the source of scope, blockers, claims, pull requests and delivery evidence.
 
 Norbert approved the local setup on 8 October 2026. Claude Projects knowledge, desktop chats and cloud tasks do not automatically follow an agent into Paperclip. Bring useful decisions into a project brief or linked GitHub issue before assigning work. This pilot executes locally while the Mac is awake.
 
@@ -31,9 +31,11 @@ Create a task in the relevant Paperclip project and assign it to Coordinator. In
 
 For Dune Zone, follow the [GitHub tracker workflow](../agents/issue-tracker.md). A Paperclip lock does not claim the corresponding GitHub issue. Agents reread live claims and blockers before editing, then link their PR and evidence to both records. An unrelated desktop session's claim remains a reason to stop.
 
-All roles use `codex_local`, explicitly selecting the CLI engine and the existing ChatGPT login. The installed desktop CLI is referenced by its absolute path. No additional API key is required. The adapter connection test returned `hello` successfully. Paperclip launches a separate agent process; this desktop chat's browser, connectors and history are not automatically available to it. [Codex adapter](https://docs.paperclip.ing/adapters/codex-local).
+All roles use `codex_local` with the CLI engine and the company-shared OpenAI subscription connection. Claude Code `2.1.286` is also installed and signed in to the Max account. Paperclip shows both provider connections as Connected, and both adapter connection tests passed. The pilot team currently uses OpenAI. No additional API key is required. Paperclip launches a separate agent process; this desktop chat's browser, connectors and history are not automatically available to it. [Codex adapter](https://docs.paperclip.ing/adapters/codex-local).
 
-Coordinator and Reviewer use a read-only file sandbox. Engineer uses workspace writes, with Dune Zone's shared Git metadata directory added to its writable paths. `dangerouslyBypassApprovalsAndSandbox` is explicitly false for all roles. These settings constrain file access; the existing GitHub CLI identity still has its host account permissions. Pilot instructions require explicit task authorization for merging or deploying.
+Coordinator and Reviewer use a read-only permissions profile with network access for GitHub and Paperclip. Engineer can write in its assigned workspace and the Git metadata needed to fetch and commit. `dangerouslyBypassApprovalsAndSandbox` is explicitly false for all roles. These settings constrain file access. The GitHub connection in Paperclip controls which repositories the agents can access. Add each project repository to the GitHub app installation before assigning work. Pilot instructions require explicit task authorization for merging or deploying.
+
+The host launcher at `~/.paperclip/bin/codex` stages profiles from `~/.paperclip/profiles` into the temporary Codex home that Paperclip supplies, then runs the installed desktop CLI. For a Dune Zone task, it grants the task's exact Git metadata directory only after checking the repository and `norbert/paperclip-` branch. It leaves the managed login credentials to Paperclip. In host GitHub mode, it reads the existing GitHub CLI login from the host configuration before launching, without saving the token in configuration. Desktop plugins and computer-use tools are disabled in these profiles. Other repositories need their own write policy before implementation.
 
 Timers are off. Assignment, comments and explicit wakes can start runs. Each agent runs one task at a time, each run has a 30-minute limit, and daily limits are six Coordinator runs, eight Engineer runs and four Reviewer runs. Subscription-included inference records zero dollar cost, so daily run limits matter more than dollar budgets for this setup. [Stable heartbeat implementation](https://github.com/paperclipai/paperclip/blob/467125fafb47a8520856504fecc48d6e32055db1/server/src/services/heartbeat.ts).
 
@@ -63,7 +65,7 @@ The project execution policy is:
 
 Enable isolated workspaces and worktree execution in Paperclip's experimental settings. Automatic branch reconciliation and dirty-worktree repair are disabled for this pilot. A failed freshness check needs an explicit resolution that preserves the task's work.
 
-[Paperclip provisioning](../../scripts/paperclip-worktree-setup.sh) verifies the supplied task path and branch, runs the repository's freshness preflight, installs the frozen dependencies and prepares missing generated images, vectors and objects. It runs again when Paperclip reuses a task workspace. Engineer also runs the core freshness preflight at the beginning of each Dune Zone run. Read-only roles rely on successful host provisioning and inspect the assigned path and branch without installing dependencies or fetching inside their file sandbox.
+[Paperclip provisioning](../../scripts/paperclip-worktree-setup.sh) verifies the supplied task path and branch, runs the repository's freshness preflight, installs the frozen dependencies without dependency lifecycle scripts and prepares missing generated images, vectors and objects. It runs again when Paperclip reuses a task workspace. Engineer also runs the core freshness preflight at the beginning of each Dune Zone run. Read-only roles rely on successful host provisioning and inspect the assigned path and branch without installing dependencies or fetching inside their file sandbox.
 
 [The freshness preflight](../../scripts/codex-worktree-setup.sh) fetches before checking the remote default branch. It accepts a task branch with its own commits when that branch contains the current fetched base. It preserves dirty edits. When upstream has advanced beyond the task's base, it refuses a dirty, attached or divergent checkout. Only a clean detached checkout can advance automatically by fast-forward. A failed fetch always stops the run.
 
@@ -82,11 +84,13 @@ The assigned worktree was `/Users/me/Projects/Dune/paperclip-worktrees/norbert/p
 
 `bash scripts/codex-worktree-setup.sh` passed after fetching `real-origin/main` and confirmed that the task commits contain the current base, `c00cfd01b0e28ff37b873db5b9c31bc9a730ebc3`.
 `bun x vitest run scripts/worktree-freshness.test.ts` passed all six tests in one file in 2.12 seconds.
-Phase two, verifying workspace reuse and preservation of this local documentation commit, awaits a board follow-up.
+After restarting Paperclip, phase two reused the same path and branch and preserved local commit `b2253961a8ca3bc403fbdccb7707b1e7c16bf940`. Host provisioning succeeded, fetched the current base and checked 729 dependency installs without changes. Engineer's separate freshness check passed, and the checkout stayed clean. The native validation task finished without pushing, merging or deploying.
 
 ## Add another project
 
 Register a separate project with its repository URL, current purpose, entry documents, worktree base, provisioning command and delivery rules. Validate a read-only task before allowing implementation. The Coordinator must receive a project brief that identifies that repository's tracker and claim rules.
+
+The Lost Hope is registered separately. Its native read-only assessment completed in a fresh isolated worktree, verified the GitHub repository and entry documents, and left the files unchanged. Implementation stays inactive until its tracker, claim rules and write policy are established.
 
 DunePlay's current local checkout has no Git remote and contains unfinished changes, so it is not ready for the same worktree policy. Keep it outside the implementation queue until its intended source and base are resolved. Other projects should receive the same live inspection before activation. Do not copy Dune Zone's provisioning command into a repository that does not contain it.
 
