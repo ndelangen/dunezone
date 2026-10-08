@@ -41,3 +41,13 @@ it('rejects an arc that leaves the circle even when all its points are inside', 
   board.edges.push({ id: 'outside-arc', a: 'a', b: 'b', kind: 'arc', arc: [6732.934731, 6732.934731, 0, 1, 1] });
   expect(BoardAsset.safeParse({ name: 'Board', about: '', board }).success).toBe(false);
 });
+
+it('reports missing curve controls through safeParse without throwing', () => {
+  for (const kind of ['arc', 'cubic'] as const) {
+    const board = blankBoard();
+    board.nodes.a = [200, 200];
+    board.nodes.b = [220, 230];
+    board.edges.push({ id: 'malformed', a: 'a', b: 'b', kind });
+    expect(BoardAsset.safeParse({ name: 'Board', about: '', board }).success).toBe(false);
+  }
+});

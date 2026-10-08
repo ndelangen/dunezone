@@ -109,6 +109,8 @@ export const BoardDefinition = z
         (edge) =>
           board.nodes[edge.a] &&
           board.nodes[edge.b] &&
+          (edge.kind !== 'arc' || edge.arc) &&
+          (edge.kind !== 'cubic' || (edge.c1 && edge.c2)) &&
           Array.from({ length: edge.kind === 'line' ? 2 : 129 }, (_, index) =>
             at(board, edge, index / (edge.kind === 'line' ? 1 : 128))
           ).some((p) => !p.every(Number.isFinite) || Math.hypot(p[0] - 243.53, p[1] - 243.53) > 242.6)
