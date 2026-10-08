@@ -1,0 +1,522 @@
+import ArrayList from 'jsts/java/util/ArrayList.js';
+import InteriorPointArea from 'jsts/org/locationtech/jts/algorithm/InteriorPointArea.js';
+import Coordinate from 'jsts/org/locationtech/jts/geom/Coordinate.js';
+import GeometryFactory from 'jsts/org/locationtech/jts/geom/GeometryFactory.js';
+import type Polygon from 'jsts/org/locationtech/jts/geom/Polygon.js';
+import PrecisionModel from 'jsts/org/locationtech/jts/geom/PrecisionModel.js';
+import NodedSegmentString from 'jsts/org/locationtech/jts/noding/NodedSegmentString.js';
+import MCIndexSnapRounder from 'jsts/org/locationtech/jts/noding/snapround/MCIndexSnapRounder.js';
+import BufferOp from 'jsts/org/locationtech/jts/operation/buffer/BufferOp.js';
+import Polygonizer from 'jsts/org/locationtech/jts/operation/polygonize/Polygonizer.js';
+import UnaryUnionOp from 'jsts/org/locationtech/jts/operation/union/UnaryUnionOp.js';
+
+import arrakis from './arrakis.fixture.json';
+
+export type Point = [number, number];
+export type Edge = {
+  id: string;
+  a: string;
+  b: string;
+  kind: 'line' | 'cubic' | 'arc';
+  c1?: Point;
+  c2?: Point;
+  arc?: number[];
+};
+export type Decal = { id: string; artwork: string; x: number; y: number; scale: number; rotation: number };
+export type Properties = {
+  name: string;
+  type: 'sand' | 'rock' | 'stronghold' | 'polar';
+  insetLine: 'none' | 'solid' | 'dashed';
+  decals: Decal[];
+};
+export type Board = {
+  nodes: Record<string, Point>;
+  edges: Edge[];
+  properties: Record<string, Properties>;
+  fixture: string;
+};
+export type Face = {
+  key: string;
+  path: string;
+  inset: string;
+  rings: Point[][];
+  center: Point;
+  edges: string[];
+  area: number;
+  polygon: Polygon;
+};
+type Sample = { a: Point; b: Point; edge: Edge; t0: number; t1: number };
+const factory = new GeometryFactory();
+export const CENTER: Point = [243.53, 243.53];
+export const RADIUS = 240;
+const round = (n: number) => Number(n.toFixed(6));
+const xy = (p: Point) => `${round(p[0])} ${round(p[1])}`;
+export const distance = (a: Point, b: Point) => Math.hypot(a[0] - b[0], a[1] - b[1]);
+const lerp = (a: Point, b: Point, t: number): Point => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
+
+/* Native SVG arcs remain arcs in artwork; chords are used only for the disposable face graph. */
+function arcParameters(board: Board, edge: Edge) {
+  const a = board.nodes[edge.a],
+    b = board.nodes[edge.b];
+  let [rx, ry, rotation, large, sweep] = edge.arc!;
+  const phi = (rotation * Math.PI) / 180,
+    co = Math.cos(phi),
+    si = Math.sin(phi);
+  const dx = (a[0] - b[0]) / 2,
+    dy = (a[1] - b[1]) / 2;
+  const px = co * dx + si * dy,
+    py = -si * dx + co * dy;
+  const ratio = (px * px) / (rx * rx) + (py * py) / (ry * ry);
+  if (ratio > 1) {
+    rx *= Math.sqrt(ratio);
+    ry *= Math.sqrt(ratio);
+  }
+  const factor =
+    (large === sweep ? -1 : 1) *
+    Math.sqrt(
+      Math.max(0, (rx * rx * ry * ry - rx * rx * py * py - ry * ry * px * px) / (rx * rx * py * py + ry * ry * px * px))
+    );
+  const cx = (factor * rx * py) / ry,
+    cy = (-factor * ry * px) / rx;
+  const center: Point = [co * cx - si * cy + (a[0] + b[0]) / 2, si * cx + co * cy + (a[1] + b[1]) / 2];
+  const start = Math.atan2((py - cy) / ry, (px - cx) / rx);
+  let delta = Math.atan2((-py - cy) / ry, (-px - cx) / rx) - start;
+  if (sweep && delta < 0) {
+    delta += Math.PI * 2;
+  }
+  if (!sweep && delta > 0) {
+    delta -= Math.PI * 2;
+  }
+  return { rx, ry, co, si, center, start, delta };
+}
+export function at(board: Board, edge: Edge, t: number): Point {
+  const a = board.nodes[edge.a],
+    b = board.nodes[edge.b];
+  if (t === 0) {
+    return a;
+  }
+  if (t === 1) {
+    return b;
+  }
+  if (edge.kind === 'arc') {
+    const p = arcParameters(board, edge),
+      angle = p.start + p.delta * t;
+    const x = p.rx * Math.cos(angle),
+      y = p.ry * Math.sin(angle);
+    return [p.center[0] + p.co * x - p.si * y, p.center[1] + p.si * x + p.co * y];
+  }
+  if (edge.kind === 'cubic') {
+    const u = 1 - t;
+    return [0, 1].map(
+      (i) => u ** 3 * a[i] + 3 * u * u * t * edge.c1![i] + 3 * u * t * t * edge.c2![i] + t ** 3 * b[i]
+    ) as Point;
+  }
+  return lerp(a, b, t);
+}
+function derivative(board: Board, edge: Edge, t: number): Point {
+  const a = board.nodes[edge.a],
+    b = board.nodes[edge.b];
+  return [0, 1].map(
+    (i) =>
+      3 * (1 - t) ** 2 * (edge.c1![i] - a[i]) +
+      6 * (1 - t) * t * (edge.c2![i] - edge.c1![i]) +
+      3 * t * t * (b[i] - edge.c2![i])
+  ) as Point;
+}
+function command(board: Board, edge: Edge, t0: number, t1: number) {
+  const end = at(board, edge, t1);
+  if (edge.kind === 'arc') {
+    const p = arcParameters(board, edge);
+    return `A${p.rx} ${p.ry} ${edge.arc![2]} ${Math.abs(p.delta * (t1 - t0)) > Math.PI ? 1 : 0} ${t1 > t0 === Boolean(edge.arc![4]) ? 1 : 0} ${xy(end)}`;
+  }
+  if (edge.kind === 'cubic') {
+    const start = at(board, edge, t0),
+      d0 = derivative(board, edge, t0),
+      d1 = derivative(board, edge, t1),
+      dt = (t1 - t0) / 3;
+    return `C${xy([start[0] + d0[0] * dt, start[1] + d0[1] * dt])} ${xy([end[0] - d1[0] * dt, end[1] - d1[1] * dt])} ${xy(end)}`;
+  }
+  return `L${xy(end)}`;
+}
+export function edgePath(board: Board, edge: Edge) {
+  return `M${xy(board.nodes[edge.a])}${command(board, edge, 0, 1)}`;
+}
+function project(point: Point, a: Point, b: Point) {
+  const dx = b[0] - a[0],
+    dy = b[1] - a[1];
+  const t = Math.max(0, Math.min(1, ((point[0] - a[0]) * dx + (point[1] - a[1]) * dy) / (dx * dx + dy * dy)));
+  return { t, distance: distance(point, lerp(a, b, t)) };
+}
+export function contains(rings: Point[][], p: Point) {
+  let inside = false;
+  for (const ring of rings) {
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+      const a = ring[i],
+        b = ring[j];
+      if (a[1] > p[1] !== b[1] > p[1] && p[0] < ((b[0] - a[0]) * (p[1] - a[1])) / (b[1] - a[1]) + a[0]) {
+        inside = !inside;
+      }
+    }
+  }
+  return inside;
+}
+function polygonRings(polygon: Polygon): Point[][] {
+  const rings = [polygon.getExteriorRing()];
+  for (let i = 0; i < polygon.getNumInteriorRing(); i++) {
+    rings.push(polygon.getInteriorRingN(i));
+  }
+  return rings.map((ring) => ring.getCoordinates().map((p: Coordinate) => [p.x, p.y] as Point));
+}
+const straightPath = (rings: Point[][]) => rings.map((ring) => `M${ring.map(xy).join('L')}Z`).join('');
+
+export function derive(board: Board) {
+  const started = performance.now();
+  const samples: Sample[] = [];
+  const lines = board.edges.map((edge) => {
+    const count =
+      edge.kind === 'line'
+        ? 1
+        : edge.kind === 'arc'
+          ? Math.ceil(Math.abs(arcParameters(board, edge).delta) / (Math.PI / 360))
+          : 128;
+    const points = Array.from({ length: count + 1 }, (_, i) => at(board, edge, i / count));
+    for (let i = 0; i < count; i++) {
+      samples.push({ a: points[i], b: points[i + 1], edge, t0: i / count, t1: (i + 1) / count });
+    }
+    return factory.createLineString(points.map((p) => new Coordinate(p[0], p[1])));
+  });
+  const polygonizer = new Polygonizer();
+  let linework = factory.createMultiLineString(lines);
+  if (board.fixture === 'Arrakis recreation') {
+    /* Legacy neighboring outlines differ in their last decimal; this fixture-only study uses a 0.01-unit graph grid. */
+    const noder = new MCIndexSnapRounder(new PrecisionModel(100));
+    const strings = new ArrayList(undefined);
+    lines.forEach((line) =>
+      strings.add(
+        new NodedSegmentString(
+          line
+            .getCoordinates()
+            .map((p: Coordinate) => new Coordinate(Math.round(p.x * 100) / 100, Math.round(p.y * 100) / 100)),
+          null
+        )
+      )
+    );
+    noder.computeNodes(strings);
+    linework = factory.createMultiLineString(
+      noder
+        .getNodedSubstrings()
+        .toArray()
+        .map((s: NodedSegmentString) => factory.createLineString(s.getCoordinates()))
+    );
+  }
+  polygonizer.add(UnaryUnionOp.union(linework));
+  const polygons = polygonizer.getPolygons().toArray() as Polygon[];
+  let unrecoveredSegments = 0;
+  const faces: Face[] = polygons
+    .map((polygon) => {
+      const rings = polygonRings(polygon);
+      const owners = new Set<string>();
+      const path = rings
+        .map((ring) => {
+          const intervals: { edge: Edge; t0: number; t1: number; a: Point; b: Point }[] = [];
+          for (let i = 0; i < ring.length - 1; i++) {
+            const a = ring[i],
+              b = ring[i + 1];
+            let best: { sample: Sample; ta: number; tb: number; score: number } | undefined;
+            for (const sample of samples) {
+              const pa = project(a, sample.a, sample.b),
+                pb = project(b, sample.a, sample.b);
+              const score = pa.distance + pb.distance;
+              if (!best || score < best.score) {
+                best = { sample, ta: pa.t, tb: pb.t, score };
+              }
+              if (score < 1e-8) {
+                break;
+              }
+            }
+            if (!best || best.score > 0.02) {
+              unrecoveredSegments++;
+              continue;
+            }
+            const { sample, ta, tb } = best;
+            owners.add(sample.edge.id);
+            const t0 = sample.t0 + ta * (sample.t1 - sample.t0),
+              t1 = sample.t0 + tb * (sample.t1 - sample.t0);
+            const previous = intervals.at(-1);
+            if (previous?.edge.id === sample.edge.id && Math.abs(previous.t1 - t0) < 1e-5) {
+              previous.t1 = t1;
+              previous.b = b;
+            } else {
+              intervals.push({ edge: sample.edge, t0, t1, a, b });
+            }
+          }
+          if (intervals.length === 0) {
+            return straightPath([ring]);
+          }
+          return (
+            `M${xy(at(board, intervals[0].edge, intervals[0].t0))}` +
+            intervals.map((v) => command(board, v.edge, v.t0, v.t1)).join('') +
+            'Z'
+          );
+        })
+        .join('');
+      const edgeIds = [...owners].sort();
+      const point = InteriorPointArea.getInteriorPoint(polygon) as Coordinate;
+      const buffer = BufferOp.bufferOp(polygon, -2.8);
+      let inset = '';
+      for (let i = 0; i < buffer.getNumGeometries(); i++) {
+        const p = buffer.getGeometryN(i) as Polygon;
+        if (!p.isEmpty()) {
+          inset += straightPath(polygonRings(p));
+        }
+      }
+      return {
+        key: edgeIds.join('|'),
+        edges: edgeIds,
+        path,
+        rings,
+        inset,
+        area: polygon.getArea(),
+        center: [point.x, point.y] as Point,
+        polygon,
+      };
+    })
+    .sort((a, b) => a.key.localeCompare(b.key));
+  return {
+    faces,
+    milliseconds: performance.now() - started,
+    samples: samples.length,
+    dangles: polygonizer.getDangles().size(),
+    unrecoveredSegments,
+  };
+}
+export function defaults(name: string, type: Properties['type'] = 'sand'): Properties {
+  return { name, type, insetLine: type === 'stronghold' ? 'dashed' : type === 'sand' ? 'none' : 'solid', decals: [] };
+}
+export function reconcile(board: Board, previous: Board, oldFaces: Face[], faces: Face[]): Board {
+  const properties: Board['properties'] = {};
+  const used = new Set<string>();
+  for (const face of faces) {
+    const same = previous.properties[face.key];
+    const candidates = oldFaces
+      .filter((old) => contains(old.rings, face.center) || contains(face.rings, old.center))
+      .sort((a, b) => a.key.localeCompare(b.key));
+    const value = same || (candidates[0] && previous.properties[candidates[0].key]);
+    let name = value?.name || 'territory-1';
+    const base = name;
+    for (let suffix = 2; used.has(name); suffix++) {
+      name = `${base}-${suffix}`;
+    }
+    used.add(name);
+    properties[face.key] = value ? { ...value, name } : defaults(name);
+  }
+  return { ...board, properties };
+}
+export function arrakisBoard(): Board {
+  const board: Board = {
+    nodes: Object.fromEntries(Object.entries(arrakis.nodes).map(([key, p]) => [key, [p[0], p[1]] as Point])),
+    edges: structuredClone(arrakis.edges) as Edge[],
+    properties: {},
+    fixture: 'Arrakis recreation',
+  };
+  const faces = derive(board).faces;
+  const used = new Set<string>();
+  for (const face of faces) {
+    const shape = arrakis.shapes
+      .map((shape) => ({ shape, hits: face.edges.filter((id) => shape.edges.includes(id)).length }))
+      .sort((a, b) => b.hits - a.hits)[0].shape;
+    let name = shape.name;
+    for (let suffix = 2; used.has(name); suffix++) {
+      name = `${shape.name}-${suffix}`;
+    }
+    used.add(name);
+    board.properties[face.key] = {
+      ...defaults(name, shape.type as Properties['type']),
+      insetLine: shape.insetLine as Properties['insetLine'],
+    };
+  }
+  arrakis.symbols.forEach((symbol) => {
+    const face = faces.find((face) => contains(face.rings, [symbol.x, symbol.y]));
+    if (face) {
+      board.properties[face.key].decals.push({
+        id: symbol.id,
+        artwork: symbol.id,
+        x: symbol.x,
+        y: symbol.y,
+        scale: symbol.scale,
+        rotation: 0,
+      });
+    }
+  });
+  return board;
+}
+export function studyBoard(): Board {
+  const nodes: Board['nodes'] = {
+    e: [483.53, 243.53],
+    s: [243.53, 483.53],
+    w: [3.53, 243.53],
+    n: [243.53, 3.53],
+    bend: [290, 160],
+    join: [300, 295],
+    a: [340, 130],
+    b: [383, 145],
+    c: [377, 190],
+    d: [331, 175],
+    p1: [215, 218],
+    p2: [266, 213],
+    p3: [279, 253],
+    p4: [234, 275],
+    loose: [385, 300],
+    tip: [410, 337],
+  };
+  const edges: Edge[] = [
+    ['e', 's'],
+    ['s', 'w'],
+    ['w', 'n'],
+    ['n', 'e'],
+  ].map(([a, b], i) => ({ id: `rim-${i}`, a, b, kind: 'arc', arc: [RADIUS, RADIUS, 0, 0, 1] }));
+  const line = (a: string, b: string, id = `${a}-${b}`) => edges.push({ id, a, b, kind: 'line' });
+  line('n', 'bend');
+  line('bend', 'join');
+  edges.push({ id: 'shared-curve', a: 'join', b: 's', kind: 'cubic', c1: [370, 330], c2: [210, 408] });
+  line('w', 'join');
+  for (const loop of [
+    ['a', 'b', 'c', 'd'],
+    ['p1', 'p2', 'p3', 'p4'],
+  ]) {
+    loop.forEach((p, i) => line(p, loop[(i + 1) % loop.length]));
+  }
+  line('loose', 'tip', 'unfinished-cut');
+  const board: Board = { nodes, edges, properties: {}, fixture: 'Interaction study' };
+  const faces = derive(board).faces;
+  faces.forEach(
+    (face, i) =>
+      (board.properties[face.key] = defaults(
+        `territory-${i + 1}`,
+        face.edges.includes('a-b') && face.area < 5000
+          ? 'stronghold'
+          : face.edges.includes('p1-p2') && face.area < 5000
+            ? 'polar'
+            : i === 2
+              ? 'rock'
+              : 'sand'
+      ))
+  );
+  const stronghold = faces.find((f) => board.properties[f.key].type === 'stronghold')!;
+  board.properties[stronghold.key].decals = [
+    { id: 'oversized', artwork: 'city', x: 365, y: 155, scale: 100, rotation: 24 },
+    { id: 'ornithopter', artwork: 'ornithopter', x: 353, y: 178, scale: 30, rotation: -12 },
+  ];
+  return board;
+}
+
+export function snapPoint(
+  board: Board,
+  point: Point,
+  sectorSnap: boolean
+): { point: Point; node?: string; feedback: string } {
+  const nearby = Object.entries(board.nodes)
+    .map(([node, p]) => ({ node, p, d: distance(p, point) }))
+    .sort((a, b) => a.d - b.d)[0];
+  if (nearby && nearby.d < 5) {
+    return { point: nearby.p, node: nearby.node, feedback: 'Connected to boundary point' };
+  }
+  let next = point,
+    feedback = 'Free point';
+  if (sectorSnap) {
+    const dx = point[0] - CENTER[0],
+      dy = point[1] - CENTER[1],
+      radius = Math.hypot(dx, dy);
+    const step = Math.PI / 9,
+      angle = Math.atan2(dy, dx),
+      target = Math.round((angle + Math.PI / 2) / step) * step - Math.PI / 2;
+    const candidate: Point = [CENTER[0] + radius * Math.cos(target), CENTER[1] + radius * Math.sin(target)];
+    if (distance(point, candidate) < 7) {
+      next = candidate;
+      feedback = 'Snapped to sector guide';
+    }
+  }
+  const r = distance(next, CENTER);
+  if (Math.abs(r - RADIUS) < 7) {
+    const angle = (Math.round(Math.atan2(next[1] - CENTER[1], next[0] - CENTER[0]) / (Math.PI / 360)) * Math.PI) / 360;
+    next = [CENTER[0] + RADIUS * Math.cos(angle), CENTER[1] + RADIUS * Math.sin(angle)];
+    feedback += ' · Circle boundary';
+  }
+  return { point: next, feedback };
+}
+export const referenceSectors = arrakis.sectors;
+export const referenceIcons = arrakis.icons;
+export const referenceAdjustment = arrakis.greatestAdjustment;
+export const referenceSymbols = Object.fromEntries(arrakis.symbols.map((symbol) => [symbol.id, symbol.svg]));
+
+export function connectPoint(
+  board: Board,
+  input: Point,
+  snapping: boolean
+): { board: Board; node: string; point: Point; feedback: string } {
+  const snapped = snapPoint(board, input, snapping);
+  if (snapped.node) {
+    return { board, node: snapped.node, point: snapped.point, feedback: snapped.feedback };
+  }
+  let closest: { edge: Edge; t: number; point: Point; distance: number } | undefined;
+  for (const edge of board.edges) {
+    const count = edge.kind === 'line' ? 1 : 128;
+    for (let i = 0; i < count; i++) {
+      const a = at(board, edge, i / count),
+        b = at(board, edge, (i + 1) / count);
+      const p = project(snapped.point, a, b),
+        t = (i + p.t) / count;
+      if (t < 0.001 || t > 0.999) {
+        continue;
+      }
+      if (!closest || p.distance < closest.distance) {
+        closest = { edge, t, point: at(board, edge, t), distance: p.distance };
+      }
+    }
+  }
+  const point = closest && closest.distance < 5 ? closest.point : snapped.point;
+  const node = `point-${crypto.randomUUID()}`;
+  const nodes = { ...board.nodes, [node]: point };
+  let edges = board.edges;
+  if (closest && closest.distance < 5) {
+    const { edge, t } = closest;
+    const first: Edge = { ...edge, id: `${edge.id}:a`, b: node },
+      second: Edge = { ...edge, id: `${edge.id}:b`, a: node };
+    if (edge.kind === 'cubic') {
+      const a = board.nodes[edge.a],
+        b = board.nodes[edge.b],
+        d = derivative(board, edge, t);
+      first.c1 = lerp(a, edge.c1!, t);
+      first.c2 = [point[0] - (d[0] * t) / 3, point[1] - (d[1] * t) / 3];
+      second.c1 = [point[0] + (d[0] * (1 - t)) / 3, point[1] + (d[1] * (1 - t)) / 3];
+      second.c2 = lerp(b, edge.c2!, t);
+    }
+    if (edge.kind === 'arc') {
+      const angle = Math.abs(arcParameters(board, edge).delta);
+      first.arc = [...edge.arc!];
+      first.arc[3] = angle * t > Math.PI ? 1 : 0;
+      second.arc = [...edge.arc!];
+      second.arc[3] = angle * (1 - t) > Math.PI ? 1 : 0;
+    }
+    edges = board.edges.flatMap((v) => (v === edge ? [first, second] : [v]));
+  }
+  return {
+    board: { ...board, nodes, edges },
+    node,
+    point,
+    feedback: closest && closest.distance < 5 ? `${snapped.feedback} · Connected to shared boundary` : snapped.feedback,
+  };
+}
+
+export function blankBoard(): Board {
+  const study = studyBoard();
+  const board = {
+    ...study,
+    nodes: Object.fromEntries(['e', 's', 'w', 'n'].map((key) => [key, study.nodes[key]])),
+    edges: study.edges.filter((e) => e.id.startsWith('rim')),
+    properties: {},
+    fixture: 'Blank board',
+  };
+  const faces = derive(board).faces;
+  return { ...board, properties: Object.fromEntries(faces.map((f) => [f.key, defaults('territory-1')])) };
+}

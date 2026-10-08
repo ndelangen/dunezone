@@ -21,6 +21,7 @@ import { Route as AuthOauthRouteRouteImport } from './routes/auth/oauth.route'
 import { Route as AppAdminMigrationsRouteRouteImport } from './routes/_app/admin/migrations.route'
 import { Route as AppAssetsIndexRouteImport } from './routes/_app/assets/index'
 import { Route as AppAssets_presetsRouteRouteImport } from './routes/_app/assets/[_]_presets.route'
+import { Route as AppAssetsBoardPrototypeRouteRouteImport } from './routes/_app/assets/board-prototype/route'
 import { Route as AppAuthIndexRouteImport } from './routes/_app/auth/index'
 import { Route as AppAuthErrorRouteRouteImport } from './routes/_app/auth/error.route'
 import { Route as AppAuthLoginRouteRouteImport } from './routes/_app/auth/login.route'
@@ -118,6 +119,12 @@ const AppAssets_presetsRouteRoute = AppAssets_presetsRouteRouteImport.update({
   path: '/assets/__presets',
   getParentRoute: () => AppRouteRoute,
 } as any)
+const AppAssetsBoardPrototypeRouteRoute =
+  AppAssetsBoardPrototypeRouteRouteImport.update({
+    id: '/assets/board-prototype',
+    path: '/assets/board-prototype',
+    getParentRoute: () => AppRouteRoute,
+  } as any)
 const AppAuthIndexRoute = AppAuthIndexRouteImport.update({
   id: '/auth/',
   path: '/auth/',
@@ -332,6 +339,7 @@ export interface FileRoutesByFullPath {
   '/auth/oauth': typeof AuthOauthRouteRoute
   '/admin/migrations': typeof AppAdminMigrationsRouteRoute
   '/assets/__presets': typeof AppAssets_presetsRouteRoute
+  '/assets/board-prototype': typeof AppAssetsBoardPrototypeRouteRoute
   '/auth/error': typeof AppAuthErrorRouteRoute
   '/auth/login': typeof AppAuthLoginRouteRoute
   '/factions/create': typeof AppFactionsCreateRouteRoute
@@ -381,6 +389,7 @@ export interface FileRoutesByTo {
   '/': typeof AppIndexRoute
   '/admin/migrations': typeof AppAdminMigrationsRouteRoute
   '/assets/__presets': typeof AppAssets_presetsRouteRoute
+  '/assets/board-prototype': typeof AppAssetsBoardPrototypeRouteRoute
   '/auth/error': typeof AppAuthErrorRouteRoute
   '/auth/login': typeof AppAuthLoginRouteRoute
   '/factions/create': typeof AppFactionsCreateRouteRoute
@@ -433,6 +442,7 @@ export interface FileRoutesById {
   '/_app/': typeof AppIndexRoute
   '/_app/admin/migrations': typeof AppAdminMigrationsRouteRoute
   '/_app/assets/__presets': typeof AppAssets_presetsRouteRoute
+  '/_app/assets/board-prototype': typeof AppAssetsBoardPrototypeRouteRoute
   '/_app/auth/error': typeof AppAuthErrorRouteRoute
   '/_app/auth/login': typeof AppAuthLoginRouteRoute
   '/_app/factions/create': typeof AppFactionsCreateRouteRoute
@@ -485,6 +495,7 @@ export interface FileRouteTypes {
     | '/auth/oauth'
     | '/admin/migrations'
     | '/assets/__presets'
+    | '/assets/board-prototype'
     | '/auth/error'
     | '/auth/login'
     | '/factions/create'
@@ -534,6 +545,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin/migrations'
     | '/assets/__presets'
+    | '/assets/board-prototype'
     | '/auth/error'
     | '/auth/login'
     | '/factions/create'
@@ -585,6 +597,7 @@ export interface FileRouteTypes {
     | '/_app/'
     | '/_app/admin/migrations'
     | '/_app/assets/__presets'
+    | '/_app/assets/board-prototype'
     | '/_app/auth/error'
     | '/_app/auth/login'
     | '/_app/factions/create'
@@ -715,6 +728,13 @@ declare module '@tanstack/react-router' {
       path: '/assets/__presets'
       fullPath: '/assets/__presets'
       preLoaderRoute: typeof AppAssets_presetsRouteRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/_app/assets/board-prototype': {
+      id: '/_app/assets/board-prototype'
+      path: '/assets/board-prototype'
+      fullPath: '/assets/board-prototype'
+      preLoaderRoute: typeof AppAssetsBoardPrototypeRouteRouteImport
       parentRoute: typeof AppRouteRoute
     }
     '/_app/auth/': {
@@ -1028,6 +1048,7 @@ interface AppRouteRouteChildren {
   AppIndexRoute: typeof AppIndexRoute
   AppAdminMigrationsRouteRoute: typeof AppAdminMigrationsRouteRoute
   AppAssets_presetsRouteRoute: typeof AppAssets_presetsRouteRoute
+  AppAssetsBoardPrototypeRouteRoute: typeof AppAssetsBoardPrototypeRouteRoute
   AppAuthErrorRouteRoute: typeof AppAuthErrorRouteRoute
   AppAuthLoginRouteRoute: typeof AppAuthLoginRouteRoute
   AppFactionsCreateRouteRoute: typeof AppFactionsCreateRouteRoute
@@ -1072,6 +1093,7 @@ const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppIndexRoute: AppIndexRoute,
   AppAdminMigrationsRouteRoute: AppAdminMigrationsRouteRoute,
   AppAssets_presetsRouteRoute: AppAssets_presetsRouteRoute,
+  AppAssetsBoardPrototypeRouteRoute: AppAssetsBoardPrototypeRouteRoute,
   AppAuthErrorRouteRoute: AppAuthErrorRouteRoute,
   AppAuthLoginRouteRoute: AppAuthLoginRouteRoute,
   AppFactionsCreateRouteRoute: AppFactionsCreateRouteRoute,
