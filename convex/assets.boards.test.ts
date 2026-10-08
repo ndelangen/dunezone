@@ -64,6 +64,40 @@ describe('authored board Assets', () => {
   });
 });
 
+test('rejects missing territory names and canonical ID collisions on create and update', async () => {
+  const t = convexTest(schema, modules);
+  const ownerId = await t.run((ctx) => ctx.db.insert('users', { name: 'Owner' }));
+  const owner = t.withIdentity({ subject: ownerId });
+  const created = await owner.mutation(api.assets.create, {
+    type: 'board',
+    data: { name: 'Named board', about: '', board: blankBoard() },
+  });
+  const missing = blankBoard();
+  missing.properties = {};
+  const empty = blankBoard();
+  Object.values(empty.properties)[0].name = ' ';
+  const collision = arrakisBoard();
+  const values = Object.values(collision.properties);
+  values[0].name = 'Rock outcroppings';
+  values[1].name = 'ROCK-OUTCROPPINGS';
+  for (const board of [missing, empty, collision]) {
+    await expect(
+      owner.mutation(api.assets.create, { type: 'board', data: { name: 'Invalid names', about: '', board } })
+    ).rejects.toThrow();
+    await expect(
+      owner.mutation(api.assets.update, { id: created.id, data: { name: 'Invalid names', about: '', board } })
+    ).rejects.toThrow();
+  }
+  const renamed = blankBoard();
+  Object.values(renamed.properties)[0].name = 'Rock outcroppings';
+  await owner.mutation(api.assets.update, { id: created.id, data: { name: 'Named board', about: '', board: renamed } });
+  const page = await owner.query(api.assets.getPage, { type: 'board', slug: created.slug });
+  expect(Object.values((page!.asset.data as { board: typeof renamed }).board.properties)[0]).toMatchObject({
+    name: 'Rock outcroppings',
+    id: 'rock_outcroppings',
+  });
+});
+
 test('rejects face-less writes while accepting unfinished cuts inside the circular rim', async () => {
   const t = convexTest(schema, modules);
   const ownerId = await t.run((ctx) => ctx.db.insert('users', { name: 'Owner' }));

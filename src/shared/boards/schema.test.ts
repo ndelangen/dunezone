@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { arrakisBoard, blankBoard } from './geometry';
-import { BoardAsset } from './schema';
+import { BoardAsset, territoryId } from './schema';
 
 describe('Saved boards', () => {
   it('accepts the complete editable Arrakis preset', () => {
@@ -33,6 +33,55 @@ describe('Saved boards', () => {
     expect(BoardAsset.safeParse({ name: 'Board', about: '', board: artwork }).success).toBe(false);
   });
 });
+
+it('generates lowercase snake_case IDs from readable names, including older saved boards', () => {
+  expect(territoryId('  Rock outcroppings  ')).toBe('rock_outcroppings');
+  expect(territoryId("Tuek's Café 2")).toBe('tueks_cafe_2');
+  const board = blankBoard();
+  const property = Object.values(board.properties)[0];
+  property.name = 'Rock outcroppings';
+  property.id = 'stale';
+  expect(Object.values(BoardAsset.parse({ name: 'Board', about: '', board }).board.properties)[0].id).toBe(
+    'rock_outcroppings'
+  );
+  const legacy = JSON.parse(JSON.stringify(board));
+  delete legacy.properties[Object.keys(legacy.properties)[0]].id;
+  expect(Object.values(BoardAsset.parse({ name: 'Board', about: '', board: legacy }).board.properties)[0].id).toBe(
+    'rock_outcroppings'
+  );
+});
+
+it.each(['', '   ', '---'])('rejects a territory name that cannot produce an ID: %j', (name) => {
+  const board = blankBoard();
+  Object.values(board.properties)[0].name = name;
+  expect(BoardAsset.safeParse({ name: 'Board', about: '', board }).success).toBe(false);
+});
+
+it.each(['ROCK OUTCROPPINGS', 'Rock-outcroppings', 'Rock   outcroppings', 'Róck outcroppings'])(
+  'rejects an ID collision from %s',
+  (name) => {
+    const board = arrakisBoard();
+    const [first, second] = Object.keys(board.properties);
+    board.properties[first].name = 'Rock outcroppings';
+    board.properties[second].name = name;
+    const parsed = BoardAsset.safeParse({ name: 'Board', about: '', board });
+    expect(parsed.success).toBe(false);
+    if (!parsed.success) {
+      expect(parsed.error.issues).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            path: ['board', 'properties', first, 'name'],
+            message: 'Territory ID "rock_outcroppings" is already in use',
+          }),
+          expect.objectContaining({
+            path: ['board', 'properties', second, 'name'],
+            message: 'Territory ID "rock_outcroppings" is already in use',
+          }),
+        ])
+      );
+    }
+  }
+);
 
 it('rejects an arc that leaves the circle even when all its points are inside', () => {
   const board = blankBoard();

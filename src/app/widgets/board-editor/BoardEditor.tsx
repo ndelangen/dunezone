@@ -27,6 +27,7 @@ import {
   movePoint,
 } from '@shared/boards/geometry';
 import type { Board, Point, Face, Properties, Decal, Edge } from '@shared/boards/geometry';
+import { territoryId, territoryNameError } from '@shared/boards/schema';
 import { Section } from '@ui/block/Section';
 import { stockAssetOptions } from '@ui/content/stockAssetOptions';
 import { AssetSelect } from '@ui/control/AssetSelect';
@@ -218,7 +219,13 @@ export function BoardEditor({
       return;
     }
     commit(
-      { ...state.board, properties: { ...state.board.properties, [selectedKey]: { ...property, ...patch } } },
+      {
+        ...state.board,
+        properties: {
+          ...state.board.properties,
+          [selectedKey]: { ...property, ...patch, id: territoryId(patch.name ?? property.name) },
+        },
+      },
       'Territory updated',
       false,
       group
@@ -508,15 +515,18 @@ export function BoardEditor({
         <Stack gap="sm">
           <TextInput
             label="Territory name"
+            required
             value={property.name}
-            error={
-              Object.entries(state.board.properties).some(([key, p]) => key !== selectedKey && p.name === property.name)
-                ? 'Use a unique name'
-                : undefined
-            }
+            error={territoryNameError(
+              property.name,
+              Object.entries(state.board.properties)
+                .filter(([key]) => key !== selectedKey)
+                .map(([, p]) => p.name)
+            )}
             onChange={(e) => patchProperty({ name: e.currentTarget.value }, 'territory-name')}
             onBlur={() => dispatch({ type: 'history.group-ended' })}
           />
+          <TextInput label="Territory ID" value={territoryId(property.name)} readOnly />
           <Select
             label="Territory type"
             value={property.type}
