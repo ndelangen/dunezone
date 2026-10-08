@@ -10,6 +10,7 @@ import arrakis from './arrakis.json';
 import { at, arcParameters } from './curves';
 export { at } from './curves';
 import type { Board, Point, Edge, Properties, AppearanceContour } from './schema';
+import { territoryId } from './schema';
 export type { Board, Point, Edge, Properties, Decal, AppearanceContour } from './schema';
 export type Face = {
   key: string;
@@ -317,13 +318,19 @@ export function contourPath(board: Board, contour: AppearanceContour): string | 
 }
 
 export function defaults(name: string, type: Properties['type'] = 'sand'): Properties {
-  return { name, type, insetLine: type === 'stronghold' ? 'dashed' : type === 'sand' ? 'none' : 'solid', decals: [] };
+  return {
+    name,
+    id: territoryId(name),
+    type,
+    insetLine: type === 'stronghold' ? 'dashed' : type === 'sand' ? 'none' : 'solid',
+    decals: [],
+  };
 }
 export function reconcile(board: Board, previous: Board, oldFaces: Face[], faces: Face[]): Board {
   const properties: Board['properties'] = {};
   const used = new Set<string>();
   const reserved = new Set(
-    faces.filter((face) => previous.properties[face.key]).map((face) => previous.properties[face.key].name)
+    faces.filter((face) => previous.properties[face.key]).map((face) => territoryId(previous.properties[face.key].name))
   );
   for (const face of faces) {
     const same = board.properties[face.key] || previous.properties[face.key];
@@ -332,13 +339,13 @@ export function reconcile(board: Board, previous: Board, oldFaces: Face[], faces
       .sort((a, b) => a.key.localeCompare(b.key));
     const value =
       same || (candidates[0] && (board.properties[candidates[0].key] || previous.properties[candidates[0].key]));
-    let name = value?.name || 'territory-1';
+    let name = value?.name ?? 'Territory 1';
     const base = name;
-    for (let suffix = 2; used.has(name) || (!same && reserved.has(name)); suffix++) {
-      name = `${base}-${suffix}`;
+    for (let suffix = 2; !same && (used.has(territoryId(name)) || reserved.has(territoryId(name))); suffix++) {
+      name = `${base} ${suffix}`;
     }
-    used.add(name);
-    properties[face.key] = value ? { ...value, name } : defaults(name);
+    used.add(territoryId(name));
+    properties[face.key] = value ? { ...value, name, id: territoryId(name) } : defaults(name);
   }
   return { ...board, properties };
 }
@@ -569,7 +576,7 @@ export function blankBoard(): Board {
     properties: {},
   };
   const faces = derive(board).faces;
-  return { ...board, properties: Object.fromEntries(faces.map((f) => [f.key, defaults('territory-1')])) };
+  return { ...board, properties: Object.fromEntries(faces.map((f) => [f.key, defaults('Territory 1')])) };
 }
 
 /** Removing an interior connection preserves its endpoints; the circular boundary remains connected. */

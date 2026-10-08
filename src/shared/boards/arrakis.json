@@ -3633,7 +3633,7 @@
     ],
     "properties": {
       "n0:n1|n0:n14|n10:n11|n10:n9|n11:n12|n12:n13|n13:n14|n1:n2|n2:n3|n3:n4|n4:n5|n5:n6|n6:n7|n7:n8|n8:n9": {
-        "name": "arrakeen",
+        "name": "Arrakeen",
         "type": "stronghold",
         "insetLine": "dashed",
         "decals": [
@@ -4127,10 +4127,11 @@
           "linecap": "round",
           "linejoin": "round"
         },
-        "paintOrder": 0
+        "paintOrder": 0,
+        "id": "arrakeen"
       },
       "n0:n1|n0:n272|n10:n232|n10:n9|n15:n16|n15:n277|n16:n17|n173:n174|n173:n271|n174:n175|n175:n176|n176:n183|n17:n18|n183:n184|n184:n86|n18:n276|n1:n2|n219:n234|n219:n271|n232:n233|n233:n234|n272:n273|n273:n274|n274:n275|n275:n276|n277:n278|n278:n279|n279:n280|n280:n281|n281:n282|n282:n283|n283:n89|n2:n3|n3:n4|n4:n5|n5:n6|n6:n7|n7:n8|n86:n87|n87:n88|n88:n89|n8:n9": {
-        "name": "imperial-basin",
+        "name": "Imperial basin",
         "type": "sand",
         "insetLine": "dashed",
         "decals": [],
@@ -4576,10 +4577,11 @@
           "linecap": "round",
           "linejoin": "round"
         },
-        "paintOrder": 13
+        "paintOrder": 13,
+        "id": "imperial_basin"
       },
       "n0:n14|n0:n272|n11:n12|n11:n231|n12:n13|n13:n14|n229:n230|n229:n400|n230:n231|n272:n273|n273:n274|n274:n401|n399:n400|n399:n406:C:343.0757552099999,18.40725654999997,303.1157351999998,5.432646219999981|n401:n408|n406:n407|n407:n408": {
-        "name": "old-gap",
+        "name": "Old gap",
         "type": "sand",
         "insetLine": "none",
         "decals": [],
@@ -4589,10 +4591,11 @@
           "linecap": "round",
           "linejoin": "round"
         },
-        "paintOrder": 37
+        "paintOrder": 37,
+        "id": "old_gap"
       },
       "n10:n11|n10:n232|n11:n231|n219:n220|n219:n234|n220:n221|n221:n222|n222:n223|n223:n224|n224:n225|n225:n396|n226:n227|n226:n396|n227:n228|n228:n229|n229:n230|n230:n231|n232:n233|n233:n234": {
-        "name": "rim-wall-west",
+        "name": "Rim wall west",
         "type": "rock",
         "insetLine": "solid",
         "decals": [],
@@ -4757,10 +4760,11 @@
           "linecap": "round",
           "linejoin": "round"
         },
-        "paintOrder": 11
+        "paintOrder": 11,
+        "id": "rim_wall_west"
       },
       "n100:n101|n100:n352|n101:n102|n102:n103|n103:n104|n104:n296|n296:n297|n297:n298|n298:n299|n299:n300|n300:n301|n301:n360:A:242.15132240999998,241.77116757,90,0,1|n352:n353|n353:n354|n354:n355|n355:n356|n356:n357|n357:n358|n358:n359|n359:n360": {
-        "name": "habbanya-erg",
+        "name": "Habbanya erg",
         "type": "sand",
         "insetLine": "none",
         "decals": [],
@@ -4770,10 +4774,11 @@
           "linecap": "round",
           "linejoin": "round"
         },
-        "paintOrder": 21
+        "paintOrder": 21,
+        "id": "habbanya_erg"
       },
       "n100:n101|n100:n99|n101:n102|n102:n103|n103:n104|n104:n105|n105:n106|n106:n107|n107:n108|n108:n109|n109:n110|n110:n111|n111:n112|n112:n113|n113:n114|n114:n115|n115:n116|n116:n117|n117:n94|n94:n95|n95:n96|n96:n97|n97:n98|n98:n99": {
-        "name": "false-wall-west",
+        "name": "False wall west",
         "type": "rock",
         "insetLine": "solid",
         "decals": [],
@@ -5038,10 +5043,11 @@
           "linecap": "round",
           "linejoin": "round"
         },
-        "paintOrder": 6
+        "paintOrder": 6,
+        "id": "false_wall_west"
       },
       "n100:n352|n100:n99|n352:n353|n353:n354|n354:n355|n355:n356|n356:n357|n357:n358|n358:n359|n359:n360|n360:n410:A:242.17517096999998,241.79497869000002,90,0,1|n385:n388|n385:n94|n388:n410|n94:n95|n95:n96|n96:n97|n97:n98|n98:n99": {
-        "name": "the-greater-flat",
+        "name": "The greater flat",
         "type": "sand",
         "insetLine": "none",
         "decals": [],
@@ -5051,10 +5057,11 @@
           "linecap": "round",
           "linejoin": "round"
         },
-        "paintOrder": 39
+        "paintOrder": 39,
+        "id": "the_greater_flat"
       },
       "n104:n105|n104:n296|n105:n106|n106:n107|n107:n108|n108:n109|n109:n110|n110:n111|n111:n112|n112:n113|n113:n304|n296:n297|n297:n298|n298:n299|n299:n300|n300:n301|n301:n302:C:33.78518049000007,377.63612844999983,73.14595398000009,425.6860083999997|n302:n303|n303:n304|n59:n60|n59:n67|n60:n61|n61:n62|n62:n63|n63:n64|n64:n65|n65:n66|n66:n67": {
-        "name": "habbanya-ridge-flat",
+        "name": "Habbanya ridge flat",
         "type": "sand",
         "insetLine": "none",
         "decals": [],
@@ -5064,10 +5071,11 @@
           "linecap": "butt",
           "linejoin": "miter"
         },
-        "paintOrder": 15
+        "paintOrder": 15,
+        "id": "habbanya_ridge_flat"
       },
       "n113:n114|n113:n304|n114:n115|n115:n116|n116:n372|n303:n304|n303:n375|n320:n321|n320:n375|n321:n322|n322:n323|n323:n324|n324:n325|n325:n376|n372:n373|n373:n374|n374:n377|n376:n377": {
-        "name": "cielago-west",
+        "name": "Cielago west",
         "type": "sand",
         "insetLine": "none",
         "decals": [],
@@ -5077,10 +5085,11 @@
           "linecap": "round",
           "linejoin": "round"
         },
-        "paintOrder": 24
+        "paintOrder": 24,
+        "id": "cielago_west"
       },
       "n116:n117|n116:n372|n117:n94|n235:n270|n235:n93|n270:n384|n370:n371|n370:n70|n371:n372|n384:n385|n385:n94|n68:n69|n68:n93|n69:n70": {
-        "name": "wind-pass",
+        "name": "Wind pass",
         "type": "sand",
         "insetLine": "none",
         "decals": [],
@@ -5090,10 +5099,11 @@
           "linecap": "round",
           "linejoin": "round"
         },
-        "paintOrder": 29
+        "paintOrder": 29,
+        "id": "wind_pass"
       },
       "n118:n119|n118:n35|n119:n120|n120:n121|n121:n122|n122:n123|n123:n124|n124:n125|n125:n126|n126:n127|n127:n128|n128:n129|n129:n130|n130:n131|n131:n132|n132:n133|n133:n134|n134:n135|n135:n136|n136:n137|n137:n138|n138:n139|n139:n140|n140:n141|n141:n142|n142:n143|n143:n144|n144:n145|n145:n146|n146:n147|n147:n148|n148:n26|n26:n39|n35:n36|n36:n37|n37:n38|n38:n39": {
-        "name": "false-wall-south",
+        "name": "False wall south",
         "type": "rock",
         "insetLine": "solid",
         "decals": [],
@@ -5478,10 +5488,11 @@
           "linecap": "round",
           "linejoin": "round"
         },
-        "paintOrder": 7
+        "paintOrder": 7,
+        "id": "false_wall_south"
       },
       "n118:n119|n118:n35|n119:n120|n120:n121|n121:n122|n122:n218|n157:n158|n157:n213|n158:n159|n159:n160|n160:n161|n161:n162|n162:n212|n186:n187|n186:n30|n187:n188|n188:n189|n189:n190|n190:n191|n191:n192|n192:n193|n193:n194|n194:n195|n195:n196|n196:n197|n197:n198|n198:n199|n199:n200|n200:n201|n201:n202:A:242.24373558,241.86343566,90,0,0|n202:n203|n203:n204|n204:n205|n205:n206|n206:n207|n207:n208|n208:n209|n209:n210|n210:n211|n211:n212|n213:n214|n214:n215|n215:n216|n216:n217|n217:n218|n30:n31|n31:n32|n32:n33|n33:n34|n34:n35": {
-        "name": "pasty-mesa",
+        "name": "Pasty mesa",
         "type": "rock",
         "insetLine": "solid",
         "decals": [],
@@ -6011,10 +6022,11 @@
           "linecap": "round",
           "linejoin": "round"
         },
-        "paintOrder": 10
+        "paintOrder": 10,
+        "id": "pasty_mesa"
       },
       "n122:n123|n122:n218|n123:n124|n124:n125|n125:n126|n126:n127|n127:n128|n128:n178|n149:n150|n149:n182|n150:n151|n151:n152|n152:n153|n153:n154|n154:n155|n155:n156|n156:n213|n178:n179|n179:n180|n180:n181|n181:n182|n213:n214|n214:n215|n215:n216|n216:n217|n217:n218": {
-        "name": "the-minor-erg",
+        "name": "The minor erg",
         "type": "sand",
         "insetLine": "none",
         "decals": [],
@@ -6024,10 +6036,11 @@
           "linecap": "round",
           "linejoin": "round"
         },
-        "paintOrder": 30
+        "paintOrder": 30,
+        "id": "the_minor_erg"
       },
       "n128:n129|n128:n178|n129:n130|n130:n131|n131:n132|n132:n133|n133:n134|n134:n79|n178:n185|n185:n81|n79:n80|n80:n81": {
-        "name": "harg-pass",
+        "name": "Harg pass",
         "type": "sand",
         "insetLine": "none",
         "decals": [],
@@ -6037,10 +6050,11 @@
           "linecap": "round",
           "linejoin": "round"
         },
-        "paintOrder": 28
+        "paintOrder": 28,
+        "id": "harg_pass"
       },
       "n134:n135|n134:n79|n135:n345|n325:n326|n325:n376|n326:n327|n327:n328|n328:n329|n329:n330|n330:n331|n331:n332|n332:n345|n374:n377|n374:n75|n376:n377|n75:n76|n76:n77|n77:n78|n78:n79": {
-        "name": "cielago-north",
+        "name": "Cielago north",
         "type": "sand",
         "insetLine": "none",
         "decals": [],
@@ -6050,10 +6064,11 @@
           "linecap": "round",
           "linejoin": "round"
         },
-        "paintOrder": 27
+        "paintOrder": 27,
+        "id": "cielago_north"
       },
       "n135:n136|n135:n345|n136:n137|n137:n138|n138:n139|n139:n140|n140:n141|n141:n142|n142:n143|n143:n344|n312:n334|n312:n346|n332:n333|n332:n345|n333:n334|n342:n343:C:334.70515439999997,469.81578129999997,360.68903909999995,457.7494036299999|n342:n350|n343:n344|n346:n347|n347:n348|n348:n349|n349:n350": {
-        "name": "cielago-east",
+        "name": "Cielago east",
         "type": "sand",
         "insetLine": "none",
         "decals": [],
@@ -6063,10 +6078,11 @@
           "linecap": "round",
           "linejoin": "round"
         },
-        "paintOrder": 19
+        "paintOrder": 19,
+        "id": "cielago_east"
       },
       "n143:n144|n143:n344|n144:n145|n145:n146|n146:n147|n147:n148|n148:n26|n186:n187|n186:n30|n187:n188|n188:n189|n189:n190|n190:n191|n191:n192|n192:n193|n193:n387|n26:n27|n27:n28|n28:n29|n29:n30|n343:n344|n343:n386:C:416.67295074000003,418.1429076099999,443.53883900999995,385.9672254099999|n386:n387:C:478.25148345,315.8435157999999,486.09923175000006,277.89449469999994": {
-        "name": "south-mesa",
+        "name": "South mesa",
         "type": "sand",
         "insetLine": "none",
         "decals": [],
@@ -6076,10 +6092,11 @@
           "linecap": "round",
           "linejoin": "round"
         },
-        "paintOrder": 31
+        "paintOrder": 31,
+        "id": "south_mesa"
       },
       "n149:n150|n149:n177|n150:n151|n151:n152|n152:n153|n153:n154|n154:n155|n155:n156|n156:n213|n157:n158|n157:n213|n158:n159|n159:n160|n160:n161|n161:n162|n162:n212|n163:n164|n163:n212|n164:n165|n165:n166|n166:n167|n167:n168|n168:n169|n169:n170|n170:n171|n171:n172|n172:n271|n173:n174|n173:n271|n174:n175|n175:n176|n176:n177": {
-        "name": "shield-wall",
+        "name": "Shield wall",
         "type": "rock",
         "insetLine": "solid",
         "decals": [],
@@ -6394,10 +6411,11 @@
           "linecap": "round",
           "linejoin": "round"
         },
-        "paintOrder": 8
+        "paintOrder": 8,
+        "id": "shield_wall"
       },
       "n149:n177|n149:n182|n176:n177|n176:n183|n178:n179|n178:n185|n179:n180|n180:n181|n181:n182|n183:n184|n184:n86|n185:n81|n81:n82|n82:n83|n83:n84|n84:n85|n85:n86": {
-        "name": "false-wall-east",
+        "name": "False wall east",
         "type": "rock",
         "insetLine": "solid",
         "decals": [],
@@ -6582,10 +6600,11 @@
           "linecap": "round",
           "linejoin": "round"
         },
-        "paintOrder": 9
+        "paintOrder": 9,
+        "id": "false_wall_east"
       },
       "n15:n16|n15:n25|n16:n17|n17:n18|n18:n19|n19:n20|n20:n21|n21:n335|n22:n23|n22:n335|n23:n24|n24:n25": {
-        "name": "carthag",
+        "name": "Carthag",
         "type": "stronghold",
         "insetLine": "dashed",
         "decals": [
@@ -6970,10 +6989,11 @@
           "linecap": "round",
           "linejoin": "round"
         },
-        "paintOrder": 1
+        "paintOrder": 1,
+        "id": "carthag"
       },
       "n15:n25|n15:n277|n22:n23|n22:n311|n23:n24|n24:n25|n277:n278|n278:n279|n279:n280|n280:n281|n281:n282|n282:n283|n283:n89|n305:n306|n305:n92|n306:n307|n307:n308|n308:n309|n309:n310|n310:n311|n89:n90|n90:n91|n91:n92": {
-        "name": "arsunt",
+        "name": "Arsunt",
         "type": "sand",
         "insetLine": "none",
         "decals": [],
@@ -6983,10 +7003,11 @@
           "linecap": "round",
           "linejoin": "round"
         },
-        "paintOrder": 16
+        "paintOrder": 16,
+        "id": "arsunt"
       },
       "n163:n164|n163:n212|n164:n165|n165:n389|n202:n203|n202:n389:A:242.5299183,242.1491691,90,0,0|n203:n204|n204:n205|n205:n206|n206:n207|n207:n208|n208:n209|n209:n210|n210:n211|n211:n212": {
-        "name": "gara-kulon",
+        "name": "Gara kulon",
         "type": "sand",
         "insetLine": "none",
         "decals": [],
@@ -6996,10 +7017,11 @@
           "linecap": "round",
           "linejoin": "round"
         },
-        "paintOrder": 33
+        "paintOrder": 33,
+        "id": "gara_kulon"
       },
       "n165:n166|n165:n389|n166:n167|n167:n390|n389:n398:A:242.75250486,242.37140622,90,0,0|n390:n391|n391:n397|n397:n398": {
-        "name": "sihaya-ridge",
+        "name": "Sihaya ridge",
         "type": "sand",
         "insetLine": "none",
         "decals": [],
@@ -7009,10 +7031,11 @@
           "linecap": "round",
           "linejoin": "round"
         },
-        "paintOrder": 41
+        "paintOrder": 41,
+        "id": "sihaya_ridge"
       },
       "n167:n168|n167:n390|n168:n169|n169:n170|n170:n171|n171:n172|n172:n271|n219:n220|n219:n271|n220:n221|n221:n222|n222:n223|n223:n224|n224:n225|n225:n396|n390:n391|n391:n392|n392:n393|n393:n394|n394:n395|n395:n396": {
-        "name": "hole-in-the-rock",
+        "name": "Hole in the rock",
         "type": "sand",
         "insetLine": "none",
         "decals": [],
@@ -7022,10 +7045,11 @@
           "linecap": "round",
           "linejoin": "round"
         },
-        "paintOrder": 34
+        "paintOrder": 34,
+        "id": "hole_in_the_rock"
       },
       "n18:n19|n18:n276|n19:n20|n20:n21|n21:n335|n243:n244|n243:n341|n244:n245|n245:n246|n246:n247|n247:n248|n248:n249|n249:n250|n250:n251|n251:n252|n252:n253|n253:n254|n254:n255|n255:n256|n256:n405|n274:n275|n274:n401|n275:n276|n335:n336|n336:n337|n337:n338|n338:n339|n339:n340|n340:n341|n401:n408|n402:n403|n402:n408|n403:n404|n404:n405": {
-        "name": "tsimpo",
+        "name": "Tsimpo",
         "type": "sand",
         "insetLine": "none",
         "decals": [],
@@ -7035,10 +7059,11 @@
           "linecap": "round",
           "linejoin": "round"
         },
-        "paintOrder": 36
+        "paintOrder": 36,
+        "id": "tsimpo"
       },
       "n193:n194|n193:n387|n194:n195|n195:n196|n196:n197|n197:n198|n198:n199|n199:n200|n200:n201|n201:n411:A:242.2020006,241.82176619999998,90,0,1|n387:n411": {
-        "name": "red-chasm",
+        "name": "Red chasm",
         "type": "sand",
         "insetLine": "none",
         "decals": [],
@@ -7048,10 +7073,11 @@
           "linecap": "round",
           "linejoin": "round"
         },
-        "paintOrder": 40
+        "paintOrder": 40,
+        "id": "red_chasm"
       },
       "n22:n311|n22:n335|n235:n236|n235:n93|n236:n237|n237:n238|n238:n239|n239:n240|n240:n241|n241:n242|n242:n243|n243:n341|n305:n306|n305:n92|n306:n307|n307:n308|n308:n309|n309:n310|n310:n311|n335:n336|n336:n337|n337:n338|n338:n339|n339:n340|n340:n341|n92:n93": {
-        "name": "hagga-basin",
+        "name": "Hagga basin",
         "type": "sand",
         "insetLine": "none",
         "decals": [],
@@ -7061,10 +7087,11 @@
           "linecap": "round",
           "linejoin": "round"
         },
-        "paintOrder": 18
+        "paintOrder": 18,
+        "id": "hagga_basin"
       },
       "n226:n227|n226:n396|n227:n228|n228:n229|n229:n400|n391:n392|n391:n397|n392:n393|n393:n394|n394:n395|n395:n396|n397:n398|n398:n399:A:242.78529662999998,242.40414650999998,90,0,0|n399:n400": {
-        "name": "basin",
+        "name": "Basin",
         "type": "sand",
         "insetLine": "none",
         "decals": [],
@@ -7074,10 +7101,11 @@
           "linecap": "round",
           "linejoin": "round"
         },
-        "paintOrder": 35
+        "paintOrder": 35,
+        "id": "basin"
       },
       "n235:n236|n235:n270|n236:n237|n237:n238|n238:n239|n239:n240|n240:n241|n241:n242|n242:n243|n243:n244|n244:n245|n245:n246|n246:n247|n247:n248|n248:n249|n249:n250|n250:n251|n251:n252|n252:n253|n253:n254|n254:n255|n255:n256|n256:n257|n257:n258|n258:n259|n259:n260|n260:n261|n261:n262|n262:n263|n263:n264|n264:n47|n265:n266|n265:n40|n266:n267|n267:n268|n268:n269|n269:n270|n40:n41|n41:n42|n42:n43|n43:n44|n44:n45|n45:n46|n46:n47": {
-        "name": "plastic-basin",
+        "name": "Plastic basin",
         "type": "rock",
         "insetLine": "solid",
         "decals": [],
@@ -7512,10 +7540,11 @@
           "linecap": "round",
           "linejoin": "round"
         },
-        "paintOrder": 12
+        "paintOrder": 12,
+        "id": "plastic_basin"
       },
       "n256:n257|n256:n405|n257:n258|n258:n259|n259:n260|n260:n351|n351:n409:C:159.9880850100001,11.704817500000019,201.74981310000007,1.640725180000004|n402:n403|n402:n408|n403:n404|n404:n405|n406:n407|n406:n409:A:243.08837208,242.70674616,90,0,0|n407:n408": {
-        "name": "broken-land",
+        "name": "Broken land",
         "type": "sand",
         "insetLine": "none",
         "decals": [],
@@ -7525,10 +7554,11 @@
           "linecap": "round",
           "linejoin": "round"
         },
-        "paintOrder": 38
+        "paintOrder": 38,
+        "id": "broken_land"
       },
       "n26:n27|n26:n39|n27:n28|n28:n29|n29:n30|n30:n31|n31:n32|n32:n33|n33:n34|n34:n35|n35:n36|n36:n37|n37:n38|n38:n39": {
-        "name": "tueks",
+        "name": "Tueks",
         "type": "stronghold",
         "insetLine": "solid",
         "decals": [
@@ -8001,10 +8031,11 @@
           "linecap": "round",
           "linejoin": "round"
         },
-        "paintOrder": 2
+        "paintOrder": 2,
+        "id": "tueks"
       },
       "n260:n261|n260:n351|n261:n262|n262:n263|n263:n264|n264:n47|n293:n294|n293:n49|n294:n295|n295:n351:C:58.49020962,81.82554604,88.43170089000003,52.986674859999994|n47:n48|n48:n49": {
-        "name": "rock-outcroppings",
+        "name": "Rock outcroppings",
         "type": "sand",
         "insetLine": "none",
         "decals": [],
@@ -8014,10 +8045,11 @@
           "linecap": "round",
           "linejoin": "round"
         },
-        "paintOrder": 20
+        "paintOrder": 20,
+        "id": "rock_outcroppings"
       },
       "n265:n266|n265:n40|n266:n267|n267:n268|n268:n292|n284:n285|n284:n295:C:15.453594479999964,158.12503900000002,24.913554029999972,135.92401702|n285:n286|n286:n287|n287:n288|n288:n289|n289:n290|n290:n291|n291:n292|n293:n294|n293:n49|n294:n295|n40:n58|n49:n50|n50:n51|n51:n52|n52:n53|n53:n54|n54:n55|n55:n56|n56:n57|n57:n58": {
-        "name": "bight-of-the-cliff",
+        "name": "Bight of the cliff",
         "type": "sand",
         "insetLine": "none",
         "decals": [],
@@ -8027,10 +8059,11 @@
           "linecap": "round",
           "linejoin": "round"
         },
-        "paintOrder": 14
+        "paintOrder": 14,
+        "id": "bight_of_the_cliff"
       },
       "n268:n269|n268:n292|n269:n369|n284:n285|n284:n361:A:242.26659045,241.88625464999998,90,0,0|n285:n286|n286:n287|n287:n288|n288:n289|n289:n290|n290:n291|n291:n292|n361:n362|n362:n363|n363:n364|n364:n365|n365:n366|n366:n367|n367:n368|n368:n369": {
-        "name": "funeral-plain",
+        "name": "Funeral plain",
         "type": "sand",
         "insetLine": "none",
         "decals": [],
@@ -8040,10 +8073,11 @@
           "linecap": "round",
           "linejoin": "round"
         },
-        "paintOrder": 22
+        "paintOrder": 22,
+        "id": "funeral_plain"
       },
       "n269:n270|n269:n369|n270:n384|n361:n362|n361:n388:A:242.13244229999998,241.75231709999997,90,0,0|n362:n363|n363:n364|n364:n365|n365:n366|n366:n367|n367:n368|n368:n369|n384:n385|n385:n388": {
-        "name": "the-great-flat",
+        "name": "The great flat",
         "type": "sand",
         "insetLine": "none",
         "decals": [],
@@ -8053,10 +8087,11 @@
           "linecap": "round",
           "linejoin": "round"
         },
-        "paintOrder": 32
+        "paintOrder": 32,
+        "id": "the_great_flat"
       },
       "n302:n303|n302:n378:C:154.15535274000004,471.9442652799998,189.16563618000006,482.17331013999984|n303:n375|n317:n318|n317:n383|n318:n319|n319:n320|n320:n375|n378:n379|n379:n380|n380:n381|n381:n382|n382:n383": {
-        "name": "meridian",
+        "name": "Meridian",
         "type": "sand",
         "insetLine": "none",
         "decals": [],
@@ -8066,10 +8101,11 @@
           "linecap": "round",
           "linejoin": "round"
         },
-        "paintOrder": 25
+        "paintOrder": 25,
+        "id": "meridian"
       },
       "n312:n313|n312:n334|n313:n314|n314:n315|n315:n316|n316:n383|n317:n318|n317:n383|n318:n319|n319:n320|n320:n321|n321:n322|n322:n323|n323:n324|n324:n325|n325:n326|n326:n327|n327:n328|n328:n329|n329:n330|n330:n331|n331:n332|n332:n333|n333:n334": {
-        "name": "cielago-depression",
+        "name": "Cielago depression",
         "type": "sand",
         "insetLine": "none",
         "decals": [],
@@ -8079,10 +8115,11 @@
           "linecap": "round",
           "linejoin": "round"
         },
-        "paintOrder": 17
+        "paintOrder": 17,
+        "id": "cielago_depression"
       },
       "n312:n313|n312:n346|n313:n314|n314:n315|n315:n316|n316:n383|n342:n350|n342:n378:A:243.22053284999998,242.83869944999995,90,0,1|n346:n347|n347:n348|n348:n349|n349:n350|n378:n379|n379:n380|n380:n381|n381:n382|n382:n383": {
-        "name": "cielago-south",
+        "name": "Cielago south",
         "type": "sand",
         "insetLine": "none",
         "decals": [],
@@ -8092,10 +8129,11 @@
           "linecap": "round",
           "linejoin": "round"
         },
-        "paintOrder": 26
+        "paintOrder": 26,
+        "id": "cielago_south"
       },
       "n370:n371|n370:n71|n371:n372|n372:n373|n373:n374|n374:n75|n71:n72|n72:n73|n73:n74|n74:n75": {
-        "name": "wind-pass-north",
+        "name": "Wind pass north",
         "type": "sand",
         "insetLine": "none",
         "decals": [],
@@ -8105,10 +8143,11 @@
           "linecap": "round",
           "linejoin": "round"
         },
-        "paintOrder": 23
+        "paintOrder": 23,
+        "id": "wind_pass_north"
       },
       "n370:n70|n370:n71|n68:n69|n68:n93|n69:n70|n71:n72|n72:n73|n73:n74|n74:n75|n75:n76|n76:n77|n77:n78|n78:n79|n79:n80|n80:n81|n81:n82|n82:n83|n83:n84|n84:n85|n85:n86|n86:n87|n87:n88|n88:n89|n89:n90|n90:n91|n91:n92|n92:n93": {
-        "name": "polar-sink",
+        "name": "Polar sink",
         "type": "polar",
         "insetLine": "solid",
         "decals": [],
@@ -8393,10 +8432,11 @@
           "linecap": "round",
           "linejoin": "round"
         },
-        "paintOrder": 5
+        "paintOrder": 5,
+        "id": "polar_sink"
       },
       "n40:n41|n40:n58|n41:n42|n42:n43|n43:n44|n44:n45|n45:n46|n46:n47|n47:n48|n48:n49|n49:n50|n50:n51|n51:n52|n52:n53|n53:n54|n54:n55|n55:n56|n56:n57|n57:n58": {
-        "name": "tabr",
+        "name": "Tabr",
         "type": "stronghold",
         "insetLine": "solid",
         "decals": [
@@ -8989,10 +9029,11 @@
           "linecap": "round",
           "linejoin": "round"
         },
-        "paintOrder": 3
+        "paintOrder": 3,
+        "id": "tabr"
       },
       "n59:n60|n59:n67|n60:n61|n61:n62|n62:n63|n63:n64|n64:n65|n65:n66|n66:n67": {
-        "name": "habbanya",
+        "name": "Habbanya",
         "type": "stronghold",
         "insetLine": "solid",
         "decals": [
@@ -9315,7 +9356,8 @@
           "linecap": "round",
           "linejoin": "round"
         },
-        "paintOrder": 4
+        "paintOrder": 4,
+        "id": "habbanya"
       }
     }
   },

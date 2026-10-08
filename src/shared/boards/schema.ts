@@ -66,21 +66,51 @@ const decal = z.strictObject({
   rotation: finite.min(-360).max(360),
   outline: z.boolean(),
 });
-const properties = z.strictObject({
-  name: z.string().trim().min(1).max(128),
-  type: z.enum(['sand', 'rock', 'stronghold', 'polar']),
-  insetLine: z.enum(['none', 'solid', 'dashed']),
-  decals: z.array(decal).max(128),
-  appearance: z.array(contour).max(8).optional(),
-  paintOrder: finite.optional(),
-  border: z
-    .strictObject({
-      width: finite.min(0).max(50),
-      linecap: z.enum(['round', 'square', 'butt']),
-      linejoin: z.enum(['round', 'bevel', 'miter']),
-    })
-    .optional(),
-});
+export function territoryId(name: string): string {
+  return name
+    .normalize('NFKD')
+    .toLowerCase()
+    .replace(/\p{M}/gu, '')
+    .replace(/['’ʼ]/gu, '')
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_|_$/g, '');
+}
+
+const territoryName = z
+  .string()
+  .trim()
+  .min(1, 'Enter a territory name')
+  .max(128, 'Use at most 128 characters')
+  .refine((name) => !!territoryId(name), { message: 'Include a letter or number in the territory name' });
+
+export function territoryNameError(name: string, otherNames: string[]): string | undefined {
+  const parsed = territoryName.safeParse(name);
+  if (!parsed.success) {
+    return parsed.error.issues[0].message;
+  }
+  const id = territoryId(name);
+  return otherNames.some((other) => territoryId(other) === id) ? `Territory ID "${id}" is already in use` : undefined;
+}
+
+const properties = z
+  .strictObject({
+    name: territoryName,
+    /* Older boards omit the ID; the name always supplies the saved value. */
+    id: z.string().optional(),
+    type: z.enum(['sand', 'rock', 'stronghold', 'polar']),
+    insetLine: z.enum(['none', 'solid', 'dashed']),
+    decals: z.array(decal).max(128),
+    appearance: z.array(contour).max(8).optional(),
+    paintOrder: finite.optional(),
+    border: z
+      .strictObject({
+        width: finite.min(0).max(50),
+        linecap: z.enum(['round', 'square', 'butt']),
+        linejoin: z.enum(['round', 'bevel', 'miter']),
+      })
+      .optional(),
+  })
+  .transform((property) => ({ ...property, id: territoryId(property.name) }));
 
 /** Saved linework and properties own both the rendered map and its targeting geometry. */
 export const BoardDefinition = z
@@ -118,9 +148,15 @@ export const BoardDefinition = z
     ) {
       ctx.addIssue({ code: 'custom', message: 'Boundary curves must stay inside the board circle' });
     }
-    const names = Object.values(board.properties).map((p) => p.name);
-    if (new Set(names).size !== names.length) {
-      ctx.addIssue({ code: 'custom', message: 'Territory names must be unique' });
+    const territories = Object.entries(board.properties);
+    for (const [key, property] of territories) {
+      const error = territoryNameError(
+        property.name,
+        territories.filter(([other]) => other !== key).map(([, p]) => p.name)
+      );
+      if (error) {
+        ctx.addIssue({ code: 'custom', path: ['properties', key, 'name'], message: error });
+      }
     }
     if (Object.values(board.properties).some((p) => new Set(p.decals.map((d) => d.id)).size !== p.decals.length)) {
       ctx.addIssue({ code: 'custom', message: 'Decal identities must be unique within a territory' });

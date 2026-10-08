@@ -21,6 +21,9 @@ export function parseAssetDataForWrite(type: string, data: unknown): { data: unk
       if (!geometry.faces.length || geometry.unrecoveredSegments) {
         throw new Error('The board needs closed, renderable territory boundaries');
       }
+      if (geometry.faces.some((face) => !parsed.board.properties[face.key])) {
+        throw new Error('Every territory needs a name');
+      }
       return { data: parsed, name: parsed.name };
     }
     case 'card-treachery': {

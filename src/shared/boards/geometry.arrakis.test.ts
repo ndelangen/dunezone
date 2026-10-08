@@ -9,15 +9,17 @@ describe('Editable Arrakis recreation', () => {
     const result = derive(board);
     expect(result.unrecoveredSegments).toBe(0);
     expect(result.faces).toHaveLength(reference.shapes.length);
-    expect(result.faces.map((face) => board.properties[face.key].name).sort()).toEqual(
-      reference.shapes.map((shape) => shape.name).sort()
+    expect(result.faces.map((face) => board.properties[face.key].id).sort()).toEqual(
+      reference.shapes.map((shape) => shape.name.replaceAll('-', '_')).sort()
     );
     for (const face of result.faces) {
-      const shape = reference.shapes.find((shape) => shape.name === board.properties[face.key].name)!;
+      const shape = reference.shapes.find(
+        (shape) => shape.name.replaceAll('-', '_') === board.properties[face.key].id
+      )!;
       expect(face.edges, shape.name).toEqual([...new Set(shape.edges)].sort());
       expect(face.area, shape.name).toBeGreaterThan(1);
     }
-    const surrounded = result.faces.find((face) => board.properties[face.key].name === 'habbanya-ridge-flat')!;
+    const surrounded = result.faces.find((face) => board.properties[face.key].id === 'habbanya_ridge_flat')!;
     expect(surrounded.rings).toHaveLength(2);
   });
 
@@ -37,19 +39,19 @@ describe('Editable Arrakis recreation', () => {
         .map((p) => p.name)
         .sort()
     );
-    const carthag = Object.values(original.properties).find((p) => p.name === 'carthag')!;
+    const carthag = Object.values(original.properties).find((p) => p.id === 'carthag')!;
     expect(contourPath(next, carthag.appearance![0])).not.toEqual(contourPath(original, carthag.appearance![0]));
-    const polar = Object.values(original.properties).find((p) => p.name === 'polar-sink')!;
+    const polar = Object.values(original.properties).find((p) => p.id === 'polar_sink')!;
     expect(contourPath(next, polar.appearance![0])).toEqual(contourPath(original, polar.appearance![0]));
   });
 
   it('preserves imported inset contours when inserting a boundary point', () => {
     const original = arrakisBoard();
-    const carthag = Object.values(original.properties).find((p) => p.name === 'carthag')!;
+    const carthag = Object.values(original.properties).find((p) => p.id === 'carthag')!;
     const edge = original.edges.find((edge) => edge.id === 'n21:n335')!;
     const next = connectPoint(original, at(original, edge, 0.5), false, 0.5, edge.id).board;
     const committed = reconcile(next, original, derive(original).faces, derive(next).faces);
-    const edited = Object.values(committed.properties).find((p) => p.name === 'carthag')!;
+    const edited = Object.values(committed.properties).find((p) => p.id === 'carthag')!;
     for (let i = 0; i < carthag.appearance!.length; i++) {
       expect(contourPath(next, edited.appearance![i])).toEqual(contourPath(original, carthag.appearance![i]));
     }
@@ -68,5 +70,15 @@ describe('Editable Arrakis recreation', () => {
     expect(
       Object.values(restored.properties).flatMap((p) => (p as (typeof original.properties)[string]).decals)
     ).toHaveLength(5);
+  });
+
+  it('preserves invalid authored names through topology reconciliation so saving still reports them', () => {
+    const original = arrakisBoard();
+    const properties = Object.values(original.properties);
+    properties[0].name = '';
+    properties[1].name = properties[2].name;
+    const faces = derive(original).faces;
+    const next = reconcile(original, original, faces, faces);
+    expect(Object.values(next.properties).map((p) => p.name)).toEqual(properties.map((p) => p.name));
   });
 });
