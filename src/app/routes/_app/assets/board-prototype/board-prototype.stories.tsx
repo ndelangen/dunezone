@@ -5,9 +5,9 @@ import { pageStoryMeta } from '../../../storybookConfig';
 const meta = preview.meta({
   ...pageStoryMeta,
   title: 'Assets/Board editor study',
-  args: { path: '/assets/board-prototype?variant=A' },
+  args: { path: '/assets/board-prototype' },
 });
 export const CanvasAndInspector = meta.story({});
-export const DrawThenAssign = meta.story({ args: { path: '/assets/board-prototype?variant=B' } });
-export const TerritoryLedger = meta.story({ args: { path: '/assets/board-prototype?variant=C' } });
-export const ArrakisRecreation = meta.story({ args: { path: '/assets/board-prototype?variant=A&fixture=arrakis' } });
+export const ArrakisRecreation = meta.story({ args: { path: '/assets/board-prototype?fixture=arrakis' } });
+
+export const BlankBoard = meta.story({ args: { path: '/assets/board-prototype?fixture=blank' } });

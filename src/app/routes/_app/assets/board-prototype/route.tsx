@@ -1,32 +1,17 @@
-import {
-  Button,
-  Group,
-  Stack,
-  Text,
-  Select,
-  NumberInput,
-  TextInput,
-  Switch,
-  SegmentedControl,
-  Divider,
-  Table,
-  ScrollArea,
-  Badge,
-} from '@mantine/core';
-import { createFileRoute } from '@tanstack/react-router';
+import { Button, Group, Stack, Text, Select, TextInput, Switch, Slider, Divider } from '@mantine/core';
+import { Link, createFileRoute } from '@tanstack/react-router';
 import { PageTitle } from '@ui/block/PageTitle';
 import { Section } from '@ui/block/Section';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
+import { ControlBlock } from '@ui/control/ControlBlock';
 import { IconAction } from '@ui/control/IconAction';
-import { AsymmetricSplitLayout } from '@ui/layout/AsymmetricSplitLayout';
-import { ColumnsWithRailLayout } from '@ui/layout/ColumnsWithRailLayout';
 import { DocumentEditorLayout } from '@ui/layout/DocumentEditorLayout';
 import { PageLayout } from '@ui/layout/PageLayout';
-import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
+import { NestedTabs } from '@ui/surface/NestedTabs';
 import { Surface } from '@ui/surface/Surface';
+import { Toolbar } from '@ui/surface/Toolbar';
 import {
   ArrowLeft,
-  ArrowRight,
   Undo2,
   Redo2,
   ZoomIn,
@@ -40,13 +25,18 @@ import {
   Hand,
   X,
   Check,
+  Plus,
+  Minus,
+  Unlink,
+  Eye,
+  FileJson,
 } from 'lucide-react';
 import { useEffect, useId, useMemo, useReducer, useRef } from 'react';
 import type { PointerEvent as ReactPointerEvent } from 'react';
 
-import reference from '../../../../../../media/vector/background/map.svg?raw';
 import city from '../../../../../../media/vector/icon/city.svg?raw';
 import ornithopter from '../../../../../../media/vector/icon/ornithopter.svg?raw';
+import sietch from '../../../../../../media/vector/icon/seitch.svg?raw';
 import { pageHead } from '../../../pageTitle';
 import {
   arrakisBoard,
@@ -60,23 +50,24 @@ import {
   edgePath,
   contains,
   CENTER,
+  RADIUS,
   referenceSectors,
-  referenceSymbols,
-  referenceAdjustment,
+  commonArtwork,
+  removePoint,
+  pointRemovalReason,
 } from './geometry';
 import type { Board, Point, Face, Properties, Decal } from './geometry';
 import styles from './route.module.css';
 
-/* Three throwaway editor arrangements share editable linework on this asset route. */
+/* The board editor study keeps the shared geometry draft in memory. */
 export const Route = createFileRoute('/_app/assets/board-prototype')({
   validateSearch: (search: Record<string, unknown>) => ({
-    variant: ['A', 'B', 'C'].includes(String(search.variant)) ? String(search.variant) : 'A',
-    fixture: search.fixture === 'arrakis' ? 'arrakis' : 'study',
+    fixture: ['arrakis', 'blank'].includes(String(search.fixture)) ? String(search.fixture) : 'study',
   }),
-  head: ({ match }) => pageHead('Board editor study', { match }),
+  head: ({ match }) => pageHead('Board editor', { match }),
   component: BoardPrototypePage,
 });
-type Tool = 'select' | 'line' | 'cubic' | 'arc' | 'pan';
+type Tool = 'select' | 'line' | 'cubic' | 'arc' | 'pan' | 'add-point' | 'remove-point' | 'remove-edge';
 type State = {
   board: Board;
   past: Board[];
@@ -93,8 +84,8 @@ type State = {
   pan: Point;
   hover: Point | null;
   message: string;
-  step: string;
   artwork: Record<string, string>;
+  activeNode: string | null;
   dragNode: string | null;
   dragHandle: 'c1' | 'c2' | null;
   dragPoint: Point | null;
@@ -120,6 +111,7 @@ function reducer(state: State, event: Event): State {
       future: [],
       selected: Object.keys(event.board.properties)[0],
       edge: null,
+      activeNode: null,
       points: [],
       zoom: 1,
       pan: [0, 0],
@@ -156,6 +148,7 @@ function reducer(state: State, event: Event): State {
       past: state.past.slice(0, -1),
       future: [state.board, ...state.future],
       selected: null,
+      activeNode: null,
       edge: null,
       points: [],
       message: 'Undid the last edit',
@@ -175,18 +168,14 @@ function reducer(state: State, event: Event): State {
     message: 'Restored the edit',
   };
 }
-const variants = ['A', 'B', 'C'];
-const variantNames = { A: 'Canvas and inspector', B: 'Draw, then assign', C: 'Territory ledger' };
 const vectorModules = import.meta.glob('../../../../../../media/vector/**/*.svg', { query: '?raw', import: 'default' });
 const vectorOptions = Object.keys(vectorModules)
   .filter((key) => !key.includes('/background/'))
   .map((key) => ({ value: key, label: key.split('/vector/')[1].replace('.svg', '') }));
-const artworkOptions = [
-  { value: 'city', label: 'City' },
-  { value: 'sietch', label: 'Sietch' },
-  { value: 'ornithopter', label: 'Ornithopter' },
-  ...vectorOptions,
-];
+const artworkOptions = vectorOptions.map((option) => ({
+  ...option,
+  label: option.value === commonArtwork.sietch ? 'icon/sietch' : option.label,
+}));
 const baseColors = { sand: '#F6D979', rock: '#A67A3E', stronghold: '#F7BA7A', polar: '#fff' };
 const decorationColors = { sand: '#A67A3E', rock: '#67371C', stronghold: '#67371C', polar: '#888' };
 
@@ -195,21 +184,26 @@ function download(name: string, contents: string, type: string) {
   const a = document.createElement('a');
   a.href = url;
   a.download = name;
+  a.hidden = true;
+  document.body.append(a);
   a.click();
-  URL.revokeObjectURL(url);
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 function BoardPrototypePage() {
-  const { variant, fixture } = Route.useSearch(),
-    navigate = Route.useNavigate();
+  const { fixture } = Route.useSearch();
   const [state, dispatch] = useReducer(reducer, fixture, (fixture): State => {
-    const board = fixture === 'arrakis' ? arrakisBoard() : studyBoard();
+    const board = fixture === 'arrakis' ? arrakisBoard() : fixture === 'blank' ? blankBoard() : studyBoard();
     return {
       board,
       past: [],
       future: [],
-      selected: Object.keys(board.properties).find((key) => board.properties[key].type === 'stronghold')!,
+      selected:
+        Object.keys(board.properties).find((key) => board.properties[key].type === 'stronghold') ||
+        Object.keys(board.properties)[0] ||
+        null,
       edge: null,
-      tool: variant === 'B' ? 'line' : 'select',
+      tool: 'select',
       points: [],
       guide: true,
       snap: true,
@@ -219,8 +213,8 @@ function BoardPrototypePage() {
       pan: [0, 0],
       hover: null,
       message: 'Select a territory, or choose a drawing tool',
-      step: 'draw',
-      artwork: { city, ornithopter, sietch: referenceSymbols['reference-symbol-2'], ...referenceSymbols },
+      artwork: { [commonArtwork.city]: city, [commonArtwork.ornithopter]: ornithopter, [commonArtwork.sietch]: sietch },
+      activeNode: null,
       dragNode: null,
       dragHandle: null,
       dragPoint: null,
@@ -261,8 +255,9 @@ function BoardPrototypePage() {
     () => (state.dragPoint ? reconcile(drawBoard, state.board, derive(state.board).faces, faces) : drawBoard),
     [state.dragPoint, drawBoard, state.board, faces]
   );
-  const selectedFace = faces.find((face) => face.key === state.selected),
-    property = state.selected ? shownBoard.properties[state.selected] : undefined;
+  const selectedKey = faces.some((face) => face.key === state.selected) ? state.selected : faces[0]?.key;
+  const selectedFace = faces.find((face) => face.key === selectedKey),
+    property = selectedKey ? shownBoard.properties[selectedKey] : undefined;
   const edge = state.board.edges.find((edge) => edge.id === state.edge);
   const view = (patch: Partial<State>) => dispatch({ type: 'view.changed', patch });
   const commit = (board: Board, message: string, topology = false) => {
@@ -270,16 +265,14 @@ function BoardPrototypePage() {
     dispatch({ type: 'board.edited', board: next, message });
   };
   const patchProperty = (patch: Partial<Properties>) => {
-    if (!state.selected || !property) {
+    if (!selectedKey || !property) {
       return;
     }
     commit(
-      { ...state.board, properties: { ...state.board.properties, [state.selected]: { ...property, ...patch } } },
+      { ...state.board, properties: { ...state.board.properties, [selectedKey]: { ...property, ...patch } } },
       'Territory updated'
     );
   };
-  const chooseVariant = (next: string) =>
-    void navigate({ search: (old) => ({ ...old, variant: next }), replace: true });
   useEffect(() => {
     const keyboard = (event: KeyboardEvent) => {
       if ((event.target as HTMLElement)?.closest('input,textarea,select,[contenteditable],svg [tabindex]')) {
@@ -297,8 +290,6 @@ function BoardPrototypePage() {
           dragPoint: null,
           message: 'Drawing finished. Open cuts remain visible.',
         });
-      } else if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
-        chooseVariant(variants[(variants.indexOf(variant) + (event.key === 'ArrowRight' ? 1 : 2)) % 3]);
       }
     };
     window.addEventListener('keydown', keyboard);
@@ -323,8 +314,33 @@ function BoardPrototypePage() {
       (p.y - CENTER[1] - state.pan[1]) / state.zoom + CENTER[1],
     ];
   }
+  const magnetRadius = () =>
+    (20 * 487.06) /
+    (Math.min(svgRef.current!.getBoundingClientRect().width, svgRef.current!.getBoundingClientRect().height) *
+      state.zoom);
+  function deletePoint(node: string) {
+    const reason = pointRemovalReason(state.board, node);
+    if (reason) {
+      view({ activeNode: node, message: reason });
+      return;
+    }
+    commit(removePoint(state.board, node), 'Point removed; neighboring boundaries reconnected', true);
+    view({ activeNode: null, edge: null });
+  }
+  function deleteConnection(id: string) {
+    if (id.startsWith('rim')) {
+      view({ message: 'The circular rim stays connected' });
+      return;
+    }
+    commit(
+      { ...state.board, edges: state.board.edges.filter((edge) => edge.id !== id) },
+      'Connection removed; both points kept',
+      true
+    );
+    view({ edge: null, activeNode: null });
+  }
   function placePoint(point: Point) {
-    const connection = connectPoint(state.board, point, state.snap),
+    const connection = connectPoint(state.board, point, state.snap, magnetRadius()),
       { node } = connection;
     const points = [...state.points, node];
     let board = connection.board;
@@ -404,6 +420,7 @@ function BoardPrototypePage() {
           y: selectedFace.center[1],
           scale: 24,
           rotation: 0,
+          outline: true,
         },
       ],
     });
@@ -417,6 +434,9 @@ function BoardPrototypePage() {
     cubic: 'Click start, first handle, second handle, then endpoint.',
     arc: 'Click start, a point on the bend, then endpoint.',
     pan: 'Drag the board to move your view.',
+    'add-point': 'Click a boundary to insert a point without changing its shape.',
+    'remove-point': 'Click a point to remove it. Its neighbors reconnect; curved joins become straight.',
+    'remove-edge': 'Click a connection to remove it and keep both points.',
   };
 
   const tools = (
@@ -427,6 +447,9 @@ function BoardPrototypePage() {
           ['line', PenLine, 'Draw connected lines'],
           ['cubic', Spline, 'Draw a cubic curve'],
           ['arc', Circle, 'Draw a circular arc'],
+          ['add-point', Plus, 'Add boundary point'],
+          ['remove-point', Minus, 'Remove boundary point'],
+          ['remove-edge', Unlink, 'Remove connection'],
           ['pan', Hand, 'Pan'],
         ] as const
       ).map(([tool, Icon, label]) => (
@@ -434,7 +457,8 @@ function BoardPrototypePage() {
           key={tool}
           label={label}
           icon={<Icon size={17} />}
-          emphasis={state.tool === tool ? 'strong' : 'standard'}
+          emphasis="standard"
+          pressed={state.tool === tool}
           intent="neutral"
           onClick={() => view({ tool, points: [], edge: null, message: toolHelp[tool] })}
         />
@@ -466,6 +490,11 @@ function BoardPrototypePage() {
         onChange={(e) => view({ guide: e.currentTarget.checked })}
       />
       <Switch label="Snap points" checked={state.snap} onChange={(e) => view({ snap: e.currentTarget.checked })} />
+      <Switch
+        label="Show decal before cropping"
+        checked={state.ghosts}
+        onChange={(e) => view({ ghosts: e.currentTarget.checked })}
+      />
       <IconAction
         label="Zoom out"
         icon={<ZoomOut size={17} />}
@@ -481,629 +510,594 @@ function BoardPrototypePage() {
     </Group>
   );
   const inspector = (
-    <Surface padding="md">
-      <Stack gap="sm">
-        <Section
-          title={property?.name || 'Territory properties'}
-          description={
-            property
-              ? 'Names identify targets. They do not appear on board artwork.'
-              : 'Select a territory on the board or in the list.'
-          }
-        >
-          {property && (
-            <Stack gap="sm">
-              <TextInput
-                label="Territory name"
-                value={property.name}
-                error={
-                  Object.entries(state.board.properties).some(
-                    ([key, p]) => key !== state.selected && p.name === property.name
-                  )
-                    ? 'Use a unique name'
-                    : undefined
+    <Stack gap="sm">
+      <Section
+        title={property?.name || 'Territory properties'}
+        description={
+          property
+            ? 'Names identify targets. They do not appear on board artwork.'
+            : 'Select a territory on the board or in the list.'
+        }
+      >
+        {property && (
+          <Stack gap="sm">
+            <TextInput
+              label="Territory name"
+              value={property.name}
+              error={
+                Object.entries(state.board.properties).some(
+                  ([key, p]) => key !== selectedKey && p.name === property.name
+                )
+                  ? 'Use a unique name'
+                  : undefined
+              }
+              onChange={(e) => patchProperty({ name: e.currentTarget.value })}
+            />
+            <Select
+              label="Territory type"
+              value={property.type}
+              data={['sand', 'rock', 'stronghold', 'polar']}
+              onChange={(value) => {
+                if (value) {
+                  patchProperty({
+                    type: value as Properties['type'],
+                    insetLine: defaults('', value as Properties['type']).insetLine,
+                  });
                 }
-                onChange={(e) => patchProperty({ name: e.currentTarget.value })}
-              />
-              <Select
-                label="Territory type"
-                value={property.type}
-                data={['sand', 'rock', 'stronghold', 'polar']}
-                onChange={(value) => {
-                  if (value) {
-                    patchProperty({
-                      type: value as Properties['type'],
-                      insetLine: defaults('', value as Properties['type']).insetLine,
-                    });
-                  }
-                }}
-              />
-              <SegmentedControl
-                aria-label="Inset line"
-                value={property.insetLine}
-                data={['none', 'solid', 'dashed']}
-                onChange={(value) => patchProperty({ insetLine: value as Properties['insetLine'] })}
-              />
-              <Text size="xs" c="dimmed">
-                Type supplies a starting inset treatment. Change it independently.
-              </Text>
-              <Divider />
-              <Group gap="xs">
-                <Button size="xs" onClick={() => addDecal('sietch')}>
-                  Add sietch icon
-                </Button>
-                <Button size="xs" onClick={() => addDecal('city')}>
-                  Add city icon
-                </Button>
-                <Button size="xs" onClick={() => addDecal('ornithopter')}>
-                  Add ornithopter icon
-                </Button>
-              </Group>
-              <Select
-                label="Add artwork"
-                placeholder="Choose any vector"
-                searchable
-                data={artworkOptions}
-                value={null}
-                onChange={(value) => {
-                  if (value) {
-                    addDecal(value);
-                  }
-                }}
-              />
-              <Switch
-                label="Show decal before cropping"
-                checked={state.ghosts}
-                onChange={(e) => view({ ghosts: e.currentTarget.checked })}
-              />
-              {property.decals.map((decal, i) => (
-                <Stack key={decal.id} gap="xs">
-                  <Group justify="space-between">
-                    <Text size="sm" fw={700}>
-                      Decal {i + 1} · {decal.artwork.split('/').at(-1)?.replace('.svg', '')}
-                    </Text>
-                    <ConfirmDeleteAction
-                      size="sm"
-                      label={`Remove decal ${i + 1}`}
-                      pending={false}
-                      onConfirm={() => patchProperty({ decals: property.decals.filter((v) => v.id !== decal.id) })}
-                    />
-                  </Group>
-                  <Group grow gap="xs">
-                    <NumberInput
-                      label={`Decal ${i + 1} X`}
-                      value={decal.x}
-                      step={2}
-                      onChange={(v) => patchDecal(decal.id, { x: Number(v) })}
-                    />
-                    <NumberInput
-                      label={`Decal ${i + 1} Y`}
-                      value={decal.y}
-                      step={2}
-                      onChange={(v) => patchDecal(decal.id, { y: Number(v) })}
-                    />
-                  </Group>
-                  <Group grow gap="xs">
-                    <NumberInput
-                      label={`Decal ${i + 1} scale`}
-                      value={decal.scale}
-                      min={1}
-                      step={5}
-                      onChange={(v) => patchDecal(decal.id, { scale: Math.max(1, Number(v)) })}
-                    />
-                    <NumberInput
-                      label={`Decal ${i + 1} rotation`}
-                      value={decal.rotation}
-                      step={5}
-                      onChange={(v) => patchDecal(decal.id, { rotation: Number(v) })}
-                    />
-                  </Group>
-                  <Divider />
-                </Stack>
-              ))}
-            </Stack>
-          )}
-        </Section>
-        {edge && (
-          <Section title="Selected shared edge" description="One edit changes both neighboring territories.">
-            <Stack gap="xs">
-              <Text size="xs">{edge.kind}</Text>
-              <Group grow>
-                <NumberInput
-                  label="Start X"
-                  value={state.board.nodes[edge.a][0]}
-                  onChange={(v) =>
-                    commit(
-                      {
-                        ...state.board,
-                        nodes: { ...state.board.nodes, [edge.a]: [Number(v), state.board.nodes[edge.a][1]] },
-                      },
-                      'Shared point moved',
-                      true
-                    )
-                  }
-                />
-                <NumberInput
-                  label="Start Y"
-                  value={state.board.nodes[edge.a][1]}
-                  onChange={(v) =>
-                    commit(
-                      {
-                        ...state.board,
-                        nodes: { ...state.board.nodes, [edge.a]: [state.board.nodes[edge.a][0], Number(v)] },
-                      },
-                      'Shared point moved',
-                      true
-                    )
-                  }
-                />
-              </Group>
-              <ConfirmDeleteAction
-                label="Delete shared edge"
-                pending={false}
-                disabled={edge.id.startsWith('rim')}
-                onConfirm={() => {
-                  commit(
-                    { ...state.board, edges: state.board.edges.filter((v) => v.id !== edge.id) },
-                    'Edge removed; merged territory keeps the first identity',
-                    true
-                  );
-                  view({ edge: null });
-                }}
-              />
-            </Stack>
-          </Section>
-        )}
-      </Stack>
-    </Surface>
-  );
-  const ledger = (
-    <Surface padding="md">
-      <Section title="Territories" description={`${faces.length} regions from shared linework`}>
-        <ScrollArea h={variant === 'C' ? 560 : 220}>
-          <Table highlightOnHover>
-            <Table.Thead>
-              <Table.Tr>
-                <Table.Th>Name</Table.Th>
-                <Table.Th>Type</Table.Th>
-                <Table.Th>Inset</Table.Th>
-              </Table.Tr>
-            </Table.Thead>
-            <Table.Tbody>
-              {faces.map((face) => {
-                const p = shownBoard.properties[face.key] || defaults('Unassigned');
-                return (
-                  <Table.Tr key={face.key} data-selected={face.key === state.selected || undefined}>
-                    <Table.Td>
-                      <Button
-                        variant="subtle"
-                        size="xs"
-                        onClick={() => view({ selected: face.key, tool: 'select', message: `${p.name} selected` })}
-                      >
-                        {p.name}
-                      </Button>
-                    </Table.Td>
-                    <Table.Td>{p.type}</Table.Td>
-                    <Table.Td>{p.insetLine}</Table.Td>
-                  </Table.Tr>
-                );
-              })}
-            </Table.Tbody>
-          </Table>
-        </ScrollArea>
-      </Section>
-    </Surface>
-  );
-
-  const canvas = (
-    <Surface padding="md">
-      <Stack gap="sm">
-        {tools}
-        {viewTools}
-        <Text size="sm">{toolHelp[state.tool]}</Text>
-        <div className={styles.canvasFrame}>
-          <svg
-            ref={svgRef}
-            viewBox="0 0 487.06 487.06"
-            className={styles.canvas}
-            aria-label="Editable board"
-            role="group"
-            onPointerDown={(event) => {
-              if (event.button !== 0) {
-                return;
-              }
-              const point = canvasPoint(event),
-                target = event.target as SVGElement;
-              if (state.tool === 'pan') {
-                event.currentTarget.setPointerCapture(event.pointerId);
-                panStart.current = { cursor: [event.clientX, event.clientY], pan: state.pan };
-                return;
-              }
-              if (state.tool !== 'select') {
-                placePoint(point);
-                return;
-              }
-              const node = target.getAttribute('data-node'),
-                handle = target.getAttribute('data-handle') as 'c1' | 'c2' | null;
-              if (node) {
-                event.currentTarget.setPointerCapture(event.pointerId);
-                view({
-                  dragNode: node,
-                  dragHandle: handle,
-                  dragPoint: handle
-                    ? state.board.edges.find((edge) => edge.id === node)![handle]!
-                    : state.board.nodes[node],
-                });
-                return;
-              }
-              const edgeId = target.getAttribute('data-edge');
-              if (edgeId) {
-                view({ edge: edgeId, message: 'Shared boundary selected. Drag its handles or edit coordinates.' });
-                return;
-              }
-              const face = faces.find((face) => contains(face.rings, point));
-              if (face) {
-                view({ selected: face.key, edge: null, message: `${shownBoard.properties[face.key]?.name} selected` });
-              }
-            }}
-            onPointerMove={(event) => {
-              if (panStart.current) {
-                const rect = event.currentTarget.getBoundingClientRect(),
-                  ratio = 487.06 / rect.width;
-                view({
-                  pan: [
-                    panStart.current.pan[0] + (event.clientX - panStart.current.cursor[0]) * ratio,
-                    panStart.current.pan[1] + (event.clientY - panStart.current.cursor[1]) * ratio,
-                  ],
-                });
-                return;
-              }
-              const point = canvasPoint(event),
-                snapped = snapPoint(state.board, point, state.snap);
-              if (state.dragNode) {
-                view({ dragPoint: snapped.point, message: snapped.feedback });
-              } else {
-                view({ hover: snapped.point, message: state.tool !== 'select' ? snapped.feedback : state.message });
-              }
-            }}
-            onPointerUp={() => {
-              panStart.current = null;
-              if (state.dragNode) {
-                try {
-                  commit(drawBoard, 'Shared boundary moved; territory crops updated', true);
-                } catch (error) {
-                  view({ dragNode: null, dragPoint: null, message: String(error) });
+              }}
+            />
+            <Select
+              label="Inset line"
+              value={property.insetLine}
+              data={['none', 'solid', 'dashed']}
+              onChange={(value) => value && patchProperty({ insetLine: value as Properties['insetLine'] })}
+            />
+            <Text size="xs" c="dimmed">
+              Type supplies a starting inset treatment. Change it independently.
+            </Text>
+            <Divider />
+            <Group gap="xs">
+              <Button size="xs" onClick={() => addDecal(commonArtwork.sietch)}>
+                Add sietch icon
+              </Button>
+              <Button size="xs" onClick={() => addDecal(commonArtwork.city)}>
+                Add city icon
+              </Button>
+              <Button size="xs" onClick={() => addDecal(commonArtwork.ornithopter)}>
+                Add ornithopter icon
+              </Button>
+            </Group>
+            <Select
+              label="Add artwork"
+              placeholder="Choose any vector"
+              searchable
+              data={artworkOptions}
+              value={null}
+              onChange={(value) => {
+                if (value) {
+                  addDecal(value);
                 }
-              }
-            }}
-            onPointerCancel={() => {
-              panStart.current = null;
-              view({ dragNode: null, dragPoint: null });
-            }}
-          >
-            <g
-              transform={`translate(${CENTER[0] + state.pan[0]} ${CENTER[1] + state.pan[1]}) scale(${state.zoom}) translate(${-CENTER[0]} ${-CENTER[1]})`}
-            >
-              <BoardArtwork board={shownBoard} faces={faces} artwork={state.artwork} />
-              {state.guide && (
-                <g
-                  data-editor-guide
-                  pointerEvents="none"
-                  opacity="0.45"
-                  dangerouslySetInnerHTML={{ __html: referenceSectors }}
-                />
-              )}
-              {selectedFace && (
-                <path d={selectedFace.path} fill="none" stroke="#386c8e" strokeWidth="2.5" pointerEvents="none" />
-              )}
-              {state.ghosts &&
-                property?.decals.map((d) => (
-                  <g key={d.id} opacity="0.28" pointerEvents="none">
-                    <DecalArtwork decal={d} svg={state.artwork[d.artwork]} />
-                  </g>
-                ))}
-              {state.tool === 'select' &&
-                state.board.edges
-                  .filter((e) => state.edge === e.id || selectedFace?.edges.includes(e.id))
-                  .map((e) => (
-                    <g key={e.id}>
-                      <path
-                        d={edgePath(shownBoard, e)}
-                        fill="none"
-                        stroke="transparent"
-                        strokeWidth="9"
-                        data-edge={e.id}
+              }}
+            />
+            {property.decals.map((decal, i) => (
+              <Stack key={decal.id} gap="xs">
+                <Group justify="space-between">
+                  <Text size="sm" fw={700}>
+                    Decal {i + 1} ·{' '}
+                    {artworkOptions.find((option) => option.value === decal.artwork)?.label || decal.artwork}
+                  </Text>
+                  <ConfirmDeleteAction
+                    size="sm"
+                    label={`Remove decal ${i + 1}`}
+                    pending={false}
+                    onConfirm={() => patchProperty({ decals: property.decals.filter((v) => v.id !== decal.id) })}
+                  />
+                </Group>
+                {(
+                  [
+                    ['X', 'x', 0, 487.06, 0.5],
+                    ['Y', 'y', 0, 487.06, 0.5],
+                    ['Scale', 'scale', 1, 180, 1],
+                    ['Rotation', 'rotation', -180, 180, 1],
+                  ] as const
+                ).map(([label, key, min, max, step]) => (
+                  <ControlBlock
+                    key={key}
+                    title={label}
+                    tool={
+                      <Text size="xs">
+                        {decal[key].toFixed(1)}
+                        {key === 'rotation' ? '°' : ''}
+                      </Text>
+                    }
+                    input={
+                      <Slider
+                        thumbLabel={`Decal ${i + 1} ${label.toLowerCase()}`}
+                        min={min}
+                        max={max}
+                        step={step}
+                        value={decal[key]}
+                        onChange={(value) => patchDecal(decal.id, { [key]: value })}
                       />
-                      {[e.a, e.b].map((key) => (
-                        <circle
-                          key={key}
-                          cx={shownBoard.nodes[key][0]}
-                          cy={shownBoard.nodes[key][1]}
-                          r={3 / state.zoom}
-                          fill="#fff"
-                          stroke="#386c8e"
-                          strokeWidth={1 / state.zoom}
-                          data-node={key}
-                          tabIndex={0}
-                          role="button"
-                          aria-label={`Move boundary point ${key}`}
-                          onKeyDown={(event) => {
-                            const delta = {
-                              ArrowLeft: [-1, 0],
-                              ArrowRight: [1, 0],
-                              ArrowUp: [0, -1],
-                              ArrowDown: [0, 1],
-                            }[event.key];
-                            if (!delta) {
-                              return;
-                            }
-                            event.preventDefault();
-                            const p = state.board.nodes[key],
-                              step = event.shiftKey ? 5 : 1;
-                            commit(
-                              {
-                                ...state.board,
-                                nodes: {
-                                  ...state.board.nodes,
-                                  [key]: [p[0] + delta[0] * step, p[1] + delta[1] * step],
-                                },
-                              },
-                              'Boundary point moved with keyboard',
-                              true
-                            );
-                          }}
-                        />
-                      ))}
-                      {e.kind === 'cubic' &&
-                        (['c1', 'c2'] as const).map((key) => (
-                          <g key={key}>
-                            <path
-                              d={`M${shownBoard.nodes[key === 'c1' ? e.a : e.b].join(' ')}L${shownBoard.edges.find((edge) => edge.id === e.id)![key]!.join(' ')}`}
-                              stroke="#386c8e"
-                              fill="none"
-                            />
-                            <circle
-                              cx={shownBoard.edges.find((edge) => edge.id === e.id)![key]![0]}
-                              cy={shownBoard.edges.find((edge) => edge.id === e.id)![key]![1]}
-                              r={4 / state.zoom}
-                              fill="#386c8e"
-                              data-node={e.id}
-                              data-handle={key}
-                            />
-                          </g>
-                        ))}
+                    }
+                  />
+                ))}
+                <Switch
+                  label={`Decal ${i + 1} white outline`}
+                  checked={decal.outline}
+                  onChange={(e) => patchDecal(decal.id, { outline: e.currentTarget.checked })}
+                />
+                <Divider />
+              </Stack>
+            ))}
+          </Stack>
+        )}
+      </Section>
+      {state.activeNode && state.board.nodes[state.activeNode] && (
+        <Section title="Selected boundary point">
+          <Stack gap="xs">
+            <Text size="xs">
+              Removing a corner reconnects its neighbors with a straight boundary. Undo restores it.
+            </Text>
+            {pointRemovalReason(state.board, state.activeNode) && (
+              <Text size="xs">{pointRemovalReason(state.board, state.activeNode)}</Text>
+            )}
+            <ConfirmDeleteAction
+              label="Remove selected point"
+              pending={false}
+              disabled={Boolean(pointRemovalReason(state.board, state.activeNode))}
+              onConfirm={() => deletePoint(state.activeNode!)}
+            />
+          </Stack>
+        </Section>
+      )}
+      {edge && (
+        <Section title="Selected shared edge" description="One edit changes both neighboring territories.">
+          <Stack gap="xs">
+            <Text size="xs">{edge.kind}</Text>
+            {(['X', 'Y'] as const).map((label, axis) => (
+              <ControlBlock
+                key={label}
+                title={`Start ${label}`}
+                tool={<Text size="xs">{state.board.nodes[edge.a][axis].toFixed(1)}</Text>}
+                input={
+                  <Slider
+                    thumbLabel={`Start ${label}`}
+                    min={0}
+                    max={487.06}
+                    step={0.5}
+                    value={state.board.nodes[edge.a][axis]}
+                    onChange={(value) => {
+                      const point: Point = [...state.board.nodes[edge.a]];
+                      point[axis] = value;
+                      commit(
+                        { ...state.board, nodes: { ...state.board.nodes, [edge.a]: point } },
+                        'Shared point moved',
+                        true
+                      );
+                    }}
+                  />
+                }
+              />
+            ))}
+            <ConfirmDeleteAction
+              label="Delete shared edge"
+              pending={false}
+              disabled={edge.id.startsWith('rim')}
+              onConfirm={() => deleteConnection(edge.id)}
+            />
+          </Stack>
+        </Section>
+      )}
+    </Stack>
+  );
+  const editableEdges = state.board.edges.filter(
+    (edge) => state.tool !== 'select' || state.edge === edge.id || selectedFace?.edges.includes(edge.id)
+  );
+  const connectedPoints = new Set(state.board.edges.flatMap((edge) => [edge.a, edge.b]));
+  const visiblePoints = new Set(editableEdges.flatMap((edge) => [edge.a, edge.b]));
+  Object.keys(state.board.nodes).forEach((point) => {
+    if (!connectedPoints.has(point)) {
+      visiblePoints.add(point);
+    }
+  });
+  const pointControl = (key: string) => (
+    <circle
+      key={key}
+      cx={shownBoard.nodes[key][0]}
+      cy={shownBoard.nodes[key][1]}
+      r={3 / state.zoom}
+      fill="#fff"
+      stroke="#386c8e"
+      strokeWidth={1 / state.zoom}
+      data-node={key}
+      tabIndex={0}
+      role="button"
+      aria-label={`Move boundary point ${key}`}
+      onKeyDown={(event) => {
+        if (event.key === 'Delete' || event.key === 'Backspace') {
+          event.preventDefault();
+          deletePoint(key);
+          return;
+        }
+        const delta = {
+          ArrowLeft: [-1, 0],
+          ArrowRight: [1, 0],
+          ArrowUp: [0, -1],
+          ArrowDown: [0, 1],
+        }[event.key];
+        if (!delta) {
+          return;
+        }
+        event.preventDefault();
+        const p = state.board.nodes[key],
+          step = event.shiftKey ? 5 : 1;
+        commit(
+          {
+            ...state.board,
+            nodes: {
+              ...state.board.nodes,
+              [key]: [p[0] + delta[0] * step, p[1] + delta[1] * step],
+            },
+          },
+          'Boundary point moved with keyboard',
+          true
+        );
+      }}
+    />
+  );
+  const boardCanvas = (
+    <div className={styles.canvasFrame}>
+      <svg
+        ref={svgRef}
+        viewBox="0 0 487.06 487.06"
+        className={styles.canvas}
+        aria-label="Editable board"
+        role="group"
+        onPointerDown={(event) => {
+          if (state.compare || event.button !== 0) {
+            return;
+          }
+          const point = canvasPoint(event),
+            target = event.target as SVGElement;
+          if (state.tool === 'pan') {
+            event.currentTarget.setPointerCapture(event.pointerId);
+            panStart.current = { cursor: [event.clientX, event.clientY], pan: state.pan };
+            return;
+          }
+          const clickedNode = target.getAttribute('data-node');
+          const clickedEdge = target.getAttribute('data-edge');
+          if (state.tool === 'remove-edge') {
+            if (clickedEdge) {
+              deleteConnection(clickedEdge);
+            } else {
+              view({ message: 'Click a connection to remove it' });
+            }
+            return;
+          }
+          if (state.tool === 'remove-point') {
+            if (clickedNode) {
+              deletePoint(clickedNode);
+            } else {
+              view({ message: 'Click a visible boundary point to remove it' });
+            }
+            return;
+          }
+          if (state.tool === 'add-point') {
+            if (!clickedEdge) {
+              view({ message: 'Click a boundary to add a point' });
+              return;
+            }
+            const connection = connectPoint(state.board, point, false, 0.5, clickedEdge);
+            commit(connection.board, 'Point added; shared boundary shape preserved', true);
+            view({ activeNode: connection.node, edge: null });
+            return;
+          }
+          if (state.tool !== 'select') {
+            placePoint(point);
+            return;
+          }
+          const node = target.getAttribute('data-node'),
+            handle = target.getAttribute('data-handle') as 'c1' | 'c2' | null;
+          if (node) {
+            event.currentTarget.setPointerCapture(event.pointerId);
+            view({
+              activeNode: handle ? null : node,
+              dragNode: node,
+              dragHandle: handle,
+              dragPoint: handle
+                ? state.board.edges.find((edge) => edge.id === node)![handle]!
+                : state.board.nodes[node],
+            });
+            return;
+          }
+          const edgeId = target.getAttribute('data-edge');
+          if (edgeId) {
+            view({ edge: edgeId, message: 'Shared boundary selected. Drag its handles or edit coordinates.' });
+            return;
+          }
+          const face = faces.find((face) => contains(face.rings, point));
+          if (face) {
+            view({
+              selected: face.key,
+              activeNode: null,
+              edge: null,
+              message: `${shownBoard.properties[face.key]?.name} selected`,
+            });
+          }
+        }}
+        onPointerMove={(event) => {
+          if (panStart.current) {
+            const rect = event.currentTarget.getBoundingClientRect(),
+              ratio = 487.06 / rect.width;
+            view({
+              pan: [
+                panStart.current.pan[0] + (event.clientX - panStart.current.cursor[0]) * ratio,
+                panStart.current.pan[1] + (event.clientY - panStart.current.cursor[1]) * ratio,
+              ],
+            });
+            return;
+          }
+          const point = canvasPoint(event),
+            snapped = snapPoint(state.board, point, state.snap, magnetRadius(), state.dragNode || undefined);
+          if (state.dragNode) {
+            view({ dragPoint: snapped.point, message: snapped.feedback });
+          } else {
+            view({ hover: snapped.point, message: state.tool !== 'select' ? snapped.feedback : state.message });
+          }
+        }}
+        onPointerUp={() => {
+          panStart.current = null;
+          if (state.dragNode) {
+            try {
+              commit(drawBoard, 'Shared boundary moved; territory crops updated', true);
+            } catch (error) {
+              view({ dragNode: null, dragPoint: null, message: String(error) });
+            }
+          }
+        }}
+        onPointerCancel={() => {
+          panStart.current = null;
+          view({ dragNode: null, dragPoint: null });
+        }}
+      >
+        <g
+          transform={`translate(${CENTER[0] + state.pan[0]} ${CENTER[1] + state.pan[1]}) scale(${state.zoom}) translate(${-CENTER[0]} ${-CENTER[1]})`}
+        >
+          <BoardArtwork board={shownBoard} faces={faces} artwork={state.artwork} />
+          {!state.compare && state.guide && (
+            <g
+              data-editor-guide
+              pointerEvents="none"
+              opacity="0.45"
+              dangerouslySetInnerHTML={{ __html: referenceSectors }}
+            />
+          )}
+          {!state.compare && selectedFace && (
+            <path d={selectedFace.path} fill="none" stroke="#386c8e" strokeWidth="2.5" pointerEvents="none" />
+          )}
+          {!state.compare &&
+            state.ghosts &&
+            property?.decals.map((d) => (
+              <g key={d.id} opacity="0.28" pointerEvents="none">
+                <DecalArtwork decal={d} svg={state.artwork[d.artwork]} />
+              </g>
+            ))}
+          {!state.compare &&
+            ['select', 'add-point', 'remove-point', 'remove-edge'].includes(state.tool) &&
+            editableEdges.map((e) => (
+              <g key={e.id}>
+                <path
+                  d={edgePath(shownBoard, e)}
+                  fill="none"
+                  stroke="transparent"
+                  strokeWidth={14 / state.zoom}
+                  data-edge={e.id}
+                />
+                {e.kind === 'cubic' &&
+                  (['c1', 'c2'] as const).map((key) => (
+                    <g key={key}>
+                      <path
+                        d={`M${shownBoard.nodes[key === 'c1' ? e.a : e.b].join(' ')}L${shownBoard.edges.find((edge) => edge.id === e.id)![key]!.join(' ')}`}
+                        stroke="#386c8e"
+                        fill="none"
+                      />
+                      <circle
+                        cx={shownBoard.edges.find((edge) => edge.id === e.id)![key]![0]}
+                        cy={shownBoard.edges.find((edge) => edge.id === e.id)![key]![1]}
+                        r={4 / state.zoom}
+                        fill="#386c8e"
+                        data-node={e.id}
+                        data-handle={key}
+                      />
                     </g>
                   ))}
-              {state.points.map((key, i) => (
-                <g key={`${key}-${i}`}>
-                  <circle cx={state.board.nodes[key][0]} cy={state.board.nodes[key][1]} r="3" fill="#386c8e" />
-                  {i > 0 && state.tool !== 'line' && (
-                    <path
-                      d={`M${state.board.nodes[state.points[i - 1]].join(' ')}L${state.board.nodes[key].join(' ')}`}
-                      fill="none"
-                      stroke="#386c8e"
-                      strokeDasharray="3 3"
-                    />
-                  )}
-                </g>
-              ))}
-              {state.points.length > 0 && state.hover && (
-                <path
-                  d={`M${state.board.nodes[state.points.at(-1)!].join(' ')}L${state.hover.join(' ')}`}
-                  fill="none"
-                  stroke="#386c8e"
-                  strokeDasharray="3 3"
-                  pointerEvents="none"
-                />
-              )}
-              {state.hover && state.tool !== 'select' && (
-                <circle
-                  cx={state.hover[0]}
-                  cy={state.hover[1]}
-                  r="4"
-                  fill="none"
-                  stroke="#386c8e"
-                  pointerEvents="none"
-                />
-              )}
-            </g>
-          </svg>
-        </div>
-        <Text size="xs" role="status" aria-live="polite">
-          {state.message}
-        </Text>
-        {result.error && <Text c="red">{result.error}</Text>}
-      </Stack>
-    </Surface>
+              </g>
+            ))}
+          {!state.compare &&
+            ['select', 'add-point', 'remove-point', 'remove-edge'].includes(state.tool) &&
+            [...visiblePoints].map(pointControl)}
+          {!state.compare &&
+            state.points.map((key, i) => (
+              <g key={`${key}-${i}`}>
+                <circle cx={state.board.nodes[key][0]} cy={state.board.nodes[key][1]} r="3" fill="#386c8e" />
+                {i > 0 && state.tool !== 'line' && (
+                  <path
+                    d={`M${state.board.nodes[state.points[i - 1]].join(' ')}L${state.board.nodes[key].join(' ')}`}
+                    fill="none"
+                    stroke="#386c8e"
+                    strokeDasharray="3 3"
+                  />
+                )}
+              </g>
+            ))}
+          {!state.compare && state.points.length > 0 && state.hover && (
+            <path
+              d={`M${state.board.nodes[state.points.at(-1)!].join(' ')}L${state.hover.join(' ')}`}
+              fill="none"
+              stroke="#386c8e"
+              strokeDasharray="3 3"
+              pointerEvents="none"
+            />
+          )}
+          {!state.compare && state.hover && state.tool !== 'select' && (
+            <circle cx={state.hover[0]} cy={state.hover[1]} r="4" fill="none" stroke="#386c8e" pointerEvents="none" />
+          )}
+        </g>
+      </svg>
+    </div>
   );
-
   return (
     <PageLayout>
       <PageLayout.Header size="compact">
-        <PageTitle title="Board editor study" eyebrow="Throwaway prototype" />
+        <PageTitle title="Board editor" />
       </PageLayout.Header>
       <PageLayout.Toolbar>
-        <Group justify="space-between" gap="sm">
-          <Group gap="xs">
-            <Select
-              aria-label="Study fixture"
-              value={state.board.fixture}
-              data={['Interaction study', 'Blank board', 'Arrakis recreation']}
-              onChange={(value) => {
-                const board =
-                  value === 'Arrakis recreation'
-                    ? arrakisBoard()
-                    : value === 'Blank board'
-                      ? blankBoard()
-                      : studyBoard();
-                dispatch({ type: 'fixture.loaded', board });
-              }}
-            />
+        <Toolbar>
+          <Toolbar.Left label="Navigation">
             <IconAction
-              label="Undo"
-              icon={<Undo2 size={17} />}
-              disabled={!state.past.length}
-              onClick={() => dispatch({ type: 'history.undo' })}
+              label="Back to assets"
+              icon={<ArrowLeft size={17} />}
+              size="lg"
+              emphasis="standard"
+              renderRoot={(props) => <Link {...props} to="/assets" />}
             />
-            <IconAction
-              label="Redo"
-              icon={<Redo2 size={17} />}
-              disabled={!state.future.length}
-              onClick={() => dispatch({ type: 'history.redo' })}
-            />
-          </Group>
-          <Group gap="xs">
-            <Switch
-              label="SVG proof"
-              checked={state.compare}
-              onChange={(e) => view({ compare: e.currentTarget.checked })}
-            />
-            <IconAction
-              label="Download SVG"
-              icon={<Download size={17} />}
-              onClick={() => {
-                const svg = artRef.current!.cloneNode(true) as SVGSVGElement;
-                svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
-                download('board-study.svg', new XMLSerializer().serializeToString(svg), 'image/svg+xml');
-              }}
-            />
-            <Button
-              variant="subtle"
-              onClick={() => download('board-study.json', JSON.stringify(state.board, null, 2), 'application/json')}
-            >
-              Download draft
-            </Button>
-          </Group>
-        </Group>
+          </Toolbar.Left>
+          <Toolbar.Right label="Board actions">
+            <Toolbar.Cluster kind="content">
+              <IconAction
+                label="Undo"
+                icon={<Undo2 size={17} />}
+                size="lg"
+                emphasis="standard"
+                disabled={!state.past.length}
+                onClick={() => dispatch({ type: 'history.undo' })}
+              />
+              <IconAction
+                label="Redo"
+                icon={<Redo2 size={17} />}
+                size="lg"
+                emphasis="standard"
+                disabled={!state.future.length}
+                onClick={() => dispatch({ type: 'history.redo' })}
+              />
+              <IconAction
+                label="Preview artwork"
+                icon={<Eye size={17} />}
+                size="lg"
+                emphasis="standard"
+                pressed={state.compare}
+                onClick={() => view({ compare: !state.compare })}
+              />
+            </Toolbar.Cluster>
+            <Toolbar.Cluster kind="commit">
+              <IconAction
+                label="Download board draft"
+                icon={<FileJson size={17} />}
+                size="lg"
+                intent="export"
+                emphasis="strong"
+                onClick={() => download('board.json', JSON.stringify(state.board, null, 2), 'application/json')}
+              />
+              <IconAction
+                label="Download SVG"
+                icon={<Download size={17} />}
+                size="lg"
+                intent="export"
+                emphasis="strong"
+                onClick={() => {
+                  const svg = artRef.current!.cloneNode(true) as SVGSVGElement;
+                  svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+                  download('board.svg', new XMLSerializer().serializeToString(svg), 'image/svg+xml');
+                }}
+              />
+            </Toolbar.Cluster>
+          </Toolbar.Right>
+        </Toolbar>
       </PageLayout.Toolbar>
       <PageLayout.Content width="viewport">
         <div className={styles.study}>
-          <Stack gap="md">
-            {variant === 'A' && (
-              <AsymmetricSplitLayout narrowSide="start">
-                <AsymmetricSplitLayout.Narrow>
-                  <Stack gap="md">
-                    {inspector}
-                    {ledger}
-                  </Stack>
-                </AsymmetricSplitLayout.Narrow>
-                <AsymmetricSplitLayout.Wide>{canvas}</AsymmetricSplitLayout.Wide>
-              </AsymmetricSplitLayout>
-            )}
-            {variant === 'B' && (
-              <>
-                <Group justify="space-between">
-                  <SegmentedControl
-                    aria-label="Authoring stage"
-                    value={state.step}
-                    data={[
-                      { value: 'draw', label: '1 · Draw boundaries' },
-                      { value: 'assign', label: '2 · Assign territories' },
-                    ]}
-                    onChange={(step) => view({ step, tool: step === 'assign' ? 'select' : 'line', points: [] })}
-                  />
-                  <Text size="sm">
-                    {state.step === 'draw' ? 'Make the regions first' : 'Select each region and give it properties'}
-                  </Text>
-                </Group>
-                <div className={styles.wideCanvas}>{canvas}</div>
-                {state.step === 'assign' && (
-                  <WorkbenchLayout>
-                    <WorkbenchLayout.Workbench>
-                      <WorkbenchLayout.Chapters>{ledger}</WorkbenchLayout.Chapters>
-                      <WorkbenchLayout.Rail>{inspector}</WorkbenchLayout.Rail>
-                    </WorkbenchLayout.Workbench>
-                  </WorkbenchLayout>
-                )}
-              </>
-            )}
-            {variant === 'C' && (
-              <ColumnsWithRailLayout>
-                <ColumnsWithRailLayout.Primary>{ledger}</ColumnsWithRailLayout.Primary>
-                <ColumnsWithRailLayout.Secondary>{canvas}</ColumnsWithRailLayout.Secondary>
-                <ColumnsWithRailLayout.Rail>{inspector}</ColumnsWithRailLayout.Rail>
-              </ColumnsWithRailLayout>
-            )}
-            {state.board.fixture === 'Arrakis recreation' && (
-              <Text size="sm" c="red">
-                Recreation feasibility remains open. The source has 42 territories; this graph produces {faces.length}{' '}
-                regions, including {faces.filter((face) => face.area < 1).length} small overlap regions. Insets are
-                generated, so exact artwork equivalence is not established.
-              </Text>
-            )}
-            <div hidden={!state.compare}>
-              <Section
-                title="Generated SVG proof"
-                description="This output has no guide, selection marks, control points, or territory-name labels."
+          <DocumentEditorLayout ratio={1} fit="width" sidebarSize="compact">
+            <DocumentEditorLayout.Sidebar>
+              <NestedTabs
+                className={styles.territories}
+                activePath={selectedKey ? [selectedKey] : []}
+                ariaLabel="Territories"
               >
-                <DocumentEditorLayout ratio={1} fit="width">
-                  <DocumentEditorLayout.Sidebar>
-                    <Stack gap="sm">
-                      <Text size="sm">
-                        {state.board.fixture === 'Arrakis recreation'
-                          ? 'Current Arrakis reference'
-                          : 'Try the oversized city decal. Toggle its uncropped outline, then move the shared boundary.'}
-                      </Text>
-                      {state.board.fixture === 'Arrakis recreation' && (
-                        <div className={styles.reference} dangerouslySetInnerHTML={{ __html: reference }} />
-                      )}
-                      <Badge variant="light">Editable geometry</Badge>
-                      <Text size="xs">
-                        {faces.length} regions · {state.board.edges.length} edges · {result.samples} graph segments
-                      </Text>
-                      <Text size="xs">Last geometry computation {result.milliseconds.toFixed(1)} ms</Text>
-                      <Text size="xs">Unrecovered graph segments {result.unrecoveredSegments}</Text>
-                      {state.board.fixture === 'Arrakis recreation' && (
-                        <Text size="xs">
-                          Endpoint recovery adjustment ≤ {referenceAdjustment.toFixed(6)} units. The disposable legacy
-                          graph uses a 0.01-unit grid.
-                        </Text>
-                      )}
-                    </Stack>
-                  </DocumentEditorLayout.Sidebar>
-                  <DocumentEditorLayout.Preview>
-                    <Surface padding="md">
-                      <svg ref={artRef} viewBox="0 0 487.06 487.06" width="100%" aria-label="Generated board artwork">
-                        <BoardArtwork board={shownBoard} faces={faces} artwork={state.artwork} />
-                      </svg>
-                    </Surface>
-                  </DocumentEditorLayout.Preview>
-                </DocumentEditorLayout>
-              </Section>
-            </div>
-            <details>
-              <summary>Inspect draft state</summary>
-              <Text size="xs">
-                The guide, snapping toggle, zoom, and selection are editor state. They are absent from this draft.
-              </Text>
-              <pre className={styles.state}>{JSON.stringify(state.board, null, 2)}</pre>
-            </details>
-            {import.meta.env.DEV && (
-              <Surface className={styles.switcher} padding="sm">
-                <Group gap="sm" wrap="nowrap">
-                  <IconAction
-                    label="Previous variation"
-                    icon={<ArrowLeft size={16} />}
-                    onClick={() => chooseVariant(variants[(variants.indexOf(variant) + 2) % 3])}
-                  />
-                  <Text size="sm" fw={700}>
-                    {variant} · {variantNames[variant as keyof typeof variantNames]}
-                  </Text>
-                  <IconAction
-                    label="Next variation"
-                    icon={<ArrowRight size={16} />}
-                    onClick={() => chooseVariant(variants[(variants.indexOf(variant) + 1) % 3])}
-                  />
+                <NestedTabs.Level label="Territories">
+                  {faces.map((face) => {
+                    const p = shownBoard.properties[face.key] || defaults('Unassigned');
+                    return (
+                      <NestedTabs.Item
+                        key={face.key}
+                        as="button"
+                        path={[face.key]}
+                        label={p.name}
+                        icon={
+                          <svg width="28" height="28" viewBox="-12 -12 511.06 511.06" aria-hidden>
+                            <circle
+                              cx={CENTER[0]}
+                              cy={CENTER[1]}
+                              r={RADIUS}
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="18"
+                              opacity="0.55"
+                            />
+                            <path d={face.path} fill="currentColor" fillRule="evenodd" />
+                          </svg>
+                        }
+                        onClick={() =>
+                          view({
+                            selected: face.key,
+                            activeNode: null,
+                            edge: null,
+                            tool: 'select',
+                            message: `${p.name} selected`,
+                          })
+                        }
+                      />
+                    );
+                  })}
+                </NestedTabs.Level>
+                <NestedTabs.ContentPanel
+                  className={styles.territoryDetails}
+                  aria-label={property ? `${property.name} properties` : 'Territory properties'}
+                >
+                  {inspector}
+                </NestedTabs.ContentPanel>
+              </NestedTabs>
+            </DocumentEditorLayout.Sidebar>
+            <DocumentEditorLayout.Preview>
+              <div className={styles.editor}>
+                <Group justify="space-between" gap="sm">
+                  {tools}
+                  {viewTools}
                 </Group>
-              </Surface>
-            )}
-          </Stack>
+                <Text size="xs">{toolHelp[state.tool]}</Text>
+                <Surface padding="none" className={styles.map}>
+                  {boardCanvas}
+                </Surface>
+                <Text size="xs" role="status" aria-live="polite">
+                  {state.message}
+                </Text>
+                {result.error && <Text c="red">{result.error}</Text>}
+              </div>
+            </DocumentEditorLayout.Preview>
+          </DocumentEditorLayout>
+          <div hidden>
+            <svg ref={artRef} viewBox="0 0 487.06 487.06" width="100%" aria-label="Generated board artwork">
+              <BoardArtwork board={shownBoard} faces={faces} artwork={state.artwork} />
+            </svg>
+          </div>
         </div>
       </PageLayout.Content>
     </PageLayout>
   );
 }
+
 function DecalArtwork({ decal, svg }: { decal: Decal; svg?: string }) {
+  const outlineId = useId().replaceAll(':', '');
   if (!svg) {
     return null;
   }
@@ -1111,14 +1105,29 @@ function DecalArtwork({ decal, svg }: { decal: Decal; svg?: string }) {
   const inner = svg.replace(/^[\s\S]*?<svg[^>]*>/, '').replace(/<\/svg>[\s\S]*$/, '');
   return (
     <g transform={`translate(${decal.x} ${decal.y}) rotate(${decal.rotation})`}>
-      <svg
-        x={-decal.scale / 2}
-        y={-decal.scale / 2}
-        width={decal.scale}
-        height={decal.scale}
-        viewBox={viewBox}
-        dangerouslySetInnerHTML={{ __html: inner }}
-      />
+      {decal.outline && (
+        <defs>
+          <filter id={outlineId} x="-50%" y="-50%" width="200%" height="200%" colorInterpolationFilters="sRGB">
+            <feMorphology in="SourceAlpha" operator="dilate" radius="1.4" result="expanded" />
+            <feFlood floodColor="#fff" result="white" />
+            <feComposite in="white" in2="expanded" operator="in" result="outline" />
+            <feMerge>
+              <feMergeNode in="outline" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+        </defs>
+      )}
+      <g filter={decal.outline ? `url(#${outlineId})` : undefined}>
+        <svg
+          x={-decal.scale / 2}
+          y={-decal.scale / 2}
+          width={decal.scale}
+          height={decal.scale}
+          viewBox={viewBox}
+          dangerouslySetInnerHTML={{ __html: inner }}
+        />
+      </g>
     </g>
   );
 }

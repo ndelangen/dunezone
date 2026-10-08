@@ -11,11 +11,12 @@ interface StoryFixtureProps {
   ratio: number;
   fit: DocumentEditorFit;
   sidebarContentHeight: number;
+  sidebarSize?: 'standard' | 'compact';
 }
 
-function DocumentEditorLayoutFixture({ ratio, fit, sidebarContentHeight }: StoryFixtureProps) {
+function DocumentEditorLayoutFixture({ ratio, fit, sidebarContentHeight, sidebarSize }: StoryFixtureProps) {
   return (
-    <DocumentEditorLayout ratio={ratio} fit={fit}>
+    <DocumentEditorLayout ratio={ratio} fit={fit} sidebarSize={sidebarSize}>
       <DocumentEditorLayout.Sidebar>
         <LayoutSlotPlaceholder name="Sidebar" tone="secondary" minHeight={sidebarContentHeight} />
       </DocumentEditorLayout.Sidebar>
@@ -165,4 +166,8 @@ export const SquarePreview = meta.story({
 export const LandscapePreview = meta.story({
   args: { ratio: 16 / 9, sidebarContentHeight: 520 },
   globals: { viewport: { value: 'appLarge' } },
+});
+
+export const CompactInspector = meta.story({
+  args: { fit: 'width', ratio: 1, sidebarSize: 'compact', sidebarContentHeight: 540 },
 });

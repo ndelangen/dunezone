@@ -22,7 +22,15 @@ export type Edge = {
   c2?: Point;
   arc?: number[];
 };
-export type Decal = { id: string; artwork: string; x: number; y: number; scale: number; rotation: number };
+export type Decal = {
+  id: string;
+  artwork: string;
+  x: number;
+  y: number;
+  scale: number;
+  rotation: number;
+  outline: boolean;
+};
 export type Properties = {
   name: string;
   type: 'sand' | 'rock' | 'stronghold' | 'polar';
@@ -47,6 +55,11 @@ export type Face = {
 };
 type Sample = { a: Point; b: Point; edge: Edge; t0: number; t1: number };
 const factory = new GeometryFactory();
+export const commonArtwork = {
+  city: '../../../../../../media/vector/icon/city.svg',
+  sietch: '../../../../../../media/vector/icon/seitch.svg',
+  ornithopter: '../../../../../../media/vector/icon/ornithopter.svg',
+};
 export const CENTER: Point = [243.53, 243.53];
 export const RADIUS = 240;
 const round = (n: number) => Number(n.toFixed(6));
@@ -340,11 +353,17 @@ export function arrakisBoard(): Board {
     if (face) {
       board.properties[face.key].decals.push({
         id: symbol.id,
-        artwork: symbol.id,
+        artwork:
+          commonArtwork[
+            board.properties[face.key].name === 'arrakeen' || board.properties[face.key].name.startsWith('carthag')
+              ? 'city'
+              : 'sietch'
+          ],
         x: symbol.x,
         y: symbol.y,
         scale: symbol.scale,
         rotation: 0,
+        outline: true,
       });
     }
   });
@@ -404,67 +423,20 @@ export function studyBoard(): Board {
   );
   const stronghold = faces.find((f) => board.properties[f.key].type === 'stronghold')!;
   board.properties[stronghold.key].decals = [
-    { id: 'oversized', artwork: 'city', x: 365, y: 155, scale: 100, rotation: 24 },
-    { id: 'ornithopter', artwork: 'ornithopter', x: 353, y: 178, scale: 30, rotation: -12 },
+    { id: 'oversized', artwork: commonArtwork.city, x: 365, y: 155, scale: 100, rotation: 24, outline: true },
+    { id: 'ornithopter', artwork: commonArtwork.ornithopter, x: 353, y: 178, scale: 30, rotation: -12, outline: true },
   ];
   return board;
 }
 
-export function snapPoint(
-  board: Board,
-  point: Point,
-  sectorSnap: boolean
-): { point: Point; node?: string; feedback: string } {
-  const nearby = Object.entries(board.nodes)
-    .map(([node, p]) => ({ node, p, d: distance(p, point) }))
-    .sort((a, b) => a.d - b.d)[0];
-  if (nearby && nearby.d < 5) {
-    return { point: nearby.p, node: nearby.node, feedback: 'Connected to boundary point' };
-  }
-  let next = point,
-    feedback = 'Free point';
-  if (sectorSnap) {
-    const dx = point[0] - CENTER[0],
-      dy = point[1] - CENTER[1],
-      radius = Math.hypot(dx, dy);
-    const step = Math.PI / 9,
-      angle = Math.atan2(dy, dx),
-      target = Math.round((angle + Math.PI / 2) / step) * step - Math.PI / 2;
-    const candidate: Point = [CENTER[0] + radius * Math.cos(target), CENTER[1] + radius * Math.sin(target)];
-    if (distance(point, candidate) < 7) {
-      next = candidate;
-      feedback = 'Snapped to sector guide';
-    }
-  }
-  const r = distance(next, CENTER);
-  if (Math.abs(r - RADIUS) < 7) {
-    const angle = (Math.round(Math.atan2(next[1] - CENTER[1], next[0] - CENTER[0]) / (Math.PI / 360)) * Math.PI) / 360;
-    next = [CENTER[0] + RADIUS * Math.cos(angle), CENTER[1] + RADIUS * Math.sin(angle)];
-    feedback += ' · Circle boundary';
-  }
-  return { point: next, feedback };
-}
-export const referenceSectors = arrakis.sectors;
-export const referenceIcons = arrakis.icons;
-export const referenceAdjustment = arrakis.greatestAdjustment;
-export const referenceSymbols = Object.fromEntries(arrakis.symbols.map((symbol) => [symbol.id, symbol.svg]));
-
-export function connectPoint(
-  board: Board,
-  input: Point,
-  snapping: boolean
-): { board: Board; node: string; point: Point; feedback: string } {
-  const snapped = snapPoint(board, input, snapping);
-  if (snapped.node) {
-    return { board, node: snapped.node, point: snapped.point, feedback: snapped.feedback };
-  }
+function nearestBoundary(board: Board, point: Point) {
   let closest: { edge: Edge; t: number; point: Point; distance: number } | undefined;
   for (const edge of board.edges) {
     const count = edge.kind === 'line' ? 1 : 128;
     for (let i = 0; i < count; i++) {
       const a = at(board, edge, i / count),
         b = at(board, edge, (i + 1) / count);
-      const p = project(snapped.point, a, b),
+      const p = project(point, a, b),
         t = (i + p.t) / count;
       if (t < 0.001 || t > 0.999) {
         continue;
@@ -474,11 +446,94 @@ export function connectPoint(
       }
     }
   }
-  const point = closest && closest.distance < 5 ? closest.point : snapped.point;
+  return closest;
+}
+export function snapPoint(
+  board: Board,
+  point: Point,
+  enabled: boolean,
+  radius = 12,
+  excludeNode?: string
+): { point: Point; node?: string; feedback: string } {
+  const nearby = Object.entries(board.nodes)
+    .filter(([node]) => node !== excludeNode)
+    .map(([node, p]) => ({ node, p, d: distance(p, point) }))
+    .sort((a, b) => a.d - b.d)[0];
+  if (nearby && nearby.d < (enabled ? radius : 0.5)) {
+    return { point: nearby.p, node: nearby.node, feedback: 'Snapped to boundary point' };
+  }
+  if (!enabled) {
+    return { point, feedback: 'Free point' };
+  }
+  /* A dragged point never attracts itself or the edges attached to it. */
+  const boundary = nearestBoundary(
+    excludeNode
+      ? {
+          ...board,
+          edges: board.edges.filter((e) => e.a !== excludeNode && e.b !== excludeNode),
+        }
+      : board,
+    point
+  );
+  if (boundary && boundary.distance < radius && !boundary.edge.id.startsWith('rim')) {
+    return { point: boundary.point, feedback: 'Snapped to shared boundary' };
+  }
+  const sector = arrakis.sectorLines
+    .map(([a, b]) => ({ a: a as Point, b: b as Point, ...project(point, a as Point, b as Point) }))
+    .sort((a, b) => a.distance - b.distance)[0];
+  let next = point,
+    feedback = 'Free point';
+  if (sector && sector.distance < radius) {
+    next = lerp(sector.a, sector.b, sector.t);
+    feedback = 'Snapped to sector guide';
+  }
+  if (Math.abs(distance(next, CENTER) - RADIUS) < radius) {
+    if (feedback === 'Snapped to sector guide') {
+      const dx = sector.b[0] - sector.a[0],
+        dy = sector.b[1] - sector.a[1];
+      const x = sector.a[0] - CENTER[0],
+        y = sector.a[1] - CENTER[1];
+      const a = dx * dx + dy * dy,
+        b = 2 * (x * dx + y * dy),
+        c = x * x + y * y - RADIUS * RADIUS;
+      const root = Math.sqrt(b * b - 4 * a * c);
+      next =
+        [(-b + root) / (2 * a), (-b - root) / (2 * a)]
+          .filter((t) => t >= 0 && t <= 1)
+          .map((t) => lerp(sector.a, sector.b, t))
+          .sort((a, b) => distance(a, next) - distance(b, next))[0] || next;
+    } else {
+      const theta = Math.atan2(next[1] - CENTER[1], next[0] - CENTER[0]);
+      next = [CENTER[0] + RADIUS * Math.cos(theta), CENTER[1] + RADIUS * Math.sin(theta)];
+    }
+    feedback = feedback === 'Free point' ? 'Snapped to circle boundary' : feedback + ' · Circle boundary';
+  }
+  return { point: next, feedback };
+}
+export const referenceSectors = arrakis.sectors;
+export const referenceAdjustment = arrakis.greatestAdjustment;
+
+export function connectPoint(
+  board: Board,
+  input: Point,
+  snapping: boolean,
+  radius = 12,
+  targetEdge?: string
+): { board: Board; node: string; point: Point; feedback: string } {
+  const snapped = snapPoint(board, input, snapping, radius);
+  if (snapped.node && !targetEdge) {
+    return { board, node: snapped.node, point: snapped.point, feedback: snapped.feedback };
+  }
+  const closest = nearestBoundary(
+    targetEdge ? { ...board, edges: board.edges.filter((e) => e.id === targetEdge) } : board,
+    snapped.point
+  );
+  const connects = closest && (targetEdge || closest.distance < (snapping ? radius : 0.5));
+  const point = connects ? closest.point : snapped.point;
   const node = `point-${crypto.randomUUID()}`;
   const nodes = { ...board.nodes, [node]: point };
   let edges = board.edges;
-  if (closest && closest.distance < 5) {
+  if (connects) {
     const { edge, t } = closest;
     const first: Edge = { ...edge, id: `${edge.id}:a`, b: node },
       second: Edge = { ...edge, id: `${edge.id}:b`, a: node };
@@ -489,7 +544,7 @@ export function connectPoint(
       first.c1 = lerp(a, edge.c1!, t);
       first.c2 = [point[0] - (d[0] * t) / 3, point[1] - (d[1] * t) / 3];
       second.c1 = [point[0] + (d[0] * (1 - t)) / 3, point[1] + (d[1] * (1 - t)) / 3];
-      second.c2 = lerp(b, edge.c2!, t);
+      second.c2 = lerp(edge.c2!, b, t);
     }
     if (edge.kind === 'arc') {
       const angle = Math.abs(arcParameters(board, edge).delta);
@@ -504,8 +559,45 @@ export function connectPoint(
     board: { ...board, nodes, edges },
     node,
     point,
-    feedback: closest && closest.distance < 5 ? `${snapped.feedback} · Connected to shared boundary` : snapped.feedback,
+    feedback: connects ? `${snapped.feedback} · Connected to shared boundary` : snapped.feedback,
   };
+}
+
+export function pointRemovalReason(board: Board, node: string): string | null {
+  const edges = board.edges.filter((e) => e.a === node || e.b === node);
+  if (edges.length > 2) {
+    return 'Remove a connected edge before removing this junction.';
+  }
+  if (edges.some((e) => e.id.startsWith('rim')) && !node.startsWith('point-')) {
+    return 'The four circle anchors stay in place.';
+  }
+  return null;
+}
+export function removePoint(board: Board, node: string): Board {
+  if (pointRemovalReason(board, node)) {
+    return board;
+  }
+  const attached = board.edges.filter((e) => e.a === node || e.b === node);
+  const edges = board.edges.filter((e) => e.a !== node && e.b !== node);
+  if (attached.length === 2) {
+    const [first, second] = attached;
+    const a = first.a === node ? first.b : first.a,
+      b = second.a === node ? second.b : second.a;
+    if (a !== b) {
+      const joining: Edge = { id: `joined-${crypto.randomUUID()}`, a, b, kind: 'line' };
+      if (attached.every((e) => e.id.startsWith('rim') && e.kind === 'arc')) {
+        const sweep = first.b === node ? first.arc![4] : 1 - first.arc![4];
+        const angle = Math.abs(arcParameters(board, first).delta) + Math.abs(arcParameters(board, second).delta);
+        joining.id = `rim-${joining.id}`;
+        joining.kind = 'arc';
+        joining.arc = [RADIUS, RADIUS, 0, angle > Math.PI ? 1 : 0, sweep];
+      }
+      edges.push(joining);
+    }
+  }
+  const nodes = { ...board.nodes };
+  delete nodes[node];
+  return { ...board, nodes, edges };
 }
 
 export function blankBoard(): Board {

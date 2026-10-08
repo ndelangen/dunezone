@@ -11,6 +11,11 @@
   min-width: 0;
 }
 
+.container[data-sidebar-size="compact"] {
+  --document-editor-sidebar-min-width: 18rem;
+  --document-editor-sidebar-preferred-width: 21rem;
+}
+
 .root {
   width: 100%;
   min-width: 0;

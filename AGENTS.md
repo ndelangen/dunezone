@@ -253,6 +253,8 @@ Rules between categories:
 
 - **Only Surfaces paint.** Everything else is transparent; Content marks nothing but its own text.
 - **Surfaces never nest.**
+- **No segmented selectors.** `SegmentedControl` is banned. Use a Select for enum values and
+  Tabs for switching between content panels.
 - **Floating UI is small and single-layer.** Popovers/menus only where reflow is undesirable; few
   controls, no sub-editors; a floating pane never opens another floating pane (display-only
   tooltips/hover previews exempt); dropdowns portal to the document. Complex editors expand inline.

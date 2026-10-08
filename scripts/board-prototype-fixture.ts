@@ -94,8 +94,20 @@ for (const type of ['strongholds', 'polar', 'rock', 'sand']) {
     });
   }
 }
-const icons = [...svg.getElementById('icons')!.querySelectorAll('path')].map((p) => p.outerHTML);
 const sectors = svg.getElementById('sectors')!.outerHTML;
+const sectorLines = [...svg.getElementById('sectors')!.querySelectorAll('path')].map((element) => {
+  const points: [number, number][] = [];
+  svgpath(element.getAttribute('d')!)
+    .transform(element.parentElement!.getAttribute('transform') || '')
+    .abs()
+    .iterate(([kind, ...values]) => {
+      const previous = points.at(-1);
+      points.push(
+        kind === 'H' ? [values[0]!, previous![1]] : kind === 'V' ? [previous![0], values[0]!] : [values[0]!, values[1]!]
+      );
+    });
+  return points;
+});
 const browser = await chromium.launch({ headless: true });
 const page = await browser.newPage();
 await page.setContent(readFileSync('media/vector/background/map.svg', 'utf8'));
@@ -105,19 +117,17 @@ const symbols = await page.evaluate(() =>
     .map((element, i) => {
       const p = element as SVGGraphicsElement,
         b = p.getBBox();
-      const content = p.outerHTML + p.nextElementSibling!.outerHTML;
       return {
-        id: `reference-symbol-${i}`,
+        id: `arrakis-decal-${i}`,
         x: b.x + b.width / 2,
         y: b.y + b.height / 2,
         scale: Math.max(b.width, b.height),
-        svg: `<svg viewBox="${b.x} ${b.y} ${b.width} ${b.height}">${content}</svg>`,
       };
     })
 );
 await browser.close();
 writeFileSync(
   'src/app/routes/_app/assets/board-prototype/arrakis.fixture.json',
-  JSON.stringify({ nodes, edges, shapes, icons, symbols, sectors, greatestAdjustment }, null, 2) + '\n'
+  JSON.stringify({ nodes, edges, shapes, symbols, sectors, sectorLines, greatestAdjustment }, null, 2) + '\n'
 );
 console.log({ nodes: Object.keys(nodes).length, edges: edges.length, territories: shapes.length, greatestAdjustment });

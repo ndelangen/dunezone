@@ -13,6 +13,8 @@ export interface DocumentEditorLayoutProps extends PropsWithChildren {
   ratio: number;
   /** The preferred fit. Useful pane widths may overrule it. */
   fit: DocumentEditorFit;
+  /** A narrow inspector leaves the preview most of the available width. */
+  sidebarSize?: 'standard' | 'compact';
 }
 
 function Sidebar(_: PropsWithChildren): null {
@@ -188,7 +190,7 @@ function usePaneGeometry({ fit, ratio, preview, sidebar }: PaneGeometryDependenc
  * The document owns vertical scrolling. The Layout owns pane allocation, the narrow horizontal track,
  * and which shorter pane can remain visible while its taller neighbour continues through the document.
  */
-function DocumentEditorLayoutBase({ ratio, fit, children }: DocumentEditorLayoutProps) {
+function DocumentEditorLayoutBase({ ratio, fit, sidebarSize = 'standard', children }: DocumentEditorLayoutProps) {
   if (!isValidRatio(ratio)) {
     throw new RangeError('DocumentEditorLayout ratio must be a positive finite number.');
   }
@@ -202,7 +204,11 @@ function DocumentEditorLayoutBase({ ratio, fit, children }: DocumentEditorLayout
   });
 
   return (
-    <div className={styles.container} style={{ '--document-editor-ratio': ratio } as CSSProperties}>
+    <div
+      className={styles.container}
+      data-sidebar-size={sidebarSize}
+      style={{ '--document-editor-ratio': ratio } as CSSProperties}
+    >
       <div
         ref={rootRef}
         className={styles.root}
