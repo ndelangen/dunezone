@@ -2,7 +2,7 @@
  * Moves raster originals between a checkout and R2 through the publisher's ingest at `/__media/src/<sha256>` (#1888).
  * `media:backfill` and `media:sync` share it.
  *
- * MEDIA_ORIGIN picks the Worker, https://dune.zone by default.
+ * MEDIA_ORIGIN picks the Worker: https://dune.zone by default, or a local one on localhost.
  * Reads need no token, and uploads take MEDIA_UPLOAD_TOKEN.
  * Ingest creates an object only if it is absent, so every operation can be repeated.
  */
@@ -11,7 +11,18 @@ import { createHash } from 'node:crypto';
 import type { RasterLock, RasterLockEntry } from '../../src/shared/media/rasterLock';
 import { fetchMedia, integrityMatches } from './media-fetch';
 
-export const mediaOrigin = (process.env.MEDIA_ORIGIN ?? 'https://dune.zone').replace(/\/$/, '');
+/* Uploads carry the upload token, so the origin is limited to production and a local Worker. */
+const TRUSTED_HOSTS = new Set(['dune.zone', 'localhost', '127.0.0.1']);
+
+function trustedOrigin(value: string): string {
+  const url = new URL(value);
+  if (!TRUSTED_HOSTS.has(url.hostname) || (url.protocol !== 'https:' && url.hostname === 'dune.zone')) {
+    throw new Error(`MEDIA_ORIGIN must be https://dune.zone or a local Worker, not ${value}`);
+  }
+  return url.origin;
+}
+
+export const mediaOrigin = trustedOrigin(process.env.MEDIA_ORIGIN ?? 'https://dune.zone');
 const RETRY_DELAYS_MS = [2000, 4000, 8000];
 
 /** One original the lock lists, under the first key that names it. */
