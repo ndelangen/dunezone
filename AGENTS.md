@@ -483,15 +483,15 @@ This is a single-context repository using root `CONTEXT.md` and `docs/adr/`. See
 
 ## Image pipeline
 
-Raster image sources live in `media/**`; everything under `public/image/**` and `public/web/**` is
-generated output (gitignored), apart from the committed files named in `COMMITTED_WEB_FILES`
-(`src/shared/assetRules.ts`, read by both the generator and `scripts/verify-images.ts`). Every raster
-source is recorded by content in `media/raster.lock.json`, and the committed colour map
-`src/shared/media/map.generated.ts` is derived from it; run `bun run media:sync` after adding or
-changing a raster source (a unit test fails until the lock matches the bytes). It uploads new or
-changed originals through ingest with `MEDIA_UPLOAD_TOKEN`, then writes the lock and the map, and it
-downloads any original the lock lists that is missing locally. `bun run media:lock` writes the lock
-without uploading, for offline work; CI still reads originals from git until #1888 step 8. Run
+Raster originals live in R2, not git (#1888): `media/raster.lock.json` records each by content, and
+git ignores the PNG and JPEG files under `media/`. Everything under `public/image/**`, `public/m/**`
+and `public/web/**` is generated output (gitignored), apart from the committed files named in
+`COMMITTED_WEB_FILES` (`src/shared/assetRules.ts`, read by both the generator and
+`scripts/verify-images.ts`). The committed colour map `src/shared/media/map.generated.ts` is derived
+from the lock. `bun run media:sync` downloads every original the lock lists into `media/` at its
+asset path, and uploads new or changed originals through ingest with `MEDIA_UPLOAD_TOKEN` before it
+writes the lock and the map. `generate:images` also downloads any original it needs that is missing.
+A locked key is permanent: deleting its file locally changes nothing. Run
 `bun run generate:images` after changing sources or `src/shared/assetRules.ts` (dev and Storybook
 need the generated files locally; CI produces the deployed bytes). `bun run verify:images` checks
 the output structurally. Renderer identity hashes the *ingredients* (locked source hashes + other media bytes + rules +

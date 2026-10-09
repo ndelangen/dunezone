@@ -1,16 +1,16 @@
 /**
  * Generates every file under public/m/**, public/image/** and public/web/** from the raster lock and the sources in media/, per src/shared/assetRules.ts, sparing the committed files that `COMMITTED_WEB_FILES` names.
  *
- * Bun run generate:images [--cached-only] [--prune]
+ * Bun run generate:images [--prune]
  *
  * Per source `media/image/texture/021.jpg` this emits: public/image/texture/021-small.jpg (+ -large, and -print where declared) public/image/texture/021.jpg (safety-net re-encode at the canonical name, capped, same extension).
  * Each variant is first encoded into the content-addressed store `.cache/media/local/v/<src20>.<recipe10>.<ext>`, beside a `<name>.sha256` record of its SHA-256 and byte length (#1888 step 3).
  * The store is never wiped: a variant whose record still matches is reused, so only new originals or changed recipes are encoded.
  * public/ is then rebuilt from the store, so removals in media/ still propagate: each variant at its `/m/<name>`, which `resolveAsset` emits (#1888 step 5), and at its legacy path.
- * `--cached-only` encodes nothing and exits 3 when a variant is missing, so CI can tell whether it needs the original bytes at all.
  * `--prune` deletes stored variants the current plan no longer names, so a store carried between CI runs stays the size of one store.
  * With MEDIA_FILL_ORIGIN set (CI sets https://dune.zone), a variant the store lacks is first downloaded from `/m`, where each deploy publishes them, and kept only when its bytes match the `X-Media-SHA256` and `X-Media-Bytes` it was served with.
  * Anything not published, or not verifiable, is encoded from the original as before, so the fill never decides correctness.
+ * An original missing locally is downloaded from `/__media/src` at MEDIA_ORIGIN (https://dune.zone by default) and checked against the lock.
  * The runtime map of colours comes from the raster lock too (`bun run media:lock`), so nothing here is imported by the app.
  *
  * CI is the canonical producer (deployed bytes);
@@ -36,6 +36,8 @@ import sharp from 'sharp';
 import { COMMITTED_WEB_FILES, ruleForKey } from '../src/shared/assetRules';
 import type { RasterLock } from '../src/shared/media/rasterLock';
 import { fetchMedia, integrityMatches } from './lib/media-fetch';
+import { download } from './lib/media-originals';
+import { sourcePath } from './lib/raster-lock';
 import { checksumRecord, matchesRecord, planVariants } from './media-variants';
 import type { ChecksumRecord, PlannedVariant } from './media-variants';
 import { describeError } from './retry-transient';
@@ -45,7 +47,6 @@ const mediaRoot = path.join(repoRoot, 'media');
 const publicRoot = path.join(repoRoot, 'public');
 const storeRoot = path.join(repoRoot, '.cache/media/local/v');
 const RASTER = /\.(png|jpe?g)$/i;
-const cachedOnly = process.argv.includes('--cached-only');
 const prune = process.argv.includes('--prune');
 const fillOrigin = process.env.MEDIA_FILL_ORIGIN?.replace(/\/$/, '');
 const FILL_CONCURRENCY = 16;
@@ -70,7 +71,7 @@ function assertLockCoversOriginals(): void {
     .map((file) => `/${path.relative(mediaRoot, file).split(path.sep).join('/')}`)
     .filter((key) => !lock[key]);
   if (unlocked.length > 0) {
-    throw new Error(`Run \`bun run media:lock\`: the lock does not list ${unlocked.slice(0, 5).join(', ')}`);
+    throw new Error(`Run \`bun run media:sync\`: the lock does not list ${unlocked.slice(0, 5).join(', ')}`);
   }
 }
 
@@ -84,13 +85,22 @@ function storedBytes(variant: PlannedVariant): Uint8Array | null {
   return matchesRecord(bytes, record) ? bytes : null;
 }
 
-/** Reads the original and refuses bytes that disagree with the lock, so a variant is never named after a hash it was not encoded from. */
-function lockedOriginal(key: string): Buffer {
-  const file = path.join(mediaRoot, key.replace(/^\//, ''));
+/**
+ * Reads the original and refuses bytes that disagree with the lock, so a variant is never named after a hash it was not encoded from.
+ * The originals are not in git (#1888 step 8): one missing locally is downloaded from ingest, verified and kept in media/, so the next run works offline.
+ */
+async function lockedOriginal(key: string): Promise<Buffer> {
+  const file = sourcePath(key);
+  if (!existsSync(file)) {
+    const bytes = await download({ hash: lock[key].sha256, key, entry: lock[key] });
+    mkdirSync(path.dirname(file), { recursive: true });
+    writeFileSync(file, bytes);
+    return Buffer.from(bytes);
+  }
   const bytes = readFileSync(file);
   const sha256 = createHash('sha256').update(bytes).digest('hex');
   if (sha256 !== lock[key].sha256) {
-    throw new Error(`${key} hashes to ${sha256}, not the lock's ${lock[key].sha256}: run \`bun run media:lock\``);
+    throw new Error(`${key} hashes to ${sha256}, not the lock's ${lock[key].sha256}: run \`bun run media:sync\``);
   }
   return bytes;
 }
@@ -174,7 +184,7 @@ async function fillOriginal(key: string, variants: PlannedVariant[]): Promise<nu
         `move the file, fix the export, or change the declaration in assetRules.ts`
     );
   }
-  const original = lockedOriginal(key);
+  const original = await lockedOriginal(key);
   for (const variant of missing) {
     store(variant, await encode(original, variant, lock[key].width));
   }
@@ -226,14 +236,6 @@ const plans = new Map(keys.map((key) => [key, planVariants(key, lock[key], sharp
 const plan = [...plans.values()].flat();
 mkdirSync(storeRoot, { recursive: true });
 const fetched = await fillFromPublished(plan);
-
-if (cachedOnly) {
-  const missing = plan.filter((variant) => !storedBytes(variant)).length;
-  if (missing > 0) {
-    console.log(JSON.stringify({ variants: plan.length, fetched, missing }));
-    process.exit(3);
-  }
-}
 
 function pruneStore(plan: PlannedVariant[]): number {
   const kept = new Set(plan.flatMap((variant) => [variant.name, `${variant.name}.sha256`]));

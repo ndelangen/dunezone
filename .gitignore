@@ -20,6 +20,12 @@ test-results
 # research working notes stay local, never committed
 docs/research/
 
+# raster originals live in R2 and are recorded in media/raster.lock.json (#1888); `bun run media:sync` fetches them
+/media/**/*.png
+/media/**/*.jpg
+/media/**/*.jpeg
+/media/**/*.webp
+
 # generated image variants (built from media/ by scripts/generate-images.ts; CI is canonical)
 /public/m/
 /public/image/

@@ -14,42 +14,28 @@ runs:
   steps:
     # Variants live in a content-addressed store (#1888 step 3): each is named after its original's SHA-256 and a hash
     # of its recipe and the encoder versions, so a name never changes meaning. The key names exactly what
-    # generate:images reads: media/image as its git tree hash, so a sparse checkout computes the same key, plus the
-    # lock, the rules, the generator and the encoder sharp loads. A miss restores the closest earlier store, and
-    # the generator then encodes only the variants that store lacks.
+    # generate:images reads: the raster lock (the originals are not in git, #1888 step 8), the rules, the generator and
+    # the encoder sharp loads. A miss restores the closest earlier store, and the generator then encodes only the
+    # variants that store lacks.
     - name: Name the variant store
       id: image_key
       run: |
         set -euo pipefail
-        tree="$(git rev-parse HEAD:media/image)"
         encoder="$(bun -e 'console.log(JSON.stringify(require("sharp").versions))' | sha256sum | cut -c1-16)"
         echo "prefix=media-variants-${encoder}-" >> "$GITHUB_OUTPUT"
-        echo "key=media-variants-${encoder}-${tree}" >> "$GITHUB_OUTPUT"
       shell: bash
     - name: Restore the variant store
       id: image_cache
       uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         path: .cache/media/local
-        key: ${{ steps.image_key.outputs.key }}-${{ hashFiles('media/web/**', 'media/raster.lock.json', 'src/shared/assetRules.ts', 'scripts/generate-images.ts', 'scripts/media-variants.ts') }}
+        key: ${{ steps.image_key.outputs.prefix }}${{ hashFiles('media/raster.lock.json', 'src/shared/assetRules.ts', 'scripts/generate-images.ts', 'scripts/media-variants.ts') }}
         restore-keys: ${{ steps.image_key.outputs.prefix }}
     # A variant the store lacks is first downloaded from /m, where each production deploy publishes them, and kept
-    # only when it matches the integrity headers it was served with. Only a variant still missing needs original
-    # bytes, so a sparse checkout widens to the whole tree only then. The checkout is blobless, and git fetches the
-    # missing originals from the public repository as it writes them.
+    # only when it matches the integrity headers it was served with. Only a variant still missing needs its original,
+    # which the generator downloads from /__media/src and checks against the lock.
     - name: Generate image variants
-      run: |
-        set -euo pipefail
-        status=0
-        bun run generate:images --cached-only --prune || status=$?
-        if [ "$status" -eq 3 ]; then
-          if [ "$(git config --get core.sparseCheckout)" = "true" ]; then
-            git sparse-checkout disable
-          fi
-          bun run generate:images --prune
-        elif [ "$status" -ne 0 ]; then
-          exit "$status"
-        fi
+      run: bun run generate:images --prune
       env:
         MEDIA_FILL_ORIGIN: https://dune.zone
       shell: bash

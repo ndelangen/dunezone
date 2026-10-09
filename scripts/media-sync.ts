@@ -51,7 +51,7 @@ if (pending.length > 0 && !token) {
   );
 } else {
   pushed = await eachWithCounts(pending, push);
-  /* A failed pull can leave a key out of the tree listing, which would read as a removal. */
+  /* A failed pull leaves the tree incomplete, so the lock is left as it was. */
   if (!pushed.failed && !pulled.failed) {
     await writeRasterLock(lock);
   }

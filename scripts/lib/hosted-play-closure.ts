@@ -38,6 +38,8 @@ const HOSTED_PLAY_CLOSURE: readonly string[] = [
   'scripts/generate.ts',
   'scripts/generate-*',
   'scripts/lib/media-fetch.ts',
+  'scripts/lib/media-originals.ts',
+  'scripts/lib/raster-lock.ts',
   'scripts/media-variants.ts',
   'scripts/retry-transient.ts',
   'scripts/assemble-publisher-assets.ts',

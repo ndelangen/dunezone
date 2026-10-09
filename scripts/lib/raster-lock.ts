@@ -3,11 +3,10 @@
  * `bun run media:lock` and `bun run media:sync` both write the lock through here.
  *
  * An entry whose bytes are unchanged is kept as it is, so only new or changed files are decoded.
- * A source that is tracked but outside a sparse checkout keeps its existing entry.
+ * A locked original missing locally keeps its existing entry.
  */
-import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
 import { format } from 'oxfmt';
@@ -37,14 +36,19 @@ export function sourcePath(key: string): string {
   return resolved;
 }
 
-/* Tracked sources plus new ones not yet added, so a fresh file is locked before its first commit. */
-function listSources(): string[] {
-  return execFileSync('/usr/bin/git', ['ls-files', '-z', '--cached', '--others', '--exclude-standard', '--', 'media'], {
-    cwd: repoRoot,
-    encoding: 'utf8',
-  })
-    .split('\0')
-    .filter((file) => RASTER_SOURCE.test(file));
+/** The raster originals present under media/, as asset keys such as `/image/texture/021.jpg`. */
+function localRasterKeys(): string[] {
+  return readdirSync(mediaRoot, { recursive: true })
+    .map((file) => `/${String(file).split(path.sep).join('/')}`)
+    .filter((key) => RASTER_SOURCE.test(key));
+}
+
+/*
+ * The originals are not in git (#1888 step 8), so the lock lists every key it already had plus any new file on disk.
+ * A key is permanent: deleting its file locally keeps the entry, and `media:sync` fetches the file again.
+ */
+function listKeys(previous: RasterLock): string[] {
+  return [...new Set([...Object.keys(previous), ...localRasterKeys()])];
 }
 
 async function describe(key: string, previous: RasterLock): Promise<RasterLockEntry> {
@@ -81,9 +85,7 @@ async function describe(key: string, previous: RasterLock): Promise<RasterLockEn
 /** Describes every raster source under media/, reusing the previous entry of each unchanged file. */
 export async function buildRasterLock(previous: RasterLock): Promise<RasterLock> {
   const lock: RasterLock = {};
-  const keys = [...new Set(listSources())]
-    .sort((left, right) => left.localeCompare(right))
-    .map((file) => `/${path.posix.relative('media', file)}`);
+  const keys = listKeys(previous).sort((left, right) => left.localeCompare(right));
   const queue = [...keys];
   async function worker(): Promise<void> {
     const key = queue.shift();

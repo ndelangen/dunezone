@@ -16,11 +16,8 @@
  * Every /image/, /web/, /font/ and /dice.svg URL referenced from src CSS, TS or TSX resolves to a file.
  * The Storybook build silences Vite's warning about these, so this is what keeps them honest.
  *
- * The sources come from git's index, so a CI job whose sparse checkout leaves media/image out (#1923) still checks every one.
- * Only the tier widths need a source's bytes, so for a source outside the checkout they are left to the jobs that check out media/image.
- * `widthsChecked` in the output says how many were compared.
+ * The sources and their widths come from the raster lock, so a job without the originals still checks every one.
  */
-import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 
@@ -28,6 +25,7 @@ import sharp from 'sharp';
 
 import { COMMITTED_WEB_FILES, FORMAT_EXTENSION, ruleForKey } from '../src/shared/assetRules';
 import type { AssetSize } from '../src/shared/assetRules';
+import type { RasterLock } from '../src/shared/media/rasterLock';
 import { resolveAsset } from '../src/shared/media/resolveAsset';
 
 const repoRoot = path.resolve(import.meta.dirname, '..');
@@ -48,27 +46,12 @@ function walk(directory: string): string[] {
 const failures: string[] = [];
 const expectedFiles = new Set<string>();
 
-/*
- * `-t` tags a file that the sparse checkout leaves out with `S`. A tracked file that is merely missing was deleted in the worktree, so the generator, which walks the files on disk, no longer sees it either.
- * Untracked art counts, so new art is checked before its first commit.
- */
-const listing = execFileSync(
-  '/usr/bin/git',
-  ['ls-files', '-z', '-t', '--cached', '--others', '--exclude-standard', '--', 'media'],
-  {
-    cwd: repoRoot,
-    encoding: 'utf8',
-  }
-);
-const sources = listing
-  .split('\0')
-  .filter((entry) => RASTER.test(entry))
-  .map((entry) => ({ tag: entry.slice(0, 1), source: path.join(repoRoot, entry.slice(2)) }))
-  .filter(({ tag, source }) => tag === 'S' || existsSync(source));
+/* The sources are the lock's keys (#1888 step 8), so no job needs the original bytes to check the output. */
+const lock = JSON.parse(readFileSync(path.join(mediaRoot, 'raster.lock.json'), 'utf8')) as RasterLock;
+const sources = Object.keys(lock).map((key) => ({ key, source: path.join(mediaRoot, key) }));
 let widthsChecked = 0;
-for (const { source } of sources) {
+for (const { key, source } of sources) {
   const relative = path.relative(mediaRoot, source).split(path.sep).join('/');
-  const key = `/${relative}`;
   const rule = ruleForKey(key);
   if (!rule) {
     failures.push(`${key}: no asset rule covers this source`);
@@ -78,10 +61,8 @@ for (const { source } of sources) {
   const baseName = path.basename(relative).replace(RASTER, '');
   const extension = FORMAT_EXTENSION[rule.format];
 
-  const sourceWidth = existsSync(source) ? ((await sharp(source).metadata()).width ?? 0) : undefined;
-  if (sourceWidth !== undefined) {
-    widthsChecked += 1;
-  }
+  const sourceWidth = lock[key].width;
+  widthsChecked += 1;
 
   for (const [sizeName, sizeWidth] of Object.entries(rule.sizes)) {
     if (sizeWidth === undefined) {
@@ -115,9 +96,6 @@ for (const { source } of sources) {
     const declaredFormat = rule.format === 'jpeg' ? 'jpeg' : rule.format;
     if (metadata.format !== declaredFormat) {
       failures.push(`${key}: tier ${tierRelative} is ${metadata.format}, expected ${declaredFormat}`);
-    }
-    if (sourceWidth === undefined) {
-      continue;
     }
     const expectedWidth = sizeWidth === null ? sourceWidth : Math.min(sizeWidth, sourceWidth);
     if (metadata.width !== expectedWidth) {
