@@ -1,0 +1,26 @@
+name: Hosted play closure
+description: Decide whether the hosted play flows run in this job, from the changed files on a pull request or main's history on the daily run (#1598)
+
+outputs:
+  run:
+    description: '"true" when the shard runs its flows, "false" when the closure skips them'
+    value: ${{ steps.decide.outputs.run }}
+
+runs:
+  using: composite
+  steps:
+    # The script is a file beside this one so the lint job's ShellCheck step can check it: actionlint checks
+    # the run: scripts of workflows, not those of actions. It needs Bun on the PATH, which the setup action installs.
+    - name: Decide from the changed files
+      id: decide
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        EVENT: ${{ github.event_name }}
+        REPO: ${{ github.repository }}
+        BASE: ${{ github.event.pull_request.base.sha }}
+        HEAD: ${{ github.event.pull_request.head.sha }}
+        SHA: ${{ github.sha }}
+        FORCE: ${{ github.event.inputs.force }}
+        WORKFLOW_REF: ${{ github.workflow_ref }}
+      run: bash "$GITHUB_ACTION_PATH/decide.sh"

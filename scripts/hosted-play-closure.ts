@@ -1,6 +1,6 @@
 /*
  * Decides whether a pull request's changed files can reach the hosted play flows (#1598).
- * The verify workflow's `play_closure` job pipes the list, one file per line, into this script, which prints the decision as JSON, writes `run=true` or `run=false` to the job's outputs, and puts the decision in prose on the step summary.
+ * The `play-closure` action at the start of each hosted shard pipes the list, one file per line, into this script, which prints the decision as JSON, writes `run=true` or `run=false` to the step's outputs, and puts the decision in prose on the step summary.
  * Run: `bun scripts/hosted-play-closure.ts < changed-files.txt`
  */
 import { appendFileSync, readFileSync } from 'node:fs';

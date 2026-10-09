@@ -1,5 +1,13 @@
 name: Generated images
-description: Restore generated image variants from cache (regenerate on miss) and generate vectors
+description: Restore generated image and vector variants from cache, regenerating either on a miss
+
+inputs:
+  regenerate-vectors:
+    description: >-
+      "true" runs the vector generator even on a cache hit. The generator also rewrites a media/vector
+      source that is not pretty-printed, which a restored cache cannot, so the jobs that check the
+      generators against the media or diff the renderer manifest pass "true".
+    default: "false"
 
 runs:
   using: composite
@@ -17,6 +25,16 @@ runs:
       if: steps.image_cache.outputs.cache-hit != 'true'
       run: bun run generate:images
       shell: bash
+    # The vector output is reproducible from the same ingredients the renderer manifest hashes for it
+    # (workers/publisher/renderer-manifest-build.ts), with svgo, svgpath and linkedom pinned by bun.lock.
+    # The generator took about 14 s in every job that ran it.
+    - name: Restore generated vectors
+      id: vector_cache
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: public/vector
+        key: generated-vectors-${{ hashFiles('media/vector/**', 'src/shared/vectorRules.ts', 'src/shared/vectorNormalize.ts', 'scripts/generate-vectors.ts', 'bun.lock') }}
     - name: Generate vector variants
+      if: steps.vector_cache.outputs.cache-hit != 'true' || inputs.regenerate-vectors == 'true'
       run: bun run generate:vectors
       shell: bash

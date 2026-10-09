@@ -3,7 +3,7 @@ name: Hosted play daily
 # Runs the four hosted play shards on main once a day (#1598). A pull request whose diff lies outside
 # the hosted closure skips them, and this repository has no merge queue (GitHub offers none to a
 # personal account's repository, and #286 chose the up-to-date rule over one), so this run is where a
-# change outside the closure first meets the flows. The play_closure job in reusable-verify.yml skips
+# change outside the closure first meets the flows. The play-closure action at the start of each shard skips
 # the shards when main's tree already had them: when the last daily run checked this same commit, or
 # when the pull request that merged as this commit was up to date and its diff reached the closure, so
 # its own run executed the shards on this tree.
@@ -52,7 +52,7 @@ jobs:
           RESULT: ${{ needs.verify.result }}
         run: |
           gh label create hosted-play-daily --repo "$REPO" --description "The daily hosted play run on main failed" --color B60205 --force
-          body="The daily hosted play run on main ended with $RESULT on $SHA: $RUN_URL. When a shard failed, its step summary names the flow and its hosted-play-evidence artifact holds the log, the report and the captures; when the play_closure gate failed, the run's log says which reading of the API broke."
+          body="The daily hosted play run on main ended with $RESULT on $SHA: $RUN_URL. When a shard failed, its step summary names the flow and its hosted-play-evidence artifact holds the log, the report and the captures; when a shard's closure decision failed, that shard's log says which reading of the API broke."
           number="$(gh issue list --repo "$REPO" --label hosted-play-daily --state open --limit 1 --json number --jq '.[0].number // empty')"
           if [ -n "$number" ]; then
             gh issue comment "$number" --repo "$REPO" --body "$body"
