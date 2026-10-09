@@ -58,8 +58,8 @@ React Component Meta integration still imports the legacy compiler API; it is no
 used by the application or publisher typecheck scripts.
 
 Raster sources are recorded in `media/raster.lock.json`, and the app imports the colour map
-derived from it, `src/shared/media/map.generated.ts`. Both are committed; run `bun run media:lock`
-after adding or changing a raster under `media/`.
+derived from it, `src/shared/media/map.generated.ts`. Both are committed; run `bun run media:sync`
+after adding or changing a raster under `media/` (or `bun run media:lock` to lock offline without uploading).
 
 The pinned Fiber patch removes its ambient Three JSX declarations from React's namespaces.
 Those declarations make even a DOM `React.ElementType` enumerate Three's catalogue, which

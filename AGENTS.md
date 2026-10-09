@@ -487,8 +487,11 @@ Raster image sources live in `media/**`; everything under `public/image/**` and 
 generated output (gitignored), apart from the committed files named in `COMMITTED_WEB_FILES`
 (`src/shared/assetRules.ts`, read by both the generator and `scripts/verify-images.ts`). Every raster
 source is recorded by content in `media/raster.lock.json`, and the committed colour map
-`src/shared/media/map.generated.ts` is derived from it; run `bun run media:lock` after adding or
-changing a raster source (a unit test fails until the lock matches the bytes). Run
+`src/shared/media/map.generated.ts` is derived from it; run `bun run media:sync` after adding or
+changing a raster source (a unit test fails until the lock matches the bytes). It uploads new or
+changed originals through ingest with `MEDIA_UPLOAD_TOKEN`, then writes the lock and the map, and it
+downloads any original the lock lists that is missing locally. `bun run media:lock` writes the lock
+without uploading, for offline work; CI still reads originals from git until #1888 step 8. Run
 `bun run generate:images` after changing sources or `src/shared/assetRules.ts` (dev and Storybook
 need the generated files locally; CI produces the deployed bytes). `bun run verify:images` checks
 the output structurally. Renderer identity hashes the *ingredients* (locked source hashes + other media bytes + rules +
