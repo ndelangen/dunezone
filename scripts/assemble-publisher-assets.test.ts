@@ -7,6 +7,7 @@ import { afterEach, describe, expect, test } from 'vitest';
 import {
   assemblePublisherAssets,
   inspectPublisherAssets,
+  omitStaticRasters,
   WORKERS_STATIC_ASSET_FILE_LIMIT_BYTES,
 } from './lib/publisher-assets';
 
@@ -40,6 +41,28 @@ afterEach(() => {
 });
 
 describe('publisher Static Assets assembly', () => {
+  test('omits the generated raster trees and keeps the committed web files', () => {
+    const { app, publisher, headers } = fixture();
+    for (const file of [
+      'm/abc.def.webp',
+      'image/texture/021-small.jpg',
+      'web/head.png',
+      'web/logo.svg',
+      'font/a.woff2',
+    ]) {
+      mkdirSync(path.dirname(path.join(app, file)), { recursive: true });
+      writeFileSync(path.join(app, file), file);
+    }
+    assemblePublisherAssets(app, publisher, headers);
+
+    expect(omitStaticRasters(publisher)).toBe(3);
+    expect(existsSync(path.join(publisher, 'm'))).toBe(false);
+    expect(existsSync(path.join(publisher, 'image'))).toBe(false);
+    expect(existsSync(path.join(publisher, 'web/head.png'))).toBe(false);
+    expect(existsSync(path.join(publisher, 'web/logo.svg'))).toBe(true);
+    expect(existsSync(path.join(publisher, 'font/a.woff2'))).toBe(true);
+  });
+
   test('combines the SPA and capture outputs for Cloudflare Static Assets', () => {
     const { app, publisher, headers } = fixture();
     const report = assemblePublisherAssets(app, publisher, headers);

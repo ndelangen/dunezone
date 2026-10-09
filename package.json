@@ -62,6 +62,7 @@
     "publisher:dry-run": "bun run publisher:assets && wrangler deploy --dry-run --config workers/publisher/wrangler.jsonc",
     "publisher:font-regression": "bun run publisher:assets && bun run workers/publisher/font-regression.ts",
     "publisher:manifest:verify-changed": "bun run ./scripts/verify-changed-publisher-manifest.ts",
+    "publisher:omit-static-rasters": "bun run ./scripts/assemble-publisher-assets.ts --omit-static-rasters",
     "publisher:release:dry-run": "wrangler deploy --dry-run --config workers/publisher/wrangler.jsonc",
     "publisher:release:verify": "bun run publisher:dry-run && git diff --exit-code -- workers/publisher/renderer-manifest.generated.ts",
     "publisher:retain-assets": "bun run ./scripts/retain-application-assets.ts",

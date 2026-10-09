@@ -11,6 +11,8 @@ import {
 } from 'node:fs';
 import path from 'node:path';
 
+import { COMMITTED_WEB_FILES } from '../../src/shared/assetRules';
+
 const WORKERS_FREE_STATIC_ASSET_LIMIT = 20_000;
 export const WORKERS_STATIC_ASSET_FILE_LIMIT_BYTES = 25 * 1024 * 1024;
 
@@ -131,4 +133,33 @@ export function assemblePublisherAssets(
   writeFileSync(shell, normalizedShell);
   copyFileSync(shell, path.join(publisherDirectory, 'index.html'));
   return inspectPublisherAssets(publisherDirectory);
+}
+
+/**
+ * Removes the generated raster copies from an assembled release, so production serves every raster from R2 (#1888 step 7b).
+ * `/m` and the locked `/image` and `/web` URLs are answered by the Worker from the buckets, and the deploy publishes each variant before the release that names it goes live.
+ * The committed files under web/ stay, and so does everything outside the generated trees.
+ */
+export function omitStaticRasters(publisherDirectory: string): number {
+  const committed = new Set<string>(COMMITTED_WEB_FILES);
+  const generated = [
+    path.join(publisherDirectory, 'm'),
+    path.join(publisherDirectory, 'image'),
+    ...(existsSync(path.join(publisherDirectory, 'web'))
+      ? readdirSync(path.join(publisherDirectory, 'web'))
+          .filter((entry) => !committed.has(entry))
+          .map((entry) => path.join(publisherDirectory, 'web', entry))
+      : []),
+  ].filter((entry) => existsSync(entry));
+  const removed = generated.reduce((total, entry) => total + countFiles(entry), 0);
+  for (const entry of generated) {
+    rmSync(entry, { recursive: true, force: true });
+  }
+  return removed;
+}
+
+function countFiles(entry: string): number {
+  return lstatSync(entry).isDirectory()
+    ? readdirSync(entry).reduce((total, child) => total + countFiles(path.join(entry, child)), 0)
+    : 1;
 }
