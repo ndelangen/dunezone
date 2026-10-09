@@ -67,7 +67,7 @@ async function describe(file: string, key: string): Promise<RasterLockEntry> {
 }
 
 const lock: RasterLock = {};
-const files = [...new Set(listed)].sort();
+const files = [...new Set(listed)].sort((left, right) => left.localeCompare(right));
 const CONCURRENCY = 8;
 for (let index = 0; index < files.length; index += CONCURRENCY) {
   const batch = files.slice(index, index + CONCURRENCY).map((file) => `/${path.posix.relative('media', file)}`);
