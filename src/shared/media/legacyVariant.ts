@@ -13,6 +13,15 @@ function canonicalVariant(key: string): string | null {
   return source && recipe ? `${source}.${recipe}.${FORMAT_EXTENSION[format]}` : null;
 }
 
+/** True when the key's category declares the tier in the format the extension names. */
+function declaresTier(key: string, tier: 'small' | 'large' | 'print', extension: string): boolean {
+  const rule = ruleForKey(key);
+  if (!rule) {
+    return false;
+  }
+  return rule.sizes[tier] !== undefined && FORMAT_EXTENSION[rule.format] === extension;
+}
+
 /** The variant behind a tier URL such as `/image/texture/021-small.jpg`, when the key's category declares that tier in that format. */
 function tierVariant(pathname: string): string | null {
   const match = pathname.match(TIER_PATH);
@@ -21,8 +30,7 @@ function tierVariant(pathname: string): string | null {
   }
   const [, base, tier, extension] = match as unknown as [string, string, 'small' | 'large' | 'print', string];
   const key = KEY_EXTENSIONS.map((candidate) => `${base}${candidate}`).find((candidate) => MEDIA_MAP[candidate]);
-  const rule = key ? ruleForKey(key) : undefined;
-  if (!key || rule?.sizes[tier] === undefined || FORMAT_EXTENSION[rule.format] !== extension) {
+  if (!key || !declaresTier(key, tier, extension)) {
     return null;
   }
   const resolved = resolveAsset(key, tier);
