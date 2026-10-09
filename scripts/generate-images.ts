@@ -9,6 +9,8 @@
  * public/ is then rebuilt from the store, so removals in media/ still propagate.
  * `--cached-only` encodes nothing and exits 3 when a variant is missing, so CI can tell whether it needs the original bytes at all.
  * `--prune` deletes stored variants the current plan no longer names, so a store carried between CI runs stays the size of one store.
+ * With MEDIA_FILL_ORIGIN set (CI sets https://dune.zone), a variant the store lacks is first downloaded from `/m`, where each deploy publishes them, and kept only when its bytes match the `X-Media-SHA256` and `X-Media-Bytes` it was served with.
+ * Anything not published, or not verifiable, is encoded from the original as before, so the fill never decides correctness.
  * The runtime map of colours comes from the raster lock too (`bun run media:lock`), so nothing here is imported by the app.
  *
  * CI is the canonical producer (deployed bytes);
@@ -33,8 +35,10 @@ import sharp from 'sharp';
 
 import { COMMITTED_WEB_FILES, ruleForKey } from '../src/shared/assetRules';
 import type { RasterLock } from '../src/shared/media/rasterLock';
+import { fetchMedia, integrityMatches } from './lib/media-fetch';
 import { checksumRecord, matchesRecord, planVariants } from './media-variants';
 import type { ChecksumRecord, PlannedVariant } from './media-variants';
+import { describeError } from './retry-transient';
 
 const repoRoot = path.resolve(import.meta.dirname, '..');
 const mediaRoot = path.join(repoRoot, 'media');
@@ -43,6 +47,9 @@ const storeRoot = path.join(repoRoot, '.cache/media/local/v');
 const RASTER = /\.(png|jpe?g)$/i;
 const cachedOnly = process.argv.includes('--cached-only');
 const prune = process.argv.includes('--prune');
+const fillOrigin = process.env.MEDIA_FILL_ORIGIN?.replace(/\/$/, '');
+const FILL_CONCURRENCY = 16;
+const FILL_RETRY_DELAYS_MS = [1000, 2000, 4000];
 
 const lock: RasterLock = JSON.parse(readFileSync(path.join(mediaRoot, 'raster.lock.json'), 'utf8'));
 
@@ -121,6 +128,39 @@ function store(variant: PlannedVariant, bytes: Buffer): void {
   renameSync(`${file}.sha256.tmp`, `${file}.sha256`);
 }
 
+/** Stores the published variant and returns true, or returns false so the caller encodes it instead. */
+async function fetchPublished(origin: string, variant: PlannedVariant): Promise<boolean> {
+  try {
+    const response = await fetchMedia(
+      `${origin}/m/${variant.name}`,
+      {},
+      {
+        subject: variant.name,
+        delaysMs: FILL_RETRY_DELAYS_MS,
+      }
+    );
+    const record = checksumRecord(response.bytes);
+    if (response.status !== 200 || !integrityMatches(response.headers, record)) {
+      return false;
+    }
+    store(variant, Buffer.from(response.bytes));
+    return true;
+  } catch (error) {
+    console.error(`${variant.name}: not fetched, encoding instead (${describeError(error)})`);
+    return false;
+  }
+}
+
+/** Downloads every variant the store lacks that `/m` already serves, and returns how many it stored. */
+async function fillFromPublished(plan: PlannedVariant[]): Promise<number> {
+  if (!fillOrigin) {
+    return 0;
+  }
+  const missing = [...new Map(plan.filter((variant) => !storedBytes(variant)).map((v) => [v.name, v])).values()];
+  const results = await pool(missing, FILL_CONCURRENCY, (variant) => fetchPublished(fillOrigin, variant));
+  return results.filter(Boolean).length;
+}
+
 /** Encodes whatever the store lacks for one original and returns how many variants that took. */
 async function fillOriginal(key: string, variants: PlannedVariant[]): Promise<number> {
   const missing = variants.filter((variant) => !storedBytes(variant));
@@ -175,11 +215,12 @@ const keys = Object.keys(lock).sort((left, right) => left.localeCompare(right));
 const plans = new Map(keys.map((key) => [key, planVariants(key, lock[key], sharp.versions)]));
 const plan = [...plans.values()].flat();
 mkdirSync(storeRoot, { recursive: true });
+const fetched = await fillFromPublished(plan);
 
 if (cachedOnly) {
   const missing = plan.filter((variant) => !storedBytes(variant)).length;
   if (missing > 0) {
-    console.log(JSON.stringify({ variants: plan.length, missing }));
+    console.log(JSON.stringify({ variants: plan.length, fetched, missing }));
     process.exit(3);
   }
 }
@@ -201,6 +242,7 @@ console.log(
   JSON.stringify({
     sources: keys.length,
     variants: plan.length,
+    fetched,
     encoded: encoded.reduce((total, count) => total + count, 0),
     pruned,
     seconds: Math.round((performance.now() - started) / 100) / 10,

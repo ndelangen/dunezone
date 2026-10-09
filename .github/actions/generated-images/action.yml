@@ -33,8 +33,10 @@ runs:
         path: .cache/media/local
         key: ${{ steps.image_key.outputs.key }}-${{ hashFiles('media/web/**', 'media/raster.lock.json', 'src/shared/assetRules.ts', 'scripts/generate-images.ts', 'scripts/media-variants.ts') }}
         restore-keys: ${{ steps.image_key.outputs.prefix }}
-    # Only a variant the store lacks needs original bytes, so a sparse checkout widens to the whole tree only then.
-    # The checkout is blobless, and git fetches the missing originals from the public repository as it writes them.
+    # A variant the store lacks is first downloaded from /m, where each production deploy publishes them, and kept
+    # only when it matches the integrity headers it was served with. Only a variant still missing needs original
+    # bytes, so a sparse checkout widens to the whole tree only then. The checkout is blobless, and git fetches the
+    # missing originals from the public repository as it writes them.
     - name: Generate image variants
       run: |
         set -euo pipefail
@@ -48,6 +50,8 @@ runs:
         elif [ "$status" -ne 0 ]; then
           exit "$status"
         fi
+      env:
+        MEDIA_FILL_ORIGIN: https://dune.zone
       shell: bash
     # The vector output is reproducible from the same ingredients the renderer manifest hashes for it
     # (workers/publisher/renderer-manifest-build.ts), with svgo, svgpath and linkedom pinned by bun.lock.
