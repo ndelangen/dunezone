@@ -179,7 +179,7 @@ function painted(value: string | number | undefined) {
 
 function fillLayer(path: ShapePath, style: Style, opacity: number): Layer {
   const paint = { color: new Color().setStyle(String(style.fill)), alpha: Number(style.fillOpacity ?? 1) * opacity };
-  return { positions: SVGLoader.createShapes(path).flatMap(shapeTriangles), paint };
+  return { positions: path.toShapes().flatMap(shapeTriangles), paint };
 }
 
 function strokeLayer(path: ShapePath, style: Style, opacity: number): Layer {
