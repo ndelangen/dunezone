@@ -9,7 +9,9 @@ The four sources in `media/web/homepage/` came from the approved homepage E prot
 - `board.png`: a 3000 by 1420 capture of the development board, with six faction tokens on the table and no controls. Its alpha channel lets the page show through.
 - `cover.jpg`, `map.jpg`, `factions.jpg`: pages from the demonstration Arrakis field guide Rulebook created during the homepage design work. The page identifies them as demonstration pages, without implying a published community Rulebook.
 
-`bun run generate:images` produces the web variants. The `web/homepage` image rule preserves transparency and the board's 3000-pixel detail. The homepage does not import Play state, interaction code or fixtures.
+`bun run generate:images` produces the web variants. The `web/homepage` image rule preserves transparency and the board's 3000-pixel detail. The board capture remains a source for the social preview. The homepage's board is a real Play canvas, loaded as its section approaches the viewport. It appears once its artwork and first frames are ready. Shared cursors then load into that canvas. Play-only menus, close-ups, piece labels, predictions and camera controls load separately.
+
+The preview keeps one canvas throughout startup. Leaving the section or hiding the document unmounts the table and closes its subscription. There is no captured board image to replace, including when graphics are unavailable.
 
 The three published cards credit their creators beside the images. The Space Orks examples credit BigDave and describe the faction as a work in progress. The Group alliance card is an illustration made for the invitation, not a saved community Asset.
 

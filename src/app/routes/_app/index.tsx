@@ -98,22 +98,6 @@ function IndexPage() {
   );
 }
 
-function BoardPreview() {
-  return (
-    <img
-      className={styles.boardPreview}
-      src={resolveAsset('/web/homepage/board.png', 'large')}
-      srcSet={`${resolveAsset('/web/homepage/board.png', 'small')} 1080w, ${resolveAsset('/web/homepage/board.png', 'large')} 3000w`}
-      sizes="200vw"
-      width={3000}
-      height={1420}
-      alt="The current Dune Play board with six faction tokens and troops on the table, without play controls"
-      loading="eager"
-      fetchPriority="high"
-    />
-  );
-}
-
 function fanStyle(x: string, y: string, turn: string, delay: string): CSSProperties {
   return { '--fan-x': x, '--fan-y': y, '--fan-turn': turn, '--arrival-delay': delay } as CSSProperties;
 }
@@ -581,7 +565,7 @@ function LiveBoardPreview({ viewer }: { viewer: SessionViewer }) {
         inView = entries.some((entry) => entry.isIntersecting);
         sync();
       },
-      { rootMargin: '150px' }
+      { rootMargin: '500px' }
     );
     observer.observe(element);
     document.addEventListener('visibilitychange', sync);
@@ -596,7 +580,6 @@ function LiveBoardPreview({ viewer }: { viewer: SessionViewer }) {
       className={styles.wideBoard}
       data-live-ready={state.readyFor === identity && state.active ? 'true' : undefined}
     >
-      <BoardPreview />
       {state.active && !state.failed && (
         <Suspense fallback={null}>
           <ConnectedHomepageTable

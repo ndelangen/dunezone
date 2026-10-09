@@ -5,7 +5,9 @@ import { act, cleanup, render } from '@testing-library/react';
 import { Group, PerspectiveCamera, Scene } from 'three';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
-import { isCursorTablePoint, isPublicTablePoint, ScenePresence, useTablePose } from './ScenePresence';
+import { ScenePresence } from './ScenePresence';
+import { isCursorTablePoint, isPublicTablePoint } from './tablePointerPoint';
+import { useTablePose } from './useTablePose';
 
 const scheduler = vi.hoisted(() => ({
   frames: new Set<(state: unknown, delta: number) => void>(),
