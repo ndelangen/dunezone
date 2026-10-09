@@ -74,22 +74,24 @@ function isVariant(value: unknown): value is MediaReleaseVariant {
   return fields && (variant.name as string).startsWith((variant.source as string).slice(0, 20));
 }
 
+/** Each rule a record must meet, with the reason it is refused when it does not. */
+const RECORD_RULES: [(record: Record<string, unknown>, release: string) => boolean, string][] = [
+  [
+    (record) => record.schemaVersion === 1 && record.state === 'prepared',
+    'The record must be schemaVersion 1 in the prepared state',
+  ],
+  [(record, release) => record.release === release, 'The record names a different release than its path'],
+  [(record) => Array.isArray(record.variants) && record.variants.length > 0, 'The record lists no variants'],
+  [(record) => (record.variants as unknown[]).every(isVariant), 'A variant entry is malformed'],
+];
+
 /** Returns the reason a record is unacceptable for this release, or null when it is well formed. */
 function recordProblem(value: unknown, release: string): string | null {
   if (!value || typeof value !== 'object') {
     return 'The record is not a JSON object';
   }
-  const record = value as Record<string, unknown>;
-  if (record.schemaVersion !== 1 || record.state !== 'prepared') {
-    return 'The record must be schemaVersion 1 in the prepared state';
-  }
-  if (record.release !== release) {
-    return 'The record names a different release than its path';
-  }
-  if (!Array.isArray(record.variants) || record.variants.length === 0) {
-    return 'The record lists no variants';
-  }
-  return record.variants.every(isVariant) ? null : 'A variant entry is malformed';
+  const failed = RECORD_RULES.find(([meets]) => !meets(value as Record<string, unknown>, release));
+  return failed ? failed[1] : null;
 }
 
 async function readRecord(source: Release): Promise<Uint8Array | Refusal> {
