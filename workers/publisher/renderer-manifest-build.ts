@@ -54,7 +54,11 @@ export const RENDERER_RUNTIME_CLOSURE_PATHS = [
  * (wayfinder #269).
  * Encoder output is deliberately never hashed: sharp makes no byte-stability promise across platforms.
  */
-const GENERATED_IMAGE_INGREDIENT_PATHS = ['src/shared/assetRules.ts', 'scripts/generate-images.ts'] as const;
+const GENERATED_IMAGE_INGREDIENT_PATHS = [
+  'src/shared/assetRules.ts',
+  'scripts/generate-images.ts',
+  'scripts/media-variants.ts',
+] as const;
 
 /** Vector train ingredients (#306): rules + normalization + generator scripts. */
 const GENERATED_VECTOR_INGREDIENT_PATHS = [
