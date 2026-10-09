@@ -74,6 +74,15 @@ headers, so the deploy's parity check still catches a variant that was never
 published. `resolveAsset` emits these URLs for every locked raster (#1888 step 5);
 the legacy `/image/...-<tier>.<ext>` paths keep serving for URLs already issued.
 
+Legacy raster URLs, `/image/...` and `/web/...` at a canonical name or a `-small`,
+`-large` or `-print` tier, run through the Worker too. A URL the raster lock lists
+answers 200 from the variant it stands for in R2 (the capped `canonical` re-encode for
+a canonical name, using `MEDIA_CANONICAL_RECIPES` in the committed map), cached for an
+hour rather than immutably, because the lock can point the URL at a new original. Any
+other file under those prefixes, such as a committed SVG or a raster not yet published,
+comes from the release's static files, and the SPA fallback's HTML answers 404.
+Rulebook illustrations load artwork through the same path.
+
 `PUT /m/<name>` is the only way in. It takes `MEDIA_PUBLISH_TOKEN` as a bearer
 token, checks the body against the image type its extension names, and creates the
 object only if it is absent. An identical re-publish answers 200, and a stored

@@ -41,3 +41,19 @@ export async function fetchMedia(
 export function integrityMatches(headers: Headers, expected: Integrity): boolean {
   return headers.get('X-Media-SHA256') === expected.sha256 && headers.get('X-Media-Bytes') === String(expected.bytes);
 }
+
+/**
+ * Whether `/m` already stores a variant, judged from a HEAD answer.
+ * A 404 is absent, and so is a 200 without `X-Media-SHA256`: that is the release's bundled static copy, which the Worker serves while R2 lacks the name.
+ * A 200 whose integrity headers name the record is stored.
+ * Anything else is a stored object that disagrees, or an answer to refuse.
+ */
+export function storedState(head: Pick<Fetched, 'status' | 'headers'>, expected: Integrity): 'absent' | 'stored' {
+  if (head.status === 404 || (head.status === 200 && !head.headers.has('X-Media-SHA256'))) {
+    return 'absent';
+  }
+  if (head.status === 200 && integrityMatches(head.headers, expected)) {
+    return 'stored';
+  }
+  throw new Error(`HEAD answered ${head.status} with integrity that disagrees with the record`);
+}

@@ -25,33 +25,42 @@ export function inNamespace(pathname: string, namespace: string): boolean {
   return pathname === namespace || pathname.startsWith(`${namespace}/`);
 }
 
-function immutableHeaders(object: R2Object, contentType: string, integrity: MediaIntegrity): Headers {
+function immutableHeaders(
+  object: R2Object,
+  contentType: string,
+  integrity: MediaIntegrity,
+  cacheControl: string
+): Headers {
   const headers = new Headers();
   headers.set('Content-Type', object.httpMetadata?.contentType ?? contentType);
   headers.set('Content-Length', String(object.size));
   headers.set('ETag', object.httpEtag);
-  headers.set('Cache-Control', IMMUTABLE_CACHE_CONTROL);
+  headers.set('Cache-Control', cacheControl);
   headers.set('X-Content-Type-Options', 'nosniff');
   headers.set('X-Media-SHA256', integrity.sha256);
   headers.set('X-Media-Bytes', integrity.bytes);
   return headers;
 }
 
-/** Answers a `GET` or `HEAD` for a stored object: 304 on a matching ETag, no body for `HEAD`, the bytes otherwise. */
+/**
+ * Answers a `GET` or `HEAD` for a stored object: 304 on a matching ETag, no body for `HEAD`, the bytes otherwise.
+ * The cache policy is immutable unless the caller names another, as legacy URLs do because their meaning can change.
+ */
 export async function serveImmutable(
   request: Request,
   object: R2ObjectBody,
   contentType: string,
-  integrity: MediaIntegrity
+  integrity: MediaIntegrity,
+  cacheControl = IMMUTABLE_CACHE_CONTROL
 ): Promise<Response> {
   if (request.headers.get('If-None-Match') === object.httpEtag) {
     await object.body.cancel();
     return new Response(null, {
       status: 304,
-      headers: { ETag: object.httpEtag, 'Cache-Control': IMMUTABLE_CACHE_CONTROL },
+      headers: { ETag: object.httpEtag, 'Cache-Control': cacheControl },
     });
   }
-  const headers = immutableHeaders(object, contentType, integrity);
+  const headers = immutableHeaders(object, contentType, integrity, cacheControl);
   if (request.method === 'HEAD') {
     await object.body.cancel();
     return new Response(null, { status: 200, headers });

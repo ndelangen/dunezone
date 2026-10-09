@@ -2,10 +2,19 @@ import sharp from 'sharp';
 import { describe, expect, test } from 'vitest';
 
 import lockJson from '../media/raster.lock.json';
-import { MEDIA_RECIPES } from '../src/shared/media/map.generated';
+import { legacyVariant } from '../src/shared/media/legacyVariant';
+import { MEDIA_CANONICAL_RECIPES, MEDIA_RECIPES } from '../src/shared/media/map.generated';
 import type { RasterLock, RasterLockEntry } from '../src/shared/media/rasterLock';
 import { resolveAsset } from '../src/shared/media/resolveAsset';
-import { checksumRecord, matchesRecord, planVariants, recipeHash, tierRecipes, variantName } from './media-variants';
+import {
+  canonicalRecipes,
+  checksumRecord,
+  matchesRecord,
+  planVariants,
+  recipeHash,
+  tierRecipes,
+  variantName,
+} from './media-variants';
 
 const VERSIONS = { vips: '8.17.2', sharp: '0.34.4', mozjpeg: '4.1.5' };
 const SHA256 = '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
@@ -79,6 +88,16 @@ describe('the committed media map', () => {
 
   test('carries the recipe names of the installed encoder', () => {
     expect(MEDIA_RECIPES, fix).toEqual(tierRecipes(sharp.versions));
+    expect(MEDIA_CANONICAL_RECIPES, fix).toEqual(canonicalRecipes(sharp.versions));
+  });
+
+  test('maps every legacy path to exactly the variant the encoder names', () => {
+    const lock = lockJson as RasterLock;
+    for (const [key, locked] of Object.entries(lock)) {
+      for (const variant of planVariants(key, locked, sharp.versions)) {
+        expect(legacyVariant(`/${variant.legacyPath}`), `${variant.legacyPath}: ${fix}`).toBe(variant.name);
+      }
+    }
   });
 
   test('makes resolveAsset emit exactly the name the encoder gives each tier', () => {
