@@ -194,24 +194,28 @@ async function pool<T, R>(items: T[], limit: number, work: (item: T) => Promise<
   return results;
 }
 
-/** Writes every variant at the legacy path that already-issued URLs still name, and each size tier at the `/m` name `resolveAsset` emits. */
-function materialize(plan: PlannedVariant[]): void {
+/** Clears the generated trees, sparing the committed files under public/web. */
+function clearGenerated(): void {
   rmSync(path.join(publicRoot, 'image'), { recursive: true, force: true });
   rmSync(path.join(publicRoot, 'm'), { recursive: true, force: true });
-  mkdirSync(path.join(publicRoot, 'm'));
   const committedWebFiles = new Set<string>(COMMITTED_WEB_FILES);
-  for (const entry of readdirSync(path.join(publicRoot, 'web'))) {
-    if (!committedWebFiles.has(entry)) {
-      rmSync(path.join(publicRoot, 'web', entry), { recursive: true, force: true });
-    }
+  const generatedWeb = readdirSync(path.join(publicRoot, 'web')).filter((entry) => !committedWebFiles.has(entry));
+  for (const entry of generatedWeb) {
+    rmSync(path.join(publicRoot, 'web', entry), { recursive: true, force: true });
   }
+}
+
+/** Writes every variant at the legacy path that already-issued URLs still name, and each size tier at the `/m` name `resolveAsset` emits. */
+function materialize(plan: PlannedVariant[]): void {
+  clearGenerated();
+  mkdirSync(path.join(publicRoot, 'm'));
   for (const variant of plan) {
     const target = path.join(publicRoot, variant.legacyPath);
     mkdirSync(path.dirname(target), { recursive: true });
     copyFileSync(path.join(storeRoot, variant.name), target);
-    if (variant.recipe.tier !== 'canonical') {
-      copyFileSync(path.join(storeRoot, variant.name), path.join(publicRoot, 'm', variant.name));
-    }
+  }
+  for (const variant of plan.filter(({ recipe }) => recipe.tier !== 'canonical')) {
+    copyFileSync(path.join(storeRoot, variant.name), path.join(publicRoot, 'm', variant.name));
   }
 }
 
