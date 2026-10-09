@@ -165,6 +165,16 @@ export function battleStory(stage: 'preparing' | 'countdown' | 'revealed', obser
 }
 
 /** Where a point on the table lands in the viewport while the table shows the map view. */
+/* The seated camera loads in its own chunk and the preview camera frames the table until it arrives, which on a busy runner takes many seconds (#1987). */
+export async function waitForPlayCamera(document: Document) {
+  await waitFor(
+    () => expect(document.querySelector('.dune-play-shell canvas[data-play-camera="ready"]')).not.toBeNull(),
+    {
+      timeout: 60_000,
+    }
+  );
+}
+
 export function mapViewPoint(document: Document, point: readonly [number, number, number]): [number, number] {
   const scene = document.querySelector('canvas');
   if (!scene) {
@@ -192,6 +202,7 @@ export async function expectBattleCalloutPlacement(
   expectedHalf: 'above' | 'below'
 ) {
   const page = within(canvasElement.ownerDocument.body);
+  await waitForPlayCamera(canvasElement.ownerDocument);
   /* The scene writes the callout's position and shape only from inside its animation-frame callbacks, so each poll runs the waiting frames itself (https://github.com/ndelangen/dunezone/issues/1443). */
   await waitForFrame(() => {
     const cancel = page.getByRole('button', { name: 'Cancel battle' });
