@@ -1,9 +1,9 @@
 /**
  * The merge gate for raster art (#1888 step 6): every original a pull request adds to the lock must already be in R2.
  *
- * Bun run media:gate <base-ref>
+ * Bun run media:gate
  *
- * It compares `media/raster.lock.json` at the base ref with the working tree, downloads each new or changed original from `/__media/src/<sha256>`, and checks its bytes and integrity headers against the lock.
+ * It compares `media/raster.lock.json` on `origin/main`, the base of every pull request, with the working tree, downloads each new or changed original from `/__media/src/<sha256>`, and checks its bytes and integrity headers against the lock.
  * It needs no token, so it runs on fork pull requests too.
  * `bun run media:sync` is the fix for a failure: it uploads the original before it writes the lock.
  */
@@ -14,16 +14,11 @@ import { distinctOriginals, download, eachWithCounts, mediaOrigin } from './lib/
 import type { Original } from './lib/media-originals';
 import { lockChanges, readRasterLock } from './lib/raster-lock';
 
-/* The ref reaches git as an argument, so only a plain ref name is accepted, never an option. */
-const SAFE_REF = /^\w[\w./-]*$/;
-const base = process.argv[2] ?? '';
-if (!SAFE_REF.test(base)) {
-  console.error('Usage: bun run media:gate <base-ref>, such as origin/main');
-  process.exit(1);
-}
+/* A fixed ref, so nothing a caller passes reaches the git command line. */
+const BASE = 'origin/main';
 
 const baseLock = JSON.parse(
-  execFileSync('/usr/bin/git', ['show', `${base}:media/raster.lock.json`], { encoding: 'utf8' })
+  execFileSync('/usr/bin/git', ['show', `${BASE}:media/raster.lock.json`], { encoding: 'utf8' })
 ) as RasterLock;
 const lock = readRasterLock();
 const { changed } = lockChanges(baseLock, lock);
@@ -38,7 +33,7 @@ async function ingested(original: Original) {
 const counts = await eachWithCounts(added, ingested);
 
 console.log(
-  JSON.stringify({ origin: mediaOrigin, base, changedKeys: changed.length, originals: added.length, ...counts })
+  JSON.stringify({ origin: mediaOrigin, base: BASE, changedKeys: changed.length, originals: added.length, ...counts })
 );
 if (counts.failed) {
   console.error(

@@ -321,9 +321,7 @@ jobs:
       - name: Check new raster originals are ingested
         if: ${{ !cancelled() }}
         continue-on-error: true
-        env:
-          BASE_REF: ${{ github.base_ref }}
-        run: bun run media:gate "origin/${BASE_REF}"
+        run: bun run media:gate
       - name: Enforce static narrow guard contract
         if: ${{ !cancelled() && steps.narrow_check.outputs.changed == 'true' }}
         run: bun run migrations:static-check
