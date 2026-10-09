@@ -47,6 +47,11 @@ jobs:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           persist-credentials: false
+          # Leaves the raster originals out (#1923); see the generated-images action.
+          sparse-checkout: |
+            /*
+            !/media/image/
+          sparse-checkout-cone-mode: false
       - uses: ./.github/actions/setup
       # Each shard decides for itself whether the diff reaches the flows, so it is queued with the rest of the
       # run instead of after a gate job: the gate's own queue and the shards' second queue behind every other
@@ -122,6 +127,11 @@ jobs:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           persist-credentials: false
+          # Leaves the raster originals out (#1923); see the generated-images action.
+          sparse-checkout: |
+            /*
+            !/media/image/
+          sparse-checkout-cone-mode: false
       - uses: ./.github/actions/setup
       # As in hosted_play: the job decides for itself, so it is queued with the rest of the run.
       - name: Decide whether the flows run
@@ -186,6 +196,11 @@ jobs:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           persist-credentials: false
+          # Leaves the raster originals out (#1923); see the generated-images action.
+          sparse-checkout: |
+            /*
+            !/media/image/
+          sparse-checkout-cone-mode: false
       - uses: ./.github/actions/setup
       - uses: ./.github/actions/generated-images
       - uses: ./.github/actions/playwright-chromium
@@ -239,6 +254,11 @@ jobs:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           persist-credentials: false
+          # Leaves the raster originals out (#1923); see the generated-images action.
+          sparse-checkout: |
+            /*
+            !/media/image/
+          sparse-checkout-cone-mode: false
           # The static narrow check below diffs against the base branch.
           fetch-depth: 0
       - uses: ./.github/actions/setup
@@ -480,6 +500,11 @@ jobs:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           persist-credentials: false
+          # Leaves the raster originals out (#1923); see the generated-images action.
+          sparse-checkout: |
+            /*
+            !/media/image/
+          sparse-checkout-cone-mode: false
       - uses: ./.github/actions/setup
       - name: Check generated game Worker types
         run: bun run game:types:check
@@ -529,6 +554,11 @@ jobs:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           persist-credentials: false
+          # Leaves the raster originals out (#1923); see the generated-images action.
+          sparse-checkout: |
+            /*
+            !/media/image/
+          sparse-checkout-cone-mode: false
       - uses: ./.github/actions/setup
       - uses: ./.github/actions/playwright-chromium
         with:
@@ -563,6 +593,11 @@ jobs:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           persist-credentials: false
+          # Leaves the raster originals out (#1923); see the generated-images action.
+          sparse-checkout: |
+            /*
+            !/media/image/
+          sparse-checkout-cone-mode: false
       - uses: ./.github/actions/setup
       - uses: ./.github/actions/generated-images
       - uses: ./.github/actions/playwright-chromium
@@ -582,6 +617,11 @@ jobs:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           persist-credentials: false
+          # Leaves the raster originals out (#1923); see the generated-images action.
+          sparse-checkout: |
+            /*
+            !/media/image/
+          sparse-checkout-cone-mode: false
       - uses: ./.github/actions/setup
       - name: Pull Convex images
         run: docker compose -f docker-compose.convex-local.yml pull -q
@@ -605,6 +645,11 @@ jobs:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           persist-credentials: false
+          # Leaves the raster originals out (#1923); see the generated-images action.
+          sparse-checkout: |
+            /*
+            !/media/image/
+          sparse-checkout-cone-mode: false
       - name: Pre-pull Convex images in background
         # Overlaps the pull with dependency/browser install; the wait step below
         # serializes before e2e-local.sh runs compose.
