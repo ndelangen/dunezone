@@ -9,6 +9,7 @@ import { handlePublicAssetRequest } from './delivery';
 import { executeItemList } from './executor';
 import { imagesJpegEncoder } from './image-encode';
 import { handleMediaVariantRequest } from './media';
+import { handleMediaReleaseRequest } from './media-release';
 import { handleMediaSourceRequest } from './media-source';
 import { handlePublicDiscovery } from './public-discovery';
 import { rendererManifest } from './renderer-manifest.generated';
@@ -132,6 +133,10 @@ const publisherWorker = {
     const mediaVariant = await handleMediaVariantRequest(request, env);
     if (mediaVariant) {
       return mediaVariant;
+    }
+    const mediaRelease = await handleMediaReleaseRequest(request, env);
+    if (mediaRelease) {
+      return mediaRelease;
     }
     const mediaSource = await handleMediaSourceRequest(request, env);
     if (mediaSource) {

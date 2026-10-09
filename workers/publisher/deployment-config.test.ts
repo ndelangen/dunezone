@@ -50,6 +50,10 @@ describe('scheduled production deployment shape', () => {
         binding: 'MEDIA_BUCKET',
         bucket_name: 'dunezone-media',
       },
+      {
+        binding: 'MEDIA_RELEASES_BUCKET',
+        bucket_name: 'dunezone-media-releases',
+      },
     ]);
   });
 

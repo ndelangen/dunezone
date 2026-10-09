@@ -40,6 +40,7 @@ function liveBindings() {
     { name: 'USER_IMAGE_BUCKET', type: 'r2_bucket', bucket_name: 'dunezone-user-images' },
     { name: 'MEDIA_SOURCE_BUCKET', type: 'r2_bucket', bucket_name: 'dunezone-media-src' },
     { name: 'MEDIA_BUCKET', type: 'r2_bucket', bucket_name: 'dunezone-media' },
+    { name: 'MEDIA_RELEASES_BUCKET', type: 'r2_bucket', bucket_name: 'dunezone-media-releases' },
     { name: 'BROWSER', type: 'browser' },
     { name: 'IMAGES', type: 'images' },
     { name: 'ASSETS', type: 'assets' },
@@ -254,7 +255,7 @@ describe('Cloudflare live drift check', () => {
     ).resolves.toEqual({
       worker: WORKER,
       domainCount: 1,
-      bindingCount: 22,
+      bindingCount: 23,
       secretCount: 4,
       retiredSecrets: ['ASSET_PUBLISHER_CACHE_TOKEN_SECRET'],
       cronCount: 1,

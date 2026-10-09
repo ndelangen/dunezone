@@ -77,6 +77,19 @@ deploy installs a fresh random token with the Worker (`--secrets-file`) and runs
 and the legacy static URL serve the stored bytes for every variant. No person holds
 the token.
 
+## Media release ledger
+
+`dunezone-media-releases` holds one immutable record per release at
+`releases/<commit-sha>-<run-id>.json` (#1888). Each record lists every variant the
+release serves, with its key, source SHA-256, output SHA-256 and byte length, and
+retention keeps everything any record names. `PUT /__media/releases/<release-id>`
+writes the `prepared` record and `PUT /__media/releases/<release-id>/deployed` the
+`deployed` marker, which names the record's SHA-256 and is refused until the record
+exists. Both take `MEDIA_PUBLISH_TOKEN`, create the object only if it is absent,
+answer 200 for an identical repeat and 409 for different contents. There is no read
+route: the ledger is read with wrangler. The deploy writes the record with
+`media:publish` (`MEDIA_RELEASE_ID` set) and the marker with `media:publish --deployed`.
+
 ## Renderer revisions
 
 There is one deployed Renderer for each asset type. A checked-in Renderer revision

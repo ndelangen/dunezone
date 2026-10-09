@@ -2,6 +2,8 @@
  * Publishes every encoded raster variant to R2 through the publisher Worker, and proves parity with what production serves (#1888 step 4).
  *
  * `MEDIA_PUBLISH_TOKEN=… bun run media:publish` uploads the variants `/m` lacks.
+ * With MEDIA_RELEASE_ID set it then writes that release's `prepared` record to the ledger, listing every variant the release serves.
+ * `bun run media:publish --deployed` writes the release's `deployed` marker, which the Worker accepts only once the record exists.
  * `bun run media:publish --verify` needs no token: it downloads every variant from `/m` and from its legacy static URL and checks both against the local checksum record.
  *
  * The bytes come from the store `generate:images` fills (`.cache/media/local/v`), so run that first.
@@ -26,12 +28,18 @@ const repoRoot = path.resolve(import.meta.dirname, '..');
 const storeRoot = path.join(repoRoot, '.cache/media/local/v');
 const origin = (process.env.MEDIA_ORIGIN ?? 'https://dune.zone').replace(/\/$/, '');
 const verifyOnly = process.argv.includes('--verify');
+const markDeployed = process.argv.includes('--deployed');
 const token = process.env.MEDIA_PUBLISH_TOKEN;
+const release = process.env.MEDIA_RELEASE_ID;
 const CONCURRENCY = 8;
 const RETRY_DELAYS_MS = [2000, 4000, 8000];
 
 if (!verifyOnly && !token) {
   console.error('MEDIA_PUBLISH_TOKEN is not set; pass --verify to check without publishing.');
+  process.exit(1);
+}
+if (markDeployed && !release) {
+  console.error('MEDIA_RELEASE_ID is not set; --deployed marks that release.');
   process.exit(1);
 }
 
@@ -114,6 +122,42 @@ async function verify(item: Local): Promise<Outcome> {
   return 'verified';
 }
 
+/** Writes one ledger object through the Worker and checks its receipt. */
+async function writeLedger(pathname: string, body: string): Promise<{ object: string; created: boolean }> {
+  const fetched = await fetchMedia(
+    `${origin}${pathname}`,
+    { method: 'PUT', body, headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } },
+    { subject: pathname, delaysMs: RETRY_DELAYS_MS }
+  );
+  const text = new TextDecoder().decode(fetched.bytes);
+  if (fetched.status !== 201 && fetched.status !== 200) {
+    throw new Error(`${pathname} answered ${fetched.status} ${text}`);
+  }
+  return JSON.parse(text) as { object: string; created: boolean };
+}
+
+if (markDeployed) {
+  const receipt = await writeLedger(`/__media/releases/${release}/deployed`, '');
+  console.log(JSON.stringify({ origin, mode: 'deployed', release, ...receipt }));
+  process.exit(0);
+}
+
+/** The prepared record lists every variant in plan order, so a repeated run sends identical bytes. */
+function releaseRecord(items: Local[]): string {
+  return JSON.stringify({
+    schemaVersion: 1,
+    release,
+    state: 'prepared',
+    variants: items.map(({ variant, record }) => ({
+      name: variant.name,
+      key: variant.key,
+      source: lock[variant.key].sha256,
+      sha256: record.sha256,
+      bytes: record.bytes,
+    })),
+  });
+}
+
 /* Two keys can share a variant name. Publishing sends each name once, and verifying probes every legacy path. */
 const queue = verifyOnly ? [...plan] : [...new Map(plan.map((variant) => [variant.name, variant])).values()];
 const counts: Record<Outcome | 'failed', number> = { present: 0, published: 0, verified: 0, failed: 0 };
@@ -132,4 +176,9 @@ await Promise.all(Array.from({ length: CONCURRENCY }, worker));
 console.log(JSON.stringify({ origin, mode: verifyOnly ? 'verify' : 'publish', variants: plan.length, ...counts }));
 if (counts.failed > 0) {
   process.exit(1);
+}
+/* The record is written only after every variant it lists is in R2. */
+if (!verifyOnly && release) {
+  const receipt = await writeLedger(`/__media/releases/${release}`, releaseRecord(plan.map(local)));
+  console.log(JSON.stringify({ origin, mode: 'prepared', release, ...receipt }));
 }
