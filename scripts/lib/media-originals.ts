@@ -12,11 +12,15 @@ import type { RasterLock, RasterLockEntry } from '../../src/shared/media/rasterL
 import { fetchMedia, integrityMatches } from './media-fetch';
 
 /* Uploads carry the upload token, so the origin is limited to production and a local Worker. */
-const TRUSTED_HOSTS = new Set(['dune.zone', 'localhost', '127.0.0.1']);
+const TRUSTED_ORIGINS = new Map([
+  ['dune.zone', ['https:']],
+  ['localhost', ['http:', 'https:']],
+  ['127.0.0.1', ['http:', 'https:']],
+]);
 
 function trustedOrigin(value: string): string {
   const url = new URL(value);
-  if (!TRUSTED_HOSTS.has(url.hostname) || (url.protocol !== 'https:' && url.hostname === 'dune.zone')) {
+  if (!TRUSTED_ORIGINS.get(url.hostname)?.includes(url.protocol)) {
     throw new Error(`MEDIA_ORIGIN must be https://dune.zone or a local Worker, not ${value}`);
   }
   return url.origin;
