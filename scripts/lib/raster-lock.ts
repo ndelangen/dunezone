@@ -26,9 +26,15 @@ export function readRasterLock(): RasterLock {
   return existsSync(lockPath) ? (JSON.parse(readFileSync(lockPath, 'utf8')) as RasterLock) : {};
 }
 
-/** The checked-out path of an asset key, such as `media/image/texture/021.jpg`. */
+const mediaRoot = path.join(repoRoot, 'media');
+
+/** The checked-out path of an asset key, such as `media/image/texture/021.jpg`, refusing a key that would leave media/. */
 export function sourcePath(key: string): string {
-  return path.join(repoRoot, 'media', key);
+  const resolved = path.resolve(mediaRoot, `.${key}`);
+  if (!resolved.startsWith(`${mediaRoot}${path.sep}`)) {
+    throw new Error(`${key} is not a path under media/`);
+  }
+  return resolved;
 }
 
 /* Tracked sources plus new ones not yet added, so a fresh file is locked before its first commit. */
