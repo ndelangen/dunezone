@@ -646,9 +646,16 @@ After each production deploy:
 `public/image/**` and `public/web/**` are generated in CI from `media/**` by
 `scripts/generate-images.ts`, apart from the committed files named in
 `COMMITTED_WEB_FILES` (see `src/shared/assetRules.ts` for that list and for the
-per-category rules). CI restores the generated tree from a cache keyed on the
-media/rules/generator/sharp digest and verifies it structurally
-(`bun run verify:images`) without ever re-encoding to compare bytes. The
+per-category rules). CI restores the generated tree from a cache keyed on
+exactly what the generator reads: the git tree hash of `media/image`, the
+`media/web` rasters, the rules, the generator and the versions sharp reports.
+Vectors and the rest of `bun.lock` stay out of that key. Most jobs check out
+without `media/image` (#1923) and only widen the checkout to it on a cache miss;
+`test`, `generate_and_build` and `publisher_release` keep the full tree because
+they read the originals. CI verifies the generated tree structurally
+(`bun run verify:images`) without ever re-encoding to compare bytes; in a sparse
+job the tier widths, the one check that needs the original bytes, are left to
+the full jobs. The
 renderer identity in `workers/publisher/renderer-manifest.generated.ts` (schema
 v2) hashes those same ingredients plus the capture code and PDF contract, with
 per-component digests so a deploy log can attribute an identity change to
