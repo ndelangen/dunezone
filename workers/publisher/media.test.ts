@@ -3,8 +3,8 @@ import { createHash } from 'node:crypto';
 import { describe, expect, test } from 'vitest';
 
 import { MEDIA_VARIANT_MAX_BYTES, handleMediaVariantRequest, mediaVariantKey } from './media';
-import type { MediaVariantBucket, MediaVariantEnv } from './media';
-import { fakeR2Object, pngBytes } from './test-helpers';
+import type { MediaVariantEnv } from './media';
+import { memoryR2Bucket, pngBytes } from './test-helpers';
 
 const ORIGIN = 'https://dune.zone';
 const NAME = '0123456789abcdef0123.abcdef0123.webp';
@@ -13,52 +13,14 @@ const SHA256 = 'f'.repeat(64);
 
 const TOKEN = 'publish-token';
 
-type Entry = { bytes: Uint8Array; metadata: Record<string, string> };
-
-function objectFor(key: string, entry: Entry): R2Object {
-  return fakeR2Object({
-    key,
-    etag: 'variant-etag',
-    size: entry.bytes.byteLength,
-    uploaded: new Date('2026-10-09T12:00:00.000Z'),
-    customMetadata: entry.metadata,
-  });
-}
-
-function bucket(objects: Record<string, Entry>): MediaVariantBucket & { objects: Record<string, Entry> } {
-  return {
-    objects,
-    async head(key: string) {
-      const entry = objects[key];
-      return entry ? objectFor(key, entry) : null;
-    },
-    async get(key: string) {
-      const entry = objects[key];
-      if (!entry) {
-        return null;
-      }
-      return { ...objectFor(key, entry), body: new Response(entry.bytes).body! } as unknown as R2ObjectBody;
-    },
-    async put(key: string, value: unknown, options: R2PutOptions = {}) {
-      const onlyIf = options.onlyIf as R2Conditional | undefined;
-      if (onlyIf?.etagDoesNotMatch === '*' && objects[key]) {
-        return null;
-      }
-      const entry = { bytes: value as Uint8Array, metadata: options.customMetadata as Record<string, string> };
-      objects[key] = entry;
-      return objectFor(key, entry);
-    },
-  } as unknown as MediaVariantBucket & { objects: Record<string, Entry> };
-}
-
-function stored(
-  metadata: Record<string, string> = { sha256: SHA256, bytes: String(BYTES.byteLength) }
-): MediaVariantEnv & { MEDIA_BUCKET: ReturnType<typeof bucket> } {
-  return { MEDIA_BUCKET: bucket({ [mediaVariantKey(NAME)]: { bytes: BYTES, metadata } }), MEDIA_PUBLISH_TOKEN: TOKEN };
-}
-
 function empty() {
-  return { MEDIA_BUCKET: bucket({}), MEDIA_PUBLISH_TOKEN: TOKEN };
+  return { MEDIA_BUCKET: memoryR2Bucket(), MEDIA_PUBLISH_TOKEN: TOKEN };
+}
+
+function stored(metadata: Record<string, string> = { sha256: SHA256, bytes: String(BYTES.byteLength) }) {
+  const env = empty();
+  env.MEDIA_BUCKET.objects.set(mediaVariantKey(NAME), { bytes: BYTES, options: { customMetadata: metadata } });
+  return env;
 }
 
 function sha256(bytes: Uint8Array): string {
@@ -139,7 +101,7 @@ describe('media variant publishing', () => {
     const created = await answer(`/m/${PNG_NAME}`, publish(png), env);
     expect(created.status).toBe(201);
     expect(await created.json()).toEqual({ name: PNG_NAME, sha256: sha256(png), bytes: png.byteLength, created: true });
-    expect(env.MEDIA_BUCKET.objects[mediaVariantKey(PNG_NAME)].metadata).toEqual({
+    expect(env.MEDIA_BUCKET.objects.get(mediaVariantKey(PNG_NAME))?.options.customMetadata).toEqual({
       sha256: sha256(png),
       bytes: String(png.byteLength),
     });
@@ -160,24 +122,29 @@ describe('media variant publishing', () => {
     const other = pngBytes(65, 32);
     const conflict = await answer(`/m/${PNG_NAME}`, publish(other), env);
     expect(conflict.status).toBe(409);
-    expect(env.MEDIA_BUCKET.objects[mediaVariantKey(PNG_NAME)].bytes).toEqual(png);
+    expect(env.MEDIA_BUCKET.objects.get(mediaVariantKey(PNG_NAME))?.bytes).toEqual(png);
   });
 
   test.each([
     ['no token', publish(png, null), 401],
     ['a wrong token', publish(png, 'wrong'), 401],
     ['an empty body', publish(new Uint8Array()), 400],
+    [
+      'a PNG whose signature stops after four bytes',
+      publish(new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0, 0, 0, 0])),
+      415,
+    ],
     ['a JPEG under a .png name', publish(new Uint8Array([0xff, 0xd8, 0xff, 0xe0])), 415],
     ['a body past the bound', publish(new Uint8Array(MEDIA_VARIANT_MAX_BYTES + 1)), 413],
   ])('refuses %s without storing anything', async (_case, init, status) => {
     const env = empty();
 
     expect((await answer(`/m/${PNG_NAME}`, init, env)).status).toBe(status);
-    expect(env.MEDIA_BUCKET.objects).toEqual({});
+    expect(env.MEDIA_BUCKET.objects.size).toBe(0);
   });
 
   test('refuses to publish while the token is unset', async () => {
-    const env = { MEDIA_BUCKET: bucket({}) };
+    const env = { MEDIA_BUCKET: memoryR2Bucket() };
 
     expect((await answer(`/m/${PNG_NAME}`, publish(png), env)).status).toBe(503);
   });

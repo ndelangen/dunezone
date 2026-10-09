@@ -18,7 +18,7 @@ export const MEDIA_SOURCE_MAX_BYTES = 16 * 1024 * 1024;
 
 const SOURCE_PATH = /^\/__media\/src\/([0-9a-f]{64})$/;
 
-export type MediaSourceBucket = Pick<R2Bucket, 'get' | 'head' | 'put'>;
+type MediaSourceBucket = Pick<R2Bucket, 'get' | 'head' | 'put'>;
 
 export type MediaSourceEnv = {
   MEDIA_SOURCE_BUCKET: MediaSourceBucket;

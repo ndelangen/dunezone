@@ -16,9 +16,10 @@ import path from 'node:path';
 import sharp from 'sharp';
 
 import type { RasterLock } from '../src/shared/media/rasterLock';
+import { fetchMedia, integrityMatches } from './lib/media-fetch';
 import { checksumRecord, matchesRecord, planVariants } from './media-variants';
 import type { ChecksumRecord, PlannedVariant } from './media-variants';
-import { TransientError, describeError, retryTransient } from './retry-transient';
+import { describeError } from './retry-transient';
 
 const repoRoot = path.resolve(import.meta.dirname, '..');
 const storeRoot = path.join(repoRoot, '.cache/media/local/v');
@@ -51,46 +52,23 @@ function local(variant: PlannedVariant): Local {
   return { variant, bytes, record };
 }
 
-async function request(url: string, init: RequestInit, subject: string): Promise<Response> {
-  return await retryTransient(
-    async () => {
-      let response: Response;
-      try {
-        response = await fetch(url, init);
-      } catch (error) {
-        throw new TransientError(describeError(error));
-      }
-      if (response.status === 429 || response.status >= 500) {
-        await response.body?.cancel();
-        throw new TransientError(`HTTP ${response.status}`);
-      }
-      return response;
-    },
-    { subject, delaysMs: RETRY_DELAYS_MS }
-  );
-}
-
-function variantUrl(item: Local): string {
-  return `${origin}/m/${item.variant.name}`;
-}
-
-function integrityMatches(headers: Headers, record: ChecksumRecord): boolean {
-  return headers.get('X-Media-SHA256') === record.sha256 && headers.get('X-Media-Bytes') === String(record.bytes);
+function fetchVariant(item: Local, init: RequestInit = {}) {
+  return fetchMedia(`${origin}/m/${item.variant.name}`, init, {
+    subject: item.variant.name,
+    delaysMs: RETRY_DELAYS_MS,
+  });
 }
 
 type Outcome = 'present' | 'published' | 'verified';
 
 /** Reports whether `/m` already serves the variant, refusing one whose integrity headers disagree with the record. */
 async function alreadyPublished(item: Local): Promise<boolean> {
-  const head = await request(variantUrl(item), { method: 'HEAD' }, item.variant.name);
+  const head = await fetchVariant(item, { method: 'HEAD' });
   if (head.status === 404) {
     return false;
   }
-  if (!head.ok) {
-    throw new Error(`${item.variant.name}: HEAD answered ${head.status}`);
-  }
-  if (!integrityMatches(head.headers, item.record)) {
-    throw new Error(`${item.variant.name}: R2 holds a variant whose integrity headers disagree with the local record`);
+  if (head.status !== 200 || !integrityMatches(head.headers, item.record)) {
+    throw new Error(`${item.variant.name}: HEAD answered ${head.status} with integrity that disagrees with the record`);
   }
   return true;
 }
@@ -99,12 +77,12 @@ async function publish(item: Local): Promise<Outcome> {
   if (await alreadyPublished(item)) {
     return 'present';
   }
-  const put = await request(
-    variantUrl(item),
-    { method: 'PUT', body: item.bytes, headers: { Authorization: `Bearer ${token}` } },
-    item.variant.name
-  );
-  const text = await put.text();
+  const put = await fetchVariant(item, {
+    method: 'PUT',
+    body: item.bytes,
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const text = new TextDecoder().decode(put.bytes);
   if (put.status !== 201 && put.status !== 200) {
     throw new Error(`${item.variant.name}: publishing answered ${put.status} ${text}`);
   }
@@ -115,25 +93,20 @@ async function publish(item: Local): Promise<Outcome> {
   return 'published';
 }
 
-async function download(url: string, subject: string): Promise<{ headers: Headers; bytes: Uint8Array }> {
-  const response = await request(url, {}, subject);
-  if (response.status !== 200) {
-    await response.body?.cancel();
-    throw new Error(`${subject}: GET ${url} answered ${response.status}`);
-  }
-  return { headers: response.headers, bytes: new Uint8Array(await response.arrayBuffer()) };
-}
-
 /** Proves `/m` and the legacy static URL both serve exactly the bytes the store recorded. */
 async function verify(item: Local): Promise<Outcome> {
   const { name, legacyPath } = item.variant;
-  const variant = await download(variantUrl(item), name);
-  if (!matchesRecord(variant.bytes, item.record) || !integrityMatches(variant.headers, item.record)) {
-    throw new Error(`${name}: /m served ${JSON.stringify(checksumRecord(variant.bytes))}, not the local record`);
+  const variant = await fetchVariant(item);
+  if (
+    variant.status !== 200 ||
+    !matchesRecord(variant.bytes, item.record) ||
+    !integrityMatches(variant.headers, item.record)
+  ) {
+    throw new Error(`${name}: /m answered ${variant.status} with ${JSON.stringify(checksumRecord(variant.bytes))}`);
   }
-  const legacy = await download(`${origin}/${legacyPath}`, name);
-  if (!matchesRecord(legacy.bytes, item.record)) {
-    throw new Error(`${name}: /${legacyPath} served different bytes from /m`);
+  const legacy = await fetchMedia(`${origin}/${legacyPath}`, {}, { subject: name, delaysMs: RETRY_DELAYS_MS });
+  if (legacy.status !== 200 || !matchesRecord(legacy.bytes, item.record)) {
+    throw new Error(`${name}: /${legacyPath} answered ${legacy.status} with different bytes from /m`);
   }
   return 'verified';
 }

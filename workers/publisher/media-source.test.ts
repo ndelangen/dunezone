@@ -3,66 +3,18 @@ import { createHash } from 'node:crypto';
 import { describe, expect, test } from 'vitest';
 
 import { MEDIA_SOURCE_MAX_BYTES, handleMediaSourceRequest, mediaSourceKey } from './media-source';
-import type { MediaSourceBucket, MediaSourceEnv } from './media-source';
-import { fakeR2Object, jpegBytes, pngBytes } from './test-helpers';
+import type { MediaSourceEnv } from './media-source';
+import { jpegBytes, memoryR2Bucket, pngBytes } from './test-helpers';
 
 const ORIGIN = 'https://dune.zone';
 const TOKEN = 'upload-token';
-const NOW = new Date('2026-10-09T12:00:00.000Z');
-
-type Stored = { bytes: Uint8Array; options: R2PutOptions };
-
-function storedObject(key: string, entry: Stored): R2Object {
-  const base = fakeR2Object({
-    key,
-    etag: `etag-${key.slice(7, 15)}`,
-    size: entry.bytes.byteLength,
-    uploaded: NOW,
-    customMetadata: entry.options.customMetadata as Record<string, string>,
-  });
-  return {
-    ...base,
-    writeHttpMetadata: base.writeHttpMetadata,
-    httpMetadata: entry.options.httpMetadata as R2HTTPMetadata,
-  };
-}
-
-function memoryBucket(): MediaSourceBucket & { objects: Map<string, Stored>; puts: number } {
-  const objects = new Map<string, Stored>();
-  const bucket = {
-    objects,
-    puts: 0,
-    async head(key: string) {
-      const entry = objects.get(key);
-      return entry ? storedObject(key, entry) : null;
-    },
-    async get(key: string) {
-      const entry = objects.get(key);
-      if (!entry) {
-        return null;
-      }
-      return { ...storedObject(key, entry), body: new Response(entry.bytes).body! } as unknown as R2ObjectBody;
-    },
-    async put(key: string, value: unknown, options: R2PutOptions = {}) {
-      bucket.puts += 1;
-      const onlyIf = options.onlyIf as R2Conditional | undefined;
-      if (onlyIf?.etagDoesNotMatch === '*' && objects.has(key)) {
-        return null;
-      }
-      const entry = { bytes: value as Uint8Array, options };
-      objects.set(key, entry);
-      return storedObject(key, entry);
-    },
-  };
-  return bucket as unknown as MediaSourceBucket & { objects: Map<string, Stored>; puts: number };
-}
 
 function sha256(bytes: Uint8Array): string {
   return createHash('sha256').update(bytes).digest('hex');
 }
 
 function environment(overrides: Partial<MediaSourceEnv> = {}) {
-  const bucket = memoryBucket();
+  const bucket = memoryR2Bucket();
   return { bucket, env: { MEDIA_SOURCE_BUCKET: bucket, MEDIA_UPLOAD_TOKEN: TOKEN, ...overrides } };
 }
 

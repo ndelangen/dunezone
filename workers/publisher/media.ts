@@ -26,7 +26,7 @@ const CONTENT_TYPES: Record<string, string> = {
 /** The largest variant today is under 1 MB. */
 export const MEDIA_VARIANT_MAX_BYTES = 8 * 1024 * 1024;
 
-export type MediaVariantBucket = Pick<R2Bucket, 'get' | 'head' | 'put'>;
+type MediaVariantBucket = Pick<R2Bucket, 'get' | 'head' | 'put'>;
 
 export type MediaVariantEnv = {
   MEDIA_BUCKET: MediaVariantBucket;
@@ -59,7 +59,7 @@ async function serveVariant(request: Request, env: MediaVariantEnv, name: string
 function signatureMatches(bytes: Uint8Array, extension: string): boolean {
   const ascii = (start: number, end: number) => String.fromCharCode(...bytes.subarray(start, end));
   if (extension === 'png') {
-    return bytes[0] === 0x89 && ascii(1, 4) === 'PNG';
+    return bytes[0] === 0x89 && ascii(1, 8) === 'PNG\r\n\x1a\n';
   }
   if (extension === 'jpg') {
     return bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
