@@ -1,11 +1,10 @@
 import preview from '@sb/preview';
 import { ALL, LOGO } from '@shared/assetIds';
+import { resolveAsset } from '@shared/media/resolveAsset';
 import { stockAssetOptions } from '@ui/content/stockAssetOptions';
 import { Plus } from 'lucide-react';
 import { useState } from 'react';
 import { expect, screen, userEvent, waitFor, within } from 'storybook/test';
-
-import { resolveAsset } from '@game/assets/resolveAsset';
 
 import { AssetSelect } from './AssetSelect';
 import type { AssetSelectProps } from './AssetSelect';

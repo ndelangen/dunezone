@@ -1,4 +1,5 @@
 import { Anchor, Button, Group, Stack, Text } from '@mantine/core';
+import { resolveAsset } from '@shared/media/resolveAsset';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { PageTitle } from '@ui/block/PageTitle';
 import { Section } from '@ui/block/Section';
@@ -18,7 +19,6 @@ import { AssetFace } from '@app/widgets/asset-face/AssetFace';
 import { AllianceCard } from '@game/assets/faction/alliance/Alliance';
 import { LeaderToken } from '@game/assets/faction/leader/Leader';
 import { TroopToken } from '@game/assets/faction/troop/Troop';
-import { resolveAsset } from '@game/assets/resolveAsset';
 import { backgroundPresets } from '@game/data/backgrounds';
 import { card as cardSize } from '@game/data/sizes';
 

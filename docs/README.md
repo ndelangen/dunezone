@@ -57,8 +57,9 @@ bun run publisher:release:verify # Exact pre-PR publisher build, manifest, and d
 React Component Meta integration still imports the legacy compiler API; it is not the compiler
 used by the application or publisher typecheck scripts.
 
-A fresh checkout or worktree needs `bun run generate:images` once before `bun run typecheck`:
-it writes `src/game/data/assetMap.generated.ts`, which is gitignored and which the app imports.
+Raster sources are recorded in `media/raster.lock.json`, and the app imports the colour map
+derived from it, `src/shared/media/map.generated.ts`. Both are committed; run `bun run media:lock`
+after adding or changing a raster under `media/`.
 
 The pinned Fiber patch removes its ambient Three JSX declarations from React's namespaces.
 Those declarations make even a DOM `React.ElementType` enumerate Three's catalogue, which

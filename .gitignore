@@ -27,7 +27,6 @@ docs/research/
 !/public/web/no-deck-back.svg
 # generated vector output (built from media/vector by scripts/generate-vectors.ts; CI is canonical)
 /public/vector/
-/src/game/data/assetMap.generated.ts
 
 # test coverage output
 coverage/

@@ -209,6 +209,32 @@ function entriesFor(repositoryRoot: string, files: string[]): RendererManifestEn
   }));
 }
 
+const RASTER_SOURCE = /\.(png|jpe?g)$/i;
+const RASTER_LOCK_PATH = 'media/raster.lock.json';
+
+/**
+ * The media/ inputs of Renderer identity (#1888).
+ * Raster originals enter through the lock, each as its path and its SHA-256 text, so the digest is the same whether the original bytes are checked out or not.
+ * The lock itself is left out, because its hashes are already in, and an original on disk never is.
+ */
+export function mediaSourceEntries(repositoryRoot: string): RendererManifestEntry[] {
+  const lock = JSON.parse(readFileSync(path.join(repositoryRoot, RASTER_LOCK_PATH), 'utf8')) as Record<
+    string,
+    { sha256: string }
+  >;
+  const otherFiles = filesBelow(path.join(repositoryRoot, 'media')).filter((file) => {
+    const relativePath = path.relative(repositoryRoot, file).split(path.sep).join('/');
+    return relativePath !== RASTER_LOCK_PATH && !RASTER_SOURCE.test(relativePath);
+  });
+  return [
+    ...entriesFor(repositoryRoot, otherFiles),
+    ...Object.entries(lock).map(([key, entry]) => ({
+      path: `media${key}`,
+      bytes: new TextEncoder().encode(entry.sha256),
+    })),
+  ];
+}
+
 /** Exact SemVer only: `1.2.3` with optional prerelease/build metadata. */
 const EXACT_SEMVER = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/;
 
@@ -252,9 +278,9 @@ export function writeRendererManifest(
     ...RENDERER_RUNTIME_CLOSURE_PATHS.map((relativePath) => path.join(repositoryRoot, relativePath)),
     path.join(repositoryRoot, 'workers/publisher/runtime-generated/rulebook-html-renderer.mjs'),
   ];
-  const sourceFiles = [
-    ...filesBelow(path.join(repositoryRoot, 'media')),
-    path.join(repositoryRoot, 'public/web/logo.svg'),
+  const sourceEntries = [
+    ...mediaSourceEntries(repositoryRoot),
+    ...entriesFor(repositoryRoot, [path.join(repositoryRoot, 'public/web/logo.svg')]),
   ];
   const toolchainEntries = [
     ...entriesFor(
@@ -271,7 +297,7 @@ export function writeRendererManifest(
 
   const { digest, components } = computeRendererManifestDigest(
     entriesFor(repositoryRoot, codeFiles),
-    entriesFor(repositoryRoot, sourceFiles),
+    sourceEntries,
     toolchainEntries
   );
   const { pdf, viewport } = PUBLISHER_RENDERER_CONTRACT;
@@ -316,5 +342,5 @@ export function writeRendererManifest(
       `  contract: ${contract},\n` +
       `} as const;\n`
   );
-  return { digest, entryCount: codeFiles.length + sourceFiles.length + toolchainEntries.length };
+  return { digest, entryCount: codeFiles.length + sourceEntries.length + toolchainEntries.length };
 }

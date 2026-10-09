@@ -1,6 +1,7 @@
 import { Anchor, Group, Stack, Text } from '@mantine/core';
 import { useReducedMotion } from '@mantine/hooks';
 import { DECAL, LEADERS } from '@shared/assetIds';
+import { resolveAsset } from '@shared/media/resolveAsset';
 import { Link } from '@tanstack/react-router';
 import { PageTitle } from '@ui/block/PageTitle';
 import { IconAction } from '@ui/control/IconAction';
@@ -8,7 +9,6 @@ import { Pause, Play } from 'lucide-react';
 import { useEffect, useReducer } from 'react';
 
 import { LeaderToken } from '@game/assets/faction/leader/Leader';
-import { resolveAsset } from '@game/assets/resolveAsset';
 import { TreacheryCard } from '@game/assets/treachery/Treachery';
 import { backgroundPresets } from '@game/data/backgrounds';
 

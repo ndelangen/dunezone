@@ -1,5 +1,5 @@
-import { FORMAT_EXTENSION, ruleForKey } from '../../shared/assetRules';
-import type { AssetSize } from '../../shared/assetRules';
+import { FORMAT_EXTENSION, ruleForKey } from '../assetRules';
+import type { AssetSize } from '../assetRules';
 
 const RASTER_KEY = /\.(png|jpe?g)$/i;
 

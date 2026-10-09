@@ -1,4 +1,5 @@
-import { readFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
 
 import { describe, expect, test } from 'vitest';
@@ -9,6 +10,7 @@ import {
   computeRendererManifestDigest,
   isRendererManifestAsset,
   isRendererManifestInputPath,
+  mediaSourceEntries,
   RENDERER_RUNTIME_CLOSURE_PATHS,
 } from './renderer-manifest-build';
 import type { RendererManifestEntry } from './renderer-manifest-build';
@@ -221,5 +223,56 @@ describe('current Renderer manifest digest', () => {
      */
     expect(digest().digest).toBe(digest().digest);
     expect(isRendererManifestAsset('image/leader/official/alia-small.webp')).toBe(false);
+  });
+});
+
+describe('media source entries', () => {
+  function fixture(withOriginals: boolean, extraRaster = false) {
+    const root = mkdtempSync(path.join(tmpdir(), 'renderer-media-'));
+    mkdirSync(path.join(root, 'media/image/texture'), { recursive: true });
+    mkdirSync(path.join(root, 'media/vector'), { recursive: true });
+    writeFileSync(
+      path.join(root, 'media/raster.lock.json'),
+      JSON.stringify({ '/image/texture/021.jpg': { sha256: 'a'.repeat(64) } })
+    );
+    writeFileSync(path.join(root, 'media/vector/icon.svg'), '<svg/>');
+    writeFileSync(path.join(root, 'media/image/texture/021.provenance.json'), '{}');
+    if (withOriginals) {
+      writeFileSync(path.join(root, 'media/image/texture/021.jpg'), 'jpeg-bytes');
+    }
+    if (extraRaster) {
+      writeFileSync(path.join(root, 'media/image/texture/unlocked.png'), 'png-bytes');
+    }
+    return root;
+  }
+
+  function digestOf(root: string) {
+    try {
+      return computeRendererManifestDigest(codeEntries(), mediaSourceEntries(root), toolchainEntries()).digest;
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  }
+
+  test('reads rasters from the lock, so the digest ignores whether originals are checked out', () => {
+    const absent = digestOf(fixture(false));
+    expect(digestOf(fixture(true))).toBe(absent);
+    expect(digestOf(fixture(true, true))).toBe(absent);
+  });
+
+  test('hashes each locked raster as its SHA-256 and leaves the lock file itself out', () => {
+    const root = fixture(true);
+    try {
+      const entries = mediaSourceEntries(root);
+      expect(entries.map((entry) => entry.path).sort()).toEqual([
+        'media/image/texture/021.jpg',
+        'media/image/texture/021.provenance.json',
+        'media/vector/icon.svg',
+      ]);
+      const raster = entries.find((entry) => entry.path === 'media/image/texture/021.jpg');
+      expect(new TextDecoder().decode(raster?.bytes)).toBe('a'.repeat(64));
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 });

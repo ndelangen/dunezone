@@ -315,10 +315,6 @@ jobs:
       - name: Enforce static narrow guard contract
         if: ${{ !cancelled() && steps.narrow_check.outputs.changed == 'true' }}
         run: bun run migrations:static-check
-      # Typecheck and knip read src/game/data/assetMap.generated.ts, so the generated images come
-      # first; the lint steps above ran before any generated file existed, as they did on their own.
-      - uses: ./.github/actions/generated-images
-        if: ${{ !cancelled() }}
       - name: Typecheck
         if: ${{ !cancelled() }}
         run: bun run typecheck

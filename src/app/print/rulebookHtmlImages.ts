@@ -1,4 +1,4 @@
-import { resolveAsset } from '../../game/assets/resolveAsset';
+import { resolveAsset } from '../../shared/media/resolveAsset';
 import { rulebookAnnotatedIllustrationPath } from '../../shared/rulebooks/annotatedIllustration';
 import type {
   RulebookRenderBlockV1,

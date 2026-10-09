@@ -1,4 +1,5 @@
 import { Anchor, Button, Group, Select, Stack, Text, Tooltip } from '@mantine/core';
+import { resolveAsset } from '@shared/media/resolveAsset';
 import { createFileRoute, Link, useParams } from '@tanstack/react-router';
 import { Section } from '@ui/block/Section';
 import { TOPIC_ICON_TOPICS, TopicIcon } from '@ui/content/TopicIcon';
@@ -10,8 +11,6 @@ import { Card } from '@ui/surface/Card';
 import { Toolbar } from '@ui/surface/Toolbar';
 import { icons, X, Images, Info, ArrowRight } from 'lucide-react';
 import { useReducer, useState } from 'react';
-
-import { resolveAsset } from '@game/assets/resolveAsset';
 
 import { pageHead } from '../../pageTitle';
 import { catalogueEntries as mediaEntries, mediaKinds } from './mediaCatalogue';

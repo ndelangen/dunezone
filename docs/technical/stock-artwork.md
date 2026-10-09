@@ -19,8 +19,10 @@ uncurated vectors by their purpose and subject.
 3. Give a new set a descriptive label and useful search keywords. A source name and a matching set
    answer different questions, so faction sets collect related portraits across source folders. Visual sets use labels such as
    `Custom portraits / Sand uniforms`. Source names remain searchable through their saved paths.
-4. Run `bun run generate`, then `bun run generate:images` for portraits or `bun run generate:vectors`
-   for SVGs. `bun run generate` is the step that rejects missing collection membership, duplicate
+4. For portraits, run `bun run media:lock` first: it records the new file in `media/raster.lock.json`,
+   which `bun run generate` reads raster keys from. Then run `bun run generate`, then
+   `bun run generate:images` for portraits or `bun run generate:vectors` for SVGs.
+   `bun run generate` is the step that rejects missing collection membership, duplicate
    membership, and stale paths; the image and vector generators never read the collections.
 5. Browse the real picker in Storybook. Check the whole set together, narrow to it, and select an
    image. Run the AssetSelect and Leaders and Alliance stories, then the required release checks.
