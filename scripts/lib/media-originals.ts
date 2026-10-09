@@ -144,15 +144,18 @@ export async function eachWithCounts<Item, Outcome extends string>(
   const bump = (outcome: Outcome | 'failed') => {
     counts[outcome] = (counts[outcome] ?? 0) + 1;
   };
-  async function worker() {
-    for (let next = queue.shift(); next !== undefined; next = queue.shift()) {
-      try {
-        bump(await task(next));
-      } catch (error) {
-        bump('failed');
-        console.error(error instanceof Error ? error.message : String(error));
-      }
+  async function worker(): Promise<void> {
+    const next = queue.shift();
+    if (next === undefined) {
+      return;
     }
+    try {
+      bump(await task(next));
+    } catch (error) {
+      bump('failed');
+      console.error(error instanceof Error ? error.message : String(error));
+    }
+    return worker();
   }
   await Promise.all(Array.from({ length: concurrency }, worker));
   return counts;

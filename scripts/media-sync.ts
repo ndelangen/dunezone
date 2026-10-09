@@ -12,8 +12,7 @@
  * An original that cannot be fetched is listed, and the run carries on and fails at the end, so being offline only costs the art that is missing.
  * New art then still needs `bun run generate` for its collection membership (docs/technical/stock-artwork.md).
  */
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
-import { readFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
 import { distinctOriginals, download, eachWithCounts, mediaOrigin, upload } from './lib/media-originals';

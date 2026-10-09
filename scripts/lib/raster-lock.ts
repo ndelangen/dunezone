@@ -84,15 +84,18 @@ export async function buildRasterLock(previous: RasterLock): Promise<RasterLock>
   const keys = [...new Set(listSources())]
     .sort((left, right) => left.localeCompare(right))
     .map((file) => `/${path.posix.relative('media', file)}`);
-  const CONCURRENCY = 8;
-  for (let index = 0; index < keys.length; index += CONCURRENCY) {
-    const batch = keys.slice(index, index + CONCURRENCY);
-    const entries = await Promise.all(batch.map((key) => describe(key, previous)));
-    batch.forEach((key, position) => {
-      lock[key] = entries[position];
-    });
+  const queue = [...keys];
+  async function worker(): Promise<void> {
+    const key = queue.shift();
+    if (key === undefined) {
+      return;
+    }
+    lock[key] = await describe(key, previous);
+    return worker();
   }
-  return lock;
+  await Promise.all(Array.from({ length: 8 }, worker));
+  /* Workers finish out of order, so the keys are put back in sorted order. */
+  return Object.fromEntries(keys.map((key) => [key, lock[key]]));
 }
 
 async function formatted(target: string, source: string, formatOptions: FormatConfig): Promise<string> {
