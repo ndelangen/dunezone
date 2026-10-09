@@ -296,9 +296,9 @@ This entry was written naming `checkout <branch>` alone. The very next mistake o
 a `checkout HEAD -- <path>` that discarded an unrelated fix in the same file, which is why it now
 names the class instead.
 
-## The isolation job refuses a port on purpose
+## The isolation step refuses a port on purpose
 
-`verify / local_convex_isolation` proves that two local Convex stacks never share ports, containers
+The isolation step of `verify / generate_and_build` proves that two local Convex stacks never share ports, containers
 or data. Part of that proof is a third stack started on a port the second stack holds, and a Vite
 server started on a port a placeholder already binds. Both must be refused, and the refusals happen
 on random ports between 12000 and 40000, never on the e2e stack's 3210 or the app's 6001.
