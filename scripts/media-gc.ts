@@ -144,7 +144,7 @@ function githubGet(pathname: string, raw = false): Promise<Response> {
   return get(`${github}${pathname}`, { Authorization: `Bearer ${githubToken}`, Accept: accept });
 }
 
-/** Every open pull request number, page by page until a short page. */
+/** Every open pull request number, page by page while GitHub's Link header names a next page. */
 async function openPullRequests(page = 1, numbers: number[] = []): Promise<number[]> {
   const response = await githubGet(`/pulls?state=open&per_page=100&page=${page}`);
   if (!response.ok) {
@@ -152,7 +152,8 @@ async function openPullRequests(page = 1, numbers: number[] = []): Promise<numbe
   }
   const pulls = (await response.json()) as { number: number }[];
   const all = [...numbers, ...pulls.map((pull) => pull.number)];
-  return pulls.length < 100 ? all : openPullRequests(page + 1, all);
+  const hasNext = (response.headers.get('link') ?? '').includes('rel="next"');
+  return hasNext ? openPullRequests(page + 1, all) : all;
 }
 
 /** The lock at a pull request's head, or an empty lock when that branch predates it. */
