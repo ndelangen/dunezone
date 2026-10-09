@@ -19,7 +19,7 @@ export const PUBLISHER_PRODUCTION_CONVEX_URL = 'https://exuberant-finch-263.eu-w
 const CONFIG_PATH = path.resolve(process.cwd(), 'workers/publisher/wrangler.jsonc');
 const PUBLISHER_CONVEX_SITE_ORIGIN = 'https://exuberant-finch-263.eu-west-1.convex.site';
 const PUBLISHER_CRON = '*/5 * * * *';
-const REQUIRED_SECRETS = ['ASSET_PUBLISHER_EXECUTOR_SECRET', 'MEDIA_UPLOAD_TOKEN'];
+const REQUIRED_SECRETS = ['ASSET_PUBLISHER_EXECUTOR_SECRET', 'MEDIA_PUBLISH_TOKEN', 'MEDIA_UPLOAD_TOKEN'];
 
 type JsonObject = Record<string, unknown>;
 

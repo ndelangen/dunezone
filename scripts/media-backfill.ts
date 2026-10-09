@@ -17,7 +17,8 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
 import type { RasterLock, RasterLockEntry } from '../src/shared/media/rasterLock';
-import { TransientError, describeError, retryTransient } from './retry-transient';
+import { fetchMedia, integrityMatches } from './lib/media-fetch';
+import { describeError } from './retry-transient';
 
 const repoRoot = path.resolve(import.meta.dirname, '..');
 const origin = (process.env.MEDIA_ORIGIN ?? 'https://dune.zone').replace(/\/$/, '');
@@ -45,25 +46,6 @@ function sha256(bytes: Uint8Array): string {
   return createHash('sha256').update(bytes).digest('hex');
 }
 
-async function request(url: string, init: RequestInit, subject: string): Promise<Response> {
-  return await retryTransient(
-    async () => {
-      let response: Response;
-      try {
-        response = await fetch(url, init);
-      } catch (error) {
-        throw new TransientError(describeError(error));
-      }
-      if (response.status === 429 || response.status >= 500) {
-        await response.body?.cancel();
-        throw new TransientError(`HTTP ${response.status}`);
-      }
-      return response;
-    },
-    { subject, delaysMs: RETRY_DELAYS_MS }
-  );
-}
-
 type Outcome = 'present' | 'uploaded' | 'verified';
 
 /** One original the lock lists, under the first key that names it. */
@@ -73,22 +55,24 @@ function sourceUrl(original: Original): string {
   return `${origin}/__media/src/${original.hash}`;
 }
 
-function integrityMatches(headers: Headers, original: Original): boolean {
-  return (
-    headers.get('X-Media-SHA256') === original.hash && headers.get('X-Media-Bytes') === String(original.entry.bytes)
-  );
+function fetchSource(original: Original, init: RequestInit = {}) {
+  return fetchMedia(sourceUrl(original), init, { subject: original.key, delaysMs: RETRY_DELAYS_MS });
+}
+
+function integrity(original: Original) {
+  return { sha256: original.hash, bytes: original.entry.bytes };
 }
 
 /** Reports whether R2 already holds the original, refusing one whose integrity headers disagree with the lock. */
 async function alreadyStored(original: Original): Promise<boolean> {
-  const head = await request(sourceUrl(original), { method: 'HEAD' }, original.key);
+  const head = await fetchSource(original, { method: 'HEAD' });
   if (head.status === 404) {
     return false;
   }
-  if (!head.ok) {
+  if (head.status !== 200) {
     throw new Error(`${original.key}: HEAD answered ${head.status}`);
   }
-  if (!integrityMatches(head.headers, original)) {
+  if (!integrityMatches(head.headers, integrity(original))) {
     throw new Error(
       `${original.key}: R2 holds an object at ${original.hash} whose integrity headers disagree with the lock`
     );
@@ -126,16 +110,12 @@ async function backfill(original: Original): Promise<Outcome> {
   if (await alreadyStored(original)) {
     return 'present';
   }
-  const put = await request(
-    sourceUrl(original),
-    {
-      method: 'PUT',
-      body: checkedOutBytes(original),
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/octet-stream' },
-    },
-    original.key
-  );
-  const text = await put.text();
+  const put = await fetchSource(original, {
+    method: 'PUT',
+    body: checkedOutBytes(original),
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/octet-stream' },
+  });
+  const text = new TextDecoder().decode(put.bytes);
   if (put.status !== 201 && put.status !== 200) {
     throw new Error(`${original.key}: ingest answered ${put.status} ${text}`);
   }
@@ -144,16 +124,14 @@ async function backfill(original: Original): Promise<Outcome> {
 }
 
 async function verify(original: Original): Promise<Outcome> {
-  const response = await request(sourceUrl(original), {}, original.key);
+  const response = await fetchSource(original);
   if (response.status !== 200) {
-    await response.body?.cancel();
     throw new Error(`${original.key}: GET answered ${response.status}`);
   }
-  const bytes = new Uint8Array(await response.arrayBuffer());
-  if (sha256(bytes) !== original.hash) {
+  if (sha256(response.bytes) !== original.hash) {
     throw new Error(`${original.key}: the bytes R2 served do not match the lock`);
   }
-  if (!integrityMatches(response.headers, original)) {
+  if (!integrityMatches(response.headers, integrity(original))) {
     throw new Error(`${original.key}: the integrity headers do not match the lock`);
   }
   return 'verified';

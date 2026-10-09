@@ -66,7 +66,16 @@ URL never changes meaning and every hit is served `immutable`. Each variant carr
 its output SHA-256 and byte length as `X-Media-SHA256` and `X-Media-Bytes`; a stored
 variant without them answers 502 instead of an unverifiable body. Any other path
 under `/m`, including the bare namespace, answers an uncacheable JSON 404 rather
-than app HTML. Only the encoder writes this bucket; the Worker only reads it.
+than app HTML.
+
+`PUT /m/<name>` is the only way in. It takes `MEDIA_PUBLISH_TOKEN` as a bearer
+token, checks the body against the image type its extension names, and creates the
+object only if it is absent. An identical re-publish answers 200, and a stored
+variant with different bytes answers 409 and is never overwritten. Each production
+deploy installs a fresh random token with the Worker (`--secrets-file`) and runs
+`bun run media:publish`, then `bun run media:publish --verify`, which checks that `/m`
+and the legacy static URL serve the stored bytes for every variant. No person holds
+the token.
 
 ## Renderer revisions
 

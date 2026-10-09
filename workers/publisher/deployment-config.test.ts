@@ -66,7 +66,7 @@ describe('scheduled production deployment shape', () => {
 
   test('declares the executor and media upload secrets', () => {
     expect(config.secrets).toEqual({
-      required: ['ASSET_PUBLISHER_EXECUTOR_SECRET', 'MEDIA_UPLOAD_TOKEN'],
+      required: ['ASSET_PUBLISHER_EXECUTOR_SECRET', 'MEDIA_PUBLISH_TOKEN', 'MEDIA_UPLOAD_TOKEN'],
     });
   });
 

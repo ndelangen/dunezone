@@ -10,6 +10,7 @@
 import { ImageInspectionError, jpegProfile, pngDimensions } from './image-inspection';
 import { METHOD_NOT_ALLOWED, NOT_FOUND, inNamespace, jsonError, serveImmutable } from './media-response';
 import type { Refusal } from './media-response';
+import { authorizeBearer, readBounded, sha256Hex } from './media-upload';
 
 const MEDIA_SOURCE_NAMESPACE = '/__media';
 /** The largest original today is 4.6 MB; the bound leaves room without letting one request hold a large buffer. */
@@ -17,7 +18,7 @@ export const MEDIA_SOURCE_MAX_BYTES = 16 * 1024 * 1024;
 
 const SOURCE_PATH = /^\/__media\/src\/([0-9a-f]{64})$/;
 
-export type MediaSourceBucket = Pick<R2Bucket, 'get' | 'head' | 'put'>;
+type MediaSourceBucket = Pick<R2Bucket, 'get' | 'head' | 'put'>;
 
 export type MediaSourceEnv = {
   MEDIA_SOURCE_BUCKET: MediaSourceBucket;
@@ -47,68 +48,8 @@ type Upload = { bytes: Uint8Array; format: 'png' | 'jpeg'; width: number; height
 
 const TOO_LARGE: Refusal = { status: 413, message: 'The original is too large' };
 
-function hex(buffer: ArrayBuffer): string {
-  return Array.from(new Uint8Array(buffer), (byte) => byte.toString(16).padStart(2, '0')).join('');
-}
-
-function digest(text: string): Promise<ArrayBuffer> {
-  return crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
-}
-
-/** Compares digests rather than the secrets themselves, so the comparison takes the same time whatever the lengths. */
-async function tokenMatches(source: Source, expected: string): Promise<boolean> {
-  const presented = source.request.headers.get('Authorization')?.match(/^Bearer (.+)$/)?.[1];
-  if (!presented) {
-    return false;
-  }
-  const [left, right] = await Promise.all([digest(presented), digest(expected)]);
-  const a = new Uint8Array(left);
-  const b = new Uint8Array(right);
-  let difference = 0;
-  for (let index = 0; index < a.length; index += 1) {
-    difference |= a[index] ^ b[index];
-  }
-  return difference === 0;
-}
-
 async function authorize(source: Source): Promise<Refusal | null> {
-  const expected = source.env.MEDIA_UPLOAD_TOKEN;
-  if (!expected) {
-    return { status: 503, message: 'Ingest is not configured' };
-  }
-  return (await tokenMatches(source, expected)) ? null : { status: 401, message: 'Not authorized' };
-}
-
-function concatenate(chunks: Uint8Array[]): Uint8Array {
-  const bytes = new Uint8Array(chunks.reduce((total, chunk) => total + chunk.byteLength, 0));
-  let offset = 0;
-  for (const chunk of chunks) {
-    bytes.set(chunk, offset);
-    offset += chunk.byteLength;
-  }
-  return bytes;
-}
-
-/** Reads at most MEDIA_SOURCE_MAX_BYTES and returns null past it, whatever Content-Length claimed. */
-async function readBounded(request: Request): Promise<Uint8Array | null> {
-  if (Number(request.headers.get('Content-Length') ?? '0') > MEDIA_SOURCE_MAX_BYTES) {
-    return null;
-  }
-  const reader = request.body?.getReader();
-  if (!reader) {
-    return new Uint8Array();
-  }
-  const chunks: Uint8Array[] = [];
-  let total = 0;
-  for (let next = await reader.read(); !next.done; next = await reader.read()) {
-    total += next.value.byteLength;
-    if (total > MEDIA_SOURCE_MAX_BYTES) {
-      await reader.cancel();
-      return null;
-    }
-    chunks.push(next.value);
-  }
-  return concatenate(chunks);
+  return await authorizeBearer(source.request, source.env.MEDIA_UPLOAD_TOKEN, 'Ingest');
 }
 
 function inspectAs(bytes: Uint8Array): Upload {
@@ -134,14 +75,14 @@ function inspect(bytes: Uint8Array): Upload | null {
 }
 
 async function readUpload(source: Source): Promise<Upload | Refusal> {
-  const bytes = await readBounded(source.request);
+  const bytes = await readBounded(source.request, MEDIA_SOURCE_MAX_BYTES);
   if (!bytes) {
     return TOO_LARGE;
   }
   if (bytes.byteLength === 0) {
     return { status: 400, message: 'The body is empty' };
   }
-  const actual = hex(await crypto.subtle.digest('SHA-256', bytes));
+  const actual = await sha256Hex(bytes);
   if (actual !== source.sha256) {
     return { status: 422, message: `The body hashes to ${actual}, not the SHA-256 in the path` };
   }
