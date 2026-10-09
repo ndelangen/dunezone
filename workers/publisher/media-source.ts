@@ -8,13 +8,14 @@
  * An identical re-upload answers 200, so a backfill or a retried upload is safe to repeat.
  */
 import { ImageInspectionError, jpegProfile, pngDimensions } from './image-inspection';
+import { METHOD_NOT_ALLOWED, NOT_FOUND, inNamespace, jsonError, serveImmutable } from './media-response';
+import type { Refusal } from './media-response';
 
 const MEDIA_SOURCE_NAMESPACE = '/__media';
 /** The largest original today is 4.6 MB; the bound leaves room without letting one request hold a large buffer. */
 export const MEDIA_SOURCE_MAX_BYTES = 16 * 1024 * 1024;
 
 const SOURCE_PATH = /^\/__media\/src\/([0-9a-f]{64})$/;
-const IMMUTABLE_CACHE_CONTROL = 'public, max-age=31536000, immutable';
 
 export type MediaSourceBucket = Pick<R2Bucket, 'get' | 'head' | 'put'>;
 
@@ -38,23 +39,13 @@ export function mediaSourceKey(sha256: string): string {
   return `sha256/${sha256}`;
 }
 
-type Refusal = { status: number; message: string };
-
 /** One request on an original, named by the SHA-256 in its path. */
 type Source = { request: Request; env: MediaSourceEnv; sha256: string };
 
 /** A body that hashed to its path and parsed as a PNG or JPEG. */
 type Upload = { bytes: Uint8Array; format: 'png' | 'jpeg'; width: number; height: number };
 
-const NOT_FOUND: Refusal = { status: 404, message: 'Not found' };
 const TOO_LARGE: Refusal = { status: 413, message: 'The original is too large' };
-
-function jsonError(refusal: Refusal): Response {
-  return Response.json(
-    { error: refusal.message },
-    { status: refusal.status, headers: { 'Cache-Control': 'no-store' } }
-  );
-}
 
 function hex(buffer: ArrayBuffer): string {
   return Array.from(new Uint8Array(buffer), (byte) => byte.toString(16).padStart(2, '0')).join('');
@@ -157,18 +148,6 @@ async function readUpload(source: Source): Promise<Upload | Refusal> {
   return inspect(bytes) ?? { status: 415, message: 'The original is not a readable PNG or JPEG' };
 }
 
-function sourceHeaders(object: R2Object, source: Source): Headers {
-  const headers = new Headers();
-  headers.set('Content-Type', object.httpMetadata?.contentType ?? 'application/octet-stream');
-  headers.set('Content-Length', String(object.size));
-  headers.set('ETag', object.httpEtag);
-  headers.set('Cache-Control', IMMUTABLE_CACHE_CONTROL);
-  headers.set('X-Content-Type-Options', 'nosniff');
-  headers.set('X-Media-SHA256', object.customMetadata?.sha256 ?? source.sha256);
-  headers.set('X-Media-Bytes', object.customMetadata?.bytes ?? String(object.size));
-  return headers;
-}
-
 /** Describes what R2 holds, or returns null when its metadata does not describe this upload. */
 function receiptFrom(stored: R2Object, source: Source, upload: Upload): Omit<MediaSourceReceipt, 'created'> | null {
   const metadata = stored.customMetadata ?? {};
@@ -193,19 +172,10 @@ async function serveSource(source: Source): Promise<Response> {
   if (!object) {
     return jsonError(NOT_FOUND);
   }
-  const headers = sourceHeaders(object, source);
-  if (source.request.headers.get('If-None-Match') === object.httpEtag) {
-    await object.body.cancel();
-    return new Response(null, {
-      status: 304,
-      headers: { ETag: object.httpEtag, 'Cache-Control': IMMUTABLE_CACHE_CONTROL },
-    });
-  }
-  if (source.request.method === 'HEAD') {
-    await object.body.cancel();
-    return new Response(null, { status: 200, headers });
-  }
-  return new Response(object.body, { status: 200, headers });
+  return await serveImmutable(source.request, object, 'application/octet-stream', {
+    sha256: object.customMetadata?.sha256 ?? source.sha256,
+    bytes: object.customMetadata?.bytes ?? String(object.size),
+  });
 }
 
 async function storeUpload(source: Source, upload: Upload): Promise<Response> {
@@ -254,7 +224,7 @@ async function ingestSource(source: Source): Promise<Response> {
 /** Answers the `/__media` namespace, or returns null for any other path. */
 export async function handleMediaSourceRequest(request: Request, env: MediaSourceEnv): Promise<Response | null> {
   const url = new URL(request.url);
-  if (url.pathname !== MEDIA_SOURCE_NAMESPACE && !url.pathname.startsWith(`${MEDIA_SOURCE_NAMESPACE}/`)) {
+  if (!inNamespace(url.pathname, MEDIA_SOURCE_NAMESPACE)) {
     return null;
   }
   const sha256 = url.pathname.match(SOURCE_PATH)?.[1];
@@ -268,5 +238,5 @@ export async function handleMediaSourceRequest(request: Request, env: MediaSourc
   if (request.method === 'PUT') {
     return await ingestSource(source);
   }
-  return jsonError({ status: 405, message: 'Method not allowed' });
+  return jsonError(METHOD_NOT_ALLOWED);
 }

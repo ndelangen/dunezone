@@ -39,12 +39,14 @@ function liveBindings() {
     { name: 'ASSET_BUCKET', type: 'r2_bucket', bucket_name: 'tanstack-start-faction-sheet-assets' },
     { name: 'USER_IMAGE_BUCKET', type: 'r2_bucket', bucket_name: 'dunezone-user-images' },
     { name: 'MEDIA_SOURCE_BUCKET', type: 'r2_bucket', bucket_name: 'dunezone-media-src' },
+    { name: 'MEDIA_BUCKET', type: 'r2_bucket', bucket_name: 'dunezone-media' },
     { name: 'BROWSER', type: 'browser' },
     { name: 'IMAGES', type: 'images' },
     { name: 'ASSETS', type: 'assets' },
     { name: 'CF_VERSION_METADATA', type: 'version_metadata' },
     { name: 'ASSET_PUBLISHER_CACHE_TOKEN_SECRET', type: 'secret_text' },
     { name: 'ASSET_PUBLISHER_EXECUTOR_SECRET', type: 'secret_text' },
+    { name: 'MEDIA_UPLOAD_TOKEN', type: 'secret_text' },
     {
       name: 'PUBLIC_BASE_URL',
       type: 'plain_text',
@@ -169,6 +171,7 @@ function liveFetcher(
           ? []
           : [{ name: 'ASSET_PUBLISHER_CACHE_TOKEN_SECRET', type: 'secret_text' }]),
         ...(options.executorSecret === false ? [] : [{ name: 'ASSET_PUBLISHER_EXECUTOR_SECRET', type: 'secret_text' }]),
+        { name: 'MEDIA_UPLOAD_TOKEN', type: 'secret_text' },
         ...(options.extraSecret ? [{ name: 'ASSET_PUBLISHER_POLL_SECRET', type: 'secret_text' }] : []),
       ]);
     }
@@ -249,8 +252,8 @@ describe('Cloudflare live drift check', () => {
     ).resolves.toEqual({
       worker: WORKER,
       domainCount: 1,
-      bindingCount: 21,
-      secretCount: 2,
+      bindingCount: 22,
+      secretCount: 3,
       retiredSecrets: ['ASSET_PUBLISHER_CACHE_TOKEN_SECRET'],
       cronCount: 1,
       queueCount: 1,
@@ -279,7 +282,7 @@ describe('Cloudflare live drift check', () => {
         fetcher: live.fetcher,
       })
     ).resolves.toMatchObject({
-      secretCount: 1,
+      secretCount: 2,
       retiredSecrets: [],
     });
   });

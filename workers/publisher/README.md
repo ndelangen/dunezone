@@ -57,6 +57,17 @@ disagreeing stored object answers 409. Until the secret is set with
 `bun run media:backfill --verify` downloads each one back and compares it with the
 lock.
 
+## Raster variants
+
+`/m/<src20>.<recipe10>.<ext>` serves encoded variants from the
+`dunezone-media` bucket, stored at `v/<src20>.<recipe10>.<ext>` (#1888). `src20` is
+the start of the original's SHA-256 and `recipe10` names the encoding recipe, so a
+URL never changes meaning and every hit is served `immutable`. Each variant carries
+its output SHA-256 and byte length as `X-Media-SHA256` and `X-Media-Bytes`; a stored
+variant without them answers 502 instead of an unverifiable body. Any other path
+under `/m`, including the bare namespace, answers an uncacheable JSON 404 rather
+than app HTML. Only the encoder writes this bucket; the Worker only reads it.
+
 ## Renderer revisions
 
 There is one deployed Renderer for each asset type. A checked-in Renderer revision
