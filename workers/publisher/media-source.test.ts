@@ -148,6 +148,14 @@ describe('media source ingest', () => {
     expect((await handleMediaSourceRequest(upload(hash, bytes), unconfigured.env))?.status).toBe(503);
   });
 
+  test('refuses an empty body and an image with no area', async () => {
+    const { env } = environment();
+    const empty = new Uint8Array();
+    expect((await handleMediaSourceRequest(upload(sha256(empty), empty), env))?.status).toBe(400);
+    const flat = pngBytes(0, 4);
+    expect((await handleMediaSourceRequest(upload(sha256(flat), flat), env))?.status).toBe(415);
+  });
+
   test('refuses a body over the bound', async () => {
     const { bucket, env } = environment();
     const bytes = new Uint8Array(MEDIA_SOURCE_MAX_BYTES + 1);
@@ -158,31 +166,48 @@ describe('media source ingest', () => {
 });
 
 describe('media source reads', () => {
-  test('serves a stored original with its integrity headers, and answers HEAD and a matching ETag', async () => {
+  async function stored() {
     const { env } = environment();
     const bytes = pngBytes(4, 4);
     const hash = sha256(bytes);
     await handleMediaSourceRequest(upload(hash, bytes), env);
+    return { env, bytes, hash, url: `${ORIGIN}/__media/src/${hash}` };
+  }
 
-    const response = await handleMediaSourceRequest(new Request(`${ORIGIN}/__media/src/${hash}`), env);
-    expect(response?.status).toBe(200);
-    expect(response?.headers.get('Content-Type')).toBe('image/png');
-    expect(response?.headers.get('X-Media-SHA256')).toBe(hash);
-    expect(response?.headers.get('X-Media-Bytes')).toBe(String(bytes.byteLength));
-    expect(response?.headers.get('Cache-Control')).toBe('public, max-age=31536000, immutable');
-    expect(response?.headers.get('X-Content-Type-Options')).toBe('nosniff');
-    expect(new Uint8Array(await response!.arrayBuffer())).toEqual(bytes);
+  async function answer(request: Request, env: MediaSourceEnv): Promise<Response> {
+    const response = await handleMediaSourceRequest(request, env);
+    expect(response).not.toBeNull();
+    return response as Response;
+  }
 
-    const head = await handleMediaSourceRequest(new Request(`${ORIGIN}/__media/src/${hash}`, { method: 'HEAD' }), env);
-    expect(head?.status).toBe(200);
-    expect(head?.body).toBeNull();
+  test('serves a stored original with its integrity headers', async () => {
+    const { env, bytes, hash, url } = await stored();
 
-    const etag = response?.headers.get('ETag') ?? '';
-    const revalidated = await handleMediaSourceRequest(
-      new Request(`${ORIGIN}/__media/src/${hash}`, { headers: { 'If-None-Match': etag } }),
-      env
-    );
-    expect(revalidated?.status).toBe(304);
+    const response = await answer(new Request(url), env);
+
+    expect(response.status).toBe(200);
+    expect(Object.fromEntries(response.headers)).toMatchObject({
+      'content-type': 'image/png',
+      'x-media-sha256': hash,
+      'x-media-bytes': String(bytes.byteLength),
+      'cache-control': 'public, max-age=31536000, immutable',
+      'x-content-type-options': 'nosniff',
+    });
+    expect(new Uint8Array(await response.arrayBuffer())).toEqual(bytes);
+  });
+
+  test('answers HEAD without a body', async () => {
+    const { env, url } = await stored();
+    const head = await answer(new Request(url, { method: 'HEAD' }), env);
+    expect(head.status).toBe(200);
+    expect(head.body).toBeNull();
+  });
+
+  test('answers a matching ETag with 304', async () => {
+    const { env, url } = await stored();
+    const etag = (await answer(new Request(url), env)).headers.get('ETag');
+    const revalidated = await answer(new Request(url, { headers: { 'If-None-Match': String(etag) } }), env);
+    expect(revalidated.status).toBe(304);
   });
 
   test('answers 404 that is never cached for an unknown hash, a malformed path or the bare namespace, even on navigation', async () => {

@@ -38,21 +38,39 @@ export function mediaSourceKey(sha256: string): string {
   return `sha256/${sha256}`;
 }
 
-function jsonError(status: number, message: string): Response {
-  return Response.json({ error: message }, { status, headers: { 'Cache-Control': 'no-store' } });
+type Refusal = { status: number; message: string };
+
+/** One request on an original, named by the SHA-256 in its path. */
+type Source = { request: Request; env: MediaSourceEnv; sha256: string };
+
+/** A body that hashed to its path and parsed as a PNG or JPEG. */
+type Upload = { bytes: Uint8Array; format: 'png' | 'jpeg'; width: number; height: number };
+
+const NOT_FOUND: Refusal = { status: 404, message: 'Not found' };
+const TOO_LARGE: Refusal = { status: 413, message: 'The original is too large' };
+
+function jsonError(refusal: Refusal): Response {
+  return Response.json(
+    { error: refusal.message },
+    { status: refusal.status, headers: { 'Cache-Control': 'no-store' } }
+  );
 }
 
 function hex(buffer: ArrayBuffer): string {
   return Array.from(new Uint8Array(buffer), (byte) => byte.toString(16).padStart(2, '0')).join('');
 }
 
+function digest(text: string): Promise<ArrayBuffer> {
+  return crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+}
+
 /** Compares digests rather than the secrets themselves, so the comparison takes the same time whatever the lengths. */
-async function tokenMatches(presented: string, expected: string): Promise<boolean> {
-  const encoder = new TextEncoder();
-  const [left, right] = await Promise.all([
-    crypto.subtle.digest('SHA-256', encoder.encode(presented)),
-    crypto.subtle.digest('SHA-256', encoder.encode(expected)),
-  ]);
+async function tokenMatches(source: Source, expected: string): Promise<boolean> {
+  const presented = source.request.headers.get('Authorization')?.match(/^Bearer (.+)$/)?.[1];
+  if (!presented) {
+    return false;
+  }
+  const [left, right] = await Promise.all([digest(presented), digest(expected)]);
   const a = new Uint8Array(left);
   const b = new Uint8Array(right);
   let difference = 0;
@@ -62,27 +80,16 @@ async function tokenMatches(presented: string, expected: string): Promise<boolea
   return difference === 0;
 }
 
-/** Reads at most `limit` bytes and returns null past it, whatever Content-Length claimed. */
-async function readBounded(request: Request, limit: number): Promise<Uint8Array | null> {
-  const reader = request.body?.getReader();
-  if (!reader) {
-    return new Uint8Array();
+async function authorize(source: Source): Promise<Refusal | null> {
+  const expected = source.env.MEDIA_UPLOAD_TOKEN;
+  if (!expected) {
+    return { status: 503, message: 'Ingest is not configured' };
   }
-  const chunks: Uint8Array[] = [];
-  let total = 0;
-  for (;;) {
-    const { done, value } = await reader.read();
-    if (done) {
-      break;
-    }
-    total += value.byteLength;
-    if (total > limit) {
-      await reader.cancel();
-      return null;
-    }
-    chunks.push(value);
-  }
-  const bytes = new Uint8Array(total);
+  return (await tokenMatches(source, expected)) ? null : { status: 401, message: 'Not authorized' };
+}
+
+function concatenate(chunks: Uint8Array[]): Uint8Array {
+  const bytes = new Uint8Array(chunks.reduce((total, chunk) => total + chunk.byteLength, 0));
   let offset = 0;
   for (const chunk of chunks) {
     bytes.set(chunk, offset);
@@ -91,16 +98,42 @@ async function readBounded(request: Request, limit: number): Promise<Uint8Array 
   return bytes;
 }
 
-type Inspected = { format: 'png' | 'jpeg'; width: number; height: number };
-
-function inspect(bytes: Uint8Array): Inspected | null {
-  try {
-    if (bytes[0] === 0x89) {
-      const { widthPx, heightPx } = pngDimensions(bytes);
-      return { format: 'png', width: widthPx, height: heightPx };
+/** Reads at most MEDIA_SOURCE_MAX_BYTES and returns null past it, whatever Content-Length claimed. */
+async function readBounded(request: Request): Promise<Uint8Array | null> {
+  if (Number(request.headers.get('Content-Length') ?? '0') > MEDIA_SOURCE_MAX_BYTES) {
+    return null;
+  }
+  const reader = request.body?.getReader();
+  if (!reader) {
+    return new Uint8Array();
+  }
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  for (let next = await reader.read(); !next.done; next = await reader.read()) {
+    total += next.value.byteLength;
+    if (total > MEDIA_SOURCE_MAX_BYTES) {
+      await reader.cancel();
+      return null;
     }
-    const { widthPx, heightPx } = jpegProfile(bytes);
-    return { format: 'jpeg', width: widthPx, height: heightPx };
+    chunks.push(next.value);
+  }
+  return concatenate(chunks);
+}
+
+function inspectAs(bytes: Uint8Array): Upload {
+  if (bytes[0] === 0x89) {
+    const { widthPx, heightPx } = pngDimensions(bytes);
+    return { bytes, format: 'png', width: widthPx, height: heightPx };
+  }
+  const { widthPx, heightPx } = jpegProfile(bytes);
+  return { bytes, format: 'jpeg', width: widthPx, height: heightPx };
+}
+
+/** Returns the parsed image, or null for anything that is not a PNG or JPEG with a non-empty area. */
+function inspect(bytes: Uint8Array): Upload | null {
+  try {
+    const upload = inspectAs(bytes);
+    return upload.width * upload.height > 0 ? upload : null;
   } catch (error) {
     if (error instanceof ImageInspectionError) {
       return null;
@@ -109,102 +142,110 @@ function inspect(bytes: Uint8Array): Inspected | null {
   }
 }
 
-function sourceHeaders(object: R2Object, sha256: string): Headers {
+async function readUpload(source: Source): Promise<Upload | Refusal> {
+  const bytes = await readBounded(source.request);
+  if (!bytes) {
+    return TOO_LARGE;
+  }
+  if (bytes.byteLength === 0) {
+    return { status: 400, message: 'The body is empty' };
+  }
+  const actual = hex(await crypto.subtle.digest('SHA-256', bytes));
+  if (actual !== source.sha256) {
+    return { status: 422, message: `The body hashes to ${actual}, not the SHA-256 in the path` };
+  }
+  return inspect(bytes) ?? { status: 415, message: 'The original is not a readable PNG or JPEG' };
+}
+
+function sourceHeaders(object: R2Object, source: Source): Headers {
   const headers = new Headers();
   headers.set('Content-Type', object.httpMetadata?.contentType ?? 'application/octet-stream');
   headers.set('Content-Length', String(object.size));
   headers.set('ETag', object.httpEtag);
   headers.set('Cache-Control', IMMUTABLE_CACHE_CONTROL);
   headers.set('X-Content-Type-Options', 'nosniff');
-  headers.set('X-Media-SHA256', object.customMetadata?.sha256 ?? sha256);
+  headers.set('X-Media-SHA256', object.customMetadata?.sha256 ?? source.sha256);
   headers.set('X-Media-Bytes', object.customMetadata?.bytes ?? String(object.size));
   return headers;
 }
 
-function receiptFrom(sha256: string, object: R2Object, created: boolean): MediaSourceReceipt | null {
-  const metadata = object.customMetadata ?? {};
+/** Describes what R2 holds, or returns null when its metadata does not describe this upload. */
+function receiptFrom(stored: R2Object, source: Source, upload: Upload): Omit<MediaSourceReceipt, 'created'> | null {
+  const metadata = stored.customMetadata ?? {};
   const format = metadata.format;
-  if (metadata.sha256 !== sha256 || (format !== 'png' && format !== 'jpeg')) {
+  if (metadata.sha256 !== source.sha256 || stored.size !== upload.bytes.byteLength) {
+    return null;
+  }
+  if (format !== 'png' && format !== 'jpeg') {
     return null;
   }
   return {
-    sha256,
-    bytes: object.size,
+    sha256: source.sha256,
+    bytes: stored.size,
     width: Number(metadata.width),
     height: Number(metadata.height),
     format,
-    created,
   };
 }
 
-async function serveSource(request: Request, env: MediaSourceEnv, sha256: string): Promise<Response> {
-  const object = await env.MEDIA_SOURCE_BUCKET.get(mediaSourceKey(sha256));
+async function serveSource(source: Source): Promise<Response> {
+  const object = await source.env.MEDIA_SOURCE_BUCKET.get(mediaSourceKey(source.sha256));
   if (!object) {
-    return jsonError(404, 'Not found');
+    return jsonError(NOT_FOUND);
   }
-  const headers = sourceHeaders(object, sha256);
-  if (request.headers.get('If-None-Match') === object.httpEtag) {
+  const headers = sourceHeaders(object, source);
+  if (source.request.headers.get('If-None-Match') === object.httpEtag) {
     await object.body.cancel();
     return new Response(null, { status: 304, headers: { ETag: object.httpEtag } });
   }
-  if (request.method === 'HEAD') {
+  if (source.request.method === 'HEAD') {
     await object.body.cancel();
     return new Response(null, { status: 200, headers });
   }
   return new Response(object.body, { status: 200, headers });
 }
 
-async function ingestSource(request: Request, env: MediaSourceEnv, sha256: string): Promise<Response> {
-  if (!env.MEDIA_UPLOAD_TOKEN) {
-    return jsonError(503, 'Ingest is not configured');
-  }
-  const presented = request.headers.get('Authorization')?.match(/^Bearer (.+)$/)?.[1];
-  if (!presented || !(await tokenMatches(presented, env.MEDIA_UPLOAD_TOKEN))) {
-    return jsonError(401, 'Not authorized');
-  }
-  const declared = Number(request.headers.get('Content-Length') ?? '0');
-  if (declared > MEDIA_SOURCE_MAX_BYTES) {
-    return jsonError(413, 'The original is too large');
-  }
-  const bytes = await readBounded(request, MEDIA_SOURCE_MAX_BYTES);
-  if (!bytes) {
-    return jsonError(413, 'The original is too large');
-  }
-  if (bytes.byteLength === 0) {
-    return jsonError(400, 'The body is empty');
-  }
-  const actual = hex(await crypto.subtle.digest('SHA-256', bytes));
-  if (actual !== sha256) {
-    return jsonError(422, `The body hashes to ${actual}, not the SHA-256 in the path`);
-  }
-  const inspected = inspect(bytes);
-  if (!inspected || inspected.width === 0 || inspected.height === 0) {
-    return jsonError(415, 'The original is not a readable PNG or JPEG');
-  }
-  const key = mediaSourceKey(sha256);
-  const written = await env.MEDIA_SOURCE_BUCKET.put(key, bytes, {
+async function storeUpload(source: Source, upload: Upload): Promise<Response> {
+  const key = mediaSourceKey(source.sha256);
+  const written = await source.env.MEDIA_SOURCE_BUCKET.put(key, upload.bytes, {
     onlyIf: { etagDoesNotMatch: '*' },
-    sha256,
-    httpMetadata: { contentType: inspected.format === 'png' ? 'image/png' : 'image/jpeg' },
+    sha256: source.sha256,
+    httpMetadata: { contentType: upload.format === 'png' ? 'image/png' : 'image/jpeg' },
     customMetadata: {
-      sha256,
-      bytes: String(bytes.byteLength),
-      format: inspected.format,
-      width: String(inspected.width),
-      height: String(inspected.height),
+      sha256: source.sha256,
+      bytes: String(upload.bytes.byteLength),
+      format: upload.format,
+      width: String(upload.width),
+      height: String(upload.height),
     },
   });
   /* A null answer means the precondition failed: the key already exists. Content addressing makes that the same original, which the stored metadata confirms. */
-  const stored = written ?? (await env.MEDIA_SOURCE_BUCKET.head(key));
+  const stored = written ?? (await source.env.MEDIA_SOURCE_BUCKET.head(key));
   if (!stored) {
-    return jsonError(503, 'The original was neither written nor found');
+    return jsonError({ status: 503, message: 'The original was neither written nor found' });
   }
-  const receipt = receiptFrom(sha256, stored, written !== null);
-  if (!receipt || receipt.bytes !== bytes.byteLength) {
-    console.error(JSON.stringify({ event: 'media_source_conflict', sha256 }));
-    return jsonError(409, 'A stored object at this hash disagrees with the upload');
+  const receipt = receiptFrom(stored, source, upload);
+  if (!receipt) {
+    console.error(JSON.stringify({ event: 'media_source_conflict', sha256: source.sha256 }));
+    return jsonError({ status: 409, message: 'A stored object at this hash disagrees with the upload' });
   }
-  return Response.json(receipt, { status: receipt.created ? 201 : 200, headers: { 'Cache-Control': 'no-store' } });
+  const created = written !== null;
+  return Response.json({ ...receipt, created } satisfies MediaSourceReceipt, {
+    status: created ? 201 : 200,
+    headers: { 'Cache-Control': 'no-store' },
+  });
+}
+
+async function ingestSource(source: Source): Promise<Response> {
+  const refusal = await authorize(source);
+  if (refusal) {
+    return jsonError(refusal);
+  }
+  const upload = await readUpload(source);
+  if ('status' in upload) {
+    return jsonError(upload);
+  }
+  return await storeUpload(source, upload);
 }
 
 /** Answers the `/__media` namespace, or returns null for any other path. */
@@ -215,13 +256,14 @@ export async function handleMediaSourceRequest(request: Request, env: MediaSourc
   }
   const sha256 = url.pathname.match(SOURCE_PATH)?.[1];
   if (!sha256) {
-    return jsonError(404, 'Not found');
+    return jsonError(NOT_FOUND);
   }
+  const source = { request, env, sha256 };
   if (request.method === 'GET' || request.method === 'HEAD') {
-    return await serveSource(request, env, sha256);
+    return await serveSource(source);
   }
   if (request.method === 'PUT') {
-    return await ingestSource(request, env, sha256);
+    return await ingestSource(source);
   }
-  return jsonError(405, 'Method not allowed');
+  return jsonError({ status: 405, message: 'Method not allowed' });
 }

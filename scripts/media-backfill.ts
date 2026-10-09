@@ -66,67 +66,95 @@ async function request(url: string, init: RequestInit, subject: string): Promise
 
 type Outcome = 'present' | 'uploaded' | 'verified';
 
-async function backfill(hash: string, key: string, entry: RasterLockEntry): Promise<Outcome> {
-  const url = `${origin}/__media/src/${hash}`;
-  const head = await request(url, { method: 'HEAD' }, key);
-  if (head.ok) {
-    if (head.headers.get('X-Media-SHA256') !== hash || head.headers.get('X-Media-Bytes') !== String(entry.bytes)) {
-      throw new Error(`${key}: R2 holds an object at ${hash} whose integrity headers disagree with the lock`);
-    }
-    return 'present';
-  }
-  if (head.status !== 404) {
-    throw new Error(`${key}: HEAD answered ${head.status}`);
-  }
-  const bytes = readFileSync(path.join(repoRoot, 'media', key));
-  if (sha256(bytes) !== hash) {
-    throw new Error(`${key}: the checked-out bytes do not match the lock; run \`bun run media:lock\``);
-  }
-  const put = await request(
-    url,
-    {
-      method: 'PUT',
-      body: bytes,
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/octet-stream' },
-    },
-    key
+/** One original the lock lists, under the first key that names it. */
+type Original = { hash: string; key: string; entry: RasterLockEntry };
+
+function sourceUrl(original: Original): string {
+  return `${origin}/__media/src/${original.hash}`;
+}
+
+function integrityMatches(headers: Headers, original: Original): boolean {
+  return (
+    headers.get('X-Media-SHA256') === original.hash && headers.get('X-Media-Bytes') === String(original.entry.bytes)
   );
-  const text = await put.text();
-  if (put.status !== 201 && put.status !== 200) {
-    throw new Error(`${key}: ingest answered ${put.status} ${text}`);
+}
+
+/** Reports whether R2 already holds the original, refusing one whose integrity headers disagree with the lock. */
+async function alreadyStored(original: Original): Promise<boolean> {
+  const head = await request(sourceUrl(original), { method: 'HEAD' }, original.key);
+  if (head.status === 404) {
+    return false;
   }
-  const receipt = JSON.parse(text) as { sha256: string; bytes: number; width: number; height: number; format: string };
-  const expected = { sha256: hash, bytes: entry.bytes, width: entry.width, height: entry.height, format: entry.format };
-  const actual = {
-    sha256: receipt.sha256,
-    bytes: receipt.bytes,
-    width: receipt.width,
-    height: receipt.height,
-    format: receipt.format,
+  if (!head.ok) {
+    throw new Error(`${original.key}: HEAD answered ${head.status}`);
+  }
+  if (!integrityMatches(head.headers, original)) {
+    throw new Error(
+      `${original.key}: R2 holds an object at ${original.hash} whose integrity headers disagree with the lock`
+    );
+  }
+  return true;
+}
+
+function checkedOutBytes(original: Original): Uint8Array<ArrayBuffer> {
+  const bytes = new Uint8Array(readFileSync(path.join(repoRoot, 'media', original.key)));
+  if (sha256(bytes) !== original.hash) {
+    throw new Error(`${original.key}: the checked-out bytes do not match the lock; run \`bun run media:lock\``);
+  }
+  return bytes;
+}
+
+function checkReceipt(text: string, original: Original): void {
+  const { sha256: hash, bytes, width, height, format } = JSON.parse(text) as Record<string, unknown>;
+  const actual = { sha256: hash, bytes, width, height, format };
+  const { entry } = original;
+  const expected = {
+    sha256: original.hash,
+    bytes: entry.bytes,
+    width: entry.width,
+    height: entry.height,
+    format: entry.format,
   };
   if (JSON.stringify(actual) !== JSON.stringify(expected)) {
     throw new Error(
-      `${key}: the receipt ${JSON.stringify(actual)} disagrees with the lock ${JSON.stringify(expected)}`
+      `${original.key}: the receipt ${JSON.stringify(actual)} disagrees with the lock ${JSON.stringify(expected)}`
     );
   }
+}
+
+async function backfill(original: Original): Promise<Outcome> {
+  if (await alreadyStored(original)) {
+    return 'present';
+  }
+  const put = await request(
+    sourceUrl(original),
+    {
+      method: 'PUT',
+      body: checkedOutBytes(original),
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/octet-stream' },
+    },
+    original.key
+  );
+  const text = await put.text();
+  if (put.status !== 201 && put.status !== 200) {
+    throw new Error(`${original.key}: ingest answered ${put.status} ${text}`);
+  }
+  checkReceipt(text, original);
   return 'uploaded';
 }
 
-async function verify(hash: string, key: string, entry: RasterLockEntry): Promise<Outcome> {
-  const response = await request(`${origin}/__media/src/${hash}`, {}, key);
+async function verify(original: Original): Promise<Outcome> {
+  const response = await request(sourceUrl(original), {}, original.key);
   if (response.status !== 200) {
     await response.body?.cancel();
-    throw new Error(`${key}: GET answered ${response.status}`);
+    throw new Error(`${original.key}: GET answered ${response.status}`);
   }
   const bytes = new Uint8Array(await response.arrayBuffer());
-  if (sha256(bytes) !== hash || bytes.byteLength !== entry.bytes) {
-    throw new Error(`${key}: the bytes R2 served do not match the lock`);
+  if (sha256(bytes) !== original.hash) {
+    throw new Error(`${original.key}: the bytes R2 served do not match the lock`);
   }
-  if (
-    response.headers.get('X-Media-SHA256') !== hash ||
-    response.headers.get('X-Media-Bytes') !== String(entry.bytes)
-  ) {
-    throw new Error(`${key}: the integrity headers do not match the lock`);
+  if (!integrityMatches(response.headers, original)) {
+    throw new Error(`${original.key}: the integrity headers do not match the lock`);
   }
   return 'verified';
 }
@@ -137,7 +165,7 @@ async function worker() {
   for (let next = queue.shift(); next; next = queue.shift()) {
     const [hash, { key, entry }] = next;
     try {
-      counts[await (verifyOnly ? verify : backfill)(hash, key, entry)] += 1;
+      counts[await (verifyOnly ? verify : backfill)({ hash, key, entry })] += 1;
     } catch (error) {
       counts.failed += 1;
       console.error(describeError(error));
