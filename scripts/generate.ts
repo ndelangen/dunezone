@@ -5,12 +5,13 @@ import type { FormatConfig } from 'oxfmt';
 import { format } from 'oxfmt';
 import { recursiveReaddirFiles } from 'recursive-readdir-files';
 
+import rasterLock from '../media/raster.lock.json';
 import stockAssetCollections from '../src/shared/stockAssetCollections.json';
 
 async function getFiles(path: string, root: 'public' | 'media' = 'public') {
   /*
-   * Image enums read the media/ sources (public/image is generated output), but keys keep their
-   * canonical /image/... shape; they are opaque asset ids stored on faction documents, resolved
+   * Vector enums read the media/ sources (public/vector is generated output).
+   * Keys keep their canonical shape; they are opaque asset ids stored on faction documents, resolved
    * via resolveAsset at render time.
    */
   const dir = join(import.meta.dirname, '..', root, path);
@@ -19,9 +20,13 @@ async function getFiles(path: string, root: 'public' | 'media' = 'public') {
     .filter((f) => f.match(/\.(png|jpg|pdf|svg)$/));
 }
 
-const leaders = await getFiles('/image/leader', 'media');
-const planet = await getFiles('/image/planet', 'media');
-const texture = await getFiles('/image/texture', 'media');
+/* Raster keys come from the lock rather than the files, so this runs where the originals are not checked out. */
+const rasterKeys = Object.keys(rasterLock);
+const rastersIn = (directory: string) =>
+  rasterKeys.filter((key) => key.startsWith(`${directory}/`)).map((key) => key.slice(1));
+const leaders = rastersIn('/image/leader');
+const planet = rastersIn('/image/planet');
+const texture = rastersIn('/image/texture');
 
 // vectors (media/ sources are truth; public/vector is generated output with identical names)
 const background = await getFiles('/vector/background', 'media');

@@ -1,6 +1,5 @@
 import { DECAL, GENERIC, ICON, LOGO, TROOP, TROOP_MODIFIER } from '@shared/assetIds';
-
-import { resolveAsset } from '@game/assets/resolveAsset';
+import { resolveAsset } from '@shared/media/resolveAsset';
 
 const PREVIEWABLE_EXT = /\.(svg|png|jpg|jpeg)$/i;
 

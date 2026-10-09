@@ -2,7 +2,7 @@ import { createContext, useContext } from 'react';
 import type { FC, ReactNode } from 'react';
 
 import type { AssetSize } from '../../shared/assetRules';
-import { resolveAsset } from './resolveAsset';
+import { resolveAsset } from '../../shared/media/resolveAsset';
 
 /**
  * Ambient render mode (#254): `display` everywhere by default;

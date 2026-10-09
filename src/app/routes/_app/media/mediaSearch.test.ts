@@ -1,8 +1,10 @@
 import { createHash } from 'node:crypto';
 import { readFileSync, readdirSync } from 'node:fs';
 
+import type { RasterLock } from '@shared/media/rasterLock';
 import { describe, expect, test } from 'vitest';
 
+import rasterLock from '../../../../../media/raster.lock.json';
 import metadata from './media-index.json';
 import { mediaEntries, catalogueEntries, validateMediaSearch } from './mediaCatalogue';
 import { mediaLocation, mediaPathSearch, validateMediaQuery } from './mediaNavigation';
@@ -14,10 +16,14 @@ const search = (input: Record<string, unknown>) => filterCatalogue(validateMedia
 
 describe('media search index', () => {
   test('covers every source image and vector, with descriptions tied to the reviewed bytes', () => {
-    const files = readdirSync('media', { recursive: true })
-      .map(String)
-      .filter((file) => /\.(svg|png|jpe?g|pdf)$/i.test(file))
-      .map((file) => `/${file}`);
+    /* Rasters come from the lock, which the lock test ties to the bytes, so this holds without the originals. */
+    const files = [
+      ...readdirSync('media', { recursive: true })
+        .map(String)
+        .filter((file) => /\.(svg|pdf)$/i.test(file))
+        .map((file) => `/${file}`),
+      ...Object.keys(rasterLock),
+    ];
     expect(Object.keys(metadata).sort()).toEqual(files.sort());
     expect(mediaEntries.map((entry) => entry.value).sort()).toEqual(files.sort());
     const knownSubjects = new Set<string>(mediaSubjects.map((subject) => subject.value));
@@ -30,10 +36,13 @@ describe('media search index', () => {
         path
       ).toBe(true);
       expect(new Set(item.subjects).size, path).toBe(item.subjects.length);
+      const locked = (rasterLock as RasterLock)[path];
       expect(
-        createHash('sha256')
-          .update(readFileSync(`media${path}`))
-          .digest('hex'),
+        locked
+          ? locked.sha256
+          : createHash('sha256')
+              .update(readFileSync(`media${path}`))
+              .digest('hex'),
         `Review changed artwork: ${path}`
       ).toBe(item.sourceHash);
     }

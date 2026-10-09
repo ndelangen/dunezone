@@ -66,6 +66,8 @@ const HOSTED_PLAY_CLOSURE: readonly string[] = [
   'src/game/fixtures/**',
   'src/game/rulebook/**',
   'public/**',
+  /* `scripts/generate.ts` reads the raster asset ids from the lock (#1888). */
+  'media/raster.lock.json',
   'media/vector/icon/spice.svg',
   'media/vector/icon/arrakis-city.svg',
   'media/vector/icon/arrakis-sietch.svg',

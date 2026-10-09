@@ -286,4 +286,4 @@ export function RulebookSourcePicker({
     </Stack>
   );
 }
-import { resolveAsset } from '@game/assets/resolveAsset';
+import { resolveAsset } from '@shared/media/resolveAsset';
