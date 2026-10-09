@@ -51,7 +51,7 @@ const expectedFiles = new Set<string>();
  * Untracked art counts, so new art is checked before its first commit.
  */
 const listing = execFileSync(
-  'git',
+  '/usr/bin/git',
   ['ls-files', '-z', '-t', '--cached', '--others', '--exclude-standard', '--', 'media'],
   {
     cwd: repoRoot,
